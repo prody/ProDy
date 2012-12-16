@@ -2204,7 +2204,7 @@ setmode, getlen, setlen, addmode"
           set extended 0
           return $extended
         }
-        variable n_dims
+        variable ndim
         variable modes
         set mode [lindex $modes 0]
         variable molid
@@ -2216,7 +2216,7 @@ setmode, getlen, setlen, addmode"
         while {$i < $n_atoms} {
           set this [lindex $resindices $i]
           if {$this == $prev} {
-            if {$n_dims == 1} {
+            if {$ndim == 1} {
               if {[lindex $mode $prev] != [lindex $mode $this]} {
                 set extended 0
                 return $extended
@@ -2271,14 +2271,14 @@ setmode, getlen, setlen, addmode"
         } elseif {$size == $numresid} {
           $handle configure -callback [namespace current]::highlightResiduePair
         } else {
-          vmdcon -warn "Size of heatmap in $hmfile does not match number of atoms or residues, mouse selection actions will not be available."
+          vmdcon -warn "Size of heatmap in $hmfile does not match number of atoms or residues, heatmap is not linked to structural view."
           return
         }
       }
       
       proc pickDatafile {} {
 
-        set hmfile [tk_getOpenFile \
+        set datafile [tk_getOpenFile \
           -filetypes {{"All files" *}}]
         if {[string equal $datafile ""]} {
           return
@@ -2289,31 +2289,63 @@ setmode, getlen, setlen, addmode"
       proc loadDatafile {fn} {
         
         set datafile [open $fn]
-        
-        set legend [file rootname [lindex [file split "/deneme/denem/de.txt"] end]]
-        [file rootname [lindex -1 [file split $fn]]]
-        
         set data [list] 
         set line ""
-        while {[gets $datafile line] == -1} {
-          lappend data [string trim $line]
+        while {[gets $datafile line] != -1} {
+          lappend data {*}[split [string trim $line]]
         }
         close $datafile
+        
+        set legend [file rootname [lindex [file split $fn] end]]
+        
+        set ns [namespace current]
         
         variable title
         variable plotrids
         variable linecolor
-        return [[namespace current]::plotData $plotrids $data $title $legend $linecolor]        
+        variable numatoms
+        variable numresid
+        if {[llength $data] == $numatoms} {
+          set callback ${ns}::highlightAtom
+          set x $plotrids
+        } elseif {[llength $data] == $numresid} {
+          set callback ${ns}::highlightResidue
+          set x $plotrids
+          
+          variable resindices
+          set prev [lindex $resindices 0]
+          set i 1
+          set x [list]
+          lappend x [lindex $plotrids 0]
+          while {$i < $numatoms} {
+            set this [lindex $resindices $i]
+            if {$this != $prev} {
+              lappend x [lindex $plotrids $i]
+            }
+            incr i
+            set prev $this
+          }
+        } else {
+          set callback "none"
+          set x [list]
+          set i 1
+          while {$i <= [llength $data]} {
+            lappend x $i
+            incr i
+          }
+          vmdcon -warn "Size of data array do not match number of atoms or residues. Plot is not linked to structural view."
+        }
+        
+        return [[namespace current]::plotData $x $data $title $legend $linecolor $callback]        
       }
       
       proc plotMobility {} {
         
         set ns [namespace current]
         
-        set ext [${ns}::assessExtended] 
         variable plotrids
         variable betalist
-        if {$ext} {
+        if {[${ns}::assessExtended]} {
           set callback ${ns}::highlightResidue
           variable resindices
           variable numatoms
@@ -2340,9 +2372,9 @@ setmode, getlen, setlen, addmode"
         variable activemode
         set title "[subst $${ns}::title] square fluctuations"
         set legend "Mode $activemode"
-        variable n_dims
-        puts "$n_dims"
-        if {$n_dims == 0} {
+        variable ndim
+        
+        if {$ndim == 1} {
           variable linecolor
           return [${ns}::plotData $x $y $title $legend $linecolor $callback]
         } else {
@@ -2539,6 +2571,13 @@ setmode, getlen, setlen, addmode"
           set repid [expr [molinfo $selid get numreps] - 1]
           set state "off"
         }
+        
+        # if resudue contains CA or P atom, also highlight it
+        set atom [atomselect $selid "residue $which and name CA P"]
+        if {[$atom num] == 1} {
+          [namespace current]::highlightAtom [lindex [$atom get index] 0] "" "" $color
+        }
+        $atom delete
 
         set text "[lindex $chainids $which]:[lindex $resnames $which][lindex $resids $which]"
         if {$state == "on"} {
@@ -2657,6 +2696,13 @@ setmode, getlen, setlen, addmode"
         } else {
           set which "r$y\_$x"
         }
+        
+        # if resudue contains CA or P atom, also highlight it
+        set atoms [atomselect $selid "residue $x $y and name CA P"]
+        if {[$atoms num] == 2} {
+          [namespace current]::highlightAtomPair {*}[lrange [$atoms get index] 0 1]
+        }
+        $atoms delete
         
         variable highlights
         if {[dict exists $highlights $which]} {
