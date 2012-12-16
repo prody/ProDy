@@ -6,7 +6,7 @@
 Changes
 *******************************************************************************
 
-Release 1.4.1 (in development)
+Release 1.4.1 (Dec 16, 2012)
 ===============================================================================
 
 **New Features**:
@@ -21,6 +21,13 @@ Release 1.4.1 (in development)
 
   * :class:`.Sequence` is implemented to handle individual sequence records
     and point to sequences in :class:`.MSA` instances.
+    
+  * :ref:`evol-occupancy` application is implemented for refined MSA 
+    quality checking purposes.
+    
+  * :func:`.mergeMSA` function and :ref:`evol-merge` application are 
+    implemented for merging Pfam MSA to study multi-domain proteins.
+   
      
 **Improvements**:
 
@@ -38,6 +45,10 @@ Release 1.4.1 (in development)
   * :ref:`prody-anm`, :ref:`prody-gnm`, and :ref:`prody-pca` applications
     can write heatmap files for visualization using NMWiz and Heatmapper
     plugins.
+    
+  * Several improvements made to handling sequence labels in Pfam MSA files.
+    Files that contain sequence parts with same protein UniProt ID are
+    handled delicately.
   
 **Changes**:
 
@@ -55,7 +66,6 @@ Release 1.4.1 (in development)
   
   * Fixed :class:`.NMA` indexing problem that was introduced in v1.4.
     
-  
 
 :ref:`nmwiz`
 -------------------------------------------------------------------------------

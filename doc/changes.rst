@@ -23,7 +23,11 @@ Release 1.4.1 (Dec 16, 2012)
     and point to sequences in :class:`.MSA` instances.
     
   * :ref:`evol-occupancy` application is implemented for refined MSA 
-    quality checking purposes. 
+    quality checking purposes.
+    
+  * :func:`.mergeMSA` function and :ref:`evol-merge` application are 
+    implemented for merging Pfam MSA to study multi-domain proteins.
+   
      
 **Improvements**:
 
@@ -41,6 +45,10 @@ Release 1.4.1 (Dec 16, 2012)
   * :ref:`prody-anm`, :ref:`prody-gnm`, and :ref:`prody-pca` applications
     can write heatmap files for visualization using NMWiz and Heatmapper
     plugins.
+    
+  * Several improvements made to handling sequence labels in Pfam MSA files.
+    Files that contain sequence parts with same protein UniProt ID are
+    handled delicately.
   
 **Changes**:
 
