@@ -252,8 +252,13 @@ def gunzip(filename, outname=None):
                 except IOError:
                     pass
             else:
-                with open(outname, 'w') as out: 
-                    out.write(buff.read())
+                buff = buff.read()
+                if isinstance(buff, bytes):
+                    with open(outname, 'wb') as out: 
+                        out.write(buff)
+                else:
+                    with open(outname, 'wb') as out: 
+                        out.write(buff)
                 return outname
         else:
             from StringIO import StringIO
