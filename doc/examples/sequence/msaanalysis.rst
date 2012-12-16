@@ -47,13 +47,9 @@ in the refined msa that have more than 20% gaps can be eliminated. We use the
    :nofigs:
    :include-source:
    
-   >>> msa_refine = refineMSA(msa, label='RNAS2_HUMAN')
+   >>> msa_refine = refineMSA(msa, label='RNAS2_HUMAN', rowocc=0.8, seqid=0.98)
    >>> msa_refine
-   <MSA: PF00074_full refined (label=RNAS2_HUMAN) (525 sequences, 128 residues)>
-   >>> msa_refine = refineMSA(msa_refine, rowocc=0.8)
-   >>> msa_refine
-   <MSA: PF00074_full refined (label=RNAS2_HUMAN) refined (rowocc>=0.8) (466 sequences, 128 residues)>
-
+   <MSA: PF00074_full refined (label=RNAS2_HUMAN, rowocc>=0.8, seqid>=0.98) (355 sequences, 128 residues)>
 
 Plotting occupancy
 ===============================================================================   
@@ -158,8 +154,8 @@ Here we show how to write the mutual information and entropy array. We use the
    :nofigs:
    :include-source:
    
-   >>> writeArray('1KA2_MI.txt', mutinfo)
-   '1KA2_MI.txt'
+   >>> writeArray('1K2A_MI.txt', mutinfo)
+   '1K2A_MI.txt'
 
 This can be later loaded using :func:`numpy.loadtxt`. Further analysis can also
 be done by rank ordering the matrix and analyzing the pairs with highest mutual
@@ -175,11 +171,11 @@ coevolving pairs based on a zscore cutoff.
    >>> import numpy
    >>> rank_row, rank_col, zscore_sort = calcRankorder(mutinfo, zscore=True)
    >>> print(numpy.asarray(indices)[rank_row[:5]])
-   [126 128 129 126 130]
+   [126 128 126  44 129]
    >>> print(numpy.asarray(indices)[rank_col[:5]])
-   [127 127 127 131 127]
+   [127 127 131  98 127]
    >>> print(zscore_sort[:5])
-   [ 5.06776924  4.73041929  4.32016678  4.20075802  4.1165174 ]
+   [ 5.0182683   4.62947908  4.38388435  4.37579936  4.16380971]
    
    
 See Also

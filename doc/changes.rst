@@ -43,6 +43,11 @@ Release 1.4.1 (in development)
 
   * ProDy will not emit a warning message when a wwPDB server is not set
     using :func:`.wwPDBServer`, and use the default US server.
+    
+  * Indexing :class:`.MSA` returns :class:`.Sequence` instances.
+  
+  * Iterating over :class:`.MSA` and :class:`.MSAFile` yields 
+    :class:`.Sequence` instances. 
   
 **Bugfixes**:
 

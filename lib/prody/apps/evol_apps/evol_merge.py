@@ -28,7 +28,14 @@ APP = DevelApp('merge', 'merge multiple MSAs based on common labels')
 
 APP.setExample(
 """Merges multiple MSAs into one MSA based on common labels 
-appearing across all the input MSAs.""", [])
+appearing across all the input MSAs. The following example shows 
+how to merge two MSA of a multi-domain protein.
+
+  $ evol search 3KG2A
+  $ evol fetch ANF_receptor
+  $ evol fetch Lig_chan
+  $ evol merge ANF_receptor_full.slx Lig_chan_full.slx
+""", [])
 
 
 APP.addArgument('msa',
