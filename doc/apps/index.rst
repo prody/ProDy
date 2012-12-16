@@ -13,11 +13,10 @@ come in two following groups.  If you have new application ideas, visit
 
 .. _prody-apps:
 
-Structure and Dynamics Analysis
+ProDy Applications
 ===============================================================================
 
-Following applications are available for structure and dynamics analysis, and
-also for testing your ProDy installation:
+Following applications are designed for structure and dynamics analysis:
 
 .. toctree::
    :maxdepth: 1
@@ -36,10 +35,10 @@ Running :command:`prody` command will provide a description of applications::
 
 .. _evol-apps:
 
-Sequence Evolution Analysis
+Evol Applications
 ===============================================================================
 
-Following applications are for analysis of protein sequence evolution:
+Following applications are designed for analysis of protein sequence evolution:
 
 .. toctree::
    :maxdepth: 1
