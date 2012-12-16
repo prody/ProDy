@@ -29,6 +29,7 @@ ProDy and :ref:`commands` can be operated without this package.
 .. _NumPy: http://sourceforge.net/projects/numpy/files/NumPy/
 .. _matplotlib: https://github.com/matplotlib/matplotlib/downloads
 
+
 Easy Install
 ===============================================================================
 
@@ -40,6 +41,7 @@ If you don't have Easy Install, please download an installation file and
 follow the instructions.
 
 .. _Easy Install: http://peak.telecommunity.com/DevCenter/EasyInstall
+
 
 Download Files
 ===============================================================================
@@ -58,6 +60,7 @@ For details of ProDy releases see :ref:`changes` and :ref:`pypi-statistics`.
 Windows installers are built using `MinGW`_.
 
 .. _MinGW: http://www.mingw.org/
+
 
 Installation Instructions
 ===============================================================================
@@ -121,22 +124,24 @@ You can test your ProDy installation using the following command::
 Note that :program:`prody` script/command must be reachable from your working
 directory.  For more information on testing, see :ref:`testing`.
 
-Plugins
+
+NMWiz
 ===============================================================================
 
-`NMWiz`_ is a `VMD`_ plugin for visualization and animation of normal mode data 
-and comes with `VMD package`_.  See :ref:`nmwiz-tutorial` and :ref:`nmwiz` for
-further details. 
+:ref:`nmwiz` is a `VMD`_ plugin for comparative visual analysis of protein
+dynamics modeled using theory or inferred from experimental structural
+ensembles.  See :ref:`nmwiz` for available updates and installation 
+instructions. 
 
 .. _NMWiz: http://www.ks.uiuc.edu/Research/vmd/plugins/nmwiz/
 .. _VMD: http://www.ks.uiuc.edu/Research/vmd/
-.. _VMD package: http://www.ks.uiuc.edu/Development/Download/download.cgi?PackageName=VMD
+
 
 Recommended Software
 ===============================================================================
 
 * `Scipy`_, when installed, replaces linear algebra module of Numpy. 
-  The Scipy linear algebra module is more flexible and can be faster.
+  Scipy linear algebra module is more flexible and can be faster.
 * `IPython`_ is a must have for interactive ProDy sessions.
 * `PyReadline`_ for colorful interactive ProDy sessions on Windows.
 * `MDAnalysis`_ for analyzing molecular dynamics trajectories.
@@ -146,9 +151,11 @@ Recommended Software
 .. _PyReadline: http://pypi.python.org/pypi/pyreadline
 .. _MDAnalysis: http://code.google.com/p/mdanalysis/
 
+
 Included in ProDy Package
 ===============================================================================
-The following software is included in the ProDy installation packages:
+
+Following software is included in the ProDy installation packages:
 
 * `Pyparsing`_ is used to define the atom selection grammar.
 
@@ -161,6 +168,7 @@ The following software is included in the ProDy installation packages:
 .. _Pyparsing: http://pyparsing.wikispaces.com/
 .. _Biopython: http://biopython.org/
 .. _argparse: http://code.google.com/p/argparse/
+
 
 Source Code
 ===============================================================================
