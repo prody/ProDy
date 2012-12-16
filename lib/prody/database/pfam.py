@@ -24,7 +24,7 @@ __copyright__ = 'Copyright (C) 2010-2012 Anindita Dutta, Ahmet Bakan'
 import re
 from os.path import join, isfile, getsize, splitext, split
 
-from prody import LOGGER
+from prody import LOGGER, PY3K
 from prody.utilities import makePath, openURL, gunzip, openFile, dictElement
 from prody.utilities import relpath
 
@@ -189,7 +189,7 @@ def searchPfam(query, search_b=False, skip_a=False, **kwargs):
     else:
         LOGGER.report('Pfam search completed in %.2fs.', '_pfam')
     
-    if xml.find(b'There was a system error on your last request.'):
+    if xml.find(b'There was a system error on your last request.') > 0:
         LOGGER.warn('No Pfam matches found for: ' + seq)
         return None 
 
@@ -272,10 +272,11 @@ def fetchPfamMSA(acc, alignment='full', compressed=False, **kwargs):
     
     :arg folder: output folder, default is ``'.'``"""   
    
-    getAccUrl = 'http://pfam.sanger.ac.uk/family/acc?id=' + acc
-    handle = openURL(getAccUrl)
+    url = 'http://pfam.sanger.ac.uk/family/acc?id=' + acc
+    handle = openURL(url)
     orig_acc = acc
     acc = handle.readline().strip()
+    if PY3K: acc = acc.decode()
     url_flag = False
     
     if not re.search('(?<=PF)[0-9]{5}$', acc):
