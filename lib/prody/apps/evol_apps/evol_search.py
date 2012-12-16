@@ -106,7 +106,8 @@ def evol_search(query, **kwargs):
     from os.path import join, split
     
     pfam_results =  prody.searchPfam(query, **kwargs)
-    
+    if pfam_results is None:
+        return
     outname = kwargs.get('outname', None)
     delimiter = kwargs.get('delimiter', '\t')
     if outname:

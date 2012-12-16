@@ -182,12 +182,16 @@ def searchPfam(query, search_b=False, skip_a=False, **kwargs):
         else:
             if xml:
                 break
-
+    
     if not xml:
         raise IOError('Pfam search timed out or failed to parse results '
                          'XML, check URL: ' + url)
     else:
         LOGGER.report('Pfam search completed in %.2fs.', '_pfam')
+    
+    if xml.find(b'There was a system error on your last request.'):
+        LOGGER.warn('No Pfam matches found for: ' + seq)
+        return None 
 
     try:
         root =  ET.XML(xml)
