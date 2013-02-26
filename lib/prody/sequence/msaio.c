@@ -40,7 +40,7 @@ static int parseLabel(PyObject *labels, PyObject *mapping, char line[],
     /* Append label to *labels*, extract identifier, and index label 
        position in the list. Return 1 when successful, 0 on failure. */
     
-    int i, slash = 0, dash = 0, pipes[4] = {0, 0, 0, 0};
+    int i, slash = 0, dash = 0, pipes[5] = {0, 0, 0, 0, 0};
     
     for (i = 0; i < length; i++)
         if (line[i] == '\n' || line[i] == ' ') 
@@ -50,7 +50,7 @@ static int parseLabel(PyObject *labels, PyObject *mapping, char line[],
         else if (line[i] == '-' && slash > 0 && dash == 0)
             dash = i;
         else if (line[i] == '|') {
-            pipes[0]++;
+        	pipes[0]++;
             pipes[pipes[0]] = i;
         }
     
