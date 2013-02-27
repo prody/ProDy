@@ -13,7 +13,7 @@ ProDy and :ref:`nmwiz` are envisioned, designed, and developed by
 
 `Lidio Meireles`_ provided insightful comments on the design of ProDy classes 
 and modules, and contributed to the development of early versions of 
-:ref:`commands` for automated tasks.
+:ref:`prody-apps` for automated tasks.
 
 `Ying Liu`_ provided the 
 code for Perturbation Response Scanning method.   

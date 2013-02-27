@@ -158,9 +158,9 @@ html_index = 'index.html'
 generic_sidebars = ['docversion.html', 'howtocite.html', 'localtoc.html', 
                     'relations.html', 'searchbox.html']
 html_sidebars = {
-    'index': ['slideshow.html', 'docversion.html', 'howtocite.html', 
-              'getprody.html', 'credits.html', 'getintouch.html', 
-              'searchbox.html',], 
+    'index': [],#['slideshow.html', 'docversion.html', 'howtocite.html', 
+              #'getprody.html', 'credits.html', 'getintouch.html', 
+              #'searchbox.html',], 
     'genindex': ['searchbox.html'],  
     'py-modindex': ['searchbox.html'],  
     'search': [],
@@ -180,8 +180,8 @@ html_sidebars = {
     'reports/index': generic_sidebars,
     'scripts/index': generic_sidebars,
     'todo': generic_sidebars,
-    'plugins/index': ['slideshow.html'] + generic_sidebars,
-    'plugins/getnmwiz': ['slideshow.html'] + generic_sidebars,
+    'plugins/index': generic_sidebars,
+    'plugins/getnmwiz': generic_sidebars,
     '**': ['docversion.html', 'howtocite.html', 'localtoc.html', 
            'relations.html', 'codesnippets.html', 'searchbox.html']}
 #html_sidebars = {'index': ['indexsidebar.html', 'searchbox.html']}

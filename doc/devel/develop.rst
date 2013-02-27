@@ -74,7 +74,7 @@ build and copy C modules to where they need to be::
   $ python setup.py build
   $ python setup.py copy
 
-You may also want to make sure that you can run :ref:`commands` from anywhere
+You may also want to make sure that you can run :ref:`prody-apps` from anywhere
 on your system.  One way to do this by adding :file:`prody/scripts` folder
 to your :envvar:`PATH` environment variable, e.g.::
 

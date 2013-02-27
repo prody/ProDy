@@ -1,58 +1,26 @@
-.. _commands:
+.. _prody-apps:
 
 *******************************************************************************
 ProDy Applications
 *******************************************************************************
 
 ProDy applications are command line programs that automates structural data
-analysis, theoretical calculations, and plotting resulting data.  Applications
-come in two following groups.  If you have new application ideas, visit 
-`issue tracker`_ and make a proposal. 
+analysis, theoretical calculations, and plotting resulting data.  
 
-.. _issue tracker: https://bitbucket.org/abakan/prody/issues
+Running :command:`prody` command will provide a description of applications::
+  
+  $ prody
+  
+.. literalinclude:: prody.txt
 
-.. _prody-apps:
 
-ProDy Applications
-===============================================================================
-
-Following applications are designed for structure and dynamics analysis:
+See usage details of these applications below:
 
 .. toctree::
    :maxdepth: 1
    :glob:
 
    prody_*
-
-
-Running :command:`prody` command will provide a description of applications::
-  
-  $ prody
-  
-
-.. literalinclude:: prody.txt
-
-
-.. _evol-apps:
-
-Evol Applications
-===============================================================================
-
-Following applications are designed for analysis of protein sequence evolution:
-
-.. toctree::
-   :maxdepth: 1
-   :glob:
-
-   evol_*
-
-
-Running :command:`evol` command will provide a description of applications::
-  
-  $ evol
-  
-
-.. literalinclude:: evol.txt
 
 
 Application Setup

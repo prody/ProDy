@@ -10,9 +10,7 @@
 </style>
 {%- endif %}
 <meta http-equiv="expires" content="-1">
-<!--
-<script type="text/javascript" src="https://apis.google.com/js/plusone.js"></script>
--->
+
 {% endblock %}
 
 {% block rootrellink %}
@@ -36,10 +34,15 @@
 </a>
 </div>
 <script type="text/javascript">
-if (document.URL.search("\/plugins\/") > -1) {
-  element = document.getElementById("logo");
-  logo.src = "{{ pathto("_static/nmwiz.png", 1) }}";
+function updateLogo() {
+  if (document.URL.search("\/plugins\/") > -1 || document.URL.search("panel1-4") > -1) {
+    document.getElementById("logo").src = "{{ pathto("_static/nmwiz.png", 1) }}";
+  } else if (document.URL.search("evol") > -1 || document.URL.search("panel1-3") > -1) {
+    document.getElementById("logo").src = "{{ pathto("_static/evol.png", 1) }}";
+  }
+
 }
+updateLogo()
 </script>
 {% endblock %}
 {% block document %}

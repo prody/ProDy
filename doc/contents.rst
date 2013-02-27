@@ -18,6 +18,7 @@ ProDy Documentation Contents
    reference/index
    plugins/index
    apps/index
+   apps/evol
    howtocite
    publications
    reports/index
@@ -29,6 +30,7 @@ ProDy Documentation Contents
    changes
    license
    glossary
+   
 
 Indices and tables
 ==================

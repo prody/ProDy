@@ -1,12 +1,12 @@
 .. _commands-tutorial:
 
 *******************************************************************************
-Commands Tutorial
+Applications Tutorial
 *******************************************************************************
 
-You can use :ref:`commands` to perform some automated tasks, such as 
+You can use :ref:`prody-apps` to perform some automated tasks, such as 
 ANM/GNM/PCA calculations, fetching and aligning PDB files, making atom 
-selections, or identify contacts.  ProDy commands are handled by a script
+selections, or identify contacts.  ProDy applications are handled by a script
 that comes with all installation packages.  You can run the script
 from a central location such as :file:`/usr/local/bin`:: 
 
@@ -24,7 +24,7 @@ or on Windows::
 
   $ C:\Python27\python.exe C:\Python27\Scripts\prody -h
  
-These lines will print available ProDy commands.  You can get more help
+These lines will print available ProDy applications.  You can get more help
 on a specific commands as follows::
 
   $ prody anm -h

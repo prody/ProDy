@@ -38,12 +38,15 @@ Structure analysis
 Sequence analysis
 ===============================================================================
 
-  * :func:`.evol_fetch`
   * :func:`.evol_search`
+  * :func:`.evol_fetch`
+  * :func:`.evol_filter`
   * :func:`.evol_refine`
-  * :func:`.evol_entropy`
+  * :func:`.evol_merge`
+  * :func:`.evol_conserv`
   * :func:`.evol_coevol`
-  * :func:`.evol_dynamics`
+  * :func:`.evol_occupancy`
+  * :func:`.evol_rankorder`
 """
 
 __author__ = 'Ahmet Bakan'

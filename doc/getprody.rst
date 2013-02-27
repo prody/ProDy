@@ -12,8 +12,9 @@ Required Software
   *Windows*: Note that, NumPy and ProDy supports only **32-bit** Python 
   on Windows.
   
-  *Python 2.6 and 3.1* can be used to run ProDy, but note that all tests are 
-  performed using Python 2.7 and 3.2, so these are the recommended versions. 
+  *Python 2.6 and 3.1* can be used to install and run ProDy. However, note 
+  that ProDy tests are performed using Python 2.7 and 3.2, so these are the 
+  recommended versions. 
   
 * `NumPy`_ 1.4+
 
@@ -23,7 +24,8 @@ If you don't have Python developer libraries installed on your machine,
 use your package manager to install :file:`python-dev` package. 
 
 In addition, `matplotlib`_ is required for using plotting functions.  
-ProDy and :ref:`commands` can be operated without this package.   
+ProDy, :ref:`prody-apps`, and :ref:`evol-apps` can be operated without 
+this package.   
 
 .. _Python: http://www.python.org/download/
 .. _NumPy: http://sourceforge.net/projects/numpy/files/NumPy/
@@ -110,9 +112,10 @@ in :guilabel:`Control Panel`.
  
 Download :file:`ProDy-0.{x}.{y}.win32-py2.{z}.exe` and run to install ProDy.
 
-To be able use :ref:`commands` in command prompt (:program:`cmd.exe`), 
-append Python and scripts folders (e.g. :file:`C:\\Python27` and 
-:file:`C:\\Python27\\Scripts`) to :envvar:`PATH` environment variable.
+To be able use :ref:`prody-apps` and :ref:`evol-apps` in command prompt 
+(:program:`cmd.exe`), append Python and scripts folders (e.g. 
+:file:`C:\\Python27` and :file:`C:\\Python27\\Scripts`) to :envvar:`PATH` 
+environment variable.
 
 Testing
 -------------------------------------------------------------------------------
@@ -162,7 +165,7 @@ Following software is included in the ProDy installation packages:
 * `Biopython`_ KDTree package and pairwise2 module are used for distance based
   atom selections and pairwise sequence alignment, respectively. 
 
-* `argparse`_ is used to implement new :ref:`commands` and provided for 
+* `argparse`_ is used to implement applications and provided for 
   compatibility with Python 2.6.
 
 .. _Pyparsing: http://pyparsing.wikispaces.com/
