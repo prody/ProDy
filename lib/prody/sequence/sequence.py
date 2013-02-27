@@ -192,7 +192,7 @@ class Sequence(object):
         resnums = iter(range(start, end + 1))
         if gaps:
             return [next(resnums) if torf else None 
-                    for torf in char.isalpha(self._array())]
+                    for torf in char.isalpha(self._array)]
         else:
             return list(resnums)
         
