@@ -353,7 +353,7 @@ def iterPDBFilenames(path=None, sort=False, unique=True, **kwargs):
 
     if path is None or kwargs.get('mirror') is True:
         if path is None:
-            path = getPDBMirrorPath()
+            path = pathPDBMirror()
         if path is None:
             raise ValueError('path must be specified or PDB mirror path '
                              'must be set')
