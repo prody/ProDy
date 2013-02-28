@@ -155,7 +155,7 @@ class Sequence(object):
         
         label = self._label
         if label is None: label = self._msa._labels[self._index] 
-        return label if full else splitSeqLabel(label)[0]
+        return (label if full else splitSeqLabel(label)[0]).strip()
     
     def numGaps(self):
         """Return number of gap characters."""
