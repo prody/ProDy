@@ -253,13 +253,13 @@ class MSA(object):
         if msa.base is not None:
             msa = msa.copy()
         
-        return MSA(msa=msa, title=self._title + '\'', labels=lbls)
+        return MSA(msa=msa, title=self._title + '\'', labels=lbls,
+                   aligned=self._aligned)
                
     def __iter__(self):
         
         for i in range(len(self._msa)):
             yield Sequence(self, i)
-            
     
     def __contains__(self, key):
         
