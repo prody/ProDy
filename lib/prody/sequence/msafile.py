@@ -568,7 +568,7 @@ def parseMSA(filename, **kwargs):
         mapping = {}
         maxlen = 0
         for i, seq in enumerate(msa):
-            label = seq.getLabel()
+            label = seq.getLabel(True)
             lappend(label)
             if aligned:
                 sappend(seq._array)
@@ -602,12 +602,13 @@ def parseMSA(filename, **kwargs):
         else:
             raise IOError('MSA file format is not recognized')
         
-        msaarr, labels, mapping, lcount = parser(filename, filesize, aligned)
+        msaarr, labels, mapping, lcount = parser(filename, filesize)
         if lcount != len(msaarr):
             LOGGER.warn('Failed to parse {0} sequence labels.'
                         .format(len(msaarr) - lcount))
         
-    msa = MSA(msa=msaarr, title=title, labels=labels, mapping=mapping)
+    msa = MSA(msa=msaarr, title=title, labels=labels, mapping=mapping,
+              aligned=aligned)
 
     if aligned:
         LOGGER.report('{0} sequence(s) with {1} residues were parsed in '
