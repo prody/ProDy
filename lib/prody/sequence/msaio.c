@@ -22,6 +22,8 @@
 #include "Python.h"
 #include "numpy/arrayobject.h"
 #define LENLABEL 100
+#define FASTALINELEN 1000
+#define SELEXLINELEN 10000
 
 static char *intcat(char *msg, int line) {
    
@@ -40,19 +42,19 @@ static int parseLabel(PyObject *labels, PyObject *mapping, char line[],
     /* Append label to *labels*, extract identifier, and index label 
        position in the list. Return 1 when successful, 0 on failure. */
     
-    int i, slash = 0, dash = 0, ipipe = 0, pipes[4] = {0, 0, 0, 0};
+    int i, ch, slash = 0, dash = 0;//, ipipe = 0, pipes[4] = {0, 0, 0, 0};
     
-    for (i = 0; i < length; i++)
-        if (line[i] == '\n' || line[i] == ' ') 
+    for (i = 0; i < length; i++) {
+        ch = line[i];
+        if (ch < 32 && ch != 20)
             break;
-        else if (line[i] == '/' && slash == 0 && dash == 0)
+        else if (ch == '/' && slash == 0 && dash == 0)
             slash = i;
-        else if (line[i] == '-' && slash > 0 && dash == 0) {
+        else if (ch == '-' && slash > 0 && dash == 0)
             dash = i;
-        }
-        else if (line[i] == '|' && ipipe < 4) {
-            pipes[ipipe++] = i;
-        }
+        //else if (line[i] == '|' && ipipe < 4)
+        //    pipes[ipipe++] = i;
+    }
     
     PyObject *label, *index;
     #if PY_MAJOR_VERSION >= 3
@@ -114,94 +116,78 @@ static PyObject *parseFasta(PyObject *self, PyObject *args) {
        lengths. */
 
     char *filename;
-    long lenseq, numseq; /* seq length and expected max num of sequences */
+    long filesize;
+    int aligned;
     
-    if (!PyArg_ParseTuple(args, "sii", &filename, &lenseq, &numseq))
+    if (!PyArg_ParseTuple(args, "sii", &filename, &filesize, &aligned))
         return NULL;
     
-    long i = 0, lenline = 0, lenlast = 0, numlines = 0; 
-    long size = lenseq + LENLABEL, iline = 0;
-    char errmsg[LENLABEL] = "failed to parse fasta file at line ";
-
     PyObject *labels = PyList_New(0), *mapping = PyDict_New();
     if (!labels || !mapping)
         return PyErr_NoMemory();
-
-    char *line = malloc(size * sizeof(char));
+        
+    char *line = malloc((FASTALINELEN + 1) * sizeof(char));
     if (!line) 
         return PyErr_NoMemory();
-    char *data = malloc(lenseq * numseq * sizeof(char));
+    char *data = malloc(filesize * sizeof(char));
     if (!data) {
         free(line);
         return PyErr_NoMemory();
     }
+        
+    long iline = 0, i, seqlen = 0, curlen = 0;
+    char errmsg[LENLABEL] = "failed to parse FASTA file at line ";
+
+    char ch;
+    long index = 0, ccount = -1, clabel = 0;
 
     FILE *file = fopen(filename, "rb");
-    while (fgets(line, size, file) != NULL) {
-        if (line[0] == '>')
-            continue;
-
-        for (i = 0; i < strlen(line); i++)
-            if (line[i] == ' ' || line[i] == '\n')
-                break;
-        lenline = i;
-        lenlast = lenseq % lenline;
-        numlines = (lenseq - lenlast) / lenline;
-        break;
-    }
-    
-    fseek(file, 0, SEEK_SET);
-
-    int j = 0;
-    long index = 0, ccount = 0, clabel = 0;
-
-    while (fgets(line, size, file) != NULL) {
+    while (fgets(line, FASTALINELEN, file) != NULL) {
         iline++;
-        if (line[0] != '>')
-            continue;
-        for (i = 1; i < size; i++)
-            if (line[i] != ' ')
-                break;
-
-        /* parse label */
-        clabel += parseLabel(labels, mapping, line + i, size); 
-
-        /* parse sequence */
-        for (i = 0; i < numlines; i++) {
-            if (fgets(line, size, file) == NULL) {
-                free(line);
-                free(data);
-                PyErr_SetString(PyExc_IOError, intcat(errmsg, iline));
-                return NULL;
+        if (line[0] == '>') {
+            if (seqlen != curlen) {
+                if (seqlen) {
+                    free(line);
+                    free(data);
+                    fclose(file);
+                    PyErr_SetString(PyExc_IOError, intcat(errmsg, iline));
+                    return NULL;
+                } else
+                    seqlen = curlen;
+                ccount++;
             }
-            for (j = 0; j < lenline; j++)
-                data[index++] = line[j];
-        }
-        
-        if (lenlast) {
-            if (fgets(line, size, file) == NULL) {
-                free(line);
-                free(data);
-                PyErr_SetString(PyExc_IOError, intcat(errmsg, iline));
-                return NULL;
+            // `line + 1` is to omit `>` character
+            clabel += parseLabel(labels, mapping, line + 1, FASTALINELEN);
+            curlen = 0;
+        } else {
+            for (i = 0; i < FASTALINELEN; i++) {
+                ch = line[i];
+                if (ch < 32)
+                    break;
+                else {
+                    data[index++] = ch;
+                    curlen++;
+                }
             }
-            for (j = 0; j < lenlast; j++)
-                data[index++] = line[j];
         }
-
-        ccount++;
+    }
+    fclose(file);
+    
+    if (seqlen != curlen) {
+        free(line);
+        free(data);
+        PyErr_SetString(PyExc_IOError, intcat(errmsg, iline));
+        return NULL;
     }
 
-    fclose(file);
     free(line);
-    data = realloc(data, lenseq * ccount * sizeof(char));
-    npy_intp dims[2] = {ccount, lenseq};
+    data = realloc(data, index * sizeof(char));
+    npy_intp dims[2] = {index / seqlen, seqlen};
     PyObject *msa = PyArray_SimpleNewFromData(2, dims, PyArray_CHAR, data);
     PyObject *result = Py_BuildValue("(OOOi)", msa, labels, mapping, clabel);
     Py_DECREF(msa);
     Py_DECREF(labels);
     Py_DECREF(mapping);
-
     return result;
 }
 
@@ -283,14 +269,15 @@ static PyObject *parseSelex(PyObject *self, PyObject *args) {
        the sequences are aligned, i.e. start and end at the same column. */
 
     char *filename;
-    long lenseq, numseq; /* seq length and expected max num of sequences */
+    long filesize;
+    int aligned;
     
-    if (!PyArg_ParseTuple(args, "sii", &filename, &lenseq, &numseq))
+    if (!PyArg_ParseTuple(args, "sii", &filename, &filesize, &aligned))
         return NULL;
 
-    long i = 0, beg = 0, end = 0; 
-    long size = lenseq + LENLABEL, iline = 0;
-    char errmsg[LENLABEL] = "failed to parse selex/stockholm file at line ";
+    long i = 0, beg = 0, end = 0;
+    long size = SELEXLINELEN + 1, iline = 0, seqlen = 0;
+    char errmsg[LENLABEL] = "failed to parse SELEX/Stockholm file at line ";
 
     PyObject *labels = PyList_New(0), *mapping = PyDict_New();
     if (!labels || !mapping)
@@ -298,7 +285,7 @@ static PyObject *parseSelex(PyObject *self, PyObject *args) {
     char *line = malloc(size * sizeof(char));
     if (!line)
         return PyErr_NoMemory();
-    char *data = malloc(lenseq * numseq * sizeof(char));
+    char *data = malloc(filesize * sizeof(char));
     if (!data) {
         free(line);
         return PyErr_NoMemory();
@@ -317,7 +304,11 @@ static PyObject *parseSelex(PyObject *self, PyObject *args) {
             if (line[i] != ' ')
                 break;
         beg = i;
-        end = beg + lenseq;
+        for (; i < size; i++)
+            if (line[i] < 32)
+                break;
+        end = i;
+        seqlen = end - beg;
         break;
     }
     iline--;
@@ -334,23 +325,22 @@ static PyObject *parseSelex(PyObject *self, PyObject *args) {
         if (line[space] != ' ') {
             free(line);
             free(data);
+            fclose(file);
             PyErr_SetString(PyExc_IOError, intcat(errmsg, iline));
             return NULL;
         } 
 
-        /* parse label */
-        clabel += parseLabel(labels, mapping, line, size);
+        clabel += parseLabel(labels, mapping, line, space);
         
-        /* parse sequence */
         for (i = beg; i < end; i++)
             data[index++] = line[i];
         ccount++;
     }
     fclose(file);
     free(line);
-    
-    data = realloc(data, lenseq * ccount * sizeof(char));
-    npy_intp dims[2] = {ccount, lenseq};
+
+    data = realloc(data, index * sizeof(char));
+    npy_intp dims[2] = {index / seqlen, seqlen};
     PyObject *msa = PyArray_SimpleNewFromData(2, dims, PyArray_CHAR, data);
     PyObject *result = Py_BuildValue("(OOOi)", msa, labels, mapping, clabel);
     Py_DECREF(msa);

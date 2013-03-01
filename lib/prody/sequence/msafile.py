@@ -592,11 +592,8 @@ def parseMSA(filename, **kwargs):
         else:
             msaarr = array(seqlist, '|S' + str(maxlen))
     else:
-        msafile = MSAFile(filename)
-        format = msafile.format
-        lenseq = len(next(iter(msafile)))
-        numseq = int(getsize(filename) / (lenseq + 10))
-        del msafile
+        filesize = getsize(filename)
+        format = MSAEXTMAP[splitext(filename)[1]]
         
         if format == FASTA:
             from .msaio import parseFasta as parser
@@ -605,7 +602,7 @@ def parseMSA(filename, **kwargs):
         else:
             raise IOError('MSA file format is not recognized')
         
-        msaarr, labels, mapping, lcount = parser(filename, lenseq, numseq)
+        msaarr, labels, mapping, lcount = parser(filename, filesize, aligned)
         if lcount != len(msaarr):
             LOGGER.warn('Failed to parse {0} sequence labels.'
                         .format(len(msaarr) - lcount))
