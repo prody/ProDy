@@ -21,6 +21,7 @@
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
+import os
 from os.path import abspath, join, isfile, isdir, split, splitext
 
 import numpy as np
