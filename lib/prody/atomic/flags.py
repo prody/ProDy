@@ -663,6 +663,12 @@ Others
 
 .. glossary::
     
+   all
+      indicates all atoms, returns a new view of the instance
+
+   none
+      indicates no atoms, returns **None**
+   
    dummy
       indicates dummy atoms in an :class:`.AtomMap`
    
