@@ -61,7 +61,28 @@ class Atomic(object):
             if name.startswith('is') and self.isFlagLabel(name[2:]):
                 return all(self._getFlags(name[2:]))
             else:
-                if self.isFlagLabel(name):
+                if name == 'all':
+                    try:
+                        ag = self.getAtomGroup()
+                    except AttributeError:
+                        ag = self
+                        selstr = name
+                        return Selection(ag, arange(self.numAtoms()), 'all', 
+                                         self._acsi, unique=True)
+                    else:
+                        try:
+                            dummies = self.numDummies()
+                        except AttributeError:
+                            return Selection(ag, self.getIndices(), 
+                                             self.getSelstr(), 
+                                             self._acsi, unique=True)
+                        else:
+                            return AtomMap(ag, self.getIndices(), self._acsi, 
+                                           intarrays=True, dummies=dummies,
+                                           title=self.getTitle())
+                elif name == 'none': 
+                    return None
+                elif self.isFlagLabel(name):
                     try:
                         ag = self.getAtomGroup()
                     except AttributeError:
@@ -88,27 +109,6 @@ class Atomic(object):
                                                  ' from ' + str(self))
                         else:
                             return None
-                elif name == 'all':
-                    try:
-                        ag = self.getAtomGroup()
-                    except AttributeError:
-                        ag = self
-                        selstr = name
-                        return Selection(ag, arange(self.numAtoms()), 'all', 
-                                         self._acsi, unique=True)
-                    else:
-                        try:
-                            dummies = self.numDummies()
-                        except AttributeError:
-                            return Selection(ag, self.getIndices(), 
-                                             self.getSelstr(), 
-                                             self._acsi, unique=True)
-                        else:
-                            return AtomMap(ag, self.getIndices(), self._acsi, 
-                                           intarrays=True, dummies=dummies,
-                                           title=self.getTitle())
-                elif name == 'none': 
-                    return None
                 else:
                     selstr = name
                     items = name.split('_')
