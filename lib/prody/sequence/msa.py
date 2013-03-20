@@ -45,7 +45,7 @@ class MSA(object):
     >>> msafile = 'piwi_seed.sth'
     >>> msa = parseMSA(msafile)
     >>> msa
-    <MSA: piwi_seed (20 sequences, 404 residues)>
+    <MSA: piwi_seed (18 sequences, 395 residues)>
 
     *Querying*
     
@@ -59,31 +59,31 @@ class MSA(object):
     
     Access a sequence at a given index:
     
-    >>> msa[0] # doctest: +ELLIPSIS
-    <Sequence: YQ53_CAEEL (piwi_seed[0]; length 404; 328 residues and 76 gaps)>
+    >>> msa[0]
+    <Sequence: TAG76_CAEEL (piwi_seed[0]; length 395; 307 residues and 88 gaps)>
     
     Access a sequence by UniProt ID:
     
-    >>> msa['YQ53_CAEEL'] # doctest: +ELLIPSIS
-    <Sequence: YQ53_CAEEL (piwi_seed[0]; length 404; 328 residues and 76 gaps)>
+    >>> msa['YQ53_CAEEL']
+    <Sequence: YQ53_CAEEL (piwi_seed[6]; length 395; 328 residues and 67 gaps)>
     
     Retrieve a character or a slice of a sequence:
 
     >>> msa[0,0]
-    <Sequence: YQ53_CAEEL (length 1; 1 residues and 0 gaps)>
+    <Sequence: TAG76_CAEEL (length 1; 1 residues and 0 gaps)>
     >>> msa[0,0:10]
-    <Sequence: YQ53_CAEEL (length 10; 9 residues and 1 gaps)>
+    <Sequence: TAG76_CAEEL (length 10; 9 residues and 1 gaps)>
 
     *Slicing*
     
     Slice an MSA instance:
     
     >>> msa[:2]
-    <MSA: piwi_seed' (2 sequences, 404 residues)>
+    <MSA: piwi_seed' (2 sequences, 395 residues)>
     
     Slice using a list of UniProt IDs:
     
-    >>> msa[:2] == msa[['YQ53_CAEEL', 'Q21691_CAEEL']]
+    >>> msa[:2] == msa[['TAG76_CAEEL', 'O16720_CAEEL']]
     True
     
     Slice MSA rows and columns:
@@ -97,13 +97,13 @@ class MSA(object):
     parse an MSA selectively, which may be useful in low memory situations:
         
     >>> msa = parseMSA(msafile, filter=lambda lbl, seq: 'ARATH' in lbl, 
-    ...                slice=list(range(10)) + list(range(394,404)))
+    ...                slice=list(range(10)) + list(range(374,384)))
     >>> msa
     <MSA: piwi_seed (3 sequences, 20 residues)>
 
     Compare this to result from parsing the complete file:
     >>> parseMSA(msafile)
-    <MSA: piwi_seed (20 sequences, 404 residues)>"""
+    <MSA: piwi_seed (18 sequences, 395 residues)>"""
     
     def __init__(self, msa, title='Unknown', labels=None, **kwargs):
         """*msa* must be a 2D Numpy character array. *labels* is a list of
