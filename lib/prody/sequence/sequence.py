@@ -68,9 +68,9 @@ class Sequence(object):
         >>> from prody import *
         >>> msa = parseMSA('piwi_seed.sth')
         >>> Sequence(msa, 0)
-        <Sequence: YQ53_CAEEL (piwi_seed[0]; length 404; 328 residues and 76 gaps)>
+        <Sequence: TAG76_CAEEL (piwi_seed[0]; length 395; 307 residues and 88 gaps)>
         >>> msa[0]
-        <Sequence: YQ53_CAEEL (piwi_seed[0]; length 404; 328 residues and 76 gaps)>
+        <Sequence: TAG76_CAEEL (piwi_seed[0]; length 395; 307 residues and 88 gaps)>
         
         *Independent*
         

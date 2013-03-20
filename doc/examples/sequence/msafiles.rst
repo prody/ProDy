@@ -88,7 +88,7 @@ are necessary for larger families. Some other parameters like ``gap``,
 ``order`` or ``inserts`` can be set, as shown in the following example. 
 
 >>> fetchPfamMSA('PF02171', compressed=True, gaps='mixed', inserts='lower', 
-... order='alphabetical', format='fasta')
+... order='alphabetical', format='fasta') # doctest: +SKIP
 'PF02171_full.fasta.gz'
     
 >>> msafile = 'piwi_seed.sth'
@@ -106,20 +106,20 @@ object will yield sequence id, sequence, residue start and end indices:
 >>> msafobj = MSAFile(msafile)
 >>> for seq in msafobj: # doctest: +ELLIPSIS 
 ...     seq
-<Sequence: YQ53_CAEEL (length 404; 328 residues and 76 gaps)>
-<Sequence: Q21691_CAEEL (length 404; 329 residues and 75 gaps)>
-<Sequence: AGO6_ARATH (length 404; 311 residues and 93 gaps)>
+<Sequence: TAG76_CAEEL (length 395; 307 residues and 88 gaps)>
+<Sequence: O16720_CAEEL (length 395; 302 residues and 93 gaps)>
+<Sequence: AGO10_ARATH (length 395; 322 residues and 73 gaps)>
 ...
-<Sequence: O02095_CAEEL (length 404; 305 residues and 99 gaps)>
-<Sequence: Q19645_CAEEL (length 404; 323 residues and 81 gaps)>
-<Sequence: O62275_CAEEL (length 404; 331 residues and 73 gaps)>
+<Sequence: PIWI_ARCFU (length 395; 297 residues and 98 gaps)>
+<Sequence: Y1321_METJA (length 395; 274 residues and 121 gaps)>
+<Sequence: O67434_AQUAE (length 395; 276 residues and 119 gaps)>
 
 Reading using :func:`.parseMSA` yields an :class:`.MSA` object.  We can parse 
 compressed files, but reading uncompressed files are much faster as shown.
 
 >>> msa = parseMSA('PF02171_full.fasta.gz')
 
->>> fetchPfamMSA('PF02171', format='fasta')
+>>> fetchPfamMSA('PF02171', format='fasta') # doctest: +SKIP
 'PF02171_full.fasta'
 >>> msa = parseMSA('PF02171_full.fasta')
 
@@ -140,25 +140,25 @@ organism *ARATH* are filtered:
 >>> msafobj = MSAFile(msafile, filter=lambda lbl, seq: 'ARATH' in lbl)
 >>> for seq in msafobj: # doctest: +ELLIPSIS 
 ...     seq
-<Sequence: AGO6_ARATH (length 404; 311 residues and 93 gaps)>
-<Sequence: AGO4_ARATH (length 404; 309 residues and 95 gaps)>
-<Sequence: AGO10_ARATH (length 404; 322 residues and 82 gaps)>
+<Sequence: AGO10_ARATH (length 395; 322 residues and 73 gaps)>
+<Sequence: AGO6_ARATH (length 395; 311 residues and 84 gaps)>
+<Sequence: AGO4_ARATH (length 395; 309 residues and 86 gaps)>
 
 *Slicing sequences*
     
 A list of integers can be used to slice sequences as follows.  This enables 
 selective parsing of the MSA file. 
     
->>> msafobj = MSAFile(msafile, slice=list(range(10)) + list(range(394,404)))
+>>> msafobj = MSAFile(msafile, slice=list(range(10)) + list(range(374,384)))
 >>> for seq in msafobj: # doctest: +ELLIPSIS 
 ...     seq
-<Sequence: YQ53_CAEEL (length 20; 19 residues and 1 gaps)>
-<Sequence: Q21691_CAEEL (length 20; 19 residues and 1 gaps)>
-<Sequence: AGO6_ARATH (length 20; 20 residues and 0 gaps)>
+<Sequence: TAG76_CAEEL (length 20; 19 residues and 1 gaps)>
+<Sequence: O16720_CAEEL (length 20; 18 residues and 2 gaps)>
+<Sequence: AGO10_ARATH (length 20; 19 residues and 1 gaps)>
 ...
-<Sequence: O02095_CAEEL (length 20; 18 residues and 2 gaps)>
-<Sequence: Q19645_CAEEL (length 20; 18 residues and 2 gaps)>
-<Sequence: O62275_CAEEL (length 20; 19 residues and 1 gaps)>
+<Sequence: PIWI_ARCFU (length 20; 19 residues and 1 gaps)>
+<Sequence: Y1321_METJA (length 20; 20 residues and 0 gaps)>
+<Sequence: O67434_AQUAE (length 20; 20 residues and 0 gaps)>
 
 
 Slicing can also be done using :class:`.MSA`. The :class:`.MSA`. object offers 
@@ -182,29 +182,29 @@ Indexing MSA objects
 Retrieve a sequence at a given index:
     
 >>> msa[0] # doctest: +ELLIPSIS
-<Sequence: YQ53_CAEEL (piwi_seed[0]; length 404; 328 residues and 76 gaps)>
+<Sequence: TAG76_CAEEL (piwi_seed[0]; length 395; 307 residues and 88 gaps)>
     
 Retrieve a sequence by UniProt ID:
     
 >>> msa['YQ53_CAEEL'] # doctest: +ELLIPSIS
-<Sequence: YQ53_CAEEL (piwi_seed[0]; length 404; 328 residues and 76 gaps)>
+<Sequence: YQ53_CAEEL (piwi_seed[6]; length 395; 328 residues and 67 gaps)>
     
 Slice an MSA instance:
     
 >>> msa[:2]
-<MSA: piwi_seed' (2 sequences, 404 residues)>
+<MSA: piwi_seed' (2 sequences, 395 residues)>
     
 Slice using a list of UniProt IDs:
     
->>> msa[:2] == msa[['YQ53_CAEEL', 'Q21691_CAEEL']]
+>>> msa[:2] == msa[['TAG76_CAEEL', 'O16720_CAEEL']]
 True
     
 Retrieve a character or a slice of a sequence:
 
 >>> msa[0,0]
-<Sequence: YQ53_CAEEL (length 1; 1 residues and 0 gaps)>
+<Sequence: TAG76_CAEEL (length 1; 1 residues and 0 gaps)>
 >>> msa[0,0:10]
-<Sequence: YQ53_CAEEL (length 10; 9 residues and 1 gaps)>
+<Sequence: TAG76_CAEEL (length 10; 9 residues and 1 gaps)>
     
 Slice MSA rows and columns:
     
