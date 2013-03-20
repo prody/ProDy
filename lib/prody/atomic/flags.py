@@ -844,6 +844,21 @@ def setCategories(ag, label):
 addPlanter(setCategories, 'stdaa', 'nonstdaa', *list(CATEGORIZED.keys()), 
            aliases=False)
 
+def setAll(ag, label):
+     
+    flags = ones(ag.numAtoms(), bool)
+    ag._setFlags('all', flags)
+    return flags
+
+addPlanter(setAll, 'all')
+
+def setNone(ag, label):
+    
+    flags = zeros(ag.numAtoms(), bool)
+    ag._setFlags('none', flags)
+    return flags
+
+addPlanter(setNone, 'none')
 
 # hetero, nucleic, water, etc.
 #==============================================================================
