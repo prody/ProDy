@@ -219,7 +219,7 @@ class PDBBlastRecord(object):
                     head, title = item.split(None, 1)
                     head = head.split('|')
                     pdb_id = head[-2].lower() 
-                    chain_id = head[-1][0]
+                    chain_id = head[-1][:1]
                     pdbch = dict(data)
                     pdbch['pdb_id'] = pdb_id
                     pdbch['chain_id'] = chain_id
