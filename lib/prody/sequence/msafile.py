@@ -83,13 +83,13 @@ class MSAFile(object):
     >>> msa = MSAFile(msafile)
     >>> for seq in msa: # doctest: +ELLIPSIS 
     ...     seq
-    <Sequence: YQ53_CAEEL (length 404; 328 residues and 76 gaps)>
-    <Sequence: Q21691_CAEEL (length 404; 329 residues and 75 gaps)>
-    <Sequence: AGO6_ARATH (length 404; 311 residues and 93 gaps)>
+    <Sequence: TAG76_CAEEL (length 395; 307 residues and 88 gaps)>
+    <Sequence: O16720_CAEEL (length 395; 302 residues and 93 gaps)>
+    <Sequence: AGO10_ARATH (length 395; 322 residues and 73 gaps)>
     ...
-    <Sequence: O02095_CAEEL (length 404; 305 residues and 99 gaps)>
-    <Sequence: Q19645_CAEEL (length 404; 323 residues and 81 gaps)>
-    <Sequence: O62275_CAEEL (length 404; 331 residues and 73 gaps)>
+    <Sequence: PIWI_ARCFU (length 395; 297 residues and 98 gaps)>
+    <Sequence: Y1321_METJA (length 395; 274 residues and 121 gaps)>
+    <Sequence: O67434_AQUAE (length 395; 276 residues and 119 gaps)>
     
     *Filtering sequences*
     
@@ -101,24 +101,24 @@ class MSAFile(object):
     >>> msa = MSAFile(msafile, filter=lambda lbl, seq: 'ARATH' in lbl)
     >>> for seq in msa: # doctest: +ELLIPSIS 
     ...     seq
-    <Sequence: AGO6_ARATH (length 404; 311 residues and 93 gaps)>
-    <Sequence: AGO4_ARATH (length 404; 309 residues and 95 gaps)>
-    <Sequence: AGO10_ARATH (length 404; 322 residues and 82 gaps)>
+    <Sequence: AGO10_ARATH (length 395; 322 residues and 73 gaps)>
+    <Sequence: AGO6_ARATH (length 395; 311 residues and 84 gaps)>
+    <Sequence: AGO4_ARATH (length 395; 309 residues and 86 gaps)>
 
     *Slicing sequences*
     
     A list of integers can be used to slice sequences as follows.
     
-    >>> msa = MSAFile(msafile, slice=list(range(10)) + list(range(394,404)))
+    >>> msa = MSAFile(msafile, slice=list(range(10)) + list(range(374,384)))
     >>> for seq in msa: # doctest: +ELLIPSIS 
     ...     seq
-    <Sequence: YQ53_CAEEL (length 20; 19 residues and 1 gaps)>
-    <Sequence: Q21691_CAEEL (length 20; 19 residues and 1 gaps)>
-    <Sequence: AGO6_ARATH (length 20; 20 residues and 0 gaps)>
+    <Sequence: TAG76_CAEEL (length 20; 19 residues and 1 gaps)>
+    <Sequence: O16720_CAEEL (length 20; 18 residues and 2 gaps)>
+    <Sequence: AGO10_ARATH (length 20; 19 residues and 1 gaps)>
     ...
-    <Sequence: O02095_CAEEL (length 20; 18 residues and 2 gaps)>
-    <Sequence: Q19645_CAEEL (length 20; 18 residues and 2 gaps)>
-    <Sequence: O62275_CAEEL (length 20; 19 residues and 1 gaps)>"""
+    <Sequence: PIWI_ARCFU (length 20; 19 residues and 1 gaps)>
+    <Sequence: Y1321_METJA (length 20; 20 residues and 0 gaps)>
+    <Sequence: O67434_AQUAE (length 20; 20 residues and 0 gaps)>"""
     
     def __init__(self, msa, mode='r', format=None, aligned=True, **kwargs):
         """*msa* may be a filename or a stream.  Multiple sequence alignments

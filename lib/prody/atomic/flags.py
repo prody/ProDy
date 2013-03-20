@@ -96,6 +96,7 @@ NONSTANDARD = {
     'HSD': set(['cyclic', 'basic', 'surface', 'large', 'polar']),
     'HSE': set(['cyclic', 'basic', 'surface', 'large', 'polar']),
     'HSP': set(['cyclic', 'acidic', 'surface', 'large', 'polar']),
+    'MSE': set(['acyclic', 'neutral', 'buried', 'large']),
     'SEC': set(['acyclic', 'neutral', 'buried', 'polar', 'medium']),
     'SEP': set(['acyclic', 'surface', 'acidic', 'large', 'polar']),
     'TPO': set(['acyclic', 'surface', 'acidic', 'large', 'polar']),
