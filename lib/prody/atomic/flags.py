@@ -337,6 +337,7 @@ Protein
        HSD   (H)  prototropic tautomer of histidine, H on ND1 (CHARMM)
        HSE   (H)  prototropic tautomer of histidine, H on NE2 (CHARMM)       
        HSP   (H)  protonated histidine 
+      `MSE`_      selenomethionine
       `SEC`_ (U)  selenocysteine
       `SEP`_ (S)  phosphoserine
       `TPO`_ (T)  phosphothreonine
