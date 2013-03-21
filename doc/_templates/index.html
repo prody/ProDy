@@ -11,15 +11,23 @@
   "_static/anythingslider-theme.css"] %}
   
 {% set title = 'Overview' %}
-
+{% set rellinks = [] %}
 {% block rootrellink %}
-
+        <li class="right">
+          <form class="search" action="search.html" method="get">
+            <input type="text" name="q" size="16" value="search documentation" 
+              onfocus="if (this.value=='search documentation') this.value = ''"
+              onblur="if (this.value=='') this.value = 'search documentation'" />
+            <input type="submit" value="Go" />
+            <input type="hidden" name="check_keywords" value="yes" />
+            <input type="hidden" name="area" value="default" />
+          </form>
+        </li>                
         <li>
             <img src="{{ pathto("_static/text-dec.png", 1) }}" onclick="changeFontSize(-1)" alt="Decrease text size" style="cursor: pointer; vertical-align: -8px;">
             <img src="{{ pathto("_static/text-org.png", 1) }}" onclick="changeFontSize(0)" alt="Default text size" style="cursor: pointer; vertical-align: -8px;">
             <img src="{{ pathto("_static/text-inc.png", 1) }}" onclick="changeFontSize(+1)" alt="Increase text size" style="cursor: pointer; vertical-align: -8px;">
         </li>
-                
         <li><a href="#&panel1-6" onclick="$('#slider1').anythingSlider(6);">Documentation</a></li>
         
 {% endblock %}
@@ -30,6 +38,8 @@
 <a href="#&panel1-1" onclick="$('#slider1').anythingSlider(1);">
 <img src="{{ pathto("_static/logo.png", 1) }}" alt="ProDy logo" id="logo" />
 </a>
+
+
 </div>
 <script type="text/javascript">
 function updateLogo() {
