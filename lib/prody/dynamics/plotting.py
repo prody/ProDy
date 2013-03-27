@@ -60,7 +60,8 @@ __all__ = ['showContactMap', 'showCrossCorr',
            'showCumulFractVars', 'showMode', 
            'showOverlap', 'showOverlapTable', 'showProjection', 
            'showCrossProjection', 'showEllipsoid', 'showSqFlucts', 
-           'showScaledSqFlucts', 'showNormedSqFlucts', 'resetTicks', ]
+           'showScaledSqFlucts', 'showNormedSqFlucts', 'resetTicks', 
+           'showDiffMatrix', ]
 
            
 def showEllipsoid(modes, onto=None, n_std=2, scale=1., *args, **kwargs):
@@ -836,3 +837,49 @@ def resetTicks(x, y=None):
         except:
             LOGGER.warning('xticks could not be reset.')
     
+
+def showDiffMatrix(matrix1, matrix2, *args, **kwargs):
+    """Show the difference between two cross-correlation matrices from
+    different models. For given *matrix1* and *matrix2* show the difference
+    between them in the form of (matrix2 - matrix1) and plot the difference
+    matrix using :func:`~matplotlib.pyplot.imshow`. When :class:`.NMA` models
+    are passed instead of matrices, the functions could call
+    :func:`.calcCrossCorr` function to calculate the matrices for given modes.
+
+    To display the absolute values in the difference matrix, user could set
+    *abs* keyword argument **True**.
+
+    By default, *origin=lower* and *interpolation=bilinear* keyword arguments
+    are passed to this function, but user can overwrite these parameters.
+    """
+
+    import matplotlib.pyplot as plt
+    try:
+        dim1, shape1 = matrix1.ndim, matrix1.shape
+    except AttributeError:
+        matrix1 = calcCrossCorr(matrix1)
+        dim1, shape1 = matrix1.ndim, matrix1.shape
+    try:
+        dim2, shape2 = matrix2.ndim, matrix2.shape
+    except AttributeError:
+        matrix2 = calcCrossCorr(matrix2)
+        dim2, shape2 = matrix2.ndim, matrix2.shape
+    if (not ((dim1 == dim2 == 2) and (shape1 == shape2))):
+        raise ValueError('Matrices must have same square shape.')
+    if shape1[0] * shape1[1] == 0:
+        raise ValueError('There are no data in matrices.')
+    diff = matrix2 - matrix1
+    if not 'interpolation' in kwargs:
+        kwargs['interpolation'] = 'bilinear'
+    if not 'origin' in kwargs:
+        kwargs['origin'] = 'lower'
+    if kwargs.pop('abs', False):
+        diff = np.abs(diff)
+    show = plt.imshow(diff, *args, **kwargs), plt.colorbar()
+    plt.axis([-.5, shape1[1] - .5, -.5, shape1[0] - .5])
+    plt.title('Difference Matrix')
+    if SETTINGS['auto_show']:
+        plt.show(block=False)
+    plt.xlabel('Indices')
+    plt.ylabel('Indices')
+    return show
