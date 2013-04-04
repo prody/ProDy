@@ -73,13 +73,16 @@ def loadEnsemble(filename):
     use of :func:`numpy.load` function.  See also :func:`saveEnsemble`"""
     
     attr_dict = np.load(filename)
-    weights = attr_dict['_weights']
+    if '_weights' in attr_dict:
+        weights = attr_dict['_weights']
+    else:
+        weights = None
     isPDBEnsemble = False
     try:
         title = str(attr_dict['_title'])
     except KeyError:
         title = str(attr_dict['_name'])
-    if weights.ndim == 3:
+    if weights is not None and weights.ndim == 3:
         isPDBEnsemble = True
         ensemble = PDBEnsemble(title)
     else:
@@ -95,8 +98,8 @@ def loadEnsemble(filename):
             ensemble._trans = attr_dict['_trans']
     else:
         ensemble.addCoordset(attr_dict['_confs'])
-        if weights != np.array(None): 
-            ensemble.addCoordset(weights)
+        if weights is not None: 
+            ensemble.setWeights(weights)
     return ensemble
 
 
