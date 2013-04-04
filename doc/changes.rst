@@ -6,6 +6,34 @@
 Changes
 *******************************************************************************
 
+Release 1.4.2 (in development)
+===============================================================================
+
+**Bugfixes**:
+
+  * Atom selection problems related to using :term:`all` and :term:`none` in 
+    composite selections, e.g. ``'calpha and all'``, is fixed by defining these
+    keywords as :ref:`flags`.
+
+  * Fasta files with sequence labels using multiple pipe characters would 
+    cause C parser (and so :func:`.parseMSA`) to fail.  This issue is fixed 
+    by completely disregarding pipe characters. 
+
+  * Empty chain identifiers for PDB hits would cause a problem in parsing
+    XML results file and :func:`.blastPDB` would throw an exception.  This
+    case is handled by slicing the chain identifier string.
+
+  * A problem in :func:`.viewNMDinVMD` is fixed.
+
+  * A problem with handling weights in :func:`.loadEnsemble` is fixed.
+	
+**Changes**:
+  
+  * `MSE <http://www.pdb.org/pdb/ligand/ligandsummary.do?hetId=MSE>`_ is 
+    included in the definition of non-standard amino acids, i.e. 
+    :term:`nonstdaa`.
+
+
 Release 1.4.1 (Dec 16, 2012)
 ===============================================================================
 
