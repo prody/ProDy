@@ -515,10 +515,10 @@ class HierView(object):
         n_atoms = len(ag)
         _indices = arange(n_atoms)
 
-        self._dict = _dict = dict()
-        self._residues = _residues = list()
-        self._segments = _segments = list()
-        self._chains = _chains = list()
+        self._dict = _dict = {}
+        self._residues = _residues = []
+        self._segments = _segments = []
+        self._chains = _chains = []
 
         # identify segments
         segindex = -1
