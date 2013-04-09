@@ -48,7 +48,7 @@ def prody_catdcd(*dcd, **kwargs):
     if kwargs.get('numframes', False):
         from sys import stdout
         for fn in dcd:
-            stdout.write(prody.DCDFile(fn).numFrames())
+            stdout.write(str(prody.DCDFile(fn).numFrames()) + '\n')
         return
 
     from os.path import splitext
