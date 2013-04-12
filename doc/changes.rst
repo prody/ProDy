@@ -9,6 +9,11 @@ Changes
 Release 1.4.2 (in development)
 ===============================================================================
 
+**Improvements**:
+
+  * :func:`.fetchPDB` and :func:`.fetchPDBfromMirror` functions can handle
+    partial PDB mirrors.  See :func:`.pathPDBMirror` for setting a mirror path.
+    
 **Bugfixes**:
 
   * Atom selection problems related to using :term:`all` and :term:`none` in 

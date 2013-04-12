@@ -104,7 +104,7 @@ def wwPDBServer(*key):
 
 def checkIdentifiers(*pdb):
     """Check whether *pdb* identifiers are valid, and replace invalid ones
-    with **None** or inplace."""
+    with **None** in place."""
     
     identifiers = []
     append = identifiers.append

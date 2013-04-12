@@ -82,20 +82,26 @@ def pathPDBFolder(folder=None, divided=False):
                 SETTINGS.pop('pdb_local_divided')
                 SETTINGS.save()
             else:
-                LOGGER.warn('{0} is not a valid path.'.format(repr(folder)))
+                raise IOError('{0} is not a valid path.'.format(repr(folder)))
 
 wwpdb.pathPDBFolder = pathPDBFolder
 
 
-def pathPDBMirror(path=None):
+def pathPDBMirror(path=None, format=None):
     """Return or specify PDB mirror path to be used by :func:`.fetchPDB`.  
-    To release the current mirror, pass an invalid path, e.g. ``path=''``.""" 
+    To release the current mirror, pass an invalid path, e.g. ``path=''``.
+    If you are keeping a partial mirror, such as PDB files in 
+    :file:`/data/structures/divided/pdb/` folder, specify *format*.""" 
 
     if path is None:
         path = SETTINGS.get('pdb_mirror_path')
+        format = SETTINGS.get('pdb_mirror_format', None)
         if path:
             if isdir(path):
-                return path
+                if format is None:
+                    return path
+                else:
+                    return path, format
             else:
                 LOGGER.warning('PDB mirror path {0} is not a accessible.'
                                .format(repr(path)))
@@ -105,6 +111,7 @@ def pathPDBMirror(path=None):
             LOGGER.info('Local PDB mirror path is set: {0}'
                         .format(repr(path)))
             SETTINGS['pdb_mirror_path'] = path
+            SETTINGS['pdb_mirror_format'] = format 
             SETTINGS.save()
         else:
             current = SETTINGS.pop('pdb_mirror_path')
@@ -113,7 +120,7 @@ def pathPDBMirror(path=None):
                             .format(repr(current)))
                 SETTINGS.save()
             else:
-                LOGGER.warn('{0} is not a valid path.'.format(repr(path)))
+                raise IOError('{0} is not a valid path.'.format(repr(path)))
 
 
 def fetchPDBfromMirror(*pdb, **kwargs):
@@ -129,19 +136,26 @@ def fetchPDBfromMirror(*pdb, **kwargs):
     if mirror is None:
         raise IOError('no mirror path is set')
 
+
+    try:
+        mirror, mirror_format = mirror
+    except ValueError:
+        mirror_format = None
+
+    format = str(kwargs.pop('format', 'pdb')).lower()    
+
     if kwargs.get('check', True):
         identifiers = checkIdentifiers(*pdb)
     else:
         identifiers = list(pdb)
 
-    format = str(kwargs.pop('format', 'pdb')).lower()    
     if format == 'pdb':
         ftp_divided = 'data/structures/divided/pdb'
         ftp_pdbext = '.ent.gz'
         ftp_prefix = 'pdb'
         extension = '.pdb'
     elif format == 'xml':
-        if noatom:
+        if bool(kwargs.pop('noatom', False)):
             ftp_divided = 'data/structures/divided/XML-noatom'
             ftp_pdbext = '-noatom.xml.gz'
             extension = '-noatom.xml'
@@ -156,9 +170,18 @@ def fetchPDBfromMirror(*pdb, **kwargs):
         ftp_prefix = ''
         extension = '.cif'
     else:
-        raise ValueError('{0} is not a recognized format'
-                         .format(repr(format)))
-    
+        if format:
+            raise ValueError('{0} is not a recognized format'
+                             .format(repr(format)))
+        else:
+            raise ValueError('please specify a valid format')
+            
+    if mirror_format:
+        if mirror_format.lower() != format: 
+            raise IOError('mirror contains only ' + mirror_format + ' files')
+        ftp_divided = '' 
+    else:
+        ftp_divided = join(*ftp_divided.split('/'))
     folder = kwargs.get('folder')
     compressed = kwargs.get('compressed', True)
     filenames = []
