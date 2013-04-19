@@ -91,7 +91,8 @@ def pathPDBMirror(path=None, format=None):
     """Return or specify PDB mirror path to be used by :func:`.fetchPDB`.  
     To release the current mirror, pass an invalid path, e.g. ``path=''``.
     If you are keeping a partial mirror, such as PDB files in 
-    :file:`/data/structures/divided/pdb/` folder, specify *format*.""" 
+    :file:`/data/structures/divided/pdb/` folder, specify *format*, which is 
+    ``'pdb'`` in this case.""" 
 
     if path is None:
         path = SETTINGS.get('pdb_mirror_path')
