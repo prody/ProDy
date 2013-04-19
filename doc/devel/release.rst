@@ -12,7 +12,7 @@ How to Make a Release
      
    This will run tests using the default Python installation.  The tests 
    should be executed for both Python 2.7 and Python 3.2, and using nose
-   via :cmd:`nosetests` command may help::
+   via :program:`nosetests` command may help::
    
      $ cd prody/tests
      $ nosetests

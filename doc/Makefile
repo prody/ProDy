@@ -14,7 +14,7 @@ PAPEROPT_a4     = -D latex_paper_size=a4
 PAPEROPT_letter = -D latex_paper_size=letter
 ALLSPHINXOPTS   = -d $(BUILDDIR)/doctrees $(PAPEROPT_$(PAPER)) $(SPHINXOPTS) .
 
-.PHONY: help clean stats both html dirhtml singlehtml pickle json htmlhelp qthelp devhelp epub latex latexpdf text man changes linkcheck doctest testdist copytxt 
+.PHONY: help clean stats html dirhtml singlehtml pickle json htmlhelp qthelp devhelp epub latex latexpdf text man changes linkcheck doctest copytxt 
 
 help:
 	@echo "Please use \`make <target>' where <target> is one of"
@@ -44,20 +44,6 @@ stats:
 	pyps latest -o _static/ProDy_downloads.csv -d , --rst ProDy; \
 	pyps monthly -p _static/ProDy_downloads.png ProDy_stats.pkl
 
-both:
-	cd $(DOCTESTDIR); \
-	$(SPHINXBUILD) -b html -d ../$(BUILDDIR)/doctrees .. ../$(DOCDIR); \
-	cd ..
-	@echo
-	@echo "Build finished. The HTML pages are in $(DOCUMENTATION)."
-	cd $(DOCTESTDIR); \
-	$(SPHINXBUILD) -b latex $(ALLSPHINXOPTS) ../$(BUILDDIR)/latex .. ../$(DOCDIR); \
-	cd ..
-	@echo "Running LaTeX files through pdflatex..."
-	make -C $(BUILDDIR)/latex all-pdf
-	mv -f $(BUILDDIR)/latex/ProDy.pdf ../Documentation
-	@echo "pdflatex finished; the PDF files are in $(BUILDDIR)/../../."
-
 html:
 	$(SPHINXBUILD) -b html -d $(BUILDDIR)/doctrees . $(DOCDIR)
 	@echo
@@ -65,8 +51,7 @@ html:
 
 doctest:
 	cd $(DOCTESTDIR); \
-	$(SPHINXBUILD) -b doctest -d ../$(BUILDDIR)/doctrees/ .. .; \
-	cd ..
+	$(SPHINXBUILD) -b doctest -d ../$(BUILDDIR)/doctrees/ .. . 
 	@echo "Testing of doctests in the sources finished, look at the " \
 	      "results in $(DOCTEST)."
 
@@ -157,15 +142,6 @@ linkcheck:
 	@echo "Link check complete; look for any errors in the above output " \
 	      "or in $(BUILDDIR)/linkcheck/output.txt."
 	      
-testdist:
-	mv ../prody ../prody_
-	cd $(DOCTESTDIR); \
-	$(SPHINXBUILD) -b doctest -d ../$(BUILDDIR)/doctrees/ .. ..; \
-	cd ..
-	@echo "Testing of doctests in the sources finished, look at the " \
-	      "results in $(DOCTEST)."
-	mv ../prody_ ../prody
-
 copytxt:
 	cp -f changes.rst ../CHANGES.rst
 	cp -f getprody.rst ../INSTALL.rst

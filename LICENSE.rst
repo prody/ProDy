@@ -11,7 +11,7 @@ ProDy is available under the `GPLv3 <http://www.gnu.org/licenses/gpl.html>`_::
 
   ProDy: A Python Package for Protein Dynamics Analysis
 
-  Copyright (C) 2010-2012 Ahmet Bakan <ahb12 at pitt dot edu>
+  Copyright (C) 2010-2013 Ahmet Bakan <ahb12 at pitt dot edu>
 
   This program is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -34,7 +34,7 @@ NMWiz is available under the `University of Illinois/NCSA Open Source License
 
   NMWiz: Normal Mode Visualization, Animation, and Plotting
 
-  Copyright 2010-2012 Ahmet Bakan. All rights reserved.
+  Copyright 2010-2013 Ahmet Bakan. All rights reserved.
 
   Developed by:
         

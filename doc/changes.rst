@@ -6,7 +6,7 @@
 Changes
 *******************************************************************************
 
-Release 1.4.2 (in development)
+Release 1.4.2 (April 19, 2013)
 ===============================================================================
 
 **Improvements**:
@@ -14,6 +14,12 @@ Release 1.4.2 (in development)
   * :func:`.fetchPDB` and :func:`.fetchPDBfromMirror` functions can handle
     partial PDB mirrors.  See :func:`.pathPDBMirror` for setting a mirror path.
     
+**Changes**:
+  
+  * `MSE <http://www.pdb.org/pdb/ligand/ligandsummary.do?hetId=MSE>`_ is 
+    included in the definition of non-standard amino acids, i.e. 
+    :term:`nonstdaa`.
+
 **Bugfixes**:
 
   * Atom selection problems related to using :term:`all` and :term:`none` in 
@@ -28,16 +34,10 @@ Release 1.4.2 (in development)
     XML results file and :func:`.blastPDB` would throw an exception.  This
     case is handled by slicing the chain identifier string.
 
-  * A problem in :func:`.viewNMDinVMD` is fixed.
+  * A problem in :func:`.viewNMDinVMD` related to module imports is fixed.
 
   * A problem with handling weights in :func:`.loadEnsemble` is fixed.
 	
-**Changes**:
-  
-  * `MSE <http://www.pdb.org/pdb/ligand/ligandsummary.do?hetId=MSE>`_ is 
-    included in the definition of non-standard amino acids, i.e. 
-    :term:`nonstdaa`.
-
 
 Release 1.4.1 (Dec 16, 2012)
 ===============================================================================

@@ -16,7 +16,8 @@ Required Software
   that ProDy tests are performed using Python 2.7 and 3.2, so these are the 
   recommended versions. 
   
-* `NumPy`_ 1.6 or 1.7
+* `NumPy`_ 1.5+ (for Windows, select an installer built using a suitable 
+  version of NumPy)
 
 When compiling from source, on Linux for example, you will need a C compiler 
 (e.g. :program:`gcc`) and Python developer libraries (i.e. :file:`python.h`).  

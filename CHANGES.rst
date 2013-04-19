@@ -6,6 +6,39 @@
 Changes
 *******************************************************************************
 
+Release 1.4.2 (April 19, 2013)
+===============================================================================
+
+**Improvements**:
+
+  * :func:`.fetchPDB` and :func:`.fetchPDBfromMirror` functions can handle
+    partial PDB mirrors.  See :func:`.pathPDBMirror` for setting a mirror path.
+    
+**Changes**:
+  
+  * `MSE <http://www.pdb.org/pdb/ligand/ligandsummary.do?hetId=MSE>`_ is 
+    included in the definition of non-standard amino acids, i.e. 
+    :term:`nonstdaa`.
+
+**Bugfixes**:
+
+  * Atom selection problems related to using :term:`all` and :term:`none` in 
+    composite selections, e.g. ``'calpha and all'``, is fixed by defining these
+    keywords as :ref:`flags`.
+
+  * Fasta files with sequence labels using multiple pipe characters would 
+    cause C parser (and so :func:`.parseMSA`) to fail.  This issue is fixed 
+    by completely disregarding pipe characters. 
+
+  * Empty chain identifiers for PDB hits would cause a problem in parsing
+    XML results file and :func:`.blastPDB` would throw an exception.  This
+    case is handled by slicing the chain identifier string.
+
+  * A problem in :func:`.viewNMDinVMD` related to module imports is fixed.
+
+  * A problem with handling weights in :func:`.loadEnsemble` is fixed.
+	
+
 Release 1.4.1 (Dec 16, 2012)
 ===============================================================================
 
@@ -190,7 +223,7 @@ Release 1.3 (Sep 30, 2012)
     warning messages when they are detected via :exc:`.SelectionWarning`.
     These messages can be turned of using :func:`.confProDy`
 
-  * Functions used in :ref:`commands` have been refactored to allow for using 
+  * Functions used in :ref:`prody-apps` have been refactored to allow for using 
     them directly.  See :mod:`.apps` for their documentation.
      
 **Bugfix**:
@@ -638,7 +671,7 @@ Release 1.0.1 (Apr 6, 2012)
 
 **Bugfixes**:
 
-  * A bug in some :ref:`commands` is fixed. The bug would emerge when invalid
+  * A bug in some :ref:`prody-apps` is fixed. The bug would emerge when invalid
     arguments were passed to effected commands and throw an unrelated exception
     hiding the error message related to the arguments.
     
@@ -659,8 +692,8 @@ Release 1.0 (Mar 7, 2012)
     methods have *kdtree* argument to choose whether to use it or not.
 
   * :program:`prody` script is updated.  Importing Prody and Numpy libraries 
-    are avoided. Script responses to help queries faster.  See :ref:`commands`
-    for script usage details.
+    are avoided. Script responses to help queries faster.  
+    See :ref:`prody-apps` for script usage details.
 
   * Added ``bonded to ...`` selection method that expands a selection to 
     immediately bound atoms.  See :ref:`selections` for its description.
@@ -928,7 +961,7 @@ Release 0.9.2 (Jan 11, 2012)
     Old names will be removed in v1.0.
     
   * ProDy applications (commands) module is rewritten to use new 
-    :mod:`argparse` module. See :ref:`commands` for details of changes.
+    :mod:`argparse` module. See :ref:`prody-apps` for details of changes.
     
   * :mod:`argparse` module is added to the package for Python versions 2.6
     and older.
@@ -1142,7 +1175,7 @@ Release 0.9 (Nov 8, 2011)
 
 **Scripts**:
   
-  The way ProDy scripts work has changed. See :ref:`commands` for details.
+  The way ProDy scripts work has changed. See :ref:`prody-apps` for details.
   Using older scripts will start issuing deprecation warnings in 2012.
 
 **Bug Fixes**:
@@ -1736,7 +1769,7 @@ Release 0.6 (Feb 22, 2011)
   * :func:`.calcTempFactors` function is implemented to 
     calculate theoretical temperature factors.
     
-  * 5 new :ref:`commands` are implemented, and existing scripts are improved to
+  * 5 new :ref:`prody-apps` are implemented, and existing scripts are improved to
     output figures.
     
   * :meth:`~.NMA.getModel` method is implemented to make function development 

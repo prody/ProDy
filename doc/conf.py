@@ -84,7 +84,7 @@ release =  version
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
-exclude_patterns = ['_build', 'tutorials/*/*']
+exclude_patterns = ['_build', 'tutorials/*']
 
 # The reST default role (used for this markup: `text`) to use for all documents.
 #default_role = None
@@ -222,8 +222,10 @@ html_copy_source = False
 # Output file base name for HTML help builder.
 htmlhelp_basename = 'ProDydoc'
 
-extlinks = {'issue': ('https://bitbucket.org/abakan/prody/issue/%s',
-                      'issue ')}
+extlinks = {
+    'issue': ('https://bitbucket.org/abakan/prody/issue/%s', 'issue '),
+    'pdb': ('http://www.pdb.org/pdb/explore/explore.do?structureId=', ''),
+}
 
 # Plot directive configuration
 # ----------------------------
