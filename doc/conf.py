@@ -57,7 +57,7 @@ master_doc = 'contents'
 
 # General information about the project.
 project = u'ProDy'
-copyright = u'2010-2012, Ahmet Bakan'
+copyright = u'2010-2013, Ahmet Bakan'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -68,7 +68,7 @@ def getRevisionNumber():
     from subprocess import PIPE, Popen
     pipe = Popen('git log --summary'.split(), stdout=PIPE, stderr=PIPE)
     return str(pipe.stdout.read().count('Author:'))
-version = '1.4.1'
+version = '1.4.2'
 # The full version, including alpha/beta/rc tags.
 release =  version
 
@@ -84,7 +84,7 @@ release =  version
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
-exclude_patterns = ['_build']
+exclude_patterns = ['_build', 'tutorials/*/*']
 
 # The reST default role (used for this markup: `text`) to use for all documents.
 #default_role = None
@@ -228,8 +228,8 @@ extlinks = {'issue': ('https://bitbucket.org/abakan/prody/issue/%s',
 # Plot directive configuration
 # ----------------------------
 
-plot_basedir = os.path.join(os.getcwd(), '_build', 'plot_directive')
-plot_working_directory = os.path.join(os.getcwd(), 'doctest')
+plot_basedir = os.path.join('_build', 'plot_directive')
+plot_working_directory = 'doctest'
 
 plot_formats = [('png', 80), ('pdf', 80)]
 

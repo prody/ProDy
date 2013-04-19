@@ -7,7 +7,7 @@ Getting ProDy
 Required Software
 ===============================================================================
 
-* `Python`_ 2.7 or later
+* `Python`_ 2.7, 3.2 or later
   
   *Windows*: Note that, NumPy and ProDy supports only **32-bit** Python 
   on Windows.
@@ -16,7 +16,7 @@ Required Software
   that ProDy tests are performed using Python 2.7 and 3.2, so these are the 
   recommended versions. 
   
-* `NumPy`_ 1.4+
+* `NumPy`_ 1.6 or 1.7
 
 When compiling from source, on Linux for example, you will need a C compiler 
 (e.g. :program:`gcc`) and Python developer libraries (i.e. :file:`python.h`).  
