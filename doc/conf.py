@@ -231,7 +231,7 @@ extlinks = {
 # ----------------------------
 
 plot_basedir = os.path.join('_build', 'plot_directive')
-plot_working_directory = 'doctest'
+plot_working_directory = os.path.join(os.getcwd(), '_doctest')
 
 plot_formats = [('png', 80), ('pdf', 80)]
 
@@ -311,14 +311,6 @@ latex_elements = {
     'fontpkg': '\\usepackage{palatino}',
 }
 
-# -- Options for manual page output --------------------------------------------
-
-# One entry per manual page. List of tuples
-# (source start file, name, description, authors, manual section).
-man_pages = [
-    ('index', 'prody', u'ProDy Documentation',
-     [u'Ahmet Bakan'], 1)
-]
 
 autodoc_member_order = 'groupwise'
 autodoc_default_flags = []# ['members', 'undoc-members', 'show-inheritance']
