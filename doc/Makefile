@@ -13,9 +13,8 @@ endif
 SPHINXOPTS    =
 SPHINXBUILD   = sphinx-build
 PAPER         = letter
-BUILDDIR      = _builds
+BUILDDIR      = _build
 DOCTESTDIR    = _doctest
-DOCDIR        = ../Documentation
 
 # Internal variables.
 PAPEROPT_a4     = -D latex_paper_size=a4
@@ -33,20 +32,20 @@ help:
 	@echo "  stats	    to update download statistics"
 
 clean:
-	-rm -rf $(DOCDIR)/*
+	-rm -rf $(BUILDDIR)/*
 
 html:
-	$(SPHINXBUILD) -b html -d $(BUILDDIR)/doctrees . $(DOCDIR)
+	$(SPHINXBUILD) -b html -d $(BUILDDIR)/doctrees . $(BUILDDIR)/html
 	@echo
-	@echo "Build finished. The HTML pages are in $(DOCDIR)."
+	@echo "Build finished. The HTML pages are in $(BUILDDIR)/html."
 
 pdf:
 	$(SPHINXBUILD) -b latex $(ALLSPHINXOPTS) $(BUILDDIR)/latex
 	@echo "Running LaTeX files through pdflatex..."
 	make -C $(BUILDDIR)/latex all-pdf
-	mv -f $(BUILDDIR)/latex/ProDy.pdf ../Documentation
+	#mv -f $(BUILDDIR)/latex/ProDy.pdf ../Documentation
 	@echo
-	@echo "pdflatex finished; the PDF files are in $(DOCDIR)"
+	@echo "pdflatex finished; the PDF files are in $(BUILDDIR)/latex."
 
 test:
 	cd $(DOCTESTDIR); \
@@ -75,6 +74,6 @@ tutorial:
 	ln -fs ../../_static tutorials/$(TUTORIAL)
 	cp -f tutorials/template/conf.py tutorials/$(TUTORIAL)
 	cp -f tutorials/template/Makefile tutorials/$(TUTORIAL)
-	touch tutorials/$(TUTORIAL)/index.rst
+	cp -f tutorials/template/i*.rst tutorials/$(TUTORIAL)
 	@echo
 	@echo "Tutorial folders and files are prepared, see tutorials/$(TUTORIAL)"

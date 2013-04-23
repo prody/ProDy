@@ -4,7 +4,8 @@ except NameError:
     exec(open('../../conf.py').read())
     
 version = release = tutorial_prody_version or version   
-intersphinx_mapping['prody'] = ('http://csb.pitt.edu/ProDy/', None)
+intersphinx_mapping['prody'] = ('http://csb.pitt.edu/ProDy/', 
+                                '../../_build/html/objects.inv')
 
 master_doc = 'index'
 

@@ -7,7 +7,6 @@ PAPER         = letter
 BUILDDIR      = _build
 DOCTESTDIR    = ../../_doctest
 BASENAME      = $${PWD\#\#*/}
-DOCDIR        = ../../../Documentation/tutorials/$(BASENAME)
 
 # Internal variables.
 PAPEROPT_a4     = -D latex_paper_size=a4
@@ -28,21 +27,20 @@ pdf:
 	$(SPHINXBUILD) -b latex $(ALLSPHINXOPTS) $(BUILDDIR)/latex
 	@echo "Running LaTeX files through pdflatex..."
 	make -C $(BUILDDIR)/latex all-pdf
-	mv -f $(BUILDDIR)/latex/$(BASENAME).pdf $(DOCDIR)
+	mv -f $(BUILDDIR)/latex/$(BASENAME).pdf .
 	@echo
-	@echo "pdflatex finished; the PDF files are in $(DOCDIR)"
+	@echo "PDF file is ready, see $(BASENAME).pdf."
 
 files:
-	tar -czf ../../../Documentation/tutorials/$(BASENAME)/$(BASENAME).tgz files/*  
-	zip ../../../Documentation/tutorials/$(BASENAME)/$(BASENAME).zip files/*
+	tar -czf $(BASENAME).tgz files/*  
+	zip $(BASENAME).zip files/*
 	@echo 
-	@echo "$(BASENAME).zip and $(BASENAME).tgz archives are are copied."
+	@echo "$(BASENAME).zip and $(BASENAME).tgz archives files are created."
 
 
 test:
 	cp -f files/* $(DOCTESTDIR); cd $(DOCTESTDIR); \
 	$(SPHINXBUILD) -b doctest -d $(PWD)/$(BUILDDIR)/doctrees/ $(PWD) .
-	mv -f $(DOCTESTDIR)/output.txt test_output.txt
+	mv -f $(DOCTESTDIR)/output.txt .
 	@echo
-	@echo "Testing of doctests in the sources finished, look at the" \
-	      "results in test_output.txt."
+	@echo "Testing of tutorial finished, see results in output.txt."
