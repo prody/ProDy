@@ -293,10 +293,10 @@ latex_logo = '_static/logo.png'
 #latex_use_parts = False
 
 # If true, show page references after internal links.
-#latex_show_pagerefs = False
+latex_show_pagerefs = True
 
 # If true, show URL addresses after external links.
-#latex_show_urls = False
+latex_show_urls = 'no'
 
 # Additional stuff for the LaTeX preamble.
 #latex_preamble = ''
@@ -308,7 +308,9 @@ latex_logo = '_static/logo.png'
 #latex_domain_indices = True
 
 latex_elements = {
+    'classoptions': ',openany,oneside',
     'fontpkg': '\\usepackage{palatino}',
+    'babel': '\\usepackage[english]{babel}'
 }
 
 

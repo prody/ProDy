@@ -73,8 +73,8 @@ tutorial:
 	mkdir -p tutorials/$(TUTORIAL)
 	mkdir -p tutorials/$(TUTORIAL)/files
 	ln -fs ../../_static tutorials/$(TUTORIAL)
-	ln -fs ../../_doctest tutorials/$(TUTORIAL)
 	cp -f tutorials/template/conf.py tutorials/$(TUTORIAL)
 	cp -f tutorials/template/Makefile tutorials/$(TUTORIAL)
+	touch tutorials/$(TUTORIAL)/index.rst
 	@echo
-	@echo "Tutorial folders and files are prepared."
+	@echo "Tutorial folders and files are prepared, see tutorials/$(TUTORIAL)"
