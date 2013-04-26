@@ -1,6 +1,4 @@
-# Makefile for ProDy Tutorial
-
-# You can set these variables from the command line.
+# Makefile for tutorials
 SPHINXOPTS    =
 SPHINXBUILD   = sphinx-build
 PAPER         = letter
@@ -24,6 +22,7 @@ clean:
 	-rm -rf $(BUILDDIR)/*
 
 pdf:
+	ls -hgo --time-style=+ files/ | tail -n +2 | cut -b 14-128 > files.txt
 	$(SPHINXBUILD) -b latex $(ALLSPHINXOPTS) $(BUILDDIR)/latex
 	@echo "Running LaTeX files through pdflatex..."
 	make -C $(BUILDDIR)/latex all-pdf
@@ -32,10 +31,10 @@ pdf:
 	@echo "PDF file is ready, see $(BASENAME).pdf."
 
 files:
-	tar -czf $(BASENAME).tgz files/*  
-	zip $(BASENAME).zip files/*
+	tar -czf $(BASENAME)_files.tgz $(BASENAME)_files/*  
+	zip $(BASENAME)_files.zip $(BASENAME)_files/*
 	@echo 
-	@echo "$(BASENAME).zip and $(BASENAME).tgz archives files are created."
+	@echo "$(BASENAME)_files.zip and $(BASENAME)_files.tgz are created."
 
 
 test:

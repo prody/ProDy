@@ -8,7 +8,9 @@ This tutorial show how to ...
 Required Programs
 -------------------------------------------------------------------------------
 
-Latest version of ProDy is required.
+Latest version of `ProDy`_ is required.
+
+.. _ProDy: http://csb.pitt.edu/ProDy/getprody.html
 
 Recommended Programs
 -------------------------------------------------------------------------------
@@ -19,3 +21,13 @@ etc.
 .. _IPython: http://ipython.org/
 .. _Matplotlib: http://matplotlib.org/
 .. _Scipy: http://scipy.org/
+
+
+Getting Started
+-------------------------------------------------------------------------------
+
+You will need the following files which can be downloaded from the web
+
+.. files.txt is automatically generated
+
+.. literalinclude:: files.txt

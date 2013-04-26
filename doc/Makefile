@@ -63,14 +63,14 @@ copy:
 	
 stats:
 	pyps update -s ProDy_stats.pkl ProDy; \
-	pyps latest -o _static/ProDy_downloads.csv -d , --rst ProDy; \
+	pyps latest -o _static/ProDy_downloads.csv -d , --rst --no-md5 ProDy; \
 	pyps monthly -p _static/ProDy_downloads.png ProDy_stats.pkl
 	@echo
 	@echo "Download statistics updated."
 
 tutorial:
 	mkdir -p tutorials/$(TUTORIAL)
-	mkdir -p tutorials/$(TUTORIAL)/files
+	mkdir -p tutorials/$(TUTORIAL)/$(TUTORIAL)_files
 	ln -fs ../../_static tutorials/$(TUTORIAL)
 	cp -f tutorials/template/conf.py tutorials/$(TUTORIAL)
 	cp -f tutorials/template/Makefile tutorials/$(TUTORIAL)

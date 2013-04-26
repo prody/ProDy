@@ -87,18 +87,11 @@ Download :file:`ProDy-x.{y}.{z}.tar.gz`.  Extract tarball contents and run
     $ python setup.py build
     $ python setup.py install
 
-You may need root access installation, i.e. ``sudo python setup.py install``.  
+If you need root access for installation, try ``sudo python setup.py install``.  
+If you don't have root access, please consult alternate and custom installation
+schemes in `Installing Python Modules`_.
 
-If you don't have root access, you can edit :envvar:`PYTHONPATH` environment 
-variable to specify the path to this package:
-  
-#. Move :file:`prody` directory from :file:`build/lib.linux-x86_{bb}-2.{z}` (or 
-   similar) to a folder like :file:`/home/username/mypackages/`
-#. Add a line to your :file:`.bashrc` (or similar) script as follows
-   ``export PYTHONPATH=$PYTHONPATH:/home/username/mypackages/``
-
-You may also consult other alternate and custom installation schemes in
-`Installing Python Modules <http://docs.python.org/install/index.html>`_.
+.. _Installing Python Modules: http://docs.python.org/install/index.html
 
 Mac OS
 -------------------------------------------------------------------------------
@@ -147,8 +140,8 @@ Recommended Software
 * `Scipy`_, when installed, replaces linear algebra module of Numpy. 
   Scipy linear algebra module is more flexible and can be faster.
 * `IPython`_ is a must have for interactive ProDy sessions.
-* `PyReadline`_ for colorful interactive ProDy sessions on Windows.
-* `MDAnalysis`_ for analyzing molecular dynamics trajectories.
+* `PyReadline`_ for colorful IPython sessions on Windows.
+* `MDAnalysis`_ for reading molecular dynamics trajectories.
 
 .. _Scipy: http://www.scipy.org/SciPy
 .. _IPython: http://pypi.python.org/pypi/ipython
@@ -156,7 +149,7 @@ Recommended Software
 .. _MDAnalysis: http://code.google.com/p/mdanalysis/
 
 
-Included in ProDy Package
+Included in ProDy
 ===============================================================================
 
 Following software is included in the ProDy installation packages:
@@ -177,5 +170,5 @@ Following software is included in the ProDy installation packages:
 Source Code
 ===============================================================================
 
-The source code can be found at https://bitbucket.org/abakan/prody.
+Source code can be found at https://bitbucket.org/abakan/prody.
 
