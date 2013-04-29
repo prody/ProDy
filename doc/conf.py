@@ -364,6 +364,8 @@ rst_epilog = u"""
 
 .. |A2| replace:: Å\ :sup:`2`
 
+.. |tutorials| replace:: http://csb.pitt.edu/ProDy/tutorials/
+
 .. |questions| replace:: To receive new release announcements, join our 
    ProDy-News Google Group: http://groups.google.com/group/prody-news
     

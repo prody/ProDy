@@ -1,11 +1,13 @@
-.. _short-title:
+.. _REFERENCE:
+
+.. use "REFERENCE" to refer to this file, i.e. :ref:`REFERENCE`
 
 *******************************************************************************
-Tutorial Title
+TITLE
 *******************************************************************************
 
 
-.. Add .rst files to `toctree` in the order that you want them
+.. add .rst files to `toctree` in the order that you want them
 
 .. toctree::
    :glob:

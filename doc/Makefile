@@ -1,14 +1,5 @@
 # Makefile for ProDy Documentation
 
-# If the first argument is "tutorial"...
-ifeq (tutorial, $(firstword $(MAKECMDGOALS)))
-  # use the rest as arguments for "run"
-  TUTORIAL := $(wordlist 2, $(words $(MAKECMDGOALS)), $(MAKECMDGOALS))
-  # ...and turn them into do-nothing targets
-  $(eval $(TUTORIAL):;@:)
-  TUTORIAL := $(wordlist 1, 1, $(TUTORIAL))
-endif
-
 # You can set these variables from the command line.
 SPHINXOPTS    =
 SPHINXBUILD   = sphinx-build
@@ -68,12 +59,3 @@ stats:
 	@echo
 	@echo "Download statistics updated."
 
-tutorial:
-	mkdir -p tutorials/$(TUTORIAL)
-	mkdir -p tutorials/$(TUTORIAL)/$(TUTORIAL)_files
-	ln -fs ../../_static tutorials/$(TUTORIAL)
-	cp -f tutorials/template/conf.py tutorials/$(TUTORIAL)
-	cp -f tutorials/template/Makefile tutorials/$(TUTORIAL)
-	cp -f tutorials/template/i*.rst tutorials/$(TUTORIAL)
-	@echo
-	@echo "Tutorial folders and files are prepared, see tutorials/$(TUTORIAL)"

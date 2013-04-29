@@ -22,7 +22,8 @@ clean:
 	-rm -rf $(BUILDDIR)/*
 
 pdf:
-	ls -hgo --time-style=+ files/ | tail -n +2 | cut -b 14-128 > files.txt
+	rm -f files.txt
+	ls -hgo --time-style=+ $(BASENAME)_files/ | tail -n +2 | cut -b 14-128 > files.txt
 	$(SPHINXBUILD) -b latex $(ALLSPHINXOPTS) $(BUILDDIR)/latex
 	@echo "Running LaTeX files through pdflatex..."
 	make -C $(BUILDDIR)/latex all-pdf
@@ -31,6 +32,7 @@ pdf:
 	@echo "PDF file is ready, see $(BASENAME).pdf."
 
 files:
+	rm -f $(BASENAME)_files.zip $(BASENAME)_files.tgz
 	tar -czf $(BASENAME)_files.tgz $(BASENAME)_files/*  
 	zip $(BASENAME)_files.zip $(BASENAME)_files/*
 	@echo 
