@@ -1,5 +1,5 @@
-tutorial_title = u'A ProDy Tutorial'
-tutorial_author = u'Author One, Author Two'
+tutorial_title = u'ENM Analysis using ProDy'
+tutorial_author = u'AUTHORS'
 tutorial_logo = u''                 # default is ProDy logo
 tutorial_prody_version = u''        # default is latest ProDy version
 
