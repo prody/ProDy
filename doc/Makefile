@@ -21,6 +21,7 @@ help:
 	@echo "  test	    to run all doctests embedded in the documentation"
 	@echo "  copy	    to copy license, install, and changes to package directory"
 	@echo "  stats	    to update download statistics"
+	@echo "  tutorial   to prepare tutorial PDF and achieve files"
 
 clean:
 	-rm -rf $(BUILDDIR)/*
@@ -59,3 +60,13 @@ stats:
 	@echo
 	@echo "Download statistics updated."
 
+tutorial:
+	cd tutorials; \
+	for tut in `find . -type d` ; do \
+		if [ -d "$$tut/$$tut"_files ]; then \
+		 	cd $$tut; \
+		 	make pdf; \
+		 	make files; \
+		 	cd ..; \
+		fi; \
+	done

@@ -8,9 +8,8 @@ ProDy Tutorial
    :glob:
    :maxdepth: 2
    
-   foreword
+   intro
    starthere
    basics
    dynamics
    commands
-

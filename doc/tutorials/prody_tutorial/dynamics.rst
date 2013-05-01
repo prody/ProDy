@@ -1,8 +1,8 @@
 .. _dynamics-tutorial:
 
-*******************************************************************************
+
 Dynamics Analysis
-*******************************************************************************
+===============================================================================
 
 In this section, we will show how to perform quick PCA and ANM analysis 
 using a solution structure of ubiquitin.  If you started a new Python session,
@@ -22,7 +22,7 @@ import ProDy contents:
    plt.close('all')
 
 PCA Calculations
-===============================================================================
+-------------------------------------------------------------------------------
 
 We perform principal component analysis (:class:`.PCA`) of NMR models 
 in PDB file 2k39 as follows:
@@ -58,7 +58,7 @@ storing data permanently.  In a later session, this data can be loaded using
 :func:`.loadModel` function.
 
 ANM Calculations
-===============================================================================
+-------------------------------------------------------------------------------
 
 Anisotropic network model (:class:`.ANM`) analysis can be 
 performed in two ways:
@@ -104,7 +104,7 @@ For more information on elastic network model calculations see
 :ref:`enm` section.
 
 Comparative Analysis
-===============================================================================
+-------------------------------------------------------------------------------
 
 ProDy comes with many built-in functions to facilitate a comparative analysis
 of experimental and theoretical data. For example, using 
@@ -153,7 +153,7 @@ shows more analysis function usage examples and :ref:`dynamics` module
 documentation lists all of the analysis functions. 
 
 Output Data Files 
-===============================================================================
+-------------------------------------------------------------------------------
 
 The :func:`.writeNMD` function writes PCA results in NMD format.  
 NMD files can be viewed using the :ref:`nmwiz` VMD plugin.
@@ -169,7 +169,7 @@ other programs using the :func:`.writeArray` function:
 
 
 External Data 
-===============================================================================
+-------------------------------------------------------------------------------
 
 Normal mode data from other NMA, EDA, or PCA programs can be parsed using
 :func:`.parseModes` function for ProDy analysis. 
@@ -206,7 +206,7 @@ or obtain them for another protein from the ANM server.
    slowmode = nma[0]
 
 Plotting Data 
-===============================================================================
+-------------------------------------------------------------------------------
 
 If you have `Matplotlib <http://matplotlib.sourceforge.net>`_, you can use 
 ProDy functions whose name start with ``show`` to plot data:
@@ -227,7 +227,3 @@ ProDy functions whose name start with ``show`` to plot data:
       
 :ref:`pca-xray-plotting` shows more plotting examples and 
 :ref:`dynamics` module documentation lists all of the plotting functions. 
-
-|questions|
-
-|suggestions|

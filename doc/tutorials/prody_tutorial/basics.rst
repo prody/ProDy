@@ -1,34 +1,28 @@
 .. _prody-basics:
 
-*******************************************************************************
+
 ProDy Basics
-*******************************************************************************
+===============================================================================
 
-In the rest of this tutorial, it is assumed that the user is typing commands 
-in a Python shell.  ProDy will automatically download and save some files,
-so you may want start a Python shell from inside of a directory that you may 
-make for this tutorial::
+In the rest of this tutorial, we assume that you are typing commands in a
+Python shell.  ProDy will automatically download and save some files, so you
+may want start a Python shell from inside of a directory that you may make for
+this tutorial::
 
-  $ mkdir pdtut
-  $ cd pdtut
+  $ mkdir prody_tutorial
+  $ cd prody_tutorial
   $ ipython --pylab
   
-if you are using or::
-  
-  $ ipython -pylab
-  
-if you are using an older version of `IPython <http://ipython.org>`_.
-
-On Windows, after you make the directory, you can make a shift-right click in 
-it in Windows Explorer and then select :menuselection:`Open command window here`
-option. 
+On Windows, after you make the directory, make a shift-right click in it in
+Windows Explorer and then select :menuselection:`Open command window here`
+option.  
 
 
 Import from ProDy
-===============================================================================
+-------------------------------------------------------------------------------
 
-To begin the Tutorial, import all the functions and classes from ProDy into the
-current namespace as follows:
+In ProDy tutorials, we will usually import all ProDy functions and classes from
+ProDy into the current namespace as follows:
 
 >>> from prody import *
 
@@ -40,19 +34,24 @@ functions in a specific module, :mod:`.proteins` let's say, you can use
 ``from prody.proteins.pdbfile import *``, because location of methods in 
 submodules may change without notice.
 
+
+>>> from matplotlib.pyplot import *
+>>> from numpy import *
+
 .. plot::
    :nofigs: 
-   :context: 
-    
+   :context:
+   
    from prody import *
-   import matplotlib.pyplot as plt
-   import numpy as np
+   from matplotlib.pyplot import *
+   from numpy import *
    structure = parsePDB('1p38')
 
    plt.close('all')
    
+
 Protein structure
-===============================================================================
+-------------------------------------------------------------------------------
 
 Protein structure files in :file:`.pdb` format are the standard input for 
 ProDy.  PDB files are parsed using :func:`.parsePDB` (see 
@@ -65,8 +64,8 @@ the parser will download it automatically if needed.
 In the above line, :file:`1p38.pdb` is downloaded and coordinates and atomic 
 data are parsed from the file. 
   
-Managing resources
--------------------------------------------------------------------------------
+Managing PDB sources
+""""""""""""""""""""
 
 You can tell ProDy where to get PDB files from or where to store downloaded 
 files:
@@ -83,25 +82,24 @@ Note that when these functions are used, ProDy will save your settings as
 
 
 Quick visualization
--------------------------------------------------------------------------------
+"""""""""""""""""""
 
 :file:`1p38.pdb` contains an unbound structure of the p38 MAP kinase.
 If you have `Matplotlib <http://matplotlib.sourceforge.net>`_ installed, you 
 can take a quick look at what you parsed using :func:`.showProtein` function:  
 
 
->>> import matplotlib.pyplot as plt
->>> plt.figure(figsize=(5,4)) # doctest: +SKIP
+>>> from matplotlib.pyplot import *
+>>> figure(figsize=(4,3)) # doctest: +SKIP
 >>> showProtein(structure) # doctest: +SKIP
->>> plt.legend(prop={'size': 10}) # doctest: +SKIP
+>>> legend(prop={'size': 10}) # doctest: +SKIP
 
 .. plot::
    :context:
    
-   import matplotlib.pyplot as plt
-   plt.figure(figsize=(5,4))
+   figure(figsize=(4,3))
    showProtein(structure)
-   plt.legend(prop={'size': 10})
+   legend(prop={'size': 10})
 
    
 .. plot::
@@ -111,7 +109,7 @@ can take a quick look at what you parsed using :func:`.showProtein` function:
    plt.close('all')
 
 More examples
--------------------------------------------------------------------------------
+"""""""""""""
 
 :func:`.parsePDB` function is very flexible and can be extremely
 efficient depending on what you want to extract from a PDB file.  It can be 
@@ -131,7 +129,7 @@ parsers for other file types (e.g. mol2) can be developed. The example in
 :ref:`atomgroup` can be helpful to this aim.
 
 Atomic Data
-===============================================================================
+-------------------------------------------------------------------------------
 
 :func:`.parsePDB` returns data in an :class:`.AtomGroup` instance.  
 To get information on an :class:`.AtomGroup` instance, type in the 
@@ -156,7 +154,8 @@ For example:
 The list of methods for getting and setting atomic data is provided in
 :class:`.AtomGroup` reference documentation. 
 
-**Indexing**:
+Indexing
+""""""""
 
 An individual :class:`.Atom` can be accessed by indexing atom group 
 instances:
@@ -172,7 +171,8 @@ form of the function name.
 >>> atom.getResname()
 'GLU'
 
-**Slicing**:
+Slicing
+"""""""
 
 It is also possible to get a slice of an atom group, for example we can get
 every other atom as follows:
@@ -181,7 +181,7 @@ every other atom as follows:
 <Selection: 'index 0:2962:2' from 1p38 (1481 atoms)>
 
 Hierarchical view
--------------------------------------------------------------------------------
+^^^^^^^^^^^^^^^^^
 
 You can also access specific chains or residues in an atom group.  Indexing
 by a single letter identifier will return a :class:`.Chain` instance: 
@@ -200,7 +200,7 @@ for more on hierarchical views.
 
 
 Writing PDB files
--------------------------------------------------------------------------------
+^^^^^^^^^^^^^^^^^
 
 PDB files can be written using the :func:`.writePDB` function.
 The function accepts objects containing or referring to atomic data.
@@ -222,7 +222,7 @@ For more PDB writing examples see :ref:`writepdb`.
 
 
 Atom Selections
-===============================================================================
+-------------------------------------------------------------------------------
 
 :class:`.AtomGroup` instances have a plain view of atoms for efficiency, 
 but they are coupled with a powerful atom selection engine.  You can get well 
@@ -232,7 +232,7 @@ much similar to those found in `VMD <http://www.ks.uiuc.edu/Research/vmd/>`_.
 Some examples are shown here:
 
 Keyword selections
--------------------------------------------------------------------------------
+^^^^^^^^^^^^^^^^^^
 
 >>> protein = structure.select('protein')
 >>> protein
@@ -247,7 +247,7 @@ class are also defined for :class:`.Selection` class. For example:
 ['GLU' 'GLU' 'GLU' ..., 'ASP' 'ASP' 'ASP']
 
 Select by name/type
--------------------------------------------------------------------------------
+^^^^^^^^^^^^^^^^^^^
 
 We select backbone atoms by passing atom names following "name" keyword:
 
@@ -274,7 +274,7 @@ Alternatively, we can use predefined keywords "acidic" and "basic".
 set(['HIS', 'ASP', 'LYS', 'GLU', 'ARG'])
 
 Composite selections
--------------------------------------------------------------------------------
+^^^^^^^^^^^^^^^^^^^^
 
 Let's try a more sophisticated selection.  We first calculate the geometric 
 center of the protein atoms using :func:`.calcCenter` function.  Then, we 
@@ -293,7 +293,7 @@ Alternatively, this selection could be done as follows:
 <Selection: 'index 576 579 5... 1687 1707 1710' from 1p38 (66 atoms)>
 
 Selection operations
--------------------------------------------------------------------------------
+^^^^^^^^^^^^^^^^^^^^
 
 :class:`.Selection` instances can used with bitwise operators:
 
@@ -304,7 +304,7 @@ Selection operations
 >>> ca & cb
 
 Selections simplified
--------------------------------------------------------------------------------
+^^^^^^^^^^^^^^^^^^^^^
 
 In interactive sessions, an alternative to typing in ``.select('protein')`` 
 or ``.select('backbone')`` is using dot operator:
@@ -324,7 +324,7 @@ This may go on and on:
 
 
 More examples
--------------------------------------------------------------------------------
+^^^^^^^^^^^^^
 
 There is much more to what you can do with this flexible and fast atom 
 selection engine, without the need for writing nested loops with comparisons 
@@ -336,10 +336,10 @@ or changing the source code.  See the following pages:
   
 
 Analyze Structures
-===============================================================================
+-------------------------------------------------------------------------------
 
 Measure geometric properties
--------------------------------------------------------------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 ProDy offers several functions for analyzing molecular structure in 
 :mod:`~prody.measure` module. For example, you can calculate phi (φ) and psi 
@@ -356,7 +356,7 @@ Most functions start with ``calc`` prefix.  You can type in ``calc`` and press
 tab to see what is available in an IPython session.
 
 Compare chains
--------------------------------------------------------------------------------
+^^^^^^^^^^^^^^
 
 You can also compare different structures using some of the methods in
 :mod:`.proteins` module.  Let's parse another p38 MAP kinase structure
@@ -385,7 +385,7 @@ We can use them to calculate RMSD and superpose structures.
 >>> print calcRMSD(bnd_chA, apo_chA)
 1.86280149087
 
->>> plt.figure(figsize=(5,4)) # doctest: +SKIP
+>>> plt.figure(figsize=(4,3)) # doctest: +SKIP
 >>> showProtein(structure) # doctest: +SKIP
 >>> showProtein(bound) # doctest: +SKIP
 >>> plt.legend(prop={'size': 10}) # doctest: +SKIP
@@ -396,7 +396,7 @@ We can use them to calculate RMSD and superpose structures.
    import matplotlib.pyplot as plt
    bound = parsePDB('1zz2')
    matchAlign(structure, bound)
-   plt.figure(figsize=(5,4))
+   plt.figure(figsize=(4,3))
    showProtein(structure)
    showProtein(bound)
    plt.legend(prop={'size': 10})
@@ -410,7 +410,7 @@ We can use them to calculate RMSD and superpose structures.
 
 
 ProDy Verbosity
-===============================================================================
+-------------------------------------------------------------------------------
 
 Finally, you might have noted that ProDy prints some information to the console
 after parsing a file or doing some calculations. For example, PDB parser will 
@@ -424,6 +424,3 @@ automated tasks as the messages are printed to stderr.  The level of verbosity
 can be controlled using :func:`.confProDy` function, and calling it as 
 ``confProDy(verbosity='none')`` will stop all information messages permanently.
 
-|questions|
-
-|suggestions|
