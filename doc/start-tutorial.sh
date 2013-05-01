@@ -20,7 +20,7 @@ REFERENCE=${SHORT// /-}
 
 
 mkdir -p tutorials/$TUTORIAL
-mkdir -p tutorials/$TUTORIAL/$TUTORIAL_files
+mkdir -p tutorials/$TUTORIAL/$TUTORIAL\_files
 ln -fs ../../_static tutorials/$TUTORIAL
 cp -f tutorials/template/Makefile tutorials/$TUTORIAL
 sed 's/AUTHOR/'"$AUTHOR"'/g' tutorials/template/conf.py > tutorials/$TUTORIAL/conf.py

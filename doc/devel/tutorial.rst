@@ -13,13 +13,10 @@ Tutorial Setup
 ===============================================================================
 
 First go to :file:`doc` folder in ProDy package and generate necessary files 
-for your tutorial.  You will need a descriptive name for the tutorial which
-will be used as filename and part of the URL of online documentation pages. 
-For example, a tutorial on sampling protein conformers could have the name
-:file:`sampling_conformers`.  We run the following command::
+for your tutorial using :program:`start-tutorial.sh` script::
 
-	$ cd doc
-	$ ./start-tutorial.sh
+  $ cd doc
+  $ ./start-tutorial.sh
   Enter tutorial title: ENM Analysis using ProDy
   Enter a short title: ENM Analysis
   Enter author name: Ahmet Bakan
@@ -28,7 +25,7 @@ For example, a tutorial on sampling protein conformers could have the name
 
 This will generate following folder and files::
 
-  $ cd tutorials/sampling_conformers/
+  $ cd tutorials/enm_analysis/
   $ ls -lgo
   -rw-r--r-- 1  328 Apr 30 16:48 conf.py
   -rw-r--r-- 1  395 Apr 30 16:48 index.rst
@@ -36,11 +33,14 @@ This will generate following folder and files::
   -rw-r--r-- 1 1466 Apr 30 16:48 Makefile
   lrwxrwxrwx 1   13 Apr 30 16:48 _static -> ../../_static
 	
-	
+
+Note that short title will be used as filename and part of the URL of the 
+online documentation pages.  
+
 If tutorial logo/image that you want to use is different from ProDy logo, 
 update the following line in :file:`conf.py`::
 
-	tutorial_logo = u'enm.png'     # default is ProDy logo
+  tutorial_logo = u'enm.png'     # default is ProDy logo
   tutorial_prody_version = u''        # default is latest ProDy version
 
 Also, note ProDy version if the tutorial is developed for a specific release.

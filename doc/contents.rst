@@ -13,7 +13,7 @@ ProDy Documentation Contents
    :glob:
 
    getprody
-   tutorials/index
+   tutorial/index
    examples/index
    reference/index
    plugins/index
