@@ -1,9 +1,9 @@
-.. _REFERENCE:
+.. _trajectory-analysis:
 
-.. use "REFERENCE" to refer to this file, i.e. :ref:`REFERENCE`
+.. use "trajectory-analysis" to refer to this file, i.e. :ref:`trajectory-analysis`
 
 *******************************************************************************
-TITLE
+Trajectory Analysis using ProDy
 *******************************************************************************
 
 
@@ -14,4 +14,7 @@ TITLE
    :maxdepth: 2
    
    intro
-   
+   eda
+   trajectory
+   trajectory2
+   outputtraj

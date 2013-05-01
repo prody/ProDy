@@ -1,9 +1,9 @@
-.. _REFERENCE:
+.. _ensemble-analysis:
 
-.. use "REFERENCE" to refer to this file, i.e. :ref:`REFERENCE`
+.. use "ensemble-analysis" to refer to this file, i.e. :ref:`ensemble-analysis`
 
 *******************************************************************************
-TITLE
+Structural Ensemble Analysis
 *******************************************************************************
 
 
@@ -14,4 +14,8 @@ TITLE
    :maxdepth: 2
    
    intro
-   
+   nmr
+   blast
+   xray
+   dimer
+

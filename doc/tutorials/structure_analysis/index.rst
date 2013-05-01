@@ -1,9 +1,9 @@
-.. _REFERENCE:
+.. _structure-analysis:
 
-.. use "REFERENCE" to refer to this file, i.e. :ref:`REFERENCE`
+.. use "structure-analysis" to refer to this file, i.e. :ref:`structure-analysis`
 
 *******************************************************************************
-TITLE
+Structure Analysis using ProDy
 *******************************************************************************
 
 
@@ -14,4 +14,10 @@ TITLE
    :maxdepth: 2
    
    intro
-   
+   pdbfiles
+   blastpdb
+   biomolt
+   alignment
+   compare
+   contacts
+   ligands

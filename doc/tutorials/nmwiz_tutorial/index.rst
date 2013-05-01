@@ -1,17 +1,20 @@
-.. _REFERENCE:
-
-.. use "REFERENCE" to refer to this file, i.e. :ref:`REFERENCE`
+.. _nmwiz-tutorial:
 
 *******************************************************************************
-TITLE
+NMWiz Tutorial
 *******************************************************************************
 
 
-.. add .rst files to `toctree` in the order that you want them
+.. Add .rst files to `toctree` in the order that you want them
 
 .. toctree::
    :glob:
    :maxdepth: 2
    
    intro
-   
+   nmwiz
+   pca
+   eda
+   extend
+   deform
+   commands

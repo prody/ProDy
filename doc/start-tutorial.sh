@@ -24,7 +24,7 @@ mkdir -p tutorials/$TUTORIAL/$TUTORIAL\_files
 ln -fs ../../_static tutorials/$TUTORIAL
 cp -f tutorials/template/Makefile tutorials/$TUTORIAL
 sed 's/AUTHOR/'"$AUTHOR"'/g' tutorials/template/conf.py > tutorials/$TUTORIAL/conf.py
-sed -i 's/TITLE/'"$TITLE"'/g' tutorials/template/conf.py
+sed -i 's/TITLE/'"$TITLE"'/g' tutorials/$TUTORIAL/conf.py
 sed 's/TITLE/'"$TITLE"'/g' tutorials/template/index.rst > tutorials/$TUTORIAL/index.rst 
 sed -i 's/REFERENCE/'"$REFERENCE"'/g' tutorials/$TUTORIAL/index.rst
 sed 's/TUTORIAL/'"$TUTORIAL"'/g' tutorials/template/intro.rst > tutorials/$TUTORIAL/intro.rst

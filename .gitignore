@@ -10,8 +10,8 @@
 *.zip
 *.gz
 *.tgz
-doc/build
-doc/_build
+doc/_build/
+doc/*/*/_*
 doc/plot_directive
 doc/output.txt
 .pypirc

@@ -1,25 +1,22 @@
+
 Introduction
 ===============================================================================
 
-This tutorial shows how to ...
+Normal Mode Wizard (NMWiz) is a VMD plugin for depiction, animation, and 
+comparative analysis of normal modes.  Normal modes may come from principal 
+component of structural ensembles, essential dynamics analysis of simulation
+trajectories, or normal mode analysis of protein structures.  In addition,
+NMWiz can be used to describe any vector that describes a molecular motion. 
 
 
 Required Programs
 -------------------------------------------------------------------------------
 
-Latest version of `ProDy`_ is required.
+Latest version of `ProDy`_ and `VMD`_ are required.
 
 .. _ProDy: http://csb.pitt.edu/ProDy/getprody.html
 
-Recommended Programs
--------------------------------------------------------------------------------
-
-List any recommended programs, such as `IPython`_, `Matplotlib`_, `Scipy`_, 
-etc.
-
-.. _IPython: http://ipython.org/
-.. _Matplotlib: http://matplotlib.org/
-.. _Scipy: http://scipy.org/
+.. _VMD: http://www.ks.uiuc.edu/Research/vmd/
 
 
 Getting Started
@@ -27,7 +24,5 @@ Getting Started
 
 To follow this tutorial, you will need the following files which can be 
 downloaded from |tutorials|.
-
-.. files.txt will be automatically generated
 
 .. literalinclude:: files.txt
