@@ -65,11 +65,19 @@ This action printed a list of methods with `num` prefix. Let's use some of
 them to get information on the structure:
 
 
-.. ipython:: python
+.. ipython::
 
-   p38.numAtoms()
-   p38.numCoordsets() # returns number of models
-   p38.numResidues()  # note that each water is also counted as a residue
+   @doctest
+   In [2]: p38.numAtoms()
+   Out[2]: 2962
+
+   @doctest
+   In [2]: p38.numCoordsets() # returns number of models
+   Out[2]: 1
+
+   @doctest
+   In [2]: p38.numResidues()  # water molecules also count as residues
+   Out[2]: 480
 
 
 Analysis Functions
@@ -115,7 +123,7 @@ of them:
    showContactMap       showEllipsoid        showNormedSqFlucts   showScaledSqFlucts
    showCrossCorr        showFractVars        showOccupancies      showShannonEntropy
    showCrossProjection  showHeatmap          showOverlap          showSqFlucts
-   showCumulFractVars   showMSAOccupancy     showOverlapTable     show_config
+   showCumulFractVars   showMSAOccupancy     showOverlapTable
    showCumulOverlap     showMode             showProjection
    showDiffMatrix       showMutinfoMatrix    showProtein
 
