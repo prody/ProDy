@@ -23,7 +23,7 @@ __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 from glob import glob, iglob
 from os.path import sep as pathsep
-from os.path import abspath, isdir, isfile, join, split, splitext
+from os.path import abspath, isdir, isfile, join, split, splitext, normpath
 
 from prody import LOGGER, SETTINGS
 from prody.utilities import makePath, gunzip, relpath, copyFile, isWritable
@@ -198,12 +198,11 @@ def fetchPDBfromMirror(*pdb, **kwargs):
         if isfile(fn):
             if folder or not compressed:
                 if compressed:
-                    append(copyFile(fn, join(folder or '.', 
-                                             pdb + extension + '.gz')))
+                    fn = copyFile(fn, join(folder or '.', 
+                                             pdb + extension + '.gz'))
                 else:
-                    append(gunzip(fn, join(folder or '.', pdb + extension)))
-            else:
-                append(fn)
+                    fn = gunzip(fn, join(folder or '.', pdb + extension))
+            append(normpath(fn))
             success += 1
         else:
             append(None)
@@ -298,12 +297,10 @@ def fetchPDB(*pdb, **kwargs):
             if isfile(fn):
                 if copy or not compressed:
                     if compressed:
-                        filenames[i] = copyFile(fn, join(folder, 
-                                                         pdb + 'pdb.gz'))
+                        fn = copyFile(fn, join(folder, pdb + 'pdb.gz'))
                     else:
-                        filenames[i] = gunzip(fn, join(folder, pdb + '.pdb'))
-                else:
-                    filenames[i] = fn
+                        fn = gunzip(fn, join(folder, pdb + '.pdb'))
+                filenames[i] = normpath(fn)
             else:
                 not_found.append((i, pdb))
     
@@ -433,6 +430,7 @@ def findPDBFiles(path, case=None, **kwargs):
     
     pdbs = {}
     for fn in iterPDBFilenames(path, sort=True, reverse=True, **kwargs):
+        fn = normpath(fn)
         pdb = splitext(splitext(split(fn)[1])[0])[0]
         if len(pdb) == 7 and pdb.startswith('pdb'):
             pdb = pdb[3:]
