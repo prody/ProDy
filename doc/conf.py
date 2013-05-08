@@ -108,7 +108,7 @@ html_show_copyright = True
 
 extlinks = {
     'issue': ('https://bitbucket.org/abakan/prody/issue/%s', 'issue '),
-    'pdb': ('http://www.pdb.org/pdb/explore/explore.do?structureId=', ''),
+    'pdb': ('http://www.pdb.org/pdb/explore/explore.do?structureId=%s', ''),
 }
 
 
