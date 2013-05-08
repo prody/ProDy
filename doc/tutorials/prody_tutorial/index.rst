@@ -4,12 +4,16 @@
 ProDy Tutorial
 *******************************************************************************
 
+
 .. toctree::
    :glob:
    :maxdepth: 2
-   
+
    intro
    starthere
    basics
+   selections
+   structure
    dynamics
-   commands
+   sequence
+   apps
