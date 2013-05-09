@@ -6,18 +6,22 @@ Using an External Matrix
 Synopsis
 -------------------------------------------------------------------------------
 
-This example shows how to use matrices from external software in :class:`~.ANM`
-or :class:`~.GNM` analysis of protein dynamics.
+This example shows how to use matrices from external software in :class:`.ANM`
+or :class:`.GNM` analysis of protein dynamics.
 
 Parse Hessian
 -------------------------------------------------------------------------------
 
 We start by importing everything from the ProDy package:
 
->>> from prody import *
+.. ipython:: python
 
-The input file that contains the Hessian matrix has the following format 
-(:download:`oanm_hes.txt </doctest/oanm_hes.txt>`)::
+   from prody import *
+   from matplotlib.pylab import *
+   ion() # turn interactive mode on
+
+The input file that contains the Hessian matrix has the following format
+(:download:`oanm_hes.txt <enm_analysis_files/oanm_hes.txt>`)::
 
        1       1    9.958948135375977e+00
        1       2   -3.788214445114136e+00
@@ -31,22 +35,26 @@ The input file that contains the Hessian matrix has the following format
        1      10   -5.224789977073669e-01
        ...
 
-:func:`~.parseSparseMatrix` can be used for parsing the above file:
+:func:`.parseSparseMatrix` can be used for parsing the above file:
 
->>> hessian = parseSparseMatrix('oanm_hes.txt', symmetric=True)
->>> hessian.shape
-(1053, 1053)
+.. ipython:: python
+
+   hessian = parseSparseMatrix('enm_analysis_files/oanm_hes.txt',
+                               symmetric=True)
+   hessian.shape
+
 
 ANM calculations
 -------------------------------------------------------------------------------
 
 Rest of the calculations can be performed as follows:
 
->>> anm = ANM('Using external Hessian')
->>> anm.setHessian(hessian)
->>> anm.calcModes()
->>> anm
-<ANM: Using external Hessian (20 modes; 351 nodes)>
+.. ipython:: python
+
+   anm = ANM('Using external Hessian')
+   anm.setHessian(hessian)
+   anm.calcModes()
+   repr(anm)
 
 For more information, see :ref:`anm`.
 
@@ -54,7 +62,7 @@ Parse Kirchhoff
 -------------------------------------------------------------------------------
 
 The input file that contains the Kirchhoff matrix has the following format
-(:download:`ognm_kirchhoff.txt </doctest/ognm_kirchhoff.txt>`)::
+(:download:`enm_analysis_files/ognm_kirchhoff.txt`)::
 
         3316
        1       1       5.00
@@ -68,21 +76,24 @@ The input file that contains the Kirchhoff matrix has the following format
        2       4      -1.00
        ...
 
->>> kirchhoff = parseSparseMatrix('ognm_kirchhoff.txt', symmetric=True, 
-...                               skiprows=1)
->>> kirchhoff.shape
-(351, 351)
+.. ipython:: python
+
+   kirchhoff = parseSparseMatrix('enm_analysis_files/ognm_kirchhoff.txt',
+                                 symmetric=True, skiprows=1)
+   kirchhoff.shape
+
 
 GNM calculations
 -------------------------------------------------------------------------------
 
 Rest of the GNM calculations can be performed as follows:
 
->>> gnm = GNM('Using external Kirchhoff')
->>> gnm.setKirchhoff(kirchhoff)
->>> gnm.calcModes()
->>> gnm
-<GNM: Using external Kirchhoff (20 modes; 351 nodes)>
+.. ipython:: python
+
+   gnm = GNM('Using external Kirchhoff')
+   gnm.setKirchhoff(kirchhoff)
+   gnm.calcModes()
+   gnm
+
 
 For more information, see :ref:`gnm`.
-
