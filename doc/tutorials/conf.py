@@ -3,6 +3,8 @@ try:
 except NameError:
     exec(open('../../conf.py').read())
 
+sys.path[-1] = os.path.abspath('../../sphinxext')
+
 if not os.path.isfile('../prody-objects.inv'):
 
     def trim():

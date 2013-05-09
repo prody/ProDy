@@ -5,7 +5,7 @@
 
 import sys, os, os.path, time
 
-sys.path.append('/home/abakan/Code/ipython/docs')
+sys.path.append(os.path.abspath('sphinxext'))
 
 extensions = ['sphinx.ext.todo',
               'sphinx.ext.autodoc',
@@ -23,8 +23,8 @@ extensions = ['sphinx.ext.todo',
               'sphinxcontrib.googleanalytics',
               'sphinxcontrib.googlechart',
               'sphinxcontrib.youtube',
-              'sphinxext.ipython_console_highlighting',
-              'sphinxext.ipython_directive']
+              'ipython_console_highlighting',
+              'ipython_directive']
                #, 'sphinxcontrib.spelling']
                #'sphinx.ext.pngmath',
 
