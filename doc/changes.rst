@@ -6,6 +6,14 @@
 Changes
 *******************************************************************************
 
+Release 1.4.3 (in development)
+===============================================================================
+
+**Changes**:
+
+  * :func:`.getVMDpath` and :func:`.setVMDpath` functions are deprecated for
+    removal, use :func:`pathVMD` instead.
+
 Release 1.4.2 (April 19, 2013)
 ===============================================================================
 
@@ -13,22 +21,22 @@ Release 1.4.2 (April 19, 2013)
 
   * :func:`.fetchPDB` and :func:`.fetchPDBfromMirror` functions can handle
     partial PDB mirrors.  See :func:`.pathPDBMirror` for setting a mirror path.
-    
+
 **Changes**:
-  
-  * `MSE <http://www.pdb.org/pdb/ligand/ligandsummary.do?hetId=MSE>`_ is 
-    included in the definition of non-standard amino acids, i.e. 
+
+  * `MSE <http://www.pdb.org/pdb/ligand/ligandsummary.do?hetId=MSE>`_ is
+    included in the definition of non-standard amino acids, i.e.
     :term:`nonstdaa`.
 
 **Bugfixes**:
 
-  * Atom selection problems related to using :term:`all` and :term:`none` in 
+  * Atom selection problems related to using :term:`all` and :term:`none` in
     composite selections, e.g. ``'calpha and all'``, is fixed by defining these
     keywords as :ref:`flags`.
 
-  * Fasta files with sequence labels using multiple pipe characters would 
-    cause C parser (and so :func:`.parseMSA`) to fail.  This issue is fixed 
-    by completely disregarding pipe characters. 
+  * Fasta files with sequence labels using multiple pipe characters would
+    cause C parser (and so :func:`.parseMSA`) to fail.  This issue is fixed
+    by completely disregarding pipe characters.
 
   * Empty chain identifiers for PDB hits would cause a problem in parsing
     XML results file and :func:`.blastPDB` would throw an exception.  This
@@ -37,7 +45,7 @@ Release 1.4.2 (April 19, 2013)
   * A problem in :func:`.viewNMDinVMD` related to module imports is fixed.
 
   * A problem with handling weights in :func:`.loadEnsemble` is fixed.
-	
+
 
 Release 1.4.1 (Dec 16, 2012)
 ===============================================================================
@@ -46,22 +54,22 @@ Release 1.4.1 (Dec 16, 2012)
 
   * :func:`.buildSeqidMatrix` and :func:`.uniqueSequences` functions
     are implemented for comparing sequences in an :class:`.MSA` object.
-    
+
   * :func:`.showHeatmap`, :func:`.parseHeatmap`, and :func:`.writeHeatmap`
     functions are implemented to support VMD plugin `Heat Mapper`_ file format.
-    
-    .. _Heat Mapper: http://www.ks.uiuc.edu/Research/vmd/plugins/heatmapper/  
+
+    .. _Heat Mapper: http://www.ks.uiuc.edu/Research/vmd/plugins/heatmapper/
 
   * :class:`.Sequence` is implemented to handle individual sequence records
     and point to sequences in :class:`.MSA` instances.
-    
-  * :ref:`evol-occupancy` application is implemented for refined MSA 
+
+  * :ref:`evol-occupancy` application is implemented for refined MSA
     quality checking purposes.
-    
-  * :func:`.mergeMSA` function and :ref:`evol-merge` application are 
+
+  * :func:`.mergeMSA` function and :ref:`evol-merge` application are
     implemented for merging Pfam MSA to study multi-domain proteins.
-   
-     
+
+
 **Improvements**:
 
   * :func:`.refineMSA` function and :ref:`evol-refine` application
@@ -69,50 +77,50 @@ Release 1.4.1 (Dec 16, 2012)
 
   * :func:`.writePDB` function takes *beta* and *occupancy* arguments
     to be outputted in corresponding columns.
-    
+
   * :class:`.MSA` indexing and slicing are revised and improved.
-  
+
   * :func:`.parseMSA` is improved to handle indexing of sequences that
     have the same label in an MSA file, e.g. domains repeated in a protein.
 
   * :ref:`prody-anm`, :ref:`prody-gnm`, and :ref:`prody-pca` applications
     can write heatmap files for visualization using NMWiz and Heatmapper
     plugins.
-    
+
   * Several improvements made to handling sequence labels in Pfam MSA files.
     Files that contain sequence parts with same protein UniProt ID are
     handled delicately.
-  
+
 **Changes**:
 
   * ProDy will not emit a warning message when a wwPDB server is not set
     using :func:`.wwPDBServer`, and use the default US server.
-    
+
   * Indexing :class:`.MSA` returns :class:`.Sequence` instances.
-  
-  * Iterating over :class:`.MSA` and :class:`.MSAFile` yields 
-    :class:`.Sequence` instances. 
-  
+
+  * Iterating over :class:`.MSA` and :class:`.MSAFile` yields
+    :class:`.Sequence` instances.
+
 **Bugfixes**:
 
   * Fixed a syntax problem that prevented running ProDy using Python 2.6.
-  
+
   * Fixed :class:`.NMA` indexing problem that was introduced in v1.4.
-    
+
 
 :ref:`nmwiz`
 -------------------------------------------------------------------------------
 
   * NMWiz can visualize heatmaps linked to structural view via Heatmapper.
     Clicking on the heatmap will highlight atom or residue pairs.
-  
+
   * ProDy interface has the option to write and load cross-correlations.
-  
+
   * NMWiz can determined whether a model is an extended model. For extended
     models plotting mobility has been improved. Only a single value per residue
     will be plotted, and clicking on the plot will highlight all of the
-    residue atoms.      
-        
+    residue atoms.
+
 
 Release 1.4 (Dec 2, 2012)
 ===============================================================================
@@ -121,40 +129,40 @@ Release 1.4 (Dec 2, 2012)
 
 *Python 3 Support*
 
-  * ProDy has been refactored to support Python 3.  Windows installers for 
-    Python 2.6, 2.7, 3.1, and 3.2 are available in :ref:`getprody`.  
-    
-  * Unit tests are compatible with Python 2.7 and 3.2, and running them with 
-    other versions gives errors due to unavailability of some :mod:`unittest` 
+  * ProDy has been refactored to support Python 3.  Windows installers for
+    Python 2.6, 2.7, 3.1, and 3.2 are available in :ref:`getprody`.
+
+  * Unit tests are compatible with Python 2.7 and 3.2, and running them with
+    other versions gives errors due to unavailability of some :mod:`unittest`
     features.
 
 *Sequence Analysis*
 
-  * New applications :ref:`evol-apps` are available. 
+  * New applications :ref:`evol-apps` are available.
 
   * :func:`.searchPfam` and :func:`.fetchPfamMSA` functions are implemented
     for searching and retrieving Pfam data.  See :ref:`msafiles` for usage
     examples.
-  
-  * :class:`.MSAFile` class, :func:`.parseMSA` and :func:`.writeMSA` functions 
+
+  * :class:`.MSAFile` class, :func:`.parseMSA` and :func:`.writeMSA` functions
     are implemented for reading and writing multiple sequence alignments.
     See :ref:`msafiles` for usage examples.
-    
+
   * :class:`.MSA` class has been implemented for storing and manipulating
-    MSAs in memory.  
+    MSAs in memory.
 
-  * :func:`.calcShannonEntropy`, :func:`.buildMutinfoMatrix`, and 
-    :func:`.calcMSAOccupancy` functions are implemented implemented for 
+  * :func:`.calcShannonEntropy`, :func:`.buildMutinfoMatrix`, and
+    :func:`.calcMSAOccupancy` functions are implemented implemented for
     MSA analysis.  See :ref:`msa-analysis` for usage examples.
 
-  * :func:`.showShannonEntropy`, :func:`.showMutinfoMatrix`, and 
-    :func:`.showMSAOccupancy` functions are implemented implemented for 
+  * :func:`.showShannonEntropy`, :func:`.showMutinfoMatrix`, and
+    :func:`.showMSAOccupancy` functions are implemented implemented for
     MSA analysis.  See :ref:`msa-analysis` for usage examples.
-    
-  * :func:`.applyMutinfoCorr` and :func:`.applyMutinfoNorm` functions are 
-    implemented for applying normalization and corrections to mutual 
-    information matrices. 
-  
+
+  * :func:`.applyMutinfoCorr` and :func:`.applyMutinfoNorm` functions are
+    implemented for applying normalization and corrections to mutual
+    information matrices.
+
   * :func:`.calcRankorder` function is implemented for identifying highly
     correlated/co-evolving pairs of residues.
 
@@ -168,10 +176,10 @@ Release 1.3.1 (Nov 6, 2012)
 
 **New Features**:
 
-  * Added :func:`.fetchPDBviaHTTP` and :func:`.fetchPDBviaFTP` functions. 
+  * Added :func:`.fetchPDBviaHTTP` and :func:`.fetchPDBviaFTP` functions.
 
   * Added :func:`.copyFile` function to :mod:`.utilities`.
-  
+
   * Added :ref:`prody-test` command for convenient testing of ProDy package.
 
 **Improvements**:
@@ -189,24 +197,24 @@ Release 1.3.1 (Nov 6, 2012)
 
   * :func:`.getPDBMirrorPath` and :func:`.setPDBMirrorPath` are deprecated
     for removal in v1.4, use :func:`.pathPDBMirror` instead.
-    
-  * :func:`.getPDBCluster` is deprecated for removal in v1.4, use 
+
+  * :func:`.getPDBCluster` is deprecated for removal in v1.4, use
     :func:`.listPDBCluster` instead.
 
-  * :func:`.getReservedWords` is deprecated for removal in v1.4, use 
+  * :func:`.getReservedWords` is deprecated for removal in v1.4, use
     :func:`.listReservedWords` instead.
 
-  * :func:`.getNonstdProperties` is deprecated for removal in v1.4, use 
+  * :func:`.getNonstdProperties` is deprecated for removal in v1.4, use
     :func:`.listNonstdAAProps` instead.
 
 **Bugfix**:
 
-  * Fixed a bug in :class:`.HierView` that would cause wrong assignment of 
-    residue/chain indices to atoms when residue or chain atoms are separated 
-    by atoms of other entities.  This would also caused problems when making 
+  * Fixed a bug in :class:`.HierView` that would cause wrong assignment of
+    residue/chain indices to atoms when residue or chain atoms are separated
+    by atoms of other entities.  This would also caused problems when making
     keyword selections, such as :term:`protein`.
-    
-  * Added dummy atom check in :meth:`.Ensemble.setAtoms` and 
+
+  * Added dummy atom check in :meth:`.Ensemble.setAtoms` and
     :meth:`.Trajectory.setAtoms` methods to avoid indexing problems.
 
 Release 1.3 (Sep 30, 2012)
@@ -214,44 +222,44 @@ Release 1.3 (Sep 30, 2012)
 
 **Improvements**:
 
-  * :mod:`~.atomic.select` module and its documentation are completely 
-    rewritten.  :class:`.Select` class uses simplest possible parser 
-    to evaluate selection strings and achieves more than 25% speed-up 
-    on average.  
-    
+  * :mod:`~.atomic.select` module and its documentation are completely
+    rewritten.  :class:`.Select` class uses simplest possible parser
+    to evaluate selection strings and achieves more than 25% speed-up
+    on average.
+
   * :ref:`selections` become more forgiving of small typos, but will issue
     warning messages when they are detected via :exc:`.SelectionWarning`.
     These messages can be turned of using :func:`.confProDy`
 
-  * Functions used in :ref:`prody-apps` have been refactored to allow for using 
+  * Functions used in :ref:`prody-apps` have been refactored to allow for using
     them directly.  See :mod:`.apps` for their documentation.
-     
+
 **Bugfix**:
 
-  * A problem in :ref:`prody-catdcd` command that was introduced when 
+  * A problem in :ref:`prody-catdcd` command that was introduced when
     refactoring :mod:`.trajectory` classes is fixed.
 
 
 Release 1.2.1 (Sep 6, 2012)
 ===============================================================================
 
-If you are upgrading from ProDy v1.1, see also the below changes introduced in 
+If you are upgrading from ProDy v1.1, see also the below changes introduced in
 v1.2.
 
 **Bugfix**:
 
-  * A problem in :mod:`select` module regarding Numpy numeric types 
-    is fixed.  Problem would emerge on platforms which do not offer 
+  * A problem in :mod:`select` module regarding Numpy numeric types
+    is fixed.  Problem would emerge on platforms which do not offer
     some numeric types, e.f. ``np.float16``.
-    
-  * Fixed problems in :ref:`prody-anm`, :ref:`prody-gnm`, and 
+
+  * Fixed problems in :ref:`prody-anm`, :ref:`prody-gnm`, and
     :ref:`prody-fetch` related to writing output files.
-    
-**Changes**:    
+
+**Changes**:
 
   * The way that :ref:`prody-fetch` command handles files containing PDB
-    identifiers has changed.  
-  
+    identifiers has changed.
+
 
 Release 1.2 (Aug 30, 2012)
 ===============================================================================
@@ -260,131 +268,131 @@ Release 1.2 (Aug 30, 2012)
 
 Package folder :file:`prody` is moved into :file:`lib` folder to prevent
 exceptions related to importing compiled packages from the installation
-folder. 
+folder.
 
 Some changes in :class:`.Trajectory` and :class:`.Ensemble` methods related
 to linking, setting, and selecting atoms were made to make the interface
 more intuitive.  These changes, which may break your code, are as follows:
 
-  * :class:`.AtomGroup` instances can be linked to a :class:`.Trajectory` 
-    using :meth:`.Trajectory.link` method and linking status of an instance 
-    can be checked using :meth:`.Trajectory.isLinked` medhod. 
-    
-  * :meth:`.Trajectory.setAtoms` method accepts :class:`.AtomGroup` and 
+  * :class:`.AtomGroup` instances can be linked to a :class:`.Trajectory`
+    using :meth:`.Trajectory.link` method and linking status of an instance
+    can be checked using :meth:`.Trajectory.isLinked` medhod.
+
+  * :meth:`.Trajectory.setAtoms` method accepts :class:`.AtomGroup` and
     :class:`.Selection` instances and should be used to select a subset
     of atoms.  This method will not link :class:`.AtomGroup` instance to the
-    trajectory and also will not update the reference coordinates of the 
+    trajectory and also will not update the reference coordinates of the
     instance.
-    
+
   * :meth:`.Trajectory.select` and :meth:`.Ensemble.select` methods are removed
-    and their functions are overloaded to :meth:`.Trajectory.setAtoms` 
+    and their functions are overloaded to :meth:`.Trajectory.setAtoms`
     and :meth:`.Ensemble.setAtoms` methods, respectively.
-    
-  * :meth:`.Trajectory.getSelection` and :meth:`.Ensemble.getSelection` 
-    methods are removed, use :meth:`.Trajectory.getAtoms` and 
+
+  * :meth:`.Trajectory.getSelection` and :meth:`.Ensemble.getSelection`
+    methods are removed, use :meth:`.Trajectory.getAtoms` and
     :meth:`.Ensemble.getAtoms` instead.
-  
-  * :class:`.Trajectory` reference coordinates must be changed using 
+
+  * :class:`.Trajectory` reference coordinates must be changed using
     :meth:`.Trajectory.setCoords` method.
 
-For usage examples see :ref:`trajectory`, :ref:`trajectory2`, :ref:`frame`, 
-and :ref:`outputtraj`.  
+For usage examples see :ref:`trajectory`, :ref:`trajectory2`, :ref:`frame`,
+and :ref:`outputtraj`.
 
 **New Features**:
 
   * :ref:`flags`, that are used in :ref:`selections`, is implemented.  See its
     documentation for handy usage examples.
-    
+
   * :func:`.sortAtoms` function is implemented.
-  
+
   * :func:`.pickCentralConf` function is implemented to pick the conformation
-    or the active coordinate set that is closest to the average of coordinate 
+    or the active coordinate set that is closest to the average of coordinate
     sets.
-    
+
   * :func:`.writePSF`, a simple PSF file writer, is implemented.
 
   * :func:`.glob` utility function is implemented.
 
   * :func:`.iterPDBFilenames` function is implemented, which can be used to
     iterate over all PDB files stored in a local mirror of Protein Data Bank.
-    
+
   * :func:`.findPDBFiles` function is implemented, which can be used to access
     PDB files in a path.
 
 
 **Improvements**:
 
-  * :class:`.HierView` instances are built more efficiently.  Two times 
-    speed-up is achieved by delaying instantiation of :class:`.Chain` and 
-    :class:`.Residue` instances until they are needed.      
+  * :class:`.HierView` instances are built more efficiently.  Two times
+    speed-up is achieved by delaying instantiation of :class:`.Chain` and
+    :class:`.Residue` instances until they are needed.
 
   * Multiple :ref:`flags` can be used in :ref:`selections` without using
-    ``'and'`` operator, e.g. ``'sidechain carbon'`` is the same as 
+    ``'and'`` operator, e.g. ``'sidechain carbon'`` is the same as
     ``'sidechain and carbon'``.
-    
+
   * :func:`.writePDB` accepts :class:`.Ensemble`, :class:`.Conformation`,
     and :class:`.Frame` instances as atoms argument.
-  
+
   * :func:`.writePDB` function is around 25% faster.
 
-  * :func:`.pickCentral` is extended to accept :class:`.Atomic` and 
+  * :func:`.pickCentral` is extended to accept :class:`.Atomic` and
     :class:`.Ensemble` instances. Old function is now :func:`.pickCentralAtom`.
-    
+
   * :ref:`prody-align` command and :func:`.prody_align` function can handle
     non-protein atom selections (see examples for :ref:`prody-align`).
-    
-  * :func:`.parsePDB` and :func:`.writePDB` supports 100K and more atoms. 
-    
+
+  * :func:`.parsePDB` and :func:`.writePDB` supports 100K and more atoms.
+
 **Changes**:
 
-  * :func:`.showOverlapTable` displays first set of modes along x axis of the 
+  * :func:`.showOverlapTable` displays first set of modes along x axis of the
     plot.
 
-  * :meth:`.AtomGroup.setData` does not accept arrays with boolean data type, 
+  * :meth:`.AtomGroup.setData` does not accept arrays with boolean data type,
     use :meth:`.AtomGroup.setFlags` instead.
-  
+
   * :func:`.writePDB` function argument *model* is changed to *csets* that
     indicates the coordinate set index of *atoms* argument.
-    
+
   * :meth:`.PackageLogger.timing` does not return elapsed time, only logs this
     information.
-    
-  * :meth:`.PackageLogger.startLogfile` is deprecated for removal in v1.3, use 
+
+  * :meth:`.PackageLogger.startLogfile` is deprecated for removal in v1.3, use
     :meth:`.PackageLogger.start` instead.
 
-  * :meth:`.PackageLogger.closeLogfile` is deprecated for removal in v1.3, use 
+  * :meth:`.PackageLogger.closeLogfile` is deprecated for removal in v1.3, use
     :meth:`.PackageLogger.close` instead.
-    
+
   * ``from prody.utilities import *`` will not work anymore due to potential
     name conflicts with Python standard library functions.  Import required
     functions explicitly.
-    
+
   * :func:`.writePDB` appends :file:`.pdb` extension to filename when it is not
     present
 
   * :ref:`prody-select` command positional argument order is changed to allow
     for handling multiple PDBs at a time. Old older will be supported until
     v1.4, but a warning message will be issued.
-    
-  * *select* argument in :func:`.alignCoordsets` is removed, make selection 
+
+  * *select* argument in :func:`.alignCoordsets` is removed, make selection
     outside of the function instead.
 
 **Deprecations**:
 
   * :meth:`.AtomGroup.getHeteros` method has been deprecated for removal in
     v1.3, use ``getFlags('hetatm')`` instead.
-    
-  * :meth:`.AtomMap.getMappedFlags` and :meth:`.AtomMap.getDummyFlags` 
-    methods have been deprecated for removal in v1.3, use 
+
+  * :meth:`.AtomMap.getMappedFlags` and :meth:`.AtomMap.getDummyFlags`
+    methods have been deprecated for removal in v1.3, use
     ``getFlags('mapped')`` and ``getFlags('dummy')`` instead.
-    
+
   * :func:`.getVerbosity` and :func:`.setVerbosity` are deprecated for removal
     in v1.3, use :func:`.confProDy` instead which save changes permanently.
-    
+
   * :meth:`.NMA.getModes` and :meth:`.ModeSet.getModes` methods are deprecated
     for removal in v1.3, use :func:`list`, e.g. ``list(model)``, instead.
-  
-    
+
+
 **Bugfixes**:
 
   * Fixed a bug in :ref:`prody-contacts` command that arose problems when
@@ -395,14 +403,14 @@ and :ref:`outputtraj`.
 
 **Improvements**:
 
-  * :guilabel:`ProDy Interface` shows the size of the trajectory output file 
+  * :guilabel:`ProDy Interface` shows the size of the trajectory output file
     for PCA calculations.
-    
-  * :guilabel:`Mode Graphics Options` allows for copying arrows settings from 
-    one mode to another. 
-  
-  * Color scale method and midpoint for protein coloring based on mobility and 
-    bfactors can be adjusted from :guilabel:`Protein Graphics Options` panel. 
+
+  * :guilabel:`Mode Graphics Options` allows for copying arrows settings from
+    one mode to another.
+
+  * Color scale method and midpoint for protein coloring based on mobility and
+    bfactors can be adjusted from :guilabel:`Protein Graphics Options` panel.
 
 Release 1.1 (June 1, 2012)
 ===============================================================================
@@ -415,21 +423,21 @@ Release 1.1 (June 1, 2012)
   * :func:`.findNeighbors` function is added.
 
   * :func:`.calcMSF` and :func:`.calcRMSF` functions are added.
-  
+
   * :func:`.wrapAtoms` functions is added.
 
   * :func:`.extendMode` and :func:`.extendVector` functions are added.
-  
+
   * :ref:`prody-contacts` command is added.
 
 **Improvements**:
 
-  * :func:`.moveAtoms` function is improved to move atoms to a specified 
+  * :func:`.moveAtoms` function is improved to move atoms to a specified
     location.
 
   * :class:`.DCDFile` and :func:`.parseDCD` take *astype* keyword argument for
     automatic type recasting for coordinate arrays.  This option can be used
-    to convert 32-bit coordinate arrays to 64-bit automatically for higher 
+    to convert 32-bit coordinate arrays to 64-bit automatically for higher
     precision calculations.
 
   * Commands :ref:`prody-anm`, :ref:`prody-gnm`, and :ref:`prody-pca` can
@@ -440,10 +448,10 @@ Release 1.1 (June 1, 2012)
 
   * Color scale used by :func:`.showOverlapTable` is normalized by default.
 
-  * :mod:`.tools` module is depracated for removal, use :mod:`.utilities` 
+  * :mod:`.tools` module is depracated for removal, use :mod:`.utilities`
     instead.
-    
-  * *array* argument in :func:`.moveAtoms` is replaced with *by* keyword 
+
+  * *array* argument in :func:`.moveAtoms` is replaced with *by* keyword
     argument.
 
   * *which* argument in :meth:`.AtomGroup.copy` method is deprecated for
@@ -451,24 +459,24 @@ Release 1.1 (June 1, 2012)
 
   * :class:`.DCDFile` does not log information for most common type of DCD
     file, i.e. 32-bit CHARMM format.
-    
+
   * :meth:`.Trajectory.getNextIndex` method is deprecated for removal in v1.2,
     use :meth:`~.Trajectory.nextIndex` instead.
 
 **Bugfixes**:
 
-  * Fixed several problems in :func:`.iterNeighbors` function and 
+  * Fixed several problems in :func:`.iterNeighbors` function and
     :class:`.Contacts` class that were introduced after transition to new
-    :class:`.KDTree` interface. 
- 
+    :class:`.KDTree` interface.
+
   * Fixed a problem in setting selection strings of fragments identified using
     :func:`.findFragments`.
-    
-  * Fixed a problem in :func:`.calcCenter` related to weighted center 
+
+  * Fixed a problem in :func:`.calcCenter` related to weighted center
     calculation.
 
-  * Fixed a problem of in copying :class:`.AtomMap` instances, which would 
-    emerge when bond information was present in unusual mappings, such as 
+  * Fixed a problem of in copying :class:`.AtomMap` instances, which would
+    emerge when bond information was present in unusual mappings, such as
     when atom orders are changed or an atom is present multiple times in the
     mapping.
 
@@ -489,12 +497,12 @@ Release 1.0.4 (May 2, 2012)
 **Bugfixes**:
 
   * Fixed a problem in :func:`.calcPhi` function that raised a name error.
-  
-  * Fixed a problem in :meth:`.KDTree.getDistances` method that raised  a 
+
+  * Fixed a problem in :meth:`.KDTree.getDistances` method that raised  a
     name error when unitcell is provided.
-  
+
   * Fixed a problem in :func:`.buildDistMatrix` and :func:`.calcDistance`
-    functions causing miscalculations when unitcell is given. 
+    functions causing miscalculations when unitcell is given.
 
   * Revised :class:`.KDTree` methods dealing with to handle special cases
     where unitcell might have some dimensions zero.
@@ -514,9 +522,9 @@ Release 1.0.3 (May 1, 2012)
 
 **New Features**:
 
-  * :func:`.buildDistMatrix` function that can take periodic boundary 
+  * :func:`.buildDistMatrix` function that can take periodic boundary
     conditions is implemented.
-    
+
 **Improvements**:
 
   * :func:`.calcDistance` function is improved to take periodic boundary
@@ -526,21 +534,21 @@ Release 1.0.2 (May 1, 2012)
 ===============================================================================
 
 **New Features**:
- 
+
   * Methods to deal with connected subsets of atoms are implemented, see
     :meth:`.AtomGroup.iterFragments` and :meth:`.AtomGroup.numFragments`.
-    
+
   * :func:`.pickCentral` method is implemented for picking the atom that
     is closest to the centroid of a group or subset of atoms.
-    
-  * ProDy configuration option *auto_secondary* is implemented to 
-    allow for parsing and assigning secondary structure information from PDB
-    file header data automatically.  See :func:`.assignSecstr` and 
-    :func:`.confProDy` for usage details. 
 
-  * :program:`prody align` makes use of :option:`--select` when aligning 
+  * ProDy configuration option *auto_secondary* is implemented to
+    allow for parsing and assigning secondary structure information from PDB
+    file header data automatically.  See :func:`.assignSecstr` and
+    :func:`.confProDy` for usage details.
+
+  * :program:`prody align` makes use of :option:`--select` when aligning
     multiple structures. See usage examples: :ref:`prody-align`
-    
+
   * :func:`.printRMSD` function that prints minimum, maximum, and mean RMSD
     values when comparing multiple coordinate sets is implemented.
 
@@ -548,58 +556,58 @@ Release 1.0.2 (May 1, 2012)
     e.g. :class:`.Selection`, is implemented.
 
   * A new :class:`.KDTree` interface with coherent method names and capability
-    to handle periodic boundary conditions is implemented.    
+    to handle periodic boundary conditions is implemented.
 
 **Improvements**:
 
   * Performance improvements made in :func:`.saveAtoms` and :func:`.loadAtoms`.
-  
-  * :func:`.sliceMode`, :func:`.sliceModel`, :func:`.sliceVector`, and 
-    :func:`.reduceModel` functions accept :class:`.Selection` instances as 
+
+  * :func:`.sliceMode`, :func:`.sliceModel`, :func:`.sliceVector`, and
+    :func:`.reduceModel` functions accept :class:`.Selection` instances as
     well as selection strings.  In repeated use of this function, if selections
-    are already made out of the function, considerable speed-ups are achieved 
+    are already made out of the function, considerable speed-ups are achieved
     when selection is passed instead of selection string.
-    
+
   * Fragment iteration (:meth:`.AtomGroup.iterFragments`) is improved to yield
-    items faster. 
+    items faster.
 
 **Changes**:
 
-  * There is a change in the behavior of addition operation on instances of 
-    :class:`.AtomGroup`.  When operands do not have same number of coordinate 
-    sets, the result will have one coordinate set that is concatenation of the 
+  * There is a change in the behavior of addition operation on instances of
+    :class:`.AtomGroup`.  When operands do not have same number of coordinate
+    sets, the result will have one coordinate set that is concatenation of the
     *active coordinate sets* of operands.
-    
-  * :func:`.buildKDTree` function is deprecated for removal, use the new 
+
+  * :func:`.buildKDTree` function is deprecated for removal, use the new
     :class:`.KDTree` class instead.
 
 **Bugfixes**:
 
   * A problem in building hierarchical views when making selections using
-    *resindex*, *chindex*, and *segindex* keywords is fixed.  
+    *resindex*, *chindex*, and *segindex* keywords is fixed.
 
-  * A problem in :class:`.Chain` and :class:`.Residue` selection strings 
+  * A problem in :class:`.Chain` and :class:`.Residue` selection strings
     that would emerge when a :class:`.HierView` is build using a selection
     is fixed.
-    
-  * A problem with copying :class:`.AtomGroup` instances whose coordinates 
+
+  * A problem with copying :class:`.AtomGroup` instances whose coordinates
     are not set is fixed.
-    
+
   * :class:`.AtomGroup` fragment detection algorithm is rewritten to avoid
     the problem of reaching maximum recursion depth for large molecules
     with the old recursive algorithm.
 
   * A problem with picking central atom of :class:`.AtomGroup` instances
     in :func:`.pickCentral` function is fixed.
-    
+
   * A problem in :class:`.Select` class that caused exceptions when evaluating
     complex macro definitions is fixed.
-    
+
   * Fixed a problem in handling multiple trajectory files.  The problem would
-    emerge when a file was added (:meth:`~.Trajectory.addFile`) to a 
-    :class:`.Trajectory` after atoms were set (:meth:`~.Trajectory.setAtoms`). 
-    Newly added file would not be associated with the atoms and coordinates 
-    parsed from this file would not be set for the :class:`.AtomGroup` 
+    emerge when a file was added (:meth:`~.Trajectory.addFile`) to a
+    :class:`.Trajectory` after atoms were set (:meth:`~.Trajectory.setAtoms`).
+    Newly added file would not be associated with the atoms and coordinates
+    parsed from this file would not be set for the :class:`.AtomGroup`
     instance.
 
 
@@ -608,35 +616,35 @@ Release 1.0.1 (Apr 6, 2012)
 
 **New Features**:
 
-  * ProDy can be configured to automatically check for updates on a regular 
+  * ProDy can be configured to automatically check for updates on a regular
     basis, see :func:`.checkUpdates` and :func:`.confProDy` functions for
-    details.   
+    details.
 
   * :func:`.alignPDBEnsemble` function is implemented to align PDB files using
     transformations calculated in ensemble analysis.  See usage example in
-    :ref:`pca-blast` example. 
+    :ref:`pca-blast` example.
 
   * :meth:`.PDBConformation.getTransformation` is implemented to return
     the transformation that was used to superpose conformation onto reference
     coordinates. This transformation can be used to superpose the original
     PDB file onto the reference PDB file.
-  
-  * Amino acid sequences with regular expressions can be used to make atom 
-    selections, e.g. ``'sequence "C..C"'``.  See :ref:`selections` for usage 
+
+  * Amino acid sequences with regular expressions can be used to make atom
+    selections, e.g. ``'sequence "C..C"'``.  See :ref:`selections` for usage
     details.
-  
+
   * :func:`.calcCrossProjection` function is implemented.
-  
+
 **Improvements**:
 
-  * :class:`.Select` class raises a :class:`.SelectionError` when 
+  * :class:`.Select` class raises a :class:`.SelectionError` when
     potential typos are detected in a selection string, e.g. ``'chain AB'``
     is a grammatically correct selection string that will return **None**
     since no atoms have chain identifier ``'AB'``.  In such cases, an exception
     noting that values exceed maximum number of characters is raised.
-  
-  * :program:`prody align` command accepts percent sequence identity and 
-    overlap parameters used when matching chains from given multiple 
+
+  * :program:`prody align` command accepts percent sequence identity and
+    overlap parameters used when matching chains from given multiple
     structures.
 
   * When using :program:`prody align` command to align multiple structure,
@@ -645,27 +653,27 @@ Release 1.0.1 (Apr 6, 2012)
   * :program:`prody catdcd` command accepts ``--align SELSTR`` argument
     that can be used to align frames when concatenating files.
 
-  * :func:`.showProjection` and :func:`.showCrossProjection` functions are 
+  * :func:`.showProjection` and :func:`.showCrossProjection` functions are
     improved to evaluate list of markers, color, labels, and texts.  See
     usage example in :ref:`pca-xray-plotting`.
-    
+
   * :class:`.Trajectory` instances can be used for calculating and plotting
     projections using :func:`.calcProjection`, :func:`.showProjection`,
     :func:`.calcCrossProjection`, and :func:`.showCrossProjection` functions.
- 
-    
+
+
 **Changes**:
 
-  * Phosphorylated amino acids, phosphothreonine (*TPO*), O-phosphotyrosine 
-    (*PTR*), and phosphoserine (*SEP*), are recognized as acidic protein 
+  * Phosphorylated amino acids, phosphothreonine (*TPO*), O-phosphotyrosine
+    (*PTR*), and phosphoserine (*SEP*), are recognized as acidic protein
     residues.  This prevents having breaks in protein chains which contains
-    phosphorylated residues.  See :ref:`selections` for definitions of 
+    phosphorylated residues.  See :ref:`selections` for definitions of
     *protein* and *acidic* keywords.
 
-  * Hit dictionaries from :class:`.PDBBlastRecord` will use *percent_overlap* 
+  * Hit dictionaries from :class:`.PDBBlastRecord` will use *percent_overlap*
     instead of *percent_coverage*.  Older key will be removed in v1.1.
 
-  * :meth:`.Transformation.get4x4Matrix` method is deprecated for removal in 
+  * :meth:`.Transformation.get4x4Matrix` method is deprecated for removal in
     v1.1, use :meth:`.Transformation.getMatrix` method instead.
 
 
@@ -674,11 +682,11 @@ Release 1.0.1 (Apr 6, 2012)
   * A bug in some :ref:`prody-apps` is fixed. The bug would emerge when invalid
     arguments were passed to effected commands and throw an unrelated exception
     hiding the error message related to the arguments.
-    
+
   * A bug in ``'bonded to ...'`` is fixed that emerged when ``'...'``
     selected nothing.
-    
-  * A bug in ``'not'`` selections using ``.`` operator is fixed. 
+
+  * A bug in ``'not'`` selections using ``.`` operator is fixed.
 
 Release 1.0 (Mar 7, 2012)
 ===============================================================================
@@ -687,17 +695,17 @@ Release 1.0 (Mar 7, 2012)
 
   * :meth:`.ANM.buildHessian` method is not using a KDTree by default, since
     with some code optimization the version not using KDTree is running faster.
-    Same optimization has gone into :meth:`.GNM.buildKirchhoff` too, but for 
+    Same optimization has gone into :meth:`.GNM.buildKirchhoff` too, but for
     Kirchoff matrix, version using KDTree is faster and is the default.  Both
     methods have *kdtree* argument to choose whether to use it or not.
 
-  * :program:`prody` script is updated.  Importing Prody and Numpy libraries 
-    are avoided. Script responses to help queries faster.  
+  * :program:`prody` script is updated.  Importing Prody and Numpy libraries
+    are avoided. Script responses to help queries faster.
     See :ref:`prody-apps` for script usage details.
 
-  * Added ``bonded to ...`` selection method that expands a selection to 
+  * Added ``bonded to ...`` selection method that expands a selection to
     immediately bound atoms.  See :ref:`selections` for its description.
-  
+
   * :func:`.fetchPDBLigand` parses bond data from the XML file.
 
   * :func:`.fetchPDBLigand` can optionally save compressed XML files into
@@ -709,79 +717,79 @@ Release 1.0 (Mar 7, 2012)
 
   * Distance based atom selection is 10 to 15% faster for atom groups with
     more than 5K atoms.
-    
+
   * Added uncompressed file saving option to :ref:`prody-blast` command.
 
 **Changes**:
 
   * All deprecated method and functions scheduled for removal are removed.
-  
+
   * :meth:`~.Mode.getEigenvector` and :meth:`~.Mode.getEigenvalue` methods are
-    deprecated for removal in v1.1, use :meth:`.Mode.getEigvec` and 
+    deprecated for removal in v1.1, use :meth:`.Mode.getEigvec` and
     :meth:`.Mode.getEigval` instead.
 
   * :meth:`~.NMA.getEigenvectors` and :meth:`~.NMA.getEigenvalues` methods are
-    deprecated for removal in v1.1, use :meth:`.NMA.getEigvecs` and 
-    :meth:`.NMA.getEigvals` instead. 
+    deprecated for removal in v1.1, use :meth:`.NMA.getEigvecs` and
+    :meth:`.NMA.getEigvals` instead.
 
   * :meth:`.Mode.getCovariance` and :meth:`.ModeSet.getCovariance` methods
-    are deprecated for removal in v1.1, use :func:`.calcCovariance` method 
+    are deprecated for removal in v1.1, use :func:`.calcCovariance` method
     instead.
 
-  * :meth:`Mode.getCollectivity` method is removed, use 
+  * :meth:`Mode.getCollectivity` method is removed, use
     :func:`.calcCollectivity` function instead.
-  
-  * :meth:`Mode.getFractOfVariance` method is removed, use the new 
+
+  * :meth:`Mode.getFractOfVariance` method is removed, use the new
     :func:`.calcFractVariance` function instead.
-  
-  * :meth:`Mode.getSqFlucts` method is removed, use :func:`.calcSqFlucts` 
+
+  * :meth:`Mode.getSqFlucts` method is removed, use :func:`.calcSqFlucts`
     function instead.
 
-  * Renamed :func:`showFractOfVar` function as :func:`.showFractVars` 
+  * Renamed :func:`showFractOfVar` function as :func:`.showFractVars`
     function instead.
-    
+
   * Removed :func:`calcCumOverlapArray`, use :func:`.calcCumulOverlap`
     with ``array=True`` argument instead.
-    
+
   * Renamed :func:`extrapolateModel` as :func:`.extendModel`.
 
   * The relation between :class:`.AtomGroup`, :class:`.Trajectory`, and
     :class:`.Frame` instances have changed. See :ref:`trajectory2` and
     :ref:`outputtraj`, and :ref:`frame` usage examples.
-  
-  * :class:`.AtomGroup` cannot be deformed by direct addition with a vector 
-    instance.  
 
-  * Unmapped atoms in :class:`.AtomMap` instances are called dummies.  
-    :meth:`.AtomMap.numUnmapped` method, for example, is renamed as 
+  * :class:`.AtomGroup` cannot be deformed by direct addition with a vector
+    instance.
+
+  * Unmapped atoms in :class:`.AtomMap` instances are called dummies.
+    :meth:`.AtomMap.numUnmapped` method, for example, is renamed as
     :meth:`.AtomMap.numDummies`.
 
-  * :func:`.fetchPDBLigand` accepts only *filename* (instead of *save* and 
+  * :func:`.fetchPDBLigand` accepts only *filename* (instead of *save* and
     *folder*) argument to save an XML file.
 
 **Bugfixes**:
 
   * A problem in distance based atom selection which would could cause problems
     when a distance based selection is made from a selection is fixed.
-    
+
   * Changed :ref:`prody-blast` so that when a path for downloading files
-    are given files are not save to local PDB folder. 
-    
+    are given files are not save to local PDB folder.
+
 
 Release 0.9.4 (Feb 4, 2012)
 ===============================================================================
 
 **Changes**:
 
-  * :meth:`setAtomGroup` and :meth:`getAtomGroup` methods are renamed as 
+  * :meth:`setAtomGroup` and :meth:`getAtomGroup` methods are renamed as
     :meth:`.Ensemble.setAtoms` and  :meth:`.Ensemble.getAtoms`.
-    
+
   * :class:`.AtomGroup` class trajectory methods, i.e.
-    :meth:`AtomGroup.setTrajectory`, 
-    :meth:`AtomGroup.getTrajectory`, 
+    :meth:`AtomGroup.setTrajectory`,
+    :meth:`AtomGroup.getTrajectory`,
     :meth:`AtomGroup.nextFrame`,
-    :meth:`AtomGroup.nextFrame`, and 
-    :meth:`AtomGroup.gotoFrame` 
+    :meth:`AtomGroup.nextFrame`, and
+    :meth:`AtomGroup.gotoFrame`
     methods are deprecated. Version 1.0 will feature a better integration
     of :class:`.AtomGroup` and :class:`.Trajectory` classes.
 
@@ -790,7 +798,7 @@ Release 0.9.4 (Feb 4, 2012)
 
   * Bugfixes in :meth:`.Bond.setACSIndex`, :func:`.saveAtoms`,
     and :meth:`.HierView.getSegment`.
-    
+
   * Bugfixes in :class:`.GammaVariableCutoff` and :class:`.GammaStructureBased`
     classes.
 
@@ -798,7 +806,7 @@ Release 0.9.4 (Feb 4, 2012)
 
   * Bugfixes in :meth:`.Ensemble.getWeights`, :func:`.showOccupancies`,
     :meth:`.DCDFile.flush`.
-    
+
   * Bugfixes in ProDy commands :ref:`prody-blast`, :ref:`prody-fetch`, and
     :ref:`prody-pca`.
 
@@ -810,90 +818,90 @@ Release 0.9.3 (Feb 1, 2012)
 
 **New Features**:
 
-  * :class:`.DBRef` class is implemented for storing references 
+  * :class:`.DBRef` class is implemented for storing references
     to sequence databases parsed from PDB header records.
-    
-  * Methods for storing coordinate set labels in :class:`.AtomGroup` 
-    instances are implemented: :meth:`~.AtomGroup.getACSLabel`, and 
+
+  * Methods for storing coordinate set labels in :class:`.AtomGroup`
+    instances are implemented: :meth:`~.AtomGroup.getACSLabel`, and
     :meth:`~.AtomGroup.getACSLabel`.
 
-  * :func:`.calcCenter` and :func:`.moveAtoms` functions 
+  * :func:`.calcCenter` and :func:`.moveAtoms` functions
     are implemented for dealing with coordinate translation.
 
-  * Hierarchical view, :class:`.HierView`, is completely redesigned.  
-    PDB files that contain non-empty segment name column (or when such 
-    information is parsed from a PSF file), new design delicately handles this 
-    information to identify distinct chains and residues.  This prevents 
-    merging distinct chains in different segments but with same identifiers 
-    and residues in those with same numbers.  New design is also using ordered 
-    dictionaries :class:`collections.OrderedDict` and lists so that chain and 
-    residue iterations yield them in the order they are parsed from file.  
+  * Hierarchical view, :class:`.HierView`, is completely redesigned.
+    PDB files that contain non-empty segment name column (or when such
+    information is parsed from a PSF file), new design delicately handles this
+    information to identify distinct chains and residues.  This prevents
+    merging distinct chains in different segments but with same identifiers
+    and residues in those with same numbers.  New design is also using ordered
+    dictionaries :class:`collections.OrderedDict` and lists so that chain and
+    residue iterations yield them in the order they are parsed from file.
     These improvements also bring modest improvements in speed.
 
   * :class:`.Segment` class is implemented for handling segments
-    of atoms defined in molecular dynamics simulations setup, using 
-    :program:`psfgen` for example. 
+    of atoms defined in molecular dynamics simulations setup, using
+    :program:`psfgen` for example.
 
   * Context manager methods are added to trajectory classes.  A trajectory
     file can be opened as follows::
-       
+
       with Trajectory('mdm2.dcd') as traj:
           for frame in traj:
               calcGyradius(frame)
 
   * :class:`.Chain` slicing is implemented::
-    
+
       p38 = parsePDB('1p38')
       chA = p38['A']
       res_4to10 = chA[4:11]
       res_100toLAST = chA[100:]
-  
+
   * Some support for bonds is implemented to :class:`.AtomGroup` class.
-    Bonds can be set using :meth:`~.AtomGroup.setBonds` method.  All 
+    Bonds can be set using :meth:`~.AtomGroup.setBonds` method.  All
     bonds must be set at once.  :meth:`~.AtomGroup.iterBonds` or
     :meth:`~.Atom.iterBonds` methods can be used to iterate over bonds
     in an AtomGroup or an Atom.
-      
-  * :func:`.parsePSF` parses bond information and sets to the
-    atom group. 
 
-  * :meth:`.Selection.update` method is implemented, which may be useful to 
-    update a distance based selection after coordinate changes.  
-    
+  * :func:`.parsePSF` parses bond information and sets to the
+    atom group.
+
+  * :meth:`.Selection.update` method is implemented, which may be useful to
+    update a distance based selection after coordinate changes.
+
   * :func:`.buildKDTree` and :func:`.iterNeighbors` methods
-    are implemented for facilitating identification of pairs of atoms that 
-    are proximal.  
-    
-  * :meth:`~.AtomGroup.iterAtoms` method is implemented to all 
+    are implemented for facilitating identification of pairs of atoms that
+    are proximal.
+
+  * :meth:`~.AtomGroup.iterAtoms` method is implemented to all
     :mod:`~prody.atomic` classes to provide uniformity for atom iterations.
-    
-  * :func:`.calcAngle`, :func:`.calcDihedral`, :func:`.calcPhi`, 
+
+  * :func:`.calcAngle`, :func:`.calcDihedral`, :func:`.calcPhi`,
     :func:`.calcPsi`, and :func:`.calcOmega` methods are implemented.
 
 **Improvements**:
 
-  * :meth:`.Chain.getSelstr` and :meth:`.Residue.getSelstr` methods are 
-    improved to include the selection string of a :class:`.Selection` when 
+  * :meth:`.Chain.getSelstr` and :meth:`.Residue.getSelstr` methods are
+    improved to include the selection string of a :class:`.Selection` when
     they are built using one.
 
 **Changes**:
 
-  * :class:`.Residue` methods :meth:`~.Residue.getNumber`, 
+  * :class:`.Residue` methods :meth:`~.Residue.getNumber`,
     :meth:`~.Residue.setNumber`, :meth:`~.Residue.getName`,
-    :meth:`~.Residue.setName` methods are deprecated and will be 
+    :meth:`~.Residue.setName` methods are deprecated and will be
     removed in v1.0.
 
-  * :class:`.Chain` methods :meth:`~.Chain.getIdentifier` and 
-    :meth:`~.Chain.setIdentifier` methods are deprecated and will be 
+  * :class:`.Chain` methods :meth:`~.Chain.getIdentifier` and
+    :meth:`~.Chain.setIdentifier` methods are deprecated and will be
     removed in v1.0.
 
   * :class:`.Polymer` attribute :attr:`~.Polymer.identifier`
     is renamed as :attr:`~.Polymer.chid`.
   * :class:`.Chemical` attribute :attr:`~.Chemical.identifier`
     is renamed as :attr:`~.Chemical.resname`.
-    
-  * :meth:`getACSI` and :meth:`setACSI` are renamed as 
-    :meth:`~.AtomGroup.getACSIndex` and  
+
+  * :meth:`getACSI` and :meth:`setACSI` are renamed as
+    :meth:`~.AtomGroup.getACSIndex` and
     :meth:`~.AtomGroup.setACSIndex`, respectively.
 
   * :func:`calcRadiusOfGyration` is deprecated and will be removed
@@ -903,18 +911,18 @@ Release 0.9.3 (Feb 1, 2012)
 **Bugfixes**:
 
   * Fixed a problem in :func:`.parsePDB` that caused loosing existing
-    coordinate sets in an :class:`.AtomGroup` when passed as *ag* 
+    coordinate sets in an :class:`.AtomGroup` when passed as *ag*
     argument.
-    
+
   * Fixed a problem with ``"same ... as ..."`` argument of :class:`.Select`
     that selected atoms when followed by an incorrect atom selection.
-    
+
   * Fixed another problem with ``"same ... as ..."`` which result in selecting
     multiple chains when same chain identifier is found in multiple segments
-    or multiple residues when same residue number is found in multiple 
+    or multiple residues when same residue number is found in multiple
     segments.
-    
-  * Improved handling of negative integers in indexing :class:`.AtomGroup` 
+
+  * Improved handling of negative integers in indexing :class:`.AtomGroup`
     instances.
 
 
@@ -923,55 +931,55 @@ Release 0.9.2 (Jan 11, 2012)
 
 **New Features**:
 
-  * :program:`prody catdcd` command is implemented for concatenating and/or 
+  * :program:`prody catdcd` command is implemented for concatenating and/or
     slicing :file:`.dcd` files.  See :ref:`prody-catdcd` for usage examples.
 
-  * :class:`.DCDFile` can be opened in write or append mode, and 
-    coordinate sets can be added using :meth:`~.DCDFile.write` method. 
-  
+  * :class:`.DCDFile` can be opened in write or append mode, and
+    coordinate sets can be added using :meth:`~.DCDFile.write` method.
+
   * :func:`.getReservedWords` can be used to get a list of words
     that cannot be used to label user data.
 
   * :func:`.confProDy` function is added for configuring ProDy.
-  
-  * ProDy can optionally backup existing files with :file:`.BAK` (or another) 
-    extension instead of overwriting them.  This behavior can be activated 
-    using :func:`.confProDy` function. 
-    
+
+  * ProDy can optionally backup existing files with :file:`.BAK` (or another)
+    extension instead of overwriting them.  This behavior can be activated
+    using :func:`.confProDy` function.
+
 **Improvements**:
 
-  * :func:`.writeDCD` file accepts :class:`.AtomGroup` or other 
+  * :func:`.writeDCD` file accepts :class:`.AtomGroup` or other
     :class:`.Atomic` instances as *trajectory* argument.
 
   * :program:`prody align` command can be used to align multiple PDB structures.
-  
-  * :program:`prody pca` command allows atom selections for DCD files that are 
+
+  * :program:`prody pca` command allows atom selections for DCD files that are
     accompanied with a PDB or PSF file.
 
 **Changes**:
 
   * :class:`.DCDFile` instances, when closed, raise exception, similar
-    to behavior of :class:`file` objects in Python. 
-    
-  * Title of :class:`.AtomGroup` instances resulting from copying an 
+    to behavior of :class:`file` objects in Python.
+
+  * Title of :class:`.AtomGroup` instances resulting from copying an
     :class:`.Atomic` instances does not start with 'Copy of'.
-    
-  * :func:`changeVerbosity` and :func:`getVerbosityLevel` are renamed as 
-    :func:`.setVerbosity` and :func:`.getVerbosity`, respectively. 
+
+  * :func:`changeVerbosity` and :func:`getVerbosityLevel` are renamed as
+    :func:`.setVerbosity` and :func:`.getVerbosity`, respectively.
     Old names will be removed in v1.0.
-    
-  * ProDy applications (commands) module is rewritten to use new 
+
+  * ProDy applications (commands) module is rewritten to use new
     :mod:`argparse` module. See :ref:`prody-apps` for details of changes.
-    
+
   * :mod:`argparse` module is added to the package for Python versions 2.6
     and older.
-    
+
 
 **Bugfixes**:
 
   * Fixed problems in :func:`.loadAtoms` and :func:`.saveAtoms` functions.
 
-  * Bugfixes in :func:`.parseDCD` and :func:`.writeDCD` functions for Windows 
+  * Bugfixes in :func:`.parseDCD` and :func:`.writeDCD` functions for Windows
     compatability.
 
 
@@ -991,12 +999,12 @@ Release 0.9 (Nov 8, 2011)
   * `PDBML <http://pdbml.pdb.org/>`_ and `mmCIF <http://mmcif.pdb.org/>`_ files
     can be retrieved using :func:`.fetchPDB` function.
 
-  * :func:`.getPDBLocalFolder` and :func:`.setPDBLocalFolder` functions are 
+  * :func:`.getPDBLocalFolder` and :func:`.setPDBLocalFolder` functions are
     implemented for local PDB folder management.
-    
+
   * :func:`.parsePDBHeader` is implemented for convenient parsing of
     header data from :file:`.pdb` files.
-    
+
   * :func:`.showProtein` is implemented to allow taking a quick look
     at protein structure.
 
@@ -1010,31 +1018,31 @@ Release 0.9 (Nov 8, 2011)
      names all aiming to improve the interactive usage experience.  All changes
      are listed below.  Currently these functions and methods are present in
      both old and new names, so code using ProDy must not be affected.  Old
-     function names will be removed from version 1.0, which is expected to 
+     function names will be removed from version 1.0, which is expected to
      happen late in the first quarter of 2012.
-      
+
      Old function names are marked as deprecated, but ProDy will not issue any
-     warnings until the end of 2011.  In 2012, ProDy will automatically start 
+     warnings until the end of 2011.  In 2012, ProDy will automatically start
      issuing :class:`DeprecationWarning` upon calls using old names to remind
-     the user of the name change.  
-     
-     For deprecated methods that are present in multiple classes, only the 
+     the user of the name change.
+
+     For deprecated methods that are present in multiple classes, only the
      affected modules are listed for brevity.
-     
-  .. note::  When modifying code using ProDy to adjust the name changes, 
-     turning on deprecation warnings may help locating all use cases of the 
+
+  .. note::  When modifying code using ProDy to adjust the name changes,
+     turning on deprecation warnings may help locating all use cases of the
      deprecated names.  See :meth:`.turnonDepracationWarnings` for this
      purpose.
 
   **Functions**:
-  
-  The following function name changes are mainly to reduce the length of the 
+
+  The following function name changes are mainly to reduce the length of the
   name in order to make them more suitable for interactive sessions:
 
   ========================================  =====================================
   Old name                                  New name
   ========================================  =====================================
-  :func:`applyBiomolecularTransformations`  :func:`.buildBiomolecules` 
+  :func:`applyBiomolecularTransformations`  :func:`.buildBiomolecules`
   :func:`assignSecondaryStructure`          :func:`.assignSecstr`
   :func:`scanPerturbationResponse`          :func:`.calcPerturbResponse`
   :func:`calcCrossCorrelations`             :func:`.calcCrossCorr`
@@ -1063,27 +1071,27 @@ Release 0.9 (Nov 8, 2011)
   ========================================  =====================================
 
   **Coordinate methods**:
-  
-  All :meth:`getCoordinates` and :meth:`setCoordinates` methods in 
-  :mod:`~prody.atomic` and :mod:`~prody.ensemble` classes are renamed as 
+
+  All :meth:`getCoordinates` and :meth:`setCoordinates` methods in
+  :mod:`~prody.atomic` and :mod:`~prody.ensemble` classes are renamed as
   :meth:`getCoords` and :meth:`setCoords`, respectively.
-  
+
   ``getNumOf`` **methods**:
-  
+
   All method names starting with ``getNumOf`` now start with ``num``.  This
-  change brings two advantages: method names (i) are considerably shorter, 
+  change brings two advantages: method names (i) are considerably shorter,
   and (ii) do not suggest that there might also be corresponding ``set``
-  methods. 
-  
+  methods.
+
   ============================  ====================  =========================
   Old name                      New name              Affected modules
   ============================  ====================  =========================
-  :meth:`getNumOfAtoms`         :meth:`numAtoms`      :mod:`.atomic`, 
-                                                      :mod:`.ensemble`, 
+  :meth:`getNumOfAtoms`         :meth:`numAtoms`      :mod:`.atomic`,
+                                                      :mod:`.ensemble`,
                                                       :mod:`.dynamics`
   :meth:`getNumOfChains`        :meth:`numChains`     :mod:`.atomic`
   :meth:`getNumOfConfs`         :meth:`numConfs`      :mod:`.ensemble`
-  :meth:`getNumOfCoordsets`     :meth:`numCoordsets`  :mod:`.atomic`, 
+  :meth:`getNumOfCoordsets`     :meth:`numCoordsets`  :mod:`.atomic`,
                                                       :mod:`.ensemble`
   :meth:`getNumOfDegOfFreedom`  :meth:`numDOF`        :mod:`.dynamics`
   :meth:`getNumOfFixed`         :meth:`numFixed`      :mod:`.ensemble`
@@ -1094,28 +1102,28 @@ Release 0.9 (Nov 8, 2011)
   :meth:`getNumOfSelected`      :meth:`numSelected`   :mod:`.ensemble`
   :meth:`getNumOfUnmapped`      :meth:`numUnmapped`   :mod:`.atomic`
   ============================  ====================  =========================
-    
+
   ``getName`` **method**:
-  
-  :meth:`getName` methods are renamed as :meth:`getTitle` to avoid confusions 
-  that might arise from changes in :mod:`~prody.atomic` method names listed 
-  below.  All classes in :mod:`~prody.atomic`, :mod:`~prody.ensemble`, and 
-  :mod:`~prody.dynamics` are affected from this change. 
-  
-  In line with this change, :func:`.parsePDB` and 
-  :func:`.parsePQR` *name* arguments are changed to *title*, but 
+
+  :meth:`getName` methods are renamed as :meth:`getTitle` to avoid confusions
+  that might arise from changes in :mod:`~prody.atomic` method names listed
+  below.  All classes in :mod:`~prody.atomic`, :mod:`~prody.ensemble`, and
+  :mod:`~prody.dynamics` are affected from this change.
+
+  In line with this change, :func:`.parsePDB` and
+  :func:`.parsePQR` *name* arguments are changed to *title*, but
   *name* argument will also work until release 1.0.
-  
+
   This name change conflicted with :meth:`.DCDFile.getTitle` method.
-  The conflict is resolved in favor of the general :meth:`getTitle` method.  
-  An alternative method will be implemented to handle title strings in 
-  :file:`DCD` files.   
-  
+  The conflict is resolved in favor of the general :meth:`getTitle` method.
+  An alternative method will be implemented to handle title strings in
+  :file:`DCD` files.
+
   ``get/set`` **methods of atomic classes**:
-  
+
   Names of ``get`` and ``set`` methods allowing access to atomic data are all
   shortened as follows:
-  
+
   ===========================  =======================
   Old name                     New name
   ===========================  =======================
@@ -1130,24 +1138,24 @@ Release 0.9 (Nov 8, 2011)
   :meth:`getInsertionCodes`    :meth:`getIcodes`
   :meth:`getResidueNames`      :meth:`getResnames`
   :meth:`getResidueNumbers`    :meth:`getResnums`
-  :meth:`getSecondaryStrs`     :meth:`getSecstrs`            
+  :meth:`getSecondaryStrs`     :meth:`getSecstrs`
   :meth:`getSegmentNames`      :meth:`getSegnames`
   :meth:`getSerialNumbers`     :meth:`getSerials`
   :meth:`getTempFactors`	     :meth:`getBetas`
   ===========================  =======================
-                       
-  This change affects all :mod:`~prody.atomic` classes, 
-  :class:`.AtomGroup`, :class:`.Atom`, :class:`.Chain`, 
-  :class:`.Residue`, :class:`.Selection` and 
-  :class:`.AtomMap`.     
+
+  This change affects all :mod:`~prody.atomic` classes,
+  :class:`.AtomGroup`, :class:`.Atom`, :class:`.Chain`,
+  :class:`.Residue`, :class:`.Selection` and
+  :class:`.AtomMap`.
 
 
   **Other changes in atomic methods**:
-  
+
   * :meth:`getSelectionString` renamed as :meth:`getSelstr`
 
-  Methods handling user data (which was previously called attribute) are 
-  renamed as follows: 
+  Methods handling user data (which was previously called attribute) are
+  renamed as follows:
 
   ====================  =======================
   Old name              New name
@@ -1159,39 +1167,39 @@ Release 0.9 (Nov 8, 2011)
   :meth:`isAttribute`	  :meth:`isData`
   :meth:`setAttribute`  :meth:`setData`
   ====================  =======================
-  
+
   **To be removed**:
-  
+
   Finally, the following methods will be removed, but other suitable methods
   are overloaded to perform their action:
-  
+
   * removed :meth:`AtomGroup.getBySerialRange`, overloaded
     :meth:`.AtomGroup.getBySerial`
   * removed :func:`.getProteinResidueNames`, overloaded
-    :func:`.getKeywordResnames` 
+    :func:`.getKeywordResnames`
   * removed :func:`.setProteinResidueNames`, overloaded
-    :func:`.setKeywordResnames` 
+    :func:`.setKeywordResnames`
 
 
 **Scripts**:
-  
+
   The way ProDy scripts work has changed. See :ref:`prody-apps` for details.
   Using older scripts will start issuing deprecation warnings in 2012.
 
 **Bug Fixes**:
 
-  * Bugs in :func:`.execDSSP` and :func:`.execSTRIDE` functions that caused 
+  * Bugs in :func:`.execDSSP` and :func:`.execSTRIDE` functions that caused
     exceptions when compressed files were passed is fixed.
-  
-  * A problem in scripts for PCA of DCD files is fixed. 
-    
-  
+
+  * A problem in scripts for PCA of DCD files is fixed.
+
+
 :ref:`nmwiz`
 -------------------------------------------------------------------------------
 
 Development of NMWiz is finalized and it will not be distributed in the ProDy
 installation package anymore.  See :ref:`nmwiz` pages for instructions on
-installing it. 
+installing it.
 
 
 Release 0.8.3 (Oct 16, 2011)
@@ -1199,13 +1207,13 @@ Release 0.8.3 (Oct 16, 2011)
 
 **New Features**:
 
-  * Functions to read and write PQR files: :func:`.parsePQR` and 
+  * Functions to read and write PQR files: :func:`.parsePQR` and
     :func:`.writePQR`.
-    
-  * Added :meth:`.PDBEnsemble.getIdentifiers` method that returns
-    identifiers of all conformations in the ensemble. 
 
-  * ProDy tests are incorporated to the package installer.  If you are using 
+  * Added :meth:`.PDBEnsemble.getIdentifiers` method that returns
+    identifiers of all conformations in the ensemble.
+
+  * ProDy tests are incorporated to the package installer.  If you are using
     Python version 2.7, you can run the tests by calling ``prody.test()``.
 
 
@@ -1213,13 +1221,13 @@ Release 0.8.3 (Oct 16, 2011)
 
   * :func:`.blastPDB` function and :class:`.PDBBlastRecord`
     class are rewritten to use faster and more compact code.
-    
+
   * New :class:`.PackageLogger` function is implemented to unify logging
     and reporting task progression.
-  
-  * Improvements in PDB ensemble support functions, e.g. 
+
+  * Improvements in PDB ensemble support functions, e.g.
     :func:`.trimPDBEnsemble`, are made.
-   
+
   * Improvements in ensemble concatenations are made.
 
 **Bug Fixes**:
@@ -1227,7 +1235,7 @@ Release 0.8.3 (Oct 16, 2011)
   * Bugfixes in :func:`.PDBEnsemble` slicing operation.  This may
     have affected users when slicing a PDB ensemble for plotting projections
     in color for different forms of the protein.
-    
+
 Release 0.8.2 (Oct 14, 2011)
 ===============================================================================
 
@@ -1235,28 +1243,28 @@ Release 0.8.2 (Oct 14, 2011)
 
   * :func:`.fetchPDBClusters`, :func:`.loadPDBClusters`, and
     :func:`.getPDBCluster` functions are implemented for handling
-    PDB sequence cluster data. These functions can be used instead of 
-    :func:`.blastPDB` function for fast access to structures of 
+    PDB sequence cluster data. These functions can be used instead of
+    :func:`.blastPDB` function for fast access to structures of
     the same protein (at 95% sequence identity level) or similar proteins.
-    
-  * Perturbation response scanning method described in [CA09]_ is implemented 
-    as :func:`.scanPerturbationResponse` based on the code provided 
+
+  * Perturbation response scanning method described in [CA09]_ is implemented
+    as :func:`.scanPerturbationResponse` based on the code provided
     by Ying Liu.
-  
+
 
 **Changes**:
 
-  * :func:`.fetchPDBLigand` returns the URL of the XML file in the ligand data 
+  * :func:`.fetchPDBLigand` returns the URL of the XML file in the ligand data
     dictionary.
-    
-  * Name of the ProDy configuration file in user :file:`home` directory 
+
+  * Name of the ProDy configuration file in user :file:`home` directory
     is renamed as :file:`.prodyrc` (used to be :file:`.prody`).
-    
+
   * :func:`.applyBiomolecularTransformations` and
-    :func:`.assignSecondaryStructure` functions raise 
+    :func:`.assignSecondaryStructure` functions raise
     :class:`ValueError` when the function fails to perform its action
     due to missing data in header dictionary.
-    
+
   * :func:`.fetchPDB` decompresses PDB files found in the working
     directory when user asks for decompressed files.
 
@@ -1270,41 +1278,41 @@ Release 0.8.2 (Oct 14, 2011)
   * Atom selection class :class:`.Select` is completely redesigned
     to prevent breaking of the parser when evaluating invalid selection
     strings.
-    
+
   * Improved type checking in :func:`.parsePDB` function.
-    
+
 **Bug Fixes**:
 
   * Bugfixes in :func:`.parseDSSP`: one emerged problems in lines
     indicating chain breaks, another did not parse bridge-partners correctly.
     Both fixes are contributed by Kian Ho.
-    
+
   * Bugfix in :func:`.parsePDB` function. When only header is desired
-    (``header=True, model=0``), would return a tuple containing an empty 
+    (``header=True, model=0``), would return a tuple containing an empty
     atom group and the header.
 
 **Developmental**:
 
-  * Unit tests for :mod:`.proteins` and :mod:`~.prody.select` modules are 
-    developed. 
+  * Unit tests for :mod:`.proteins` and :mod:`~.prody.select` modules are
+    developed.
 
 Release 0.8.1 (Sep 16, 2011)
 ===============================================================================
 
 **New Features**:
 
-  * :func:`.fetchLigandData` is implemented for fetching ligand data from 
+  * :func:`.fetchLigandData` is implemented for fetching ligand data from
     Ligand Expo.
 
-  * :func:`.parsePSF` function is implemented for parsing X-PLOR format PSF 
+  * :func:`.parsePSF` function is implemented for parsing X-PLOR format PSF
     files.
-    
+
 **Changes**:
 
   * __slots__ is used in :class:`.AtomGroup` and :class:`.Atomic`
-    classes. This change prevents user from assigning new variables to 
+    classes. This change prevents user from assigning new variables to
     instances of all classes derived from the base :class:`.Atomic`.
-    
+
   * :mod:`pyparsing` is updated to version 1.5.6.
 
 **Bug Fixes**:
@@ -1319,7 +1327,7 @@ Release 0.8.1 (Sep 16, 2011)
     ``same residue as ...`` statement when specific chains are involved is
     fixed.
 
-  * A bug in :meth:`.AtomGroup.addCoordset` method duplicating coordinates 
+  * A bug in :meth:`.AtomGroup.addCoordset` method duplicating coordinates
     when no coordinate sets are present in the instance is fixed.
 
 :ref:`nmwiz`
@@ -1328,7 +1336,7 @@ Release 0.8.1 (Sep 16, 2011)
 **Changes**:
 
   * Version number in main window is iterated.
-  
+
   * Mode graphics material is stored for individual modes.
 
   * Mode scaling factor is printed when active mode or RMSD is changed.
@@ -1340,123 +1348,123 @@ Release 0.8 (Aug 24, 2011)
 ===============================================================================
 
 .. note::
-   After installing v0.8, you may need to make a small change in your 
-   existing scripts. If you are using :class:`.Ensemble` class 
+   After installing v0.8, you may need to make a small change in your
+   existing scripts. If you are using :class:`.Ensemble` class
    for analyzing PDB structures, rename it as :class:`.PDBEnsemble`.
-   See the other changes that may affect your work below and the class 
+   See the other changes that may affect your work below and the class
    documentation for more information.
-    
+
 
 **New Features**:
 
   * :class:`.DCDFile` is implemented for handling DCD files.
-    
-  * :class:`.Trajectory` is implemented for handling multiple 
+
+  * :class:`.Trajectory` is implemented for handling multiple
     trajectory files.
-  
+
   * :func:`.writeDCD` is implemented for writing DCD files.
-    
+
   * :ref:`trajectory` example to illustrate usage of new classes for handling
     DCD files. :ref:`eda` example is updated to use new ProDy classes.
-  
+
   * :class:`.PCA` supports :class:`.Trajectory` and
-    :class:`.DCDFile` instances. 
-  
+    :class:`.DCDFile` instances.
+
   * :class:`.Ensemble` and :class:`.PDBEnsemble` classes
     can be associated with :class:`.AtomGroup` instances. This allows
     selecting and evaluating coordinates of subset of atoms. See
-    :meth:`~.EnsembleBase.setAtomGroup`, 
+    :meth:`~.EnsembleBase.setAtomGroup`,
     :meth:`~.EnsembleBase.select`,
-    :meth:`~.EnsembleBase.getAtomGroup`, and 
+    :meth:`~.EnsembleBase.getAtomGroup`, and
     :meth:`~.EnsembleBase.getSelection` methods.
-  
-  * :func:`.execDSSP`, :func:`.parseDSSP`, and :func:`.performDSSP` functions 
+
+  * :func:`.execDSSP`, :func:`.parseDSSP`, and :func:`.performDSSP` functions
     are implemented for executing and parsing DSSP calculations.
 
-  * :func:`.execSTRIDE`, :func:`.parseSTRIDE`, and :func:`.performSTRIDE` 
+  * :func:`.execSTRIDE`, :func:`.parseSTRIDE`, and :func:`.performSTRIDE`
     functions are implemented for executing and parsing DSSP calculations.
 
   * :func:`.parsePDB` function parses atom serial numbers. Atoms
     can be retrieved from an :class:`.AtomGroup` instance by their
     serial numbers using :meth:`~.AtomGroup.getBySerial` and
-    :meth:`~.AtomGroup.getBySerialRange` methods. 
-    
+    :meth:`~.AtomGroup.getBySerialRange` methods.
+
   * :func:`.calcADPs` function can be used to calculate anisotropic
     displacement parameters for atoms with anisotropic temperature factor
     data.
-    
+
   * :meth:`~.Ensemble.getRMSFs` is implemented for calculating
     root mean square fluctuations.
-    
-  * :class:`.AtomGroup` and :class:`.Mode` or 
+
+  * :class:`.AtomGroup` and :class:`.Mode` or
     :class:`.Vector` additions are supported. This adds a new
     coordinate set to the :class:`.AtomGroup` instance.
-    
+
   * :meth:`~.AtomGroup.getAttrNames` is implemented for listing
     user set attribute names.
-    
+
 
 **Improvements**:
 
-  * :func:`.calcProjection`, :func:`.showProjection`, and 
-    :func:`.showCrossProjection` functions can optionally calculate/display 
-    RMSD along the normal mode. 
-  
-  * ANM, GNM, and PCA applications can optionally write compressed ProDy data 
+  * :func:`.calcProjection`, :func:`.showProjection`, and
+    :func:`.showCrossProjection` functions can optionally calculate/display
+    RMSD along the normal mode.
+
+  * ANM, GNM, and PCA applications can optionally write compressed ProDy data
     files.
-  
-  * :func:`.fetchPDB` function can optionally write decompressed 
+
+  * :func:`.fetchPDB` function can optionally write decompressed
     files and force copying a file from local mirror to target folder.
 
-  * :meth:`.PCA.buildCovariance` and :meth:`.PCA.performSVD` 
+  * :meth:`.PCA.buildCovariance` and :meth:`.PCA.performSVD`
     methods accept Numpy arrays as coordinate sets.
 
-  * Performance of :meth:`.PCA.buildCovariance` method is optimized 
+  * Performance of :meth:`.PCA.buildCovariance` method is optimized
     for evaluation of PDB ensembles.
-  
+
   * :func:`.calcRMSD` and :func:`.superpose` functions are optimized for speed
     and memory usage.
-  
+
   * :meth:`.Ensemble.getMSFs` is optimized for speed and memory usage.
 
-  * Improvements in memory operations in :mod:`~prody.atomic`, 
-    :mod:`~prody.ensemble`, and :mod:`~prody.dynamics` modules for 
+  * Improvements in memory operations in :mod:`~prody.atomic`,
+    :mod:`~prody.ensemble`, and :mod:`~prody.dynamics` modules for
     faster data (PDB/NMD) output.
-    
+
   * Optimizations in :class:`.Select` and :class:`.Contacts` classes.
 
 **Changes**:
 
-  * :class:`.Ensemble` does not store conformation names. Instead, 
-    newly implemented :class:`.PDBEnsemble` class stores identifiers 
-    for individual conformations (PDB IDs). This class should be used in cases 
+  * :class:`.Ensemble` does not store conformation names. Instead,
+    newly implemented :class:`.PDBEnsemble` class stores identifiers
+    for individual conformations (PDB IDs). This class should be used in cases
     where source of individual conformations is important.
-    
+
   * :func:`.calcProjection`, :func:`.showProjection`, and
-    :func:`.showCrossProjection` function calculate/display 
-    root mean square deviations, by default. 
-    
+    :func:`.showCrossProjection` function calculate/display
+    root mean square deviations, by default.
+
   * Oxidized cysteine residue abbreviation ``CSO`` is added to the definition
     of ``protein`` keyword.
-    
+
   * :meth:`getMSF` method is renamed as :meth:`~.Ensemble.getMSFs`.
-  
+
   * :func:`.parseDCD` function returns :class:`.Ensemble`
     instances.
 
 **Bug Fixes**:
-  
-  * A bug in :mod:`~atomic.select` module causing exceptions when regular 
+
+  * A bug in :mod:`~atomic.select` module causing exceptions when regular
     expressions are used is fixed.
-  
-  * Another bug in :mod:`~atomic.select` module raising exception when 
+
+  * Another bug in :mod:`~atomic.select` module raising exception when
     "(not ..," is passed is fixed.
 
   * Various bugfixes in :mod:`~prody.ensemble` module.
-  
+
   * Problem in :program:`prody fetch` that occurred when a file is found in a
     local mirror is fixed.
-    
+
   * Bugfix in :meth:`.AtomPointer.copy` method.
 
 :ref:`nmwiz`
@@ -1484,7 +1492,7 @@ Release 0.7.2 (Jun 21, 2011)
 
 **New Features**:
 
-  * :func:`.parseDCD` is implemented for parsing coordinate sets 
+  * :func:`.parseDCD` is implemented for parsing coordinate sets
     from DCD files.
 
 
@@ -1515,80 +1523,80 @@ Release 0.7.1 (Apr 28, 2011)
     atomic selections following the dot operator. For example,
     ``atoms.calpha`` is interpreted as ``atoms.select('calpha')``. See
     :ref:`` for more details.
-  * :class:`.AtomGroup` class is integrated with 
+  * :class:`.AtomGroup` class is integrated with
     :class:`.HierView` class. Atom group instances now can be indexed
     to get chains or residues and number of chains/residues can be retrieved.
     A hierarchical view is generated and updated when needed. See
     :ref:`` for more details.
-      
-     
+
+
 
 **New Features**:
 
   * :func:`.matchAlign` is implemented for quick alignment of protein
     structures. See :ref:`extract-ligands` usage example.
-  * :meth:`~.AtomGroup.setAttribute`, 
+  * :meth:`~.AtomGroup.setAttribute`,
     :meth:`~.AtomGroup.getAttribute`,
     :meth:`~.AtomGroup.delAttribute`, and
     :meth:`~.AtomGroup.isAttribute` functions are implemented for
-    :class:`.AtomGroup` class to facilitate storing user provided 
+    :class:`.AtomGroup` class to facilitate storing user provided
     atomic data. See :ref:`attributes` example.
-  * :func:`.saveAtoms` and :func:`.loadAtoms` functions 
-    are implemented to allow for saving atomic data and loading it 
+  * :func:`.saveAtoms` and :func:`.loadAtoms` functions
+    are implemented to allow for saving atomic data and loading it
     This saves custom atomic attributes and much faster than parsing
-    data from PDB files. 
+    data from PDB files.
   * :func:`.calcCollectivity` function is implemented to allow
     for calculating collectivity of deformation vectors.
-    
+
 **Improvements**:
 
-  * :func:`.parsePDB` can optionally return biomolecule when 
+  * :func:`.parsePDB` can optionally return biomolecule when
     ``biomol=True`` keyword argument is passed.
   * :func:`.parsePDB` can optionally make secondary structure
     assignments when ``secondary=True`` keyword argument is passed.
-  * :func:`.calcSqFlucts` function is changed to accept 
+  * :func:`.calcSqFlucts` function is changed to accept
     :class:`.Vector` instances, e.g. deformation vectors.
 
 **Changes**:
 
-  * Changes were made in :func:`.calcADPAxes` function to follow 
+  * Changes were made in :func:`.calcADPAxes` function to follow
     the conventions in analysis ADPs. See its documentation.
 
 **Bug Fixes**:
 
   * A in :class:`.Ensemble` slicing operations is fixed. Weights are
     now copied to the new instances obtained by slicing.
-  * Bug fixes in :mod:`~prody.dynamics` plotting functions 
-    :func:`.showScaledSqFlucts`, :func:`.showNormedSqFlucts`, 
+  * Bug fixes in :mod:`~prody.dynamics` plotting functions
+    :func:`.showScaledSqFlucts`, :func:`.showNormedSqFlucts`,
 
 Release 0.7 (Apr 4, 2011)
 ===============================================================================
 
 **New Features**:
 
-  * Regular expressions can be used in atom selections. See 
+  * Regular expressions can be used in atom selections. See
     :mod:`~prody.select` module for details.
-  
+
   * User can define selection macros using :func:`~select.defSelectionMacro`
     function. Macros are saved in ProDy configuration and loaded in later
     sessions. See :mod:`~prody.select` module for other related functions.
-  
-  * :func:`.parseSparseMatrix` function is implemented for parsing
-    matrices in sparse format. See the usage example in :ref:`external-matrix`. 
 
-  * :func:`.deform` function is implemented for deforming coordinate 
-    sets along a normal mode or linear combination of multiple modes. 
+  * :func:`.parseSparseMatrix` function is implemented for parsing
+    matrices in sparse format. See the usage example in :ref:`external-matrix`.
+
+  * :func:`.deform` function is implemented for deforming coordinate
+    sets along a normal mode or linear combination of multiple modes.
 
   * :func:`.sliceModel` function is implemented for slicing normal
     mode data to be used with functions calculating atomic properties using
-    normal modes. 
+    normal modes.
 
 **Improvements**:
 
   * Atom selections using bare keyword arguments is optimized. New keyword
-    definitions are added. See :mod:`~prody.select` module for the complete 
+    definitions are added. See :mod:`~prody.select` module for the complete
     list.
-  
+
   * A new keyword argument for :func:`.calcADPAxes` allows for
     comparing largest axis to the second largest one.
 
@@ -1596,16 +1604,16 @@ Release 0.7 (Apr 4, 2011)
 
   * There are changes in function used to alter definitions of selection
     keywords. See :mod:`~prody.select` for details.
-    
+
   * :func:`.assignSecondaryStructure` function assigns SS identifiers
     to all atoms in a residue. Residues with no SS information specified is
-    assigned coil conformation. 
-  
-  * When :class:`.Ensemble` and :class:`.NMA` classes are 
+    assigned coil conformation.
+
+  * When :class:`.Ensemble` and :class:`.NMA` classes are
     instantiated with an empty string, instances are called "Unnamed".
 
   * :func:`.sliceMode`, :func:`.sliceVector` and
-    :func:`.reduceModel` functions return the atom selection 
+    :func:`.reduceModel` functions return the atom selection
     in addition to the sliced vector/mode/model instance.
 
 **Bug Fixes**:
@@ -1619,33 +1627,33 @@ Release 0.7 (Apr 4, 2011)
 **New Features**:
 
   * NMWiz supports GNM data and can use ProDy for GNM calculations.
-  
+
   * NMWiz can gather normal mode data from molecules loaded into VMD.
     This allows NMWiz to support all formats supported by VMD.
-    
+
   * User can write data loaded into NMWiz in NMD format.
-  
+
   * An Arrow Graphics option allows the user to draw arrows in both directions.
-  
+
   * User can select Licorice representation for the protein if model is an
     all atom mode.
-    
+
   * User can select Custom as the representation of the protein to prevent
     NMWiz from chancing a user set representation.
-    
+
   * Trace is added as a protein backbone representation option.
 
 **Improvements**:
 
   * NMWiz remembers all adjustments on arrow graphics for all modes.
-  
-  * Plotting :guilabel:`Clear` button clears only atom labels that are 
+
+  * Plotting :guilabel:`Clear` button clears only atom labels that are
     associated with the dataset.
-    
+
   * Removing a dataset removes all associated molecule objects.
-  
+
   * Selected atom representations are turned on based on atom index.
-   
+
   * Padding around interface button has been standardized to provide a uniform
     experience between different platforms.
 
@@ -1656,95 +1664,95 @@ Release 0.6.2 (Mar 16, 2011)
 
   * :meth:`~.PCA.performSVD` function is implemented for faster
     and more memory efficient principal compoment analysis.
-    
-  * :func:`.extrapolateModel` function is implemented for 
-    extrapolating a coarse-grained model to an all atom model. See the 
+
+  * :func:`.extrapolateModel` function is implemented for
+    extrapolating a coarse-grained model to an all atom model. See the
     usage example :ref:`extendmodel`.
-    
+
   * :func:`plog` is implemented for enabling users to make log entries.
 
 **Improvements**:
 
   * :mod:`~prody.compare` functions are improved to handle insertion codes.
-  
+
   * :class:`.HierView` allows for indexing using chain identifier
     and residue numbers. See usage example :ref:`hierview`.
-    
+
   * :class:`.Chain` allows for indexing using residue number and
     insertion code. See usage example :ref:`hierview`.
-    
-  * :meth:`~.AtomGroup.addCoordset` function accepts 
+
+  * :meth:`~.AtomGroup.addCoordset` function accepts
     :class:`.Atomic` and :class:`.Ensemble` instances
     as *coords* argument.
-    
+
   * New method :meth:`.HierView.getAtoms` is implemented.
-  * :class:`.AtomGroup` set functions check the correctness of 
+  * :class:`.AtomGroup` set functions check the correctness of
     dimension of data arrays to prevent runtime problems.
-    
+
   * :program:`prody pca` script is updated to use the faster PCA method
     that uses SVD.
 
 **Changes**:
 
-  * "backbone" definition now includes the backbone hydrogen atom 
+  * "backbone" definition now includes the backbone hydrogen atom
     (Thanks to Nahren Mascarenhas for pointing to this discrepancy in the
-    keyword definition). 
+    keyword definition).
 
 **Bug Fixes**:
 
   * A bug in :class:`.PCA` allowed calculating covariance matrix
     for less than 3 coordinate sets is fixed.
-    
+
   * A bug in :func:`.mapOntoChain` function that caused problems
     when mapping all atoms is fixed.
-    
-    
+
+
 
 Release 0.6.1 (Mar 2, 2011)
 ===============================================================================
 
 **New Features**:
 
-  * :func:`.setWWPDBFTPServer` and :func:`.getWWPDBFTPServer` 
-    functions allow user to change or learn the WWPDB FTP server that ProDy 
-    uses to download PDB files. Default server is RCSB PDB in USA. 
+  * :func:`.setWWPDBFTPServer` and :func:`.getWWPDBFTPServer`
+    functions allow user to change or learn the WWPDB FTP server that ProDy
+    uses to download PDB files. Default server is RCSB PDB in USA.
     User can change the default server to one in Europe or Japan.
-    
-  * :func:`.setPDBMirrorPath` and :func:`.getPDBMirrorPath` 
+
+  * :func:`.setPDBMirrorPath` and :func:`.getPDBMirrorPath`
     functions allow user to specify or learn the path to a local PDB mirror.
     When specified, a local PDB mirror is preferred for accessing PDB files,
     over downloading them from FTP servers.
-    
-  * :func:`.mapOntoChain` function is improved to map backbone or 
+
+  * :func:`.mapOntoChain` function is improved to map backbone or
     all atoms.
 
 **Improvements**:
 
   * :class:`WWPDB_PDBFetcher` can download PDB files from different
     WWPDB FTP servers.
-    
+
   * :class:`WWPDB_PDBFetcher` can also use local PDB mirrors for
     accessing PDB files.
 
 **Changes**:
 
   * :class:`RCSB_PDBFetcher` is renamed as :class:`WWPDB_PDBFetcher`.
-  
+
   * :func:`.mapOntoChain` and :func:`.matchChains` functions
     accept ``"ca"`` and ``"bb"`` as *subset* arguments.
-    
+
   * Definition of selection keyword "protein" is updated to include
-    some non-standard amino acid abbreviations. 
+    some non-standard amino acid abbreviations.
 
 **Bug Fixes**:
 
   * A bug in :class:`WWPDB_PDBFetcher` causing exceptions when
     non-string items passed in a list is fixed.
-    
+
   * An important bug in :func:`.parsePDB` is fixed. When parsing
     backbone or Cα atoms, residue names were not checked and this caused
     parsing water atoms with name ``"O"`` or calcium ions with name ``"CA"``.
-    
+
 
 Release 0.6 (Feb 22, 2011)
 ===============================================================================
@@ -1752,90 +1760,90 @@ Release 0.6 (Feb 22, 2011)
 **New Features**:
 
   * Biopython module pairwise2 and packages KDTree and Blast are incorporated
-    in ProDy package to make installation easier. Only NumPy needs to be 
-    installed before ProDy can be used. For plotting, Matplotlib is still 
+    in ProDy package to make installation easier. Only NumPy needs to be
+    installed before ProDy can be used. For plotting, Matplotlib is still
     required.
-    
-  * :ref:`nmwiz` is distributed with ProDy source. On Linux, if VMD is 
+
+  * :ref:`nmwiz` is distributed with ProDy source. On Linux, if VMD is
     installed, ProDy installer locates VMD plugins folder and installs NMWiz.
     On Windows, user needs to follow a separate set of instructions (see
     :ref:`nmwiz`).
-    
-  * :class:`.Gamma` class is implemented for facilitating use of  
+
+  * :class:`.Gamma` class is implemented for facilitating use of
     force constants based on atom type, residue type, or property. An
-    example derived classes are :class:`.GammaStructureBased` and 
+    example derived classes are :class:`.GammaStructureBased` and
     :class:`.GammaVariableCutoff`.
-    
-  * :func:`.calcTempFactors` function is implemented to 
+
+  * :func:`.calcTempFactors` function is implemented to
     calculate theoretical temperature factors.
-    
+
   * 5 new :ref:`prody-apps` are implemented, and existing scripts are improved to
     output figures.
-    
-  * :meth:`~.NMA.getModel` method is implemented to make function development 
+
+  * :meth:`~.NMA.getModel` method is implemented to make function development
     easier.
-    
+
   * :func:`.resetTicks` function is implemented to change X and/or Y
-    axis ticks in plots when there are discontinuities in the plotted data. 
+    axis ticks in plots when there are discontinuities in the plotted data.
 
 **Improvements**:
 
   * :meth:`.ANM.buildHessian` and :meth:`.GNM.buildKirchhoff`
     classes are improved to accept :class:`.Gamma` instances
     or other custom function as *gamma* argument. See also :ref:`gamma`.
-    
+
   * :class:`.Select` class is changed to treat single word keywords
-    differently, e.g. "backbone" or "protein". 
-    They are interpreted 10 times faster and in use achieve much higher 
-    speed-ups when compared to composite selections. For example, using the 
+    differently, e.g. "backbone" or "protein".
+    They are interpreted 10 times faster and in use achieve much higher
+    speed-ups when compared to composite selections. For example, using the
     keyword "calpha" instead of the ``name CA and protein``,
-    which returns the same selection, works >20 times faster. 
-    
-  * Optimizations in :class:`~select.Select` class to increase 
+    which returns the same selection, works >20 times faster.
+
+  * Optimizations in :class:`~select.Select` class to increase
     performance (Thanks to Paul McGuire for providing several Pythonic tips
     and Pyparsing specific advice).
-    
+
   * :func:`.applyBiomolecularTransformations` function is improved
     to handle large biomolecular assemblies.
-    
+
   * Performance optimizations in :func:`.parsePDB` and other functions.
-  
-  * :class:`.Ensemble` class accepts :class:`.Atomic` instances and 
-    automatically adds coordinate sets to the ensemble. 
-  
+
+  * :class:`.Ensemble` class accepts :class:`.Atomic` instances and
+    automatically adds coordinate sets to the ensemble.
+
 **Changes**:
- 
-  * :class:`PDBlastRecord` is renamed as :class:`.PDBBlastRecord`. 
-  
-  * :class:`.NMA` instances can be index using a list or tuple of integers, 
+
+  * :class:`PDBlastRecord` is renamed as :class:`.PDBBlastRecord`.
+
+  * :class:`.NMA` instances can be index using a list or tuple of integers,
     e.g. ``anm[1,3,5]``.
-    
-  * "ca", "bb", and "sc" keywords are defined as short-hands for "calpha", 
+
+  * "ca", "bb", and "sc" keywords are defined as short-hands for "calpha",
     "backbone", and "sidechain", respectively.
-    
-  * Behavior of :func:`.calcANM` and :func:`.calcGNM` functions have changed. 
+
+  * Behavior of :func:`.calcANM` and :func:`.calcGNM` functions have changed.
     They return the atoms used for calculation as well.
 
 **Bug Fixes**:
-    
+
   * A bug in :func:`.assignSecondaryStructure` function is fixed.
-  
+
   * Bug fixes in :ref:`prody-anm` and :ref:`prody-gnm`.
-  
+
   * Bug fixes in :func:`.showSqFlucts` and :func:`.showProjection` functions.
-    
+
 :ref:`nmwiz`
 -------------------------------------------------------------------------------
 
-  * NMWiz can be used as a graphical interface to ProDy. ANM or PCA 
+  * NMWiz can be used as a graphical interface to ProDy. ANM or PCA
     calculations can be performed for molecules that are loaded in VMD.
-    
-  * User can set default color for arrow graphics and paths to ANM and PCA 
+
+  * User can set default color for arrow graphics and paths to ANM and PCA
     scripts.
-    
+
   * Optionally, NMWiz can preserve the current view in VMD display window when
     loading a new dataset. Check the box in the NMWiz GUI main window.
-    
+
   * A bug that prevented selecting residues from plot window is fixed.
 
 Release 0.5.3 (Feb 11, 2011)
@@ -1843,75 +1851,75 @@ Release 0.5.3 (Feb 11, 2011)
 
 **New Features**:
 
-  * Membership, equality, and non-equality test operation are defined for all 
+  * Membership, equality, and non-equality test operation are defined for all
     :mod:`~prody.atomic` classes. See :ref:`selection-operations`.
-    
-  * Two functions are implemented for dealing with anisotropic temperature 
+
+  * Two functions are implemented for dealing with anisotropic temperature
     factors: :func:`.calcADPAxes` and :func:`.buildADPMatrix`.
-    
-  * :meth:`.NMA.setEigens` and :meth:`.NMA.addEigenpair` methods are 
-    implemented to assist analysis of normal modes calculated using 
+
+  * :meth:`.NMA.setEigens` and :meth:`.NMA.addEigenpair` methods are
+    implemented to assist analysis of normal modes calculated using
     external software.
-    
+
   * :func:`.parseNMD` is implemented for parsing NMD files.
-  
+
   * :func:`.parseModes` is implemented for parsing normal mode data.
-  
+
   * :func:`.parseArray` is implementing for reading numeric data, particularly
     normal mode data calculated using other software for analysis using ProDy.
-     
-  * The method in [BH02]_ to calculate overlap between covariance matrices is 
+
+  * The method in [BH02]_ to calculate overlap between covariance matrices is
     implemented as :func:`.calcCovOverlap` function.
-    
-  * :func:`.trimEnsemble` to trim :class:`.Ensemble` instances is implemented. 
-    
+
+  * :func:`.trimEnsemble` to trim :class:`.Ensemble` instances is implemented.
+
   * :func:`.checkUpdates` to check for ProDy updates is implemented.
 
 **Changes**:
 
   * Change in default behavior of :func:`.parsePDB` function. When
     alternate locations exist, those indicated by A are parsed. For parsing
-    all alternate locations user needs to pass ``altloc=True`` argument.  
-      
+    all alternate locations user needs to pass ``altloc=True`` argument.
+
   * :func:`getSumOfWeights` is renamed as :func:`.calcSumOfWeights`.
-  
+
   * :func:`mapAtomsToChain` is renamed as :func:`.mapOntoChain`.
-  
+
   * :func:`ProDyStartLogFile` is renamed as :func:`.startLogfile`.
-  
+
   * :func:`ProDyCloseLogFile` is renamed as :func:`.closeLogfile`.
-  
+
   * :func:`ProDySetVerbosity` is renamed as :func:`.changeVerbosity`.
 
 **Improvements**:
 
   * A few bugs in ensemble and dynamics classes are fixed.
-  
-  * Improvements in :class:`RCSB_PDBFetcher` allow it not to miss a 
+
+  * Improvements in :class:`RCSB_PDBFetcher` allow it not to miss a
     PDB file if it exists in the target folder.
-    
-  * :func:`.writeNMD` is fixed to output B-factors (Thanks to Dan Holloway for 
+
+  * :func:`.writeNMD` is fixed to output B-factors (Thanks to Dan Holloway for
     pointing it out).
 
 Release 0.5.2 (Jan 12, 2011)
 ===============================================================================
 
 **Bug Fixes**:
-  
+
   * An important fix in :func:`.sampleModes` function was made
-    (Thanks to Alberto Perez for finding the bug and suggesting a solution). 
-    
+    (Thanks to Alberto Perez for finding the bug and suggesting a solution).
+
 **Improvements**:
-  
-  * Improvements in :meth:`.ANM.calcModes`, :meth:`.GNM.calcModes`, 
+
+  * Improvements in :meth:`.ANM.calcModes`, :meth:`.GNM.calcModes`,
     and :meth:`.PCA.calcModes` methods prevent Numpy/Scipy throwing an
     exception when more than available modes are requested by the user.
-    
-  * Improvements in :func:`.blastPDB` enable ProDy throw an exception when no 
-    internet connection is found, and warn user when downloads fail due to 
-    restriction in network regulations (Thanks to Serkan Apaydin for helping 
+
+  * Improvements in :func:`.blastPDB` enable ProDy throw an exception when no
+    internet connection is found, and warn user when downloads fail due to
+    restriction in network regulations (Thanks to Serkan Apaydin for helping
     identify these improvements).
-    
+
   * New example :ref:`writepdb`.
 
 Release 0.5.1 (Dec 31, 2010)
@@ -1919,13 +1927,13 @@ Release 0.5.1 (Dec 31, 2010)
 
 **Changes in dependencies**:
 
-* Scipy (linear algebra module) is not required package anymore.  When 
+* Scipy (linear algebra module) is not required package anymore.  When
   available it replaces Numpy (linear algebra module) for greater flexibility
   and efficiency. A warning message is printed when Scipy is not found.
-  
+
 * Biopython KDTree module is not required for ENM calculations (specifically
-  for building Hessian (ANM) or Kirchoff (GNM) matrices). When available it 
-  is used to increase the performance. A warning message is printed when 
+  for building Hessian (ANM) or Kirchoff (GNM) matrices). When available it
+  is used to increase the performance. A warning message is printed when
   KDTree is not found.
 
 Release 0.5 (Dec 21, 2010)
@@ -1935,39 +1943,39 @@ Release 0.5 (Dec 21, 2010)
 
   * :class:`.AtomPointer` base class for classes pointing to
     atoms in an :class:`.AtomGroup`.
-    
+
   * :class:`.AtomPointer` instances (Selection, Residue, etc.)
     can be added. See :ref:`selection-operations` for examples.
-    
-  * :meth:`.Select.getIndices` and :meth:`.Select.getBoolArray` 
+
+  * :meth:`.Select.getIndices` and :meth:`.Select.getBoolArray`
     methods to expand the usage of :class:`.Select`.
-    
+
   * :func:`.sliceVector` and :func:`.sliceMode` functions.
-  
+
   * :func:`.saveModel` and :func:`.loadModel` functions
     for saving and loading NMA data.
-    
+
   * :func:`.parsePDBStream` can now parse specific chains or
     alternate locations from a PDB file.
-    
+
   * :func:`.alignCoordsets` is implemented to superimpose
     coordinate sets of an :class:`.AtomGroup` instance.
 
 **Bug Fixes**:
 
-  * A bug in :func:`.parsePDBStream` that caused unidentified errors 
-    when a model in a multiple model file did not have the same number of 
+  * A bug in :func:`.parsePDBStream` that caused unidentified errors
+    when a model in a multiple model file did not have the same number of
     atoms is fixed.
 
 **Changes**:
 
-  * Iterating over a :class:`.Chain` instance yields :class:`.Residue` 
+  * Iterating over a :class:`.Chain` instance yields :class:`.Residue`
     instances.
-    
-  * :class:`.Vector` instantiation requires an *array* only. *name* 
+
+  * :class:`.Vector` instantiation requires an *array* only. *name*
     is an optional argument.
-    
-  * Functions starting with ``get`` and performing a calculations are renamed 
+
+  * Functions starting with ``get`` and performing a calculations are renamed
     to start with ``calc``, e.g. :func:`getRMSD` is now :func:`.calcRMSD`.
 
 Release 0.2 (Nov 16, 2010)
@@ -1976,86 +1984,86 @@ Release 0.2 (Nov 16, 2010)
 **Important Changes**:
 
 
-  * Single word keywords *not* followed by "and" logical operator are not 
-    accepted, e.g. "protein within 5 of water" will raise a 
+  * Single word keywords *not* followed by "and" logical operator are not
+    accepted, e.g. "protein within 5 of water" will raise a
     :class:`.SelectionError`, use "protein and within 5 of water" instead.
-    
+
   * :func:`findMatchingChains` is renamed to  :func:`.matchChains`.
-  
+
   * :func:`showOverlapMatrix` is renamed to :func:`.showOverlapTable`.
-  
+
   * Modules are reorganized.
 
 **New Features**:
 
   * :class:`.Atomic` for easy type checking.
-  
+
   * :class:`.Contacts` for faster intermolecular contact identification.
-  
+
   * :class:`.Select` can identify intermolecular contacts. See :ref:`contacts`
     for an examples and details.
-    
-  * :func:`.sampleModes` implemented for sampling conformations along normal 
+
+  * :func:`.sampleModes` implemented for sampling conformations along normal
     modes.
 
 **Improvements**:
 
   * :mod:`.proteins.compare` functions are improved. Now they perform sequence
     alignment if simple residue number/identity based matchin does not work,
-    or if user passes ``pwalign=True`` argument. This impacts the speed 
+    or if user passes ``pwalign=True`` argument. This impacts the speed
     of X-ray ensemble analysis.
-    
+
   * :class:`.Select` can cache data optionally. This results in speeds up from
     2 to 50 folds depending on number of atoms and selection operations.
-    
+
   * Implementation of :func:`.showProjection` is completed.
-  
+
 :ref:`nmwiz`
 -------------------------------------------------------------------------------
 
 **Release 0.2.3**
 
-  * For each mode a molecule for drawing arrows and a molecule for showing 
-    animation is formed in VMD on demand. NMWiz remembers a color associated 
+  * For each mode a molecule for drawing arrows and a molecule for showing
+    animation is formed in VMD on demand. NMWiz remembers a color associated
     with a mode.
-    
+
   * Deselecting a residue by clicking on a plot is possible.
-  
+
   * A bug causing incorrect parsing of NMD files from ANM server is fixed.
 
 
 **Release 0.2.2**
 
-  * Selection string option allows user to show a subset of arrows matching 
+  * Selection string option allows user to show a subset of arrows matching
     a VMD selection string. Optionally, this selection string may affect
     protein and animation representations.
-    
+
   * A bug that caused problems when over plotting modes is removed.
-  
+
   * A bug affecting line width changes in plots is removed.
-  
+
   * Selected residue representations are colored according to the color of the
     plot.
 
 **Release 0.2.1**
 
   * Usability improvements.
-  
+
   * Loading the same data file more than once is prevented.
-  
+
   * If a GUI window for a dataset is closed, it can be reloaded from the main
     window.
-    
+
   * A dataset and GUI can be deleted from the VMD session via the main window.
 
 **Release 0.2**
 
   * Instant documentation is improved.
-  
+
   * Problem with clearing selections is fixed.
-  
+
   * Plotting options frame is populated.
-  
+
   * Multiple modes can be plotted on the same canvas.
 
 Release 0.1.2 (Nov 9, 2010)
