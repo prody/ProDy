@@ -170,7 +170,7 @@ First make sure that the VMD path is correct
 
 .. ipython:: python
 
-   getVMDpath()
+   pathVMD()
 
 
 .. ipython:: python

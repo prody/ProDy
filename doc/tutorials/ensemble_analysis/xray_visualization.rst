@@ -57,14 +57,14 @@ are saved as follows using :func:`.writeNMD` functions:
 It is also possible to load VMD to visualize normal mode data
 from within an interactive Python session. For this to work, you need
 VMD and NMWiz plugin installed. Check if VMD path is correct using
-:func:`.getVMDpath`:
+:func:`.pathVMD`:
 
 .. ipython:: python
 
-   getVMDpath()
+   pathVMD()
 
 If this is not the correct path to your VMD executable you can change it
-using :func:`.setVMDpath`.
+using the same function.
 
 .. ipython:: python
    :verbatim:
