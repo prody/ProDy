@@ -46,10 +46,6 @@ pre-commit.sh
 slides/*
 Documentation/*
 
-
-*html
-*css
-*js
 *png
 *xml
 *log
