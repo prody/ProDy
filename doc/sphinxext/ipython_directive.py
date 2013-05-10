@@ -455,74 +455,74 @@ class EmbeddedSphinxShell(object):
         the content as a list as if it were ipython code
         """
         output = []
-        savefig = False # keep up with this to clear figure
-        multiline = False # to handle line continuation
-        multiline_start = None
         fmtin = self.promptin
 
-        ct = 0
+        source = list(content) # making a copy whose items will be modified
+        # comment out decorators and shell commands to avoid syntax errors
+        deco_names = set(list(IpythonDirective.option_spec) + ['savefig'])
+        for i, line in enumerate(source):
+            if line.startswith('@'):
+                deco = line[1:].split()[0] # avoid actual python decorators
+                if deco in deco_names:
+                    source[i] = '#'
+                    if deco == 'savefig': # clear figure
+                        self.ensure_pyplot()
+                        self.process_input_line('plt.clf()',
+                                                store_history=False)
+                        self.clear_cout()
+            elif line.startswith('!'):
+                source[i] = '#'
 
-        for lineno, line in enumerate(content):
+        tree = ast.parse('\n'.join(source))
+        node_starts = [node.lineno - 1 for node in tree.body]
 
-            line_stripped = line.strip()
-            if not len(line):
-                output.append(line)
-                continue
-
-            # handle decorators
-            if line_stripped.startswith('@'):
-                output.extend([line])
-                if 'savefig' in line:
-                    savefig = True # and need to clear figure
-                continue
-
-            # handle comments
-            if line_stripped.startswith('#'):
-                output.extend([line])
-                continue
-
-            # deal with lines checking for multiline
-            continuation  = u'   %s:'% ''.join(['.']*(len(str(ct))+2))
-            if not multiline:
-                modified = u"%s %s" % (fmtin % ct, line_stripped)
-                output.append(modified)
+        i = ct = 0
+        while i < len(content):
+            line = content[i]
+            if i in node_starts:
+                if output and not output[-1].startswith('@'):
+                    output.append('')
+                output.append(u"%s %s" % (fmtin % ct, line))
+                continuation  = u'   %s:' % ('.' * (len(str(ct)) + 2))
                 ct += 1
-                try:
-                    ast.parse(line_stripped)
-                    output.append(u'')
-                except Exception: # on a multiline
-                    multiline = True
-                    multiline_start = lineno
-            else: # still on a multiline
-                modified = u'%s %s' % (continuation, line)
-                output.append(modified)
+                i += 1
+                while i < len(content) and i not in node_starts:
+                    line = content[i]
+                    if line:
+                        if line[0] in '#!':
+                            output.append('')
+                            output.append(u"%s %s" % (fmtin % ct, line))
+                            ct += 1
+                            i += 1
+                            break
+                        elif line.startswith('@'):
+                            output.append('')
+                            output.append(line)
+                            i += 1
+                            break
 
-                # if the next line is indented, it should be part of multiline
-                if len(content) > lineno + 1:
-                    nextline = content[lineno + 1]
-                    if len(nextline) - len(nextline.lstrip()) > 3:
-                        continue
-                try:
-                    mod = ast.parse(
-                            '\n'.join(content[multiline_start:lineno+1]))
-                    if isinstance(mod.body[0], ast.FunctionDef):
-                        # check to see if we have the whole function
-                        for element in mod.body[0].body:
-                            if isinstance(element, ast.Return):
-                                multiline = False
-                    else:
-                        output.append(u'')
-                        multiline = False
-                except Exception:
-                    pass
-
-            if savefig: # clear figure if plotted
-                self.ensure_pyplot()
-                self.process_input_line('plt.clf()', store_history=False)
-                self.clear_cout()
-                savefig = False
+                    output.append(u'%s %s' % (continuation, line))
+                    i += 1
+                    if i in node_starts:
+                        break
+            else:
+                output.append('')
+                output.append(line)
+                i += 1
 
         return output
+        print('SOURCE')
+        for line in source:
+            print(line)
+        print('CONTENT')
+        for line in content:
+            print(line)
+        print('OUTPUT')
+        for line in output:
+            print(line)
+        print('')
+        return output
+
 
 class IpythonDirective(Directive):
 
