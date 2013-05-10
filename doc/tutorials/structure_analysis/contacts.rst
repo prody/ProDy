@@ -9,9 +9,9 @@ Synopsis
 
 This examples shows how to identify intermolecular contacts, e.g. protein
 atoms interacting with a bound inhibitor.  A structure of a protein-ligand
-complex in PDB format will be used.  Output will be :class:`~.Selection`
+complex in PDB format will be used.  Output will be :class:`.Selection`
 instances that points to atoms matching the contact criteria given by the user.
-:class:`~.Selection` instances can be used as input to other
+:class:`.Selection` instances can be used as input to other
 functions for further analysis.
 
 Simple contact selections
@@ -85,7 +85,9 @@ residues that have at least one atom interacting with the inhibitor:
 
 .. ipython:: python
 
-   contacts_ca = protein.select('calpha and (same residue as within 4 of inhibitor)', inhibitor=inhibitor)
+   contacts_ca = protein.select(
+      'calpha and (same residue as within 4 of inhibitor)',
+      inhibitor=inhibitor)
    repr(contacts_ca)
 
 In this case, ``'calpha and (same residue as within 4 of inhibitor)'`` is
@@ -110,7 +112,7 @@ identify atoms in a spherical region. Let's find backbone atoms within 5
 Fast contact selections
 -------------------------------------------------------------------------------
 
-For repeated and faster contact identification :class:`~.Contacts` class is
+For repeated and faster contact identification :class:`.Contacts` class is
 recommended.
 
 We pass the protein as argument:
@@ -123,11 +125,12 @@ The following corresponds to ``"within 4 of inhibitor"``:
 
 .. ipython:: python
 
-   protein_contacts.select(4, inhibitor)
+   contants = protein_contacts.select(4, inhibitor)
+   repr(contacts)
 
 
 This method is 20 times faster than the one in the previous part, but it is
 limited to selecting only contacting atoms (other selection arguments cannot be
-passed). Again, it should be noted that :class:`~.Contacts` does not update the
+passed). Again, it should be noted that :class:`.Contacts` does not update the
 KDTree that it uses, so it should be used if protein coordinates does not change
 between selections.

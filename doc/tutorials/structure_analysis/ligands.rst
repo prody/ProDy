@@ -1,17 +1,18 @@
 .. _extract-ligands:
 
 
-Extract ligands
+Extract bound ligands
 =============================================================================
 
-Synopsis
--------------------------------------------------------------------------------
+This example shows how to align structures of the same protein and extract
+bound ligands from these structures.
 
 :func:`.matchAlign` function can be used for aligning protein structures.
 This example shows how to use it to extract ligands from multiple PDB
 structures after superposing the structures onto a reference.
 Output will be PDB files that contain ligands superposed onto the reference
 structure.
+
 
 Parse reference and blast search
 -------------------------------------------------------------------------------
@@ -32,6 +33,7 @@ structure:
   p38 = parsePDB('1p38')
   seq = p38['A'].getSequence()
   blast_record = blastPDB(seq)
+
 
 Align structures and extract ligands
 -------------------------------------------------------------------------------
@@ -55,7 +57,7 @@ structure, and extract ligands:
            if ligand:
                writePDB(pdb_id + '_ligand.pdb', ligand)
 
-    !ls *_ligand.pdb
+   !ls *_ligand.pdb
 
 Ligands bound to p38 are outputted. Note that output PDB files may contain
 multiple ligands.

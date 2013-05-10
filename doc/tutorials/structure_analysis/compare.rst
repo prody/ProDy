@@ -1,18 +1,17 @@
 .. _compare-chains:
 
-
-Compare chains
+Compare structures
 ===============================================================================
 
-Synopsis
--------------------------------------------------------------------------------
+This section shows how to find identical or similar protein chains in two
+structures files and align them.
 
 :mod:`.proteins` module contains functions for matching and mapping
 chains. Results can be used for RMSD fitting and PCA analysis.
 
-Input is two structures of the same protein in PDB file format.
 Output will be :class:`.AtomMap` instances that can be used as input
 to ProDy classes and functions.
+
 
 Match chains
 -------------------------------------------------------------------------------
@@ -25,7 +24,7 @@ We start by importing everything from the ProDy package:
    from pylab import *
    ion()
 
-Matching chains is useful when comparing two chains.
+Matching chains is useful when comparing two structures.
 Let's find matching chains in two different HIV-RT structures:
 
 .. ipython:: python
@@ -60,6 +59,7 @@ structures:
 .. ipython:: python
 
    showProtein(unbound, bound);
+   # some comment
    @savefig structure_analysis_compare_before.png width=4in
    legend();
 
@@ -86,7 +86,6 @@ We can match backbone atoms as follows:
    matches = matchChains(bound, unbound, subset='bb')
    for match in matches:
        printMatch(match)
-
 
 
 Or, we can match all atoms as follows:
