@@ -5,7 +5,9 @@
   "_static/swfobject.js",
   "_static/jquery.jatt.min.js",
   "_static/jquery.anythingslider.js",
-  "_static/jquery.anythingslider.video.js"] %}
+  "_static/jquery.anythingslider.video.js",
+  "_static/logoupdate.js",
+  "_static/textresize.js"] %}
 {% set css_files = [
   "_static/sphinxhome.css",
   "_static/anythingslider-theme.css"] %}
@@ -24,16 +26,15 @@
           </form>
         </li>
         <li>
-            <img src="{{ pathto("_static/text-dec.png", 1) }}" onclick="changeFontSize(-1)" alt="Decrease text size" style="cursor: pointer; vertical-align: -8px;">
-            <img src="{{ pathto("_static/text-org.png", 1) }}" onclick="changeFontSize(0)" alt="Default text size" style="cursor: pointer; vertical-align: -8px;">
-            <img src="{{ pathto("_static/text-inc.png", 1) }}" onclick="changeFontSize(+1)" alt="Increase text size" style="cursor: pointer; vertical-align: -8px;">
+            <img id="text-smaller" src="{{ pathto("_static/text-dec.png", 1) }}" alt="Decrease text size" style="cursor: pointer; vertical-align: -8px;">
+            <img id="text-reset" src="{{ pathto("_static/text-org.png", 1) }}" alt="Default text size" style="cursor: pointer; vertical-align: -8px;">
+            <img id="text-larger" src="{{ pathto("_static/text-inc.png", 1) }}" alt="Increase text size" style="cursor: pointer; vertical-align: -8px;">
         </li>
         <li><a href="#&panel1-6" onclick="$('#slider1').anythingSlider(6);">Documentation</a></li>
 
 {% endblock %}
 
 {% block header %}
-<script type="text/javascript">checkFontSize()</script>
 <div style="background-color: white; text-align: left; padding: 10px 10px 15px 15px">
 <a href="#&panel1-1" onclick="$('#slider1').anythingSlider(1);">
 <img src="{{ pathto("_static/logo.png", 1) }}" alt="ProDy logo" id="logo" />
@@ -41,17 +42,6 @@
 
 
 </div>
-<script type="text/javascript">
-function updateLogo() {
-  if (document.URL.search("\/plugins\/") > -1 || document.URL.search("panel1-4") > -1) {
-    document.getElementById("logo").src = "{{ pathto("_static/nmwiz.png", 1) }}";
-  } else if (document.URL.search("evol") > -1 || document.URL.search("panel1-3") > -1) {
-    document.getElementById("logo").src = "{{ pathto("_static/evol.png", 1) }}";
-  }
-
-}
-updateLogo()
-</script>
 <script>
   // Set up Sliders
   // **************

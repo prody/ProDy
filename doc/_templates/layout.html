@@ -1,5 +1,8 @@
 {% extends "!layout.html" %}
-{% set script_files = script_files + ["_static/prody_common.js", "_static/copybutton.js"] %}
+{% set script_files = script_files + [
+    "_static/textresize.js",
+    "_static/logoupdate.js",
+    "_static/copybutton.js"] %}
 {% block extrahead %}
 {{ super() }}
 {%- if not embedded %}
@@ -18,30 +21,18 @@
         <li><a><img src="{{ pathto("_static/dev.png", 1) }}" alt="You are reading development version docs" style=""></a></li>
     {% endif %}
         <li>
-            <img src="{{ pathto("_static/text-dec.png", 1) }}" onclick="changeFontSize(-1)" title="Decrease text size" style="cursor: pointer; vertical-align: -8px;">
-            <img src="{{ pathto("_static/text-org.png", 1) }}" onclick="changeFontSize(0)" title="Default text size" style="cursor: pointer; vertical-align: -8px;">
-            <img src="{{ pathto("_static/text-inc.png", 1) }}" onclick="changeFontSize(+1)" title="Increase text size" style="cursor: pointer; vertical-align: -8px;">
+            <img id="text-smaller" src="{{ pathto("_static/text-dec.png", 1) }}" title="Decrease text size" style="cursor: pointer; vertical-align: -8px;">
+            <img id="text-reset" src="{{ pathto("_static/text-org.png", 1) }}" title="Default text size" style="cursor: pointer; vertical-align: -8px;">
+            <img id="text-larger" src="{{ pathto("_static/text-inc.png", 1) }}" title="Increase text size" style="cursor: pointer; vertical-align: -8px;">
         </li>
         <li><a href="{{ pathto('index') }}">Home</a>|&nbsp;</li>
         <li><a href="{{ pathto('contents') }}">Contents</a> &raquo;</li>
 {% endblock %}
 
 {% block header %}
-<script type="text/javascript">checkFontSize()</script>
 <div style="background-color: white; text-align: left; padding: 10px 10px 15px 15px">
 <a href="{{ pathto("index") }}">
 <img src="{{ pathto("_static/logo.png", 1) }}" alt="ProDy logo" id="logo" />
 </a>
 </div>
-<script type="text/javascript">
-function updateLogo() {
-  if (document.URL.search("\/plugins\/") > -1 || document.URL.search("panel1-4") > -1) {
-    document.getElementById("logo").src = "{{ pathto("_static/nmwiz.png", 1) }}";
-  } else if (document.URL.search("evol") > -1 || document.URL.search("panel1-3") > -1) {
-    document.getElementById("logo").src = "{{ pathto("_static/evol.png", 1) }}";
-  }
-
-}
-updateLogo()
-</script>
 {% endblock %}
