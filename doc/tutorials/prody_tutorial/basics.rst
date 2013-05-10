@@ -9,11 +9,9 @@ We start with importing everything from ProDy package:
 .. ipython:: python
 
    from prody import *
+   from pylab import *
+   ion()
 
-.. ipython:: python
-   :suppress:
-
-   from pylab import *; ion()
 
 Functions and classes are named such that they should not create a conflict
 with any other package.  In this part we will familiarize with different

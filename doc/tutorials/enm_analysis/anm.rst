@@ -173,7 +173,8 @@ First make sure that the VMD path is correct
    getVMDpath()
 
 
-::
+.. ipython:: python
+   :verbatim:
 
    # if this is incorrect use setVMDpath to correct it
    viewNMDinVMD('p38_anm_modes.nmd')

@@ -12,7 +12,7 @@ Structural Ensemble Analysis
 .. toctree::
    :glob:
    :maxdepth: 2
-   
+
    intro
    nmr
    blast
