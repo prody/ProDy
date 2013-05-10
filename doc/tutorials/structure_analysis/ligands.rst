@@ -7,8 +7,8 @@ Extract ligands
 Synopsis
 -------------------------------------------------------------------------------
 
-:func:`~.matchAlign` function can be used for aligning protein structures.
-This example shows how to use it to extract ligands from multiple PDB 
+:func:`.matchAlign` function can be used for aligning protein structures.
+This example shows how to use it to extract ligands from multiple PDB
 structures after superposing the structures onto a reference.
 Output will be PDB files that contain ligands superposed onto the reference
 structure.
@@ -16,35 +16,49 @@ structure.
 Parse reference and blast search
 -------------------------------------------------------------------------------
 
-We start by importing everything from the ProDy package::
+We start by importing everything from the ProDy package:
 
-  from prody import *
+.. ipython:: python
 
-First, we parse the reference structure and blast search PDB for similar 
-structure::
+   from prody import *
+   from pylab import *
+   ion()
 
-  p = parsePDB('1p38')
-  seq = p.getHierView()['A'].getSequence()
-  b = blastPDB(seq)
+First, we parse the reference structure and blast search PDB for similar
+structure:
+
+.. ipython:: python
+
+  p38 = parsePDB('1p38')
+  seq = p38['A'].getSequence()
+  blast_record = blastPDB(seq)
 
 Align structures and extract ligands
 -------------------------------------------------------------------------------
 
-Then, we parse the hits one-by-one, superpose them onto the reference 
-structure, and extract ligands::
+Then, we parse the hits one-by-one, superpose them onto the reference
+structure, and extract ligands:
 
-  for pdb in b.getHits().keys():
-      # blast search may return PDB identifiers of deprecated structures,
-      # so we parse structures within a try statement
-      try:
-          m = parsePDB(pdb)
-          m = matchAlign(m,p)[0] 
-      except:
-          continue
-      s = m.select('not protein and not water')
-      if s is not None:
-          writePDB(pdb+'_ligand.pdb', s)
+.. ipython:: python
 
-This code will write PDB files that contain non-protein and non-water atoms.
+   for pdb_id in blast_record.getHits():
+       # blast search may return PDB identifiers of deprecated structures,
+       # so we parse structures within a try statement
+       try:
+           pdb = parsePDB(pdb_id)
+           pdb = matchAlign(pdb, p38)[0]
+       except:
+           continue
+       else:
+           ligand = pdb.select('not protein and not water')
+           repr(ligand)
+           if ligand:
+               writePDB(pdb_id + '_ligand.pdb', ligand)
+
+    !ls *_ligand.pdb
+
+Ligands bound to p38 are outputted. Note that output PDB files may contain
+multiple ligands.
+
 The output can be loaded into a molecular visualization tool for analysis.
 

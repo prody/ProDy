@@ -22,11 +22,8 @@ We start by importing everything from the ProDy package:
 .. ipython:: python
 
    from prody import *
-
-.. ipython:: python
-   :suppress:
-
-   from prody import *; from pylab import *; ion()
+   from pylab import *
+   ion()
 
 We start with parsing a PDB file by passing an identifier.
 Note that if a file is not found in the current working directory, it will be
