@@ -14,6 +14,8 @@ Release 1.4.3 (in development)
   * :func:`.getVMDpath` and :func:`.setVMDpath` functions are deprecated for
     removal, use :func:`pathVMD` instead.
 
+  * Increased :func:`.blastPDB` *timeout* to 60 seconds.
+
 Release 1.4.2 (April 19, 2013)
 ===============================================================================
 
