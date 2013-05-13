@@ -11,15 +11,16 @@ PAPEROPT_a4     = -D latex_paper_size=a4
 PAPEROPT_letter = -D latex_paper_size=letter
 ALLSPHINXOPTS   = -d ../doctrees $(PAPEROPT_$(PAPER)) $(SPHINXOPTS)
 
-.PHONY: help html clean latex pdf files test workdir
+.PHONY: help html clean latex pdf files workdir
 
 help:
 	@echo "Please use \`make <target>' where <target> is one of"
+	@echo "  html       to make standalone HTML files"
 	@echo "  pdf        to make LaTeX files and run them through pdflatex"
 	@echo "  test       to run all doctests embedded in the documentation"
 
 clean:
-	-rm -rf $(BUILDDIR)/*
+	-rm -rf $(BUILDDIR)/* $(BUILDDIR)_files.zip $(BUILDDIR)_files.tgz $(BUILDDIR).pdf
 
 workdir:
 	mkdir -p $(BUILDDIR)/workdir
@@ -51,11 +52,3 @@ files:
 	zip $(BASENAME)_files.zip $(BASENAME)_files/*
 	@echo
 	@echo "$(BASENAME)_files.zip and $(BASENAME)_files.tgz are created."
-
-
-test:
-	cp -f files/* $(DOCTESTDIR); cd $(DOCTESTDIR); \
-	$(SPHINXBUILD) -b doctest -d $(PWD)/$(BUILDDIR)/doctrees/ $(PWD) .
-	mv -f $(DOCTESTDIR)/output.txt .
-	@echo
-	@echo "Testing of tutorial finished, see results in output.txt."
