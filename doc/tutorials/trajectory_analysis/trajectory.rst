@@ -7,33 +7,45 @@ Trajectory analysis
 Synopsis
 -------------------------------------------------------------------------------
 
-This example shows how to analyze a trajectory in DCD format. RMSD, RMSF, 
+This example shows how to analyze a trajectory in DCD format. RMSD, RMSF,
 radius of gyration, and distance will be calculated from trajectory frames.
- 
+
 
 Input files
 -------------------------------------------------------------------------------
 
-Currently, ProDy supports only DCD format files. Two DCD trajectory files and 
+Currently, ProDy supports only DCD format files. Two DCD trajectory files and
 corresponding PDB structure file is needed for this example.
 
 Example input:
- 
-* :download:`MDM2 files </doctest/mdm2.tar.gz>` 
+
+* :download:`MDM2 structure <trajectory_analysis_files/mdm2.pdb>`
+* :download:`MDM2 trajectory I <trajectory_analysis_files/mdm2.dcd>`
+* :download:`MDM2 trajectory II <trajectory_analysis_files/mdm2sim2.dcd>`
+
+
+
+Setup environment
+-------------------------------------------------------------------------------
+
+We start by importing everything from ProDy:
+
+.. ipython:: python
+
+   from prody import *
+   from pylab import *
+   ion()
 
 Parse structure
 -------------------------------------------------------------------------------
 
-We start by importing everything from the ProDy package:
-
->>> from prody import *
-
-The PDB file provided with this example contains an X-ray structure which will 
+The PDB file provided with this example contains an X-ray structure which will
 be useful in a number of places, so let's start with parsing this file first:
 
->>> structure = parsePDB('mdm2.pdb')
->>> structure
-<AtomGroup: mdm2 (1449 atoms)>
+.. ipython:: python
+
+   structure = parsePDB('trajectory_analysis_files/mdm2.pdb')
+   repr(structure)
 
 This function returned a :class:`.AtomGroup` instance that
 stores all atomic data parsed from the PDB file.
@@ -44,54 +56,58 @@ Parse all frames
 Using :func:`.parseDCD` function all coordinate data in the DCD file can
 be parsed at once. This function returns an :class:`.Ensemble` instance:
 
->>> ensemble = parseDCD('mdm2.dcd')
->>> ensemble
-<Ensemble: mdm2 (0:500:1) (500 conformations; 1449 atoms)>
+.. ipython:: python
+
+   ensemble = parseDCD('trajectory_analysis_files/mdm2.dcd')
+   repr(ensemble)
 
 .. note:: When parsing large DCD files at once memory may become an issue.
    If the size of the DCD file is larger than half of the RAM in your machine,
-   consider parsing DCD files frame-by-frame. See the following subsection for 
-   details. 
+   consider parsing DCD files frame-by-frame. See the following subsection for
+   details.
 
 Let's associate this ensemble with the *structure* we parsed from the PDB file:
 
->>> ensemble.setAtoms(structure)
->>> ensemble.setCoords(structure)
+.. ipython:: python
+
+   ensemble.setAtoms(structure)
+   ensemble.setCoords(structure)
 
 This operation set the coordinates of the *structure* as the reference
-coordinates of the *ensemble*. Now we can :meth:`.Ensemble.superpose` 
-the *ensemble* onto the coordinates of the *structure*.  
+coordinates of the *ensemble*. Now we can :meth:`.Ensemble.superpose`
+the *ensemble* onto the coordinates of the *structure*.
 
->>> ensemble.superpose()
+.. ipython:: python
 
-Now, we can get calculate RMSDs and RMSFs as follows: 
+   ensemble.superpose()
 
->>> print ensemble.getRMSDs().round(2) # doctest: +ELLIPSIS
-[ 0.96  1.38  1.86  1.67  1.82  2.    1.84  1.85  1.72  2.    1.91  1.89
-  ...
-  2.49  2.25  2.35  2.32  2.23  2.36  2.38  2.42]
->>> print ensemble.getRMSFs().round(2) # doctest: +ELLIPSIS
-[ 2.17  2.51  2.55 ...,  2.4   2.36  2.36]
+Now, we can get calculate RMSDs and RMSFs as follows:
+
+.. ipython:: python
+
+   rmsd = ensemble.getRMSDs()
+   rmsd[:10]
+   rmsf = ensemble.getRMSFs()
+   rmsf
 
 Preceding calculations used all atoms in the structure. When we are interested
 in a subset of atoms, let's say Cα atoms, we can make a selection before
 performing calculations:
 
->>> ensemble.setAtoms(structure.calpha)
->>> ensemble
-<Ensemble: mdm2 (0:500:1) (500 conformations; selected 85 of 1449 atoms)>
->>> ensemble.superpose()
+.. ipython:: python
 
-In this case, superposition was based on Cα atom coordinates. 
+   ensemble.setAtoms(structure.calpha)
+   repr(ensemble)
+   ensemble.superpose()
 
->>> print ensemble.getRMSDs().round(2) # doctest: +ELLIPSIS
-[ 0.57  0.66  1.08  0.87  1.01  1.08  0.97  0.97  0.71  0.99  0.84  0.76
-  ...
-  1.26  1.1   1.26  1.22  1.09  1.28  1.16  1.17]
->>> print ensemble.getRMSFs().round(2) # doctest: +ELLIPSIS
-[ 1.63  1.23  0.8   0.6   0.51  0.46  0.45  0.56  0.55  0.44  0.5   0.56
-  ...
-  1.55]
+In this case, superposition was based on Cα atom coordinates.
+
+.. ipython:: python
+
+   rmsd = ensemble.getRMSDs()
+   rmsd[:10]
+   rmsf = ensemble.getRMSFs()
+   rmsf
 
 
 The :class:`.Ensemble` instance can also be used in :class:`.PCA`
@@ -100,80 +116,69 @@ calculations. See the examples in :ref:`pca` for more information.
 Parse frames one-by-one
 -------------------------------------------------------------------------------
 
->>> dcd = DCDFile('mdm2.dcd')
->>> dcd
-<DCDFile: mdm2 (next 0 of 500 frames; 1449 atoms)>
+.. ipython:: python
 
->>> structure = parsePDB('mdm2.pdb')
->>> dcd.setCoords(structure)
->>> dcd.link(structure)
+   dcd = DCDFile('trajectory_analysis_files/mdm2.dcd')
+   repr(dcd)
 
->>> dcd.nextIndex()
-0
->>> frame = dcd.next()
->>> frame
-<Frame: 0 from mdm2 (1449 atoms)>
->>> dcd.nextIndex()
-1
+.. ipython:: python
 
->>> print frame.getRMSD().round(2)
-1.1
->>> frame.superpose()
->>> print frame.getRMSD().round(2)
-0.96
+   structure = parsePDB('trajectory_analysis_files/mdm2.pdb')
+   dcd.setCoords(structure)
+   dcd.link(structure)
 
->>> print calcGyradius(frame).round(2)
-12.95
+   dcd.nextIndex()
+   frame = dcd.next()
+   repr(frame)
+   dcd.nextIndex()
+
+.. ipython:: python
+
+   frame.getRMSD()
+   frame.superpose()
+   frame.getRMSD()
+
+   calcGyradius(frame)
 
 We can perform these calculations for all frames in a for loop. Let's reset
 *dcd* to return to the 0th frame:
 
->>> dcd.reset()
->>> import numpy as np
->>> rgyr = np.zeros(len(dcd))
->>> rmsd = np.zeros(len(dcd))
->>> for i, frame in enumerate(dcd):
-...     rgyr[i] = calcGyradius( frame )
-...     frame.superpose()
-...     rmsd[i] = frame.getRMSD()
->>> print rmsd.round(2) # doctest: +ELLIPSIS
-[ 0.96  1.38  1.86  1.67  1.82  2.    1.84  1.85  1.72  2.    1.91  1.89
-  ...
-  2.49  2.25  2.35  2.32  2.23  2.36  2.38  2.42]
->>> print rgyr.round(2) # doctest: +ELLIPSIS
-[ 12.95  13.08  12.93  13.03  12.96  13.02  12.87  12.93  12.9   12.86
-  ...
-  13.05  13.05  13.16  13.1   13.15  13.18  13.1 ]
+.. ipython:: python
+
+   dcd.reset()
+   rgyr = zeros(len(dcd))
+   rmsd = zeros(len(dcd))
+   for i, frame in enumerate(dcd):
+       rgyr[i] = calcGyradius(frame)
+       frame.superpose()
+       rmsd[i] = frame.getRMSD()
+   rmsd[:10]
+   rgyr[:10]
 
 Handling multiple files
 -------------------------------------------------------------------------------
 
 :class:`.Trajectory` is designed for handling multiple trajectory files:
 
->>> traj = Trajectory('mdm2.dcd')
->>> traj
-<Trajectory: mdm2 (next 0 of 500 frames; 1449 atoms)>
->>> traj.addFile('mdm2sim2.dcd')
->>> traj 
-<Trajectory: mdm2 (2 files; next 0 of 1000 frames; 1449 atoms)>
+.. ipython:: python
+
+   traj = Trajectory('trajectory_analysis_files/mdm2.dcd')
+   repr(traj)
+   traj.addFile('trajectory_analysis_files/mdm2sim2.dcd')
+   repr(traj)
 
 Instances of this class are also suitable for previous calculations:
 
->>> structure = parsePDB('mdm2.pdb')
->>> traj.link(structure)
->>> traj.setCoords(structure)
->>> rgyr = np.zeros(len(traj))
->>> rmsd = np.zeros(len(traj))
->>> for i, frame in enumerate(traj):
-...     rgyr[i] = calcGyradius( frame )
-...     frame.superpose()
-...     rmsd[i] = frame.getRMSD()
->>> print rmsd.round(2) # doctest: +ELLIPSIS
-[ 0.96  1.38  1.86  1.67  1.82  2.    1.84  1.85  1.72  2.    1.91  1.89
-  ...
-  2.34  2.3   2.37  2.36]
->>> print rgyr.round(2) # doctest: +ELLIPSIS
-[ 12.95  13.08  12.93  13.03  12.96  13.02  12.87  12.93  12.9   12.86
-  ...
-  12.95  12.98  12.96  13.    13.08  12.9   12.94  12.98  12.96]
-  
+.. ipython:: python
+
+   structure = parsePDB('trajectory_analysis_files/mdm2.pdb')
+   traj.link(structure)
+   traj.setCoords(structure)
+   rgyr = zeros(len(traj))
+   rmsd = zeros(len(traj))
+   for i, frame in enumerate(traj):
+       rgyr[i] = calcGyradius( frame )
+       frame.superpose()
+       rmsd[i] = frame.getRMSD()
+   rmsd[:10]
+   rgyr[:10]

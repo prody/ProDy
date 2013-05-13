@@ -12,45 +12,59 @@ This example shows how to output trajectories.
 Input files
 -------------------------------------------------------------------------------
 
-Currently, ProDy supports only DCD format files. Two DCD trajectory files and 
+Currently, ProDy supports only DCD format files. Two DCD trajectory files and
 corresponding PDB structure file is needed for this example.
 
 Example input:
- 
-* :download:`MDM2 files <../../doctest/mdm2.tar.gz>` 
+
+* :download:`MDM2 structure <trajectory_analysis_files/mdm2.pdb>`
+* :download:`MDM2 trajectory I <trajectory_analysis_files/mdm2.dcd>`
+* :download:`MDM2 trajectory II <trajectory_analysis_files/mdm2sim2.dcd>`
+
+
+Setup environment
+-------------------------------------------------------------------------------
+
+We start by importing everything from ProDy:
+
+.. ipython:: python
+
+   from prody import *
+   from pylab import *
+   ion()
 
 
 Load structure
 -------------------------------------------------------------------------------
 
-We start by importing everything from the ProDy package:
-
->>> from prody import *
-
 The PDB file provided with this example contains an X-ray structure:
 
->>> mdm2 = parsePDB('mdm2.pdb')
->>> mdm2
-<AtomGroup: mdm2 (1449 atoms)>
+.. ipython:: python
 
-This function returned a :class:`.AtomGroup` instance that stores all atomic 
+   mdm2 = parsePDB('trajectory_analysis_files/mdm2.pdb')
+   repr(mdm2)
+
+This function returned a :class:`.AtomGroup` instance that stores all atomic
 data parsed from the PDB file.
+
 
 Open trajectories
 -------------------------------------------------------------------------------
 
 :class:`.Trajectory` is designed for handling multiple trajectory files:
 
->>> traj = Trajectory('mdm2.dcd')
->>> traj
-<Trajectory: mdm2 (next 0 of 500 frames; 1449 atoms)>
->>> traj.addFile('mdm2sim2.dcd')
->>> traj 
-<Trajectory: mdm2 (2 files; next 0 of 1000 frames; 1449 atoms)>
+.. ipython:: python
 
-Now we link the trajectory (*traj*) with the atom group (*mdm2*): 
+   traj = Trajectory('trajectory_analysis_files/mdm2.dcd')
+   traj
+   traj.addFile('trajectory_analysis_files/mdm2sim2.dcd')
+   traj
 
->>> traj.link(mdm2) 
+Now we link the trajectory (*traj*) with the atom group (*mdm2*):
+
+.. ipython:: python
+
+   traj.link(mdm2)
 
 .. note::
    Note that when a frame (coordinate set) is parsed from the trajectory file,
@@ -64,16 +78,17 @@ You can write a trajectory in DCD format using :func:`.writeDCD` function.
 Let's select non-hydrogen protein atoms and write a merged trajectory for
 MDM2:
 
->>> traj.setAtoms(mdm2.noh)
->>> traj
-<Trajectory: mdm2 (linked to AtomGroup mdm2; 2 files; next 0 of 1000 frames; selected 706 of 1449 atoms)>
->>> writeDCD('mdm2_merged_noh.dcd', traj)
-'mdm2_merged_noh.dcd'
+.. ipython:: python
+
+   traj.setAtoms(mdm2.noh)
+   traj
+   writeDCD('mdm2_merged_noh.dcd', traj)
 
 Parsing this file returns:
 
->>> DCDFile('mdm2_merged_noh.dcd')
-<DCDFile: mdm2_merged_noh (next 0 of 1000 frames; 706 atoms)>
+.. ipython:: python
+
+   DCDFile('mdm2_merged_noh.dcd')
 
 
 Output aligned frames
@@ -82,28 +97,32 @@ Output aligned frames
 You can write a trajectory in DCD format after aligning the frames.
 Let's return to the first frame by resetting the trajectory:
 
->>> traj.reset()
->>> traj
-<Trajectory: mdm2 (linked to AtomGroup mdm2; 2 files; next 0 of 1000 frames; selected 706 of 1449 atoms)>
+.. ipython:: python
 
-It is possible to write multiple DCD files at the same time.  We open two DCD 
+   traj.reset()
+   traj
+
+It is possible to write multiple DCD files at the same time.  We open two DCD
 files in write mode, one for all atoms, and another for backbone atoms:
 
->>> out = DCDFile('mdm2_aligned.dcd', 'w')
->>> out_bb = DCDFile('mdm2_bb_aligned.dcd', 'w')
->>> mdm2_bb = mdm2.backbone
+.. ipython:: python
 
-Let's align and write frames one by one: 
+   out = DCDFile('mdm2_aligned.dcd', 'w')
+   out_bb = DCDFile('mdm2_bb_aligned.dcd', 'w')
+   mdm2_bb = mdm2.backbone
 
->>> for frame in traj:
-...     frame.superpose()
-...     out.write(mdm2)
-...     out_bb.write(mdm2_bb)
+Let's align and write frames one by one:
+
+.. ipython:: python
+
+   for frame in traj:
+       frame.superpose()
+       out.write(mdm2)
+       out_bb.write(mdm2_bb)
 
 Let's open these files to show number of atoms in each:
 
->>> DCDFile('mdm2_aligned.dcd')
-<DCDFile: mdm2_aligned (next 0 of 1000 frames; 1449 atoms)>
->>> DCDFile('mdm2_bb_aligned.dcd')
-<DCDFile: mdm2_bb_aligned (next 0 of 1000 frames; 339 atoms)>
+.. ipython:: python
 
+   DCDFile('mdm2_aligned.dcd')
+   DCDFile('mdm2_bb_aligned.dcd')
