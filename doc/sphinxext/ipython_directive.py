@@ -501,7 +501,7 @@ class EmbeddedSphinxShell(object):
                             i += 1
                             break
 
-                    output.append(u'%s %s' % (continuation, line))
+                    output.append(u'%s%s' % (continuation, line))
                     i += 1
                     if i in node_starts:
                         break
