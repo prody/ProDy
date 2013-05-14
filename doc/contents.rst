@@ -13,8 +13,7 @@ ProDy Documentation Contents
    :glob:
 
    getprody
-   tutorial/index
-   examples/index
+   tutorials/index
    reference/index
    plugins/index
    apps/index
@@ -30,7 +29,7 @@ ProDy Documentation Contents
    changes
    license
    glossary
-   
+
 
 Indices and tables
 ==================

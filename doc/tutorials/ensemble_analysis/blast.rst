@@ -229,4 +229,4 @@ Let's show a projection of the ensemble onto PC1 and PC2:
 .. ipython:: python
 
    @savefig ensemble_analysis_blast_projection.png width=4in
-   showProjection(ensemble, pca[:2]):
+   showProjection(ensemble, pca[:2]);
