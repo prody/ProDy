@@ -40,6 +40,7 @@ Tutorials
 .. toctree::
    :glob:
    :maxdepth: 2
+   :hidden:
 
    prody_tutorial/index
    nmwiz_tutorial/index

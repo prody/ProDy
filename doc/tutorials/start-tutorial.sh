@@ -19,18 +19,18 @@ TUTORIAL=${SHORT// /_}
 REFERENCE=${SHORT// /-}
 
 
-mkdir -p tutorials/$TUTORIAL
-mkdir -p tutorials/$TUTORIAL/$TUTORIAL\_files
-ln -fs ../../_pkginv tutorials/$TUTORIAL
-ln -fs ../../_static tutorials/$TUTORIAL
-ln -fs ../../_templates tutorials/$TUTORIAL
-ln -fs ../../funding.rst tutorials/$TUTORIAL/acknowledgments.rst
-ln -fs ../template/Makefile tutorials/$TUTORIAL
-cp -f tutorials/template/Makefile tutorials/$TUTORIAL
-sed 's/AUTHOR/'"$AUTHOR"'/g' tutorials/template/conf.py > tutorials/$TUTORIAL/conf.py
-sed -i 's/TITLE/'"$TITLE"'/g' tutorials/$TUTORIAL/conf.py
-sed 's/TITLE/'"$TITLE"'/g' tutorials/template/index.rst > tutorials/$TUTORIAL/index.rst
-sed -i 's/REFERENCE/'"$REFERENCE"'/g' tutorials/$TUTORIAL/index.rst
-sed 's/TUTORIAL/'"$TUTORIAL"'/g' tutorials/template/intro.rst > tutorials/$TUTORIAL/intro.rst
+mkdir -p $TUTORIAL
+mkdir -p $TUTORIAL/$TUTORIAL\_files
+ln -fs ../../_pkginv $TUTORIAL
+ln -fs ../../_static $TUTORIAL
+ln -fs ../../_templates $TUTORIAL
+ln -fs ../../funding.rst $TUTORIAL/acknowledgments.rst
+ln -fs ../template/Makefile $TUTORIAL
+cp -f template/Makefile $TUTORIAL
+sed 's/AUTHOR/'"$AUTHOR"'/g' template/conf.py > $TUTORIAL/conf.py
+sed -i 's/TITLE/'"$TITLE"'/g' $TUTORIAL/conf.py
+sed 's/TITLE/'"$TITLE"'/g' template/index.rst > $TUTORIAL/index.rst
+sed -i 's/REFERENCE/'"$REFERENCE"'/g' $TUTORIAL/index.rst
+sed 's/TUTORIAL/'"$TUTORIAL"'/g' template/intro.rst > $TUTORIAL/intro.rst
 echo
-echo "Tutorial folders and files are prepared, see tutorials/$TUTORIAL"
+echo "Tutorial folders and files are prepared, see $TUTORIAL"

@@ -1,4 +1,5 @@
 .. _ensemble-analysis:
+.. _pca:
 
 .. use "ensemble-analysis" to refer to this file, i.e. :ref:`ensemble-analysis`
 
