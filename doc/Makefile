@@ -16,12 +16,11 @@ ALLSPHINXOPTS   = -d $(BUILDDIR)/doctrees $(PAPEROPT_$(PAPER)) $(SPHINXOPTS)
 
 help:
 	@echo "Please use \`make <target>' where <target> is one of"
-	@echo "  html       to make standalone HTML files"
-	@echo "  pdf	    to make LaTeX files and run them through pdflatex"
+	@echo "  html       to make standalone HTML files of entire documentaion"
+	@echo "  pdf	    to make PDF files of reference manual and tutorials"
 	@echo "  copy	    to copy license, install, and changes to package directory"
 	@echo "  stats	    to update download statistics"
 	@echo "  doctest    to run all doctests embedded in the documentation"
-	@echo "  tutorial   to prepare tutorial PDF and achieve files"
 
 clean:
 	-rm -rf $(BUILDDIR)/*
@@ -31,20 +30,19 @@ workdir:
 	ln -fs ../../$(BASENAME)_files $(BUILDDIR)/workdir/
 
 html: workdir
+	rm -f _inventory/prody*inv
 	cd $(BUILDDIR)/workdir; $(SPHINXBUILD) -b html -d $(BUILDDIR)/doctrees ../../ ../html
 	@echo
 	@echo "Build finished. The HTML pages are in $(BUILDDIR)/html."
 
-latex: workdir
-	cd $(BUILDDIR)/workdir; $(SPHINXBUILD) -b latex $(ALLSPHINXOPTS)  ../../ ../latex
-	@echo
-	@echo "LaTeX file is ready, see $(BUILDDIR)/latex."
-
-pdf: latex
-	@echo "Running LaTeX files through pdflatex..."
-	make -C $(BUILDDIR)/latex all-pdf
-	@echo
-	@echo "pdflatex finished; the PDF files are in $(BUILDDIR)/latex."
+pdf:
+	cd reference; make pdf
+	cd tutorials; \
+	for tut in `find . -type d` ; do \
+		if [ -d "$$tut/$$tut"_files ]; then \
+		 	cd $$tut; make archive html pdf; cd ..;\
+		fi; \
+	done
 
 copy:
 	cp -f changes.rst ../CHANGES.rst
@@ -66,11 +64,3 @@ doctest:
 	@echo
 	@echo "Testing of doctests in the sources finished, look at the " \
 	      "results in $(DOCTESTDIR)."
-
-tutorial:
-	cd tutorials; \
-	for tut in `find . -type d` ; do \
-		if [ -d "$$tut/$$tut"_files ]; then \
-		 	cd $$tut; make archive html pdf; cd ..;\
-		fi; \
-	done

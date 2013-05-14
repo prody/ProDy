@@ -44,7 +44,7 @@ release =  version
 
 
 exclude_patterns = ['_build', 'examples', 'tutorial', 'tutorials/template',
-                    'tutorials/*/acknowledgments.rst']
+                    'tutorials/*/acknowledgments.rst', 'reports']
 
 
 add_module_names = False
@@ -192,13 +192,13 @@ googleanalytics_id = 'UA-19801227-1'
 
 intersphinx_mapping = {
     'numpy': ('http://docs.scipy.org/doc/numpy/',
-              '_pkginv/numpy.inv'),
+              '_inventory/numpy.inv'),
     'scipy': ('http://docs.scipy.org/doc/scipy/reference/',
-              '_pkginv/scipy.inv'),
+              '_inventory/scipy.inv'),
     'python': ('http://docs.python.org/',
-               '_pkginv/python.inv'),
+               '_inventory/python.inv'),
     'matplotlib': ('http://matplotlib.sourceforge.net/',
-                   '_pkginv/matplotlib.inv'),
+                   '_inventory/matplotlib.inv'),
 }
 
 from time import time

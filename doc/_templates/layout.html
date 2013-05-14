@@ -1,9 +1,9 @@
 {% extends "!layout.html" %}
 {% set script_files = script_files + [
-    "_static/jquery.cookie.js",
-    "_static/textresize.js",
-    "_static/logoupdate.js",
-    "_static/copybutton.js"] %}
+    "_static/js/jquery.cookie.js",
+    "_static/js/textresize.js",
+    "_static/js/logoupdate.js",
+    "_static/js/copybutton.js"] %}
 {% block extrahead %}
 {{ super() }}
 {%- if not embedded %}
@@ -23,7 +23,7 @@
             <img id="text-reset" src="{{ pathto("_static/text-org.png", 1) }}" title="Default text size" style="cursor: pointer; vertical-align: -8px;">
             <img id="text-larger" src="{{ pathto("_static/text-inc.png", 1) }}" title="Increase text size" style="cursor: pointer; vertical-align: -8px;">
         </li>
-        <li><a><img id="show-snippets" src="{{ pathto("_static/python-script.png", 1) }}" alt="Show code snippets" style="cursor: pointer; vertical-align: -8px; visibility: hidden; max-height: 16px"></a></li>
+<!--        <li><a><img id="show-snippets" src="{{ pathto("_static/python-script.png", 1) }}" alt="Show code snippets" style="cursor: pointer; vertical-align: -8px; visibility: hidden; max-height: 16px"></a></li>-->
         <li><a href="{{ pathto('index') }}">Home</a>|&nbsp;</li>
         <li><a href="{{ pathto('contents') }}">Contents</a> &raquo;</li>
 {% endblock %}

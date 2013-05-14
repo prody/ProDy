@@ -21,12 +21,11 @@ REFERENCE=${SHORT// /-}
 
 mkdir -p $TUTORIAL
 mkdir -p $TUTORIAL/$TUTORIAL\_files
-ln -fs ../../_pkginv $TUTORIAL
 ln -fs ../../_static $TUTORIAL
 ln -fs ../../_templates $TUTORIAL
-ln -fs ../../funding.rst $TUTORIAL/acknowledgments.rst
+ln -fs ../../_inventory $TUTORIAL
 ln -fs ../template/Makefile $TUTORIAL
-cp -f template/Makefile $TUTORIAL
+ln -fs ../template/acknowledgments.rst $TUTORIAL/acknowledgments.rst
 sed 's/AUTHOR/'"$AUTHOR"'/g' template/conf.py > $TUTORIAL/conf.py
 sed -i 's/TITLE/'"$TITLE"'/g' $TUTORIAL/conf.py
 sed 's/TITLE/'"$TITLE"'/g' template/index.rst > $TUTORIAL/index.rst
