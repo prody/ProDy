@@ -5,7 +5,7 @@
 
 import sys, os, os.path, time
 
-sys.path.append(os.path.abspath('sphinxext'))
+sys.path.append(os.path.abspath('_sphinxext'))
 
 extensions = ['sphinx.ext.todo',
               'sphinx.ext.autodoc',
@@ -43,7 +43,8 @@ version = '1.4.2'
 release =  version
 
 
-exclude_patterns = ['_build', 'tutorials/*', 'tutorials/template/*']
+exclude_patterns = ['_build', 'examples', 'tutorial', 'tutorials/template',
+                    'tutorials/*/acknowledgments.rst']
 
 
 add_module_names = False
@@ -113,7 +114,7 @@ extlinks = {
 
 
 # ipython directive configuration
-ipython_savefig_dir = '_static'
+ipython_savefig_dir = os.path.join('_static', 'figures')
 
 # Plot directive configuration
 plot_basedir = os.path.join('_build', 'plot_directive')
@@ -190,23 +191,32 @@ googleanalytics_enabled = True
 googleanalytics_id = 'UA-19801227-1'
 
 intersphinx_mapping = {
-    'matplotlib': ('http://matplotlib.sourceforge.net/', None),
-    'python': ('http://docs.python.org/', None),
-    'numpy': ('http://docs.scipy.org/doc/numpy/', None),
-    'scipy': ('http://docs.scipy.org/doc/scipy/reference/', None)
+    'numpy': ('http://docs.scipy.org/doc/numpy/',
+              '_pkginv/numpy.inv'),
+    'scipy': ('http://docs.scipy.org/doc/scipy/reference/',
+              '_pkginv/scipy.inv'),
+    'python': ('http://docs.python.org/',
+               '_pkginv/python.inv'),
+    'matplotlib': ('http://matplotlib.sourceforge.net/',
+                   '_pkginv/matplotlib.inv'),
 }
 
+from time import time
+week = 7 * 24 * 3600
+for pkg, (url, inv) in intersphinx_mapping.items():
+
+    if (not os.path.isfile(inv) or
+        time() - os.path.getmtime(inv) >  week):
+        import urllib2
+        sys.stderr.write('Downloading {} inventory from {}\n'
+                         .format(pkg, inv))
+        _ = urllib2.urlopen(url + 'objects.inv')
+        _ = _.read()
+        with open(inv, 'w') as out:
+            out.write(_)
+
+
 rst_epilog = u"""
-
-.. |pdf| image:: /_static/pdf.png
-
-.. |more| image:: /_static/more.png
-
-.. |example| image:: /_static/example.png
-
-.. |bulb| image:: /_static/bulb.png
-
-.. |new| image:: /_static/new.png
 
 .. |nmwiz| replace:: http://www.csb.pitt.edu/NMWiz/
 

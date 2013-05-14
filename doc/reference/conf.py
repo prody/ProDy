@@ -1,9 +1,9 @@
 try:
-    execfile('../../conf.py')
+    execfile('../conf.py')
 except NameError:
-    exec(open('../../conf.py').read())
+    exec(open('../conf.py').read())
 
-sys.path[-1] = os.path.abspath('../../_sphinxext')
+sys.path[-1] = os.path.abspath('../_sphinxext')
 
 prody_inv = '_pkginv/prody.inv'
 
