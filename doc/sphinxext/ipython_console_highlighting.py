@@ -15,7 +15,7 @@ import re
 from pygments.lexer import Lexer, do_insertions
 from pygments.lexers.agile import (PythonConsoleLexer, PythonLexer,
                                    PythonTracebackLexer)
-from pygments.token import Comment, Generic, String
+from pygments.token import Comment, Generic
 
 from sphinx import highlighting
 
@@ -53,51 +53,33 @@ class IPythonConsoleLexer(Lexer):
     aliases = ['ipython']
     mimetypes = ['text/x-ipython-console']
     input_prompt = re.compile("(In \[[0-9]+\]: )|(   \.\.\.+: )")
-    output_prompt = re.compile("(Out\[[0-9]+\]: )|(   \.\.\.+: )")
-    continue_prompt = re.compile("   \.\.\.+: ")
+    output_prompt = re.compile("Out\[[0-9]+\]: ")
     tb_start = re.compile("\-+")
 
     def get_tokens_unprocessed(self, text):
         pylexer = PythonLexer(**self.options)
         tblexer = PythonTracebackLexer(**self.options)
 
-        curcode = ''
-        insertions = []
-        for match in line_re.finditer(text):
-            line = match.group()
+        # print '\nTEXT > \n', text, '\n TEXT'
+        for line in text.splitlines():
+            line += '\n'
             input_prompt = self.input_prompt.match(line)
-            continue_prompt = self.continue_prompt.match(line.rstrip())
             output_prompt = self.output_prompt.match(line)
-            if line.startswith("#"):
-                insertions.append((len(curcode),
-                                   [(0, Comment, line)]))
-            elif input_prompt is not None:
-                insertions.append((len(curcode),
-                                   [(0, Generic.Prompt, input_prompt.group())]))
-                curcode += line[input_prompt.end():]
-            elif continue_prompt is not None:
-                insertions.append((len(curcode),
-                                   [(0, Generic.Prompt, continue_prompt.group())]))
-                curcode += line[continue_prompt.end():]
+
+            if input_prompt is not None:
+                yield (0, Generic.Prompt, input_prompt.group())
+                code = line[input_prompt.end():]
+                for item in pylexer.get_tokens_unprocessed(code):
+                  yield item
             elif output_prompt is not None:
                 # Use the 'error' token for output.  We should probably make
                 # our own token, but error is typicaly in a bright color like
                 # red, so it works fine for our output prompts.
-                insertions.append((len(curcode),
-                                   [(0, Generic.Error, output_prompt.group())]))
-                curcode += line[output_prompt.end():]
+                yield (0, Generic.Error, output_prompt.group())
+                index = output_prompt.end()
+                yield index, Generic.Output,  line[index:]
             else:
-                if curcode:
-                    for item in do_insertions(insertions,
-                                              pylexer.get_tokens_unprocessed(curcode)):
-                        yield item
-                        curcode = ''
-                        insertions = []
-                yield match.start(), Generic.Output, line
-        if curcode:
-            for item in do_insertions(insertions,
-                                      pylexer.get_tokens_unprocessed(curcode)):
-                yield item
+                yield 0, Generic.Output, line
 
 
 def setup(app):
