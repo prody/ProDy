@@ -11,7 +11,7 @@ PAPEROPT_a4     = -D latex_paper_size=a4
 PAPEROPT_letter = -D latex_paper_size=letter
 ALLSPHINXOPTS   = -d ../doctrees $(PAPEROPT_$(PAPER)) $(SPHINXOPTS)
 
-.PHONY: help html clean latex pdf files workdir
+.PHONY: help html clean latex pdf archive workdir
 
 help:
 	@echo "Please use \`make <target>' where <target> is one of"
@@ -26,15 +26,13 @@ workdir:
 	mkdir -p $(BUILDDIR)/workdir
 	ln -fs ../../$(BASENAME)_files $(BUILDDIR)/workdir/
 
-html: workdir
+html: workdir lsfiles
 	cd _build/workdir; $(SPHINXBUILD) -b html -d ../doctrees ../../ ../html
 	@echo
 	@echo "Build finished. The HTML pages are in $(BUILDDIR)/html."
 
-latex: workdir
+latex: workdir lsfiles
 	rm -f files.txt;
-	if [ -z `ls enm_analysis_files/` ]; then echo "No required files." > files.txt; else \
-	ls -hgo --time-style=+ $(BASENAME)_files/ | tail -n +2 | cut -b 14-128 > files.txt; fi
 	cd _build/workdir; $(SPHINXBUILD) -b latex $(ALLSPHINXOPTS) ../../ ../latex
 	@echo
 	@echo "LaTeX file is ready, see $(BUILDDIR)/latex."
@@ -46,9 +44,18 @@ pdf: latex
 	@echo
 	@echo "PDF file is ready, see $(BASENAME).pdf."
 
-files:
+lsfiles:
+	files=`ls $(BASENAME)_files`; \
+	if [ -z "$$files" ]; then echo "There are no required files." > files.txt; else \
+	ls -hgo --time-style=+ $(BASENAME)_files/ | tail -n +2 | cut -b 14-128 > files.txt; fi
+
+archive:
 	rm -f $(BASENAME)_files.zip $(BASENAME)_files.tgz
-	tar -czf $(BASENAME)_files.tgz $(BASENAME)_files/*
-	zip $(BASENAME)_files.zip $(BASENAME)_files/*
-	@echo
-	@echo "$(BASENAME)_files.zip and $(BASENAME)_files.tgz are created."
+	files=`ls $(BASENAME)_files`; \
+	if [ -n "$$files" ]; then \
+	tar -czf $(BASENAME)_files.tgz $(BASENAME)_files/*; \
+	zip $(BASENAME)_files.zip $(BASENAME)_files/*; \
+	echo "$(BASENAME)_files.zip and $(BASENAME)_files.tgz are created."; \
+	else \
+	echo "There are no tutorial files."; \
+	fi
