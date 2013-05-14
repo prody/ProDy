@@ -1,1 +1,1 @@
-../../funding.rst
+../template/acknowledgments.rst
