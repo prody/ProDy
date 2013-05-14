@@ -17,7 +17,6 @@ help:
 	@echo "Please use \`make <target>' where <target> is one of"
 	@echo "  html       to make standalone HTML files"
 	@echo "  pdf        to make LaTeX files and run them through pdflatex"
-	@echo "  test       to run all doctests embedded in the documentation"
 
 clean:
 	-rm -rf $(BUILDDIR)/* $(BUILDDIR)_files.zip $(BUILDDIR)_files.tgz $(BUILDDIR).pdf
@@ -27,13 +26,13 @@ workdir:
 	ln -fs ../../$(BASENAME)_files $(BUILDDIR)/workdir/
 
 html: workdir lsfiles
-	cd _build/workdir; $(SPHINXBUILD) -b html -d ../doctrees ../../ ../html
+	cd $(BUILDDIR)/workdir; $(SPHINXBUILD) -b html -d ../doctrees ../../ ../html
 	@echo
 	@echo "Build finished. The HTML pages are in $(BUILDDIR)/html."
 
 latex: workdir lsfiles
 	rm -f files.txt;
-	cd _build/workdir; $(SPHINXBUILD) -b latex $(ALLSPHINXOPTS) ../../ ../latex
+	cd $(BUILDDIR)/workdir; $(SPHINXBUILD) -b latex $(ALLSPHINXOPTS) ../../ ../latex
 	@echo
 	@echo "LaTeX file is ready, see $(BUILDDIR)/latex."
 

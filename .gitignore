@@ -27,8 +27,12 @@ __pycache__
 doc/_build/
 doc/*/*/_*
 doc/plot_directive
-output.txt
 doc/_doctest/*
+doc/_static/figures
+
+output.txt
+files.txt
+doc/tutorials/*/*_files
 
 *.pdf
 *.zip

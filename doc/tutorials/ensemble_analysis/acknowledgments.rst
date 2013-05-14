@@ -1,1 +1,1 @@
-../acknowledgments.txt
+../../funding.rst

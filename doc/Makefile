@@ -10,41 +10,41 @@ DOCTESTDIR    = _doctest
 # Internal variables.
 PAPEROPT_a4     = -D latex_paper_size=a4
 PAPEROPT_letter = -D latex_paper_size=letter
-ALLSPHINXOPTS   = -d $(BUILDDIR)/doctrees $(PAPEROPT_$(PAPER)) $(SPHINXOPTS) .
+ALLSPHINXOPTS   = -d $(BUILDDIR)/doctrees $(PAPEROPT_$(PAPER)) $(SPHINXOPTS)
 
-.PHONY: help clean html pdf test copy stats tutorial
+.PHONY: help clean html latex pdf doctest copy stats tutorial
 
 help:
 	@echo "Please use \`make <target>' where <target> is one of"
 	@echo "  html       to make standalone HTML files"
 	@echo "  pdf	    to make LaTeX files and run them through pdflatex"
-	@echo "  test	    to run all doctests embedded in the documentation"
 	@echo "  copy	    to copy license, install, and changes to package directory"
 	@echo "  stats	    to update download statistics"
+	@echo "  doctest    to run all doctests embedded in the documentation"
 	@echo "  tutorial   to prepare tutorial PDF and achieve files"
 
 clean:
 	-rm -rf $(BUILDDIR)/*
 
-html:
-	$(SPHINXBUILD) -b html -d $(BUILDDIR)/doctrees . $(BUILDDIR)/html
+workdir:
+	mkdir -p $(BUILDDIR)/workdir
+	ln -fs ../../$(BASENAME)_files $(BUILDDIR)/workdir/
+
+html: workdir
+	cd $(BUILDDIR)/workdir; $(SPHINXBUILD) -b html -d $(BUILDDIR)/doctrees ../../ ../html
 	@echo
 	@echo "Build finished. The HTML pages are in $(BUILDDIR)/html."
 
-pdf:
-	$(SPHINXBUILD) -b latex $(ALLSPHINXOPTS) $(BUILDDIR)/latex
+latex: workdir
+	cd $(BUILDDIR)/workdir; $(SPHINXBUILD) -b latex $(ALLSPHINXOPTS)  ../../ ../latex
+	@echo
+	@echo "LaTeX file is ready, see $(BUILDDIR)/latex."
+
+pdf: latex
 	@echo "Running LaTeX files through pdflatex..."
 	make -C $(BUILDDIR)/latex all-pdf
-	#mv -f $(BUILDDIR)/latex/ProDy.pdf ../Documentation
 	@echo
 	@echo "pdflatex finished; the PDF files are in $(BUILDDIR)/latex."
-
-test:
-	cd $(DOCTESTDIR); \
-	$(SPHINXBUILD) -b doctest -d ../$(BUILDDIR)/doctrees/ .. . 
-	@echo
-	@echo "Testing of doctests in the sources finished, look at the " \
-	      "results in $(DOCTESTDIR)."
 
 copy:
 	cp -f changes.rst ../CHANGES.rst
@@ -52,7 +52,7 @@ copy:
 	cp -f license.rst ../LICENSE.rst
 	@echo
 	@echo "Files copied."
-	
+
 stats:
 	pyps update -s ProDy_stats.pkl ProDy; \
 	pyps latest -o _static/ProDy_downloads.csv -d , --rst --no-md5 ProDy; \
@@ -60,13 +60,17 @@ stats:
 	@echo
 	@echo "Download statistics updated."
 
+doctest:
+	cd $(DOCTESTDIR); \
+	$(SPHINXBUILD) -b doctest -d ../$(BUILDDIR)/doctrees/ .. .
+	@echo
+	@echo "Testing of doctests in the sources finished, look at the " \
+	      "results in $(DOCTESTDIR)."
+
 tutorial:
 	cd tutorials; \
 	for tut in `find . -type d` ; do \
 		if [ -d "$$tut/$$tut"_files ]; then \
-		 	cd $$tut; \
-		 	make pdf; \
-		 	make files; \
-		 	cd ..; \
+		 	cd $$tut; make archive html pdf; cd ..;\
 		fi; \
 	done
