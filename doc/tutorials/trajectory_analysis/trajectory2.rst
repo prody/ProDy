@@ -1,6 +1,5 @@
 .. _trajectory2:
 
-
 Trajectory analysis II
 ===============================================================================
 
@@ -20,6 +19,7 @@ Two DCD trajectory files and a PDB structure file is provided for this example:
 * :download:`MDM2 structure <trajectory_analysis_files/mdm2.pdb>`
 * :download:`MDM2 trajectory I <trajectory_analysis_files/mdm2.dcd>`
 * :download:`MDM2 trajectory II <trajectory_analysis_files/mdm2sim2.dcd>`
+
 
 Setup environment
 -------------------------------------------------------------------------------
@@ -42,10 +42,11 @@ be useful in a number of places, so let's start with parsing this file first:
 .. ipython:: python
 
    structure = parsePDB('trajectory_analysis_files/mdm2.pdb')
-   repr(structure)
+   structure
 
 This function returned a :class:`.AtomGroup` instance that stores all atomic
 data parsed from the PDB file.
+
 
 Handling multiple files
 -------------------------------------------------------------------------------
@@ -55,9 +56,10 @@ Handling multiple files
 .. ipython:: python
 
    traj = Trajectory('trajectory_analysis_files/mdm2.dcd')
-   repr(traj)
+   traj
    traj.addFile('trajectory_analysis_files/mdm2sim2.dcd')
-   repr(traj)
+   traj
+
 
 Link trajectory to atoms
 -------------------------------------------------------------------------------
@@ -79,7 +81,8 @@ Setup for calculations
 
 Let's make atom selections for different types of calculations:
 
-**End-to-end calculation**
+End-to-end distance
+^^^^^^^^^^^^^^^^^^^
 
 We select atoms from terminal residues and make an empty array whose length
 equal to the number of frames:
@@ -90,7 +93,8 @@ equal to the number of frames:
    cter = structure.select('name CA and resnum 109')
    e2e = zeros(traj.numFrames())
 
-**Protein radius of gyration**
+Radius of gyration
+^^^^^^^^^^^^^^^^^^
 
 We select atoms protein atoms this calculation and make an empty array:
 
@@ -100,15 +104,17 @@ We select atoms protein atoms this calculation and make an empty array:
    protein = structure.select('noh and protein')
    rgyr = zeros(traj.numFrames())
 
-**Psi angle of a residue**
+A psi angle
+^^^^^^^^^^^
 
 We select a residue an make an empty array:
 
 .. ipython:: python
 
    res30 = structure['PPP', 'P', 30]
-   repr(res30)
+   res30
    res30psi = zeros(traj.numFrames())
+
 
 Perform calculations
 -------------------------------------------------------------------------------
@@ -122,7 +128,7 @@ We perform all calculations simultaneously as follows:
        res30psi[i] = calcPsi(res30)
        rgyr[i] = calcGyradius(protein)
 
-Let's print results:
+Let's print part of results:
 
 .. ipython:: python
 
@@ -134,6 +140,8 @@ Let's print results:
 Plot results
 -------------------------------------------------------------------------------
 
+End-to-end distance
+^^^^^^^^^^^^^^^^^^^
 .. ipython:: python
 
    plot(e2e);
@@ -141,6 +149,8 @@ Plot results
    @savefig trajectory_analysis_end2end.png width=4in
    ylabel('End-to-end distance (A)');
 
+Radius of gyration
+^^^^^^^^^^^^^^^^^^
 
 .. ipython:: python
 
@@ -148,6 +158,9 @@ Plot results
    xlabel('Frame index');
    @savefig trajectory_analysis_gyradius.png width=4in
    ylabel('Radius of gyration (A)');
+
+A psi angle
+^^^^^^^^^^^
 
 .. ipython:: python
 

@@ -19,3 +19,6 @@ Structural Ensemble Analysis
    xray
    dimer
 
+.. only:: html
+
+   .. include:: acknowledgments.rst

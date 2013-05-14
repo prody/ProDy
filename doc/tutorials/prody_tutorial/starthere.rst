@@ -113,9 +113,9 @@ This function prints documentation on screen, and you will need to type ``q``
 to exit from help view.  If you are using the interactive Python shell
 (IPython), you can also get help using ``?``:
 
-.. ipython:: python
+.. ipython::
 
-   fetchPDB ?
+   In [1]: fetchPDB ?
 
 
 Copying code snippets

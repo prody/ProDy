@@ -54,7 +54,7 @@ Rest of the calculations can be performed as follows:
    anm = ANM('Using external Hessian')
    anm.setHessian(hessian)
    anm.calcModes()
-   repr(anm)
+   anm
 
 For more information, see :ref:`anm`.
 

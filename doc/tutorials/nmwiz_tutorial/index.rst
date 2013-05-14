@@ -10,7 +10,7 @@ NMWiz Tutorial
 .. toctree::
    :glob:
    :maxdepth: 2
-   
+
    intro
    nmwiz
    pca
@@ -18,3 +18,7 @@ NMWiz Tutorial
    extend
    deform
    commands
+
+.. only:: html
+
+   .. include:: acknowledgments.rst

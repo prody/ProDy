@@ -13,6 +13,7 @@ be obtained.  :class:`.GNM` instances and individual normal modes
 (:class:`.Mode`) can be used as input to functions in :mod:`prody.dynamics`
 module.
 
+
 Parse structure
 -------------------------------------------------------------------------------
 
@@ -32,7 +33,7 @@ the current working directory, it will be downloaded.
 .. ipython:: python
 
    ubi = parsePDB('1aar')
-   repr(ubi)
+   ubi
 
 This file contains 2 chains, and a flexible C-terminal (residues 71-76).
 We only want to use Cα atoms of first 70 residues from chain A,
@@ -41,13 +42,14 @@ so we select them:
 .. ipython:: python
 
    calphas = ubi.select('calpha and chain A and resnum < 71')
-   repr(calphas)
+   calphas
 
 See definition of "calpha", "chain", and other selection
 keywords in :ref:`selections`.
 
 Note that, flexible design of classes allows users to select atoms other than
 alpha carbons to be used in GNM calculations.
+
 
 Build Kirchoff matrix
 -------------------------------------------------------------------------------
@@ -91,6 +93,7 @@ two of them, which by default are ``cutoff=10.0`` and ``gamma=1.0``, i.e.
 Note that it is also possible to use an externally calculated Kirchhoff
 matrix. Just pass it to the GNM instance using :meth:`.GNM.setKirchhoff` method.
 
+
 Calculate normal modes
 -------------------------------------------------------------------------------
 
@@ -103,6 +106,7 @@ Calculate normal modes
 Note that by default 20 non-zero (or non-trivial) and 6 trivial modes are
 calculated. Trivial modes are not retained. To calculate different number
 of non-zero modes or to keep zero modes, try ``gnm.calcModes(50, zeros=True)``
+
 
 Normal mode data
 -------------------------------------------------------------------------------
@@ -125,6 +129,7 @@ in the model, which is slowest 20 modes in this case.
 If user calculated M slowest modes, only they will be used in the
 calculation of covariance.
 
+
 Individual modes
 -------------------------------------------------------------------------------
 
@@ -138,6 +143,7 @@ Normal mode indices start from 0, so slowest mode has index 0.
 
 By default, modes with 0 eigenvalue are excluded. If they were retained,
 slowest non-trivial mode would have index 6.
+
 
 Plot results
 -------------------------------------------------------------------------------

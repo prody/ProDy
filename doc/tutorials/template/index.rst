@@ -12,6 +12,10 @@ TITLE
 .. toctree::
    :glob:
    :maxdepth: 2
-   
+
    intro
-   
+
+
+.. only:: html
+
+   .. include:: acknowledgments.rst

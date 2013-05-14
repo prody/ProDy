@@ -32,21 +32,21 @@ downloaded.
 .. ipython:: python
 
    p38 = parsePDB('1p38')
-   repr(p38)
+   p38
 
 We want to use only Cα atoms, so we select them:
 
 .. ipython:: python
 
    calphas = p38.select('protein and name CA')
-   repr(calphas)
+   calphas
 
 We can also make the same selection like this:
 
 .. ipython:: python
 
    calphas2 = p38.select('calpha')
-   repr(calphas2)
+   calphas2
 
 
 To check whether the selections are the same, we can try:

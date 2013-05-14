@@ -17,3 +17,7 @@ ProDy Tutorial
    dynamics
    sequence
    apps
+
+.. only:: html
+
+   .. include:: acknowledgments.rst

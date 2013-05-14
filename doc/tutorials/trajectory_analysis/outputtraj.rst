@@ -70,7 +70,6 @@ Now we link the trajectory (*traj*) with the atom group (*mdm2*):
    Note that when a frame (coordinate set) is parsed from the trajectory file,
    coordinates of the atom group will be updated.
 
-
 Output selected atoms
 -------------------------------------------------------------------------------
 

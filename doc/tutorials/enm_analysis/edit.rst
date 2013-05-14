@@ -32,7 +32,7 @@ calculations for them:
 
    rt = parsePDB('1dlo', subset="ca")
    anm, sel = calcANM(rt)
-   repr(anm)
+   anm
    saveModel(anm, 'rt_anm')
    anm[:5].getEigvals().round(3)
    (anm[0].getArray() ** 2).sum() ** 0.5
@@ -70,7 +70,7 @@ chain A in the structure, using :func:`.sliceModel` function:
 .. ipython:: python
 
    anm_slc_p66, sel_p66 = sliceModel(anm, rt, 'chain A')
-   repr(anm_slc_p66)
+   anm_slc_p66
    saveModel(anm_slc_p66, 'rt_anm_sliced')
    anm_slc_p66[:5].getEigvals().round(3)
    '%.3f' % (anm_slc_p66[0].getArray() ** 2).sum() ** 0.5

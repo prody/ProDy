@@ -67,8 +67,8 @@ name:
 
 .. ipython:: python
 
-   repr(ref_chain)
-   repr(mob_chain)
+   ref_chain
+   mob_chain
 
 
 Both :class:`.AtomMap` instances refer to same number of atoms,

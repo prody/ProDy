@@ -12,7 +12,7 @@ Structure Analysis using ProDy
 .. toctree::
    :glob:
    :maxdepth: 2
-   
+
    intro
    pdbfiles
    blastpdb
@@ -21,3 +21,7 @@ Structure Analysis using ProDy
    compare
    contacts
    ligands
+
+.. only:: html
+
+   .. include:: acknowledgments.rst

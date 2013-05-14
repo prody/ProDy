@@ -42,8 +42,8 @@ ANM modes are extended using the :func:`.extendModel` function:
 .. ipython:: python
 
    bb_anm, bb_atoms = extendModel(anm, p38_ca, p38.select('backbone'))
-   repr(bb_anm)
-   repr(bb_atoms)
+   bb_anm
+   bb_atoms
 
 
 Note that :class:`.GNM`, :class:`.PCA`, and :class:`.NMA` instances can also
@@ -68,7 +68,7 @@ We can use the extended model to sample backbone conformers:
 .. ipython:: python
 
    ensemble = sampleModes(bb_anm[:3], bb_atoms, n_confs=40, rmsd=0.8)
-   repr(ensemble)
+   ensemble
 
 
 Note that we made used of ANM modes beyond their theoretical limitations.

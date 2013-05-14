@@ -45,7 +45,7 @@ be useful in a number of places, so let's start with parsing this file first:
 .. ipython:: python
 
    structure = parsePDB('trajectory_analysis_files/mdm2.pdb')
-   repr(structure)
+   structure
 
 This function returned a :class:`.AtomGroup` instance that
 stores all atomic data parsed from the PDB file.
@@ -66,12 +66,12 @@ instance obtained by parsing the trajectory at once using :func:`.parseDCD`:
    ensemble = parseDCD('trajectory_analysis_files/mdm2.dcd')
    ensemble.setCoords(structure)
    ensemble.setAtoms(structure.calpha)
-   repr(ensemble)
+   ensemble
    ensemble.superpose()
    eda_ensemble = EDA('MDM2 Ensemble')
    eda_ensemble.buildCovariance( ensemble )
    eda_ensemble.calcModes()
-   repr(eda_ensemble)
+   eda_ensemble
 
 **Large trajectory files**
 
@@ -83,12 +83,12 @@ to the :meth:`.PCA.buildCovariance` method as follows:
    dcd = DCDFile('trajectory_analysis_files/mdm2.dcd')
    dcd.link(structure)
    dcd.setAtoms(structure.calpha)
-   repr(dcd)
+   dcd
 
    eda_trajectory = EDA('MDM2 Trajectory')
    eda_trajectory.buildCovariance( dcd )
    eda_trajectory.calcModes()
-   repr(eda_trajectory)
+   eda_trajectory
 
 **Compare two methods**
 
@@ -109,17 +109,17 @@ them. In this case we will use data from two independent simulations
 
    trajectory = Trajectory('trajectory_analysis_files/mdm2.dcd')
    trajectory.addFile('trajectory_analysis_files/mdm2sim2.dcd')
-   repr(trajectory)
+   trajectory
 
    trajectory.link(structure)
    trajectory.setCoords(structure)
    trajectory.setAtoms(structure.calpha)
-   repr(trajectory)
+   trajectory
 
    eda = EDA('mdm2')
    eda.buildCovariance( trajectory )
    eda.calcModes()
-   repr(eda)
+   eda
 
 **Save your work**
 
@@ -155,15 +155,15 @@ Now, let's project the trajectories onto top three essential modes:
    mdm2ca_sim2.superpose()
 
    # We project independent trajectories in different color
-   showProjection(mdm2ca_sim1, eda[:3], color='red', marker='.')
-   showProjection(mdm2ca_sim2, eda[:3], color='blue', marker='.')
+   showProjection(mdm2ca_sim1, eda[:3], color='red', marker='.');
+   showProjection(mdm2ca_sim2, eda[:3], color='blue', marker='.');
    # Now let's mark the beginning of the trajectory with a circle
-   showProjection(mdm2ca_sim1[0], eda[:3], color='red', marker='o', ms=12)
-   showProjection(mdm2ca_sim2[0], eda[:3], color='blue', marker='o', ms=12)
+   showProjection(mdm2ca_sim1[0], eda[:3], color='red', marker='o', ms=12);
+   showProjection(mdm2ca_sim2[0], eda[:3], color='blue', marker='o', ms=12);
    # Now let's mark the end of the trajectory with a square
-   showProjection(mdm2ca_sim1[-1], eda[:3], color='red', marker='s', ms=12)
+   showProjection(mdm2ca_sim1[-1], eda[:3], color='red', marker='s', ms=12);
    @savefig trajectory_analysis_eda_projection.png width=4in
-   showProjection(mdm2ca_sim2[-1], eda[:3], color='blue', marker='s', ms=12)
+   showProjection(mdm2ca_sim2[-1], eda[:3], color='blue', marker='s', ms=12);
 
 
 
@@ -177,5 +177,7 @@ for visualizing essential mode shapes and fluctuations along these modes.
 
 We can write essential modes into an :term:`NMD` file for NMWiz as follows:
 
->>> writeNMD('mdm2_eda.nmd', eda[:3], structure.select('calpha'))
-'mdm2_eda.nmd'
+.. ipython:: python
+
+   writeNMD('mdm2_eda.nmd', eda[:3], structure.select('calpha'))
+
