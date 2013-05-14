@@ -1,29 +1,29 @@
 # -*- coding: utf-8 -*-
 # ProDy: A Python Package for Protein Dynamics Analysis
-# 
+#
 # Copyright (C) 2010-2012 Ahmet Bakan
-# 
+#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-#  
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
 """This module defines a class and a function for anisotropic network model
-(ANM) calculations.""" 
+(ANM) calculations."""
 
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 import time
-from types import FunctionType 
+from types import FunctionType
 
 import numpy as np
 
@@ -39,15 +39,15 @@ __all__ = ['ANM', 'calcANM']
 
 class ANM(GNMBase):
 
-    """Class for Anisotropic Network Model (ANM) analysis of proteins 
+    """Class for Anisotropic Network Model (ANM) analysis of proteins
     ([PD00]_, [ARA01]_)
-    
-    |example| See example :ref:`anm`.
-    
+
+    See example :ref:`anm`.
+
     """
 
     def __init__(self, name='Unknown'):
-        
+
         GNMBase.__init__(self, name)
         self._is3d = True
         self._cutoff = None
@@ -56,26 +56,26 @@ class ANM(GNMBase):
         self._hessian = None
 
     def _reset(self):
-        
+
         GNMBase._reset(self)
         self._hessian = None
         self._is3d = True
-        
+
     def getHessian(self):
         """Return a copy of the Hessian matrix."""
-        
+
         if self._hessian is None: return None
         return self._hessian.copy()
-    
+
     def _getHessian(self):
         """Return the Hessian matrix."""
-        
+
         return self._hessian
-    
+
     def setHessian(self, hessian):
-        """Set Hessian matrix.  A symmetric matrix is expected, i.e. not a 
+        """Set Hessian matrix.  A symmetric matrix is expected, i.e. not a
         lower- or upper-triangular matrix."""
-        
+
         if not isinstance(hessian, np.ndarray):
             raise TypeError('hessian must be a Numpy array')
         elif hessian.ndim != 2 or hessian.shape[0] != hessian.shape[1]:
@@ -90,46 +90,46 @@ class ANM(GNMBase):
         self._reset()
         self._hessian = hessian
         self._dof = hessian.shape[0]
-        self._n_atoms = self._dof / 3 
+        self._n_atoms = self._dof / 3
 
     def buildHessian(self, coords, cutoff=15., gamma=1., **kwargs):
         """Build Hessian matrix for given coordinate set.
-        
+
         :arg coords: a coordinate set or an object with ``getCoords`` method
         :type coords: :class:`numpy.ndarray`
-        
+
         :arg cutoff: cutoff distance (Å) for pairwise interactions,
-            default is 15.0 Å, minimum is 4.0 Å 
+            default is 15.0 Å, minimum is 4.0 Å
         :type cutoff: float
-        
-        :arg gamma: spring constant, default is 1.0 
+
+        :arg gamma: spring constant, default is 1.0
         :type gamma: float, :class:`Gamma`
-        
-        :arg sparse: elect to use sparse matrices, default is **False**. If 
+
+        :arg sparse: elect to use sparse matrices, default is **False**. If
             Scipy is not found, :class:`ImportError` is raised.
         :type sparse: bool
-        
-        :arg kdtree: elect to use KDTree for building Hessian matrix, 
+
+        :arg kdtree: elect to use KDTree for building Hessian matrix,
             default is **False** since KDTree method is slower
         :type kdtree: bool
 
-        
+
         Instances of :class:`Gamma` classes and custom functions are
-        accepted as *gamma* argument.        
-    
+        accepted as *gamma* argument.
+
         When Scipy is available, user can select to use sparse matrices for
         efficient usage of memory at the cost of computation speed."""
-        
+
         try:
             coords = (coords._getCoords() if hasattr(coords, '_getCoords') else
-                      coords.getCoords()) 
+                      coords.getCoords())
         except AttributeError:
             try:
                 checkCoords(coords)
             except TypeError:
                 raise TypeError('coords must be a Numpy array or an object '
                                 'with `getCoords` method')
-        
+
         cutoff, g, gamma = checkENMParameters(cutoff, gamma)
         self._reset()
         self._cutoff = cutoff
@@ -137,11 +137,11 @@ class ANM(GNMBase):
         n_atoms = coords.shape[0]
         dof = n_atoms * 3
         start = time.time()
-        
+
         if kwargs.get('sparse', False):
             try:
                 from scipy import sparse as scipy_sparse
-            except ImportError:    
+            except ImportError:
                 raise ImportError('failed to import scipy.sparse, which  is '
                                   'required for sparse matrix calculations')
             kirchhoff = scipy_sparse.lil_matrix((n_atoms, n_atoms))
@@ -149,16 +149,16 @@ class ANM(GNMBase):
         else:
             kirchhoff = np.zeros((n_atoms, n_atoms), 'd')
             hessian = np.zeros((dof, dof), float)
-            
+
         if kwargs.get('kdtree', False):
             LOGGER.info('Using KDTree for building the Hessian.')
-            kdtree = KDTree(coords) 
+            kdtree = KDTree(coords)
             kdtree.search(cutoff)
             for i, j in kdtree.getIndices():
                 i2j = coords[j] - coords[i]
                 dist2 = np.dot(i2j, i2j)
                 g = gamma(dist2, i, j)
-                super_element = np.outer(i2j, i2j) * (- g / dist2)  
+                super_element = np.outer(i2j, i2j) * (- g / dist2)
                 res_i3 = i*3
                 res_i33 = res_i3+3
                 res_j3 = j*3
@@ -174,7 +174,7 @@ class ANM(GNMBase):
                 kirchhoff[i, i] = kirchhoff[i, i] - g
                 kirchhoff[j, j] = kirchhoff[j, j] - g
         else:
-            cutoff2 = cutoff * cutoff 
+            cutoff2 = cutoff * cutoff
             for i in range(n_atoms):
                 res_i3 = i*3
                 res_i33 = res_i3+3
@@ -182,14 +182,14 @@ class ANM(GNMBase):
                 i2j_all = coords[i_p1:, :] - coords[i]
                 for j, dist2 in enumerate((i2j_all ** 2).sum(1)):
                     if dist2 > cutoff2:
-                        continue             
+                        continue
                     i2j = i2j_all[j]
                     j += i_p1
                     g = gamma(dist2, i, j)
                     res_j3 = j*3
                     res_j33 = res_j3+3
-                    super_element = np.outer(i2j, i2j) * (- g / dist2) 
-                    hessian[res_i3:res_i33, res_j3:res_j33] = super_element 
+                    super_element = np.outer(i2j, i2j) * (- g / dist2)
+                    hessian[res_i3:res_i33, res_j3:res_j33] = super_element
                     hessian[res_j3:res_j33, res_i3:res_i33] = super_element
                     hessian[res_i3:res_i33, res_i3:res_i33] = \
                         hessian[res_i3:res_i33, res_i3:res_i33] - super_element
@@ -206,26 +206,26 @@ class ANM(GNMBase):
         self._dof = dof
 
     def calcModes(self, n_modes=20, zeros=False, turbo=True):
-        """Calculate normal modes.  This method uses :func:`scipy.linalg.eigh` 
-        function to diagonalize the Hessian matrix. When Scipy is not found, 
+        """Calculate normal modes.  This method uses :func:`scipy.linalg.eigh`
+        function to diagonalize the Hessian matrix. When Scipy is not found,
         :func:`numpy.linalg.eigh` is used.
 
-        :arg n_modes: number of non-zero eigenvalues/vectors to calculate. 
-            If ``None`` is given, all modes will be calculated. 
+        :arg n_modes: number of non-zero eigenvalues/vectors to calculate.
+            If ``None`` is given, all modes will be calculated.
         :type n_modes: int or None, default is 20
-        
+
         :arg zeros: If ``True``, modes with zero eigenvalues will be kept.
         :type zeros: bool, default is ``False``
-        
+
         :arg turbo: Use a memory intensive, but faster way to calculate modes.
         :type turbo: bool, default is ``True``
         """
-        
+
         if self._hessian is None:
             raise ValueError('Hessian matrix is not built or set')
         assert n_modes is None or isinstance(n_modes, int) and n_modes > 0, \
             'n_modes must be a positive integer'
-        assert isinstance(zeros, bool), 'zeros must be a boolean' 
+        assert isinstance(zeros, bool), 'zeros must be a boolean'
         assert isinstance(turbo, bool), 'turbo must be a boolean'
         linalg = importLA()
         start = time.time()
@@ -233,41 +233,41 @@ class ANM(GNMBase):
         if linalg.__package__.startswith('scipy'):
             if n_modes is None:
                 eigvals = None
-                n_modes = self._dof 
-            else: 
+                n_modes = self._dof
+            else:
                 if n_modes >= self._dof:
                     eigvals = None
-                    n_modes = self._dof 
+                    n_modes = self._dof
                 else:
                     eigvals = (0, n_modes + shift)
-            if eigvals: 
+            if eigvals:
                 turbo = False
-            if isinstance(self._hessian, np.ndarray):            
-                values, vectors = linalg.eigh(self._hessian, turbo=turbo, 
+            if isinstance(self._hessian, np.ndarray):
+                values, vectors = linalg.eigh(self._hessian, turbo=turbo,
                                               eigvals=eigvals)
             else:
                 try:
                     from scipy.sparse import linalg as scipy_sparse_la
-                except ImportError:    
+                except ImportError:
                     raise ImportError('failed to import scipy.sparse.linalg, '
                                       'which is required for sparse matrix '
                                       'decomposition')
                 try:
                     values, vectors = scipy_sparse_la.eigsh(
                             self._hessian, k=n_modes+6, which='SA')
-                except:                
+                except:
                     values, vectors = scipy_sparse_la.eigen_symmetric(
                             self._hessian, k=n_modes+6, which='SA')
-        
+
         else:
             if n_modes is not None:
                 LOGGER.info('Scipy is not found, all modes are calculated.')
             values, vectors = linalg.eigh(self._hessian)
         n_zeros = sum(values < ZERO)
-        if n_zeros < 6: 
+        if n_zeros < 6:
             LOGGER.warning('Less than 6 zero eigenvalues are calculated.')
             shift = n_zeros - 1
-        elif n_zeros > 6: 
+        elif n_zeros > 6:
             LOGGER.warning('More than 6 zero eigenvalues are calculated.')
             shift = n_zeros - 1
         if zeros:
@@ -281,12 +281,12 @@ class ANM(GNMBase):
                           ''.format(self._n_modes, time.time()-start))
 
 
-def calcANM(pdb, selstr='calpha', cutoff=15., gamma=1., n_modes=20, 
+def calcANM(pdb, selstr='calpha', cutoff=15., gamma=1., n_modes=20,
             zeros=False):
     """Return an :class:`ANM` instance and atoms used for the calculations.
-    By default only alpha carbons are considered, but selection string helps 
+    By default only alpha carbons are considered, but selection string helps
     selecting a subset of it.  *pdb* can be :class:`.Atomic` instance."""
-    
+
     if isinstance(pdb, str):
         ag = parsePDB(pdb)
         title = ag.getTitle()
@@ -294,7 +294,7 @@ def calcANM(pdb, selstr='calpha', cutoff=15., gamma=1., n_modes=20,
         ag = pdb
         if isinstance(pdb, AtomGroup):
             title = ag.getTitle()
-        else: 
+        else:
             title = ag.getAtomGroup().getTitle()
     else:
         raise TypeError('pdb must be an atomic class, not {0}'
@@ -303,4 +303,4 @@ def calcANM(pdb, selstr='calpha', cutoff=15., gamma=1., n_modes=20,
     sel = ag.select(selstr)
     anm.buildHessian(sel, cutoff, gamma)
     anm.calcModes(n_modes)
-    return anm, sel 
+    return anm, sel

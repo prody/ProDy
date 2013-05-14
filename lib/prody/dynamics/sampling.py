@@ -1,18 +1,18 @@
 # -*- coding: utf-8 -*-
 # ProDy: A Python Package for Protein Dynamics Analysis
-# 
+#
 # Copyright (C) 2010-2012 Ahmet Bakan
-# 
+#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-#  
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
@@ -24,7 +24,7 @@ normal modes
 >>> import numpy as np
 
 >>> p38_pca = loadModel('p38_xray.pca.npz')
->>> p38_anm = loadModel('1p38.anm.npz') 
+>>> p38_anm = loadModel('1p38.anm.npz')
 >>> p38_ensemble = loadEnsemble('p38_X-ray.ens.npz')
 >>> p38_structure = parsePDB('p38_ref_chain.pdb')"""
 
@@ -34,7 +34,7 @@ __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 import numpy as np
 
 from prody import LOGGER
-from prody.atomic import Atomic, AtomGroup 
+from prody.atomic import Atomic, AtomGroup
 from prody.ensemble import Ensemble
 
 from .nma import NMA
@@ -45,84 +45,84 @@ __all__ = ['deformAtoms', 'sampleModes', 'traverseMode',]
 
 
 def sampleModes(modes, atoms=None, n_confs=1000, rmsd=1.0):
-    """Return an ensemble of randomly sampled conformations along given 
-    *modes*.  If *atoms* are provided, sampling will be around its active 
+    """Return an ensemble of randomly sampled conformations along given
+    *modes*.  If *atoms* are provided, sampling will be around its active
     coordinate set.  Otherwise, sampling is around the 0 coordinate set.
-    
+
     :arg modes: Modes along which sampling will be performed.
-    :type modes: :class:`.Mode`, :class:`.ModeSet`, :class:`.PCA`, 
-                 :class:`.ANM` or :class:`.NMA`   
-    
-    :arg atoms: Atoms whose active coordinate set will be used as the initial 
+    :type modes: :class:`.Mode`, :class:`.ModeSet`, :class:`.PCA`,
+                 :class:`.ANM` or :class:`.NMA`
+
+    :arg atoms: Atoms whose active coordinate set will be used as the initial
         conformation.
-    :type atoms: :class:`.Atomic`  
-    
+    :type atoms: :class:`.Atomic`
+
     :arg n_confs: Number of conformations to generate. Default is 1000.
-    :type n_steps: int 
-    
-    :arg rmsd: The average RMSD that the conformations will have with 
+    :type n_steps: int
+
+    :arg rmsd: The average RMSD that the conformations will have with
         respect to the initial conformation. Default is 1.0 A.
-    :type rmsd: float 
-    
+    :type rmsd: float
+
     For given normal modes :math:`[u_1 u_2 ... u_m]` and their eigenvalues
-    :math:`[\lambda_1 \lambda_2 ... \lambda_m]`, a new conformation 
+    :math:`[\lambda_1 \lambda_2 ... \lambda_m]`, a new conformation
     is sampled using the relation:
-        
+
     .. math::
-    
-       R_k = R_0 + s \sum_{i=1}^{m} r_i^k \lambda^{-0.5}_i u_i 
-    
+
+       R_k = R_0 + s \sum_{i=1}^{m} r_i^k \lambda^{-0.5}_i u_i
+
     :math:`R_0` is the active coordinate set of *atoms*.
-    :math:`[r_1^k r_2^k ... r_m^k]` are normally distributed random numbers 
+    :math:`[r_1^k r_2^k ... r_m^k]` are normally distributed random numbers
     generated for conformation :math:`k` using :func:`numpy.random.randn`.
-    
+
     RMSD of the new conformation from :math:`R_0` can be calculated as
-     
+
     .. math::
-        
-      RMSD^k = \sqrt{ {\\left( s \sum_{i=1}^{m} r_i^k \lambda^{-0.5}_i u_i  \\right)}^{2} / N } = \\frac{s}{ \sqrt{N}} \sqrt{ \sum_{i=1}^{m} (r_i^k)^2 \lambda^{-1}_i  } 
+
+      RMSD^k = \sqrt{ {\\left( s \sum_{i=1}^{m} r_i^k \lambda^{-0.5}_i u_i  \\right)}^{2} / N } = \\frac{s}{ \sqrt{N}} \sqrt{ \sum_{i=1}^{m} (r_i^k)^2 \lambda^{-1}_i  }
 
 
-    Average :math:`RMSD` of the generated conformations from the initial conformation is: 
-        
+    Average :math:`RMSD` of the generated conformations from the initial conformation is:
+
     .. math::
-        
+
       \\left< RMSD^k \\right> = \\frac{s}{ \sqrt{N}} \\left< \sqrt{ \sum_{i=1}^{m} (r_i^k)^2 \lambda^{-1}_i } \\right>
 
- 
-    From this relation :math:`s` scaling factor obtained using the relation 
-    
+
+    From this relation :math:`s` scaling factor obtained using the relation
+
     .. math::
-       
+
        s =  \\left< RMSD^k \\right> \sqrt{N} {\\left< \sqrt{ \sum_{i=1}^{m} (r_i)^2 \lambda^{-1}_i} \\right>}^{-1}
-       
-     
-    Note that random numbers are generated before conformations are 
+
+
+    Note that random numbers are generated before conformations are
     sampled, hence exact value of :math:`s` is known from this relation to
-    ensure that the generated ensemble will have user given average *rmsd* 
-    value. 
-     
-    Note that if modes are from a :class:`.PCA`, variances are used instead of 
+    ensure that the generated ensemble will have user given average *rmsd*
+    value.
+
+    Note that if modes are from a :class:`.PCA`, variances are used instead of
     inverse eigenvalues, i.e. :math:`\sigma_i \sim \lambda^{-1}_i`.
-    
-    |more| See also :func:`.showEllipsoid`.
-    
+
+    See also :func:`.showEllipsoid`.
+
     .. plot::
        :context:
        :include-source:
-        
+
        # Generate 300 conformations using ANM modes 1-3
        ensemble = sampleModes( p38_anm[:3], n_confs=500 )
        # Project these conformations onto the space spanned by these modes
        plt.figure(figsize=(5,4))
        showProjection(ensemble, p38_anm[:3], rmsd=True)
-       
+
     .. plot::
        :context:
        :nofigs:
-        
+
        plt.close('all')"""
-       
+
     if not isinstance(modes, (Mode, NMA, ModeSet)):
         raise TypeError('modes must be a NMA or ModeSet instance, '
                         'not {0}'.format(type(modes)))
@@ -143,8 +143,8 @@ def sampleModes(modes, atoms=None, n_confs=1000, rmsd=1.0):
     LOGGER.info('Parameter: rmsd = {0:.2f} A'.format(rmsd))
     n_confs = int(n_confs)
     LOGGER.info('Parameter: n_confs = {0}'.format(n_confs))
-    
-    
+
+
     if isinstance(modes, Mode):
         n_modes = 1
         variances = np.array([modes.getVariance()])
@@ -156,9 +156,9 @@ def sampleModes(modes, atoms=None, n_confs=1000, rmsd=1.0):
     randn = np.random.standard_normal((n_confs, n_modes))
     coef = ((randn ** 2 * variances).sum(1) ** 0.5).mean()
     scale = n_atoms**0.5 * rmsd / coef
-    
+
     LOGGER.info('Modes are scaled by {0}.'.format(scale))
-    
+
     confs = []
     append = confs.append
     scale = scale * variances ** 0.5
@@ -174,63 +174,63 @@ def sampleModes(modes, atoms=None, n_confs=1000, rmsd=1.0):
     if initial is None:
         ensemble.setCoords(np.zeros((n_atoms, 3)))
         ensemble.addCoordset(np.array(confs))
-    else:    
+    else:
         ensemble.setCoords(initial)
         ensemble.addCoordset(np.array(confs) + initial)
-    return ensemble  
+    return ensemble
 
 
 def traverseMode(mode, atoms, n_steps=10, rmsd=1.5):
     """Generates a trajectory along a given *mode*, which can be used to
-    animate fluctuations in an external program. 
-    
+    animate fluctuations in an external program.
+
     :arg mode: Mode along which a trajectory will be generated.
-    :type mode: :class:`.Mode`   
-    
-    :arg atoms: Atoms whose active coordinate set will be used as the initial 
+    :type mode: :class:`.Mode`
+
+    :arg atoms: Atoms whose active coordinate set will be used as the initial
         conformation.
-    :type atoms: :class:`.Atomic` 
-    
-    :arg n_steps: Number of steps to take along each direction. 
-        For example, for ``n_steps=10``, 20 conformations will be 
+    :type atoms: :class:`.Atomic`
+
+    :arg n_steps: Number of steps to take along each direction.
+        For example, for ``n_steps=10``, 20 conformations will be
         generated along the first mode. Default is 10.
-    :type n_steps: int 
-    
-    :arg rmsd: The maximum RMSD that the conformations will have with 
+    :type n_steps: int
+
+    :arg rmsd: The maximum RMSD that the conformations will have with
         respect to the initial conformation. Default is 1.5 A.
     :type rmsd: float
 
     :returns: :class:`.Ensemble`
-    
+
     For given normal mode :math:`u_i`, its eigenvalue
-    :math:`\lambda_i`, number of steps :math:`n`, and maximum :math:`RMSD`  
-    conformations :math:`[R_{-n} R_{-n+1} ... R_{-1} R_0 R_1 ... R_n]` are 
+    :math:`\lambda_i`, number of steps :math:`n`, and maximum :math:`RMSD`
+    conformations :math:`[R_{-n} R_{-n+1} ... R_{-1} R_0 R_1 ... R_n]` are
     generated.
-    
-    :math:`R_0` is the active coordinate set of *atoms*. 
+
+    :math:`R_0` is the active coordinate set of *atoms*.
     :math:`R_k = R_0 + sk\lambda_iu_i`, where :math:`s` is found using
     :math:`s = ((N (\\frac{RMSD}{n})^2) / \lambda_i^{-1}) ^{0.5}`, where
     :math:`N` is the number of atoms.
-    
-    
+
+
     .. plot::
        :context:
        :include-source:
-        
-       trajectory = traverseMode( p38_anm[0], p38_structure.select('calpha'), 
+
+       trajectory = traverseMode( p38_anm[0], p38_structure.select('calpha'),
                                   n_steps=8, rmsd=1.4 )
        rmsd = calcRMSD(trajectory)
        plt.figure(figsize=(5,4))
        plt.plot(rmsd, '-o')
        plt.xlabel('Frame index')
        plt.ylabel('RMSD (A)')
-       
+
     .. plot::
        :context:
        :nofigs:
-        
+
        plt.close('all')"""
-       
+
     if not isinstance(mode, VectorBase):
         raise TypeError('mode must be a Mode or Vector instance, '
                         'not {0}'.format(type(mode)))
@@ -247,7 +247,7 @@ def traverseMode(mode, atoms, n_steps=10, rmsd=1.5):
         initial = atoms.getCoords()
 
     name = str(mode)
-    
+
     rmsd = float(rmsd) + 0.000004
     LOGGER.info('Parameter: rmsd = {0:.2f} A'.format(rmsd))
     n_steps = int(n_steps)
@@ -259,7 +259,7 @@ def traverseMode(mode, atoms, n_steps=10, rmsd=1.5):
     scale = ((n_atoms * step**2) / var) **0.5
     LOGGER.info('Mode is scaled by {0}.'.format(scale))
 
-    array = arr * var**0.5 * scale 
+    array = arr * var**0.5 * scale
     confs_add = [initial + array]
     for s in range(1, n_steps):
         confs_add.append( confs_add[-1] + array)
@@ -268,22 +268,22 @@ def traverseMode(mode, atoms, n_steps=10, rmsd=1.5):
         confs_sub.append( confs_sub[-1] - array)
     confs_sub.reverse()
     ensemble = Ensemble('Conformations along {0}'.format(name))
-    ensemble.setCoords(initial)    
+    ensemble.setCoords(initial)
     ensemble.addCoordset(np.array(confs_sub + [initial] + confs_add))
     return ensemble
-  
-  
+
+
 def deformAtoms(atoms, mode, rmsd=None):
-    """Generate a new coordinate set for *atoms* along the *mode*.  *atoms* 
-    must be a :class:`.AtomGroup` instance.  New coordinate set will be 
-    appended to *atoms*. If *rmsd* is provided, *mode* will be scaled to 
+    """Generate a new coordinate set for *atoms* along the *mode*.  *atoms*
+    must be a :class:`.AtomGroup` instance.  New coordinate set will be
+    appended to *atoms*. If *rmsd* is provided, *mode* will be scaled to
     generate a coordinate set with given RMSD distance to the active coordinate
     set.  Below example shows how to deform a structure along a normal mode
     or linear combinations of normal modes:
-    
+
     >>> deformAtoms(p38_structure, p38_pca[0] * p38_pca[0].getVariance()**0.5)
     >>> deformAtoms(p38_structure, -p38_pca[1] * p38_pca[1].getVariance()**0.5)
-    >>> deformAtoms(p38_structure, p38_pca[0] * p38_pca[0].getVariance()**0.5 + 
+    >>> deformAtoms(p38_structure, p38_pca[0] * p38_pca[0].getVariance()**0.5 +
     ...                            p38_pca[1] * p38_pca[1].getVariance()**0.5)
     >>> deformAtoms(p38_structure, p38_pca[0], rmsd=1.0)
     >>> print calcRMSD(p38_structure).round(3)
@@ -299,14 +299,14 @@ def deformAtoms(atoms, mode, rmsd=None):
         raise ValueError('mode must be from a 3-dimensional model.')
     if atoms.numAtoms() != mode.numAtoms():
         raise ValueError('number of atoms do not match')
-    
+
     array = mode.getArrayNx3()
-    
+
     if rmsd is not None:
         rmsd = float(rmsd)
         # rmsd = ( ((scalar * array)**2).sum() / n_atoms )**0.5
         scalar = (atoms.numAtoms() * rmsd**2 / (array**2).sum())**0.5
         LOGGER.info('Mode is scaled by {0}.'.format(scalar))
         atoms.addCoordset( atoms.getCoords() + array * scalar)
-    else:     
+    else:
         atoms.addCoordset( atoms.getCoords() + array)
