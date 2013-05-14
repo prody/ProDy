@@ -1,0 +1,66 @@
+.tile {
+  width: 220px; 
+  float: left;
+  margin: 5px;
+  padding: 10px;
+  background-color: #BFD1D4;
+  box-shadow: 3px 5px 2px #888888;
+
+  text-align: center;  
+  font-family: 'Trebuchet MS', Arial, Helvatica;
+  font-size: 14pt;
+  color: white;
+}
+
+.slideshow {
+  width: 220px; 
+  float: right;
+  margin: 5px;
+  padding: 10px;
+  background-color: #FFFFFF;
+  border: 1px solid;
+  box-shadow: 3px 5px 2px #888888;
+
+  text-align: center;  
+  font-family: 'Trebuchet MS', Arial, Helvatica;
+  font-size: 10pt;
+  color: black;
+}
+
+.tile.blue {
+  background-color: #0066CC;
+}
+
+.tile.orange {
+  background-color: #FF9933;
+}
+
+.tile:hover {
+  vertical-align: center;
+  box-shadow: 2px 2px 1px #888888;
+}
+
+.icon {
+  float: left;     
+}
+
+.text {
+  font-size: 10pt;
+  text-align: justify;
+  padding: 2px;
+}
+
+
+.footnote {
+  font-size: 8pt;
+  text-align: justify;
+  padding: 2px;
+}
+
+.title {
+  font-family: Lucida Console, Courier New; 
+  font-size: 14pt; 
+  text-align: center;  
+  padding: 0px;
+  margin: 0px;
+}
