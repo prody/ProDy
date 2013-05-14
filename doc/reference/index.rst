@@ -1,7 +1,7 @@
 .. _reference:
 
 *******************************************************************************
-ProDy Library Reference
+ProDy Reference Manual
 *******************************************************************************
 
 .. toctree::
@@ -21,4 +21,9 @@ ProDy Library Reference
    apps/index
    utilities/index
    tests
-   appendices/index
+   changes
+   people
+   citing
+   credits
+   funding
+   license
