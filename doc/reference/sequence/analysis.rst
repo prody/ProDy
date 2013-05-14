@@ -1,6 +1,5 @@
-***********************
 prody.sequence.analysis
-***********************
+=======================
 
 .. automodule:: prody.sequence.analysis
    :members:

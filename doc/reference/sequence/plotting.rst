@@ -1,6 +1,5 @@
-***********************
 prody.sequence.plotting
-***********************
+=======================
 
 .. automodule:: prody.sequence.plotting
    :members:

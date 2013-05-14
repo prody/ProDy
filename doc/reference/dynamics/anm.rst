@@ -1,6 +1,5 @@
-********************
 prody.dynamics.anm
-********************
+==================
 
 .. automodule:: prody.dynamics.anm
    :members:

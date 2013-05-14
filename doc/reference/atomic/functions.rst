@@ -1,6 +1,5 @@
-**********************
 prody.atomic.functions
-**********************
+======================
 
 .. automodule:: prody.atomic.functions
    :members:

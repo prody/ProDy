@@ -1,11 +1,11 @@
 .. _license:
 
-*******************************************************************************
+
 License
-*******************************************************************************
+===============================================================================
 
 ProDy
-===============================================================================
+-------------------------------------------------------------------------------
 
 ProDy is available under the `GPLv3 <http://www.gnu.org/licenses/gpl.html>`_::
 
@@ -22,14 +22,14 @@ ProDy is available under the `GPLv3 <http://www.gnu.org/licenses/gpl.html>`_::
   but WITHOUT ANY WARRANTY; without even the implied warranty of
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
   GNU General Public License for more details.
-   
+
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 NMWiz
-===============================================================================
+-------------------------------------------------------------------------------
 
-NMWiz is available under the `University of Illinois/NCSA Open Source License 
+NMWiz is available under the `University of Illinois/NCSA Open Source License
 <http://otm.illinois.edu/uiuc_openSource>`_::
 
   NMWiz: Normal Mode Visualization, Animation, and Plotting
@@ -37,43 +37,43 @@ NMWiz is available under the `University of Illinois/NCSA Open Source License
   Copyright 2010-2013 Ahmet Bakan. All rights reserved.
 
   Developed by:
-        
-        Ahmet Bakan (http://www.csb.pitt.edu/People/abakan) in the 
+
+        Ahmet Bakan (http://www.csb.pitt.edu/People/abakan) in the
         Bahar Lab (http://www.ccbb.pitt.edu/Faculty/bahar/) at the
         University of Pittsburgh (http://www.pitt.edu/)
 
-  Permission is hereby granted, free of charge, to any person obtaining a copy of 
-  this software and associated documentation files (the “Software”), to deal with 
-  the Software without restriction, including without limitation the rights to 
-  use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies 
-  of the Software, and to permit persons to whom the Software is furnished to do 
+  Permission is hereby granted, free of charge, to any person obtaining a copy of
+  this software and associated documentation files (the “Software”), to deal with
+  the Software without restriction, including without limitation the rights to
+  use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+  of the Software, and to permit persons to whom the Software is furnished to do
   so, subject to the following conditions:
 
-  * Redistributions of source code must retain the above copyright notice, this 
+  * Redistributions of source code must retain the above copyright notice, this
     list of conditions and the following disclaimers.
-    
-  * Redistributions in binary form must reproduce the above copyright notice, 
-    this list of conditions and the following disclaimers in the documentation 
+
+  * Redistributions in binary form must reproduce the above copyright notice,
+    this list of conditions and the following disclaimers in the documentation
     and/or other materials provided with the distribution.
 
-  * Neither the names of Ahmet Bakan, University of Pittsburgh, 
-    nor the names of its contributors may be used to endorse or promote products 
+  * Neither the names of Ahmet Bakan, University of Pittsburgh,
+    nor the names of its contributors may be used to endorse or promote products
     derived from this Software without specific prior written permission.
 
-  THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
-  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
-  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE 
-  CONTRIBUTORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER 
-  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, 
-  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS WITH 
+  THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
+  CONTRIBUTORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS WITH
   THE SOFTWARE.
 
 Biopython
-===============================================================================
+-------------------------------------------------------------------------------
 
-`Biopython <http://biopython.org/>`_ KDTree package and pairwise2 module are 
-distributed with the ProDy package.  Biopython is developed by The 
-Biopython Consortium and is available under the `Biopython license 
+`Biopython <http://biopython.org/>`_ KDTree package and pairwise2 module are
+distributed with the ProDy package.  Biopython is developed by The
+Biopython Consortium and is available under the `Biopython license
 <http://www.biopython.org/DIST/LICENSE>`_::
 
                    Biopython License Agreement
@@ -97,10 +97,10 @@ Biopython Consortium and is available under the `Biopython license
   OR PERFORMANCE OF THIS SOFTWARE.
 
 Pyparsing
-===============================================================================
+-------------------------------------------------------------------------------
 
-The `pyparsing <http://pyparsing.wikispaces.com/>`_ module is distributed with 
-the ProDy package.  Pyparsing is developed by Paul T. McGuire and is available 
+The `pyparsing <http://pyparsing.wikispaces.com/>`_ module is distributed with
+the ProDy package.  Pyparsing is developed by Paul T. McGuire and is available
 under the `MIT license <http://www.opensource.org/licenses/mit-license.php>`_::
 
   Permission is hereby granted, free of charge, to any person obtaining
@@ -123,15 +123,15 @@ under the `MIT license <http://www.opensource.org/licenses/mit-license.php>`_::
   SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 Argparse
-===============================================================================
+-------------------------------------------------------------------------------
 
-The argparse module (http://code.google.com/p/argparse/) is distributed 
-with the ProDy package. Argparse is developed by Steven J. Bethard and 
-is available under the `Python Software Foundation License 
+The argparse module (http://code.google.com/p/argparse/) is distributed
+with the ProDy package. Argparse is developed by Steven J. Bethard and
+is available under the `Python Software Foundation License
 <http://docs.python.org/license.html>`_.
 
 GPLv3
-===============================================================================
+-------------------------------------------------------------------------------
 
 ::
 

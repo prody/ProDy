@@ -1,6 +1,5 @@
-***************************
 prody.trajectory.trajectory
-***************************
+===========================
 
 .. automodule:: prody.trajectory.trajectory
    :members:

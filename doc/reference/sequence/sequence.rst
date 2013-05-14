@@ -1,6 +1,5 @@
-***********************
 prody.sequence.sequence
-***********************
+=======================
 
 .. automodule:: prody.sequence.sequence
    :members:
