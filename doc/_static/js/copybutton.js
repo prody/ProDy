@@ -26,9 +26,10 @@ $(document).ready(function() {
     // create and add the button to all the code blocks that contain >>>
     div.each(function(index) {
         var jthis = $(this);
-        if (jthis.find('.gp').length > 0) {
+        var gp = jthis.find('.gp');
+        if (gp.length > 0) {
             if (jthis.parent().hasClass('highlight-ipython')) {
-                var button = $('<span class="copybutton">In [1]</span>');
+                var button = $('<span class="copybutton">' + gp[0].innerHTML.split(':')[0] + '</span>');
             }
             else {
                 var button = $('<span class="copybutton">&gt;&gt;&gt;</span>');
