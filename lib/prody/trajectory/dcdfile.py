@@ -1,22 +1,24 @@
 # -*- coding: utf-8 -*-
 # ProDy: A Python Package for Protein Dynamics Analysis
-# 
+#
 # Copyright (C) 2010-2012 Ahmet Bakan
-# 
+#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-#  
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
-"""This module defines classes for handling trajectory files in DCD format."""
+"""This module defines classes for handling trajectory files in `DCD format`_.
+
+.. _DCD format: http://www.ks.uiuc.edu/Research/namd/2.6/ug/node13.html"""
 
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
@@ -54,23 +56,23 @@ RECSCALE32BIT = 1
 RECSCALE64BIT = 2
 
 class DCDFile(TrajFile):
-    
-    """A class for reading and writing DCD files. DCD header and first frame 
-    is parsed at instantiation.  Coordinates from the first frame is set as 
-    the reference coordinate set.  This class has been tested for 32-bit DCD 
-    files.  32-bit floating-point coordinate array can be casted automatically 
-    to a specified type, such as 64-bit float, using *astype* keyword argument, 
+
+    """A class for reading and writing DCD files. DCD header and first frame
+    is parsed at instantiation.  Coordinates from the first frame is set as
+    the reference coordinate set.  This class has been tested for 32-bit DCD
+    files.  32-bit floating-point coordinate array can be casted automatically
+    to a specified type, such as 64-bit float, using *astype* keyword argument,
     i.e. ``astype=float``, using :meth:`ndarray.astype` method."""
-    
+
     def __init__(self, filename, mode='rb', **kwargs):
-        
+
         TrajFile.__init__(self, filename, mode)
         self._astype = kwargs.get('astype', None)
         if not self._mode.startswith('w'):
             self._parseHeader()
-            
+
     __init__.__doc__ = TrajFile.__init__.__doc__
-        
+
     def _parseHeader(self):
         """Read the header information from a dcd file.
         Input: fd - a file struct opened for binary reading.
@@ -80,12 +82,12 @@ class DCDFile(TrajFile):
                       *istart set to starting timestep of dcd file
                       *nsavc set to timesteps between dcd saves
                       *delta set to value of trajectory timestep
-                      *nfixed set to number of fixed atoms 
+                      *nfixed set to number of fixed atoms
                       *freeind may be set to heap-allocated space
                       *reverse set to one if reverse-endian, zero if not.
                       *charmm set to internal code for handling charmm data.
         """
-        
+
         dcd = self._file
         endian = b'' #'=' # native endian
         rec_scale = RECSCALE32BIT
@@ -123,16 +125,16 @@ class DCDFile(TrajFile):
                 else:
                     raise IOError('Unrecognized DCD header or unsupported '
                                   'DCD format.')
-                    
-        
+
+
         # check for magic string, in case of long record markers
         if rec_scale == RECSCALE64BIT:
             raise IOError('CHARMM 64-bit DCD files are not yet supported.');
             temp = unpack(b'I', dcd.read(calcsize('I')))
-            if temp[0] != dcdcordmagic: 
+            if temp[0] != dcdcordmagic:
                 raise IOError('Failed to find CORD magic in CHARMM -i8 64-bit '
                               'DCD file.');
-        
+
         # Buffer the entire header for random access
         bits = dcd.read(80)
 
@@ -141,7 +143,7 @@ class DCDFile(TrajFile):
         # Checking if this is nonzero tells us this is a CHARMm file
         # and to look for other CHARMm flags.
         temp = unpack(endian + b'i'*20 , bits)
-        
+
         if temp[-1] != 0:
             charmm = True
 
@@ -152,7 +154,7 @@ class DCDFile(TrajFile):
             LOGGER.info('X-PLOR format DCD file (also NAMD 2.0 and earlier) '
                         'is not supported.')
             return None
-        
+
         # Store the number of sets of coordinates (NSET)
         self._n_csets = temp[0]
         # Store ISTART, the starting timestep
@@ -161,35 +163,35 @@ class DCDFile(TrajFile):
         self._framefreq = temp[2]
         # Store NAMNF, the number of fixed atoms
         self._n_fixed = temp[8]
-        
+
         if self._n_fixed > 0:
             raise IOError('DCD files with fixed atoms is not yet supported.')
-        
+
         # Read in the timestep, DELTA
         # Note: DELTA is stored as double with X-PLOR but as float with CHARMm
         self._timestep = temp[9]
         self._unitcell = temp[10] == 1
-        
+
         # Get the end size of the first block
         if unpack(endian + b'i', dcd.read(rec_scale * calcsize('i')))[0] != 84:
             raise IOError('Unrecognized DCD format.')
-        
+
         # Read in the size of the next block
         temp = unpack(endian + b'i', dcd.read(rec_scale * calcsize('i')))
-        
+
         if temp[0] != 164:
             raise IOError('Unrecognized DCD format.')
 
         # Read NTITLE, the number of 80 character title strings there are
         temp = unpack(endian + b'i', dcd.read(rec_scale * calcsize('i')))
-        
+
         self._dcdtitle = dcd.read(80)
-        
+
         self._remarks = dcd.read(80)
-        
+
         # Get the ending size for this block
         temp = unpack(endian + b'i', dcd.read(rec_scale * calcsize('i')))
-        
+
         if temp[0] != 164:
             raise IOError('Unrecognized DCD format.')
 
@@ -198,7 +200,7 @@ class DCDFile(TrajFile):
             raise IOError('Unrecognized DCD format.')
 
         # Read in the number of atoms
-        self._n_atoms = unpack(endian + b'i', 
+        self._n_atoms = unpack(endian + b'i',
                                dcd.read(rec_scale*calcsize('i')))[0]
         # Read in an integer '4'
         if unpack(endian + b'i', dcd.read(rec_scale * calcsize('i')))[0] != 4:
@@ -207,7 +209,7 @@ class DCDFile(TrajFile):
         self._is64bit = rec_scale == RECSCALE64BIT
         self._endian = endian
         self._n_floats = (self._n_atoms + 2) * 3
-        
+
         if self._is64bit:
             if self._unitcell:
                 self._bytes_per_frame = 56 + self._n_floats * 8
@@ -217,18 +219,18 @@ class DCDFile(TrajFile):
                            'Please report any problems that you may find.')
             self._dtype = np.float64
             self._itemsize = 8
-        else: 
+        else:
             if self._unitcell:
                 self._bytes_per_frame = 56 + self._n_floats * 4
             else:
                 self._bytes_per_frame = self._n_floats * 4
             self._dtype = np.float32
             self._itemsize = 4
-        
+
         self._first_byte = self._file.tell()
         n_csets = (getsize(self._filename) - self._first_byte
                                                     ) / self._bytes_per_frame
-        if n_csets != self._n_csets: 
+        if n_csets != self._n_csets:
             LOGGER.warning('DCD header claims {0} frames, file size '
                            'indicates there are actually {1} frames.'
                            .format(self._n_csets, n_csets))
@@ -239,20 +241,20 @@ class DCDFile(TrajFile):
         self._nfi = 0
 
     def hasUnitcell(self):
-        
+
         return self._unitcell
-    
-    hasUnitcell.__doc__ = TrajBase.hasUnitcell.__doc__ 
-   
-    
+
+    hasUnitcell.__doc__ = TrajBase.hasUnitcell.__doc__
+
+
     def getRemarks(self):
         """Return remarks parsed from DCD file."""
-        
+
         return self._remarks
-        
+
     def __next__(self):
-        
-        if self._closed: 
+
+        if self._closed:
             raise ValueError('I/O operation on closed file')
         nfi = self._nfi
         if nfi < self._n_csets:
@@ -264,14 +266,14 @@ class DCDFile(TrajFile):
                 frame = self._frame
                 Frame.__init__(frame, self, nfi, None, unitcell)
             return frame
-    
+
     __next__.__doc__ = TrajBase.__next__.__doc__
-    next = __next__  
-        
+    next = __next__
+
     def nextCoordset(self):
         """Return next coordinate set."""
-        
-        if self._closed: 
+
+        if self._closed:
             raise ValueError('I/O operation on closed file')
         if self._nfi < self._n_csets:
             #Skip extended system coordinates (unit cell data)
@@ -279,14 +281,14 @@ class DCDFile(TrajFile):
                 self._file.seek(56, 1)
             if self._indices is None:
                 return self._nextCoordset()
-            else:            
+            else:
                 return self._nextCoordset()[self._indices]
 
     def _nextCoordset(self):
-    
+
         n_floats = self._n_floats
         n_atoms = self._n_atoms
-        xyz = fromstring(self._file.read(self._itemsize * n_floats), 
+        xyz = fromstring(self._file.read(self._itemsize * n_floats),
                             self._dtype)
         if len(xyz) != n_floats:
             return None
@@ -296,36 +298,36 @@ class DCDFile(TrajFile):
             self._ag._setCoords(xyz, self._title + ' frame ' + str(self._nfi),
                                 overwrite=True)
         self._nfi += 1
-        if self._astype is not None and self._astype != xyz.dtype: 
+        if self._astype is not None and self._astype != xyz.dtype:
             xyz= xyz.astype(self._astype)
-        
+
         return xyz
 
-    nextCoordset.__doc__ = TrajBase.nextCoordset.__doc__  
+    nextCoordset.__doc__ = TrajBase.nextCoordset.__doc__
 
     def _nextUnitcell(self):
-        
+
         if self._unitcell:
             self._file.read(4)
             unitcell = fromstring(self._file.read(48), dtype=np.float64)
             unitcell = unitcell[[0,2,5,1,3,4]]
             if np.all(abs(unitcell[3:]) <= 1):
                 # This file was generated by CHARMM, or by NAMD > 2.5, with the angle */
-                # cosines of the periodic cell angles written to the DCD file.        */ 
+                # cosines of the periodic cell angles written to the DCD file.        */
                 # This formulation improves rounding behavior for orthogonal cells    */
                 # so that the angles end up at precisely 90 degrees, unlike acos().   */
-                unitcell[3:] = 90. - np.arcsin(unitcell[3:]) * 90 / PISQUARE  
+                unitcell[3:] = 90. - np.arcsin(unitcell[3:]) * 90 / PISQUARE
             self._file.read(4)
             return unitcell
 
     def getCoordsets(self, indices=None):
-        """Returns coordinate sets at given *indices*. *indices* may be an 
-        integer, a list of integers or ``None``. ``None`` returns all 
+        """Returns coordinate sets at given *indices*. *indices* may be an
+        integer, a list of integers or ``None``. ``None`` returns all
         coordinate sets."""
-                
-        if self._closed: 
+
+        if self._closed:
             raise ValueError('I/O operation on closed file')
-        if (self._indices is None and 
+        if (self._indices is None and
             (indices is None or indices == slice(None))):
             nfi = self._nfi
             self.reset()
@@ -349,33 +351,33 @@ class DCDFile(TrajFile):
             if self._astype is not None and self._astype != data.dtype:
                 data = data.astype(self._astype)
             return data
-        else:            
+        else:
             return TrajFile.getCoordsets(self, indices)
-    
+
     getCoordsets.__doc__ = TrajBase.getCoordsets.__doc__
 
     def write(self, coords, unitcell=None, **kwargs):
         """Write *coords* to a file open in 'a' or 'w' mode.  *coords* may be
-        a NUmpy array or a ProDy object that stores or points to coordinate 
+        a NUmpy array or a ProDy object that stores or points to coordinate
         data.  Note that all coordinate sets of ProDy object will be written.
         Number of atoms will be determined from the file or based on the size
-        of the first coordinate set written.  If *unitcell* is provided for 
-        the first coordinate set, it will be expected for the following 
-        coordinate sets as well.  If *coords* is an :class:`~.Atomic` or 
-        :class:`~.Ensemble` all coordinate sets will be written.  
+        of the first coordinate set written.  If *unitcell* is provided for
+        the first coordinate set, it will be expected for the following
+        coordinate sets as well.  If *coords* is an :class:`~.Atomic` or
+        :class:`~.Ensemble` all coordinate sets will be written.
 
-        Following keywords are used when writing the first coordinate set:        
-            
+        Following keywords are used when writing the first coordinate set:
+
         :arg timestep: timestep used for integration, default is 1
         :arg firsttimestep: number of the first timestep, default is 0
         :arg framefreq: number of timesteps between frames, default is 1"""
-        
+
         if self._closed:
             raise ValueError('I/O operation on closed file')
         if self._mode == 'r':
             raise IOError('File not open for writing')
-        
-        try: 
+
+        try:
             coords = coords._getCoordsets()
         except AttributeError:
             try:
@@ -388,7 +390,7 @@ class DCDFile(TrajFile):
                         coords = coords.getUnitcell()
                     except AttributeError:
                         pass
-                    
+
         if coords.dtype != float32:
             coords = coords.astype(float32)
         n_atoms = coords.shape[-2]
@@ -398,7 +400,7 @@ class DCDFile(TrajFile):
             raise ValueError('coords does not have correct number of atoms')
         if coords.ndim == 2:
             coords = [coords]
-            
+
 
         dcd = self._file
         pack_i_4N = pack('i', self._n_atoms * 4)
@@ -444,12 +446,12 @@ class DCDFile(TrajFile):
                 pass
             dcd.write((b'REMARKS Created ' + temp).ljust(80))
             dcd.write(pack_i_164)
-            
+
             dcd.write(pack_i_4)
             dcd.write(pack(b'i', n_atoms))
             dcd.write(pack_i_4)
             self._first_byte = dcd.tell()
-        if self._unitcell: 
+        if self._unitcell:
             if unitcell is None:
                 raise TypeError('unitcell data is expected')
             else:
@@ -481,38 +483,38 @@ class DCDFile(TrajFile):
 
     def flush(self):
         """Flush the internal output buffer."""
-        
+
         if self._mode != 'r':
             self._file.flush()
             os.fsync(self._file.fileno())
-            
+
 def parseDCD(filename, start=None, stop=None, step=None, astype=None):
-    """Parse CHARMM format DCD files (also NAMD 2.1 and later).  Returns an 
-    :class:`Ensemble` instance. Conformations in the ensemble will be ordered 
-    as they appear in the trajectory file.  Use :class:`DCDFile` class for 
+    """Parse CHARMM format DCD files (also NAMD 2.1 and later).  Returns an
+    :class:`Ensemble` instance. Conformations in the ensemble will be ordered
+    as they appear in the trajectory file.  Use :class:`DCDFile` class for
     parsing  coordinates of a subset of atoms.
-    
+
     :arg filename: DCD filename
     :type filename: str
-    
+
     :arg start: index of first frame to read
     :type start: int
-        
+
     :arg stop: index of the frame that stops reading
     :type stop: int
-        
+
     :arg step: steps between reading frames, default is 1 meaning every frame
     :type step: int
-    
-    :arg astype: cast coordinate array to specified type 
+
+    :arg astype: cast coordinate array to specified type
     :type astype: type"""
-    
+
     dcd = DCDFile(filename, astype=astype)
     time_ = time()
     n_frames = dcd.numFrames()
     LOGGER.info('DCD file contains {0} coordinate sets for {1} atoms.'
                 .format(n_frames, dcd.numAtoms()))
-    ensemble = dcd[slice(start,stop,step)]    
+    ensemble = dcd[slice(start,stop,step)]
     dcd.close()
     time_ = time() - time_ or 0.01
     dcd_size = 1.0 * dcd.numFrames() * dcd._bytes_per_frame / (1024*1024)
@@ -525,24 +527,24 @@ def parseDCD(filename, start=None, stop=None, step=None, astype=None):
 
 
 
-def writeDCD(filename, trajectory, start=None, stop=None, step=None, 
+def writeDCD(filename, trajectory, start=None, stop=None, step=None,
              align=False):
     """Write 32-bit CHARMM format DCD file (also NAMD 2.1 and later).
-    *trajectory can be an :class:`Trajectory`, :class:`DCDFile`, or 
+    *trajectory can be an :class:`Trajectory`, :class:`DCDFile`, or
     :class:`Ensemble` instance. *filename* is returned upon successful
     output of file."""
-    
+
     if not isinstance(trajectory, (TrajBase, Ensemble, Atomic)):
         raise TypeError('{0} is not a valid type for trajectory'
                         .format(type(trajectory)))
-    
+
     irange = list(range(*slice(start, stop,step)
                     .indices(trajectory.numCoordsets())))
     n_csets = len(irange)
     if n_csets == 0:
         raise ValueError('trajectory does not have any coordinate sets, or '
                          'no coordinate sets are selected')
-    
+
     if isinstance(trajectory, Atomic):
         isEnsemble = False
         isAtomic = True
@@ -556,7 +558,7 @@ def writeDCD(filename, trajectory, start=None, stop=None, step=None,
     if isinstance(trajectory, TrajBase):
         isTrajectory = True
         unitcell = trajectory.hasUnitcell()
-        nfi = trajectory.nextIndex() 
+        nfi = trajectory.nextIndex()
         trajectory.reset()
         pack_i_48 = pack('i', 48)
         if isinstance(trajectory, Trajectory):
@@ -581,7 +583,7 @@ def writeDCD(filename, trajectory, start=None, stop=None, step=None,
         first_ts = 0
         framefreq = 1
         n_fixed = 0
-        
+
     dcd = DCDFile(filename, mode='w')
     LOGGER.progress('Writing DCD', len(irange), '_prody_writeDCD')
     prev = -1
@@ -603,11 +605,11 @@ def writeDCD(filename, trajectory, start=None, stop=None, step=None,
         elif isEnsemble:
             frame._index = i
         else:
-            frame.setACSIndex(i) 
+            frame.setACSIndex(i)
         if align:
             frame.superpose()
         if j == 0:
-            dcd.write(frame._getCoords(), uc, timestep=timestep, 
+            dcd.write(frame._getCoords(), uc, timestep=timestep,
                       firsttimestep=first_ts, framefreq=framefreq)
         else:
             dcd.write(frame._getCoords(), uc)
