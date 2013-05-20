@@ -1,17 +1,17 @@
 # ProDy: A Python Package for Protein Dynamics Analysis
-# 
+#
 # Copyright (C) 2010-2012 Ahmet Bakan
-# 
+#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-#  
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
@@ -26,12 +26,12 @@ __all__ = ['prody_align']
 
 def prody_align(*pdbs, **kwargs):
     """Align models in a PDB file or multiple structures in separate PDB files.
-    By default, protein chains will be matched based on selected atoms and 
+    By default, protein chains will be matched based on selected atoms and
     alignment will be performed based on matching residues.  If non-protein
     atoms are selected and selected atoms match in multiple structures,
     they will be used for alignment.
-    
-    :arg pdbs: :term:`PDB` identifier(s) or filename(s)
+
+    :arg pdbs: PDB identifier(s) or filename(s)
 
     :arg select: atom selection string, default is :term:`calpha`,
         see :ref:`selections`
@@ -46,7 +46,7 @@ def prody_align(*pdbs, **kwargs):
 
     :arg suffix: output filename suffix, default is :file:`_aligned`"""
 
-    from numpy import all            
+    from numpy import all
     from prody import LOGGER, writePDB, parsePDB
     from prody import alignCoordsets, printRMSD, matchAlign, superpose
 
@@ -82,7 +82,7 @@ def prody_align(*pdbs, **kwargs):
         overlap = kwargs.get('overlap')
         LOGGER.info('Aligning structures onto: ' + reffn)
         ref = parsePDB(reffn)
-        
+
         ref_sel = ref.select(selstr)
         if ref_sel:
             LOGGER.info('Selection {0} matched {1} atoms.'
@@ -93,7 +93,7 @@ def prody_align(*pdbs, **kwargs):
         match = True
         if ref_sel.numAtoms('ca') < 2:
             match = False
-        
+
         for arg in pdbs:
             if arg == reffn:
                 continue
@@ -101,10 +101,10 @@ def prody_align(*pdbs, **kwargs):
             #    continue
             LOGGER.info('Evaluating structure: ' + arg)
             pdb = parsePDB(arg)
-            if match:   
-                result = matchAlign(pdb, ref, seqid=seqid, overlap=overlap, 
+            if match:
+                result = matchAlign(pdb, ref, seqid=seqid, overlap=overlap,
                                     tarsel=selstr, allcsets=True,
-                                    cslabel='Model', csincr=1) 
+                                    cslabel='Model', csincr=1)
                 if result:
                     outfn = pdb.getTitle() + suffix + '.pdb'
                     LOGGER.info('Writing file: ' + outfn)
@@ -114,7 +114,7 @@ def prody_align(*pdbs, **kwargs):
             pdb_sel = pdb.select(selstr)
             LOGGER.info('Selection {0} matched {1} atoms.'
                         .format(repr(selstr), len(pdb_sel)))
-            if (len(pdb_sel) == len(ref_sel) and 
+            if (len(pdb_sel) == len(ref_sel) and
                 all(pdb_sel.getNames() == ref_sel.getNames())):
                 printRMSD(ref_sel, pdb_sel, msg='Before alignment ')
                 superpose(pdb_sel, ref_sel)
@@ -124,10 +124,10 @@ def prody_align(*pdbs, **kwargs):
                 writePDB(outfn, pdb)
             else:
                 LOGGER.warn('Failed to align structure ' + arg + '.')
-                
+
 def addCommand(commands):
 
-    subparser = commands.add_parser('align', 
+    subparser = commands.add_parser('align',
         help='align models or structures')
 
     subparser.add_argument('--quiet', help="suppress info messages to stderr",
@@ -143,55 +143,55 @@ match chains based on sequence alignment and use best match for aligning the \
 structures.
 
 Fetch PDB structure 2k39 and align models (reference model is the first model):
-    
+
     $ prody align 2k39
-    
+
 Fetch PDB structure 2k39 and align models using backbone of residues with \
 number less than 71:
 
-    $ prody align 2k39 --select "backbone and resnum < 71" 
-    
+    $ prody align 2k39 --select "backbone and resnum < 71"
+
 Align 1r39 and 1zz2 onto 1p38 using residues with number less than 300:
 
     $ prody align --select "resnum < 300" 1p38 1r39 1zz2
-    
+
 Align all models of 2k39 onto 1aar using residues 1 to 70 (inclusive):
 
-    $ prody align --select "resnum 1 to 70" 1aar 2k39 
+    $ prody align --select "resnum 1 to 70" 1aar 2k39
 
 Align 1fi7 onto 1hrc using heme atoms:
 
     $ prody align --select "noh heme and chain A" 1hrc 1fi7""",
     test_examples=[0, 1, 2, 3, 4,]
     )
-        
+
     group = subparser.add_argument_group('atom/model selection')
-    group.add_argument('-s', '--select', dest='select', type=str, 
+    group.add_argument('-s', '--select', dest='select', type=str,
         default='calpha', metavar='SEL',
         help='reference structure atom selection  (default: %(default)s)')
-    group.add_argument('-m', '--model', dest='model', type=int, 
+    group.add_argument('-m', '--model', dest='model', type=int,
         default=1, metavar='INT',
         help=('for NMR files, reference model index (default: %(default)s)'))
-    
+
     group = subparser.add_argument_group('chain matching options')
-    group.add_argument('-i', '--seqid', dest='seqid', type=int, 
+    group.add_argument('-i', '--seqid', dest='seqid', type=int,
         default=90, metavar='INT',
         help=('percent sequence identity (default: %(default)s)'))
-    group.add_argument('-o', '--overlap', dest='overlap', type=int, 
+    group.add_argument('-o', '--overlap', dest='overlap', type=int,
         default=90, metavar='INT',
         help=('percent sequence overlap (default: %(default)s)'))
 
     group = subparser.add_argument_group('output options')
-    group.add_argument('-p', '--prefix', dest='prefix', type=str, 
-        default='', metavar='STR', 
+    group.add_argument('-p', '--prefix', dest='prefix', type=str,
+        default='', metavar='STR',
         help=('output filename prefix (default: PDB filename)'))
-    group.add_argument('-x', '--suffix', dest='suffix', type=str, 
-        default='_aligned', metavar='STR', 
+    group.add_argument('-x', '--suffix', dest='suffix', type=str,
+        default='_aligned', metavar='STR',
         help=('output filename suffix (default: %(default)s)'))
 
     subparser.add_argument('pdb', nargs='+',
         help='PDB identifier(s) or filename(s)')
-            
-    subparser.set_defaults(func=lambda ns: prody_align(*ns.pdb, 
+
+    subparser.set_defaults(func=lambda ns: prody_align(*ns.pdb,
                                                         **ns.__dict__))
     subparser.set_defaults(subparser=subparser)

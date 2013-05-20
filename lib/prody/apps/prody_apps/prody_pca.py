@@ -1,24 +1,22 @@
 # ProDy: A Python Package for Protein Dynamics Analysis
-# 
+#
 # Copyright (C) 2010-2012 Ahmet Bakan
-# 
+#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-#  
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
-"""Perform PCA/EDA calculations and output the results in plain text, NMD, and 
-graphical formats.
-
-Download example :download:`MDM2 trajectory files </doctest/mdm2.tar.gz>`."""
+"""Perform PCA/EDA calculations and output the results in plain text, NMD, and
+graphical formats."""
 
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
@@ -34,7 +32,7 @@ except NameError:
     pass
 
 DEFAULTS = {}
-HELPTEXT = {} 
+HELPTEXT = {}
 for key, txt, val in [
     ('aligned', 'trajectory is already aligned', False),
     ('outproj', 'write projections onto PCs', False),
@@ -42,7 +40,7 @@ for key, txt, val in [
                 '"1,2" for projections onto PCs 1 and 2; '
                 '"1,2 1,3" for projections onto PCs 1,2 and 1, 3; '
                 '"1 1,2,3" for projections onto PCs 1 and 1, 2, 3', ''),]:
-    
+
     DEFAULTS[key] = val
     HELPTEXT[key] = txt
 
@@ -55,30 +53,30 @@ __all__ = ['prody_pca']
 
 def prody_pca(coords, **kwargs):
     """Perform PCA calculations for PDB or DCD format *coords* file.
-    
+
     """
-    
+
     for key in DEFAULTS:
         if not key in kwargs:
             kwargs[key] = DEFAULTS[key]
-    
+
     from os.path import isdir, splitext, join
     outdir = kwargs.get('outdir')
     if not isdir(outdir):
         raise IOError('{0} is not a valid path'.format(repr(outdir)))
-        
+
     import prody
     LOGGER = prody.LOGGER
-        
+
     prefix = kwargs.get('prefix')
     nmodes = kwargs.get('nmodes')
     selstr = kwargs.get('select')
-    
-    ext = splitext(coords)[1].lower() 
+
+    ext = splitext(coords)[1].lower()
     if ext == '.gz':
         ext = splitext(coords[:-3])[1].lower()
-    
-    if ext == '.dcd':     
+
+    if ext == '.dcd':
         pdb = kwargs.get('psf') or kwargs.get('pdb')
         if pdb:
             if splitext(pdb)[1].lower() == '.psf':
@@ -106,7 +104,7 @@ def prody_pca(coords, **kwargs):
                                                            dcd.numAtoms()))
                 if pdb.numCoordsets():
                     dcd.setCoords(select.getCoords())
-                    
+
         else:
             select = prody.AtomGroup()
             select.setCoords(dcd.getCoords())
@@ -120,15 +118,15 @@ def prody_pca(coords, **kwargs):
             if not kwargs.get('aligned'):
                 ensemble.iterpose()
             pca.performSVD(ensemble)
-    
+
     else:
         pdb = prody.parsePDB(coords)
         if pdb.numCoordsets() < 2:
             raise ValueError('PDB file must contain multiple models')
-            
+
         if prefix == '_pca' or prefix == '_eda':
             prefix = pdb.getTitle() + prefix
-            
+
         select = pdb.select(selstr)
         LOGGER.info('{0} atoms are selected for calculations.'
                     .format(len(select)))
@@ -142,23 +140,23 @@ def prody_pca(coords, **kwargs):
         if not kwargs.get('aligned'):
             ensemble.iterpose()
         pca.performSVD(ensemble)
-    
-        
+
+
     LOGGER.info('Writing numerical output.')
     if kwargs.get('outnpz'):
         prody.saveModel(pca, join(outdir, prefix))
-        
+
     prody.writeNMD(join(outdir, prefix + '.nmd'), pca[:nmodes], select)
-    
+
     extend = kwargs.get('extend')
     if extend:
         if pdb:
             if extend == 'all':
-                extended = prody.extendModel(pca[:nmodes], select, pdb)        
+                extended = prody.extendModel(pca[:nmodes], select, pdb)
             else:
-                extended = prody.extendModel(pca[:nmodes], select, 
+                extended = prody.extendModel(pca[:nmodes], select,
                                              select | pdb.bb)
-            prody.writeNMD(join(outdir, prefix + '_extended_' + 
+            prody.writeNMD(join(outdir, prefix + '_extended_' +
                            extend + '.nmd'), *extended)
         else:
             prody.LOGGER.warn('Model could not be extended, provide a PDB or '
@@ -167,43 +165,43 @@ def prody_pca(coords, **kwargs):
     delim = kwargs.get('numdelim')
     ext = kwargs.get('numext')
     format = kwargs.get('numformat')
-    
+
     if outall or kwargs.get('outeig'):
-        prody.writeArray(join(outdir, prefix + '_evectors'+ext), 
+        prody.writeArray(join(outdir, prefix + '_evectors'+ext),
                          pca.getArray(), delimiter=delim, format=format)
-        prody.writeArray(join(outdir, prefix + '_evalues'+ext), 
+        prody.writeArray(join(outdir, prefix + '_evalues'+ext),
                          pca.getEigvals(), delimiter=delim, format=format)
     if outall or kwargs.get('outcov'):
-        prody.writeArray(join(outdir, prefix + '_covariance'+ext), 
+        prody.writeArray(join(outdir, prefix + '_covariance'+ext),
                          pca.getCovariance(), delimiter=delim, format=format)
     if outall or kwargs.get('outcc') or kwargs.get('outhm'):
         cc = prody.calcCrossCorr(pca)
         if outall or kwargs.get('outcc'):
-            prody.writeArray(join(outdir, prefix + '_cross-correlations' + 
+            prody.writeArray(join(outdir, prefix + '_cross-correlations' +
                              ext), cc, delimiter=delim, format=format)
         if outall or kwargs.get('outhm'):
             resnums = select.getResnums()
-            hmargs = {} if resnums is None else {'resnums': resnums} 
-            prody.writeHeatmap(join(outdir, prefix + '_cross-correlations.hm'), 
+            hmargs = {} if resnums is None else {'resnums': resnums}
+            prody.writeHeatmap(join(outdir, prefix + '_cross-correlations.hm'),
                                cc, xlabel='Residue', ylabel='Residue',
                                title=pca.getTitle() + ' cross-correlations',
                                **hmargs)
-                         
+
     if outall or kwargs.get('outsf'):
-        prody.writeArray(join(outdir, prefix + '_sqfluct'+ext), 
-                         prody.calcSqFlucts(pca), delimiter=delim, 
+        prody.writeArray(join(outdir, prefix + '_sqfluct'+ext),
+                         prody.calcSqFlucts(pca), delimiter=delim,
                          format=format)
     if outall or kwargs.get('outproj'):
-        prody.writeArray(join(outdir, prefix + '_proj'+ext), 
-                         prody.calcProjection(ensemble, pca), delimiter=delim, 
+        prody.writeArray(join(outdir, prefix + '_proj'+ext),
+                         prody.calcProjection(ensemble, pca), delimiter=delim,
                          format=format)
-          
+
     figall = kwargs.get('figall')
     cc = kwargs.get('figcc')
     sf = kwargs.get('figsf')
     sp = kwargs.get('figproj')
 
-    if figall or cc or sf or sp: 
+    if figall or cc or sf or sp:
         try:
             import matplotlib.pyplot as plt
         except ImportError:
@@ -216,20 +214,20 @@ def prody_pca(coords, **kwargs):
             width = kwargs.get('figwidth')
             height = kwargs.get('figheight')
             dpi = kwargs.get('figdpi')
-            
+
             format = format.lower()
             if figall or cc:
                 plt.figure(figsize=(width, height))
                 prody.showCrossCorr(pca)
-                plt.savefig(join(outdir, prefix + '_cc.'+format), 
+                plt.savefig(join(outdir, prefix + '_cc.'+format),
                     dpi=dpi, format=format)
                 plt.close('all')
             if figall or sf:
                 plt.figure(figsize=(width, height))
                 prody.showSqFlucts(pca)
-                plt.savefig(join(outdir, prefix + '_sf.'+format), 
+                plt.savefig(join(outdir, prefix + '_sf.'+format),
                     dpi=dpi, format=format)
-                plt.close('all')                    
+                plt.close('all')
             if figall or sp:
                 indices = []
                 for item in sp.split():
@@ -237,7 +235,7 @@ def prody_pca(coords, **kwargs):
                         if '-' in item:
                             item = item.split('-')
                             if len(item) == 2:
-                                indices.append(list(range(int(item[0])-1, 
+                                indices.append(list(range(int(item[0])-1,
                                                           int(item[1]))))
                         elif ',' in item:
                             indices.append([int(i)-1 for i in item.split(',')])
@@ -251,18 +249,18 @@ def prody_pca(coords, **kwargs):
                         if isinstance(index, int):
                             index = [index]
                         index = [str(i+1) for i in index]
-                        plt.savefig(join(outdir, prefix + '_proj_' + 
+                        plt.savefig(join(outdir, prefix + '_proj_' +
                             '_'.join(index) + '.' + format),
                             dpi=dpi, format=format)
                         plt.close('all')
-                        
+
 
 _ = list(HELPTEXT)
 _.sort()
 for key in _:
-    
+
     prody_pca.__doc__ += """
-    :arg {0}: {1}, default is ``{2!r}``""".format(key, HELPTEXT[key], 
+    :arg {0}: {1}, default is ``{2!r}``""".format(key, HELPTEXT[key],
                                                   DEFAULTS[key])
 
 
@@ -285,18 +283,18 @@ the PDB FTP server.  DCD files may be accompanied with PDB or PSF files to \
 enable atoms selections.
 
 Fetch pdb 2k39, perform PCA calculations, and output NMD file:
-    
+
   $ prody pca 2k39
-    
+
 Fetch pdb 2k39 and perform calculations for backbone of residues up to 71, \
 and save all output and figure files:
 
   $ prody pca 2k39 --select "backbone and resnum < 71" -a -A
-  
+
 Perform EDA of MDM2 trajectory:
-    
+
   $ prody eda mdm2.dcd
-  
+
 Perform EDA for backbone atoms:
 
   $ prody eda mdm2.dcd --pdb mdm2.pdb --select backbone""",
@@ -306,15 +304,15 @@ Perform EDA for backbone atoms:
 
     group = addNMAOutput(subparser)
 
-    group.add_argument('-j', '--projection', dest='outproj', 
-        action='store_true', 
+    group.add_argument('-j', '--projection', dest='outproj',
+        action='store_true',
         default=DEFAULTS['outproj'], help=HELPTEXT['outproj'])
 
     group = addNMAOutputOptions(subparser, '_pca')
 
     group = addNMAFigures(subparser)
 
-    group.add_argument('-J', '--projection-figure', dest='figproj', type=str, 
+    group.add_argument('-J', '--projection-figure', dest='figproj', type=str,
         default=DEFAULTS['figproj'], metavar='STR',
         help=HELPTEXT['figproj'])
 
@@ -323,7 +321,7 @@ Perform EDA for backbone atoms:
     group = subparser.add_mutually_exclusive_group()
     group.add_argument('--psf', help='PSF filename')
     group.add_argument('--pdb', help='PDB filename')
-    subparser.add_argument('--aligned', dest='aligned', action='store_true', 
+    subparser.add_argument('--aligned', dest='aligned', action='store_true',
         default=DEFAULTS['aligned'], help=HELPTEXT['aligned'])
 
     subparser.add_argument('dcd', help='file in DCD or PDB format')
