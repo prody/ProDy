@@ -85,9 +85,6 @@ Three types of input are accepted from user:
 Output is an :class:`.AtomGroup` instance that stores atomic data
 and can be used as input to functions and classes for dynamics analysis.
 
-For performance benchmarks of ProDy PDB parser see :ref:`pdbparser-performance`
-and :ref:`pdbparser-performance-2`.
-
 Parse a file
 ^^^^^^^^^^^^
 

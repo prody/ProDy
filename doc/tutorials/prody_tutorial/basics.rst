@@ -224,11 +224,11 @@ from this object can be retrieved using ``get`` methods.  For example:
 
 .. ipython:: python
 
-   print(p38.getResnames())
-   print(p38.getCoords())
+   p38.getResnames()
+   p38.getCoords()
 
 
-The get a list of all methods use tab completion, i.e. ``p38.<TAB>`.  We
+The get a list of all methods use tab completion, i.e. ``p38.<TAB>``.  We
 will learn more about atom groups in the following chapters.
 
 Indexing
@@ -237,20 +237,34 @@ Indexing
 An individual :class:`.Atom` can be accessed by indexing atom group
 instances:
 
-..
+.. ipython:: python
 
-  >>> atom = structure[0]
-  >>> atom
-  <Atom: N from 1p38 (index 0)>
+   atom = p38[0]
+   atom
 
 Note that all ``get/set`` functions defined for :class:`.AtomGroup`
 instances are also defined for :class:`.Atom` instances, using singular
 form of the function name.
 
-..
+.. ipython:: python
 
-  >>> atom.getResname()
-  'GLU'
+   atom.getResname()
+
+An individual :class:`.Atom` can be accessed by indexing atom group
+instances:
+
+.. ipython:: python
+
+   atom = p38[0]
+   atom
+
+Note that all ``get/set`` functions defined for :class:`.AtomGroup`
+instances are also defined for :class:`.Atom` instances, using singular
+form of the function name.
+
+.. ipython:: python
+
+   atom.getResname()
 
 Slicing
 ^^^^^^^
@@ -258,10 +272,55 @@ Slicing
 It is also possible to get a slice of an atom group, for example we can get
 every other atom as follows:
 
-..
+.. ipython:: python
 
-  >>> structure[::2]
-  <Selection: 'index 0:2962:2' from 1p38 (1481 atoms)>
+   p38[::2]
+
+
+
+It is also possible to get a slice of an atom group, for example we can get
+every other atom as follows:
+
+.. ipython:: python
+
+   p38[::2]
+
+
+
+It is also possible to get a slice of an atom group, for example we can get
+every other atom as follows:
+
+.. ipython:: python
+
+   p38[::2]
+
+
+
+It is also possible to get a slice of an atom group, for example we can get
+every other atom as follows:
+
+.. ipython:: python
+
+   p38[::2]
+
+
+
+It is also possible to get a slice of an atom group, for example we can get
+every other atom as follows:
+
+.. ipython:: python
+
+   p38[::2]
+
+
+
+It is also possible to get a slice of an atom group, for example we can get
+every other atom as follows:
+
+.. ipython:: python
+
+   p38[::2]
+
 
 Hierarchical view
 ^^^^^^^^^^^^^^^^^
@@ -269,17 +328,18 @@ Hierarchical view
 You can also access specific chains or residues in an atom group.  Indexing
 by a single letter identifier will return a :class:`.Chain` instance:
 
-..
+.. ipython:: python
 
-  >>> structure['A']
-  <Chain: A from 1p38 (480 residues, 2962 atoms)>
+   p38['A']
 
 Indexing atom group with a chain identifier and a residue number will return
 :class:`.Residue` instance:
 ..
 
-  >>> structure['A', 100]
-  <Residue: ASN 100 from Chain A from 1p38 (8 atoms)>
+.. ipython:: python
+
+   p38['A', 100]
+
 
 See :ref:`atomic` for details of indexing atom groups and :ref:`hierview`
 for more on hierarchical views.

@@ -97,7 +97,7 @@ For heterogeneous NMR datasets, both methods yields identical results:
 Write NMD file
 -------------------------------------------------------------------------------
 
-Write principal modes into an :term:`NMD` file for NMWiz using
+Write principal modes into an :ref:`nmd-format` file for NMWiz using
 :func:`.writeNMD` function:
 
 .. ipython:: python

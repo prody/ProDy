@@ -12,15 +12,16 @@ Keyword selections
 -------------------------------------------------------------------------------
 
 .. ipython:: python
-   :suppress:
 
-   from prody import *; from pylab import *; ion()
+   from prody import *
+   from pylab import *
+   ion()
 
 .. ipython:: python
 
    structure = parsePDB('1p38')
    protein = structure.select('protein')
-   repr(protein)
+   protein
 
 Using the "protein" keyword we selected 2833 atoms out of 2962 atoms.
 :meth:`~.Atomic.select` method returned a :class:`.Selection` instance.
@@ -29,7 +30,7 @@ class are also defined for :class:`.Selection` class. For example:
 
 .. ipython:: python
 
-    print(protein.getResnames())
+    protein.getResnames()
 
 
 Select by name/type
@@ -40,7 +41,7 @@ We select backbone atoms by passing atom names following "name" keyword:
 .. ipython:: python
 
    backbone = structure.select('protein and name N CA C O')
-   repr(backbone)
+   backbone
 
 
 We can also use "backbone" to make the same selection.
@@ -51,14 +52,14 @@ We select acidic and basic residues by using residue names with
 .. ipython:: python
 
    charged = structure.select('resname ARG LYS HIS ASP GLU')
-   repr(charged)
+   charged
 
 Alternatively, we can use predefined keywords "acidic" and "basic".
 
 .. ipython:: python
 
    charged = structure.select('acidic or basic')
-   repr(charged)
+   charged
    set(charged.getResnames())
 
 Composite selections
@@ -72,10 +73,10 @@ select the Cα and Cβ atoms of residues that have at least one atom within
 .. ipython:: python
 
    center = calcCenter(protein).round(3)
-   print(center)
+   center
    sel = structure.select('protein and name CA CB and same residue as '
                           '((x-1)**2 + (y-17.5)**2 + (z-40.0)**2)**0.5 < 10')
-   repr(sel)
+   sel
 
 Alternatively, this selection could be done as follows:
 
@@ -83,7 +84,7 @@ Alternatively, this selection could be done as follows:
 
    sel = structure.select('protein and name CA CB and same residue as '
                           'within 10 of center', center=center)
-   repr(sel)
+   sel
 
 Selection operations
 -------------------------------------------------------------------------------
@@ -95,7 +96,7 @@ Selection operations
    ca = structure.select('name CA')
    cb = structure.select('name CB')
    ca_or_cb = ca | cb
-   repr(ca_or_cb)
+   ca_or_cb
    ca & cb # returns None, since there are no common atoms between the two
 
 Selections simplified
@@ -107,14 +108,14 @@ or ``.select('backbone')`` is using dot operator:
 .. ipython:: python
 
    protein = structure.protein
-   repr(protein)
+   protein
 
 You can use dot operator multiple times:
 
 .. ipython:: python
 
    bb = structure.protein.backbone
-   repr(bb)
+   bb
 
 
 This may go on and on:
@@ -122,7 +123,7 @@ This may go on and on:
 .. ipython:: python
 
    ala_ca = structure.protein.backbone.resname_ALA.calpha
-   repr(ala_ca)
+   ala_ca
 
 
 More examples

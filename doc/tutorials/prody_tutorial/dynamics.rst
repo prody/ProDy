@@ -106,7 +106,7 @@ NMD files can be viewed using the :ref:`nmwiz` VMD plugin.
    writeNMD('p38_anm.nmd', anm[:6], ubi_selection)
 
 For more information on elastic network model calculations see
-:ref:`enm` section.
+:ref:`enm-analysis` section.
 
 Comparative Analysis
 -------------------------------------------------------------------------------

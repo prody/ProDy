@@ -1,6 +1,6 @@
-.. _REFERENCE:
+.. use "REFERENCE" to refer to this file
 
-.. use "REFERENCE" to refer to this file, i.e. :ref:`REFERENCE`
+.. _REFERENCE:
 
 *******************************************************************************
 TITLE
