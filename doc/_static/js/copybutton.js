@@ -7,7 +7,6 @@ $(document).ready(function() {
                 '.highlight-python3 .highlight,' +
                 '.highlight-ipython .highlight')
     var pre = div.find('pre');
-
     // get the styles from the current theme
     pre.parent().parent().css('position', 'relative');
     var hide_text = 'Hide the prompts and output';
@@ -23,6 +22,7 @@ $(document).ready(function() {
         'border-radius': '0 3px 0 0'
     }
 
+
     // create and add the button to all the code blocks that contain >>>
     div.each(function(index) {
         var jthis = $(this);
@@ -36,6 +36,7 @@ $(document).ready(function() {
             }
             button.css(button_styles)
             button.attr('title', hide_text);
+            button.data("clicks", 1)
             jthis.prepend(button);
         }
         // tracebacks (.gt) contain bare text elements that need to be
@@ -46,20 +47,22 @@ $(document).ready(function() {
     });
 
     // define the behavior of the button when it's clicked
-    $('.copybutton').toggle(
+    $('.copybutton').click(
         function() {
             var button = $(this);
-            button.parent().find('.go, .gp, .gt, .gr').hide();
-            button.next('pre').find('.gt, .gr').nextUntil('.gp, .go').css('visibility', 'hidden');
-            button.css('text-decoration', 'line-through');
-            button.attr('title', show_text);
-        },
-        function() {
-            var button = $(this);
-            button.parent().find('.go, .gp, .gt, .gr').show();
-            button.next('pre').find('.gt, .gr').nextUntil('.gp, .go').css('visibility', 'visible');
-            button.css('text-decoration', 'none');
-            button.attr('title', hide_text);
+            clicks = button.data('clicks');
+            if (clicks) {
+                button.parent().find('.go, .gp, .gt, .gr').hide();
+                button.next('pre').find('.gt, .gr').nextUntil('.gp, .go').css('visibility', 'hidden');
+                button.css('text-decoration', 'line-through');
+                button.attr('title', show_text);
+            } else {
+                button.parent().find('.go, .gp, .gt, .gr').show();
+                button.next('pre').find('.gt, .gr').nextUntil('.gp, .go').css('visibility', 'visible');
+                button.css('text-decoration', 'none');
+                button.attr('title', hide_text);
+            }
+            $(this).data("clicks", !clicks);
         });
 });
 
