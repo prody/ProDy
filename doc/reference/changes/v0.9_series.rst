@@ -311,21 +311,21 @@ ProDy 0.9 Series
   ============================  ====================  =========================
   Old name                      New name              Affected modules
   ============================  ====================  =========================
-  :meth:`getNumOfAtoms`         :meth:`numAtoms`      :mod:`.atomic`,
-                                                      :mod:`.ensemble`,
+  :meth:`getNumOfAtoms`         :meth:`numAtoms`      :mod:`~prody.atomic`,
+                                                      :mod:`~prody.ensemble`,
                                                       :mod:`.dynamics`
-  :meth:`getNumOfChains`        :meth:`numChains`     :mod:`.atomic`
-  :meth:`getNumOfConfs`         :meth:`numConfs`      :mod:`.ensemble`
-  :meth:`getNumOfCoordsets`     :meth:`numCoordsets`  :mod:`.atomic`,
-                                                      :mod:`.ensemble`
+  :meth:`getNumOfChains`        :meth:`numChains`     :mod:`~prody.atomic`
+  :meth:`getNumOfConfs`         :meth:`numConfs`      :mod:`~prody.ensemble`
+  :meth:`getNumOfCoordsets`     :meth:`numCoordsets`  :mod:`~prody.atomic`,
+                                                      :mod:`~prody.ensemble`
   :meth:`getNumOfDegOfFreedom`  :meth:`numDOF`        :mod:`.dynamics`
-  :meth:`getNumOfFixed`         :meth:`numFixed`      :mod:`.ensemble`
-  :meth:`getNumOfFrames`        :meth:`numFrames`     :mod:`.ensemble`
-  :meth:`getNumOfResidues`      :meth:`numResidues`   :mod:`.atomic`
-  :meth:`getNumOfMapped`        :meth:`numMapped`     :mod:`.atomic`
+  :meth:`getNumOfFixed`         :meth:`numFixed`      :mod:`~prody.ensemble`
+  :meth:`getNumOfFrames`        :meth:`numFrames`     :mod:`~prody.ensemble`
+  :meth:`getNumOfResidues`      :meth:`numResidues`   :mod:`~prody.atomic`
+  :meth:`getNumOfMapped`        :meth:`numMapped`     :mod:`~prody.atomic`
   :meth:`getNumOfModes`         :meth:`numModes`      :mod:`.dynamics`
-  :meth:`getNumOfSelected`      :meth:`numSelected`   :mod:`.ensemble`
-  :meth:`getNumOfUnmapped`      :meth:`numUnmapped`   :mod:`.atomic`
+  :meth:`getNumOfSelected`      :meth:`numSelected`   :mod:`~prody.ensemble`
+  :meth:`getNumOfUnmapped`      :meth:`numUnmapped`   :mod:`~prody.atomic`
   ============================  ====================  =========================
 
   ``getName`` **method**:

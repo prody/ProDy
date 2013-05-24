@@ -175,7 +175,7 @@ modes and projection of snapshots onto them is case dependent. One should know
 what kind of motion the top essential modes describe. You can use :ref:`nmwiz`
 for visualizing essential mode shapes and fluctuations along these modes.
 
-We can write essential modes into an :term:`NMD` file for NMWiz as follows:
+We can write essential modes in :ref:`nmd-format` for NMWiz as follows:
 
 .. ipython:: python
 

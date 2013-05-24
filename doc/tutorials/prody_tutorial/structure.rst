@@ -4,7 +4,7 @@ Structure Analysis
 Measure geometric properties
 -------------------------------------------------------------------------------
 
-Functions for analyzing molecular structure can be found in :mod:`.measure`
+Functions for analyzing structures can be found in :mod:`~prody.measure`
 module. For example, you can calculate phi (φ) and psi (ψ) for the 10th
 residue, or the radius of gyration of the protein as follows:
 

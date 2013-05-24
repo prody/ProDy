@@ -67,6 +67,6 @@ ProDy 1.3 Series
 **Bugfix**:
 
   * A problem in :ref:`prody-catdcd` command that was introduced when
-    refactoring :mod:`.trajectory` classes is fixed.
+    refactoring :mod:`~prody.trajectory` classes is fixed.
 
 

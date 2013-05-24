@@ -28,7 +28,7 @@ ProDy 1.0 Series
 
 **Bugfixes**:
 
-  * Fixed :mod:`.kdtree` import problem.
+  * Fixed :mod:`~prody.kdtree` import problem.
 
 **New Features**:
 

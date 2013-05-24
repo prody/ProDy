@@ -20,14 +20,9 @@ Reference Manual
    trajectory/index
    apps/index
    utilities/index
-   tests
-   license
    changes/index
-
-.. include:: people.txt
-
-.. include:: citing.txt
-
-.. include:: credits.txt
-
-.. include:: funding.txt
+   people
+   citing
+   credits
+   funding
+   license
