@@ -1,5 +1,5 @@
-prody.atomic.subset
-===================
+Atom Subsets
+============
 
 .. automodule:: prody.atomic.subset
    :members:

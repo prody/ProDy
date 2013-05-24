@@ -1,5 +1,5 @@
-prody.dynamics.heatmapper
-=========================
+Heatmapper Functions
+====================
 
 .. automodule:: prody.dynamics.heatmapper
    :members:

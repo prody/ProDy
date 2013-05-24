@@ -1,5 +1,5 @@
-prody.apps.prody_apps.prody_blast
-=================================
+Blast Search PDB
+================
 
 .. automodule:: prody.apps.prody_apps.prody_blast
    :members:

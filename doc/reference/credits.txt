@@ -27,6 +27,3 @@ Finally, ProDy can benefit from `Scipy <http://www.scipy.org/SciPy>`_ and
 makes ProDy normal calculations more flexible and on low memory machines
 possible.  Matplotlib allows greatly enriches user experience by allowing
 plotting protein dynamics data calculated using ProDy.
-
-
-

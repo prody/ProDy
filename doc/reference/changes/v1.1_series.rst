@@ -1,0 +1,82 @@
+ProDy 1.1 Series
+===============================================================================
+
+1.1 (June 1, 2012)
+-------------------------------------------------------------------------------
+
+
+**New Features**:
+
+  * :func:`.iterFragments` function is added.
+
+  * :func:`.findNeighbors` function is added.
+
+  * :func:`.calcMSF` and :func:`.calcRMSF` functions are added.
+
+  * :func:`.wrapAtoms` functions is added.
+
+  * :func:`.extendMode` and :func:`.extendVector` functions are added.
+
+  * :ref:`prody-contacts` command is added.
+
+**Improvements**:
+
+  * :func:`.moveAtoms` function is improved to move atoms to a specified
+    location.
+
+  * :class:`.DCDFile` and :func:`.parseDCD` take *astype* keyword argument for
+    automatic type recasting for coordinate arrays.  This option can be used
+    to convert 32-bit coordinate arrays to 64-bit automatically for higher
+    precision calculations.
+
+  * Commands :ref:`prody-anm`, :ref:`prody-gnm`, and :ref:`prody-pca` can
+    extend a coarse grained model to backbone or all atoms of the residues.
+    See their documentation pages.
+
+**Changes**:
+
+  * Color scale used by :func:`.showOverlapTable` is normalized by default.
+
+  * :mod:`.tools` module is depracated for removal, use :mod:`.utilities`
+    instead.
+
+  * *array* argument in :func:`.moveAtoms` is replaced with *by* keyword
+    argument.
+
+  * *which* argument in :meth:`.AtomGroup.copy` method is deprecated for
+    removal in version 1.2.
+
+  * :class:`.DCDFile` does not log information for most common type of DCD
+    file, i.e. 32-bit CHARMM format.
+
+  * :meth:`.Trajectory.getNextIndex` method is deprecated for removal in v1.2,
+    use :meth:`~.Trajectory.nextIndex` instead.
+
+**Bugfixes**:
+
+  * Fixed several problems in :func:`.iterNeighbors` function and
+    :class:`.Contacts` class that were introduced after transition to new
+    :class:`.KDTree` interface.
+
+  * Fixed a problem in setting selection strings of fragments identified using
+    :func:`.findFragments`.
+
+  * Fixed a problem in :func:`.calcCenter` related to weighted center
+    calculation.
+
+  * Fixed a problem of in copying :class:`.AtomMap` instances, which would
+    emerge when bond information was present in unusual mappings, such as
+    when atom orders are changed or an atom is present multiple times in the
+    mapping.
+
+:ref:`nmwiz`
+^^^^^^^^^^^^
+
+**Improvements**:
+
+  * Mode scaling options are improved.
+
+  * Options added for extending coarse grained NMA models to residue backbone
+    or all atoms.
+
+

@@ -1,5 +1,5 @@
-prody.dynamics.analysis
-=======================
+Analysis Functions
+==================
 
 .. automodule:: prody.dynamics.analysis
    :members:

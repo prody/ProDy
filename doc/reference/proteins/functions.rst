@@ -1,5 +1,5 @@
-prody.proteins.functions
-========================
+Miscellaneous Tools
+===================
 
 .. automodule:: prody.proteins.functions
    :members:

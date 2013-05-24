@@ -3,8 +3,8 @@
 People
 ===============================================================================
 
-ProDy and :ref:`nmwiz` are envisioned, designed, and developed by
-`Ahmet Bakan`_ in `Bahar Lab`_ at the `University of Pittsburgh`_.
+`Ahmet Bakan`_ designed and developed ProDy and :ref:`nmwiz` in `Bahar Lab`_
+at the `University of Pittsburgh`_.
 
 
 `Anindita Dutta`_ contributed to the development of :ref:`evol-apps`,

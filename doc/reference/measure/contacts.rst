@@ -1,4 +1,4 @@
-prody.measure.contacts
+Contact Identification
 ======================
 
 .. automodule:: prody.measure.contacts

@@ -1,6 +1,6 @@
-***********
-prody.tests
-***********
+**********
+Unit Tests
+**********
 
 .. automodule:: prody.tests
    :members:

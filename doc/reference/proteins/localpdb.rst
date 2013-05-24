@@ -1,5 +1,5 @@
-prody.proteins.localpdb
-=======================
+Local PDB Handlers
+==================
 
 .. automodule:: prody.proteins.localpdb
    :members:

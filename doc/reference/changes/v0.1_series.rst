@@ -1,0 +1,26 @@
+ProDy 0.1 Series
+===============================================================================
+
+0.1.2 (Nov 9, 2010)
+-------------------------------------------------------------------------------
+
+* Important bug fixes and improvements in NMA helper and plotting functions.
+
+* Documentation updates and improvements.
+
+
+0.1.1 (Nov 8, 2010)
+-------------------------------------------------------------------------------
+
+* Important bug fixes and improvements in chain comparison functions.
+
+* Bug fixes.
+
+* Source clean up.
+
+* Documentation improvements.
+
+0.1 (Nov 7, 2010)
+-------------------------------------------------------------------------------
+
+* First release.

@@ -1,5 +1,5 @@
-prody.ensemble.functions
-========================
+Supporting Functions
+====================
 
 .. automodule:: prody.ensemble.functions
    :members:

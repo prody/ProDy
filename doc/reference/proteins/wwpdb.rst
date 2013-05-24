@@ -1,5 +1,5 @@
-prody.proteins.wwpdb
-====================
+wwPDB Tools
+===========
 
 .. automodule:: prody.proteins.wwpdb
    :members:

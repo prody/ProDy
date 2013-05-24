@@ -1,0 +1,90 @@
+ProDy 0.2 Series
+===============================================================================
+
+0.2 (Nov 16, 2010)
+-------------------------------------------------------------------------------
+
+**Important Changes**:
+
+
+  * Single word keywords *not* followed by "and" logical operator are not
+    accepted, e.g. "protein within 5 of water" will raise a
+    :class:`.SelectionError`, use "protein and within 5 of water" instead.
+
+  * :func:`findMatchingChains` is renamed to  :func:`.matchChains`.
+
+  * :func:`showOverlapMatrix` is renamed to :func:`.showOverlapTable`.
+
+  * Modules are reorganized.
+
+**New Features**:
+
+  * :class:`.Atomic` for easy type checking.
+
+  * :class:`.Contacts` for faster intermolecular contact identification.
+
+  * :class:`.Select` can identify intermolecular contacts. See :ref:`contacts`
+    for an examples and details.
+
+  * :func:`.sampleModes` implemented for sampling conformations along normal
+    modes.
+
+**Improvements**:
+
+  * :mod:`.proteins.compare` functions are improved. Now they perform sequence
+    alignment if simple residue number/identity based matchin does not work,
+    or if user passes ``pwalign=True`` argument. This impacts the speed
+    of X-ray ensemble analysis.
+
+  * :class:`.Select` can cache data optionally. This results in speeds up from
+    2 to 50 folds depending on number of atoms and selection operations.
+
+  * Implementation of :func:`.showProjection` is completed.
+
+:ref:`nmwiz`
+^^^^^^^^^^^^
+
+**Release 0.2.3**
+
+  * For each mode a molecule for drawing arrows and a molecule for showing
+    animation is formed in VMD on demand. NMWiz remembers a color associated
+    with a mode.
+
+  * Deselecting a residue by clicking on a plot is possible.
+
+  * A bug causing incorrect parsing of NMD files from ANM server is fixed.
+
+
+**Release 0.2.2**
+
+  * Selection string option allows user to show a subset of arrows matching
+    a VMD selection string. Optionally, this selection string may affect
+    protein and animation representations.
+
+  * A bug that caused problems when over plotting modes is removed.
+
+  * A bug affecting line width changes in plots is removed.
+
+  * Selected residue representations are colored according to the color of the
+    plot.
+
+**Release 0.2.1**
+
+  * Usability improvements.
+
+  * Loading the same data file more than once is prevented.
+
+  * If a GUI window for a dataset is closed, it can be reloaded from the main
+    window.
+
+  * A dataset and GUI can be deleted from the VMD session via the main window.
+
+**Release 0.2**
+
+  * Instant documentation is improved.
+
+  * Problem with clearing selections is fixed.
+
+  * Plotting options frame is populated.
+
+  * Multiple modes can be plotted on the same canvas.

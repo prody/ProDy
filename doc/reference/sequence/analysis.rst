@@ -1,5 +1,5 @@
-prody.sequence.analysis
-=======================
+Analysis Functions
+==================
 
 .. automodule:: prody.sequence.analysis
    :members:

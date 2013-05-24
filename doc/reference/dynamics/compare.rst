@@ -1,5 +1,5 @@
-prody.dynamics.compare
-======================
+Comparison Functions
+====================
 
 .. automodule:: prody.dynamics.compare
    :members:

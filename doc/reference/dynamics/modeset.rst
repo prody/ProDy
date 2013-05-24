@@ -1,5 +1,5 @@
-prody.dynamics.modeset
-======================
+Mode Set
+========
 
 .. automodule:: prody.dynamics.modeset
    :members:

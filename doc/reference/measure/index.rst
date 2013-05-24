@@ -1,6 +1,8 @@
-*************
-prody.measure
-*************
+.. _measure:
+
+*****************
+Measurement Tools
+*****************
 
 .. automodule:: prody.measure
 

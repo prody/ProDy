@@ -1,5 +1,5 @@
-prody.atomic.chain
-==================
+Chain
+=====
 
 .. automodule:: prody.atomic.chain
    :members:

@@ -1,6 +1,6 @@
-**************
-prody.ensemble
-**************
+*****************
+Ensemble Analysis
+*****************
 
 .. automodule:: prody.ensemble
 

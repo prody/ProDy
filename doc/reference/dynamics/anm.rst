@@ -1,5 +1,5 @@
-prody.dynamics.anm
-==================
+Anisotropic Network Model
+=========================
 
 .. automodule:: prody.dynamics.anm
    :members:

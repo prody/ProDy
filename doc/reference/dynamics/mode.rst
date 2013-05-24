@@ -1,5 +1,5 @@
-prody.dynamics.mode
-===================
+Normal Mode
+===========
 
 .. automodule:: prody.dynamics.mode
    :members:

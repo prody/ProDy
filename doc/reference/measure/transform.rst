@@ -1,5 +1,5 @@
-prody.measure.transform
-=======================
+Transformations
+===============
 
 .. automodule:: prody.measure.transform
    :members:

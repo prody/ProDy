@@ -1,5 +1,5 @@
-prody.proteins.pdbfile
-======================
+PDB File
+========
 
 .. automodule:: prody.proteins.pdbfile
    :members:

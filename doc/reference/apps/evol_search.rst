@@ -1,5 +1,5 @@
-prody.apps.evol_apps.evol_search
-================================
+Pfam Search
+===========
 
 .. automodule:: prody.apps.evol_apps.evol_search
    :members:

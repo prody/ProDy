@@ -1,5 +1,5 @@
-prody.apps.evol_apps.evol_refine
-================================
+MSA Refinement
+==============
 
 .. automodule:: prody.apps.evol_apps.evol_refine
    :members:

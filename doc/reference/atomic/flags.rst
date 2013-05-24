@@ -1,5 +1,5 @@
-prody.atomic.flags
-==================
+Atom Flags
+==========
 
 .. automodule:: prody.atomic.flags
    :members:

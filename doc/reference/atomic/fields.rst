@@ -1,5 +1,5 @@
-prody.atomic.fields
-===================
+Atom Data Fields
+================
 
 .. automodule:: prody.atomic.fields
    :members:

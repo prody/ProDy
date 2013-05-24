@@ -1,0 +1,174 @@
+ProDy 1.2 Series
+===============================================================================
+
+1.2.1 (Sep 6, 2012)
+-------------------------------------------------------------------------------
+
+If you are upgrading from ProDy v1.1, see also the below changes introduced in
+v1.2.
+
+**Bugfix**:
+
+  * A problem in :mod:`select` module regarding Numpy numeric types
+    is fixed.  Problem would emerge on platforms which do not offer
+    some numeric types, e.f. ``np.float16``.
+
+  * Fixed problems in :ref:`prody-anm`, :ref:`prody-gnm`, and
+    :ref:`prody-fetch` related to writing output files.
+
+**Changes**:
+
+  * The way that :ref:`prody-fetch` command handles files containing PDB
+    identifiers has changed.
+
+
+1.2 (Aug 30, 2012)
+-------------------------------------------------------------------------------
+
+**Important Changes**:
+
+Package folder :file:`prody` is moved into :file:`lib` folder to prevent
+exceptions related to importing compiled packages from the installation
+folder.
+
+Some changes in :class:`.Trajectory` and :class:`.Ensemble` methods related
+to linking, setting, and selecting atoms were made to make the interface
+more intuitive.  These changes, which may break your code, are as follows:
+
+  * :class:`.AtomGroup` instances can be linked to a :class:`.Trajectory`
+    using :meth:`.Trajectory.link` method and linking status of an instance
+    can be checked using :meth:`.Trajectory.isLinked` medhod.
+
+  * :meth:`.Trajectory.setAtoms` method accepts :class:`.AtomGroup` and
+    :class:`.Selection` instances and should be used to select a subset
+    of atoms.  This method will not link :class:`.AtomGroup` instance to the
+    trajectory and also will not update the reference coordinates of the
+    instance.
+
+  * :meth:`.Trajectory.select` and :meth:`.Ensemble.select` methods are removed
+    and their functions are overloaded to :meth:`.Trajectory.setAtoms`
+    and :meth:`.Ensemble.setAtoms` methods, respectively.
+
+  * :meth:`.Trajectory.getSelection` and :meth:`.Ensemble.getSelection`
+    methods are removed, use :meth:`.Trajectory.getAtoms` and
+    :meth:`.Ensemble.getAtoms` instead.
+
+  * :class:`.Trajectory` reference coordinates must be changed using
+    :meth:`.Trajectory.setCoords` method.
+
+For usage examples see :ref:`trajectory`, :ref:`trajectory2`, :ref:`frame`,
+and :ref:`outputtraj`.
+
+**New Features**:
+
+  * :ref:`flags`, that are used in :ref:`selections`, is implemented.  See its
+    documentation for handy usage examples.
+
+  * :func:`.sortAtoms` function is implemented.
+
+  * :func:`.pickCentralConf` function is implemented to pick the conformation
+    or the active coordinate set that is closest to the average of coordinate
+    sets.
+
+  * :func:`.writePSF`, a simple PSF file writer, is implemented.
+
+  * :func:`.glob` utility function is implemented.
+
+  * :func:`.iterPDBFilenames` function is implemented, which can be used to
+    iterate over all PDB files stored in a local mirror of Protein Data Bank.
+
+  * :func:`.findPDBFiles` function is implemented, which can be used to access
+    PDB files in a path.
+
+
+**Improvements**:
+
+  * :class:`.HierView` instances are built more efficiently.  Two times
+    speed-up is achieved by delaying instantiation of :class:`.Chain` and
+    :class:`.Residue` instances until they are needed.
+
+  * Multiple :ref:`flags` can be used in :ref:`selections` without using
+    ``'and'`` operator, e.g. ``'sidechain carbon'`` is the same as
+    ``'sidechain and carbon'``.
+
+  * :func:`.writePDB` accepts :class:`.Ensemble`, :class:`.Conformation`,
+    and :class:`.Frame` instances as atoms argument.
+
+  * :func:`.writePDB` function is around 25% faster.
+
+  * :func:`.pickCentral` is extended to accept :class:`.Atomic` and
+    :class:`.Ensemble` instances. Old function is now :func:`.pickCentralAtom`.
+
+  * :ref:`prody-align` command and :func:`.prody_align` function can handle
+    non-protein atom selections (see examples for :ref:`prody-align`).
+
+  * :func:`.parsePDB` and :func:`.writePDB` supports 100K and more atoms.
+
+**Changes**:
+
+  * :func:`.showOverlapTable` displays first set of modes along x axis of the
+    plot.
+
+  * :meth:`.AtomGroup.setData` does not accept arrays with boolean data type,
+    use :meth:`.AtomGroup.setFlags` instead.
+
+  * :func:`.writePDB` function argument *model* is changed to *csets* that
+    indicates the coordinate set index of *atoms* argument.
+
+  * :meth:`.PackageLogger.timing` does not return elapsed time, only logs this
+    information.
+
+  * :meth:`.PackageLogger.startLogfile` is deprecated for removal in v1.3, use
+    :meth:`.PackageLogger.start` instead.
+
+  * :meth:`.PackageLogger.closeLogfile` is deprecated for removal in v1.3, use
+    :meth:`.PackageLogger.close` instead.
+
+  * ``from prody.utilities import *`` will not work anymore due to potential
+    name conflicts with Python standard library functions.  Import required
+    functions explicitly.
+
+  * :func:`.writePDB` appends :file:`.pdb` extension to filename when it is not
+    present
+
+  * :ref:`prody-select` command positional argument order is changed to allow
+    for handling multiple PDBs at a time. Old older will be supported until
+    v1.4, but a warning message will be issued.
+
+  * *select* argument in :func:`.alignCoordsets` is removed, make selection
+    outside of the function instead.
+
+**Deprecations**:
+
+  * :meth:`.AtomGroup.getHeteros` method has been deprecated for removal in
+    v1.3, use ``getFlags('hetatm')`` instead.
+
+  * :meth:`.AtomMap.getMappedFlags` and :meth:`.AtomMap.getDummyFlags`
+    methods have been deprecated for removal in v1.3, use
+    ``getFlags('mapped')`` and ``getFlags('dummy')`` instead.
+
+  * :func:`.getVerbosity` and :func:`.setVerbosity` are deprecated for removal
+    in v1.3, use :func:`.confProDy` instead which save changes permanently.
+
+  * :meth:`.NMA.getModes` and :meth:`.ModeSet.getModes` methods are deprecated
+    for removal in v1.3, use :func:`list`, e.g. ``list(model)``, instead.
+
+
+**Bugfixes**:
+
+  * Fixed a bug in :ref:`prody-contacts` command that arose problems when
+    when selecting a subset of the target atoms.
+
+:ref:`nmwiz`
+^^^^^^^^^^^^
+
+**Improvements**:
+
+  * :guilabel:`ProDy Interface` shows the size of the trajectory output file
+    for PCA calculations.
+
+  * :guilabel:`Mode Graphics Options` allows for copying arrows settings from
+    one mode to another.
+
+  * Color scale method and midpoint for protein coloring based on mobility and
+    bfactors can be adjusted from :guilabel:`Protein Graphics Options` panel.

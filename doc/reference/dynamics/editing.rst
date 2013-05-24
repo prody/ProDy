@@ -1,5 +1,5 @@
-prody.dynamics.editing
-======================
+NMA Model Editing
+=================
 
 .. automodule:: prody.dynamics.editing
    :members:

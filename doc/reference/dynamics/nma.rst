@@ -1,5 +1,5 @@
-prody.dynamics.nma
-==================
+Normal Mode Analysis
+====================
 
 .. automodule:: prody.dynamics.nma
    :members:

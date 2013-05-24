@@ -1,5 +1,5 @@
-prody.atomic.hierview
-=====================
+Hierarchical Views
+==================
 
 .. automodule:: prody.atomic.hierview
    :members:

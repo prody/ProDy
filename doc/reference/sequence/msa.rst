@@ -1,5 +1,5 @@
-prody.sequence.msa
-==================
+Multiple Sequence Alignment
+===========================
 
 .. automodule:: prody.sequence.msa
    :members:

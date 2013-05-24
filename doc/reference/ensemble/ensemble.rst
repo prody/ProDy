@@ -1,4 +1,4 @@
-prody.ensemble.ensemble
+Conformational Ensemble
 =======================
 
 .. automodule:: prody.ensemble.ensemble

@@ -1,5 +1,5 @@
-prody.apps.evol_apps.evol_coevol
-================================
+Coevolution Application
+=======================
 
 .. automodule:: prody.apps.evol_apps.evol_coevol
    :members:

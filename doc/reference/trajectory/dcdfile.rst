@@ -1,5 +1,5 @@
-prody.trajectory.dcdfile
-========================
+DCD File
+========
 
 .. automodule:: prody.trajectory.dcdfile
    :members:

@@ -1,5 +1,5 @@
 ***************
-prody.utilities
+ProDy Utilities
 ***************
 
 .. automodule:: prody.utilities

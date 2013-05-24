@@ -1,5 +1,5 @@
-prody.apps.evol_apps.evol_conserv
-=================================
+Conservation Application
+========================
 
 .. automodule:: prody.apps.evol_apps.evol_conserv
    :members:

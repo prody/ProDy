@@ -1,5 +1,5 @@
-prody.utilities.pathtools
-=========================
+Path Tools
+==========
 
 .. automodule:: prody.utilities.pathtools
    :members:

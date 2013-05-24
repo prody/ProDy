@@ -1,5 +1,5 @@
-prody.atomic.atommap
-====================
+Atom Map
+========
 
 .. automodule:: prody.atomic.atommap
    :members:

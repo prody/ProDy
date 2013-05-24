@@ -1,5 +1,5 @@
-prody.proteins.pdbligands
-=========================
+PDB Ligands
+===========
 
 .. automodule:: prody.proteins.pdbligands
    :members:

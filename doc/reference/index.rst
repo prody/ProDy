@@ -1,7 +1,7 @@
 .. _reference:
 
 *******************************************************************************
-ProDy Reference Manual
+Reference Manual
 *******************************************************************************
 
 .. toctree::
@@ -21,9 +21,13 @@ ProDy Reference Manual
    apps/index
    utilities/index
    tests
-   changes
-   people
-   citing
-   credits
-   funding
    license
+   changes/index
+
+.. include:: people.txt
+
+.. include:: citing.txt
+
+.. include:: credits.txt
+
+.. include:: funding.txt

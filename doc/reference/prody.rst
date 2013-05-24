@@ -1,5 +1,5 @@
 *****
-prody
+ProDy
 *****
 
 .. module:: prody

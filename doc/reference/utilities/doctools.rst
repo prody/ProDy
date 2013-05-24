@@ -1,5 +1,5 @@
-prody.utilities.doctools
-========================
+Documentation Tools
+===================
 
 .. automodule:: prody.utilities.doctools
    :members:

@@ -1,6 +1,6 @@
-****************************
-ProDy Documentation Contents
-****************************
+*******************
+ProDy Documentation
+*******************
 
 .. toctree::
    :maxdepth: 2

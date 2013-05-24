@@ -1,5 +1,5 @@
-prody.trajectory.frame
-======================
+Frame
+=====
 
 .. automodule:: prody.trajectory.frame
    :members:

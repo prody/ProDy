@@ -1,5 +1,5 @@
-prody.atomic.atom
-=================
+Atom
+====
 
 .. automodule:: prody.atomic.atom
    :members:

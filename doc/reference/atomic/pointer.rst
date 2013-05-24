@@ -1,5 +1,5 @@
-prody.atomic.pointer
-====================
+Atom Pointer
+============
 
 .. automodule:: prody.atomic.pointer
    :members:

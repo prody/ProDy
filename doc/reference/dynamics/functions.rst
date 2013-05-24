@@ -1,5 +1,5 @@
-prody.dynamics.functions
-========================
+Supporting Functions
+====================
 
 .. automodule:: prody.dynamics.functions
    :members:

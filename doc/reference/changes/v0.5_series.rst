@@ -1,0 +1,134 @@
+ProDy 0.5 Series
+===============================================================================
+
+0.5.3 (Feb 11, 2011)
+-------------------------------------------------------------------------------
+
+**New Features**:
+
+  * Membership, equality, and non-equality test operation are defined for all
+    :mod:`~prody.atomic` classes. See :ref:`selection-operations`.
+
+  * Two functions are implemented for dealing with anisotropic temperature
+    factors: :func:`.calcADPAxes` and :func:`.buildADPMatrix`.
+
+  * :meth:`.NMA.setEigens` and :meth:`.NMA.addEigenpair` methods are
+    implemented to assist analysis of normal modes calculated using
+    external software.
+
+  * :func:`.parseNMD` is implemented for parsing NMD files.
+
+  * :func:`.parseModes` is implemented for parsing normal mode data.
+
+  * :func:`.parseArray` is implementing for reading numeric data, particularly
+    normal mode data calculated using other software for analysis using ProDy.
+
+  * The method in [BH02]_ to calculate overlap between covariance matrices is
+    implemented as :func:`.calcCovOverlap` function.
+
+  * :func:`.trimEnsemble` to trim :class:`.Ensemble` instances is implemented.
+
+  * :func:`.checkUpdates` to check for ProDy updates is implemented.
+
+**Changes**:
+
+  * Change in default behavior of :func:`.parsePDB` function. When
+    alternate locations exist, those indicated by A are parsed. For parsing
+    all alternate locations user needs to pass ``altloc=True`` argument.
+
+  * :func:`getSumOfWeights` is renamed as :func:`.calcSumOfWeights`.
+
+  * :func:`mapAtomsToChain` is renamed as :func:`.mapOntoChain`.
+
+  * :func:`ProDyStartLogFile` is renamed as :func:`.startLogfile`.
+
+  * :func:`ProDyCloseLogFile` is renamed as :func:`.closeLogfile`.
+
+  * :func:`ProDySetVerbosity` is renamed as :func:`.changeVerbosity`.
+
+**Improvements**:
+
+  * A few bugs in ensemble and dynamics classes are fixed.
+
+  * Improvements in :class:`RCSB_PDBFetcher` allow it not to miss a
+    PDB file if it exists in the target folder.
+
+  * :func:`.writeNMD` is fixed to output B-factors (Thanks to Dan Holloway for
+    pointing it out).
+
+0.5.2 (Jan 12, 2011)
+-------------------------------------------------------------------------------
+
+**Bug Fixes**:
+
+  * An important fix in :func:`.sampleModes` function was made
+    (Thanks to Alberto Perez for finding the bug and suggesting a solution).
+
+**Improvements**:
+
+  * Improvements in :meth:`.ANM.calcModes`, :meth:`.GNM.calcModes`,
+    and :meth:`.PCA.calcModes` methods prevent Numpy/Scipy throwing an
+    exception when more than available modes are requested by the user.
+
+  * Improvements in :func:`.blastPDB` enable ProDy throw an exception when no
+    internet connection is found, and warn user when downloads fail due to
+    restriction in network regulations (Thanks to Serkan Apaydin for helping
+    identify these improvements).
+
+  * New example :ref:`writepdb`.
+
+0.5.1 (Dec 31, 2010)
+-------------------------------------------------------------------------------
+
+**Changes in dependencies**:
+
+* Scipy (linear algebra module) is not required package anymore.  When
+  available it replaces Numpy (linear algebra module) for greater flexibility
+  and efficiency. A warning message is printed when Scipy is not found.
+
+* Biopython KDTree module is not required for ENM calculations (specifically
+  for building Hessian (ANM) or Kirchoff (GNM) matrices). When available it
+  is used to increase the performance. A warning message is printed when
+  KDTree is not found.
+
+0.5 (Dec 21, 2010)
+-------------------------------------------------------------------------------
+
+**New Features**:
+
+  * :class:`.AtomPointer` base class for classes pointing to
+    atoms in an :class:`.AtomGroup`.
+
+  * :class:`.AtomPointer` instances (Selection, Residue, etc.)
+    can be added. See :ref:`selection-operations` for examples.
+
+  * :meth:`.Select.getIndices` and :meth:`.Select.getBoolArray`
+    methods to expand the usage of :class:`.Select`.
+
+  * :func:`.sliceVector` and :func:`.sliceMode` functions.
+
+  * :func:`.saveModel` and :func:`.loadModel` functions
+    for saving and loading NMA data.
+
+  * :func:`.parsePDBStream` can now parse specific chains or
+    alternate locations from a PDB file.
+
+  * :func:`.alignCoordsets` is implemented to superimpose
+    coordinate sets of an :class:`.AtomGroup` instance.
+
+**Bug Fixes**:
+
+  * A bug in :func:`.parsePDBStream` that caused unidentified errors
+    when a model in a multiple model file did not have the same number of
+    atoms is fixed.
+
+**Changes**:
+
+  * Iterating over a :class:`.Chain` instance yields :class:`.Residue`
+    instances.
+
+  * :class:`.Vector` instantiation requires an *array* only. *name*
+    is an optional argument.
+
+  * Functions starting with ``get`` and performing a calculations are renamed
+    to start with ``calc``, e.g. :func:`getRMSD` is now :func:`.calcRMSD`.

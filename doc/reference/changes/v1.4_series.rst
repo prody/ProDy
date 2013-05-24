@@ -1,0 +1,170 @@
+ProDy 1.4 Series
+===============================================================================
+
+1.4.3 (in development)
+-------------------------------------------------------------------------------
+
+**Changes**:
+
+  * :func:`.getVMDpath` and :func:`.setVMDpath` functions are deprecated for
+    removal, use :func:`pathVMD` instead.
+
+  * Increased :func:`.blastPDB` *timeout* to 60 seconds.
+
+1.4.2 (April 19, 2013)
+-------------------------------------------------------------------------------
+
+**Improvements**:
+
+  * :func:`.fetchPDB` and :func:`.fetchPDBfromMirror` functions can handle
+    partial PDB mirrors.  See :func:`.pathPDBMirror` for setting a mirror path.
+
+**Changes**:
+
+  * `MSE <http://www.pdb.org/pdb/ligand/ligandsummary.do?hetId=MSE>`_ is
+    included in the definition of non-standard amino acids, i.e.
+    :term:`nonstdaa`.
+
+**Bugfixes**:
+
+  * Atom selection problems related to using :term:`all` and :term:`none` in
+    composite selections, e.g. ``'calpha and all'``, is fixed by defining these
+    keywords as :ref:`flags`.
+
+  * Fasta files with sequence labels using multiple pipe characters would
+    cause C parser (and so :func:`.parseMSA`) to fail.  This issue is fixed
+    by completely disregarding pipe characters.
+
+  * Empty chain identifiers for PDB hits would cause a problem in parsing
+    XML results file and :func:`.blastPDB` would throw an exception.  This
+    case is handled by slicing the chain identifier string.
+
+  * A problem in :func:`.viewNMDinVMD` related to module imports is fixed.
+
+  * A problem with handling weights in :func:`.loadEnsemble` is fixed.
+
+
+1.4.1 (Dec 16, 2012)
+-------------------------------------------------------------------------------
+
+**New Features**:
+
+  * :func:`.buildSeqidMatrix` and :func:`.uniqueSequences` functions
+    are implemented for comparing sequences in an :class:`.MSA` object.
+
+  * :func:`.showHeatmap`, :func:`.parseHeatmap`, and :func:`.writeHeatmap`
+    functions are implemented to support VMD plugin `Heat Mapper`_ file format.
+
+    .. _Heat Mapper: http://www.ks.uiuc.edu/Research/vmd/plugins/heatmapper/
+
+  * :class:`.Sequence` is implemented to handle individual sequence records
+    and point to sequences in :class:`.MSA` instances.
+
+  * :ref:`evol-occupancy` application is implemented for refined MSA
+    quality checking purposes.
+
+  * :func:`.mergeMSA` function and :ref:`evol-merge` application are
+    implemented for merging Pfam MSA to study multi-domain proteins.
+
+
+**Improvements**:
+
+  * :func:`.refineMSA` function and :ref:`evol-refine` application
+    can perform MSA refinements by removing similar sequences.
+
+  * :func:`.writePDB` function takes *beta* and *occupancy* arguments
+    to be outputted in corresponding columns.
+
+  * :class:`.MSA` indexing and slicing are revised and improved.
+
+  * :func:`.parseMSA` is improved to handle indexing of sequences that
+    have the same label in an MSA file, e.g. domains repeated in a protein.
+
+  * :ref:`prody-anm`, :ref:`prody-gnm`, and :ref:`prody-pca` applications
+    can write heatmap files for visualization using NMWiz and Heatmapper
+    plugins.
+
+  * Several improvements made to handling sequence labels in Pfam MSA files.
+    Files that contain sequence parts with same protein UniProt ID are
+    handled delicately.
+
+**Changes**:
+
+  * ProDy will not emit a warning message when a wwPDB server is not set
+    using :func:`.wwPDBServer`, and use the default US server.
+
+  * Indexing :class:`.MSA` returns :class:`.Sequence` instances.
+
+  * Iterating over :class:`.MSA` and :class:`.MSAFile` yields
+    :class:`.Sequence` instances.
+
+**Bugfixes**:
+
+  * Fixed a syntax problem that prevented running ProDy using Python 2.6.
+
+  * Fixed :class:`.NMA` indexing problem that was introduced in v1.4.
+
+
+:ref:`nmwiz`
+^^^^^^^^^^^^
+
+  * NMWiz can visualize heatmaps linked to structural view via Heatmapper.
+    Clicking on the heatmap will highlight atom or residue pairs.
+
+  * ProDy interface has the option to write and load cross-correlations.
+
+  * NMWiz can determined whether a model is an extended model. For extended
+    models plotting mobility has been improved. Only a single value per residue
+    will be plotted, and clicking on the plot will highlight all of the
+    residue atoms.
+
+
+1.4 (Dec 2, 2012)
+-------------------------------------------------------------------------------
+
+**New Features**:
+
+*Python 3 Support*
+
+  * ProDy has been refactored to support Python 3.  Windows installers for
+    Python 2.6, 2.7, 3.1, and 3.2 are available in :ref:`getprody`.
+
+  * Unit tests are compatible with Python 2.7 and 3.2, and running them with
+    other versions gives errors due to unavailability of some :mod:`unittest`
+    features.
+
+*Sequence Analysis*
+
+  * New applications :ref:`evol-apps` are available.
+
+  * :func:`.searchPfam` and :func:`.fetchPfamMSA` functions are implemented
+    for searching and retrieving Pfam data.  See :ref:`msafiles` for usage
+    examples.
+
+  * :class:`.MSAFile` class, :func:`.parseMSA` and :func:`.writeMSA` functions
+    are implemented for reading and writing multiple sequence alignments.
+    See :ref:`msafiles` for usage examples.
+
+  * :class:`.MSA` class has been implemented for storing and manipulating
+    MSAs in memory.
+
+  * :func:`.calcShannonEntropy`, :func:`.buildMutinfoMatrix`, and
+    :func:`.calcMSAOccupancy` functions are implemented implemented for
+    MSA analysis.  See :ref:`msa-analysis` for usage examples.
+
+  * :func:`.showShannonEntropy`, :func:`.showMutinfoMatrix`, and
+    :func:`.showMSAOccupancy` functions are implemented implemented for
+    MSA analysis.  See :ref:`msa-analysis` for usage examples.
+
+  * :func:`.applyMutinfoCorr` and :func:`.applyMutinfoNorm` functions are
+    implemented for applying normalization and corrections to mutual
+    information matrices.
+
+  * :func:`.calcRankorder` function is implemented for identifying highly
+    correlated/co-evolving pairs of residues.
+
+
+**Bugfix**:
+
+  * Selection :issue:`12` and  :issue:`13` are resolved.
+

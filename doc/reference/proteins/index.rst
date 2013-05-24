@@ -1,8 +1,8 @@
 .. _proteins:
 
-**************
-prody.proteins
-**************
+*****************
+Protein Structure
+*****************
 
 .. automodule:: prody.proteins
 
