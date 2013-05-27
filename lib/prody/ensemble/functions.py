@@ -128,8 +128,8 @@ def trimPDBEnsemble(pdb_ensemble, **kwargs):
 
     if 'occupancy' in kwargs:
         occupancy = float(kwargs['occupancy'])
-        assert 0 < occupancy <=1, ('occupancy is not > 0 and <= 1: '
-                                   '{0}'.format(repr(occupancy)))
+        assert 0 < occupancy <= 1, ('occupancy is not > 0 and <= 1: '
+                                    '{0}'.format(repr(occupancy)))
         n_confs = pdb_ensemble.numConfs()
         assert n_confs > 0, 'pdb_ensemble does not contain any conformations'
         occupancies = calcOccupancies(pdb_ensemble, normed=True)
@@ -143,11 +143,11 @@ def trimPDBEnsemble(pdb_ensemble, **kwargs):
     trimmed = PDBEnsemble(pdb_ensemble.getTitle())
     coords = pdb_ensemble.getCoords()
     if coords is not None:
-        trimmed.setCoords( coords[torf] )
+        trimmed.setCoords(coords[torf])
     confs = pdb_ensemble.getCoordsets()
     if confs is not None:
         weights = pdb_ensemble.getWeights()
-        trimmed.addCoordset( confs[:, torf], weights[:, torf] )
+        trimmed.addCoordset(confs[:, torf], weights[:, torf])
     return trimmed
 
 
@@ -161,12 +161,11 @@ def calcOccupancies(pdb_ensemble, normed=False):
     When analyzing an ensemble of X-ray structures, this function can be used
     to see how many times a residue is resolved.
 
-    >>> from prody import *
-    >>> ens = loadEnsemble('p38_X-ray.ens.npz')
-    >>> print( calcOccupancies(ens) ) # doctest: +ELLIPSIS
-    [ 74.  75.  75.  75.  75.  75.  75.  75.  75.  73.  73.  74.  75.  75.  75.
-      ...
-      75.  75.  75.  75.  75.  75.]
+    .. ipython:: python
+
+       from prody import *
+       ens = loadEnsemble('p38_X-ray.ens.npz')
+       calcOccupancies(ens)
 
     Each number in the above example corresponds to a residue (or atoms) and
     shows the number of structures in which the corresponding residue is
@@ -316,7 +315,7 @@ def alignPDBEnsemble(ensemble, suffix='_aligned', outdir='.', gzip=False):
             writePDB(outfn, ag)
         output.append(os.path.normpath(outfn))
 
-    for pdb, ag in pdbdict.items(): # PY3K: OK
+    for pdb, ag in pdbdict.items():  # PY3K: OK
         writePDB(os.path.join(outdir, pdb + suffix + '.pdb' + gzip), ag)
     if len(output) == 1:
         return output[0]
