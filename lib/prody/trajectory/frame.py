@@ -18,11 +18,6 @@
 
 """This module defines a class for handling trajectory frames.
 
-.. _frame:
-
-Atoms and Frames
-================
-
 :class:`Frame` instances store only coordinate and some frame related data.
 Linking atoms to a trajectory (using :meth:`~Trajectory.link`) makes
 :class:`Frame` and :class:`.AtomGroup` instance share the same coordinate data.
@@ -30,19 +25,21 @@ Let's see how this works:
 
 When trajectory atoms are not set, you will get multiple instances of frames:
 
->>> from prody import *
->>> dcd = Trajectory('mdm2.dcd')
->>> frame0 = dcd.next()
->>> frame0
-<Frame: 0 from mdm2 (1449 atoms)>
->>> frame1 = dcd.next()
->>> frame1
-<Frame: 1 from mdm2 (1449 atoms)>
+.. ipython:: python
+
+   from prody import *
+   dcd = Trajectory('trajectory_analysis_files/mdm2.dcd')
+   dcd
+   frame0 = dcd.next()
+   frame0
+   frame1 = dcd.next()
+   frame1
 
 As shown below, these :class:`Frame` instances are different objects.
 
->>> frame0 is frame1
-False
+.. ipython:: python
+
+   frame0 is frame1
 
 When you are not referring to any of these frames anymore in your code,
 Python garbage collector will free or reuse the memory space that was used by
@@ -51,32 +48,36 @@ those frames.
 When an :class:`.AtomGroup` is linked to the trajectory as follows, things
 work differently:
 
->>> pdb = parsePDB('mdm2.pdb')
->>> dcd.link(pdb)
->>> dcd.reset()
+.. ipython:: python
+
+   pdb = parsePDB('trajectory_analysis_files/mdm2.pdb')
+   pdb
+   dcd.link(pdb)
+   dcd.reset()
 
 We get :class:`Frame` instances in the same way:
 
->>> frame0 = dcd.next()
->>> frame0
-<Frame: 0 from mdm2 (1449 atoms)>
->>> print pdb.getACSLabel()
-mdm2 frame 0
+.. ipython:: python
 
-Note that the active coordinate set of the :class:`~.AtomGroup` and its label
+   frame0 = dcd.next()
+   frame0
+   pdb.getACSLabel()
+
+Note that the active coordinate set of the :class:`.AtomGroup` and its label
 will change when we get the next frame:
 
->>> frame1 = dcd.next()
->>> frame1
-<Frame: 1 from mdm2 (1449 atoms)>
->>> print pdb.getACSLabel()
-mdm2 frame 1
+.. ipython:: python
+
+   frame1 = dcd.next()
+   frame1
+   pdb.getACSLabel()
 
 Now the key difference is that the :class:`Frame` instances are the same
 objects in this case:
 
->>> frame0 is frame1
-True
+.. ipython:: python
+
+   frame0 is frame1
 
 As you see, a new frame was not instantiated.  The same frame is reused and
 it always points to the coordinates stored in the :class:`.AtomGroup`.
@@ -89,11 +90,11 @@ __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 import numpy as np
 
-from prody import measure
 from prody.measure import getRMSD
 from prody.utilities import importLA
 
 __all__ = ['Frame']
+
 
 class Frame(object):
 
@@ -117,13 +118,14 @@ class Frame(object):
         if self._traj._indices is not None:
             sel = 'selected {0} of '.format(self.numSelected())
 
-        return ('<Frame: {0} from {1} ({2}{3} atoms)>').format(
-                self._index, self._traj.getTitle(), sel, self._traj.numAtoms())
+        return ('<Frame: {0} from {1} ({2}{3} atoms)>'
+                ).format(self._index, self._traj.getTitle(), sel,
+                         self._traj.numAtoms())
 
     def __str__(self):
 
         return 'Frame {0} from {1}'.format(self._index,
-                                               self._traj.getTitle())
+                                           self._traj.getTitle())
 
     def numAtoms(self):
         """Return number of atoms."""
@@ -213,7 +215,7 @@ class Frame(object):
         """Return a copy of unitcell array."""
 
         if self._unitcell is not None:
-             return self._unitcell.copy()
+            return self._unitcell.copy()
 
     def _getUnitcell(self):
 
@@ -283,9 +285,9 @@ class Frame(object):
                             (mob_org * weights)) / weights_dot
 
         U, s, Vh = linalg.svd(matrix)
-        Id = np.array([ [1, 0, 0],
-                        [0, 1, 0],
-                        [0, 0, np.sign(linalg.det(matrix))] ])
+        Id = np.array([[1, 0, 0],
+                       [0, 1, 0],
+                       [0, 0, np.sign(linalg.det(matrix))]])
         rotation = np.dot(Vh.T, np.dot(Id, U.T))
 
         if mov is None:
