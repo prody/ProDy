@@ -197,34 +197,7 @@ Finally, normal modes can be visualized and animated using VMD plugin
 :ref:`nmwiz`. Following functions allow for running NMWiz from within Python:
 
   * :func:`.viewNMDinVMD` - run VMD and load normal mode data
-  * :func:`.getVMDpath`, :func:`.setVMDpath` - get/set path to VMD executable
-
-
-Examples
-========
-
-Results from the example :ref:`pca-xray-calculations` will be used to
-illustrate class methods and functions in the module.
-
-
->>> from prody import *
->>> import matplotlib.pyplot as plt
->>> import numpy as np
-
->>> p38_pca = loadModel('p38_xray.pca.npz')
->>> p38_anm = loadModel('1p38.anm.npz')
->>> p38_ensemble = loadEnsemble('p38_X-ray.ens.npz')
->>> p38_structure = parsePDB('p38_ref_chain.pdb')
-
-
-.. plot::
-   :nofigs:
-   :context:
-
-   import matplotlib.pyplot as plt
-
-   plt.close('all')
-"""
+  * :func:`.pathVMD` - get/set path to VMD executable"""
 
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'

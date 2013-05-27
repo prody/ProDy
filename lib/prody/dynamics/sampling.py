@@ -19,14 +19,16 @@
 """This module defines functions for generating alternate conformations along
 normal modes
 
->>> from prody import *
->>> import matplotlib.pyplot as plt
->>> import numpy as np
 
->>> p38_pca = loadModel('p38_xray.pca.npz')
->>> p38_anm = loadModel('1p38.anm.npz')
->>> p38_ensemble = loadEnsemble('p38_X-ray.ens.npz')
->>> p38_structure = parsePDB('p38_ref_chain.pdb')"""
+.. ipython:: python
+
+   from prody import *
+   from pylab import *
+   ion()
+   p38_pca = loadModel('p38_xray.pca.npz')
+   p38_anm = loadModel('1p38.anm.npz')
+   p38_ensemble = loadEnsemble('p38_X-ray.ens.npz')
+   p38_structure = parsePDB('p38_ref_chain.pdb')"""
 
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
@@ -38,10 +40,10 @@ from prody.atomic import Atomic, AtomGroup
 from prody.ensemble import Ensemble
 
 from .nma import NMA
-from .mode import Mode, VectorBase, Vector
+from .mode import Mode, VectorBase
 from .modeset import ModeSet
 
-__all__ = ['deformAtoms', 'sampleModes', 'traverseMode',]
+__all__ = ['deformAtoms', 'sampleModes', 'traverseMode']
 
 
 def sampleModes(modes, atoms=None, n_confs=1000, rmsd=1.0):
@@ -63,6 +65,8 @@ def sampleModes(modes, atoms=None, n_confs=1000, rmsd=1.0):
     :arg rmsd: The average RMSD that the conformations will have with
         respect to the initial conformation. Default is 1.0 A.
     :type rmsd: float
+
+    :returns: :class:`.Ensemble`
 
     For given normal modes :math:`[u_1 u_2 ... u_m]` and their eigenvalues
     :math:`[\lambda_1 \lambda_2 ... \lambda_m]`, a new conformation
@@ -107,21 +111,13 @@ def sampleModes(modes, atoms=None, n_confs=1000, rmsd=1.0):
 
     See also :func:`.showEllipsoid`.
 
-    .. plot::
-       :context:
-       :include-source:
+    .. ipython:: python
 
        # Generate 300 conformations using ANM modes 1-3
-       ensemble = sampleModes( p38_anm[:3], n_confs=500 )
+       ensemble = sampleModes(p38_anm[:3], n_confs=500)
        # Project these conformations onto the space spanned by these modes
-       plt.figure(figsize=(5,4))
-       showProjection(ensemble, p38_anm[:3], rmsd=True)
-
-    .. plot::
-       :context:
-       :nofigs:
-
-       plt.close('all')"""
+       @savefig reference_dynamics_sampling_ensemble.png width=4in
+       showProjection(ensemble, p38_anm[:3], rmsd=True);"""
 
     if not isinstance(modes, (Mode, NMA, ModeSet)):
         raise TypeError('modes must be a NMA or ModeSet instance, '
@@ -144,7 +140,6 @@ def sampleModes(modes, atoms=None, n_confs=1000, rmsd=1.0):
     n_confs = int(n_confs)
     LOGGER.info('Parameter: n_confs = {0}'.format(n_confs))
 
-
     if isinstance(modes, Mode):
         n_modes = 1
         variances = np.array([modes.getVariance()])
@@ -165,10 +160,10 @@ def sampleModes(modes, atoms=None, n_confs=1000, rmsd=1.0):
     array = modes._getArray()
     if array.ndim > 1:
         for i in range(n_confs):
-            append( (array * scale * randn[i]).sum(1).reshape((n_atoms, 3)) )
+            append((array * scale * randn[i]).sum(1).reshape((n_atoms, 3)))
     else:
         for i in range(n_confs):
-            append( (array * scale * randn[i]).reshape((n_atoms, 3)) )
+            append((array * scale * randn[i]).reshape((n_atoms, 3)))
 
     ensemble = Ensemble('Conformations along {0}'.format(modes))
     if initial is None:
@@ -213,23 +208,15 @@ def traverseMode(mode, atoms, n_steps=10, rmsd=1.5):
     :math:`N` is the number of atoms.
 
 
-    .. plot::
-       :context:
-       :include-source:
+    .. ipython:: python
 
-       trajectory = traverseMode( p38_anm[0], p38_structure.select('calpha'),
-                                  n_steps=8, rmsd=1.4 )
+       trajectory = traverseMode(p38_anm[0], p38_structure.select('calpha'),
+                                 n_steps=8, rmsd=1.4)
        rmsd = calcRMSD(trajectory)
-       plt.figure(figsize=(5,4))
-       plt.plot(rmsd, '-o')
-       plt.xlabel('Frame index')
-       plt.ylabel('RMSD (A)')
-
-    .. plot::
-       :context:
-       :nofigs:
-
-       plt.close('all')"""
+       plot(rmsd, '-o');
+       xlabel('Frame index');
+       @savefig reference_dynamics_sampling_traverse.png width=4in
+       ylabel('RMSD (A)');"""
 
     if not isinstance(mode, VectorBase):
         raise TypeError('mode must be a Mode or Vector instance, '
@@ -256,16 +243,16 @@ def traverseMode(mode, atoms, n_steps=10, rmsd=1.5):
     LOGGER.info('Step size is {0:.2f} A RMSD'.format(step))
     arr = mode.getArrayNx3()
     var = mode.getVariance()
-    scale = ((n_atoms * step**2) / var) **0.5
+    scale = ((n_atoms * step**2) / var) ** 0.5
     LOGGER.info('Mode is scaled by {0}.'.format(scale))
 
     array = arr * var**0.5 * scale
     confs_add = [initial + array]
     for s in range(1, n_steps):
-        confs_add.append( confs_add[-1] + array)
+        confs_add.append(confs_add[-1] + array)
     confs_sub = [initial - array]
     for s in range(1, n_steps):
-        confs_sub.append( confs_sub[-1] - array)
+        confs_sub.append(confs_sub[-1] - array)
     confs_sub.reverse()
     ensemble = Ensemble('Conformations along {0}'.format(name))
     ensemble.setCoords(initial)
@@ -281,13 +268,14 @@ def deformAtoms(atoms, mode, rmsd=None):
     set.  Below example shows how to deform a structure along a normal mode
     or linear combinations of normal modes:
 
-    >>> deformAtoms(p38_structure, p38_pca[0] * p38_pca[0].getVariance()**0.5)
-    >>> deformAtoms(p38_structure, -p38_pca[1] * p38_pca[1].getVariance()**0.5)
-    >>> deformAtoms(p38_structure, p38_pca[0] * p38_pca[0].getVariance()**0.5 +
-    ...                            p38_pca[1] * p38_pca[1].getVariance()**0.5)
-    >>> deformAtoms(p38_structure, p38_pca[0], rmsd=1.0)
-    >>> print calcRMSD(p38_structure).round(3)
-    [ 0.     0.41   0.308  0.513  1.   ]"""
+    .. ipython:: python
+
+       deformAtoms(p38_structure, p38_pca[0] * p38_pca[0].getVariance()**0.5)
+       deformAtoms(p38_structure, -p38_pca[1] * p38_pca[1].getVariance()**0.5)
+       deformAtoms(p38_structure, p38_pca[0] * p38_pca[0].getVariance()**0.5 +
+                   p38_pca[1] * p38_pca[1].getVariance()**0.5)
+       deformAtoms(p38_structure, p38_pca[0], rmsd=1.0)
+       calcRMSD(p38_structure)"""
 
     if not isinstance(atoms, AtomGroup):
         raise TypeError('atoms must be an AtomGroup, not {0}'
@@ -307,6 +295,6 @@ def deformAtoms(atoms, mode, rmsd=None):
         # rmsd = ( ((scalar * array)**2).sum() / n_atoms )**0.5
         scalar = (atoms.numAtoms() * rmsd**2 / (array**2).sum())**0.5
         LOGGER.info('Mode is scaled by {0}.'.format(scalar))
-        atoms.addCoordset( atoms.getCoords() + array * scalar)
+        atoms.addCoordset(atoms.getCoords() + array * scalar)
     else:
-        atoms.addCoordset( atoms.getCoords() + array)
+        atoms.addCoordset(atoms.getCoords() + array)

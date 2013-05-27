@@ -3,10 +3,10 @@
 .. _nmd-format:
 
 NMD Format
-===============================================================================
+-------------------------------------------------------------------------------
 
 Description
--------------------------------------------------------------------------------
+^^^^^^^^^^^
 
 NMD files (extension :file:`.nmd`) are plain text files that contain at
 least normal mode and system coordinate data.
@@ -16,7 +16,7 @@ NMD files can be visualized using :ref:`nmwiz`.  ProDy functions
 files.
 
 Data fields
--------------------------------------------------------------------------------
+^^^^^^^^^^^
 
 Data fields in bold face are required. All data arrays and lists must be in a
 single line and items must be separated by one or more space characters.
@@ -86,7 +86,7 @@ above field names are evaluated by NMWiz.
 
 
 Autoload Trick
--------------------------------------------------------------------------------
+^^^^^^^^^^^^^^
 
 By adding a special line in an NMD file, file content can be automatically
 loaded into VMD at startup. The first line calls a NMWiz function to load the
@@ -109,7 +109,7 @@ __all__ = ['parseNMD', 'writeNMD', 'pathVMD', 'getVMDpath', 'setVMDpath',
            'viewNMDinVMD']
 
 import os
-from os.path import abspath, join, isfile, isdir, split, splitext
+from os.path import abspath, join, split, splitext
 
 import numpy as np
 
@@ -119,10 +119,11 @@ from prody.utilities import openFile, isExecutable, which, PLATFORM, addext
 
 from .nma import NMA
 from .anm import ANM
-from .gnm import GNM, GNMBase, ZERO
-from .pca import PCA, EDA
+from .gnm import GNM, ZERO
+from .pca import PCA
 from .mode import Vector, Mode
 from .modeset import ModeSet
+
 
 def pathVMD(*path):
     """Return VMD path, or set it to be a user specified *path*."""
@@ -134,14 +135,13 @@ def pathVMD(*path):
         else:
             LOGGER.warning('VMD path is not set by user, looking for it.')
 
-            from types import StringType, UnicodeType
             vmdbin = None
             vmddir = None
             if PLATFORM == 'Windows':
                 if PY3K:
                     import winreg
                 else:
-                    import _winreg as winreg # PY3K: OK
+                    import _winreg as winreg  # PY3K: OK
                 for vmdversion in ('1.8.7', '1.9', '1.9.1'):
                     try:
                         key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE,
@@ -206,6 +206,7 @@ NMD_LABEL_MAP = {
     'bfactors': 'beta'
 }
 
+
 def parseNMD(filename, type=None):
     """Return :class:`.NMA` and :class:`.AtomGroup` instances storing data
     parsed from *filename* in :file:`.nmd` format.  Type of :class:`.NMA`
@@ -255,7 +256,7 @@ def parseNMD(filename, type=None):
 
     from prody.atomic import ATOMIC_FIELDS
 
-    for label, data in atomic.items(): # PY3K: OK
+    for label, data in atomic.items():  # PY3K: OK
         if data is None:
             continue
         line, data = data
@@ -276,10 +277,10 @@ def parseNMD(filename, type=None):
         return None, ag
 
     length = len(modes[0][1].split())
-    is3d =  length > n_atoms + 2
+    is3d = length > n_atoms + 2
     if dof is None:
         dof = length - (length % 3)
-    elif not is3d: # GNM
+    elif not is3d:  # GNM
         dof = n_atoms
 
     array = np.zeros((dof, len(modes)))
@@ -328,7 +329,7 @@ def parseNMD(filename, type=None):
     else:
         nma = GNM(name)
     if count != array.shape[1]:
-        array = array[:,:count].copy()
+        array = array[:, :count].copy()
 
     nma.setEigens(array, eigvals)
     return nma, ag
@@ -431,6 +432,7 @@ def writeNMD(filename, modes, atoms):
                        'Given modes might have 0 eigenvalues.')
     out.close()
     return filename
+
 
 def viewNMDinVMD(filename):
     """Start VMD in the current Python session and load NMD data."""
