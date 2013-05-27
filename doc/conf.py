@@ -42,9 +42,8 @@ def getRevisionNumber():
 version = '1.4.2'
 release =  version
 
-
 exclude_patterns = ['_build', 'examples', 'tutorial', 'tutorials/template',
-                    'tutorials/*/acknowledgments.rst', 'reports']
+                    '*acknowledgments.rst', 'reports','random']
 
 
 add_module_names = False
@@ -57,9 +56,9 @@ modindex_common_prefix = ['prody.']
 doctest_global_setup = "from prody import *"
 
 # -- Options for HTML output ---------------------------------------------------
-html_theme = 'sphinxdoc'
+html_theme = '_templates'
 html_theme_options = {}
-html_theme_path = []
+html_theme_path = ['.']
 
 html_title = "ProDy"
 html_favicon = '_static/favicon.ico'
@@ -97,9 +96,8 @@ html_sidebars = {
     'plugins/getnmwiz': generic_sidebars,
     '**': ['docversion.html', 'howtocite.html', 'localtoc.html',
            'relations.html', 'codesnippets.html', 'searchbox.html']}
-#html_sidebars = {'index': ['indexsidebar.html', 'searchbox.html']}
-
-html_additional_pages = {'index': 'index.html'}
+html_sidebars = {}
+#html_additional_pages = {'index': 'index.html'}
 
 html_copy_source = False
 html_show_sourcelink = False

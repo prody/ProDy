@@ -27,7 +27,11 @@ clean:
 
 workdir:
 	mkdir -p $(BUILDDIR)/workdir
-	ln -fs ../../$(BASENAME)_files $(BUILDDIR)/workdir/
+	for tut in `find tutorials/ -type d -name "*_files"` ; do \
+		if [ -d "$$tut" ]; then \
+		 	ln -fs ../../$$tut $(BUILDDIR)/workdir/;\
+		fi; \
+	done
 
 html: workdir
 	rm -f _inventory/prody*inv
