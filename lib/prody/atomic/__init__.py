@@ -30,10 +30,12 @@ snapshots from a molecular dynamics trajectory.
 
 Instances of the class can be obtained by parsing a PDB file as follows:
 
->>> from prody import *
->>> ag = parsePDB('1aar')
->>> ag
-<AtomGroup: 1aar (1218 atoms)>
+.. ipython:: python
+
+   from prody import *
+   ag = parsePDB('1aar')
+   ag
+
 
 In addition to :class:`.AtomGroup` class, following classes that act as
 pointers provide convenient access subset of data:
@@ -65,8 +67,9 @@ data files, in particular PDB files.  Aforementioned classes offer ``get``
 and ``set`` functions for manipulating this data.  For example, the following
 prints residue names:
 
->>> print(ag.getResnames())
-['MET' 'MET' 'MET' ..., 'HOH' 'HOH' 'HOH']
+.. ipython:: python
+
+   ag.getResnames()
 
 Atom flags
 ^^^^^^^^^^
@@ -75,18 +78,18 @@ Atom flags
 as atoms that are part of a **protein**.  Following example checks whether
 all atoms of *ag* are protein atoms:
 
->>> ag.isprotein
-False
+.. ipython:: python
+
+   ag.isprotein
 
 This indicates that there are some non-protein atoms, probably water atoms.
 We can easily make a count as follows:
 
->>> ag.numAtoms('protein')
-1203
->>> ag.numAtoms('hetero')
-15
->>> ag.numAtoms('water')
-15
+.. ipython:: python
+
+   ag.numAtoms('protein')
+   ag.numAtoms('hetero')
+   ag.numAtoms('water')
 
 
 Atom selections
@@ -97,24 +100,24 @@ selections and is one of the most important features of ProDy.   The details
 of the selection grammar is described in :ref:`selections`.  Following examples
 show how to make quick selections using the overloaded ``.`` operator:
 
->>> ag.chain_A # selects chain A
-<Selection: 'chain A' from 1aar (608 atoms)>
->>> ag.calpha # selects alpha carbons
-<Selection: 'calpha' from 1aar (152 atoms)>
->>> ag.resname_ALA # selects alanine residues
-<Selection: 'resname ALA' from 1aar (20 atoms)>
+.. ipython:: python
+
+   ag.chain_A  # selects chain A
+   ag.calpha  # selects alpha carbons
+   ag.resname_ALA  # selects alanine residues
 
 It is also possible to combine selections with ``and`` and ``or`` operators:
 
->>> ag.chain_A_and_backbone
-<Selection: 'chain A and backbone' from 1aar (304 atoms)>
->>> ag.acidic_or_basic
-<Selection: 'acidic or basic' from 1aar (422 atoms)>
+.. ipython:: python
+
+   ag.chain_A_and_backbone
+   ag.acidic_or_basic
 
 Using dot operator will behave like the logical ``and`` operator:
 
->>> ag.chain_A.backbone
-<Selection: '(backbone) and (chain A)' from 1aar (304 atoms)>
+.. ipython:: python
+
+   ag.chain_A.backbone
 
 For this to work, the first word following the dot operator must be a flag
 label or a field name, e.g. ``resname``, ``name``, ``apolar``, ``protein``,
@@ -220,10 +223,10 @@ import numpy as np
 
 n_atoms = 10
 ATOMGROUP = AtomGroup('Test')
-ATOMGROUP.setCoords(np.random.random((n_atoms,3)))
+ATOMGROUP.setCoords(np.random.random((n_atoms, 3)))
 ATOMGROUP.setNames(['CA']*n_atoms)
 ATOMGROUP.setResnames(['GLY']*n_atoms)
-ATOMGROUP.setResnums(np.arange(1,n_atoms+1))
+ATOMGROUP.setResnums(np.arange(1, n_atoms+1))
 ATOMGROUP.setChids(['A']*n_atoms)
 ATOMGROUP.setAltlocs([' ']*n_atoms)
 ATOMGROUP.setElements(['C']*n_atoms)
@@ -231,8 +234,8 @@ ATOMGROUP.setFlags('hetatm', [False]*n_atoms)
 ATOMGROUP.setOccupancies([1]*n_atoms)
 ATOMGROUP.setSecstrs(['H']*n_atoms)
 ATOMGROUP.setSegnames(['PDB']*n_atoms)
-ATOMGROUP.setAnisous(np.random.random((n_atoms,6)))
-ATOMGROUP.setAnistds(np.random.random((n_atoms,6)))
+ATOMGROUP.setAnisous(np.random.random((n_atoms, 6)))
+ATOMGROUP.setAnistds(np.random.random((n_atoms, 6)))
 ATOMGROUP.setIcodes([' ']*n_atoms)
 ATOMGROUP.setTypes(['CH2']*n_atoms)
 ATOMGROUP.setBetas([0]*n_atoms)

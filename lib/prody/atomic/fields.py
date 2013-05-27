@@ -1,33 +1,28 @@
 # -*- coding: utf-8 -*-
 # ProDy: A Python Package for Protein Dynamics Analysis
-# 
+#
 # Copyright (C) 2010-2012 Ahmet Bakan
-# 
+#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-#  
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
-"""This module defines atomic data fields.  You can read this page in 
+"""This module defines atomic data fields.  You can read this page in
 interactive sessions using ``help(fields)``.
 
-.. _fields:
-    
-Atomic data fields
-===============================================================================
-
-Data parsed from PDB and other supported files for these fields are stored in 
+Data parsed from PDB and other supported files for these fields are stored in
 :class:`.AtomGroup` instances.  Available data fields are listed in the table
 below.  :class:`Atomic` classes, such as :class:`.Selection`, offer ``get`` and
-``set`` for handling parsed data:  
+``set`` for handling parsed data:
 
 """
 
@@ -36,7 +31,7 @@ __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 from numpy import array
 
-from prody.utilities import tabulate, wrapText
+from prody.utilities import wrapText
 
 from .flags import FIELDS as FLAG_FIELDS
 
@@ -44,16 +39,17 @@ __all__ = ['Field']
 
 READONLY = set()
 
+
 class Field(object):
-    
+
     """Atomic data field."""
-    
-    __slots__ = ['name', 'dtype',  'doc', 'doc_pl', 'meth', 'meth_pl', 
-                 'ndim', 'none', 'selstr', 'synonym', 'readonly', 'call', 
+
+    __slots__ = ['name', 'dtype',  'doc', 'doc_pl', 'meth', 'meth_pl',
+                 'ndim', 'none', 'selstr', 'synonym', 'readonly', 'call',
                  'private', 'depr', 'depr_pl', 'desc', 'flags']
-                 
+
     def __init__(self, name, dtype, **kwargs):
-        
+
         #: data field name used in atom selections
         self.name = name
         #: data type (primitive Python types)
@@ -70,8 +66,8 @@ class Field(object):
         self.meth = kwargs.get('meth', name.capitalize())
         #: get/set method name in plural form
         self.meth_pl = kwargs.get('meth_pl', self.meth + 's')
-        #: :class:`.AtomGroup` attributes to be set None, when ``setMethod`` 
-        #: is called 
+        #: :class:`.AtomGroup` attributes to be set None, when ``setMethod``
+        #: is called
         self.none = kwargs.get('none')
         #: list of selection string examples
         self.selstr = kwargs.get('selstr')
@@ -85,25 +81,25 @@ class Field(object):
         self.synonym = kwargs.get('synonym')
         #: read-only attribute without a set method
         self.readonly = kwargs.get('readonly', False)
-        #: list of :class:`.AtomGroup` methods to call when ``getMethod`` is 
+        #: list of :class:`.AtomGroup` methods to call when ``getMethod`` is
         #: called
         self.call = kwargs.get('call', None)
-        #: define only _getMethod for :class:`.AtomGroup` to be used by 
+        #: define only _getMethod for :class:`.AtomGroup` to be used by
         #: :class:`.Select` class
         self.private = kwargs.get('private', False)
-        #: **True** when there are flags associated with the data field 
+        #: **True** when there are flags associated with the data field
         self.flags = kwargs.get('flags', False)
-        
+
         if self.readonly:
             READONLY.add(self.name)
-    
+
     def getDocstr(self, meth, plural=True, selex=True):
         """Return documentation string for the field."""
-        
+
         assert meth in ('set', 'get', '_get'), "meth must be 'set' or 'get'"
         assert isinstance(plural, bool), 'plural must be a boolean'
         assert isinstance(selex, bool), 'selex must be a boolean'
-        
+
         if meth == 'get':
             if plural:
                 docstr = 'Return a copy of {0}.'.format(self.doc_pl)
@@ -117,11 +113,11 @@ class Field(object):
         else:
             selex = False
             if plural:
-                docstr = 'Return {0} array.'.format(self.doc_pl) 
-            
+                docstr = 'Return {0} array.'.format(self.doc_pl)
+
         if self.desc:
             docstr += '  ' + self.desc
-            
+
         selstr = self.selstr
         if selex and selstr:
             if plural:
@@ -135,69 +131,69 @@ class Field(object):
                      "``{1}``.").format(doc.capitalize(), selex)
             if self.synonym is not None:
                 selex = selex + ('  Note that *{0}* is a synonym for '
-                    '*{1}*.').format(self.synonym, self.name)
+                                 '*{1}*.').format(self.synonym, self.name)
             return wrapText(docstr + selex)
         else:
             return wrapText(docstr)
 
 HVNONE = ['_hv', 'segindex', 'chindex', 'resindex']
 
-DTYPE = array(['a']).dtype.char # 'S' for PY2K and 'U' for PY3K
+DTYPE = array(['a']).dtype.char  # 'S' for PY2K and 'U' for PY3K
 
 ATOMIC_FIELDS = {
     'name':      Field('name', DTYPE + '6', selstr=('name CA CB',)),
-    'altloc':    Field('altloc', DTYPE + '1', 
-                       doc='alternate location indicator', 
+    'altloc':    Field('altloc', DTYPE + '1',
+                       doc='alternate location indicator',
                        selstr=('altloc A B', 'altloc _'),),
-    'anisou':    Field('anisou', float, doc='anisotropic temperature factor', 
+    'anisou':    Field('anisou', float, doc='anisotropic temperature factor',
                        ndim=2),
-    'chain':     Field('chain', DTYPE + '1',  doc='chain identifier', 
-                       meth='Chid', none=HVNONE, synonym='chid', 
+    'chain':     Field('chain', DTYPE + '1',  doc='chain identifier',
+                       meth='Chid', none=HVNONE, synonym='chid',
                        selstr=('chain A', 'chid A B C', 'chain _')),
-    'element':   Field('element', DTYPE + '2', doc='element symbol', 
+    'element':   Field('element', DTYPE + '2', doc='element symbol',
                        selstr=('element C O N',)),
-    'occupancy': Field('occupancy', float, 
+    'occupancy': Field('occupancy', float,
                        doc='occupancy value', meth_pl='Occupancies',
                        selstr=('occupancy 1', 'occupancy > 0')),
-    'resname':   Field('resname', DTYPE + '6', doc='residue name', 
+    'resname':   Field('resname', DTYPE + '6', doc='residue name',
                        selstr=('resname ALA GLY',)),
     'resnum':    Field('resnum', int, doc='residue number', none=HVNONE,
-                       selstr=('resnum 1 2 3', 'resnum 120A 120B', 
-                               'resnum 10 to 20', 'resnum 10:20:2', 
+                       selstr=('resnum 1 2 3', 'resnum 120A 120B',
+                               'resnum 10 to 20', 'resnum 10:20:2',
                                'resnum < 10'), synonym='resid'),
-    'secondary': Field('secondary', DTYPE + '1',  
-                       doc='secondary structure assignment', 
+    'secondary': Field('secondary', DTYPE + '1',
+                       doc='secondary structure assignment',
                        meth='Secstr', synonym='secstr',
                        selstr=('secondary H E', 'secstr H E'),
                        ),
-    'segment':   Field('segment', DTYPE + '6', doc='segment name', 
+    'segment':   Field('segment', DTYPE + '6', doc='segment name',
                        meth='Segname',
-                       selstr=('segment PROT', 'segname PROT'), 
+                       selstr=('segment PROT', 'segname PROT'),
                        synonym='segname', none=HVNONE),
     'siguij':    Field('siguij', float, doc='standard deviations for '
-                       'anisotropic temperature factor', 
+                       'anisotropic temperature factor',
                        meth='Anistd', ndim=2),
-    'serial':    Field('serial', int, doc='serial number (from file)', 
-                       doc_pl='serial numbers (from file)', none=['_sn2i'], 
-                       selstr=('serial 1 2 3', 'serial 1 to 10', 
+    'serial':    Field('serial', int, doc='serial number (from file)',
+                       doc_pl='serial numbers (from file)', none=['_sn2i'],
+                       selstr=('serial 1 2 3', 'serial 1 to 10',
                        'serial 1:10:2', 'serial < 10')),
-    'beta':      Field('beta', float, doc='β-value (temperature factor)', 
-                       doc_pl='β-values (or temperature factors)', 
-                       selstr=('beta 555.55', 'beta 0 to 500', 'beta 0:500', 
+    'beta':      Field('beta', float, doc='β-value (temperature factor)',
+                       doc_pl='β-values (or temperature factors)',
+                       selstr=('beta 555.55', 'beta 0 to 500', 'beta 0:500',
                        'beta < 500')),
-    'icode':     Field('icode', DTYPE + '1', doc='insertion code', none=HVNONE, 
+    'icode':     Field('icode', DTYPE + '1', doc='insertion code', none=HVNONE,
                        selstr=('icode A', 'icode _')),
     'type':      Field('type', DTYPE + '6', selstr=('type CT1 CT2 CT3',)),
-    'charge':    Field('charge', float, doc='partial charge', 
+    'charge':    Field('charge', float, doc='partial charge',
                        selstr=('charge 1', 'abs(charge) == 1', 'charge < 0')),
-    'mass':      Field('mass', float, doc_pl='masses', 
+    'mass':      Field('mass', float, doc_pl='masses',
                        meth_pl='Masses', selstr=('12 <= mass <= 13.5',)),
-    'radius':    Field('radius', float, doc='radius',  
-                       doc_pl='radii', meth_pl='Radii', 
+    'radius':    Field('radius', float, doc='radius',
+                       doc_pl='radii', meth_pl='Radii',
                        selstr=('radii < 1.5', 'radii ** 2 < 2.3')),
-    'resindex':  Field('resindex', int, doc='residue index',  
+    'resindex':  Field('resindex', int, doc='residue index',
                        doc_pl='residue indices', meth_pl='Resindices',
-                       selstr=('resindex 0',), readonly=True, 
+                       selstr=('resindex 0',), readonly=True,
                        call=['getHierView'],
                        desc='Residue indices are assigned to subsets of atoms '
                             'with distinct sequences of residue number, '
@@ -206,9 +202,9 @@ ATOMIC_FIELDS = {
                             'incremented by one, and are assigned in the '
                             'order of appearance in :class:`.AtomGroup` '
                             'instance.'),
-    'chindex':   Field('chindex', int, doc='chain index',  
+    'chindex':   Field('chindex', int, doc='chain index',
                        doc_pl='chain indices', meth_pl='Chindices',
-                       selstr=('chindex 0',), readonly=True, 
+                       selstr=('chindex 0',), readonly=True,
                        call=['getHierView'],
                        desc='Chain indices are assigned to subsets of atoms '
                             'with distinct pairs of chain identifier and '
@@ -216,19 +212,19 @@ ATOMIC_FIELDS = {
                             'are incremented by one, and are assigned in the '
                             'order of appearance in :class:`.AtomGroup` '
                             'instance.'),
-    'segindex':  Field('segindex', int, doc='segment index',  
+    'segindex':  Field('segindex', int, doc='segment index',
                        doc_pl='segment indices', meth_pl='Segindices',
-                       selstr=['segindex 0',], readonly=True, 
+                       selstr=['segindex 0'], readonly=True,
                        call=['getHierView'],
                        desc='Segment indices are assigned to subsets of atoms '
                             'with distinct segment names.  Segment indices '
                             'start from zero, are incremented by one, and are '
                             'assigned in the order of appearance in '
                             ':class:`.AtomGroup` instance.'),
-    'fragindex': Field('fragindex', int, 
-                       doc='fragment index', doc_pl='fragment indices', 
-                       meth_pl='Fragindices', 
-                       selstr=['fragindex 0', 'fragment 1'], 
+    'fragindex': Field('fragindex', int,
+                       doc='fragment index', doc_pl='fragment indices',
+                       meth_pl='Fragindices',
+                       selstr=['fragindex 0', 'fragment 1'],
                        readonly=True, call=['_fragment'], synonym='fragment',
                        desc='Fragment indices are assigned to connected '
                             'subsets of atoms.  Bonds needs to be set using '
@@ -237,8 +233,8 @@ ATOMIC_FIELDS = {
                             'one, and are assigned in the order of appearance '
                             'in :class:`.AtomGroup` instance.'),
     'numbonds':  Field('numbonds', int, meth_pl='Numbonds',
-                       doc='number of bonds', 
-                       selstr=['numbonds 0', 'numbonds 1'], 
+                       doc='number of bonds',
+                       selstr=['numbonds 0', 'numbonds 1'],
                        readonly=True, private=True),
 }
 
@@ -247,11 +243,12 @@ __doc__ += """
 
 Many of these data fields can be used to make atom selections. For example,
 the following will select atoms whose residue names are ALA:
-    
->>> from prody import *
->>> ubi = parsePDB('1ubi')
->>> ubi.select('resname ALA')
-<Selection: 'resname ALA' from 1ubi (10 atoms)>
+
+.. ipython:: python
+
+   from prody import *
+   ubi = parsePDB('1ubi')
+   ubi.select('resname ALA')
 
 Following table lists definitions of fields and selection examples.  Note that
 fields noted as *read only* do not have a ``set`` method.
@@ -266,25 +263,22 @@ keys.sort()
 for key in keys:
 
     field = ATOMIC_FIELDS[key]
-    
+
     __doc__ += '\n\n   ' + key + '\n'
 
     if field.synonym:
-        __doc__ += '   ' + field.synonym + '\n' 
+        __doc__ += '   ' + field.synonym + '\n'
 
-    __doc__ += wrapText(field.doc + (' *(read only)*' if field.readonly 
+    __doc__ += wrapText(field.doc + (' *(read only)*' if field.readonly
                                      else ''), indent=6)
 
     if field.selstr:
-        sel = "\n      ``'" + "'``,\n      ``'".join(field.selstr) +  "'``"
+        sel = "\n      ``'" + "'``,\n      ``'".join(field.selstr) + "'``"
         __doc__ += '\n\n      *E.g.:* ' + sel
-
-
-
-
 
 for key in FLAG_FIELDS.keys():
     ATOMIC_FIELDS[key].flags = True
+
 
 def wrapGetMethod(fn):
     def getMethod(self):

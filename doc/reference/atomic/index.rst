@@ -1,6 +1,6 @@
-**************
-Atomic Objects
-**************
+***********
+Atomic Data
+***********
 
 .. automodule:: prody.atomic
 

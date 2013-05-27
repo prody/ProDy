@@ -1,3 +1,5 @@
+.. _selections:
+
 Atom Selections
 ===============
 

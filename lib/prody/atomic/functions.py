@@ -1,18 +1,18 @@
 # -*- coding: utf-8 -*-
 # ProDy: A Python Package for Protein Dynamics Analysis
-# 
+#
 # Copyright (C) 2010-2012 Ahmet Bakan
-# 
+#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-#  
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
@@ -31,7 +31,6 @@ from prody import LOGGER
 from . import flags
 from . import select
 
-from .atomic import Atomic
 from .atomgroup import AtomGroup
 from .atommap import AtomMap
 from .bond import trimBonds, evalBonds
@@ -43,16 +42,17 @@ __all__ = ['iterFragments', 'findFragments', 'loadAtoms', 'saveAtoms',
 
 
 SAVE_SKIP_ATOMGROUP = set(['numbonds', 'fragindex'])
-SAVE_SKIP_POINTER = set(['numbonds', 'fragindex', 'segindex', 'chindex', 
+SAVE_SKIP_POINTER = set(['numbonds', 'fragindex', 'segindex', 'chindex',
                          'resindex'])
+
 
 def saveAtoms(atoms, filename=None, **kwargs):
     """Save *atoms* in ProDy internal format.  All :class:`.Atomic` classes are
-    accepted as *atoms* argument.  This function saves user set atomic data as 
-    well.  Note that title of the :class:`.AtomGroup` instance is used as the 
+    accepted as *atoms* argument.  This function saves user set atomic data as
+    well.  Note that title of the :class:`.AtomGroup` instance is used as the
     filename when *atoms* is not an :class:`.AtomGroup`.  To avoid overwriting
     an existing file with the same name, specify a *filename*."""
-    
+
     try:
         atoms.getACSIndex()
     except AttributeError:
@@ -68,12 +68,12 @@ def saveAtoms(atoms, filename=None, **kwargs):
     else:
         SKIP = SAVE_SKIP_POINTER
         title = str(atoms)
-    
+
     if filename is None:
         filename = ag.getTitle().replace(' ', '_')
     if '.ag.npz' not in filename:
         filename += '.ag.npz'
-        
+
     attr_dict = {'title': title}
     attr_dict['n_atoms'] = atoms.numAtoms()
     attr_dict['n_csets'] = atoms.numCoordsets()
@@ -97,7 +97,7 @@ def saveAtoms(atoms, filename=None, **kwargs):
             attr_dict['bonds'] = bonds
             attr_dict['bmap'], attr_dict['numbonds'] = \
                 evalBonds(bonds, len(atoms))
-    
+
     for label in atoms.getDataLabels():
         if label in SKIP:
             continue
@@ -106,7 +106,7 @@ def saveAtoms(atoms, filename=None, **kwargs):
         if label in SKIP:
             continue
         attr_dict[label] = atoms._getFlags(label)
-    
+
     ostream = openFile(filename, 'wb', **kwargs)
     savez(ostream, **attr_dict)
     ostream.close()
@@ -119,9 +119,9 @@ SKIPLOAD = set(['title', 'n_atoms', 'n_csets', 'bonds', 'bmap',
 
 
 def loadAtoms(filename):
-    """Return :class:`.AtomGroup` instance loaded from *filename* using 
+    """Return :class:`.AtomGroup` instance loaded from *filename* using
     :func:`numpy.load` function.  See also :func:`saveAtoms`."""
-    
+
     LOGGER.timeit('_prody_loadatoms')
     attr_dict = load(filename)
     files = set(attr_dict.files)
@@ -130,7 +130,7 @@ def loadAtoms(filename):
         raise ValueError('{0} is not a valid atomic data file'
                          .format(repr(filename)))
     title = str(attr_dict['title'])
-    
+
     if 'coordinates' in files:
         coords = attr_dict['coordinates']
         ag = AtomGroup(title)
@@ -140,14 +140,14 @@ def loadAtoms(filename):
     ag._setTimeStamp()
     if 'flagsts' in files:
         ag._flagsts = int(attr_dict['flagsts'])
-    
+
     if 'bonds' in files and 'bmap' in files and 'numbonds' in files:
         ag._bonds = attr_dict['bonds']
         ag._bmap = attr_dict['bmap']
         ag._data['numbonds'] = attr_dict['numbonds']
-    
+
     skip_flags = set()
-    
+
     for label, data in attr_dict.items():
         if label in SKIPLOAD:
             continue
@@ -159,40 +159,41 @@ def loadAtoms(filename):
                 skip_flags.update(flags.ALIASES.get(label, [label]))
         else:
             ag.setData(label, data)
-    
+
     for label in ['segindex', 'chindex', 'resindex']:
         if label in attr_dict:
             ag._data[label] = attr_dict[label]
-    
+
     if ag.numCoordsets() > 0:
         ag._acsi = 0
-    
+
     if 'cslabels' in files:
         ag.setCSLabels(list(attr_dict['cslabels']))
-    
+
     LOGGER.report('Atom group was loaded in %.2fs.', '_prody_loadatoms')
     return ag
 
 
 def iterFragments(atoms):
-    """Yield fragments, connected subsets in *atoms*, as :class:`.Selection` 
+    """Yield fragments, connected subsets in *atoms*, as :class:`.Selection`
     instances."""
-    
+
     try:
         return atoms.iterFragments()
     except AttributeError:
         pass
-    
+
     try:
         ag = atoms.getAtomGroup()
     except AttributeError:
         raise TypeError('atoms must be an Atomic instance')
-        
+
     bonds = atoms._iterBonds()
     return _iterFragments(atoms, ag, bonds)
-    
+
+
 def _iterFragments(atoms, ag, bonds):
-    
+
     fids = zeros((len(ag)), int)
     fdict = {}
     c = 0
@@ -234,24 +235,24 @@ def _iterFragments(atoms, ag, bonds):
 
     acsi = atoms.getACSIndex()
     for indices in fragments:
-        yield Selection(ag, indices, 'index ' + rangeString(indices), acsi, 
+        yield Selection(ag, indices, 'index ' + rangeString(indices), acsi,
                         unique=True)
 
 
 def findFragments(atoms):
-    """Return list of fragments, connected subsets in *atoms*.  See also 
+    """Return list of fragments, connected subsets in *atoms*.  See also
     :func:`iterFragments`."""
-    
+
     return list(iterFragments(atoms))
 
 
 RESERVED = set(ATOMIC_FIELDS)
 RESERVED.update(['and', 'or', 'not', 'within', 'of', 'exwithin', 'same', 'as',
                  'bonded', 'exbonded', 'to', 'all', 'none',
-                 'index', 'sequence', 'x', 'y', 'z']) 
+                 'index', 'sequence', 'x', 'y', 'z'])
 RESERVED.update(flags.PLANTERS)
-RESERVED.update(select.FUNCTIONS) 
-RESERVED.update(select.FIELDS_SYNONYMS) 
+RESERVED.update(select.FUNCTIONS)
+RESERVED.update(select.FIELDS_SYNONYMS)
 RESERVED.update(['n_atoms', 'n_csets', 'cslabels', 'title', 'coordinates',
                  'bonds', 'bmap'])
 
@@ -259,12 +260,12 @@ RESERVED.update(['n_atoms', 'n_csets', 'cslabels', 'title', 'coordinates',
 def isReserved(word):
     """Return **True** if *word* is reserved for internal data labeling or atom
     selections.  See :func:`listReservedWords` for a list of reserved words."""
-    
+
     return word in RESERVED
-        
-        
+
+
 def listReservedWords():
-    """Return list of words that are reserved for atom selections and internal 
+    """Return list of words that are reserved for atom selections and internal
     variables. These words are: """
 
     words = list(RESERVED)
@@ -276,9 +277,9 @@ listReservedWords.__doc__ = '\n'.join(wrap(_, 79))
 
 
 def sortAtoms(atoms, label, reverse=False):
-    """Return an :class:`.AtomMap` pointing to *atoms* sorted in ascending 
+    """Return an :class:`.AtomMap` pointing to *atoms* sorted in ascending
     data *label* order, or optionally in *reverse* order."""
-    
+
     try:
         data, acsi = atoms.getData(label), atoms.getACSIndex()
     except AttributeError:
@@ -286,7 +287,7 @@ def sortAtoms(atoms, label, reverse=False):
     else:
         if data is None:
             raise ValueError('{0} data is not set for {1}'
-                                .format(repr(label), atoms))
+                             .format(repr(label), atoms))
     sort = data.argsort()
     if reverse:
         sort = sort[::-1]
