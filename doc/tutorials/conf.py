@@ -3,6 +3,12 @@ try:
 except NameError:
     exec(open('../../conf.py').read())
 
+try:
+    import sphinxcontrib
+except ImportError:
+    extensions = [ext for ext in extensions
+                  if not ext.startswith('sphinxcontrib')]
+
 sys.path[-1] = os.path.abspath('../../_sphinxext')
 
 prody_inv = '_inventory/prody.inv'
