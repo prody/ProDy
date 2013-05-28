@@ -1,9 +1,7 @@
 # -*- coding: utf-8 -*-
-#
-# ProDy documentation build configuration file, created by
-# sphinx-quickstart on Wed Sep 15 21:31:37 2010.
-
-import sys, os, os.path, time
+import os
+import sys
+from time import time
 
 sys.path.append(os.path.abspath('_sphinxext'))
 
@@ -35,15 +33,18 @@ master_doc = 'contents'
 project = u'ProDy'
 copyright = u'2010-2013, Ahmet Bakan'
 
+
 def getRevisionNumber():
     from subprocess import PIPE, Popen
     pipe = Popen('git log --summary'.split(), stdout=PIPE, stderr=PIPE)
     return str(pipe.stdout.read().count('Author:'))
+
+
 version = '1.4.2'
-release =  version
+release = version
 
 exclude_patterns = ['_build', 'examples', 'tutorial', 'tutorials/template',
-                    '*acknowledgments.rst', 'reports','random']
+                    '*acknowledgments.rst', 'reports', 'random']
 
 
 add_module_names = False
@@ -70,9 +71,9 @@ html_index = 'index.html'
 generic_sidebars = ['docversion.html', 'howtocite.html', 'localtoc.html',
                     'relations.html', 'searchbox.html']
 html_sidebars = {
-    'index': [],#['slideshow.html', 'docversion.html', 'howtocite.html',
-              #'getprody.html', 'credits.html', 'getintouch.html',
-              #'searchbox.html',],
+    'index': [],  # ['slideshow.html', 'docversion.html', 'howtocite.html',
+                  # 'getprody.html', 'credits.html', 'getintouch.html',
+                  # 'searchbox.html',],
     'genindex': ['searchbox.html'],
     'py-modindex': ['searchbox.html'],
     'search': [],
@@ -150,7 +151,8 @@ plot_template = """
 plot_rcparams = {'font.size': 10,
                  'xtick.labelsize': 'small',
                  'ytick.labelsize': 'small',
-                 'figure.figsize': [5., 4.],}
+                 'figure.figsize': [5., 4.]
+                 }
 plot_apply_rcparams = True
 
 
@@ -159,8 +161,7 @@ latex_paper_size = 'letter'
 latex_font_size = '10pt'
 
 latex_documents = [
-  ('contents', 'ProDy.tex', u'ProDy Documentation',
-   u'Ahmet Bakan', 'manual'),
+    ('contents', 'ProDy.tex', u'ProDy Documentation', u'Ahmet Bakan', 'manual')
 ]
 
 latex_logo = '_static/logo.png'
@@ -181,7 +182,7 @@ latex_elements = {
 
 
 autodoc_member_order = 'groupwise'
-autodoc_default_flags = []# ['members', 'undoc-members', 'show-inheritance']
+autodoc_default_flags = []  # ['members', 'undoc-members', 'show-inheritance']
 autoclass_content = 'both'
 todo_include_todos = True
 
@@ -199,12 +200,11 @@ intersphinx_mapping = {
                    '_inventory/matplotlib.inv'),
 }
 
-from time import time
+
 week = 7 * 24 * 3600
 for pkg, (url, inv) in intersphinx_mapping.items():
 
-    if (not os.path.isfile(inv) or
-        time() - os.path.getmtime(inv) >  week):
+    if (not os.path.isfile(inv) or time() - os.path.getmtime(inv) > week):
         import urllib2
         sys.stderr.write('Downloading {} inventory from {}\n'
                          .format(pkg, inv))

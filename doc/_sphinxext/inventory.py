@@ -2,6 +2,7 @@ import zlib
 
 __all__ = ['trim_labels', 'remove_api']
 
+
 def parse_inventory(inv):
 
     inp = open(inv, 'rb')
@@ -22,7 +23,7 @@ def trim_labels(inv, out):
 
         if len(items) > 1:
             if (items[1].startswith('method') or
-                items[1].startswith('attribute')):
+                    items[1].startswith('attribute')):
                 items[0] = '.'.join(items[0].split('.')[-2:])
             elif items[1].startswith('module'):
                 _ = items[0].split('.')
