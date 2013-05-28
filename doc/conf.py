@@ -27,7 +27,7 @@ extensions = ['sphinx.ext.todo',
                #, 'sphinxcontrib.spelling']
                #'sphinx.ext.pngmath',
 
-templates_path = ['_templates']
+templates_path = ['_theme']
 source_suffix = '.rst'
 master_doc = 'contents'
 
@@ -58,7 +58,7 @@ modindex_common_prefix = ['prody.']
 doctest_global_setup = "from prody import *"
 
 # -- Options for HTML output ---------------------------------------------------
-html_theme = '_templates'
+html_theme = '_theme'
 html_theme_options = {}
 html_theme_path = ['.']
 

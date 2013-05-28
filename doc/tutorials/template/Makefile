@@ -24,8 +24,8 @@ clean:
 workdir:
 	mkdir -p $(BUILDDIR)/workdir
 	ln -fs ../../$(BASENAME)_files $(BUILDDIR)/workdir/
+	ln -fs ../../_theme
 	ln -fs ../../_static
-	ln -fs ../../_templates
 	ln -fs ../../_inventory
 
 html: workdir lsfiles
