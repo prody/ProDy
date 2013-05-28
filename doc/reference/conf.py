@@ -14,16 +14,15 @@ intersphinx_mapping['prody'] = ('http://csb.pitt.edu/ProDy', prody_inv)
 master_doc = 'index'
 
 latex_documents = [
-  ('index',
-   'ProDy.tex',
-   'ProDy Reference Manual',
-   'Ahmet Bakan',
-   'manual'),
+    ('index',
+     'ProDy.tex',
+     'ProDy Reference Manual',
+     'Ahmet Bakan',
+     'manual'),
 ]
+
 latex_show_urls = 'footnote'
 
 html_additional_pages = {}
 
 latex_domain_indices = True
-
-plot_working_directory = os.path.join(os.getcwd(), '..', '_doctest')
