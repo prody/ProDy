@@ -21,9 +21,6 @@ REFERENCE=${SHORT// /-}
 
 mkdir -p $TUTORIAL
 mkdir -p $TUTORIAL/$TUTORIAL\_files
-ln -fs ../../_static $TUTORIAL
-ln -fs ../../_templates $TUTORIAL
-ln -fs ../../_inventory $TUTORIAL
 ln -fs ../template/Makefile $TUTORIAL
 ln -fs ../template/acknowledgments.rst $TUTORIAL/acknowledgments.rst
 sed 's/AUTHOR/'"$AUTHOR"'/g' template/conf.py > $TUTORIAL/conf.py
