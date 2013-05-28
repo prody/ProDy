@@ -62,7 +62,13 @@ class IPythonConsoleLexer(Lexer):
 
         # print '\nTEXT > \n', text, '\n TEXT'
         for line in text.splitlines():
-            line += '\n'
+            lstrip = line.lstrip()
+            if lstrip.startswith('Out'):
+                line = lstrip + '\n'
+            elif lstrip.startswith('...'):
+                line = line + '\n'
+            else:
+                line = line + '\n'
             input_prompt = self.input_prompt.match(line)
             output_prompt = self.output_prompt.match(line)
 
@@ -77,7 +83,7 @@ class IPythonConsoleLexer(Lexer):
                 # red, so it works fine for our output prompts.
                 yield (0, Generic.Error, output_prompt.group())
                 index = output_prompt.end()
-                yield index, Generic.Output,  line[index:]
+                yield index, Generic.Output, line[index:]
             else:
                 yield 0, Generic.Output, line
 

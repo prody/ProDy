@@ -483,7 +483,7 @@ class EmbeddedSphinxShell(object):
                 if output and not output[-1].startswith('@'):
                     output.append('')
                 output.append(u"%s %s" % (fmtin % ct, line))
-                continuation  = u'   %s:' % ('.' * (len(str(ct)) + 2))
+                continuation = u'   %s:' % ('.' * (len(str(ct)) + 2))
                 ct += 1
                 i += 1
                 while i < len(content) and i not in node_starts:
@@ -510,6 +510,7 @@ class EmbeddedSphinxShell(object):
                 output.append(line)
                 i += 1
 
+
         return output
         print('SOURCE')
         for line in source:
@@ -521,7 +522,6 @@ class EmbeddedSphinxShell(object):
         for line in output:
             print(line)
         print('')
-        return output
 
 
 class IpythonDirective(Directive):
