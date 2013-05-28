@@ -3,7 +3,6 @@ SPHINXOPTS    =
 SPHINXBUILD   = sphinx-build
 PAPER         = letter
 BUILDDIR      = _build
-DOCTESTDIR    = ../../_doctest
 BASENAME      = $${PWD\#\#*/}
 
 # Internal variables.
@@ -19,7 +18,7 @@ help:
 	@echo "  pdf        to make LaTeX files and run them through pdflatex"
 
 clean:
-	-rm -rf $(BUILDDIR)/* $(BUILDDIR)_files.zip $(BUILDDIR)_files.tgz $(BUILDDIR).pdf
+	-rm -rf $(BUILDDIR)/* $(BASENAME)_files.zip $(BASENAME)_files.tgz $(BASENAME).pdf
 
 workdir:
 	mkdir -p $(BUILDDIR)/workdir
