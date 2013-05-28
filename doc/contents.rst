@@ -3,15 +3,18 @@ ProDy Documentation
 *******************
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    :glob:
 
    getprody
+   plugins/index
+
    tutorials/index
    reference/index
-   plugins/index
+
    apps/index
    apps/evol
+
    devel/index
 
 

@@ -11,6 +11,12 @@ ProDy 1.4 Series
 
   * Increased :func:`.blastPDB` *timeout* to 60 seconds.
 
+
+**Bugfixes**:
+
+  * A bug in :func:`.fetchPDBLigand` function is fixed.
+
+
 1.4.2 (April 19, 2013)
 -------------------------------------------------------------------------------
 
