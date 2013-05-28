@@ -116,46 +116,6 @@ extlinks = {
 # ipython directive configuration
 ipython_savefig_dir = os.path.join('_static', 'figures')
 
-# Plot directive configuration
-plot_basedir = os.path.join('_build', 'plot_directive')
-plot_working_directory = os.path.join(os.getcwd(), '_doctest')
-
-plot_formats = [('png', 80), ('pdf', 80)]
-
-plot_pre_code = """import numpy as np
-from prody import *
-from matplotlib import pyplot as plt
-"""
-
-plot_template = """
-{{ source_code }}
-
-{{ only_html }}
-
-
-   {% for img in images %}
-   .. figure:: {{ build_dir }}/{{ img.basename }}.png
-      {%- for option in options %}
-      {{ option }}
-      {% endfor %}
-
-      {{ caption }}
-   {% endfor %}
-
-{{ only_latex }}
-
-   {% for img in images %}
-   .. image:: {{ build_dir }}/{{ img.basename }}.pdf
-   {% endfor %}
-
-"""
-plot_rcparams = {'font.size': 10,
-                 'xtick.labelsize': 'small',
-                 'ytick.labelsize': 'small',
-                 'figure.figsize': [5., 4.]
-                 }
-plot_apply_rcparams = True
-
 
 # -- Options for LaTeX output --------------------------------------------------
 latex_paper_size = 'letter'
