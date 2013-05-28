@@ -4,6 +4,7 @@ import sys
 from time import time
 
 sys.path.append(os.path.abspath('_sphinxext'))
+sys.path.append(os.path.abspath('_inventory'))
 
 extensions = ['sphinx.ext.todo',
               'sphinx.ext.autodoc',
@@ -199,7 +200,6 @@ intersphinx_mapping = {
     'matplotlib': ('http://matplotlib.sourceforge.net/',
                    '_inventory/matplotlib.inv'),
 }
-
 
 week = 7 * 24 * 3600
 for pkg, (url, inv) in intersphinx_mapping.items():

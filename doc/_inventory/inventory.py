@@ -1,3 +1,5 @@
+"""A module for managing ProDy and external inventories."""
+
 import zlib
 
 __all__ = ['trim_labels', 'remove_api']
