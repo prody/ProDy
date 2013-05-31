@@ -26,6 +26,7 @@ workdir:
 	ln -fs ../../_theme
 	ln -fs ../../_static
 	ln -fs ../../_inventory
+	mkdir -p _static/figures
 
 html: workdir lsfiles
 	cd $(BUILDDIR)/workdir; $(SPHINXBUILD) -b html -d ../doctrees ../../ ../html

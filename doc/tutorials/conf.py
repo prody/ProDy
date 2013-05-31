@@ -3,13 +3,18 @@ try:
 except NameError:
     exec(open('../../conf.py').read())
 
-try:
-    import sphinxcontrib
-except ImportError:
-    extensions = [ext for ext in extensions
-                  if not ext.startswith('sphinxcontrib')]
-
 sys.path[-1] = os.path.abspath('../../_sphinxext')
+
+def is_installed(name):
+
+    try:
+        __import__(name)
+    except ImportError:
+        return False
+    else:
+        return True
+
+extensions = filter(is_installed, extensions)
 
 prody_inv = '_inventory/prody.inv'
 if not os.path.isfile(prody_inv):
