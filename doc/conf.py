@@ -40,11 +40,10 @@ def getRevisionNumber():
     pipe = Popen('git log --summary'.split(), stdout=PIPE, stderr=PIPE)
     return str(pipe.stdout.read().count('Author:'))
 
-with open('../lib/prody/__init__.py') as _:
-    version = _.read().split('__version__ = ')[1].split(None, 1)[0][1:-1]
-release = version
+import prody
+version = release = prody.__version__
 
-exclude_patterns = ['_build', 'examples', 'tutorial', 'tutorials/template',
+exclude_patterns = ['_build', 'examples', 'tutorials/template',
                     '*acknowledgments.rst', 'reports', 'random']
 
 

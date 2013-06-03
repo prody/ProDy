@@ -3,13 +3,14 @@ try:
 except NameError:
     exec(open('../../conf.py').read())
 
-sys.path[-1] = os.path.abspath('../../_sphinxext')
+sys.path[-2] = os.path.abspath('../../_sphinxext')
+sys.path[-1] = os.path.abspath('../../_inventory')
 
 def is_installed(name):
-
     try:
         __import__(name)
     except ImportError:
+        print name
         return False
     else:
         return True
