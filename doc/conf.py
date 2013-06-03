@@ -40,8 +40,8 @@ def getRevisionNumber():
     pipe = Popen('git log --summary'.split(), stdout=PIPE, stderr=PIPE)
     return str(pipe.stdout.read().count('Author:'))
 
-
-version = '1.4.2'
+with open('../lib/prody/__init__.py') as _:
+    version = _.read().split('__version__ = ')[1].split(None, 1)[0][1:-1]
 release = version
 
 exclude_patterns = ['_build', 'examples', 'tutorial', 'tutorials/template',
@@ -69,24 +69,21 @@ html_last_updated_fmt = '%b %d, %Y'
 
 html_index = 'index.html'
 
-generic_sidebars = ['docversion.html', 'howtocite.html', 'localtoc.html',
-                    'relations.html', 'searchbox.html']
+generic_sidebars = ['toolbox.html', 'releasenotes.html', 'howtocite.html']
 html_sidebars = {
-    'index': [],  # ['slideshow.html', 'docversion.html', 'howtocite.html',
+    'index': [],  # ['slideshow.html', 'releasenotes.html', 'howtocite.html',
                   # 'getprody.html', 'credits.html', 'getintouch.html',
                   # 'searchbox.html',],
-    'genindex': ['searchbox.html'],
-    'py-modindex': ['searchbox.html'],
-    'search': [],
-    'tutorial': ['docversion.html', 'howtocite.html', 'localtoc.html',
-                 'codesnippets.html', 'credits.html', 'searchbox.html'],
+    'genindex': generic_sidebars,
+    'py-modindex': generic_sidebars,
+    'search': generic_sidebars,
+    'tutorial': generic_sidebars,
     'bibliography': generic_sidebars,
     'changes': generic_sidebars,
     'contents': generic_sidebars,
     'credits': generic_sidebars,
     'features': generic_sidebars,
-    'getprody': ['howtocite.html', 'localtoc.html', 'relations.html',
-                 'credits.html', 'searchbox.html'],
+    'getprody': generic_sidebars,
     'license': generic_sidebars,
     'publications': generic_sidebars,
     'examples/index': generic_sidebars,
@@ -96,10 +93,8 @@ html_sidebars = {
     'todo': generic_sidebars,
     'plugins/index': generic_sidebars,
     'plugins/getnmwiz': generic_sidebars,
-    '**': ['docversion.html', 'howtocite.html', 'localtoc.html',
-           'relations.html', 'codesnippets.html', 'searchbox.html']}
-html_sidebars = {}
-#html_additional_pages = {'index': 'index.html'}
+    '**': ['toolbox.html', 'releasenotes.html', 'howtocite.html']}
+html_additional_pages = {'index': 'index.html'}
 
 html_copy_source = False
 html_show_sourcelink = False

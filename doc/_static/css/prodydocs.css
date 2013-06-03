@@ -183,10 +183,14 @@
   background-image: url(../img/glyphicons-halflings-white.png);
   opacity: 1;
 }
-.toc.affix {
+
+#sidebar {
+  padding-top: 20px;
+}
+#sidebar.affix {
   top: 20px;
 }
-.toc.affix-bottom {
+#sidebar.affix-bottom {
   position: absolute;
   top: auto;
   bottom: 270px;
@@ -281,4 +285,17 @@ section {
 /* Separators (hr) */
 .bs-docs-separator {
   margin: 40px 0 39px;
+}
+
+.modal#codemodal {
+  width: 800px;
+  margin-left: -400px;
+}
+
+#codesnippets {
+  width: 755px;
+  height: 360px;
+  resize: none;
+  font-size: 9pt;
+  font-family: Consolas,Monaco,Lucida Console,Liberation Mono,DejaVu Sans Mono,Bitstream Vera Sans Mono,Courier New, monospace;
 }
