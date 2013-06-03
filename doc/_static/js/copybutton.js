@@ -22,6 +22,52 @@ $(document).ready(function() {
         'border-radius': '0 3px 0 0'
     }
 
+    if (!(div.length && pre.find('.gp'))) {
+        $("#showcodebuttons").hide();
+    } else {
+        var prepcode = function(wc) {
+            var codesnippets = $('#codesnippets')
+            codesnippets.html('')
+            codesnippets.append("#!/usr/bin/env python\n")
+            codesnippets.append("# -*- coding: utf-8 -*-\n")
+            codesnippets.append("# This code was copied from ProDy documentation.\n")
+            codesnippets.append("# Title: " + document.title.replace('\xe2', '-') + "\n")
+            codesnippets.append("# URL: " + document.URL + "\n\n")
+            pre.each(function(index) {
+                jthis = $(this).clone();
+                if (wc) {
+                    jthis.find('.go:empty').remove();
+                    jthis.find('.go').prepend('# ');
+                } else {
+                    jthis.find('.go').remove();
+                }
+                jthis.find('.gr, .gp').remove();
+                var lines = jthis.text().split('\n');
+                $.each(lines, function(l) {
+                    var line = lines[l];
+                    if (line.length) {
+                        codesnippets.append(line.replace(/\</g,"&lt;").replace(/\>/g,"&gt;").replace(/\&/g,"&amp;").replace(/\'/g,"&apos;").replace(/\"/g,"&quot;") + '\n');
+                    }
+                });
+                codesnippets.append('\n');
+            });
+        }
+
+        $("#showcode").click(function () {
+            prepcode(0);
+        });
+        $("#withcomments").click(function () {
+            prepcode(1);
+        });
+    }
+
+    $("#selectcode").click(function() {
+        var e = document.getElementById('codesnippets')
+        e.focus();
+        e.select();
+    })
+
+    var clip = new ZeroClipboard($("#copycode"), {moviePath: $("#zeroclipboardpath").val()});
 
     // create and add the button to all the code blocks that contain >>>
     div.each(function(index) {

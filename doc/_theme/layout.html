@@ -34,11 +34,10 @@
     </script>
     <script type="text/javascript" src="{{ pathto('_static/js/jquery-2.0.0.min.js', 1) }}"></script>
     <script type="text/javascript" src="{{ pathto('_static/js/bootstrap.min.js', 1) }}"></script>
-    <script type="text/javascript" src="{{ pathto('_static/js/bootstrap-scrollspy.js', 1) }}"></script>
-    <script type="text/javascript" src="{{ pathto('_static/js/bootstrap-affix.js', 1) }}"></script>
     <script type="text/javascript" src="{{ pathto('_static/js/jquery.cookie.js', 1) }}"></script>
     <script type="text/javascript" src="{{ pathto('_static/js/textresize.js', 1) }}"></script>
     <script type="text/javascript" src="{{ pathto('_static/js/logoupdate.js', 1) }}"></script>
+    <script type="text/javascript" src="{{ pathto('_static/js/zeroclipboard.min.js', 1) }}"></script>
     <script type="text/javascript" src="{{ pathto('_static/js/copybutton.js', 1) }}"></script>
     <script type="text/javascript" src="{{ pathto('_static/js/prodydocs.js', 1) }}"></script>
     <link rel="shortcut icon" href="{{ pathto('_static/' + favicon, 1) }}"/>
@@ -62,7 +61,7 @@
           </li>
         {%- endfor %}
         {%- block rootrellink %}
-        <li><a href="{{ pathto(master_doc) }}">{{ shorttitle|e }}{{ reldelim1 }}</a></li>
+        <li><a href="{{ pathto(master_doc) }}">{{ shorttitle|e }} v{{ version }}{{ reldelim1 }}</a></li>
         {%- endblock %}
         {%- for parent in parents %}
           <li><a href="{{ parent.link|e }}" {% if loop.last %}{{ accesskey("U") }}{% endif %}>{{ parent.title }}{{ reldelim1 }}</a></li>
@@ -76,8 +75,15 @@
   <div class="content">
   <div class="row">
     <div class="span3">
-      <div id="localtoc">
-        {{ toc }}
+      <div id="sidebar" style="width: 220px">
+        {%- include "localtoc.html" %}
+        <div class="accordion" id="accordion2">
+        {%- if sidebars != None %}
+          {%- for sidebartemplate in sidebars %}
+          {%- include sidebartemplate %}
+          {%- endfor %}
+        {%- endif %}
+        </div>
       </div>
     </div>
     <div class="span9">
@@ -99,6 +105,20 @@
   </div>
   </div>
 </footer>
-
+<div id="codemodal" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+  <div class="modal-header">
+    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+    <h3 id="myModalLabel">Code Snippets</h3>
+  </div>
+  <div class="modal-body">
+    <textarea id="codesnippets"></textarea>
+  </div>
+  <div class="modal-footer">
+    <button class="btn btn-info" id="selectcode">Select Code</button>
+    <button class="btn btn-success" id="copycode" data-clipboard-target="codesnippets">Copy Code</button>
+    <button class="btn" data-dismiss="modal" aria-hidden="true">Close</button>
+  </div>
+  <input type="hidden" id="zeroclipboardpath" value="{{ pathto('_static/js/zeroclipboard.swf', 1) }}">
+</div>
   </body>
 </html>

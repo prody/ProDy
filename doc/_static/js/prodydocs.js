@@ -24,12 +24,14 @@ $(document).ready(function() {
 
 
   setTimeout(function () {
-      $('.toc,.subnav').affix({
+      $('#sidebar,.subnav').affix({
         offset: {
           top: 140,
           bottom: 20
         }
       })
     }, 100);
+
+  $('.collapse').not('#collapseToolbox').collapse('hide');
 
 });
