@@ -70,9 +70,7 @@ html_index = 'index.html'
 
 generic_sidebars = ['toolbox.html', 'releasenotes.html', 'howtocite.html']
 html_sidebars = {
-    'index': [],  # ['slideshow.html', 'releasenotes.html', 'howtocite.html',
-                  # 'getprody.html', 'credits.html', 'getintouch.html',
-                  # 'searchbox.html',],
+    'index': generic_sidebars,
     'genindex': generic_sidebars,
     'py-modindex': generic_sidebars,
     'search': generic_sidebars,

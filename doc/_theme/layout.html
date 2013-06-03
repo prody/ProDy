@@ -61,7 +61,7 @@
           </li>
         {%- endfor %}
         {%- block rootrellink %}
-        <li><a href="{{ pathto(master_doc) }}">{{ shorttitle|e }} v{{ version }}{{ reldelim1 }}</a></li>
+        <li><a href="{{ pathto(master_doc) }}">{{ shorttitle|e }} {{ reldelim1 }}</a></li>
         {%- endblock %}
         {%- for parent in parents %}
           <li><a href="{{ parent.link|e }}" {% if loop.last %}{{ accesskey("U") }}{% endif %}>{{ parent.title }}{{ reldelim1 }}</a></li>

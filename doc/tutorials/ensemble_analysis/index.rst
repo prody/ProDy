@@ -18,4 +18,4 @@ Structural Ensemble Analysis
 
 .. only:: html
 
-   .. include:: acknowledgments.rst
+   .. include:: acknowledgments.txt

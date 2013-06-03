@@ -20,4 +20,4 @@ Elastic Network Models
 
 .. only:: html
 
-   .. include:: acknowledgments.rst
+   .. include:: acknowledgments.txt
