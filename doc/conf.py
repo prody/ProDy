@@ -44,7 +44,7 @@ import prody
 version = release = prody.__version__
 
 exclude_patterns = ['_build', 'examples', 'tutorials/template',
-                    '*acknowledgments.rst', 'reports', 'random']
+                    '*acknowledgments', 'reports', 'random']
 
 
 add_module_names = False

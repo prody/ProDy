@@ -20,4 +20,4 @@ ProDy Tutorial
 
 .. only:: html
 
-   .. include:: acknowledgments.txt
+   .. include:: acknowledgments.rst

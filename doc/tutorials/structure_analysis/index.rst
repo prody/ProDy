@@ -20,4 +20,4 @@ Structure Analysis using ProDy
 
 .. only:: html
 
-   .. include:: acknowledgments.txt
+   .. include:: acknowledgments.rst

@@ -18,4 +18,4 @@ TITLE
 
 .. only:: html
 
-   .. include:: acknowledgments.txt
+   .. include:: acknowledgments.rst

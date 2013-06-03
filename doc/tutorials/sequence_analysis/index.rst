@@ -16,4 +16,4 @@ Sequence Evolution Analysis with Evol
 
 .. only:: html
 
-   .. include:: acknowledgments.txt
+   .. include:: acknowledgments.rst
