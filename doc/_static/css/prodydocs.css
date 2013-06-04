@@ -75,7 +75,7 @@
     top: 0px;
     left: 0;
     right: 0;
-    opacity: 0;
+    opacity: 0.0;
     -webkit-transition:opacity 1s ease-in-out;
     -moz-transition:opacity 1s ease-in-out;
     -o-transition:opacity 1s ease-in-out;
@@ -110,11 +110,11 @@
     box-shadow: inset 0 1px 0 #fff, 0 1px 5px rgba(0,0,0,.1);
     filter: progid:DXImageTransform.Microsoft.gradient(enabled=false); /* IE6-9 */
     opacity: 1;
-    -webkit-transition:opacity 0.5s ease-in-out;
-    -moz-transition:opacity 0.5s ease-in-out;
-    -o-transition:opacity 0.5s ease-in-out;
-    -ms-transition:opacity 0.5s ease-in-out;
-    transition:opacity 0.5s ease-in-out;
+    -webkit-transition:opacity 0.2s ease-in-out;
+    -moz-transition:opacity 0.2s ease-in-out;
+    -o-transition:opacity 0.2s ease-in-out;
+    -ms-transition:opacity 0.2s ease-in-out;
+    transition:opacity 0.2s ease-in-out;
 }
 
 .subnav.affix .nav {
@@ -152,7 +152,7 @@
 
 .toc {
   width: 220px;
-  margin: 10px 0 0;
+  margin: 0 0 0 0;
   padding: 0;
   background-color: #fff;
   -webkit-border-radius: 6px;
@@ -219,7 +219,7 @@
   padding-top: 20px;
 }
 #sidebar.affix {
-  top: 20px;
+  top: 30px;
 }
 #sidebar.affix-bottom {
   position: absolute;

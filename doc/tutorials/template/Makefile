@@ -49,7 +49,7 @@ pdf: latex
 lsfiles:
 	files=`ls $(BASENAME)_files`; \
 	if [ -z "$$files" ]; then echo "There are no required files." > files.txt; else \
-	ls -hgo --time-style=+ $(BASENAME)_files/ | tail -n +2 | cut -b 14-128 > files.txt; fi
+	ls -hgoL --time-style=+ $(BASENAME)_files/ | tail -n +2 | cut -b 14-128 > files.txt; fi
 
 archive:
 	rm -f $(BASENAME)_files.zip $(BASENAME)_files.tgz

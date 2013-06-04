@@ -23,7 +23,9 @@ Tutorials
    Download tutorials and input files:
 
     * ProDy Tutorial
-      (:download:`PDF <prody_tutorial/prody_tutorial.pdf>`)
+      (:download:`PDF <prody_tutorial/prody_tutorial.pdf>`,
+      :download:`ZIP <prody_tutorial/prody_tutorial_files.zip>`,
+      :download:`TGZ <prody_tutorial/prody_tutorial_files.tgz>`)
 
     * NMWiz Tutorial
       (:download:`PDF <nmwiz_tutorial/nmwiz_tutorial.pdf>`,

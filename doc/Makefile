@@ -40,7 +40,7 @@ html: workdir
 	@echo "Build finished. The HTML pages are in $(BUILDDIR)/html."
 
 pdf:
-	cd reference; make pdf
+	cd reference; make pdf; mv _build/latex/ProDy_manual.pdf .
 	cd tutorials; \
 	for tut in `find . -type d` ; do \
 		if [ -d "$$tut/$$tut"_files ]; then \
