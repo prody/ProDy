@@ -159,3 +159,7 @@ between modes:
 The sliced and reduced models are not the same. While the purpose of slicing is
 simply enabling easy plotting/analysis of properties of a part of the system,
 reducing has other uses as in [WZ05]_.
+
+.. [WZ05] Zheng W, Brooks BR. Probing the Local Dynamics of Nucleotide-Binding
+   Pocket Coupled to the Global Dynamics: Myosin versus Kinesin.
+   *Biophysical Journal*  **2005** 89:167–178.

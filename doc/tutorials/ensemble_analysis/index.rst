@@ -5,7 +5,6 @@
 Structural Ensemble Analysis
 *******************************************************************************
 
-
 .. toctree::
    :glob:
    :maxdepth: 2

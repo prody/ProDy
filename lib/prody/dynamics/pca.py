@@ -54,7 +54,8 @@ class PCA(NMA):
 
         if not isinstance(covariance, np.ndarray):
             raise TypeError('covariance must be an ndarray')
-        elif not (covariance.ndim == 2 and covariance.shape[0] == covariance.shape[1]):
+        elif not (covariance.ndim == 2 and
+                  covariance.shape[0] == covariance.shape[1]):
             raise TypeError('covariance must be square matrix')
         self._reset()
         self._cov = covariance
@@ -92,8 +93,8 @@ class PCA(NMA):
         LOGGER.timeit('_prody_pca')
         weights = None
         if isinstance(coordsets, np.ndarray):
-            if coordsets.ndim != 3 or coordsets.shape[2] != 3 or \
-                coordsets.dtype not in (np.float32, float):
+            if (coordsets.ndim != 3 or coordsets.shape[2] != 3 or
+                    coordsets.dtype not in (np.float32, float)):
                 raise ValueError('coordsets is not a valid coordinate array')
         elif isinstance(coordsets, Atomic):
             coordsets = coordsets._getCoordsets()
@@ -112,7 +113,7 @@ class PCA(NMA):
             n_confs = 0
             n_frames = len(coordsets)
             LOGGER.info('Covariance will be calculated using {0} frames.'
-                            .format(n_frames))
+                        .format(n_frames))
             coordsum = np.zeros(dof)
             LOGGER.progress('Building covariance', n_frames, '_prody_pca')
             align = not kwargs.get('aligned', False)
@@ -140,7 +141,8 @@ class PCA(NMA):
                 raise ValueError('coordsets must have more than 3 atoms')
             dof = n_atoms * 3
             LOGGER.info('Covariance is calculated using {0} coordinate sets.'
-                            .format(len(coordsets)))
+                        .format(len(coordsets)))
+            s = (n_confs, dof)
             if weights is None:
                 if coordsets.dtype == float:
                     self._cov = np.cov(coordsets.reshape((n_confs, dof)).T,
@@ -151,8 +153,7 @@ class PCA(NMA):
                     mean = coordsets.mean(0)
                     LOGGER.progress('Building covariance', n_confs,
                                     '_prody_pca')
-                    for i, coords in enumerate(
-                                            coordsets.reshape((n_confs, dof))):
+                    for i, coords in enumerate(coordsets.reshape(s)):
                         deviations = coords - mean
                         cov += np.outer(deviations, deviations)
                         LOGGER.update(n_confs, '_prody_pca')
@@ -165,9 +166,8 @@ class PCA(NMA):
                 for i, coords in enumerate(coordsets):
                     mean += coords * weights[i]
                 mean /= weights.sum(0)
-                d_xyz = ((coordsets - mean) * weights).reshape((n_confs, dof))
-                divide_by = weights.astype(float).repeat(3,
-                                                axis=2).reshape((n_confs, dof))
+                d_xyz = ((coordsets - mean) * weights).reshape(s)
+                divide_by = weights.astype(float).repeat(3, axis=2).reshape(s)
                 self._cov = np.dot(d_xyz.T, d_xyz) / np.dot(divide_by.T,
                                                             divide_by)
         self._trace = self._cov.trace()
@@ -243,16 +243,16 @@ class PCA(NMA):
             raise TypeError('coordsets must be an Ensemble, Atomic, Numpy '
                             'array instance')
         if isinstance(coordsets, np.ndarray):
-            if coordsets.ndim != 3 or coordsets.shape[2] != 3 or \
-                coordsets.dtype not in (np.float32, float):
+            if (coordsets.ndim != 3 or coordsets.shape[2] != 3 or
+                    coordsets.dtype not in (np.float32, float)):
                 raise ValueError('coordsets is not a valid coordinate array')
             deviations = coordsets - coordsets.mean(0)
         else:
             if isinstance(coordsets, Ensemble):
                 deviations = coordsets.getDeviations()
             elif isinstance(coordsets, Atomic):
-                deviations = coordsets._getCoordsets() - \
-                             coordsets._getCoords()
+                deviations = (coordsets._getCoordsets() -
+                              coordsets._getCoords())
 
         n_confs = deviations.shape[0]
         if n_confs < 3:
@@ -276,17 +276,15 @@ class PCA(NMA):
         self._trace = self._vars.sum()
         self._n_modes = len(self._eigvals)
         LOGGER.debug('{0} modes were calculated in {1:.2f}s.'
-                         .format(self._n_modes, time.time()-start))
+                     .format(self._n_modes, time.time()-start))
 
     def addEigenpair(self, eigenvector, eigenvalue=None):
         """Add eigen *vector* and eigen *value* pair(s) to the instance.
         If eigen *value* is omitted, it will be set to 1.  Eigenvalues
         are set as variances."""
 
-
         NMA.addEigenpair(self, eigenvector, eigenvalue)
         self._vars = self._eigvals
-
 
     def setEigens(self, vectors, values=None):
         """Set eigen *vectors* and eigen *values*.  If eigen *values* are
@@ -295,9 +293,13 @@ class PCA(NMA):
         NMA.setEigens(self, vectors, values)
         self._vars = self._eigvals
 
+
 class EDA(PCA):
 
     """A class for Essential Dynamics Analysis (EDA) [AA93]_.
-    See examples in :ref:`eda`."""
+    See examples in :ref:`eda`.
+
+    .. [AA93] Amadei A, Linssen AB, Berendsen HJ. Essential dynamics of
+       proteins. *Proteins* **1993** 17(4):412-25."""
 
     pass

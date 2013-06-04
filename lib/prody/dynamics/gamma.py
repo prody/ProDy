@@ -87,6 +87,10 @@ class GammaStructureBased(Gamma):
 
     Note that this class does not take into account insertion codes.
 
+    .. [LT10] Lezon TR, Bahar I. Using entropy maximization to understand the
+       determinants of structural dynamics beyond native contact topology.
+       *PLoS Comput Biol* **2010** 6(6):e1000816.
+
     **Example**:
 
     Let's parse coordinates and header data from a PDB file, and then
@@ -205,8 +209,8 @@ class GammaStructureBased(Gamma):
         if ssid[i] == ssid[j]:
             i_j = abs(rnum[j] - rnum[i])
             if ((i_j <= 4 and sstr[i] == 'H') or
-                (i_j <= 3 and sstr[i] == 'G') or
-                (i_j <= 5 and sstr[i] == 'I')) and dist2 <= 49:
+                    (i_j <= 3 and sstr[i] == 'G') or
+                    (i_j <= 5 and sstr[i] == 'I')) and dist2 <= 49:
                 return self._helix
         elif sstr[i] == sstr[j] == 'E' and dist2 <= 36:
             return self._sheet

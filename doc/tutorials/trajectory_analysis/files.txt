@@ -1,0 +1,3 @@
+8.4M  mdm2.dcd
+112K  mdm2.pdb
+8.4M  mdm2sim2.dcd

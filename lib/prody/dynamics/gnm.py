@@ -40,6 +40,7 @@ __all__ = ['GNM', 'calcGNM']
 
 ZERO = 1e-6
 
+
 class GNMBase(NMA):
 
     """Class for Gaussian Network Model analysis of proteins."""
@@ -54,9 +55,9 @@ class GNMBase(NMA):
 
     def __repr__(self):
 
-        return '<{0}: {1} ({2} modes; {3} nodes)>'.format(
-                self.__class__.__name__, self._title, self.__len__(),
-                self._n_atoms)
+        return ('<{0}: {1} ({2} modes; {3} nodes)>'
+                .format(self.__class__.__name__, self._title, self.__len__(),
+                        self._n_atoms))
 
     def __str__(self):
 
@@ -84,13 +85,15 @@ class GNMBase(NMA):
     def getKirchhoff(self):
         """Return a copy of the Kirchhoff matrix."""
 
-        if self._kirchhoff is None: return None
+        if self._kirchhoff is None:
+            return None
         return self._kirchhoff.copy()
 
     def _getKirchhoff(self):
         """Return the Kirchhoff matrix."""
 
         return self._kirchhoff
+
 
 def checkENMParameters(cutoff, gamma):
     """Check type and values of *cutoff* and *gamma*."""
@@ -106,12 +109,13 @@ def checkENMParameters(cutoff, gamma):
     else:
         if not isinstance(gamma, (float, int)):
             raise TypeError('gamma must be a float, an integer, derived '
-                             'from Gamma, or a function')
+                            'from Gamma, or a function')
         elif gamma <= 0:
             raise ValueError('gamma must be greater than 0')
         gamma = float(gamma)
         gamma_func = lambda dist2, i, j: gamma
     return cutoff, gamma, gamma_func
+
 
 class GNM(GNMBase):
 
@@ -120,15 +124,20 @@ class GNM(GNMBase):
 
     See example :ref:`gnm`.
 
-    """
+    .. [IB97] Bahar I, Atilgan AR, Erman B. Direct evaluation of thermal
+       fluctuations in protein using a single parameter harmonic potential.
+       *Folding & Design* **1997** 2:173-181.
+
+    .. [TH97] Haliloglu T, Bahar I, Erman B. Gaussian dynamics of folded
+       proteins. *Phys. Rev. Lett.* **1997** 79:3090-3093."""
 
     def setKirchhoff(self, kirchhoff):
         """Set Kirchhoff matrix."""
 
         if not isinstance(kirchhoff, np.ndarray):
             raise TypeError('kirchhoff must be a Numpy array')
-        elif not kirchhoff.ndim == 2 or \
-                 kirchhoff.shape[0] != kirchhoff.shape[1]:
+        elif (not kirchhoff.ndim == 2 or
+              kirchhoff.shape[0] != kirchhoff.shape[1]):
             raise ValueError('kirchhoff must be a square matrix')
         elif kirchhoff.dtype != float:
             try:
@@ -281,11 +290,14 @@ class GNM(GNMBase):
                                       'which is required for sparse matrix '
                                       'decomposition')
                 try:
-                    values, vectors = scipy_sparse_la.eigsh(
-                                self._kirchhoff, k=n_modes + 1, which='SA')
+                    values, vectors = (
+                        scipy_sparse_la.eigsh(self._kirchhoff,
+                                              k=n_modes + 1, which='SA'))
                 except:
-                    values, vectors = scipy_sparse_la.eigen_symmetric(
-                                self._kirchhoff, k=n_modes + 1, which='SA')
+                    values, vectors = (
+                        scipy_sparse_la.eigen_symmetric(self._kirchhoff,
+                                                        k=n_modes + 1,
+                                                        which='SA'))
         else:
             if n_modes is not None:
                 LOGGER.info('Scipy is not found, all modes are calculated.')
@@ -305,7 +317,7 @@ class GNM(GNMBase):
         self._array = vectors[:, 1+shift:]
         self._n_modes = len(self._eigvals)
         LOGGER.debug('{0} modes were calculated in {1:.2f}s.'
-                          ''.format(self._n_modes, time.time()-start))
+                     .format(self._n_modes, time.time()-start))
 
 
 def calcGNM(pdb, selstr='calpha', cutoff=15., gamma=1., n_modes=20,

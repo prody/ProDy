@@ -1,0 +1,4 @@
+224K  1dlo_anm.nmd
+661K  1dlo.pdb
+3.3M  p38_100frames.dcd
+219K  p38.pdb

@@ -299,3 +299,16 @@ section {
   font-size: 9pt;
   font-family: Consolas,Monaco,Lucida Console,Liberation Mono,DejaVu Sans Mono,Bitstream Vera Sans Mono,Courier New, monospace;
 }
+
+td.label {
+  display: inline-block;
+  padding: 2px 4px;
+  font-size: inherit;
+  font-weight: normal;
+  line-height: 14px;
+  color: inherit;
+  text-shadow: 0 0;
+  white-space: nowrap;
+  vertical-align: bottom;
+  background-color: #fff;
+}

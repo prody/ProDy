@@ -1,0 +1,5 @@
+ 65K  1p38.pdb.gz
+ 792  oanm_eigvals.txt
+3.3M  oanm_hes.txt
+215K  oanm_slwevs.txt
+3.1M  p38_trajectory.tar.gz

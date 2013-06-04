@@ -162,7 +162,12 @@ def calcCumulOverlap(modes1, modes2, array=False):
 def calcSubspaceOverlap(modes1, modes2):
     """Return subspace overlap between two sets of modes (*modes1* and
     *modes2*).  Also known as the root mean square inner product (RMSIP)
-    of essential subspaces [AA99]_.  This function returns a single number."""
+    of essential subspaces [AA99]_.  This function returns a single number.
+
+    .. [AA99] Amadei A, Ceruso MA, Di Nola A. On the convergence of the
+       conformational coordinates basis set obtained by the essential
+       dynamics analysis of proteins' molecular dynamics simulations.
+       *Proteins* **1999** 36(4):419-424."""
 
     overlap = calcOverlap(modes1, modes2)
     if isinstance(modes1, Mode):
@@ -177,7 +182,10 @@ def calcCovOverlap(modelA, modelB):
     """Return overlap between covariances of *modelA* and *modelB*.  Overlap
     between covariances are calculated using normal modes (eigenvectors),
     hence modes in both models must have been calculated.  This function
-    implements equation 11 in [BH02]_."""
+    implements equation 11 in [BH02]_.
+
+    .. [BH02] Hess B. Convergence of sampling in protein simulations.
+       *Phys Rev E* **2002** 65(3):031910."""
 
     if not modelA.is3d() or not modelB.is3d():
         raise TypeError('both models must be 3-dimensional')

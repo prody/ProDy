@@ -13,6 +13,7 @@ ProDy Tutorial
    starthere
    basics
    selections
+   userdata
    structure
    dynamics
    sequence
