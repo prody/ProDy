@@ -1,6 +1,6 @@
 .. _nmwiz:
 
-Getting NMWiz
+Normal Mode Wizard
 ===============================================================================
 
 Normal Mode Wizard (NMWiz) is a VMD plugin for comparative visual analysis of
@@ -36,5 +36,3 @@ type the following command line in the VMD console::
 
 Alternatively, instructions for installing `3rd-party`_ plugins may be helpful
 too.
-
-.. _3rd-party: http://physiology.med.cornell.edu/faculty/hweinstein/vmdplugins/installation.html

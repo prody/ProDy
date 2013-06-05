@@ -12,8 +12,7 @@ ProDy Tutorial
    intro
    starthere
    basics
-   selections
-   userdata
+   atomic
    structure
    dynamics
    sequence

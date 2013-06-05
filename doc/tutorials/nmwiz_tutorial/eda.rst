@@ -3,14 +3,16 @@ Essential Dynamics Analysis
 
 In this part, we will perform essential dynamics analysis calculations
 for a p38 MAP kinase trajectory and compare results with normal modes from
-ANM calculations.  p38 files can be downloaded from :download:`p38 trajectory
-<nmwiz_tutorial_files/p38_100frames.dcd>`.  The :file:`p38_100frames.dcd` is
-from a 40 ns long simulation of p38.  Detailed analysis of this trajectory can
-be found in [AB11]_.
+ANM calculations.  You will need following files:
+
+  * :download:`p38 structure <nmwiz_tutorial_files/p38.pdb>`
+  * :download:`p38 trajectory <nmwiz_tutorial_files/p38_100frames.dcd>`
+
+This files contain frame from a 40 ns long simulation of p38.
+Detailed analysis of this trajectory can be found in [AB11]_.
 
 Load the contents of this file into VMD as follows::
 
-  $ tar -xzf p38_trajectory.tar.gz
   $ vmd p38.pdb p38_100frames.dcd
 
 

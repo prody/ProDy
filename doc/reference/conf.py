@@ -16,7 +16,7 @@ master_doc = 'index'
 
 latex_documents = [
     ('index',
-     'ProDy_reference_manual.tex',
+     'ProDy_Manual.tex',
      'ProDy Reference Manual',
      'Ahmet Bakan',
      'manual'),

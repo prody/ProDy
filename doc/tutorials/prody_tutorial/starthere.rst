@@ -4,7 +4,7 @@ How to Start
 Using ProDy
 -------------------------------------------------------------------------------
 
-ProDy can be used in a number of different ways:
+ProDy can be used in a number of ways:
 
   #. interactively in a Python shell,
   #. as a command line program via :ref:`prody-apps`,
@@ -55,7 +55,14 @@ If you also installed Matplotlib, use::
 
   $ ipython --pylab
 
-``--pylab`` option will import Matplotlib and Numpy automatically.
+``--pylab`` option will import Matplotlib and Numpy automatically, and is
+equivalent to the following:
+
+.. ipython:: python
+
+   from pylab import *
+   ion()  # turn interactive mode on
+
 
 If you don't have IPython yet, use::
 
@@ -87,18 +94,6 @@ a specific module, such as :mod:`proteins`, you can use
 ``from prody.proteins.pdbfile import *``, because location of methods
 in submodules may change without notice.
 
-We will also do the same for Numpy and Matplotlib packages:
-
-.. ipython:: python
-
-   from matplotlib.pyplot import *
-   from numpy import *
-
-If you are using :program:`IPython` in pylab mode, ``ipython --pylab``,
-:mod:`matplotlib` and :mod:`numpy` modules will be imported to global
-namespace.
-
-
 Using Documentation
 -------------------------------------------------------------------------------
 
@@ -117,23 +112,34 @@ to exit from help view.  If you are using the interactive Python shell
 
    In [1]: fetchPDB ?
 
+Searching documentation
+^^^^^^^^^^^^^^^^^^^^^^^
+
+You can search entire documentation, including manual and tutorial pages,
+by typing in a keyword, function, or class name.  Try searching for
+*selections* to get to :ref:`selections`, for example.
+
+
+.. image:: /_static/toolbox.png
+   :align: center
+   :alt: Searching ProDy documentation
 
 Copying code snippets
 ^^^^^^^^^^^^^^^^^^^^^
 
-When reading online documentation, you can use :guilabel:`Show Code Snippets`
-button on the right hand side panel to display only code snippets.  From this
-view, you can copy code directly into a file, i.e. click on the text, press
-:kbd:`Ctrl+A` and then :kbd:`Ctrl+C` to have the text in your clipboard. To
-return to the documentation click the :guilabel:`Show documentation` button
-at the top.
+When reading online documentation, you can use :guilabel:`Show code`
+button on the right hand side panel to display only code snippets.
+From this view, you can copy code directly into a file, i.e. click
+:guilabel:`Select` and then :kbd:`Ctrl+C` to have the text in your clipboard.
+To return to the documentation click the :guilabel:`Close` button.
 
-.. image:: /_static/codesnippets.png
+.. image:: /_static/showcode.png
    :align: center
-   :alt: Getting ProDy code snippets.
-   :scale: 80 %
+   :alt: Showing code examples
+
 
 
 .. _IPython: http://ipython.scipy.org/
 .. _Numpy: http://www.numpy.org/
 .. _Matplotlib: http://matplotlib.sourceforge.net
+

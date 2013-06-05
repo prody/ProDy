@@ -68,5 +68,9 @@ $(document).ready(function() {
     } else if (url.search('tutorials') > -1) {
       carousel.carousel(4);
     }
+  } else {
+    // Downloads
+    $('tt.download').append(' <i class="icon-download"></i>')
   }
+
 });

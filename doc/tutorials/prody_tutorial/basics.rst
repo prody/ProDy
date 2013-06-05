@@ -36,19 +36,20 @@ in ``parse``:
    parsePDBHeader     parsePSF
 
 
-When using :func:`parsePDB`, an identifier will be sufficient, if your
-machine is connected to the internet.  If corresponding file is not found
-in the current working directory, it will be downloaded from PDB servers.
+When using :func:`.parsePDB`, usually an identifier will be sufficient,
+If corresponding file is found in the current working directory, it will be
+used, otherwise it will be downloaded from PDB servers.
 
 Let's parse structure :pdb:`1p38` of p38 MAP kinase (MAPK):
 
 .. ipython:: python
 
-   p38 = parsePDB('1p38') # returns an AtomGroup object
+   p38 = parsePDB('1p38')  # returns an AtomGroup object
    p38 # typing in variable name will give some information
 
+We see that this structure contains 2962 atoms.
 
-Similar to listing parser function names, we can use tab completion to
+Now, similar to listing parser function names, we can use tab completion to
 introspect ``p38`` object:
 
 .. ipython::
@@ -70,7 +71,7 @@ them to get information on the structure:
    Out[2]: 2962
 
    @doctest
-   In [2]: p38.numCoordsets() # returns number of models
+   In [2]: p38.numCoordsets()  # returns number of models
    Out[2]: 1
 
    @doctest
@@ -81,7 +82,7 @@ them to get information on the structure:
 Analysis Functions
 -------------------------------------------------------------------------------
 
-Similarly to parsers, analysis functions have a ``calc`` prefix:
+Similar to parsers, analysis function names start with ``calc``:
 
 .. ipython::
 
@@ -98,7 +99,7 @@ Similarly to parsers, analysis functions have a ``calc`` prefix:
    calcCrossCorr        calcMSAOccupancy     calcRMSD
 
 
-Let's read documentation of :func:`calcGyradius` function and use it to
+Let's read documentation of :func:`.calcGyradius` function and use it to
 calculate the radius of gyration of p38 MAPK structure:
 
 .. ipython::
@@ -125,7 +126,7 @@ of them:
    showCumulOverlap     showMode             showProjection
    showDiffMatrix       showMutinfoMatrix    showProtein
 
-We can use :func:`showProtein` function to make a quick plot of p38 structure:
+We can use :func:`.showProtein` function to make a quick plot of p38 structure:
 
 .. ipython:: python
 
@@ -142,7 +143,10 @@ Protein Structures
 
 Protein structures (:file:`.pdb` files) will be the standard input for most
 *ProDy* calculations, so it is good to familiarize with ways to access and
-manage PDB files.
+manage PDB file resources.
+
+Fetching PDB files
+^^^^^^^^^^^^^^^^^^
 
 First of all, *ProDy* downloads compressed PDB files when needed.  If you
 prefer saving decompressed files, you can use :func:`.fetchPDB` function as
@@ -154,12 +158,16 @@ follows:
 
 Note that ProDy functions that fetch files or output files return filename
 upon successful completion of the task.  You can use this behavior to
-minimize the code you write as follows:
-
+shorten the code you need to write, e.g.:
 
 .. ipython:: python
 
   parsePDB(fetchPDB('1p38', compressed=False)) # same as p38 parsed above
+
+We downloaded and save an uncompressed PDB file, and parsed it immediately.
+
+PDB file resources
+^^^^^^^^^^^^^^^^^^
 
 Secondly, ProDy can manage local mirror of PDB server or a local PDB folders,
 as well as using a server close to your physical location for downloads:
@@ -210,17 +218,15 @@ in :file:`.prodyrc` file stored in your home folder.
 Atom Groups
 -------------------------------------------------------------------------------
 
-:func:`.parsePDB` returns structure data in an :class:`.AtomGroup` instance,
-such as the ``p38`` variable we parsed above:
+As you might have noticed, :func:`.parsePDB` function returns structure data
+as an :class:`.AtomGroup` object.  Let's see for ``p38`` variable from above:
 
 .. ipython:: python
 
    p38
 
 
-The above shows that atom group object contains 2962 atoms.  Data
-from this object can be retrieved using ``get`` methods.  For example:
-
+Data from this object can be retrieved using ``get`` methods.  For example:
 
 .. ipython:: python
 
@@ -228,14 +234,14 @@ from this object can be retrieved using ``get`` methods.  For example:
    p38.getCoords()
 
 
-The get a list of all methods use tab completion, i.e. ``p38.<TAB>``.  We
-will learn more about atom groups in the following chapters.
+To get a list of all methods use tab completion, i.e. ``p38.<TAB>``.
+We will learn more about atom groups in the following chapters.
 
 Indexing
 ^^^^^^^^
 
-An individual :class:`.Atom` can be accessed by indexing atom group
-instances:
+An individual :class:`.Atom` can be accessed by indexing :class:`.AtomGrou`
+objects:
 
 .. ipython:: python
 
@@ -269,58 +275,19 @@ form of the function name.
 Slicing
 ^^^^^^^
 
-It is also possible to get a slice of an atom group, for example we can get
-every other atom as follows:
+It is also possible to get a slice of an :class:`.AtomGroup`. For example,
+we can get every other atom as follows:
 
 .. ipython:: python
 
    p38[::2]
 
+Or, we can get the first 10 atoms, as follows:
 
-
-It is also possible to get a slice of an atom group, for example we can get
-every other atom as follows:
 
 .. ipython:: python
 
-   p38[::2]
-
-
-
-It is also possible to get a slice of an atom group, for example we can get
-every other atom as follows:
-
-.. ipython:: python
-
-   p38[::2]
-
-
-
-It is also possible to get a slice of an atom group, for example we can get
-every other atom as follows:
-
-.. ipython:: python
-
-   p38[::2]
-
-
-
-It is also possible to get a slice of an atom group, for example we can get
-every other atom as follows:
-
-.. ipython:: python
-
-   p38[::2]
-
-
-
-It is also possible to get a slice of an atom group, for example we can get
-every other atom as follows:
-
-.. ipython:: python
-
-   p38[::2]
-
+   p38[:10]
 
 Hierarchical view
 ^^^^^^^^^^^^^^^^^
@@ -334,7 +301,7 @@ by a single letter identifier will return a :class:`.Chain` instance:
 
 Indexing atom group with a chain identifier and a residue number will return
 :class:`.Residue` instance:
-..
+
 
 .. ipython:: python
 
@@ -349,12 +316,12 @@ for more on hierarchical views.
 ProDy Verbosity
 -------------------------------------------------------------------------------
 
-Finally, you might have noted that ProDy prints some information to the console
-after parsing a file or doing some calculations. For example, PDB parser will
-print what was parsed and how long it took to the screen::
+Finally, you might have noticed that ProDy prints some information to the
+console after parsing a file or doing some calculations. For example, PDB
+parser will print what was parsed and how long it took to the screen::
 
   @> 1p38 (./1p38.pdb.gz) is found in the target directory.
-  @> PDBParser: 2962 atoms and 1 coordinate sets were parsed in 0.08s.
+  @> 2962 atoms and 1 coordinate sets were parsed in 0.08s.
 
 This behavior is useful in interactive sessions, but may be problematic for
 automated tasks as the messages are printed to stderr.  The level of verbosity

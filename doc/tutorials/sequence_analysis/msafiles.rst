@@ -1,240 +1,227 @@
 .. _msafiles:
 
-*******************************************************************************
 Pfam Database and MSA Files
-*******************************************************************************
+===============================================================================
 
 Synopsis
-===============================================================================
+-------------------------------------------------------------------------------
 
 The following examples shows how to do the following:
 
   * search Pfam database to identify pfam accession no and other details
-  * fetch the MSA of the pfam using acession no 
+  * fetch the MSA of the pfam using acession no
   * parse the MSA, filter, slice MSA, write the MSA
 
 
-Search Pfam 
-===============================================================================
+Search Pfam
+-------------------------------------------------------------------------------
 
-This example demonstrates how to search Pfam database with a given query, 
-:func:`.searchPfam`.  Valid inputs are UniProt ID, e.g. ``"PIWI_ARCFU"``, or 
-PDB file, e.g. ``"3luc"`` or ``"3lucA"`` with chain identifier. Input can also 
-be a protein sequence or a file containing the sequence, but sequence should 
+This example demonstrates how to search Pfam database with a given query,
+:func:`.searchPfam`.  Valid inputs are UniProt ID, e.g. ``"PIWI_ARCFU"``, or
+PDB file, e.g. ``"3luc"`` or ``"3lucA"`` with chain identifier. Input can also
+be a protein sequence or a file containing the sequence, but sequence should
 not contain gaps and should be at least 12 characters long.
 
-Matching Pfam accession (one or more) as keys will map to a dictionary that 
-contains locations (alignment start, end, evalue etc), pfam family type, 
+Matching Pfam accession (one or more) as keys will map to a dictionary that
+contains locations (alignment start, end, evalue etc), pfam family type,
 accession and id.
- 
-  
-UniProt ID search
--------------------------------------------------------------------------------
 
-We start by importing everything from the ProDy package:
+.. ipython:: python
 
->>> from prody import *
+   from prody import *
+   from matplotlib.pylab import *
+   ion() # turn interactive mode on
 
-The function will return a dictionary if successful.
- 
->>> matches = searchPfam('PIWI_ARCFU')
->>> for family, in matches: # doctest: +SKIP
-...     print family, matches[family]  
-  PF02171 {'locations': [{'end': '406', 'bitscore': '215.70', 'hmm_start': '2', 
- 'ali_end': '405', 'ali_start': '111', 'start': '110', 'evalue': '6.8e-61', 
- 'hmm_end': '304'}], 'type': 'Pfam-A', 'accession': 'PF02171', 'id': 'Piwi'}
+Then we query Pfam using the :func:`.searchPfam`. with a UniProt ID.
 
+.. ipython:: python
 
-Sequence search
--------------------------------------------------------------------------------
+   matches = searchPfam('PIWI_ARCFU')
+   matches
+
 
 This function also accepts a protein sequence:
 
->>> sequence = ('PMFIVNTNVPRASVPDGFLSELTQQLAQATGKPPQYIAVHVVPDQLMAFGGS'
-... 'SEPCALCSLHSIGKIGGAQNRSYSKLLCGLLAERLRISPDRVYINYYDMNAANVGWNNSTFA')
->>> matches = searchPfam(sequence) # doctest: +SKIP
+.. ipython:: python
+
+   sequence = ('PMFIVNTNVPRASVPDGFLSELTQQLAQATGKPPQYIAVHVVPDQLMAFGGSSEPCA'
+   'LCSLHSIGKIGGAQNRSYSKLLCGLLAERLRISPDRVYINYYDMNAANVGWNNSTFA')
+   matches = searchPfam(sequence)
+   matches
 
 
 For sequence searches, we can pass additional parameters to :func:`searchPfam`
-like *search_b* which will search pfam B and *skip_a* that will not search 
-pfamA database. Additional parameters include *ga* that uses gathering 
-threshold instead of evalue,  *evalue* cutoff can also be specified and 
-*timeout* that can be set higher especially when searching larger 
+like *search_b* which will search pfam B and *skip_a* that will not search
+pfamA database. Additional parameters include *ga* that uses gathering
+threshold instead of evalue,  *evalue* cutoff can also be specified and
+*timeout* that can be set higher especially when searching larger
 sequences, default is ``timeout=30`` seconds.
 
->>> matches = searchPfam(sequence, search_b=True, evalue=2.0) # doctest: +SKIP
+.. ipython:: python
+
+   matches = searchPfam(sequence, search_b=True, evalue=2.0)
 
 
 Retrieve MSA files
-===============================================================================
+-------------------------------------------------------------------------------
 
-This example demonstrates how to search Pfam database with a given query using  
+This example demonstrates how to search Pfam database with a given query using
 :func:`.fetchPfamMSA`. Valid inputs are Pfam ID, e.g. ``"Piwi"``, or Pfam
-accession, e.g. ``"PF02171"`` obtained from :func:`.searchPfam`.  Alignment 
+accession, e.g. ``"PF02171"`` obtained from :func:`.searchPfam`.  Alignment
 type can be ``'full'`` (default), ``"seed"``, ``"ncbi"`` or ``"metagenomics"``.
 
->>> fetchPfamMSA('piwi', alignment='seed')
-'piwi_seed.sth'
+.. ipython:: python
 
-A compressed file can be downloaded by setting ``compressed=True``. 
+   fetchPfamMSA('piwi', alignment='seed')
+   msafile = 'piwi_seed.sth'
+
+A compressed file can be downloaded by setting ``compressed=True``.
 The ``format`` of the MSA can be of ``"selex"``, (default), ``"stockholm"`` or
-``"fasta"``.  This will return the path of the downloaded MSA file. 
-The ``output`` name can be specified, for by default it will have 
+``"fasta"``.  This will return the path of the downloaded MSA file.
+The ``output`` name can be specified, for by default it will have
 ``"accession/ID_alignment.format"``.
 
-Note that in this case we passed a folder name, the downloaded file is saved 
+Note that in this case we passed a folder name, the downloaded file is saved
 in this folder, after it is created if it did not exist. Also bigger timeouts
-are necessary for larger families. Some other parameters like ``gap``, 
-``order`` or ``inserts`` can be set, as shown in the following example. 
+are necessary for larger families. Some other parameters like ``gap``,
+``order`` or ``inserts`` can be set, as shown in the following example.
 
->>> fetchPfamMSA('PF02171', compressed=True, gaps='mixed', inserts='lower', 
-... order='alphabetical', format='fasta') # doctest: +SKIP
-'PF02171_full.fasta.gz'
-    
->>> msafile = 'piwi_seed.sth'
+.. ipython:: python
+
+   fetchPfamMSA('PF02171', compressed=True, gaps='mixed', inserts='lower',
+   order='alphabetical', format='fasta', timeout=40)
+
 
 
 Parsing MSA files
-===============================================================================
+-------------------------------------------------------------------------------
 
-This shows how to use the :class:`.MSAFile` or :func:`.parseMSA` to read the 
-MSA file. :func:`.parseMSA` returns a :class:`.MSA` object. 
+This shows how to use the :class:`.MSAFile` or :func:`.parseMSA` to read the
+MSA file. :func:`.parseMSA` returns a :class:`.MSA` object.
 
-Reading using :class:`.MSAFile` yields an MSAFile object. Iterating over the 
-object will yield sequence id, sequence, residue start and end indices:
+Reading using :class:`.MSAFile` yields an MSAFile object. Iterating over the
+object will yield an object of :class:`.Sequence` from which labels, sequence
+can be obtained.
 
->>> msafobj = MSAFile(msafile)
->>> for seq in msafobj: # doctest: +ELLIPSIS 
-...     seq
-<Sequence: TAG76_CAEEL (length 395; 307 residues and 88 gaps)>
-<Sequence: O16720_CAEEL (length 395; 302 residues and 93 gaps)>
-<Sequence: AGO10_ARATH (length 395; 322 residues and 73 gaps)>
-...
-<Sequence: PIWI_ARCFU (length 395; 297 residues and 98 gaps)>
-<Sequence: Y1321_METJA (length 395; 274 residues and 121 gaps)>
-<Sequence: O67434_AQUAE (length 395; 276 residues and 119 gaps)>
+.. ipython:: python
 
-Reading using :func:`.parseMSA` yields an :class:`.MSA` object.  We can parse 
-compressed files, but reading uncompressed files are much faster as shown.
+   msafobj = MSAFile(msafile)
+   msafobj
+   msa_seq_list = list(msafobj)
+   msa_seq_list[0]
 
->>> msa = parseMSA('PF02171_full.fasta.gz')
+Reading using :func:`.parseMSA` yields an :class:`.MSA` object.  We can parse
+compressed files, but reading uncompressed files are much faster.
 
->>> fetchPfamMSA('PF02171', format='fasta') # doctest: +SKIP
-'PF02171_full.fasta'
->>> msa = parseMSA('PF02171_full.fasta')
+.. ipython:: python
+
+   msa = parseMSA('PF02171_full.fasta.gz')
+   msa
+   msa = parseMSA(fetchPfamMSA('PF02171', format='fasta'))
+   msa
 
 
 Filtering and Slicing
-===============================================================================
+-------------------------------------------------------------------------------
 
-This shows how to use the :class:`.MSAFile` object or :class:`.MSA` object to 
-refine MSA using filters and slices. 
+This shows how to use the :class:`.MSAFile` object or :class:`.MSA` object to
+refine MSA using filters and slices.
 
 *Filtering sequences*
-    
-Any function that takes label and sequence arguments and returns a boolean 
-value can be used for filtering the sequences.  A sequence will be yielded 
+
+Any function that takes label and sequence arguments and returns a boolean
+value can be used for filtering the sequences.  A sequence will be yielded
 if the function returns **True**.  In the following example, sequences from
 organism *ARATH* are filtered:
-    
->>> msafobj = MSAFile(msafile, filter=lambda lbl, seq: 'ARATH' in lbl)
->>> for seq in msafobj: # doctest: +ELLIPSIS 
-...     seq
-<Sequence: AGO10_ARATH (length 395; 322 residues and 73 gaps)>
-<Sequence: AGO6_ARATH (length 395; 311 residues and 84 gaps)>
-<Sequence: AGO4_ARATH (length 395; 309 residues and 86 gaps)>
+
+.. ipython:: python
+
+   msafobj = MSAFile(msafile, filter=lambda lbl, seq: 'ARATH' in lbl)
+   for seq in msafobj:
+       print(seq.getLabel())
 
 *Slicing sequences*
-    
-A list of integers can be used to slice sequences as follows.  This enables 
-selective parsing of the MSA file. 
-    
->>> msafobj = MSAFile(msafile, slice=list(range(10)) + list(range(374,384)))
->>> for seq in msafobj: # doctest: +ELLIPSIS 
-...     seq
-<Sequence: TAG76_CAEEL (length 20; 19 residues and 1 gaps)>
-<Sequence: O16720_CAEEL (length 20; 18 residues and 2 gaps)>
-<Sequence: AGO10_ARATH (length 20; 19 residues and 1 gaps)>
-...
-<Sequence: PIWI_ARCFU (length 20; 19 residues and 1 gaps)>
-<Sequence: Y1321_METJA (length 20; 20 residues and 0 gaps)>
-<Sequence: O67434_AQUAE (length 20; 20 residues and 0 gaps)>
+
+A list of integers can be used to slice sequences as follows.  This enables
+selective parsing of the MSA file.
+
+.. ipython:: python
+
+   msafobj = MSAFile(msafile, slice=list(range(10)) + list(range(374,384)))
+   list(msafobj)[0]
 
 
-Slicing can also be done using :class:`.MSA`. The :class:`.MSA`. object offers 
-other functionalities like querying, indexing, slicing row and columns and 
-refinement. 
+Slicing can also be done using :class:`.MSA`. The :class:`.MSA`. object offers
+other functionalities like querying, indexing, slicing row and columns and
+refinement.
 
 *Querying*
-    
-You can query whether a sequence in contained in the instance using the 
+
+You can query whether a sequence in contained in the instance using the
 UniProt identifier of the sequence as follows:
 
+.. ipython:: python
 
->>> msa = parseMSA(msafile)
->>> 'YQ53_CAEEL' in msa
-True
- 
-    
+   msa = parseMSA(msafile)
+   'YQ53_CAEEL' in msa
+
+
 Indexing MSA objects
-===============================================================================
-    
-Retrieve a sequence at a given index:
-    
->>> msa[0] # doctest: +ELLIPSIS
-<Sequence: TAG76_CAEEL (piwi_seed[0]; length 395; 307 residues and 88 gaps)>
-    
+-------------------------------------------------------------------------------
+
+Retrieving a sequence at a given index, or by id will give an object of
+:class:`.Sequence`:
+
+.. ipython:: python
+
+   msa = parseMSA(msafile)
+   msa[0]
+
 Retrieve a sequence by UniProt ID:
-    
->>> msa['YQ53_CAEEL'] # doctest: +ELLIPSIS
-<Sequence: YQ53_CAEEL (piwi_seed[6]; length 395; 328 residues and 67 gaps)>
-    
-Slice an MSA instance:
-    
->>> msa[:2]
-<MSA: piwi_seed' (2 sequences, 395 residues)>
-    
+
+.. ipython:: python
+
+   msa['YQ53_CAEEL']
+
+Slice an MSA instance to give a new :class:`.MSA`. object :
+
+.. ipython:: python
+
+   new_msa = msa[:2]
+   new_msa
+
 Slice using a list of UniProt IDs:
-    
->>> msa[:2] == msa[['TAG76_CAEEL', 'O16720_CAEEL']]
-True
-    
+
+.. ipython:: python
+
+   msa[:2] == msa[['TAG76_CAEEL', 'O16720_CAEEL']]
+
 Retrieve a character or a slice of a sequence:
 
->>> msa[0,0]
-<Sequence: TAG76_CAEEL (length 1; 1 residues and 0 gaps)>
->>> msa[0,0:10]
-<Sequence: TAG76_CAEEL (length 10; 9 residues and 1 gaps)>
-    
+.. ipython:: python
+
+   msa[0,0]
+   msa[0,0:10]
+
 Slice MSA rows and columns:
-    
->>> msa[:10,20:40]
-<MSA: piwi_seed' (10 sequences, 20 residues)>
 
-    
+.. ipython:: python
+
+   msa[:10,20:40]
+
 Writing MSA files
-===============================================================================
+-------------------------------------------------------------------------------
 
-:func:`.writeMSA` can be used to write MSA. It takes filename as input 
-which should contain appropriate extension that can be ``".slx"`` or 
-``".sth"`` or  `".fasta"`` or format should be specified as ``"SELEX"``, 
-``"FASTA"`` or ``"Stockholm"``. Input MSA should be :class:`.MSAFile` or 
-:class:`.MSA` object. Filename can contain ``".gz"`` extension, in which case 
-a compressed file will be written. 
-Returns the name of the MSA file that is written. 
+:func:`.writeMSA` can be used to write MSA. It takes filename as input
+which should contain appropriate extension that can be ``".slx"`` or
+``".sth"`` or  `".fasta"`` or format should be specified as ``"SELEX"``,
+``"FASTA"`` or ``"Stockholm"``. Input MSA should be :class:`.MSAFile` or
+:class:`.MSA` object. Filename can contain ``".gz"`` extension, in which case
+a compressed file will be written.
+Returns the name of the MSA file that is written.
 
->>> writeMSA('sliced_MSA.gz', msa, format='SELEX')
-'sliced_MSA.gz'
->>> filename = writeMSA('sliced_MSA.fasta', msafobj)
+.. ipython:: python
 
-
-See Also
-===============================================================================
-
-See :mod:`~.prody.sequence` module for all sequence analysis functions. 
-
-|questions|
-
-|suggestions|
-
-.. sectionauthor:: Anindita Dutta
+   writeMSA('sliced_MSA.gz', msa, format='SELEX')
+   filename = writeMSA('sliced_MSA.fasta', msafobj)
+   filename
