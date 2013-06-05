@@ -47,7 +47,8 @@ $(document).ready(function() {
           var pills = $('.nav-pills > li');
           pills.removeClass('active');
           var index = $('#carousel .item.active').index('#carousel .item');
-          $(pills[index]).addClass('active');
+          var pill = $(pills[index]);
+          $(pill).addClass('active');
           if (index == 1) {
             document.getElementById("logo").src = "_static/evol.png";
           } else if (index == 2) {
@@ -55,7 +56,7 @@ $(document).ready(function() {
           } else {
             document.getElementById("logo").src = "_static/logo.png";
           }
-
+          window.location.hash = pill.find('a').attr('href').slice(1);
         }});
     // Move carousel based on URL
     if (url.search('evol') > -1) {
