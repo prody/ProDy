@@ -68,19 +68,12 @@
     border-radius: 0 0 4px 4px;
 }
 
-
 .subnav.affix {
     position: fixed;
     margin-top: 0px;
     top: 0px;
     left: 0;
     right: 0;
-    opacity: 0.0;
-    -webkit-transition:opacity 1s ease-in-out;
-    -moz-transition:opacity 1s ease-in-out;
-    -o-transition:opacity 1s ease-in-out;
-    -ms-transition:opacity 1s ease-in-out;
-    transition:opacity 1s ease-in-out;
     z-index: 1020; /* 10 less than .navbar-fixed to prevent any overlap */
     border-color: #d5d5d5;
     border-width: 0 0 1px; /* drop the border on the fixed edges */
@@ -91,6 +84,12 @@
     -moz-box-shadow: inset 0 1px 0 #fff, 0 1px 5px rgba(0,0,0,.1);
     box-shadow: inset 0 1px 0 #fff, 0 1px 5px rgba(0,0,0,.1);
     filter: progid:DXImageTransform.Microsoft.gradient(enabled=false); /* IE6-9 */
+    opacity: 0.0;
+    -webkit-transition:opacity 1s ease-in-out;
+    -moz-transition:opacity 1s ease-in-out;
+    -o-transition:opacity 1s ease-in-out;
+    -ms-transition:opacity 1s ease-in-out;
+    transition:opacity 1s ease-in-out;
 }
 
 .subnav.affix:hover {

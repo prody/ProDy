@@ -163,7 +163,7 @@ for pkg, (url, inv) in intersphinx_mapping.items():
         temp = temp.read()
         with open(inv, 'w') as out:
             out.write(temp)
-
+        del temp
 
 rst_epilog = u"""
 
