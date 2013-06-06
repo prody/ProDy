@@ -21,7 +21,7 @@
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
-from numpy import all, zeros, dtype, array, char, fromstring
+from numpy import dtype
 from numpy import indices, tril_indices
 from prody import LOGGER
 
@@ -313,7 +313,7 @@ def calcRankorder(matrix, zscore=False, **kwargs):
     if ndim != 2:
         raise ValueError('matrix must be a 2D array')
 
-    kwargs.get('thredhold', 0.0001)
+    threshold = kwargs.get('thredhold', 0.0001)
     try:
         symm = abs((matrix.transpose() - matrix).max()) < threshold
     except:
@@ -349,6 +349,3 @@ def calcRankorder(matrix, zscore=False, **kwargs):
         column = ind_column[sorted_index]
 
     return (row, column, matrix[row, column])
-
-
-
