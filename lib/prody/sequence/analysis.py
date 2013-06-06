@@ -315,7 +315,7 @@ def calcRankorder(matrix, zscore=False, **kwargs):
 
     kwargs.get('thredhold', 0.0001)
     try:
-        symm = abs((matrix.transpose() == matrix).max()) < threshold
+        symm = abs((matrix.transpose() - matrix).max()) < threshold
     except:
         symm = False
 
@@ -338,8 +338,8 @@ def calcRankorder(matrix, zscore=False, **kwargs):
         if kwargs.get('diag', True):
             k = 0
         else:
-            k = 1
-        ind_row, ind_column = tril_indices(shape[0], k=1)
+            k = -1
+        ind_row, ind_column = tril_indices(shape[0], k=k)
         matrix_lt = matrix[ind_row, ind_column]
         if descend:
             sorted_index = matrix_lt.argsort(axis=None)[::-1]
