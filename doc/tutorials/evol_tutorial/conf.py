@@ -1,4 +1,4 @@
-tutorial_title = u'Sequence Evolution Analysis with Evol'
+tutorial_title = u'Evol Tutorial'
 tutorial_author = u'Anindita Dutta, Ahmet Bakan'
 tutorial_logo = u''           # default is ProDy logo
 tutorial_version = u''        # default is latest ProDy version

@@ -18,7 +18,6 @@ extensions = ['sphinx.ext.todo',
               'sphinx.ext.intersphinx',
               'sphinx.ext.inheritance_diagram',
               'matplotlib.sphinxext.mathmpl',
-              'matplotlib.sphinxext.plot_directive',
               'matplotlib.sphinxext.only_directives',
               'sphinxcontrib.googleanalytics',
               'sphinxcontrib.googlechart',
@@ -43,7 +42,8 @@ import prody
 version = release = prody.__version__
 
 exclude_patterns = ['_build', 'examples', 'tutorials/template',
-                    'reports'] + glob.glob('tutorials/*/acknowledgments.rst')
+                    'acknowledgments.rst', 'reports'
+                    ] + glob.glob('tutorials/*/acknowledgments.rst')
 
 
 add_module_names = False
