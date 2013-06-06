@@ -35,7 +35,7 @@ FASTA = 'fasta'
 SELEX = 'selex'
 STOCKHOLM = 'stockholm'
 
-DOWNLOAD_FORMATS = set(['seed', 'full', 'ncbi', 'metagenomics'])
+DOWNLOAD_FORMATS = set(['seed', 'full', 'ncbi', 'metagenomics', 'rp15', 'rp35', 'rp55', 'rp75'])
 FORMAT_OPTIONS = ({'format': set([FASTA, SELEX, STOCKHOLM]),
                   'order': set(['tree', 'alphabetical']),
                   'inserts': set(['lower', 'upper']),
@@ -65,7 +65,7 @@ def searchPfam(query, search_b=False, skip_a=False, **kwargs):
     :type evalue: float
 
     :arg timeout: timeout for blocking connection attempt in seconds, default
-        is 30
+        is 60
     :type timeout: int
 
     *query* can also be a PDB identifier, e.g. ``'1mkp'`` or ``'1mkpA'`` with
@@ -92,7 +92,7 @@ def searchPfam(query, search_b=False, skip_a=False, **kwargs):
 
     import xml.etree.cElementTree as ET
     LOGGER.timeit('_pfam')
-    timeout = int(kwargs.get('timeout', 30))
+    timeout = int(kwargs.get('timeout', 60))
     if len(seq) >= MINSEQLEN:
         if not seq.isalpha():
             raise ValueError(repr(seq) + ' is not a valid sequence')
@@ -179,9 +179,9 @@ def searchPfam(query, search_b=False, skip_a=False, **kwargs):
             xml = openURL(url).read()
         except Exception:
             pass
-        else:
-            if xml:
-                break
+        #else:
+        #    if xml:
+        #        break
 
     if not xml:
         raise IOError('Pfam search timed out or failed to parse results '
@@ -246,7 +246,8 @@ def fetchPfamMSA(acc, alignment='full', compressed=False, **kwargs):
     :type acc: str
 
     :arg alignment: alignment type, one of ``'full'`` (default), ``'seed'``,
-        ``'ncbi'``, or ``'metagenomics'``
+         ``'ncbi'``, ``'metagenomics'``, ``'rp15'``, ``'rp35'``, ``'rp55'``,
+         or ``'rp75'`` where rp stands for representative proteomes
 
     :arg compressed: gzip the downloaded MSA file, default is **False**
 
@@ -266,7 +267,7 @@ def fetchPfamMSA(acc, alignment='full', compressed=False, **kwargs):
     *Other Options*
 
     :arg timeout: timeout for blocking connection attempt in seconds, default
-        is 5
+        is 60
 
     :arg outname: out filename, default is input ``'acc_alignment.format'``
 
@@ -331,7 +332,7 @@ def fetchPfamMSA(acc, alignment='full', compressed=False, **kwargs):
                    '&case=' + inserts[0] + '&gaps=' + gaps + '&download=1')
 
 
-    response =  openURL(url, timeout=int(kwargs.get('timeout', 5)))
+    response =  openURL(url, timeout=int(kwargs.get('timeout', 60)))
     outname = kwargs.get('outname', None)
     if not outname:
         outname = orig_acc
