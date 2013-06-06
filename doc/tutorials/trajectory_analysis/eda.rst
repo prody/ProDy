@@ -56,7 +56,8 @@ EDA calculations
 Essential dynamics analysis (EDA or PCA) of a trajectory can be performed in
 two ways.
 
-**Small trajectory files**
+Small files
+^^^^^^^^^^^
 
 If you are analyzing a small trajectory, you can use an :class:`.Ensemble`
 instance obtained by parsing the trajectory at once using :func:`.parseDCD`:
@@ -73,7 +74,8 @@ instance obtained by parsing the trajectory at once using :func:`.parseDCD`:
    eda_ensemble.calcModes()
    eda_ensemble
 
-**Large trajectory files**
+Large files
+^^^^^^^^^^^
 
 If you are analyzing a large trajectory, you can pass the trajectory instance
 to the :meth:`.PCA.buildCovariance` method as follows:
@@ -90,7 +92,8 @@ to the :meth:`.PCA.buildCovariance` method as follows:
    eda_trajectory.calcModes()
    eda_trajectory
 
-**Compare two methods**
+Comparison
+^^^^^^^^^^
 
 .. ipython:: python
 
@@ -121,7 +124,8 @@ them. In this case we will use data from two independent simulations
    eda.calcModes()
    eda
 
-**Save your work**
+Save your work
+^^^^^^^^^^^^^^
 
 You can save your work using ProDy function :func:`.saveModel`. This will
 allow you to avoid repeating calculations when you return to your work later:
@@ -132,7 +136,7 @@ allow you to avoid repeating calculations when you return to your work later:
 
 :func:`.loadModel` function can be used to load this object without any loss.
 
-Print data
+Analysis
 -------------------------------------------------------------------------------
 
 Let's print fraction of variance for top raking 4 essential modes:
@@ -142,7 +146,9 @@ Let's print fraction of variance for top raking 4 essential modes:
    for mode in eda_trajectory[:4]:
        print calcFractVariance(mode).round(2)
 
-Plot data
+You can find more analysis functions in :ref:`dynamics`.
+
+Plotting
 -------------------------------------------------------------------------------
 
 Now, let's project the trajectories onto top three essential modes:
@@ -165,9 +171,10 @@ Now, let's project the trajectories onto top three essential modes:
    @savefig trajectory_analysis_eda_projection.png width=4in
    showProjection(mdm2ca_sim2[-1], eda[:3], color='blue', marker='s', ms=12);
 
+You can find more plotting functions in :ref:`dynamics` and :ref:`measure`
+modules.
 
-
-Write NMD file
+Visualization
 -------------------------------------------------------------------------------
 
 The above projection is shown for illustration. Interpreting the essential

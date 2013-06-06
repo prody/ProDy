@@ -1,14 +1,10 @@
 .. _pdbfiles:
 
-
 PDB files
 ===============================================================================
 
-Synopsis
--------------------------------------------------------------------------------
-
 This examples demonstrates how to use the flexible PDB fetcher,
-:func:`.fetchPDB`. Valid inputs are PDB identifier, e.g ``"2k39"``, or a list
+:func:`.fetchPDB`. Valid inputs are PDB identifier, e.g :pdb:`2k39`, or a list
 of PDB identifiers, e.g. ``["2k39", "1mkp", "1etc"]``.
 Compressed PDB files (:file:`pdb.gz`) will be saved to the current working
 directory or a target folder.
@@ -41,10 +37,11 @@ Multiple files
 
 This function also accepts a list of PDB identifiers:
 
-.. ipython:: python
+.. ipython::
 
-   filenames = fetchPDB(['1p38', '1r39', '@!~#'], folder='temp')
-   filenames
+   In [1]: mkdir temp
+   In [2]: filenames = fetchPDB(['1p38', '1r39', '@!~#'], folder='temp')
+   In [3]: filenames
 
 For failed downloads, ``None`` will be returned (or the list will contain
 ``None`` item).
@@ -79,7 +76,7 @@ Three types of input are accepted from user:
 
   * PDB file path, e.g. ``"../1MKP.pdb"``
   * compressed (gzipped) PDB file path, e.g. ``"1p38.pdb.gz"``
-  * PDB identifier, e.g. ``"2k39"``
+  * PDB identifier, e.g. :pdb:`2k39`
 
 
 Output is an :class:`.AtomGroup` instance that stores atomic data
@@ -211,20 +208,15 @@ atoms of a specific chain:
 Header data
 ^^^^^^^^^^^
 
-PDB parser can be used to extract header data from PDB files as follows:
+PDB parser can be used to extract header data in a :class:`dict` from PDB
+files as follows:
 
 .. ipython:: python
 
    atoms, header = parsePDB('1mkp', header=True)
-
-Header data is returned in a :class:`dict`. Printing its keys will show what
-was parsed.
-
-.. ipython:: python
-
+   list(header)
    header['experiment']
    header['resolution']
-   list(header)
 
 It is also possible to parse only header data by passing `model=0` as an
 argument:
@@ -257,7 +249,7 @@ as follows:
 
 .. ipython:: python
 
-   writePDB('1mkp.pdb', atoms)
+   writePDB('MKP3.pdb', atoms)
 
 Upon successful writing of PDB file, filename is returned.
 

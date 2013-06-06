@@ -1,12 +1,7 @@
 .. _pca-dimer:
 
-
 Multimeric Structures
 ===============================================================================
-
-
-Synopsis
--------------------------------------------------------------------------------
 
 In this part, we perform PCA of HIV :wiki:`Reverse Transcriptase` (RT), which
 is a dimeric protein.

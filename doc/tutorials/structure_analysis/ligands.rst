@@ -1,7 +1,6 @@
 .. _extract-ligands:
 
-
-Extract bound ligands
+Ligand Extraction
 =============================================================================
 
 This example shows how to align structures of the same protein and extract

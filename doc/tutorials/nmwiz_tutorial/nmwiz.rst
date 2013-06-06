@@ -68,8 +68,8 @@ are recognized:
    match the number of atoms in the system, i.e. the size of coordinates line.
 
 
-For example, :download:`nmwiz_tutorial_files/1dlo_anm.nmd` contains
-following lines::
+For example, this :download:`NMD file <nmwiz_tutorial_files/1dlo_anm.nmd>`
+contains following lines::
 
    nmwiz_load 1dlo_anm.nmd
    name 1dlo
@@ -160,8 +160,8 @@ Atom selections
 Arrows are drawn for selected atoms. You can enter any valid atom selection
 string to display arrows for a specific part of the molecule.
 
-Molecule Representation
-^^^^^^^^^^^^^^^^^^^^^^^
+Representations
+^^^^^^^^^^^^^^^
 
 You can change molecule representations through NMWiz.
 :guilabel:`Molecule` number in :guilabel:`Actions` panel shows the index
@@ -171,8 +171,8 @@ you can turn this off in molecule :guilabel:`Options` panel.  Alternatively,
 you can :guilabel:`Hide` this molecule, and make custom representations for
 a molecule that you load into VMD manually.
 
-Making Animations
-^^^^^^^^^^^^^^^^^
+Animations
+^^^^^^^^^^
 
 Clicking :menuselection:`Animation --> Make` will start an animation along
 the active mode.  The animated motion involves changes in the structure
@@ -181,8 +181,8 @@ along the mode in both directions as much as the RMSD displayed in top panel.
 You can adjust animation settings, such as number of frames,
 using the :menuselection:`Animation --> Options` panel.
 
-Plotting and Heatmaps
-^^^^^^^^^^^^^^^^^^^^^
+Plots and Heatmaps
+^^^^^^^^^^^^^^^^^^
 
 You can generate plots and heatmaps that are linked to the protein display.
 Click :guilabel:`Plot Mobility`, for example. You will see a plot

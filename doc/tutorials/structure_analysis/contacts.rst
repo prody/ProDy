@@ -1,11 +1,7 @@
 .. _contacts:
 
-
 Intermolecular Contacts
 ===============================================================================
-
-Synopsis
--------------------------------------------------------------------------------
 
 This examples shows how to identify intermolecular contacts, e.g. protein
 atoms interacting with a bound inhibitor.  A structure of a protein-ligand
@@ -35,9 +31,9 @@ We start with parsing a PDB file that contains a protein and a bound ligand.
 
    pdb = parsePDB('1zz2')
 
-``1zz2`` contains an inhibitor bound p38 MAP kinase structure. Residue name of
-inhibitor is ``B11``. Protein atoms interacting with the inhibitor can simply
-be identified as follows:
+:pdb:`1zz2` contains an inhibitor bound p38 MAP kinase structure. Residue name
+of inhibitor is :pdbhet:`B11`. Protein atoms interacting with the inhibitor can
+simply be identified as follows:
 
 .. ipython:: python
 
@@ -130,7 +126,7 @@ The following corresponds to ``"within 4 of inhibitor"``:
 
 
 This method is 20 times faster than the one in the previous part, but it is
-limited to selecting only contacting atoms (other selection arguments cannot be
-passed). Again, it should be noted that :class:`.Contacts` does not update the
-KDTree that it uses, so it should be used if protein coordinates does not change
-between selections.
+limited to selecting only contacting atoms (other selection arguments cannot
+be passed). Again, it should be noted that :class:`.Contacts` does not update
+the KDTree that it uses, so it should be used if protein coordinates does not
+change between selections.

@@ -14,9 +14,9 @@ Tutorials
    prody_tutorial/index
    evol_tutorial/index
    nmwiz_tutorial/index
+   structure_analysis/index
    enm_analysis/index
    ensemble_analysis/index
-   structure_analysis/index
    trajectory_analysis/index
 
 .. only:: html

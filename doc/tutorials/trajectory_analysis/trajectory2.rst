@@ -1,10 +1,7 @@
 .. _trajectory2:
 
-Trajectory analysis II
+Trajectory Analysis II
 ===============================================================================
-
-Synopsis
--------------------------------------------------------------------------------
 
 This example shows how to perform a more elaborate calculations simultaneously.
 Radius of gyration, distance, psi angle calculated will be calculated

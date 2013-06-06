@@ -1,11 +1,8 @@
 .. _aligncoordsets:
 
 
-Align coordinate sets
+Alignments
 ===============================================================================
-
-Synopsis
--------------------------------------------------------------------------------
 
 :class:`.AtomGroup` instances can store multiple coordinate sets,
 i.e. multiple models from an NMR structure. This example shows how to align

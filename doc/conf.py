@@ -105,6 +105,7 @@ extlinks = {
     'pfam': ('http://pfam.sanger.ac.uk/family/%s', ''),
     'pfamprotein': ('http://pfam.sanger.ac.uk/protein/%s', ''),
     'uniprot': ('http://www.uniprot.org/uniprot/%s', ''),
+    'pdbhet': ('http://www.pdb.org/pdb/ligand/ligandsummary.do?hetId=%s', ''),
 }
 
 

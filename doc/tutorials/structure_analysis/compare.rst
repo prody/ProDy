@@ -1,6 +1,6 @@
 .. _compare-chains:
 
-Compare structures
+Structure Comparison
 ===============================================================================
 
 This section shows how to find identical or similar protein chains in two
@@ -24,8 +24,11 @@ We start by importing everything from the ProDy package:
    from pylab import *
    ion()
 
-Matching chains is useful when comparing two structures.
-Let's find matching chains in two different HIV-RT structures:
+Matching chains is useful when comparing two structures.  We will find
+matching chains in two different HIV :wiki:`Reverse Transcriptase` structures.
+
+
+First we define a function that prints information on paired (matched) chains:
 
 .. ipython:: python
 
@@ -37,39 +40,65 @@ Let's find matching chains in two different HIV-RT structures:
        print('Seq overlap : {}'.format(match[3]))
        print('RMSD        : {}\n'.format(calcRMSD(match[0], match[1])))
 
-   bound = parsePDB('1vrt')
-   unbound = parsePDB('1dlo')
-   matches = matchChains(bound, unbound)
-   for match in matches:
-       printMatch(match)
-
-We can do a structural alignment using both chains as follows:
-
-First we add the :class:`.AtomGroup` instances for both
-structures:
+Now let's parse bound RT structure :pdb:`1vrt` and unbound structure
+:pdb:`1dlo`:
 
 .. ipython:: python
 
-   bound_ca = matches[0][0] + matches[1][0]
-   repr(bound_ca)
-   unbound_ca = matches[0][1] + matches[1][1]
-   repr(unbound_ca)
-   calcRMSD(bound_ca, unbound_ca)
+   bound = parsePDB('1vrt')
+   unbound = parsePDB('1dlo')
+
+Let's verify that these structures are not aligned:
 
 .. ipython:: python
 
    showProtein(unbound, bound);
-   # some comment
    @savefig structure_analysis_compare_before.png width=4in
    legend();
 
-Then we find the transformation that minimizes RMSD between these two
+
+We find matching chains as follows:
+
+.. ipython:: python
+
+   matches = matchChains(bound, unbound)
+   for match in matches:
+       printMatch(match)
+
+This resulted in two matches. Chains A and B of two structures are paired.
+These chains contain only Cα atoms:
+
+.. ipython:: python
+
+   match[0][0].iscalpha
+   match[0][1].iscalpha
+
+
+For a structural alignment based on both chains, we merge these matches as
+follows:
+
+.. ipython:: python
+
+   bound_ca = matches[0][0] + matches[1][0]
+   bound_ca
+   unbound_ca = matches[0][1] + matches[1][1]
+   unbound_ca
+
+Let's calculate RMSD:
+
+.. ipython:: python
+
+   calcRMSD(bound_ca, unbound_ca)
+
+We find the transformation that minimizes RMSD between these two
 selections and apply it to unbound structure:
 
 .. ipython:: python
 
    calcTransformation(unbound_ca, bound_ca).apply(unbound);
    calcRMSD(bound_ca, unbound_ca)
+
+Let's see the aligned structures now:
 
 .. ipython:: python
 
