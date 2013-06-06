@@ -9,8 +9,8 @@ Required Software
 
 * `Python`_ 2.7, 3.2 or later
 
-  *Windows*: Note that, NumPy and ProDy supports only **32-bit** Python
-  on Windows.
+  *Windows*: You need to use **32-bit** Python on Windows to be able to
+  install NumPy and ProDy.
 
   *Python 2.6 and 3.1* can be used to install and run ProDy. However, note
   that ProDy tests are performed using Python 2.7 and 3.2, so these are the
@@ -50,20 +50,8 @@ Download Files
 ===============================================================================
 
 Download a suitable ProDy installation file from http://python.org/pypi/ProDy
-or here:
-
-.. csv-table::
-   :file: _static/ProDy_downloads.csv
-   :header-rows: 1
-   :delim: ,
-   :widths: 40, 20, 20, 10, 10
-
-For details of ProDy releases see :ref:`changes` and.
-
-Windows installers are built using `MinGW`_.
-
-.. _MinGW: http://www.mingw.org/
-
+http://csb.pitt.edu/ProDy/#downloads. For details of ProDy releases see
+:ref:`changes`.
 
 Installation Instructions
 ===============================================================================
@@ -73,11 +61,6 @@ following:
 
 Linux
 -------------------------------------------------------------------------------
-
-Remove all previously installed ProDy files.  You can find location of
-installation files as follows::
-
-    $ python -c "import prody; print(prody.__path__)"
 
 Download :file:`ProDy-x.{y}.{z}.tar.gz`.  Extract tarball contents and run
 :file:`setup.py` as follows::

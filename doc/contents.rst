@@ -6,9 +6,6 @@ ProDy Documentation
    :maxdepth: 1
    :glob:
 
-   getprody
-   plugins/index
-
    tutorials/index
    reference/index
 
@@ -16,6 +13,8 @@ ProDy Documentation
    apps/evol
 
    devel/index
+
+   getprody
 
 
 Indices and tables

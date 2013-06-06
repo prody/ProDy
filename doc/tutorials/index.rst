@@ -12,11 +12,11 @@ Tutorials
    :hidden:
 
    prody_tutorial/index
+   evol_tutorial/index
    nmwiz_tutorial/index
    enm_analysis/index
    ensemble_analysis/index
    structure_analysis/index
-   sequence_analysis/index
    trajectory_analysis/index
 
 .. only:: html
@@ -29,7 +29,7 @@ Tutorials
       :download:`TGZ <prody_tutorial/prody_tutorial_files.tgz>`)
 
     * :ref:`evol-tutorial`
-      (:download:`PDF <sequence_analysis/sequence_analysis.pdf>`)
+      (:download:`PDF <evol_tutorial/evol_tutorial.pdf>`)
 
     * :ref:`nmwiz-tutorial`
       (:download:`PDF <nmwiz_tutorial/nmwiz_tutorial.pdf>`,

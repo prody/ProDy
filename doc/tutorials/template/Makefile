@@ -34,7 +34,6 @@ html: workdir lsfiles
 	@echo "Build finished. The HTML pages are in $(BUILDDIR)/html."
 
 latex: workdir lsfiles
-	rm -f files.txt;
 	cd $(BUILDDIR)/workdir; $(SPHINXBUILD) -b latex $(ALLSPHINXOPTS) ../../ ../latex
 	@echo
 	@echo "LaTeX file is ready, see $(BUILDDIR)/latex."
@@ -47,6 +46,7 @@ pdf: latex
 	@echo "PDF file is ready, see $(BASENAME).pdf."
 
 lsfiles:
+	rm -f files.txt;
 	files=`ls $(BASENAME)_files`; \
 	if [ -z "$$files" ]; then echo "There are no required files." > files.txt; else \
 	ls -hgoL --time-style=+ $(BASENAME)_files/ | tail -n +2 | cut -b 14-128 > files.txt; fi
