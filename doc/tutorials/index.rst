@@ -28,7 +28,7 @@ Tutorials
       :download:`ZIP <prody_tutorial/prody_tutorial_files.zip>`,
       :download:`TGZ <prody_tutorial/prody_tutorial_files.tgz>`)
 
-    * :ref:`sequence-analysis`
+    * :ref:`evol-tutorial`
       (:download:`PDF <sequence_analysis/sequence_analysis.pdf>`)
 
     * :ref:`nmwiz-tutorial`

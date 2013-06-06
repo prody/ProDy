@@ -6,12 +6,18 @@ Pfam Database and MSA Files
 Synopsis
 -------------------------------------------------------------------------------
 
-The following examples shows how to do the following:
+The part shows how to:
 
-  * search Pfam database to identify pfam accession no and other details
-  * fetch the MSA of the pfam using acession no
+  * search Pfam database to identify family accession numbers and information
+  * fetch the MSA of the Pfam using accession no
   * parse the MSA, filter, slice MSA, write the MSA
 
+
+.. ipython:: python
+
+   from prody import *
+   from matplotlib.pylab import *
+   ion()  # turn interactive mode on
 
 Search Pfam
 -------------------------------------------------------------------------------
@@ -26,13 +32,9 @@ Matching Pfam accession (one or more) as keys will map to a dictionary that
 contains locations (alignment start, end, evalue etc), pfam family type,
 accession and id.
 
-.. ipython:: python
 
-   from prody import *
-   from matplotlib.pylab import *
-   ion() # turn interactive mode on
 
-Then we query Pfam using the :func:`.searchPfam`. with a UniProt ID.
+We query Pfam using the :func:`.searchPfam`. with a UniProt ID.
 
 .. ipython:: python
 
@@ -50,12 +52,12 @@ This function also accepts a protein sequence:
    matches
 
 
-For sequence searches, we can pass additional parameters to :func:`searchPfam`
+For sequence searches, we can pass additional parameters to :func:`.searchPfam`
 like *search_b* which will search pfam B and *skip_a* that will not search
 pfamA database. Additional parameters include *ga* that uses gathering
-threshold instead of evalue,  *evalue* cutoff can also be specified and
+threshold instead of e-value, *evalue* cutoff can also be specified and
 *timeout* that can be set higher especially when searching larger
-sequences, default is ``timeout=30`` seconds.
+sequences, default is ``timeout=60`` seconds.
 
 .. ipython:: python
 
@@ -68,7 +70,7 @@ Retrieve MSA files
 This example demonstrates how to search Pfam database with a given query using
 :func:`.fetchPfamMSA`. Valid inputs are Pfam ID, e.g. ``"Piwi"``, or Pfam
 accession, e.g. ``"PF02171"`` obtained from :func:`.searchPfam`.  Alignment
-type can be ``'full'`` (default), ``"seed"``, ``"ncbi"`` or ``"metagenomics"``.
+type can be ``"full'`` (default), ``"seed"``, ``"ncbi"`` or ``"metagenomics"``.
 
 .. ipython:: python
 
@@ -76,7 +78,7 @@ type can be ``'full'`` (default), ``"seed"``, ``"ncbi"`` or ``"metagenomics"``.
    msafile = 'piwi_seed.sth'
 
 A compressed file can be downloaded by setting ``compressed=True``.
-The ``format`` of the MSA can be of ``"selex"``, (default), ``"stockholm"`` or
+The ``format`` of the MSA can be of ``"selex"`` (default), ``"stockholm"`` or
 ``"fasta"``.  This will return the path of the downloaded MSA file.
 The ``output`` name can be specified, for by default it will have
 ``"accession/ID_alignment.format"``.
@@ -127,7 +129,8 @@ Filtering and Slicing
 This shows how to use the :class:`.MSAFile` object or :class:`.MSA` object to
 refine MSA using filters and slices.
 
-*Filtering sequences*
+Filtering
+^^^^^^^^^
 
 Any function that takes label and sequence arguments and returns a boolean
 value can be used for filtering the sequences.  A sequence will be yielded
@@ -140,7 +143,8 @@ organism *ARATH* are filtered:
    for seq in msafobj:
        print(seq.getLabel())
 
-*Slicing sequences*
+Slicing
+^^^^^^^
 
 A list of integers can be used to slice sequences as follows.  This enables
 selective parsing of the MSA file.
@@ -151,11 +155,12 @@ selective parsing of the MSA file.
    list(msafobj)[0]
 
 
-Slicing can also be done using :class:`.MSA`. The :class:`.MSA`. object offers
+Slicing can also be done using :class:`.MSA`. The :class:`.MSA` object offers
 other functionalities like querying, indexing, slicing row and columns and
 refinement.
 
-*Querying*
+Querying
+^^^^^^^^
 
 You can query whether a sequence in contained in the instance using the
 UniProt identifier of the sequence as follows:

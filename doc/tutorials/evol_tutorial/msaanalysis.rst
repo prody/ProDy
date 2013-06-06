@@ -18,14 +18,18 @@ is to show how to:
 Get MSA data
 -------------------------------------------------------------------------------
 
-We start by importing everything from the ProDy package. Then, we parse an MSA
-file. See also :ref:`msafiles`:
+First, we import everything from the ProDy package.
 
 .. ipython:: python
 
    from prody import *
-   from matplotlib.pylab import *
-   ion() # turn interactive mode on
+   from pylab import *
+   ion()  # turn interactive mode on
+
+Then, we parse an MSA file. See also :ref:`msafiles`:
+
+.. ipython:: python
+
    searchPfam('1K2A').keys()
    msa = parseMSA(fetchPfamMSA('PF00074'))
 
@@ -45,7 +49,7 @@ in the refined msa that have more than 20% gaps can be eliminated. We use the
    msa_refine
 
 Plotting occupancy
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+-------------------------------------------------------------------------------
 
 Evol plotting functions are prefixed with ``show``. We can plot the ocuupancy
 for each column to see if there are any positions in the MSA that have a lot of
@@ -70,8 +74,8 @@ that will change the start-end positions of the labels in the MSA that is not
 corrected automatically on refinement. We can also plot occupancy based on rows
 for the seqeunces in the MSA.
 
-Calculating and Plotting Entropy
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Entropy Calculation
+-------------------------------------------------------------------------------
 
 Here, we show how to calculate Shannon Entropy and plot entropy. Entropy for
 each position in the MSA is calculated using :func:`.calcShannonEntropy`. It
@@ -84,14 +88,14 @@ a 1D numpy arrauy. Plotting is done using :func:`.showShannonEntropy`.
 
 *entropy* is a 1D numpy array.
 
- .. ipython:: python
+.. ipython:: python
 
    @savefig msa_analysis_entropy.png width=6in
    showShannonEntropy(entropy, indices);
 
 
-Calculating and Plotting Mutual Information
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Mutual Information
+-------------------------------------------------------------------------------
 
 Here, we show how to calculate mutual information between the positions of the
 MSA using :func:`.buildMutinfoMatrix` which also takes  :class:`.MSA` object
@@ -117,14 +121,16 @@ the effects of different corrections and normalizations.
    @savefig msa_analysis_mutinfo.png width=4in
    showMutinfoMatrix(mutinfo);
 
+.. ipython:: python
+
    @savefig msa_analysis_mutinfo_corr.png width=4in
    showMutinfoMatrix(mutinfo_corr, clim=[0, mutinfo_corr.max()],
-   xlabel='1K2A: 4-131');
+      xlabel='1K2A: 4-131');
 
 Note ylabel does not need to be set, since xlabel = ylabel
 
 
-Writing Mutual Information and Entropy
+Output Results
 -------------------------------------------------------------------------------
 
 Here we show how to write the mutual information and entropy array. We use the
@@ -143,8 +149,7 @@ coevolving pairs based on a zscore cutoff.
 
 .. ipython:: python
 
-   import numpy
    rank_row, rank_col, zscore_sort = calcRankorder(mutinfo, zscore=True)
-   print(numpy.asarray(indices)[rank_row[:5]])
-   print(numpy.asarray(indices)[rank_col[:5]])
-   print(zscore_sort[:5])
+   asarray(indices)[rank_row[:5]]
+   asarray(indices)[rank_col[:5]]
+   zscore_sort[:5]
