@@ -101,6 +101,10 @@ html_show_copyright = True
 extlinks = {
     'issue': ('https://bitbucket.org/abakan/prody/issue/%s', 'issue '),
     'pdb': ('http://www.pdb.org/pdb/explore/explore.do?structureId=%s', ''),
+    'wiki': ('http://en.wikipedia.org/wiki/%s', ''),
+    'pfam': ('http://pfam.sanger.ac.uk/family/%s', ''),
+    'pfamprotein': ('http://pfam.sanger.ac.uk/protein/%s', ''),
+    'uniprot': ('http://www.uniprot.org/uniprot/%s', ''),
 }
 
 

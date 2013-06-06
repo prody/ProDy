@@ -25,7 +25,7 @@ Getting Started
 -------------------------------------------------------------------------------
 
 To follow this tutorial, you will need the following files which can be
-downloaded from |tutorials|.
+downloaded from :ref:`tutorials`.
 
 .. files.txt will be automatically generated
 

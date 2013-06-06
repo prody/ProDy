@@ -1,6 +1,6 @@
 .. _msa-analysis:
 
-Conservation and Co-evolution Analysis
+Evolution Analysis
 ===============================================================================
 
 Synopsis
@@ -26,7 +26,8 @@ First, we import everything from the ProDy package.
    from pylab import *
    ion()  # turn interactive mode on
 
-Then, we parse an MSA file. See also :ref:`msafiles`:
+Then, we parse an MSA file for protein family :pfam:`PF00074`.
+See also :ref:`msafiles`:
 
 .. ipython:: python
 
@@ -47,6 +48,8 @@ in the refined msa that have more than 20% gaps can be eliminated. We use the
 
    msa_refine = refineMSA(msa, label='RNAS2_HUMAN', rowocc=0.8, seqid=0.98)
    msa_refine
+
+MSA is refined based on the sequence of :uniprot:`RNAS2_HUMAN`.
 
 Plotting occupancy
 -------------------------------------------------------------------------------

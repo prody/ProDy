@@ -5,8 +5,8 @@ Dynamics Analysis
 ===============================================================================
 
 In this section, we will show how to perform quick PCA and ANM analysis
-using a solution structure of ubiquitin.  If you started a new Python session,
-import ProDy contents:
+using a solution structure of :wiki:`Ubiquitin`.  If you started a new Python
+session, import ProDy contents:
 
 
 .. ipython:: python
@@ -104,8 +104,8 @@ other:
 
 
 As you might have noticed, multiplication of two modes is nothing but the
-:func:`~numpy.dot` product of mode vectors/arrays.  See :ref:`mode-operations`
-for more examples.
+:func:`~numpy.dot` product of mode vectors/arrays.  See
+:ref:`normalmode-operations` for more examples.
 
 
 Comparative Analysis

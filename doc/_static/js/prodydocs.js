@@ -70,7 +70,19 @@ $(document).ready(function() {
     }
   } else {
     // Downloads
-    $('tt.download').append(' <i class="icon-download"></i>')
+    $('tt.download').append('&nbsp;<i class="icon-download"></i>')
+    var ext = $('a.external');
+    ext.attr('target', '_blank');
+    ext.each(function(i) {
+      var jthis = $(this);
+      var pre = jthis.find('span.pre');
+      if (pre.length) {
+        pre.append('&nbsp;<i class="icon-share"></i>');
+      } else {
+        jthis.append('&nbsp;<i class="icon-share"></i>');
+      }
+    });
+
   }
 
 });

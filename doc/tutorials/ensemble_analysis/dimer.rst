@@ -8,10 +8,8 @@ Multimeric Structures
 Synopsis
 -------------------------------------------------------------------------------
 
-In this part, we perform PCA of a dimeric protein, HIV reverse transcriptase
-(RT).  A predefined set of structures will be used, but an up-to-date list can
-be obtained by blast searching PDB. See :ref:`pca-blast` and :ref:`blastpdb`
-examples.
+In this part, we perform PCA of HIV :wiki:`Reverse Transcriptase` (RT), which
+is a dimeric protein.
 
 
 Input and Parameters
@@ -83,6 +81,9 @@ We are going to use the following list of structures:
               '2vg7', '2hmi', '1lwf', '1tkt', '2vg6', '1s6p', '1s6q', '3dm2',
               '1lwc', '3ffi', '1lwe']
 
+A predefined set of structures will be used, but an up-to-date list can be
+obtained by blast searching PDB. See :ref:`pca-blast` and :ref:`blastpdb`
+examples.
 
 Set reference
 ^^^^^^^^^^^^^

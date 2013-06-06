@@ -2,7 +2,7 @@ Introduction
 ===============================================================================
 
 This tutorial shows using elastic network models, in particular :ref:`gnm`
-and :ref:`anm`, for studying protein dynamics. 
+and :ref:`anm`, for studying protein dynamics.
 
 
 Required Programs
@@ -11,7 +11,7 @@ Required Programs
 Latest version of `ProDy`_ and `Matplotlib`_ required.
 
 .. _ProDy: http://csb.pitt.edu/ProDy/getprody.html
-.. _Matplotlib: http://matplotlib.org/ 
+.. _Matplotlib: http://matplotlib.org/
 
 Recommended Programs
 -------------------------------------------------------------------------------
@@ -24,8 +24,8 @@ Recommended Programs
 Getting Started
 -------------------------------------------------------------------------------
 
-To follow this tutorial, you will need the following files which can be 
-downloaded from |tutorials|.
+To follow this tutorial, you will need the following files which can be
+downloaded from :ref:`tutorials`.
 
 .. files.txt will be automatically generated
 

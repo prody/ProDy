@@ -1,6 +1,7 @@
 Atom Groups
 ===============================================================================
 
+This part gives more information on properties of :class:`.AtomGroup` objects.
 We start with making necessary imports. Note that, every documentation page
 contains them so that the code within the can be executed independently.
 You don't can skip them if you have already done them in a Python session.

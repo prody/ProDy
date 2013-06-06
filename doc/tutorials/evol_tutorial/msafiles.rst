@@ -23,10 +23,10 @@ Search Pfam
 -------------------------------------------------------------------------------
 
 This example demonstrates how to search Pfam database with a given query,
-:func:`.searchPfam`.  Valid inputs are UniProt ID, e.g. ``"PIWI_ARCFU"``, or
-PDB file, e.g. ``"3luc"`` or ``"3lucA"`` with chain identifier. Input can also
-be a protein sequence or a file containing the sequence, but sequence should
-not contain gaps and should be at least 12 characters long.
+:func:`.searchPfam`.  Valid inputs are UniProt ID, e.g. :uniprot:`PIWI_ARCFU`,
+or PDB identifier, e.g. :pdb:`3luc` or ``"3lucA"`` with chain identifier.
+Input can also be a protein sequence or a file containing the sequence,
+but sequence should not contain gaps and should be at least 12 characters long.
 
 Matching Pfam accession (one or more) as keys will map to a dictionary that
 contains locations (alignment start, end, evalue etc), pfam family type,
@@ -68,8 +68,8 @@ Retrieve MSA files
 -------------------------------------------------------------------------------
 
 This example demonstrates how to search Pfam database with a given query using
-:func:`.fetchPfamMSA`. Valid inputs are Pfam ID, e.g. ``"Piwi"``, or Pfam
-accession, e.g. ``"PF02171"`` obtained from :func:`.searchPfam`.  Alignment
+:func:`.fetchPfamMSA`. Valid inputs are Pfam ID, e.g. :pfam:`Piwi`, or Pfam
+accession, e.g. :pfam:`PF02171` obtained from :func:`.searchPfam`.  Alignment
 type can be ``"full'`` (default), ``"seed"``, ``"ncbi"`` or ``"metagenomics"``.
 
 .. ipython:: python

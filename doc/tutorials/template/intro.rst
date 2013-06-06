@@ -14,7 +14,7 @@ Latest version of `ProDy`_ is required.
 Recommended Programs
 -------------------------------------------------------------------------------
 
-List any recommended programs, such as `IPython`_, `Matplotlib`_, `Scipy`_, 
+List any recommended programs, such as `IPython`_, `Matplotlib`_, `Scipy`_,
 etc.
 
 .. _IPython: http://ipython.org/
@@ -25,8 +25,8 @@ etc.
 Getting Started
 -------------------------------------------------------------------------------
 
-To follow this tutorial, you will need the following files which can be 
-downloaded from |tutorials|.
+To follow this tutorial, you will need the following files which can be
+downloaded from :ref:`tutorials`.
 
 .. files.txt will be automatically generated
 

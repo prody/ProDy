@@ -1,6 +1,11 @@
 Structure Analysis
 ===============================================================================
 
+ProDy comes with many functions that can be used to calculate structural
+properties and compare structures. We demonstrate only some of these functions.
+For more detailed examples, see :ref:`structure-analysis` tutorial.
+
+
 .. ipython:: python
 
    from prody import *
