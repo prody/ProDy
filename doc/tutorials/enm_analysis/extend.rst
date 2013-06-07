@@ -4,12 +4,9 @@
 Extend a coarse-grained model
 ===============================================================================
 
-Synopsis
--------------------------------------------------------------------------------
-
 This example shows how to extend normal modes calculated for a
 coarse-grained model to a larger set of atoms. Extended model can be
-used to generate alternate conformers that can be save in PDB format.
+used to generate alternate conformers that can be saves in PDB format.
 
 Normal mode analysis
 
@@ -71,7 +68,9 @@ We can use the extended model to sample backbone conformers:
    ensemble
 
 
-Note that we made used of ANM modes beyond their theoretical limitations.
+Note that we made use of ANM modes to generate full atomic conformers. These
+conformers would need geometry optimization before they can be used for
+modeling.
 
 
 Write PDB file

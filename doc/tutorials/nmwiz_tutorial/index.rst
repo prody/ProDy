@@ -14,8 +14,13 @@ NMWiz Tutorial
    pca
    eda
    extend
-   deform
    commands
+
+.. toctree::
+   :glob:
+   :hidden:
+
+   compare
 
 .. only:: html
 

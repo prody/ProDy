@@ -1,11 +1,7 @@
 .. _deformation:
 
-
 Deformation Analysis
 ===============================================================================
-
-Synopsis
--------------------------------------------------------------------------------
 
 This example shows how to calculate the deformation vector describing the
 change between two structures of a protein.  Two structures of the same
@@ -130,7 +126,7 @@ deformation vector using :func:`.calcDeformVector`
    abs(defvec).round(3)
 
 
-To show how RMSD and deformation vector are related, we can be calculate
+To show how RMSD and deformation vector are related, we can calculate
 RMSD from the magnitude of the deformation vector:
 
 .. ipython:: python

@@ -1,8 +1,8 @@
 Introduction
 ===============================================================================
 
-This tutorial shows using elastic network models, in particular :ref:`gnm`
-and :ref:`anm`, for studying protein dynamics.
+This tutorial describes how to use elastic network models, in particular
+:ref:`gnm` and :ref:`anm`, for studying protein dynamics.
 
 
 Required Programs
