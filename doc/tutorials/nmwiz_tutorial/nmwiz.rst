@@ -138,7 +138,7 @@ Mode options
 
 :guilabel:`Mode Graphics Options` panel allows for customizing the look of
 arrows. You can change the size, length, material, and resolution of arrows,
-and also select to use porcupines instead of arrows.
+and also select to use porcupine quills instead of arrows.
 
 .. note::
    Mode representation is not redrawn after manual changes in variables.
@@ -175,8 +175,8 @@ Animations
 ^^^^^^^^^^
 
 Clicking :menuselection:`Animation --> Make` will start an animation along
-the active mode.  The animated motion involves changes in the structure
-along the mode in both directions as much as the RMSD displayed in top panel.
+the active mode.  The animated motion changes the structure along the mode 
+in both directions with an amplitude given by the RMSD displayed in top panel.
 
 You can adjust animation settings, such as number of frames,
 using the :menuselection:`Animation --> Options` panel.
@@ -185,7 +185,10 @@ Plots and Heatmaps
 ^^^^^^^^^^^^^^^^^^
 
 You can generate plots and heatmaps that are linked to the protein display.
-Click :guilabel:`Plot Mobility`, for example. You will see a plot
+Click :guilabel:`Plot Mobility`, for example. You will see a plot of the 
+residue mean squared fluctuations for the active mode.  Clicking the points 
+on the plot will toggle labels for the corresponding atoms in the VMD 
+molecular display.
 
 
 Main Controls

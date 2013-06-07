@@ -1,9 +1,9 @@
 NMWiz Commands
 ===============================================================================
 
-NMWiz commands allows altering molecule coordinate and normal modes, as well
+NMWiz commands allow altering molecule coordinate and normal modes, as well
 as adding new modes. Commands can also be used to generate combinations of 
-modes and adding them to the dataset (see the example at the end). 
+modes and add them to the dataset (see the example at the end). 
 
 Following are the level commands:
 

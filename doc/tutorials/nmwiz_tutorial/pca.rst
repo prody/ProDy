@@ -29,7 +29,7 @@ molecules and ProDy jobs will pop up.
 Atom Selection
 -------------------------------------------------------------------------------
 
-In both ANm and PCA calculations, we will omit the flexible C-terminal tail of
+In both ANM and PCA calculations, we will omit the flexible C-terminal tail of
 ubiquitin, since incorporating this flexible tail skews the calculations and
 results highlight local tail motions instead of collective global motions that
 we are interested in.
@@ -41,7 +41,7 @@ click :guilabel:`Select`.  70 Cα atoms will be selected for calculations.
 PCA Calculation
 -------------------------------------------------------------------------------
 
-Now, we will use all ubiquitin models for the PCa calculation.  Select
+Now, we will use all ubiquitin models for the PCA calculation.  Select
 :guilabel:`PCA Calculation` in the :guilabel:`ProDy Job Settings` panel.
 Keeping :guilabel:`PCA (EDA) Settings` unchanged, click :guilabel:`Submit Job`.
 Results will be loaded automatically when :ref:`prody-pca` command finishes
