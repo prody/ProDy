@@ -37,3 +37,14 @@ downloaded from :ref:`tutorials`.
 .. files.txt will be automatically generated
 
 .. literalinclude:: files.txt
+
+
+We assume that you will follow this tutorial by typing commands in an
+interactive Python session. We recommend that you use IPython. First,
+we will make necessary imports from ProDy and Matplotlib packages:
+
+.. ipython:: python
+
+   from prody import *
+   from pylab import *
+   ion()

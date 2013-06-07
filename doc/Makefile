@@ -5,14 +5,9 @@ SPHINXOPTS    =
 SPHINXBUILD   = sphinx-build
 PAPER         = letter
 BUILDDIR      = _build
-DOCTESTDIR    = _doctest
+WORKDIR       = _workdir
 
-# Internal variables.
-PAPEROPT_a4     = -D latex_paper_size=a4
-PAPEROPT_letter = -D latex_paper_size=letter
-ALLSPHINXOPTS   = -d $(BUILDDIR)/doctrees $(PAPEROPT_$(PAPER)) $(SPHINXOPTS)
-
-.PHONY: help clean html latex pdf doctest copy stats tutorial
+.PHONY: help clean html latex pdf copy stats tutorial
 
 help:
 	@echo "Please use \`make <target>' where <target> is one of"
@@ -20,22 +15,21 @@ help:
 	@echo "  pdf	    to make PDF files of reference manual and tutorials"
 	@echo "  copy	    to copy license, install, and changes to package directory"
 	@echo "  stats	    to update download statistics"
-	@echo "  doctest    to run all doctests embedded in the documentation"
 
 clean:
 	-rm -rf $(BUILDDIR)/*
 
 workdir:
-	mkdir -p $(BUILDDIR)/workdir
+	mkdir -p $(WORKDIR)
 	for tut in `find tutorials/ -type d -name "*_files"` ; do \
 		if [ -d "$$tut" ]; then \
-		 	ln -fs ../../$$tut $(BUILDDIR)/workdir/;\
+		 	ln -fs ../../$$tut $(WORKDIR)/;\
 		fi; \
 	done
 
 html: workdir
 	rm -f _inventory/prody*inv
-	cd $(BUILDDIR)/workdir; $(SPHINXBUILD) -b html -d $(BUILDDIR)/doctrees ../../ ../html
+	cd $(WORKDIR); $(SPHINXBUILD) -b html -d ../$(BUILDDIR)/doctrees ../ ../$(BUILDDIR)/html
 	@echo
 	@echo "Build finished. The HTML pages are in $(BUILDDIR)/html."
 
@@ -45,7 +39,7 @@ pdf:
 	cd tutorials; \
 	for tut in `find . -type d` ; do \
 		if [ -d "$$tut/$$tut"_files ]; then \
-		 	cd $$tut; make archive html pdf; cd ..;\
+		 	cd $$tut; make archive html pdf; cd ..; /bin/cp -rf $(WORKDIR)/* ../../$(WORKDIR)\
 		fi; \
 	done
 
@@ -62,10 +56,3 @@ stats:
 	pyps monthly -p _static/ProDy_downloads.png ProDy_stats.pkl
 	@echo
 	@echo "Download statistics updated."
-
-doctest:
-	cd $(DOCTESTDIR); \
-	$(SPHINXBUILD) -b doctest -d ../$(BUILDDIR)/doctrees/ .. .
-	@echo
-	@echo "Testing of doctests in the sources finished, look at the " \
-	      "results in $(DOCTESTDIR)."

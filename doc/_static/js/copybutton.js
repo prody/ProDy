@@ -28,8 +28,8 @@ $(document).ready(function() {
         var prepcode = function(wc) {
             var codesnippets = $('#codesnippets')
             codesnippets.html('')
-            codesnippets.append("#!/usr/bin/env python\n")
-            codesnippets.append("# -*- coding: utf-8 -*-\n")
+            //codesnippets.append("#!/usr/bin/env python\n")
+            //codesnippets.append("# -*- coding: utf-8 -*-\n")
             codesnippets.append("# This code was copied from ProDy documentation.\n")
             codesnippets.append("# Title: " + document.title.replace('\xe2', '-') + "\n")
             codesnippets.append("# URL: " + document.URL + "\n\n")

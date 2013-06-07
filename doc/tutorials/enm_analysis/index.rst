@@ -4,6 +4,10 @@
 Elastic Network Models
 *******************************************************************************
 
+.. only:: html
+
+    You can also read this tutorial in
+    :download:`PDF format <enm_analysis.pdf>`.
 
 .. toctree::
    :glob:

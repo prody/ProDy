@@ -4,6 +4,10 @@
 Structure Analysis
 *******************************************************************************
 
+.. only:: html
+
+    You can also read this tutorial in
+    :download:`PDF format <structure_analysis.pdf>`.
 
 .. toctree::
    :glob:
