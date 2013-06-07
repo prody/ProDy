@@ -10,9 +10,11 @@ Evol Tutorial
    :maxdepth: 2
 
    intro
+   pfamaccess
    msafiles
    msaanalysis
-
+   comparison
+   evolapps
 
 .. only:: html
 
