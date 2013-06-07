@@ -240,24 +240,8 @@ We will learn more about atom groups in the following chapters.
 Indexing
 ^^^^^^^^
 
-An individual :class:`.Atom` can be accessed by indexing :class:`.AtomGrou`
+An individual :class:`.Atom` can be accessed by indexing :class:`.AtomGroup`
 objects:
-
-.. ipython:: python
-
-   atom = p38[0]
-   atom
-
-Note that all ``get/set`` functions defined for :class:`.AtomGroup`
-instances are also defined for :class:`.Atom` instances, using singular
-form of the function name.
-
-.. ipython:: python
-
-   atom.getResname()
-
-An individual :class:`.Atom` can be accessed by indexing atom group
-instances:
 
 .. ipython:: python
 

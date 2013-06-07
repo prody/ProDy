@@ -18,7 +18,7 @@ datasets for a protein composed of sequence homologs, mutants, or ligand bound
 structures that have with missing loops or terminal residues.  Dominant
 patterns in structural variability are extracted by principal component
 analysis (PCA) of the ensemble.  Helper functions allow for comparison of
-dynamics inferred from experiments with theoretically models and simulation
+dynamics inferred from experiments with theoretical models and simulation
 data.  For detailed usage examples see :ref:`ensemble-analysis`.
 
 
