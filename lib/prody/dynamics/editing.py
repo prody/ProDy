@@ -89,14 +89,13 @@ def extend(model, nodes, atoms):
     return indices, atommap
 
 
-def extendModel(model, nodes, atoms):
+def extendModel(model, nodes, atoms, norm=False):
     """Extend a coarse grained *model* built for *nodes* to *atoms*.  *model*
     may be :class:`.ANM`, :class:`.GNM`, :class:`.PCA`, or :class:`.NMA`
     instance.  This function will take part of the normal modes for each node
     (i.e. Cα atoms) and extend it to all other atoms in the same residue.  For
     each atom in *nodes* argument *atoms* argument must contain a corresponding
-    residue.  Note that modes in the extended model will not be normalized.
-    For a usage example see :ref:`extendmodel`."""
+    residue.  If *norm* is **True**, extended modes are normalized."""
 
     try:
         evecs = model._getArray()
@@ -107,6 +106,10 @@ def extendModel(model, nodes, atoms):
     indices, atommap = extend(model, nodes, atoms)
 
     evecs = evecs[indices, :]
+    if norm:
+        evecs /= np.array([((evecs[:, i]) ** 2).sum() ** 0.5
+                           for i in range(evecs.shape[1])])
+
     if model.is3d():
         extended = NMA('Extended ' + str(model))
     else:
@@ -115,12 +118,13 @@ def extendModel(model, nodes, atoms):
     return extended, atommap
 
 
-def extendMode(mode, nodes, atoms):
+def extendMode(mode, nodes, atoms, norm=False):
     """Extend a coarse grained normal *mode* built for *nodes* to *atoms*.
     This function will take part of the normal modes for each node (i.e. Cα
     atoms) and extend it to all other atoms in the same residue.  For each atom
     in *nodes* argument *atoms* argument must contain a corresponding residue.
-    """
+    Extended mode is multiplied by the square root of variance of the mode.
+    If *norm* is **True**, extended mode is normalized."""
 
     try:
         vec = mode._getArray()
@@ -129,7 +133,12 @@ def extendMode(mode, nodes, atoms):
         raise ValueError('mode must be a normal Mode instance')
 
     indices, atommap = extend(mode, nodes, atoms)
-    extended = Vector(vec[indices] * std, 'Extended ' + str(mode), mode.is3d())
+    vec = vec[indices]
+    if norm:
+        vec /= ((vec) ** 2).sum() ** 0.5
+    else:
+        vec *= std
+    extended = Vector(vec, 'Extended ' + str(mode), mode.is3d())
     return extended, atommap
 
 
