@@ -4,6 +4,9 @@
 Reference Manual
 *******************************************************************************
 
+You can also read this manual in
+:download:`PDF format <ProDy_Manual.pdf>`.
+
 .. toctree::
    :maxdepth: 2
    :glob:
@@ -26,3 +29,5 @@ Reference Manual
    credits
    funding
    license
+
+

@@ -7,10 +7,7 @@
     <div id="collapseReleaseNotes" class="accordion-body collapse in">
       <div class="accordion-inner">
         <p><small>
-          <b>v{{ version }}</b> is a bugfix release.
-          <b>v1.4</b> series come with Python 3 support and new sequence analysis
-          features. See <a href="{{ pathto("reference/hanges/index") }}">changes</a> or
-          go to <a href="{{ pathto("getprody") }}">downloads</a>.
+          {%- include "release.html" %}
         </small></p>
       </div>
     </div>

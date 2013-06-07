@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 import os
 import sys
-from time import time
+import glob
+import time
 
 sys.path.append(os.path.abspath('_sphinxext'))
 sys.path.append(os.path.abspath('_inventory'))
@@ -17,15 +18,12 @@ extensions = ['sphinx.ext.todo',
               'sphinx.ext.intersphinx',
               'sphinx.ext.inheritance_diagram',
               'matplotlib.sphinxext.mathmpl',
-              'matplotlib.sphinxext.plot_directive',
               'matplotlib.sphinxext.only_directives',
               'sphinxcontrib.googleanalytics',
               'sphinxcontrib.googlechart',
               'sphinxcontrib.youtube',
               'ipython_console_highlighting',
               'ipython_directive']
-               #, 'sphinxcontrib.spelling']
-               #'sphinx.ext.pngmath',
 
 templates_path = ['_theme']
 source_suffix = '.rst'
@@ -40,12 +38,12 @@ def getRevisionNumber():
     pipe = Popen('git log --summary'.split(), stdout=PIPE, stderr=PIPE)
     return str(pipe.stdout.read().count('Author:'))
 
-with open('../lib/prody/__init__.py') as _:
-    version = _.read().split('__version__ = ')[1].split(None, 1)[0][1:-1]
-release = version
+import prody
+version = release = prody.__version__
 
-exclude_patterns = ['_build', 'examples', 'tutorial', 'tutorials/template',
-                    '*acknowledgments.rst', 'reports', 'random']
+exclude_patterns = ['_build', 'examples', 'tutorials/template',
+                    'acknowledgments.rst', 'reports'
+                    ] + glob.glob('tutorials/*/acknowledgments.rst')
 
 
 add_module_names = False
@@ -71,9 +69,7 @@ html_index = 'index.html'
 
 generic_sidebars = ['toolbox.html', 'releasenotes.html', 'howtocite.html']
 html_sidebars = {
-    'index': [],  # ['slideshow.html', 'releasenotes.html', 'howtocite.html',
-                  # 'getprody.html', 'credits.html', 'getintouch.html',
-                  # 'searchbox.html',],
+    'index': generic_sidebars,
     'genindex': generic_sidebars,
     'py-modindex': generic_sidebars,
     'search': generic_sidebars,
@@ -105,6 +101,11 @@ html_show_copyright = True
 extlinks = {
     'issue': ('https://bitbucket.org/abakan/prody/issue/%s', 'issue '),
     'pdb': ('http://www.pdb.org/pdb/explore/explore.do?structureId=%s', ''),
+    'wiki': ('http://en.wikipedia.org/wiki/%s', ''),
+    'pfam': ('http://pfam.sanger.ac.uk/family/%s', ''),
+    'pfamprotein': ('http://pfam.sanger.ac.uk/protein/%s', ''),
+    'uniprot': ('http://www.uniprot.org/uniprot/%s', ''),
+    'pdbhet': ('http://www.pdb.org/pdb/ligand/ligandsummary.do?hetId=%s', ''),
 }
 
 
@@ -159,15 +160,15 @@ intersphinx_mapping = {
 week = 7 * 24 * 3600
 for pkg, (url, inv) in intersphinx_mapping.items():
 
-    if (not os.path.isfile(inv) or time() - os.path.getmtime(inv) > week):
+    if (not os.path.isfile(inv) or time.time() - os.path.getmtime(inv) > week):
         import urllib2
         sys.stderr.write('Downloading {} inventory from {}\n'
                          .format(pkg, inv))
-        _ = urllib2.urlopen(url + 'objects.inv')
-        _ = _.read()
+        temp = urllib2.urlopen(url + 'objects.inv')
+        temp = temp.read()
         with open(inv, 'w') as out:
-            out.write(_)
-
+            out.write(temp)
+        del temp
 
 rst_epilog = u"""
 

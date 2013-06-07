@@ -1,12 +1,10 @@
 Structure Analysis
 ===============================================================================
 
-Measure geometric properties
--------------------------------------------------------------------------------
+ProDy comes with many functions that can be used to calculate structural
+properties and compare structures. We demonstrate only some of these functions.
+For more detailed examples, see :ref:`structure-analysis` tutorial.
 
-Functions for analyzing structures can be found in :mod:`~prody.measure`
-module. For example, you can calculate phi (φ) and psi (ψ) for the 10th
-residue, or the radius of gyration of the protein as follows:
 
 .. ipython:: python
 
@@ -14,11 +12,19 @@ residue, or the radius of gyration of the protein as follows:
    from pylab import *
    ion()
 
+Measure geometric properties
+-------------------------------------------------------------------------------
+
+Let's parse a structure:
+
 
 .. ipython:: python
 
    p38 = parsePDB('1p38')
 
+Functions for analyzing structures can be found in :mod:`~prody.measure`
+module. For example, you can calculate phi (φ) and psi (ψ) for the 10th
+residue, or the radius of gyration of the protein as follows:
 
 .. ipython:: python
 
@@ -74,14 +80,14 @@ Writing PDB files
 PDB files can be written using the :func:`.writePDB` function.
 The function accepts objects containing or referring to atomic data.
 
-Writing selected atoms:
+Output selected atoms:
 
 .. ipython:: python
 
    writePDB('1p38_calphas.pdb', p38.select('calpha'))
 
 
-Writing a chain:
+Output a chain:
 
 .. ipython:: python
 

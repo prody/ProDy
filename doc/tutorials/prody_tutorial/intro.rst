@@ -5,7 +5,7 @@ Introduction
 structure-based analysis of protein dynamics, in particular for inferring
 protein dynamics from large heterogeneous structural ensembles.  It comes with
 several command line applications (:ref:`prody-apps`) and graphical user
-interface for visualization (GUI, :ref:`nmwiz`).  This tutorial shows core
+interface for visualization (:ref:`nmwiz`).  This tutorial shows core
 features of *ProDy* and some basic analysis tasks.  You can find links to more
 detailed and advanced tutorials below.
 
@@ -14,8 +14,8 @@ Structural Ensemble Analysis
 -------------------------------------------------------------------------------
 
 *ProDy* is primarily designed for analysis of *large* heterogeneous structural
-datasets that may be composed of sequence homologs, mutants, or ligand bound
-forms of a protein that have with missing loops or terminal residues.  Dominant
+datasets for a protein composed of sequence homologs, mutants, or ligand bound
+structures that have with missing loops or terminal residues.  Dominant
 patterns in structural variability are extracted by principal component
 analysis (PCA) of the ensemble.  Helper functions allow for comparison of
 dynamics inferred from experiments with theoretically models and simulation

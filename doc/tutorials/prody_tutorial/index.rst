@@ -12,7 +12,7 @@ ProDy Tutorial
    intro
    starthere
    basics
-   selections
+   atomic
    structure
    dynamics
    sequence

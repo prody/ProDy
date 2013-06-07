@@ -3,9 +3,6 @@
 Custom Gamma Functions
 ===============================================================================
 
-Synopsis
--------------------------------------------------------------------------------
-
 This example shows how to develop custom force constant functions for
 :class:`.ANM` (or :class:`.GNM`) calculations.
 
@@ -16,7 +13,7 @@ For those that are within 4 Å of each other (i.e. those from connected
 residue pairs), we use a 10 times stronger force constant.
 
 We will obtain an :class:`.ANM` instance that stores Hessian and Kirchhoff
-matrices and normal mode data describing intrinsic dynamics of the protein
+matrices and normal mode data describing the intrinsic dynamics of the protein
 structure. :class:`.ANM` instances and individual normal modes
 (:class:`.Mode`) can be used as input to functions in :mod:`prody.dynamics`
 module.

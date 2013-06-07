@@ -3,8 +3,6 @@
 NMR Models
 ===============================================================================
 
-Synopsis
--------------------------------------------------------------------------------
 
 This example shows how to perform PCA of an NMR structure with multiple models.
 The protein of interest is Ubiquitin, and example will repeat the calculations

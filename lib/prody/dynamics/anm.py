@@ -23,7 +23,6 @@ __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 import time
-from types import FunctionType
 
 import numpy as np
 
@@ -37,6 +36,7 @@ from .gnm import GNMBase, ZERO, checkENMParameters
 
 __all__ = ['ANM', 'calcANM']
 
+
 class ANM(GNMBase):
 
     """Class for Anisotropic Network Model (ANM) analysis of proteins
@@ -44,7 +44,13 @@ class ANM(GNMBase):
 
     See example :ref:`anm`.
 
-    """
+    .. [PD00] Doruker P, Atilgan AR, Bahar I. Dynamics of proteins predicted by
+       molecular dynamics simulations and analytical approaches: Application to
+       a-amylase inhibitor. *Proteins* **2000** 40:512-524.
+
+    .. [ARA01] Atilgan AR, Durrell SR, Jernigan RL, Demirel MC, Keskin O,
+       Bahar I. Anisotropy of fluctuation dynamics of proteins with an
+       elastic network model. *Biophys. J.* **2001** 80:505-515."""
 
     def __init__(self, name='Unknown'):
 
@@ -64,7 +70,8 @@ class ANM(GNMBase):
     def getHessian(self):
         """Return a copy of the Hessian matrix."""
 
-        if self._hessian is None: return None
+        if self._hessian is None:
+            return None
         return self._hessian.copy()
 
     def _getHessian(self):
@@ -253,11 +260,14 @@ class ANM(GNMBase):
                                       'which is required for sparse matrix '
                                       'decomposition')
                 try:
-                    values, vectors = scipy_sparse_la.eigsh(
-                            self._hessian, k=n_modes+6, which='SA')
+                    values, vectors = (
+                        scipy_sparse_la.eigsh(self._hessian, k=n_modes+6,
+                                              which='SA'))
                 except:
-                    values, vectors = scipy_sparse_la.eigen_symmetric(
-                            self._hessian, k=n_modes+6, which='SA')
+                    values, vectors = (
+                        scipy_sparse_la.eigen_symmetric(self._hessian,
+                                                        k=n_modes+6,
+                                                        which='SA'))
 
         else:
             if n_modes is not None:
@@ -278,7 +288,7 @@ class ANM(GNMBase):
         self._array = vectors[:, 1+shift:]
         self._n_modes = len(self._eigvals)
         LOGGER.debug('{0} modes were calculated in {1:.2f}s.'
-                          ''.format(self._n_modes, time.time()-start))
+                     .format(self._n_modes, time.time()-start))
 
 
 def calcANM(pdb, selstr='calpha', cutoff=15., gamma=1., n_modes=20,

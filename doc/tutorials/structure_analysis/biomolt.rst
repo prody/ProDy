@@ -3,9 +3,6 @@
 Building Biomolecules
 ===============================================================================
 
-Synopsis
--------------------------------------------------------------------------------
-
 Some PDB files contain coordinates for a monomer of a functional/biological
 multimer (biomolecule).  ProDy offers functions to build structures of
 biomolecules using the header data from the PDB file.  We will use PDB file
@@ -71,4 +68,5 @@ in the dimer:
 
 .. ipython:: python
 
-   for chain in dimer.iterChains(): repr(chain)
+   for chain in dimer.iterChains():
+       repr(chain)

@@ -1,11 +1,7 @@
 .. _trajectory:
 
-
-Trajectory analysis
+Trajectory Analysis
 ===============================================================================
-
-Synopsis
--------------------------------------------------------------------------------
 
 This example shows how to analyze a trajectory in DCD format. RMSD, RMSF,
 radius of gyration, and distance will be calculated from trajectory frames.
@@ -61,7 +57,7 @@ be parsed at once. This function returns an :class:`.Ensemble` instance:
    ensemble = parseDCD('trajectory_analysis_files/mdm2.dcd')
    repr(ensemble)
 
-.. note:: When parsing large DCD files at once memory may become an issue.
+.. note:: When parsing large DCD files at once, memory may become an issue.
    If the size of the DCD file is larger than half of the RAM in your machine,
    consider parsing DCD files frame-by-frame. See the following subsection for
    details.

@@ -40,6 +40,7 @@ html: workdir
 	@echo "Build finished. The HTML pages are in $(BUILDDIR)/html."
 
 pdf:
+	rm -f reference/*pdf tutorials/*/*pdf tutorials/*/*files.zip tutorials/*/*files.tgz
 	cd reference; make pdf
 	cd tutorials; \
 	for tut in `find . -type d` ; do \

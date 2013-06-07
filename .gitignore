@@ -24,15 +24,9 @@ __pycache__
 *.pdb.gz
 
 # Docs
-doc/_build/
 doc/*/*/_*
-doc/plot_directive
-doc/_doctest/*
+_build/*
 doc/_static/figures
-
-output.txt
-files.txt
-doc/tutorials/*/*_files
 
 *.pdf
 *.zip

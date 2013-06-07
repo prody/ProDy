@@ -10,7 +10,7 @@ PAPEROPT_a4     = -D latex_paper_size=a4
 PAPEROPT_letter = -D latex_paper_size=letter
 ALLSPHINXOPTS   = -d ../doctrees $(PAPEROPT_$(PAPER)) $(SPHINXOPTS)
 
-.PHONY: help html clean latex pdf archive workdir
+.PHONY: help html clean latex pdf archive setup
 
 help:
 	@echo "Please use \`make <target>' where <target> is one of"
@@ -20,36 +20,33 @@ help:
 clean:
 	-rm -rf $(BUILDDIR)/* $(BASENAME)_files.zip $(BASENAME)_files.tgz $(BASENAME).pdf
 
-workdir:
+setup:
 	mkdir -p $(BUILDDIR)/workdir
 	ln -fs ../../$(BASENAME)_files $(BUILDDIR)/workdir/
 	ln -fs ../../_theme
 	ln -fs ../../_static
 	ln -fs ../../_inventory
 	mkdir -p _static/figures
+	rm -f files.txt;
+	files=`ls $(BASENAME)_files`; \
+	if [ -z "$$files" ]; then echo "There are no required files." > files.txt; else \
+	ls -hgoL --time-style=+ $(BASENAME)_files/ | tail -n +2 | cut -b 14-128 > files.txt; fi
 
-html: workdir lsfiles
+html: setup
 	cd $(BUILDDIR)/workdir; $(SPHINXBUILD) -b html -d ../doctrees ../../ ../html
 	@echo
 	@echo "Build finished. The HTML pages are in $(BUILDDIR)/html."
 
-latex: workdir lsfiles
-	rm -f files.txt;
+pdf: setup
 	cd $(BUILDDIR)/workdir; $(SPHINXBUILD) -b latex $(ALLSPHINXOPTS) ../../ ../latex
 	@echo
 	@echo "LaTeX file is ready, see $(BUILDDIR)/latex."
-
-pdf: latex
 	@echo "Running LaTeX files through pdflatex..."
+	@echo
 	make -C $(BUILDDIR)/latex all-pdf
 	mv -f $(BUILDDIR)/latex/$(BASENAME).pdf .
 	@echo
 	@echo "PDF file is ready, see $(BASENAME).pdf."
-
-lsfiles:
-	files=`ls $(BASENAME)_files`; \
-	if [ -z "$$files" ]; then echo "There are no required files." > files.txt; else \
-	ls -hgo --time-style=+ $(BASENAME)_files/ | tail -n +2 | cut -b 14-128 > files.txt; fi
 
 archive:
 	rm -f $(BASENAME)_files.zip $(BASENAME)_files.tgz

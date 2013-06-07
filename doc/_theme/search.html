@@ -1,19 +1,10 @@
-{#
-    basic/search.html
-    ~~~~~~~~~~~~~~~~~
-
-    Template for the search page.
-
-    :copyright: Copyright 2007-2011 by the Sphinx team, see AUTHORS.
-    :license: BSD, see LICENSE for details.
-#}
 {% extends "layout.html" %}
 {% set title = _('Search') %}
-{% set script_files = script_files + ['_static/searchtools.js'] %}
 {% block extrahead %}
-  <script type="text/javascript">
-    jQuery(function() { Search.loadIndex("{{ pathto('searchindex.js', 1) }}"); });
-  </script>
+    <script type="text/javascript" src="{{ pathto('_static/js/searchtools.js', 1) }}"></script>
+    <script type="text/javascript">
+      jQuery(function() { Search.loadIndex("{{ pathto('searchindex.js', 1) }}"); });
+    </script>
   {{ super() }}
 {% endblock %}
 {% block body %}

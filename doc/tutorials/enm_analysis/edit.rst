@@ -4,10 +4,7 @@
 Editing a Model
 ===============================================================================
 
-Synopsis
--------------------------------------------------------------------------------
-
-This example shows how to analyze part a normal mode model corresponding to
+This example shows how to analyze the normal modes corresponding to
 a system of interest.  In this example, ANM calculations will be performed for
 HIV-1 reverse transcriptase (RT) subunits p66 and p51. Analysis will be made
 for subunit p66.  Output is a reduced/sliced model that can be used as input
@@ -38,13 +35,14 @@ calculations for them:
    (anm[0].getArray() ** 2).sum() ** 0.5
 
 
-Analysis of full model
--------------------------------------------------------------------------------
+Analysis
+^^^^^^^^
 
 We can plot the cross-correlations and square fluctuations for the full model
 as follows:
 
-**Cross-correlations**
+Cross-correlations
+""""""""""""""""""
 
 .. ipython:: python
 
@@ -53,7 +51,8 @@ as follows:
    showCrossCorr(anm);
 
 
-**Square fluctuations**
+Square fluctuations
+"""""""""""""""""""
 
 .. ipython:: python
 
@@ -64,29 +63,46 @@ as follows:
 Slicing a model
 -------------------------------------------------------------------------------
 
-We take the slice of the ANM model corresponding to subunit p66, which is
-chain A in the structure, using :func:`.sliceModel` function:
+Slicing a model is analogous to slicing a list, i.e.:
+
+.. ipython:: python
+
+   numbers = list(range(10))
+   numbers
+   slice_first_half = numbers[:10]
+   slice_first_half
+
+In this case, we want to slice normal modes, so that we will handle mode
+data corresponding to subunit p66, which is chain A in the structure.
+We use :func:`.sliceModel` function:
 
 .. ipython:: python
 
    anm_slc_p66, sel_p66 = sliceModel(anm, rt, 'chain A')
    anm_slc_p66
+
+Yo see that now sliced model contains 556 nodes out of the
+971 nodes in the original model.
+
+.. ipython:: python
+
    saveModel(anm_slc_p66, 'rt_anm_sliced')
    anm_slc_p66[:5].getEigvals().round(3)
    '%.3f' % (anm_slc_p66[0].getArray() ** 2).sum() ** 0.5
 
-Slicing do not change anything in the model apart from taking parts of the
-modes matching the selection. Note that the sliced model contains fewer nodes,
-has the same eigenvalues, and that the sliced modes are not normal.
+Note that slicing does not change anything in the model apart from taking parts
+of the modes matching the selection. The sliced model contains fewer nodes,
+has the same eigenvalues, and modes in the model are not normalized.
 
-Analysis of the slice
--------------------------------------------------------------------------------
+Analysis
+^^^^^^^^
 
 We plot the cross-correlations and square fluctuations for the sliced model
 in the same way. Note that the plots contain selected part of the model
 without any change:
 
-**Cross-correlations**
+Cross-correlations
+""""""""""""""""""
 
 .. ipython:: python
 
@@ -97,7 +113,8 @@ without any change:
 
 
 
-**Square fluctuations**
+Square fluctuations
+"""""""""""""""""""
 
 .. ipython:: python
 
@@ -122,21 +139,23 @@ This function implements the method described in 2000 paper of Hinsen et al.
    '%.3f' % (anm_red_p66[0].getArray() ** 2).sum() ** 0.5
 
 
-Analysis of the slice
--------------------------------------------------------------------------------
+Analysis
+^^^^^^^^
 
 We plot the cross-correlations and square fluctuations for the reduced model
 in the same way. Note that in this case the plots are not identical to the
 full model:
 
-**Cross-correlations**
+Cross-correlations
+""""""""""""""""""
 
 .. ipython:: python
 
    @savefig enm_analysis_edit_reduce_cc.png width=4in
    showCrossCorr(anm_red_p66);
 
-**Square fluctuations**
+Square fluctuations
+"""""""""""""""""""
 
 .. ipython:: python
 
@@ -159,3 +178,7 @@ between modes:
 The sliced and reduced models are not the same. While the purpose of slicing is
 simply enabling easy plotting/analysis of properties of a part of the system,
 reducing has other uses as in [WZ05]_.
+
+.. [WZ05] Zheng W, Brooks BR. Probing the Local Dynamics of Nucleotide-Binding
+   Pocket Coupled to the Global Dynamics: Myosin versus Kinesin.
+   *Biophysical Journal*  **2005** 89:167–178.

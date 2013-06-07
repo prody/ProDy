@@ -1,18 +1,15 @@
 .. _blastpdb:
 
 
-Blast search PDB
+Blast Search PDB
 ===============================================================================
-
-Synopsis
--------------------------------------------------------------------------------
 
 This examples demonstrates how to use Protein Data Bank blast search function,
 :func:`.blastPDB`.
 
 :func:`.blastPDB` is a utility function which can be used to check if
 structures matching a sequence exists in PDB or to identify a set of related
-structures for ensemble analysis (i.e. :ref:`pca`).
+structures for :ref:`pca`.
 
 We will used amino acid sequence of a protein, e.g.
 ``ASFPVEILPFLYLGCAKDSTNLDVLEEFGIKYILNVTPNLPNLF...YDIVKMKKSNISPNFNFMGQLLDFERTL``
@@ -51,8 +48,8 @@ To get the best match, :meth:`.PDBBlastRecord.getBest` method can be used:
 .. ipython:: python
 
    best = blast_record.getBest()
-   print(best['pdb_id'])
-   print(best['percent_identity'])
+   best['pdb_id']
+   best['percent_identity']
 
 
 PDB hits
@@ -61,7 +58,7 @@ PDB hits
 .. ipython:: python
 
    hits = blast_record.getHits()
-   print(list(hits))
+   list(hits)
 
 This results in only MKP-3 itself, since percent_identity argument was set
 to 90 by default:
@@ -69,9 +66,9 @@ to 90 by default:
 .. ipython:: python
 
    hits = blast_record.getHits(percent_identity=50)
-   print(list(hits))
+   list(hits)
    hits = blast_record.getHits(percent_identity=40)
-   print(list())
+   list(hits)
 
 
 This resulted in 7 hits, including structures of MKP-2, MKP-4, and MKP-5
@@ -79,9 +76,9 @@ More information on a hit can be obtained as follows:
 
 .. ipython:: python
 
-   print(hits['1zzw']['percent_identity'])
-   print(hits['1zzw']['align-len'])
-   print(hits['1zzw']['identity'])
+   hits['1zzw']['percent_identity']
+   hits['1zzw']['align-len']
+   hits['1zzw']['identity']
 
 Download hits
 -------------------------------------------------------------------------------
@@ -89,4 +86,4 @@ Download hits
 PDB hits can be downloaded using :func:`.fetchPDB` function::
 
   filenames = fetchPDB(hits.keys())
-  print(filenames)
+  filenames

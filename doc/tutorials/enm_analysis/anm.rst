@@ -1,17 +1,24 @@
 .. _anm:
 
-ANM analysis
+Anisotropic Network Model (ANM)
 ===============================================================================
 
-Synopsis
--------------------------------------------------------------------------------
-
 This example shows how to perform ANM calculations, and retrieve
-normal mode data.  An :class:`~.ANM` instance that stores Hessian and Kirchhoff
-matrices and normal mode data describing intrinsic dynamics of the protein
-structure will be obtained.  :class:`~.ANM` instances and individual normal
-modes (:class:`~.Mode`) can be used as input to functions in
-:mod:`~prody.dynamics` module.
+normal mode data.  An :class:`.ANM` instance that stores Hessian matrix
+(and also Kirchhoff matrix) and normal mode data describing the intrinsic
+dynamics of the protein structure will be obtained.  :class:`.ANM` instances
+and individual normal modes (:class:`.Mode`) can be used as input to functions
+in :mod:`.dynamics` module.
+
+See [Doruker00]_ and [Atilgan01]_ for more information on the theory of ANM.
+
+.. [Doruker00] Doruker P, Atilgan AR, Bahar I. Dynamics of proteins predicted
+   by molecular dynamics simulations and analytical approaches: Application to
+   a-amylase inhibitor. *Proteins* **2000** 40:512-524.
+
+.. [Atilgan01] Atilgan AR, Durrell SR, Jernigan RL, Demirel MC, Keskin O,
+   Bahar I. Anisotropy of fluctuation dynamics of proteins with an
+   elastic network model. *Biophys. J.* **2001** 80:505-515.
 
 
 Parse structure
@@ -62,7 +69,7 @@ to be used in ANM  calculations.
 Build Hessian
 -------------------------------------------------------------------------------
 
-We instantiate an :class:`~.ANM` instance:
+We instantiate an :class:`.ANM` instance:
 
 .. ipython:: python
 
@@ -109,9 +116,9 @@ Calculate modes using :meth:`.ANM.calcModes` method:
 
 Note that by default 20 non-zero (or non-trivial) and 6 trivial modes are
 calculated. Trivial modes are not retained. To calculate different number
-of non-zero modes or to keep zero modes, try: ``anm.calcModes(50, zeros=True)``
+of non-zero modes or to keep zero modes, try ``anm.calcModes(50, zeros=True)``.
 
-Normal mode data
+Normal modes data
 -------------------------------------------------------------------------------
 
 .. ipython:: python
@@ -137,7 +144,7 @@ Normal mode indices in Python start from 0, so slowest mode has index 0.
 By default, modes with zero eigenvalues are excluded. If they were retained,
 slowest non-trivial mode would have index 6.
 
-Get the slowest mode by indexing :class:`~.ANM` instance as follows:
+Get the slowest mode by indexing :class:`.ANM` instance as follows:
 
 .. ipython:: python
 
@@ -157,7 +164,7 @@ Following statement writes slowest 3 ANM modes into an NMD file:
    writeNMD('p38_anm_modes.nmd', anm[:3], calphas)
 
 
-Note that slicing an ANM (or GNM, EDA) instances returns a list of modes.
+Note that slicing an :class:`.ANM` objects returns a list of modes.
 In this case, slowest 3 ANM modes were written into NMD file.
 
 View modes in VMD
@@ -176,6 +183,7 @@ First make sure that the VMD path is correct
    # if this is incorrect use setVMDpath to correct it
    viewNMDinVMD('p38_anm_modes.nmd')
 
-This will show the slowest 3 modes in VMD using NMWiz. This concludes ANM
-example. Many of these apply to other NMA models, such as GNM and EDA instances.
+This will show the slowest 3 modes in VMD using NMWiz. This concludes the ANM
+example. Many of these apply to other NMA models, such as :class:`.GNM` and
+:class:`.EDA`.
 

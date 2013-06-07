@@ -1,12 +1,9 @@
 .. _outputtraj:
 
-Trajectory output
+Trajectory Output
 ===============================================================================
 
-Synopsis
--------------------------------------------------------------------------------
-
-This example shows how to output trajectories.
+This example shows how to output processed trajectories.
 
 
 Input files

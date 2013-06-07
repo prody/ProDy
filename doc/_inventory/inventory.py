@@ -58,7 +58,6 @@ def remove_api(inv, out):
     for line in lines:
         items = line.split(' py:')
         if len(items) == 1:
-            print line
             trimmed.append(line)
 
     out = open(out, 'wb')

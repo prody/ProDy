@@ -34,13 +34,13 @@
     </script>
     <script type="text/javascript" src="{{ pathto('_static/js/jquery-2.0.0.min.js', 1) }}"></script>
     <script type="text/javascript" src="{{ pathto('_static/js/bootstrap.min.js', 1) }}"></script>
-    <script type="text/javascript" src="{{ pathto('_static/js/jquery.cookie.js', 1) }}"></script>
-    <script type="text/javascript" src="{{ pathto('_static/js/textresize.js', 1) }}"></script>
-    <script type="text/javascript" src="{{ pathto('_static/js/logoupdate.js', 1) }}"></script>
     <script type="text/javascript" src="{{ pathto('_static/js/zeroclipboard.min.js', 1) }}"></script>
     <script type="text/javascript" src="{{ pathto('_static/js/copybutton.js', 1) }}"></script>
     <script type="text/javascript" src="{{ pathto('_static/js/prodydocs.js', 1) }}"></script>
+    <script type="text/javascript" src="{{ pathto('_static/js/underscore.min.js', 1) }}"></script>
+    <script type="text/javascript" src="{{ pathto('_static/js/doctools.js', 1) }}"></script>
     <link rel="shortcut icon" href="{{ pathto('_static/' + favicon, 1) }}"/>
+{% block extrahead %}{% endblock %}
   </head>
   <body data-spy="scroll" data-target="#localtoc" data-offset="190">
 
@@ -61,7 +61,7 @@
           </li>
         {%- endfor %}
         {%- block rootrellink %}
-        <li><a href="{{ pathto(master_doc) }}">{{ shorttitle|e }} v{{ version }}{{ reldelim1 }}</a></li>
+        <li><a href="http://www.csb.pitt.edu/ProDy/#tutorials">Home {{ reldelim1 }}</a></li>
         {%- endblock %}
         {%- for parent in parents %}
           <li><a href="{{ parent.link|e }}" {% if loop.last %}{{ accesskey("U") }}{% endif %}>{{ parent.title }}{{ reldelim1 }}</a></li>
@@ -86,7 +86,7 @@
         </div>
       </div>
     </div>
-    <div class="span9">
+    <div class="span9 body">
     {% block body %} {% endblock %}
     </div>
   </div>
@@ -115,7 +115,9 @@
   </div>
   <div class="modal-footer">
     <button class="btn btn-info" id="selectcode">Select Code</button>
+    <!--
     <button class="btn btn-success" id="copycode" data-clipboard-target="codesnippets">Copy Code</button>
+    -->
     <button class="btn" data-dismiss="modal" aria-hidden="true">Close</button>
   </div>
   <input type="hidden" id="zeroclipboardpath" value="{{ pathto('_static/js/zeroclipboard.swf', 1) }}">

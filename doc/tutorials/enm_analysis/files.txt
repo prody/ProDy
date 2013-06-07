@@ -1,0 +1,4 @@
+ 792  oanm_eigvals.txt
+3.3M  oanm_hes.txt
+215K  oanm_slwevs.txt
+ 94K  ognm_kirchhoff.txt

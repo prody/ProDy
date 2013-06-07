@@ -5,25 +5,22 @@ Dynamics Analysis
 ===============================================================================
 
 In this section, we will show how to perform quick PCA and ANM analysis
-using a solution structure of ubiquitin.  If you started a new Python session,
-import ProDy contents:
+using a solution structure of :wiki:`Ubiquitin`.  If you started a new Python
+session, import ProDy contents:
 
 
 .. ipython:: python
-   :suppress:
 
-   from prody import *; from pylab import *; ion()
-
-.. ipython:: python
-
-   structure = parsePDB('1p38')
+   from prody import *
+   from pylab import *
+   ion()
 
 
 PCA Calculations
 -------------------------------------------------------------------------------
 
-We perform principal component analysis (:class:`.PCA`) of NMR models
-in PDB file 2k39 as follows:
+Let's perform principal component analysis (:class:`.PCA`) of an ensemble
+of NMR models, such as :pdb:`2k39`.  First, we prepare the ensemble:
 
 .. ipython:: python
 
@@ -32,7 +29,7 @@ in PDB file 2k39 as follows:
    ubi_ensemble = Ensemble(ubi_selection)
    ubi_ensemble.iterpose()
 
-Perform the PCA:
+Then, we perform the PCA calculations:
 
 .. ipython:: python
 
@@ -40,7 +37,8 @@ Perform the PCA:
    pca.buildCovariance(ubi_ensemble)
    pca.calcModes()
 
-Print the fraction of variance for top raking 4 PCs:
+This analysis provides us with a description of the dominant changes in the
+structural ensemble.  Let's see the fraction of variance for top raking 4 PCs:
 
 .. ipython:: python
 
@@ -83,8 +81,8 @@ The longer and more controlled way:
 :ref:`anm` provides a more detailed discussion of ANM calculations.
 The above longer way gives more control to the user. For example, instead of
 building the Hessian matrix using uniform force constant and cutoff distance,
-customized force constant functions (see :ref:`gamma`) or a pre-calculated matrix
-(see :meth:`.ANM.setHessian`) may be used.
+customized force constant functions (see :ref:`gamma`) or a pre-calculated
+matrix (see :meth:`.ANM.setHessian`) may be used.
 
 Individual :class:`.Mode` instances can be accessed by
 indexing the :class:`.ANM` instance:
@@ -96,22 +94,24 @@ indexing the :class:`.ANM` instance:
    print( slowest_mode.getEigval().round(3) )
 
 Note that indices in Python start from zero (0).  0th mode is the 1st non-zero
-mode in this case.
-
-The :func:`.writeNMD` function writes ANM results in NMD format.
-NMD files can be viewed using the :ref:`nmwiz` VMD plugin.
+mode in this case.  Let's confirm that normal modes are orthogonal to each
+other:
 
 .. ipython:: python
 
-   writeNMD('p38_anm.nmd', anm[:6], ubi_selection)
+   (anm[0] * anm[1]).round(10)
+   (anm[0] * anm[2]).round(10)
 
-For more information on elastic network model calculations see
-:ref:`enm-analysis` section.
+
+As you might have noticed, multiplication of two modes is nothing but the
+:func:`~numpy.dot` product of mode vectors/arrays.  See
+:ref:`normalmode-operations` for more examples.
+
 
 Comparative Analysis
 -------------------------------------------------------------------------------
 
-ProDy comes with many built-in functions to facilitate a comparative analysis
+*ProDy* comes with many built-in functions to facilitate a comparative analysis
 of experimental and theoretical data. For example, using
 :func:`.printOverlapTable` function you can see the agreement between
 experimental (PCA) modes and theoretical (ANM) modes calculated above:
@@ -156,13 +156,15 @@ External Data
 -------------------------------------------------------------------------------
 
 Normal mode data from other NMA, EDA, or PCA programs can be parsed using
-:func:`.parseModes` function for ProDy analysis.
+:func:`.parseModes` function for analysis.
 
 In this case, we will parse ANM modes for p38 MAP Kinase calculated using
-`ANM server <http://ignmtest.ccbb.pitt.edu/cgi-bin/anm/anm1.cgi>`_  as the
-external software.  We use :download:`oanm.eigvals <prody_tutorial_files/oanm_eigvals.txt>`
-and :download:`oanm.slwevs <prody_tutorial_files/oanm_slwevs.txt>` files from the ANM
-server.
+`ANM server`_  as the external software.
+We use :download:`oanm.eigvals <prody_tutorial_files/oanm_eigvals.txt>`
+and :download:`oanm.slwevs <prody_tutorial_files/oanm_slwevs.txt>` files from
+the ANM server.
+
+.. _ANM server: http://ignmtest.ccbb.pitt.edu/cgi-bin/anm/anm1.cgi
 
 You can either download these files to your current working directory from here
 or obtain them for another protein from the ANM server.
@@ -172,8 +174,6 @@ or obtain them for another protein from the ANM server.
    nma = parseModes(normalmodes='prody_tutorial_files/oanm_slwevs.txt',
     eigenvalues='prody_tutorial_files/oanm_eigvals.txt',
     nm_usecols=range(1,21), ev_usecols=[1], ev_usevalues=range(6,26))
-.. ipython:: python
-
    nma
    nma.setTitle('1p38 ANM')
    slowmode = nma[0]
@@ -184,7 +184,7 @@ Plotting Data
 -------------------------------------------------------------------------------
 
 If you have `Matplotlib <http://matplotlib.sourceforge.net>`_, you can use
-ProDy functions whose name start with ``show`` to plot data:
+functions whose name start with ``show`` to plot data:
 
 .. ipython:: python
 
@@ -194,3 +194,10 @@ ProDy functions whose name start with ``show`` to plot data:
 
 :ref:`pca-xray-plotting` shows more plotting examples and
 :ref:`dynamics` module documentation lists all of the plotting functions.
+
+More Examples
+-------------------------------------------------------------------------------
+
+For more examples see :ref:`enm-analysis` and :ref:`ensemble-analysis`
+tutorials.
+

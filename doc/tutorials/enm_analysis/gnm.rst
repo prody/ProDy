@@ -1,17 +1,23 @@
 .. _gnm:
 
-Gaussian Network Model
+Gaussian Network Model (GNM)
 ===============================================================================
 
-Synopsis
--------------------------------------------------------------------------------
-
 This example shows how to perform GNM calculations using an X-ray structure
-of ubiquitin.  A :class:`.GNM` instance that stores Kirchhoff matrix and
-normal mode data describing intrinsic dynamics of the protein structure will
-be obtained.  :class:`.GNM` instances and individual normal modes
+of ubiquitin.  A :class:`.GNM` instance that stores the Kirchhoff matrix and
+normal mode data describing the intrinsic dynamics of the protein structure
+will be obtained.  :class:`.GNM` instances and individual normal modes
 (:class:`.Mode`) can be used as input to functions in :mod:`prody.dynamics`
 module.
+
+See [Bahar97]_ and [Haliloglu97]_ for more information on the theory of GNM.
+
+.. [Bahar97] Bahar I, Atilgan AR, Erman B. Direct evaluation of thermal
+   fluctuations in protein using a single parameter harmonic potential.
+   *Folding & Design* **1997** 2:173-181.
+
+.. [Haliloglu97] Haliloglu T, Bahar I, Erman B. Gaussian dynamics of folded
+   proteins. *Phys. Rev. Lett.* **1997** 79:3090-3093.
 
 
 Parse structure
@@ -103,9 +109,9 @@ Calculate normal modes
 
    gnm.calcModes()
 
-Note that by default 20 non-zero (or non-trivial) and 6 trivial modes are
+Note that by default 20 non-zero (or non-trivial) and 1 trivial mode is
 calculated. Trivial modes are not retained. To calculate different number
-of non-zero modes or to keep zero modes, try ``gnm.calcModes(50, zeros=True)``
+of non-zero modes or to keep zero modes, try ``gnm.calcModes(50, zeros=True)``.
 
 
 Normal mode data
@@ -124,10 +130,9 @@ Get covariance matrix:
 
    gnm.getCovariance().round(2)
 
-Note that covariance matrices are calculated using available modes
-in the model, which is slowest 20 modes in this case.
-If user calculated M slowest modes, only they will be used in the
-calculation of covariance.
+Note that covariance matrices are calculated using available modes in the
+model, which is slowest 20 modes in this case.  If user calculated M slowest
+modes, M modes will be used in the calculation of covariance.
 
 
 Individual modes

@@ -11,14 +11,14 @@
           <p><small>Show code snippets for copying:</small></p>
           <div class="btn-group">
             <a href="#codemodal" role="button" data-toggle="modal" id="showcode" class="btn btn-primary btn-small">
-              <i class="icon-file icon-white"></i> Show code</a>
+              <i class="icon-fullscreen icon-white"></i> Show code</a>
             <a href="#codemodal" role="button" data-toggle="modal" id="withcomments" class="btn btn-primary btn-small">
               and output <i class="icon-comment icon-white"></i> </a>
           </div>
         </div>
 
         <p><small>Enter search terms or a module, class or function name:</small></p>
-        <form class="form-search pull-right" action="{{ pathto('search.html') }}" method="get">
+        <form class="form-search pull-right" action="{{ pathto('search') }}" method="get">
           <div class="input-append">
             <input type="text" class="input-small search-query" name="q" class="span2">
             <button type="submit" class="btn btn-primary">Go</button>

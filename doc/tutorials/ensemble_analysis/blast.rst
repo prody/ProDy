@@ -1,10 +1,7 @@
 .. _pca-blast:
 
-Structures of Homologous Proteins
+Homologous Proteins
 ===============================================================================
-
-Synopsis
--------------------------------------------------------------------------------
 
 This example shows how to perform PCA of a structural dataset obtained by blast
 searching PDB. The protein of interest is cytochrome C (*cyt C*).  Dataset will

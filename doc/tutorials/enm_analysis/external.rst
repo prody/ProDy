@@ -3,9 +3,6 @@
 Using an External Matrix
 ===============================================================================
 
-Synopsis
--------------------------------------------------------------------------------
-
 This example shows how to use matrices from external software in :class:`.ANM`
 or :class:`.GNM` analysis of protein dynamics.
 
@@ -18,7 +15,7 @@ We start by importing everything from the ProDy package:
 
    from prody import *
    from matplotlib.pylab import *
-   ion() # turn interactive mode on
+   ion()  # turn interactive mode on
 
 The input file that contains the Hessian matrix has the following format
 (:download:`oanm_hes.txt <enm_analysis_files/oanm_hes.txt>`)::
