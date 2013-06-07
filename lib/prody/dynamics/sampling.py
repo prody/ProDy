@@ -51,19 +51,19 @@ def sampleModes(modes, atoms=None, n_confs=1000, rmsd=1.0):
     *modes*.  If *atoms* are provided, sampling will be around its active
     coordinate set.  Otherwise, sampling is around the 0 coordinate set.
 
-    :arg modes: Modes along which sampling will be performed.
+    :arg modes: modes along which sampling will be performed
     :type modes: :class:`.Mode`, :class:`.ModeSet`, :class:`.PCA`,
                  :class:`.ANM` or :class:`.NMA`
 
-    :arg atoms: Atoms whose active coordinate set will be used as the initial
-        conformation.
+    :arg atoms: atoms whose active coordinate set will be used as the initial
+        conformation
     :type atoms: :class:`.Atomic`
 
-    :arg n_confs: Number of conformations to generate. Default is 1000.
+    :arg n_confs: number of conformations to generate, default is 1000
     :type n_steps: int
 
-    :arg rmsd: The average RMSD that the conformations will have with
-        respect to the initial conformation. Default is 1.0 A.
+    :arg rmsd: average RMSD that the conformations will have with
+        respect to the initial conformation, default is 1.0 Å
     :type rmsd: float
 
     :returns: :class:`.Ensemble`
@@ -143,9 +143,12 @@ def sampleModes(modes, atoms=None, n_confs=1000, rmsd=1.0):
     if isinstance(modes, Mode):
         n_modes = 1
         variances = np.array([modes.getVariance()])
+        magnitudes = np.array([abs(modes)])
     else:
         n_modes = len(modes)
         variances = modes.getVariances()
+        magnitudes = np.array([abs(mode) for mode in modes])
+
     if np.any(variances == 0):
         raise ValueError('one or more modes has zero variance')
     randn = np.random.standard_normal((n_confs, n_modes))
@@ -156,7 +159,8 @@ def sampleModes(modes, atoms=None, n_confs=1000, rmsd=1.0):
 
     confs = []
     append = confs.append
-    scale = scale * variances ** 0.5
+    scale = scale / magnitudes * variances ** 0.5
+
     array = modes._getArray()
     if array.ndim > 1:
         for i in range(n_confs):
@@ -179,20 +183,20 @@ def traverseMode(mode, atoms, n_steps=10, rmsd=1.5):
     """Generates a trajectory along a given *mode*, which can be used to
     animate fluctuations in an external program.
 
-    :arg mode: Mode along which a trajectory will be generated.
+    :arg mode: mode along which a trajectory will be generated
     :type mode: :class:`.Mode`
 
-    :arg atoms: Atoms whose active coordinate set will be used as the initial
-        conformation.
+    :arg atoms: atoms whose active coordinate set will be used as the initial
+        conformation
     :type atoms: :class:`.Atomic`
 
-    :arg n_steps: Number of steps to take along each direction.
-        For example, for ``n_steps=10``, 20 conformations will be
-        generated along the first mode. Default is 10.
+    :arg n_steps: number of steps to take along each direction,
+        for example, for ``n_steps=10``, 20 conformations will be
+        generated along the first mode, default is 10.
     :type n_steps: int
 
-    :arg rmsd: The maximum RMSD that the conformations will have with
-        respect to the initial conformation. Default is 1.5 A.
+    :arg rmsd: maximum RMSD that the conformations will have with
+        respect to the initial conformation, default is 1.5 Å
     :type rmsd: float
 
     :returns: :class:`.Ensemble`
@@ -246,7 +250,7 @@ def traverseMode(mode, atoms, n_steps=10, rmsd=1.5):
     scale = ((n_atoms * step**2) / var) ** 0.5
     LOGGER.info('Mode is scaled by {0}.'.format(scale))
 
-    array = arr * var**0.5 * scale
+    array = arr * var**0.5 * scale / abs(mode)
     confs_add = [initial + array]
     for s in range(1, n_steps):
         confs_add.append(confs_add[-1] + array)
