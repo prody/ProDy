@@ -7,7 +7,7 @@ PAPER         = letter
 BUILDDIR      = _build
 WORKDIR       = _workdir
 
-.PHONY: help clean html latex pdf copy stats tutorial
+.PHONY: help clean html pdf copy stats
 
 help:
 	@echo "Please use \`make <target>' where <target> is one of"
@@ -37,9 +37,9 @@ pdf:
 	rm -f reference/*pdf tutorials/*/*pdf tutorials/*/*files.zip tutorials/*/*files.tgz
 	cd reference; make pdf
 	cd tutorials; \
-	for tut in `find . -type d` ; do \
+	for tut in `find . -type d`; do \
 		if [ -d "$$tut/$$tut"_files ]; then \
-		 	cd $$tut; make archive html pdf; cd ..; /bin/cp -rf $(WORKDIR)/* ../../$(WORKDIR)\
+		 	cd $$tut; make archive pdf; /bin/cp -rf $(WORKDIR)/* ../../$(WORKDIR); cd ..; \
 		fi; \
 	done
 

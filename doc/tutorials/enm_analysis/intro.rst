@@ -32,12 +32,25 @@ downloaded from :ref:`tutorials`.
 .. literalinclude:: files.txt
 
 
-We assume that you will follow this tutorial by typing commands in an
-interactive Python session. We recommend that you use IPython. First,
-we will make necessary imports from ProDy and Matplotlib packages:
+We recommend that you will follow this tutorial by typing commands in an
+IPython session, e.g.::
+
+  $ ipython
+
+or with pylab environment::
+
+  $ ipython --pylab
+
+
+First, we will make necessary imports from ProDy and Matplotlib
+packages.
 
 .. ipython:: python
 
    from prody import *
    from pylab import *
    ion()
+
+We have included these imports in every part of the tutorial, so that
+code copied from the online pages is complete. You do not need to repeat
+imports in the same Python session.

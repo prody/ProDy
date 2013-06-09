@@ -54,7 +54,7 @@ like *search_b* which will search pfam B and *skip_a* that will not search
 pfamA database. Additional parameters include *ga* that uses gathering
 threshold instead of e-value, *evalue* cutoff can also be specified and
 *timeout* that can be set higher especially when searching larger
-sequences, default is ``timeout=30`` seconds.
+sequences, default is ``timeout=60`` seconds.
 
 .. ipython:: python
 
@@ -82,7 +82,7 @@ The ``output`` name can be specified, for by default it will have
 ``"accession/ID_alignment.format"``.
 
 Note that in this case we passed a folder name, the downloaded file is saved
-in this folder, after it is created if it did not exist. Also bigger timeouts
+in this folder, after it is created if it did not exist. Also longer timeouts
 are necessary for larger families. Some other parameters like ``gap``,
 ``order`` or ``inserts`` can be set, as shown in the following example.
 

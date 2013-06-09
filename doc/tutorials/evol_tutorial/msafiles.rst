@@ -17,7 +17,7 @@ This example follows from :ref:`pfamaccess`. This part shows how to:
    from prody import *
    from matplotlib.pylab import *
    ion()  # turn interactive mode on
-   
+
 Fisrt, we search and fetch the MSA from pfam using :uniprot:`PIWI_ARCFU`.
 See also :ref:`pfamaccess`:
 
@@ -163,27 +163,23 @@ Returns the name of the MSA file that is written.
    writeMSA('sliced_MSA.gz', msa, format='SELEX')
    filename = writeMSA('sliced_MSA.fasta', msafobj)
    filename
-   
+
 Merging MSA files
 -------------------------------------------------------------------------------
 
-:func:`.mergeMSA` can be used to merge two or more MSA's. Based on their labels
-only those sequences that appear in both MSAs are retained, and concatenated 
+:func:`.mergeMSA` can be used to merge two or more MSAs. Based on their labels
+only those sequences that appear in both MSAs are retained, and concatenated
 horizontally to give a joint or merged MSA. This can be useful while evaluating
-covariance patterns for proteins with multiple domains or protein-protein 
-interactions. The example shows merging for the multi-domain receptor 
-:pdb:``3KG2`` containing pfam domains :pfam:``PF01094`` and :pfam:``PF00497``. 
+covariance patterns for proteins with multiple domains or protein-protein
+interactions. The example shows merging for the multi-domain receptor
+:pdb:``3KG2`` containing pfam domains :pfam:``PF01094`` and :pfam:``PF00497``.
 
 .. ipython:: python
-   
-   msa1 = parseMSA(fetchPfamMSA('PF01094', format='fasta'))  
+
+   msa1 = parseMSA(fetchPfamMSA('PF01094', format='fasta', timeout=120))
    msa1
-   msa2 = parseMSA(fetchPfamMSA('PF00497', format='fasta', timeout=60))
-   msa2  
+   msa2 = parseMSA(fetchPfamMSA('PF00497', format='fasta', timeout=120))
+   msa2
    msa1_2 = mergeMSA(msa1, msa2)
    msa1_2
-
-
-
-
 

@@ -1,5 +1,3 @@
-.. _atomgroup:
-
 Atom Group
 ==========
 

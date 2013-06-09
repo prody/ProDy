@@ -9,10 +9,7 @@ Synopsis
 
 This example is continued from :ref:`pca-xray-calculations`.  The aim of this
 part is to perform a quantitative comparison of experimental and theoretical
-data and to print/save the numerical data that was presented in [AB09]_.
-
-
-Load data
+data and to print/save the numerical data that were presented in [AB09]_.
 
 
 We start by importing everything from the ProDy package:
@@ -44,7 +41,7 @@ We can print this information to screen for top 6 PCs as follows:
        print('{0:s}  % variance = {1:.2f}'.format(mode, var))
 
 
-This data was included in Table 1 in [AB09]_.
+These data were included in Table 1 in [AB09]_.
 
 Collectivity of modes
 -------------------------------------------------------------------------------
@@ -71,8 +68,8 @@ This shows that top PCA modes and slow ANM modes are highly collective.
 PCA - ANM overlap
 -------------------------------------------------------------------------------
 
-We also calculated overlap between PCA and ANM modes to see whether
-structural changes observed upon inhibitor binding correlated with
+We calculate the overlap between PCA and ANM modes in order to see whether
+structural changes observed upon inhibitor binding correlate with
 the intrinsic fluctuations of the p38 MAP kinase (Table 1 in [AB09]_).
 
 There are a number of functions to calculate or show overlaps between modes

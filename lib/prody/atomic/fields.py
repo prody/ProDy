@@ -241,15 +241,7 @@ ATOMIC_FIELDS = {
 
 __doc__ += """
 
-Many of these data fields can be used to make atom selections. For example,
-the following will select atoms whose residue names are ALA:
-
-.. ipython:: python
-
-   from prody import *
-   ubi = parsePDB('1ubi')
-   ubi.select('resname ALA')
-
+Many of these data fields can be used to make :ref:`selections`.
 Following table lists definitions of fields and selection examples.  Note that
 fields noted as *read only* do not have a ``set`` method.
 

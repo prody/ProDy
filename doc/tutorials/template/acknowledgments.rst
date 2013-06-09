@@ -1,5 +1,5 @@
-Acknowledgments
-===============
+Acknowledgment
+==============
 
 Continued development of Protein Dynamics Software *ProDy* is supported by NIH
 through R01 GM099738 award.  Development of this tutorial is supported by NIH

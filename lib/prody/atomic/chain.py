@@ -64,24 +64,7 @@ class Chain(AtomSubset):
          - *residue number [, insertion code]* (:func:`tuple`),
            e.g. ``10`` or  ``10, "B"``, returns a :class:`.Residue`
          - *slice* (:func:`slice`), e.g, ``10:20``, returns a list of
-           :class:`.Residue` instances
-
-    .. ipython:: python
-
-       from prody import *
-       pdb = parsePDB('1p38')
-       chA = pdb['A']
-       chA
-       chA[4]
-       chA[3]  # Residue 3 does not exist in chain A
-
-    Iterating over a chain yields residue instances:
-
-    .. ipython:: python
-
-       for i, res in enumerate(chA):
-           if i == 4: break
-           print res"""
+           :class:`.Residue` instances"""
 
     __slots__ = ['_ag', '_indices', '_hv', '_acsi', '_selstr', '_seq']
 

@@ -20,12 +20,11 @@
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
-from textwrap import wrap as textwrap
-
 from numpy import unique
 
 __all__ = ['Everything', 'rangeString', 'alnum', 'importLA', 'dictElement',
            'intorfloat', 'startswith']
+
 
 class Everything(object):
 
@@ -34,6 +33,7 @@ class Everything(object):
     def __contains__(self, what):
 
         return True
+
 
 def rangeString(lint, sep=' ', rng=' to ', exc=False, pos=True):
     """Return a structured string for a given list of integers.
@@ -67,6 +67,7 @@ def rangeString(lint, sep=' ', rng=' to ', exc=False, pos=True):
     exc = int(exc)
     return sep.join([str(l[0]) if len(l) == 1 else
                      str(l[0]) + rng + str(l[-1] + exc) for l in lint])
+
 
 def alnum(string, alt='_', trim=False, single=False):
     """Replace non alpha numeric characters with *alt*.  If *trim* is **True**
@@ -143,4 +144,3 @@ def startswith(this, that):
         return that.startswith(this)
     else:
         return this.startswith(that)
-

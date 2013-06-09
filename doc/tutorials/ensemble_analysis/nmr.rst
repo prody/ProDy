@@ -4,11 +4,13 @@ NMR Models
 ===============================================================================
 
 
-This example shows how to perform PCA of an NMR structure with multiple models.
-The protein of interest is Ubiquitin, and example will repeat the calculations
-for ubiquitin that was published in [AB09]_.  A :class:`.PCA` instance that
-stores covariance matrix and principal modes that describes the dominant
-changes in the dataset will be obtained. :class:`.PCA` instance
+This example shows how to perform principal component analysis (PCA) of an
+ensemble of NMR models.  The protein of interest is :wiki:`ubiquitin`, and
+for illustration puposes, we will repeat the calculations for ubiquitin that
+was published in [AB09]_.
+
+A :class:`.PCA` object that stores covariance matrix and principal modes that
+describe the dominant changes in the dataset will be obtained. :class:`.PCA`
 and principal modes (:class:`.Mode`) can be used as input to functions in
 :mod:`.dynamics` module for further analysis.
 
@@ -17,8 +19,8 @@ Notes
 ^^^^^
 
 Note that this example is slightly different from that in the :ref:`tutorial`.
-This example uses the :class:`.Ensemble` class which has a method for
-performing iterative superposition.
+This example uses :class:`.Ensemble` which has a method for performing
+iterative superposition.
 
 Also, note that this example applies to any PDB file that contains multiple
 models.
@@ -105,7 +107,7 @@ Write principal modes into an :ref:`nmd-format` file for NMWiz using
 
 Print data
 -------------------------------------------------------------------------------
-Let's print fraction of variance for top raking 4 PCs (listed in the Table S3):
+Let's print fraction of variance for top ranking 4 PCs (listed in Table S3):
 
 .. ipython:: python
 

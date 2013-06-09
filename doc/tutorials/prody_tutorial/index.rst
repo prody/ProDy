@@ -16,7 +16,9 @@ ProDy Tutorial
    intro
    starthere
    basics
-   atomic
+   atomgroup
+   selection
+   hierview
    structure
    dynamics
    sequence

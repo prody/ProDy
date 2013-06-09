@@ -32,7 +32,7 @@ See also :ref:`msafiles`:
 .. ipython:: python
 
    searchPfam('1K2A').keys()
-   msa = parseMSA(fetchPfamMSA('PF00074', timeout=45))
+   msa = parseMSA(fetchPfamMSA('PF00074'))
 
 
 Refine MSA

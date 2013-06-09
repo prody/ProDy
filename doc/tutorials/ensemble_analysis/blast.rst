@@ -4,17 +4,17 @@ Homologous Proteins
 ===============================================================================
 
 This example shows how to perform PCA of a structural dataset obtained by blast
-searching PDB. The protein of interest is cytochrome C (*cyt C*).  Dataset will
-contain structures sharing 44% or more sequence identity with human *cyt C*,
-i.e. its homologs and/or orthologs.  A :class:`.PCA` instance that stores
-covariance matrix and principal modes that describes the dominant changes in
-the dataset will be obtained. :class:`.PCA` instance and principal modes
-(:class:`.Mode`) can be used as input to functions in :mod:`.dynamics` module
-for further analysis.
+searching PDB. The protein of interest is :wiki:`cytochrome c` (cyt *c*).
+Dataset will contain structures sharing 44% or more sequence identity with
+human *cyt c*, i.e. its homologs and/or orthologs.
+
+A :class:`.PCA` instance that stores covariance matrix and principal modes that
+describe the dominant changes in the dataset will be obtained. :class:`.PCA`
+instance and principal modes (:class:`.Mode`) can be used as input to functions
+in :mod:`.dynamics` module for further analysis.
 
 Input is amino acid sequence of the protein, a reference PDB identifier,
 and some parameters.
-
 
 Setup
 -------------------------------------------------------------------------------
@@ -142,8 +142,8 @@ Let's check how many conformations are extracted from PDB files:
 
    len(ensemble)
 
-Note that number of conformations are more than the number of PDB structures
-we evaluated. This is because some of the PDB files contained NMR structures
+Note that number of conformations is larger than the number of PDB structures
+we retrieved. This is because some of the PDB files contained NMR structures
 with multiple models. Each model in NMR structures are added to the ensemble
 as individual conformations.
 
@@ -209,7 +209,7 @@ Plot results
 -------------------------------------------------------------------------------
 
 
-Let's plot RMSD to the average structure:
+Let's plot RMSDs of all conformations from the average conformation:
 
 
 .. ipython:: python

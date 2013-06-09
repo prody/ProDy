@@ -4,6 +4,10 @@
 Evol Tutorial
 *******************************************************************************
 
+.. only:: html
+
+    You can also read this tutorial in
+    :download:`PDF format <evol_tutorial.pdf>`.
 
 .. toctree::
    :glob:

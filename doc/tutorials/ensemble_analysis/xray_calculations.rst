@@ -4,10 +4,7 @@
 Calculations
 ===============================================================================
 
-Synopsis
--------------------------------------------------------------------------------
-
-This is the first part of a lengthy ProDy example.  In this part, we perform
+This is the first part of a lengthy example.  In this part, we perform
 the calculations using a p38 MAP kinase (MAPK) structural dataset.  This will
 reproduce the calculations for p38 that were published in [AB09]_.
 
@@ -46,11 +43,11 @@ include in our analysis.
 
 
 Note that we used a list of identifiers that are different from what was listed
-in the supporting material of [AB09]_.  Since the paper was published, Protein
-Data Bank has refined some of the structures  and changed their identifiers.
-These changes are reflected to the above list.
+in the supporting material of [AB09]_.  Some structure has been refined and
+their identifier have been changed by the Protein Data Bank.
+These changes are reflected in the above list.
 
-Also note that, it is possible to update this list to include all of the p38
+Also note that it is possible to update this list to include all of the p38
 structures currently available in the PDB using the
 :func:`.blastPDB` function as follows:
 
@@ -191,7 +188,7 @@ Then we use :func:`.writePDB` function to save coordinates:
 PCA calculations
 -------------------------------------------------------------------------------
 
-Once the coordinate data is prepared, it is straightforward to perform the
+Once the coordinate data are prepared, it is straightforward to perform the
 :class:`.PCA` calculations:
 
 .. ipython:: python

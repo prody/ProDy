@@ -1,24 +1,35 @@
 Introduction
 ===============================================================================
 
-This tutorial shows how to various ProDy features for managing, handling,
-and analyzing protein structures.
+This tutorial describes sampling alternate protein conformations along
+:ref:`anm` modes, then optimizing them using a molecular dynamics program.
+Conformations obtained in this way can be useful in, for example, docking
+studies when the target binding site is flexible and can be affected by
+motions of protein along collective modes.
+
+We will use a structure of mitogen-activated protein kinase 14
+(:wiki:`MAPK14`), which is also known as p38 MAPK.  The structure
+identifier is :pdb:`1p38`.  PDB and PSF files are provided in documentation
+files.
 
 
 Required Programs
 -------------------------------------------------------------------------------
 
-Latest version of `ProDy`_ and `Matplotlib`_ are required.
+Latest version of `ProDy`_, `Matplotlib`_, and `NAMD`_ are required.
 
 .. _ProDy: http://csb.pitt.edu/ProDy/getprody.html
+.. _NAMD: http://www.ks.uiuc.edu/Research/namd/
 .. _Matplotlib: http://matplotlib.org/
 
 Recommended Programs
 -------------------------------------------------------------------------------
 
-`IPython`_ is strongly recommended.
+List any recommended programs, such as `IPython`_, `Scipy`_,
+etc.
 
 .. _IPython: http://ipython.org/
+.. _Scipy: http://scipy.org/
 
 
 Getting Started
@@ -30,7 +41,6 @@ downloaded from :ref:`tutorials`.
 .. files.txt will be automatically generated
 
 .. literalinclude:: files.txt
-
 
 We recommend that you will follow this tutorial by typing commands in an
 IPython session, e.g.::

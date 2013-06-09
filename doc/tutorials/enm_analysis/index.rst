@@ -20,6 +20,7 @@ Elastic Network Models
    gamma
    edit
    extend
+   normalmodes
    deformation
 
 .. only:: html
