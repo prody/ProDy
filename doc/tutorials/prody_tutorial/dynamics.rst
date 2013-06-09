@@ -38,7 +38,7 @@ Then, we perform the PCA calculations:
    pca.calcModes()
 
 This analysis provides us with a description of the dominant changes in the
-structural ensemble.  Let's see the fraction of variance for top raking 4 PCs:
+structural ensemble.  Let's see the fraction of variance for top ranking 4 PCs:
 
 .. ipython:: python
 
@@ -46,13 +46,13 @@ structural ensemble.  Let's see the fraction of variance for top raking 4 PCs:
        print(calcFractVariance(mode).round(2))
 
 
-PCA data can be saved on disck using :func:`.saveModel` function:
+PCA data can be saved on disk using :func:`.saveModel` function:
 
 .. ipython:: python
 
    saveModel(pca)
 
-This functions writes data in binary format, so is an efficient way of
+This function writes data in binary format, so is an efficient way of
 storing data permanently.  In a later session, this data can be loaded using
 :func:`.loadModel` function.
 

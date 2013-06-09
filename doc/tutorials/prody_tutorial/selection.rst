@@ -2,9 +2,9 @@ Atom Selections
 ===============================================================================
 
 This part gives more information on properties of :class:`.AtomGroup` objects.
-We start with making necessary imports. Note that, every documentation page
+We start with making necessary imports. Note that every documentation page
 contains them so that the code within the can be executed independently.
-You don't can skip them if you have already done them in a Python session.
+You can skip them if you have already done them in a Python session.
 
 .. ipython:: python
 
@@ -18,7 +18,7 @@ Atom Selections
 :class:`.AtomGroup` instances have a plain view of atoms for efficiency,
 but they are coupled with a powerful atom selection engine.  You can get well
 defined atom subsets by passing simple keywords or make rather sophisticated
-selections using composite statements.  Selection keywords and grammar is very
+selections using composite statements.  Selection keywords and grammar are very
 much similar to those found in `VMD <http://www.ks.uiuc.edu/Research/vmd/>`_.
 Some examples are shown here:
 
@@ -56,6 +56,7 @@ We can select backbone atoms by passing atom names following ``"name"`` keyword:
 
 
 Alternatively, we can use ``"backbone"`` to make the same selection:
+
 .. ipython:: python
 
    backbone = structure.select('backbone')

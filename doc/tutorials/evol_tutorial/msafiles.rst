@@ -152,8 +152,8 @@ Writing MSA files
 
 :func:`.writeMSA` can be used to write MSA. It takes filename as input
 which should contain appropriate extension that can be ``".slx"`` or
-``".sth"`` or  `".fasta"`` or format should be specified as ``"SELEX"``,
-``"FASTA"`` or ``"Stockholm"``. Input MSA should be :class:`.MSAFile` or
+``".sth"`` or  ``".fasta"`` or format should be specified as ``"SELEX"``,
+``"Stockholm"`` or ``"FASTA"``. Input MSA should be :class:`.MSAFile` or
 :class:`.MSA` object. Filename can contain ``".gz"`` extension, in which case
 a compressed file will be written.
 Returns the name of the MSA file that is written.
