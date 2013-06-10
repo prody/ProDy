@@ -23,7 +23,7 @@ workdir:
 	mkdir -p $(WORKDIR)
 	for tut in `find tutorials/ -type d -name "*_files"` ; do \
 		if [ -d "$$tut" ]; then \
-		 	ln -fs ../../$$tut $(WORKDIR)/;\
+		 	ln -fs ../$$tut $(WORKDIR)/;\
 		fi; \
 	done
 
