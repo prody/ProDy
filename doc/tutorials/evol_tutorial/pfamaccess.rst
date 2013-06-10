@@ -27,20 +27,53 @@ accession and id.
 
 We query Pfam using the :func:`.searchPfam`. with a UniProt ID.
 
-.. ipython:: python
+.. ipython::
+   :verbatim:
 
-   matches = searchPfam('PIWI_ARCFU')
-   matches
+   In [1]: matches = searchPfam('PIWI_ARCFU')
 
+   In [2]: matches
+   Out[2]:
+   {'PF02171': {'accession': 'PF02171',
+     'id': 'Piwi',
+     'locations': [{'ali_end': '405',
+       'ali_start': '111',
+       'bitscore': '228.70',
+       'end': '406',
+       'evalue': '1.1e-64',
+       'hmm_end': '301',
+       'hmm_start': '2',
+       'start': '110'}],
+     'type': 'Pfam-A'}}
 
 Input can also be a protein sequence or a file containing the sequence:
 
-.. ipython:: python
+.. ipython::
+   :verbatim:
 
-   sequence = ('PMFIVNTNVPRASVPDGFLSELTQQLAQATGKPPQYIAVHVVPDQLMAFGGSSEPCA'
-   'LCSLHSIGKIGGAQNRSYSKLLCGLLAERLRISPDRVYINYYDMNAANVGWNNSTFA')
-   matches = searchPfam(sequence)
-   matches
+   In [1]: sequence = ('PMFIVNTNVPRASVPDGFLSELTQQLAQATGKPPQYIAVHVVPDQLMAFGGSSE'
+      ...: 'PCALCSLHSIGKIGGAQNRSYSKLLCGLLAERLRISPDRVYINYYDMNAANVGWNNSTFA')
+
+
+
+   In [2]: matches = searchPfam(sequence)
+
+   In [3]: matches
+   Out[3]:
+   {'PF01187': {'accession': 'PF01187.13',
+     'class': 'Domain',
+     'id': 'MIF',
+     'locations': [{'ali_end': '114',
+       'ali_start': '1',
+       'bitscore': '174.2',
+       'end': '114',
+       'evalue': '7.7e-52',
+       'evidence': 'hmmer v3.0',
+       'hmm_end': '114',
+       'hmm_start': '1',
+       'significant': '1',
+       'start': '1'}],
+     'type': 'Pfam-A'}}
 
 Input sequence cannot have gaps and should be at least 12 characters long.
 
@@ -51,9 +84,10 @@ threshold instead of e-value, *evalue* cutoff can also be specified and
 *timeout* that can be set higher especially when searching larger
 sequences, default is ``timeout=60`` seconds.
 
-.. ipython:: python
+.. ipython::
+   :verbatim:
 
-   matches = searchPfam(sequence, search_b=True, evalue=2.0)
+   In [1]: matches = searchPfam(sequence, search_b=True, evalue=2.0)
 
 
 Retrieve MSA files
@@ -65,10 +99,11 @@ accession, e.g. :pfam:`PF02171` obtained from :func:`.searchPfam`.  Alignment
 type can be ``"full'`` (default), ``"seed"``, ``"ncbi"`` or ``"metagenomics"``
 or ``"rp15"`` or ``"rp35"`` or ``"rp55"`` or ``"rp75"``.
 
-.. ipython:: python
+.. ipython::
+   :verbatim:
 
-   fetchPfamMSA('piwi', alignment='seed')
-   msafile = 'piwi_seed.sth'
+   In [1]: fetchPfamMSA('piwi', alignment='seed')
+   Out[1]: 'piwi_seed.sth'
 
 A compressed file can be downloaded by setting ``compressed=True``.
 The ``format`` of the MSA can be of ``"selex"`` (default), ``"stockholm"`` or
@@ -81,7 +116,9 @@ in this folder, after it is created if it did not exist. Also longer timeouts
 are necessary for larger families. Some other parameters like ``gap``,
 ``order`` or ``inserts`` can be set, as shown in the following example.
 
-.. ipython:: python
+.. ipython::
+   :verbatim:
 
-   fetchPfamMSA('PF02171', compressed=True, gaps='mixed', inserts='lower',
-   order='alphabetical', format='fasta')
+   In [1]: fetchPfamMSA('PF02171', compressed=True, gaps='mixed',
+      ...: inserts='lower', order='alphabetical', format='fasta')
+   Out[1]: 'PF02171_full.fasta.gz'

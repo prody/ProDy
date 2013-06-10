@@ -3,9 +3,6 @@
 Evol Application
 ===============================================================================
 
-How to use Apps
--------------------------------------------------------------------------------
-
 Evol Applications have similar fuctionality as the python API. We can ``search``
 Pfam, ``fetch`` from Pfam and also ``refine MSA``, ``merge`` two or more MSA
 and calculate ``conservation`` and ``coevolution`` properties and also

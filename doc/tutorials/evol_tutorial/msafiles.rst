@@ -3,10 +3,7 @@
 MSA Files
 ===============================================================================
 
-This part follows from :ref:`pfamaccess`. This part shows how to:
-
-  * parse MSA files obtained from Pfam
-  * refine, filter, slice and write the MSA
+This part shows how to parse, refine, filter, slice, and write MSA files.
 
 
 .. ipython:: python
@@ -15,13 +12,15 @@ This part follows from :ref:`pfamaccess`. This part shows how to:
    from matplotlib.pylab import *
    ion()  # turn interactive mode on
 
-Fisrt, we search and fetch the MSA from pfam using :uniprot:`PIWI_ARCFU`.
-See also :ref:`pfamaccess`:
+Let's get Pfam MSA file for protein family that contains :uniprot:`PIWI_ARCFU`:
 
-.. ipython:: python
+.. ipython::
+   :verbatim:
 
-   searchPfam('PIWI_ARCFU').keys()
-   msafile = fetchPfamMSA('PF02171', alignment='seed')
+   In [1]: searchPfam('PIWI_ARCFU').keys()
+   Out[1]: ['PF02171']
+   In [2]: fetchPfamMSA('PF02171', alignment='seed')
+   Out[2]: 'PF02171_seed.sth'
 
 Parsing MSA files
 -------------------------------------------------------------------------------
@@ -35,20 +34,29 @@ can be obtained.
 
 .. ipython:: python
 
+   msafile = 'PF02171_seed.sth'
    msafobj = MSAFile(msafile)
    msafobj
    msa_seq_list = list(msafobj)
    msa_seq_list[0]
 
-Reading using :func:`.parseMSA` yields an :class:`.MSA` object.  We can parse
+:func:`.parseMSA` returns an :class:`.MSA` object.  We can parse
 compressed files, but reading uncompressed files are much faster.
 
-.. ipython:: python
+.. ipython::
+   :verbatim:
 
-   msa = parseMSA(fetchPfamMSA('PF02171', compressed=True))
-   msa
-   msa = parseMSA(fetchPfamMSA('PF02171', format='fasta'))
-   msa
+   In [1]: fetchPfamMSA('PF02171', compressed=True)
+   Out[1]: 'PF02171_full.sth.gz'
+
+   In [2]: parseMSA('PF02171_full.sth.gz')
+   Out[2]: <MSA: PF02171_full (2067 sequences, 1392 residues)>
+
+   In [3]: fetchPfamMSA('PF02171', format='fasta')
+   Out[3]: 'PF02171_full.fasta.gz'
+
+   In [3]: parseMSA('PF02171_full.fasta.gz')
+   Out[3]: <MSA: PF02171_full (2067 sequences, 1392 residues)>
 
 
 Iterating over a file will yield sequence id, sequence, residue start and
@@ -56,7 +64,7 @@ end indices:
 
 .. ipython:: python
 
-   msa = MSAFile(msafile)
+   msa = MSAFile(`PF02171_seed.sth`)
    for seq in msa:
        seq
 
@@ -171,15 +179,26 @@ covariance patterns for proteins with multiple domains or protein-protein
 interactions. The example shows merging for the multi-domain receptor
 :pdb:`3KG2` containing pfam domains :pfam:`PF01094` and :pfam:`PF00497`.
 
+.. ipython::
+   :verbatim:
+
+   In [1]: fetchPfamMSA('PF01094', format='fasta', timeout=120)
+   Out[1]: 'PF01094_full.fasta'
+   In [2]: fetchPfamMSA('PF00497', format='fasta', timeout=120)
+   Out[2]: 'PF00497_full.fasta'
+
+Let's parse and merge the two files:
+
 .. ipython:: python
 
-   msa1 = parseMSA(fetchPfamMSA('PF01094', format='fasta', timeout=120))
+   msa1 = parseMSA('PF01094_full.fasta')
    msa1
-   msa2 = parseMSA(fetchPfamMSA('PF00497', format='fasta', timeout=120))
+   msa2 = parseMSA('PF00497_full.fasta')
    msa2
-   msa1_2 = mergeMSA(msa1, msa2)
-   msa1_2
+   merged = mergeMSA(msa1, msa2)
+   merged
 
+Merged MSA contains 984 sequences.
 
 Writing MSAs
 -------------------------------------------------------------------------------
