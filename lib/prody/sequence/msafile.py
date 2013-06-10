@@ -503,11 +503,12 @@ def parseMSA(filename, **kwargs):
     LOGGER.timeit('_parsemsa')
 
     title, ext = splitext(filename)
+    title = split(title)[1]
     aligned = kwargs.get('aligned', True)
     if (ext.lower() == '.gz' or 'filter' in kwargs or 'slice' in kwargs or
             not aligned):
         if ext.lower() == '.gz':
-            title = splitext(title)
+            title = splitext(title)[0]
         msa = MSAFile(filename, split=False, **kwargs)
         seqlist = []
         sappend = seqlist.append
