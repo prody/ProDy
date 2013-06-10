@@ -68,47 +68,7 @@ except NameError:
 
 class MSAFile(object):
 
-    """Handle MSA files in FASTA, SELEX and Stockholm formats.
-
-    .. ipython:: python
-
-       from prody import *
-       fetchPfamMSA('piwi', alignment='seed')
-       msafile = 'piwi_seed.sth'
-
-    *Reading a file*
-
-    Iterating over a file will yield sequence id, sequence, residue start and
-    end indices:
-
-    .. ipython:: python
-
-       msa = MSAFile(msafile)
-       for seq in msa:
-           seq
-
-    *Filtering sequences*
-
-    Any function that takes label and sequence arguments and returns a boolean
-    value can be used for filtering the sequences.  A sequence will be yielded
-    if the function returns **True**.  In the following example, sequences from
-    organism *ARATH* are filtered:
-
-    .. ipython:: python
-
-       msa = MSAFile(msafile, filter=lambda lbl, seq: 'ARATH' in lbl)
-       for seq in msa:
-           seq
-
-    *Slicing sequences*
-
-    A list of integers can be used to slice sequences as follows.
-
-    .. ipython:: python
-
-       msa = MSAFile(msafile, slice=list(range(10)) + list(range(374,384)))
-       for seq in msa: # doctest: +ELLIPSIS
-           seq"""
+    """Handle MSA files in FASTA, SELEX and Stockholm formats."""
 
     def __init__(self, msa, mode='r', format=None, aligned=True, **kwargs):
         """*msa* may be a filename or a stream.  Multiple sequence alignments

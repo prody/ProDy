@@ -3,12 +3,15 @@
 Hierarchical Views
 ===============================================================================
 
-Below example shows how to use hierarchical views.  We start by importing
+This part describes how to use hierarchical views.  We start by importing
 everything from the ProDy package:
 
 .. ipython:: python
 
    from prody import *
+
+Hierarchical Views
+-------------------------------------------------------------------------------
 
 Then we parses a structure to get an :class:`.AtomGroup` instance which has a
 plain view of atoms:

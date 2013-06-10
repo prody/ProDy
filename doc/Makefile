@@ -28,13 +28,12 @@ workdir:
 	done
 
 html: workdir
-	rm -f _inventory/prody*inv
 	cd $(WORKDIR); $(SPHINXBUILD) -b html -d ../$(BUILDDIR)/doctrees ../ ../$(BUILDDIR)/html
 	@echo
 	@echo "Build finished. The HTML pages are in $(BUILDDIR)/html."
 
 pdf:
-	rm -f reference/*pdf tutorials/*/*pdf tutorials/*/*files.zip tutorials/*/*files.tgz
+	rm -f reference/*pdf tutorials/*/*pdf tutorials/*/*files.zip tutorials/*/*files.tgz _inventory/prody*inv
 	cd reference; make pdf
 	cd tutorials; \
 	for tut in `find . -type d`; do \

@@ -3,10 +3,7 @@
 Pfam Access
 ===============================================================================
 
-Synopsis
--------------------------------------------------------------------------------
-
-The tutorial shows how to:
+The part shows how to:
 
   * search Pfam database to identify family accession numbers and information
   * fetch the MSA of the Pfam using accession no

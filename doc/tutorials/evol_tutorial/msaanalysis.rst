@@ -3,10 +3,7 @@
 Evolution Analysis
 ===============================================================================
 
-Synopsis
--------------------------------------------------------------------------------
-
-This example follows from :ref:`msafiles`. The aim of this part
+This part follows from :ref:`msafiles`. The aim of this part
 is to show how to:
 
   * entropy calculations for conservation analsis
@@ -27,7 +24,7 @@ First, we import everything from the ProDy package.
    ion()  # turn interactive mode on
 
 Then, we parse an MSA file for protein family :pfam:`PF00074`.
-We can do this by specifying the PDB ID of a protein in this family. 
+We can do this by specifying the PDB ID of a protein in this family.
 See also :ref:`msafiles`:
 
 .. ipython:: python
@@ -39,9 +36,9 @@ See also :ref:`msafiles`:
 Refine MSA
 -------------------------------------------------------------------------------
 
-Here, we refine the MSA to decrease the number of gaps.  We will remove any 
-columns in the alignment for which there is a gap in the specified PDB file, 
-and then remove any rows that have more than 20% gaps.  :func:`.refineMSA` 
+Here, we refine the MSA to decrease the number of gaps.  We will remove any
+columns in the alignment for which there is a gap in the specified PDB file,
+and then remove any rows that have more than 20% gaps.  :func:`.refineMSA`
 does all of this and returns an :class:`.MSA` object.
 
 .. ipython:: python
@@ -49,7 +46,7 @@ does all of this and returns an :class:`.MSA` object.
    msa_refine = refineMSA(msa, label='RNAS2_HUMAN', rowocc=0.8, seqid=0.98)
    msa_refine
 
-MSA is refined based on the sequence of :uniprot:`RNAS2_HUMAN`, corresponding 
+MSA is refined based on the sequence of :uniprot:`RNAS2_HUMAN`, corresponding
 to :pdb:`1K2A`.
 
 Plotting occupancy
@@ -73,7 +70,7 @@ We can also specify indices based on the PDB.
    @savefig msa_analysis_occ_res_indices.png width=4in
    showMSAOccupancy(msa_refine, occ='res', indices=indices);
 
-Further refining the MSA to remove positions that have low occupancy will 
+Further refining the MSA to remove positions that have low occupancy will
 change the start and end positions of the labels in the MSA. This is not
 corrected automatically on refinement. We can also plot occupancy based on rows
 for the seqeunces in the MSA.
@@ -137,7 +134,7 @@ Note ylabel does not need to be set, since xlabel = ylabel
 Output Results
 -------------------------------------------------------------------------------
 
-Here we show how to write the mutual information and entropy arrays to file. We 
+Here we show how to write the mutual information and entropy arrays to file. We
 use the :func:`.writeArray` to write numpy array data.
 
 .. ipython:: python

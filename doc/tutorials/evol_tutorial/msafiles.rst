@@ -3,10 +3,7 @@
 MSA Files
 ===============================================================================
 
-Synopsis
--------------------------------------------------------------------------------
-
-This example follows from :ref:`pfamaccess`. This part shows how to:
+This part follows from :ref:`pfamaccess`. This part shows how to:
 
   * parse MSA files obtained from Pfam
   * refine, filter, slice and write the MSA
@@ -54,6 +51,15 @@ compressed files, but reading uncompressed files are much faster.
    msa
 
 
+Iterating over a file will yield sequence id, sequence, residue start and
+end indices:
+
+.. ipython:: python
+
+   msa = MSAFile(msafile)
+   for seq in msa:
+       seq
+
 Filtering and Slicing
 -------------------------------------------------------------------------------
 
@@ -72,7 +78,7 @@ organism *ARATH* are filtered:
 
    msafobj = MSAFile(msafile, filter=lambda lbl, seq: 'ARATH' in lbl)
    for seq in msafobj:
-       print(seq.getLabel())
+       seq.getLabel()
 
 Slicing
 ^^^^^^^
@@ -90,20 +96,12 @@ Slicing can also be done using :class:`.MSA`. The :class:`.MSA` object offers
 other functionalities like querying, indexing, slicing row and columns and
 refinement.
 
-Querying
-^^^^^^^^
 
-You can query whether a sequence in contained in the instance using the
-UniProt identifier of the sequence as follows:
-
-.. ipython:: python
-
-   msa = parseMSA(msafile)
-   'YQ53_CAEEL' in msa
-
-
-Indexing MSA objects
+MSA objects
 -------------------------------------------------------------------------------
+
+Indexing
+^^^^^^^^
 
 Retrieving a sequence at a given index, or by id will give an object of
 :class:`.Sequence`:
@@ -120,6 +118,21 @@ Retrieve a sequence by UniProt ID:
 .. ipython:: python
 
    msa['YQ53_CAEEL']
+
+
+Querying
+^^^^^^^^
+
+You can query whether a sequence in contained in the instance using the
+UniProt identifier of the sequence as follows:
+
+.. ipython:: python
+
+   'YQ53_CAEEL' in msa
+
+Slicing
+^^^^^^^
+
 
 Slice an MSA instance to give a new :class:`.MSA`. object :
 
@@ -147,24 +160,8 @@ Slice MSA rows and columns:
 
    msa[:10,20:40]
 
-Writing MSA files
--------------------------------------------------------------------------------
 
-:func:`.writeMSA` can be used to write MSA. It takes filename as input
-which should contain appropriate extension that can be ``".slx"`` or
-``".sth"`` or  ``".fasta"`` or format should be specified as ``"SELEX"``,
-``"Stockholm"`` or ``"FASTA"``. Input MSA should be :class:`.MSAFile` or
-:class:`.MSA` object. Filename can contain ``".gz"`` extension, in which case
-a compressed file will be written.
-Returns the name of the MSA file that is written.
-
-.. ipython:: python
-
-   writeMSA('sliced_MSA.gz', msa, format='SELEX')
-   filename = writeMSA('sliced_MSA.fasta', msafobj)
-   filename
-
-Merging MSA files
+Merging MSAs
 -------------------------------------------------------------------------------
 
 :func:`.mergeMSA` can be used to merge two or more MSAs. Based on their labels
@@ -172,7 +169,7 @@ only those sequences that appear in both MSAs are retained, and concatenated
 horizontally to give a joint or merged MSA. This can be useful while evaluating
 covariance patterns for proteins with multiple domains or protein-protein
 interactions. The example shows merging for the multi-domain receptor
-:pdb:``3KG2`` containing pfam domains :pfam:``PF01094`` and :pfam:``PF00497``.
+:pdb:`3KG2` containing pfam domains :pfam:`PF01094` and :pfam:`PF00497`.
 
 .. ipython:: python
 
@@ -183,3 +180,21 @@ interactions. The example shows merging for the multi-domain receptor
    msa1_2 = mergeMSA(msa1, msa2)
    msa1_2
 
+
+Writing MSAs
+-------------------------------------------------------------------------------
+
+:func:`.writeMSA` can be used to write MSA. It takes filename as input
+which should contain appropriate extension that can be ``".slx"`` or
+``".sth"`` or  ``".fasta"`` or format should be specified as ``"SELEX"``,
+``"Stockholm"`` or ``"FASTA"``. Input MSA should be :class:`.MSAFile` or
+:class:`.MSA` object. Filename can contain ``".gz"`` extension, in which case
+a compressed file will be written.
+
+
+.. ipython:: python
+
+   writeMSA('sliced_MSA.gz', msa, format='SELEX')
+   writeMSA('sliced_MSA.fasta', msafobj)
+
+:func:`.writeMSA` returns the name of the MSA file that is written.
