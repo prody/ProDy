@@ -7,7 +7,7 @@ ProDy 1.4 Series
 **Changes**:
 
   * :func:`.getVMDpath` and :func:`.setVMDpath` functions are deprecated for
-    removal, use :func:`pathVMD` instead.
+    removal, use :func:`.pathVMD` instead.
 
   * Increased :func:`.blastPDB` *timeout* to 60 seconds.
 
