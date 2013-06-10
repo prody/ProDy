@@ -418,6 +418,7 @@ class EmbeddedSphinxShell(object):
         output_prompt = self.promptout%lineno
         image_file = None
         image_directive = None
+        is_doctest = None
 
         for token, data in block:
             if token==COMMENT:

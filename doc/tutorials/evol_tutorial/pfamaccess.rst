@@ -3,10 +3,9 @@
 Pfam Access
 ===============================================================================
 
-The part shows how to:
-
-  * search Pfam database to identify family accession numbers and information
-  * fetch the MSA of the Pfam using accession no
+The part shows how to access Pfam database. You can search protein family
+accession numbers and information using a sequence or PDB/UniProt identifiers.
+MSA files for families of interest can be retrieved in a number of formats.
 
 .. ipython:: python
 
@@ -17,11 +16,9 @@ The part shows how to:
 Search Pfam
 -------------------------------------------------------------------------------
 
-This example demonstrates how to search Pfam database with a given query,
-:func:`.searchPfam`.  Valid inputs are UniProt ID, e.g. :uniprot:`PIWI_ARCFU`,
-or PDB identifier, e.g. :pdb:`3luc` or ``"3lucA"`` with chain identifier.
-Input can also be a protein sequence or a file containing the sequence,
-but sequence should not contain gaps and should be at least 12 characters long.
+We use :func:`.searchPfam` for searching.  Valid inputs are UniProt ID,
+e.g. :uniprot:`PIWI_ARCFU`, or PDB identifier, e.g. :pdb:`3luc` or ``"3lucA"``
+with chain identifier.
 
 Matching Pfam accession (one or more) as keys will map to a dictionary that
 contains locations (alignment start, end, evalue etc), pfam family type,
@@ -36,7 +33,7 @@ We query Pfam using the :func:`.searchPfam`. with a UniProt ID.
    matches
 
 
-This function also accepts a protein sequence:
+Input can also be a protein sequence or a file containing the sequence:
 
 .. ipython:: python
 
@@ -45,6 +42,7 @@ This function also accepts a protein sequence:
    matches = searchPfam(sequence)
    matches
 
+Input sequence cannot have gaps and should be at least 12 characters long.
 
 For sequence searches, we can pass additional parameters to :func:`.searchPfam`
 like *search_b* which will search pfam B and *skip_a* that will not search
@@ -86,4 +84,4 @@ are necessary for larger families. Some other parameters like ``gap``,
 .. ipython:: python
 
    fetchPfamMSA('PF02171', compressed=True, gaps='mixed', inserts='lower',
-   order='alphabetical', format='fasta', timeout=40)
+   order='alphabetical', format='fasta')
