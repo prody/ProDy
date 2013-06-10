@@ -124,7 +124,15 @@ Result is a 2D Numpy array.
 
 We can also apply normalization using :func:`.applyMutinfoNorm` and
 correction using :func:`.applyMutinfoCorr` to the mutual information matrix
-based on references [MLC05]_ and [DSD08]_, respectively.
+based on references [Martin05]_ and [Dunn08]_, respectively.
+
+.. [Martin05] Martin LC, Gloor GB, Dunn SD, Wahl LM. Using information theory
+       to search for co-evolving residues in proteins. *Bioinformatics*
+       **2005** 21(22):4116-4124.
+
+.. [Dunn08] Dunn SD, Wahl LM, Gloor GB. Mutual information without the
+   influence of phylogeny or entropy dramatically improves residue
+   contact prediction. *Bioinformatics* **2008** 24(3):333-340.
 
 .. ipython:: python
 

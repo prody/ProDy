@@ -91,7 +91,7 @@ information):
 
 .. ipython:: python
 
-   fetchPDB('1p38') # doctest: +SKIP
+   fetchPDB('1p38')
    atoms = parsePDB('1p38.pdb.gz')
    repr(atoms)
 
@@ -213,7 +213,7 @@ files as follows:
 
 .. ipython:: python
 
-   atoms, header = parsePDB('1mkp', header=True)
+   atoms, header = parsePDB('1ubi', header=True)
    list(header)
    header['experiment']
    header['resolution']
@@ -223,13 +223,13 @@ argument:
 
 .. ipython:: python
 
-   header = parsePDB('1mkp', header=True, model=0)
+   header = parsePDB('1ubi', header=True, model=0)
 
 or using :func:`.parsePDBHeader` function:
 
 .. ipython:: python
 
-   header = parsePDBHeader('1mkp')
+   header = parsePDBHeader('1ubi')
 
 
 .. _writepdb:

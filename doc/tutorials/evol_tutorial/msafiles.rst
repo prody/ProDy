@@ -64,7 +64,7 @@ end indices:
 
 .. ipython:: python
 
-   msa = MSAFile(`PF02171_seed.sth`)
+   msa = MSAFile('PF02171_seed.sth')
    for seq in msa:
        seq
 
