@@ -7,9 +7,15 @@ ProDy 1.4 Series
 **Changes**:
 
   * :func:`.getVMDpath` and :func:`.setVMDpath` functions are deprecated for
-    removal, use :func:`pathVMD` instead.
+    removal, use :func:`.pathVMD` instead.
 
   * Increased :func:`.blastPDB` *timeout* to 60 seconds.
+
+  * :func:`.extendModel` and :func:`.extendMode` functions have a new option
+    for normalizing extended mode(s).
+
+  * :func:`.sampleModes` and :func:`.traverseMode` automatically normalizes
+    input modes.
 
 
 **Bugfixes**:

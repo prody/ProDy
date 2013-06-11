@@ -20,18 +20,8 @@
 
 Plotting functions are called by the name of the plotted data/property
 and are prefixed with ``show``.  Function documentations refers to the
-:mod:`matplotlib.pyplot` function utilized for actual plotting.
-Arguments and keyword arguments are passed to the Matplotlib functions.
-
-.. ipython:: python
-
-   from prody import *
-   from pylab import *
-   ion()
-   p38_pca = loadModel('p38_xray.pca.npz')
-   p38_anm = loadModel('1p38.anm.npz')
-   p38_ensemble = loadEnsemble('p38_X-ray.ens.npz')
-   p38_structure = parsePDB('p38_ref_chain.pdb')"""
+:mod:`matplotlib.pyplot` function utilized for actual plotting.  Arguments
+and keyword arguments are passed to the Matplotlib functions."""
 
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
@@ -77,18 +67,7 @@ def showEllipsoid(modes, onto=None, n_std=2, scale=1., *args, **kwargs):
 
     :arg scale: Used for scaling the volume of ellipsoid. This can be
         obtained from :func:`.sampleModes`.
-    :type scale: float
-
-    .. ipython:: python
-
-       # Show projection of subspace spanned by ANM 1-3 onto subspace of PC 1-3
-       showEllipsoid(p38_anm[:3], p38_pca[:3]);
-       # Let's compare this with that of ANM modes 18-20
-       @savefig reference_dynamics_plotting_ellipsoid.png width=4in
-       showEllipsoid(p38_anm[17:], p38_pca[:3], color='red')
-       # This ANM subspace appears as a tiny volume at the center
-       # since faster ANM modes does not correspond to top ranking PCA modes
-    """
+    :type scale: float"""
 
     import matplotlib.pyplot as plt
     from mpl_toolkits.mplot3d import Axes3D
@@ -159,13 +138,7 @@ def showEllipsoid(modes, onto=None, n_std=2, scale=1., *args, **kwargs):
 
 def showFractVars(modes, *args, **kwargs):
     """Show fraction of variances using :func:`~matplotlib.pyplot.bar`.  Note
-    that mode indices are incremented by 1.
-
-    .. ipython:: python
-
-       showFractVars(p38_pca);
-       @savefig reference_dynamics_plotting_variance.png width=4in
-       showCumulFractVars(p38_pca);"""
+    that mode indices are incremented by 1."""
 
     import matplotlib.pyplot as plt
     if not isinstance(modes, (ModeSet, NMA)):
@@ -249,25 +222,7 @@ def showProjection(ensemble, modes, *args, **kwargs):
 
       * 1 mode: :func:`~matplotlib.pyplot.hist`
       * 2 modes: :func:`~matplotlib.pyplot.plot`
-      * 3 modes: :meth:`~mpl_toolkits.mplot3d.Axes3D.plot`
-
-    .. ipython:: python
-
-       showProjection(p38_ensemble, p38_pca[0]);
-       @savefig reference_dynamics_plotting_projection_1d.png width=4in
-       title('Projection onto PC1');
-
-    .. ipython:: python
-
-       showProjection(p38_ensemble, p38_pca[:2]);
-       @savefig reference_dynamics_plotting_projection_2d.png width=4in
-       title('Projection onto PC1-2');
-
-    .. ipython:: python
-
-       showProjection(p38_ensemble, p38_pca[:3]);
-       @savefig reference_dynamics_plotting_projection_3d.png width=4in
-       title('Projection onto PC1-3');"""
+      * 3 modes: :meth:`~mpl_toolkits.mplot3d.Axes3D.plot`"""
 
     import matplotlib.pyplot as plt
 
@@ -411,19 +366,13 @@ def showCrossProjection(ensemble, mode_x, mode_y, scale=None, *args, **kwargs):
 
 
     The projected values are by default converted to RMSD.  Pass ``rmsd=False``
-    to calculate raw projection values.
-
-    .. ipython:: python
-
-       @savefig reference_dynamics_plotting_cross_projection.png width=4in
-       showCrossProjection(p38_ensemble, p38_pca[0], p38_anm[2]);
-
-    See :ref:`pca-xray-plotting` for a more elaborate example."""
+    to calculate raw projection values.  See :ref:`pca-xray-plotting` for a
+    more elaborate example."""
 
     import matplotlib.pyplot as plt
 
     xcoords, ycoords = calcCrossProjection(ensemble, mode_x, mode_y,
-        scale=scale, **kwargs)
+                                           scale=scale, **kwargs)
 
     num = len(xcoords)
 
@@ -499,13 +448,7 @@ def showOverlapTable(modes_x, modes_y, **kwargs):
     Default arguments for :func:`~matplotlib.pyplot.pcolor`:
 
       * ``cmap=plt.cm.jet``
-      * ``norm=plt.normalize(0, 1)``
-
-    .. ipython:: python
-
-       showOverlapTable(p38_pca[:6], p38_anm[:6]);
-       @savefig reference_dynamics_plotting_overlab_table.png width=4in
-       title('p38 PCA vs ANM');"""
+      * ``norm=plt.normalize(0, 1)``"""
 
     import matplotlib.pyplot as plt
 
@@ -535,12 +478,7 @@ def showCrossCorr(modes, *args, **kwargs):
     """Show cross-correlations using :func:`~matplotlib.pyplot.imshow`.  By
     default, *origin=lower* and *interpolation=bilinear* keyword  arguments
     are passed to this function, but user can overwrite these parameters.
-    See also :func:`.calcCrossCorr`.
-
-    .. ipython:: python
-
-       @savefig reference_dynamics_plotting_crosscorr.png width=4in
-       showCrossCorr(p38_anm[:3]);"""
+    See also :func:`.calcCrossCorr`."""
 
     import matplotlib.pyplot as plt
     arange = np.arange(modes.numAtoms())
@@ -562,14 +500,7 @@ def showCrossCorr(modes, *args, **kwargs):
 
 
 def showMode(mode, *args, **kwargs):
-    """Show mode array using :func:`~matplotlib.pyplot.plot`.
-
-    .. ipython:: python
-
-       showMode(p38_anm[0]);
-       grid();
-       @savefig reference_dynamics_plotting_mode.png width=4in
-       legend(loc='lower right');"""
+    """Show mode array using :func:`~matplotlib.pyplot.plot`."""
 
     import matplotlib.pyplot as plt
     if not isinstance(mode, Mode):
@@ -591,13 +522,7 @@ def showMode(mode, *args, **kwargs):
 
 def showSqFlucts(modes, *args, **kwargs):
     """Show square fluctuations using :func:`~matplotlib.pyplot.plot`.  See
-    also :func:`.calcSqFlucts`.
-
-    .. ipython:: python
-
-       showSqFlucts(p38_anm[0]);
-       @savefig reference_dynamics_plotting_sqflucts.png width=4in
-       showSqFlucts(p38_anm[1]);"""
+    also :func:`.calcSqFlucts`."""
 
     import matplotlib.pyplot as plt
     sqf = calcSqFlucts(modes)
@@ -615,13 +540,7 @@ def showSqFlucts(modes, *args, **kwargs):
 def showScaledSqFlucts(modes, *args, **kwargs):
     """Show scaled square fluctuations using :func:`~matplotlib.pyplot.plot`.
     Modes or mode sets given as additional arguments will be scaled to have
-    the same mean squared fluctuations as *modes*.
-
-    .. ipython:: python
-
-       showScaledSqFlucts(p38_pca[0], p38_anm[2]);
-       @savefig reference_dynamics_plotting_sqflucts_scaled.png width=4in
-       legend();"""
+    the same mean squared fluctuations as *modes*."""
 
     import matplotlib.pyplot as plt
     sqf = calcSqFlucts(modes)
@@ -641,8 +560,8 @@ def showScaledSqFlucts(modes, *args, **kwargs):
         sqf = calcSqFlucts(modes)
         scalar = mean / sqf.mean()
         show.append(plt.plot(sqf * scalar, *args,
-                           label='{0} (x{1:.2f})'.format(str(modes), scalar),
-                           **kwargs))
+                             label='{0} (x{1:.2f})'.format(str(modes), scalar),
+                             **kwargs))
     if SETTINGS['auto_show']:
         plt.show(block=False)
     return show
@@ -650,12 +569,7 @@ def showScaledSqFlucts(modes, *args, **kwargs):
 
 def showNormedSqFlucts(modes, *args, **kwargs):
     """Show normalized square fluctuations via :func:`~matplotlib.pyplot.plot`.
-
-    .. ipython:: python
-
-       showNormedSqFlucts(p38_pca[0], p38_anm[2]);
-       @savefig reference_dynamics_plotting_sqflucts_normed.png width=4in
-       legend();"""
+    """
 
     import matplotlib.pyplot as plt
     sqf = calcSqFlucts(modes)
@@ -668,7 +582,7 @@ def showNormedSqFlucts(modes, *args, **kwargs):
         else:
             i += 1
     show = [plt.plot(sqf/(sqf**2).sum()**0.5, *args,
-                        label='{0}'.format(str(modes)), **kwargs)]
+                     label='{0}'.format(str(modes)), **kwargs)]
     plt.xlabel('Indices')
     plt.ylabel('Square fluctuations')
     for modes in modesarg:
@@ -681,14 +595,7 @@ def showNormedSqFlucts(modes, *args, **kwargs):
 
 
 def showContactMap(enm, *args, **kwargs):
-    """Show Kirchhoff matrix using :func:`~matplotlib.pyplot.spy`.
-
-    .. ipython:: python
-
-       p38_gnm = GNM('p38')
-       p38_gnm.buildKirchhoff(p38_structure)
-       @savefig reference_dynamics_plotting_contactmap.png width=4in
-       showContactMap(p38_gnm);"""
+    """Show Kirchhoff matrix using :func:`~matplotlib.pyplot.spy`."""
 
     import matplotlib.pyplot as plt
     if not isinstance(enm, GNMBase):
@@ -713,11 +620,7 @@ def showOverlap(mode, modes, *args, **kwargs):
     :type mode: :class:`.Mode`, :class:`.Vector`
     :arg modes: multiple modes
     :type modes: :class:`.ModeSet`, :class:`.ANM`, :class:`.GNM`, :class:`.PCA`
-
-    .. ipython:: python
-
-       @savefig reference_dynamics_plotting_overlap.png width=4in
-       showOverlap(p38_pca[0], p38_anm[:6]);"""
+    """
 
     import matplotlib.pyplot as plt
     if not isinstance(mode, (Mode, Vector)):
@@ -746,12 +649,7 @@ def showCumulOverlap(mode, modes, *args, **kwargs):
     :type mode: :class:`.Mode`, :class:`.Vector`
     :arg modes: multiple modes
     :type modes: :class:`.ModeSet`, :class:`.ANM`, :class:`.GNM`, :class:`.PCA`
-
-    .. ipython:: python
-
-       showCumulOverlap(p38_pca[0], p38_anm);
-       @savefig reference_dynamics_plotting_cumul_overlap.png width=4in
-       showOverlap(p38_pca[0], p38_anm);"""
+    """
 
     import matplotlib.pyplot as plt
     if not isinstance(mode, (Mode, Vector)):

@@ -1,30 +1,28 @@
-.. _nmwiz-tutorial:
+.. use "conformational-sampling" to refer to this file
+
+.. _conformational-sampling:
 
 *******************************************************************************
-NMWiz Tutorial
+Conformational Sampling
 *******************************************************************************
 
 .. only:: html
 
     You can also read this tutorial in
-    :download:`PDF format <nmwiz_tutorial.pdf>`.
+    :download:`PDF format <conformational_sampling.pdf>`.
+
+.. add .rst files to `toctree` in the order that you want them
 
 .. toctree::
    :glob:
    :maxdepth: 2
 
    intro
-   nmwiz
-   pca
-   eda
-   extend
-   commands
+   anm
+   sample
+   optimize
+   analyze
 
-.. toctree::
-   :glob:
-   :hidden:
-
-   compare
 
 .. only:: html
 

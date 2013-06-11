@@ -42,8 +42,7 @@ import prody
 version = release = prody.__version__
 
 exclude_patterns = ['_build', 'examples', 'tutorials/template',
-                    'acknowledgments.rst', 'reports'
-                    ] + glob.glob('tutorials/*/acknowledgments.rst')
+                    'reports'] + glob.glob('tutorials/*/acknowledgments.rst')
 
 
 add_module_names = False

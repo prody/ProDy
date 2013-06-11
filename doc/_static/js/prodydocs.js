@@ -59,7 +59,7 @@ $(document).ready(function() {
           window.location.hash = pill.find('a').attr('href').slice(1);
         }});
     // Move carousel based on URL
-    if (url.search('evol') > -1) {
+    if (url.search('evol') > -1 || url.search('panel1-3') > -1) {
       carousel.carousel(1);
     } else if (url.search('nmwiz') > -1) {
       carousel.carousel(2);

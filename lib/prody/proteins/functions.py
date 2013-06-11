@@ -122,23 +122,8 @@ def showProtein(*atoms, **kwargs):
     *hsize* keywords, default values are ``hmarker='o', hsize=6``.
 
     ProDy will set the size of axis so the representation is not distorted when
-    the figure window is close to a square.  Colors are picked at random,
-    except for water oxygens which will always be colored red.
-
-
-    .. ipython:: python
-
-       from prody import *
-       from pylab import *
-       ion()
-       p38 = parsePDB('1p38')
-       p38inh = parsePDB('1zz2')
-       matchAlign(p38inh, p38);
-       showProtein(p38, p38inh);
-       @savefig reference_proteins_functions.png width=4in
-       legend();
-
-    """
+    the shape of figure window is close to a square.  Colors are picked at
+    random, except for water oxygens which will always be colored red."""
 
     alist = atoms
     for atoms in alist:

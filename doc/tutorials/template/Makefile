@@ -3,12 +3,13 @@ SPHINXOPTS    =
 SPHINXBUILD   = sphinx-build
 PAPER         = letter
 BUILDDIR      = _build
+WORKDIR       = _workdir
 BASENAME      = $${PWD\#\#*/}
 
 # Internal variables.
 PAPEROPT_a4     = -D latex_paper_size=a4
 PAPEROPT_letter = -D latex_paper_size=letter
-ALLSPHINXOPTS   = -d ../doctrees $(PAPEROPT_$(PAPER)) $(SPHINXOPTS)
+ALLSPHINXOPTS   = $(PAPEROPT_$(PAPER)) $(SPHINXOPTS)
 
 .PHONY: help html clean latex pdf archive setup
 
@@ -21,8 +22,8 @@ clean:
 	-rm -rf $(BUILDDIR)/* $(BASENAME)_files.zip $(BASENAME)_files.tgz $(BASENAME).pdf
 
 setup:
-	mkdir -p $(BUILDDIR)/workdir
-	ln -fs ../../$(BASENAME)_files $(BUILDDIR)/workdir/
+	mkdir -p $(WORKDIR)
+	ln -fs ../$(BASENAME)_files $(WORKDIR)
 	ln -fs ../../_theme
 	ln -fs ../../_static
 	ln -fs ../../_inventory
@@ -33,12 +34,12 @@ setup:
 	ls -hgoL --time-style=+ $(BASENAME)_files/ | tail -n +2 | cut -b 14-128 > files.txt; fi
 
 html: setup
-	cd $(BUILDDIR)/workdir; $(SPHINXBUILD) -b html -d ../doctrees ../../ ../html
+	cd $(WORKDIR); $(SPHINXBUILD) -b html -d ../$(BUILDDIR)/doctrees ../ ../$(BUILDDIR)/html
 	@echo
 	@echo "Build finished. The HTML pages are in $(BUILDDIR)/html."
 
 pdf: setup
-	cd $(BUILDDIR)/workdir; $(SPHINXBUILD) -b latex $(ALLSPHINXOPTS) ../../ ../latex
+	cd $(WORKDIR); $(SPHINXBUILD) -b latex $(ALLSPHINXOPTS) -d ../$(BUILDDIR)/doctrees ../ ../$(BUILDDIR)/latex
 	@echo
 	@echo "LaTeX file is ready, see $(BUILDDIR)/latex."
 	@echo "Running LaTeX files through pdflatex..."

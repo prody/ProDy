@@ -23,7 +23,6 @@ latex_documents = [
 ]
 
 latex_show_urls = 'footnote'
+latex_domain_indices = True
 
 html_additional_pages = {}
-
-latex_domain_indices = True

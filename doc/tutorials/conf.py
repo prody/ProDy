@@ -10,7 +10,6 @@ def is_installed(name):
     try:
         __import__(name)
     except ImportError:
-        print name
         return False
     else:
         return True

@@ -322,6 +322,7 @@ def calcPsi(residue, radian=False, dist=4.1):
     return getDihedral(N._getCoords(), CA._getCoords(), C._getCoords(),
                        _N._getCoords(), radian)
 
+
 def getPsiAtoms(residue, dist=4.1):
     """Return the four atoms that form the φ (phi) angle of *residue*."""
 

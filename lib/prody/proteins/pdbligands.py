@@ -119,8 +119,9 @@ def fetchPDBLigand(cci, filename=None):
     import xml.etree.cElementTree as ET
 
     root = ET.XML(xml)
-    if root.get('{http://www.w3.org/2001/XMLSchema-instance}schemaLocation') \
-        != 'http://pdbml.pdb.org/schema/pdbx-v40.xsd pdbx-v40.xsd':
+    if (root.get('{http://www.w3.org/2001/XMLSchema-instance}'
+                 'schemaLocation') !=
+            'http://pdbml.pdb.org/schema/pdbx-v40.xsd pdbx-v40.xsd'):
         LOGGER.warn('XML is not in PDBx/PDBML v 4.0 format, resulting '
                     'dictionary may not contain all data fields')
     ns = root.tag[:root.tag.rfind('}')+1]
@@ -148,7 +149,8 @@ def fetchPDBLigand(cci, filename=None):
         dict_[program + '_version'] = child.get('program_version')
 
     dict_['audits'] = [(audit.get('action_type'), audit.get('date'))
-        for audit in list(root.find(ns + 'pdbx_chem_comp_auditCategory'))]
+                       for audit in
+                       list(root.find(ns + 'pdbx_chem_comp_auditCategory'))]
 
     atoms = list(root.find(ns + 'chem_comp_atomCategory'))
     n_atoms = len(atoms)
@@ -184,7 +186,7 @@ def fetchPDBLigand(cci, filename=None):
         leaving_atom_flags[i] = data.get('pdbx_leaving_atom_flag') == 'Y'
         aromatic_flags[i] = data.get('pdbx_atomatic_flag') == 'Y'
         stereo_configs[i] = data.get('pdbx_stereo_config') == 'Y'
-        ordinals[i] = int(data.get('pdbx_ordinal',0))
+        ordinals[i] = int(data.get('pdbx_ordinal', 0))
 
         model_coords[i, 0] = float(data.get('model_Cartn_x', 0))
         model_coords[i, 1] = float(data.get('model_Cartn_y', 0))

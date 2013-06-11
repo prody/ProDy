@@ -18,6 +18,7 @@ Tutorials
    enm_analysis/index
    ensemble_analysis/index
    trajectory_analysis/index
+   conformational_sampling/index
 
 .. only:: html
 
@@ -47,11 +48,14 @@ Tutorials
     * :ref:`structure-analysis`
       (:download:`PDF <structure_analysis/structure_analysis.pdf>`)
 
-
     * :ref:`trajectory-analysis`
       (:download:`PDF <trajectory_analysis/trajectory_analysis.pdf>`,
       :download:`ZIP <trajectory_analysis/trajectory_analysis_files.zip>`,
       :download:`TGZ <trajectory_analysis/trajectory_analysis_files.tgz>`)
 
+    * :ref:`conformational-sampling`
+      (:download:`PDF <conformational_sampling/conformational_sampling.pdf>`,
+      :download:`ZIP <conformational_sampling/conformational_sampling_files.zip>`,
+      :download:`TGZ <conformational_sampling/conformational_sampling_files.tgz>`)
 
 .. include:: template/acknowledgments.rst

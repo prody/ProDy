@@ -1,4 +1,4 @@
-Atom Groups
+Atom Selections
 ===============================================================================
 
 This part gives more information on properties of :class:`.AtomGroup` objects.
@@ -101,19 +101,6 @@ Alternatively, this selection could be done as follows:
                           'within 10 of center', center=center)
    sel
 
-Selection operations
-^^^^^^^^^^^^^^^^^^^^
-
-:class:`.Selection` instances can used with bitwise operators:
-
-.. ipython:: python
-
-   ca = structure.select('name CA')
-   cb = structure.select('name CB')
-   ca_or_cb = ca | cb
-   ca_or_cb
-   ca & cb # returns None, since there are no common atoms between the two
-
 Selections simplified
 ^^^^^^^^^^^^^^^^^^^^^
 
@@ -149,94 +136,163 @@ selection engine, without the need for writing nested loops with comparisons
 or changing the source code.  See the following pages:
 
   * :ref:`selections` for description of all selection keywords
-  * :ref:`selection-operations` for handy features of :class:`.Selection`
   * :ref:`contacts` for selecting interacting atoms
+
+
+.. _selection-operations:
+
+Operations on Selections
+-------------------------------------------------------------------------------
+
+:class:`.Selection` objects can used with bitwise operators:
+
+Union
+^^^^^
+
+Let's select β-carbon atoms for non-GLY amino acid residues, and
+α-carbons for GLYs in two steps:
+
+.. ipython:: python
+
+   betas = structure.select('name CB and protein')
+   len(betas)
+   gly_alphas = structure.select('name CA and resname GLY')
+   len(gly_alphas)
+
+The above shows that the p38 structure contains 15 GLY residues.
+
+These two selections can be combined as follows:
+
+.. ipython:: python
+
+   betas_gly_alphas = betas | gly_alphas
+   betas_gly_alphas
+   len(betas_gly_alphas)
+
+The selection string for the union of selections becomes:
+
+.. ipython:: python
+
+   betas_gly_alphas.getSelstr()
+
+Note that it is also possible to yield the same selection using selection
+string ``(name CB and protein) or (name CA and resname GLY)``.
+
+
+Intersection
+^^^^^^^^^^^^
+
+It is as easy to get the intersection of two selections. Let's find
+charged and medium size residues in a protein:
+
+.. ipython:: python
+
+   charged = structure.select('charged')
+   charged
+   medium = structure.select('medium')
+   medium
+
+.. ipython:: python
+
+   medium_charged = medium & charged
+   medium_charged
+   medium_charged.getSelstr()
+
+Let's see which amino acids are considered charged and medium:
+
+.. ipython:: python
+
+   set(medium_charged.getResnames())
+
+What about amino acids that are medium or charged:
+
+.. ipython:: python
+
+   set((medium | charged).getResnames())
+
+
+Inversion
+^^^^^^^^^
+
+It is also possible to invert a selection:
+
+.. ipython:: python
+
+   only_protein = structure.select('protein')
+   only_protein
+   only_non_protein = ~only_protein
+   only_non_protein
+   water = structure.select('water')
+   water
+
+The above shows that 1p38 does not contain any non-water
+hetero atoms.
+
+Addition
+^^^^^^^^
+
+Another operation defined on the :class:`.Select` object is addition
+(also on other :class:`.AtomPointer` derived classes).
+
+This may be useful if you want to yield atoms in an :class:`.AtomGroup` in a
+specific order.
+Let's think of a simple case, where we want to output atoms in 1p38 in a
+specific order:
+
+.. ipython:: python
+
+   protein = structure.select('protein')
+   water = structure.select('water')
+   water_protein = water + protein
+   writePDB('1p38_water_protein.pdb', water_protein)
+
+In the resulting file, the water atoms will precedes the
+protein atoms.
+
+
+Membership
+^^^^^^^^^^
+
+Selections also allows membership test operations:
+
+.. ipython:: python
+
+   backbone = structure.select('protein')
+   calpha = structure.select('calpha')
+
+Is :term:`calpha` a subset of :term:`backbone`?
+
+.. ipython:: python
+
+   calpha in backbone
+
+Or, is water in protein selection?
+
+.. ipython:: python
+
+   water in protein
+
+Other tests include:
+
+.. ipython:: python
+
+   protein in structure
+   backbone in structure
+   structure in structure
+   calpha in calpha
+
+
+Equality
+^^^^^^^^
+
+You can also check the equality of selections. Comparison will return
+``True`` if both selections refer to the same atoms.
+
+.. ipython:: python
+
+   calpha = structure.select('protein and name CA')
+   calpha2 = structure.select('calpha')
+   calpha == calpha2
 
 .. _attributes:
 
-Storing data in AtomGroup
--------------------------------------------------------------------------------
-
-In addition to what's in a PDB file, you can store arbitrary atomic attributes
-in :class:`.AtomGroup` objects.
-
-Set a new attribute
-^^^^^^^^^^^^^^^^^^^
-
-For the purposes of this example, we will manufacture atomic data by
-dividing the residue number of each atom by 10:
-
-.. ipython:: python
-
-   myresnum = structure.getResnums() / 10.0
-
-We will add this to the atom group using :meth:`.AtomGroup.setData`
-method by passing a name for the attribute and the data:
-
-.. ipython:: python
-
-   structure.setData('myresnum', myresnum)
-
-We can check if a custom atomic attribute exists using
-:meth:`.AtomGroup.isDataLabel` method:
-
-.. ipython:: python
-
-   structure.isDataLabel('myresnum')
-
-
-Access subset of data
-^^^^^^^^^^^^^^^^^^^^^
-
-Custom attributes can be accessed from selections:
-
-.. ipython:: python
-
-   calpha = structure.calpha
-   calpha.getData('myresnum')
-
-
-Make selections
-^^^^^^^^^^^^^^^
-
-Custom atomic attributes can be used in selections:
-
-.. ipython:: python
-
-   mysel = structure.select('0 < myresnum and myresnum < 10')
-   mysel
-
-This gives the same result as the following selection:
-
-.. ipython:: python
-
-   structure.select('0 < resnum and resnum < 100') == mysel
-
-
-Save attributes
-^^^^^^^^^^^^^^^
-
-It is not possible to save custom attributes in PDB files, but
-:func:`.saveAtoms` function can be used them to save in disk for later use:
-
-.. ipython:: python
-
-   saveAtoms(structure)
-
-Let's load it using :func:`~.loadAtoms` function:
-
-.. ipython:: python
-
-   structure = loadAtoms('1p38.ag.npz')
-   structure.getData('myresnum')
-
-
-Delete an attribute
-^^^^^^^^^^^^^^^^^^^
-
-Finally, when done with an attribute, it can be deleted using
-:meth:`.AtomGroup.delData` method:
-
-.. ipython:: python
-
-   structure.delData('myresnum')

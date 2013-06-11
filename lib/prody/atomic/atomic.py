@@ -40,15 +40,7 @@ NOTALLNONE = set(['not', 'all', 'none', 'index', 'sequence', 'x', 'y', 'z'])
 
 class Atomic(object):
 
-    """Base class for all atomic classes.  This class can be used for type
-    checking:
-
-    .. ipython:: python
-
-       from prody import *
-       ag = parsePDB('1aar')
-       isinstance(ag, Atomic)
-       isinstance(ag.protein, Atomic)"""
+    """Base class for all atomic classes that can be used for type checking."""
 
     __slots__ = []
 

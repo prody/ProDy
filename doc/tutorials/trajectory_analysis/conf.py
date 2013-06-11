@@ -1,4 +1,4 @@
-tutorial_title = u'Trajectory Analysis using ProDy'
+tutorial_title = u'Trajectory Analysis'
 tutorial_author = u'Ahmet Bakan'
 tutorial_logo = u''           # default is ProDy logo
 tutorial_version = u''        # default is latest ProDy version

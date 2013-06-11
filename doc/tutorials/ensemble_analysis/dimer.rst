@@ -4,7 +4,7 @@ Multimeric Structures
 ===============================================================================
 
 In this part, we perform PCA of HIV :wiki:`Reverse Transcriptase` (RT), which
-is a dimeric protein.
+is a heterodimer.
 
 
 Input and Parameters
@@ -84,18 +84,18 @@ Set reference
 ^^^^^^^^^^^^^
 
 Now we set the reference chains that will be used for compared to the
-structures in the ensemble and will be basis of the structural alignment.
+structures in the ensemble and will form the basis of the structural alignment.
 
 .. ipython:: python
 
    # Parse reference structure
-   reference_structure = parsePDB(ref_pdb + '.pdb', subset='calpha')
+   reference_structure = parsePDB(ref_pdb, subset='calpha')
    # Get the reference chain from this structure
    reference_hierview = reference_structure.getHierView()
    reference_chains = [reference_hierview[chid] for chid in ref_chids]
    reference_chains
 
-Chain A is the p66 domain, and chain B is the p51 domain of HIV-RT.
+Chain A is the p66 subunit, and chain B is the p51 subunit of HIV-RT.
 Let's take a quick look at that:
 
 .. ipython:: python
@@ -107,7 +107,7 @@ Let's take a quick look at that:
 Prepare Ensemble
 -------------------------------------------------------------------------------
 
-We handle an ensembles of heterogeneous conformations using
+We handle an ensemble of heterogeneous conformations using
 :class:`.PDBEnsemble` objects, so let's instantiate one:
 
 .. ipython:: python
@@ -238,7 +238,7 @@ Plot results
 -------------------------------------------------------------------------------
 
 
-Let's plot RMSD to the average structure:
+Let's plot RMSD from the average structure:
 
 .. ipython:: python
 

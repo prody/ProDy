@@ -106,7 +106,7 @@ def loadEnsemble(filename):
 def trimPDBEnsemble(pdb_ensemble, **kwargs):
     """Return a new PDB ensemble obtained by trimming given *pdb_ensemble*.
     This function helps selecting atoms in a pdb ensemble based on one of the
-    following criteria, and returns them in a new :class:`~.PDBEnsemble`
+    following criteria, and returns them in a new :class:`.PDBEnsemble`
     instance.
 
     **Occupancy**
@@ -152,24 +152,12 @@ def trimPDBEnsemble(pdb_ensemble, **kwargs):
 
 
 def calcOccupancies(pdb_ensemble, normed=False):
-    """Return occupancy calculated from weights of a :class:`~.PDBEnsemble`.
+    """Return occupancy calculated from weights of a :class:`.PDBEnsemble`.
     Any non-zero weight will be considered equal to one.  Occupancies are
     calculated by binary weights for each atom over the conformations in
     the ensemble. When *normed* is ``True``, total weights will be divided
-    by the number of atoms.
-
-    When analyzing an ensemble of X-ray structures, this function can be used
-    to see how many times a residue is resolved.
-
-    .. ipython:: python
-
-       from prody import *
-       ens = loadEnsemble('p38_X-ray.ens.npz')
-       calcOccupancies(ens)
-
-    Each number in the above example corresponds to a residue (or atoms) and
-    shows the number of structures in which the corresponding residue is
-    resolved."""
+    by the number of atoms.  This function can be used to see how many times
+    a residue is resolved when analyzing an ensemble of X-ray structures."""
 
     if not isinstance(pdb_ensemble, PDBEnsemble):
         raise TypeError('pdb_ensemble must be a PDBEnsemble instance')

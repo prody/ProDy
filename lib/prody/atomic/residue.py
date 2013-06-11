@@ -36,17 +36,7 @@ class Residue(AtomSubset):
     * :func:`iter` yields :class:`.Atom` instances.
 
     Indexing :class:`Residue` instances by *atom name* (:func:`str`), e.g.
-    ``"CA"`` returns an :class:`.Atom` instance.
-
-    .. ipython:: python
-
-       from prody import *
-       pdb = parsePDB('1p38')
-       chA = pdb['A']
-       res = chA[4]
-       res['CA']
-       res['CB']
-       res['H'] # X-ray structure 1p38 does not have any H atoms"""
+    ``"CA"`` returns an :class:`.Atom` instance."""
 
     __slots__ = ['_ag', '_indices', '_hv', '_acsi', '_selstr']
 
