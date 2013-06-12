@@ -115,7 +115,7 @@ Calculate modes using :meth:`.ANM.calcModes` method:
    anm.calcModes()
 
 Note that by default 20 non-zero (or non-trivial) and 6 trivial modes are
-calculated. Trivial modes are not retained. To calculate different number
+calculated. Trivial modes are not retained. To calculate a different number
 of non-zero modes or to keep zero modes, try ``anm.calcModes(50, zeros=True)``.
 
 Normal modes data
@@ -133,16 +133,16 @@ You can get the covariance matrix as follows:
 
    anm.getCovariance().round(2)
 
-Covariance matrices are calculated using available modes (slowest 20 modes in
-this case). If user calculates M slowest modes, only they will be used in the
-calculation of covariance.
+Covariance matrices are calculated using the available modes (slowest 20 modes 
+in this case). If the user calculates M slowest modes, only they will be used 
+in the calculation of covariances.
 
 Individual modes
 -------------------------------------------------------------------------------
 
-Normal mode indices in Python start from 0, so slowest mode has index 0.
+Normal mode indices in Python start from 0, so the slowest mode has index 0.
 By default, modes with zero eigenvalues are excluded. If they were retained,
-slowest non-trivial mode would have index 6.
+the slowest non-trivial mode would have index 6.
 
 Get the slowest mode by indexing :class:`.ANM` instance as follows:
 
@@ -157,7 +157,7 @@ Write NMD file
 -------------------------------------------------------------------------------
 
 ANM results in NMD format can be visualized using NMWiz VMD plugin |nmwiz|.
-Following statement writes slowest 3 ANM modes into an NMD file:
+The following statement writes the slowest 3 ANM modes into an NMD file:
 
 .. ipython:: python
 
@@ -184,6 +184,6 @@ First make sure that the VMD path is correct
    viewNMDinVMD('p38_anm_modes.nmd')
 
 This will show the slowest 3 modes in VMD using NMWiz. This concludes the ANM
-example. Many of these apply to other NMA models, such as :class:`.GNM` and
-:class:`.EDA`.
+example. Many of the methods demonstrated here apply to other NMA models, such 
+as :class:`.GNM` and :class:`.EDA`.
 

@@ -8,9 +8,6 @@ This example shows how to extend normal modes calculated for a
 coarse-grained model to a larger set of atoms. Extended model can be
 used to generate alternate conformers that can be saves in PDB format.
 
-Normal mode analysis
-
-
 We start by importing everything from the ProDy package:
 
 .. ipython:: python
@@ -20,8 +17,8 @@ We start by importing everything from the ProDy package:
    ion()
 
 Conformers can be generated along any set of normal modes. In this example,
-we will calculate normal modes for unbound structure of p38 MAP kinase and
-generate backbone trace conformations.
+we will calculate normal modes for the unbound structure of p38 MAP kinase 
+and generate backbone trace conformations.
 
 .. ipython:: python
 

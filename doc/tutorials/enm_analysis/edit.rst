@@ -81,7 +81,7 @@ We use :func:`.sliceModel` function:
    anm_slc_p66, sel_p66 = sliceModel(anm, rt, 'chain A')
    anm_slc_p66
 
-Yo see that now sliced model contains 556 nodes out of the
+You see that now the sliced model contains 556 nodes out of the
 971 nodes in the original model.
 
 .. ipython:: python
@@ -98,7 +98,7 @@ Analysis
 ^^^^^^^^
 
 We plot the cross-correlations and square fluctuations for the sliced model
-in the same way. Note that the plots contain selected part of the model
+in the same way. Note that the plots contain the selected part of the model
 without any change:
 
 Cross-correlations

@@ -209,7 +209,7 @@ ensemble:
 
    ensemble = trimPDBEnsemble(ensemble, occupancy=0.94)
 
-After trimmin, another round of iterative superposition may be useful:
+After trimming, another round of iterative superposition may be useful:
 
 .. ipython:: python
 
