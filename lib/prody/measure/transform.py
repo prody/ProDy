@@ -156,7 +156,7 @@ def getTransformation(mob, tar, weights=None):
         tar_com = tar.mean(0)
         mob = mob - mob_com
         tar = tar - tar_com
-        matrix = np.dot(tar.T, mob)
+        matrix = np.dot(mob.T, tar)
     else:
         weights_sum = weights.sum()
         weights_dot = np.dot(weights.T, weights)
@@ -164,7 +164,7 @@ def getTransformation(mob, tar, weights=None):
         tar_com = (tar * weights).sum(axis=0) / weights_sum
         mob = mob - mob_com
         tar = tar - tar_com
-        matrix = np.dot((tar * weights).T, (mob * weights)) / weights_dot
+        matrix = np.dot((mob * weights).T, (tar * weights)) / weights_dot
 
     U, s, Vh = linalg.svd(matrix)
     Id = np.array([[1, 0, 0],
@@ -172,6 +172,7 @@ def getTransformation(mob, tar, weights=None):
                    [0, 0, np.sign(linalg.det(matrix))]])
     rotation = np.dot(Vh.T, np.dot(Id, U.T))
 
+    return rotation, tar_com - np.dot(mob_com, rotation.T)
     return rotation, tar_com - np.dot(mob_com, rotation)
 
 
@@ -214,7 +215,8 @@ def applyTransformation(transformation, atoms):
 
 
 def _applyTransformation(t, coords):
-    return t.getTranslation() + np.dot(coords, t.getRotation())
+
+    return np.dot(coords, t.getRotation().T) + t.getTranslation()
 
 
 def superpose(mobile, target, weights=None):
