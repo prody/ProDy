@@ -79,7 +79,7 @@ Let's calculate overlap for slowest modes:
    overlap = anm1[0] * anm2[0]
    overlap
 
-This show that the overlap between these two modes is 0.98, which is not
+This shows that the overlap between these two modes is 0.98, which is not
 surprising since ANM modes come from structures of the *same* protein.
 
 To compare multiple modes, convert a list of modes to a :func:`numpy.array`:

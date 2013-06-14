@@ -103,14 +103,14 @@ matrix. Just pass it to the GNM instance using :meth:`.GNM.setKirchhoff` method.
 Calculate normal modes
 -------------------------------------------------------------------------------
 
-# calculate modes (by default slowest 20 will be calculated)
+We now calculate normal modes from the Kirchhoff matrix. 
 
 .. ipython:: python
 
    gnm.calcModes()
 
-Note that by default 20 non-zero (or non-trivial) and 1 trivial mode is
-calculated. Trivial modes are not retained. To calculate different number
+Note that by default 20 non-zero (or non-trivial) modes and 1 trivial mode are
+calculated. Trivial modes are not retained. To calculate different numbers
 of non-zero modes or to keep zero modes, try ``gnm.calcModes(50, zeros=True)``.
 
 
@@ -130,9 +130,9 @@ Get covariance matrix:
 
    gnm.getCovariance().round(2)
 
-Note that covariance matrices are calculated using available modes in the
-model, which is slowest 20 modes in this case.  If user calculated M slowest
-modes, M modes will be used in the calculation of covariance.
+Note that covariance matrices are calculated using the available modes in the
+model, which is the slowest 20 modes in this case.  If the user calculates M 
+modes, these M modes will be used in calculating the covariance matrix.
 
 
 Individual modes
