@@ -1,6 +1,5 @@
-********************
-prody.dynamics.gamma
-********************
+Custom Gamma Functions
+======================
 
 .. automodule:: prody.dynamics.gamma
    :members:

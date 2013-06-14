@@ -1,6 +1,5 @@
-**********************
-prody.atomic.selection
-**********************
+Selection
+=========
 
 .. automodule:: prody.atomic.selection
    :members:

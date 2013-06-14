@@ -1,6 +1,5 @@
-*****************
-prody.atomic.bond
-*****************
+Bond
+====
 
 .. automodule:: prody.atomic.bond
    :members:

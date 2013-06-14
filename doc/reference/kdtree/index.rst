@@ -1,6 +1,6 @@
-************
-prody.kdtree
-************
+******
+KDTree
+******
 
 .. automodule:: prody.kdtree
 

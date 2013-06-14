@@ -1,6 +1,5 @@
-*******************************
-prody.apps.evol_apps.evol_merge
-*******************************
+MSA File Merger
+===============
 
 .. automodule:: prody.apps.evol_apps.evol_merge
    :members:

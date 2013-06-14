@@ -1,11 +1,12 @@
 *****
-prody
+ProDy
 *****
 
 .. module:: prody
 
 
-This module defines functions for aiding interactive ProDy experience. 
+This module defines functions for logging in files, configuring ProDy,
+and running tests.
 
 
   * :func:`confProDy`
@@ -14,7 +15,7 @@ This module defines functions for aiding interactive ProDy experience.
   * :func:`closeLogfile`
   * :func:`plog`
   * :func:`test`
-    
+
 .. autofunction:: confProDy
 
 .. autofunction:: checkUpdates

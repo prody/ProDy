@@ -1,6 +1,5 @@
-*********************
-prody.proteins.header
-*********************
+PDB File Header
+===============
 
 .. automodule:: prody.proteins.header
    :members:

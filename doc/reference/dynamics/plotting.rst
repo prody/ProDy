@@ -1,6 +1,5 @@
-***********************
-prody.dynamics.plotting
-***********************
+Plotting Functions
+==================
 
 .. automodule:: prody.dynamics.plotting
    :members:

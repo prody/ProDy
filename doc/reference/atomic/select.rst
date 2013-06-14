@@ -1,6 +1,7 @@
-*******************
-prody.atomic.select
-*******************
+.. _selections:
+
+Atom Selections
+===============
 
 .. automodule:: prody.atomic.select
    :members:

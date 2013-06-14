@@ -1,148 +1,56 @@
-# Makefile for Sphinx documentation
-#
+# Makefile for ProDy Documentation
 
 # You can set these variables from the command line.
 SPHINXOPTS    =
 SPHINXBUILD   = sphinx-build
 PAPER         = letter
 BUILDDIR      = _build
-DOCTESTDIR    = doctest
-DOCDIR        = ../Documentation
+WORKDIR       = _workdir
 
-# Internal variables.
-PAPEROPT_a4     = -D latex_paper_size=a4
-PAPEROPT_letter = -D latex_paper_size=letter
-ALLSPHINXOPTS   = -d $(BUILDDIR)/doctrees $(PAPEROPT_$(PAPER)) $(SPHINXOPTS) .
-
-.PHONY: help clean stats html dirhtml singlehtml pickle json htmlhelp qthelp devhelp epub latex latexpdf text man changes linkcheck doctest copytxt 
+.PHONY: help clean html pdf copy stats
 
 help:
 	@echo "Please use \`make <target>' where <target> is one of"
-	@echo "  html       to make standalone HTML files"
-	@echo "  dirhtml    to make HTML files named index.html in directories"
-	@echo "  singlehtml to make a single large HTML file"
-	@echo "  pickle     to make pickle files"
-	@echo "  json       to make JSON files"
-	@echo "  htmlhelp   to make HTML files and a HTML help project"
-	@echo "  qthelp     to make HTML files and a qthelp project"
-	@echo "  devhelp    to make HTML files and a Devhelp project"
-	@echo "  epub       to make an epub"
-	@echo "  latex      to make LaTeX files, you can set PAPER=a4 or PAPER=letter"
-	@echo "  latexpdf   to make LaTeX files and run them through pdflatex"
-	@echo "  text       to make text files"
-	@echo "  man        to make manual pages"
-	@echo "  changes    to make an overview of all changed/added/deprecated items"
-	@echo "  linkcheck  to check all external links for integrity"
-	@echo "  doctest    to run all doctests embedded in the documentation (if enabled)"
+	@echo "  html       to make standalone HTML files of entire documentaion"
+	@echo "  pdf	    to make PDF files of reference manual and tutorials"
+	@echo "  copy	    to copy license, install, and changes to package directory"
+	@echo "  stats	    to update download statistics"
 
 clean:
-	-rm -rf $(DOCDIR)/*
-	# -rm -rf $(BUILDDIR)/* $(DOCDIR)/*
+	-rm -rf $(BUILDDIR)/*
+
+workdir:
+	mkdir -p $(WORKDIR)
+	for tut in `find tutorials/ -type d -name "*_files"` ; do \
+		if [ -d "$$tut" ]; then \
+		 	ln -fs ../$$tut $(WORKDIR)/;\
+		fi; \
+	done
+
+html: workdir
+	cd $(WORKDIR); $(SPHINXBUILD) -b html -d ../$(BUILDDIR)/doctrees ../ ../$(BUILDDIR)/html
+	@echo
+	@echo "Build finished. The HTML pages are in $(BUILDDIR)/html."
+
+pdf:
+	rm -f reference/*pdf tutorials/*/*pdf tutorials/*/*files.zip tutorials/*/*files.tgz _inventory/prody*inv
+	cd reference; make pdf
+	cd tutorials; \
+	for tut in `find . -type d`; do \
+		if [ -d "$$tut/$$tut"_files ]; then \
+		 	cd $$tut; make archive pdf; /bin/cp -rf $(WORKDIR)/* ../../$(WORKDIR); cd ..; \
+		fi; \
+	done
+
+copy:
+	cp -f getprody.rst ../INSTALL.rst
+	cp -f reference/license.rst ../LICENSE.rst
+	@echo
+	@echo "Files copied."
 
 stats:
 	pyps update -s ProDy_stats.pkl ProDy; \
-	pyps latest -o _static/ProDy_downloads.csv -d , --rst ProDy; \
+	pyps latest -o _static/ProDy_downloads.csv -d , --rst --no-md5 ProDy; \
 	pyps monthly -p _static/ProDy_downloads.png ProDy_stats.pkl
-
-html:
-	$(SPHINXBUILD) -b html -d $(BUILDDIR)/doctrees . $(DOCDIR)
 	@echo
-	@echo "Build finished. The HTML pages are in $(DOCUMENTATION)."
-
-doctest:
-	cd $(DOCTESTDIR); \
-	$(SPHINXBUILD) -b doctest -d ../$(BUILDDIR)/doctrees/ .. . 
-	@echo "Testing of doctests in the sources finished, look at the " \
-	      "results in $(DOCTEST)."
-
-spelling:
-	$(SPHINXBUILD) -b spelling $(ALLSPHINXOPTS) $(BUILDDIR)/spelling
-
-dirhtml:
-	$(SPHINXBUILD) -b dirhtml $(ALLSPHINXOPTS) $(BUILDDIR)/dirhtml
-	@echo
-	@echo "Build finished. The HTML pages are in $(BUILDDIR)/dirhtml."
-
-singlehtml:
-	$(SPHINXBUILD) -b singlehtml $(ALLSPHINXOPTS) $(BUILDDIR)/singlehtml
-	@echo
-	@echo "Build finished. The HTML page is in $(BUILDDIR)/singlehtml."
-
-pickle:
-	$(SPHINXBUILD) -b pickle $(ALLSPHINXOPTS) $(BUILDDIR)/pickle
-	@echo
-	@echo "Build finished; now you can process the pickle files."
-
-json:
-	$(SPHINXBUILD) -b json $(ALLSPHINXOPTS) $(BUILDDIR)/json
-	@echo
-	@echo "Build finished; now you can process the JSON files."
-
-htmlhelp:
-	$(SPHINXBUILD) -b htmlhelp $(ALLSPHINXOPTS) $(BUILDDIR)/htmlhelp
-	@echo
-	@echo "Build finished; now you can run HTML Help Workshop with the" \
-	      ".hhp project file in $(BUILDDIR)/htmlhelp."
-
-qthelp:
-	$(SPHINXBUILD) -b qthelp $(ALLSPHINXOPTS) $(BUILDDIR)/qthelp
-	@echo
-	@echo "Build finished; now you can run "qcollectiongenerator" with the" \
-	      ".qhcp project file in $(BUILDDIR)/qthelp, like this:"
-	@echo "# qcollectiongenerator $(BUILDDIR)/qthelp/ProDy.qhcp"
-	@echo "To view the help file:"
-	@echo "# assistant -collectionFile $(BUILDDIR)/qthelp/ProDy.qhc"
-
-devhelp:
-	$(SPHINXBUILD) -b devhelp $(ALLSPHINXOPTS) $(BUILDDIR)/devhelp
-	@echo
-	@echo "Build finished."
-	@echo "To view the help file:"
-	@echo "# mkdir -p $$HOME/.local/share/devhelp/ProDy"
-	@echo "# ln -s $(BUILDDIR)/devhelp $$HOME/.local/share/devhelp/ProDy"
-	@echo "# devhelp"
-
-epub:
-	$(SPHINXBUILD) -b epub $(ALLSPHINXOPTS) $(BUILDDIR)/epub
-	@echo
-	@echo "Build finished. The epub file is in $(BUILDDIR)/epub."
-
-latex:
-	$(SPHINXBUILD) -b latex $(ALLSPHINXOPTS) $(BUILDDIR)/latex
-	@echo
-	@echo "Build finished; the LaTeX files are in $(BUILDDIR)/latex."
-	@echo "Run \`make' in that directory to run these through (pdf)latex" \
-	      "(use \`make latexpdf' here to do that automatically)."
-
-latexpdf:
-	$(SPHINXBUILD) -b latex $(ALLSPHINXOPTS) $(BUILDDIR)/latex
-	@echo "Running LaTeX files through pdflatex..."
-	make -C $(BUILDDIR)/latex all-pdf
-	mv -f $(BUILDDIR)/latex/ProDy.pdf ../Documentation
-	@echo "pdflatex finished; the PDF files are in $(BUILDDIR)/../../."
-
-text:
-	$(SPHINXBUILD) -b text $(ALLSPHINXOPTS) $(BUILDDIR)/text
-	@echo
-	@echo "Build finished. The text files are in $(BUILDDIR)/text."
-
-man:
-	$(SPHINXBUILD) -b man $(ALLSPHINXOPTS) $(BUILDDIR)/man
-	@echo
-	@echo "Build finished. The manual pages are in $(BUILDDIR)/man."
-
-changes:
-	$(SPHINXBUILD) -b changes $(ALLSPHINXOPTS) $(BUILDDIR)/changes
-	@echo
-	@echo "The overview file is in $(BUILDDIR)/changes."
-
-linkcheck:
-	$(SPHINXBUILD) -b linkcheck $(ALLSPHINXOPTS) $(BUILDDIR)/linkcheck
-	@echo
-	@echo "Link check complete; look for any errors in the above output " \
-	      "or in $(BUILDDIR)/linkcheck/output.txt."
-	      
-copytxt:
-	cp -f changes.rst ../CHANGES.rst
-	cp -f getprody.rst ../INSTALL.rst
-	cp -f license.rst ../LICENSE.rst
+	@echo "Download statistics updated."

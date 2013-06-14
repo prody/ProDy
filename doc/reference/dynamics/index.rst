@@ -1,8 +1,8 @@
 .. _dynamics:
 
-**************
-prody.dynamics
-**************
+*****************
+Dynamics Analysis
+*****************
 
 .. automodule:: prody.dynamics
 

@@ -1,6 +1,5 @@
-************************
-prody.utilities.settings
-************************
+Package Settings
+================
 
 .. automodule:: prody.utilities.settings
    :members:

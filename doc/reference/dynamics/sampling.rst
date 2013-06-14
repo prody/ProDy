@@ -1,6 +1,5 @@
-***********************
-prody.dynamics.sampling
-***********************
+Sampling Functions
+==================
 
 .. automodule:: prody.dynamics.sampling
    :members:

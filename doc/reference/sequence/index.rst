@@ -1,8 +1,8 @@
 .. _sequence:
 
-**************
-prody.sequence
-**************
+*****************
+Sequence Analysis
+*****************
 
 .. automodule:: prody.sequence
 

@@ -1,6 +1,5 @@
-************************
-prody.trajectory.psffile
-************************
+PSF File
+========
 
 .. automodule:: prody.trajectory.psffile
    :members:

@@ -1,0 +1,286 @@
+ProDy 0.8 Series
+===============================================================================
+
+0.8.3 (Oct 16, 2011)
+-------------------------------------------------------------------------------
+
+**New Features**:
+
+  * Functions to read and write PQR files: :func:`.parsePQR` and
+    :func:`.writePQR`.
+
+  * Added :meth:`.PDBEnsemble.getIdentifiers` method that returns
+    identifiers of all conformations in the ensemble.
+
+  * ProDy tests are incorporated to the package installer.  If you are using
+    Python version 2.7, you can run the tests by calling ``prody.test()``.
+
+
+**Improvements**:
+
+  * :func:`.blastPDB` function and :class:`.PDBBlastRecord`
+    class are rewritten to use faster and more compact code.
+
+  * New :class:`.PackageLogger` function is implemented to unify logging
+    and reporting task progression.
+
+  * Improvements in PDB ensemble support functions, e.g.
+    :func:`.trimPDBEnsemble`, are made.
+
+  * Improvements in ensemble concatenations are made.
+
+**Bug Fixes**:
+
+  * Bugfixes in :func:`.PDBEnsemble` slicing operation.  This may
+    have affected users when slicing a PDB ensemble for plotting projections
+    in color for different forms of the protein.
+
+0.8.2 (Oct 14, 2011)
+-------------------------------------------------------------------------------
+
+**New Features**:
+
+  * :func:`.fetchPDBClusters`, :func:`.loadPDBClusters`, and
+    :func:`.getPDBCluster` functions are implemented for handling
+    PDB sequence cluster data. These functions can be used instead of
+    :func:`.blastPDB` function for fast access to structures of
+    the same protein (at 95% sequence identity level) or similar proteins.
+
+  * Perturbation response scanning method described in [CA09]_ is implemented
+    as :func:`.scanPerturbationResponse` based on the code provided
+    by Ying Liu.
+
+
+**Changes**:
+
+  * :func:`.fetchPDBLigand` returns the URL of the XML file in the ligand data
+    dictionary.
+
+  * Name of the ProDy configuration file in user :file:`home` directory
+    is renamed as :file:`.prodyrc` (used to be :file:`.prody`).
+
+  * :func:`.applyBiomolecularTransformations` and
+    :func:`.assignSecondaryStructure` functions raise
+    :class:`ValueError` when the function fails to perform its action
+    due to missing data in header dictionary.
+
+  * :func:`.fetchPDB` decompresses PDB files found in the working
+    directory when user asks for decompressed files.
+
+  * :func:`.parsePDB` appends *chain* and *subset* arguments to
+    :func:`.AtomGroup` name.
+
+  * *chain* argument is added to :meth:`.PDBBlastRecord.getHits`.
+
+**Improvements**:
+
+  * Atom selection class :class:`.Select` is completely redesigned
+    to prevent breaking of the parser when evaluating invalid selection
+    strings.
+
+  * Improved type checking in :func:`.parsePDB` function.
+
+**Bug Fixes**:
+
+  * Bugfixes in :func:`.parseDSSP`: one emerged problems in lines
+    indicating chain breaks, another did not parse bridge-partners correctly.
+    Both fixes are contributed by Kian Ho.
+
+  * Bugfix in :func:`.parsePDB` function. When only header is desired
+    (``header=True, model=0``), would return a tuple containing an empty
+    atom group and the header.
+
+**Developmental**:
+
+  * Unit tests for :mod:`.proteins` and :mod:`~.prody.select` modules are
+    developed.
+
+0.8.1 (Sep 16, 2011)
+-------------------------------------------------------------------------------
+
+**New Features**:
+
+  * :func:`.fetchLigandData` is implemented for fetching ligand data from
+    Ligand Expo.
+
+  * :func:`.parsePSF` function is implemented for parsing X-PLOR format PSF
+    files.
+
+**Changes**:
+
+  * __slots__ is used in :class:`.AtomGroup` and :class:`.Atomic`
+    classes. This change prevents user from assigning new variables to
+    instances of all classes derived from the base :class:`.Atomic`.
+
+  * :mod:`pyparsing` is updated to version 1.5.6.
+
+**Bug Fixes**:
+
+  * A bug in :meth:`.AtomGroup.copy` method is fixed. When AtomGroup
+    instance itself is copied, deep copies of data arrays were not made.
+
+  * A bug in :class:`.Select` class raising exceptions when negative
+    residue number values are present is fixed.
+
+  * Another bug in :class:`.Select` class misinterpreting
+    ``same residue as ...`` statement when specific chains are involved is
+    fixed.
+
+  * A bug in :meth:`.AtomGroup.addCoordset` method duplicating coordinates
+    when no coordinate sets are present in the instance is fixed.
+
+:ref:`nmwiz`
+^^^^^^^^^^^^
+
+**Changes**:
+
+  * Version number in main window is iterated.
+
+  * Mode graphics material is stored for individual modes.
+
+  * Mode scaling factor is printed when active mode or RMSD is changed.
+
+  * All selections are deleted to avoid memory leaks.
+
+
+0.8 (Aug 24, 2011)
+-------------------------------------------------------------------------------
+
+.. note::
+   After installing v0.8, you may need to make a small change in your
+   existing scripts. If you are using :class:`.Ensemble` class
+   for analyzing PDB structures, rename it as :class:`.PDBEnsemble`.
+   See the other changes that may affect your work below and the class
+   documentation for more information.
+
+
+**New Features**:
+
+  * :class:`.DCDFile` is implemented for handling DCD files.
+
+  * :class:`.Trajectory` is implemented for handling multiple
+    trajectory files.
+
+  * :func:`.writeDCD` is implemented for writing DCD files.
+
+  * :ref:`trajectory` example to illustrate usage of new classes for handling
+    DCD files. :ref:`eda` example is updated to use new ProDy classes.
+
+  * :class:`.PCA` supports :class:`.Trajectory` and
+    :class:`.DCDFile` instances.
+
+  * :class:`.Ensemble` and :class:`.PDBEnsemble` classes
+    can be associated with :class:`.AtomGroup` instances. This allows
+    selecting and evaluating coordinates of subset of atoms. See
+    :meth:`~.EnsembleBase.setAtomGroup`,
+    :meth:`~.EnsembleBase.select`,
+    :meth:`~.EnsembleBase.getAtomGroup`, and
+    :meth:`~.EnsembleBase.getSelection` methods.
+
+  * :func:`.execDSSP`, :func:`.parseDSSP`, and :func:`.performDSSP` functions
+    are implemented for executing and parsing DSSP calculations.
+
+  * :func:`.execSTRIDE`, :func:`.parseSTRIDE`, and :func:`.performSTRIDE`
+    functions are implemented for executing and parsing DSSP calculations.
+
+  * :func:`.parsePDB` function parses atom serial numbers. Atoms
+    can be retrieved from an :class:`.AtomGroup` instance by their
+    serial numbers using :meth:`~.AtomGroup.getBySerial` and
+    :meth:`~.AtomGroup.getBySerialRange` methods.
+
+  * :func:`.calcADPs` function can be used to calculate anisotropic
+    displacement parameters for atoms with anisotropic temperature factor
+    data.
+
+  * :meth:`~.Ensemble.getRMSFs` is implemented for calculating
+    root mean square fluctuations.
+
+  * :class:`.AtomGroup` and :class:`.Mode` or
+    :class:`.Vector` additions are supported. This adds a new
+    coordinate set to the :class:`.AtomGroup` instance.
+
+  * :meth:`~.AtomGroup.getAttrNames` is implemented for listing
+    user set attribute names.
+
+
+**Improvements**:
+
+  * :func:`.calcProjection`, :func:`.showProjection`, and
+    :func:`.showCrossProjection` functions can optionally calculate/display
+    RMSD along the normal mode.
+
+  * ANM, GNM, and PCA applications can optionally write compressed ProDy data
+    files.
+
+  * :func:`.fetchPDB` function can optionally write decompressed
+    files and force copying a file from local mirror to target folder.
+
+  * :meth:`.PCA.buildCovariance` and :meth:`.PCA.performSVD`
+    methods accept Numpy arrays as coordinate sets.
+
+  * Performance of :meth:`.PCA.buildCovariance` method is optimized
+    for evaluation of PDB ensembles.
+
+  * :func:`.calcRMSD` and :func:`.superpose` functions are optimized for speed
+    and memory usage.
+
+  * :meth:`.Ensemble.getMSFs` is optimized for speed and memory usage.
+
+  * Improvements in memory operations in :mod:`~prody.atomic`,
+    :mod:`~prody.ensemble`, and :mod:`~prody.dynamics` modules for
+    faster data (PDB/NMD) output.
+
+  * Optimizations in :class:`.Select` and :class:`.Contacts` classes.
+
+**Changes**:
+
+  * :class:`.Ensemble` does not store conformation names. Instead,
+    newly implemented :class:`.PDBEnsemble` class stores identifiers
+    for individual conformations (PDB IDs). This class should be used in cases
+    where source of individual conformations is important.
+
+  * :func:`.calcProjection`, :func:`.showProjection`, and
+    :func:`.showCrossProjection` function calculate/display
+    root mean square deviations, by default.
+
+  * Oxidized cysteine residue abbreviation ``CSO`` is added to the definition
+    of ``protein`` keyword.
+
+  * :meth:`getMSF` method is renamed as :meth:`~.Ensemble.getMSFs`.
+
+  * :func:`.parseDCD` function returns :class:`.Ensemble`
+    instances.
+
+**Bug Fixes**:
+
+  * A bug in :mod:`~atomic.select` module causing exceptions when regular
+    expressions are used is fixed.
+
+  * Another bug in :mod:`~atomic.select` module raising exception when
+    "(not ..," is passed is fixed.
+
+  * Various bugfixes in :mod:`~prody.ensemble` module.
+
+  * Problem in :program:`prody fetch` that occurred when a file is found in a
+    local mirror is fixed.
+
+  * Bugfix in :meth:`.AtomPointer.copy` method.
+
+:ref:`nmwiz`
+^^^^^^^^^^^^
+
+**New Features**:
+
+  * NMWiz can be used to compare two structures by calculating and depicting
+    structural changes.
+
+  * Arrow graphics is scaled based on a user specified RMSD value.
+
+**Improvements**:
+
+  * NMWiz writes DCD format trajectories for PCA using ProDy. This provides
+    significant speed up in cases where IO rate is the bottleneck.
+
+**Changes**:
+
+  * Help is provided in a text window to provide a cleaner GUI.

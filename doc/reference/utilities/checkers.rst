@@ -1,6 +1,5 @@
-************************
-prody.utilities.checkers
-************************
+Type Checkers
+=============
 
 .. automodule:: prody.utilities.checkers
    :members:

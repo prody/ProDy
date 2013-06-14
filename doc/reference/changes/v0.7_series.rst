@@ -1,0 +1,172 @@
+ProDy 0.7 Series
+===============================================================================
+
+0.7.2 (Jun 21, 2011)
+-------------------------------------------------------------------------------
+
+**New Features**:
+
+  * :func:`.parseDCD` is implemented for parsing coordinate sets
+    from DCD files.
+
+
+**Improvements**:
+
+  * :func:`.parsePDB` parses ``SEQRES`` records in header sections.
+
+**Changes**:
+
+  * Major classes can be instantiated without passing a name argument.
+  * Default selection in NMWiz ProDy interface is changed to ensure selection
+    only protein Cα atoms.
+
+
+**Bug Fixes**:
+
+  * A bug in :func:`.writeNMD` function causing problems when writing
+    a single mode is fixeed.
+  * Other bugfixes in :mod:`~prody.dynamics` module functions.
+
+
+0.7.1 (Apr 28, 2011)
+-------------------------------------------------------------------------------
+
+**Highlights**:
+
+  * :class:`.Atomic` :meth:`__getattribute__` is overloaded to interpret
+    atomic selections following the dot operator. For example,
+    ``atoms.calpha`` is interpreted as ``atoms.select('calpha')``. See
+    :ref:`` for more details.
+  * :class:`.AtomGroup` class is integrated with
+    :class:`.HierView` class. Atom group instances now can be indexed
+    to get chains or residues and number of chains/residues can be retrieved.
+    A hierarchical view is generated and updated when needed. See
+    :ref:`` for more details.
+
+
+
+**New Features**:
+
+  * :func:`.matchAlign` is implemented for quick alignment of protein
+    structures. See :ref:`extract-ligands` usage example.
+  * :meth:`~.AtomGroup.setAttribute`,
+    :meth:`~.AtomGroup.getAttribute`,
+    :meth:`~.AtomGroup.delAttribute`, and
+    :meth:`~.AtomGroup.isAttribute` functions are implemented for
+    :class:`.AtomGroup` class to facilitate storing user provided
+    atomic data. See :ref:`attributes` example.
+  * :func:`.saveAtoms` and :func:`.loadAtoms` functions
+    are implemented to allow for saving atomic data and loading it
+    This saves custom atomic attributes and much faster than parsing
+    data from PDB files.
+  * :func:`.calcCollectivity` function is implemented to allow
+    for calculating collectivity of deformation vectors.
+
+**Improvements**:
+
+  * :func:`.parsePDB` can optionally return biomolecule when
+    ``biomol=True`` keyword argument is passed.
+  * :func:`.parsePDB` can optionally make secondary structure
+    assignments when ``secondary=True`` keyword argument is passed.
+  * :func:`.calcSqFlucts` function is changed to accept
+    :class:`.Vector` instances, e.g. deformation vectors.
+
+**Changes**:
+
+  * Changes were made in :func:`.calcADPAxes` function to follow
+    the conventions in analysis ADPs. See its documentation.
+
+**Bug Fixes**:
+
+  * A in :class:`.Ensemble` slicing operations is fixed. Weights are
+    now copied to the new instances obtained by slicing.
+  * Bug fixes in :mod:`~prody.dynamics` plotting functions
+    :func:`.showScaledSqFlucts`, :func:`.showNormedSqFlucts`,
+
+0.7 (Apr 4, 2011)
+-------------------------------------------------------------------------------
+
+**New Features**:
+
+  * Regular expressions can be used in atom selections. See
+    :mod:`~prody.select` module for details.
+
+  * User can define selection macros using :func:`~select.defSelectionMacro`
+    function. Macros are saved in ProDy configuration and loaded in later
+    sessions. See :mod:`~prody.select` module for other related functions.
+
+  * :func:`.parseSparseMatrix` function is implemented for parsing
+    matrices in sparse format. See the usage example in :ref:`external-matrix`.
+
+  * :func:`.deform` function is implemented for deforming coordinate
+    sets along a normal mode or linear combination of multiple modes.
+
+  * :func:`.sliceModel` function is implemented for slicing normal
+    mode data to be used with functions calculating atomic properties using
+    normal modes.
+
+**Improvements**:
+
+  * Atom selections using bare keyword arguments is optimized. New keyword
+    definitions are added. See :mod:`~prody.select` module for the complete
+    list.
+
+  * A new keyword argument for :func:`.calcADPAxes` allows for
+    comparing largest axis to the second largest one.
+
+**Changes**:
+
+  * There are changes in function used to alter definitions of selection
+    keywords. See :mod:`~prody.select` for details.
+
+  * :func:`.assignSecondaryStructure` function assigns SS identifiers
+    to all atoms in a residue. Residues with no SS information specified is
+    assigned coil conformation.
+
+  * When :class:`.Ensemble` and :class:`.NMA` classes are
+    instantiated with an empty string, instances are called "Unnamed".
+
+  * :func:`.sliceMode`, :func:`.sliceVector` and
+    :func:`.reduceModel` functions return the atom selection
+    in addition to the sliced vector/mode/model instance.
+
+**Bug Fixes**:
+
+  * Default selection for :func:`.calcGNM` function is set to
+    "calpha".
+
+:ref:`nmwiz`
+^^^^^^^^^^^^
+
+**New Features**:
+
+  * NMWiz supports GNM data and can use ProDy for GNM calculations.
+
+  * NMWiz can gather normal mode data from molecules loaded into VMD.
+    This allows NMWiz to support all formats supported by VMD.
+
+  * User can write data loaded into NMWiz in NMD format.
+
+  * An Arrow Graphics option allows the user to draw arrows in both directions.
+
+  * User can select Licorice representation for the protein if model is an
+    all atom mode.
+
+  * User can select Custom as the representation of the protein to prevent
+    NMWiz from chancing a user set representation.
+
+  * Trace is added as a protein backbone representation option.
+
+**Improvements**:
+
+  * NMWiz remembers all adjustments on arrow graphics for all modes.
+
+  * Plotting :guilabel:`Clear` button clears only atom labels that are
+    associated with the dataset.
+
+  * Removing a dataset removes all associated molecule objects.
+
+  * Selected atom representations are turned on based on atom index.
+
+  * Padding around interface button has been standardized to provide a uniform
+    experience between different platforms.

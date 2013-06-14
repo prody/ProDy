@@ -1,6 +1,5 @@
-**********************
-prody.utilities.logger
-**********************
+Package Logger
+==============
 
 .. automodule:: prody.utilities.logger
    :members:

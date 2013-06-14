@@ -1,6 +1,5 @@
-**************************
-prody.ensemble.pdbensemble
-**************************
+PDB Structure Ensemble
+======================
 
 .. automodule:: prody.ensemble.pdbensemble
    :members:

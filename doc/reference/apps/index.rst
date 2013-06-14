@@ -1,8 +1,8 @@
 .. _apps:
 
-**********
-prody.apps
-**********
+***********************
+ProDy/Evol Applications
+***********************
 
 .. automodule:: prody.apps
 

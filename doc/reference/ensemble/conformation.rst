@@ -1,6 +1,5 @@
-***************************
-prody.ensemble.conformation
-***************************
+Conformation
+============
 
 .. automodule:: prody.ensemble.conformation
    :members:

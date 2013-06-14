@@ -1,6 +1,5 @@
-**********************
-prody.atomic.atomgroup
-**********************
+Atom Group
+==========
 
 .. automodule:: prody.atomic.atomgroup
    :members:

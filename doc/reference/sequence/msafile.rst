@@ -1,6 +1,5 @@
-**********************
-prody.sequence.msafile
-**********************
+MSA File
+========
 
 .. automodule:: prody.sequence.msafile
    :members:

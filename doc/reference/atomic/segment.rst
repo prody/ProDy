@@ -1,6 +1,5 @@
-********************
-prody.atomic.segment
-********************
+Segment
+=======
 
 .. automodule:: prody.atomic.segment
    :members:

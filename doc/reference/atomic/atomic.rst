@@ -1,6 +1,5 @@
-*******************
-prody.atomic.atomic
-*******************
+Atomic Base
+===========
 
 .. automodule:: prody.atomic.atomic
    :members:

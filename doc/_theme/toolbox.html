@@ -1,0 +1,32 @@
+{%- if pagename != "search" %}
+  <div id="searchbox" class="accordion-group">
+    <div class="accordion-heading">
+      <a class="accordion-toggle" data-toggle="collapse" data-parent="#accordion2" href="#collapseToolbox">
+        <strong>Toolbox</strong>
+      </a>
+    </div>
+    <div id="collapseToolbox" class="accordion-body collapse in">
+      <div class="accordion-inner">
+        <div id="showcodebuttons" style="margin-bottom: 10px">
+          <p><small>Show code snippets for copying:</small></p>
+          <div class="btn-group">
+            <a href="#codemodal" role="button" data-toggle="modal" id="showcode" class="btn btn-primary btn-small">
+              <i class="icon-fullscreen icon-white"></i> Show code</a>
+            <a href="#codemodal" role="button" data-toggle="modal" id="withcomments" class="btn btn-primary btn-small">
+              and output <i class="icon-comment icon-white"></i> </a>
+          </div>
+        </div>
+
+        <p><small>Search terms or a module, class or function by name:</small></p>
+        <form class="form-search pull-right" action="{{ pathto('search') }}" method="get">
+          <div class="input-append">
+            <input type="text" class="input-small search-query" name="q" class="span2">
+            <button type="submit" class="btn btn-primary">Go</button>
+          </div>
+          <input type="hidden" name="check_keywords" value="yes" />
+          <input type="hidden" name="area" value="default" />
+        </form>
+      </div>
+    </div>
+  </div>
+{%- endif %}

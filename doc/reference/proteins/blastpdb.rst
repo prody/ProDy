@@ -1,6 +1,5 @@
-***********************
-prody.proteins.blastpdb
-***********************
+PDB Blast Search
+================
 
 .. automodule:: prody.proteins.blastpdb
    :members:

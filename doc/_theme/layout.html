@@ -1,0 +1,124 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+{%- set reldelim1 = reldelim1 is not defined and ' &raquo;' or reldelim1 %}
+{%- set reldelim2 = reldelim2 is not defined and ' |' or reldelim2 %}
+{%- set render_sidebar = (not embedded) and (not theme_nosidebar|tobool) and
+                         (sidebars != []) %}
+{%- set url_root = pathto('', 1) %}
+{# XXX necessary? #}
+{%- if url_root == '#' %}{% set url_root = '' %}{% endif %}
+{%- if not embedded and docstitle %}
+  {%- set titlesuffix = " &mdash; "|safe + docstitle|e %}
+{%- else %}
+  {%- set titlesuffix = "" %}
+{%- endif %}
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset={{ encoding }}" />
+    {{ metatags }}
+    <title>{{ title|striptags|e }}{{ titlesuffix }}</title>
+    <link rel="stylesheet" href="{{ pathto('_static/css/basic.css', 1) }}" type="text/css" />
+    <link rel="stylesheet" href="{{ pathto('_static/css/pygments.css', 1) }}" type="text/css" />
+    <link rel="stylesheet" href="{{ pathto('_static/css/bootswatch-united.min.css', 1) }}" type="text/css" />
+    <link rel="stylesheet" href="{{ pathto('_static/css/prodydocs.css', 1) }}" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '{{ url_root }}',
+        VERSION:     '{{ release|e }}',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '{{ '' if no_search_suffix else file_suffix }}',
+        HAS_SOURCE:  {{ has_source|lower }}
+      };
+    </script>
+    <script type="text/javascript" src="{{ pathto('_static/js/jquery-2.0.0.min.js', 1) }}"></script>
+    <script type="text/javascript" src="{{ pathto('_static/js/bootstrap.min.js', 1) }}"></script>
+    <script type="text/javascript" src="{{ pathto('_static/js/zeroclipboard.min.js', 1) }}"></script>
+    <script type="text/javascript" src="{{ pathto('_static/js/copybutton.js', 1) }}"></script>
+    <script type="text/javascript" src="{{ pathto('_static/js/prodydocs.js', 1) }}"></script>
+    <link rel="shortcut icon" href="{{ pathto('_static/' + favicon, 1) }}"/>
+{% block extrahead %}{% endblock %}
+  </head>
+  <body data-spy="scroll" data-target="#localtoc" data-offset="190">
+
+<div class="container">
+  <div class="row">
+    <div class="span12">
+      <a href="{{ pathto("index") }}">
+        <img src="{{ pathto("_static/logo.png", 1) }}" alt="ProDy logo" id="logo" />
+      </a>
+    </div>
+    <div class="span12">
+      <div class="subnav">
+        <ul class="nav nav-pills">
+        {%- for rellink in rellinks %}
+        <li class="pull-right">
+          <a href="{{ pathto(rellink[0]) }}" title="{{ rellink[1]|striptags|e }}"
+             {{ accesskey(rellink[2]) }}>{{ rellink[3] }}</a>
+          </li>
+        {%- endfor %}
+        {%- block rootrellink %}
+        <li><a href="http://www.csb.pitt.edu/ProDy/#tutorials">Home {{ reldelim1 }}</a></li>
+        {%- endblock %}
+        {%- for parent in parents %}
+          <li><a href="{{ parent.link|e }}" {% if loop.last %}{{ accesskey("U") }}{% endif %}>{{ parent.title }}{{ reldelim1 }}</a></li>
+        {%- endfor %}
+        {%- block relbaritems %} {% endblock %}
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="content">
+  <div class="row">
+    <div class="span3">
+      <div id="sidebar" style="width: 220px">
+        {%- include "localtoc.html" %}
+        <div class="accordion" id="accordion2">
+        {%- if sidebars != None %}
+          {%- for sidebartemplate in sidebars %}
+          {%- include sidebartemplate %}
+          {%- endfor %}
+        {%- endif %}
+        </div>
+      </div>
+    </div>
+    <div class="span9 body">
+    {% block body %} {% endblock %}
+    </div>
+  </div>
+</div>
+<footer class="footer">
+  <div class="row">
+    <div class="span12">
+      <p><small>
+      {% trans copyright=copyright|e %}&copy; Copyright {{ copyright }}.{% endtrans %}
+    {%- if last_updated %}
+      {% trans last_updated=last_updated|e %}Last updated on {{ last_updated }}.{% endtrans %}
+    {%- endif %}
+      {% trans sphinx_version=sphinx_version|e %}Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> {{ sphinx_version }}.{% endtrans %}
+      </small></p>
+    </div>
+  </div>
+  </div>
+</footer>
+<div id="codemodal" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+  <div class="modal-header">
+    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+    <h3 id="myModalLabel">Code Snippets</h3>
+  </div>
+  <div class="modal-body">
+    <textarea id="codesnippets"></textarea>
+  </div>
+  <div class="modal-footer">
+    <button class="btn btn-info" id="selectcode">Select Code</button>
+    <!--
+    <button class="btn btn-success" id="copycode" data-clipboard-target="codesnippets">Copy Code</button>
+    -->
+    <button class="btn" data-dismiss="modal" aria-hidden="true">Close</button>
+  </div>
+  <input type="hidden" id="zeroclipboardpath" value="{{ pathto('_static/js/zeroclipboard.swf', 1) }}">
+</div>
+  </body>
+</html>

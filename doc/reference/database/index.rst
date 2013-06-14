@@ -1,6 +1,6 @@
-**************
-prody.database
-**************
+****************
+Database Support
+****************
 
 .. automodule:: prody.database
 

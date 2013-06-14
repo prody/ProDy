@@ -1,6 +1,5 @@
-**********************************
-prody.apps.prody_apps.prody_select
-**********************************
+Atom Selection
+==============
 
 .. automodule:: prody.apps.prody_apps.prody_select
    :members:

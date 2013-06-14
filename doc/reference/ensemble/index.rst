@@ -1,11 +1,10 @@
-**************
-prody.ensemble
-**************
+*****************
+Ensemble Analysis
+*****************
 
 .. automodule:: prody.ensemble
 
 .. toctree::
-   :maxdepth: 2
    :glob:
    :hidden:
 

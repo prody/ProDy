@@ -1,6 +1,5 @@
-*******************
-prody.proteins.dssp
-*******************
+DSSP Tools
+==========
 
 .. automodule:: prody.proteins.dssp
    :members:

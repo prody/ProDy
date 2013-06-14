@@ -1,6 +1,5 @@
-********************
-prody.atomic.residue
-********************
+Residue
+=======
 
 .. automodule:: prody.atomic.residue
    :members:

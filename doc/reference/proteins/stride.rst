@@ -1,6 +1,5 @@
-*********************
-prody.proteins.stride
-*********************
+Stride Tools
+============
 
 .. automodule:: prody.proteins.stride
    :members:

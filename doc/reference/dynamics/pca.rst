@@ -1,6 +1,5 @@
-********************
-prody.dynamics.pca
-********************
+Principal Component Analysis
+============================
 
 .. automodule:: prody.dynamics.pca
    :members:

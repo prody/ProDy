@@ -1,6 +1,5 @@
-*************************
-prody.trajectory.trajbase
-*************************
+Trajectory Base
+===============
 
 .. automodule:: prody.trajectory.trajbase
    :members:

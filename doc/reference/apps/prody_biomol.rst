@@ -1,6 +1,5 @@
-**********************************
-prody.apps.prody_apps.prody_biomol
-**********************************
+Biomolecule Builder
+===================
 
 .. automodule:: prody.apps.prody_apps.prody_biomol
    :members:

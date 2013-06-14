@@ -1,6 +1,5 @@
-*******************
-prody.database.pfam
-*******************
+Pfam Access Functions
+=====================
 
 .. automodule:: prody.database.pfam
    :members:

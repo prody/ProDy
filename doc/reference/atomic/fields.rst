@@ -1,6 +1,7 @@
-*******************
-prody.atomic.fields
-*******************
+.. _fields:
+
+Atom Data Fields
+================
 
 .. automodule:: prody.atomic.fields
    :members:

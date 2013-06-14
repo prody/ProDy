@@ -26,9 +26,8 @@ is a GUI client that integrates well with Bitbucket_ that hosts ProDy_ source
 code.
 
 You will only need to use a few basic :program:`git` commands.  These commands
-are provided below, but usually without an adequate description.  You can refer
-to `Git book`_ and `Git docs`_ for detailed explanations of and examples on 
-these commands.
+are provided below, but usually without an adequate description.  Please refer
+to `Git book`_ and `Git docs`_ for usage details and examples.
 
 
 Fork and Clone ProDy

@@ -1,23 +1,27 @@
 # -*- coding: utf-8 -*-
 # ProDy: A Python Package for Protein Dynamics Analysis
-# 
+#
 # Copyright (C) 2010-2012 Ahmet Bakan
-# 
+#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-#  
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
-"""This module defines a function for parsing protein structure files in PSF 
-format."""
+"""This module defines a function for parsing protein structure files in
+`PSF format`_.
+
+.. _PSF format:
+   http://www.ks.uiuc.edu/Training/Tutorials/namd/
+   namd-tutorial-unix-html/node21.html"""
 
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
@@ -36,20 +40,20 @@ if PY2K:
 __all__ = ['parsePSF', 'writePSF']
 
 def parsePSF(filename, title=None, ag=None):
-    """Return an :class:`.AtomGroup` instance storing data parsed from X-PLOR 
-    format PSF file *filename*.  Atom and bond information is parsed from the 
+    """Return an :class:`.AtomGroup` instance storing data parsed from X-PLOR
+    format PSF file *filename*.  Atom and bond information is parsed from the
     file.  If *title* is not given, *filename* will be set as the title of the
-    :class:`.AtomGroup` instance.  An :class:`.AtomGroup` instance may be 
-    provided as *ag* argument.  When provided, *ag* must have the same number 
-    of atoms in the same order as the file.  Data from PSF file will be added 
+    :class:`.AtomGroup` instance.  An :class:`.AtomGroup` instance may be
+    provided as *ag* argument.  When provided, *ag* must have the same number
+    of atoms in the same order as the file.  Data from PSF file will be added
     to the *ag*.  This may overwrite present data if it overlaps with PSF file
     content.  Note that this function does not evaluate angles, dihedrals, and
     impropers sections."""
-    
+
     if ag is not None:
         if not isinstance(ag, AtomGroup):
-            raise TypeError('ag must be an AtomGroup instance') 
-    
+            raise TypeError('ag must be an AtomGroup instance')
+
     psf = openFile(filename, 'rb')
     line = psf.readline()
     i_line = 1
@@ -69,7 +73,7 @@ def parsePSF(filename, title=None, ag=None):
     else:
         if n_atoms != ag.numAtoms():
             raise ValueError('ag and PSF file must have same number of atoms')
-        
+
     serials = zeros(n_atoms, ATOMIC_FIELDS['serial'].dtype)
     segnames = zeros(n_atoms, ATOMIC_FIELDS['segment'].dtype)
     resnums = zeros(n_atoms, ATOMIC_FIELDS['resnum'].dtype)
@@ -78,12 +82,12 @@ def parsePSF(filename, title=None, ag=None):
     atomtypes = zeros(n_atoms, ATOMIC_FIELDS['type'].dtype)
     charges = zeros(n_atoms, ATOMIC_FIELDS['charge'].dtype)
     masses = zeros(n_atoms, ATOMIC_FIELDS['mass'].dtype)
-    
+
     lines = psf.readlines(71 * (n_atoms + 5))
     if len(lines) < n_atoms:
         raise IOError('number of lines in PSF is less than the number of '
                       'atoms')
-    
+
     for i, line in enumerate(lines):
         if i == n_atoms:
             break
@@ -107,7 +111,7 @@ def parsePSF(filename, title=None, ag=None):
             atomtypes[i] = items[5]
             charges[i] = items[6]
             masses[i] = items[7]
-    
+
     i = n_atoms
     while 1:
         line = lines[i].split()
@@ -138,27 +142,27 @@ def parsePSF(filename, title=None, ag=None):
 PSFLINE = ('%8d %-4s %-4d %-4s %-4s %-4s %10.6f %13.4f %11d\n')
 
 def writePSF(filename, atoms):
-    """Write atoms in X-PLOR format PSF file with name *filename* and return 
+    """Write atoms in X-PLOR format PSF file with name *filename* and return
     *filename*.  This function will write available atom and bond information
     only."""
 
     try:
         n_atoms, segments, rnums, rnames, names, types, charges, masses = (
-        atoms.numAtoms(), atoms._getSegnames(), atoms._getResnums(), 
+        atoms.numAtoms(), atoms._getSegnames(), atoms._getResnums(),
         atoms._getResnames(), atoms._getNames(), atoms._getTypes(),
         atoms._getCharges(), atoms._getMasses())
 
-    except AttributeError: 
-        raise TypeError('atoms must be an Atomic instance') 
+    except AttributeError:
+        raise TypeError('atoms must be an Atomic instance')
 
     if segments is None:
         segments = atoms._getChids()
         if segments is None:
             segments = ['UNK'] * n_atoms
-    
+
     if rnums is None:
         rnums = ones(n_atoms, int)
-        
+
     if rnames is None:
         rnames = ['UNK'] * n_atoms
 
@@ -167,9 +171,9 @@ def writePSF(filename, atoms):
 
     if types is None:
         atomtypes = zeros(n_atoms, array(['a']).dtype.char + '1')
-    
+
     long_fields = array([len(tp) for tp in types]).max() > 4
-    
+
     out = openFile(filename, 'w')
     write = out.write
     write('PSF{0}\n'.format( ' NAMD' if long_fields else ''))
@@ -178,9 +182,9 @@ def writePSF(filename, atoms):
     write(' REMARKS {0}\n'.format(str(atoms)))
     write('\n')
     write('{0:8d} !NATOM\n'.format(n_atoms))
-    
+
     for i in range(n_atoms):
-        write(PSFLINE % (i + 1, segments[i], rnums[i], rnames[i], names[i], 
+        write(PSFLINE % (i + 1, segments[i], rnums[i], rnames[i], names[i],
                         types[i], charges[i], masses[i], 0))
     bonds = list(atoms._iterBonds())
     if bonds:

@@ -1,0 +1,191 @@
+ProDy 0.6 Series
+===============================================================================
+
+0.6.2 (Mar 16, 2011)
+-------------------------------------------------------------------------------
+
+**New Features**:
+
+  * :meth:`~.PCA.performSVD` function is implemented for faster
+    and more memory efficient principal compoment analysis.
+
+  * :func:`.extrapolateModel` function is implemented for
+    extrapolating a coarse-grained model to an all atom model. See the
+    usage example :ref:`extendmodel`.
+
+  * :func:`plog` is implemented for enabling users to make log entries.
+
+**Improvements**:
+
+  * :mod:`~prody.compare` functions are improved to handle insertion codes.
+
+  * :class:`.HierView` allows for indexing using chain identifier
+    and residue numbers. See usage example :ref:`hierview`.
+
+  * :class:`.Chain` allows for indexing using residue number and
+    insertion code. See usage example :ref:`hierview`.
+
+  * :meth:`~.AtomGroup.addCoordset` function accepts
+    :class:`.Atomic` and :class:`.Ensemble` instances
+    as *coords* argument.
+
+  * New method :meth:`.HierView.getAtoms` is implemented.
+  * :class:`.AtomGroup` set functions check the correctness of
+    dimension of data arrays to prevent runtime problems.
+
+  * :program:`prody pca` script is updated to use the faster PCA method
+    that uses SVD.
+
+**Changes**:
+
+  * "backbone" definition now includes the backbone hydrogen atom
+    (Thanks to Nahren Mascarenhas for pointing to this discrepancy in the
+    keyword definition).
+
+**Bug Fixes**:
+
+  * A bug in :class:`.PCA` allowed calculating covariance matrix
+    for less than 3 coordinate sets is fixed.
+
+  * A bug in :func:`.mapOntoChain` function that caused problems
+    when mapping all atoms is fixed.
+
+
+
+0.6.1 (Mar 2, 2011)
+-------------------------------------------------------------------------------
+
+**New Features**:
+
+  * :func:`.setWWPDBFTPServer` and :func:`.getWWPDBFTPServer`
+    functions allow user to change or learn the WWPDB FTP server that ProDy
+    uses to download PDB files. Default server is RCSB PDB in USA.
+    User can change the default server to one in Europe or Japan.
+
+  * :func:`.setPDBMirrorPath` and :func:`.getPDBMirrorPath`
+    functions allow user to specify or learn the path to a local PDB mirror.
+    When specified, a local PDB mirror is preferred for accessing PDB files,
+    over downloading them from FTP servers.
+
+  * :func:`.mapOntoChain` function is improved to map backbone or
+    all atoms.
+
+**Improvements**:
+
+  * :class:`WWPDB_PDBFetcher` can download PDB files from different
+    WWPDB FTP servers.
+
+  * :class:`WWPDB_PDBFetcher` can also use local PDB mirrors for
+    accessing PDB files.
+
+**Changes**:
+
+  * :class:`RCSB_PDBFetcher` is renamed as :class:`WWPDB_PDBFetcher`.
+
+  * :func:`.mapOntoChain` and :func:`.matchChains` functions
+    accept ``"ca"`` and ``"bb"`` as *subset* arguments.
+
+  * Definition of selection keyword "protein" is updated to include
+    some non-standard amino acid abbreviations.
+
+**Bug Fixes**:
+
+  * A bug in :class:`WWPDB_PDBFetcher` causing exceptions when
+    non-string items passed in a list is fixed.
+
+  * An important bug in :func:`.parsePDB` is fixed. When parsing
+    backbone or Cα atoms, residue names were not checked and this caused
+    parsing water atoms with name ``"O"`` or calcium ions with name ``"CA"``.
+
+
+0.6 (Feb 22, 2011)
+-------------------------------------------------------------------------------
+
+**New Features**:
+
+  * Biopython module pairwise2 and packages KDTree and Blast are incorporated
+    in ProDy package to make installation easier. Only NumPy needs to be
+    installed before ProDy can be used. For plotting, Matplotlib is still
+    required.
+
+  * :ref:`nmwiz` is distributed with ProDy source. On Linux, if VMD is
+    installed, ProDy installer locates VMD plugins folder and installs NMWiz.
+    On Windows, user needs to follow a separate set of instructions (see
+    :ref:`nmwiz`).
+
+  * :class:`.Gamma` class is implemented for facilitating use of
+    force constants based on atom type, residue type, or property. An
+    example derived classes are :class:`.GammaStructureBased` and
+    :class:`.GammaVariableCutoff`.
+
+  * :func:`.calcTempFactors` function is implemented to
+    calculate theoretical temperature factors.
+
+  * 5 new :ref:`prody-apps` are implemented, and existing scripts are improved to
+    output figures.
+
+  * :meth:`~.NMA.getModel` method is implemented to make function development
+    easier.
+
+  * :func:`.resetTicks` function is implemented to change X and/or Y
+    axis ticks in plots when there are discontinuities in the plotted data.
+
+**Improvements**:
+
+  * :meth:`.ANM.buildHessian` and :meth:`.GNM.buildKirchhoff`
+    classes are improved to accept :class:`.Gamma` instances
+    or other custom function as *gamma* argument. See also :ref:`gamma`.
+
+  * :class:`.Select` class is changed to treat single word keywords
+    differently, e.g. "backbone" or "protein".
+    They are interpreted 10 times faster and in use achieve much higher
+    speed-ups when compared to composite selections. For example, using the
+    keyword "calpha" instead of the ``name CA and protein``,
+    which returns the same selection, works >20 times faster.
+
+  * Optimizations in :class:`~select.Select` class to increase
+    performance (Thanks to Paul McGuire for providing several Pythonic tips
+    and Pyparsing specific advice).
+
+  * :func:`.applyBiomolecularTransformations` function is improved
+    to handle large biomolecular assemblies.
+
+  * Performance optimizations in :func:`.parsePDB` and other functions.
+
+  * :class:`.Ensemble` class accepts :class:`.Atomic` instances and
+    automatically adds coordinate sets to the ensemble.
+
+**Changes**:
+
+  * :class:`PDBlastRecord` is renamed as :class:`.PDBBlastRecord`.
+
+  * :class:`.NMA` instances can be index using a list or tuple of integers,
+    e.g. ``anm[1,3,5]``.
+
+  * "ca", "bb", and "sc" keywords are defined as short-hands for "calpha",
+    "backbone", and "sidechain", respectively.
+
+  * Behavior of :func:`.calcANM` and :func:`.calcGNM` functions have changed.
+    They return the atoms used for calculation as well.
+
+**Bug Fixes**:
+
+  * A bug in :func:`.assignSecondaryStructure` function is fixed.
+
+  * Bug fixes in :ref:`prody-anm` and :ref:`prody-gnm`.
+
+  * Bug fixes in :func:`.showSqFlucts` and :func:`.showProjection` functions.
+
+:ref:`nmwiz`
+^^^^^^^^^^^^
+
+  * NMWiz can be used as a graphical interface to ProDy. ANM or PCA
+    calculations can be performed for molecules that are loaded in VMD.
+
+  * User can set default color for arrow graphics and paths to ANM and PCA
+    scripts.
+
+  * Optionally, NMWiz can preserve the current view in VMD display window when
+    loading a new dataset. Check the box in the NMWiz GUI main window.
+
+  * A bug that prevented selecting residues from plot window is fixed.

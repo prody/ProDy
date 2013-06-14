@@ -1,17 +1,17 @@
 # ProDy: A Python Package for Protein Dynamics Analysis
-# 
+#
 # Copyright (C) 2010-2012 Ahmet Bakan
-# 
+#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-#  
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
@@ -32,23 +32,23 @@ from .ensemble import *
 from .pdbensemble import *
 from .conformation import *
 
-__all__ = ['saveEnsemble', 'loadEnsemble', 'trimPDBEnsemble', 
+__all__ = ['saveEnsemble', 'loadEnsemble', 'trimPDBEnsemble',
            'calcOccupancies', 'showOccupancies', 'alignPDBEnsemble']
 
 
 def saveEnsemble(ensemble, filename=None, **kwargs):
-    """Save *ensemble* model data as :file:`filename.ens.npz`.  If *filename* 
-    is ``None``, title of the *ensemble* will be used as the filename, after 
-    white spaces in the title are replaced with underscores.  Extension is 
-    :file:`.ens.npz`. Upon successful completion of saving, filename is 
+    """Save *ensemble* model data as :file:`filename.ens.npz`.  If *filename*
+    is ``None``, title of the *ensemble* will be used as the filename, after
+    white spaces in the title are replaced with underscores.  Extension is
+    :file:`.ens.npz`. Upon successful completion of saving, filename is
     returned. This function makes use of :func:`numpy.savez` function."""
-    
+
     if not isinstance(ensemble, Ensemble):
         raise TypeError('invalid type for ensemble, {0}'
                         .format(type(ensemble)))
     if len(ensemble) == 0:
         raise ValueError('ensemble instance does not contain data')
-    
+
     dict_ = ensemble.__dict__
     attr_list = ['_title', '_confs', '_weights', '_coords']
     if isinstance(ensemble, PDBEnsemble):
@@ -69,9 +69,9 @@ def saveEnsemble(ensemble, filename=None, **kwargs):
 
 
 def loadEnsemble(filename):
-    """Return ensemble instance loaded from *filename*.  This function makes 
+    """Return ensemble instance loaded from *filename*.  This function makes
     use of :func:`numpy.load` function.  See also :func:`saveEnsemble`"""
-    
+
     attr_dict = np.load(filename)
     if '_weights' in attr_dict:
         weights = attr_dict['_weights']
@@ -98,38 +98,38 @@ def loadEnsemble(filename):
             ensemble._trans = attr_dict['_trans']
     else:
         ensemble.addCoordset(attr_dict['_confs'])
-        if weights is not None: 
+        if weights is not None:
             ensemble.setWeights(weights)
     return ensemble
 
 
 def trimPDBEnsemble(pdb_ensemble, **kwargs):
     """Return a new PDB ensemble obtained by trimming given *pdb_ensemble*.
-    This function helps selecting atoms in a pdb ensemble based on one of the 
-    following criteria, and returns them in a new :class:`~.PDBEnsemble` 
+    This function helps selecting atoms in a pdb ensemble based on one of the
+    following criteria, and returns them in a new :class:`.PDBEnsemble`
     instance.
-        
+
     **Occupancy**
-    
-    Resulting PDB ensemble will contain atoms whose occupancies are greater 
+
+    Resulting PDB ensemble will contain atoms whose occupancies are greater
     or equal to *occupancy* keyword argument.  Occupancies for atoms will be
     calculated using ``calcOccupancies(pdb_ensemble, normed=True)``.
-    
+
     :arg occupancy: occupancy for selecting atoms, must satisfy
         ``0 < occupancy <= 1``
     :type occupancy: float
-    
+
     """
-    
+
     if not isinstance(pdb_ensemble, PDBEnsemble):
         raise TypeError('pdb_ensemble argument must be a PDBEnsemble')
     if pdb_ensemble.numConfs() == 0 or pdb_ensemble.numAtoms() == 0:
         raise ValueError('pdb_ensemble must have conformations')
-    
+
     if 'occupancy' in kwargs:
         occupancy = float(kwargs['occupancy'])
-        assert 0 < occupancy <=1, ('occupancy is not > 0 and <= 1: '
-                                   '{0}'.format(repr(occupancy)))
+        assert 0 < occupancy <= 1, ('occupancy is not > 0 and <= 1: '
+                                    '{0}'.format(repr(occupancy)))
         n_confs = pdb_ensemble.numConfs()
         assert n_confs > 0, 'pdb_ensemble does not contain any conformations'
         occupancies = calcOccupancies(pdb_ensemble, normed=True)
@@ -139,39 +139,26 @@ def trimPDBEnsemble(pdb_ensemble, **kwargs):
         torf = occupancies >= occupancy
     else:
         return None
-    
+
     trimmed = PDBEnsemble(pdb_ensemble.getTitle())
     coords = pdb_ensemble.getCoords()
     if coords is not None:
-        trimmed.setCoords( coords[torf] )
+        trimmed.setCoords(coords[torf])
     confs = pdb_ensemble.getCoordsets()
     if confs is not None:
         weights = pdb_ensemble.getWeights()
-        trimmed.addCoordset( confs[:, torf], weights[:, torf] )
+        trimmed.addCoordset(confs[:, torf], weights[:, torf])
     return trimmed
 
 
 def calcOccupancies(pdb_ensemble, normed=False):
-    """Return occupancy calculated from weights of a :class:`~.PDBEnsemble`.
-    Any non-zero weight will be considered equal to one.  Occupancies are 
-    calculated by binary weights for each atom over the conformations in 
-    the ensemble. When *normed* is ``True``, total weights will be divided 
-    by the number of atoms.
-    
-    When analyzing an ensemble of X-ray structures, this function can be used 
-    to see how many times a residue is resolved.
-    
-    >>> from prody import *
-    >>> ens = loadEnsemble('p38_X-ray.ens.npz')
-    >>> print( calcOccupancies(ens) ) # doctest: +ELLIPSIS
-    [ 74.  75.  75.  75.  75.  75.  75.  75.  75.  73.  73.  74.  75.  75.  75.
-      ...
-      75.  75.  75.  75.  75.  75.]
-            
-    Each number in the above example corresponds to a residue (or atoms) and 
-    shows the number of structures in which the corresponding residue is 
-    resolved."""
-    
+    """Return occupancy calculated from weights of a :class:`.PDBEnsemble`.
+    Any non-zero weight will be considered equal to one.  Occupancies are
+    calculated by binary weights for each atom over the conformations in
+    the ensemble. When *normed* is ``True``, total weights will be divided
+    by the number of atoms.  This function can be used to see how many times
+    a residue is resolved when analyzing an ensemble of X-ray structures."""
+
     if not isinstance(pdb_ensemble, PDBEnsemble):
         raise TypeError('pdb_ensemble must be a PDBEnsemble instance')
     if len(pdb_ensemble) == 0:
@@ -186,12 +173,12 @@ def calcOccupancies(pdb_ensemble, normed=False):
         return occupancies / len(pdb_ensemble)
     else:
         return occupancies
-    
-    
+
+
 def showOccupancies(pdbensemble, *args, **kwargs):
     """Show occupancies for the PDB ensemble using :func:`~matplotlib.pyplot.
     plot`.  Occupancies are calculated using :meth:`calcOccupancies`."""
-    
+
     import matplotlib.pyplot as plt
 
     if not isinstance(pdbensemble, PDBEnsemble):
@@ -213,12 +200,12 @@ def showOccupancies(pdbensemble, *args, **kwargs):
 
 def checkWeights(weights, n_atoms, n_csets=None):
     """Return weights if checks pass, otherwise raise an exception."""
-    
+
     assert isinstance(n_atoms, int) and n_atoms > 0, \
         'n_atoms must be a positive integer'
     assert n_csets is None or isinstance(n_csets, int) and n_csets > 0, \
         'n_csets must be a positive integer'
-    
+
     if not isinstance(weights, np.ndarray):
         raise TypeError('weights must be a Numpy array')
     elif n_csets is None and weights.ndim not in (1, 2):
@@ -246,20 +233,20 @@ def checkWeights(weights, n_atoms, n_csets=None):
 
 
 def alignPDBEnsemble(ensemble, suffix='_aligned', outdir='.', gzip=False):
-    """Align PDB files using transformations from *ensemble*, which may be 
-    a :class:`.PDBEnsemble` or a :class:`.PDBConformation` instance. Label of 
-    the conformation (see :meth:`~.PDBConformation.getLabel`) will be used to 
-    determine the PDB structure and model number.  First four characters of 
-    the label is expected to be the PDB identifier and ending numbers to be the 
-    model number.  For example, the :class:`.Transformation` from conformation 
-    with label *2k39_ca_selection_'resnum_<_71'_m116* will be applied to 116th 
-    model of structure **2k39**.  After applicable transformations are made, 
-    structure will be written into *outputdir* as :file:`2k39_aligned.pdb`.  
+    """Align PDB files using transformations from *ensemble*, which may be
+    a :class:`.PDBEnsemble` or a :class:`.PDBConformation` instance. Label of
+    the conformation (see :meth:`~.PDBConformation.getLabel`) will be used to
+    determine the PDB structure and model number.  First four characters of
+    the label is expected to be the PDB identifier and ending numbers to be the
+    model number.  For example, the :class:`.Transformation` from conformation
+    with label *2k39_ca_selection_'resnum_<_71'_m116* will be applied to 116th
+    model of structure **2k39**.  After applicable transformations are made,
+    structure will be written into *outputdir* as :file:`2k39_aligned.pdb`.
     If *gzip* is **True**, output files will be compressed.  Return value is
     the output filename or list of filenames, in the order files are processed.
     Note that if multiple models from a file are aligned, that filename will
     appear in the list multiple times."""
-    
+
     if not isinstance(ensemble, (PDBEnsemble, PDBConformation)):
         raise TypeError('ensemble must be a PDBEnsemble or PDBConformation')
     if isinstance(ensemble, PDBConformation):
@@ -269,7 +256,7 @@ def alignPDBEnsemble(ensemble, suffix='_aligned', outdir='.', gzip=False):
     else:
         gzip = ''
     output = []
-    pdbdict = {}    
+    pdbdict = {}
     for conf in ensemble:
         trans = conf.getTransformation()
         if trans is None:
@@ -312,11 +299,11 @@ def alignPDBEnsemble(ensemble, suffix='_aligned', outdir='.', gzip=False):
         outfn = os.path.join(outdir, pdb + suffix + '.pdb' + gzip)
         if ag.numCoordsets() > 1:
             pdbdict[pdb] = ag
-        else:            
+        else:
             writePDB(outfn, ag)
-        output.append(outfn)
-        
-    for pdb, ag in pdbdict.items(): # PY3K: OK
+        output.append(os.path.normpath(outfn))
+
+    for pdb, ag in pdbdict.items():  # PY3K: OK
         writePDB(os.path.join(outdir, pdb + suffix + '.pdb' + gzip), ag)
     if len(output) == 1:
         return output[0]

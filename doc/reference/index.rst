@@ -1,18 +1,17 @@
 .. _reference:
 
 *******************************************************************************
-Library Reference
+Reference Manual
 *******************************************************************************
-This section documents ProDy classes and functions.  Each module page 
-provides a list of classes and functions contained in the respective 
-module.  Some documentation pages include usage examples.   
+
+You can also read this manual in
+:download:`PDF format <ProDy_Manual.pdf>`.
 
 .. toctree::
-   :maxdepth: 3
+   :maxdepth: 2
    :glob:
 
    prody
-   apps/index
    atomic/index
    database/index
    dynamics/index
@@ -22,6 +21,13 @@ module.  Some documentation pages include usage examples.
    proteins/index
    sequence/index
    trajectory/index
+   apps/index
    utilities/index
-   tests
-   appendices/index
+   changes/index
+   people
+   citing
+   credits
+   funding
+   license
+
+

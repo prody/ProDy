@@ -1,0 +1,286 @@
+ProDy 1.0 Series
+===============================================================================
+
+1.0.4 (May 2, 2012)
+-------------------------------------------------------------------------------
+
+**Bugfixes**:
+
+  * Fixed a problem in :func:`.calcPhi` function that raised a name error.
+
+  * Fixed a problem in :meth:`.KDTree.getDistances` method that raised  a
+    name error when unitcell is provided.
+
+  * Fixed a problem in :func:`.buildDistMatrix` and :func:`.calcDistance`
+    functions causing miscalculations when unitcell is given.
+
+  * Revised :class:`.KDTree` methods dealing with to handle special cases
+    where unitcell might have some dimensions zero.
+
+**Changes**:
+
+  * :func:`.buildKDTree` method is removed, earlier than planned due to
+    unexpected bugfix releases.
+
+
+1.0.3 (May 1, 2012)
+-------------------------------------------------------------------------------
+
+**Bugfixes**:
+
+  * Fixed :mod:`~prody.kdtree` import problem.
+
+**New Features**:
+
+  * :func:`.buildDistMatrix` function that can take periodic boundary
+    conditions is implemented.
+
+**Improvements**:
+
+  * :func:`.calcDistance` function is improved to take periodic boundary
+    conditions into account when provided by the users.
+
+1.0.2 (May 1, 2012)
+-------------------------------------------------------------------------------
+
+**New Features**:
+
+  * Methods to deal with connected subsets of atoms are implemented, see
+    :meth:`.AtomGroup.iterFragments` and :meth:`.AtomGroup.numFragments`.
+
+  * :func:`.pickCentral` method is implemented for picking the atom that
+    is closest to the centroid of a group or subset of atoms.
+
+  * ProDy configuration option *auto_secondary* is implemented to
+    allow for parsing and assigning secondary structure information from PDB
+    file header data automatically.  See :func:`.assignSecstr` and
+    :func:`.confProDy` for usage details.
+
+  * :program:`prody align` makes use of :option:`--select` when aligning
+    multiple structures. See usage examples: :ref:`prody-align`
+
+  * :func:`.printRMSD` function that prints minimum, maximum, and mean RMSD
+    values when comparing multiple coordinate sets is implemented.
+
+  * :func:`.findFragments` function that identifies fragments in atom subsets,
+    e.g. :class:`.Selection`, is implemented.
+
+  * A new :class:`.KDTree` interface with coherent method names and capability
+    to handle periodic boundary conditions is implemented.
+
+**Improvements**:
+
+  * Performance improvements made in :func:`.saveAtoms` and :func:`.loadAtoms`.
+
+  * :func:`.sliceMode`, :func:`.sliceModel`, :func:`.sliceVector`, and
+    :func:`.reduceModel` functions accept :class:`.Selection` instances as
+    well as selection strings.  In repeated use of this function, if selections
+    are already made out of the function, considerable speed-ups are achieved
+    when selection is passed instead of selection string.
+
+  * Fragment iteration (:meth:`.AtomGroup.iterFragments`) is improved to yield
+    items faster.
+
+**Changes**:
+
+  * There is a change in the behavior of addition operation on instances of
+    :class:`.AtomGroup`.  When operands do not have same number of coordinate
+    sets, the result will have one coordinate set that is concatenation of the
+    *active coordinate sets* of operands.
+
+  * :func:`.buildKDTree` function is deprecated for removal, use the new
+    :class:`.KDTree` class instead.
+
+**Bugfixes**:
+
+  * A problem in building hierarchical views when making selections using
+    *resindex*, *chindex*, and *segindex* keywords is fixed.
+
+  * A problem in :class:`.Chain` and :class:`.Residue` selection strings
+    that would emerge when a :class:`.HierView` is build using a selection
+    is fixed.
+
+  * A problem with copying :class:`.AtomGroup` instances whose coordinates
+    are not set is fixed.
+
+  * :class:`.AtomGroup` fragment detection algorithm is rewritten to avoid
+    the problem of reaching maximum recursion depth for large molecules
+    with the old recursive algorithm.
+
+  * A problem with picking central atom of :class:`.AtomGroup` instances
+    in :func:`.pickCentral` function is fixed.
+
+  * A problem in :class:`.Select` class that caused exceptions when evaluating
+    complex macro definitions is fixed.
+
+  * Fixed a problem in handling multiple trajectory files.  The problem would
+    emerge when a file was added (:meth:`~.Trajectory.addFile`) to a
+    :class:`.Trajectory` after atoms were set (:meth:`~.Trajectory.setAtoms`).
+    Newly added file would not be associated with the atoms and coordinates
+    parsed from this file would not be set for the :class:`.AtomGroup`
+    instance.
+
+
+1.0.1 (Apr 6, 2012)
+-------------------------------------------------------------------------------
+
+**New Features**:
+
+  * ProDy can be configured to automatically check for updates on a regular
+    basis, see :func:`.checkUpdates` and :func:`.confProDy` functions for
+    details.
+
+  * :func:`.alignPDBEnsemble` function is implemented to align PDB files using
+    transformations calculated in ensemble analysis.  See usage example in
+    :ref:`pca-blast` example.
+
+  * :meth:`.PDBConformation.getTransformation` is implemented to return
+    the transformation that was used to superpose conformation onto reference
+    coordinates. This transformation can be used to superpose the original
+    PDB file onto the reference PDB file.
+
+  * Amino acid sequences with regular expressions can be used to make atom
+    selections, e.g. ``'sequence "C..C"'``.  See :ref:`selections` for usage
+    details.
+
+  * :func:`.calcCrossProjection` function is implemented.
+
+**Improvements**:
+
+  * :class:`.Select` class raises a :class:`.SelectionError` when
+    potential typos are detected in a selection string, e.g. ``'chain AB'``
+    is a grammatically correct selection string that will return **None**
+    since no atoms have chain identifier ``'AB'``.  In such cases, an exception
+    noting that values exceed maximum number of characters is raised.
+
+  * :program:`prody align` command accepts percent sequence identity and
+    overlap parameters used when matching chains from given multiple
+    structures.
+
+  * When using :program:`prody align` command to align multiple structure,
+    all models in NMR structures are aligned onto the reference structure.
+
+  * :program:`prody catdcd` command accepts ``--align SELSTR`` argument
+    that can be used to align frames when concatenating files.
+
+  * :func:`.showProjection` and :func:`.showCrossProjection` functions are
+    improved to evaluate list of markers, color, labels, and texts.  See
+    usage example in :ref:`pca-xray-plotting`.
+
+  * :class:`.Trajectory` instances can be used for calculating and plotting
+    projections using :func:`.calcProjection`, :func:`.showProjection`,
+    :func:`.calcCrossProjection`, and :func:`.showCrossProjection` functions.
+
+
+**Changes**:
+
+  * Phosphorylated amino acids, phosphothreonine (*TPO*), O-phosphotyrosine
+    (*PTR*), and phosphoserine (*SEP*), are recognized as acidic protein
+    residues.  This prevents having breaks in protein chains which contains
+    phosphorylated residues.  See :ref:`selections` for definitions of
+    *protein* and *acidic* keywords.
+
+  * Hit dictionaries from :class:`.PDBBlastRecord` will use *percent_overlap*
+    instead of *percent_coverage*.  Older key will be removed in v1.1.
+
+  * :meth:`.Transformation.get4x4Matrix` method is deprecated for removal in
+    v1.1, use :meth:`.Transformation.getMatrix` method instead.
+
+
+**Bugfixes**:
+
+  * A bug in some :ref:`prody-apps` is fixed. The bug would emerge when invalid
+    arguments were passed to effected commands and throw an unrelated exception
+    hiding the error message related to the arguments.
+
+  * A bug in ``'bonded to ...'`` is fixed that emerged when ``'...'``
+    selected nothing.
+
+  * A bug in ``'not'`` selections using ``.`` operator is fixed.
+
+1.0 (Mar 7, 2012)
+-------------------------------------------------------------------------------
+
+**Improvements**:
+
+  * :meth:`.ANM.buildHessian` method is not using a KDTree by default, since
+    with some code optimization the version not using KDTree is running faster.
+    Same optimization has gone into :meth:`.GNM.buildKirchhoff` too, but for
+    Kirchoff matrix, version using KDTree is faster and is the default.  Both
+    methods have *kdtree* argument to choose whether to use it or not.
+
+  * :program:`prody` script is updated.  Importing Prody and Numpy libraries
+    are avoided. Script responses to help queries faster.
+    See :ref:`prody-apps` for script usage details.
+
+  * Added ``bonded to ...`` selection method that expands a selection to
+    immediately bound atoms.  See :ref:`selections` for its description.
+
+  * :func:`.fetchPDBLigand` parses bond data from the XML file.
+
+  * :func:`.fetchPDBLigand` can optionally save compressed XML files into
+    ProDy package folder so that frequent access to same files will be more
+    rapid. See :func:`.confProDy` function for setting this option.
+
+  * :class:`.Select` class is revised. All exceptions are handled delicately
+    to increase the stability of the class.
+
+  * Distance based atom selection is 10 to 15% faster for atom groups with
+    more than 5K atoms.
+
+  * Added uncompressed file saving option to :ref:`prody-blast` command.
+
+**Changes**:
+
+  * All deprecated method and functions scheduled for removal are removed.
+
+  * :meth:`~.Mode.getEigenvector` and :meth:`~.Mode.getEigenvalue` methods are
+    deprecated for removal in v1.1, use :meth:`.Mode.getEigvec` and
+    :meth:`.Mode.getEigval` instead.
+
+  * :meth:`~.NMA.getEigenvectors` and :meth:`~.NMA.getEigenvalues` methods are
+    deprecated for removal in v1.1, use :meth:`.NMA.getEigvecs` and
+    :meth:`.NMA.getEigvals` instead.
+
+  * :meth:`.Mode.getCovariance` and :meth:`.ModeSet.getCovariance` methods
+    are deprecated for removal in v1.1, use :func:`.calcCovariance` method
+    instead.
+
+  * :meth:`Mode.getCollectivity` method is removed, use
+    :func:`.calcCollectivity` function instead.
+
+  * :meth:`Mode.getFractOfVariance` method is removed, use the new
+    :func:`.calcFractVariance` function instead.
+
+  * :meth:`Mode.getSqFlucts` method is removed, use :func:`.calcSqFlucts`
+    function instead.
+
+  * Renamed :func:`showFractOfVar` function as :func:`.showFractVars`
+    function instead.
+
+  * Removed :func:`calcCumOverlapArray`, use :func:`.calcCumulOverlap`
+    with ``array=True`` argument instead.
+
+  * Renamed :func:`extrapolateModel` as :func:`.extendModel`.
+
+  * The relation between :class:`.AtomGroup`, :class:`.Trajectory`, and
+    :class:`.Frame` instances have changed. See :ref:`trajectory2` and
+    :ref:`outputtraj`, and :ref:`frame` usage examples.
+
+  * :class:`.AtomGroup` cannot be deformed by direct addition with a vector
+    instance.
+
+  * Unmapped atoms in :class:`.AtomMap` instances are called dummies.
+    :meth:`.AtomMap.numUnmapped` method, for example, is renamed as
+    :meth:`.AtomMap.numDummies`.
+
+  * :func:`.fetchPDBLigand` accepts only *filename* (instead of *save* and
+    *folder*) argument to save an XML file.
+
+**Bugfixes**:
+
+  * A problem in distance based atom selection which would could cause problems
+    when a distance based selection is made from a selection is fixed.
+
+  * Changed :ref:`prody-blast` so that when a path for downloading files
+    are given files are not save to local PDB folder.

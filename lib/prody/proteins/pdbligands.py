@@ -1,18 +1,18 @@
 # -*- coding: utf-8 -*-
 # ProDy: A Python Package for Protein Dynamics Analysis
-# 
+#
 # Copyright (C) 2010-2012 Ahmet Bakan
-# 
+#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-#  
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
@@ -34,41 +34,42 @@ __all__ = ['fetchPDBLigand']
 
 def fetchPDBLigand(cci, filename=None):
     """Fetch PDB ligand data from `Ligand Expo <http://ligand-expo.rcsb.org/>`_
-    for chemical component *cci*.  *cci* may be 3-letter chemical component 
-    identifier or a valid XML filename.  If *filename* is given, XML file 
+    for chemical component *cci*.  *cci* may be 3-letter chemical component
+    identifier or a valid XML filename.  If *filename* is given, XML file
     will be saved with that name.
-    
-    If you query ligand data frequently, you may configure ProDy to save XML 
-    files in your computer.  Set ``ligand_xml_save`` option **True**, i.e. 
-    ``confProDy(ligand_xml_save=True)``.  Compressed XML files will be save 
-    to ProDy package folder, e.g. :file:`/home/user/.prody/pdbligands`.  Each 
-    file is around 5Kb when compressed. 
-    
+
+    If you query ligand data frequently, you may configure ProDy to save XML
+    files in your computer.  Set ``ligand_xml_save`` option **True**, i.e.
+    ``confProDy(ligand_xml_save=True)``.  Compressed XML files will be save
+    to ProDy package folder, e.g. :file:`/home/user/.prody/pdbligands`.  Each
+    file is around 5Kb when compressed.
+
     This function is compatible with PDBx/PDBML v 4.0.
-    
-    Ligand data is returned in a dictionary.  Ligand coordinate atom data with 
+
+    Ligand data is returned in a dictionary.  Ligand coordinate atom data with
     *model* and *ideal* coordinate sets are also stored in this dictionary.
     Note that this dictionary will contain data that is present in the XML
     file and all Ligand Expo XML files do not contain every possible data
     field.  So, it may be better if you use :meth:`dict.get` instead of
     indexing the dictionary, e.g. to retrieve formula weight (or relative
     molar mass) of the chemical component use ``data.get('formula_weight')``
-    instead of ``data['formula_weight']`` to avoid exceptions when this data 
-    field is not found in the XML file.  URL and/or path of the XML file are 
+    instead of ``data['formula_weight']`` to avoid exceptions when this data
+    field is not found in the XML file.  URL and/or path of the XML file are
     returned in the dictionary with keys ``url`` and ``path``, respectively.
-    
+
     Following example downloads data for ligand STI (a.k.a. Gleevec and
-    Imatinib) and calculates RMSD between model (X-ray structure 1IEP) and 
-    ideal (energy minimized) coordinate sets::
-    
-      ligand_data = fetchLigandData('STI')
-      print ligand_data['model_coordinates_db_code'] 
-      # 1IEP
-      ligand_model = ligand_data['model'] 
-      ligand_ideal = ligand_data['ideal']
-      transformation = superpose(ligand_ideal.noh, ligand_model.noh)
-      print( calcRMSD(ligand_ideal.noh, ligand_model.noh).round(2) )
-      # 2.27"""
+    Imatinib) and calculates RMSD between model (X-ray structure 1IEP) and
+    ideal (energy minimized) coordinate sets:
+
+    .. ipython:: python
+
+       from prody import *
+       ligand_data = fetchPDBLigand('STI')
+       ligand_data['model_coordinates_db_code']
+       ligand_model = ligand_data['model']
+       ligand_ideal = ligand_data['ideal']
+       transformation = superpose(ligand_ideal.noh, ligand_model.noh)
+       calcRMSD(ligand_ideal.noh, ligand_model.noh)"""
 
     if not isinstance(cci, str):
         raise TypeError('cci must be a string')
@@ -93,6 +94,8 @@ def fetchPDBLigand(cci, filename=None):
             if isfile(xmlgz):
                 with openFile(xmlgz) as inp:
                     xml = inp.read()
+        else:
+            path = None
         url = ('http://ligand-expo.rcsb.org/reports/{0[0]}/{0}/{0}'
                '.xml'.format(cci.upper()))
         if not xml:
@@ -116,8 +119,9 @@ def fetchPDBLigand(cci, filename=None):
     import xml.etree.cElementTree as ET
 
     root = ET.XML(xml)
-    if root.get('{http://www.w3.org/2001/XMLSchema-instance}schemaLocation') \
-        != 'http://pdbml.pdb.org/schema/pdbx-v40.xsd pdbx-v40.xsd':
+    if (root.get('{http://www.w3.org/2001/XMLSchema-instance}'
+                 'schemaLocation') !=
+            'http://pdbml.pdb.org/schema/pdbx-v40.xsd pdbx-v40.xsd'):
         LOGGER.warn('XML is not in PDBx/PDBML v 4.0 format, resulting '
                     'dictionary may not contain all data fields')
     ns = root.tag[:root.tag.rfind('}')+1]
@@ -129,7 +133,7 @@ def fetchPDBLigand(cci, filename=None):
         if tag.startswith('pdbx_'):
             tag = tag[5:]
         dict_[tag] = child.text
-    dict_['formula_weight'] = float(dict_.get('formula_weight')) 
+    dict_['formula_weight'] = float(dict_.get('formula_weight'))
 
     identifiers_and_descriptors = []
     results = root.find(ns + 'pdbx_chem_comp_identifierCategory')
@@ -145,44 +149,45 @@ def fetchPDBLigand(cci, filename=None):
         dict_[program + '_version'] = child.get('program_version')
 
     dict_['audits'] = [(audit.get('action_type'), audit.get('date'))
-        for audit in list(root.find(ns + 'pdbx_chem_comp_auditCategory'))]
+                       for audit in
+                       list(root.find(ns + 'pdbx_chem_comp_auditCategory'))]
 
     atoms = list(root.find(ns + 'chem_comp_atomCategory'))
     n_atoms = len(atoms)
     ideal_coords = np.zeros((n_atoms, 3))
     model_coords = np.zeros((n_atoms, 3))
-    
-    atomnames = np.zeros(n_atoms, dtype=ATOMIC_FIELDS['name'].dtype) 
+
+    atomnames = np.zeros(n_atoms, dtype=ATOMIC_FIELDS['name'].dtype)
     elements = np.zeros(n_atoms, dtype=ATOMIC_FIELDS['element'].dtype)
     resnames = np.zeros(n_atoms, dtype=ATOMIC_FIELDS['resname'].dtype)
     charges = np.zeros(n_atoms, dtype=ATOMIC_FIELDS['charge'].dtype)
-    
+
     resnums = np.ones(n_atoms, dtype=ATOMIC_FIELDS['charge'].dtype)
-    
+
     alternate_atomnames = np.zeros(n_atoms, dtype=ATOMIC_FIELDS['name'].dtype)
     leaving_atom_flags = np.zeros(n_atoms, np.bool)
     aromatic_flags = np.zeros(n_atoms, np.bool)
     stereo_configs = np.zeros(n_atoms, np.bool)
     ordinals = np.zeros(n_atoms, int)
-    
+
     name2index = {}
-    
+
     for i, atom in enumerate(atoms):
         data = dict([(child.tag[len_ns:], child.text) for child in list(atom)])
-        
+
         name = data.get('pdbx_component_atom_id', 'X')
         name2index[name] = i
-        atomnames[i] = name 
+        atomnames[i] = name
         elements[i] = data.get('type_symbol', 'X')
         resnames[i] = data.get('pdbx_component_comp_id', 'UNK')
         charges[i] = float(data.get('charge', 0))
-        
+
         alternate_atomnames[i] = data.get('alt_atom_id', 'X')
         leaving_atom_flags[i] = data.get('pdbx_leaving_atom_flag') == 'Y'
         aromatic_flags[i] = data.get('pdbx_atomatic_flag') == 'Y'
         stereo_configs[i] = data.get('pdbx_stereo_config') == 'Y'
-        ordinals[i] = int(data.get('pdbx_ordinal',0))
-        
+        ordinals[i] = int(data.get('pdbx_ordinal', 0))
+
         model_coords[i, 0] = float(data.get('model_Cartn_x', 0))
         model_coords[i, 1] = float(data.get('model_Cartn_y', 0))
         model_coords[i, 2] = float(data.get('model_Cartn_z', 0))
@@ -232,4 +237,4 @@ def fetchPDBLigand(cci, filename=None):
         bonds = np.array(bonds, int)
         model.setBonds(bonds)
         ideal.setBonds(bonds)
-    return dict_      
+    return dict_

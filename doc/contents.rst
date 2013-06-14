@@ -1,36 +1,21 @@
-.. ProDy documentation master file, created by
-   sphinx-quickstart on Wed Sep 15 21:31:37 2010.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
-
-
-****************************
-ProDy Documentation Contents
-****************************
+*******************
+ProDy Documentation
+*******************
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    :glob:
 
-   getprody
-   tutorial/index
-   examples/index
+   tutorials/index
    reference/index
-   plugins/index
+
    apps/index
    apps/evol
-   howtocite
-   publications
-   reports/index
+
    devel/index
-   people
-   funding
-   credits
-   bibliography
-   changes
-   license
-   glossary
-   
+
+   getprody
+
 
 Indices and tables
 ==================
@@ -38,4 +23,3 @@ Indices and tables
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
-

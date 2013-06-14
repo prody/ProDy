@@ -1,6 +1,5 @@
-*********************
-prody.measure.measure
-*********************
+Measurement Tools
+=================
 
 .. automodule:: prody.measure.measure
    :members:
