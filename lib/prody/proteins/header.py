@@ -984,10 +984,9 @@ def buildBiomolecules(header, atoms, biomol=None):
                         'found in the header dictionary.'.format(biomol))
             return None
 
-    c_max = 26
     keys.sort()
     for i in keys:
-        chids = list('ABCDEFGHIJKLMNOPQRSTUVWXYZ'*20)
+        segnm = list('ABCDEFGHIJKLMNOPQRSTUVWXYZ'*20)
         ags = []
         mt = biomt[i]
         # mt is a list, first item is list of chain identifiers
@@ -997,7 +996,7 @@ def buildBiomolecules(header, atoms, biomol=None):
             LOGGER.warn('Biomolecular transformations {0} were not '
                         'applied'.format(i))
             continue
-        chids_used = []
+
         for times in range((len(mt) - 1) / 3):
             rotation = np.zeros((3, 3))
             translation = np.zeros(3)
@@ -1012,47 +1011,22 @@ def buildBiomolecules(header, atoms, biomol=None):
             translation[2] = line[3]
             t = Transformation(rotation, translation)
 
-            for chid in mt[0]:
-                chids_used.append(chid)
-                newag = atoms.select('chain ' + chid).copy()
-                if newag is None:
-                    continue
-
-                for acsi in range(newag.numCoordsets()):
-                    newag.setACSIndex(acsi)
-                    newag = t.apply(newag)
-                newag.setACSIndex(0)
-                ags.append(newag)
+            newag = atoms.select('chain ' + ' '.join(mt[0])).copy()
+            if newag is None:
+                continue
+            newag.all.setSegnames(segnm.pop(0))
+            for acsi in range(newag.numCoordsets()):
+                newag.setACSIndex(acsi)
+                newag = t.apply(newag)
+            newag.setACSIndex(0)
+            ags.append(newag)
         if ags:
-            # Handles the case when there is more atom groups than the number
-            # of chain identifiers
-            if len(chids_used) != len(set(chids_used)):
-                for newag in ags:
-                    newag.select('all').setChids(chids.pop(0))
-            if len(ags) <= c_max:
-                ags_ = [ags]
-            else:
-                ags_ = []
-                for j in range(len(ags)/c_max + 1):
-                    ags_.append(ags[j*c_max: (j+1)*c_max])
-            parts = []
-            for k, ags in enumerate(ags_):
-                if not ags:
-                    continue
-                newag = ags.pop(0)
-                while ags:
-                    newag += ags.pop(0)
-                if len(ags_) > 1:
-                    newag.setTitle('{0} biomolecule {1} part {2}'
-                                   .format(atoms.getTitle(), i, k+1))
-                else:
-                    newag.setTitle('{0} biomolecule {1}'
-                                   .format(atoms.getTitle(), i))
-                parts.append(newag)
-            if len(parts) == 1:
-                biomols.append(newag)
-            else:
-                biomols.append(tuple(parts))
+            newag = ags.pop(0)
+            while ags:
+                newag += ags.pop(0)
+            newag.setTitle('{0} biomolecule {1}'
+                           .format(atoms.getTitle(), i))
+            biomols.append(newag)
     if biomols:
         if len(biomols) == 1:
             return biomols[0]
