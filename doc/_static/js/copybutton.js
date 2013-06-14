@@ -26,13 +26,13 @@ $(document).ready(function() {
         $("#showcodebuttons").hide();
     } else {
         var prepcode = function(wc) {
-            var codesnippets = $('#codesnippets')
-            codesnippets.html('')
+            var codesnippets = ''
+            codesnippets
             //codesnippets.append("#!/usr/bin/env python\n")
             //codesnippets.append("# -*- coding: utf-8 -*-\n")
-            codesnippets.append("# This code was copied from ProDy documentation.\n")
-            codesnippets.append("# Title: " + document.title.replace('\xe2', '-') + "\n")
-            codesnippets.append("# URL: " + document.URL + "\n\n")
+            codesnippets += "# This code was copied from ProDy documentation.\n";
+            codesnippets += "# Title: " + document.title.replace('\xe2', '-') + "\n";
+            codesnippets += "# URL: " + document.URL + "\n\n";
             pre.each(function(index) {
                 jthis = $(this).clone();
                 if (wc) {
@@ -46,11 +46,13 @@ $(document).ready(function() {
                 $.each(lines, function(l) {
                     var line = lines[l];
                     if (line.length) {
-                        codesnippets.append(line.replace(/\</g,"&lt;").replace(/\>/g,"&gt;").replace(/\&/g,"&amp;").replace(/\'/g,"&apos;").replace(/\"/g,"&quot;") + '\n');
+                        //codesnippets += line.replace(/\</g,"&lt;").replace(/\>/g,"&gt;").replace(/\&/g,"&amp;").replace(/\'/g,"&apos;").replace(/\"/g,"&quot;") + '\n';
+                        codesnippets += line + '\n';
                     }
                 });
-                codesnippets.append('\n');
+                codesnippets += '\n';
             });
+            $('#codesnippets').val(codesnippets);
         }
 
         $("#showcode").click(function () {

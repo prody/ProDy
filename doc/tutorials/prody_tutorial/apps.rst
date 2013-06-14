@@ -57,10 +57,12 @@ PCA calculations
 
 :ref:`prody-anm` can be used to perform PCA calculations.  The following
 example will perform PCA calculations for Cα atoms of the p38 MAP kinase
-using
-:download:`p38 structure <prody_tutorial_files/p38.pdb>` and
-:download:`p38 trajectory <prody_tutorial_files/p38_100frames.dcd>`
-files::
+using files:
+
+  * :download:`ProDy Tutorial files (ZIP) <prody_tutorial_files.zip>`
+  * :download:`ProDy Tutorial files (TGZ) <prody_tutorial_files.tgz>`
+
+::
 
   $ tar -xzf p38_trajectory.tar.gz
   $ prody pca -a -A --select calpha --pdb p38.pdb p38_100frames.dcd

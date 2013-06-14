@@ -68,8 +68,7 @@ are recognized:
    match the number of atoms in the system, i.e. the size of coordinates line.
 
 
-For example, this :download:`NMD file <nmwiz_tutorial_files/1dlo_anm.nmd>`
-contains following lines::
+For example, :file:`1dlo_anm.nmd` contains following lines::
 
    nmwiz_load 1dlo_anm.nmd
    name 1dlo
@@ -175,7 +174,7 @@ Animations
 ^^^^^^^^^^
 
 Clicking :menuselection:`Animation --> Make` will start an animation along
-the active mode.  The animated motion changes the structure along the mode 
+the active mode.  The animated motion changes the structure along the mode
 in both directions with an amplitude given by the RMSD displayed in top panel.
 
 You can adjust animation settings, such as number of frames,
@@ -185,9 +184,9 @@ Plots and Heatmaps
 ^^^^^^^^^^^^^^^^^^
 
 You can generate plots and heatmaps that are linked to the protein display.
-Click :guilabel:`Plot Mobility`, for example. You will see a plot of the 
-residue mean squared fluctuations for the active mode.  Clicking the points 
-on the plot will toggle labels for the corresponding atoms in the VMD 
+Click :guilabel:`Plot Mobility`, for example. You will see a plot of the
+residue mean squared fluctuations for the active mode.  Clicking the points
+on the plot will toggle labels for the corresponding atoms in the VMD
 molecular display.
 
 

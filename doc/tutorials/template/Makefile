@@ -53,7 +53,7 @@ archive:
 	rm -f $(BASENAME)_files.zip $(BASENAME)_files.tgz
 	files=`ls $(BASENAME)_files`; \
 	if [ -n "$$files" ]; then \
-	tar -czf $(BASENAME)_files.tgz $(BASENAME)_files/*; \
+	tar -chzf $(BASENAME)_files.tgz $(BASENAME)_files/*; \
 	zip $(BASENAME)_files.zip $(BASENAME)_files/*; \
 	echo "$(BASENAME)_files.zip and $(BASENAME)_files.tgz are created."; \
 	else \

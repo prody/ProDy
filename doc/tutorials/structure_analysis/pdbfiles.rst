@@ -93,7 +93,7 @@ information):
 
    fetchPDB('1p38')
    atoms = parsePDB('1p38.pdb.gz')
-   repr(atoms)
+   atoms
 
 Parser returns an :class:`.AtomGroup` instance.
 
@@ -113,7 +113,7 @@ automatically and saved it in the current working directory.
 .. ipython:: python
 
    atoms = parsePDB('1mkp')
-   repr(atoms)
+   atoms
 
 
 Subsets of atoms
@@ -124,9 +124,9 @@ Parser can be used to parse backbone or Cα atoms:
 .. ipython:: python
 
    backbone = parsePDB('1mkp', subset='bb')
-   repr(backbone)
+   backbone
    calpha = parsePDB('1mkp', subset='ca')
-   repr(calpha)
+   calpha
 
 
 Specific chains
@@ -137,16 +137,16 @@ Parser can be used to parse a specific chain from a PDB file:
 .. ipython:: python
 
    chA = parsePDB('3mkb', chain='A')
-   repr(chA)
+   chA
    chC = parsePDB('3mkb', chain='C')
-   repr(chC)
+   chC
 
 Multiple chains can also be parsed in the same way:
 
 .. ipython:: python
 
    chAC = parsePDB('3mkb', chain='AC')
-   repr(chAC)
+   chAC
 
 
 Specific models
@@ -157,7 +157,7 @@ Parser can be used to parse a specific model from a file:
 .. ipython:: python
 
    model1 = parsePDB('2k39', model=10)
-   repr(model1)
+   model1
 
 Alternate locations
 ^^^^^^^^^^^^^^^^^^^
@@ -168,14 +168,14 @@ alternate locations with indicator ``A`` are parsed.
 .. ipython:: python
 
    altlocA = parsePDB('1ejg')
-   repr(altlocA)
+   altlocA
 
 Specific alternate locations can be parsed as follows:
 
 .. ipython:: python
 
    altlocB = parsePDB('1ejg', altloc='B')
-   repr(altlocB)
+   altlocB
 
 Note that in this case number of atoms are different between the two atom
 groups. This is because the residue types of atoms with alternate locations
@@ -186,7 +186,7 @@ Also, all alternate locations can be parsed as follows:
 .. ipython:: python
 
    all_altlocs = parsePDB('1ejg', altloc=True)
-   repr(all_altlocs)
+   all_altlocs
 
 Note that this time parser returned three coordinate sets. One for each
 alternate location indicator found in this file (A, B, C). When parsing
@@ -203,7 +203,7 @@ atoms of a specific chain:
 .. ipython:: python
 
    composite = parsePDB('2k39', model=10, chain='A', subset='ca')
-   repr(composite)
+   composite
 
 Header data
 ^^^^^^^^^^^

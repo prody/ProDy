@@ -203,6 +203,9 @@ Finally, it's is possible to change the name of *wtrs* from
    wtrs.setTitle('2Waters')
    wtrs
 
+
+.. _attributes:
+
 Storing data in AtomGroup
 -------------------------------------------------------------------------------
 

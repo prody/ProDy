@@ -19,9 +19,8 @@ User needs to provide trajectory in DCD file format and PDB file of the system.
 
 Example input:
 
-* :download:`MDM2 structure <trajectory_analysis_files/mdm2.pdb>`
-* :download:`MDM2 trajectory I <trajectory_analysis_files/mdm2.dcd>`
-* :download:`MDM2 trajectory II <trajectory_analysis_files/mdm2sim2.dcd>`
+  * :download:`MDM2 files (ZIP) <trajectory_analysis_files.zip>`
+  * :download:`MDM2 files (TGZ) <trajectory_analysis_files.tgz>`
 
 
 Setup environment

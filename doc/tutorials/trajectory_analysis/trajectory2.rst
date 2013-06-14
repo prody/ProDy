@@ -13,9 +13,8 @@ Input files
 
 Two DCD trajectory files and a PDB structure file is provided for this example:
 
-* :download:`MDM2 structure <trajectory_analysis_files/mdm2.pdb>`
-* :download:`MDM2 trajectory I <trajectory_analysis_files/mdm2.dcd>`
-* :download:`MDM2 trajectory II <trajectory_analysis_files/mdm2sim2.dcd>`
+  * :download:`MDM2 files (ZIP) <trajectory_analysis_files.zip>`
+  * :download:`MDM2 files (TGZ) <trajectory_analysis_files.tgz>`
 
 
 Setup environment
