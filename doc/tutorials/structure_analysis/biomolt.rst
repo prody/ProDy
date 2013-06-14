@@ -82,7 +82,7 @@ Let's build the tetrameric form of :pdb:`1k4c` of
 .. ipython:: python
 
    showProtein(monomer);
-   @savefig structure_analysis_biomolt_monomer.png width=4in
+   @savefig structure_analysis_biomolt_kcsa.png width=4in
    legend();
 
 Note that we do not want to replicate potassium ions, so we will exclude them:
@@ -113,7 +113,7 @@ Here is a view of the tetramer:
 .. ipython:: python
 
    showProtein(kcsa);
-   @savefig structure_analysis_biomolt_dimer.png width=4in
+   @savefig structure_analysis_biomolt_tetramer.png width=4in
    legend();
 
 Let's get a list of all the chains:
@@ -121,3 +121,11 @@ Let's get a list of all the chains:
 .. ipython:: python
 
    list(kcsa.iterChains())
+
+You see that chain identifiers are preserved within monomers, and
+monomers have different segment names.  To get chain B from
+first monomer with segment name A, we would do the following:
+
+.. ipython:: python
+
+   kcsa['A', 'B']
