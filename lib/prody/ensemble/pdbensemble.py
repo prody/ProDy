@@ -24,13 +24,14 @@ import numpy as np
 
 from prody.atomic import Atomic, AtomGroup
 from prody.measure import getRMSD, getTransformation
-from prody.utilities import importLA, checkCoords
+from prody.utilities import checkCoords
 from prody import LOGGER
 
 from .ensemble import Ensemble
 from .conformation import PDBConformation
 
 __all__ = ['PDBEnsemble']
+
 
 class PDBEnsemble(Ensemble):
 
@@ -69,7 +70,7 @@ class PDBEnsemble(Ensemble):
             raise ValueError('Ensembles must have same number of atoms.')
 
         ensemble = PDBEnsemble('{0} + {1}'.format(self.getTitle(),
-                                                   other.getTitle()))
+                                                  other.getTitle()))
         ensemble.setCoords(self._coords.copy())
         ensemble.addCoordset(self._confs.copy(), self._weights.copy())
         other_weights = other.getWeights()
@@ -96,7 +97,7 @@ class PDBEnsemble(Ensemble):
 
         elif isinstance(index, slice):
             ens = PDBEnsemble('{0} ({1[0]}:{1[1]}:{1[2]})'.format(
-                                self._title, index.indices(len(self))))
+                              self._title, index.indices(len(self))))
             ens.setCoords(self.getCoords())
             ens.addCoordset(self._confs[index].copy(),
                             self._weights[index].copy(),
@@ -137,14 +138,14 @@ class PDBEnsemble(Ensemble):
             weights = self._weights[:, indices]
             coords = self._coords[indices]
             confs = self._confs
-            confs_selected = self._confs[:,indices]
+            confs_selected = self._confs[:, indices]
 
         for i, conf in enumerate(confs_selected):
             rmat, tvec = calcT(conf, coords, weights[i])
             if trans is not None:
                 trans[i][:3, :3] = rmat
                 trans[i][:3, 3] = tvec
-            confs[i] = tvec + np.dot(confs[i], rmat)
+            confs[i] = tvec + np.dot(confs[i], rmat.T)
         self._trans = trans
 
     def iterpose(self, rmsd=0.0001):
@@ -157,7 +158,6 @@ class PDBEnsemble(Ensemble):
 
     iterpose.__doc__ = Ensemble.iterpose.__doc__
 
-
     def addCoordset(self, coords, weights=None, label=None):
         """Add coordinate set(s) to the ensemble.  *coords* must be a Numpy
         array with suitable shape and dimensionality, or an object with
@@ -168,7 +168,6 @@ class PDBEnsemble(Ensemble):
         provided, weights of all atoms for this coordinate set will be
         set equal to ``1``. *label*, which may be a PDB identifier or a
         list of identifiers, is used to label conformations."""
-
 
         atoms = coords
         try:
@@ -259,14 +258,14 @@ class PDBEnsemble(Ensemble):
         if self._indices is None:
             confs = self._confs[indices].copy()
             for i, w in enumerate(self._weights[indices]):
-                which = w.flatten()==0
+                which = w.flatten() == 0
                 confs[i, which] = coords[which]
         else:
             selids = self._indices
             coords = coords[selids]
             confs = self._confs[indices, selids]
             for i, w in enumerate(self._weights[indices]):
-                which = w[selids].flatten()==0
+                which = w[selids].flatten() == 0
                 confs[i, which] = coords[which]
         return confs
 
@@ -322,8 +321,8 @@ class PDBEnsemble(Ensemble):
             weights = self._weights > 0
         else:
             coords = self._coords[indices]
-            confs = self._confs[:,indices]
-            weights = self._weights[:,indices] > 0
+            confs = self._confs[:, indices]
+            weights = self._weights[:, indices] > 0
         weightsum = weights.sum(0)
         mean = np.zeros(coords.shape)
         for i, conf in enumerate(confs):
@@ -346,7 +345,7 @@ class PDBEnsemble(Ensemble):
         if indices is None:
             return getRMSD(self._coords, self._confs, self._weights)
         else:
-            return getRMSD(self._coords[indices], self._confs[:,indices],
+            return getRMSD(self._coords[indices], self._confs[:, indices],
                            self._weights[:, indices])
 
     def setWeights(self, weights):
@@ -370,5 +369,3 @@ class PDBEnsemble(Ensemble):
         if weights.ndim == 2:
             weights = weights.reshape((self._n_csets, self._n_atoms, 1))
         self._weights = weights
-
-
