@@ -43,9 +43,8 @@ pdf:
 	done
 
 copy:
-	cp -f changes.rst ../CHANGES.rst
 	cp -f getprody.rst ../INSTALL.rst
-	cp -f license.rst ../LICENSE.rst
+	cp -f reference/license.rst ../LICENSE.rst
 	@echo
 	@echo "Files copied."
 

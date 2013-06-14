@@ -60,9 +60,7 @@ This function takes biomolecular tarnsformations from the *header* dictionary
    legend();
 
 
-
-The *dimer* object now has two chains. Let's see by iterating over the chains
-in the dimer:
+The *dimer* object now has two chains:
 
 .. ipython:: python
 
@@ -73,7 +71,8 @@ Build a Tetramer
 -------------------------------------------------------------------------------
 
 
-Let's build the tetrameric form of :pdb:`1k4c` of :wiki:`KcsA_potassium_channel`:
+Let's build the tetrameric form of :pdb:`1k4c` of
+:wiki:`KcsA_potassium_channel`:
 
 .. ipython:: python
 
@@ -109,9 +108,7 @@ Now, let's append potassium ions to the tetramer:
    kcsa.setTitle('KcsA')
 
 
-This function takes biomolecular tarnsformations from the *header* dictionary
-(item with key ``'biomoltrans'``) and applies them to the
-*monomer*.
+Here is a view of the tetramer:
 
 .. ipython:: python
 
@@ -119,7 +116,7 @@ This function takes biomolecular tarnsformations from the *header* dictionary
    @savefig structure_analysis_biomolt_dimer.png width=4in
    legend();
 
-Let's see all the chains in the tetramer:
+Let's get a list of all the chains:
 
 .. ipython:: python
 

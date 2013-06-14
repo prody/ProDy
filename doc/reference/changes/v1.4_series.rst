@@ -1,7 +1,7 @@
 ProDy 1.4 Series
 ===============================================================================
 
-1.4.3 (in development)
+1.4.3 (June 14, 2013)
 -------------------------------------------------------------------------------
 
 **Changes**:
@@ -19,6 +19,9 @@ ProDy 1.4 Series
 
 
 **Bugfixes**:
+
+  * A bug in :func:`.applyTransformation` is fixed. The function would
+    interpret some external transformation matrices incorrectly.
 
   * A bug in :func:`.fetchPDBLigand` function is fixed.
 
