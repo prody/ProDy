@@ -1402,6 +1402,7 @@ orange3"
     set resids ""
     set bfactors ""
     set chainids ""
+    set segnames ""
     set modes [list]
     set modelength 0
     set modecounter 0
@@ -1416,40 +1417,60 @@ orange3"
         }
         atomnames -
         names {
-          if {[llength $nmdline] != [expr $n_atoms + 1]} {
-            vmdcon -info "NMWiz WARNING: Length of atomnames array must be $n_atoms, not [expr [llength $nmdline] -1]."
+          if {[llength $nmdline] == 1} {
+            vmdcon -warn "NMWiz: [lindex $nmdline 0] does not contain any data."
+          } elseif {[llength $nmdline] != [expr $n_atoms + 1]} {
+            vmdcon -warn "NMWiz: [lindex $nmdline 0] could not be loaded, its length must be $n_atoms, not [expr [llength $nmdline] -1]."
           } else {
             set atomnames [lrange $nmdline 1 end]
           }
         }
         resnames {
-          if {[llength $nmdline] != [expr $n_atoms + 1]} {
-            vmdcon -info "NMWiz WARNING: Length of resnames array must be $n_atoms, not [expr [llength $nmdline] -1]."
+          if {[llength $nmdline] == 1} {
+            vmdcon -warn "NMWiz: [lindex $nmdline 0] does not contain any data."
+          } elseif {[llength $nmdline] != [expr $n_atoms + 1]} {
+            vmdcon -warn "NMWiz: [lindex $nmdline 0] could not be loaded, its length must be $n_atoms, not [expr [llength $nmdline] -1]."
           } else {
             set resnames [lrange $nmdline 1 end]
+          }
+        }
+        segnames -
+        segments {
+          if {[llength $nmdline] == 1} {
+            vmdcon -warn "NMWiz: [lindex $nmdline 0] does not contain any data."
+          } elseif {[llength $nmdline] != [expr $n_atoms + 1]} {
+            vmdcon -warn "NMWiz: [lindex $nmdline 0] could not be loaded, its length must be $n_atoms, not [expr [llength $nmdline] -1]."
+          } else {
+            set segnames [lrange $nmdline 1 end]
           }
         }
         chainids -
         chids -
         chains {
-          if {[llength $nmdline] != [expr $n_atoms + 1]} {
-            vmdcon -info "NMWiz WARNING: Length of chainids array must be $n_atoms, not [expr [llength $nmdline] -1]."
+          if {[llength $nmdline] == 1} {
+            vmdcon -warn "NMWiz: [lindex $nmdline 0] does not contain any data."
+          } elseif {[llength $nmdline] != [expr $n_atoms + 1]} {
+            vmdcon -warn "NMWiz: [lindex $nmdline 0] could not be loaded, its length must be $n_atoms, not [expr [llength $nmdline] -1]."
           } else {
             set chainids [lrange $nmdline 1 end]
           }
         }
         resids -
         resnums {
-          if {[llength $nmdline] != [expr $n_atoms + 1]} {
-            vmdcon -info "NMWiz WARNING: Length of resids array must be $n_atoms, not [expr [llength $nmdline] -1]."
+          if {[llength $nmdline] == 1} {
+            vmdcon -warn "NMWiz: [lindex $nmdline 0] does not contain any data."
+          } elseif {[llength $nmdline] != [expr $n_atoms + 1]} {
+            vmdcon -warn "NMWiz: [lindex $nmdline 0] could not be loaded, its length must be $n_atoms, not [expr [llength $nmdline] -1]."
           } else {
             set resids [lrange $nmdline 1 end]
           }
         }
         bfactors -
         betas {
-          if {[llength $nmdline] != [expr $n_atoms + 1]} {
-            vmdcon -info "NMWiz WARNING: Length of bfactors array must be $n_atoms, not [expr [llength $nmdline] -1]."
+          if {[llength $nmdline] == 1} {
+            vmdcon -warn "NMWiz: [lindex $nmdline 0] does not contain any data."
+          } elseif {[llength $nmdline] != [expr $n_atoms + 1]} {
+            vmdcon -warn "NMWiz: [lindex $nmdline 0] could not be loaded, its length must be $n_atoms, not [expr [llength $nmdline] -1]."
           } else {
             set bfactors [lrange $nmdline 1 end]
           }
@@ -1468,7 +1489,7 @@ orange3"
               }
               set dof [llength $coordinates]
               set n_dims 3
-              vmdcon -info "NMWiz INFO: File contains a 3D model."
+              vmdcon -info "NMWiz: File contains a 3D model."
             } else {
               set diff [expr $l - $n_atoms]
               if {$diff > 2} {
@@ -1478,11 +1499,11 @@ orange3"
               }
               set dof $n_atoms
               set n_dims 1
-              vmdcon -info "NMWiz INFO: File contains a 1D model."
+              vmdcon -info "NMWiz: File contains a 1D model."
             }
           }
           if {$modelength > 0 && $l != $modelength} {
-            vmdcon -info "NMWiz WARNING: Mode line $modecounter does not have the same length as the first mode line."
+            vmdcon -warn "NMWiz: Mode line $modecounter does not have the same length as the first mode line."
           } else {
             switch -exact [expr $l - $dof] {
               0 {
@@ -1511,13 +1532,16 @@ orange3"
                 }
               }
               default {
-                vmdcon -info "NMWiz WARNING: Mode data was not understood. Line starts with [lrange $nmdline 0 4]."
+                vmdcon -warn "NMWiz: Mode data was not understood. Line starts with [lrange $nmdline 0 4]."
               }
             }
           }
         }
+        nmwiz_load {
+
+        }
         default {
-          vmdcon -info "NMWiz WARNING: Unrecognized line starting with \"[lindex $nmdline 0]\""
+          vmdcon -warn "NMWiz: Unrecognized line starting with \"[lindex $nmdline 0]\""
         }
       }
 
@@ -1531,11 +1555,11 @@ orange3"
 
     if {$title == ""} {
       set title "Untitled ($::NMWiz::guicount)"
-      vmdcon -info "NMWiz INFO: Dataset is named as \"$title\"."
+      vmdcon -info "NMWiz: Dataset is named as \"$title\"."
     }
 
     set ns [::NMWiz::makeNMWizGUI]
-    ${ns}::initialize $coordinates $modes $n_dims $title $lengths $indices $atomnames $resnames $resids $chainids $bfactors
+    ${ns}::initialize $coordinates $modes $n_dims $title $lengths $indices $atomnames $resnames $resids $chainids $segnames $bfactors
     ${ns}::nmwizgui
     ::NMWiz::appendGUIcontrols $ns
     return ${ns}::handle
@@ -2007,7 +2031,7 @@ setmode, getlen, setlen, addmode"
         return
       }
 
-      proc initialize {xyz m d t l i an rn ri ci bf} {
+      proc initialize {xyz m d t l i an rn ri ci sn bf} {
         variable arridlist
         variable animidlist
         variable colorlist
@@ -2021,6 +2045,7 @@ setmode, getlen, setlen, addmode"
         variable atomnames $an
         variable resnames $rn
         variable chainids $ci
+        variable segnames $sn
         variable resids $ri
         variable bfactors $bf
         variable plotrids [list]
@@ -2037,7 +2062,7 @@ setmode, getlen, setlen, addmode"
 
         if {$atomnames == ""} {
           set atomnames [string repeat "CA " $n_atoms]
-          vmdcon -info "NMWiz INFO: All atom names are set as \"CA\"."
+          vmdcon -info "NMWiz: All atom names are set as \"CA\"."
         }
         #else {
         #  variable showproteinas
@@ -2050,15 +2075,19 @@ setmode, getlen, setlen, addmode"
         #}
         if {$resnames == ""} {
           set resnames [string repeat "GLY " $n_atoms]
-          vmdcon -info "NMWiz INFO: All residue names are named set as \"GLY\"."
+          vmdcon -info "NMWiz: All residue names are named set as \"GLY\"."
         }
         if {$chainids == ""} {
           set chainids [string repeat "A " $n_atoms]
-          vmdcon -info "NMWiz INFO: All chain identifiers are set as \"A\"."
+          vmdcon -info "NMWiz: All chain identifiers are set as \"A\"."
+        }
+        if {$segnames == ""} {
+          set segnames [string repeat "A " $n_atoms]
+          vmdcon -info "NMWiz: All segment names are set as \"A\"."
         }
         if {[llength $resids] == 0} {
           for {set i 1} {$i <= $n_atoms} {incr i} {lappend resids $i}
-          vmdcon -info "NMWiz INFO: Residues are numbered starting from 1."
+          vmdcon -info "NMWiz: Residues are numbered starting from 1."
         }
 
         foreach i [lrange $resids 0 end-1] j [lrange $resids 1 end] {
@@ -2069,11 +2098,11 @@ setmode, getlen, setlen, addmode"
         }
         if {[llength $plotrids] == 0} {
           set plotrids $ri
-          vmdcon -info "NMWiz INFO: Residue numbers will be used for plotting."
+          vmdcon -info "NMWiz: Residue numbers will be used for plotting."
         }
 
         if {[llength $bfactors] == 0} {
-          vmdcon -info "NMWiz INFO: Experimental bfactors were not found in the data file."
+          vmdcon -info "NMWiz: Experimental bfactors were not found in the data file."
           for {set i 1} {$i <= $n_atoms} {incr i} {lappend bfactors 0.0}
           set bfactormin 0.0
           set bfactormax 0.0
@@ -2463,7 +2492,7 @@ setmode, getlen, setlen, addmode"
           variable coordinates
           variable tempfn
           set outfile [open [file join $::NMWiz::tmpdir $tempfn] w]
-          foreach line [[namespace current]::getPDBLines $coordinates] {
+          foreach line [[namespace current]::`getPDBLines $coordinates] {
             puts $outfile $line
           }
           close $outfile
@@ -3131,21 +3160,22 @@ setmode, getlen, setlen, addmode"
         variable atomnames
         variable resnames
         variable chainids
+        variable segnames
         variable resids
         variable betalist
         set pdblines ""
         set i 0
-        foreach an $atomnames rn $resnames ci $chainids ri $resids {x y z} $coords b $betalist {
+        foreach an $atomnames rn $resnames ci $chainids sn $segnames ri $resids {x y z} $coords b $betalist {
           incr i
           if {[string length $an] < 4} {
             #lappend pdblines [format "ATOM  %5d  %-3s %-4s%1s%4d    %8.3f%8.3f%8.3f%6.2f%6.2f" \
             #                     $i  $an $rn  $ci $ri $x $y $z 1.0 $b]
-            lappend pdblines [format "ATOM  %5d  %-3s %-4s%1s%4d    %8.3f%8.3f%8.3f" \
-                                 $i  $an [string range $rn 0 4] $ci $ri $x $y $z]
+            lappend pdblines [format "ATOM  %5d  %-3s %-4s%1s%4d    %8.3f%8.3f%8.3f%6.2f%6.2f      %4s" \
+                                 $i  $an [string range $rn 0 4] $ci $ri $x $y $z $b 1 $sn]
           } else {
             set an [string range $an 0 3]
-            lappend pdblines [format "ATOM  %5d %4s %-4s%1s%4d    %8.3f%8.3f%8.3f" \
-                                 $i  $an [string range $rn 0 4] $ci $ri $x $y $z]
+            lappend pdblines [format "ATOM  %5d %4s %-4s%1s%4d    %8.3f%8.3f%8.3f%6.2f%6.2f      %4s" \
+                                 $i  $an [string range $rn 0 4] $ci $ri $x $y $z $b 1 $sn]
           }
         }
         return $pdblines
@@ -3813,7 +3843,7 @@ setmode, getlen, setlen, addmode"
         $wpgo.procolor_frame.list.menu delete 0
         $wpgo.procolor_frame.list.menu add radiobutton -label "Mobility" -variable ${ns}::proteincolor -command "${ns}::updateProtRep \$${ns}::molid"
         $wpgo.procolor_frame.list.menu add radiobutton -label "Bfactors" -variable ${ns}::proteincolor -command "${ns}::updateProtRep \$${ns}::molid"
-        foreach acolor "Index Chain ResName ResType" {
+        foreach acolor "Index Chain ResName ResType SegName" {
           $wpgo.procolor_frame.list.menu add radiobutton -label $acolor \
               -variable ${ns}::proteincolor \
               -command "${ns}::updateProtRep \$${ns}::molid"
