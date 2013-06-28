@@ -1,5 +1,7 @@
 # NMWiz: Normal Mode Visualization, Animation, and Plotting
 #
+# $Id: nmwiz.tcl,v 1.15 2013/05/22 14:48:45 johns Exp $
+#
 # University of Illinois Open Source License
 # Copyright 2010-2011 Ahmet Bakan
 # All rights reserved.
