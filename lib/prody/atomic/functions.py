@@ -89,7 +89,7 @@ def saveAtoms(atoms, filename=None, **kwargs):
             attr_dict['bonds'] = bonds
             attr_dict['bmap'] = bmap
             attr_dict['numbonds'] = ag._data['numbonds']
-            frags = ag._data['fragindex']
+            frags = ag._data.get('fragindex')
             if frags is not None:
                 attr_dict['fragindex'] = frags
         else:
