@@ -6,7 +6,7 @@
 # Copyright 2010-2011 Ahmet Bakan
 # All rights reserved.
 #
-# Designed and Developed by: Ahmet Bakan http://www.pitt.edu/~ahb12/
+# Designed and Developed by: Ahmet Bakan http://ahmetbakan.com
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy of
 # this software and associated documentation files (the Software), to deal with
