@@ -1,6 +1,21 @@
 ProDy 1.4 Series
 ===============================================================================
 
+1.4.4 (in development)
+-------------------------------------------------------------------------------
+
+**Improvements**:
+
+  * :func:`.writeNMD` writes segment names in NMD files. NMWiz is also
+    improved to handle these segment names. Improvements should be available
+    in VMD v1.9.2.
+
+**Bugfixes**:
+
+  * A bug in :func:`.saveAtoms` that would cause :exc:`KeyError` when
+    bonds are set but fragments are not determined is fixed.
+
+
 1.4.3 (June 14, 2013)
 -------------------------------------------------------------------------------
 

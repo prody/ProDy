@@ -203,7 +203,9 @@ NMD_LABEL_MAP = {
     'resnums': 'resnum',
     'resids': 'resnum',
     'chainids': 'chain',
-    'bfactors': 'beta'
+    'bfactors': 'beta',
+    'segnames': 'segment',
+    'segments': 'segment',
 }
 
 
