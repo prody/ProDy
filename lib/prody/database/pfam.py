@@ -22,7 +22,7 @@ __author__ = 'Anindita Dutta, Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Anindita Dutta, Ahmet Bakan'
 
 import re
-from os.path import join, isfile, getsize, splitext, split
+from os.path import join, isfile
 
 from prody import LOGGER, PY3K
 from prody.utilities import makePath, openURL, gunzip, openFile, dictElement
@@ -35,13 +35,15 @@ FASTA = 'fasta'
 SELEX = 'selex'
 STOCKHOLM = 'stockholm'
 
-DOWNLOAD_FORMATS = set(['seed', 'full', 'ncbi', 'metagenomics', 'rp15', 'rp35', 'rp55', 'rp75'])
+DOWNLOAD_FORMATS = set(['seed', 'full', 'ncbi', 'metagenomics',
+                        'rp15', 'rp35', 'rp55', 'rp75'])
 FORMAT_OPTIONS = ({'format': set([FASTA, SELEX, STOCKHOLM]),
                   'order': set(['tree', 'alphabetical']),
                   'inserts': set(['lower', 'upper']),
                   'gaps': set(['mixed', 'dots', 'dashes', 'none'])})
 
 MINSEQLEN = 16
+
 
 def searchPfam(query, search_b=False, skip_a=False, **kwargs):
     """Return Pfam search results in a dictionary.  Matching Pfam accession
@@ -89,7 +91,6 @@ def searchPfam(query, search_b=False, skip_a=False, **kwargs):
     else:
         seq = ''.join(query.split())
 
-
     import xml.etree.cElementTree as ET
     LOGGER.timeit('_pfam')
     timeout = int(kwargs.get('timeout', 60))
@@ -119,16 +120,15 @@ def searchPfam(query, search_b=False, skip_a=False, **kwargs):
         urlextension = urlextension + '&searchBs=' + str(search_b)
         urlextension = urlextension + '&skipAs=' + str(skip_a)
 
-
         url = ('http://pfam.sanger.ac.uk/search/sequence?seq=' + str(seq) +
                urlextension + '&output=xml')
         LOGGER.debug('Submitted Pfam search for sequence "{0}...".'
                      .format(seq[:MINSEQLEN]))
 
-        xml = openURL(url, timeout=int(timeout)).read()
+        xml = openURL(url, timeout=timeout).read()
 
         try:
-            root =  ET.XML(xml)
+            root = ET.XML(xml)
         except Exception as err:
             raise ValueError('failed to parse results XML, check URL: ' + url)
 
@@ -176,7 +176,7 @@ def searchPfam(query, search_b=False, skip_a=False, **kwargs):
     xml = None
     while LOGGER.timing('_pfam') < timeout:
         try:
-            xml = openURL(url).read()
+            xml = openURL(url, timeout=timeout).read()
         except Exception:
             pass
         #else:
@@ -185,7 +185,7 @@ def searchPfam(query, search_b=False, skip_a=False, **kwargs):
 
     if not xml:
         raise IOError('Pfam search timed out or failed to parse results '
-                         'XML, check URL: ' + url)
+                      'XML, check URL: ' + url)
     else:
         LOGGER.report('Pfam search completed in %.2fs.', '_pfam')
 
@@ -194,7 +194,7 @@ def searchPfam(query, search_b=False, skip_a=False, **kwargs):
         return None
 
     try:
-        root =  ET.XML(xml)
+        root = ET.XML(xml)
     except Exception as err:
         raise ValueError('failed to parse results XML, check URL: ' + url)
 
@@ -209,7 +209,7 @@ def searchPfam(query, search_b=False, skip_a=False, **kwargs):
             xml_matches = results['matches']
         except KeyError:
             raise ValueError('failed to parse results XML, check URL: ' + url)
-    import re
+
     matches = dict()
     for child in xml_matches:
 
@@ -277,13 +277,13 @@ def fetchPfamMSA(acc, alignment='full', compressed=False, **kwargs):
     handle = openURL(url)
     orig_acc = acc
     acc = handle.readline().strip()
-    if PY3K: acc = acc.decode()
+    if PY3K:
+        acc = acc.decode()
     url_flag = False
 
     if not re.search('(?<=PF)[0-9]{5}$', acc):
         raise ValueError('{0} is not a valid Pfam ID or Accession Code'
                          .format(repr(orig_acc)))
-
 
     if alignment not in DOWNLOAD_FORMATS:
         raise ValueError('alignment must be one of full, seed, ncbi or'
@@ -331,8 +331,7 @@ def fetchPfamMSA(acc, alignment='full', compressed=False, **kwargs):
                    '&alnType=' + alignment + '&order=' + order[0] +
                    '&case=' + inserts[0] + '&gaps=' + gaps + '&download=1')
 
-
-    response =  openURL(url, timeout=int(kwargs.get('timeout', 60)))
+    response = openURL(url, timeout=int(kwargs.get('timeout', 60)))
     outname = kwargs.get('outname', None)
     if not outname:
         outname = orig_acc
