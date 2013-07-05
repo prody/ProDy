@@ -6,9 +6,9 @@ ProDy 1.4 Series
 
 **Improvements**:
 
-  * :func:`.writeNMD` writes segment names in NMD files. NMWiz is also
-    improved to handle these segment names. Improvements should be available
-    in VMD v1.9.2.
+  * :func:`.writeNMD` and :func:`.parseNMD` write and read segment names.
+    NMWiz is also improved to handle segment names. Improvements
+    will be available in VMD v1.9.2.
 
 **Bugfixes**:
 
