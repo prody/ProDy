@@ -1,17 +1,17 @@
 # ProDy: A Python Package for Protein Dynamics Analysis
-# 
+#
 # Copyright (C) 2010-2012 Ahmet Bakan
-# 
+#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-#  
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
@@ -35,42 +35,42 @@ from shutil import copy
 PLATFORM = platform.system()
 USERHOME = os.getenv('USERPROFILE') or os.getenv('HOME')
 
-__all__ = ['gunzip', 'backupFile', 'openFile', 
+__all__ = ['gunzip', 'backupFile', 'openFile',
            'openDB', 'openSQLite', 'openURL', 'copyFile',
-           'isExecutable', 'isReadable', 'isWritable', 
-           'makePath', 'relpath', 'sympath', 'which', 
+           'isExecutable', 'isReadable', 'isWritable',
+           'makePath', 'relpath', 'sympath', 'which',
            'pickle', 'unpickle', 'glob', 'addext',
            'PLATFORM', 'USERHOME']
 
-major, minor = sys.version_info[:2] 
+major, minor = sys.version_info[:2]
 if major > 2 and minor < 3:
     import gzip
     from gzip import GzipFile
     import io
-    
+
     class TextIOWrapper(io.TextIOWrapper):
-        
+
         def _getlines(self):
 
             try:
                 lines = self._lines
             except AttributeError:
                 self._lines = None
-                        
+
             if self._lines is None:
                 self._lines = self.read().split('\n')
             return self._lines
-        
+
         def readline(self, *args):
-            
+
             lines = self._getlines()
             if lines:
                 return lines.pop(0)
             else:
                 return ''
-        
+
         def readlines(self, size=None):
-            
+
             lines = self._getlines()
             if size is None:
                 self._lines = []
@@ -144,18 +144,18 @@ OPEN = {
 
 
 def backupFile(filename, backup=None, backup_ext='.BAK', **kwargs):
-    """Rename *filename* with *backup_ext* appended to its name for backup 
+    """Rename *filename* with *backup_ext* appended to its name for backup
     purposes, if *backup* is **True** or if automatic backups is turned on
-    using :func:`.confProDy`.  Default extension :file:`.BAK` is used when 
-    one is not set using :func:`.confProDy`.  If *filename* does not exist, 
-    no action will be taken and *filename* will be returned.  If file is 
+    using :func:`.confProDy`.  Default extension :file:`.BAK` is used when
+    one is not set using :func:`.confProDy`.  If *filename* does not exist,
+    no action will be taken and *filename* will be returned.  If file is
     successfully renamed, new filename will be returned."""
 
     try:
         exists = isfile(filename)
     except Exception as err:
         raise TypeError('filename must be a string ({0})'.format(str(err)))
-        
+
     from prody import SETTINGS
     if exists and (backup or SETTINGS.get('backup', False)):
         if backup_ext == '.BAK':
@@ -179,11 +179,11 @@ def openFile(filename, *args, **kwargs):
     """Open *filename* for reading, writing, or appending.  First argument in
     *args* is treated as the mode.  Opening :file:`.gz` and :file:`.zip` files
     for reading and writing is handled automatically.
-    
-    :arg backup: backup existing file using :func:`.backupFile` when opening 
+
+    :arg backup: backup existing file using :func:`.backupFile` when opening
         in append or write modes, default is obtained from package settings
     :type backup: bool
-    
+
     :arg backup_ext: extension for backup file, default is :file:`.BAK`
     :type backup_ext: str"""
 
@@ -192,24 +192,24 @@ def openFile(filename, *args, **kwargs):
         exists = isfile(filename)
     except Exception as err:
         raise TypeError('filename must be a string ({0})'.format(str(err)))
-    
+
     folder = kwargs.pop('folder', None)
     if folder:
         filename = join(folder, filename)
-    
+
     backup = kwargs.pop('backup', None)
     if backup is not None and backup and args and args[0][0] in ('a', 'w'):
         backupFile(filename, backup=backup,
                    backup_ext=kwargs.pop('backup_ext', None))
-            
+
     ext = splitext(filename)[1]
     return OPEN.get(ext.lower(), open)(filename, *args, **kwargs)
-    
-    
+
+
 def gunzip(filename, outname=None):
-    """Return output name that contains decompressed contents of *filename*. 
-    When no *outname* is given, *filename* is used as the output name as it 
-    is or after :file:`.gz` extension is removed.  *filename* may also be a 
+    """Return output name that contains decompressed contents of *filename*.
+    When no *outname* is given, *filename* is used as the output name as it
+    is or after :file:`.gz` extension is removed.  *filename* may also be a
     string buffer, in which case decompressed string buffer or *outname* that
     contains buffer will be returned."""
 
@@ -220,7 +220,7 @@ def gunzip(filename, outname=None):
             afile = False
     else:
         afile = False
-        
+
     if afile:
         if outname is None:
             if filename.endswith('.gz'):
@@ -231,7 +231,7 @@ def gunzip(filename, outname=None):
                 outname = filename[:-5]
             else:
                 outname = filename
-                
+
         inp = gzip_open(filename, 'rb')
         data = inp.read()
         inp.close()
@@ -254,10 +254,10 @@ def gunzip(filename, outname=None):
             else:
                 buff = buff.read()
                 if isinstance(buff, bytes):
-                    with open(outname, 'wb') as out: 
+                    with open(outname, 'wb') as out:
                         out.write(buff)
                 else:
-                    with open(outname, 'wb') as out: 
+                    with open(outname, 'wb') as out:
                         out.write(buff)
                 return outname
         else:
@@ -272,7 +272,7 @@ def gunzip(filename, outname=None):
             if outname is None:
                 return result
             else:
-                with open(outname, 'w') as out: 
+                with open(outname, 'w') as out:
                     out.write(result)
                 return outname
         raise ValueError('filename is not a valid path or a compressed'
@@ -281,28 +281,28 @@ def gunzip(filename, outname=None):
 
 def isExecutable(path):
     """Return true if *path* is an executable."""
-    
+
     return (isinstance(path, str) and exists(path) and
         os.access(path, os.X_OK))
 
 
 def isReadable(path):
     """Return true if *path* is readable by the user."""
-    
+
     return (isinstance(path, str) and exists(path) and
         os.access(path, os.R_OK))
 
 
 def isWritable(path):
     """Return true if *path* is writable by the user."""
-    
+
     return (isinstance(path, str) and exists(path) and
         os.access(path, os.W_OK))
 
 
 def relpath(path):
     """Return *path* on Windows, and relative path elsewhere."""
-    
+
     if PLATFORM == 'Windows':
         return path
     else:
@@ -313,7 +313,7 @@ def sympath(path, beg=2, end=1, ellipsis='...'):
     """Return a symbolic path for a long *path*, by replacing folder names
     in the middle with *ellipsis*.  *beg* and *end* specified how many folder
     (or file) names to include from the beginning and end of the path."""
-    
+
     abs_items = abspath(path).split(pathsep)
     rel_items = relpath(path).split(pathsep)
     if len(abs_items) <= len(rel_items):
@@ -328,7 +328,7 @@ def sympath(path, beg=2, end=1, ellipsis='...'):
 
 def makePath(path):
     """Make all directories that does not exist in a given *path*."""
-    
+
     if not isdir(path):
         dirs = path.split(pathsep)
         for i, dirname in enumerate(dirs):
@@ -336,7 +336,7 @@ def makePath(path):
                 continue
             dirname = pathsep.join(dirs[:i+1])
             try:
-                if not isdir(dirname): 
+                if not isdir(dirname):
                     os.mkdir(dirname)
             except OSError:
                 raise OSError('{0} could not be created, please '
@@ -347,7 +347,7 @@ def makePath(path):
 def which(program):
     """This function is based on the example in:
     http://stackoverflow.com/questions/377017/"""
-    
+
     fpath, fname = os.path.split(program)
     if fpath and isExecutable(program):
         return program
@@ -362,7 +362,7 @@ def which(program):
 def pickle(obj, filename, protocol=2, **kwargs):
     """Pickle *obj* using :func:`pickle.dump` in *filename*.  *protocol* is set
     to 2 for compatibility between Python 2 and 3."""
-    
+
     out = openFile(filename, 'wb', **kwargs)
     pypickle.dump(obj, out, protocol=2)
     out.close()
@@ -371,7 +371,7 @@ def pickle(obj, filename, protocol=2, **kwargs):
 
 def unpickle(filename, **kwargs):
     """Unpickle object in *filename* using :func:`pickle.load`."""
-    
+
     inf = openFile(filename, 'rb', **kwargs)
     obj = pypickle.load(inf)
     inf.close()
@@ -390,54 +390,54 @@ def openDB(filename, *args):
 
 def openSQLite(filename, *args):
     """Return a connection to SQLite database *filename*.  If ``'n'`` argument
-    is passed, remove any existing databases with the same name and return 
+    is passed, remove any existing databases with the same name and return
     connection to a new empty database."""
-    
+
     if 'n' in args and isfile(filename):
         os.remove(filename)
     import sqlite3
     return sqlite3.connect(filename)
-    
-    
+
+
 def openURL(url, timeout=5, **kwargs):
-    """Open *url* for reading. Raise an :exc:`IOError` if *url* cannot be 
+    """Open *url* for reading. Raise an :exc:`IOError` if *url* cannot be
     reached.  Small *timeout* values are suitable if *url* is an ip address.
     *kwargs* will be used to make :class:`urllib.request.Request` instance
     for opening the *url*."""
-    
+
     try:
         from urllib2 import urlopen, URLError, Request
     except ImportError:
         from urllib.request import urlopen, Request
         from urllib.error import URLError
-    
+
     if kwargs:
         request = Request(url, **kwargs)
-    else: 
+    else:
         request = str(url)
-        
+
     try:
         return urlopen(request, timeout=int(timeout))
-    except URLError: 
+    except URLError:
         raise IOError('{0} could not be opened for reading, invalid URL or '
                       'no internet connection'.format(repr(request)))
 
 
 def glob(*pathnames):
-    """Return concatenation of ordered lists of paths matching patterns in 
+    """Return concatenation of ordered lists of paths matching patterns in
     *pathnames*."""
-    
+
     paths = []
     for pathname in pathnames:
         matches = pyglob(pathname)
         matches.sort()
         paths.extend(matches)
     return paths
-        
-        
+
+
 def copyFile(src, dst):
     """Return *dst*, a copy of *src*."""
-    
+
     copy(src, dst)
     return dst
 
