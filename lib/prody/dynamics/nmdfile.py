@@ -399,7 +399,6 @@ def writeNMD(filename, modes, atoms):
     except:
         pass
     try:
-        from code import interact; interact(local=locals())
         data = atoms.getSegnames()
         if data is not None:
             out.write('segnames {0}\n'.format(' '.join(data)))
