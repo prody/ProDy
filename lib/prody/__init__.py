@@ -185,9 +185,9 @@ def confProDy(*args, **kwargs):
                                           last=', or ')))
 
             SETTINGS[option] = value
-            SETTINGS.save()
             LOGGER.info('ProDy is configured: {0:s}={1:s}'
                         .format(option, repr(value)))
+            SETTINGS.save()
             if setter is not None:
                 setter(value)
 
