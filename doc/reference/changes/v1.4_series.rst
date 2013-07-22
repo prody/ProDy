@@ -1,7 +1,7 @@
 ProDy 1.4 Series
 ===============================================================================
 
-1.4.4 (in development)
+1.4.4 (July 22, 2013)
 -------------------------------------------------------------------------------
 
 **Improvements**:
@@ -14,6 +14,9 @@ ProDy 1.4 Series
 
   * A bug in :func:`.saveAtoms` that would cause :exc:`KeyError` when
     bonds are set but fragments are not determined is fixed.
+
+  * Import ProDy would fail when :envvar:`HOME` is not set. Changed
+    :class:`.PackageSettings` to handle this case graciously.
 
 
 1.4.3 (June 14, 2013)
