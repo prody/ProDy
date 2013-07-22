@@ -21,10 +21,7 @@ __version__ = '1.4.3'
 
 release = [int(x) for x in __version__.split('.')]
 
-import os
 import sys
-import os.path
-import platform
 import warnings
 
 if sys.version_info[:2] < (2, 6):
@@ -38,7 +35,7 @@ else:
     if tuple(map(int, np.__version__.split('.')[:2])) < (1, 4):
         raise ImportError('Numpy v1.4 or later is required for ProDy')
 
-from .utilities import USERHOME, PackageLogger, PackageSettings
+from .utilities import PackageLogger, PackageSettings
 from .utilities import getPackagePath, joinRepr, tabulate
 
 DEPRECATION_WARNINGS = False
@@ -79,10 +76,6 @@ def turnonDepracationWarnings(action='always'):
 
 _PY3K = PY3K = sys.version_info[0] > 2
 PY2K = not PY3K
-
-PACKAGECONF = os.path.join(USERHOME, '.prodyrc')
-if not os.path.isfile(PACKAGECONF) and os.path.isfile(PACKAGECONF[:-2]):
-    os.rename(PACKAGECONF[:-2], PACKAGECONF)
 
 LOGGER = PackageLogger('.prody')
 
@@ -219,7 +212,8 @@ for _key in _keys:
         SETTINGS[_key] = default
 
 confProDy.__doc__ += '\n\n' + tabulate(['Option'] + _keys,
-    ['Default (acceptable values)'] + _vals) + """
+                                       ['Default (acceptable values)'] + _vals
+                                       ) + """
 
 Usage example::
 
@@ -284,7 +278,7 @@ if SETTINGS['check_updates']:
         SETTINGS['last_check'] = 0
     import time
     if ((time.time() - SETTINGS.get('last_check')) / 3600 / 24 >
-        SETTINGS['check_updates']):
+            SETTINGS['check_updates']):
         LOGGER.info('Checking PyPI for ProDy updates:')
         checkUpdates()
 
@@ -293,7 +287,7 @@ def test(*mods, **kwargs):
     """Run ProDy tests, ``prody.test()``. See :mod:`prody.tests`
     documentation for more details."""
 
-    if sys.version_info[:2] > (2,6):
+    if sys.version_info[:2] > (2, 6):
         try:
             import prody.tests
         except ImportError as err:
