@@ -4,7 +4,7 @@ install:
 python:
   - "2.7" #  - "3.2"
 before_script:
-  - python setup.py build_ext --inplace --force
-  - export PYTHONPATH=\"`pwd`/lib:$PYTHONPATH\"
+  - python setup.py build
+  - python setup.py install
 script:
   - ./scripts/prody test
