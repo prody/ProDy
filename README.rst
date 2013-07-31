@@ -1,3 +1,6 @@
+.. image:: https://secure.travis-ci.org/abakan/ProDy.png?branch=master
+   :target: http://travis-ci.org/#!/abakan/ProDy
+
 SYNOPSIS
 --------
 

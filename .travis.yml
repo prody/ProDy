@@ -5,5 +5,9 @@ before_install:
 python:
   - "2.7"
   - "3.2"
+before_script:
+  - .devel_build.sh
+  - .devel_build3.sh
+  - export PYTHONPATH="`pwd`/lib:$PYTHONPATH"
 script:
   - ./scripts/prody test
