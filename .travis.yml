@@ -1,13 +1,11 @@
 language: python
 before_install:
   - sudo apt-get update -qq
-  - sudo apt-get install -qq python-nose python3-nose python-numpy python3-numpy python-scipy python3-scipy python-matplotlib python3-matplotlib
+  - sudo apt-get install -qq python-nose python-numpy python-scipy python-matplotlib # python3-nose python3-numpy python3-scipy python3-matplotlib
 python:
-  - "2.7"
-  - "3.2"
+  - "2.7" #  - "3.2"
 before_script:
-  - .devel_build.sh
-  - .devel_build3.sh
+  - .devel_build.sh #  - .devel_build3.sh
   - export PYTHONPATH="`pwd`/lib:$PYTHONPATH"
 script:
   - ./scripts/prody test
