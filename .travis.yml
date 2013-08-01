@@ -7,7 +7,7 @@ install:
   - if [[ $TRAVIS_PYTHON_VERSION == "2.7" ]]; then sudo apt-get install python-numpy python-matplotlib; fi
   - if [[ $TRAVIS_PYTHON_VERSION == "3.2" ]]; then sudo apt-get install python3-dev python3-numpy; fi
 before_script:
-  - python setup.py build
-  - python setup.py install
+  - if [[ $TRAVIS_PYTHON_VERSION == "2.7" ]]; then python setup.py build install; fi
+  - if [[ $TRAVIS_PYTHON_VERSION == "3.2" ]]; then python3 setup.py build install; fi
 script:
   - prody test -l full
