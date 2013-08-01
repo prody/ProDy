@@ -49,7 +49,7 @@ except ImportError:
     MATPLOTLIB = False
 else:
     MATPLOTLIB = True
-    matplotlib.user('Agg')
+    matplotlib.use('Agg')
 
 TESTDIR = abspath(split(inspect.getfile(inspect.currentframe()))[0])
 TEMPDIR = tempfile.gettempdir()
