@@ -79,6 +79,10 @@ if major > 2 and minor < 3:
                 self._lines = lines[size:]
                 return lines[:size]
 
+        def __del__(self):
+
+            self.close()
+
 
     def gzip_open(filename, mode="rb", compresslevel=9,
              encoding=None, errors=None, newline=None):
