@@ -1,6 +1,6 @@
 language: python
 install:
-  - pip install --use-mirrors numpy
+  - pip install --use-mirrors numpy matplotlib
 python:
   - "2.7"
 #  - "3.2"
