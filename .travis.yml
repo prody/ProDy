@@ -2,9 +2,10 @@ language: python
 install:
   - pip install --use-mirrors numpy
 python:
-  - "2.7" #  - "3.2"
+  - "2.7"
+#  - "3.2"
 before_script:
   - python setup.py build
   - python setup.py install
 script:
-  - prody test
+  - prody test -l full
