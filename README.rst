@@ -34,7 +34,7 @@ DOCUMENTATION
 
 * NMWiz GUI: http://www.csb.pitt.edu/NMWiz
 
-* Changes: http://www.csb.pitt.edu/ProDy/reference/changes.html
+* Changes: http://www.csb.pitt.edu/ProDy/reference/changes
 
 
 SOURCE CODE
