@@ -1,6 +1,22 @@
 ProDy 1.4 Series
 ===============================================================================
 
+1.4.5 (in development)
+-------------------------------------------------------------------------------
+
+**New Features**:
+
+  * :func:`.parsePDBHeader` function can parse space group information
+    from header section specified as ``REMARK 290``, e.g.
+    ``parsePDBHeader('1mkp', 'space_group')`` or
+    ``parsePDBHeader('1mkp')['space_group']``
+
+
+**Bugfixes**:
+
+  * Fixed a bug in :func:`.parseSTRIDE` function that prevented reading files.
+
+
 1.4.4 (July 22, 2013)
 -------------------------------------------------------------------------------
 
