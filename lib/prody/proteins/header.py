@@ -398,6 +398,16 @@ def _getResolution(lines):
                 return None
 
 
+def _getSpaceGroup(lines):
+
+    for i, line in lines['REMARK 290']:
+        if 'SYMMETRY OPERATORS FOR SPACE GROUP:' in line:
+            try:
+                return line.split('GROUP:')[1].strip()
+            except:
+                return None
+
+
 def _getHelix(lines):
 
     alphas = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
@@ -847,6 +857,7 @@ _PDB_HEADER_MAP = {
                    ''.join([line[1][10:].rstrip() for line in lines['MDLTYP']])
                    ) if lines['MDLTYP'] else None,
     'n_models': _getNumModels,
+    'space_group': _getSpaceGroup,
 }
 
 mapHelix = {
