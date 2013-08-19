@@ -110,7 +110,7 @@ def parseSTRIDE(stride, ag):
     PHI = np.zeros(n_atoms, float)
     PSI = np.zeros(n_atoms, float)
 
-    ag.setSecstrs(np.zeros(n_atoms), dtype=ATOMIC_FIELDS['secondary'].dtype)
+    ag.setSecstrs(np.zeros(n_atoms, dtype=ATOMIC_FIELDS['secondary'].dtype))
     for line in stride:
         if not line.startswith('ASG '):
             continue
@@ -132,7 +132,7 @@ def parseSTRIDE(stride, ag):
 
 def performSTRIDE(pdb):
     """Perform STRIDE calculations and parse results.  STRIDE data is
-    returned in an :class:`~.AtomGroup` instance.  See also
+    returned in an :class:`.AtomGroup` instance.  See also
     :func:`execSTRIDE` and :func:`parseSTRIDE`."""
 
     pdb = fetchPDB(pdb, compressed=False)
