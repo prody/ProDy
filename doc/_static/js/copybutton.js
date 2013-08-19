@@ -26,10 +26,9 @@ $(document).ready(function() {
         $("#showcodebuttons").hide();
     } else {
         var prepcode = function(wc) {
-            var codesnippets = ''
-            codesnippets
+            var codesnippets = "";
             //codesnippets.append("#!/usr/bin/env python\n")
-            //codesnippets.append("# -*- coding: utf-8 -*-\n")
+            codesnippets += "# -*- coding: utf-8 -*-\n";
             codesnippets += "# This code was copied from ProDy documentation.\n";
             codesnippets += "# Title: " + document.title.replace('\xe2', '-') + "\n";
             codesnippets += "# URL: " + document.URL + "\n\n";
