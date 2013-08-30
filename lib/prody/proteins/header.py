@@ -382,7 +382,10 @@ def _getBiomoltrans(lines):
             biomt.append(line[23:])
         elif line[11:41] == 'APPLY THE FOLLOWING TO CHAINS:':
             applyToChains = line[41:].replace(' ',
-                                              '').strip().split(',')
+                                              '').strip().strip(',').split(',')
+        elif line[30:41] == 'AND CHAINS:':
+            applyToChains.extend(line[41:].replace(' ', '')
+                                 .strip().strip(',').split(','))
         elif line[11:23] == 'BIOMOLECULE:':
             currentBiomolecule = line.split()[-1]
     return dict(biomolecule)

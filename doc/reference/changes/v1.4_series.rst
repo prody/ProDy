@@ -18,6 +18,8 @@ ProDy 1.4 Series
 
   * Fixed a bug in :func:`.parseSTRIDE` function that prevented reading files.
 
+  * Improved parsing of biomolecular transformations.
+
 
 1.4.4 (July 22, 2013)
 -------------------------------------------------------------------------------
