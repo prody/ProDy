@@ -11,6 +11,8 @@ ProDy 1.4 Series
     ``parsePDBHeader('1mkp', 'space_group')`` or
     ``parsePDBHeader('1mkp')['space_group']``
 
+  * :term:`heavy` selection flag is defined as an alias for :term:`noh`.
+
 
 **Bugfixes**:
 
