@@ -649,7 +649,10 @@ def matchChains(atoms1, atoms2, **kwargs):
                         indices1.append(ares._indices[aid])
                         indices2.append(bres._indices[bid])
             elif subset == 'noh':
-                for han, aid in zip(ares.getNames(), ares._indices):
+                for han, aid, noh in zip(ares.getNames(), ares._indices,
+                                         ares.getFlags('noh')):
+                    if not noh:
+                        continue
                     try:
                         bid = bres.getNames().tolist().index(han)
                     except ValueError:
