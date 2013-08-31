@@ -368,7 +368,7 @@ def countUnpairedBreaks(chone, chtwo, resnum=True):
     return len(brone.union(brtwo)) - len(brone.intersection(brtwo))
 
 
-_SUBSETS = set(['ca', 'calpha', 'bb', 'backbone', 'all'])
+_SUBSETS = set(['ca', 'calpha', 'bb', 'backbone', 'heavy', 'noh', 'all'])
 
 
 def matchAlign(mobile, target, **kwargs):
@@ -480,7 +480,7 @@ def matchChains(atoms1, atoms2, **kwargs):
     :type atoms2: :class:`.Chain`, :class:`.AtomGroup`, :class:`.Selection`
 
     :keyword subset: ``"calpha"`` (or ``"ca"``), ``"backbone"`` (or ``"bb"``),
-        or ``"all"``, default is ``"calpha"``
+        ``"heavy"`` (or ``"noh"``), or ``"all"``, default is ``"calpha"``
     :type subset: string
 
     :keyword seqid: percent sequence identity, default is 90
@@ -611,6 +611,8 @@ def matchChains(atoms1, atoms2, **kwargs):
         subset = 'ca'
     elif subset == 'backbone':
         subset = 'bb'
+    elif subset == 'heavy':
+        subset = 'noh'
     for mi, result in enumerate(matches):
         match1, match2, _seqid, _cover, simpch1, simpch2 = result
 
@@ -641,10 +643,20 @@ def matchChains(atoms1, atoms2, **kwargs):
                         continue
                     try:
                         bid = bres.getNames().tolist().index(bban)
-                        indices1.append(ares._indices[aid])
-                        indices2.append(bres._indices[bid])
                     except ValueError:
                         continue
+                    else:
+                        indices1.append(ares._indices[aid])
+                        indices2.append(bres._indices[bid])
+            elif subset == 'noh':
+                for han, aid in zip(ares.getNames(), ares._indices):
+                    try:
+                        bid = bres.getNames().tolist().index(han)
+                    except ValueError:
+                        continue
+                    else:
+                        indices1.append(aid)
+                        indices2.append(bres._indices[bid])
             elif subset is None or subset is 'all':
                 aans = ares.getNames()
                 bans = bres.getNames().tolist()
