@@ -13,6 +13,9 @@ ProDy 1.4 Series
 
   * :term:`heavy` selection flag is defined as an alias for :term:`noh`.
 
+  * :func:`.matchChains` function can match non-hydrogen atoms using
+    ``subset='heavy'`` keyword argument.
+
 
 **Bugfixes**:
 
