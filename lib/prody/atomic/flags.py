@@ -613,6 +613,7 @@ expressions to atom names:
       hydrogen atoms, same as ``'name "[1-9]?H.*" and not ion'``
 
    noh
+   heavy
       non hydrogen atoms, same as ``'not hydrogen``
 
 
@@ -916,7 +917,7 @@ def setNoh(ag, label):
     ag._setFlags(label, flags)
     return flags
 
-addPlanter(setNoh, 'noh')
+addPlanter(setNoh, 'noh', 'heavy')
 
 
 # secondary
