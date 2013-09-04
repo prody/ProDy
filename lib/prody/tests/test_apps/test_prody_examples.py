@@ -23,7 +23,7 @@ import os
 import glob
 import shlex
 import os.path
-from unittest import TestCase, skipIf, skipUnless
+from prody.tests import TestCase, skipIf, skipUnless
 from subprocess import Popen, PIPE
 
 from numpy.testing import *
@@ -91,7 +91,7 @@ for cmd in prody_commands.choices:
                 pipe.stdout.close()
                 stderr = pipe.stderr.read()
                 pipe.stderr.close()
-                self.assertTrue(stderr == '', msg=stderr)
+                self.assertTrue(not stderr, msg=stderr)
 
         func.__name__ = 'testCommandExample{0:d}'.format(count)
         func.__doc__ = 'Test example: $ {0:s}'.format(' $ '.join(egs))

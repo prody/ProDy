@@ -1,19 +1,19 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 # ProDy: A Python Package for Protein Dynamics Analysis
-# 
+#
 # Copyright (C) 2010-2012 Ahmet Bakan
-# 
+#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-#  
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
@@ -23,38 +23,38 @@ __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 import os.path
-from unittest import TestCase
+from prody.tests import TestCase
 
 import numpy as np
 from numpy import arange
 from numpy.testing import assert_equal, assert_allclose
 
-from . import ATOMS, COORDS, ENSEMBLE, ENSEMBLEW 
-from . import ENSEMBLE_RMSD, ENSEMBLE_SUPERPOSE 
+from . import ATOMS, COORDS, ENSEMBLE, ENSEMBLEW
+from . import ENSEMBLE_RMSD, ENSEMBLE_SUPERPOSE
 from . import ATOL, RTOL
 
 class TestEnsemble(TestCase):
-    
+
     def testGetCoordinates(self):
         """Test correctness of reference coordinates."""
-        
+
         assert_equal(ENSEMBLE.getCoords(), COORDS,
                      'failed to get correct coordinates')
-    
-    
+
+
     def testGetCoordsets(self):
         """Test correctness of all coordinates."""
 
         assert_equal(ATOMS.getCoordsets(), ENSEMBLE.getCoordsets(),
                      'failed to add coordinate sets for Ensemble')
-    
-    
+
+
     def testGetWeights(self):
         """Test correctness of all weights."""
 
         assert_equal(ENSEMBLEW.getWeights().ndim, 2,
                      'failed to get correct weights ndim')
-        assert_equal(ENSEMBLEW.getWeights().shape, 
+        assert_equal(ENSEMBLEW.getWeights().shape,
                      (ENSEMBLEW.numAtoms(), 1),
                     'failed to get correct weights shape')
         assert_equal(ENSEMBLEW.getWeights(),
@@ -63,7 +63,7 @@ class TestEnsemble(TestCase):
 
     def testSlicingCopy(self):
         """Test making a copy by slicing operation."""
-        
+
         SLICE = ENSEMBLE[:]
         assert_equal(SLICE.getCoords(), ENSEMBLE.getCoords(),
                      'slicing copy failed to set reference coordinates')
@@ -72,7 +72,7 @@ class TestEnsemble(TestCase):
 
     def testSlicing(self):
         """Test slicing operation."""
-        
+
         SLICE = ENSEMBLE[:2]
         assert_equal(SLICE.getCoords(), ENSEMBLE.getCoords(),
                      'slicing failed to set reference coordinates')
@@ -81,7 +81,7 @@ class TestEnsemble(TestCase):
 
     def testSlicingList(self):
         """Test slicing with a list."""
-        
+
         SLICE = ENSEMBLE[[0,2]]
         assert_equal(SLICE.getCoords(), ENSEMBLE.getCoords(),
                      'slicing failed to set reference coordinates')
@@ -91,36 +91,36 @@ class TestEnsemble(TestCase):
 
     def testSlicingWeights(self):
         """Test slicing operation with weights."""
-        
+
         SLICE = ENSEMBLEW[:2]
         assert_equal(SLICE.getWeights(), ENSEMBLEW.getWeights(),
                      'slicing failed to set weights')
 
     def testIterCoordsets(self):
         """Test coordinate iteration."""
-        
+
         for i, xyz in enumerate(ENSEMBLE.iterCoordsets()):
             assert_equal(xyz, ATOMS.getCoordsets(i),
                          'failed yield correct coordinates')
-            
+
     def testGetNumAtoms(self):
 
         self.assertEqual(ENSEMBLE.numAtoms(), ATOMS.numAtoms(),
-                         'failed to get correct number of atoms')  
-            
+                         'failed to get correct number of atoms')
+
     def testGetNumCsets(self):
 
         self.assertEqual(ENSEMBLE.numCoordsets(), ATOMS.numCoordsets(),
-                         'failed to get correct number of coordinate sets')  
+                         'failed to get correct number of coordinate sets')
 
     def testGetRMSDs(self):
-        
+
         assert_allclose(ENSEMBLE.getRMSDs(), ENSEMBLE_RMSD,
-                        rtol=0, atol=1e-3,  
+                        rtol=0, atol=1e-3,
                         err_msg='failed to calculate RMSDs sets')
 
     def testSuperpose(self):
-        
+
         ensemble = ENSEMBLE[:]
         ensemble.superpose()
         assert_allclose(ensemble.getRMSDs(), ENSEMBLE_SUPERPOSE,
@@ -128,13 +128,13 @@ class TestEnsemble(TestCase):
                         err_msg='failed to superpose coordinate sets')
 
     def testGetRMSDsWeights(self):
-        
+
         assert_allclose(ENSEMBLEW.getRMSDs(), ENSEMBLE_RMSD,
                         rtol=0, atol=1e-3,
                         err_msg='failed to calculate RMSDs')
 
     def testSuperposeWeights(self):
-        
+
         ensemble = ENSEMBLEW[:]
         ensemble.superpose()
         assert_allclose(ensemble.getRMSDs(), ENSEMBLE_SUPERPOSE,
@@ -142,14 +142,14 @@ class TestEnsemble(TestCase):
                         err_msg='failed to superpose coordinate sets')
 
     def testDelCoordsetMiddle(self):
-        
+
         ensemble = ENSEMBLE[:]
         ensemble.delCoordset(1)
         assert_equal(ensemble.getCoordsets(), ATOMS.getCoordsets([0,2]),
                      'failed to delete middle coordinate set for Ensemble')
-        
+
     def testDelCoordsetAll(self):
-        
+
         ensemble = ENSEMBLE[:]
         ensemble.delCoordset(arange(len(ENSEMBLE)))
         self.assertIsNone(ensemble.getCoordsets(),
@@ -160,7 +160,7 @@ class TestEnsemble(TestCase):
 
     def testConcatenation(self):
         """Test concatenation of ensembles without weights."""
-        
+
         ensemble = ENSEMBLE + ENSEMBLE
         assert_equal(ensemble.getCoordsets(arange(3)), ATOMS.getCoordsets(),
                      'concatenation failed')
@@ -171,9 +171,9 @@ class TestEnsemble(TestCase):
 
     def testConcatenationWeights(self):
         """Test concatenation of ensembles with weights."""
-        
+
         ensemble = ENSEMBLEW + ENSEMBLEW
-        assert_equal(ensemble.getCoordsets(arange(3)), ATOMS.getCoordsets(), 
+        assert_equal(ensemble.getCoordsets(arange(3)), ATOMS.getCoordsets(),
                      'concatenation failed')
         assert_equal(ensemble.getCoordsets(arange(3,6)), ATOMS.getCoordsets(),
                      'concatenation failed')
@@ -184,7 +184,7 @@ class TestEnsemble(TestCase):
 
     def testConcatenationNoweightsWeights(self):
         """Test concatenation of ensembles without and with weights."""
-        
+
         ensemble = ENSEMBLE + ENSEMBLEW
         assert_equal(ensemble.getCoordsets(arange(3)), ATOMS.getCoordsets(),
                      'concatenation failed')
@@ -196,8 +196,8 @@ class TestEnsemble(TestCase):
 
     def testConcatenationWeightsNoweights(self):
         """Test concatenation of ensembles with and without weights."""
-        
-        ensemble = ENSEMBLEW + ENSEMBLE 
+
+        ensemble = ENSEMBLEW + ENSEMBLE
         assert_equal(ensemble.getCoordsets(arange(3)), ATOMS.getCoordsets(),
                      'failed at concatenation for Ensemble')
         assert_equal(ensemble.getCoordsets(arange(3,6)), ATOMS.getCoordsets(),

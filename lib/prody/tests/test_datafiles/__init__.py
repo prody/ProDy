@@ -1,17 +1,17 @@
 # ProDy: A Python Package for Protein Dynamics Analysis
-# 
+#
 # Copyright (C) 2010-2012 Ahmet Bakan
-# 
+#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-#  
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
@@ -25,7 +25,7 @@ __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 
 from os.path import join, isfile, split, splitext
-from unittest import TestCase
+from prody.tests import TestCase
 
 from numpy import array
 
@@ -122,7 +122,7 @@ DATA_FILES = {
 PARSERS = {
     '.dcd': parseDCD, '.pdb': parsePDB,
     '.coo': parseSparseMatrix, '.dat': parseArray,
-    '.gz': lambda fn, **kwargs: PARSERS[splitext(fn)[1]](fn, **kwargs)      
+    '.gz': lambda fn, **kwargs: PARSERS[splitext(fn)[1]](fn, **kwargs)
 }
 
 
@@ -143,7 +143,7 @@ def pathDatafile(filename):
 
 def parseDatafile(filename, **kwargs):
     """*filename* must be present in :file:`prody/tests/test_datafiles`."""
-    
+
     if filename in DATA_FILES:
         filename = DATA_FILES[filename]['file']
     fn = pathDatafile(filename)
@@ -157,15 +157,15 @@ for name, value in DATA_FILES.items():
 class TestDatafiles(TestCase):
 
     """Test presence of data files."""
-    
+
     pass
 
 for name, value in DATA_FILES.items():
     fn = value['file']
     def func(self, filename=fn, **kwargs):
-        
+
         self.assertTrue(isfile(pathDatafile(filename)))
-    
+
     func.__name__ = 'testDatafile_{0:s}'.format(name)
     func.__doc__ = 'Test presence of "{0:s}"'.format(fn)
     setattr(TestDatafiles, func.__name__, func)

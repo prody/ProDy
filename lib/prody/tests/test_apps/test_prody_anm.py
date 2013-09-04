@@ -23,7 +23,7 @@ __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 from os import remove
 import shlex
 from os.path import isfile, join, split, splitext
-from unittest import TestCase, skipIf, skipUnless
+from prody.tests import TestCase, skipIf, skipUnless
 
 from numpy.testing import *
 

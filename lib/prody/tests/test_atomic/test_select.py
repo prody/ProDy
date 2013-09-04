@@ -1,19 +1,19 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 # ProDy: A Python Package for Protein Dynamics Analysis
-# 
+#
 # Copyright (C) 2010-2012 Ahmet Bakan
-# 
+#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-#  
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
@@ -24,14 +24,13 @@ __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 import os
 import os.path
-import unittest
 import inspect
-import sys
 import numpy as np
 from numpy.testing import *
 
 from prody import *
 from prody import LOGGER
+from prody.tests import unittest
 from prody.tests.test_datafiles import *
 from prody.atomic.atommap import DUMMY
 
@@ -48,7 +47,7 @@ TESTS_PATH = os.path.abspath(os.path.split(inspect.getfile(
 
 # If a selection string is paired with None, SelectionError is expected
 # If two selection strings are paired, they must select exactly same of atoms
-# Else, number must be the number atoms that the string is expected to select 
+# Else, number must be the number atoms that the string is expected to select
 
 pdb3mht = prody.parsePDB(pathDatafile('pdb3mht.pdb'), secondary=True)
 
@@ -56,9 +55,9 @@ SELECTION_TESTS = {'pdb3mht':
     {'n_atoms': len(pdb3mht),
      'ag': pdb3mht,
      'all': pdb3mht.all,
-     'atommap': AtomMap(pdb3mht, [DUMMY] + list(range(1500)) + [DUMMY] + 
+     'atommap': AtomMap(pdb3mht, [DUMMY] + list(range(1500)) + [DUMMY] +
                         list(range(1500, len(pdb3mht))) + [DUMMY]),
-                        
+
      'test_flags':  [('none', 0),
         ('all', 3211),
         ('acidic', 334),
@@ -111,7 +110,7 @@ SELECTION_TESTS = {'pdb3mht':
         ('bridge', 0),
         ('bend', 0),
         ('coil', 1222),],
-        
+
      'test_without_and': [
         ('coil protein', 1222),
         ('sidechain sc protein', 1297),
@@ -121,7 +120,7 @@ SELECTION_TESTS = {'pdb3mht':
         ('noh hetero water', 70, 'water hetero noh'),
         ('ca occupancy > 0', 327, 'occupancy > 0 ca'),
         ('ca occupancy - 0 > 0', 327, 'occupancy - 0 > 0 ca'),
-        ('ca occupancy - 0 > 0 + 0', 327, 
+        ('ca occupancy - 0 > 0 + 0', 327,
         'occupancy - 0 > 0 + 0 ca'),
         ('occupancy > ca 0', None),
         ('noh hetero (water)', 70),
@@ -129,14 +128,14 @@ SELECTION_TESTS = {'pdb3mht':
         ('(water) hetero', 70),
         ('ca abs(beta) = beta + abs(0)', 327,
         'abs(beta) = beta + abs(0) ca'),],
-        
+
      'test_unintended': [
         ('abs beta = beta', 3211, 'abs (beta) = beta')],
-        
+
      'test_string': [
         ('name P', 24),
         ('name P CA', 352),
-        ('name `A 1`', 0), 
+        ('name `A 1`', 0),
         ('chain C', 248),
         ('chain x', 0),
         ('chain x y', 0),
@@ -152,7 +151,7 @@ SELECTION_TESTS = {'pdb3mht':
         ('secondary H E', 1266),
         ('secondary _', 605),
         ('segment _', 3211),],
-        
+
      'test_integer': [
         ('index 10 20 10000', 2),
         ('serial 0', 0),
@@ -164,7 +163,7 @@ SELECTION_TESTS = {'pdb3mht':
         ('resid 100 A 105', 13),
         ('fragindex 0', None),
         ('fragment 0', None),],
-        
+
      'test_range':  [
         ('index 0:10', 10),
         ('index 0to10', 11, 'index 0 to 10'),
@@ -178,7 +177,7 @@ SELECTION_TESTS = {'pdb3mht':
         ('x `-10:20`', 673, 'x `-10 to 20`'),
         ('x 0:20:1', 0),
         ('beta 13.02:13.01', None)],
-        
+
      'test_float':  [
         ('beta 5.0 41.15 11.85', 2),
         ('occupancy 1.0', 3211),
@@ -190,7 +189,7 @@ SELECTION_TESTS = {'pdb3mht':
         ('radius 0', None),
         ('beta "1."', 0),
         ('beta = "1."', None),],
-        
+
      'test_comparisons': [
         ('x = -51.659', 1),
         ('x != -51.659', 3210),
@@ -205,14 +204,14 @@ SELECTION_TESTS = {'pdb3mht':
         ('chain = A', None),
         ('x x < 1', None),
         ('name < 1', None),],
-        
+
      'test_operation': [
         ('x ** 2 < 10', 238),
         ('x ** 2 ** 2 ** 2 < 10', 87),
         ('x ** (+2 ** (+2 ** +2)) < 10', 87),
         ('occupancy % 2 == 1', 3211),
         ('x**2 + y**2 + z**2 < 10000', 1975),],
-        
+
      'test_function': [
         ('sqrt(x**2 + y**2 + z**2) < 100', 1975,
         'x**2 + y**2 + z**2 < 10000'),
@@ -222,11 +221,11 @@ SELECTION_TESTS = {'pdb3mht':
         ('beta % 4 % 3 < 1', 1530),
         ('ceil(beta) == 10', 60),
         ('floor(beta) == 10', 58),
-        ('abs(x) == sqrt(sq(x))', 3211), 
+        ('abs(x) == sqrt(sq(x))', 3211),
         ('sq(x-5)+sq(y+4)+sq(z) > sq(100)', 1444),
         ('1 > sq(occ)', None),
         ('sq(x x) > 1', None),],
-        
+
      'test_composite': [
         ('chain x y z C and x 10', 0),
         ('resnum `1` `2`', 16, 'resnum 1 2'),
@@ -237,14 +236,14 @@ SELECTION_TESTS = {'pdb3mht':
          '(z - 13)**2) <= 500', 1308),
         ('(not resname SAH) and (protein and name CA) or '
          '(nucleic and name P)', 351,
-         '(protein and name CA) or (nucleic and name P)'), 
+         '(protein and name CA) or (nucleic and name P)'),
         ('protein and (backbone or name H)', 1308),
         ('same residue as within 4 of and resname SAH', None),
         ('protein and name CA CB and same residue as '
          '((x+21.2)**2 + (y-35.9)**2 + (z-80.0)**2)**0.5 < 10',
          78, 'protein and name CA CB and same residue as '
          'within 10 of center', {'center': np.array([21.2, 35.9, 80.0])})],
-         
+
      'test_within': [
         ('within 10 of index 0', 72),
         ('exwithin 100 of index 0', 3210),
@@ -256,31 +255,31 @@ SELECTION_TESTS = {'pdb3mht':
         ('exwithin 1 of pdb', 0, None, {'pdb': pdb3mht}),
         ('exwithin 1 of ag', None, None, {'ag': AtomGroup()}),
         ('within 100 of index 10000', 0),],
-        
+
      'test_sameas': [
          ('same residue as index 0', 22),
-         ('same chain as index 0', 248),   
+         ('same chain as index 0', 248),
          ('same segment as index 0', 3211),
          ('same residue as resname DG ALA', 212),
          ('same chain as chain C', 248),
          ('same residue as chain X', 0),
          ('same none as chain C', None),
-         ('same residue as same residue as same residue as index 0', 22, 
+         ('same residue as same residue as same residue as index 0', 22,
           'resindex 0')],
-    
+
      'test_regexp': [
         ('resname "S.."', 122),
         ('name "C.*"', 1920),
         ('name ".*\'"', 208),
         ('name "C(A|B)"', 628),
         ('name "C((A|B)"', None),],
-    
+
      'test_specialchar': [
         ('altloc ` `', 3211),
         ('name A` `CA`', 328),
         ('name `A``', 0),
         ('z `+100.291`', 1),],
-    
+
      'test_logical': [
         ('name or name', None),
         ('name and name', None),
@@ -295,12 +294,12 @@ SELECTION_TESTS = {'pdb3mht':
         ('index < 50 and index < 25 and index < 5', 5),
         ('index < 5 and index < 25 and index < 50', 5),
         ('index 0 to 5 and index 0 to 25 and index 0 to 50', 6),
-        ('index < 5 and index < 25 and index < 50 or index < 50 or index < 5', 
+        ('index < 5 and index < 25 and index < 50 or index < 50 or index < 5',
          50),],
 
      'test_kwargs': [
         ('within 100 of origin', 1975, None, {'origin': np.zeros(3)}),
-        ('within 100 of origin', 1975, None, {'origin': np.zeros((1, 3))}),                      
+        ('within 100 of origin', 1975, None, {'origin': np.zeros((1, 3))}),
         ('within 100 of origin', 1975, None, {'origin': np.zeros((10, 3))}),
         ('within 100 of origin', 1975, None, {'origin': np.zeros((50, 3))}),
         ('within 100 of none', None, None, {'none': np.zeros((50, 3))}),],
@@ -376,16 +375,16 @@ for i, res in enumerate(pdb3mht.iterResidues()):
         subsets.append((res.getSelstr(), res.numAtoms()))
 
 SELECTION_TESTS['pdb3mht']['subsets'] = subsets
-    
+
 ligand = fetchPDBLigand(pathDatafile('sti'))['ideal']
 
 SELECTION_TESTS['imatinib'] = {
     'n_atoms': len(ligand),
     'ag': ligand,
     'all': ligand.all,
-    'atommap': AtomMap(ligand, [DUMMY] + list(range(10)) + [DUMMY] + 
+    'atommap': AtomMap(ligand, [DUMMY] + list(range(10)) + [DUMMY] +
                        list(range(10, len(ligand))) + [DUMMY]),
-    
+
     'test_bondedto': [
         ('bonded to index 0', ligand[0].numBonds() + 1),
         ('exbonded to index 0', ligand[0].numBonds()),
@@ -393,18 +392,18 @@ SELECTION_TESTS['imatinib'] = {
         ('exbonded to index 67', ligand[67].numBonds()),
         ('bonded 2 to index 0', 8, 'bonded to bonded to index 0'),
         ('bonded 0 to index 0', 0),
-        ('bonded 3 to index 0', 10, 
+        ('bonded 3 to index 0', 10,
          'bonded to bonded to bonded to index 0'),
-        ('bonded 4 to index 0', 13, 
+        ('bonded 4 to index 0', 13,
          'bonded to bonded to bonded to bonded to index 0'),
-        ('bonded 4 to index 0', 13, 
+        ('bonded 4 to index 0', 13,
          'bonded 2 to bonded 2 to index 0'),
-        ('bonded 4 to index 0', 13, 
+        ('bonded 4 to index 0', 13,
          'bonded to bonded 3 to index 0'),
         ('exbonded 1 to index 0', 3, 'exbonded to index 0'),
-        ('exbonded 2 to index 0', 5, 
+        ('exbonded 2 to index 0', 5,
          'exbonded to exbonded to index 0'),
-        ('exbonded 3 to index 0', 5, 
+        ('exbonded 3 to index 0', 5,
          'exbonded to exbonded to exbonded to index 0'),
         ('bonded 20 to index 0', 64),
         ('bonded 20 to index 10', 68),
@@ -423,32 +422,32 @@ pdb3mht.setMasses(pdb3mht.getBetas())
 pdb3mht.setData('temp', pdb3mht.getBetas())
 pdb3mht.setData('oc10', pdb3mht.getOccupancies() * 10)
 pdb3mht.setFlags('occ', pdb3mht.getOccupancies().astype(bool))
-    
+
 SELECT = prody.Select()
 
 EMPTYDICT = {}
 
 
 class TestSelect(unittest.TestCase):
-    
+
     """Test :class:`.Select`."""
-    
+
     pass
 
 for case, items in SELECTION_TESTS.items():
 
     for key, tests in items.items():
-        
+
         if not key.startswith('test_'):
             continue
         type_ = key[5:]
-            
-        count = 0        
+
+        count = 0
         for test in tests:
             def func(self, pdb=case, test=test, type_=type_, **kwargs):
-        
+
                 atoms = SELECTION_TESTS[pdb]['ag']
-            
+
                 selstr = test[0]
                 natoms = test[1]
                 selstr2 = None
@@ -457,7 +456,7 @@ for case, items in SELECTION_TESTS.items():
                     selstr2 = test[2]
                 if len(test) == 4:
                     kwargs = test[3]
-                    
+
                 if natoms is None:
                     self.assertRaises(prody.select.SelectionError,
                         SELECT.getIndices, atoms, selstr, **kwargs)
@@ -465,7 +464,7 @@ for case, items in SELECTION_TESTS.items():
                     sel = SELECT.getIndices(atoms, selstr, **kwargs)
                     self.assertEqual(len(sel), natoms,
                         'selection {0} for {1} failed, expected '
-                        '{2}, selected {3}'.format(repr(selstr), 
+                        '{2}, selected {3}'.format(repr(selstr),
                         str(atoms), natoms, len(sel)))
                 else:
                     sel = SELECT.getIndices(atoms, selstr, **kwargs)
@@ -474,22 +473,22 @@ for case, items in SELECTION_TESTS.items():
                             np.all(sel == sel2),
                         'selection strings {0} and {1} for '
                         '{2} failed to select same number of atoms, '
-                        'expected ({3})'.format(repr(selstr), 
+                        'expected ({3})'.format(repr(selstr),
                         repr(selstr2), str(atoms), natoms))
-                        
+
             count += 1
             func.__name__ = 'test{0}Selection{1}'.format(
                                                 type_.title(), count)
             func.__doc__ = ('Test {0} selections {1} for '
-                                    '{2}').format(type_, 
+                                    '{2}').format(type_,
                                     repr(test[0]), case)
             setattr(TestSelect, func.__name__, func)
 
             @dec.slow
             def func(self, pdb=case, test=test, type_=type_, **kwargs):
-        
+
                 atoms = SELECTION_TESTS[pdb]['all']
-            
+
                 selstr = test[0]
                 natoms = test[1]
                 selstr2 = None
@@ -498,7 +497,7 @@ for case, items in SELECTION_TESTS.items():
                     selstr2 = test[2]
                 if len(test) == 4:
                     kwargs = test[3]
-                    
+
                 if natoms is None:
                     self.assertRaises(prody.select.SelectionError,
                         SELECT.getIndices, atoms, selstr, **kwargs)
@@ -506,7 +505,7 @@ for case, items in SELECTION_TESTS.items():
                     sel = SELECT.getIndices(atoms, selstr, **kwargs)
                     self.assertEqual(len(sel), natoms,
                         'selection {0} for {1} failed, expected '
-                        '{2}, selected {3}'.format(repr(selstr), 
+                        '{2}, selected {3}'.format(repr(selstr),
                         str(atoms), natoms, len(sel)))
                 else:
                     sel = SELECT.getIndices(atoms, selstr, **kwargs)
@@ -515,47 +514,47 @@ for case, items in SELECTION_TESTS.items():
                             np.all(sel == sel2),
                         'selection strings {0} and {1} for '
                         '{2} failed to select same number of atoms, '
-                        'expected ({3})'.format(repr(selstr), 
+                        'expected ({3})'.format(repr(selstr),
                         repr(selstr2), str(atoms), natoms))
-                        
+
             count += 1
-            func.__name__ = 'test{0}Selection{1}'.format(type_.title(), 
+            func.__name__ = 'test{0}Selection{1}'.format(type_.title(),
                                                              count)
-            func.__doc__ = 'Test {0} selections "{1}"'.format(type_, 
+            func.__doc__ = 'Test {0} selections "{1}"'.format(type_,
                                                                   test[0])
             setattr(TestSelect, func.__name__, func)
 del func
 
-MACROS = [('cacb', 'name CA CB'), 
+MACROS = [('cacb', 'name CA CB'),
           ('donors', '(protein) and (name N NE NH2 ND2 NE2 ND1 OG OH NH1 '
                                          'SG OG1 NE2 NZ NE1 ND1 NE2)')]
 
 
 class TestMacros(unittest.TestCase):
-    
+
     """Test selection macros."""
-    
-    
+
+
     def testMacroFunctions(self):
 
         for name, macro in MACROS:
-            prody.defSelectionMacro(name, macro)            
+            prody.defSelectionMacro(name, macro)
             self.assertEqual(prody.getSelectionMacro(name), macro,
-                             'failed to get correct macro definition')        
-            prody.delSelectionMacro(name)            
+                             'failed to get correct macro definition')
+            prody.delSelectionMacro(name)
 
-count = 0        
+count = 0
 for name, macro in MACROS:
 
     def func(self, name=name, macro=macro):
-    
+
         prody.defSelectionMacro(name, macro)
         for key, case in SELECTION_TESTS.items():
             atoms = case['ag']
             assert_equal(
-                SELECT.getBoolArray(atoms, macro), 
+                SELECT.getBoolArray(atoms, macro),
                 SELECT.getBoolArray(atoms, name),
-                'failed to select correct selection using macro')        
+                'failed to select correct selection using macro')
         prody.delSelectionMacro(name)
     count += 1
 

@@ -35,6 +35,13 @@ from os.path import sep as dirsep
 import inspect
 import tempfile
 
+try:
+    import unittest2 as unittest
+    from unittest2 import TestCase, skipIf, skipUnless
+except ImportError:
+    import unittest
+    from unittest import TestCase, skipIf, skipUnless
+
 from prody.utilities import PLATFORM
 from prody import LOGGER
 
@@ -87,7 +94,6 @@ def runTests(*mods, **kwargs):
 
         LOGGER.warning('Failed to import nose, using unittest for testing.')
         LOGGER.info('nose is available at http://readthedocs.org/docs/nose/')
-        import unittest
         from sys import stderr
 
         verbosity = kwargs.get('verbose', 2)
