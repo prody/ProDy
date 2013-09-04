@@ -20,12 +20,6 @@ NMWiz Tutorial
    extend
    commands
 
-.. toctree::
-   :glob:
-   :hidden:
-
-   compare
-
 .. only:: html
 
    .. include:: acknowledgments.rst

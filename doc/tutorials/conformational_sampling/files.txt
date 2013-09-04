@@ -1,0 +1,3 @@
+ 471  min.conf
+437K  p38.pdb
+1.3M  p38.psf
