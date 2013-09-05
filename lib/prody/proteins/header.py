@@ -1011,7 +1011,7 @@ def buildBiomolecules(header, atoms, biomol=None):
                         'applied'.format(i))
             continue
 
-        for times in range((len(mt) - 1) / 3):
+        for times in range(int((len(mt) - 1) / 3)):
             rotation = np.zeros((3, 3))
             translation = np.zeros(3)
             line = np.fromstring(mt[times*3+1], sep=' ')
