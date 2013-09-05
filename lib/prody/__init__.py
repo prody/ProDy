@@ -17,7 +17,7 @@
 
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
-__version__ = '1.4.4'
+__version__ = '1.4.5'
 
 release = [int(x) for x in __version__.split('.')]
 
@@ -287,14 +287,11 @@ def test(*mods, **kwargs):
     """Run ProDy tests, ``prody.test()``. See :mod:`prody.tests`
     documentation for more details."""
 
-    if sys.version_info[:2] > (2, 6):
-        try:
-            import prody.tests
-        except ImportError as err:
-            LOGGER.warning('Could not import ProDy unit tests, '
-                           'please check your installation.')
-            raise type(err)(str(err))
-        else:
-            prody.tests.runTests(*mods, **kwargs)
+    try:
+        import prody.tests
+    except ImportError as err:
+        LOGGER.warning('Could not import ProDy unit tests, '
+                       'please check your installation.')
+        raise type(err)(str(err))
     else:
-        LOGGER.warning('ProDy tests are available for Python 2.7')
+        prody.tests.runTests(*mods, **kwargs)
