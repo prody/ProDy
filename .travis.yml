@@ -22,4 +22,4 @@ before_install:
 install:
   - python setup.py build install
 script:
-  - prody test -l full -v 5
+  - prody test -o 0.1 -v 5
