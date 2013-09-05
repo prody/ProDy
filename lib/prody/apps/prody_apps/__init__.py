@@ -44,6 +44,8 @@ if sys.version_info[:2] == (2,6):
         pass
     else:
         PRODY_APPS.append('test')
+else:
+    PRODY_APPS.append('test')
 
 __all__ = ['prody_main']
 
