@@ -1,17 +1,17 @@
 /* ProDy: A Python Package for Protein Dynamics Analysis
  *
  * Copyright (C) 2010-2012 Ahmet Bakan
- * 
+ *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- *  
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>
  *
@@ -26,24 +26,24 @@
 #define SELEXLINELEN 10000
 
 static char *intcat(char *msg, int line) {
-   
+
     /* Concatenate integer to a string. */
-   
+
     char lnum[10];
     snprintf(lnum, 10, "%i", line);
     strcat(msg, lnum);
     return msg;
 }
-    
 
-static int parseLabel(PyObject *labels, PyObject *mapping, char line[], 
+
+static int parseLabel(PyObject *labels, PyObject *mapping, char line[],
                       int length) {
-    
-    /* Append label to *labels*, extract identifier, and index label 
+
+    /* Append label to *labels*, extract identifier, and index label
        position in the list. Return 1 when successful, 0 on failure. */
-    
+
     int i, ch, slash = 0, dash = 0;//, ipipe = 0, pipes[4] = {0, 0, 0, 0};
-    
+
     for (i = 0; i < length; i++) {
         ch = line[i];
         if (ch < 32 && ch != 20)
@@ -55,7 +55,7 @@ static int parseLabel(PyObject *labels, PyObject *mapping, char line[],
         //else if (line[i] == '|' && ipipe < 4)
         //    pipes[ipipe++] = i;
     }
-    
+
     PyObject *label, *index;
     #if PY_MAJOR_VERSION >= 3
     label = PyUnicode_FromStringAndSize(line, i);
@@ -74,9 +74,9 @@ static int parseLabel(PyObject *labels, PyObject *mapping, char line[],
         Py_XDECREF(label);
         return 0;
     }
-    
+
     PyObject *key = label;
-        
+
     if (slash > 0 && dash > slash) {
         Py_DECREF(label);
         #if PY_MAJOR_VERSION >= 3
@@ -101,7 +101,7 @@ static int parseLabel(PyObject *labels, PyObject *mapping, char line[],
     } else {
         PyDict_SetItem(mapping, key, index);
         Py_DECREF(index);
-    }     
+    }
 
     Py_DECREF(key);
     return 1;
@@ -115,29 +115,29 @@ static PyObject *parseFasta(PyObject *self, PyObject *args) {
 
     char *filename;
     long filesize;
-    
-    if (!PyArg_ParseTuple(args, "si", &filename, &filesize))
+
+    if (!PyArg_ParseTuple(args, "sl", &filename, &filesize))
         return NULL;
-    
+
     PyObject *labels = PyList_New(0), *mapping = PyDict_New();
     if (!labels || !mapping)
         return PyErr_NoMemory();
-        
+
     char *line = malloc((FASTALINELEN) * sizeof(char));
-    if (!line) 
+    if (!line)
         return PyErr_NoMemory();
-    
+
     char *data = malloc(filesize * sizeof(char));
     if (!data) {
         free(line);
         return PyErr_NoMemory();
     }
-        
+
     int aligned = 1;
     char ch, errmsg[LENLABEL] = "failed to parse FASTA file at line ";
     long index = 0, count = 0;
     long iline = 0, i, seqlen = 0, curlen = 0;
-    
+
     FILE *file = fopen(filename, "rb");
     while (fgets(line, FASTALINELEN, file) != NULL) {
         iline++;
@@ -169,7 +169,7 @@ static PyObject *parseFasta(PyObject *self, PyObject *args) {
         }
     }
     fclose(file);
-    
+
     free(line);
     if (aligned && seqlen != curlen) {
         free(data);
@@ -189,34 +189,34 @@ static PyObject *parseFasta(PyObject *self, PyObject *args) {
 
 static PyObject *writeFasta(PyObject *self, PyObject *args, PyObject *kwargs) {
 
-    /* Write MSA where inputs are: labels in the form of Python lists 
+    /* Write MSA where inputs are: labels in the form of Python lists
     and sequences in the form of Python numpy array and write them in
     FASTA format in the specified filename.*/
-    
+
     char *filename;
     int line_length = 60;
     PyObject *labels;
     PyArrayObject *msa;
-    
+
     static char *kwlist[] = {"filename", "labels", "msa", "line_length", NULL};
-    
-    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "sOO|i", kwlist, 
+
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "sOO|i", kwlist,
                                      &filename, &labels, &msa, &line_length))
         return NULL;
-    
+
     /* make sure to have a contiguous and well-behaved array */
-    msa = PyArray_GETCONTIGUOUS(msa); 
+    msa = PyArray_GETCONTIGUOUS(msa);
 
     long numseq = msa->dimensions[0], lenseq = msa->dimensions[1];
-    
+
     if (numseq != PyList_Size(labels)) {
         PyErr_SetString(PyExc_ValueError,
             "size of labels and msa array does not match");
         return NULL;
     }
-    
+
     FILE *file = fopen(filename, "wb");
-    
+
     int nlines = lenseq / line_length;
     int remainder = lenseq - line_length * nlines;
     int i, j, k;
@@ -229,12 +229,12 @@ static PyObject *writeFasta(PyObject *self, PyObject *args, PyObject *kwargs) {
     for (i = 0; i < numseq; i++) {
         #if PY_MAJOR_VERSION >= 3
         plabel = PyUnicode_AsEncodedString(
-                PyList_GetItem(labels, (Py_ssize_t) i), "utf-8", 
+                PyList_GetItem(labels, (Py_ssize_t) i), "utf-8",
                                "label encoding");
         char *label =  PyBytes_AsString(plabel);
         Py_DECREF(plabel);
         #else
-        char *label =  PyString_AsString(PyList_GetItem(labels, 
+        char *label =  PyString_AsString(PyList_GetItem(labels,
                                                         (Py_ssize_t) i));
         #endif
         fprintf(file, ">%s\n", label);
@@ -251,7 +251,7 @@ static PyObject *writeFasta(PyObject *self, PyObject *args, PyObject *kwargs) {
                     fprintf(file, "%c", seq[count++]);
 
         fprintf(file, "\n");
-        
+
     }
     fclose(file);
     return Py_BuildValue("s", filename);
@@ -264,8 +264,8 @@ static PyObject *parseSelex(PyObject *self, PyObject *args) {
 
     char *filename;
     long filesize;
-    
-    if (!PyArg_ParseTuple(args, "si", &filename, &filesize))
+
+    if (!PyArg_ParseTuple(args, "sl", &filename, &filesize))
         return NULL;
 
     long i = 0, beg = 0, end = 0;
@@ -314,17 +314,17 @@ static PyObject *parseSelex(PyObject *self, PyObject *args) {
         iline++;
         if (line[0] == '#' || line[0] == '/' || line[0] == '%')
             continue;
-            
+
         if (line[space] != ' ') {
             free(line);
             free(data);
             fclose(file);
             PyErr_SetString(PyExc_IOError, intcat(errmsg, iline));
             return NULL;
-        } 
+        }
 
         count += parseLabel(labels, mapping, line, space);
-        
+
         for (i = beg; i < end; i++)
             data[index++] = line[i];
     }
@@ -338,62 +338,62 @@ static PyObject *parseSelex(PyObject *self, PyObject *args) {
     Py_DECREF(msa);
     Py_DECREF(labels);
     Py_DECREF(mapping);
-    
+
     return result;
 }
 
 
 static PyObject *writeSelex(PyObject *self, PyObject *args, PyObject *kwargs) {
-    
-    /* Write MSA where inputs are: labels in the form of Python lists 
+
+    /* Write MSA where inputs are: labels in the form of Python lists
     and sequences in the form of Python numpy array and write them in
     SELEX (default) or Stockholm format in the specified filename.*/
-    
+
     char *filename;
     PyObject *labels;
     PyArrayObject *msa;
-    int stockholm; 
+    int stockholm;
     int label_length = 31;
-    
-    static char *kwlist[] = {"filename", "labels", "msa", "stockholm", 
+
+    static char *kwlist[] = {"filename", "labels", "msa", "stockholm",
                              "label_length", NULL};
-    
+
     if (!PyArg_ParseTupleAndKeywords(args, kwargs, "sOO|ii", kwlist, &filename,
                                      &labels, &msa, &stockholm, &label_length))
         return NULL;
-        
+
     /* make sure to have a contiguous and well-behaved array */
-    msa = PyArray_GETCONTIGUOUS(msa); 
+    msa = PyArray_GETCONTIGUOUS(msa);
 
     long numseq = msa->dimensions[0], lenseq = msa->dimensions[1];
-    
+
     if (numseq != PyList_Size(labels)) {
         PyErr_SetString(PyExc_ValueError,
                         "size of labels and msa array does not match");
         return NULL;
     }
-    
+
     FILE *file = fopen(filename, "wb");
-    
+
     int i, j;
     int pos = 0;
     char *seq = msa->data;
     if (stockholm)
         fprintf(file, "# STOCKHOLM 1.0\n");
-    
-    char *outline = (char *) malloc((label_length + lenseq + 2) * 
+
+    char *outline = (char *) malloc((label_length + lenseq + 2) *
                                     sizeof(char));
 
-    outline[label_length + lenseq] = '\n'; 
+    outline[label_length + lenseq] = '\n';
     outline[label_length + lenseq + 1] = '\0';
-    
+
     #if PY_MAJOR_VERSION >= 3
     PyObject *plabel;
     #endif
     for (i = 0; i < numseq; i++) {
         #if PY_MAJOR_VERSION >= 3
         plabel = PyUnicode_AsEncodedString(
-                PyList_GetItem(labels, (Py_ssize_t) i), "utf-8", 
+                PyList_GetItem(labels, (Py_ssize_t) i), "utf-8",
                                "label encoding");
         char *label =  PyBytes_AsString(plabel);
         Py_DECREF(plabel);
@@ -407,13 +407,13 @@ static PyObject *writeSelex(PyObject *self, PyObject *args, PyObject *kwargs) {
         if (labelbuffer > 0)
             for(j = strlen(label); j < label_length; j++)
                 outline[j] = ' ';
-        
+
         for (j = label_length; j < (lenseq + label_length); j++)
             outline[j] = seq[pos++];
 
         fprintf(file, "%s", outline);
     }
-    
+
     if (stockholm)
         fprintf(file, "//\n");
 
@@ -425,18 +425,18 @@ static PyObject *writeSelex(PyObject *self, PyObject *args, PyObject *kwargs) {
 
 static PyMethodDef msaio_methods[] = {
 
-    {"parseFasta",  (PyCFunction)parseFasta, METH_VARARGS, 
+    {"parseFasta",  (PyCFunction)parseFasta, METH_VARARGS,
      "Return list of labels and a dictionary mapping labels to sequences \n"
      "after parsing the sequences into empty numpy character array."},
 
-    {"writeFasta",  (PyCFunction)writeFasta, METH_VARARGS | METH_KEYWORDS, 
+    {"writeFasta",  (PyCFunction)writeFasta, METH_VARARGS | METH_KEYWORDS,
      "Return filename after writing MSA in FASTA format."},
 
-    {"parseSelex",  (PyCFunction)parseSelex, METH_VARARGS, 
+    {"parseSelex",  (PyCFunction)parseSelex, METH_VARARGS,
      "Return list of labels and a dictionary mapping labels to sequences \n"
      "after parsing the sequences into empty numpy character array."},
 
-    {"writeSelex",  (PyCFunction)writeSelex, METH_VARARGS | METH_KEYWORDS, 
+    {"writeSelex",  (PyCFunction)writeSelex, METH_VARARGS | METH_KEYWORDS,
     "Return filename after writing MSA in SELEX or Stockholm format."},
 
     {NULL, NULL, 0, NULL}
@@ -460,7 +460,7 @@ PyMODINIT_FUNC initmsaio(void) {
 
     (void) Py_InitModule3("msaio", msaio_methods,
                           "Multiple sequence alignment IO tools.");
-        
+
     import_array();
 }
 #endif
