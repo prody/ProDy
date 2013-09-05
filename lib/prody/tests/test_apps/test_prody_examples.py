@@ -80,7 +80,6 @@ for cmd in prody_commands.choices:
 
         @dec.slow
         @skipIf(NOPRODYCMD, 'prody command not found')
-        @skipUnless(MATPLOTLIB, 'matplotlib not found')
         @skipIf(WINDOWS, 'examples are not tested in Windows')
         def func(self, examples=egs):
 

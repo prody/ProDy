@@ -56,8 +56,8 @@ class TestFTP(unittest.TestCase):
             self.assertTrue(os.path.isfile(fn),
                 'failed to fetch PDB file via ' + self.protocol)
             atoms = parsePDB(fn)
-            self.assertIsNotNone(atoms,
-                'PDB file ({}) empty, download via'.format(fn) + self.protocol)
+            self.assertIsNotNone(atoms, 'PDB file ({}) empty, download via {}'
+                                        .format(fn, self.protocol))
             self.assertEqual(n_atoms, len(atoms))
 
 
@@ -72,8 +72,8 @@ class TestFTP(unittest.TestCase):
             self.assertTrue(os.path.isfile(fn),
                 'failed to fetch PDB file via ' + self.protocol)
             atoms = parsePDB(fn)
-            self.assertIsNotNone(atoms,
-                'PDB file empty, download via' + self.protocol)
+            self.assertIsNotNone(atoms, 'PDB file ({}) empty, download via {}'
+                                        .format(fn, self.protocol))
             self.assertEqual(n_atoms, len(atoms))
 
 

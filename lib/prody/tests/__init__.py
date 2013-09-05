@@ -51,11 +51,12 @@ NOPRODYCMD = which('prody') is None
 WINDOWS = PLATFORM == 'Windows'
 
 try:
-    import matplotlib
+    from matplotlib import pyplot
 except ImportError:
     MATPLOTLIB = False
 else:
     MATPLOTLIB = True
+    import matplotlib
     matplotlib.use('Agg')
 
 TESTDIR = abspath(split(inspect.getfile(inspect.currentframe()))[0])

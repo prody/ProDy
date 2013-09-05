@@ -1,15 +1,24 @@
 language: python
 python:
+  - 2.6
   - 2.7
   - 3.2
   - 3.3
 virtualenv:
   system_site_packages: true
-install:
+before_install:
+  - uname -a
+  - free -m
+  - df -h
+  - ulimit -a
   - sudo apt-get update -qq
-  - if [[ $TRAVIS_PYTHON_VERSION == "2.7" ]]; then sudo apt-get install python-matplotlib; fi
-  - if [[ $TRAVIS_PYTHON_VERSION == "3.2" ]]; then sudo apt-get install python3-dev python3-numpy; fi
-  - if [[ $TRAVIS_PYTHON_VERSION == "3.3" ]]; then sudo pip install numpy==1.7.1 matplotlib==1.3; fi
+  - sudo apt-get install -qq libatlas-dev libatlas-base-dev liblapack-dev gfortran
+  - if [[ $TRAVIS_PYTHON_VERSION == "2.6" ]]; then pip install nose unittest2 numpy matplotlib; fi
+  - if [[ $TRAVIS_PYTHON_VERSION == "2.7" ]]; then sudo apt-get install python-nose python-matplotlib; fi
+  - if [[ $TRAVIS_PYTHON_VERSION == "3.2" ]]; then sudo apt-get install python3-nose python3-dev python3-numpy python3-matplotlib; fi
+  - if [[ $TRAVIS_PYTHON_VERSION == "3.3" ]]; then sudo apt-get install python3-nose; fi
+  - if [[ $TRAVIS_PYTHON_VERSION == "3.3" ]]; then pip install numpy matplotlib; fi
+install:
   - python setup.py build install
 script:
-  - prody test -l full
+  - prody test -l full -v 5
