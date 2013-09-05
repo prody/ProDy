@@ -41,8 +41,9 @@ class TestGunzip(TestCase):
             self.bytes = bytes(self.text, encoding='utf-8')
         except TypeError:
             self.bytes = self.text
-        with openFile(self.gzfn, 'wt') as out:
-            out.write(self.text)
+        out = openFile(self.gzfn, 'wt')
+        out.write(self.text)
+        out.close()
 
     def testFile(self):
 
