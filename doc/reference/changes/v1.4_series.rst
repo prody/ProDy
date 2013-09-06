@@ -40,6 +40,8 @@ ProDy 1.4 Series
 
   * Fixed problems in handling compressed files when using Python 2.6 and 3.3.
 
+  * Fixed a problem with indexing :class:`.NMA` instances in Python 3 series.
+
 1.4.4 (July 22, 2013)
 -------------------------------------------------------------------------------
 
