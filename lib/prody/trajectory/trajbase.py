@@ -21,10 +21,8 @@
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
-import numpy as np
+from numpy import ndarray, unique
 
-from prody import LOGGER
-from prody.atomic import AtomGroup
 from prody.ensemble import Ensemble, checkWeights
 from prody.utilities import checkCoords
 
@@ -71,7 +69,7 @@ class TrajBase(object):
         if isinstance(index, int):
             return self.getFrame(index)
 
-        elif isinstance(index, (slice, list, np.ndarray)):
+        elif isinstance(index, (slice, list, ndarray)):
             if isinstance(index, slice):
                 ens = Ensemble('{0} ({1[0]}:{1[1]}:{1[2]})'.format(
                                     self._title, index.indices(len(self))))
