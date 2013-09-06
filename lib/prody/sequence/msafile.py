@@ -140,8 +140,6 @@ class MSAFile(object):
                 closed = self._stream.closed
             except AttributeError:
                 closed = self._stream.myfileobj.closed
-            else:
-                closed = True
             if closed:
                 raise ValueError('msa stream must not be closed')
 
