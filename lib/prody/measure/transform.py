@@ -29,6 +29,8 @@ from prody.utilities import importLA
 
 from .measure import calcCenter
 
+linalg = importLA()
+
 __all__ = ['Transformation', 'applyTransformation', 'alignCoordsets',
            'calcRMSD', 'calcTransformation', 'superpose',
            'moveAtoms', 'wrapAtoms',
@@ -149,7 +151,6 @@ def calcTransformation(mobile, target, weights=None):
 
 def getTransformation(mob, tar, weights=None):
 
-    linalg = importLA()
 
     if weights is None:
         mob_com = mob.mean(0)
