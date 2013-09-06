@@ -61,9 +61,7 @@ class NMA(object):
         if self._n_modes == 0:
             raise ValueError('{0} modes are not calculated, use '
                              'calcModes() method'.format(str(self)))
-        if isinstance(index, int):
-            return self._getMode(index)
-        elif isinstance(index, slice):
+        if isinstance(index, slice):
             indices = np.arange(*index.indices(len(self)))
             if len(indices) > 0:
                 return ModeSet(self, indices)
@@ -73,8 +71,12 @@ class NMA(object):
             if len(index) == 1:
                 return self._getMode(index[0])
             return ModeSet(self, index)
-        else:
+        try:
+            index = int(index)
+        except Exception:
             raise IndexError('indices must be int, slice, list, or tuple')
+        else:
+            return self._getMode(index)
 
     def __iter__(self):
 
