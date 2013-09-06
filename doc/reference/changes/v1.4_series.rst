@@ -1,7 +1,7 @@
 ProDy 1.4 Series
 ===============================================================================
 
-1.4.5 (in development)
+1.4.5 (Sep 6, 2013)
 -------------------------------------------------------------------------------
 
 **New Features**:
@@ -16,13 +16,25 @@ ProDy 1.4 Series
   * :func:`.matchChains` function can match non-hydrogen atoms using
     ``subset='heavy'`` keyword argument.
 
+**Improvements**:
+
+  * Unit tests can be run with Python 2.6 when `unittest2` module is installed.
+
+  .. _unittest2: https://pypi.python.org/pypi/unittest2
 
 **Bugfixes**:
+
+  * Fixed problems with reading compressed PDB files using Python 3.3.
 
   * Fixed a bug in :func:`.parseSTRIDE` function that prevented reading files.
 
   * Improved parsing of biomolecular transformations.
 
+  * Fixed memory allocation in C code used by :func:`.parseMSA` (Python 2.6).
+
+  * Fixed a potential name error in trajectory classes.
+
+  * Fixed problems in handling compressed files when using Python 2.6 and 3.3.
 
 1.4.4 (July 22, 2013)
 -------------------------------------------------------------------------------
