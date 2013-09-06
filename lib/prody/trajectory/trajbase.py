@@ -122,7 +122,7 @@ class TrajBase(object):
     numCoordsets = numFrames
 
     def numSelected(self):
-        """Return number of selected atoms.  A subset of atoms can be selected 
+        """Return number of selected atoms.  A subset of atoms can be selected
         by passing a selection to :meth:`setAtoms`."""
 
         return self._n_atoms if self._indices is None else len(self._indices)
@@ -133,27 +133,27 @@ class TrajBase(object):
         return self._atoms
 
     def setAtoms(self, atoms):
-        """Set *atoms* or specify a selection of atoms to be considered in 
-        calculations and coordinate requests.  When a selection is set, 
-        corresponding subset of coordinates will be considered in, for 
-        example, alignments and RMSD calculations.  Setting atoms also 
-        allows some functions to access atomic data when needed.  For 
-        example, :class:`.Trajectory` and :class:`.Frame` instances become 
-        suitable arguments for :func:`.writePDB`.  Passing **None** as *atoms* 
+        """Set *atoms* or specify a selection of atoms to be considered in
+        calculations and coordinate requests.  When a selection is set,
+        corresponding subset of coordinates will be considered in, for
+        example, alignments and RMSD calculations.  Setting atoms also
+        allows some functions to access atomic data when needed.  For
+        example, :class:`.Trajectory` and :class:`.Frame` instances become
+        suitable arguments for :func:`.writePDB`.  Passing **None** as *atoms*
         argument will deselect atoms."""
 
         if atoms is None:
             self._atoms = self._indices = None
             return
-        
+
         try:
             atoms.getACSIndex()
         except AttributeError:
             raise TypeError('atoms must be an Atomic instance')
-        
+
         n_atoms = self._n_atoms
         if n_atoms:
-            
+
             if atoms.numAtoms() > n_atoms:
                 raise ValueError('atoms must be same size or smaller than '
                                    'the trajectory')
@@ -169,11 +169,11 @@ class TrajBase(object):
                     indices = atoms._getIndices()
                     if indices != unique(indices):
                         raise ValueError('atoms must be ordered by indices')
-            
+
             if atoms.numAtoms() == n_atoms:
                 self._atoms = atoms
                 self._indices = None
-            
+
             else:
                 try:
                     ag = atoms.getAtomGroup()
@@ -186,25 +186,25 @@ class TrajBase(object):
                                          'of the same size as the trajectory')
                     self._atoms = atoms
                     self._indices = atoms.getIndices()
-        
+
         else:
             self._n_atoms = atoms.numAtoms()
             self._atoms = atoms
 
     def link(self, *ag):
-        """Link, return, or unlink an :class:`.AtomGroup` instance.  When a 
-        link to *ag* is established, coordinates of new frames parsed from the 
-        trajectory file will be set as the coordinates of *ag* and this will 
+        """Link, return, or unlink an :class:`.AtomGroup` instance.  When a
+        link to *ag* is established, coordinates of new frames parsed from the
+        trajectory file will be set as the coordinates of *ag* and this will
         update coordinates of all selections and atom subsets pointing to it.
-        At link time, if *ag* does not have any coordinate sets and reference 
+        At link time, if *ag* does not have any coordinate sets and reference
         coordinates of the trajectory is set, reference coordinates of the
-        trajectory will be passed to *ag*. To break an established link, pass 
+        trajectory will be passed to *ag*. To break an established link, pass
         **None** argument, or to return the linked atom group instance, call
         with no arguments.
 
         .. warning::
 
-           Every time a frame is parsed from the trajectory, all coordinate 
+           Every time a frame is parsed from the trajectory, all coordinate
            sets present in the linked :class:`.AtomGroup` will be overwritten.
         """
 
@@ -237,13 +237,13 @@ class TrajBase(object):
     def getLinked(self):
         """Return linked :class:`.AtomGroup` instance, or **None** if a link
         is not established."""
-        
+
         return self._ag
-    
+
     def isLinked(self):
         """Return **True** if trajectory is linked to an :class:`.AtomGroup`
         instance."""
-        
+
         return self._ag is not None
 
     def getCoords(self):
@@ -351,7 +351,7 @@ class TrajBase(object):
         frame instance after updating its coordinates."""
 
         pass
-    
+
     next = __next__
 
     def goto(self, n):
