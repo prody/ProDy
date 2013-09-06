@@ -16,6 +16,10 @@ ProDy 1.4 Series
   * :func:`.matchChains` function can match non-hydrogen atoms using
     ``subset='heavy'`` keyword argument.
 
+  * Added ``update_coords`` keyword argument to :meth:`.PCA.builCovariance`,
+    so that average coordinates calculated internally can be stored in
+    ensemble or trajectory objects used as input.
+
 **Improvements**:
 
   * Unit tests can be run with Python 2.6 when `unittest2` module is installed.

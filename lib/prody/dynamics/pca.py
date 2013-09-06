@@ -64,21 +64,23 @@ class PCA(NMA):
         self._trace = self._cov.trace()
 
     def buildCovariance(self, coordsets, **kwargs):
-        """Build a weighted covariance matrix for *coordsets*.  *coordsets*
-        argument may be an instance of one of the following:
+        """Build a covariance matrix for *coordsets* using mean coordinates
+        as the reference.  *coordsets* argument may be one of the following:
 
         * :class:`.Atomic`
         * :class:`.Ensemble`
         * :class:`.TrajBase`
-        * :class:`numpy.ndarray`
+        * :class:`numpy.ndarray` with shape ``(n_csets, n_atoms, 3)``
 
-        A NumPy array passed as *coordsets* argument must have the shape
-        (n_coordsets, n_atoms, 3).
+        For ensemble and trajectory objects, ``update_coords=True`` argument
+        can be used to set the mean coordinates as the coordinates of the
+        object.
 
-        When *coordsets* is a object, such as :class:`.DCDFile` a instance,
+        When *coordsets* is a trajectory object, such as :class:`.DCDFile`,
         covariance will be built by superposing frames onto the reference
         coordinate set (see :meth:`.Frame.superpose`).  If frames are already
         aligned, use ``aligned=True`` argument to skip this step.
+
 
         .. note::
            If *coordsets* is a :class:`.PDBEnsemble` instance, coordinates are
@@ -91,7 +93,9 @@ class PCA(NMA):
             raise TypeError('coordsets must be an Ensemble, Atomic, Numpy '
                             'array instance')
         LOGGER.timeit('_prody_pca')
+        mean = None
         weights = None
+        ensemble = None
         if isinstance(coordsets, np.ndarray):
             if (coordsets.ndim != 3 or coordsets.shape[2] != 3 or
                     coordsets.dtype not in (np.float32, float)):
@@ -99,9 +103,12 @@ class PCA(NMA):
         elif isinstance(coordsets, Atomic):
             coordsets = coordsets._getCoordsets()
         elif isinstance(coordsets, Ensemble):
+            ensemble = coordsets
             if isinstance(coordsets, PDBEnsemble):
                 weights = coordsets.getWeights() > 0
             coordsets = coordsets._getCoordsets()
+
+        update_coords = bool(kwargs.get('update_coords', False))
 
         if isinstance(coordsets, TrajBase):
             nfi = coordsets.nextIndex()
@@ -109,7 +116,7 @@ class PCA(NMA):
             n_atoms = coordsets.numSelected()
             dof = n_atoms * 3
             cov = np.zeros((dof, dof))
-            mean = coordsets._getCoords().flatten()
+            #mean = coordsets._getCoords().flatten()
             n_confs = 0
             n_frames = len(coordsets)
             LOGGER.info('Covariance will be calculated using {0} frames.'
@@ -128,9 +135,12 @@ class PCA(NMA):
             LOGGER.clear()
             cov /= n_confs
             coordsum /= n_confs
+            mean = coordsum
             cov -= np.outer(coordsum, coordsum)
             coordsets.goto(nfi)
             self._cov = cov
+            if update_coords:
+                coordsets.setCoords(mean.reshape((n_atoms, 3)))
         else:
             n_confs = coordsets.shape[0]
             if n_confs < 3:
@@ -170,6 +180,11 @@ class PCA(NMA):
                 divide_by = weights.astype(float).repeat(3, axis=2).reshape(s)
                 self._cov = np.dot(d_xyz.T, d_xyz) / np.dot(divide_by.T,
                                                             divide_by)
+            if update_coords and ensemble is not None:
+                if mean is None:
+                    mean = coordsets.mean(0)
+                ensemble.setCoords(mean)
+
         self._trace = self._cov.trace()
         self._dof = dof
         self._n_atoms = n_atoms
