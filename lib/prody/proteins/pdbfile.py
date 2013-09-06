@@ -29,10 +29,10 @@ import os.path
 
 import numpy as np
 
-from prody.atomic import Atomic, Atom, AtomGroup
+from prody.atomic import AtomGroup
 from prody.atomic import flags
 from prody.atomic import ATOMIC_FIELDS
-from prody.utilities import openFile, Everything
+from prody.utilities import openFile
 from prody import LOGGER, SETTINGS
 
 from .header import getHeaderDict, buildBiomolecules, assignSecstr
