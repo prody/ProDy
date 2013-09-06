@@ -138,7 +138,9 @@ class TrajBase(object):
         allows some functions to access atomic data when needed.  For
         example, :class:`.Trajectory` and :class:`.Frame` instances become
         suitable arguments for :func:`.writePDB`.  Passing **None** as *atoms*
-        argument will deselect atoms."""
+        argument will deselect atoms.  Note that setting atoms does not change
+        the reference coordinates of the trajectory.  To change the reference,
+        use :meth:`.setCoords` method."""
 
         if atoms is None:
             self._atoms = self._indices = None
