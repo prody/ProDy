@@ -137,10 +137,14 @@ class MSAFile(object):
             self._stream = msa
             self._title = 'stream'
             try:
-                if self._stream.closed:
-                    raise ValueError('msa stream must not be closed')
+                closed = self._stream.closed
             except AttributeError:
-                pass
+                closed = self._stream.myfileobj.closed
+            else:
+                closed = True
+            if closed:
+                raise ValueError('msa stream must not be closed')
+
 
         self._lenseq = None
         self._closed = False
@@ -241,9 +245,12 @@ class MSAFile(object):
             self._closed = True
             return
 
-        if (not self._stream.closed and not self._mode.startswith('r') and
-                self._format == STOCKHOLM):
-            self._write('//\n')
+        if not self._mode.startswith('r') and self._format == STOCKHOLM:
+            try:
+                self._write('//\n')
+            except ValueError:
+                LOGGER.info('Failed to write terminal slash characters to '
+                            'closed file.')
 
         try:
             self._stream.close()
