@@ -11,6 +11,7 @@ before_install:
   - free -m
   - df -h
   - ulimit -a
+  - pip freeze
   - sudo apt-get update -qq
   - sudo apt-get install -qq libatlas-dev libatlas-base-dev liblapack-dev gfortran
   - pip install nose
