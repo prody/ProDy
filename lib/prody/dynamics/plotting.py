@@ -31,6 +31,7 @@ from collections import defaultdict
 import numpy as np
 
 from prody import LOGGER, SETTINGS
+from prody.utilities import showFigure
 
 from .nma import NMA
 from .gnm import GNMBase
@@ -132,7 +133,7 @@ def showEllipsoid(modes, onto=None, n_std=2, scale=1., *args, **kwargs):
         show.set_ylabel('Mode {0} coordinate'.format(int(modes[1])+1))
         show.set_zlabel('Mode {0} coordinate'.format(int(modes[2])+1))
     if SETTINGS['auto_show']:
-        plt.show(block=False)
+        showFigure()
     return show
 
 
@@ -157,7 +158,7 @@ def showFractVars(modes, *args, **kwargs):
     plt.xlabel('Mode index')
     plt.ylabel('Fraction of variance')
     if SETTINGS['auto_show']:
-        plt.show(block=False)
+        showFigure()
     return show
 
 
@@ -188,7 +189,7 @@ def showCumulFractVars(modes, *args, **kwargs):
     plt.xlabel('Mode index')
     plt.ylabel('Fraction of variance')
     if SETTINGS['auto_show']:
-        plt.show(block=False)
+        showFigure()
     return show
 
 
@@ -326,7 +327,7 @@ def showProjection(ensemble, modes, *args, **kwargs):
         show.set_zlabel('Mode {0} coordinate'.format(int(modes[2])+1))
 
     if SETTINGS['auto_show']:
-        plt.show(block=False)
+        showFigure()
     return show
 
 
@@ -435,7 +436,7 @@ def showCrossProjection(ensemble, mode_x, mode_y, scale=None, *args, **kwargs):
     plt.xlabel('{0} coordinate'.format(mode_x))
     plt.ylabel('{0} coordinate'.format(mode_y))
     if SETTINGS['auto_show']:
-        plt.show(block=False)
+        showFigure()
     return show
 
 
@@ -470,7 +471,7 @@ def showOverlapTable(modes_x, modes_y, **kwargs):
     plt.ylabel(str(modes_y))
     plt.axis([0, modes_x.numModes(), 0, modes_y.numModes()])
     if SETTINGS['auto_show']:
-        plt.show(block=False)
+        showFigure()
     return show
 
 
@@ -495,7 +496,7 @@ def showCrossCorr(modes, *args, **kwargs):
     plt.xlabel('Indices')
     plt.ylabel('Indices')
     if SETTINGS['auto_show']:
-        plt.show(block=False)
+        showFigure()
     return show
 
 
@@ -516,7 +517,7 @@ def showMode(mode, *args, **kwargs):
     plt.title(str(mode))
     plt.xlabel('Indices')
     if SETTINGS['auto_show']:
-        plt.show(block=False)
+        showFigure()
     return show
 
 
@@ -533,7 +534,7 @@ def showSqFlucts(modes, *args, **kwargs):
     plt.ylabel('Square fluctuations')
     plt.title(str(modes))
     if SETTINGS['auto_show']:
-        plt.show(block=False)
+        showFigure()
     return show
 
 
@@ -563,7 +564,7 @@ def showScaledSqFlucts(modes, *args, **kwargs):
                              label='{0} (x{1:.2f})'.format(str(modes), scalar),
                              **kwargs))
     if SETTINGS['auto_show']:
-        plt.show(block=False)
+        showFigure()
     return show
 
 
@@ -590,7 +591,7 @@ def showNormedSqFlucts(modes, *args, **kwargs):
         show.append(plt.plot(sqf/(sqf**2).sum()**0.5, *args,
                     label='{0}'.format(str(modes)), **kwargs))
     if SETTINGS['auto_show']:
-        plt.show(block=False)
+        showFigure()
     return show
 
 
@@ -609,7 +610,7 @@ def showContactMap(enm, *args, **kwargs):
     plt.xlabel('Residue index')
     plt.ylabel('Residue index')
     if SETTINGS['auto_show']:
-        plt.show(block=False)
+        showFigure()
     return show
 
 
@@ -639,7 +640,7 @@ def showOverlap(mode, modes, *args, **kwargs):
     plt.xlabel('{0} mode index'.format(modes))
     plt.ylabel('Overlap')
     if SETTINGS['auto_show']:
-        plt.show(block=False)
+        showFigure()
     return show
 
 
@@ -669,7 +670,7 @@ def showCumulOverlap(mode, modes, *args, **kwargs):
     plt.ylabel('Cumulative overlap')
     plt.axis((arange[0]-0.5, arange[-1]+0.5, 0, 1))
     if SETTINGS['auto_show']:
-        plt.show(block=False)
+        showFigure()
     return show
 
 
@@ -744,7 +745,7 @@ def showDiffMatrix(matrix1, matrix2, *args, **kwargs):
     plt.axis([-.5, shape1[1] - .5, -.5, shape1[0] - .5])
     plt.title('Difference Matrix')
     if SETTINGS['auto_show']:
-        plt.show(block=False)
+        showFigure()
     plt.xlabel('Indices')
     plt.ylabel('Indices')
     return show
