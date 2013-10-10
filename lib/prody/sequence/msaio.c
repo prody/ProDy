@@ -114,9 +114,9 @@ static PyObject *parseFasta(PyObject *self, PyObject *args) {
        Numpy array passed as Python object. */
 
     char *filename;
-    long filesize;
+    PyArrayObject *msa;
 
-    if (!PyArg_ParseTuple(args, "sl", &filename, &filesize))
+    if (!PyArg_ParseTuple(args, "sO", &filename, &msa))
         return NULL;
 
     PyObject *labels = PyList_New(0), *mapping = PyDict_New();
@@ -127,11 +127,7 @@ static PyObject *parseFasta(PyObject *self, PyObject *args) {
     if (!line)
         return PyErr_NoMemory();
 
-    char *data = malloc(filesize * sizeof(char));
-    if (!data) {
-        free(line);
-        return PyErr_NoMemory();
-    }
+    char *data = (char *) PyArray_DATA(msa);
 
     int aligned = 1;
     char ch, errmsg[LENLABEL] = "failed to parse FASTA file at line ";
@@ -172,15 +168,16 @@ static PyObject *parseFasta(PyObject *self, PyObject *args) {
 
     free(line);
     if (aligned && seqlen != curlen) {
-        free(data);
         PyErr_SetString(PyExc_IOError, intcat(errmsg, iline));
         return NULL;
     }
-    data = realloc(data, index * sizeof(char));
+
     npy_intp dims[2] = {index / seqlen, seqlen};
-    PyObject *msa = PyArray_SimpleNewFromData(2, dims, PyArray_CHAR, data);
+    PyArray_Dims arr_dims;
+    arr_dims.ptr = dims;
+    arr_dims.len = 2;
+    PyArray_Resize(msa, &arr_dims, 0, NPY_CORDER);
     PyObject *result = Py_BuildValue("(OOOi)", msa, labels, mapping, count);
-    Py_DECREF(msa);
     Py_DECREF(labels);
     Py_DECREF(mapping);
     return result;
@@ -263,9 +260,9 @@ static PyObject *parseSelex(PyObject *self, PyObject *args) {
        Numpy array passed as Python object.  */
 
     char *filename;
-    long filesize;
+    PyArrayObject *msa;
 
-    if (!PyArg_ParseTuple(args, "sl", &filename, &filesize))
+    if (!PyArg_ParseTuple(args, "sO", &filename, &msa))
         return NULL;
 
     long i = 0, beg = 0, end = 0;
@@ -278,12 +275,7 @@ static PyObject *parseSelex(PyObject *self, PyObject *args) {
     char *line = malloc(size * sizeof(char));
     if (!line)
         return PyErr_NoMemory();
-    char *data = malloc(filesize * sizeof(char));
-    if (!data) {
-        free(line);
-        return PyErr_NoMemory();
-    }
-
+    char *data = (char *) PyArray_DATA(msa);
     /* figure out where the sequence starts and ends in a line*/
     FILE *file = fopen(filename, "rb");
     while (fgets(line, size, file) != NULL) {
@@ -317,7 +309,6 @@ static PyObject *parseSelex(PyObject *self, PyObject *args) {
 
         if (line[space] != ' ') {
             free(line);
-            free(data);
             fclose(file);
             PyErr_SetString(PyExc_IOError, intcat(errmsg, iline));
             return NULL;
@@ -330,12 +321,12 @@ static PyObject *parseSelex(PyObject *self, PyObject *args) {
     }
     fclose(file);
     free(line);
-
-    data = realloc(data, index * sizeof(char));
     npy_intp dims[2] = {index / seqlen, seqlen};
-    PyObject *msa = PyArray_SimpleNewFromData(2, dims, PyArray_CHAR, data);
+    PyArray_Dims arr_dims;
+    arr_dims.ptr = dims;
+    arr_dims.len = 2;
+    PyArray_Resize(msa, &arr_dims, 0, NPY_CORDER);
     PyObject *result = Py_BuildValue("(OOOi)", msa, labels, mapping, count);
-    Py_DECREF(msa);
     Py_DECREF(labels);
     Py_DECREF(mapping);
 
