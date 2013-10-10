@@ -547,14 +547,15 @@ def parseMSA(filename, **kwargs):
             msaarr = array(seqlist, '|S' + str(maxlen))
     else:
         filesize = getsize(filename)
-        format = MSAEXTMAP[splitext(filename)[1]]
+        format = MSAEXTMAP.get(splitext(filename)[1])
 
         if format == FASTA:
             from .msaio import parseFasta as parser
         elif format == SELEX or format == STOCKHOLM:
             from .msaio import parseSelex as parser
         else:
-            raise IOError('MSA file format is not recognized')
+            raise IOError('MSA file format is not recognized from the '
+                          'extension')
 
         msaarr, labels, mapping, lcount = parser(filename, filesize)
         if lcount != len(msaarr):
