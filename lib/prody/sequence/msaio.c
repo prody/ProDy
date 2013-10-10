@@ -36,7 +36,7 @@ static char *intcat(char *msg, int line) {
 }
 
 
-static int parseLabel(PyObject *labels, PyObject *mapping, char line[],
+static int parseLabel(PyObject *labels, PyObject *mapping, char *line,
                       int length) {
 
     /* Append label to *labels*, extract identifier, and index label
@@ -75,35 +75,34 @@ static int parseLabel(PyObject *labels, PyObject *mapping, char line[],
         return 0;
     }
 
-    PyObject *key = label;
-
     if (slash > 0 && dash > slash) {
         Py_DECREF(label);
         #if PY_MAJOR_VERSION >= 3
-        key = PyUnicode_FromStringAndSize(line, slash);
+        label = PyUnicode_FromStringAndSize(line, slash);
         #else
-        key = PyString_FromStringAndSize(line, slash);
+        label = PyString_FromStringAndSize(line, slash);
         #endif
     }
 
-    if (PyDict_Contains(mapping, key)) {
-        PyObject *item = PyDict_GetItem(mapping, key); /* borrowed */
+    if (PyDict_Contains(mapping, label)) {
+        PyObject *item = PyDict_GetItem(mapping, label); /* borrowed */
         if (PyList_Check(item)) {
             PyList_Append(item, index);
             Py_DECREF(index);
         } else {
             PyObject *list = PyList_New(2); /* new reference */
             PyList_SetItem(list, 0, item);
+            Py_INCREF(item);
             PyList_SetItem(list, 1, index); /* steals reference, no DECREF */
-            PyDict_SetItem(mapping, key, list);
+            PyDict_SetItem(mapping, label, list);
             Py_DECREF(list);
         }
     } else {
-        PyDict_SetItem(mapping, key, index);
+        PyDict_SetItem(mapping, label, index);
         Py_DECREF(index);
     }
 
-    Py_DECREF(key);
+    Py_DECREF(label);
     return 1;
 }
 
