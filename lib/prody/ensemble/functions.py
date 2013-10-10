@@ -25,7 +25,7 @@ import os.path
 import numpy as np
 
 from prody.proteins import fetchPDB, parsePDB, writePDB
-from prody.utilities import openFile
+from prody.utilities import openFile, showFigure
 from prody import LOGGER, SETTINGS
 
 from .ensemble import *
@@ -194,7 +194,7 @@ def showOccupancies(pdbensemble, *args, **kwargs):
     plt.xlabel('Atom index')
     plt.ylabel('Sum of weights')
     if SETTINGS['auto_show']:
-        plt.show(block=False)
+        showFigure()
     return show
 
 

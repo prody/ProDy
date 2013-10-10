@@ -24,7 +24,7 @@ __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 import numpy as np
 
 from prody.atomic import Atomic, Atom, AtomGroup, Selection, HierView
-from prody.utilities import openFile
+from prody.utilities import openFile, showFigure
 from prody import SETTINGS
 
 __all__ = ['showProtein', 'writePQR', ]
@@ -204,5 +204,5 @@ def showProtein(*atoms, **kwargs):
     if kwargs.get('legend', False):
         show.legend(prop={'size': 10})
     if SETTINGS['auto_show']:
-        plt.show(block=False)
+        showFigure()
     return show
