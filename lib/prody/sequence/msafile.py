@@ -24,7 +24,7 @@ __copyright__ = 'Copyright (C) 2010-2012 Anindita Dutta, Ahmet Bakan'
 
 from os.path import isfile, splitext, split, getsize
 
-from numpy import array, fromstring
+from numpy import array, fromstring, empty
 
 from .sequence import splitSeqLabel, Sequence
 
@@ -556,8 +556,8 @@ def parseMSA(filename, **kwargs):
         else:
             raise IOError('MSA file format is not recognized from the '
                           'extension')
-
-        msaarr, labels, mapping, lcount = parser(filename, filesize)
+        msaarr = empty(filesize, '|S1')
+        msaarr, labels, mapping, lcount = parser(filename, msaarr)
         if lcount != len(msaarr):
             LOGGER.warn('Failed to parse {0} sequence labels.'
                         .format(len(msaarr) - lcount))
