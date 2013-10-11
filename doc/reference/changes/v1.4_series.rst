@@ -1,6 +1,23 @@
 ProDy 1.4 Series
 ===============================================================================
 
+1.4.5 (in development)
+-------------------------------------------------------------------------------
+
+**Bugfixes**:
+
+  * Fixed a memory leak in MSA parsers written in C.  When dealing with
+    large files, leak would cause a segmentation fault.
+
+  * Fixed a reference counting problem in MSA parsers in C that would
+    cause segmentation fault when reading files that uses the same
+    label for multiple sequences.
+
+  * Updated :func:`.fetchPDBLigand` to use PDB for fetching XML files.
+
+  * Revised handling of MSA file formats to avoid exceptions for unknown
+    extensions.
+
 1.4.5 (Sep 6, 2013)
 -------------------------------------------------------------------------------
 
