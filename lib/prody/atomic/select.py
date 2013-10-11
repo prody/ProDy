@@ -467,12 +467,16 @@ from numpy import array, ndarray, ones, zeros, arange
 from numpy import invert, unique, concatenate, all, any
 from numpy import logical_and, logical_or, floor, ceil, where
 
-if sys.version_info[0] == 2:
-    from . import pyparsing_py2 as pp
-    from .pyparsing_py2 import ParseException
-else:
-    from . import pyparsing_py3 as pp
-    from .pyparsing_py3 import ParseException
+try:
+    import pyparsing as pp
+    from pyparsing import ParseException
+except:
+    if sys.version_info[0] == 2:
+        from . import pyparsing_py2 as pp
+        from .pyparsing_py2 import ParseException
+    else:
+        from . import pyparsing_py3 as pp
+        from .pyparsing_py3 import ParseException
 
 
 from prody import LOGGER, SETTINGS, PY2K
