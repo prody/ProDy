@@ -22,19 +22,14 @@ sets and handling periodic boundary conditions."""
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
-from os.path import isdir, isfile, join
-
-from numpy import array, ndarray, concatenate, mod
+from numpy import array, ndarray, concatenate
 
 from prody import LOGGER
 
 try:
+    from Bio.KDTree._CKDTree import KDTree as CKDTree
+except ImportError:
     from ._CKDTree import KDTree as CKDTree
-except ImportError as err:
-    try:
-        from Bio.KDTree._CKDTree import KDTree as CKDTree
-    except ImportError:
-        raise ImportError(str(err))
 
 __all__ = ['KDTree']
 
