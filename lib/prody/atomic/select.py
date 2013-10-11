@@ -1797,7 +1797,7 @@ class Select(object):
                     return coords[:, XYZ2INDEX[arg]].copy(), False
                 else:
                     return coords[:, XYZ2INDEX[arg]], False
-
+        arg = FIELDS_SYNONYMS.get(arg, arg)
         try:
             if copy:
                 data = self._atoms.getData(arg)
