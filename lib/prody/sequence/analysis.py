@@ -27,7 +27,7 @@ from prody import LOGGER
 
 __all__ = ['calcShannonEntropy', 'buildMutinfoMatrix', 'calcMSAOccupancy',
            'applyMutinfoCorr', 'applyMutinfoNorm', 'calcRankorder',
-           'buildSeqidMatrix', 'uniqueSequences']
+           'buildSeqidMatrix', 'uniqueSequences', 'buildOMESMatrix']
 
 
 doc_turbo = """
@@ -349,3 +349,41 @@ def calcRankorder(matrix, zscore=False, **kwargs):
         column = ind_column[sorted_index]
 
     return (row, column, matrix[row, column])
+
+def buildOMESMatrix(msa, ambiguity=True, turbo=True, **kwargs):
+    """Return OMES (Observed Minus Expected Squared Covariance ) matrix 
+    calculated for *msa*, which may be an :class:`.MSA` instance or a 2D
+    Numpy character array.
+
+                      (N_OBS - N_EX)^2              (f_i,j - f_i * f_j)^2
+    OMES_(i,j) = sum(------------------) = N * sum(-----------------------)
+                           N_EX                           f_i * f_j
+
+    Implementation is case insensitive and handles ambiguous amino acids 
+    as follows:
+
+      * **B** (Asx) count is allocated to *D* (Asp) and *N* (Asn)
+      * **Z** (Glx) count is allocated to *E* (Glu) and *Q* (Gln)
+      * **J** (Xle) count is allocated to *I* (Ile) and *L* (Leu)
+      * **X** (Xaa) count is allocated to the twenty standard amino acids
+      * Joint probability of observing a pair of ambiguous amino acids is
+        allocated to all potential combinations, e.g. probability of **XX**
+        is allocated to 400 combinations of standard amino acids, similarly
+        probability of **XB** is allocated to 40 combinations of *D* and *N*
+        with the standard amino acids.
+
+    Selenocysteine (**U**, Sec) and pyrrolysine (**O**, Pyl) are considered
+    as distinct amino acids.  When *ambiguity* is set **False**, all alphabet
+    characters as considered as distinct types.  All non-alphabet characters
+    are considered as gaps."""
+
+    msa = getMSA(msa)
+
+    from .msatools import msaomes
+    LOGGER.timeit('_omes')
+    omes = msaomes(msa, ambiguity=bool(ambiguity), turbo=bool(turbo),
+                         debug=bool(kwargs.get('debug', False)))
+    LOGGER.report('OMES matrix was calculated in %.2fs.',
+                  '_omes')
+
+    return omes

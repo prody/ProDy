@@ -875,6 +875,326 @@ static PyObject *msaocc(PyObject *self, PyObject *args, PyObject *kwargs) {
 }
 
 
+static double calcOMES(double **joint, double **probs, long i, long j, int n) {
+
+    /* Calculate OMES for a pair of columns in MSA. */
+    
+    int k, l;
+    double *jrow, *iprb = probs[i], *jprb = probs[j], jp, omes = 0, inside;
+    for (k = 0; k < NUMCHARS; k++) {
+        jrow = joint[k];
+        for (l = 0; l < NUMCHARS; l++) {
+            jp = jrow[l];
+            if (jp > 0) {
+                inside = iprb[k] * jprb[l];
+                if (inside != 0)
+                    omes += n * (jp - inside) * (jp - inside) / inside;
+            }
+        }
+    }
+    return omes;
+}
+
+
+static PyObject *msaomes(PyObject *self, PyObject *args, PyObject *kwargs) {
+
+    PyArrayObject *msa;
+    int ambiguity = 1, turbo = 1, debug = 0;
+    
+    static char *kwlist[] = {"msa", "ambiguity", "turbo", "debug", NULL};
+        
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|iii", kwlist, &msa, 
+                                     &ambiguity, &turbo, &debug))
+        return NULL;
+
+    /* make sure to have a contiguous and well-behaved array */
+    msa = PyArray_GETCONTIGUOUS(msa); 
+
+    /* check dimensions */
+    long number = msa->dimensions[0], length = msa->dimensions[1];
+    
+    /* get pointers to data */
+    char *seq = (char *) PyArray_DATA(msa); /*size: number x length */
+    
+
+    long i, j;
+    /* allocate memory */
+    double *omes = malloc(length * length * sizeof(double));
+    if (!omes)
+        return PyErr_NoMemory();
+
+    unsigned char *iseq = malloc(number * sizeof(unsigned char));
+    if (!iseq) {
+        free(omes);
+        return PyErr_NoMemory();
+    }
+        
+    
+    /* hold transpose of the sorted character array */
+    unsigned char **trans = malloc(length * sizeof(unsigned char *));
+    if (!trans) {
+        turbo = 0;
+    }
+    
+    if (turbo) {
+        /* allocate rows that will store columns of MSA */
+        trans[0] = iseq;
+        for (i = 1; i < length; i++) {
+            trans[i] = malloc(number * sizeof(unsigned char));
+            if (!trans[i]) {
+                for (j = 1; j < i; j++)
+                    free(trans[j]);
+                free(trans);
+                turbo = 0;
+            }
+        }
+    }
+    unsigned char *jseq = iseq; /* so that we don't get uninitialized warning*/
+    
+    /* length*27, a row for each column in the MSA */
+    double **probs = malloc(length * sizeof(double *)), *prow;
+    if (!probs) {
+        free(omes);
+        if (turbo)
+            for (j = 1; j < length; j++)
+                free(trans[j]);
+        free(trans);
+        free(iseq);
+        return PyErr_NoMemory();
+    }
+
+    /* 27x27, alphabet characters and a gap*/
+    double **joint = malloc(NUMCHARS * sizeof(double *)), *jrow;
+    if (!joint) {
+        free(omes);
+        if (turbo)
+            for (j = 1; j < length; j++)
+                free(trans[j]);
+        free(trans);
+        free(iseq);
+        free(probs);
+        return PyErr_NoMemory();
+    }
+    
+    for (i = 0; i < length; i++) {
+        prow = malloc(NUMCHARS * sizeof(double));
+        if (!prow) {
+            free(omes);
+            for (j = 0; j < i; j++)
+                free(probs[j]);
+            free(probs);
+            free(joint);
+            if (turbo)
+                for (j = 1; j < length; j++)
+                    free(trans[j]);
+            free(trans);
+            free(iseq);
+            return PyErr_NoMemory();
+        }
+        probs[i] = prow; 
+        for (j = 0; j < NUMCHARS; j++)
+            prow[j] = 0;
+    }
+
+    for (i = 0; i < NUMCHARS; i++)  {
+        joint[i] = malloc(NUMCHARS * sizeof(double));  
+        if (!joint[i]) {
+            free(omes);
+            for (j = 0; j < i; j++)
+                free(joint[j]);
+            free(joint);
+            for (j = 0; j < length; j++)
+                free(probs[j]);
+            free(probs);
+            if (turbo)
+                for (j = 1; j < length; j++)
+                    free(trans[j]);
+            free(trans);
+            free(iseq);
+            return PyErr_NoMemory();
+        }
+    }
+    
+    if (debug)
+        printProbs(probs, length);
+
+    unsigned char a, b;
+    long k, l, diff, offset;
+    double p_incr = 1. / number;
+    double prb = 0;
+    prow = probs[0];
+    
+    /* zero omes array */
+    for (i = 0; i < length; i++) {
+        jrow = omes + i * length;
+        for (j = 0; j < length; j++)
+            jrow[j] = 0;
+    }
+    
+    /* START OMES calculation */    
+    /* calculate first row of OMES matrix and all column probabilities */
+    i = 0;
+    for (j = 1; j < length; j++) {
+        jrow = probs[j];
+        zeroJoint(joint);
+        diff = j - 1;
+        if (turbo) /* in turbo mode, there is a row for refined sequences */
+            jseq = trans[j]; 
+        for (k = 0; k < number; k++) {
+            offset = k * length;
+            if (diff) {
+                a = iseq[k];
+            } else {
+                a = (unsigned char) seq[offset + i];
+                if (a > 90)
+                    a -= 96;
+                else
+                    a -= 64;
+                if (a < 1 || a > 26)
+                    a = 0; /* gap character */
+                iseq[k] = a;
+                prow[a] += p_incr;
+            }
+            
+            b = (unsigned char) seq[offset + j];
+            if (b > 90)
+                b -= 96;
+            else
+                b -= 64;
+            if (b < 1 || b > 26)
+                b = 0; /* gap character */
+            if (turbo)  /* we keep the refined chars for all sequences*/
+                jseq[k] = b;
+            joint[a][b] += p_incr;
+            jrow[b] += p_incr;
+        }
+        
+        if (ambiguity) {
+
+            if (debug)
+                printProbs(probs, length);
+            if (diff)
+                k = j;
+            else
+                k = 0;
+            for (; k <= j; k++) {
+                prow = probs[k];
+                prb = prow[2];
+                if (prb > 0) { /* B -> D, N  */
+                    prb = prb / 2.;
+                    prow[4] += prb;
+                    prow[14] += prb;
+                    prow[2] = 0;
+                }
+                prb = prow[10];
+                if (prb > 0) { /* J -> I, L  */
+                    prb = prb / 2.;
+                    prow[9] += prb; 
+                    prow[12] += prb;
+                    prow[10] = 0;
+                }
+                prb = prow[26]; 
+                if (prb > 0) { /* Z -> E, Q  */
+                    prb = prb / 2.;
+                    prow[5] += prb;
+                    prow[17] += prb;
+                    prow[26] = 0;
+                }
+                if (prow[24] > 0) { /* X -> 20 AA */
+                    prb = prow[24] / 20.; 
+                    for (l = 0; l < 20; l++)
+                        prow[twenty[l]] += prb;
+                    prow[24] = 0;
+                }
+            }
+
+            if (debug)
+                printProbs(probs, length);
+            if (debug)
+                printJoint(joint, i, j);
+            sortJoint(joint);
+            if (debug)
+                printJoint(joint, i, j);
+        }
+        omes[j] = omes[length * j] = calcOMES(joint, probs, i, j, number);
+    }
+    if (debug)
+        printProbs(probs, length);
+    if (turbo)
+        free(iseq);
+
+    
+    /* calculate rest of OMES matrix */
+    long ioffset;
+    for (i = 1; i < length; i++) {
+        ioffset = i * length;
+        if (turbo)
+            iseq = trans[i];
+            
+        for (j = i + 1; j < length; j++) {
+            zeroJoint(joint);
+
+            if (turbo) {
+                jseq = trans[j];
+                for (k = 0; k < number; k++)
+                    joint[iseq[k]][jseq[k]] += p_incr;
+                    
+            } else {         
+                diff = j - i - 1;
+                for (k = 0; k < number; k++) {
+                    offset = k * length;
+                    if (diff) {
+                        a = iseq[k];
+                    } else {
+                        a = (unsigned char) seq[offset + i];
+                        if (a > 90)
+                            a -= 96;
+                        else
+                            a -= 64;
+                        if (a < 1 || a > 26)
+                            a = 0; /* gap character */
+                        iseq[k] = a;
+                    }
+                    
+                    b = (unsigned char) seq[offset + j];
+                    if (b > 90)
+                        b -= 96;
+                    else
+                        b -= 64;
+                    if (b < 1 || b > 26)
+                        b = 0; /* gap character */
+                    joint[a][b] += p_incr;
+                }
+            }
+            if (ambiguity)
+                sortJoint(joint);
+        omes[ioffset + j] = omes[i + length * j] = 
+        calcOMES(joint, probs, i, j, number);
+        }
+    }
+
+    /* free memory */
+    for (i = 0; i < length; i++){  
+        free(probs[i]);
+    }  
+    free(probs);
+    for (i = 0; i < NUMCHARS; i++){  
+        free(joint[i]);
+    }  
+    free(joint);
+    if (turbo)
+        for (j = 1; j < length; j++)
+            free(trans[j]);
+    free(trans);
+
+    npy_intp dims[2] = {length, length};
+    PyObject *omesinfo = PyArray_SimpleNewFromData(2, dims, NPY_DOUBLE, omes);
+    PyObject *result = Py_BuildValue("O", omesinfo);
+    Py_DECREF(omesinfo);
+    return result;
+}
+
+
 static PyMethodDef msatools_methods[] = {
 
     {"msaentropy",  (PyCFunction)msaentropy, 
@@ -888,6 +1208,10 @@ static PyMethodDef msatools_methods[] = {
      
     {"msaocc",  (PyCFunction)msaocc, METH_VARARGS | METH_KEYWORDS,
      "Return occupancy (or count) array calculated for MSA rows or columns."},
+
+    {"msaomes",  (PyCFunction)msaomes, METH_VARARGS | METH_KEYWORDS, 
+     "Return OMES matrix calculated for given character array that contains\n"
+     "an MSA."},
 
     {NULL, NULL, 0, NULL}
 };
