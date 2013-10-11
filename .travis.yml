@@ -17,6 +17,7 @@ before_install:
   - pip install numpy
   - pip freeze
   - ls -l
+  - chmod +x *.sh
   - if [[ $TRAVIS_PYTHON_VERSION == "2.6" ]]; then pip install unittest2; fi
   - if [[ $TRAVIS_PYTHON_VERSION == "2.7" ]]; then ./devel_remove_contrib.sh; pip install pyparsing biopython; fi
 install:
