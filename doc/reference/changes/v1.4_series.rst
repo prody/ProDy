@@ -1,10 +1,15 @@
 ProDy 1.4 Series
 ===============================================================================
 
-1.4.5 (in development)
+1.4.6 (in development)
 -------------------------------------------------------------------------------
 
 **Bugfixes**:
+
+  * Selection problem with using :term:`resid` is fixed (:issue:`160`)
+
+  * Fixed a memory leak in MSA parsers written in C.  When dealing with
+    large files, leak would cause a segmentation fault.
 
   * Fixed a memory leak in MSA parsers written in C.  When dealing with
     large files, leak would cause a segmentation fault.
@@ -257,5 +262,5 @@ ProDy 1.4 Series
 
 **Bugfix**:
 
-  * Selection :issue:`12` and  :issue:`13` are resolved.
+  * Selection :bbissue:`12` and  :bbissue:`13` are resolved.
 

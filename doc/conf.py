@@ -98,7 +98,8 @@ html_show_sphinx = True
 html_show_copyright = True
 
 extlinks = {
-    'issue': ('https://bitbucket.org/abakan/prody/issue/%s', 'issue '),
+    'issue': ('https://github.com/abakan/ProDy/issues/%s', 'issue '),
+    'bbissue': ('https://bitbucket.org/abakan/prody/issue/%s', 'issue '),
     'pdb': ('http://www.pdb.org/pdb/explore/explore.do?structureId=%s', ''),
     'wiki': ('http://en.wikipedia.org/wiki/%s', ''),
     'pfam': ('http://pfam.sanger.ac.uk/family/%s', ''),
