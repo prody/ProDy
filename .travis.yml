@@ -11,11 +11,12 @@ before_install:
   - free -m
   - df -h
   - ulimit -a
-  - pip freeze
   - sudo apt-get update -qq
   - sudo apt-get install -qq libatlas-dev libatlas-base-dev liblapack-dev gfortran
   - pip install nose
   - pip install numpy
+  - pip freeze
+  - ls -l
   - if [[ $TRAVIS_PYTHON_VERSION == "2.6" ]]; then pip install unittest2; fi
   - if [[ $TRAVIS_PYTHON_VERSION == "2.7" ]]; then ./devel_remove_contrib.sh; pip install pyparsing biopython; fi
 install:
