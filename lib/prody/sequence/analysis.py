@@ -27,7 +27,8 @@ from prody import LOGGER
 
 __all__ = ['calcShannonEntropy', 'buildMutinfoMatrix', 'calcMSAOccupancy',
            'applyMutinfoCorr', 'applyMutinfoNorm', 'calcRankorder',
-           'buildSeqidMatrix', 'uniqueSequences', 'buildOMESMatrix']
+           'buildSeqidMatrix', 'uniqueSequences', 'buildOMESMatrix',
+           'buildSCAMatrix' ]
 
 
 doc_turbo = """
@@ -387,3 +388,33 @@ def buildOMESMatrix(msa, ambiguity=True, turbo=True, **kwargs):
                   '_omes')
 
     return omes
+
+
+def buildSCAMatrix(msa, turbo=True, **kwargs):
+    """Return SCA matrix calculated for *msa*, which may be an :class:`.MSA`
+    instance or a 2D Numpy character array.
+
+    Implementation is case insensitive and handles ambiguous amino acids 
+    as follows:
+
+      * **B** (Asx) count is allocated to *D* (Asp) and *N* (Asn)
+      * **Z** (Glx) count is allocated to *E* (Glu) and *Q* (Gln)
+      * **J** (Xle) count is allocated to *I* (Ile) and *L* (Leu)
+      * **X** (Xaa) count is allocated to the twenty standard amino acids
+      * Joint probability of observing a pair of ambiguous amino acids is
+        allocated to all potential combinations, e.g. probability of **XX**
+        is allocated to 400 combinations of standard amino acids, similarly
+        probability of **XB** is allocated to 40 combinations of *D* and *N*
+        with the standard amino acids.
+
+    Selenocysteine (**U**, Sec) and pyrrolysine (**O**, Pyl) are considered
+    as distinct amino acids.  When *ambiguity* is set **False**, all alphabet
+    characters as considered as distinct types.  All non-alphabet characters
+    are considered as gaps."""
+
+    msa = getMSA(msa)
+    from .msatools import msasca
+    LOGGER.timeit('_sca')
+    sca = msasca(msa, turbo=bool(turbo))
+    LOGGER.report('SCA matrix was calculated in %.2fs.', '_sca')
+    return sca
