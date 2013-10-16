@@ -12,7 +12,19 @@
     <script type="text/javascript" src="_static/js/jquery-2.0.0.min.js"></script>
     <script type="text/javascript" src="_static/js/bootstrap.min.js"></script>
     <script type="text/javascript" src="_static/js/prodydocs.js"></script>
+    <script type="text/javascript">
 
+      var _gaq = _gaq || [];
+      _gaq.push(['_setAccount', 'UA-19801227-1']);
+      _gaq.push(['_trackPageview']);
+
+      (function() {
+        var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+        ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+        var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+      })();
+
+    </script>
     <link rel="shortcut icon" href="_static/favicon.ico"/>
 
     <style type="text/css">
@@ -562,38 +574,6 @@ $ sudo python setup.py install</pre>
 
             </div>
           </div>
-          <div class="row">
-            <div class="span3">
-              <h3>People</h3>
-              <p><i>ProDy</i> is designed and developed by <a href="http://ahmetbakan.com" target="_blank">Ahmet Bakan</a>
-                at the <a href="http://pitt.edu" target="_blank">University of Pittsburgh</a>.
-                Click <a href="reference/people.html">here</a> to see a list of people contributed to its development.</p>
-            </div>
-            <div class="span3">
-              <h3>Community</h3>
-              <p><i>ProDy</i> makes use of great open source software including
-                <a href="http://www.numpy.org/" target="_blank">NumPy</a>,
-                <a href="http://pyparsing.wikispaces.com/" target="_blank">Pyparsing</a>,
-                <a href="http://biopython.org/" target="_blank">Biopython</a>,
-                <a href="http://scipy.org/" target="_blank">SciPy</a>,
-                and
-                <a href="http://matplotlib.org/" target="_blank">Matplotlib</a>.
-                Click <a href="reference/credits.html">here</a> for details.</p>
-            </div>
-            <div class="span3">
-              <h3>Source Code</h3>
-              <p><i>ProDy</i> is open <a href="https://bitbucket.org/abakan/prody">source</a>
-                and you can contribute to its development in many ways.
-                See this <a href="devel/develop.html">guide</a> for getting started.
-            </div>
-            <div class="span3">
-              <h3>Problems?</h3>
-              <p>Let us know any problems you might have by opening an issue at the
-                <a href="https://github.com/abakan/ProDy/issues">tracker</a>
-                so that we can make <i>ProDy</i> better.
-              </p>
-            </div>
-          </div>
         </div>
 
 <!-- Tutorials
@@ -748,7 +728,38 @@ $ sudo python setup.py install</pre>
 
       </div>
     </div>
-
+          <div class="row">
+            <div class="span3">
+              <h3>People</h3>
+              <p><i>ProDy</i> is designed and developed by <a href="http://ahmetbakan.com" target="_blank">Ahmet Bakan</a>
+                at the <a href="http://pitt.edu" target="_blank">University of Pittsburgh</a>.
+                Click <a href="reference/people.html">here</a> to see a list of people contributed to its development.</p>
+            </div>
+            <div class="span3">
+              <h3>Community</h3>
+              <p><i>ProDy</i> makes use of great open source software including
+                <a href="http://www.numpy.org/" target="_blank">NumPy</a>,
+                <a href="http://pyparsing.wikispaces.com/" target="_blank">Pyparsing</a>,
+                <a href="http://biopython.org/" target="_blank">Biopython</a>,
+                <a href="http://scipy.org/" target="_blank">SciPy</a>,
+                and
+                <a href="http://matplotlib.org/" target="_blank">Matplotlib</a>.
+                Click <a href="reference/credits.html">here</a> for details.</p>
+            </div>
+            <div class="span3">
+              <h3>Source Code</h3>
+              <p><i>ProDy</i> is open <a href="https://bitbucket.org/abakan/prody">source</a>
+                and you can contribute to its development in many ways.
+                See this <a href="devel/develop.html">guide</a> for getting started.
+            </div>
+            <div class="span3">
+              <h3>Problems?</h3>
+              <p>Let us know any problems you might have by opening an issue at the
+                <a href="https://github.com/abakan/ProDy/issues">tracker</a>
+                so that we can make <i>ProDy</i> better.
+              </p>
+            </div>
+          </div>
   <footer class="footer">
     <div class="row">
       <div class="span12">
