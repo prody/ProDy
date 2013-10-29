@@ -35,7 +35,7 @@ static PyObject *msaentropy(PyObject *self, PyObject *args, PyObject *kwargs) {
 
     static char *kwlist[] = {"msa", "entropy", "ambiguity", "omitgaps", NULL};
 
-    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|ii", kwlist,
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "OO|ii", kwlist,
                                      &msa, &entropy, &ambiguity, &omitgaps))
         return NULL;
 
@@ -1175,12 +1175,10 @@ static PyObject *msasca(PyObject *self, PyObject *args, PyObject *kwargs) {
 
     /* weighted x~ matrix array */
     double **wx = malloc(length * sizeof(double *));
-    if (!turbo){
+    if (!turbo)
         free(wx);
-    }
-    if (!wx) {
+    if (!wx)
         turbo = 0;
-    }
     if (turbo) {
         for (i = 0; i < length; i++) {
             wx[i] = malloc(number * sizeof(double));
@@ -1205,21 +1203,21 @@ static PyObject *msasca(PyObject *self, PyObject *args, PyObject *kwargs) {
             int temp = seq[j * length + i];
             temp = (temp > 96) ?  temp - 97 : temp - 65;
             if ((temp >= 0) && (temp <= 25))
-                prob[temp+1] += 1.0/number;
+                prob[temp + 1] += 1.0 / number;
         }
         if (prob[2] > 0){ /* B -> D, N  */
-            prob[4] += prob[2]/2.;
-            prob[14] += prob[2]/2.;
+            prob[4] += prob[2] / 2.;
+            prob[14] += prob[2] / 2.;
             prob[2] = 0.;
         }
         if (prob[10] > 0){ /* J -> I, L  */
-            prob[9] += prob[10]/2.;
-            prob[12] += prob[10]/2.;
+            prob[9] += prob[10] / 2.;
+            prob[12] += prob[10] / 2.;
             prob[10] = 0.;
         }
         if (prob[26] > 0){ /* Z -> E, Q  */
-            prob[4] += prob[26]/2.;
-            prob[17] += prob[26]/2.;
+            prob[4] += prob[26] / 2.;
+            prob[17] += prob[26] / 2.;
             prob[26] = 0.;
         }
         if (prob[24] > 0) { /* X -> 20 AA */
@@ -1229,15 +1227,17 @@ static PyObject *msasca(PyObject *self, PyObject *args, PyObject *kwargs) {
         }
         double sum=0.0;
         for (j = 0; j < 21; j++){
-            phi[qlist[j]] = (prob[qlist[j]] == 0.0 || q[qlist[j]] == 0.0)? 0.0 :
-                log(prob[qlist[j]] * (1 - q[qlist[j]]) / (1 - prob[qlist[j]]) / q[qlist[j]]);
-            phi[qlist[j]] = (phi[qlist[j]] >= 0) ? phi[qlist[j]] : -phi[qlist[j]];
+            phi[qlist[j]] = (prob[qlist[j]] == 0.0 || q[qlist[j]] == 0.0) ? 0.0 :
+                log(prob[qlist[j]] * (1 - q[qlist[j]]) /
+                    (1 - prob[qlist[j]]) / q[qlist[j]]);
+            phi[qlist[j]] = (phi[qlist[j]] >= 0) ?
+                phi[qlist[j]] : -phi[qlist[j]];
             prob[qlist[j]] = prob[qlist[j]] * phi[qlist[j]];
             sum += prob[qlist[j]] * prob[qlist[j]];
             prob[qlist[j]] = prob[qlist[j]] * phi[qlist[j]];
         }
         sum = sqrt(sum);
-        for (j=0; j<21; j++){
+        for (j = 0; j < 21; j++){
             prob[qlist[j]] = prob[qlist[j]] / sum;
         }
         prob[2] = (prob[4] + prob[14]) /2.0;
@@ -1250,10 +1250,10 @@ static PyObject *msasca(PyObject *self, PyObject *args, PyObject *kwargs) {
         prob[24] = sum;
         if (turbo){
             for (j = 0; j < number; j++){
-                int temp = seq[j*length + i];
-                temp = (temp > 96) ? temp-97 : temp-65;
+                int temp = seq[j * length + i];
+                temp = (temp > 96) ? temp - 97 : temp - 65;
                 if (temp >= 0 && temp <= 25)
-                    wx[i][j] = prob[temp+1];
+                    wx[i][j] = prob[temp + 1];
                 else
                     wx[i][j] = 0.0;
             }
@@ -1276,22 +1276,24 @@ static PyObject *msasca(PyObject *self, PyObject *args, PyObject *kwargs) {
             else{
                 for (k = 0; k < number; k++){
                     int tempi = (seq[k*length + i] > 96) ?
-                    seq[k*length + i]-97 : seq[k*length + i]-65;
-                    double xi = (tempi >= 0 && tempi <= 25) ? wprob[i][tempi+1] : wprob[i][0];
-                    int tempj = (seq[k*length + j] > 96) ?
-                    seq[k*length + j]-97 : seq[k*length + j]-65;
-                    double xj = (tempj >= 0 && tempj <= 25) ? wprob[j][tempj+1] : wprob[j][0];
-                    sumi+=xi;
-                    sumj+=xj;
-                    sum+=xi*xj;
+                    seq[k * length + i] - 97 : seq[k * length + i] - 65;
+                    double xi = (tempi >= 0 && tempi <= 25) ?
+                        wprob[i][tempi + 1] : wprob[i][0];
+                    int tempj = (seq[k * length + j] > 96) ?
+                        seq[k * length + j] - 97 : seq[k * length + j] - 65;
+                    double xj = (tempj >= 0 && tempj <= 25) ?
+                        wprob[j][tempj + 1] : wprob[j][0];
+                    sumi += xi;
+                    sumj += xj;
+                    sum += xi * xj;
                 }
             }
             sum /= number;
             sumj /= number;
             sumi /= number;
-            sum = sum - sumi*sumj;
-            sum = sum>0 ? sum : -sum ;
-            sca[i*length + j] = sca[j*length + i] = sum;
+            sum = sum - sumi * sumj;
+            sum = sum > 0 ? sum : -sum ;
+            sca[i * length + j] = sca[j * length + i] = sum;
         }
     }
 
