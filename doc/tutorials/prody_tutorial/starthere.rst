@@ -110,7 +110,7 @@ to exit from help view.  If you are using the interactive Python shell
 
 .. ipython::
 
-   In [1]: fetchPDB ?
+   In [1]: ? fetchPDB
 
 Searching documentation
 ^^^^^^^^^^^^^^^^^^^^^^^
