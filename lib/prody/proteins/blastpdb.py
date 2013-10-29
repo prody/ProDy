@@ -44,7 +44,7 @@ def blastPDB(sequence, filename=None, **kwargs):
     search parameters can be adjusted by the user.  *sleep* keyword argument
     (default is ``2`` seconds) determines how long to wait to reconnect for
     results.  Sleep time is doubled when results are not ready.  *timeout*
-    (default is 60 seconds) determines when to give up waiting for the results.
+    (default is 120s) determines when to give up waiting for the results.
     """
 
     if sequence == 'runexample':
@@ -73,7 +73,7 @@ def blastPDB(sequence, filename=None, **kwargs):
     query.append(('CMD', 'Put'))
 
     sleep = float(kwargs.pop('sleep', 2))
-    timeout = float(kwargs.pop('timeout', 30))
+    timeout = float(kwargs.pop('timeout', 120))
 
     if kwargs:
         LOGGER.warn('Keyword argument(s) {0} are not used.'
@@ -125,7 +125,7 @@ def blastPDB(sequence, filename=None, **kwargs):
         status = results[index+len('Status='):last].strip()
         if status.upper() == 'READY':
             break
-        sleep *= 2
+        sleep = int(sleep * 1.5)
         if LOGGER.timing('_prody_blast') > timeout:
             LOGGER.warn('Blast search time out.')
             return None
