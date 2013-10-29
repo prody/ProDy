@@ -21,7 +21,7 @@
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
-from numpy import dtype, zeros
+from numpy import dtype, zeros, empty
 from numpy import indices, tril_indices
 from prody import LOGGER
 
@@ -82,7 +82,7 @@ def calcShannonEntropy(msa, ambiguity=True, omitgaps=True, **kwargs):
 
     msa = getMSA(msa)
     length = msa.shape[1]
-    entropy = zeros(length, float)
+    entropy = empty(length, float)
     from .msatools import msaentropy
     return msaentropy(msa, entropy,
                       ambiguity=bool(ambiguity), omitgaps=bool(omitgaps))
@@ -118,7 +118,7 @@ def buildMutinfoMatrix(msa, ambiguity=True, turbo=True, **kwargs):
     from .msatools import msamutinfo
     LOGGER.timeit('_mutinfo')
     length = msa.shape[1]
-    mutinfo = zeros((length, length), float)
+    mutinfo = empty((length, length), float)
     mutinfo = msamutinfo(msa, mutinfo,
                          ambiguity=bool(ambiguity), turbo=bool(turbo),
                          norm=bool(kwargs.get('norm', False)),

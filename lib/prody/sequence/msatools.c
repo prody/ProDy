@@ -623,7 +623,9 @@ static PyObject *msamutinfo(PyObject *self, PyObject *args, PyObject *kwargs) {
     /* START mutinfo calculation */
     /* calculate first row of MI matrix and all column probabilities */
     i = 0;
+    mut[0] = 0;
     for (j = 1; j < length; j++) {
+        mut[j*j] = 0;
         jrow = probs[j];
         zeroJoint(joint);
         diff = j - 1;
