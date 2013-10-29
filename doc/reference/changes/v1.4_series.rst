@@ -1,7 +1,18 @@
 ProDy 1.4 Series
 ===============================================================================
 
-1.4.6 (Sep 16, 2013)
+1.4.7 (Oct 29, 2013)
+-------------------------------------------------------------------------------
+
+**Improvements**:
+
+  * :class:`.AtomGroup`, :class:`.Selection`, and other :class:`.Atomic`
+    classes are picklable.
+
+  * Improved equality tests for :class:`.AtomGroup`. Two different instances
+    are considered equal if they contain identical data and coordinate sets.
+
+1.4.6 (Oct 16, 2013)
 -------------------------------------------------------------------------------
 
 **Bugfixes**:
