@@ -280,6 +280,17 @@ class AtomGroup(Atomic):
             else:
                 return ag == self
 
+    def __eq__(self, other):
+
+        return (isinstance(other, AtomGroup) and
+                (self._n_atoms and self._n_atoms == other._n_atoms) and
+                set(self._data) == set(other._data) and
+                (self._n_csets and self._n_csets == other._n_csets and
+                 np.all(self._coords == other._coords)) and
+                all(np.all(self._data[key] == other._data[key]) 
+                    for key in self._data))
+
+
     def __iter__(self):
         """Yield atom instances."""
 

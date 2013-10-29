@@ -23,6 +23,7 @@ __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 import os.path
+import pickle
 
 from numpy.testing import *
 
@@ -99,3 +100,26 @@ class TestSaveLoad(unittest.TestCase):
             assert_equal(atoms.getData(label), ATOMS.getData(label),
                          'failed to load ' + label)
 
+
+class TestPickling(unittest.TestCase):
+
+
+    def testAtomGroup(self):
+
+        atoms1 = parseDatafile('multi_model_truncated', subset='ca')
+        atoms2 = pickle.loads(pickle.dumps(atoms1))
+        s1 = atoms1.__getstate__()
+        s2 = atoms2.__getstate__()
+        for key in s1:
+            assert_equal(s1[key], s2[key])
+        self.assertEqual(atoms1, atoms2)
+
+    def testSelection(self):
+
+        sel = parseDatafile('multi_model_truncated', subset='ca')[:3]
+        self.assertEqual(sel, pickle.loads(pickle.dumps(sel)))
+
+    def testAtom(self):
+
+        atom = parseDatafile('multi_model_truncated', subset='ca')[0]
+        self.assertEqual(atom, pickle.loads(pickle.dumps(atom)))
