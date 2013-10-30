@@ -595,16 +595,16 @@ class AtomGroup(Atomic):
 
         if self._coords is not None:
             arrays[id(self._coords)] = self._coords
-        arrays.update((id(val), val)
+        arrays.update(getboth(val)
                       for key, val in self._data.items() if val is not None)
         if self._bonds is not None:
             arrays[id(self._bonds)] = self._bonds
         if self._flags:
-            arrays.update((id(val), val)
+            arrays.update(getboth(val)
                   for key, val in self._flags.items() if val is not None)
         if all:
             if self._subsets:
-                arrays.update((id(val), val)
+                arrays.update(getboth(val)
                       for key, val in self._subsets.items() if val is not None)
             if self._fragments:
                 for val in self._fragments:

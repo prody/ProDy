@@ -596,8 +596,8 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                 else:
                     charges.resize(acount)
                     radii.resize(acount)
-                    atomgroup.setCharges(charges[:acount])
-                    atomgroup.setRadii(radii[:acount])
+                    atomgroup.setCharges(charges)
+                    atomgroup.setRadii(radii)
 
                 nmodel += 1
                 n_atoms = acount
