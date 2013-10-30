@@ -287,7 +287,7 @@ class AtomGroup(Atomic):
                 set(self._data) == set(other._data) and
                 (self._n_csets and self._n_csets == other._n_csets and
                  np.all(self._coords == other._coords)) and
-                all(np.all(self._data[key] == other._data[key]) 
+                all(np.all(self._data[key] == other._data[key])
                     for key in self._data))
 
 
@@ -579,6 +579,47 @@ class AtomGroup(Atomic):
         except:
             raise IndexError('indices must be an integer, a list/array of '
                              'integers, a slice, or None')
+
+    def numBytes(self, all=False):
+        """Return number of bytes used by atomic data arrays, such as
+        coordinate, flag, and attribute arrays.  If *all* is **True**,
+        internal arrays for indexing hierarchical views, bonds, and
+        fragments will also be included.  Note that memory usage of
+        Python objects is not taken into account and that this may
+        change in the future."""
+
+        arrays = {}
+        if self._coords is not None:
+            arrays[id(self._coords)] = self._coords
+        arrays.update((id(val), val)
+                      for key, val in self._data.items() if val is not None)
+        if self._bonds is not None:
+            arrays[id(self._bonds)] = self._bonds
+        if self._flags:
+            arrays.update((id(val), val)
+                  for key, val in self._flags.items() if val is not None)
+        if all:
+            if self._subsets:
+                arrays.update((id(val), val)
+                      for key, val in self._subsets.items() if val is not None)
+            if self._fragments:
+                arrays.update((id(val), val) for val in self._fragments)
+            if self._bmap is not None:
+                arrays[id(self._bonds)] = self._bmap
+            if self._hv is not None:
+                arrays.update((id(val), val) if hasattr(val, 'base') else
+                    (id(val._indices), val._indices)
+                    for val in self._hv._residues)
+                arrays.update((id(val), val) if hasattr(val, 'base') else
+                    (id(val._indices), val._indices)
+                    for val in self._hv._chains)
+                arrays.update((id(val), val) if hasattr(val, 'base') else
+                    (id(val._indices), val._indices)
+                    for val in self._hv._segments)
+
+        getbase = lambda arr: arr if arr.base is None else arr.base
+
+        return sum(getbase(arr).nbytes for arr in arrays.values())
 
     def numCoordsets(self):
         """Return number of coordinate sets."""
