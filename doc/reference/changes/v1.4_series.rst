@@ -9,6 +9,16 @@ ProDy 1.4 Series
   * New analysis functions :func:`.buildOMESMatrix` and :func:`.buildSCAMatrix`
     are implemented.
 
+  * New :meth:`.AtomGroup.numBytes` method returns an estimate of memory usage.
+
+  * New :func:`.countBytes` utility function is added for counting bytes used
+    by NumPy arrays.
+
+
+**Improvements**:
+
+  * :func:`.parsePDB` resizes data arrays to decrease memory usage.
+
 **Bugfixes**:
 
   * Fixed memory leaks in MSA :mod:`~.sequence.analysis` functions.
