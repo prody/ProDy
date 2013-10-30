@@ -589,6 +589,10 @@ class AtomGroup(Atomic):
         change in the future."""
 
         arrays = {}
+        getbase = lambda arr: arr if arr.base is None else getbase(arr.base)
+        getpair = lambda arr: (id(arr), arr)
+        getboth = lambda arr: getpair(getbase(arr))
+
         if self._coords is not None:
             arrays[id(self._coords)] = self._coords
         arrays.update((id(val), val)
@@ -603,21 +607,18 @@ class AtomGroup(Atomic):
                 arrays.update((id(val), val)
                       for key, val in self._subsets.items() if val is not None)
             if self._fragments:
-                arrays.update((id(val), val) for val in self._fragments)
+                for val in self._fragments:
+                    val = getbase(val)
+                    arrays[id(val)] = val
             if self._bmap is not None:
                 arrays[id(self._bonds)] = self._bmap
             if self._hv is not None:
-                arrays.update((id(val), val) if hasattr(val, 'base') else
-                    (id(val._indices), val._indices)
-                    for val in self._hv._residues)
-                arrays.update((id(val), val) if hasattr(val, 'base') else
-                    (id(val._indices), val._indices)
-                    for val in self._hv._chains)
-                arrays.update((id(val), val) if hasattr(val, 'base') else
-                    (id(val._indices), val._indices)
-                    for val in self._hv._segments)
-
-        getbase = lambda arr: arr if arr.base is None else arr.base
+                arrays.update(getboth(val) if hasattr(val, 'base') else
+                    getboth(val._indices) for val in self._hv._residues)
+                arrays.update(getboth(val) if hasattr(val, 'base') else
+                    getboth(val._indices) for val in self._hv._chains)
+                arrays.update(getboth(val) if hasattr(val, 'base') else
+                    getboth(val._indices) for val in self._hv._segments)
 
         return sum(getbase(arr).nbytes for arr in arrays.values())
 
