@@ -1,22 +1,22 @@
 # -*- coding: utf-8 -*-
 # ProDy: A Python Package for Protein Dynamics Analysis
-# 
+#
 # Copyright (C) 2010-2012 Ahmet Bakan
-# 
+#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-#  
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
-"""This module contains features for analyzing protein sequences. 
+"""This module contains features for analyzing protein sequences.
 
 Classes
 =======
@@ -37,13 +37,23 @@ Editing
 
   * :func:`.mergeMSA` - merge MSA data for multi-domain proteins
   * :func:`.refineMSA` - refine MSA by removing gapped columns and/or sequences
-  
+
 Analysis
 ========
 
-  * :func:`.calcShannonEntropy` - calculate Shannon entropy
   * :func:`.calcMSAOccupancy` - calculate row (sequence) or column occupancy
+  * :func:`.calcShannonEntropy` - calculate Shannon entropy
   * :func:`.buildMutinfoMatrix` - build mutual information matrix
+  * :func:`.buildOMESMatrix` - build mutual observed minus expected squared
+    covariance matrix
+  * :func:`.buildSCAMatrix`- build statistical coupling analysis matrix
+  * :func:`.buildSeqidMatrix`- build sequence identity matrix
+  * :func:`.uniqueSequences` - select unique sequences
+  * :func:`.applyMutinfoCorr` - apply correction to mutual information matrix
+  * :func:`.applyMutinfoNorm` - apply normalization to mutual information
+    matrix
+  * :func:`.calcRankorder` - rank order scores
+
 
 Plotting
 ========

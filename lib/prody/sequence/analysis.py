@@ -21,14 +21,14 @@
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
-from numpy import dtype, zeros, empty
+from numpy import dtype, zeros, empty, int64
 from numpy import indices, tril_indices
 from prody import LOGGER
 
 __all__ = ['calcShannonEntropy', 'buildMutinfoMatrix', 'calcMSAOccupancy',
            'applyMutinfoCorr', 'applyMutinfoNorm', 'calcRankorder',
            'buildSeqidMatrix', 'uniqueSequences', 'buildOMESMatrix',
-           'buildSCAMatrix' ]
+           'buildSCAMatrix']
 
 
 doc_turbo = """
@@ -135,7 +135,7 @@ def calcMSAOccupancy(msa, occ='res', count=False):
     """Return occupancy array calculated for residue positions (default,
     ``'res'`` or ``'col'`` for *occ*) or sequences (``'seq'`` or ``'row'``
     for *occ*) of *msa*, which may be an :class:`.MSA` instance or a 2D
-    Numpy character array.  By default, occupancy [0-1] will be calculated.
+    NumPy character array.  By default, occupancy [0-1] will be calculated.
     If *count* is **True**, count of non-gap characters will be returned.
     Implementation is case insensitive."""
 
@@ -390,13 +390,15 @@ def buildOMESMatrix(msa, ambiguity=True, turbo=True, **kwargs):
     from .msatools import msaomes
     LOGGER.timeit('_omes')
     length = msa.shape[1]
-    omes = zeros((length, length), float)
+    omes = empty((length, length), float)
     omes = msaomes(msa, omes, ambiguity=bool(ambiguity), turbo=bool(turbo),
                    debug=bool(kwargs.get('debug', False)))
     LOGGER.report('OMES matrix was calculated in %.2fs.',
                   '_omes')
 
     return omes
+
+buildOMESMatrix.__doc__ += doc_turbo
 
 
 def buildSCAMatrix(msa, turbo=True, **kwargs):
@@ -429,3 +431,5 @@ def buildSCAMatrix(msa, turbo=True, **kwargs):
     sca = msasca(msa, sca, turbo=bool(turbo))
     LOGGER.report('SCA matrix was calculated in %.2fs.', '_sca')
     return sca
+
+buildSCAMatrix.__doc__ += doc_turbo

@@ -428,6 +428,7 @@ static double calcMI(double **joint, double **probs, long i, long j, int dbg) {
     return mi;
 }
 
+
 static double jointEntropy(double **joint){
 
     double ent = 0.0, prob;
@@ -625,7 +626,7 @@ static PyObject *msamutinfo(PyObject *self, PyObject *args, PyObject *kwargs) {
     i = 0;
     mut[0] = 0;
     for (j = 1; j < length; j++) {
-        mut[j*j] = 0;
+        mut[j * length + j] = 0; /* using empty, so needed for diagonal */
         jrow = probs[j];
         zeroJoint(joint);
         diff = j - 1;
@@ -788,6 +789,7 @@ static PyObject *msamutinfo(PyObject *self, PyObject *args, PyObject *kwargs) {
 
     return Py_BuildValue("O", mutinfo);
 }
+
 
 static PyObject *msaocc(PyObject *self, PyObject *args, PyObject *kwargs) {
 
@@ -976,7 +978,9 @@ static PyObject *msaomes(PyObject *self, PyObject *args, PyObject *kwargs) {
     /* START OMES calculation */
     /* calculate first row of OMES matrix and all column probabilities */
     i = 0;
+    data[0] = 0;
     for (j = 1; j < length; j++) {
+        data[j * length + j] = 0; /* using empty, so needed for diagonal */
         jrow = probs[j];
         zeroJoint(joint);
         diff = j - 1;
@@ -1130,6 +1134,7 @@ static PyObject *msaomes(PyObject *self, PyObject *args, PyObject *kwargs) {
 
     return Py_BuildValue("O", omes);
 }
+
 
 static PyObject *msasca(PyObject *self, PyObject *args, PyObject *kwargs) {
 

@@ -1,6 +1,18 @@
 ProDy 1.4 Series
 ===============================================================================
 
+1.4.8 (in development)
+-------------------------------------------------------------------------------
+
+**New Features**:
+
+  * New analysis functions :func:`.buildOMESMatrix` and :func:`.buildSCAMatrix`
+    are implemented.
+
+**Bugfixes**:
+
+  * Fixed memory leaks in MSA :mod:`~.sequence.analysis` functions.
+
 1.4.7 (Oct 29, 2013)
 -------------------------------------------------------------------------------
 
