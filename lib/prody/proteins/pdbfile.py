@@ -550,35 +550,52 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                                     'same number of atoms')
                 # this is where to decide if more coordsets should be expected
                 if END:
+                    coordinates.resize((acount, 3))
                     if addcoords:
-                        atomgroup.addCoordset(coordinates[:acount])
+                        atomgroup.addCoordset(coordinates)
                     else:
-                        atomgroup._setCoords(coordinates[:acount])
+                        atomgroup._setCoords(coordinates)
                 else:
                     coordsets = np.zeros((diff/acount+1, acount, 3))
                     coordsets[0] = coordinates[:acount]
                     onlycoords = True
+                atomnames.resize(acount)
+                resnames.resize(acount)
+                resnums.resize(acount)
+                chainids.resize(acount)
+                hetero.resize(acount)
+                altlocs.resize(acount)
+                icodes.resize(acount)
+                serials.resize(acount)
                 if not only_subset:
-                    atomnames = np.char.strip(atomnames[:acount])
-                    resnames = np.char.strip(resnames[:acount])
-                atomgroup.setNames(atomnames[:acount])
-                atomgroup.setResnames(resnames[:acount])
-                atomgroup.setResnums(resnums[:acount])
-                atomgroup.setChids(chainids[:acount])
-                atomgroup.setFlags('hetatm', hetero[:acount])
-                atomgroup.setAltlocs(altlocs[:acount])
-                atomgroup.setIcodes(np.char.strip(icodes[:acount]))
-                atomgroup.setSerials(serials[:acount])
+                    atomnames = np.char.strip(atomnames)
+                    resnames = np.char.strip(resnames)
+                atomgroup.setNames(atomnames)
+                atomgroup.setResnames(resnames)
+                atomgroup.setResnums(resnums)
+                atomgroup.setChids(chainids)
+                atomgroup.setFlags('hetatm', hetero)
+                atomgroup.setAltlocs(altlocs)
+                atomgroup.setIcodes(np.char.strip(icodes))
+                atomgroup.setSerials(serials)
                 if isPDB:
-                    atomgroup.setBetas(bfactors[:acount])
-                    atomgroup.setOccupancies(occupancies[:acount])
-                    atomgroup.setSegnames(np.char.strip(segnames[:acount]))
-                    atomgroup.setElements(np.char.strip(elements[:acount]))
+                    bfactors.resize(acount)
+                    occupancies.resize(acount)
+                    segnames.resize(acount)
+                    elements.resize(acount)
+                    atomgroup.setBetas(bfactors)
+                    atomgroup.setOccupancies(occupancies)
+                    atomgroup.setSegnames(np.char.strip(segnames))
+                    atomgroup.setElements(np.char.strip(elements))
                     if anisou is not None:
-                        atomgroup.setAnisous(anisou[:acount] / 10000)
+                        anisou.resize((acount, 6))
+                        atomgroup.setAnisous(anisou / 10000)
                     if siguij is not None:
-                        atomgroup.setAnistds(siguij[:acount] / 10000)
+                        siguij.resize((acount, 6))
+                        atomgroup.setAnistds(siguij / 10000)
                 else:
+                    charges.resize(acount)
+                    radii.resize(acount)
                     atomgroup.setCharges(charges[:acount])
                     atomgroup.setRadii(radii[:acount])
 
@@ -630,46 +647,58 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
         if acount == atomgroup.numAtoms():
             coordsets[nmodel] = coordinates
             nmodel += 1
-        if nmodel == coordsets.shape[0]:
-            if addcoords:
-                atomgroup.addCoordset(coordsets)
-            else:
-                atomgroup._setCoords(coordsets)
-        else:
-            if addcoords:
-                atomgroup.addCoordset(coordsets[:nmodel])
-            else:
-                atomgroup._setCoords(coordsets[:nmodel])
-    elif not END:
-        # this means last line wast an ATOM line, so atomgroup is not decorated
+        del coordinates
+        coordsets.resize((nmodel, atomgroup.numAtoms(), 3))
         if addcoords:
-            atomgroup.addCoordset(coordinates[:acount])
+            atomgroup.addCoordset(coordsets)
         else:
-            atomgroup._setCoords(coordinates[:acount])
+            atomgroup._setCoords(coordsets)
+    elif not END:
+        # this means last line was an ATOM line, so atomgroup is not decorated
+        coordinates.resize((acount, 3))
+        if addcoords:
+            atomgroup.addCoordset(coordinates)
+        else:
+            atomgroup._setCoords(coordinates)
+        atomnames.resize(acount)
+        resnames.resize(acount)
+        resnums.resize(acount)
+        chainids.resize(acount)
+        hetero.resize(acount)
+        altlocs.resize(acount)
+        icodes.resize(acount)
+        serials.resize(acount)
         if not only_subset:
-            atomnames = np.char.strip(atomnames[:acount])
-            resnames = np.char.strip(resnames[:acount])
-        atomgroup.setNames(atomnames[:acount])
-        atomgroup.setResnames(resnames[:acount])
-        atomgroup.setResnums(resnums[:acount])
-        atomgroup.setChids(chainids[:acount])
-        atomgroup.setFlags('hetatm', hetero[:acount])
-        atomgroup.setAltlocs(altlocs[:acount])
-        atomgroup.setIcodes(np.char.strip(icodes[:acount]))
-        atomgroup.setSerials(serials[:acount])
+            atomnames = np.char.strip(atomnames)
+            resnames = np.char.strip(resnames)
+        atomgroup.setNames(atomnames)
+        atomgroup.setResnames(resnames)
+        atomgroup.setResnums(resnums)
+        atomgroup.setChids(chainids)
+        atomgroup.setFlags('hetatm', hetero)
+        atomgroup.setAltlocs(altlocs)
+        atomgroup.setIcodes(np.char.strip(icodes))
+        atomgroup.setSerials(serials)
         if isPDB:
             if anisou is not None:
-                atomgroup.setAnisous(anisou[:acount] / 10000)
+                anisou.resize((acount, 6))
+                atomgroup.setAnisous(anisou / 10000)
             if siguij is not None:
-                atomgroup.setAnistds(siguij[:acount] / 10000)
-            atomgroup.setSegnames(np.char.strip(segnames[:acount]))
-            atomgroup.setElements(np.char.strip(elements[:acount]))
-            atomgroup.setBetas(bfactors[:acount])
-            atomgroup.setOccupancies(occupancies[:acount])
+                siguij.resize((acount, 6))
+                atomgroup.setAnistds(siguij / 10000)
+            bfactors.resize(acount)
+            occupancies.resize(acount)
+            segnames.resize(acount)
+            elements.resize(acount)
+            atomgroup.setSegnames(np.char.strip(segnames))
+            atomgroup.setElements(np.char.strip(elements))
+            atomgroup.setBetas(bfactors)
+            atomgroup.setOccupancies(occupancies)
         else:
-            atomgroup.setCharges(charges[:acount])
-            atomgroup.setRadii(radii[:acount])
-
+            charges.resize(acount)
+            radii.resize(acount)
+            atomgroup.setCharges(charges)
+            atomgroup.setRadii(radii)
 
     if altloc and altloc_torf:
         _evalAltlocs(atomgroup, altloc, chainids, resnums, resnames, atomnames)
