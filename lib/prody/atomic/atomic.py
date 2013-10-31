@@ -115,6 +115,21 @@ class Atomic(object):
                              .format(self.__class__.__name__, name,
                                      repr(selstr)))
 
+    def __getstate__(self):
+
+        return dict([(slot, getattr(self, slot))
+                     for slot in self.__class__.__slots__])
+
+    def __setstate__(self, state):
+
+        for slot in self.__class__.__slots__:
+            try:
+                value = state[slot]
+            except KeyError:
+                pass
+            else:
+                setattr(self, slot, value)
+
     def copy(self):
         """Return a copy of atoms (and atomic data) in an :class:`.AtomGroup`
         instance."""

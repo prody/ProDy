@@ -23,7 +23,7 @@ __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 from numpy import unique
 
 __all__ = ['Everything', 'rangeString', 'alnum', 'importLA', 'dictElement',
-           'intorfloat', 'startswith']
+           'intorfloat', 'startswith', 'showFigure', 'countBytes']
 
 
 class Everything(object):
@@ -144,3 +144,28 @@ def startswith(this, that):
         return that.startswith(this)
     else:
         return this.startswith(that)
+
+
+def showFigure():
+    """Call :func:`~matplotlib.pyplot.show` function with ``block=False``
+    argument to avoid blocking behavior in non-interactive sessions.  If
+    *block* keyword argument is not recognized, try again without it."""
+
+    from matplotlib.pyplot import show
+    try:
+        show(block=False)
+    except TypeError:
+        show()
+
+
+def countBytes(arrays, base=False):
+    """Return total number of bytes consumed by elements of arrays.  If
+    *base* is **True**, use number of bytes from the base array."""
+
+    if base:
+        getbase = lambda arr: arr if arr.base is None else getbase(arr.base)
+        nbytes = lambda arr: getbase(arr).nbytes
+    else:
+        nbytes = lambda arr: arr.nbytes
+
+    return sum(nbytes(arr) for arr in arrays)

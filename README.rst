@@ -40,9 +40,12 @@ DOCUMENTATION
 SOURCE CODE
 -----------
 
-* Source code: https://bitbucket.org/abakan/prody
+* Source code:
 
-* Issue tracker: https://bitbucket.org/abakan/prody/issues
+   * https://github.com/abakan/ProDy
+   * https://bitbucket.org/abakan/prody
+
+* Issue tracker: https://github.com/abakan/ProDy/issues
 
 
 LICENSE

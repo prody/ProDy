@@ -21,14 +21,14 @@
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
-from numpy import dtype
+from numpy import dtype, zeros, empty, int64
 from numpy import indices, tril_indices
 from prody import LOGGER
 
 __all__ = ['calcShannonEntropy', 'buildMutinfoMatrix', 'calcMSAOccupancy',
            'applyMutinfoCorr', 'applyMutinfoNorm', 'calcRankorder',
            'buildSeqidMatrix', 'uniqueSequences', 'buildOMESMatrix',
-           'buildSCAMatrix' ]
+           'buildSCAMatrix']
 
 
 doc_turbo = """
@@ -81,9 +81,11 @@ def calcShannonEntropy(msa, ambiguity=True, omitgaps=True, **kwargs):
         **False**"""
 
     msa = getMSA(msa)
-
+    length = msa.shape[1]
+    entropy = empty(length, float)
     from .msatools import msaentropy
-    return msaentropy(msa, ambiguity=bool(ambiguity), omitgaps=bool(omitgaps))
+    return msaentropy(msa, entropy,
+                      ambiguity=bool(ambiguity), omitgaps=bool(omitgaps))
 
 
 def buildMutinfoMatrix(msa, ambiguity=True, turbo=True, **kwargs):
@@ -115,7 +117,10 @@ def buildMutinfoMatrix(msa, ambiguity=True, turbo=True, **kwargs):
 
     from .msatools import msamutinfo
     LOGGER.timeit('_mutinfo')
-    mutinfo = msamutinfo(msa, ambiguity=bool(ambiguity), turbo=bool(turbo),
+    length = msa.shape[1]
+    mutinfo = empty((length, length), float)
+    mutinfo = msamutinfo(msa, mutinfo,
+                         ambiguity=bool(ambiguity), turbo=bool(turbo),
                          norm=bool(kwargs.get('norm', False)),
                          debug=bool(kwargs.get('debug', False)))
     LOGGER.report('Mutual information matrix was calculated in %.2fs.',
@@ -130,7 +135,7 @@ def calcMSAOccupancy(msa, occ='res', count=False):
     """Return occupancy array calculated for residue positions (default,
     ``'res'`` or ``'col'`` for *occ*) or sequences (``'seq'`` or ``'row'``
     for *occ*) of *msa*, which may be an :class:`.MSA` instance or a 2D
-    Numpy character array.  By default, occupancy [0-1] will be calculated.
+    NumPy character array.  By default, occupancy [0-1] will be calculated.
     If *count* is **True**, count of non-gap characters will be returned.
     Implementation is case insensitive."""
 
@@ -139,10 +144,11 @@ def calcMSAOccupancy(msa, occ='res', count=False):
     msa = getMSA(msa)
 
     try:
-        occ = occ.startswith('res') or occ.startswith('col')
+        dim = occ.startswith('res') or occ.startswith('col')
     except AttributeError:
         raise TypeError('occ must be a string')
-    return msaocc(msa, occ, count=bool(count))
+    occ = zeros(msa.shape[int(dim)], float)
+    return msaocc(msa, occ, dim, count=bool(count))
 
 
 def applyMutinfoNorm(mutinfo, entropy, norm='sument'):
@@ -351,16 +357,17 @@ def calcRankorder(matrix, zscore=False, **kwargs):
 
     return (row, column, matrix[row, column])
 
+
 def buildOMESMatrix(msa, ambiguity=True, turbo=True, **kwargs):
-    """Return OMES (Observed Minus Expected Squared Covariance ) matrix 
+    """Return OMES (Observed Minus Expected Squared) covariance matrix
     calculated for *msa*, which may be an :class:`.MSA` instance or a 2D
-    Numpy character array.
+    NumPy character array. OMES is defined as::
 
-                      (N_OBS - N_EX)^2              (f_i,j - f_i * f_j)^2
-    OMES_(i,j) = sum(------------------) = N * sum(-----------------------)
-                           N_EX                           f_i * f_j
+                        (N_OBS - N_EX)^2              (f_i,j - f_i * f_j)^2
+      OMES_(i,j) = sum(------------------) = N * sum(-----------------------)
+                             N_EX                           f_i * f_j
 
-    Implementation is case insensitive and handles ambiguous amino acids 
+    Implementation is case insensitive and handles ambiguous amino acids
     as follows:
 
       * **B** (Asx) count is allocated to *D* (Asp) and *N* (Asn)
@@ -382,19 +389,23 @@ def buildOMESMatrix(msa, ambiguity=True, turbo=True, **kwargs):
 
     from .msatools import msaomes
     LOGGER.timeit('_omes')
-    omes = msaomes(msa, ambiguity=bool(ambiguity), turbo=bool(turbo),
-                         debug=bool(kwargs.get('debug', False)))
+    length = msa.shape[1]
+    omes = empty((length, length), float)
+    omes = msaomes(msa, omes, ambiguity=bool(ambiguity), turbo=bool(turbo),
+                   debug=bool(kwargs.get('debug', False)))
     LOGGER.report('OMES matrix was calculated in %.2fs.',
                   '_omes')
 
     return omes
+
+buildOMESMatrix.__doc__ += doc_turbo
 
 
 def buildSCAMatrix(msa, turbo=True, **kwargs):
     """Return SCA matrix calculated for *msa*, which may be an :class:`.MSA`
     instance or a 2D Numpy character array.
 
-    Implementation is case insensitive and handles ambiguous amino acids 
+    Implementation is case insensitive and handles ambiguous amino acids
     as follows:
 
       * **B** (Asx) count is allocated to *D* (Asp) and *N* (Asn)
@@ -415,6 +426,10 @@ def buildSCAMatrix(msa, turbo=True, **kwargs):
     msa = getMSA(msa)
     from .msatools import msasca
     LOGGER.timeit('_sca')
-    sca = msasca(msa, turbo=bool(turbo))
+    length = msa.shape[1]
+    sca = zeros((length, length), float)
+    sca = msasca(msa, sca, turbo=bool(turbo))
     LOGGER.report('SCA matrix was calculated in %.2fs.', '_sca')
     return sca
+
+buildSCAMatrix.__doc__ += doc_turbo

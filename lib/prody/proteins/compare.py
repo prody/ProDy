@@ -67,10 +67,10 @@ def importBioPairwise2():
     global PW2
     if PW2 is None:
         try:
-            from . import pairwise2
+            from Bio import pairwise2
         except ImportError:
             try:
-                from Bio import pairwise2
+                from . import pairwise2
             except ImportError:
                 raise ImportError('pairwise2 module could not be imported. '
                                   'Reinstall ProDy or install BioPython '

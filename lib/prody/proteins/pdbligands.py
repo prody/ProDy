@@ -33,9 +33,9 @@ __all__ = ['fetchPDBLigand']
 
 
 def fetchPDBLigand(cci, filename=None):
-    """Fetch PDB ligand data from `Ligand Expo <http://ligand-expo.rcsb.org/>`_
-    for chemical component *cci*.  *cci* may be 3-letter chemical component
-    identifier or a valid XML filename.  If *filename* is given, XML file
+    """Fetch PDB ligand data from `PDB <http://www.pdb.org/>`_ for chemical
+    component *cci*.  *cci* may be 3-letter chemical component identifier or
+    a valid XML filename.  If *filename* is given, XML file
     will be saved with that name.
 
     If you query ligand data frequently, you may configure ProDy to save XML
@@ -96,8 +96,9 @@ def fetchPDBLigand(cci, filename=None):
                     xml = inp.read()
         else:
             path = None
-        url = ('http://ligand-expo.rcsb.org/reports/{0[0]}/{0}/{0}'
-               '.xml'.format(cci.upper()))
+        #url = ('http://ligand-expo.rcsb.org/reports/{0[0]}/{0}/{0}'
+        #       '.xml'.format(cci.upper()))
+        url = 'http://www.pdb.org/pdb/files/ligand/{0}.xml'.format(cci.upper())
         if not xml:
             #'http://www.pdb.org/pdb/files/ligand/{0}.xml'
             try:

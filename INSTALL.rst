@@ -153,5 +153,5 @@ Following software is included in the ProDy installation packages:
 Source Code
 ===============================================================================
 
-Source code can be found at https://bitbucket.org/abakan/prody.
-
+Source code can be found at https://github.com/abakan/ProDy and
+https://bitbucket.org/abakan/prody.

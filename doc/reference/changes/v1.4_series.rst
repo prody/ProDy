@@ -1,6 +1,61 @@
 ProDy 1.4 Series
 ===============================================================================
 
+1.4.8 (in development)
+-------------------------------------------------------------------------------
+
+**New Features**:
+
+  * New analysis functions :func:`.buildOMESMatrix` and :func:`.buildSCAMatrix`
+    are implemented.
+
+  * New :meth:`.AtomGroup.numBytes` method returns an estimate of memory usage.
+
+  * New :func:`.countBytes` utility function is added for counting bytes used
+    by NumPy arrays.
+
+
+**Improvements**:
+
+  * :func:`.parsePDB` resizes data arrays to decrease memory usage.
+
+**Bugfixes**:
+
+  * Fixed memory leaks in MSA :mod:`~.sequence.analysis` functions.
+
+1.4.7 (Oct 29, 2013)
+-------------------------------------------------------------------------------
+
+**Improvements**:
+
+  * :class:`.AtomGroup`, :class:`.Selection`, and other :class:`.Atomic`
+    classes are picklable.
+
+  * Improved equality tests for :class:`.AtomGroup`. Two different instances
+    are considered equal if they contain identical data and coordinate sets.
+
+1.4.6 (Oct 16, 2013)
+-------------------------------------------------------------------------------
+
+**Bugfixes**:
+
+  * Selection problem with using :term:`resid` is fixed (:issue:`160`)
+
+  * Fixed a memory leak in MSA parsers written in C.  When dealing with
+    large files, leak would cause a segmentation fault.
+
+  * Fixed a memory leak in MSA parsers written in C.  When dealing with
+    large files, leak would cause a segmentation fault.
+
+  * Fixed a reference counting problem in MSA parsers in C that would
+    cause segmentation fault when reading files that uses the same
+    label for multiple sequences.
+
+  * Updated :func:`.fetchPDBLigand` to use PDB for fetching XML files.
+
+  * Revised handling of MSA file formats to avoid exceptions for unknown
+    extensions.
+
 1.4.5 (Sep 6, 2013)
 -------------------------------------------------------------------------------
 
@@ -240,5 +295,5 @@ ProDy 1.4 Series
 
 **Bugfix**:
 
-  * Selection :issue:`12` and  :issue:`13` are resolved.
+  * Selection :bbissue:`12` and  :bbissue:`13` are resolved.
 

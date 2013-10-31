@@ -1,4 +1,4 @@
-import os 
+import os
 import sys
 import platform
 from os import sep as dirsep
@@ -11,19 +11,19 @@ from distutils.command.install import install
 if sys.version_info[:2] < (2, 6):
     sys.stderr.write('Python 2.5 and older is not supported\n')
     sys.exit()
-    
-if os.name == 'java': 
+
+if os.name == 'java':
     sys.stderr.write('JavaOS is not supported\n')
     sys.exit()
 
-try:    
+try:
     import numpy
 except ImportError:
     sys.stderr.write('numpy is not installed, you can find it at: '
                      'http://numpy.scipy.org\n')
     sys.exit()
 
-if [int(dgt) for dgt in numpy.__version__.split('.')[:2]] < [1, 4]: 
+if [int(dgt) for dgt in numpy.__version__.split('.')[:2]] < [1, 4]:
     sys.stderr.write('numpy v1.4 or later is required, you can find it at: '
                      'http://numpy.scipy.org\n')
     sys.exit()
@@ -41,18 +41,18 @@ with open('README.rst') as inp:
     long_description = inp.read()
 
 
-PACKAGES = ['prody', 
-            'prody.atomic', 
-            'prody.database', 
-            'prody.dynamics', 
-            'prody.ensemble', 
-            'prody.kdtree', 
-            'prody.measure', 
-            'prody.proteins', 
-            'prody.sequence', 
-            'prody.trajectory', 
-            'prody.utilities', 
-            'prody.apps', 
+PACKAGES = ['prody',
+            'prody.atomic',
+            'prody.database',
+            'prody.dynamics',
+            'prody.ensemble',
+            'prody.kdtree',
+            'prody.measure',
+            'prody.proteins',
+            'prody.sequence',
+            'prody.trajectory',
+            'prody.utilities',
+            'prody.apps',
             'prody.apps.prody_apps',
             'prody.apps.evol_apps',
             'prody.tests',
@@ -60,17 +60,17 @@ PACKAGES = ['prody',
             'prody.tests.test_atomic',
             'prody.tests.test_datafiles',
             'prody.tests.test_dynamics',
-            'prody.tests.test_ensemble', 
-            'prody.tests.test_kdtree', 
+            'prody.tests.test_ensemble',
+            'prody.tests.test_kdtree',
             'prody.tests.test_measure',
             'prody.tests.test_proteins',
             'prody.tests.test_sequence',
             'prody.tests.test_trajectory',
             'prody.tests.test_utilities',]
 PACKAGE_DATA = {
-    'prody.tests': ['test_datafiles/pdb*.pdb', 
-                    'test_datafiles/*.dat', 
-                    'test_datafiles/*.coo', 
+    'prody.tests': ['test_datafiles/pdb*.pdb',
+                    'test_datafiles/*.dat',
+                    'test_datafiles/*.coo',
                     'test_datafiles/dcd*.dcd',
                     'test_datafiles/xml*.xml',
                     'test_datafiles/msa*',]
@@ -81,12 +81,6 @@ for pkg in PACKAGES:
     PACKAGE_DIR[pkg] = join('lib', *pkg.split('.'))
 
 EXTENSIONS = [
-    Extension('prody.proteins.cpairwise2', 
-              [join('lib', 'prody', 'proteins', 'cpairwise2.c')]),
-    Extension('prody.kdtree._CKDTree',
-              [join('lib', 'prody', 'kdtree', 'KDTree.c'),
-               join('lib', 'prody', 'kdtree', 'KDTreemodule.c')],
-              include_dirs=[numpy.get_include()]),
     Extension('prody.sequence.msatools',
               [join('lib', 'prody', 'sequence', 'msatools.c'),],
               include_dirs=[numpy.get_include()]),
@@ -98,8 +92,21 @@ EXTENSIONS = [
               include_dirs=[numpy.get_include()]),
 ]
 
+CONTRIBUTED = [
+    Extension('prody.proteins.cpairwise2',
+              [join('lib', 'prody', 'proteins', 'cpairwise2.c')]),
+    Extension('prody.kdtree._CKDTree',
+              [join('lib', 'prody', 'kdtree', 'KDTree.c'),
+               join('lib', 'prody', 'kdtree', 'KDTreemodule.c')],
+              include_dirs=[numpy.get_include()]),
+]
+
+for ext in CONTRIBUTED:
+    if all([isfile(src) for src in ext.sources]):
+        EXTENSIONS.append(ext)
+
 SCRIPTS = ['scripts/prody', 'scripts/evol']
-if (platform.system() == 'Windows' or 
+if (platform.system() == 'Windows' or
     len(sys.argv) > 1 and sys.argv[1] not in ('build', 'install')):
     for script in list(SCRIPTS):
         SCRIPTS.append(script + '.bat')

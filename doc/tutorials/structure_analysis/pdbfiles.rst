@@ -37,11 +37,10 @@ Multiple files
 
 This function also accepts a list of PDB identifiers:
 
-.. ipython::
+.. ipython:: python
 
-   In [1]: mkdir temp
-   In [2]: filenames = fetchPDB(['1p38', '1r39', '@!~#'], folder='temp')
-   In [3]: filenames
+   filenames = fetchPDB(['1p38', '1r39', '@!~#'])
+   filenames
 
 For failed downloads, ``None`` will be returned (or the list will contain
 ``None`` item).

@@ -104,7 +104,7 @@ calculate the radius of gyration of p38 MAPK structure:
 
 .. ipython::
 
-   In [1]: calcGyradius ?
+   In [1]: ? calcGyradius
 
    In [1]: calcGyradius(p38)
 
