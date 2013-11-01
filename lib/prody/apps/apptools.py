@@ -22,9 +22,13 @@ __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 from copy import copy
 try:
-    import argparse
-except ImportError:
     from . import argparse
+except ImportError:
+    try:
+        import argparse
+    except ImportError:
+        raise ImportError('You need argparse module to '
+                          'be able to use ProDy apps.')
 import textwrap
 
 from prody.utilities import wrapText
