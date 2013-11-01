@@ -845,11 +845,9 @@ static double calcOMES(double **joint, double **probs, long i, long j, int n) {
         jrow = joint[k];
         for (l = 0; l < NUMCHARS; l++) {
             jp = jrow[l];
-            if (jp > 0) {
-                inside = iprb[k] * jprb[l];
-                if (inside != 0)
-                    omes += n * (jp - inside) * (jp - inside) / inside;
-            }
+            inside = iprb[k] * jprb[l];
+            if (inside != 0)
+                omes += n * (jp - inside) * (jp - inside) / inside;
         }
     }
     return omes;
