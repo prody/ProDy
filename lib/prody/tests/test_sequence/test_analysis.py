@@ -29,6 +29,9 @@ from prody.tests.test_datafiles import *
 
 from prody import LOGGER, calcShannonEntropy, buildMutinfoMatrix, parseMSA
 from prody import calcMSAOccupancy, buildSeqidMatrix, uniqueSequences
+from prody import buildOMESMatrix, buildSCAMatrix
+
+import scipy.io
 
 LOGGER.verbosity = None
 
@@ -373,3 +376,206 @@ class TestUnique(TestCase):
                     unique[j] = False
 
         assert_array_equal(unique, uniqueSequences(FASTA, seqid))
+
+
+class TestCalcOMES(TestCase):
+
+    def testZero(self):
+
+        msa = array([list('ACCA'),
+                     list('ACDA'),
+                     list('ACCC'),
+                     list('ACDC')], dtype='|S1')
+
+        expect = array([[0., 0., 0., 0.],
+                        [0., 0., 0., 0.],
+                        [0., 0., 0., 0.],
+                        [0., 0., 0., 0.], ])
+        result = buildOMESMatrix(msa)
+        assert_array_almost_equal(expect, result, err_msg='turbo failed')
+        result = buildOMESMatrix(msa, turbo=False)
+        assert_array_almost_equal(expect, result, err_msg='w/out turbo failed')
+
+
+    def testFourSequences(self):
+
+        msa = array([list('ACCA'),
+                     list('ACDA'),
+                     list('ACDC'),
+                     list('ACDC')], dtype='|S1')
+
+        expect = array([[0., 0., 0., 0.],
+                        [0., 0., 0., 0.],
+                        [0., 0., 0., 4./3],
+                        [0., 0., 4./3, 0.], ])
+        result = buildOMESMatrix(msa)
+        assert_array_almost_equal(expect, result, err_msg='turbo failed')
+        result = buildOMESMatrix(msa, turbo=False)
+        assert_array_almost_equal(expect, result, err_msg='w/out turbo failed')
+
+
+    def testTwenty(self):
+
+        seq = 'ACDEFGHIKLMNPQRSTVWY'
+        msa = array([[s, s] for s in seq], dtype='|S1')
+
+        expect = array([[0., 380.],
+                        [380., 0.]])
+        result = buildOMESMatrix(msa, debug=False)
+        assert_array_almost_equal(expect, result, err_msg='turbo failed')
+        result = buildOMESMatrix(msa, turbo=False)
+        assert_array_almost_equal(expect, result, err_msg='w/out turbo failed')
+
+
+    def testTwentyReversed(self):
+
+        seq = 'ACDEFGHIKLMNPQRSTVWY'
+        msa = array([[s, seq[-i-1]] for i, s in enumerate(seq)], dtype='|S1')
+
+        expect = array([[0., 380.],
+                        [380., 0.]])
+        result = buildOMESMatrix(msa)
+        assert_array_almost_equal(expect, result, err_msg='turbo failed')
+        result = buildOMESMatrix(msa, turbo=False)
+        assert_array_almost_equal(expect, result, err_msg='w/out turbo failed')
+
+
+    def testAmbiguity(self):
+
+        msa = array([list('OX'),
+                     list('XO')], dtype='|S1')
+
+        expect = array([[0., 2.],
+                        [2., 0.]])
+        result = buildOMESMatrix(msa, debug=False)
+        assert_array_almost_equal(expect, result, err_msg='turbo failed')
+        result = buildOMESMatrix(msa, turbo=False)
+        assert_array_almost_equal(expect, result, err_msg='w/out turbo failed')
+
+
+    def testNoAmbiguity(self):
+
+        msa = array([list('OX'),
+                     list('XO')], dtype='|S1')
+
+        expect = array([[0., 2.],
+                        [2., 0.]])
+        result = buildOMESMatrix(msa, ambiquity=False)
+        assert_array_almost_equal(expect, result, err_msg='turbo failed')
+        result = buildOMESMatrix(msa, ambiquity=False, turbo=False)
+        assert_array_almost_equal(expect, result, err_msg='w/out turbo failed')
+
+
+    def testAmbiguity2(self):
+
+        msa = array([list('AB'),
+                     list('BZ')], dtype='|S1')
+        expect = array([[0., 2.],
+                        [2., 0.]])
+        result = buildOMESMatrix(msa, debug=False)
+        assert_array_almost_equal(expect, result, err_msg='turbo failed')
+        result = buildOMESMatrix(msa, turbo=False)
+        assert_array_almost_equal(expect, result, err_msg='w/out turbo failed')
+
+
+    def testAmbiguity3(self):
+
+        msa = array([list('XX')], dtype='|S1')
+
+        expect = zeros((2, 2))
+        result = buildOMESMatrix(msa, debug=False)
+        assert_array_almost_equal(expect, result, err_msg='turbo failed')
+        result = buildOMESMatrix(msa, turbo=False)
+        assert_array_almost_equal(expect, result, err_msg='w/out turbo failed')
+
+
+    def testAmbiguity4(self):
+
+        msa = array([list('Bb'),
+                     list('jJ'),
+                     list('Zz'), ], dtype='|S1')
+
+        expect = array([[0., 6.],
+                        [6., 0.]])
+        result = buildOMESMatrix(msa, debug=False)
+        assert_array_almost_equal(expect, result, err_msg='turbo failed')
+        result = buildOMESMatrix(msa, turbo=False)
+        assert_array_almost_equal(expect, result, err_msg='w/out turbo failed')
+
+
+    def testAmbiguity5(self):
+
+        expect = array([[0., 0.],
+                        [0., 0.]])
+
+        for seq in ['bx', 'Xb', 'jX', 'Xj', 'xz', 'ZX',
+                    'bj', 'jb', 'bz', 'zb', 'jz', 'zj']:
+            msa = array([list(seq)], dtype='|S1')
+            result = buildOMESMatrix(msa, debug=False)
+            assert_array_almost_equal(expect, result, err_msg=seq + ' failed')
+
+
+    def testAmbiguity6(self):
+
+        expect = zeros((2, 2))
+
+        for seq in ['bb', 'jj', 'zz']:
+            msa = array([list(seq)], dtype='|S1')
+            result = buildOMESMatrix(msa, debug=False)
+            assert_array_almost_equal(expect, result, err_msg=seq + ' failed')
+
+    def testAmbiguity7(self):
+
+        msa = array([list('bx'),
+                     list('xb')], dtype='|S1')
+        expect = array([[0., 162./121],
+                        [162./121, 0.]])
+        result = buildOMESMatrix(msa, debug=False)
+        assert_array_almost_equal(expect, result, err_msg='turbo failed')
+        result = buildOMESMatrix(msa, turbo=False)
+        assert_array_almost_equal(expect, result, err_msg='w/out turbo failed')
+
+    def testInf(self):
+
+        msa = zeros((500, 10), '|S1')
+        msa.fill('.')
+        msa[95, 8] = 's'
+        msa[95, 9] = 'i'
+        expect = zeros((10, 10))
+        expect[8, 9] = expect[9, 8] = 500.
+        result = buildOMESMatrix(msa, debug=False)
+        assert_array_almost_equal(expect, result, err_msg='turbo failed')
+        result = buildOMESMatrix(msa, turbo=False)
+        assert_array_almost_equal(expect, result, err_msg='w/out turbo failed')
+
+
+class TestCalcSCA(TestCase):
+
+    def testZero(self):
+
+        msa = array([list('ACCD'),
+                     list('ACDD'),
+                     list('ACCC'),
+                     list('ACDC')], dtype='|S1')
+
+        expect = array([log(0.975/.025)*.5, log(0.95/.05)*.5])
+        weight = ((expect ** 2).sum())**.5
+        expect = expect / weight * array([log(0.975/.025), log(0.95/.05)])
+        expect = (expect ** 2).mean() - (expect.mean()) ** 2
+        expect = array([[0., 0., 0., 0.],
+                        [0., 0., 0., 0.],
+                        [0., 0., expect, 0.],
+                        [0., 0., 0., expect], ])
+        result = buildSCAMatrix(msa)
+        assert_array_almost_equal(expect, result, err_msg='turbo failed')
+        result = buildSCAMatrix(msa, turbo=False)
+        assert_array_almost_equal(expect, result, err_msg='w/out turbo failed')
+
+    def testMATLAB(self):
+
+        mat = scipy.io.loadmat(pathDatafile('sca.mat'))
+        expect = mat['sca']
+        result = buildSCAMatrix(FASTA, turbo=True)
+        assert_array_almost_equal(expect, result, err_msg='turbo failed')
+        result = buildSCAMatrix(FASTA, turbo=False)
+        assert_array_almost_equal(expect, result, err_msg='w/out turbo failed')
