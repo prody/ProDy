@@ -22,7 +22,7 @@ __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 from prody.tests import TestCase
 
-from numpy import array, log, zeros, char, ones
+from numpy import array, log, zeros, char, ones, fromfile
 from numpy.testing import assert_array_equal, assert_array_almost_equal
 
 from prody.tests.test_datafiles import *
@@ -30,8 +30,6 @@ from prody.tests.test_datafiles import *
 from prody import LOGGER, calcShannonEntropy, buildMutinfoMatrix, parseMSA
 from prody import calcMSAOccupancy, buildSeqidMatrix, uniqueSequences
 from prody import buildOMESMatrix, buildSCAMatrix
-
-import scipy.io
 
 LOGGER.verbosity = None
 
@@ -573,9 +571,10 @@ class TestCalcSCA(TestCase):
 
     def testMATLAB(self):
 
-        mat = scipy.io.loadmat(pathDatafile('sca.mat'))
-        expect = mat['sca']
-        result = buildSCAMatrix(FASTA, turbo=True)
+        sca = fromfile(pathDatafile('msa_Cys_knot_sca.dat'))
+        expect = sca.reshape((10, 10))
+        fasta = FASTA[:,:10]
+        result = buildSCAMatrix(fasta, turbo=True)
         assert_array_almost_equal(expect, result, err_msg='turbo failed')
-        result = buildSCAMatrix(FASTA, turbo=False)
+        result = buildSCAMatrix(fasta, turbo=False)
         assert_array_almost_equal(expect, result, err_msg='w/out turbo failed')
