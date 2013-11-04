@@ -1,7 +1,7 @@
 ProDy 1.4 Series
 ===============================================================================
 
-1.4.8 (in development)
+1.4.8 (Nov 4, 2013)
 -------------------------------------------------------------------------------
 
 **New Features**:
@@ -22,6 +22,8 @@ ProDy 1.4 Series
 **Bugfixes**:
 
   * Fixed memory leaks in MSA :mod:`~.sequence.analysis` functions.
+
+  * Fixed potential problems with importing contributed libraries.
 
 1.4.7 (Oct 29, 2013)
 -------------------------------------------------------------------------------

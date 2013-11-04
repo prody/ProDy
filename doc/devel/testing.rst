@@ -13,7 +13,7 @@ The easiest way to run ProDy unittests is using :ref:`prody-test` command::
 
   $ prody test
   $ prody test atomic.select -l full
-  
+
 See :ref:`prody-test` documentation for details.
 
 Alternatively, you can use :func:`prody.test` function in a Python session::
@@ -25,24 +25,24 @@ Running Doctests
 ===============================================================================
 
 In addition to unittests, doctests in documentation (:file:`.rst`) as well as
-source (:file:`.py`) files should be run, especially before making a new 
+source (:file:`.py`) files should be run, especially before making a new
 release.  All doctests can be run as follows::
 
   $ cd doc
   $ make doctest
-  
+
 Doctests in an :file:`.rst` or a :file:`.py` file can be run as follows::
 
   $ python -m doctest filename.rst
 
 
-Pre-commit Testing 
+Pre-commit Testing
 ===============================================================================
 
-You can automatize testing of ProDy package using a git pre-commit hook.  
-For example, the following script calls :file:`devel_test.sh` file that comes 
-in the project directory ensures that the package imports and passes fast 
-subset of tests:: 
+You can automatize testing of ProDy package using a git pre-commit hook.
+For example, the following script calls :file:`devel_test.sh` file that comes
+in the project directory ensures that the package imports and passes fast
+subset of tests::
 
   #!/bin/sh
 
@@ -50,7 +50,7 @@ subset of tests::
 
   if [ "$SRC" ]
   then
-      TEST="$(/home/abakan/Code/ProDy/devel_test.sh 3>&1 1>&2 2>&3)"
+      TEST="$(make test 3>&1 1>&2 2>&3)"
       echo "$TEST" >&2
       FAIL="$(echo $TEST | grep FAILED)"
       if [ "$FAIL" ]
@@ -72,14 +72,14 @@ Unit test development should follow these guidelines:
   #. For comparing Python numerical types and objects, e.g. int, list, tuple,
      use methods of :class:`unittest.TestCase`.
 
-  #. For comparing Numpy arrays, use assertions available in 
+  #. For comparing Numpy arrays, use assertions available in
      :mod:`numpy.testing` module.
 
-  #. All test files should be stored in :file:`tests` folder in the ProDy 
+  #. All test files should be stored in :file:`tests` folder in the ProDy
      package directory, i.e. :file:`prody/tests/`
 
-  #. All tests for functions and classes in a ProDy module should be in a 
-     single test file named after the module, 
+  #. All tests for functions and classes in a ProDy module should be in a
+     single test file named after the module,
      e.g. :file:`test_atomic/test_select.py`.
 
   #. Data files for testing should be located in :file:`tests/test_datafiles`.

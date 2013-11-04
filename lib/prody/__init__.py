@@ -17,7 +17,7 @@
 
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
-__version__ = '1.4.7'
+__version__ = '1.4.8'
 
 release = [int(x) for x in __version__.split('.')]
 

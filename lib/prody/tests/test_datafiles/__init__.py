@@ -115,7 +115,10 @@ DATA_FILES = {
     },
     'Stockholm': {
         'file': 'msa_Cys_knot.sth'
-    }
+    },
+    'SCA': {
+        'file': 'msa_Cys_knot_sca.dat'
+    },
 }
 
 

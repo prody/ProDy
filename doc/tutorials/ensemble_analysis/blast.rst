@@ -76,7 +76,7 @@ as follows:
 
 .. ipython:: python
 
-   blast_record = blastPDB(sequence)
+   blast_record = blastPDB(sequence, timeout=240)
    pdb_hits = []
    for key, item in blast_record.getHits(seqid).iteritems():
        pdb_hits.append((key, item['chain_id']))

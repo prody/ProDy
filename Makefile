@@ -7,8 +7,8 @@ REPOPATH = `pwd`
 help:
 	@echo "Please use \`make <target>' where <target> is one of"
 	@echo "  build		to build extensions in place"
-	@echo "  remove		to remove contributed modules"
-	@echo "  test	    to clone, build and test"
+	@echo "  remove 	to remove contributed modules"
+	@echo "  test		to clone, build and test"
 
 build:
 	python setup.py build_ext --inplace --force

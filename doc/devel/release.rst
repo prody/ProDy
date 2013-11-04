@@ -22,12 +22,6 @@ How to Make a Release
    See :ref:`testing` for alternative testing methods.
 
 
-#. Make sure ProDy passes doctests::
-
-     $ cd doc
-     $ make doctest
-
-
 #. Update the version number in:
 
    * :file:`prody/__init__.py`
@@ -47,7 +41,7 @@ How to Make a Release
 
 #. Copy the documentation files packed with source release::
 
-     $ make copytxt
+     $ make copy
 
 
 #. Generate the source distributions::
@@ -58,8 +52,11 @@ How to Make a Release
 
 #. Prepare and test Windows installers (see :ref:`wininst`)::
 
+     $ C:\Python26\python setup.py bdist_wininst
      $ C:\Python27\python setup.py bdist_wininst
+     $ C:\Python31\python setup.py bdist_wininst
      $ C:\Python32\python setup.py bdist_wininst
+     $ C:\Python33\python setup.py bdist_wininst
 
 
 #. Register new release to PyPI::
@@ -75,7 +72,8 @@ How to Make a Release
 
      $ make clean
      $ make html
-     $ make latexpdf
+     $ make pdf
+     $ make html
 
 
 #. Commit the final changes::
@@ -84,8 +82,6 @@ How to Make a Release
      $ git commit -a
 
 
-#. Tag the repository with the current version number and push the changes
-   with tags to `Bitbucket <https://bitbucket.org/abakan/prody>`_::
+#. Tag the repository with the current version number::
 
      $ git tag vX.Y
-
