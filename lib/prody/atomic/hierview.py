@@ -109,7 +109,7 @@ class HierView(object):
                                                 key[2], None, key[0])
 
             if length == 4:
-                return getResidue(key[1], key[2], key[3], key[0])
+                return self.getResidue(key[1], key[2], key[3], key[0])
 
         elif isinstance(key, int):
             return self.getResidue(None, key)
