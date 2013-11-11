@@ -368,7 +368,15 @@ def countUnpairedBreaks(chone, chtwo, resnum=True):
     return len(brone.union(brtwo)) - len(brone.intersection(brtwo))
 
 
-_SUBSETS = set(['ca', 'calpha', 'bb', 'backbone', 'heavy', 'noh', 'all'])
+_SUBSETS = {
+    'ca': 'ca',
+    'calpha': 'ca',
+    'bb': 'bb',
+    'backbone': 'bb',
+    'heavy': 'noh',
+    'noh': 'noh',
+    'all': 'all'
+}
 
 
 def matchAlign(mobile, target, **kwargs):
@@ -479,7 +487,8 @@ def matchChains(atoms1, atoms2, **kwargs):
     :arg atoms2: atoms that contain a chain
     :type atoms2: :class:`.Chain`, :class:`.AtomGroup`, :class:`.Selection`
 
-    :keyword subset: ``"calpha"`` (or ``"ca"``), ``"backbone"`` (or ``"bb"``),
+    :keyword subset: one of the following well-defined subsets of atoms:
+        ``"calpha"`` (or ``"ca"``), ``"backbone"`` (or ``"bb"``),
         ``"heavy"`` (or ``"noh"``), or ``"all"``, default is ``"calpha"``
     :type subset: string
 
@@ -607,12 +616,7 @@ def matchChains(atoms1, atoms2, **kwargs):
             LOGGER.warning('Pairwise alignment could not be performed.')
     if not matches:
         return None
-    if subset == 'calpha':
-        subset = 'ca'
-    elif subset == 'backbone':
-        subset = 'bb'
-    elif subset == 'heavy':
-        subset = 'noh'
+    subset = _SUBSETS[subset]
     for mi, result in enumerate(matches):
         match1, match2, _seqid, _cover, simpch1, simpch2 = result
 
@@ -774,6 +778,11 @@ def mapOntoChain(atoms, chain, **kwargs):
     :arg chain: chain to which atoms will be mapped
     :type chain: :class:`.Chain`
 
+    :keyword subset: one of the following well-defined subsets of atoms:
+        ``"calpha"`` (or ``"ca"``), ``"backbone"`` (or ``"bb"``),
+        ``"heavy"`` (or ``"noh"``), or ``"all"``, default is ``"calpha"``
+    :type subset: string
+
     :keyword seqid: percent sequence identity, default is 90
     :type seqid: float
 
@@ -791,12 +800,6 @@ def mapOntoChain(atoms, chain, **kwargs):
     User can control, whether sequence alignment is performed or not with
     *pwalign* keyword. If ``pwalign=True`` is passed, pairwise alignment is
     enforced."""
-
-    """
-    :keyword subset: "calpha" (or "ca"), "backbone" (or "bb"), or "all",
-        default is "calpha"
-    :type subset: string
-    """
 
     target_chain = chain
     if not isinstance(atoms, (AtomGroup, Chain, Selection)):
