@@ -1,17 +1,17 @@
 /* ProDy: A Python Package for Protein Dynamics Analysis
  *
  * Copyright (C) 2010-2012 Ahmet Bakan
- * 
+ *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- *  
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>
  *
@@ -22,22 +22,22 @@
 #include "Python.h"
 #include "numpy/arrayobject.h"
 #define NUMCHARS 27
-const int twenty[20] = {1, 3, 4, 5, 6, 7, 8, 9, 11, 12, 13, 
+const int twenty[20] = {1, 3, 4, 5, 6, 7, 8, 9, 11, 12, 13,
                         14, 16, 17, 18, 19, 20, 22, 23, 25};
-const int unambiguous[23] = {0, 1, 3, 4, 5, 6, 7, 8, 9, 11, 12, 13, 14, 
+const int unambiguous[23] = {0, 1, 3, 4, 5, 6, 7, 8, 9, 11, 12, 13, 14,
                              15, 16, 17, 18, 19, 20, 21, 22, 23, 25};
-                             
+
 static PyObject *msaeye(PyObject *self, PyObject *args,
                                    PyObject *kwargs) {
 
-    PyArrayObject *msa;
-    double unique = 0; 
+    PyArrayObject *msa, *array;
+    double unique = 0;
     int turbo = 1;
-    
-    static char *kwlist[] = {"msa", "unique", "turbo", NULL};
-        
-    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O|di", kwlist, &msa, 
-                                     &unique, &turbo))
+
+    static char *kwlist[] = {"msa", "array", "unique", "turbo", NULL};
+
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "OO|di", kwlist,
+                                     &msa, &array, &unique, &turbo))
         return NULL;
 
     /* make sure to have a contiguous and well-behaved array */
@@ -45,37 +45,29 @@ static PyObject *msaeye(PyObject *self, PyObject *args,
 
     /* get dimensions */
     long number = msa->dimensions[0], length = msa->dimensions[1];
-    
+
     /* get pointers to data */
     char *iraw, *jraw, *raw = (char *) PyArray_DATA(msa);
 
     long i, j;
     /* allocate memory */
-    double *jrow, *sim =  (double *) raw;  
+    double *jrow, *sim =  (double *) raw;
     _Bool *unq = (_Bool *) raw; /* to avoid uninitialized warnings*/
-    if (unique) {
-        unq = (_Bool *) malloc(number * sizeof(_Bool));
-        if (!unq)
-            return PyErr_NoMemory();
-    } else {
-        sim = (double *) malloc(number * number * sizeof(double));   
-        if (!sim)
-            return PyErr_NoMemory();
-    }
+    if (unique)
+        unq = (_Bool *) PyArray_DATA(array);
+    else
+        sim = (double *) PyArray_DATA(array);
 
     /* arrays to store refined sequences*/
     unsigned char *iseq = malloc(length * sizeof(unsigned char));
-    if (!iseq) {
-        free(sim);
-        free(unq);
+    if (!iseq)
         return PyErr_NoMemory();
-    }
 
     unsigned char **seq = malloc(number * sizeof(unsigned char *));
     if (!seq) {
         turbo = 0;
     }
-    
+
     if (turbo) {
         /* allocate rows that will store columns of MSA */
         seq[0] = iseq;
@@ -89,10 +81,10 @@ static PyObject *msaeye(PyObject *self, PyObject *args,
             }
         }
     }
-    
+
     /* initialize jseq, so that we don't get uninitialized warning */
-    unsigned char *jseq = iseq; 
-    
+    unsigned char *jseq = iseq;
+
     unsigned char a, b;
     long k, diff;
 
@@ -100,7 +92,7 @@ static PyObject *msaeye(PyObject *self, PyObject *args,
     if (unique) {
         for (i = 0; i < number; i++)
             unq[i] = 1;
-    } else {   
+    } else {
         for (i = 0; i < number; i++) {
             jrow = sim + i * number;
             for (j = 0; j < number; j++)
@@ -108,10 +100,10 @@ static PyObject *msaeye(PyObject *self, PyObject *args,
             jrow[i] = 1;
         }
     }
-    
-    double ncols, score, seqid; 
 
-    /* START calculation */    
+    double ncols, score, seqid;
+
+    /* START calculation */
     /* calculate first row of MI matrix and all column probabilities */
     i = 0;
     iraw = raw;
@@ -134,7 +126,7 @@ static PyObject *msaeye(PyObject *self, PyObject *args,
                     a = 0; /* gap character */
                 iseq[k] = a;
             }
-            
+
             b = (unsigned char) jraw[k];
             if (b > 90)
                 b -= 96;
@@ -144,7 +136,7 @@ static PyObject *msaeye(PyObject *self, PyObject *args,
                 b = 0; /* gap character */
             if (turbo)  /* we keep the refined chars for all sequences*/
                 jseq[k] = b;
-            
+
             if (a || b) {
                 ncols++;
                 if (a == b)
@@ -163,21 +155,21 @@ static PyObject *msaeye(PyObject *self, PyObject *args,
 
     if (turbo)
         free(iseq);
-    
+
     /* calculate rest of identities */
     for (i = 1; i < number; i++) {
-        
+
         if (unique && !unq[i])
             continue;
-    
+
         if (turbo)
             iseq = seq[i];
         else
             iraw = raw + length * i;
-            
+
         for (j = i + 1; j < number; j++) {
             ncols = score = 0.;
-        
+
             if (turbo) {
                 jseq = seq[j];
                 for (k = 0; k < length; k++) {
@@ -205,7 +197,7 @@ static PyObject *msaeye(PyObject *self, PyObject *args,
                             a = 0; /* gap character */
                         iseq[k] = a;
                     }
-                    
+
                     b = (unsigned char) jraw[k];
                     if (b > 90)
                         b -= 96;
@@ -231,30 +223,20 @@ static PyObject *msaeye(PyObject *self, PyObject *args,
                     sim[i * number + j] = sim[i + number * j] = seqid;
          }
     }
-    
+
     /* free memory */
     if (turbo)
         for (j = 1; j < number; j++)
             free(seq[j]);
     free(seq);
-    
-    PyObject *array;
-    if (unique) {
-        npy_intp dims[1] = {number};
-        array = PyArray_SimpleNewFromData(1, dims, NPY_BOOL, unq);
-    } else {
-        npy_intp dims[2] = {number, number};
-        array = PyArray_SimpleNewFromData(2, dims, NPY_DOUBLE, sim);
-    }
-    PyObject *result = Py_BuildValue("O", array);
-    Py_DECREF(array);
-    return result;
+
+    return Py_BuildValue("O", array);
 }
 
 static PyMethodDef seqtools_methods[] = {
 
-    {"msaeye",  (PyCFunction)msaeye, 
-     METH_VARARGS | METH_KEYWORDS, 
+    {"msaeye",  (PyCFunction)msaeye,
+     METH_VARARGS | METH_KEYWORDS,
      "Return sequence identity matrix calculated for given character \n"
      "array that contains an MSA."},
 
@@ -281,7 +263,7 @@ PyMODINIT_FUNC initseqtools(void) {
 
     Py_InitModule3("seqtools", seqtools_methods,
         "Sequence similarity/identity analysis tools.");
-        
+
     import_array();
 }
 #endif

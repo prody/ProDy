@@ -21,7 +21,7 @@
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
-from numpy import dtype, zeros, empty, int64
+from numpy import dtype, zeros, empty, ones
 from numpy import indices, tril_indices
 from prody import LOGGER
 
@@ -278,7 +278,8 @@ def buildSeqidMatrix(msa, turbo=True):
     LOGGER.timeit('_seqid')
     from .seqtools import msaeye
 
-    seqid = msaeye(msa, turbo=bool(turbo))
+    dim = msa.shape[0]
+    seqid = msaeye(msa, ones((dim, dim), float), turbo=bool(turbo))
 
     LOGGER.report('Sequence identity matrix was calculated in %.2fs.',
                   '_seqid')
@@ -299,7 +300,8 @@ def uniqueSequences(msa, seqid=0.98, turbo=True):
     if not (0 < seqid <= 1):
         raise ValueError('seqid must satisfy 0 < seqid <= 1')
 
-    return msaeye(msa, unique=seqid, turbo=bool(turbo))
+    return msaeye(msa, zeros(msa.shape[0], bool),
+                  unique=seqid, turbo=bool(turbo))
 
 uniqueSequences.__doc__ += doc_turbo
 
