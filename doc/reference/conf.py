@@ -1,10 +1,7 @@
-exec(open('../conf.py').read())
-
-extensions = extensions[:10]
-extensions.extend([
-    'IPython.sphinxext.ipython_console_highlighting',
-    'IPython.sphinxext.ipython_directive'
-    ])
+try:
+    execfile('../conf.py')
+except NameError:
+    exec(open('../conf.py').read())
 
 sys.path[-2] = os.path.abspath('../_sphinxext')
 sys.path[-1] = os.path.abspath('../_inventory')
