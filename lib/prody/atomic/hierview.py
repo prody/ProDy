@@ -30,8 +30,6 @@ from .chain import Chain
 from .residue import Residue
 from .segment import Segment
 
-from prody import LOGGER, SETTINGS
-
 __all__ = ['HierView']
 
 
@@ -68,6 +66,7 @@ class HierView(object):
             raise TypeError('atoms must be an AtomGroup or Selection instance')
 
         self._atoms = atoms
+        self._ter = bool(kwargs.get('ter', False))
         self.update(**kwargs)
 
     def __repr__(self):
@@ -194,13 +193,14 @@ class HierView(object):
             self._selhv(**kwargs)
 
     def _selhv(self, **kwargs):
+        """Build hierarchical view for :class:`.Selection` instances."""
 
         atoms = self._atoms
         ag = self._ag
         indices = atoms._getIndices()
         self._selstr = atoms.getSelstr()
 
-        self._dict = ag.getHierView()._dict
+        self._dict = ag.getHierView(ter=self._ter)._dict
 
         self._segments = _segments = [None] * ag.numSegments()
         self._residues = _residues = [None] * ag.numResidues()
@@ -227,8 +227,9 @@ class HierView(object):
                 _list[pidx] = concatenate((subset, indices[pi:]))
 
     def _update(self, **kwargs):
+        """Build hierarchical view for :class:`.AtomGroup` instances."""
 
-        atoms = ag = self._ag = self._atoms
+        ag = self._ag = self._atoms
         n_atoms = len(ag)
         _indices = arange(n_atoms)
 
@@ -237,6 +238,12 @@ class HierView(object):
         self._segments = _segments = []
         self._chains = _chains = []
 
+        nones = None
+        getnones = lambda: [None] * n_atoms if nones is None else nones
+        if self._ter:
+            termini = ag.getFlags('pdbter')
+        else:
+            termini = nones = getnones()
         # identify segments
         segindex = -1
         segindices = zeros(n_atoms, int)
@@ -302,7 +309,7 @@ class HierView(object):
                     cid = _dict.get(s_c)
                     idx = _indices[_i:i]
                     if cid is None:
-                        segment = _dict[ps]
+                        #segment = _dict[ps]
                         chindex += 1
                         chindices[idx] = chindex
                         _dict[s_c] = chindex
@@ -318,7 +325,7 @@ class HierView(object):
                 cid = _dict.get(s_c)
                 idx = _indices[_i:]
                 if cid is None:
-                    segment = _dict[ps]
+                    #segment = _dict[ps]
                     chindex += 1
                     chindices[idx] = chindex
                     _dict[s_c] = chindex
@@ -340,21 +347,13 @@ class HierView(object):
         rnums = ag._getResnums()
         if rnums is None:
             raise ValueError('resnums are not set')
-        nones = None
         if _segments is None:
-            if nones is None:
-                nones = [None] * len(rnums)
-            sgnms = nones
+            sgnms = nones = getnones()
         if _chains is None:
-            if nones is None:
-                nones = [None] * len(rnums)
-            chids = nones
+            chids = nones = getnones()
         icods = ag._getIcodes()
         if icods is None:
-            if nones is None:
-                nones = [None] * len(rnums)
-            icods = nones
-
+            icods = nones = getnones()
         pr = rnums[0]
         pi = icods[0] or None
         pc = chids[0]
@@ -367,15 +366,21 @@ class HierView(object):
             i = icods[j] or None
             c = chids[j]
             s = sgnms[j]
-            if r != pr or i != pi or c != pc or s != ps:
+            if r != pr or i != pi or c != pc or s != ps or (j and termini[j-1]):
                 s_c_r_i = (ps, pc, pr, pi)
                 rid = _get(s_c_r_i)
                 idx = _indices[_j:j]
-                if rid is None:
+                if (rid is None or isinstance(rid, list) or
+                    termini[_residues[rid][-1]]):
                     resindex += 1
                     resindices[idx] = resindex
-                    _set(s_c_r_i, resindex)
                     _append(idx)
+                    if rid is None:
+                        _set(s_c_r_i, resindex)
+                    elif isinstance(rid, list):
+                        rid.append(resindex)
+                    else:
+                        _set(s_c_r_i, [rid, resindex])
                 else:
                     residue = _residues[rid]
                     resindices[idx] = rid
@@ -388,11 +393,16 @@ class HierView(object):
         s_c_r_i = (ps, pc, pr, pi)
         rid = _get(s_c_r_i)
         idx = _indices[_j:]
-        if rid is None:
+        if rid is None or isinstance(rid, list) or termini[_residues[rid][-1]]:
             resindex += 1
             resindices[idx] = resindex
             _append(idx)
-            _set(s_c_r_i, resindex)
+            if rid is None:
+                _set(s_c_r_i, resindex)
+            elif isinstance(rid, list):
+                rid.append(resindex)
+            else:
+                _set(s_c_r_i, [rid, resindex])
         else:
             residue = _residues[rid]
             resindices[idx] = rid
@@ -411,7 +421,11 @@ class HierView(object):
         except KeyError:
             pass
         else:
-            return self._getResidue(index)
+            if isinstance(index, list):
+                return [r for r in [self._getResidue(i) for i in index]
+                        if r is not None]
+            else:
+                return self._getResidue(index)
 
     def numResidues(self):
         """Return number of residues."""

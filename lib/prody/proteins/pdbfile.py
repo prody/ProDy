@@ -193,7 +193,13 @@ def parsePDBStream(stream, **kwargs):
     hd = None
     if model != 0:
         LOGGER.timeit()
-        lines = stream.readlines()
+        try:
+            lines = stream.readlines()
+        except AttributeError as err:
+            try:
+                lines = stream.read().split('\n')
+            except AttributeError:
+                raise err
         if not len(lines):
             raise ValueError('empty PDB file or stream')
         if header or biomol or secondary:
@@ -342,6 +348,7 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
     resnums = np.zeros(asize, dtype=ATOMIC_FIELDS['resnum'].dtype)
     chainids = np.zeros(asize, dtype=ATOMIC_FIELDS['chain'].dtype)
     hetero = np.zeros(asize, dtype=bool)
+    termini = np.zeros(asize, dtype=bool)
     altlocs = np.zeros(asize, dtype=ATOMIC_FIELDS['altloc'].dtype)
     icodes = np.zeros(asize, dtype=ATOMIC_FIELDS['icode'].dtype)
     serials = np.zeros(asize, dtype=ATOMIC_FIELDS['serial'].dtype)
@@ -350,7 +357,6 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
         elements = np.zeros(asize, dtype=ATOMIC_FIELDS['element'].dtype)
         bfactors = np.zeros(asize, dtype=ATOMIC_FIELDS['beta'].dtype)
         occupancies = np.zeros(asize, dtype=ATOMIC_FIELDS['occupancy'].dtype)
-        secondary = None
         anisou = None
         siguij = None
     else:
@@ -493,6 +499,7 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                 chainids = np.concatenate((chainids,
                     np.zeros(asize, ATOMIC_FIELDS['chain'].dtype)))
                 hetero = np.concatenate((hetero, np.zeros(asize, bool)))
+                termini = np.concatenate((termini, np.zeros(asize, bool)))
                 altlocs = np.concatenate((altlocs,
                     np.zeros(asize, ATOMIC_FIELDS['altloc'].dtype)))
                 icodes = np.concatenate((icodes,
@@ -522,6 +529,9 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
         #elif startswith == 'END   ' or startswith == 'CONECT':
         #    i += 1
         #    break
+        elif not onlycoords and (startswith == 'TER   ' or
+            startswith.strip() == 'TER'):
+            termini[acount - 1] = True
         elif startswith == 'ENDMDL' or startswith[:3] == 'END':
             if acount == 0:
                 # If there is no atom record between ENDMDL & END skip to next
@@ -564,6 +574,7 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                 resnums.resize(acount)
                 chainids.resize(acount)
                 hetero.resize(acount)
+                termini.resize(acount)
                 altlocs.resize(acount)
                 icodes.resize(acount)
                 serials.resize(acount)
@@ -575,6 +586,7 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                 atomgroup.setResnums(resnums)
                 atomgroup.setChids(chainids)
                 atomgroup.setFlags('hetatm', hetero)
+                atomgroup.setFlags('pdbter', termini)
                 atomgroup.setAltlocs(altlocs)
                 atomgroup.setIcodes(np.char.strip(icodes))
                 atomgroup.setSerials(serials)
@@ -665,6 +677,7 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
         resnums.resize(acount)
         chainids.resize(acount)
         hetero.resize(acount)
+        termini.resize(acount)
         altlocs.resize(acount)
         icodes.resize(acount)
         serials.resize(acount)
@@ -676,6 +689,7 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
         atomgroup.setResnums(resnums)
         atomgroup.setChids(chainids)
         atomgroup.setFlags('hetatm', hetero)
+        atomgroup.setFlags('pdbter', termini)
         atomgroup.setAltlocs(altlocs)
         atomgroup.setIcodes(np.char.strip(icodes))
         atomgroup.setSerials(serials)

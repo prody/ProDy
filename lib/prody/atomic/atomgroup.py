@@ -660,11 +660,13 @@ class AtomGroup(Atomic):
             index += n_csets
         self._acsi = index
 
-    def getHierView(self):
+    def getHierView(self, **kwargs):
         """Return a hierarchical view of the atom group."""
 
-        if self._hv is None:
-            self._hv = HierView(self)
+        if kwargs:
+            self._hv = HierView(self, **kwargs)
+        elif self._hv is None:
+            self._hv = HierView(self, **kwargs)
         return self._hv
 
     def numSegments(self):

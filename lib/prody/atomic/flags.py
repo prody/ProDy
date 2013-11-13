@@ -554,6 +554,9 @@ Heteros
    heme
       {heme}
 
+   pdbter
+      is available when atomic data is parsed from a PDB format file and
+      indicates atoms that were followed by ``'TER'`` record.
 
 """.format(
 

@@ -76,10 +76,10 @@ class Selection(AtomSubset):
 
         return self._selstr
 
-    def getHierView(self):
+    def getHierView(self, **kwargs):
         """Return a hierarchical view of the atom selection."""
 
-        return HierView(self)
+        return HierView(self, **kwargs)
 
     def update(self):
         """Update selection."""

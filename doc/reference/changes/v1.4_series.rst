@@ -4,10 +4,53 @@ ProDy 1.4 Series
 1.4.9 (in development)
 -------------------------------------------------------------------------------
 
+**Improvements**:
+
+  * :class:`.HierView` can handle :class:`.Residue` instances that have
+    same :term:`segment` name, :term:`chain` identifier, and :term:`resnum`,
+    if PDB file contains ``TER`` lines to terminate these residues. If
+    these three identifiers are shared by multiple residues, indexing
+    :class:`.AtomGroup` instances will return a list of residues. This
+    behavior can be used as follows. Note that in v1.5, this will be the
+    default behavior.
+
+
+    >>> pdb_lines = """
+    ATOM      1  O   WAT A   1       4.694  -3.891  -0.592  1.00  1.00
+    ATOM      2  H1  WAT A   1       5.096  -3.068  -0.190  1.00  1.00
+    ATOM      3  H2  WAT A   1       5.420  -4.544  -0.808  1.00  1.00
+    TER
+    ATOM      4  O   WAT A   1     -30.035  19.116  -2.193  1.00  1.00
+    ATOM      5  H1  WAT A   1     -30.959  18.736  -2.244  1.00  1.00
+    ATOM      6  H2  WAT A   1     -29.993  19.960  -2.728  1.00  1.00
+    TER
+    ATOM      7  O   WAT A   1     -77.584 -21.524 -37.894  1.00  1.00
+    ATOM      8  H1  WAT A   1     -77.226 -21.966 -38.717  1.00  1.00
+    ATOM      9  H2  WAT A   1     -77.023 -20.726 -37.674  1.00  1.00
+    TER"""
+    >>> from StringIO import StringIO
+    >>> atoms = parsePDBStream(StringIO(pdb_lines))
+
+    Current behavior:
+
+    >>> print(atoms.numResidues())
+    1
+    >>> atoms['A', 1]
+    <Residue: WAT 1 from Chain A from Unknown (9 atoms)>
+
+
+    To activate the new behavior (which will be the default behavior in v1.5):
+
+    >>> hv = atoms.getHierView(ter=True)
+    >>> print(hv.numResidues())
+    >>> hv['A', 1]
+
+
 **Bugfixes**:
 
-  * Fixed memory leaks in :func:`~.uniqueSequences` and
-    :func:`~.buildSeqidMatrix`.
+  * Fixed memory leaks in :func:`.uniqueSequences` and
+    :func:`.buildSeqidMatrix`.
+
 
 1.4.8 (Nov 4, 2013)
 -------------------------------------------------------------------------------
@@ -33,6 +76,7 @@ ProDy 1.4 Series
 
   * Fixed potential problems with importing contributed libraries.
 
+
 1.4.7 (Oct 29, 2013)
 -------------------------------------------------------------------------------
 
@@ -43,6 +87,7 @@ ProDy 1.4 Series
 
   * Improved equality tests for :class:`.AtomGroup`. Two different instances
     are considered equal if they contain identical data and coordinate sets.
+
 
 1.4.6 (Oct 16, 2013)
 -------------------------------------------------------------------------------
@@ -65,6 +110,7 @@ ProDy 1.4 Series
 
   * Revised handling of MSA file formats to avoid exceptions for unknown
     extensions.
+
 
 1.4.5 (Sep 6, 2013)
 -------------------------------------------------------------------------------
@@ -107,6 +153,7 @@ ProDy 1.4 Series
 
   * Fixed a problem with indexing :class:`.NMA` instances in Python 3 series.
 
+
 1.4.4 (July 22, 2013)
 -------------------------------------------------------------------------------
 
@@ -140,7 +187,6 @@ ProDy 1.4 Series
 
   * :func:`.sampleModes` and :func:`.traverseMode` automatically normalizes
     input modes.
-
 
 **Bugfixes**:
 
