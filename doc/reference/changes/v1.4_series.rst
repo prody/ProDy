@@ -45,6 +45,10 @@ ProDy 1.4 Series
     >>> print(hv.numResidues())
     >>> hv['A', 1]
 
+  * :func:`.parsePDB` reads ``TER`` records in PDB files. Atoms and hetero
+    atoms (:term:`hetatm`) that are followed by a ``TER`` record are now
+    flagged as :term:`pdbter`.
+
 
 **Bugfixes**:
 
