@@ -139,34 +139,33 @@ intersphinx_mapping = {
     'numpy': ('http://docs.scipy.org/doc/numpy/', None),
     'scipy': ('http://docs.scipy.org/doc/scipy/reference/', None),
     'matplotlib': ('http://matplotlib.sourceforge.net/', None),
-    'prody_website': ('http://prody.csb.pitt.edu/', None),
+    'prodywebsite': ('http://prody.csb.pitt.edu/', None),
 }
-
-week = 7 * 24 * 3600
 
 rst_epilog = u"""
 
-.. |nmwiz| replace:: http://www.csb.pitt.edu/NMWiz/
+.. _ProDy: http://prody.csb.pitt.edu
+.. _Tutorials: http://prody.csb.pitt.edu/tutorials
+.. _NMWiz: http://csb.pitt.edu/NMWiz
+.. _VMD: http://www.ks.uiuc.edu/Research/vmd
+.. _PDB: http://www.pdb.org
 
-.. |vmd| replace:: http://www.ks.uiuc.edu/Research/vmd/
+.. _MDAnalysis: http://code.google.com/p/mdanalysis
+.. _pyparsing: http://pyparsing.wikispaces.com
+.. _Matplotlib: http://matplotlib.org
+.. _Biopython: http://biopython.org
 
-.. |pdb| replace:: http://www.pdb.org/
+.. _PyPI: http://pypi.python.org/pypi/ProDy
+.. _GitHub: http://github.com/prody/ProDy
 
-.. |mdanalysis| replace:: http://code.google.com/p/mdanalysis/
+.. _IPython: http://ipython.org
+.. _Python: http://www.python.org
+.. _NumPy: http://www.numpy.org
+.. _Scipy: http://www.scipy.org
+.. _pip: http://www.pip-installer.org
 
-.. |pyparsing| replace:: http://pyparsing.wikispaces.com/
-
-.. |matplotlib| replace:: http://matplotlib.sourceforge.net
-
-.. |biopython| replace:: http://biopython.org/
-
-.. |pypi| replace:: http://pypi.python.org/pypi/ProDy
-
-.. |anm| replace:: http://ignmtest.ccbb.pitt.edu/cgi-bin/anm/anm1.cgi
 
 .. |A2| replace:: Å\ :sup:`2`
-
-.. |tutorials| replace:: http://csb.pitt.edu/ProDy/tutorials/
 
 .. |questions| replace:: To receive new release announcements, join our
    ProDy-News Google Group: http://groups.google.com/group/prody-news
