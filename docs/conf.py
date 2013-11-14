@@ -2,7 +2,9 @@
 import os
 import sys
 
+
 sys.path.append(os.path.abspath('sphinxext'))
+on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
 
 extensions = ['sphinx.ext.todo',
               'sphinx.ext.autodoc',
