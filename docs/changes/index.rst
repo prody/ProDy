@@ -2,14 +2,15 @@
 
 .. currentmodule:: prody
 
-Changes
-===============================================================================
+Release Notes
+=============
 
 
 .. toctree::
    :maxdepth: 2
    :glob:
 
+   v1.5_series
    v1.4_series
    v1.3_series
    v1.2_series
