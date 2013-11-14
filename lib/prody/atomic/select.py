@@ -468,13 +468,9 @@ from numpy import invert, unique, concatenate, all, any
 from numpy import logical_and, logical_or, floor, ceil, where
 
 try:
-    if sys.version_info[0] == 2:
-        from . import pyparsing_py2 as pp
-        from .pyparsing_py2 import ParseException
-    else:
-        from . import pyparsing_py3 as pp
-        from .pyparsing_py3 import ParseException
-except:
+    from . import pyparsingas as pp
+    from .pyparsing import ParseException
+except ImportError:
     import pyparsing as pp
     from pyparsing import ParseException
 
