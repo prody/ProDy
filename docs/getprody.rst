@@ -36,14 +36,14 @@ this package.
 Easy Install
 ===============================================================================
 
-If you have `Easy Install`_ installed, type the following::
+If you have pip_ installed, type the following::
 
-  easy_install -U ProDy
+  pip install -U ProDy
 
-If you don't have Easy Install, please download an installation file and
+If you don't have pip_, please download an installation file and
 follow the instructions.
 
-.. _Easy Install: http://peak.telecommunity.com/DevCenter/EasyInstall
+.. _pip: http://www.pip-installer.org/
 
 
 Download Files

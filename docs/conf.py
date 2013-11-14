@@ -3,6 +3,8 @@ import os
 import sys
 import time
 
+sys.path.append(os.path.abspath('sphinxext'))
+
 extensions = ['sphinx.ext.todo',
               'sphinx.ext.autodoc',
               'sphinx.ext.doctest',
@@ -13,9 +15,7 @@ extensions = ['sphinx.ext.todo',
               'sphinx.ext.viewcode',
               'sphinx.ext.intersphinx',
               'sphinx.ext.inheritance_diagram',
-              'matplotlib.sphinxext.mathmpl',
-              'matplotlib.sphinxext.only_directives',
-              'sphinxcontrib.googleanalytics',
+              'googleanalytics',
               'IPython.sphinxext.ipython_console_highlighting',
               'IPython.sphinxext.ipython_directive']
 
