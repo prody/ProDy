@@ -2,12 +2,11 @@
 
 .. currentmodule:: prody
 
-*******************************************************************************
 Contributing to ProDy
-*******************************************************************************
+=====================
 
 Install Git and a GUI
-===============================================================================
+---------------------
 
 ProDy source code is managed using Git_ distributed revision controlling
 system.  You need to install :program:`git`, and if you prefer a GUI for it,
@@ -27,7 +26,7 @@ to `Git book`_ and `Git docs`_ for usage details and examples.
 
 
 Fork and Clone ProDy
-===============================================================================
+--------------------
 
 ProDy source code is hosted on Github_ and Bitbucket_.  You need to create
 an account for one of these hosting services, if you do not have one already.
@@ -61,7 +60,7 @@ This will create :file:`prody` folder with a copy of the project files in it::
 
 
 Setup Working Environment
-===============================================================================
+-------------------------
 
 You can use ProDy directly from this clone by adding :file:`prody/lib` folder
 to your :envvar:`PYTHONPATH` environment variable, e.g.::
@@ -85,7 +84,7 @@ to your :envvar:`PATH` environment variable, e.g.::
 
 
 Modify, Test, and Commit
-===============================================================================
+------------------------
 
 When modifying ProDy files you may want to follow the :ref:`styleguide`.
 Closely following the guidelines therein will allow for incorporation of your
@@ -115,7 +114,7 @@ you just committed.
 
 
 Push and Pull Request
-===============================================================================
+---------------------
 
 After you have committed your changes, you will need to push them to your
 Bitbucket account::
