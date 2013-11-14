@@ -64,8 +64,7 @@ How to Make a Release
      $ python setup.py register
 
 
-#. Upload the new release files to the
-   `PyPI <http://pypi.python.org/pypi/ProDy/>`_.
+#. Upload the new release files to the PyPI_.
 
 
 #. Generate HTML and PDF documentation::

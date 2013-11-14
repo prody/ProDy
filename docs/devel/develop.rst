@@ -169,7 +169,6 @@ commands again to update the binary module files::
 .. _Git: http://git-scm.com/downloads
 .. _Git book: http://git-scm.com/book
 .. _Git docs: http://git-scm.com/docs
-.. _GitHub: https://github.com/abakan/ProDy
 .. _GitHub Mac: http://mac.github.com
 .. _GitHub Windows: http://windows.github.com
 .. _Bitbucket: https://bitbucket.org/abakan/prody

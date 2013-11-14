@@ -33,10 +33,9 @@ __all__ = ['fetchPDBLigand']
 
 
 def fetchPDBLigand(cci, filename=None):
-    """Fetch PDB ligand data from `PDB <http://www.pdb.org/>`_ for chemical
-    component *cci*.  *cci* may be 3-letter chemical component identifier or
-    a valid XML filename.  If *filename* is given, XML file
-    will be saved with that name.
+    """Fetch PDB ligand data from PDB_ for chemical component *cci*.
+    *cci* may be 3-letter chemical component identifier or a valid XML
+    filename.  If *filename* is given, XML file will be saved with that name.
 
     If you query ligand data frequently, you may configure ProDy to save XML
     files in your computer.  Set ``ligand_xml_save`` option **True**, i.e.

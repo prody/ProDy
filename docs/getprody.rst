@@ -6,14 +6,10 @@ Getting ProDy
 Required Software
 -----------------
 
-* `Python`_ 2.7, 3.2 or later
+* `Python`_ 2.6, 2.7, 3.2 or later
 
   *Windows*: You need to use **32-bit** Python on Windows to be able to
   install NumPy and ProDy.
-
-  *Python 2.6 and 3.1* can be used to install and run ProDy. However, note
-  that ProDy tests are performed using Python 2.7 and 3.2, so these are the
-  recommended versions.
 
 * `NumPy`_ 1.5+ (for Windows, select an installer built using a suitable
   version of NumPy)
@@ -27,11 +23,6 @@ In addition, `matplotlib`_ is required for using plotting functions.
 ProDy, :ref:`prody-apps`, and :ref:`evol-apps` can be operated without
 this package.
 
-.. _Python: http://www.python.org/download/
-.. _NumPy: http://sourceforge.net/projects/numpy/files/NumPy/
-.. _matplotlib: https://github.com/matplotlib/matplotlib/downloads
-
-
 Quick Install
 -------------
 
@@ -41,8 +32,6 @@ If you have pip_ installed, type the following::
 
 If you don't have pip_, please download an installation file and
 follow the instructions.
-
-.. _pip: http://www.pip-installer.org/
 
 
 Download Files
@@ -110,9 +99,6 @@ dynamics modeled using theory or inferred from experimental structural
 ensembles.  See :ref:`nmwiz` for available updates and installation
 instructions.
 
-.. _NMWiz: http://www.ks.uiuc.edu/Research/vmd/plugins/nmwiz/
-.. _VMD: http://www.ks.uiuc.edu/Research/vmd/
-
 
 Recommended Software
 --------------------
@@ -123,18 +109,15 @@ Recommended Software
 * `PyReadline`_ for colorful IPython sessions on Windows.
 * `MDAnalysis`_ for reading molecular dynamics trajectories.
 
-.. _Scipy: http://www.scipy.org/SciPy
-.. _IPython: http://pypi.python.org/pypi/ipython
-.. _PyReadline: http://pypi.python.org/pypi/pyreadline
-.. _MDAnalysis: http://code.google.com/p/mdanalysis/
 
+.. _PyReadline: http://ipython.org/pyreadline.html
 
 Included in ProDy
 -----------------
 
 Following software is included in the ProDy installation packages:
 
-* `Pyparsing`_ is used to define the atom selection grammar.
+* `pyparsing`_ is used to define the atom selection grammar.
 
 * `Biopython`_ KDTree package and pairwise2 module are used for distance based
   atom selections and pairwise sequence alignment, respectively.
@@ -142,8 +125,6 @@ Following software is included in the ProDy installation packages:
 * `argparse`_ is used to implement applications and provided for
   compatibility with Python 2.6.
 
-.. _Pyparsing: http://pyparsing.wikispaces.com/
-.. _Biopython: http://biopython.org/
 .. _argparse: http://code.google.com/p/argparse/
 
 

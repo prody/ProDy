@@ -4,7 +4,7 @@ Evol Applications
 =================
 
 Evol applications are command line programs that automate retrieval,
-refinement, and analysis of multiple sequence alignments.  See
+refinement, and analysis of multiple sequence alignments.
 
 Running :command:`evol` command will provide a description of applications::
 
