@@ -2,15 +2,14 @@
 
 .. currentmodule:: prody
 
-*******************************************************************************
 Writing Tutorials
-*******************************************************************************
+=================
 
 This is a short guide for writing ProDy tutorials that are published as part
 of online documentation pages, and also as individual downloadable PDF files.
 
 Tutorial Setup
-===============================================================================
+--------------
 
 First go to :file:`doc` folder in ProDy package and generate necessary files
 for your tutorial using :program:`start-tutorial.sh` script::
@@ -47,7 +46,7 @@ Also, note ProDy version if the tutorial is developed for a specific release.
 
 
 Style and Organization
-===============================================================================
+----------------------
 
 ProDy documentation and tutorials are written using `reStructuredText`_,
 an easy-to-read/write file format.  See `reStructuredText Primer`_ for a
@@ -89,7 +88,7 @@ Add more :file:`.rst` files as needed.  See other tutorials in
 
 
 Input/Output Files
-===============================================================================
+------------------
 
 All files needed to follow the tutorial should be stored in
 :file:`tutorial_name_files` folder.  There is usually no need to provide
@@ -103,7 +102,7 @@ output files can also be provided.
 
 
 Including Code
-===============================================================================
+--------------
 
 Python code in tutorials should be included using `IPython Sphinx directive`_.
 In the beginning of each :file:`.rst` file, you should make necessary imports
@@ -141,7 +140,7 @@ Then you can add the code for the tutorial::
 .. _IPython Sphinx Directive: http://ipython.org/ipython-doc/dev/development/ipython_directive.html
 
 Including Figures
-===============================================================================
+-----------------
 
 IPython directive should also be used for including figures::
 
@@ -199,7 +198,7 @@ This will display as the following:
    ylabel('Y-axis');
 
 Testing Code
-===============================================================================
+------------
 
 If there is any particular code output that you want to test, you can use
 ``@doctest`` decorator as follows::
@@ -222,7 +221,7 @@ Failing to produce the correct output will prevent building the documentation.
 
 
 Publishing Tutorial
-===============================================================================
+-------------------
 
 To see how your :file:`.rst` files convert to HTML format, use the following
 command::

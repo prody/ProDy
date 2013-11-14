@@ -2,12 +2,11 @@
 
 .. currentmodule:: prody
 
-*******************************************************************************
 Testing ProDy
-*******************************************************************************
+=============
 
 Running Unittests
-===============================================================================
+-----------------
 
 The easiest way to run ProDy unittests is using :ref:`prody-test` command::
 
@@ -21,23 +20,8 @@ Alternatively, you can use :func:`prody.test` function in a Python session::
   prody.test()
   prody.test('atomic.select', label='full')
 
-Running Doctests
-===============================================================================
-
-In addition to unittests, doctests in documentation (:file:`.rst`) as well as
-source (:file:`.py`) files should be run, especially before making a new
-release.  All doctests can be run as follows::
-
-  $ cd doc
-  $ make doctest
-
-Doctests in an :file:`.rst` or a :file:`.py` file can be run as follows::
-
-  $ python -m doctest filename.rst
-
-
 Pre-commit Testing
-===============================================================================
+------------------
 
 You can automatize testing of ProDy package using a git pre-commit hook.
 For example, the following script calls :file:`devel_test.sh` file that comes
@@ -65,7 +49,7 @@ This script needs to be saved in :file:`.git/hooks/pre-commit` executable file.
 
 
 Unittest Development
-===============================================================================
+--------------------
 
 Unit test development should follow these guidelines:
 
