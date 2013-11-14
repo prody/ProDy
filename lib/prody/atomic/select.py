@@ -468,7 +468,7 @@ from numpy import invert, unique, concatenate, all, any
 from numpy import logical_and, logical_or, floor, ceil, where
 
 try:
-    from . import pyparsingas as pp
+    from . import pyparsing as pp
     from .pyparsing import ParseException
 except ImportError:
     import pyparsing as pp
@@ -821,7 +821,7 @@ class Select(object):
 
     """Select subsets of atoms based on a selection string.
     See :mod:`~.atomic.select` module documentation for selection grammar
-    and examples.  This class makes use of |pyparsing| module."""
+    and examples.  This class makes use of pyparsing_ module."""
 
     def __init__(self):
 
