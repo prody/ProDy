@@ -85,7 +85,7 @@ __all__ = [
 'htmlComment', 'javaStyleComment', 'keepOriginalText', 'line', 'lineEnd', 'lineStart', 'lineno',
 'makeHTMLTags', 'makeXMLTags', 'matchOnlyAtCol', 'matchPreviousExpr', 'matchPreviousLiteral',
 'nestedExpr', 'nullDebugAction', 'nums', 'oneOf', 'opAssoc', 'operatorPrecedence', 'printables',
-'punc8bit', 'pythonStyleComment', 'quotedString', 'removeQuotes', 'replaceHTMLEntity', 
+'punc8bit', 'pythonStyleComment', 'quotedString', 'removeQuotes', 'replaceHTMLEntity',
 'replaceWith', 'restOfLine', 'sglQuotedString', 'srange', 'stringEnd',
 'stringStart', 'traceParseAction', 'unicodeString', 'upcaseTokens', 'withAttribute',
 'indentedBlock', 'originalTextFor', 'ungroup', 'infixNotation',
@@ -428,7 +428,7 @@ class ParseResults(object):
                 self[k] = v
                 if isinstance(v[0],ParseResults):
                     v[0].__parent = wkref(self)
-            
+
         self.__toklist += other.__toklist
         self.__accumNames.update( other.__accumNames )
         return self
@@ -436,7 +436,7 @@ class ParseResults(object):
     def __radd__(self, other):
         if isinstance(other,int) and other == 0:
             return self.copy()
-        
+
     def __repr__( self ):
         return "(%s, %s)" % ( repr( self.__toklist ), repr( self.__tokdict ) )
 
@@ -701,7 +701,7 @@ def _trim_arity(func, maxargs=2):
                     continue
                 raise
     return wrapper
- 
+
 class ParserElement(object):
     """Abstract base level parser element class."""
     DEFAULT_WHITE_CHARS = " \n\t\r"
@@ -767,9 +767,9 @@ class ParserElement(object):
            NOTE: this returns a *copy* of the original C{ParserElement} object;
            this is so that the client can define a basic element, such as an
            integer, and reference it in multiple places with different names.
-           
+
            You can also set results names using the abbreviated syntax,
-           C{expr("name")} in place of C{expr.setResultsName("name")} - 
+           C{expr("name")} in place of C{expr.setResultsName("name")} -
            see L{I{__call__}<__call__>}.
         """
         newself = self.copy()
@@ -1319,7 +1319,7 @@ class ParserElement(object):
              userdata = Word(alphas).setResultsName("name") + Word(nums+"-").setResultsName("socsecno")
            could be written as::
              userdata = Word(alphas)("name") + Word(nums+"-")("socsecno")
-             
+
            If C{name} is given with a trailing C{'*'} character, then C{listAllMatches} will be
            passed as C{True}.
            """
@@ -1599,7 +1599,7 @@ class Word(Token):
        maximum, and/or exact length.  The default value for C{min} is 1 (a
        minimum value < 1 is not valid); the default values for C{max} and C{exact}
        are 0, meaning no maximum or exact length restriction. An optional
-       C{exclude} parameter can list characters that might be found in 
+       C{exclude} parameter can list characters that might be found in
        the input C{bodyChars} string; useful to define a word of all printables
        except for one or two characters, for instance.
     """
@@ -1745,7 +1745,7 @@ class Regex(Token):
             self.pattern = \
             self.reString = str(pattern)
             self.flags = flags
-            
+
         else:
             raise ValueError("Regex may only be constructed with a string or a compiled RE object")
 
@@ -2236,7 +2236,7 @@ class ParseExpression(ParserElement):
         for e in self.exprs:
             e.validate(tmp)
         self.checkRecursion( [] )
-        
+
     def copy(self):
         ret = super(ParseExpression,self).copy()
         ret.exprs = [e.copy() for e in self.exprs]
@@ -2847,13 +2847,13 @@ class Forward(ParseElementEnhance):
         self.saveAsList = self.expr.saveAsList
         self.ignoreExprs.extend(self.expr.ignoreExprs)
         return self
-        
+
     def __lshift__(self, other):
         warnings.warn("Operator '<<' is deprecated, use '<<=' instead",
                        DeprecationWarning,stacklevel=2)
         self <<= other
         return None
-    
+
     def leaveWhitespace( self ):
         self.skipWhitespace = False
         return self
@@ -3216,12 +3216,12 @@ def originalTextFor(expr, asString=True):
        restore the parsed fields of an HTML start tag into the raw tag text itself, or to
        revert separate tokens with intervening whitespace back to the original matching
        input text. Simpler to use than the parse action C{L{keepOriginalText}}, and does not
-       require the inspect module to chase up the call stack.  By default, returns a 
-       string containing the original parsed text.  
-       
-       If the optional C{asString} argument is passed as C{False}, then the return value is a 
-       C{L{ParseResults}} containing any results names that were originally matched, and a 
-       single token containing the original matched text from the input string.  So if 
+       require the inspect module to chase up the call stack.  By default, returns a
+       string containing the original parsed text.
+
+       If the optional C{asString} argument is passed as C{False}, then the return value is a
+       C{L{ParseResults}} containing any results names that were originally matched, and a
+       single token containing the original matched text from the input string.  So if
        the expression passed to C{L{originalTextFor}} contains expressions with defined
        results names, you must set C{asString} to C{False} if you want to preserve those
        results name values."""
@@ -3240,7 +3240,7 @@ def originalTextFor(expr, asString=True):
     matchExpr.setParseAction(extractText)
     return matchExpr
 
-def ungroup(expr): 
+def ungroup(expr):
     """Helper to undo pyparsing's default grouping of And expressions, even
        if all but one are non-empty."""
     return TokenConverter(expr).setParseAction(lambda t:t[0])
@@ -3272,8 +3272,8 @@ def srange(s):
        The values enclosed in the []'s may be::
           a single character
           an escaped character with a leading backslash (such as \- or \])
-          an escaped hex character with a leading '\x' (\x21, which is a '!' character) 
-            (\0x## is also supported for backwards compatibility) 
+          an escaped hex character with a leading '\x' (\x21, which is a '!' character)
+            (\0x## is also supported for backwards compatibility)
           an escaped octal character with a leading '\0' (\041, which is a '!' character)
           a range of any of the above, separated by a dash ('a-z', etc.)
           any combination of the above ('aeiouy', 'a-zA-Z0-9_$', etc.)
@@ -3485,9 +3485,9 @@ def infixNotation( baseExpr, opList, lpar=Suppress('('), rpar=Suppress(')') ):
             raise ValueError("operator must indicate right or left associativity")
         if pa:
             matchExpr.setParseAction( pa )
-        thisExpr << ( matchExpr | lastExpr )
+        thisExpr <<= ( matchExpr | lastExpr )
         lastExpr = thisExpr
-    ret << lastExpr
+    ret <<= lastExpr
     return ret
 operatorPrecedence = infixNotation
 
@@ -3531,7 +3531,7 @@ def nestedExpr(opener="(", closer=")", content=None, ignoreExpr=quotedString.cop
                                 ).setParseAction(lambda t:t[0].strip()))
             else:
                 if ignoreExpr is not None:
-                    content = (Combine(OneOrMore(~ignoreExpr + 
+                    content = (Combine(OneOrMore(~ignoreExpr +
                                     ~Literal(opener) + ~Literal(closer) +
                                     CharsNotIn(ParserElement.DEFAULT_WHITE_CHARS,exact=1))
                                 ).setParseAction(lambda t:t[0].strip()))
