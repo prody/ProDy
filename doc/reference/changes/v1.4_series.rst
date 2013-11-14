@@ -4,6 +4,11 @@ ProDy 1.4 Series
 1.4.9 (Nov 14, 2013)
 -------------------------------------------------------------------------------
 
+**Upcoming changes**:
+
+  * Support for Python 3.1 and NumPy 1.5 will be dropped, meaning no Windows
+    installers will be built for these versions of them.
+
 **Improvements**:
 
   * :class:`.HierView` can handle :class:`.Residue` instances that have
@@ -13,7 +18,6 @@ ProDy 1.4 Series
     :class:`.AtomGroup` instances will return a list of residues. This
     behavior can be used as follows. Note that in v1.5, this will be the
     default behavior.
-
 
   >>> pdb_lines = """
   ... ATOM      1  O   WAT A   1       4.694  -3.891  -0.592  1.00  1.00

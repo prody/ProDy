@@ -119,6 +119,9 @@ DATA_FILES = {
     'SCA': {
         'file': 'msa_Cys_knot_sca.dat'
     },
+    'RTER': {
+        'file': 'pdbRTER.pdb'
+    },
 }
 
 
