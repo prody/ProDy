@@ -2,10 +2,11 @@
 ProDy Documentation
 *******************
 
-.. htmlonly::
+.. only:: html
 
    :Release: |release|
    :Date: |today|
+
 
 .. only:: not rtd
 
@@ -13,7 +14,7 @@ ProDy Documentation
 
 .. only:: rtd
 
-    This is a partial copy of IPython documentation,
+    This is a partial copy of ProDy documentation,
     please visit `ProDy official documentation <http://prody.csb.pitt.edu>`_.
 
 
@@ -26,7 +27,7 @@ ProDy Documentation
    apps/index
    apps/evol
    devel/index
-   changes/index
+   release/index
    people
    citing
    credits
