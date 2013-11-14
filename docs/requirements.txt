@@ -1,3 +1,4 @@
-ipython==1.1.0
-numpy==1.7.1
-mock==1.0.1
+matplotlib
+ipython
+numpy
+mock
