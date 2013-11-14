@@ -2,17 +2,16 @@
 
 .. currentmodule:: prody
 
-*******************************************************************************
 How to Make a Release
-*******************************************************************************
+=====================
 
 #. Make sure ProDy imports and passes all unit tests::
 
      $ prody test -l full
 
    This will run tests using the default Python installation.  The tests
-   should be executed for both Python 2.7 and Python 3.2, and using nose
-   via :program:`nosetests` command may help::
+   should be executed for both Python 2.7 and Python 3.2 or later, and using
+   nose via :program:`nosetests` command may help::
 
      $ cd prody/tests
      $ nosetests

@@ -16,9 +16,11 @@ extensions = ['sphinx.ext.todo',
               'sphinx.ext.viewcode',
               'sphinx.ext.intersphinx',
               'sphinx.ext.inheritance_diagram',
-              'googleanalytics',
+              'matplotlib.sphinxext.mathmpl',
+              'matplotlib.sphinxext.only_directives',
               'IPython.sphinxext.ipython_console_highlighting',
-              'IPython.sphinxext.ipython_directive']
+              'IPython.sphinxext.ipython_directive',
+              'googleanalytics',]
 
 templates_path = ['_theme']
 source_suffix = '.rst'
