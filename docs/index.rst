@@ -25,8 +25,8 @@ ProDy Documentation
    reference/index
    apps/index
    apps/evol
-   changes/index
    devel/index
+   changes/index
    people
    citing
    credits
