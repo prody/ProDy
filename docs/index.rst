@@ -2,12 +2,6 @@
 ProDy Documentation
 *******************
 
-.. only:: html
-
-   :Release: |release|
-   :Date: |today|
-
-
 .. only:: not rtd
 
     Welcome to the official ProDy documentation.
@@ -37,3 +31,9 @@ ProDy Documentation
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
+
+
+.. only:: html
+
+   :Release: |release|
+   :Date: |today|
