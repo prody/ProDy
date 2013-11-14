@@ -1,11 +1,10 @@
 .. _getprody:
 
-*******************************************************************************
 Getting ProDy
-*******************************************************************************
+=============
 
 Required Software
-===============================================================================
+-----------------
 
 * `Python`_ 2.7, 3.2 or later
 
@@ -33,8 +32,8 @@ this package.
 .. _matplotlib: https://github.com/matplotlib/matplotlib/downloads
 
 
-Easy Install
-===============================================================================
+Quick Install
+-------------
 
 If you have pip_ installed, type the following::
 
@@ -47,20 +46,20 @@ follow the instructions.
 
 
 Download Files
-===============================================================================
+-------------
 
 Download a suitable ProDy installation file from http://python.org/pypi/ProDy
 http://csb.pitt.edu/ProDy/#downloads. For details of ProDy releases see
 :ref:`changes`.
 
 Installation Instructions
-===============================================================================
+-------------------------
 
 After installing the required packages, you will need to do one of the
 following:
 
-Linux
--------------------------------------------------------------------------------
+**Linux**
+
 
 Download :file:`ProDy-x.{y}.{z}.tar.gz`.  Extract tarball contents and run
 :file:`setup.py` as follows::
@@ -76,13 +75,12 @@ schemes in `Installing Python Modules`_.
 
 .. _Installing Python Modules: http://docs.python.org/install/index.html
 
-Mac OS
--------------------------------------------------------------------------------
+**Mac OS**
+
 
 For installing ProDy, please follow the Linux installation instructions.
 
-Windows
--------------------------------------------------------------------------------
+**Windows**
 
 Remove previously installed ProDy release from :program:`Uninstall a program`
 in :guilabel:`Control Panel`.
@@ -94,8 +92,7 @@ To be able use :ref:`prody-apps` and :ref:`evol-apps` in command prompt
 :file:`C:\\Python27` and :file:`C:\\Python27\\Scripts`) to :envvar:`PATH`
 environment variable.
 
-Testing
--------------------------------------------------------------------------------
+**Testing**
 
 You can test your ProDy installation using the following command::
 
@@ -106,7 +103,7 @@ directory.  For more information on testing, see :ref:`testing`.
 
 
 NMWiz
-===============================================================================
+-----
 
 :ref:`nmwiz` is a `VMD`_ plugin for comparative visual analysis of protein
 dynamics modeled using theory or inferred from experimental structural
@@ -118,7 +115,7 @@ instructions.
 
 
 Recommended Software
-===============================================================================
+--------------------
 
 * `Scipy`_, when installed, replaces linear algebra module of Numpy.
   Scipy linear algebra module is more flexible and can be faster.
@@ -133,7 +130,7 @@ Recommended Software
 
 
 Included in ProDy
-===============================================================================
+-----------------
 
 Following software is included in the ProDy installation packages:
 
@@ -151,7 +148,6 @@ Following software is included in the ProDy installation packages:
 
 
 Source Code
-===============================================================================
+-----------
 
-Source code can be found at https://github.com/abakan/ProDy and
-https://bitbucket.org/abakan/prody.
+Source code can be found at https://github.com/abakan/ProDy.
