@@ -46,7 +46,7 @@ follow the instructions.
 
 
 Download Files
--------------
+--------------
 
 Download a suitable ProDy installation file from http://python.org/pypi/ProDy
 http://csb.pitt.edu/ProDy/#downloads. For details of ProDy releases see
