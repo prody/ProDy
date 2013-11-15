@@ -31,14 +31,14 @@ project = u'ProDy'
 copyright = u'2010-2013, Ahmet Bakan'
 
 
-__version__ = ''
+__release__ = ''
 with open('../lib/prody/__init__.py') as inp:
   for line in inp:
-      if (line.startswith('__version__')):
+      if line.startswith('__release__'):
           exec(line.strip())
           break
-release = __version__
-version = __version__.split('-')[0]
+release = __release__
+version = __release__.split('-')[0]
 
 
 if release.endswith('dev'):
