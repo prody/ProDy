@@ -31,8 +31,22 @@ project = u'ProDy'
 copyright = u'2010-2013, Ahmet Bakan'
 
 
-#import prody
-version = release = '1.5-dev' #prody.__version__
+pdrelease = {}
+with open('../lib/prody/__init__.py') as init:
+  exec(''.join([line for i, line in enumerate(init) if i < 33]), pdrelease)
+
+release = pdrelease['__version__']
+version = release.split('_')[0]
+
+if pdrelease['_version_extra']:
+
+    rst_prolog = """
+    .. note::
+
+        This documentation is for a development version of ProDy. There may be
+        significant differences from the latest stable release (1.4.9).
+
+    """
 
 exclude_patterns = ['_build']
 
