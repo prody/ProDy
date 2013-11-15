@@ -6,8 +6,9 @@ SPHINXBUILD   = sphinx-build
 PAPER         = letter
 BUILDDIR      = _build
 WORKDIR       = _workdir
+PDFNAME       = ProDy.pdf
 
-.PHONY: help clean html pdf copy stats
+.PHONY: help clean html pdf
 
 help:
 	@echo "Please use \`make <target>' where <target> is one of"
@@ -32,25 +33,9 @@ html: workdir
 	@echo
 	@echo "Build finished. The HTML pages are in $(BUILDDIR)/html."
 
-pdf:
-	rm -f reference/*pdf tutorials/*/*pdf tutorials/*/*files.zip tutorials/*/*files.tgz _inventory/prody*inv
-	cd reference; make pdf
-	cd tutorials; \
-	for tut in `find . -type d`; do \
-		if [ -d "$$tut/$$tut"_files ]; then \
-		 	cd $$tut; make archive pdf; /bin/cp -rf $(WORKDIR)/* ../../$(WORKDIR); cd ..; \
-		fi; \
-	done
-
-copy:
-	cp -f getprody.rst ../INSTALL.rst
-	cp -f reference/license.rst ../LICENSE.rst
+pdf: workdir
+	cd $(WORKDIR); $(SPHINXBUILD) -b latex $(ALLSPHINXOPTS) -d ../$(BUILDDIR)/doctrees ../ ../$(BUILDDIR)/latex
+	make -C $(BUILDDIR)/latex all-pdf
+	mv -f _build/latex/$(PDFNAME) .
 	@echo
-	@echo "Files copied."
-
-stats:
-	pyps update -s ProDy_stats.pkl ProDy; \
-	pyps latest -o _static/ProDy_downloads.csv -d , --rst --no-md5 ProDy; \
-	pyps monthly -p _static/ProDy_downloads.png ProDy_stats.pkl
-	@echo
-	@echo "Download statistics updated."
+	@echo "PDF file is ready, see $(PDFNAME)."
