@@ -30,12 +30,11 @@ if [int(dgt) for dgt in numpy.__version__.split('.')[:2]] < [1, 4]:
 
 
 __version__ = ''
-inp = open('lib/prody/__init__.py')
-for line in inp:
-    if (line.startswith('__version__')):
-        exec(line.strip())
-        break
-inp.close()
+with open('lib/prody/__init__.py') as inp:
+  for line in inp:
+      if (line.startswith('__version__')):
+          exec(line.strip())
+          break
 
 with open('README.rst') as inp:
     long_description = inp.read()

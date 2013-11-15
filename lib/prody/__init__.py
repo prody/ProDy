@@ -17,18 +17,7 @@
 
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
-
-_version_major = 1
-_version_minor = 5
-_version_patch = 0
-_version_extra = ''
-_version_extra = 'dev' # Comment this for full releases
-_version = (_version_major, _version_minor, _version_patch)
-
-__version__ = '.'.join(map(str, _version))
-
-if _version_extra:
-    __version__ = __version__ + '-' + _version_extra
+__version__ = '1.5.0-dev'
 
 import sys
 import warnings

@@ -31,14 +31,17 @@ project = u'ProDy'
 copyright = u'2010-2013, Ahmet Bakan'
 
 
-pdrelease = {}
-with open('../lib/prody/__init__.py') as init:
-  exec(''.join([line for i, line in enumerate(init) if i < 33]), pdrelease)
+__version__ = ''
+with open('../lib/prody/__init__.py') as inp:
+  for line in inp:
+      if (line.startswith('__version__')):
+          exec(line.strip())
+          break
+release = __version__
+version = __version__.split('-')[0]
 
-release = pdrelease['__version__']
-version = release.split('_')[0]
 
-if pdrelease['_version_extra']:
+if release.endswith('dev'):
 
     rst_prolog = """
     .. note::
@@ -62,16 +65,20 @@ doctest_global_setup = "from prody import *"
 
 # -- Options for HTML output ---------------------------------------------------
 if RTD:
-  html_theme = 'default'
+    html_theme = 'default'
+elif True:
+    import sphinx_rtd_theme
+    html_theme = "sphinx_rtd_theme"
+    html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
 else:
-  templates_path = ['_theme']
-  html_theme = '_theme'
+    templates_path = ['_theme']
+    html_theme = '_theme'
+    html_theme_path = ['.']
+    html_static_path = ['_static']
 html_theme_options = {}
-html_theme_path = ['.']
 
 html_title = "ProDy"
 html_favicon = '_static/favicon.ico'
-html_static_path = ['_static']
 html_last_updated_fmt = '%b %d, %Y'
 
 html_index = 'index.html'
