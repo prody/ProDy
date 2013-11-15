@@ -1,7 +1,7 @@
 .. _getprody:
 
-Getting ProDy
-=============
+Installation
+============
 
 Required Software
 -----------------

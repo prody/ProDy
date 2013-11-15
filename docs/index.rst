@@ -22,11 +22,7 @@ ProDy Documentation
    apps/evol
    devel/index
    release/index
-   people
-   citing
-   credits
-   funding
-   license
+   about/index
 
 * :ref:`genindex`
 * :ref:`modindex`
