@@ -7,7 +7,6 @@ Reference Manual
    :maxdepth: 1
    :glob:
 
-   prody
    atomic/index
    database/index
    dynamics/index
@@ -17,7 +16,6 @@ Reference Manual
    proteins/index
    sequence/index
    trajectory/index
-   apps/index
    utilities/index
-
-
+   apps/index
+   prody

@@ -9,7 +9,8 @@ ProDy Documentation
 .. only:: rtd
 
     This is a partial copy of ProDy documentation.  Please visit
-    `ProDy Homepage <http://prody.csb.pitt.edu>`_ for .
+    `ProDy Homepage <http://prody.csb.pitt.edu>`_ for complete
+    documentation with tutorials.
 
 
 .. toctree::

@@ -1,6 +1,6 @@
-*****
-ProDy
-*****
+***********************
+Configuration & Logging
+***********************
 
 .. module:: prody
 
