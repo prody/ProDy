@@ -5,6 +5,8 @@ import sys
 
 sys.path.append(os.path.abspath('sphinxext'))
 on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
+if on_rtd:
+    tags.add('rtd')
 
 extensions = ['sphinx.ext.todo',
               'sphinx.ext.autodoc',
@@ -64,20 +66,15 @@ html_sidebars = {
     'py-modindex': generic_sidebars,
     'search': generic_sidebars,
     'tutorial': generic_sidebars,
-    'bibliography': generic_sidebars,
-    'changes': generic_sidebars,
+    'changes/**': generic_sidebars,
     'credits': generic_sidebars,
-    'features': generic_sidebars,
     'getprody': generic_sidebars,
     'license': generic_sidebars,
     'examples/index': generic_sidebars,
     'reference/index': generic_sidebars,
     'reports/index': generic_sidebars,
-    'scripts/index': generic_sidebars,
-    'todo': generic_sidebars,
-    'plugins/index': generic_sidebars,
-    'plugins/getnmwiz': generic_sidebars,
-    '**': ['toolbox.html', 'releasenotes.html', 'howtocite.html']}
+    '**': ['toolbox.html', 'releasenotes.html', 'howtocite.html',
+           'extras.html']}
 
 html_copy_source = False
 html_show_sourcelink = False
