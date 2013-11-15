@@ -162,15 +162,6 @@ IPython directive should also be used for including figures::
    with the tutorial name.
 
 
-.. ipython:: python
-
-   @savefig tutorial_name_figure_one.png width=4in
-   plot(range(10))
-
-
-   @savefig tutorial_name_figure_two.png width=4in
-   plot(range(100));
-
 Note that in the second :func:`~matplotlib.pyplot.plot` call, we used a
 semicolon to suppress the output of the function.
 
@@ -187,15 +178,6 @@ modification::
      @savefig tutorial_name_figure_three.png width=4in
      ylabel('Y-axis')
 
-This will display as the following:
-
-.. ipython:: python
-
-   plot(range(10));
-   grid();
-   xlabel('X-axis');
-   @savefig tutorial_name_figure_three.png width=4in
-   ylabel('Y-axis');
 
 Testing Code
 ------------
