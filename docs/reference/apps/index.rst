@@ -1,7 +1,7 @@
 .. _apps:
 
-ProDy/Evol Applications
-=======================
+Applications API
+================
 
 .. automodule:: prody.apps
 

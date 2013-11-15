@@ -1,6 +1,6 @@
-**********
-Trajectory
-**********
+**************
+Trajectory I/O
+**************
 
 .. automodule:: prody.trajectory
 
