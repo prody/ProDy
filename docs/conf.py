@@ -4,8 +4,8 @@ import sys
 
 
 sys.path.append(os.path.abspath('sphinxext'))
-on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
-if on_rtd:
+RTD = os.environ.get('READTHEDOCS', None) == 'True'
+if RTD:
     tags.add('rtd')
 
 extensions = ['sphinx.ext.todo',
@@ -24,7 +24,8 @@ extensions = ['sphinx.ext.todo',
               'IPython.sphinxext.ipython_directive',
               'googleanalytics',]
 
-templates_path = ['_theme']
+if not RTD:
+  templates_path = ['_theme']
 source_suffix = '.rst'
 master_doc = 'index'
 
