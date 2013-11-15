@@ -5,6 +5,10 @@
 Cross-platform Issues
 =====================
 
+.. contents::
+   :local:
+
+
 This section describes cross-platform issues that may emerge and provides
 possible solutions for them.
 

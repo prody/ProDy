@@ -18,7 +18,7 @@
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 __version__ = '1.5.0'
-__release__ = __version__ + '-dev'
+__release__ = __version__ + '-dev' # commend after + before making a release
 
 import sys
 import warnings
@@ -38,12 +38,6 @@ from .utilities import PackageLogger, PackageSettings
 from .utilities import getPackagePath, joinRepr, tabulate
 
 DEPRECATION_WARNINGS = False
-
-from datetime import date
-today = date.today()
-
-if today.year == 2012:
-    warnings.filterwarnings('default', category=DeprecationWarning)
 
 
 def deprecate(dep, alt, ver=None, sl=3):

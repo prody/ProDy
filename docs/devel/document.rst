@@ -5,6 +5,10 @@
 Documenting ProDy
 =================
 
+.. contents::
+   :local:
+
+
 ProDy documentation is written using reStructuredText_ markup and prepared
 using Sphinx_.  You may install Sphinx using easy_install, i.e.
 ``easy_install -U Sphinx``, or using package manager on your Linux machine.

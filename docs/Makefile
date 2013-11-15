@@ -8,7 +8,7 @@ BUILDDIR      = _build
 WORKDIR       = _workdir
 PDFNAME       = ProDy.pdf
 
-.PHONY: help clean html pdf
+.PHONY: help clean remove html pdf
 
 help:
 	@echo "Please use \`make <target>' where <target> is one of"
@@ -19,6 +19,10 @@ help:
 
 clean:
 	-rm -rf $(BUILDDIR)/*
+
+remove:
+	-rm -rf $(BUILDDIR)/html*
+
 
 workdir:
 	mkdir -p $(WORKDIR)

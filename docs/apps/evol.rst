@@ -4,15 +4,7 @@ Evol Applications
 =================
 
 Evol applications are command line programs that automate retrieval,
-refinement, and analysis of multiple sequence alignments.
-
-Running :command:`evol` command will provide a description of applications::
-
-  $ evol
-
-.. literalinclude:: evol.txt
-
-See usage details of these applications below:
+refinement, and analysis of multiple sequence alignments:
 
 .. toctree::
    :maxdepth: 1
@@ -20,20 +12,12 @@ See usage details of these applications below:
 
    evol_*
 
+Running :command:`evol` command will provide a description of applications::
 
-Application setup
------------------
+  $ evol
 
-Evol applications come with ProDy package.  On Linux, when installing ProDy
-from source, application scripts are placed into a default folder that is
-included in :envvar:`PATH` environment variable, e.g. :file:`/usr/local/bin/`.
-On Windows, installer places the scripts into the :file:`Scripts` folder under
-Python distribution folder, e.g. :file:`C:\\Python27\\Scripts`.  You may need
-to add this path to :envvar:`PATH` environment variable yourself.
+.. literalinclude:: evol.txt
 
-
-Usage example
--------------
 
 Detailed information on a specific application can be obtained
 by typing the command and application names as :command:`evol search -h`.

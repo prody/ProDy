@@ -5,6 +5,10 @@
 Testing ProDy
 =============
 
+.. contents::
+   :local:
+
+
 Running Unittests
 -----------------
 
