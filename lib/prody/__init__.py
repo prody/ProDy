@@ -17,7 +17,8 @@
 
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
-__version__ = '1.5.0-dev'
+__version__ = '1.5.0'
+__release__ = __version__ + '-dev'
 
 import sys
 import warnings

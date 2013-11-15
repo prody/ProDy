@@ -32,7 +32,7 @@ if [int(dgt) for dgt in numpy.__version__.split('.')[:2]] < [1, 4]:
 __version__ = ''
 with open('lib/prody/__init__.py') as inp:
   for line in inp:
-      if (line.startswith('__version__')):
+      if line.startswith('__version__'):
           exec(line.strip())
           break
 
