@@ -24,8 +24,6 @@ extensions = ['sphinx.ext.todo',
               'IPython.sphinxext.ipython_directive',
               'googleanalytics',]
 
-if not RTD:
-  templates_path = ['_theme']
 source_suffix = '.rst'
 master_doc = 'index'
 
@@ -49,7 +47,11 @@ modindex_common_prefix = ['prody.']
 doctest_global_setup = "from prody import *"
 
 # -- Options for HTML output ---------------------------------------------------
-html_theme = '_theme'
+if RTD:
+  html_theme = 'default'
+else:
+  templates_path = ['_theme']
+  html_theme = '_theme'
 html_theme_options = {}
 html_theme_path = ['.']
 
