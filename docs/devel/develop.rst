@@ -5,6 +5,10 @@
 Contributing to ProDy
 =====================
 
+.. contents::
+   :local:
+
+
 Install Git and a GUI
 ---------------------
 

@@ -17,9 +17,8 @@ ProDy Documentation
    :glob:
 
    getprody
-   reference/index
    apps/index
-   apps/evol
+   reference/index
    devel/index
    release/index
    about/index

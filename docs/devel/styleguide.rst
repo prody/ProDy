@@ -3,6 +3,10 @@
 Style Guide for ProDy
 =====================
 
+.. contents::
+   :local:
+
+
 Introduction
 ------------
 
@@ -72,8 +76,8 @@ string::
   __all__ = ['calcSomething']
 
 
-Whitespace in Documentation
----------------------------
+Whitespaces
+-----------
 
 In addition to recommendations regarding whitespace use in Python code
 (:pep:`8#whitespace-in-expressions-and-statements`), two whitespace

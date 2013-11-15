@@ -5,6 +5,10 @@
 Writing Tutorials
 =================
 
+.. contents::
+   :local:
+
+
 This is a short guide for writing ProDy tutorials that are published as part
 of online documentation pages, and also as individual downloadable PDF files.
 
