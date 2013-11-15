@@ -133,7 +133,7 @@ incorporation to ProDy.
 
 
 Update Local Copy
-===============================================================================
+-----------------
 
 You can also keep an up-to-date copy of ProDy by pulling changes from the
 master ProDy_ repository on a regular basis.  You need add to the master
