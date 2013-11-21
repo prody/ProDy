@@ -34,21 +34,14 @@ If you don't have pip_, please download an installation file and
 follow the instructions.
 
 
-Download Files
---------------
+Download & Install
+------------------
 
-Download a suitable ProDy installation file from http://python.org/pypi/ProDy
-http://csb.pitt.edu/ProDy/#downloads. For details of ProDy releases see
-:ref:`changes`.
-
-Installation Instructions
--------------------------
-
-After installing the required packages, you will need to do one of the
-following:
+After installing the required packages, you will need to download a suitable
+ProDy source or installation file from http://python.org/pypi/ProDy.
+For changes and list of new features see :ref:`changes`.
 
 **Linux**
-
 
 Download :file:`ProDy-x.{y}.{z}.tar.gz`.  Extract tarball contents and run
 :file:`setup.py` as follows::
@@ -89,15 +82,6 @@ You can test your ProDy installation using the following command::
 
 Note that :program:`prody` script/command must be reachable from your working
 directory.  For more information on testing, see :ref:`testing`.
-
-
-NMWiz
------
-
-:ref:`nmwiz` is a `VMD`_ plugin for comparative visual analysis of protein
-dynamics modeled using theory or inferred from experimental structural
-ensembles.  See :ref:`nmwiz` for available updates and installation
-instructions.
 
 
 Recommended Software
