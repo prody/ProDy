@@ -11,8 +11,8 @@ and sequence coevolution analysis:
    :maxdepth: 2
    :glob:
 
-   prody
-   evol
+   prody/index
+   evol/index
 
 
 

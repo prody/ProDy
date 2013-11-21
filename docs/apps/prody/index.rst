@@ -10,7 +10,7 @@ processing and structural dynamics analysis:
    :maxdepth: 1
    :glob:
 
-   prody_*
+   *
 
 Running :command:`prody` command will provide a description of applications::
 
