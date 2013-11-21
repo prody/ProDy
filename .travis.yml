@@ -18,8 +18,6 @@ before_install:
   - if [[ $TRAVIS_PYTHON_VERSION == "2.6" ]]; then pip install unittest2; fi
   - if [[ $TRAVIS_PYTHON_VERSION == "2.7" ]]; then pip install pyparsing biopython; fi
   - pip freeze
-  - chmod +x *.sh
-  - ls -l
   - if [[ $TRAVIS_PYTHON_VERSION == "2.7" ]]; then make remove; fi
 install:
   - python setup.py build install
