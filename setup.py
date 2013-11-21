@@ -30,7 +30,7 @@ if [int(dgt) for dgt in numpy.__version__.split('.')[:2]] < [1, 4]:
 
 
 __version__ = ''
-with open('lib/prody/__init__.py') as inp:
+with open('prody/__init__.py') as inp:
   for line in inp:
       if line.startswith('__version__'):
           exec(line.strip())
@@ -77,26 +77,26 @@ PACKAGE_DATA = {
 
 PACKAGE_DIR = {}
 for pkg in PACKAGES:
-    PACKAGE_DIR[pkg] = join('lib', *pkg.split('.'))
+    PACKAGE_DIR[pkg] = join(*pkg.split('.'))
 
 EXTENSIONS = [
     Extension('prody.sequence.msatools',
-              [join('lib', 'prody', 'sequence', 'msatools.c'),],
+              [join('prody', 'sequence', 'msatools.c'),],
               include_dirs=[numpy.get_include()]),
     Extension('prody.sequence.msaio',
-              [join('lib', 'prody', 'sequence', 'msaio.c'),],
+              [join('prody', 'sequence', 'msaio.c'),],
               include_dirs=[numpy.get_include()]),
     Extension('prody.sequence.seqtools',
-              [join('lib', 'prody', 'sequence', 'seqtools.c'),],
+              [join('prody', 'sequence', 'seqtools.c'),],
               include_dirs=[numpy.get_include()]),
 ]
 
 CONTRIBUTED = [
     Extension('prody.proteins.cpairwise2',
-              [join('lib', 'prody', 'proteins', 'cpairwise2.c')]),
+              [join('prody', 'proteins', 'cpairwise2.c')]),
     Extension('prody.kdtree._CKDTree',
-              [join('lib', 'prody', 'kdtree', 'KDTree.c'),
-               join('lib', 'prody', 'kdtree', 'KDTreemodule.c')],
+              [join('prody', 'kdtree', 'KDTree.c'),
+               join('prody', 'kdtree', 'KDTreemodule.c')],
               include_dirs=[numpy.get_include()]),
 ]
 
