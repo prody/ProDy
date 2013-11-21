@@ -2,6 +2,7 @@
 __author__ = 'Ahmet Bakan'
 __copyright__ = 'Copyright (C) 2010-2013 Ahmet Bakan'
 
+import os
 import imp
 from subprocess import Popen, PIPE
 
@@ -12,12 +13,12 @@ apps = imp.load_module('prody.apps',
 for cmd, subcmds in [('prody', apps.PRODY_APPS), ('evol', apps.EVOL_APPS)]:
 
     pipe = Popen([cmd, '-h'], stdout=PIPE, stderr=PIPE)
-    with open(cmd + '.txt', 'w') as rst:
+    with open(os.path.join(cmd, cmd + '.txt'), 'w') as rst:
         rst.write(pipe.stdout.read())
 
     for sub in subcmds:
 
-        with open(cmd + '_' + sub + '.rst', 'w') as rst:
+        with open(os.path.join(cmd, sub + '.rst'), 'w') as rst:
             rst.write(""".. _{cmd:s}-{sub:s}:
 
 {cmd:s} {sub:s}
