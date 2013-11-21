@@ -24,26 +24,23 @@ instructions see:
 DOCUMENTATION
 -------------
 
-* Homepage: http://www.csb.pitt.edu/ProDy
+* Homepage: http://prody.csb.pitt.edu/
 
-* Tutorials: http://www.csb.pitt.edu/ProDy/tutorials
+* Tutorials: http://prody.csb.pitt.edu/#tutorials
 
-* Reference: http://www.csb.pitt.edu/ProDy/reference
+* Reference: http://prody.csb.pitt.edu/reference
 
-* Applications: http://www.csb.pitt.edu/ProDy/apps
+* Applications: http://prody.csb.pitt.edu/apps
 
-* NMWiz GUI: http://www.csb.pitt.edu/NMWiz
+* NMWiz GUI: http://csb.pitt.edu/NMWiz
 
-* Changes: http://www.csb.pitt.edu/ProDy/reference/changes
+* Changes: http://prody.csb.pitt.edu/reference/changes
 
 
 SOURCE CODE
 -----------
 
-* Source code:
-
-   * https://github.com/abakan/ProDy
-   * https://bitbucket.org/abakan/prody
+* Source code: https://github.com/abakan/ProDy
 
 * Issue tracker: https://github.com/abakan/ProDy/issues
 
