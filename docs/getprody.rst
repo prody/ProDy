@@ -74,16 +74,6 @@ To be able use :ref:`prody-apps` and :ref:`evol-apps` in command prompt
 :file:`C:\\Python27` and :file:`C:\\Python27\\Scripts`) to :envvar:`PATH`
 environment variable.
 
-**Testing**
-
-You can test your ProDy installation using the following command::
-
-    $ prody test
-
-Note that :program:`prody` script/command must be reachable from your working
-directory.  For more information on testing, see :ref:`testing`.
-
-
 Recommended Software
 --------------------
 
