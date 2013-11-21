@@ -26,4 +26,6 @@ test:
 	TMPDIR=`mktemp -d`; REPOPATH=`pwd`; echo $$TMPDIR; cd $$TMPDIR; \
 	git clone $$REPOPATH; cd ProDy; \
 	python setup.py build_ext --inplace --force; \
-	export PYTHONPATH=$$TMPDIR/ProDy/;
+	export PYTHONPATH=$$TMPDIR/ProDy/; \
+	nosetests prody -a '!slow'; \
+	rm -rf $$TMPDIR
