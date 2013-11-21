@@ -9,7 +9,7 @@ Usage
 Running :command:`evol conserv -h` displays::
 
   usage: evol conserv [-h] [--quiet] [--examples] [-n] [-g] [-p STR] [-f STR]
-                      [-S] [-F STR] [-D INT] [-H FLOAT] [-W FLOAT]
+                      [-S] [-H FLOAT] [-W FLOAT] [-F STR] [-D INT]
                       msa
   
   positional arguments:
@@ -33,14 +33,14 @@ Running :command:`evol conserv -h` displays::
   
   figure options:
     -S, --save-plot       save conservation plot
-    -F STR, --figure-format STR
-                          figure file format, one of svgz, ps, rgba, svg, eps,
-                          raw, png, pdf (default: pdf)
-    -D INT, --dpi INT     figure resolution (dpi) (default: 300)
     -H FLOAT, --height FLOAT
                           figure height (inch) (default: 6)
     -W FLOAT, --width FLOAT
                           figure width (inch) (default: 8)
+    -F STR, --figure-format STR
+                          figure file format, one of raw, png, ps, svgz, eps,
+                          pdf, rgba, svg (default: pdf)
+    -D INT, --dpi INT     figure resolution (dpi) (default: 300)
 
 Examples
 --------------------
