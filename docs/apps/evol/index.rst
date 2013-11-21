@@ -10,7 +10,7 @@ refinement, and analysis of multiple sequence alignments:
    :maxdepth: 1
    :glob:
 
-   evol_*
+   *
 
 Running :command:`evol` command will provide a description of applications::
 
