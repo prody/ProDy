@@ -11,4 +11,7 @@ ProDy 1.5 Series
 
 **Availability**:
 
+
+  * Source is moved from :file:`lib/prody` to :file:`prody`.
+
   * Source code will be hosted only at GitHub_.
