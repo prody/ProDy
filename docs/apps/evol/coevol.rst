@@ -53,8 +53,8 @@ Running :command:`evol coevol -h` displays::
     -W FLOAT, --width FLOAT
                           figure width (inch) (default: 8)
     -F STR, --figure-format STR
-                          figure file format, one of svg, rgba, eps, ps, svgz,
-                          raw, pdf, png (default: pdf)
+                          figure file format, one of svgz, rgba, png, pdf, eps,
+                          svg, ps, raw (default: pdf)
 
 Examples
 --------------------
