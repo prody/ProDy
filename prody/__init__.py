@@ -274,17 +274,3 @@ if SETTINGS['check_updates']:
             SETTINGS['check_updates']):
         LOGGER.info('Checking PyPI for ProDy updates:')
         checkUpdates()
-
-
-def test(*mods, **kwargs):
-    """Run ProDy tests, ``prody.test()``. See :mod:`prody.tests`
-    documentation for more details."""
-
-    try:
-        import prody.tests
-    except ImportError as err:
-        LOGGER.warning('Could not import ProDy unit tests, '
-                       'please check your installation.')
-        raise type(err)(str(err))
-    else:
-        prody.tests.runTests(*mods, **kwargs)

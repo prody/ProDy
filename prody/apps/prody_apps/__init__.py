@@ -37,16 +37,6 @@ path_apps = imp.find_module('prody_apps', [path_apps])[1]
 PRODY_APPS = ['anm', 'gnm', 'pca', 'eda', 'align', 'blast', 'biomol',
                   'catdcd', 'contacts', 'fetch', 'select', ]
 
-if sys.version_info[:2] == (2,6):
-    try:
-        import unittest2
-    except ImportError:
-        pass
-    else:
-        PRODY_APPS.append('test')
-else:
-    PRODY_APPS.append('test')
-
 __all__ = ['prody_main']
 
 prody_parser = argparse.ArgumentParser(

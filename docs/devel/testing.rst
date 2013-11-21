@@ -12,17 +12,19 @@ Testing ProDy
 Running Unittests
 -----------------
 
-The easiest way to run ProDy unittests is using :ref:`prody-test` command::
+The easiest way to run ProDy unit tests is using nose_. The following will
+run all tests::
 
-  $ prody test
-  $ prody test atomic.select -l full
+  $ nosetests prody
 
-See :ref:`prody-test` documentation for details.
+To skip tests that are slow, use the following::
 
-Alternatively, you can use :func:`prody.test` function in a Python session::
+  $ nosetests prody -a '!slow'
 
-  prody.test()
-  prody.test('atomic.select', label='full')
+To run tests for a specific module do as follows::
+
+  $ nosetests prody.tests.atomic prody.tests.sequence
+
 
 Pre-commit Testing
 ------------------

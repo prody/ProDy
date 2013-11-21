@@ -17,16 +17,13 @@ build3:
 	python3 setup.py build_ext --inplace --force
 
 remove:
-	rm -f lib/prody/kdtree/*c
-	rm -f lib/prody/atomic/pyparsing*py
-	rm -f lib/prody/apps/argparse.py
-	rm -f lib/prody/proteins/*pairwise2.*
+	rm -f prody/kdtree/*c
+	rm -f prody/atomic/pyparsing*py
+	rm -f prody/apps/argparse.py
+	rm -f prody/proteins/*pairwise2.*
 
 test:
 	TMPDIR=`mktemp -d`; REPOPATH=`pwd`; echo $$TMPDIR; cd $$TMPDIR; \
 	git clone $$REPOPATH; cd ProDy; \
 	python setup.py build_ext --inplace --force; \
-	export PYTHONPATH=$$TMPDIR/ProDy/lib/; \
-	python scripts/prody test; \
-	rm -rf $$TMPDIR
-
+	export PYTHONPATH=$$TMPDIR/ProDy/;

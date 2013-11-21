@@ -15,3 +15,9 @@ ProDy 1.5 Series
   * Source is moved from :file:`lib/prody` to :file:`prody`.
 
   * Source code will be hosted only at GitHub_.
+
+**Testing**:
+
+  * ProDy test command (:program:`prody test`) and function :func:`prody.test`
+    has been removed for easier maintenance of testing functions.
+    See :ref:`testing` for more information on how to test ProDy.

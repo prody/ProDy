@@ -55,24 +55,24 @@ PACKAGES = ['prody',
             'prody.apps.prody_apps',
             'prody.apps.evol_apps',
             'prody.tests',
-            'prody.tests.test_apps',
-            'prody.tests.test_atomic',
-            'prody.tests.test_datafiles',
-            'prody.tests.test_dynamics',
-            'prody.tests.test_ensemble',
-            'prody.tests.test_kdtree',
-            'prody.tests.test_measure',
-            'prody.tests.test_proteins',
-            'prody.tests.test_sequence',
-            'prody.tests.test_trajectory',
-            'prody.tests.test_utilities',]
+            'prody.tests.apps',
+            'prody.tests.atomic',
+            'prody.tests.datafiles',
+            'prody.tests.dynamics',
+            'prody.tests.ensemble',
+            'prody.tests.kdtree',
+            'prody.tests.measure',
+            'prody.tests.proteins',
+            'prody.tests.sequence',
+            'prody.tests.trajectory',
+            'prody.tests.utilities',]
 PACKAGE_DATA = {
-    'prody.tests': ['test_datafiles/pdb*.pdb',
-                    'test_datafiles/*.dat',
-                    'test_datafiles/*.coo',
-                    'test_datafiles/dcd*.dcd',
-                    'test_datafiles/xml*.xml',
-                    'test_datafiles/msa*',]
+    'prody.tests': ['datafiles/pdb*.pdb',
+                    'datafiles/*.dat',
+                    'datafiles/*.coo',
+                    'datafiles/dcd*.dcd',
+                    'datafiles/xml*.xml',
+                    'datafiles/msa*',]
 }
 
 PACKAGE_DIR = {}
