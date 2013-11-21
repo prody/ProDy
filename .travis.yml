@@ -23,6 +23,5 @@ before_install:
   - if [[ $TRAVIS_PYTHON_VERSION == "2.7" ]]; then ./devel_remove_contrib.sh; fi
 install:
   - python setup.py build install
-  - make build
 script:
-  - nosetests prody -a `!slow`
+  - cd docs; nosetests prody -a `!slow`
