@@ -20,7 +20,7 @@ before_install:
   - pip freeze
   - chmod +x *.sh
   - ls -l
-  - if [[ $TRAVIS_PYTHON_VERSION == "2.7" ]]; then ./devel_remove_contrib.sh; fi
+  - if [[ $TRAVIS_PYTHON_VERSION == "2.7" ]]; then make remove; fi
 install:
   - python setup.py build install
 script:
