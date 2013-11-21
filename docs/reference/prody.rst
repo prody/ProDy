@@ -14,7 +14,6 @@ and running tests.
   * :func:`startLogfile`
   * :func:`closeLogfile`
   * :func:`plog`
-  * :func:`test`
 
 .. autofunction:: confProDy
 
@@ -25,5 +24,3 @@ and running tests.
 .. autofunction:: closeLogfile
 
 .. autofunction:: plog
-
-.. autofunction:: test

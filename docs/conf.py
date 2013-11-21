@@ -32,7 +32,7 @@ copyright = u'2010-2013, Ahmet Bakan'
 
 
 __version__ = ''
-with open('../lib/prody/__init__.py') as inp:
+with open('../prody/__init__.py') as inp:
     statement = ''.join([line for line in inp
                          if line.startswith('__v') or line.startswith('__r')])
     exec(statement)
@@ -41,6 +41,9 @@ version, release = __version__, __release__
 if release.endswith('dev'):
 
     rst_prolog = """
+
+.. only:: html
+
     .. note::
 
         This documentation is for a development version of ProDy. There may be
@@ -183,6 +186,7 @@ rst_epilog = u"""
 .. _NumPy: http://www.numpy.org
 .. _Scipy: http://www.scipy.org
 .. _pip: http://www.pip-installer.org
+.. _nose: http://nose.readthedocs.org
 
 
 .. |A2| replace:: Å\ :sup:`2`
