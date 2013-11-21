@@ -1,17 +1,16 @@
-.. _evol-coevol:
+.. _evol-conserv:
 
-evol coevol
+evol conserv
 ====================
 
 Usage
 --------------------
 
-Running :command:`evol coevol -h` displays::
+Running :command:`evol conserv -h` displays::
 
-  usage: evol coevol [-h] [--quiet] [--examples] [-n] [-c STR] [-m STR] [-t]
-                     [-p STR] [-f STR] [-S] [-L FLOAT] [-U FLOAT] [-X STR]
-                     [-T STR] [-W FLOAT] [-H FLOAT] [-D INT] [-F STR]
-                     msa
+  usage: evol conserv [-h] [--quiet] [--examples] [-n] [-g] [-p STR] [-f STR]
+                      [-S] [-F STR] [-D INT] [-H FLOAT] [-W FLOAT]
+                      msa
   
   positional arguments:
     msa                   refined MSA file
@@ -24,42 +23,29 @@ Running :command:`evol coevol -h` displays::
   calculation options:
     -n, --no-ambiguity    treat amino acids characters B, Z, J, and X as non-
                           ambiguous
-    -c STR, --correction STR
-                          also save corrected mutual information matrix data and
-                          plot, one of apc, asc
-    -m STR, --normalization STR
-                          also save normalized mutual information matrix data
-                          and plot, one of sument, minent, maxent, mincon,
-                          maxcon, joint
+    -g, --gaps            do not omit gap characters
   
   output options:
-    -t, --heatmap         save heatmap files for all mutual information matrices
     -p STR, --prefix STR  output filename prefix, default is msa filename with
-                          _coevol suffix
+                          _conserv suffix
     -f STR, --number-format STR
                           number output format (default: %12g)
   
   figure options:
-    -S, --save-plot       save coevolution plot
-    -L FLOAT, --cmin FLOAT
-                          apply lower limits for figure plot
-    -U FLOAT, --cmax FLOAT
-                          apply upper limits for figure plot
-    -X STR, --xlabel STR  specify xlabel, by default will be applied on ylabel
-    -T STR, --title STR   figure title
-    -W FLOAT, --width FLOAT
-                          figure width (inch) (default: 8)
+    -S, --save-plot       save conservation plot
+    -F STR, --figure-format STR
+                          figure file format, one of svgz, ps, rgba, svg, eps,
+                          raw, png, pdf (default: pdf)
+    -D INT, --dpi INT     figure resolution (dpi) (default: 300)
     -H FLOAT, --height FLOAT
                           figure height (inch) (default: 6)
-    -D INT, --dpi INT     figure resolution (dpi) (default: 300)
-    -F STR, --figure-format STR
-                          figure file format, one of ps, raw, svgz, png, svg,
-                          pdf, rgba, eps (default: pdf)
+    -W FLOAT, --width FLOAT
+                          figure width (inch) (default: 8)
 
 Examples
 --------------------
 
-Running :command:`evol coevol --examples` displays::
+Running :command:`evol conserv --examples` displays::
 
   Sequence coevolution analysis involves several steps that including
   retrieving data and refining it for calculations.  These steps are

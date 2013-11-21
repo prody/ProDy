@@ -9,8 +9,8 @@ Usage
 Running :command:`evol occupancy -h` displays::
 
   usage: evol occupancy [-h] [--quiet] [--examples] [-o STR] [-p STR] [-l STR]
-                        [-f STR] [-S] [-X STR] [-Y STR] [-T STR] [-D INT]
-                        [-W FLOAT] [-F STR] [-H FLOAT]
+                        [-f STR] [-S] [-X STR] [-Y STR] [-T STR] [-F STR]
+                        [-D INT] [-H FLOAT] [-W FLOAT]
                         msa
   
   positional arguments:
@@ -38,14 +38,14 @@ Running :command:`evol occupancy -h` displays::
     -X STR, --xlabel STR  specify xlabel
     -Y STR, --ylabel STR  specify ylabel
     -T STR, --title STR   figure title
-    -D INT, --dpi INT     figure resolution (dpi) (default: 300)
-    -W FLOAT, --width FLOAT
-                          figure width (inch) (default: 8)
     -F STR, --figure-format STR
-                          figure file format, one of svgz, svg, pdf, raw, rgba,
-                          ps, eps, png (default: pdf)
+                          figure file format, one of svgz, rgba, ps, pdf, eps,
+                          raw, png, svg (default: pdf)
+    -D INT, --dpi INT     figure resolution (dpi) (default: 300)
     -H FLOAT, --height FLOAT
                           figure height (inch) (default: 6)
+    -W FLOAT, --width FLOAT
+                          figure width (inch) (default: 8)
 
 Examples
 --------------------
