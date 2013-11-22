@@ -439,17 +439,18 @@ buildSCAMatrix.__doc__ += doc_turbo
 
 def buildDirectInfoMatrix(msa, seqid=.8, pseudo_weight=.5, refine=False,
                           **kwargs):
-    """Return DI matrix calculated for *msa*, which may be an :class:`.MSA`
-    instance or a 2D Numpy character array.
+    """Return direct information matrix calculated for *msa*, which may be an
+    :class:`.MSA` instance or a 2D Numpy character array.
 
     Sequences sharing sequence identity of *seqid* or more with another
-    sequence are regard as similar sequences to calculate Meff.
+    sequence are regarded as similar sequences for calculating their weights
+    using :func:`.calcMeff`.
 
-    *pseudo_weight* are the weight for pseudocount probability.
+    *pseudo_weight* are the weight for pseudo count probability.
 
-    Sequences are not refined be default. When *refine* is set **True**, the
-    MSA will be refined by the first sequence. But the DI shape will perhaps
-    be smaller.
+    Sequences are not refined by default. When *refine* is set **True**,
+    the MSA will be refined by the first sequence and the shape of direct
+    information matrix will be smaller.
     """
 
     msa = getMSA(msa)
@@ -482,16 +483,16 @@ def calcMeff(msa, seqid=.8, refine=False, weight=False, **kwargs):
     """Return the Meff for *msa*, which may be an :class:`.MSA`
     instance or a 2D Numpy character array.
 
-    Because similar sequences in *msa* could decrease the quality of *msa*,
-    Meff could give a weighted number of sequences for a *msa*.
+    Since similar sequences in an *msa* decreases the diversity of *msa*,
+    *Meff* gives a weight for sequences in the *msa*.
 
     Sequences sharing sequence identity of *seqid* or more with another
-    sequence are regard as similar sequences to calculate Meff.
+    sequence are regarded as similar sequences to calculate Meff.
 
-    Sequences are not refined be default. When *refine* is set **True**, the
+    Sequences are not refined by default. When *refine* is set **True**, the
     MSA will be refined by the first sequence.
 
-    The weight for each sequences are returned when *weight* is **True**."""
+    The weight for each sequence are returned when *weight* is **True**."""
 
     msa = getMSA(msa)
     from .msatools import msameff
