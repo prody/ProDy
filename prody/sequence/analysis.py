@@ -486,6 +486,11 @@ def calcMeff(msa, seqid=.8, refine=False, weight=False, **kwargs):
     Since similar sequences in an *msa* decreases the diversity of *msa*,
     *Meff* gives a weight for sequences in the *msa*.
 
+    For example: One sequence in MSA has 5 other similar sequences in this
+    MSA(itself included). The weight of this sequence is defined as 1/5=0.2.
+    Meff is the sum of all sequence weights. In another word, Meff can be
+    understood as the effective number of independent sequences.
+
     Sequences sharing sequence identity of *seqid* or more with another
     sequence are regarded as similar sequences to calculate Meff.
 
