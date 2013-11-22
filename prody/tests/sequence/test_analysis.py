@@ -546,8 +546,27 @@ class TestCalcMeff(TestCase):
         expect = 1.
         result = calcMeff(msa)
         assert_array_almost_equal(expect, result)
-        result = calcMeff(msa, weight=True)
+
+        result = calcMeff(msa, seqid=0.9)
+        assert_array_almost_equal(expect, result)
+
+        result = calcMeff(msa, seqid=0.4)
+        assert_array_almost_equal(expect, result)
+
         expect = (1., zeros((100)) + 1./100)
+        result = calcMeff(msa, weight=True)
+        assert_array_almost_equal(expect[0], result[0],
+                                  err_msg='weight failed')
+        assert_array_almost_equal(expect[1], result[1],
+                                  err_msg='weight failed')
+
+        result = calcMeff(msa, seqid=0.9, weight=True)
+        assert_array_almost_equal(expect[0], result[0],
+                                  err_msg='weight failed')
+        assert_array_almost_equal(expect[1], result[1],
+                                  err_msg='weight failed')
+
+        result = calcMeff(msa, seqid=0.4, weight=True)
         assert_array_almost_equal(expect[0], result[0],
                                   err_msg='weight failed')
         assert_array_almost_equal(expect[1], result[1],
@@ -555,12 +574,33 @@ class TestCalcMeff(TestCase):
 
     def testZero2(self):
 
-        msa = array([list('AACC')] * 50 + [list('CCDD')] * 50, dtype='|S1')
+        msa = array([list('AACC')] * 50 + [list('AADD')] * 50, dtype='|S1')
         expect = 2.
         result = calcMeff(msa)
         assert_array_almost_equal(expect, result)
-        result = calcMeff(msa, weight=True)
+
+        result = calcMeff(msa, seqid=0.9)
+        assert_array_almost_equal(expect, result)
+
+        expect = 1.
+        result = calcMeff(msa, seqid=0.4)
+        assert_array_almost_equal(expect, result)
+
         expect = (2., zeros((100)) + 1./50)
+        result = calcMeff(msa, weight=True)
+        assert_array_almost_equal(expect[0], result[0],
+                                  err_msg='weight failed')
+        assert_array_almost_equal(expect[1], result[1],
+                                  err_msg='weight failed')
+
+        result = calcMeff(msa, seqid=0.9, weight=True)
+        assert_array_almost_equal(expect[0], result[0],
+                                  err_msg='weight failed')
+        assert_array_almost_equal(expect[1], result[1],
+                                  err_msg='weight failed')
+
+        expect = (1., zeros((100)) + 1./100)
+        result = calcMeff(msa, seqid=0.4, weight=True)
         assert_array_almost_equal(expect[0], result[0],
                                   err_msg='weight failed')
         assert_array_almost_equal(expect[1], result[1],
@@ -573,8 +613,27 @@ class TestCalcMeff(TestCase):
         expect = 20.
         result = calcMeff(msa)
         assert_array_almost_equal(expect, result)
-        result = calcMeff(msa, weight=True)
+
+        result = calcMeff(msa, seqid=0.9)
+        assert_array_almost_equal(expect, result)
+
+        result = calcMeff(msa, seqid=0.4)
+        assert_array_almost_equal(expect, result)
+
         expect = (20., ones(20))
+        result = calcMeff(msa, weight=True)
+        assert_array_almost_equal(expect[0], result[0],
+                                  err_msg='weight failed')
+        assert_array_almost_equal(expect[1], result[1],
+                                  err_msg='weight failed')
+
+        result = calcMeff(msa, seqid=0.9, weight=True)
+        assert_array_almost_equal(expect[0], result[0],
+                                  err_msg='weight failed')
+        assert_array_almost_equal(expect[1], result[1],
+                                  err_msg='weight failed')
+
+        result = calcMeff(msa, seqid=0.4, weight=True)
         assert_array_almost_equal(expect[0], result[0],
                                   err_msg='weight failed')
         assert_array_almost_equal(expect[1], result[1],
@@ -587,8 +646,27 @@ class TestCalcMeff(TestCase):
         expect = 20.
         result = calcMeff(msa)
         assert_array_almost_equal(expect, result)
-        result = calcMeff(msa, weight=True)
+
+        result = calcMeff(msa, seqid=0.9)
+        assert_array_almost_equal(expect, result)
+
+        result = calcMeff(msa, seqid=0.4)
+        assert_array_almost_equal(expect, result)
+
         expect = (20., ones(20))
+        result = calcMeff(msa, weight=True)
+        assert_array_almost_equal(expect[0], result[0],
+                                  err_msg='weight failed')
+        assert_array_almost_equal(expect[1], result[1],
+                                  err_msg='weight failed')
+
+        result = calcMeff(msa, seqid=0.9, weight=True)
+        assert_array_almost_equal(expect[0], result[0],
+                                  err_msg='weight failed')
+        assert_array_almost_equal(expect[1], result[1],
+                                  err_msg='weight failed')
+
+        result = calcMeff(msa, seqid=0.4, weight=True)
         assert_array_almost_equal(expect[0], result[0],
                                   err_msg='weight failed')
         assert_array_almost_equal(expect[1], result[1],
@@ -609,6 +687,35 @@ class TestCalcMeff(TestCase):
         assert_array_almost_equal(expect[1], result[1],
                                   err_msg='weight failed')
 
+        expect = 23
+        result = calcMeff(FASTA, seqid=0.9, refine=True)
+        assert_array_almost_equal(expect, result)
+        result = calcMeff(FASTA, seqid=0.9, refine=True, weight=True)
+        expect = (expect,
+                  array([0.5, 0.5, 1., 1., 1., 1., 1., 1., 1., 1., 1., 0.5,
+                         0.5, 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1.,
+                         1.], dtype='float'))
+        assert_array_almost_equal(expect[0], result[0],
+                                  err_msg='weight failed')
+        assert_array_almost_equal(expect[1], result[1],
+                                  err_msg='weight failed')
+
+        expect = 4.66689144189144
+        result = calcMeff(FASTA, seqid=0.4, refine=True)
+        assert_array_almost_equal(expect, result)
+        result = calcMeff(FASTA, seqid=0.4, refine=True, weight=True)
+        expect = (expect,
+                  array([0.071428571, 0.071428571, 0.066666667, 0.083333333,
+                         0.076923077, 0.066666667, 0.076923077, 0.090909091,
+                         0.090909091, 0.071428571, 0.076923077, 0.076923077,
+                         0.1, 0.2, 0.166666667, 0.25, 1., 0.25, 0.25, 0.25,
+                         0.25, 0.333333333, 0.5, 0.071428571,
+                         0.125, ], dtype='float'))
+        assert_array_almost_equal(expect[0], result[0],
+                                  err_msg='weight failed')
+        assert_array_almost_equal(expect[1], result[1],
+                                  err_msg='weight failed')
+
 
 class TestDirectInfo(TestCase):
 
@@ -624,6 +731,56 @@ class TestDirectInfo(TestCase):
             expect, result, err_msg='w/out refine failed')
         result = buildDirectInfoMatrix(msa, refine=True)
         assert_array_almost_equal(expect, result, err_msg='refine failed')
+        result = buildDirectInfoMatrix(msa, seqid=0.9)
+        assert_array_almost_equal(
+            expect, result, err_msg='w/out refine failed')
+        result = buildDirectInfoMatrix(msa, seqid=0.9, refine=True)
+        assert_array_almost_equal(expect, result, err_msg='refine failed')
+        result = buildDirectInfoMatrix(msa, seqid=0.4)
+        assert_array_almost_equal(
+            expect, result, err_msg='w/out refine failed')
+        result = buildDirectInfoMatrix(msa, seqid=0.4, refine=True)
+        assert_array_almost_equal(expect, result, err_msg='refine failed')
+        # pseudo_weight=0.3
+        expect = array([[0.,  0.53477644,  0.53477644,  0.58513139],
+                        [0.53477644,  0.,  0.53477644,  0.58513139],
+                        [0.53477644,  0.53477644,  0.,  0.58513139],
+                        [0.58513139,  0.58513139,  0.58513139,  0.]])
+        result = buildDirectInfoMatrix(msa, pseudo_weight=0.3)
+        assert_array_almost_equal(
+            expect, result, err_msg='w/out refine failed')
+        result = buildDirectInfoMatrix(msa, pseudo_weight=0.3, refine=True)
+        assert_array_almost_equal(expect, result, err_msg='refine failed')
+        result = buildDirectInfoMatrix(msa, seqid=0.9, pseudo_weight=0.3)
+        assert_array_almost_equal(
+            expect, result, err_msg='w/out refine failed')
+        result = buildDirectInfoMatrix(msa, seqid=0.9, pseudo_weight=0.3, refine=True)
+        assert_array_almost_equal(expect, result, err_msg='refine failed')
+        result = buildDirectInfoMatrix(msa, seqid=0.4, pseudo_weight=0.3)
+        assert_array_almost_equal(
+            expect, result, err_msg='w/out refine failed')
+        result = buildDirectInfoMatrix(msa, seqid=0.4, pseudo_weight=0.3, refine=True)
+        assert_array_almost_equal(expect, result, err_msg='refine failed')
+        # pseudo_weight=0.8
+        expect = array([[0.,  0.41397564,  0.41397564,  0.41295744],
+                        [0.41397564,  0.,  0.41397564,  0.41295744],
+                        [0.41397564,  0.41397564,  0.,  0.41295744],
+                        [0.41295744,  0.41295744,  0.41295744,  0.]])
+        result = buildDirectInfoMatrix(msa, pseudo_weight=0.8)
+        assert_array_almost_equal(
+            expect, result, err_msg='w/out refine failed')
+        result = buildDirectInfoMatrix(msa, pseudo_weight=0.8, refine=True)
+        assert_array_almost_equal(expect, result, err_msg='refine failed')
+        result = buildDirectInfoMatrix(msa, seqid=0.9, pseudo_weight=0.8)
+        assert_array_almost_equal(
+            expect, result, err_msg='w/out refine failed')
+        result = buildDirectInfoMatrix(msa, seqid=0.9, pseudo_weight=0.8, refine=True)
+        assert_array_almost_equal(expect, result, err_msg='refine failed')
+        result = buildDirectInfoMatrix(msa, seqid=0.4, pseudo_weight=0.8)
+        assert_array_almost_equal(
+            expect, result, err_msg='w/out refine failed')
+        result = buildDirectInfoMatrix(msa, seqid=0.4, pseudo_weight=0.8, refine=True)
+        assert_array_almost_equal(expect, result, err_msg='refine failed')
 
     def testZero1(self):
 
@@ -636,6 +793,56 @@ class TestDirectInfo(TestCase):
         assert_array_almost_equal(
             expect, result, err_msg='w/out refine failed')
         result = buildDirectInfoMatrix(msa, refine=True)
+        assert_array_almost_equal(expect, result, err_msg='refine failed')
+        result = buildDirectInfoMatrix(msa, seqid=0.9)
+        assert_array_almost_equal(
+            expect, result, err_msg='w/out refine failed')
+        result = buildDirectInfoMatrix(msa, seqid=0.9, refine=True)
+        assert_array_almost_equal(expect, result, err_msg='refine failed')
+        result = buildDirectInfoMatrix(msa, seqid=0.4)
+        assert_array_almost_equal(
+            expect, result, err_msg='w/out refine failed')
+        result = buildDirectInfoMatrix(msa, seqid=0.4, refine=True)
+        assert_array_almost_equal(expect, result, err_msg='refine failed')
+        # pseudo_weight=0.3
+        expect = array([[0.,  0.23225802,  0.23225802,  0.23225606],
+                        [0.23225802,  0.,  0.23225802,  0.23225606],
+                        [0.23225802,  0.23225802,  0.,  0.23225606],
+                        [0.23225606,  0.23225606,  0.23225606,  0.]])
+        result = buildDirectInfoMatrix(msa, pseudo_weight=0.3)
+        assert_array_almost_equal(
+            expect, result, err_msg='w/out refine failed')
+        result = buildDirectInfoMatrix(msa, pseudo_weight=0.3, refine=True)
+        assert_array_almost_equal(expect, result, err_msg='refine failed')
+        result = buildDirectInfoMatrix(msa, seqid=0.9, pseudo_weight=0.3)
+        assert_array_almost_equal(
+            expect, result, err_msg='w/out refine failed')
+        result = buildDirectInfoMatrix(msa, seqid=0.9, pseudo_weight=0.3, refine=True)
+        assert_array_almost_equal(expect, result, err_msg='refine failed')
+        result = buildDirectInfoMatrix(msa, seqid=0.4, pseudo_weight=0.3)
+        assert_array_almost_equal(
+            expect, result, err_msg='w/out refine failed')
+        result = buildDirectInfoMatrix(msa, seqid=0.4, pseudo_weight=0.3, refine=True)
+        assert_array_almost_equal(expect, result, err_msg='refine failed')
+        # pseudo_weight=0.8
+        expect = array([[0.,  0.03910082,  0.03910082,  0.03910178],
+                        [0.03910082,  0.,  0.03910082,  0.03910178],
+                        [0.03910082,  0.03910082,  0.,  0.03910178],
+                        [0.03910178,  0.03910178,  0.03910178,  0.]])
+        result = buildDirectInfoMatrix(msa, pseudo_weight=0.8)
+        assert_array_almost_equal(
+            expect, result, err_msg='w/out refine failed')
+        result = buildDirectInfoMatrix(msa, pseudo_weight=0.8, refine=True)
+        assert_array_almost_equal(expect, result, err_msg='refine failed')
+        result = buildDirectInfoMatrix(msa, seqid=0.9, pseudo_weight=0.8)
+        assert_array_almost_equal(
+            expect, result, err_msg='w/out refine failed')
+        result = buildDirectInfoMatrix(msa, seqid=0.9, pseudo_weight=0.8, refine=True)
+        assert_array_almost_equal(expect, result, err_msg='refine failed')
+        result = buildDirectInfoMatrix(msa, seqid=0.4, pseudo_weight=0.8)
+        assert_array_almost_equal(
+            expect, result, err_msg='w/out refine failed')
+        result = buildDirectInfoMatrix(msa, seqid=0.4, pseudo_weight=0.8, refine=True)
         assert_array_almost_equal(expect, result, err_msg='refine failed')
 
     def testZero2(self):
@@ -650,6 +857,56 @@ class TestDirectInfo(TestCase):
             expect, result, err_msg='w/out refine failed')
         result = buildDirectInfoMatrix(msa, refine=True)
         assert_array_almost_equal(expect, result, err_msg='refine failed')
+        result = buildDirectInfoMatrix(msa, seqid=0.9)
+        assert_array_almost_equal(
+            expect, result, err_msg='w/out refine failed')
+        result = buildDirectInfoMatrix(msa, seqid=0.9, refine=True)
+        assert_array_almost_equal(expect, result, err_msg='refine failed')
+        result = buildDirectInfoMatrix(msa, seqid=0.4)
+        assert_array_almost_equal(
+            expect, result, err_msg='w/out refine failed')
+        result = buildDirectInfoMatrix(msa, seqid=0.4, refine=True)
+        assert_array_almost_equal(expect, result, err_msg='refine failed')
+        # pseudo_weight=0.3
+        expect = array([[ 0.        ,  1.30637709,  1.00041168,  1.00041168],
+                       [ 1.30637709,  0.        ,  1.00041168,  1.00041168],
+                       [ 1.00041168,  1.00041168,  0.        ,  1.30637709],
+                       [ 1.00041168,  1.00041168,  1.30637709,  0.        ]])
+        result = buildDirectInfoMatrix(msa, pseudo_weight=0.3)
+        assert_array_almost_equal(
+            expect, result, err_msg='w/out refine failed')
+        result = buildDirectInfoMatrix(msa, pseudo_weight=0.3, refine=True)
+        assert_array_almost_equal(expect, result, err_msg='refine failed')
+        result = buildDirectInfoMatrix(msa, seqid=0.9, pseudo_weight=0.3)
+        assert_array_almost_equal(
+            expect, result, err_msg='w/out refine failed')
+        result = buildDirectInfoMatrix(msa, seqid=0.9, pseudo_weight=0.3, refine=True)
+        assert_array_almost_equal(expect, result, err_msg='refine failed')
+        result = buildDirectInfoMatrix(msa, seqid=0.4, pseudo_weight=0.3)
+        assert_array_almost_equal(
+            expect, result, err_msg='w/out refine failed')
+        result = buildDirectInfoMatrix(msa, seqid=0.4, pseudo_weight=0.3, refine=True)
+        assert_array_almost_equal(expect, result, err_msg='refine failed')
+        # pseudo_weight=0.8
+        expect = array([[ 0.        ,  0.55686383,  0.55605426,  0.55605426],
+                       [ 0.55686383,  0.        ,  0.55605426,  0.55605426],
+                       [ 0.55605426,  0.55605426,  0.        ,  0.55686383],
+                       [ 0.55605426,  0.55605426,  0.55686383,  0.        ]])
+        result = buildDirectInfoMatrix(msa, pseudo_weight=0.8)
+        assert_array_almost_equal(
+            expect, result, err_msg='w/out refine failed')
+        result = buildDirectInfoMatrix(msa, pseudo_weight=0.8, refine=True)
+        assert_array_almost_equal(expect, result, err_msg='refine failed')
+        result = buildDirectInfoMatrix(msa, seqid=0.9, pseudo_weight=0.8)
+        assert_array_almost_equal(
+            expect, result, err_msg='w/out refine failed')
+        result = buildDirectInfoMatrix(msa, seqid=0.9, pseudo_weight=0.8, refine=True)
+        assert_array_almost_equal(expect, result, err_msg='refine failed')
+        result = buildDirectInfoMatrix(msa, seqid=0.4, pseudo_weight=0.8)
+        assert_array_almost_equal(
+            expect, result, err_msg='w/out refine failed')
+        result = buildDirectInfoMatrix(msa, seqid=0.4, pseudo_weight=0.8, refine=True)
+        assert_array_almost_equal(expect, result, err_msg='refine failed')
 
     def testZero3(self):
 
@@ -663,6 +920,119 @@ class TestDirectInfo(TestCase):
             expect, result, err_msg='w/out refine failed')
         result = buildDirectInfoMatrix(msa, refine=True)
         assert_array_almost_equal(expect, result, err_msg='refine failed')
+        result = buildDirectInfoMatrix(msa, seqid=0.9)
+        assert_array_almost_equal(
+            expect, result, err_msg='w/out refine failed')
+        result = buildDirectInfoMatrix(msa, seqid=0.9, refine=True)
+        assert_array_almost_equal(expect, result, err_msg='refine failed')
+        result = buildDirectInfoMatrix(msa, seqid=0.4)
+        assert_array_almost_equal(
+            expect, result, err_msg='w/out refine failed')
+        result = buildDirectInfoMatrix(msa, seqid=0.4, refine=True)
+        assert_array_almost_equal(expect, result, err_msg='refine failed')
+        # pseudo_weight=0.3
+        expect = array([[ 0.        ,  0.54966352,  0.54965557,  0.54965557],
+                       [ 0.54966352,  0.        ,  0.54965557,  0.54965557],
+                       [ 0.54965557,  0.54965557,  0.        ,  0.54965565],
+                       [ 0.54965557,  0.54965557,  0.54965565,  0.        ]])
+        result = buildDirectInfoMatrix(msa, pseudo_weight=0.3)
+        assert_array_almost_equal(
+            expect, result, err_msg='w/out refine failed')
+        result = buildDirectInfoMatrix(msa, pseudo_weight=0.3, refine=True)
+        assert_array_almost_equal(expect, result, err_msg='refine failed')
+        result = buildDirectInfoMatrix(msa, seqid=0.9, pseudo_weight=0.3)
+        assert_array_almost_equal(
+            expect, result, err_msg='w/out refine failed')
+        result = buildDirectInfoMatrix(msa, seqid=0.9, pseudo_weight=0.3, refine=True)
+        assert_array_almost_equal(expect, result, err_msg='refine failed')
+        result = buildDirectInfoMatrix(msa, seqid=0.4, pseudo_weight=0.3)
+        assert_array_almost_equal(
+            expect, result, err_msg='w/out refine failed')
+        result = buildDirectInfoMatrix(msa, seqid=0.4, pseudo_weight=0.3, refine=True)
+        assert_array_almost_equal(expect, result, err_msg='refine failed')
+        # pseudo_weight=0.8
+        expect = array([[ 0.        ,  0.04349673,  0.0434971 ,  0.0434971 ],
+                       [ 0.04349673,  0.        ,  0.0434971 ,  0.0434971 ],
+                       [ 0.0434971 ,  0.0434971 ,  0.        ,  0.04349711],
+                       [ 0.0434971 ,  0.0434971 ,  0.04349711,  0.        ]])
+        result = buildDirectInfoMatrix(msa, pseudo_weight=0.8)
+        assert_array_almost_equal(
+            expect, result, err_msg='w/out refine failed')
+        result = buildDirectInfoMatrix(msa, pseudo_weight=0.8, refine=True)
+        assert_array_almost_equal(expect, result, err_msg='refine failed')
+        result = buildDirectInfoMatrix(msa, seqid=0.9, pseudo_weight=0.8)
+        assert_array_almost_equal(
+            expect, result, err_msg='w/out refine failed')
+        result = buildDirectInfoMatrix(msa, seqid=0.9, pseudo_weight=0.8, refine=True)
+        assert_array_almost_equal(expect, result, err_msg='refine failed')
+        result = buildDirectInfoMatrix(msa, seqid=0.4, pseudo_weight=0.8)
+        assert_array_almost_equal(
+            expect, result, err_msg='w/out refine failed')
+        result = buildDirectInfoMatrix(msa, seqid=0.4, pseudo_weight=0.8, refine=True)
+        assert_array_almost_equal(expect, result, err_msg='refine failed')
+
+    def testZero4(self):
+
+        msa = array([list('AAYY')] * 50 + [list('AADD')] * 50, dtype='|S1')
+        expect = array([[ 0.        ,  0.68512031,  0.54656421,  0.54656421],
+                   [ 0.68512031,  0.        ,  0.54656421,  0.54656421],
+                   [ 0.54656421,  0.54656421,  0.        ,  1.05788193],
+                   [ 0.54656421,  0.54656421,  1.05788193,  0.        ]])
+        result = buildDirectInfoMatrix(msa)
+        assert_array_almost_equal(
+            expect, result, err_msg='w/out refine failed')
+        result = buildDirectInfoMatrix(msa, refine=True)
+        assert_array_almost_equal(expect, result, err_msg='refine failed')
+        result = buildDirectInfoMatrix(msa, seqid=0.9)
+        assert_array_almost_equal(
+            expect, result, err_msg='w/out refine failed')
+        result = buildDirectInfoMatrix(msa, seqid=0.9, refine=True)
+        assert_array_almost_equal(expect, result, err_msg='refine failed')
+        result = buildDirectInfoMatrix(msa, seqid=0.4)
+        assert_array_almost_equal(
+            expect, result, err_msg='w/out refine failed')
+        result = buildDirectInfoMatrix(msa, seqid=0.4, refine=True)
+        assert_array_almost_equal(expect, result, err_msg='refine failed')
+        # pseudo_weight=0.3
+        expect = array([[ 0.        ,  0.65929972,  0.52603587,  0.52603587],
+                       [ 0.65929972,  0.        ,  0.52603587,  0.52603587],
+                       [ 0.52603587,  0.52603587,  0.        ,  1.99332504],
+                       [ 0.52603587,  0.52603587,  1.99332504,  0.        ]])
+        result = buildDirectInfoMatrix(msa, pseudo_weight=0.3)
+        assert_array_almost_equal(
+            expect, result, err_msg='w/out refine failed')
+        result = buildDirectInfoMatrix(msa, pseudo_weight=0.3, refine=True)
+        assert_array_almost_equal(expect, result, err_msg='refine failed')
+        result = buildDirectInfoMatrix(msa, seqid=0.9, pseudo_weight=0.3)
+        assert_array_almost_equal(
+            expect, result, err_msg='w/out refine failed')
+        result = buildDirectInfoMatrix(msa, seqid=0.9, pseudo_weight=0.3, refine=True)
+        assert_array_almost_equal(expect, result, err_msg='refine failed')
+        result = buildDirectInfoMatrix(msa, seqid=0.4, pseudo_weight=0.3)
+        assert_array_almost_equal(
+            expect, result, err_msg='w/out refine failed')
+        result = buildDirectInfoMatrix(msa, seqid=0.4, pseudo_weight=0.3, refine=True)
+        assert_array_almost_equal(expect, result, err_msg='refine failed')
+        # pseudo_weight=0.8
+        expect = array([[ 0.        ,  0.48628027,  0.27348214,  0.27348214],
+                       [ 0.48628027,  0.        ,  0.27348214,  0.27348214],
+                       [ 0.27348214,  0.27348214,  0.        ,  0.65235465],
+                       [ 0.27348214,  0.27348214,  0.65235465,  0.        ]])
+        result = buildDirectInfoMatrix(msa, pseudo_weight=0.8)
+        assert_array_almost_equal(
+            expect, result, err_msg='w/out refine failed')
+        result = buildDirectInfoMatrix(msa, pseudo_weight=0.8, refine=True)
+        assert_array_almost_equal(expect, result, err_msg='refine failed')
+        result = buildDirectInfoMatrix(msa, seqid=0.9, pseudo_weight=0.8)
+        assert_array_almost_equal(
+            expect, result, err_msg='w/out refine failed')
+        result = buildDirectInfoMatrix(msa, seqid=0.9, pseudo_weight=0.8, refine=True)
+        assert_array_almost_equal(expect, result, err_msg='refine failed')
+        result = buildDirectInfoMatrix(msa, seqid=0.4, pseudo_weight=0.8)
+        assert_array_almost_equal(
+            expect, result, err_msg='w/out refine failed')
+        result = buildDirectInfoMatrix(msa, seqid=0.4, pseudo_weight=0.8, refine=True)
+        assert_array_almost_equal(expect, result, err_msg='refine failed')
 
     def testTwenty(self):
 
@@ -675,6 +1045,52 @@ class TestDirectInfo(TestCase):
             expect, result, err_msg='w/out refine failed')
         result = buildDirectInfoMatrix(msa, refine=True)
         assert_array_almost_equal(expect, result, err_msg='refine failed')
+        result = buildDirectInfoMatrix(msa, seqid=0.9)
+        assert_array_almost_equal(
+            expect, result, err_msg='w/out refine failed')
+        result = buildDirectInfoMatrix(msa, seqid=0.9, refine=True)
+        assert_array_almost_equal(expect, result, err_msg='refine failed')
+        result = buildDirectInfoMatrix(msa, seqid=0.4)
+        assert_array_almost_equal(
+            expect, result, err_msg='w/out refine failed')
+        result = buildDirectInfoMatrix(msa, seqid=0.4, refine=True)
+        assert_array_almost_equal(expect, result, err_msg='refine failed')
+        # pseudo_weight=0.3
+        expect = array([[ 0.       ,  3.0757238],
+                        [ 3.0757238,  0.       ]])
+        result = buildDirectInfoMatrix(msa, pseudo_weight=0.3)
+        assert_array_almost_equal(
+            expect, result, err_msg='w/out refine failed')
+        result = buildDirectInfoMatrix(msa, pseudo_weight=0.3, refine=True)
+        assert_array_almost_equal(expect, result, err_msg='refine failed')
+        result = buildDirectInfoMatrix(msa, seqid=0.9, pseudo_weight=0.3)
+        assert_array_almost_equal(
+            expect, result, err_msg='w/out refine failed')
+        result = buildDirectInfoMatrix(msa, seqid=0.9, pseudo_weight=0.3, refine=True)
+        assert_array_almost_equal(expect, result, err_msg='refine failed')
+        result = buildDirectInfoMatrix(msa, seqid=0.4, pseudo_weight=0.3)
+        assert_array_almost_equal(
+            expect, result, err_msg='w/out refine failed')
+        result = buildDirectInfoMatrix(msa, seqid=0.4, pseudo_weight=0.3, refine=True)
+        assert_array_almost_equal(expect, result, err_msg='refine failed')
+        # pseudo_weight=0.8
+        expect = array([[ 0.        ,  1.89488914],
+                        [ 1.89488914,  0.        ]])
+        result = buildDirectInfoMatrix(msa, pseudo_weight=0.8)
+        assert_array_almost_equal(
+            expect, result, err_msg='w/out refine failed')
+        result = buildDirectInfoMatrix(msa, pseudo_weight=0.8, refine=True)
+        assert_array_almost_equal(expect, result, err_msg='refine failed')
+        result = buildDirectInfoMatrix(msa, seqid=0.9, pseudo_weight=0.8)
+        assert_array_almost_equal(
+            expect, result, err_msg='w/out refine failed')
+        result = buildDirectInfoMatrix(msa, seqid=0.9, pseudo_weight=0.8, refine=True)
+        assert_array_almost_equal(expect, result, err_msg='refine failed')
+        result = buildDirectInfoMatrix(msa, seqid=0.4, pseudo_weight=0.8)
+        assert_array_almost_equal(
+            expect, result, err_msg='w/out refine failed')
+        result = buildDirectInfoMatrix(msa, seqid=0.4, pseudo_weight=0.8, refine=True)
+        assert_array_almost_equal(expect, result, err_msg='refine failed')
 
     def testTwentyReversed(self):
 
@@ -686,6 +1102,52 @@ class TestDirectInfo(TestCase):
         assert_array_almost_equal(
             expect, result, err_msg='w/out refine failed')
         result = buildDirectInfoMatrix(msa, refine=True)
+        assert_array_almost_equal(expect, result, err_msg='refine failed')
+        result = buildDirectInfoMatrix(msa, seqid=0.9)
+        assert_array_almost_equal(
+            expect, result, err_msg='w/out refine failed')
+        result = buildDirectInfoMatrix(msa, seqid=0.9, refine=True)
+        assert_array_almost_equal(expect, result, err_msg='refine failed')
+        result = buildDirectInfoMatrix(msa, seqid=0.4)
+        assert_array_almost_equal(
+            expect, result, err_msg='w/out refine failed')
+        result = buildDirectInfoMatrix(msa, seqid=0.4, refine=True)
+        assert_array_almost_equal(expect, result, err_msg='refine failed')
+        # pseudo_weight=0.3
+        expect = array([[ 0.        ,  3.12974624],
+                        [ 3.12974624,  0.        ]])
+        result = buildDirectInfoMatrix(msa, pseudo_weight=0.3)
+        assert_array_almost_equal(
+            expect, result, err_msg='w/out refine failed')
+        result = buildDirectInfoMatrix(msa, pseudo_weight=0.3, refine=True)
+        assert_array_almost_equal(expect, result, err_msg='refine failed')
+        result = buildDirectInfoMatrix(msa, seqid=0.9, pseudo_weight=0.3)
+        assert_array_almost_equal(
+            expect, result, err_msg='w/out refine failed')
+        result = buildDirectInfoMatrix(msa, seqid=0.9, pseudo_weight=0.3, refine=True)
+        assert_array_almost_equal(expect, result, err_msg='refine failed')
+        result = buildDirectInfoMatrix(msa, seqid=0.4, pseudo_weight=0.3)
+        assert_array_almost_equal(
+            expect, result, err_msg='w/out refine failed')
+        result = buildDirectInfoMatrix(msa, seqid=0.4, pseudo_weight=0.3, refine=True)
+        assert_array_almost_equal(expect, result, err_msg='refine failed')
+        # pseudo_weight=0.8
+        expect = array([[ 0.        ,  1.89488914],
+                        [ 1.89488914,  0.        ]])
+        result = buildDirectInfoMatrix(msa, pseudo_weight=0.8)
+        assert_array_almost_equal(
+            expect, result, err_msg='w/out refine failed')
+        result = buildDirectInfoMatrix(msa, pseudo_weight=0.8, refine=True)
+        assert_array_almost_equal(expect, result, err_msg='refine failed')
+        result = buildDirectInfoMatrix(msa, seqid=0.9, pseudo_weight=0.8)
+        assert_array_almost_equal(
+            expect, result, err_msg='w/out refine failed')
+        result = buildDirectInfoMatrix(msa, seqid=0.9, pseudo_weight=0.8, refine=True)
+        assert_array_almost_equal(expect, result, err_msg='refine failed')
+        result = buildDirectInfoMatrix(msa, seqid=0.4, pseudo_weight=0.8)
+        assert_array_almost_equal(
+            expect, result, err_msg='w/out refine failed')
+        result = buildDirectInfoMatrix(msa, seqid=0.4, pseudo_weight=0.8, refine=True)
         assert_array_almost_equal(expect, result, err_msg='refine failed')
 
     def testMATLAB8(self):
