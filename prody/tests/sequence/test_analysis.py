@@ -25,7 +25,7 @@ from prody.tests import TestCase
 from numpy import array, log, zeros, char, ones, fromfile
 from numpy.testing import assert_array_equal, assert_array_almost_equal
 
-from prody.tests.test_datafiles import *
+from prody.tests.datafiles import *
 
 from prody import LOGGER, calcShannonEntropy, buildMutinfoMatrix, parseMSA
 from prody import calcMSAOccupancy, buildSeqidMatrix, uniqueSequences
