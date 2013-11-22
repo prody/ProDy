@@ -1,25 +1,5 @@
 # -*- coding: utf-8 -*-
-# ProDy: A Python Package for Protein Dynamics Analysis
-# 
-# Copyright (C) 2010-2012 Ahmet Bakan
-# 
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-# 
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#  
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>
-
 """This module defines a routine for contact identification."""
-
-__author__ = 'Ahmet Bakan'
-__copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 from ..apptools import *
 
@@ -27,24 +7,24 @@ __all__ = ['prody_contacts']
 
 def prody_contacts(**kwargs):
     """Identify contacts of a target structure with one or more ligands.
-    Contacting atoms (or extended subset of atoms, such as residues) are 
+    Contacting atoms (or extended subset of atoms, such as residues) are
     outputted in PDB file format.
-    
+
     :arg target: target PDB identifier or filename
-    
+
     :arg ligand: ligand PDB identifier(s) or filename(s)
 
     :arg select: atom selection string for target structure
-    
-    :arg radius: contact radius (Å), default is ``4.0`` 
-    
-    :arg extend: output same ``'residue'``, ``'chain'``, or ``'segment'`` along 
+
+    :arg radius: contact radius (Å), default is ``4.0``
+
+    :arg extend: output same ``'residue'``, ``'chain'``, or ``'segment'`` along
         with contacting atoms
-    
+
     :arg prefix: prefix for output file, default is *target* filename
-    
+
     :arg suffix: output filename suffix, default is *ligand* filename"""
-            
+
     import prody
     LOGGER = prody.LOGGER
 
@@ -75,11 +55,11 @@ def prody_contacts(**kwargs):
             pdbfn = outfn(ligand.getTitle())
             LOGGER.info('Writing contacts into ' + pdbfn)
             prody.writePDB(pdbfn, sel)
-   
-                
+
+
 def addCommand(commands):
 
-    subparser = commands.add_parser('contacts', 
+    subparser = commands.add_parser('contacts',
         help='identify contacts between a target and ligand(s)')
 
     subparser.add_argument('--quiet', help="suppress info messages to stderr",
@@ -93,31 +73,31 @@ def addCommand(commands):
 
 Fetch PDB structure 1zz2, save PDB files for individual ligands, and identify \
 contacting residues of the target protein:
-    
+
     $ prody select -o B11 "resname B11" 1zz2
     $ prody select -o BOG "resname BOG" 1zz2
     $ prody contacts -r 4.0 -t residue -s protein 1zz2 B11.pdb BOG.pdb
     """,
     test_examples=[(0,1,2)]
     )
-        
-    subparser.add_argument('-s', '--select', dest='select', type=str, 
+
+    subparser.add_argument('-s', '--select', dest='select', type=str,
         metavar='SELSTR', help='selection string for target')
-    
-    subparser.add_argument('-r', '--radius', dest='radius', type=float, 
+
+    subparser.add_argument('-r', '--radius', dest='radius', type=float,
         default=4.0, metavar='FLOAT',
         help='contact radius (default: %(default)s)')
-    
-    subparser.add_argument('-t', '--extend', dest='extend', type=str, 
+
+    subparser.add_argument('-t', '--extend', dest='extend', type=str,
         metavar='STR', choices=set(['residue', 'chain', 'segment']),
         help=('output same residue, chain, or segment as contacting atoms'))
 
-    subparser.add_argument('-p', '--prefix', dest='prefix', type=str, 
-        metavar='STR', 
+    subparser.add_argument('-p', '--prefix', dest='prefix', type=str,
+        metavar='STR',
         help=('output filename prefix (default: target filename)'))
-        
-    subparser.add_argument('-x', '--suffix', dest='suffix', type=str, 
-        default='_contacts', metavar='STR', 
+
+    subparser.add_argument('-x', '--suffix', dest='suffix', type=str,
+        default='_contacts', metavar='STR',
         help=('output filename suffix (default: %(default)s)'))
 
 
@@ -126,7 +106,7 @@ contacting residues of the target protein:
 
     subparser.add_argument('ligand', nargs='+',
         help='ligand PDB identifier(s) or filename(s)')
-            
+
 
     subparser.set_defaults(func=lambda opt: prody_contacts(**opt.__dict__))
     subparser.set_defaults(subparser=subparser)

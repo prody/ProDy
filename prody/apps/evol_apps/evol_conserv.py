@@ -1,41 +1,21 @@
-# ProDy: A Python Package for Protein Dynamics Analysis
-# 
-# Copyright (C) 2010-2012 Ahmet Bakan
-# 
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-# 
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#  
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>
-
 """Calculate conservation in an MSA using Shannon entropy."""
-
-__author__ = 'Ahmet Bakan'
-__copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 from ..apptools import DevelApp
 
 __all__ = ['evol_conserv']
 
-APP = DevelApp('conserv', 
+APP = DevelApp('conserv',
                help='analyze conservation using Shannon entropy')
 
 APP.setExample(
-"""This application calculates conservation using Shannon entropy for a \ 
+"""This application calculates conservation using Shannon entropy for a \
 refined multiple sequence alignment.  Following example will save entropy \
 data and plot using default options:
 
     $ evol conserv piwi_refined.slx -S""", [])
 
 
-APP.addArgument('msa', 
+APP.addArgument('msa',
     help='refined MSA file')
 
 APP.addGroup('calc', 'calculation options')
@@ -61,19 +41,19 @@ APP.addArgument('-p', '--prefix',
     type=str,
     metavar='STR',
     group='output')
-    
-APP.addArgument('-f', '--number-format', 
-    dest='numformat', type=str, default='%12g', 
+
+APP.addArgument('-f', '--number-format',
+    dest='numformat', type=str, default='%12g',
     metavar='STR', help='number output format', group='output')
-        
-APP.addFigure('-S', '--save-plot', 
-    dest='figent', 
-    action='store_true', 
+
+APP.addFigure('-S', '--save-plot',
+    dest='figent',
+    action='store_true',
     help='save conservation plot')
 
 
 def evol_conserv(msa, **kwargs):
-    
+
     import prody
     from prody import parseMSA, calcShannonEntropy, showShannonEntropy
     from prody import writeArray
@@ -87,10 +67,10 @@ def evol_conserv(msa, **kwargs):
         prefix += '_conserv'
     msa = parseMSA(msa)
     entropy = calcShannonEntropy(msa, **kwargs)
-    
-    writeArray(prefix + '.txt', 
+
+    writeArray(prefix + '.txt',
                entropy, format=kwargs.get('numformat', '%12g'))
-    
+
     if kwargs.get('figent'):
         try:
             import matplotlib.pyplot as plt
@@ -106,7 +86,7 @@ def evol_conserv(msa, **kwargs):
             show = showShannonEntropy(entropy, msa=msa, *figargs)
             format = kwargs.get('figformat', 'pdf')
             figure.savefig(prefix + '.' + format, format=format,
-                        dpi=kwargs.get('figdpi', 300))         
-    
+                        dpi=kwargs.get('figdpi', 300))
+
 
 APP.setFunction(evol_conserv)

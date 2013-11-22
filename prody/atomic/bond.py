@@ -1,42 +1,23 @@
 # -*- coding: utf-8 -*-
-# ProDy: A Python Package for Protein Dynamics Analysis
-# 
-# Copyright (C) 2010-2012 Ahmet Bakan
-# 
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-# 
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#  
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>
 """This module defines :class:`Bond` for dealing with bond information provided
 by using :meth:`.AtomGroup.setBonds` method."""
-
-__author__ = 'Ahmet Bakan'
-__copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 import numpy as np
 
 __all__ = ['Bond']
 
 class Bond(object):
-    
-    """A pointer class for bonded atoms.  Following built-in functions are 
+
+    """A pointer class for bonded atoms.  Following built-in functions are
     customized for this class:
-    
+
     * :func:`len` returns bond length, i.e. :meth:`getLength`
     * :func:`iter` yields :class:`~.Atom` instances"""
-    
+
     __slots__ = ['_ag', '_acsi', '_indices']
-    
+
     def __init__(self, ag, indices, acsi=None):
-        
+
         self._ag = ag
         self._indices = np.array(indices)
         if acsi is None:
@@ -45,12 +26,12 @@ class Bond(object):
             self._acsi = acsi
 
     def __repr__(self):
-        
+
         one, two = self._indices
         names = self._ag._getNames()
         return '<Bond: {0}({1})--{2}({3}) from {4}>'.format(
                             names[one], one, names[two], two, str(self._ag))
-    
+
     def __str__(self):
 
         one, two = self._indices
@@ -59,55 +40,55 @@ class Bond(object):
                                             names[one], one, names[two], two)
 
     def __eq__(self, other):
-        
+
         return (isinstance(other, Bond) and other.getAtomGroup() is self._ag
-                and (np.all(other.getIndices() == self._indices) or 
-                 np.all(other.getIndices() == list(reversed(self._indices))))) 
+                and (np.all(other.getIndices() == self._indices) or
+                 np.all(other.getIndices() == list(reversed(self._indices)))))
 
     def __ne__(self, other):
-        
-        return not self.__eq__(other) 
+
+        return not self.__eq__(other)
 
     def __len__(self):
-        
+
         return self.getLength()
-    
+
     def __iter__(self):
-        
+
         for index in self._indices:
             yield self._ag[index]
 
     def getAtomGroup(self):
         """Return atom group."""
-        
+
         return self._ag
 
     def getAtoms(self):
         """Return bonded atoms."""
-        
+
         return (self._ag[self._indices[0]], self._ag[self._indices[1]])
 
     def getIndices(self):
         """Return indices of bonded atoms."""
-        
+
         return self._indices.copy()
-    
+
     def getLength(self):
         """Return bond length."""
-        
+
         vector = self.getVector()
         return np.multiply(vector, vector, vector).sum() ** 0.5
 
     def getVector(self):
         """Return bond vector that originates from the first atom."""
-        
+
         one, two = self._indices
         acsi = self.getACSIndex()
         return self._ag._coords[acsi, two] - self._ag._coords[acsi, one]
-    
+
     def getACSIndex(self):
         """Return index of the coordinate set."""
-        
+
         acsi = self._acsi
         if acsi >= self._ag._n_csets:
             raise ValueError('{0} has fewer coordsets than assumed by {1}'
@@ -119,24 +100,24 @@ class Bond(object):
 
         if self._ag._coords is None:
             raise AttributeError('coordinates are not set')
-            
+
         if not isinstance(index, int):
             raise TypeError('index must be an integer')
-        
+
         n_csets = self._ag._n_csets
         if n_csets <= index or n_csets < abs(index):
             raise IndexError('coordinate set index is out of range')
-        
+
         if index < 0:
             index += n_csets
-            
+
         self._acsi = index
 
 
 def evalBonds(bonds, n_atoms):
     """Return an array mapping atoms to their bonded neighbors and an array
     that stores number of bonds made by each atom."""
-    
+
     numbonds = np.bincount(bonds.reshape((bonds.shape[0] * 2)))
     bmap = np.zeros((n_atoms, numbonds.max()), int)
     bmap.fill(-1)
@@ -151,7 +132,7 @@ def evalBonds(bonds, n_atoms):
 
 def trimBonds(bonds, indices):
     """Return bonds between atoms at given indices."""
-    
+
     iset = set(indices)
     bonds = [bond for bond in bonds if bond[0] in iset and bond[1] in iset]
     if bonds:

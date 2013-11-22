@@ -1,24 +1,4 @@
-# ProDy: A Python Package for Protein Dynamics Analysis
-# 
-# Copyright (C) 2010-2012 Ahmet Bakan
-# 
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-# 
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#  
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>
-
 """Concatenate, slice, and/or select DCD files."""
-
-__author__ = 'Ahmet Bakan'
-__copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 from ..apptools import *
 
@@ -26,23 +6,23 @@ __all__ = ['prody_catdcd']
 
 def prody_catdcd(*dcd, **kwargs):
     """Concatenate *dcd* files.
-    
-    :arg select: atom selection 
-    
-    :arg align: atom selection for aligning frames 
-    
+
+    :arg select: atom selection
+
+    :arg align: atom selection for aligning frames
+
     :arg pdb: PDB file used in atom selections and as reference for alignment
-        
+
     :arg psf: PSF file used in atom selections
-    
+
     :arg output: output filename
-    
+
     :arg first: index of the first output frame
-    
+
     :arg last: index of the last output frame
-    
+
     :arg stride: number of steps between output frames"""
-    
+
     import prody
     LOGGER = prody.LOGGER
     if kwargs.get('numframes', False):
@@ -52,12 +32,12 @@ def prody_catdcd(*dcd, **kwargs):
         return
 
     from os.path import splitext
-    
+
     ag = None
     psf = kwargs.get('psf', None)
     if psf:
         ag = prody.parsePSF(psf)
-    
+
     pdb = kwargs.get('pdb', None)
     if pdb:
         if ag:
@@ -76,7 +56,7 @@ def prody_catdcd(*dcd, **kwargs):
     traj = prody.Trajectory(dcd.pop(0))
     while dcd:
         traj.addFile(dcd.pop(0))
-    
+
     if ag:
         traj.link(ag)
         if ag.numCoordsets():
@@ -95,13 +75,13 @@ def prody_catdcd(*dcd, **kwargs):
             traj.setAtoms(align)
             LOGGER.info('{0} atoms are selected for aligning frames.'
                         .format(len(align)))
-    
+
     output = kwargs.get('output', 'trajectory.dcd')
     out = prody.DCDFile(output, 'w')
     count = 0
     stride = kwargs.get('stride', 1)
     goto = stride != 1
-    slc = slice(kwargs.get('first', 0), kwargs.get('last', -1), 
+    slc = slice(kwargs.get('first', 0), kwargs.get('last', -1),
                 stride).indices(len(traj)+1)
     for i in range(*slc):
         if goto:
@@ -120,8 +100,8 @@ def prody_catdcd(*dcd, **kwargs):
                 .format(count, output))
 
 def addCommand(commands):
-    
-    subparser = commands.add_parser('catdcd', 
+
+    subparser = commands.add_parser('catdcd',
         help='concatenate dcd files')
 
     subparser.add_argument('--quiet', help="suppress info messages to stderr",
@@ -131,29 +111,29 @@ def addCommand(commands):
         help='show usage examples and exit')
 
     subparser.set_defaults(usage_example=
-    """Concatenate two DCD files and output all atmos: 
-      
+    """Concatenate two DCD files and output all atmos:
+
   $ prody catdcd mdm2.dcd mdm2sim2.dcd
-  
-Concatenate two DCD files and output backbone atoms: 
-    
+
+Concatenate two DCD files and output backbone atoms:
+
   $ prody catdcd mdm2.dcd mdm2sim2.dcd --pdb mdm2.pdb -s bb""")
 
-    subparser.add_argument('-s', '--select', default='all', type=str, 
-        dest='select', metavar='SEL', 
+    subparser.add_argument('-s', '--select', default='all', type=str,
+        dest='select', metavar='SEL',
         help='atom selection (default: %(default)s)')
 
-    subparser.add_argument('-o', '--output', type=str, metavar='FILE', 
+    subparser.add_argument('-o', '--output', type=str, metavar='FILE',
         default='trajectory.dcd',
         help='output filename (default: %(default)s)')
 
     subparser.add_argument('-n', '--num', default=False, action='store_true',
-        dest='numframes', 
+        dest='numframes',
         help='print the number of frames in each file and exit')
 
-    subparser.add_argument('--psf', 
+    subparser.add_argument('--psf',
         help='PSF filename (must have same number of atoms as DCDs)')
-    subparser.add_argument('--pdb', 
+    subparser.add_argument('--pdb',
         help='PDB filename (must have same number of atoms as DCDs)')
 
     subparser.add_argument('--first', metavar='INT', type=int, default=0,

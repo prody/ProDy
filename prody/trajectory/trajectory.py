@@ -1,25 +1,5 @@
 # -*- coding: utf-8 -*-
-# ProDy: A Python Package for Protein Dynamics Analysis
-# 
-# Copyright (C) 2010-2012 Ahmet Bakan
-# 
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-# 
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#  
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>
-
 """This module defines a class for handling multiple trajectories."""
-
-__author__ = 'Ahmet Bakan'
-__copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 import os.path
 
@@ -33,14 +13,14 @@ from prody.trajectory import openTrajFile
 __all__ = ['Trajectory']
 
 class Trajectory(TrajBase):
-    
+
     """A class for handling trajectories in multiple files."""
-        
+
     def __init__(self, name, **kwargs):
         """Trajectory can be instantiated with a *name* or a filename. When
-        name is a valid path to a trajectory file it will be opened for 
+        name is a valid path to a trajectory file it will be opened for
         reading."""
-        
+
         TrajBase.__init__(self, name)
         self._trajectory = None
         self._trajectories = []
@@ -53,71 +33,71 @@ class Trajectory(TrajBase):
             self.addFile(name)
 
     def __repr__(self):
-        
+
         if self._closed:
             return '<Trajectory: {0} (closed)>'.format(self._title)
-        
+
         link = ''
         if self._ag is not None:
             link = 'linked to ' + str(self._ag) + '; '
-        
+
         files = ''
         if self._n_files > 1:
             files = '{0} files; '.format(self._n_files)
-        
+
         next = 'next {0} of {1} frames; '.format(self._nfi, self._n_csets)
-        
+
         if self._indices is None:
             atoms = '{0} atoms'.format(self._n_atoms)
         else:
             atoms = 'selected {0} of {1} atoms'.format(
                                             self.numSelected(), self._n_atoms)
-        
+
         return '<Trajectory: {0} ({1}{2}{3}{4})>'.format(
                                         self._title, link, files, next, atoms)
-    
+
     def _nextFile(self):
-        
+
         self._cfi += 1
-        if self._cfi < self._n_files: 
+        if self._cfi < self._n_files:
             self._trajectory = self._trajectories[self._cfi]
             if self._trajectory.nextIndex() > 0:
                 self._trajectory.reset()
 
     def _gotoFile(self, i):
-        
+
         if i < self._n_files:
             self._cfi = i
             self._trajectory = self._trajectories[i]
             if self._trajectory.nextIndex() > 0:
                 self._trajectory.reset()
-        
+
     def setAtoms(self, atoms):
-        
+
         for traj in self._trajectories:
             traj.setAtoms(atoms)
         TrajBase.setAtoms(self, atoms)
-        
+
     setAtoms.__doc__ = TrajBase.setAtoms.__doc__
-    
+
     def link(self, *ag):
-        
+
         if ag:
             TrajBase.link(self, *ag)
             for traj in self._trajectories:
                 traj.link(*ag)
         else:
             return self._ag
-    
+
     link.__doc__ = TrajBase.link.__doc__
 
     def addFile(self, filename, **kwargs):
         """Add a file to the trajectory instance. Currently only DCD files
         are supported."""
-        
+
         if not isinstance(filename, str):
             raise ValueError('filename must be a string')
-        if os.path.abspath(filename) in self._filenames:        
+        if os.path.abspath(filename) in self._filenames:
             raise IOError('{0} is already added to the trajectory'
                           .format(filename))
         assert 'mode' not in kwargs, 'mode is an invalid keyword argument'
@@ -126,9 +106,9 @@ class Trajectory(TrajBase):
         if n_atoms != 0 and n_atoms != traj.numAtoms():
             raise IOError('{0} must have same number of atoms as '
                             'previously loaded files'.format(traj.getTitle()))
-         
+
         if self._n_files == 0:
-            self._trajectory = traj                
+            self._trajectory = traj
             self._title = traj.getTitle()
         if n_atoms == 0:
             self._n_atoms = traj.numAtoms()
@@ -138,27 +118,27 @@ class Trajectory(TrajBase):
         self._n_files += 1
         if self._ag is not None:
             traj.setAtoms(self._ag)
-   
+
     def numFiles(self):
         """Return number of open trajectory files."""
-        
+
         return self._n_files
 
     def getFilenames(self, absolute=False):
         """Return list of filenames opened for reading."""
-        
+
         return [traj.getFilename(absolute) for traj in self._trajectories]
-        
+
     def getFrame(self, index):
-        
-        if self._closed: 
+
+        if self._closed:
             raise ValueError('I/O operation on closed file')
         self.goto(index)
         return next(self)
 
     def getCoordsets(self, indices=None):
-        
-        if self._closed: 
+
+        if self._closed:
             raise ValueError('I/O operation on closed file')
         if indices is None:
             indices = np.arange(self._n_csets)
@@ -175,7 +155,7 @@ class Trajectory(TrajBase):
 
         nfi = self._nfi
         self.reset()
-        coords = np.zeros((len(indices), self.numSelected(), 3), 
+        coords = np.zeros((len(indices), self.numSelected(), 3),
                           self._trajectories[0]._dtype)
         prev = 0
         next = self.nextCoordset
@@ -187,12 +167,12 @@ class Trajectory(TrajBase):
             prev = index
         self.goto(nfi)
         return coords
-        
+
     getCoordsets.__doc__ = TrajBase.getCoordsets.__doc__
-    
+
     def __next__(self):
-        
-        if self._closed: 
+
+        if self._closed:
             raise ValueError('I/O operation on closed file')
         nfi = self._nfi
         if nfi < self._n_csets:
@@ -202,7 +182,7 @@ class Trajectory(TrajBase):
                 traj = self._trajectory
             unitcell = traj._nextUnitcell()
             coords = traj._nextCoordset()
-                        
+
             if self._ag is None:
                 frame = Frame(self, nfi, coords, unitcell)
             else:
@@ -214,10 +194,10 @@ class Trajectory(TrajBase):
 
     __next__.__doc__ = TrajBase.__next__.__doc__
     next = __next__
-    
+
     def nextCoordset(self):
-        
-        if self._closed: 
+
+        if self._closed:
             raise ValueError('I/O operation on closed file')
         if self._nfi < self._n_csets:
             traj = self._trajectory
@@ -228,15 +208,15 @@ class Trajectory(TrajBase):
                 self._ag.setACSLabel(self._title + ' frame ' + str(self._nfi))
                 traj = self._trajectory
             self._nfi += 1
-            #if self._indices is None: 
+            #if self._indices is None:
             return traj.nextCoordset()
             #else:
             #    return traj.nextCoordset()[self._indices]
 
     nextCoordset.__doc__ = TrajBase.nextCoordset.__doc__
-    
+
     def goto(self, n):
-        
+
         if self._closed:
             raise ValueError('I/O operation on closed file')
         if not isinstance(n, int):
@@ -249,7 +229,7 @@ class Trajectory(TrajBase):
                 n = n_csets + n
             if n < 0:
                 n = 0
-            elif n > n_csets: 
+            elif n > n_csets:
                 n = n_csets
             nfi = n
             for which, traj in enumerate(self._trajectories):
@@ -260,12 +240,12 @@ class Trajectory(TrajBase):
             self._gotoFile(which)
             self._trajectory.goto(nfi)
             self._nfi = n
-    
+
     goto.__doc__ = TrajBase.goto.__doc__
-    
+
     def skip(self, n):
-        
-        if self._closed: 
+
+        if self._closed:
             raise ValueError('I/O operation on closed file')
         if not isinstance(n, int):
             raise ValueError('n must be an integer')
@@ -280,9 +260,9 @@ class Trajectory(TrajBase):
                 self._nextFile()
             self._nfi += skip
             n -= skip
-            
+
     skip.__doc__ = TrajBase.skip.__doc__
-    
+
     def reset(self):
 
         if self._closed:
@@ -297,36 +277,36 @@ class Trajectory(TrajBase):
     reset.__doc__ = TrajBase.reset.__doc__
 
     def close(self):
-        
+
         for traj in self._trajectories:
             traj.close()
         self._closed = True
 
     close.__doc__ = TrajBase.close.__doc__
-    
+
     def hasUnitcell(self):
-        
+
         return np.all([traj.hasUnitcell() for traj in self._trajectories])
-    
+
     hasUnitcell.__doc__ = TrajBase.hasUnitcell.__doc__
-    
+
     def getTimestep(self):
         """Return list of timestep sizes, one number from each file."""
-        
+
         return [traj.getTimestep() for traj in self._trajectories]
-    
+
     def getFirstTimestep(self):
         """Return list of first timestep values, one number from each file."""
-        
+
         return [traj.getFirstTimestep() for traj in self._trajectories]
-    
+
     def getFrameFreq(self):
         """Return list of timesteps between frames, one number from each file.
         """
-        
+
         return [traj.getFrameFreq() for traj in self._trajectories]
-    
+
     def numFixed(self):
         """Return a list of fixed atom numbers, one from each file."""
-        
+
         return [traj.numFixed() for traj in self._trajectories]
