@@ -1,49 +1,31 @@
-# ProDy: A Python Package for Protein Dynamics Analysis
-# 
-# Copyright (C) 2010-2012 Ahmet Bakan
-# 
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-# 
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#  
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>
-
 """MSA residue coevolution calculation application."""
 
 __author__ = 'Anindita Dutta, Ahmet Bakan'
-__copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 from ..apptools import DevelApp
 
 __all__ = ['evol_occupancy']
 
-APP = DevelApp('occupancy', 
+APP = DevelApp('occupancy',
                help='calculate occupancy of rows and columns in MSA')
 
 APP.setExample(
 """Calculate occupancy of rows and columns of the msa. Any msa file in
 supported formats 'FASTA', 'SELEX', 'Stockholm' can be given as input.
 These plots can be used to identify whether MSA needs refinement to reduce
-the number of gaps in order to avoid false positives in later analysis.  
+the number of gaps in order to avoid false positives in later analysis.
 
 Following example will save row occupancy data and plot using default options:
 
-  $ evol occupancy piwi_refined.slx 
-    
+  $ evol occupancy piwi_refined.slx
+
 Following example will save both row and column occupancy and plot using
 specified figure parameters:
 
   $ evol occupancy piwi_refined.slx -o both -X Residue -Y Occupancy""")
 
 
-APP.addArgument('msa', 
+APP.addArgument('msa',
     help='MSA file')
 
 APP.addGroup('calc', 'calculation options')
@@ -72,9 +54,9 @@ APP.addArgument('-l', '--label',
     type=str,
     metavar='STR',
     group='output')
-    
-APP.addArgument('-f', '--number-format', 
-    dest='numformat', type=str, default='%12g', 
+
+APP.addArgument('-f', '--number-format',
+    dest='numformat', type=str, default='%12g',
     metavar='STR', help='number output format', group='output')
 
 APP.addFigarg('-X', '--xlabel',
@@ -94,17 +76,17 @@ APP.addFigarg('-T', '--title',
     help='figure title',
     type=str,
     metavar='STR',
-    default=None)    
-APP.addFigure('-S', '--save-plot', 
-    dest='figocc', 
-    action='store_true', 
+    default=None)
+APP.addFigure('-S', '--save-plot',
+    dest='figocc',
+    action='store_true',
     help='save occupancy plot/s')
 
 
 def evol_occupancy(msa, **kwargs):
-    
+
     from numpy import arange
-    
+
     import prody
     from prody import parseMSA, calcMSAOccupancy, showMSAOccupancy, writeArray
     from os.path import splitext
@@ -115,9 +97,9 @@ def evol_occupancy(msa, **kwargs):
         if _.lower() == '.gz':
             prefix, _ = splitext(prefix)
         prefix += '_occupancy'
-    
+
     msa = parseMSA(msa)
-    
+
     numformat = kwargs.get('numformat', '%12g')
     occupancy , suffix = [], []
     occaxis = kwargs.get('occaxis', 'row')
@@ -128,11 +110,11 @@ def evol_occupancy(msa, **kwargs):
     else:
         suffix = '_' + occaxis
         occupancy.append(calcMSAOccupancy(msa, occ=occaxis))
-    
+
     for i, occ in enumerate(occupancy):
         writeArray((prefix + suffix[i] + '.txt'), occ, format=numformat)
 
-    for i, occ in enumerate(occupancy):    
+    for i, occ in enumerate(occupancy):
         if kwargs.get('figocc'):
             try:
                 import matplotlib.pyplot as plt
@@ -148,11 +130,11 @@ def evol_occupancy(msa, **kwargs):
                 figure = plt.figure(figsize=(width, height))
                 label = kwargs.get('label')
                 show = showMSAOccupancy(msa=msa, occ=occ, label=label,
-                                         xlabel=xlabel, title=title)                    
+                                         xlabel=xlabel, title=title)
                 format = kwargs.get('figformat', 'pdf')
                 figure.savefig(prefix + suffix[i] + '.' + format, format=format,
-                            dpi=kwargs.get('figdpi', 300))         
-    
+                            dpi=kwargs.get('figdpi', 300))
+
 
 APP.setFunction(evol_occupancy)
 

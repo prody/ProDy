@@ -1,24 +1,4 @@
-# ProDy: A Python Package for Protein Dynamics Analysis
-# 
-# Copyright (C) 2010-2012 Ahmet Bakan
-# 
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-# 
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#  
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>
-
 """Refine MSA application."""
-
-__author__ = 'Ahmet Bakan'
-__copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 from ..apptools import DevelApp
 
@@ -28,15 +8,15 @@ APP = DevelApp('refine', 'refine an MSA by removing gapped rows/colums')
 
 APP.setExample(
 """Refines MSA by removing gapped columns (residue positions)
-and rows (sequences).  
+and rows (sequences).
 
-In the following, columns that are gaps in sequence with label 
+In the following, columns that are gaps in sequence with label
 GTHB2_ONCKE will be removed from MSA:
 
   $ evol refine piwi.slx -l GTHB2_ONCKE""", [])
 
 
-APP.addArgument('msa', 
+APP.addArgument('msa',
     help='MSA filename to be refined')
 
 APP.addGroup('refine', 'refinement options')
@@ -86,35 +66,35 @@ APP.addArgument('-o', '--outname',
     type=str,
     metavar='STR',
     group='output')
-    
-APP.addArgument('-f', '--format', 
-    dest='format', 
+
+APP.addArgument('-f', '--format',
+    dest='format',
     type=str,
-    metavar='STR', 
-    help='output MSA file format, default is same as input', 
+    metavar='STR',
+    help='output MSA file format, default is same as input',
     group='output')
-    
-APP.addArgument('-z', '--compressed', 
-    dest='compressed', 
-    action='store_true', 
+
+APP.addArgument('-z', '--compressed',
+    dest='compressed',
+    action='store_true',
     help='gzip refined MSA output',
     group='output')
 
 def evol_refine(msa, **kwargs):
-    
+
     import prody
     from prody import parseMSA, refineMSA, writeMSA, LOGGER
     from os.path import splitext
 
     outname = kwargs.get('outname')
-    if outname is None: 
+    if outname is None:
         outname, ext = splitext(msa)
-        if ext.lower() == '.gz': 
+        if ext.lower() == '.gz':
             outname, _ = splitext(msa)
-        outname += '_refined' + ext 
-    
+        outname += '_refined' + ext
+
     writeMSA(outname, refineMSA(parseMSA(msa), **kwargs), **kwargs)
-    LOGGER.info('Refined MSA is written in file: ' + outname)     
-    
+    LOGGER.info('Refined MSA is written in file: ' + outname)
+
 
 APP.setFunction(evol_refine)

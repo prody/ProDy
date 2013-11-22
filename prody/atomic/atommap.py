@@ -1,38 +1,21 @@
 # -*- coding: utf-8 -*-
-# ProDy: A Python Package for Protein Dynamics Analysis
-# 
-# Copyright (C) 2010-2012 Ahmet Bakan
-# 
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-# 
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#  
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>
-
-"""This module defines :class:`AtomMap` class that allows for pointing atoms in 
+"""This module defines :class:`AtomMap` class that allows for pointing atoms in
 arbitrary order.
 
 .. _atommaps:
 
 How AtomMap's work
 ===============================================================================
-    
+
 :class:`AtomMap` class adds great flexibility to manipulating atomic data.
 
-First let's see how an instance of :class:`.Selection` (:class:`.Chain`, or 
-:class:`.Residue`) works.  Below table shows indices for a selection of atoms 
-in an :class:`~.AtomGroup` and values returned when 
+First let's see how an instance of :class:`.Selection` (:class:`.Chain`, or
+:class:`.Residue`) works.  Below table shows indices for a selection of atoms
+in an :class:`~.AtomGroup` and values returned when
 :meth:`~.Selection.getNames`, :meth:`~.Selection.getResnames` and
 :meth:`~.Selection.getResnums` methods are called.
 
-.. csv-table:: **Atom Subset** 
+.. csv-table:: **Atom Subset**
    :header: "Indices", "Names", "Resnames", "Resnums"
 
    0, N, PHE, 1
@@ -47,20 +30,20 @@ in an :class:`~.AtomGroup` and values returned when
    9, CE2, PHE, 1
    10, CZ, PHE, 1
 
-:class:`~.Selection` instances keep indices ordered and do not allow duplicate 
+:class:`~.Selection` instances keep indices ordered and do not allow duplicate
 values, hence their use is limited. In an :class:`AtomMap`, indices do not need
 to be sorted, duplicate indices may exist, even "DUMMY" atoms are allowed.
 
 Let's say we instantiate the following AtomMap::
-    
-    amap = AtomMap(atomgroup, indices=[0, 1, 3, 8, 8, 9, 10], 
+
+    amap = AtomMap(atomgroup, indices=[0, 1, 3, 8, 8, 9, 10],
                    mapping=[5, 6, 7, 0, 1, 2, 3])
 
 
-The size of the :class:`AtomMap` based on this mapping is 8, since the larger 
+The size of the :class:`AtomMap` based on this mapping is 8, since the larger
 mapping is 7.
 
-Calling the same functions for this AtomMap instance would result in the 
+Calling the same functions for this AtomMap instance would result in the
 following:
 
 .. csv-table:: **Atom Map**
@@ -75,20 +58,17 @@ following:
    5, 0, N, PHE, 1, 1, 0
    6, 1, CA, PHE, 1, 1, 0
    7, 3, O, PHE, 1, 1, 0
-   
+
 For unmapped atoms, numeric attributes are set to 0, others to empty string,
 i.e. ``""``.
 
 .. seealso::
-   :class:`AtomMap` are used by :mod:`.proteins` module functions that 
-   match or map protein chains.  :ref:`pca-xray` and :ref:`pca-dimer` 
+   :class:`AtomMap` are used by :mod:`.proteins` module functions that
+   match or map protein chains.  :ref:`pca-xray` and :ref:`pca-dimer`
    examples that make use of these functions and :class:`AtomMap` class.
 
 
 """
-
-__author__ = 'Ahmet Bakan'
-__copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 try:
     from sys import maxint as DUMMY
@@ -108,36 +88,36 @@ __all__ = ['AtomMap']
 
 
 class AtomMap(AtomPointer):
-    
+
     """A class for mapping atomic data."""
-    
+
     __slots__ = ['_ag', '_indices', '_acsi', '_mapping', '_dummies', '_title',
                  '_len', '_idarray']
-    
+
     def __init__(self, ag, indices, acsi=None, **kwargs):
-        """Instantiate an atom map.        
-        
+        """Instantiate an atom map.
+
         :arg ag: AtomGroup instance from which atoms are mapped
         :arg indices: indices of mapped atoms
         :arg acsi: active coordinate set index, defaults is that of *ag*
-        :arg mapping: mapping of atom *indices* 
+        :arg mapping: mapping of atom *indices*
         :arg dummies: dummy atom indices
         :arg title: title of the instance, default is 'Unknown'
-        
-        *mapping* and *dummies* arrays must be provided together.  Length of 
+
+        *mapping* and *dummies* arrays must be provided together.  Length of
         *mapping* must be equal to length of *indices*.  Elements of *mapping*
         must be an ordered in ascending order.  When dummy atoms are present,
         number of atoms is the sum of lengths of *mapping* and *dummies*.
-        
+
         Following built-in functions are customized for this class:
-        
+
         * :func:`len` returns the number of atoms in the instance.
         * :func:`iter` yields :class:`.Atom` instances.
         * Indexing returns an :class:`.Atom` or an :class:`.AtomMap` instance
           depending on the type and value of the index."""
-        
+
         AtomPointer.__init__(self, ag, acsi)
-        
+
         self._dummies = self._mapping = None
         mapping = kwargs.get('mapping', None)
         dummies = kwargs.get('dummies', False)
@@ -164,7 +144,7 @@ class AtomMap(AtomPointer):
                     self._dummies = dummies
                     self._mapping = (indices < DUMMY).nonzero()[0]
                     self._indices = indices[self._mapping]
-                    self._idarray = indices                
+                    self._idarray = indices
                 else:
                     self._indices = self._idarray = indices
             else:
@@ -196,15 +176,15 @@ class AtomMap(AtomPointer):
             else:
                 self._indices = self._idarray = indices[mapping]
         self._title = str(kwargs.get('title', 'Unknown'))
-    
+
     def __repr__(self):
-        
+
         rep = '<AtomMap: {0} from {1} ({2} atoms'.format(
-                self._title, self._ag.getTitle(), self._len) 
+                self._title, self._ag.getTitle(), self._len)
         if self.numDummies():
-            rep += ', {0} mapped, {1} dummy'.format(self.numMapped(), 
+            rep += ', {0} mapped, {1} dummy'.format(self.numMapped(),
                                                         self.numDummies())
-        
+
         n_csets = self._ag.numCoordsets()
         if n_csets > 1:
             rep += '; active #{0} of {1} coordsets)>'.format(
@@ -212,83 +192,83 @@ class AtomMap(AtomPointer):
         elif n_csets == 0:
             rep += '; no coordinates'
         return rep + ')>'
-        
+
     def __str__(self):
-    
+
         return 'AtomMap {0}'.format(self._title)
-    
+
     def __len__(self):
-    
+
         return self._len
-    
+
     def __getitem__(self, index):
 
         indices = self._idarray[index]
         try:
             n_sel = len(indices)
-        except TypeError: 
+        except TypeError:
             if indices != DUMMY:
                 return self._ag[indices]
         else:
             mapping = (indices > -1).nonzero()[0]
-            return AtomMap(self._ag, indices, self._acsi,  
-                       title='({0})[{1}]'.format(self._title, repr(index)), 
+            return AtomMap(self._ag, indices, self._acsi,
+                       title='({0})[{1}]'.format(self._title, repr(index)),
                        intarrays=True, dummies=self.numDummies())
-    
+
     def getTitle(self):
         """Return title of the instance."""
-        
+
         return self._title
-    
+
     def setTitle(self, title):
         """Set title of the instance."""
-        
+
         self._title = str(title)
 
     def numAtoms(self, flag=None):
         """Return number of atoms."""
-        
+
         return len(self._getSubset(flag)) if flag else self._len
 
     def iterAtoms(self):
         """Yield atoms, and ``None`` for dummies."""
-    
+
         ag = self._ag
         acsi = self.getACSIndex()
         for index in indices:
             yield Atom(ag, index, acsi) if index > -1 else None
-    
-    __iter__ = iterAtoms 
-    
+
+    __iter__ = iterAtoms
+
     def getCoords(self):
         """Return a copy of coordinates from the active coordinate set."""
-        
+
         coords = self._ag._getCoordsets()
         if coords is not None:
             if self._mapping is None:
                 xyz = coords[self.getACSIndex(), self._indices]
             else:
                 xyz = zeros((self._len, 3), float)
-                xyz[self._mapping] = coords[self.getACSIndex(), self._indices] 
+                xyz[self._mapping] = coords[self.getACSIndex(), self._indices]
             return xyz
-    
+
     _getCoords = getCoords
-    
+
     def setCoords(self, coords):
         """Set coordinates of atoms in the active coordinate set."""
-        
+
         coordsets = self._ag._getCoordsets()
         if coordsets is not None:
             if self._mapping is None:
                 coordsets[self.getACSIndex(), self._indices] = coords
-            elif self._dummies is None: 
+            elif self._dummies is None:
                 coordsets[self.getACSIndex(), self._indices] = coords
-    
+
 
     def getCoordsets(self, indices=None):
-        """Return coordinate set(s) at given *indices*, which may be an integer 
+        """Return coordinate set(s) at given *indices*, which may be an integer
         or a list/array of integers."""
-        
+
         coords = self._ag._getCoordsets()
         if coords is not None:
             n_csets = self._ag.numCoordsets()
@@ -300,20 +280,20 @@ class AtomMap(AtomPointer):
                 except TypeError:
                     coords = coords[indices, self._indices]
                 else:
-                    coords = coords[indices][:, self._indices] 
-                    
+                    coords = coords[indices][:, self._indices]
+
             if self._mapping is None:
-                return coords 
+                return coords
             else:
                 csets = zeros(coords.shape[:-2] + (self._len, 3))
-                csets[:, self._mapping] = coords  
+                csets[:, self._mapping] = coords
                 return csets
 
     _getCoordsets = getCoordsets
-    
+
     def iterCoordsets(self):
         """Yield copies of coordinate sets."""
-        
+
         coords = self._ag._getCoordsets()
         if coords is not None:
             mapping = self._mapping
@@ -321,14 +301,14 @@ class AtomMap(AtomPointer):
             indices = self._indices
             for i in range(self._ag.numCoordsets()):
                 xyz = zeros((n_atoms, 3), float)
-                xyz[mapping] = coords[i, indices] 
+                xyz[mapping] = coords[i, indices]
                 yield xyz
-    
+
     _iterCoordsets = iterCoordsets
 
     def getData(self, label):
         """Return a copy of data associated with *label*, if it is present."""
-        
+
         data = self._ag._getData(label)
         if data is not None:
             result = zeros((self._len,) + data.shape[1:], data.dtype)
@@ -338,7 +318,7 @@ class AtomMap(AtomPointer):
     _getData = getData
 
     def getFlags(self, label):
-        """Return a copy of atom flags for given *label*, or **None** when 
+        """Return a copy of atom flags for given *label*, or **None** when
         flags for *label* is not set."""
 
         if label == 'dummy':
@@ -360,53 +340,53 @@ class AtomMap(AtomPointer):
     _getFlags = getFlags
 
     def _getSubset(self, label):
-        
+
         return self._idarray[self._getFlags(label)]
 
     def getIndices(self):
-        """Return a copy of indices of atoms, with maximum integer value 
+        """Return a copy of indices of atoms, with maximum integer value
         dummies."""
-        
+
         return self._idarray.copy()
-    
+
     def _getIndices(self):
         """Return indices of atoms, with maximum integer value dummies."""
-        
+
         return self._idarray
-        
+
     def getMapping(self):
         """Return a copy of mapping of indices."""
-        
+
         mapping = self._mapping
         return arange(self._len) if mapping is None else mapping.copy()
-    
+
     def _getMapping(self):
         """Return mapping of indices."""
-        
+
         mapping = self._mapping
         return arange(self._len) if mapping is None else mapping
 
     def numMapped(self):
         """Return number of mapped atoms."""
-        
+
         return len(self._indices)
 
     def numDummies(self):
         """Return number of dummy atoms."""
-        
+
         return 0 if self._dummies is None else len(self._dummies)
 
     def getSelstr(self):
         """Return selection string that selects mapped atoms."""
-        
+
         return 'index ' + rangeString(self._indices)
 
 
 for fname, field in ATOMIC_FIELDS.items():
-    
+
     if field.private:
         continue
-    
+
     meth = field.meth_pl
     getMeth = 'get' + meth
 
@@ -424,7 +404,7 @@ for fname, field in ATOMIC_FIELDS.items():
     getData.__name__ = getMeth
     getData.__doc__ = (field.getDocstr('get', selex=False) +
                        ' Entries for dummy atoms will be ``{0}``.'
-                       .format(repr(dtype(field.dtype).type()))) 
+                       .format(repr(dtype(field.dtype).type())))
     setattr(AtomMap, getMeth, getData)
     setattr(AtomMap, '_' + getMeth, getData)
 

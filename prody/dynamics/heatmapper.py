@@ -1,28 +1,10 @@
 # -*- coding: utf-8 -*-
-# ProDy: A Python Package for Protein Dynamics Analysis
-# 
-# Copyright (C) 2010-2012 Ahmet Bakan
-# 
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-# 
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#  
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>
-
-"""This module defines functions for supporting VMD plugin `Heat Mapper`_ 
+"""This module defines functions for supporting VMD plugin `Heat Mapper`_
 format files.
 
 .. _Heat Mapper: http://www.ks.uiuc.edu/Research/vmd/plugins/heatmapper/"""
 
 __author__ = 'Ahmet Bakan, Anindita Dutta'
-__copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 from numpy import arange, fromstring, array
 
@@ -46,11 +28,11 @@ HMTYPES = {
 
 
 def showHeatmap(heatmap, *args, **kwargs):
-    """Show *heatmap*, which can be an two dimensional array or a Heat Mapper 
+    """Show *heatmap*, which can be an two dimensional array or a Heat Mapper
     :file:`.hm` file.
-    
+
     Heatmap is plotted using :func:`~matplotlib.pyplot.imshow` function.
-    Default values passed to this function are ``interpolation='nearest'``, 
+    Default values passed to this function are ``interpolation='nearest'``,
     ``aspect='auto'``, and ``origin='lower'``."""
 
     try:
@@ -58,43 +40,43 @@ def showHeatmap(heatmap, *args, **kwargs):
     except AttributeError:
         heatmap, headers = parseHeatmap(heatmap)
         ndim, shape = heatmap.ndim, heatmap.shape
-        
+
         xorigin = headers.pop('xorigin', 0)
         xextent = headers.pop('xstep', 1) * shape[0]
-        
+
         ylabel = kwargs.get('ylabel', '').lower()
         indices = None
         if ylabel:
             for key in headers.get('numbering', []):
                 if startswith(ylabel, key.lower()):
-                    indices = headers.get(key)                    
+                    indices = headers.get(key)
         if indices is not None:
-            extent = [indices[0] - .5, indices[0] + len(indices) - .5, 
+            extent = [indices[0] - .5, indices[0] + len(indices) - .5,
                       xorigin - .5, xextent - .5]
         else:
             extent = [-.5, shape[1] * 2 - .5, xorigin - .5, xextent - .5]
         kwargs.setdefault('extent', extent)
-        
+
         for key in ['numbering', 'min', 'max'] + headers.get('numbering', []):
             headers.pop(key, None)
         headers.update(kwargs)
         kwargs = headers
-        
+
 
     if ndim != 2:
         raise ValueError('mutinfo must be a 2D matrix')
-    
-    kwargs.setdefault('interpolation', 'nearest') 
+
+    kwargs.setdefault('interpolation', 'nearest')
     kwargs.setdefault('origin', 'lower')
     kwargs.setdefault('aspect', 'auto')
-    
+
     xlabel = kwargs.pop('xlabel', None)
     ylabel = kwargs.pop('ylabel', None)
     title = kwargs.pop('title', None)
-    
+
     import matplotlib.pyplot as plt
     show = plt.imshow(heatmap, *args, **kwargs), plt.colorbar()
-            
+
     if xlabel is not None:
         plt.xlabel(xlabel)
     if ylabel is not None:
@@ -107,17 +89,17 @@ def showHeatmap(heatmap, *args, **kwargs):
 def parseHeatmap(heatmap, **kwargs):
     """Return a two dimensional array and a dictionary with information parsed
     from *heatmap*, which may be an input stream or an :file:`.hm` file in VMD
-    plugin Heat Mapper format."""    
-    
+    plugin Heat Mapper format."""
+
     try:
         readline, close = heatmap.readline, lambda: None
     except AttributeError:
         heatmap = openFile(heatmap)
-        readline, close = heatmap.readline, heatmap.close 
-    
+        readline, close = heatmap.readline, heatmap.close
+
     meta = {}
     arrs = []
-    
+
     line = readline()
     while line:
         if line.startswith('-'):
@@ -128,7 +110,7 @@ def parseHeatmap(heatmap, **kwargs):
             label = label.strip()
             try:
                 meta[label] = HMTYPES[label](data)
-            except KeyError: 
+            except KeyError:
                 LOGGER.warn('Unrecognized label encountered: {0}'
                             .format(repr(label)))
                 meta[label] = HMTYPES[label](data)
@@ -139,7 +121,7 @@ def parseHeatmap(heatmap, **kwargs):
             arrs.append(line.rstrip())
         line = readline()
     close()
-    nnums = len(meta.get('numbering', '')) 
+    nnums = len(meta.get('numbering', ''))
     heatmap = []
     numbers = []
 
@@ -150,7 +132,7 @@ def parseHeatmap(heatmap, **kwargs):
         else:
             items = [arr]
         heatmap.append(fromstring(items[-1], float, sep=';'))
-        
+
     heatmap = array(heatmap)
     if nnums:
         numbering = meta['numbering']
@@ -159,23 +141,23 @@ def parseHeatmap(heatmap, **kwargs):
         except ValueError:
             try:
                 numbers = array(numbers, float)
-            except ValueError:            
+            except ValueError:
                 LOGGER.warn('Numbering for y-axis could not be parsed.')
                 numbering = []
         for i, label in enumerate(numbering):
             meta[label] = numbers[:, i].copy()
-        
+
     return heatmap, meta
-            
-        
+
+
 def writeHeatmap(filename, heatmap, **kwargs):
-    """Return *filename* that contains *heatmap* in Heat Mapper :file:`.hm` 
-    file (extension is automatically added when not found).  *filename* may 
+    """Return *filename* that contains *heatmap* in Heat Mapper :file:`.hm`
+    file (extension is automatically added when not found).  *filename* may
     also be an output stream.
-    
+
     :arg title: title of the heatmap
     :type title: str
-    
+
     :arg xlabel: x-axis lab, default is ``'unknown'``
     :type xlabel: str
 
@@ -193,27 +175,27 @@ def writeHeatmap(filename, heatmap, **kwargs):
 
     :arg max: maximum value, default is maximum in *heatmap*
     :type max: float
-    
+
     :arg format: number format, default is ``'%f'``
     :type format: str
 
     Other keyword arguments that are arrays with length equal to the y-axis
     (second dimension of heatmap) will be considered as *numbering*."""
-    
+
     try:
         ndim, shape = heatmap.ndim, heatmap.shape
     except:
         raise TypeError('heatmap must be an array object')
     if ndim!= 2:
         raise TypeError('heatmap must be a 2D array')
-    
+
     try:
         write, close, stream = filename.write, lambda: None, filename
-    except AttributeError: 
+    except AttributeError:
         out = openFile(addext(filename, '.hm'), 'wb')
         write, close, stream = out.write, out.close, out
-    
-    format = kwargs.pop('format', '%f') 
+
+    format = kwargs.pop('format', '%f')
     write('-min "{0}"\n'.format(kwargs.pop('min', heatmap.min())))
     write('-max "{0}"\n'.format(kwargs.pop('max', heatmap.max())))
     for label, default in [
@@ -224,7 +206,7 @@ def writeHeatmap(filename, heatmap, **kwargs):
         ('ylabel', 'unknown'),
     ]:
         write('-{0} "{1}"\n'.format(label, kwargs.pop(label, default)))
-    
+
     numbering = []
     numlabels = []
     for key, val in kwargs.items():
@@ -239,13 +221,13 @@ def writeHeatmap(filename, heatmap, **kwargs):
     if not numbering:
         numlabels.append('unknown')
         numbering.append(arange(1, shape[0] + 1))
-    
+
     write('-numbering "{0}"\n'.format(':'.join(numlabels)))
-    
+
     for i, row in enumerate(heatmap):
         write(':'.join(str(nums[i]) for nums in numbering) + ':')
         row.tofile(stream, sep=';', format=format)
         write(';\n')
-    
+
     close()
     return filename

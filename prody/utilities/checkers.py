@@ -1,24 +1,4 @@
-# ProDy: A Python Package for Protein Dynamics Analysis
-# 
-# Copyright (C) 2010-2012 Ahmet Bakan
-# 
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-# 
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#  
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>
-
 """This module defines functions for type, value, and/or attribute checking."""
-
-__author__ = 'Ahmet Bakan'
-__copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 from numpy import any, float32, tile
 
@@ -27,26 +7,26 @@ __all__ = ['checkCoords', 'checkWeights', 'checkTypes']
 COORDS_NDIM = set([2])
 CSETS_NDIMS = set([2, 3])
 
-def checkCoords(coords, csets=False, natoms=None, dtype=(float, float32), 
+def checkCoords(coords, csets=False, natoms=None, dtype=(float, float32),
                 name='coords'):
     """Return **True** if shape, dimensionality, and data type of *coords*
     array are as expected.
-    
-    :arg coords: coordinate array 
-    
-    :arg csets: whether multiple coordinate sets (i.e. ``.ndim in (2, 3)``) are 
+
+    :arg coords: coordinate array
+
+    :arg csets: whether multiple coordinate sets (i.e. ``.ndim in (2, 3)``) are
         allowed, default is **False**
-    
+
     :arg natoms: number of atoms, if **None** number of atoms is not checked
-    
-    :arg dtype: allowed data type(s), default is ``(float, numpy.float32)``, 
+
+    :arg dtype: allowed data type(s), default is ``(float, numpy.float32)``,
         if **None** data type is not checked
-    
+
     :arg name: name of the coordinate argument
-    
-    :raises: :exc:`TypeError` when *coords* is not an instance of 
+
+    :raises: :exc:`TypeError` when *coords* is not an instance of
         :class:`numpy.ndarray`
-        
+
     :raises: :exc:`ValueError` when wrong shape, dimensionality, or data type
         is encountered"""
 
@@ -55,18 +35,18 @@ def checkCoords(coords, csets=False, natoms=None, dtype=(float, float32),
     except AttributeError:
         raise TypeError('coords must be a numpy.ndarray instance')
 
-    ndims = CSETS_NDIMS if csets else COORDS_NDIM    
-    if ndim not in ndims: 
-        raise ValueError(str(name) + '.ndim must be ' + 
+    ndims = CSETS_NDIMS if csets else COORDS_NDIM
+    if ndim not in ndims:
+        raise ValueError(str(name) + '.ndim must be ' +
                          ' or '.join([str(d) for d in ndims]))
 
     elif shape[-1] != 3:
         raise ValueError(str(name) + '.shape[-1] must be 3')
-        
+
     elif natoms and shape[-2] != natoms:
         raise ValueError(str(name) + '.shape[-2] must match number of atoms')
-        
-    elif dtype: 
+
+    elif dtype:
         if isinstance(dtype, type) and coords.dtype != dtype:
             raise ValueError(str(name) + '.dtype must be ' + dtype.__name__)
         elif coords.dtype not in dtype:
@@ -76,22 +56,22 @@ def checkCoords(coords, csets=False, natoms=None, dtype=(float, float32),
             else:
                 msg = dtype[0].__name__
             raise ValueError(str(name) + '.dtype must be ' + msg)
-  
+
     return True
 
 NDIM12 = set([1, 2])
 NDIM123 = set([1, 2, 3])
 
 def checkWeights(weights, natoms, ncsets=None, dtype=float):
-    """Return *weights* if it has correct shape ([ncsets, ]natoms, 1). 
-    after its shape and data type is corrected. otherwise raise an exception.  
+    """Return *weights* if it has correct shape ([ncsets, ]natoms, 1).
+    after its shape and data type is corrected. otherwise raise an exception.
     All items of *weights* must be greater than zero."""
-    
+
     try:
         ndim, shape, wtype = weights.ndim, weights.shape, weights.dtype
     except AttributeError:
         raise TypeError('weights must be a numpy.ndarray instance')
-    
+
     if csets:
         if ndim not in NDIM123:
             raise ValueError('weights.dim must be 1, 2, or 3')
@@ -100,7 +80,7 @@ def checkWeights(weights, natoms, ncsets=None, dtype=float):
                 raise ValueError('weights.shape must be '
                                    '(ncsets, natoms[, 1])')
             weights = tile(weights.reshape((1, natoms, 1)), (ncsets, 1, 1))
-        elif ndim < 3: 
+        elif ndim < 3:
             weights = weights.reshape((1, natoms, 1))
     else:
         if ndim not in NDIM12:
@@ -125,18 +105,18 @@ def checkWeights(weights, natoms, ncsets=None, dtype=float):
 
 def checkTypes(args, **types):
     """Return **True** if types of all *args* match those given in *types*.
-   
-    :raises: :exc:`TypeError` when type of an argument is not one of allowed 
+
+    :raises: :exc:`TypeError` when type of an argument is not one of allowed
         types
-        
+
     ::
-        
+
         def incr(n, i):
             '''Return sum of *n* and *i*.'''
-            
+
             checkTypes(locals(), n=(float, int), i=(float, int))
             return n + i"""
-        
+
     for arg, allowed in types.items():
         if arg in args and not isinstance(args[arg], types[arg]):
 
@@ -145,13 +125,13 @@ def checkTypes(args, **types):
                 if len(allowed) > 1:
                     tstr = ', '.join([repr(tp.__name__) for tp in allowed[:-1]]
                                      ) + ', or ' + repr(allowed[-1].__name__)
-                
+
                 else:
                     tstr = repr(allowed[0].__name__)
-            
+
             else:
                 tstr = repr(allowed.__name__)
-            
+
             raise TypeError('{0} must be an instance of {1}, not {2}'
                             .format(repr(arg), tstr, repr(type(val).__name__)))
 

@@ -1,23 +1,4 @@
-/* ProDy: A Python Package for Protein Dynamics Analysis
- *
- * Copyright (C) 2010-2012 Ahmet Bakan
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>
- *
- * Author: Ahmet Bakan
- * Copyright (C) 2010-2012 Ahmet Bakan
- */
+/* Author: Ahmet Bakan, Wenzhi Mao */
 
 #include "Python.h"
 #include "numpy/arrayobject.h"
@@ -1235,8 +1216,8 @@ static PyObject *msasca(PyObject *self, PyObject *args, PyObject *kwargs) {
         }
         double sum=0.0;
         for (j = 0; j < 21; j++){
-            phi[qlist[j]] = (prob[qlist[j]] == 0.0 || q[qlist[j]] == 0.0 
-                            || prob[qlist[j]] == 1.0 || q[qlist[j]] == 1.0) 
+            phi[qlist[j]] = (prob[qlist[j]] == 0.0 || q[qlist[j]] == 0.0
+                            || prob[qlist[j]] == 1.0 || q[qlist[j]] == 1.0)
                     ? 0.0
                     : log(prob[qlist[j]] * (1 - q[qlist[j]]) /
                         (1 - prob[qlist[j]]) / q[qlist[j]]);
@@ -1440,7 +1421,7 @@ static PyObject *msameff(PyObject *self, PyObject *args, PyObject *kwargs) {
         pythonw = PyArray_GETCONTIGUOUS(pythonw);
         double *pw = (double *) PyArray_DATA(pythonw);
         for (i = 0; i < number; i++){
-            pw[i]=w[i];        
+            pw[i]=w[i];
         }
         free(w);
         return Py_BuildValue("dO",meff,pythonw);
@@ -1462,7 +1443,7 @@ static PyObject *msadipretest(PyObject *self, PyObject *args, PyObject *kwargs) 
     char *seq = (char *) PyArray_DATA(msa);
     long i, j, k = 0, l = 0;
     int *ind = malloc(length * sizeof(int));
-    if (!ind) 
+    if (!ind)
         return PyErr_NoMemory();
     if (!refine){
         for (i = 0; i < length; i++)

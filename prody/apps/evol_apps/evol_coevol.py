@@ -1,40 +1,22 @@
-# ProDy: A Python Package for Protein Dynamics Analysis
-# 
-# Copyright (C) 2010-2012 Ahmet Bakan
-# 
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-# 
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#  
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>
-
 """MSA residue coevolution calculation application."""
 
 __author__ = 'Anindita Dutta, Ahmet Bakan'
-__copyright__ = 'Copyright (C) 2010-2012 Ahmet Bakan'
 
 from ..apptools import DevelApp
 
 __all__ = ['evol_coevol']
 
-APP = DevelApp('coevol', 
+APP = DevelApp('coevol',
                help='analyze co-evolution using mutual information')
 
 APP.setExample(
-"""Analyze coevolution by performing mutual information calculation between 
-MSA positions.  A refined MSA without gaps should be used. 
+"""Analyze coevolution by performing mutual information calculation between
+MSA positions.  A refined MSA without gaps should be used.
 
 Following example will save coevolution data and plot using default options:
 
   $ evol coevol piwi_refined.slx -S
-    
+
 Following example will save coevolution data and plot for all correction and \
 normalizations:
 
@@ -42,7 +24,7 @@ normalizations:
 -m maxent -m mincon -m maxcon -m joint""", [])
 
 
-APP.addArgument('msa', 
+APP.addArgument('msa',
     help='refined MSA file')
 
 APP.addGroup('calc', 'calculation options')
@@ -87,9 +69,9 @@ APP.addArgument('-p', '--prefix',
     type=str,
     metavar='STR',
     group='output')
-    
-APP.addArgument('-f', '--number-format', 
-    dest='numformat', type=str, default='%12g', 
+
+APP.addArgument('-f', '--number-format',
+    dest='numformat', type=str, default='%12g',
     metavar='STR', help='number output format', group='output')
 
 
@@ -115,17 +97,17 @@ APP.addFigarg('-T', '--title',
     help='figure title',
     type=str,
     metavar='STR',
-    default=None)    
-APP.addFigure('-S', '--save-plot', 
-    dest='figcoevol', 
-    action='store_true', 
+    default=None)
+APP.addFigure('-S', '--save-plot',
+    dest='figcoevol',
+    action='store_true',
     help='save coevolution plot')
 
 
 def evol_coevol(msa, **kwargs):
-    
+
     from numpy import arange
-    
+
     import prody
     from prody import parseMSA, buildMutinfoMatrix, showMutinfoMatrix
     from prody import applyMutinfoCorr, calcShannonEntropy
@@ -138,7 +120,7 @@ def evol_coevol(msa, **kwargs):
         if _.lower() == '.gz':
             prefix, _ = splitext(prefix)
         prefix += '_mutinfo'
-    
+
     msa = parseMSA(msa)
     mutinfo = buildMutinfoMatrix(msa, **kwargs)
     numformat = kwargs.get('numformat', '%12g')
@@ -147,7 +129,7 @@ def evol_coevol(msa, **kwargs):
     if heatmap:
         hmargs = {
                   'xlabel': 'Residue', 'ylabel': 'Residue',
-                  'xorigin': 1, 'xstep': 1, 
+                  'xorigin': 1, 'xstep': 1,
                   'residue': arange(msa.numResidues())}
 
     todo = [(None, None)]
@@ -163,7 +145,7 @@ def evol_coevol(msa, **kwargs):
         for which in corr:
             todo.append(('corr', which))
     entropy = None
-    
+
     for what, which in todo:
         if what is None:
             matrix = mutinfo
@@ -186,14 +168,14 @@ def evol_coevol(msa, **kwargs):
             matrix = applyMutinfoCorr(mutinfo, which)
             suffix = '_corr_' + which
             tuffix = ' MI - Correction: ' + which
-        
-        writeArray(prefix + suffix + '.txt', 
+
+        writeArray(prefix + suffix + '.txt',
                    matrix, format=kwargs.get('numformat', '%12g'))
-    
+
         if heatmap:
             writeHeatmap(prefix + suffix + '.hm', matrix,
                          title = msa.getTitle() + tuffix, **hmargs)
-    
+
         if kwargs.get('figcoevol'):
             try:
                 import matplotlib.pyplot as plt
@@ -211,11 +193,11 @@ def evol_coevol(msa, **kwargs):
                 figure = plt.figure(figsize=(width, height))
                 show = showMutinfoMatrix(matrix, msa=msa, clim=(cmin, cmax),
                                          xlabel=xlabel, title=title)
-                        
+
                 format = kwargs.get('figformat', 'pdf')
                 figure.savefig(prefix + suffix + '.' + format, format=format,
-                            dpi=kwargs.get('figdpi', 300))         
-    
+                            dpi=kwargs.get('figdpi', 300))
+
 
 APP.setFunction(evol_coevol)
 
