@@ -24,9 +24,11 @@ ProDy Documentation
    release/index
    about/index
 
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+.. only:: html
+
+   * :ref:`genindex`
+   * :ref:`modindex`
+   * :ref:`search`
 
 
 .. only:: html
