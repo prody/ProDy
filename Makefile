@@ -10,6 +10,12 @@ help:
 	@echo "  remove 	to remove contributed modules"
 	@echo "  test		to clone, build and test"
 
+build2.6:
+	python2.6 setup.py build_ext --inplace --force
+
+build2:
+	python2 setup.py build_ext --inplace --force
+
 build:
 	python setup.py build_ext --inplace --force
 
