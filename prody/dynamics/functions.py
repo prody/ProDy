@@ -343,11 +343,11 @@ def parseSparseMatrix(filename, symmetric=False, delimiter=None, skiprows=0,
     idata.pop(idata.index(icol))
     idata = idata[0]
     sparse = parseArray(filename, delimiter, skiprows)
-    dof = sparse[:,[irow, icol]].max()
-    matrix = np.zeros((dof,dof))
-    irow = (sparse[:,irow] - first).astype(int)
-    icol = (sparse[:,icol] - first).astype(int)
-    matrix[irow, icol] = sparse[:,idata]
+    dof = int(sparse[:, [irow, icol]].max())
+    matrix = np.zeros((dof, dof))
+    irow = (sparse[:, irow] - first).astype(int)
+    icol = (sparse[:, icol] - first).astype(int)
+    matrix[irow, icol] = sparse[:, idata]
     if symmetric:
-        matrix[icol, irow] = sparse[:,idata]
+        matrix[icol, irow] = sparse[:, idata]
     return matrix
