@@ -220,7 +220,7 @@ def gunzip(filename, outname=None):
     if len(filename) < 1000:
         try:
             afile = isfile(filename)
-        except TypeError:
+        except (TypeError, ValueError):
             afile = False
     else:
         afile = False
