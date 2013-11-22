@@ -48,10 +48,12 @@ Analysis
     covariance matrix
   * :func:`.buildSCAMatrix`- build statistical coupling analysis matrix
   * :func:`.buildSeqidMatrix`- build sequence identity matrix
+  * :func:`.buildDirectInfoMatrix` - build direct information matrix
   * :func:`.uniqueSequences` - select unique sequences
   * :func:`.applyMutinfoCorr` - apply correction to mutual information matrix
   * :func:`.applyMutinfoNorm` - apply normalization to mutual information
     matrix
+  * :func:`.calcMeff` - calculate sequence weights
   * :func:`.calcRankorder` - rank order scores
 
 

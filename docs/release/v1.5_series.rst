@@ -9,6 +9,12 @@ ProDy 1.5 Series
 -------------------------------------------------------------------------------
 
 
+**New Features**:
+
+  * :func:`.buildDirectInfoMatrix` and :func:`.calcMeff` are implemented
+    for calculation of direct information from multiple sequence alignments.
+
+
 **Availability**:
 
 
