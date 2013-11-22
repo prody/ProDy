@@ -1326,6 +1326,374 @@ static PyObject *msasca(PyObject *self, PyObject *args, PyObject *kwargs) {
 }
 
 
+static PyObject *msameff(PyObject *self, PyObject *args, PyObject *kwargs) {
+
+    PyArrayObject *msa,*pythonw;
+    double theta = 0.0;
+    int meff_only = 1, refine = 0;
+    int alignlist[26] = {1, 0, 2, 3, 4, 5, 6, 7, 8, 0, 9, 10, 11, 12,
+             0, 13, 14, 15, 16, 17, 0, 18, 19, 0, 20, 0};
+    static char *kwlist[] = {"msa", "theta", "meff_only", "refine", "w", NULL};
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "Odii|O", kwlist,
+                                     &msa, &theta, &meff_only, &refine,
+                                     &pythonw))
+        return NULL;
+    /* make sure to have a contiguous and well-behaved array */
+    msa = PyArray_GETCONTIGUOUS(msa);
+    /* check dimensions */
+    long number = msa->dimensions[0], length = msa->dimensions[1];
+    long i, j, k, l = 0;
+    /* get pointers to data */
+    char *seq = (char *) PyArray_DATA(msa); /*size: number x length */
+
+    /*Set ind and get l first.*/
+    int *ind = malloc(length * sizeof(int));
+    if (!ind) {
+        return PyErr_NoMemory();
+    }
+
+    if (!refine){
+        for (i = 0; i < length; i++){
+            l += 1;
+            ind[i] = l;
+        }
+    }
+    else{
+        for (i = 0; i < length; i++){
+            if (seq[i] <= 90 && seq[i] >= 65){
+                l += 1;
+                ind[i] = l;
+            }
+            else
+                ind[i] = 0;
+        }
+    }
+
+    /*Use l to set align and w size.*/
+    int *align = malloc(number * l * sizeof(int));
+    if (!align) {
+        free(ind);
+        return PyErr_NoMemory();
+    }
+    for (i = 0; i < number * l; i++){
+        align[i] = 0;
+    }
+    double *w = malloc(number * sizeof(double));
+    if (!w) {
+        free(ind);
+        free(align);
+        return PyErr_NoMemory();
+    }
+
+    #define align(x,y) align[(x)*l+(y)]
+
+    /*Set align matrix*/
+    for (i = 0; i < number; i++){
+        for (j = 0; j < length; j++){
+            if (ind[j] != 0){
+                if (seq[i*length+j] >= 65 && seq[i*length+j] <= 90)
+                    align(i,ind[j]-1) = alignlist[seq[i*length+j] - 65];
+                else
+                    align(i,ind[j]-1) = 0;
+            }
+        }
+    }
+
+    /*Calculate weight(w) for each sequence, sum of w is Meff*/
+    for (i = 0; i < number; i++)
+        w[i] = 1.;
+    for (i = 0; i < number; i++)
+        for (j = i+1; j < number; j++){
+            double temp = 0.;
+            for (k = 0; k < l; k++){
+                if (align(i,k) != align(j,k))
+                    temp += 1.;
+            }
+            temp /= l;
+            if (temp < theta){
+                w[i] += 1.;
+                w[j] += 1.;
+            }
+        }
+    double meff = 0.0;
+    for (i = 0; i < number; i++){
+        w[i] = 1./ w[i];
+        meff += w[i];
+    }
+
+    #undef align
+
+    /*Clean up memory.*/
+    free(ind);
+    if (meff_only == 1){
+        free(align);
+        free(w);
+        return Py_BuildValue("d", meff);
+    }
+    else if (meff_only == 2){
+        for (i = 0; i < number; i++)
+            w[i] /= meff;
+        return Py_BuildValue("dllll", meff, number, l , w, align);
+    }
+    else {
+        free(align);
+        pythonw = PyArray_GETCONTIGUOUS(pythonw);
+        double *pw = (double *) PyArray_DATA(pythonw);
+        for (i = 0; i < number; i++){
+            pw[i]=w[i];        
+        }
+        free(w);
+        return Py_BuildValue("dO",meff,pythonw);
+    }
+}
+
+
+static PyObject *msadipretest(PyObject *self, PyObject *args, PyObject *kwargs) {
+    PyArrayObject *msa;
+    int refine = 0;
+    int alignlist[26] = {1, 0, 2, 3, 4, 5, 6, 7, 8, 0, 9, 10, 11, 12,
+             0, 13, 14, 15, 16, 17, 0, 18, 19, 0, 20, 0};
+    static char *kwlist[] = {"msa", "refine", NULL};
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "Oi", kwlist,
+                                     &msa, &refine))
+        return NULL;
+    msa = PyArray_GETCONTIGUOUS(msa);
+    long number = msa->dimensions[0], length = msa->dimensions[1];
+    char *seq = (char *) PyArray_DATA(msa);
+    long i, j, k = 0, l = 0;
+    int *ind = malloc(length * sizeof(int));
+    if (!ind) 
+        return PyErr_NoMemory();
+    if (!refine){
+        for (i = 0; i < length; i++)
+            ind[i] = i + 1;
+        l = length;
+    }
+    else
+        for (i = 0; i < length; i++)
+            if (seq[i] <= 90 && seq[i] >= 65){
+                l += 1;
+                ind[i] = l;
+            }
+            else
+                ind[i] = 0;
+    for (i = 0; i < number; i++)
+        for (j = 0; j < length; j++)
+            if (ind[j])
+                if (seq[i*length+j] >= 65 && seq[i*length+j] <= 90)
+                    k = alignlist[seq[i*length+j]-65]>k?
+                        alignlist[seq[i*length+j]-65]:k;
+    free(ind);
+    return Py_BuildValue("ii",l,k);
+}
+
+
+static PyObject *msadirectinfo1(PyObject *self, PyObject *args, PyObject *kwargs) {
+
+    PyArrayObject *msa, *cinfo, *pinfo;
+    double theta = 0.2, pseudocount_weight = 0.5;
+    int refine = 0, q = 0;
+    static char *kwlist[] = {"msa", "c", "prob", "theta", "pseudocount_weight",
+                             "refine", "q", NULL};
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "OOOddi|i", kwlist,
+                                     &msa, &cinfo, &pinfo, &theta,
+                                     &pseudocount_weight, &refine, &q))
+        return NULL;
+    long i, j, k, k1, k2;
+    cinfo = PyArray_GETCONTIGUOUS(cinfo);
+    pinfo = PyArray_GETCONTIGUOUS(pinfo);
+    double *c = (double *) PyArray_DATA(cinfo);
+    double *prob = (double *) PyArray_DATA(pinfo);
+
+    /*Calculate meff, w and align.*/
+    double meff = -1.;
+    long number = 0, l = 0;
+    int *align = NULL;
+    double *w = NULL;
+    PyObject *meffinfo;
+    meffinfo = msameff(NULL, Py_BuildValue("(O)", msa),
+             Py_BuildValue("{s:d,s:i,s:i}", "theta", theta, "meff_only", 2,
+                 "refine", refine));
+    if (!PyArg_ParseTuple(meffinfo, "dllll", &meff, &number, &l, &w, &align))
+        return NULL;
+
+    /*Build single probablity. use pseudocount_weight to weight it.*/
+    double pse_weight_val = pseudocount_weight / q;
+    double pro_weight = 1. - pseudocount_weight;
+    for (i = 0; i < q*l; i++)
+        prob[i] = pse_weight_val;
+    #define prob(x,y) prob[(x)*q + (y)]
+    #define align(x,y) align[(x)*l + (y)]
+    for (i = 0; i < number; i++)
+        for (j = 0; j < l; j++)
+            prob(j, align(i,j)) += pro_weight * w[i];
+
+    /*Calculate C matrix.*/
+    double *joint = malloc(q*q*sizeof(double));
+    if (!joint){
+        free(w);
+        free(align);
+        return PyErr_NoMemory();
+    }
+    #define joint(x,y) joint[(x)*q + (y)]
+    #define c(x,y) c[(x)*l*(q-1) + (y)]
+    for (i = 0; i < l; i++){
+        for (j = i; j < l; j++){
+
+            if (i==j){
+                for (k = 0; k < q*q; k++)
+                    joint[k] = 0.;
+                pse_weight_val = pseudocount_weight / q;
+                for (k = 0; k < q; k++)
+                    joint(k,k) = pse_weight_val;
+            }
+            else{
+                pse_weight_val = pseudocount_weight / q / q;
+                for (k = 0; k < q*q; k++)
+                    joint[k] = pse_weight_val;
+            }
+
+            for (k = 0; k < number; k++){
+                joint(align(k,i), align(k,j)) += pro_weight * w[k];
+            }
+
+            for (k1 = 0; k1 < q-1; k1++){
+                for(k2 = 0; k2 < q-1; k2++){
+                    c((q-1)*j+k2, (q-1)*i+k1) = c((q-1)*i+k1, (q-1)*j+k2) = joint(k1,k2) - prob(i,k1) * prob(j,k2);
+                    // c((q-1)*j+k2, (q-1)*i+k1) = c((q-1)*i+k1, (q-1)*j+k2);
+                }
+            }
+        }
+    }
+
+    free(w);
+    free(align);
+    free(joint);
+    #undef prob
+    #undef align
+    #undef joint
+    #undef c
+    return Py_BuildValue("dllOO", meff, number, l, cinfo, pinfo);
+}
+
+
+static PyObject *msadirectinfo2(PyObject *self, PyObject *args, PyObject *kwargs) {
+
+    PyArrayObject *cinfo, *pinfo, *diinfo;
+    long number = 0, l = 0, q = 0;
+    static char *kwlist[] = {"n", "l", "c", "p", "di", "q", NULL};
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "llOOOl", kwlist,
+                                     &number, &l, &cinfo, &pinfo, &diinfo, &q))
+        return NULL;
+    cinfo = PyArray_GETCONTIGUOUS(cinfo);
+    pinfo = PyArray_GETCONTIGUOUS(pinfo);
+    diinfo = PyArray_GETCONTIGUOUS(diinfo);
+    double *c = (double *) PyArray_DATA(cinfo);
+    double *prob = (double *) PyArray_DATA(pinfo);
+    double *di = (double *) PyArray_DATA(diinfo);
+
+    long i, j, k1, k2;
+    double *w = malloc(q * q * sizeof(double));
+    if (!w)
+        return NULL;
+    for (i = 0; i < q*q; i++){
+        w[i] = 0.0;
+    }
+
+    #define w(x,y) w[(x)*q+(y)]
+    #define c(x,y) c[(x)*l*(q-1) + (y)]
+    #define prob(x,y) prob[(x)*q + (y)]
+    #define di(x,y) di[(x)*l + (y)]
+
+    double epsilon = 1e-4, tiny = 1.0e-100;
+    double diff = 1.0, sum1 = 0.0, sum2 = 0.0, sumpdir = 0.0, sumdi = 0.0;
+    double *mu1 = malloc(q*sizeof(double)), *mu2 = malloc(q*sizeof(double));
+    double *scra1 = malloc(q*sizeof(double)), *scra2 = malloc(q*sizeof(double));
+    for (i = 0; i < l; i++){
+        di(i,i) = 0.0;
+        for (j = i+1; j < l; j++){
+            for (k1 = 0; k1 < q-1; k1++){
+                for (k2 = 0; k2 < q-1; k2++){
+                    w(k1,k2) = exp(- c((q-1)*i + k1, (q-1)*j + k2));
+                }
+            }
+            for (k1 = 0; k1 < q; k1++){
+                w(q-1, k1) = w(k1, q-1) = 1.;
+            }
+            for (k1 = 0; k1 < q; k1++){
+                mu1[k1] = 1./q;
+                mu2[k1] = 1./q;
+            }
+            diff = 1.0;
+            while (diff > epsilon){
+                for (k1 = 0; k1 < q; k1++){
+                    scra1[k1] = 0.0;
+                    scra2[k1] = 0.0;
+                }
+                for (k1 = 0; k1 < q; k1++){
+                    for (k2 = 0; k2 < q; k2++){
+                        scra1[k1] += mu2[k2] * w(k1, k2);
+                        scra2[k1] += mu1[k2] * w(k2, k1);
+                    }
+                }
+                sum1 = 0.0;
+                sum2 = 0.0;
+                for (k1 = 0; k1 < q; k1++){
+                    scra1[k1] = prob(i, k1) / scra1[k1];
+                    sum1 += scra1[k1];
+                    scra2[k1] = prob(j, k1) / scra2[k1];
+                    sum2 += scra2[k1];
+                }
+                for (k1 = 0; k1 < q; k1++){
+                    scra1[k1] /= sum1;
+                    scra2[k1] /= sum2;
+                }
+                diff = -1.0;
+                for (k1 = 0; k1 < q; k1++){
+                    if (fabs(mu1[k1] - scra1[k1]) > diff)
+                        diff = fabs(mu1[k1] - scra1[k1]);
+                    if (fabs(mu2[k1] - scra2[k1]) > diff)
+                        diff = fabs(mu2[k1] - scra2[k1]);
+                    mu1[k1] = scra1[k1];
+                    mu2[k1] = scra2[k1];
+                }
+            }
+
+            sumpdir = 0.0;
+            for (k1 = 0; k1 < q; k1++){
+                for (k2 = 0; k2 < q; k2++){
+                    w(k1,k2) = w(k1, k2) * mu1[k1] * mu2[k2];
+                    sumpdir += w(k1,k2);
+                }
+            }
+
+            sumdi = 0.0;
+            for (k1 = 0; k1 < q; k1++){
+                for (k2 = 0; k2 < q; k2++){
+                    w(k1,k2) /= sumpdir;
+                    sumdi += w(k1,k2) * log((w(k1,k2) + tiny) / (prob(i,k1) * prob(j,k2) +tiny));
+                }
+            }
+
+            di(i,j) = di(j,i) = sumdi;
+        }
+    }
+
+    #undef w
+    #undef c
+    #undef prob
+    #undef di
+    free(w);
+    free(c);
+    free(prob);
+    free(mu1);
+    free(mu2);
+    free(scra1);
+    free(scra2);
+    return Py_BuildValue("O", diinfo);
+}
+
+
 static PyMethodDef msatools_methods[] = {
 
     {"msaentropy",  (PyCFunction)msaentropy,
@@ -1347,6 +1715,20 @@ static PyMethodDef msatools_methods[] = {
     {"msasca",  (PyCFunction)msasca, METH_VARARGS | METH_KEYWORDS,
      "Return SCA matrix calculated for given character array that contains\n"
      "an MSA."},
+
+    {"msameff",  (PyCFunction)msameff, METH_VARARGS | METH_KEYWORDS,
+     "Return Meff calculated for given character array that contains\n"
+     "an MSA."},
+
+    {"msadirectinfo1",  (PyCFunction)msadirectinfo1, METH_VARARGS | METH_KEYWORDS,
+     "Return DI correlation matrix to python for matrix inverse calculated\n"
+     "for given character array that contains an MSA."},
+
+    {"msadirectinfo2",  (PyCFunction)msadirectinfo2, METH_VARARGS | METH_KEYWORDS,
+     "Return DI correlation matrix from inversed matrix."},
+
+    {"msadipretest",  (PyCFunction)msadipretest, METH_VARARGS | METH_KEYWORDS,
+     "Return some DI parameter to set array size."},
 
     {NULL, NULL, 0, NULL}
 };

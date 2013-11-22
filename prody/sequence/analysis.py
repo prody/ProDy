@@ -28,7 +28,7 @@ from prody import LOGGER
 __all__ = ['calcShannonEntropy', 'buildMutinfoMatrix', 'calcMSAOccupancy',
            'applyMutinfoCorr', 'applyMutinfoNorm', 'calcRankorder',
            'buildSeqidMatrix', 'uniqueSequences', 'buildOMESMatrix',
-           'buildSCAMatrix']
+           'buildSCAMatrix', 'buildDirectInfoMatrix', 'calcMeff']
 
 
 doc_turbo = """
@@ -435,3 +435,74 @@ def buildSCAMatrix(msa, turbo=True, **kwargs):
     return sca
 
 buildSCAMatrix.__doc__ += doc_turbo
+
+
+def buildDirectInfoMatrix(msa, seqid=.8, pseudo_weight=.5, refine=False,
+                          **kwargs):
+    """Return DI matrix calculated for *msa*, which may be an :class:`.MSA`
+    instance or a 2D Numpy character array.
+
+    Sequences sharing sequence identity of *seqid* or more with another
+    sequence are regard as similar sequences to calculate Meff.
+
+    *pseudo_weight* are the weight for pseudocount probability.
+
+    Sequences are not refined be default. When *refine* is set **True**, the
+    MSA will be refined by the first sequence. But the DI shape will perhaps
+    be smaller.
+    """
+
+    msa = getMSA(msa)
+    from .msatools import msadipretest, msadirectinfo1, msadirectinfo2
+    from numpy import matrix
+
+    LOGGER.timeit('_di')
+    refine = 1 if refine else 0
+    # msadipretest get some parameter from msa to set matrix size
+    length, q = msadipretest(msa, refine=refine)
+    c = matrix.dot(matrix(zeros((length*q, 1), float)),
+                   matrix(zeros((1, length*q), float)))
+    prob = zeros((length, q+1), float)
+    # msadirectinfo1 return c to be inversed and prob to be used
+    meff, n, length, c, prob = msadirectinfo1(msa, c, prob, theta=1.-seqid,
+                                              pseudocount_weight=pseudo_weight,
+                                              refine=refine, q=q+1)
+
+    c = c.I
+
+    di = zeros((length, length), float)
+    # get final DI
+    di = msadirectinfo2(n, length, c, prob, di, q+1)
+    del prob, c
+    LOGGER.report('DI matrix was calculated in %.2fs.', '_di')
+    return di
+
+
+def calcMeff(msa, seqid=.8, refine=False, weight=False, **kwargs):
+    """Return the Meff for *msa*, which may be an :class:`.MSA`
+    instance or a 2D Numpy character array.
+
+    Because similar sequences in *msa* could decrease the quality of *msa*,
+    Meff could give a weighted number of sequences for a *msa*.
+
+    Sequences sharing sequence identity of *seqid* or more with another
+    sequence are regard as similar sequences to calculate Meff.
+
+    Sequences are not refined be default. When *refine* is set **True**, the
+    MSA will be refined by the first sequence.
+
+    The weight for each sequences are returned when *weight* is **True**."""
+
+    msa = getMSA(msa)
+    from .msatools import msameff
+    LOGGER.timeit('_meff')
+    refine = 1 if refine else 0
+    weight = 0 if weight else 1  # A Mark for return weighted array.
+    if (not weight):
+        w = zeros((msa.shape[0]), float)
+        meff = msameff(msa, theta=1.-seqid, meff_only=weight,
+                       refine=refine, w=w)
+    else:
+        meff = msameff(msa, theta=1.-seqid, meff_only=weight, refine=refine)
+    LOGGER.report('Meff was calculated in %.2fs.', '_meff')
+    return meff

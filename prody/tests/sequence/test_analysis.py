@@ -25,11 +25,12 @@ from prody.tests import TestCase
 from numpy import array, log, zeros, char, ones, fromfile
 from numpy.testing import assert_array_equal, assert_array_almost_equal
 
-from prody.tests.datafiles import *
+from prody.tests.test_datafiles import *
 
 from prody import LOGGER, calcShannonEntropy, buildMutinfoMatrix, parseMSA
 from prody import calcMSAOccupancy, buildSeqidMatrix, uniqueSequences
-from prody import buildOMESMatrix, buildSCAMatrix
+from prody import buildOMESMatrix, buildSCAMatrix, calcMeff
+from prody import buildDirectInfoMatrix
 
 LOGGER.verbosity = None
 
@@ -54,7 +55,6 @@ for i in range(FASTA_NUMBER):
 
 class TestCalcShannonEntropy(TestCase):
 
-
     def testSixSequences(self):
 
         msa = array([list('AAAAaaaaAAAAaaaa'),
@@ -76,10 +76,9 @@ class TestCalcShannonEntropy(TestCase):
         result = calcShannonEntropy(msa)
         assert_array_almost_equal(expect, result)
 
-
     def testSmallProbability(self):
 
-        msa = zeros((1000000,1), '|S1')
+        msa = zeros((1000000, 1), '|S1')
         msa[0] = 'A'
         msa[1:] = 'C'
         expect = array([1., 999999.]) / 1000000
@@ -87,11 +86,10 @@ class TestCalcShannonEntropy(TestCase):
         result = calcShannonEntropy(msa)
         assert_array_almost_equal(expect, result)
 
-
     def testAmbiguous(self):
 
         msa = array([list('bjzxBJZX'),
-                     list('bjzxBJZX'),], dtype='|S1')
+                     list('bjzxBJZX'), ], dtype='|S1')
 
         expect = -log(1. / array([2, 2, 2, 20] * 2))
         result = calcShannonEntropy(msa)
@@ -129,7 +127,6 @@ class TestCalcShannonEntropy(TestCase):
 
 class TestCalcMutualInfo(TestCase):
 
-
     def testSixSequences(self):
 
         msa = array([list('ACCA'),
@@ -140,12 +137,11 @@ class TestCalcMutualInfo(TestCase):
         expect = array([[0., 0., 0., 0.],
                         [0., 0., 0., 0.],
                         [0., 0., 0., log(2.)],
-                        [0., 0., log(2.), 0.],])
+                        [0., 0., log(2.), 0.], ])
         result = buildMutinfoMatrix(msa)
         assert_array_almost_equal(expect, result, err_msg='turbo failed')
         result = buildMutinfoMatrix(msa, turbo=False)
         assert_array_almost_equal(expect, result, err_msg='w/out turbo failed')
-
 
     def testTwenty(self):
 
@@ -160,7 +156,6 @@ class TestCalcMutualInfo(TestCase):
         result = buildMutinfoMatrix(msa, turbo=False)
         assert_array_almost_equal(expect, result, err_msg='w/out turbo failed')
 
-
     def testTwentyReversed(self):
 
         seq = 'ACDEFGHIKLMNPQRSTVWY'
@@ -174,7 +169,6 @@ class TestCalcMutualInfo(TestCase):
         result = buildMutinfoMatrix(msa, turbo=False)
         assert_array_almost_equal(expect, result, err_msg='w/out turbo failed')
 
-
     def testAmbiguity(self):
 
         msa = array([list('OX'),
@@ -187,7 +181,6 @@ class TestCalcMutualInfo(TestCase):
         result = buildMutinfoMatrix(msa, turbo=False)
         assert_array_almost_equal(expect, result, err_msg='w/out turbo failed')
 
-
     def testNoAmbiguity(self):
 
         msa = array([list('OX'),
@@ -199,7 +192,6 @@ class TestCalcMutualInfo(TestCase):
         assert_array_almost_equal(expect, result, err_msg='turbo failed')
         result = buildMutinfoMatrix(msa, ambiquity=False, turbo=False)
         assert_array_almost_equal(expect, result, err_msg='w/out turbo failed')
-
 
     def testAmbiguity2(self):
 
@@ -214,7 +206,6 @@ class TestCalcMutualInfo(TestCase):
         result = buildMutinfoMatrix(msa, turbo=False)
         assert_array_almost_equal(expect, result, err_msg='w/out turbo failed')
 
-
     def testAmbiguity3(self):
 
         msa = array([list('XX')], dtype='|S1')
@@ -225,12 +216,11 @@ class TestCalcMutualInfo(TestCase):
         result = buildMutinfoMatrix(msa, turbo=False)
         assert_array_almost_equal(expect, result, err_msg='w/out turbo failed')
 
-
     def testAmbiguity4(self):
 
         msa = array([list('Bb'),
                      list('jJ'),
-                     list('Zz'),], dtype='|S1')
+                     list('Zz'), ], dtype='|S1')
 
         expect = log((1./12) / (1./6) / (1./6))
         expect = array([[0., expect],
@@ -239,7 +229,6 @@ class TestCalcMutualInfo(TestCase):
         assert_array_almost_equal(expect, result, err_msg='turbo failed')
         result = buildMutinfoMatrix(msa, turbo=False)
         assert_array_almost_equal(expect, result, err_msg='w/out turbo failed')
-
 
     def testAmbiguity5(self):
 
@@ -251,7 +240,6 @@ class TestCalcMutualInfo(TestCase):
             msa = array([list(seq)], dtype='|S1')
             result = buildMutinfoMatrix(msa, debug=False)
             assert_array_almost_equal(expect, result, err_msg=seq + ' failed')
-
 
     def testAmbiguity6(self):
 
@@ -279,10 +267,10 @@ class TestCalcMutualInfo(TestCase):
 
         msa = zeros((500, 10), '|S1')
         msa.fill('.')
-        msa[95,8] = 's'
-        msa[95,9] = 'i'
-        expect = zeros((10,10))
-        expect[8,9] = expect[9,8] = 0.002 * log(500.) + 0.998 * log(1. / 0.998)
+        msa[95, 8] = 's'
+        msa[95, 9] = 'i'
+        expect = zeros((10, 10))
+        expect[8, 9] = expect[9, 8] = 0.002 * log(500.) + .998 * log(1. / .998)
         result = buildMutinfoMatrix(msa, debug=False)
         assert_array_almost_equal(expect, result, err_msg='turbo failed')
         result = buildMutinfoMatrix(msa, turbo=False)
@@ -394,7 +382,6 @@ class TestCalcOMES(TestCase):
         result = buildOMESMatrix(msa, turbo=False)
         assert_array_almost_equal(expect, result, err_msg='w/out turbo failed')
 
-
     def testFourSequences(self):
 
         msa = array([list('ACCA'),
@@ -411,7 +398,6 @@ class TestCalcOMES(TestCase):
         result = buildOMESMatrix(msa, turbo=False)
         assert_array_almost_equal(expect, result, err_msg='w/out turbo failed')
 
-
     def testTwenty(self):
 
         seq = 'ACDEFGHIKLMNPQRSTVWY'
@@ -423,7 +409,6 @@ class TestCalcOMES(TestCase):
         assert_array_almost_equal(expect, result, err_msg='turbo failed')
         result = buildOMESMatrix(msa, turbo=False)
         assert_array_almost_equal(expect, result, err_msg='w/out turbo failed')
-
 
     def testTwentyReversed(self):
 
@@ -437,7 +422,6 @@ class TestCalcOMES(TestCase):
         result = buildOMESMatrix(msa, turbo=False)
         assert_array_almost_equal(expect, result, err_msg='w/out turbo failed')
 
-
     def testAmbiguity(self):
 
         msa = array([list('OX'),
@@ -449,7 +433,6 @@ class TestCalcOMES(TestCase):
         assert_array_almost_equal(expect, result, err_msg='turbo failed')
         result = buildOMESMatrix(msa, turbo=False)
         assert_array_almost_equal(expect, result, err_msg='w/out turbo failed')
-
 
     def testNoAmbiguity(self):
 
@@ -463,7 +446,6 @@ class TestCalcOMES(TestCase):
         result = buildOMESMatrix(msa, ambiquity=False, turbo=False)
         assert_array_almost_equal(expect, result, err_msg='w/out turbo failed')
 
-
     def testAmbiguity2(self):
 
         msa = array([list('AB'),
@@ -475,7 +457,6 @@ class TestCalcOMES(TestCase):
         result = buildOMESMatrix(msa, turbo=False)
         assert_array_almost_equal(expect, result, err_msg='w/out turbo failed')
 
-
     def testAmbiguity3(self):
 
         msa = array([list('XX')], dtype='|S1')
@@ -485,7 +466,6 @@ class TestCalcOMES(TestCase):
         assert_array_almost_equal(expect, result, err_msg='turbo failed')
         result = buildOMESMatrix(msa, turbo=False)
         assert_array_almost_equal(expect, result, err_msg='w/out turbo failed')
-
 
     def testAmbiguity4(self):
 
@@ -500,7 +480,6 @@ class TestCalcOMES(TestCase):
         result = buildOMESMatrix(msa, turbo=False)
         assert_array_almost_equal(expect, result, err_msg='w/out turbo failed')
 
-
     def testAmbiguity5(self):
 
         expect = array([[0., 0.],
@@ -511,7 +490,6 @@ class TestCalcOMES(TestCase):
             msa = array([list(seq)], dtype='|S1')
             result = buildOMESMatrix(msa, debug=False)
             assert_array_almost_equal(expect, result, err_msg=seq + ' failed')
-
 
     def testAmbiguity6(self):
 
@@ -573,8 +551,178 @@ class TestCalcSCA(TestCase):
 
         sca = fromfile(pathDatafile('msa_Cys_knot_sca.dat'))
         expect = sca.reshape((10, 10))
-        fasta = FASTA[:,:10]
+        fasta = FASTA[:, :10]
         result = buildSCAMatrix(fasta, turbo=True)
         assert_array_almost_equal(expect, result, err_msg='turbo failed')
         result = buildSCAMatrix(fasta, turbo=False)
         assert_array_almost_equal(expect, result, err_msg='w/out turbo failed')
+
+
+class TestCalcMeff(TestCase):
+
+    def testZero1(self):
+
+        msa = array([list('ACCD')] * 100, dtype='|S1')
+        expect = 1.
+        result = calcMeff(msa)
+        assert_array_almost_equal(expect, result)
+        result = calcMeff(msa, weight=True)
+        expect = (1., zeros((100)) + 1./100)
+        assert_array_almost_equal(expect[0], result[0],
+                                  err_msg='weight failed')
+        assert_array_almost_equal(expect[1], result[1],
+                                  err_msg='weight failed')
+
+    def testZero2(self):
+
+        msa = array([list('AACC')] * 50 + [list('CCDD')] * 50, dtype='|S1')
+        expect = 2.
+        result = calcMeff(msa)
+        assert_array_almost_equal(expect, result)
+        result = calcMeff(msa, weight=True)
+        expect = (2., zeros((100)) + 1./50)
+        assert_array_almost_equal(expect[0], result[0],
+                                  err_msg='weight failed')
+        assert_array_almost_equal(expect[1], result[1],
+                                  err_msg='weight failed')
+
+    def testTwenty(self):
+
+        seq = 'ACDEFGHIKLMNPQRSTVWY'
+        msa = array([[s, s] for s in seq], dtype='|S1')
+        expect = 20.
+        result = calcMeff(msa)
+        assert_array_almost_equal(expect, result)
+        result = calcMeff(msa, weight=True)
+        expect = (20., ones(20))
+        assert_array_almost_equal(expect[0], result[0],
+                                  err_msg='weight failed')
+        assert_array_almost_equal(expect[1], result[1],
+                                  err_msg='weight failed')
+
+    def testTwentyReversed(self):
+
+        seq = 'ACDEFGHIKLMNPQRSTVWY'
+        msa = array([[s, seq[-i-1]] for i, s in enumerate(seq)], dtype='|S1')
+        expect = 20.
+        result = calcMeff(msa)
+        assert_array_almost_equal(expect, result)
+        result = calcMeff(msa, weight=True)
+        expect = (20., ones(20))
+        assert_array_almost_equal(expect[0], result[0],
+                                  err_msg='weight failed')
+        assert_array_almost_equal(expect[1], result[1],
+                                  err_msg='weight failed')
+
+    def testMATLAB(self):
+
+        expect = 1.8416666666666664e+01
+        result = calcMeff(FASTA, refine=True)
+        assert_array_almost_equal(expect, result)
+        result = calcMeff(FASTA, refine=True, weight=True)
+        expect = (expect,
+                  array([1./3, 1./3, 1./4, 1./2, 1., 1., 1., 1., 1./3, 1./3,
+                         1./3, 1./2, 1./2, 1., 1., 1., 1., 1., 1., 1., 1., 1.,
+                         1., 1./2, 1./2], dtype='float'))
+        assert_array_almost_equal(expect[0], result[0],
+                                  err_msg='weight failed')
+        assert_array_almost_equal(expect[1], result[1],
+                                  err_msg='weight failed')
+
+
+class TestDirectInfo(TestCase):
+
+    def testZero(self):
+
+        msa = array([list('ACCY')] * 100, dtype='|S1')
+        expect = array([[0., 0.66325166608, 0.66325166608, 0.66222154839],
+                        [0.66325166608, 0., 0.66325166608, 0.66222154839],
+                        [0.66325166608, 0.66325166608, 0., 0.66222154839],
+                        [0.66222154839, 0.66222154839, 0.66222154839, 0.], ])
+        result = buildDirectInfoMatrix(msa)
+        assert_array_almost_equal(
+            expect, result, err_msg='w/out refine failed')
+        result = buildDirectInfoMatrix(msa, refine=True)
+        assert_array_almost_equal(expect, result, err_msg='refine failed')
+
+    def testZero1(self):
+
+        msa = array([list('ACCD')] * 100, dtype='|S1')
+        expect = array([[0.,  0.13010138,  0.13010138,  0.13008827],
+                        [0.13010138,  0.,  0.13010138,  0.13008827],
+                        [0.13010138,  0.13010138,  0.,  0.13008827],
+                        [0.13008827,  0.13008827,  0.13008827,  0.]])
+        result = buildDirectInfoMatrix(msa)
+        assert_array_almost_equal(
+            expect, result, err_msg='w/out refine failed')
+        result = buildDirectInfoMatrix(msa, refine=True)
+        assert_array_almost_equal(expect, result, err_msg='refine failed')
+
+    def testZero2(self):
+
+        msa = array([list('AAYY')] * 50 + [list('YYDD')] * 50, dtype='|S1')
+        expect = array([[0., 1.0248086877, 1.0001784999, 1.0001784999],
+                        [1.0248086877, 0., 1.0001784999, 1.0001784999],
+                        [1.0001784999, 1.0001784999, 0., 1.0248086877],
+                        [1.0001784999, 1.0001784999, 1.0248086877, 0.], ])
+        result = buildDirectInfoMatrix(msa)
+        assert_array_almost_equal(
+            expect, result, err_msg='w/out refine failed')
+        result = buildDirectInfoMatrix(msa, refine=True)
+        assert_array_almost_equal(expect, result, err_msg='refine failed')
+
+    def testZero3(self):
+
+        msa = array([list('AACC')] * 50 + [list('CCDD')] * 50, dtype='|S1')
+        expect = array([[0.,  0.23179074,  0.23178758,  0.23178758],
+                        [0.23179074,  0.,  0.23178758,  0.23178758],
+                        [0.23178758,  0.23178758,  0.,  0.23178758],
+                        [0.23178758,  0.23178758,  0.23178758,  0.]])
+        result = buildDirectInfoMatrix(msa)
+        assert_array_almost_equal(
+            expect, result, err_msg='w/out refine failed')
+        result = buildDirectInfoMatrix(msa, refine=True)
+        assert_array_almost_equal(expect, result, err_msg='refine failed')
+
+    def testTwenty(self):
+
+        seq = 'ACDEFGHIKLMNPQRSTVWY'
+        msa = array([[s, s] for s in seq], dtype='|S1')
+        expect = array([[0., 3.0302471958885744],
+                        [3.0302471958885744, 0.]])
+        result = buildDirectInfoMatrix(msa)
+        assert_array_almost_equal(
+            expect, result, err_msg='w/out refine failed')
+        result = buildDirectInfoMatrix(msa, refine=True)
+        assert_array_almost_equal(expect, result, err_msg='refine failed')
+
+    def testTwentyReversed(self):
+
+        seq = 'ACDEFGHIKLMNPQRSTVWY'
+        msa = array([[s, seq[-i-1]] for i, s in enumerate(seq)], dtype='|S1')
+        expect = array([[0., 3.030670764986982],
+                        [3.030670764986982, 0.]])
+        result = buildDirectInfoMatrix(msa)
+        assert_array_almost_equal(
+            expect, result, err_msg='w/out refine failed')
+        result = buildDirectInfoMatrix(msa, refine=True)
+        assert_array_almost_equal(expect, result, err_msg='refine failed')
+
+    def testMATLAB8(self):
+
+        di = fromfile(pathDatafile('msa_Cys_knot_di.dat'))
+        expect = di.reshape((8, 8))
+        fasta = FASTA[:, :8]
+        result = buildDirectInfoMatrix(fasta)
+        assert_array_almost_equal(
+            expect, result, err_msg='w/out refine failed')
+        result = buildDirectInfoMatrix(fasta, refine=True)
+        assert_array_almost_equal(expect, result, err_msg='refine failed')
+
+    def testMATLAB10(self):
+
+        di = fromfile(pathDatafile('msa_Cys_knot_di.dat'))
+        expect = di.reshape((8, 8))
+        fasta = FASTA[:, :10]
+        result = buildDirectInfoMatrix(fasta, refine=True)
+        assert_array_almost_equal(expect, result, err_msg='refine failed')
