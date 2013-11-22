@@ -22,4 +22,4 @@ before_install:
 install:
   - python setup.py build install
 script:
-  - cd docs; nosetests prody -a '!slow'
+  - cd docs; nosetests prody
