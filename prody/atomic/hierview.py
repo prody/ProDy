@@ -46,7 +46,6 @@ class HierView(object):
             raise TypeError('atoms must be an AtomGroup or Selection instance')
 
         self._atoms = atoms
-        self._ter = bool(kwargs.get('ter', False))
         self.update(**kwargs)
 
     def __repr__(self):
@@ -180,7 +179,7 @@ class HierView(object):
         indices = atoms._getIndices()
         self._selstr = atoms.getSelstr()
 
-        self._dict = ag.getHierView(ter=self._ter)._dict
+        self._dict = ag.getHierView()._dict
 
         self._segments = _segments = [None] * ag.numSegments()
         self._residues = _residues = [None] * ag.numResidues()
@@ -220,10 +219,8 @@ class HierView(object):
 
         nones = None
         getnones = lambda: [None] * n_atoms if nones is None else nones
-        if self._ter:
-            termini = ag.getFlags('pdbter')
-        else:
-            termini = nones = getnones()
+        termini = ag.getFlags('pdbter')
+
         # identify segments
         segindex = -1
         segindices = zeros(n_atoms, int)

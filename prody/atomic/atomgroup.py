@@ -637,9 +637,7 @@ class AtomGroup(Atomic):
     def getHierView(self, **kwargs):
         """Return a hierarchical view of the atom group."""
 
-        if kwargs:
-            self._hv = HierView(self, **kwargs)
-        elif self._hv is None:
+        if self._hv is None:
             self._hv = HierView(self, **kwargs)
         return self._hv
 

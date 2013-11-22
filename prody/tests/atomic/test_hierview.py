@@ -31,18 +31,18 @@ class TestTerRecord(TestCase):
 
     def testNumResidues(self):
 
-        self.assertEqual(RTER.getHierView(ter=True).numResidues(), 9)
+        self.assertEqual(RTER.getHierView().numResidues(), 9)
 
     def testResidueIndexing(self):
 
-        self.assertEqual(len(RTER.getHierView(ter=True)['A', 864]), 2)
+        self.assertEqual(len(RTER.getHierView()['A', 864]), 2)
 
     def testSelectionResidueIndexing(self):
 
-        residues = RTER[:32].getHierView(ter=True)['A', 864]
+        residues = RTER[:32].getHierView()['A', 864]
         self.assertEqual(len(residues), 2)
         self.assertEqual((residues[0] + residues[1]).numAtoms(), 5)
 
     def testSelectionResidueIndexing2(self):
 
-        self.assertEqual(len(RTER[20:].getHierView(ter=True)['A', 866]), 3)
+        self.assertEqual(len(RTER[20:].getHierView()['A', 866]), 3)
