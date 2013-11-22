@@ -389,7 +389,7 @@ class AtomGroup(Atomic):
         if self._coords is not None:
             return self._coords[self._acsi]
 
-    def setCoords(self, coords, label=None):
+    def setCoords(self, coords, label=''):
         """Set coordinates of atoms.  *coords* may be any array like object
         or an object instance with :meth:`getCoords` method.  If the shape of
         coordinate array is ``(n_csets > 1, n_atoms, 3)``, it will replace all
@@ -422,7 +422,7 @@ class AtomGroup(Atomic):
 
         self._setCoords(coords, label=label)
 
-    def _setCoords(self, coords, label=None, overwrite=False):
+    def _setCoords(self, coords, label='', overwrite=False):
         """Set coordinates without data type checking.  *coords* must
         be a :class:`~numpy.ndarray`, but may have data type other than
         :class:`numpy.float64`, e.g. :class:`numpy.float32`.  *label*
@@ -442,29 +442,24 @@ class AtomGroup(Atomic):
         if self._coords is None or overwrite or (ndim == 3 and shape[0] > 1):
             if ndim == 2:
                 self._coords = coords.reshape((1, n_atoms, 3))
-                if label is None:
-                    self._cslabels = [None]
-                else:
-                    self._cslabels = [str(label)]
+                self._cslabels = [str(label)]
                 self._n_csets = n_csets = 1
 
             else:
                 self._coords = coords
                 self._n_csets = n_csets = shape[0]
 
-                if label is None or isinstance(label, str):
-                    self._cslabels = [label] * n_csets
 
-                elif isinstance(label, (list, tuple)):
+                if isinstance(label, list):
                     if len(label) == n_csets:
                         self._cslabels = list(label)
 
                     else:
-                        self._cslabels = [None] * n_csets
+                        self._cslabels = [''] * n_csets
                         LOGGER.warn('Number of labels does not match number '
                                     'of coordinate sets.')
                 else:
-                    LOGGER.warn('Wrong type for `label` argument.')
+                    self._cslabels = [str(label)] * n_csets
             self._acsi = 0
             self._setTimeStamp()
 
@@ -475,8 +470,7 @@ class AtomGroup(Atomic):
             else:
                 self._coords[acsi] = coords[0]
             self._setTimeStamp(acsi)
-            if label is not None:
-                self._cslabels[acsi] = str(label)
+            self._cslabels[acsi] = str(label)
 
     def addCoordset(self, coords, label=None):
         """Add a coordinate set.  *coords* argument may be an object with
