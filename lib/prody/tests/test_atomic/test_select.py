@@ -562,3 +562,10 @@ for name, macro in MACROS:
     func.__doc__ = 'Test macro *{0}*: {1}'.format(name, repr(macro))
     setattr(TestMacros, func.__name__, func)
 del func
+
+
+def testGetBoolArray():
+
+    ca = pdb3mht.ca
+    assert_equal(len(ca), len(SELECT.getBoolArray(ca, 'index 510')))
+
