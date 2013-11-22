@@ -24,9 +24,8 @@ __pycache__
 *.pdb.gz
 
 # Docs
-doc/*/*/_*
-_build/*
-doc/_static/figures
+/docs/_build/
+/docs/_workdir/
 
 *.pdf
 *.zip
