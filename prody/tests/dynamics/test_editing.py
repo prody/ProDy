@@ -64,25 +64,25 @@ class TestExtending(unittest.TestCase):
 
         mode = ANM[0]
         ext = extendMode(mode, NODES, ATOMS)[0]
-        assert_array_equal(ext._getArray(), mode._getArray()[EXT3D, :] *
+        assert_array_equal(ext._getArray(), mode._getArray()[EXT3D] *
                                             mode.getVariance()**0.5)
 
     def testMode1d(self):
 
         mode = GNM[0]
         ext = extendMode(mode, NODES, ATOMS)[0]
-        assert_array_equal(ext._getArray(), mode._getArray()[EXT1D, :] *
+        assert_array_equal(ext._getArray(), mode._getArray()[EXT1D] *
                                             mode.getVariance()**0.5)
 
     def testVector3d(self):
 
         vector = ANM[0] * 1
         ext = extendVector(vector, NODES, ATOMS)[0]
-        assert_array_equal(ext._getArray(), vector._getArray()[EXT3D, :])
+        assert_array_equal(ext._getArray(), vector._getArray()[EXT3D])
 
     def testVector1d(self):
 
         vector = GNM[0] * 1
         ext = extendVector(vector, NODES, ATOMS)[0]
-        assert_array_equal(ext._getArray(), vector._getArray()[EXT1D, :])
+        assert_array_equal(ext._getArray(), vector._getArray()[EXT1D])
 
