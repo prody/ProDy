@@ -138,6 +138,28 @@ def extendVector(vector, nodes, atoms):
     return extended, atommap
 
 
+def slice(atoms, select):
+
+    if atoms == select:
+        raise ValueError('atoms and select arguments are the same')
+    if select in atoms:
+        indices = select._getIndices()
+    elif isinstance(select, str):
+        select = atoms.select(select)
+        indices = select._getIndices()
+    else:
+        raise TypeError('select must be a string or a Selection instance')
+
+    if isinstance(atoms, AtomGroup):
+        which = indices
+    else:
+        idxset = set(indices)
+        which = np.array([i for i, idx in enumerate(atoms._getIndices())
+                          if idx in idxset])
+
+    return which, select
+
+
 def sliceVector(vector, atoms, select):
     """Return part of the *vector* for *atoms* matching *select*.  Note that
     returned :class:`.Vector` instance is not normalized.
@@ -162,38 +184,11 @@ def sliceVector(vector, atoms, select):
     if atoms.numAtoms() != vector.numAtoms():
         raise ValueError('number of atoms in model and atoms must be equal')
 
-    if isinstance(select, str):
-        selstr = select
-        if isinstance(atoms, AtomGroup):
-            sel = atoms.select(selstr)
-            which = sel._getIndices()
-        else:
-            which = SELECT.getIndices(atoms, selstr)
-            sel = Selection(atoms.getAtomGroup(), atoms.getIndices()[which],
-                            selstr, atoms.getACSIndex())
-
-    elif isinstance(select, AtomSubset):
-        sel = select
-        if isinstance(atoms, AtomGroup):
-            if sel.getAtomGroup() != atoms:
-                raise ValueError('select and atoms do not match')
-            which = sel._getIndices()
-        else:
-            if atoms.getAtomGroup() != sel.getAtomGroup():
-                raise ValueError('select and atoms do not match')
-            elif not sel in atoms:
-                raise ValueError('select is not a subset of atoms')
-            idxset = set(atoms._getIndices())
-            which = np.array([idx in idxset for idx in sel._getIndices()])
-            which = which.nonzero()[0]
-        selstr = sel.getSelstr()
-
-    else:
-        raise TypeError('select must be a string or a Selection instance')
+    which, sel = slice(atoms, select)
 
     vec = Vector(vector.getArrayNx3()[
                  which, :].flatten(),
-                 '{0} slice {1}'.format(str(vector), repr(selstr)),
+                 '{0} slice {1}'.format(str(vector), select),
                  vector.is3d())
     return (vec, sel)
 
@@ -226,38 +221,11 @@ def sliceMode(mode, atoms, select):
     if atoms.numAtoms() != mode.numAtoms():
         raise ValueError('number of atoms in model and atoms must be equal')
 
-    if isinstance(select, str):
-        selstr = select
-        if isinstance(atoms, AtomGroup):
-            sel = atoms.select(selstr)
-            which = sel._getIndices()
-        else:
-            which = SELECT.getIndices(atoms, selstr)
-            sel = Selection(atoms.getAtomGroup(), atoms.getIndices()[which],
-                            selstr, atoms.getACSIndex())
-
-    elif isinstance(select, AtomSubset):
-        sel = select
-        if isinstance(atoms, AtomGroup):
-            if sel.getAtomGroup() != atoms:
-                raise ValueError('select and atoms do not match')
-            which = sel._getIndices()
-        else:
-            if atoms.getAtomGroup() != sel.getAtomGroup():
-                raise ValueError('select and atoms do not match')
-            elif not sel in atoms:
-                raise ValueError('select is not a subset of atoms')
-            idxset = set(atoms._getIndices())
-            which = np.array([idx in idxset for idx in sel._getIndices()])
-            which = which.nonzero()[0]
-        selstr = sel.getSelstr()
-
-    else:
-        raise TypeError('select must be a string or a Selection instance')
+    which, sel = slice(atoms, select)
 
     vec = Vector(mode.getArrayNx3()[which, :].flatten() *
                  mode.getVariance()**0.5,
-                 '{0} slice {1}'.format(str(mode), repr(selstr)), mode.is3d())
+                 '{0} slice {1}'.format(str(mode), select), mode.is3d())
     return (vec, sel)
 
 
@@ -287,37 +255,10 @@ def sliceModel(model, atoms, select):
 
     array = model._getArray()
 
-    if isinstance(select, str):
-        selstr = select
-        if isinstance(atoms, AtomGroup):
-            sel = atoms.select(selstr)
-            which = sel.getIndices()
-        else:
-            which = SELECT.getIndices(atoms, selstr)
-            sel = Selection(atoms.getAtomGroup(), atoms.getIndices()[which],
-                            selstr, atoms.getACSIndex())
-
-    elif isinstance(select, AtomSubset):
-        sel = select
-        if isinstance(atoms, AtomGroup):
-            if sel.getAtomGroup() != atoms:
-                raise ValueError('select and atoms do not match')
-            which = sel._getIndices()
-        else:
-            if atoms.getAtomGroup() != sel.getAtomGroup():
-                raise ValueError('select and atoms do not match')
-            elif not sel in atoms:
-                raise ValueError('select is not a subset of atoms')
-            idxset = set(atoms._getIndices())
-            which = np.array([idx in idxset for idx in sel._getIndices()])
-            which = which.nonzero()[0]
-        selstr = sel.getSelstr()
-
-    else:
-        raise TypeError('select must be a string or a Selection instance')
+    which, sel = slice(atoms, select)
 
     nma = type(model)('{0} slice {1}'
-                      .format(model.getTitle(), repr(selstr)))
+                      .format(model.getTitle(), select))
     if model.is3d():
         which = [which.reshape((len(which), 1))*3]
         which.append(which[0]+1)

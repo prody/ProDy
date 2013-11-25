@@ -2139,7 +2139,7 @@ class Select(object):
                         [label, token])
 
         try:
-            indices = self._atoms_getIndices()
+            indices = self._atoms._getIndices()
         except AttributeError:
             pass
         else:
@@ -2224,7 +2224,7 @@ class Select(object):
         torf = zeros(self._ag.numAtoms(), bool)
         torf[indices] = True
         try:
-            indices = self._atoms_getIndices()
+            indices = self._atoms._getIndices()
         except AttributeError:
             pass
         else:

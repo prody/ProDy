@@ -1,7 +1,7 @@
 """This module contains unit tests for :mod:`.atommap` module."""
 
 from prody import *
-from prody import LOGGER
+from prody import LOGGER, SELECT
 from prody.atomic import atommap
 from prody.tests import unittest
 from prody.tests.datafiles import *
@@ -41,3 +41,12 @@ class TestSelection(unittest.TestCase):
     def testChainSelection(self):
 
         self.assertEqual(AM, AM.select('chain A _'))
+
+    def testNameSelection(self):
+
+        self.assertEqual((AM.getNames() == 'CA').sum(),
+                          len(AM.select('name CA')))
+
+    def testGetBoolArray(self):
+
+        self.assertEqual(len(AM), len(SELECT.getBoolArray(AM, 'name CA')))
