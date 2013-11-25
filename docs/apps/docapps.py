@@ -1,6 +1,4 @@
 #!/usr/bin/python
-__author__ = 'Ahmet Bakan'
-__copyright__ = 'Copyright (C) 2010-2013 Ahmet Bakan'
 
 import os
 import imp
