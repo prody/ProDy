@@ -4,7 +4,9 @@ ProDy Documentation
 
 .. only:: not rtd
 
-    Welcome to the official ProDy documentation.
+    Welcome to the official ProDy documentation. You can read
+    these pages in `PDF <ProDy.pdf>`_ format too.
+
 
 .. only:: rtd
 
