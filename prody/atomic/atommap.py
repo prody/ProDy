@@ -235,8 +235,8 @@ class AtomMap(AtomPointer):
 
         ag = self._ag
         acsi = self.getACSIndex()
-        for index in indices:
-            yield Atom(ag, index, acsi) if index > -1 else None
+        for index in self.getIndices():
+            yield Atom(ag, index, acsi) if index < DUMMY else None
 
     __iter__ = iterAtoms
 
