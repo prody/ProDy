@@ -220,6 +220,8 @@ class HierView(object):
         nones = None
         getnones = lambda: [None] * n_atoms if nones is None else nones
         termini = ag.getFlags('pdbter')
+        if termini is None:
+            termini = getnones()
 
         # identify segments
         segindex = -1
