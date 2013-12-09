@@ -28,7 +28,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 project = u'ProDy'
-copyright = u'2010-2013, Ahmet Bakan'
+copyright = u'2010-2014, University of Pittsburgh'
 
 
 __version__ = ''
@@ -190,11 +190,4 @@ rst_epilog = u"""
 
 
 .. |A2| replace:: Å\ :sup:`2`
-
-.. |questions| replace:: To receive new release announcements, join our
-   ProDy-News Google Group: http://groups.google.com/group/prody-news
-
-.. |suggestions| replace:: Suggestions, feature requests, or
-   problems? Submit them to the Bitbucket issue tracker:
-   https://bitbucket.org/abakan/prody/issues
 """

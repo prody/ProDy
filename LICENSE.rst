@@ -10,7 +10,7 @@ ProDy is available under the `GPLv3`_::
 
   ProDy: A Python Package for Protein Dynamics Analysis
 
-  Copyright (C) 2010-2013 Ahmet Bakan <ahb12 at pitt dot edu>
+  Copyright (C) 2010-2014 University of Pittsburgh
 
   This program is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -26,50 +26,6 @@ ProDy is available under the `GPLv3`_::
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 .. _GPLv3: http://www.gnu.org/licenses/gpl.html
-
-NMWiz
--------------------------------------------------------------------------------
-
-NMWiz is available under the `Illinois`_ (University of Illinois/NCSA) Open
-Source License::
-
-  NMWiz: Normal Mode Visualization, Animation, and Plotting
-
-  Copyright 2010-2013 Ahmet Bakan. All rights reserved.
-
-  Developed by:
-
-        Ahmet Bakan (http://www.csb.pitt.edu/People/abakan) in the
-        Bahar Lab (http://www.ccbb.pitt.edu/Faculty/bahar/) at the
-        University of Pittsburgh (http://www.pitt.edu/)
-
-  Permission is hereby granted, free of charge, to any person obtaining a copy of
-  this software and associated documentation files (the “Software”), to deal with
-  the Software without restriction, including without limitation the rights to
-  use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
-  of the Software, and to permit persons to whom the Software is furnished to do
-  so, subject to the following conditions:
-
-  * Redistributions of source code must retain the above copyright notice, this
-    list of conditions and the following disclaimers.
-
-  * Redistributions in binary form must reproduce the above copyright notice,
-    this list of conditions and the following disclaimers in the documentation
-    and/or other materials provided with the distribution.
-
-  * Neither the names of Ahmet Bakan, University of Pittsburgh,
-    nor the names of its contributors may be used to endorse or promote products
-    derived from this Software without specific prior written permission.
-
-  THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
-  CONTRIBUTORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS WITH
-  THE SOFTWARE.
-
-.. _Illinois: http://otm.illinois.edu/uiuc_openSource
 
 Biopython
 -------------------------------------------------------------------------------
