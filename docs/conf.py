@@ -72,10 +72,6 @@ doctest_global_setup = "from prody import *"
 # -- Options for HTML output ---------------------------------------------------
 if RTD:
     html_theme = 'default'
-elif True:
-    import sphinx_rtd_theme
-    html_theme = "sphinx_rtd_theme"
-    html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
 else:
     templates_path = ['_theme']
     html_theme = '_theme'
