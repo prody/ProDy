@@ -11,8 +11,7 @@ Required Software
   *Windows*: You need to use **32-bit** Python on Windows to be able to
   install NumPy and ProDy.
 
-* `NumPy`_ 1.5+ (for Windows, select an installer built using a suitable
-  version of NumPy)
+* `NumPy`_ 1.7 or later
 
 When compiling from source, on Linux for example, you will need a C compiler
 (e.g. :program:`gcc`) and Python developer libraries (i.e. :file:`python.h`).

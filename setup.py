@@ -141,6 +141,6 @@ setup(
                  'Topic :: Scientific/Engineering :: Chemistry',
                 ],
     scripts=SCRIPTS,
-    requires=['NumPy (>=1.5)', ],
+    requires=['NumPy (>=1.7)', ],
     provides=['ProDy ({0:s})'.format(__version__)]
 )
