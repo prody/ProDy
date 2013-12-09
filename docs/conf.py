@@ -32,7 +32,8 @@ copyright = u'2010-2014, University of Pittsburgh'
 
 
 __version__ = ''
-with open('../prody/__init__.py') as inp:
+_ = ('ProDy/prody/__init__.py', '../prody/__init__.py')
+with open(_[os.path.isfile(_[1])]) as inp:
     statement = ''.join([line for line in inp
                          if line.startswith('__v') or line.startswith('__r')])
     exec(statement)
@@ -51,7 +52,7 @@ if release.endswith('dev'):
 
     """
 
-exclude_patterns = ['_build']
+exclude_patterns = ['_build', '_workdir']
 
 
 add_module_names = False
