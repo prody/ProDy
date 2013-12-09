@@ -53,7 +53,7 @@ if release.endswith('dev'):
 
         This documentation is for a development version of ProDy.
         There may be significant differences from the latest stable
-        release (`{} <http://prody.csb.pitt.edu/reference>`_).
+        release ({}).
 
     """.format(tag.communicate()[0].strip())
 
