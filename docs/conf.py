@@ -84,21 +84,7 @@ html_last_updated_fmt = '%b %d, %Y'
 html_index = 'index.html'
 
 generic_sidebars = ['toolbox.html', 'releasenotes.html', 'howtocite.html']
-html_sidebars = {
-    'index': generic_sidebars,
-    'genindex': generic_sidebars,
-    'py-modindex': generic_sidebars,
-    'search': generic_sidebars,
-    'tutorial': generic_sidebars,
-    'changes/**': generic_sidebars,
-    'credits': generic_sidebars,
-    'getprody': generic_sidebars,
-    'license': generic_sidebars,
-    'examples/index': generic_sidebars,
-    'reference/index': generic_sidebars,
-    'reports/index': generic_sidebars,
-    '**': ['toolbox.html', 'releasenotes.html', 'howtocite.html',
-           'extras.html']}
+html_sidebars = {'**': generic_sidebars}
 
 html_copy_source = False
 html_show_sourcelink = False
