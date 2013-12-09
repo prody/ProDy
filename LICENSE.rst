@@ -30,9 +30,9 @@ ProDy is available under the `GPLv3`_::
 Biopython
 -------------------------------------------------------------------------------
 
-`Biopython <http://biopython.org/>`_ KDTree package and pairwise2 module are
-distributed with the ProDy package.  Biopython is developed by The
-Biopython Consortium and is available under the `Biopython license`_::
+Biopython_ KDTree package and pairwise2 module are distributed with the ProDy
+package.  Biopython is developed by The Biopython Consortium and is available
+under the `Biopython license`_::
 
                    Biopython License Agreement
 
@@ -59,9 +59,8 @@ Biopython Consortium and is available under the `Biopython license`_::
 Pyparsing
 -------------------------------------------------------------------------------
 
-The `pyparsing <http://pyparsing.wikispaces.com/>`_ module is distributed with
-the ProDy package.  Pyparsing is developed by Paul T. McGuire and is available
-under the `MIT license`_::
+The pyparsing_ module is distributed with the ProDy package.  Pyparsing is
+developed by Paul T. McGuire and is available under the `MIT license`_::
 
   Permission is hereby granted, free of charge, to any person obtaining
   a copy of this software and associated documentation files (the
@@ -87,7 +86,7 @@ under the `MIT license`_::
 Argparse
 -------------------------------------------------------------------------------
 
-The argparse module (http://code.google.com/p/argparse/) is distributed
+The `argparse module <http://code.google.com/p/argparse/>`_ is distributed
 with the ProDy package. Argparse is developed by Steven J. Bethard and
 is available under the `Python Software Foundation License`_.
 

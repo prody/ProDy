@@ -39,18 +39,23 @@ with open(_[os.path.isfile(_[1])]) as inp:
     exec(statement)
 version, release = __version__, __release__
 
-if release.endswith('dev'):
 
+if release.endswith('dev'):
+    import shlex
+    from subprocess import Popen, PIPE
+    tag = Popen(shlex.split('git describe --tags --abbrev=0'),
+                stdout=PIPE, stderr=PIPE)
     rst_prolog = """
 
 .. only:: html
 
     .. note::
 
-        This documentation is for a development version of ProDy. There may be
-        significant differences from the latest stable release (1.4.9).
+        This documentation is for a development version of ProDy.
+        There may be significant differences from the latest stable
+        release (`{} <http://prody.csb.pitt.edu/reference>`_).
 
-    """
+    """.format(tag.communicate()[0].strip())
 
 exclude_patterns = ['_build', '_workdir']
 

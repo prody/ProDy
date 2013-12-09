@@ -1,1 +1,1 @@
-../LICENSE.rst
+../INSTALL.rst
