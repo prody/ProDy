@@ -159,20 +159,22 @@ class DCDFile(TrajFile):
         # Read in the size of the next block
         temp = unpack(endian + b'i', dcd.read(rec_scale * calcsize('i')))
 
-        if temp[0] != 164:
+        if (temp[0] - 4) % 80 != 0:
             raise IOError('Unrecognized DCD format.')
+        noremarks = temp[0] == 84
 
         # Read NTITLE, the number of 80 character title strings there are
         temp = unpack(endian + b'i', dcd.read(rec_scale * calcsize('i')))
 
         self._dcdtitle = dcd.read(80)
 
-        self._remarks = dcd.read(80)
+        if not noremarks:
+            self._remarks = dcd.read(80)
 
         # Get the ending size for this block
         temp = unpack(endian + b'i', dcd.read(rec_scale * calcsize('i')))
 
-        if temp[0] != 164:
+        if (temp[0] - 4) % 80 != 0:
             raise IOError('Unrecognized DCD format.')
 
         # Read in an integer '4'
