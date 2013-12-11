@@ -44,8 +44,8 @@ if release.endswith('dev'):
     import shlex
     from subprocess import Popen, PIPE
     _ = '../.git'
-    if os.path.isfile(_):
-        _ = 'ProDy/.git; '
+    if not os.path.isdir(_):
+        _ = 'ProDy/.git'
     args = shlex.split('git --git-dir {} describe --tags --abbrev=0'.format(_))
     tag = Popen(args, stdout=PIPE, stderr=PIPE)
     rst_prolog = """
