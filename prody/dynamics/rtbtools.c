@@ -10,20 +10,17 @@ static PyObject *buildhessian(PyObject *self, PyObject *args, PyObject *kwargs) 
     double cutoff = 15., gamma = 1.;
     int natoms, nblocks;
 
+    static char *kwlist[] = {"coords", "blocks", "hessian", "projection",
+                             "natoms", "nblocks", "cutoff", "gamma", NULL};
 
-    static char *kwlist[] = {"coords", "blocks", "hessian",
-                             "projection",
-                             "natoms", "nblocks",
-                             "cutoff", "gamma", NULL};
-
-    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "OOO|ii", kwlist,
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "OOOO|iidd", kwlist,
                                      &coords, &blocks, &hessian, &projection,
                                      &natoms, &nblocks, &cutoff, &gamma))
         return NULL;
 
 
     double *xyz = (double *) PyArray_DATA(coords);
-    int *blk = (int *) PyArray_DATA(blocks);
+    long *blk = (long *) PyArray_DATA(blocks);
     double *hess = (double *) PyArray_DATA(hessian);
     double *proj = (double *) PyArray_DATA(projection);
 
@@ -32,11 +29,7 @@ static PyObject *buildhessian(PyObject *self, PyObject *args, PyObject *kwargs) 
         return PyErr_NoMemory();
 
 
-
-
-
-
-    Py_RETURN_NONE();
+    Py_RETURN_NONE;
 }
 
 
