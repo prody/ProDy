@@ -80,6 +80,9 @@ for pkg in PACKAGES:
     PACKAGE_DIR[pkg] = join(*pkg.split('.'))
 
 EXTENSIONS = [
+    Extension('prody.dynamics.rtbtools',
+              [join('prody', 'dynamics', 'rtbtools.c'),],
+              include_dirs=[numpy.get_include()]),
     Extension('prody.sequence.msatools',
               [join('prody', 'sequence', 'msatools.c'),],
               include_dirs=[numpy.get_include()]),
