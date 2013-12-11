@@ -25,11 +25,11 @@ class RTB(ANM):
         :type coords: :class:`numpy.ndarray`
 
         :arg cutoff: cutoff distance (Å) for pairwise interactions,
-            default is 15.0 Å, minimum is 4.0 Å
+            default is 15.0 Å
         :type cutoff: float
 
         :arg gamma: spring constant, default is 1.0
-        :type gamma: float, :class:`Gamma`"""
+        :type gamma: float"""
 
 
         try:

@@ -37,7 +37,7 @@ static PyMethodDef rtbtools_methods[] = {
 
     {"buildhessian",  (PyCFunction)buildhessian,
      METH_VARARGS | METH_KEYWORDS,
-     "Return Hessian matrix."},
+     "Build Hessian matrix and projections."},
 
     {NULL, NULL, 0, NULL}
 };
