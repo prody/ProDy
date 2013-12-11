@@ -2,8 +2,6 @@
 """This module defines a class and a function for anisotropic network model
 (ANM) calculations."""
 
-import time
-
 import numpy as np
 
 from prody import LOGGER
@@ -20,9 +18,9 @@ __all__ = ['ANM', 'calcANM']
 class ANM(GNMBase):
 
     """Class for Anisotropic Network Model (ANM) analysis of proteins
-    ([PD00]_, [ARA01]_)
+    ([PD00]_, [ARA01]_).
 
-    See example :ref:`anm`.
+    See a usage example in :ref:`anm`.
 
     .. [PD00] Doruker P, Atilgan AR, Bahar I. Dynamics of proteins predicted by
        molecular dynamics simulations and analytical approaches: Application to
@@ -123,7 +121,7 @@ class ANM(GNMBase):
         self._gamma = g
         n_atoms = coords.shape[0]
         dof = n_atoms * 3
-        start = time.time()
+        LOGGER.timeit('_anm_hessian')
 
         if kwargs.get('sparse', False):
             try:
@@ -186,7 +184,7 @@ class ANM(GNMBase):
                     kirchhoff[j, i] = -g
                     kirchhoff[i, i] = kirchhoff[i, i] - g
                     kirchhoff[j, j] = kirchhoff[j, j] - g
-        LOGGER.info('Hessian was built in {0:.2f}s.'.format(time.time()-start))
+        LOGGER.report('Hessian was built in %.2fs.', label='_anm_hessian')
         self._kirchhoff = kirchhoff
         self._hessian = hessian
         self._n_atoms = n_atoms
@@ -215,7 +213,7 @@ class ANM(GNMBase):
         assert isinstance(zeros, bool), 'zeros must be a boolean'
         assert isinstance(turbo, bool), 'turbo must be a boolean'
         linalg = importLA()
-        start = time.time()
+        LOGGER.timeit('_anm_calc_modes')
         shift = 5
         if linalg.__package__.startswith('scipy'):
             if n_modes is None:
@@ -267,8 +265,8 @@ class ANM(GNMBase):
         self._trace = self._vars.sum()
         self._array = vectors[:, 1+shift:]
         self._n_modes = len(self._eigvals)
-        LOGGER.debug('{0} modes were calculated in {1:.2f}s.'
-                     .format(self._n_modes, time.time()-start))
+        LOGGER.report('{0} modes were calculated in %.2fs.'
+                     .format(self._n_modes), label='_anm_calc_modes')
 
 
 def calcANM(pdb, selstr='calpha', cutoff=15., gamma=1., n_modes=20,
