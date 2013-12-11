@@ -18,8 +18,6 @@ class RTB(ANM):
 
     """Class for Rotations and Translations of Blocks (RTB) method ([FT00]_).
 
-    See a usage example in :ref:`anm`.
-
     .. [FT00] Tama F, Gadea FJ, Marques O, Sanejouand YH. Building-block
        approach for determining low-frequency normal modes of macromolecules.
        *Proteins* **2000** 41:1-7.
