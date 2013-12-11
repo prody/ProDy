@@ -16,7 +16,15 @@ __all__ = ['RTB']
 
 class RTB(ANM):
 
-    """Class for Rotating Translating Blocks (RTB) analysis of proteins."""
+    """Class for Rotations and Translations of Blocks (RTB) method ([FT00]_).
+
+    See a usage example in :ref:`anm`.
+
+    .. [FT00] Tama F, Gadea FJ, Marques O, Sanejouand YH. Building-block
+       approach for determining low-frequency normal modes of macromolecules.
+       *Proteins* **2000** 41:1-7.
+
+    """
 
     def buildHessian(self, coords, blocks, cutoff=15., gamma=1., **kwargs):
         """Build Hessian matrix for given coordinate set.
