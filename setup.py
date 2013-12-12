@@ -125,15 +125,16 @@ setup(
     package_dir=PACKAGE_DIR,
     package_data=PACKAGE_DATA,
     ext_modules=EXTENSIONS,
-    license='GPLv3',
+    license='MIT License',
     keywords=('protein, dynamics, elastic network model, '
               'Gaussian network model, anisotropic network model, '
               'essential dynamics analysis, principal component analysis, '
               'Protein Data Bank, PDB, GNM, ANM, PCA'),
     classifiers=[
-                 'Development Status :: 4 - Beta',
+                 'Development Status :: 5 - Production/Stable',
+                 'Intended Audience :: Education',
                  'Intended Audience :: Science/Research',
-                 'License :: OSI Approved :: GNU General Public License (GPL)',
+                 'License :: OSI Approved :: MIT License',
                  'Operating System :: MacOS',
                  'Operating System :: Microsoft :: Windows',
                  'Operating System :: POSIX',
