@@ -301,8 +301,8 @@ ProDy 1.4 Series
   * Fixed :class:`.NMA` indexing problem that was introduced in v1.4.
 
 
-:ref:`nmwiz`
-^^^^^^^^^^^^
+Normal Mode Wizard
+^^^^^^^^^^^^^^^^^^
 
   * NMWiz can visualize heatmaps linked to structural view via Heatmapper.
     Clicking on the heatmap will highlight atom or residue pairs.

@@ -133,8 +133,8 @@ ProDy 0.8 Series
   * A bug in :meth:`.AtomGroup.addCoordset` method duplicating coordinates
     when no coordinate sets are present in the instance is fixed.
 
-:ref:`nmwiz`
-^^^^^^^^^^^^
+Normal Mode Wizard
+^^^^^^^^^^^^^^^^^^
 
 **Changes**:
 

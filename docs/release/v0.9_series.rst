@@ -423,8 +423,8 @@ ProDy 0.9 Series
   * A problem in scripts for PCA of DCD files is fixed.
 
 
-:ref:`nmwiz`
-^^^^^^^^^^^^
+Normal Mode Wizard
+^^^^^^^^^^^^^^^^^^
 
 Development of NMWiz is finalized and it will not be distributed in the ProDy
 installation package anymore.  See :ref:`nmwiz` pages for instructions on

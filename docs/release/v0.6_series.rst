@@ -180,8 +180,8 @@ ProDy 0.6 Series
 
   * Bug fixes in :func:`.showSqFlucts` and :func:`.showProjection` functions.
 
-:ref:`nmwiz`
-^^^^^^^^^^^^
+Normal Mode Wizard
+^^^^^^^^^^^^^^^^^^
 
   * NMWiz can be used as a graphical interface to ProDy. ANM or PCA
     calculations can be performed for molecules that are loaded in VMD.

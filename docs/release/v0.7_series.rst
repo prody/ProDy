@@ -139,8 +139,8 @@ ProDy 0.7 Series
   * Default selection for :func:`.calcGNM` function is set to
     "calpha".
 
-:ref:`nmwiz`
-^^^^^^^^^^^^
+Normal Mode Wizard
+^^^^^^^^^^^^^^^^^^
 
 **New Features**:
 

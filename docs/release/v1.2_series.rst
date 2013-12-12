@@ -163,8 +163,8 @@ and :ref:`outputtraj`.
   * Fixed a bug in :ref:`prody-contacts` command that arose problems when
     when selecting a subset of the target atoms.
 
-:ref:`nmwiz`
-^^^^^^^^^^^^
+Normal Mode Wizard
+^^^^^^^^^^^^^^^^^^
 
 **Improvements**:
 
