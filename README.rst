@@ -1,6 +1,12 @@
 .. image:: https://secure.travis-ci.org/prody/ProDy.png?branch=master
    :target: http://travis-ci.org/#!/prody/ProDy
 
+.. image:: https://pypip.in/v/ProDy/badge.png
+   :target: https://pypi.python.org/pypi/ProDy
+
+.. image:: https://pypip.in/d/ProDy/badge.png
+   :target: https://crate.io/packages/ProDy/
+
 SYNOPSIS
 --------
 
