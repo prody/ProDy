@@ -65,7 +65,7 @@ Pyparsing
 -------------------------------------------------------------------------------
 
 The pyparsing_ module is distributed with the ProDy package.  Pyparsing is
-developed by Paul T. McGuire and is available under the `MIT license`_::
+developed by Paul T. McGuire and is available under the `MIT License`_::
 
   Permission is hereby granted, free of charge, to any person obtaining
   a copy of this software and associated documentation files (the
@@ -86,7 +86,6 @@ developed by Paul T. McGuire and is available under the `MIT license`_::
   TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
   SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-.. _MIT license: http://www.opensource.org/licenses/mit-license.php
 
 Argparse
 -------------------------------------------------------------------------------
