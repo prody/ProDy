@@ -24,7 +24,7 @@ GETTING PRODY
 You can run ProDy on all major platforms.  For download and installation
 instructions see:
 
-* http://www.csb.pitt.edu/ProDy/
+* http://prody.csb.pitt.edu/#downloads
 
 
 DOCUMENTATION
@@ -34,28 +34,27 @@ DOCUMENTATION
 
 * Tutorials: http://prody.csb.pitt.edu/#tutorials
 
-* Reference: http://prody.csb.pitt.edu/reference
+* Reference: http://prody.csb.pitt.edu/manual
 
 * Applications: http://prody.csb.pitt.edu/apps
 
-* NMWiz GUI: http://csb.pitt.edu/NMWiz
+* NMWiz GUI: http://prody.csb.pitt.edu/#nmwiz
 
-* Changes: http://prody.csb.pitt.edu/reference/changes
+* Changes: http://prody.csb.pitt.edu/manual/release
 
 
 SOURCE CODE
 -----------
 
-* Source code: https://github.com/abakan/ProDy
+* Source code: https://github.com/prody/ProDy
 
-* Issue tracker: https://github.com/abakan/ProDy/issues
+* Issue tracker: https://github.com/prody/ProDy/issues
 
 
 LICENSE
 -------
 
-ProDy is available under GNU General Public License version 3.
-See LICENSE.txt for more details.
+ProDy is available under MIT License. See LICENSE.txt for more details.
 
 Biopython (http://biopython.org/) KDTree and pairwise2 modules are distributed
 with ProDy. Biopython is developed by The Biopython Consortium and is available
