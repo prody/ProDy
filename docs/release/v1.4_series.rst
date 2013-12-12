@@ -362,5 +362,5 @@ Normal Mode Wizard
 
 **Bugfix**:
 
-  * Selection :bbissue:`12` and  :bbissue:`13` are resolved.
+  * Fixed selection issues involving use of ``x`` or negative numbers.
 
