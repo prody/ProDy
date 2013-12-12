@@ -2,13 +2,13 @@
 ProDy Documentation
 *******************
 
-.. only:: not rtd
+.. only:: not rtd and html
 
     Welcome to the official ProDy documentation. You can read
     these pages in `PDF <ProDy.pdf>`_ format too.
 
 
-.. only:: rtd
+.. only:: rtd and html
 
     This is a partial copy of ProDy documentation.  Please visit
     `ProDy Homepage <http://prody.csb.pitt.edu>`_ for complete
