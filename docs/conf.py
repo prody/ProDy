@@ -32,11 +32,14 @@ copyright = u'2010-2014, University of Pittsburgh'
 
 
 __version__ = ''
-_ = ('ProDy/prody/__init__.py', '../prody/__init__.py')
-with open(_[os.path.isfile(_[1])]) as inp:
-    statement = ''.join([line for line in inp
-                         if line.startswith('__v') or line.startswith('__r')])
-    exec(statement)
+for _ in ['../prody/__init__.py', # building docs
+          'ProDy/prody/__init__.py', # building complete website
+          '../../ProDy/prody/__init__.py']: # building tutorial PDFs
+    if os.path.isfile(_):
+        with open(_) as inp:
+            statement = ''.join([line for line in inp
+                                 if line[:3] in ('__v', '__r')])
+            exec(statement)
 version, release = __version__, __release__
 
 
