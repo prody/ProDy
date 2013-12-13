@@ -78,10 +78,10 @@ PACKAGE_DATA = {
 PACKAGE_DIR = {}
 for pkg in PACKAGES:
     PACKAGE_DIR[pkg] = join(*pkg.split('.'))
-
+from glob import glob
 EXTENSIONS = [
     Extension('prody.dynamics.rtbtools',
-              [join('prody', 'dynamics', 'rtbtools.c'),],
+              glob(join('prody', 'dynamics', '*.c')),
               include_dirs=[numpy.get_include()]),
     Extension('prody.sequence.msatools',
               [join('prody', 'sequence', 'msatools.c'),],
