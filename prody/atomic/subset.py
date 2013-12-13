@@ -135,7 +135,7 @@ class AtomSubset(AtomPointer):
             getattr(self, 'set' + ATOMIC_FIELDS[label].meth_pl)(data)
         else:
             try:
-                self._ag._data[label][self._index] = data
+                self._ag._data[label][self._indices] = data
             except KeyError:
                 raise AttributeError('data with label {0} must be set for '
                                      'AtomGroup first'.format(repr(label)))
@@ -158,7 +158,7 @@ class AtomSubset(AtomPointer):
         if flags is None:
             raise AttributeError('flags with label {0} must be set for '
                                     'AtomGroup first'.format(repr(label)))
-        flags[self._index] = value
+        flags[self._indices] = value
 
 
 for fname, field in ATOMIC_FIELDS.items():
