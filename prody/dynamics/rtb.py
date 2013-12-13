@@ -53,7 +53,17 @@ class RTB(ANM):
         if (natoms,) != blocks.shape:
             raise ValueError('blocks.shape must be (natoms,)')
 
-        nblocks = len(set(blocks))
+        from collections import Counter
+        counter = Counter(blocks)
+
+        nblocks = len(counter)
+        maxsize = 1
+        while counter:
+            _, size = counter.popitem()
+            if size > maxsize:
+                maxsize = size
+        LOGGER.info('System has {} blocks largest containing {} units.'
+                    .format(nblocks, maxsize))
         nb6 = nblocks * 6
 
         coords = coords.T.copy()
@@ -63,7 +73,8 @@ class RTB(ANM):
 
         from rtbtools import buildhessian
         buildhessian(coords, blocks, hessian, project,
-                     natoms, nblocks, float(cutoff), float(gamma))
+                     natoms, nblocks, maxsize,
+                     float(cutoff), float(gamma))
 
         LOGGER.report('Hessian was built in %.2fs.', label='_rtb')
 
@@ -87,3 +98,24 @@ class RTB(ANM):
         super(TRB, self).calcModes(n_modes, zeros, turbo)
 
         # do the projection here
+
+
+def test(pdb='2nwl-mem.pdb', blk='2nwl.blk'):
+
+    from prody import parsePDB
+    from numpy import zeros
+
+    pdb = parsePDB(pdb, subset='ca')
+    pdb.setData('block', zeros(len(pdb), int))
+
+    with open(blk) as inp:
+        for line in inp:
+            if line.startswith('BLOCK'):
+                _, b, n1, c1, r1, n2, c2, r2 = line.split()
+                sel = pdb.select('chain {} and resnum {} to {}'
+                                 .format(c1, r1, r2))
+                if sel:
+                    sel.setData('block', int(b))
+    rtb = RTB('2nwl')
+    rtb.buildHessian(pdb, pdb.getData('block'))
+
