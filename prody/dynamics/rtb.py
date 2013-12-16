@@ -13,6 +13,17 @@ from .anm import ANM
 
 __all__ = ['RTB']
 
+class Increment(object):
+
+    def __init__(self, s=0):
+
+        self._i = s
+
+    def __call__(self, i=1):
+
+        self._i += i
+        return self._i
+
 
 class RTB(ANM):
 
@@ -29,6 +40,9 @@ class RTB(ANM):
 
         :arg coords: a coordinate set or an object with ``getCoords`` method
         :type coords: :class:`numpy.ndarray`
+
+        :arg blocks: a list or array of block identifiers
+        :type blocks: list, :class:`numpy.ndarray`
 
         :arg cutoff: cutoff distance (Å) for pairwise interactions,
             default is 15.0 Å
@@ -50,10 +64,13 @@ class RTB(ANM):
 
         LOGGER.timeit('_rtb')
         natoms = coords.shape[0]
-        if (natoms,) != blocks.shape:
-            raise ValueError('blocks.shape must be (natoms,)')
+        if natoms != len(blocks):
+            raise ValueError('len(blocks) must match number of atoms')
+        from collections import Counter, defaultdict
+        i = Increment()
+        d = defaultdict(i)
+        blocks = np.array([d[b] for b in blocks], np.int64)
 
-        from collections import Counter
         counter = Counter(blocks)
 
         nblocks = len(counter)
@@ -62,8 +79,8 @@ class RTB(ANM):
             _, size = counter.popitem()
             if size > maxsize:
                 maxsize = size
-        LOGGER.info('System has {} blocks largest containing {} units.'
-                    .format(nblocks, maxsize))
+        LOGGER.info('System has {} blocks largest containing {} of {} units.'
+                    .format(nblocks, maxsize, natoms))
         nb6 = nblocks * 6
 
         coords = coords.T.copy()
