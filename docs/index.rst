@@ -1,6 +1,6 @@
-*******************
-ProDy Documentation
-*******************
+************
+ProDy Manual
+************
 
 .. only:: not rtd and html
 
