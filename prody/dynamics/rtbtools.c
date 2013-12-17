@@ -1,11 +1,15 @@
+/*****************************************************************************/
+/*                                                                           */
+/*                   Tools for RTB calculations in ProDy.                    */
+/*                                                                           */
+/*****************************************************************************/
 /* Author: Tim Lezon, Ahmet Bakan */
-
 #include "Python.h"
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 #include "numpy/arrayobject.h"
 
 
-/* Numerical Recipes definitions and macros */
+/* ---------- Numerical Recipes-specific definitions and macros ---------- */
 #define NR_END 1
 #define FREE_ARG char*
 
@@ -23,16 +27,9 @@ static int iminarg1,iminarg2;
 #define SIGN(a,b) ((b) >= 0.0 ? fabs(a) : -fabs(a))
 
 
-/* PDB file-related structures */
-typedef struct {int num;char chain;} Resid;
-typedef struct {float X[3];int model;} Atom_Line;
+/* Other structures */
+typedef struct {double X[3];int model;} Atom_Line;
 typedef struct {Atom_Line *atom;} PDB_File;
-
-/* Rigid block-related structures */
-typedef struct {char RES[4];char chain;int resnum;float disp;} Disp_Iso;
-typedef struct {char RES[4];char chain;int resnum;float X[3];} Disp_Aniso;
-typedef struct {int blknum;char LORES[4];char lochain;int lonum;char HIRES[4];char hichain;int hinum;} Rigid_Block;
-
 typedef struct {int **IDX;double *X;} dSparse_Matrix;
 
 
@@ -42,6 +39,7 @@ int bless_from_tensor(double **HB,double ***HT,int **CT,int nblx);
 int calc_blessian_mem(PDB_File *PDB,dSparse_Matrix *PP1,int nres,int nblx,
 		      int elm,double **HB,double cut,double gam);
 void copy_dsparse(dSparse_Matrix *A,dSparse_Matrix *B,int lo,int hi);
+void copy_prj_ofst(dSparse_Matrix *PP,double *proj,int elm,int bdim);
 void cross(double x[], double y[], double z[]);
 int dblock_projections2(dSparse_Matrix *PP,PDB_File *PDB,
 			int nres,int nblx,int bmx);
@@ -56,7 +54,7 @@ double ***zero_d3tensor(long nrl,long nrh,long ncl,long nch,long ndl,long ndh);
 double **zero_dmatrix(long nrl,long nrh,long ncl,long nch);
 
 
-/* ---------- Essential Numerical Recipes utilities ------------- */
+/* ---------- Essential Numerical Recipes routines ------------- */
 unsigned long *lvector(long nl, long nh);
 void free_lvector(unsigned long *v, long nl, long nh);
 void deigsrt(double d[], double **v, int n);
@@ -80,37 +78,38 @@ void dsvdcmp(double **a, int m, int n, double w[], double **v);
 
 
 
-
+/* "buildhessian" constructs a block Hessian and associated projection matrix 
+   by application of the ANM.  Atomic coordinates and block definitions are 
+   provided in 'coords' and 'blocks'; ANM parameters are provided in 'cutoff' 
+   and 'gamma'.  On successful termination, the block Hessian is stored in 
+   'hessian', and the projection matrix between block and all-atom spaces is 
+   in 'projection'. */
 static PyObject *buildhessian(PyObject *self, PyObject *args, PyObject *kwargs) {
-  /* C-specific variables for RTB routines */
   PDB_File PDB;
   dSparse_Matrix PP,HH;
-  double **HB;
-  int elm,bdim,i,j;
-
-
   PyArrayObject *coords, *blocks, *hessian, *projection;
+  double *XYZ,*hess,*proj;
+  long *BLK;
+  double **HB;
   double cutoff = 15., gamma = 1.;
   int natm, nblx, bmx;
+  int hsize,elm,bdim,i,j;
 
   static char *kwlist[] = {"coords", "blocks", "hessian", "projection",
 			   "natoms", "nblocks", "maxsize", "cutoff",
 			   "gamma", NULL};
-
-
 
   if (!PyArg_ParseTupleAndKeywords(args, kwargs, "OOOOiii|dd", kwlist,
 				   &coords, &blocks, &hessian, &projection,
 				   &natm, &nblx, &bmx, &cutoff, &gamma))
     return NULL;
 
-  double *XYZ = (double *) PyArray_DATA(coords);
-  long *BLK = (long *) PyArray_DATA(blocks);
-  double *hess = (double *) PyArray_DATA(hessian);
-  double *proj = (double *) PyArray_DATA(projection);
+  XYZ = (double *) PyArray_DATA(coords);
+  BLK = (long *) PyArray_DATA(blocks);
+  hess = (double *) PyArray_DATA(hessian);
+  proj = (double *) PyArray_DATA(projection);
 
 
-  /* ---------- This is where the body of the function goes. -------- */
 
   /* First allocate a PDB_File object to hold the coordinates and block
      indices of the atoms.  This wastes a bit of memory, but it prevents
@@ -127,8 +126,9 @@ static PyObject *buildhessian(PyObject *self, PyObject *args, PyObject *kwargs) 
 
 
   /* Find the projection matrix */
-  HH.IDX=imatrix(1,18*bmx*nblx,1,2);
-  HH.X=dvector(1,18*bmx*nblx);
+  hsize = 18*bmx*nblx > 12*natm ? 12*natm : 18*bmx*nblx;
+  HH.IDX=imatrix(1,hsize,1,2);
+  HH.X=dvector(1,hsize);
   elm=dblock_projections2(&HH,&PDB,natm,nblx,bmx);
   PP.IDX=imatrix(1,elm,1,2);
   PP.X=dvector(1,elm);
@@ -137,8 +137,8 @@ static PyObject *buildhessian(PyObject *self, PyObject *args, PyObject *kwargs) 
     PP.IDX[i][2]=HH.IDX[i][2];
     PP.X[i]=HH.X[i];
   }
-  free_imatrix(HH.IDX,1,18*bmx*nblx,1,2);
-  free_dvector(HH.X,1,18*bmx*nblx);
+  free_imatrix(HH.IDX,1,hsize,1,2);
+  free_dvector(HH.X,1,hsize);
   dsort_PP2(&PP,elm,1);
 
 
@@ -146,16 +146,14 @@ static PyObject *buildhessian(PyObject *self, PyObject *args, PyObject *kwargs) 
   HB=dmatrix(1,6*nblx,1,6*nblx);
   bdim=calc_blessian_mem(&PDB,&PP,natm,nblx,elm,HB,cutoff,gamma);
 
-  /*
-     Put the block Hessian and projection matrix into Python objects:
-     HH[i][j] = hess[6*nblx*(i-1)+j-1]
-     PP[i].X = proj[6*nblx*(PP[i].IDX[1]-1)+PP[i].IDX[2]-1
-  */
+
+  /* Cast the block Hessian and projection matrix into 1D arrays. */
+  copy_prj_ofst(&PP,proj,elm,bdim);
   for(i=1;i<=bdim;i++)
     for(j=1;j<=bdim;j++)
       hess[bdim*(i-1)+j-1]=HB[i][j];
-  for(i=1;i<=elm;i++)
-    proj[bdim*(PP.IDX[i][1]-1) + PP.IDX[i][2]-1] = PP.X[i];
+
+  /* TODO: Convert the arrays 'hess' and 'proj' into Numpy arrays */
 
 
   free(PDB.atom);
@@ -207,7 +205,6 @@ PyMODINIT_FUNC initrtbtools(void) {
 int bless_from_tensor(double **HB,double ***HT,int **CT,int nblx)
 {
   int *I1,*I2,i,j,p,sb,ii,jj,max,a,b,imx;
-
 
   max=6*nblx;
   I1=ivector(1,max);
@@ -357,6 +354,36 @@ int calc_blessian_mem(PDB_File *PDB,dSparse_Matrix *PP1,int nres,int nblx,
 }
 
 
+
+/* "copy_prj_ofst" copies the projection matrix to the Python object, 
+   offsetting the column elements if there are blocks with fewer than 
+   six degrees of freedom. 
+   PP[i].X = proj[6*nblx*(PP[i].IDX[1]-1)+PP[i].IDX[2]-1
+*/
+void copy_prj_ofst(dSparse_Matrix *PP,double *proj,int elm,int bdim)
+{
+  int *I1,*I2,max=0,i,j=0;
+
+  for(i=1;i<=elm;i++)
+    if(PP->IDX[i][2]>max)
+      max=PP->IDX[i][2];
+  I1=ivector(1,max);
+  I2=ivector(1,max);
+  for(i=1;i<=max;i++) I1[i]=0;
+  for(i=1;i<=elm;i++)
+    I1[PP->IDX[i][2]]=PP->IDX[i][2];
+  for(i=1;i<=max;i++){
+    if(I1[i]!=0) j++;
+    I2[i]=j;
+  }
+  for(i=1;i<=elm;i++)
+    if(PP->X[i]!=0.0)
+      proj[bdim*(PP->IDX[i][1]-1) + I2[PP->IDX[i][2]] - 1] = PP->X[i];
+  free_ivector(I1,1,max);
+  free_ivector(I2,1,max);
+}
+
+
 /* "copy_dsparse" COPIES ELEMENTS lo THROUGH hi
    OF SPARSE MATRIX 'A' TO SPARSE MATRIX 'B' */
 void copy_dsparse(dSparse_Matrix *A,dSparse_Matrix *B,int lo,int hi)
@@ -453,7 +480,6 @@ int dblock_projections2(dSparse_Matrix *PP,PDB_File *PDB,
     dsvdcmp(IC,3,3,W,A);
     deigsrt(W,A,3);
     righthand2(W,A,3);
-    /* must this be a right-handed coordinate system? */
 
     /* FIND ITS SQUARE ROOT */
     for(i=1;i<=3;i++)
@@ -465,7 +491,7 @@ int dblock_projections2(dSparse_Matrix *PP,PDB_File *PDB,
       }
 
     /* UPDATE PP WITH THE RIGID MOTIONS OF THE BLOCK */
-    tr=1.0/sqrt((float)nbp);
+    tr=1.0/sqrt((double)nbp);
     for(i=1;i<=nbp;i++){
 
       /* TRANSLATIONS: 3*(IDX[i]-1)+1 = x-COORDINATE OF RESIDUE IDX[i];
@@ -662,9 +688,10 @@ void hess_superrow_mem(double **HR,int **CT,PDB_File *PDB,int nres,
 
 
 	    /* -------- MEMBRANE RULES -------- */
-	    /* Scale lateral components */
+	    /* Scale lateral components 
 	    if(i!=3) df*=scl;
 	    if(j!=3) df*=scl;
+	    */
 
 
 
@@ -683,14 +710,6 @@ void hess_superrow_mem(double **HR,int **CT,PDB_File *PDB,int nres,
 	  for(j=1;j<=3;j++)
 	    HR[3*(jj-1)+i][j]=HR[3*(jj-1)+j][i]=0.0;
     } /* <---- if(jj!=who &&...) */
-
-
-    /* **** THIS IS PROBABLY NOT NECESSARY, AS THESE ELEMENTS ARE LIKELY
-       NOT USED IN PROJECTING INTO THE BLOCK SPACE **** */
-    else if(jj!=who && PDB->atom[jj].model!=0)
-      for(i=1;i<=3;i++)
-	for(j=1;j<=3;j++)
-	  HR[3*(jj-1)+i][j]=HR[3*(jj-1)+j][i]=0.0;
   }
 }
 
