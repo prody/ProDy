@@ -1,6 +1,7 @@
 /* Author: Tim Lezon, Ahmet Bakan */
 
 #include "Python.h"
+#define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 #include "numpy/arrayobject.h"
 
 
@@ -93,7 +94,7 @@ static PyObject *buildhessian(PyObject *self, PyObject *args, PyObject *kwargs) 
   int natm, nblx, bmx;
 
   static char *kwlist[] = {"coords", "blocks", "hessian", "projection",
-			   "natoms", "nblocks", "maxsize", "cutoff", 
+			   "natoms", "nblocks", "maxsize", "cutoff",
 			   "gamma", NULL};
 
 
@@ -111,9 +112,9 @@ static PyObject *buildhessian(PyObject *self, PyObject *args, PyObject *kwargs) 
 
   /* ---------- This is where the body of the function goes. -------- */
 
-  /* First allocate a PDB_File object to hold the coordinates and block 
-     indices of the atoms.  This wastes a bit of memory, but it prevents 
-     the need to re-write all of the RTB functions that are used in 
+  /* First allocate a PDB_File object to hold the coordinates and block
+     indices of the atoms.  This wastes a bit of memory, but it prevents
+     the need to re-write all of the RTB functions that are used in
      standalone C code. */
   PDB.atom=malloc((size_t)((natm+2)*sizeof(Atom_Line)));
   if(!PDB.atom) return PyErr_NoMemory();
@@ -139,13 +140,13 @@ static PyObject *buildhessian(PyObject *self, PyObject *args, PyObject *kwargs) 
   free_imatrix(HH.IDX,1,18*bmx*nblx,1,2);
   free_dvector(HH.X,1,18*bmx*nblx);
   dsort_PP2(&PP,elm,1);
-  
+
 
   /* Calculate the block Hessian */
   HB=dmatrix(1,6*nblx,1,6*nblx);
   bdim=calc_blessian_mem(&PDB,&PP,natm,nblx,elm,HB,cutoff,gamma);
 
-  /* 
+  /*
      Put the block Hessian and projection matrix into Python objects:
      HH[i][j] = hess[6*nblx*(i-1)+j-1]
      PP[i].X = proj[6*nblx*(PP[i].IDX[1]-1)+PP[i].IDX[2]-1
@@ -155,11 +156,11 @@ static PyObject *buildhessian(PyObject *self, PyObject *args, PyObject *kwargs) 
       hess[bdim*(i-1)+j-1]=HB[i][j];
   for(i=1;i<=elm;i++)
     proj[bdim*(PP.IDX[i][1]-1) + PP.IDX[i][2]-1] = PP.X[i];
-  
+
 
   free(PDB.atom);
   free_dmatrix(HB,1,6*nblx,1,6*nblx);
-  
+
 
   Py_RETURN_NONE;
 }
@@ -201,20 +202,20 @@ PyMODINIT_FUNC initrtbtools(void) {
 
 
 
-/* "bless_from_tensor" transfers the block Hessian 
+/* "bless_from_tensor" transfers the block Hessian
    from  the tensor HT into the array HB */
 int bless_from_tensor(double **HB,double ***HT,int **CT,int nblx)
 {
   int *I1,*I2,i,j,p,sb,ii,jj,max,a,b,imx;
 
-  
+
   max=6*nblx;
   I1=ivector(1,max);
   I2=ivector(1,max);
 
-  /* I1[i]==i iff there is a non-zero element in column i 
+  /* I1[i]==i iff there is a non-zero element in column i
      (removes zeroes that are caused by single-node blocks) */
-  for(i=1;i<=max;i++){ 
+  for(i=1;i<=max;i++){
     I1[i]=0;
     for(j=i;j<=max;j++)
       HB[i][j]=HB[j][i]=0.0;
@@ -260,7 +261,7 @@ int bless_from_tensor(double **HB,double ***HT,int **CT,int nblx)
   free_ivector(I2,1,max);
   return imx;
 }
-  
+
 
 /* "calc_blessian_mem" calculates the block Hessian. */
 int calc_blessian_mem(PDB_File *PDB,dSparse_Matrix *PP1,int nres,int nblx,
@@ -312,7 +313,7 @@ int calc_blessian_mem(PDB_File *PDB,dSparse_Matrix *PP1,int nres,int nblx,
 
       /* ----------------- FIND SUPER-ROW OF FULL HESSIAN --------------- */
       hess_superrow_mem(HR,CT,PDB,nres,ii,cut,gam);
-	  
+
 
       /* Update elements of block hessian */
       q1=BST1[3*(ii-1)+2];
@@ -356,7 +357,7 @@ int calc_blessian_mem(PDB_File *PDB,dSparse_Matrix *PP1,int nres,int nblx,
 }
 
 
-/* "copy_dsparse" COPIES ELEMENTS lo THROUGH hi 
+/* "copy_dsparse" COPIES ELEMENTS lo THROUGH hi
    OF SPARSE MATRIX 'A' TO SPARSE MATRIX 'B' */
 void copy_dsparse(dSparse_Matrix *A,dSparse_Matrix *B,int lo,int hi)
 {
@@ -379,7 +380,7 @@ void cross(double x[], double y[], double z[])
 }
 
 
-/* "dblock_projections2" CALCULATES THE PROJECTION 
+/* "dblock_projections2" CALCULATES THE PROJECTION
    FROM FULL RESIDUE SPACE TO RIGID BLOCK SPACE */
 int dblock_projections2(dSparse_Matrix *PP,PDB_File *PDB,
 			int nres,int nblx,int bmx)
@@ -419,7 +420,7 @@ int dblock_projections2(dSparse_Matrix *PP,PDB_File *PDB,
 	  x=(double)PDB->atom[i].X[j-1];
 	  X[nbp][j]=x;
 	  CM[j]+=x;
-	}   
+	}
       }
     }
 
@@ -506,7 +507,7 @@ int dblock_projections2(dSparse_Matrix *PP,PDB_File *PDB,
 }
 
 
-/* "dsort_PP2" SORTS THE PROJECTION MATRIX IN ASCENDING ORDER OF THE  
+/* "dsort_PP2" SORTS THE PROJECTION MATRIX IN ASCENDING ORDER OF THE
    INDEX 'idx'.  ADAPTED FROM THE NUMERICAL RECIPES 'HEAPSORT' ROUTINE. */
 void dsort_PP2(dSparse_Matrix *MM,int n,int idx)
 {
@@ -536,7 +537,7 @@ void dsort_PP2(dSparse_Matrix *MM,int n,int idx)
       i1=MM->IDX[l][idx];
       i2=MM->IDX[l][ndx];
       x=MM->X[l];
-    } 
+    }
     else {
       rra=ra[ir];
       i1=MM->IDX[ir][idx];
@@ -577,8 +578,8 @@ void dsort_PP2(dSparse_Matrix *MM,int n,int idx)
 
 
 
-/* "find_contacts1" FINDS WHICH BLOCKS ARE IN CONTACT, AND ASSIGNS EACH 
-   PAIR OF CONTACTING BLOCKS A UNIQUE INDEX.  IT RETURNS THE TOTAL NUMBER 
+/* "find_contacts1" FINDS WHICH BLOCKS ARE IN CONTACT, AND ASSIGNS EACH
+   PAIR OF CONTACTING BLOCKS A UNIQUE INDEX.  IT RETURNS THE TOTAL NUMBER
    OF CONTACTS BETWEEN BLOCKS. */
 int find_contacts1(int **CT,PDB_File *PDB,int nres,int nblx,double cut)
 {
@@ -589,7 +590,7 @@ int find_contacts1(int **CT,PDB_File *PDB,int nres,int nblx,double cut)
     ii=PDB->atom[i].model;
     for(j=i+1;j<=nres;j++){
       jj=PDB->atom[j].model;
-      
+
       if(ii!=jj && ii!=0 && jj!=0 && CT[ii][jj]==0){
 	dd=0.0;
 	for(k=0;k<3;k++){
@@ -599,7 +600,7 @@ int find_contacts1(int **CT,PDB_File *PDB,int nres,int nblx,double cut)
 	if(dd<csq)
 	  CT[ii][jj]=CT[jj][ii]=1;
       }
-      
+
     }
   }
   nc=0;
@@ -613,8 +614,8 @@ int find_contacts1(int **CT,PDB_File *PDB,int nres,int nblx,double cut)
 }
 
 
-/* "hess_superrow_mem" calculates the 'who'-th super-row 
-   of the Hessian, using 'cut' as the cutoff and 'gam' as the 
+/* "hess_superrow_mem" calculates the 'who'-th super-row
+   of the Hessian, using 'cut' as the cutoff and 'gam' as the
    spring constant for all interactions. */
 void hess_superrow_mem(double **HR,int **CT,PDB_File *PDB,int nres,
 		    int who,double cut,double gam)
@@ -630,13 +631,13 @@ void hess_superrow_mem(double **HR,int **CT,PDB_File *PDB,int nres,
   /* Calculate the submatrices */
   for(jj=1;jj<=nres;jj++){
 
-    /* NOTE: 'scalefunc0' may be inserted here later to permit uniform 
+    /* NOTE: 'scalefunc0' may be inserted here later to permit uniform
        z-scaling inside membrane:
     scl=scalefunc0(PDB->atom[who].X[2],PDB->atom[jj].X[2]);
     */
     scl=1.0;
 
-    if(jj!=who && PDB->atom[jj].model!=0 && 
+    if(jj!=who && PDB->atom[jj].model!=0 &&
        CT[PDB->atom[who].model][PDB->atom[jj].model]!=0){
       dsq=0.0;
       for(k=0;k<3;k++){
@@ -654,7 +655,7 @@ void hess_superrow_mem(double **HR,int **CT,PDB_File *PDB,int nres,
 
 	    /* Strong backbone bonds:
 	       May be implemented later
-	    if((int)fabs(PDB->atom[who].resnum-PDB->atom[jj].resnum)==1 && 
+	    if((int)fabs(PDB->atom[who].resnum-PDB->atom[jj].resnum)==1 &&
 	       PDB->atom[who].chain==PDB->atom[jj].chain)
 	      df*=100.0;
 	    */
@@ -669,7 +670,7 @@ void hess_superrow_mem(double **HR,int **CT,PDB_File *PDB,int nres,
 
 	    /* Off-diagonal super-elements */
 	    HR[3*(jj-1)+i][j]=HR[3*(jj-1)+j][i]=-df;
-	      
+
 	    /* Diagonal super-elements */
 	    HR[3*(who-1)+i][j]+=df;
 	    if(i!=j)
@@ -695,8 +696,8 @@ void hess_superrow_mem(double **HR,int **CT,PDB_File *PDB,int nres,
 
 
 
-/* "init_bst" INITIALIZES THE n-COMPONENT VECTOR 'BST': GIVEN THE 'elm' 
-   ELEMENT SPARSE MATRIX 'PP', SORTED BY INDEX 'idx', INITIALIZES 'BST' 
+/* "init_bst" INITIALIZES THE n-COMPONENT VECTOR 'BST': GIVEN THE 'elm'
+   ELEMENT SPARSE MATRIX 'PP', SORTED BY INDEX 'idx', INITIALIZES 'BST'
    SUCH THAT FOR ALL j: BST[i]<=j<BST[i+1], PP->IDX[j][idx]=i */
 void init_bst(int *BST,dSparse_Matrix *PP,int elm,int n,int idx)
 {
@@ -711,7 +712,7 @@ void init_bst(int *BST,dSparse_Matrix *PP,int elm,int n,int idx)
 }
 
 
-/* "righthand2" MAKES SURE THAT THE EIGENVECTORS 
+/* "righthand2" MAKES SURE THAT THE EIGENVECTORS
    FORM A RIGHT-HANDED COORDINATE SYSTEM */
 void righthand2(double *VAL,double **VEC,int n)
 {
@@ -752,7 +753,7 @@ int **unit_imatrix(long lo,long hi)
 
 
 
-/* "zero_d3tensor" ALLOCATES MEMORY FOR A DOUBLE 
+/* "zero_d3tensor" ALLOCATES MEMORY FOR A DOUBLE
    3-TENSOR AND INITIALIZES IT TO ZERO */
 double ***zero_d3tensor(long nrl,long nrh,long ncl,long nch,long ndl,long ndh)
 {
@@ -769,7 +770,7 @@ double ***zero_d3tensor(long nrl,long nrh,long ncl,long nch,long ndl,long ndh)
 
 
 
-/* "zero_dmatrix" ALLOCATES MEMORY FOR A 
+/* "zero_dmatrix" ALLOCATES MEMORY FOR A
    DOUBLE MATRIX AND INITIALIZES IT TO ZERO */
 double **zero_dmatrix(long nrl,long nrh,long ncl,long nch)
 {

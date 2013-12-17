@@ -1,4 +1,5 @@
 #include "Python.h"
+#define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 #include "numpy/arrayobject.h"
 #define LENLABEL 100
 #define FASTALINELEN 1000
@@ -182,7 +183,7 @@ static PyObject *writeFasta(PyObject *self, PyObject *args, PyObject *kwargs) {
     /* make sure to have a contiguous and well-behaved array */
     msa = PyArray_GETCONTIGUOUS(msa);
 
-    long numseq = msa->dimensions[0], lenseq = msa->dimensions[1];
+    long numseq = PyArray_DIMS(msa)[0], lenseq = PyArray_DIMS(msa)[1];
 
     if (numseq != PyList_Size(labels)) {
         PyErr_SetString(PyExc_ValueError,
@@ -196,7 +197,7 @@ static PyObject *writeFasta(PyObject *self, PyObject *args, PyObject *kwargs) {
     int remainder = lenseq - line_length * nlines;
     int i, j, k;
     int count = 0;
-    char *seq = msa->data;
+    char *seq = PyArray_DATA(msa);
     int lenmsa = strlen(seq);
     #if PY_MAJOR_VERSION >= 3
     PyObject *plabel;
@@ -334,7 +335,7 @@ static PyObject *writeSelex(PyObject *self, PyObject *args, PyObject *kwargs) {
     /* make sure to have a contiguous and well-behaved array */
     msa = PyArray_GETCONTIGUOUS(msa);
 
-    long numseq = msa->dimensions[0], lenseq = msa->dimensions[1];
+    long numseq = PyArray_DIMS(msa)[0], lenseq = PyArray_DIMS(msa)[1];
 
     if (numseq != PyList_Size(labels)) {
         PyErr_SetString(PyExc_ValueError,
@@ -346,7 +347,7 @@ static PyObject *writeSelex(PyObject *self, PyObject *args, PyObject *kwargs) {
 
     int i, j;
     int pos = 0;
-    char *seq = msa->data;
+    char *seq = PyArray_DATA(msa);
     if (stockholm)
         fprintf(file, "# STOCKHOLM 1.0\n");
 
