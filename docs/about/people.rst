@@ -9,7 +9,8 @@ with support from NIH R01 GM099738 award.
 Development Team
 ----------------
 
-`Ahmet Bakan`_ initiated the ProDy project and designed and developed the API.
+`Ahmet Bakan`_ initiated the ProDy project and designed and developed the
+ProDy, NMWiz, Evol, and DruGUI.
 
 `Chakra Chennubhotla`_ is currently overseeing the overall development of
 ProDy.
