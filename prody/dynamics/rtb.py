@@ -69,7 +69,7 @@ class RTB(ANMBase):
                                 'with `getCoords` method')
 
         LOGGER.timeit('_rtb')
-        self._n_atoms = natoms = coords.shape[0]
+        self._n_atoms = natoms = int(coords.shape[0])
         if natoms != len(blocks):
             raise ValueError('len(blocks) must match number of atoms')
         from collections import defaultdict
