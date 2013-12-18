@@ -3,19 +3,19 @@
 People
 ===============================================================================
 
-ProDy is being developed in `Bahar Lab`_ at the `University of Pittsburgh`_
+*ProDy* is being developed in `Bahar Lab`_ at the `University of Pittsburgh`_
 with support from NIH R01 GM099738 award.
 
 Development Team
 ----------------
 
-`Ahmet Bakan`_ initiated the ProDy project and designed and developed the
-ProDy, NMWiz, Evol, and DruGUI.
+`Ahmet Bakan`_ initiated the *ProDy* project, designed and developed
+*ProDy*, *NMWiz*, *Evol*, and *DruGUI*.
 
 `Chakra Chennubhotla`_ is currently overseeing the overall development of
-ProDy.
+*ProDy*.
 
-`Anindita Dutta`_ contributed to the development of Evol,
+`Anindita Dutta`_ contributed to the development of *Evol*,
 :mod:`.database` and :mod:`~.prody.sequence` modules.
 
 `Tim Lezon`_ contributed to development of Rotations and Translation of
@@ -24,7 +24,7 @@ Blocks and Membrane ENM models.
 
 `Wenzhi Mao`_ contributed to development of MSA analysis functions.
 
-`Lidio Meireles`_ provided insightful comments on the design of ProDy,
+`Lidio Meireles`_ provided insightful comments on the design of *ProDy*,
 and contributed to the development of :ref:`prody-apps`.
 
 Contributors
