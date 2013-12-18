@@ -104,7 +104,7 @@ class RTB(ANMBase):
         self._hessian = hessian = np.zeros((nb6, nb6), float)
         self._project = project = np.zeros((natoms * 3, nb6), float)
 
-        from rtbtools import buildhessian
+        from .rtbtools import buildhessian
         buildhessian(coords, blocks, hessian, project,
                      natoms, nblocks, maxsize,
                      float(cutoff), float(gamma))
