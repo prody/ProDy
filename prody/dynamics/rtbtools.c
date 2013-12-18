@@ -28,7 +28,7 @@ static int iminarg1,iminarg2;
 
 
 /* Other structures */
-typedef struct {double X[3];int model;} Atom_Line;
+typedef struct {float X[3];int model;} Atom_Line;
 typedef struct {Atom_Line *atom;} PDB_File;
 typedef struct {int **IDX;double *X;} dSparse_Matrix;
 
@@ -153,10 +153,10 @@ static PyObject *buildhessian(PyObject *self, PyObject *args, PyObject *kwargs) 
     for(j=1;j<=bdim;j++)
       hess[bdim*(i-1)+j-1]=HB[i][j];
 
-  /* TODO: Convert the arrays 'hess' and 'proj' into Numpy arrays */
-
 
   free(PDB.atom);
+  free_imatrix(PP.IDX,1,elm,1,2);
+  free_dvector(PP.X,1,elm);
   free_dmatrix(HB,1,6*nblx,1,6*nblx);
 
 
