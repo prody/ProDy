@@ -9,7 +9,7 @@ from prody.atomic import Atomic, AtomGroup
 from prody.proteins import parsePDB
 from prody.utilities import importLA, checkCoords
 
-from .anm import ANM
+from .anm import ANMBase
 
 __all__ = ['RTB']
 
@@ -25,7 +25,7 @@ class Increment(object):
         return self._i
 
 
-class RTB(ANM):
+class RTB(ANMBase):
 
     """Class for Rotations and Translations of Blocks (RTB) method ([FT00]_).
 
@@ -34,6 +34,12 @@ class RTB(ANM):
        *Proteins* **2000** 41:1-7.
 
     """
+
+    def __init__(self, name='Unknown'):
+
+        super(RTB, self).__init__(name)
+        self._project = None
+
 
     def buildHessian(self, coords, blocks, cutoff=15., gamma=1., **kwargs):
         """Build Hessian matrix for given coordinate set.
@@ -63,7 +69,7 @@ class RTB(ANM):
                                 'with `getCoords` method')
 
         LOGGER.timeit('_rtb')
-        natoms = coords.shape[0]
+        self._n_atoms = natoms = coords.shape[0]
         if natoms != len(blocks):
             raise ValueError('len(blocks) must match number of atoms')
         from collections import Counter, defaultdict
@@ -75,13 +81,16 @@ class RTB(ANM):
 
         nblocks = len(counter)
         maxsize = 1
+        nones = 0
         while counter:
             _, size = counter.popitem()
+            if size == 1:
+                nones += 1
             if size > maxsize:
                 maxsize = size
         LOGGER.info('System has {} blocks largest containing {} of {} units.'
                     .format(nblocks, maxsize, natoms))
-        nb6 = nblocks * 6
+        nb6 = nblocks * 6 - nones * 3
 
         coords = coords.T.copy()
 
@@ -95,6 +104,15 @@ class RTB(ANM):
 
         LOGGER.report('Hessian was built in %.2fs.', label='_rtb')
 
+    def getProjection(self):
+        """Return a copy of the projection matrix."""
+
+        if self._project is not None:
+            return self._project.copy()
+
+    def _getProjection(self):
+
+        return self._project
 
     def calcModes(self, n_modes=20, zeros=False, turbo=True):
         """Calculate normal modes.  This method uses :func:`scipy.linalg.eigh`
@@ -112,9 +130,9 @@ class RTB(ANM):
         :type turbo: bool, default is ``True``
         """
 
-        super(TRB, self).calcModes(n_modes, zeros, turbo)
+        super(RTB, self).calcModes(n_modes, zeros, turbo)
 
-        # do the projection here
+        self._array = np.dot(self._project, self._array)
 
 
 def test(pdb='2nwl-mem.pdb', blk='2nwl.blk'):
@@ -124,7 +142,6 @@ def test(pdb='2nwl-mem.pdb', blk='2nwl.blk'):
 
     pdb = parsePDB(pdb, subset='ca')
     pdb.setData('block', zeros(len(pdb), int))
-
     with open(blk) as inp:
         for line in inp:
             if line.startswith('BLOCK'):
@@ -133,6 +150,10 @@ def test(pdb='2nwl-mem.pdb', blk='2nwl.blk'):
                                  .format(c1, r1, r2))
                 if sel:
                     sel.setData('block', int(b))
+    pdb.setBetas(pdb.getData('block'))
+    from prody import writePDB
+    writePDB('pdb2gb1_truncated.pdb', pdb)
     rtb = RTB('2nwl')
     rtb.buildHessian(pdb, pdb.getData('block'))
+    return rtb
 
