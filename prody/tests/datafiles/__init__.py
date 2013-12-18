@@ -58,6 +58,12 @@ DATA_FILES = {
         'n_atoms': 76,
         'models': 1
     },
+    '2gb1_truncated': {
+        'pdb': '2gb1',
+        'file': 'pdb2gb1_truncated.pdb',
+        'n_atoms': 26,
+        'models': 1
+    },
     'dcd': {
         'file': 'dcd2k39_truncated.dcd',
         'atoms': 167,
@@ -80,6 +86,12 @@ DATA_FILES = {
     },
     'gnm1ubi_vectors': {
         'file': 'gnm1ubi_vectors.dat'
+    },
+    'rtb2gb1_hessian': {
+        'file': 'rtb2gb1_hessian.coo'
+    },
+    'rtb2gb1_project': {
+        'file': 'rtb2gb1_project.coo'
     },
     'sti': {
         'file': 'xmlSTI.xml'

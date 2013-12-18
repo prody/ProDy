@@ -35,6 +35,12 @@ gnm = GNM()
 gnm.buildKirchhoff(ATOMS)
 gnm.calcModes(n_modes=None, zeros=True)
 
+ATOMS2 = parseDatafile('2gb1_truncated')
+rtb = RTB()
+rtb.buildHessian(ATOMS2, ATOMS2.getBetas().astype(int))
+RTB_HESSIAN = parseDatafile('rtb2gb1_hessian', symmetric=True)
+RTB_PROJECT = parseDatafile('rtb2gb1_project')
+
 class testGNMBase(unittest.TestCase):
 
     def setUp(self):
@@ -278,6 +284,25 @@ class TestGNMCalcModes(unittest.TestCase):
 
     def setUp():
         pass
+
+class TestRTB(unittest.TestCase):
+
+    def testHessian(self):
+
+        assert_allclose(RTB_HESSIAN, rtb._getHessian(),
+                        rtol=0, atol=ATOL,
+                        err_msg='expected Hessian is not produced')
+
+    def testProjection(self):
+
+        assert_allclose(RTB_PROJECT, rtb._getProjection(),
+                        rtol=0, atol=ATOL,
+                        err_msg='expected projection matrix is not produced')
+
+
+    def testCalcModes(self):
+
+        rtb.calcModes()
 
 if __name__ == '__main__':
     unittest.main()
