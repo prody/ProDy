@@ -72,12 +72,19 @@ class RTB(ANMBase):
         self._n_atoms = natoms = coords.shape[0]
         if natoms != len(blocks):
             raise ValueError('len(blocks) must match number of atoms')
-        from collections import Counter, defaultdict
+        from collections import defaultdict
         i = Increment()
         d = defaultdict(i)
         blocks = np.array([d[b] for b in blocks], np.int64)
 
-        counter = Counter(blocks)
+        try:
+            from collections import Counter
+        except ImportError:
+            counter = defaultdict(int)
+            for b in blocks:
+                counter[b] += 1
+        else:
+            counter = Counter(blocks)
 
         nblocks = len(counter)
         maxsize = 1
