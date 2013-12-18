@@ -27,7 +27,7 @@ class GNMBase(NMA):
 
     def __init__(self, name='Unknown'):
 
-        NMA.__init__(self, name)
+        super(GNMBase, self).__init__(name)
         self._is3d = False
         self._cutoff = None
         self._kirchhoff = None
