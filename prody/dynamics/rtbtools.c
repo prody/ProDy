@@ -37,7 +37,8 @@ typedef struct {int **IDX;double *X;} dSparse_Matrix;
 /* --------- These functions are essential --------- */
 int bless_from_tensor(double **HB,double ***HT,int **CT,int nblx);
 int calc_blessian_mem(PDB_File *PDB,dSparse_Matrix *PP1,int nres,int nblx,
-		      int elm,double **HB,double cut,double gam);
+		      int elm,double **HB,double cut,double gam,double scl,
+		      double mlo,double mhi);
 void copy_dsparse(dSparse_Matrix *A,dSparse_Matrix *B,int lo,int hi);
 void copy_prj_ofst(dSparse_Matrix *PP,double *proj,int elm,int bdim);
 void cross(double x[], double y[], double z[]);
@@ -46,7 +47,8 @@ int dblock_projections2(dSparse_Matrix *PP,PDB_File *PDB,
 void dsort_PP2(dSparse_Matrix *MM,int n,int idx);
 int find_contacts1(int **CT,PDB_File *PDB,int nres,int nblx,double cut);
 void hess_superrow_mem(double **HR,int **CT,PDB_File *PDB,int nres,
-		       int who,double cut,double gam);
+		       int who,double cut,double gam,double mscl,double mlo,
+		       double mhi);
 void init_bst(int *BST,dSparse_Matrix *PP,int elm,int n,int idx);
 void righthand2(double *VAL,double **VEC,int n);
 int **unit_imatrix(long lo,long hi);
@@ -91,17 +93,18 @@ static PyObject *buildhessian(PyObject *self, PyObject *args, PyObject *kwargs) 
   double *XYZ,*hess,*proj;
   long *BLK;
   double **HB;
-  double cutoff = 15., gamma = 1.;
+  double cutoff = 15., gamma = 1., scl=1., mlo=1., mhi=-1.;
   int natm, nblx, bmx;
   int hsize,elm,bdim,i,j;
 
   static char *kwlist[] = {"coords", "blocks", "hessian", "projection",
 			   "natoms", "nblocks", "maxsize", "cutoff",
-			   "gamma", NULL};
+			   "gamma", "scale", "memlo", "memhi", NULL};
 
-  if (!PyArg_ParseTupleAndKeywords(args, kwargs, "OOOOiii|dd", kwlist,
+  if (!PyArg_ParseTupleAndKeywords(args, kwargs, "OOOOiii|ddddd", kwlist,
 				   &coords, &blocks, &hessian, &projection,
-				   &natm, &nblx, &bmx, &cutoff, &gamma))
+				   &natm, &nblx, &bmx, &cutoff, &gamma, &scl,
+				   &mlo, &mhi))
     return NULL;
 
   XYZ = (double *) PyArray_DATA(coords);
@@ -144,7 +147,7 @@ static PyObject *buildhessian(PyObject *self, PyObject *args, PyObject *kwargs) 
 
   /* Calculate the block Hessian */
   HB=dmatrix(1,6*nblx,1,6*nblx);
-  bdim=calc_blessian_mem(&PDB,&PP,natm,nblx,elm,HB,cutoff,gamma);
+  bdim=calc_blessian_mem(&PDB,&PP,natm,nblx,elm,HB,cutoff,gamma,scl,mlo,mhi);
 
 
   /* Cast the block Hessian and projection matrix into 1D arrays. */
@@ -262,7 +265,8 @@ int bless_from_tensor(double **HB,double ***HT,int **CT,int nblx)
 
 /* "calc_blessian_mem" calculates the block Hessian. */
 int calc_blessian_mem(PDB_File *PDB,dSparse_Matrix *PP1,int nres,int nblx,
-		      int elm,double **HB,double cut,double gam)
+		      int elm,double **HB,double cut,double gam,double scl,
+		      double mlo,double mhi)
 {
   dSparse_Matrix *PP2;
   double **HR,***HT;
@@ -309,7 +313,7 @@ int calc_blessian_mem(PDB_File *PDB,dSparse_Matrix *PP1,int nres,int nblx,
     if(PDB->atom[ii].model!=0){
 
       /* ----------------- FIND SUPER-ROW OF FULL HESSIAN --------------- */
-      hess_superrow_mem(HR,CT,PDB,nres,ii,cut,gam);
+      hess_superrow_mem(HR,CT,PDB,nres,ii,cut,gam,scl,mlo,mhi);
 
 
       /* Update elements of block hessian */
@@ -644,10 +648,14 @@ int find_contacts1(int **CT,PDB_File *PDB,int nres,int nblx,double cut)
    of the Hessian, using 'cut' as the cutoff and 'gam' as the
    spring constant for all interactions. */
 void hess_superrow_mem(double **HR,int **CT,PDB_File *PDB,int nres,
-		    int who,double cut,double gam)
+		       int who,double cut,double gam,double mscl,
+		       double mlo,double mhi)
 {
   int i,j,k,jj;
-  double DX[3],csq=cut*cut,dsq,df,scl=1.0;
+  double DX[3],csq=cut*cut,dsq,df;
+  double s0,scl;
+
+  s0=pow(mscl,0.25);
 
   /* Clear the diagonal super-element */
   for(i=1;i<=3;i++)
@@ -657,14 +665,9 @@ void hess_superrow_mem(double **HR,int **CT,PDB_File *PDB,int nres,
   /* Calculate the submatrices */
   for(jj=1;jj<=nres;jj++){
 
-    /* NOTE: 'scalefunc0' may be inserted here later to permit uniform
-       z-scaling inside membrane:
-    scl=scalefunc0(PDB->atom[who].X[2],PDB->atom[jj].X[2]);
-    */
-    scl=1.0;
-
     if(jj!=who && PDB->atom[jj].model!=0 &&
        CT[PDB->atom[who].model][PDB->atom[jj].model]!=0){
+
       dsq=0.0;
       for(k=0;k<3;k++){
 	DX[k] = (double)PDB->atom[who].X[k] - PDB->atom[jj].X[k];
@@ -673,6 +676,13 @@ void hess_superrow_mem(double **HR,int **CT,PDB_File *PDB,int nres,
 
 
       if(dsq<csq){
+
+	/* --------- Membrane scaling -------- */
+	scl=1.0;
+	if(PDB->atom[who].X[2] < mhi && PDB->atom[who].X[2] > mlo) scl*=s0;
+	if(PDB->atom[jj].X[2] < mhi && PDB->atom[jj].X[2] > mlo) scl*=s0;
+
+
 	for(i=1;i<=3;i++){
 	  for(j=i;j<=3;j++){
 
@@ -680,7 +690,7 @@ void hess_superrow_mem(double **HR,int **CT,PDB_File *PDB,int nres,
 
 
 	    /* Strong backbone bonds:
-	       May be implemented later
+	       NOTE:  *Not currently available! May be implemented later 
 	    if((int)fabs(PDB->atom[who].resnum-PDB->atom[jj].resnum)==1 &&
 	       PDB->atom[who].chain==PDB->atom[jj].chain)
 	      df*=100.0;
@@ -688,11 +698,9 @@ void hess_superrow_mem(double **HR,int **CT,PDB_File *PDB,int nres,
 
 
 	    /* -------- MEMBRANE RULES -------- */
-	    /* Scale lateral components 
+	    /* Scale lateral components */
 	    if(i!=3) df*=scl;
 	    if(j!=3) df*=scl;
-	    */
-
 
 
 	    /* Off-diagonal super-elements */
