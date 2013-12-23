@@ -33,7 +33,7 @@ and :program:`pdflatex` programs.
 A copy of ProDy manual is hosted on `Read the Docs <https://readthedocs.org/>`_
 and can be viewed at http://prody.readthedocs.org/. Read the Docs is configured
 to build manual pages for the ``devel`` branch (latest) and the recent stable
-versions.
+versions. The user name for Read the Docs is ``prody``.
 
 
 Building Website

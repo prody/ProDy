@@ -62,11 +62,24 @@ How to Make a Release
 
    Alternatively, use :program:`bdist_wininst.bat` to run these commands.
    When there is a newer Python major release, it should be added to this
-   list.
+   list. Don't forget to pull most recent changes to your Windows machine.
+
+   A good practice is installing ProDy using all newly created installers
+   and checking that it works. ProDy script can be used to check that, e.g.::
+
+
+      C:\> C:\Python33\Scripts\prody.bat anm 1ubi
+
+
+   If this command runs for all supported Python versions, release is good
+   to go.
 
 #. Register new release to PyPI::
 
      $ python setup.py register
+
+   This will offer a number of options. ProDy on PyPI is owned by user
+   ``prody.devel``.
 
 
 #. Upload the new release files to the PyPI_.
@@ -96,8 +109,8 @@ How to Make a Release
      $ git checkout devel
      $ git push --tags
 
-#. Finally, update the documentation on ProDy_ website.  See :ref:`document`.
+#. Update the documentation on ProDy_ website.  See :ref:`document`.
 
 #. Now that you made a release, you can go back to development.
-   You may stat with append ``'-dev'`` to ``__release__`` in
+   You may start with appending ``'-dev'`` to ``__release__`` in
    :file:`prody/__init__.py`.
