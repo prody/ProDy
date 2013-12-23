@@ -33,6 +33,10 @@ How to Make a Release
    * :file:`setup.py`
 
 
+   If there is a new folder with source code, that is a folder in
+   :file:`prody`, it should be listed in :file:`MANIFEST.in`.
+
+
 #. Generate the source distributions::
 
      $ cd ..
@@ -47,6 +51,10 @@ How to Make a Release
      $ C:\Python33\python setup.py bdist_wininst
 
 
+   Alternatively, use :program:`bdist_wininst.bat` to run these commands.
+   When there is a newer Python major release, it should be added to this
+   list.
+
 #. Register new release to PyPI::
 
      $ python setup.py register
@@ -55,15 +63,7 @@ How to Make a Release
 #. Upload the new release files to the PyPI_.
 
 
-#. Generate HTML and PDF documentation::
-
-     $ make clean
-     $ make html
-     $ make pdf
-     $ make html
-
-
-#. Commit the final changes::
+#. Commit final changes, if there are any::
 
      $ cd ..
      $ git commit -a
@@ -72,3 +72,19 @@ How to Make a Release
 #. Tag the repository with the current version number::
 
      $ git tag vX.Y
+
+
+#. Rebase ``devel`` branch to ``master``::
+
+     $ git checkout master
+     $ git rebase devel
+
+
+#. Push the changes with the new tag::
+
+     $ git checkout master
+     $ git push --tags
+     $ git checkout devel
+     $ git push --tags
+
+#. Finally, update the documentation on ProDy_ website.  See :ref:`document`.
