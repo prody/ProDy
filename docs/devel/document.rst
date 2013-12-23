@@ -40,8 +40,41 @@ Building Website
 ----------------
 
 ProDy-website source is hosted at https://github.com/prody/ProDy-website
-This project contains tutorial files and the home pages for other software
-in the
+This project contains tutorial files and the home pages for ProDy and other
+related software.
+
+**Latest version**
+
+
+To build website on ProDy server, start with pulling changes::
+
+  $ cd ProDy-website
+  $ git pull
+
+Running the following command will build HTML pages for the latest stable
+release of ProDy::
+
+  $ make html
+
+HTML pages for manual and all tutorials are build as a single project,
+which allows for referencing from manual to tutorials.
+
+PDF files for the manual and tutorials, and also download files are build
+as follows::
+
+  $ make pdf
+
+PDF and TGZ/ZIP files are copied to appropriate places after they are built.
+
+**Development version**
+
+Finally, HTML and PDF pages for the development version can be built as
+follows::
+
+  $ make devel
+
+Again, this will copy HTML and PDF files to appropriate places, and a link
+to these files will be provided from he homepage.
 
 
 .. _Sphinx: http://sphinx.pocoo.org/
