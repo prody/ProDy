@@ -28,10 +28,16 @@ class Increment(object):
 class RTB(ANMBase):
 
     """Class for Rotations and Translations of Blocks (RTB) method ([FT00]_).
+    Optional arguments permit imposing constrains along Z-direction as in
+    *imANM* method described in [TL12]_.
 
     .. [FT00] Tama F, Gadea FJ, Marques O, Sanejouand YH. Building-block
        approach for determining low-frequency normal modes of macromolecules.
        *Proteins* **2000** 41:1-7.
+
+    .. [TL12] Lezon TR, Bahar I, Constraints Imposed by the Membrane
+       Selectively Guide the Alternating Access Dynamics of the Glutamate
+       Transporter GltPh
 
     """
 
@@ -55,7 +61,13 @@ class RTB(ANMBase):
         :type cutoff: float
 
         :arg gamma: spring constant, default is 1.0
-        :type gamma: float"""
+        :type gamma: float
+
+        :arg scale: scaling factor for force constant along Z-direction,
+            default is 1.0
+        :type scale: float
+
+        """
 
 
         try:
@@ -107,7 +119,10 @@ class RTB(ANMBase):
         from .rtbtools import buildhessian
         buildhessian(coords, blocks, hessian, project,
                      natoms, nblocks, maxsize,
-                     float(cutoff), float(gamma))
+                     float(cutoff), float(gamma),
+                     scale=float(kwargs.get('scale', 1.0)),
+                     memlo=float(kwargs.get('membrane_low', 1.0)),
+                     memhi=float(kwargs.get('membrane_high', -1.0)),)
 
         LOGGER.report('Hessian was built in %.2fs.', label='_rtb')
 
