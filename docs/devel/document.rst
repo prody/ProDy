@@ -10,41 +10,38 @@ Documenting ProDy
 
 
 ProDy documentation is written using reStructuredText_ markup and prepared
-using Sphinx_.  You may install Sphinx using easy_install, i.e.
+using Sphinx_.  You may install Sphinx using :program:`easy_install`, i.e.
 ``easy_install -U Sphinx``, or using package manager on your Linux machine.
 
-Building Documentation
-----------------------
+Building Manual
+---------------
 
-ProDy HTML documentation can be build as follows::
+ProDy Manual in HTML and PDF formats can be build as follows::
 
-  $ cd doc
-  $ make clean
+  $ cd docs
   $ make html
+  $ make pdf
 
 If all documentation strings and pages are properly formatted according to
 reStructuredText_ markup, documentation pages should compile without any
-warnings.
+warnings. Note that to build PDF files, you need to install :program:`latex`
+and :program:`pdflatex` programs.
 
 
-**New release**
+**Read the Docs**
+
+A copy of ProDy manual is hosted on `Read the Docs <https://readthedocs.org/>`_
+and can be viewed at http://prody.readthedocs.org/. Read the Docs is configured
+to build manual pages for the ``devel`` branch (latest) and the recent stable
+versions.
 
 
-When making a new release, also build PDF documentation using the following
-command::
+Building Website
+----------------
 
-  $ make latexpdf
-
-To be able to run this command, you will need :program:`latex` installed on
-your machine.
-
-**Development version**
-
-
-For documenting work in progress, increment version number in
-:file:`doc/conf.py` and append ``-dev``, i.e. ``version = '1.3.1-dev'``.
-HTML documentation for development version should go in :file:`latest` folder
-in where the documentation is hosted.
+ProDy-website source is hosted at https://github.com/prody/ProDy-website
+This project contains tutorial files and the home pages for other software
+in the
 
 
 .. _Sphinx: http://sphinx.pocoo.org/

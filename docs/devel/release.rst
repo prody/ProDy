@@ -20,21 +20,30 @@ How to Make a Release
 
    * :file:`prody/__init__.py`
 
+   Also, commend ``+ '-dev'`` out, so that documentation will build
+   for a stable release.
 
-#. Update the latest release date in:
+
+#. Update the most recent changes and the latest release date in:
 
    * :file:`docs/release/vX.Y_series.rst`.
 
+   If there is a new incremental release, start a new file.
 
-#. Make sure the following files are file is up-to-date.
+
+#. Make sure the following files are up-to-date.
 
    * :file:`README.txt`
    * :file:`MANIFEST.in`
    * :file:`setup.py`
 
 
-   If there is a new folder with source code, that is a folder in
-   :file:`prody`, it should be listed in :file:`MANIFEST.in`.
+   If there is a new file format, that is a new extensions not captured in
+   :file:`MANIFEST.in`, it should be included.
+
+   If there is a new C extension, it should be listed in :file:`setup.py`.
+
+   After checking these files, commit change and push them to GitHub_.
 
 
 #. Generate the source distributions::
@@ -88,3 +97,7 @@ How to Make a Release
      $ git push --tags
 
 #. Finally, update the documentation on ProDy_ website.  See :ref:`document`.
+
+#. Now that you made a release, you can go back to development.
+   You may stat with append ``'-dev'`` to ``__release__`` in
+   :file:`prody/__init__.py`.

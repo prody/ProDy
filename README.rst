@@ -24,7 +24,7 @@ GETTING PRODY
 You can run ProDy on all major platforms.  For download and installation
 instructions see:
 
-* http://prody.csb.pitt.edu/#downloads
+* http://prody.csb.pitt.edu/downloads
 
 
 DOCUMENTATION
@@ -32,13 +32,13 @@ DOCUMENTATION
 
 * Homepage: http://prody.csb.pitt.edu/
 
-* Tutorials: http://prody.csb.pitt.edu/#tutorials
+* Tutorials: http://prody.csb.pitt.edu/tutorials
 
 * Reference: http://prody.csb.pitt.edu/manual
 
 * Applications: http://prody.csb.pitt.edu/apps
 
-* NMWiz GUI: http://prody.csb.pitt.edu/#nmwiz
+* NMWiz GUI: http://prody.csb.pitt.edu/nmwiz
 
 * Changes: http://prody.csb.pitt.edu/manual/release
 
