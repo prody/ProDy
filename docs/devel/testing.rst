@@ -26,34 +26,6 @@ To run tests for a specific module do as follows::
   $ nosetests prody.tests.atomic prody.tests.sequence
 
 
-Pre-commit Testing
-------------------
-
-You can automatize testing of ProDy package using a git pre-commit hook.
-For example, the following script calls :file:`devel_test.sh` file that comes
-in the project directory ensures that the package imports and passes fast
-subset of tests::
-
-  #!/bin/sh
-
-  SRC="$(git diff --cached --name-only | grep -E "(\.py|\.c)$")"
-
-  if [ "$SRC" ]
-  then
-      TEST="$(make test 3>&1 1>&2 2>&3)"
-      echo "$TEST" >&2
-      FAIL="$(echo $TEST | grep FAILED)"
-      if [ "$FAIL" ]
-      then
-		  echo "ProDy unittests failed." >&2
-		  exit 1
-      fi
-  fi
-
-
-This script needs to be saved in :file:`.git/hooks/pre-commit` executable file.
-
-
 Unittest Development
 --------------------
 
