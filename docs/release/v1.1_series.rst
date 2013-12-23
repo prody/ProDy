@@ -73,8 +73,8 @@ ProDy 1.1 Series
     when atom orders are changed or an atom is present multiple times in the
     mapping.
 
-:ref:`nmwiz`
-^^^^^^^^^^^^
+Normal Mode Wizard
+^^^^^^^^^^^^^^^^^^
 
 **Improvements**:
 

@@ -1,45 +1,43 @@
 # Makefile for ProDy Documentation
 
-# You can set these variables from the command line.
 SPHINXOPTS    =
 SPHINXBUILD   = sphinx-build
 PAPER         = letter
-BUILDDIR      = _build
+BUILD         = _build
+HTML          = $(BUILD)/html
+LATEX         = $(BUILD)/latex
 WORKDIR       = _workdir
 PDFNAME       = ProDy.pdf
+PDFPATH       = $(LATEX)/$(PDFNAME)
 
 .PHONY: help clean remove html pdf
 
 help:
 	@echo "Please use \`make <target>' where <target> is one of"
-	@echo "  html       to make standalone HTML files of entire documentaion"
-	@echo "  pdf	    to make PDF files of reference manual and tutorials"
-	@echo "  copy	    to copy license, install, and changes to package directory"
-	@echo "  stats	    to update download statistics"
+	@echo "  html       to make HTML files of reference manual "
+	@echo "  pdf	    to make PDF files of reference manual"
+	@echo "  build	    to make HTML and PDF files, and copy PDF into HTML folder"
 
 clean:
-	-rm -rf $(BUILDDIR)/*
+	-rm -rf $(BUILD)/*
 
 remove:
-	-rm -rf $(BUILDDIR)/html*
+	-rm -rf $(HTML)/* $(LATEX)/*
 
 
 workdir:
 	mkdir -p $(WORKDIR)
-	for tut in `find tutorials/ -type d -name "*_files"` ; do \
-		if [ -d "$$tut" ]; then \
-		 	ln -fs ../$$tut $(WORKDIR)/;\
-		fi; \
-	done
 
 html: workdir
-	cd $(WORKDIR); $(SPHINXBUILD) -b html -d ../$(BUILDDIR)/doctrees ../ ../$(BUILDDIR)/html
+	cd $(WORKDIR); $(SPHINXBUILD) -b html -d ../$(BUILD)/doctrees ../ ../$(HTML)
 	@echo
-	@echo "Build finished. The HTML pages are in $(BUILDDIR)/html."
+	@echo "Build finished. The HTML pages are in $(BUILD)/html."
 
 pdf: workdir
-	cd $(WORKDIR); $(SPHINXBUILD) -b latex $(ALLSPHINXOPTS) -d ../$(BUILDDIR)/doctrees ../ ../$(BUILDDIR)/latex
-	make -C $(BUILDDIR)/latex all-pdf
-	mv -f _build/latex/$(PDFNAME) .
+	cd $(WORKDIR); $(SPHINXBUILD) -b latex $(ALLSPHINXOPTS) -d ../$(BUILD)/doctrees ../ ../$(LATEX)
+	make -C $(BUILD)/latex all-pdf
 	@echo
-	@echo "PDF file is ready, see $(PDFNAME)."
+	@echo "PDF file is ready, see $(PDFPATH)."
+
+build: html pdf
+	mv -f $(PDFPATH) $(HTML)/$(PDFNAME)

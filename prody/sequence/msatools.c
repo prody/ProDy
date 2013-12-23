@@ -1,6 +1,7 @@
 /* Author: Ahmet Bakan, Wenzhi Mao */
 
 #include "Python.h"
+#define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 #include "numpy/arrayobject.h"
 #define NUMCHARS 27
 const int twenty[20] = {1, 3, 4, 5, 6, 7, 8, 9, 11, 12, 13,
@@ -24,7 +25,7 @@ static PyObject *msaentropy(PyObject *self, PyObject *args, PyObject *kwargs) {
     /* make sure to have a contiguous and well-behaved array */
     msa = PyArray_GETCONTIGUOUS(msa);
 
-    long number = msa->dimensions[0], length = msa->dimensions[1];
+    long number = PyArray_DIMS(msa)[0], length = PyArray_DIMS(msa)[1];
 
     char *seq = (char *) PyArray_DATA(msa);
     double *ent = (double *) PyArray_DATA(entropy);
@@ -499,7 +500,7 @@ static PyObject *msamutinfo(PyObject *self, PyObject *args, PyObject *kwargs) {
     msa = PyArray_GETCONTIGUOUS(msa);
 
     /* check dimensions */
-    long number = msa->dimensions[0], length = msa->dimensions[1];
+    long number = PyArray_DIMS(msa)[0], length = PyArray_DIMS(msa)[1];
 
     /* get pointers to data */
     char *seq = (char *) PyArray_DATA(msa); /*size: number x length */
@@ -784,7 +785,7 @@ static PyObject *msaocc(PyObject *self, PyObject *args, PyObject *kwargs) {
                                      &msa, &occ, &dim, &count))
         return NULL;
 
-    long number = msa->dimensions[0], length = msa->dimensions[1];
+    long number = PyArray_DIMS(msa)[0], length = PyArray_DIMS(msa)[1];
     char *seq = (char *) PyArray_DATA(msa), *row, ch;
     double *cnt = (double *) PyArray_DATA(occ);
 
@@ -809,7 +810,7 @@ static PyObject *msaocc(PyObject *self, PyObject *args, PyObject *kwargs) {
             divisor = 1. * number;
         else
             divisor = 1. * length;
-        for (i = 0; i < msa->dimensions[dim]; i++)
+        for (i = 0; i < PyArray_DIMS(msa)[dim]; i++)
             cnt[i] /= divisor;
     }
     return Py_BuildValue("O", occ);
@@ -852,7 +853,7 @@ static PyObject *msaomes(PyObject *self, PyObject *args, PyObject *kwargs) {
     msa = PyArray_GETCONTIGUOUS(msa);
 
     /* check dimensions */
-    long number = msa->dimensions[0], length = msa->dimensions[1];
+    long number = PyArray_DIMS(msa)[0], length = PyArray_DIMS(msa)[1];
 
     /* get pointers to data */
     char *seq = (char *) PyArray_DATA(msa); /*size: number x length */
@@ -1126,7 +1127,7 @@ static PyObject *msasca(PyObject *self, PyObject *args, PyObject *kwargs) {
     /* make sure to have a contiguous and well-behaved array */
     msa = PyArray_GETCONTIGUOUS(msa);
     /* check dimensions */
-    long number = msa->dimensions[0], length = msa->dimensions[1];
+    long number = PyArray_DIMS(msa)[0], length = PyArray_DIMS(msa)[1];
     /* get pointers to data */
     char *seq = (char *) PyArray_DATA(msa); /*size: number x length */
     double *sca = (double *) PyArray_DATA(scainfo);
@@ -1322,7 +1323,7 @@ static PyObject *msameff(PyObject *self, PyObject *args, PyObject *kwargs) {
     /* make sure to have a contiguous and well-behaved array */
     msa = PyArray_GETCONTIGUOUS(msa);
     /* check dimensions */
-    long number = msa->dimensions[0], length = msa->dimensions[1];
+    long number = PyArray_DIMS(msa)[0], length = PyArray_DIMS(msa)[1];
     long i, j, k, l = 0;
     /* get pointers to data */
     char *seq = (char *) PyArray_DATA(msa); /*size: number x length */
@@ -1439,7 +1440,7 @@ static PyObject *msadipretest(PyObject *self, PyObject *args, PyObject *kwargs) 
                                      &msa, &refine))
         return NULL;
     msa = PyArray_GETCONTIGUOUS(msa);
-    long number = msa->dimensions[0], length = msa->dimensions[1];
+    long number = PyArray_DIMS(msa)[0], length = PyArray_DIMS(msa)[1];
     char *seq = (char *) PyArray_DATA(msa);
     long i, j, k = 0, l = 0;
     int *ind = malloc(length * sizeof(int));

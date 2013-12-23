@@ -10,7 +10,10 @@ from prody.dynamics import extendModel, extendMode, extendVector
 from prody.tests import unittest
 from prody.tests.datafiles import parseDatafile
 
-from prody import _PY3K
+from prody import _PY3K, LOGGER
+
+LOGGER.verbosity = 'none'
+
 
 if not _PY3K:
     range = xrange

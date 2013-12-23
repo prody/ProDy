@@ -2,8 +2,6 @@
 """This module defines a class and a function for anisotropic network model
 (ANM) calculations."""
 
-import time
-
 import numpy as np
 
 from prody import LOGGER
@@ -12,32 +10,19 @@ from prody.proteins import parsePDB
 from prody.utilities import importLA, checkCoords
 from prody.kdtree import KDTree
 
+from .nma import NMA
 from .gnm import GNMBase, ZERO, checkENMParameters
 
 __all__ = ['ANM', 'calcANM']
 
 
-class ANM(GNMBase):
-
-    """Class for Anisotropic Network Model (ANM) analysis of proteins
-    ([PD00]_, [ARA01]_)
-
-    See example :ref:`anm`.
-
-    .. [PD00] Doruker P, Atilgan AR, Bahar I. Dynamics of proteins predicted by
-       molecular dynamics simulations and analytical approaches: Application to
-       a-amylase inhibitor. *Proteins* **2000** 40:512-524.
-
-    .. [ARA01] Atilgan AR, Durrell SR, Jernigan RL, Demirel MC, Keskin O,
-       Bahar I. Anisotropy of fluctuation dynamics of proteins with an
-       elastic network model. *Biophys. J.* **2001** 80:505-515."""
+class ANMBase(NMA):
 
     def __init__(self, name='Unknown'):
 
-        GNMBase.__init__(self, name)
+        super(ANMBase, self).__init__(name)
         self._is3d = True
         self._cutoff = None
-        self._kirchhoff = None
         self._gamma = None
         self._hessian = None
 
@@ -123,7 +108,7 @@ class ANM(GNMBase):
         self._gamma = g
         n_atoms = coords.shape[0]
         dof = n_atoms * 3
-        start = time.time()
+        LOGGER.timeit('_anm_hessian')
 
         if kwargs.get('sparse', False):
             try:
@@ -186,7 +171,7 @@ class ANM(GNMBase):
                     kirchhoff[j, i] = -g
                     kirchhoff[i, i] = kirchhoff[i, i] - g
                     kirchhoff[j, j] = kirchhoff[j, j] - g
-        LOGGER.info('Hessian was built in {0:.2f}s.'.format(time.time()-start))
+        LOGGER.report('Hessian was built in %.2fs.', label='_anm_hessian')
         self._kirchhoff = kirchhoff
         self._hessian = hessian
         self._n_atoms = n_atoms
@@ -215,7 +200,7 @@ class ANM(GNMBase):
         assert isinstance(zeros, bool), 'zeros must be a boolean'
         assert isinstance(turbo, bool), 'turbo must be a boolean'
         linalg = importLA()
-        start = time.time()
+        LOGGER.timeit('_anm_calc_modes')
         shift = 5
         if linalg.__package__.startswith('scipy'):
             if n_modes is None:
@@ -265,10 +250,34 @@ class ANM(GNMBase):
         self._eigvals = values[1+shift:]
         self._vars = 1 / self._eigvals
         self._trace = self._vars.sum()
-        self._array = vectors[:, 1+shift:]
+        if shift:
+            self._array = vectors[:, 1+shift:].copy()
+        else:
+            self._array = vectors
         self._n_modes = len(self._eigvals)
-        LOGGER.debug('{0} modes were calculated in {1:.2f}s.'
-                     .format(self._n_modes, time.time()-start))
+        LOGGER.report('{0} modes were calculated in %.2fs.'
+                     .format(self._n_modes), label='_anm_calc_modes')
+
+
+class ANM(ANMBase, GNMBase):
+
+    """Class for Anisotropic Network Model (ANM) analysis of proteins
+    ([PD00]_, [ARA01]_).
+
+    See a usage example in :ref:`anm`.
+
+    .. [PD00] Doruker P, Atilgan AR, Bahar I. Dynamics of proteins predicted by
+       molecular dynamics simulations and analytical approaches: Application to
+       a-amylase inhibitor. *Proteins* **2000** 40:512-524.
+
+    .. [ARA01] Atilgan AR, Durrell SR, Jernigan RL, Demirel MC, Keskin O,
+       Bahar I. Anisotropy of fluctuation dynamics of proteins with an
+       elastic network model. *Biophys. J.* **2001** 80:505-515."""
+
+
+    def __init__(self, name='Unknown'):
+
+        super(ANM, self).__init__()
 
 
 def calcANM(pdb, selstr='calpha', cutoff=15., gamma=1., n_modes=20,

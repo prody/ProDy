@@ -45,8 +45,8 @@ ProDy 0.2 Series
 
   * Implementation of :func:`.showProjection` is completed.
 
-:ref:`nmwiz`
-^^^^^^^^^^^^
+Normal Mode Wizard
+^^^^^^^^^^^^^^^^^^
 
 **Release 0.2.3**
 

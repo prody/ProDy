@@ -5,20 +5,15 @@
 How to Make a Release
 =====================
 
-#. Make sure ProDy imports and passes all unit tests::
+#. Make sure ProDy imports and passes all unit tests both Python 2 and
+   Python 3, and using nose :program:`nosetests` command::
 
-     $ prody test -l full
-
-   This will run tests using the default Python installation.  The tests
-   should be executed for both Python 2.7 and Python 3.2 or later, and using
-   nose via :program:`nosetests` command may help::
-
-     $ cd prody/tests
+     $ cd ProDy
      $ nosetests
      $ nosetests3
 
 
-   See :ref:`testing` for alternative testing methods.
+   See :ref:`testing` for more on testing.
 
 
 #. Update the version number in:
@@ -28,7 +23,7 @@ How to Make a Release
 
 #. Update the latest release date in:
 
-   * :file:`doc/changes/vX.Y_series.rst`.
+   * :file:`docs/release/vX.Y_series.rst`.
 
 
 #. Make sure the following files are file is up-to-date.
@@ -36,11 +31,6 @@ How to Make a Release
    * :file:`README.txt`
    * :file:`MANIFEST.in`
    * :file:`setup.py`
-
-
-#. Copy the documentation files packed with source release::
-
-     $ make copy
 
 
 #. Generate the source distributions::
@@ -53,7 +43,6 @@ How to Make a Release
 
      $ C:\Python26\python setup.py bdist_wininst
      $ C:\Python27\python setup.py bdist_wininst
-     $ C:\Python31\python setup.py bdist_wininst
      $ C:\Python32\python setup.py bdist_wininst
      $ C:\Python33\python setup.py bdist_wininst
 

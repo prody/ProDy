@@ -129,7 +129,7 @@ class NMA(object):
         return self
 
     def is3d(self):
-        """Return **True** is model is 3-dimensional."""
+        """Return **True** if model is 3-dimensional."""
 
         return self._is3d
 
@@ -162,9 +162,9 @@ class NMA(object):
     def getEigvals(self):
         """Return eigenvalues.  For :class:`.PCA` and :class:`.EDA` models
         built using coordinate data in Å, unit of eigenvalues is |A2|.  For
-        :class:`.ANM` and :class:`.GNM`, on the other hand, eigenvalues are
-        in arbitrary or relative units but they correlate with stiffness of
-        the motion along associated eigenvector."""
+        :class:`.ANM`, :class:`.GNM`, and :class:`.RTB`, on the other hand,
+        eigenvalues are in arbitrary or relative units but they correlate with
+        stiffness of the motion along associated eigenvector."""
 
         if self._eigvals is None: return None
         return self._eigvals.copy()
@@ -172,8 +172,9 @@ class NMA(object):
     def getVariances(self):
         """Return variances.  For :class:`.PCA` and :class:`.EDA` models
         built using coordinate data in Å, unit of variance is |A2|.  For
-        :class:`.ANM` and :class:`.GNM`, on the other hand, variance is the
-        inverse of the eigenvalue, so it has arbitrary or relative units."""
+        :class:`.ANM`, :class:`.GNM`, and :class:`.RTB`, on the other hand,
+        variance is the inverse of the eigenvalue, so it has arbitrary or
+        relative units."""
 
         if self._vars is None: return None
         return self._vars.copy()

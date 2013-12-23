@@ -13,6 +13,7 @@ Following classes are designed for modeling and analysis of protein dynamics:
   * :class:`.EDA` - Essential dynamics analysis of dynamics trajectories
   * :class:`.NMA` - Normal mode analysis, for analyzing data from external
     programs
+  * :class:`.RTB` - Rotations and Translation of Blocks method
 
 Usage of these classes are shown in :ref:`anm`, :ref:`gnm`, :ref:`pca`, and
 :ref:`eda` examples.
@@ -231,6 +232,11 @@ __all__.extend(gamma.__all__)
 from . import anm
 from .anm import *
 __all__.extend(anm.__all__)
+
+from . import rtb
+from .rtb import *
+__all__.extend(rtb.__all__)
+
 
 from . import gnm
 from .gnm import *

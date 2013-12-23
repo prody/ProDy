@@ -32,59 +32,55 @@ to `Git book`_ and `Git docs`_ for usage details and examples.
 Fork and Clone ProDy
 --------------------
 
-ProDy source code is hosted on Github_ and Bitbucket_.  You need to create
-an account for one of these hosting services, if you do not have one already.
-The advantage of using GitHub_ is that ProDy issue tracker is hosted there.
+ProDy source code an issue tracker are hosted on Github_.  You need to create
+an account on this service, if you do not have one already.
 
-If you choose to use GitHub_ and work on Mac OS or Windows, you may consider
-getting `GitHub Mac`_ or `GitHub Windows`_ to help you manage a copy of the
-repository. For Bitbucket_, SourceTree_ a the GUI client that integrates well.
+
+If you work on Mac OS or Windows, you may consider getting `GitHub Mac`_ or
+`GitHub Windows`_ to help you manage a copy of the repository.
 
 Once you have an account, you need to make a fork of ProDy, which is
-creating an exact copy of the repository in your account.  You will see
+creating a copy of the repository in your account.  You will see
 a link for this on ProDy_ source code page.  You will have write access to
 this fork and later will use it share your changes with others.
 
-The next step is cloning the fork from your Bitbucket account to your local
-system.  You can do it as follows::
+The next step is cloning the fork from your online account to your local
+system.  If you are not using the GitHub software, you can do it as follows::
 
-  $ git clone https://UNAME@bitbucket.org/UNAME/prody.git
+  $ git clone https://github.com/prody/ProDy.git
+git
 
-or::
+This will create :file:`ProDy` folder with a copy of the project files in it::
 
-  $ git clone https://github.com/USERNAME/ProDy.git
-
-This will create :file:`prody` folder with a copy of the project files in it::
-
-  $ cd prody
+  $ cd ProDy
   $ ls
-  CHANGES.rst  lib          logo.svg     README.rst  ubiquitin.png
-  doc          LICENSE.rst  MANIFEST.in  scripts
-  INSTALL.rst  logo.png     plugins      setup.py
+  bdist_wininst.bat  docs   INSTALL.rst  LICENSE.rst  Makefile
+  MANIFEST.in        prody  README.rst   scripts      setup.py
 
 
 Setup Working Environment
 -------------------------
 
-You can use ProDy directly from this clone by adding :file:`prody/lib` folder
+You can use ProDy directly from this clone by adding :file:`ProDy` folder
 to your :envvar:`PYTHONPATH` environment variable, e.g.::
 
-  export PYTHONPATH=$PYTHONPATH:$/home/abakan/Code/prody/lib
+  export PYTHONPATH=$PYTHONPATH:$/home/USERNAME/path/to/ProDy
 
-This will not be enough though, since you also need compiled C modules to be
-in the :file:`lib` folder.  You can run the following series of commands to
-build and copy C modules to where they need to be::
+This will not be enough though, since you also need to compile C extensions.
+You can run the following series of commands to build and copy C modules to where they need to be::
 
-  $ # go to ProDy folder
-  $ cd prody
-  $ python setup.py build
-  $ python setup.py copy
+  $ cd ProDy
+  $ python setup.py build_ext --inplace --force
+
+or, on Linux you can::
+
+  $ make build
 
 You may also want to make sure that you can run :ref:`prody-apps` from anywhere
-on your system.  One way to do this by adding :file:`prody/scripts` folder
+on your system.  One way to do this by adding :file:`ProDy/scripts` folder
 to your :envvar:`PATH` environment variable, e.g.::
 
-  export PATH=$PATH:$/home/abakan/Code/prody/scripts
+  export PATH=$PATH:$/home/USERNAME/path/to/ProDy/scripts
 
 
 Modify, Test, and Commit
@@ -98,7 +94,8 @@ If you changed :file:`.py` files, you should ensure to check the integrity
 of the package.  To do this, you should at least run fast ProDy tests as
 follows::
 
-  $ prody test
+  $ cd ProDy
+  $ nosetests
 
 See :ref:`testing` for alternate and more comprehensive ways of testing.
 ProDy unittest suit may not include a test for the function or the class
@@ -165,8 +162,7 @@ local copy::
 Note that when there are changes in C modules, you need to run the following
 commands again to update the binary module files::
 
-  $ python setup.py build
-  $ python setup.py copy
+  $ python setup.py build_ext --inplace --force
 
 
 .. _Git: http://git-scm.com/downloads
@@ -174,5 +170,3 @@ commands again to update the binary module files::
 .. _Git docs: http://git-scm.com/docs
 .. _GitHub Mac: http://mac.github.com
 .. _GitHub Windows: http://windows.github.com
-.. _Bitbucket: https://bitbucket.org/abakan/prody
-.. _SourceTree: http://www.sourcetreeapp.com

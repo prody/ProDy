@@ -81,7 +81,6 @@ class TestSaveLoad(unittest.TestCase):
 
 class TestPickling(unittest.TestCase):
 
-
     def testAtomGroup(self):
 
         atoms1 = parseDatafile('multi_model_truncated', subset='ca')
@@ -101,3 +100,31 @@ class TestPickling(unittest.TestCase):
 
         atom = parseDatafile('multi_model_truncated', subset='ca')[0]
         self.assertEqual(atom, pickle.loads(pickle.dumps(atom)))
+
+
+class TestAtomIterations(unittest.TestCase):
+
+    def testAtomGroup(self):
+
+        self.assertEqual(len(list(ATOMS.iterAtoms())), ATOMS.numAtoms())
+
+
+    def testChain(self):
+
+        sel = ATOMS['A']
+        self.assertEqual(len(list(sel.iterAtoms())), sel.numAtoms())
+
+    def testResidue(self):
+
+        sel = ATOMS['A', 10]
+        self.assertEqual(len(list(sel.iterAtoms())), sel.numAtoms())
+
+    def testSelection(self):
+
+        sel = ATOMS.ca
+        self.assertEqual(len(list(sel.iterAtoms())), sel.numAtoms())
+
+    def testAtomMap(self):
+
+        sel = AtomMap(ATOMS, range(10), mapping=range(10), dummies=[10,11])
+        self.assertEqual(len(list(sel.iterAtoms())), sel.numAtoms())

@@ -1,9 +1,7 @@
 """ProDy is a package for Protein Dynamics, Sequence, and Structure Analysis"""
 
-__author__ = 'Ahmet Bakan'
-__copyright__ = 'Copyright (C) 2010-2013 Ahmet Bakan'
 __version__ = '1.5.0'
-__release__ = __version__ + '-dev' # commend after + before making a release
+__release__ = __version__ + '-dev' # comment out '-dev' before a release
 
 import sys
 import warnings

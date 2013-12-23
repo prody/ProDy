@@ -28,30 +28,42 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 project = u'ProDy'
-copyright = u'2010-2013, Ahmet Bakan'
+copyright = u'2010-2014, University of Pittsburgh'
 
 
 __version__ = ''
-with open('../prody/__init__.py') as inp:
-    statement = ''.join([line for line in inp
-                         if line.startswith('__v') or line.startswith('__r')])
-    exec(statement)
+for _ in ['../prody/__init__.py', # building docs
+          'ProDy/prody/__init__.py', # building complete website
+          '../../ProDy/prody/__init__.py']: # building tutorial PDFs
+    if os.path.isfile(_):
+        with open(_) as inp:
+            statement = ''.join([line for line in inp
+                                 if line[:3] in ('__v', '__r')])
+            exec(statement)
 version, release = __version__, __release__
 
-if release.endswith('dev'):
 
+if release.endswith('dev'):
+    import shlex
+    from subprocess import Popen, PIPE
+    _ = '../.git'
+    if not os.path.isdir(_):
+        _ = 'ProDy/.git'
+    args = shlex.split('git --git-dir {} describe --tags --abbrev=0'.format(_))
+    tag = Popen(args, stdout=PIPE, stderr=PIPE)
     rst_prolog = """
 
 .. only:: html
 
     .. note::
 
-        This documentation is for a development version of ProDy. There may be
-        significant differences from the latest stable release (1.4.9).
+        This documentation is for a development version of ProDy.
+        There may be significant differences from the latest stable
+        release ({}).
 
-    """
+    """.format(tag.communicate()[0].strip())
 
-exclude_patterns = ['_build']
+exclude_patterns = ['_build', '_workdir']
 
 
 add_module_names = False
@@ -66,10 +78,6 @@ doctest_global_setup = "from prody import *"
 # -- Options for HTML output ---------------------------------------------------
 if RTD:
     html_theme = 'default'
-elif True:
-    import sphinx_rtd_theme
-    html_theme = "sphinx_rtd_theme"
-    html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
 else:
     templates_path = ['_theme']
     html_theme = '_theme'
@@ -84,21 +92,7 @@ html_last_updated_fmt = '%b %d, %Y'
 html_index = 'index.html'
 
 generic_sidebars = ['toolbox.html', 'releasenotes.html', 'howtocite.html']
-html_sidebars = {
-    'index': generic_sidebars,
-    'genindex': generic_sidebars,
-    'py-modindex': generic_sidebars,
-    'search': generic_sidebars,
-    'tutorial': generic_sidebars,
-    'changes/**': generic_sidebars,
-    'credits': generic_sidebars,
-    'getprody': generic_sidebars,
-    'license': generic_sidebars,
-    'examples/index': generic_sidebars,
-    'reference/index': generic_sidebars,
-    'reports/index': generic_sidebars,
-    '**': ['toolbox.html', 'releasenotes.html', 'howtocite.html',
-           'extras.html']}
+html_sidebars = {'**': generic_sidebars}
 
 html_copy_source = False
 html_show_sourcelink = False
@@ -107,8 +101,7 @@ html_show_sphinx = True
 html_show_copyright = True
 
 extlinks = {
-    'issue': ('https://github.com/abakan/ProDy/issues/%s', 'issue '),
-    'bbissue': ('https://bitbucket.org/abakan/prody/issue/%s', 'issue '),
+    'issue': ('https://github.com/prody/ProDy/issues/%s', 'issue '),
     'pdb': ('http://www.pdb.org/pdb/explore/explore.do?structureId=%s', ''),
     'wiki': ('http://en.wikipedia.org/wiki/%s', ''),
     'pfam': ('http://pfam.sanger.ac.uk/family/%s', ''),
@@ -190,11 +183,4 @@ rst_epilog = u"""
 
 
 .. |A2| replace:: Å\ :sup:`2`
-
-.. |questions| replace:: To receive new release announcements, join our
-   ProDy-News Google Group: http://groups.google.com/group/prody-news
-
-.. |suggestions| replace:: Suggestions, feature requests, or
-   problems? Submit them to the Bitbucket issue tracker:
-   https://bitbucket.org/abakan/prody/issues
 """

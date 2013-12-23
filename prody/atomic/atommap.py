@@ -75,13 +75,13 @@ try:
 except ImportError:
     from sys import maxsize as DUMMY
 
-from numpy import arange, array, ndarray, ones, zeros, dtype
+from numpy import arange, array, ones, zeros, dtype
 
 from prody.utilities import rangeString
 
 from .atom import Atom
 from .fields import ATOMIC_FIELDS
-from .fields import wrapGetMethod, wrapSetMethod
+from .fields import wrapGetMethod
 from .pointer import AtomPointer
 
 __all__ = ['AtomMap']
@@ -205,12 +205,11 @@ class AtomMap(AtomPointer):
 
         indices = self._idarray[index]
         try:
-            n_sel = len(indices)
+            len(indices)
         except TypeError:
             if indices != DUMMY:
                 return self._ag[indices]
         else:
-            mapping = (indices > -1).nonzero()[0]
             return AtomMap(self._ag, indices, self._acsi,
                        title='({0})[{1}]'.format(self._title, repr(index)),
                        intarrays=True, dummies=self.numDummies())
@@ -235,8 +234,8 @@ class AtomMap(AtomPointer):
 
         ag = self._ag
         acsi = self.getACSIndex()
-        for index in indices:
-            yield Atom(ag, index, acsi) if index > -1 else None
+        for index in self.getIndices():
+            yield Atom(ag, index, acsi) if index < DUMMY else None
 
     __iter__ = iterAtoms
 
@@ -271,7 +270,6 @@ class AtomMap(AtomPointer):
 
         coords = self._ag._getCoordsets()
         if coords is not None:
-            n_csets = self._ag.numCoordsets()
             if indices is None:
                 coords = coords[:, self._indices]
             else:

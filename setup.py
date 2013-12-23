@@ -78,8 +78,11 @@ PACKAGE_DATA = {
 PACKAGE_DIR = {}
 for pkg in PACKAGES:
     PACKAGE_DIR[pkg] = join(*pkg.split('.'))
-
+from glob import glob
 EXTENSIONS = [
+    Extension('prody.dynamics.rtbtools',
+              glob(join('prody', 'dynamics', '*.c')),
+              include_dirs=[numpy.get_include()]),
     Extension('prody.sequence.msatools',
               [join('prody', 'sequence', 'msatools.c'),],
               include_dirs=[numpy.get_include()]),
@@ -122,15 +125,16 @@ setup(
     package_dir=PACKAGE_DIR,
     package_data=PACKAGE_DATA,
     ext_modules=EXTENSIONS,
-    license='GPLv3',
+    license='MIT License',
     keywords=('protein, dynamics, elastic network model, '
               'Gaussian network model, anisotropic network model, '
               'essential dynamics analysis, principal component analysis, '
               'Protein Data Bank, PDB, GNM, ANM, PCA'),
     classifiers=[
-                 'Development Status :: 4 - Beta',
+                 'Development Status :: 5 - Production/Stable',
+                 'Intended Audience :: Education',
                  'Intended Audience :: Science/Research',
-                 'License :: OSI Approved :: GNU General Public License (GPL)',
+                 'License :: OSI Approved :: MIT License',
                  'Operating System :: MacOS',
                  'Operating System :: Microsoft :: Windows',
                  'Operating System :: POSIX',
@@ -141,6 +145,6 @@ setup(
                  'Topic :: Scientific/Engineering :: Chemistry',
                 ],
     scripts=SCRIPTS,
-    requires=['NumPy (>=1.5)', ],
+    requires=['NumPy (>=1.7)', ],
     provides=['ProDy ({0:s})'.format(__version__)]
 )

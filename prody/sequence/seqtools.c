@@ -1,4 +1,5 @@
 #include "Python.h"
+#define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 #include "numpy/arrayobject.h"
 #define NUMCHARS 27
 const int twenty[20] = {1, 3, 4, 5, 6, 7, 8, 9, 11, 12, 13,
@@ -23,7 +24,7 @@ static PyObject *msaeye(PyObject *self, PyObject *args,
     msa = PyArray_GETCONTIGUOUS(msa);
 
     /* get dimensions */
-    long number = msa->dimensions[0], length = msa->dimensions[1];
+    long number = PyArray_DIMS(msa)[0], length = PyArray_DIMS(msa)[1];
 
     /* get pointers to data */
     char *iraw, *jraw, *raw = (char *) PyArray_DATA(msa);

@@ -22,7 +22,7 @@ for your tutorial using :program:`start-tutorial.sh` script::
   $ ./start-tutorial.sh
   Enter tutorial title: ENM Analysis using ProDy
   Enter a short title: ENM Analysis
-  Enter author name: Ahmet Bakan
+  Enter author name: First Last
 
   Tutorial folders and files are prepared, see tutorials/enm_analysis
 
