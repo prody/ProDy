@@ -1,12 +1,15 @@
 # -*- coding: utf-8 -*-
 """This module defines MSA analysis functions."""
 
+__author__ = 'Ahmet Bakan, Chakra Chennubhotla'
+
 from numpy import arange
 
 from .analysis import *
 from prody import LOGGER
 
-__all__ = ['showMSAOccupancy', 'showShannonEntropy', 'showMutinfoMatrix']
+__all__ = ['showMSAOccupancy', 'showShannonEntropy', 'showMutinfoMatrix', 
+           'showDirectInfoMatrix', 'showSCAMatrix']
 
 
 def pickSequence(msa):
@@ -204,7 +207,131 @@ def showMutinfoMatrix(mutinfo, *args, **kwargs):
         plt.title(title)
     return show
 
+def showDirectInfoMatrix(dirinfo, *args, **kwargs):
+    """Show a heatmap of direct information array.  :class:`.MSA` instances
+    or Numpy character arrays storing sequence alignment are also accepted
+    as *dirinfo* argument, in which case :func:`.buildDirectInfoMatrix` will
+    be used for calculations.  Note that x, y axes contain indices of the
+    matrix starting from 1.
 
+    Direct information is plotted using :func:`~matplotlib.pyplot.imshow`
+    function. vmin and vmax values can be set by user to achieve better
+    signals using this function."""
+
+    msa = None
+    try:
+        ndim, shape = dirinfo.ndim, dirinfo.shape
+    except AttributeError:
+        msa = dirinfo
+        dirinfo = buildDirectInfoMatrix(mutinfo)
+        ndim, shape = dirinfo.ndim, dirinfo.shape
+
+    msa = kwargs.pop('msa', msa)
+    if ndim != 2:
+        raise ValueError('dirinfo must be a 2D matrix')
+    y, x = shape
+    if x != y:
+        raise ValueError('dirinfo matrix must be a square matrix')
+
+    kwargs.setdefault('interpolation', 'nearest')
+    kwargs.setdefault('origin', 'lower')
+
+    if msa is not None:
+        indices, msalabel = pickSequence(msa)
+        if indices is not None:
+            start = indices[0] + 0.5
+            end = start + x
+            extent = [start, end, start, end]
+        else:
+            extent = [0.5, x + 0.5, 0.5, y + 0.5]
+    else:
+        msalabel = None
+        extent = [0.5, x + 0.5, 0.5, y + 0.5]
+
+    xlabel = kwargs.pop('xlabel', None)
+    if xlabel is None:
+        xlabel = msalabel or 'MSA column index'
+    title = kwargs.pop('title', None)
+    format = kwargs.pop('format', True)
+
+    import matplotlib.pyplot as plt
+    show = plt.imshow(dirinfo, extent=extent, *args, **kwargs), plt.colorbar()
+
+    if format:
+        plt.xlabel(xlabel)
+        plt.ylabel(xlabel)
+        if title is None:
+            if msa is None:
+                title = 'Direct Information'
+            else:
+                title = 'Direct Information: ' + str(msa)
+        plt.title(title)
+    return show
+
+
+def showSCAMatrix(scainfo, *args, **kwargs):
+    """Show a heatmap of SCA (statistical coupling analysis) array.  
+    :class:`.MSA` instances. blah
+
+    or Numpy character arrays storing sequence alignment are also accepted
+    as *scainfo* argument, in which case :func:`.buildSCAMatrix` will
+    be used for calculations.  Note that x, y axes contain indices of the
+    matrix starting from 1.
+
+    SCA information is plotted using :func:`~matplotlib.pyplot.imshow`
+    function. vmin and vmax values can be set by user to achieve better
+    signals using this function."""
+
+    msa = None
+    try:
+        ndim, shape = scainfo.ndim, scainfo.shape
+    except AttributeError:
+        msa = scainfo
+        scainfo = buildSCAMatrix(scainfo)
+        ndim, shape = scainfo.ndim, scainfo.shape
+    
+
+    msa = kwargs.pop('msa', msa)
+    if ndim != 2:
+        raise ValueError('scainfo must be a 2D matrix')
+    y, x = shape
+    if x != y:
+        raise ValueError('scainfo matrix must be a square matrix')
+
+    kwargs.setdefault('interpolation', 'nearest')
+    kwargs.setdefault('origin', 'lower')
+
+    if msa is not None:
+        indices, msalabel = pickSequence(msa)
+        if indices is not None:
+            start = indices[0] + 0.5
+            end = start + x
+            extent = [start, end, start, end]
+        else:
+            extent = [0.5, x + 0.5, 0.5, y + 0.5]
+    else:
+        msalabel = None
+        extent = [0.5, x + 0.5, 0.5, y + 0.5]
+
+    xlabel = kwargs.pop('xlabel', None)
+    if xlabel is None:
+        xlabel = msalabel or 'MSA column index'
+    title = kwargs.pop('title', None)
+    format = kwargs.pop('format', True)
+
+    import matplotlib.pyplot as plt
+    show = plt.imshow(scainfo, extent=extent, *args, **kwargs), plt.colorbar()
+
+    if format:
+        plt.xlabel(xlabel)
+        plt.ylabel(xlabel)
+        if title is None:
+            if msa is None:
+                title = 'SCA Information'
+            else:
+                title = 'SCA Information: ' + str(msa)
+        plt.title(title)
+    return show
 
 
 
