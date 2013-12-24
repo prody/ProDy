@@ -36,7 +36,7 @@ DOCUMENTATION
 
 * Reference: http://prody.csb.pitt.edu/manual
 
-* Applications: http://prody.csb.pitt.edu/apps
+* Applications: http://prody.csb.pitt.edu/manual/apps
 
 * NMWiz GUI: http://prody.csb.pitt.edu/nmwiz
 
