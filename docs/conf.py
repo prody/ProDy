@@ -19,10 +19,13 @@ extensions = ['sphinx.ext.todo',
               'sphinx.ext.intersphinx',
               'sphinx.ext.inheritance_diagram',
               'matplotlib.sphinxext.mathmpl',
-              'matplotlib.sphinxext.only_directives',
-              'sphinxext.ipython_console_highlighting',
-              'sphinxext.ipython_directive',
-              'googleanalytics',]
+              'matplotlib.sphinxext.only_directives']
+
+# extensions that are included in docs
+extensions.extend(
+             ['ipython_console_highlighting',
+              'ipython_directive',
+              'googleanalytics',])
 
 source_suffix = '.rst'
 master_doc = 'index'
