@@ -40,26 +40,7 @@ class Sequence(object):
 
     def __init__(self, *args):
         """Depending on input arguments, instances may point to an
-        :class:`.MSA` object or store its own data:
-
-        *MSA Pointer*
-
-        An :class:`.MSA` instance and an index:
-
-        .. ipython:: python
-
-           from prody import *
-           msa = parseMSA('piwi_seed.sth')
-           Sequence(msa, 0)
-           msa[0]
-
-        *Independent*
-
-        Instantiation with sequence and label (optional) string:
-
-        .. ipython:: python
-
-           Sequence('SOME-SEQUENCE-STRING', 'MySeq/1-18')"""
+        :class:`.MSA` object or store its own data."""
 
         if len(args) == 2:
             one, two = args
