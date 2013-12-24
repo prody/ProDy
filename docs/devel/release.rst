@@ -67,8 +67,7 @@ How to Make a Release
    A good practice is installing ProDy using all newly created installers
    and checking that it works. ProDy script can be used to check that, e.g.::
 
-
-      C:\> C:\Python33\Scripts\prody.bat anm 1ubi
+     $ C:\Python33\Scripts\prody.bat anm 1ubi
 
 
    If this command runs for all supported Python versions, release is good
