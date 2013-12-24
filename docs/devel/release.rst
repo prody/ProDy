@@ -52,7 +52,9 @@ How to Make a Release
      $ python setup.py sdist --formats=gztar,zip
 
 
-#. Prepare and test Windows installers (see :ref:`wininst`)::
+#. Prepare and test Windows installers (see :ref:`wininst`).
+
+   Installers should be prepared for the following versions of Python::
 
      $ C:\Python26\python setup.py bdist_wininst
      $ C:\Python27\python setup.py bdist_wininst
@@ -90,23 +92,19 @@ How to Make a Release
      $ git commit -a
 
 
-#. Tag the repository with the current version number::
+#. Tag the repository with the current version number and push new tag::
 
      $ git tag vX.Y
+     $ git push --tags
+
 
 
 #. Rebase ``devel`` branch to ``master``::
 
      $ git checkout master
      $ git rebase devel
+     $ git push
 
-
-#. Push the changes with the new tag::
-
-     $ git checkout master
-     $ git push --tags
-     $ git checkout devel
-     $ git push --tags
 
 #. Update the documentation on ProDy_ website.  See :ref:`document`.
 
