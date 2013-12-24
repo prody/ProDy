@@ -277,7 +277,7 @@ class ANM(ANMBase, GNMBase):
 
     def __init__(self, name='Unknown'):
 
-        super(ANM, self).__init__()
+        super(ANM, self).__init__(name)
 
 
 def calcANM(pdb, selstr='calpha', cutoff=15., gamma=1., n_modes=20,
