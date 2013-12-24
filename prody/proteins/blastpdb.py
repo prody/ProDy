@@ -129,7 +129,6 @@ class PDBBlastRecord(object):
 
     """A class to store results from ProteinDataBank blast search."""
 
-    __slots__ = ['_param', '_sequence', '_hits']
 
     def __init__(self, xml, sequence=None):
         """Instantiate a PDBlast object instance.
