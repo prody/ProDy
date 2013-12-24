@@ -20,8 +20,8 @@ extensions = ['sphinx.ext.todo',
               'sphinx.ext.inheritance_diagram',
               'matplotlib.sphinxext.mathmpl',
               'matplotlib.sphinxext.only_directives',
-              'IPython.sphinxext.ipython_console_highlighting',
-              'IPython.sphinxext.ipython_directive',
+              'sphinxext.ipython_console_highlighting',
+              'sphinxext.ipython_directive',
               'googleanalytics',]
 
 source_suffix = '.rst'

@@ -40,14 +40,17 @@ def blastPDB(sequence, filename=None, **kwargs):
         else:
             if not _:
                 raise ValueError('not a valid protein sequence')
+    headers = {'User-agent': 'ProDy'}
 
     query = [('DATABASE', 'pdb'), ('ENTREZ_QUERY', '(none)'),
              ('PROGRAM', 'blastp'),]
     expect = float(kwargs.pop('expect', 10e-10))
-    assert expect > 0, 'expect must be a positive number'
+    if expect <= 0:
+        raise ValueError('expect must be a positive number')
     query.append(('EXPECT', expect))
     hitlist_size = int(kwargs.pop('hitlist_size', 250))
-    assert hitlist_size > 0, 'expect must be a positive integer'
+    if hitlist_size <= 0:
+        raise ValueError('expect must be a positive integer')
     query.append(('HITLIST_SIZE', hitlist_size))
     query.append(('QUERY', sequence))
     query.append(('CMD', 'Put'))
@@ -71,7 +74,7 @@ def blastPDB(sequence, filename=None, **kwargs):
     LOGGER.timeit('_prody_blast')
     LOGGER.info('Blast searching NCBI PDB database for "{0}..."'
                 .format(sequence[:5]))
-    handle = openURL(url, data=data, headers={'User-agent': 'ProDy'})
+    handle = openURL(url, data=data, headers=headers)
 
     html = handle.read()
     index = html.find(b'RID =')
@@ -95,7 +98,7 @@ def blastPDB(sequence, filename=None, **kwargs):
     while True:
         LOGGER.sleep(int(sleep), 'to reconnect NCBI for search results.')
         LOGGER.write('Connecting NCBI for search results...')
-        handle = openURL(url, data=data, headers={'User-agent': 'ProDy'})
+        handle = openURL(url, data=data, headers=headers)
         results = handle.read()
         index = results.find(b'Status=')
         LOGGER.clear()
