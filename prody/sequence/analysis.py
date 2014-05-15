@@ -411,6 +411,9 @@ def buildSCAMatrix(msa, turbo=True, **kwargs):
     from .msatools import msasca
     LOGGER.timeit('_sca')
     length = msa.shape[1]
+    if msa.shape[0]<100:
+        LOGGER.warning('SCA performs best with higher number of sequences, and '
+            'minimal number of sequences is recommended as 100.')
     sca = zeros((length, length), float)
     sca = msasca(msa, sca, turbo=bool(turbo))
     LOGGER.report('SCA matrix was calculated in %.2fs.', '_sca')
@@ -440,6 +443,9 @@ def buildDirectInfoMatrix(msa, seqid=.8, pseudo_weight=.5, refine=False,
     from numpy import matrix
 
     LOGGER.timeit('_di')
+    if msa.shape[0]<250:
+        LOGGER.warning('DI performs best with higher number of sequences, and '
+            'minimal number of sequences is recommended as 250.')
     refine = 1 if refine else 0
     # msadipretest get some parameter from msa to set matrix size
     length, q = msadipretest(msa, refine=refine)
