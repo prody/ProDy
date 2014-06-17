@@ -161,9 +161,10 @@ def searchPfam(query, search_b=False, skip_a=False, **kwargs):
             xml = openURL(url, timeout=timeout).read()
         except Exception:
             pass
-        #else:
-        #    if xml:
-        #        break
+        else:
+            if xml not in ['PEND','RUN']:
+               break
+
 
     if not xml:
         raise IOError('Pfam search timed out or failed to parse results '
