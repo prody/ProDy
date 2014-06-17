@@ -56,7 +56,8 @@ def searchPfam(query, search_b=False, skip_a=False, **kwargs):
     chain identifier.  UniProt ID of the specified chain, or the first
     protein chain will be used for searching the Pfam database."""
 
-    prefix = '{http://pfam.sanger.ac.uk/}'
+    # prefix = '{http://pfam.sanger.ac.uk/}' old version
+    prefix = '{http://pfam.xfam.org/}'
     query = str(query)
     if isfile(query):
         from prody.sequence import MSAFile
@@ -102,7 +103,7 @@ def searchPfam(query, search_b=False, skip_a=False, **kwargs):
         urlextension = urlextension + '&searchBs=' + str(search_b)
         urlextension = urlextension + '&skipAs=' + str(skip_a)
 
-        url = ('http://pfam.sanger.ac.uk/search/sequence?seq=' + str(seq) +
+        url = ('http://pfam.xfam.org/search/sequence?seq=' + str(seq) +
                urlextension + '&output=xml')
         LOGGER.debug('Submitted Pfam search for sequence "{0}...".'
                      .format(seq[:MINSEQLEN]))
@@ -146,13 +147,13 @@ def searchPfam(query, search_b=False, skip_a=False, **kwargs):
             if idcode is None:
                 LOGGER.warn('A UniProt ID code for PDB {0} could not be '
                             'parsed.'.format(repr(seq)))
-                url = 'http://pfam.sanger.ac.uk/protein/' + seq + '?output=xml'
+                url = 'http://pfam.xfam.org/protein/' + seq + '?output=xml'
             else:
-                url = ('http://pfam.sanger.ac.uk/protein/' +
+                url = ('http://pfam.xfam.org/protein/' +
                        idcode + '?output=xml')
 
         else:
-            url = 'http://pfam.sanger.ac.uk/protein/' + seq + '?output=xml'
+            url = 'http://pfam.xfam.org/protein/' + seq + '?output=xml'
 
     LOGGER.debug('Retrieving Pfam search results: ' + url)
     xml = None
@@ -163,7 +164,7 @@ def searchPfam(query, search_b=False, skip_a=False, **kwargs):
             pass
         else:
             if xml not in ['PEND','RUN']:
-               break
+                break
 
 
     if not xml:
@@ -256,7 +257,7 @@ def fetchPfamMSA(acc, alignment='full', compressed=False, **kwargs):
 
     :arg folder: output folder, default is ``'.'``"""
 
-    url = 'http://pfam.sanger.ac.uk/family/acc?id=' + acc
+    url = 'http://pfam.xfam.org/family/acc?id=' + acc
     handle = openURL(url)
     orig_acc = acc
     acc = handle.readline().strip()
@@ -272,13 +273,13 @@ def fetchPfamMSA(acc, alignment='full', compressed=False, **kwargs):
         raise ValueError('alignment must be one of full, seed, ncbi or'
                          ' metagenomics')
     if alignment == 'ncbi' or alignment == 'metagenomics':
-        url = ('http://pfam.sanger.ac.uk/family/' + acc + '/alignment/' +
+        url = ('http://pfam.xfam.org/family/' + acc + '/alignment/' +
                alignment + '/gzipped')
         url_flag = True
         extension = '.sth'
     else:
         if not kwargs:
-            url = ('http://pfam.sanger.ac.uk/family/' + acc + '/alignment/' +
+            url = ('http://pfam.xfam.org/family/' + acc + '/alignment/' +
                    alignment + '/gzipped')
             url_flag = True
             extension = '.sth'
@@ -309,7 +310,7 @@ def fetchPfamMSA(acc, alignment='full', compressed=False, **kwargs):
             if order not in FORMAT_OPTIONS['order']:
                 raise ValueError('order must be of type tree or alphabetical')
 
-            url = ('http://pfam.sanger.ac.uk/family/' + acc + '/alignment/'
+            url = ('http://pfam.xfam.org/family/' + acc + '/alignment/'
                    + alignment + '/format?format=' + align_format +
                    '&alnType=' + alignment + '&order=' + order[0] +
                    '&case=' + inserts[0] + '&gaps=' + gaps + '&download=1')
