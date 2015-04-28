@@ -192,6 +192,8 @@ for _key in _keys:
     if _key not in SETTINGS:
         SETTINGS[_key] = default
 
+LOGGER._setverbosity(confProDy('verbosity'))
+
 confProDy.__doc__ += '\n\n' + tabulate(['Option'] + _keys,
                                        ['Default (acceptable values)'] + _vals
                                        ) + """
