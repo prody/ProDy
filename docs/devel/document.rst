@@ -66,15 +66,16 @@ as follows::
 
 PDF and TGZ/ZIP files are copied to appropriate places after they are built.
 
-**Development version**
+..
+  **Development version**
 
-Finally, HTML and PDF pages for the development version can be built as
-follows::
+  Finally, HTML and PDF pages for the development version can be built as
+  follows::
 
-  $ make devel
+    $ make devel
 
-Again, this will copy HTML and PDF files to appropriate places, and a link
-to these files will be provided from he homepage.
+  Again, this will copy HTML and PDF files to appropriate places, and a link
+  to these files will be provided from he homepage.
 
 
 .. _Sphinx: http://sphinx.pocoo.org/
