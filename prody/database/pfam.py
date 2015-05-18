@@ -56,7 +56,7 @@ def searchPfam(query, search_b=False, skip_a=False, **kwargs):
     chain identifier.  UniProt ID of the specified chain, or the first
     protein chain will be used for searching the Pfam database."""
 
-    prefix = '{http://pfam.sanger.ac.uk/}'
+    prefix = '{http://pfam.xfam.org/}'
     query = str(query)
     if isfile(query):
         from prody.sequence import MSAFile
@@ -146,13 +146,13 @@ def searchPfam(query, search_b=False, skip_a=False, **kwargs):
             if idcode is None:
                 LOGGER.warn('A UniProt ID code for PDB {0} could not be '
                             'parsed.'.format(repr(seq)))
-                url = 'http://pfam.sanger.ac.uk/protein/' + seq + '?output=xml'
+                url = 'http://pfam.xfam.org/protein/' + seq + '?output=xml'
             else:
-                url = ('http://pfam.sanger.ac.uk/protein/' +
+                url = ('http://pfam.xfam.org/protein/' +
                        idcode + '?output=xml')
 
         else:
-            url = 'http://pfam.sanger.ac.uk/protein/' + seq + '?output=xml'
+            url = 'http://pfam.xfam.org/protein/' + seq + '?output=xml'
 
     LOGGER.debug('Retrieving Pfam search results: ' + url)
     xml = None
@@ -161,9 +161,9 @@ def searchPfam(query, search_b=False, skip_a=False, **kwargs):
             xml = openURL(url, timeout=timeout).read()
         except Exception:
             pass
-        #else:
-        #    if xml:
-        #        break
+        else:
+            if xml:
+                break
 
     if not xml:
         raise IOError('Pfam search timed out or failed to parse results '
