@@ -7,6 +7,7 @@ import numpy as np
 from prody.proteins import fetchPDB, parsePDB, writePDB
 from prody.utilities import openFile, showFigure
 from prody import LOGGER, SETTINGS
+from prody.atomic import AtomMap, Chain
 
 from .ensemble import *
 from .pdbensemble import *
@@ -121,13 +122,24 @@ def trimPDBEnsemble(pdb_ensemble, **kwargs):
         return None
 
     trimmed = PDBEnsemble(pdb_ensemble.getTitle())
+
+    atoms = pdb_ensemble.getAtoms()
+    if atoms is not None:
+        trim_atoms_idx = [n for n,t in enumerate(torf) if t]
+        if type(atoms) is Chain:
+            trim_atoms=Chain(atoms.getAtomGroup(), trim_atoms_idx, atoms._hv)
+        else:
+            trim_atoms= AtomMap(atoms.getAtomGroup(),trim_atoms_idx)
+        trimmed.setAtoms(trim_atoms)
+
     coords = pdb_ensemble.getCoords()
     if coords is not None:
         trimmed.setCoords(coords[torf])
     confs = pdb_ensemble.getCoordsets()
     if confs is not None:
         weights = pdb_ensemble.getWeights()
-        trimmed.addCoordset(confs[:, torf], weights[:, torf])
+        labels = pdb_ensemble.getLabels()
+        trimmed.addCoordset(confs[:, torf], weights[:, torf], labels)
     return trimmed
 
 
