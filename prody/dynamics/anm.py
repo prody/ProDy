@@ -215,8 +215,7 @@ class ANMBase(NMA):
             if eigvals:
                 turbo = False
             if isinstance(self._hessian, np.ndarray):
-                values, vectors = linalg.eigh(self._hessian, turbo=turbo,
-                                              eigvals=eigvals)
+                vectors, values, dummy = linalg.svd(self._hessian)
             else:
                 try:
                     from scipy.sparse import linalg as scipy_sparse_la
@@ -237,7 +236,7 @@ class ANMBase(NMA):
         else:
             if n_modes is not None:
                 LOGGER.info('Scipy is not found, all modes are calculated.')
-            values, vectors = linalg.eigh(self._hessian)
+            vectors, values, dummy = linalg.svd(self._hessian)
         n_zeros = sum(values < ZERO)
         if n_zeros < 6:
             LOGGER.warning('Less than 6 zero eigenvalues are calculated.')
