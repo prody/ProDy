@@ -162,7 +162,7 @@ class RTB(ANMBase):
 def imANM(pdb='2nwl-mem.pdb', blk='2nwl.blk', scale=1.):
     
     from prody import parsePDB
-    from numpy import zeros
+    from numpy import zeros, dot
 
     pdb = parsePDB(pdb, subset='ca')
     pdb.setData('block', zeros(len(pdb), int))
