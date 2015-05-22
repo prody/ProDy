@@ -10,7 +10,7 @@ from prody import LOGGER
 __all__ = ['calcShannonEntropy', 'buildMutinfoMatrix', 'calcMSAOccupancy',
            'applyMutinfoCorr', 'applyMutinfoNorm', 'calcRankorder',
            'buildSeqidMatrix', 'uniqueSequences', 'buildOMESMatrix',
-           'buildSCAMatrix', 'buildDirectInfoMatrix', 'calcMeff']
+           'buildSCAMatrix', 'buildDirectInfoMatrix', 'calcMeff', 'buildPCMatrix']
 
 
 doc_turbo = """
@@ -418,6 +418,20 @@ def buildSCAMatrix(msa, turbo=True, **kwargs):
 
 buildSCAMatrix.__doc__ += doc_turbo
 
+def buildPCMatrix(msa, turbo=False, **kwargs):
+    """Return PC matrix calculated for *msa*, which may be an :class:`.MSA`
+    instance or a 2D Numpy character array.
+
+    """
+
+    msa = getMSA(msa)
+    from .msatools import msapsicov
+    LOGGER.timeit('_psicov')
+    length = msa.shape[1]
+    pc = zeros((length, length), float)
+    pc = msapsicov(msa, pc, turbo=bool(turbo))
+    LOGGER.report('PC matrix was calculated in %.2fs.', '_psicov')
+    return pc
 
 def buildDirectInfoMatrix(msa, seqid=.8, pseudo_weight=.5, refine=False,
                           **kwargs):
