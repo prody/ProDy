@@ -26,18 +26,18 @@ except NameError:
 	pass
 
 a = open('vmd.dat', 'w')
-call(["which","vmd"], stdout=a)
+call(["which","vmd"], stdout=a, shell = True)
 a.close()
 with open ('vmd.dat', 'r') as a:
 	vmd = a.read().replace('\n','')	
-call(["rm","vmd.dat"])
+call(["rm","vmd.dat"], shell = True)
 
 a = open('namd.dat', 'w')
-call(["which","namd2"], stdout=a)
+call(["which","namd2"], stdout=a, shell = True)
 a.close()
 with open ('namd.dat', 'r') as a:
 	namd = a.read().replace('\n','')	
-call(["rm","namd.dat"])
+call(["rm","namd.dat"], shell = True)
 
 __all__ = ['perturb_structure', 'solvate_and_ionize', 'initial_minimization','align_two_pdbs', 'extract_final_CA', 'extract_tmd_target', 'run_TMD', 'minimization', 'RMSD_check', 'coMD']
 

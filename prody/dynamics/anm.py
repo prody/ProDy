@@ -215,7 +215,8 @@ class ANMBase(NMA):
             if eigvals:
                 turbo = False
             if isinstance(self._hessian, np.ndarray):
-                vectors, values, dummy = linalg.svd(self._hessian)
+                values, vectors = linalg.eigh(self._hessian, turbo=turbo,
+                                              eigvals=eigvals)
             else:
                 try:
                     from scipy.sparse import linalg as scipy_sparse_la
