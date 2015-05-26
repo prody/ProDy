@@ -905,8 +905,8 @@ def mapOntoChain(atoms, chain, **kwargs):
 
         ch_tar = next((r for r in residues_target if r is not None)).getChain()
         ch_chn = next((r for r in residues_chain if r is not None)).getChain()
-        title_tar = 'Chain {0} from {1}'.fromat(ch_tar.getChid(), ch_tar.getAtomGroup().getTitle())
-        title_chn = 'Chain {0} from {1}'.fromat(ch_chn.getChid(), ch_chn.getAtomGroup().getTitle())
+        title_tar = 'Chain {0} from {1}'.format(ch_tar.getChid(), ch_tar.getAtomGroup().getTitle())
+        title_chn = 'Chain {0} from {1}'.format(ch_chn.getChid(), ch_chn.getAtomGroup().getTitle())
 
         atommap = AM(map_ag, indices_chain, chain.getACSIndex(),
                      mapping=indices_mapping, dummies=indices_dummies,

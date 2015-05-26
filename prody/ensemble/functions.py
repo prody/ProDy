@@ -42,6 +42,8 @@ def saveEnsemble(ensemble, filename=None, **kwargs):
         value = dict_[attr]
         if value is not None:
             attr_dict[attr] = value
+            
+    attr_dict['_atoms'] = np.array([dict_['_atoms'], 0])
     filename += '.ens.npz'
     ostream = openFile(filename, 'wb', **kwargs)
     np.savez(ostream, **attr_dict)
@@ -57,7 +59,7 @@ def loadEnsemble(filename):
     if '_weights' in attr_dict:
         weights = attr_dict['_weights']
     else:
-        weights = None
+        weights = None   
     isPDBEnsemble = False
     try:
         title = str(attr_dict['_title'])
@@ -69,6 +71,11 @@ def loadEnsemble(filename):
     else:
         ensemble = Ensemble(title)
     ensemble.setCoords(attr_dict['_coords'])
+    if '_atoms' in attr_dict:
+        atoms = attr_dict['_atoms'][0]
+    else:
+        atoms = None
+    ensemble.setAtoms(atoms)    
     if isPDBEnsemble:
         ensemble.addCoordset(attr_dict['_confs'], weights)
         if '_identifiers' in attr_dict.files:

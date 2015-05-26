@@ -273,9 +273,8 @@ def fetchPDB(*pdb, **kwargs):
                 fn = join(local_folder, pdb[1:3], 'pdb' + pdb + '.pdb.gz')
             else:
                 fn = join(local_folder, pdb + '.pdb.gz')
-
             if isfile(fn):
-                if copy or not compressed:
+                if copy or not compressed and compressed is not None:
                     if compressed:
                         fn = copyFile(fn, join(folder, pdb + 'pdb.gz'))
                     else:
