@@ -92,10 +92,6 @@ int glassofast(const int n, double **S, double **L, const double thr, const int 
     {
 	dw = 0.0;
 
-<<<<<<< HEAD
-#pragma omp parallel for default(shared) private(i,j,ii,wxj,a,b,c,dlx,delta,sum)
-=======
->>>>>>> 349205b357140c3fbb98bfa33929b8b02e279804
 	for (j=0; j<n; j++)
 	{
 	    for (ii=0; ii<n; ii++)
@@ -146,10 +142,6 @@ int glassofast(const int n, double **S, double **L, const double thr, const int 
 	    for (sum=ii=0; ii<n; ii++)
 		sum += fabs(wxj[ii] - W[j][ii]);
 
-<<<<<<< HEAD
-#pragma omp critical
-=======
->>>>>>> 349205b357140c3fbb98bfa33929b8b02e279804
 	    if (sum > dw)
 		dw = sum;
 
@@ -183,10 +175,6 @@ int glassofast(const int n, double **S, double **L, const double thr, const int 
 	    X[ii][i] = X[i][ii];
 	}
     }
-<<<<<<< HEAD
-    
-=======
->>>>>>> 349205b357140c3fbb98bfa33929b8b02e279804
     return iter;
 }
 
@@ -269,10 +257,6 @@ void
 }
 
 // Cholesky test
-int test_cholesky(double *a, const int n) 
-{
-    int i, j, k;
-=======
 int test_cholesky(double **a, const int n) 
 {
     int i, j, k, status=0;
@@ -284,26 +268,6 @@ int test_cholesky(double **a, const int n)
 
     for (i=0; i<n; i++)
     {
-	for (j=i; j<n; j++)
-	{
-	    sum = a[i*n+j];
-
-	    for (k=i-1; k >= 0; k--)
-		sum -= a[i*n+k]*a[j*n+k];
-
-	    if (i == j)
-	    {
-		if (sum <= 0.0)
-		    return TRUE;
-
-		diag[i] = sqrt(sum);
-	    }
-	    else
-		a[j*n+i] = sum / diag[i];
-	}
-    }
-    
-    return FALSE;
 	if (!status)
 	    for (j=i; j<n; j++)
 	    {
@@ -2007,11 +1971,7 @@ static PyObject *msadirectinfo2(PyObject *self, PyObject *args, PyObject *kwargs
 
 static PyObject *msapsicov(PyObject *self, PyObject *args, PyObject *kwargs) {
 	PyArrayObject *msa, *pcinfo;
-<<<<<<< HEAD
-    int ambiguity = 1, turbo = 0, debug = 0, norm = 0, npair, nnzero;
-=======
-    int ambiguity = 1, turbo = 0, debug = 0, norm = 0, npair, nnzero, overrideflg =1;
->>>>>>> 349205b357140c3fbb98bfa33929b8b02e279804
+    int turbo = 0, npair, nnzero, overrideflg =1;
 	char **aln;
 	double *weight, rhodefault = -1.0, trialrho, rfact, targfnzero=0.0, fnzero;
 	unsigned int *wtcount; 
@@ -2030,11 +1990,7 @@ static PyObject *msapsicov(PyObject *self, PyObject *args, PyObject *kwargs) {
 	
     /* get pointers to data */
     char *seq = (char *) PyArray_DATA(msa); /*size: number x length */
-<<<<<<< HEAD
-    double *wwi = (double *) PyArray_DATA(pcinfo);
-=======
     double *wwii = (double *) PyArray_DATA(pcinfo);
->>>>>>> 349205b357140c3fbb98bfa33929b8b02e279804
 	long i, j, m;
 
 	aln = allocvec(number, sizeof(char *));
@@ -2052,11 +2008,7 @@ static PyObject *msapsicov(PyObject *self, PyObject *args, PyObject *kwargs) {
 	}
     
     /* allocate memory */
-<<<<<<< HEAD
-	double **pa, (**pab)[21][21]; 
-=======
 	double **pa; 
->>>>>>> 349205b357140c3fbb98bfa33929b8b02e279804
 
     long k, l;
     double idthresh = -1.0, wtsum;
@@ -2067,23 +2019,6 @@ static PyObject *msapsicov(PyObject *self, PyObject *args, PyObject *kwargs) {
 		double meanfracid = 0.0;
 		for (i=0; i<number; i++){
 			for (j=i+1; j<number; j++){
-<<<<<<< HEAD
-				int nids =0;
-				double fracid; 
-
-				for (k=0; k<length; k++){
-					if (aln[i][k] == aln[j][k]){
-						nids++;
-					}
-				fracid = (double)nids / length;
-				meanfracid += fracid;
-				}
-			}
-		}
-		idthresh = MIN(0.5, 0.38*0.32 / meanfracid);
-	}
-	
-=======
 				int nids;
 				double fracid; 
 
@@ -2099,7 +2034,6 @@ static PyObject *msapsicov(PyObject *self, PyObject *args, PyObject *kwargs) {
 		idthresh = MIN(0.5, 0.38*0.32 / meanfracid);
 //		printf("idthresh = %f  meanfracid = %f\n", idthresh, meanfracid);
 	}
->>>>>>> 349205b357140c3fbb98bfa33929b8b02e279804
 	for (i=0; i<number; i++){
 		for (j=i+1; j<number; j++){
 			int nthresh = length * idthresh; 
@@ -2118,23 +2052,14 @@ static PyObject *msapsicov(PyObject *self, PyObject *args, PyObject *kwargs) {
 	for (wtsum=i=0; i<number; i++){
 		wtsum += (weight[i] = 1.0 / (1+wtcount[i]));
 	}
-<<<<<<< HEAD
-
-	if (wtsum < MINEFSEQS){
-=======
 	
 //	printf("wtsum = %f\n", wtsum);
 	if (wtsum < MINEFSEQS && !overrideflg){
->>>>>>> 349205b357140c3fbb98bfa33929b8b02e279804
 		printf("not enough sequence error\n");
 		return 0;
 	}
 
 	pa = allocmat(length, 21, sizeof(double));
-<<<<<<< HEAD
-    pab = allocmat(length, length, 21*21*sizeof(double));
-=======
->>>>>>> 349205b357140c3fbb98bfa33929b8b02e279804
 
 	/* Pseudo count frequency calculation */
 	for (i=0; i<length; i++){
@@ -2151,73 +2076,6 @@ static PyObject *msapsicov(PyObject *self, PyObject *args, PyObject *kwargs) {
 			pa[i][j] /= 1.0 * 21.0 + wtsum;
 		}
 	}
-<<<<<<< HEAD
-	/* pair frequencies with pseudo count */
-	for (i=0; i<length; i++){
-		for (j=i+1; j<length; j++){
-			for (k=0; k<21; k++){
-				for (l=0; l<21; l++){
-					pab[i][j][k][l]=1.0 / 21; 
-				}
-			}
-			for (m=0; m<number; m++){
-				k = aln[m][i];
-				l = aln[m][j];
-				if (k<21 && l<21){
-					pab[i][j][k][l] += weight[m];
-				}
-			} 
-			for (k=0; k<21; k++){
-				for (l=0; l<21; l++){
-				pab[i][j][k][l] /= 21 + wtsum;
-				pab[j][i][k][l] = pab[i][j][k][l];   
-				}
-			}
-		}
-	}
-	
-	for (i=0; i<length; i++){
-		for (k=0; k<21; k++){
-			for (l=0; l<21; l++){
-				pab[i][i][k][l] = (k==l) ? pa[i][k] : 0.0;
-			}
-		}
-	}
-
-	double *cmat, *rho, *ww, *tempmat; 
-	
-	int ndim = length * 21;
-	
-	cmat = f_matrix_calloc(ndim, sizeof(double));
-    tempmat = f_matrix_calloc(ndim, sizeof(double));
-
-    /* Form the covariance matrix */
-    for (i=0; i<length; i++){
-		for (j=0; j<length; j++){
-	    	for (k=0; k<21; k++){
-				for (l=0; l<21; l++){
-		    		if (i != j || k == l){
-						cmat[(i*21+k) * ndim + j*21+l] = pab[i][j][k][l] - pa[i][k] * pa[j][l];
-					}
-				}
-			}
-		}
-	}
-    freemat(pab);
-	double smean;
-
-	for (smean=i=0; i<ndim; i++)
-	    smean += cmat[i*ndim+i];
-	
-	smean /= (double)ndim;
-	double lambda = 0.1;
-
-	for (;;)
-	{
-	    memcpy(tempmat, cmat, ndim*ndim*sizeof(double));
-	    
-	    /* Test if positive definite using Cholesky decomposition */
-=======
 	
 	double **cmat, **rho, **ww, **tempmat, **wwi; 
 	
@@ -2276,7 +2134,6 @@ static PyObject *msapsicov(PyObject *self, PyObject *args, PyObject *kwargs) {
 	    
 	    /* Test if positive definite using Cholesky decomposition */
 		u=0;
->>>>>>> 349205b357140c3fbb98bfa33929b8b02e279804
 	    if (!test_cholesky(tempmat, ndim))
 			break;
 	    
@@ -2285,17 +2142,10 @@ static PyObject *msapsicov(PyObject *self, PyObject *args, PyObject *kwargs) {
 		    	for (k=0; k<21; k++){
 					for (l=0; l<21; l++){
 			    		if (i != j){
-<<<<<<< HEAD
-							cmat[(i*21+k)*ndim + j*21+l] *= 1.0 - lambda;
-						}
-			    		else if (k == l){
-							cmat[(i*21+k)*ndim + j*21+l] = smean * lambda + (1.0 - lambda) * cmat[(i*21+k)*ndim + j*21+l];
-=======
 							cmat[(i*21+k)][j*21+l] *= 1.0 - lambda;
 						}
 			    		else if (k == l){
 							cmat[(i*21+k)][j*21+l] = smean * lambda + (1.0 - lambda) * cmat[(i*21+k)][j*21+l];
->>>>>>> 349205b357140c3fbb98bfa33929b8b02e279804
 						}
 					}
 				}
@@ -2303,86 +2153,6 @@ static PyObject *msapsicov(PyObject *self, PyObject *args, PyObject *kwargs) {
 		}
 	}		 
 	
-<<<<<<< HEAD
-// 	rho = f_matrix_calloc(ndim, sizeof(double));
-//     ww = f_matrix_calloc(ndim, sizeof(double));
-//     wwi = f_matrix_calloc(ndim, sizeof(double));
-
-//     double lastfnzero=0.0;
-// 	double maxgapf = 0.9;
-
-//     /* Guess at a reasonable starting rho value if undefined */
-//     if (rhodefault < 0.0)
-// 		trialrho = MAX(0.001, 1.0 / wtsum);
-//     else
-// 		trialrho = rhodefault;
-
-//     rfact = 0.0;
-// 	int approxflg=0, initflg=0, maxit=10000, niter;
-// 	double thresh=1e-4;
-//     for (;;)
-//     {
-// 		if (trialrho <= 0.0 || trialrho >= 1.0)
-// 	    	fail("Sorry - failed to find suitable value for rho (0 < rho < 1)!");
-
-// 		for (i=0; i<ndim; i++)
-// 	    	for (j=0; j<ndim; j++)
-// 			rho[i*ndim + j] = trialrho;
-	
-// 		for (i=0; i<length; i++)
-// 	    	for (j=0; j<length; j++)
-// 			for (k=0; k<21; k++)
-// 		    	for (l=0; l<21; l++)
-// 				if ((k != l && i == j) || pa[i][20] > maxgapf || pa[j][20] > maxgapf)
-// 			    	rho[(i*21+k)*ndim + j*21+l] = 1e9;
-	
-// 	/* All matrices are symmetric so no need to transpose before/after calling Fortran code */
-// 		niter = glassofast(ndim, &cmat, &rho, thresh, maxit, approxflg, initflg, &wwi, &ww);
-		
-// 		if (targfnzero <= 0.0)
-// 	    	break;
-	
-// 		for (npair=nnzero=i=0; i<ndim; i++)
-// 	    	for (j=i+1; j<ndim; j++,npair++)
-// 				if (wwi[i*ndim+j] != 0.0)
-// 		    		nnzero++;
-
-// 		fnzero = (double) nnzero / npair;
-
-// //      printf("rho=%f fnzero = %f\n", trialrho, fnzero);
-
-// 	/* Stop iterating if we have achieved the target sparsity level */
-// 		if (fabs(fnzero - targfnzero)/targfnzero < 0.01)
-// 	    	break;
-	
-// 		if (fnzero == 0.0)
-// 		{
-// 	    /* As we have guessed far too high, halve rho and try again */
-// 	    	trialrho *= 0.5;
-// 	    	continue;
-// 		}
-	
-// 		if (lastfnzero > 0.0 && fnzero != lastfnzero)
-// 		{
-// //	    printf("fnzero=%f lastfnzero=%f trialrho=%f oldtrialrho=%f\n", fnzero, lastfnzero, trialrho, trialrho/rfact);
-	    
-// 	    	rfact = pow(rfact, log(targfnzero / fnzero) / log(fnzero / lastfnzero));
-
-// //	    printf("New rfact = %f\n", rfact);
-// 		}
-
-// 		lastfnzero = fnzero;
-
-// 	/* Make a small trial step in the appropriate direction */
-
-// 		if (rfact == 0.0)
-// 	    	rfact = (fnzero < targfnzero) ? 0.9 : 1.1;
-	
-// 		trialrho *= rfact;
-//     }
-    /* free memory */
-
-=======
  	rho = allocmat(ndim, ndim, sizeof(double));
     ww = allocmat(ndim, ndim, sizeof(double));
     wwi = allocmat(ndim, ndim, sizeof(double));
@@ -2397,7 +2167,7 @@ static PyObject *msapsicov(PyObject *self, PyObject *args, PyObject *kwargs) {
  		trialrho = rhodefault;
 
     rfact = 0.0;
- 	int approxflg=0, initflg=0, maxit=10000, niter;
+ 	int approxflg=0, initflg=0, maxit=10000;
  	double thresh=1e-4;
     while(u!=1)
     {
@@ -2479,7 +2249,6 @@ static PyObject *msapsicov(PyObject *self, PyObject *args, PyObject *kwargs) {
 			wwii[i*length+j]=pcmat[i][j];
 		}
 	}
->>>>>>> 349205b357140c3fbb98bfa33929b8b02e279804
     return Py_BuildValue("O", pcinfo);
 }
 
