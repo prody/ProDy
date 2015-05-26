@@ -178,8 +178,8 @@ def imANM(pdb='2nwl-mem.pdb', blk='2nwl.blk', scale=1.):
     rtb.buildHessian(pdb, pdb.getData('block'), scale)
     h_prime = rtb.getHessian()
     p = rtb.getProjection()
-    v_prime,l,v = linalg.svd(h_prime)
-    vv = dot(p, v)
+    values, vectors = linalg.eigh(h_prime)
+    vv = dot(p, vectors)
     return vv
 
 def assign_lpvs(lat):
@@ -264,6 +264,8 @@ def cgmembrane_wpdb(pdb_id=None, membrane_hi=None, membrane_lo=None, R=None, r=N
                             f.write('ATOM%7d  Q1  NE1 Q%4d% 12.3f% 8.3f% 8.3f\n' % (atm, atm, X[0], X[1], X[2]))
     f.close()
                 
+
+
                 
 def cgmembrane_wopdb(membrane_hi=None, membrane_lo=None, R=None, r=None, lat=None, outputName=None):
     

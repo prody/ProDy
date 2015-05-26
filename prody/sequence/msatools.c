@@ -4,11 +4,307 @@
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 #include "numpy/arrayobject.h"
 #define NUMCHARS 27
+
+/*defined variables for psicov*/
+#define FALSE 0
+#define TRUE 1 
+
+#define SQR(x) ((x)*(x))
+#define MAX(x,y) ((x)>(y)?(x):(y))
+#define MIN(x,y) ((x)<(y)?(x):(y))
+
+#define MAXSEQLEN 5000
+#define MINEFSEQS (length)
+
 const int twenty[20] = {1, 3, 4, 5, 6, 7, 8, 9, 11, 12, 13,
                         14, 16, 17, 18, 19, 20, 22, 23, 25};
 const int unambiguous[23] = {0, 1, 3, 4, 5, 6, 7, 8, 9, 11, 12, 13, 14,
                              15, 16, 17, 18, 19, 20, 21, 22, 23, 25};
 
+
+/* Functions for PSICOV array handling BEGIN*/
+#define EPS (1.1e-15)
+#define BIG (1e9)
+
+int glassofast(const int n, double **S, double **L, const double thr, const int maxit, int approxflg, int warm, double **X, double **W)
+{
+    int i, j, ii, iter, jj;
+    double a, b, c, delta, dlx, dw, shr, sum, thrlasso, tmp, wd[MAXSEQLEN*21], wxj[MAXSEQLEN*21];
+
+    for (shr=ii=0; ii<n; ii++)
+	for (jj=0; jj<n; jj++)
+	    shr += fabs(S[ii][jj]);
+    
+    for (i=0; i<n; i++)
+	shr -= fabs(S[i][i]);
+    
+    if (shr == 0.0)
+    {
+        /* S is diagonal. */
+	for (ii=0; ii<n; ii++)
+	    for (jj=0; jj<n; jj++)
+		W[ii][jj] = X[ii][jj] = 0.0;
+	
+	for (i=0; i<n; i++)
+	    W[i][i] = W[i][i] + L[i][i];
+	
+	for (ii=0; ii<n; ii++)
+	    for (jj=0; jj<n; jj++)
+		X[ii][jj] = 0.0;
+	
+	for (i=0; i<n; i++)
+	    X[i][i] = 1.0 / MAX(W[i][i], EPS);
+
+	return 0;
+    }
+    
+    shr *= thr/(n-1);
+    thrlasso = shr/n;
+    if (thrlasso < 2*EPS)
+	thrlasso = 2*EPS;
+    
+    if (!warm)
+    {
+	for (ii=0; ii<n; ii++)
+	    for (jj=0; jj<n; jj++)
+	    {
+		W[ii][jj] = S[ii][jj];
+		X[ii][jj] = 0.0;
+	    }
+    }
+    else
+    {
+	for (i=0; i<n; i++)
+	{
+	    for (ii=0; ii<n; ii++)
+		X[i][ii] = -X[i][ii]/X[i][i];
+	    X[i][i] = 0.0;
+	}
+    }
+    
+    for (i=0; i<n; i++)
+    {
+	wd[i] = S[i][i] + L[i][i];
+	W[i][i] = wd[i];
+    }
+    
+    for (iter = 1; iter<=maxit; iter++)
+    {
+	dw = 0.0;
+
+#pragma omp parallel for default(shared) private(i,j,ii,wxj,a,b,c,dlx,delta,sum)
+	for (j=0; j<n; j++)
+	{
+	    for (ii=0; ii<n; ii++)
+		wxj[ii] = 0.0;
+
+	    for (i=0; i<n; i++)
+		if (X[j][i] != 0.0)
+		    for (ii=0; ii<n; ii++)
+			wxj[ii] += W[i][ii] * X[j][i];
+
+	    for (;;)
+	    {
+		dlx = 0.0;
+		
+		for (i=0; i<n; i++)
+		{
+		    if (i != j && L[j][i] < BIG)
+		    {
+			a = S[j][i] - wxj[i] + wd[i] * X[j][i];
+			b = fabs(a) - L[j][i];
+			if (b <= 0.0)
+			    c = 0.0;
+			else if (a >= 0.0)
+			    c = b / wd[i];
+			else
+			    c = -b / wd[i];
+
+			delta = c - X[j][i];
+			if (delta != 0.0 && (!approxflg || fabs(delta) > 1e-6))
+			{
+			    X[j][i] = c;
+			
+			    for (ii=0; ii<n; ii++)
+				wxj[ii] += W[i][ii] * delta;
+			    
+			    if (fabs(delta) > dlx)
+				dlx = fabs(delta);
+			}
+		    }
+		}
+		
+		if (dlx < thrlasso)
+		    break;
+	    }
+	    
+	    wxj[j] = wd[j];
+	    
+	    for (sum=ii=0; ii<n; ii++)
+		sum += fabs(wxj[ii] - W[j][ii]);
+
+#pragma omp critical
+	    if (sum > dw)
+		dw = sum;
+
+	    for (ii=0; ii<n; ii++)
+		W[j][ii] = wxj[ii];
+	    for (ii=0; ii<n; ii++)
+		W[ii][j] = wxj[ii];
+	}
+	
+	if (dw <= shr)
+	    break;
+    }
+
+    for (i=0; i<n; i++)
+    {
+	for (sum=ii=0; ii<n; ii++)
+	    sum += X[i][ii] * W[i][ii];
+	
+	tmp = 1.0 / (wd[i] - sum);
+	
+	for (ii=0; ii<n; ii++)
+	    X[i][ii] = -tmp * X[i][ii];
+	X[i][i] = tmp;
+    }
+    
+    for (i=0; i<n-1; i++)
+    {
+	for (ii=i+1; ii<n; ii++)
+	{
+	    X[i][ii] = 0.5 * (X[i][ii] + X[ii][i]);
+	    X[ii][i] = X[i][ii];
+	}
+    }
+    
+    return iter;
+}
+
+
+/* Dump a rude message to standard error and exit */
+void fail(char *fmt, ...)
+{
+    va_list ap;
+    
+    va_start(ap, fmt) ;
+    fprintf(stderr, "*** ");
+    vfprintf(stderr, fmt, ap);
+    fputc('\n', stderr);
+    
+    exit(-1);
+}
+
+/* Allocate vector */
+
+void *allocvec(int columns, int size)
+{
+    void          *p;
+
+    p = calloc(columns, size);
+
+    if (p == NULL)
+	fail("allocvec: calloc failed!");
+
+    return p;
+}
+
+/* Allocate matrix */
+void *allocmat(int rows, int columns, int size)
+{
+    int             i;
+    void          **p, *rp;
+
+    rp = malloc(rows * sizeof(void *) + sizeof(int));
+
+    if (rp == NULL)
+	fail("allocmat: malloc [] failed!");
+
+    *((int *)rp) = rows;
+
+    p = rp + sizeof(int);
+
+    for (i = 0; i < rows; i++)
+	if ((p[i] = calloc(columns, size)) == NULL)
+	    fail("allocmat: malloc [][] failed!");
+
+    return p;
+}
+
+/* Allocate Fortran compatible square matrix */
+void *f_matrix_calloc(int ndim, int size)
+{
+    void *p;
+    
+    p = calloc(ndim * ndim, size);
+    
+    if (p == NULL)
+	fail("f_matrix_calloc: calloc failed!");
+
+    return p;
+}
+
+/* Free matrix */
+void
+                freemat(void *rp)
+{
+    int             rows;
+    void **p = rp;
+
+    rows = *((int *)(rp - sizeof(int)));
+
+    while (rows--)
+	free(p[rows]);
+
+    free(rp - sizeof(int));
+}
+
+// Cholesky test
+int test_cholesky(double *a, const int n) 
+{
+    int i, j, k;
+    double sum;
+    static double *diag;
+
+    if (diag == NULL)
+	diag = allocvec(n, sizeof(double));
+
+    for (i=0; i<n; i++)
+    {
+	for (j=i; j<n; j++)
+	{
+	    sum = a[i*n+j];
+
+	    for (k=i-1; k >= 0; k--)
+		sum -= a[i*n+k]*a[j*n+k];
+
+	    if (i == j)
+	    {
+		if (sum <= 0.0)
+		    return TRUE;
+
+		diag[i] = sqrt(sum);
+	    }
+	    else
+		a[j*n+i] = sum / diag[i];
+	}
+    }
+    
+    return FALSE;
+}
+// AA letter to numeric code transfer
+int aanum(int ch)
+{
+    const static int aacvs[] =
+    {
+	999, 0, 3, 4, 3, 6, 13, 7, 8, 9, 21, 11, 10, 12, 2,
+	21, 14, 5, 1, 15, 16, 21, 19, 17, 21, 18, 6
+    };
+
+    return (isalpha(ch) ? aacvs[ch & 31] : 20);
+}
+
+/* Functions for PSICOV array handling END*/
 
 static PyObject *msaentropy(PyObject *self, PyObject *args, PyObject *kwargs) {
 
@@ -1675,6 +1971,278 @@ static PyObject *msadirectinfo2(PyObject *self, PyObject *args, PyObject *kwargs
     return Py_BuildValue("O", diinfo);
 }
 
+static PyObject *msapsicov(PyObject *self, PyObject *args, PyObject *kwargs) {
+	PyArrayObject *msa, *pcinfo;
+    int ambiguity = 1, turbo = 0, debug = 0, norm = 0, npair, nnzero;
+	char **aln;
+	double *weight, rhodefault = -1.0, trialrho, rfact, targfnzero=0.0, fnzero;
+	unsigned int *wtcount; 
+
+    static char *kwlist[] = {"msa", "pcinfo", "turbo", NULL};
+
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "OO|i", kwlist,
+                                     &msa, &pcinfo, &turbo))
+        return NULL;
+
+    /* make sure to have a contiguous and well-behaved array */
+    msa = PyArray_GETCONTIGUOUS(msa);
+
+    /* check dimensions */
+    long number = PyArray_DIMS(msa)[0], length = PyArray_DIMS(msa)[1];
+	
+    /* get pointers to data */
+    char *seq = (char *) PyArray_DATA(msa); /*size: number x length */
+    double *wwi = (double *) PyArray_DATA(pcinfo);
+	long i, j, m;
+
+	aln = allocvec(number, sizeof(char *));
+
+	weight = allocvec(number, sizeof(double));
+
+	wtcount = allocvec(number, sizeof(unsigned int));
+
+	for (i=0; i<number; i++){
+		if (!(aln[i] = malloc(length)))
+			fail("Out of memory!");	
+    	for (j=0; j<length; j++){
+			aln[i][j] = aanum(seq[i*length+j]);
+		}
+	}
+    
+    /* allocate memory */
+	double **pa, (**pab)[21][21]; 
+
+    long k, l;
+    double idthresh = -1.0, wtsum;
+
+    /* START psicov calculation */
+	/* Sequence weight calculation */
+	if (idthresh < 0.0){
+		double meanfracid = 0.0;
+		for (i=0; i<number; i++){
+			for (j=i+1; j<number; j++){
+				int nids =0;
+				double fracid; 
+
+				for (k=0; k<length; k++){
+					if (aln[i][k] == aln[j][k]){
+						nids++;
+					}
+				fracid = (double)nids / length;
+				meanfracid += fracid;
+				}
+			}
+		}
+		idthresh = MIN(0.5, 0.38*0.32 / meanfracid);
+	}
+	
+	for (i=0; i<number; i++){
+		for (j=i+1; j<number; j++){
+			int nthresh = length * idthresh; 
+			for (k=0; nthresh>0 && k<length; k++){
+				if (aln[i][k] != aln[j][k]){
+						nthresh--;
+				}
+			}
+			if (nthresh > 0){
+				wtcount[i]++;
+				wtcount[j]++;
+			}
+		}
+	}
+
+	for (wtsum=i=0; i<number; i++){
+		wtsum += (weight[i] = 1.0 / (1+wtcount[i]));
+	}
+
+	if (wtsum < MINEFSEQS){
+		printf("not enough sequence error\n");
+		return 0;
+	}
+
+	pa = allocmat(length, 21, sizeof(double));
+    pab = allocmat(length, length, 21*21*sizeof(double));
+
+	/* Pseudo count frequency calculation */
+	for (i=0; i<length; i++){
+		for (j=0; j<21; j++){
+			pa[i][j] = 1;
+		}
+		for (k=0; k<number; k++){
+			j = aln[k][i];
+			if (j<21){
+				pa[i][j] += weight[k];
+			}
+		}
+		for (j=0; j<21; j++){
+			pa[i][j] /= 1.0 * 21.0 + wtsum;
+		}
+	}
+	/* pair frequencies with pseudo count */
+	for (i=0; i<length; i++){
+		for (j=i+1; j<length; j++){
+			for (k=0; k<21; k++){
+				for (l=0; l<21; l++){
+					pab[i][j][k][l]=1.0 / 21; 
+				}
+			}
+			for (m=0; m<number; m++){
+				k = aln[m][i];
+				l = aln[m][j];
+				if (k<21 && l<21){
+					pab[i][j][k][l] += weight[m];
+				}
+			} 
+			for (k=0; k<21; k++){
+				for (l=0; l<21; l++){
+				pab[i][j][k][l] /= 21 + wtsum;
+				pab[j][i][k][l] = pab[i][j][k][l];   
+				}
+			}
+		}
+	}
+	
+	for (i=0; i<length; i++){
+		for (k=0; k<21; k++){
+			for (l=0; l<21; l++){
+				pab[i][i][k][l] = (k==l) ? pa[i][k] : 0.0;
+			}
+		}
+	}
+
+	double *cmat, *rho, *ww, *tempmat; 
+	
+	int ndim = length * 21;
+	
+	cmat = f_matrix_calloc(ndim, sizeof(double));
+    tempmat = f_matrix_calloc(ndim, sizeof(double));
+
+    /* Form the covariance matrix */
+    for (i=0; i<length; i++){
+		for (j=0; j<length; j++){
+	    	for (k=0; k<21; k++){
+				for (l=0; l<21; l++){
+		    		if (i != j || k == l){
+						cmat[(i*21+k) * ndim + j*21+l] = pab[i][j][k][l] - pa[i][k] * pa[j][l];
+					}
+				}
+			}
+		}
+	}
+    freemat(pab);
+	double smean;
+
+	for (smean=i=0; i<ndim; i++)
+	    smean += cmat[i*ndim+i];
+	
+	smean /= (double)ndim;
+	double lambda = 0.1;
+
+	for (;;)
+	{
+	    memcpy(tempmat, cmat, ndim*ndim*sizeof(double));
+	    
+	    /* Test if positive definite using Cholesky decomposition */
+	    if (!test_cholesky(tempmat, ndim))
+			break;
+	    
+	    for (i=0; i<length; i++){
+			for (j=0; j<length; j++){
+		    	for (k=0; k<21; k++){
+					for (l=0; l<21; l++){
+			    		if (i != j){
+							cmat[(i*21+k)*ndim + j*21+l] *= 1.0 - lambda;
+						}
+			    		else if (k == l){
+							cmat[(i*21+k)*ndim + j*21+l] = smean * lambda + (1.0 - lambda) * cmat[(i*21+k)*ndim + j*21+l];
+						}
+					}
+				}
+			}
+		}
+	}		 
+	
+// 	rho = f_matrix_calloc(ndim, sizeof(double));
+//     ww = f_matrix_calloc(ndim, sizeof(double));
+//     wwi = f_matrix_calloc(ndim, sizeof(double));
+
+//     double lastfnzero=0.0;
+// 	double maxgapf = 0.9;
+
+//     /* Guess at a reasonable starting rho value if undefined */
+//     if (rhodefault < 0.0)
+// 		trialrho = MAX(0.001, 1.0 / wtsum);
+//     else
+// 		trialrho = rhodefault;
+
+//     rfact = 0.0;
+// 	int approxflg=0, initflg=0, maxit=10000, niter;
+// 	double thresh=1e-4;
+//     for (;;)
+//     {
+// 		if (trialrho <= 0.0 || trialrho >= 1.0)
+// 	    	fail("Sorry - failed to find suitable value for rho (0 < rho < 1)!");
+
+// 		for (i=0; i<ndim; i++)
+// 	    	for (j=0; j<ndim; j++)
+// 			rho[i*ndim + j] = trialrho;
+	
+// 		for (i=0; i<length; i++)
+// 	    	for (j=0; j<length; j++)
+// 			for (k=0; k<21; k++)
+// 		    	for (l=0; l<21; l++)
+// 				if ((k != l && i == j) || pa[i][20] > maxgapf || pa[j][20] > maxgapf)
+// 			    	rho[(i*21+k)*ndim + j*21+l] = 1e9;
+	
+// 	/* All matrices are symmetric so no need to transpose before/after calling Fortran code */
+// 		niter = glassofast(ndim, &cmat, &rho, thresh, maxit, approxflg, initflg, &wwi, &ww);
+		
+// 		if (targfnzero <= 0.0)
+// 	    	break;
+	
+// 		for (npair=nnzero=i=0; i<ndim; i++)
+// 	    	for (j=i+1; j<ndim; j++,npair++)
+// 				if (wwi[i*ndim+j] != 0.0)
+// 		    		nnzero++;
+
+// 		fnzero = (double) nnzero / npair;
+
+// //      printf("rho=%f fnzero = %f\n", trialrho, fnzero);
+
+// 	/* Stop iterating if we have achieved the target sparsity level */
+// 		if (fabs(fnzero - targfnzero)/targfnzero < 0.01)
+// 	    	break;
+	
+// 		if (fnzero == 0.0)
+// 		{
+// 	    /* As we have guessed far too high, halve rho and try again */
+// 	    	trialrho *= 0.5;
+// 	    	continue;
+// 		}
+	
+// 		if (lastfnzero > 0.0 && fnzero != lastfnzero)
+// 		{
+// //	    printf("fnzero=%f lastfnzero=%f trialrho=%f oldtrialrho=%f\n", fnzero, lastfnzero, trialrho, trialrho/rfact);
+	    
+// 	    	rfact = pow(rfact, log(targfnzero / fnzero) / log(fnzero / lastfnzero));
+
+// //	    printf("New rfact = %f\n", rfact);
+// 		}
+
+// 		lastfnzero = fnzero;
+
+// 	/* Make a small trial step in the appropriate direction */
+
+// 		if (rfact == 0.0)
+// 	    	rfact = (fnzero < targfnzero) ? 0.9 : 1.1;
+	
+// 		trialrho *= rfact;
+//     }
+    /* free memory */
+
+    return Py_BuildValue("O", pcinfo);
+}
+
 
 static PyMethodDef msatools_methods[] = {
 
@@ -1696,6 +2264,10 @@ static PyMethodDef msatools_methods[] = {
 
     {"msasca",  (PyCFunction)msasca, METH_VARARGS | METH_KEYWORDS,
      "Return SCA matrix calculated for given character array that contains\n"
+     "an MSA."},
+
+	{"msapsicov",  (PyCFunction)msapsicov, METH_VARARGS | METH_KEYWORDS,
+     "Return PC matrix calculated for given character array that contains\n"
      "an MSA."},
 
     {"msameff",  (PyCFunction)msameff, METH_VARARGS | METH_KEYWORDS,
