@@ -237,8 +237,8 @@ class ANMBase(NMA):
         else:
             if n_modes is not None:
                 LOGGER.info('Scipy is not found, all modes are calculated.')
-            vectors, values, dummy = linalg.svd(self._hessian)
-        n_zeros = sum(values < ZERO)
+            values, vectors = linalg.eigh(self._hessian)
+        n_zeros = sum(values < ZERO) 
         if n_zeros < 6:
             LOGGER.warning('Less than 6 zero eigenvalues are calculated.')
             shift = n_zeros - 1

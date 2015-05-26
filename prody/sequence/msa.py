@@ -7,7 +7,7 @@ from .sequence import Sequence, splitSeqLabel
 
 from prody import LOGGER
 
-__all__ = ['MSA', 'refineMSA', 'mergeMSA']
+__all__ = ['MSA', 'refineMSA', 'mergeMSA', 'specMergeMSA']
 
 try:
     range = xrange
@@ -613,6 +613,63 @@ def mergeMSA(*msa, **kwargs):
             continue
         for idx, arr, (start, end) in idx_arr_rng:
             merger[index, start:end] = arr[idx(label)]
+
+        labels.append(label)
+        mapping[label] = index
+        index += 1
+    merger = MSA(merger, labels=labels, mapping=mapping,
+                 title=' + '.join([m.getTitle() for m in msa]))
+    return merger
+
+def specMergeMSA(*msa, **kwargs):
+    """Return an :class:`.MSA` obtained from merging parts of the sequences
+    of proteins present in multiple *msa* instances.  Sequences are matched
+    based on protein identifiers found in the sequence labels.  Order of
+    sequences in the merged MSA will follow the order of sequences in the
+    first *msa* instance.  Note that protein identifiers that map to multiple
+    sequences will be excluded."""
+
+    if len(msa) <= 1:
+        raise ValueError('more than one msa instances are needed')
+    lbl={}
+    try:
+        arrs = [m._getArray() for m in msa]
+        sets = []
+        labells = []
+        for m in msa:
+            aset = set([])
+            labell = {}
+            count = m.countLabel
+            for label in m.iterLabels():
+                lbl[label]=label.rsplit('_')[1]
+                if count(label) == 1 and lbl[label] not in aset:
+                    aset.add(lbl[label])
+                    labell[lbl[label]]=label
+            sets.append(aset)
+            labells.append(labell)
+    except AttributeError:
+        raise TypeError('all msa arguments must be MSA instances')  
+    sets = iter(sets)
+    common = next(sets)
+    for aset in sets:
+        common = common.intersection(aset)
+    if not common:
+        return None
+    lens = [m.numResidues() for m in msa]
+    rngs = [0]
+    rngs.extend(cumsum(lens))
+    rngs = [(start, end) for start, end in zip(rngs[:-1], rngs[1:])]
+    
+    idx_arr_rng = list(zip([m.getIndex for m in msa], arrs, rngs))
+
+    merger = zeros((len(common), sum(lens)), '|S1')
+    index = 0
+    labels = []
+    mapping = {}
+    for lbl in common:
+        merger[index, 0:start]=list(str(msa[0][msa[0].getIndex(labells[0][lbl])]))
+        merger[index, start:end]=list(str(msa[1][msa[1].getIndex(labells[1][lbl])]))
+        label = labells[0][lbl]
 
         labels.append(label)
         mapping[label] = index

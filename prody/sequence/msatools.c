@@ -1971,7 +1971,7 @@ static PyObject *msadirectinfo2(PyObject *self, PyObject *args, PyObject *kwargs
 
 static PyObject *msapsicov(PyObject *self, PyObject *args, PyObject *kwargs) {
 	PyArrayObject *msa, *pcinfo;
-    int ambiguity = 1, turbo = 0, debug = 0, norm = 0, npair, nnzero, overrideflg =1;
+    int turbo = 0, npair, nnzero, overrideflg =1;
 	char **aln;
 	double *weight, rhodefault = -1.0, trialrho, rfact, targfnzero=0.0, fnzero;
 	unsigned int *wtcount; 
@@ -2167,7 +2167,7 @@ static PyObject *msapsicov(PyObject *self, PyObject *args, PyObject *kwargs) {
  		trialrho = rhodefault;
 
     rfact = 0.0;
- 	int approxflg=0, initflg=0, maxit=10000, niter;
+ 	int approxflg=0, initflg=0, maxit=10000;
  	double thresh=1e-4;
     while(u!=1)
     {

@@ -12,8 +12,6 @@ import os.path
 
 from subprocess import call
 
-from joblib import Parallel, delayed
-
 from time import sleep
 
 import multiprocessing as mp
@@ -25,21 +23,27 @@ try:
 except NameError:
 	pass
 
-a = open('vmd.dat', 'w')
-call(["which","vmd"], stdout=a, shell = True)
-a.close()
-with open ('vmd.dat', 'r') as a:
-	vmd = a.read().replace('\n','')	
-call(["rm","vmd.dat"], shell = True)
+global vmd
+global namd
 
-a = open('namd.dat', 'w')
-call(["which","namd2"], stdout=a, shell = True)
-a.close()
-with open ('namd.dat', 'r') as a:
-	namd = a.read().replace('\n','')	
-call(["rm","namd.dat"], shell = True)
 
 __all__ = ['perturb_structure', 'solvate_and_ionize', 'initial_minimization','align_two_pdbs', 'extract_final_CA', 'extract_tmd_target', 'run_TMD', 'minimization', 'RMSD_check', 'coMD']
+
+def set_VMD_path():
+	a = open('vmd.dat', 'w')
+	call(["which","vmd"], stdout=a)
+	a.close()
+	with open ('vmd.dat', 'r') as a:
+		vmd = a.read().replace('\n','')	
+	call(["rm","vmd.dat"])
+
+def set_NAMD_path():
+	a = open('namd.dat', 'w')
+	call(["which","namd2"], stdout=a)
+	a.close()
+	with open ('namd.dat', 'r') as a:
+		namd = a.read().replace('\n','')	
+	call(["rm","namd.dat"])
 
 def perturb_structure(initial_pdb, final_pdbn, N):
 	a=open(initial_pdb + '_' + final_pdbn + '.running', 'w')
@@ -255,6 +259,10 @@ def RMSD_check(starting_pdb_id, starting_chain_id, starting_rescoor, ending_pdb_
 	a.close()
 	
 def coMD(initial_pdb, initial_chain, final_pdb, final_chain, coMD_cycle=None, ANM_cycle=None, MD_length=None, minimization_length=None):
+	import hwloc
+	top = hwloc.Topology()
+	topology.load()
+	cpu_count = top.get_nbobjs_bey_type(hwloc.OBJ_CORE)
 	if coMD_cycle == None:
 		coMD_cycle = 1
 	if ANM_cycle == None:
@@ -263,6 +271,8 @@ def coMD(initial_pdb, initial_chain, final_pdb, final_chain, coMD_cycle=None, AN
 		MD_length = 1000000
 	if minimization_length == None:
 		minimization_length = 2500
+	set_VMD_path()
+	set_NAMD_path()
 	print "solvating\n"
 	solvate_and_ionize(initial_pdb, initial_chain)
 	solvate_and_ionize(final_pdb, final_chain)
