@@ -14,6 +14,7 @@ Following classes are designed for modeling and analysis of protein dynamics:
   * :class:`.NMA` - Normal mode analysis, for analyzing data from external
     programs
   * :class:`.RTB` - Rotations and Translation of Blocks method
+  * :class:`.exANM` - Explicit membrane ANM
 
 Usage of these classes are shown in :ref:`anm`, :ref:`gnm`, :ref:`pca`, and
 :ref:`eda` examples.
@@ -237,6 +238,9 @@ from . import rtb
 from .rtb import *
 __all__.extend(rtb.__all__)
 
+from . import exanm
+from .exanm import *
+__all__.extend(exanm.__all__)
 
 from . import gnm
 from .gnm import *

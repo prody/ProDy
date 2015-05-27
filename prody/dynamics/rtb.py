@@ -14,7 +14,7 @@ from subprocess import call
 from .anm import ANMBase, calcANM
 from .editing import reduceModel
 
-__all__ = ['RTB', 'imANM', 'exANM']
+__all__ = ['RTB', 'imANM']
 
 class Increment(object):
 
@@ -159,168 +159,6 @@ class RTB(ANMBase):
 
         self._array = np.dot(self._project, self._array)
 
-def imANM(pdb='2nwl-mem.pdb', blk='2nwl.blk', scale=1.):
-    
-    from prody import parsePDB
-    from numpy import zeros, dot
-
-    pdb = parsePDB(pdb, subset='ca')
-    pdb.setData('block', zeros(len(pdb), int))
-    with open(blk) as inp:
-        for line in inp:
-            if line.startswith('BLOCK'):
-                _, b, n1, c1, r1, n2, c2, r2 = line.split()
-                sel = pdb.select('chain {} and resnum {} to {}'.format(c1, r1, r2))
-                if sel:
-                    sel.setData('block', int(b))
-    pdb.setBetas(pdb.getData('block'))
-    rtb = RTB(pdb)
-    rtb.buildHessian(pdb, pdb.getData('block'), scale)
-    h_prime = rtb.getHessian()
-    p = rtb.getProjection()
-    values, vectors = linalg.eigh(h_prime)
-    vv = dot(p, vectors)
-    return vv
-
-def assign_lpvs(lat):
-    lpv = zeros((3,3))
-    if lat=='FCC':
-        lpv[0,1]=1./sqrt(2)
-        lpv[0,2]=1./sqrt(2)
-        lpv[1,0]=1./sqrt(2)
-        lpv[1,2]=1./sqrt(2)
-        lpv[2,0]=1./sqrt(2)
-        lpv[2,1]=1./sqrt(2)
-    elif lat=='SC':
-        lpv[0,0]=1
-        lpv[1,1]=1
-        lpv[2,2]=1
-    elif lat=='SH':
-        lpv[0,0]=1./2
-        lpv[0,1]=-sqrt(3)/2
-        lpv[1,0]=1./2
-        lpv[1,1]=sqrt(3)/2
-        lpv[2,2]=1.
-    return lpv
-
-def checkClash(coordinates, pdb, radius):
-    for i in range(pdb.ca.getCoords().shape[0]):
-        if linalg.norm(coordinates-pdb.ca.getCoords()[i])<radius:
-            return False
-    return True
-def cgmembrane_wpdb(pdb_id=None, membrane_hi=None, membrane_lo=None, R=None, r=None, lat=None, outputName=None):
-    
-    if pdb_id==None:
-        pdb_id = '2nwl-mem.pdb'
-    if lat == None:
-        lat = 'FCC'
-    if outputName == None:
-        outputName = 'membrane.pdb'
-    if membrane_hi ==None:
-        membrane_hi = 13.
-    if membrane_lo ==None:
-        membrane_lo = -13.
-    if R == None:
-        R=80
-    if r == None:
-        r=2.5
-        
-    pdb = parsePDB(pdb_id)
-    coords = pdb.ca.getCoords()
-    
-    pxlo = min(coords[:,0])
-    pxhi = max(coords[:,0])
-    pylo = min(coords[:,1])
-    pyhi = max(coords[:,1])
-    pzlo = min(coords[:,2])
-    pzhi = max(coords[:,2])
-    pxlo = min([pxlo, 10000])
-    pylo = min([pylo, 10000])
-    pzlo = min([pzlo, 10000])
-    pxhi = max([pxhi, -10000])
-    pyhi = max([pyhi, -10000])
-    pzhi = max([pzhi, -10000])
-    if lat == None:
-        lat = 'FCC'
-    lpv = assign_lpvs(lat)
-    imax = (R + lpv[0,2] * (membrane_hi - membrane_lo)/2.)/r
-    jmax = (R + lpv[1,2] * (membrane_hi - membrane_lo)/2.)/r
-    kmax = (R + lpv[2,2] * (membrane_hi - membrane_lo)/2.)/r
-    f = open(outputName, 'w')
-    atm = 0
-    for i in range(-int(imax),int(imax+1)):
-        for j in range(-int(jmax),int(jmax+1)):
-            for k in range(-int(kmax),int(kmax+1)):
-                X = zeros(3)
-                for p in range(3):
-                    X[p]=2.*r*(i*lpv[0,p]+j*lpv[1,p]+k*lpv[2,p])
-                dd=0
-                for p in range(3):
-                    dd += X[p] ** 2
-                if dd<R**2 and X[2]>membrane_lo and X[2]<membrane_hi:
-                    if X[0]>pxlo and X[0]<pxhi and X[1]>pylo and X[1]<pyhi and X[2]>pzlo and X[2]<pzhi:
-                        if checkClash(X, pdb, radius=5):
-                            atm = atm + 1
-                            f.write('ATOM%7d  Q1  NE1 Q%4d% 12.3f% 8.3f% 8.3f\n' % (atm, atm, X[0], X[1], X[2]))
-    f.close()
-                
-
-
-                
-def cgmembrane_wopdb(membrane_hi=None, membrane_lo=None, R=None, r=None, lat=None, outputName=None):
-    
-    if lat == None:
-        lat = 'FCC'
-    if outputName == None:
-        outputName = 'membrane.pdb'
-    if membrane_hi ==None:
-        membrane_hi = 13.
-    if membrane_lo ==None:
-        membrane_lo = -13.
-    if R == None:
-        R=80
-    if r == None:
-        r=2.5
-        
-    lpv = assign_lpvs(lat)
-    imax = (R + lpv[0,2] * (membrane_hi - membrane_lo)/2.)/r
-    jmax = (R + lpv[1,2] * (membrane_hi - membrane_lo)/2.)/r
-    kmax = (R + lpv[2,2] * (membrane_hi - membrane_lo)/2.)/r
-    f = open(outputName, 'w')
-    atm = 0
-    for i in range(-int(imax),int(imax+1)):
-        for j in range(-int(jmax),int(jmax+1)):
-            for k in range(-int(kmax),int(kmax+1)):
-                X = zeros(3)
-                for p in range(3):
-                    X[p]=2.*r*(i*lpv[0,p]+j*lpv[1,p]+k*lpv[2,p])
-                dd=0
-                for p in range(3):
-                    dd += X[p] ** 2
-                if dd<R**2 and X[2]>membrane_lo and X[2]<membrane_hi:
-                    if dd<R**2+4*r**2-4*R*r:
-                        atm = atm + 1
-                        f.write('ATOM%7d  Q1  NE1 Q%4d% 12.3f% 8.3f% 8.3f\n' % (atm, atm, X[0], X[1], X[2]))
-                        
-    f.close()              
-    
-
-def exANM(pdb_id, membrane_hi=None, membrane_lo=None, R=None, r=None, lat=None, outputName=None):
-    if outputName == None:
-        outputName = 'membrane.pdb'
-    cgmembrane_wpdb(pdb_id)
-    f = open('final.pdb', 'w')
-    call(["cat",pdb_id,outputName], stdout=f)
-    f.close()
-    rt = parsePDB('final.pdb')
-    anm, sel = calcANM(rt, selstr="name CA or name Q1")
-    anm_red_membrane, sel_membrane = reduceModel(anm, rt, 'not chain Q')
-    modes = anm_red_membrane.calcModes()
-    call(["rm", "final.pdb"])
-    call(["rm", outputName])
-    return modes
-    
-
 def test(pdb='2nwl-mem.pdb', blk='2nwl.blk'):
 
     from prody import parsePDB
@@ -333,12 +171,16 @@ def test(pdb='2nwl-mem.pdb', blk='2nwl.blk'):
             if line.startswith('BLOCK'):
                 _, b, n1, c1, r1, n2, c2, r2 = line.split()
                 sel = pdb.select('chain {} and resnum {} to {}'
-                                 .format(c1, r1, r2))
+                                 .format(c1, r1, r2))              
                 if sel:
                     sel.setData('block', int(b))
     pdb.setBetas(pdb.getData('block'))
+    coords = pdb.getCoords() 
+    blocks = pdb.getBetas()
     from prody import writePDB
     writePDB('pdb2gb1_truncated.pdb', pdb)
     rtb = RTB('2nwl')
+    rtb.buildHessian(coords, blocks, scale=64)
+    rtb.calcModes()
     return rtb
 

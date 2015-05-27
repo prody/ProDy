@@ -85,7 +85,6 @@ class ANMBase(NMA):
             default is **False** since KDTree method is slower
         :type kdtree: bool
 
-
         Instances of :class:`Gamma` classes and custom functions are
         accepted as *gamma* argument.
 
