@@ -14,7 +14,7 @@ from subprocess import call
 from .anm import ANMBase, calcANM
 from .editing import reduceModel
 
-__all__ = ['RTB', 'imANM']
+__all__ = ['RTB']
 
 class Increment(object):
 
