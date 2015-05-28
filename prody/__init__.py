@@ -107,10 +107,10 @@ from .trajectory import *
 __all__.extend(trajectory.__all__)
 __all__.append('trajectory')
 
-from . import comd
-from .comd import *
-__all__.extend(comd.__all__)
-__all__.append('comd')
+#from . import comd
+#from .comd import *
+#__all__.extend(comd.__all__)
+#__all__.append('comd')
 
 import prody
 __all__.append('prody')
