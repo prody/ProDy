@@ -191,7 +191,7 @@ class exANM(ANMBase):
     
 
 def assign_lpvs(lat):
-        """ Given lattice type return 3 lattice primitive vectors"""
+    """ Given lattice type return 3 lattice primitive vectors"""
     lpv = zeros((3,3))
     if lat=='FCC':
         lpv[0,1]=1./sqrt(2)
@@ -213,14 +213,14 @@ def assign_lpvs(lat):
     return lpv
 
 def checkClash(coordinates, pdb_coords, radius):
-        """ Check there is a clash between given coordinate and all pdb coordinates."""
+    """ Check there is a clash between given coordinate and all pdb coordinates."""
     for i in range(pdb_coords.shape[0]):
         if linalg.norm(coordinates-pdb_coords[i])<radius:
             return False
     return True
 
 def writeMembranePDB(filename, membrane):
-        """ Given membrane coordinates it will write a pdb file with membrane coordinates. 
+    """ Given membrane coordinates it will write a pdb file with membrane coordinates. 
         :arg filename: filename for the pdb file. 
         :type filename: str
 
