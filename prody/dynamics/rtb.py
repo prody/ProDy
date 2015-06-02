@@ -70,6 +70,16 @@ class RTB(ANMBase):
             default is 1.0
         :type scale: float
 
+	:arg membrane_low: minimum z-coordinate at which membrane scaling
+            is applied
+            default is 1.0
+	:type membrane_low: float
+
+	:arg membrane_high: maximum z-coordinate at which membrane scaling
+            is applied.  If membrane_high < membrane_low, scaling will be 
+	    applied to the entire structure
+            default is -1.0
+         :type membrane_high: float
         """
 
 
