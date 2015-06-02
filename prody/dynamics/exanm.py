@@ -14,7 +14,7 @@ from .anm import ANMBase, calcANM
 from .gnm import checkENMParameters
 from .editing import reduceModel
 
-__all__ = ['exANM']
+__all__ = ['exANM','writeMembranePDB']
 
 class Increment(object):
 
@@ -43,6 +43,7 @@ class exANM(ANMBase):
     def __init__(self, name='Unknown'):
 
         super(exANM, self).__init__(name)
+        self._membrane = None
 
     def buildHessian(self, coords, cutoff=15., gamma=1., **kwargs):
         """Build Hessian matrix for given coordinate set.
@@ -104,6 +105,8 @@ class exANM(ANMBase):
         jmax = (R + lpv[1,2] * (membrane_hi - membrane_lo)/2.)/r
         kmax = (R + lpv[2,2] * (membrane_hi - membrane_lo)/2.)/r
 
+        self._membrane = membrane = zeros((1,3))
+
         LOGGER.timeit('_membrane')
         atm = 0
         for i in range(-int(imax),int(imax+1)):
@@ -118,8 +121,13 @@ class exANM(ANMBase):
                     if dd<R**2 and X[0,2]>membrane_lo and X[0,2]<membrane_hi:
                         if X[0,0]>pxlo and X[0,0]<pxhi and X[0,1]>pylo and X[0,1]<pyhi and X[0,2]>pzlo and X[0,2]<pzhi:
                             if checkClash(X, coords[:natoms,:], radius=5):
+                                if atm ==0:
+                                    membrane = X
+                                else:
+                                    membrane = np.append(membrane, X, axis=0)        
                                 atm = atm + 1
                                 coords = np.append(coords, X, axis=0)
+        self._membrane = membrane 
         LOGGER.report('Membrane was built in %2.fs.', label='_membrane')
         LOGGER.timeit('_exanm')
         total_natoms = int(coords.shape[0])
@@ -171,30 +179,19 @@ class exANM(ANMBase):
 
         super(exANM, self).calcModes(n_modes, zeros, turbo)
 
+    def getMembrane(self):
+        """Return a copy of the membrane coordinates."""
 
-def imANM(pdb='2nwl-mem.pdb', blk='2nwl.blk', scale=1.):
+        if self._membrane is not None:
+            return self._membrane.copy()
+
+    def _getMembrane(self):
+
+        return self._membrane
     
-    from prody import parsePDB
-    from numpy import zeros, dot
 
-    pdb = parsePDB(pdb, subset='ca')
-    pdb.setData('block', zeros(len(pdb), int))
-    with open(blk) as inp:
-        for line in inp:
-            if line.startswith('BLOCK'):
-                _, b, n1, c1, r1, n2, c2, r2 = line.split()
-                sel = pdb.select('chain {} and resnum {} to {}'.format(c1, r1, r2))
-                if sel:
-                    sel.setData('block', int(b))
-    pdb.setBetas(pdb.getData('block'))
-    rtb = RTB(pdb)
-    rtb.buildHessian(pdb, pdb.getData('block'), scale)
-    h_prime = rtb.getHessian()
-    p = rtb.getProjection()
-    values, vectors = linalg.eigh(h_prime)
-    vv = dot(p, vectors)
-    return vv
 def assign_lpvs(lat):
+    """ Given lattice type return 3 lattice primitive vectors"""
     lpv = zeros((3,3))
     if lat=='FCC':
         lpv[0,1]=1./sqrt(2)
@@ -214,11 +211,27 @@ def assign_lpvs(lat):
         lpv[1,1]=sqrt(3)/2
         lpv[2,2]=1.
     return lpv
+
 def checkClash(coordinates, pdb_coords, radius):
+    """ Check there is a clash between given coordinate and all pdb coordinates."""
     for i in range(pdb_coords.shape[0]):
         if linalg.norm(coordinates-pdb_coords[i])<radius:
             return False
     return True
+
+def writeMembranePDB(filename, membrane):
+    """ Given membrane coordinates it will write a pdb file with membrane coordinates. 
+        :arg filename: filename for the pdb file. 
+        :type filename: str
+
+        :arg membrane: membrane coordinates or the membrane structure. 
+        :type membrane: nd.array
+        """
+    length = membrane.shape[0]
+    f = open(filename, 'w')
+    for i in range(length):
+        f.write('ATOM%7d  Q1  NE1 Q%4d% 12.3f% 8.3f% 8.3f\n' % (i,i,membrane[i,0],membrane[i,1],membrane[i,2]))
+    f.close()
 
 def test2(pdb='2nwl-mem.pdb'):
     from prody import parsePDB
