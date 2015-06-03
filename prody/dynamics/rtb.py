@@ -136,7 +136,7 @@ class RTB(ANMBase):
                      scale=float(kwargs.get('scale', 1.0)),
                      memlo=float(kwargs.get('membrane_low', 1.0)),
                      memhi=float(kwargs.get('membrane_high', -1.0)),)
-
+	self._dof = self._hessian.shape[0]
         LOGGER.report('Hessian was built in %.2fs.', label='_rtb')
 
     def getProjection(self):

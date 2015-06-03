@@ -160,7 +160,8 @@ class exANM(ANMBase):
         oo = total_hessian[natoms*3+1:, natoms*3+1:]
         self._hessian = ss - np.dot(so, np.dot(linalg.inv(oo), os))
         LOGGER.report('Hessian was built in %.2fs.', label='_exanm')
-
+	self._dof = self._hessian.shape[0]
+	
     def calcModes(self, n_modes=20, zeros=False, turbo=True):
         """Calculate normal modes.  This method uses :func:`scipy.linalg.eigh`
         function to diagonalize the Hessian matrix. When Scipy is not found,
@@ -235,7 +236,7 @@ def writeMembranePDB(filename, membrane):
 
 def test2(pdb='2nwl-mem.pdb'):
     from prody import parsePDB
-    structure = parsePDB(pdb)
+    structure = parsePDB(pdb, subset='ca')
     exanm = exANM('2nwl')
     exanm.buildHessian(structure)
     exanm.calcModes()
