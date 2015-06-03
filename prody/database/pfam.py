@@ -68,13 +68,12 @@ def searchPfam(query, **kwargs):
     if len(seq) >= MINSEQLEN:
         if not seq.isalpha():
             raise ValueError(repr(seq) + ' is not a valid sequence')
+        fseq = '>Seq\n' + seq
+        parameters = { 'hmmdb' : 'pfam', 'seq': fseq }
+        enc_params = urllib.urlencode(parameters)
+        request = urllib.request.Request('http://hmmer.janelia.org/search/hmmscan', enc_params)
 
-			fseq = '>Seq\n' + seq
-			parameters = { 'hmmdb' : 'pfam', 'seq': fseq }
-			enc_params = urllib.urlencode(parameters)
-			request = urllib.request.Request('http://hmmer.janelia.org/search/hmmscan', enc_params)
-
-			url = ( urllib.request.urlopen(request).geturl() + '?output=xml') 
+        url = ( urllib.request.urlopen(request).geturl() + '?output=xml') 
         LOGGER.debug('Submitted Pfam search for sequence "{0}...".'
                      .format(seq[:MINSEQLEN]))
 
