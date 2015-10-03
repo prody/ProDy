@@ -2264,7 +2264,7 @@ class Select(object):
                 value = float(token)
             except (TypeError, ValueError):
                 icode = token[-1]
-                value = token[:1]
+                value = token[:-1]
                 try:
                     value = int(value)
                 except:
@@ -2292,7 +2292,7 @@ class Select(object):
             if subset is None:
                 rnic = zip(resnums, icode) # PY3K: OK
             else:
-                rnic = zip(resnums, icode[subset]) # PY3K: OK
+                rnic = zip(resnums[subset], icode[subset]) # PY3K: OK
 
             if torf is None:
                 torf = array([val in wicode for val in rnic], bool)
