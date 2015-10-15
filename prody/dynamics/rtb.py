@@ -137,8 +137,26 @@ class RTB(ANMBase):
                      scale=float(kwargs.get('scale', 1.0)),
                      memlo=float(kwargs.get('membrane_low', 1.0)),
                      memhi=float(kwargs.get('membrane_high', -1.0)),)
-	self._dof = self._hessian.shape[0]
+	    self._dof = self._hessian.shape[0]
         LOGGER.report('Hessian was built in %.2fs.', label='_rtb')
+
+    def buildBlockHessian(self, coords, blocks, hessian, project, nblocks, maxsize, natoms):
+        project = zeros((3*natoms,6*nblocks*maxsize))
+        block_uniq = unique(blocks)
+        block_res = []
+        for i in range(nblocks):
+            block_res.append(blocks==block_uniq[i])
+        cm = []
+        for i in range(nblocks):         
+            cm.append(mean(coords[block_res[i]],0))
+        block_coords = []
+        for i in range(nblocks):
+            block_coords.append(coords[block_res[i]])
+        block_coords_tr = block_coords[:]
+        for i in range(nblocks):
+            block_coords_tr[i]=block_coords[i]-cm[i]
+        
+
 
     def getProjection(self):
         """Return a copy of the projection matrix."""
