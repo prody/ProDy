@@ -216,12 +216,10 @@ class ANMBase(NMA):
             if isinstance(self._hessian, np.ndarray):
                 values, vectors = linalg.eigh(self._hessian, turbo=turbo,
                                               eigvals=eigvals)
-		if values[0]<-1:
-		    valuesr, vectorsr = linalg.eig(self._hessian)
-		    values = valuesr[::-1]
-		    vectors = vectorsr[::-1]
-		    values = values[:n_modes+shift]
-		    vectors = vectors[:n_modes+shift]
+                n_zeros = sum(values < ZERO)  
+                print n_zeros   
+                print values[30]
+
             else:
                 try:
                     from scipy.sparse import linalg as scipy_sparse_la
@@ -252,6 +250,9 @@ class ANMBase(NMA):
             shift = n_zeros - 1
         if zeros:
             shift = -1
+        print n_zeros
+        print shift
+        print values[1+shift:]
         self._eigvals = values[1+shift:]
         self._vars = 1 / self._eigvals
         self._trace = self._vars.sum()

@@ -8,11 +8,13 @@ import scipy as sp
 from prody import LOGGER
 from prody.atomic import Atomic, AtomGroup
 from prody.proteins import parsePDB
-from prody.utilities import importLA, checkCoords
-from numpy import sqrt, zeros, linalg, min, max
+from prody.utilities import importLA, checkCoords, sqrtm
+from numpy import sqrt, zeros, linalg, min, max, unique, mean, eye, outer, dot
+from scipy import sparse
 from subprocess import call
 
-from .anm import ANMBase, calcANM
+from .anm import ANMBase, calcANM, ANM
+from .gnm import checkENMParameters
 from .editing import reduceModel
 
 __all__ = ['RTB']
@@ -125,52 +127,18 @@ class RTB(ANMBase):
                     .format(nblocks, maxsize, natoms))
         nb6 = nblocks * 6 - nones * 3
 
-        coords = coords.T.copy()
+        #coords = coords.T.copy()
 
-        self._hessian = hessian = np.zeros((nb6, nb6), float)
-        self._project = project = np.zeros((natoms * 3, nb6), float)
+        #self._hessian = hessian = np.zeros((nb6, nb6), float)
+        #self._project = project = np.zeros((natoms * 3, nb6), float)
 
-        from .rtbtools import buildhessian
-        buildhessian(coords, blocks, hessian, project,
-                     natoms, nblocks, maxsize,
-                     float(cutoff), float(gamma),
-                     scale=float(kwargs.get('scale', 1.0)),
-                     memlo=float(kwargs.get('membrane_low', 1.0)),
-                     memhi=float(kwargs.get('membrane_high', -1.0)),)
-	    self._dof = self._hessian.shape[0]
+        hessian, project = buildBlockHessian(coords, blocks,
+                     natoms, nblocks, nones, cutoff, gamma)
+
+        self._hessian = hessian
+        self._project = project
+        self._dof = self._hessian.shape[0]
         LOGGER.report('Hessian was built in %.2fs.', label='_rtb')
-
-    def buildBlockHessian(self, coords, blocks, hessian, project, nblocks, maxsize, natoms, nones):
-        project = zeros((3*natoms,6*nblocks-3*nones))
-        
-        block_uniq = unique(blocks)
-        block_res = []
-        for i in range(nblocks):
-            block_res.append(blocks==block_uniq[i])
-        cm = []
-        for i in range(nblocks):         
-            cm.append(mean(coords[block_res[i]],0))
-        block_coords = []
-        for i in range(nblocks):
-            block_coords.append(coords[block_res[i]])
-        block_coords_tr = block_coords[:]
-        for i in range(nblocks):
-            block_coords_tr[i]=block_coords[i]-cm[i]
-        I=[]
-        for i in range(nblocks):
-            if block_coords[i].shape[0]==1:
-                I.append(eye(3))
-            else:
-                dum = zeros((3,3))
-                for k in range(block_coords[i].shape[0]):
-                    dd = linalg.norm(block_coords_tr[i][k])
-                    for j in range(3):
-                        dum[j,j]+=(dd-block_coords_tr[i][k,j]**2)
-                        for l in range(j+1,3):
-                            dum[j,l]-=block_coords_tr[i][k,j]*block_coords_tr[i][k,l]
-                            dum[l,j]=dum[j,l]
-                I.append(dum)
-
 
 
     def getProjection(self):
@@ -198,9 +166,12 @@ class RTB(ANMBase):
         :arg turbo: Use a memory intensive, but faster way to calculate modes.
         :type turbo: bool, default is ``True``
         """
-
+        n_modes = self._dof
         super(RTB, self).calcModes(n_modes, zeros, turbo)
-
+        print self._project.shape
+        print self._array.shape
+        #self._project = self._project.T.copy()
+        print self._project.shape
         self._array = np.dot(self._project, self._array)
 
 def test(pdb='2nwl-mem.pdb', blk='2nwl.blk'):
@@ -225,6 +196,87 @@ def test(pdb='2nwl-mem.pdb', blk='2nwl.blk'):
     writePDB('pdb2gb1_truncated.pdb', pdb)
     rtb = RTB('2nwl')
     rtb.buildHessian(coords, blocks, scale=64)
-    rtb.calcModes()
+    #rtb.calcModes()
     return rtb
 
+def buildBlockHessian(coords, blocks, natoms, nblocks, nones, cutoff, gamma):
+    project = zeros((3*natoms,6*nblocks-3*nones))
+        
+    block_uniq = unique(blocks)
+    block_res = []
+    block_sizes = []
+    for i in range(nblocks):
+        block_res.append(blocks==block_uniq[i])
+    cm = []
+    for i in range(nblocks):         
+        cm.append(mean(coords[block_res[i]],0))
+    block_coords = []
+    for i in range(nblocks):
+        block_coords.append(coords[block_res[i]])
+        block_sizes.append(block_coords[i].shape[0])
+    block_coords_tr = block_coords[:]
+    for i in range(nblocks):
+        block_coords_tr[i]=block_coords[i]-cm[i]
+    I=[]
+    Isqt=[]
+    for i in range(nblocks):
+        if block_sizes[i]==1:
+            I.append(eye(3))
+        else:
+            dum = zeros((3,3))
+            for k in range(block_coords[i].shape[0]):
+                dd = linalg.norm(block_coords_tr[i][k])
+                for j in range(3):
+                    dum[j,j]=(dd-block_coords_tr[i][k,j]**2)
+                    for l in range(j+1,3):
+                        dum[j,l]-=block_coords_tr[i][k,j]*block_coords_tr[i][k,l]
+                        dum[l,j]=dum[j,l]
+            I.append(dum)
+        Isqt.append(linalg.inv(sqrtm(I[i])))
+
+    none_passed=0
+    for k in range(natoms):
+        for l in range(nblocks):
+            if blocks[k]==block_uniq[l]:
+                if block_sizes[l]==1:
+                    project[3*k:3*k+3,l*6-none_passed*3:l*6-none_passed*3+3]=eye(3)
+                    none_passed+=1
+                else:
+                    project[3*k:3*k+3,l*6-none_passed*3:l*6-none_passed*3+3]=eye(3)/block_sizes[l]
+                    project[3*k,l*6-none_passed*3+1]=Isqt[l][0,1]*(coords[k,2]-cm[l][2])-Isqt[l][0,2]*(coords[k,1]-cm[l][1])
+                    project[3*k,l*6-none_passed*3+2]=Isqt[l][0,2]*(coords[k,1]-cm[l][1])-Isqt[l][0,1]*(coords[k,2]-cm[l][2])
+                    project[3*k+1,l*6-none_passed*3]=-Isqt[l][1,0]*(coords[k,2]-cm[l][2])+Isqt[l][1,2]*(coords[k,0]-cm[l][0])
+                    project[3*k+1,l*6-none_passed*3+2]=Isqt[l][1,0]*(coords[k,2]-cm[l][2])-Isqt[l][1,2]*(coords[k,0]-cm[l][0])
+                    project[3*k+2,l*6-none_passed*3]=Isqt[l][2,0]*(coords[k,1]-cm[l][1])-Isqt[l][2,1]*(coords[k,0]-cm[l][0])
+                    project[3*k+2,l*6-none_passed*3+1]=-Isqt[l][2,0]*(coords[k,1]-cm[l][1])+Isqt[l][2,1]*(coords[k,0]-cm[l][0])
+
+    cutoff, g, gamma = checkENMParameters(cutoff, gamma)
+    total_hessian = zeros((natoms * 3, natoms * 3))               
+    cutoff2 = cutoff * cutoff
+    for i in range(natoms):
+        res_i3 = i*3
+        res_i33 = res_i3+3
+        i_p1 = i+1
+        i2j_all = coords[i_p1:, :] - coords[i]
+        for j, dist2 in enumerate((i2j_all ** 2).sum(1)):
+            if dist2 > cutoff2:
+                continue
+            i2j = i2j_all[j]
+            j += i_p1
+            g = gamma(dist2, i, j)
+            res_j3 = j*3
+            res_j33 = res_j3+3
+            super_element = np.outer(i2j, i2j) * (- g / dist2)
+            total_hessian[res_i3:res_i33, res_j3:res_j33] = super_element
+            total_hessian[res_j3:res_j33, res_i3:res_i33] = super_element
+            total_hessian[res_i3:res_i33, res_i3:res_i33] = \
+                total_hessian[res_i3:res_i33, res_i3:res_i33] - super_element
+            total_hessian[res_j3:res_j33, res_j3:res_j33] = \
+                total_hessian[res_j3:res_j33, res_j3:res_j33] - super_element
+
+    project = sp.sparse.coo_matrix(project)
+    total_hessian = sp.sparse.coo_matrix(total_hessian)
+    hessian = dot(dot(project.transpose(),total_hessian), project)
+    hessian = hessian.todense()
+    project = project.todense()
+    return (hessian, project)
