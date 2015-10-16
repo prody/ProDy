@@ -168,10 +168,6 @@ class RTB(ANMBase):
         """
         n_modes = self._dof
         super(RTB, self).calcModes(n_modes, zeros, turbo)
-        print self._project.shape
-        print self._array.shape
-        #self._project = self._project.T.copy()
-        print self._project.shape
         self._array = np.dot(self._project, self._array)
 
 def test(pdb='2nwl-mem.pdb', blk='2nwl.blk'):
