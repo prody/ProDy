@@ -140,8 +140,9 @@ class RTB(ANMBase):
 	    self._dof = self._hessian.shape[0]
         LOGGER.report('Hessian was built in %.2fs.', label='_rtb')
 
-    def buildBlockHessian(self, coords, blocks, hessian, project, nblocks, maxsize, natoms):
-        project = zeros((3*natoms,6*nblocks*maxsize))
+    def buildBlockHessian(self, coords, blocks, hessian, project, nblocks, maxsize, natoms, nones):
+        project = zeros((3*natoms,6*nblocks-3*nones))
+        
         block_uniq = unique(blocks)
         block_res = []
         for i in range(nblocks):
@@ -155,7 +156,21 @@ class RTB(ANMBase):
         block_coords_tr = block_coords[:]
         for i in range(nblocks):
             block_coords_tr[i]=block_coords[i]-cm[i]
-        
+        I=[]
+        for i in range(nblocks):
+            if block_coords[i].shape[0]==1:
+                I.append(eye(3))
+            else:
+                dum = zeros((3,3))
+                for k in range(block_coords[i].shape[0]):
+                    dd = linalg.norm(block_coords_tr[i][k])
+                    for j in range(3):
+                        dum[j,j]+=(dd-block_coords_tr[i][k,j]**2)
+                        for l in range(j+1,3):
+                            dum[j,l]-=block_coords_tr[i][k,j]*block_coords_tr[i][k,l]
+                            dum[l,j]=dum[j,l]
+                I.append(dum)
+
 
 
     def getProjection(self):
