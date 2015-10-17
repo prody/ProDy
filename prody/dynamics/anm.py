@@ -217,8 +217,6 @@ class ANMBase(NMA):
                 values, vectors = linalg.eigh(self._hessian, turbo=turbo,
                                               eigvals=eigvals)
                 n_zeros = sum(values < ZERO)  
-                print n_zeros   
-                print values[30]
 
             else:
                 try:
