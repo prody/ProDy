@@ -525,3 +525,30 @@ def calcMeff(msa, seqid=.8, refine=False, weight=False, **kwargs):
         meff = msameff(msa, theta=1.-seqid, meff_only=weight, refine=refine)
     LOGGER.report('Meff was calculated in %.2fs.', '_meff')
     return meff
+
+def msaeye(msa, unique, turbo):
+    length = msa.shape[1]
+    number = msa.shape[0]
+    array = eye(int(number))
+
+    seqs = []
+    for i in range(number):
+        seqs.append(msa[i,:])
+
+    for i in range(1,number-1):
+        for j in range(i+1,number):
+            if i == 1:
+                score=0
+                ncols=0
+                t = time.time()
+            for k in range(length):
+                if str.isalpha(seqs[i][k]) or str.isalpha(seqs[j][k]):
+                    ncols+=1
+                    #print seqs[i][k],seqs[j][k]
+                    if seqs[i][k]==seqs[j][k]:
+                        score+=1
+            elapsed = time.time() - t
+            print elapsed
+            
+            array[i,j]=score/ncols
+            array[j,i]=array[i,j]
