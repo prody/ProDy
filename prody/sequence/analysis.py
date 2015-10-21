@@ -527,28 +527,54 @@ def calcMeff(msa, seqid=.8, refine=False, weight=False, **kwargs):
     return meff
 
 def msaeye(msa, unique, turbo):
+    tic1 = timeit.default_timer()
     length = msa.shape[1]
     number = msa.shape[0]
+    # number = 5
     array = eye(int(number))
 
     seqs = []
-    for i in range(number):
+    for i in xrange(number):
         seqs.append(msa[i,:])
+    iseq = zeros((number, length), dtype=int)
 
-    for i in range(1,number-1):
-        for j in range(i+1,number):
-            if i == 1:
-                score=0
-                ncols=0
-                t = time.time()
-            for k in range(length):
-                if str.isalpha(seqs[i][k]) or str.isalpha(seqs[j][k]):
-                    ncols+=1
-                    #print seqs[i][k],seqs[j][k]
-                    if seqs[i][k]==seqs[j][k]:
-                        score+=1
-            elapsed = time.time() - t
-            print elapsed
-            
-            array[i,j]=score/ncols
-            array[j,i]=array[i,j]
+    for i in xrange(0,number-1):
+        if i == 0:
+            for k in xrange(length):
+                if ord(seqs[i][k])>90:
+                    iseq[i,k]=ord(seqs[i][k])-96 if ord(seqs[i][k])-96 > 0 and ord(seqs[i][k])-96 < 26 else 0
+                else:
+                    iseq[i,k]=ord(seqs[i][k])-64 if ord(seqs[i][k])-64 > 0 and ord(seqs[i][k])-64 < 26 else 0
+            for j in xrange(i+1,number):
+                score=0.
+                ncols=0.
+                for k in xrange(length):
+                    if ord(seqs[j][k])>90:
+                        iseq[j,k]=ord(seqs[j][k])-96 if ord(seqs[j][k])-96 > 0 and ord(seqs[j][k])-96 < 26 else 0
+                    else:
+                        iseq[j,k]=ord(seqs[j][k])-64 if ord(seqs[j][k])-64 > 0 and ord(seqs[j][k])-64 < 26 else 0
+                    if iseq[i,k] or iseq[j,k]:
+                        ncols += 1
+                        if iseq[i,k]==iseq[j,k]:
+                            score+=1
+                array[i,j]=float(score)/ncols
+                array[j,i]=array[i,j]
+            # print iseq[0]
+            # print seqs[0]
+            # raw_input()
+        else:
+            for j in xrange(i+1,number):
+                score=0.
+                ncols=0.
+                for k in xrange(length):
+                    if iseq[i,k] or iseq[j,k]:
+                        ncols += 1
+                        if iseq[i,k]==iseq[j,k]:
+                            score+=1
+                array[i,j]= float(score)/ncols#float(sum((iseq[i] == iseq[j])*(iseq[i]*iseq[j]!=0))) / sum(iseq[i]*iseq[j]!=0) 
+                array[j,i]=array[i,j]
+
+    toc1 = timeit.default_timer()
+    elapsed1 = toc1 - tic1
+    print elapsed1
+
