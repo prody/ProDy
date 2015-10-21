@@ -248,9 +248,6 @@ class ANMBase(NMA):
             shift = n_zeros - 1
         if zeros:
             shift = -1
-        print n_zeros
-        print shift
-        print values[1+shift:]
         self._eigvals = values[1+shift:]
         self._vars = 1 / self._eigvals
         self._trace = self._vars.sum()
