@@ -23,8 +23,8 @@ extensions = ['sphinx.ext.todo',
 
 # extensions that are included in docs
 extensions.extend(
-             ['ipython_console_highlighting',
-              'ipython_directive',
+             ['IPython.sphinxext.ipython_console_highlighting',
+              'IPython.sphinxext.ipython_directive',
               'googleanalytics',])
 
 source_suffix = '.rst'
