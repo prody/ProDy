@@ -3,15 +3,18 @@
 (RTB) calculations."""
 
 import numpy as np
+import scipy as sp
 
 from prody import LOGGER
 from prody.atomic import Atomic, AtomGroup
 from prody.proteins import parsePDB
-from prody.utilities import importLA, checkCoords
-from numpy import sqrt, zeros, linalg, min, max
+from prody.utilities import importLA, checkCoords, sqrtm
+from numpy import sqrt, zeros, linalg, min, max, unique, mean, eye, outer, dot
+from scipy import sparse
 from subprocess import call
 
-from .anm import ANMBase, calcANM
+from .anm import ANMBase, calcANM, ANM
+from .gnm import checkENMParameters
 from .editing import reduceModel
 
 __all__ = ['RTB']
@@ -70,6 +73,16 @@ class RTB(ANMBase):
             default is 1.0
         :type scale: float
 
+	:arg membrane_low: minimum z-coordinate at which membrane scaling
+            is applied
+            default is 1.0
+	:type membrane_low: float
+
+	:arg membrane_high: maximum z-coordinate at which membrane scaling
+            is applied.  If membrane_high < membrane_low, scaling will be 
+	    applied to the entire structure
+            default is -1.0
+         :type membrane_high: float
         """
 
 
@@ -120,14 +133,17 @@ class RTB(ANMBase):
         self._project = project = np.zeros((natoms * 3, nb6), float)
 
         from .rtbtools import buildhessian
+
         buildhessian(coords, blocks, hessian, project,
-                     natoms, nblocks, maxsize,
+                     natoms, nblocks, maxsize, 
                      float(cutoff), float(gamma),
                      scale=float(kwargs.get('scale', 1.0)),
                      memlo=float(kwargs.get('membrane_low', 1.0)),
-                     memhi=float(kwargs.get('membrane_high', -1.0)),)
+                     memhi=float(kwargs.get('membrane_high', 1.0)),)
 
+        self._dof = self._hessian.shape[0]
         LOGGER.report('Hessian was built in %.2fs.', label='_rtb')
+
 
     def getProjection(self):
         """Return a copy of the projection matrix."""
@@ -154,9 +170,8 @@ class RTB(ANMBase):
         :arg turbo: Use a memory intensive, but faster way to calculate modes.
         :type turbo: bool, default is ``True``
         """
-
+        n_modes = self._dof
         super(RTB, self).calcModes(n_modes, zeros, turbo)
-
         self._array = np.dot(self._project, self._array)
 
 def test(pdb='2nwl-mem.pdb', blk='2nwl.blk'):
@@ -181,6 +196,5 @@ def test(pdb='2nwl-mem.pdb', blk='2nwl.blk'):
     writePDB('pdb2gb1_truncated.pdb', pdb)
     rtb = RTB('2nwl')
     rtb.buildHessian(coords, blocks, scale=64)
-    rtb.calcModes()
+    #rtb.calcModes()
     return rtb
-

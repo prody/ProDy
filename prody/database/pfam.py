@@ -4,7 +4,7 @@
 __author__ = 'Anindita Dutta, Ahmet Bakan, Cihan Kaya'
 
 import re
-import urllib, urllib2
+import urllib
 from os.path import join, isfile
 
 from prody import LOGGER, PY3K
@@ -68,44 +68,43 @@ def searchPfam(query, **kwargs):
     if len(seq) >= MINSEQLEN:
         if not seq.isalpha():
             raise ValueError(repr(seq) + ' is not a valid sequence')
+        fseq = '>Seq\n' + seq
+        parameters = { 'hmmdb' : 'pfam', 'seq': fseq }
+        enc_params = urllib.urlencode(parameters)
+        request = urllib.request.Request('http://hmmer.janelia.org/search/hmmscan', enc_params)
 
-	    fseq = '>Seq\n' + seq
-	    parameters = { 'hmmdb' : 'pfam', 'seq': fseq }
-	    enc_params = urllib.urlencode(parameters)
-	    request = urllib2.Request('http://hmmer.janelia.org/search/hmmscan', enc_params)
-
-	    url = ( urllib2.urlopen(request).geturl() + '?output=xml') 
+        url = ( urllib.request.urlopen(request).geturl() + '?output=xml') 
         LOGGER.debug('Submitted Pfam search for sequence "{0}...".'
                      .format(seq[:MINSEQLEN]))
 
         xml = openURL(url, timeout=timeout).read()
-		
+        
         try:
             root = ET.XML(xml)
         except Exception as err:
             raise ValueError('failed to parse results XML, check URL: ' + url)
-	    matches = {}
-	    for child in root[0]:
-		    if child.tag == 'hits':
-			    accession = child.get('acc')
-			    pfam_id = accession.split('.')[0]
-			    matches[pfam_id]={}
-			    matches[pfam_id]['accession']=accession
-			    matches[pfam_id]['class']='Domain'
-			    matches[pfam_id]['id']=child.get('name')
-			    matches[pfam_id]['locations']={}
-			    matches[pfam_id]['locations']['ali_end']=child[0].get('alisqto')
-			    matches[pfam_id]['locations']['ali_start']=child[0].get('alisqfrom')
-			    matches[pfam_id]['locations']['bitscore']=child[0].get('bitscore')
-			    matches[pfam_id]['locations']['end']=child[0].get('alisqto')
-			    matches[pfam_id]['locations']['evalue']=child.get('evalue')
-			    matches[pfam_id]['locations']['evidence']='hmmer v3.0'
-			    matches[pfam_id]['locations']['hmm_end']=child[0].get('alihmmto')
-			    matches[pfam_id]['locations']['hmm_start']=child[0].get('alihmmfrom')
-			    matches[pfam_id]['locations']['significant']=child[0].get('significant')	
-			    matches[pfam_id]['locations']['start']=child[0].get('alisqfrom')
-			    matches[pfam_id]['type']='Pfam-A'
-	            return matches
+        matches = {}
+        for child in root[0]:
+            if child.tag == 'hits':
+                accession = child.get('acc')
+                pfam_id = accession.split('.')[0]
+                matches[pfam_id]={}
+                matches[pfam_id]['accession']=accession
+                matches[pfam_id]['class']='Domain'
+                matches[pfam_id]['id']=child.get('name')
+                matches[pfam_id]['locations']={}
+                matches[pfam_id]['locations']['ali_end']=child[0].get('alisqto')
+                matches[pfam_id]['locations']['ali_start']=child[0].get('alisqfrom')
+                matches[pfam_id]['locations']['bitscore']=child[0].get('bitscore')
+                matches[pfam_id]['locations']['end']=child[0].get('alisqto')
+                matches[pfam_id]['locations']['evalue']=child.get('evalue')
+                matches[pfam_id]['locations']['evidence']='hmmer v3.0'
+                matches[pfam_id]['locations']['hmm_end']=child[0].get('alihmmto')
+                matches[pfam_id]['locations']['hmm_start']=child[0].get('alihmmfrom')
+                matches[pfam_id]['locations']['significant']=child[0].get('significant')    
+                matches[pfam_id]['locations']['start']=child[0].get('alisqfrom')
+                matches[pfam_id]['type']='Pfam-A'
+                return matches
 
     else:
         if len(seq) <= 5:

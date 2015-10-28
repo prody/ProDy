@@ -15,6 +15,7 @@ from .gnm import GNMBase, ZERO, checkENMParameters
 
 __all__ = ['ANM', 'calcANM']
 
+#dummy change
 
 class ANMBase(NMA):
 
@@ -216,6 +217,8 @@ class ANMBase(NMA):
             if isinstance(self._hessian, np.ndarray):
                 values, vectors = linalg.eigh(self._hessian, turbo=turbo,
                                               eigvals=eigvals)
+                n_zeros = sum(values < ZERO)  
+
             else:
                 try:
                     from scipy.sparse import linalg as scipy_sparse_la
