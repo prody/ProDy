@@ -81,7 +81,10 @@ for pkg in PACKAGES:
 from glob import glob
 EXTENSIONS = [
     Extension('prody.dynamics.rtbtools',
-              glob(join('prody', 'dynamics', '*.c')),
+              glob(join('prody', 'dynamics', 'rtbtools.c')),
+              include_dirs=[numpy.get_include()]),
+    Extension('prody.dynamics.bbenm',
+              glob(join('prody', 'dynamics', 'bbenm.c')),
               include_dirs=[numpy.get_include()]),
     Extension('prody.sequence.msatools',
               [join('prody', 'sequence', 'msatools.c'),],
