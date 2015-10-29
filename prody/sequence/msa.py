@@ -624,8 +624,8 @@ def mergeMSA(*msa, **kwargs):
 def specMergeMSA(*msa, **kwargs):
     """Return an :class:`.MSA` obtained from merging parts of the sequences
     of proteins present in multiple *msa* instances.  Sequences are matched
-    based on species section of protein identifiers found in the sequence labels.  
-    Order of sequences in the merged MSA will follow the order of sequences in the
+    based on protein identifiers found in the sequence labels.  Order of
+    sequences in the merged MSA will follow the order of sequences in the
     first *msa* instance.  Note that protein identifiers that map to multiple
     sequences will be excluded."""
 

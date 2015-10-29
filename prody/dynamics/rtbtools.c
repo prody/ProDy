@@ -196,7 +196,7 @@ PyMODINIT_FUNC initrtbtools(void) {
 
     Py_InitModule3("rtbtools", rtbtools_methods,
         "RTB tools.");
-
+    
     import_array();
 }
 #endif

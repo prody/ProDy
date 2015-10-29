@@ -48,3 +48,5 @@ Documentation/*
 *log
 *BAK
 *.sublime*
+
+prody/dynamics/rtbtools.c
