@@ -18,7 +18,7 @@ __all__ = ['buildDistMatrix', 'calcDistance',
            'calcMSF', 'calcRMSF',
            'calcDeformVector',
            'buildADPMatrix', 'calcADPAxes', 'calcADPs',
-           'pickCentral', 'pickCentralAtom', 'pickCentralConf']
+           'pickCentral', 'pickCentralAtom', 'pickCentralConf', 'getWeights']
 
 RAD2DEG = 180 / pi
 
@@ -379,6 +379,13 @@ def getCenter(coords, weights=None):
         return coords.mean(-2)
     else:
         return (coords * weights).sum(-2) / weights.sum()
+
+def getWeights(pdb):
+
+    weights = zeros(len(pdb))
+    for i in range(len(pdb)):
+        weights[i]=pdb[i].getMassess()
+    return weights
 
 
 def pickCentral(obj, weights=None):

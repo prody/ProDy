@@ -72,6 +72,11 @@ def calcSpecDimension(mode):
     
     return ds
 
+def calcFracDimension(mode):
+    """
+    :arg mode: mode or vector
+    :type mode: mode or vector """
+
 
 
 
