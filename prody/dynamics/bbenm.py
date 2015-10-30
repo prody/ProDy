@@ -79,6 +79,7 @@ class bbENM(ANMBase):
 
         self._hessian = hessian = np.zeros((3*natoms, 3*natoms), float)
         self._dof = 3*natoms - 6
+<<<<<<< HEAD
         #vectorized version of all bonds.
         b = zeros((natoms,natoms,3))
         for i in range(natoms-1):
@@ -102,6 +103,12 @@ class bbENM(ANMBase):
                             theta[i,j,k]=arccos(dot(b[i,j],b[j,k])/linalg.norm(b[i,j])/linalg.norm(b[j,k]))
                             theta[k,j,i]=theta[i,j,k]
         # anm hessian calculation 
+=======
+        cutoffd = cutoff
+        gammad = gamma
+        
+        #anm hessian calculation 
+>>>>>>> prody/master
         cutoff, g, gamma = checkENMParameters(cutoff, gamma)
         cutoff2 = cutoff * cutoff
         for i in range(natoms):
@@ -125,6 +132,7 @@ class bbENM(ANMBase):
                 hessian[res_j3:res_j33, res_j3:res_j33] = \
                     hessian[res_j3:res_j33, res_j3:res_j33] - super_element
 
+<<<<<<< HEAD
         #hessian updates
         for i in range(natoms-1):
             for j in range(i+1, natoms):
@@ -536,6 +544,15 @@ class bbENM(ANMBase):
                 hessian[j,i]=hessian[i,j]
 
         LOGGER.report('Hessian was built in %.2fs.', label='_rtb')
+=======
+        # hessian updates
+        from .bbenmtools import buildhessian
+
+        buildhessian(coords, hessian, natoms, 
+                     float(cutoffd), float(gammad),)
+
+        LOGGER.report('Hessian was built in %.2fs.', label='_bbenm')
+>>>>>>> prody/master
 
     # def calcModes(self, n_modes=20, zeros=False, turbo=True):
     #     """Calculate normal modes.  This method uses :func:`scipy.linalg.eigh`

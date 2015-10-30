@@ -254,6 +254,6 @@ from . import nmdfile
 from .nmdfile import *
 __all__.extend(nmdfile.__all__)
 
-#from . import bbenm
-#from .bbenm import *
-#__all__.extend(bbenm.__all__)
+from . import bbenm
+from .bbenm import *
+__all__.extend(bbenm.__all__)
