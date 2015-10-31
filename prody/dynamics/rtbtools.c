@@ -196,7 +196,7 @@ PyMODINIT_FUNC initrtbtools(void) {
 
     Py_InitModule3("rtbtools", rtbtools_methods,
         "RTB tools.");
-
+    
     import_array();
 }
 #endif
@@ -679,8 +679,8 @@ void hess_superrow_mem(double **HR,int **CT,PDB_File *PDB,int nres,
 
 	/* --------- Membrane scaling -------- */
 	scl=1.0;
-	if(mhi<mlo || PDB->atom[who].X[2] < mhi && PDB->atom[who].X[2] > mlo) scl*=s0;
-	if(mhi<mlo || PDB->atom[jj].X[2] < mhi && PDB->atom[jj].X[2] > mlo) scl*=s0;
+	if(mhi<mlo || (PDB->atom[who].X[2] < mhi && PDB->atom[who].X[2] > mlo)) scl*=s0;
+	if(mhi<mlo || (PDB->atom[jj].X[2] < mhi && PDB->atom[jj].X[2] > mlo)) scl*=s0;
 
 
 	for(i=1;i<=3;i++){
