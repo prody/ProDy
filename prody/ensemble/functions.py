@@ -77,6 +77,7 @@ def loadEnsemble(filename):
         atoms = None
     ensemble.setAtoms(atoms)    
     if isPDBEnsemble:
+        confs = attr_dict['_confs']
         ensemble.addCoordset(attr_dict['_confs'], weights)
         if '_identifiers' in attr_dict.files:
             ensemble._labels = list(attr_dict['_identifiers'])
@@ -200,9 +201,9 @@ def showOccupancies(pdbensemble, *args, **kwargs):
 def checkWeights(weights, n_atoms, n_csets=None):
     """Return weights if checks pass, otherwise raise an exception."""
 
-    assert isinstance(n_atoms, int) and n_atoms > 0, \
+    assert isinstance(n_atoms, int) or isinstance(n_atoms, long) and n_atoms > 0, \
         'n_atoms must be a positive integer'
-    assert n_csets is None or isinstance(n_csets, int) and n_csets > 0, \
+    assert n_csets is None or isinstance(n_csets, int) or isinstance(n_atoms, long) and n_csets > 0, \
         'n_csets must be a positive integer'
 
     if not isinstance(weights, np.ndarray):
