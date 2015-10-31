@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """This module defines functions for interfacing Pfam database."""
 
-__author__ = 'Anindita Dutta, Ahmet Bakan, Cihan Kaya'
+__author__ = 'Anindita Dutta, Ahmet Bakan'
 
 import re
 import urllib

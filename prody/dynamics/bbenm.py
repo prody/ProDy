@@ -79,11 +79,9 @@ class bbENM(ANMBase):
 
         self._hessian = hessian = np.zeros((3*natoms, 3*natoms), float)
         self._dof = 3*natoms - 6
-        cutoffd = cutoff
-        gammad = gamma
         
-        #anm hessian calculation 
-        cutoff, g, gamma = checkENMParameters(cutoff, gamma)
+        # anm hessian calculation 
+        cutoff, gamma, gamma_func = checkENMParameters(cutoff, gamma)
         cutoff2 = cutoff * cutoff
         for i in range(natoms):
             res_i3 = i*3
@@ -95,7 +93,7 @@ class bbENM(ANMBase):
                     continue
                 i2j = i2j_all[j]
                 j += i_p1
-                g = gamma(dist2, i, j)
+                g = gamma_func(dist2, i, j)
                 res_j3 = j*3
                 res_j33 = res_j3+3
                 super_element = np.outer(i2j, i2j) * (- g / dist2)
@@ -110,7 +108,7 @@ class bbENM(ANMBase):
         from .bbenmtools import buildhessian
 
         buildhessian(coords, hessian, natoms, 
-                     float(cutoffd), float(gammad),)
+                     float(cutoff), float(gamma),)
 
         LOGGER.report('Hessian was built in %.2fs.', label='_bbenm')
 

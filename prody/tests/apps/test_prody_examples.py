@@ -69,6 +69,7 @@ for cmd in prody_commands.choices:
                 pipe.stdout.close()
                 stderr = pipe.stderr.read()
                 pipe.stderr.close()
+                self.assertTrue(not stderr, msg=stderr)
 
         func.__name__ = 'testCommandExample{0:d}'.format(count)
         func.__doc__ = 'Test example: $ {0:s}'.format(' $ '.join(egs))
