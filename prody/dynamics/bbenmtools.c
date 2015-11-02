@@ -91,7 +91,8 @@ static PyObject *buildhessian(PyObject *self, PyObject *args, PyObject *kwargs) 
 				"natoms", "cutoff", "gamma", NULL};
 	
 	if (!PyArg_ParseTupleAndKeywords(args, kwargs, "OOi|dd", kwlist,
-					&coords, &hessian, &N, &cutoff, &gamma))
+					&coords, &hessian, &N, 
+					&cutoff, &gamma))
 		return NULL;
 	
 	raw_XYZ = (double *) PyArray_DATA(coords);
@@ -101,12 +102,11 @@ static PyObject *buildhessian(PyObject *self, PyObject *args, PyObject *kwargs) 
 	double** XYZ = dmatrix(0, N - 1, 0, 2);
 	for(i = 0; i < N; i++)
 		for(j=0; j < 3; j++)
-			XYZ[i][j] = raw_XYZ[j * N + i];
+			XYZ[i][j] = raw_XYZ[i * 3 + j];
 			
 	// initialize bbHessian matrix
 	int N3 = 3 * N;
 	double** Hbb = dmatrix(0, N3 - 1, 0, N3 - 1);
-			
 	// vectorized version of all bonds.
 	double b[N][N][3];
 	for (i = 0; i < N; i++)
@@ -119,8 +119,8 @@ static PyObject *buildhessian(PyObject *self, PyObject *args, PyObject *kwargs) 
   	// kirchoff matrix calculation
 	int **kirchoff = unit_imatrix(0, N-1);
 	for (i=0; i<N; i++)
-		for (j=i+1; j<N; j++){
-			kirchoff[i][j]=length(b[i][j]) < 15;
+		for (j=0; j<N; j++){
+			kirchoff[i][j]=length(b[i][j]) < cutoff;
 			kirchoff[j][i]=kirchoff[i][j]; 
 		}
 	// theta zero calculation
@@ -131,24 +131,58 @@ static PyObject *buildhessian(PyObject *self, PyObject *args, PyObject *kwargs) 
 	for (i=0; i<N; i++)
 		for (j=0; j<N; j++)
 			theta[i][j]=(double *)malloc(N * sizeof(double));
-	 
-	for (i=0; i<N - 1; i++) 
+	for (i=0; i<N; i++) 
 		for (j=i+1; j<N; j++)
-			for (k=i+1; k<N; k++)
-				if (j != k)
-					if (kirchoff[i][j] && kirchoff[j][k])  // could be merged with previous line
-					{
-						double len_ij = length(b[i][j]);
-						double len_jk = length(b[j][k]);
-						theta[i][j][k] = acos(dot(b[i][j],b[j][k])/len_ij/len_jk);
-						theta[k][j][i] = theta[i][j][k];
-					}    
-	printf("here\n"); 
+			for (k=j+1; k<N; k++){
+				if (kirchoff[i][j] && kirchoff[j][k])  // could be merged with previous line
+				{
+					//printf("%d\t%d\t%d\n",i,j,k);
+					p++;
+					double len_ij = length(b[i][j]);
+					double len_jk = length(b[j][k]);
+					theta[i][j][k] = acos(dot(b[i][j],b[j][k])/len_ij/len_jk);
+					theta[k][j][i] = theta[i][j][k];
+				}
+				if (kirchoff[k][i] && kirchoff[i][j])  // could be merged with previous line
+				{
+					//printf("%d\t%d\t%d\n",i,j,k);
+					p++;
+					double len_ij = length(b[k][i]);
+					double len_jk = length(b[i][j]);
+					theta[k][i][j] = acos(dot(b[k][i],b[i][j])/len_ij/len_jk);
+					theta[j][i][k] = theta[k][i][j];
+				}
+				if (kirchoff[j][k] && kirchoff[k][i])  // could be merged with previous line
+				{
+					//printf("%d\t%d\t%d\n",i,j,k);
+					p++;
+					double len_ij = length(b[j][k]);
+					double len_jk = length(b[k][i]);
+					theta[j][k][i] = acos(dot(b[j][k],b[k][i])/len_ij/len_jk);
+					theta[i][k][j] = theta[j][k][i];
+				}   
+			}    
 	// updating bb hessian
-	for (i = 0; i < N - 1; i++)
-		for (j = i + 1; j < N; j++)
-			for (k = i + 1; k < N; k++)
-				if (j != k)
+	int l,m,n,d;
+	for (l = 0; l < N; l++)
+		for (m = l + 1; m < N; m++)
+			for (n = m + 1; n < N; n++)
+				for (d=0;d<3;d++){
+					if (d==0){
+						i=l;
+						j=m;
+						k=n;
+					}	
+					else if (d==1){
+						i=m;
+						j=n;
+						k=l;
+					}
+					else {
+						i=n;
+						j=l;
+						k=m;
+					}
 					if (kirchoff[i][j] && kirchoff[j][k])
 					{
 						double sq_ij   = sqlength(b[i][j]);
@@ -443,9 +477,10 @@ static PyObject *buildhessian(PyObject *self, PyObject *args, PyObject *kwargs) 
 														+ 2 * b[i][j][y] * b[j][k][x]/sq_jk/dot_ij_jk
 														+ 2 * b[i][j][x] * b[j][k][y]/sq_jk/dot_ij_jk
 														+ 2 * b[j][k][x] * b[j][k][y]/sq_jk/dot_ij_jk);
+
 						}
 					}		
-	
+				}
 	// the Hbb is symmetric
 	for(i = 0; i < N3; i++)
     	for(j = i+1; j < N3; j++)
