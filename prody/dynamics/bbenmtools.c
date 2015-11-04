@@ -137,7 +137,7 @@ static PyObject *buildhessian(PyObject *self, PyObject *args, PyObject *kwargs) 
 				if (kirchoff[i][j] && kirchoff[j][k])  // could be merged with previous line
 				{
 					//printf("%d\t%d\t%d\n",i,j,k);
-					p++;
+					//p++;
 					double len_ij = length(b[i][j]);
 					double len_jk = length(b[j][k]);
 					theta[i][j][k] = acos(dot(b[i][j],b[j][k])/len_ij/len_jk);
@@ -146,7 +146,7 @@ static PyObject *buildhessian(PyObject *self, PyObject *args, PyObject *kwargs) 
 				if (kirchoff[k][i] && kirchoff[i][j])  // could be merged with previous line
 				{
 					//printf("%d\t%d\t%d\n",i,j,k);
-					p++;
+					//p++;
 					double len_ij = length(b[k][i]);
 					double len_jk = length(b[i][j]);
 					theta[k][i][j] = acos(dot(b[k][i],b[i][j])/len_ij/len_jk);
@@ -155,7 +155,7 @@ static PyObject *buildhessian(PyObject *self, PyObject *args, PyObject *kwargs) 
 				if (kirchoff[j][k] && kirchoff[k][i])  // could be merged with previous line
 				{
 					//printf("%d\t%d\t%d\n",i,j,k);
-					p++;
+					//p++;
 					double len_ij = length(b[j][k]);
 					double len_jk = length(b[k][i]);
 					theta[j][k][i] = acos(dot(b[j][k],b[k][i])/len_ij/len_jk);

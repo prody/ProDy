@@ -114,23 +114,23 @@ class bbENM(ANMBase):
 
         LOGGER.report('Hessian was built in %.2fs.', label='_bbenm')
 
-    # def calcModes(self, n_modes=20, zeros=False, turbo=True):
-    #     """Calculate normal modes.  This method uses :func:`scipy.linalg.eigh`
-    #     function to diagonalize the Hessian matrix. When Scipy is not found,
-    #     :func:`numpy.linalg.eigh` is used.
+    def calcModes(self, n_modes=20, zeros=False, turbo=True):
+         """Calculate normal modes.  This method uses :func:`scipy.linalg.eigh`
+         function to diagonalize the Hessian matrix. When Scipy is not found,
+         :func:`numpy.linalg.eigh` is used.
 
-    #     :arg n_modes: number of non-zero eigenvalues/vectors to calculate.
-    #         If ``None`` is given, all modes will be calculated.
-    #     :type n_modes: int or None, default is 20
+         :arg n_modes: number of non-zero eigenvalues/vectors to calculate.
+             If ``None`` is given, all modes will be calculated.
+         :type n_modes: int or None, default is 20
 
-    #     :arg zeros: If ``True``, modes with zero eigenvalues will be kept.
-    #     :type zeros: bool, default is ``False``
+         :arg zeros: If ``True``, modes with zero eigenvalues will be kept.
+         :type zeros: bool, default is ``False``
 
-    #     :arg turbo: Use a memory intensive, but faster way to calculate modes.
-    #     :type turbo: bool, default is ``True``
-    #     """
+         :arg turbo: Use a memory intensive, but faster way to calculate modes.
+         :type turbo: bool, default is ``True``
+         """
 
-    #     super(RTB, self).calcModes(n_modes, zeros, turbo)
+         super(bbENM, self).calcModes(n_modes, zeros, turbo)
 
     #     self._array = np.dot(self._project, self._array)
 
@@ -144,5 +144,6 @@ def test(pdb='2ci2'):
     pdb = parsePDB(pdb, subset='ca')
     bbenm = bbENM('2ci2')
     bbenm.buildHessian(pdb, cutoff=7.)
+    bbenm.calcModes(n_modes = None)
     return bbenm
 
