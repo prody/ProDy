@@ -136,12 +136,15 @@ static PyObject *buildhessian(PyObject *self, PyObject *args, PyObject *kwargs) 
 			for (k=j+1; k<N; k++){
 				if (kirchoff[i][j] && kirchoff[j][k])  // could be merged with previous line
 				{
+					if (i==0 && j==1 && k==2){
 					//printf("%d\t%d\t%d\n",i,j,k);
 					//p++;
-					double len_ij = length(b[i][j]);
-					double len_jk = length(b[j][k]);
-					theta[i][j][k] = acos(dot(b[i][j],b[j][k])/len_ij/len_jk);
-					theta[k][j][i] = theta[i][j][k];
+						double len_ij = length(b[i][j]);
+						double len_jk = length(b[j][k]);
+						theta[i][j][k] = acos(-dot(b[i][j],b[j][k])/len_ij/len_jk);
+						theta[k][j][i] = theta[i][j][k];
+						printf("%lf\t%lf\t%lf\t%lf\n", len_ij, len_jk, dot(b[i][j],b[j][k]) ,theta[i][j][k]);
+					}
 				}
 				if (kirchoff[k][i] && kirchoff[i][j])  // could be merged with previous line
 				{
@@ -149,7 +152,7 @@ static PyObject *buildhessian(PyObject *self, PyObject *args, PyObject *kwargs) 
 					//p++;
 					double len_ij = length(b[k][i]);
 					double len_jk = length(b[i][j]);
-					theta[k][i][j] = acos(dot(b[k][i],b[i][j])/len_ij/len_jk);
+					theta[k][i][j] = acos(-dot(b[k][i],b[i][j])/len_ij/len_jk);
 					theta[j][i][k] = theta[k][i][j];
 				}
 				if (kirchoff[j][k] && kirchoff[k][i])  // could be merged with previous line
@@ -158,10 +161,12 @@ static PyObject *buildhessian(PyObject *self, PyObject *args, PyObject *kwargs) 
 					//p++;
 					double len_ij = length(b[j][k]);
 					double len_jk = length(b[k][i]);
-					theta[j][k][i] = acos(dot(b[j][k],b[k][i])/len_ij/len_jk);
+					theta[j][k][i] = acos(-dot(b[j][k],b[k][i])/len_ij/len_jk);
 					theta[i][k][j] = theta[j][k][i];
 				}   
 			}    
+
+	
 	// updating bb hessian
 	int l,m,n,d;
 	for (l = 0; l < N; l++)
@@ -199,7 +204,8 @@ static PyObject *buildhessian(PyObject *self, PyObject *args, PyObject *kwargs) 
 						
 						int ax1, ax2;
 
-						if (theta[i][j][k] < 1e-5 && theta[i][j][k]> -1e-5)
+						if ((theta[i][j][k] - M_PI < 1e-5 && theta[i][j][k] - M_PI > -1e-5) 
+							|| (theta[i][j][k] < 1e-5 && theta[i][j][k] > -1e-5))
 						{
 							// i, i update
 							for (x = 0; x < 3; x++)
@@ -208,7 +214,7 @@ static PyObject *buildhessian(PyObject *self, PyObject *args, PyObject *kwargs) 
 								{
 									ax1 = norm_axis(x - 1);
 									ax2 = norm_axis(x + 1);
-									Hbb[3*i+x][3*i+y] = 0.5 * (square(b[j][k][ax1]) + square(b[j][k][ax2]))/denom;
+									Hbb[3*i+x][3*i+y] = (square(b[j][k][ax1]) + square(b[j][k][ax2]))/denom;
 								}
 								else 
 									Hbb[3*i+x][3*i+y] = 0.5 * (-2 * b[j][k][x]*b[j][k][y])/denom;
@@ -220,7 +226,7 @@ static PyObject *buildhessian(PyObject *self, PyObject *args, PyObject *kwargs) 
 								{
 									ax1 = norm_axis(x - 1);
 									ax2 = norm_axis(x + 1);
-									Hbb[3*j+x][3*j+y] = 0.5 * (square(b[i][j][ax1]) + square(b[i][j][ax2]))/denom;
+									Hbb[3*j+x][3*j+y] = (square(b[i][j][ax1]) + square(b[i][j][ax2]))/denom;
 								}
 								else 
 									Hbb[3*j+x][3*j+y] = 0.5 * (-2 * b[i][j][x] * b[i][j][y])/denom;
@@ -232,7 +238,7 @@ static PyObject *buildhessian(PyObject *self, PyObject *args, PyObject *kwargs) 
 								{
 									ax1 = norm_axis(x - 1);
 									ax2 = norm_axis(x + 1);
-									Hbb[3*k+x][3*k+y] = 0.5 * (
+									Hbb[3*k+x][3*k+y] = (
 														  square(b[i][j][ax1]) - 2*b[i][j][ax1] * b[j][k][ax1] + square(b[j][k][ax1])
 														+ square(b[i][j][ax2]) - 2*b[i][j][ax2] * b[j][k][ax2] + square(b[j][k][ax2])
 														)/denom;
@@ -296,7 +302,7 @@ static PyObject *buildhessian(PyObject *self, PyObject *args, PyObject *kwargs) 
 							for (x = 0; x < 3; x++)
 							for (y = 0; y < 3; y++)
 								if (x == y)
-									Hbb[3*i+x][3*i+y] = 0.5 * (square(b[j][k][x]))/denom;
+									Hbb[3*i+x][3*i+y] = (square(b[j][k][x]))/denom;
 								else 
 									Hbb[3*i+x][3*i+y] = 0.5 * (2 * b[j][k][x] * b[j][k][y])/denom;
 							
@@ -304,7 +310,7 @@ static PyObject *buildhessian(PyObject *self, PyObject *args, PyObject *kwargs) 
 							for (x = 0; x < 3; x++)
 							for (y = 0; y < 3; y++)
 								if (x == y)
-									Hbb[3*j+x][3*j+y] = 0.5 * (square(b[i][j][x]))/denom;
+									Hbb[3*j+x][3*j+y] = (square(b[i][j][x]))/denom;
 								else 
 									Hbb[3*j+x][3*j+y] = 0.5 * (2 * b[i][j][x] * b[i][j][y])/denom;
 							
@@ -312,7 +318,7 @@ static PyObject *buildhessian(PyObject *self, PyObject *args, PyObject *kwargs) 
 							for (x = 0; x < 3; x++)
 							for (y = 0; y < 3; y++)
 								if (x == y)
-									Hbb[3*k+x][3*k+y] = 0.5 * (
+									Hbb[3*k+x][3*k+y] = (
 														  square(b[i][j][x])
 														+ 2 * b[i][j][x] * b[j][k][x]
 														+ square(b[j][k][x])
@@ -359,7 +365,7 @@ static PyObject *buildhessian(PyObject *self, PyObject *args, PyObject *kwargs) 
 							for (x = 0; x < 3; x++)
 							for (y = 0; y < 3; y++)
 								if (x == y)
-									Hbb[3*i+x][3*i+y] = cot * (
+									Hbb[3*i+x][3*i+y] = 2 * cot * (
 														  square(b[i][j][x])/quad_ij 
 														+ square(b[j][k][x])/sq_dot_ij_jk
 														- 2 * b[i][j][x] * b[j][k][x]/dot_ij_jk/sq_ij);
@@ -374,7 +380,7 @@ static PyObject *buildhessian(PyObject *self, PyObject *args, PyObject *kwargs) 
 							for (x = 0; x < 3; x++)
 							for (y = 0; y < 3; y++)
 								if (x == y)
-									Hbb[3*j+x][3*j+y] = cot * (
+									Hbb[3*j+x][3*j+y] = 2 * cot * (
 														  square(b[j][k][x])/quad_jk 
 														+ square(b[i][j][x])/sq_dot_ij_jk
 														- 2 * b[i][j][x] * b[j][k][x]/dot_ij_jk/sq_jk); 
@@ -389,7 +395,7 @@ static PyObject *buildhessian(PyObject *self, PyObject *args, PyObject *kwargs) 
 							for (x = 0; x < 3; x++)
 							for (y = 0; y < 3; y++)
 								if (x == y)
-									Hbb[3*k+x][3*k+y] = cot * (
+									Hbb[3*k+x][3*k+y] = 2 * cot * (
 														  square(b[i][j][x])/quad_ij
 														+ square(b[i][j][x])/sq_dot_ij_jk
 														+ 2 * b[i][j][x] * b[j][k][x]/sq_dot_ij_jk
