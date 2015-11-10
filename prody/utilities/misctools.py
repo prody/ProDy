@@ -1,9 +1,9 @@
 """This module defines miscellaneous utility functions."""
 
-from numpy import unique
+from numpy import unique, linalg, diag, sqrt, dot
 
 __all__ = ['Everything', 'rangeString', 'alnum', 'importLA', 'dictElement',
-           'intorfloat', 'startswith', 'showFigure', 'countBytes']
+           'intorfloat', 'startswith', 'showFigure', 'countBytes', 'sqrtm']
 
 
 class Everything(object):
@@ -149,3 +149,10 @@ def countBytes(arrays, base=False):
         nbytes = lambda arr: arr.nbytes
 
     return sum(nbytes(arr) for arr in arrays)
+
+def sqrtm(matrix):
+    """Return the square root of a matrix."""
+    (U,S,VT)=linalg.svd(matrix)
+    D = diag(sqrt(S))
+    return dot(dot(U,D),VT)
+

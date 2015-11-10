@@ -1,6 +1,6 @@
 """ProDy is a package for Protein Dynamics, Sequence, and Structure Analysis"""
 
-__version__ = '1.5.1'
+__version__ = '1.7'
 __release__ = __version__ # + '-dev' # comment out '-dev' before a release
 
 import sys
@@ -106,6 +106,11 @@ from . import trajectory
 from .trajectory import *
 __all__.extend(trajectory.__all__)
 __all__.append('trajectory')
+
+#from . import comd
+#from .comd import *
+#__all__.extend(comd.__all__)
+#__all__.append('comd')
 
 import prody
 __all__.append('prody')

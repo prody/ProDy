@@ -7,6 +7,7 @@ import numpy as np
 from prody.proteins import fetchPDB, parsePDB, writePDB
 from prody.utilities import openFile, showFigure
 from prody import LOGGER, SETTINGS
+from prody.atomic import AtomMap, Chain
 
 from .ensemble import *
 from .pdbensemble import *
@@ -41,6 +42,8 @@ def saveEnsemble(ensemble, filename=None, **kwargs):
         value = dict_[attr]
         if value is not None:
             attr_dict[attr] = value
+            
+    attr_dict['_atoms'] = np.array([dict_['_atoms'], 0])
     filename += '.ens.npz'
     ostream = openFile(filename, 'wb', **kwargs)
     np.savez(ostream, **attr_dict)
@@ -56,7 +59,7 @@ def loadEnsemble(filename):
     if '_weights' in attr_dict:
         weights = attr_dict['_weights']
     else:
-        weights = None
+        weights = None   
     isPDBEnsemble = False
     try:
         title = str(attr_dict['_title'])
@@ -68,6 +71,11 @@ def loadEnsemble(filename):
     else:
         ensemble = Ensemble(title)
     ensemble.setCoords(attr_dict['_coords'])
+    if '_atoms' in attr_dict:
+        atoms = attr_dict['_atoms'][0]
+    else:
+        atoms = None
+    ensemble.setAtoms(atoms)    
     if isPDBEnsemble:
         ensemble.addCoordset(attr_dict['_confs'], weights)
         if '_identifiers' in attr_dict.files:
@@ -121,13 +129,24 @@ def trimPDBEnsemble(pdb_ensemble, **kwargs):
         return None
 
     trimmed = PDBEnsemble(pdb_ensemble.getTitle())
+
+    atoms = pdb_ensemble.getAtoms()
+    if atoms is not None:
+        trim_atoms_idx = [n for n,t in enumerate(torf) if t]
+        if type(atoms) is Chain:
+            trim_atoms=Chain(atoms.getAtomGroup(), trim_atoms_idx, atoms._hv)
+        else:
+            trim_atoms= AtomMap(atoms.getAtomGroup(),trim_atoms_idx)
+        trimmed.setAtoms(trim_atoms)
+
     coords = pdb_ensemble.getCoords()
     if coords is not None:
         trimmed.setCoords(coords[torf])
     confs = pdb_ensemble.getCoordsets()
     if confs is not None:
         weights = pdb_ensemble.getWeights()
-        trimmed.addCoordset(confs[:, torf], weights[:, torf])
+        labels = pdb_ensemble.getLabels()
+        trimmed.addCoordset(confs[:, torf], weights[:, torf], labels)
     return trimmed
 
 

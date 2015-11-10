@@ -15,6 +15,7 @@ from .gnm import GNMBase, ZERO, checkENMParameters
 
 __all__ = ['ANM', 'calcANM']
 
+#dummy change
 
 class ANMBase(NMA):
 
@@ -84,7 +85,6 @@ class ANMBase(NMA):
         :arg kdtree: elect to use KDTree for building Hessian matrix,
             default is **False** since KDTree method is slower
         :type kdtree: bool
-
 
         Instances of :class:`Gamma` classes and custom functions are
         accepted as *gamma* argument.
@@ -237,8 +237,9 @@ class ANMBase(NMA):
         else:
             if n_modes is not None:
                 LOGGER.info('Scipy is not found, all modes are calculated.')
-            values, vectors = linalg.eigh(self._hessian)
+            values, vectors = np.linalg.eigh(self._hessian)
         n_zeros = sum(values < ZERO)
+
         if n_zeros < 6:
             LOGGER.warning('Less than 6 zero eigenvalues are calculated.')
             shift = n_zeros - 1
@@ -247,9 +248,13 @@ class ANMBase(NMA):
             shift = n_zeros - 1
         if zeros:
             shift = -1
-        self._eigvals = values[1+shift:]
+        if n_zeros > n_modes:
+            self._eigvals = values[1+shift:]
+        else:
+            self._eigvals = values[1+shift:]
         self._vars = 1 / self._eigvals
         self._trace = self._vars.sum()
+        
         if shift:
             self._array = vectors[:, 1+shift:].copy()
         else:

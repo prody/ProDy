@@ -135,6 +135,12 @@ class Atom(AtomPointer):
         for i in range(self.numCoordsets()):
             yield self._ag._coords[i, self._index]
 
+    def getMassess(self):
+        """get the mass atom. """
+        mass_dict = {'C':12,'N':14,'S':32,'O':16,'H':1}
+        
+        return mass_dict[self.getElement()]
+
     def getData(self, label):
         """Return a copy of data associated with *label*, if it is present."""
 

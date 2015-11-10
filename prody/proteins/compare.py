@@ -902,13 +902,19 @@ def mapOntoChain(atoms, chain, **kwargs):
                     indices_dummies.append(counter)
                 counter += 1
         #n_atoms = len(indices_target)
+
+        ch_tar = next((r for r in residues_target if r is not None)).getChain()
+        ch_chn = next((r for r in residues_chain if r is not None)).getChain()
+        title_tar = 'Chain {0} from {1}'.format(ch_tar.getChid(), ch_tar.getAtomGroup().getTitle())
+        title_chn = 'Chain {0} from {1}'.format(ch_chn.getChid(), ch_chn.getAtomGroup().getTitle())
+
         atommap = AM(map_ag, indices_chain, chain.getACSIndex(),
                      mapping=indices_mapping, dummies=indices_dummies,
-                     title=simple_chain.getTitle() + ' -> ' +
-                     simple_target.getTitle())
+                     title=title_chn + ' -> ' +
+                     title_tar )
         selection = AM(target_ag, indices_target, target_chain.getACSIndex(),
-                       title=simple_target.getTitle() + ' -> ' +
-                       simple_chain.getTitle(), intarrays=True)
+                       title=title_tar + ' -> ' +
+                       title_chn, intarrays=True)
 
         mappings[mi] = (atommap, selection, _seqid, _cover)
     if len(mappings) > 1:

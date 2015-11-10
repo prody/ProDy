@@ -31,4 +31,4 @@ def setup(app):
     app.add_config_value('googleanalytics_enabled', True, 'html')
     app.connect('html-page-context', add_ga_javascript)
     app.connect('builder-inited', check_config)
-    return app
+#    return app

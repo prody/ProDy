@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 """This module defines functions for interfacing Pfam database."""
 
-__author__ = 'Anindita Dutta, Ahmet Bakan'
+__author__ = 'Anindita Dutta, Ahmet Bakan, Cihan Kaya'
 
 import re
+import urllib
 from os.path import join, isfile
 
 from prody import LOGGER, PY3K
@@ -27,7 +28,7 @@ FORMAT_OPTIONS = ({'format': set([FASTA, SELEX, STOCKHOLM]),
 MINSEQLEN = 16
 
 
-def searchPfam(query, search_b=False, skip_a=False, **kwargs):
+def searchPfam(query, **kwargs):
     """Return Pfam search results in a dictionary.  Matching Pfam accession
     as keys will map to evalue, alignment start and end residue positions.
 
@@ -35,18 +36,6 @@ def searchPfam(query, search_b=False, skip_a=False, **kwargs):
         file, sequence queries must not contain without gaps and must be at
         least 16 characters long
     :type query: str
-
-    :arg search_b: search Pfam-B families when **True**
-    :type search_b: bool
-
-    :arg skip_a: do not search Pfam-A families when **True**
-    :type skip_a: bool
-
-    :arg ga: use gathering threshold when **True**
-    :type ga: bool
-
-    :arg evalue: user specified e-value cutoff, must be smaller than 10.0
-    :type evalue: float
 
     :arg timeout: timeout for blocking connection attempt in seconds, default
         is 60
@@ -56,7 +45,10 @@ def searchPfam(query, search_b=False, skip_a=False, **kwargs):
     chain identifier.  UniProt ID of the specified chain, or the first
     protein chain will be used for searching the Pfam database."""
 
+<<<<<<< HEAD
     # prefix = '{http://pfam.sanger.ac.uk/}' old version
+=======
+>>>>>>> 9805d85a7062249336aee779d42f40248ee552dc
     prefix = '{http://pfam.xfam.org/}'
     query = str(query)
     if isfile(query):
@@ -80,7 +72,12 @@ def searchPfam(query, search_b=False, skip_a=False, **kwargs):
     if len(seq) >= MINSEQLEN:
         if not seq.isalpha():
             raise ValueError(repr(seq) + ' is not a valid sequence')
+        fseq = '>Seq\n' + seq
+        parameters = { 'hmmdb' : 'pfam', 'seq': fseq }
+        enc_params = urllib.urlencode(parameters)
+        request = urllib.request.Request('http://hmmer.janelia.org/search/hmmscan', enc_params)
 
+<<<<<<< HEAD
         urlextension = ''
         if kwargs:
             ga = int(kwargs.get('ga', 1))
@@ -105,20 +102,40 @@ def searchPfam(query, search_b=False, skip_a=False, **kwargs):
 
         url = ('http://pfam.xfam.org/search/sequence?seq=' + str(seq) +
                urlextension + '&output=xml')
+=======
+        url = ( urllib.request.urlopen(request).geturl() + '?output=xml') 
+>>>>>>> 9805d85a7062249336aee779d42f40248ee552dc
         LOGGER.debug('Submitted Pfam search for sequence "{0}...".'
                      .format(seq[:MINSEQLEN]))
 
         xml = openURL(url, timeout=timeout).read()
-
+        
         try:
             root = ET.XML(xml)
         except Exception as err:
             raise ValueError('failed to parse results XML, check URL: ' + url)
-
-        try:
-            url = dictElement(root[0], prefix)['result_url']
-        except (IndexError, KeyError):
-            raise ValueError('failed to parse results XML, check URL: ' + url)
+        matches = {}
+        for child in root[0]:
+            if child.tag == 'hits':
+                accession = child.get('acc')
+                pfam_id = accession.split('.')[0]
+                matches[pfam_id]={}
+                matches[pfam_id]['accession']=accession
+                matches[pfam_id]['class']='Domain'
+                matches[pfam_id]['id']=child.get('name')
+                matches[pfam_id]['locations']={}
+                matches[pfam_id]['locations']['ali_end']=child[0].get('alisqto')
+                matches[pfam_id]['locations']['ali_start']=child[0].get('alisqfrom')
+                matches[pfam_id]['locations']['bitscore']=child[0].get('bitscore')
+                matches[pfam_id]['locations']['end']=child[0].get('alisqto')
+                matches[pfam_id]['locations']['evalue']=child.get('evalue')
+                matches[pfam_id]['locations']['evidence']='hmmer v3.0'
+                matches[pfam_id]['locations']['hmm_end']=child[0].get('alihmmto')
+                matches[pfam_id]['locations']['hmm_start']=child[0].get('alihmmfrom')
+                matches[pfam_id]['locations']['significant']=child[0].get('significant')    
+                matches[pfam_id]['locations']['start']=child[0].get('alisqfrom')
+                matches[pfam_id]['type']='Pfam-A'
+                return matches
 
     else:
         if len(seq) <= 5:
@@ -163,9 +180,14 @@ def searchPfam(query, search_b=False, skip_a=False, **kwargs):
         except Exception:
             pass
         else:
+<<<<<<< HEAD
             if xml not in ['PEND','RUN']:
                 break
 
+=======
+            if xml:
+                break
+>>>>>>> 9805d85a7062249336aee779d42f40248ee552dc
 
     if not xml:
         raise IOError('Pfam search timed out or failed to parse results '
@@ -367,19 +389,19 @@ if __name__ == '__main__':
     #numpy.testing.assert_equal(results_fasta,results_obj)
 
     #matches1 = searchPfam('P12821')
-    matches1 = searchPfam('P08581')
+    #matches1 = searchPfam('P08581')
     #matches2 = searchPfam('test.seq')
 
     """matches2 = searchPfam('PMFIVNTNVPRASVPDGFLSELTQQLAQATGKPPQYIAVHVVPDQLMAFGGSSEPCALCSLHSIGKIGGAQNRSYSKLLC\
 GLLAERLRISPDRVYINYYDMNAANVGWNNSTFA', evalue=2, skipAs=True)
     """
-    matches3 = searchPfam('NSIQIGGLFPRGADQEYSAFRVGMVQFSTSEFRLTPHIDNLEVANSFAVTNAFCSQFSRGVYAIFGFYDKKSVNTITSFC\
-GTLHVSFITPSFPTDGTHPFVIQMRPDLKGALLSLIEYYQWDKFAYLYDSDRGLSTLQAVLDSAAEKKWQVTAINVGNINNDKKDETYRSLFQDLELKKERRVILDCERDKVNDIVDQVITIGKHVKGYHYIIANLGFTDGDLLKIQFGGAEVSGFQIVD\
-YDDSLVSKFIERWSTLEEKEYPGAHTATIKYTSALTYDAVQVMTEAFRNLRKQRIEISRRGNAGDCLANPAVPWGQGVEI\
-ERALKQVQVEGLSGNIKFDQNGKRINYTINIMELKTNGPRKIGYWSEVDKMVLTEDDTSGLEQKTVVVTTILESPYVMMK\
-ANHAALAGNERYEGYCVDLAAEIAKHCGFKYKLTIVGDGKYGARDADTKIWNGMVGELVYGKADIAIAPLTITLVREEVI\
-DFSKPFMSLGISIMIKKPQKSKPGVFSFLDPLAYEIWMCIVFAYIGVSVVLFLVSRFSPYEWHTEEFEDGRETQSSESTN\
-EFGIFNSLWFSLGAFMQQGADISPRSLSGRIVGGVWWFFTLIIISSYTANLAAFLTVERMVSPIESAEDLSKQTEIAYGT\
-LDSGSTKEFFRRSKIAVFDKMWTYMRSAEPSVFVRTTAEGVARVRKSKGKYAYLLESTMNEYIEQRKPCDTMKVGGNLDS\
-KGYGIATPKGSSLGTPVNLAVLKLSEQGLLDKLKNKWWYDKGECGAKDSGSKEKTSALSLSNVAGVFYILVGGLGLAMLV\
-ALIEFCYKSRAEAKRMKGLVPRG', delay=10, evalue=2, searchBs=True)
+    #matches3 = searchPfam('NSIQIGGLFPRGADQEYSAFRVGMVQFSTSEFRLTPHIDNLEVANSFAVTNAFCSQFSRGVYAIFGFYDKKSVNTITSFC\
+#GTLHVSFITPSFPTDGTHPFVIQMRPDLKGALLSLIEYYQWDKFAYLYDSDRGLSTLQAVLDSAAEKKWQVTAINVGNINNDKKDETYRSLFQDLELKKERRVILDCERDKVNDIVDQVITIGKHVKGYHYIIANLGFTDGDLLKIQFGGAEVSGFQIVD\
+#YDDSLVSKFIERWSTLEEKEYPGAHTATIKYTSALTYDAVQVMTEAFRNLRKQRIEISRRGNAGDCLANPAVPWGQGVEI\
+#ERALKQVQVEGLSGNIKFDQNGKRINYTINIMELKTNGPRKIGYWSEVDKMVLTEDDTSGLEQKTVVVTTILESPYVMMK\
+#ANHAALAGNERYEGYCVDLAAEIAKHCGFKYKLTIVGDGKYGARDADTKIWNGMVGELVYGKADIAIAPLTITLVREEVI\
+#DFSKPFMSLGISIMIKKPQKSKPGVFSFLDPLAYEIWMCIVFAYIGVSVVLFLVSRFSPYEWHTEEFEDGRETQSSESTN\
+#EFGIFNSLWFSLGAFMQQGADISPRSLSGRIVGGVWWFFTLIIISSYTANLAAFLTVERMVSPIESAEDLSKQTEIAYGT\
+#LDSGSTKEFFRRSKIAVFDKMWTYMRSAEPSVFVRTTAEGVARVRKSKGKYAYLLESTMNEYIEQRKPCDTMKVGGNLDS\
+#KGYGIATPKGSSLGTPVNLAVLKLSEQGLLDKLKNKWWYDKGECGAKDSGSKEKTSALSLSNVAGVFYILVGGLGLAMLV\
+#ALIEFCYKSRAEAKRMKGLVPRG', delay=10, evalue=2, searchBs=True)

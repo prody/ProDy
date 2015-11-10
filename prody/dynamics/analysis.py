@@ -10,6 +10,7 @@ from prody import LOGGER
 from prody.atomic import AtomGroup
 from prody.ensemble import Ensemble, Conformation
 from prody.trajectory import TrajBase
+from numpy import sqrt, arange, log, polyfit
 
 from .nma import NMA
 from .modeset import ModeSet
@@ -18,7 +19,8 @@ from .gnm import GNMBase
 
 __all__ = ['calcCollectivity', 'calcCovariance', 'calcCrossCorr',
            'calcFractVariance', 'calcSqFlucts', 'calcTempFactors',
-           'calcProjection', 'calcCrossProjection', 'calcPerturbResponse', ]
+           'calcProjection', 'calcCrossProjection', 'calcPerturbResponse', 
+           'calcSpecDimension', ]
 
 
 def calcCollectivity(mode, masses=None):
@@ -53,6 +55,29 @@ def calcCollectivity(mode, masses=None):
     u2in = u2in * (1 / u2in.sum() ** 0.5)
     coll = np.exp(-(u2in * np.log(u2in)).sum()) / mode.numAtoms()
     return coll
+
+def calcSpecDimension(mode):
+
+    """
+    :arg mode: mode or vector
+    :type mode: :class:`.Mode` or :class:`.Vector`
+
+    """
+    # if not isinstance(mode, Mode):
+    #     raise TypeError('mode must be a Mode instance')
+    
+    length = mode.shape[0]
+    numbers = arange(2,length+1)
+    ds,p=polyfit(log(sqrt(mode[0:int(length*0.25)])),log(numbers[0:int(length*0.25)]),1)
+    
+    return ds
+
+def calcFracDimension(mode):
+    """
+    :arg mode: mode or vector
+    :type mode: mode or vector """
+
+
 
 
 def calcFractVariance(mode):

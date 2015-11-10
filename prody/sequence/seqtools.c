@@ -2,6 +2,8 @@
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 #include "numpy/arrayobject.h"
 #define NUMCHARS 27
+#include <stdio.h>
+
 const int twenty[20] = {1, 3, 4, 5, 6, 7, 8, 9, 11, 12, 13,
                         14, 16, 17, 18, 19, 20, 22, 23, 25};
 const int unambiguous[23] = {0, 1, 3, 4, 5, 6, 7, 8, 9, 11, 12, 13, 14,
@@ -149,7 +151,7 @@ static PyObject *msaeye(PyObject *self, PyObject *args,
 
         for (j = i + 1; j < number; j++) {
             ncols = score = 0.;
-
+        
             if (turbo) {
                 jseq = seq[j];
                 for (k = 0; k < length; k++) {

@@ -66,7 +66,7 @@
            x="299.35892"
            y="75.859909"
            id="tspan2911"
-           style="font-size:96px;font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;text-align:start;line-height:125%;letter-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#002255;font-family:Purisa;-inkscape-font-specification:Purisa Bold">Evol</tspan></text>
+           style="font-size:96px;font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;text-align:start;line-height:125%;letter-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#002255;font-family:Purisa;-inkscape-font-specification:Purisa Bold">coMD</tspan></text>
       <text
          x="295.92606"
          y="122.42368"
@@ -77,9 +77,9 @@
            x="295.92606"
            y="122.42368"
            id="tspan3663"
-           style="font-size:24px;word-spacing:-6px">Bridging Evolution &amp; Dynamics</tspan></text>
+           style="font-size:24px;word-spacing:-6px">Collective Molecular Dynamics</tspan></text>
       <image
-         xlink:href="file:///home/abakan/Code/ProDy/ubiquitin.png"
+         xlink:href="http://www.ncbi.nlm.nih.gov/pmc/articles/PMC3791301/bin/gr1.jpg"
          x="187.179"
          y="-12.816157"
          width="112.11926"
