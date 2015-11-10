@@ -223,7 +223,7 @@ def showDirectInfoMatrix(dirinfo, *args, **kwargs):
         ndim, shape = dirinfo.ndim, dirinfo.shape
     except AttributeError:
         msa = dirinfo
-        dirinfo = buildDirectInfoMatrix(mutinfo)
+        dirinfo = buildDirectInfoMatrix(dirinfo)
         ndim, shape = dirinfo.ndim, dirinfo.shape
 
     msa = kwargs.pop('msa', msa)
