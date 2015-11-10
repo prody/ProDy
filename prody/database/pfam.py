@@ -73,34 +73,7 @@ def searchPfam(query, **kwargs):
         enc_params = urllib.urlencode(parameters)
         request = urllib.request.Request('http://hmmer.janelia.org/search/hmmscan', enc_params)
 
-# <<<<<<< HEAD
-        urlextension = ''
-        if kwargs:
-            ga = int(kwargs.get('ga', 1))
-            if not (ga == 1 or ga == 0):
-                raise ValueError('ga must be either 0 or 1')
-
-            evalue = kwargs.get('evalue', None)
-            if evalue:
-                if not float(evalue) <= 10.0:
-                    raise ValueError('evalue must be a valid float < 10.0')
-                urlextension = urlextension + '&evalue=' + str(evalue)
-            else:
-                urlextension = urlextension + '&ga=' + str(ga)
-
-        search_b = int(bool(search_b))
-        skip_a = int(bool(skip_a))
-        if skip_a == 1:
-            search_b = 1
-
-        urlextension = urlextension + '&searchBs=' + str(search_b)
-        urlextension = urlextension + '&skipAs=' + str(skip_a)
-
-        url = ('http://pfam.xfam.org/search/sequence?seq=' + str(seq) +
-               urlextension + '&output=xml')
-# =======
-#         url = ( urllib.request.urlopen(request).geturl() + '?output=xml') 
-# >>>>>>> 9805d85a7062249336aee779d42f40248ee552dc
+        url = ( urllib.request.urlopen(request).geturl() + '?output=xml') 
         LOGGER.debug('Submitted Pfam search for sequence "{0}...".'
                      .format(seq[:MINSEQLEN]))
 
