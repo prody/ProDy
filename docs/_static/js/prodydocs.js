@@ -38,6 +38,9 @@ $(document).ready(function() {
   } else if (url.search("evol") > -1 || url.search("panel1-3") > -1) {
     logo.src = "http://www.csb.pitt.edu/ProDy/_static/evol.png";
   }
+    else if (url.search("comd") > -1 || url.search("panel1-5") > -1) {
+    logo.src = "http://www.csb.pitt.edu/ProDy/_static/comdlogo.png";
+  }
 
   // Downloads
   $('tt.download').append('&nbsp;<i class="icon-download"></i>')

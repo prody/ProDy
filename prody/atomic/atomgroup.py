@@ -1041,6 +1041,7 @@ class AtomGroup(Atomic):
                     self._fragments[i] = frag
                 yield frag
 
+
     def _fragment(self):
         """Set unique fragment indices to connected atom subsets using bond
         information."""

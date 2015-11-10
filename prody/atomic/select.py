@@ -322,15 +322,15 @@ tanh(x)   hyperbolic tangent of x
 
 .. ipython:: python
 
-   p.select('sqrt(sq(x) + sq(y) + sq(z)) < 100')  # within 100 Å of origin
+   p.select('sqrt(sq(x) + sq(y) + sq(z)) < 100')  # within 100 A of origin
 
 
 Distance based selections
 -------------------------------------------------------------------------------
 
-Atoms within a user specified distance (Å) from a set of user specified atoms
+Atoms within a user specified distance (A) from a set of user specified atoms
 can be selected using ``'within . of .'`` keyword, e.g. ``'within 5 of water'``
-selects atoms that are within 5 Å of water molecules. This setting will
+selects atoms that are within 5 A of water molecules. This setting will
 results selecting water atoms as well.
 
 User can avoid selecting specified atoms using ``exwithin . of ..`` setting,
@@ -364,7 +364,7 @@ Expanding selections
 A selection can be expanded to include the atoms in the same *residue*,
 *chain*, or *segment* using ``same .. as ..`` setting, e.g.
 ``'same residue as exwithin 4 of water'`` will select residues that have
-at least an atom within 4 Å of any water molecule.
+at least an atom within 4 A of any water molecule.
 
 .. ipython:: python
 
