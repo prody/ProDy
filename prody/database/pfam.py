@@ -45,10 +45,6 @@ def searchPfam(query, **kwargs):
     chain identifier.  UniProt ID of the specified chain, or the first
     protein chain will be used for searching the Pfam database."""
 
-<<<<<<< HEAD
-    # prefix = '{http://pfam.sanger.ac.uk/}' old version
-=======
->>>>>>> 9805d85a7062249336aee779d42f40248ee552dc
     prefix = '{http://pfam.xfam.org/}'
     query = str(query)
     if isfile(query):
@@ -77,7 +73,7 @@ def searchPfam(query, **kwargs):
         enc_params = urllib.urlencode(parameters)
         request = urllib.request.Request('http://hmmer.janelia.org/search/hmmscan', enc_params)
 
-<<<<<<< HEAD
+# <<<<<<< HEAD
         urlextension = ''
         if kwargs:
             ga = int(kwargs.get('ga', 1))
@@ -102,9 +98,9 @@ def searchPfam(query, **kwargs):
 
         url = ('http://pfam.xfam.org/search/sequence?seq=' + str(seq) +
                urlextension + '&output=xml')
-=======
-        url = ( urllib.request.urlopen(request).geturl() + '?output=xml') 
->>>>>>> 9805d85a7062249336aee779d42f40248ee552dc
+# =======
+#         url = ( urllib.request.urlopen(request).geturl() + '?output=xml') 
+# >>>>>>> 9805d85a7062249336aee779d42f40248ee552dc
         LOGGER.debug('Submitted Pfam search for sequence "{0}...".'
                      .format(seq[:MINSEQLEN]))
 
@@ -180,14 +176,8 @@ def searchPfam(query, **kwargs):
         except Exception:
             pass
         else:
-<<<<<<< HEAD
             if xml not in ['PEND','RUN']:
                 break
-
-=======
-            if xml:
-                break
->>>>>>> 9805d85a7062249336aee779d42f40248ee552dc
 
     if not xml:
         raise IOError('Pfam search timed out or failed to parse results '
