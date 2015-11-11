@@ -1,6 +1,6 @@
 /*****************************************************************************/
 /*                                                                           */
-/*                  Tools for bbENM calculations in ProDy.                   */
+/*                   Tools for RTB calculations in ProDy.                    */
 /*                                                                           */
 /*****************************************************************************/
 /* Author: Cihan Kaya, She Zhang */
@@ -48,8 +48,6 @@ void righthand2(double *VAL,double **VEC,int n);
 int **unit_imatrix(long lo,long hi);
 double ***zero_d3tensor(long nrl,long nrh,long ncl,long nch,long ndl,long ndh);
 double **zero_dmatrix(long nrl,long nrh,long ncl,long nch);
-double ***dmatrix_3d(int n1, int n2, int n3);
-void free_dmatrix_3d(double ***m, int n1, int n2, int n3);
 
 
 /* ---------- Essential Numerical Recipes routines ------------- */
@@ -120,23 +118,6 @@ static PyObject *buildhessian(PyObject *self, PyObject *args, PyObject *kwargs) 
 			}
   	// kirchoff matrix calculation
 	int **kirchoff = unit_imatrix(0, N-1);
-<<<<<<< HEAD
-	for (i = 0; i < N; i++)
-		for (j = i + 1; j < N; j++)
-		{
-			kirchoff[i][j] = length(b[i][j]) < 15;
-			kirchoff[j][i] = kirchoff[i][j]; 
-		}
-	// theta zero calculation
-	double ***theta = dmatrix_3d(N, N, N);
-
-	for (i=0; i<N - 1; i++) 
-		for (j=i+1; j<N; j++)
-			for (k=i+1; k<N; k++)
-				if (j != k)
-					if (kirchoff[i][j] && kirchoff[j][k])  
-					{
-=======
 	for (i=0; i<N; i++)
 		for (j=0; j<N; j++){
 			kirchoff[i][j]=length(b[i][j]) < cutoff;
@@ -158,15 +139,10 @@ static PyObject *buildhessian(PyObject *self, PyObject *args, PyObject *kwargs) 
 					if (i==0 && j==1 && k==2){
 					//printf("%d\t%d\t%d\n",i,j,k);
 					//p++;
->>>>>>> prody/master
 						double len_ij = length(b[i][j]);
 						double len_jk = length(b[j][k]);
 						theta[i][j][k] = acos(-dot(b[i][j],b[j][k])/len_ij/len_jk);
 						theta[k][j][i] = theta[i][j][k];
-<<<<<<< HEAD
-					}    
-					
-=======
 						printf("%lf\t%lf\t%lf\t%lf\n", len_ij, len_jk, dot(b[i][j],b[j][k]) ,theta[i][j][k]);
 					}
 				}
@@ -191,7 +167,6 @@ static PyObject *buildhessian(PyObject *self, PyObject *args, PyObject *kwargs) 
 			}    
 
 	
->>>>>>> prody/master
 	// updating bb hessian
 	int l,m,n,d;
 	for (l = 0; l < N; l++)
@@ -526,7 +501,12 @@ static PyObject *buildhessian(PyObject *self, PyObject *args, PyObject *kwargs) 
 	free_dmatrix(Hbb, 0, N3 - 1, 0, N3 - 1);
 	free_imatrix(kirchoff, 0, N-1, 0, N-1);
 
-	free_dmatrix_3d(theta, N, N, N);
+	for (i=0; i<N; i++)
+		for (j=0; j<N; j++)
+			free(theta[i][j]);
+	for (i=0; i<N; i++)
+		free(theta[i]);
+	free(theta);
 
 	Py_RETURN_NONE;
 }
@@ -606,34 +586,29 @@ double length(double x[])
 	return sqrt(sqlength(x));
 }
 
-/* "dmatrix_3d" GENERATES A 3D MATRIX OF DOUBLES. */
-double ***dmatrix_3d(int n1, int n2, int n3)
+/* "righthand2" MAKES SURE THAT THE EIGENVECTORS
+   FORM A RIGHT-HANDED COORDINATE SYSTEM */
+void righthand2(double *VAL,double **VEC,int n)
 {
-	int i, j;
-	double ***m;
-	m = (double ***)malloc(n1 * sizeof(double **));
-	for (i = 0; i < n1; i++)
-	{
-		m[i] = (double **)malloc(n2 * sizeof(double *));
-		for (j = 0; j < n2; j++)
-			m[i][j]=(double *)malloc(n3 * sizeof(double));
-	}
+	double A[3],B[3],C[3],CP[3],dot=0.0;
+	int i;
 	
-	return m;
+	/* FIND THE CROSS PRODUCT OF THE FIRST TWO EIGENVECTORS */
+	for(i=0;i<3;i++){
+		A[i]=VEC[i+1][1];
+		B[i]=VEC[i+1][2];
+		C[i]=VEC[i+1][3];}
+	cross(A,B,CP);
+	
+	/* PROJECT IT ON THE THIRD EIGENVECTOR */
+	for(i=0; i<3; i++)
+		dot+=C[i]*CP[i];
+	if(dot<0.0)
+		for(i=1;i<=3;i++)
+		VEC[i][3]=-VEC[i][3];
 }
 
-/* free a 3d double matrix allocated by dmatrix_3d() */
-void free_dmatrix_3d(double ***m, int n1, int n2, int n3)
-{
-	int i, j;
-	for (i=0; i < n1; i++)
-	{
-		for (j=0; j < n2; j++)
-			free(m[i][j]);
-		free(m[i]);
-	}
-	free(m);
-}
+
 
 /* "unit_imatrix" ALLOCATES MEMORY FOR A UNIT MATRIX */
 int **unit_imatrix(long lo,long hi)
@@ -708,6 +683,43 @@ void free_lvector(unsigned long *v, long nl, long nh)
 /* free an unsigned long vector allocated with lvector() */
 {
 	free((FREE_ARG) (v+nl-NR_END));
+}
+
+
+
+double ***d3tensor(long nrl, long nrh, long ncl, long nch, long ndl, long ndh)
+/* allocate a double 3tensor with range t[nrl..nrh][ncl..nch][ndl..ndh] */
+{
+  long i,j,nrow=nrh-nrl+1,ncol=nch-ncl+1,ndep=ndh-ndl+1;
+  double ***t;
+
+  /* allocate pointers to pointers to rows */
+  t=(double ***) malloc((size_t)((nrow+1)*sizeof(double**)));
+  if (!t) nrerror("allocation failure 1 in d3tensor()");
+  t += 1;
+  t -= nrl;
+
+  /* allocate pointers to rows and set pointers to them */
+  t[nrl]=(double **) malloc((size_t)((nrow*ncol+1)*sizeof(double*)));
+  if (!t[nrl]) nrerror("allocation failure 2 in d3tensor()");
+  t[nrl] += 1;
+  t[nrl] -= ncl;
+
+  /* allocate rows and set pointers to them */
+  t[nrl][ncl]=(double *) malloc((size_t)((nrow*ncol*ndep+1)*sizeof(double)));
+  if (!t[nrl][ncl]) nrerror("allocation failure 3 in d3tensor()");
+  t[nrl][ncl] += 1;
+  t[nrl][ncl] -= ndl;
+
+  for(j=ncl+1;j<=nch;j++) t[nrl][j]=t[nrl][j-1]+ndep;
+  for(i=nrl+1;i<=nrh;i++) {
+    t[i]=t[i-1]+ncol;
+    t[i][ncl]=t[i-1][ncl]+ncol*ndep;
+    for(j=ncl+1;j<=nch;j++) t[i][j]=t[i][j-1]+ndep;
+  }
+
+  /* return pointer to array of pointers to rows */
+  return t;
 }
 
 double **dmatrix(long nrl, long nrh, long ncl, long nch)
@@ -1009,8 +1021,3 @@ void deigsrt(double d[], double **v, int n)
 		}
 	}
 }
-
-
-
-
-
