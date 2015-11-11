@@ -8,7 +8,7 @@ from prody.atomic import Atomic, AtomGroup
 from prody.proteins import parsePDB
 from prody.utilities import importLA, checkCoords
 from prody.kdtree import KDTree
-from numpy import sqrt, zeros, linalg, min, max
+from numpy import sqrt, zeros, linalg, min, max, mean
 
 from .anm import ANMBase, calcANM
 from .gnm import checkENMParameters
@@ -100,7 +100,7 @@ class exANM(ANMBase):
         membrane_hi = float(kwargs.get('membrane_hi', 13.0))
         membrane_lo = float(kwargs.get('membrane_lo', -13.0))
         R = float(kwargs.get('R', 80))
-        r = float(kwargs.get('r', 2.5))
+        r = float(kwargs.get('r', 5))
         lat = str(kwargs.get('lat', 'FCC'))
         lpv = assign_lpvs(lat)
 
@@ -112,13 +112,12 @@ class exANM(ANMBase):
         self._membrane = membrane = zeros((1,3))
 
         LOGGER.timeit('_membrane')
-        coords = pdb.getCoords()
         membrane = zeros((1,3))
         membrane1 = zeros((1,3))
         atm = 0
         a = 0
         b = 0
-        scale = 5
+        scale = 3
         lim = range(-int(scale/2), int(scale/2)+1)
         for i in range(-int(imax),int(imax+1)):
             for j in range(-int(jmax),int(jmax+1)):
@@ -195,16 +194,16 @@ class exANM(ANMBase):
                                     atm = atm + 1
                                     coords = np.append(coords, T1[l,:].reshape(1,3), axis=0)
 
-        length = membrane.shape[0]
-        f = open(filename, 'w')
-        for i in range(length):
-            f.write('ATOM%7d  Q1  NE1 Q%4d% 12.3f% 8.3f% 8.3f\n' % (i,i,membrane[i,0],membrane[i,1],membrane[i,2]))
-        f.close()     
-        length = membrane1.shape[0]
-        f = open(filename2, 'w')
-        for i in range(length):
-            f.write('ATOM%7d  Q1  NE1 Q%4d% 12.3f% 8.3f% 8.3f\n' % (i,i,membrane1[i,0],membrane1[i,1],membrane1[i,2]))
-        f.close()                     
+        # length = membrane.shape[0]
+        # f = open(filename, 'w')
+        # for i in range(length):
+        #     f.write('ATOM%7d  Q1  NE1 Q%4d% 12.3f% 8.3f% 8.3f\n' % (i,i,membrane[i,0],membrane[i,1],membrane[i,2]))
+        # f.close()     
+        # length = membrane1.shape[0]
+        # f = open(filename2, 'w')
+        # for i in range(length):
+        #     f.write('ATOM%7d  Q1  NE1 Q%4d% 12.3f% 8.3f% 8.3f\n' % (i,i,membrane1[i,0],membrane1[i,1],membrane1[i,2]))
+        # f.close()                     
 
         self._membrane = membrane 
         LOGGER.report('Membrane was built in %2.fs.', label='_membrane')
@@ -239,7 +238,7 @@ class exANM(ANMBase):
         oo = total_hessian[natoms*3+1:, natoms*3+1:]
         self._hessian = ss - np.dot(so, np.dot(linalg.inv(oo), os))
         LOGGER.report('Hessian was built in %.2fs.', label='_exanm')
-    self._dof = self._hessian.shape[0]
+        self._dof = self._hessian.shape[0]
     
     def calcModes(self, n_modes=20, zeros=False, turbo=True):
         """Calculate normal modes.  This method uses :func:`scipy.linalg.eigh`

@@ -586,7 +586,7 @@ class Ensemble(object):
             LOGGER.warning('Coordinates are not set.')
             return None
 
-        return self._getCoordsets() - self._coords
+        return self._getCoordsets() - self._getCoords()
 
     def getRMSDs(self):
         """Return root mean square deviations (RMSDs) for selected atoms.
