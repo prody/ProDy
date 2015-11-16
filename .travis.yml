@@ -1,25 +1,22 @@
+sudo: false
 language: python
 python:
   - 2.6
   - 2.7
-  - 3.2
   - 3.3
-virtualenv:
-  system_site_packages: true
+  - 3.4
 before_install:
-  - uname -a
-  - free -m
-  - df -h
-  - ulimit -a
-  - sudo apt-get update -qq
-  - sudo apt-get install -qq libatlas-dev libatlas-base-dev liblapack-dev gfortran
-  - pip install nose
-  - pip install numpy
-  - if [[ $TRAVIS_PYTHON_VERSION == "2.6" ]]; then pip install unittest2; fi
-  - if [[ $TRAVIS_PYTHON_VERSION == "2.7" ]]; then pip install pyparsing biopython; fi
-  - pip freeze
-  - if [[ $TRAVIS_PYTHON_VERSION == "2.7" ]]; then make remove; fi
+  - travis_retry wget http://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O miniconda.sh
+  - chmod +x miniconda.sh
+  - ./miniconda.sh -b -p $HOME/miniconda
+  - export PATH=$HOME/miniconda/bin:$PATH
+  - conda update --yes conda
 install:
+  - conda create --yes -n test python=$TRAVIS_PYTHON_VERSION
+  - source activate test
+  - conda install --yes numpy scipy pip nose
+  - if [[ $TRAVIS_PYTHON_VERSION == "2.6" ]]; then conda install --yes unittest2; fi
+  - if [[ $TRAVIS_PYTHON_VERSION == "2.7" ]]; then conda install --yes pyparsing biopython; fi
   - python setup.py build install
 script:
   - cd docs; nosetests prody -a '!slow'
