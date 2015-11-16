@@ -23,7 +23,7 @@ __all__ = ['gunzip', 'backupFile', 'openFile',
            'PLATFORM', 'USERHOME']
 
 major, minor = sys.version_info[:2]
-if major > 2 and minor <= 3:
+if major > 2:
     import gzip
     from gzip import GzipFile
     import io
@@ -63,9 +63,8 @@ if major > 2 and minor <= 3:
 
             self.close()
 
-
     def gzip_open(filename, mode="rb", compresslevel=9,
-             encoding=None, errors=None, newline=None):
+                  encoding=None, errors=None, newline=None):
         """Open a gzip-compressed file in binary or text mode.
 
         The filename argument can be an actual filename (a str or bytes object), or
