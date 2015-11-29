@@ -108,67 +108,8 @@ static PyObject *buildhessian(PyObject *self, PyObject *args, PyObject *kwargs) 
 	int N3 = 3 * N;
 	double** Hbb = dmatrix(0, N3 - 1, 0, N3 - 1);
 	// vectorized version of all bonds.
-	double b[N][N][3];
-	for (i = 0; i < N; i++)
-		for (j = i+1; j < N; j++)
-			for (k = 0; k < 3; k++)
-			{
-				b[i][j][k] = XYZ[i][k] - XYZ[j][k];
-				b[j][i][k] = -b[i][j][k];
-			}
-  	// kirchoff matrix calculation
-	int **kirchoff = unit_imatrix(0, N-1);
-	for (i=0; i<N; i++)
-		for (j=0; j<N; j++){
-			kirchoff[i][j]=length(b[i][j]) < cutoff;
-			kirchoff[j][i]=kirchoff[i][j]; 
-		}
-	// theta zero calculation
-	double ***theta;
-	theta = (double ***)malloc(N * sizeof(double **));
-	for (i=0; i<N; i++)
-		theta[i]=(double **)malloc(N * sizeof(double *));
-	for (i=0; i<N; i++)
-		for (j=0; j<N; j++)
-			theta[i][j]=(double *)malloc(N * sizeof(double));
-	for (i=0; i<N; i++) 
-		for (j=i+1; j<N; j++)
-			for (k=j+1; k<N; k++){
-				if (kirchoff[i][j] && kirchoff[j][k])  // could be merged with previous line
-				{
-					if (i==0 && j==1 && k==2){
-					//printf("%d\t%d\t%d\n",i,j,k);
-					//p++;
-						double len_ij = length(b[i][j]);
-						double len_jk = length(b[j][k]);
-						theta[i][j][k] = acos(-dot(b[i][j],b[j][k])/len_ij/len_jk);
-						theta[k][j][i] = theta[i][j][k];
-						printf("%lf\t%lf\t%lf\t%lf\n", len_ij, len_jk, dot(b[i][j],b[j][k]) ,theta[i][j][k]);
-					}
-				}
-				if (kirchoff[k][i] && kirchoff[i][j])  // could be merged with previous line
-				{
-					//printf("%d\t%d\t%d\n",i,j,k);
-					//p++;
-					double len_ij = length(b[k][i]);
-					double len_jk = length(b[i][j]);
-					theta[k][i][j] = acos(-dot(b[k][i],b[i][j])/len_ij/len_jk);
-					theta[j][i][k] = theta[k][i][j];
-				}
-				if (kirchoff[j][k] && kirchoff[k][i])  // could be merged with previous line
-				{
-					//printf("%d\t%d\t%d\n",i,j,k);
-					//p++;
-					double len_ij = length(b[j][k]);
-					double len_jk = length(b[k][i]);
-					theta[j][k][i] = acos(-dot(b[j][k],b[k][i])/len_ij/len_jk);
-					theta[i][k][j] = theta[j][k][i];
-				}   
-			}    
-
-	
-	// updating bb hessian
-	int l,m,n,d;
+	int l,m,n,d,ii,ax1,ax2;
+	double bi[3], bj[3];
 	for (l = 0; l < N; l++)
 		for (m = l + 1; m < N; m++)
 			for (n = m + 1; n < N; n++)
@@ -188,24 +129,27 @@ static PyObject *buildhessian(PyObject *self, PyObject *args, PyObject *kwargs) 
 						j=l;
 						k=m;
 					}
-					if (kirchoff[i][j] && kirchoff[j][k])
-					{
-						double sq_ij   = sqlength(b[i][j]);
-						double quad_ij = square(sq_ij);
-						
-						double sq_jk   = sqlength(b[j][k]);
-						double quad_jk = square(sq_jk);
-						
-						double denom = sq_ij * sq_jk;
-						double cot = 0.5 / tan(theta[i][j][k]);
-						
-						double dot_ij_jk = dot(b[i][j],b[j][k]);
-						double sq_dot_ij_jk = square(dot(b[i][j],b[j][k]));
-						
-						int ax1, ax2;
-
-						if ((theta[i][j][k] - M_PI < 1e-5 && theta[i][j][k] - M_PI > -1e-5) 
-							|| (theta[i][j][k] < 1e-5 && theta[i][j][k] > -1e-5))
+					for (ii=0;ii<3;ii++){
+						bi[ii]=XYZ[i][ii]-XYZ[k][ii];
+						bj[ii]=XYZ[j][ii]-XYZ[k][ii];
+					}
+					double bi_len = length(bi);
+					double bj_len = length(bj);
+					//printf("%d\t%d\t%d\t%lf\t%lf\n", i, j, k, bi_len, bj_len);
+					if (length(bi)<cutoff && length(bj)<cutoff)
+						{
+						double theta = acos(dot(bi,bj)/bi_len/bj_len);
+						double denom = square(bi_len*bj_len);
+						double sq_ij = square(bi_len);
+						double sq_jk = square(bj_len);
+						double quad_ij = square(square(bi_len));
+						double quad_jk = square(square(bj_len));
+						double dot_ij_jk = dot(bi,bj);
+						double sq_dot_ij_jk = square(dot(bi,bj));
+						double cot = square(1. / tan(theta));
+						printf("%d\t%d\t%d\t%lf\n", i, j, k, theta);
+						if ((theta - M_PI < 1e-5 && theta - M_PI > -1e-5) 
+							|| (theta < 1e-5 && theta > -1e-5))
 						{
 							// i, i update
 							for (x = 0; x < 3; x++)
@@ -214,10 +158,10 @@ static PyObject *buildhessian(PyObject *self, PyObject *args, PyObject *kwargs) 
 								{
 									ax1 = norm_axis(x - 1);
 									ax2 = norm_axis(x + 1);
-									Hbb[3*i+x][3*i+y] = (square(b[j][k][ax1]) + square(b[j][k][ax2]))/denom;
+									Hbb[3*i+x][3*i+y] = (square(bj[ax1]) + square(bj[ax2]))/denom;
 								}
 								else 
-									Hbb[3*i+x][3*i+y] = 0.5 * (-2 * b[j][k][x]*b[j][k][y])/denom;
+									Hbb[3*i+x][3*i+y] = 0.5 * (-2 * bj[x]*bj[y])/denom;
 									
                             // j, j update
 							for (x = 0; x < 3; x++)
@@ -226,10 +170,10 @@ static PyObject *buildhessian(PyObject *self, PyObject *args, PyObject *kwargs) 
 								{
 									ax1 = norm_axis(x - 1);
 									ax2 = norm_axis(x + 1);
-									Hbb[3*j+x][3*j+y] = (square(b[i][j][ax1]) + square(b[i][j][ax2]))/denom;
+									Hbb[3*j+x][3*j+y] = (square(bi[ax1]) + square(bi[ax2]))/denom;
 								}
 								else 
-									Hbb[3*j+x][3*j+y] = 0.5 * (-2 * b[i][j][x] * b[i][j][y])/denom;
+									Hbb[3*j+x][3*j+y] = 0.5 * (-2 * bi[x] * bi[y])/denom;
 
                             // k, k update
 							for (x = 0; x < 3; x++)
@@ -239,14 +183,14 @@ static PyObject *buildhessian(PyObject *self, PyObject *args, PyObject *kwargs) 
 									ax1 = norm_axis(x - 1);
 									ax2 = norm_axis(x + 1);
 									Hbb[3*k+x][3*k+y] = (
-														  square(b[i][j][ax1]) - 2*b[i][j][ax1] * b[j][k][ax1] + square(b[j][k][ax1])
-														+ square(b[i][j][ax2]) - 2*b[i][j][ax2] * b[j][k][ax2] + square(b[j][k][ax2])
+														  square(bi[ax1]) - 2*bi[ax1] * bj[ax1] + square(bj[ax1])
+														+ square(bi[ax2]) - 2*bi[ax2] * bj[ax2] + square(bj[ax2])
 														)/denom;
 								}
 								else 
 									Hbb[3*k+x][3*k+y] = 0.5 * (
-														2 * b[i][j][y] * b[j][k][x]-b[i][j][x] * b[i][j][y] 
-                                    					  + b[i][j][x] * b[j][k][y]-b[j][k][0] * b[j][k][x]
+														2 * bi[y] * bj[x]-bi[x] * bi[y] 
+                                    					  + bi[x] * bj[y]-bj[0] * bj[x]
 														)/denom;
 							
 							// i, j update
@@ -256,10 +200,10 @@ static PyObject *buildhessian(PyObject *self, PyObject *args, PyObject *kwargs) 
 								{
 									ax1 = norm_axis(x - 1);
 									ax2 = norm_axis(x + 1);
-									Hbb[3*i+x][3*j+y] = (- b[i][j][ax1]*b[j][k][ax1] + b[i][j][ax2]*b[j][k][ax2])/denom;
+									Hbb[3*i+x][3*j+y] = (- bi[ax1]*bj[ax1] + bi[ax2]*bj[ax2])/denom;
 								}
 								else 
-									Hbb[3*i+x][3*j+y] = (b[i][j][x] * b[j][k][y])/denom;
+									Hbb[3*i+x][3*j+y] = (bi[x] * bj[y])/denom;
 								
 							// i, k update
 							for (x = 0; x < 3; x++)
@@ -269,244 +213,247 @@ static PyObject *buildhessian(PyObject *self, PyObject *args, PyObject *kwargs) 
 									ax1 = norm_axis(x - 1);
 									ax2 = norm_axis(x + 1);
 									Hbb[3*i+x][3*k+y] = ( 
-														  b[i][j][ax1] * b[j][k][ax1]
-														+ b[i][j][ax2] * b[j][k][ax2]
-														- square(b[j][k][ax1])
-														- square(b[j][k][ax2])
+														  bi[ax1] * bj[ax1]
+														+ bi[ax2] * bj[ax2]
+														- square(bj[ax1])
+														- square(bj[ax2])
 														)/denom;
 								}
 								else 
-									Hbb[3*i+x][3*k+y] = (b[j][k][x] * b[j][k][y] - b[i][j][x] * b[j][k][y])/denom;
+									Hbb[3*i+x][3*k+y] = (bj[x] * bj[y] - bi[x] * bj[y])/denom;
 
 							// j, k update
-							for (x = 0; x < 3; x++)
-							for (y = 0; y < 3; y++)
+								for (x = 0; x < 3; x++)
+								for (y = 0; y < 3; y++)
 								if (x == y)
 								{
 									ax1 = norm_axis(x - 1);
 									ax2 = norm_axis(x + 1);
 									Hbb[3*j+x][3*k+y] = ( 
-														  b[i][j][ax1] * b[j][k][ax1]
-														+ b[i][j][ax2] * b[j][k][ax2]
-														- square(b[i][j][ax1])
-														- square(b[i][j][ax2])
+														  bi[ax1] * bj[ax1]
+														+ bi[ax2] * bj[ax2]
+														- square(bi[ax1])
+														- square(bi[ax2])
 														)/denom;
 								}
 								else 
-									Hbb[3*j+x][3*k+y] = (b[i][j][x] * b[i][j][y] - b[i][j][y] * b[j][k][x])/denom;
+									Hbb[3*j+x][3*k+y] = (bi[x] * bi[y] - bi[y] * bj[x])/denom;
 									
-						}
-						else if (theta[i][j][k] - M_PI/2 < 1e-5 && theta[i][j][k] - M_PI/2 > -1e-5)
+								}
+						else if (theta - M_PI/2 < 1e-5 && theta - M_PI/2 > -1e-5)
 						{
-							// i, i update
+								// i, i update
 							for (x = 0; x < 3; x++)
 							for (y = 0; y < 3; y++)
 								if (x == y)
-									Hbb[3*i+x][3*i+y] = (square(b[j][k][x]))/denom;
+									Hbb[3*i+x][3*i+y] = (square(bj[x]))/denom;
 								else 
-									Hbb[3*i+x][3*i+y] = 0.5 * (2 * b[j][k][x] * b[j][k][y])/denom;
+									Hbb[3*i+x][3*i+y] = 0.5 * (2 * bj[x] * bj[y])/denom;
 							
 							// j, j update
 							for (x = 0; x < 3; x++)
 							for (y = 0; y < 3; y++)
 								if (x == y)
-									Hbb[3*j+x][3*j+y] = (square(b[i][j][x]))/denom;
+									Hbb[3*j+x][3*j+y] = (square(bi[x]))/denom;
 								else 
-									Hbb[3*j+x][3*j+y] = 0.5 * (2 * b[i][j][x] * b[i][j][y])/denom;
+									Hbb[3*j+x][3*j+y] = 0.5 * (2 * bi[x] * bi[y])/denom;
 							
 							// k, k update
 							for (x = 0; x < 3; x++)
 							for (y = 0; y < 3; y++)
 								if (x == y)
 									Hbb[3*k+x][3*k+y] = (
-														  square(b[i][j][x])
-														+ 2 * b[i][j][x] * b[j][k][x]
-														+ square(b[j][k][x])
+														  square(bi[x])
+														+ 2 * bi[x] * bj[x]
+														+ square(bj[x])
 														)/denom;
 								else 
 									Hbb[3*k+x][3*k+y] = (
-														  b[i][j][x]*b[i][j][y] + b[i][j][y]*b[j][k][x] 
-														+ b[i][j][x]*b[j][k][y] + b[j][k][x]*b[j][k][y]
+														  bi[x]*bi[y] + bi[y]*bj[x] 
+														+ bi[x]*bj[y] + bj[x]*bj[y]
 														)/denom;
 							
 							// i, j update
 							for (x = 0; x < 3; x++)
 							for (y = 0; y < 3; y++)
 								if (x == y)
-									Hbb[3*i+x][3*j+y] = (b[i][j][x] * b[j][k][x])/denom;
+									Hbb[3*i+x][3*j+y] = (bi[x] * bj[x])/denom;
 								else 
-									Hbb[3*i+x][3*j+y] = (b[i][j][y] * b[j][k][x])/denom;
+									Hbb[3*i+x][3*j+y] = (bi[y] * bj[x])/denom;
 									
 							// i, k update
 							for (x = 0; x < 3; x++)
 							for (y = 0; y < 3; y++)
 								if (x == y)
 									Hbb[3*i+x][3*k+y] = (
-														- b[i][j][x] * b[j][k][x]
-														+ square(b[j][k][x])
+														- bi[x] * bj[x]
+														+ square(bj[x])
 														)/denom;
 								else 
 									Hbb[3*i+x][3*k+y] = (
-														- b[i][j][y] * b[j][k][x]
-														+ b[j][k][x] * b[j][k][y]
+														- bi[y] * bj[x]
+														+ bj[x] * bj[y]
 														)/denom;
 							
 							// j, k update
 							for (x = 0; x < 3; x++)
 							for (y = 0; y < 3; y++)
 								if (x == y)
-									Hbb[3*j+x][3*k+y] = (- b[j][k][x]*b[i][j][x] + square(b[i][j][x]))/denom;
+									Hbb[3*j+x][3*k+y] = (- bj[x]*bi[x] + square(bi[x]))/denom;
 								else 
-									Hbb[3*j+x][3*k+y] = (- b[j][k][y]*b[i][j][x] + b[i][j][x]*b[i][j][y])/denom;
+									Hbb[3*j+x][3*k+y] = (- bj[y]*bi[x] + bi[x]*bi[y])/denom;
 						}
-						else
-						{
+						else {
 							// i, i update
 							for (x = 0; x < 3; x++)
 							for (y = 0; y < 3; y++)
 								if (x == y)
-									Hbb[3*i+x][3*i+y] = 2 * cot * (
-														  square(b[i][j][x])/quad_ij 
-														+ square(b[j][k][x])/sq_dot_ij_jk
-														- 2 * b[i][j][x] * b[j][k][x]/dot_ij_jk/sq_ij);
+									Hbb[3*i+x][3*i+y] =  cot * (
+														  square(bi[x])/quad_ij 
+														+ square(bj[x])/sq_dot_ij_jk
+														- 2 * bi[x] * bj[x]/dot_ij_jk/sq_ij);
 								else 
-									Hbb[3*i+x][3*i+y] = cot * (
-														  2 * b[i][j][x] * b[i][j][y]/quad_ij 
-														+ 2 * b[j][k][x] * b[j][k][y]/sq_dot_ij_jk
-														- 2 * b[i][j][x] * b[j][k][y]/dot_ij_jk/sq_ij 
-														- 2 * b[i][j][y] * b[j][k][x]/dot_ij_jk/sq_ij);
+									Hbb[3*i+x][3*i+y] += 0.5 * cot * (
+														  2 * bi[x] * bi[y]/quad_ij 
+														+ 2 * bj[x] * bj[y]/sq_dot_ij_jk
+														- 2 * bi[x] * bj[y]/dot_ij_jk/sq_ij 
+														- 2 * bi[y] * bj[x]/dot_ij_jk/sq_ij);
 							
 							// j, j update
 							for (x = 0; x < 3; x++)
 							for (y = 0; y < 3; y++)
 								if (x == y)
-									Hbb[3*j+x][3*j+y] = 2 * cot * (
-														  square(b[j][k][x])/quad_jk 
-														+ square(b[i][j][x])/sq_dot_ij_jk
-														- 2 * b[i][j][x] * b[j][k][x]/dot_ij_jk/sq_jk); 
+									Hbb[3*j+x][3*j+y] =  cot * (
+														  square(bj[x])/quad_jk 
+														+ square(bi[x])/sq_dot_ij_jk
+														- 2 * bi[x] * bj[x]/dot_ij_jk/sq_jk); 
 								else 
-									Hbb[3*j+x][3*j+y] = cot * (
-														  2 * b[j][k][x] * b[j][k][y]/quad_jk 
-														+ 2 * b[i][j][x] * b[i][j][y]/sq_dot_ij_jk 
-														- 2 * b[i][j][x] * b[j][k][y]/dot_ij_jk/sq_jk 
-														- 2 * b[i][j][y] * b[j][k][x]/dot_ij_jk/sq_jk);
+									Hbb[3*j+x][3*j+y] += 0.5 * cot * (
+														  2 * bj[x] * bj[y]/quad_jk 
+														+ 2 * bi[x] * bi[y]/sq_dot_ij_jk 
+														- 2 * bi[x] * bj[y]/dot_ij_jk/sq_jk 
+														- 2 * bi[y] * bj[x]/dot_ij_jk/sq_jk);
 							
 							// k, k update
 							for (x = 0; x < 3; x++)
 							for (y = 0; y < 3; y++)
 								if (x == y)
-									Hbb[3*k+x][3*k+y] = 2 * cot * (
-														  square(b[i][j][x])/quad_ij
-														+ square(b[i][j][x])/sq_dot_ij_jk
-														+ 2 * b[i][j][x] * b[j][k][x]/sq_dot_ij_jk
-														+ square(b[j][k][x])/sq_dot_ij_jk
-														- 2 * square(b[i][j][x])/dot_ij_jk/sq_ij
-														- 2 * b[i][j][x] * b[j][k][x]/dot_ij_jk/sq_ij
-														+ square(b[j][k][x])/quad_jk
-														+ 2 * b[i][j][x] * b[j][k][x]/sq_ij/sq_jk
-														- 2 * b[i][j][x] * b[j][k][x]/dot_ij_jk/sq_jk
-														- 2 * square(b[j][k][x])/dot_ij_jk/sq_jk);
+									Hbb[3*k+x][3*k+y] =  cot * (
+														  square(bi[x])/quad_ij
+														+ square(bi[x])/sq_dot_ij_jk
+														+ 2 * bi[x] * bj[x]/sq_dot_ij_jk
+														+ square(bj[x])/sq_dot_ij_jk
+														- 2 * square(bi[x])/dot_ij_jk/sq_ij
+														- 2 * bi[x] * bj[x]/dot_ij_jk/sq_ij
+														+ square(bj[x])/quad_jk
+														+ 2 * bi[x] * bj[x]/sq_ij/sq_jk
+														- 2 * bi[x] * bj[x]/dot_ij_jk/sq_jk
+														- 2 * square(bj[x])/dot_ij_jk/sq_jk);
 								else 
-									Hbb[3*k+x][3*k+y] = cot * (
-														  2 * b[i][j][x] * b[i][j][y]/quad_ij
-														+ 2 * b[i][j][x] * b[i][j][y]/sq_dot_ij_jk
-														+ 2 * b[i][j][y] * b[j][k][x]/sq_dot_ij_jk
-														+ 2 * b[i][j][x] * b[j][k][y]/sq_dot_ij_jk
-														+ 2 * b[j][k][x] * b[j][k][y]/sq_dot_ij_jk
-														- 4 * b[i][j][x] * b[i][j][y]/dot_ij_jk/sq_ij
-														- 2 * b[i][j][y] * b[j][k][x]/dot_ij_jk/sq_ij
-														- 2 * b[i][j][x] * b[j][k][y]/dot_ij_jk/sq_ij
-														+ 2 * b[j][k][x] * b[j][k][y]/quad_jk
-														+ 2 * b[i][j][y] * b[j][k][x]/sq_ij/sq_jk
-														+ 2 * b[i][j][x] * b[j][k][y]/sq_ij/sq_jk
-														- 2 * b[i][j][y] * b[j][k][x]/dot_ij_jk/sq_jk
-														- 2 * b[i][j][x] * b[j][k][y]/dot_ij_jk/sq_jk
-														- 4 * b[j][k][x] * b[j][k][y]/dot_ij_jk/sq_jk);
+									Hbb[3*k+x][3*k+y] += 0.5 * cot * (
+														  2 * bi[x] * bi[y]/quad_ij
+														+ 2 * bi[x] * bi[y]/sq_dot_ij_jk
+														+ 2 * bi[y] * bj[x]/sq_dot_ij_jk
+														+ 2 * bi[x] * bj[y]/sq_dot_ij_jk
+														+ 2 * bj[x] * bj[y]/sq_dot_ij_jk
+														- 4 * bi[x] * bi[y]/dot_ij_jk/sq_ij
+														- 2 * bi[y] * bj[x]/dot_ij_jk/sq_ij
+														- 2 * bi[x] * bj[y]/dot_ij_jk/sq_ij
+														+ 2 * bj[x] * bj[y]/quad_jk
+														+ 2 * bi[y] * bj[x]/sq_ij/sq_jk
+														+ 2 * bi[x] * bj[y]/sq_ij/sq_jk
+														- 2 * bi[y] * bj[x]/dot_ij_jk/sq_jk
+														- 2 * bi[x] * bj[y]/dot_ij_jk/sq_jk
+														- 4 * bj[x] * bj[y]/dot_ij_jk/sq_jk);
 														
 							// i, j update
 							for (x = 0; x < 3; x++)
 							for (y = 0; y < 3; y++)
-								if (x == y)
-									Hbb[3*i+x][3*j+y] = cot * (
-														  2 * b[i][j][x] * b[j][k][x]/sq_dot_ij_jk
-														- 2 * square(b[i][j][x])/dot_ij_jk/sq_ij
-														+ 2 * b[i][j][x] * b[j][k][x]/sq_ij/sq_jk
-														- 2 * b[j][k][x] * b[j][k][x]/dot_ij_jk/sq_jk);
+								if (x == y){
+									Hbb[3*i+x][3*j+y] += 0.5 * cot * (
+														  2 * bi[x] * bj[x]/sq_dot_ij_jk
+														- 2 * square(bi[x])/dot_ij_jk/sq_ij
+														+ 2 * bi[x] * bj[x]/sq_ij/sq_jk
+														- 2 * square(bj[x])/dot_ij_jk/sq_jk);
+								}
 								else 
-									Hbb[3*i+x][3*j+y] = cot * (
-														  2 * b[i][j][y] * b[j][k][x]/sq_dot_ij_jk
-														- 2 * b[i][j][x] * b[i][j][y]/dot_ij_jk/sq_ij
-														+ 2 * b[i][j][x] * b[j][k][y]/sq_ij/sq_jk
-														- 2 * b[j][k][x] * b[j][k][y]/dot_ij_jk/sq_jk);
+									Hbb[3*i+x][3*j+y] += 0.5 * cot * (
+														  2 * bi[y] * bj[x]/sq_dot_ij_jk
+														- 2 * bi[x] * bi[y]/dot_ij_jk/sq_ij
+														+ 2 * bi[x] * bj[y]/sq_ij/sq_jk
+														- 2 * bj[x] * bj[y]/dot_ij_jk/sq_jk);
 														
 							// i, k update
 							for (x = 0; x < 3; x++)
 							for (y = 0; y < 3; y++)
 								if (x == y)
-									Hbb[3*i+x][3*k+y] = cot * (
-														- 2 * square(b[i][j][x])/quad_ij
-														- 2 * square(b[j][k][x])/sq_dot_ij_jk
-														+ 2 * square(b[i][j][x])/sq_ij/dot_ij_jk
-														- 2 * b[i][j][x] * b[j][k][x]/sq_dot_ij_jk
-														+ 4 * b[i][j][x] * b[j][k][x]/sq_ij/sq_dot_ij_jk
-														- 2 * b[i][j][x] * b[j][k][x]/sq_ij/sq_jk
-														+ 2 * b[j][k][x] * b[j][k][x]/dot_ij_jk/sq_jk);
+									Hbb[3*i+x][3*k+y] += 0.5 * cot * (
+														- 2 * square(bi[x])/quad_ij
+														- 2 * bi[x] * bj[x]/sq_dot_ij_jk
+														- 2 * square(bj[x])/sq_dot_ij_jk
+														+ 2 * square(bi[x])/sq_ij/dot_ij_jk
+														+ 4 * bi[x] * bj[x]/sq_ij/dot_ij_jk
+														- 2 * bi[x] * bj[x]/sq_ij/sq_jk
+														+ 2 * square(bj[x])/sq_jk/dot_ij_jk);
 								else 
-									Hbb[3*i+x][3*k+y] = cot * (
-														- 2 * b[i][j][x] * b[i][j][y]/quad_ij
-														- 2 * b[i][j][y] * b[j][k][x]/sq_dot_ij_jk
-														- 2 * b[j][k][x] * b[j][k][y]/sq_dot_ij_jk
-														+ 2 * b[i][j][x] * b[i][j][y]/sq_ij/dot_ij_jk
-														+ 2 * b[i][j][y] * b[j][k][x]/sq_ij/dot_ij_jk
-														- 2 * b[i][j][x] * b[j][k][y]/sq_ij/sq_jk
-														+ 2 * b[j][k][x] * b[j][k][y]/dot_ij_jk/sq_jk);
+									Hbb[3*i+x][3*k+y] += 0.5 * cot * (
+														- 2 * bi[x] * bi[y]/quad_ij
+														- 2 * bi[y] * bj[x]/sq_dot_ij_jk
+														- 2 * bj[x] * bj[y]/sq_dot_ij_jk
+														+ 2 * bi[x] * bi[y]/sq_ij/dot_ij_jk
+														+ 2 * bi[y] * bj[x]/sq_ij/dot_ij_jk
+														+ 2 * bi[x] * bj[y]/sq_ij/dot_ij_jk
+														- 2 * bi[x] * bj[y]/sq_ij/sq_jk
+														+ 2 * bj[x] * bj[y]/dot_ij_jk/sq_jk);
 							
 							// j, k update
 							for (x = 0; x < 3; x++)
 							for (y = 0; y < 3; y++)
 								if (x == y)
-									Hbb[3*j+x][3*k+y] = cot * (
-														- 2 * square(b[i][j][x])/sq_dot_ij_jk
-														+ 2 * square(b[j][k][x])/sq_jk/dot_ij_jk
-														+ 2 * square(b[i][j][x])/dot_ij_jk/sq_ij
-														- 2 * square(b[j][k][x])/sq_jk
-														- 2 * b[i][j][x] * b[j][k][x]/sq_dot_ij_jk
-														- 2 * b[i][j][x] * b[j][k][x]/sq_ij/sq_jk
-														+ 4 * b[i][j][x] * b[j][k][x]/sq_jk/dot_ij_jk);
+									Hbb[3*j+x][3*k+y] += 0.5 * cot * (
+														- 2 * square(bi[x])/sq_dot_ij_jk
+														- 2 * bi[x] * bj[x]/sq_dot_ij_jk
+														+ 2 * square(bi[x])/sq_ij/dot_ij_jk
+														- 2 * square(bj[x])/quad_jk
+														- 2 * bi[x] * bj[x]/sq_ij/sq_jk
+														+ 4 * bi[x] * bj[x]/dot_ij_jk/sq_jk
+														+ 2 * square(bj[x])/dot_ij_jk/sq_jk);
 								else 
-									Hbb[3*j+x][3*k+y] = cot * (
-														- 2 * b[j][k][x] * b[j][k][y]/quad_jk
-														- 2 * b[i][j][x] * b[i][j][y]/sq_dot_ij_jk
-														- 2 * b[i][j][x] * b[j][k][y]/sq_dot_ij_jk
-														+ 2 * b[i][j][x] * b[i][j][y]/dot_ij_jk/sq_ij
-														- 2 * b[i][j][y] * b[j][k][x]/sq_ij/sq_jk
-														+ 2 * b[i][j][y] * b[j][k][x]/sq_jk/dot_ij_jk
-														+ 2 * b[i][j][x] * b[j][k][y]/sq_jk/dot_ij_jk
-														+ 2 * b[j][k][x] * b[j][k][y]/sq_jk/dot_ij_jk);
-
+									Hbb[3*j+x][3*k+y] += 0.5 * cot * (
+														- 2 * bj[x] * bj[y]/quad_jk
+														- 2 * bi[x] * bi[y]/sq_dot_ij_jk
+														- 2 * bi[x] * bj[y]/sq_dot_ij_jk
+														+ 2 * bi[x] * bi[y]/dot_ij_jk/sq_ij
+														- 2 * bi[y] * bj[x]/sq_ij/sq_jk
+														+ 2 * bi[y] * bj[x]/sq_jk/dot_ij_jk
+														+ 2 * bi[x] * bj[y]/sq_jk/dot_ij_jk
+														+ 2 * bj[x] * bj[y]/sq_jk/dot_ij_jk);
 						}
-					}		
+					}
 				}
+	
 	// the Hbb is symmetric
 	for(i = 0; i < N3; i++)
-    	for(j = i+1; j < N3; j++)
-			Hbb[j][i] = Hbb[i][j];
-			  
-	// hess = H_anm + H_bb
+    	for(j = i+1; j < N3; j++){
+    		if (Hbb[i][j]>1e-6 || Hbb[i][j]<-1e-6)
+				Hbb[j][i] = Hbb[i][j];
+			else 
+				Hbb[i][j] = Hbb[j][i];
+		}
+	// for(i = 0; i < N3; i++){
+ //    	for(j = 0; j < N3; j++){
+ //    		printf("%lf\t",Hbb[i][j]);
+	// 		//Hbb[j][i] = Hbb[i][j];
+	// 	}
+	// 	printf("\n");		  
+	// }
+	// // hess = H_anm + H_bb
 	for(i = 0; i < N3; i++)
     	for(j = 0; j < N3; j++)
 			hess[N3 * i + j] += Hbb[i][j];
 	  
 	free_dmatrix(XYZ, 0, N-1, 0, 2);
 	free_dmatrix(Hbb, 0, N3 - 1, 0, N3 - 1);
-	free_imatrix(kirchoff, 0, N-1, 0, N-1);
-
-	for (i=0; i<N; i++)
-		for (j=0; j<N; j++)
-			free(theta[i][j]);
-	for (i=0; i<N; i++)
-		free(theta[i]);
-	free(theta);
 
 	Py_RETURN_NONE;
 }

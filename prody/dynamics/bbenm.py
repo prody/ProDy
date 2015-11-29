@@ -140,10 +140,8 @@ def test(pdb='2ci2'):
     from prody import parsePDB
     from numpy import zeros
 
-
     pdb = parsePDB(pdb, subset='ca')
-    bbenm = bbENM('2ci2')
-    bbenm.buildHessian(pdb, cutoff=7.)
-    bbenm.calcModes(n_modes = None)
+    bbenm = bbENM()
+    bbenm.buildHessian(pdb, cutoff=12.)
     return bbenm
 
