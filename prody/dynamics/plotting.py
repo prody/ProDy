@@ -429,8 +429,9 @@ def showOverlapTable(modes_x, modes_y, **kwargs):
     Default arguments for :func:`~matplotlib.pyplot.pcolor`:
 
       * ``cmap=plt.cm.jet``
-      * ``norm=plt.normalize(0, 1)``"""
+      * ``norm=matplotlib.colors.Normalize(0, 1)``"""
 
+    import matplotlib
     import matplotlib.pyplot as plt
 
     overlap = abs(calcOverlap(modes_y, modes_x))
@@ -440,7 +441,7 @@ def showOverlapTable(modes_x, modes_y, **kwargs):
         overlap = overlap.reshape((modes_y.numModes(), modes_x.numModes()))
 
     cmap = kwargs.pop('cmap', plt.cm.jet)
-    norm = kwargs.pop('norm', plt.normalize(0, 1))
+    norm = kwargs.pop('norm', matplotlib.colors.Normalize(0, 1))
     show = (plt.pcolor(overlap, cmap=cmap, norm=norm, **kwargs),
             plt.colorbar())
     x_range = np.arange(1, modes_x.numModes() + 1)
