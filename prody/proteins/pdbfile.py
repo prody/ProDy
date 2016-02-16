@@ -564,7 +564,6 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                 serials.resize(acount)
                 if not needfullname:
                     if not only_subset:
-                        print 'here'
                         atomnames = np.char.strip(atomnames)
                         resnames = np.char.strip(resnames)
                 atomgroup.setNames(atomnames)
