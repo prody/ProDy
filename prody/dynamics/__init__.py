@@ -6,6 +6,7 @@ Dynamics Models
 
 Following classes are designed for modeling and analysis of protein dynamics:
 
+  * :class:`.SM`  - Stiffness Matric calculation
   * :class:`.ANM` - Anisotropic network model, for coarse-grained NMA
   * :class:`.GNM` - Gaussian network model, for coarse-grained dynamics
     analysis
@@ -42,7 +43,7 @@ Function library
 Dynamics of the functions described below accept a *modes* argument (may also
 appear in different names), which may refer to one or more of the following:
 
-  * a dynamics model, :class:`.ANM`, :class:`.GNM`, :class:`.NMA`,
+  * a dynamics model, :class:`.ANM`, :class:`SM`, :class:`.GNM`, :class:`.NMA`,
     :class:`.PCA`, or :class:`.EDA`
   * a :class:`.Mode` obtained by indexing an NMA model, e.g. ``anm[0]``
   * a :class:`.ModeSet` obtained by slicing an NMA model, e.g. ``anm[0:10]``
@@ -129,6 +130,7 @@ Following allow for performing some dynamics calculations in one function call:
 
   * :func:`.calcANM` - perform ANM calculations
   * :func:`.calcGNM` - perform GNM calculations
+  * :func:`.calcSM` - perform GNM calculations
 
 Plotting functions
 ==================
@@ -184,6 +186,10 @@ Finally, normal modes can be visualized and animated using VMD plugin
   * :func:`.pathVMD` - get/set path to VMD executable"""
 
 __all__ = []
+
+from . import sm
+from .sm import *
+__all__.extend(sm.__all__)
 
 from . import analysis
 from .analysis import *
