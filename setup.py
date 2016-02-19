@@ -95,6 +95,9 @@ EXTENSIONS = [
     Extension('prody.sequence.seqtools',
               [join('prody', 'sequence', 'seqtools.c'),],
               include_dirs=[numpy.get_include()]),
+    Extension('prody.dynamics.smtool.c',
+              [join('prody', 'dynamics', 'smtool.c'),],
+              include_dirs=[numpy.get_include()]),
 ]
 
 CONTRIBUTED = [
@@ -132,7 +135,7 @@ setup(
     keywords=('protein, dynamics, elastic network model, '
               'Gaussian network model, anisotropic network model, '
               'essential dynamics analysis, principal component analysis, '
-              'Protein Data Bank, PDB, GNM, ANM, PCA'),
+              'Protein Data Bank, PDB, GNM, ANM, SM, PCA'),
     classifiers=[
                  'Development Status :: 5 - Production/Stable',
                  'Intended Audience :: Education',
