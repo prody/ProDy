@@ -83,9 +83,12 @@ EXTENSIONS = [
     Extension('prody.dynamics.rtbtools',
               glob(join('prody', 'dynamics', 'rtbtools.c')),
               include_dirs=[numpy.get_include()]),
-     Extension('prody.dynamics.bbenmtools',
+    Extension('prody.dynamics.bbenmtools',
                glob(join('prody', 'dynamics', 'bbenmtools.c')),
                include_dirs=[numpy.get_include()]),
+    Extension('prody.dynamics.smtools',
+              glob(join('prody', 'dynamics', 'smtools.c')),
+              include_dirs=[numpy.get_include()]),
     Extension('prody.sequence.msatools',
               [join('prody', 'sequence', 'msatools.c'),],
               include_dirs=[numpy.get_include()]),
@@ -94,9 +97,6 @@ EXTENSIONS = [
               include_dirs=[numpy.get_include()]),
     Extension('prody.sequence.seqtools',
               [join('prody', 'sequence', 'seqtools.c'),],
-              include_dirs=[numpy.get_include()]),
-    Extension('prody.dynamics.smtool.c',
-              [join('prody', 'dynamics', 'smtool.c'),],
               include_dirs=[numpy.get_include()]),
 ]
 
