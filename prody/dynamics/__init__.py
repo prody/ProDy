@@ -260,9 +260,13 @@ from . import nmdfile
 from .nmdfile import *
 __all__.extend(nmdfile.__all__)
 
-from . import bbenm
-from .bbenm import *
-__all__.extend(bbenm.__all__)
+from . import vmdfile
+from .vmdfile import *
+__all__.extend(vmdfile.__all__)
+
+#from . import bbenm
+#from .bbenm import *
+#__all__.extend(bbenm.__all__)
 
 from . import exanm
 from .exanm import *

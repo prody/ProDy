@@ -26,11 +26,13 @@ class ANMBase(NMA):
         self._cutoff = None
         self._gamma = None
         self._hessian = None
+        self._stiffness = None 
 
     def _reset(self):
 
         GNMBase._reset(self)
         self._hessian = None
+        self._stiffness = None
         self._is3d = True
 
     def getHessian(self):
@@ -44,6 +46,18 @@ class ANMBase(NMA):
         """Return the Hessian matrix."""
 
         return self._hessian
+
+    def _getStiffness(self):
+        """ Return the Stiffness matrix."""
+
+        return self._stiffness
+
+    def getStiffness(self):
+        """ Return a copy of Stiffness matrix."""
+
+        if self._stiffness is None:
+            return None
+        return self._stiffness.copy()
 
     def setHessian(self, hessian):
         """Set Hessian matrix.  A symmetric matrix is expected, i.e. not a
@@ -64,7 +78,7 @@ class ANMBase(NMA):
         self._hessian = hessian
         self._dof = hessian.shape[0]
         self._n_atoms = self._dof / 3
-
+        
     def buildHessian(self, coords, cutoff=15., gamma=1., **kwargs):
         """Build Hessian matrix for given coordinate set.
 
@@ -262,6 +276,58 @@ class ANMBase(NMA):
         self._n_modes = len(self._eigvals)
         LOGGER.report('{0} modes were calculated in %.2fs.'
                      .format(self._n_modes), label='_anm_calc_modes')
+
+    def buildSM(self, coords, n_modes=None, k_B_x_T=1.):
+
+        """This function calculates stiffness matrix as described in "Eran Eyal, Ivet Bahar, 
+        Toward a Molecular Understanding of the Anisotropic Response of Proteins to External Forces: 
+        Insights from Elastic Network Models, Biophysical Journal, 2008 (94) 3424-34355. 
+    
+        :coords      :a coordinate set or an object with ``getCoords`` method
+        :type coords: :class:`numpy.ndarray`
+
+        :arg n_modes: number of non-zero eigenvalues/vectors to calculate.
+            If ``None`` is given, all modes will be calculated.
+        :type n_modes: int or None, default is 20
+
+        Author: tekpinar@buffalo.edu & Karolina ... & Cihan Kaya
+        """
+
+        try:
+            coords = (coords._getCoords() if hasattr(coords, '_getCoords') else
+                      coords.getCoords())
+        except AttributeError:
+            try:
+                checkCoords(coords)
+            except TypeError:
+                raise TypeError('coords must be a Numpy array or an object '
+                                'with `getCoords` method')
+        n_atoms = self._n_atoms
+        if n_modes == None: 
+            n_modes=3*n_atoms
+
+        if n_modes > 3*n_atoms:
+            raise ValueError('Number of modes should be smaller than three times of number of CA atoms.')
+
+        if n_modes > self._n_modes:
+            self.calcModes(n_modes=n_modes, zeros=True)
+
+        LOGGER.timeit('_sm')
+        eigvecs = (self._array)
+        eigvals = (self._eigvals)
+        natoms = n_atoms
+
+        sm = np.zeros((n_atoms, n_atoms), np.double)
+        from .smtools import calcSM
+        LOGGER.info('Calculating stiffness matrix.')
+
+        calcSM(coords, sm, eigvecs, eigvals,
+                natoms, n_modes, float(k_B_x_T))
+
+        LOGGER.report('Stiffness matrix calculated in %.2lfs.', label='_sm')
+
+        self._stiffness = sm
+
 
 
 class ANM(ANMBase, GNMBase):

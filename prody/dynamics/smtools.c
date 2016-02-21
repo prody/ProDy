@@ -2,69 +2,84 @@
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 #include "numpy/arrayobject.h"
 #include "math.h"
-double calcStiffnessMatrixElement(int N, int n_modes, int ind_3i, int ind_3j, double *R_ij_normalized_vec, double *inv_sqrt_eigvals, double *eigvals, double *eigvecs_flat);
+#include "stdio.h"
+
+#define NR_END 1
+#define FREE_ARG char*
+#define square(x) x * x
+
+double **dmatrix(long nrl, long nrh, long ncl, long nch);
+void free_dmatrix(double **m, long nrl, long nrh, long ncl, long nch);
+double **zero_dmatrix(long nrl,long nrh,long ncl,long nch);
+void nrerror(char error_text[]);
 
 static PyObject *calcSM(PyObject *self, PyObject *args, PyObject *kwargs)
 {
-  PyArrayObject *R_ij_normalized_vec_array, *inv_sqrt_eigvals_array, *eigvals_array, *eigvecs_flat_array, *value_array;
-  int numCA, nmodes, ind3i, ind3j;
-  double *R_ij_normalized_vec;
-  double *inv_sqrt_eigvals;
-  double *eigvals;
-  double *eigvecs_flat;  
-  double *value;
-  double m_element;
-  
-  static char *kwlist[] = {"numCalphas","n_modes","ind_3i","ind_3j",
-          "R_ij_sup_0_normalized_vec", "inv_sqrt_eigvals", "eigvals", "eigvecs_flat", "value", NULL};
-  /* Parse the input tuple */
-  if (!PyArg_ParseTupleAndKeywords(args, kwargs, "iiiiOOOOO", kwlist, 
-          &numCA, &nmodes, &ind3i, &ind3j, 
-          &R_ij_normalized_vec_array, &inv_sqrt_eigvals_array, &eigvals_array, &eigvecs_flat_array, &value_array))
+  PyArrayObject *coords, *sm, *eigvecs, *eigvals;
+  int numCA, i, j, k, nmodes;
+  double *XYZ, *SM, *lambda, *U, kbt=1.;
+  double **stiff_matrix;
+  double r_ij, x_ij, y_ij, z_ij;
+  static char *kwlist[] = {"coords", "sm", "eigvecs", "eigvals",
+          "natoms","n_modes",
+          "k_B_x_T",NULL};
+
+  if (!PyArg_ParseTupleAndKeywords(args, kwargs, "OOOOii|d", kwlist, 
+          &coords, &sm, &eigvecs, &eigvals,
+          &numCA, &nmodes,
+          &kbt))
     return NULL;
 
-  /* Interpret the input objects as numpy arrays. */
-  //PyObject *R_ij_normalized_vec_array = PyArray_FROM_OTF(R_ij_normalized_vec_obj, NPY_DOUBLE, NPY_IN_ARRAY);
-  //PyObject *inv_sqrt_eigvals_array = PyArray_FROM_OTF(inv_sqrt_eigvals_obj, NPY_DOUBLE, NPY_IN_ARRAY);
-  //PyObject *eigvals_array = PyArray_FROM_OTF(eigvals_obj, NPY_DOUBLE, NPY_IN_ARRAY);
-  //PyObject *eigvecs_flat_array = PyArray_FROM_OTF(eigvecs_flat_obj, NPY_DOUBLE, NPY_IN_ARRAY);
+  XYZ = (double *) PyArray_DATA(coords);
+  SM = (double *) PyArray_DATA(sm);
+  U = (double *) PyArray_DATA(eigvecs);
+  lambda = (double *) PyArray_DATA(eigvals);
 
-  // /* If that didn't work, throw an exception. */
-  // if (R_ij_normalized_vec_array == NULL || inv_sqrt_eigvals_array == NULL || eigvals_array == NULL || eigvecs_flat_array==NULL) 
-  //   {
-  //     Py_XDECREF(R_ij_normalized_vec_array);
-  //     Py_XDECREF(inv_sqrt_eigvals_array);
-  //     Py_XDECREF(eigvals_array);
-  //     Py_XDECREF(eigvecs_flat_array);
-  //     return NULL;
-  //   }
+  stiff_matrix=dmatrix(0,numCA-1,0,numCA-1);
 
-  /* Get pointers to the data as C-types. */
-  R_ij_normalized_vec = (double*)PyArray_DATA(R_ij_normalized_vec_array);
-  inv_sqrt_eigvals = (double*)PyArray_DATA(inv_sqrt_eigvals_array);
-  eigvals = (double*)PyArray_DATA(eigvals_array);
-  eigvecs_flat = (double*)PyArray_DATA(eigvecs_flat_array);
-  value = (double*)PyArray_DATA(value_array);
+  for (i=0; i<numCA; i++){
+    for (j=i+1; j<numCA; j++){
+      r_ij = sqrt((XYZ[j*3]-XYZ[i*3])*(XYZ[j*3]-XYZ[i*3])+\
+        (XYZ[j*3+1]-XYZ[i*3+1])*(XYZ[j*3+1]-XYZ[i*3+1])+\
+        (XYZ[j*3+2]-XYZ[i*3+2])*(XYZ[j*3+2]-XYZ[i*3+2]));
+      x_ij = (XYZ[j*3]-XYZ[i*3])/r_ij;
+      y_ij = (XYZ[j*3+1]-XYZ[i*3+1])/r_ij;
+      z_ij = (XYZ[j*3+2]-XYZ[i*3+2])/r_ij;
+      double u_ij_sup_k[3]={0.0, 0.0, 0.0};
+      double d_ij_sup_k=0.0;
+      double sum1=0.0;
+      double sum2=0.0;
+      double cos_alpha_ij=0.0;
+      for(k=6; k<nmodes; k++){
+      //      u_ij_sup_k[0]=(eigvecs[k][ind_3j  ]-eigvecs[k][ind_3i  ]);
+        u_ij_sup_k[0]=(U[(k)*3*numCA+j*3]-U[(k)*3*numCA+i*3]);
 
-  /* Call the external C function to compute the chi-squared. */
-  m_element=calcStiffnessMatrixElement(numCA, nmodes, ind3i, ind3j, R_ij_normalized_vec, inv_sqrt_eigvals, eigvals, eigvecs_flat);
+      //      u_ij_sup_k[1]=(eigvecs[k][ind_3j+1]-eigvecs[k][ind_3i+1]);
+        u_ij_sup_k[1]=(U[(k)*3*numCA+j*3+1]-U[(k)*3*numCA+i*3+1]);
 
-  value = &m_element;
-  /* Clean up. */
-  // Py_DECREF(R_ij_normalized_vec_array);
-  // Py_DECREF(inv_sqrt_eigvals_array);
-  // Py_DECREF(eigvals_array);
-  // Py_DECREF(eigvecs_flat_array);
+      //      u_ij_sup_k[2]=(eigvecs[k][ind_3j+2]-eigvecs[k][ind_3i+2]);
+        u_ij_sup_k[2]=(U[(k)*3*numCA+j*3+2]-U[(k)*3*numCA+i*3+2]);
 
-  //  if (value < 0.0) {
-  //    PyErr_SetString(PyExc_RuntimeError,
-  //                    "Chi-squared returned an impossible value.");
-  //    return NULL;
-  //  }
+        cos_alpha_ij=(  (x_ij*u_ij_sup_k[0]) +\
+          (y_ij*u_ij_sup_k[1]) +\
+          (z_ij*u_ij_sup_k[2])  );
 
-  /* Build the output tuple */
-  // PyObject *ret = Py_BuildValue("d", value);
-  // return ret;
+        d_ij_sup_k=sqrt(kbt/lambda[k])*cos_alpha_ij;
+        sum1+=fabs(lambda[k]*d_ij_sup_k);
+        sum2+=fabs(d_ij_sup_k);
+       
+      }
+      stiff_matrix[i][j]=sum1/sum2;
+      stiff_matrix[j][i]=stiff_matrix[i][j];
+     
+    }
+  }
+  for (i=0;i<numCA;i++)
+    for (j=0;j<numCA;j++)
+      SM[i*numCA+j]=stiff_matrix[i][j];
+
+  free_dmatrix(stiff_matrix,0,numCA-1,0,numCA-1);
+
   Py_RETURN_NONE;
 }
 
@@ -100,33 +115,54 @@ PyMODINIT_FUNC initsmtools(void) {
 }
 #endif
 
-double calcStiffnessMatrixElement(int N, int n_modes, int ind_3i, int ind_3j, double *R_ij_normalized_vec, double *inv_sqrt_eigvals, double *eigvals, double *eigvecs_flat)
+double **dmatrix(long nrl, long nrh, long ncl, long nch)
+/* allocate a double matrix with subscript range m[nrl..nrh][ncl..nch] */
 {
-  int k=0;
-  double u_ij_sup_k[3]={0.0, 0.0, 0.0};
-  double d_ij_sup_k=0.0;
-  double sum1=0.0;
-  double sum2=0.0;
-  double cos_alpha_ij=0.0;
-  for(k=6; k<n_modes; k++)
-    {
-      //      u_ij_sup_k[0]=(eigvecs[k][ind_3j  ]-eigvecs[k][ind_3i  ]);
-      u_ij_sup_k[0]=(eigvecs_flat[k*3*N+ind_3j]-eigvecs_flat[k*3*N+ind_3i  ]);
+  long i, nrow=nrh-nrl+1,ncol=nch-ncl+1;
+  double **m;
 
-      //      u_ij_sup_k[1]=(eigvecs[k][ind_3j+1]-eigvecs[k][ind_3i+1]);
-      u_ij_sup_k[1]=(eigvecs_flat[k*3*N+ind_3j+1]-eigvecs_flat[k*3*N+ind_3i+1]);
+  /* allocate pointers to rows */
+  m=(double **) malloc((size_t)((nrow+NR_END)*sizeof(double*)));
+  if (!m) nrerror("allocation failure 1 in matrix()");
+  m += NR_END;
+  m -= nrl;
 
-      //      u_ij_sup_k[2]=(eigvecs[k][ind_3j+2]-eigvecs[k][ind_3i+2]);
-      u_ij_sup_k[2]=(eigvecs_flat[k*3*N+ind_3j+2]-eigvecs_flat[k*3*N+ind_3i+2]);
+  /* allocate rows and set pointers to them */
+  m[nrl]=(double *) malloc((size_t)((nrow*ncol+NR_END)*sizeof(double)));
+  if (!m[nrl]) nrerror("allocation failure 2 in matrix()");
+  m[nrl] += NR_END;
+  m[nrl] -= ncl;
 
-      cos_alpha_ij=(  (R_ij_normalized_vec[0]*u_ij_sup_k[0]) +\
-          (R_ij_normalized_vec[1]*u_ij_sup_k[1]) +\
-          (R_ij_normalized_vec[2]*u_ij_sup_k[2])  );
+  for(i=nrl+1;i<=nrh;i++) m[i]=m[i-1]+ncol;
 
-      d_ij_sup_k=inv_sqrt_eigvals[k]*cos_alpha_ij;
-      sum1+=fabs(eigvals[k]*d_ij_sup_k);
-      sum2+=fabs(d_ij_sup_k);
-    }
-  return (sum1/sum2);
+  /* return pointer to array of pointers to rows */
+  return m;
 }
 
+void nrerror(char error_text[])
+/* Numerical Recipes standard error handler */
+{
+  fprintf(stderr,"Numerical Recipes run-time error...\n");
+  fprintf(stderr,"%s\n",error_text);
+  fprintf(stderr,"...now exiting to system...\n");
+  exit(1);
+}
+
+void free_dmatrix(double **m, long nrl, long nrh, long ncl, long nch)
+/* free a double matrix allocated by dmatrix() */
+{
+  free((FREE_ARG) (m[nrl]+ncl-NR_END));
+  free((FREE_ARG) (m+nrl-NR_END));
+}
+
+double **zero_dmatrix(long nrl,long nrh,long ncl,long nch)
+{
+  static double **M;
+  int i,j;
+
+  M=dmatrix(nrl,nrh,ncl,nch);
+  for(i=nrl;i<=nrh;i++)
+    for(j=ncl;j<=nch;j++)
+      M[i][j]=0.0;
+  return M;
+}

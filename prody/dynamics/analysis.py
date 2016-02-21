@@ -10,6 +10,7 @@ from prody import LOGGER
 from prody.atomic import AtomGroup
 from prody.ensemble import Ensemble, Conformation
 from prody.trajectory import TrajBase
+from prody.utilities import importLA
 from numpy import sqrt, arange, log, polyfit
 
 from .nma import NMA
@@ -20,7 +21,7 @@ from .gnm import GNMBase
 __all__ = ['calcCollectivity', 'calcCovariance', 'calcCrossCorr',
            'calcFractVariance', 'calcSqFlucts', 'calcTempFactors',
            'calcProjection', 'calcCrossProjection', 'calcPerturbResponse', 
-           'calcSpecDimension', ]
+           'calcSpecDimension', 'calcPairDeformation',]
 
 
 def calcCollectivity(mode, masses=None):
@@ -437,3 +438,61 @@ def calcPerturbResponse(model, atoms=None, repeats=100):
     norm_PRS_mat = norm_PRS_mat - np.diag(np.diag(norm_PRS_mat))
     np.savetxt('norm_PRS_matrix', norm_PRS_mat, delimiter='\t', fmt='%8.6f')
     return response_matrix
+
+def calcPairDeformation(model, coords, ind1, ind2, kbt=1.):
+
+    try:
+        coords = (coords._getCoords() if hasattr(coords, '_getCoords') else
+                coords.getCoords())
+    except AttributeError:
+        try:
+            checkCoords(coords)
+        except TypeError:
+            raise TypeError('coords must be a Numpy array or an object '
+                            'with `getCoords` method')
+    
+    if not isinstance(model, NMA):
+        raise TypeError('model must be an NMA instance')
+    elif not model.is3d():
+        raise TypeError('model must be a 3-dimensional NMA instance')
+    elif len(model) == 0:
+        raise ValueError('model must have normal modes calculated')
+    elif model.getStiffness() is None:
+        raise ValueError('model must have stiffness matrix calculated')
+    
+    linalg = importLA()
+    n_atoms = model.numAtoms()
+    n_modes = model.numModes()
+    LOGGER.timeit('_pairdef')
+
+    r_ij = np.zeros((n_atoms,n_atoms,3))
+    r_ij_norm = np.zeros((n_atoms,n_atoms,3))
+
+    for i in range(n_atoms):
+        for j in range(i+1,n_atoms):
+            r_ij[i][j] = coords[j,:] - coords[i,:]
+            r_ij[j][i] = r_ij[i][j]
+            r_ij_norm[i][j] = r_ij[i][j]/linalg.norm(r_ij[i][j])
+            r_ij_norm[j][i] = r_ij_norm[i][j]
+
+    eigvecs = np.transpose(model.getEigvecs())
+    eigvals = np.transpose(model.getEigvals())
+    
+    D_pair_k = []
+    mode_nr = []
+    for m in xrange(6,n_modes):
+        U_ij_k = [(eigvecs[ind1*3][m] - eigvecs[ind2*3][m]), (eigvecs[ind1*3+1][m] \
+            - eigvecs[ind2*3+1][m]), (eigvecs[ind1*3+2][m] - eigvecs[ind2*3+2][m])] 
+        D_ij_k = abs(np.sqrt(kbt/eigvals[m])*(np.vdot(r_ij_norm[ind1][ind2], U_ij_k)))  
+        D_pair_k.append(D_ij_k)
+        mode_nr.append(m)
+
+    LOGGER.report('Deformation was calculated in %.2lfs.', label='_pairdef')
+    
+    return mode_nr, D_pair_k
+        
+
+
+
+
+
