@@ -187,9 +187,9 @@ Finally, normal modes can be visualized and animated using VMD plugin
 
 __all__ = []
 
-from . import sm
-from .sm import *
-__all__.extend(sm.__all__)
+#from . import sm
+#from .sm import *
+#__all__.extend(sm.__all__)
 
 from . import analysis
 from .analysis import *

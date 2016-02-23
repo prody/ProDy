@@ -37,6 +37,8 @@ static PyObject *calcSM(PyObject *self, PyObject *args, PyObject *kwargs)
 
   stiff_matrix=dmatrix(0,numCA-1,0,numCA-1);
 
+  //printf("%lf,%lf,%lf\n",U[0],U[1],U[2]);
+
   for (i=0; i<numCA; i++){
     for (j=i+1; j<numCA; j++){
       r_ij = sqrt((XYZ[j*3]-XYZ[i*3])*(XYZ[j*3]-XYZ[i*3])+\
@@ -52,6 +54,7 @@ static PyObject *calcSM(PyObject *self, PyObject *args, PyObject *kwargs)
       double cos_alpha_ij=0.0;
       for(k=6; k<nmodes; k++){
       //      u_ij_sup_k[0]=(eigvecs[k][ind_3j  ]-eigvecs[k][ind_3i  ]);
+        printf("%d\n",k);
         u_ij_sup_k[0]=(U[(k)*3*numCA+j*3]-U[(k)*3*numCA+i*3]);
 
       //      u_ij_sup_k[1]=(eigvecs[k][ind_3j+1]-eigvecs[k][ind_3i+1]);
@@ -65,6 +68,10 @@ static PyObject *calcSM(PyObject *self, PyObject *args, PyObject *kwargs)
           (z_ij*u_ij_sup_k[2])  );
 
         d_ij_sup_k=sqrt(kbt/lambda[k])*cos_alpha_ij;
+
+       // if (i == 0 && j==1 && k==6)
+         // printf("%d,%d,%lf,%lf,%lf,%lf,%lf\n",i,j,lambda[k],d_ij_sup_k,u_ij_sup_k[0],u_ij_sup_k[1],u_ij_sup_k[2]);
+      
         sum1+=fabs(lambda[k]*d_ij_sup_k);
         sum2+=fabs(d_ij_sup_k);
        

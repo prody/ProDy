@@ -125,7 +125,7 @@ from .mode import Vector, Mode
 from .modeset import ModeSet
 from .nmdfile import viewNMDinVMD, pathVMD, getVMDpath, setVMDpath
 
-def writeVMDstiffness(filename, model, pdb, indices, k_range):
+def writeVMDstiffness(filename, model, pdb, indices, k_range, selstr='protein and name CA'):
     """Return *filename* that contains *modes* and *atoms* data in NMD format
     described in :ref:`nmd-format`.  :file:`.nmd` extension is appended to
     filename, if it does not have an extension.
@@ -137,11 +137,12 @@ def writeVMDstiffness(filename, model, pdb, indices, k_range):
           written as the scaling factor of the vector."""
 
     try:
-        coords = (pdb._getCoords() if hasattr(pdb, '_getCoords') else
-                pdb.getCoords())
+        coords_sel = pdb.select(selstr)  
+        coords = (coords_sel._getCoords() if hasattr(coords_sel, '_getCoords') else
+                coords_sel.getCoords())
     except AttributeError:
         try:
-            checkCoords(pdb)
+            checkCoords(coords_sel)
         except TypeError:
             raise TypeError('pdb must be a Numpy array or an object '
                             'with `getCoords` method')
@@ -157,15 +158,16 @@ def writeVMDstiffness(filename, model, pdb, indices, k_range):
     elif len(indices)==0:
         raise ValueError('indices cannot be an empty array')
 
-    index = np.zeros(2)
+    #index = np.zeros(2)
     if len(indices)==1:
-        index[1]=indices[0]
-        index[0]=indices[0]
+        indices0=indices[0]
+        indices1=indices[0]
     elif len(indices)==2:
-        index[1]=indices[1]
-        index[0]=indices[0]
+        indices0=indices[0]
+        indices1=indices[1]
 
     out = openFile(addext(filename, '.tcl'), 'w')
+    out_txt = openFile(addext(filename,'.txt'), 'w')
     writePDB(filename + '.pdb', pdb)
 
     LOGGER.info('Creating VMD file.')
@@ -199,7 +201,7 @@ def writeVMDstiffness(filename, model, pdb, indices, k_range):
     
     color_nr = 1 # starting from red color in VMD
     ResCounter = []
-    for r in xrange(indices[0], indices[1]):
+    for r in xrange(indices0, indices1+1):
         baza_col = [] # Value of Kij is here for each residue
         nr_baza_col = [] # Resid of aa are here
         out.write("draw color "+str(colors[color_nr])+"\n")
@@ -208,31 +210,32 @@ def writeVMDstiffness(filename, model, pdb, indices, k_range):
             if k_range[0] < float(i) < k_range[1]:
                 baza_col.append(i)
                 nr_baza_col.append(nr_i)
-                coords_all_ca = pdb.select('calpha')
-                resid_r = str(pdb.getResnames()[r])+str(r)
-                resid_r2 = str(pdb.getResnames()[nr_i])+str(nr_i)
+                resid_r = str(coords_sel.getResnames()[r-1])+str(r)
+                resid_r2 = str(coords_sel.getResnames()[nr_i-1])+str(nr_i)
                     
                 if len(baza_col) == 0: # if base is empty then it will not change the color
                     color_nr = 0
                 else:
-                    out.write("draw line "+'{'+str(coords[r])[1:-1]+'} {'+str(coords[nr_i])[1:-1]+'} width 3 style solid \n')
+                    out.write("draw line "+'{'+str(coords[r-1])[1:-1]+'} {'+str(coords[nr_i-1])[1:-1]+'} width 3 style solid \n')
+                    out_txt.write(str(resid_r)+'\t'+resid_r2+'\t'+str(i)+'\n')
                     ResCounter.append(len(baza_col))
                         
             else: pass
         
-            if len(baza_col) != 0:
-                out.write('mol addrep 0\n')
-                out.write('mol modselect '+str(color_nr+1)+' 0 protein and name CA and resid '+ str(r)+' '+str(nr_baza_col)[1:-1].replace(',','')+'\n')
-                out.write('mol modcolor '+str(color_nr+1)+' 0 ColorID '+str(color_nr)+'\n')
-                out.write('mol modstyle '+str(color_nr+1)+' 0 VDW 0.600000 12.000000\n')
-                out.write('mol color ColorID '+str(color_nr)+'\n')
-                out.write('mol representation VDW 1.000000 12.000000 \n')
-                out.write('mol selection protein and name CA and resid '+ str(r)+' '+str(nr_baza_col)[1:-1].replace(',','')+'\n')
-                out.write('mol material Opaque \n')
-                color_nr = color_nr + 1
+        if len(baza_col) != 0:
+            out.write('mol addrep 0\n')
+            out.write('mol modselect '+str(color_nr+1)+' 0 protein and name CA and resid '+ str(r)+' '+str(nr_baza_col)[1:-1].replace(',','')+'\n')
+            out.write('mol modcolor '+str(color_nr+1)+' 0 ColorID '+str(color_nr)+'\n')
+            out.write('mol modstyle '+str(color_nr+1)+' 0 VDW 0.600000 12.000000\n')
+            out.write('mol color ColorID '+str(color_nr)+'\n')
+            out.write('mol representation VDW 1.000000 12.000000 \n')
+            out.write('mol selection protein and name CA and resid '+ str(r)+' '+str(nr_baza_col)[1:-1].replace(',','')+'\n')
+            out.write('mol material Opaque \n')
+            color_nr = color_nr + 1
                 
     out.write('mol addrep 0\n')
     out.close()
+    out_txt.close()
         
     if len(ResCounter) > 0:
         return out

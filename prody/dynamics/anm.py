@@ -121,6 +121,7 @@ class ANMBase(NMA):
         self._cutoff = cutoff
         self._gamma = g
         n_atoms = coords.shape[0]
+
         dof = n_atoms * 3
         LOGGER.timeit('_anm_hessian')
 
@@ -302,16 +303,11 @@ class ANMBase(NMA):
             except TypeError:
                 raise TypeError('coords must be a Numpy array or an object '
                                 'with `getCoords` method')
-        n_atoms = self._n_atoms
-        if n_modes == None: 
-            n_modes=3*n_atoms
+        n_atoms = natoms = self._n_atoms
+        n_modes = 3 * n_atoms
 
-        if n_modes > 3*n_atoms:
-            raise ValueError('Number of modes should be smaller than three times of number of CA atoms.')
-
-        if n_modes > self._n_modes:
-            self.calcModes(n_modes=n_modes, zeros=True)
-
+        self.calcModes(n_modes=None, zeros=True)
+        
         LOGGER.timeit('_sm')
         eigvecs = (self._array)
         eigvals = (self._eigvals)
