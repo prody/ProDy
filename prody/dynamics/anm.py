@@ -309,8 +309,8 @@ class ANMBase(NMA):
         self.calcModes(n_modes=None, zeros=True)
         
         LOGGER.timeit('_sm')
-        eigvecs = (self._array)
-        eigvals = (self._eigvals)
+        eigvecs = (np.transpose(self._array)).flatten()
+        eigvals = np.transpose(self._eigvals)
         natoms = n_atoms
 
         sm = np.zeros((n_atoms, n_atoms), np.double)

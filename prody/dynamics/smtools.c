@@ -12,6 +12,7 @@ double **dmatrix(long nrl, long nrh, long ncl, long nch);
 void free_dmatrix(double **m, long nrl, long nrh, long ncl, long nch);
 double **zero_dmatrix(long nrl,long nrh,long ncl,long nch);
 void nrerror(char error_text[]);
+double *dvector(long nl, long nh);
 
 static PyObject *calcSM(PyObject *self, PyObject *args, PyObject *kwargs)
 {
@@ -19,7 +20,7 @@ static PyObject *calcSM(PyObject *self, PyObject *args, PyObject *kwargs)
   int numCA, i, j, k, nmodes;
   double *XYZ, *SM, *lambda, *U, kbt=1.;
   double **stiff_matrix;
-  double r_ij, x_ij, y_ij, z_ij;
+  double r_ij, x_ij, y_ij, z_ij, norm_U;
   static char *kwlist[] = {"coords", "sm", "eigvecs", "eigvals",
           "natoms","n_modes",
           "k_B_x_T",NULL};
@@ -37,8 +38,6 @@ static PyObject *calcSM(PyObject *self, PyObject *args, PyObject *kwargs)
 
   stiff_matrix=dmatrix(0,numCA-1,0,numCA-1);
 
-  //printf("%lf,%lf,%lf\n",U[0],U[1],U[2]);
-
   for (i=0; i<numCA; i++){
     for (j=i+1; j<numCA; j++){
       r_ij = sqrt((XYZ[j*3]-XYZ[i*3])*(XYZ[j*3]-XYZ[i*3])+\
@@ -52,9 +51,9 @@ static PyObject *calcSM(PyObject *self, PyObject *args, PyObject *kwargs)
       double sum1=0.0;
       double sum2=0.0;
       double cos_alpha_ij=0.0;
+
       for(k=6; k<nmodes; k++){
       //      u_ij_sup_k[0]=(eigvecs[k][ind_3j  ]-eigvecs[k][ind_3i  ]);
-        printf("%d\n",k);
         u_ij_sup_k[0]=(U[(k)*3*numCA+j*3]-U[(k)*3*numCA+i*3]);
 
       //      u_ij_sup_k[1]=(eigvecs[k][ind_3j+1]-eigvecs[k][ind_3i+1]);
@@ -66,11 +65,8 @@ static PyObject *calcSM(PyObject *self, PyObject *args, PyObject *kwargs)
         cos_alpha_ij=(  (x_ij*u_ij_sup_k[0]) +\
           (y_ij*u_ij_sup_k[1]) +\
           (z_ij*u_ij_sup_k[2])  );
-
         d_ij_sup_k=sqrt(kbt/lambda[k])*cos_alpha_ij;
 
-       // if (i == 0 && j==1 && k==6)
-         // printf("%d,%d,%lf,%lf,%lf,%lf,%lf\n",i,j,lambda[k],d_ij_sup_k,u_ij_sup_k[0],u_ij_sup_k[1],u_ij_sup_k[2]);
       
         sum1+=fabs(lambda[k]*d_ij_sup_k);
         sum2+=fabs(d_ij_sup_k);
@@ -172,4 +168,20 @@ double **zero_dmatrix(long nrl,long nrh,long ncl,long nch)
     for(j=ncl;j<=nch;j++)
       M[i][j]=0.0;
   return M;
+}
+
+void free_dvector(double *v, long nl, long nh)
+/* free a double vector allocated with dvector() */
+{
+  free((FREE_ARG) (v+nl-NR_END));
+}
+
+double *dvector(long nl, long nh)
+/* allocate a double vector with subscript range v[nl..nh] */
+{
+  double *v;
+
+  v=(double *)malloc((size_t) ((nh-nl+1+NR_END)*sizeof(double)));
+  if (!v) nrerror("allocation failure in dvector()");
+  return v-nl+NR_END;
 }
