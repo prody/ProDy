@@ -571,10 +571,9 @@ def msaeye(msa, unique, turbo):
                         ncols += 1
                         if iseq[i,k]==iseq[j,k]:
                             score+=1
-                array[i,j]= float(score)/ncols#float(sum((iseq[i] == iseq[j])*(iseq[i]*iseq[j]!=0))) / sum(iseq[i]*iseq[j]!=0) 
+                array[i,j]= float(score)/ncols#float(sum((iseq[i] == iseq[j])*(iseq[i]*iseq[j]!=0))) / sum(iseq[i]*iseq[j]!=0)
                 array[j,i]=array[i,j]
 
     toc1 = timeit.default_timer()
     elapsed1 = toc1 - tic1
-    print elapsed1
-
+    print(elapsed1)
