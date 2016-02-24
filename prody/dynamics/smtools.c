@@ -36,7 +36,7 @@ static PyObject *calcSM(PyObject *self, PyObject *args, PyObject *kwargs)
   U = (double *) PyArray_DATA(eigvecs);
   lambda = (double *) PyArray_DATA(eigvals);
 
-  stiff_matrix=dmatrix(0,numCA-1,0,numCA-1);
+  stiff_matrix=zero_dmatrix(0,numCA-1,0,numCA-1);
 
   for (i=0; i<numCA; i++){
     for (j=i+1; j<numCA; j++){
