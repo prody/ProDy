@@ -278,20 +278,26 @@ class ANMBase(NMA):
         LOGGER.report('{0} modes were calculated in %.2fs.'
                      .format(self._n_modes), label='_anm_calc_modes')
 
-    def buildSM(self, coords, n_modes=None, k_B_x_T=1.):
+    def buildSM(self, coords, n_modes=None, k_B_x_T=1., saveMap=False, saveMatrix=False, filename='sm'):
 
-        """This function calculates stiffness matrix as described in "Eran Eyal, Ivet Bahar, 
-        Toward a Molecular Understanding of the Anisotropic Response of Proteins to External Forces: 
-        Insights from Elastic Network Models, Biophysical Journal, 2008 (94) 3424-34355. 
+        """Calculate stiffness matrix calculated using :class:`.ANM` instance. 
+        Method described in [EB08]_. 
     
-        :coords      :a coordinate set or an object with ``getCoords`` method
-        :type coords: :class:`numpy.ndarray`
-
+        .. [EB08] Eyal E., Bahar I. Toward a Molecular Understanding of 
+            the Anisotropic Response of Proteins to External Forces:
+            Insights from Elastic Network Models. *Biophys J* **2008** 94:3424-34355. 
+    
+        :arg coords: a coordinate set or an object with ``getCoords`` method
+        :type coords: :class:`numpy.ndarray`.
         :arg n_modes: number of non-zero eigenvalues/vectors to calculate.
-            If ``None`` is given, all modes will be calculated.
-        :type n_modes: int or None, default is 20
+            If ``None`` is given, all modes will be calculated (3x number of atoms).
+        :type n_modes: int or None, default is 20.
+        
+        By default results are not saved to a *filename* file. To save data with 
+        stiffness matrix map and mean value of effective force constant 
+        for each residue use: ``saveMap=True`` and ``saveMatrix=True``. 
 
-        Author: tekpinar@buffalo.edu & Karolina ... & Cihan Kaya
+        Author: Mustafa Tekpinar & Karolina Mikulska-Ruminska & Cihan Kaya
         """
 
         try:
@@ -323,8 +329,33 @@ class ANMBase(NMA):
         LOGGER.report('Stiffness matrix calculated in %.2lfs.', label='_sm')
 
         self._stiffness = sm
-
-
+        meanSiff = sm.sum(axis=0)
+        print sm.sum()
+        LOGGER.info('The range of effective force constant is: {0} to {1}.'
+                                           .format(np.min(sm[np.nonzero(sm)]), np.amax(sm)))
+        
+        if (saveMatrix == True):
+            np.savetxt(filename+'.txt', sm, fmt='%.6f')
+            out_mean = open(filename+'_mean.txt','w')	# mean value of Kij for each residue
+            for nr_i, i in enumerate(meanSiff):
+               out_mean.write("{} {}\n".format(nr_i, i))
+            out_mean.close()
+            
+        if (saveMap == True):
+            import math
+            import matplotlib
+            import matplotlib.pylab as plt
+            matplotlib.rcParams['font.size'] = '16'
+            fig = plt.figure(num=None, figsize=(10,8), dpi=100, facecolor='w')
+            plt.imshow(sm, origin='lower')
+            plt.axis([0, n_atoms, n_atoms, 0])
+            plt.xlabel('residue', fontsize = '18')
+            plt.ylabel('residue', fontsize = '18')
+            cbar = plt.colorbar()
+            cbar.set_label('N/m', rotation=90, fontsize = '18')
+            plt.clim(math.floor(np.min(sm[np.nonzero(sm)])), round(np.amax(sm),1))
+            plt.savefig(filename+'.png', dpi=100)
+        
 
 class ANM(ANMBase, GNMBase):
 
