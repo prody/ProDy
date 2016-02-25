@@ -23,7 +23,7 @@ static PyObject *calcSM(PyObject *self, PyObject *args, PyObject *kwargs)
   double r_ij, x_ij, y_ij, z_ij, norm_U;
   static char *kwlist[] = {"coords", "sm", "eigvecs", "eigvals",
           "natoms","n_modes",
-          "k_B_x_T",NULL};
+          "kbt",NULL};
 
   if (!PyArg_ParseTupleAndKeywords(args, kwargs, "OOOOii|d", kwlist, 
           &coords, &sm, &eigvecs, &eigvals,

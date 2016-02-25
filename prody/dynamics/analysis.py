@@ -21,7 +21,7 @@ from .gnm import GNMBase
 __all__ = ['calcCollectivity', 'calcCovariance', 'calcCrossCorr',
            'calcFractVariance', 'calcSqFlucts', 'calcTempFactors',
            'calcProjection', 'calcCrossProjection', 'calcPerturbResponse', 
-           'calcSpecDimension', 'calcPairDeformation',]
+           'calcSpecDimension', 'calcPairDeformationDist',]
 
 
 def calcCollectivity(mode, masses=None):
@@ -439,9 +439,33 @@ def calcPerturbResponse(model, atoms=None, repeats=100):
     np.savetxt('norm_PRS_matrix', norm_PRS_mat, delimiter='\t', fmt='%8.6f')
     return response_matrix
 
-def calcPairDeformation(model, coords, ind1, ind2, kbt=1.):
+def calcPairDeformationDist(model, coords, ind1, ind2, kbt=1., saveFile=False, filename='out', savePlot=False):
+    """Return distribution of the deformations in the distance contributed by each mode 
+    for selected pair of residues *ind1* *ind2* using *model* from a :class:`.ANM`.
+    Method described in [EB08]_ equation (10) and figure (2).     
+    
+    .. [EB08] Eyal E., Bahar I. Toward a Molecular Understanding of 
+        the Anisotropic Response of Proteins to External Forces:
+        Insights from Elastic Network Models. *Biophys J* **2008** 94:3424-34355. 
+    
+    :arg model: this is an 3-dimensional NMA instance from a :class:`.ANM
+    calculations.
+    :type model: :class:`.ANM`  
+    :arg coords: a coordinate set or an object with ``getCoords`` method.
+      Recommended: coords = parsePDB('pdbfile').select('protein and name CA').
+    :type coords: :class:`numpy.ndarray`.
+    :arg ind1: first residue number.
+    :type ind1: int 
+    :arg ind2: secound residue number.
+    :type ind2: int 
+    
+    By default results will not be saved to a *filename* file. To save plot and
+    data file use ``saveFile=True`` and ``savePlot=True``.   
+    """
 
     try:
+        resnum_list = coords.getResnums()
+        resnam_list = coords.getResnames()
         coords = (coords._getCoords() if hasattr(coords, '_getCoords') else
                 coords.getCoords())
     except AttributeError:
@@ -475,11 +499,14 @@ def calcPairDeformation(model, coords, ind1, ind2, kbt=1.):
             r_ij_norm[i][j] = r_ij[i][j]/linalg.norm(r_ij[i][j])
             r_ij_norm[j][i] = r_ij_norm[i][j]
 
-    eigvecs = np.transpose(model.getEigvecs())
-    eigvals = np.transpose(model.getEigvals())
+    eigvecs = model.getEigvecs()
+    eigvals = model.getEigvals()
     
     D_pair_k = []
     mode_nr = []
+    ind1 = ind1 - resnum_list[0]
+    ind2 = ind2 - resnum_list[0]
+
     for m in xrange(6,n_modes):
         U_ij_k = [(eigvecs[ind1*3][m] - eigvecs[ind2*3][m]), (eigvecs[ind1*3+1][m] \
             - eigvecs[ind2*3+1][m]), (eigvecs[ind1*3+2][m] - eigvecs[ind2*3+2][m])] 
@@ -488,6 +515,25 @@ def calcPairDeformation(model, coords, ind1, ind2, kbt=1.):
         mode_nr.append(m)
 
     LOGGER.report('Deformation was calculated in %.2lfs.', label='_pairdef')
+    
+    if(saveFile == True):
+        out = open(filename+".txt", 'w')
+        for i in xrange(len(mode_nr)):
+            out.write("{} {}\n".format(mode_nr[i], D_pair_k[i]))
+    out.close()
+    LOGGER.info('Data file has been saved.')
+    
+    if(savePlot == True):
+        import matplotlib
+        import matplotlib.pylab as plt
+        
+        matplotlib.rcParams['font.size'] = '16'
+        fig = plt.figure(num=None, figsize=(12,8), dpi=100, facecolor='w')
+        plt.plot(mode_nr, D_pair_k)
+        plt.xlabel('mode (k)', fontsize = '18')
+        plt.ylabel('d$^k$' '($\AA$)', fontsize = '18')    
+        plt.savefig(filename+'.png', dpi=100)
+        LOGGER.info('Plot has been saved.')
     
     return mode_nr, D_pair_k
         
