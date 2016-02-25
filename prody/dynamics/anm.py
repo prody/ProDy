@@ -278,7 +278,7 @@ class ANMBase(NMA):
         LOGGER.report('{0} modes were calculated in %.2fs.'
                      .format(self._n_modes), label='_anm_calc_modes')
 
-    def buildSM(self, coords, n_modes=None, k_B_x_T=1., saveMap=False, saveMatrix=False, filename='sm'):
+    def buildSM(self, coords, n_modes=None, kbt=1., saveMap=False, saveMatrix=False, filename='sm'):
 
         """Calculate stiffness matrix calculated using :class:`.ANM` instance. 
         Method described in [EB08]_. 
@@ -291,7 +291,7 @@ class ANMBase(NMA):
         :type coords: :class:`numpy.ndarray`.
         :arg n_modes: number of non-zero eigenvalues/vectors to calculate.
             If ``None`` is given, all modes will be calculated (3x number of atoms).
-        :type n_modes: int or None, default is 20.
+        :type n_modes: int or ``None``, default is 20.
         
         By default results are not saved to a *filename* file. To save data with 
         stiffness matrix map and mean value of effective force constant 
@@ -324,13 +324,12 @@ class ANMBase(NMA):
         LOGGER.info('Calculating stiffness matrix.')
 
         calcSM(coords, sm, eigvecs, eigvals,
-                natoms, n_modes, float(k_B_x_T))
+                natoms, n_modes, float(kbt))
 
         LOGGER.report('Stiffness matrix calculated in %.2lfs.', label='_sm')
 
         self._stiffness = sm
         meanSiff = sm.sum(axis=0)
-        print sm.sum()
         LOGGER.info('The range of effective force constant is: {0} to {1}.'
                                            .format(np.min(sm[np.nonzero(sm)]), np.amax(sm)))
         
@@ -352,7 +351,7 @@ class ANMBase(NMA):
             plt.xlabel('residue', fontsize = '18')
             plt.ylabel('residue', fontsize = '18')
             cbar = plt.colorbar()
-            cbar.set_label('N/m', rotation=90, fontsize = '18')
+            #cbar.set_label('N/m', rotation=90, fontsize = '18')
             plt.clim(math.floor(np.min(sm[np.nonzero(sm)])), round(np.amax(sm),1))
             plt.savefig(filename+'.png', dpi=100)
         

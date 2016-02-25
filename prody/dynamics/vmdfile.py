@@ -26,14 +26,14 @@ def writeVMDstiffness(model, pdb, indices, k_range, filename='vmd_out', selstr='
     (2) TCL file containing vmd commands for loading PDB file with accurate 	
     vmd representation. Pair of residues with selected *k_range* of 
     effective spring constant are shown in VMD respresentation with 
-    solid line in between.
-    If more than one residue will be used in *indices* different pair 
-    for each residue will be in the different colors.    
+    solid line between them.
+    If more than one residue will be selected in *indices*, different pair 
+    for each residue will be colored in the different colors.    
     (3) TXT file contains pair of residues with effective spring constant in
     selected range *k_range*.    
 
-    The effective spring constant calculation are from :class:`.ANM`
-    as ``buildSM``.
+    The effective spring constant calculation using ``buildSM`` method
+    from :class:`.ANM`.
     
     .. note::
        #. This function skips modes with zero eigenvalues.
@@ -48,12 +48,12 @@ def writeVMDstiffness(model, pdb, indices, k_range, filename='vmd_out', selstr='
     :arg pdb: a coordinate set or an object with ``getCoords`` method
         :type coords: :class:`numpy.ndarray`. 
     :arg indices: amino acid number.
-    :type indices: ``[int_first, int_last]`` or ``[int]`` for one amino acid    
+    :type indices: ``[int, int]`` or ``[int]`` for one amino acid    
     :arg k_range: effective force constant value.
-    :type k_range: int or float, ``[int_min, int_max]``
+    :type k_range: int or float, ``[int, int]``
     
-    By default files are saved as *filename* and loaded to VMD program and *selstr* is
-    'protein and name CA'.
+    By default files are saved as *filename* and loaded to VMD program and 
+    *selstr* is a selection from :class:`.Select`
      """
 
     try:

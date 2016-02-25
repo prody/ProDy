@@ -451,16 +451,15 @@ def calcPairDeformationDist(model, coords, ind1, ind2, kbt=1., saveFile=False, f
     :arg model: this is an 3-dimensional NMA instance from a :class:`.ANM
     calculations.
     :type model: :class:`.ANM`  
-    :arg coords: a coordinate set or an object with ``getCoords`` method
+    :arg coords: a coordinate set or an object with ``getCoords`` method.
+      Recommended: coords = parsePDB('pdbfile').select('protein and name CA').
     :type coords: :class:`numpy.ndarray`.
-        Recommended for large systems: 
-        coords = parsePDB('pdbfile.pdb').select('protein and name CA')
-    :arg ind1: first residue number
+    :arg ind1: first residue number.
     :type ind1: int 
-    :arg ind2: secound residue number
+    :arg ind2: secound residue number.
     :type ind2: int 
     
-    By default results are not saved to a *filename* file. To save plot and
+    By default results will not be saved to a *filename* file. To save plot and
     data file use ``saveFile=True`` and ``savePlot=True``.   
     """
 
