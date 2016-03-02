@@ -21,6 +21,7 @@ COORDS = ATOMS.getCoords()
 ANM_HESSIAN = parseDatafile('anm1ubi_hessian', symmetric=True)
 ANM_EVALUES = parseDatafile('anm1ubi_evalues')[:,1].flatten()
 ANM_EVECTORS = parseDatafile('anm1ubi_vectors')[:,1:]
+ANM_STIFFNESS = parseDatafile('anm1ubi_stiffness')
 
 GNM_KIRCHHOFF = parseDatafile('gnm1ubi_kirchhoff', symmetric=True, skiprows=1)
 GNM_EVALUES = parseDatafile('gnm1ubi_evalues')[:,1].flatten()
@@ -29,7 +30,9 @@ GNM_EVECTORS = parseDatafile('gnm1ubi_vectors', usecols=arange(3,23))
 
 anm = ANM()
 anm.buildHessian(ATOMS)
+anm.buildSM(ATOMS)
 anm.calcModes(n_modes=None, zeros=True)
+
 
 gnm = GNM()
 gnm.buildKirchhoff(ATOMS)
@@ -84,6 +87,13 @@ class TestANMResults(testGNMBase):
 
         assert_allclose(anm.getHessian(), ANM_HESSIAN, rtol=0, atol=ATOL,
                         err_msg='failed to get correct Hessian matrix')
+
+    def testStiffness(self):
+        """ Test Stiffness matrix """
+
+        assert_allclose(anm.getStiffness().round(6), ANM_STIFFNESS, rtol=0, atol=ATOL,
+                        err_msg='failed to get correct Stiffness matrix')
+        
 
     def testVariances(self):
         """Test variances."""
@@ -278,7 +288,7 @@ class TestANM(TestGNM):
                         err_msg='slow method does not reproduce same Hessian')
         assert_equal(slow._getKirchhoff(), anm._getKirchhoff(),
                      'slow method does not reproduce same Kirchhoff')
-
+    
 
 class TestGNMCalcModes(unittest.TestCase):
 

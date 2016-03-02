@@ -58,7 +58,15 @@ class ANMBase(NMA):
         if self._stiffness is None:
             return None
         return self._stiffness.copy()
-
+    
+    def getStiffnessRange(self):
+        """ Return the range of effective spring constant."""
+        if self._stiffness is None:
+            return None
+        else:
+            return np.min(self._stiffness[np.nonzero(self._stiffness)]), np.amax(self._stiffness)
+        
+    
     def setHessian(self, hessian):
         """Set Hessian matrix.  A symmetric matrix is expected, i.e. not a
         lower- or upper-triangular matrix."""
@@ -329,7 +337,7 @@ class ANMBase(NMA):
         LOGGER.report('Stiffness matrix calculated in %.2lfs.', label='_sm')
 
         self._stiffness = sm
-        meanSiff = sm.sum(axis=0)
+        meanSiff = np.mean(sm, axis=0)
         LOGGER.info('The range of effective force constant is: {0} to {1}.'
                                            .format(np.min(sm[np.nonzero(sm)]), np.amax(sm)))
         
