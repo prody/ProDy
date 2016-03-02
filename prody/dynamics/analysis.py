@@ -517,10 +517,10 @@ def calcPairDeformationDist(model, coords, ind1, ind2, kbt=1., saveFile=False, f
     LOGGER.report('Deformation was calculated in %.2lfs.', label='_pairdef')
     
     if(saveFile == True):
-        out = open(filename+".txt", 'w')
+        fout = open(filename+".txt", 'w')
         for i in xrange(len(mode_nr)):
-            out.write("{} {}\n".format(mode_nr[i], D_pair_k[i]))
-        out.close()
+            fout.write("{} {}\n".format(mode_nr[i], D_pair_k[i]))
+        fout.close()
         LOGGER.info('Data file has been saved.')
     
     if(savePlot == True):
