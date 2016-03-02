@@ -337,7 +337,7 @@ class ANMBase(NMA):
         LOGGER.report('Stiffness matrix calculated in %.2lfs.', label='_sm')
 
         self._stiffness = sm
-        meanSiff = sm.sum(axis=0)
+        meanSiff = np.mean(sm, axis=0)
         LOGGER.info('The range of effective force constant is: {0} to {1}.'
                                            .format(np.min(sm[np.nonzero(sm)]), np.amax(sm)))
         
