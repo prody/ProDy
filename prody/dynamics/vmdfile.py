@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """This module defines TCL file for VMD program."""
 
-__all__ = ['writeVMDstiffness']
+__all__ = ['writeVMDstiffness', 'getDeformProfile']
 
 import os
 from os.path import abspath, join, split, splitext
@@ -43,10 +43,10 @@ def writeVMDstiffness(model, pdb, indices, k_range, filename='vmd_out', selstr='
           
 
     :arg model: this is an 3-dimensional NMA instance from a :class:`.ANM
-        calculations.
+        calculations
     :type model: :class:`.ANM`
     :arg pdb: a coordinate set or an object with ``getCoords`` method
-        :type coords: :class:`numpy.ndarray`. 
+    :type pdb: :class:`numpy.ndarray`. 
     :arg indices: amino acid number.
     :type indices: ``[int, int]`` or ``[int]`` for one amino acid    
     :arg k_range: effective force constant value.
@@ -167,3 +167,63 @@ def writeVMDstiffness(model, pdb, indices, k_range, filename='vmd_out', selstr='
     elif len(ResCounter) == 0:
         LOGGER.info('There is no residue pair in this Kij range.')
         return 'None'   
+
+
+def getDeformProfile(model, pdb, filename='dp_out', selstr='protein and name CA', pdb_selstr='protein', loadToVMD=True):
+
+    """Calculate deformability (plasticity) profile of molecule based on mechanical
+    stiffness matrix (see [EB08]_).
+
+    :arg model: this is an 3-dimensional NMA instance from a :class:`.ANM
+        calculations
+    :type model: :class:`.ANM`
+    :arg pdb: a coordinate set or an object with ``getCoords`` method
+    :type pdb: :class:`numpy.ndarray`    
+    
+    Note: selection can be done usig ``selstr`` and ``pdb_selstr``. ``selstr`` define
+    ``model`` selection (used for building :class:`.ANM` model) and ``pdb_selstr`` will 
+    be used in VMD program for visualization. 
+    
+    By default files are saved as *filename* and loaded to VMD program. To change it use
+    ``loadToVMD=False``.
+     
+    Mean value of mechanical stiffness for molecule can be found in occupancy column
+    in PDB file.
+    """
+    
+    pdb = pdb.select(pdb_selstr)
+    coords = pdb.select(selstr)
+    meanSiff = np.mean(model.getStiffness(), axis=0)
+    
+    out_mean = open(filename+'_mean.txt','w')   # mean value of Kij for each residue
+    for nr_i, i in enumerate(meanSiff):
+        out_mean.write("{} {}\n".format(nr_i, i))
+    out_mean.close()
+    
+    from collections import Counter
+    aa_counter = Counter(pdb.getResindices()) 
+    
+    meanStiff_all = []        
+    for i in range(coords.numAtoms()):
+         meanStiff_all.extend(aa_counter.values()[i]*[round(meanSiff[i], 2)])
+        
+    from prody.proteins import writePDB    
+    kw = {'occupancy': meanStiff_all}
+    writePDB(filename, pdb, **kw)                
+    LOGGER.info('PDB file with deformability profile has been saved.')
+    LOGGER.info('Creating TCL file.')
+    out_tcl = open(filename+'.tcl','w')
+    out_tcl.write('menu files off \nmenu files on\ndisplay resetview \nmol addrep 0 \ndisplay resetview \n')
+    out_tcl.write('mol new {./'+filename+'.pdb} type {pdb} first 0 last -1 step 1 waitfor 1 \n')
+    out_tcl.write('animate style Loop \nmenu files off \ndisplay projection Orthographic \n')
+    out_tcl.write('display depthcue off \ndisplay rendermode GLSL \naxes location Off \nmenu color off \n')
+    out_tcl.write('menu color on \ncolor Display Background white \nmenu color off \nmenu graphics off \n')
+    out_tcl.write('menu graphics on \nmol modstyle 0 0 NewCartoon 0.300000 10.000000 4.100000 0 \n')
+    out_tcl.write('mol modmaterial 0 0 Diffuse \nmol modcolor 0 0 Occupancy \n')
+    out_tcl.close()
+
+    if (loadToVMD == True):
+        from prody import pathVMD
+        LOGGER.info('File will be loaded to VMD program.')
+        os.system(pathVMD()+" -e "+str(filename)+".tcl")
+

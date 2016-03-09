@@ -337,16 +337,12 @@ class ANMBase(NMA):
         LOGGER.report('Stiffness matrix calculated in %.2lfs.', label='_sm')
 
         self._stiffness = sm
-        meanSiff = np.mean(sm, axis=0)
+        
         LOGGER.info('The range of effective force constant is: {0} to {1}.'
                                            .format(np.min(sm[np.nonzero(sm)]), np.amax(sm)))
         
         if (saveMatrix == True):
             np.savetxt(filename+'.txt', sm, fmt='%.6f')
-            out_mean = open(filename+'_mean.txt','w')	# mean value of Kij for each residue
-            for nr_i, i in enumerate(meanSiff):
-               out_mean.write("{} {}\n".format(nr_i, i))
-            out_mean.close()
             
         if (saveMap == True):
             import math
@@ -362,7 +358,7 @@ class ANMBase(NMA):
             #cbar.set_label('N/m', rotation=90, fontsize = '18')
             plt.clim(math.floor(np.min(sm[np.nonzero(sm)])), round(np.amax(sm),1))
             plt.savefig(filename+'.png', dpi=100)
-        
+
 
 class ANM(ANMBase, GNMBase):
 
