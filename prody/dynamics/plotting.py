@@ -17,7 +17,8 @@ from .nma import NMA
 from .gnm import GNMBase
 from .mode import Mode, VectorBase, Vector
 from .modeset import ModeSet
-from .analysis import calcSqFlucts, calcProjection, calcCrossCorr
+from .analysis import calcSqFlucts, calcProjection
+from .analysis import calcCrossCorr, calcPairDeformationDist
 from .analysis import calcFractVariance, calcCrossProjection
 from .compare import calcOverlap
 
@@ -27,7 +28,8 @@ __all__ = ['showContactMap', 'showCrossCorr',
            'showOverlap', 'showOverlapTable', 'showProjection',
            'showCrossProjection', 'showEllipsoid', 'showSqFlucts',
            'showScaledSqFlucts', 'showNormedSqFlucts', 'resetTicks',
-           'showDiffMatrix', ]
+           'showDiffMatrix','showMechStiff','showNormDistFunct',
+           'showPairDeformationDist', ]
 
 
 def showEllipsoid(modes, onto=None, n_std=2, scale=1., *args, **kwargs):
@@ -729,3 +731,86 @@ def showDiffMatrix(matrix1, matrix2, *args, **kwargs):
     plt.xlabel('Indices')
     plt.ylabel('Indices')
     return show
+
+
+def showMechStiff(model, coords, *args, **kwargs):
+    """Show mechanical stiffness matrix using :func:`~matplotlib.pyplot.imshow`.
+    By default, *origin=lower* keyword  arguments are passed to this function, 
+    but user can overwrite these parameters."""
+
+    import math
+    import matplotlib
+    import matplotlib.pyplot as plt
+    arange = np.arange(model.numAtoms())
+    model.buildMechStiff(coords)
+
+    if not 'origin' in kwargs:
+        kwargs['origin'] = 'lower'
+        
+    MechStiff = model.getStiffness()
+    matplotlib.rcParams['font.size'] = '14'
+    fig = plt.figure(num=None, figsize=(10,8), dpi=100, facecolor='w')
+    show = plt.imshow(MechStiff, *args, **kwargs), plt.colorbar()
+    plt.clim(math.floor(np.min(MechStiff[np.nonzero(MechStiff)])), \
+                                           round(np.amax(MechStiff),1))
+    plt.title('Mechanical Stiffness Matrix for {0}'.format(str(model)))
+    plt.xlabel('Indices', fontsize='16')
+    plt.ylabel('Indices', fontsize='16')
+    if SETTINGS['auto_show']:
+        showFigure()
+    return show
+
+
+def showNormDistFunct(model, coords, *args, **kwargs):
+    """Show normalized distance fluctuation matrix using 
+    :func:`~matplotlib.pyplot.imshow`. By default, *origin=lower* 
+    keyword  arguments are passed to this function, 
+    but user can overwrite these parameters."""
+
+    import math
+    import matplotlib
+    import matplotlib.pyplot as plt
+    normdistfunct = model.getNormDistFluct(coords)
+
+    if not 'origin' in kwargs:
+        kwargs['origin'] = 'lower'
+        
+    matplotlib.rcParams['font.size'] = '14'
+    fig = plt.figure(num=None, figsize=(10,8), dpi=100, facecolor='w')
+    show = plt.imshow(normdistfunct, *args, **kwargs), plt.colorbar()
+    plt.title('Normalized Distance Fluctution Matrix')
+    plt.xlabel('Indices', fontsize='16')
+    plt.ylabel('Indices', fontsize='16')
+    if SETTINGS['auto_show']:
+        showFigure()
+    return show
+
+
+def showPairDeformationDist(model, coords, ind1, ind2, *args, **kwargs):
+    """Show distribution of deformations in distance contributed by each mode
+    for selected pair of residues *ind1* *ind2*
+    using :func:`~matplotlib.pyplot.plot`. """
+
+    import matplotlib
+    import matplotlib.pyplot as plt
+    if not isinstance(model, NMA):
+        raise TypeError('model must be a NMA instance, '
+                        'not {0}'.format(type(model)))
+    elif not model.is3d():
+        raise TypeError('model must be a 3-dimensional NMA instance')
+    elif len(model) == 0:
+        raise ValueError('model must have normal modes calculated')
+    elif model.getStiffness() is None:
+        raise ValueError('model must have stiffness matrix calculated')
+
+    d_pair = calcPairDeformationDist(model, coords, ind1, ind2)
+    matplotlib.rcParams['font.size'] = '16'
+    fig = plt.figure(num=None, figsize=(12,8), dpi=100, facecolor='w')
+    plt.title(str(model))
+    plt.plot(d_pair[0], d_pair[1], *args, **kwargs)
+    plt.xlabel('mode (k)', fontsize = '18')
+    plt.ylabel('d$^k$' '($\AA$)', fontsize = '18')    
+    if SETTINGS['auto_show']:
+        showFigure()
+    return plt.show
+

@@ -286,7 +286,7 @@ class ANMBase(NMA):
         LOGGER.report('{0} modes were calculated in %.2fs.'
                      .format(self._n_modes), label='_anm_calc_modes')
 
-    def buildSM(self, coords, n_modes=None, kbt=1., saveMap=False, saveMatrix=False, filename='sm'):
+    def buildMechStiff(self, coords, n_modes=None, kbt=1.):
 
         """Calculate stiffness matrix calculated using :class:`.ANM` instance. 
         Method described in [EB08]_. 
@@ -301,10 +301,6 @@ class ANMBase(NMA):
             If ``None`` is given, all modes will be calculated (3x number of atoms).
         :type n_modes: int or ``None``, default is 20.
         
-        By default results are not saved to a *filename* file. To save data with 
-        stiffness matrix map and mean value of effective force constant 
-        for each residue use: ``saveMap=True`` and ``saveMatrix=True``. 
-
         Author: Mustafa Tekpinar & Karolina Mikulska-Ruminska & Cihan Kaya
         """
 
@@ -339,26 +335,8 @@ class ANMBase(NMA):
         self._stiffness = sm
         
         LOGGER.info('The range of effective force constant is: {0} to {1}.'
-                                           .format(np.min(sm[np.nonzero(sm)]), np.amax(sm)))
+                                   .format(np.min(sm[np.nonzero(sm)]), np.amax(sm)))
         
-        if (saveMatrix == True):
-            np.savetxt(filename+'.txt', sm, fmt='%.6f')
-            
-        if (saveMap == True):
-            import math
-            import matplotlib
-            import matplotlib.pylab as plt
-            matplotlib.rcParams['font.size'] = '16'
-            fig = plt.figure(num=None, figsize=(10,8), dpi=100, facecolor='w')
-            plt.imshow(sm, origin='lower')
-            plt.axis([0, n_atoms, n_atoms, 0])
-            plt.xlabel('residue', fontsize = '18')
-            plt.ylabel('residue', fontsize = '18')
-            cbar = plt.colorbar()
-            #cbar.set_label('N/m', rotation=90, fontsize = '18')
-            plt.clim(math.floor(np.min(sm[np.nonzero(sm)])), round(np.amax(sm),1))
-            plt.savefig(filename+'.png', dpi=100)
-
 
 class ANM(ANMBase, GNMBase):
 

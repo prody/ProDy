@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """This module defines TCL file for VMD program."""
 
-__all__ = ['writeVMDstiffness', 'getDeformProfile']
+__all__ = ['writeVMDstiffness', 'writeDeformProfile']
 
 import os
 from os.path import abspath, join, split, splitext
@@ -21,7 +21,9 @@ from .mode import Vector, Mode
 from .modeset import ModeSet
 from .nmdfile import viewNMDinVMD, pathVMD, getVMDpath, setVMDpath
 
-def writeVMDstiffness(model, pdb, indices, k_range, filename='vmd_out', selstr='protein and name CA', loadToVMD=True):
+def writeVMDstiffness(model, pdb, indices, k_range, filename='vmd_out', \
+                            selstr='protein and name CA', loadToVMD=True):
+   
     """Return three *filename* files: (1) PDB file with coordinates. 
     (2) TCL file containing vmd commands for loading PDB file with accurate 	
     vmd representation. Pair of residues with selected *k_range* of 
@@ -136,7 +138,8 @@ def writeVMDstiffness(model, pdb, indices, k_range, filename='vmd_out', selstr='
                 if len(baza_col) == 0: # if base is empty then it will not change the color
                     color_nr = 0
                 else:
-                    out.write("draw line "+'{'+str(coords[r])[1:-1]+'} {'+str(coords[nr_i])[1:-1]+'} width 3 style solid \n')
+                    out.write("draw line "+'{'+str(coords[r])[1:-1]+'} {'+\
+                       str(coords[nr_i])[1:-1]+'} width 3 style solid \n')
                     out_txt.write(str(resid_r)+'\t'+resid_r2+'\t'+str(i)+'\n')
                     ResCounter.append(len(baza_col))
                         
@@ -144,12 +147,15 @@ def writeVMDstiffness(model, pdb, indices, k_range, filename='vmd_out', selstr='
         
         if len(baza_col) != 0:
             out.write('mol addrep 0\n')
-            out.write('mol modselect '+str(color_nr+1)+' 0 protein and name CA and resid '+ str(r+resnum_list[0])+' '+str(nr_baza_col)[1:-1].replace(',','')+'\n')
+            out.write('mol modselect '+str(color_nr+1)+' 0 protein and name CA and resid '+ \
+                       str(r+resnum_list[0])+' '+str(nr_baza_col)[1:-1].replace(',','')+'\n')
             out.write('mol modcolor '+str(color_nr+1)+' 0 ColorID '+str(color_nr)+'\n')
             out.write('mol modstyle '+str(color_nr+1)+' 0 VDW 0.600000 12.000000\n')
             out.write('mol color ColorID '+str(color_nr)+'\n')
             out.write('mol representation VDW 1.000000 12.000000 \n')
-            out.write('mol selection protein and name CA and resid '+ str(r+resnum_list[0])+' '+str(nr_baza_col)[1:-1].replace(',','')+'\n')
+            out.write('mol selection protein and name CA and resid '+ \
+            str(r+resnum_list[0])+' '+str(nr_baza_col)[1:-1].replace(',','')+'\n')
+            
             out.write('mol material Opaque \n')
             color_nr = color_nr + 1
                 
@@ -169,7 +175,8 @@ def writeVMDstiffness(model, pdb, indices, k_range, filename='vmd_out', selstr='
         return 'None'   
 
 
-def getDeformProfile(model, pdb, filename='dp_out', selstr='protein and name CA', pdb_selstr='protein', loadToVMD=True):
+def writeDeformProfile(model, pdb, filename='dp_out', selstr='protein and name CA',\
+                                            pdb_selstr='protein', loadToVMD=True):
 
     """Calculate deformability (plasticity) profile of molecule based on mechanical
     stiffness matrix (see [EB08]_).
@@ -181,11 +188,11 @@ def getDeformProfile(model, pdb, filename='dp_out', selstr='protein and name CA'
     :type pdb: :class:`numpy.ndarray`    
     
     Note: selection can be done usig ``selstr`` and ``pdb_selstr``. ``selstr`` define
-    ``model`` selection (used for building :class:`.ANM` model) and ``pdb_selstr`` will 
-    be used in VMD program for visualization. 
+    ``model`` selection (used for building :class:`.ANM` model) and ``pdb_selstr`` 
+    will be used in VMD program for visualization. 
     
-    By default files are saved as *filename* and loaded to VMD program. To change it use
-    ``loadToVMD=False``.
+    By default files are saved as *filename* and loaded to VMD program. To change 
+    it use ``loadToVMD=False``.
      
     Mean value of mechanical stiffness for molecule can be found in occupancy column
     in PDB file.

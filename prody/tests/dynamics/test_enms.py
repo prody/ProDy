@@ -30,7 +30,7 @@ GNM_EVECTORS = parseDatafile('gnm1ubi_vectors', usecols=arange(3,23))
 
 anm = ANM()
 anm.buildHessian(ATOMS)
-anm.buildSM(ATOMS)
+anm.buildMechStiff(ATOMS)
 anm.calcModes(n_modes=None, zeros=True)
 
 
