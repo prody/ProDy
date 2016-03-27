@@ -331,18 +331,21 @@ class GNM(GNMBase):
         LOGGER.timeit('_ndf')
     
         from .analysis import calcCrossCorr
-        crossC = calcCrossCorr(model)
+        from numpy import linalg as LA
+        crossC = 2-2*calcCrossCorr(model)
         r_ij = np.zeros((n_atoms,n_atoms,3))
 
         for i in range(n_atoms):
            for j in range(i+1,n_atoms):
                r_ij[i][j] = coords[j,:] - coords[i,:]
                r_ij[j][i] = r_ij[i][j]
-               r_ij_n = np.linalg.norm(r_ij)
+               r_ij_n = LA.norm(r_ij, axis=2)
 
-        normdistfluct = np.divide(np.sqrt(abs(crossC)),r_ij_n)
+        #with np.errstate(divide='ignore'):
+        r_ij_n[np.diag_indices_from(r_ij_n)] = 1e-7  # divide per 0
+        normdistfluct = np.divide(np.sqrt(crossC),r_ij_n)
+        #normdistfluct[r_ij_n == 0] = 0        
         LOGGER.report('NDF calculated in %.2lfs.', label='_ndf')
-        
         return normdistfluct
 
 

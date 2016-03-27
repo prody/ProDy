@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """This module defines TCL file for VMD program."""
 
-__all__ = ['writeVMDstiffness', 'writeDeformProfile']
+__all__ = ['writeVMDstiffness', 'writeDeformProfile', 'calcChainsNormDistFluct']
 
 import os
 from os.path import abspath, join, split, splitext
@@ -214,18 +214,17 @@ def writeDeformProfile(model, pdb, filename='dp_out', selstr='protein and name C
     for i in range(coords.numAtoms()):
          meanStiff_all.extend(aa_counter.values()[i]*[round(meanSiff[i], 2)])
         
-    from prody.proteins import writePDB    
     kw = {'occupancy': meanStiff_all}
     writePDB(filename, pdb, **kw)                
     LOGGER.info('PDB file with deformability profile has been saved.')
     LOGGER.info('Creating TCL file.')
     out_tcl = open(filename+'.tcl','w')
-    out_tcl.write('menu files off \nmenu files on\ndisplay resetview \nmol addrep 0 \ndisplay resetview \n')
+    out_tcl.write('display resetview \nmol addrep 0 \ndisplay resetview \n')
     out_tcl.write('mol new {./'+filename+'.pdb} type {pdb} first 0 last -1 step 1 waitfor 1 \n')
-    out_tcl.write('animate style Loop \nmenu files off \ndisplay projection Orthographic \n')
-    out_tcl.write('display depthcue off \ndisplay rendermode GLSL \naxes location Off \nmenu color off \n')
-    out_tcl.write('menu color on \ncolor Display Background white \nmenu color off \nmenu graphics off \n')
-    out_tcl.write('menu graphics on \nmol modstyle 0 0 NewCartoon 0.300000 10.000000 4.100000 0 \n')
+    out_tcl.write('animate style Loop \ndisplay projection Orthographic \n')
+    out_tcl.write('display depthcue off \ndisplay rendermode GLSL \naxes location Off \n')
+    out_tcl.write('color Display Background white \n')
+    out_tcl.write('mol modstyle 0 0 NewCartoon 0.300000 10.000000 4.100000 0 \n')
     out_tcl.write('mol modmaterial 0 0 Diffuse \nmol modcolor 0 0 Occupancy \n')
     out_tcl.close()
 
@@ -233,4 +232,98 @@ def writeDeformProfile(model, pdb, filename='dp_out', selstr='protein and name C
         from prody import pathVMD
         LOGGER.info('File will be loaded to VMD program.')
         os.system(pathVMD()+" -e "+str(filename)+".tcl")
+
+
+def calcChainsNormDistFluct(coords, ch1, ch2, cutoff=10., percent=10, rangeAng=5, \
+                                        filename='ch_ndf_out', loadToVMD=True):
+
+    '''Protein-protein interaction only ... under preparation'''
+    
+    sele1 = coords.select('same residue as exwithin '+str(rangeAng)+' of chain '\
+                                                                       +str(ch1))
+    sele2 = coords.select('same residue as exwithin '+str(rangeAng)+' of chain '\
+                                                                       +str(ch2))
+    num1 = len(list(set(sele1.getResnums())))    
+    num2 = len(list(set(sele2.getResnums())))
+
+    LOGGER.info('Analized chains: {0}, {1}'.format(ch1, ch2))
+    LOGGER.info('Number of selected amino acids: chain {0}-{1}aa, chain {2}-{3}aa'
+                            .format(ch1, num2, ch2, num1))
+                            
+    seleALL = sele1 + sele2 
+    seleALL_ca = seleALL.select('protein and name CA')
+
+    from .gnm import GNM
+    model = GNM('prot analysis')
+    model.buildKirchhoff(seleALL_ca, cutoff)
+    model.calcModes()
+    ndf_matrix0 = model.getNormDistFluct(seleALL_ca)
+    ndf_c1 = np.delete(ndf_matrix0, np.s_[0:num1], axis=0)  # rows
+    ndf_matrix = np.delete(ndf_c1, np.s_[num1:(num1+num2)], axis=1) 
+    
+    perc = (np.amax(ndf_matrix)-np.min(ndf_matrix))*percent*0.01
+    maxRange = np.amax(ndf_matrix)-perc
+    minRange = np.min(ndf_matrix)+perc
+    
+    writePDB(filename, coords)                
+    out_tcl = open(filename+'.tcl','w')
+    out_tcl.write('display resetview \nmol addrep 0 \ndisplay resetview \n')
+    out_tcl.write('mol new {./'+filename+'.pdb} type {pdb} first 0 last -1 step 1 waitfor 1 \n')
+    out_tcl.write('animate style Loop \ndisplay projection Orthographic \n')
+    out_tcl.write('display depthcue off \ndisplay rendermode GLSL \naxes location Off \n')
+    out_tcl.write('color Display Background white \n')
+    out_tcl.write('mol modstyle 0 0 NewCartoon 0.300000 10.000000 4.100000 0 \n') 
+    out_tcl.write('mol modselect 0 0 protein \nmol modcolor 0 0 Chain \n')
+    out_tcl.write('mol modmaterial 0 0 BrushedMetal')
+
+    mmRange = {'minRange':minRange,'maxRange':maxRange}
+    ch = [ch2, ch1]
+    color = ['1','7'] # red-maxRange, red-minRange
+    out_pairs = open(filename+'_pairs.txt','w')
+    for nr_j,j in enumerate(mmRange):
+        if j == 'minRange':
+            x,y = np.where(ndf_matrix < mmRange[j])
+            out_pairs.write(j+' (< '+str(mmRange[j])+') \n')
+        elif j == 'maxRange':
+            x,y = np.where(ndf_matrix > mmRange[j])
+            out_pairs.write(j+' (> '+str(mmRange[j])+') \n')
+        vmd_ch_list = [[],[]]
+        for i in range(len(x)):
+            out_pairs.write("{}{}  {}{}  {}\n".format(sele1.select('protein and name CA')\
+            .getResnames()[y[i]], sele1.select('protein and name CA').getResnums()[y[i]], \
+                              sele2.select('protein and name CA').getResnames()[x[i]], \
+                              sele2.select('protein and name CA').getResnums()[x[i]], \
+                              ndf_matrix[x[i],y[i]]))
+            vmd_ch_list[0].append(sele1.select('protein and name CA').getResnums()[y[i]])
+            vmd_ch_list[1].append(sele2.select('protein and name CA').getResnums()[x[i]])
+        out_pairs.write('\n')
+        for k in range(len(vmd_ch_list)):
+            out_tcl.write('mol addrep 0\n')
+            out_tcl.write('mol modselect '+color[nr_j]+' 0 protein and name chain '+ch[k]+\
+                 ' and resid '+str(list(set(vmd_ch_list[k]))).replace(',','')[1:-1]+'\n')
+            out_tcl.write('mol modcolor '+color[nr_j]+' 0 ColorID '+color[nr_j]+'\n')
+            out_tcl.write('mol modstyle '+color[nr_j]+' 0 CPK 1.000000 0.300000 12.000000 12.000000\n')
+            out_tcl.write('mol color ColorID '+color[nr_j]+'\n')
+            out_tcl.write('mol representation CPK 1.000000 0.300000 12.000000 12.000000\n')
+            out_tcl.write('mol selection protein and chain '+ch[k]+' and resid '\
+                              +str(list(set(vmd_ch_list[k]))).replace(',','')[1:-1]+'\n')
+            out_tcl.write('mol material Opaque \n')
+        
+        LOGGER.info('Finded residues in {0}: {1}'.format(mmRange.keys()[nr_j],\
+                    len(list(set(vmd_ch_list[1])))+len(list(set(vmd_ch_list[0])))))
+        LOGGER.info('chain {0} and resid {1}'.format(ch[0], \
+                       str(list(set(vmd_ch_list[0]))).replace(',','')[1:-1]))
+        LOGGER.info('chain {0} and resid {1}'.format(ch[1], \
+                       str(list(set(vmd_ch_list[1]))).replace(',','')[1:-1]))
+    out_tcl.write('mol addrep 0\n')
+    LOGGER.info('Created TCL file.')
+    out_tcl.close()
+    out_pairs.close()
+
+    if (loadToVMD == True):
+        from prody import pathVMD
+        LOGGER.info('File will be loaded to VMD program.')
+        os.system(pathVMD()+" -e "+str(filename)+".tcl")
+
+    return ndf_matrix
 

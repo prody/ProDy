@@ -21,7 +21,7 @@ from .gnm import GNMBase
 __all__ = ['calcCollectivity', 'calcCovariance', 'calcCrossCorr',
            'calcFractVariance', 'calcSqFlucts', 'calcTempFactors',
            'calcProjection', 'calcCrossProjection', 'calcPerturbResponse', 
-           'calcSpecDimension', 'calcPairDeformationDist', 'calcChainsNormDistFluct',]
+           'calcSpecDimension', 'calcPairDeformationDist',]
 
 
 def calcCollectivity(mode, masses=None):
@@ -517,60 +517,3 @@ def calcPairDeformationDist(model, coords, ind1, ind2, kbt=1.):
     
     return mode_nr, D_pair_k
 
-
-def calcChainsNormDistFluct(coords, ch1, ch2, cutoff=10., percent=10, rangeAng=5, \
-                                                              filename='ndf_out'):
-
-    '''Protein-protein interaction only ... under preparation'''
-    
-    sele1 = coords.select('same residue as exwithin '+str(rangeAng)+' of chain '\
-                                                                       +str(ch1))
-    sele2 = coords.select('same residue as exwithin '+str(rangeAng)+' of chain '\
-                                                                       +str(ch2))
-    num1 = len(list(set(sele1.getResnums())))    
-    num2 = len(list(set(sele2.getResnums())))
-
-    LOGGER.info('Analized chains: {0}, {1}'.format(ch1, ch2))
-    LOGGER.info('Number of selected amino acids: chain {0}-{1}aa, chain {2}-{3}aa'
-                            .format(ch1, num2, ch2, num1))
-                            
-    seleALL = sele1 + sele2 
-    seleALL_ca = seleALL.select('protein and name CA')
-
-    from .gnm import GNM
-    model = GNM('prot analysis')
-    model.buildKirchhoff(seleALL_ca, cutoff)
-    model.calcModes()
-    
-    seleALL_ndf = calcCrossCorr(model)
-    seleALL_ndf_int = np.delete(seleALL_ndf, np.s_[0:num1], axis=0)  # rows
-    seleALL_ndf_int2 = np.delete(seleALL_ndf_int, np.s_[num1:(num1+num2)], axis=1) 
-
-    minRange = np.min(seleALL_ndf_int2) + (np.amax(seleALL_ndf_int2) - \
-                                       np.min(seleALL_ndf_int2))*(1 - percent*0.01)
-
-    x,y = np.where(seleALL_ndf_int2 > minRange) # find x,y for X% of the highest values
-
-    list_to_vmd_ch1 = []
-    list_to_vmd_ch2 = []
-    
-    out_pairs = open(filename+'_pairs.txt','w')
-    for i in range(len(x)):
-        out_pairs.write("{}{}  {}{}  {}\n".format(sele1.select('protein and name CA')\
-        .getResnames()[y[i]], sele1.select('protein and name CA').getResnums()[y[i]], \
-                              sele2.select('protein and name CA').getResnames()[x[i]], \
-                              sele2.select('protein and name CA').getResnums()[x[i]], \
-                              seleALL_ndf_int2[x[i],y[i]]))
-        
-        list_to_vmd_ch1.append(sele1.select('protein and name CA').getResnums()[y[i]])
-        list_to_vmd_ch2.append(sele2.select('protein and name CA').getResnums()[x[i]])
-    out_pairs.close()
-    
-    LOGGER.info('Finded residues: {0}'.format(len(list(set(list_to_vmd_ch2)))+\
-                                                      len(list(set(list_to_vmd_ch1)))))
-    LOGGER.info('chain {0} and resid {1}'.format(ch2, \
-                       str(list(set(list_to_vmd_ch1))).replace(',','')[1:-1]))
-    LOGGER.info('chain {0} and resid {1}'.format(ch1, \
-                       str(list(set(list_to_vmd_ch2))).replace(',','')[1:-1]))
-
-    return seleALL_ndf_int2
