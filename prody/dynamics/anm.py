@@ -68,20 +68,28 @@ class ANMBase(NMA):
                                                np.amax(self._stiffness)
         
 
-    def getStiffnessRangeSel(self, value, minAA = 20):
+    def getStiffnessRangeSel(self, value, minAA=20, AA='all'):
         """ Return minimum or maximum value of sping constant from mechanical 
-        stiffness calculations for residues that are more than ``min_aa`` from 
-        each other. ``Value`` should be 'minK' or 'maxK'."""
+        stiffness calculations for residues that are within more than ``min_aa`` 
+        from each other. ``Value`` should be 'minK' or 'maxK'.
+        ``AA`` is a number of residues from both terminus of protein strcuture,
+        it can be ``all`` or int. It can be used to search the highest/lowest
+        values of interactions between N-C terminus - crusial in AFM/SMD"""
         
         model = self.getModel()
-        sm = model.getStiffness()
+        if AA == 'all':
+            sm = model.getStiffness()
+        elif type(AA) == int:
+            sm = model.getStiffness()[0: AA][(-1)*AA:-1]
 	minK = np.min(sm[np.nonzero(sm)])
 	maxK = np.amax(sm)
 	if value == 'minK':
 	    indices = np.where(sm == np.min(sm[np.nonzero(sm)]))
 	elif value == 'maxK':
 	    indices = np.where(sm == np.amax(sm))
-	residue_diff = abs(indices[0][0]-indices[0][1])
+        try:
+	    residue_diff = abs(indices[0][0]-indices[0][1])
+        except: residue_diff = abs(indices[0]-indices[1])
 	sm_mod = sm
 	checking=True
 	while checking:
@@ -94,7 +102,9 @@ class ANMBase(NMA):
 		elif value == 'maxK':
 		    mK = np.amax(sm_mod)
 		    indices = np.where(sm_mod == np.amax(sm_mod))
-		residue_diff = abs(indices[0][0]-indices[0][1])
+                try:
+		    residue_diff = abs(indices[0][0]-indices[0][1])
+                except: residue_diff = abs(indices[0]-indices[1])
 	    else: 
 		if value == 'minK':
 		    mK = np.min(sm_mod[np.nonzero(sm_mod)])
@@ -103,7 +113,10 @@ class ANMBase(NMA):
 		    mK = np.amax(sm_mod)
 		    indices = np.where(sm_mod == np.amax(sm_mod))
                 checking=False
-                return mK, list(indices[0])
+                if len(indices[0]) == 2:
+                    return mK, list(indices[0])
+                else:
+                    return mK, list(indices[0])+list(indices[1])
 
     
     def setHessian(self, hessian):
