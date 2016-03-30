@@ -746,6 +746,9 @@ def showMechStiff(model, coords, *args, **kwargs):
 
     if not 'origin' in kwargs:
         kwargs['origin'] = 'lower'
+    if 'jet_r' in kwargs:
+        import matplotlib.cm as plt
+        kwargs['jet_r'] = 'cmap=cm.jet_r'
         
     MechStiff = model.getStiffness()
     matplotlib.rcParams['font.size'] = '14'
@@ -753,7 +756,7 @@ def showMechStiff(model, coords, *args, **kwargs):
     show = plt.imshow(MechStiff, *args, **kwargs), plt.colorbar()
     plt.clim(math.floor(np.min(MechStiff[np.nonzero(MechStiff)])), \
                                            round(np.amax(MechStiff),1))
-    plt.title('Mechanical Stiffness Matrix for {0}'.format(str(model)))
+    plt.title('Mechanical Stiffness Matrix')# for {0}'.format(str(model)))
     plt.xlabel('Indices', fontsize='16')
     plt.ylabel('Indices', fontsize='16')
     if SETTINGS['auto_show']:

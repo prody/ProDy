@@ -310,6 +310,7 @@ class GNM(GNMBase):
                                  list(set(coords.getChids()))))
 
         try:
+            #coords = coords.select('protein and name CA')
             coords = (coords._getCoords() if hasattr(coords, '_getCoords') else
                 coords.getCoords())
         except AttributeError:
@@ -332,6 +333,7 @@ class GNM(GNMBase):
     
         from .analysis import calcCrossCorr
         from numpy import linalg as LA
+        # <dRi, dRi>, <dRj, dRj> = 1
         crossC = 2-2*calcCrossCorr(model)
         r_ij = np.zeros((n_atoms,n_atoms,3))
 
@@ -340,9 +342,9 @@ class GNM(GNMBase):
                r_ij[i][j] = coords[j,:] - coords[i,:]
                r_ij[j][i] = r_ij[i][j]
                r_ij_n = LA.norm(r_ij, axis=2)
-
+        #---------------error fix and why so slow
         #with np.errstate(divide='ignore'):
-        r_ij_n[np.diag_indices_from(r_ij_n)] = 1e-7  # divide per 0
+        #r_ij_n[np.diag_indices_from(r_ij_n)] = 1e-17  # divide by 0
         normdistfluct = np.divide(np.sqrt(crossC),r_ij_n)
         #normdistfluct[r_ij_n == 0] = 0        
         LOGGER.report('NDF calculated in %.2lfs.', label='_ndf')

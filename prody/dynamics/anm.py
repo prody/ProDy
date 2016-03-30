@@ -64,8 +64,47 @@ class ANMBase(NMA):
         if self._stiffness is None:
             return None
         else:
-            return np.min(self._stiffness[np.nonzero(self._stiffness)]), np.amax(self._stiffness)
+            return np.min(self._stiffness[np.nonzero(self._stiffness)]), \
+                                               np.amax(self._stiffness)
         
+
+    def getStiffnessRangeSel(self, value, minAA = 20):
+        """ Return minimum or maximum value of sping constant from mechanical 
+        stiffness calculations for residues that are more than ``min_aa`` from 
+        each other. ``Value`` should be 'minK' or 'maxK'."""
+        
+        model = self.getModel()
+        sm = model.getStiffness()
+	minK = np.min(sm[np.nonzero(sm)])
+	maxK = np.amax(sm)
+	if value == 'minK':
+	    indices = np.where(sm == np.min(sm[np.nonzero(sm)]))
+	elif value == 'maxK':
+	    indices = np.where(sm == np.amax(sm))
+	residue_diff = abs(indices[0][0]-indices[0][1])
+	sm_mod = sm
+	checking=True
+	while checking:
+	    if residue_diff < minAA:
+		sm_mod[indices[0][0],indices[0][1]] = 0
+		sm_mod[indices[1][0],indices[1][1]] = 0
+		if value == 'minK':
+		    mK = np.min(sm_mod[np.nonzero(sm_mod)])
+		    indices = np.where(sm_mod == np.min(sm_mod[np.nonzero(sm_mod)]))
+		elif value == 'maxK':
+		    mK = np.amax(sm_mod)
+		    indices = np.where(sm_mod == np.amax(sm_mod))
+		residue_diff = abs(indices[0][0]-indices[0][1])
+	    else: 
+		if value == 'minK':
+		    mK = np.min(sm_mod[np.nonzero(sm_mod)])
+		    indices = np.where(sm_mod == np.min(sm_mod[np.nonzero(sm_mod)]))
+		elif value == 'maxK':
+		    mK = np.amax(sm_mod)
+		    indices = np.where(sm_mod == np.amax(sm_mod))
+                checking=False
+                return mK, list(indices[0])
+
     
     def setHessian(self, hessian):
         """Set Hessian matrix.  A symmetric matrix is expected, i.e. not a

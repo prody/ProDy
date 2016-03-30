@@ -239,10 +239,10 @@ def calcChainsNormDistFluct(coords, ch1, ch2, cutoff=10., percent=10, rangeAng=5
 
     '''Protein-protein interaction only ... under preparation'''
     
-    sele1 = coords.select('same residue as exwithin '+str(rangeAng)+' of chain '\
-                                                                       +str(ch1))
-    sele2 = coords.select('same residue as exwithin '+str(rangeAng)+' of chain '\
-                                                                       +str(ch2))
+    sele1 = coords.select('name CA and same residue as exwithin '+str(rangeAng) \
+                                                        +' of chain '+str(ch1))
+    sele2 = coords.select('name CA and same residue as exwithin '+str(rangeAng) \
+                                                        +' of chain '+str(ch2))
     num1 = len(list(set(sele1.getResnums())))    
     num2 = len(list(set(sele2.getResnums())))
 
@@ -274,7 +274,8 @@ def calcChainsNormDistFluct(coords, ch1, ch2, cutoff=10., percent=10, rangeAng=5
     out_tcl.write('color Display Background white \n')
     out_tcl.write('mol modstyle 0 0 NewCartoon 0.300000 10.000000 4.100000 0 \n') 
     out_tcl.write('mol modselect 0 0 protein \nmol modcolor 0 0 Chain \n')
-    out_tcl.write('mol modmaterial 0 0 BrushedMetal')
+    out_tcl.write('mol modmaterial 0 0 BrushedMetal\n')
+    out_tcl.write('m')
 
     mmRange = {'minRange':minRange,'maxRange':maxRange}
     ch = [ch2, ch1]
@@ -308,6 +309,7 @@ def calcChainsNormDistFluct(coords, ch1, ch2, cutoff=10., percent=10, rangeAng=5
             out_tcl.write('mol selection protein and chain '+ch[k]+' and resid '\
                               +str(list(set(vmd_ch_list[k]))).replace(',','')[1:-1]+'\n')
             out_tcl.write('mol material Opaque \n')
+            #out_tcl.write('mol addrep 0\n')
         
         LOGGER.info('Finded residues in {0}: {1}'.format(mmRange.keys()[nr_j],\
                     len(list(set(vmd_ch_list[1])))+len(list(set(vmd_ch_list[0])))))
