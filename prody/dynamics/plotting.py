@@ -29,7 +29,7 @@ __all__ = ['showContactMap', 'showCrossCorr',
            'showCrossProjection', 'showEllipsoid', 'showSqFlucts',
            'showScaledSqFlucts', 'showNormedSqFlucts', 'resetTicks',
            'showDiffMatrix','showMechStiff','showNormDistFunct',
-           'showPairDeformationDist', ]
+           'showPairDeformationDist','showMeanMechStiff', ]
 
 
 def showEllipsoid(modes, onto=None, n_std=2, scale=1., *args, **kwargs):
@@ -752,7 +752,7 @@ def showMechStiff(model, coords, *args, **kwargs):
         
     MechStiff = model.getStiffness()
     matplotlib.rcParams['font.size'] = '14'
-    fig = plt.figure(num=None, figsize=(10,8), dpi=100, facecolor='w')
+    fig = plt.figure(num=None, figsize=(10,8), dpi=300, facecolor='w')
     show = plt.imshow(MechStiff, *args, **kwargs), plt.colorbar()
     plt.clim(math.floor(np.min(MechStiff[np.nonzero(MechStiff)])), \
                                            round(np.amax(MechStiff),1))
@@ -813,6 +813,61 @@ def showPairDeformationDist(model, coords, ind1, ind2, *args, **kwargs):
     plt.plot(d_pair[0], d_pair[1], *args, **kwargs)
     plt.xlabel('mode (k)', fontsize = '18')
     plt.ylabel('d$^k$' '($\AA$)', fontsize = '18')    
+    if SETTINGS['auto_show']:
+        showFigure()
+    return plt.show
+
+
+def showMeanMechStiff(model, coords, header, chain='A', *args, **kwargs):
+    """Show mean value of effective spring constant with secondary structure
+    taken from MechStiff. Header is needed to obatin secondary structure range.
+    Using ``'jet_r'`` as argument color map will be reverse (similar to VMD 
+    program coding).
+    """
+    meanStiff = np.array([np.mean(model.getStiffness(), axis=0)])
+    import matplotlib
+    import matplotlib.pyplot as plt
+    import matplotlib.patches as patches
+    import matplotlib.pyplot as plt
+    fig=plt.figure(figsize=[18,6], facecolor='w', dpi=100)
+    
+    if 'jet_r' in kwargs:
+       import matplotlib.cm as plt
+       kwargs['jet_r'] = 'cmap=cm.jet_r'
+    if 'nearest' in kwargs:
+        kwargs['nearest'] = 'interpolation=nearest'
+
+    with plt.style.context('fivethirtyeight'):
+	ax = fig.add_subplot(111)
+	matplotlib.rcParams['font.size'] = '24'
+	plt.plot(np.arange(len(meanStiff[0]))+coords.getResnums()[0],meanStiff[0], 'k-', linewidth = 3)
+	plt.xlim(coords.getResnums()[0], coords.getResnums()[-1])
+	ax_top=round(np.max(meanStiff[0])+((np.max(meanStiff[0])-np.min(meanStiff[0]))/3))
+	ax_bottom=np.floor(np.min(meanStiff[0]))
+	plt.ylim(ax_bottom,ax_top)
+	plt.xlabel('residue', fontsize = '22')
+	plt.ylabel('mean $\kappa$ [a.u.]', fontsize = '22')
+
+    ax = fig.add_subplot(411, aspect='equal')
+    plt.imshow(meanStiff, *args, **kwargs)
+    header_ss = header['sheet_range'] + header['helix_range']
+    for i in range(len(header_ss)):
+        if header_ss[i][1] == chain:
+            beg = int(header_ss[i][-2])-coords.getResnums()[0]
+            end = int(header_ss[i][-1])-coords.getResnums()[0]
+            add_beg = end - beg
+            if header_ss[i][0] == 'H':
+	        ax.add_patch(patches.Rectangle((beg-1,-0.7),add_beg,\
+	        1.4,fill=False, linestyle='solid',edgecolor='#b22683', linewidth=2))    
+	    elif header_ss[i][0] == 'E':
+	        if header_ss[i][2] == -1:    
+	            ax.add_patch(patches.Arrow(beg-1,0,add_beg,0,width=4.65, \
+	            fill=False, linestyle='solid',edgecolor='black', linewidth=2))
+                else: 
+                    ax.add_patch(patches.Arrow(end-1,0,add_beg*(-1),0,width=4.65, \
+                    fill=False, linestyle='solid',edgecolor='black', linewidth=2))
+    plt.axis('off')
+    ax.set_ylim(-1.7,1.7)
     if SETTINGS['auto_show']:
         showFigure()
     return plt.show

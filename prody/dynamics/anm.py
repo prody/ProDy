@@ -66,21 +66,54 @@ class ANMBase(NMA):
         else:
             return np.min(self._stiffness[np.nonzero(self._stiffness)]), \
                                                np.amax(self._stiffness)
-        
 
-    def getStiffnessRangeSel(self, value, minAA=20, AA='all'):
-        """ Return minimum or maximum value of sping constant from mechanical 
-        stiffness calculations for residues that are within more than ``min_aa`` 
-        from each other. ``Value`` should be 'minK' or 'maxK'.
-        ``AA`` is a number of residues from both terminus of protein strcuture,
-        it can be ``all`` or int. It can be used to search the highest/lowest
-        values of interactions between N-C terminus - crusial in AFM/SMD"""
+    def getMechStiffStatistic(self, rangeK, minAA=0, AA='all'):
+        """Return number of effective spring constant with set range of
+        amino acids of protein structure.
+        ``AA`` can be a list with a range of analysed amino acids as:
+        [first_aa, last_aa, first_aa2, last_aa2],
+        minAA - eliminate amino acids that are within 20aa and
+        ``rangeK`` is a list [minK, maxK]"""
         
         model = self.getModel()
         if AA == 'all':
             sm = model.getStiffness()
         elif type(AA) == int:
-            sm = model.getStiffness()[0: AA][(-1)*AA:-1]
+            sm = model.getStiffness()[0: AA, (-1)*AA-1:-1]
+        elif type(AA) == list and len(AA) == 1:
+            sm = model.getStiffness()[0: AA, (-1)*AA-1:-1]
+        elif type(AA) == list and len(AA) == 4:
+            sm = model.getStiffness()[AA[0]:AA[1],AA[2]:AA[3]]
+        if minAA > 0:
+            sm2 = sm[minAA:-1,0:-1-minAA]  # matrix without close contacts
+            sm3 = np.tril(sm2, k=-1)
+            #sort_sm2 = np.sort((np.tril(sm2, k=-1)1).flatten())
+            a = np.where(np.logical_and(sm3>rangeK[0], sm3<rangeK[1]))
+        if minAA == 0:
+            sm2 = np.tril(sm, k=-1)
+            a = np.where(np.logical_and(sm2>rangeK[0], sm2<rangeK[1]))
+        return len(a[0])
+        
+
+    def getStiffnessRangeSel(self, value, minAA=20, AA='all'):
+        """Return minimum or maximum value of sping constant from 
+        mechanical stiffness calculations for residues that are within 
+        more than ``min_aa`` from each other. ``Value`` should be 'minK'
+        or 'maxK'. It alow to avoid residues near each other. 
+        ``AA`` is a number of residues from both terminus (N and C)
+        of protein strcuture, it can be ``all`` or int value (than first 
+        and last ``AA`` residues will be analysed. 
+        With ``minAA=0`` it can be used to search the highest/lowest 
+        values of interactions between N-C terminus if protein structure
+        has a shear, zipper or SD1-disconnected mechanical clamp 
+        -it is common in FnIII/Ig like domains and determines the maximum 
+        unfolding force in AFM or SMD method."""
+        
+        model = self.getModel()
+        if AA == 'all':
+            sm = model.getStiffness()
+        elif type(AA) == int:
+            sm = model.getStiffness()[0: AA, (-1)*AA-1:-1]
 	minK = np.min(sm[np.nonzero(sm)])
 	maxK = np.amax(sm)
 	if value == 'minK':
