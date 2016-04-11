@@ -781,6 +781,8 @@ def showNormDistFunct(model, coords, *args, **kwargs):
     matplotlib.rcParams['font.size'] = '14'
     fig = plt.figure(num=None, figsize=(10,8), dpi=100, facecolor='w')
     show = plt.imshow(normdistfunct, *args, **kwargs), plt.colorbar()
+    plt.clim(math.floor(np.min(normdistfunct[np.nonzero(normdistfunct)])), \
+                                           round(np.amax(normdistfunct),1))
     plt.title('Normalized Distance Fluctution Matrix')
     plt.xlabel('Indices', fontsize='16')
     plt.ylabel('Indices', fontsize='16')

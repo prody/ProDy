@@ -301,8 +301,8 @@ class GNM(GNMBase):
 
 
     def getNormDistFluct(self, coords):
-        
-        """Normalized distance fluctuation"""
+        """Normalized distance fluctuation
+        """
             
         model = self.getModel()
         LOGGER.info('Number of chains: {0}, chains: {1}.'
@@ -342,12 +342,13 @@ class GNM(GNMBase):
                r_ij[i][j] = coords[j,:] - coords[i,:]
                r_ij[j][i] = r_ij[i][j]
                r_ij_n = LA.norm(r_ij, axis=2)
-        #---------------error fix and why so slow
+
         #with np.errstate(divide='ignore'):
-        #r_ij_n[np.diag_indices_from(r_ij_n)] = 1e-17  # divide by 0
+        r_ij_n[np.diag_indices_from(r_ij_n)] = 1e-5  # div by 0
+        crossC=abs(crossC)
         normdistfluct = np.divide(np.sqrt(crossC),r_ij_n)
-        #normdistfluct[r_ij_n == 0] = 0        
         LOGGER.report('NDF calculated in %.2lfs.', label='_ndf')
+        normdistfluct[np.diag_indices_from(normdistfluct)] = 0  # div by 0
         return normdistfluct
 
 
