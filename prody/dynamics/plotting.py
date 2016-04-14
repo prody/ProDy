@@ -752,11 +752,11 @@ def showMechStiff(model, coords, *args, **kwargs):
         
     MechStiff = model.getStiffness()
     matplotlib.rcParams['font.size'] = '14'
-    fig = plt.figure(num=None, figsize=(10,8), dpi=300, facecolor='w')
+    fig = plt.figure(num=None, figsize=(10,8), dpi=100, facecolor='w')
     show = plt.imshow(MechStiff, *args, **kwargs), plt.colorbar()
     plt.clim(math.floor(np.min(MechStiff[np.nonzero(MechStiff)])), \
                                            round(np.amax(MechStiff),1))
-    plt.title('Mechanical Stiffness Matrix')# for {0}'.format(str(model)))
+    #plt.title('Mechanical Stiffness Matrix')# for {0}'.format(str(model)))
     plt.xlabel('Indices', fontsize='16')
     plt.ylabel('Indices', fontsize='16')
     if SETTINGS['auto_show']:
@@ -809,12 +809,13 @@ def showPairDeformationDist(model, coords, ind1, ind2, *args, **kwargs):
         raise ValueError('model must have stiffness matrix calculated')
 
     d_pair = calcPairDeformationDist(model, coords, ind1, ind2)
-    matplotlib.rcParams['font.size'] = '16'
-    fig = plt.figure(num=None, figsize=(12,8), dpi=100, facecolor='w')
-    plt.title(str(model))
-    plt.plot(d_pair[0], d_pair[1], *args, **kwargs)
-    plt.xlabel('mode (k)', fontsize = '18')
-    plt.ylabel('d$^k$' '($\AA$)', fontsize = '18')    
+    with plt.style.context('fivethirtyeight'):
+        matplotlib.rcParams['font.size'] = '16'
+        fig = plt.figure(num=None, figsize=(12,8), dpi=100, facecolor='w')
+        #plt.title(str(model))
+        plt.plot(d_pair[0], d_pair[1], 'k-', linewidth=1.5, *args, **kwargs)
+        plt.xlabel('mode (k)', fontsize = '18')
+        plt.ylabel('d$^k$' '($\AA$)', fontsize = '18')    
     if SETTINGS['auto_show']:
         showFigure()
     return plt.show

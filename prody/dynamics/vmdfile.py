@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
-"""This module defines TCL file for VMD program."""
+"""This module defines TCL file for VMD program.
+Questions/Problems: karolami@pitt.edu
+"""
 
 __all__ = ['writeVMDstiffness', 'writeDeformProfile', 'calcChainsNormDistFluct']
 
@@ -226,6 +228,7 @@ def writeDeformProfile(model, pdb, filename='dp_out', selstr='protein and name C
     out_tcl.write('color Display Background white \n')
     out_tcl.write('mol modstyle 0 0 NewCartoon 0.300000 10.000000 4.100000 0 \n')
     out_tcl.write('mol modmaterial 0 0 Diffuse \nmol modcolor 0 0 Occupancy \n')
+    out_tcl.write('menu colorscalebar on \n')
     out_tcl.close()
 
     if (loadToVMD == True):
@@ -234,10 +237,33 @@ def writeDeformProfile(model, pdb, filename='dp_out', selstr='protein and name C
         os.system(pathVMD()+" -e "+str(filename)+".tcl")
 
 
-def calcChainsNormDistFluct(coords, ch1, ch2, cutoff=10., percent=10, rangeAng=5, \
+def calcChainsNormDistFluct(coords, ch1, ch2, cutoff=10., percent=5, rangeAng=5, \
                                         filename='ch_ndf_out', loadToVMD=True):
 
-    '''Protein-protein interaction only ... under preparation'''
+    '''Calculate protein-protein interaction using getNormDistFluct() from 
+    :class:`.GNM` model. It is assigned to protein complex.
+    
+    :arg coords: a coordinate set or an object with ``getCoords`` method. 
+    :type coords: :class:`numpy.ndarray`.
+    :arg ch1: first chain name
+    :type ch1: 'A' or other letter as a string
+    :arg ch2: second chain name 
+    :type ch2: string
+    :arg cutoff: cutoff distance (Å) for pairwise interactions
+              in Kirchhoff matrix, default is 10.0 Å
+    :type cutoff: float
+    :arg percent: percent of the highest and lowest results displayed in _VMD
+               program, default is 5% 
+    :type percent: int or float
+    :arg rangeAng: cutoff range of protein-protein interactions, default is 5 Å
+    :type rangeAng: int or float
+    :arg filename: name of tcl file from _VMD program
+    :type filename: str
+    
+    By default files are saved as *filename* and loaded to VMD program. 
+    To change it use ``loadToVMD=False``. 
+            UNDER PREPARATION.. problems with not complete structures
+    '''
     
     sele1 = coords.select('name CA and same residue as exwithin '+str(rangeAng) \
                                                         +' of chain '+str(ch1))
@@ -290,11 +316,10 @@ def calcChainsNormDistFluct(coords, ch1, ch2, cutoff=10., percent=10, rangeAng=5
             out_pairs.write(j+' (> '+str(mmRange[j])+') \n')
         vmd_ch_list = [[],[]]
         for i in range(len(x)):
-            out_pairs.write("{}{}  {}{}  {}\n".format(sele1.select('protein and name CA')\
-            .getResnames()[y[i]], sele1.select('protein and name CA').getResnums()[y[i]], \
-                              sele2.select('protein and name CA').getResnames()[x[i]], \
-                              sele2.select('protein and name CA').getResnums()[x[i]], \
-                              ndf_matrix[x[i],y[i]]))
+            out_pairs.write("{}{}  {}{}  {}\n".format(sele1.select('protein and name \
+            CA').getResnames()[y[i]], sele1.select('protein and name CA').getResnums()[y[i]], \
+            sele2.select('protein and name CA').getResnames()[x[i]], sele2.select('protein and \
+            name CA').getResnums()[x[i]], ndf_matrix[x[i],y[i]]))
             vmd_ch_list[0].append(sele1.select('protein and name CA').getResnums()[y[i]])
             vmd_ch_list[1].append(sele2.select('protein and name CA').getResnums()[x[i]])
         out_pairs.write('\n')
