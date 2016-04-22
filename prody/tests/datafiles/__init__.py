@@ -73,9 +73,6 @@ DATA_FILES = {
     'anm1ubi_hessian': {
         'file': 'anm1ubi_hessian.coo',
     },
-    'anm1ubi_stiffness': {
-        'file': 'anm1ubi_stiffness.txt',
-    },
     'anm1ubi_evalues': {
         'file': 'anm1ubi_evalues.dat',
     },
