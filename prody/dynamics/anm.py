@@ -114,7 +114,6 @@ class ANMBase(NMA):
             sm = model.getStiffness()
         elif type(AA) == int:
             sm = model.getStiffness()[0: AA, (-1)*AA-1:-1]
-	
 	minK = np.min(sm[np.nonzero(sm)]) 
 	maxK = np.amax(sm)
 	
