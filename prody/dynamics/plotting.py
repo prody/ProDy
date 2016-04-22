@@ -831,7 +831,6 @@ def showMeanMechStiff(model, coords, header, chain='A', *args, **kwargs):
     import matplotlib
     import matplotlib.pyplot as plt
     import matplotlib.patches as patches
-    import matplotlib.pyplot as plt
     fig=plt.figure(figsize=[18,6], facecolor='w', dpi=100)
     
     if 'jet_r' in kwargs:
@@ -847,6 +846,8 @@ def showMeanMechStiff(model, coords, header, chain='A', *args, **kwargs):
 	plt.xlim(coords.getResnums()[0], coords.getResnums()[-1])
 	ax_top=round(np.max(meanStiff[0])+((np.max(meanStiff[0])-np.min(meanStiff[0]))/3))
 	ax_bottom=np.floor(np.min(meanStiff[0]))
+	LOGGER.info('The range of mean effective force constant is: {0} to {1}.'
+	                                   .format(min(meanStiff[0]), max(meanStiff[0])))
 	plt.ylim(ax_bottom,ax_top)
 	plt.xlabel('residue', fontsize = '22')
 	plt.ylabel('mean $\kappa$ [a.u.]', fontsize = '22')
