@@ -840,17 +840,17 @@ def showMeanMechStiff(model, coords, header, chain='A', *args, **kwargs):
         kwargs['nearest'] = 'interpolation=nearest'
 
     with plt.style.context('fivethirtyeight'):
-	ax = fig.add_subplot(111)
-	matplotlib.rcParams['font.size'] = '24'
-	plt.plot(np.arange(len(meanStiff[0]))+coords.getResnums()[0],meanStiff[0], 'k-', linewidth = 3)
-	plt.xlim(coords.getResnums()[0], coords.getResnums()[-1])
-	ax_top=round(np.max(meanStiff[0])+((np.max(meanStiff[0])-np.min(meanStiff[0]))/3))
-	ax_bottom=np.floor(np.min(meanStiff[0]))
-	LOGGER.info('The range of mean effective force constant is: {0} to {1}.'
-	                                   .format(min(meanStiff[0]), max(meanStiff[0])))
-	plt.ylim(ax_bottom,ax_top)
-	plt.xlabel('residue', fontsize = '22')
-	plt.ylabel('mean $\kappa$ [a.u.]', fontsize = '22')
+        ax = fig.add_subplot(111)
+        matplotlib.rcParams['font.size'] = '24'
+        plt.plot(np.arange(len(meanStiff[0]))+coords.getResnums()[0],meanStiff[0], 'k-', linewidth = 3)
+        plt.xlim(coords.getResnums()[0], coords.getResnums()[-1])
+        ax_top=round(np.max(meanStiff[0])+((np.max(meanStiff[0])-np.min(meanStiff[0]))/3))
+        ax_bottom=np.floor(np.min(meanStiff[0]))
+        LOGGER.info('The range of mean effective force constant is: {0} to {1}.'
+                                           .format(min(meanStiff[0]), max(meanStiff[0])))
+        plt.ylim(ax_bottom,ax_top)
+        plt.xlabel('residue', fontsize = '22')
+        plt.ylabel('mean $\kappa$ [a.u.]', fontsize = '22')
 
     ax = fig.add_subplot(411, aspect='equal')
     plt.imshow(meanStiff, *args, **kwargs)
@@ -861,12 +861,12 @@ def showMeanMechStiff(model, coords, header, chain='A', *args, **kwargs):
             end = int(header_ss[i][-1])-coords.getResnums()[0]
             add_beg = end - beg
             if header_ss[i][0] == 'H':
-	        ax.add_patch(patches.Rectangle((beg-1,-0.7),add_beg,\
-	        1.4,fill=False, linestyle='solid',edgecolor='#b22683', linewidth=2))    
-	    elif header_ss[i][0] == 'E':
-	        if header_ss[i][2] == -1:    
-	            ax.add_patch(patches.Arrow(beg-1,0,add_beg,0,width=4.65, \
-	            fill=False, linestyle='solid',edgecolor='black', linewidth=2))
+                ax.add_patch(patches.Rectangle((beg-1,-0.7),add_beg,\
+                1.4,fill=False, linestyle='solid',edgecolor='#b22683', linewidth=2))    
+            elif header_ss[i][0] == 'E':
+                if header_ss[i][2] == -1:    
+                    ax.add_patch(patches.Arrow(beg-1,0,add_beg,0,width=4.65, \
+                    fill=False, linestyle='solid',edgecolor='black', linewidth=2))
                 else: 
                     ax.add_patch(patches.Arrow(end-1,0,add_beg*(-1),0,width=4.65, \
                     fill=False, linestyle='solid',edgecolor='black', linewidth=2))
