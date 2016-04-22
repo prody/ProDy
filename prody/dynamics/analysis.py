@@ -439,7 +439,9 @@ def calcPerturbResponse(model, atoms=None, repeats=100):
     np.savetxt('norm_PRS_matrix', norm_PRS_mat, delimiter='\t', fmt='%8.6f')
     return response_matrix
 
-def calcPairDeformationDist(model, coords, ind1, ind2, kbt=1., saveFile=False, filename='out', savePlot=False):
+
+def calcPairDeformationDist(model, coords, ind1, ind2, kbt=1.):
+                                                
     """Return distribution of the deformations in the distance contributed by each mode 
     for selected pair of residues *ind1* *ind2* using *model* from a :class:`.ANM`.
     Method described in [EB08]_ equation (10) and figure (2).     
@@ -458,9 +460,6 @@ def calcPairDeformationDist(model, coords, ind1, ind2, kbt=1., saveFile=False, f
     :type ind1: int 
     :arg ind2: secound residue number.
     :type ind2: int 
-    
-    By default results will not be saved to a *filename* file. To save plot and
-    data file use ``saveFile=True`` and ``savePlot=True``.   
     """
 
     try:
@@ -476,7 +475,7 @@ def calcPairDeformationDist(model, coords, ind1, ind2, kbt=1., saveFile=False, f
                             'with `getCoords` method')
     
     if not isinstance(model, NMA):
-        raise TypeError('model must be an NMA instance')
+        raise TypeError('model must be a NMA instance')
     elif not model.is3d():
         raise TypeError('model must be a 3-dimensional NMA instance')
     elif len(model) == 0:
@@ -516,29 +515,5 @@ def calcPairDeformationDist(model, coords, ind1, ind2, kbt=1., saveFile=False, f
 
     LOGGER.report('Deformation was calculated in %.2lfs.', label='_pairdef')
     
-    if(saveFile == True):
-        fout = open(filename+".txt", 'w')
-        for i in xrange(len(mode_nr)):
-            fout.write("{} {}\n".format(mode_nr[i], D_pair_k[i]))
-        fout.close()
-        LOGGER.info('Data file has been saved.')
-    
-    if(savePlot == True):
-        import matplotlib
-        import matplotlib.pylab as plt
-        
-        matplotlib.rcParams['font.size'] = '16'
-        fig = plt.figure(num=None, figsize=(12,8), dpi=100, facecolor='w')
-        plt.plot(mode_nr, D_pair_k)
-        plt.xlabel('mode (k)', fontsize = '18')
-        plt.ylabel('d$^k$' '($\AA$)', fontsize = '18')    
-        plt.savefig(filename+'.png', dpi=100)
-        LOGGER.info('Plot has been saved.')
-    
     return mode_nr, D_pair_k
-        
-
-
-
-
 

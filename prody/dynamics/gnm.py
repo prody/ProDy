@@ -300,6 +300,58 @@ class GNM(GNMBase):
                      .format(self._n_modes, time.time()-start))
 
 
+    def getNormDistFluct(self, coords):
+        """Normalized distance fluctuation
+        """
+            
+        model = self.getModel()
+        LOGGER.info('Number of chains: {0}, chains: {1}.'
+                     .format(len(list(set(coords.getChids()))), \
+                                 list(set(coords.getChids()))))
+
+        try:
+            #coords = coords.select('protein and name CA')
+            coords = (coords._getCoords() if hasattr(coords, '_getCoords') else
+                coords.getCoords())
+        except AttributeError:
+            try:
+                checkCoords(coords)
+            except TypeError:
+                raise TypeError('coords must be a Numpy array or an object '
+                                                'with `getCoords` method')
+        
+        if not isinstance(model, NMA):
+            LOGGER.info('Calculating new model')
+            model = GNM('prot analysis')
+            model.buildKirchhoff(coords)
+            model.calcModes() 
+            
+        linalg = importLA()
+        n_atoms = model.numAtoms()
+        n_modes = model.numModes()
+        LOGGER.timeit('_ndf')
+    
+        from .analysis import calcCrossCorr
+        from numpy import linalg as LA
+        # <dRi, dRi>, <dRj, dRj> = 1
+        crossC = 2-2*calcCrossCorr(model)
+        r_ij = np.zeros((n_atoms,n_atoms,3))
+
+        for i in range(n_atoms):
+           for j in range(i+1,n_atoms):
+               r_ij[i][j] = coords[j,:] - coords[i,:]
+               r_ij[j][i] = r_ij[i][j]
+               r_ij_n = LA.norm(r_ij, axis=2)
+
+        #with np.errstate(divide='ignore'):
+        r_ij_n[np.diag_indices_from(r_ij_n)] = 1e-5  # div by 0
+        crossC=abs(crossC)
+        normdistfluct = np.divide(np.sqrt(crossC),r_ij_n)
+        LOGGER.report('NDF calculated in %.2lfs.', label='_ndf')
+        normdistfluct[np.diag_indices_from(normdistfluct)] = 0  # div by 0
+        return normdistfluct
+
+
 def calcGNM(pdb, selstr='calpha', cutoff=15., gamma=1., n_modes=20,
             zeros=False):
     """Return a :class:`GNM` instance and atoms used for the calculations.

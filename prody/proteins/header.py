@@ -420,6 +420,28 @@ def _getHelix(lines):
     return helix
 
 
+def _getHelixRange(lines):
+
+    alphas = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+    helix = []
+    for i, line in lines['HELIX ']:
+        try:
+            chid = line[19]
+            Hclass=int(line[38:40])
+            Hnr=int(line[7:10])
+        except:
+            continue
+
+        initResnum = int(line[21:25])
+        endICode = line[37]
+        endResnum = int(line[33:37])
+        if endICode != ' ':
+            endResnum -= 1
+        helix.append(['H', chid, Hclass, Hnr, initResnum, endResnum]) 
+     
+    return helix
+
+
 def _getSheet(lines):
 
     alphas = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
@@ -446,6 +468,30 @@ def _getSheet(lines):
             endResnum -= 1
         for resnum in range(initResnum, endResnum+1):
             sheet[(chid, resnum, '')] = value
+    return sheet
+
+
+def _getSheetRange(lines):
+
+    alphas = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+    sheet = []
+    for i, line in lines['SHEET ']:
+        try:
+            chid = line[21]
+            dir = int(line[38:40])
+            Snr = int(line[7:10])
+        except:
+            continue
+
+        initICode = line[26]
+        initResnum = int(line[22:26])
+        if initICode != ' ':
+            initResnum += 1
+        endICode = line[37]
+        endResnum = int(line[33:37])
+        if endICode != ' ':
+            endResnum -= 1
+        sheet.append(['E', chid, dir, Snr, initResnum, endResnum])
     return sheet
 
 
@@ -811,7 +857,9 @@ def _getNumModels(lines):
 # Make sure that lambda functions defined below won't raise exceptions
 _PDB_HEADER_MAP = {
     'helix': _getHelix,
+    'helix_range': _getHelixRange,
     'sheet': _getSheet,
+    'sheet_range': _getSheetRange,
     'chemicals': _getChemicals,
     'polymers': _getPolymers,
     'reference': _getReference,

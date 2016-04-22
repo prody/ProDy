@@ -17,7 +17,8 @@ from .nma import NMA
 from .gnm import GNMBase
 from .mode import Mode, VectorBase, Vector
 from .modeset import ModeSet
-from .analysis import calcSqFlucts, calcProjection, calcCrossCorr
+from .analysis import calcSqFlucts, calcProjection
+from .analysis import calcCrossCorr, calcPairDeformationDist
 from .analysis import calcFractVariance, calcCrossProjection
 from .compare import calcOverlap
 
@@ -27,7 +28,8 @@ __all__ = ['showContactMap', 'showCrossCorr',
            'showOverlap', 'showOverlapTable', 'showProjection',
            'showCrossProjection', 'showEllipsoid', 'showSqFlucts',
            'showScaledSqFlucts', 'showNormedSqFlucts', 'resetTicks',
-           'showDiffMatrix', ]
+           'showDiffMatrix','showMechStiff','showNormDistFunct',
+           'showPairDeformationDist','showMeanMechStiff', ]
 
 
 def showEllipsoid(modes, onto=None, n_std=2, scale=1., *args, **kwargs):
@@ -729,3 +731,148 @@ def showDiffMatrix(matrix1, matrix2, *args, **kwargs):
     plt.xlabel('Indices')
     plt.ylabel('Indices')
     return show
+
+
+def showMechStiff(model, coords, *args, **kwargs):
+    """Show mechanical stiffness matrix using :func:`~matplotlib.pyplot.imshow`.
+    By default, *origin=lower* keyword  arguments are passed to this function, 
+    but user can overwrite these parameters."""
+
+    import math
+    import matplotlib
+    import matplotlib.pyplot as plt
+    arange = np.arange(model.numAtoms())
+    model.buildMechStiff(coords)
+
+    if not 'origin' in kwargs:
+        kwargs['origin'] = 'lower'
+    if 'jet_r' in kwargs:
+        import matplotlib.cm as plt
+        kwargs['jet_r'] = 'cmap=cm.jet_r'
+        
+    MechStiff = model.getStiffness()
+    matplotlib.rcParams['font.size'] = '14'
+    fig = plt.figure(num=None, figsize=(10,8), dpi=100, facecolor='w')
+    show = plt.imshow(MechStiff, *args, **kwargs), plt.colorbar()
+    plt.clim(math.floor(np.min(MechStiff[np.nonzero(MechStiff)])), \
+                                           round(np.amax(MechStiff),1))
+    #plt.title('Mechanical Stiffness Matrix')# for {0}'.format(str(model)))
+    plt.xlabel('Indices', fontsize='16')
+    plt.ylabel('Indices', fontsize='16')
+    if SETTINGS['auto_show']:
+        showFigure()
+    return show
+
+
+def showNormDistFunct(model, coords, *args, **kwargs):
+    """Show normalized distance fluctuation matrix using 
+    :func:`~matplotlib.pyplot.imshow`. By default, *origin=lower* 
+    keyword  arguments are passed to this function, 
+    but user can overwrite these parameters."""
+
+    import math
+    import matplotlib
+    import matplotlib.pyplot as plt
+    normdistfunct = model.getNormDistFluct(coords)
+
+    if not 'origin' in kwargs:
+        kwargs['origin'] = 'lower'
+        
+    matplotlib.rcParams['font.size'] = '14'
+    fig = plt.figure(num=None, figsize=(10,8), dpi=100, facecolor='w')
+    show = plt.imshow(normdistfunct, *args, **kwargs), plt.colorbar()
+    plt.clim(math.floor(np.min(normdistfunct[np.nonzero(normdistfunct)])), \
+                                           round(np.amax(normdistfunct),1))
+    plt.title('Normalized Distance Fluctution Matrix')
+    plt.xlabel('Indices', fontsize='16')
+    plt.ylabel('Indices', fontsize='16')
+    if SETTINGS['auto_show']:
+        showFigure()
+    return show
+
+
+def showPairDeformationDist(model, coords, ind1, ind2, *args, **kwargs):
+    """Show distribution of deformations in distance contributed by each mode
+    for selected pair of residues *ind1* *ind2*
+    using :func:`~matplotlib.pyplot.plot`. """
+
+    import matplotlib
+    import matplotlib.pyplot as plt
+    if not isinstance(model, NMA):
+        raise TypeError('model must be a NMA instance, '
+                        'not {0}'.format(type(model)))
+    elif not model.is3d():
+        raise TypeError('model must be a 3-dimensional NMA instance')
+    elif len(model) == 0:
+        raise ValueError('model must have normal modes calculated')
+    elif model.getStiffness() is None:
+        raise ValueError('model must have stiffness matrix calculated')
+
+    d_pair = calcPairDeformationDist(model, coords, ind1, ind2)
+    with plt.style.context('fivethirtyeight'):
+        matplotlib.rcParams['font.size'] = '16'
+        fig = plt.figure(num=None, figsize=(12,8), dpi=100, facecolor='w')
+        #plt.title(str(model))
+        plt.plot(d_pair[0], d_pair[1], 'k-', linewidth=1.5, *args, **kwargs)
+        plt.xlabel('mode (k)', fontsize = '18')
+        plt.ylabel('d$^k$' '($\AA$)', fontsize = '18')    
+    if SETTINGS['auto_show']:
+        showFigure()
+    return plt.show
+
+
+def showMeanMechStiff(model, coords, header, chain='A', *args, **kwargs):
+    """Show mean value of effective spring constant with secondary structure
+    taken from MechStiff. Header is needed to obatin secondary structure range.
+    Using ``'jet_r'`` as argument color map will be reverse (similar to VMD 
+    program coding).
+    """
+    meanStiff = np.array([np.mean(model.getStiffness(), axis=0)])
+    import matplotlib
+    import matplotlib.pyplot as plt
+    import matplotlib.patches as patches
+    fig=plt.figure(figsize=[18,6], facecolor='w', dpi=100)
+    
+    if 'jet_r' in kwargs:
+       import matplotlib.cm as plt
+       kwargs['jet_r'] = 'cmap=cm.jet_r'
+    if 'nearest' in kwargs:
+        kwargs['nearest'] = 'interpolation=nearest'
+
+    with plt.style.context('fivethirtyeight'):
+        ax = fig.add_subplot(111)
+        matplotlib.rcParams['font.size'] = '24'
+        plt.plot(np.arange(len(meanStiff[0]))+coords.getResnums()[0],meanStiff[0], 'k-', linewidth = 3)
+        plt.xlim(coords.getResnums()[0], coords.getResnums()[-1])
+        ax_top=round(np.max(meanStiff[0])+((np.max(meanStiff[0])-np.min(meanStiff[0]))/3))
+        ax_bottom=np.floor(np.min(meanStiff[0]))
+        LOGGER.info('The range of mean effective force constant is: {0} to {1}.'
+                                           .format(min(meanStiff[0]), max(meanStiff[0])))
+        plt.ylim(ax_bottom,ax_top)
+        plt.xlabel('residue', fontsize = '22')
+        plt.ylabel('mean $\kappa$ [a.u.]', fontsize = '22')
+
+    ax = fig.add_subplot(411, aspect='equal')
+    plt.imshow(meanStiff, *args, **kwargs)
+    header_ss = header['sheet_range'] + header['helix_range']
+    for i in range(len(header_ss)):
+        if header_ss[i][1] == chain:
+            beg = int(header_ss[i][-2])-coords.getResnums()[0]
+            end = int(header_ss[i][-1])-coords.getResnums()[0]
+            add_beg = end - beg
+            if header_ss[i][0] == 'H':
+                ax.add_patch(patches.Rectangle((beg-1,-0.7),add_beg,\
+                1.4,fill=False, linestyle='solid',edgecolor='#b22683', linewidth=2))    
+            elif header_ss[i][0] == 'E':
+                if header_ss[i][2] == -1:    
+                    ax.add_patch(patches.Arrow(beg-1,0,add_beg,0,width=4.65, \
+                    fill=False, linestyle='solid',edgecolor='black', linewidth=2))
+                else: 
+                    ax.add_patch(patches.Arrow(end-1,0,add_beg*(-1),0,width=4.65, \
+                    fill=False, linestyle='solid',edgecolor='black', linewidth=2))
+    plt.axis('off')
+    ax.set_ylim(-1.7,1.7)
+    if SETTINGS['auto_show']:
+        showFigure()
+    return plt.show
+
