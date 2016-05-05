@@ -88,7 +88,7 @@ def parsePDB(pdb, **kwargs):
     :arg pdb: a PDB identifier or a filename
         If needed, PDB files are downloaded using :func:`.fetchPDB()` function.
     """
-
+    print "tria"
     title = kwargs.get('title', None)
     if not os.path.isfile(pdb):
         if len(pdb) == 4 and pdb.isalnum():
