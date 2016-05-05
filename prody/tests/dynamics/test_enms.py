@@ -31,6 +31,7 @@ anm = ANM()
 anm.buildHessian(ATOMS)
 anm.calcModes(n_modes=None, zeros=True)
 
+
 gnm = GNM()
 gnm.buildKirchhoff(ATOMS)
 gnm.calcModes(n_modes=None, zeros=True)
@@ -84,6 +85,7 @@ class TestANMResults(testGNMBase):
 
         assert_allclose(anm.getHessian(), ANM_HESSIAN, rtol=0, atol=ATOL,
                         err_msg='failed to get correct Hessian matrix')
+
 
     def testVariances(self):
         """Test variances."""
@@ -278,7 +280,7 @@ class TestANM(TestGNM):
                         err_msg='slow method does not reproduce same Hessian')
         assert_equal(slow._getKirchhoff(), anm._getKirchhoff(),
                      'slow method does not reproduce same Kirchhoff')
-
+    
 
 class TestGNMCalcModes(unittest.TestCase):
 

@@ -8,6 +8,7 @@ from os.path import join, isfile, split, splitext
 from prody.tests import TestCase
 
 from numpy import array
+import numpy as np
 
 from prody import parsePDB, parseDCD, parseSparseMatrix, parseArray
 from prody.tests import TEMPDIR, TESTDIR
@@ -123,6 +124,7 @@ DATA_FILES = {
 PARSERS = {
     '.dcd': parseDCD, '.pdb': parsePDB,
     '.coo': parseSparseMatrix, '.dat': parseArray,
+    '.txt': np.loadtxt,
     '.gz': lambda fn, **kwargs: PARSERS[splitext(fn)[1]](fn, **kwargs)
 }
 
