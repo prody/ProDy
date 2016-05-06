@@ -169,7 +169,8 @@ class RTB(ANMBase):
         :arg turbo: Use a memory intensive, but faster way to calculate modes.
         :type turbo: bool, default is ``True``
         """
-        n_modes = self._dof
+        if n_modes is None:
+            n_modes = self._dof
         super(RTB, self).calcModes(n_modes, zeros, turbo)
         self._array = np.dot(self._project, self._array)
 

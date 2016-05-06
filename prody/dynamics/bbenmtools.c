@@ -968,8 +968,3 @@ void deigsrt(double d[], double **v, int n)
 		}
 	}
 }
-
-
-
-
-
