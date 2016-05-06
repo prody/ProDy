@@ -170,7 +170,7 @@ class RTB(ANMBase):
         :type turbo: bool, default is ``True``
         """
         if n_modes is None:
-        n_modes = self._dof
+            n_modes = self._dof
         super(RTB, self).calcModes(n_modes, zeros, turbo)
         self._array = np.dot(self._project, self._array)
 
