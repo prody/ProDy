@@ -32,7 +32,7 @@ class AtomSubset(AtomPointer):
 
         if not isinstance(indices, np.ndarray):
             indices = np.array(indices, int)
-        elif not indices.dtype == int:
+        elif not np.issubdtype(indices.dtype, int):
             indices = list(indices[0])
             indices = np.array(indices, int)
 
