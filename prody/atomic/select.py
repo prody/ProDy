@@ -773,10 +773,11 @@ def rangeParseAction(sel, loc, tokens):
     except ValueError:
         stop = float(last)
 
-    if start > stop:
+    if start > stop or (start == stop and sep == ':'):
         raise SelectionError(sel, loc, 'range start value ({0}) is greater '
-                             'than and stop value ({1})'
-                             .format(repr(start), repr(stop)))
+                             'than stop value ({1})'
+                             .format(repr(start),
+                                     repr(stop if sep != ':' else stop - 1)))
     elif start == stop:
         return first
 
