@@ -464,5 +464,5 @@ def calcANM(pdb, selstr='calpha', cutoff=15., gamma=1., n_modes=20,
     anm = ANM(title)
     sel = ag.select(selstr)
     anm.buildHessian(sel, cutoff, gamma)
-    anm.calcModes(n_modes)
+    anm.calcModes(n_modes, zeros)
     return anm, sel
