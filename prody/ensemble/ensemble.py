@@ -298,10 +298,18 @@ class Ensemble(object):
 
         n_atoms = self._n_atoms
         try:
-            if self._coords is not None and hasattr(coords, '_getCoordsets'):
-                coords = coords._getCoordsets()
+            if self._coords is not None:
+                if hasattr(coords, '_getCoordsets'):
+                    coords = coords._getCoordsets()
+                elif hasattr(coords, '_getCoords'):
+                    coords = coords._getCoords()
+                    coords = array(coords)
             else:
-                coords = coords.getCoordsets()
+                if hasattr(coords, 'getCoordsets'):
+                    coords = coords.getCoordsets()
+                elif hasattr(coords, 'getCoords'):
+                    coords = coords.getCoords()
+                    coords = array(coords)
 
         except AttributeError:
             pass
