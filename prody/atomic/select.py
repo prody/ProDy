@@ -775,10 +775,15 @@ def rangeParseAction(sel, loc, tokens):
 
     if start > stop:
         raise SelectionError(sel, loc, 'range start value ({0}) is greater '
-                             'than and stop value ({1})'
+                             'than stop value ({1})'
                              .format(repr(start), repr(stop)))
     elif start == stop:
-        return first
+        if sep == ':':
+            raise SelectionError(sel, loc, 'range start value ({0}) is greater '
+                             'than or equal to stop value ({1})'
+                             .format(repr(start), repr(stop)))
+        else:
+            return first
 
     if sep == 'to':
         comp = '<='
