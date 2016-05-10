@@ -127,7 +127,7 @@ ATOMIC_FIELDS = {
                        selstr=('altloc A B', 'altloc _'),),
     'anisou':    Field('anisou', float, doc='anisotropic temperature factor',
                        ndim=2),
-    'chain':     Field('chain', DTYPE + '1',  doc='chain identifier',
+    'chain':     Field('chain', DTYPE,  doc='chain identifier',
                        meth='Chid', none=HVNONE, synonym='chid',
                        selstr=('chain A', 'chid A B C', 'chain _')),
     'element':   Field('element', DTYPE + '2', doc='element symbol',
