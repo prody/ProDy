@@ -13,7 +13,7 @@ except ImportError:
         from Bio.KDTree._CKDTree import KDTree as CKDTree
     except ImportError:
         raise ImportError('CKDTree module could not be imported. '
-                          'Reinstall ProDy or install Biopython'
+                          'Reinstall ProDy or install Biopython '
                           'to solve the problem.')
 
 __all__ = ['KDTree']

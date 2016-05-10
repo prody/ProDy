@@ -162,6 +162,10 @@ def parsePDBStream(stream, **kwargs):
     elif model != 0:
         ag = AtomGroup(str(kwargs.get('title', 'Unknown')) + title_suffix)
         n_csets = 0
+    if "needfullname" in kwargs:
+        needfullname = kwargs['needfullname']
+    else:
+        needfullname = False
 
     biomol = kwargs.get('biomol', False)
     auto_secondary = None
@@ -184,7 +188,7 @@ def parsePDBStream(stream, **kwargs):
             raise ValueError('empty PDB file or stream')
         if header or biomol or secondary:
             hd, split = getHeaderDict(lines)
-        _parsePDBLines(ag, lines, split, model, chain, subset, altloc)
+        _parsePDBLines(ag, lines, split, model, chain, subset, altloc, needfullname=needfullname)
         if ag.numAtoms() > 0:
             LOGGER.report('{0} atoms and {1} coordinate set(s) were '
                           'parsed in %.2fs.'.format(ag.numAtoms(),
@@ -286,7 +290,7 @@ def parsePQR(filename, **kwargs):
 parsePQR.__doc__ += _parsePQRdoc
 
 def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
-                   altloc_torf, format='PDB'):
+                   altloc_torf, format='PDB', needfullname = False):
     """Return an AtomGroup. See also :func:`.parsePDBStream()`.
 
     :arg lines: PDB/PQR lines
@@ -558,9 +562,10 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                 altlocs.resize(acount)
                 icodes.resize(acount)
                 serials.resize(acount)
-                if not only_subset:
-                    atomnames = np.char.strip(atomnames)
-                    resnames = np.char.strip(resnames)
+                if not needfullname:
+                    if not only_subset:
+                        atomnames = np.char.strip(atomnames)
+                        resnames = np.char.strip(resnames)
                 atomgroup.setNames(atomnames)
                 atomgroup.setResnames(resnames)
                 atomgroup.setResnums(resnums)
@@ -645,6 +650,7 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
             atomgroup.addCoordset(coordsets)
         else:
             atomgroup._setCoords(coordsets)
+
     elif not END:
         # this means last line was an ATOM line, so atomgroup is not decorated
         coordinates.resize((acount, 3))
@@ -661,9 +667,10 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
         altlocs.resize(acount)
         icodes.resize(acount)
         serials.resize(acount)
-        if not only_subset:
-            atomnames = np.char.strip(atomnames)
-            resnames = np.char.strip(resnames)
+        if not needfullname:
+            if not only_subset:
+                atomnames = np.char.strip(atomnames)
+                resnames = np.char.strip(resnames)
         atomgroup.setNames(atomnames)
         atomgroup.setResnames(resnames)
         atomgroup.setResnums(resnums)
