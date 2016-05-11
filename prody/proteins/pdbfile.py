@@ -163,7 +163,6 @@ def parsePDBStream(stream, **kwargs):
         ag = AtomGroup(str(kwargs.get('title', 'Unknown')) + title_suffix)
         n_csets = 0
 
-    needfullname = kwargs.get('needfullname', False)
     biomol = kwargs.get('biomol', False)
     auto_secondary = None
     secondary = kwargs.get('secondary')
@@ -185,7 +184,7 @@ def parsePDBStream(stream, **kwargs):
             raise ValueError('empty PDB file or stream')
         if header or biomol or secondary:
             hd, split = getHeaderDict(lines)
-        _parsePDBLines(ag, lines, split, model, chain, subset, altloc, needfullname=needfullname)
+        _parsePDBLines(ag, lines, split, model, chain, subset, altloc)
         if ag.numAtoms() > 0:
             LOGGER.report('{0} atoms and {1} coordinate set(s) were '
                           'parsed in %.2fs.'.format(ag.numAtoms(),
@@ -287,7 +286,7 @@ def parsePQR(filename, **kwargs):
 parsePQR.__doc__ += _parsePQRdoc
 
 def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
-                   altloc_torf, format='PDB', needfullname = False):
+                   altloc_torf, format='PDB'):
     """Return an AtomGroup. See also :func:`.parsePDBStream()`.
 
     :arg lines: PDB/PQR lines
@@ -559,10 +558,9 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                 altlocs.resize(acount)
                 icodes.resize(acount)
                 serials.resize(acount)
-                if not needfullname:
-                    if not only_subset:
-                        atomnames = np.char.strip(atomnames)
-                        resnames = np.char.strip(resnames)
+                if not only_subset:
+                    atomnames = np.char.strip(atomnames)
+                    resnames = np.char.strip(resnames)
                 atomgroup.setNames(atomnames)
                 atomgroup.setResnames(resnames)
                 atomgroup.setResnums(resnums)
@@ -663,10 +661,9 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
         altlocs.resize(acount)
         icodes.resize(acount)
         serials.resize(acount)
-        if not needfullname:
-            if not only_subset:
-                atomnames = np.char.strip(atomnames)
-                resnames = np.char.strip(resnames)
+        if not only_subset:
+            atomnames = np.char.strip(atomnames)
+            resnames = np.char.strip(resnames)
         atomgroup.setNames(atomnames)
         atomgroup.setResnames(resnames)
         atomgroup.setResnums(resnums)
