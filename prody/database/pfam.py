@@ -5,6 +5,10 @@ __author__ = 'Anindita Dutta, Ahmet Bakan, Cihan Kaya'
 
 import re
 import urllib
+try:
+    import urllib.request as urllib2  # PY3K
+except ImportError:
+    import urllib2  # PY2K
 from os.path import join, isfile
 
 from prody import LOGGER, PY3K
@@ -71,9 +75,9 @@ def searchPfam(query, **kwargs):
         fseq = '>Seq\n' + seq
         parameters = { 'hmmdb' : 'pfam', 'seq': fseq }
         enc_params = urllib.urlencode(parameters)
-        request = urllib.request.Request('http://hmmer.janelia.org/search/hmmscan', enc_params)
+        request = urllib2.Request('http://hmmer.janelia.org/search/hmmscan', enc_params)
 
-        url = ( urllib.request.urlopen(request).geturl() + '?output=xml') 
+        url = ( urllib2.urlopen(request).geturl() + '?output=xml') 
         LOGGER.debug('Submitted Pfam search for sequence "{0}...".'
                      .format(seq[:MINSEQLEN]))
 
