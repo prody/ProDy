@@ -233,7 +233,7 @@ class PackageLogger(object):
     def progress(self, msg, steps, label=None, **kwargs):
         """Instantiate a labeled process with message and number of steps."""
 
-        assert isinstance(step, (int, long)) and steps > 0, \
+        assert isinstance(steps, (int, long)) and steps > 0, \
             'steps must be a positive integer'
         self._steps = steps
         self._last = 0
