@@ -64,6 +64,9 @@ def calcShannonEntropy(msa, ambiguity=True, omitgaps=True, **kwargs):
 
     msa = getMSA(msa)
     length = msa.shape[1]
+    if msa.shape[0]<100:
+        LOGGER.warning('SCA performs the best with higher number of sequences, and '
+                       'minimal number of sequences is recommended as 100.')
     entropy = empty(length, float)
     from .msatools import msaentropy
     return msaentropy(msa, entropy,
@@ -471,6 +474,9 @@ def buildDirectInfoMatrix(msa, seqid=.8, pseudo_weight=.5, refine=False,
     from numpy import matrix
 
     LOGGER.timeit('_di')
+    if msa.shape[0]<250:
+        LOGGER.warning('DI performs the best with higher number of sequences, and '
+                       'minimal number of sequences is recommended as 250.')
     refine = 1 if refine else 0
     # msadipretest get some parameter from msa to set matrix size
     length, q = msadipretest(msa, refine=refine)
