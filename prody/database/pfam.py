@@ -4,16 +4,17 @@
 __author__ = 'Anindita Dutta, Ahmet Bakan, Cihan Kaya'
 
 import re
-import urllib
-from os.path import join, isfile
 
+from os.path import join, isfile
 from prody import LOGGER, PY3K
 from prody.utilities import makePath, openURL, gunzip, openFile, dictElement
 from prody.utilities import relpath
 
 if PY3K:
+    import urllib.parse as urllib
     import urllib.request as urllib2
 else:
+    import urllib
     import urllib2
 
 __all__ = ['searchPfam', 'fetchPfamMSA']
@@ -74,7 +75,7 @@ def searchPfam(query, **kwargs):
             raise ValueError(repr(seq) + ' is not a valid sequence')
         fseq = '>Seq\n' + seq
         parameters = { 'hmmdb' : 'pfam', 'seq': fseq }
-        enc_params = urllib.urlencode(parameters)
+        enc_params = urllib.urlencode(parameters).encode('utf-8')
         request = urllib2.Request('http://www.ebi.ac.uk/Tools/hmmer/search/hmmscan', enc_params)
 
         url = ( urllib2.urlopen(request).geturl() + '?output=xml') 
