@@ -157,12 +157,12 @@ class Trajectory(TrajBase):
         self.reset()
         coords = np.zeros((len(indices), self.numSelected(), 3),
                           self._trajectories[0]._dtype)
-        prev = 0
+        prev = -1
         next = self.nextCoordset
         for i, index in enumerate(indices):
             diff = index - prev
             if diff > 1:
-                self.skip(diff)
+                self.skip(diff - 1)
             coords[i] = next()
             prev = index
         self.goto(nfi)
