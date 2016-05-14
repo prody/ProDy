@@ -204,11 +204,11 @@ should return a gap penalty."""),
                         name[:-2], name[-2], name[-1]
             try:
                 match_args, match_doc = self.match2args[match_type]
-            except KeyError, x:
+            except KeyError as x:
                 raise AttributeError("unknown match type %r" % match_type)
             try:
                 penalty_args, penalty_doc = self.penalty2args[penalty_type]
-            except KeyError, x:
+            except KeyError as x:
                 raise AttributeError("unknown penalty type %r" % penalty_type)
 
             # Now get the names of the parameters to this function.
@@ -828,8 +828,8 @@ def print_matrix(matrix):
     ndigits = map(max, matrixT)
     for i in range(len(matrix)):
         #Using string formatting trick to add leading spaces,
-        print " ".join("%*s " % (ndigits[j], matrix[i][j]) \
-                       for j in range(len(matrix[i])))
+        print(" ".join("%*s " % (ndigits[j], matrix[i][j]) \
+                       for j in range(len(matrix[i]))))
 
 def format_alignment(align1, align2, score, begin, end):
     """format_alignment(align1, align2, score, begin, end) -> string
@@ -857,10 +857,10 @@ def format_alignment(align1, align2, score, begin, end):
 
 def _test():
     """Run the module's doctests (PRIVATE)."""
-    print "Running doctests..."
+    print("Running doctests...")
     import doctest
     doctest.testmod(optionflags=doctest.IGNORE_EXCEPTION_DETAIL)
-    print "Done"
+    print("Done")
 
 if __name__ == "__main__":
     _test()
