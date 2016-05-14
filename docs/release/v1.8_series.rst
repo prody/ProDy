@@ -1,0 +1,42 @@
+ProDy 1.4 Series
+===============================================================================
+
+.. contents::
+   :local:
+
+1.8 (May 13, 2016)
+-------------------------------------------------------------------------------
+
+MechStiff
+^^^^^^^^^^^^^^^^^^
+
+    
+  * Identification of the weakest/strongest elements of the structure 
+    architecture provided together with 3D vizualization and statistics 
+    analysis.
+    
+  * Determination of the effective spring constant for selected pair 
+    of residues - useful for Single Molecule Force Spectroscopy (SMFS, AFM) 
+    and Steered Molecular Dynamics simulations.
+    
+  * Evaluating the contributions of each mode to selected deformations
+
+**New Features**:
+
+*Python 2 and 3 Support*
+
+  * ProDy has been refactored to support Python 2.7 and 3.4.  Windows installers for
+    Python 2.7 and 3.4 are available in :ref:`getprody`.
+
+  * Unit tests are compatible with Python 2.7 and 3.4, and running them with
+    other versions gives errors due to unavailability of some :mod:`unittest`
+    features.
+
+*Bugfixes*
+
+  * Various indexing issues are fixed. 
+
+  * Compatibility issue of :func:`.searchPfam` with Python 2.7.11 is fixed. 
+
+
+
