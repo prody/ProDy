@@ -9,7 +9,8 @@ Release Notes
 .. toctree::
    :maxdepth: 2
    :glob:
-
+   
+   v1.8_series
    v1.7_series
    v1.6_series
    v1.5_series
