@@ -12,7 +12,10 @@ Development Team
 `Ahmet Bakan`_ initiated the *ProDy* project, designed and developed
 *ProDy*, *NMWiz*, *Evol*, and *DruGUI*.
 
-`Chakra Chennubhotla`_ is currently overseeing the overall development of
+`Cihan Kaya`_ is currently overseeing the overall development of
+*ProDy*.
+
+`She Zhang`_ is currently helping on maintaining and developing
 *ProDy*.
 
 `Anindita Dutta`_ contributed to the development of *Evol*,
@@ -43,6 +46,7 @@ insights.
 
 
 .. _Ahmet Bakan: http://ahmetbakan.com
+.. _Cihan Kaya: http://pitt.edu/~cihank
 .. _Bahar Lab: http://www.ccbb.pitt.edu/faculty/bahar/
 .. _University of Pittsburgh: http://www.pitt.edu/
 .. _Anindita Dutta: http://www.linkedin.com/pub/anindita-dutta/5a/568/a90
