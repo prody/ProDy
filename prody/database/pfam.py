@@ -265,7 +265,7 @@ def searchUniprotID(query, search_b=False, skip_a=False, **kwargs):
         raise IOError('Pfam search timed out or failed to parse results '
                       'XML, check URL: ' + url)
     else:
-	LOGGER.report('Pfam search completed in %.2fs.', '_pfam')
+        LOGGER.report('Pfam search completed in %.2fs.', '_pfam')
 
     if xml.find(b'There was a system error on your last request.') > 0:
         LOGGER.warn('No Pfam matches found for: ' + seq)
