@@ -17,7 +17,7 @@ else:
     import urllib
     import urllib2
 
-__all__ = ['searchPfam', 'fetchPfamMSA']
+__all__ = ['searchPfam', 'fetchPfamMSA', 'searchUniprotID']
 
 FASTA = 'fasta'
 SELEX = 'selex'
@@ -212,6 +212,72 @@ def searchPfam(query, **kwargs):
         LOGGER.info(query + ' did not match any Pfam families.')
     return matches
 
+def searchUniprotID(query, search_b=False, skip_a=False, **kwargs):
+    """Return Pfam search results in a dictionary.  Matching Pfam accession
+    as keys will map to evalue, alignment start and end residue positions.
+
+    :arg query: UniProt ID, PDB identifier, protein sequence, or a sequence
+        file, sequence queries must not contain without gaps and must be at
+        least 16 characters long
+    :type query: str
+
+    :arg search_b: search Pfam-B families when **True**
+    :type search_b: bool
+
+    :arg skip_a: do not search Pfam-A families when **True**
+    :type skip_a: bool
+
+    :arg ga: use gathering threshold when **True**
+    :type ga: bool
+
+    :arg evalue: user specified e-value cutoff, must be smaller than 10.0
+    :type evalue: float
+
+    :arg timeout: timeout for blocking connection attempt in seconds, default
+        is 60
+    :type timeout: int
+
+    *query* can also be a PDB identifier, e.g. ``'1mkp'`` or ``'1mkpA'`` with
+    chain identifier.  UniProt ID of the specified chain, or the first
+    protein chain will be used for searching the Pfam database."""
+
+    prefix = '{http://pfam.xfam.org/}'
+    query = str(query)
+    seq = ''.join(query.split())
+
+    import xml.etree.cElementTree as ET
+    LOGGER.timeit('_pfam')
+    timeout = int(kwargs.get('timeout', 60))
+    url = 'http://pfam.sanger.ac.uk/protein/' + seq + '?output=xml'
+
+    LOGGER.debug('Retrieving Pfam search results: ' + url)
+    xml = None
+    while LOGGER.timing('_pfam') < timeout:
+        try:
+            xml = openURL(url, timeout=timeout).read()
+        except Exception:
+            pass
+        else:
+            if xml:
+                break
+
+    if not xml:
+        raise IOError('Pfam search timed out or failed to parse results '
+                      'XML, check URL: ' + url)
+    else:
+	LOGGER.report('Pfam search completed in %.2fs.', '_pfam')
+
+    if xml.find(b'There was a system error on your last request.') > 0:
+        LOGGER.warn('No Pfam matches found for: ' + seq)
+        return None
+
+    try:
+        root = ET.XML(xml)
+    except Exception as err:
+        raise ValueError('failed to parse results XML, check URL: ' + url)
+
+    result = root[0].get('id')
+    return result
 
 def fetchPfamMSA(acc, alignment='full', compressed=False, **kwargs):
     """Return a path to the downloaded Pfam MSA file.
