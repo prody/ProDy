@@ -62,15 +62,19 @@ def parsePSF(filename, title=None, ag=None):
     atomtypes = zeros(n_atoms, ATOMIC_FIELDS['type'].dtype)
     charges = zeros(n_atoms, ATOMIC_FIELDS['charge'].dtype)
     masses = zeros(n_atoms, ATOMIC_FIELDS['mass'].dtype)
-
-    lines = psf.readlines(71 * (n_atoms + 5))
-    if len(lines) < n_atoms:
-        raise IOError('number of lines in PSF is less than the number of '
-                      'atoms')
-
-    for i, line in enumerate(lines):
-        if i == n_atoms:
+    
+    #lines = psf.readlines(71 * (n_atoms + 5))
+    i_line = 0
+    n_bonds = 0
+    for i, line in enumerate(psf):
+        if line.strip() == '':
+            continue
+        if '!NBOND:' in line.upper():
+            items = line.split()
+            n_bonds = int(items[0])
             break
+        if i_line + 1 > n_atoms:
+            continue
         i_line += 1
         if len(line) <= 71:
             serials[i] = line[:8]
@@ -91,15 +95,28 @@ def parsePSF(filename, title=None, ag=None):
             atomtypes[i] = items[5]
             charges[i] = items[6]
             masses[i] = items[7]
-
-    i = n_atoms
-    while 1:
-        line = lines[i].split()
-        if len(line) >= 2 and line[1] == '!NBOND:':
-             n_bonds = int(line[0])
-             break
-        i += 1
-    lines = ''.join(lines[i+1:]) + psf.read(n_bonds/4 * 71)
+    
+    if i_line < n_atoms:
+        raise IOError('number of lines in PSF is less than the number of '
+                      'atoms')
+                      
+#    i = n_atoms
+#    while 1:
+#        line = lines[i].split()
+#        if len(line) >= 2 and line[1] == '!NBOND:':
+#             n_bonds = int(line[0])
+#             break
+#        i += 1
+#    lines = ''.join(lines[i+1:]) + psf.read(n_bonds/4 * 71)
+    lines = []
+    for i, line in enumerate(psf):
+        if line.strip() == '':
+            continue
+        if '!' in line:
+            break
+        lines.append(line)
+    
+    lines = ''.join(lines)
     array = fromstring(lines, count=n_bonds*2, dtype=int, sep=' ')
     if len(array) != n_bonds*2:
         raise IOError('number of bonds expected and parsed do not match')
