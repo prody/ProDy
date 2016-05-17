@@ -39,8 +39,8 @@ def parsePSF(filename, title=None, ag=None):
     i_line = 1
     while line:
         line = line.strip()
-        if line.endswith('!NATOM'):
-            n_atoms = int(line.split('!')[0])
+        if line.endswith(b'!NATOM'):
+            n_atoms = int(line.split(b'!')[0])
             break
         line = psf.readline()
         i_line += 1
@@ -64,39 +64,40 @@ def parsePSF(filename, title=None, ag=None):
     masses = zeros(n_atoms, ATOMIC_FIELDS['mass'].dtype)
     
     #lines = psf.readlines(71 * (n_atoms + 5))
-    i_line = 0
+    n = 0
     n_bonds = 0
     for i, line in enumerate(psf):
-        if line.strip() == '':
+        if line.strip() == b'':
             continue
-        if '!NBOND:' in line.upper():
+        if b'!NBOND:' in line.upper():
             items = line.split()
             n_bonds = int(items[0])
             break
-        if i_line + 1 > n_atoms:
+        if n + 1 > n_atoms:
             continue
-        i_line += 1
+
         if len(line) <= 71:
-            serials[i] = line[:8]
-            segnames[i] = line[9:13].strip()
-            resnums[i] = line[14:19]
-            resnames[i] = line[19:23].strip()
-            atomnames[i] = line[24:28].strip()
-            atomtypes[i] = line[29:35].strip()
-            charges[i] = line[35:44]
-            masses[i] = line[50:60]
+            serials[n] = line[:8]
+            segnames[n] = line[9:13].strip()
+            resnums[n] = line[14:19]
+            resnames[n] = line[19:23].strip()
+            atomnames[n] = line[24:28].strip()
+            atomtypes[n] = line[29:35].strip()
+            charges[n] = line[35:44]
+            masses[n] = line[50:60]
         else:
             items = line.split()
-            serials[i] = items[0]
-            segnames[i] = items[1]
-            resnums[i] = items[2]
-            resnames[i] = items[3]
-            atomnames[i] = items[4]
-            atomtypes[i] = items[5]
-            charges[i] = items[6]
-            masses[i] = items[7]
+            serials[n] = items[0]
+            segnames[n] = items[1]
+            resnums[n] = items[2]
+            resnames[n] = items[3]
+            atomnames[n] = items[4]
+            atomtypes[n] = items[5]
+            charges[n] = items[6]
+            masses[n] = items[7]
+        n += 1
     
-    if i_line < n_atoms:
+    if n < n_atoms:
         raise IOError('number of lines in PSF is less than the number of '
                       'atoms')
                       
@@ -110,11 +111,11 @@ def parsePSF(filename, title=None, ag=None):
 #    lines = ''.join(lines[i+1:]) + psf.read(n_bonds/4 * 71)
     lines = []
     for i, line in enumerate(psf):
-        if line.strip() == '':
+        if line.strip() == b'':
             continue
-        if '!' in line:
+        if b'!' in line:
             break
-        lines.append(line)
+        lines.append(line.decode(encoding='UTF-8'))
     
     lines = ''.join(lines)
     array = fromstring(lines, count=n_bonds*2, dtype=int, sep=' ')
