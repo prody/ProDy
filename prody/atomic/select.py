@@ -441,6 +441,7 @@ all alphanumeric characters."""
 
 import sys
 from re import compile as re_compile
+from collections import Iterable
 
 import numpy as np
 from numpy import array, ndarray, ones, zeros, arange
@@ -1319,8 +1320,10 @@ class Select(object):
 
         debug(sel, loc, '_and2', tokens)
         if NUMB: return
-
-        if tokens[0] == 'and' or tokens[-1] == 'and':
+        
+        firsttoken = tokens[0] if not isinstance(tokens[0], Iterable) else list(tokens[0])
+        lasttoken = tokens[-1] if not isinstance(tokens[-1], Iterable) else list(tokens[-1])
+        if firsttoken == 'and' or lasttoken == 'and':
             return None, SelectionError(sel, loc, '{0} operator must be '
                 'surrounded with arguments'.format(repr('and')), [tokens[0]])
 
