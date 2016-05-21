@@ -9,6 +9,7 @@ and keyword arguments are passed to the Matplotlib functions."""
 from collections import defaultdict
 
 import numpy as np
+import matplotlib
 
 from prody import LOGGER, SETTINGS
 from prody.utilities import showFigure

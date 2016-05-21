@@ -676,7 +676,7 @@ def setup(app):
     app.add_config_value('ipython_rgxout',
                          re.compile('Out\[(\d+)\]:\s?(.*)\s*'), True)
     app.add_config_value('ipython_promptin', 'In [%d]:', True)
-    app.add_config_value('ipython_promptout', 'Out[%d]:', True)
+    app.add_config_value('ipython_promptout', 'Out [%d]:', True)
 
 
 # Simple smoke test, needs to be converted to a proper automatic test.
