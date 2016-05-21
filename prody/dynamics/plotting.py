@@ -434,6 +434,7 @@ def showOverlapTable(modes_x, modes_y, **kwargs):
       * ``norm=matplotlib.colors.Normalize(0, 1)``"""
 
     import matplotlib.pyplot as plt
+    import matplotlib
 
     overlap = abs(calcOverlap(modes_y, modes_x))
     if overlap.ndim == 0:
