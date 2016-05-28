@@ -119,7 +119,7 @@ if (platform.system() == 'Windows' or
 setup(
     name='ProDy',
     version=__version__,
-    author='Ahmet Bakan',
+    author='Cihan Kaya',
     author_email='cihank@pitt.edu',
     description='A Python Package for Protein Dynamics Analysis',
     long_description=long_description,
