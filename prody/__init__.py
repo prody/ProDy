@@ -1,6 +1,6 @@
 """ProDy is a package for Protein Dynamics, Sequence, and Structure Analysis"""
 
-__version__ = '1.8'
+__version__ = '1.8.1'
 __release__ = __version__ # + '-dev' # comment out '-dev' before a release
 
 import sys
