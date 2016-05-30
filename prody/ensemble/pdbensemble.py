@@ -138,7 +138,7 @@ class PDBEnsemble(Ensemble):
 
     iterpose.__doc__ = Ensemble.iterpose.__doc__
 
-    def addCoordset(self, coords, weights=None, label=None):
+    def addCoordset(self, coords, weights=None, label=None, degeneracy=False):
         """Add coordinate set(s) to the ensemble.  *coords* must be a Numpy
         array with suitable shape and dimensionality, or an object with
         :meth:`getCoordsets` method.  *weights* is an optional argument.
@@ -190,25 +190,35 @@ class PDBEnsemble(Ensemble):
             weights = checkWeights(weights, n_atoms, n_csets)
 
         if n_csets > 1:
-            if isinstance(label, str):
-                self._labels.extend('{0}_m{1}'
-                    .format(label, i+1) for i in range(n_csets))
+            if degeneracy == False:
+                if isinstance(label, str):
+                    self._labels.extend('{0}_m{1}'
+                        .format(label, i+1) for i in range(n_csets))
+                else:
+                    if len(label) != n_csets:
+                        raise ValueError('length of label and number of '
+                                         'coordinate sets must be the same')
+                    self._labels.extend(label)
             else:
-                if len(label) != n_csets:
-                    raise ValueError('length of label and number of '
-                                     'coordinate sets must be the same')
-                self._labels.extend(label)
-
+                self._labels.append(label)
+                coords = np.reshape(coords[0],(1,coords[0].shape[0],coords[0].shape[1]))
+                weights = np.reshape(weights[0],(1,weights[0].shape[0],weights[0].shape[1]))
         else:
             self._labels.append(label)
         if self._confs is None and self._weights is None:
             self._confs = coords
             self._weights = weights
-            self._n_csets = n_csets
+            if degeneracy==False:
+                self._n_csets = n_csets
+            else:
+                self._n_csets = 1
         elif self._confs is not None and self._weights is not None:
             self._confs = np.concatenate((self._confs, coords), axis=0)
             self._weights = np.concatenate((self._weights, weights), axis=0)
-            self._n_csets += n_csets
+            if degeneracy == False:
+                self._n_csets += n_csets
+            else:
+                self._n_csets += 1
         else:
             raise RuntimeError('_confs and _weights must be set or None at '
                                'the same time')

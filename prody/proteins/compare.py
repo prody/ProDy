@@ -795,7 +795,7 @@ def mapOntoChain(atoms, chain, **kwargs):
     seqid = kwargs.get('seqid', 90.)
     coverage = kwargs.get('overlap')
     if coverage is None:
-        coverage = kwargs.get('coverage', 85.)
+        coverage = kwargs.get('coverage', 70.)
     pwalign = kwargs.get('pwalign', None)
 
     if isinstance(atoms, Chain):
