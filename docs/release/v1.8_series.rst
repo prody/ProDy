@@ -1,8 +1,20 @@
-ProDy 1.4 Series
+ProDy 1.8 Series
 ===============================================================================
 
 .. contents::
    :local:
+
+1.8.1 (May 28, 2016)
+-------------------------------------------------------------------------------
+
+*Bugfixes*
+   
+  * :func:`.getHits` in :class:`.PDBBlastRecord` class, default overlap 
+    threshold changed to 0.7 to match with :func:`.mapOntoChain`. 
+
+  * :func:`.calcModes` in :class:`.RTB` have a bug on number of modes and fixed.
+  
+  * Tab and indentation errors with Python 3.4 are fixed.  
 
 1.8 (May 13, 2016)
 -------------------------------------------------------------------------------

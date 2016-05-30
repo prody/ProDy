@@ -146,7 +146,6 @@ def searchPfam(query, **kwargs):
         else:
             url = 'http://pfam.xfam.org/protein/' + seq + '?output=xml'
 
-    print url
     LOGGER.debug('Retrieving Pfam search results: ' + url)
     xml = None
     while LOGGER.timing('_pfam') < timeout:
@@ -251,7 +250,6 @@ def searchUniprotID(query, search_b=False, skip_a=False, **kwargs):
     timeout = int(kwargs.get('timeout', 60))
     url = 'http://pfam.xfam.org/protein/' + seq + '?output=xml'
 
-    print url
     LOGGER.debug('Retrieving Pfam search results: ' + url)
     xml = None
     while LOGGER.timing('_pfam') < timeout:
@@ -278,8 +276,6 @@ def searchUniprotID(query, search_b=False, skip_a=False, **kwargs):
     except Exception as err:
         raise ValueError('failed to parse results XML, check URL: ' + url)
 
-    print root
-    print root[0]
     result = root[0].get('id')
     return result
 
