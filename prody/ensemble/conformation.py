@@ -137,7 +137,7 @@ class PDBConformation(Conformation):
 
     def __repr__(self):
 
-        if self.getSelection() is None:
+        if self.numSelected() == self.numAtoms():
             return ('<PDBConformation: {0} from {1} (index: {2}; '
                     '{3} atoms)>').format(
                     self._ensemble._labels[self._index],
