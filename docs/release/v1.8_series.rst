@@ -4,6 +4,12 @@ ProDy 1.8 Series
 .. contents::
    :local:
 
+1.8.2 (Jun 5, 2016)
+-------------------------------------------------------------------------------
+
+  * :func:`.addCoordset` in :class:`.PDBEnsemble` class, has an additional 
+    argument for NMR models. 
+
 1.8.1 (May 28, 2016)
 -------------------------------------------------------------------------------
 
