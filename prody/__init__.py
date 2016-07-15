@@ -238,10 +238,10 @@ def checkUpdates():
 
     if PY3K:
         import xmlrpc.client
-        pypi = xmlrpc.client.Server('http://pypi.python.org/pypi')
+        pypi = xmlrpc.client.Server('https://pypi.python.org/pypi')
     else:
         import xmlrpclib
-        pypi = xmlrpclib.Server('http://pypi.python.org/pypi')
+        pypi = xmlrpclib.Server('https://pypi.python.org/pypi')
     releases = pypi.package_releases('ProDy')
     if releases[0] == __version__:
         LOGGER.info('You are using the latest ProDy release (v{0:s}).'

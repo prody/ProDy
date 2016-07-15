@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""This module defines functions for calculating atomic properties from normal
+"""This module defines functions for calculating physical properties from normal
 modes."""
 
 import time
@@ -169,10 +169,9 @@ def calcCrossProjection(ensemble, mode1, mode2, scale=None, **kwargs):
     :type mode1: :class:`.Mode`, :class:`.Vector`
     :arg mode2: normal mode to project conformations onto
     :type mode2: :class:`.Mode`, :class:`.Vector`
-    :arg scale: scale width of the projection onto mode ``x`` or ``y``,
-        best scaling factor will be calculated and printed on the console,
-        absolute value of scalar makes the with of two projection same,
-        sign of scalar makes the projections yield a positive correlation"""
+    :arg scale: scale width of the projection onto mode1 (``x``) or mode2(``y``),
+        an optimized scaling factor (scalar) will be calculated by default 
+        or a value of scalar can be passed."""
 
     if not isinstance(ensemble, (Ensemble, Conformation, Vector, TrajBase)):
         raise TypeError('ensemble must be Ensemble, Conformation, Vector, '
@@ -378,7 +377,7 @@ def calcPerturbResponse(model, atoms=None, repeats=100):
        Reveals Ligand Entry-Exit Mechanisms of Ferric Binding Protein.
        *PLoS Comput Biol* **2009** 5(10):e1000544.
 
-    The RPS matrix can be save as follows::
+    The PRS matrix can be saved as follows::
 
       prs_matrix = calcPerturbationResponse(p38_anm)
       writeArray('prs_matrix.txt', prs_matrix, format='%8.6f', delimiter='\t')
