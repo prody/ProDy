@@ -10,7 +10,7 @@ __all__ = ['PDBBlastRecord', 'blastPDB']
 
 
 def blastPDB(sequence, filename=None, **kwargs):
-    """Return a :class:`PDBBlastRecord` instance that contains results from
+    """Returns a :class:`PDBBlastRecord` instance that contains results from
     blast searching of ProteinDataBank database *sequence* using NCBI blastp.
 
     :arg sequence: single-letter code amino acid sequence of the protein
@@ -211,17 +211,17 @@ class PDBBlastRecord(object):
         self._hits = hits
 
     def getSequence(self):
-        """Return the query sequence that was used in the search."""
+        """Returns the query sequence that was used in the search."""
 
         return self._sequence
 
     def getParameters(self):
-        """Return parameters used in blast search."""
+        """Returns parameters used in blast search."""
 
         return dict(self._param)
 
     def getHits(self, percent_identity=90., percent_overlap=70., chain=False):
-        """Return a dictionary in which PDB identifiers are mapped to structure
+        """Returns a dictionary in which PDB identifiers are mapped to structure
         and alignment information.
 
         :arg percent_identity: PDB hits with percent sequence identity equal
@@ -255,7 +255,7 @@ class PDBBlastRecord(object):
         return hits
 
     def getBest(self):
-        """Return a dictionary containing structure and alignment information
+        """Returns a dictionary containing structure and alignment information
         for the hit with highest sequence identity."""
 
         return dict(self._hits[0][2])

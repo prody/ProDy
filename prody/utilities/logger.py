@@ -175,7 +175,7 @@ class PackageLogger(object):
         self._logger.addHandler(hdlr)
 
     def getHandlers(self):
-        """Return handlers."""
+        """Returns handlers."""
 
         return self._logger.handlers
 
@@ -289,7 +289,7 @@ class PackageLogger(object):
         self._times[label] = time.time()
 
     def timing(self, label=None):
-        """Return timing for a labeled or default (**None**) process."""
+        """Returns timing for a labeled or default (**None**) process."""
 
         return time.time() - self._times.get(label, 0)
 

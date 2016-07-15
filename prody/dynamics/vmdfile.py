@@ -26,7 +26,7 @@ from .nmdfile import viewNMDinVMD, pathVMD, getVMDpath, setVMDpath
 def writeVMDstiffness(model, pdb, indices, k_range, filename='vmd_out', \
                             selstr='protein and name CA', loadToVMD=True):
    
-    """Return three *filename* files: (1) PDB file with coordinates. 
+    """Returns three *filename* files: (1) PDB file with coordinates. 
     (2) TCL file containing vmd commands for loading PDB file with accurate 	
     vmd representation. Pair of residues with selected *k_range* of 
     effective spring constant are shown in VMD respresentation with 

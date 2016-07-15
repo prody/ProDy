@@ -48,7 +48,7 @@ class AtomSubset(AtomPointer):
         return len(self._indices)
 
     def getCoords(self):
-        """Return a copy of coordinates from the active coordinate set."""
+        """Returns a copy of coordinates from the active coordinate set."""
 
         if self._ag._coords is not None:
             # Since this is not slicing, a view is not returned
@@ -64,7 +64,7 @@ class AtomSubset(AtomPointer):
             self._ag._setTimeStamp(self.getACSIndex())
 
     def getCoordsets(self, indices=None):
-        """Return coordinate set(s) at given *indices*, which may be an integer
+        """Returns coordinate set(s) at given *indices*, which may be an integer
         or a list/array of integers."""
 
         if self._ag._coords is None:
@@ -92,17 +92,17 @@ class AtomSubset(AtomPointer):
     _iterCoordsets = iterCoordsets
 
     def getIndices(self):
-        """Return a copy of the indices of atoms."""
+        """Returns a copy of the indices of atoms."""
 
         return self._indices.copy()
 
     def _getIndices(self):
-        """Return indices of atoms."""
+        """Returns indices of atoms."""
 
         return self._indices
 
     def numAtoms(self, flag=None):
-        """Return number of atoms, or number of atoms with given *flag*."""
+        """Returns number of atoms, or number of atoms with given *flag*."""
 
         return len(self._getSubset(flag)) if flag else len(self._indices)
 
@@ -117,7 +117,7 @@ class AtomSubset(AtomPointer):
     __iter__ = iterAtoms
 
     def getData(self, label):
-        """Return a copy of data associated with *label*, if it is present."""
+        """Returns a copy of data associated with *label*, if it is present."""
 
         data = self._ag._getData(label)
         if data is not None:
@@ -142,7 +142,7 @@ class AtomSubset(AtomPointer):
                                      'AtomGroup first'.format(repr(label)))
 
     def getFlags(self, label):
-        """Return a copy of atom flags for given *label*, or **None** when
+        """Returns a copy of atom flags for given *label*, or **None** when
         flags for *label* is not set."""
 
         return self._ag._getFlags(label)[self._indices]

@@ -20,7 +20,7 @@ if PY2K:
 __all__ = ['parsePSF', 'writePSF']
 
 def parsePSF(filename, title=None, ag=None):
-    """Return an :class:`.AtomGroup` instance storing data parsed from X-PLOR
+    """Returns an :class:`.AtomGroup` instance storing data parsed from X-PLOR
     format PSF file *filename*.  Atom and bond information is parsed from the
     file.  If *title* is not given, *filename* will be set as the title of the
     :class:`.AtomGroup` instance.  An :class:`.AtomGroup` instance may be

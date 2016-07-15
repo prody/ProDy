@@ -23,7 +23,7 @@ __all__ = ['extendModel', 'extendMode', 'extendVector',
 
 
 def extend(model, nodes, atoms):
-    """Return mapping indices and an :class:`.AtomMap`."""
+    """Returns mapping indices and an :class:`.AtomMap`."""
 
     try:
         n_atoms = model.numAtoms()
@@ -161,7 +161,7 @@ def slice(atoms, select):
 
 
 def sliceVector(vector, atoms, select):
-    """Return part of the *vector* for *atoms* matching *select*.  Note that
+    """Returns part of the *vector* for *atoms* matching *select*.  Note that
     returned :class:`.Vector` instance is not normalized.
 
     :arg vector: vector instance to be sliced
@@ -194,7 +194,7 @@ def sliceVector(vector, atoms, select):
 
 
 def sliceMode(mode, atoms, select):
-    """Return part of the *mode* for *atoms* matching *select*.  This works
+    """Returns part of the *mode* for *atoms* matching *select*.  This works
     slightly different from :func:`.sliceVector`. Mode array (eigenvector) is
     multiplied by square-root of the variance along the mode.  If mode is from
     an elastic network model, variance is defined as the inverse of the
@@ -230,7 +230,7 @@ def sliceMode(mode, atoms, select):
 
 
 def sliceModel(model, atoms, select):
-    """Return a part of the *model* for *atoms* matching *select*.  Note that
+    """Returns a part of the *model* for *atoms* matching *select*.  Note that
     normal modes (eigenvectors) are not normalized.
 
     :arg mode: NMA model instance to be sliced
@@ -269,7 +269,7 @@ def sliceModel(model, atoms, select):
 
 
 def reduceModel(model, atoms, select):
-    """Return reduced NMA model.  Reduces a :class:`.NMA` model to a subset of
+    """Returns reduced NMA model.  Reduces a :class:`.NMA` model to a subset of
     *atoms* matching *select*.  This function behaves differently depending on
     the type of the *model* argument.  For :class:`.ANM` and :class:`.GNM` or
     other :class:`.NMA` models, force constant matrix for system of interest

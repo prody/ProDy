@@ -77,7 +77,7 @@ def saveModel(nma, filename=None, matrices=False, **kwargs):
 
 
 def loadModel(filename):
-    """Return NMA instance after loading it from file (*filename*).
+    """Returns NMA instance after loading it from file (*filename*).
     This function makes use of :func:`numpy.load` function.  See
     also :func:`saveModel`."""
 
@@ -134,7 +134,7 @@ def saveVector(vector, filename, **kwargs):
 
 
 def loadVector(filename):
-    """Return :class:`.Vector` instance after loading it from *filename* using
+    """Returns :class:`.Vector` instance after loading it from *filename* using
     :func:`numpy.load`.  See also :func:`saveVector`."""
 
     attr_dict = np.load(filename)
@@ -159,7 +159,7 @@ def writeModes(filename, modes, format='%.18e', delimiter=' '):
 def parseModes(normalmodes, eigenvalues=None, nm_delimiter=None,
                nm_skiprows=0, nm_usecols=None, ev_delimiter=None,
                ev_skiprows=0, ev_usecols=None, ev_usevalues=None):
-    """Return :class:`.NMA` instance with normal modes parsed from
+    """Returns :class:`.NMA` instance with normal modes parsed from
     *normalmodes*.
 
     In normal mode file *normalmodes*, columns must correspond to modes

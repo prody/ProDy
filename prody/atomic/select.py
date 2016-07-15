@@ -499,7 +499,7 @@ MACROS_REGEX = None
 
 
 def isSelectionMacro(word):
-    """Return **True** if *word* is a user defined selection macro."""
+    """Returns **True** if *word* is a user defined selection macro."""
 
     try:
         return word in MACROS
@@ -558,7 +558,7 @@ def delSelectionMacro(name):
 
 
 def getSelectionMacro(name=None):
-    """Return the definition of the macro *name*.  If *name* is not given,
+    """Returns the definition of the macro *name*.  If *name* is not given,
     returns a copy of the selection macros dictionary."""
 
     if name is None:
@@ -864,7 +864,7 @@ class Select(object):
                                     'index ' + str(index), atoms.getACSIndex())
 
     def select(self, atoms, selstr, **kwargs):
-        """Return a :class:`.Selection` of atoms matching *selstr*, or
+        """Returns a :class:`.Selection` of atoms matching *selstr*, or
         **None**, if selection string does not match any atoms.
 
         :arg atoms: atoms to be evaluated
@@ -924,7 +924,7 @@ class Select(object):
                title='Selection {0} from '.format(repr(selstr)) + str(atoms))
 
     def getIndices(self, atoms, selstr, **kwargs):
-        """Return indices of atoms matching *selstr*.  Indices correspond to
+        """Returns indices of atoms matching *selstr*.  Indices correspond to
         the order in *atoms* argument.  If *atoms* is a subset of atoms, they
         should not be used for indexing the corresponding :class:`.AtomGroup`
         instance."""
@@ -949,7 +949,7 @@ class Select(object):
             return torf.nonzero()[0]
 
     def getBoolArray(self, atoms, selstr, **kwargs):
-        """Return a boolean array with **True** values for *atoms* matching
+        """Returns a boolean array with **True** values for *atoms* matching
         *selstr*.  The length of the boolean :class:`numpy.ndarray` will be
         equal to the length of *atoms* argument."""
 
@@ -1032,7 +1032,7 @@ class Select(object):
         return torf
 
     def _getParser(self, selstr):
-        """Return an efficient parser that can handle *selstr*."""
+        """Returns an efficient parser that can handle *selstr*."""
 
         alnum = selstr
         alpha = selstr
@@ -1105,7 +1105,7 @@ class Select(object):
         return [self._default(selstr, 0, selstr.split())]
 
     def _getZeros(self, subset=None):
-        """Return a bool array with zero elements."""
+        """Returns a bool array with zero elements."""
 
         if subset is None:
             return zeros(self._atoms.numAtoms(), bool)
@@ -1745,7 +1745,7 @@ class Select(object):
         return torf, False
 
     def _getNumeric(self, sel, loc, arg, copy=False):
-        """Return numeric data or a number."""
+        """Returns numeric data or a number."""
 
         debug(sel, loc, '_getNumeric', arg)
 
@@ -2364,7 +2364,7 @@ class Select(object):
             return self._getZeros(subset), False
 
     def _getData(self, sel, loc, keyword):
-        """Return atomic data."""
+        """Returns atomic data."""
 
         data = self._data.get(keyword)
         if data is not None:
@@ -2410,7 +2410,7 @@ class Select(object):
         return data, False
 
     def _getCoords(self):
-        """Return coordinates of atoms."""
+        """Returns coordinates of atoms."""
 
         if self._coords is None:
             self._coords = self._atoms._getCoords()

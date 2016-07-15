@@ -208,24 +208,24 @@ class MSA(object):
                      doc='Return split label when iterating or indexing.')
 
     def isAligned(self):
-        """Return **True** if MSA is aligned."""
+        """Returns **True** if MSA is aligned."""
 
         return self._aligned
 
     def numSequences(self):
-        """Return number of sequences."""
+        """Returns number of sequences."""
 
         return self._msa.shape[0]
 
     def numResidues(self):
-        """Return number of residues (or columns in the MSA), if MSA is
+        """Returns number of residues (or columns in the MSA), if MSA is
         aligned."""
 
         if self._aligned:
             return self._msa.shape[1]
 
     def numIndexed(self):
-        """Return number of sequences that are indexed using the identifier
+        """Returns number of sequences that are indexed using the identifier
         part or all of their labels.  The return value should be equal to
         number of sequences."""
 
@@ -242,7 +242,7 @@ class MSA(object):
             return count
 
     def getTitle(self):
-        """Return title of the instance."""
+        """Returns title of the instance."""
 
         return self._title
 
@@ -252,7 +252,7 @@ class MSA(object):
         self._title = str(title)
 
     def getLabel(self, index, full=False):
-        """Return label of the sequence at given *index*.  Residue numbers will
+        """Returns label of the sequence at given *index*.  Residue numbers will
         be removed from the sequence label, unless *full* is **True**."""
 
         index = self._mapping.get(index, index)
@@ -262,24 +262,24 @@ class MSA(object):
             return splitSeqLabel(self._labels[index])[0]
 
     def getResnums(self, index):
-        """Return starting and ending residue numbers (:term:`resnum`) for the
+        """Returns starting and ending residue numbers (:term:`resnum`) for the
         sequence at given *index*."""
 
         index = self._mapping.get(index, index)
         return splitSeqLabel(self._labels[index])[1:]
 
     def getArray(self):
-        """Return a copy of the MSA character array."""
+        """Returns a copy of the MSA character array."""
 
         return self._msa.copy()
 
     def _getArray(self):
-        """Return MSA character array."""
+        """Returns MSA character array."""
 
         return self._msa
 
     def getIndex(self, label):
-        """Return index of the sequence that *label* maps onto.  If *label*
+        """Returns index of the sequence that *label* maps onto.  If *label*
         maps onto multiple sequences or *label* is a list of labels, a list
         of indices is returned.  If an index for a label is not found,
         return **None**."""
@@ -320,7 +320,7 @@ class MSA(object):
                 yield splitSeqLabel(label)[0]
 
     def countLabel(self, label):
-        """Return the number of sequences that *label* maps onto."""
+        """Returns the number of sequences that *label* maps onto."""
 
         try:
             return len(self._mapping[label])
@@ -567,7 +567,7 @@ def refineMSA(msa, label=None, rowocc=None, seqid=None, colocc=None, **kwargs):
 
 
 def mergeMSA(*msa, **kwargs):
-    """Return an :class:`.MSA` obtained from merging parts of the sequences
+    """Returns an :class:`.MSA` obtained from merging parts of the sequences
     of proteins present in multiple *msa* instances.  Sequences are matched
     based on protein identifiers found in the sequence labels.  Order of
     sequences in the merged MSA will follow the order of sequences in the
@@ -622,7 +622,7 @@ def mergeMSA(*msa, **kwargs):
     return merger
 
 def specMergeMSA(*msa, **kwargs):
-    """Return an :class:`.MSA` obtained from merging parts of the sequences
+    """Returns an :class:`.MSA` obtained from merging parts of the sequences
     of proteins present in multiple *msa* instances.  Sequences are matched
     based on species section of protein identifiers found in the sequence labels.  
     Order of sequences in the merged MSA will follow the order of sequences in the

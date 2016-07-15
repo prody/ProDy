@@ -50,7 +50,7 @@ class PackageSettings(object):
         return item in self._settings
 
     def get(self, key, default=None):
-        """Return value corresponding to specified *key*, or *default* if *key*
+        """Returns value corresponding to specified *key*, or *default* if *key*
         is not found."""
 
         return self._settings.get(key, default)
@@ -122,7 +122,7 @@ def setPackagePath(path):
 
 
 def getPackagePath():
-    """Return package path."""
+    """Returns package path."""
 
     path = pkg.SETTINGS.get('package_path', None)
 

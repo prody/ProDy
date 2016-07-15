@@ -74,7 +74,7 @@ class Field(object):
             READONLY.add(self.name)
 
     def getDocstr(self, meth, plural=True, selex=True):
-        """Return documentation string for the field."""
+        """Returns documentation string for the field."""
 
         assert meth in ('set', 'get', '_get'), "meth must be 'set' or 'get'"
         assert isinstance(plural, bool), 'plural must be a boolean'

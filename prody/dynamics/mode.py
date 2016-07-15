@@ -49,7 +49,7 @@ class VectorBase(object):
         return self.__div__(other)
 
     def __mul__(self, other):
-        """Return scaled mode or dot product between modes."""
+        """Returns scaled mode or dot product between modes."""
 
         try:
             other = other._getArray()
@@ -71,7 +71,7 @@ class VectorBase(object):
                                                 str(err)))
 
     def __rmul__(self, other):
-        """Return scaled mode or dot product between modes."""
+        """Returns scaled mode or dot product between modes."""
 
         try:
             other = other._getArray()
@@ -160,27 +160,27 @@ class VectorBase(object):
                           self.is3d())
 
     def getArray(self):
-        """Return a copy of array."""
+        """Returns a copy of array."""
 
         pass
 
     def _getArray(self):
-        """Return array."""
+        """Returns array."""
 
         pass
 
     def numAtoms(self):
-        """Return number of atoms."""
+        """Returns number of atoms."""
 
         pass
 
     def is3d(self):
-        """Return **True** if vector is 3d."""
+        """Returns **True** if vector is 3d."""
 
         pass
 
     def getArrayNx3(self):
-        """Return a copy of array with shape (N, 3)."""
+        """Returns a copy of array with shape (N, 3)."""
 
         if self.is3d():
             return self.getArray().reshape((self.numAtoms(), 3))
@@ -188,7 +188,7 @@ class VectorBase(object):
             return self.getArray()
 
     def _getArrayNx3(self):
-        """Return a copy of array with shape (N, 3)."""
+        """Returns a copy of array with shape (N, 3)."""
 
         if self.is3d():
             return self._getArray().reshape((self.numAtoms(), 3))
@@ -196,7 +196,7 @@ class VectorBase(object):
             return self._getArray()
 
     def numModes(self):
-        """Return 1."""
+        """Returns 1."""
 
         return 1
 
@@ -242,17 +242,17 @@ class Mode(VectorBase):
         return self.getEigval()
 
     def is3d(self):
-        """Return **True** if mode instance is from a 3-dimensional model."""
+        """Returns **True** if mode instance is from a 3-dimensional model."""
 
         return self._model.is3d()
 
     def numAtoms(self):
-        """Return number of atoms."""
+        """Returns number of atoms."""
 
         return self._model.numAtoms()
 
     def numDOF(self):
-        """Return number of degrees of freedom (three times the number of
+        """Returns number of degrees of freedom (three times the number of
         atoms)."""
 
         return self._model.numDOF()
@@ -263,30 +263,30 @@ class Mode(VectorBase):
         return str(self)
 
     def getIndex(self):
-        """Return the index of the mode.  Note that mode indices are
+        """Returns the index of the mode.  Note that mode indices are
         zero-based."""
 
         return self._index
 
     def getModel(self):
-        """Return the model that the mode instance belongs to."""
+        """Returns the model that the mode instance belongs to."""
 
         return self._model
 
     def getArray(self):
-        """Return a copy of the normal mode array (eigenvector)."""
+        """Returns a copy of the normal mode array (eigenvector)."""
 
         return self._model._array[:, self._index].copy()
 
     getEigvec = getArray
 
     def _getArray(self):
-        """Return a copy of the normal mode array (eigenvector)."""
+        """Returns a copy of the normal mode array (eigenvector)."""
 
         return self._model._array[:, self._index]
 
     def getEigval(self):
-        """Return normal mode eigenvalue.  For :class:`.PCA` and :class:`.EDA`
+        """Returns normal mode eigenvalue.  For :class:`.PCA` and :class:`.EDA`
         models built using coordinate data in Å, unit of eigenvalues is |A2|.
         For :class:`.ANM` and :class:`.GNM`, on the other hand, eigenvalues
         are in arbitrary or relative units but they correlate with stiffness
@@ -295,7 +295,7 @@ class Mode(VectorBase):
         return self._model._eigvals[self._index]
 
     def getVariance(self):
-        """Return variance along the mode.  For :class:`.PCA` and :class:`.EDA`
+        """Returns variance along the mode.  For :class:`.PCA` and :class:`.EDA`
         models built using coordinate data in Å, unit of variance is |A2|.  For
         :class:`.ANM` and :class:`.GNM`, on the other hand, variance is the
         inverse of the eigenvalue, so it has arbitrary or relative units."""
@@ -340,7 +340,7 @@ class Vector(VectorBase):
         return self._title
 
     def is3d(self):
-        """Return **True** if vector instance describes a 3-dimensional
+        """Returns **True** if vector instance describes a 3-dimensional
         property, such as a deformation for a set of atoms."""
 
         return self._is3d
@@ -356,28 +356,28 @@ class Vector(VectorBase):
         self._title = str(title)
 
     def getArray(self):
-        """Return a copy of array."""
+        """Returns a copy of array."""
 
         return self._array.copy()
 
     def _getArray(self):
-        """Return array."""
+        """Returns array."""
 
         return self._array
 
     def getNormed(self):
-        """Return mode after normalizing it."""
+        """Returns mode after normalizing it."""
 
         return Vector(self._array/(self._array**2).sum()**0.5,
                       '({0})/||{0}||'.format(self._title), self._is3d)
 
     def numDOF(self):
-        """Return number of degrees of freedom."""
+        """Returns number of degrees of freedom."""
 
         return len(self._array)
 
     def numAtoms(self):
-        """Return number of atoms.  For a 3-dimensional vector, returns length
+        """Returns number of atoms.  For a 3-dimensional vector, returns length
         of the vector divided by 3."""
 
         if self._is3d:

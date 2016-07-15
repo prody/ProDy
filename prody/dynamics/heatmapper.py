@@ -87,7 +87,7 @@ def showHeatmap(heatmap, *args, **kwargs):
 
 
 def parseHeatmap(heatmap, **kwargs):
-    """Return a two dimensional array and a dictionary with information parsed
+    """Returns a two dimensional array and a dictionary with information parsed
     from *heatmap*, which may be an input stream or an :file:`.hm` file in VMD
     plugin Heat Mapper format."""
 
@@ -151,7 +151,7 @@ def parseHeatmap(heatmap, **kwargs):
 
 
 def writeHeatmap(filename, heatmap, **kwargs):
-    """Return *filename* that contains *heatmap* in Heat Mapper :file:`.hm`
+    """Returns *filename* that contains *heatmap* in Heat Mapper :file:`.hm`
     file (extension is automatically added when not found).  *filename* may
     also be an output stream.
 

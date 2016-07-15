@@ -18,7 +18,7 @@ __all__ = ['Sequence']
 
 
 def splitSeqLabel(label):
-    """Return label, starting residue number, and ending residue number parsed
+    """Returns label, starting residue number, and ending residue number parsed
     from sequence label."""
 
     try:
@@ -98,12 +98,12 @@ class Sequence(object):
             return False
 
     def getMSA(self):
-        """Return :class:`.MSA` instance or **None**."""
+        """Returns :class:`.MSA` instance or **None**."""
 
         return self._msa
 
     def getIndex(self):
-        """Return sequence index or **None**."""
+        """Returns sequence index or **None**."""
 
         return self._index
 
@@ -114,7 +114,7 @@ class Sequence(object):
     #    self._label = str(label)
 
     def getLabel(self, full=False):
-        """Return label of the sequence."""
+        """Returns label of the sequence."""
 
         label = self._label
         if label is None:
@@ -122,18 +122,18 @@ class Sequence(object):
         return (label if full else splitSeqLabel(label)[0]).strip()
 
     def numGaps(self):
-        """Return number of gap characters."""
+        """Returns number of gap characters."""
 
         array = self._array
         return len(array) - sum(char.isalpha(array))
 
     def numResidues(self):
-        """Return the number of alphabet characters."""
+        """Returns the number of alphabet characters."""
 
         return sum(char.isalpha(self._array))
 
     def getResnums(self, gaps=False):
-        """Return list of residue numbers associated with non-gapped *seq*.
+        """Returns list of residue numbers associated with non-gapped *seq*.
         When *gaps* is **True**, return a list containing the residue numbers
         with gaps appearing as **None**.  Residue numbers are inferred from the
         full label.  When label does not contain residue number information,
@@ -161,6 +161,6 @@ class Sequence(object):
             return list(resnums)
 
     def copy(self):
-        """Return a copy of the instance that owns its sequence data."""
+        """Returns a copy of the instance that owns its sequence data."""
 
         return Sequence(str(self), self.getLabel())

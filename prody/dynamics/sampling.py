@@ -16,7 +16,7 @@ __all__ = ['deformAtoms', 'sampleModes', 'traverseMode']
 
 
 def sampleModes(modes, atoms=None, n_confs=1000, rmsd=1.0):
-    """Return an ensemble of randomly sampled conformations along given
+    """Returns an ensemble of randomly sampled conformations along given
     *modes*.  If *atoms* are provided, sampling will be around its active
     coordinate set.  Otherwise, sampling is around the 0 coordinate set.
 
@@ -262,7 +262,7 @@ __all__ = ['deformAtoms', 'sampleModes', 'traverseMode']
 
 
 def sampleModes(modes, atoms=None, n_confs=1000, rmsd=1.0):
-    """Return an ensemble of randomly sampled conformations along given
+    """Returns an ensemble of randomly sampled conformations along given
     *modes*.  If *atoms* are provided, sampling will be around its active
     coordinate set.  Otherwise, sampling is around the 0 coordinate set.
 

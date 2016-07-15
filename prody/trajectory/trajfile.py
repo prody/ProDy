@@ -89,7 +89,7 @@ class TrajFile(TrajBase):
                    self.__class__.__name__, self._title, link, next, atoms)
 
     def getFilename(self, absolute=False):
-        """Return relative path to the current file. For absolute path,
+        """Returns relative path to the current file. For absolute path,
         pass ``absolute=True`` argument."""
 
         if absolute:
@@ -97,7 +97,7 @@ class TrajFile(TrajBase):
         return relpath(self._filename)
 
     def getFrame(self, index):
-        """Return frame at given *index*."""
+        """Returns frame at given *index*."""
 
         if self._closed:
             raise ValueError('I/O operation on closed file')
@@ -213,21 +213,21 @@ class TrajFile(TrajBase):
     close.__doc__ = TrajBase.close.__doc__
 
     def getTimestep(self):
-        """Return timestep size."""
+        """Returns timestep size."""
 
         return self._timestep
 
     def getFirstTimestep(self):
-        """Return first timestep value."""
+        """Returns first timestep value."""
 
         return self._first_ts
 
     def getFrameFreq(self):
-        """Return timesteps between frames."""
+        """Returns timesteps between frames."""
 
         return self._framefreq
 
     def numFixed(self):
-        """Return number of fixed atoms."""
+        """Returns number of fixed atoms."""
 
         return self._n_fixed
