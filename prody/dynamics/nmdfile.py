@@ -337,13 +337,17 @@ def parseNMD(filename, type=None):
     return nma, ag
 
 
-def writeNMD(filename, modes, atoms):
+def writeNMD(filename, modes, atoms, zeros=False):
     """Return *filename* that contains *modes* and *atoms* data in NMD format
     described in :ref:`nmd-format`.  :file:`.nmd` extension is appended to
     filename, if it does not have an extension.
 
     .. note::
-       #. This function skips modes with zero eigenvalues.
+       #. If zeros is **False** (by default), this function skips modes 
+          with zero eigenvalues. If zeros is **True**, modes with zero 
+          eigenvalues are written out, their scaling factor being the 
+          square-root of the inverse of the mode number times 0.0001.
+          This provides descending factors consistent with the NMA modes.
        #. If a :class:`.Vector` instance is given, it will be normalized
           before it is written. It's length before normalization will be
           written as the scaling factor of the vector."""
@@ -428,10 +432,14 @@ def writeNMD(filename, modes, atoms):
         if isinstance(modes, Mode):
             modes = [modes]
         for mode in modes:
-            if mode.getEigval() < ZERO:
+            if (mode.getEigval() < ZERO) and not zeros:
                 continue
-            out.write('mode {0} {1:.2f} '.format(
-                       mode.getIndex()+1, mode.getVariance()**0.5))
+            elif (mode.getEigval() < ZERO) and zeros:
+                out.write('mode {0} {1:.2f} '.format(
+                mode.getIndex()+1, np.sqrt(1/(0.0001*(mode.getIndex()+1)))))
+            else:
+                out.write('mode {0} {1:.2f} '.format(
+                mode.getIndex()+1, mode.getVariance()**0.5))
             arr = mode._getArray().tofile(out, ' ', '%.3f')
             out.write('\n')
             count += 1
