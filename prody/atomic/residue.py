@@ -58,7 +58,7 @@ class Residue(AtomSubset):
                                          self.getIcode() or '')
 
     def getAtom(self, name):
-        """Return atom with given *name*, ``None`` if not found.  Assumes that
+        """Returns atom with given *name*, ``None`` if not found.  Assumes that
         atom names in the residue are unique.  If more than one atoms with the
         given *name* exists, the one with the smaller index will be returned.
         """
@@ -72,14 +72,14 @@ class Residue(AtomSubset):
     __getitem__ = getAtom
 
     def getChain(self):
-        """Return the chain that the residue belongs to."""
+        """Returns the chain that the residue belongs to."""
 
         chid = self.getChid()
         if chid is not None:
             return self._hv.getChain(chid)
 
     def getResnum(self):
-        """Return residue number."""
+        """Returns residue number."""
 
         return self._ag._getResnums()[self._indices[0]]
 
@@ -89,7 +89,7 @@ class Residue(AtomSubset):
         self.setResnums(number)
 
     def getResname(self):
-        """Return residue name."""
+        """Returns residue name."""
 
         data = self._ag._getResnames()
         if data is not None:
@@ -101,7 +101,7 @@ class Residue(AtomSubset):
         self.setResnames(name)
 
     def getIcode(self):
-        """Return residue insertion code."""
+        """Returns residue insertion code."""
 
         data = self._ag._getIcodes()
         if data is not None:
@@ -113,33 +113,33 @@ class Residue(AtomSubset):
         self.setIcodes(icode)
 
     def getResindex(self):
-        """Return residue index."""
+        """Returns residue index."""
 
         return self._ag._getResindices()[self._indices[0]]
 
     def getChid(self):
-        """Return chain identifier."""
+        """Returns chain identifier."""
 
         chids = self._ag._getChids()
         if chids is not None:
             return chids[self._indices[0]]
 
     def getSegname(self):
-        """Return segment name."""
+        """Returns segment name."""
 
         segnames = self._ag._getSegnames()
         if segnames is not None:
             return segnames[self._indices[0]]
 
     def getSegment(self):
-        """Return segment of the residue."""
+        """Returns segment of the residue."""
 
         segname = self.getSegname()
         if segname is not None:
             return self._hv.getSegment(segname)
 
     def getSelstr(self):
-        """Return selection string that will select this residue."""
+        """Returns selection string that will select this residue."""
 
         icode = self.getIcode() or ''
         chain = self.getChain()
@@ -154,7 +154,7 @@ class Residue(AtomSubset):
                                 self.getResnum(), icode, chain.getSelstr())
 
     def getPrev(self):
-        """Return preceding residue in the atom group."""
+        """Returns preceding residue in the atom group."""
 
         nextIndex = self.getResindex()-1
         if nextIndex < 0:
@@ -162,6 +162,6 @@ class Residue(AtomSubset):
         return self._hv._getResidue(nextIndex)
 
     def getNext(self):
-        """Return following residue in the atom group."""
+        """Returns following residue in the atom group."""
 
         return self._hv._getResidue(self.getResindex()+1)

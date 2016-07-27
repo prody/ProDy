@@ -287,7 +287,7 @@ class AtomGroup(Atomic):
          self._data.pop(nm,  None) for nm in attrs]
 
     def _getTimeStamp(self, index):
-        """Return time stamp showing when coordinates were last changed."""
+        """Returns time stamp showing when coordinates were last changed."""
 
         if self._n_cset:
             if index is None:
@@ -311,7 +311,7 @@ class AtomGroup(Atomic):
             self._kdtrees[index] = None
 
     def _getKDTree(self, index=None):
-        """Return KDTree for coordinate set at given index."""
+        """Returns KDTree for coordinate set at given index."""
 
         if self._n_csets:
             if index is None:
@@ -325,7 +325,7 @@ class AtomGroup(Atomic):
             return None
 
     def _getSN2I(self):
-        """Return a mapping of serial numbers to indices."""
+        """Returns a mapping of serial numbers to indices."""
 
         if self._sn2i is None and 'serial' in self._data:
             serials = self._data['serial']
@@ -343,7 +343,7 @@ class AtomGroup(Atomic):
         return self._sn2i
 
     def getTitle(self):
-        """Return title of the instance."""
+        """Returns title of the instance."""
 
         return self._title
 
@@ -353,18 +353,18 @@ class AtomGroup(Atomic):
         self._title = str(title)
 
     def numAtoms(self, flag=None):
-        """Return number of atoms, or number of atoms with given *flag*."""
+        """Returns number of atoms, or number of atoms with given *flag*."""
 
         return len(self._getSubset(flag)) if flag else self._n_atoms
 
     def getCoords(self):
-        """Return a copy of coordinates from active coordinate set."""
+        """Returns a copy of coordinates from active coordinate set."""
 
         if self._coords is not None:
             return self._coords[self._acsi].copy()
 
     def _getCoords(self):
-        """Return a view of coordinates from active coordinate set."""
+        """Returns a view of coordinates from active coordinate set."""
 
         if self._coords is not None:
             return self._coords[self._acsi]
@@ -525,7 +525,7 @@ class AtomGroup(Atomic):
         self._timestamps = self._timestamps[which]
 
     def getCoordsets(self, indices=None):
-        """Return a copy of coordinate set(s) at given *indices*.  *indices*
+        """Returns a copy of coordinate set(s) at given *indices*.  *indices*
         may  be an integer, a list of integers, or **None** meaning all
         coordinate sets."""
 
@@ -543,7 +543,7 @@ class AtomGroup(Atomic):
                          'integers, a slice, or None')
 
     def _getCoordsets(self, indices=None):
-        """Return a view of coordinate set(s) at given *indices*."""
+        """Returns a view of coordinate set(s) at given *indices*."""
 
         if self._coords is None:
             return None
@@ -555,7 +555,7 @@ class AtomGroup(Atomic):
                              'integers, a slice, or None')
 
     def numBytes(self, all=False):
-        """Return number of bytes used by atomic data arrays, such as
+        """Returns number of bytes used by atomic data arrays, such as
         coordinate, flag, and attribute arrays.  If *all* is **True**,
         internal arrays for indexing hierarchical views, bonds, and
         fragments will also be included.  Note that memory usage of
@@ -597,7 +597,7 @@ class AtomGroup(Atomic):
         return sum(getbase(arr).nbytes for arr in arrays.values())
 
     def numCoordsets(self):
-        """Return number of coordinate sets."""
+        """Returns number of coordinate sets."""
 
         return self._n_csets
 
@@ -616,7 +616,7 @@ class AtomGroup(Atomic):
             yield self._coords[i]
 
     def getACSIndex(self):
-        """Return index of the coordinate set."""
+        """Returns index of the coordinate set."""
 
         return self._acsi
 
@@ -635,24 +635,24 @@ class AtomGroup(Atomic):
         self._acsi = index
 
     def getHierView(self, **kwargs):
-        """Return a hierarchical view of the atom group."""
+        """Returns a hierarchical view of the atom group."""
 
         if self._hv is None:
             self._hv = HierView(self, **kwargs)
         return self._hv
 
     def numSegments(self):
-        """Return number of segments."""
+        """Returns number of segments."""
 
         return self.getHierView().numSegments()
 
     def numChains(self):
-        """Return number of chains."""
+        """Returns number of chains."""
 
         return self.getHierView().numChains()
 
     def numResidues(self):
-        """Return number of residues."""
+        """Returns number of residues."""
 
         return self.getHierView().numResidues()
 
@@ -705,13 +705,13 @@ class AtomGroup(Atomic):
             self._data[label] = data
 
     def delData(self, label):
-        """Return data associated with *label* and remove from the instance.
+        """Returns data associated with *label* and remove from the instance.
         If data associated with *label* is not found, return **None**."""
 
         return self._data.pop(label, None)
 
     def getData(self, label):
-        """Return a copy of the data array associated with *label*, or **None**
+        """Returns a copy of the data array associated with *label*, or **None**
         if such data is not present."""
 
         data = self._getData(label)
@@ -719,7 +719,7 @@ class AtomGroup(Atomic):
             return data.copy()
 
     def _getData(self, label):
-        """Return data array associated with *label*, or **None** if such data
+        """Returns data array associated with *label*, or **None** if such data
         is not present."""
 
         try:
@@ -733,7 +733,7 @@ class AtomGroup(Atomic):
                 return getattr(self, '_get' + field.meth_pl)()
 
     def isDataLabel(self, label):
-        """Return **True** if data associated with *label* is present."""
+        """Returns **True** if data associated with *label* is present."""
 
         if label in self._data:
             return True
@@ -744,7 +744,7 @@ class AtomGroup(Atomic):
                 return False
 
     def getDataLabels(self, which=None):
-        """Return data labels.  For ``which='user'``, return only labels of
+        """Returns data labels.  For ``which='user'``, return only labels of
         user provided data."""
 
         if str(which).startswith('u'):  # user
@@ -756,7 +756,7 @@ class AtomGroup(Atomic):
         return labels
 
     def getDataType(self, label):
-        """Return type of the data (i.e. ``data.dtype``) associated with
+        """Returns type of the data (i.e. ``data.dtype``) associated with
         *label*, or **None** label is not used."""
 
         try:
@@ -765,12 +765,12 @@ class AtomGroup(Atomic):
             return None
 
     def isFlagLabel(self, label):
-        """Return **True** if flags associated with *label* are present."""
+        """Returns **True** if flags associated with *label* are present."""
 
         return label in FLAG_PLANTERS or label in (self._flags or {})
 
     def getFlags(self, label):
-        """Return a copy of atom flags for given *label*, or **None** when
+        """Returns a copy of atom flags for given *label*, or **None** when
         flags for *label* is not set."""
 
         flags = self._getFlags(label)
@@ -778,7 +778,7 @@ class AtomGroup(Atomic):
             return flags.copy()
 
     def _getFlags(self, label):
-        """Return atom flag values for given *label*, or **None** when
+        """Returns atom flag values for given *label*, or **None** when
         flags for *label* is not set."""
 
         if self._flags is None:
@@ -823,7 +823,7 @@ class AtomGroup(Atomic):
             self._flags[label] = flags
 
     def delFlags(self, label):
-        """Return flags associated with *label* and remove from the instance.
+        """Returns flags associated with *label* and remove from the instance.
         If flags associated with *label* is not found, return **None**."""
 
         return self._flags.pop(label, None)
@@ -835,7 +835,7 @@ class AtomGroup(Atomic):
             self._subsets[label] = indices
 
     def _getSubset(self, label):
-        """Return indices of atoms."""
+        """Returns indices of atoms."""
 
         if self._flags is None:
             self._flags = {}
@@ -856,7 +856,7 @@ class AtomGroup(Atomic):
                 return indices.copy()
 
     def getFlagLabels(self, which=None):
-        """Return flag labels.  For ``which='user'``,  return labels of user
+        """Returns flag labels.  For ``which='user'``,  return labels of user
         or parser (e.g. :term:`hetatm`) provided flags, for ``which='all'``
         return all possible :ref:`flags` labels in addition to those present
         in the instance."""
@@ -930,7 +930,7 @@ class AtomGroup(Atomic):
                                             .format(serial, stop, step))
 
     def getACSLabel(self):
-        """Return active coordinate set label."""
+        """Returns active coordinate set label."""
 
         if self._n_csets:
             return self._cslabels[self._acsi]
@@ -945,7 +945,7 @@ class AtomGroup(Atomic):
                 raise TypeError('label must be a string')
 
     def getCSLabels(self):
-        """Return coordinate set labels."""
+        """Returns coordinate set labels."""
 
         if self._n_csets:
             return list(self._cslabels)
@@ -995,7 +995,7 @@ class AtomGroup(Atomic):
         self._fragments = None
 
     def numBonds(self):
-        """Return number of bonds.  Use :meth:`setBonds` for setting bonds."""
+        """Returns number of bonds.  Use :meth:`setBonds` for setting bonds."""
 
         if self._bonds is not None:
             return self._bonds.shape[0]
@@ -1018,7 +1018,7 @@ class AtomGroup(Atomic):
                 yield a, b
 
     def numFragments(self):
-        """Return number of connected atom subsets."""
+        """Returns number of connected atom subsets."""
 
         self._fragment()
         return self._data['fragindex'].max() + 1

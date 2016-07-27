@@ -118,12 +118,12 @@ class Contacts(object):
     select = __call__
 
     def getAtoms(self):
-        """Return atoms, or coordinate array, provided at instantiation.."""
+        """Returns atoms, or coordinate array, provided at instantiation.."""
 
         return self._atoms
 
     def getUnitcell(self):
-        """Return unitcell array, or **None** if one was not provided."""
+        """Returns unitcell array, or **None** if one was not provided."""
 
         return self._unitcell.copy()
 
@@ -275,7 +275,7 @@ def iterNeighbors(atoms, radius, atoms2=None, unitcell=None):
 
 
 def findNeighbors(atoms, radius, atoms2=None, unitcell=None):
-    """Return list of neighbors that are within *radius* of each other and the
+    """Returns list of neighbors that are within *radius* of each other and the
     distance between them.  See :func:`iterNeighbors` for more details."""
 
     return list(iterNeighbors(atoms, radius, atoms2, unitcell))

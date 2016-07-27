@@ -26,7 +26,7 @@ DISTMAT_FORMATS = set(['mat', 'rcd', 'arr'])
 
 
 def buildDistMatrix(atoms1, atoms2=None, unitcell=None, format='mat'):
-    """Return distance matrix.  When *atoms2* is given, a distance matrix
+    """Returns distance matrix.  When *atoms2* is given, a distance matrix
     with shape ``(len(atoms1), len(atoms2))`` is built.  When *atoms2* is
     **None**, a symmetric matrix with shape ``(len(atoms1), len(atoms1))``
     is built.  If *unitcell* array is provided, periodic boundary conditions
@@ -95,7 +95,7 @@ def buildDistMatrix(atoms1, atoms2=None, unitcell=None, format='mat'):
 
 
 def calcDistance(atoms1, atoms2, unitcell=None):
-    """Return the Euclidean distance between *atoms1* and *atoms2*.  Arguments
+    """Returns the Euclidean distance between *atoms1* and *atoms2*.  Arguments
     may be :class:`~.Atomic` instances or NumPy arrays.  Shape of numpy arrays
     must be ``([M,]N,3)``, where *M* is number of coordinate sets and *N* is
     the number of atoms.  If *unitcell* array is provided, periodic boundary
@@ -141,7 +141,7 @@ def getDistance(coords1, coords2, unitcell=None):
 
 
 def calcAngle(atoms1, atoms2, atoms3, radian=False):
-    """Return the angle between atoms in degrees."""
+    """Returns the angle between atoms in degrees."""
 
     if not isinstance(atoms1, Atomic):
         raise TypeError('atoms1 must be an Atomic instance')
@@ -157,7 +157,7 @@ def calcAngle(atoms1, atoms2, atoms3, radian=False):
 
 
 def getAngle(coords1, coords2, coords3, radian):
-    """Return bond angle in degrees."""
+    """Returns bond angle in degrees."""
 
     v1 = coords1 - coords2
     v2 = coords3 - coords2
@@ -170,7 +170,7 @@ def getAngle(coords1, coords2, coords3, radian):
 
 
 def calcDihedral(atoms1, atoms2, atoms3, atoms4, radian=False):
-    """Return the dihedral angle between atoms in degrees."""
+    """Returns the dihedral angle between atoms in degrees."""
 
     if not isinstance(atoms1, Atomic):
         raise TypeError('atoms1 must be an Atomic instance')
@@ -189,7 +189,7 @@ def calcDihedral(atoms1, atoms2, atoms3, atoms4, radian=False):
 
 
 def getDihedral(coords1, coords2, coords3, coords4, radian=False):
-    """Return the dihedral angle in degrees."""
+    """Returns the dihedral angle in degrees."""
 
     a1 = coords2 - coords1
     a2 = coords3 - coords2
@@ -208,7 +208,7 @@ def getDihedral(coords1, coords2, coords3, coords4, radian=False):
 
 
 def calcOmega(residue, radian=False, dist=4.1):
-    """Return ω (omega) angle of *residue* in degrees.  This function checks
+    """Returns ω (omega) angle of *residue* in degrees.  This function checks
     the distance between Cα atoms of two residues and raises an exception if
     the residues are disconnected.  Set *dist* to **None**, to avoid this."""
 
@@ -241,7 +241,7 @@ def calcOmega(residue, radian=False, dist=4.1):
 
 
 def calcPhi(residue, radian=False, dist=4.1):
-    """Return φ (phi) angle of *residue* in degrees.  This function checks
+    """Returns φ (phi) angle of *residue* in degrees.  This function checks
     the distance between Cα atoms of two residues and raises an exception if
     the residues are disconnected.  Set *dist* to **None**, to avoid this."""
 
@@ -255,7 +255,7 @@ def calcPhi(residue, radian=False, dist=4.1):
 
 
 def getPhiAtoms(residue, dist=4.1):
-    """Return the four atoms that form the φ (phi) angle of *residue*."""
+    """Returns the four atoms that form the φ (phi) angle of *residue*."""
 
     prev = residue.getPrev()
     try:
@@ -290,7 +290,7 @@ def getPhiAtoms(residue, dist=4.1):
 
 
 def calcPsi(residue, radian=False, dist=4.1):
-    """Return ψ (psi) angle of *residue* in degrees.  This function checks
+    """Returns ψ (psi) angle of *residue* in degrees.  This function checks
     the distance between Cα atoms of two residues and raises an exception if
     the residues are disconnected.  Set *dist* to **None**, to avoid this."""
 
@@ -304,7 +304,7 @@ def calcPsi(residue, radian=False, dist=4.1):
 
 
 def getPsiAtoms(residue, dist=4.1):
-    """Return the four atoms that form the φ (phi) angle of *residue*."""
+    """Returns the four atoms that form the φ (phi) angle of *residue*."""
 
     next = residue.getNext()
     try:
@@ -338,7 +338,7 @@ def getPsiAtoms(residue, dist=4.1):
 
 
 def calcCenter(atoms, weights=None):
-    """Return geometric center of *atoms*.  If *weights* is given it must
+    """Returns geometric center of *atoms*.  If *weights* is given it must
     be a flat array with length equal to number of atoms.  Mass center of
     atoms can be calculated by setting weights equal to atom masses, i.e.
     ``weights=atoms.getMasses()``."""
@@ -389,7 +389,7 @@ def getWeights(pdb):
 
 
 def pickCentral(obj, weights=None):
-    """Return :class:`.Atom` or :class:`.Conformation` that is closest to the
+    """Returns :class:`.Atom` or :class:`.Conformation` that is closest to the
     center of *obj*, which may be an :class:`.Atomic` or :class:`.Ensemble`
     instance.  See also :func:`pickCentralAtom`, and :func:`pickCentralConf`
     functions."""
@@ -408,7 +408,7 @@ def pickCentral(obj, weights=None):
 
 
 def pickCentralAtom(atoms, weights=None):
-    """Return :class:`.Atom` that is closest to the center, which is calculated
+    """Returns :class:`.Atom` that is closest to the center, which is calculated
     using :func:`calcCenter`."""
 
     try:
@@ -436,13 +436,13 @@ def pickCentralAtom(atoms, weights=None):
 
 
 def getCentral(coords, weights=None):
-    """Return index of coordinates closest to the center."""
+    """Returns index of coordinates closest to the center."""
 
     return ((coords - getCenter(coords, weights))**2).sum(1).argmin()
 
 
 def pickCentralConf(ens, weights=None):
-    """Return :class:`.Conformation` that is closest to the center of *ens*.
+    """Returns :class:`.Conformation` that is closest to the center of *ens*.
     In addition to :class:`.Ensemble` instances, :class:`.Atomic` instances
     are accepted as *ens* argument. In this case a :class:`.Selection` with
     central coordinate set as active will be returned."""
@@ -578,7 +578,7 @@ calcMSF.__doc__ += _MSF_DOCSTRING
 
 
 def calcRMSF(coordsets):
-    """Return root mean square fluctuation(s) (RMSF)."""
+    """Returns root mean square fluctuation(s) (RMSF)."""
 
     return calcMSF(coordsets) ** 0.5
 
@@ -586,7 +586,7 @@ calcRMSF.__doc__ += _MSF_DOCSTRING
 
 
 def calcDeformVector(from_atoms, to_atoms):
-    """Return deformation from *from_atoms* to *atoms_to* as a :class:`.Vector`
+    """Returns deformation from *from_atoms* to *atoms_to* as a :class:`.Vector`
     instance."""
 
     name = '{0} => {1}'.format(repr(from_atoms), repr(to_atoms))
@@ -598,7 +598,7 @@ def calcDeformVector(from_atoms, to_atoms):
 
 
 def calcADPAxes(atoms, **kwargs):
-    """Return a 3Nx3 array containing principal axes defining anisotropic
+    """Returns a 3Nx3 array containing principal axes defining anisotropic
     displacement parameter (ADP, or anisotropic temperature factor) ellipsoids.
 
     :arg atoms: a ProDy object for handling atomic data
@@ -756,7 +756,7 @@ def calcADPs(atom):
 
 
 def buildADPMatrix(atoms):
-    """Return a 3Nx3N symmetric matrix containing anisotropic displacement
+    """Returns a 3Nx3N symmetric matrix containing anisotropic displacement
     parameters (ADPs) along the diagonal as 3x3 super elements.
 
     .. ipython:: python

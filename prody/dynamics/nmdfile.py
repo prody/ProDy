@@ -126,7 +126,7 @@ from .modeset import ModeSet
 
 
 def pathVMD(*path):
-    """Return VMD path, or set it to be a user specified *path*."""
+    """Returns VMD path, or set it to be a user specified *path*."""
 
     if not path:
         path = SETTINGS.get('vmd', None)
@@ -210,7 +210,7 @@ NMD_LABEL_MAP = {
 
 
 def parseNMD(filename, type=None):
-    """Return :class:`.NMA` and :class:`.AtomGroup` instances storing data
+    """Returns :class:`.NMA` and :class:`.AtomGroup` instances storing data
     parsed from *filename* in :file:`.nmd` format.  Type of :class:`.NMA`
     instance, e.g. :class:`.PCA`, :class:`.ANM`, or :class:`.GNM` will
     be determined based on mode data."""
@@ -338,7 +338,7 @@ def parseNMD(filename, type=None):
 
 
 def writeNMD(filename, modes, atoms):
-    """Return *filename* that contains *modes* and *atoms* data in NMD format
+    """Returns *filename* that contains *modes* and *atoms* data in NMD format
     described in :ref:`nmd-format`.  :file:`.nmd` extension is appended to
     filename, if it does not have an extension.
 

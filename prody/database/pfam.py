@@ -34,7 +34,7 @@ MINSEQLEN = 16
 
 
 def searchPfam(query, **kwargs):
-    """Return Pfam search results in a dictionary.  Matching Pfam accession
+    """Returns Pfam search results in a dictionary.  Matching Pfam accession
     as keys will map to evalue, alignment start and end residue positions.
 
     :arg query: UniProt ID, PDB identifier, protein sequence, or a sequence
@@ -213,7 +213,7 @@ def searchPfam(query, **kwargs):
     return matches
 
 def searchUniprotID(query, search_b=False, skip_a=False, **kwargs):
-    """Return Pfam search results in a dictionary.  Matching Pfam accession
+    """Returns Pfam search results in a dictionary.  Matching Pfam accession
     as keys will map to evalue, alignment start and end residue positions.
 
     :arg query: UniProt ID, PDB identifier, protein sequence, or a sequence
@@ -280,7 +280,7 @@ def searchUniprotID(query, search_b=False, skip_a=False, **kwargs):
     return result
 
 def fetchPfamMSA(acc, alignment='full', compressed=False, **kwargs):
-    """Return a path to the downloaded Pfam MSA file.
+    """Returns a path to the downloaded Pfam MSA file.
 
     :arg acc: Pfam ID or Accession Code
     :type acc: str

@@ -241,7 +241,7 @@ class KDTree(object):
 
 
     def getIndices(self):
-        """Return array of indices for points or pairs, depending on the type
+        """Returns array of indices for points or pairs, depending on the type
         of the most recent search."""
 
         if self.getCount():
@@ -256,7 +256,7 @@ class KDTree(object):
         return self._none()
 
     def getDistances(self):
-        """Return array of distances."""
+        """Returns array of distances."""
 
         if self.getCount():
             if self._unitcell is None:
@@ -270,7 +270,7 @@ class KDTree(object):
         return self._none()
 
     def getCount(self):
-        """Return number of points or pairs."""
+        """Returns number of points or pairs."""
 
         if self._unitcell is None:
             if self._neighbors is None:

@@ -234,7 +234,7 @@ def cleanString(string, nows=False):
 
 
 def parsePDBHeader(pdb, *keys):
-    """Return header data dictionary for *pdb*.  This function is equivalent to
+    """Returns header data dictionary for *pdb*.  This function is equivalent to
     ``parsePDB(pdb, header=True, model=0, meta=False)``, likewise *pdb* may be
     an identifier or a filename.
 
@@ -300,7 +300,7 @@ def parsePDBHeader(pdb, *keys):
 
 
 def getHeaderDict(stream, *keys):
-    """Return header data in a dictionary.  *stream* may be a list of PDB lines
+    """Returns header data in a dictionary.  *stream* may be a list of PDB lines
     or a stream."""
 
     lines = defaultdict(list)
@@ -496,7 +496,7 @@ def _getSheetRange(lines):
 
 
 def _getReference(lines):
-    """Return a reference of the PDB entry."""
+    """Returns a reference of the PDB entry."""
 
     ref = {}
     title = ''
@@ -535,7 +535,7 @@ def _getReference(lines):
 
 
 def _getPolymers(lines):
-    """Return list of polymers (macromolecules)."""
+    """Returns list of polymers (macromolecules)."""
 
     pdbid = lines['pdbid']
     polymers = dict()
@@ -786,7 +786,7 @@ def _getPolymers(lines):
 
 
 def _getChemicals(lines):
-    """Return list of chemical components (heterogens)."""
+    """Returns list of chemical components (heterogens)."""
 
     chemicals = defaultdict(list)
     chem_names = defaultdict(str)
@@ -984,7 +984,7 @@ def assignSecstr(header, atoms, coil=False):
 
 
 def buildBiomolecules(header, atoms, biomol=None):
-    """Return *atoms* after applying biomolecular transformations from *header*
+    """Returns *atoms* after applying biomolecular transformations from *header*
     dictionary.  Biomolecular transformations are applied to all coordinate
     sets in the molecule.
 

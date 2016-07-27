@@ -215,7 +215,7 @@ class AtomMap(AtomPointer):
                        intarrays=True, dummies=self.numDummies())
 
     def getTitle(self):
-        """Return title of the instance."""
+        """Returns title of the instance."""
 
         return self._title
 
@@ -225,7 +225,7 @@ class AtomMap(AtomPointer):
         self._title = str(title)
 
     def numAtoms(self, flag=None):
-        """Return number of atoms."""
+        """Returns number of atoms."""
 
         return len(self._getSubset(flag)) if flag else self._len
 
@@ -240,7 +240,7 @@ class AtomMap(AtomPointer):
     __iter__ = iterAtoms
 
     def getCoords(self):
-        """Return a copy of coordinates from the active coordinate set."""
+        """Returns a copy of coordinates from the active coordinate set."""
 
         coords = self._ag._getCoordsets()
         if coords is not None:
@@ -265,7 +265,7 @@ class AtomMap(AtomPointer):
 
 
     def getCoordsets(self, indices=None):
-        """Return coordinate set(s) at given *indices*, which may be an integer
+        """Returns coordinate set(s) at given *indices*, which may be an integer
         or a list/array of integers."""
 
         coords = self._ag._getCoordsets()
@@ -305,7 +305,7 @@ class AtomMap(AtomPointer):
     _iterCoordsets = iterCoordsets
 
     def getData(self, label):
-        """Return a copy of data associated with *label*, if it is present."""
+        """Returns a copy of data associated with *label*, if it is present."""
 
         data = self._ag._getData(label)
         if data is not None:
@@ -316,7 +316,7 @@ class AtomMap(AtomPointer):
     _getData = getData
 
     def getFlags(self, label):
-        """Return a copy of atom flags for given *label*, or **None** when
+        """Returns a copy of atom flags for given *label*, or **None** when
         flags for *label* is not set."""
 
         if label == 'dummy':
@@ -342,40 +342,40 @@ class AtomMap(AtomPointer):
         return self._idarray[self._getFlags(label)]
 
     def getIndices(self):
-        """Return a copy of indices of atoms, with maximum integer value
+        """Returns a copy of indices of atoms, with maximum integer value
         dummies."""
 
         return self._idarray.copy()
 
     def _getIndices(self):
-        """Return indices of atoms, with maximum integer value dummies."""
+        """Returns indices of atoms, with maximum integer value dummies."""
 
         return self._idarray
 
     def getMapping(self):
-        """Return a copy of mapping of indices."""
+        """Returns a copy of mapping of indices."""
 
         mapping = self._mapping
         return arange(self._len) if mapping is None else mapping.copy()
 
     def _getMapping(self):
-        """Return mapping of indices."""
+        """Returns mapping of indices."""
 
         mapping = self._mapping
         return arange(self._len) if mapping is None else mapping
 
     def numMapped(self):
-        """Return number of mapped atoms."""
+        """Returns number of mapped atoms."""
 
         return len(self._indices)
 
     def numDummies(self):
-        """Return number of dummy atoms."""
+        """Returns number of dummy atoms."""
 
         return 0 if self._dummies is None else len(self._dummies)
 
     def getSelstr(self):
-        """Return selection string that selects mapped atoms."""
+        """Returns selection string that selects mapped atoms."""
 
         return 'index ' + rangeString(self._indices)
 

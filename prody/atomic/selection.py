@@ -52,12 +52,12 @@ class Selection(AtomSubset):
         return 'Selection {0}'.format(repr(ellipsis(self._selstr)))
 
     def getSelstr(self):
-        """Return selection string that selects this atom subset."""
+        """Returns selection string that selects this atom subset."""
 
         return self._selstr
 
     def getHierView(self, **kwargs):
-        """Return a hierarchical view of the atom selection."""
+        """Returns a hierarchical view of the atom selection."""
 
         return HierView(self, **kwargs)
 

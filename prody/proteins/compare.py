@@ -60,7 +60,7 @@ def importBioPairwise2():
 
 
 def getMatchScore():
-    """Return match score used to align sequences."""
+    """Returns match score used to align sequences."""
 
     return MATCH_SCORE
 
@@ -76,7 +76,7 @@ def setMatchScore(match_score):
 
 
 def getMismatchScore():
-    """Return mismatch score used to align sequences."""
+    """Returns mismatch score used to align sequences."""
 
     return MISMATCH_SCORE
 
@@ -92,7 +92,7 @@ def setMismatchScore(mismatch_score):
 
 
 def getGapPenalty():
-    """Return gap opening penalty used for pairwise alignment."""
+    """Returns gap opening penalty used for pairwise alignment."""
 
     return GAP_PENALTY
 
@@ -108,7 +108,7 @@ def setGapPenalty(gap_penalty):
 
 
 def getGapExtPenalty():
-    """Return gap extension penalty used for pairwise alignment."""
+    """Returns gap extension penalty used for pairwise alignment."""
 
     return GAP_EXT_PENALTY
 
@@ -124,7 +124,7 @@ def setGapExtPenalty(gap_ext_penalty):
 
 
 def getAlignmentMethod():
-    """Return pairwise alignment method."""
+    """Returns pairwise alignment method."""
 
     return ALIGNMENT_METHOD
 
@@ -444,7 +444,7 @@ def matchAlign(mobile, target, **kwargs):
 
 
 def matchChains(atoms1, atoms2, **kwargs):
-    """Return pairs of chains matched based on sequence similarity.  Makes an
+    """Returns pairs of chains matched based on sequence similarity.  Makes an
     all-to-all comparison of chains in *atoms1* and *atoms2*.  Chains are
     obtained from hierarchical views (:class:`.HierView`) of atom groups.
     This function returns a list of matching chains in a tuples that contain
@@ -678,7 +678,7 @@ def matchChains(atoms1, atoms2, **kwargs):
 
 
 def getTrivialMatch(ach, bch):
-    """Return lists of matching residues (match based on residue number).
+    """Returns lists of matching residues (match based on residue number).
 
     """
     #if not isinstance(ach, SimpleChain):
@@ -700,7 +700,7 @@ def getTrivialMatch(ach, bch):
 
 
 def getAlignedMatch(ach, bch):
-    """Return list of matching residues (match is based on sequence alignment).
+    """Returns list of matching residues (match is based on sequence alignment).
     """
 
     pairwise2 = importBioPairwise2()
@@ -925,7 +925,7 @@ def mapOntoChain(atoms, chain, **kwargs):
 
 
 def getTrivialMapping(target, chain):
-    """Return lists of matching residues (map based on residue number)."""
+    """Returns lists of matching residues (map based on residue number)."""
 
     target_list = []
     chain_list = []

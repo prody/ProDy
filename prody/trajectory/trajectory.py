@@ -120,12 +120,12 @@ class Trajectory(TrajBase):
             traj.setAtoms(self._ag)
 
     def numFiles(self):
-        """Return number of open trajectory files."""
+        """Returns number of open trajectory files."""
 
         return self._n_files
 
     def getFilenames(self, absolute=False):
-        """Return list of filenames opened for reading."""
+        """Returns list of filenames opened for reading."""
 
         return [traj.getFilename(absolute) for traj in self._trajectories]
 
@@ -291,22 +291,22 @@ class Trajectory(TrajBase):
     hasUnitcell.__doc__ = TrajBase.hasUnitcell.__doc__
 
     def getTimestep(self):
-        """Return list of timestep sizes, one number from each file."""
+        """Returns list of timestep sizes, one number from each file."""
 
         return [traj.getTimestep() for traj in self._trajectories]
 
     def getFirstTimestep(self):
-        """Return list of first timestep values, one number from each file."""
+        """Returns list of first timestep values, one number from each file."""
 
         return [traj.getFirstTimestep() for traj in self._trajectories]
 
     def getFrameFreq(self):
-        """Return list of timesteps between frames, one number from each file.
+        """Returns list of timesteps between frames, one number from each file.
         """
 
         return [traj.getFrameFreq() for traj in self._trajectories]
 
     def numFixed(self):
-        """Return a list of fixed atom numbers, one from each file."""
+        """Returns a list of fixed atom numbers, one from each file."""
 
         return [traj.numFixed() for traj in self._trajectories]

@@ -365,7 +365,7 @@ class ParseResults(object):
     def __iter__( self ): return iter( self.__toklist )
     def __reversed__( self ): return iter( self.__toklist[::-1] )
     def keys( self ):
-        """Returns all named result keys."""
+        """Returnss all named result keys."""
         return self.__tokdict.keys()
 
     def pop( self, index=-1 ):
@@ -376,7 +376,7 @@ class ParseResults(object):
         return ret
 
     def get(self, key, defaultValue=None):
-        """Returns named result matching the given key, or if there is no
+        """Returnss named result matching the given key, or if there is no
            such name, then returns the given C{defaultValue} or C{None} if no
            C{defaultValue} is specified."""
         if key in self:
@@ -394,11 +394,11 @@ class ParseResults(object):
                 occurrences[k] = _ParseResultsWithOffset(value, position + (position > index))
 
     def items( self ):
-        """Returns all named result keys and values as a list of tuples."""
+        """Returnss all named result keys and values as a list of tuples."""
         return [(k,self[k]) for k in self.__tokdict]
 
     def values( self ):
-        """Returns all named result values."""
+        """Returnss all named result values."""
         return [ v[-1][0] for v in self.__tokdict.values() ]
 
     def __getattr__( self, name ):
@@ -461,7 +461,7 @@ class ParseResults(object):
         return out
 
     def asList( self ):
-        """Returns the parse results as a nested list of matching tokens, all converted to strings."""
+        """Returnss the parse results as a nested list of matching tokens, all converted to strings."""
         out = []
         for res in self.__toklist:
             if isinstance(res,ParseResults):
@@ -471,11 +471,11 @@ class ParseResults(object):
         return out
 
     def asDict( self ):
-        """Returns the named parse results as dictionary."""
+        """Returnss the named parse results as dictionary."""
         return dict( self.items() )
 
     def copy( self ):
-        """Returns a new copy of a C{ParseResults} object."""
+        """Returnss a new copy of a C{ParseResults} object."""
         ret = ParseResults( self.__toklist )
         ret.__tokdict = self.__tokdict.copy()
         ret.__parent = self.__parent
@@ -484,7 +484,7 @@ class ParseResults(object):
         return ret
 
     def asXML( self, doctag=None, namedItemsOnly=False, indent="", formatted=True ):
-        """Returns the parse results as XML. Tags are created for tokens and lists that have defined results names."""
+        """Returnss the parse results as XML. Tags are created for tokens and lists that have defined results names."""
         nl = "\n"
         out = []
         namedItems = dict((v[1],k) for (k,vlist) in self.__tokdict.items()
@@ -551,7 +551,7 @@ class ParseResults(object):
         return None
 
     def getName(self):
-        """Returns the results name for this token expression."""
+        """Returnss the results name for this token expression."""
         if self.__name:
             return self.__name
         elif self.__parent:
@@ -615,7 +615,7 @@ class ParseResults(object):
 collections.MutableMapping.register(ParseResults)
 
 def col (loc,strg):
-    """Returns current column within a string, counting newlines as line separators.
+    """Returnss current column within a string, counting newlines as line separators.
    The first column is number 1.
 
    Note: the default parsing behavior is to expand tabs in the input string
@@ -627,7 +627,7 @@ def col (loc,strg):
     return (loc<len(strg) and strg[loc] == '\n') and 1 or loc - strg.rfind("\n", 0, loc)
 
 def lineno(loc,strg):
-    """Returns current line number within a string, counting newlines as line separators.
+    """Returnss current line number within a string, counting newlines as line separators.
    The first line is number 1.
 
    Note: the default parsing behavior is to expand tabs in the input string
@@ -639,7 +639,7 @@ def lineno(loc,strg):
     return strg.count("\n",0,loc) + 1
 
 def line( loc, strg ):
-    """Returns the line of text containing loc within a string, counting newlines as line separators.
+    """Returnss the line of text containing loc within a string, counting newlines as line separators.
        """
     lastCR = strg.rfind("\n", 0, loc)
     nextCR = strg.find("\n", loc)

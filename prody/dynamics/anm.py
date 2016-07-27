@@ -34,14 +34,14 @@ class ANMBase(NMA):
         self._is3d = True
 
     def getHessian(self):
-        """Return a copy of the Hessian matrix."""
+        """Returns a copy of the Hessian matrix."""
 
         if self._hessian is None:
             return None
         return self._hessian.copy()
 
     def _getHessian(self):
-        """Return the Hessian matrix."""
+        """Returns the Hessian matrix."""
 
         return self._hessian
 
@@ -66,7 +66,7 @@ class ANMBase(NMA):
                                                np.amax(self._stiffness)
 
     def getMechStiffStatistic(self, rangeK, minAA=0, AA='all'):
-        """Return number of effective spring constant with set range of
+        """Returns number of effective spring constant with set range of
         amino acids of protein structure.
         ``AA`` can be a list with a range of analysed amino acids as:
         [first_aa, last_aa, first_aa2, last_aa2],
@@ -94,7 +94,7 @@ class ANMBase(NMA):
         
 
     def getStiffnessRangeSel(self, value, minAA=20, AA='all'):
-        """Return minimum or maximum value of sping constant from 
+        """Returns minimum or maximum value of sping constant from 
         mechanical stiffness calculations for residues that are within 
         more than ``min_aa`` from each other. ``Value`` should be 'minK'
         or 'maxK'. It alow to avoid residues near each other. 
@@ -445,7 +445,7 @@ class ANM(ANMBase, GNMBase):
 
 def calcANM(pdb, selstr='calpha', cutoff=15., gamma=1., n_modes=20,
             zeros=False):
-    """Return an :class:`ANM` instance and atoms used for the calculations.
+    """Returns an :class:`ANM` instance and atoms used for the calculations.
     By default only alpha carbons are considered, but selection string helps
     selecting a subset of it.  *pdb* can be :class:`.Atomic` instance."""
 

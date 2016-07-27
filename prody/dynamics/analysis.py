@@ -25,7 +25,7 @@ __all__ = ['calcCollectivity', 'calcCovariance', 'calcCrossCorr',
 
 
 def calcCollectivity(mode, masses=None):
-    """Return collectivity of the mode.  This function implements collectivity
+    """Returns collectivity of the mode.  This function implements collectivity
     as defined in equation 5 of [BR95]_.  If *masses* are provided, they will
     be incorporated in the calculation.  Otherwise, atoms are assumed to have
     uniform masses.
@@ -82,7 +82,7 @@ def calcFracDimension(mode):
 
 
 def calcFractVariance(mode):
-    """Return fraction of variance explained by the *mode*.  Fraction of
+    """Returns fraction of variance explained by the *mode*.  Fraction of
     variance is the ratio of the variance along a mode to the trace of the
     covariance matrix of the model."""
 
@@ -104,7 +104,7 @@ def calcFractVariance(mode):
 
 
 def calcProjection(ensemble, modes, rmsd=True):
-    """Return projection of conformational deviations onto given modes.
+    """Returns projection of conformational deviations onto given modes.
     *ensemble* coordinates are used to calculate the deviations that are
     projected onto *modes*.  For K conformations and M modes, a (K,M)
     matrix is returned.
@@ -160,7 +160,7 @@ def calcProjection(ensemble, modes, rmsd=True):
 
 
 def calcCrossProjection(ensemble, mode1, mode2, scale=None, **kwargs):
-    """Return projection of conformational deviations onto modes from
+    """Returns projection of conformational deviations onto modes from
     different models.
 
     :arg ensemble: ensemble for which deviations will be projected
@@ -219,7 +219,7 @@ def calcCrossProjection(ensemble, mode1, mode2, scale=None, **kwargs):
 
 
 def calcSqFlucts(modes):
-    """Return sum of square-fluctuations for given set of normal *modes*.
+    """Returns sum of square-fluctuations for given set of normal *modes*.
     Square fluctuations for a single mode is obtained by multiplying the
     square of the mode array with the variance (:meth:`.Mode.getVariance`)
     along the mode.  For :class:`.PCA` and :class:`.EDA` models built using
@@ -250,7 +250,7 @@ def calcSqFlucts(modes):
 
 
 def calcCrossCorr(modes, n_cpu=1):
-    """Return cross-correlations matrix.  For a 3-d model, cross-correlations
+    """Returns cross-correlations matrix.  For a 3-d model, cross-correlations
     matrix is an NxN matrix, where N is the number of atoms.  Each element of
     this matrix is the trace of the submatrix corresponding to a pair of atoms.
     Covariance matrix may be calculated using all modes or a subset of modes
@@ -329,7 +329,7 @@ def _crossCorrelations(queue, n_atoms, array, variances, indices):
 
 
 def calcTempFactors(modes, atoms):
-    """Return temperature (β) factors calculated using *modes* from a
+    """Returns temperature (β) factors calculated using *modes* from a
     :class:`.ANM` or :class:`.GNM` instance scaled according to the
     experimental β-factors from *atoms*."""
 
@@ -343,7 +343,7 @@ def calcTempFactors(modes, atoms):
 
 
 def calcCovariance(modes):
-    """Return covariance matrix calculated for given *modes*."""
+    """Returns covariance matrix calculated for given *modes*."""
 
     if isinstance(modes, Mode):
         array = modes._getArray()
@@ -358,7 +358,7 @@ def calcCovariance(modes):
 
 
 def calcPerturbResponse(model, atoms=None, repeats=100):
-    """Return a matrix of profiles from scanning of the response of the
+    """Returns a matrix of profiles from scanning of the response of the
     structure to random perturbations at specific atom (or node) positions.
     The function implements the perturbation response scanning (PRS) method
     described in [CA09]_.  Rows of the matrix are the average magnitude of the
@@ -441,7 +441,7 @@ def calcPerturbResponse(model, atoms=None, repeats=100):
 
 def calcPairDeformationDist(model, coords, ind1, ind2, kbt=1.):
                                                 
-    """Return distribution of the deformations in the distance contributed by each mode 
+    """Returns distribution of the deformations in the distance contributed by each mode 
     for selected pair of residues *ind1* *ind2* using *model* from a :class:`.ANM`.
     Method described in [EB08]_ equation (10) and figure (2).     
     

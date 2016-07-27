@@ -7,7 +7,7 @@ from ..apptools import *
 __all__ = ['prody_blast']
 
 def readFirstSequenceFasta(filename):
-    """Return first sequence from a file."""
+    """Returns first sequence from a file."""
 
     fasta = open(filename)
     seq = []

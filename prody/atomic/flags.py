@@ -1137,7 +1137,7 @@ def getNonstdProperties(resname):
 
 
 def listNonstdAAProps(resname):
-    """Return properties of non-standard amino acid *resname*.
+    """Returns properties of non-standard amino acid *resname*.
 
     .. ipython:: python
 

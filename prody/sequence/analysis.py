@@ -22,7 +22,7 @@ doc_turbo = """
 
 
 def getMSA(msa):
-    """Return MSA character array."""
+    """Returns MSA character array."""
 
     try:
         msa = msa._getArray()
@@ -41,7 +41,7 @@ def getMSA(msa):
 
 
 def calcShannonEntropy(msa, ambiguity=True, omitgaps=True, **kwargs):
-    """Return Shannon entropy array calculated for *msa*, which may be
+    """Returns Shannon entropy array calculated for *msa*, which may be
     an :class:`.MSA` instance or a 2D Numpy character array.  Implementation
     is case insensitive and handles ambiguous amino acids as follows:
 
@@ -74,7 +74,7 @@ def calcShannonEntropy(msa, ambiguity=True, omitgaps=True, **kwargs):
 
 
 def buildMutinfoMatrix(msa, ambiguity=True, turbo=True, **kwargs):
-    """Return mutual information matrix calculated for *msa*, which may be an
+    """Returns mutual information matrix calculated for *msa*, which may be an
     :class:`.MSA` instance or a 2D Numpy character array.  Implementation
     is case insensitive and handles ambiguous amino acids as follows:
 
@@ -117,7 +117,7 @@ buildMutinfoMatrix.__doc__ += doc_turbo
 
 
 def calcMSAOccupancy(msa, occ='res', count=False):
-    """Return occupancy array calculated for residue positions (default,
+    """Returns occupancy array calculated for residue positions (default,
     ``'res'`` or ``'col'`` for *occ*) or sequences (``'seq'`` or ``'row'``
     for *occ*) of *msa*, which may be an :class:`.MSA` instance or a 2D
     NumPy character array.  By default, occupancy [0-1] will be calculated.
@@ -217,7 +217,7 @@ def applyMutinfoNorm(mutinfo, entropy, norm='sument'):
 
 
 def applyMutinfoCorr(mutinfo, corr='prod'):
-    """Return a copy of *mutinfo* array after average product correction
+    """Returns a copy of *mutinfo* array after average product correction
     (default) or average sum correction is applied.  See [DSD08]_ for details.
 
     .. [DSD08] Dunn SD, Wahl LM, Gloor GB. Mutual information without the
@@ -256,7 +256,7 @@ def applyMutinfoCorr(mutinfo, corr='prod'):
 
 
 def buildSeqidMatrix(msa, turbo=True):
-    """Return sequence identity matrix for *msa*."""
+    """Returns sequence identity matrix for *msa*."""
 
     msa = getMSA(msa)
 
@@ -274,7 +274,7 @@ buildSeqidMatrix.__doc__ += doc_turbo
 
 
 def uniqueSequences(msa, seqid=0.98, turbo=True):
-    """Return a boolean array marking unique sequences in *msa*.  A sequence
+    """Returns a boolean array marking unique sequences in *msa*.  A sequence
     sharing sequence identity of *sqid* or more with another sequence coming
     before itself in *msa* will have a **False** value in the array."""
 
@@ -292,7 +292,7 @@ uniqueSequences.__doc__ += doc_turbo
 
 
 def calcRankorder(matrix, zscore=False, **kwargs):
-    """Returns indices of elements and corresponding values sorted in
+    """Returnss indices of elements and corresponding values sorted in
     descending order, if *descend* is **True** (default). Can apply a zscore
     normalization; by default along *axis* - 0 such that each column has
     mean=0 and std=1.  If *zcore* analysis is used, return value contains the
@@ -346,7 +346,7 @@ def calcRankorder(matrix, zscore=False, **kwargs):
 
 
 def buildOMESMatrix(msa, ambiguity=True, turbo=True, **kwargs):
-    """Return OMES (Observed Minus Expected Squared) covariance matrix
+    """Returns OMES (Observed Minus Expected Squared) covariance matrix
     calculated for *msa*, which may be an :class:`.MSA` instance or a 2D
     NumPy character array. OMES is defined as::
 
@@ -389,7 +389,7 @@ buildOMESMatrix.__doc__ += doc_turbo
 
 
 def buildSCAMatrix(msa, turbo=True, **kwargs):
-    """Return SCA matrix calculated for *msa*, which may be an :class:`.MSA`
+    """Returns SCA matrix calculated for *msa*, which may be an :class:`.MSA`
     instance or a 2D Numpy character array.
 
     Implementation is case insensitive and handles ambiguous amino acids
@@ -422,7 +422,7 @@ def buildSCAMatrix(msa, turbo=True, **kwargs):
 buildSCAMatrix.__doc__ += doc_turbo
 
 def buildPCMatrix(msa, turbo=False, **kwargs):
-    """Return PC matrix calculated for *msa*, which may be an :class:`.MSA`
+    """Returns PC matrix calculated for *msa*, which may be an :class:`.MSA`
     instance or a 2D Numpy character array.
 
     Implementation is case insensitive and handles ambiguous amino acids
@@ -455,7 +455,7 @@ def buildPCMatrix(msa, turbo=False, **kwargs):
 
 def buildDirectInfoMatrix(msa, seqid=.8, pseudo_weight=.5, refine=False,
                           **kwargs):
-    """Return direct information matrix calculated for *msa*, which may be an
+    """Returns direct information matrix calculated for *msa*, which may be an
     :class:`.MSA` instance or a 2D Numpy character array.
 
     Sequences sharing sequence identity of *seqid* or more with another
@@ -499,7 +499,7 @@ def buildDirectInfoMatrix(msa, seqid=.8, pseudo_weight=.5, refine=False,
 
 
 def calcMeff(msa, seqid=.8, refine=False, weight=False, **kwargs):
-    """Return the Meff for *msa*, which may be an :class:`.MSA`
+    """Returns the Meff for *msa*, which may be an :class:`.MSA`
     instance or a 2D Numpy character array.
 
     Since similar sequences in an *msa* decreases the diversity of *msa*,

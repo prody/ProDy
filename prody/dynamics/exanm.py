@@ -259,7 +259,7 @@ class exANM(ANMBase):
         super(exANM, self).calcModes(n_modes, zeros, turbo)
 
     def getMembrane(self):
-        """Return a copy of the membrane coordinates."""
+        """Returns a copy of the membrane coordinates."""
 
         if self._membrane is not None:
             return self._membrane.copy()

@@ -52,7 +52,7 @@ def saveEnsemble(ensemble, filename=None, **kwargs):
 
 
 def loadEnsemble(filename):
-    """Return ensemble instance loaded from *filename*.  This function makes
+    """Returns ensemble instance loaded from *filename*.  This function makes
     use of :func:`numpy.load` function.  See also :func:`saveEnsemble`"""
 
     attr_dict = np.load(filename)
@@ -93,7 +93,7 @@ def loadEnsemble(filename):
 
 
 def trimPDBEnsemble(pdb_ensemble, **kwargs):
-    """Return a new PDB ensemble obtained by trimming given *pdb_ensemble*.
+    """Returns a new PDB ensemble obtained by trimming given *pdb_ensemble*.
     This function helps selecting atoms in a pdb ensemble based on one of the
     following criteria, and returns them in a new :class:`.PDBEnsemble`
     instance.
@@ -152,7 +152,7 @@ def trimPDBEnsemble(pdb_ensemble, **kwargs):
 
 
 def calcOccupancies(pdb_ensemble, normed=False):
-    """Return occupancy calculated from weights of a :class:`.PDBEnsemble`.
+    """Returns occupancy calculated from weights of a :class:`.PDBEnsemble`.
     Any non-zero weight will be considered equal to one.  Occupancies are
     calculated by binary weights for each atom over the conformations in
     the ensemble. When *normed* is ``True``, total weights will be divided
@@ -199,7 +199,7 @@ def showOccupancies(pdbensemble, *args, **kwargs):
 
 
 def checkWeights(weights, n_atoms, n_csets=None):
-    """Return weights if checks pass, otherwise raise an exception."""
+    """Returns weights if checks pass, otherwise raise an exception."""
 
     assert isinstance(n_atoms, int) or isinstance(n_atoms, long) and n_atoms > 0, \
         'n_atoms must be a positive integer'

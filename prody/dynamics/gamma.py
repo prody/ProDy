@@ -23,7 +23,7 @@ class Gamma(object):
         pass
 
     def gamma(self, dist2, i, j):
-        """Return force constant.
+        """Returns force constant.
 
         For efficiency purposes square of the distance between interacting
         atom/residue (node) pairs is passed to this function. In addition,
@@ -163,22 +163,22 @@ class GammaStructureBased(Gamma):
         self._connected = gamma * connected
 
     def getSecstrs(self):
-        """Return a copy of secondary structure assignments."""
+        """Returns a copy of secondary structure assignments."""
 
         return self._sstr.copy()
 
     def getChids(self):
-        """Return a copy of chain identifiers."""
+        """Returns a copy of chain identifiers."""
 
         return self._chid.socopypy()
 
     def getResnums(self):
-        """Return a copy of residue numbers."""
+        """Returns a copy of residue numbers."""
 
         return self._rnum.copy()
 
     def gamma(self, dist2, i, j):
-        """Return force constant."""
+        """Returns force constant."""
 
         if dist2 <= 16:
             return self._connected
@@ -274,17 +274,17 @@ class GammaVariableCutoff(Gamma):
         self._debug = bool(kwargs.get('debug', False))
 
     def getRadii(self):
-        """Return a copy of radii array."""
+        """Returns a copy of radii array."""
 
         return self._radii.copy()
 
     def getGamma(self):
-        """Return the uniform force constant value."""
+        """Returns the uniform force constant value."""
 
         return self._gamma
 
     def gamma(self, dist2, i, j):
-        """Return force constant."""
+        """Returns force constant."""
 
         cutoff = (self._radii[i] + self._radii[j])
         cutoff2 = cutoff ** 2

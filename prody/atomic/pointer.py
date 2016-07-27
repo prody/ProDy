@@ -129,7 +129,7 @@ class AtomPointer(Atomic):
                              acsi)
 
     def __add__(self, other):
-        """Returns an :class:`.AtomMap` instance. Order of pointed atoms are
+        """Returnss an :class:`.AtomMap` instance. Order of pointed atoms are
         preserved."""
 
         try:
@@ -170,22 +170,22 @@ class AtomPointer(Atomic):
         return self._ag._getTimeStamp(index)
 
     def _getKDTree(self):
-        """Return KDTree for the active coordinate set from the atom group."""
+        """Returns KDTree for the active coordinate set from the atom group."""
 
         return self._ag._getKDTree(self.getACSIndex())
 
     def getAtomGroup(self):
-        """Return associated atom group."""
+        """Returns associated atom group."""
 
         return self._ag
 
     def numCoordsets(self):
-        """Return number of coordinate sets."""
+        """Returns number of coordinate sets."""
 
         return self._ag._n_csets
 
     def getACSIndex(self):
-        """Return index of the coordinate set."""
+        """Returns index of the coordinate set."""
 
         acsi = self._acsi
         if acsi >= self._ag._n_csets:
@@ -212,35 +212,35 @@ class AtomPointer(Atomic):
         self._acsi = index
 
     def getACSLabel(self):
-        """Return active coordinate set label."""
+        """Returns active coordinate set label."""
 
         if self._ag._n_csets:
             return self._ag._cslabels[self.getACSIndex()]
 
     def getCSLabels(self):
-        """Return coordinate set labels."""
+        """Returns coordinate set labels."""
 
         return self._ag.getCSLabels()
 
     def isDataLabel(self, label):
-        """Return **True** if data associated with *label* is present."""
+        """Returns **True** if data associated with *label* is present."""
 
         return self._ag.isDataLabel(label)
 
     def getDataLabels(self, which=None):
-        """Return data labels.  For ``which='user'``, return only labels of
+        """Returns data labels.  For ``which='user'``, return only labels of
         user provided data."""
 
         return self._ag.getDataLabels(which)
 
     def getDataType(self, label):
-        """Return type of the data (i.e. ``data.dtype``) associated with
+        """Returns type of the data (i.e. ``data.dtype``) associated with
         *label*, or **None** label is not used."""
 
         return self._ag.getDataType(label)
 
     def getFlagLabels(self, which=None):
-        """Return flag labels.  For ``which='user'``,  return labels of user
+        """Returns flag labels.  For ``which='user'``,  return labels of user
         or parser (e.g. :term:`hetatm`) provided flags, for ``which='all'``
         return all possible :ref:`flags` labels in addition to those present
         in the instance."""
@@ -248,12 +248,12 @@ class AtomPointer(Atomic):
         return self._ag.getFlagLabels(which)
 
     def isFlagLabel(self, label):
-        """Return **True** if flags associated with *label* are present."""
+        """Returns **True** if flags associated with *label* are present."""
 
         return self._ag.isFlagLabel(label)
 
     def _getFlags(self, label):
-        """Return atom flags."""
+        """Returns atom flags."""
 
         flags = self._ag._getFlags(label)
         if flags is not None:

@@ -100,7 +100,7 @@ class NMA(object):
         return Mode(self, index)
 
     def _getTrace(self):
-        """Return trace, and emit a warning message if trace is calculated
+        """Returns trace, and emit a warning message if trace is calculated
         using eigenvalues of a subset of variances (eigenvalues or inverse
         eigenvalues)."""
 
@@ -124,33 +124,33 @@ class NMA(object):
         return trace
 
     def getModel(self):
-        """Return self."""
+        """Returns self."""
 
         return self
 
     def is3d(self):
-        """Return **True** if model is 3-dimensional."""
+        """Returns **True** if model is 3-dimensional."""
 
         return self._is3d
 
     def numAtoms(self):
-        """Return number of atoms."""
+        """Returns number of atoms."""
 
         return self._n_atoms
 
     def numModes(self):
-        """Return number of modes in the instance (not necessarily maximum
+        """Returns number of modes in the instance (not necessarily maximum
         number of possible modes)."""
 
         return self._n_modes
 
     def numDOF(self):
-        """Return number of degrees of freedom."""
+        """Returns number of degrees of freedom."""
 
         return self._dof
 
     def getTitle(self):
-        """Return title of the model."""
+        """Returns title of the model."""
 
         return self._title
 
@@ -160,7 +160,7 @@ class NMA(object):
         self._title = str(title)
 
     def getEigvals(self):
-        """Return eigenvalues.  For :class:`.PCA` and :class:`.EDA` models
+        """Returns eigenvalues.  For :class:`.PCA` and :class:`.EDA` models
         built using coordinate data in Å, unit of eigenvalues is |A2|.  For
         :class:`.ANM`, :class:`.GNM`, and :class:`.RTB`, on the other hand,
         eigenvalues are in arbitrary or relative units but they correlate with
@@ -170,7 +170,7 @@ class NMA(object):
         return self._eigvals.copy()
 
     def getVariances(self):
-        """Return variances.  For :class:`.PCA` and :class:`.EDA` models
+        """Returns variances.  For :class:`.PCA` and :class:`.EDA` models
         built using coordinate data in Å, unit of variance is |A2|.  For
         :class:`.ANM`, :class:`.GNM`, and :class:`.RTB`, on the other hand,
         variance is the inverse of the eigenvalue, so it has arbitrary or
@@ -180,7 +180,7 @@ class NMA(object):
         return self._vars.copy()
 
     def getArray(self):
-        """Return a copy of eigenvectors array."""
+        """Returns a copy of eigenvectors array."""
 
         if self._array is None: return None
         return self._array.copy()
@@ -188,13 +188,13 @@ class NMA(object):
     getEigvecs = getArray
 
     def _getArray(self):
-        """Return eigenvectors array."""
+        """Returns eigenvectors array."""
 
         if self._array is None: return None
         return self._array
 
     def getCovariance(self):
-        """Return covariance matrix.  If covariance matrix is not set or yet
+        """Returns covariance matrix.  If covariance matrix is not set or yet
         calculated, it will be calculated using available modes."""
 
         if self._cov is None:

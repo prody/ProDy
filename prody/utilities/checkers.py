@@ -9,7 +9,7 @@ CSETS_NDIMS = set([2, 3])
 
 def checkCoords(coords, csets=False, natoms=None, dtype=(float, float32),
                 name='coords'):
-    """Return **True** if shape, dimensionality, and data type of *coords*
+    """Returns **True** if shape, dimensionality, and data type of *coords*
     array are as expected.
 
     :arg coords: coordinate array
@@ -63,7 +63,7 @@ NDIM12 = set([1, 2])
 NDIM123 = set([1, 2, 3])
 
 def checkWeights(weights, natoms, ncsets=None, dtype=float):
-    """Return *weights* if it has correct shape ([ncsets, ]natoms, 1).
+    """Returns *weights* if it has correct shape ([ncsets, ]natoms, 1).
     after its shape and data type is corrected. otherwise raise an exception.
     All items of *weights* must be greater than zero."""
 
@@ -104,7 +104,7 @@ def checkWeights(weights, natoms, ncsets=None, dtype=float):
 
 
 def checkTypes(args, **types):
-    """Return **True** if types of all *args* match those given in *types*.
+    """Returns **True** if types of all *args* match those given in *types*.
 
     :raises: :exc:`TypeError` when type of an argument is not one of allowed
         types
