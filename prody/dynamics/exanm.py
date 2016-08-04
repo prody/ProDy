@@ -121,7 +121,7 @@ class exANM(ANMBase):
                     for p in range(3):
                         dd += X[0,p] ** 2
                     if dd<R**2 and X[0,2]>membrane_lo and X[0,2]<membrane_hi:
-                        if X[0,0]>pxlo-R/2 and X[0,0]<pxhi+R/2 and X[0,1]-R/2>pylo and X[0,1]<pyhi+R/2 and X[0,2]>pzlo and X[0,2]<pzhi:
+                        if X[0,0]>pxlo-R/2 and X[0,0]<pxhi+R/2 and X[0,1]>pylo-R/2 and X[0,1]<pyhi+R/2 and X[0,2]>pzlo and X[0,2]<pzhi:
                             if checkClash(X, coords[:natoms,:], radius=5):
                                 if atm == 0:
                                     membrane = X
