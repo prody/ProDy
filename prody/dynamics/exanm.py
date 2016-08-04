@@ -5,7 +5,7 @@ import numpy as np
 
 from prody import LOGGER
 from prody.atomic import Atomic, AtomGroup
-from prody.proteins import parsePDB
+from prody.proteins import parsePDB, writePDB
 from prody.utilities import importLA, checkCoords
 from prody.kdtree import KDTree
 from numpy import sqrt, zeros, linalg, min, max, mean
@@ -14,7 +14,7 @@ from .anm import ANMBase, calcANM
 from .gnm import checkENMParameters
 from .editing import reduceModel
 
-__all__ = ['exANM','writeMembranePDB']
+__all__ = ['exANM']
 
 class Increment(object):
 
@@ -44,6 +44,96 @@ class exANM(ANMBase):
 
         super(exANM, self).__init__(name)
         self._membrane = None
+        self._combined = None
+
+    def buildMembrane(self, coords, **kwargs):
+        """Build Hessian matrix for given coordinate set.
+
+        :arg coords: a coordinate set or an object with ``getCoords`` method
+        :type coords: :class:`numpy.ndarray`
+
+        :arg membrane_hi: the maximum z coordinate of the pdb default is 13.0
+        :type membrane_hi: float
+
+        :arg membrane_lo: the minimum z coordinate of the pdb default is -13.0
+        :type membrane_lo: float
+
+        :arg R: radius of all membrane in x-y direction default is 80. 
+        :type R: float
+
+        :arg r: radius of individual barrel-type membrane protein default is 2.5.
+        :type 
+        
+        :arg lat: lattice type which could be FCC(face-centered-cubic)(default), 
+        SC(simple cubic), SH(simple hexagonal)
+        :type lat: str
+        """
+        if type(coords) is AtomGroup:
+            buildAg = True
+        else:
+            buildAg = False
+        
+        try:
+            coords = (coords._getCoords() if hasattr(coords, '_getCoords') else
+                      coords.getCoords())
+        except AttributeError:
+            try:
+                checkCoords(coords)
+            except TypeError:
+                raise TypeError('coords must be a Numpy array or an object '
+                                'with `getCoords` method')
+
+        self._n_atoms = natoms = int(coords.shape[0])
+
+        pxlo = min(np.append(coords[:,0],10000))
+        pxhi = max(np.append(coords[:,0],-10000))
+        pylo = min(np.append(coords[:,1],10000))
+        pyhi = max(np.append(coords[:,1],-10000))
+        pzlo = min(np.append(coords[:,2],10000))
+        pzhi = max(np.append(coords[:,2],-10000))
+
+        membrane_hi = float(kwargs.get('membrane_hi', 13.0))
+        membrane_lo = float(kwargs.get('membrane_lo', -13.0))
+        R = float(kwargs.get('R', 80))
+        r = float(kwargs.get('r', 5))
+        lat = str(kwargs.get('lat', 'FCC'))
+        lpv = assign_lpvs(lat)
+
+        imax = (R + lpv[0,2] * (membrane_hi - membrane_lo)/2.)/r
+        jmax = (R + lpv[1,2] * (membrane_hi - membrane_lo)/2.)/r
+        kmax = (R + lpv[2,2] * (membrane_hi - membrane_lo)/2.)/r    
+
+        membrane = zeros((1,3))
+
+        LOGGER.timeit('_membrane')
+        membrane = zeros((1,3))
+        atm = 0
+        for i in range(-int(imax),int(imax+1)):
+            for j in range(-int(jmax),int(jmax+1)):
+                for k in range(-int(kmax),int(kmax+1)):
+                    X = zeros((1,3))
+                    for p in range(3):
+                        X[0,p]=2.*r*(i*lpv[0,p]+j*lpv[1,p]+k*lpv[2,p])
+                    dd=0
+                    for p in range(3):
+                        dd += X[0,p] ** 2
+                    if dd<R**2 and X[0,2]>membrane_lo and X[0,2]<membrane_hi:
+                        if X[0,0]>pxlo and X[0,0]<pxhi and X[0,1]>pylo and X[0,1]<pyhi and X[0,2]>pzlo and X[0,2]<pzhi:
+                            if checkClash(X, coords[:natoms,:], radius=5):
+                                if atm == 0:
+                                    membrane = X
+                                else:
+                                    membrane = np.append(membrane, X, axis=0)
+                                atm = atm + 1              
+
+        self._membrane = AtomGroup(title="Membrane")
+        self._membrane.setCoords(membrane)
+        self._membrane.setResnums(range(atm))
+        self._membrane.setResnames(["NE1" for i in range(atm)])
+        self._membrane.setChids(["Q" for i in range(atm)])
+        self._membrane.setElements(["Q1" for i in range(atm)])
+        self._membrane.setNames(["Q1" for i in range(atm)])
+        LOGGER.report('Membrane was built in %2.fs.', label='_membrane')
 
     def buildHessian(self, coords, cutoff=15., gamma=1., **kwargs):
         """Build Hessian matrix for given coordinate set.
@@ -87,127 +177,18 @@ class exANM(ANMBase):
 
         self._n_atoms = natoms = int(coords.shape[0])
 
-        center = mean(coords, axis=0)
-        coords = coords - center
+        if self._membrane is None:
+            membrane_hi = float(kwargs.get('membrane_hi', 13.0))
+            membrane_lo = float(kwargs.get('membrane_lo', -13.0))
+            R = float(kwargs.get('R', 80))
+            r = float(kwargs.get('r', 5))
+            lat = str(kwargs.get('lat', 'FCC'))
+            buildMembrane(self,coords,membrane_hi=membrane_hi, membrane_lo=membrane_lo,R=R,r=r,lat=lat)
 
-        pxlo = min(np.append(coords[:,0],10000))
-        pxhi = max(np.append(coords[:,0],-10000))
-        pylo = min(np.append(coords[:,1],10000))
-        pyhi = max(np.append(coords[:,1],-10000))
-        pzlo = min(np.append(coords[:,2],10000))
-        pzhi = max(np.append(coords[:,2],-10000))
 
-        membrane_hi = float(kwargs.get('membrane_hi', 13.0))
-        membrane_lo = float(kwargs.get('membrane_lo', -13.0))
-        R = float(kwargs.get('R', 80))
-        r = float(kwargs.get('r', 5))
-        lat = str(kwargs.get('lat', 'FCC'))
-        lpv = assign_lpvs(lat)
-
-        imax = R/r
-        jmax = R/r
-        kmax = membrane_hi/r
-        kmin = membrane_lo/r
-
-        self._membrane = membrane = zeros((1,3))
-
-        LOGGER.timeit('_membrane')
-        membrane = zeros((1,3))
-        membrane1 = zeros((1,3))
-        atm = 0
-        a = 0
-        b = 0
-        scale = 3
-        lim = range(-int(scale/2), int(scale/2)+1)
-        for i in range(-int(imax),int(imax+1)):
-            for j in range(-int(jmax),int(jmax+1)):
-                for k in range(int(kmin),int(kmax+1)):
-                    X = zeros((1,3))
-                    X[0,0]=-R+(2*i+1)*r
-                    X[0,1]=-R+(2*j+1)*r
-                    X[0,2]=-membrane_lo+(2*k+1)*r
-                    dd=0
-                    for p in range(3):
-                        dd += X[0,p] ** 2
-                    if dd<R**2 and X[0,2]>membrane_lo and X[0,2]<membrane_hi:
-                        if X[0,2]-6<membrane_lo or k==int(kmin):
-                            if X[0,0]>pxlo and X[0,0]<pxhi and X[0,1]>pylo and X[0,1]<pyhi and X[0,2]>pzlo and X[0,2]<pzhi:
-                                if checkClash(X, coords[:natoms,:], radius=5):
-                                    if atm ==0:
-                                        membrane = X
-                                    else:
-                                        membrane = np.append(membrane, X, axis=0)        
-                                    atm = atm + 1
-                                    coords = np.append(coords, X, axis=0)
-                            else:
-                                if atm==0:
-                                    membrane = X
-                                else:
-                                    membrane = np.append(membrane, X, axis=0)
-                                atm = atm + 1
-                                coords = np.append(coords, X, axis=0)
-                        elif X[0,2]+6>membrane_hi or k==int(kmax):
-                            if X[0,0]>pxlo and X[0,0]<pxhi and X[0,1]>pylo and X[0,1]<pyhi and X[0,2]>pzlo and X[0,2]<pzhi:
-                                if checkClash(X, coords[:natoms,:], radius=5):
-                                    if atm ==0:
-                                        membrane = X
-                                    else:
-                                        membrane = np.append(membrane, X, axis=0)        
-                                    atm = atm + 1
-                                    coords = np.append(coords, X, axis=0)
-                            else:
-                                if atm==0:
-                                    membrane = X
-                                else:
-                                    membrane = np.append(membrane, X, axis=0)
-                                atm = atm + 1
-                                coords = np.append(coords, X, axis=0)
-                        else:
-                            T1 = zeros((scale,3))
-                            for l in range(scale):
-                                T1[l,0]=X[0,0]
-                                T1[l,1]=X[0,1]
-                                T1[l,2]=X[0,2]-(1.*(lim[l])/(scale-1))*r
-                            if X[0,0]>pxlo and X[0,0]<pxhi and X[0,1]>pylo and X[0,1]<pyhi and X[0,2]>pzlo and X[0,2]<pzhi:
-                                if checkClash(X, coords[:natoms,:], radius=5):
-                                    if atm ==0:
-                                        membrane1 = X
-                                    else:
-                                        membrane1 = np.append(membrane1, X, axis=0)        
-                                    atm = atm + 1
-                                    coords = np.append(coords, X, axis=0)
-                            else:
-                                if atm==0:
-                                    membrane1 = X
-                                else:
-                                    membrane1 = np.append(membrane1, X, axis=0)
-                                atm = atm + 1
-                                coords = np.append(coords, X, axis=0)
-                            for l in range(scale):
-                                if T1[l,0]>pxlo and T1[l,0]<pxhi and T1[l,1]>pylo and T1[l,1]<pyhi and T1[l,2]>pzlo and T1[l,2]<pzhi:
-                                    if checkClash(T1[l,:], coords[:natoms,:], radius=5):
-                                        membrane1 = np.append(membrane1, T1[l,:].reshape(1,3), axis=0)        
-                                        atm = atm + 1
-                                        coords = np.append(coords, T1[l,:].reshape(1,3), axis=0)
-                                else:
-                                    membrane1 = np.append(membrane1, T1[l,:].reshape(1,3), axis=0)
-                                    atm = atm + 1
-                                    coords = np.append(coords, T1[l,:].reshape(1,3), axis=0)
-
-        # length = membrane.shape[0]
-        # f = open(filename, 'w')
-        # for i in range(length):
-        #     f.write('ATOM%7d  Q1  NE1 Q%4d% 12.3f% 8.3f% 8.3f\n' % (i,i,membrane[i,0],membrane[i,1],membrane[i,2]))
-        # f.close()     
-        # length = membrane1.shape[0]
-        # f = open(filename2, 'w')
-        # for i in range(length):
-        #     f.write('ATOM%7d  Q1  NE1 Q%4d% 12.3f% 8.3f% 8.3f\n' % (i,i,membrane1[i,0],membrane1[i,1],membrane1[i,2]))
-        # f.close()                     
-
-        self._membrane = membrane 
-        LOGGER.report('Membrane was built in %2.fs.', label='_membrane')
         LOGGER.timeit('_exanm')
+        coords = np.concatenate((coords,self._membrane),axis=0)
+        self._combined_coords = coords
         total_natoms = int(coords.shape[0])
         self._hessian = np.zeros((natoms*3, natoms*3), float)
         total_hessian = np.zeros((total_natoms*3, total_natoms*3), float)
@@ -265,8 +246,30 @@ class exANM(ANMBase):
             return self._membrane.copy()
 
     def _getMembrane(self):
-
         return self._membrane
+
+    def combineMembraneProtein(self, coords):
+        try:
+            if type(coords) is AtomGroup:
+                self._combined = coords + self._membrane
+        except TypeError:
+            raise TypeError('coords must be an AtomGroup object '
+                                'with `getCoords` method')
+    
+    def writeCombinedPDB(self,filename):
+        """ Given membrane coordinates it will write a pdb file with membrane coordinates. 
+        :arg filename: filename for the pdb file. 
+        :type filename: str
+
+        :arg membrane: membrane coordinates or the membrane structure. 
+        :type membrane: nd.array
+        """
+        if self._combined is None:
+            combineMembraneProtein(self,coords)
+        try:
+            writePDB(filename,self._combined)
+        except TypeError:
+            raise "Membrane not found. Use buildMembrane() function."    
     
 
 def assign_lpvs(lat):
@@ -298,19 +301,7 @@ def checkClash(coordinates, pdb_coords, radius):
             return False
     return True
 
-def writeMembranePDB(filename, membrane):
-    """ Given membrane coordinates it will write a pdb file with membrane coordinates. 
-        :arg filename: filename for the pdb file. 
-        :type filename: str
 
-        :arg membrane: membrane coordinates or the membrane structure. 
-        :type membrane: nd.array
-        """
-    length = membrane.shape[0]
-    f = open(filename, 'w')
-    for i in range(length):
-        f.write('ATOM%7d  Q1  NE1 Q%4d% 12.3f% 8.3f% 8.3f\n' % (i,i,membrane[i,0],membrane[i,1],membrane[i,2]))
-    f.close()
 
 def test2(pdb='2nwl-mem.pdb'):
     from prody import parsePDB
