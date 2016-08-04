@@ -103,6 +103,9 @@ class exANM(ANMBase):
         jmax = (R + lpv[1,2] * (membrane_hi - membrane_lo)/2.)/r
         kmax = (R + lpv[2,2] * (membrane_hi - membrane_lo)/2.)/r    
 
+        print pxlo, pxhi, pylo, pyhi, pzlo, pzhi
+        print lpv[0,2],lpv[1,2],lpv[2,2]
+        print R,r,imax,jmax,kmax
         membrane = zeros((1,3))
 
         LOGGER.timeit('_membrane')
@@ -118,13 +121,14 @@ class exANM(ANMBase):
                     for p in range(3):
                         dd += X[0,p] ** 2
                     if dd<R**2 and X[0,2]>membrane_lo and X[0,2]<membrane_hi:
-                        if X[0,0]>pxlo and X[0,0]<pxhi and X[0,1]>pylo and X[0,1]<pyhi and X[0,2]>pzlo and X[0,2]<pzhi:
+                        if X[0,0]>pxlo-R/2 and X[0,0]<pxhi+R/2 and X[0,1]-R/2>pylo and X[0,1]<pyhi+R/2 and X[0,2]>pzlo and X[0,2]<pzhi:
                             if checkClash(X, coords[:natoms,:], radius=5):
                                 if atm == 0:
                                     membrane = X
                                 else:
                                     membrane = np.append(membrane, X, axis=0)
-                                atm = atm + 1              
+                                atm = atm + 1 
+        print atm             
 
         self._membrane = AtomGroup(title="Membrane")
         self._membrane.setCoords(membrane)
@@ -187,7 +191,7 @@ class exANM(ANMBase):
 
 
         LOGGER.timeit('_exanm')
-        coords = np.concatenate((coords,self._membrane),axis=0)
+        coords = np.concatenate((coords,self._membrane.getCoords()),axis=0)
         self._combined_coords = coords
         total_natoms = int(coords.shape[0])
         self._hessian = np.zeros((natoms*3, natoms*3), float)
