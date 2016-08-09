@@ -103,9 +103,9 @@ class exANM(ANMBase):
         jmax = (R + lpv[1,2] * (membrane_hi - membrane_lo)/2.)/r
         kmax = (R + lpv[2,2] * (membrane_hi - membrane_lo)/2.)/r    
 
-        print pxlo, pxhi, pylo, pyhi, pzlo, pzhi
-        print lpv[0,2],lpv[1,2],lpv[2,2]
-        print R,r,imax,jmax,kmax
+        #print pxlo, pxhi, pylo, pyhi, pzlo, pzhi
+        #print lpv[0,2],lpv[1,2],lpv[2,2]
+        #print R,r,imax,jmax,kmax
         membrane = zeros((1,3))
 
         LOGGER.timeit('_membrane')
@@ -128,7 +128,7 @@ class exANM(ANMBase):
                                 else:
                                     membrane = np.append(membrane, X, axis=0)
                                 atm = atm + 1 
-        print atm             
+        #print atm             
 
         self._membrane = AtomGroup(title="Membrane")
         self._membrane.setCoords(membrane)
