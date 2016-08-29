@@ -168,6 +168,8 @@ rst_epilog = u"""
 .. _NMWiz: http://csb.pitt.edu/NMWiz
 .. _VMD: http://www.ks.uiuc.edu/Research/vmd
 .. _PDB: http://www.pdb.org
+.. _pip: https://pypi.python.org/pypi/pip
+.. _Chimera: https://www.cgl.ucsf.edu/chimera/
 
 .. _MDAnalysis: http://code.google.com/p/mdanalysis
 .. _pyparsing: http://pyparsing.wikispaces.com
