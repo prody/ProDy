@@ -129,7 +129,9 @@ def showProtein(*atoms, **kwargs):
         import StringIO, py3Dmol
         from pdbfile import writePDBStream
         pdb = StringIO.StringIO()
-        writePDBStream(pdb, atoms)
+        
+        for mol in alist:
+            writePDBStream(pdb, mol)
         
         width = kwargs.get('width',400)
         height = kwargs.get('height',400)
@@ -138,7 +140,7 @@ def showProtein(*atoms, **kwargs):
         bgcolor = kwargs.get('backgroundColor','white')
         view.setBackgroundColor(bgcolor)
 
-        view.addModel(pdb.getvalue(),'pdb')
+        view.addModels(pdb.getvalue(),'pdb')
         view.setStyle({'cartoon': {'color':'spectrum'}})
         view.setStyle({'hetflag': True}, {'stick':{}})
         view.setStyle({'bonds': 0}, {'sphere':{'radius': 0.5}})
