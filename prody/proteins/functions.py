@@ -82,7 +82,7 @@ def writePQR(filename, atoms):
 def showProtein(*atoms, **kwargs):
     """Show protein representation using :meth:`~mpl_toolkits.mplot3d.Axes3D`.
     This function is designed for generating a quick view of the contents of a
-    :class:`~.AtomGroup` or :class:`~.Selection`.
+    :class:`~.AtomGroup` or :class:`~.Selection`.    
 
     Protein atoms matching ``"calpha"`` selection are displayed using solid
     lines by picking a random and unique color per chain.  Line with can
@@ -103,86 +103,128 @@ def showProtein(*atoms, **kwargs):
 
     ProDy will set the size of axis so the representation is not distorted when
     the shape of figure window is close to a square.  Colors are picked at
-    random, except for water oxygens which will always be colored red."""
+    random, except for water oxygens which will always be colored red.
+    
+    *** Interactive 3D Rendering in Jupyter Notebook ***
+    
+    If py3Dmol has been imported then it will be used instead to display 
+    an interactive viewer.  Available arguments are: width, height (of
+    the viewer), backgroundColor, zoomTo (a py3Dmol selection to center
+    around), and styles, which should be a list of (selection, style) 
+    tuple objects in py3Dmol format.
+    
+    The default style is to show the protein in a rainbow cartoon and
+    hetero atoms in sticks/spheres.
+    
+    """
 
     alist = atoms
     for atoms in alist:
         if not isinstance(atoms, Atomic):
             raise TypeError('atoms must be an Atomic instance')
-    import matplotlib.pyplot as plt
-    from mpl_toolkits.mplot3d import Axes3D
-    cf = plt.gcf()
-    show = None
-    for child in cf.get_children():
-        if isinstance(child, Axes3D):
-            show = child
-            break
-    if show is None:
-        show = Axes3D(cf)
-    from matplotlib import colors
-    cnames = dict(colors.cnames)
-    wcolor = kwargs.get('water', 'red').lower()
-    avoid = np.array(colors.hex2color(cnames.pop(wcolor, cnames.pop('red'))))
-    for cn, val in cnames.items():  # PY3K: OK
-        clr = np.array(colors.hex2color(val))
-        if clr.sum() > 2.4:
-            cnames.pop(cn)
-        elif np.abs(avoid - clr).sum() <= 0.6:
-            cnames.pop(cn)
-    cnames = list(cnames)
-    import random
-    random.shuffle(cnames)
-    min_ = list()
-    max_ = list()
-    for atoms in alist:
-        if isinstance(atoms, AtomGroup):
-            title = atoms.getTitle()
-        else:
-            title = atoms.getAtomGroup().getTitle()
-        calpha = atoms.select('calpha')
-        if calpha:
-            for ch in HierView(calpha, chain=True):
-                xyz = ch._getCoords()
-                chid = ch.getChid()
-                show.plot(xyz[:, 0], xyz[:, 1], xyz[:, 2],
-                          label=title + '_' + chid,
-                          color=kwargs.get(chid, cnames.pop()).lower(),
-                          lw=kwargs.get('lw', 4))
-        water = atoms.select('water and noh')
-        if water:
-            xyz = atoms.select('water')._getCoords()
-            show.plot(xyz[:, 0], xyz[:, 1], xyz[:, 2], label=title + '_water',
-                      color=wcolor,
-                      ls='None', marker=kwargs.get('wmarker', '.'),
-                      ms=kwargs.get('wsize', 6))
-        hetero = atoms.select('not protein and not nucleic and not water')
-        if hetero:
-            for res in HierView(hetero).iterResidues():
-                xyz = res._getCoords()
-                resname = res.getResname()
-                resnum = str(res.getResnum())
-                chid = res.getChid()
-                show.plot(xyz[:, 0], xyz[:, 1], xyz[:, 2], ls='None',
-                          color=kwargs.get(resname, cnames.pop()).lower(),
-                          label=title + '_' + chid + '_' + resname + resnum,
-                          marker=kwargs.get('hmarker', 'o'),
-                          ms=kwargs.get('hsize', 6))
-        xyz = atoms._getCoords()
-        min_.append(xyz.min(0))
-        max_.append(xyz.max(0))
+    
+    import sys        
+    if 'py3Dmol' in sys.modules:
+        
+        import StringIO, py3Dmol
+        from pdbfile import writePDBStream
+        pdb = StringIO.StringIO()
+        writePDBStream(pdb, atoms)
+        
+        width = kwargs.get('width',400)
+        height = kwargs.get('height',400)
+        view = py3Dmol.view(width=width,height=height)
+        
+        bgcolor = kwargs.get('backgroundColor','white')
+        view.setBackgroundColor(bgcolor)
 
-    show.set_xlabel('x')
-    show.set_ylabel('y')
-    show.set_zlabel('z')
-    min_ = np.array(min_).min(0)
-    max_ = np.array(max_).max(0)
-    center = (max_ + min_) / 2
-    half = (max_ - min_).max() / 2
-    show.set_xlim3d(center[0]-half, center[0]+half)
-    show.set_ylim3d(center[1]-half, center[1]+half)
-    show.set_zlim3d(center[2]-half, center[2]+half)
-    if kwargs.get('legend', False):
-        show.legend(prop={'size': 10})
-    if SETTINGS['auto_show']:
-        showFigure()
-    return show
+        view.addModel(pdb.getvalue(),'pdb')
+        view.setStyle({'cartoon': {'color':'spectrum'}})
+        view.setStyle({'hetflag': True}, {'stick':{}})
+        view.setStyle({'bonds': 0}, {'sphere':{'radius': 0.5}})
+        
+        if 'styles' in kwargs:
+            for (sel, style) in kwargs['styles']:
+                view.setStyle(sel, style)
+        
+        view.zoomTo(kwargs.get('zoomTo',{}))
+        return view.show()
+
+    else:
+        import matplotlib.pyplot as plt
+        from mpl_toolkits.mplot3d import Axes3D
+        cf = plt.gcf()
+        show = None
+        for child in cf.get_children():
+            if isinstance(child, Axes3D):
+                show = child
+                break
+        if show is None:
+            show = Axes3D(cf)
+        from matplotlib import colors
+        cnames = dict(colors.cnames)
+        wcolor = kwargs.get('water', 'red').lower()
+        avoid = np.array(colors.hex2color(cnames.pop(wcolor, cnames.pop('red'))))
+        for cn, val in cnames.items():  # PY3K: OK
+            clr = np.array(colors.hex2color(val))
+            if clr.sum() > 2.4:
+                cnames.pop(cn)
+            elif np.abs(avoid - clr).sum() <= 0.6:
+                cnames.pop(cn)
+        cnames = list(cnames)
+        import random
+        random.shuffle(cnames)
+        min_ = list()
+        max_ = list()
+        for atoms in alist:
+            if isinstance(atoms, AtomGroup):
+                title = atoms.getTitle()
+            else:
+                title = atoms.getAtomGroup().getTitle()
+            calpha = atoms.select('calpha')
+            if calpha:
+                for ch in HierView(calpha, chain=True):
+                    xyz = ch._getCoords()
+                    chid = ch.getChid()
+                    show.plot(xyz[:, 0], xyz[:, 1], xyz[:, 2],
+                              label=title + '_' + chid,
+                              color=kwargs.get(chid, cnames.pop()).lower(),
+                              lw=kwargs.get('lw', 4))
+            water = atoms.select('water and noh')
+            if water:
+                xyz = atoms.select('water')._getCoords()
+                show.plot(xyz[:, 0], xyz[:, 1], xyz[:, 2], label=title + '_water',
+                          color=wcolor,
+                          ls='None', marker=kwargs.get('wmarker', '.'),
+                          ms=kwargs.get('wsize', 6))
+            hetero = atoms.select('not protein and not nucleic and not water')
+            if hetero:
+                for res in HierView(hetero).iterResidues():
+                    xyz = res._getCoords()
+                    resname = res.getResname()
+                    resnum = str(res.getResnum())
+                    chid = res.getChid()
+                    show.plot(xyz[:, 0], xyz[:, 1], xyz[:, 2], ls='None',
+                              color=kwargs.get(resname, cnames.pop()).lower(),
+                              label=title + '_' + chid + '_' + resname + resnum,
+                              marker=kwargs.get('hmarker', 'o'),
+                              ms=kwargs.get('hsize', 6))
+            xyz = atoms._getCoords()
+            min_.append(xyz.min(0))
+            max_.append(xyz.max(0))
+
+        show.set_xlabel('x')
+        show.set_ylabel('y')
+        show.set_zlabel('z')
+        min_ = np.array(min_).min(0)
+        max_ = np.array(max_).max(0)
+        center = (max_ + min_) / 2
+        half = (max_ - min_).max() / 2
+        show.set_xlim3d(center[0]-half, center[0]+half)
+        show.set_ylim3d(center[1]-half, center[1]+half)
+        show.set_zlim3d(center[2]-half, center[2]+half)
+        if kwargs.get('legend', False):
+            show.legend(prop={'size': 10})
+        if SETTINGS['auto_show']:
+            showFigure()
+        return show
