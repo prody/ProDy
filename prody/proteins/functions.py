@@ -96,7 +96,8 @@ def view3D(*alist, **kwargs):
     for visualization of GNM/ANM calculations.  The array is assumed to 
     correpond to a calpha selection of the provided protein.
     The default color will be set to a RWB color scheme on a per-residue
-    basis.  
+    basis.  If the fluctuation vector contains negative values, the
+    midpoint (white) will be at zero.  Otherwise the midpoint is the mean.
     
     An array of displacement vectors can be provided with the vecs kwarg.
     The animation of these motions can be controlled with frames (number
@@ -140,7 +141,8 @@ def view3D(*alist, **kwargs):
             #color by property using gradient
             extreme = np.abs(garr).max()
             lo = -extreme if garr.min() < 0 else 0
-            view.setColorByProperty({}, 'flucts', 'rwb', [extreme,lo])
+            mid = np.mean(garr) if garr.min() >= 0 else 0
+            view.setColorByProperty({}, 'flucts', 'rwb', [extreme,lo,mid])
             view.setStyle({'cartoon':{'style':'trace'}})
             
     if 'vecs' in kwargs:
