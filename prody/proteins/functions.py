@@ -167,7 +167,7 @@ def showProtein(*atoms, **kwargs):
             garr = kwargs['flucts']
             #note we are only getting info from last set of atoms..
             if atoms.calpha.numAtoms() != len(garr):
-                print "Atom count mismatch: %d vs %d.  GNM styling assume a calpha selection." % (atoms.calpha.numAtoms(), len(garr))
+                print "Atom count mismatch: {} vs {}.  flucts styling assume a calpha selection.".format(atoms.calpha.numAtoms(), len(garr))
             else:
                 #construct map from residue to flucts property
                 propmap = []
@@ -188,7 +188,7 @@ def showProtein(*atoms, **kwargs):
 
             #note we are only getting info from last set of atoms..
             if atoms.calpha.numAtoms()*3 != len(aarr):
-                print "Atom count mismatch: %d vs %d.  GNM styling assume a calpha selection." % (atoms.calpha.numAtoms(), len(aarr)/3)
+                print "Atom count mismatch: {} vs {}.  vecs animation assume a calpha selection.".format(atoms.calpha.numAtoms(), len(aarr)/3)
             else:
                 #construct map from residue to anm property and dx,dy,dz vectors
                 propmap = []
