@@ -111,10 +111,25 @@ def showProtein(*atoms, **kwargs):
     an interactive viewer.  Available arguments are: width, height (of
     the viewer), backgroundColor, zoomTo (a py3Dmol selection to center
     around), and styles, which should be a list of (selection, style) 
-    tuple objects in py3Dmol format.
+    tuple objects in py3Dmol format.  A single style may also be applied
+    to all atoms with the 'style' keyword.
     
     The default style is to show the protein in a rainbow cartoon and
     hetero atoms in sticks/spheres.
+    
+    GNM/ANM Coloring
+    
+    An array of fluctuation values can be provided with the flucts kwarg
+    for visualization of GNM/ANM calculations.  The array is assumed to 
+    correpond to a calpha selection of the provided protein.
+    The default color will be set to a RWB color scheme on a per-residue
+    basis.  
+    
+    An array of displacement vectors can be provided with the vecs kwarg.
+    The animation of these motions can be controlled with frames (number
+    of frames to animate over), amplitude (scaling factor), and animate
+    (3Dmol.js animate options).
+    
     
     """
 
@@ -128,6 +143,8 @@ def showProtein(*atoms, **kwargs):
         
         import StringIO, py3Dmol
         from pdbfile import writePDBStream
+
+        
         pdb = StringIO.StringIO()
         
         for mol in alist:
@@ -137,19 +154,75 @@ def showProtein(*atoms, **kwargs):
         height = kwargs.get('height',400)
         view = py3Dmol.view(width=width,height=height)
         
-        bgcolor = kwargs.get('backgroundColor','white')
+        #case insensitive kwargs..
+        bgcolor = kwargs['backgroundcolor'] if 'backgroundcolor' in kwargs else kwargs.get('backgroundColor','white')
         view.setBackgroundColor(bgcolor)
 
         view.addModels(pdb.getvalue(),'pdb')
         view.setStyle({'cartoon': {'color':'spectrum'}})
         view.setStyle({'hetflag': True}, {'stick':{}})
-        view.setStyle({'bonds': 0}, {'sphere':{'radius': 0.5}})
-        
+        view.setStyle({'bonds': 0}, {'sphere':{'radius': 0.5}})    
+    
+        if 'flucts' in kwargs:
+            garr = kwargs['flucts']
+            #note we are only getting info from last set of atoms..
+            if atoms.calpha.numAtoms() != len(garr):
+                print "Atom count mismatch: %d vs %d.  GNM styling assume a calpha selection." % (atoms.calpha.numAtoms(), len(garr))
+            else:
+                #construct map from residue to flucts property
+                propmap = []
+                for (i,a) in enumerate(atoms.calpha):
+                    propmap.append({'chain': a.getChid(), 'resi':a.getResnum(), 'props': {'flucts': garr[i] } })
+                #set the atom property 
+                #TODO: implement something more efficient on the 3Dmol.js side (this is O(n*m)!)
+                view.mapAtomProperties(propmap)
+                
+                #color by property using gradient
+                extreme = np.abs(garr).max()
+                lo = -extreme if garr.min() < 0 else 0
+                view.setColorByProperty({}, 'flucts', 'rwb', [extreme,lo])
+                view.setStyle({'cartoon':{'style':'trace'}})
+                
+        if 'vecs' in kwargs:
+            aarr = kwargs['vecs']  #has xyz coordinates
+
+            #note we are only getting info from last set of atoms..
+            if atoms.calpha.numAtoms()*3 != len(aarr):
+                print "Atom count mismatch: %d vs %d.  GNM styling assume a calpha selection." % (atoms.calpha.numAtoms(), len(aarr)/3)
+            else:
+                #construct map from residue to anm property and dx,dy,dz vectors
+                propmap = []
+                for (i,a) in enumerate(atoms.calpha):
+                    propmap.append({'chain': a.getChid(), 'resi':a.getResnum(),
+                        'props': {'dy': aarr[3*i+1], 'dz': aarr[3*i+2] } });
+                #set the atom property 
+                #TODO: implement something more efficient on the 3Dmol.js side (this is O(n*m)!)
+                view.mapAtomProperties(propmap)
+                
+                #create vibrations
+                frames = kwargs.get('frames',10)
+                amplitude = kwargs.get('amplitude',100)
+                view.vibrate(frames, amplitude)
+                
+                animate = kwargs.get('animate',{'loop':'rock'})
+                view.animate(animate)                
+    
+        if 'style' in kwargs: # this is never a list
+            view.setStyle({},kwargs['style'])
+            
         if 'styles' in kwargs:
-            for (sel, style) in kwargs['styles']:
+            #allow simpler forms - convert them into a list
+            styles = kwargs['styles']
+            if type(styles) == dict:
+                styles = ({},styles)
+            if type(styles) == tuple:
+                styles = [styles]
+            for (sel, style) in styles:
                 view.setStyle(sel, style)
         
-        view.zoomTo(kwargs.get('zoomTo',{}))
+        zoomto = kwargs['zoomto'] if 'zoomto' in kwargs else kwargs.get('zoomTo',{})
+        view.zoomTo(zoomto)
+                
         return view.show()
 
     else:
