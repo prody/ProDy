@@ -246,8 +246,8 @@ class PDBBlastRecord(object):
         for p_identity, p_overlap, hit in self._hits:
             if p_identity < percent_identity:
                 break
-        if hit['evalue'] > Evalue:
-            break
+            if hit['evalue'] > Evalue:
+                break
             if p_overlap < percent_overlap:
                 continue
             if chain:
