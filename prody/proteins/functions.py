@@ -244,7 +244,7 @@ def showProtein(*atoms, **kwargs):
         cnames = dict(colors.cnames)
         wcolor = kwargs.get('water', 'red').lower()
         avoid = np.array(colors.hex2color(cnames.pop(wcolor, cnames.pop('red'))))
-        for cn, val in cnames.items():  # PY3K: OK
+        for cn, val in cnames.copy().items():  # PY3K: OK
             clr = np.array(colors.hex2color(val))
             if clr.sum() > 2.4:
                 cnames.pop(cn)
