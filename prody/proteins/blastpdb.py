@@ -239,15 +239,15 @@ class PDBBlastRecord(object):
         assert isinstance(percent_overlap, (float, int)), \
             'percent_overlap must be a float or an integer'
         assert isinstance(chain, bool), 'chain must be a boolean'
-	assert isinstance(Evalue,float), 'evalue must be a float'	
+        assert isinstance(Evalue,float), 'evalue must be a float'	
 
 
         hits = {}
         for p_identity, p_overlap, hit in self._hits:
             if p_identity < percent_identity:
                 break
-	    if hit['evalue'] > Evalue:
-		break
+        if hit['evalue'] > Evalue:
+            break
             if p_overlap < percent_overlap:
                 continue
             if chain:
