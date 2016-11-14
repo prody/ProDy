@@ -167,7 +167,7 @@ def getMasses(elements):
     else:
         masses = np.zeros(len(elements))
         for i,element in enumerate(elements):
-            if mass_dict.has_key(element):
+            if element in mass_dict:
                 masses[i] = mass_dict[element]
             else:
                 masses[i] = 0.
