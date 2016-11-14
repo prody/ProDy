@@ -247,8 +247,11 @@ class SwissProtBlastRecord(object):
                 break
             if p_overlap < percent_overlap:
                 continue
+            key = hit['species']
             if not key in hits:
                 hits[key] = hit
+            #else:
+            #    if hits
         return hits
 
     def getBest(self):
