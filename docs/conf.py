@@ -169,12 +169,12 @@ rst_epilog = u"""
 .. _VMD: http://www.ks.uiuc.edu/Research/vmd
 .. _PDB: http://www.pdb.org
 .. _pip: https://pypi.python.org/pypi/pip
-.. _Chimera: https://www.cgl.ucsf.edu/chimera/
 
 .. _MDAnalysis: http://code.google.com/p/mdanalysis
 .. _pyparsing: http://pyparsing.wikispaces.com
 .. _Matplotlib: http://matplotlib.org
 .. _Biopython: http://biopython.org
+.. _Chimera: https://www.cgl.ucsf.edu/chimera
 
 .. _PyPI: http://pypi.python.org/pypi/ProDy
 .. _GitHub: http://github.com/prody/ProDy
@@ -183,7 +183,6 @@ rst_epilog = u"""
 .. _Python: http://www.python.org
 .. _NumPy: http://www.numpy.org
 .. _Scipy: http://www.scipy.org
-.. _pip: http://www.pip-installer.org
 .. _nose: http://nose.readthedocs.org
 
 

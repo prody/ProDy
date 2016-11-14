@@ -69,7 +69,7 @@ def blastPDBUniProtKB(sequence, filename=None, **kwargs):
     except ImportError:
         from urllib import urlencode
 
-    url = 'http://blast.ncbi.nlm.nih.gov/Blast.cgi'
+    url = 'https://blast.ncbi.nlm.nih.gov/Blast.cgi'
 
     data = urlencode(query)
     LOGGER.timeit('_prody_blast')
@@ -247,8 +247,11 @@ class SwissProtBlastRecord(object):
                 break
             if p_overlap < percent_overlap:
                 continue
+            key = hit['species']
             if not key in hits:
                 hits[key] = hit
+            #else:
+            #    if hits
         return hits
 
     def getBest(self):
