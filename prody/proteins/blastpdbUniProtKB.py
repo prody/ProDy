@@ -69,7 +69,7 @@ def blastPDBUniProtKB(sequence, filename=None, **kwargs):
     except ImportError:
         from urllib import urlencode
 
-    url = 'http://blast.ncbi.nlm.nih.gov/Blast.cgi'
+    url = 'https://blast.ncbi.nlm.nih.gov/Blast.cgi'
 
     data = urlencode(query)
     LOGGER.timeit('_prody_blast')

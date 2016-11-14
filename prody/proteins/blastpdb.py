@@ -68,7 +68,7 @@ def blastPDB(sequence, filename=None, **kwargs):
     except ImportError:
         from urllib import urlencode
 
-    url = 'http://blast.ncbi.nlm.nih.gov/Blast.cgi'
+    url = 'https://blast.ncbi.nlm.nih.gov/Blast.cgi'
 
     data = urlencode(query)
     LOGGER.timeit('_prody_blast')
@@ -220,7 +220,7 @@ class PDBBlastRecord(object):
 
         return dict(self._param)
 
-    def getHits(self, percent_identity=90., percent_overlap=70., chain=False):
+    def getHits(self, percent_identity=90., percent_overlap=70., chain=False, Evalue=1e-3):
         """Returns a dictionary in which PDB identifiers are mapped to structure
         and alignment information.
 
@@ -239,11 +239,15 @@ class PDBBlastRecord(object):
         assert isinstance(percent_overlap, (float, int)), \
             'percent_overlap must be a float or an integer'
         assert isinstance(chain, bool), 'chain must be a boolean'
+	assert isinstance(Evalue,float), 'evalue must be a float'	
+
 
         hits = {}
         for p_identity, p_overlap, hit in self._hits:
             if p_identity < percent_identity:
                 break
+	    if hit['evalue'] > Evalue:
+		break
             if p_overlap < percent_overlap:
                 continue
             if chain:
