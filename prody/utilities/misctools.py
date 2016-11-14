@@ -156,3 +156,19 @@ def sqrtm(matrix):
     D = diag(sqrt(S))
     return dot(dot(U,D),VT)
 
+def getMasses(elements):
+    """get the mass atom. """
+    
+    import numpy as np
+    mass_dict = {'C':12,'N':14,'S':32,'O':16,'H':1}
+
+    if isinstance(elements, str):
+        return mass_dict[elements]
+    else:
+        masses = np.zeros(len(elements))
+        for i,element in enumerate(elements):
+            if mass_dict.has_key(element):
+                masses[i] = mass_dict[element]
+            else:
+                masses[i] = 0.
+        return masses

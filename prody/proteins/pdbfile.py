@@ -578,6 +578,8 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                     atomgroup.setOccupancies(occupancies)
                     atomgroup.setSegnames(np.char.strip(segnames))
                     atomgroup.setElements(np.char.strip(elements))
+                    from prody.utilities.misctools import getMasses
+                    atomgroup.setMasses(getMasses(np.char.strip(elements)))
                     if anisou is not None:
                         anisou.resize((acount, 6))
                         atomgroup.setAnisous(anisou / 10000)
@@ -685,6 +687,8 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
             elements.resize(acount)
             atomgroup.setSegnames(np.char.strip(segnames))
             atomgroup.setElements(np.char.strip(elements))
+            from prody.utilities.misctools import getMasses
+            atomgroup.setMasses(getMasses(np.char.strip(elements)))
             atomgroup.setBetas(bfactors)
             atomgroup.setOccupancies(occupancies)
         else:
