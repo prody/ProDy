@@ -172,3 +172,4 @@ def getMasses(elements):
             else:
                 masses[i] = 0.
         return masses
+        
