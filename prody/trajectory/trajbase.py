@@ -78,7 +78,7 @@ class TrajBase(object):
         self.close()
 
     def getTitle(self):
-        """Return title of the ensemble."""
+        """Returns title of the ensemble."""
 
         return self._title
 
@@ -88,25 +88,25 @@ class TrajBase(object):
         self._title = str(title)
 
     def numAtoms(self):
-        """Return number of atoms."""
+        """Returns number of atoms."""
 
         return self._n_atoms
 
     def numFrames(self):
-        """Return number of frames."""
+        """Returns number of frames."""
 
         return self._n_csets
 
     numCoordsets = numFrames
 
     def numSelected(self):
-        """Return number of selected atoms.  A subset of atoms can be selected
+        """Returns number of selected atoms.  A subset of atoms can be selected
         by passing a selection to :meth:`setAtoms`."""
 
         return self._n_atoms if self._indices is None else len(self._indices)
 
     def getAtoms(self):
-        """Return associated/selected atoms."""
+        """Returns associated/selected atoms."""
 
         return self._atoms
 
@@ -215,19 +215,19 @@ class TrajBase(object):
             self._atoms = self._atoms or ag
 
     def getLinked(self):
-        """Return linked :class:`.AtomGroup` instance, or **None** if a link
+        """Returns linked :class:`.AtomGroup` instance, or **None** if a link
         is not established."""
 
         return self._ag
 
     def isLinked(self):
-        """Return **True** if trajectory is linked to an :class:`.AtomGroup`
+        """Returns **True** if trajectory is linked to an :class:`.AtomGroup`
         instance."""
 
         return self._ag is not None
 
     def getCoords(self):
-        """Return a copy of reference coordinates for (selected) atoms."""
+        """Returns a copy of reference coordinates for (selected) atoms."""
 
         if self._coords is None:
             return None
@@ -236,7 +236,7 @@ class TrajBase(object):
         return self._coords[self._indices]
 
     def _getCoords(self):
-        """Return a view of reference coordinates for (selected) atoms."""
+        """Returns a view of reference coordinates for (selected) atoms."""
 
         if self._coords is None:
             return None
@@ -275,7 +275,7 @@ class TrajBase(object):
         self._weights = checkWeights(weights, self._n_atoms, None)
 
     def getWeights(self):
-        """Return a copy of weights of (selected) atoms."""
+        """Returns a copy of weights of (selected) atoms."""
 
         if self._weights is not None:
             if self._indices is None:
@@ -292,7 +292,7 @@ class TrajBase(object):
                 return self._weights[self._indices]
 
     def nextIndex(self):
-        """Return the index of the next frame."""
+        """Returns the index of the next frame."""
 
         return self._nfi
 
@@ -306,7 +306,7 @@ class TrajBase(object):
             yield self.nextCoordset()
 
     def getCoordsets(self, indices=None):
-        """Returns coordinate sets at given *indices*. *indices* may be an
+        """Returnss coordinate sets at given *indices*. *indices* may be an
         integer, a list of ordered integers or ``None``. ``None`` returns all
         coordinate sets. If a list of indices is given, unique numbers will
         be selected and sorted. That is, this method will always return unique
@@ -316,17 +316,17 @@ class TrajBase(object):
         pass
 
     def getFrame(self, index):
-        """Return frame at given *index*."""
+        """Returns frame at given *index*."""
 
         pass
 
     def nextCoordset(self):
-        """Return next coordinate set."""
+        """Returns next coordinate set."""
 
         pass
 
     def __next__(self):
-        """Return next coordinate set in a :class:`.Frame` instance.  Note that
+        """Returns next coordinate set in a :class:`.Frame` instance.  Note that
         when atoms are set for the trajectory, this method will return the same
         frame instance after updating its coordinates."""
 
@@ -362,6 +362,6 @@ class TrajBase(object):
         pass
 
     def hasUnitcell(self):
-        """Return ``True`` if trajectory has unitcell data."""
+        """Returns ``True`` if trajectory has unitcell data."""
 
         pass

@@ -145,7 +145,7 @@ class RTB(ANMBase):
 
 
     def getProjection(self):
-        """Return a copy of the projection matrix."""
+        """Returns a copy of the projection matrix."""
 
         if self._project is not None:
             return self._project.copy()

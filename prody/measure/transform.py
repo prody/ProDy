@@ -38,7 +38,7 @@ class Transformation(object):
             raise ValueError('one or two array must be provided as arguments')
 
     def getRotation(self):
-        """Return rotation matrix."""
+        """Returns rotation matrix."""
 
         if self._matrix is not None:
             return self._matrix[:3, :3]
@@ -53,7 +53,7 @@ class Transformation(object):
         self._matrix[:3, :3] = rotation
 
     def getTranslation(self):
-        """Return translation vector."""
+        """Returns translation vector."""
 
         if self._matrix is not None:
             return self._matrix[:3, 3]
@@ -68,7 +68,7 @@ class Transformation(object):
         self._matrix[:3, 3] = translation
 
     def getMatrix(self):
-        """Returns a copy of the 4x4 transformation matrix whose top left is
+        """Returnss a copy of the 4x4 transformation matrix whose top left is
         rotation matrix and last column is translation vector."""
 
         if self._matrix is not None:
@@ -90,7 +90,7 @@ class Transformation(object):
 
 
 def calcTransformation(mobile, target, weights=None):
-    """Returns a :class:`Transformation` instance which, when applied to the
+    """Returnss a :class:`Transformation` instance which, when applied to the
     atoms in *mobile*, minimizes the weighted RMSD between *mobile* and
     *target*.  *mobile* and *target* may be NumPy coordinate arrays, or
     :class:`.Atomic` instances, e.g. :class:`.AtomGroup`, :class:`.Chain`,
@@ -158,7 +158,7 @@ def getTransformation(mob, tar, weights=None):
 
 
 def applyTransformation(transformation, atoms):
-    """Return *atoms* after applying *transformation*.  If *atoms*
+    """Returns *atoms* after applying *transformation*.  If *atoms*
     is a :class:`.Atomic` instance, it will be returned after
     *transformation* is applied to its active coordinate set.  If
     *atoms* is an :class:`.AtomPointer` instance, *transformation*
@@ -201,7 +201,7 @@ def _applyTransformation(t, coords):
 
 
 def superpose(mobile, target, weights=None):
-    """Return *mobile*, after its RMSD minimizing superposition onto *target*,
+    """Returns *mobile*, after its RMSD minimizing superposition onto *target*,
     and the transformation that minimizes the RMSD."""
 
     t = calcTransformation(mobile, target, weights)
@@ -349,7 +349,7 @@ def moveAtoms(atoms, **kwargs):
 
 
 def calcRMSD(reference, target=None, weights=None):
-    """Return root-mean-square deviation(s) (RMSD) between reference and target
+    """Returns root-mean-square deviation(s) (RMSD) between reference and target
     coordinates.
 
     .. ipython:: pyhton
@@ -458,7 +458,7 @@ def printRMSD(reference, target=None, weights=None, log=True, msg=None):
 
 
 def alignCoordsets(atoms, weights=None):
-    """Return *atoms* after superposing coordinate sets onto its active
+    """Returns *atoms* after superposing coordinate sets onto its active
     coordinate set.  Transformations will be calculated for *atoms* and
     applied to its :class:`.AtomGroup`, when applicable.  Optionally,
     atomic *weights* can be passed for weighted superposition."""

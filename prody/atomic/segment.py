@@ -52,7 +52,7 @@ class Segment(AtomSubset):
         return self.getChain(chid)
 
     def getSegname(self):
-        """Return segment name."""
+        """Returns segment name."""
 
         return self._ag._getSegnames()[self._indices[0]]
 
@@ -62,14 +62,14 @@ class Segment(AtomSubset):
         self.setSegnames(segname)
 
     def numChains(self):
-        """Return number of chains."""
+        """Returns number of chains."""
 
         return len(set(self._getChindices()))
 
     __len__ = numChains
 
     def getChain(self, chid):
-        """Return chain with identifier *chid*."""
+        """Returns chain with identifier *chid*."""
 
         self._hv.getChain(chid, self.getSegname())
 
@@ -83,7 +83,7 @@ class Segment(AtomSubset):
     __iter__ = iterChains
 
     def getSelstr(self):
-        """Return selection string that selects atoms in this segment."""
+        """Returns selection string that selects atoms in this segment."""
 
         if self._selstr:
             return 'segname {0} and ({1})'.format(self.getSegname(),

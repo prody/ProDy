@@ -78,7 +78,7 @@ _parsePDBdoc = _parsePQRdoc + """
 _PDBSubsets = {'ca': 'ca', 'calpha': 'ca', 'bb': 'bb', 'backbone': 'bb'}
 
 def parsePDB(pdb, **kwargs):
-    """Return an :class:`.AtomGroup` and/or dictionary containing header data
+    """Returns an :class:`.AtomGroup` and/or dictionary containing header data
     parsed from a PDB file.
 
     This function extends :func:`.parsePDBStream`.
@@ -117,7 +117,7 @@ def parsePDB(pdb, **kwargs):
 parsePDB.__doc__ += _parsePDBdoc
 
 def parsePDBStream(stream, **kwargs):
-    """Return an :class:`.AtomGroup` and/or dictionary containing header data
+    """Returns an :class:`.AtomGroup` and/or dictionary containing header data
     parsed from a stream of PDB lines.
 
     :arg stream: Anything that implements the method ``readlines``
@@ -225,7 +225,7 @@ parsePDBStream.__doc__ += _parsePDBdoc
 
 
 def parsePQR(filename, **kwargs):
-    """Return an :class:`.AtomGroup` containing data parsed from PDB lines.
+    """Returns an :class:`.AtomGroup` containing data parsed from PDB lines.
 
     :arg filename: a PQR filename
     :type filename: str"""
@@ -286,7 +286,7 @@ parsePQR.__doc__ += _parsePQRdoc
 
 def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                    altloc_torf, format='PDB'):
-    """Return an AtomGroup. See also :func:`.parsePDBStream()`.
+    """Returns an AtomGroup. See also :func:`.parsePDBStream()`.
 
     :arg lines: PDB/PQR lines
     :arg split: starting index for coordinate data lines"""

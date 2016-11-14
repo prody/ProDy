@@ -61,7 +61,7 @@ class Ensemble(object):
         return self._n_csets
 
     def __getitem__(self, index):
-        """Return a conformation at given index."""
+        """Returns a conformation at given index."""
 
         if self._confs is None:
             return None
@@ -127,7 +127,7 @@ class Ensemble(object):
             yield Conformation(self, i)
 
     def getTitle(self):
-        """Return title of the ensemble."""
+        """Returns title of the ensemble."""
 
         return self._title
 
@@ -137,26 +137,26 @@ class Ensemble(object):
         self._title = str(title)
 
     def numAtoms(self):
-        """Return number of atoms."""
+        """Returns number of atoms."""
 
         return self._n_atoms
 
     def numConfs(self):
-        """Return number of conformations."""
+        """Returns number of conformations."""
 
         return self._n_csets
 
     numCoordsets = numConfs
 
     def numSelected(self):
-        """Return number of selected atoms.  Number of all atoms will be
+        """Returns number of selected atoms.  Number of all atoms will be
         returned if a selection is not made.  A subset of atoms can be
         selected by passing a selection to :meth:`setAtoms`."""
 
         return self._n_atoms if self._indices is None else len(self._indices)
 
     def getAtoms(self):
-        """Return associated/selected atoms."""
+        """Returns associated/selected atoms."""
 
         return self._atoms
 
@@ -220,7 +220,7 @@ class Ensemble(object):
             self._atoms = atoms
 
     def getCoords(self):
-        """Return a copy of reference coordinates for selected atoms."""
+        """Returns a copy of reference coordinates for selected atoms."""
 
         if self._coords is None:
             return None
@@ -229,7 +229,7 @@ class Ensemble(object):
         return self._coords[self._indices]
 
     def _getCoords(self):
-        """Return a view of reference coordinates for selected atoms."""
+        """Returns a view of reference coordinates for selected atoms."""
 
         if self._coords is None:
             return None
@@ -262,7 +262,7 @@ class Ensemble(object):
         self._n_atoms = coords.shape[0]
 
     def getWeights(self):
-        """Return a copy of weights of selected atoms."""
+        """Returns a copy of weights of selected atoms."""
 
         if self._weights is None:
             return None
@@ -339,7 +339,7 @@ class Ensemble(object):
         self._n_csets += n_confs
 
     def getCoordsets(self, indices=None):
-        """Return a copy of coordinate set(s) at given *indices*, which may be
+        """Returns a copy of coordinate set(s) at given *indices*, which may be
         an integer, a list of integers or ``None``. ``None`` returns all
         coordinate sets.  For reference coordinates, use :meth:`getCoordinates`
         method."""
@@ -429,7 +429,7 @@ class Ensemble(object):
                 yield conf[indices].copy()
 
     def getConformation(self, index):
-        """Return conformation at given index."""
+        """Returns conformation at given index."""
 
         if self._confs is None:
             raise AttributeError('conformations are not set')
@@ -556,7 +556,7 @@ class Ensemble(object):
                       '_prody_ensemble')
 
     def getMSFs(self):
-        """Return mean square fluctuations (MSFs) for selected atoms.
+        """Returns mean square fluctuations (MSFs) for selected atoms.
         Conformations can be aligned using one of :meth:`superpose` or
         :meth:`iterpose` methods prior to MSF calculation."""
 
@@ -576,14 +576,14 @@ class Ensemble(object):
         return ssqf.sum(1) / self._n_csets
 
     def getRMSFs(self):
-        """Return root mean square fluctuations (RMSFs) for selected atoms.
+        """Returns root mean square fluctuations (RMSFs) for selected atoms.
         Conformations can be aligned using one of :meth:`superpose` or
         :meth:`iterpose` methods prior to RMSF calculation."""
 
         return self.getMSFs() ** 0.5
 
     def getDeviations(self):
-        """Return deviations from reference coordinates for selected atoms.
+        """Returns deviations from reference coordinates for selected atoms.
         Conformations can be aligned using one of :meth:`superpose` or
         :meth:`iterpose` methods prior to calculating deviations."""
 
@@ -597,7 +597,7 @@ class Ensemble(object):
         return self._getCoordsets() - self._getCoords()
 
     def getRMSDs(self):
-        """Return root mean square deviations (RMSDs) for selected atoms.
+        """Returns root mean square deviations (RMSDs) for selected atoms.
         Conformations can be aligned using one of :meth:`superpose` or
         :meth:`iterpose` methods prior to RMSD calculation."""
 

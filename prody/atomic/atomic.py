@@ -111,7 +111,7 @@ class Atomic(object):
                 setattr(self, slot, value)
 
     def copy(self):
-        """Return a copy of atoms (and atomic data) in an :class:`.AtomGroup`
+        """Returns a copy of atoms (and atomic data) in an :class:`.AtomGroup`
         instance."""
 
         dummies = None
@@ -194,7 +194,7 @@ class Atomic(object):
     __copy__ = copy
 
     def select(self, selstr, **kwargs):
-        """Return atoms matching *selstr* criteria.  See :mod:`~.select` module
+        """Returns atoms matching *selstr* criteria.  See :mod:`~.select` module
         documentation for details and usage examples."""
 
         return SELECT.select(self, selstr, **kwargs)

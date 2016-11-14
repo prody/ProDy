@@ -70,7 +70,7 @@ class PDBEnsemble(Ensemble):
             yield PDBConformation(self, i)
 
     def __getitem__(self, index):
-        """Return a conformation at given index."""
+        """Returns a conformation at given index."""
 
         if isinstance(index, int):
             return self.getConformation(index)
@@ -224,12 +224,12 @@ class PDBEnsemble(Ensemble):
                                'the same time')
 
     def getLabels(self):
-        """Return identifiers of the conformations in the ensemble."""
+        """Returns identifiers of the conformations in the ensemble."""
 
         return list(self._labels)
 
     def getCoordsets(self, indices=None):
-        """Return a copy of coordinate set(s) at given *indices* for selected
+        """Returns a copy of coordinate set(s) at given *indices* for selected
         atoms. *indices* may be an integer, a list of integers or ``None``.
         ``None`` returns all coordinate sets.
 
@@ -283,7 +283,7 @@ class PDBEnsemble(Ensemble):
             self._labels.pop(i)
 
     def getConformation(self, index):
-        """Return conformation at given index."""
+        """Returns conformation at given index."""
 
         if self._confs is None:
             raise AttributeError('conformations are not set')

@@ -50,17 +50,17 @@ class Atom(AtomPointer):
         return self._index
 
     def numAtoms(self, flag=None):
-        """Return number of atoms, or number of atoms with given *flag*."""
+        """Returns number of atoms, or number of atoms with given *flag*."""
 
         return len(self._getSubset(flag)) if flag else 1
 
     def getIndex(self):
-        """Return index of the atom."""
+        """Returns index of the atom."""
 
         return self._index
 
     def getIndices(self):
-        """Return index of the atom in an :class:`numpy.ndarray`."""
+        """Returns index of the atom in an :class:`numpy.ndarray`."""
 
         return np.array([self._index])
 
@@ -74,14 +74,14 @@ class Atom(AtomPointer):
     __iter__ = iterAtoms
 
     def getCoords(self):
-        """Return a copy of coordinates of the atom from the active coordinate
+        """Returns a copy of coordinates of the atom from the active coordinate
         set."""
 
         if self._ag._coords is not None:
             return self._ag._coords[self.getACSIndex(), self._index].copy()
 
     def _getCoords(self):
-        """Return a view of coordinates of the atom from the active coordinate
+        """Returns a view of coordinates of the atom from the active coordinate
         set."""
 
         if self._ag._coords is not None:
@@ -95,7 +95,7 @@ class Atom(AtomPointer):
         self._ag._setTimeStamp(acsi)
 
     def getCoordsets(self, indices=None):
-        """Return a copy of coordinate set(s) at given *indices*."""
+        """Returns a copy of coordinate set(s) at given *indices*."""
 
         if self._ag._coords is None:
             return None
@@ -113,7 +113,7 @@ class Atom(AtomPointer):
                          'integers, a slice, or None')
 
     def _getCoordsets(self, indices=None):
-        """Return a view of coordinate set(s) at given *indices*."""
+        """Returns a view of coordinate set(s) at given *indices*."""
 
         if self._ag._coords is None:
             return None
@@ -142,7 +142,7 @@ class Atom(AtomPointer):
         return mass_dict[self.getElement()]
 
     def getData(self, label):
-        """Return a copy of data associated with *label*, if it is present."""
+        """Returns a copy of data associated with *label*, if it is present."""
 
         try:
             data = self._ag._getData(label)
@@ -173,7 +173,7 @@ class Atom(AtomPointer):
                                        ' AtomGroup first'.format(repr(label)))
 
     def getFlag(self, label):
-        """Return atom flag."""
+        """Returns atom flag."""
 
         return self._ag._getFlags(label)[self._index]
 
@@ -192,12 +192,12 @@ class Atom(AtomPointer):
         flags[self._index] = value
 
     def getSelstr(self):
-        """Return selection string that will select this atom."""
+        """Returns selection string that will select this atom."""
 
         return 'index {0}'.format(self._index)
 
     def numBonds(self):
-        """Return number of bonds formed by this atom.  Bonds must be set first
+        """Returns number of bonds formed by this atom.  Bonds must be set first
         using :meth:`.AtomGroup.setBonds`."""
 
         numbonds = self._ag._data.get('numbonds')

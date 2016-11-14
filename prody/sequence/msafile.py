@@ -245,20 +245,20 @@ class MSAFile(object):
     closed = property(_isClosed, None, doc="True for closed file.")
 
     def _getFormat(self):
-        """Return format of the MSA file."""
+        """Returns format of the MSA file."""
 
         return self._format
 
     format = property(_getFormat, None, doc="Format of the MSA file.")
 
     def reset(self):
-        """Return to the beginning of the file."""
+        """Returns to the beginning of the file."""
 
         self._readline()
         self._iterator = self._iter()
 
     def isAligned(self):
-        """Return **True** if MSA is aligned."""
+        """Returns **True** if MSA is aligned."""
 
         return self._aligned
 
@@ -349,7 +349,7 @@ class MSAFile(object):
     }
 
     def getTitle(self):
-        """Return title of the instance."""
+        """Returns title of the instance."""
 
         return self._title
 
@@ -359,17 +359,17 @@ class MSAFile(object):
         self._title = str(title)
 
     def getFilename(self):
-        """Return filename, or **None** if instance is handling a stream."""
+        """Returns filename, or **None** if instance is handling a stream."""
 
         return self._filename
 
     def getFormat(self):
-        """Return file format."""
+        """Returns file format."""
 
         return self._format
 
     def getFilter(self):
-        """Return function used for filtering sequences."""
+        """Returns function used for filtering sequences."""
 
         return self._filter
 
@@ -401,7 +401,7 @@ class MSAFile(object):
         self._filter = filter
 
     def getSlice(self):
-        """Return object used to slice sequences."""
+        """Returns object used to slice sequences."""
 
         return self._slice
 
@@ -467,7 +467,7 @@ class MSAFile(object):
 
 
 def parseMSA(filename, **kwargs):
-    """Return an :class:`.MSA` instance that stores multiple sequence alignment
+    """Returns an :class:`.MSA` instance that stores multiple sequence alignment
     and sequence labels parsed from Stockholm, SELEX, or FASTA format
     *filename* file, which may be a compressed file. Uncompressed MSA files
     are parsed using C code at a fraction of the time it would take to parse
@@ -557,7 +557,7 @@ def parseMSA(filename, **kwargs):
 
 
 def writeMSA(filename, msa, **kwargs):
-    """Return *filename* containing *msa*, a :class:`.MSA` or :class:`.MSAFile`
+    """Returns *filename* containing *msa*, a :class:`.MSA` or :class:`.MSAFile`
     instance, in the specified *format*, which can be *SELEX*, *Stockholm*, or
     *FASTA*.  If *compressed* is **True** or *filename* ends with :file:`.gz`,
     a compressed file will be written.  :class:`.MSA` instances will be written

@@ -54,7 +54,7 @@ def loadPDBClusters(sqid=None):
 
 
 def listPDBCluster(pdb, ch, sqid=95):
-    """Return the PDB sequence cluster that contains chain *ch* in structure
+    """Returns the PDB sequence cluster that contains chain *ch* in structure
     *pdb* for sequence identity level *sqid*.  PDB sequence cluster will be
     returned in as a list of tuples, e.g. ``[('1XXX', 'A'), ]``.  Note that
     PDB clusters individual chains, so the same PDB identifier may appear

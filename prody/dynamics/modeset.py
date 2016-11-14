@@ -35,43 +35,43 @@ class ModeSet(object):
                                                str(self._model))
 
     def is3d(self):
-        """Return **True** is model is 3-dimensional."""
+        """Returns **True** is model is 3-dimensional."""
 
         return self._model._is3d
 
     def numAtoms(self):
-        """Return number of atoms."""
+        """Returns number of atoms."""
 
         return self._model._n_atoms
 
     def numModes(self):
-        """Return number of modes in the instance (not necessarily maximum
+        """Returns number of modes in the instance (not necessarily maximum
         number of possible modes)."""
 
         return len(self._indices)
 
     def numDOF(self):
-        """Return number of degrees of freedom."""
+        """Returns number of degrees of freedom."""
 
         return self._model._dof
 
     def getTitle(self):
-        """Return title of the mode set."""
+        """Returns title of the mode set."""
 
         return str(self)
 
     def getModel(self):
-        """Return the model that the modes belongs to."""
+        """Returns the model that the modes belongs to."""
 
         return self._model
 
     def getIndices(self):
-        """Return indices of modes in the mode set."""
+        """Returns indices of modes in the mode set."""
 
         return self._indices
 
     def getEigvals(self):
-        """Return eigenvalues.  For :class:`.PCA` and :class:`.EDA` models
+        """Returns eigenvalues.  For :class:`.PCA` and :class:`.EDA` models
         built using coordinate data in Å, unit of eigenvalues is |A2|.  For
         :class:`.ANM` and :class:`.GNM`, on the other hand, eigenvalues are
         in arbitrary or relative units but they correlate with stiffness of
@@ -80,7 +80,7 @@ class ModeSet(object):
         return self._model._eigvals[self._indices]
 
     def getVariances(self):
-        """Return variances.  For :class:`.PCA` and :class:`.EDA` models
+        """Returns variances.  For :class:`.PCA` and :class:`.EDA` models
         built using coordinate data in Å, unit of variance is |A2|.  For
         :class:`.ANM` and :class:`.GNM`, on the other hand, variance is the
         inverse of the eigenvalue, so it has arbitrary or relative units."""
@@ -88,13 +88,13 @@ class ModeSet(object):
         return self._model._vars[self._indices]
 
     def getArray(self):
-        """Return a copy of eigenvectors array."""
+        """Returns a copy of eigenvectors array."""
 
         return self._model._array[:, self._indices]
 
     getEigvecs = getArray
 
     def _getArray(self):
-        """Return eigenvectors array."""
+        """Returns eigenvectors array."""
 
         return self._model._array[:, self._indices]

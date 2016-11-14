@@ -18,7 +18,7 @@ __all__ = ['pathPDBFolder', 'pathPDBMirror',
            'iterPDBFilenames', 'findPDBFiles']
 
 def pathPDBFolder(folder=None, divided=False):
-    """Return or specify local PDB folder for storing PDB files downloaded from
+    """Returns or specify local PDB folder for storing PDB files downloaded from
     `wwPDB <http://www.wwpdb.org/>`_ servers.  Files stored in this folder can
     be accessed via :func:`.fetchPDB` from any working directory.  To release
     the current folder, pass an invalid path, e.g. ``folder=''``.
@@ -68,7 +68,7 @@ wwpdb.pathPDBFolder = pathPDBFolder
 
 
 def pathPDBMirror(path=None, format=None):
-    """Return or specify PDB mirror path to be used by :func:`.fetchPDB`.
+    """Returns or specify PDB mirror path to be used by :func:`.fetchPDB`.
     To release the current mirror, pass an invalid path, e.g. ``path=''``.
     If you are keeping a partial mirror, such as PDB files in
     :file:`/data/structures/divided/pdb/` folder, specify *format*, which is
@@ -105,7 +105,7 @@ def pathPDBMirror(path=None, format=None):
 
 
 def fetchPDBfromMirror(*pdb, **kwargs):
-    """Return path(s) to PDB (default), PDBML, or mmCIF file(s) for specified
+    """Returns path(s) to PDB (default), PDBML, or mmCIF file(s) for specified
     *pdb* identifier(s).  If a *folder* is specified, files will be copied
     into this folder.  If *compressed* is **False**, files will decompressed.
     *format* argument can be used to get `PDBML <http://pdbml.pdb.org/>`_ and
@@ -203,7 +203,7 @@ def fetchPDBfromMirror(*pdb, **kwargs):
 
 
 def fetchPDB(*pdb, **kwargs):
-    """Return path(s) to PDB file(s) for specified *pdb* identifier(s).  Files
+    """Returns path(s) to PDB file(s) for specified *pdb* identifier(s).  Files
     will be sought in user specified *folder* or current working director, and
     then in local PDB folder and mirror, if they are available.  If *copy*
     is set **True**, files will be copied into *folder*.  If *compressed* is
@@ -393,7 +393,7 @@ def iterPDBFilenames(path=None, sort=False, unique=True, **kwargs):
 
 
 def findPDBFiles(path, case=None, **kwargs):
-    """Return a dictionary that maps PDB filenames to file paths.  If *case*
+    """Returns a dictionary that maps PDB filenames to file paths.  If *case*
     is specified (``'u[pper]'`` or ``'l[ower]'``), dictionary keys (filenames)
     will be modified accordingly.  If a PDB filename has :file:`pdb` prefix,
     it will be trimmed, for example ``'1mkp'`` will be mapped to file path

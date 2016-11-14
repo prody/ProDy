@@ -190,7 +190,7 @@ def openFile(filename, *args, **kwargs):
 
 
 def gunzip(filename, outname=None):
-    """Return output name that contains decompressed contents of *filename*.
+    """Returns output name that contains decompressed contents of *filename*.
     When no *outname* is given, *filename* is used as the output name as it
     is or after :file:`.gz` extension is removed.  *filename* may also be a
     string buffer, in which case decompressed string buffer or *outname* that
@@ -263,28 +263,28 @@ def gunzip(filename, outname=None):
 
 
 def isExecutable(path):
-    """Return true if *path* is an executable."""
+    """Returns true if *path* is an executable."""
 
     return (isinstance(path, str) and exists(path) and
         os.access(path, os.X_OK))
 
 
 def isReadable(path):
-    """Return true if *path* is readable by the user."""
+    """Returns true if *path* is readable by the user."""
 
     return (isinstance(path, str) and exists(path) and
         os.access(path, os.R_OK))
 
 
 def isWritable(path):
-    """Return true if *path* is writable by the user."""
+    """Returns true if *path* is writable by the user."""
 
     return (isinstance(path, str) and exists(path) and
         os.access(path, os.W_OK))
 
 
 def relpath(path):
-    """Return *path* on Windows, and relative path elsewhere."""
+    """Returns *path* on Windows, and relative path elsewhere."""
 
     if PLATFORM == 'Windows':
         return path
@@ -293,7 +293,7 @@ def relpath(path):
 
 
 def sympath(path, beg=2, end=1, ellipsis='...'):
-    """Return a symbolic path for a long *path*, by replacing folder names
+    """Returns a symbolic path for a long *path*, by replacing folder names
     in the middle with *ellipsis*.  *beg* and *end* specified how many folder
     (or file) names to include from the beginning and end of the path."""
 
@@ -372,7 +372,7 @@ def openDB(filename, *args):
 
 
 def openSQLite(filename, *args):
-    """Return a connection to SQLite database *filename*.  If ``'n'`` argument
+    """Returns a connection to SQLite database *filename*.  If ``'n'`` argument
     is passed, remove any existing databases with the same name and return
     connection to a new empty database."""
 
@@ -407,7 +407,7 @@ def openURL(url, timeout=5, **kwargs):
 
 
 def glob(*pathnames):
-    """Return concatenation of ordered lists of paths matching patterns in
+    """Returns concatenation of ordered lists of paths matching patterns in
     *pathnames*."""
 
     paths = []
@@ -419,13 +419,13 @@ def glob(*pathnames):
 
 
 def copyFile(src, dst):
-    """Return *dst*, a copy of *src*."""
+    """Returns *dst*, a copy of *src*."""
 
     copy(src, dst)
     return dst
 
 
 def addext(filename, extension):
-    """Return *filename*, with *extension* if it does not have one."""
+    """Returns *filename*, with *extension* if it does not have one."""
 
     return filename + ('' if splitext(filename)[1] else extension)

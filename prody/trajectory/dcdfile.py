@@ -230,7 +230,7 @@ class DCDFile(TrajFile):
 
 
     def getRemarks(self):
-        """Return remarks parsed from DCD file."""
+        """Returns remarks parsed from DCD file."""
 
         return self._remarks
 
@@ -253,7 +253,7 @@ class DCDFile(TrajFile):
     next = __next__
 
     def nextCoordset(self):
-        """Return next coordinate set."""
+        """Returns next coordinate set."""
 
         if self._closed:
             raise ValueError('I/O operation on closed file')
@@ -303,7 +303,7 @@ class DCDFile(TrajFile):
             return unitcell
 
     def getCoordsets(self, indices=None):
-        """Returns coordinate sets at given *indices*. *indices* may be an
+        """Returnss coordinate sets at given *indices*. *indices* may be an
         integer, a list of integers or ``None``. ``None`` returns all
         coordinate sets."""
 

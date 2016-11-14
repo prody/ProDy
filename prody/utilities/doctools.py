@@ -6,7 +6,7 @@ __all__ = ['joinLinks', 'joinRepr', 'joinTerms', 'tabulate', 'wrapText']
 
 
 def joinLinks(links, sep=', ', last=None, sort=False):
-    """Return a string joining *links* as reStructuredText."""
+    """Returns a string joining *links* as reStructuredText."""
 
     links = list(links)
     if sort:
@@ -19,7 +19,7 @@ def joinLinks(links, sep=', ', last=None, sort=False):
 
 
 def joinRepr(items, sep=', ', last=None, sort=False):
-    """Return a string joining representations of *items*."""
+    """Returns a string joining representations of *items*."""
 
     items = [repr(item) for item in items]
     if sort:
@@ -32,7 +32,7 @@ def joinRepr(items, sep=', ', last=None, sort=False):
 
 
 def joinTerms(terms, sep=', ', last=None, sort=False):
-    """Return a string joining *terms* as reStructuredText."""
+    """Returns a string joining *terms* as reStructuredText."""
 
     terms = list(terms)
     if sort:
@@ -45,7 +45,7 @@ def joinTerms(terms, sep=', ', last=None, sort=False):
 
 
 def wrapText(text, width=70, join='\n', **kwargs):
-    """Return wrapped lines from :func:`textwrap.wrap` after *join*\ing them.
+    """Returns wrapped lines from :func:`textwrap.wrap` after *join*\ing them.
     """
 
     try:
@@ -60,7 +60,7 @@ def wrapText(text, width=70, join='\n', **kwargs):
         return wrap(text, width, **kwargs)
 
 def tabulate(*cols, **kwargs):
-    """Return a table for columns of data.
+    """Returns a table for columns of data.
 
     :kwarg header: make first row a header, default is **True**
     :type header: bool

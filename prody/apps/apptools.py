@@ -113,7 +113,7 @@ class DevelApp(object):
         self._figargs = []
 
     def _getKwargs(self, arg):
-        """Return keyword arguments."""
+        """Returns keyword arguments."""
 
         kwargs = copy(self._args[arg])
         default = kwargs.get('default')

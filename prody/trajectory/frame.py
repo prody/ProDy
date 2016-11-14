@@ -41,27 +41,27 @@ class Frame(object):
                                            self._traj.getTitle())
 
     def numAtoms(self):
-        """Return number of atoms."""
+        """Returns number of atoms."""
 
         return self._traj.numAtoms()
 
     def numSelected(self):
-        """Return number of selected atoms."""
+        """Returns number of selected atoms."""
 
         return self._traj.numSelected()
 
     def getAtoms(self):
-        """Return associated/selected atoms."""
+        """Returns associated/selected atoms."""
 
         return self._traj.getAtoms()
 
     def getIndex(self):
-        """Return index."""
+        """Returns index."""
 
         return self._index
 
     def getWeights(self):
-        """Return coordinate weights for selected atoms."""
+        """Returns coordinate weights for selected atoms."""
 
         return self._traj.getWeights()
 
@@ -70,12 +70,12 @@ class Frame(object):
         return self._traj._getWeights()
 
     def getTrajectory(self):
-        """Return the trajectory."""
+        """Returns the trajectory."""
 
         return self._traj
 
     def getCoords(self):
-        """Return a copy of coordinates of (selected) atoms."""
+        """Returns a copy of coordinates of (selected) atoms."""
 
         indices = self._traj._indices
         if indices is None:
@@ -84,7 +84,7 @@ class Frame(object):
             return self._getxyz()[indices]
 
     def _getCoords(self):
-        """Return coordinates of (selected) atoms."""
+        """Returns coordinates of (selected) atoms."""
 
         indices = self._traj._indices
         if indices is None:
@@ -93,7 +93,7 @@ class Frame(object):
             return self._getxyz()[indices]
 
     def _getxyz(self):
-        """Return coordinates array."""
+        """Returns coordinates array."""
 
         ag = self._traj.link()
         if ag is None:
@@ -105,7 +105,7 @@ class Frame(object):
         return coords
 
     def getVelocities(self):
-        """Return a copy of velocities of (selected) atoms."""
+        """Returns a copy of velocities of (selected) atoms."""
 
         if self._velocs is not None:
             indices = self._traj._indices
@@ -115,7 +115,7 @@ class Frame(object):
                 return self._velocs[indices]
 
     def _getVelocities(self):
-        """Return velocities of (selected) atoms."""
+        """Returns velocities of (selected) atoms."""
 
         if self._velocs is not None:
             indices = self._traj._indices
@@ -125,7 +125,7 @@ class Frame(object):
                 return self._velocs[indices]
 
     def getUnitcell(self):
-        """Return a copy of unitcell array."""
+        """Returns a copy of unitcell array."""
 
         if self._unitcell is not None:
             return self._unitcell.copy()
@@ -135,7 +135,7 @@ class Frame(object):
         return self._unitcell
 
     def getDeviations(self):
-        """Return deviations from the trajectory reference coordinates."""
+        """Returns deviations from the trajectory reference coordinates."""
 
         indices = self._traj._indices
         coords = self._getCoords()
@@ -145,7 +145,7 @@ class Frame(object):
             return coords - self._traj._coords[indices]
 
     def getRMSD(self):
-        """Return RMSD from the trajectory reference coordinates.  If weights
+        """Returns RMSD from the trajectory reference coordinates.  If weights
         for the trajectory are set, weighted RMSD will be returned."""
 
         indices = self._traj._indices

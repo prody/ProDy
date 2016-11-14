@@ -93,13 +93,13 @@ class HierView(object):
             return self.getResidue(None, key)
 
     def _getSegname(self):
-        """Return name of the segment when there is only one segment."""
+        """Returns name of the segment when there is only one segment."""
 
         if self.numSegments() == 1:
             return self._ag._getSegnames()[0]
 
     def _getChid(self):
-        """Return identifier of the chain when there is only one chain."""
+        """Returns identifier of the chain when there is only one chain."""
 
         if self.numChains() == 1:
             return self._ag._getChids()[0]
@@ -153,7 +153,7 @@ class HierView(object):
             return segment
 
     def getAtoms(self):
-        """Return atoms for which the hierarchical view was built."""
+        """Returns atoms for which the hierarchical view was built."""
 
         return self._atoms
 
@@ -390,7 +390,7 @@ class HierView(object):
         ag._data['resindex'] = resindices
 
     def getResidue(self, chid, resnum, icode=None, segname=None):
-        """Return residue with number *resnum* and insertion code *icode* from
+        """Returns residue with number *resnum* and insertion code *icode* from
         the chain with identifier *chid* in segment with name *segname*."""
 
         try:
@@ -407,7 +407,7 @@ class HierView(object):
                 return self._getResidue(index)
 
     def numResidues(self):
-        """Return number of residues."""
+        """Returns number of residues."""
 
         return (len(self._residues) if self._ag is self._atoms else
                 len(self._residues) - self._residues.count(None))
@@ -432,7 +432,7 @@ class HierView(object):
             yield item
 
     def getChain(self, chid, segname=None):
-        """Return chain with identifier *chid*, if it is present."""
+        """Returns chain with identifier *chid*, if it is present."""
 
         try:
             index = self._dict[(segname or self._getSegname(),
@@ -464,13 +464,13 @@ class HierView(object):
     __iter__ = iterChains
 
     def numChains(self):
-        """Return number of chains."""
+        """Returns number of chains."""
 
         return (len(self._chains) if self._ag is self._atoms else
                 len(self._chains) - self._chains.count(None))
 
     def getSegment(self, segname):
-        """Return segment with name *segname*, if it is present."""
+        """Returns segment with name *segname*, if it is present."""
 
         try:
             index = self._dict[segname or None]
@@ -480,7 +480,7 @@ class HierView(object):
             return self._getSegment(index)
 
     def numSegments(self):
-        """Return number of chains."""
+        """Returns number of chains."""
 
         return (len(self._segments) if self._ag is self._atoms else
                 len(self._segments) - self._segments.count(None))

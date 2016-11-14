@@ -16,7 +16,7 @@ __all__ = ['calcOverlap', 'calcCumulOverlap', 'calcSubspaceOverlap',
 
 
 def calcOverlap(rows, cols):
-    """Return overlap (or correlation) between two sets of modes (*rows* and
+    """Returns overlap (or correlation) between two sets of modes (*rows* and
     *cols*).  Returns a matrix whose rows correspond to modes passed as *rows*
     argument, and columns correspond to those passed as *cols* argument.
     Both rows and columns are normalized prior to calculating overlap."""
@@ -121,7 +121,7 @@ def getOverlapTable(rows, cols):
 
 
 def calcCumulOverlap(modes1, modes2, array=False):
-    """Return cumulative overlap of modes in *modes2* with those in *modes1*.
+    """Returns cumulative overlap of modes in *modes2* with those in *modes1*.
     Returns a number of *modes1* contains a single :class:`.Mode` or a
     :class:`.Vector` instance. If *modes1* contains multiple modes, returns an
     array. Elements of the array correspond to cumulative overlaps for modes
@@ -140,7 +140,7 @@ def calcCumulOverlap(modes1, modes2, array=False):
 
 
 def calcSubspaceOverlap(modes1, modes2):
-    """Return subspace overlap between two sets of modes (*modes1* and
+    """Returns subspace overlap between two sets of modes (*modes1* and
     *modes2*).  Also known as the root mean square inner product (RMSIP)
     of essential subspaces [AA99]_.  This function returns a single number.
 
@@ -159,7 +159,7 @@ def calcSubspaceOverlap(modes1, modes2):
 
 
 def calcCovOverlap(modelA, modelB):
-    """Return overlap between covariances of *modelA* and *modelB*.  Overlap
+    """Returns overlap between covariances of *modelA* and *modelB*.  Overlap
     between covariances are calculated using normal modes (eigenvectors),
     hence modes in both models must have been calculated.  This function
     implements equation 11 in [BH02]_.

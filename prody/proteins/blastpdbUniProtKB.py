@@ -8,8 +8,7 @@ from prody.utilities import dictElement, openURL
 
 __all__ = ['PDBBlastRecord', 'blastPDB']
 
-
-def blastPDB(sequence, filename=None, **kwargs):
+def blastPDBUniProtKB(sequence, filename=None, **kwargs):
     """Returns a :class:`PDBBlastRecord` instance that contains results from
     blast searching of ProteinDataBank database *sequence* using NCBI blastp.
 
@@ -42,7 +41,7 @@ def blastPDB(sequence, filename=None, **kwargs):
                 raise ValueError('not a valid protein sequence')
     headers = {'User-agent': 'ProDy'}
 
-    query = [('DATABASE', 'pdb'), ('ENTREZ_QUERY', '(none)'),
+    query = [('DATABASE', 'swissprot'), ('ENTREZ_QUERY', '(none)'),
              ('PROGRAM', 'blastp'),]
     expect = float(kwargs.pop('expect', 10e-10))
     if expect <= 0:
@@ -51,6 +50,8 @@ def blastPDB(sequence, filename=None, **kwargs):
     hitlist_size = int(kwargs.pop('hitlist_size', 250))
     if hitlist_size <= 0:
         raise ValueError('expect must be a positive integer')
+    psiblast = 'true'
+    query.append(('RUN_PSIBLAST', psiblast))
     query.append(('HITLIST_SIZE', hitlist_size))
     query.append(('QUERY', sequence))
     query.append(('CMD', 'Put'))
@@ -77,19 +78,19 @@ def blastPDB(sequence, filename=None, **kwargs):
     handle = openURL(url, data=data, headers=headers)
 
     html = handle.read()
-    index = html.find(b'RID =')
+    index = html.find(b'name="RID" type="hidden" value="')
     if index == -1:
         raise Exception('NCBI did not return expected response.')
     else:
-        last = html.find(b'\n', index)
-        rid = html[index + len('RID ='):last].strip()
+        last = html.find(b'>',index)
+        rid = html[index + len('name="RID" type="hidden" value="'):last-1].strip()
 
-    index = html.find(b'RTOE =')
+    index = html.find(b'name="RTOE" type="hidden" value="')
     if index == -1:
         rtoe = None # This is not used
     else:
-        last = html.find(b'\n', index)
-        rtoe = int(html[index + len('RTOE ='):last].strip())
+        last = html.find(b'>', index)
+        rtoe = html[index + len('name="RTOE" type="hidden" value="'):last-1].strip()
 
     query = [('ALIGNMENTS', 500), ('DESCRIPTIONS', 500),
              ('FORMAT_TYPE', 'XML'), ('RID', rid), ('CMD', 'Get')]
@@ -125,10 +126,9 @@ def blastPDB(sequence, filename=None, **kwargs):
         out.write(results)
         out.close()
         LOGGER.info('Results are saved as {0}.'.format(repr(filename)))
-    return PDBBlastRecord(results, sequence)
+    return SwissProtBlastRecord(results, sequence)
 
-
-class PDBBlastRecord(object):
+class SwissProtBlastRecord(object):
 
     """A class to store results from ProteinDataBank blast search."""
 
@@ -166,10 +166,11 @@ class PDBBlastRecord(object):
             root = ET.XML(xml)
 
         root = dictElement(root, 'BlastOutput_')
-        if root['db'] != 'pdb':
+        if root['db'] != 'swissprot':
             raise ValueError('blast search database in xml must be "pdb"')
         if root['program'] != 'blastp':
             raise ValueError('blast search program in xml must be "blastp"')
+
         self._param = dictElement(root['param'][0], 'Parameters_')
 
         query_len = int(root['query-len'])
@@ -195,18 +196,19 @@ class PDBBlastRecord(object):
                               query_len)
                 data['percent_coverage'] = p_overlap
                 data['percent_overlap'] = p_overlap
-                for item in (hit['id'] + hit['def']).split('>gi'):
+                for item in (hit['id'] + ' ' + hit['def']).split('>gi'):
                     #>gi|1633462|pdb|4AKE|A Chain A, Adenylate Kinase
                     #                        __________TITLE__________
                     head, title = item.split(None, 1)
                     head = head.split('|')
-                    pdb_id = head[-2].lower()
-                    chain_id = head[-1][:1]
-                    pdbch = dict(data)
-                    pdbch['pdb_id'] = pdb_id
-                    pdbch['chain_id'] = chain_id
-                    pdbch['title'] = (head[-1][1:] + title).strip()
-                    hits.append((p_identity, p_overlap, pdbch))
+                    seqInfo = dict(data)
+                    accession = head[-2].split(".")[0]
+                    protName = head[-1].split("_")[0]
+                    species = head[-1].split("_")[1]
+                    seqInfo['accession'] = accession
+                    seqInfo['protName'] = protName
+                    seqInfo['species'] = species
+                    hits.append((p_identity, p_overlap, seqInfo))
         hits.sort(key=lambda hit: hit[0], reverse=True)
         self._hits = hits
 
@@ -220,7 +222,7 @@ class PDBBlastRecord(object):
 
         return dict(self._param)
 
-    def getHits(self, percent_identity=90., percent_overlap=70., chain=False):
+    def getHits(self, percent_identity=90., percent_overlap=70.):
         """Returns a dictionary in which PDB identifiers are mapped to structure
         and alignment information.
 
@@ -238,7 +240,6 @@ class PDBBlastRecord(object):
             'percent_identity must be a float or an integer'
         assert isinstance(percent_overlap, (float, int)), \
             'percent_overlap must be a float or an integer'
-        assert isinstance(chain, bool), 'chain must be a boolean'
 
         hits = {}
         for p_identity, p_overlap, hit in self._hits:
@@ -246,10 +247,6 @@ class PDBBlastRecord(object):
                 break
             if p_overlap < percent_overlap:
                 continue
-            if chain:
-                key = (hit['pdb_id'], hit['chain_id'])
-            else:
-                key = hit['pdb_id']
             if not key in hits:
                 hits[key] = hit
         return hits
@@ -259,7 +256,6 @@ class PDBBlastRecord(object):
         for the hit with highest sequence identity."""
 
         return dict(self._hits[0][2])
-
 
 
 

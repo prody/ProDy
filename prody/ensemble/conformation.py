@@ -33,27 +33,27 @@ class Conformation(object):
                 self._index, self._ensemble.getTitle())
 
     def numAtoms(self):
-        """Return number of atoms."""
+        """Returns number of atoms."""
 
         return self._ensemble.numAtoms()
 
     def numSelected(self):
-        """Return number of selected atoms."""
+        """Returns number of selected atoms."""
 
         return self._ensemble.numSelected()
 
     def getAtoms(self):
-        """Return associated atom group."""
+        """Returns associated atom group."""
 
         return self._ensemble.getAtoms()
 
     def getIndex(self):
-        """Return conformation index."""
+        """Returns conformation index."""
 
         return self._index
 
     def getWeights(self):
-        """Return coordinate weights for (selected) atoms."""
+        """Returns coordinate weights for (selected) atoms."""
 
         ensemble = self._ensemble
         indices = ensemble._indices
@@ -72,12 +72,12 @@ class Conformation(object):
             return ensemble._getWeights()[indices]
 
     def getEnsemble(self):
-        """Return the ensemble that this conformation belongs to."""
+        """Returns the ensemble that this conformation belongs to."""
 
         return self._ensemble
 
     def getCoords(self):
-        """Return a copy of the coordinates of the conformation. If a subset
+        """Returns a copy of the coordinates of the conformation. If a subset
         of atoms are selected in the ensemble, coordinates for selected
         atoms will be returned."""
 
@@ -102,7 +102,7 @@ class Conformation(object):
             return ensemble._confs[self._index, indices]
 
     def getDeviations(self):
-        """Return deviations from the ensemble reference coordinates.
+        """Returns deviations from the ensemble reference coordinates.
         Deviations are calculated for (selected) atoms."""
 
         ensemble = self._ensemble
@@ -116,7 +116,7 @@ class Conformation(object):
                     ensemble._coords[indices])
 
     def getRMSD(self):
-        """Return RMSD from the ensemble reference coordinates. RMSD is
+        """Returns RMSD from the ensemble reference coordinates. RMSD is
         calculated for (selected) atoms."""
 
         ensemble = self._ensemble
@@ -156,7 +156,7 @@ class PDBConformation(Conformation):
                     self._ensemble.getTitle())
 
     def getLabel(self):
-        """Return the label of the conformation."""
+        """Returns the label of the conformation."""
 
         return self._ensemble._labels[self._index]
 
@@ -166,7 +166,7 @@ class PDBConformation(Conformation):
         self._ensemble._labels[self._index] = str(label)
 
     def getCoords(self):
-        """Return a copy of the coordinates of the conformation. If a subset
+        """Returns a copy of the coordinates of the conformation. If a subset
         of atoms are selected in the ensemble, coordinates for selected
         atoms will be returned.
 
@@ -192,7 +192,7 @@ class PDBConformation(Conformation):
     _getCoords = getCoords
 
     def getDeviations(self):
-        """Return deviations from the ensemble reference coordinates.
+        """Returns deviations from the ensemble reference coordinates.
         Deviations are calculated for (selected) atoms."""
 
         ensemble = self._ensemble
@@ -203,7 +203,7 @@ class PDBConformation(Conformation):
             return self.getCoords() - ensemble._coords[indices]
 
     def getRMSD(self):
-        """Return RMSD from the ensemble reference coordinates. RMSD is
+        """Returns RMSD from the ensemble reference coordinates. RMSD is
         calculated for (selected) atoms."""
 
         ensemble = self._ensemble
@@ -219,7 +219,7 @@ class PDBConformation(Conformation):
                            ensemble._weights[index, indices])
 
     def getWeights(self):
-        """Return coordinate weights for (selected) atoms."""
+        """Returns coordinate weights for (selected) atoms."""
 
         ensemble = self._ensemble
         indices = ensemble._indices
@@ -238,7 +238,7 @@ class PDBConformation(Conformation):
             return ensemble._weights[self._index, indices]
 
     def getTransformation(self):
-        """Return the :class:`~.Transformation` used to superpose this
+        """Returns the :class:`~.Transformation` used to superpose this
         conformation onto reference coordinates.  The transformation can
         be used to superpose original PDB file onto the reference PDB file."""
 

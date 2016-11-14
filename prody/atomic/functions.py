@@ -99,7 +99,7 @@ SKIPLOAD = set(['title', 'n_atoms', 'n_csets', 'bonds', 'bmap',
 
 
 def loadAtoms(filename):
-    """Return :class:`.AtomGroup` instance loaded from *filename* using
+    """Returns :class:`.AtomGroup` instance loaded from *filename* using
     :func:`numpy.load` function.  See also :func:`saveAtoms`."""
 
     LOGGER.timeit('_prody_loadatoms')
@@ -220,7 +220,7 @@ def _iterFragments(atoms, ag, bonds):
 
 
 def findFragments(atoms):
-    """Return list of fragments, connected subsets in *atoms*.  See also
+    """Returns list of fragments, connected subsets in *atoms*.  See also
     :func:`iterFragments`."""
 
     return list(iterFragments(atoms))
@@ -238,14 +238,14 @@ RESERVED.update(['n_atoms', 'n_csets', 'cslabels', 'title', 'coordinates',
 
 
 def isReserved(word):
-    """Return **True** if *word* is reserved for internal data labeling or atom
+    """Returns **True** if *word* is reserved for internal data labeling or atom
     selections.  See :func:`listReservedWords` for a list of reserved words."""
 
     return word in RESERVED
 
 
 def listReservedWords():
-    """Return list of words that are reserved for atom selections and internal
+    """Returns list of words that are reserved for atom selections and internal
     variables. These words are: """
 
     words = list(RESERVED)
@@ -257,7 +257,7 @@ listReservedWords.__doc__ = '\n'.join(wrap(_, 79))
 
 
 def sortAtoms(atoms, label, reverse=False):
-    """Return an :class:`.AtomMap` pointing to *atoms* sorted in ascending
+    """Returns an :class:`.AtomMap` pointing to *atoms* sorted in ascending
     data *label* order, or optionally in *reverse* order."""
 
     try:

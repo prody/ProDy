@@ -52,25 +52,25 @@ class GNMBase(NMA):
         self._is3d = False
 
     def getCutoff(self):
-        """Return cutoff distance."""
+        """Returns cutoff distance."""
 
         return self._cutoff
 
     def getGamma(self):
-        """Return spring constant (or the gamma function or :class:`Gamma`
+        """Returns spring constant (or the gamma function or :class:`Gamma`
         instance)."""
 
         return self._gamma
 
     def getKirchhoff(self):
-        """Return a copy of the Kirchhoff matrix."""
+        """Returns a copy of the Kirchhoff matrix."""
 
         if self._kirchhoff is None:
             return None
         return self._kirchhoff.copy()
 
     def _getKirchhoff(self):
-        """Return the Kirchhoff matrix."""
+        """Returns the Kirchhoff matrix."""
 
         return self._kirchhoff
 
@@ -354,7 +354,7 @@ class GNM(GNMBase):
 
 def calcGNM(pdb, selstr='calpha', cutoff=15., gamma=1., n_modes=20,
             zeros=False):
-    """Return a :class:`GNM` instance and atoms used for the calculations.
+    """Returns a :class:`GNM` instance and atoms used for the calculations.
     By default only alpha carbons are considered, but selection string helps
     selecting a subset of it.  *pdb* can be :class:`.Atomic` instance."""
 

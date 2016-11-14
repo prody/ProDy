@@ -16,7 +16,7 @@ class Everything(object):
 
 
 def rangeString(lint, sep=' ', rng=' to ', exc=False, pos=True):
-    """Return a structured string for a given list of integers.
+    """Returns a structured string for a given list of integers.
 
     :arg lint: integer list or array
     :arg sep: range or number separator
@@ -72,7 +72,7 @@ def alnum(string, alt='_', trim=False, single=False):
 
 
 def importLA():
-    """Return one of :mod:`scipy.linalg` or :mod:`numpy.linalg`."""
+    """Returns one of :mod:`scipy.linalg` or :mod:`numpy.linalg`."""
 
     try:
         import scipy.linalg as linalg
@@ -86,7 +86,7 @@ def importLA():
 
 
 def dictElement(element, prefix=None):
-    """Returns a dictionary built from the children of *element*, which must be
+    """Returnss a dictionary built from the children of *element*, which must be
     a :class:`xml.etree.ElementTree.Element` instance.  Keys of the dictionary
     are *tag* of children without the *prefix*, or namespace.  Values depend on
     the content of the child.  If a child does not have any children, its text
@@ -109,7 +109,7 @@ def dictElement(element, prefix=None):
 
 
 def intorfloat(x):
-    """Return ``int(x)``, or ``float(x)`` upon :exc:`ValueError`."""
+    """Returns ``int(x)``, or ``float(x)`` upon :exc:`ValueError`."""
 
     try:
         return int(x)
@@ -118,7 +118,7 @@ def intorfloat(x):
 
 
 def startswith(this, that):
-    """Return **True** if *this* or *that* starts with the other."""
+    """Returns **True** if *this* or *that* starts with the other."""
 
     if len(this) < len(that):
         return that.startswith(this)
@@ -139,7 +139,7 @@ def showFigure():
 
 
 def countBytes(arrays, base=False):
-    """Return total number of bytes consumed by elements of arrays.  If
+    """Returns total number of bytes consumed by elements of arrays.  If
     *base* is **True**, use number of bytes from the base array."""
 
     if base:
@@ -151,7 +151,7 @@ def countBytes(arrays, base=False):
     return sum(nbytes(arr) for arr in arrays)
 
 def sqrtm(matrix):
-    """Return the square root of a matrix."""
+    """Returns the square root of a matrix."""
     (U,S,VT)=linalg.svd(matrix)
     D = diag(sqrt(S))
     return dot(dot(U,D),VT)

@@ -202,3 +202,4 @@ def performDSSP(pdb, parseall=False, stderr=True):
 
     pdb = fetchPDB(pdb, compressed=False)
     return parseDSSP(execDSSP(pdb, stderr=stderr), parsePDB(pdb), parseall)
+
