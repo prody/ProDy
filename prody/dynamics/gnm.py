@@ -222,7 +222,7 @@ class GNM(GNMBase):
         self._n_atoms = n_atoms
         self._dof = n_atoms
 
-    def calcModes(self, n_modes=20, zeros=False, turbo=True):
+    def calcModes(self, n_modes=20, zeros=False, turbo=True, hinges=True):
         """Calculate normal modes.  This method uses :func:`scipy.linalg.eigh`
         function to diagonalize the Kirchhoff matrix. When Scipy is not found,
         :func:`numpy.linalg.eigh` is used.
@@ -236,6 +236,9 @@ class GNM(GNMBase):
 
         :arg turbo: Use a memory intensive, but faster way to calculate modes.
         :type turbo: bool, default is ``True``
+
+        :arg hinges: Identify hinge sites after modes are computed.
+        :type hinges: bool, default is ``True``
         """
 
         if self._kirchhoff is None:
@@ -299,6 +302,12 @@ class GNM(GNMBase):
         LOGGER.debug('{0} modes were calculated in {1:.2f}s.'
                      .format(self._n_modes, time.time()-start))
 
+    def calcHinges(self):
+        if self._array is None:
+            raise ValueError('Modes are not calculated.')
+        V = self._array
+
+        return
 
     def getNormDistFluct(self, coords):
         """Normalized distance fluctuation
