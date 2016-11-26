@@ -305,7 +305,14 @@ class GNM(GNMBase):
     def calcHinges(self):
         if self._array is None:
             raise ValueError('Modes are not calculated.')
-        V = self._array
+        V = np.sign(self._array)
+        (m, n) = V.shape
+        hinges = []
+        for i in xrange(n):
+            v = V[:,n]
+            np.insert(v, 0, 0)
+            torf = np.diff(v)!=0
+
 
         return
 
