@@ -308,20 +308,30 @@ class GNM(GNMBase):
     def calcHinges(self):
         if self._array is None:
             raise ValueError('Modes are not calculated.')
-        V = np.sign(self._array)
+        # obtain the eigenvectors
+        V = self._array
         (m, n) = V.shape
         hinges = []
         for i in xrange(n):
             v = V[:,i]
-            np.insert(v, 0, 0)
-            torf = np.diff(v)!=0
+            # obtain the signs of eigenvector
+            s = np.insert(np.sign(v), 0, 0)
+            # obtain the relative magnitude of eigenvector
+            mag = np.insert(np.sign(np.diff(np.abs(v))), 0, 0)
+            # obtain the cross-overs
+            torf = np.diff(s)!=0
             indices = np.where(torf)[0]
+            # find which side is more close to zero
+            for i in xrange(len(indices)):
+                idx = indices[i]
+                if mag[idx] > 0:
+                    indices[i] -= 1
             hinges.append(indices)
         self._hinges = np.array(hinges)
         return self._hinges
 
     def getHinges(self, modeIndex=None):
-        """Get hinge sites given mode indices.
+        """Get residue index of hinge sites given mode indices.
 
         :arg modeIndex: indices of modes. This parameter can be a scalar, a list, 
             or logical indices.
@@ -337,7 +347,7 @@ class GNM(GNMBase):
             hingelist = [j for i in hinges for j in i]
         else:
             hingelist = [i for i in hinges]
-        return set(hingelist)
+        return list(set(hingelist))
 
     def getNormDistFluct(self, coords):
         """Normalized distance fluctuation

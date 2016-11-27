@@ -100,6 +100,8 @@ class ModeSet(object):
         return self._model._array[:, self._indices]
 
     def getHinges(self):
+        """Returns residue index of hinge sites."""
+
         if self.is3d():
             return
         else:

@@ -485,7 +485,9 @@ def showCrossCorr(modes, *args, **kwargs):
 
 def showMode(mode, *args, **kwargs):
     """Show mode array using :func:`~matplotlib.pyplot.plot`."""
-
+    
+    show_hinge = kwargs.pop('hinge', True)
+    show_zero = kwargs.pop('zero', False)
     import matplotlib.pyplot as plt
     if not isinstance(mode, Mode):
         raise TypeError('mode must be a Mode instance, '
@@ -496,9 +498,16 @@ def showMode(mode, *args, **kwargs):
         plt.plot(a3d[:, 1], *args, label='y-component', **kwargs)
         plt.plot(a3d[:, 2], *args, label='z-component', **kwargs)
     else:
-        show = plt.plot(mode._getArray(), *args, **kwargs)
+        a1d = mode._getArray()
+        show = plt.plot(a1d, *args, **kwargs)
+        if show_hinge:
+            hinges = mode.getHinges()
+            if hinges is not None:
+                plt.plot(hinges, a1d[hinges], 'r*')
     plt.title(str(mode))
     plt.xlabel('Indices')
+    if show_zero:
+        plt.plot(plt.xlim(), (0,0), 'r--')
     if SETTINGS['auto_show']:
         showFigure()
     return show

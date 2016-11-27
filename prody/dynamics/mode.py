@@ -303,6 +303,8 @@ class Mode(VectorBase):
         return self._model._vars[self._index]
 
     def getHinges(self):
+        """Returns residue index of hinge sites."""
+
         if self.is3d():
             return
         else:
