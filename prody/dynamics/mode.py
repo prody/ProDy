@@ -302,6 +302,12 @@ class Mode(VectorBase):
 
         return self._model._vars[self._index]
 
+    def getHinges(self):
+        if self.is3d():
+            return
+        else:
+            return self._model.getHinges(self._index)
+        
 
 class Vector(VectorBase):
 

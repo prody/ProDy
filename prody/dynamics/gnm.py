@@ -329,7 +329,15 @@ class GNM(GNMBase):
         """
         if self._hinges is None:
             raise ValueError('Hinges are not calculated.')
-        return self._hinges[modeIndex]
+        if modeIndex is None:
+            hinges = self._hinges
+        else:
+            hinges = self._hinges[modeIndex]
+        if hinges.dtype is np.dtype('O'):
+            hingelist = [j for i in hinges for j in i]
+        else:
+            hingelist = [i for i in hinges]
+        return set(hingelist)
 
     def getNormDistFluct(self, coords):
         """Normalized distance fluctuation

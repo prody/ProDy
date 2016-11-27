@@ -98,3 +98,9 @@ class ModeSet(object):
         """Returns eigenvectors array."""
 
         return self._model._array[:, self._indices]
+
+    def getHinges(self):
+        if self.is3d():
+            return
+        else:
+            return self._model.getHinges(self._indices)
