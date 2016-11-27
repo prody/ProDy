@@ -32,6 +32,7 @@ class GNMBase(NMA):
         self._cutoff = None
         self._kirchhoff = None
         self._gamma = None
+        self._hinges = None
 
     def __repr__(self):
 
@@ -299,6 +300,8 @@ class GNM(GNMBase):
         self._trace = self._vars.sum()
         self._array = vectors[:, 1+shift:]
         self._n_modes = len(self._eigvals)
+        if hinges:
+            self.calcHinges()
         LOGGER.debug('{0} modes were calculated in {1:.2f}s.'
                      .format(self._n_modes, time.time()-start))
 
@@ -309,12 +312,24 @@ class GNM(GNMBase):
         (m, n) = V.shape
         hinges = []
         for i in xrange(n):
-            v = V[:,n]
+            v = V[:,i]
             np.insert(v, 0, 0)
             torf = np.diff(v)!=0
+            indices = np.where(torf)[0]
+            hinges.append(indices)
+        self._hinges = np.array(hinges)
+        return self._hinges
 
+    def getHinges(self, modeIndex=None):
+        """Get hinge sites given mode indices.
 
-        return
+        :arg modeIndex: indices of modes. This parameter can be a scalar, a list, 
+            or logical indices.
+        :type modeIndex: int or list, default is ``None``
+        """
+        if self._hinges is None:
+            raise ValueError('Hinges are not calculated.')
+        return self._hinges[modeIndex]
 
     def getNormDistFluct(self, coords):
         """Normalized distance fluctuation
@@ -389,5 +404,5 @@ def calcGNM(pdb, selstr='calpha', cutoff=15., gamma=1., n_modes=20,
     gnm = GNM(title)
     sel = ag.select(selstr)
     gnm.buildKirchhoff(sel, cutoff, gamma)
-    gnm.calcModes(n_modes)
+    gnm.calcModes(n_modes, zeros)
     return gnm, sel
