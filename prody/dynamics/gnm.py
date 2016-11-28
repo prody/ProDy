@@ -32,6 +32,7 @@ class GNMBase(NMA):
         self._cutoff = None
         self._kirchhoff = None
         self._gamma = None
+        self._hinges = None
 
     def __repr__(self):
 
@@ -222,7 +223,7 @@ class GNM(GNMBase):
         self._n_atoms = n_atoms
         self._dof = n_atoms
 
-    def calcModes(self, n_modes=20, zeros=False, turbo=True):
+    def calcModes(self, n_modes=20, zeros=False, turbo=True, hinges=True):
         """Calculate normal modes.  This method uses :func:`scipy.linalg.eigh`
         function to diagonalize the Kirchhoff matrix. When Scipy is not found,
         :func:`numpy.linalg.eigh` is used.
@@ -236,6 +237,9 @@ class GNM(GNMBase):
 
         :arg turbo: Use a memory intensive, but faster way to calculate modes.
         :type turbo: bool, default is ``True``
+
+        :arg hinges: Identify hinge sites after modes are computed.
+        :type hinges: bool, default is ``True``
         """
 
         if self._kirchhoff is None:
@@ -296,9 +300,54 @@ class GNM(GNMBase):
         self._trace = self._vars.sum()
         self._array = vectors[:, 1+shift:]
         self._n_modes = len(self._eigvals)
+        if hinges:
+            self.calcHinges()
         LOGGER.debug('{0} modes were calculated in {1:.2f}s.'
                      .format(self._n_modes, time.time()-start))
 
+    def calcHinges(self):
+        if self._array is None:
+            raise ValueError('Modes are not calculated.')
+        # obtain the eigenvectors
+        V = self._array
+        (m, n) = V.shape
+        hinges = []
+        for i in range(n):
+            v = V[:,i]
+            # obtain the signs of eigenvector
+            s = np.insert(np.sign(v), 0, 0)
+            # obtain the relative magnitude of eigenvector
+            mag = np.insert(np.sign(np.diff(np.abs(v))), 0, 0)
+            # obtain the cross-overs
+            torf = np.diff(s)!=0
+            indices = np.where(torf)[0]
+            # find which side is more close to zero
+            for i in range(len(indices)):
+                idx = indices[i]
+                if mag[idx] > 0:
+                    indices[i] -= 1
+            hinges.append(indices)
+        self._hinges = np.array(hinges)
+        return self._hinges
+
+    def getHinges(self, modeIndex=None):
+        """Get residue index of hinge sites given mode indices.
+
+        :arg modeIndex: indices of modes. This parameter can be a scalar, a list, 
+            or logical indices.
+        :type modeIndex: int or list, default is ``None``
+        """
+        if self._hinges is None:
+            raise ValueError('Hinges are not calculated.')
+        if modeIndex is None:
+            hinges = self._hinges
+        else:
+            hinges = self._hinges[modeIndex]
+        if hinges.dtype is np.dtype('O'):
+            hingelist = [j for i in hinges for j in i]
+        else:
+            hingelist = [i for i in hinges]
+        return list(set(hingelist))
 
     def getNormDistFluct(self, coords):
         """Normalized distance fluctuation
@@ -373,5 +422,5 @@ def calcGNM(pdb, selstr='calpha', cutoff=15., gamma=1., n_modes=20,
     gnm = GNM(title)
     sel = ag.select(selstr)
     gnm.buildKirchhoff(sel, cutoff, gamma)
-    gnm.calcModes(n_modes)
+    gnm.calcModes(n_modes, zeros)
     return gnm, sel
