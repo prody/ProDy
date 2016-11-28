@@ -347,7 +347,7 @@ class GNM(GNMBase):
             hingelist = [j for i in hinges for j in i]
         else:
             hingelist = [i for i in hinges]
-        return list(set(hingelist))
+        return sorted(set(hingelist))
 
     def getNormDistFluct(self, coords):
         """Normalized distance fluctuation
