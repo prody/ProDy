@@ -312,7 +312,7 @@ class GNM(GNMBase):
         V = self._array
         (m, n) = V.shape
         hinges = []
-        for i in xrange(n):
+        for i in range(n):
             v = V[:,i]
             # obtain the signs of eigenvector
             s = np.insert(np.sign(v), 0, 0)
@@ -322,7 +322,7 @@ class GNM(GNMBase):
             torf = np.diff(s)!=0
             indices = np.where(torf)[0]
             # find which side is more close to zero
-            for i in xrange(len(indices)):
+            for i in range(len(indices)):
                 idx = indices[i]
                 if mag[idx] > 0:
                     indices[i] -= 1
