@@ -486,9 +486,9 @@ def showCrossCorr(modes, *args, **kwargs):
 def showMode(mode, *args, **kwargs):
     """Show mode array using :func:`~matplotlib.pyplot.plot`."""
     
+    import matplotlib.pyplot as plt
     show_hinge = kwargs.pop('hinge', True)
     show_zero = kwargs.pop('zero', False)
-    import matplotlib.pyplot as plt
     if not isinstance(mode, Mode):
         raise TypeError('mode must be a Mode instance, '
                         'not {0}'.format(type(mode)))
@@ -518,6 +518,7 @@ def showSqFlucts(modes, *args, **kwargs):
     also :func:`.calcSqFlucts`."""
 
     import matplotlib.pyplot as plt
+    show_hinge = kwargs.pop('hinge', True)
     sqf = calcSqFlucts(modes)
     if not 'label' in kwargs:
         kwargs['label'] = str(modes)
@@ -525,6 +526,10 @@ def showSqFlucts(modes, *args, **kwargs):
     plt.xlabel('Indices')
     plt.ylabel('Square fluctuations')
     plt.title(str(modes))
+    if show_hinge and not modes.is3d():
+        hinges = modes.getHinges()
+        if hinges is not None:
+            plt.plot(hinges, sqf[hinges], 'r*')
     if SETTINGS['auto_show']:
         showFigure()
     return show
