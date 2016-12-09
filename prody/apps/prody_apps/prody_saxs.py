@@ -369,7 +369,21 @@ def interpolateMode(calphas, anm,\
         sys.stdout.flush()
     sys.stdout.write("\n")
     return chi_list, frames_list
-            
+
+def showChivsFrames(chi_list, frames_list, numInterpolateFrames):
+    numModes=len(chi_list)/(numInterpolateFrames+1)
+    print "@> Number of modes in chi list is %d"%numModes
+    for i in range (0, numModes):
+        pyplot.plot(frames_list[(i*(numInterpolateFrames+1)):((i+1)*(numInterpolateFrames+1))], \
+                    chi_list[(i*(numInterpolateFrames+1)):((i+1)*(numInterpolateFrames+1))], label='Mode %d'%(i+1));
+    
+    pyplot.xlabel('Frame Number')
+    pyplot.ylabel('Chi')
+    pyplot.legend(loc='best')    
+    
+    pyplot.show();
+
+
 def main():
     #0-Parse all arguments
     parser = argparse.ArgumentParser(description=\
@@ -403,6 +417,7 @@ def main():
 #    print mode_ensemble[0]
 #    writePDB('traverseMode_0.pdb', mode_ensemble, csets=None, autoext=True)
 #    sys.exit(-1)
+
     #2-All modes are interpolated in +/- directions. rmsdScalingCoef is scaling coefficient of interpolation.
     #  A positive value of larger than 1 is recommended.
     rmsdScalingCoef=3.0
@@ -431,7 +446,7 @@ def main():
     frames_overall=[]
     chi_mode=[]
     frames_mode=[]
-#    print "[",
+
     for i in range (0, numModes):
         (chi_mode, frames_mode)=interpolateMode(calphas, \
                                                 anm, \
@@ -440,7 +455,8 @@ def main():
                                                 whichMode=i, rmsdScalingCoef=3.0, numInterpolateFrames=20)
         chi_overall.extend(chi_mode)
         frames_overall.extend(frames_mode)
-#        invEigVal=(1.0/eigenvalues[i])
+
+        #        invEigVal=(1.0/eigenvalues[i])
 #        for j in range((-numInterpolateFrames/2), ((numInterpolateFrames/2)+1)):
 #            coeff=j*rmsdScalingCoef*invEigVal*2.0/numInterpolateFrames
 #            
@@ -465,16 +481,8 @@ def main():
 #    for i in range (0, numModes):
 #        pyplot.plot(frame_list[(i*(numInterpolateFrames+1)):((i+1)*(numInterpolateFrames+1))], \
 #                    chi_list[(i*(numInterpolateFrames+1)):((i+1)*(numInterpolateFrames+1))], label='Mode %d'%(i+1));
-    for i in range (0, numModes):
-        pyplot.plot(frames_overall[(i*(numInterpolateFrames+1)):((i+1)*(numInterpolateFrames+1))], \
-                    chi_overall[(i*(numInterpolateFrames+1)):((i+1)*(numInterpolateFrames+1))], label='Mode %d'%(i+1));
-    
-    pyplot.xlabel('Frame Number')
-    pyplot.ylabel('Chi')
-    pyplot.legend(loc='best')    
-    
-    pyplot.show();
 
+    showChivsFrames(chi_overall, frames_overall, numInterpolateFrames)
     #5-The model with the lowest Chi value is written to a pdb file.
     print "\n@ Chi value between the best model and the experimental SAXS data=%.3f"%np.amin(chi_overall)
     print np.argmin(chi_overall)
