@@ -12,7 +12,7 @@ from math import *
 import timeit
 import time
 from solvate import *
-import _saxs
+import saxstools
 
 from matplotlib import pyplot
 
@@ -167,32 +167,6 @@ def showSAXSProfiles(exp_data, model_data):
     pyplot.legend();
     pyplot.show();
 
-#def calcSAXSChi(q_exp, I_q_exp, sigma_q, model_I_q_file):
-#    """
-#    This function calculates Chi squared value between SAXS profile of an experimental/
-#    simulated data and SAXS profile of a model. The model data can be obtained
-#    from an experimental macromolecular structure, a molecular dynamics 
-#    conformation or a normal mode.
-#    """
-#    #Read model data
-#    q_model, I_q_model = np.loadtxt(model_I_q_file, unpack=True)
-#
-#    #Check length of model data and compare it with experimental data set. 
-#    #Chech if model data was taken at experimental q values.
-#    #If not, interpolate
-#
-#    #Ensure that q_exp[0] and q_model[0] points to the same value. 
-#    #Compare head of data sets to find c value.
-#    if(q_exp[0]==q_model[0]):
-#        c=I_q_exp[0]/I_q_model[0]
-#    else:
-#        print "Experimental and theoretical Q[0] values do not match!"
-#        sys.exit(-1)
-#
-#    #Calculate Chi    
-#    diff_array=((I_q_exp-c*I_q_model)/sigma_q)
-#    chi_sqrt=(np.sum(np.square(diff_array)))/len(q_exp)
-#    return sqrt(chi_sqrt)
 
 def calcSaxsChi(q_exp, I_q_exp, sigma_q, q_model, I_q_model):
     """
@@ -270,7 +244,7 @@ def calcSAXSPerModel(calphas, numCalphas, I, Q_exp):
     pdb_flag=1
     solvent_flag=1
     total_atom=numCalphas
-    MAX_ATOM=50000
+    MAX_ATOM=100000
     W=np.zeros(MAX_ATOM)
     X=np.zeros(MAX_ATOM)
     Y=np.zeros(MAX_ATOM)
@@ -300,10 +274,10 @@ def calcSAXSPerModel(calphas, numCalphas, I, Q_exp):
     #C version of this building solvation shell. I have to check which version works well. 
     #start = timeit.timeit()
 #    writePDB('model_no_water.pdb', calphas)
-#    total_atom=_saxs.cgSolvateNumeric("model_no_water.pdb", X, Y, Z, W, \
-#                                      wDNA, wRNA, wPROT, \
-#                                      thickness, closest_dist, \
-#                                      pdb_flag, solvent_flag, MAX_ATOM)
+#    total_atom=saxstools.cgSolvateNumeric("model_no_water.pdb", X, Y, Z, W, \
+    #                                      wDNA, wRNA, wPROT, \
+    #                                      thickness, closest_dist, \
+    #                                      pdb_flag, solvent_flag, MAX_ATOM)
 #    end = timeit.timeit()
 #    print (end - start)
 
@@ -321,7 +295,8 @@ def calcSAXSPerModel(calphas, numCalphas, I, Q_exp):
     #You need a function to check experimental SAXS data. It should give Q_exp
     #and it should check whether experimental data is in log scale or not!
 #    start = time.clock()
-    _saxs.calcSAXSNumeric(I, X, Y, Z, total_atom, cgatom_num, W, Q_exp, len(Q_exp))
+#    _saxs.calcSAXSNumeric(I, X, Y, Z, total_atom, cgatom_num, W, Q_exp, len(Q_exp))
+    saxstools.calcSAXSNumeric(I, X, Y, Z, total_atom, cgatom_num, W, Q_exp, len(Q_exp))
     ####Finish key part!#########################################################
 #    end= time.clock()
 #    print (end - start)
@@ -342,6 +317,7 @@ def interpolateMode(calphas, anm,\
     origCoords=calphas.getCoords()
     numCalphas=calphas.numAtoms()
     # setup toolbar
+    sys.stdout.write("@> Calculating SAXS profiles for mode %d:" % (whichMode+1))
     sys.stdout.write("[%s]" % (" " * (numInterpolateFrames+1)))
     sys.stdout.flush()
     sys.stdout.write("\b" * (numInterpolateFrames+2)) # return to start of line, after '['
@@ -385,35 +361,57 @@ def showChivsFrames(chi_list, frames_list, numInterpolateFrames):
 
 
 def main():
+    #Set default values for calculations.
+
     #0-Parse all arguments
     parser = argparse.ArgumentParser(description=\
     'Find the best mode fitting to a given SAXS profile.',\
     epilog=\
-    'Example: python prody_saxs.py -p 4ake_chainA.pdb -s 1ake_chainA_saxs_w_yerrorbars.dat -o output.txt')
+    'Example: python prody_saxs.py 4ake_chainA.pdb -s 1ake_chainA_saxs_w_yerrorbars.dat -o output.txt')
+    parser.add_argument('pdb_file', nargs='?', type=str, \
+                        help='Mandatory input pdb file.')
+    
+    parser.add_argument('-s', '--saxs', type=str, dest='saxs_file',\
+                        help='Mandatory experimental/simulated SAXS profile.')
 
-    parser.add_argument('-p', '--pdb', type=str, dest='pdb_file', help='A pdb file.')
-    parser.add_argument('-s', '--saxs', type=str, dest='saxs_file', help='Experimental Small Angle Scattering profile.')
-    parser.add_argument('-o', '--out', type=str, dest='out_file', help='Output file for the best fitting mode.')
-    parser.add_argument('-v', '--version', action='version', version='%(prog)s (version 0.1)')
-    #args=parser.print_help()
+    parser.add_argument('-n', '--nmodes', type=int, dest='numModes',\
+                        default=5, \
+                        help='Number of nonzero modes to be used in calculations.')
+
+    parser.add_argument('-p', '--out-pdb', \
+                        type=str, dest='out_pdb_file', \
+                        default='best_model.pdb', \
+                        help='Output pdb file for the best model.')
+
+    parser.add_argument('-o', '--out-saxs', type=str, dest='out_saxs_file', \
+                        help='Output SAXS profile for the best model')
+
+    parser.add_argument('-v', '--version', action='version', \
+                        version='%(prog)s (version 0.1)')
+
     args = parser.parse_args()
-    fpdb_file=args.pdb_file
-    #    print args.pdb_file
-    #    print args.saxs_file
-    #    print args.out_file
+    
+#    print args.pdb_file
+#    print args.saxs_file
+#    print args.numModes
+#    print args.out_pdb_file
+#    print args.out_saxs_file
+
     
     #1-This module produces normal modes of a protein structure and 
     #by using anisotropic network model.    
     protein = parsePDB(args.pdb_file)
     calphas = protein.select('calpha')
+    origCoords=calphas.getCoords()
+    
     anm = ANM('ANM Analysis')
     anm.buildHessian(calphas, cutoff=15.0)
-    numModes=5
+
     numCalphas=calphas.numAtoms()
 
-    modes=anm.calcModes(n_modes=numModes, zeros=False)
+    modes=anm.calcModes(n_modes=args.numModes, zeros=False)
 
-    mode_ensemble=traverseMode(anm[0], calphas, n_steps=10, rmsd=3.0)
+#    mode_ensemble=traverseMode(anm[0], calphas, n_steps=10, rmsd=3.0)
 #    print mode_ensemble[0]
 #    writePDB('traverseMode_0.pdb', mode_ensemble, csets=None, autoext=True)
 #    sys.exit(-1)
@@ -423,21 +421,21 @@ def main():
     rmsdScalingCoef=3.0
     numInterpolateFrames=20
     mod_num=None
-    origCoords=calphas.getCoords()
+
     
     #Parse experimental/simulated SAXS data.
     Q_exp, I_q_exp, sigma_q=parseSaxsData(args.saxs_file, simulated=False, isLogScale=True)
 
     I_model=np.zeros(len(Q_exp))
-    print "@> Number of experimental data points=%.d"%len(Q_exp)
+    prody.LOGGER.info('Number of experimental data points=%.d'%len(Q_exp))
 
     #3-Calculate a SAXS profile for initial pdb file by using Fast-SAXS approach.
-    print "@> Solvating the system and calculating SAXS profile."
+    prody.LOGGER.info('Solvating the system and calculating SAXS profile.')
     calcSAXSPerModel(calphas, numCalphas, I_model, Q_exp)
 
     #Get initial chi value between pdb_file and saxs_file
     max_chi=calcSaxsChi(Q_exp, I_q_exp, sigma_q, Q_exp, I_model)
-    print "@> Chi value between pdb file and experimental SAXS profile=%.3f"%max_chi
+    prody.LOGGER.info('Chi value between pdb file and experimental SAXS profile=%.3f'%max_chi)
 
     #4-A SAXS profile is produced for each model in a mode using Fast-SAXS approach.
     #Now, lets do it with python code rather than calling an external fast-saxs-pro program
@@ -447,7 +445,7 @@ def main():
     chi_mode=[]
     frames_mode=[]
 
-    for i in range (0, numModes):
+    for i in range (0, args.numModes):
         (chi_mode, frames_mode)=interpolateMode(calphas, \
                                                 anm, \
                                                 Q_exp, I_q_exp, sigma_q, I_model,\
@@ -478,13 +476,12 @@ def main():
 #            sys.stdout.write('|')
 #            sys.stdout.flush()
 #    print "]",
-#    for i in range (0, numModes):
-#        pyplot.plot(frame_list[(i*(numInterpolateFrames+1)):((i+1)*(numInterpolateFrames+1))], \
-#                    chi_list[(i*(numInterpolateFrames+1)):((i+1)*(numInterpolateFrames+1))], label='Mode %d'%(i+1));
 
     showChivsFrames(chi_overall, frames_overall, numInterpolateFrames)
     #5-The model with the lowest Chi value is written to a pdb file.
-    print "\n@ Chi value between the best model and the experimental SAXS data=%.3f"%np.amin(chi_overall)
+#    print "\n@ Chi value between the best model and the experimental SAXS data=%.3f"%np.amin(chi_overall)
+    prody.LOGGER.info('Chi value between the best model and the experimental SAXS data=%.3f'%np.amin(chi_overall))
+
     print np.argmin(chi_overall)
     best_model_all = parsePDB('best_model.pdb')
     best_model_calphas = best_model_all.select('calpha')
