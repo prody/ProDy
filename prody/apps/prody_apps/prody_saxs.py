@@ -16,6 +16,8 @@ import saxstools
 
 from matplotlib import pyplot
 
+__all__ = ['prody_saxs']
+
 #def get_f(resname, w, q):
 #    f=0.0001
 #
@@ -301,31 +303,35 @@ def calcSAXSPerModel(calphas, numCalphas, I, Q_exp):
 #    end= time.clock()
 #    print (end - start)
 
-def interpolateMode(calphas, anm,\
-                    Q_exp, I_q_exp, sigma_q, I_model,\
+def interpolateMode(calphas, mode,\
+                    out_pdb_file,\
+                    Q_exp, I_q_exp, sigma_q,\
                     max_chi,\
-                    whichMode, \
-                    rmsdScalingCoef=3.0, numInterpolateFrames=20):
-
-    eigenvalues=anm.getEigvals()
-    eigenvectors=np.transpose(anm.getEigvecs())
-
+                    rmsdScalingCoef=3.0,\
+                    numFrames=20):
+    
     chi_list=[]
     frames_list=[]
-    i=whichMode
+
+    eigenvalue=mode.getEigval()
+    eigenvector=np.transpose(mode.getEigvec())
+
+    i=mode.getIndex()
     mod_num=None
     origCoords=calphas.getCoords()
     numCalphas=calphas.numAtoms()
+    I_model=np.zeros(len(Q_exp))
     # setup toolbar
-    sys.stdout.write("@> Calculating SAXS profiles for mode %d:" % (whichMode+1))
-    sys.stdout.write("[%s]" % (" " * (numInterpolateFrames+1)))
+    sys.stdout.write("@> Calculating SAXS profiles for nonzero mode %d: " % (i+1))
+    sys.stdout.write("[%s]" % (" " * (numFrames+1)))
     sys.stdout.flush()
-    sys.stdout.write("\b" * (numInterpolateFrames+2)) # return to start of line, after '['
-    invEigVal=(1.0/eigenvalues[i])
-    for j in range((-numInterpolateFrames/2), ((numInterpolateFrames/2)+1)):
-        coeff=j*rmsdScalingCoef*invEigVal*2.0/numInterpolateFrames
+    sys.stdout.write("\b" * (numFrames+2)) # return to start of line, after '['
+    prody.LOGGER.timeit('_intplt_mode')
+    invEigVal=(1.0/eigenvalue)
+    for j in range((-numFrames/2), ((numFrames/2)+1)):
+        coeff=j*rmsdScalingCoef*invEigVal*2.0/numFrames
         
-        newCoords=calphas.getCoords().flatten()+(coeff*eigenvectors[i])
+        newCoords=calphas.getCoords().flatten()+(coeff*eigenvector)
         calphas.setCoords(newCoords.reshape((numCalphas, 3), order='C'))
         calcSAXSPerModel(calphas, numCalphas, I_model, Q_exp)
         chi=calcSaxsChi(Q_exp, I_q_exp, sigma_q, Q_exp, I_model)
@@ -334,7 +340,7 @@ def interpolateMode(calphas, anm,\
         if(chi<max_chi):
             max_chi=chi
             mod_num=i
-            writePDB('best_model.pdb', calphas)
+            writePDB(out_pdb_file, calphas)
 #           extendModel(calphas, 'calphas', protein)
 #           writePDB('best_model.pdb', protein)
 
@@ -344,14 +350,17 @@ def interpolateMode(calphas, anm,\
         sys.stdout.write('#')
         sys.stdout.flush()
     sys.stdout.write("\n")
+    prody.LOGGER.report('SAXS profile calculations were performed in %2fs.', '_intplt_mode')
+    
     return chi_list, frames_list
 
-def showChivsFrames(chi_list, frames_list, numInterpolateFrames):
-    numModes=len(chi_list)/(numInterpolateFrames+1)
+
+def showChivsFrames(chi_list, frames_list, numFrames):
+    numModes=len(chi_list)/(numFrames+1)
     print "@> Number of modes in chi list is %d"%numModes
     for i in range (0, numModes):
-        pyplot.plot(frames_list[(i*(numInterpolateFrames+1)):((i+1)*(numInterpolateFrames+1))], \
-                    chi_list[(i*(numInterpolateFrames+1)):((i+1)*(numInterpolateFrames+1))], label='Mode %d'%(i+1));
+        pyplot.plot(frames_list[(i*(numFrames+1)):((i+1)*(numFrames+1))], \
+                    chi_list[(i*(numFrames+1)):((i+1)*(numFrames+1))], label='Mode %d'%(i+1));
     
     pyplot.xlabel('Frame Number')
     pyplot.ylabel('Chi')
@@ -416,11 +425,6 @@ def main():
 #    writePDB('traverseMode_0.pdb', mode_ensemble, csets=None, autoext=True)
 #    sys.exit(-1)
 
-    #2-All modes are interpolated in +/- directions. rmsdScalingCoef is scaling coefficient of interpolation.
-    #  A positive value of larger than 1 is recommended.
-    rmsdScalingCoef=3.0
-    numInterpolateFrames=20
-    mod_num=None
 
     
     #Parse experimental/simulated SAXS data.
@@ -429,7 +433,7 @@ def main():
     I_model=np.zeros(len(Q_exp))
     prody.LOGGER.info('Number of experimental data points=%.d'%len(Q_exp))
 
-    #3-Calculate a SAXS profile for initial pdb file by using Fast-SAXS approach.
+    #Calculate a SAXS profile for initial pdb file by using Fast-SAXS approach.
     prody.LOGGER.info('Solvating the system and calculating SAXS profile.')
     calcSAXSPerModel(calphas, numCalphas, I_model, Q_exp)
 
@@ -437,49 +441,62 @@ def main():
     max_chi=calcSaxsChi(Q_exp, I_q_exp, sigma_q, Q_exp, I_model)
     prody.LOGGER.info('Chi value between pdb file and experimental SAXS profile=%.3f'%max_chi)
 
-    #4-A SAXS profile is produced for each model in a mode using Fast-SAXS approach.
+    #A SAXS profile is produced for each model in a mode using Fast-SAXS approach.
     #Now, lets do it with python code rather than calling an external fast-saxs-pro program
 
     chi_overall=[]
     frames_overall=[]
-    chi_mode=[]
-    frames_mode=[]
+#    chi_mode=[]
+#    frames_mode=[]
 
+    #All modes are interpolated in +/- directions. rmsdScalingCoef is scaling coefficient of interpolation.
+    #  A positive value of larger than 1 is recommended.
+    rmsdScalingCoef=3.0
+    numFrames=20
+    mod_num=None
+
+    prody.LOGGER.timeit('_intplt_mode')    
     for i in range (0, args.numModes):
-        (chi_mode, frames_mode)=interpolateMode(calphas, \
-                                                anm, \
-                                                Q_exp, I_q_exp, sigma_q, I_model,\
-                                                max_chi,\
-                                                whichMode=i, rmsdScalingCoef=3.0, numInterpolateFrames=20)
-        chi_overall.extend(chi_mode)
-        frames_overall.extend(frames_mode)
+            eigenvalue=anm[i].getEigval()
+            eigenvector=np.transpose(anm[i].getEigvec())
 
-        #        invEigVal=(1.0/eigenvalues[i])
-#        for j in range((-numInterpolateFrames/2), ((numInterpolateFrames/2)+1)):
-#            coeff=j*rmsdScalingCoef*invEigVal*2.0/numInterpolateFrames
-#            
-#            newCoords=calphas.getCoords().flatten()+(coeff*eigenvectors[i])
-#            calphas.setCoords(newCoords.reshape((numCalphas, 3), order='C'))
-#            calcSAXSPerModel(calphas, numCalphas, I_model, Q_exp)
-#            chi=calcSaxsChi(Q_exp, I_q_exp, sigma_q, Q_exp, I_model)
-#            chi_list.append(chi)
-#            frame_list.append(j)
-#            if(chi<max_chi):
-#                max_chi=chi
-#                mod_num=i
-##                extendModel(calphas, 'calphas', protein)
-#                writePDB('best_model.pdb', calphas)
-##                writePDB('best_model.pdb', protein)
-#            #Reset coordinates to the original values
-#            calphas.setCoords(origCoords)
-#            
-#            sys.stdout.write('|')
-#            sys.stdout.flush()
-#    print "]",
+            # setup toolbar
+            sys.stdout.write("@> Calculating SAXS profiles for nonzero mode %d: " % (i+1))
+            sys.stdout.write("[%s]" % (" " * (numFrames+1)))
+            sys.stdout.flush()
+            sys.stdout.write("\b" * (numFrames+2)) # return to start of line, after '['
 
-    showChivsFrames(chi_overall, frames_overall, numInterpolateFrames)
-    #5-The model with the lowest Chi value is written to a pdb file.
-#    print "\n@ Chi value between the best model and the experimental SAXS data=%.3f"%np.amin(chi_overall)
+            invEigVal=(1.0/eigenvalue)
+            for j in range((-numFrames/2), ((numFrames/2)+1)):
+                coeff=j*rmsdScalingCoef*invEigVal*2.0/numFrames
+                
+                newCoords=calphas.getCoords().flatten()+(coeff*eigenvector)
+                calphas.setCoords(newCoords.reshape((numCalphas, 3), order='C'))
+                calcSAXSPerModel(calphas, numCalphas, I_model, Q_exp)
+                chi=calcSaxsChi(Q_exp, I_q_exp, sigma_q, Q_exp, I_model)
+                chi_overall.append(chi)
+                frames_overall.append(j)
+                if(chi<max_chi):
+                    max_chi=chi
+                    mod_num=i
+                    writePDB(args.out_pdb_file, calphas)
+
+                    #           extendModel(calphas, 'calphas', protein)
+                    #           writePDB('best_model.pdb', protein)
+                    
+                #Reset coordinates to the original values
+                calphas.setCoords(origCoords)
+            
+                sys.stdout.write('#')
+                sys.stdout.flush()
+            sys.stdout.write("\n")
+
+    prody.LOGGER.report('SAXS profile calculations were performed in %2fs.', '_intplt_mode')
+    
+
+    showChivsFrames(chi_overall, frames_overall, numFrames)
+
+    #The model with the lowest Chi value is written to a pdb file.
     prody.LOGGER.info('Chi value between the best model and the experimental SAXS data=%.3f'%np.amin(chi_overall))
 
     print np.argmin(chi_overall)
