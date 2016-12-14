@@ -11,12 +11,13 @@ import argparse
 from math import *
 import timeit
 import time
-from solvate import *
+
+from solvate import buildSolvShell
 import saxstools
 
 from matplotlib import pyplot
 
-__all__ = ['prody_saxs']
+__all__ = ['prody_saxs', 'calcSAXSPerModel']
 
 #def get_f(resname, w, q):
 #    f=0.0001
@@ -369,7 +370,8 @@ def showChivsFrames(chi_list, frames_list, numFrames):
     pyplot.show();
 
 
-def main():
+#def main():
+def prody_saxs():
     #Set default values for calculations.
 
     #0-Parse all arguments
@@ -387,6 +389,10 @@ def main():
                         default=5, \
                         help='Number of nonzero modes to be used in calculations.')
 
+    parser.add_argument('-c', '--coeff', type=float, dest='scalCoeff',\
+                        default=3.0, \
+                        help='''Scaling coefficient for interpolating a single mode. A positive value of larger than 1 is recommended.''')
+
     parser.add_argument('-p', '--out-pdb', \
                         type=str, dest='out_pdb_file', \
                         default='best_model.pdb', \
@@ -403,6 +409,7 @@ def main():
 #    print args.pdb_file
 #    print args.saxs_file
 #    print args.numModes
+#    print args.scalCoeff
 #    print args.out_pdb_file
 #    print args.out_saxs_file
 
@@ -425,8 +432,6 @@ def main():
 #    writePDB('traverseMode_0.pdb', mode_ensemble, csets=None, autoext=True)
 #    sys.exit(-1)
 
-
-    
     #Parse experimental/simulated SAXS data.
     Q_exp, I_q_exp, sigma_q=parseSaxsData(args.saxs_file, simulated=False, isLogScale=True)
 
@@ -446,8 +451,6 @@ def main():
 
     chi_overall=[]
     frames_overall=[]
-#    chi_mode=[]
-#    frames_mode=[]
 
     #All modes are interpolated in +/- directions. rmsdScalingCoef is scaling coefficient of interpolation.
     #  A positive value of larger than 1 is recommended.
@@ -468,7 +471,8 @@ def main():
 
             invEigVal=(1.0/eigenvalue)
             for j in range((-numFrames/2), ((numFrames/2)+1)):
-                coeff=j*rmsdScalingCoef*invEigVal*2.0/numFrames
+                #coeff=j*rmsdScalingCoef*invEigVal*2.0/numFrames
+                coeff=j*(args.scalCoeff)*invEigVal*2.0/numFrames
                 
                 newCoords=calphas.getCoords().flatten()+(coeff*eigenvector)
                 calphas.setCoords(newCoords.reshape((numCalphas, 3), order='C'))
@@ -493,16 +497,16 @@ def main():
 
     prody.LOGGER.report('SAXS profile calculations were performed in %2fs.', '_intplt_mode')
     
-
     showChivsFrames(chi_overall, frames_overall, numFrames)
 
     #The model with the lowest Chi value is written to a pdb file.
     prody.LOGGER.info('Chi value between the best model and the experimental SAXS data=%.3f'%np.amin(chi_overall))
 
-    print np.argmin(chi_overall)
+    #    print np.argmin(chi_overall)
     best_model_all = parsePDB('best_model.pdb')
     best_model_calphas = best_model_all.select('calpha')
     calcSAXSPerModel(best_model_calphas, numCalphas, I_model, Q_exp)
             
 if __name__ == "__main__":
-    main()
+    prody_saxs()
+

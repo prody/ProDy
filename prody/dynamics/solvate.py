@@ -1,4 +1,4 @@
-from prody import *
+from prody import Atom
 import sys
 import numpy as np
 from numba import jit
