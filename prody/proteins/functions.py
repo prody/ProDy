@@ -274,6 +274,7 @@ def showProtein(*atoms, **kwargs):
                                 lw=kwargs.get('lw', 4))
                 else:
                     xyz = calpha._getCoords()
+                    chids = calpha.getChids()
                     arr = []
                     if isinstance(gnmmode, Mode):
                         arr = gnmmode.getArray()
@@ -283,20 +284,25 @@ def showProtein(*atoms, **kwargs):
                         raise RuntimeError('The number of residues should be equal to the size of the GNM mode.')
                     rbody = []
                     last_sign = np.sign(arr[0])
+                    last_chid = chids[0]
                     rcolor = ['red', 'red', 'blue']
                     n = 1
                     for i,a in enumerate(arr):
                         s = np.sign(a)
+                        ch = chids[i]
                         if s == 0: s = last_sign
-                        if last_sign != s or i == len(arr)-1:
+                        if last_sign != s or i == len(arr)-1 or last_chid != ch:
+                            if last_chid == ch:
+                                rbody.append(i)
                             show.plot(xyz[rbody, 0], xyz[rbody, 1], xyz[rbody, 2],
                             label=title + '_regid%d'%n,
                             color=rcolor[int(last_sign+1)],
                             lw=kwargs.get('lw', 4))
                             rbody = []
                             n += 1
-                        else:
-                            rbody.append(i)
+                            last_sign = s
+                            last_chid = ch
+                        rbody.append(i)
 
             water = atoms.select('water and noh')
             if water:
