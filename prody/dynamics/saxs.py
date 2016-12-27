@@ -6,9 +6,9 @@ import saxstools
 from math import sqrt
 from matplotlib import pyplot
 
-__all__ = ['buildSolvShell', 'showSAXSProfiles', \
-           'calcSaxsChi', 'parseSaxsData', \
-           'calcSAXSPerModel','interpolateMode',\
+__all__ = ['buildSolvShell', 'showSAXSProfiles', 
+           'calcSaxsChi', 'parseSaxsData', 
+           'calcSAXSPerModel','interpolateMode',
            'showChivsFrames']
 
 WATER_BOX_SIZE=119.7

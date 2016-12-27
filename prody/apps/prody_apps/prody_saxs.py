@@ -150,7 +150,54 @@ def prody_saxs():
     best_model_all = parsePDB('best_model.pdb')
     best_model_calphas = best_model_all.select('calpha')
     calcSAXSPerModel(best_model_calphas, numCalphas, I_model, Q_exp)
-            
+
+def addCommand(commands):
+
+    subparser = commands.add_parser('saxs',
+        help='Perform Small Angle X-ray Scattering analysis of a protein')
+
+    subparser.add_argument('--quiet', help="suppress info messages to stderr",
+        action=Quiet, nargs=0)
+
+    subparser.add_argument('--examples', action=UsageExample, nargs=0,
+        help='show usage examples and exit')
+
+    subparser.set_defaults(usage_example=
+    """Try to obtain closed conformation of adenylate kinase 
+    by using pdb file of open conformation and SAXS data of open
+    conformation.
+
+    $ prody saxs 4ake_chainA.pdb -s 1ake_chainA_saxs_w_yerrorbars.dat""",
+    test_examples=[0]
+    )
+
+    subparser.add_argument('-s', '--saxs', type=str, dest='saxs_file',\
+                           help='Mandatory experimental/simulated SAXS profile.')
+
+    subparser.add_argument('-n', '--nmodes', type=int, dest='numModes',\
+                           default=5, \
+                           help='Number of nonzero modes to be used in calculations.')
+
+    subparser.add_argument('-c', '--coeff', type=float, dest='scalCoeff',\
+                           default=3.0, \
+                           help='''Scaling coefficient for interpolating a single'''+\
+                           ''' mode. A positive value of larger than 1 is recommended.''')
+
+    subparser.add_argument('-p', '--out-pdb', \
+                           type=str, dest='out_pdb_file', \
+                           default='best_model.pdb', \
+                           help='Output pdb file for the best model.')
+
+    subparser.add_argument('-o', '--out-saxs', type=str, dest='out_saxs_file', \
+                           help='Output SAXS profile for the best model')
+
+#    subparser.add_argument('pdb', nargs='+',
+#        help='PDB identifier(s) or a file that contains them')
+
+    subparser.set_defaults(func=lambda ns: prody_saxs(*ns.pdb, **ns.__dict__))
+    subparser.set_defaults(subparser=subparser)
+
+    
 if __name__ == "__main__":
     prody_saxs()
 
