@@ -156,11 +156,11 @@ def addCommand(commands):
     subparser = commands.add_parser('saxs',
         help='Perform Small Angle X-ray Scattering analysis of a protein')
 
-    subparser.add_argument('--quiet', help="suppress info messages to stderr",
-        action=Quiet, nargs=0)
+#    subparser.add_argument('--quiet', help="suppress info messages to stderr",
+#        action=Quiet, nargs=0)
 
-    subparser.add_argument('--examples', action=UsageExample, nargs=0,
-        help='show usage examples and exit')
+#    subparser.add_argument('--examples', action=UsageExample, nargs=0,
+#        help='show usage examples and exit')
 
     subparser.set_defaults(usage_example=
     """Try to obtain closed conformation of adenylate kinase 
