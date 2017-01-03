@@ -32,6 +32,10 @@ def prody_saxs():
                         default=5, \
                         help='Number of nonzero modes to be used in calculations.')
 
+    parser.add_argument('-f', '--nframes', type=int, dest='numFrames',\
+                        default=20, \
+                        help='Number of frames to interpolate a single mode.')
+    
     parser.add_argument('-c', '--coeff', type=float, dest='scalCoeff',\
                         default=3.0, \
                         help='''Scaling coefficient for interpolating a single'''+\
@@ -56,7 +60,7 @@ def prody_saxs():
 #    print args.scalCoeff
 #    print args.out_pdb_file
 #    print args.out_saxs_file
-
+#    print args.numFrames
     
     #1-This module produces normal modes of a protein structure and 
     #by using anisotropic network model.    
@@ -96,10 +100,9 @@ def prody_saxs():
     chi_overall=[]
     frames_overall=[]
 
-    #All modes are interpolated in +/- directions. rmsdScalingCoef is scaling coefficient of interpolation.
+    #All modes are interpolated in +/- directions. scalCoeff is scaling coefficient of interpolation.
     #  A positive value of larger than 1 is recommended.
-    rmsdScalingCoef=3.0
-    numFrames=20
+
     mod_num=None
 
     prody.LOGGER.timeit('_intplt_mode')    
@@ -109,14 +112,13 @@ def prody_saxs():
 
             # setup toolbar
             sys.stdout.write("@> Calculating SAXS profiles for nonzero mode %d: " % (i+1))
-            sys.stdout.write("[%s]" % (" " * (numFrames+1)))
+            sys.stdout.write("[%s]" % (" " * (args.numFrames+1)))
             sys.stdout.flush()
-            sys.stdout.write("\b" * (numFrames+2)) # return to start of line, after '['
+            sys.stdout.write("\b" * (args.numFrames+2)) # return to start of line, after '['
 
             invEigVal=(1.0/eigenvalue)
-            for j in range((-numFrames/2), ((numFrames/2)+1)):
-                #coeff=j*rmsdScalingCoef*invEigVal*2.0/numFrames
-                coeff=j*(args.scalCoeff)*invEigVal*2.0/numFrames
+            for j in range((-args.numFrames/2), ((args.numFrames/2)+1)):
+                coeff=j*(args.scalCoeff)*invEigVal*2.0/args.numFrames
                 
                 newCoords=calphas.getCoords().flatten()+(coeff*eigenvector)
                 calphas.setCoords(newCoords.reshape((numCalphas, 3), order='C'))
@@ -141,7 +143,7 @@ def prody_saxs():
 
     prody.LOGGER.report('SAXS profile calculations were performed in %2fs.', '_intplt_mode')
     
-    showChivsFrames(chi_overall, frames_overall, numFrames)
+    showChivsFrames(chi_overall, frames_overall, args.numFrames)
 
     #The model with the lowest Chi value is written to a pdb file.
     prody.LOGGER.info('Chi value between the best model and the experimental SAXS data=%.3f'%np.amin(chi_overall))
@@ -171,12 +173,19 @@ def addCommand(commands):
     test_examples=[0]
     )
 
+    subparser.add_argument('pdb_file', nargs='?', type=str, \
+                           help='Mandatory input pdb file.')
+
     subparser.add_argument('-s', '--saxs', type=str, dest='saxs_file',\
                            help='Mandatory experimental/simulated SAXS profile.')
 
     subparser.add_argument('-n', '--nmodes', type=int, dest='numModes',\
                            default=5, \
                            help='Number of nonzero modes to be used in calculations.')
+
+    subparser.add_argument('-f', '--nframes', type=int, dest='numFrames',\
+                           default=20, \
+                           help='Number of frames to interpolate a single mode.')
 
     subparser.add_argument('-c', '--coeff', type=float, dest='scalCoeff',\
                            default=3.0, \
@@ -193,8 +202,9 @@ def addCommand(commands):
 
 #    subparser.add_argument('pdb', nargs='+',
 #        help='PDB identifier(s) or a file that contains them')
+    subparser.set_defaults(func=lambda ns: prody_saxs(ns.__dict__.pop('pdb_file'), **ns.__dict__))
 
-    subparser.set_defaults(func=lambda ns: prody_saxs(*ns.pdb, **ns.__dict__))
+#    subparser.set_defaults(func=lambda ns: prody_saxs(*ns.pdb, **ns.__dict__))
     subparser.set_defaults(subparser=subparser)
 
     
