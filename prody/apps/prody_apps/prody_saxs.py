@@ -14,12 +14,10 @@ from saxs import *
 
 __all__ = ['prody_saxs']
 
-def prody_saxs(**kwargs):
+def prody_saxs(pdb_file, saxs_file, **kwargs):
     #Set default values for calculations.
 
     if kwargs is not None:
-        args_pdb_file=kwargs.get('pdb_file', None)
-        args_saxs_file=kwargs.get('saxs_file', None)
         args_numModes=kwargs.get('numModes', 3)
         args_numFrames=kwargs.get('numFrames', 20)
         args_scalCoeff=kwargs.get('scalCoeff', 3.0)
@@ -28,7 +26,7 @@ def prody_saxs(**kwargs):
 
     #1-This module produces normal modes of a protein structure and 
     #by using anisotropic network model.    
-    protein = parsePDB(args_pdb_file)
+    protein = parsePDB(pdb_file)
     calphas = protein.select('calpha')
     origCoords=calphas.getCoords()
     
@@ -45,7 +43,7 @@ def prody_saxs(**kwargs):
 #    sys.exit(-1)
 
     #Parse experimental/simulated SAXS data.
-    Q_exp, I_q_exp, sigma_q=parseSaxsData(args_saxs_file, simulated=False, isLogScale=True)
+    Q_exp, I_q_exp, sigma_q=parseSaxsData(saxs_file, simulated=False, isLogScale=True)
 
     I_model=np.zeros(len(Q_exp))
     prody.LOGGER.info('Number of experimental data points=%.d'%len(Q_exp))
@@ -133,14 +131,14 @@ def addCommand(commands):
     by using pdb file of open conformation and SAXS data of open
     conformation.
 
-    $ prody saxs 4ake_chainA.pdb -s 1ake_chainA_saxs_w_yerrorbars.dat""",
+    $ prody saxs 4ake_chainA.pdb 1ake_chainA_saxs_w_yerrorbars.dat""",
     test_examples=[0]
     )
 
-    subparser.add_argument('pdb_file', nargs='?', type=str, \
+    subparser.add_argument('pdb_file' , nargs='?', type=str, \
                            help='Mandatory input pdb file.')
 
-    subparser.add_argument('-s', '--saxs', type=str, dest='saxs_file',\
+    subparser.add_argument('saxs_file', nargs='?', type=str,\
                            help='Mandatory experimental/simulated SAXS profile.')
 
     subparser.add_argument('-n', '--nmodes', type=int, dest='numModes',\
@@ -161,13 +159,12 @@ def addCommand(commands):
                            default='best_model.pdb', \
                            help='Output pdb file for the best model.')
 
-    subparser.add_argument('-o', '--out-saxs', type=str, dest='out_saxs_file', \
+    subparser.add_argument('-s', '--out-saxs', type=str, dest='out_saxs_file', \
                            help='Output SAXS profile for the best model')
 
-#    subparser.add_argument('pdb', nargs='+',
-#        help='PDB identifier(s) or a file that contains them')
-    subparser.set_defaults(func=lambda ns: prody_saxs(**ns.__dict__))
-
+    subparser.set_defaults(func=lambda ns: prody_saxs(ns.__dict__.pop('pdb_file'),\
+                                                      ns.__dict__.pop('saxs_file'),\
+                                                      **ns.__dict__))
     subparser.set_defaults(subparser=subparser)
 
 def main():
@@ -175,12 +172,12 @@ def main():
     parser = argparse.ArgumentParser(description=\
     'Find the best mode fitting to a given SAXS profile.',\
     epilog=\
-    'Example: python prody_saxs.py 4ake_chainA.pdb -s 1ake_chainA_saxs_w_yerrorbars.dat -o output.txt')
+    'Example: python prody_saxs.py 4ake_chainA.pdb 1ake_chainA_saxs_w_yerrorbars.dat ')
     parser.add_argument('pdb_file', nargs='?', type=str, \
                         help='Mandatory input pdb file.')
     
-    parser.add_argument('-s', '--saxs', type=str, dest='saxs_file',\
-                        help='Mandatory experimental/simulated SAXS profile.')
+    parser.add_argument('saxs_file', nargs='?', type=str,\
+                           help='Mandatory experimental/simulated SAXS profile.')
 
     parser.add_argument('-n', '--nmodes', type=int, dest='numModes',\
                         default=5, \
@@ -200,16 +197,15 @@ def main():
                         default='best_model.pdb', \
                         help='Output pdb file for the best model.')
 
-    parser.add_argument('-o', '--out-saxs', type=str, dest='out_saxs_file', \
+    parser.add_argument('-s', '--out-saxs', type=str, dest='out_saxs_file', \
                         help='Output SAXS profile for the best model')
-
-#    parser.add_argument('-v', '--version', action='version', \
-#                        version='%(prog)s (version 0.1)')
 
     args = parser.parse_args()
     
     kwargs=vars(args)
-    prody_saxs(**kwargs)    
+    pdb_file=kwargs.pop('pdb_file')
+    saxs_file=kwargs.pop('saxs_file')
+    prody_saxs(pdb_file, saxs_file, **kwargs)    
     
 if __name__ == "__main__":
     main()
