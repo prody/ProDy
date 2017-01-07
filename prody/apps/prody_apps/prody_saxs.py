@@ -5,12 +5,10 @@
 
 from prody import *
 import numpy as np
-import os
 import sys
 import argparse
 
 from saxs import *
-
 
 __all__ = ['prody_saxs']
 
@@ -50,7 +48,7 @@ def prody_saxs(pdb_file, saxs_file, **kwargs):
 
     #Calculate a SAXS profile for initial pdb file by using Fast-SAXS approach.
     prody.LOGGER.info('Solvating the system and calculating SAXS profile.')
-    calcSAXSPerModel(calphas, numCalphas, I_model, Q_exp)
+    calcSaxsPerModel(calphas, numCalphas, I_model, Q_exp)
 
     #Get initial chi value between pdb_file and saxs_file
     max_chi=calcSaxsChi(Q_exp, I_q_exp, sigma_q, Q_exp, I_model)
@@ -84,7 +82,7 @@ def prody_saxs(pdb_file, saxs_file, **kwargs):
                 
                 newCoords=calphas.getCoords().flatten()+(coeff*eigenvector)
                 calphas.setCoords(newCoords.reshape((numCalphas, 3), order='C'))
-                calcSAXSPerModel(calphas, numCalphas, I_model, Q_exp)
+                calcSaxsPerModel(calphas, numCalphas, I_model, Q_exp)
                 chi=calcSaxsChi(Q_exp, I_q_exp, sigma_q, Q_exp, I_model)
                 chi_overall.append(chi)
                 frames_overall.append(j)
@@ -105,7 +103,8 @@ def prody_saxs(pdb_file, saxs_file, **kwargs):
 
     prody.LOGGER.report('SAXS profile calculations were performed in %2fs.', '_intplt_mode')
     
-    showChivsFrames(chi_overall, frames_overall, args_numFrames)
+#    showChivsFrames(chi_overall, frames_overall, args_numFrames)
+    writeChivsFrames(chi_overall, frames_overall, args_numFrames, 'chi_vs_frames.png')
 
     #The model with the lowest Chi value is written to a pdb file.
     prody.LOGGER.info('Chi value between the best model and the experimental SAXS data=%.3f'%np.amin(chi_overall))
@@ -113,7 +112,7 @@ def prody_saxs(pdb_file, saxs_file, **kwargs):
     #    print np.argmin(chi_overall)
     best_model_all = parsePDB(args_out_pdb_file)
     best_model_calphas = best_model_all.select('calpha')
-    calcSAXSPerModel(best_model_calphas, numCalphas, I_model, Q_exp)
+    calcSaxsPerModel(best_model_calphas, numCalphas, I_model, Q_exp)
 
 def addCommand(commands):
 

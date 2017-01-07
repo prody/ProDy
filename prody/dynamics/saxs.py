@@ -4,12 +4,11 @@ import numpy as np
 from numba import jit
 import saxstools
 from math import sqrt
-from matplotlib import pyplot
 
-__all__ = ['buildSolvShell', 'showSAXSProfiles', 
+__all__ = ['buildSolvShell', 'showSaxsProfiles', 
            'calcSaxsChi', 'parseSaxsData', 
-           'calcSAXSPerModel','interpolateMode',
-           'showChivsFrames']
+           'calcSaxsPerModel','interpolateMode',
+           'showChivsFrames', 'writeChivsFrames']
 
 WATER_BOX_SIZE=119.7
 NUM_WATER_ATOMS=60656
@@ -20668,14 +20667,17 @@ def numericResname(resname):
     #printf("%s %f %f %f\n", resname,w,q,f);
     return f;
 
-def showSAXSProfiles(exp_data, model_data):
+def showSaxsProfiles(exp_data_file, model_data_file):
+    """This function reads experimental and model data from txt files and
+    plots them by using matplotlib. 
+    """
     #Read experimental data
     #Read model data
     #Plot data
     from matplotlib import pyplot;
     from pylab import genfromtxt;
-    mat0 = genfromtxt(exp_data);
-    mat1 = genfromtxt(model_data);
+    mat0 = genfromtxt(exp_data_file);
+    mat1 = genfromtxt(model_data_file);
     pyplot.plot(mat0[:,0], mat0[:,1], label = "Experimental");
     pyplot.plot(mat1[:,0], mat1[:,1], label = "Model");
     pyplot.legend();
@@ -20746,7 +20748,7 @@ def parseSaxsData(I_q_file, simulated=False, isLogScale=True):
     else:
         return (q_exp, I_q_exp, sigma_q)
 
-def calcSAXSPerModel(calphas, numCalphas, I, Q_exp):
+def calcSaxsPerModel(calphas, numCalphas, I, Q_exp):
     ####Assign coordinates to a temporary array!#################################
     wDNA =0.070
     wRNA =0.126
@@ -20845,7 +20847,7 @@ def interpolateMode(calphas, mode,\
         
         newCoords=calphas.getCoords().flatten()+(coeff*eigenvector)
         calphas.setCoords(newCoords.reshape((numCalphas, 3), order='C'))
-        calcSAXSPerModel(calphas, numCalphas, I_model, Q_exp)
+        calcSaxsPerModel(calphas, numCalphas, I_model, Q_exp)
         chi=calcSaxsChi(Q_exp, I_q_exp, sigma_q, Q_exp, I_model)
         chi_list.append(chi)
         frames_list.append(j)
@@ -20868,17 +20870,55 @@ def interpolateMode(calphas, mode,\
 
 
 def showChivsFrames(chi_list, frames_list, numFrames):
+    """Show Chi values vs Frames number to see if interpolating a mode reduces
+    Chi value or not. 
+    """
+
+    from matplotlib import pyplot
+    pyplot.xticks(fontsize = 16)
+    pyplot.yticks(fontsize = 16)
+    pyplot.grid()
+    
+    linestyles = ['-', '-.','--', ':']
     numModes=len(chi_list)/(numFrames+1)
     print "@> Number of modes in chi list is %d"%numModes
     for i in range (0, numModes):
         pyplot.plot(frames_list[(i*(numFrames+1)):((i+1)*(numFrames+1))], \
-                    chi_list[(i*(numFrames+1)):((i+1)*(numFrames+1))], label='Mode %d'%(i+1));
+                    chi_list[(i*(numFrames+1)):((i+1)*(numFrames+1))], \
+                    linestyle = linestyles[i%4],\
+                    label='Mode %d'%(i+1));
     
-    pyplot.xlabel('Frame Number')
-    pyplot.ylabel('Chi')
+    pyplot.xlabel('Frame Number', fontsize = 16)
+    pyplot.ylabel('$\chi$', fontsize = 18)
     pyplot.legend(loc='best')    
     
     pyplot.show();
+
+def writeChivsFrames(chi_list, frames_list, numFrames, outChiFile):
+    """Write Chi values vs Frames number to see if interpolating a mode reduces
+    Chi value or not. 
+    """
+
+    from matplotlib import pyplot
+    pyplot.xticks(fontsize = 16)
+    pyplot.yticks(fontsize = 16)
+    pyplot.grid()
+    
+    linestyles = ['-', '-.','--', ':']
+    numModes=len(chi_list)/(numFrames+1)
+    print "@> Number of modes in chi list is %d"%numModes
+    for i in range (0, numModes):
+        pyplot.plot(frames_list[(i*(numFrames+1)):((i+1)*(numFrames+1))], \
+                    chi_list[(i*(numFrames+1)):((i+1)*(numFrames+1))], \
+                    linestyle = linestyles[i%4],\
+                    label='Mode %d'%(i+1));
+    
+
+    pyplot.xlabel('Frame Number', fontsize = 16)
+    pyplot.ylabel('$\chi$', fontsize = 18)
+    pyplot.legend(loc='best')    
+    
+    pyplot.savefig(outChiFile);
 
 
 

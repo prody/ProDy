@@ -1,11 +1,14 @@
 #include <Python.h>
 #include <math.h>
-#include <numpy/arrayobject.h>
 //#include "saxs.h"
-//#ifndef NPY_1_7_API_VERSION
+#ifdef NPY_1_7_API_VERSION
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
-//#endif
-
+#define NPE_PY_ARRAY_OBJECT PyArrayObject
+#else
+//TODO Remove this as soon as support for Numpy version before 1.7 is dropped
+#define NPE_PY_ARRAY_OBJECT PyObject
+#endif
+#include <numpy/arrayobject.h>
 
 //########################CONSTANT VARIABLE DECLARATIONS#########################
 // Maximum number of atoms in the pdb file
@@ -20290,10 +20293,6 @@ int cgSolvate(FILE *fpdb, double *X, double *Y, double *Z, \
 	      int *total_atom, char *cgatom[], double *W,  \
 	      float delta, float wDNA, float wRNA, float wPROT, int pdb_flag, \
 	      float thickness, float closest_dist, int solvent_flag);
-int cgSolvateNumeric(char *fpdb_file, double *X, double *Y, double *Z, double *W, \
-		     float delta, float wDNA, float wRNA, float wPROT,	\
-		     float thickness, float closest_dist,		\
-		     int pdb_flag, int solvent_flag);
 int cgSolvateNumeric_v2(char *fpdb_file, double *X, double *Y, double *Z, double *W, \
 			float wDNA, float wRNA, float wPROT,		\
 			float thickness, float closest_dist,		\
@@ -20423,15 +20422,14 @@ static PyObject *saxstools_cgSolvateNumeric(PyObject *self, PyObject *args)
   /* Parse the input tuple */
   if (!PyArg_ParseTuple(args, "sOOOOfffffiii", &fpdb_file, &X_obj, &Y_obj, &Z_obj, &W_obj, &wDNA, &wRNA, &wPROT, &thickness, &closest_dist, &pdb_flag, &solvent_flag, &MAX_ATOM))
     return NULL;
-  //  printf("Here I am \n");  
-  //    total_atom=cgSolvateNumeric(fpdb, X, Y, Z, cgatom_num, W, delta, wDNA, wRNA, wPROT, thickness, closest_dist, pdb_flag, solvent_flag);
+
   /* Interpret the input objects as numpy arrays. */
   PyObject *X_array = PyArray_FROM_OTF(X_obj, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
   PyObject *Y_array = PyArray_FROM_OTF(Y_obj, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
   PyObject *Z_array = PyArray_FROM_OTF(Z_obj, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
   /* PyObject *cgatom_num_array = PyArray_FROM_OTF(cgatom_num_obj, NPY_INT64, NPY_ARRAY_IN_ARRAY); */
   PyObject *W_array = PyArray_FROM_OTF(W_obj, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
-  //  printf("Here I am \n");  
+
   /* If that didn't work, throw an exception. */
   if (X_array == NULL || Y_array == NULL || Z_array==NULL || W_array==NULL)
     {
@@ -20451,11 +20449,9 @@ static PyObject *saxstools_cgSolvateNumeric(PyObject *self, PyObject *args)
   double *W = (double*)PyArray_DATA(W_array);
   
   /* Call the external C function to compute the chi-squared. */
-  /* calcSAXSNumeric(I, X, Y, Z, total_atom, cgatom_num, W, Q, nexp); */
-  //  printf("Here I am %s\n", fpdb_file);  
   total_atom=cgSolvateNumeric_v2(fpdb_file, X, Y, Z, W, wDNA, wRNA, wPROT, thickness, closest_dist, pdb_flag, solvent_flag, MAX_ATOM);
-  //  printf("Here I am final\n");  
-    /* /\* Clean up. *\/ */
+  
+  /* /\* Clean up. *\/ */
   Py_DECREF(X_array);
   Py_DECREF(Y_array);
   Py_DECREF(Z_array);
@@ -20472,8 +20468,6 @@ static PyObject *saxstools_cgSolvateNumeric(PyObject *self, PyObject *args)
   PyObject *ret = Py_BuildValue("i", total_atom);
   return ret;
 }
-
-
 
 //##################################FUNCTIONS####################################
 float DS(float x)
@@ -20948,47 +20942,6 @@ float get_f_numeric(int resname_num, float w, float q)
   return f;
 }
 
-/* float get_f_numeric(int resname_num, float w, float q) */
-/* { */
-/*   float f=0.0001; */
-
-/*   if(resname_num==1){f = RS(q);} */
-/*   if(resname_num==2){f = DS(q);} */
-/*   if(resname_num==3){f = ADE(q);} */
-/*   if(resname_num==4){f = GUA(q);} */
-/*   if(resname_num==5){f = THY(q);} */
-/*   if(resname_num==6){f = URA(q);} */
-/*   if(resname_num==7){f = CYT(q);} */
-
-/*   if(resname_num==8){f = GLY(q);} */
-/*   if(resname_num==9){f = ALA(q);} */
-/*   if(resname_num==10){f = VAL(q);} */
-/*   if(resname_num==11){f = ILE(q);} */
-/*   if(resname_num==12){f = LEU(q);} */
-/*   if(resname_num==13){f = MET(q);} */
-/*   if(resname_num==14){f = PHE(q);} */
-/*   if(resname_num==15){f = TRP(q);} */
-/*   if(resname_num==16){f = PRO(q);} */
-/*   if(resname_num==17){f = SER(q);} */
-/*   if(resname_num==18){f = THR(q);} */
-/*   if(resname_num==19){f = CYS(q);} */
-/*   if(resname_num==20){f = TYR(q);} */
-/*   if(resname_num==21){f = ASN(q);} */
-/*   if(resname_num==22){f = GLN(q);} */
-/*   if(resname_num==23){f = ASP(q);} */
-/*   if(resname_num==24){f = GLU(q);} */
-/*   if(resname_num==25){f = LYS(q);} */
-/*   if(resname_num==26){f = ARG(q);} */
-/*   if(resname_num==27){f = HIS(q);} */
-/*   if(resname_num==28){f = HIS(q);} */
-
-/*   if(resname_num==29){f = w*SOL(q);} */
-/*   if(resname_num==30){f = w*SOL(q);} */
-/*   if(resname_num==31){f = w*SOL(q);} */
-/*   //printf("%s %f %f %f\n", resname,w,q,f); */
-/*   return f; */
-/* } */
-
 
 /* char *resnameNum_to_resname(int resnameNum, float w) */
 /* { */
@@ -21033,11 +20986,11 @@ float get_f_numeric(int resname_num, float w, float q)
 
 // function to find minimum distance betwen water and
 // molecule.
-float min_dist_to_mol_v2(double *X, \
-			 double *Y, double *Z, double x, double y, double z, \
-		      int atom_count, int *mol_type, int *type)
+float min_dist_to_mol_v2(double *X, double *Y, double *Z, \
+			 double x, double y, double z,		\
+			 int atom_count, int *mol_type, int *type)
 {
-  int i;
+  int i=0;
   float dist = 0.0;
   float dist_x=0.0, dist_y=0.0, dist_z=0.0;
   //  float min_dist = 10000;
@@ -21343,257 +21296,7 @@ int cgSolvate(FILE *fpdb, double *X, double *Y, double *Z, int *total_atom, char
   *total_atom = atom_count + water_count - 1;
   return 0;
 }
-// Function to Coarse-grain the input PDB and solvate
-int cgSolvateNumeric(char *fpdb_file, double *X, double *Y, double *Z, double *W,\
-		     float delta, float wDNA, float wRNA, float wPROT,  \
-		     float thickness, float closest_dist,		\
-		     int pdb_flag, int solvent_flag)
-{
-  //  fprintf(stdout, "Here I am and opening string is %s\n", fpdb_file);
-  FILE *fpdb=fopen(fpdb_file, "r");
-  if(fpdb==NULL)
-    {
-      fprintf(stderr, "ERROR! No such file: %s", fpdb_file);
-      exit(EXIT_FAILURE);
-    }
 
-  int total_atom=0;
-  char *pdb_out_file="cg_solvated.pdb";
-  double x,y,z;
-  char resname[4]="   \0", atomname[5]="    \0";
-  char cx[9]="        \0", cy[9]="        \0", cz[9]="        \0";
-  char pdb_line[80];
-  int mol_type_flag=0, flag=0;
-  float min_dist=0;
-  float maxx=-10000, maxy=-10000, maxz=-10000;
-  float minx=10000, miny=10000, minz=10000;
-  int atom_count=0;
-  char *atom[MAX_ATOM];
-  char *cgatom[MAX_ATOM];
-
-  int RNA_count=0, DNA_count=0, PROT_count=0;
-  int mol_type[MAX_ATOM];
-  int w,i,j,k,mtype=0;
-  int water_count;
-  FILE *fout_pdb=NULL;
-
-  float closest_dist_plus_thickness=(closest_dist+thickness);
-  float closest_dist_plus_thickness_sqrd=closest_dist_plus_thickness*closest_dist_plus_thickness;
-  float closest_dist_sqrd=closest_dist*closest_dist;
-
-  //  fprintf(stdout, "Here I am 2\n");
-  // Read PDB file and coarge-grain the file
-  while(fgets(pdb_line, 80, fpdb) != NULL)
-    {
-      if(strncmp(pdb_line,"ATOM",4)==0)
-	{
-	  strncpy(resname,pdb_line+17, 3);
-	  strncpy(atomname,pdb_line+12, 4);
-
-	  //mol_type_flag:  0-DNA, 1-RNA, 2-Protein
-	  if(strcmp(atomname," O2'")==0 || strcmp(atomname," O2*")==0 || strcmp(resname,"RNA")==0 )
-	    {
-	      mol_type_flag=1;
-	      if(RNA_count==0 && strcmp(resname,"RNA")!=0 && DNA_count==1)
-		{
-		  cgatom[atom_count-1]="RNA\0";
-		  mol_type[atom_count-1]=1;
-		  W[atom_count-1]=wRNA;
-		  RNA_count++;
-		  DNA_count--;
-		}
-	    }
-
-	  if(strcmp(atomname," O5'")==0 || strcmp(atomname," O5*")==0)
-	    {
-	      if(mol_type_flag==1)
-		{
-		  cgatom[atom_count]="RNA\0";
-		  RNA_count++;
-		}
-	      else
-		{
-		  cgatom[atom_count]="DNA\0";
-		  DNA_count++;
-		  mol_type_flag=0;
-		}
-	      atom[atom_count]=" O5'\0";
-	      flag=1;
-	    }
-          if((strcmp(resname,"  A")==0 || strcmp(resname," DA")==0 || strcmp(resname,"DA ")==0 \
-	      || strcmp(resname," RA")==0 || strcmp(resname,"RA ")==0 || strcmp(resname,"ADE")==0 ) \
-	     && (strcmp(atomname," C5 ")==0 || strcmp(atomname,"  C5")==0))
-	    {cgatom[atom_count]="ADE\0";flag=1;atom[atom_count]=" C5 \0";}
-
-	  if((strcmp(resname,"  C")==0 || strcmp(resname," DC")==0 || strcmp(resname,"DC ")==0 \
-	      || strcmp(resname," RC")==0 || strcmp(resname,"RC ")==0 || strcmp(resname,"CYT")==0 ) \
-	     && (strcmp(atomname," N3 ")==0 || strcmp(atomname,"  N3")==0))
-	    {cgatom[atom_count]="CYT\0";flag=1;atom[atom_count]=" N3 \0";}
-
-          if((strcmp(resname,"  G")==0 || strcmp(resname," DG")==0 || strcmp(resname,"DG ")==0 \
-	      || strcmp(resname," RG")==0 || strcmp(resname,"RG ")==0 || strcmp(resname,"GUA")==0 ) \
-	     && (strcmp(atomname," C4 ")==0 || strcmp(atomname,"  C4")==0))
-	    {cgatom[atom_count]="GUA\0";flag=1;atom[atom_count]=" C4 \0";}
-
-          if((strcmp(resname,"  U")==0 || strcmp(resname," DU")==0 || strcmp(resname,"DU ")==0 \
-	      || strcmp(resname," RU")==0 || strcmp(resname,"RU ")==0 || strcmp(resname,"URA")==0 ) \
-	     && (strcmp(atomname," N3 ")==0 || strcmp(atomname,"  N3")==0))
-	    {cgatom[atom_count]="URA\0";flag=1;atom[atom_count]=" N3 \0";}
-
-          if((strcmp(resname,"  T")==0 || strcmp(resname," DT")==0 || strcmp(resname,"DT ")==0 \
-	      || strcmp(resname," RT")==0 || strcmp(resname,"RT ")==0 || strcmp(resname,"THY")==0 ) \
-	     && (strcmp(atomname," N3 ")==0 || strcmp(atomname,"  N3")==0))
-	    {cgatom[atom_count]="THY\0";flag=1;atom[atom_count]=" N3 \0";}
-
-	  //Check if atom belongs to protein
-         if(strcmp(atomname," CA ")==0 || strcmp(atomname,"  CA")==0 || strcmp(atomname,"CA  ")==0 )
-	   {
-	     cgatom[atom_count]="   \0";
-	     if(strcmp(resname,"GLY")==0) cgatom[atom_count]="GLY\0";
-	     if(strcmp(resname,"ALA")==0) cgatom[atom_count]="ALA\0";
-	     if(strcmp(resname,"VAL")==0) cgatom[atom_count]="VAL\0";
-	     if(strcmp(resname,"LEU")==0) cgatom[atom_count]="LEU\0";
-	     if(strcmp(resname,"ILE")==0) cgatom[atom_count]="ILE\0";
-	     if(strcmp(resname,"MET")==0) cgatom[atom_count]="MET\0";
-	     if(strcmp(resname,"PHE")==0) cgatom[atom_count]="PHE\0";
-	     if(strcmp(resname,"TRP")==0) cgatom[atom_count]="TRP\0";
-	     if(strcmp(resname,"PRO")==0) cgatom[atom_count]="PRO\0";
-	     if(strcmp(resname,"SER")==0) cgatom[atom_count]="SER\0";
-	     if(strcmp(resname,"THR")==0) cgatom[atom_count]="THR\0";
-	     if(strcmp(resname,"CYS")==0) cgatom[atom_count]="CYS\0";
-	     if(strcmp(resname,"TYR")==0) cgatom[atom_count]="TYR\0";
-	     if(strcmp(resname,"ASN")==0) cgatom[atom_count]="ASN\0";
-	     if(strcmp(resname,"GLN")==0) cgatom[atom_count]="GLN\0";
-	     if(strcmp(resname,"ASP")==0) cgatom[atom_count]="ASP\0";
-	     if(strcmp(resname,"GLU")==0) cgatom[atom_count]="GLU\0";
-	     if(strcmp(resname,"LYS")==0) cgatom[atom_count]="LYS\0";
-	     if(strcmp(resname,"ARG")==0) cgatom[atom_count]="ARG\0";
-	     if(strcmp(resname,"HIS")==0) cgatom[atom_count]="HIS\0";
-	     if(strcmp(resname,"HSD")==0) cgatom[atom_count]="HIS\0";
-	     if(strcmp(resname,"HYP")==0) cgatom[atom_count]="PRO\0";
-	      PROT_count++;
-	      mol_type_flag=2;
-	      flag=1;
-	      atom[atom_count]=" CA \0";
-	   }
-
-	 if(flag==1)
-	   {
-	     strncpy(cx,pdb_line+30, 8);
-	     strncpy(cy,pdb_line+38, 8);
-	     strncpy(cz,pdb_line+46, 8);
-
-	     x = atof(cx);
-	     y = atof(cy);
-	     z = atof(cz);
-
-	     if(x > maxx) maxx = x;
-	     if(y > maxy) maxy = y;
-	     if(z > maxz) maxz = z;
-
-	     if(x < minx) minx = x;
-	     if(y < miny) miny = y;
-	     if(z < minz) minz = z;
-
-	     X[atom_count] = x;
-	     Y[atom_count] = y;
-	     Z[atom_count] = z;
-
-	     mol_type[atom_count]=mol_type_flag;
-	     if (mol_type_flag==0) {W[atom_count] = wDNA;}
-	     if (mol_type_flag==1) {W[atom_count] = wRNA;}
-	     if (mol_type_flag==2) {W[atom_count] = wPROT;}
-
-	     atom_count++;
-	     flag=0;
-
-	   }
-	}
-    }
-  //  fprintf(stdout, "Here I am 3\n");
-  // Output pdb if required
-  if(pdb_flag==1)
-    {
-      fout_pdb = fopen(pdb_out_file, "w");
-      for(i=0;i<atom_count;i++)
-	{
-	  fprintf(fout_pdb,"ATOM %6d %4s %3s %1d%4d    %8.3f%8.3f%8.3f\n", \
-	       i+1,atom[i],cgatom[i],mol_type[i],i+1,X[i],Y[i],Z[i]);
-	}
-
-    }
-  //  fprintf(stdout, "Here I am 4\n");
-
-  // add water box if solvent_flag==1
-  // This routine can add water box of any size
-  water_count = 1;
-  if(solvent_flag == 1)
-    {
-      //      printf("Aslinda buradayim ulen!\n");
-      for(i=0; i< (maxx-minx)/WATER_BOX_SIZE+1; i++)
-	{
-	  for(j=0; j< (maxy-miny)/WATER_BOX_SIZE+1; j++)
-	    {
-	      for(k=0; k< (maxz-minz)/WATER_BOX_SIZE+1; k++)
-		{
-		  for(w=0;w<NUM_WATER_ATOMS;w++)
-		    {
-
-		      x = water[w][0]+minx + (i*WATER_BOX_SIZE);
-		      y = water[w][1]+miny + (j*WATER_BOX_SIZE);
-		      z = water[w][2]+minz + (k*WATER_BOX_SIZE);
-		      min_dist = min_dist_to_mol_v2(X,Y,Z,x,y,z,atom_count,mol_type,&mtype);
-
-		      if (mtype==0) {W[atom_count+water_count-1] = wDNA;}
-		      if (mtype==1) {W[atom_count+water_count-1] = wRNA;}
-		      if (mtype==2) {W[atom_count+water_count-1] = wPROT;}
-		      cgatom[atom_count+water_count-1] = "SOL\0";
-		      X[atom_count+water_count-1] = x;
-		      Y[atom_count+water_count-1] = y;
-		      Z[atom_count+water_count-1] = z;
-
-		      if(min_dist < closest_dist_sqrd) {continue;}
-		      if(min_dist > closest_dist_plus_thickness_sqrd) {continue;}
-
-		      if(pdb_flag ==1)
-			{
-			  fprintf(fout_pdb,"ATOM %6d  OW  %3s %1d%4d    %8.3f%8.3f%8.3f\n", \
-				  water_count,cgatom[atom_count+water_count-1],mtype,water_count,x,y,z);
-			}
-		      water_count++;
-
-		      if(water_count==10000)
-			water_count =1;
-		    }
-		}
-	    }
-	}
-    }
-  //  fprintf(stdout, "Here I am 5\n");
-  // close pdb file
-   if(pdb_flag ==1) fclose(fout_pdb);
-
-  fprintf(stderr,"\n@> ******* Summary **************************\n\n");
-  fprintf(stderr,"@> Total number of RNA Nucleotides = %d\n",RNA_count);
-  fprintf(stderr,"@> Total number of DNA Nucleotides = %d\n",DNA_count);
-  fprintf(stderr,"@> Total number of Protein Residues = %d\n",PROT_count);
-  fprintf(stderr,"@> Total non-water CG atoms in the pdb file = %d\n",atom_count);
-  fprintf(stderr,"@> Total number of CG water atoms added = %d\n",water_count-1);
-  fprintf(stderr,"@> Total number of CG atoms in the pdb file = %d\n",atom_count+water_count-1);
-  fprintf(stderr,"\n@> ******************************************\n");
-
-  if((atom_count-PROT_count)%2 != 0)
-    {
-      fprintf(stderr,"WARNING: Something wrong with the input PDB file\n");
-      fprintf(stderr,"Perhaps some nucleotides have missing atoms?\n\n");
-      fprintf(stderr,"Check your input PDB file. \n\n");
-      fprintf(stderr,"Read documentation: -H option for more details. \n\n");
-    }
-
-  total_atom = atom_count + water_count - 1;
-  fclose(fpdb);
-  return (total_atom);
-}
 int cgSolvateNumeric_v2(char *fpdb_file,\
 			double *X,\
 			double *Y,\
