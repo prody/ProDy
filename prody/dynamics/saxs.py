@@ -20817,12 +20817,16 @@ def calcSaxsPerModel(calphas, numCalphas, I, Q_exp):
 #    end= time.clock()
 #    print (end - start)
 
-def interpolateMode(calphas, mode,\
-                    out_pdb_file,\
-                    Q_exp, I_q_exp, sigma_q,\
-                    max_chi,\
-                    rmsdScalingCoef=3.0,\
-                    numFrames=20):
+
+
+
+def interpolateMode(calphas, mode, Q_exp, I_q_exp, sigma_q, max_chi,**kwargs):
+  
+    if kwargs is not None:
+        args_numFrames=kwargs.get('numFrames', 20)
+        args_scalCoeff=kwargs.get('scalCoeff', 3.0)
+        args_out_pdb_file=kwargs.get('out_pdb_file', 'best_model.pdb')
+#        args_out_saxs_file=kwargs.get('out_saxs_file', None)
     
     chi_list=[]
     frames_list=[]
@@ -20869,7 +20873,7 @@ def interpolateMode(calphas, mode,\
     return chi_list, frames_list
 
 
-def showChivsFrames(chi_list, frames_list, numFrames):
+def showChivsFrames(chi_list, frames_list, numFrames=20):
     """Show Chi values vs Frames number to see if interpolating a mode reduces
     Chi value or not. 
     """
@@ -20894,7 +20898,7 @@ def showChivsFrames(chi_list, frames_list, numFrames):
     
     pyplot.show();
 
-def writeChivsFrames(chi_list, frames_list, numFrames, outChiFile):
+def writeChivsFrames(chi_list, frames_list, outChiFile, numFrames=20):
     """Write Chi values vs Frames number to see if interpolating a mode reduces
     Chi value or not. 
     """

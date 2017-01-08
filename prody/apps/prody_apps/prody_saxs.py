@@ -104,7 +104,7 @@ def prody_saxs(pdb_file, saxs_file, **kwargs):
     prody.LOGGER.report('SAXS profile calculations were performed in %2fs.', '_intplt_mode')
     
 #    showChivsFrames(chi_overall, frames_overall, args_numFrames)
-    writeChivsFrames(chi_overall, frames_overall, args_numFrames, 'chi_vs_frames.png')
+    writeChivsFrames(chi_overall, frames_overall, 'chi_vs_frames.png', numFrames=args_numFrames)
 
     #The model with the lowest Chi value is written to a pdb file.
     prody.LOGGER.info('Chi value between the best model and the experimental SAXS data=%.3f'%np.amin(chi_overall))
