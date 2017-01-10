@@ -6,7 +6,7 @@ import os.path
 from prody import LOGGER
 from prody.utilities import dictElement, openURL
 
-__all__ = ['PDBBlastRecord', 'blastPDB']
+__all__ = ['UniProtBlastRecord', 'blastPDBUniProtKB']
 
 def blastPDBUniProtKB(sequence, filename=None, **kwargs):
     """Returns a :class:`PDBBlastRecord` instance that contains results from
@@ -43,7 +43,7 @@ def blastPDBUniProtKB(sequence, filename=None, **kwargs):
 
     query = [('DATABASE', 'swissprot'), ('ENTREZ_QUERY', '(none)'),
              ('PROGRAM', 'blastp'),]
-    expect = float(kwargs.pop('expect', 10e-10))
+    expect = float(kwargs.pop('expect', 10e-5))
     if expect <= 0:
         raise ValueError('expect must be a positive number')
     query.append(('EXPECT', expect))
@@ -51,10 +51,12 @@ def blastPDBUniProtKB(sequence, filename=None, **kwargs):
     if hitlist_size <= 0:
         raise ValueError('expect must be a positive integer')
     psiblast = 'true'
+    step_number = 3
     query.append(('RUN_PSIBLAST', psiblast))
     query.append(('HITLIST_SIZE', hitlist_size))
     query.append(('QUERY', sequence))
     query.append(('CMD', 'Put'))
+    query.append(('STEP_NUMBER', step_number))
 
     sleep = float(kwargs.pop('sleep', 2))
     timeout = float(kwargs.pop('timeout', 120))
