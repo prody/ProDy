@@ -20,7 +20,7 @@ def prody_saxs(pdb_file, saxs_file, **kwargs):
         args_numFrames=kwargs.get('numFrames', 20)
         args_scalCoeff=kwargs.get('scalCoeff', 3.0)
         args_out_pdb_file=kwargs.get('out_pdb_file', 'best_model.pdb')
-        args_out_saxs_file=kwargs.get('out_saxs_file', None)
+        args_out_saxs_file=kwargs.get('out_saxs_file', 'best_model_I_q.dat')
 
     #1-This module produces normal modes of a protein structure and 
     #by using anisotropic network model.    
@@ -113,6 +113,7 @@ def prody_saxs(pdb_file, saxs_file, **kwargs):
     best_model_all = parsePDB(args_out_pdb_file)
     best_model_calphas = best_model_all.select('calpha')
     calcSaxsPerModel(best_model_calphas, numCalphas, I_model, Q_exp)
+    writeSaxsProfile(I_model, Q_exp, args_out_saxs_file)
 
 def addCommand(commands):
 
@@ -159,6 +160,7 @@ def addCommand(commands):
                            help='Output pdb file for the best model.')
 
     subparser.add_argument('-s', '--out-saxs', type=str, dest='out_saxs_file', \
+                           default='best_model_I_q.dat', \
                            help='Output SAXS profile for the best model')
 
     subparser.set_defaults(func=lambda ns: prody_saxs(ns.__dict__.pop('pdb_file'),\
@@ -197,6 +199,7 @@ def main():
                         help='Output pdb file for the best model.')
 
     parser.add_argument('-s', '--out-saxs', type=str, dest='out_saxs_file', \
+                        default='best_model_I_q.dat', \
                         help='Output SAXS profile for the best model')
 
     args = parser.parse_args()

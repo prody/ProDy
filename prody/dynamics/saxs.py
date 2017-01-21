@@ -8,7 +8,8 @@ from math import sqrt
 __all__ = ['buildSolvShell', 'showSaxsProfiles', 
            'calcSaxsChi', 'parseSaxsData', 
            'calcSaxsPerModel','interpolateMode',
-           'showChivsFrames', 'writeChivsFrames']
+           'showChivsFrames', 'writeChivsFrames',
+           'writeSaxsProfile']
 
 WATER_BOX_SIZE=119.7
 NUM_WATER_ATOMS=60656
@@ -20817,8 +20818,11 @@ def calcSaxsPerModel(calphas, numCalphas, I, Q_exp):
 #    end= time.clock()
 #    print (end - start)
 
+def writeSaxsProfile(I_model, Q_exp, filename):
+    """ Write a theoretical SAXS profile to a file."""
 
-
+    combined=np.vstack([Q_exp, I_model]).T
+    np.savetxt(filename, combined)
 
 def interpolateMode(calphas, mode, Q_exp, I_q_exp, sigma_q, max_chi,**kwargs):
   
