@@ -6,11 +6,7 @@ import os.path
 from prody import LOGGER
 from prody.utilities import dictElement, openURL
 
-<<<<<<< HEAD
-__all__ = ['SwissProtBlastRecord', 'blastPDBUniProtKB']
-=======
 __all__ = ['UniProtBlastRecord', 'blastPDBUniProtKB']
->>>>>>> 5f9f8d6139d628d252260315d6c1e41c87ca9430
 
 def blastPDBUniProtKB(sequence, filename=None, **kwargs):
     """Returns a :class:`PDBBlastRecord` instance that contains results from
