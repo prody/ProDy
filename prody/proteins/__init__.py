@@ -156,6 +156,10 @@ from . import blastpdb
 from .blastpdb import *
 __all__.extend(blastpdb.__all__)
 
+from . import blastpdbUniProtKB
+from .blastpdbUniProtKB import *
+__all__.extend(blastpdbUniProtKB.__all__)
+
 from . import pdbligands
 from .pdbligands import *
 __all__.extend(pdbligands.__all__)
