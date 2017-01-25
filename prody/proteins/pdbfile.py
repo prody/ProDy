@@ -539,24 +539,24 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                                     'same number of atoms')
                 # this is where to decide if more coordsets should be expected
                 if END:
-                    coordinates.resize((acount, 3))
+                    coordinates.resize((acount, 3), refcheck=False)
                     if addcoords:
                         atomgroup.addCoordset(coordinates)
                     else:
                         atomgroup._setCoords(coordinates)
                 else:
-                    coordsets = np.zeros((diff/acount+1, acount, 3))
+                    coordsets = np.zeros((diff//acount+1, acount, 3))
                     coordsets[0] = coordinates[:acount]
                     onlycoords = True
-                atomnames.resize(acount)
-                resnames.resize(acount)
-                resnums.resize(acount)
-                chainids.resize(acount)
-                hetero.resize(acount)
-                termini.resize(acount)
-                altlocs.resize(acount)
-                icodes.resize(acount)
-                serials.resize(acount)
+                atomnames.resize(acount, refcheck=False)
+                resnames.resize(acount, refcheck=False)
+                resnums.resize(acount, refcheck=False)
+                chainids.resize(acount, refcheck=False)
+                hetero.resize(acount, refcheck=False)
+                termini.resize(acount, refcheck=False)
+                altlocs.resize(acount, refcheck=False)
+                icodes.resize(acount, refcheck=False)
+                serials.resize(acount, refcheck=False)
                 if not only_subset:
                     atomnames = np.char.strip(atomnames)
                     resnames = np.char.strip(resnames)
@@ -570,23 +570,25 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                 atomgroup.setIcodes(np.char.strip(icodes))
                 atomgroup.setSerials(serials)
                 if isPDB:
-                    bfactors.resize(acount)
-                    occupancies.resize(acount)
-                    segnames.resize(acount)
-                    elements.resize(acount)
+                    bfactors.resize(acount, refcheck=False)
+                    occupancies.resize(acount, refcheck=False)
+                    segnames.resize(acount, refcheck=False)
+                    elements.resize(acount, refcheck=False)
                     atomgroup.setBetas(bfactors)
                     atomgroup.setOccupancies(occupancies)
                     atomgroup.setSegnames(np.char.strip(segnames))
                     atomgroup.setElements(np.char.strip(elements))
+                    from prody.utilities.misctools import getMasses
+                    atomgroup.setMasses(getMasses(np.char.strip(elements)))
                     if anisou is not None:
-                        anisou.resize((acount, 6))
+                        anisou.resize((acount, 6), refcheck=False)
                         atomgroup.setAnisous(anisou / 10000)
                     if siguij is not None:
-                        siguij.resize((acount, 6))
+                        siguij.resize((acount, 6), refcheck=False)
                         atomgroup.setAnistds(siguij / 10000)
                 else:
-                    charges.resize(acount)
-                    radii.resize(acount)
+                    charges.resize(acount, refcheck=False)
+                    radii.resize(acount, refcheck=False)
                     atomgroup.setCharges(charges)
                     atomgroup.setRadii(radii)
 
@@ -639,27 +641,27 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
             coordsets[nmodel] = coordinates
             nmodel += 1
         del coordinates
-        coordsets.resize((nmodel, atomgroup.numAtoms(), 3))
+        coordsets.resize((nmodel, atomgroup.numAtoms(), 3), refcheck=False)
         if addcoords:
             atomgroup.addCoordset(coordsets)
         else:
             atomgroup._setCoords(coordsets)
     elif not END:
         # this means last line was an ATOM line, so atomgroup is not decorated
-        coordinates.resize((acount, 3))
+        coordinates.resize((acount, 3), refcheck=False)
         if addcoords:
             atomgroup.addCoordset(coordinates)
         else:
             atomgroup._setCoords(coordinates)
-        atomnames.resize(acount)
-        resnames.resize(acount)
-        resnums.resize(acount)
-        chainids.resize(acount)
-        hetero.resize(acount)
-        termini.resize(acount)
-        altlocs.resize(acount)
-        icodes.resize(acount)
-        serials.resize(acount)
+        atomnames.resize(acount, refcheck=False)
+        resnames.resize(acount, refcheck=False)
+        resnums.resize(acount, refcheck=False)
+        chainids.resize(acount, refcheck=False)
+        hetero.resize(acount, refcheck=False)
+        termini.resize(acount, refcheck=False)
+        altlocs.resize(acount, refcheck=False)
+        icodes.resize(acount, refcheck=False)
+        serials.resize(acount, refcheck=False)
         if not only_subset:
             atomnames = np.char.strip(atomnames)
             resnames = np.char.strip(resnames)
@@ -674,22 +676,24 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
         atomgroup.setSerials(serials)
         if isPDB:
             if anisou is not None:
-                anisou.resize((acount, 6))
+                anisou.resize((acount, 6), refcheck=False)
                 atomgroup.setAnisous(anisou / 10000)
             if siguij is not None:
-                siguij.resize((acount, 6))
+                siguij.resize((acount, 6), refcheck=False)
                 atomgroup.setAnistds(siguij / 10000)
-            bfactors.resize(acount)
-            occupancies.resize(acount)
-            segnames.resize(acount)
-            elements.resize(acount)
+            bfactors.resize(acount, refcheck=False)
+            occupancies.resize(acount, refcheck=False)
+            segnames.resize(acount, refcheck=False)
+            elements.resize(acount, refcheck=False)
             atomgroup.setSegnames(np.char.strip(segnames))
             atomgroup.setElements(np.char.strip(elements))
+            from prody.utilities.misctools import getMasses
+            atomgroup.setMasses(getMasses(np.char.strip(elements)))
             atomgroup.setBetas(bfactors)
             atomgroup.setOccupancies(occupancies)
         else:
-            charges.resize(acount)
-            radii.resize(acount)
+            charges.resize(acount, refcheck=False)
+            radii.resize(acount, refcheck=False)
             atomgroup.setCharges(charges)
             atomgroup.setRadii(radii)
 

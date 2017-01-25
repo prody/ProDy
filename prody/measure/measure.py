@@ -201,10 +201,12 @@ def getDihedral(coords1, coords2, coords3, coords4, radian=False):
     v2 = v2 / (v2 * v2).sum(-1)**0.5
     porm = sign((v1 * a3).sum(-1))
     rad = arccos((v1*v2).sum(-1) / ((v1**2).sum(-1) * (v2**2).sum(-1))**0.5)
+    if not porm == 0:
+	rad = rad * porm
     if radian:
-        return porm * rad
+        return rad
     else:
-        return porm * rad * RAD2DEG
+        return rad * RAD2DEG
 
 
 def calcOmega(residue, radian=False, dist=4.1):
