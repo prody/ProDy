@@ -6,7 +6,7 @@ import os.path
 from prody import LOGGER
 from prody.utilities import dictElement, openURL
 
-__all__ = ['UniProtBlastRecord', 'blastPDBUniProtKB']
+__all__ = ['SwissProtBlastRecord', 'blastPDBUniProtKB']
 
 def blastPDBUniProtKB(sequence, filename=None, **kwargs):
     """Returns a :class:`PDBBlastRecord` instance that contains results from
@@ -256,8 +256,6 @@ class SwissProtBlastRecord(object):
             key = hit['species']
             if not key in hits:
                 hits[key] = hit
-            #else:
-            #    if hits
         return hits
 
     def getBest(self):

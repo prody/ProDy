@@ -220,7 +220,7 @@ class PDBBlastRecord(object):
 
         return dict(self._param)
 
-    def getHits(self, percent_identity=90., percent_overlap=70., chain=False, Evalue=1e-3):
+    def getHits(self, percent_identity=90., percent_overlap=70., chain=False):
         """Returns a dictionary in which PDB identifiers are mapped to structure
         and alignment information.
 
@@ -239,8 +239,6 @@ class PDBBlastRecord(object):
         assert isinstance(percent_overlap, (float, int)), \
             'percent_overlap must be a float or an integer'
         assert isinstance(chain, bool), 'chain must be a boolean'
-        assert isinstance(Evalue,float), 'evalue must be a float'	
-
 
         hits = {}
         for p_identity, p_overlap, hit in self._hits:
@@ -263,6 +261,9 @@ class PDBBlastRecord(object):
         for the hit with highest sequence identity."""
 
         return dict(self._hits[0][2])
+
+    def getSequenceSimilarityTree(self):
+        """Plots a dendrogram of proteins in blast search based on sequence similarity. 
 
 
 
