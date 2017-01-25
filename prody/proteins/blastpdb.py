@@ -266,4 +266,4 @@ def showSequenceTree(hits):
     :arg hits: A dictionary that contains hits that are obtained from a blast record object. 
     :type hits: dict
     """
-
+    return
