@@ -244,8 +244,6 @@ class PDBBlastRecord(object):
         for p_identity, p_overlap, hit in self._hits:
             if p_identity < percent_identity:
                 break
-            if hit['evalue'] > Evalue:
-                break
             if p_overlap < percent_overlap:
                 continue
             if chain:
@@ -262,9 +260,10 @@ class PDBBlastRecord(object):
 
         return dict(self._hits[0][2])
 
-    def getSequenceSimilarityTree(self):
-        """Plots a dendrogram of proteins in blast search based on sequence similarity. 
-
-
-
+def showSequenceTree(hits):
+    """Returns a plot that contains a dendrogram of the sequence similarities among
+    the sequences in given hit list. 
+    :arg hits: A dictionary that contains hits that are obtained from a blast record object. 
+    :type hits: dict
+    """
 
