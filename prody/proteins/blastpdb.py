@@ -2,11 +2,12 @@
 """This module defines functions for blast searching Protein Data Bank."""
 
 import os.path
+import os
 
 from prody import LOGGER
-from prody.utilities import dictElement, openURL
+from prody.utilities import dictElement, openURL, which
 
-__all__ = ['PDBBlastRecord', 'blastPDB']
+__all__ = ['PDBBlastRecord', 'blastPDB', 'showSequenceTree']
 
 
 def blastPDB(sequence, filename=None, **kwargs):
@@ -266,4 +267,25 @@ def showSequenceTree(hits):
     :arg hits: A dictionary that contains hits that are obtained from a blast record object. 
     :type hits: dict
     """
+    clustalw = which('clustalw')
+    if clustalw is None:
+        print("The executable for clustalw does not exists, install or add clustalw to path.")
+        return
+    try:
+        from Bio import Phylo
+    except:
+        raise ImportError("Phylo is not installed properly.")
+    with open("hits.fasta","w") as inp:
+        for z in hits:
+            inp.write(">" + str(z) + "\n")
+            inp.write(hits[z]['hseq'])
+            inp.write("\n")
+    cmd = clustalw + " hits.fasta"
+    os.system(cmd)
+    tree = Phylo.read("hits.dnd","newick")
+    try:
+        from pylab import *
+    except:
+        raise ImportError("Pylab or matplotlib is not installed.")
+    Phylo.draw(tree)
     return
