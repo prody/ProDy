@@ -2,11 +2,12 @@
 """This module defines functions for blast searching Protein Data Bank."""
 
 import os.path
+import os
 
 from prody import LOGGER
-from prody.utilities import dictElement, openURL
+from prody.utilities import dictElement, openURL, which
 
-__all__ = ['PDBBlastRecord', 'blastPDB']
+__all__ = ['PDBBlastRecord', 'blastPDB', 'showSequenceTree']
 
 
 def blastPDB(sequence, filename=None, **kwargs):
@@ -220,7 +221,7 @@ class PDBBlastRecord(object):
 
         return dict(self._param)
 
-    def getHits(self, percent_identity=90., percent_overlap=70., chain=False, Evalue=1e-3):
+    def getHits(self, percent_identity=90., percent_overlap=70., chain=False):
         """Returns a dictionary in which PDB identifiers are mapped to structure
         and alignment information.
 
@@ -239,14 +240,10 @@ class PDBBlastRecord(object):
         assert isinstance(percent_overlap, (float, int)), \
             'percent_overlap must be a float or an integer'
         assert isinstance(chain, bool), 'chain must be a boolean'
-        assert isinstance(Evalue,float), 'evalue must be a float'	
-
 
         hits = {}
         for p_identity, p_overlap, hit in self._hits:
             if p_identity < percent_identity:
-                break
-            if hit['evalue'] > Evalue:
                 break
             if p_overlap < percent_overlap:
                 continue
@@ -264,6 +261,31 @@ class PDBBlastRecord(object):
 
         return dict(self._hits[0][2])
 
-
-
-
+def showSequenceTree(hits):
+    """Returns a plot that contains a dendrogram of the sequence similarities among
+    the sequences in given hit list. 
+    :arg hits: A dictionary that contains hits that are obtained from a blast record object. 
+    :type hits: dict
+    """
+    clustalw = which('clustalw')
+    if clustalw is None:
+        print("The executable for clustalw does not exists, install or add clustalw to path.")
+        return
+    try:
+        from Bio import Phylo
+    except:
+        raise ImportError("Phylo is not installed properly.")
+    with open("hits.fasta","w") as inp:
+        for z in hits:
+            inp.write(">" + str(z) + "\n")
+            inp.write(hits[z]['hseq'])
+            inp.write("\n")
+    cmd = clustalw + " hits.fasta"
+    os.system(cmd)
+    tree = Phylo.read("hits.dnd","newick")
+    try:
+        import pylab
+    except:
+        raise ImportError("Pylab or matplotlib is not installed.")
+    Phylo.draw(tree)
+    return

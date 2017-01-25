@@ -202,7 +202,7 @@ def getDihedral(coords1, coords2, coords3, coords4, radian=False):
     porm = sign((v1 * a3).sum(-1))
     rad = arccos((v1*v2).sum(-1) / ((v1**2).sum(-1) * (v2**2).sum(-1))**0.5)
     if not porm == 0:
-	rad = rad * porm
+        rad = rad * porm
     if radian:
         return rad
     else:
