@@ -284,7 +284,7 @@ def showSequenceTree(hits):
     os.system(cmd)
     tree = Phylo.read("hits.dnd","newick")
     try:
-        from pylab import *
+        import pylab
     except:
         raise ImportError("Pylab or matplotlib is not installed.")
     Phylo.draw(tree)
