@@ -365,13 +365,3 @@ def showTree(tree, **kwargs):
         pylab.xlabel('distance')
         pylab.ylabel('proteins')
     return obj
-
-def test():
-    from prody import *
-    from pylab import *
-    ensemble = loadEnsemble('p38_X-ray.ens.npz')
-    import numpy as np
-    distance_matrix = np.random.random((20,20))
-    tree = calcTree(ensemble[:20], distance_matrix)
-    showTree(tree, format='pylab')
-    show()
