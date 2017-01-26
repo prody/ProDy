@@ -8,7 +8,6 @@ from prody.proteins import fetchPDB, parsePDB, writePDB
 from prody.utilities import openFile, showFigure
 from prody import LOGGER, SETTINGS
 from prody.atomic import AtomMap, Chain
-from Bio import Phylo
 
 from .ensemble import *
 from .pdbensemble import *
@@ -320,6 +319,13 @@ def calcTree(ensemble, distance_matrix):
     it will raise an error. 
     :type distance_matrix: numpy.ndarray 
     """
+    try: 
+        from Bio import Phylo
+    except ImportError:
+        raise ImportError('Phylo module could not be imported. '
+            'Reinstall ProDy or install Biopython '
+            'to solve the problem.')
+    
     names = ensemble.getLabels()
     if len(names) != distance_matrix.shape[0] or len(names) != distance_matrix.shape[1]:
         raise ValueError("The size of matrix and ensemble has a mismatch.")
@@ -349,6 +355,12 @@ def showTree(tree, **kwargs):
     arg line_width: The line width for each branch
     type: float
     """
+    try: 
+        from Bio import Phylo
+    except ImportError:
+        raise ImportError('Phylo module could not be imported. '
+            'Reinstall ProDy or install Biopython '
+            'to solve the problem.')
     format = str(kwargs.get('format', 'ascii'))
     font_size = float(kwargs.get('font_size', 8.0))
     line_width = float(kwargs.get('line_width', 1.5))
