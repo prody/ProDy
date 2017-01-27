@@ -48,7 +48,7 @@ def prody_saxs(pdb_file, saxs_file, **kwargs):
 
     #Calculate a SAXS profile for initial pdb file by using Fast-SAXS approach.
     prody.LOGGER.info('Solvating the system and calculating SAXS profile.')
-    calcSaxsPerModel(calphas, numCalphas, I_model, Q_exp)
+    calcSaxsPerModel(calphas, I_model, Q_exp)
 
     #Get initial chi value between pdb_file and saxs_file
     max_chi=calcSaxsChi(Q_exp, I_q_exp, sigma_q, Q_exp, I_model)
@@ -82,7 +82,7 @@ def prody_saxs(pdb_file, saxs_file, **kwargs):
                 
                 newCoords=calphas.getCoords().flatten()+(coeff*eigenvector)
                 calphas.setCoords(newCoords.reshape((numCalphas, 3), order='C'))
-                calcSaxsPerModel(calphas, numCalphas, I_model, Q_exp)
+                calcSaxsPerModel(calphas, I_model, Q_exp)
                 chi=calcSaxsChi(Q_exp, I_q_exp, sigma_q, Q_exp, I_model)
                 chi_overall.append(chi)
                 frames_overall.append(j)
@@ -112,7 +112,7 @@ def prody_saxs(pdb_file, saxs_file, **kwargs):
     #    print np.argmin(chi_overall)
     best_model_all = parsePDB(args_out_pdb_file)
     best_model_calphas = best_model_all.select('calpha')
-    calcSaxsPerModel(best_model_calphas, numCalphas, I_model, Q_exp)
+    calcSaxsPerModel(best_model_calphas, I_model, Q_exp)
     writeSaxsProfile(I_model, Q_exp, args_out_saxs_file)
 
 def addCommand(commands):

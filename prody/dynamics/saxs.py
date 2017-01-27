@@ -20675,14 +20675,18 @@ def showSaxsProfiles(exp_data_file, model_data_file):
     #Read experimental data
     #Read model data
     #Plot data
-    from matplotlib import pyplot;
-    from pylab import genfromtxt;
-    mat0 = genfromtxt(exp_data_file);
-    mat1 = genfromtxt(model_data_file);
-    pyplot.plot(mat0[:,0], mat0[:,1], label = "Experimental");
-    pyplot.plot(mat1[:,0], mat1[:,1], label = "Model");
-    pyplot.legend();
-    pyplot.show();
+    from matplotlib import pyplot
+    from pylab import genfromtxt
+    mat0 = genfromtxt(exp_data_file)
+    mat1 = genfromtxt(model_data_file)
+
+#    c=mat0[:,1][0]/mat1[:,1][0]
+#    print c
+    pyplot.plot(mat0[:,0], mat0[:,1], label = "Experimental")
+#    pyplot.plot(mat1[:,0], c*mat1[:,1], label = "Model")
+    pyplot.plot(mat1[:,0], mat1[:,1], label = "Model")
+    pyplot.legend()
+    pyplot.show()
 
 
 def calcSaxsChi(q_exp, I_q_exp, sigma_q, q_model, I_q_model):
@@ -20713,7 +20717,8 @@ def calcSaxsChi(q_exp, I_q_exp, sigma_q, q_model, I_q_model):
     return sqrt(chi_sqrt)
 
 
-def parseSaxsData(I_q_file, simulated=False, isLogScale=True):
+#def parseSaxsData(I_q_file, simulated=False, isLogScale=True):
+def parseSaxsData(I_q_file, **kwargs):
     """
     This function parses Small Angle X-ray Scattering data.
     ARGS:
@@ -20721,17 +20726,23 @@ def parseSaxsData(I_q_file, simulated=False, isLogScale=True):
                 columns, namely, q column and I_q column. If the 
                 file is an experimental data file, there should be a third
                 column of sigma_q values, namely, error bars. 
-    simulated:  This parameter is a boolean parameter. If the data
+    simulated:  This parameter is a boolean parameter and its default 
+                value is False. If the data
                 is simulated SAXS data, you should make it True so 
                 that it will assign 1.0 values to all sigma_q values.
               
-    isLogScale: This parameter is also a boolean parameter. prody_saxs 
-                module requires the intensity (I_q) data to be in 
+    isLogScale: This parameter is also a boolean parameter and its 
+                default value is False. prody_saxs module requires 
+                the intensity (I_q) data to be in 
                 logscale for all calculations. Therefore, if the 
                 intensities are not in logscale, you should make 
                 isLogScale=False, so that the function return the 
                 input data in log10 scale. 
     """
+    if kwargs is not None:
+        simulated=kwargs.get('simulated', False)
+        isLogScale=kwargs.get('isLogScale', True)
+
     #Check if data contains error bars or if it is simulated data!
     if(simulated==False):
         #Read experimental data
@@ -20749,8 +20760,10 @@ def parseSaxsData(I_q_file, simulated=False, isLogScale=True):
     else:
         return (q_exp, I_q_exp, sigma_q)
 
-def calcSaxsPerModel(calphas, numCalphas, I, Q_exp):
+#def calcSaxsPerModel(calphas, numCalphas, I, Q_exp):
+def calcSaxsPerModel(calphas, I_model, Q_exp):
     ####Assign coordinates to a temporary array!#################################
+    numCalphas=calphas.numAtoms()
     wDNA =0.070
     wRNA =0.126
     wPROT=0.040
@@ -20789,14 +20802,11 @@ def calcSaxsPerModel(calphas, numCalphas, I, Q_exp):
 #    total_atom=buildSolvShell(calphas, W, X, Y, Z, closest_dist, thickness, \
 #                              wDNA, wRNA, wPROT, mol_type, MAX_ATOM)
     #C version of this building solvation shell. I have to check which version works well. 
-    #start = timeit.timeit()
 #    writePDB('model_no_water.pdb', calphas)
 #    total_atom=saxstools.cgSolvateNumeric("model_no_water.pdb", X, Y, Z, W, \
     #                                      wDNA, wRNA, wPROT, \
     #                                      thickness, closest_dist, \
     #                                      pdb_flag, solvent_flag, MAX_ATOM)
-#    end = timeit.timeit()
-#    print (end - start)
 
     #print "@> Total number of atoms after solvation: %d" %total_atom
     
@@ -20811,12 +20821,10 @@ def calcSaxsPerModel(calphas, numCalphas, I, Q_exp):
 
     #You need a function to check experimental SAXS data. It should give Q_exp
     #and it should check whether experimental data is in log scale or not!
-#    start = time.clock()
 #    _saxs.calcSAXSNumeric(I, X, Y, Z, total_atom, cgatom_num, W, Q_exp, len(Q_exp))
-    saxstools.calcSAXSNumeric(I, X, Y, Z, total_atom, cgatom_num, W, Q_exp, len(Q_exp))
+    saxstools.calcSAXSNumeric(I_model, X, Y, Z, total_atom, cgatom_num, W, Q_exp, len(Q_exp))
     ####Finish key part!#########################################################
-#    end= time.clock()
-#    print (end - start)
+
 
 def writeSaxsProfile(I_model, Q_exp, filename):
     """ Write a theoretical SAXS profile to a file."""
