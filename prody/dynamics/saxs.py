@@ -20680,21 +20680,32 @@ def showSaxsProfiles(exp_data_file, model_data_file):
     mat0 = genfromtxt(exp_data_file)
     mat1 = genfromtxt(model_data_file)
 
-#    c=mat0[:,1][0]/mat1[:,1][0]
+    I_q_exp=mat0[:,1]
+    sigma_q=mat0[:,2]
+    I_q_model=mat1[:,1]
+
+    part1=np.sum((I_q_exp*I_q_model)/(sigma_q*sigma_q))
+    part2=np.sum((I_q_model*I_q_model)/(sigma_q*sigma_q))
+    c=part1/part2
+ 
+    offset=mat0[:,1][0] - mat1[:,1][0]
 #    print c
     pyplot.plot(mat0[:,0], mat0[:,1], label = "Experimental")
 #    pyplot.plot(mat1[:,0], c*mat1[:,1], label = "Model")
-    pyplot.plot(mat1[:,0], mat1[:,1], label = "Model")
+    pyplot.plot(mat1[:,0], mat1[:,1]+offset, label = "Model")
     pyplot.legend()
     pyplot.show()
 
 
 def calcSaxsChi(q_exp, I_q_exp, sigma_q, q_model, I_q_model):
     """
-    This function calculates Chi squared value between SAXS profile of an experimental/
-    simulated data and SAXS profile of a model. The model data can be obtained
-    from an experimental macromolecular structure, a molecular dynamics 
-    conformation or a normal mode.
+    This function calculates Chi squared value between SAXS profile of an 
+    experimental( or simulated) data and theoretical SAXS profile of a model.
+    The model data can be obtained from an experimental macromolecular 
+    structure, a molecular dynamics conformation or a normal mode.
+    The formula is based on Equation 15 and Equation 16 of 
+    Svergun, D., Barberato, C. & Koch, M. H. J. (1995). 
+    J. Appl. Cryst. 28, 768-773.
     """
     #Read model data
 #    q_model, I_q_model = np.loadtxt(model_I_q_file, unpack=True)
@@ -20706,15 +20717,21 @@ def calcSaxsChi(q_exp, I_q_exp, sigma_q, q_model, I_q_model):
     #Ensure that q_exp[0] and q_model[0] points to the same value. 
     #Compare head of data sets to find c value.
     if(q_exp[0]==q_model[0]):
-        c=I_q_exp[0]/I_q_model[0]
+        offset=I_q_exp[0] - I_q_model[0]
+#        part1=np.sum((I_q_exp*I_q_model)/(sigma_q*sigma_q))
+#        part2=np.sum((I_q_model*I_q_model)/(sigma_q*sigma_q))
+#        c=part1/part2
+      
+
     else:
         print "Experimental and theoretical Q[0] values do not match!"
         sys.exit(-1)
 
     #Calculate Chi    
-    diff_array=((I_q_exp-c*I_q_model)/sigma_q)
-    chi_sqrt=(np.sum(np.square(diff_array)))/len(q_exp)
-    return sqrt(chi_sqrt)
+#    diff_array=((I_q_exp-c*I_q_model)/sigma_q)
+    diff_array=((I_q_exp - I_q_model - offset)/sigma_q)
+    chi_sqrd=(np.sum(np.square(diff_array)))/len(q_exp)
+    return sqrt(chi_sqrd)
 
 
 #def parseSaxsData(I_q_file, simulated=False, isLogScale=True):
@@ -20826,12 +20843,15 @@ def calcSaxsPerModel(calphas, I_model, Q_exp):
     ####Finish key part!#########################################################
 
 
-def writeSaxsProfile(I_model, Q_exp, filename):
-    """ Write a theoretical SAXS profile to a file."""
-
-    combined=np.vstack([Q_exp, I_model]).T
+def writeSaxsProfile(I_q, q_exp, sigma_q, filename):
+    """ Write a theoretical or modified experimental 
+    SAXS profile to a file.
+    """
+    
+    combined=np.vstack([q_exp, I_q, sigma_q]).T
     np.savetxt(filename, combined)
 
+    
 def interpolateMode(calphas, mode, Q_exp, I_q_exp, sigma_q, max_chi,**kwargs):
   
     if kwargs is not None:

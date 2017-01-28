@@ -113,7 +113,7 @@ def prody_saxs(pdb_file, saxs_file, **kwargs):
     best_model_all = parsePDB(args_out_pdb_file)
     best_model_calphas = best_model_all.select('calpha')
     calcSaxsPerModel(best_model_calphas, I_model, Q_exp)
-    writeSaxsProfile(I_model, Q_exp, args_out_saxs_file)
+    writeSaxsProfile(I_model, Q_exp, sigma_q, args_out_saxs_file)
 
 def addCommand(commands):
 
