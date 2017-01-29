@@ -29,7 +29,7 @@ def prody_saxs(pdb_file, saxs_file, **kwargs):
     origCoords=calphas.getCoords()
     
     anm = ANM('ANM Analysis')
-    anm.buildHessian(calphas, cutoff=15.0)
+    anm.buildHessian(calphas)
 
     numCalphas=calphas.numAtoms()
 
