@@ -2,7 +2,8 @@ from prody import Atom
 import sys
 import numpy as np
 from numba import jit
-import saxstools
+from .saxstools import *
+#saxstools
 from math import sqrt
 
 __all__ = ['buildSolvShell', 'showSaxsProfiles', 
