@@ -20720,7 +20720,7 @@ def calcSaxsChi(q_exp, I_q_exp, sigma_q, q_model, I_q_model):
 #        c=part1/part2
 
     else:
-        print "Experimental and theoretical Q[0] values do not match!"
+        print("Experimental and theoretical Q[0] values do not match!")
         sys.exit(-1)
 
     #Calculate Chi    
@@ -20913,7 +20913,7 @@ def showChivsFrames(chi_list, frames_list, numFrames=20):
     
     linestyles = ['-', '-.','--', ':']
     numModes=len(chi_list)/(numFrames+1)
-    print "@> Number of modes in chi list is %d"%numModes
+    print("@> Number of modes in chi list is %d"%numModes)
     for i in range (0, numModes):
         pyplot.plot(frames_list[(i*(numFrames+1)):((i+1)*(numFrames+1))], \
                     chi_list[(i*(numFrames+1)):((i+1)*(numFrames+1))], \
@@ -20938,7 +20938,7 @@ def writeChivsFrames(chi_list, frames_list, outChiFile, numFrames=20):
     
     linestyles = ['-', '-.','--', ':']
     numModes=len(chi_list)/(numFrames+1)
-    print "@> Number of modes in chi list is %d"%numModes
+    print("@> Number of modes in chi list is %d"%numModes)
     for i in range (0, numModes):
         pyplot.plot(frames_list[(i*(numFrames+1)):((i+1)*(numFrames+1))], \
                     chi_list[(i*(numFrames+1)):((i+1)*(numFrames+1))], \
