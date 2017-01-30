@@ -219,7 +219,7 @@ void *allocmat(int rows, int columns, int size)
 
     *((int *)rp) = rows;
 
-    p = rp + sizeof(int);
+    p = (char *)rp + sizeof(int);
 
     for (i = 0; i < rows; i++)
 	if ((p[i] = calloc(columns, size)) == NULL)
@@ -248,12 +248,12 @@ void
     int             rows;
     void **p = rp;
 
-    rows = *((int *)(rp - sizeof(int)));
+    rows = *((int *)( (char *)rp - sizeof(int)));
 
     while (rows--)
 	free(p[rows]);
 
-    free(rp - sizeof(int));
+    free( (char *) rp - sizeof(int));
 }
 
 // Cholesky test
