@@ -20323,6 +20323,30 @@ static PyMethodDef module_methods[] = {
   {NULL, NULL, 0, NULL}
 };
 
+
+#if PY_MAJOR_VERSION >= 3
+
+static struct PyModuleDef saxstools = {
+        PyModuleDef_HEAD_INIT,
+        "saxstools",
+        "SAXS tools.",
+        -1,
+        module_methods,
+};
+PyMODINIT_FUNC PyInit_saxstools(void) {
+    import_array();
+    return PyModule_Create(&saxstools);
+}
+#else
+PyMODINIT_FUNC initsaxstools(void) {
+
+    Py_InitModule3("saxstools", module_methods,
+        module_docstring);
+    import_array();
+}
+#endif
+
+/*
 PyMODINIT_FUNC initsaxstools(void)
 {
   PyObject *m = Py_InitModule3("saxstools", module_methods, module_docstring);
@@ -20330,9 +20354,9 @@ PyMODINIT_FUNC initsaxstools(void)
   if (m == NULL)
     return 1;
 
-  /* Load `numpy` functionality. */
   import_array();
 }
+*/
 
 static PyObject *saxstools_calcSAXSNumeric(PyObject *self, PyObject *args)
 {
