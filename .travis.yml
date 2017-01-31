@@ -14,7 +14,7 @@ before_install:
 install:
   - conda create --yes -n test python=$TRAVIS_PYTHON_VERSION
   - source activate test
-  - conda install --yes numpy scipy pip nose
+  - conda install --yes numpy scipy numba pip nose
   - if [[ $TRAVIS_PYTHON_VERSION == "2.6" ]]; then conda install --yes unittest2; fi
   - if [[ $TRAVIS_PYTHON_VERSION == "2.7" ]]; then conda install --yes pyparsing biopython; fi
   - python setup.py build install

@@ -6,7 +6,7 @@ import os.path
 from prody import LOGGER
 from prody.utilities import dictElement, openURL
 
-__all__ = ['UniProtBlastRecord', 'blastPDBUniProtKB']
+__all__ = ['SwissProtBlastRecord', 'blastPDBUniProtKB']
 
 def blastPDBUniProtKB(sequence, filename=None, **kwargs):
     """Returns a :class:`PDBBlastRecord` instance that contains results from
@@ -23,22 +23,26 @@ def blastPDBUniProtKB(sequence, filename=None, **kwargs):
     search parameters can be adjusted by the user.  *sleep* keyword argument
     (default is ``2`` seconds) determines how long to wait to reconnect for
     results.  Sleep time is doubled when results are not ready.  *timeout*
-    (default is 120s) determines when to give up waiting for the results.
+    (default is 120s) determines when to give up waiting for the results. 
+    *num_sequences (default is ``1``)
     """
 
+    num_sequences = int(kwargs.pop('num_sequences', 1))
     if sequence == 'runexample':
         sequence = ('ASFPVEILPFLYLGCAKDSTNLDVLEEFGIKYILNVTPNLPNLFENAGEFKYKQIPI'
                     'SDHWSQNLSQFFPEAISFIDEARGKNCGVLVHSLAGISRSVTVTVAYLMQKLNLSMN'
                     'DAYDIVKMKKSNISPNFNFMGQLLDFERTL')
     else:
-        try:
-            sequence = ''.join(sequence.split())
-            _ = sequence.isalpha()
-        except AttributeError:
-            raise TypeError('sequence must be a string')
-        else:
-            if not _:
-                raise ValueError('not a valid protein sequence')
+        if num_sequences == 1:
+            try:
+                sequence = ''.join(sequence.split())
+                _ = sequence.isalpha()
+            except AttributeError:
+                raise TypeError('sequence must be a string')
+            else:
+                if not _:
+                    raise ValueError('not a valid protein sequence')
+                    
     headers = {'User-agent': 'ProDy'}
 
     query = [('DATABASE', 'swissprot'), ('ENTREZ_QUERY', '(none)'),
@@ -252,8 +256,6 @@ class SwissProtBlastRecord(object):
             key = hit['species']
             if not key in hits:
                 hits[key] = hit
-            #else:
-            #    if hits
         return hits
 
     def getBest(self):

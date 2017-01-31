@@ -132,6 +132,15 @@ and/or parse results:
   * :func:`.execSTRIDE` - execute :program:`stride`
   * :func:`.performSTRIDE` - execute :program:`stride` and parse results
   * :func:`.parseSTRIDE` - parse structural data from :program:`stride` output
+
+Execute EMD
+===========
+
+Following functions can be used to execute EMDMAP structural analysis program
+and/or parse results:
+
+  * :func:`.parseSTRIDE` - parse structural data from :program:`EMDMAP` output
+
 """
 
 __all__ = []
@@ -156,6 +165,10 @@ from . import blastpdb
 from .blastpdb import *
 __all__.extend(blastpdb.__all__)
 
+from . import blastpdbUniProtKB
+from .blastpdbUniProtKB import *
+__all__.extend(blastpdbUniProtKB.__all__)
+
 from . import pdbligands
 from .pdbligands import *
 __all__.extend(pdbligands.__all__)
@@ -179,5 +192,9 @@ __all__.extend(stride.__all__)
 from . import pdbfile
 from .pdbfile import *
 __all__.extend(pdbfile.__all__)
+
+from . import emdfile
+from .emdfile import *
+__all__.extend(emdfile.__all__)
 
 from .pdbfile import PDBParseError

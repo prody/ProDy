@@ -359,3 +359,5 @@ class PDBEnsemble(Ensemble):
         if weights.ndim == 2:
             weights = weights.reshape((self._n_csets, self._n_atoms, 1))
         self._weights = weights
+
+

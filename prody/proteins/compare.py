@@ -772,6 +772,9 @@ def mapOntoChain(atoms, chain, **kwargs):
     :keyword pwalign: perform pairwise sequence alignment
     :type pwalign: bool
 
+    :keyword fast: get rid of verbosity and just returns sequence identity. 
+    :type fast: bool
+
     This function tries to map *atoms* to *chain* based on residue
     numbers and types. Each individual chain in *atoms* is compared to
     target *chain*. This works well for different structures of the same
@@ -797,6 +800,7 @@ def mapOntoChain(atoms, chain, **kwargs):
     if coverage is None:
         coverage = kwargs.get('coverage', 70.)
     pwalign = kwargs.get('pwalign', None)
+    fast = kwargs.get('fast', False)
 
     if isinstance(atoms, Chain):
         chains = [atoms]
@@ -818,16 +822,19 @@ def mapOntoChain(atoms, chain, **kwargs):
     unmapped = []
     target_ag = target_chain.getAtomGroup()
     simple_target = SimpleChain(target_chain, True)
-    LOGGER.debug('Trying to map atoms based on residue numbers and '
+    if fast is False:
+        LOGGER.debug('Trying to map atoms based on residue numbers and '
                  'identities:')
     for chain in chains:
         simple_chain = SimpleChain(True)
         simple_chain.buildFromChain(chain)
         if len(simple_chain) == 0:
-            LOGGER.debug('  Skipping {0}, which does not contain any amino '
+            if fast is False:
+                LOGGER.debug('  Skipping {0}, which does not contain any amino '
                          'acid residues.'.format(simple_chain))
             continue
-        LOGGER.debug('  Comparing {0} (len={1}) with {2}:'
+        if fast is False:
+            LOGGER.debug('  Comparing {0} (len={1}) with {2}:'
                      .format(simple_chain.getTitle(), len(simple_chain),
                              simple_target.getTitle()))
 
@@ -841,12 +848,14 @@ def mapOntoChain(atoms, chain, **kwargs):
             _cover = 0
 
         if _seqid >= seqid and _cover >= coverage:
-            LOGGER.debug('\tMapped: {0} residues match with {1:.0f}% '
+            if fast is False:
+                LOGGER.debug('\tMapped: {0} residues match with {1:.0f}% '
                          'sequence identity and {2:.0f}% overlap.'
                          .format(n_mapped, _seqid, _cover))
             mappings.append((target_list, chain_list, _seqid, _cover))
         else:
-            LOGGER.debug('\tFailed to match chains based on residue numbers '
+            if fast is False:
+                LOGGER.debug('\tFailed to match chains based on residue numbers '
                          '(seqid={0:.0f}%, overlap={1:.0f}%).'
                          .format(_seqid, _cover))
             unmapped.append(simple_chain)
