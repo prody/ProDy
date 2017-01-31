@@ -357,7 +357,7 @@ def calcCovariance(modes):
         raise TypeError('modes must be a Mode, NMA, or ModeSet instance')
 
 
-def calcPerturbResponse(model, atoms=None, repeats=100):
+def calcPerturbResponse(model, atoms=None, repeats=100, write_output=False):
     """Returns a matrix of profiles from scanning of the response of the
     structure to random perturbations at specific atom (or node) positions.
     The function implements the perturbation response scanning (PRS) method
@@ -370,7 +370,8 @@ def calcPerturbResponse(model, atoms=None, repeats=100):
     instance is given, PRS profile for residues will be added as an attribute
     which then can be retrieved as ``atoms.getData('prs_profile')``.  *model*
     and *atoms* must have the same number of atoms. *atoms* must be an
-    :class:`.AtomGroup` instance.
+    :class:`.AtomGroup` instance. write_output is a Bool variable to write
+    normalized asymmetric PRS matrix to a file. 
 
 
     .. [CA09] Atilgan C, Atilgan AR, Perturbation-Response Scanning
@@ -440,7 +441,7 @@ def calcPerturbResponse(model, atoms=None, repeats=100):
                   '_prody_prs')
     if atoms is not None:
         atoms.setData('prs_profile', norm_PRS_mat)
-    	return response_matrix
+    	return norm_PRS_mat
 
     # save the original PRS matrix
     # np.savetxt('orig_PRS_matrix', response_matrix, delimiter='\t', fmt='%8.6f')
@@ -453,8 +454,9 @@ def calcPerturbResponse(model, atoms=None, repeats=100):
     # suppress the diagonal (self displacement) to facilitate
     # visualizing the response profile
     # norm_PRS_mat = norm_PRS_mat - np.diag(np.diag(norm_PRS_mat))
-    np.savetxt('norm_PRS_matrix', norm_PRS_mat, delimiter='\t', fmt='%8.6f')
-    return response_matrix
+    if write_output:
+        np.savetxt('norm_PRS_matrix', norm_PRS_mat, delimiter='\t', fmt='%8.6f')
+    return norm_PRS_mat
 
 
 def calcPairDeformationDist(model, coords, ind1, ind2, kbt=1.):
