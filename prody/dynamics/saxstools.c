@@ -20326,8 +20326,9 @@ static PyMethodDef module_methods[] = {
 PyMODINIT_FUNC initsaxstools(void)
 {
   PyObject *m = Py_InitModule3("saxstools", module_methods, module_docstring);
+  // PyObject *m = PyModule_Create("saxstools", module_methods, module_docstring);
   if (m == NULL)
-    return;
+    return 1;
 
   /* Load `numpy` functionality. */
   import_array();
