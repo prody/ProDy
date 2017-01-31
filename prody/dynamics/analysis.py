@@ -403,38 +403,56 @@ def calcPerturbResponse(model, atoms=None, repeats=100):
     n_atoms = model.numAtoms()
     response_matrix = np.zeros((n_atoms, n_atoms))
     LOGGER.progress('Calculating perturbation response', n_atoms, '_prody_prs')
-    i3 = -3
-    i3p3 = 0
+    i3 = -3 
+    i3p3 = 0 
+    j3 = -3
+    j3p3 = 0
     for i in range(n_atoms):
-        i3 += 3
-        i3p3 += 3
-        forces = np.random.rand(repeats * 3).reshape((repeats, 3))
-        forces /= ((forces**2).sum(1)**0.5).reshape((repeats, 1))
-        for force in forces:
-            response_matrix[i] += (
-                np.dot(cov[:, i3:i3p3], force)
-                ** 2).reshape((n_atoms, 3)).sum(1)
+	i3 += 3
+        i3p3 += 3 
+        j3 = -3
+        j3p3 = 0
+	for j in range(n_atoms):
+	    j3 += 3
+	    j3p3 += 3
+	    response_matrix[i,j]=(cov[i3:i3p3,j3:j3p3]**2).sum()
+
+    self_dp = np.diag(response_matrix)
+    norm_PRS_mat = response_matrix / np.repeat(self_dp, n_atoms, axis=1)
+    norm_PRS_mat = norm_PRS_mat - np.diag(np.diag(norm_PRS_mat))
+
+    #i3 = -3
+    #i3p3 = 0
+    #for i in range(n_atoms):
+    #    i3 += 3
+    #    i3p3 += 3
+    #    forces = np.random.rand(repeats * 3).reshape((repeats, 3))
+    #    forces /= ((forces**2).sum(1)**0.5).reshape((repeats, 1))
+    #    for force in forces:
+    #        response_matrix[i] += (
+    #            np.dot(cov[:, i3:i3p3], force)
+    #            ** 2).reshape((n_atoms, 3)).sum(1)
         LOGGER.update(i, '_prody_prs')
 
-    response_matrix /= repeats
+    #response_matrix /= repeats
     LOGGER.clear()
     LOGGER.report('Perturbation response scanning completed in %.1fs.',
                   '_prody_prs')
     if atoms is not None:
-        atoms.setData('prs_profile', response_matrix)
-    return response_matrix
+        atoms.setData('prs_profile', norm_PRS_mat)
+    	return response_matrix
 
     # save the original PRS matrix
-    np.savetxt('orig_PRS_matrix', response_matrix, delimiter='\t', fmt='%8.6f')
+    # np.savetxt('orig_PRS_matrix', response_matrix, delimiter='\t', fmt='%8.6f')
     # calculate the normalized PRS matrix
-    self_dp = np.diag(response_matrix)  # using self displacement (diagonal of
+    # self_dp = np.diag(response_matrix)  # using self displacement (diagonal of
                                # the original matrix) as a
                                # normalization factor
-    self_dp = self_dp.reshape(n_atoms, 1)
-    norm_PRS_mat = response_matrix / np.repeat(self_dp, n_atoms, axis=1)
+    # self_dp = self_dp.reshape(n_atoms, 1)
+    # norm_PRS_mat = response_matrix / np.repeat(self_dp, n_atoms, axis=1)
     # suppress the diagonal (self displacement) to facilitate
     # visualizing the response profile
-    norm_PRS_mat = norm_PRS_mat - np.diag(np.diag(norm_PRS_mat))
+    # norm_PRS_mat = norm_PRS_mat - np.diag(np.diag(norm_PRS_mat))
     np.savetxt('norm_PRS_matrix', norm_PRS_mat, delimiter='\t', fmt='%8.6f')
     return response_matrix
 
