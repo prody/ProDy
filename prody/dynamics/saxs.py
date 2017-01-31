@@ -2,8 +2,8 @@ from prody import Atom
 import sys
 import numpy as np
 from numba import jit
-from .saxstools import *
-#saxstools
+from .saxstools import calcSAXSNumeric
+#import saxstools
 from math import sqrt
 
 __all__ = ['buildSolvShell', 'showSaxsProfiles', 
@@ -20836,7 +20836,7 @@ def calcSaxsPerModel(calphas, I_model, Q_exp):
     #You need a function to check experimental SAXS data. It should give Q_exp
     #and it should check whether experimental data is in log scale or not!
 #    _saxs.calcSAXSNumeric(I, X, Y, Z, total_atom, cgatom_num, W, Q_exp, len(Q_exp))
-    saxstools.calcSAXSNumeric(I_model, X, Y, Z, total_atom, cgatom_num, W, Q_exp, len(Q_exp))
+    calcSAXSNumeric(I_model, X, Y, Z, total_atom, cgatom_num, W, Q_exp, len(Q_exp))
     ####Finish key part!#########################################################
 
 
