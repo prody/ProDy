@@ -187,7 +187,7 @@ class exANM(ANMBase):
             R = float(kwargs.get('R', 80))
             r = float(kwargs.get('r', 5))
             lat = str(kwargs.get('lat', 'FCC'))
-            buildMembrane(self,coords,membrane_hi=membrane_hi, membrane_lo=membrane_lo,R=R,r=r,lat=lat)
+            self.buildMembrane(coords, membrane_hi=membrane_hi, membrane_lo=membrane_lo, R=R, r=r, lat=lat)
 
 
         LOGGER.timeit('_exanm')
