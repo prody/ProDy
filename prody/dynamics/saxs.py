@@ -4,8 +4,10 @@ import numpy as np
 from numba import jit
 from .saxstools import calcSAXSNumeric
 #import saxstools
+
 from math import sqrt
 from prody.utilities import saxsWater
+from prody import LOGGER, writePDB
 
 __all__ = ['buildSolvShell', 'showSaxsProfiles', 
            'calcSaxsChi', 'parseSaxsData', 
@@ -632,10 +634,10 @@ def writeSaxsProfile(I_q, q_exp, sigma_q, filename):
     
 def interpolateMode(calphas, mode, Q_exp, I_q_exp, sigma_q, max_chi,**kwargs):
   
-    if kwargs is not None:
-        args_numFrames = kwargs.get('numFrames', 20)
-        args_scalCoeff = kwargs.get('scalCoeff', 3.0)
-        args_out_pdb_file = kwargs.get('out_pdb_file', 'best_model.pdb')
+    #if kwargs is not None:
+    numFrames = kwargs.get('numFrames', 20)
+    scalCoeff = kwargs.get('scalCoeff', 3.0)
+    out_pdb_file = kwargs.get('out_pdb_file', 'best_model.pdb')
 #        args_out_saxs_file=kwargs.get('out_saxs_file', None)
     
     chi_list = []
@@ -654,14 +656,14 @@ def interpolateMode(calphas, mode, Q_exp, I_q_exp, sigma_q, max_chi,**kwargs):
     sys.stdout.write("[%s]" % (" " * (numFrames+1)))
     sys.stdout.flush()
     sys.stdout.write("\b" * (numFrames+2)) # return to start of line, after '['
-    prody.LOGGER.timeit('_intplt_mode')
+    LOGGER.timeit('_intplt_mode')
     invEigVal = (1.0/eigenvalue)
     for j in range((-numFrames/2), ((numFrames/2)+1)):
-        coeff = j*rmsdScalingCoef*invEigVal*2.0/numFrames
+        coeff = j*scalCoeff*invEigVal*2.0/numFrames
         
         newCoords = calphas.getCoords().flatten()+(coeff*eigenvector)
         calphas.setCoords(newCoords.reshape((numCalphas, 3), order='C'))
-        calcSaxsPerModel(calphas, numCalphas, I_model, Q_exp)
+        calcSaxsPerModel(calphas, I_model, Q_exp)
         chi = calcSaxsChi(Q_exp, I_q_exp, sigma_q, Q_exp, I_model)
         chi_list.append(chi)
         frames_list.append(j)
@@ -678,7 +680,7 @@ def interpolateMode(calphas, mode, Q_exp, I_q_exp, sigma_q, max_chi,**kwargs):
         sys.stdout.write('#')
         sys.stdout.flush()
     sys.stdout.write("\n")
-    prody.LOGGER.report('SAXS profile calculations were performed in %2fs.', '_intplt_mode')
+    LOGGER.report('SAXS profile calculations were performed in %2fs.', '_intplt_mode')
     
     return chi_list, frames_list
 

@@ -57,9 +57,9 @@ def parseEMD(emd, **kwargs):
         kwargs['title'] = title
     kwargs['cutoff'] = cutoff
     kwargs['n_nodes'] = n_nodes
-    emd = openFile(emd, 'rt')
-    result = parseEMDStream(emd, **kwargs)
-    emd.close()
+    emdStream = openFile(emd, 'rb')
+    result = parseEMDStream(emdStream, **kwargs)
+    emdStream.close()
     return result
 
 def _parseEMDLines(atomgroup, stream, cutoff=1.2, n_nodes=1000, num_iter=20, format='EMD'):
@@ -146,6 +146,7 @@ def parseEMDStream(stream, **kwargs):
     LOGGER.report('{0} atoms and {1} coordinate sets were '
                       'parsed in %.2fs.'.format(ag.numAtoms(),
                          ag.numCoordsets() - n_csets))
+    return ag
 
 class EMDMAP:
     def __init__(self, stream, cutoff):
@@ -159,9 +160,9 @@ class EMDMAP:
         self.mode = st.unpack('<L', stream.read(4))[0]
 
         # Number of first column, row, section (3 words, 12 bytes, 17-28)
-        self.ncstart = st.unpack('<L', stream.read(4))[0]
-        self.nrstart = st.unpack('<L', stream.read(4))[0]
-        self.nsstart = st.unpack('<L', stream.read(4))[0]
+        self.ncstart = st.unpack('<l', stream.read(4))[0]
+        self.nrstart = st.unpack('<l', stream.read(4))[0]
+        self.nsstart = st.unpack('<l', stream.read(4))[0]
 
         # Number of intervals along x, y, z (3 words, 12 bytes, 29-40)
         self.Nx = st.unpack('<L', stream.read(4))[0]
@@ -193,7 +194,7 @@ class EMDMAP:
         stream.read(1*4)
 
         # Not interested (1 word, 4 bytes, 93-96)
-        self.nsym = st.unpack('<f', stream.read(4))[0]
+        self.nsym = st.unpack('<L', stream.read(4))[0]
 
         # Not interested (25 word, 4 bytes, 97-196)
         stream.read(25*4)
@@ -215,6 +216,7 @@ class EMDMAP:
                     if not np.isnan(cutoff) and d < cutoff:
                         d = 0
                     self.density[s, r, c] = d
+
 
         self.sampled = False
 
@@ -257,7 +259,7 @@ class EMDMAP:
         ret[self.mapc - 1] = col + self.ncstart
         ret[self.mapr - 1] = row + self.nrstart
         ret[self.maps - 1] = sec + self.nsstart
-        
+
         ret = np.multiply(ret, res)
         return ret
 
