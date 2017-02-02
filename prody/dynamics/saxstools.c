@@ -59,7 +59,7 @@ int cgSolvate(FILE *fpdb, double *X, double *Y, double *Z, \
 int cgSolvateNumeric_v2(char *fpdb_file, double *X, double *Y, double *Z, double *W, \
 			float wDNA, float wRNA, float wPROT,		\
 			float thickness, float closest_dist,		\
-			int pdb_flag, int solvent_flag, int MAX_ATOM);
+			int pdb_flag, int solvent_flag);
 
 void calcSAXS(float *I, float *X,float *Y, float *Z, \
 	      int total_atom, const char *cgatom[], float *W, float *Q, int nexp);
@@ -196,11 +196,11 @@ static PyObject *saxstools_cgSolvateNumeric(PyObject *self, PyObject *args)
   int total_atom=0, pdb_flag=0, solvent_flag=1;
   //int MAX_ATOM=50000;
   //  const char *cgatom[total_atom];
-  float wDNA=0.07;
-  float wRNA=0.126;
-  float wPROT=0.04;
-  float thickness=3.0;
-  float closest_dist=3.5;
+  float wDNA=0.07f;
+  float wRNA=0.126f;
+  float wPROT=0.04f;
+  float thickness=3.0f;
+  float closest_dist=3.5f;
 
   
   char *fpdb_file;
@@ -237,7 +237,7 @@ static PyObject *saxstools_cgSolvateNumeric(PyObject *self, PyObject *args)
   double *W = (double*)PyArray_DATA(W_array);
   
   /* Call the external C function to compute the chi-squared. */
-  total_atom=cgSolvateNumeric_v2(fpdb_file, X, Y, Z, W, wDNA, wRNA, wPROT, thickness, closest_dist, pdb_flag, solvent_flag, MAX_ATOM);
+  total_atom=cgSolvateNumeric_v2(fpdb_file, X, Y, Z, W, wDNA, wRNA, wPROT, thickness, closest_dist, pdb_flag, solvent_flag);
   
   /* /\* Clean up. *\/ */
   Py_DECREF(X_array);
@@ -262,10 +262,10 @@ float DS(float x)
 {
   float a,b,c,d, temp;
 
-  a = 3.5301846863022959E+01;
-  b = 8.5378345850638038E-01;
-  c = -1.7507051229758559E+01;
-  d = 1.7010560191799904E+00;
+  a = 3.5301846863022959E+01f;
+  b = 8.5378345850638038E-01f;
+  c = -1.7507051229758559E+01f;
+  d = 1.7010560191799904E+00f;
 
   temp = a + b*x + c*x*x + d*x*x*x;
   return temp;
@@ -275,10 +275,10 @@ float RS(float x)
 {
   float a,b,c,d, temp;
 
-  a = 4.0230401562412005E+01;
-  b = 1.6287412345143366E+00;
-  c = -4.3118717065025962E+01;
-  d = 2.4712585246295806E+01;
+  a = 4.0230401562412005E+01f;
+  b = 1.6287412345143366E+00f;
+  c = -4.3118717065025962E+01f;
+  d = 2.4712585246295806E+01f;
 
   temp = a + b*x + c*x*x + d*x*x*x;
   return temp;
@@ -288,10 +288,10 @@ float ADE(float x)
 {
   float a,b,c,d, temp;
 
-  a = 3.0473077532191034E+01;
-  b = 2.7267438703396873E-02;
-  c = -9.4174795997194121E+00;
-  d = -1.8632787145940051E+00;
+  a = 3.0473077532191034E+01f;
+  b = 2.7267438703396873E-02f;
+  c = -9.4174795997194121E+00f;
+  d = -1.8632787145940051E+00f;
 
   temp = a + b*x + c*x*x + d*x*x*x;
   return temp;
@@ -301,10 +301,10 @@ float CYT(float x)
 {
   float a,b,c,d, temp;
 
-  a = 2.2594403303998384E+01;
-  b = -1.3979255030930837E-01;
-  c = 2.0602701684525548E-01;
-  d = -4.8964867374677956E+00;
+  a = 2.2594403303998384E+01f;
+  b = -1.3979255030930837E-01f;
+  c = 2.0602701684525548E-01f;
+  d = -4.8964867374677956E+00f;
 
   temp = a + b*x + c*x*x + d*x*x*x;
   return temp;
@@ -314,10 +314,10 @@ float GUA(float x)
 {
   float a,b,c,d, temp;
 
-  a = 3.5413612820294524E+01;
-  b = 3.1135141139744515E-01;
-  c = -1.8995234746163160E+01;
-  d = 2.7546664066782145E+00;
+  a = 3.5413612820294524E+01f;
+  b = 3.1135141139744515E-01f;
+  c = -1.8995234746163160E+01f;
+  d = 2.7546664066782145E+00f;
 
   temp = a + b*x + c*x*x + d*x*x*x;
   return temp;
@@ -327,10 +327,10 @@ float THY(float x)
 {
   float a,b,c,d, temp;
 
-  a = 2.1171045387193391E+01;
-  b = -2.5406818426818600E-01;
-  c = 8.5747955915722898E+00;
-  d = -1.2569339716672346E+01;
+  a = 2.1171045387193391E+01f;
+  b = -2.5406818426818600E-01f;
+  c = 8.5747955915722898E+00f;
+  d = -1.2569339716672346E+01f;
 
   temp = a + b*x + c*x*x + d*x*x*x;
   return temp;
@@ -340,10 +340,10 @@ float URA(float x)
 {
   float a,b,c,d, temp;
 
-  a = 2.2101478120069594E+01;
-  b = -1.3059135164353608E-01;
-  c = 1.4058971332981493E-01;
-  d = -4.4641771309272844E+00;
+  a = 2.2101478120069594E+01f;
+  b = -1.3059135164353608E-01f;
+  c = 1.4058971332981493E-01f;
+  d = -4.4641771309272844E+00f;
 
   temp = a + b*x + c*x*x + d*x*x*x;
   return temp;
@@ -353,10 +353,10 @@ float SOL(float x)
 {
   float a,b,c,d, temp, x_sqrd=x*x;
   //  float temp, x_sqrd=x*x;
-  a = 9.9989107859081461E+00;
-  b = 7.1847528938221994E-03;
-  c = -1.1436678741857631E+00;
-  d = 1.3146929900084206E-01;
+  a = 9.9989107859081461E+00f;
+  b = 7.1847528938221994E-03f;
+  c = -1.1436678741857631E+00f;
+  d = 1.3146929900084206E-01f;
   //  x_sqrd=x*x;
 
   //  temp = a + b*x + c*x*x + d*x*x*x;
@@ -368,11 +368,11 @@ float GLY(float x)
 {
     float a,b,c,d,f,temp, x_sqrd=x*x;
 
-    a = 9.9691190155764158E+00;
-    b = -1.7528320201296514E-02;
-    c = 1.6450018157708988E+00;
-    d = -7.0378838370050911E-01;
-    f = -6.8495906226686154E-01;
+    a = 9.9691190155764158E+00f;
+    b = -1.7528320201296514E-02f;
+    c = 1.6450018157708988E+00f;
+    d = -7.0378838370050911E-01f;
+    f = -6.8495906226686154E-01f;
 
     temp = a + b*x + c*x_sqrd + d*x_sqrd*x + f*x_sqrd*x_sqrd;
     return temp;
@@ -382,11 +382,11 @@ float ALA(float x)
 {
     float a,b,c,d,f,temp, x_sqrd=x*x;
 
-    a = 9.0385953871608269E+00;
-    b = -9.3522348098657587E-02;
-    c = 7.1811578286517612E+00;
-    d = -4.1100094434439107E+00;
-    f = -1.5204739994705183E+00;
+    a = 9.0385953871608269E+00f;
+    b = -9.3522348098657587E-02f;
+    c = 7.1811578286517612E+00f;
+    d = -4.1100094434439107E+00f;
+    f = -1.5204739994705183E+00f;
 
     temp = a + b*x + c*x_sqrd + d*x_sqrd*x + f*x_sqrd*x_sqrd;
     return temp;
@@ -396,11 +396,11 @@ float VAL(float x)
 {
     float a,b,c,d,f,temp, x_sqrd=x*x;
 
-    a = 7.1816423864658629E+00;
-    b = -4.7643636342215978E-01;
-    c = 2.6878626217077645E+01;
-    d = -3.0036144646732087E+01;
-    f = 7.6041571666551446E+00;
+    a = 7.1816423864658629E+00f;
+    b = -4.7643636342215978E-01f;
+    c = 2.6878626217077645E+01f;
+    d = -3.0036144646732087E+01f;
+    f = 7.6041571666551446E+00f;
 
     temp = a + b*x + c*x_sqrd + d*x_sqrd*x + f*x_sqrd*x_sqrd;
     return temp;
@@ -410,11 +410,11 @@ float LEU(float x)
 {
     float a,b,c,d,f,temp, x_sqrd=x*x;
 
-    a = 6.2519392408994952E+00;
-    b = -7.0384372758014790E-01;
-    c = 4.4699858222716180E+01;
-    d = -6.7435461752575918E+01;
-    f = 2.8904017698517240E+01;
+    a = 6.2519392408994952E+00f;
+    b = -7.0384372758014790E-01f;
+    c = 4.4699858222716180E+01f;
+    d = -6.7435461752575918E+01f;
+    f = 2.8904017698517240E+01f;
 
     temp = a + b*x + c*x_sqrd + d*x_sqrd*x + f*x_sqrd*x_sqrd;
     return temp;
@@ -424,11 +424,11 @@ float ILE(float x)
 {
     float a,b,c,d,f,temp, x_sqrd=x*x;
 
-    a = 6.2512251193666968E+00;
-    b = -6.5569054939799687E-01;
-    c = 4.2523603838224325E+01;
-    d = -6.1110285327663291E+01;
-    f = 2.5111019303628737E+01;
+    a = 6.2512251193666968E+00f;
+    b = -6.5569054939799687E-01f;
+    c = 4.2523603838224325E+01f;
+    d = -6.1110285327663291E+01f;
+    f = 2.5111019303628737E+01f;
 
     temp = a + b*x + c*x_sqrd + d*x_sqrd*x + f*x_sqrd*x_sqrd;
     return temp;
@@ -439,11 +439,11 @@ float MET(float x)
  {
     float a,b,c,d,f,temp, x_sqrd=x*x;
 
-    a = 1.6545461441433780E+01;
-    b = -3.0728785802722175E-01;
-    c = 3.3057451408162395E+00;
-    d = -1.3719988781068070E+01;
-    f = 8.9621624126553510E+00;
+    a = 1.6545461441433780E+01f;
+    b = -3.0728785802722175E-01f;
+    c = 3.3057451408162395E+00f;
+    d = -1.3719988781068070E+01f;
+    f = 8.9621624126553510E+00f;
 
     temp = a + b*x + c*x_sqrd + d*x_sqrd*x + f*x_sqrd*x_sqrd;
     return temp;
@@ -453,11 +453,11 @@ float PHE(float x)
 {
     float a,b,c,d,f,temp, x_sqrd=x*x;
 
-    a = 9.2253730534361544E+00;
-    b = -1.0235816923538334E+00;
-    c = 4.0056964609302334E+01;
-    d = -6.6733866971096148E+01;
-    f = 3.1299821660208639E+01;
+    a = 9.2253730534361544E+00f;
+    b = -1.0235816923538334E+00f;
+    c = 4.0056964609302334E+01f;
+    d = -6.6733866971096148E+01f;
+    f = 3.1299821660208639E+01f;
 
     temp = a + b*x + c*x_sqrd + d*x_sqrd*x + f*x_sqrd*x_sqrd;
     return temp;
@@ -467,11 +467,11 @@ float TRP(float x)
 {
     float a,b,c,d,f,temp, x_sqrd=x*x;
 
-    a = 1.5684405852404351E+01;
-    b = -9.4431662966303997E-01;
-    c = 2.3675802486236719E+01;
-    d = -4.8238875823804648E+01;
-    f = 2.4504594828865912E+01;
+    a = 1.5684405852404351E+01f;
+    b = -9.4431662966303997E-01f;
+    c = 2.3675802486236719E+01f;
+    d = -4.8238875823804648E+01f;
+    f = 2.4504594828865912E+01f;
 
     temp = a + b*x + c*x_sqrd + d*x_sqrd*x + f*x_sqrd*x_sqrd;
     return temp;
@@ -481,11 +481,11 @@ float PRO(float x)
 {
     float a,b,c,d,f,temp, x_sqrd=x*x;
 
-    a = 8.6193900746569110E+00;
-    b = -3.2220720095487299E-01;
-    c = 1.8997202349961341E+01;
-    d = -1.6823509153368370E+01;
-    f = 1.4683423688962776E+00;
+    a = 8.6193900746569110E+00f;
+    b = -3.2220720095487299E-01f;
+    c = 1.8997202349961341E+01f;
+    d = -1.6823509153368370E+01f;
+    f = 1.4683423688962776E+00f;
 
     temp = a + b*x + c*x_sqrd + d*x_sqrd*x + f*x_sqrd*x_sqrd;
     return temp;
@@ -495,11 +495,11 @@ float SER(float x)
 {
     float a,b,c,d,f,temp, x_sqrd=x*x;
 
-    a = 1.3987709443384963E+01;
-    b = -5.3597112650067072E-02;
-    c = 1.6532170902823629E+00;
-    d = -2.1698155818409752E+00;
-    f = -1.0079162195407658E+00;
+    a = 1.3987709443384963E+01f;
+    b = -5.3597112650067072E-02f;
+    c = 1.6532170902823629E+00f;
+    d = -2.1698155818409752E+00f;
+    f = -1.0079162195407658E+00f;
 
     temp = a + b*x + c*x_sqrd + d*x_sqrd*x + f*x_sqrd*x_sqrd;
     return temp;
@@ -508,11 +508,11 @@ float THR(float x)
 {
     float a,b,c,d,f,temp, x_sqrd=x*x;
 
-    a = 1.3058035944130433E+01;
-    b = -1.6805767593043786E-01;
-    c = 8.4026246743192505E+00;
-    d = -7.3396417884658378E+00;
-    f = -1.4446678521071559E+00;
+    a = 1.3058035944130433E+01f;
+    b = -1.6805767593043786E-01f;
+    c = 8.4026246743192505E+00f;
+    d = -7.3396417884658378E+00f;
+    f = -1.4446678521071559E+00f;
 
     temp = a + b*x + c*x_sqrd + d*x_sqrd*x + f*x_sqrd*x_sqrd;
     return temp;
@@ -522,11 +522,11 @@ float CYS(float x)
 {
     float a,b,c,d,f,temp, x_sqrd=x*x;
 
-    a = 1.9124654812324472E+01;
-    b = -5.9927863522006228E-02;
-    c = -3.3836190674229298E+00;
-    d = -2.4665166405439520E+00;
-    f = 1.9122022270707959E+00;
+    a = 1.9124654812324472E+01f;
+    b = -5.9927863522006228E-02f;
+    c = -3.3836190674229298E+00f;
+    d = -2.4665166405439520E+00f;
+    f = 1.9122022270707959E+00f;
 
     temp = a + b*x + c*x_sqrd + d*x_sqrd*x + f*x_sqrd*x_sqrd;
     return temp;
@@ -536,11 +536,11 @@ float TYR(float x)
 {
     float a,b,c,d,f,temp, x_sqrd=x*x;
 
-    a = 1.4149376249271270E+01;
-    b = 2.3351533285852905E-01;
-    c = -6.6303117968389449E+00;
-    d = 7.7120460565621229E+00;
-    f = 1.2754732796902342E+00;
+    a = 1.4149376249271270E+01f;
+    b = 2.3351533285852905E-01f;
+    c = -6.6303117968389449E+00f;
+    d = 7.7120460565621229E+00f;
+    f = 1.2754732796902342E+00f;
 
     temp = a + b*x + c*x_sqrd + d*x_sqrd*x + f*x_sqrd*x_sqrd;
     return temp;
@@ -550,11 +550,11 @@ float ASN(float x)
 {
     float a,b,c,d,f,temp, x_sqrd=x*x;
 
-    a = 1.9938673457674692E+01;
-    b = -5.4516265978723853E-02;
-    c = -6.1462879847152454E+00;
-    d = -2.2543374567856151E+00;
-    f = 2.6914441182441431E+00;
+    a = 1.9938673457674692E+01f;
+    b = -5.4516265978723853E-02f;
+    c = -6.1462879847152454E+00f;
+    d = -2.2543374567856151E+00f;
+    f = 2.6914441182441431E+00f;
 
     temp = a + b*x + c*x_sqrd + d*x_sqrd*x + f*x_sqrd*x_sqrd;
     return temp;
@@ -564,11 +564,11 @@ float GLN(float x)
  {
     float a,b,c,d,f,temp, x_sqrd=x*x;
 
-    a = 1.9005567570863825E+01;
-    b = -2.0319122385487057E-02;
-    c = -1.2083581566255768E+01;
-    d = -1.4429406093358430E+00;
-    f = 9.7256610585859082E+00;
+    a = 1.9005567570863825E+01f;
+    b = -2.0319122385487057E-02f;
+    c = -1.2083581566255768E+01f;
+    d = -1.4429406093358430E+00f;
+    f = 9.7256610585859082E+00f;
 
     temp = a + b*x + c*x_sqrd + d*x_sqrd*x + f*x_sqrd*x_sqrd;
     return temp;
@@ -578,11 +578,11 @@ float ASP(float x)
  {
     float a,b,c,d,f,temp, x_sqrd=x*x;
 
-    a = 2.0166013924521497E+01;
-    b = -4.7853403267681283E-02;
-    c = -6.9784835381725507E+00;
-    d = -1.9994797588755993E+00;
-    f = 3.2626175074094688E+00;
+    a = 2.0166013924521497E+01f;
+    b = -4.7853403267681283E-02f;
+    c = -6.9784835381725507E+00f;
+    d = -1.9994797588755993E+00f;
+    f = 3.2626175074094688E+00f;
 
     temp = a + b*x + c*x_sqrd + d*x_sqrd*x + f*x_sqrd*x_sqrd;
     return temp;
@@ -592,11 +592,11 @@ float GLU(float x)
  {
    float a,b,c,d,f,temp,x_sqrd=x*x;
 
-    a = 1.9232515360604562E+01;
-    b = 3.5086173204513208E-03;
-    c = -1.2596769305364237E+01;
-    d = -4.9237630472478966E-01;
-    f = 9.3597483117941245E+00;
+    a = 1.9232515360604562E+01f;
+    b = 3.5086173204513208E-03f;
+    c = -1.2596769305364237E+01f;
+    d = -4.9237630472478966E-01f;
+    f = 9.3597483117941245E+00f;
 
     //    temp = a + b*x + c*x*x + d*x*x*x + f*x*x*x*x;
     temp = a + b*x + c*x_sqrd + d*x*x_sqrd + f*x_sqrd*x_sqrd;
@@ -607,11 +607,11 @@ float LYS(float x)
  {
    float a,b,c,d,f,temp,x_sqrd=x*x;
 
-    a = 1.0962754376635287E+01;
-    b = -3.1372344486261888E-02;
-    c = 7.3756682779136329E-01;
-    d = -3.0693869455133744E+00;
-    f = 5.0544680881861872E+00;
+    a = 1.0962754376635287E+01f;
+    b = -3.1372344486261888E-02f;
+    c = 7.3756682779136329E-01f;
+    d = -3.0693869455133744E+00f;
+    f = 5.0544680881861872E+00f;
 
     //    temp = a + b*x + c*x*x + d*x*x*x + f*x*x*x*x;
     temp = a + b*x + c*x_sqrd + d*x*x_sqrd + f*x_sqrd*x_sqrd;
@@ -622,11 +622,11 @@ float ARG(float x)
 {
   float a,b,c,d,f,temp,x_sqrd=x*x;
 
-    a = 2.3271735452541201E+01;
-    b = 6.7314944953355738E-01;
-    c = -3.6116270352466870E+01;
-    d = 2.1362171853330082E+01;
-    f = 1.6290629563851400E+01;
+    a = 2.3271735452541201E+01f;
+    b = 6.7314944953355738E-01f;
+    c = -3.6116270352466870E+01f;
+    d = 2.1362171853330082E+01f;
+    f = 1.6290629563851400E+01f;
 
     //    temp = a + b*x + c*x*x + d*x*x*x + f*x*x*x*x;
     temp = a + b*x + c*x_sqrd + d*x*x_sqrd + f*x_sqrd*x_sqrd;
@@ -637,11 +637,11 @@ float HIS(float x)
 {
   float a,b,c,d,f,temp,x_sqrd=x*x;
 
-    a = 2.1448835902382307E+01;
-    b = -9.8889323535974627E-02;
-    c = -7.0305612380447311E+00;
-    d = -4.4298193773300865E+00;
-    f = 6.2697213262776561E+00;
+    a = 2.1448835902382307E+01f;
+    b = -9.8889323535974627E-02f;
+    c = -7.0305612380447311E+00f;
+    d = -4.4298193773300865E+00f;
+    f = 6.2697213262776561E+00f;
 
     //    temp = a + b*x + c*x*x + d*x*x*x + f*x*x*x*x;
     temp = a + b*x + c*x_sqrd + d*x*x_sqrd + f*x_sqrd*x_sqrd;
@@ -650,7 +650,7 @@ float HIS(float x)
 
 float get_f(const char resname[], float w, float q)
 {
-  float f=0.0001;
+  float f=0.0001f;
 
   if(strcmp(resname,"RNA")==0){f = RS(q);}
   if(strcmp(resname,"DNA")==0){f = DS(q);}
@@ -691,7 +691,7 @@ float get_f(const char resname[], float w, float q)
 
 float get_f_numeric(int resname_num, float w, float q)
 {
-  float f=0.0001;
+  float f=0.0001f;
 
   if(resname_num==1){f = RS(q);}
   if(resname_num==2){f = DS(q);}
@@ -779,18 +779,18 @@ float min_dist_to_mol_v2(double *X, double *Y, double *Z, \
 			 int atom_count, int *mol_type, int *type)
 {
   int i=0;
-  float dist = 0.0;
-  float dist_x=0.0, dist_y=0.0, dist_z=0.0;
-  //  float min_dist = 10000;
-  float min_dist = 100000000;
+  float dist = 0.0f;
+  float dist_x=0.0f, dist_y=0.0f, dist_z=0.0f;
+  //  float min_dist = 10000f;
+  float min_dist = 100000000.0f;
   for(i=0;i<atom_count;i++)
     {
       //      dist  = (X[i]-x)*(X[i]-x);
       //      dist += (Y[i]-y)*(Y[i]-y);
       //dist += (Z[i]-z)*(Z[i]-z);
-      dist_x= (X[i]-x);
-      dist_y= (Y[i]-y);
-      dist_z= (Z[i]-z);
+      dist_x= (float) (X[i]-x);
+      dist_y= (float) (Y[i]-y);
+      dist_z= (float) (Z[i]-z);
       dist=((dist_x*dist_x)+(dist_y*dist_y)+(dist_z*dist_z));
       //      dist = sqrt(dist);
       //      if (dist < 3.0)
@@ -853,7 +853,7 @@ int cgSolvate(FILE *fpdb, double *X, double *Y, double *Z, int *total_atom, char
 {
 
   char *pdb_out_file="cg_solvated.pdb";
-  double x,y,z;
+  float x,y,z;
   char resname[4]="   \0", atomname[5]="    \0";
   char cx[9]="        \0", cy[9]="        \0", cz[9]="        \0";
   char pdb_line[80];
@@ -975,9 +975,9 @@ int cgSolvate(FILE *fpdb, double *X, double *Y, double *Z, int *total_atom, char
 	      strncpy(cy,pdb_line+38, 8);
 	      strncpy(cz,pdb_line+46, 8);
 
-	      x = atof(cx);
-	      y = atof(cy);
-	      z = atof(cz);
+        x = (float) atof(cx);
+        y = (float) atof(cy);
+        z = (float) atof(cz);
 
 	      if(x > maxx) maxx = x;
 	      if(y > maxy) maxy = y;
@@ -1096,8 +1096,7 @@ int cgSolvateNumeric_v2(char *fpdb_file,\
 			float thickness,\
 			float closest_dist,\
 			int pdb_flag,\
-			int solvent_flag,\
-			int MAX_ATOM)
+			int solvent_flag)
 {
   //  fprintf(stdout, "Here I am and opening string is %s\n", fpdb_file);
   FILE *fpdb=fopen(fpdb_file, "r");
@@ -1109,14 +1108,14 @@ int cgSolvateNumeric_v2(char *fpdb_file,\
 
   int total_atom=0;
   char *pdb_out_file="cg_solvated.pdb";
-  double x,y,z;
+  float x,y,z;
   char resname[4]="   \0", atomname[5]="    \0";
   char cx[9]="        \0", cy[9]="        \0", cz[9]="        \0";
   char pdb_line[80];
   int mol_type_flag=0, flag=0;
   float min_dist=0;
-  float maxx=-10000, maxy=-10000, maxz=-10000;
-  float minx=10000, miny=10000, minz=10000;
+  float maxx=-10000.0f, maxy=-10000.0f, maxz=-10000.0f;
+  float minx=10000.0f, miny=10000.0f, minz=10000.0f;
   int atom_count=0;
   char *atom[MAX_ATOM];
   char *cgatom[MAX_ATOM];
@@ -1233,9 +1232,9 @@ int cgSolvateNumeric_v2(char *fpdb_file,\
 	     strncpy(cy,pdb_line+38, 8);
 	     strncpy(cz,pdb_line+46, 8);
 
-	     x = atof(cx);
-	     y = atof(cy);
-	     z = atof(cz);
+       x = (float) atof(cx);
+       y = (float) atof(cy);
+       z = (float) atof(cz);
 
 	     if(x > maxx) maxx = x;
 	     if(y > maxy) maxy = y;
@@ -1362,8 +1361,8 @@ void calcSAXS(float *I, float *X,float *Y, float *Z, int total_atom, const char 
   nstart = -(n-1)/2;
   nstop = (n-1)/2;
 
-  pi= 3.1415;
-  GR = (1 + sqrt(5.0))/2.0;
+  pi= 3.1415f;
+  GR = (float) ((1 + sqrt(5.0))/2.0);
 
   for(k=0;k<nexp;k++)
     {
@@ -1373,13 +1372,13 @@ void calcSAXS(float *I, float *X,float *Y, float *Z, int total_atom, const char 
       for(j=nstart;j<=nstop;j++)
 	{
 
-	  Two_jbyn=2.0*j/n;
-	  Two_pi_jbyGR=2*pi*j/GR;
-	  cosasin=q*cos( asin(Two_jbyn) );
+	  Two_jbyn = 2.0f*j/n;
+	  Two_pi_jbyGR = 2*pi*j/GR;
+    cosasin = (float) (q*cos( asin(Two_jbyn) ));
 	  //	  qx = q * cos( asin(2.0*j/n) ) * cos(2*pi*j/GR);
-	  qx = cosasin * cos(Two_pi_jbyGR);
+    qx = (float) (cosasin * cos(Two_pi_jbyGR));
 	  //	  qy = q * cos( asin(2.0*j/n) ) * sin(2*pi*j/GR);
-	  qy = cosasin * sin(Two_pi_jbyGR);
+    qy = (float) (cosasin * sin(Two_pi_jbyGR));
 	  qz = q * Two_jbyn;
 	  A = 0.0;
 	  B = 0.0;
@@ -1390,8 +1389,8 @@ void calcSAXS(float *I, float *X,float *Y, float *Z, int total_atom, const char 
 		{
 		  fi = get_f(cgatom[i],W[i],q);
 		  qdotr = qx*X[i] + qy*Y[i] + qz*Z[i];
-		  A = A + fi*cos(qdotr);
-		  B = B + fi*sin(qdotr);
+      A = A + (float) (fi*cos(qdotr));
+      B = B + (float) (fi*sin(qdotr));
 		}
 	    }
 	  A = A*A;
@@ -1400,7 +1399,7 @@ void calcSAXS(float *I, float *X,float *Y, float *Z, int total_atom, const char 
 	}
       I[k] = I[k]/n;
 
-      I[k] = log10(I[k]);
+      I[k] = (float) log10(I[k]);
     }
 }
 
@@ -1424,9 +1423,9 @@ void calcSAXSNumeric(double *I, double *X,double *Y, double *Z, int total_atom, 
   nstart = -(n-1)/2;
   nstop = (n-1)/2;
 
-  pi= 3.1415;
-  GR = (1 + sqrt(5.0))/2.0;
-  float Two_byn=2.0/n;
+  pi= 3.1415f;
+  GR = (float) ((1 + sqrt(5.0))/2.0);
+  float Two_byn=2.0f/n;
   float Two_pi_byGR=2*pi/GR;
   FILE *SAXS_PROFILE=NULL;
   if(printDataFile)
@@ -1444,7 +1443,7 @@ void calcSAXSNumeric(double *I, double *X,double *Y, double *Z, int total_atom, 
   for(k=0;k<nexp;k++)
     //  for(k=0;k<1;k++)
     {
-      q = Q[k];
+      q = (float) Q[k];
       I[k] = 0.0;
 
       for(j=nstart;j<=nstop;j++)
@@ -1454,11 +1453,11 @@ void calcSAXSNumeric(double *I, double *X,double *Y, double *Z, int total_atom, 
 	  Two_jbyn=Two_byn*j;
 	  //	  Two_pi_jbyGR=2*pi*j/GR;
 	  Two_pi_jbyGR=	Two_pi_byGR*j;
-	  cosasin=q*cos( asin(Two_jbyn) );
+    cosasin= (float) (q*cos( asin(Two_jbyn) ));
 	  //	  qx = q * cos( asin(2.0*j/n) ) * cos(2*pi*j/GR);
-	  qx = cosasin * cos(Two_pi_jbyGR);
+    qx = (float) (cosasin * cos(Two_pi_jbyGR));
 	  //	  qy = q * cos( asin(2.0*j/n) ) * sin(2*pi*j/GR);
-	  qy = cosasin * sin(Two_pi_jbyGR);
+    qy = (float) (cosasin * sin(Two_pi_jbyGR));
 	  qz = q * Two_jbyn;
 	  A = 0.0;
 	  B = 0.0;
@@ -1470,12 +1469,12 @@ void calcSAXSNumeric(double *I, double *X,double *Y, double *Z, int total_atom, 
 	      //		{
 		  //		  printf("%.3lf\n", W[i]);
 	      //		  printf("%d\n", cgatom_num[i]);
-		  fi = get_f_numeric(cgatom_num[i],W[i],q);
+      fi = get_f_numeric(cgatom_num[i], (float) W[i], q);
 
-		  qdotr = qx*X[i] + qy*Y[i] + qz*Z[i];
+      qdotr = (float) (qx*X[i] + qy*Y[i] + qz*Z[i]);
 		  //	  printf("%.3f\t%.3f\n", fi, qdotr);
-		  A = A + fi*cos(qdotr);
-		  B = B + fi*sin(qdotr);
+      A = A + (float) (fi*cos(qdotr));
+      B = B + (float) (fi*sin(qdotr));
 		  //		}
 	    }
 	  A = A*A;
