@@ -1,6 +1,6 @@
 //########################CONSTANT VARIABLE DECLARATIONS#########################
 // Maximum number of atoms in the pdb file
-const int MAX_ATOM=100000;
+#define MAX_ATOM 100000
 
 // length of data line in experimental data file
 const int MAX_EXP_LINE=100;
