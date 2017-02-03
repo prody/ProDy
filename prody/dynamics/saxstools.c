@@ -208,7 +208,7 @@ static PyObject *saxstools_cgSolvateNumeric(PyObject *self, PyObject *args)
   PyObject *X_obj, *Y_obj, *Z_obj, *W_obj;
 
   /* Parse the input tuple */
-  if (!PyArg_ParseTuple(args, "sOOOOfffffiii", &fpdb_file, &X_obj, &Y_obj, &Z_obj, &W_obj, &wDNA, &wRNA, &wPROT, &thickness, &closest_dist, &pdb_flag, &solvent_flag, &MAX_ATOM))
+  if (!PyArg_ParseTuple(args, "sOOOOfffffiii", &fpdb_file, &X_obj, &Y_obj, &Z_obj, &W_obj, &wDNA, &wRNA, &wPROT, &thickness, &closest_dist, &pdb_flag, &solvent_flag, MAX_ATOM))
     return NULL;
 
   /* Interpret the input objects as numpy arrays. */
