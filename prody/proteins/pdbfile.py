@@ -545,7 +545,7 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                     else:
                         atomgroup._setCoords(coordinates)
                 else:
-                    coordsets = np.zeros((diff//acount+1, acount, 3))
+                    coordsets = np.zeros((int(diff//acount+1), acount, 3))
                     coordsets[0] = coordinates[:acount]
                     onlycoords = True
                 atomnames.resize(acount, refcheck=False)
