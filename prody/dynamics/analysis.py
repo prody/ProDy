@@ -570,8 +570,8 @@ def writePerturbResponsePDB(prsMatrix,pdbIn,**kwargs):
             effectiveness.append(np.mean(prsMatrix[i]))
             sensitivity.append(np.mean(prsMatrix.T[i]))
 
-        fileEffs = open('{0}_effectors.pdb'.format(pdbIn.split('.')[0]),'w')
-        fileSens = open('{0}_sensors.pdb'.format(pdbIn.split('.')[0]),'w')
+        fileEffs = open('{0}_effectiveness.pdb'.format(pdbIn.split('.')[0]),'w')
+        fileSens = open('{0}_sensitivity.pdb'.format(pdbIn.split('.')[0]),'w')
 
         for line in lines:            
             if line.find('ATOM') != 0:  
@@ -587,9 +587,9 @@ def writePerturbResponsePDB(prsMatrix,pdbIn,**kwargs):
                 fileSens.write(line[:60] + ' '*(6-len('{:3.2f}'.format((sensitivity[i])*10))) \
                          + '{:3.2f}'.format((sensitivity[i])*10) + line[66:])
                       
-            fileEffs.close()
-            fileSens.close()
-            return fileEffs, fileSens
+        fileEffs.close()
+        fileSens.close()
+        return fileEffs, fileSens
 
     outFiles = []
     for n in range(len(chain)):
