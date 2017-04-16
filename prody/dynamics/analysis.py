@@ -7,6 +7,7 @@ import time
 import numpy as np
 
 from prody import LOGGER
+from prody.proteins import parsePDB
 from prody.atomic import AtomGroup
 from prody.ensemble import Ensemble, Conformation
 from prody.trajectory import TrajBase
@@ -21,8 +22,11 @@ from .gnm import GNMBase
 __all__ = ['calcCollectivity', 'calcCovariance', 'calcCrossCorr',
            'calcFractVariance', 'calcSqFlucts', 'calcTempFactors',
            'calcProjection', 'calcCrossProjection', 'calcPerturbResponse', 
-           'parsePerturbResponseMatrix', 'calcSpecDimension', 'calcPairDeformationDist',]
+           'parsePerturbResponseMatrix', 'writePerturbResponsePDB',
+           'calcSpecDimension', 'calcPairDeformationDist',]
 
+class PRSMatrixParseError(Exception):
+    pass
 
 def calcCollectivity(mode, masses=None):
     """Returns collectivity of the mode.  This function implements collectivity
@@ -479,15 +483,143 @@ def parsePerturbResponseMatrix(prsMatrixFile='prs_matrix.txt',normMatrix=True):
 
     if normMatrix == True:
        # normalize the PRS matrix
-       self_dp = np.diag(response_matrix)  # using self displacement (diagonal of
+       self_dp = np.diag(prsMat)  # using self displacement (diagonal of
                               # the original matrix) as a
                               # normalization factor
-       self_dp = self_dp.reshape(n_atoms, 1)
-       norm_PRS_mat = response_matrix / np.repeat(self_dp, n_atoms, axis=1)
-       return prsMat_normed
+       self_dp = self_dp.reshape(len(prsMat), 1)
+       norm_PRS_mat = prsMat / np.repeat(self_dp, len(prsMat), axis=1)
+       return norm_PRS_mat
 
     else:
        return prsMat
+
+def writePerturbResponsePDB(prsMatrix,pdbIn,**kwargs):
+    """ This function writes the average response to perturbation of
+    a particular residue (a row of a perturbation response matrix)
+    into the b-factor field of a PDB file for visualisation in PyMOL.
+    If no chain is given this will be done for that residue in all chains.
+    If no residue number is given then the effectors and sensors will be
+    written out instead.
+
+    :arg prsMatrix: name of the variable containing a perturbation response 
+        matrix
+    :type prsMatrix: ndarray
+
+    :arg pdbInFile: file name for the input PDB file where you would like the PRS
+        data mapped
+    :type pdbIn: str
+
+    :arg pdbOutFiles: a list of file names (enclosed in square
+        brackets) for the output PDB file, default is to append
+        the chain and residue info (name and number) onto the pdbIn stem.
+        When multiple chains are to be used, a single file name can be 
+        entered as string (encloded in quotes) and the chain IDs will be
+        appended onto the pdbOut stem.
+        If no residue number is supplied, pdbOut and chain are ignored and
+        it appends 'effectiveness' and 'sensitivity' onto the pdbIn stem.
+    :type pdbOut: list
+
+    :arg chain: chain identifier for the residue of interest, default is all chains
+        If you want to analyse residues in a subset of chains, concatentate them
+        together e.g. 'AC'
+    :type chain: str
+
+    :arg resnum: residue number for the residue of interest
+    :type resnum: int
+    """
+
+    if not type(prsMatrix) is np.ndarray:
+        raise TypeError('Please provide a valid PRS matrix in numpy ndarray format.')
+           
+    try:
+        fi = open(pdbIn,'r')
+        lines = fi.readlines()
+        fi.close()
+    except:
+        raise PRSMatrixParseError('Please provide a valid file name for the input PDB.')
+
+    chain = kwargs.get('chain', None)
+    structure = parsePDB(pdbIn).calpha
+    hv = structure.getHierView()
+    chains = []
+    for i in range(len(list(hv))):
+        chainAg = list(hv)[i]
+        chains.append(chainAg.getChids()[0])
+
+    chains = np.array(chains)
+    if chain is None:
+        chain = ''.join(chains)
+
+    resnum = kwargs.get('resnum', None)
+    pdbOut = kwargs.get('pdbOut', None)
+    if pdbOut is None:
+        pdbOut = []
+        for c in chain:
+            pdbOut.append('{0}_{1}_{2}{3}.pdb'.format(pdbIn.split('.')[0], c, \
+                              structure.getResnames()[i], resnum))
+    elif type(pdbOut) is str:
+        pdbOut2 = []
+        for c in chain:
+            pdbOut2.append(pdbOut.split('.')[0] + '_' + c + pdbOut.split('.')[1])
+        pdbOut = pdbOut2
+
+    if resnum is None:
+        effectiveness = []
+        sensitivity = []
+        for i in range(len(prsMatrix)):
+            effectiveness.append(np.mean(prsMatrix[i]))
+            sensitivity.append(np.mean(prsMatrix.T[i]))
+
+        fileEffs = open('{0}_effectiveness.pdb'.format(pdbIn.split('.')[0]),'w')
+        fileSens = open('{0}_sensitivity.pdb'.format(pdbIn.split('.')[0]),'w')
+
+        for line in lines:            
+            if line.find('ATOM') != 0:  
+                fileEffs.write(line)                    
+                fileSens.write(line)
+            else:
+                resnum_matrix_offset = np.where(structure.getChids() == line[21]) \
+                                       [0][0] - structure.getResnums() \
+                                       [np.where(structure.getChids() == line[21])[0][0]]
+                i = int(line.split()[5]) + resnum_matrix_offset
+                fileEffs.write(line[:60] + ' '*(6-len('{:3.2f}'.format((effectiveness[i])*100))) \
+                         + '{:3.2f}'.format((effectiveness[i])*100) + line[66:])
+                fileSens.write(line[:60] + ' '*(6-len('{:3.2f}'.format((sensitivity[i])*10))) \
+                         + '{:3.2f}'.format((sensitivity[i])*10) + line[66:])
+                      
+        fileEffs.close()
+        fileSens.close()
+        return fileEffs, fileSens
+
+    outFiles = []
+    for n in range(len(chain)):
+        if not chain[n] in chains:
+            raise PRSMatrixParseError('Chain {0} was not found in {1}'.format(chain[n], pdbIn))
+
+        chainNum = int(np.where(chains == chain[n])[0])
+        chainAg = list(hv)[chainNum]
+        if not resnum in chainAg.getResnums():
+            raise PRSMatrixParseError('A residue with number {0} was not found in chain {1}'.format(resnum, chain[n]))
+
+        resnum_matrix_offset = np.where(structure.getResnums() == \
+                                        chainAg.getResnums()[0])[0][chainNum] \
+                               - chainAg.getResnums()[0]
+        i = resnum + resnum_matrix_offset
+
+        fo = open(pdbOut[n],'w')
+        for line in lines:
+            if line.find('ATOM') != 0:
+                fo.write(line)
+            else:
+                resnum_matrix_offset = np.where(structure.getChids() == line[21]) \
+                                       [0][0] - structure.getResnums() \
+                                       [np.where(structure.getChids() == line[21])[0][0]]
+                j = int(line.split()[5]) + resnum_matrix_offset
+            fo.write(line[:60] + ' '*(6-len('{:3.2f}'.format((prsMatrix[i][j])*10))) \
+                     + '{:3.2f}'.format((prsMatrix[i][j])*10) + line[66:])
+        fo.close()
+        outFiles.append(fo)
+    return outFiles
 
 
 def calcPairDeformationDist(model, coords, ind1, ind2, kbt=1.):
