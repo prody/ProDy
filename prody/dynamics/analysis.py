@@ -22,7 +22,7 @@ from .gnm import GNMBase
 __all__ = ['calcCollectivity', 'calcCovariance', 'calcCrossCorr',
            'calcFractVariance', 'calcSqFlucts', 'calcTempFactors',
            'calcProjection', 'calcCrossProjection', 'calcPerturbResponse', 
-           'parsePerturbResponseMatrix', 'writePerturbationResponsePDB',
+           'parsePerturbResponseMatrix', 'writePerturbResponsePDB',
            'calcSpecDimension', 'calcPairDeformationDist',]
 
 class PRSMatrixParseError(Exception):
