@@ -477,7 +477,7 @@ def parsePerturbResponseMatrix(prsMatrixFile='prs_matrix.txt',normMatrix=True):
 
     prsMat = np.array(prsMat)
 
-    if normMatrix=True:
+    if normMatrix == True:
        # normalize the PRS matrix
        self_dp = np.diag(response_matrix)  # using self displacement (diagonal of
                               # the original matrix) as a
