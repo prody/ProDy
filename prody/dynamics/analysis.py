@@ -21,7 +21,7 @@ from .gnm import GNMBase
 __all__ = ['calcCollectivity', 'calcCovariance', 'calcCrossCorr',
            'calcFractVariance', 'calcSqFlucts', 'calcTempFactors',
            'calcProjection', 'calcCrossProjection', 'calcPerturbResponse', 
-           'calcSpecDimension', 'calcPairDeformationDist',]
+           'parsePerturbResponseMatrix', 'calcSpecDimension', 'calcPairDeformationDist',]
 
 
 def calcCollectivity(mode, masses=None):
@@ -357,7 +357,7 @@ def calcCovariance(modes):
         raise TypeError('modes must be a Mode, NMA, or ModeSet instance')
 
 
-def calcPerturbResponse(model, atoms=None, repeats=100):
+def calcPerturbResponse(model, atoms=None, repeats=100, saveMatrix=False, norm=False, saveNorm=False):
     """Returns a matrix of profiles from scanning of the response of the
     structure to random perturbations at specific atom (or node) positions.
     The function implements the perturbation response scanning (PRS) method
@@ -377,10 +377,14 @@ def calcPerturbResponse(model, atoms=None, repeats=100):
        Reveals Ligand Entry-Exit Mechanisms of Ferric Binding Protein.
        *PLoS Comput Biol* **2009** 5(10):e1000544.
 
-    The PRS matrix can be saved as follows::
+    The PRS matrix can be calculated and saved as follows::
 
-      prs_matrix = calcPerturbationResponse(p38_anm)
+      prs_matrix = calcPerturbationResponse(p38_anm, saveMatrix=True)
+      
+    The PRS matrix can also be save later as follows::
+    
       writeArray('prs_matrix.txt', prs_matrix, format='%8.6f', delimiter='\t')
+      
     """
 
     if not isinstance(model, NMA):
@@ -422,21 +426,68 @@ def calcPerturbResponse(model, atoms=None, repeats=100):
                   '_prody_prs')
     if atoms is not None:
         atoms.setData('prs_profile', response_matrix)
-    return response_matrix
 
-    # save the original PRS matrix
-    np.savetxt('orig_PRS_matrix', response_matrix, delimiter='\t', fmt='%8.6f')
-    # calculate the normalized PRS matrix
-    self_dp = np.diag(response_matrix)  # using self displacement (diagonal of
+    if saveMatrix == True:
+        # save the original PRS matrix
+        np.savetxt('orig_PRS_matrix', response_matrix, delimiter='\t', fmt='%8.6f')
+           
+    if normMatrix == True:
+        # calculate the normalized PRS matrix
+        self_dp = np.diag(response_matrix)  # using self displacement (diagonal of
                                # the original matrix) as a
                                # normalization factor
-    self_dp = self_dp.reshape(n_atoms, 1)
-    norm_PRS_mat = response_matrix / np.repeat(self_dp, n_atoms, axis=1)
-    # suppress the diagonal (self displacement) to facilitate
-    # visualizing the response profile
-    norm_PRS_mat = norm_PRS_mat - np.diag(np.diag(norm_PRS_mat))
-    np.savetxt('norm_PRS_matrix', norm_PRS_mat, delimiter='\t', fmt='%8.6f')
-    return response_matrix
+        self_dp = self_dp.reshape(n_atoms, 1)
+        norm_PRS_mat = response_matrix / np.repeat(self_dp, n_atoms, axis=1)
+        # suppress the diagonal (self displacement) to facilitate
+        # visualizing the response profile
+        norm_PRS_mat = norm_PRS_mat - np.diag(np.diag(norm_PRS_mat))
+
+    if saveNorm == True:
+        np.savetxt('norm_PRS_matrix', norm_PRS_mat, delimiter='\t', fmt='%8.6f')
+           
+    if normMatrix == True:
+        return norm_PRS_mat
+    else:
+        return response_matrix
+
+def parsePerturbResponseMatrix(prsMatrixFile='prs_matrix.txt',normMatrix=True):
+    """Parses a perturbation response matrix from a file into a numpy ndarray.
+
+    :arg prsMatrixFile: name of the file containing a PRS matrix, default is
+        'prs_matrix.txt' as is used in the example under calcPerturbResponse.
+    :type prsMatrixFile: str
+
+    :arg normMatrix: whether to normalise the PRS matrix after parsing it.
+        Default is True. If you have already normalised this before saving,
+        or you do not want it normalised then set this to False.
+    :type norm: bool
+
+    """
+    fmat = open(prsMatrixFile,'r')
+    matlines = fmat.readlines()
+    fmat.close()
+
+    prsMat = []
+    for line in matlines:
+       prsMat.append(line.split())
+
+    for i in range(len(prsMat)):
+     for j in range(len(prsMat)):
+        prsMat[i][j] = float(prsMat[i][j])
+
+    prsMat = np.array(prsMat)
+
+    if normMatrix == True:
+       # normalize the PRS matrix
+       self_dp = np.diag(response_matrix)  # using self displacement (diagonal of
+                              # the original matrix) as a
+                              # normalization factor
+       self_dp = self_dp.reshape(n_atoms, 1)
+       norm_PRS_mat = response_matrix / np.repeat(self_dp, n_atoms, axis=1)
+       return prsMat_normed
+
+    else:
+       return prsMat
 
 
 def calcPairDeformationDist(model, coords, ind1, ind2, kbt=1.):
