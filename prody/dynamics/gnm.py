@@ -338,7 +338,9 @@ class GNM(GNMBase):
         :type modeIndex: int or list, default is ``None``
         """
         if self._hinges is None:
-            raise ValueError('Hinges are not calculated.')
+            LOGGER.info('Warning: hinges are not calculated, thus null is returned. '
+                        'Please call GNM.calcHinges() to calculate the hinge sites first.')
+            return None
         if modeIndex is None:
             hinges = self._hinges
         else:
