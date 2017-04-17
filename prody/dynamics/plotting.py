@@ -433,6 +433,7 @@ def showOverlapTable(modes_x, modes_y, **kwargs):
       * ``cmap=plt.cm.jet``
       * ``norm=matplotlib.colors.Normalize(0, 1)``"""
 
+    import matplotlib
     import matplotlib.pyplot as plt
     import matplotlib
 
