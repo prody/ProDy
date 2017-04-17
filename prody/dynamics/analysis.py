@@ -357,7 +357,8 @@ def calcCovariance(modes):
         raise TypeError('modes must be a Mode, NMA, or ModeSet instance')
 
 
-def calcPerturbResponse(model, atoms=None, repeats=100, saveMatrix=False, norm=False, saveNorm=False):
+def calcPerturbResponse(model, atoms=None, repeats=100, saveMatrix=False, norm=False, \
+                        suppressDiag=False, saveNorm=False):
     """Returns a matrix of profiles from scanning of the response of the
     structure to random perturbations at specific atom (or node) positions.
     The function implements the perturbation response scanning (PRS) method
@@ -438,9 +439,11 @@ def calcPerturbResponse(model, atoms=None, repeats=100, saveMatrix=False, norm=F
                                # normalization factor
         self_dp = self_dp.reshape(n_atoms, 1)
         norm_PRS_mat = response_matrix / np.repeat(self_dp, n_atoms, axis=1)
-        # suppress the diagonal (self displacement) to facilitate
-        # visualizing the response profile
-        norm_PRS_mat = norm_PRS_mat - np.diag(np.diag(norm_PRS_mat))
+
+        if suppressDiag == True:
+            # suppress the diagonal (self displacement) to facilitate
+            # visualizing the response profile
+            norm_PRS_mat = norm_PRS_mat - np.diag(np.diag(norm_PRS_mat))
 
     if saveNorm == True:
         np.savetxt('norm_PRS_matrix', norm_PRS_mat, delimiter='\t', fmt='%8.6f')
