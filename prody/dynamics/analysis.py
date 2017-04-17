@@ -463,8 +463,14 @@ def calcPerturbResponse(model, atoms=None, repeats=100, saveMatrix=False, \
     LOGGER.report('Perturbation response scanning completed in %.1fs.',
                   '_prody_prs')
 
+
     if atoms is not None:
         atoms.setData('prs_profile', response_matrix)
+
+    if operation is None:
+        LOGGER.report('The full set of {0} repeat matrices cannot be saved \
+                      or normalized at this point. Those options are ignored.')
+        return response_matrix
 
     if saveMatrix == True:
         # save the original PRS matrix
