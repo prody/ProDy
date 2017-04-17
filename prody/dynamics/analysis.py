@@ -361,8 +361,9 @@ def calcCovariance(modes):
         raise TypeError('modes must be a Mode, NMA, or ModeSet instance')
 
 
-def calcPerturbResponse(model, atoms=None, repeats=100, saveMatrix=False, norm=False, \
-                        suppressDiag=False, saveNorm=False):
+def calcPerturbResponse(model, atoms=None, repeats=100, saveMatrix=False, \
+                        norm=False, suppressDiag=False, saveNorm=False, \
+                        takeMean=True, takeVariance=False, takeMax=False):
     """Returns a matrix of profiles from scanning of the response of the
     structure to random perturbations at specific atom (or node) positions.
     The function implements the perturbation response scanning (PRS) method
@@ -425,7 +426,28 @@ def calcPerturbResponse(model, atoms=None, repeats=100, saveMatrix=False, norm=F
                 ** 2).reshape((n_atoms, 3)).sum(1)
         LOGGER.update(i, '_prody_prs')
 
-    response_matrix /= repeats
+    if takeMean and not takeVariance and not takeMax:
+        response_matrix /= repeats
+
+    elif takeVariance and not takeMean and not takeMax:
+        var_response_matrix = []
+        for i in range(len(response_matrix)):
+            var_response_matrix.append([])
+            for j in range(len(response_matrix)):
+                var_response_matrix[i].append = np.var(response_matrix[:,i,j])
+        response_matrix = var_response_matrix
+
+    elif takeMax and not takeMean and not takeVariance:
+        max_resonse_matrix = []
+        for i in range(len(response_matrix)):
+            var_response_matrix.append([])
+            for j in range(len(response_matrix)):
+                max_response_matrix[i].append = np.max(response_matrix[:,i,j])
+        response_matrix = max_response_matrix
+
+    else:
+        raise ValueError('Please take only one of the mean, variance or max.')
+
     LOGGER.clear()
     LOGGER.report('Perturbation response scanning completed in %.1fs.',
                   '_prody_prs')
@@ -457,12 +479,12 @@ def calcPerturbResponse(model, atoms=None, repeats=100, saveMatrix=False, norm=F
     else:
         return response_matrix
 
-def parsePerturbResponseMatrix(prsMatrixFile='prs_matrix.txt',normMatrix=True):
+def parsePerturbResponseMatrix(prs_matrix_file='prs_matrix.txt',normMatrix=True):
     """Parses a perturbation response matrix from a file into a numpy ndarray.
 
-    :arg prsMatrixFile: name of the file containing a PRS matrix, default is
+    :arg prs_matrix_file: name of the file containing a PRS matrix, default is
         'prs_matrix.txt' as is used in the example under calcPerturbResponse.
-    :type prsMatrixFile: str
+    :type prs_matrix_file: str
 
     :arg normMatrix: whether to normalise the PRS matrix after parsing it.
         Default is True. If you have already normalised this before saving,
@@ -470,33 +492,33 @@ def parsePerturbResponseMatrix(prsMatrixFile='prs_matrix.txt',normMatrix=True):
     :type norm: bool
 
     """
-    fmat = open(prsMatrixFile,'r')
+    fmat = open(prs_matrix_file,'r')
     matlines = fmat.readlines()
     fmat.close()
 
-    prsMat = []
+    prs_matrix = []
     for line in matlines:
-       prsMat.append(line.split())
+       prs_matrix.append(line.split())
 
-    for i in range(len(prsMat)):
-     for j in range(len(prsMat)):
-        prsMat[i][j] = float(prsMat[i][j])
+    for i in range(len(prs_matrix)):
+     for j in range(len(prs_matrix)):
+        prs_matrix[i][j] = float(prs_matrix[i][j])
 
-    prsMat = np.array(prsMat)
+    prs_matrix = np.array(prs_matrix)
 
     if normMatrix == True:
        # normalize the PRS matrix
-       self_dp = np.diag(prsMat)  # using self displacement (diagonal of
+       self_dp = np.diag(prs_matrix)  # using self displacement (diagonal of
                               # the original matrix) as a
                               # normalization factor
-       self_dp = self_dp.reshape(len(prsMat), 1)
-       norm_PRS_mat = prsMat / np.repeat(self_dp, len(prsMat), axis=1)
+       self_dp = self_dp.reshape(len(prs_matrix), 1)
+       norm_PRS_mat = prs_matrix / np.repeat(self_dp, len(prs_matrix), axis=1)
        return norm_PRS_mat
 
     else:
-       return prsMat
+       return prs_matrix
 
-def writePerturbResponsePDB(prsMatrix,pdbIn,**kwargs):
+def writePerturbResponsePDB(prs_matrix,pdbIn,**kwargs):
     """ This function writes the average response to perturbation of
     a particular residue (a row of a perturbation response matrix)
     into the b-factor field of a PDB file for visualisation in PyMOL.
@@ -504,9 +526,9 @@ def writePerturbResponsePDB(prsMatrix,pdbIn,**kwargs):
     If no residue number is given then the effectors and sensors will be
     written out instead.
 
-    :arg prsMatrix: name of the variable containing a perturbation response 
+    :arg prs_matrix: name of the variable containing a perturbation response 
         matrix
-    :type prsMatrix: ndarray
+    :type prs_matrix: ndarray
 
     :arg pdbInFile: file name for the input PDB file where you would like the PRS
         data mapped
@@ -531,7 +553,7 @@ def writePerturbResponsePDB(prsMatrix,pdbIn,**kwargs):
     :type resnum: int
     """
 
-    if not type(prsMatrix) is np.ndarray:
+    if not type(prs_matrix) is np.ndarray:
         raise TypeError('Please provide a valid PRS matrix in numpy ndarray format.')
            
     try:
@@ -569,12 +591,14 @@ def writePerturbResponsePDB(prsMatrix,pdbIn,**kwargs):
     if resnum is None:
         effectiveness = []
         sensitivity = []
-        for i in range(len(prsMatrix)):
-            effectiveness.append(np.mean(prsMatrix[i]))
-            sensitivity.append(np.mean(prsMatrix.T[i]))
+        for i in range(len(prs_matrix)):
+            effectiveness.append(np.mean(prs_matrix[i]))
+            sensitivity.append(np.mean(prs_matrix.T[i]))
 
-        fileEffs = open('{0}_effectiveness.pdb'.format(pdbIn.split('.')[0]),'w')
-        fileSens = open('{0}_sensitivity.pdb'.format(pdbIn.split('.')[0]),'w')
+        file_effs_name = '{0}_effectiveness.pdb'.format(pdbIn.split('.')[0])
+        file_sens_name = '{0}_sensitivity.pdb'.format(pdbIn.split('.')[0])
+        fileEffs = open(file_effs_name,'w')
+        fileSens = open(file_sens_name,'w')
 
         for line in lines:            
             if line.find('ATOM') != 0:  
@@ -592,7 +616,9 @@ def writePerturbResponsePDB(prsMatrix,pdbIn,**kwargs):
                       
         fileEffs.close()
         fileSens.close()
-        return fileEffs, fileSens
+        LOGGER.report('The effectiveness and sensitivity profiles were written \
+                       to {0} and {1}.'.format(file_effs_name,file_sens_name))
+        return
 
     outFiles = []
     for n in range(len(chain)):
@@ -602,7 +628,8 @@ def writePerturbResponsePDB(prsMatrix,pdbIn,**kwargs):
         chainNum = int(np.where(chains == chain[n])[0])
         chainAg = list(hv)[chainNum]
         if not resnum in chainAg.getResnums():
-            raise PRSMatrixParseError('A residue with number {0} was not found in chain {1}'.format(resnum, chain[n]))
+            raise PRSMatrixParseError('A residue with number {0} was not found \
+                                      in chain {1}'.format(resnum, chain[n]))
 
         resnum_matrix_offset = np.where(structure.getResnums() == \
                                         chainAg.getResnums()[0])[0][chainNum] \
@@ -618,10 +645,12 @@ def writePerturbResponsePDB(prsMatrix,pdbIn,**kwargs):
                                        [0][0] - structure.getResnums() \
                                        [np.where(structure.getChids() == line[21])[0][0]]
                 j = int(line.split()[5]) + resnum_matrix_offset
-            fo.write(line[:60] + ' '*(6-len('{:3.2f}'.format((prsMatrix[i][j])*10))) \
-                     + '{:3.2f}'.format((prsMatrix[i][j])*10) + line[66:])
+            fo.write(line[:60] + ' '*(6-len('{:3.2f}'.format((prs_matrix[i][j])*10))) \
+                     + '{:3.2f}'.format((prs_matrix[i][j])*10) + line[66:])
         fo.close()
         outFiles.append(fo)
+        LOGGER.report('Perturbation responses for specific residues were written \
+                       to {0} and {1}.'.format(' '.join(outFiles)))
     return outFiles
 
 
