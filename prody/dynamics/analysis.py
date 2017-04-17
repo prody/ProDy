@@ -362,7 +362,7 @@ def calcCovariance(modes):
 
 
 def calcPerturbResponse(model, atoms=None, repeats=100, saveMatrix=False, \
-                        norm=False, suppressDiag=False, saveNorm=False, \
+                        normMatrix=False, suppressDiag=False, saveNorm=False, \
                         takeMean=True, takeVariance=False, takeMax=False):
     """Returns a matrix of profiles from scanning of the response of the
     structure to random perturbations at specific atom (or node) positions.
