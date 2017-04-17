@@ -363,7 +363,7 @@ def calcCovariance(modes):
 
 def calcPerturbResponse(model, atoms=None, repeats=100, saveMatrix=False, \
                         normMatrix=False, suppressDiag=False, saveNorm=False, \
-                        takeMean=True, takeVariance=False, takeMax=False):
+                        operation='mean'):
     """Returns a matrix of profiles from scanning of the response of the
     structure to random perturbations at specific atom (or node) positions.
     The function implements the perturbation response scanning (PRS) method
@@ -378,6 +378,10 @@ def calcPerturbResponse(model, atoms=None, repeats=100, saveMatrix=False, \
     and *atoms* must have the same number of atoms. *atoms* must be an
     :class:`.AtomGroup` instance.
 
+    :arg take: which operation to perform to get a single response matrix::
+        the mean, variance or max across the set of repeats. Default is mean. 
+        To obtain all response matrices, set operation=None without quotes.
+    :type take: str
 
     .. [CA09] Atilgan C, Atilgan AR, Perturbation-Response Scanning
        Reveals Ligand Entry-Exit Mechanisms of Ferric Binding Protein.
@@ -411,7 +415,7 @@ def calcPerturbResponse(model, atoms=None, repeats=100, saveMatrix=False, \
         raise ValueError('model did not return a covariance matrix')
 
     n_atoms = model.numAtoms()
-    response_matrix = np.zeros((n_atoms, n_atoms))
+    response_matrix = np.zeros((repeats, n_atoms, n_atoms))
     LOGGER.progress('Calculating perturbation response', n_atoms, '_prody_prs')
     i3 = -3
     i3p3 = 0
@@ -420,37 +424,45 @@ def calcPerturbResponse(model, atoms=None, repeats=100, saveMatrix=False, \
         i3p3 += 3
         forces = np.random.rand(repeats * 3).reshape((repeats, 3))
         forces /= ((forces**2).sum(1)**0.5).reshape((repeats, 1))
-        for force in forces:
-            response_matrix[i] += (
+        for n in range(repeats):
+            force = forces[n]
+            response_matrix[n,i,:] = (
                 np.dot(cov[:, i3:i3p3], force)
                 ** 2).reshape((n_atoms, 3)).sum(1)
         LOGGER.update(i, '_prody_prs')
 
-    if takeMean and not takeVariance and not takeMax:
-        response_matrix /= repeats
+    if operation is not None: 
+        operation = operation.lower()
 
-    elif takeVariance and not takeMean and not takeMax:
-        var_response_matrix = []
-        for i in range(len(response_matrix)):
-            var_response_matrix.append([])
-            for j in range(len(response_matrix)):
-                var_response_matrix[i].append = np.var(response_matrix[:,i,j])
-        response_matrix = var_response_matrix
+        if operation == 'var' or operation == 'variance':
+            var_response_matrix = np.zeros((n_atoms, n_atoms))
+            for i in range(n_atoms):
+                for j in range(n_atoms):
+                    var_response_matrix[i,j] = np.var(response_matrix[:,i,j])
+            response_matrix = var_response_matrix
 
-    elif takeMax and not takeMean and not takeVariance:
-        max_resonse_matrix = []
-        for i in range(len(response_matrix)):
-            var_response_matrix.append([])
-            for j in range(len(response_matrix)):
-                max_response_matrix[i].append = np.max(response_matrix[:,i,j])
-        response_matrix = max_response_matrix
+        elif operation == 'max' or operation == 'maximum':
+            max_response_matrix = np.zeros((n_atoms, n_atoms))
+            for i in range(n_atoms):
+                for j in range(n_atoms):
+                    max_response_matrix[i,j] = np.max(response_matrix[:,i,j])
+            response_matrix = max_response_matrix
 
-    else:
-        raise ValueError('Please take only one of the mean, variance or max.')
+        elif operation == 'mean' or operation == 'average':
+            mean_response_matrix = np.zeros((n_atoms, n_atoms))
+            for i in range(n_atoms):
+                for j in range(n_atoms):
+                    mean_response_matrix[i,j] = np.mean(response_matrix[:,i,j])
+            response_matrix = mean_response_matrix
+
+        else:
+            raise ValueError('Please specify in quotes whether to take the mean, \
+                             variance, max or every matrix. Default is mean.')
 
     LOGGER.clear()
     LOGGER.report('Perturbation response scanning completed in %.1fs.',
                   '_prody_prs')
+
     if atoms is not None:
         atoms.setData('prs_profile', response_matrix)
 
