@@ -49,7 +49,7 @@ def calcCollectivity(mode, masses=None):
     is3d = mode.is3d()
     if masses is not None:
         if len(masses) != mode.numAtoms():
-            raise ValueError('length of massesmust be equal to number of atoms')
+            raise ValueError('length of masses must be equal to number of atoms')
         if is3d:
             u2in = (mode.getArrayNx3() ** 2).sum(1) / masses
     else:
@@ -456,8 +456,7 @@ def calcPerturbResponse(model, atoms=None, repeats=100, saveMatrix=False, \
             response_matrix = mean_response_matrix
 
         else:
-            raise ValueError('Please specify in quotes whether to take the mean,',
-                             ' variance, max or every matrix. Default is mean.')
+            raise ValueError('Operation should be mean, variance, max in quotes or None.')
 
     LOGGER.clear()
     LOGGER.report('Perturbation response scanning completed in %.1fs.',
@@ -491,7 +490,7 @@ def calcPerturbResponse(model, atoms=None, repeats=100, saveMatrix=False, \
             norm_PRS_mat = norm_PRS_mat - np.diag(np.diag(norm_PRS_mat))
 
     if saveNorm == True:
-        np.savetxt('norm_PRS_matrix', norm_PRS_mat, delimiter='\t', fmt='%8.6f')
+        np.savetxt('norm_PRS_matrix_{0}'.format(operation), norm_PRS_mat, delimiter='\t', fmt='%8.6f')
            
     if normMatrix == True:
         return norm_PRS_mat
@@ -635,7 +634,7 @@ def writePerturbResponsePDB(prs_matrix,pdbIn,**kwargs):
                       
         fileEffs.close()
         fileSens.close()
-        LOGGER.report('The effectiveness and sensitivity profiles were written', 
+        LOGGER.info('The effectiveness and sensitivity profiles were written', \
                        ' to {0} and {1}.'.format(file_effs_name,file_sens_name))
         return
 
