@@ -361,9 +361,9 @@ def calcCovariance(modes):
         raise TypeError('modes must be a Mode, NMA, or ModeSet instance')
 
 
-def calcPerturbResponse(model, atoms=None, repeats=100, saveMatrix=False, \
+def calcPerturbResponse(model, atoms=None, repeats=100, saveOrig=False, \
                         normMatrix=False, suppressDiag=False, saveNorm=False, \
-                        operation='mean'):
+                        baseSaveName='response_matrix', operation='mean'):
     """Returns a matrix of profiles from scanning of the response of the
     structure to random perturbations at specific atom (or node) positions.
     The function implements the perturbation response scanning (PRS) method
@@ -378,10 +378,12 @@ def calcPerturbResponse(model, atoms=None, repeats=100, saveMatrix=False, \
     and *atoms* must have the same number of atoms. *atoms* must be an
     :class:`.AtomGroup` instance.
 
-    :arg take: which operation to perform to get a single response matrix::
+    :arg operation: which operation to perform to get a single response matrix::
         the mean, variance or max across the set of repeats. Default is mean. 
         To obtain all response matrices, set operation=None without quotes.
-    :type take: str
+        You can also ask for 'all 3' operations or provide a list containing
+        any set of them.
+    :type operation: str or list
 
     .. [CA09] Atilgan C, Atilgan AR, Perturbation-Response Scanning
        Reveals Ligand Entry-Exit Mechanisms of Ferric Binding Protein.
@@ -431,71 +433,92 @@ def calcPerturbResponse(model, atoms=None, repeats=100, saveMatrix=False, \
                 ** 2).reshape((n_atoms, 3)).sum(1)
         LOGGER.update(i, '_prody_prs')
 
-    if operation is not None: 
-        operation = operation.lower()
+    if operation is not None:
+        if type(operation) is str:
+            if operation == 'all 3' or operation == 'all operations':
+                operationList = ['var','max','mea']
+            operationList = []
+            operationList.append(operation.lower()[:3])
+        elif type(operation) is list:
+            operationList = operation
+            for i in range(len(operationList)):
+                operationList[i] = operationList[i].lower()[:3]
 
-        if operation == 'var' or operation == 'variance':
+        operationList = np.array(operationList)
+        matrix_set = np.zeros((len(operationList),n_atoms,n_atoms))
+        found_valid_operation = False
+
+        if 'var' in operationList:
+            found_valid_operation = True
             var_response_matrix = np.zeros((n_atoms, n_atoms))
             for i in range(n_atoms):
                 for j in range(n_atoms):
                     var_response_matrix[i,j] = np.var(response_matrix[:,i,j])
-            response_matrix = var_response_matrix
+            matrix_set[np.where(operationList == 'var')[0][0]] = var_response_matrix
 
-        elif operation == 'max' or operation == 'maximum':
-            max_response_matrix = np.zeros((n_atoms, n_atoms))
+        if 'max' in operationList:
+            found_valid_operation = True
+            max_response_matrix = np.zeros((n_atoms*n_atoms))
             for i in range(n_atoms):
                 for j in range(n_atoms):
                     max_response_matrix[i,j] = np.max(response_matrix[:,i,j])
-            response_matrix = max_response_matrix
+            matrix_set[np.where(operationList == 'max')[0][0]] = max_response_matrix
 
-        elif operation == 'mean' or operation == 'average':
+        if 'mea' in operationList:
+            found_valid_operation = True
             mean_response_matrix = np.zeros((n_atoms, n_atoms))
             for i in range(n_atoms):
                 for j in range(n_atoms):
-                    mean_response_matrix[i,j] = np.mean(response_matrix[:,i,j])
-            response_matrix = mean_response_matrix
+                    mean_response_matrix[i,j] = np.mean(response_matrix[:,i,j]) 
+            matrix_set[np.where(operationList == 'mea')[0][0]] = mea_response_matrix
 
-        else:
-            raise ValueError('Operation should be mean, variance, max in quotes or None.')
+        if not found_valid_operation:
+            raise ValueError('Operation should be mean, variance, max in quotes ' \
+                             'or a list of containing a set of these or None.')
 
     LOGGER.clear()
     LOGGER.report('Perturbation response scanning completed in %.1fs.',
                   '_prody_prs')
 
 
+    if operation is None:
+        LOGGER.info('Operation is None so all {0} repeats are output.' \
+                    ' This is not compatible with saving, normalizing' \
+                    ' or mapping to atoms at present.'.format(repeats))
+        return response_matrix
+
     if atoms is not None:
         atoms.setData('prs_profile', response_matrix)
 
-    if operation is None:
-        LOGGER.info('Operation is None so all {0} repeats are output.' \
-                    ' This is not compatible with saving or normalizing' \
-                    ' at present.'.format(repeats))
-        return response_matrix
-
-    if saveMatrix == True:
-        # save the original PRS matrix
-        np.savetxt('orig_PRS_matrix', response_matrix, delimiter='\t', fmt='%8.6f')
+    if saveOrig == True:
+       # save the original PRS matrix for each operation
+       for i in range(len(operationList)):
+           np.savetxt('orig_{0}_{1}'.format(baseSaveName,operationList[i]), \
+                      matrix_set[i], delimiter='\t', fmt='%8.6f')
            
     if normMatrix == True:
-        # calculate the normalized PRS matrix
-        self_dp = np.diag(response_matrix)  # using self displacement (diagonal of
-                               # the original matrix) as a
-                               # normalization factor
-        self_dp = self_dp.reshape(n_atoms, 1)
-        norm_PRS_mat = response_matrix / np.repeat(self_dp, n_atoms, axis=1)
+        norm_PRS_mat = np.zeros((len(operationList),n_atoms,n_atoms))
+        # calculate the normalized PRS matrix for each operation
+        for i in range(len(operationList)):
+            self_dp = np.diag(matrix_set[i])  # using self displacement (diagonal of
+                                              # the original matrix) as a
+                                              # normalization factor
+            self_dp = self_dp.reshape(n_atoms, 1)
+            norm_PRS_mat[i] = matrix_set[i] / np.repeat(self_dp, n_atoms, axis=1)
 
-        if suppressDiag == True:
-            # suppress the diagonal (self displacement) to facilitate
-            # visualizing the response profile
-            norm_PRS_mat = norm_PRS_mat - np.diag(np.diag(norm_PRS_mat))
+            if suppressDiag == True:
+                # suppress the diagonal (self displacement) to facilitate
+                # visualizing the response profile
+                norm_PRS_mat[i] = norm_PRS_mat[i] - np.diag(np.diag(norm_PRS_mat[i]))
 
-    if saveNorm == True:
-        np.savetxt('norm_PRS_matrix_{0}'.format(operation), norm_PRS_mat, delimiter='\t', fmt='%8.6f')
+            if saveNorm == True:
+                np.savetxt('norm_{0}_{1}'.format(baseSaveName,operationList[i]), \
+                           norm_PRS_mat[i], delimiter='\t', fmt='%8.6f')
            
     if normMatrix == True:
         return norm_PRS_mat
     else:
-        return response_matrix
+        return matrix_set
 
 def parsePerturbResponseMatrix(prs_matrix_file='prs_matrix.txt',normMatrix=True):
     """Parses a perturbation response matrix from a file into a numpy ndarray.
@@ -541,8 +564,10 @@ def writePerturbResponsePDB(prs_matrix,pdbIn,**kwargs):
     a particular residue (a row of a perturbation response matrix)
     into the b-factor field of a PDB file for visualisation in PyMOL.
     If no chain is given this will be done for that residue in all chains.
-    If no residue number is given then the effectors and sensors will be
-    written out instead.
+    
+    If no residue number is given then the effectiveness and sensitivity
+    profiles will be written out instead. These two profiles are also output 
+    as arrays for further analysis.
 
     :arg prs_matrix: name of the variable containing a perturbation response 
         matrix
@@ -636,7 +661,7 @@ def writePerturbResponsePDB(prs_matrix,pdbIn,**kwargs):
         fileSens.close()
         LOGGER.info('The effectiveness and sensitivity profiles were written', \
                        ' to {0} and {1}.'.format(file_effs_name,file_sens_name))
-        return
+        return effectiveness, sensitivity
 
     outFiles = []
     for n in range(len(chain)):
