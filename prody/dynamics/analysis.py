@@ -456,7 +456,7 @@ def calcPerturbResponse(model, atoms=None, repeats=100, saveMatrix=False, \
             response_matrix = mean_response_matrix
 
         else:
-            raise ValueError('Please specify in quotes whether to take the mean,' \
+            raise ValueError('Please specify in quotes whether to take the mean,',
                              ' variance, max or every matrix. Default is mean.')
 
     LOGGER.clear()
@@ -468,8 +468,9 @@ def calcPerturbResponse(model, atoms=None, repeats=100, saveMatrix=False, \
         atoms.setData('prs_profile', response_matrix)
 
     if operation is None:
-        LOGGER.report('The full set of {0} repeat matrices cannot be saved' \
-                      ' or normalized at this point. Those options are ignored.')
+        LOGGER.info('Operation is None so all {0} repeats are output.' \
+                    ' This is not compatible with saving or normalizing' \
+                    ' at present.'.format(repeats))
         return response_matrix
 
     if saveMatrix == True:
@@ -634,7 +635,7 @@ def writePerturbResponsePDB(prs_matrix,pdbIn,**kwargs):
                       
         fileEffs.close()
         fileSens.close()
-        LOGGER.report('The effectiveness and sensitivity profiles were written' \
+        LOGGER.report('The effectiveness and sensitivity profiles were written', 
                        ' to {0} and {1}.'.format(file_effs_name,file_sens_name))
         return
 
@@ -646,7 +647,7 @@ def writePerturbResponsePDB(prs_matrix,pdbIn,**kwargs):
         chainNum = int(np.where(chains == chain[n])[0])
         chainAg = list(hv)[chainNum]
         if not resnum in chainAg.getResnums():
-            raise PRSMatrixParseError('A residue with number {0} was not found' \
+            raise PRSMatrixParseError('A residue with number {0} was not found', 
                                       ' in chain {1}'.format(resnum, chain[n]))
 
         resnum_matrix_offset = np.where(structure.getResnums() == \
@@ -667,7 +668,7 @@ def writePerturbResponsePDB(prs_matrix,pdbIn,**kwargs):
                      + '{:3.2f}'.format((prs_matrix[i][j])*10) + line[66:])
         fo.close()
         outFiles.append(fo)
-        LOGGER.report('Perturbation responses for specific residues were written' \
+        LOGGER.report('Perturbation responses for specific residues were written', 
                        ' to {0} and {1}.'.format(' '.join(outFiles)))
     return outFiles
 
