@@ -437,14 +437,15 @@ def calcPerturbResponse(model, atoms=None, repeats=100, saveOrig=False, \
         if type(operation) is str:
             if operation == 'all 3' or operation == 'all operations':
                 operationList = ['var','max','mea']
-            operationList = []
-            operationList.append(operation.lower()[:3])
+            else:
+                operationList = []
+                operationList.append(operation.lower()[:3])
         elif type(operation) is list:
             operationList = operation
             for i in range(len(operationList)):
                 operationList[i] = operationList[i].lower()[:3]
 
-        operationList = np.array(operationList)
+        operationList = np.array(operationList) 
         matrix_set = np.zeros((len(operationList),n_atoms,n_atoms))
         found_valid_operation = False
 
@@ -458,7 +459,7 @@ def calcPerturbResponse(model, atoms=None, repeats=100, saveOrig=False, \
 
         if 'max' in operationList:
             found_valid_operation = True
-            max_response_matrix = np.zeros((n_atoms*n_atoms))
+            max_response_matrix = np.zeros((n_atoms, n_atoms))
             for i in range(n_atoms):
                 for j in range(n_atoms):
                     max_response_matrix[i,j] = np.max(response_matrix[:,i,j])
@@ -470,7 +471,7 @@ def calcPerturbResponse(model, atoms=None, repeats=100, saveOrig=False, \
             for i in range(n_atoms):
                 for j in range(n_atoms):
                     mean_response_matrix[i,j] = np.mean(response_matrix[:,i,j]) 
-            matrix_set[np.where(operationList == 'mea')[0][0]] = mea_response_matrix
+            matrix_set[np.where(operationList == 'mea')[0][0]] = mean_response_matrix
 
         if not found_valid_operation:
             raise ValueError('Operation should be mean, variance, max in quotes ' \
