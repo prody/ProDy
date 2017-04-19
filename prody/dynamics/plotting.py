@@ -914,6 +914,9 @@ def showPerturbResponse(**kwargs):
     :arg model: any object with a calcCovariance method
         e.g. :class:`.ANM` instance
     :type model: NMA
+
+    :arg atoms: a :class: `AtomGroup` instance
+    :type atoms: AtomGroup
     """
 
     import matplotlib.pyplot as plt
@@ -928,14 +931,13 @@ def showPerturbResponse(**kwargs):
             prs_matrix = calcPerturbResponse(**kwargs)
 
     effectiveness = kwargs.get('effectiveness')
+    sensitivity = kwargs.get('sensitivity')
     if effectiveness is None:
         effectiveness, sensitivity = calcPerturbResponseProfiles(prs_matrix)
 
-    sensitivity = kwargs.get('sensitivity')
-
     plt.figure()
     plt.subplot(2,2,1)
-    show = (plt.pcolor(prs_matrix))
+    show = (plt.pcolor(prs_matrix, cmap=kwargs.get('cmap',plt.cm.jet), norm=kwargs.get('norm')))
 
     atoms = kwargs.get('atoms')
     try:

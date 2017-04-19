@@ -570,9 +570,10 @@ def calcPerturbResponse(model, atoms=None, repeats=100, **kwargs):
 
     if atoms is not None: 
         atoms.setData('prs_profile', matrix_set[0])
-        LOGGER.info('Only one matrix can be added as data to atoms so' \
-                    ' the first one was chosen. The operation that generated' \
-                    ' it was {0} (1st 3 letters).'.format(operationList[0]))
+        if len(operationList) > 1:
+            LOGGER.info('Only one matrix can be added as data to atoms so' \
+                        ' the first one was chosen. The operation that generated' \
+                        ' it was {0} (1st 3 letters).'.format(operationList[0]))
 
     saveOrig = kwargs.get('saveOrig',False)
     saveMatrix = kwargs.get('saveMatrix',False)
