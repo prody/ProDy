@@ -19,7 +19,8 @@ from .mode import Mode, VectorBase, Vector
 from .modeset import ModeSet
 from .analysis import calcSqFlucts, calcProjection
 from .analysis import calcCrossCorr, calcPairDeformationDist
-from .analysis import calcFractVariance, calcCrossProjection
+from .analysis import calcFractVariance, calcCrossProjection 
+from .analysis import calcPerturbResponse, calcPerturbResponseProfiles
 from .compare import calcOverlap
 
 __all__ = ['showContactMap', 'showCrossCorr',
@@ -29,7 +30,8 @@ __all__ = ['showContactMap', 'showCrossCorr',
            'showCrossProjection', 'showEllipsoid', 'showSqFlucts',
            'showScaledSqFlucts', 'showNormedSqFlucts', 'resetTicks',
            'showDiffMatrix','showMechStiff','showNormDistFunct',
-           'showPairDeformationDist','showMeanMechStiff', ]
+           'showPairDeformationDist','showMeanMechStiff', 
+           'showPerturbResponse']
 
 
 def showEllipsoid(modes, onto=None, n_std=2, scale=1., *args, **kwargs):
@@ -890,4 +892,61 @@ def showMeanMechStiff(model, coords, header, chain='A', *args, **kwargs):
     if SETTINGS['auto_show']:
         showFigure()
     return plt.show
+
+def showPerturbResponse(**kwargs):
+    """ Plot the PRS matrix with the profiles along the right and bottom.
+
+    If no PRS matrix or profiles are provided, these will be calculated first
+    using the provided options using a provided model object (e.g. ANM, GNM or EDA).
+    If atoms are provided then residue numbers can be used from there.
+    *model* and *atoms* must have the same number of atoms. *atoms* must be an
+    :class:`.AtomGroup` instance.
+
+    :arg prs_matrix: a perturbation response matrix
+    :type prs_matrix: ndarray
+
+    :arg effectiveness: an effectiveness profile from a PRS matrix
+    :type effectiveness: list
+
+    :arg sensitivity: a sensitivity profile from a PRS matrix
+    :type sensitivity: list
+
+    :arg model: any object with a calcCovariance method
+        e.g. :class:`.ANM` instance
+    :type model: NMA
+
+    :arg atoms: a :class: `AtomGroup` instance
+    :type atoms: AtomGroup
+    """
+
+    import matplotlib.pyplot as plt
+    import matplotlib
+
+    prs_matrix = kwargs.get('prs_matrix')
+    if prs_matrix is None:
+        model = kwargs.get('model')
+        if model is None:
+            raise ValueError('Please provide a PRS matrix or model.')
+        else:
+            prs_matrix = calcPerturbResponse(**kwargs)
+
+    effectiveness = kwargs.get('effectiveness')
+    sensitivity = kwargs.get('sensitivity')
+    if effectiveness is None:
+        effectiveness, sensitivity = calcPerturbResponseProfiles(prs_matrix)
+
+    plt.figure()
+    plt.subplot(2,2,1)
+    show = (plt.pcolor(prs_matrix, cmap=kwargs.get('cmap',plt.cm.jet), norm=kwargs.get('norm')))
+
+    atoms = kwargs.get('atoms')
+    try:
+       resnum_axis = atoms.getResnums()
+    except:
+       resnum_axis = range(len(prs_matrix))
+
+    plt.subplot(2,2,2); plt.plot(effectiveness,resnum_axis)
+    plt.subplot(2,2,3); plt.plot(resnum_axis,sensitivity)
+
+    return show 
 
