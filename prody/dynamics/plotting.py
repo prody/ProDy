@@ -935,18 +935,13 @@ def showPerturbResponse(**kwargs):
     if effectiveness is None:
         effectiveness, sensitivity = calcPerturbResponseProfiles(prs_matrix)
 
-    plt.figure()
-    plt.subplot(2,2,1)
-    show = (plt.pcolor(prs_matrix, cmap=kwargs.get('cmap',plt.cm.jet), norm=kwargs.get('norm')))
+    fig = plt.figure()
+    plt.subplot(2,2,1) 
+    show = (plt.pcolor(prs_matrix, cmap=kwargs.get('cmap', plt.cm.jet), \
+                                   norm=kwargs.get('norm')))
 
-    atoms = kwargs.get('atoms')
-    try:
-       resnum_axis = atoms.getResnums()
-    except:
-       resnum_axis = range(len(prs_matrix))
+    plt.subplot(2,2,2); plt.plot(effectiveness,range(len(effectiveness)))
+    plt.subplot(2,2,3); plt.plot(range(len(sensitivity)),sensitivity)
 
-    plt.subplot(2,2,2); plt.plot(effectiveness,resnum_axis)
-    plt.subplot(2,2,3); plt.plot(resnum_axis,sensitivity)
-
-    return show 
+    return prs_matrix, effectiveness, sensitivity, fig
 

@@ -403,6 +403,11 @@ def calcPerturbResponse(model, atoms=None, repeats=100, **kwargs):
         any set of them.
     :type operation: str or list
 
+    :arg useCovariance: whether to use the covariance matrix directly rather
+        than applying forces. This appears to be equivalent when scanning for
+        response magnitudes and will be much quicker. Default is False for now.
+    :type useCovariance: bool
+
     :arg normMatrix: whether to normalise the single response matrix by
         dividing each row by its diagonal, Default is False, we recommend true
     :type normMatrix: bool
@@ -426,9 +431,6 @@ def calcPerturbResponse(model, atoms=None, repeats=100, **kwargs):
         or 'all'. Default is 'all'; Using other directions requires atoms.
     :type acceptDirection: str
     """
-    # Next plan: add directions based on principle axes of atoms
-    #'long' or '1st' for the long principle axis, or '2nd' for 2nd longest
-    #principle axis, or '3rd' or 'short' for the short principle axis.
 
     if not isinstance(model, NMA):
         raise TypeError('model must be an NMA instance')
@@ -447,126 +449,151 @@ def calcPerturbResponse(model, atoms=None, repeats=100, **kwargs):
     if cov is None:
         raise ValueError('model did not return a covariance matrix')
 
-    acceptDirection = kwargs.get('acceptDirection','all')
-    if acceptDirection is not 'all':
-        if atoms is None:
-            acceptDirection = 'all'
-            LOGGER.info('A specific direction for accepting forces was' \
-                        ' provided without an atoms object. This direction' \
-                        ' will be ignored and all forces will be accepted.')
-        else:
-            coords = atoms.getCoords()
-            atoms_center = array([np.mean(coords[:,0]), np.mean(coords[:,1]), \
-                                 np.mean(coords[:,2])])
-
     n_atoms = model.numAtoms()
-    response_matrix = np.zeros((repeats, n_atoms, n_atoms))
-    LOGGER.progress('Calculating perturbation response', n_atoms, '_prody_prs')
-    i3 = -3
-    i3p3 = 0
-    for i in range(n_atoms):
-        i3 += 3
-        i3p3 += 3
-        forces = np.random.rand(repeats * 3).reshape((repeats, 3))
-        forces /= ((forces**2).sum(1)**0.5).reshape((repeats, 1))
-        for n in range(repeats):
-            force = forces[n]
 
-            if acceptDirection is 'in' or acceptDirection is 'out':
-                res_coords = atoms.getCoords()[i]
-                vec_to_center = atoms_center - res_coords
-                vec_to_center /= (((atoms_center - res_coords)**2).sum()**0.5)
-                force_overlap = np.dot(force,vec_to_center)
+    useCovariance = kwargs.get('useCovariance',False)
+    if useCovariance is True:
 
-                if acceptDirection is 'in' and force_overlap < 0:
-                    force *= -1
-
-                if acceptDirection is 'out' and force_overlap > 0:
-                    force *= -1
-
-            response_matrix[n,i,:] = (
-                np.dot(cov[:, i3:i3p3], force)
-                ** 2).reshape((n_atoms, 3)).sum(1)
-        LOGGER.update(i, '_prody_prs')
-
-    LOGGER.clear()
-    LOGGER.report('Perturbation response scanning completed in %.1fs.',
-                  '_prody_prs')
-
-    operation = kwargs.get('operation','mea')
-
-    if operation is not None:
-        if type(operation) is str:
-            if operation == 'all' or operation == 'all operations':
-                operationList = ['var','mea','max','min','dif']
-            else:
-                operationList = []
-                operationList.append(operation.lower()[:3])
-        elif type(operation) is list:
-            operationList = operation
-            for i in range(len(operationList)):
-                operationList[i] = operationList[i].lower()[:3]
-
-        operationList = np.array(operationList) 
-        matrix_set = np.zeros((len(operationList),n_atoms,n_atoms))
-        found_valid_operation = False
-
-        if 'var' in operationList:
-            found_valid_operation = True
-            var_response_matrix = np.zeros((n_atoms, n_atoms))
-            for i in range(n_atoms):
-                for j in range(n_atoms):
-                    var_response_matrix[i,j] = np.var(response_matrix[:,i,j])
-            matrix_set[np.where(operationList == 'var')[0][0]] = var_response_matrix
-
-        if 'max' in operationList:
-            found_valid_operation = True
-            max_response_matrix = np.zeros((n_atoms, n_atoms))
-            for i in range(n_atoms):
-                for j in range(n_atoms):
-                    max_response_matrix[i,j] = np.max(response_matrix[:,i,j])
-            matrix_set[np.where(operationList == 'max')[0][0]] = max_response_matrix
-
-        if 'mea' in operationList:
-            found_valid_operation = True
-            mean_response_matrix = np.zeros((n_atoms, n_atoms))
-            for i in range(n_atoms):
-                for j in range(n_atoms):
-                    mean_response_matrix[i,j] = np.mean(response_matrix[:,i,j]) 
-            matrix_set[np.where(operationList == 'mea')[0][0]] = mean_response_matrix
-
-        if 'min' in operationList:
-            found_valid_operation = True
-            min_response_matrix = np.zeros((n_atoms, n_atoms))
-            for i in range(n_atoms):
-                for j in range(n_atoms):
-                    min_response_matrix[i,j] = np.min(response_matrix[:,i,j])
-            matrix_set[np.where(operationList == 'min')[0][0]] = min_response_matrix
-
-        if 'dif' in operationList:
-            found_valid_operation = True
-            dif_response_matrix = np.zeros((n_atoms, n_atoms))
-            for i in range(n_atoms):
-                for j in range(n_atoms):
-                    dif_response_matrix[i,j] = response_matrix[np.where( \
-                    np.max(abs(response_matrix[:,i,j] - \
-                    ((cov[i*3:i*3+3, j*3:j*3+3])**2).sum()))),i,j]
-            matrix_set[np.where(operationList == 'dif')[0][0]] = dif_response_matrix
-
-
-        LOGGER.report('Perturbation response matrix operations completed in %.1fs.',
+        operationList = ['None']
+        LOGGER.progress('Calculating perturbation response', n_atoms, '_prody_prs')
+        matrix_set = np.zeros((1, n_atoms, n_atoms))
+        i3 = -3
+        i3p3 = 0
+        for i in range(n_atoms):
+            i3 += 3
+            i3p3 += 3
+            j3 = -3
+            j3p3 = 0
+            for j in range(n_atoms):
+                j3 += 3
+                j3p3 += 3
+                matrix_set[0,i,j] = ((cov[i3:i3p3, j3:j3p3])**2).sum()
+ 
+        LOGGER.clear()
+        LOGGER.report('Perturbation response scanning completed in %.1fs.',
                       '_prody_prs')
 
-        if not found_valid_operation:
-            raise ValueError('Operation should be mean, variance, max, min or ' \
-                             'or difference (from covariance matrix) in quotes ' \
-                             'or a list containing a set of these or None.')
+    else:
 
-    if operation is None:
-        LOGGER.info('Operation is None so all {0} repeats are output.' \
-                    ' This is not compatible with saving, normalizing' \
-                    ' or mapping to atoms at present.'.format(repeats))
-        return response_matrix
+        acceptDirection = kwargs.get('acceptDirection','all')
+        if acceptDirection is not 'all':
+            if atoms is None:
+                acceptDirection = 'all'
+                LOGGER.info('A specific direction for accepting forces was' \
+                            ' provided without an atoms object. This direction' \
+                            ' will be ignored and all forces will be accepted.')
+            else:
+                coords = atoms.getCoords()
+                atoms_center = array([np.mean(coords[:,0]), np.mean(coords[:,1]), \
+                                 np.mean(coords[:,2])])
+ 
+        response_matrix = np.zeros((repeats, n_atoms, n_atoms))
+        LOGGER.progress('Calculating perturbation response', n_atoms, '_prody_prs')
+        i3 = -3
+        i3p3 = 0
+        for i in range(n_atoms):
+            i3 += 3
+            i3p3 += 3
+            forces = np.random.rand(repeats * 3).reshape((repeats, 3))
+            forces /= ((forces**2).sum(1)**0.5).reshape((repeats, 1))
+            for n in range(repeats):
+                force = forces[n]
+
+                if acceptDirection is 'in' or acceptDirection is 'out':
+                    res_coords = atoms.getCoords()[i]
+                    vec_to_center = atoms_center - res_coords
+                    vec_to_center /= (((atoms_center - res_coords)**2).sum()**0.5)
+                    force_overlap = np.dot(force,vec_to_center)
+
+                    if acceptDirection is 'in' and force_overlap < 0:
+                        force *= -1
+
+                    if acceptDirection is 'out' and force_overlap > 0:
+                        force *= -1
+
+                response_matrix[n,i,:] = (
+                    np.dot(cov[:, i3:i3p3], force)
+                    ** 2).reshape((n_atoms, 3)).sum(1)
+            LOGGER.update(i, '_prody_prs')
+
+        LOGGER.clear()
+        LOGGER.report('Perturbation response scanning completed in %.1fs.',
+                      '_prody_prs')
+
+        operation = kwargs.get('operation','mea')
+
+        if operation is not None:
+            if type(operation) is str:
+                if operation == 'all' or operation == 'all operations':
+                    operationList = ['var','mea','max','min','dif']
+                else:
+                    operationList = []
+                    operationList.append(operation.lower()[:3])
+            elif type(operation) is list:
+                operationList = operation
+                for i in range(len(operationList)):
+                    operationList[i] = operationList[i].lower()[:3]
+
+            operationList = np.array(operationList) 
+            matrix_set = np.zeros((len(operationList),n_atoms,n_atoms))
+            found_valid_operation = False
+
+            if 'var' in operationList:
+                found_valid_operation = True
+                var_response_matrix = np.zeros((n_atoms, n_atoms))
+                for i in range(n_atoms):
+                    for j in range(n_atoms):
+                        var_response_matrix[i,j] = np.var(response_matrix[:,i,j])
+                matrix_set[np.where(operationList == 'var')[0][0]] = var_response_matrix
+
+            if 'max' in operationList:
+                found_valid_operation = True
+                max_response_matrix = np.zeros((n_atoms, n_atoms))
+                for i in range(n_atoms):
+                    for j in range(n_atoms):
+                        max_response_matrix[i,j] = np.max(response_matrix[:,i,j])
+                matrix_set[np.where(operationList == 'max')[0][0]] = max_response_matrix
+
+            if 'mea' in operationList:
+                found_valid_operation = True
+                mean_response_matrix = np.zeros((n_atoms, n_atoms))
+                for i in range(n_atoms):
+                    for j in range(n_atoms):
+                        mean_response_matrix[i,j] = np.mean(response_matrix[:,i,j]) 
+                matrix_set[np.where(operationList == 'mea')[0][0]] = mean_response_matrix
+
+            if 'min' in operationList:
+                found_valid_operation = True
+                min_response_matrix = np.zeros((n_atoms, n_atoms))
+                for i in range(n_atoms):
+                    for j in range(n_atoms):
+                        min_response_matrix[i,j] = np.min(response_matrix[:,i,j])
+                matrix_set[np.where(operationList == 'min')[0][0]] = min_response_matrix
+
+            if 'dif' in operationList:
+                found_valid_operation = True
+                dif_response_matrix = np.zeros((n_atoms, n_atoms))
+                for i in range(n_atoms):
+                    for j in range(n_atoms):
+                        dif_response_matrix[i,j] = response_matrix[np.where( \
+                        np.max(abs(response_matrix[:,i,j] - \
+                        ((cov[i*3:i*3+3, j*3:j*3+3])**2).sum()))),i,j]
+                matrix_set[np.where(operationList == 'dif')[0][0]] = dif_response_matrix
+
+
+            LOGGER.report('Perturbation response matrix operations completed in %.1fs.',
+                          '_prody_prs')
+
+            if not found_valid_operation:
+                raise ValueError('Operation should be mean, variance, max, min or ' \
+                                 'or difference (from covariance matrix) in quotes ' \
+                                 'or a list containing a set of these or None.')
+
+        if operation is None:
+            LOGGER.info('Operation is None so all {0} repeats are output.' \
+                        ' This is not compatible with saving, normalizing' \
+                        ' or mapping to atoms at present.'.format(repeats))
+            return response_matrix
 
     if atoms is not None: 
         atoms.setData('prs_profile', matrix_set[0])
@@ -743,10 +770,12 @@ def writePerturbResponsePDB(prs_matrix,pdbIn,**kwargs):
         pdbOut = pdbOut2
 
     if resnum is None:
-        effectiveness, sensitivity = calcPerturbResponseProfiles(prs_matrix)
+        effectiveness, sensitivity = kwargs.get('effectiveness'), kwargs.get('sensitivity')
+        if effectiveness is None or sensitivity is None:
+            effectiveness, sensitivity = calcPerturbResponseProfiles(prs_matrix)
 
-        file_effs_name = '{0}_effectiveness.pdb'.format(pdbOut.split('.')[0])
-        file_sens_name = '{0}_sensitivity.pdb'.format(pdbOut.split('.')[0])
+        file_effs_name = '{0}_effectiveness.pdb'.format(pdbOut[0].split('_')[0])
+        file_sens_name = '{0}_sensitivity.pdb'.format(pdbOut[0].split('_')[0])
         fileEffs = open(file_effs_name,'w')
         fileSens = open(file_sens_name,'w')
 
