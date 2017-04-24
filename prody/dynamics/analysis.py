@@ -431,9 +431,6 @@ def calcPerturbResponse(model, atoms=None, repeats=100, **kwargs):
         or 'all'. Default is 'all'; Using other directions requires atoms.
     :type acceptDirection: str
     """
-    # Next plan: add directions based on principle axes of atoms
-    #'long' or '1st' for the long principle axis, or '2nd' for 2nd longest
-    #principle axis, or '3rd' or 'short' for the short principle axis.
 
     if not isinstance(model, NMA):
         raise TypeError('model must be an NMA instance')
@@ -462,7 +459,7 @@ def calcPerturbResponse(model, atoms=None, repeats=100, **kwargs):
         for i in range(n_atoms):
             i3 += 3
             i3p3 += 3
-            matrix_set[1,i,:] = (np.dot(cov[:, i3:i3p3])**2).sum()
+            matrix_set[1,i,:] = ((cov[:, i3:i3p3])**2).sum()
         LOGGER.report('Perturbation response scanning completed in %.1fs.',
                       '_prody_prs')
 
