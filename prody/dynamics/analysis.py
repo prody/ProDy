@@ -767,8 +767,8 @@ def writePerturbResponsePDB(prs_matrix,pdbIn,**kwargs):
     if resnum is None:
         effectiveness, sensitivity = calcPerturbResponseProfiles(prs_matrix)
 
-        file_effs_name = '{0}_effectiveness.pdb'.format(pdbOut.split('.')[0])
-        file_sens_name = '{0}_sensitivity.pdb'.format(pdbOut.split('.')[0])
+        file_effs_name = '{0}_effectiveness.pdb'.format(pdbOut[0].split('_')[0])
+        file_sens_name = '{0}_sensitivity.pdb'.format(pdbOut[0].split('_')[0])
         fileEffs = open(file_effs_name,'w')
         fileSens = open(file_sens_name,'w')
 
