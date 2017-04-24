@@ -935,7 +935,7 @@ def showPerturbResponse(**kwargs):
     if effectiveness is None:
         effectiveness, sensitivity = calcPerturbResponseProfiles(prs_matrix)
 
-    plt.figure()
+    fig = plt.figure()
     plt.subplot(2,2,1) 
     show = (plt.pcolor(prs_matrix, cmap=kwargs.get('cmap', plt.cm.jet), \
                                    norm=kwargs.get('norm')))
@@ -943,5 +943,5 @@ def showPerturbResponse(**kwargs):
     plt.subplot(2,2,2); plt.plot(effectiveness,range(len(effectiveness)))
     plt.subplot(2,2,3); plt.plot(range(len(sensitivity)),sensitivity)
 
-    return prs_matrix, effectiveness, sensitivity, show 
+    return prs_matrix, effectiveness, sensitivity, fig
 
