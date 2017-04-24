@@ -459,7 +459,7 @@ def calcPerturbResponse(model, atoms=None, repeats=100, **kwargs):
         for i in range(n_atoms):
             i3 += 3
             i3p3 += 3
-            matrix_set[1,i,:] = ((cov[:, i3:i3p3])**2).sum()
+            matrix_set[0,i,:] = ((cov[:, i3:i3p3])**2).sum()
         LOGGER.report('Perturbation response scanning completed in %.1fs.',
                       '_prody_prs')
 
