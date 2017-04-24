@@ -453,6 +453,9 @@ def calcPerturbResponse(model, atoms=None, repeats=100, **kwargs):
 
     useCovariance = kwargs.get('useCovariance',False)
     if useCovariance is True:
+
+        operationList = ['None']
+        LOGGER.progress('Calculating perturbation response', n_atoms, '_prody_prs')
         matrix_set = np.zeros((1, n_atoms, n_atoms))
         i3 = -3
         i3p3 = 0
@@ -460,6 +463,8 @@ def calcPerturbResponse(model, atoms=None, repeats=100, **kwargs):
             i3 += 3
             i3p3 += 3
             matrix_set[0,i,:] = ((cov[:, i3:i3p3])**2).sum()
+ 
+        LOGGER.clear()
         LOGGER.report('Perturbation response scanning completed in %.1fs.',
                       '_prody_prs')
 
