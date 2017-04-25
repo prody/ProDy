@@ -782,7 +782,7 @@ def writePerturbResponsePDB(prs_matrix,pdbIn,**kwargs):
             else:
                 sel_line_res = structure.select('resid {0}'.format(line[22:26]))
                 j = np.where(structure.getResnums() == line[22:26])[0] \
-                    [np.where(sele_line_resnum.getChids() == line[21])[0][0]]
+                    [np.where(sel_line_resnum.getChids() == line[21])[0][0]]
                 fileEffs.write(line[:60] + ' '*(6-len('{:3.2f}'.format((effectiveness[j])*100))) \
                          + '{:3.2f}'.format((effectiveness[j])*100) + line[66:])
                 fileSens.write(line[:60] + ' '*(6-len('{:3.2f}'.format((sensitivity[j])*10))) \
@@ -824,7 +824,7 @@ def writePerturbResponsePDB(prs_matrix,pdbIn,**kwargs):
             else:
                 sel_line_res = structure.select('resid {0}'.format(line[22:26]))
                 j = np.where(structure.getResnums() == line[22:26])[0] \
-                    [np.where(sele_line_resnum.getChids() == line[21])[0][0]]
+                    [np.where(sel_line_resnum.getChids() == line[21])[0][0]]
                 fo.write(line[:60] + ' '*(6-len('{:3.2f}'.format((prs_matrix[i[n]][j])*10))) \
                          + '{:3.2f}'.format((prs_matrix[i[n]][j])*10) + line[66:])
         fo.close()
