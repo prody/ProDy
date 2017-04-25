@@ -707,8 +707,8 @@ def writePerturbResponsePDB(prs_matrix,pdbIn,**kwargs):
     If no chain is given this will be done for that residue in all chains.
     
     If no residue number is given then the effectiveness and sensitivity
-    profiles will be written out instead. These two profiles are also output 
-    as arrays for further analysis.
+    profiles will be written out instead. These two profiles are also returned
+    as arrays for further analysis if they aren't already provided.
 
     :arg prs_matrix: a perturbation response matrix
     :type prs_matrix: ndarray
