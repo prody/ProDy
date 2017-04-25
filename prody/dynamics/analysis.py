@@ -451,23 +451,26 @@ def calcPerturbResponse(model, atoms=None, repeats=100, **kwargs):
 
     n_atoms = model.numAtoms()
 
+    LOGGER.progress('Calculating perturbation response', n_atoms, '_prody_prs')
+
     useCovariance = kwargs.get('useCovariance',False)
     if useCovariance is True:
-
         operationList = ['None']
-        LOGGER.progress('Calculating perturbation response', n_atoms, '_prody_prs')
+        n_by_3n_matrix = np.zeros((n_atoms, 3 * n_atoms))
         matrix_set = np.zeros((1, n_atoms, n_atoms))
         i3 = -3
         i3p3 = 0
         for i in range(n_atoms):
             i3 += 3
             i3p3 += 3
-            j3 = -3
-            j3p3 = 0
-            for j in range(n_atoms):
-                j3 += 3
-                j3p3 += 3
-                matrix_set[0,i,j] = ((cov[i3:i3p3, j3:j3p3])**2).sum()
+            n_by_3n_matrix[i,:] = ((cov[i3:i3p3,:])**2).sum(0)
+
+        j3 = -3
+        j3p3 = 0
+        for j in range(n_atoms):
+            j3 += 3
+            j3p3 += 3                
+            matrix_set[0,:,j] = ((n_by_3n_matrix[:,j3:j3p3])**2).sum(1)
  
         LOGGER.clear()
         LOGGER.report('Perturbation response scanning completed in %.1fs.',
@@ -487,8 +490,7 @@ def calcPerturbResponse(model, atoms=None, repeats=100, **kwargs):
                 atoms_center = array([np.mean(coords[:,0]), np.mean(coords[:,1]), \
                                  np.mean(coords[:,2])])
  
-        response_matrix = np.zeros((repeats, n_atoms, n_atoms))
-        LOGGER.progress('Calculating perturbation response', n_atoms, '_prody_prs')
+        response_matrix = np.zeros((repeats, n_atoms, n_atoms)) 
         i3 = -3
         i3p3 = 0
         for i in range(n_atoms):
@@ -718,11 +720,10 @@ def writePerturbResponsePDB(prs_matrix,pdbIn,**kwargs):
     :arg pdbOutFiles: a list of file names (enclosed in square
         brackets) for the output PDB file, default is to append
         the chain and residue info (name and number) onto the pdbIn stem.
-        When multiple chains are to be used, a single file name can be 
-        entered as string (encloded in quotes) and the chain IDs will be
-        appended onto the pdbOut stem.
-        If no residue number is supplied, chain is ignored and it appends 
-        'effectiveness' and 'sensitivity' onto the pdbOut stem.
+        The input for pdbOut can also be used as a stem if you enter a 
+        single string enclosed in quotes.
+        If no residue number is supplied, chain is ignored and the default 
+        is to append '_effectiveness' and '_sensitivity' onto the stem.
     :type pdbOut: list
 
     :arg chain: chain identifier for the residue of interest, default is all chains
@@ -744,38 +745,21 @@ def writePerturbResponsePDB(prs_matrix,pdbIn,**kwargs):
     except:
         raise PRSMatrixParseError('Please provide a valid file name for the input PDB.')
 
-    chain = kwargs.get('chain', None)
-    structure = parsePDB(pdbIn).calpha
-    hv = structure.getHierView()
-    chains = []
-    for i in range(len(list(hv))):
-        chainAg = list(hv)[i]
-        chains.append(chainAg.getChids()[0])
-
-    chains = np.array(chains)
-    if chain is None:
-        chain = ''.join(chains)
-
     resnum = kwargs.get('resnum', None)
     pdbOut = kwargs.get('pdbOut', None)
     if pdbOut is None:
-        pdbOut = []
-        for c in chain:
-            pdbOut.append('{0}_{1}_{2}{3}.pdb'.format(pdbIn.split('.')[0], c, \
-                              structure.getResnames()[i], resnum))
+        stem = pdbIn.split('.')[0]
     elif type(pdbOut) is str:
-        pdbOut2 = []
-        for c in chain:
-            pdbOut2.append(pdbOut.split('.')[0] + '_' + c + pdbOut.split('.')[1])
-        pdbOut = pdbOut2
+        stem = pdbOut.split('.')[0]
+        pdbOut = None
 
     if resnum is None:
         effectiveness, sensitivity = kwargs.get('effectiveness'), kwargs.get('sensitivity')
         if effectiveness is None or sensitivity is None:
             effectiveness, sensitivity = calcPerturbResponseProfiles(prs_matrix)
 
-        file_effs_name = '{0}_effectiveness.pdb'.format(pdbOut[0].split('_')[0])
-        file_sens_name = '{0}_sensitivity.pdb'.format(pdbOut[0].split('_')[0])
+        file_effs_name = '{0}_effectiveness.pdb'.format(stem)
+        file_sens_name = '{0}_sensitivity.pdb'.format(stem)
         fileEffs = open(file_effs_name,'w')
         fileSens = open(file_sens_name,'w')
 
@@ -800,6 +784,30 @@ def writePerturbResponsePDB(prs_matrix,pdbIn,**kwargs):
         return effectiveness, sensitivity
 
     outFiles = []
+    chain = kwargs.get('chain', None)
+    structure = parsePDB(pdbIn).calpha
+    hv = structure.getHierView()
+    chains = []
+    for i in range(len(list(hv))):
+        chainAg = list(hv)[i]
+        chains.append(chainAg.getChids()[0])
+
+    chains = np.array(chains)
+    if chain is None:
+        chain = ''.join(chains)
+
+    if pdbOut is None:
+        pdbOut = []
+        resnum_matrix_offset = []
+        i = []
+        for n in range(len(chain)):
+            resnum_matrix_offset = (np.where(structure.getResnums() == \
+                                    chainAg.getResnums()[0])[0][chainNum] \
+                                    - chainAg.getResnums()[0])
+            i.append(resnum + resnum_matrix_offset)
+            pdbOut.append('{0}_{1}_{2}{3}.pdb'.format(stem, chain[n], \
+                              structure.getResnames()[i[n]], resnum))
+
     for n in range(len(chain)):
         if not chain[n] in chains:
             raise PRSMatrixParseError('Chain {0} was not found in {1}'.format(chain[n], pdbIn))
@@ -810,11 +818,6 @@ def writePerturbResponsePDB(prs_matrix,pdbIn,**kwargs):
             raise PRSMatrixParseError('A residue with number {0} was not found', 
                                       ' in chain {1}'.format(resnum, chain[n]))
 
-        resnum_matrix_offset = np.where(structure.getResnums() == \
-                                        chainAg.getResnums()[0])[0][chainNum] \
-                               - chainAg.getResnums()[0]
-        i = resnum + resnum_matrix_offset
-
         fo = open(pdbOut[n],'w')
         for line in lines:
             if line.find('ATOM') != 0:
@@ -824,13 +827,13 @@ def writePerturbResponsePDB(prs_matrix,pdbIn,**kwargs):
                                        [0][0] - structure.getResnums() \
                                        [np.where(structure.getChids() == line[21])[0][0]]
                 j = int(line.split()[5]) + resnum_matrix_offset
-            fo.write(line[:60] + ' '*(6-len('{:3.2f}'.format((prs_matrix[i][j])*10))) \
-                     + '{:3.2f}'.format((prs_matrix[i][j])*10) + line[66:])
+            fo.write(line[:60] + ' '*(6-len('{:3.2f}'.format((prs_matrix[i[n]][j])*10))) \
+                     + '{:3.2f}'.format((prs_matrix[i[n]][j])*10) + line[66:])
         fo.close()
         outFiles.append(fo)
         LOGGER.report('Perturbation responses for specific residues were written', 
-                       ' to {0} and {1}.'.format(' '.join(outFiles)))
-    return outFiles
+                       ' to {0} and {1}.'.format(', '.join(outFiles[:-1]),outFiles[-1]))
+    return
 
 
 def calcPairDeformationDist(model, coords, ind1, ind2, kbt=1.):
