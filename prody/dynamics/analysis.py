@@ -781,7 +781,7 @@ def writePerturbResponsePDB(prs_matrix,pdbIn,**kwargs):
                 fileSens.write(line)
             else:
                 sel_line_res = structure.select('resid {0}'.format(line[22:26]))
-                j = np.where(structure.getResnums() == line[22:26])[0] \
+                j = np.where(structure.getResnums() == int(line[22:26]))[0] \
                     [np.where(sel_line_res.getChids() == line[21])[0][0]]
                 fileEffs.write(line[:60] + ' '*(6-len('{:3.2f}'.format((effectiveness[j])*100))) \
                          + '{:3.2f}'.format((effectiveness[j])*100) + line[66:])
@@ -792,7 +792,11 @@ def writePerturbResponsePDB(prs_matrix,pdbIn,**kwargs):
         fileSens.close()
         LOGGER.info('The effectiveness and sensitivity profiles were written' \
                     ' to {0} and {1}.'.format(file_effs_name,file_sens_name))
-        return effectiveness, sensitivity
+
+        if kwargs.get('effectiveness') is None:
+            return effectiveness, sensitivity
+        else:
+            return
 
     outFiles = []
     timesNotFound = 0
@@ -823,7 +827,7 @@ def writePerturbResponsePDB(prs_matrix,pdbIn,**kwargs):
                 fo.write(line)
             else:
                 sel_line_res = structure.select('resid {0}'.format(line[22:26]))
-                j = np.where(structure.getResnums() == line[22:26])[0] \
+                j = np.where(structure.getResnums() == int(line[22:26]))[0] \
                     [np.where(sel_line_res.getChids() == line[21])[0][0]]
                 fo.write(line[:60] + ' '*(6-len('{:3.2f}'.format((prs_matrix[i[n]][j])*10))) \
                          + '{:3.2f}'.format((prs_matrix[i[n]][j])*10) + line[66:])
