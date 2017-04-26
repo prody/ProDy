@@ -742,6 +742,13 @@ def writePerturbResponsePDB(prs_matrix,pdbIn,**kwargs):
 
     :arg resnum: residue number for the residue of interest
     :type resnum: int
+
+    :arg direction: whether you want to write out to PDB
+        a row (the effect on each residue of peturbing the specified residue)
+        or a column (the response of the specified residue to perturbing each 
+        residue). Default is row.
+        If no residue number is provided then this option will be ignored
+    :type direction: str
     """
 
     if not type(prs_matrix) is np.ndarray:
@@ -775,7 +782,8 @@ def writePerturbResponsePDB(prs_matrix,pdbIn,**kwargs):
         pdbOut = None
 
     if resnum is None:
-        effectiveness, sensitivity = kwargs.get('effectiveness'), kwargs.get('sensitivity')
+        effectiveness = kwargs.get('effectiveness')
+        sensitivity = kwargs.get('sensitivity')
         if effectiveness is None or sensitivity is None:
             effectiveness, sensitivity = calcPerturbResponseProfiles(prs_matrix)
 
@@ -793,9 +801,9 @@ def writePerturbResponsePDB(prs_matrix,pdbIn,**kwargs):
                 j = np.where(structure.getResnums() == int(line[22:26]))[0] \
                     [np.where(sel_line_res.getChids() == line[21])[0][0]]
                 fileEffs.write(line[:60] + ' '*(6-len('{:3.2f}'.format((effectiveness[j])*100))) \
-                         + '{:3.2f}'.format((effectiveness[j])*100) + line[66:])
+                               + '{:3.2f}'.format((effectiveness[j])*100) + line[66:])
                 fileSens.write(line[:60] + ' '*(6-len('{:3.2f}'.format((sensitivity[j])*10))) \
-                         + '{:3.2f}'.format((sensitivity[j])*10) + line[66:])
+                               + '{:3.2f}'.format((sensitivity[j])*10) + line[66:])
                       
         fileEffs.close()
         fileSens.close()
@@ -809,6 +817,7 @@ def writePerturbResponsePDB(prs_matrix,pdbIn,**kwargs):
 
     outFiles = []
     timesNotFound = 0
+    direction = kwargs.get('direction','row')
     for n in range(len(chain)):
 
         if not chain[n] in chains:
@@ -823,11 +832,12 @@ def writePerturbResponsePDB(prs_matrix,pdbIn,**kwargs):
             timesNotFound += 1
             continue
 
-        if pdbOut is None:
-            pdbOut = []
+    if pdbOut is None:
+        pdbOut = []
+        for n in range(len(chain)):
             i = np.where(structure.getResnums() == resnum)[0][chainNum-timesNotFound]
-            pdbOut.append('{0}_{1}_{2}{3}.pdb'.format(stem, chain[n], \
-                              structure.getResnames()[i[n]], resnum))
+            pdbOut.append('{0}_{1}_{2}{3}_{4}.pdb'.format(stem, chain[n], \
+                              structure.getResnames()[i[n]], resnum, direction))
 
     for n in range(len(chain)):
         fo = open(pdbOut[n],'w')
@@ -838,8 +848,14 @@ def writePerturbResponsePDB(prs_matrix,pdbIn,**kwargs):
                 sel_line_res = structure.select('resid {0}'.format(line[22:26]))
                 j = np.where(structure.getResnums() == int(line[22:26]))[0] \
                     [np.where(sel_line_res.getChids() == line[21])[0][0]]
-                fo.write(line[:60] + ' '*(6-len('{:3.2f}'.format((prs_matrix[i[n]][j])*10))) \
+
+                if direction is 'row':
+                    fo.write(line[:60] + ' '*(6-len('{:3.2f}'.format((prs_matrix[i[n]][j])*10))) \
                          + '{:3.2f}'.format((prs_matrix[i[n]][j])*10) + line[66:])
+                else:
+                    fo.write(line[:60] + ' '*(6-len('{:3.2f}'.format((prs_matrix[j][i[n]])*10))) \
+                         + '{:3.2f}'.format((prs_matrix[j][i[n]])*10) + line[66:])
+
         fo.close()
         outFiles.append(fo)
         LOGGER.report('Perturbation responses for specific residues were written', 
