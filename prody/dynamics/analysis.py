@@ -8,7 +8,7 @@ import numpy as np
 
 from prody import LOGGER
 from prody.proteins import parsePDB
-from prody.atomic import AtomGroup
+from prody.atomic import AtomGroup, Selection
 from prody.ensemble import Ensemble, Conformation
 from prody.trajectory import TrajBase
 from prody.utilities import importLA
@@ -395,9 +395,9 @@ def calcPerturbResponse(model, atoms=None, repeats=100, **kwargs):
     the original matrix before normalisation as well.
 
     :arg operation: which operation to perform to get a single response matrix::
-        the mean, variance, max or min of the set of repeats. Another operation is
-        to select elements from the matrix showing biggest difference from the 
-        square sum of the covariance matrix. The Default operation is the mean.
+        the mean, variance, max or min of the set of repeats. Another operation 
+        is to select elements from the matrix showing biggest difference from 
+        the square sum of the covariance matrix. The Default is the mean.
         To obtain all response matrices, set operation=None without quotes.
         You can also ask for 'all' operations or provide a list containing
         any set of them.
@@ -438,7 +438,14 @@ def calcPerturbResponse(model, atoms=None, repeats=100, **kwargs):
         raise TypeError('model must be a 3-dimensional NMA instance')
     elif len(model) == 0:
         raise ValueError('model must have normal modes calculated')
+
     if atoms is not None:
+        if isinstance(atoms, Selection):
+            ag_atoms = AtomGroup('atoms from selection')
+            ag_atoms.setCoords(atoms.getCoords())
+            ag_atoms.setResnums(atoms.getResnums())
+            ag_atoms.setChids(atoms.getChids())
+            atoms = ag_atoms
         if not isinstance(atoms, AtomGroup):
             raise TypeError('atoms must be an AtomGroup instance')
         elif atoms.numAtoms() != model.numAtoms():
@@ -483,12 +490,14 @@ def calcPerturbResponse(model, atoms=None, repeats=100, **kwargs):
             if atoms is None:
                 acceptDirection = 'all'
                 LOGGER.info('A specific direction for accepting forces was' \
-                            ' provided without an atoms object. This direction' \
-                            ' will be ignored and all forces will be accepted.')
+                            ' provided without an atoms object. This' \
+                            ' direction will be ignored and all forces will' \
+                            ' be accepted.')
             else:
                 coords = atoms.getCoords()
-                atoms_center = array([np.mean(coords[:,0]), np.mean(coords[:,1]), \
-                                 np.mean(coords[:,2])])
+                atoms_center = array([np.mean(coords[:,0]), \
+                                      np.mean(coords[:,1]), \
+                                      np.mean(coords[:,2])])
  
         response_matrix = np.zeros((repeats, n_atoms, n_atoms)) 
         i3 = -3
