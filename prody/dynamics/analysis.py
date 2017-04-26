@@ -463,6 +463,7 @@ def calcPerturbResponse(model, atoms=None, repeats=100, **kwargs):
     useCovariance = kwargs.get('useCovariance',False)
     if useCovariance is True:
         operationList = ['None']
+        cov_squared = cov**2
         n_by_3n_matrix = np.zeros((n_atoms, 3 * n_atoms))
         matrix_set = np.zeros((1, n_atoms, n_atoms))
         i3 = -3
@@ -470,14 +471,14 @@ def calcPerturbResponse(model, atoms=None, repeats=100, **kwargs):
         for i in range(n_atoms):
             i3 += 3
             i3p3 += 3
-            n_by_3n_matrix[i,:] = ((cov[i3:i3p3,:])**2).sum(0)
+            n_by_3n_matrix[i,:] = (cov_squared[i3:i3p3,:]).sum(0)
 
         j3 = -3
         j3p3 = 0
         for j in range(n_atoms):
             j3 += 3
             j3p3 += 3                
-            matrix_set[0,:,j] = ((n_by_3n_matrix[:,j3:j3p3])**2).sum(1)
+            matrix_set[0,:,j] = (n_by_3n_matrix[:,j3:j3p3]).sum(1)
  
         LOGGER.clear()
         LOGGER.report('Perturbation response scanning completed in %.1fs.',
@@ -628,21 +629,21 @@ def calcPerturbResponse(model, atoms=None, repeats=100, **kwargs):
     if normMatrix == True:
         norm_PRS_mat = np.zeros((len(operationList),n_atoms,n_atoms))
         # calculate the normalized PRS matrix for each operation
-        for i in range(len(operationList)):
-            self_dp = np.diag(matrix_set[i])  # using self displacement (diagonal of
+        for m in range(len(operationList)):
+            self_dp = np.diag(matrix_set[m])  # using self displacement (diagonal of
                                               # the original matrix) as a
                                               # normalization factor
             self_dp = self_dp.reshape(n_atoms, 1)
-            norm_PRS_mat[i] = matrix_set[i] / np.repeat(self_dp, n_atoms, axis=1)
+            norm_PRS_mat[m] = matrix_set[m] / np.repeat(self_dp, n_atoms, axis=1)
 
             if suppressDiag == True:
                 # suppress the diagonal (self displacement) to facilitate
                 # visualizing the response profile
-                norm_PRS_mat[i] = norm_PRS_mat[i] - np.diag(np.diag(norm_PRS_mat[i]))
+                norm_PRS_mat[m] = norm_PRS_mat[m] - np.diag(np.diag(norm_PRS_mat[m]))
 
             if saveMatrix == True:
-                np.savetxt('norm_{0}_{1}.txt'.format(baseSaveName,operationList[i]), \
-                           norm_PRS_mat[i], delimiter='\t', fmt='%8.6f')
+                np.savetxt('norm_{0}_{1}.txt'.format(baseSaveName,operationList[m]), \
+                           norm_PRS_mat[m], delimiter='\t', fmt='%8.6f')
            
     if normMatrix == True:
         if np.shape(norm_PRS_mat)[0] == 1:
