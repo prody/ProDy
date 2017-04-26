@@ -722,11 +722,11 @@ def writePerturbResponsePDB(prs_matrix,pdbIn,**kwargs):
     :arg prs_matrix: a perturbation response matrix
     :type prs_matrix: ndarray
 
-    :arg pdbInFile: file name for the input PDB file where you would like the PRS
+    :arg pdbIn: file name for the input PDB file where you would like the PRS
         data mapped
     :type pdbIn: str
 
-    :arg pdbOutFiles: a list of file names (enclosed in square
+    :arg pdbOut: a list of file names (enclosed in square
         brackets) for the output PDB file, default is to append
         the chain and residue info (name and number) onto the pdbIn stem.
         The input for pdbOut can also be used as a stem if you enter a 
