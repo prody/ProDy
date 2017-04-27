@@ -15,9 +15,9 @@ __all__ = ['HierView']
 
 class HierView(object):
 
-    """Hierarchical views can be generated for :class:`.AtomGroup` and
-    :class:`.Selection` instances.  Indexing a :class:`HierView` instance
-    returns a :class:`.Chain`  instance.
+    """Hierarchical views can be generated for :class:`.AtomGroup`,
+    :class:`.Selection`, and :class:`.Chain` instances. Indexing a 
+    :class:`HierView` instance returns a :class:`.Chain` instance.
 
     Some :class:`object` methods are customized as follows:
 
@@ -42,8 +42,8 @@ class HierView(object):
 
     def __init__(self, atoms, **kwargs):
 
-        if not isinstance(atoms, (AtomGroup, Selection)):
-            raise TypeError('atoms must be an AtomGroup or Selection instance')
+        if not isinstance(atoms, (AtomGroup, Selection, Chain)):
+            raise TypeError('atoms must be an AtomGroup, Selection, or Chain instance')
 
         self._atoms = atoms
         self.update(**kwargs)
