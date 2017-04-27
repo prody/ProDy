@@ -180,3 +180,8 @@ class Chain(AtomSubset):
         else:
             return 'chain {0} and ({1})'.format(self.getChid(),
                                                 segment.getSelstr())
+
+    def getHierView(self, **kwargs):
+        """Returns a hierarchical view of the this chain."""
+
+        return HierView(self, **kwargs)
