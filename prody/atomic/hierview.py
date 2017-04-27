@@ -42,8 +42,8 @@ class HierView(object):
 
     def __init__(self, atoms, **kwargs):
 
-        if not isinstance(atoms, (AtomGroup, Selection)):
-            raise TypeError('atoms must be an AtomGroup or Selection instance')
+        if not isinstance(atoms, (AtomGroup, Selection, Chain)):
+            raise TypeError('atoms must be an AtomGroup, Selection, or Chain instance')
 
         self._atoms = atoms
         self.update(**kwargs)
