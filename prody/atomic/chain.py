@@ -4,7 +4,6 @@
 from numpy import arange, unique
 
 from .subset import AtomSubset
-from .atomic import HierView
 
 __all__ = ['Chain']
 
