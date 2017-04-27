@@ -219,7 +219,7 @@ void *allocmat(int rows, int columns, int size)
 
     *((int *)rp) = rows;
 
-    p = (char *)rp + sizeof(int);
+    p = (void **)((char *)rp + sizeof(int));
 
     for (i = 0; i < rows; i++)
 	if ((p[i] = calloc(columns, size)) == NULL)
