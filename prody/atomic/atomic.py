@@ -198,3 +198,11 @@ class Atomic(object):
         documentation for details and usage examples."""
 
         return SELECT.select(self, selstr, **kwargs)
+
+    def getTitle(self):
+        """Returns title of the instance."""
+        try:
+            ag = self.getAtomGroup()
+        except AttributeError:
+            ag = self
+        return ag._title
