@@ -22,9 +22,10 @@ are missing.  The following classes extend above to support this heterogeneity:
   * :class:`.PDBEnsemble`
   * :class:`.PDBConformation`
 
-Following functions are for editing PDB ensembles, e.g. finding and removing
-residues that are missing in too many structures:
-
+Following functions are for creating or editing PDB ensembles, e.g. finding and 
+removing residues that are missing in too many structures:
+  
+  * :func:`.buildPDBEnsemble`
   * :func:`.alignPDBEnsemble`
   * :func:`.calcOccupancies`
   * :func:`.showOccupancies`
