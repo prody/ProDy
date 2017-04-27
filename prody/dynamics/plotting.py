@@ -22,6 +22,7 @@ from .analysis import calcCrossCorr, calcPairDeformationDist
 from .analysis import calcFractVariance, calcCrossProjection 
 from .analysis import calcPerturbResponse, calcPerturbResponseProfiles
 from .compare import calcOverlap
+from prody.atomic import AtomGroup, Selection
 
 __all__ = ['showContactMap', 'showCrossCorr',
            'showCumulOverlap', 'showFractVars',
@@ -897,7 +898,9 @@ def showPerturbResponse(**kwargs):
     """ Plot the PRS matrix with the profiles along the right and bottom.
 
     If no PRS matrix or profiles are provided, these will be calculated first
-    using the provided options using a provided model object (e.g. ANM, GNM or EDA).
+    using the provided options with a provided model (e.g. ANM, GNM or EDA).
+    So as to obtain different sensors and effectors, normMatrix=True by default.
+
     If atoms are provided then residue numbers can be used from there.
     *model* and *atoms* must have the same number of atoms. *atoms* must be an
     :class:`.AtomGroup` instance.
@@ -923,11 +926,13 @@ def showPerturbResponse(**kwargs):
     import matplotlib
 
     prs_matrix = kwargs.get('prs_matrix')
-    if prs_matrix is None:
-        model = kwargs.get('model')
+    model = kwargs.get('model')
+    if prs_matrix is None: 
         if model is None:
             raise ValueError('Please provide a PRS matrix or model.')
         else:
+            if kwargs.get('normMatrix') is None:
+                kwargs.set('normMatrix',True)
             prs_matrix = calcPerturbResponse(**kwargs)
 
     effectiveness = kwargs.get('effectiveness')
@@ -937,11 +942,43 @@ def showPerturbResponse(**kwargs):
 
     fig = plt.figure()
     plt.subplot(2,2,1) 
-    show = (plt.pcolor(prs_matrix, cmap=kwargs.get('cmap', plt.cm.jet), \
-                                   norm=kwargs.get('norm')))
+    show = plt.imshow(prs_matrix, cmap=kwargs.get('cmap', plt.cm.jet), \
+                      norm=kwargs.get('norm', None), aspect='auto', \
+                      origin='lower')
 
-    plt.subplot(2,2,2); plt.plot(effectiveness,range(len(effectiveness)))
-    plt.subplot(2,2,3); plt.plot(range(len(sensitivity)),sensitivity)
+    atoms = kwargs.get('atoms')
+    if atoms is not None:
+        if not isinstance(atoms, AtomGroup) and not isinstance(atoms, Selection):
+            raise TypeError('atoms must be an AtomGroup instance')
+        elif model is not None and atoms.numAtoms() != model.numAtoms():
+            raise ValueError('model and atoms must have the same number atoms')
 
-    return prs_matrix, effectiveness, sensitivity, fig
+        chain_colors = 'gcmyrwbk'
+        hv = atoms.getHierView()
+        borders = [0]
+        for n in range(len(list(hv))):
+            borders.append(borders[n] + len(list(hv)[n].getResnums()))
+
+            plt.subplot(2,2,2)
+            plt.barh(range(borders[n],borders[n+1]), \
+                     effectiveness[borders[n]:borders[n+1]], \
+                     color=chain_colors[n], \
+                     edgecolor=chain_colors[n])
+
+            plt.subplot(2,2,3)
+            plt.bar(range(borders[n],borders[n+1]), \
+                    sensitivity[borders[n]:borders[n+1]], \
+                    color=chain_colors[n], \
+                    edgecolor=chain_colors[n])
+
+    else:
+        plt.subplot(2,2,2); plt.bar(effectiveness,range(len(effectiveness)))
+        plt.subplot(2,2,3); plt.barh(sensitivity,range(len(sensitivity)))
+
+    if kwargs.get('effectiveness') is not None:
+        return fig
+    elif kwargs.get('prs_matrix') is not None:
+        return effectiveness, sensitivity, fig
+    else:
+        return prs_matrix, effectiveness, sensitivity, fig
 
