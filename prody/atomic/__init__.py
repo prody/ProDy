@@ -171,6 +171,7 @@ from . import functions
 from . import atomgroup
 from . import selection
 from . import chain
+from . import segment
 
 from .chain import AAMAP, getSequence
 
@@ -201,6 +202,8 @@ select.HierView = HierView
 selection.HierView = HierView
 
 chain.HierView = HierView
+
+segment.HierView = HierView
 
 import numpy as np
 
