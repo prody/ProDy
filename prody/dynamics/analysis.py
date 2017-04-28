@@ -403,10 +403,10 @@ def calcPerturbResponse(model, atoms=None, repeats=100, **kwargs):
         any set of them.
     :type operation: str or list
 
-    :arg useCovariance: whether to use the covariance matrix directly rather
+    :arg noForce: whether to use the covariance matrix directly rather
         than applying forces. This appears to be equivalent when scanning for
         response magnitudes and will be much quicker. Default is False for now.
-    :type useCovariance: bool
+    :type noForce: bool
 
     :arg normMatrix: whether to normalise the single response matrix by
         dividing each row by its diagonal, Default is False, we recommend true
@@ -441,11 +441,7 @@ def calcPerturbResponse(model, atoms=None, repeats=100, **kwargs):
 
     if atoms is not None:
         if isinstance(atoms, Selection):
-            ag_atoms = AtomGroup('atoms from selection')
-            ag_atoms.setCoords(atoms.getCoords())
-            ag_atoms.setResnums(atoms.getResnums())
-            ag_atoms.setChids(atoms.getChids())
-            atoms = ag_atoms
+            atoms = atoms.copy()
         if not isinstance(atoms, AtomGroup):
             raise TypeError('atoms must be an AtomGroup instance')
         elif atoms.numAtoms() != model.numAtoms():
@@ -457,15 +453,15 @@ def calcPerturbResponse(model, atoms=None, repeats=100, **kwargs):
         raise ValueError('model did not return a covariance matrix')
 
     n_atoms = model.numAtoms()
+    matrix_dict = {}
 
     LOGGER.progress('Calculating perturbation response', n_atoms, '_prody_prs')
 
-    useCovariance = kwargs.get('useCovariance',False)
-    if useCovariance is True:
-        operationList = ['None']
+    noForce = kwargs.get('noForce',False)
+    if noForce is True:
         cov_squared = cov**2
         n_by_3n_matrix = np.zeros((n_atoms, 3 * n_atoms))
-        matrix_set = np.zeros((1, n_atoms, n_atoms))
+        matrix_dict['noForce'] = np.zeros((n_atoms, n_atoms))
         i3 = -3
         i3p3 = 0
         for i in range(n_atoms):
@@ -478,7 +474,7 @@ def calcPerturbResponse(model, atoms=None, repeats=100, **kwargs):
         for j in range(n_atoms):
             j3 += 3
             j3p3 += 3                
-            matrix_set[0,:,j] = (n_by_3n_matrix[:,j3:j3p3]).sum(1)
+            matrix_dict['noForce'][:,j] = (n_by_3n_matrix[:,j3:j3p3]).sum(1)
  
         LOGGER.clear()
         LOGGER.report('Perturbation response scanning completed in %.1fs.',
@@ -500,14 +496,15 @@ def calcPerturbResponse(model, atoms=None, repeats=100, **kwargs):
                                       np.mean(coords[:,1]), \
                                       np.mean(coords[:,2])])
  
+        mag = kwargs.get('mag',1)
         response_matrix = np.zeros((repeats, n_atoms, n_atoms)) 
         i3 = -3
         i3p3 = 0
         for i in range(n_atoms):
             i3 += 3
             i3p3 += 3
-            forces = np.random.rand(repeats * 3).reshape((repeats, 3))
-            forces /= ((forces**2).sum(1)**0.5).reshape((repeats, 1))
+            forces = np.random.randn(repeats * 3).reshape((repeats, 3))
+            forces /= ((forces**2).sum(1)**0.5).reshape((repeats, 1)) * mag
             for n in range(repeats):
                 force = forces[n]
 
@@ -547,7 +544,7 @@ def calcPerturbResponse(model, atoms=None, repeats=100, **kwargs):
                     operationList[i] = operationList[i].lower()[:3]
 
             operationList = np.array(operationList) 
-            matrix_set = np.zeros((len(operationList),n_atoms,n_atoms))
+            matrix_dict = np.zeros((len(operationList),n_atoms,n_atoms))
             found_valid_operation = False
 
             if 'var' in operationList:
@@ -556,7 +553,7 @@ def calcPerturbResponse(model, atoms=None, repeats=100, **kwargs):
                 for i in range(n_atoms):
                     for j in range(n_atoms):
                         var_response_matrix[i,j] = np.var(response_matrix[:,i,j])
-                matrix_set[np.where(operationList == 'var')[0][0]] = var_response_matrix
+                matrix_dict['var'] = var_response_matrix
 
             if 'max' in operationList:
                 found_valid_operation = True
@@ -564,7 +561,7 @@ def calcPerturbResponse(model, atoms=None, repeats=100, **kwargs):
                 for i in range(n_atoms):
                     for j in range(n_atoms):
                         max_response_matrix[i,j] = np.max(response_matrix[:,i,j])
-                matrix_set[np.where(operationList == 'max')[0][0]] = max_response_matrix
+                matrix_dict['max'] = max_response_matrix
 
             if 'mea' in operationList:
                 found_valid_operation = True
@@ -572,7 +569,7 @@ def calcPerturbResponse(model, atoms=None, repeats=100, **kwargs):
                 for i in range(n_atoms):
                     for j in range(n_atoms):
                         mean_response_matrix[i,j] = np.mean(response_matrix[:,i,j]) 
-                matrix_set[np.where(operationList == 'mea')[0][0]] = mean_response_matrix
+                matrix_dict['mea'] = mean_response_matrix
 
             if 'min' in operationList:
                 found_valid_operation = True
@@ -580,7 +577,7 @@ def calcPerturbResponse(model, atoms=None, repeats=100, **kwargs):
                 for i in range(n_atoms):
                     for j in range(n_atoms):
                         min_response_matrix[i,j] = np.min(response_matrix[:,i,j])
-                matrix_set[np.where(operationList == 'min')[0][0]] = min_response_matrix
+                matrix_dict['min'] = min_response_matrix
 
             if 'dif' in operationList:
                 found_valid_operation = True
@@ -590,7 +587,7 @@ def calcPerturbResponse(model, atoms=None, repeats=100, **kwargs):
                         dif_response_matrix[i,j] = response_matrix[np.where( \
                         np.max(abs(response_matrix[:,i,j] - \
                         ((cov[i*3:i*3+3, j*3:j*3+3])**2).sum()))),i,j]
-                matrix_set[np.where(operationList == 'dif')[0][0]] = dif_response_matrix
+                matrix_dict['dif'] = dif_response_matrix
 
 
             LOGGER.report('Perturbation response matrix operations completed in %.1fs.',
@@ -608,11 +605,11 @@ def calcPerturbResponse(model, atoms=None, repeats=100, **kwargs):
             return response_matrix
 
     if atoms is not None: 
-        atoms.setData('prs_profile', matrix_set[0])
+        atoms.setData('prs_profile', matrix_dict[matrix_dict.keys()[0])
         if len(operationList) > 1:
             LOGGER.info('Only one matrix can be added as data to atoms so' \
                         ' the first one was chosen. The operation that generated' \
-                        ' it was {0} (1st 3 letters).'.format(operationList[0]))
+                        ' it was {0} (1st 3 letters).'.format(matrix_dict.keys()[0]))
 
     saveOrig = kwargs.get('saveOrig',False)
     saveMatrix = kwargs.get('saveMatrix',False)
@@ -622,19 +619,19 @@ def calcPerturbResponse(model, atoms=None, repeats=100, **kwargs):
 
     if saveOrig == True or saveMatrix == True and normMatrix == False:
        # save the original PRS matrix for each operation
-       for i in range(len(operationList)):
-           np.savetxt('orig_{0}_{1}.txt'.format(baseSaveName,operationList[i]), \
-                      matrix_set[i], delimiter='\t', fmt='%8.6f')
+       for m in matrix_dict.keys():
+           np.savetxt('orig_{0}_{1}.txt'.format(baseSaveName,m), \
+                      matrix_dict[m], delimiter='\t', fmt='%8.6f')
     
     if normMatrix == True:
-        norm_PRS_mat = np.zeros((len(operationList),n_atoms,n_atoms))
+        norm_PRS_mat = {}
         # calculate the normalized PRS matrix for each operation
-        for m in range(len(operationList)):
-            self_dp = np.diag(matrix_set[m])  # using self displacement (diagonal of
+        for m in matrix_dict.keys():
+            self_dp = np.diag(matrix_dict[m])  # using self displacement (diagonal of
                                               # the original matrix) as a
                                               # normalization factor
             self_dp = self_dp.reshape(n_atoms, 1)
-            norm_PRS_mat[m] = matrix_set[m] / np.repeat(self_dp, n_atoms, axis=1)
+            norm_PRS_mat[m] = matrix_dict[m] / np.repeat(self_dp, n_atoms, axis=1)
 
             if suppressDiag == True:
                 # suppress the diagonal (self displacement) to facilitate
@@ -642,17 +639,40 @@ def calcPerturbResponse(model, atoms=None, repeats=100, **kwargs):
                 norm_PRS_mat[m] = norm_PRS_mat[m] - np.diag(np.diag(norm_PRS_mat[m]))
 
             if saveMatrix == True:
-                np.savetxt('norm_{0}_{1}.txt'.format(baseSaveName,operationList[m]), \
+                np.savetxt('norm_{0}_{1}.txt'.format(baseSaveName,m), \
                            norm_PRS_mat[m], delimiter='\t', fmt='%8.6f')
-           
-    if normMatrix == True:
-        if np.shape(norm_PRS_mat)[0] == 1:
-            norm_PRS_mat = norm_PRS_mat.reshape(n_atoms,n_atoms)
-        return norm_PRS_mat
+
+    matrix_list = []
+    for m in matrix_dict.keys():
+        if normMatrix == True:
+            matrix_list.append(norm_PRS_mat[m])
+        else:
+            matrix_list.append(matrix_dict[m])
+    matrix_array = array(matrix_list)
+
+    if len(norm_PRS_mat) == 1:
+        matrix_array = norm_PRS_mat.reshape(n_atoms,n_atoms)
+
+    returnFormat = kwargs.get('returnFormat','array')
+    returnFormat = returnFormat.lower()
+    
+    if returnFormat is 'both':
+        LOGGER.info('You have requested return in both formats.' \
+                    ' Array comes first.')
+        return matrix_array, matrix_dict
+    elif returnFormat is 'array':
+        return matrix_array
+    elif 'dict' in returnFormat:
+        return matrix_dict
+    elif len(matrix_array) == 1:
+        LOGGER.info('You only have one matrix that has been returned ' \
+                    ' as an array (returnFormat has been ignored).')
+        return matrix_array.reshape(n_atoms,n_atoms)
     else:
-        if np.shape(matrix_set)[0] == 1:
-            matrix_set = matrix_set.reshape(n_atoms,n_atoms)
-        return matrix_set
+        LOGGER.info('You have not entered a valid return format.' \
+                    ' You have therefore been given an array of matrices,' \
+                    ' which you can split into individual matrices.')
+        return matrix_array
 
 def parsePerturbResponseMatrix(prs_matrix_file='prs_matrix.txt',normMatrix=True):
     """Parses a perturbation response matrix from a file into a numpy ndarray.

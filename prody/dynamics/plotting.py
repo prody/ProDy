@@ -940,8 +940,8 @@ def showPerturbResponse(**kwargs):
     if effectiveness is None:
         effectiveness, sensitivity = calcPerturbResponseProfiles(prs_matrix)
 
-    fig = plt.figure()
-    plt.subplot(2,2,1) 
+    plt.figure()
+    plt.subplot(2,2,1)
     show = plt.imshow(prs_matrix, cmap=kwargs.get('cmap', plt.cm.jet), \
                       norm=kwargs.get('norm', None), aspect='auto', \
                       origin='lower')
@@ -964,21 +964,23 @@ def showPerturbResponse(**kwargs):
                      effectiveness[borders[n]:borders[n+1]], \
                      color=chain_colors[n], \
                      edgecolor=chain_colors[n])
+            plt.axis([0,math.ceil(np.max(effectiveness)),0,borders[-1]])
 
             plt.subplot(2,2,3)
             plt.bar(range(borders[n],borders[n+1]), \
                     sensitivity[borders[n]:borders[n+1]], \
                     color=chain_colors[n], \
                     edgecolor=chain_colors[n])
+            plt.axis([0,borders[-1],0,math.ceil(np.max(sensitivity))])
 
     else:
         plt.subplot(2,2,2); plt.bar(effectiveness,range(len(effectiveness)))
         plt.subplot(2,2,3); plt.barh(sensitivity,range(len(sensitivity)))
 
     if kwargs.get('effectiveness') is not None:
-        return fig
+        return
     elif kwargs.get('prs_matrix') is not None:
-        return effectiveness, sensitivity, fig
+        return effectiveness, sensitivity
     else:
-        return prs_matrix, effectiveness, sensitivity, fig
+        return prs_matrix, effectiveness, sensitivity
 
