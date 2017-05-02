@@ -606,7 +606,7 @@ def calcPerturbResponse(model, atoms=None, repeats=100, **kwargs):
 
     if atoms is not None: 
         atoms.setData('prs_profile', matrix_dict[matrix_dict.keys()[0]])
-        if len(operationList) > 1:
+        if len(matrix_dict.keys()) > 1:
             LOGGER.info('Only one matrix can be added as data to atoms so' \
                         ' the first one was chosen. The operation that generated' \
                         ' it was {0} (1st 3 letters).'.format(matrix_dict.keys()[0]))
@@ -650,27 +650,22 @@ def calcPerturbResponse(model, atoms=None, repeats=100, **kwargs):
             matrix_list.append(matrix_dict[m])
     matrix_array = array(matrix_list)
 
-    if len(norm_PRS_mat) == 1:
-        matrix_array = norm_PRS_mat.reshape(n_atoms,n_atoms)
-
     returnFormat = kwargs.get('returnFormat','array')
     returnFormat = returnFormat.lower()
+
+    if len(matrix_array) == 1:
+        LOGGER.info('Output has been returned as a single matrix (an array).')
+        return matrix_array.reshape(n_atoms,n_atoms)
     
     if returnFormat is 'both':
         LOGGER.info('You have requested return in both formats.' \
                     ' Array comes first.')
         return matrix_array, matrix_dict
-    elif returnFormat is 'array':
-        return matrix_array
     elif 'dict' in returnFormat:
+        LOGGER.info('Output has been returned as a dictionary of matrices.')
         return matrix_dict
-    elif len(matrix_array) == 1:
-        LOGGER.info('You only have one matrix that has been returned ' \
-                    ' as an array (returnFormat has been ignored).')
-        return matrix_array.reshape(n_atoms,n_atoms)
     else:
-        LOGGER.info('You have not entered a valid return format.' \
-                    ' You have therefore been given an array of matrices,' \
+        LOGGER.info('Output has been returned as an array of matrices,' \
                     ' which you can split into individual matrices.')
         return matrix_array
 
