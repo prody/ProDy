@@ -23,6 +23,7 @@ from .analysis import calcFractVariance, calcCrossProjection
 from .analysis import calcPerturbResponse, calcPerturbResponseProfiles
 from .compare import calcOverlap
 from prody.atomic import AtomGroup, Selection
+from math import ceil
 
 __all__ = ['showContactMap', 'showCrossCorr',
            'showCumulOverlap', 'showFractVars',
@@ -964,14 +965,14 @@ def showPerturbResponse(**kwargs):
                      effectiveness[borders[n]:borders[n+1]], \
                      color=chain_colors[n], \
                      edgecolor=chain_colors[n])
-            plt.axis([0,math.ceil(np.max(effectiveness)),0,borders[-1]])
+            plt.axis([0,ceil(np.max(effectiveness)),0,borders[-1]])
 
             plt.subplot(2,2,3)
             plt.bar(range(borders[n],borders[n+1]), \
                     sensitivity[borders[n]:borders[n+1]], \
                     color=chain_colors[n], \
                     edgecolor=chain_colors[n])
-            plt.axis([0,borders[-1],0,math.ceil(np.max(sensitivity))])
+            plt.axis([0,borders[-1],0,ceil(np.max(sensitivity))])
 
     else:
         plt.subplot(2,2,2); plt.bar(effectiveness,range(len(effectiveness)))
