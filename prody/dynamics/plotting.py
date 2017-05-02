@@ -448,6 +448,7 @@ def showOverlapTable(modes_x, modes_y, **kwargs):
 
     cmap = kwargs.pop('cmap', plt.cm.jet)
     norm = kwargs.pop('norm', matplotlib.colors.Normalize(0, 1))
+    plt.figure()
     show = (plt.pcolor(overlap, cmap=cmap, norm=norm, **kwargs),
             plt.colorbar())
     x_range = np.arange(1, modes_x.numModes() + 1)

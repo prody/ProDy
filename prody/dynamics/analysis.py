@@ -816,10 +816,10 @@ def writePerturbResponsePDB(prs_matrix,pdbIn,**kwargs):
                 sel_line_res = structure.select('resid {0}'.format(line[22:26]))
                 j = np.where(structure.getResnums() == int(line[22:26]))[0] \
                     [np.where(sel_line_res.getChids() == line[21])[0][0]]
-                fileEffs.write(line[:60] + ' '*(6-len('{:3.2f}'.format((effectiveness[j])*100))) \
-                               + '{:3.2f}'.format((effectiveness[j])*100) + line[66:])
-                fileSens.write(line[:60] + ' '*(6-len('{:3.2f}'.format((sensitivity[j])*10))) \
-                               + '{:3.2f}'.format((sensitivity[j])*10) + line[66:])
+                fileEffs.write(line[:60] + ' '*(6-len('{:3.2f}'.format((effectiveness[j]*100/np.max(effectiveness))))) \
+                               + '{:3.2f}'.format((effectiveness[j])*100/np.max(effectiveness)) + line[66:])
+                fileSens.write(line[:60] + ' '*(6-len('{:3.2f}'.format((sensitivity[j]*100/np.max(sensitivity))))) \
+                               + '{:3.2f}'.format((sensitivity[j])*100/np.max(effectiveness)) + line[66:])
                       
         fileEffs.close()
         fileSens.close()
