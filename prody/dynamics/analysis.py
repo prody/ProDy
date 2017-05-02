@@ -605,7 +605,7 @@ def calcPerturbResponse(model, atoms=None, repeats=100, **kwargs):
             return response_matrix
 
     if atoms is not None: 
-        atoms.setData('prs_profile', matrix_dict[matrix_dict.keys()[0])
+        atoms.setData('prs_profile', matrix_dict[matrix_dict.keys()[0]])
         if len(operationList) > 1:
             LOGGER.info('Only one matrix can be added as data to atoms so' \
                         ' the first one was chosen. The operation that generated' \
