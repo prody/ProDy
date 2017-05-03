@@ -449,16 +449,15 @@ def calcPerturbResponse(model, atoms=None, repeats=100, **kwargs):
         elif atoms.numAtoms() != model.numAtoms():
             raise ValueError('model and atoms must have the same number atoms')
 
+    n_atoms = model.numAtoms()
+    LOGGER.progress('Calculating perturbation response', n_atoms, '_prody_prs')
+
     assert isinstance(repeats, int), 'repeats must be an integer'
     cov = calcCovariance(model)
     if cov is None:
         raise ValueError('model did not return a covariance matrix')
 
-    n_atoms = model.numAtoms()
     matrix_dict = {}
-
-    LOGGER.progress('Calculating perturbation response', n_atoms, '_prody_prs')
-
     if noForce is True:
         if not model.is3d():
             matrix_dict['noForce'] = cov**2
@@ -814,7 +813,7 @@ def writePerturbResponsePDB(prs_matrix,pdbIn,**kwargs):
         fileSens = open(file_sens_name,'w')
 
         for line in lines:            
-            if line.find('ATOM') != 0 and line.find('HETATM') != 0 or line.find('ANISOU') != 0:
+            if line.find('ATOM') != 0 and line.find('HETATM') != 0 and line.find('ANISOU') != 0:
                 fileEffs.write(line)                    
                 fileSens.write(line)
             elif line.find('ATOM') == 0:
@@ -828,10 +827,10 @@ def writePerturbResponsePDB(prs_matrix,pdbIn,**kwargs):
                 fileSens.write(line[:60] + ' '*(6-len('{:3.2f}'.format((\
                                sensitivity[j]*100/np.max(sensitivity))))) \
                                + '{:3.2f}'.format((sensitivity[j]) \
-                               *100/np.max(effectiveness)) + line[66:])
+                               *100/np.max(sensitivity)) + line[66:])
             elif line.find('HETATM') == 0:
-                fileEffs.write(line[:60] + ' '*3 + '0.00' + line[66:])
-                fileSens.write(line[:60] + ' '*3 + '0.00' + line[66:])
+                fileEffs.write(line[:60] + ' '*2 + '0.00' + line[66:])
+                fileSens.write(line[:60] + ' '*2 + '0.00' + line[66:])
                       
         fileEffs.close()
         fileSens.close()
