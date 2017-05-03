@@ -431,11 +431,13 @@ def calcPerturbResponse(model, atoms=None, repeats=100, **kwargs):
         or 'all'. Default is 'all'; Using other directions requires atoms.
     :type acceptDirection: str
     """
+    noForce = kwargs.get('noForce',False)
 
     if not isinstance(model, NMA):
         raise TypeError('model must be an NMA instance')
-    elif not model.is3d():
-        raise TypeError('model must be a 3-dimensional NMA instance')
+    elif not model.is3d() and not noForce:
+        raise TypeError('model must be a 3-dimensional NMA instance' \
+                        'for using PRS with force')
     elif len(model) == 0:
         raise ValueError('model must have normal modes calculated')
 
@@ -457,24 +459,27 @@ def calcPerturbResponse(model, atoms=None, repeats=100, **kwargs):
 
     LOGGER.progress('Calculating perturbation response', n_atoms, '_prody_prs')
 
-    noForce = kwargs.get('noForce',False)
     if noForce is True:
-        cov_squared = cov**2
-        n_by_3n_matrix = np.zeros((n_atoms, 3 * n_atoms))
-        matrix_dict['noForce'] = np.zeros((n_atoms, n_atoms))
-        i3 = -3
-        i3p3 = 0
-        for i in range(n_atoms):
-            i3 += 3
-            i3p3 += 3
-            n_by_3n_matrix[i,:] = (cov_squared[i3:i3p3,:]).sum(0)
+        if not model.is3d():
+            matrix_dict['noForce'] = cov**2
 
-        j3 = -3
-        j3p3 = 0
-        for j in range(n_atoms):
-            j3 += 3
-            j3p3 += 3                
-            matrix_dict['noForce'][:,j] = (n_by_3n_matrix[:,j3:j3p3]).sum(1)
+        else:
+            cov_squared = cov**2
+            n_by_3n_matrix = np.zeros((n_atoms, 3 * n_atoms))
+            matrix_dict['noForce'] = np.zeros((n_atoms, n_atoms))
+            i3 = -3
+            i3p3 = 0
+            for i in range(n_atoms):
+                i3 += 3
+                i3p3 += 3
+                n_by_3n_matrix[i,:] = (cov_squared[i3:i3p3,:]).sum(0)
+
+            j3 = -3
+            j3p3 = 0
+            for j in range(n_atoms):
+                j3 += 3
+                j3p3 += 3                
+                matrix_dict['noForce'][:,j] = (n_by_3n_matrix[:,j3:j3p3]).sum(1)
  
         LOGGER.clear()
         LOGGER.report('Perturbation response scanning completed in %.1fs.',
