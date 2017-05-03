@@ -814,7 +814,7 @@ def writePerturbResponsePDB(prs_matrix,pdbIn,**kwargs):
         fileSens = open(file_sens_name,'w')
 
         for line in lines:            
-            if line.find('ATOM') != 0:  
+            if line.find('ATOM') != 0 and line.find('HETATM') != 0 and line.find('ANISOU') != 0:
                 fileEffs.write(line)                    
                 fileSens.write(line)
             else:
