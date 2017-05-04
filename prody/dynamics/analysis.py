@@ -432,6 +432,43 @@ def calcPerturbResponse(model, atoms=None, repeats=100, **kwargs):
     :type acceptDirection: str
     """
     noForce = kwargs.get('noForce',False)
+    if not noForce:
+        operation = kwargs.get('operation','mea')
+
+        if operation is not None:
+            if type(operation) is str:
+                if operation == 'all' or operation == 'all operations':
+                    operationList = ['var','mea','max','min','dif']
+                else:
+                    operationList = []
+                    operationList.append(operation.lower()[:3])
+            elif type(operation) is list:
+                operationList = operation
+                for i in range(len(operationList)):
+                    operationList[i] = operationList[i].lower()[:3]
+
+            operationList = np.array(operationList) 
+            found_valid_operation = False
+
+            if 'var' in operationList:
+                found_valid_operation = True
+
+            if 'max' in operationList:
+                found_valid_operation = True
+
+            if 'mea' in operationList:
+                found_valid_operation = True
+
+            if 'min' in operationList:
+                found_valid_operation = True
+
+            if 'dif' in operationList:
+                found_valid_operation = True
+
+            if not found_valid_operation:
+                raise ValueError('Operation should be mean, variance, max, min or ' \
+                                 'or difference (from covariance matrix) in quotes ' \
+                                 'or a list containing a set of these or None.')
 
     if not isinstance(model, NMA):
         raise TypeError('model must be an NMA instance')
@@ -464,29 +501,30 @@ def calcPerturbResponse(model, atoms=None, repeats=100, **kwargs):
     LOGGER.progress('Calculating perturbation response', n_atoms, '_prody_prs_mat')
     matrix_dict = {}
 
-    if not model.is3d():
-        n_by_n_cov = cov**2
+    if noForce or 'dif' in operationList:
+        if not model.is3d():
+            n_by_n_cov_squared = cov**2
 
-    else:
-        cov_squared = cov**2
-        n_by_3n_cov = np.zeros((n_atoms, 3 * n_atoms))
-        n_by_n_cov = np.zeros((n_atoms, n_atoms))
-        i3 = -3
-        i3p3 = 0
-        for i in range(n_atoms):
-            i3 += 3
-            i3p3 += 3
-            n_by_3n_cov[i,:] = (cov_squared[i3:i3p3,:]).sum(0)
+        else:
+            cov_squared = cov**2
+            n_by_3n_cov_squared = np.zeros((n_atoms, 3 * n_atoms))
+            n_by_n_cov_squared = np.zeros((n_atoms, n_atoms))
+            i3 = -3
+            i3p3 = 0
+            for i in range(n_atoms):
+                i3 += 3
+                i3p3 += 3
+                n_by_3n_cov_squared[i,:] = (cov_squared[i3:i3p3,:]).sum(0)
 
-        j3 = -3
-        j3p3 = 0
-        for j in range(n_atoms):
-            j3 += 3
-            j3p3 += 3                
-            n_by_n_cov[:,j] = (n_by_3n_cov[:,j3:j3p3]).sum(1)
+            j3 = -3
+            j3p3 = 0
+            for j in range(n_atoms):
+                j3 += 3
+                j3p3 += 3                
+                n_by_n_cov_squared[:,j] = (n_by_3n_cov_squared[:,j3:j3p3]).sum(1)
 
-    if noForce is True:
-        matrix_dict['noForce'] = n_by_n_cov 
+    if noForce:
+        matrix_dict['noForce'] = n_by_n_cov_squared
         LOGGER.clear()
         LOGGER.report('Perturbation response matrix calculated in %.1fs.',
                       '_prody_prs_mat')
@@ -542,58 +580,26 @@ def calcPerturbResponse(model, atoms=None, repeats=100, **kwargs):
 
         LOGGER.progress('Performing matrix combination operations', n_atoms, \
                         '_prody_prs_ops')
-        operation = kwargs.get('operation','mea')
-
-        if operation is not None:
-            if type(operation) is str:
-                if operation == 'all' or operation == 'all operations':
-                    operationList = ['var','mea','max','min','dif']
-                else:
-                    operationList = []
-                    operationList.append(operation.lower()[:3])
-            elif type(operation) is list:
-                operationList = operation
-                for i in range(len(operationList)):
-                    operationList[i] = operationList[i].lower()[:3]
-
-            operationList = np.array(operationList) 
-            matrix_dict = {}
-            found_valid_operation = False
 
             if 'var' in operationList:
-                found_valid_operation = True
-                var_response_matrix = np.var(response_matrix,axis=0)
-                matrix_dict['var'] = var_response_matrix
+                matrix_dict['var'] = np.var(response_matrix,axis=0) 
 
             if 'max' in operationList:
-                found_valid_operation = True
-                max_response_matrix = np.amax(response_matrix,axis=0)
-                matrix_dict['max'] = max_response_matrix
+                matrix_dict['max'] = np.amax(response_matrix,axis=0)
 
             if 'mea' in operationList:
-                found_valid_operation = True
-                mean_response_matrix = np.mean(response_matrix,axis=0) 
-                matrix_dict['mea'] = mean_response_matrix
+                matrix_dict['mea'] = np.mean(response_matrix,axis=0) 
 
             if 'min' in operationList:
-                found_valid_operation = True
-                min_response_matrix = np.amin(response_matrix,axis=0)
-                matrix_dict['min'] = min_response_matrix
+                matrix_dict['min'] = np.amin(response_matrix,axis=0)
 
             if 'dif' in operationList:
-                found_valid_operation = True
-                dif_response_matrix = np.max(abs(response_matrix - n_by_n_cov) \
-                                            ,axis=0)
-                matrix_dict['dif'] = dif_response_matrix
+                matrix_dict['dif'] = np.max(abs(response_matrix - \
+                                                n_by_n_cov_squared), axis=0) 
 
 
             LOGGER.report('Perturbation response matrix operations completed in %.1fs.',
                           '_prody_prs_ops')
-
-            if not found_valid_operation:
-                raise ValueError('Operation should be mean, variance, max, min or ' \
-                                 'or difference (from covariance matrix) in quotes ' \
-                                 'or a list containing a set of these or None.')
 
         if operation is None:
             LOGGER.info('Operation is None so all {0} repeats are output.' \
