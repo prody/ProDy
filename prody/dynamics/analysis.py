@@ -581,22 +581,21 @@ def calcPerturbResponse(model, atoms=None, repeats=100, **kwargs):
         LOGGER.progress('Performing matrix combination operations', n_atoms, \
                         '_prody_prs_ops')
 
-            if 'var' in operationList:
-                matrix_dict['var'] = np.var(response_matrix,axis=0) 
+        if 'var' in operationList:
+            matrix_dict['var'] = np.var(response_matrix,axis=0) 
 
-            if 'max' in operationList:
-                matrix_dict['max'] = np.amax(response_matrix,axis=0)
+        if 'max' in operationList:
+            matrix_dict['max'] = np.amax(response_matrix,axis=0)
 
-            if 'mea' in operationList:
-                matrix_dict['mea'] = np.mean(response_matrix,axis=0) 
+        if 'mea' in operationList:
+            matrix_dict['mea'] = np.mean(response_matrix,axis=0) 
 
-            if 'min' in operationList:
-                matrix_dict['min'] = np.amin(response_matrix,axis=0)
+        if 'min' in operationList:
+            matrix_dict['min'] = np.amin(response_matrix,axis=0)
 
-            if 'dif' in operationList:
-                matrix_dict['dif'] = np.max(abs(response_matrix - \
-                                                n_by_n_cov_squared), axis=0) 
-
+        if 'dif' in operationList:
+            matrix_dict['dif'] = np.max(abs(response_matrix - n_by_n_cov_squared) \
+                                       , axis=0)
 
             LOGGER.report('Perturbation response matrix operations completed in %.1fs.',
                           '_prody_prs_ops')
