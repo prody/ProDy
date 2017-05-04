@@ -538,6 +538,8 @@ def calcPerturbResponse(model, atoms=None, repeats=100, **kwargs):
         LOGGER.report('Perturbation response scanning matrix calculated in %.1fs.',
                       '_prody_prs_mat')
 
+        LOGGER.progress('Performing matrix combination operations', n_atoms, \
+                        '_prody_prs_ops')
         operation = kwargs.get('operation','mea')
 
         if operation is not None:
@@ -600,7 +602,7 @@ def calcPerturbResponse(model, atoms=None, repeats=100, **kwargs):
 
 
             LOGGER.report('Perturbation response matrix operations completed in %.1fs.',
-                          '_prody_prs_mat')
+                          '_prody_prs_ops')
 
             if not found_valid_operation:
                 raise ValueError('Operation should be mean, variance, max, min or ' \
