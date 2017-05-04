@@ -463,30 +463,32 @@ def calcPerturbResponse(model, atoms=None, repeats=100, **kwargs):
 
     LOGGER.progress('Calculating perturbation response', n_atoms, '_prody_prs_mat')
     matrix_dict = {}
+
+    if not model.is3d():
+        n_by_n_cov = cov**2
+
+    else:
+        cov_squared = cov**2
+        n_by_3n_cov = np.zeros((n_atoms, 3 * n_atoms))
+        n_by_n_cov = np.zeros((n_atoms, n_atoms))
+        i3 = -3
+        i3p3 = 0
+        for i in range(n_atoms):
+            i3 += 3
+            i3p3 += 3
+            n_by_3n_cov[i,:] = (cov_squared[i3:i3p3,:]).sum(0)
+
+        j3 = -3
+        j3p3 = 0
+        for j in range(n_atoms):
+            j3 += 3
+            j3p3 += 3                
+            n_by_n_cov[:,j] = (n_by_3n_cov[:,j3:j3p3]).sum(1)
+
     if noForce is True:
-        if not model.is3d():
-            matrix_dict['noForce'] = cov**2
-
-        else:
-            cov_squared = cov**2
-            n_by_3n_matrix = np.zeros((n_atoms, 3 * n_atoms))
-            matrix_dict['noForce'] = np.zeros((n_atoms, n_atoms))
-            i3 = -3
-            i3p3 = 0
-            for i in range(n_atoms):
-                i3 += 3
-                i3p3 += 3
-                n_by_3n_matrix[i,:] = (cov_squared[i3:i3p3,:]).sum(0)
-
-            j3 = -3
-            j3p3 = 0
-            for j in range(n_atoms):
-                j3 += 3
-                j3p3 += 3                
-                matrix_dict['noForce'][:,j] = (n_by_3n_matrix[:,j3:j3p3]).sum(1)
- 
+        matrix_dict['noForce'] = n_by_n_cov 
         LOGGER.clear()
-        LOGGER.report('Perturbation response scanning completed in %.1fs.',
+        LOGGER.report('Perturbation response matrix calculated in %.1fs.',
                       '_prody_prs_mat')
 
     else:
@@ -560,44 +562,28 @@ def calcPerturbResponse(model, atoms=None, repeats=100, **kwargs):
 
             if 'var' in operationList:
                 found_valid_operation = True
-                var_response_matrix = np.zeros((n_atoms, n_atoms))
-                for i in range(n_atoms):
-                    for j in range(n_atoms):
-                        var_response_matrix[i,j] = np.var(response_matrix[:,i,j])
+                var_response_matrix = np.var(response_matrix,axis=0)
                 matrix_dict['var'] = var_response_matrix
 
             if 'max' in operationList:
                 found_valid_operation = True
-                max_response_matrix = np.zeros((n_atoms, n_atoms))
-                for i in range(n_atoms):
-                    for j in range(n_atoms):
-                        max_response_matrix[i,j] = np.max(response_matrix[:,i,j])
+                max_response_matrix = np.amax(response_matrix,axis=0)
                 matrix_dict['max'] = max_response_matrix
 
             if 'mea' in operationList:
                 found_valid_operation = True
-                mean_response_matrix = np.zeros((n_atoms, n_atoms))
-                for i in range(n_atoms):
-                    for j in range(n_atoms):
-                        mean_response_matrix[i,j] = np.mean(response_matrix[:,i,j]) 
+                mean_response_matrix = np.mean(response_matrix,axis=0) 
                 matrix_dict['mea'] = mean_response_matrix
 
             if 'min' in operationList:
                 found_valid_operation = True
-                min_response_matrix = np.zeros((n_atoms, n_atoms))
-                for i in range(n_atoms):
-                    for j in range(n_atoms):
-                        min_response_matrix[i,j] = np.min(response_matrix[:,i,j])
+                min_response_matrix = np.amin(response_matrix,axis=0)
                 matrix_dict['min'] = min_response_matrix
 
             if 'dif' in operationList:
                 found_valid_operation = True
-                dif_response_matrix = np.zeros((n_atoms, n_atoms))
-                for i in range(n_atoms):
-                    for j in range(n_atoms):
-                        dif_response_matrix[i,j] = response_matrix[np.where( \
-                        np.max(abs(response_matrix[:,i,j] - \
-                        ((cov[i*3:i*3+3, j*3:j*3+3])**2).sum()))),i,j]
+                dif_response_matrix = np.max(abs(response_matrix - n_by_n_cov) \
+                                            axis=0)
                 matrix_dict['dif'] = dif_response_matrix
 
 
