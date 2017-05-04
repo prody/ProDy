@@ -853,8 +853,7 @@ def writePerturbResponsePDB(prs_matrix,pdbIn,**kwargs):
             return effectiveness, sensitivity
         else:
             return
-
-    outFiles = []
+ 
     timesNF = 0
     direction = kwargs.get('direction','row')
     for n in range(len(chain)):
@@ -901,10 +900,8 @@ def writePerturbResponsePDB(prs_matrix,pdbIn,**kwargs):
                              + '{:3.2f}'.format((prs_matrix[j][i]) \
                              *100/np.max(prs_matrix)) + line[66:])
 
-        fo.close()
-        outFiles.append(fo)
         LOGGER.report('Perturbation responses for specific residues were written', 
-                       ' to {0} and {1}.'.format(', '.join(outFiles[:-1]),outFiles[-1]))
+                       ' to {0}.'.format(', '.join(pdbOut)))
 
     return
 
