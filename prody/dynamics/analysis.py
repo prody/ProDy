@@ -450,6 +450,7 @@ def calcPerturbResponse(model, atoms=None, repeats=100, **kwargs):
             raise ValueError('model and atoms must have the same number atoms')
 
     n_atoms = model.numAtoms()
+    LOGGER.progress('Calculating covariance matrix', n_atoms, '_prody_prs_all')
     LOGGER.progress('Calculating covariance matrix', n_atoms, '_prody_cov')
 
     assert isinstance(repeats, int), 'repeats must be an integer'
@@ -460,7 +461,7 @@ def calcPerturbResponse(model, atoms=None, repeats=100, **kwargs):
     LOGGER.report('Covariance matrix calculated in %.1fs.',
                   '_prody_cov')
 
-    LOGGER.progress('Calculating perturbation response', n_atoms, '_prody_prs')
+    LOGGER.progress('Calculating perturbation response', n_atoms, '_prody_prs_mat')
     matrix_dict = {}
     if noForce is True:
         if not model.is3d():
@@ -486,7 +487,7 @@ def calcPerturbResponse(model, atoms=None, repeats=100, **kwargs):
  
         LOGGER.clear()
         LOGGER.report('Perturbation response scanning completed in %.1fs.',
-                      '_prody_prs')
+                      '_prody_prs_mat')
 
     else:
 
@@ -534,7 +535,7 @@ def calcPerturbResponse(model, atoms=None, repeats=100, **kwargs):
             LOGGER.update(i, '_prody_prs')
 
         LOGGER.clear()
-        LOGGER.report('Perturbation response scanning completed in %.1fs.',
+        LOGGER.report('Perturbation response scanning matrix calculated in %.1fs.',
                       '_prody_prs')
 
         operation = kwargs.get('operation','mea')
@@ -599,7 +600,7 @@ def calcPerturbResponse(model, atoms=None, repeats=100, **kwargs):
 
 
             LOGGER.report('Perturbation response matrix operations completed in %.1fs.',
-                          '_prody_prs')
+                          '_prody_prs_mat')
 
             if not found_valid_operation:
                 raise ValueError('Operation should be mean, variance, max, min or ' \
@@ -649,6 +650,9 @@ def calcPerturbResponse(model, atoms=None, repeats=100, **kwargs):
             if saveMatrix == True:
                 np.savetxt('norm_{0}_{1}.txt'.format(baseSaveName,m), \
                            norm_PRS_mat[m], delimiter='\t', fmt='%8.6f')
+
+    LOGGER.report('Perturbation response scanning completed in %.1fs.',
+                  '_prody_prs_all')
 
     matrix_list = []
     for m in matrix_dict.keys():
