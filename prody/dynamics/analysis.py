@@ -405,7 +405,7 @@ def calcPerturbResponse(model, atoms=None, repeats=100, **kwargs):
 
     :arg noForce: whether to use the covariance matrix directly rather
         than applying forces. This appears to be equivalent when scanning for
-        response magnitudes and will be much quicker. Default is False for now.
+        response magnitudes and will be much quicker. Default is True.
     :type noForce: bool
 
     :arg normMatrix: whether to normalise the single response matrix by
@@ -431,7 +431,7 @@ def calcPerturbResponse(model, atoms=None, repeats=100, **kwargs):
         or 'all'. Default is 'all'; Using other directions requires atoms.
     :type acceptDirection: str
     """
-    noForce = kwargs.get('noForce',False)
+    noForce = kwargs.get('noForce',True)
     if not noForce:
         operation = kwargs.get('operation','mea')
 
