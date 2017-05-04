@@ -855,7 +855,7 @@ def writePerturbResponsePDB(prs_matrix,pdbIn,**kwargs):
             return
 
     outFiles = []
-    timesNotFound = 0
+    timesNF = 0
     direction = kwargs.get('direction','row')
     for n in range(len(chain)):
         if not chain[n] in chains:
@@ -867,21 +867,20 @@ def writePerturbResponsePDB(prs_matrix,pdbIn,**kwargs):
             LOGGER.info('A residue with number {0} was not found',
                         ' in chain {1}. Continuing to next chain.' \
                         .format(resnum, chain[n]))
-            timesNotFound += 1
+            timesNF += 1
             continue
 
     if pdbOut is None:
         pdbOut = []
         for n in range(len(chain)):
             chainNum = int(np.where(chains == chain[n])[0])
-            i.append(np.where(structure.getResnums() == resnum)[0][chainNum - \
-                                                               timesNotFound])
+            i = np.where(structure.getResnums() == resnum)[0][chainNum-timesNF]
             pdbOut.append('{0}_{1}_{2}{3}_{4}.pdb'.format(out_stem, chain[n], \
-                           structure.getResnames()[i[n]], resnum, direction))
+                           structure.getResnames()[i], resnum, direction))
 
     for n in range(len(chain)):
         chainNum = int(np.where(chains == chain)[0])
-        i = np.where(structure.getResnums() == resnum)[0][chainNum-timesNotFound]
+        i = np.where(structure.getResnums() == resnum)[0][chainNum-timesNF]
         fo = open(pdbOut[n],'w')
         for line in lines:
             if line.find('ATOM') != 0:
@@ -893,13 +892,13 @@ def writePerturbResponsePDB(prs_matrix,pdbIn,**kwargs):
 
                 if direction is 'row':
                     fo.write(line[:60] + ' '*(6-len('{:3.2f}'.format(( \
-                             prs_matrix[i[n]][j])*100/np.max(prs_matrix)))) \
-                             + '{:3.2f}'.format((prs_matrix[i[n]][j]) \
+                             prs_matrix[i][j])*100/np.max(prs_matrix)))) \
+                             + '{:3.2f}'.format((prs_matrix[i][j]) \
                              *100/np.max(prs_matrix)) + line[66:])
                 else:
                     fo.write(line[:60] + ' '*(6-len('{:3.2f}'.format(( \
-                             prs_matrix[j][i[n]])*100/np.max(prs_matrix)))) \
-                             + '{:3.2f}'.format((prs_matrix[j][i[n]]) \
+                             prs_matrix[j][i])*100/np.max(prs_matrix)))) \
+                             + '{:3.2f}'.format((prs_matrix[j][i]) \
                              *100/np.max(prs_matrix)) + line[66:])
 
         fo.close()
