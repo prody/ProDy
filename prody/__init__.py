@@ -107,6 +107,11 @@ from .trajectory import *
 __all__.extend(trajectory.__all__)
 __all__.append('trajectory')
 
+from . import chromatin
+from .chromatin import *
+__all__.extend(chromatin.__all__)
+__all__.append('chromatin')
+
 #from . import comd
 #from .comd import *
 #__all__.extend(comd.__all__)

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""This module defines classes for handling atomic data.  Read this page using
+"""This module defines classes for handling atomic data. Read this page using
 ``help(atomic)``.
 
 .. _atomic:
