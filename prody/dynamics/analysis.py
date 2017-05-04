@@ -450,13 +450,17 @@ def calcPerturbResponse(model, atoms=None, repeats=100, **kwargs):
             raise ValueError('model and atoms must have the same number atoms')
 
     n_atoms = model.numAtoms()
-    LOGGER.progress('Calculating perturbation response', n_atoms, '_prody_prs')
+    LOGGER.progress('Calculating covariance matrix', n_atoms, '_prody_cov')
 
     assert isinstance(repeats, int), 'repeats must be an integer'
     cov = calcCovariance(model)
     if cov is None:
         raise ValueError('model did not return a covariance matrix')
 
+    LOGGER.report('Perturbation response scanning completed in %.1fs.',
+                  '_prody_cov')
+
+    LOGGER.progress('Calculating perturbation response', n_atoms, '_prody_prs')
     matrix_dict = {}
     if noForce is True:
         if not model.is3d():
