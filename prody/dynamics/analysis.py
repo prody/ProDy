@@ -882,9 +882,9 @@ def writePerturbResponsePDB(prs_matrix,pdbIn,**kwargs):
         i = np.where(structure.getResnums() == resnum)[0][chainNum-timesNF]
         fo = open(pdbOut[n],'w')
         for line in lines:
-            if line.find('ATOM') != 0:
+            if line.find('ATOM') != 0 and line.find('HETATM') != 0 and line.find('ANISOU') != 0:
                 fo.write(line)
-            else:
+            elif line.find('ATOM') == 0:
                 sel_line_res = structure.select('resid {0}'.format(line[22:26]))
                 j = np.where(structure.getResnums() == int(line[22:26]))[0] \
                     [np.where(sel_line_res.getChids() == line[21])[0][0]]
@@ -899,6 +899,8 @@ def writePerturbResponsePDB(prs_matrix,pdbIn,**kwargs):
                              prs_matrix[j][i])*100/np.max(prs_matrix)))) \
                              + '{:3.2f}'.format((prs_matrix[j][i]) \
                              *100/np.max(prs_matrix)) + line[66:])
+            elif line.find('HETATM') == 0:
+                fo.write(line[:60] + ' '*2 + '0.00' + line[66:])
 
         LOGGER.report('Perturbation responses for specific residues were written', 
                        ' to {0}.'.format(', '.join(pdbOut)))
