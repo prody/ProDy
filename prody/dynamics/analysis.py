@@ -816,9 +816,9 @@ def writePerturbResponsePDB(prs_matrix,pdbIn,**kwargs):
     resnum = kwargs.get('resnum', None)
     pdbOut = kwargs.get('pdbOut', None)
     if pdbOut is None:
-        stem = pdbIn.split('.')[0]
+        out_stem = pdbIn.split('.')[0]
     elif type(pdbOut) is str:
-        stem = pdbOut.split('.')[0]
+        out_stem = pdbOut.split('.')[0]
         pdbOut = None
 
     if resnum is None:
@@ -827,8 +827,8 @@ def writePerturbResponsePDB(prs_matrix,pdbIn,**kwargs):
         if effectiveness is None or sensitivity is None:
             effectiveness, sensitivity = calcPerturbResponseProfiles(prs_matrix)
 
-        file_effs_name = '{0}_effectiveness.pdb'.format(stem)
-        file_sens_name = '{0}_sensitivity.pdb'.format(stem)
+        file_effs_name = '{0}_effectiveness.pdb'.format(out_stem)
+        file_sens_name = '{0}_sensitivity.pdb'.format(out_stem)
         fileEffs = open(file_effs_name,'w')
         fileSens = open(file_sens_name,'w')
 
@@ -883,9 +883,10 @@ def writePerturbResponsePDB(prs_matrix,pdbIn,**kwargs):
         pdbOut = []
         for n in range(len(chain)):
             chainNum = int(np.where(chains == chain[n])[0])
-            i = np.where(structure.getResnums() == resnum)[0][chainNum-timesNotFound]
-            pdbOut.append('{0}_{1}_{2}{3}_{4}.pdb'.format(stem, chain[n], \
-                              structure.getResnames()[i[n]], resnum, direction))
+            i.append(np.where(structure.getResnums() == resnum)[0][chainNum - \
+                                                               timesNotFound])
+            pdbOut.append('{0}_{1}_{2}{3}_{4}.pdb'.format(out_stem, chain[n], \
+                           structure.getResnames()[i[n]], resnum, direction))
 
     for n in range(len(chain)):
         chainNum = int(np.where(chains == chain)[0])
