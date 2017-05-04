@@ -23,7 +23,6 @@ from .analysis import calcFractVariance, calcCrossProjection
 from .analysis import calcPerturbResponse, calcPerturbResponseProfiles
 from .compare import calcOverlap
 from prody.atomic import AtomGroup, Selection
-from math import ceil
 
 __all__ = ['showContactMap', 'showCrossCorr',
            'showCumulOverlap', 'showFractVars',
@@ -33,7 +32,7 @@ __all__ = ['showContactMap', 'showCrossCorr',
            'showScaledSqFlucts', 'showNormedSqFlucts', 'resetTicks',
            'showDiffMatrix','showMechStiff','showNormDistFunct',
            'showPairDeformationDist','showMeanMechStiff', 
-           'showPerturbResponse']
+           'showPerturbResponse', 'showPerturbResponseProfiles',]
 
 
 def showEllipsoid(modes, onto=None, n_std=2, scale=1., *args, **kwargs):
@@ -966,14 +965,15 @@ def showPerturbResponse(**kwargs):
                      effectiveness[borders[n]:borders[n+1]], \
                      color=chain_colors[n], \
                      edgecolor=chain_colors[n])
-            plt.axis([0,ceil(np.max(effectiveness)),0,borders[-1]])
 
             plt.subplot(2,2,3)
             plt.bar(range(borders[n],borders[n+1]), \
                     sensitivity[borders[n]:borders[n+1]], \
                     color=chain_colors[n], \
                     edgecolor=chain_colors[n])
-            plt.axis([0,borders[-1],0,ceil(np.max(sensitivity))])
+
+        plt.subplot(2,2,2); plt.axis([0,np.max(effectiveness),0,borders[-1]])
+        plt.subplot(2,2,3); plt.axis([0,borders[-1],0,np.max(sensitivity)])
 
     else:
         plt.subplot(2,2,2); plt.bar(effectiveness,range(len(effectiveness)))
@@ -986,3 +986,145 @@ def showPerturbResponse(**kwargs):
     else:
         return prs_matrix, effectiveness, sensitivity
 
+def showPerturbResponseProfiles(prs_matrix,atoms,**kwargs):
+    """Plot as a line graph the average response to perturbation of
+    a particular residue (a row of a perturbation response matrix)
+    or the average effect of perturbation of a particular residue
+    (a column of a normalized perturbation response matrix).
+
+    If no PRS matrix or profiles are provided, these will be calculated first
+    using the provided options with a provided model (e.g. ANM, GNM or EDA).
+    So as to obtain different sensitivity and effectiveness, normMatrix=True by default.
+
+    If no residue number is given then the effectiveness and sensitivity
+    profiles will be plotted instead. These two profiles are also returned
+    as arrays for further analysis if they aren't already provided.
+
+    :arg prs_matrix: a perturbation response matrix
+    :type prs_matrix: ndarray
+
+    :arg atoms: a :class: `AtomGroup` instance for matching 
+        residue numbers and chain IDs. 
+    :type atoms: AtomGroup
+
+    :arg effectiveness: an effectiveness profile from a PRS matrix
+    :type effectiveness: list
+
+    :arg sensitivity: a sensitivity profile from a PRS matrix
+    :type sensitivity: list
+
+    :arg model: any object with a calcCovariance method
+        e.g. :class:`.ANM` instance
+        *model* and *atoms* must have the same number of atoms.
+    :type model: NMA
+
+    :arg chain: chain identifier for the residue of interest
+        default is to make a plot for each chain in the protein
+    :type chain: str
+
+    :arg resnum: residue number for the residue of interest
+    :type resnum: int
+
+    :arg direction: the direction you want to use to read data out
+        of the PRS matrix for plotting: the options are 'row' or 'column'.
+        Default is 'row'.
+        A row gives the effect on each residue of peturbing the specified 
+        residue.
+        A column gives the response of the specified residue to perturbing 
+        each residue.
+        If no residue number is provided then this option will be ignored
+    :type direction: str
+    """
+    import matplotlib.pyplot as plt
+    import matplotlib
+
+    model = kwargs.get('model')
+    if not type(prs_matrix) is np.ndarray:
+        if prs_matrix is None:
+            if model is None:
+                raise ValueError('Please provide a PRS matrix or model.')
+            else:
+                if kwargs.get('normMatrix') is None:
+                    kwargs.set('normMatrix',True)
+                prs_matrix = calcPerturbResponse(**kwargs)
+        else:
+            raise TypeError('Please provide a valid PRS matrix (as array).')
+
+    if atoms is None:
+        raise ValueError('Please provide an AtomGroup object for matching ' \
+                         'residue numbers and chain IDs.')
+    else:
+        if not isinstance(atoms, AtomGroup) and not isinstance(atoms, Selection):
+            raise TypeError('atoms must be an AtomGroup instance')
+        elif model is not None and atoms.numAtoms() != model.numAtoms():
+            raise ValueError('model and atoms must have the same number atoms')
+
+    chain = kwargs.get('chain')
+    hv = atoms.getHierView()
+    chains = []
+    for i in range(len(list(hv))):
+        chainAg = list(hv)[i]
+        chains.append(chainAg.getChids()[0])
+
+    chains = np.array(chains)
+    if chain is None:
+        chain = ''.join(chains)
+
+    resnum = kwargs.get('resnum', None)
+    direction = kwargs.get('direction','row')
+    overlay = kwargs.get('overlay',False)
+
+    if resnum is not None: 
+        timesNotFound = 0
+        for n in range(len(chain)):
+            if not chain[n] in chains:
+                raise PRSMatrixParseError('Chain {0} was not found in {1}'.format(chain[n], pdbIn))
+
+            chainNum = int(np.where(chains == chain[n])[0])
+            chainAg = list(hv)[chainNum]
+            if not resnum in chainAg.getResnums():
+                LOGGER.info('A residue with number {0} was not found' \
+                            ' in chain {1}. Continuing to next chain.' \
+                            .format(resnum, chain[n]))
+                timesNotFound += 1
+                continue
+
+        profiles = []
+        for n in range(len(chain)):
+            chainNum = int(np.where(chains == chain[n])[0])
+            i = np.where(atoms.getResnums() == resnum)[0][chainNum-timesNotFound] 
+            if direction is 'row':
+                profiles.append(prs_matrix[i,:])
+            else:
+                profiles.append(prs_matrix[:,i])
+
+    else:
+        effectiveness = kwargs.get('effectiveness')
+        sensitivity = kwargs.get('sensitivity')
+        if effectiveness is None or sensitivity is None:
+            effectiveness, sensitivity = calcPerturbResponseProfiles(prs_matrix)
+        profiles = [effectiveness, sensitivity]
+
+    chain_colors = 'gcmyrwbk'
+    borders = [0]
+    for n in range(len(list(hv))):
+        borders.append(borders[n] + len(list(hv)[n].getResnums()))
+
+    for profile in profiles:
+        plt.figure()
+        for n in range(len(borders)-1):
+            if not overlay:
+                plt.plot(range(borders[n],borders[n+1]), \
+                         profile[borders[n]:borders[n+1]], \
+                         color=chain_colors[n])
+            else:
+                plt.plot(atoms.getResnums()[borders[0]:borders[1]], \
+                         profile[borders[n]:borders[n+1]], \
+                         color=chain_colors[n])
+
+        if not overlay:
+            plt.axis([0,borders[-1],0,np.max(profile)])
+        else:
+            plt.axis([atoms.getResnums()[borders[0]],atoms.getResnums()[borders[1]-1],0,np.max(profile)])
+
+    return profiles

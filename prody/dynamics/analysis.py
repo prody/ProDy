@@ -732,9 +732,12 @@ def calcPerturbResponseProfiles(prs_matrix):
 def writePerturbResponsePDB(prs_matrix,pdbIn,**kwargs):
     """ Write the average response to perturbation of
     a particular residue (a row of a perturbation response matrix)
-    into the b-factor field of a PDB file for visualisation in PyMOL.
+    or the average effect of perturbation of a particular residue
+    (a column of a normalized perturbation response matrix)
+    into the b-factor field of a PDB file for visualisation in a
+    molecular graphics program.
     If no chain is given this will be done for that residue in all chains.
-    
+
     If no residue number is given then the effectiveness and sensitivity
     profiles will be written out instead. These two profiles are also returned
     as arrays for further analysis if they aren't already provided.
@@ -763,10 +766,13 @@ def writePerturbResponsePDB(prs_matrix,pdbIn,**kwargs):
     :arg resnum: residue number for the residue of interest
     :type resnum: int
 
-    :arg direction: whether you want to write out to PDB
-        a row (the effect on each residue of peturbing the specified residue)
-        or a column (the response of the specified residue to perturbing each 
-        residue). Default is row.
+    :arg direction: the direction you want to use to read data out
+        of the PRS matrix for plotting: the options are 'row' or 'column'.
+        Default is 'row'.
+        A row gives the effect on each residue of peturbing the specified 
+        residue.
+        A column gives the response of the specified residue to perturbing 
+        each residue.
         If no residue number is provided then this option will be ignored
     :type direction: str
     """
@@ -846,7 +852,6 @@ def writePerturbResponsePDB(prs_matrix,pdbIn,**kwargs):
     timesNotFound = 0
     direction = kwargs.get('direction','row')
     for n in range(len(chain)):
-
         if not chain[n] in chains:
             raise PRSMatrixParseError('Chain {0} was not found in {1}'.format(chain[n], pdbIn))
 
@@ -862,11 +867,14 @@ def writePerturbResponsePDB(prs_matrix,pdbIn,**kwargs):
     if pdbOut is None:
         pdbOut = []
         for n in range(len(chain)):
+            chainNum = int(np.where(chains == chain[n])[0])
             i = np.where(structure.getResnums() == resnum)[0][chainNum-timesNotFound]
             pdbOut.append('{0}_{1}_{2}{3}_{4}.pdb'.format(stem, chain[n], \
                               structure.getResnames()[i[n]], resnum, direction))
 
     for n in range(len(chain)):
+        chainNum = int(np.where(chains == chain)[0])
+        i = np.where(structure.getResnums() == resnum)[0][chainNum-timesNotFound]
         fo = open(pdbOut[n],'w')
         for line in lines:
             if line.find('ATOM') != 0:
