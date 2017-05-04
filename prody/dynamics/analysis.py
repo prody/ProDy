@@ -583,7 +583,7 @@ def calcPerturbResponse(model, atoms=None, repeats=100, **kwargs):
             if 'dif' in operationList:
                 found_valid_operation = True
                 dif_response_matrix = np.max(abs(response_matrix - n_by_n_cov) \
-                                            axis=0)
+                                            ,axis=0)
                 matrix_dict['dif'] = dif_response_matrix
 
 
