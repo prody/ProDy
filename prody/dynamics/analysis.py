@@ -903,8 +903,8 @@ def writePerturbResponsePDB(prs_matrix,pdbIn,**kwargs):
             elif line.find('HETATM') == 0:
                 fo.write(line[:60] + ' '*2 + '0.00' + line[66:])
 
-        LOGGER.report('Perturbation responses for specific residues were written', 
-                       ' to {0}.'.format(', '.join(pdbOut)))
+        LOGGER.info('Perturbation responses for specific residues were written' \ 
+                    ' to {0}.'.format(', '.join(pdbOut)))
 
     return
 
