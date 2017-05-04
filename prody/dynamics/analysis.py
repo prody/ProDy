@@ -457,7 +457,7 @@ def calcPerturbResponse(model, atoms=None, repeats=100, **kwargs):
     if cov is None:
         raise ValueError('model did not return a covariance matrix')
 
-    LOGGER.report('Perturbation response scanning completed in %.1fs.',
+    LOGGER.report('Covariance matrix calculated in %.1fs.',
                   '_prody_cov')
 
     LOGGER.progress('Calculating perturbation response', n_atoms, '_prody_prs')
