@@ -487,9 +487,9 @@ def calcPerturbResponse(model, atoms=None, repeats=100, **kwargs):
             raise ValueError('model and atoms must have the same number atoms')
 
     n_atoms = model.numAtoms()
-    LOGGER.progress('Performing perturbation response scanning', '_prody_prs_all')
+    LOGGER.timeit('_prody_prs_all')
     LOGGER.info('Calculating covariance matrix')
-    LOGGER.progress('Calculating covariance matrix', '_prody_cov')
+    LOGGER.timeit('_prody_cov')
 
     assert isinstance(repeats, int), 'repeats must be an integer'
     cov = calcCovariance(model)
