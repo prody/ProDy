@@ -532,11 +532,11 @@ def calcPerturbResponse(model, atoms=None, repeats=100, **kwargs):
                 response_matrix[n,i,:] = (
                     np.dot(cov[:, i3:i3p3], force)
                     ** 2).reshape((n_atoms, 3)).sum(1)
-            LOGGER.update(i, '_prody_prs')
+            LOGGER.update(i, '_prody_prs_mat')
 
         LOGGER.clear()
         LOGGER.report('Perturbation response scanning matrix calculated in %.1fs.',
-                      '_prody_prs')
+                      '_prody_prs_mat')
 
         operation = kwargs.get('operation','mea')
 
@@ -553,7 +553,7 @@ def calcPerturbResponse(model, atoms=None, repeats=100, **kwargs):
                     operationList[i] = operationList[i].lower()[:3]
 
             operationList = np.array(operationList) 
-            matrix_dict = np.zeros((len(operationList),n_atoms,n_atoms))
+            matrix_dict = {}
             found_valid_operation = False
 
             if 'var' in operationList:
