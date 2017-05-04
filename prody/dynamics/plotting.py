@@ -921,6 +921,10 @@ def showPerturbResponse(**kwargs):
 
     :arg atoms: a :class: `AtomGroup` instance
     :type atoms: AtomGroup
+
+    :arg returnData: whether to return data for further analysis
+        default is False
+    :type returnData: bool
     """
 
     import matplotlib.pyplot as plt
@@ -979,7 +983,8 @@ def showPerturbResponse(**kwargs):
         plt.subplot(2,2,2); plt.bar(effectiveness,range(len(effectiveness)))
         plt.subplot(2,2,3); plt.barh(sensitivity,range(len(sensitivity)))
 
-    if kwargs.get('effectiveness') is not None:
+    returnData = kwargs.get('returnData',False)
+    if not returnData:
         return
     elif kwargs.get('prs_matrix') is not None:
         return effectiveness, sensitivity
@@ -1034,6 +1039,10 @@ def showPerturbResponseProfiles(prs_matrix,atoms,**kwargs):
         each residue.
         If no residue number is provided then this option will be ignored
     :type direction: str
+
+    :arg returnData: whether to return profiles for further analysis
+        default is False
+    :type returnProfiles: bool
     """
     import matplotlib.pyplot as plt
     import matplotlib
@@ -1127,4 +1136,8 @@ def showPerturbResponseProfiles(prs_matrix,atoms,**kwargs):
         else:
             plt.axis([atoms.getResnums()[borders[0]],atoms.getResnums()[borders[1]-1],0,np.max(profile)])
 
-    return profiles
+    returnData = kwargs.get('returnData',False)
+    if returnData:
+        return profiles
+    else:
+        return
