@@ -488,6 +488,7 @@ def calcPerturbResponse(model, atoms=None, repeats=100, **kwargs):
 
     n_atoms = model.numAtoms()
     LOGGER.progress('Calculating covariance matrix', n_atoms, '_prody_prs_all')
+    LOGGER.info('Calculating covariance matrix...')
     LOGGER.progress('Calculating covariance matrix', n_atoms, '_prody_cov')
 
     assert isinstance(repeats, int), 'repeats must be an integer'
