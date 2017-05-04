@@ -496,6 +496,7 @@ def calcPerturbResponse(model, atoms=None, repeats=100, **kwargs):
     if cov is None:
         raise ValueError('model did not return a covariance matrix')
 
+    LOGGER.clear()
     LOGGER.report('Covariance matrix calculated in %.1fs.',
                   '_prody_cov')
 
@@ -903,7 +904,7 @@ def writePerturbResponsePDB(prs_matrix,pdbIn,**kwargs):
             elif line.find('HETATM') == 0:
                 fo.write(line[:60] + ' '*2 + '0.00' + line[66:])
 
-        LOGGER.info('Perturbation responses for specific residues were written' \ 
+        LOGGER.info('Perturbation responses for specific residues were written' \
                     ' to {0}.'.format(', '.join(pdbOut)))
 
     return
