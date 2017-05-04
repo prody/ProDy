@@ -23,7 +23,7 @@ __all__ = ['calcCollectivity', 'calcCovariance', 'calcCrossCorr',
            'calcFractVariance', 'calcSqFlucts', 'calcTempFactors',
            'calcProjection', 'calcCrossProjection', 
            'calcPerturbResponse', 'parsePerturbResponseMatrix', 
-           'writePerturbResponsePDB', 'calcPerturbResponseProfiles', 
+           'calcPerturbResponseProfiles', 'writePerturbResponsePDB',
            'calcSpecDimension', 'calcPairDeformationDist',]
 
 class PRSMatrixParseError(Exception):
@@ -775,6 +775,10 @@ def writePerturbResponsePDB(prs_matrix,pdbIn,**kwargs):
         each residue.
         If no residue number is provided then this option will be ignored
     :type direction: str
+
+    :arg returnData: whether to return effectiveness and sensitivity for analysis
+        default is False
+    :type returnProfiles: bool
     """
 
     if not type(prs_matrix) is np.ndarray:
@@ -843,7 +847,8 @@ def writePerturbResponsePDB(prs_matrix,pdbIn,**kwargs):
         LOGGER.info('The effectiveness and sensitivity profiles were written' \
                     ' to {0} and {1}.'.format(file_effs_name,file_sens_name))
 
-        if kwargs.get('effectiveness') is None:
+        returnData = kwargs.get('returnData',False)
+        if returnData:
             return effectiveness, sensitivity
         else:
             return
@@ -899,6 +904,7 @@ def writePerturbResponsePDB(prs_matrix,pdbIn,**kwargs):
         outFiles.append(fo)
         LOGGER.report('Perturbation responses for specific residues were written', 
                        ' to {0} and {1}.'.format(', '.join(outFiles[:-1]),outFiles[-1]))
+
     return
 
 
