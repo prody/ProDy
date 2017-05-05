@@ -4,8 +4,9 @@ from scipy.sparse import coo_matrix
 from prody.chromatin.norm import VCnorm, SQRTVCnorm,Filenorm
 
 from prody.dynamics import GNM
+from prody.dynamics.functions import writeArray
 
-__all__ = ['HiC', 'parseHiC', 'parseHiCStream', 'plotmat']
+__all__ = ['HiC', 'parseHiC', 'parseHiCStream', 'plotmap', 'writeHiC', 'writeMap']
 
 class HiC(object):
 
@@ -64,14 +65,18 @@ class HiC(object):
         return self._title
 
     def setTitle(self, title):
-        """Set title of the instance."""
+        """Sets title of the instance."""
 
         self._title = str(title)
 
     def getCompleteMap(self):
+        """Obtains the complete contact map with unmapped regions."""
+
         return self._map
         
     def getTrimedMap(self):
+        """Obtains the contact map without unmapped regions."""
+
         if self._map is None: 
             return None
         if self.mask is False:
@@ -82,6 +87,8 @@ class HiC(object):
         return ma.compress_rowcols(M)
     
     def getKirchhoff(self):
+        """Builds a Kirchhoff matrix based on the contact map."""
+
         if self.Map is None:
             return None
         else:
@@ -95,6 +102,8 @@ class HiC(object):
             return K
 
     def _maskUnmappedRegions(self):
+        """Finds and masks unmapped regions in the contact map."""
+
         M = self._map
         if M is None: return
         # Obtain the diagonal values, need to make sure d is an array 
@@ -111,6 +120,8 @@ class HiC(object):
         return mask
 
     def _makeSymmetric(self):
+        """Ensures the symmetricity of the contact map."""
+
         M = self._map
         if M is None: return
         
@@ -127,6 +138,8 @@ class HiC(object):
         return self._map
     
     def calcGNM(self, n_modes=None):
+        """Calculates GNM on the current Hi-C map."""
+
         gnm = GNM(self._title)
         gnm.setKirchhoff(self.getKirchhoff())
         gnm.calcModes(n_modes=n_modes)
@@ -134,6 +147,8 @@ class HiC(object):
         return gnm
     
     def normalize(self, method=VCnorm, **kwargs):
+        """Applies chosen normalization on the current Hi-C map."""
+
         M = self._map
         N = method(M, **kwargs)
         self.Map = N
@@ -193,23 +208,73 @@ def parseHiCStream(stream, **kwargs):
         i = i//bin
         j = j//bin
         # make sure that the matrix is square
-        if max(i) != max(j):
-            b = max(append(i, j))
-            i = append(i, b)
-            j = append(j, b)
-            value = append(value, 0.)
+        if np.max(i) != np.max(j):
+            b = np.max(np.append(i, j))
+            i = np.append(i, b)
+            j = np.append(j, b)
+            value = np.append(value, 0.)
         # Convert to sparse matrix format, then full matrix format
         # and finally array type. Matrix format is avoided because
         # diag() won't work as intended for Matrix instances.
         M = np.array(coo_matrix((value, (i,j))).todense())
     return HiC(title=title, map=M, bin=bin)
 
-def plotmat(mat, spec='', p = 5, **kwargs):
+def writeMap(filename, map, bin=None, format='%f'):
+    """Writes *map* to the file designated by *filename*.
+
+    :arg filename: the file to be written.
+    :type filename: str
+
+    :arg map: a Hi-C contact map.
+    :type map: :class:`numpy.ndarray`
+
+    :arg bin: bin size of the *map*. If bin is `None`, *map* will be 
+    written in full matrix format.
+    :type bin: int
+
+    :arg format: output format for map elements.
+    :type format: str
+    """
+
+    assert isinstance(map, np.ndarray), 'map must be a numpy.ndarray.'
+
+    if bin is None:
+        return writeArray(filename, map, format=format)
+    else:
+        L = int(map.size - np.diag(map).size)/2 + np.diag(map).size
+        spmat = np.zeros((L,3))
+        m,n = map.shape
+        l = 0
+        for i in range(m):
+            for j in range(i,n):
+                spmat[l,0] = i * bin
+                spmat[l,1] = j * bin
+                spmat[l,2] = map[i,j]
+                l += 1
+        fmt = ['%d', '%d', format]
+        return writeArray(filename, spmat, format=fmt)
+
+def writeHiC(filename, hic, format='%f'):
+    """Writes *hic.Map* instance to the file designated by *filename*.
+
+    :arg filename: the file to be written.
+    :type filename: str
+
+    :arg hic: a HiC instance.
+    :type hic: :class:`.HiC`
+
+    :arg format: output format for map elements.
+    :type format: str
+    """
+    assert isinstance(hic, HiC), 'hic must be a HiC instance.'
+    return writeMap(filename, hic.Map, hic.bin, format)
+
+def plotmap(map, spec='', p=5, **kwargs):
     """A convenient function to visualize Hi-C contact map. *kwargs* will be passed to 
     :func:`matplotlib.pyplot.imshow`.
 
-    :arg mat: a matrix.
-    :type mat: :class:`numpy.ndarray`
+    :arg map: a Hi-C contact map.
+    :type map: :class:`numpy.ndarray`
 
     :arg spec: a string specifies how to preprocess the matrix. Blank for no preprocessing,
     'p' for showing only data from *p*-th to *100-p*-th percentile.
@@ -219,14 +284,16 @@ def plotmat(mat, spec='', p = 5, **kwargs):
     :type p: double
     """
 
+    assert isinstance(map, np.ndarray), 'map must be a numpy.ndarray.'
+    
     from matplotlib.pyplot import figure, imshow
 
     if not '_' in spec:
         figure()
     if 'p' in spec:
-        vmin = np.percentile(mat, p)
-        vmax = np.percentile(mat, 100-p)
+        vmin = np.percentile(map, p)
+        vmax = np.percentile(map, 100-p)
     else:
         vmin = vmax = None
     
-    return imshow(mat, vmin=vmin, vmax=vmax, **kwargs)
+    return imshow(map, vmin=vmin, vmax=vmax, **kwargs)
