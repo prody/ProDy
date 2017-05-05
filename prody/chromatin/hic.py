@@ -64,14 +64,18 @@ class HiC(object):
         return self._title
 
     def setTitle(self, title):
-        """Set title of the instance."""
+        """Sets title of the instance."""
 
         self._title = str(title)
 
     def getCompleteMap(self):
+        """Obtains the complete contact map with unmapped regions."""
+        
         return self._map
         
     def getTrimedMap(self):
+        """Obtains the contact map without unmapped regions."""
+
         if self._map is None: 
             return None
         if self.mask is False:
@@ -82,6 +86,8 @@ class HiC(object):
         return ma.compress_rowcols(M)
     
     def getKirchhoff(self):
+        """Builds a Kirchhoff matrix based on the contact map."""
+
         if self.Map is None:
             return None
         else:
@@ -95,6 +101,8 @@ class HiC(object):
             return K
 
     def _maskUnmappedRegions(self):
+        """Finds and masks unmapped regions in the contact map."""
+
         M = self._map
         if M is None: return
         # Obtain the diagonal values, need to make sure d is an array 
@@ -111,6 +119,8 @@ class HiC(object):
         return mask
 
     def _makeSymmetric(self):
+        """Ensures the symmetricity of the contact map."""
+
         M = self._map
         if M is None: return
         
@@ -127,6 +137,8 @@ class HiC(object):
         return self._map
     
     def calcGNM(self, n_modes=None):
+        """Calculates GNM on the current Hi-C map."""
+
         gnm = GNM(self._title)
         gnm.setKirchhoff(self.getKirchhoff())
         gnm.calcModes(n_modes=n_modes)
@@ -134,6 +146,8 @@ class HiC(object):
         return gnm
     
     def normalize(self, method=VCnorm, **kwargs):
+        """Applies chosen normalization on the current Hi-C map."""
+
         M = self._map
         N = method(M, **kwargs)
         self.Map = N
