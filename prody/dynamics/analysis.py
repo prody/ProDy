@@ -405,7 +405,7 @@ def calcPerturbResponse(model, atoms=None, repeats=100, **kwargs):
 
     :arg noForce: whether to use the covariance matrix directly rather
         than applying forces. This appears to be equivalent when scanning for
-        response magnitudes and will be much quicker. Default is False for now.
+        response magnitudes and will be much quicker. Default is True.
     :type noForce: bool
 
     :arg normMatrix: whether to normalise the single response matrix by
@@ -431,7 +431,44 @@ def calcPerturbResponse(model, atoms=None, repeats=100, **kwargs):
         or 'all'. Default is 'all'; Using other directions requires atoms.
     :type acceptDirection: str
     """
-    noForce = kwargs.get('noForce',False)
+    noForce = kwargs.get('noForce',True)
+    if not noForce:
+        operation = kwargs.get('operation','mea')
+
+        if operation is not None:
+            if type(operation) is str:
+                if operation == 'all' or operation == 'all operations':
+                    operationList = ['var','mea','max','min','dif']
+                else:
+                    operationList = []
+                    operationList.append(operation.lower()[:3])
+            elif type(operation) is list:
+                operationList = operation
+                for i in range(len(operationList)):
+                    operationList[i] = operationList[i].lower()[:3]
+
+            operationList = np.array(operationList) 
+            found_valid_operation = False
+
+            if 'var' in operationList:
+                found_valid_operation = True
+
+            if 'max' in operationList:
+                found_valid_operation = True
+
+            if 'mea' in operationList:
+                found_valid_operation = True
+
+            if 'min' in operationList:
+                found_valid_operation = True
+
+            if 'dif' in operationList:
+                found_valid_operation = True
+
+            if not found_valid_operation:
+                raise ValueError('Operation should be mean, variance, max, min or ' \
+                                 'or difference (from covariance matrix) in quotes ' \
+                                 'or a list containing a set of these or None.')
 
     if not isinstance(model, NMA):
         raise TypeError('model must be an NMA instance')
@@ -450,39 +487,49 @@ def calcPerturbResponse(model, atoms=None, repeats=100, **kwargs):
             raise ValueError('model and atoms must have the same number atoms')
 
     n_atoms = model.numAtoms()
-    LOGGER.progress('Calculating perturbation response', n_atoms, '_prody_prs')
+    LOGGER.timeit('_prody_prs_all')
+    LOGGER.info('Calculating covariance matrix')
+    LOGGER.timeit('_prody_cov')
 
     assert isinstance(repeats, int), 'repeats must be an integer'
     cov = calcCovariance(model)
     if cov is None:
         raise ValueError('model did not return a covariance matrix')
 
+    LOGGER.clear()
+    LOGGER.report('Covariance matrix calculated in %.1fs.',
+                  '_prody_cov')
+
+    LOGGER.progress('Calculating perturbation response', n_atoms, '_prody_prs_mat')
     matrix_dict = {}
-    if noForce is True:
+
+    if noForce or 'dif' in operationList:
         if not model.is3d():
-            matrix_dict['noForce'] = cov**2
+            n_by_n_cov_squared = cov**2
 
         else:
             cov_squared = cov**2
-            n_by_3n_matrix = np.zeros((n_atoms, 3 * n_atoms))
-            matrix_dict['noForce'] = np.zeros((n_atoms, n_atoms))
+            n_by_3n_cov_squared = np.zeros((n_atoms, 3 * n_atoms))
+            n_by_n_cov_squared = np.zeros((n_atoms, n_atoms))
             i3 = -3
             i3p3 = 0
             for i in range(n_atoms):
                 i3 += 3
                 i3p3 += 3
-                n_by_3n_matrix[i,:] = (cov_squared[i3:i3p3,:]).sum(0)
+                n_by_3n_cov_squared[i,:] = (cov_squared[i3:i3p3,:]).sum(0)
 
             j3 = -3
             j3p3 = 0
             for j in range(n_atoms):
                 j3 += 3
                 j3p3 += 3                
-                matrix_dict['noForce'][:,j] = (n_by_3n_matrix[:,j3:j3p3]).sum(1)
- 
+                n_by_n_cov_squared[:,j] = (n_by_3n_cov_squared[:,j3:j3p3]).sum(1)
+
+    if noForce:
+        matrix_dict['noForce'] = n_by_n_cov_squared
         LOGGER.clear()
-        LOGGER.report('Perturbation response scanning completed in %.1fs.',
-                      '_prody_prs')
+        LOGGER.report('Perturbation response matrix calculated in %.1fs.',
+                      '_prody_prs_mat')
 
     else:
 
@@ -527,80 +574,33 @@ def calcPerturbResponse(model, atoms=None, repeats=100, **kwargs):
                 response_matrix[n,i,:] = (
                     np.dot(cov[:, i3:i3p3], force)
                     ** 2).reshape((n_atoms, 3)).sum(1)
-            LOGGER.update(i, '_prody_prs')
+            LOGGER.update(i, '_prody_prs_mat')
 
         LOGGER.clear()
-        LOGGER.report('Perturbation response scanning completed in %.1fs.',
-                      '_prody_prs')
+        LOGGER.report('Perturbation response scanning matrix calculated in %.1fs.',
+                      '_prody_prs_mat')
 
-        operation = kwargs.get('operation','mea')
+        LOGGER.progress('Performing matrix combination operations', n_atoms, \
+                        '_prody_prs_ops')
 
-        if operation is not None:
-            if type(operation) is str:
-                if operation == 'all' or operation == 'all operations':
-                    operationList = ['var','mea','max','min','dif']
-                else:
-                    operationList = []
-                    operationList.append(operation.lower()[:3])
-            elif type(operation) is list:
-                operationList = operation
-                for i in range(len(operationList)):
-                    operationList[i] = operationList[i].lower()[:3]
+        if 'var' in operationList:
+            matrix_dict['var'] = np.var(response_matrix,axis=0) 
 
-            operationList = np.array(operationList) 
-            matrix_dict = np.zeros((len(operationList),n_atoms,n_atoms))
-            found_valid_operation = False
+        if 'max' in operationList:
+            matrix_dict['max'] = np.amax(response_matrix,axis=0)
 
-            if 'var' in operationList:
-                found_valid_operation = True
-                var_response_matrix = np.zeros((n_atoms, n_atoms))
-                for i in range(n_atoms):
-                    for j in range(n_atoms):
-                        var_response_matrix[i,j] = np.var(response_matrix[:,i,j])
-                matrix_dict['var'] = var_response_matrix
+        if 'mea' in operationList:
+            matrix_dict['mea'] = np.mean(response_matrix,axis=0) 
 
-            if 'max' in operationList:
-                found_valid_operation = True
-                max_response_matrix = np.zeros((n_atoms, n_atoms))
-                for i in range(n_atoms):
-                    for j in range(n_atoms):
-                        max_response_matrix[i,j] = np.max(response_matrix[:,i,j])
-                matrix_dict['max'] = max_response_matrix
+        if 'min' in operationList:
+            matrix_dict['min'] = np.amin(response_matrix,axis=0)
 
-            if 'mea' in operationList:
-                found_valid_operation = True
-                mean_response_matrix = np.zeros((n_atoms, n_atoms))
-                for i in range(n_atoms):
-                    for j in range(n_atoms):
-                        mean_response_matrix[i,j] = np.mean(response_matrix[:,i,j]) 
-                matrix_dict['mea'] = mean_response_matrix
-
-            if 'min' in operationList:
-                found_valid_operation = True
-                min_response_matrix = np.zeros((n_atoms, n_atoms))
-                for i in range(n_atoms):
-                    for j in range(n_atoms):
-                        min_response_matrix[i,j] = np.min(response_matrix[:,i,j])
-                matrix_dict['min'] = min_response_matrix
-
-            if 'dif' in operationList:
-                found_valid_operation = True
-                dif_response_matrix = np.zeros((n_atoms, n_atoms))
-                for i in range(n_atoms):
-                    for j in range(n_atoms):
-                        dif_response_matrix[i,j] = response_matrix[np.where( \
-                        np.max(abs(response_matrix[:,i,j] - \
-                        ((cov[i*3:i*3+3, j*3:j*3+3])**2).sum()))),i,j]
-                matrix_dict['dif'] = dif_response_matrix
-
+        if 'dif' in operationList:
+            matrix_dict['dif'] = np.max(abs(response_matrix - n_by_n_cov_squared) \
+                                       , axis=0)
 
             LOGGER.report('Perturbation response matrix operations completed in %.1fs.',
-                          '_prody_prs')
-
-            if not found_valid_operation:
-                raise ValueError('Operation should be mean, variance, max, min or ' \
-                                 'or difference (from covariance matrix) in quotes ' \
-                                 'or a list containing a set of these or None.')
+                          '_prody_prs_ops')
 
         if operation is None:
             LOGGER.info('Operation is None so all {0} repeats are output.' \
@@ -645,6 +645,9 @@ def calcPerturbResponse(model, atoms=None, repeats=100, **kwargs):
             if saveMatrix == True:
                 np.savetxt('norm_{0}_{1}.txt'.format(baseSaveName,m), \
                            norm_PRS_mat[m], delimiter='\t', fmt='%8.6f')
+
+    LOGGER.report('Perturbation response scanning completed in %.1fs.',
+                  '_prody_prs_all')
 
     matrix_list = []
     for m in matrix_dict.keys():
@@ -806,9 +809,9 @@ def writePerturbResponsePDB(prs_matrix,pdbIn,**kwargs):
     resnum = kwargs.get('resnum', None)
     pdbOut = kwargs.get('pdbOut', None)
     if pdbOut is None:
-        stem = pdbIn.split('.')[0]
+        out_stem = pdbIn.split('.')[0]
     elif type(pdbOut) is str:
-        stem = pdbOut.split('.')[0]
+        out_stem = pdbOut.split('.')[0]
         pdbOut = None
 
     if resnum is None:
@@ -817,8 +820,8 @@ def writePerturbResponsePDB(prs_matrix,pdbIn,**kwargs):
         if effectiveness is None or sensitivity is None:
             effectiveness, sensitivity = calcPerturbResponseProfiles(prs_matrix)
 
-        file_effs_name = '{0}_effectiveness.pdb'.format(stem)
-        file_sens_name = '{0}_sensitivity.pdb'.format(stem)
+        file_effs_name = '{0}_effectiveness.pdb'.format(out_stem)
+        file_sens_name = '{0}_sensitivity.pdb'.format(out_stem)
         fileEffs = open(file_effs_name,'w')
         fileSens = open(file_sens_name,'w')
 
@@ -852,9 +855,8 @@ def writePerturbResponsePDB(prs_matrix,pdbIn,**kwargs):
             return effectiveness, sensitivity
         else:
             return
-
-    outFiles = []
-    timesNotFound = 0
+ 
+    timesNF = 0
     direction = kwargs.get('direction','row')
     for n in range(len(chain)):
         if not chain[n] in chains:
@@ -866,44 +868,44 @@ def writePerturbResponsePDB(prs_matrix,pdbIn,**kwargs):
             LOGGER.info('A residue with number {0} was not found',
                         ' in chain {1}. Continuing to next chain.' \
                         .format(resnum, chain[n]))
-            timesNotFound += 1
+            timesNF += 1
             continue
 
     if pdbOut is None:
         pdbOut = []
         for n in range(len(chain)):
             chainNum = int(np.where(chains == chain[n])[0])
-            i = np.where(structure.getResnums() == resnum)[0][chainNum-timesNotFound]
-            pdbOut.append('{0}_{1}_{2}{3}_{4}.pdb'.format(stem, chain[n], \
-                              structure.getResnames()[i[n]], resnum, direction))
+            i = np.where(structure.getResnums() == resnum)[0][chainNum-timesNF]
+            pdbOut.append('{0}_{1}_{2}{3}_{4}.pdb'.format(out_stem, chain[n], \
+                           structure.getResnames()[i], resnum, direction))
 
     for n in range(len(chain)):
         chainNum = int(np.where(chains == chain)[0])
-        i = np.where(structure.getResnums() == resnum)[0][chainNum-timesNotFound]
+        i = np.where(structure.getResnums() == resnum)[0][chainNum-timesNF]
         fo = open(pdbOut[n],'w')
         for line in lines:
-            if line.find('ATOM') != 0:
+            if line.find('ATOM') != 0 and line.find('HETATM') != 0 and line.find('ANISOU') != 0:
                 fo.write(line)
-            else:
+            elif line.find('ATOM') == 0:
                 sel_line_res = structure.select('resid {0}'.format(line[22:26]))
                 j = np.where(structure.getResnums() == int(line[22:26]))[0] \
                     [np.where(sel_line_res.getChids() == line[21])[0][0]]
 
                 if direction is 'row':
                     fo.write(line[:60] + ' '*(6-len('{:3.2f}'.format(( \
-                             prs_matrix[i[n]][j])*100/np.max(prs_matrix)))) \
-                             + '{:3.2f}'.format((prs_matrix[i[n]][j]) \
+                             prs_matrix[i][j])*100/np.max(prs_matrix)))) \
+                             + '{:3.2f}'.format((prs_matrix[i][j]) \
                              *100/np.max(prs_matrix)) + line[66:])
                 else:
                     fo.write(line[:60] + ' '*(6-len('{:3.2f}'.format(( \
-                             prs_matrix[j][i[n]])*100/np.max(prs_matrix)))) \
-                             + '{:3.2f}'.format((prs_matrix[j][i[n]]) \
+                             prs_matrix[j][i])*100/np.max(prs_matrix)))) \
+                             + '{:3.2f}'.format((prs_matrix[j][i]) \
                              *100/np.max(prs_matrix)) + line[66:])
+            elif line.find('HETATM') == 0:
+                fo.write(line[:60] + ' '*2 + '0.00' + line[66:])
 
-        fo.close()
-        outFiles.append(fo)
-        LOGGER.report('Perturbation responses for specific residues were written', 
-                       ' to {0} and {1}.'.format(', '.join(outFiles[:-1]),outFiles[-1]))
+        LOGGER.info('Perturbation responses for specific residues were written' \
+                    ' to {0}.'.format(', '.join(pdbOut)))
 
     return
 
