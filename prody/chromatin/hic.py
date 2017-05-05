@@ -5,6 +5,8 @@ from prody.chromatin.norm import VCnorm, SQRTVCnorm,Filenorm
 
 from prody.dynamics import GNM
 from prody.dynamics.functions import writeArray
+from prody.dynamics.mode import Mode
+from prody.dynamics.modeset import ModeSet
 
 __all__ = ['HiC', 'parseHiC', 'parseHiCStream', 'plotmap', 'writeHiC', 'writeMap']
 
@@ -97,7 +99,7 @@ class HiC(object):
             I = np.eye(M.shape[0], dtype=bool)
             A = M.copy()
             A[I] = 0.
-            D = np.diag(sum(A, axis=0))
+            D = np.diag(np.sum(A, axis=0))
             K = D - A
             return K
 
@@ -143,7 +145,6 @@ class HiC(object):
         gnm = GNM(self._title)
         gnm.setKirchhoff(self.getKirchhoff())
         gnm.calcModes(n_modes=n_modes)
-
         return gnm
     
     def normalize(self, method=VCnorm, **kwargs):
@@ -153,6 +154,34 @@ class HiC(object):
         N = method(M, **kwargs)
         self.Map = N
         return N
+    
+    def segregate(self, modes, **kwargs):
+
+        if isinstance(modes, ModeSet):
+            V = modes.getEigvecs()
+        elif isinstance(modes, Mode):
+            V = modes.getEigvec()
+        elif isinstance(modes, np.ndarray):
+            V = modes
+        else:
+            try:
+                mode0 = modes[0]
+                if isinstance(mode0, Mode):
+                    V = np.empty((len(mode0),0))
+                    for mode in modes:
+                        assert isinstance(mode, Mode), 'modes should be a list of modes.'
+                        v = mode.getEigvec()
+                        v = np.expand_dims(v, axis=1)
+                        V = np.hstack((V, v))
+                else:
+                    V = np.array(modes)
+            except TypeError:
+                TypeError('modes should be a list of modes.')
+        if V.ndim == 1:
+            V = np.expand_dims(V, axis=1)
+        
+        
+        return V
 
 def parseHiC(filename, **kwargs):
     """Returns an :class:`.HiC` from a Hi-C data file.

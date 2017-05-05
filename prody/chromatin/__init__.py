@@ -33,3 +33,7 @@ __all__.extend(hic.__all__)
 from . import norm
 from .norm import *
 __all__.extend(norm.__all__)
+
+from . import cluster
+from .cluster import *
+__all__.extend(cluster.__all__)
