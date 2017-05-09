@@ -2,6 +2,7 @@ from numpy import ma
 import numpy as np
 from scipy.sparse import coo_matrix
 from prody.chromatin.norm import VCnorm, SQRTVCnorm,Filenorm
+from prody.chromatin.cluster import KMeans
 
 from prody.dynamics import GNM
 from prody.dynamics.functions import writeArray
@@ -155,7 +156,7 @@ class HiC(object):
         self.Map = N
         return N
     
-    def segregate(self, modes, **kwargs):
+    def segregate(self, modes, method=KMeans, **kwargs):
 
         if isinstance(modes, ModeSet):
             V = modes.getEigvecs()
@@ -180,8 +181,8 @@ class HiC(object):
         if V.ndim == 1:
             V = np.expand_dims(V, axis=1)
         
-        
-        return V
+        labels = method(V, **kwargs)
+        return labels
 
 def parseHiC(filename, **kwargs):
     """Returns an :class:`.HiC` from a Hi-C data file.
