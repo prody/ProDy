@@ -9,7 +9,7 @@ from prody.dynamics.functions import writeArray
 from prody.dynamics.mode import Mode
 from prody.dynamics.modeset import ModeSet
 
-__all__ = ['HiC', 'parseHiC', 'parseHiCStream', 'plotmap', 'writeHiC', 'writeMap']
+__all__ = ['HiC', 'parseHiC', 'parseHiCStream', 'showMap', 'showDomains', 'writeHiC', 'writeMap']
 
 class HiC(object):
 
@@ -161,6 +161,14 @@ class HiC(object):
         return N
     
     def segment(self, modes, method=KMeans, **kwargs):
+        """Uses spectral clustering to identify structural domains on the chromosome.
+        
+        :arg modes: GNM modes used for segmentation
+        :type modes: :class:`ModeSet`
+
+        :arg method: Label assignment algorithm used after Laplacian embedding.
+        :type method: func
+        """
 
         if isinstance(modes, ModeSet):
             V = modes.getEigvecs()
@@ -190,7 +198,7 @@ class HiC(object):
                              ' of atoms. Turn off "useTrimed" if you intended to apply the'
                              ' modes to the full map.'
                              %(V.shape[0], len(self.Map)))
-
+        
         labels = method(V, **kwargs)
 
         if self.useTrimed:
@@ -212,16 +220,25 @@ class HiC(object):
         
         self._labels = labels
         return labels
+    
+    def getDomains(self):
+        lbl = self._labels
+        mask = self.mask
+        if self.useTrimed:
+            lbl = lbl[~mask]
+        return lbl
 
     def getDomainList(self):
-        indicators = np.diff(self._labels)
+        indicators = np.diff(self.getDomains())
         indicators = np.append(1., indicators)
         indicators[-1] = 1
         sites = np.where(indicators != 0)[0]
         starts = sites[:-1]
         ends = sites[1:]
         domains = np.array([starts, ends]).T
+
         return domains
+    
 
 def parseHiC(filename, **kwargs):
     """Returns an :class:`.HiC` from a Hi-C data file.
@@ -338,7 +355,7 @@ def writeHiC(filename, hic, format='%f'):
     assert isinstance(hic, HiC), 'hic must be a HiC instance.'
     return writeMap(filename, hic.Map, hic.bin, format)
 
-def plotmap(map, spec='', p=5, **kwargs):
+def showMap(map, spec='', **kwargs):
     """A convenient function to visualize Hi-C contact map. *kwargs* will be passed to 
     :func:`matplotlib.pyplot.imshow`.
 
@@ -359,10 +376,37 @@ def plotmap(map, spec='', p=5, **kwargs):
 
     if not '_' in spec:
         figure()
+    
     if 'p' in spec:
+        p = kwargs.pop('p', 5)
         vmin = np.percentile(map, p)
         vmax = np.percentile(map, 100-p)
     else:
         vmin = vmax = None
-    
+  
     return imshow(map, vmin=vmin, vmax=vmax, **kwargs)
+
+def showDomains(domains, linespec='r-', **kwargs):
+    """A convenient function to visualize Hi-C structural domains. *kwargs* will be passed to 
+    :func:`matplotlib.pyplot.plot`.
+
+    :arg domains: a 2D array of Hi-C domains, such [starts, end].
+    :type domains: :class:`numpy.ndarray`
+    """
+
+    from matplotlib.pyplot import figure, plot
+
+    x = []; y = []
+    lwd = kwargs.pop('linewidth', 1)
+    linewidth = np.abs(lwd)
+    for i in range(len(domains)):
+        domain = domains[i]
+        start = domain[0]; end = domain[1]
+        if lwd > 0:
+            x.extend([start, end, end])
+            y.extend([start, start, end])
+        else:
+            x.extend([start, start, end])
+            y.extend([start, end, end])
+
+    return plot(x, y, linespec, linewidth=linewidth, **kwargs)

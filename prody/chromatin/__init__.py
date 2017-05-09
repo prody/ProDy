@@ -17,7 +17,8 @@ Visualize Hi-C data
 
 Following ProDy functions are for visualizing Hi-C data:
 
-  * :func:`.plotmat` - show Hi-C contact map
+  * :func:`.showMap` - show Hi-C contact map
+  * :func:`.showDomains` - show Hi-C structural domains
 """
 
 import prody

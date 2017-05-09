@@ -10,6 +10,9 @@ def KMeans(V, **kwargs):
     n_clusters = kwargs.get('n_clusters', None)
     if n_clusters is None:
         raise ValueError('KMeans requires to desiginate the number of clusters.')
-
-    kmeans = KMeans(**kwargs).fit(V)
+    
+    n_init = kwargs.get('n_init')
+    if n_init is None: n_init = 100
+    
+    kmeans = KMeans(n_init=n_init, **kwargs).fit(V)
     return kmeans.labels_
