@@ -9,8 +9,7 @@ Following ProDy functions are for parsing and writing Hi-C files:
 
   * :func:`.parseHiC` - parse Hi-C data file
   * :func:`.parseHiCStream` - parse Hi-C data stream
-  * :func:`.writeHiC` - write Hi-C data file
-  * :func:`.writeHiCStream`  write Hi-C data stream
+  * :func:`.writeMap` - write Hi-C data to text file
 
 Visualize Hi-C data
 =====================
@@ -19,6 +18,13 @@ Following ProDy functions are for visualizing Hi-C data:
 
   * :func:`.showMap` - show Hi-C contact map
   * :func:`.showDomains` - show Hi-C structural domains
+
+Save/load HiC class
+-------------------
+
+    * :func:`.saveHiC`
+    * :func:`.loadHiC`
+
 """
 
 import prody

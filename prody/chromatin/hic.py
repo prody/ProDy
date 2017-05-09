@@ -9,15 +9,15 @@ from prody.dynamics.functions import writeArray
 from prody.dynamics.mode import Mode
 from prody.dynamics.modeset import ModeSet
 
-__all__ = ['HiC', 'parseHiC', 'parseHiCStream', 'showMap', 'showDomains', 'writeHiC', 'writeMap']
+from prody.utilities import openFile
+
+__all__ = ['HiC', 'parseHiC', 'parseHiCStream', 'showMap', 'showDomains', 'saveHiC', 'loadHiC', 'writeMap']
 
 class HiC(object):
 
     """This class is used to store and preprocess Hi-C contact map. A :class:`.GNM`
     instance for analyzing the contact map can be also created by using this class.
     """
-
-    __slots__ = ['_map', 'mask', 'useTrimed', '_title', 'bin', '_labels']
 
     def __init__(self, title='Unknown', map=None, bin=None):
         self._title = title
@@ -340,24 +340,54 @@ def writeMap(filename, map, bin=None, format='%f'):
         fmt = ['%d', '%d', format]
         return writeArray(filename, spmat, format=fmt)
 
-def writeHiC(filename, hic, format='%f'):
-    """Writes *hic.Map* instance to the file designated by *filename*.
+def saveHiC(hic, filename=None, map=True, **kwargs):
+    """Saves *HiC* model data as :file:`filename.hic.npz`. If *map* is ``False``, 
+    Hi-C contact map will not be saved and it can be loaded from raw data file 
+    later. If *filename* is ``None``, name of the Hi-C instance will be used as 
+    the filename, after ``" "`` (white spaces) in the name are replaced with 
+    ``"_"`` (underscores). Upon successful completion of saving, filename is 
+    returned. This function makes use of :func:`numpy.savez` function."""
 
-    :arg filename: the file to be written.
-    :type filename: str
-
-    :arg hic: a HiC instance.
-    :type hic: :class:`.HiC`
-
-    :arg format: output format for map elements.
-    :type format: str
-    """
     assert isinstance(hic, HiC), 'hic must be a HiC instance.'
-    return writeMap(filename, hic.Map, hic.bin, format)
+    
+    if filename is None:
+        filename = hic.getTitle().replace(' ', '_')
+    
+    if filename.endswith('.hic'):
+        filename += '.npz'
+    elif not filename.endswith('.hic.npz'):
+        filename += '.hic.npz'
+
+    attr_dict = hic.__dict__.copy()
+    if not map:
+        attr_dict.pop('_map')
+
+    ostream = openFile(filename, 'wb', **kwargs)
+    np.savez(ostream, **attr_dict)
+    ostream.close()
+
+    return filename
+
+def loadHiC(filename):
+    """Returns HiC instance after loading it from file (*filename*).
+    This function makes use of :func:`numpy.load` function. See also 
+    :func:`saveHiC`."""
+    
+    attr_dict = np.load(filename)
+    hic = HiC()
+
+    keys = attr_dict.keys()
+
+    for k in keys:
+        val = attr_dict[k]
+        if len(val.shape) == 0:
+            val = np.asscalar(val)
+        setattr(hic, k, val)
+    return hic
 
 def showMap(map, spec='', **kwargs):
-    """A convenient function to visualize Hi-C contact map. *kwargs* will be passed to 
-    :func:`matplotlib.pyplot.imshow`.
+    """A convenient function that can be used to visualize Hi-C contact map. 
+    *kwargs* will be passed to :func:`matplotlib.pyplot.imshow`.
 
     :arg map: a Hi-C contact map.
     :type map: :class:`numpy.ndarray`
@@ -387,12 +417,25 @@ def showMap(map, spec='', **kwargs):
     return imshow(map, vmin=vmin, vmax=vmax, **kwargs)
 
 def showDomains(domains, linespec='r-', **kwargs):
-    """A convenient function to visualize Hi-C structural domains. *kwargs* will be passed to 
-    :func:`matplotlib.pyplot.plot`.
+    """A convenient function that can be used to visualize Hi-C structural domains. 
+    *kwargs* will be passed to :func:`matplotlib.pyplot.plot`.
 
-    :arg domains: a 2D array of Hi-C domains, such [starts, end].
+    :arg domains: a 2D array of Hi-C domains, such as [[start1, end1], [start2, end2], ...].
     :type domains: :class:`numpy.ndarray`
     """
+
+    domains = np.array(domains)
+    shape = domains.shape
+
+    if len(shape) < 2:
+        # convert to domain list if labels are provided
+        indicators = np.diff(domains)
+        indicators = np.append(1., indicators)
+        indicators[-1] = 1
+        sites = np.where(indicators != 0)[0]
+        starts = sites[:-1]
+        ends = sites[1:]
+        domains = np.array([starts, ends]).T
 
     from matplotlib.pyplot import figure, plot
 
