@@ -17,12 +17,13 @@ class HiC(object):
     instance for analyzing the contact map can be also created by using this class.
     """
 
-    __slots__ = ['_map', 'mask', 'useTrimed', '_title', 'bin']
+    __slots__ = ['_map', 'mask', 'useTrimed', '_title', 'bin', '_labels']
 
     def __init__(self, title='Unknown', map=None, bin=None):
         self._title = title
         self._map = None
         self.mask = False
+        self._labels = 0
         self.useTrimed = True
         self.bin = bin
         self.Map = map
@@ -42,6 +43,7 @@ class HiC(object):
             self._map = np.array(map)
             self._makeSymmetric()
             self._maskUnmappedRegions()
+            self._labels = np.zeros(len(self._map))
 
     def __repr__(self):
 
@@ -59,9 +61,11 @@ class HiC(object):
             return self.Map[i,j]
 
     def __len__(self):
-
-        return len(self.Map)
+        return len(self._map)
     
+    def numAtoms(self):
+        return len(self._map)
+
     def getTitle(self):
         """Returns title of the instance."""
 
@@ -170,18 +174,42 @@ class HiC(object):
                 if isinstance(mode0, Mode):
                     V = np.empty((len(mode0),0))
                     for mode in modes:
-                        assert isinstance(mode, Mode), 'modes should be a list of modes.'
+                        assert isinstance(mode, Mode), 'Modes should be a list of modes.'
                         v = mode.getEigvec()
                         v = np.expand_dims(v, axis=1)
                         V = np.hstack((V, v))
                 else:
                     V = np.array(modes)
             except TypeError:
-                TypeError('modes should be a list of modes.')
+                TypeError('Modes should be a list of modes.')
         if V.ndim == 1:
             V = np.expand_dims(V, axis=1)
-        
+
+        if len(self.Map) != V.shape[0]:
+            raise ValueError('Modes (%d) and the Hi-C map (%d) should have the same number'
+                             ' of atoms. Turn off "useTrimed" if you intended to apply the'
+                             ' modes to the full map.'
+                             %(V.shape[0], len(self.Map)))
+
         labels = method(V, **kwargs)
+
+        if self.useTrimed:
+            full_length = len(self._map)
+            if full_length != len(labels):
+                _labels = np.empty(full_length)
+                _labels.fill(np.nan)
+                _labels[~self.mask] = labels
+
+                currlbl = labels[np.argmax(~np.isnan(labels))]
+
+                for i in range(len(_labels)):
+                    l = _labels[i]
+                    if np.isnan(l):
+                        _labels[i] = currlbl
+                    elif currlbl != l:
+                        currlbl = l
+                labels = _labels
+            
         return labels
 
 def parseHiC(filename, **kwargs):
