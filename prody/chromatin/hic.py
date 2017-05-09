@@ -209,8 +209,19 @@ class HiC(object):
                     elif currlbl != l:
                         currlbl = l
                 labels = _labels
-            
+        
+        self._labels = labels
         return labels
+
+    def getDomainList(self):
+        indicators = np.diff(self._labels)
+        indicators = np.append(1., indicators)
+        indicators[-1] = 1
+        sites = np.where(indicators != 0)[0]
+        starts = sites[:-1]
+        ends = sites[1:]
+        domains = np.array([starts, ends]).T
+        return domains
 
 def parseHiC(filename, **kwargs):
     """Returns an :class:`.HiC` from a Hi-C data file.
