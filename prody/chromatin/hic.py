@@ -2,11 +2,16 @@ from numpy import ma
 import numpy as np
 from scipy.sparse import coo_matrix
 from prody.chromatin.norm import VCnorm, SQRTVCnorm,Filenorm
+from prody.chromatin.cluster import KMeans
 
 from prody.dynamics import GNM
 from prody.dynamics.functions import writeArray
+from prody.dynamics.mode import Mode
+from prody.dynamics.modeset import ModeSet
 
-__all__ = ['HiC', 'parseHiC', 'parseHiCStream', 'plotmap', 'writeHiC', 'writeMap']
+from prody.utilities import openFile
+
+__all__ = ['HiC', 'parseHiC', 'parseHiCStream', 'showMap', 'showDomains', 'saveHiC', 'loadHiC', 'writeMap']
 
 class HiC(object):
 
@@ -14,12 +19,11 @@ class HiC(object):
     instance for analyzing the contact map can be also created by using this class.
     """
 
-    __slots__ = ['_map', 'mask', 'useTrimed', '_title', 'bin']
-
     def __init__(self, title='Unknown', map=None, bin=None):
         self._title = title
         self._map = None
         self.mask = False
+        self._labels = 0
         self.useTrimed = True
         self.bin = bin
         self.Map = map
@@ -39,6 +43,7 @@ class HiC(object):
             self._map = np.array(map)
             self._makeSymmetric()
             self._maskUnmappedRegions()
+            self._labels = np.zeros(len(self._map))
 
     def __repr__(self):
 
@@ -56,9 +61,11 @@ class HiC(object):
             return self.Map[i,j]
 
     def __len__(self):
-
-        return len(self.Map)
+        return len(self._map)
     
+    def numAtoms(self):
+        return len(self._map)
+
     def getTitle(self):
         """Returns title of the instance."""
 
@@ -97,7 +104,7 @@ class HiC(object):
             I = np.eye(M.shape[0], dtype=bool)
             A = M.copy()
             A[I] = 0.
-            D = np.diag(sum(A, axis=0))
+            D = np.diag(np.sum(A, axis=0))
             K = D - A
             return K
 
@@ -143,7 +150,6 @@ class HiC(object):
         gnm = GNM(self._title)
         gnm.setKirchhoff(self.getKirchhoff())
         gnm.calcModes(n_modes=n_modes)
-
         return gnm
     
     def normalize(self, method=VCnorm, **kwargs):
@@ -153,6 +159,86 @@ class HiC(object):
         N = method(M, **kwargs)
         self.Map = N
         return N
+    
+    def segment(self, modes, method=KMeans, **kwargs):
+        """Uses spectral clustering to identify structural domains on the chromosome.
+        
+        :arg modes: GNM modes used for segmentation
+        :type modes: :class:`ModeSet`
+
+        :arg method: Label assignment algorithm used after Laplacian embedding.
+        :type method: func
+        """
+
+        if isinstance(modes, ModeSet):
+            V = modes.getEigvecs()
+        elif isinstance(modes, Mode):
+            V = modes.getEigvec()
+        elif isinstance(modes, np.ndarray):
+            V = modes
+        else:
+            try:
+                mode0 = modes[0]
+                if isinstance(mode0, Mode):
+                    V = np.empty((len(mode0),0))
+                    for mode in modes:
+                        assert isinstance(mode, Mode), 'Modes should be a list of modes.'
+                        v = mode.getEigvec()
+                        v = np.expand_dims(v, axis=1)
+                        V = np.hstack((V, v))
+                else:
+                    V = np.array(modes)
+            except TypeError:
+                TypeError('Modes should be a list of modes.')
+        if V.ndim == 1:
+            V = np.expand_dims(V, axis=1)
+
+        if len(self.Map) != V.shape[0]:
+            raise ValueError('Modes (%d) and the Hi-C map (%d) should have the same number'
+                             ' of atoms. Turn off "useTrimed" if you intended to apply the'
+                             ' modes to the full map.'
+                             %(V.shape[0], len(self.Map)))
+        
+        labels = method(V, **kwargs)
+
+        if self.useTrimed:
+            full_length = len(self._map)
+            if full_length != len(labels):
+                _labels = np.empty(full_length)
+                _labels.fill(np.nan)
+                _labels[~self.mask] = labels
+
+                currlbl = labels[np.argmax(~np.isnan(labels))]
+
+                for i in range(len(_labels)):
+                    l = _labels[i]
+                    if np.isnan(l):
+                        _labels[i] = currlbl
+                    elif currlbl != l:
+                        currlbl = l
+                labels = _labels
+        
+        self._labels = labels
+        return labels
+    
+    def getDomains(self):
+        lbl = self._labels
+        mask = self.mask
+        if self.useTrimed:
+            lbl = lbl[~mask]
+        return lbl
+
+    def getDomainList(self):
+        indicators = np.diff(self.getDomains())
+        indicators = np.append(1., indicators)
+        indicators[-1] = 1
+        sites = np.where(indicators != 0)[0]
+        starts = sites[:-1]
+        ends = sites[1:]
+        domains = np.array([starts, ends]).T
+
+        return domains
+    
 
 def parseHiC(filename, **kwargs):
     """Returns an :class:`.HiC` from a Hi-C data file.
@@ -254,24 +340,54 @@ def writeMap(filename, map, bin=None, format='%f'):
         fmt = ['%d', '%d', format]
         return writeArray(filename, spmat, format=fmt)
 
-def writeHiC(filename, hic, format='%f'):
-    """Writes *hic.Map* instance to the file designated by *filename*.
+def saveHiC(hic, filename=None, map=True, **kwargs):
+    """Saves *HiC* model data as :file:`filename.hic.npz`. If *map* is ``False``, 
+    Hi-C contact map will not be saved and it can be loaded from raw data file 
+    later. If *filename* is ``None``, name of the Hi-C instance will be used as 
+    the filename, after ``" "`` (white spaces) in the name are replaced with 
+    ``"_"`` (underscores). Upon successful completion of saving, filename is 
+    returned. This function makes use of :func:`numpy.savez` function."""
 
-    :arg filename: the file to be written.
-    :type filename: str
-
-    :arg hic: a HiC instance.
-    :type hic: :class:`.HiC`
-
-    :arg format: output format for map elements.
-    :type format: str
-    """
     assert isinstance(hic, HiC), 'hic must be a HiC instance.'
-    return writeMap(filename, hic.Map, hic.bin, format)
+    
+    if filename is None:
+        filename = hic.getTitle().replace(' ', '_')
+    
+    if filename.endswith('.hic'):
+        filename += '.npz'
+    elif not filename.endswith('.hic.npz'):
+        filename += '.hic.npz'
 
-def plotmap(map, spec='', p=5, **kwargs):
-    """A convenient function to visualize Hi-C contact map. *kwargs* will be passed to 
-    :func:`matplotlib.pyplot.imshow`.
+    attr_dict = hic.__dict__.copy()
+    if not map:
+        attr_dict.pop('_map')
+
+    ostream = openFile(filename, 'wb', **kwargs)
+    np.savez(ostream, **attr_dict)
+    ostream.close()
+
+    return filename
+
+def loadHiC(filename):
+    """Returns HiC instance after loading it from file (*filename*).
+    This function makes use of :func:`numpy.load` function. See also 
+    :func:`saveHiC`."""
+    
+    attr_dict = np.load(filename)
+    hic = HiC()
+
+    keys = attr_dict.keys()
+
+    for k in keys:
+        val = attr_dict[k]
+        if len(val.shape) == 0:
+            val = np.asscalar(val)
+        setattr(hic, k, val)
+    return hic
+
+def showMap(map, spec='', **kwargs):
+    """A convenient function that can be used to visualize Hi-C contact map. 
+    *kwargs* will be passed to :func:`matplotlib.pyplot.imshow`.
 
     :arg map: a Hi-C contact map.
     :type map: :class:`numpy.ndarray`
@@ -290,10 +406,50 @@ def plotmap(map, spec='', p=5, **kwargs):
 
     if not '_' in spec:
         figure()
+    
     if 'p' in spec:
+        p = kwargs.pop('p', 5)
         vmin = np.percentile(map, p)
         vmax = np.percentile(map, 100-p)
     else:
         vmin = vmax = None
-    
+  
     return imshow(map, vmin=vmin, vmax=vmax, **kwargs)
+
+def showDomains(domains, linespec='r-', **kwargs):
+    """A convenient function that can be used to visualize Hi-C structural domains. 
+    *kwargs* will be passed to :func:`matplotlib.pyplot.plot`.
+
+    :arg domains: a 2D array of Hi-C domains, such as [[start1, end1], [start2, end2], ...].
+    :type domains: :class:`numpy.ndarray`
+    """
+
+    domains = np.array(domains)
+    shape = domains.shape
+
+    if len(shape) < 2:
+        # convert to domain list if labels are provided
+        indicators = np.diff(domains)
+        indicators = np.append(1., indicators)
+        indicators[-1] = 1
+        sites = np.where(indicators != 0)[0]
+        starts = sites[:-1]
+        ends = sites[1:]
+        domains = np.array([starts, ends]).T
+
+    from matplotlib.pyplot import figure, plot
+
+    x = []; y = []
+    lwd = kwargs.pop('linewidth', 1)
+    linewidth = np.abs(lwd)
+    for i in range(len(domains)):
+        domain = domains[i]
+        start = domain[0]; end = domain[1]
+        if lwd > 0:
+            x.extend([start, end, end])
+            y.extend([start, start, end])
+        else:
+            x.extend([start, start, end])
+            y.extend([start, end, end])
+
+    return plot(x, y, linespec, linewidth=linewidth, **kwargs)
