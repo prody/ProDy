@@ -160,7 +160,7 @@ class HiC(object):
         self.Map = N
         return N
     
-    def segregate(self, modes, method=KMeans, **kwargs):
+    def segment(self, modes, method=KMeans, **kwargs):
 
         if isinstance(modes, ModeSet):
             V = modes.getEigvecs()
