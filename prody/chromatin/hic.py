@@ -222,6 +222,9 @@ class HiC(object):
         return labels
     
     def getDomains(self):
+        """Returns an 1D :class:`numpy.ndarray` whose length is the number of loci. Each 
+        element is an index denotes to which domain the locus belongs."""
+
         lbl = self._labels
         mask = self.mask
         if self.useTrimed:
@@ -229,6 +232,9 @@ class HiC(object):
         return lbl
 
     def getDomainList(self):
+        """Returns a list of domain separations. The list has two columns: the first is for 
+        the domain starts and the second is for the domain ends."""
+
         indicators = np.diff(self.getDomains())
         indicators = np.append(1., indicators)
         indicators[-1] = 1
@@ -238,6 +244,26 @@ class HiC(object):
         domains = np.array([starts, ends]).T
 
         return domains
+
+    def view(self, spec='p', **kwargs):
+        """Visualization of the Hi-C map and domains (if present). The function makes use 
+        of :func:`.showMap`."""
+
+        dm_kwargs = {}
+        keys = kwargs.keys()
+        for k in keys:
+            if k.startswith('dm_'):
+                dm_kwargs[k[3:]] = kwargs.pop(k)
+            elif k.startswith('domain_'):
+                dm_kwargs[k[7:]] = kwargs.pop(k)
+
+        im = showMap(self.Map, spec, **kwargs)
+
+        domains = self.getDomainList()
+        if len(domains) > 1:
+            showDomains(domains, **dm_kwargs)
+
+        return im
     
 
 def parseHiC(filename, **kwargs):
