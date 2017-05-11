@@ -3,7 +3,7 @@ import numpy as np
 from scipy.sparse import coo_matrix
 from prody.chromatin.norm import VCnorm, SQRTVCnorm,Filenorm
 from prody.chromatin.cluster import KMeans
-from prody.chromatin.functions import div0, showMap, showDomains
+from prody.chromatin.functions import div0, showMap, showDomains, _getEigvecs
 
 from prody.dynamics import GNM
 from prody.dynamics.functions import writeArray
@@ -171,40 +171,13 @@ class HiC(object):
         :type method: func
         """
 
-        if isinstance(modes, ModeSet):
-            V = modes.getEigvecs()
-        elif isinstance(modes, Mode):
-            V = modes.getEigvec()
-        elif isinstance(modes, np.ndarray):
-            V = modes
-        else:
-            try:
-                mode0 = modes[0]
-                if isinstance(mode0, Mode):
-                    V = np.empty((len(mode0),0))
-                    for mode in modes:
-                        assert isinstance(mode, Mode), 'Modes should be a list of modes.'
-                        v = mode.getEigvec()
-                        v = np.expand_dims(v, axis=1)
-                        V = np.hstack((V, v))
-                else:
-                    V = np.array(modes)
-            except TypeError:
-                TypeError('Modes should be a list of modes.')
-        if V.ndim == 1:
-            V = np.expand_dims(V, axis=1)
+        V = _getEigvecs(modes, True)
 
         if len(self.Map) != V.shape[0]:
             raise ValueError('Modes (%d) and the Hi-C map (%d) should have the same number'
                              ' of atoms. Turn off "useTrimed" if you intended to apply the'
                              ' modes to the full map.'
                              %(V.shape[0], len(self.Map)))
-        
-        # normalize the rows so that feature vectors are unit vectors
-        la = importLA()
-        norms = la.norm(V, axis=1)
-        N = np.diag(div0(1., norms))
-        V = np.dot(N, V)
 
         labels = method(V, **kwargs)
 

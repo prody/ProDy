@@ -1,5 +1,10 @@
 import numpy as np
 
+from prody.dynamics import NMA
+from prody.dynamics.mode import Mode
+from prody.dynamics.modeset import ModeSet
+from prody.utilities import importLA
+
 __all__ = ['showMap', 'showDomains', 'showEmbedding']
 
 ## normalization methods ##
@@ -85,8 +90,8 @@ def showDomains(domains, linespec='r-', **kwargs):
 
     return plot(x, y, linespec, linewidth=linewidth, **kwargs)
 
-def showEmbedding(modes, labels=None):
-    if isinstance(modes, ModeSet):
+def _getEigvecs(modes, row_norm=False):
+    if isinstance(modes, (ModeSet, NMA)):
         V = modes.getEigvecs()
     elif isinstance(modes, Mode):
         V = modes.getEigvec()
@@ -109,6 +114,17 @@ def showEmbedding(modes, labels=None):
     if V.ndim == 1:
         V = np.expand_dims(V, axis=1)
 
+    # normalize the rows so that feature vectors are unit vectors
+    if row_norm:
+        la = importLA()
+        norms = la.norm(V, axis=1)
+        N = np.diag(div0(1., norms))
+        V = np.dot(N, V)
+    return V
+
+def showEmbedding(modes, labels=None):
+    V = _getEigvecs(modes, True)
+
     if labels is not None:
         if len(labels) != V.shape[0]:
             raise ValueError('Modes (%d) and the Hi-C map (%d) should have the same number'
@@ -116,11 +132,6 @@ def showEmbedding(modes, labels=None):
                                 ' modes to the full map.'
                                 %(V.shape[0], len(labels)))
     
-    # normalize the rows so that feature vectors are unit vectors
-    la = importLA()
-    norms = la.norm(V, axis=1)
-    N = np.diag(div0(1., norms))
-    V = np.dot(N, V)
 
     X, Y, Z = V[:,:3].T
 
@@ -133,4 +144,6 @@ def showEmbedding(modes, labels=None):
         C = 'b'
     else:
         C = labels
-    ax.scatter(X, Y, Z, s=30, c=C, depthshade=True)
+    ax.scatter(X, Y, Z, s=30, c=C, depthshade=True, cmap='prism')
+    ax.plot(X[:1], Y[:1], Z[:1], 'k*', markersize=12)
+    ax.plot(X[-1:], Y[-1:], Z[-1:], 'ko', markersize=12)
