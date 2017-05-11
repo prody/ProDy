@@ -9,7 +9,7 @@ from prody.dynamics.functions import writeArray
 from prody.dynamics.mode import Mode
 from prody.dynamics.modeset import ModeSet
 
-from prody.utilities import openFile
+from prody.utilities import openFile, importLA
 
 __all__ = ['HiC', 'parseHiC', 'parseHiCStream', 'showMap', 'showDomains', 'saveHiC', 'loadHiC', 'writeMap']
 
@@ -199,6 +199,13 @@ class HiC(object):
                              ' modes to the full map.'
                              %(V.shape[0], len(self.Map)))
         
+        # normalize the rows so that feature vectors are unit vectors
+        la = importLA()
+        from prody.chromatin.norm import div0
+        norms = la.norm(V, axis=1)
+        N = np.diag(div0(1., norms))
+        V = np.dot(N, V)
+
         labels = method(V, **kwargs)
 
         if self.useTrimed:
