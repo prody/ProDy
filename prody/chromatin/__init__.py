@@ -44,3 +44,7 @@ __all__.extend(norm.__all__)
 from . import cluster
 from .cluster import *
 __all__.extend(cluster.__all__)
+
+from . import functions
+from .functions import *
+__all__.extend(functions.__all__)

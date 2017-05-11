@@ -1,4 +1,6 @@
-__all__ = ['KMeans']
+import numpy as np
+
+__all__ = ['KMeans', 'Hierarchy']
 
 def KMeans(V, **kwargs):
     try:
@@ -18,17 +20,18 @@ def KMeans(V, **kwargs):
 
 def Hierarchy(V, **kwargs):
     try:
-        from scipy.cluster.hierarchy import linkage
-        from scipy.cluster.hierarchy import fcluster
+        from scipy.cluster.hierarchy import linkage, fcluster, inconsistent
     except ImportError:
         raise ImportError('Use of this function (Hierarchical) requires the '
                           'installation of scipy.')
     
-    method = kwargs.pop('method', 'ward')
+    method = kwargs.pop('method', 'single')
     metric = kwargs.pop('metric', 'euclidean')
     Z = linkage(V, method=method, metric=metric)
+    I = inconsistent(Z)
+    i = np.percentile(I[:,3], 99.9)
 
-    t = kwargs.pop('t', 30)
+    t = kwargs.pop('t', i)
     criterion = kwargs.pop('criterion', 'inconsistent')
     depth = kwargs.pop('depth', 2)
     R = kwargs.pop('R', None)

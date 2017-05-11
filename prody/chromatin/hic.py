@@ -3,6 +3,7 @@ import numpy as np
 from scipy.sparse import coo_matrix
 from prody.chromatin.norm import VCnorm, SQRTVCnorm,Filenorm
 from prody.chromatin.cluster import KMeans
+from prody.chromatin.functions import div0, showMap, showDomains
 
 from prody.dynamics import GNM
 from prody.dynamics.functions import writeArray
@@ -11,7 +12,7 @@ from prody.dynamics.modeset import ModeSet
 
 from prody.utilities import openFile, importLA
 
-__all__ = ['HiC', 'parseHiC', 'parseHiCStream', 'showMap', 'showDomains', 'saveHiC', 'loadHiC', 'writeMap']
+__all__ = ['HiC', 'parseHiC', 'parseHiCStream', 'saveHiC', 'loadHiC', 'writeMap']
 
 class HiC(object):
 
@@ -201,7 +202,6 @@ class HiC(object):
         
         # normalize the rows so that feature vectors are unit vectors
         la = importLA()
-        from prody.chromatin.norm import div0
         norms = la.norm(V, axis=1)
         N = np.diag(div0(1., norms))
         V = np.dot(N, V)
@@ -226,7 +226,7 @@ class HiC(object):
                 labels = _labels
         
         self._labels = labels
-        return labels
+        return self.getDomains()
     
     def getDomains(self):
         """Returns an 1D :class:`numpy.ndarray` whose length is the number of loci. Each 
@@ -418,71 +418,3 @@ def loadHiC(filename):
         setattr(hic, k, val)
     return hic
 
-def showMap(map, spec='', **kwargs):
-    """A convenient function that can be used to visualize Hi-C contact map. 
-    *kwargs* will be passed to :func:`matplotlib.pyplot.imshow`.
-
-    :arg map: a Hi-C contact map.
-    :type map: :class:`numpy.ndarray`
-
-    :arg spec: a string specifies how to preprocess the matrix. Blank for no preprocessing,
-    'p' for showing only data from *p*-th to *100-p*-th percentile.
-    :type spec: str
-
-    :arg p: specifies the percentile threshold.
-    :type p: double
-    """
-
-    assert isinstance(map, np.ndarray), 'map must be a numpy.ndarray.'
-    
-    from matplotlib.pyplot import figure, imshow
-
-    if not '_' in spec:
-        figure()
-    
-    if 'p' in spec:
-        p = kwargs.pop('p', 5)
-        vmin = np.percentile(map, p)
-        vmax = np.percentile(map, 100-p)
-    else:
-        vmin = vmax = None
-  
-    return imshow(map, vmin=vmin, vmax=vmax, **kwargs)
-
-def showDomains(domains, linespec='r-', **kwargs):
-    """A convenient function that can be used to visualize Hi-C structural domains. 
-    *kwargs* will be passed to :func:`matplotlib.pyplot.plot`.
-
-    :arg domains: a 2D array of Hi-C domains, such as [[start1, end1], [start2, end2], ...].
-    :type domains: :class:`numpy.ndarray`
-    """
-
-    domains = np.array(domains)
-    shape = domains.shape
-
-    if len(shape) < 2:
-        # convert to domain list if labels are provided
-        indicators = np.diff(domains)
-        indicators = np.append(1., indicators)
-        indicators[-1] = 1
-        sites = np.where(indicators != 0)[0]
-        starts = sites[:-1]
-        ends = sites[1:]
-        domains = np.array([starts, ends]).T
-
-    from matplotlib.pyplot import figure, plot
-
-    x = []; y = []
-    lwd = kwargs.pop('linewidth', 1)
-    linewidth = np.abs(lwd)
-    for i in range(len(domains)):
-        domain = domains[i]
-        start = domain[0]; end = domain[1]
-        if lwd > 0:
-            x.extend([start, end, end])
-            y.extend([start, start, end])
-        else:
-            x.extend([start, start, end])
-            y.extend([start, end, end])
-
-    return plot(x, y, linespec, linewidth=linewidth, **kwargs)
