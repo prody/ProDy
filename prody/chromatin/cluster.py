@@ -27,14 +27,18 @@ def Hierarchy(V, **kwargs):
         raise ImportError('Use of this function (Hierarchy) requires the '
                           'installation of scipy.')
     
-    method = kwargs.pop('method', 'complete')
+    method = kwargs.pop('method', 'single')
     metric = kwargs.pop('metric', 'euclidean')
-    Z = linkage(V, method=method, metric=metric)
-    I = inconsistent(Z)
-    i = np.percentile(I[:,3], 99.9)
+    
+    criterion = kwargs.pop('criterion', 'inconsistent')
+    t = kwargs.get('t', None)
+    ip = kwargs.get('inconsistent_percentile', 99.9)
+    if t is None and criterion == 'inconsistent':
+        Z = linkage(V, method=method, metric=metric)
+        I = inconsistent(Z)
+        i = np.percentile(I[:,3], ip)
 
     t = kwargs.pop('t', i)
-    criterion = kwargs.pop('criterion', 'inconsistent')
     depth = kwargs.pop('depth', 2)
     R = kwargs.pop('R', None)
     monocrit = kwargs.pop('monocrit', None)
@@ -56,7 +60,7 @@ def showLinkage(V, **kwargs):
         raise ImportError('Use of this function (showLinkage) requires the '
                           'installation of scipy.')
     
-    method = kwargs.pop('method', 'complete')
+    method = kwargs.pop('method', 'single')
     metric = kwargs.pop('metric', 'euclidean')
     Z = linkage(V, method=method, metric=metric)
 
