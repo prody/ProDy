@@ -3,15 +3,16 @@ import numpy as np
 from scipy.sparse import coo_matrix
 from prody.chromatin.norm import VCnorm, SQRTVCnorm,Filenorm
 from prody.chromatin.cluster import KMeans
+from prody.chromatin.functions import div0, showMap, showDomains, _getEigvecs
 
 from prody.dynamics import GNM
 from prody.dynamics.functions import writeArray
 from prody.dynamics.mode import Mode
 from prody.dynamics.modeset import ModeSet
 
-from prody.utilities import openFile
+from prody.utilities import openFile, importLA
 
-__all__ = ['HiC', 'parseHiC', 'parseHiCStream', 'showMap', 'showDomains', 'saveHiC', 'loadHiC', 'writeMap']
+__all__ = ['HiC', 'parseHiC', 'parseHiCStream', 'saveHiC', 'loadHiC', 'writeMap']
 
 class HiC(object):
 
@@ -170,35 +171,14 @@ class HiC(object):
         :type method: func
         """
 
-        if isinstance(modes, ModeSet):
-            V = modes.getEigvecs()
-        elif isinstance(modes, Mode):
-            V = modes.getEigvec()
-        elif isinstance(modes, np.ndarray):
-            V = modes
-        else:
-            try:
-                mode0 = modes[0]
-                if isinstance(mode0, Mode):
-                    V = np.empty((len(mode0),0))
-                    for mode in modes:
-                        assert isinstance(mode, Mode), 'Modes should be a list of modes.'
-                        v = mode.getEigvec()
-                        v = np.expand_dims(v, axis=1)
-                        V = np.hstack((V, v))
-                else:
-                    V = np.array(modes)
-            except TypeError:
-                TypeError('Modes should be a list of modes.')
-        if V.ndim == 1:
-            V = np.expand_dims(V, axis=1)
+        V = _getEigvecs(modes, True)
 
         if len(self.Map) != V.shape[0]:
             raise ValueError('Modes (%d) and the Hi-C map (%d) should have the same number'
                              ' of atoms. Turn off "useTrimed" if you intended to apply the'
                              ' modes to the full map.'
                              %(V.shape[0], len(self.Map)))
-        
+
         labels = method(V, **kwargs)
 
         if self.useTrimed:
@@ -219,9 +199,12 @@ class HiC(object):
                 labels = _labels
         
         self._labels = labels
-        return labels
+        return self.getDomains()
     
     def getDomains(self):
+        """Returns an 1D :class:`numpy.ndarray` whose length is the number of loci. Each 
+        element is an index denotes to which domain the locus belongs."""
+
         lbl = self._labels
         mask = self.mask
         if self.useTrimed:
@@ -229,6 +212,9 @@ class HiC(object):
         return lbl
 
     def getDomainList(self):
+        """Returns a list of domain separations. The list has two columns: the first is for 
+        the domain starts and the second is for the domain ends."""
+
         indicators = np.diff(self.getDomains())
         indicators = np.append(1., indicators)
         indicators[-1] = 1
@@ -238,6 +224,26 @@ class HiC(object):
         domains = np.array([starts, ends]).T
 
         return domains
+
+    def view(self, spec='p', **kwargs):
+        """Visualization of the Hi-C map and domains (if present). The function makes use 
+        of :func:`.showMap`."""
+
+        dm_kwargs = {}
+        keys = kwargs.keys()
+        for k in keys:
+            if k.startswith('dm_'):
+                dm_kwargs[k[3:]] = kwargs.pop(k)
+            elif k.startswith('domain_'):
+                dm_kwargs[k[7:]] = kwargs.pop(k)
+
+        im = showMap(self.Map, spec, **kwargs)
+
+        domains = self.getDomainList()
+        if len(domains) > 1:
+            showDomains(domains, **dm_kwargs)
+
+        return im
     
 
 def parseHiC(filename, **kwargs):
@@ -385,71 +391,3 @@ def loadHiC(filename):
         setattr(hic, k, val)
     return hic
 
-def showMap(map, spec='', **kwargs):
-    """A convenient function that can be used to visualize Hi-C contact map. 
-    *kwargs* will be passed to :func:`matplotlib.pyplot.imshow`.
-
-    :arg map: a Hi-C contact map.
-    :type map: :class:`numpy.ndarray`
-
-    :arg spec: a string specifies how to preprocess the matrix. Blank for no preprocessing,
-    'p' for showing only data from *p*-th to *100-p*-th percentile.
-    :type spec: str
-
-    :arg p: specifies the percentile threshold.
-    :type p: double
-    """
-
-    assert isinstance(map, np.ndarray), 'map must be a numpy.ndarray.'
-    
-    from matplotlib.pyplot import figure, imshow
-
-    if not '_' in spec:
-        figure()
-    
-    if 'p' in spec:
-        p = kwargs.pop('p', 5)
-        vmin = np.percentile(map, p)
-        vmax = np.percentile(map, 100-p)
-    else:
-        vmin = vmax = None
-  
-    return imshow(map, vmin=vmin, vmax=vmax, **kwargs)
-
-def showDomains(domains, linespec='r-', **kwargs):
-    """A convenient function that can be used to visualize Hi-C structural domains. 
-    *kwargs* will be passed to :func:`matplotlib.pyplot.plot`.
-
-    :arg domains: a 2D array of Hi-C domains, such as [[start1, end1], [start2, end2], ...].
-    :type domains: :class:`numpy.ndarray`
-    """
-
-    domains = np.array(domains)
-    shape = domains.shape
-
-    if len(shape) < 2:
-        # convert to domain list if labels are provided
-        indicators = np.diff(domains)
-        indicators = np.append(1., indicators)
-        indicators[-1] = 1
-        sites = np.where(indicators != 0)[0]
-        starts = sites[:-1]
-        ends = sites[1:]
-        domains = np.array([starts, ends]).T
-
-    from matplotlib.pyplot import figure, plot
-
-    x = []; y = []
-    lwd = kwargs.pop('linewidth', 1)
-    linewidth = np.abs(lwd)
-    for i in range(len(domains)):
-        domain = domains[i]
-        start = domain[0]; end = domain[1]
-        if lwd > 0:
-            x.extend([start, end, end])
-            y.extend([start, start, end])
-        else:
-            x.extend([start, start, end])
-            y.extend([start, end, end])
-
-    return plot(x, y, linespec, linewidth=linewidth, **kwargs)

@@ -1,20 +1,8 @@
 import numpy as np
 
+from prody.chromatin.functions import div0
+
 __all__ = ['VCnorm', 'SQRTVCnorm', 'Filenorm']
-
-## normalization methods ##
-def div0(a, b):
-    """ Performs ``true_divide`` but ignores the error when division by zero 
-    (result is set to zero instead). """
-
-    with np.errstate(divide='ignore', invalid='ignore'):
-        c = np.true_divide(a, b)
-        if np.isscalar(c):
-            if not np.isfinite(c):
-                c = 0
-        else:
-            c[~np.isfinite(c)] = 0.  # -inf inf NaN
-    return c
 
 def VCnorm(M, **kwargs):
     """ Performs vanilla coverage normalization on matrix *M*."""
