@@ -102,3 +102,4 @@ def showLinkage(V, **kwargs):
     if SETTINGS['auto_show']:
         showFigure()
     return Z
+    
