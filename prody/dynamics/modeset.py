@@ -131,3 +131,4 @@ class ModeSet(object):
 
     def numHinges(self):
         return len(self.getHinges())
+        
