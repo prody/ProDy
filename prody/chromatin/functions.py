@@ -4,6 +4,8 @@ from prody.dynamics import NMA
 from prody.dynamics.mode import Mode
 from prody.dynamics.modeset import ModeSet
 from prody.utilities import importLA
+from prody import LOGGER, SETTINGS
+from prody.utilities import showFigure
 
 __all__ = ['showMap', 'showDomains', 'showEmbedding']
 
@@ -87,8 +89,11 @@ def showDomains(domains, linespec='r-', **kwargs):
         else:
             x.extend([start, start, end])
             y.extend([start, end, end])
-
-    return plot(x, y, linespec, linewidth=linewidth, **kwargs)
+    
+    plt = plot(x, y, linespec, linewidth=linewidth, **kwargs)
+    if SETTINGS['auto_show']:
+        showFigure()
+    return plt
 
 def _getEigvecs(modes, row_norm=False):
     if isinstance(modes, (ModeSet, NMA)):
@@ -122,35 +127,76 @@ def _getEigvecs(modes, row_norm=False):
         V = np.dot(N, V)
     return V
 
-def showEmbedding(modes, labels=None):
-    V = _getEigvecs(modes, True)
-    n = V.shape[1]
+def showEmbedding(modes, labels=None, trace=True, headtail=True, cmap='prism'):
+    """Visualizes Laplacian embedding of Hi-C data. 
 
+    :arg modes: modes in which loci are embedded. It can only have 2 or 3 modes for the purpose 
+    of visualization.
+    :type modes: :class:`ModeSet`
+
+    :arg labels: a list of integers indicating the segmentation of the sequence.
+    :type labels: list
+
+    :arg trace: if ``True`` then the trace of the sequence will be indicated by a grey dashed line.
+    :type trace: bool
+
+    :arg headtail: if ``True`` then a star and a closed circle will indicate the head and the tail 
+    of the sequence respectively.
+    :type headtail: bool
+
+    :arg cmap: the color map used to render the *labels*.
+    :type cmap: str
+    """
+    V = _getEigvecs(modes, True)
+    m,n = V.shape
+
+    if labels is not None:
+        if len(labels) != m:
+            raise ValueError('Modes (%d) and the Hi-C map (%d) should have the same number'
+                                ' of atoms. Turn off "useTrimed" if you intended to apply the'
+                                ' modes to the full map.'
+                                %(m, len(labels)))
     if n > 3:
         raise ValueError('This function can only visualize the embedding of 2 or 3 modes.')
-        
+    
+    from matplotlib.pyplot import figure, plot, scatter
+    from mpl_toolkits.mplot3d import Axes3D
+
     if n == 2:
-        pass
-    elif n == 3:
-        if labels is not None:
-            if len(labels) != V.shape[0]:
-                raise ValueError('Modes (%d) and the Hi-C map (%d) should have the same number'
-                                    ' of atoms. Turn off "useTrimed" if you intended to apply the'
-                                    ' modes to the full map.'
-                                    %(V.shape[0], len(labels)))
+        la = importLA()
+
+        X, Y = V[:,:2].T
+        R = np.array(range(len(X)))
+        R = R / la.norm(R)
+        X *= R; Y *= R
         
-
-        X, Y, Z = V[:,:3].T
-
-        from matplotlib.pyplot import figure
-        from mpl_toolkits.mplot3d import Axes3D
         f = figure()
-        ax = Axes3D(f)
-        ax.plot(X, Y, Z, ':', color=[0.3, 0.3, 0.3])
+        if trace:
+            plot(X, Y, ':', color=[0.3, 0.3, 0.3])
         if labels is None:
             C = 'b'
         else:
             C = labels
-        ax.scatter(X, Y, Z, s=30, c=C, depthshade=True, cmap='prism')
-        ax.plot(X[:1], Y[:1], Z[:1], 'k*', markersize=12)
-        ax.plot(X[-1:], Y[-1:], Z[-1:], 'ko', markersize=12)
+        scatter(X, Y, s=30, c=C, cmap=cmap)
+        if headtail:
+            plot(X[:1], Y[:1], 'k*', markersize=12)
+            plot(X[-1:], Y[-1:], 'ko', markersize=12)
+    elif n == 3:
+        X, Y, Z = V[:,:3].T
+        
+        f = figure()
+        ax = Axes3D(f)
+        if trace:
+            ax.plot(X, Y, Z, ':', color=[0.3, 0.3, 0.3])
+        if labels is None:
+            C = 'b'
+        else:
+            C = labels
+        ax.scatter(X, Y, Z, s=30, c=C, depthshade=True, cmap=cmap)
+        if headtail:
+            ax.plot(X[:1], Y[:1], Z[:1], 'k*', markersize=12)
+            ax.plot(X[-1:], Y[-1:], Z[-1:], 'ko', markersize=12)
+
+    if SETTINGS['auto_show']:
+        showFigure()
+    return f

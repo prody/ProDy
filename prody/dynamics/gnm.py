@@ -315,17 +315,17 @@ class GNM(GNMBase):
         for i in range(n):
             v = V[:,i]
             # obtain the signs of eigenvector
-            s = np.insert(np.sign(v), 0, 0)
+            s = np.sign(v)
             # obtain the relative magnitude of eigenvector
-            mag = np.insert(np.sign(np.diff(np.abs(v))), 0, 0)
+            mag = np.sign(np.diff(np.abs(v)))
             # obtain the cross-overs
             torf = np.diff(s)!=0
             indices = np.where(torf)[0]
             # find which side is more close to zero
             for i in range(len(indices)):
                 idx = indices[i]
-                if mag[idx] > 0:
-                    indices[i] -= 1
+                if mag[idx] < 0:
+                    indices[i] += 1
             hinges.append(indices)
         self._hinges = np.array(hinges)
         return self._hinges
@@ -350,6 +350,9 @@ class GNM(GNMBase):
         else:
             hingelist = [i for i in hinges]
         return sorted(set(hingelist))
+    
+    def numHinges(self, modeIndex=None):
+        return len(self.getHinges(modeIndex=modeIndex))
 
     def getNormDistFluct(self, coords):
         """Normalized distance fluctuation

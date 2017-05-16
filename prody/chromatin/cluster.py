@@ -5,6 +5,16 @@ from prody.utilities import showFigure
 __all__ = ['KMeans', 'Hierarchy', 'showLinkage']
 
 def KMeans(V, **kwargs):
+    """Performs k-means clustering on *V*. The function uses :func:`sklearn.cluster.KMeans`. See sklearn documents 
+    for details.
+
+    :arg V: row-normalized eigenvectors for the purpose of clustering.
+    :type V: :class:`numpy.ndarray`
+
+    :arg n_clusters: specifies the number of clusters. 
+    :type n_clusters: int
+    """
+
     try:
         from sklearn.cluster import KMeans
     except ImportError:
@@ -21,6 +31,23 @@ def KMeans(V, **kwargs):
     return kmeans.labels_
 
 def Hierarchy(V, **kwargs):
+    """Performs hierarchical clustering on *V*. The function essentially uses two scipy functions: ``linkage`` and 
+    ``fcluster``. See :func:`scipy.cluster.hierarchy.linkage` and :func:`scipy.cluster.hierarchy.fcluster` for the 
+    explaination of the arguments. Here lists arguments that are different from those of scipy.
+
+    :arg V: row-normalized eigenvectors for the purpose of clustering.
+    :type V: :class:`numpy.ndarray`
+
+    :arg inconsistent_percentile: if the clustering *criterion* for :func:`scipy.cluster.hierarchy.fcluster`
+    is ``inconsistent`` and threshold *t* is not given (default), then the function will use the percentile specified 
+    by this argument as the threshold.
+    :type inconsistent_percentile: double
+
+    :arg n_clusters: specifies the maximal number of clusters. If this argument is given, then the function will 
+    automatically set *criterion* to ``maxclust`` and *t* equal to *n_clusters*.
+    :type n_clusters: int
+    """
+
     try:
         from scipy.cluster.hierarchy import linkage, fcluster, inconsistent
     except ImportError:
@@ -29,12 +56,12 @@ def Hierarchy(V, **kwargs):
     
     method = kwargs.pop('method', 'single')
     metric = kwargs.pop('metric', 'euclidean')
+    Z = linkage(V, method=method, metric=metric)
     
     criterion = kwargs.pop('criterion', 'inconsistent')
     t = kwargs.get('t', None)
-    ip = kwargs.get('inconsistent_percentile', 99.9)
+    ip = kwargs.pop('inconsistent_percentile', 99.9)
     if t is None and criterion == 'inconsistent':
-        Z = linkage(V, method=method, metric=metric)
         I = inconsistent(Z)
         i = np.percentile(I[:,3], ip)
 
@@ -51,6 +78,12 @@ def Hierarchy(V, **kwargs):
     return labels.flatten()
 
 def showLinkage(V, **kwargs):
+    """Shows the dendrogram of hierarchical clustering on *V*. See :func:`scipy.cluster.hierarchy.dendrogram` for details.
+
+    :arg V: row-normalized eigenvectors for the purpose of clustering.
+    :type V: :class:`numpy.ndarray`
+
+    """
     from .functions import _getEigvecs
 
     V = _getEigvecs(V, row_norm=True)

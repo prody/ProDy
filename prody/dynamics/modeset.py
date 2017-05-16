@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """This module defines a pointer class for handling subsets of normal modes."""
 
-from numpy import array
+from numpy import array, arange
 
 __all__ = ['ModeSet']
 
@@ -33,6 +33,28 @@ class ModeSet(object):
     def __str__(self):
         return '{0} modes from {1}'.format(len(self._indices),
                                                str(self._model))
+    
+    def __getitem__(self, index):
+        """A list or tuple of integers can be used for indexing."""
+
+        if isinstance(index, slice):
+            indices = arange(*index.indices(len(self)))
+            if len(indices) > 1:
+                return ModeSet(self._model, self._indices[indices])
+            elif len(indices) > 0:
+                return self._model._getMode(self._indices[indices[0]])
+        elif isinstance(index, (list, tuple)):
+            for i in index:
+                assert isinstance(i, int), 'all indices must be integers'
+            if len(index) == 1:
+                return self._model._getMode(self._indices[index[0]])
+            return ModeSet(self._model, self._indices[index])
+        try:
+            index = int(index)
+        except Exception:
+            raise IndexError('indices must be int, slice, list, or tuple')
+        else:
+            return self._model._getMode(self._indices[index])
 
     def is3d(self):
         """Returns **True** is model is 3-dimensional."""
@@ -106,3 +128,6 @@ class ModeSet(object):
             return
         else:
             return self._model.getHinges(self._indices)
+
+    def numHinges(self):
+        return len(self.getHinges())
