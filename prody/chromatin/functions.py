@@ -124,26 +124,33 @@ def _getEigvecs(modes, row_norm=False):
 
 def showEmbedding(modes, labels=None):
     V = _getEigvecs(modes, True)
+    n = V.shape[1]
 
-    if labels is not None:
-        if len(labels) != V.shape[0]:
-            raise ValueError('Modes (%d) and the Hi-C map (%d) should have the same number'
-                                ' of atoms. Turn off "useTrimed" if you intended to apply the'
-                                ' modes to the full map.'
-                                %(V.shape[0], len(labels)))
-    
+    if n > 3:
+        raise ValueError('This function can only visualize the embedding of 2 or 3 modes.')
+        
+    if n == 2:
+        pass
+    elif n == 3:
+        if labels is not None:
+            if len(labels) != V.shape[0]:
+                raise ValueError('Modes (%d) and the Hi-C map (%d) should have the same number'
+                                    ' of atoms. Turn off "useTrimed" if you intended to apply the'
+                                    ' modes to the full map.'
+                                    %(V.shape[0], len(labels)))
+        
 
-    X, Y, Z = V[:,:3].T
+        X, Y, Z = V[:,:3].T
 
-    from matplotlib.pyplot import figure
-    from mpl_toolkits.mplot3d import Axes3D
-    f = figure()
-    ax = Axes3D(f)
-    ax.plot(X, Y, Z, ':', color=[0.3, 0.3, 0.3])
-    if labels is None:
-        C = 'b'
-    else:
-        C = labels
-    ax.scatter(X, Y, Z, s=30, c=C, depthshade=True, cmap='prism')
-    ax.plot(X[:1], Y[:1], Z[:1], 'k*', markersize=12)
-    ax.plot(X[-1:], Y[-1:], Z[-1:], 'ko', markersize=12)
+        from matplotlib.pyplot import figure
+        from mpl_toolkits.mplot3d import Axes3D
+        f = figure()
+        ax = Axes3D(f)
+        ax.plot(X, Y, Z, ':', color=[0.3, 0.3, 0.3])
+        if labels is None:
+            C = 'b'
+        else:
+            C = labels
+        ax.scatter(X, Y, Z, s=30, c=C, depthshade=True, cmap='prism')
+        ax.plot(X[:1], Y[:1], Z[:1], 'k*', markersize=12)
+        ax.plot(X[-1:], Y[-1:], Z[-1:], 'ko', markersize=12)
