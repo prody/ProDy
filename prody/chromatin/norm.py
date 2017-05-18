@@ -67,7 +67,7 @@ def SCN(M, **kwargs):
 
         n += 1
 
-        # check symmetry
+        # check convergence of symmetry
         d = np.mean(np.abs(N - N.T))
         
         if d0 is not None:
@@ -85,7 +85,8 @@ def SCN(M, **kwargs):
                 LOGGER.warn('The SCN algorithm did not converge after {0} '
                             'iterations.'.format(max_loops))
                 break
-
+    # guarantee symmetry
+    N = (N + N.T) / 2.
     if total_count is 'original':
         total_count = np.sum(M)
 
