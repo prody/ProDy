@@ -130,6 +130,9 @@ def showFractVars(modes, *args, **kwargs):
     if not isinstance(modes, (ModeSet, NMA)):
         raise TypeError('modes must be NMA, or ModeSet, not {0}'
                         .format(type(modes)))
+    
+    if kwargs.pop('new_fig', True):
+        plt.figure()
 
     fracts = calcFractVariance(modes)
     fracts = [(int(mode), fract) for mode, fract in zip(modes, fracts)]
@@ -163,6 +166,9 @@ def showCumulFractVars(modes, *args, **kwargs):
         indices = modes.getIndices() + 0.5
     else:
         indices = np.arange(len(modes)) + 0.5
+    
+    if kwargs.pop('new_fig', True):
+        plt.figure()
 
     fracts = calcFractVariance(modes).cumsum()
     show = plt.plot(indices, fracts, *args, **kwargs)
@@ -200,6 +206,8 @@ def showProjection(ensemble, modes, *args, **kwargs):
     :type text: list
     :arg fontsize: font size for text labels
     :type fontsize: int
+    :arg new_fig: if ``True`` then a new figure will be created before plotting.
+    :type new_fig: bool
 
     The projected values are by default converted to RMSD.  Pass ``rmsd=False``
     to use projection itself.
@@ -211,7 +219,9 @@ def showProjection(ensemble, modes, *args, **kwargs):
       * 3 modes: :meth:`~mpl_toolkits.mplot3d.Axes3D.plot`"""
 
     import matplotlib.pyplot as plt
-    plt.figure()
+
+    if kwargs.pop('new_fig', True):
+        plt.figure()
     projection = calcProjection(ensemble, modes, kwargs.pop('rmsd', True))
 
     if projection.ndim == 1 or projection.shape[1] == 1:
@@ -357,6 +367,9 @@ def showCrossProjection(ensemble, mode_x, mode_y, scale=None, *args, **kwargs):
 
     import matplotlib.pyplot as plt
 
+    if kwargs.pop('new_fig', True):
+        plt.figure()
+
     xcoords, ycoords = calcCrossProjection(ensemble, mode_x, mode_y,
                                            scale=scale, **kwargs)
 
@@ -447,7 +460,9 @@ def showOverlapTable(modes_x, modes_y, **kwargs):
 
     cmap = kwargs.pop('cmap', plt.cm.jet)
     norm = kwargs.pop('norm', matplotlib.colors.Normalize(0, 1))
-    plt.figure()
+
+    if kwargs.pop('new_fig', True):
+        plt.figure()
     show = (plt.pcolor(overlap, cmap=cmap, norm=norm, **kwargs),
             plt.colorbar())
     x_range = np.arange(1, modes_x.numModes() + 1)
@@ -469,6 +484,9 @@ def showCrossCorr(modes, *args, **kwargs):
     See also :func:`.calcCrossCorr`."""
 
     import matplotlib.pyplot as plt
+    if kwargs.pop('new_fig', True):
+        plt.figure()
+
     arange = np.arange(modes.numAtoms())
     cross_correlations = np.zeros((arange[-1]+2, arange[-1]+2))
     cross_correlations[arange[0]+1:,
@@ -496,6 +514,9 @@ def showMode(mode, *args, **kwargs):
     if not isinstance(mode, Mode):
         raise TypeError('mode must be a Mode instance, '
                         'not {0}'.format(type(mode)))
+    if kwargs.pop('new_fig', True):
+        plt.figure()
+
     if mode.is3d():
         a3d = mode.getArrayNx3()
         show = plt.plot(a3d[:, 0], *args, label='x-component', **kwargs)
@@ -522,6 +543,9 @@ def showSqFlucts(modes, *args, **kwargs):
     also :func:`.calcSqFlucts`."""
 
     import matplotlib.pyplot as plt
+    if kwargs.pop('new_fig', True):
+        plt.figure()
+
     show_hinge = kwargs.pop('hinge', True)
     sqf = calcSqFlucts(modes)
     if not 'label' in kwargs:
@@ -545,6 +569,9 @@ def showScaledSqFlucts(modes, *args, **kwargs):
     the same mean squared fluctuations as *modes*."""
 
     import matplotlib.pyplot as plt
+    if kwargs.pop('new_fig', True):
+        plt.figure()
+
     sqf = calcSqFlucts(modes)
     mean = sqf.mean()
     args = list(args)
@@ -574,6 +601,9 @@ def showNormedSqFlucts(modes, *args, **kwargs):
     """
 
     import matplotlib.pyplot as plt
+    if kwargs.pop('new_fig', True):
+        plt.figure()
+
     sqf = calcSqFlucts(modes)
     args = list(args)
     modesarg = []
@@ -600,6 +630,9 @@ def showContactMap(enm, *args, **kwargs):
     """Show Kirchhoff matrix using :func:`~matplotlib.pyplot.spy`."""
 
     import matplotlib.pyplot as plt
+    if kwargs.pop('new_fig', True):
+        plt.figure()
+        
     if not isinstance(enm, GNMBase):
         raise TypeError('model argument must be an ENM instance')
     kirchhoff = enm.getKirchhoff()
@@ -625,6 +658,10 @@ def showOverlap(mode, modes, *args, **kwargs):
     """
 
     import matplotlib.pyplot as plt
+
+    if kwargs.pop('new_fig', True):
+        plt.figure()
+
     if not isinstance(mode, (Mode, Vector)):
         raise TypeError('mode must be Mode or Vector, not {0}'
                         .format(type(mode)))
@@ -665,6 +702,9 @@ def showCumulOverlap(mode, modes, *args, **kwargs):
         arange = np.arange(0.5, len(modes)+0.5)
     else:
         arange = modes.getIndices() + 0.5
+    
+    if kwargs.pop('new_fig', True):
+        plt.figure()
     show = plt.plot(arange, cumov, *args, **kwargs)
     plt.title('Cumulative overlap with {0}'.format(str(mode)))
     plt.xlabel('{0} mode index'.format(modes))
@@ -742,6 +782,8 @@ def showDiffMatrix(matrix1, matrix2, *args, **kwargs):
         kwargs['origin'] = 'lower'
     if kwargs.pop('abs', False):
         diff = np.abs(diff)
+    if kwargs.pop('new_fig', True):
+        plt.figure()
     show = plt.imshow(diff, *args, **kwargs), plt.colorbar()
     plt.axis([-.5, shape1[1] - .5, -.5, shape1[0] - .5])
     plt.title('Difference Matrix')
@@ -771,7 +813,9 @@ def showMechStiff(model, coords, *args, **kwargs):
         
     MechStiff = model.getStiffness()
     matplotlib.rcParams['font.size'] = '14'
-    fig = plt.figure(num=None, figsize=(10,8), dpi=100, facecolor='w')
+
+    if kwargs.pop('new_fig', True):
+        fig = plt.figure(num=None, figsize=(10,8), dpi=100, facecolor='w')
     show = plt.imshow(MechStiff, *args, **kwargs), plt.colorbar()
     plt.clim(math.floor(np.min(MechStiff[np.nonzero(MechStiff)])), \
                                            round(np.amax(MechStiff),1))
@@ -798,7 +842,9 @@ def showNormDistFunct(model, coords, *args, **kwargs):
         kwargs['origin'] = 'lower'
         
     matplotlib.rcParams['font.size'] = '14'
-    fig = plt.figure(num=None, figsize=(10,8), dpi=100, facecolor='w')
+
+    if kwargs.pop('new_fig', True):
+        fig = plt.figure(num=None, figsize=(10,8), dpi=100, facecolor='w')
     show = plt.imshow(normdistfunct, *args, **kwargs), plt.colorbar()
     plt.clim(math.floor(np.min(normdistfunct[np.nonzero(normdistfunct)])), \
                                            round(np.amax(normdistfunct),1))
