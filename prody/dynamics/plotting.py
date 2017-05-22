@@ -211,7 +211,7 @@ def showProjection(ensemble, modes, *args, **kwargs):
       * 3 modes: :meth:`~mpl_toolkits.mplot3d.Axes3D.plot`"""
 
     import matplotlib.pyplot as plt
-
+    plt.figure()
     projection = calcProjection(ensemble, modes, kwargs.pop('rmsd', True))
 
     if projection.ndim == 1 or projection.shape[1] == 1:
