@@ -2,7 +2,7 @@ from numpy import ma
 import numpy as np
 from scipy.sparse import coo_matrix
 from prody.chromatin.norm import VCnorm, SQRTVCnorm,Filenorm
-from prody.chromatin.cluster import KMeans
+from prody.chromatin.cluster import KMeans, Hierarchy
 from prody.chromatin.functions import div0, showMap, showDomains, _getEigvecs
 
 from prody.dynamics import GNM
@@ -161,7 +161,7 @@ class HiC(object):
         self.Map = N
         return N
     
-    def segment(self, modes, method=KMeans, **kwargs):
+    def segment(self, modes, method=Hierarchy, **kwargs):
         """Uses spectral clustering to identify structural domains on the chromosome.
         
         :arg modes: GNM modes used for segmentation
