@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """This module defines a pointer class for handling subsets of normal modes."""
 
-from numpy import array, arange
+from numpy import array, arange, diag, dot
 
 __all__ = ['ModeSet']
 
@@ -108,6 +108,13 @@ class ModeSet(object):
         inverse of the eigenvalue, so it has arbitrary or relative units."""
 
         return self._model._vars[self._indices]
+
+    def getCovariance(self):
+        """Returns covariance matrix. It will be calculated using available modes."""
+
+        V = self.getEigvecs()
+        D = diag(self.getEigvals())
+        return dot(V, dot(D, V.T))
 
     def getArray(self):
         """Returns a copy of eigenvectors array."""

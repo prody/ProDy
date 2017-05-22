@@ -244,6 +244,13 @@ class HiC(object):
             showDomains(domains, **dm_kwargs)
 
         return im
+
+    def copy(self):
+        new = type(self)()
+        new.__dict__.update(self.__dict__)
+        return new
+    
+    __copy__ = copy
     
 
 def parseHiC(filename, **kwargs):
