@@ -1,11 +1,15 @@
 import numpy as np
 
 from prody.chromatin.functions import div0
+from prody.utilities import importLA
+from prody import LOGGER
 
-__all__ = ['VCnorm', 'SQRTVCnorm', 'Filenorm']
+__all__ = ['VCnorm', 'SQRTVCnorm', 'Filenorm', 'SCN']
 
 def VCnorm(M, **kwargs):
     """ Performs vanilla coverage normalization on matrix *M*."""
+
+    total_count = kwargs.get('total_count', 'original')
 
     C = np.diag(div0(1., np.sum(M, axis=0)))
     R = np.diag(div0(1., np.sum(M, axis=1)))
@@ -13,14 +17,19 @@ def VCnorm(M, **kwargs):
     # N = R * M * C
     N = np.dot(np.dot(R,M),C)
 
-    sum_M = np.sum(M)
-    sum_N = np.sum(N)
-    k = sum_M / sum_N
-    N = N * k
+    if total_count is 'original':
+        total_count = np.sum(M)
+
+    if total_count is not None:
+        sum_N = np.sum(N)
+        k = total_count / sum_N
+        N = N * k
     return N
 
 def SQRTVCnorm(M, **kwargs):
     """ Performs square-root vanilla coverage normalization on matrix *M*."""
+
+    total_count = kwargs.get('total_count', 'original')
 
     C = np.diag(np.sqrt(div0(1., np.sum(M, axis=0))))
     R = np.diag(np.sqrt(div0(1., np.sum(M, axis=1))))
@@ -28,10 +37,63 @@ def SQRTVCnorm(M, **kwargs):
     # N = R * M * C
     N = np.dot(np.dot(R,M),C)
 
-    sum_M = np.sum(M)
-    sum_N = np.sum(N)
-    k = sum_M / sum_N
-    N = N * k
+    if total_count is 'original':
+        total_count = np.sum(M)
+
+    if total_count is not None:
+        sum_N = np.sum(N)
+        k = total_count / sum_N
+        N = N * k
+    return N
+
+def SCN(M, **kwargs):
+    la = importLA()
+    total_count = kwargs.pop('total_count', None)
+    max_loops = kwargs.pop('max_loops', 100)
+    tol = kwargs.pop('tol', 1e-5)
+
+    N = M.copy()
+    n = 0
+    d0 = None
+    p = 1
+    last_p = None
+
+    while True:
+        C = np.diag(div0(1., np.sum(N, axis=0)))
+        N = np.dot(N, C)
+
+        R = np.diag(div0(1., np.sum(N, axis=1)))
+        N = np.dot(R, N)
+
+        n += 1
+
+        # check convergence of symmetry
+        d = np.mean(np.abs(N - N.T))
+        
+        if d0 is not None:
+            p = div0(d, d0)
+            dp = np.abs(p - last_p)
+            if dp < tol:
+                break
+        else:
+            d0 = d
+        LOGGER.debug('Iteration {0}: d = {1}, p = {2}'.format(str(n), str(d), str(p)))
+        last_p = p
+        
+        if max_loops is not None:
+            if n >= max_loops:
+                LOGGER.warn('The SCN algorithm did not converge after {0} '
+                            'iterations.'.format(max_loops))
+                break
+    # guarantee symmetry
+    N = (N + N.T) / 2.
+    if total_count is 'original':
+        total_count = np.sum(M)
+
+    if total_count is not None:
+        sum_N = np.sum(N)
+        k = total_count / sum_N
+        N = N * k
     return N
 
 def Filenorm(M, **kwargs):

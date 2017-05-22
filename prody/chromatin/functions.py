@@ -31,7 +31,9 @@ def showMap(map, spec='', **kwargs):
     :type map: :class:`numpy.ndarray`
 
     :arg spec: a string specifies how to preprocess the matrix. Blank for no preprocessing,
-    'p' for showing only data from *p*-th to *100-p*-th percentile.
+    'p' for showing only data from *p*-th to *100-p*-th percentile. '_' is to suppress 
+    creating a new figure and paint to the current one instead. The letter specifications 
+    can be applied sequentially, e.g. 'p_'.
     :type spec: str
 
     :arg p: specifies the percentile threshold.
@@ -51,8 +53,13 @@ def showMap(map, spec='', **kwargs):
         vmax = np.percentile(map, 100-p)
     else:
         vmin = vmax = None
-  
-    return imshow(map, vmin=vmin, vmax=vmax, **kwargs)
+    
+    im = imshow(map, vmin=vmin, vmax=vmax, **kwargs)
+
+    if SETTINGS['auto_show']:
+        showFigure()
+
+    return im
 
 def showDomains(domains, linespec='r-', **kwargs):
     """A convenient function that can be used to visualize Hi-C structural domains. 
