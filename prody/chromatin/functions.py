@@ -53,8 +53,13 @@ def showMap(map, spec='', **kwargs):
         vmax = np.percentile(map, 100-p)
     else:
         vmin = vmax = None
-  
-    return imshow(map, vmin=vmin, vmax=vmax, **kwargs)
+    
+    im = imshow(map, vmin=vmin, vmax=vmax, **kwargs)
+
+    if SETTINGS['auto_show']:
+        showFigure()
+
+    return im
 
 def showDomains(domains, linespec='r-', **kwargs):
     """A convenient function that can be used to visualize Hi-C structural domains. 
