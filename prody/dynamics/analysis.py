@@ -661,7 +661,6 @@ def calcPerturbResponse(model, atoms=None, repeats=100, **kwargs):
     returnFormat = returnFormat.lower()
 
     if len(matrix_array) == 1:
-        LOGGER.info('Output has been returned as a single matrix (an array).')
         return matrix_array.reshape(n_atoms,n_atoms)
     
     if returnFormat is 'both':
