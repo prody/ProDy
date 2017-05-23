@@ -362,11 +362,8 @@ def calcCovariance(modes):
         raise TypeError('modes must be a Mode, NMA, or ModeSet instance')
 
 
-<<<<<<< HEAD
-def calcPerturbResponse(model, atoms=None, repeats=100, write_output=False):
-=======
 def calcPerturbResponse(model, atoms=None, repeats=100, **kwargs):
->>>>>>> 0486ee3d1a3ea2ec861ed056d8fc471fc262e892
+
     """Returns a matrix of profiles from scanning of the response of the
     structure to random perturbations at specific atom (or node) positions.
     The function implements the perturbation response scanning (PRS) method
