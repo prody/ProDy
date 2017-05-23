@@ -87,6 +87,7 @@ def parsePDB(pdb, **kwargs):
 
     :arg pdb: a PDB identifier or a filename
         If needed, PDB files are downloaded using :func:`.fetchPDB()` function.
+        You can also provide arguments that you would like passed on to fetchPDB().
     """
     title = kwargs.get('title', None)
     if not os.path.isfile(pdb):
@@ -94,7 +95,7 @@ def parsePDB(pdb, **kwargs):
             if title is None:
                 title = pdb
                 kwargs['title'] = title
-            filename = fetchPDB(pdb, report=True)
+            filename = fetchPDB(pdb, report=True, **kwargs)
             if filename is None:
                 raise IOError('PDB file for {0} could not be downloaded.'
                               .format(pdb))
@@ -545,7 +546,7 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                     else:
                         atomgroup._setCoords(coordinates)
                 else:
-                    coordsets = np.zeros((diff//acount+1, acount, 3))
+                    coordsets = np.zeros((int(diff//acount+1), acount, 3))
                     coordsets[0] = coordinates[:acount]
                     onlycoords = True
                 atomnames.resize(acount, refcheck=False)

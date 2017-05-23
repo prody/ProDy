@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""This module defines classes for handling atomic data.  Read this page using
+"""This module defines classes for handling atomic data. Read this page using
 ``help(atomic)``.
 
 .. _atomic:
@@ -141,7 +141,7 @@ __all__ = ['Atomic', 'AtomGroup',
            'HierView', 'Segment', 'Chain', 'Residue', 'Atom',
            'AtomPointer', 'AtomSubset',
            'Selection', 'AtomMap',
-           'Bond', 'select', 'atomgroup', 'hierview', 'fields', 'flags']
+           'Bond', 'select', 'atomgroup', 'hierview', 'chain', 'fields', 'flags']
 
 from .fields import ATOMIC_FIELDS
 
@@ -170,6 +170,8 @@ from . import hierview
 from . import functions
 from . import atomgroup
 from . import selection
+from . import chain
+from . import segment
 
 from .chain import AAMAP, getSequence
 
@@ -198,6 +200,10 @@ select.isReserved = isReserved
 select.HierView = HierView
 
 selection.HierView = HierView
+
+chain.HierView = HierView
+
+segment.HierView = HierView
 
 import numpy as np
 

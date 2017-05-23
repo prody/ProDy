@@ -20,7 +20,7 @@ static PyObject *calcSM(PyObject *self, PyObject *args, PyObject *kwargs)
   int numCA, i, j, k, nmodes;
   double *XYZ, *SM, *lambda, *U, kbt=1.;
   double **stiff_matrix;
-  double r_ij, x_ij, y_ij, z_ij, norm_U;
+  double r_ij, x_ij, y_ij, z_ij;//, norm_U;
   static char *kwlist[] = {"coords", "sm", "eigvecs", "eigvals",
           "natoms","n_modes",
           "kbt",NULL};

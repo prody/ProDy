@@ -19,8 +19,10 @@ from .mode import Mode, VectorBase, Vector
 from .modeset import ModeSet
 from .analysis import calcSqFlucts, calcProjection
 from .analysis import calcCrossCorr, calcPairDeformationDist
-from .analysis import calcFractVariance, calcCrossProjection
+from .analysis import calcFractVariance, calcCrossProjection 
+from .analysis import calcPerturbResponse, calcPerturbResponseProfiles
 from .compare import calcOverlap
+from prody.atomic import AtomGroup, Selection
 
 __all__ = ['showContactMap', 'showCrossCorr',
            'showCumulOverlap', 'showFractVars',
@@ -29,7 +31,8 @@ __all__ = ['showContactMap', 'showCrossCorr',
            'showCrossProjection', 'showEllipsoid', 'showSqFlucts',
            'showScaledSqFlucts', 'showNormedSqFlucts', 'resetTicks',
            'showDiffMatrix','showMechStiff','showNormDistFunct',
-           'showPairDeformationDist','showMeanMechStiff', ]
+           'showPairDeformationDist','showMeanMechStiff', 
+           'showPerturbResponse', 'showPerturbResponseProfiles',]
 
 
 def showEllipsoid(modes, onto=None, n_std=2, scale=1., *args, **kwargs):
@@ -127,6 +130,9 @@ def showFractVars(modes, *args, **kwargs):
     if not isinstance(modes, (ModeSet, NMA)):
         raise TypeError('modes must be NMA, or ModeSet, not {0}'
                         .format(type(modes)))
+    
+    if kwargs.pop('new_fig', True):
+        plt.figure()
 
     fracts = calcFractVariance(modes)
     fracts = [(int(mode), fract) for mode, fract in zip(modes, fracts)]
@@ -160,6 +166,9 @@ def showCumulFractVars(modes, *args, **kwargs):
         indices = modes.getIndices() + 0.5
     else:
         indices = np.arange(len(modes)) + 0.5
+    
+    if kwargs.pop('new_fig', True):
+        plt.figure()
 
     fracts = calcFractVariance(modes).cumsum()
     show = plt.plot(indices, fracts, *args, **kwargs)
@@ -197,6 +206,8 @@ def showProjection(ensemble, modes, *args, **kwargs):
     :type text: list
     :arg fontsize: font size for text labels
     :type fontsize: int
+    :arg new_fig: if ``True`` then a new figure will be created before plotting.
+    :type new_fig: bool
 
     The projected values are by default converted to RMSD.  Pass ``rmsd=False``
     to use projection itself.
@@ -209,6 +220,8 @@ def showProjection(ensemble, modes, *args, **kwargs):
 
     import matplotlib.pyplot as plt
 
+    if kwargs.pop('new_fig', True):
+        plt.figure()
     projection = calcProjection(ensemble, modes, kwargs.pop('rmsd', True))
 
     if projection.ndim == 1 or projection.shape[1] == 1:
@@ -354,6 +367,9 @@ def showCrossProjection(ensemble, mode_x, mode_y, scale=None, *args, **kwargs):
 
     import matplotlib.pyplot as plt
 
+    if kwargs.pop('new_fig', True):
+        plt.figure()
+
     xcoords, ycoords = calcCrossProjection(ensemble, mode_x, mode_y,
                                            scale=scale, **kwargs)
 
@@ -444,6 +460,9 @@ def showOverlapTable(modes_x, modes_y, **kwargs):
 
     cmap = kwargs.pop('cmap', plt.cm.jet)
     norm = kwargs.pop('norm', matplotlib.colors.Normalize(0, 1))
+
+    if kwargs.pop('new_fig', True):
+        plt.figure()
     show = (plt.pcolor(overlap, cmap=cmap, norm=norm, **kwargs),
             plt.colorbar())
     x_range = np.arange(1, modes_x.numModes() + 1)
@@ -465,6 +484,9 @@ def showCrossCorr(modes, *args, **kwargs):
     See also :func:`.calcCrossCorr`."""
 
     import matplotlib.pyplot as plt
+    if kwargs.pop('new_fig', True):
+        plt.figure()
+
     arange = np.arange(modes.numAtoms())
     cross_correlations = np.zeros((arange[-1]+2, arange[-1]+2))
     cross_correlations[arange[0]+1:,
@@ -492,6 +514,9 @@ def showMode(mode, *args, **kwargs):
     if not isinstance(mode, Mode):
         raise TypeError('mode must be a Mode instance, '
                         'not {0}'.format(type(mode)))
+    if kwargs.pop('new_fig', True):
+        plt.figure()
+
     if mode.is3d():
         a3d = mode.getArrayNx3()
         show = plt.plot(a3d[:, 0], *args, label='x-component', **kwargs)
@@ -518,6 +543,9 @@ def showSqFlucts(modes, *args, **kwargs):
     also :func:`.calcSqFlucts`."""
 
     import matplotlib.pyplot as plt
+    if kwargs.pop('new_fig', True):
+        plt.figure()
+
     show_hinge = kwargs.pop('hinge', True)
     sqf = calcSqFlucts(modes)
     if not 'label' in kwargs:
@@ -541,6 +569,9 @@ def showScaledSqFlucts(modes, *args, **kwargs):
     the same mean squared fluctuations as *modes*."""
 
     import matplotlib.pyplot as plt
+    if kwargs.pop('new_fig', True):
+        plt.figure()
+
     sqf = calcSqFlucts(modes)
     mean = sqf.mean()
     args = list(args)
@@ -570,6 +601,9 @@ def showNormedSqFlucts(modes, *args, **kwargs):
     """
 
     import matplotlib.pyplot as plt
+    if kwargs.pop('new_fig', True):
+        plt.figure()
+
     sqf = calcSqFlucts(modes)
     args = list(args)
     modesarg = []
@@ -596,6 +630,9 @@ def showContactMap(enm, *args, **kwargs):
     """Show Kirchhoff matrix using :func:`~matplotlib.pyplot.spy`."""
 
     import matplotlib.pyplot as plt
+    if kwargs.pop('new_fig', True):
+        plt.figure()
+        
     if not isinstance(enm, GNMBase):
         raise TypeError('model argument must be an ENM instance')
     kirchhoff = enm.getKirchhoff()
@@ -621,6 +658,10 @@ def showOverlap(mode, modes, *args, **kwargs):
     """
 
     import matplotlib.pyplot as plt
+
+    if kwargs.pop('new_fig', True):
+        plt.figure()
+
     if not isinstance(mode, (Mode, Vector)):
         raise TypeError('mode must be Mode or Vector, not {0}'
                         .format(type(mode)))
@@ -661,6 +702,9 @@ def showCumulOverlap(mode, modes, *args, **kwargs):
         arange = np.arange(0.5, len(modes)+0.5)
     else:
         arange = modes.getIndices() + 0.5
+    
+    if kwargs.pop('new_fig', True):
+        plt.figure()
     show = plt.plot(arange, cumov, *args, **kwargs)
     plt.title('Cumulative overlap with {0}'.format(str(mode)))
     plt.xlabel('{0} mode index'.format(modes))
@@ -738,6 +782,8 @@ def showDiffMatrix(matrix1, matrix2, *args, **kwargs):
         kwargs['origin'] = 'lower'
     if kwargs.pop('abs', False):
         diff = np.abs(diff)
+    if kwargs.pop('new_fig', True):
+        plt.figure()
     show = plt.imshow(diff, *args, **kwargs), plt.colorbar()
     plt.axis([-.5, shape1[1] - .5, -.5, shape1[0] - .5])
     plt.title('Difference Matrix')
@@ -767,7 +813,9 @@ def showMechStiff(model, coords, *args, **kwargs):
         
     MechStiff = model.getStiffness()
     matplotlib.rcParams['font.size'] = '14'
-    fig = plt.figure(num=None, figsize=(10,8), dpi=100, facecolor='w')
+
+    if kwargs.pop('new_fig', True):
+        fig = plt.figure(num=None, figsize=(10,8), dpi=100, facecolor='w')
     show = plt.imshow(MechStiff, *args, **kwargs), plt.colorbar()
     plt.clim(math.floor(np.min(MechStiff[np.nonzero(MechStiff)])), \
                                            round(np.amax(MechStiff),1))
@@ -794,7 +842,9 @@ def showNormDistFunct(model, coords, *args, **kwargs):
         kwargs['origin'] = 'lower'
         
     matplotlib.rcParams['font.size'] = '14'
-    fig = plt.figure(num=None, figsize=(10,8), dpi=100, facecolor='w')
+
+    if kwargs.pop('new_fig', True):
+        fig = plt.figure(num=None, figsize=(10,8), dpi=100, facecolor='w')
     show = plt.imshow(normdistfunct, *args, **kwargs), plt.colorbar()
     plt.clim(math.floor(np.min(normdistfunct[np.nonzero(normdistfunct)])), \
                                            round(np.amax(normdistfunct),1))
@@ -891,3 +941,249 @@ def showMeanMechStiff(model, coords, header, chain='A', *args, **kwargs):
         showFigure()
     return plt.show
 
+def showPerturbResponse(**kwargs):
+    """ Plot the PRS matrix with the profiles along the right and bottom.
+
+    If no PRS matrix or profiles are provided, these will be calculated first
+    using the provided options with a provided model (e.g. ANM, GNM or EDA).
+    So as to obtain different sensors and effectors, normMatrix=True by default.
+
+    If atoms are provided then residue numbers can be used from there.
+    *model* and *atoms* must have the same number of atoms. *atoms* must be an
+    :class:`.AtomGroup` instance.
+
+    :arg prs_matrix: a perturbation response matrix
+    :type prs_matrix: ndarray
+
+    :arg effectiveness: an effectiveness profile from a PRS matrix
+    :type effectiveness: list
+
+    :arg sensitivity: a sensitivity profile from a PRS matrix
+    :type sensitivity: list
+
+    :arg model: any object with a calcCovariance method
+        e.g. :class:`.ANM` instance
+    :type model: NMA
+
+    :arg atoms: a :class: `AtomGroup` instance
+    :type atoms: AtomGroup
+
+    :arg returnData: whether to return data for further analysis
+        default is False
+    :type returnData: bool
+    """
+
+    import matplotlib.pyplot as plt
+    import matplotlib
+
+    prs_matrix = kwargs.get('prs_matrix')
+    model = kwargs.get('model')
+    if prs_matrix is None: 
+        if model is None:
+            raise ValueError('Please provide a PRS matrix or model.')
+        else:
+            if kwargs.get('normMatrix') is None:
+                kwargs.set('normMatrix',True)
+            prs_matrix = calcPerturbResponse(**kwargs)
+
+    effectiveness = kwargs.get('effectiveness')
+    sensitivity = kwargs.get('sensitivity')
+    if effectiveness is None:
+        effectiveness, sensitivity = calcPerturbResponseProfiles(prs_matrix)
+
+    plt.figure()
+    plt.subplot(2,2,1)
+    show = plt.imshow(prs_matrix, cmap=kwargs.get('cmap', plt.cm.jet), \
+                      norm=kwargs.get('norm', None), aspect='auto', \
+                      origin='lower')
+
+    atoms = kwargs.get('atoms')
+    if atoms is not None:
+        if not isinstance(atoms, AtomGroup) and not isinstance(atoms, Selection):
+            raise TypeError('atoms must be an AtomGroup instance')
+        elif model is not None and atoms.numAtoms() != model.numAtoms():
+            raise ValueError('model and atoms must have the same number atoms')
+
+        chain_colors = 'gcmyrwbk'
+        hv = atoms.getHierView()
+        borders = [0]
+        for n in range(len(list(hv))):
+            borders.append(borders[n] + len(list(hv)[n].getResnums()))
+
+            plt.subplot(2,2,2)
+            plt.barh(range(borders[n],borders[n+1]), \
+                     effectiveness[borders[n]:borders[n+1]], \
+                     color=chain_colors[n], \
+                     edgecolor=chain_colors[n])
+
+            plt.subplot(2,2,3)
+            plt.bar(range(borders[n],borders[n+1]), \
+                    sensitivity[borders[n]:borders[n+1]], \
+                    color=chain_colors[n], \
+                    edgecolor=chain_colors[n])
+
+        plt.subplot(2,2,2); plt.axis([0,np.max(effectiveness),0,borders[-1]])
+        plt.subplot(2,2,3); plt.axis([0,borders[-1],0,np.max(sensitivity)])
+
+    else:
+        plt.subplot(2,2,2); plt.bar(effectiveness,range(len(effectiveness)))
+        plt.subplot(2,2,3); plt.barh(sensitivity,range(len(sensitivity)))
+
+    returnData = kwargs.get('returnData',False)
+    if not returnData:
+        return
+    elif kwargs.get('prs_matrix') is not None:
+        return effectiveness, sensitivity
+    else:
+        return prs_matrix, effectiveness, sensitivity
+
+def showPerturbResponseProfiles(prs_matrix,atoms,**kwargs):
+    """Plot as a line graph the average response to perturbation of
+    a particular residue (a row of a perturbation response matrix)
+    or the average effect of perturbation of a particular residue
+    (a column of a normalized perturbation response matrix).
+
+    If no PRS matrix or profiles are provided, these will be calculated first
+    using the provided options with a provided model (e.g. ANM, GNM or EDA).
+    So as to obtain different sensitivity and effectiveness, normMatrix=True by default.
+
+    If no residue number is given then the effectiveness and sensitivity
+    profiles will be plotted instead. These two profiles are also returned
+    as arrays for further analysis if they aren't already provided.
+
+    :arg prs_matrix: a perturbation response matrix
+    :type prs_matrix: ndarray
+
+    :arg atoms: a :class: `AtomGroup` instance for matching 
+        residue numbers and chain IDs. 
+    :type atoms: AtomGroup
+
+    :arg effectiveness: an effectiveness profile from a PRS matrix
+    :type effectiveness: list
+
+    :arg sensitivity: a sensitivity profile from a PRS matrix
+    :type sensitivity: list
+
+    :arg model: any object with a calcCovariance method
+        e.g. :class:`.ANM` instance
+        *model* and *atoms* must have the same number of atoms.
+    :type model: NMA
+
+    :arg chain: chain identifier for the residue of interest
+        default is to make a plot for each chain in the protein
+    :type chain: str
+
+    :arg resnum: residue number for the residue of interest
+    :type resnum: int
+
+    :arg direction: the direction you want to use to read data out
+        of the PRS matrix for plotting: the options are 'row' or 'column'.
+        Default is 'row'.
+        A row gives the effect on each residue of peturbing the specified 
+        residue.
+        A column gives the response of the specified residue to perturbing 
+        each residue.
+        If no residue number is provided then this option will be ignored
+    :type direction: str
+
+    :arg returnData: whether to return profiles for further analysis
+        default is False
+    :type returnProfiles: bool
+    """
+    import matplotlib.pyplot as plt
+    import matplotlib
+
+    model = kwargs.get('model')
+    if not type(prs_matrix) is np.ndarray:
+        if prs_matrix is None:
+            if model is None:
+                raise ValueError('Please provide a PRS matrix or model.')
+            else:
+                if kwargs.get('normMatrix') is None:
+                    kwargs.set('normMatrix',True)
+                prs_matrix = calcPerturbResponse(**kwargs)
+        else:
+            raise TypeError('Please provide a valid PRS matrix (as array).')
+
+    if atoms is None:
+        raise ValueError('Please provide an AtomGroup object for matching ' \
+                         'residue numbers and chain IDs.')
+    else:
+        if not isinstance(atoms, AtomGroup) and not isinstance(atoms, Selection):
+            raise TypeError('atoms must be an AtomGroup instance')
+        elif model is not None and atoms.numAtoms() != model.numAtoms():
+            raise ValueError('model and atoms must have the same number atoms')
+
+    chain = kwargs.get('chain')
+    hv = atoms.getHierView()
+    chains = []
+    for i in range(len(list(hv))):
+        chainAg = list(hv)[i]
+        chains.append(chainAg.getChids()[0])
+
+    chains = np.array(chains)
+    if chain is None:
+        chain = ''.join(chains)
+
+    resnum = kwargs.get('resnum', None)
+    direction = kwargs.get('direction','row')
+    overlay = kwargs.get('overlay',False)
+
+    if resnum is not None: 
+        timesNotFound = 0
+        for n in range(len(chain)):
+            if not chain[n] in chains:
+                raise PRSMatrixParseError('Chain {0} was not found in {1}'.format(chain[n], pdbIn))
+
+            chainNum = int(np.where(chains == chain[n])[0])
+            chainAg = list(hv)[chainNum]
+            if not resnum in chainAg.getResnums():
+                LOGGER.info('A residue with number {0} was not found' \
+                            ' in chain {1}. Continuing to next chain.' \
+                            .format(resnum, chain[n]))
+                timesNotFound += 1
+                continue
+
+        profiles = []
+        for n in range(len(chain)):
+            chainNum = int(np.where(chains == chain[n])[0])
+            i = np.where(atoms.getResnums() == resnum)[0][chainNum-timesNotFound] 
+            if direction is 'row':
+                profiles.append(prs_matrix[i,:])
+            else:
+                profiles.append(prs_matrix[:,i])
+
+    else:
+        effectiveness = kwargs.get('effectiveness')
+        sensitivity = kwargs.get('sensitivity')
+        if effectiveness is None or sensitivity is None:
+            effectiveness, sensitivity = calcPerturbResponseProfiles(prs_matrix)
+        profiles = [effectiveness, sensitivity]
+
+    chain_colors = 'gcmyrwbk'
+    borders = [0]
+    for n in range(len(list(hv))):
+        borders.append(borders[n] + len(list(hv)[n].getResnums()))
+
+    for profile in profiles:
+        plt.figure()
+        for n in range(len(borders)-1):
+            if not overlay:
+                plt.plot(range(borders[n],borders[n+1]), \
+                         profile[borders[n]:borders[n+1]], \
+                         color=chain_colors[n])
+            else:
+                plt.plot(atoms.getResnums()[borders[0]:borders[1]], \
+                         profile[borders[n]:borders[n+1]], \
+                         color=chain_colors[n])
+
+        if not overlay:
+            plt.axis([0,borders[-1],0,np.max(profile)])
+        else:
+            plt.axis([atoms.getResnums()[borders[0]],atoms.getResnums()[borders[1]-1],0,np.max(profile)])
+
+    returnData = kwargs.get('returnData',False)
+    if returnData:
+        return profiles
+    else:
+        return

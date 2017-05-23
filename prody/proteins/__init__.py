@@ -58,7 +58,21 @@ functions come as bonus features:
 .. seealso::
 
    Atom data (coordinates, atom names, residue names, etc.) parsed from
-   PDB/PSF/PQR files are stored in :class:`~.AtomGroup` instances.
+   PDB/PSF/PQR/mmCIF files are stored in :class:`~.AtomGroup` instances.
+   See :mod:`~prody.atomic` module documentation for more details.
+
+Parse mmCIF files
+=====================
+
+Following ProDy functions are for parsing :file:`.cif` files:
+
+  * :func:`.parseCIF` - parse :file:`.cif` formated file
+  * :func:`.parseCIFStream` - parse :file:`.cif` formated stream
+
+.. seealso::
+
+   Atom data (coordinates, atom names, residue names, etc.) parsed from
+   PDB/PSF/PQR/mmCIF files are stored in :class:`~.AtomGroup` instances.
    See :mod:`~prody.atomic` module documentation for more details.
 
 Quick visualization
@@ -196,5 +210,9 @@ __all__.extend(pdbfile.__all__)
 from . import emdfile
 from .emdfile import *
 __all__.extend(emdfile.__all__)
+
+from . import ciffile
+from .ciffile import *
+__all__.extend(ciffile.__all__)
 
 from .pdbfile import PDBParseError

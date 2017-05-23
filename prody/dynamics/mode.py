@@ -309,7 +309,9 @@ class Mode(VectorBase):
             return
         else:
             return self._model.getHinges(self._index)
-        
+    
+    def numHinges(self):
+        return len(self.getHinges())
 
 class Vector(VectorBase):
 

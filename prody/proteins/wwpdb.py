@@ -307,7 +307,7 @@ def fetchPDBviaHTTP(*pdb, **kwargs):
         try:
             handle = openURL(getURL(pdb))
         except Exception as err:
-            LOGGER.warn('{0} download failed ({0}).'.format(pdb, str(err)))
+            LOGGER.warn('{0} download failed ({1}).'.format(pdb, str(err)))
             failure += 1
             filenames.append(None)
         else:
