@@ -909,7 +909,6 @@ def writePerturbResponsePDB(prs_matrix,pdbIn,**kwargs):
                     ' to {0}.'.format(', '.join(pdbOut)))
 
     return
->>>>>>> 0486ee3d1a3ea2ec861ed056d8fc471fc262e892
 
 
 def calcPairDeformationDist(model, coords, ind1, ind2, kbt=1.):
