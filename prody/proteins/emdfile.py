@@ -162,8 +162,8 @@ class EMDMAP:
         # Number of first column, row, section (3 words, 12 bytes, 17-28)
         self.ncstart = st.unpack('<l', stream.read(4))[0]
         self.nrstart = st.unpack('<l', stream.read(4))[0]
-        self.nsstart = st.unpack('<l', stream.read(4))[0]
-
+        self.nsstart = st.unpack('<l', stream.read(4))[0
+]
         # Number of intervals along x, y, z (3 words, 12 bytes, 29-40)
         self.Nx = st.unpack('<L', stream.read(4))[0]
         self.Ny = st.unpack('<L', stream.read(4))[0]
