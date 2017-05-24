@@ -24,7 +24,7 @@ SELEX = 'selex'
 STOCKHOLM = 'stockholm'
 
 DOWNLOAD_FORMATS = set(['seed', 'full', 'ncbi', 'metagenomics',
-                        'rp15', 'rp35', 'rp55', 'rp75'])
+                        'rp15', 'rp35', 'rp55', 'rp75', 'uniprot'])
 FORMAT_OPTIONS = ({'format': set([FASTA, SELEX, STOCKHOLM]),
                   'order': set(['tree', 'alphabetical']),
                   'inserts': set(['lower', 'upper']),
@@ -287,7 +287,8 @@ def fetchPfamMSA(acc, alignment='full', compressed=False, **kwargs):
 
     :arg alignment: alignment type, one of ``'full'`` (default), ``'seed'``,
          ``'ncbi'``, ``'metagenomics'``, ``'rp15'``, ``'rp35'``, ``'rp55'``,
-         or ``'rp75'`` where rp stands for representative proteomes
+         ``'rp75'`` or ``'uniprot'`` where rp stands for representative 
+         proteomes
 
     :arg compressed: gzip the downloaded MSA file, default is **False**
 
@@ -328,7 +329,7 @@ def fetchPfamMSA(acc, alignment='full', compressed=False, **kwargs):
     if alignment not in DOWNLOAD_FORMATS:
         raise ValueError('alignment must be one of full, seed, ncbi or'
                          ' metagenomics')
-    if alignment == 'ncbi' or alignment == 'metagenomics':
+    if alignment == 'ncbi' or alignment == 'metagenomics' or alignment == 'uniprot':
         url = ('http://pfam.xfam.org/family/' + acc + '/alignment/' +
                alignment + '/gzipped')
         url_flag = True

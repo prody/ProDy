@@ -1,0 +1,65 @@
+ProDy 1.9 Series
+===============================================================================
+
+.. contents::
+   :local:
+
+1.8.2 (Jun 5, 2016)
+-------------------------------------------------------------------------------
+
+  * :func:`.addCoordset` in :class:`.PDBEnsemble` class, has an additional 
+    argument for NMR models. 
+
+1.8.1 (May 28, 2016)
+-------------------------------------------------------------------------------
+
+*Bugfixes*
+   
+  * :func:`.getHits` in :class:`.PDBBlastRecord` class, default overlap 
+    threshold changed to 0.7 to match with :func:`.mapOntoChain`. 
+
+  * :func:`.calcModes` in :class:`.RTB` have a bug on number of modes and fixed.
+  
+  * Tab and indentation errors with Python 3.4 are fixed.  
+
+1.9 (May 23, 2017)
+-------------------------------------------------------------------------------
+
+chromD
+^^^^^^^^^^^^^^^^^^
+
+    
+  * Normalizing Hi-C matrices to remove "one-dimensional" biases.
+    
+  * Finding long range co-moving genomic loci.
+    
+  * Identification of structural domains using spectral clustering.
+
+**New Features**:
+
+*Perturbation Response Scanning*
+
+  * Perturbation Response Scanning method is fully implemented with 
+    new plotting tools. 
+
+  * Effectors and sensors are calculated from PRS tool. 
+
+*Visualization with py3Dmol*
+
+  * In jupyter notebook, if you have installed py3Dmol you can use
+  py3Dmol visualization directly instead of simple matplotlib 
+  visualization. 
+
+*mmcif parser*
+
+  * Another structural format cif is also a part of ProDy parser now. 
+
+*Bugfixes*
+
+  * Various indexing issues are fixed. 
+
+  * Some of the obsolete pdbs will not be downloaded anymore, instead
+  replaced pdbs will be downloaded. This will change the priority 
+  between ftp and http servers.  
+
+

@@ -363,6 +363,7 @@ def calcCovariance(modes):
 
 
 def calcPerturbResponse(model, atoms=None, repeats=100, **kwargs):
+
     """Returns a matrix of profiles from scanning of the response of the
     structure to random perturbations at specific atom (or node) positions.
     The function implements the perturbation response scanning (PRS) method
@@ -375,7 +376,8 @@ def calcPerturbResponse(model, atoms=None, repeats=100, **kwargs):
     instance is given, PRS profile for residues will be added as an attribute
     which then can be retrieved as ``atoms.getData('prs_profile')``.  *model*
     and *atoms* must have the same number of atoms. *atoms* must be an
-    :class:`.AtomGroup` instance.
+    :class:`.AtomGroup` instance. write_output is a Bool variable to write
+    normalized asymmetric PRS matrix to a file. 
 
     .. [CA09] Atilgan C, Atilgan AR, Perturbation-Response Scanning
        Reveals Ligand Entry-Exit Mechanisms of Ferric Binding Protein.
