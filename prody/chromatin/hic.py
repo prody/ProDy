@@ -12,7 +12,7 @@ from prody.dynamics.modeset import ModeSet
 
 from prody.utilities import openFile, importLA
 
-__all__ = ['HiC', 'parseHiC', 'parseHiCStream', 'saveHiC', 'loadHiC', 'writeMap']
+__all__ = ['HiC', 'TrimedGNM', 'parseHiC', 'parseHiCStream', 'saveHiC', 'loadHiC', 'writeMap']
 
 class HiC(object):
 
@@ -99,10 +99,11 @@ class HiC(object):
             array = np.array(array)
 
         ret = array = array.copy()
-        mask = ~self.mask.copy()
 
-        if mask is False:
+        if np.isscalar(self.mask):
             return ret
+
+        mask = ~self.mask.copy()
 
         l_full = self.getCompleteMap().shape[0]
         l_trim = self.getTrimedMap().shape[0]
@@ -221,7 +222,10 @@ class HiC(object):
     def calcGNM(self, n_modes=None):
         """Calculates GNM on the current Hi-C map."""
 
-        gnm = GNM(self._title)
+        if self.useTrimed:
+            gnm = TrimedGNM(self._title, self.mask)
+        else:
+            gnm = GNM(self._title)
         gnm.setKirchhoff(self.getKirchhoff())
         gnm.calcModes(n_modes=n_modes)
         return gnm
@@ -325,6 +329,55 @@ class HiC(object):
     
     __copy__ = copy
     
+
+class TrimedGNM(GNM):
+    def __init__(self, name='Unknown', mask=False, useTrimed=True):
+        super(TrimedGNM, self).__init__(name)
+        self.mask = False
+        self.useTrimed = useTrimed
+
+        if not np.isscalar(mask):
+            self.mask = np.array(mask)
+
+    def numAtoms(self):
+        """Returns number of atoms."""
+
+        if self.useTrimed or np.isscalar(self.mask):
+            return self._n_atoms
+        else:
+            return len(self.mask)
+
+    def getArray(self):
+        """Returns a copy of eigenvectors array."""
+
+        if self._array is None: return None
+
+        array = self._array.copy()
+
+        if self.useTrimed or np.isscalar(self.mask):
+            return array
+
+        mask = ~self.mask.copy()
+        N = len(mask)
+        n, m = array.shape
+        whole_array = np.zeros((N,m))
+        mask = np.expand_dims(mask, axis=1)
+        mask = mask.repeat(m, axis=1)
+        whole_array[mask] = array.flatten()
+        return whole_array
+
+    getEigvecs = getArray
+
+    def _getArray(self):
+        """Returns eigenvectors array. The function returns 
+        a copy of the array if useTrimed is ``True``."""
+
+        if self._array is None: return None
+
+        if self.useTrimed or np.isscalar(self.mask):
+            return self._array
+        else:
+            return self.getArray()
 
 def parseHiC(filename, **kwargs):
     """Returns an :class:`.HiC` from a Hi-C data file.

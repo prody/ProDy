@@ -285,7 +285,7 @@ def calcCrossCorr(modes, n_cpu=1):
         else:
             n_modes = len(modes)
             indices = np.arange(n_modes)
-        array = model._array
+        array = model._getArray()
         n_atoms = model._n_atoms
         variances = model._vars
         if n_cpu == 1:
