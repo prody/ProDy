@@ -94,6 +94,79 @@ class HiC(object):
         M.mask = np.diag(self.mask)
         return ma.compress_rowcols(M)
     
+    def align(self, array, axis=None):
+        if not isinstance(map, np.ndarray):
+            array = np.array(array)
+
+        ret = array = array.copy()
+        mask = ~self.mask.copy()
+
+        if mask is False:
+            return ret
+
+        l_full = self.getCompleteMap().shape[0]
+        l_trim = self.getTrimedMap().shape[0]
+        
+        if len(array.shape) == 0:
+            raise ValueError('Aligned array cannot be empty.')
+        elif len(array.shape) == 1:
+            l = array.shape[0]
+            if l == l_trim:
+                N = len(mask)
+                ret = np.zeros(N)
+                ret[mask] = array
+            elif l == l_full:
+                ret = array[mask]
+            else:
+                raise ValueError('The length of the array (%d) does not '
+                                'match that of either the full (%d) '
+                                'or trimed (%d).'
+                                %(l, l_full, l_trim))
+        elif len(array.shape) == 2:
+            s = array.shape
+
+            if axis is None:
+                if s[0] != s[1]:
+                    raise ValueError('The array must be a square matrix '
+                                     'if axis is set to None.')
+                if s[0] == l_trim:
+                    N = len(mask)
+                    whole_mat = np.zeros((N,N))
+                    mask = np.outer(mask, mask)
+                    whole_mat[mask] = array.flatten()
+                    ret = whole_mat
+                elif s[0] == l_full:
+                    M = ma.array(array)
+                    M.mask = np.diag(mask)
+                    ret = ma.compress_rowcols(M)
+                else:
+                    raise ValueError('The size of the array (%d) does not '
+                                    'match that of either the full (%d) '
+                                    'or trimed (%d).'
+                                    %(s[0], l_full, l_trim))
+            else:
+                new_shape = list(s)
+                otheraxis = 0 if axis!=0 else 1
+                if s[axis] == l_trim:
+                    N = len(mask)
+                    new_shape[axis] = N
+                    whole_mat = np.zeros(new_shape)
+                    mask = np.expand_dims(mask, axis=otheraxis)
+                    mask = mask.repeat(s[otheraxis], axis=otheraxis)
+                    whole_mat[mask] = array.flatten()
+                    ret = whole_mat
+                elif s[axis] == l_full:
+                    mask = np.expand_dims(mask, axis=otheraxis)
+                    mask = mask.repeat(s[otheraxis])
+                    ret = map[mask]
+                else:
+                    raise ValueError('The size of the array (%d) does not '
+                                    'match that of either the full (%d) '
+                                    'or trimed (%d).'
+                                    %(sh[0], l_full, l_trim))
+        
+        return ret
+
     def getKirchhoff(self):
         """Builds a Kirchhoff matrix based on the contact map."""
 
