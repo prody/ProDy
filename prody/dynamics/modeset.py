@@ -119,14 +119,14 @@ class ModeSet(object):
     def getArray(self):
         """Returns a copy of eigenvectors array."""
 
-        return self._model._array[:, self._indices]
+        return self._model.getArray()[:, self._indices].copy()
 
     getEigvecs = getArray
 
     def _getArray(self):
         """Returns eigenvectors array."""
 
-        return self._model._array[:, self._indices]
+        return self._model._getArray()[:, self._indices]
 
     def getHinges(self):
         """Returns residue index of hinge sites."""
