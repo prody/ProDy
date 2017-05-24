@@ -926,14 +926,14 @@ def showMeanMechStiff(model, coords, header, chain='A', *args, **kwargs):
             end = int(header_ss[i][-1])-coords.getResnums()[0]
             add_beg = end - beg
             if header_ss[i][0] == 'H':
-                ax.add_patch(patches.Rectangle((beg-1,-0.7),add_beg,\
+                ax.add_patch(patches.Rectangle((beg+1,-0.7),add_beg,\
                 1.4,fill=False, linestyle='solid',edgecolor='#b22683', linewidth=2))    
             elif header_ss[i][0] == 'E':
                 if header_ss[i][2] == -1:    
-                    ax.add_patch(patches.Arrow(beg-1,0,add_beg,0,width=4.65, \
+                    ax.add_patch(patches.Arrow(beg+1,0,add_beg,0,width=4.65, \
                     fill=False, linestyle='solid',edgecolor='black', linewidth=2))
                 else: 
-                    ax.add_patch(patches.Arrow(end-1,0,add_beg*(-1),0,width=4.65, \
+                    ax.add_patch(patches.Arrow(end+1,0,add_beg*(-1),0,width=4.65, \
                     fill=False, linestyle='solid',edgecolor='black', linewidth=2))
     plt.axis('off')
     ax.set_ylim(-1.7,1.7)
