@@ -5,7 +5,7 @@ from prody.chromatin.norm import VCnorm, SQRTVCnorm,Filenorm
 from prody.chromatin.cluster import KMeans, Hierarchy
 from prody.chromatin.functions import div0, showMap, showDomains, _getEigvecs
 
-from prody.dynamics import GNM
+from prody.dynamics import GNM, TrimedGNM
 from prody.dynamics.functions import writeArray
 from prody.dynamics.mode import Mode
 from prody.dynamics.modeset import ModeSet
@@ -328,56 +328,7 @@ class HiC(object):
         return new
     
     __copy__ = copy
-    
 
-class TrimedGNM(GNM):
-    def __init__(self, name='Unknown', mask=False, useTrimed=True):
-        super(TrimedGNM, self).__init__(name)
-        self.mask = False
-        self.useTrimed = useTrimed
-
-        if not np.isscalar(mask):
-            self.mask = np.array(mask)
-
-    def numAtoms(self):
-        """Returns number of atoms."""
-
-        if self.useTrimed or np.isscalar(self.mask):
-            return self._n_atoms
-        else:
-            return len(self.mask)
-
-    def getArray(self):
-        """Returns a copy of eigenvectors array."""
-
-        if self._array is None: return None
-
-        array = self._array.copy()
-
-        if self.useTrimed or np.isscalar(self.mask):
-            return array
-
-        mask = ~self.mask.copy()
-        N = len(mask)
-        n, m = array.shape
-        whole_array = np.zeros((N,m))
-        mask = np.expand_dims(mask, axis=1)
-        mask = mask.repeat(m, axis=1)
-        whole_array[mask] = array.flatten()
-        return whole_array
-
-    getEigvecs = getArray
-
-    def _getArray(self):
-        """Returns eigenvectors array. The function returns 
-        a copy of the array if useTrimed is ``True``."""
-
-        if self._array is None: return None
-
-        if self.useTrimed or np.isscalar(self.mask):
-            return self._array
-        else:
-            return self.getArray()
 
 def parseHiC(filename, **kwargs):
     """Returns an :class:`.HiC` from a Hi-C data file.
