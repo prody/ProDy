@@ -12,7 +12,7 @@ from prody.utilities import openFile, isExecutable, which, PLATFORM, addext
 
 from .nma import NMA
 from .anm import ANM
-from .gnm import GNM, GNMBase, ZERO
+from .gnm import GNM, GNMBase, ZERO, TrimedGNM
 from .pca import PCA, EDA
 from .mode import Vector, Mode
 from .modeset import ModeSet
@@ -69,6 +69,10 @@ def saveModel(nma, filename=None, matrices=False, **kwargs):
         value = dict_[attr]
         if value is not None:
             attr_dict[attr] = value
+    if isinstance(nma, TrimedGNM):
+        attr_dict['type'] = 'tGNM'
+        attr_dict['mask'] = nma.mask
+        attr_dict['useTrimed'] = nma.useTrimed
     filename += '.' + type_.lower() + '.npz'
     ostream = openFile(filename, 'wb', **kwargs)
     np.savez(ostream, **attr_dict)
@@ -98,6 +102,8 @@ def loadModel(filename):
         nma = EDA(title)
     elif type_ == 'GNM':
         nma = GNM(title)
+    elif type_ == 'tGNM':
+        nma = TrimedGNM(title)
     elif type_ == 'NMA':
         nma = NMA(title)
     else:

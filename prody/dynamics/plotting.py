@@ -511,8 +511,8 @@ def showMode(mode, *args, **kwargs):
     import matplotlib.pyplot as plt
     show_hinge = kwargs.pop('hinge', True)
     show_zero = kwargs.pop('zero', False)
-    if not isinstance(mode, Mode):
-        raise TypeError('mode must be a Mode instance, '
+    if not isinstance(mode, (Mode, Vector)):
+        raise TypeError('mode must be a Mode or Vector instance, '
                         'not {0}'.format(type(mode)))
     if kwargs.pop('new_fig', True):
         plt.figure()
@@ -525,7 +525,7 @@ def showMode(mode, *args, **kwargs):
     else:
         a1d = mode._getArray()
         show = plt.plot(a1d, *args, **kwargs)
-        if show_hinge:
+        if show_hinge and isinstance(mode, Mode):
             hinges = mode.getHinges()
             if hinges is not None:
                 plt.plot(hinges, a1d[hinges], 'r*')
