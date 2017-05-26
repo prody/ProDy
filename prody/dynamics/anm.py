@@ -62,8 +62,8 @@ class ANMBase(NMA):
         if self._stiffness is None:
             return None
         else:
-            return np.min(self._stiffness[np.nonzero(self._stiffness)]), \
-                                               np.amax(self._stiffness)
+            return np.array(np.min(self._stiffness[np.nonzero(self._stiffness)]), \
+                                               np.amax(self._stiffness))
 
     def getMechStiffStatistic(self, rangeK, minAA=0, AA='all'):
         """Returns number of effective spring constant with set range of
