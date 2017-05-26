@@ -44,23 +44,33 @@ def calcCollectivity(mode, masses=None):
     :arg masses: atomic masses
     :type masses: :class:`numpy.ndarray`"""
 
-    if not isinstance(mode, Mode):
-        raise TypeError('mode must be a Mode instance')
+    if not isinstance(mode, (Mode, ModeSet)):
+        raise TypeError('mode must be a Mode or ModeSet instance')
+    if isinstance(mode, Mode):
+        mode = [mode]
+    
+    colls = []
 
-    is3d = mode.is3d()
-    if masses is not None:
-        if len(masses) != mode.numAtoms():
-            raise ValueError('length of masses must be equal to number of atoms')
-        if is3d:
-            u2in = (mode.getArrayNx3() ** 2).sum(1) / masses
-    else:
-        if is3d:
-            u2in = (mode.getArrayNx3() ** 2).sum(1)
+    for m in mode:
+        is3d = m.is3d()
+        if masses is not None:
+            if len(masses) != m.numAtoms():
+                raise ValueError('length of masses must be equal to number of atoms')
+            if is3d:
+                u2in = (m.getArrayNx3() ** 2).sum(1) / masses
         else:
-            u2in = (mode.getArrayNx3() ** 2)
-    u2in = u2in * (1 / u2in.sum() ** 0.5)
-    coll = np.exp(-(u2in * np.log(u2in)).sum()) / mode.numAtoms()
-    return coll
+            if is3d:
+                u2in = (m.getArrayNx3() ** 2).sum(1)
+            else:
+                u2in = (m.getArrayNx3() ** 2)
+        u2in = u2in * (1 / u2in.sum() ** 0.5)
+        coll = np.exp(-(u2in * np.log(u2in)).sum()) / m.numAtoms()
+        colls.append(coll)
+    
+    if len(mode) == 1:
+        return coll
+    else:
+        return colls
 
 def calcSpecDimension(mode):
 
