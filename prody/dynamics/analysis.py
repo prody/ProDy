@@ -771,8 +771,8 @@ def writePerturbResponsePDB(prs_matrix,pdbIn,**kwargs):
     :type resnum: int
 
     :arg direction: the direction you want to use to read data out
-        of the PRS matrix for plotting: the options are 'row' or 'column'.
-        Default is 'row'.
+        of the PRS matrix for plotting: the options are 'effect' or 'response'.
+        Default is 'effect'.
         A row gives the effect on each residue of peturbing the specified 
         residue.
         A column gives the response of the specified residue to perturbing 
@@ -858,7 +858,7 @@ def writePerturbResponsePDB(prs_matrix,pdbIn,**kwargs):
             return
  
     timesNF = 0
-    direction = kwargs.get('direction','row')
+    direction = kwargs.get('direction','effect')
     for n in range(len(chain)):
         if not chain[n] in chains:
             raise PRSMatrixParseError('Chain {0} was not found in {1}'.format(chain[n], pdbIn))
@@ -892,7 +892,7 @@ def writePerturbResponsePDB(prs_matrix,pdbIn,**kwargs):
                 j = np.where(structure.getResnums() == int(line[22:26]))[0] \
                     [np.where(sel_line_res.getChids() == line[21])[0][0]]
 
-                if direction is 'row':
+                if direction is 'effect':
                     fo.write(line[:60] + ' '*(6-len('{:3.2f}'.format(( \
                              prs_matrix[i][j])*100/np.max(prs_matrix)))) \
                              + '{:3.2f}'.format((prs_matrix[i][j]) \

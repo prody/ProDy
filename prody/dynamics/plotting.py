@@ -1077,8 +1077,8 @@ def showPerturbResponseProfiles(prs_matrix,atoms,**kwargs):
     :type resnum: int
 
     :arg direction: the direction you want to use to read data out
-        of the PRS matrix for plotting: the options are 'row' or 'column'.
-        Default is 'row'.
+        of the PRS matrix for plotting: the options are 'effect' or 'response'.
+        Default is 'effect'.
         A row gives the effect on each residue of peturbing the specified 
         residue.
         A column gives the response of the specified residue to perturbing 
@@ -1126,7 +1126,7 @@ def showPerturbResponseProfiles(prs_matrix,atoms,**kwargs):
         chain = ''.join(chains)
 
     resnum = kwargs.get('resnum', None)
-    direction = kwargs.get('direction','row')
+    direction = kwargs.get('direction','effect')
     overlay = kwargs.get('overlay',False)
 
     if resnum is not None: 
@@ -1148,7 +1148,7 @@ def showPerturbResponseProfiles(prs_matrix,atoms,**kwargs):
         for n in range(len(chain)):
             chainNum = int(np.where(chains == chain[n])[0])
             i = np.where(atoms.getResnums() == resnum)[0][chainNum-timesNotFound] 
-            if direction is 'row':
+            if direction is 'effect':
                 profiles.append(prs_matrix[i,:])
             else:
                 profiles.append(prs_matrix[:,i])

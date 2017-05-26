@@ -290,7 +290,7 @@ class ANMBase(NMA):
         :func:`numpy.linalg.eigh` is used.
 
         :arg n_modes: number of non-zero eigenvalues/vectors to calculate.
-            If ``None`` is given, all modes will be calculated.
+            If ``None`` or 'all' is given, all modes will be calculated.
         :type n_modes: int or None, default is 20
 
         :arg zeros: If ``True``, modes with zero eigenvalues will be kept.
@@ -302,6 +302,8 @@ class ANMBase(NMA):
 
         if self._hessian is None:
             raise ValueError('Hessian matrix is not built or set')
+        if str(n_modes).lower() is 'all':
+            n_modes = None
         assert n_modes is None or isinstance(n_modes, int) and n_modes > 0, \
             'n_modes must be a positive integer'
         assert isinstance(zeros, bool), 'zeros must be a boolean'
