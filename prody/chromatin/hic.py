@@ -5,14 +5,14 @@ from prody.chromatin.norm import VCnorm, SQRTVCnorm,Filenorm
 from prody.chromatin.cluster import KMeans, Hierarchy
 from prody.chromatin.functions import div0, showMap, showDomains, _getEigvecs
 
-from prody.dynamics import GNM
+from prody.dynamics import GNM, TrimedGNM
 from prody.dynamics.functions import writeArray
 from prody.dynamics.mode import Mode
 from prody.dynamics.modeset import ModeSet
 
 from prody.utilities import openFile, importLA
 
-__all__ = ['HiC', 'parseHiC', 'parseHiCStream', 'saveHiC', 'loadHiC', 'writeMap']
+__all__ = ['HiC', 'TrimedGNM', 'parseHiC', 'parseHiCStream', 'saveHiC', 'loadHiC', 'writeMap']
 
 class HiC(object):
 
@@ -94,6 +94,80 @@ class HiC(object):
         M.mask = np.diag(self.mask)
         return ma.compress_rowcols(M)
     
+    def align(self, array, axis=None):
+        if not isinstance(map, np.ndarray):
+            array = np.array(array)
+
+        ret = array = array.copy()
+
+        if np.isscalar(self.mask):
+            return ret
+
+        mask = ~self.mask.copy()
+
+        l_full = self.getCompleteMap().shape[0]
+        l_trim = self.getTrimedMap().shape[0]
+        
+        if len(array.shape) == 0:
+            raise ValueError('Aligned array cannot be empty.')
+        elif len(array.shape) == 1:
+            l = array.shape[0]
+            if l == l_trim:
+                N = len(mask)
+                ret = np.zeros(N)
+                ret[mask] = array
+            elif l == l_full:
+                ret = array[mask]
+            else:
+                raise ValueError('The length of the array (%d) does not '
+                                'match that of either the full (%d) '
+                                'or trimed (%d).'
+                                %(l, l_full, l_trim))
+        elif len(array.shape) == 2:
+            s = array.shape
+
+            if axis is None:
+                if s[0] != s[1]:
+                    raise ValueError('The array must be a square matrix '
+                                     'if axis is set to None.')
+                if s[0] == l_trim:
+                    N = len(mask)
+                    whole_mat = np.zeros((N,N))
+                    mask = np.outer(mask, mask)
+                    whole_mat[mask] = array.flatten()
+                    ret = whole_mat
+                elif s[0] == l_full:
+                    M = ma.array(array)
+                    M.mask = np.diag(mask)
+                    ret = ma.compress_rowcols(M)
+                else:
+                    raise ValueError('The size of the array (%d) does not '
+                                    'match that of either the full (%d) '
+                                    'or trimed (%d).'
+                                    %(s[0], l_full, l_trim))
+            else:
+                new_shape = list(s)
+                otheraxis = 0 if axis!=0 else 1
+                if s[axis] == l_trim:
+                    N = len(mask)
+                    new_shape[axis] = N
+                    whole_mat = np.zeros(new_shape)
+                    mask = np.expand_dims(mask, axis=otheraxis)
+                    mask = mask.repeat(s[otheraxis], axis=otheraxis)
+                    whole_mat[mask] = array.flatten()
+                    ret = whole_mat
+                elif s[axis] == l_full:
+                    mask = np.expand_dims(mask, axis=otheraxis)
+                    mask = mask.repeat(s[otheraxis])
+                    ret = map[mask]
+                else:
+                    raise ValueError('The size of the array (%d) does not '
+                                    'match that of either the full (%d) '
+                                    'or trimed (%d).'
+                                    %(sh[0], l_full, l_trim))
+        
+        return ret
+
     def getKirchhoff(self):
         """Builds a Kirchhoff matrix based on the contact map."""
 
@@ -148,7 +222,10 @@ class HiC(object):
     def calcGNM(self, n_modes=None):
         """Calculates GNM on the current Hi-C map."""
 
-        gnm = GNM(self._title)
+        if self.useTrimed:
+            gnm = TrimedGNM(self._title, self.mask)
+        else:
+            gnm = GNM(self._title)
         gnm.setKirchhoff(self.getKirchhoff())
         gnm.calcModes(n_modes=n_modes)
         return gnm
@@ -251,7 +328,7 @@ class HiC(object):
         return new
     
     __copy__ = copy
-    
+
 
 def parseHiC(filename, **kwargs):
     """Returns an :class:`.HiC` from a Hi-C data file.
@@ -266,6 +343,8 @@ def parseHiC(filename, **kwargs):
     title = kwargs.get('title')
     if title is None:
         title = os.path.basename(filename)
+    else:
+        title = kwargs.pop('title')
     with open(filename, 'rb') as filestream:
         hic = parseHiCStream(filestream, title=title, **kwargs)
     return hic

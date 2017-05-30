@@ -509,10 +509,10 @@ def showMode(mode, *args, **kwargs):
     """Show mode array using :func:`~matplotlib.pyplot.plot`."""
     
     import matplotlib.pyplot as plt
-    show_hinge = kwargs.pop('hinge', True)
+    show_hinge = kwargs.pop('hinge', False)
     show_zero = kwargs.pop('zero', False)
-    if not isinstance(mode, Mode):
-        raise TypeError('mode must be a Mode instance, '
+    if not isinstance(mode, (Mode, Vector)):
+        raise TypeError('mode must be a Mode or Vector instance, '
                         'not {0}'.format(type(mode)))
     if kwargs.pop('new_fig', True):
         plt.figure()
@@ -525,7 +525,7 @@ def showMode(mode, *args, **kwargs):
     else:
         a1d = mode._getArray()
         show = plt.plot(a1d, *args, **kwargs)
-        if show_hinge:
+        if show_hinge and isinstance(mode, Mode):
             hinges = mode.getHinges()
             if hinges is not None:
                 plt.plot(hinges, a1d[hinges], 'r*')
@@ -546,7 +546,7 @@ def showSqFlucts(modes, *args, **kwargs):
     if kwargs.pop('new_fig', True):
         plt.figure()
 
-    show_hinge = kwargs.pop('hinge', True)
+    show_hinge = kwargs.pop('hinge', False)
     sqf = calcSqFlucts(modes)
     if not 'label' in kwargs:
         kwargs['label'] = str(modes)
@@ -1077,8 +1077,8 @@ def showPerturbResponseProfiles(prs_matrix,atoms,**kwargs):
     :type resnum: int
 
     :arg direction: the direction you want to use to read data out
-        of the PRS matrix for plotting: the options are 'row' or 'column'.
-        Default is 'row'.
+        of the PRS matrix for plotting: the options are 'effect' or 'response'.
+        Default is 'effect'.
         A row gives the effect on each residue of peturbing the specified 
         residue.
         A column gives the response of the specified residue to perturbing 
@@ -1126,7 +1126,7 @@ def showPerturbResponseProfiles(prs_matrix,atoms,**kwargs):
         chain = ''.join(chains)
 
     resnum = kwargs.get('resnum', None)
-    direction = kwargs.get('direction','row')
+    direction = kwargs.get('direction','effect')
     overlay = kwargs.get('overlay',False)
 
     if resnum is not None: 
@@ -1148,7 +1148,7 @@ def showPerturbResponseProfiles(prs_matrix,atoms,**kwargs):
         for n in range(len(chain)):
             chainNum = int(np.where(chains == chain[n])[0])
             i = np.where(atoms.getResnums() == resnum)[0][chainNum-timesNotFound] 
-            if direction is 'row':
+            if direction is 'effect':
                 profiles.append(prs_matrix[i,:])
             else:
                 profiles.append(prs_matrix[:,i])

@@ -16,7 +16,7 @@ from prody.utilities import importLA, checkCoords
 from .nma import NMA
 from .gamma import Gamma
 
-__all__ = ['GNM', 'calcGNM']
+__all__ = ['GNM', 'calcGNM', 'TrimedGNM']
 
 ZERO = 1e-6
 
@@ -229,7 +229,7 @@ class GNM(GNMBase):
         :func:`numpy.linalg.eigh` is used.
 
         :arg n_modes: number of non-zero eigenvalues/vectors to calculate.
-              If ``None`` is given, all modes will be calculated.
+              If ``None`` or 'all' is given, all modes will be calculated.
         :type n_modes: int or None, default is 20
 
         :arg zeros: If ``True``, modes with zero eigenvalues will be kept.
@@ -244,6 +244,8 @@ class GNM(GNMBase):
 
         if self._kirchhoff is None:
             raise ValueError('Kirchhoff matrix is not built or set')
+        if str(n_modes).lower() is 'all':
+            n_modes = None
         assert n_modes is None or isinstance(n_modes, int) and n_modes > 0, \
             'n_modes must be a positive integer'
         assert isinstance(zeros, bool), 'zeros must be a boolean'
@@ -392,10 +394,10 @@ class GNM(GNMBase):
         r_ij = np.zeros((n_atoms,n_atoms,3))
 
         for i in range(n_atoms):
-           for j in range(i+1,n_atoms):
-               r_ij[i][j] = coords[j,:] - coords[i,:]
-               r_ij[j][i] = r_ij[i][j]
-               r_ij_n = LA.norm(r_ij, axis=2)
+            for j in range(i+1,n_atoms):
+                r_ij[i][j] = coords[j,:] - coords[i,:]
+                r_ij[j][i] = r_ij[i][j]
+                r_ij_n = LA.norm(r_ij, axis=2)
 
         #with np.errstate(divide='ignore'):
         r_ij_n[np.diag_indices_from(r_ij_n)] = 1e-5  # div by 0
@@ -407,7 +409,7 @@ class GNM(GNMBase):
 
 
 def calcGNM(pdb, selstr='calpha', cutoff=15., gamma=1., n_modes=20,
-            zeros=False):
+            zeros=False, hinges=True):
     """Returns a :class:`GNM` instance and atoms used for the calculations.
     By default only alpha carbons are considered, but selection string helps
     selecting a subset of it.  *pdb* can be :class:`.Atomic` instance."""
@@ -427,5 +429,54 @@ def calcGNM(pdb, selstr='calpha', cutoff=15., gamma=1., n_modes=20,
     gnm = GNM(title)
     sel = ag.select(selstr)
     gnm.buildKirchhoff(sel, cutoff, gamma)
-    gnm.calcModes(n_modes, zeros)
+    gnm.calcModes(n_modes, zeros, hinges=hinges)
     return gnm, sel
+
+class TrimedGNM(GNM):
+    def __init__(self, name='Unknown', mask=False, useTrimed=True):
+        super(TrimedGNM, self).__init__(name)
+        self.mask = False
+        self.useTrimed = useTrimed
+
+        if not np.isscalar(mask):
+            self.mask = np.array(mask)
+
+    def numAtoms(self):
+        """Returns number of atoms."""
+
+        if self.useTrimed or np.isscalar(self.mask):
+            return self._n_atoms
+        else:
+            return len(self.mask)
+
+    def getArray(self):
+        """Returns a copy of eigenvectors array."""
+
+        if self._array is None: return None
+
+        array = self._array.copy()
+
+        if self.useTrimed or np.isscalar(self.mask):
+            return array
+
+        mask = ~self.mask.copy()
+        N = len(mask)
+        n, m = array.shape
+        whole_array = np.zeros((N,m))
+        mask = np.expand_dims(mask, axis=1)
+        mask = mask.repeat(m, axis=1)
+        whole_array[mask] = array.flatten()
+        return whole_array
+
+    getEigvecs = getArray
+
+    def _getArray(self):
+        """Returns eigenvectors array. The function returns 
+        a copy of the array if useTrimed is ``True``."""
+
+        if self._array is None: return None
+
+        if self.useTrimed or np.isscalar(self.mask):
+            return self._array
+        else:
+            return self.getArray()

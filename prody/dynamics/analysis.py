@@ -44,23 +44,33 @@ def calcCollectivity(mode, masses=None):
     :arg masses: atomic masses
     :type masses: :class:`numpy.ndarray`"""
 
-    if not isinstance(mode, Mode):
-        raise TypeError('mode must be a Mode instance')
+    if not isinstance(mode, (Mode, ModeSet)):
+        raise TypeError('mode must be a Mode or ModeSet instance')
+    if isinstance(mode, Mode):
+        mode = [mode]
+    
+    colls = []
 
-    is3d = mode.is3d()
-    if masses is not None:
-        if len(masses) != mode.numAtoms():
-            raise ValueError('length of masses must be equal to number of atoms')
-        if is3d:
-            u2in = (mode.getArrayNx3() ** 2).sum(1) / masses
-    else:
-        if is3d:
-            u2in = (mode.getArrayNx3() ** 2).sum(1)
+    for m in mode:
+        is3d = m.is3d()
+        if masses is not None:
+            if len(masses) != m.numAtoms():
+                raise ValueError('length of masses must be equal to number of atoms')
+            if is3d:
+                u2in = (m.getArrayNx3() ** 2).sum(1) / masses
         else:
-            u2in = (mode.getArrayNx3() ** 2)
-    u2in = u2in * (1 / u2in.sum() ** 0.5)
-    coll = np.exp(-(u2in * np.log(u2in)).sum()) / mode.numAtoms()
-    return coll
+            if is3d:
+                u2in = (m.getArrayNx3() ** 2).sum(1)
+            else:
+                u2in = (m.getArrayNx3() ** 2)
+        u2in = u2in * (1 / u2in.sum() ** 0.5)
+        coll = np.exp(-(u2in * np.log(u2in)).sum()) / m.numAtoms()
+        colls.append(coll)
+    
+    if len(mode) == 1:
+        return coll
+    else:
+        return colls
 
 def calcSpecDimension(mode):
 
@@ -285,7 +295,7 @@ def calcCrossCorr(modes, n_cpu=1):
         else:
             n_modes = len(modes)
             indices = np.arange(n_modes)
-        array = model._array
+        array = model._getArray()
         n_atoms = model._n_atoms
         variances = model._vars
         if n_cpu == 1:
@@ -771,8 +781,8 @@ def writePerturbResponsePDB(prs_matrix,pdbIn,**kwargs):
     :type resnum: int
 
     :arg direction: the direction you want to use to read data out
-        of the PRS matrix for plotting: the options are 'row' or 'column'.
-        Default is 'row'.
+        of the PRS matrix for plotting: the options are 'effect' or 'response'.
+        Default is 'effect'.
         A row gives the effect on each residue of peturbing the specified 
         residue.
         A column gives the response of the specified residue to perturbing 
@@ -858,7 +868,7 @@ def writePerturbResponsePDB(prs_matrix,pdbIn,**kwargs):
             return
  
     timesNF = 0
-    direction = kwargs.get('direction','row')
+    direction = kwargs.get('direction','effect')
     for n in range(len(chain)):
         if not chain[n] in chains:
             raise PRSMatrixParseError('Chain {0} was not found in {1}'.format(chain[n], pdbIn))
@@ -892,7 +902,7 @@ def writePerturbResponsePDB(prs_matrix,pdbIn,**kwargs):
                 j = np.where(structure.getResnums() == int(line[22:26]))[0] \
                     [np.where(sel_line_res.getChids() == line[21])[0][0]]
 
-                if direction is 'row':
+                if direction is 'effect':
                     fo.write(line[:60] + ' '*(6-len('{:3.2f}'.format(( \
                              prs_matrix[i][j])*100/np.max(prs_matrix)))) \
                              + '{:3.2f}'.format((prs_matrix[i][j]) \
