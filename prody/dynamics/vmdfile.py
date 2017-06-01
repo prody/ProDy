@@ -125,7 +125,7 @@ def writeVMDstiffness(model, pdb, indices, k_range, filename='vmd_out', \
     
     color_nr = 1 # starting from red color in VMD
     ResCounter = []
-    for r in xrange(indices0, indices1+1):
+    for r in range(indices0, indices1+1):
         baza_col = [] # Value of Kij is here for each residue
         nr_baza_col = [] # Resid of aa are here
         out.write("draw color "+str(colors[color_nr])+"\n")
