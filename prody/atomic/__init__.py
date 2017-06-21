@@ -173,7 +173,7 @@ from . import selection
 from . import chain
 from . import segment
 
-from .chain import AAMAP, getSequence
+from .chain import getSequence
 
 __all__.extend(functions.__all__)
 __all__.extend(select.__all__)

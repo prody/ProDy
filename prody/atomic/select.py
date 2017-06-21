@@ -463,7 +463,8 @@ from .fields import ATOMIC_FIELDS
 from .flags import PLANTERS as FLAG_PLANTERS
 
 from .atomgroup import AtomGroup
-from .chain import Chain, getSequence, AAMAP
+from .chain import Chain, getSequence
+from .atomic import AAMAP
 from .pointer import AtomPointer
 from .selection import Selection
 from .segment import Segment
