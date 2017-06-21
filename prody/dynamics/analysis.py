@@ -395,7 +395,7 @@ def calcPerturbResponse(model, atoms=None, repeats=100, **kwargs):
 
     The PRS matrix can be calculated and saved as follows::
 
-      prs_matrix = calcPerturbationResponse(p38_anm, saveMatrix=True)
+      prs_matrix = calcPerturbResponse(p38_anm, saveMatrix=True)
       
     The PRS matrix can also be save later as follows::
     
@@ -741,7 +741,7 @@ def calcPerturbResponseProfiles(prs_matrix):
         effectiveness.append(np.mean(prs_matrix[i]))
         sensitivity.append(np.mean(prs_matrix.T[i]))
 
-    return effectiveness, sensitivity
+    return np.array(effectiveness), np.array(sensitivity)
 
 def writePerturbResponsePDB(prs_matrix,pdbIn,**kwargs):
     """ Write the average response to perturbation of
