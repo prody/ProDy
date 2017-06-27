@@ -137,6 +137,8 @@ def trimPDBEnsemble(pdb_ensemble, **kwargs):
         trim_atoms_idx = [n for n,t in enumerate(torf) if t]
         if type(atoms) is Chain:
             trim_atoms=Chain(atoms.getAtomGroup(), trim_atoms_idx, atoms._hv)
+        elif type(atoms) is AtomGroup:
+            trim_atoms= AtomMap(atoms,trim_atoms_idx)
         else:
             trim_atoms= AtomMap(atoms.getAtomGroup(),trim_atoms_idx)
         trimmed.setAtoms(trim_atoms)
