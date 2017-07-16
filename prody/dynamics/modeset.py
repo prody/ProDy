@@ -113,7 +113,7 @@ class ModeSet(object):
         """Returns covariance matrix. It will be calculated using available modes."""
 
         V = self.getEigvecs()
-        D = diag(self.getEigvals())
+        D = diag(self.getVariances())
         return dot(V, dot(D, V.T))
 
     def getArray(self):
