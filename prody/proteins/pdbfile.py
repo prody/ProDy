@@ -15,7 +15,7 @@ from prody.atomic import ATOMIC_FIELDS
 from prody.utilities import openFile
 from prody import LOGGER, SETTINGS
 
-from .header import getHeaderDict, buildBiomolecules, assignSecstr
+from .header import getHeaderDict, buildBiomolecules, assignSecstr, isHelix, isSheet
 from .localpdb import fetchPDB
 
 __all__ = ['parsePDBStream', 'parsePDB', 'parsePQR',
@@ -765,6 +765,9 @@ PDBLINE = ('{0:6s}{1:5d} {2:4s}{3:1s}'
            '{11:6.2f}{12:6.2f}      '
            '{13:4s}{14:2s}\n')
 
+HELIXLINE = ('%-6s %3d %-3s %-3s %1s %4d%1s %-3s %1s %4d%1s%2d'
+             '                              %5d\n')
+
 PDBLINE_LT100K = ('%-6s%5d %-4s%1s%-4s%1s%4d%1s   '
                   '%8.3f%8.3f%8.3f%6.2f%6.2f      '
                   '%4s%2s\n')
@@ -902,8 +905,26 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
     if segments is None:
         segments = np.zeros(n_atoms, s_or_u + '6')
 
+    # write remarks
     stream.write('REMARK {0}\n'.format(remark))
 
+    # write secondary structures (if any)
+    secstrs = atoms._getSecstrs()
+    if secstrs is not None:
+        secindices = atoms._getSecindices()
+        secclasses = atoms._getSecclasses()
+        secids = atoms._getSecids()
+
+        # write helices
+        for i in range(1,max(secindices)+1):
+            torf = np.logical_or(isHelix(secstrs), secindices==i)
+            helix_resnums = resnums[torf]
+            helix_chainids = chainids[torf]
+            helix_resname = resnames[torf]
+
+        pass
+
+    # write atoms
     multi = len(coordsets) > 1
     write = stream.write
     for m, coords in enumerate(coordsets):

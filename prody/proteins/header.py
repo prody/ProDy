@@ -904,6 +904,16 @@ mapHelix = {
     10: '',  # Polyproline
 }
 
+def isHelix(secstrs):
+    torf = np.logical_and(secstrs, False)
+    for h in mapHelix.itervalues():
+        if h != '':
+            torf = np.logical_or(torf, secstrs==h)
+    return torf
+
+def isSheet(secstrs):
+    torf = secstrs == 'E'
+    return torf
 
 def assignSecstr(header, atoms, coil=False):
     """Assign secondary structure from *header* dictionary to *atoms*.
@@ -962,6 +972,13 @@ def assignSecstr(header, atoms, coil=False):
             ag = atoms.getAtomGroup()
         ag.setSecstrs(np.zeros(ag.numAtoms(),
                       ATOMIC_FIELDS['secondary'].dtype))
+        ag.setSecids(np.zeros(ag.numAtoms(),
+                      ATOMIC_FIELDS['secid'].dtype))
+        ag.setSecclasses(np.zeros(ag.numAtoms(),
+                      ATOMIC_FIELDS['secclass'].dtype)) 
+        ag.setSecindices(np.zeros(ag.numAtoms(),
+                      ATOMIC_FIELDS['secindex'].dtype))  
+
     atoms.select('protein').setSecstrs('C')
     hierview = atoms.getHierView()
     count = 0
@@ -970,12 +987,19 @@ def assignSecstr(header, atoms, coil=False):
         res = getResidue(*key)
         if res is None:
             continue
+        res.setSecids(value[2])
+        res.setSecclasses(value[0])
+        res.setSecindices(value[1])
         res.setSecstrs(mapHelix[value[0]])
+        
         count += 1
-    for key, res in sheet.items():  # PY3K: OK
+    for key, value in sheet.items():  # PY3K: OK
         res = getResidue(*key)
         if res is None:
             continue
+        res.setSecids(value[2])
+        res.setSecclasses(value[0])
+        res.setSecindices(value[1])
         res.setSecstrs('E')
         count += 1
     LOGGER.info('Secondary structures were assigned to {0} residues.'
