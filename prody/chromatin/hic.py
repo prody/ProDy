@@ -1,7 +1,7 @@
 from numpy import ma
 import numpy as np
 from scipy.sparse import coo_matrix
-from collections import Counter
+from scipy.stats import mode
 from prody.chromatin.norm import VCnorm, SQRTVCnorm, Filenorm
 from prody.chromatin.cluster import KMeans, Hierarchy
 from prody.chromatin.functions import div0, showMap, showDomains, _getEigvecs
@@ -383,8 +383,7 @@ def parseHiCStream(stream, **kwargs):
         if bin is None:
             loci = np.unique(np.sort(i))
             bins = np.diff(loci)
-            counts = Counter(bins)
-            bin = counts.most_common(1)[0][0]
+            bin = mode(bins)[0][0]
         # convert coordinate from basepair to locus index
         i = i//bin
         j = j//bin
