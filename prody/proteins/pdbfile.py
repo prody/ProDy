@@ -765,8 +765,17 @@ PDBLINE = ('{0:6s}{1:5d} {2:4s}{3:1s}'
            '{11:6.2f}{12:6.2f}      '
            '{13:4s}{14:2s}\n')
 
-HELIXLINE = ('HELIX  %3d %-3s %-3s %1s %4d%1s %-3s %1s %4d%1s%2d'
-             '                              %5d\n')
+#HELIXLINE = ('HELIX  %3d %3s %-3s %1s %4d%1s %-3s %1s %4d%1s%2d'
+#             '                               %5d\n')
+
+HELIXLINE = ('HELIX  {serNum:3d} {helixID:>3s} '
+             '{initResName:<3s} {initChainID:1s} {initSeqNum:4d}{initICode:1s} '
+             '{endResName:<3s} {endChainID:1s} {endSeqNum:4d}{endICode:1s}'
+             '{helixClass:2d}                               {length:5d}\n')             
+
+SHEETLINE = ('SHEET  {strand:3d} {sheetID:>3s}{numStrands:2d} '
+             '{initResName:3s} {initChainID:1s}{initSeqNum:4d}{initICode:1s} '
+             '{endResName:3s} {endChainID:1s}{endSeqNum:4d}{endICode:1s}{sense:2d} \n')
 
 PDBLINE_LT100K = ('%-6s%5d %-4s%1s%-4s%1s%4d%1s   '
                   '%8.3f%8.3f%8.3f%6.2f%6.2f      '
@@ -917,12 +926,40 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
 
         # write helices
         for i in range(1,max(secindices)+1):
-            torf = np.logical_or(isHelix(secstrs), secindices==i)
+            torf = np.logical_and(isHelix(secstrs), secindices==i)
             if torf.any():
                 helix_resnums = resnums[torf]
                 helix_chainids = chainids[torf]
-                helix_resname = resnames[torf]
-                write(HELIXLINE % (i))
+                helix_resnames = resnames[torf]
+                helix_secclasses = secclasses[torf]
+                helix_secids = secids[torf]
+                helix_icodes = icodes[torf]
+                L = helix_resnums[-1] - helix_resnums[0] + 1
+
+                stream.write(HELIXLINE.format(serNum=i, helixID=helix_secids[0], 
+                            initResName=helix_resnames[0], initChainID=helix_chainids[0], 
+                            initSeqNum=helix_resnums[0], initICode=helix_icodes[0],
+                            endResName=helix_resnames[-1], endChainID=helix_chainids[-1], 
+                            endSeqNum=helix_resnums[-1], endICode=helix_icodes[-1],
+                            helixClass=helix_secclasses[0], length=L))
+        
+        # write strands
+        for i in range(1,max(secindices)+1):
+            torf = np.logical_and(isSheet(secstrs), secindices==i)
+            if torf.any():
+                sheet_resnums = resnums[torf]
+                sheet_chainids = chainids[torf]
+                sheet_resnames = resnames[torf]
+                sheet_secclasses = secclasses[torf]
+                sheet_secids = secids[torf]
+                sheet_icodes = icodes[torf]
+
+                stream.write(SHEETLINE.format(strand=i, sheetID=sheet_secids[0], numStrands=1,
+                            initResName=sheet_resnames[0], initChainID=sheet_chainids[0], 
+                            initSeqNum=sheet_resnums[0], initICode=sheet_icodes[0],
+                            endResName=sheet_resnames[-1], endChainID=sheet_chainids[-1], 
+                            endSeqNum=sheet_resnums[-1], endICode=sheet_icodes[-1],
+                            sense=sheet_secclasses[0]))
         pass
 
     # write atoms
