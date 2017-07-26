@@ -2,7 +2,7 @@ from numpy import ma
 import numpy as np
 from scipy.sparse import coo_matrix
 from collections import Counter
-from prody.chromatin.norm import VCnorm, SQRTVCnorm,Filenorm
+from prody.chromatin.norm import VCnorm, SQRTVCnorm, Filenorm
 from prody.chromatin.cluster import KMeans, Hierarchy
 from prody.chromatin.functions import div0, showMap, showDomains, _getEigvecs
 
