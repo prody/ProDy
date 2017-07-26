@@ -146,6 +146,21 @@ ATOMIC_FIELDS = {
                        meth='Secstr', synonym='secstr',
                        selstr=('secondary H E', 'secstr H E'),
                        ),
+    'secid':     Field('secid', DTYPE + '3',
+                       doc='secondary structure identifier',
+                       meth='Secid',
+                       selstr=('secid A B', 'secid 1 2')
+                       ),
+    'secclass':  Field('secclass', int,
+                       doc='secondary structure class',
+                       meth='Secclass', meth_pl='Secclasses',
+                       selstr=('secclass 2', 'secclass -1')
+                       ),
+    'secindex':  Field('secindex', int,
+                       doc='secondary structure index',
+                       meth='Secindex', meth_pl='Secindices',
+                       selstr=('secindex 2')
+                       ),
     'segment':   Field('segment', DTYPE + '6', doc='segment name',
                        meth='Segname',
                        selstr=('segment PROT', 'segname PROT'),

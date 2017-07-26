@@ -1,7 +1,8 @@
 from numpy import ma
 import numpy as np
 from scipy.sparse import coo_matrix
-from prody.chromatin.norm import VCnorm, SQRTVCnorm,Filenorm
+from scipy.stats import mode
+from prody.chromatin.norm import VCnorm, SQRTVCnorm, Filenorm
 from prody.chromatin.cluster import KMeans, Hierarchy
 from prody.chromatin.functions import div0, showMap, showDomains, _getEigvecs
 
@@ -370,18 +371,19 @@ def parseHiCStream(stream, **kwargs):
         D.append(d)
     D = np.array(D)
 
-    bin = None
+    bin = kwargs.get('bin', None)
     size = D.shape
     if len(D.shape) <= 1:
         raise ValueError("Cannot parse the file: input file only contains one column.")
     if size[0] == size[1]:
-        bin = None
         M = D
     else:
         i, j, value = D.T
-        # determine the bin size by the first and second locus
-        bins = np.unique(np.sort(i))
-        bin = bins[1] - bins[0]
+        # determine the bin size by the most frequent interval
+        if bin is None:
+            loci = np.unique(np.sort(i))
+            bins = np.diff(loci)
+            bin = mode(bins)[0][0]
         # convert coordinate from basepair to locus index
         i = i//bin
         j = j//bin
