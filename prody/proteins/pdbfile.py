@@ -944,22 +944,28 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
                             helixClass=helix_secclasses[0], length=L))
         
         # write strands
-        for i in range(1,max(secindices)+1):
-            torf = np.logical_and(isSheet(secstrs), secindices==i)
-            if torf.any():
-                sheet_resnums = resnums[torf]
-                sheet_chainids = chainids[torf]
-                sheet_resnames = resnames[torf]
-                sheet_secclasses = secclasses[torf]
-                sheet_secids = secids[torf]
-                sheet_icodes = icodes[torf]
+        torf_all_sheets = isSheet(secstrs)
+        sheet_secids = secids[torf_all_sheets]
 
-                stream.write(SHEETLINE.format(strand=i, sheetID=sheet_secids[0], numStrands=1,
-                            initResName=sheet_resnames[0], initChainID=sheet_chainids[0], 
-                            initSeqNum=sheet_resnums[0], initICode=sheet_icodes[0],
-                            endResName=sheet_resnames[-1], endChainID=sheet_chainids[-1], 
-                            endSeqNum=sheet_resnums[-1], endICode=sheet_icodes[-1],
-                            sense=sheet_secclasses[0]))
+        for sheet_id in np.unique(sheet_secids):
+            torf_strands_in_sheet = np.logical_and(torf_all_sheets, secids==sheet_id)
+            strand_indices = secindices[torf_strands_in_sheet]
+            numStrands = len(np.unique(strand_indices))
+
+            for i in np.unique(strand_indices):
+                torf_strand = np.logical_and(torf_strands_in_sheet, secindices==i)
+                strand_resnums = resnums[torf_strand]
+                strand_chainids = chainids[torf_strand]
+                strand_resnames = resnames[torf_strand]
+                strand_secclasses = secclasses[torf_strand]
+                strand_icodes = icodes[torf_strand]
+
+                stream.write(SHEETLINE.format(strand=i, sheetID=sheet_id, numStrands=numStrands,
+                            initResName=strand_resnames[0], initChainID=strand_chainids[0], 
+                            initSeqNum=strand_resnums[0], initICode=strand_icodes[0],
+                            endResName=strand_resnames[-1], endChainID=strand_chainids[-1], 
+                            endSeqNum=strand_resnums[-1], endICode=strand_icodes[-1],
+                            sense=strand_secclasses[0]))
         pass
 
     # write atoms
