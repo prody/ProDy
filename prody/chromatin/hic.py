@@ -350,55 +350,7 @@ def parseHiC(filename, **kwargs):
         hic = parseHiCStream(filestream, title=title, **kwargs)
     return hic
 
-def parseHiCStream(stream, **kwargs):
-    """Returns an :class:`.HiC` from a stream of Hi-C data lines.
 
-    :arg stream: Anything that implements the method ``read``, ``seek``
-        (e.g. :class:`file`, buffer, stdin)
-    """
-
-    title = kwargs.get('title', 'Unknown')
-
-    import csv
-    dialect = csv.Sniffer().sniff(stream.read(1024))
-    stream.seek(0)
-    reader = csv.reader(stream, dialect)
-    D = list()
-    for row in reader:
-        d = list()
-        for element in row:
-            d.append(np.double(element))
-        D.append(d)
-    D = np.array(D)
-
-    bin = kwargs.get('bin', None)
-    size = D.shape
-    if len(D.shape) <= 1:
-        raise ValueError("Cannot parse the file: input file only contains one column.")
-    if size[0] == size[1]:
-        M = D
-    else:
-        i, j, value = D.T
-        # determine the bin size by the most frequent interval
-        if bin is None:
-            loci = np.unique(np.sort(i))
-            bins = np.diff(loci)
-            counts = Counter(bins)
-            bin = counts.most_common(1)[0][0]
-        # convert coordinate from basepair to locus index
-        i = i//bin
-        j = j//bin
-        # make sure that the matrix is square
-        if np.max(i) != np.max(j):
-            b = np.max(np.append(i, j))
-            i = np.append(i, b)
-            j = np.append(j, b)
-            value = np.append(value, 0.)
-        # Convert to sparse matrix format, then full matrix format
-        # and finally array type. Matrix format is avoided because
-        # diag() won't work as intended for Matrix instances.
-        M = np.array(coo_matrix((value, (i,j))).todense())
-    return HiC(title=title, map=M, bin=bin)
 
 def writeMap(filename, map, bin=None, format='%f'):
     """Writes *map* to the file designated by *filename*.
