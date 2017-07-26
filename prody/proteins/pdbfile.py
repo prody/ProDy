@@ -765,7 +765,7 @@ PDBLINE = ('{0:6s}{1:5d} {2:4s}{3:1s}'
            '{11:6.2f}{12:6.2f}      '
            '{13:4s}{14:2s}\n')
 
-HELIXLINE = ('%-6s %3d %-3s %-3s %1s %4d%1s %-3s %1s %4d%1s%2d'
+HELIXLINE = ('HELIX  %3d %-3s %-3s %1s %4d%1s %-3s %1s %4d%1s%2d'
              '                              %5d\n')
 
 PDBLINE_LT100K = ('%-6s%5d %-4s%1s%-4s%1s%4d%1s   '
@@ -918,10 +918,11 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
         # write helices
         for i in range(1,max(secindices)+1):
             torf = np.logical_or(isHelix(secstrs), secindices==i)
-            helix_resnums = resnums[torf]
-            helix_chainids = chainids[torf]
-            helix_resname = resnames[torf]
-
+            if torf.any():
+                helix_resnums = resnums[torf]
+                helix_chainids = chainids[torf]
+                helix_resname = resnames[torf]
+                write(HELIXLINE % (i))
         pass
 
     # write atoms
