@@ -639,6 +639,9 @@ class AtomGroup(Atomic):
 
         if self._hv is None:
             self._hv = HierView(self, **kwargs)
+        else:
+            self._hv.update(**kwargs)
+            
         return self._hv
 
     def numSegments(self):
