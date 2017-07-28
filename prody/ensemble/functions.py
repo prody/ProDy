@@ -15,7 +15,7 @@ from .conformation import *
 
 __all__ = ['saveEnsemble', 'loadEnsemble', 'trimPDBEnsemble',
            'calcOccupancies', 'showOccupancies', 'alignPDBEnsemble',
-           'calcTree', 'showTree', 'buildPDBEnsemble']
+           'calcTree', 'showTree', 'buildPDBEnsemble', 'addPDBEnsemble']
 
 
 def saveEnsemble(ensemble, filename=None, **kwargs):
@@ -426,6 +426,86 @@ def buildPDBEnsemble(refpdb, PDBs, title='Unknown', labels=None, seqid=94, cover
     ensemble.setCoords(atoms.getCoords())
     
     # build the ensemble
+    if unmapped is None: unmapped = []
+    for i,pdb in enumerate(PDBs):
+        if not isinstance(pdb, (Chain, Selection, AtomGroup)):
+            raise TypeError('PDBs must be a list of Chain, Selection, or AtomGroup.')
+        
+        if labels is None:
+            lbl = pdb.getTitle()
+        else:
+            lbl = labels[i]
+
+        atommaps = []
+        # find the mapping of the pdb to each reference chain
+        for chain in refchains:
+            mappings = mapping_func(pdb, chain,
+                                    seqid=seqid,
+                                    coverage=coverage)
+            if len(mappings) > 0:
+                atommaps.append(mappings[0][0])
+            else:
+                break
+
+        if len(atommaps) != len(refchains):
+            unmapped.append(lbl)
+            continue
+        
+        # combine the mappings of pdb to reference chains
+        atommap = atommaps[0]
+        for i in range(1, len(atommaps)):
+            atommap += atommaps[i]
+        
+        # add the mappings to the ensemble
+        ensemble.addCoordset(atommap, weights=atommap.getFlags('mapped'), label = lbl)
+    
+    if occupancy is not None:
+        ensemble = trimPDBEnsemble(ensemble, occupancy=occupancy)
+    ensemble.iterpose()
+
+    return ensemble
+
+def addPDBEnsemble(ensemble, PDBs, refpdb=None, labels=None, seqid=94, coverage=85, mapping_func=mapOntoChain, occupancy=None, unmapped=None):  
+    """Adds extra structures to a given PDB ensemble. 
+
+    :arg ensemble: The ensemble to which the PDBs are added.
+    :type ensemble: :class:`.PDBEnsemble`
+    :arg refpdb: Reference structure. If set to `None`, it will be set to `ensemble.getAtoms()` automatically.
+    :type refpdb: :class:`.Chain`, :class:`.Selection`, or :class:`.AtomGroup`
+    :arg PDBs: A list of PDB structures
+    :type PDBs: iterable
+    :arg title: The title of the ensemble
+    :type title: str
+    :arg labels: labels of the conformations
+    :type labels: list
+    :arg seqid: Minimal sequence identity (percent)
+    :type seqid: int
+    :arg coverage: Minimal sequence overlap (percent)
+    :type coverage: int
+    :arg occupancy: Minimal occupancy of columns (range from 0 to 1). Columns whose occupancy
+    is below this value will be trimmed.
+    :type occupancy: float
+    :arg unmapped: A list of PDB IDs that cannot be included in the ensemble. This is an 
+    output argument. 
+    :type unmapped: list
+    """
+
+    if labels is not None:
+        if len(labels) != len(PDBs):
+            raise TypeError('Labels and PDBs must have the same lengths.')
+
+    # obtain the hierarhical view of the referrence PDB
+    if refpdb is None:
+        refpdb = ensemble.getAtoms()
+    refhv = refpdb.getHierView()
+    refchains = list(refhv)
+
+    # obtain the atommap of all the chains combined.
+    atoms = refchains[0]
+    for i in range(1, len(refchains)):
+        atoms += refchains[i]
+    
+    # add the PDBs to the ensemble
     if unmapped is None: unmapped = []
     for i,pdb in enumerate(PDBs):
         if not isinstance(pdb, (Chain, Selection, AtomGroup)):
