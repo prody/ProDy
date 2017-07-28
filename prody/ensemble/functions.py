@@ -380,7 +380,7 @@ def showTree(tree, **kwargs):
         pylab.ylabel('proteins')
     return obj
 
-def buildPDBEnsemble(refpdb, PDBs, title='Unknown', labels=None, seqid=94, coverage=85, occupancy=None, unmapped=None):  
+def buildPDBEnsemble(refpdb, PDBs, title='Unknown', labels=None, seqid=94, coverage=85, mapping_func=mapOntoChain, occupancy=None, unmapped=None):  
     """Builds a PDB ensemble from a given reference structure and a list of PDB structures. 
     Note that the reference structure should be included in the list as well.
 
@@ -439,7 +439,7 @@ def buildPDBEnsemble(refpdb, PDBs, title='Unknown', labels=None, seqid=94, cover
         atommaps = []
         # find the mapping of the pdb to each reference chain
         for chain in refchains:
-            mappings = mapOntoChain(pdb, chain,
+            mappings = mapping_func(pdb, chain,
                                     seqid=seqid,
                                     coverage=coverage)
             if len(mappings) > 0:
