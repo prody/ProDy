@@ -639,6 +639,9 @@ class AtomGroup(Atomic):
 
         if self._hv is None:
             self._hv = HierView(self, **kwargs)
+        else:
+            self._hv.update(**kwargs)
+            
         return self._hv
 
     def numSegments(self):
@@ -1150,29 +1153,32 @@ for fname, field in ATOMIC_FIELDS.items():
         if array is None:
             self._data.pop(var, None)
         else:
-            if self._n_atoms == 0:
-                self._n_atoms = len(array)
-            elif len(array) != self._n_atoms:
-                raise ValueError('length of array must match number '
-                                 'of atoms')
+            if np.isscalar(array):
+                self._data[var][:] = array
+            else:
+                if self._n_atoms == 0:
+                    self._n_atoms = len(array)
+                elif len(array) != self._n_atoms:
+                    raise ValueError('length of array must match number '
+                                    'of atoms')
 
-            if isinstance(array, list):
-                array = np.array(array, dtype)
-            elif not isinstance(array, np.ndarray):
-                raise TypeError('array must be an ndarray or a list')
-            elif array.ndim != ndim:
+                if isinstance(array, list):
+                    array = np.array(array, dtype)
+                elif not isinstance(array, np.ndarray):
+                    raise TypeError('array must be an ndarray or a list')
+                elif array.ndim != ndim:
                     raise ValueError('array must be {0} '
-                                     'dimensional'.format(ndim))
-            elif array.dtype != dtype:
-                try:
-                    array = array.astype(dtype)
-                except ValueError:
-                    raise ValueError('array cannot be assigned type '
-                                     '{0}'.format(dtype))
-            self._data[var] = array
-            if none: self._none(none)
-            if flags and self._flags:
-                self._resetFlags(var)
+                                    'dimensional'.format(ndim))
+                elif array.dtype != dtype:
+                    try:
+                        array = array.astype(dtype)
+                    except ValueError:
+                        raise ValueError('array cannot be assigned type '
+                                        '{0}'.format(dtype))
+                self._data[var] = array
+                if none: self._none(none)
+                if flags and self._flags:
+                    self._resetFlags(var)
 
     setData = wrapSetMethod(setData)
     setData.__name__ = setMeth

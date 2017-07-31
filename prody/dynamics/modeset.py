@@ -113,20 +113,20 @@ class ModeSet(object):
         """Returns covariance matrix. It will be calculated using available modes."""
 
         V = self.getEigvecs()
-        D = diag(self.getEigvals())
+        D = diag(self.getVariances())
         return dot(V, dot(D, V.T))
 
     def getArray(self):
         """Returns a copy of eigenvectors array."""
 
-        return self._model._array[:, self._indices]
+        return self._model.getArray()[:, self._indices].copy()
 
     getEigvecs = getArray
 
     def _getArray(self):
         """Returns eigenvectors array."""
 
-        return self._model._array[:, self._indices]
+        return self._model._getArray()[:, self._indices]
 
     def getHinges(self):
         """Returns residue index of hinge sites."""

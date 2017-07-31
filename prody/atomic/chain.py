@@ -4,23 +4,9 @@
 from numpy import arange, unique
 
 from .subset import AtomSubset
+from .atomic import AAMAP
 
 __all__ = ['Chain']
-
-AAMAP = {
-    'ALA': 'A', 'ARG': 'R', 'ASN': 'N', 'ASP': 'D', 'CYS': 'C', 'GLN': 'Q',
-    'GLU': 'E', 'GLY': 'G', 'HIS': 'H', 'ILE': 'I', 'LEU': 'L', 'LYS': 'K',
-    'MET': 'M', 'PHE': 'F', 'PRO': 'P', 'SER': 'S', 'THR': 'T', 'TRP': 'W',
-    'TYR': 'Y', 'VAL': 'V',
-    'ASX': 'B', 'GLX': 'Z', 'SEC': 'U', 'PYL': 'O', 'XLE': 'J',
-}
-_ = {}
-for aaa, a in AAMAP.items():
-    _[a] = aaa
-AAMAP.update(_)
-AAMAP.update({'PTR': 'Y', 'TPO': 'T', 'SEP': 'S', 'CSO': 'C',
-              'HSD': 'H', 'HSP': 'H', 'HSE': 'H'})
-
 
 def getSequence(resnames):
     """Returns polypeptide sequence as from list of *resnames* (residue

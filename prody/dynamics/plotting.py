@@ -509,10 +509,10 @@ def showMode(mode, *args, **kwargs):
     """Show mode array using :func:`~matplotlib.pyplot.plot`."""
     
     import matplotlib.pyplot as plt
-    show_hinge = kwargs.pop('hinge', True)
+    show_hinge = kwargs.pop('hinge', False)
     show_zero = kwargs.pop('zero', False)
-    if not isinstance(mode, Mode):
-        raise TypeError('mode must be a Mode instance, '
+    if not isinstance(mode, (Mode, Vector)):
+        raise TypeError('mode must be a Mode or Vector instance, '
                         'not {0}'.format(type(mode)))
     if kwargs.pop('new_fig', True):
         plt.figure()
@@ -525,7 +525,7 @@ def showMode(mode, *args, **kwargs):
     else:
         a1d = mode._getArray()
         show = plt.plot(a1d, *args, **kwargs)
-        if show_hinge:
+        if show_hinge and isinstance(mode, Mode):
             hinges = mode.getHinges()
             if hinges is not None:
                 plt.plot(hinges, a1d[hinges], 'r*')
@@ -546,7 +546,7 @@ def showSqFlucts(modes, *args, **kwargs):
     if kwargs.pop('new_fig', True):
         plt.figure()
 
-    show_hinge = kwargs.pop('hinge', True)
+    show_hinge = kwargs.pop('hinge', False)
     sqf = calcSqFlucts(modes)
     if not 'label' in kwargs:
         kwargs['label'] = str(modes)

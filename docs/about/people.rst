@@ -3,7 +3,7 @@
 People
 ===============================================================================
 
-*ProDy* is being developed in `Bahar Lab`_ at the `University of Pittsburgh`_
+*ProDy* is being developed in the `Bahar Lab`_ at the `University of Pittsburgh`_
 with support from NIH R01 GM099738 award.
 
 Development Team
@@ -15,15 +15,16 @@ Development Team
 `Cihan Kaya`_ is currently overseeing the overall development of
 *ProDy*.
 
-`She Zhang`_ is currently helping on maintaining and developing
+`She (John) Zhang`_ is currently helping on maintaining and developing
 *ProDy*.
+
+`Hongchun Li`_ is currently maintaining and developing ANM and GNM servers. 
 
 `Anindita Dutta`_ contributed to the development of *Evol*,
 :mod:`.database` and :mod:`~.prody.sequence` modules.
 
 `Tim Lezon`_ contributed to development of Rotations and Translation of
-Blocks and Membrane ENM models.
-
+Blocks and Membrane ENM.
 
 `Wenzhi Mao`_ contributed to development of MSA analysis functions.
 
@@ -57,3 +58,5 @@ insights.
 .. _Gökçen Eraslan: http://blog.yeredusuncedernegi.com/
 .. _Tim Lezon: www.csb.pitt.edu/Faculty/Lezon/
 .. _Chakra Chennubhotla: http://www.csb.pitt.edu/Faculty/Chakra/
+.. _She (John) Zhang: http://www.csb.pitt.edu/Faculty/bahar/lab.html
+.. _Hongchun Li: http://www.csb.pitt.edu/Faculty/bahar/lab.html

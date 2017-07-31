@@ -44,23 +44,33 @@ def calcCollectivity(mode, masses=None):
     :arg masses: atomic masses
     :type masses: :class:`numpy.ndarray`"""
 
-    if not isinstance(mode, Mode):
-        raise TypeError('mode must be a Mode instance')
+    if not isinstance(mode, (Mode, ModeSet)):
+        raise TypeError('mode must be a Mode or ModeSet instance')
+    if isinstance(mode, Mode):
+        mode = [mode]
+    
+    colls = []
 
-    is3d = mode.is3d()
-    if masses is not None:
-        if len(masses) != mode.numAtoms():
-            raise ValueError('length of masses must be equal to number of atoms')
-        if is3d:
-            u2in = (mode.getArrayNx3() ** 2).sum(1) / masses
-    else:
-        if is3d:
-            u2in = (mode.getArrayNx3() ** 2).sum(1)
+    for m in mode:
+        is3d = m.is3d()
+        if masses is not None:
+            if len(masses) != m.numAtoms():
+                raise ValueError('length of masses must be equal to number of atoms')
+            if is3d:
+                u2in = (m.getArrayNx3() ** 2).sum(1) / masses
         else:
-            u2in = (mode.getArrayNx3() ** 2)
-    u2in = u2in * (1 / u2in.sum() ** 0.5)
-    coll = np.exp(-(u2in * np.log(u2in)).sum()) / mode.numAtoms()
-    return coll
+            if is3d:
+                u2in = (m.getArrayNx3() ** 2).sum(1)
+            else:
+                u2in = (m.getArrayNx3() ** 2)
+        u2in = u2in * (1 / u2in.sum() ** 0.5)
+        coll = np.exp(-(u2in * np.log(u2in)).sum()) / m.numAtoms()
+        colls.append(coll)
+    
+    if len(mode) == 1:
+        return coll
+    else:
+        return colls
 
 def calcSpecDimension(mode):
 
@@ -285,7 +295,7 @@ def calcCrossCorr(modes, n_cpu=1):
         else:
             n_modes = len(modes)
             indices = np.arange(n_modes)
-        array = model._array
+        array = model._getArray()
         n_atoms = model._n_atoms
         variances = model._vars
         if n_cpu == 1:
@@ -385,7 +395,7 @@ def calcPerturbResponse(model, atoms=None, repeats=100, **kwargs):
 
     The PRS matrix can be calculated and saved as follows::
 
-      prs_matrix = calcPerturbationResponse(p38_anm, saveMatrix=True)
+      prs_matrix = calcPerturbResponse(p38_anm, saveMatrix=True)
       
     The PRS matrix can also be save later as follows::
     
@@ -472,12 +482,12 @@ def calcPerturbResponse(model, atoms=None, repeats=100, **kwargs):
                                  'or difference (from covariance matrix) in quotes ' \
                                  'or a list containing a set of these or None.')
 
-    if not isinstance(model, NMA):
-        raise TypeError('model must be an NMA instance')
+    if not isinstance(model, (NMA, ModeSet, Mode)):
+        raise TypeError('model must be an NMA, ModeSet, or Mode instance')
     elif not model.is3d() and not noForce:
         raise TypeError('model must be a 3-dimensional NMA instance' \
                         'for using PRS with force')
-    elif len(model) == 0:
+    if isinstance(model, NMA) and len(model) == 0:
         raise ValueError('model must have normal modes calculated')
 
     if atoms is not None:
@@ -731,7 +741,7 @@ def calcPerturbResponseProfiles(prs_matrix):
         effectiveness.append(np.mean(prs_matrix[i]))
         sensitivity.append(np.mean(prs_matrix.T[i]))
 
-    return effectiveness, sensitivity
+    return np.array(effectiveness), np.array(sensitivity)
 
 def writePerturbResponsePDB(prs_matrix,pdbIn,**kwargs):
     """ Write the average response to perturbation of
