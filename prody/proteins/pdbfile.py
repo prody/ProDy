@@ -918,8 +918,9 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
     stream.write('REMARK {0}\n'.format(remark))
 
     # write secondary structures (if any)
+    secondary = kwargs.get('secondary', True)
     secstrs = atoms._getSecstrs()
-    if secstrs is not None:
+    if secstrs is not None and secondary:
         secindices = atoms._getSecindices()
         secclasses = atoms._getSecclasses()
         secids = atoms._getSecids()
