@@ -136,11 +136,11 @@ def trimPDBEnsemble(pdb_ensemble, **kwargs):
     if atoms is not None:
         trim_atoms_idx = [n for n,t in enumerate(torf) if t]
         if type(atoms) is Chain:
-            trim_atoms=Chain(atoms.getAtomGroup(), trim_atoms_idx, atoms._hv)
+            trim_atoms=Chain(atoms.copy(), trim_atoms_idx, atoms._hv)
         elif type(atoms) is AtomGroup:
             trim_atoms= AtomMap(atoms,trim_atoms_idx)
         else:
-            trim_atoms= AtomMap(atoms.getAtomGroup(),trim_atoms_idx)
+            trim_atoms= AtomMap(atoms.copy(),trim_atoms_idx)
         trimmed.setAtoms(trim_atoms)
 
     coords = pdb_ensemble.getCoords()
