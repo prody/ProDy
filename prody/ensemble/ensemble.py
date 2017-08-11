@@ -195,7 +195,7 @@ class Ensemble(object):
                     raise ValueError('atoms must not have any dummies')
                 else:
                     indices = atoms._getIndices()
-                    if indices != unique(indices):
+                    if any(indices != unique(indices)):
                         raise ValueError('atoms must be ordered by indices')
 
             if atoms.numAtoms() == n_atoms:
