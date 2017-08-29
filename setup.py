@@ -131,7 +131,7 @@ setup(
     packages=PACKAGES,
     #package_dir=PACKAGE_DIR,
     package_data=PACKAGE_DATA,
-    #ext_modules=EXTENSIONS,
+    ext_modules=EXTENSIONS,
     license='MIT License',
     keywords=('protein, dynamics, elastic network model, '
               'Gaussian network model, anisotropic network model, '
