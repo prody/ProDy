@@ -129,9 +129,9 @@ setup(
     long_description=long_description,
     url='http://www.csb.pitt.edu/ProDy',
     packages=PACKAGES,
-    package_dir=PACKAGE_DIR,
+    #package_dir=PACKAGE_DIR,
     package_data=PACKAGE_DATA,
-    ext_modules=EXTENSIONS,
+    #ext_modules=EXTENSIONS,
     license='MIT License',
     keywords=('protein, dynamics, elastic network model, '
               'Gaussian network model, anisotropic network model, '
@@ -151,7 +151,7 @@ setup(
                  'Topic :: Scientific/Engineering :: Bio-Informatics',
                  'Topic :: Scientific/Engineering :: Chemistry',
                 ],
-    scripts=SCRIPTS,
-    requires=['NumPy (>=1.7)', ],
-    provides=['ProDy ({0:s})'.format(__version__)]
+    #scripts=SCRIPTS,
+    install_requires=['NumPy (>=1.7)', ],
+    #provides=['ProDy ({0:s})'.format(__version__)]
 )
