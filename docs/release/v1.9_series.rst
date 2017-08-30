@@ -4,6 +4,31 @@ ProDy 1.9 Series
 .. contents::
    :local:
 
+1.9.2 (Aug 29, 2017)
+------------------------------------------------------------------------------
+
+** New Features**:
+
+*Migration to pypi.org*
+
+  * All repositories are moved to pypi.org
+
+
+1.9.1 (Aug 18, 2017)
+------------------------------------------------------------------------------
+
+** New Features**:
+
+*PDB Secondary Structures*
+
+  * It is possible to write secondary structure infrmation to PDBs. 
+
+*Bugfixes*
+
+  * Fixed the problem about clang compiler for saxs tools.
+
+  * If FTP client is not working, HTTP client will be used when downloading PDBs.
+
 1.9 (May 23, 2017)
 -------------------------------------------------------------------------------
 
