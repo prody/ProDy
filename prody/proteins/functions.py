@@ -253,7 +253,6 @@ def showProtein(*atoms, **kwargs):
         cnames = list(cnames)
         import random
         random.shuffle(cnames)
-        cnames_copy = list(cnames)
         min_ = list()
         max_ = list()
         for atoms in alist:
@@ -269,8 +268,6 @@ def showProtein(*atoms, **kwargs):
                     for ch in HierView(calpha, chain=True):
                         xyz = ch._getCoords()
                         chid = ch.getChid()
-                        if len(cnames) == 0:
-                            cnames = list(cnames_copy)
                         show.plot(xyz[:, 0], xyz[:, 1], xyz[:, 2],
                                 label=title + '_' + chid,
                                 color=kwargs.get(chid, cnames.pop()).lower(),
@@ -321,8 +318,6 @@ def showProtein(*atoms, **kwargs):
                     resname = res.getResname()
                     resnum = str(res.getResnum())
                     chid = res.getChid()
-                    if len(cnames) == 0:
-                        cnames = list(cnames_copy)
                     show.plot(xyz[:, 0], xyz[:, 1], xyz[:, 2], ls='None',
                               color=kwargs.get(resname, cnames.pop()).lower(),
                               label=title + '_' + chid + '_' + resname + resnum,

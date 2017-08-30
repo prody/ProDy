@@ -7,7 +7,7 @@ import numpy as np
 from prody.proteins import fetchPDB, parsePDB, writePDB, mapOntoChain
 from prody.utilities import openFile, showFigure
 from prody import LOGGER, SETTINGS
-from prody.atomic import AtomMap, Chain, AtomGroup, Selection, Segment, Select
+from prody.atomic import AtomMap, Chain, AtomGroup, Selection, Segment
 
 from .ensemble import *
 from .pdbensemble import *
@@ -127,15 +127,8 @@ def trimPDBEnsemble(pdb_ensemble, **kwargs):
         #weights = weights.flatten()
         #mean_weights = weights / n_confs
         torf = occupancies >= occupancy
-    elif 'selstr' in kwargs:
-        selstr = kwargs['selstr']
-        atoms = pdb_ensemble.getAtoms()
-        assert atoms is not None, 'atoms are empty'
-        selector = Select()
-        torf = selector.getBoolArray(atoms, selstr)
     else:
-        n_atoms = pdb_ensemble.getCoords().shape[0]
-        torf = np.ones(n_atoms, dtype=bool)
+        return None
 
     trimmed = PDBEnsemble(pdb_ensemble.getTitle())
 
