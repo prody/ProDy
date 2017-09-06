@@ -372,7 +372,7 @@ def calcCovariance(modes):
         raise TypeError('modes must be a Mode, NMA, or ModeSet instance')
 
 
-def calcPerturbResponse(model, atoms=None, repeats=100, **kwargs):
+def calcPerturbResponse(model, atoms=None, **kwargs):
 
     """Returns a matrix of profiles from scanning of the response of the
     structure to random perturbations at specific atom (or node) positions.
@@ -421,7 +421,7 @@ def calcPerturbResponse(model, atoms=None, repeats=100, **kwargs):
     :type noForce: bool
 
     :arg normMatrix: whether to normalise the single response matrix by
-        dividing each row by its diagonal, Default is False, we recommend true
+        dividing each row by its diagonal, Default is True
     :type normMatrix: bool
 
     :arg saveMatrix: whether to save the last matrix generated to a text file.
@@ -444,6 +444,7 @@ def calcPerturbResponse(model, atoms=None, repeats=100, **kwargs):
     :type acceptDirection: str
     """
     noForce = kwargs.get('noForce',True)
+    repeats = kwargs.get('repeats', 100)
     if not noForce:
         operation = kwargs.get('operation','mea')
 
@@ -629,7 +630,7 @@ def calcPerturbResponse(model, atoms=None, repeats=100, **kwargs):
 
     saveOrig = kwargs.get('saveOrig',False)
     saveMatrix = kwargs.get('saveMatrix',False)
-    normMatrix = kwargs.get('normMatrix',False)
+    normMatrix = kwargs.get('normMatrix',True)
     suppressDiag = kwargs.get('suppressDiag',False)
     baseSaveName = kwargs.get('baseSaveName','response_matrix')
 
