@@ -330,20 +330,20 @@ class MSA(object):
             return 1
 
 
-def refineMSA(msa, label=None, index=None, rowocc=None, seqid=None, colocc=None, **kwargs):
+def refineMSA(msa, index=None, label=None, rowocc=None, seqid=None, colocc=None, **kwargs):
     """Refine *msa* by removing sequences (rows) and residues (columns) that
     contain gaps.
 
     :arg msa: multiple sequence alignment
     :type msa: :class:`.MSA`
 
+    :arg index: remove columns that are gaps in the sequence with that index
+    :type index: int
+
     :arg label: remove columns that are gaps in the sequence matching label,
         ``msa.getIndex(label)`` must return a sequence index, a PDB identifier
         is also acceptable
     :type label: str
-
-    :arg index: remove columns that are gaps in the sequence with that index
-    :type index: int
 
     :arg rowocc: row occupancy, sequences with less occupancy will be
         removed after *label* refinement is applied
