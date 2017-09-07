@@ -109,6 +109,10 @@ def trimPDBEnsemble(pdb_ensemble, **kwargs):
         ``0 < occupancy <= 1``
     :type occupancy: float
 
+    :arg selstr: The function will trim residues that are NOT specified by 
+        the selection string.
+    :type selstr: str
+
     """
 
     if not isinstance(pdb_ensemble, PDBEnsemble):
