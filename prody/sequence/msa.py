@@ -332,7 +332,6 @@ class MSA(object):
         except TypeError:
             return 1
 
-
 def refineMSA(msa, index=None, label=None, rowocc=None, seqid=None, colocc=None, **kwargs):
     """Refine *msa* by removing sequences (rows) and residues (columns) that
     contain gaps.
@@ -347,6 +346,9 @@ def refineMSA(msa, index=None, label=None, rowocc=None, seqid=None, colocc=None,
         ``msa.getIndex(label)`` must return a sequence index, a PDB identifier
         is also acceptable
     :type label: str
+
+    :arg index: remove columns that are gaps in the sequence with that index
+    :type index: int
 
     :arg rowocc: row occupancy, sequences with less occupancy will be
         removed after *label* refinement is applied
