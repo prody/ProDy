@@ -287,7 +287,10 @@ class MSA(object):
         try:
             index = self._mapping[label]
         except KeyError:
-            return None
+            try:
+                return list(v for k,v in self._mapping.iteritems() if label in k)[0]
+            except:
+                return None
         except TypeError:
             mapping = self._mapping
             indices = []
