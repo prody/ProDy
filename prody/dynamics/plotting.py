@@ -32,7 +32,8 @@ __all__ = ['showContactMap', 'showCrossCorr',
            'showScaledSqFlucts', 'showNormedSqFlucts', 'resetTicks',
            'showDiffMatrix','showMechStiff','showNormDistFunct',
            'showPairDeformationDist','showMeanMechStiff', 
-           'showPerturbResponse', 'showPerturbResponseProfiles',]
+           'showPerturbResponse', 'showPerturbResponseProfiles',
+           'showMatrix']
 
 
 def showEllipsoid(modes, onto=None, n_std=2, scale=1., *args, **kwargs):
@@ -1188,3 +1189,127 @@ def showPerturbResponseProfiles(prs_matrix,atoms,**kwargs):
         return profiles
     else:
         return
+
+def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
+    """Show a matrix using :meth:`~matplotlib.axes.Axes.imshow`. Curves on x- and y-axis can be added.
+
+    :arg matrix: Matrix to be displayed.
+    :type matrix: :class:`~numpy.ndarray`
+
+    :arg x_array: Data to be plotted above the matrix.
+    :type x_array: :class:`~numpy.ndarray`
+
+    :arg y_array: Data to be plotted on the left side of the matrix.
+    :type y_array: :class:`~numpy.ndarray`
+
+    :arg percentile: A percentile threshold to remove outliers, i.e. only showing data within *p*-th 
+                     to *100-p*-th percentile.
+    :type percentile: float"""
+
+    import matplotlib.pyplot as mpl
+    from matplotlib import cm
+    from matplotlib.gridspec import GridSpec, GridSpecFromSubplotSpec
+    from matplotlib.collections import LineCollection
+    from matplotlib.pyplot import figure, imshow
+
+    p = kwargs.pop('percentile', None)
+    if p is not None:
+        vmin = np.percentile(matrix, p)
+        vmax = np.percentile(matrix, 100-p)
+    else:
+        vmin = vmax = None
+    
+    W = 8
+    H = 8
+
+    curve_axes = None
+
+    if x_array is not None and y_array is not None:
+        nrow = 2; ncol = 2
+        i = 1; j = 1
+        width_ratios = [1, W]
+        height_ratios = [1, H]
+        aspect = 'auto'
+    elif x_array is not None and y_array is None:
+        nrow = 2; ncol = 1
+        i = 1; j = 0
+        width_ratios = [W]
+        height_ratios = [1, H]
+        aspect = 'auto'
+    elif x_array is None and y_array is not None:
+        nrow = 1; ncol = 2
+        i = 0; j = 1
+        width_ratios = [1, W]
+        height_ratios = [H]
+        aspect = 'auto'
+    else:
+        nrow = 1; ncol = 1
+        i = 0; j = 0
+        width_ratios = [W]
+        height_ratios = [H]
+        aspect = None
+
+    main_index = (i,j)
+    upper_index = (i-1,j)
+    left_index = (i,j-1)
+
+    outer = GridSpec(1, 2, width_ratios = [15, 1], hspace=0.) 
+    gs = GridSpecFromSubplotSpec(nrow, ncol, subplot_spec = outer[0], width_ratios=width_ratios,
+                    height_ratios=height_ratios, hspace=0., wspace=0.)
+
+    gs_bar = GridSpecFromSubplotSpec(nrow, 1, subplot_spec = outer[1], height_ratios=height_ratios, hspace=0., wspace=0.)
+
+    new_fig = kwargs.pop('new_fig', True)
+
+    if new_fig:
+        mpl.figure()
+    axes = []
+
+    if nrow > 1:
+        ax1 = mpl.subplot(gs[upper_index])
+        ax1.set_xticklabels([])
+        
+        y = x_array
+        x = np.arange(len(y))
+        points = np.array([x, y]).T.reshape(-1, 1, 2)
+        segments = np.concatenate([points[:-1], points[1:]], axis=1)
+        cmap = cm.jet(y)
+        lc = LineCollection(segments, array=y, linewidths=1, cmap='jet')
+        ax1.add_collection(lc)
+
+        ax1.set_xlim(x.min(), x.max())
+        ax1.set_ylim(y.min(), y.max())
+        ax1.axis('off')
+
+    if ncol > 1:
+        ax2 = mpl.subplot(gs[left_index])
+        ax2.set_xticklabels([])
+        
+        y = y_array
+        x = np.arange(len(y))
+        points = np.array([y, x]).T.reshape(-1, 1, 2)
+        segments = np.concatenate([points[:-1], points[1:]], axis=1)
+        cmap = cm.jet(y)
+        lc = LineCollection(segments, array=y, linewidths=1, cmap='jet')
+        ax2.add_collection(lc)
+
+        ax2.set_xlim(y.min(), y.max())
+        ax2.set_ylim(x.min(), x.max())
+        ax2.axis('off')
+        ax2.invert_xaxis()
+
+    ax3 = mpl.subplot(gs[main_index])
+    cmap = kwargs.pop('cmap', 'jet')
+    im = imshow(matrix, aspect=aspect, vmin=vmin, vmax=vmax, **kwargs)
+    ax3.set_xlim([-0.5, len(matrix)+0.5])
+    ax3.set_ylim([-0.5, len(matrix)+0.5])
+    if ncol > 1:
+        ax3.set_yticklabels([])
+
+    ax4 = mpl.subplot(gs_bar[-1])
+    mpl.colorbar(cax=ax4)
+
+    if SETTINGS['auto_show']:
+        showFigure()
+
+    return im
