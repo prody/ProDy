@@ -1300,7 +1300,7 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
 
     ax3 = mpl.subplot(gs[main_index])
     cmap = kwargs.pop('cmap', 'jet')
-    im = imshow(matrix, aspect=aspect, vmin=vmin, vmax=vmax, **kwargs)
+    im = imshow(matrix, aspect=aspect, vmin=vmin, vmax=vmax, cmap=cmap, **kwargs)
     ax3.set_xlim([-0.5, len(matrix)+0.5])
     ax3.set_ylim([-0.5, len(matrix)+0.5])
     if ncol > 1:
