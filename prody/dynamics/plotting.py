@@ -1192,6 +1192,10 @@ def showPerturbResponseProfiles(prs_matrix,atoms,**kwargs):
 
 def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
     """Show a matrix using :meth:`~matplotlib.axes.Axes.imshow`. Curves on x- and y-axis can be added.
+    The first return value is the :class:`~matplotlib.axes.Axes` object for the upper plot, and the second
+    return value is equivalent object for the left plot. The third return value is 
+    the :class:`~matplotlib.image.AxesImage` object for the matrix plot. The last return value is the 
+    :class:`~matplotlib.axes.Axes` object for the color bar.
 
     :arg matrix: Matrix to be displayed.
     :type matrix: :class:`~numpy.ndarray`
@@ -1264,7 +1268,8 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
     if new_fig:
         mpl.figure()
     axes = []
-
+    
+    ax1 = ax2 = ax3 = im = ax4 = None
     if nrow > 1:
         ax1 = mpl.subplot(gs[upper_index])
         ax1.set_xticklabels([])
@@ -1300,7 +1305,7 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
 
     ax3 = mpl.subplot(gs[main_index])
     cmap = kwargs.pop('cmap', 'jet')
-    im = imshow(matrix, aspect=aspect, vmin=vmin, vmax=vmax, **kwargs)
+    im = imshow(matrix, aspect=aspect, vmin=vmin, vmax=vmax, cmap=cmap, **kwargs)
     ax3.set_xlim([-0.5, len(matrix)+0.5])
     ax3.set_ylim([-0.5, len(matrix)+0.5])
     if ncol > 1:
@@ -1312,4 +1317,4 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
     if SETTINGS['auto_show']:
         showFigure()
 
-    return im
+    return ax1, ax2, im, ax4
