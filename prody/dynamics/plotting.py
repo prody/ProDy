@@ -996,9 +996,11 @@ def showPerturbResponse(**kwargs):
     if effectiveness is None:
 		effectiveness, sensitivity = calcPerturbResponseProfiles(prs_matrix)
 
-
-		
-    ax1, ax2, im, ax4 = showMatrix(prs_matrix, sensitivity, effectiveness)
+    percentile = kwargs.get('percentile')
+	if percentile is None:
+		ax1, ax2, im, ax4 = showMatrix(prs_matrix, sensitivity, effectiveness)
+	else:
+		ax1, ax2, im, ax4 = showMatrix(prs_matrix, sensitivity, effectiveness, percentile=percentile)
 	
     atoms = kwargs.get('atoms')
     if atoms is not None:
