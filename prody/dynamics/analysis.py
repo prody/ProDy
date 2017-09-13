@@ -118,7 +118,7 @@ def calcFractVariance(mode):
     return var / trace
 
 
-def calcProjection(ensemble, modes, rmsd=True):
+def calcProjection(ensemble, modes, rmsd=True, norm=True):
     """Returns projection of conformational deviations onto given modes.
     *ensemble* coordinates are used to calculate the deviations that are
     projected onto *modes*.  For K conformations and M modes, a (K,M)
@@ -168,6 +168,11 @@ def calcProjection(ensemble, modes, rmsd=True):
         deviations = deviations.reshape((1, deviations.shape[0] * 3))
     else:
         deviations = deviations.reshape((1, deviations.shape[0]))
+    la = importLA()
+    if norm:
+        N = la.norm(deviations)
+        if N != 0:
+            deviations = deviations / N
     projection = np.dot(deviations, modes._getArray())
     if rmsd:
         projection = (1 / (n_atoms ** 0.5)) * projection
@@ -207,8 +212,8 @@ def calcCrossProjection(ensemble, mode1, mode2, scale=None, **kwargs):
         scale = scale.lower()
         assert scale in ('x', 'y'), 'scale must be x or y'
 
-    xcoords = calcProjection(ensemble, mode1, kwargs.get('rmsd', True))
-    ycoords = calcProjection(ensemble, mode2, kwargs.pop('rmsd', True))
+    xcoords = calcProjection(ensemble, mode1, kwargs.get('rmsd', True), kwargs.get('norm', True))
+    ycoords = calcProjection(ensemble, mode2, kwargs.pop('rmsd', True), kwargs.pop('norm', True))
     if scale:
         scalar = kwargs.get('scalar', None)
         if scalar:
