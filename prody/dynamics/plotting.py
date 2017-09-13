@@ -994,14 +994,14 @@ def showPerturbResponse(**kwargs):
     effectiveness = kwargs.get('effectiveness')
     sensitivity = kwargs.get('sensitivity')
     if effectiveness is None:
-		effectiveness, sensitivity = calcPerturbResponseProfiles(prs_matrix)
+        effectiveness, sensitivity = calcPerturbResponseProfiles(prs_matrix)
 
     percentile = kwargs.get('percentile')
-	if percentile is None:
-		ax1, ax2, im, ax4 = showMatrix(prs_matrix, sensitivity, effectiveness)
-	else:
-		ax1, ax2, im, ax4 = showMatrix(prs_matrix, sensitivity, effectiveness, percentile=percentile)
-	
+    if percentile is None:
+        ax1, ax2, im, ax4 = showMatrix(prs_matrix, sensitivity, effectiveness)
+    else:
+        ax1, ax2, im, ax4 = showMatrix(prs_matrix, sensitivity, effectiveness, percentile=percentile)
+    
     atoms = kwargs.get('atoms')
     if atoms is not None:
         if not isinstance(atoms, AtomGroup) and not isinstance(atoms, Selection):
@@ -1013,7 +1013,7 @@ def showPerturbResponse(**kwargs):
         ax1_ylim_bottom, ax1_ylim_top = ax1.get_ylim()
 
         for i in atoms.getHierView().iterChains():
-        	ax1.plot([i.getResindices()[0], i.getResindices()[-1]], [ax1_ylim_top*1.5, ax1_ylim_top*1.5], '-', linewidth=3)
+            ax1.plot([i.getResindices()[0], i.getResindices()[-1]], [ax1_ylim_top*1.5, ax1_ylim_top*1.5], '-', linewidth=3)
 
         ax1.autoscale()
         ax1.set_xlim(ax1_xlim_left, ax1_xlim_right)
@@ -1022,18 +1022,18 @@ def showPerturbResponse(**kwargs):
         ax2_ylim_bottom, ax2_ylim_top = ax2.get_ylim()
 
         for i in atoms.getHierView().iterChains():
-        	ax2.plot([ax2_xlim_left*1.5, ax2_xlim_left*1.5], [i.getResindices()[0], i.getResindices()[-1]], '-', linewidth=3)
+            ax2.plot([ax2_xlim_left*1.5, ax2_xlim_left*1.5], [i.getResindices()[0], i.getResindices()[-1]], '-', linewidth=3)
 
         ax2.autoscale()
         ax2.set_ylim(ax2_ylim_bottom, ax2_ylim_top)
 
         returnData = kwargs.get('returnData',False)
         if not returnData:
-        	return
+            return
         elif kwargs.get('prs_matrix') is not None:
-        	return effectiveness, sensitivity
+            return effectiveness, sensitivity
         else:
-        	return prs_matrix, effectiveness, sensitivity
+            return prs_matrix, effectiveness, sensitivity
 
 def showPerturbResponseProfiles(prs_matrix,atoms,**kwargs):
     """Plot as a line graph the average response to perturbation of
