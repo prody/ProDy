@@ -973,6 +973,9 @@ def showPerturbResponse(**kwargs):
     :arg returnData: whether to return data for further analysis
         default is False
     :type returnData: bool
+	
+	:arg percentile: percentile argument for showMatrix
+	:type percentile: float
     """
 
     import matplotlib.pyplot as plt
@@ -993,12 +996,12 @@ def showPerturbResponse(**kwargs):
     if effectiveness is None:
         effectiveness, sensitivity = calcPerturbResponseProfiles(prs_matrix)
 
-    plt.figure()
-    plt.subplot(2,2,1)
-    show = plt.imshow(prs_matrix, cmap=kwargs.get('cmap', plt.cm.jet), \
-                      norm=kwargs.get('norm', None), aspect='auto', \
-                      origin='lower')
-
+    percentile = kwargs.get('percentile')
+    if percentile is None:
+        ax1, ax2, im, ax4 = showMatrix(prs_matrix, sensitivity, effectiveness)
+    else:
+        ax1, ax2, im, ax4 = showMatrix(prs_matrix, sensitivity, effectiveness, percentile=percentile)
+    
     atoms = kwargs.get('atoms')
     if atoms is not None:
         if not isinstance(atoms, AtomGroup) and not isinstance(atoms, Selection):
@@ -1006,38 +1009,31 @@ def showPerturbResponse(**kwargs):
         elif model is not None and atoms.numAtoms() != model.numAtoms():
             raise ValueError('model and atoms must have the same number atoms')
 
-        chain_colors = 'gcmyrwbk'
-        hv = atoms.getHierView()
-        borders = [0]
-        for n in range(len(list(hv))):
-            borders.append(borders[n] + len(list(hv)[n].getResnums()))
+        ax1_xlim_left, ax1_xlim_right = ax1.get_xlim()
+        ax1_ylim_bottom, ax1_ylim_top = ax1.get_ylim()
 
-            plt.subplot(2,2,2)
-            plt.barh(range(borders[n],borders[n+1]), \
-                     effectiveness[borders[n]:borders[n+1]], \
-                     color=chain_colors[n], \
-                     edgecolor=chain_colors[n])
+        for i in atoms.getHierView().iterChains():
+            ax1.plot([i.getResindices()[0], i.getResindices()[-1]], [ax1_ylim_top*1.5, ax1_ylim_top*1.5], '-', linewidth=3)
 
-            plt.subplot(2,2,3)
-            plt.bar(range(borders[n],borders[n+1]), \
-                    sensitivity[borders[n]:borders[n+1]], \
-                    color=chain_colors[n], \
-                    edgecolor=chain_colors[n])
+        ax1.autoscale()
+        ax1.set_xlim(ax1_xlim_left, ax1_xlim_right)
 
-        plt.subplot(2,2,2); plt.axis([0,np.max(effectiveness),0,borders[-1]])
-        plt.subplot(2,2,3); plt.axis([0,borders[-1],0,np.max(sensitivity)])
+        ax2_xlim_left, ax2_xlim_right = ax2.get_xlim()
+        ax2_ylim_bottom, ax2_ylim_top = ax2.get_ylim()
 
-    else:
-        plt.subplot(2,2,2); plt.bar(effectiveness,range(len(effectiveness)))
-        plt.subplot(2,2,3); plt.barh(sensitivity,range(len(sensitivity)))
+        for i in atoms.getHierView().iterChains():
+            ax2.plot([ax2_xlim_left*1.5, ax2_xlim_left*1.5], [i.getResindices()[0], i.getResindices()[-1]], '-', linewidth=3)
 
-    returnData = kwargs.get('returnData',False)
-    if not returnData:
-        return
-    elif kwargs.get('prs_matrix') is not None:
-        return effectiveness, sensitivity
-    else:
-        return prs_matrix, effectiveness, sensitivity
+        ax2.autoscale()
+        ax2.set_ylim(ax2_ylim_bottom, ax2_ylim_top)
+
+        returnData = kwargs.get('returnData',False)
+        if not returnData:
+            return
+        elif kwargs.get('prs_matrix') is not None:
+            return effectiveness, sensitivity
+        else:
+            return prs_matrix, effectiveness, sensitivity
 
 def showPerturbResponseProfiles(prs_matrix,atoms,**kwargs):
     """Plot as a line graph the average response to perturbation of
