@@ -4,7 +4,7 @@ from numpy import unique, linalg, diag, sqrt, dot
 
 __all__ = ['Everything', 'rangeString', 'alnum', 'importLA', 'dictElement',
            'intorfloat', 'startswith', 'showFigure', 'countBytes', 'sqrtm',
-           'saxsWater']
+           'saxsWater', 'count']
 
 
 class Everything(object):
@@ -173,6 +173,9 @@ def getMasses(elements):
             else:
                 masses[i] = 0.
         return masses
+
+def count(L, a=None):
+    return len([b for b in L if b is a])
 
 def saxsWater():
     return [[-48.347,-49.439,-50.456],
