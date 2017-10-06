@@ -330,7 +330,6 @@ def fetchPDB(*pdb, **kwargs):
     if tp is not None:
         tp = tp.lower()
     
-    print tp
     if tp == 'http':
         try:
             fns = fetchPDBviaHTTP(*downloads, check=False, **kwargs)
