@@ -184,7 +184,7 @@ def _parseCIFLines(atomgroup, lines, model, chain, subset,
             if not foundAtomBlock:
                 foundAtomBlock = True
                 start = i
-            models.append(line.split()[25]) # pdbx_PDB_model_num
+            models.append(line.split()[20]) # pdbx_PDB_model_num
             if models[asize] != models[asize-1]:
                 nModels += 1
             asize += 1
@@ -273,7 +273,7 @@ def _parseCIFLines(atomgroup, lines, model, chain, subset,
         coordinates[acount] = line.split()[10:13]
         atomnames[acount] = atomname
         resnames[acount] = resname
-        resnums[acount] = line.split()[21] # auth_seq_id
+        resnums[acount] = line.split()[16] # auth_seq_id
         chainids[acount] = chID
         hetero[acount] = startswith == 'HETATM' # True or False
         if chainids[acount] != chainids[acount-1]: termini[acount] = True

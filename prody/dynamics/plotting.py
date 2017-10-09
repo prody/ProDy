@@ -32,7 +32,8 @@ __all__ = ['showContactMap', 'showCrossCorr',
            'showScaledSqFlucts', 'showNormedSqFlucts', 'resetTicks',
            'showDiffMatrix','showMechStiff','showNormDistFunct',
            'showPairDeformationDist','showMeanMechStiff', 
-           'showPerturbResponse', 'showPerturbResponseProfiles',]
+           'showPerturbResponse', 'showPerturbResponseProfiles',
+           'showMatrix']
 
 
 def showEllipsoid(modes, onto=None, n_std=2, scale=1., *args, **kwargs):
@@ -222,7 +223,7 @@ def showProjection(ensemble, modes, *args, **kwargs):
 
     if kwargs.pop('new_fig', True):
         plt.figure()
-    projection = calcProjection(ensemble, modes, kwargs.pop('rmsd', True))
+    projection = calcProjection(ensemble, modes, kwargs.pop('rmsd', True), kwargs.pop('norm', True))
 
     if projection.ndim == 1 or projection.shape[1] == 1:
         show = plt.hist(projection.flatten(), *args, **kwargs)
@@ -370,8 +371,9 @@ def showCrossProjection(ensemble, mode_x, mode_y, scale=None, *args, **kwargs):
     if kwargs.pop('new_fig', True):
         plt.figure()
 
+    norm = kwargs.pop('norm', True)
     xcoords, ycoords = calcCrossProjection(ensemble, mode_x, mode_y,
-                                           scale=scale, **kwargs)
+                                           scale=scale, norm=norm, **kwargs)
 
     num = len(xcoords)
 
@@ -971,6 +973,9 @@ def showPerturbResponse(**kwargs):
     :arg returnData: whether to return data for further analysis
         default is False
     :type returnData: bool
+	
+	:arg percentile: percentile argument for showMatrix
+	:type percentile: float
     """
 
     import matplotlib.pyplot as plt
@@ -991,12 +996,12 @@ def showPerturbResponse(**kwargs):
     if effectiveness is None:
         effectiveness, sensitivity = calcPerturbResponseProfiles(prs_matrix)
 
-    plt.figure()
-    plt.subplot(2,2,1)
-    show = plt.imshow(prs_matrix, cmap=kwargs.get('cmap', plt.cm.jet), \
-                      norm=kwargs.get('norm', None), aspect='auto', \
-                      origin='lower')
-
+    percentile = kwargs.get('percentile')
+    if percentile is None:
+        ax1, ax2, im, ax4 = showMatrix(prs_matrix, sensitivity, effectiveness)
+    else:
+        ax1, ax2, im, ax4 = showMatrix(prs_matrix, sensitivity, effectiveness, percentile=percentile)
+    
     atoms = kwargs.get('atoms')
     if atoms is not None:
         if not isinstance(atoms, AtomGroup) and not isinstance(atoms, Selection):
@@ -1004,38 +1009,31 @@ def showPerturbResponse(**kwargs):
         elif model is not None and atoms.numAtoms() != model.numAtoms():
             raise ValueError('model and atoms must have the same number atoms')
 
-        chain_colors = 'gcmyrwbk'
-        hv = atoms.getHierView()
-        borders = [0]
-        for n in range(len(list(hv))):
-            borders.append(borders[n] + len(list(hv)[n].getResnums()))
+        ax1_xlim_left, ax1_xlim_right = ax1.get_xlim()
+        ax1_ylim_bottom, ax1_ylim_top = ax1.get_ylim()
 
-            plt.subplot(2,2,2)
-            plt.barh(range(borders[n],borders[n+1]), \
-                     effectiveness[borders[n]:borders[n+1]], \
-                     color=chain_colors[n], \
-                     edgecolor=chain_colors[n])
+        for i in atoms.getHierView().iterChains():
+            ax1.plot([i.getResindices()[0], i.getResindices()[-1]], [ax1_ylim_top*1.5, ax1_ylim_top*1.5], '-', linewidth=3)
 
-            plt.subplot(2,2,3)
-            plt.bar(range(borders[n],borders[n+1]), \
-                    sensitivity[borders[n]:borders[n+1]], \
-                    color=chain_colors[n], \
-                    edgecolor=chain_colors[n])
+        ax1.autoscale()
+        ax1.set_xlim(ax1_xlim_left, ax1_xlim_right)
 
-        plt.subplot(2,2,2); plt.axis([0,np.max(effectiveness),0,borders[-1]])
-        plt.subplot(2,2,3); plt.axis([0,borders[-1],0,np.max(sensitivity)])
+        ax2_xlim_left, ax2_xlim_right = ax2.get_xlim()
+        ax2_ylim_bottom, ax2_ylim_top = ax2.get_ylim()
 
-    else:
-        plt.subplot(2,2,2); plt.bar(effectiveness,range(len(effectiveness)))
-        plt.subplot(2,2,3); plt.barh(sensitivity,range(len(sensitivity)))
+        for i in atoms.getHierView().iterChains():
+            ax2.plot([ax2_xlim_left*1.5, ax2_xlim_left*1.5], [i.getResindices()[0], i.getResindices()[-1]], '-', linewidth=3)
 
-    returnData = kwargs.get('returnData',False)
-    if not returnData:
-        return
-    elif kwargs.get('prs_matrix') is not None:
-        return effectiveness, sensitivity
-    else:
-        return prs_matrix, effectiveness, sensitivity
+        ax2.autoscale()
+        ax2.set_ylim(ax2_ylim_bottom, ax2_ylim_top)
+
+        returnData = kwargs.get('returnData',False)
+        if not returnData:
+            return
+        elif kwargs.get('prs_matrix') is not None:
+            return effectiveness, sensitivity
+        else:
+            return prs_matrix, effectiveness, sensitivity
 
 def showPerturbResponseProfiles(prs_matrix,atoms,**kwargs):
     """Plot as a line graph the average response to perturbation of
@@ -1187,3 +1185,132 @@ def showPerturbResponseProfiles(prs_matrix,atoms,**kwargs):
         return profiles
     else:
         return
+
+def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
+    """Show a matrix using :meth:`~matplotlib.axes.Axes.imshow`. Curves on x- and y-axis can be added.
+    The first return value is the :class:`~matplotlib.axes.Axes` object for the upper plot, and the second
+    return value is equivalent object for the left plot. The third return value is 
+    the :class:`~matplotlib.image.AxesImage` object for the matrix plot. The last return value is the 
+    :class:`~matplotlib.axes.Axes` object for the color bar.
+
+    :arg matrix: Matrix to be displayed.
+    :type matrix: :class:`~numpy.ndarray`
+
+    :arg x_array: Data to be plotted above the matrix.
+    :type x_array: :class:`~numpy.ndarray`
+
+    :arg y_array: Data to be plotted on the left side of the matrix.
+    :type y_array: :class:`~numpy.ndarray`
+
+    :arg percentile: A percentile threshold to remove outliers, i.e. only showing data within *p*-th 
+                     to *100-p*-th percentile.
+    :type percentile: float"""
+
+    import matplotlib.pyplot as mpl
+    from matplotlib import cm
+    from matplotlib.gridspec import GridSpec, GridSpecFromSubplotSpec
+    from matplotlib.collections import LineCollection
+    from matplotlib.pyplot import figure, imshow
+
+    p = kwargs.pop('percentile', None)
+    if p is not None:
+        vmin = np.percentile(matrix, p)
+        vmax = np.percentile(matrix, 100-p)
+    else:
+        vmin = vmax = None
+    
+    W = 8
+    H = 8
+
+    curve_axes = None
+
+    if x_array is not None and y_array is not None:
+        nrow = 2; ncol = 2
+        i = 1; j = 1
+        width_ratios = [1, W]
+        height_ratios = [1, H]
+        aspect = 'auto'
+    elif x_array is not None and y_array is None:
+        nrow = 2; ncol = 1
+        i = 1; j = 0
+        width_ratios = [W]
+        height_ratios = [1, H]
+        aspect = 'auto'
+    elif x_array is None and y_array is not None:
+        nrow = 1; ncol = 2
+        i = 0; j = 1
+        width_ratios = [1, W]
+        height_ratios = [H]
+        aspect = 'auto'
+    else:
+        nrow = 1; ncol = 1
+        i = 0; j = 0
+        width_ratios = [W]
+        height_ratios = [H]
+        aspect = None
+
+    main_index = (i,j)
+    upper_index = (i-1,j)
+    left_index = (i,j-1)
+
+    outer = GridSpec(1, 2, width_ratios = [15, 1], hspace=0.) 
+    gs = GridSpecFromSubplotSpec(nrow, ncol, subplot_spec = outer[0], width_ratios=width_ratios,
+                    height_ratios=height_ratios, hspace=0., wspace=0.)
+
+    gs_bar = GridSpecFromSubplotSpec(nrow, 1, subplot_spec = outer[1], height_ratios=height_ratios, hspace=0., wspace=0.)
+
+    new_fig = kwargs.pop('new_fig', True)
+
+    if new_fig:
+        mpl.figure()
+    axes = []
+    
+    ax1 = ax2 = ax3 = im = ax4 = None
+    if nrow > 1:
+        ax1 = mpl.subplot(gs[upper_index])
+        ax1.set_xticklabels([])
+        
+        y = x_array
+        x = np.arange(len(y))
+        points = np.array([x, y]).T.reshape(-1, 1, 2)
+        segments = np.concatenate([points[:-1], points[1:]], axis=1)
+        cmap = cm.jet(y)
+        lc = LineCollection(segments, array=y, linewidths=1, cmap='jet')
+        ax1.add_collection(lc)
+
+        ax1.set_xlim(x.min(), x.max())
+        ax1.set_ylim(y.min(), y.max())
+        ax1.axis('off')
+
+    if ncol > 1:
+        ax2 = mpl.subplot(gs[left_index])
+        ax2.set_xticklabels([])
+        
+        y = y_array
+        x = np.arange(len(y))
+        points = np.array([y, x]).T.reshape(-1, 1, 2)
+        segments = np.concatenate([points[:-1], points[1:]], axis=1)
+        cmap = cm.jet(y)
+        lc = LineCollection(segments, array=y, linewidths=1, cmap='jet')
+        ax2.add_collection(lc)
+
+        ax2.set_xlim(y.min(), y.max())
+        ax2.set_ylim(x.min(), x.max())
+        ax2.axis('off')
+        ax2.invert_xaxis()
+
+    ax3 = mpl.subplot(gs[main_index])
+    cmap = kwargs.pop('cmap', 'jet')
+    im = imshow(matrix, aspect=aspect, vmin=vmin, vmax=vmax, cmap=cmap, **kwargs)
+    ax3.set_xlim([-0.5, len(matrix)+0.5])
+    ax3.set_ylim([-0.5, len(matrix)+0.5])
+    if ncol > 1:
+        ax3.set_yticklabels([])
+
+    ax4 = mpl.subplot(gs_bar[-1])
+    mpl.colorbar(cax=ax4)
+
+    if SETTINGS['auto_show']:
+        showFigure()
+
+    return ax1, ax2, im, ax4
