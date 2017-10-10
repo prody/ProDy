@@ -7,7 +7,7 @@ import numpy as np
 from prody.proteins import fetchPDB, parsePDB, writePDB, mapOntoChain
 from prody.utilities import openFile, showFigure
 from prody import LOGGER, SETTINGS
-from prody.atomic import AtomMap, Chain, AtomGroup, Selection, Segment
+from prody.atomic import AtomMap, Chain, AtomGroup, Selection, Segment, Select
 
 from .ensemble import *
 from .pdbensemble import *
@@ -15,7 +15,7 @@ from .conformation import *
 
 __all__ = ['saveEnsemble', 'loadEnsemble', 'trimPDBEnsemble',
            'calcOccupancies', 'showOccupancies', 'alignPDBEnsemble',
-           'calcTree', 'showTree', 'buildPDBEnsemble']
+           'calcTree', 'showTree', 'buildPDBEnsemble', 'addPDBEnsemble']
 
 
 def saveEnsemble(ensemble, filename=None, **kwargs):
@@ -109,6 +109,10 @@ def trimPDBEnsemble(pdb_ensemble, **kwargs):
         ``0 < occupancy <= 1``
     :type occupancy: float
 
+    :arg selstr: The function will trim residues that are NOT specified by 
+        the selection string.
+    :type selstr: str
+
     """
 
     if not isinstance(pdb_ensemble, PDBEnsemble):
@@ -127,8 +131,15 @@ def trimPDBEnsemble(pdb_ensemble, **kwargs):
         #weights = weights.flatten()
         #mean_weights = weights / n_confs
         torf = occupancies >= occupancy
+    elif 'selstr' in kwargs:
+        selstr = kwargs['selstr']
+        atoms = pdb_ensemble.getAtoms()
+        assert atoms is not None, 'atoms are empty'
+        selector = Select()
+        torf = selector.getBoolArray(atoms, selstr)
     else:
-        return None
+        n_atoms = pdb_ensemble.getCoords().shape[0]
+        torf = np.ones(n_atoms, dtype=bool)
 
     trimmed = PDBEnsemble(pdb_ensemble.getTitle())
 
@@ -136,11 +147,11 @@ def trimPDBEnsemble(pdb_ensemble, **kwargs):
     if atoms is not None:
         trim_atoms_idx = [n for n,t in enumerate(torf) if t]
         if type(atoms) is Chain:
-            trim_atoms=Chain(atoms.getAtomGroup(), trim_atoms_idx, atoms._hv)
+            trim_atoms=Chain(atoms.copy(), trim_atoms_idx, atoms._hv)
         elif type(atoms) is AtomGroup:
             trim_atoms= AtomMap(atoms,trim_atoms_idx)
         else:
-            trim_atoms= AtomMap(atoms.getAtomGroup(),trim_atoms_idx)
+            trim_atoms= AtomMap(atoms.copy(),trim_atoms_idx)
         trimmed.setAtoms(trim_atoms)
 
     coords = pdb_ensemble.getCoords()
@@ -380,7 +391,7 @@ def showTree(tree, **kwargs):
         pylab.ylabel('proteins')
     return obj
 
-def buildPDBEnsemble(refpdb, PDBs, title='Unknown', labels=None, seqid=94, coverage=85, occupancy=None, unmapped=None):  
+def buildPDBEnsemble(refpdb, PDBs, title='Unknown', labels=None, seqid=94, coverage=85, mapping_func=mapOntoChain, occupancy=None, unmapped=None):  
     """Builds a PDB ensemble from a given reference structure and a list of PDB structures. 
     Note that the reference structure should be included in the list as well.
 
@@ -439,7 +450,87 @@ def buildPDBEnsemble(refpdb, PDBs, title='Unknown', labels=None, seqid=94, cover
         atommaps = []
         # find the mapping of the pdb to each reference chain
         for chain in refchains:
-            mappings = mapOntoChain(pdb, chain,
+            mappings = mapping_func(pdb, chain,
+                                    seqid=seqid,
+                                    coverage=coverage)
+            if len(mappings) > 0:
+                atommaps.append(mappings[0][0])
+            else:
+                break
+
+        if len(atommaps) != len(refchains):
+            unmapped.append(lbl)
+            continue
+        
+        # combine the mappings of pdb to reference chains
+        atommap = atommaps[0]
+        for i in range(1, len(atommaps)):
+            atommap += atommaps[i]
+        
+        # add the mappings to the ensemble
+        ensemble.addCoordset(atommap, weights=atommap.getFlags('mapped'), label = lbl)
+    
+    if occupancy is not None:
+        ensemble = trimPDBEnsemble(ensemble, occupancy=occupancy)
+    ensemble.iterpose()
+
+    return ensemble
+
+def addPDBEnsemble(ensemble, PDBs, refpdb=None, labels=None, seqid=94, coverage=85, mapping_func=mapOntoChain, occupancy=None, unmapped=None):  
+    """Adds extra structures to a given PDB ensemble. 
+
+    :arg ensemble: The ensemble to which the PDBs are added.
+    :type ensemble: :class:`.PDBEnsemble`
+    :arg refpdb: Reference structure. If set to `None`, it will be set to `ensemble.getAtoms()` automatically.
+    :type refpdb: :class:`.Chain`, :class:`.Selection`, or :class:`.AtomGroup`
+    :arg PDBs: A list of PDB structures
+    :type PDBs: iterable
+    :arg title: The title of the ensemble
+    :type title: str
+    :arg labels: labels of the conformations
+    :type labels: list
+    :arg seqid: Minimal sequence identity (percent)
+    :type seqid: int
+    :arg coverage: Minimal sequence overlap (percent)
+    :type coverage: int
+    :arg occupancy: Minimal occupancy of columns (range from 0 to 1). Columns whose occupancy
+    is below this value will be trimmed.
+    :type occupancy: float
+    :arg unmapped: A list of PDB IDs that cannot be included in the ensemble. This is an 
+    output argument. 
+    :type unmapped: list
+    """
+
+    if labels is not None:
+        if len(labels) != len(PDBs):
+            raise TypeError('Labels and PDBs must have the same lengths.')
+
+    # obtain the hierarhical view of the referrence PDB
+    if refpdb is None:
+        refpdb = ensemble.getAtoms()
+    refhv = refpdb.getHierView()
+    refchains = list(refhv)
+
+    # obtain the atommap of all the chains combined.
+    atoms = refchains[0]
+    for i in range(1, len(refchains)):
+        atoms += refchains[i]
+    
+    # add the PDBs to the ensemble
+    if unmapped is None: unmapped = []
+    for i,pdb in enumerate(PDBs):
+        if not isinstance(pdb, (Chain, Selection, AtomGroup)):
+            raise TypeError('PDBs must be a list of Chain, Selection, or AtomGroup.')
+        
+        if labels is None:
+            lbl = pdb.getTitle()
+        else:
+            lbl = labels[i]
+
+        atommaps = []
+        # find the mapping of the pdb to each reference chain
+        for chain in refchains:
+            mappings = mapping_func(pdb, chain,
                                     seqid=seqid,
                                     coverage=coverage)
             if len(mappings) > 0:

@@ -118,7 +118,7 @@ def calcFractVariance(mode):
     return var / trace
 
 
-def calcProjection(ensemble, modes, rmsd=True):
+def calcProjection(ensemble, modes, rmsd=True, norm=True):
     """Returns projection of conformational deviations onto given modes.
     *ensemble* coordinates are used to calculate the deviations that are
     projected onto *modes*.  For K conformations and M modes, a (K,M)
@@ -168,6 +168,11 @@ def calcProjection(ensemble, modes, rmsd=True):
         deviations = deviations.reshape((1, deviations.shape[0] * 3))
     else:
         deviations = deviations.reshape((1, deviations.shape[0]))
+    la = importLA()
+    if norm:
+        N = la.norm(deviations)
+        if N != 0:
+            deviations = deviations / N
     projection = np.dot(deviations, modes._getArray())
     if rmsd:
         projection = (1 / (n_atoms ** 0.5)) * projection
@@ -207,8 +212,8 @@ def calcCrossProjection(ensemble, mode1, mode2, scale=None, **kwargs):
         scale = scale.lower()
         assert scale in ('x', 'y'), 'scale must be x or y'
 
-    xcoords = calcProjection(ensemble, mode1, kwargs.get('rmsd', True))
-    ycoords = calcProjection(ensemble, mode2, kwargs.pop('rmsd', True))
+    xcoords = calcProjection(ensemble, mode1, kwargs.get('rmsd', True), kwargs.get('norm', True))
+    ycoords = calcProjection(ensemble, mode2, kwargs.pop('rmsd', True), kwargs.pop('norm', True))
     if scale:
         scalar = kwargs.get('scalar', None)
         if scalar:
@@ -372,7 +377,7 @@ def calcCovariance(modes):
         raise TypeError('modes must be a Mode, NMA, or ModeSet instance')
 
 
-def calcPerturbResponse(model, atoms=None, repeats=100, **kwargs):
+def calcPerturbResponse(model, atoms=None, **kwargs):
 
     """Returns a matrix of profiles from scanning of the response of the
     structure to random perturbations at specific atom (or node) positions.
@@ -421,7 +426,7 @@ def calcPerturbResponse(model, atoms=None, repeats=100, **kwargs):
     :type noForce: bool
 
     :arg normMatrix: whether to normalise the single response matrix by
-        dividing each row by its diagonal, Default is False, we recommend true
+        dividing each row by its diagonal, Default is True
     :type normMatrix: bool
 
     :arg saveMatrix: whether to save the last matrix generated to a text file.
@@ -444,6 +449,7 @@ def calcPerturbResponse(model, atoms=None, repeats=100, **kwargs):
     :type acceptDirection: str
     """
     noForce = kwargs.get('noForce',True)
+    repeats = kwargs.get('repeats', 100)
     if not noForce:
         operation = kwargs.get('operation','mea')
 
@@ -629,7 +635,7 @@ def calcPerturbResponse(model, atoms=None, repeats=100, **kwargs):
 
     saveOrig = kwargs.get('saveOrig',False)
     saveMatrix = kwargs.get('saveMatrix',False)
-    normMatrix = kwargs.get('normMatrix',False)
+    normMatrix = kwargs.get('normMatrix',True)
     suppressDiag = kwargs.get('suppressDiag',False)
     baseSaveName = kwargs.get('baseSaveName','response_matrix')
 
