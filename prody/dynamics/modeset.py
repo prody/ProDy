@@ -64,7 +64,7 @@ class ModeSet(object):
     def numAtoms(self):
         """Returns number of atoms."""
 
-        return self._model._n_atoms
+        return self._model.numAtoms()
 
     def numModes(self):
         """Returns number of modes in the instance (not necessarily maximum

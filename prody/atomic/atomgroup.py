@@ -121,7 +121,8 @@ class AtomGroup(Atomic):
     __slots__ = ['_title', '_n_atoms', '_coords', '_hv', '_sn2i',
                  '_timestamps', '_kdtrees', '_bmap', '_bonds', '_cslabels',
                  '_acsi', '_n_csets', '_data', '_fragments',
-                 '_flags', '_flagsts', '_subsets']
+                 '_flags', '_flagsts', '_subsets', '_msa', 
+                 '_sequenceMap']
 
     def __init__(self, title='Unnamed'):
 
@@ -145,6 +146,8 @@ class AtomGroup(Atomic):
         self._flags = None
         self._flagsts = 0
         self._subsets = None
+        self._msa = None
+        self._sequenceMap = None
 
     def __repr__(self):
 
