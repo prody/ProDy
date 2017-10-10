@@ -278,7 +278,9 @@ def _parseCIFLines(atomgroup, lines, model, chain, subset,
                 LOGGER.info('The loop has entered the model break block!!')
                 break
 
-        coordinates[acount] = [line.split()[fields['Cartn_x']],line.split()[fields['Cartn_y']],line.split()[fields['Cartn_z']]]
+        coordinates[acount] = [line.split()[fields['Cartn_x']], \
+                              line.split()[fields['Cartn_y']], \
+                              line.split()[fields['Cartn_z']]]
         atomnames[acount] = atomname
         resnames[acount] = resname
         resnums[acount] = line.split()[fields['auth_seq_id']]
