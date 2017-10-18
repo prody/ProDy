@@ -183,12 +183,11 @@ def _parseCIFLines(atomgroup, lines, model, chain, subset,
     doneAtomBlock = False
     while not doneAtomBlock:
         line = lines[i]
-
         if line[:11] == '_atom_site.':
             fieldCounter += 1
             fields[line.split('.')[1].strip()] = fieldCounter
 
-        if line[:5] == 'ATOM ' or line[:6] == 'HETATM':
+        if line.startswith('ATOM') or line.startswith('HETATM'):
             if not foundAtomBlock:
                 foundAtomBlock = True
                 start = i
