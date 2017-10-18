@@ -183,7 +183,6 @@ def _parseCIFLines(atomgroup, lines, model, chain, subset,
     doneAtomBlock = False
     while not doneAtomBlock:
         line = lines[i]
-        
         if line[:11] == '_atom_site.':
             fieldCounter += 1
             fields[line.split('.')[1].strip()] = fieldCounter
