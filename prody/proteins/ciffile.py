@@ -180,7 +180,7 @@ def _parseCIFLines(atomgroup, lines, model, chain, subset,
     doneAtomBlock = False
     while not doneAtomBlock:
         line = lines[i]
-        if line[:6] == 'ATOM  ' or line[:6] == 'HETATM':
+        if line.startswith('ATOM') or line.startswith('HETATM'):
             if not foundAtomBlock:
                 foundAtomBlock = True
                 start = i
