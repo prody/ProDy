@@ -16,7 +16,7 @@ from prody import LOGGER, SETTINGS
 
 __all__ = ['parseSTAR','writeSTAR']
 
-def parseSTAR(filename, debug_time=False):
+def parseSTAR(filename):
     """Returns a dictionary containing data
     parsed from a Relion STAR file.
 
@@ -65,9 +65,6 @@ def parseSTAR(filename, debug_time=False):
             dataItemsCounter += 1
 
         elif line.strip() != '':
-            if debug_time:
-                print line
-                print 'This file does not conform to the STAR file format.'
             else:
                 raise TypeError('This file does not conform to the STAR file format.')
 
