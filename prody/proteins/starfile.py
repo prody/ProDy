@@ -65,8 +65,7 @@ def parseSTAR(filename):
             dataItemsCounter += 1
 
         elif line.strip() != '':
-            else:
-                raise TypeError('This file does not conform to the STAR file format.')
+            raise TypeError('This file does not conform to the STAR file format.')
 
     return finalDictionary
 
