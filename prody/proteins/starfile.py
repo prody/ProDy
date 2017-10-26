@@ -33,7 +33,7 @@ def parseSTAR(filename):
 
     finalDictionary = {}
     currentLoop = -1
-    fieldCounter = 1
+    fieldCounter = 0
     dataItemsCounter = 0
 
     for line in lines:
@@ -47,24 +47,27 @@ def parseSTAR(filename):
             finalDictionary[currentDataBlock][currentLoop] = {}
             finalDictionary[currentDataBlock][currentLoop]['fields'] = {}
             finalDictionary[currentDataBlock][currentLoop]['data'] = {}
-            fieldCounter = 1
+            fieldCounter = 0
 
         elif line.startswith('_'):
             currentField = line.strip() 
             finalDictionary[currentDataBlock][currentLoop]['fields'][fieldCounter] = currentField
-            fieldCounter += 1
+            fieldCounter += 0
             dataItemsCounter = 0
+
+        elif line.strip() == '':
+            pass
 
         elif len(line.split()) == fieldCounter:
             finalDictionary[currentDataBlock][currentLoop]['data'][dataItemsCounter] = {}
-            fieldCounter = 1
+            fieldCounter = 0
             for fieldEntry in line.strip().split():
                 currentField = finalDictionary[currentDataBlock][currentLoop]['fields'][fieldCounter]
                 finalDictionary[currentDataBlock][currentLoop]['data'][dataItemsCounter][currentField] = fieldEntry
                 fieldCounter += 1
             dataItemsCounter += 1
 
-        elif line.strip() != '':
+        else:
             raise TypeError('This file does not conform to the STAR file format.')
 
     return finalDictionary
