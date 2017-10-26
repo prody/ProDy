@@ -52,7 +52,7 @@ def parseSTAR(filename):
         elif line.startswith('_'):
             currentField = line.strip() 
             finalDictionary[currentDataBlock][currentLoop]['fields'][fieldCounter] = currentField
-            fieldCounter += 0
+            fieldCounter += 1
             dataItemsCounter = 0
 
         elif line.strip() == '':
