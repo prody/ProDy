@@ -33,7 +33,7 @@ def parseSTAR(filename):
 
     finalDictionary = {}
     currentLoop = -1
-    fieldCounter = 0
+    fieldCounter = 1
     dataItemsCounter = 0
 
     for line in lines:
@@ -47,7 +47,7 @@ def parseSTAR(filename):
             finalDictionary[currentDataBlock][currentLoop] = {}
             finalDictionary[currentDataBlock][currentLoop]['fields'] = {}
             finalDictionary[currentDataBlock][currentLoop]['data'] = {}
-            fieldCounter = 0
+            fieldCounter = 1
 
         elif line.startswith('_'):
             currentField = line.strip() 
@@ -57,7 +57,7 @@ def parseSTAR(filename):
 
         elif len(line.split()) == fieldCounter:
             finalDictionary[currentDataBlock][currentLoop]['data'][dataItemsCounter] = {}
-            fieldCounter = 0
+            fieldCounter = 1
             for fieldEntry in line.strip().split():
                 currentField = finalDictionary[currentDataBlock][currentLoop]['fields'][fieldCounter]
                 finalDictionary[currentDataBlock][currentLoop]['data'][dataItemsCounter][currentField] = fieldEntry
