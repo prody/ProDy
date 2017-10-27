@@ -215,4 +215,8 @@ from . import ciffile
 from .ciffile import *
 __all__.extend(ciffile.__all__)
 
+from . import starfile
+from .starfile import *
+__all__.extend(starfile.__all__)
+
 from .pdbfile import PDBParseError
