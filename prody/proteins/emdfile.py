@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""This module defines functions for parsing and writing `PDB files`_.
+"""This module defines functions for parsing and writing `EMD map files`_.
 
 .. _EMD maps: http://emdatabank.org/mapformat.html"""
 
