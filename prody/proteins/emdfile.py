@@ -13,6 +13,8 @@ from prody.atomic import ATOMIC_FIELDS
 from prody.utilities import openFile
 from prody import LOGGER, SETTINGS
 
+from .localpdb import fetchPDB
+
 import struct as st
 import numpy as np
 
@@ -30,7 +32,9 @@ def parseEMD(emd, **kwargs):
 
     See :ref:`parseEMD` for a detailed usage example. 
 
-    :arg emd: an EMD identifier or a file name, EMD files should be locally available. 
+    :arg emd: an EMD identifier or a file name. A 4-digit EMDataBank identifier can be provided
+    to download it via FTP.
+    :type emd: str
 
     :arg cutoff: density cutoff to read EMD map. The regions with lower density than given cutoff 
     are discarded.
@@ -54,8 +58,24 @@ def parseEMD(emd, **kwargs):
 
     title = kwargs.get('title', None)
     if not os.path.isfile(emd):
-        raise IOError('EMD file {0} is not available in the directory {1}'
-                        .format(emd),os.getcwd())
+        if len(emd) == 4 and emd.isdigit():
+            if title is None:
+                title = emd
+                kwargs['title'] = title
+
+            if os.path.isfile(emd + '.map'):
+                filename = emd + '.map'
+            elif os.path.isfile(emd + '.map.gz'):
+                filename = emd + '.map.gz'
+            else:
+                filename = fetchPDB(emd, report=True, format='emd',compressed=False)
+                if filename is None:
+                    raise IOError('EMD map file for {0} could not be downloaded.'
+                                  .format(emd))
+            emd = filename
+        else:   
+            raise IOError('EMD file {0} is not available in the directory {1}'
+                           .format(emd),os.getcwd())
     if title is None:
         kwargs['title'], ext = os.path.splitext(os.path.split(emd)[1])
 

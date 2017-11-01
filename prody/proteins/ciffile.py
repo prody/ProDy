@@ -54,7 +54,9 @@ _PDBSubsets = {'ca': 'ca', 'calpha': 'ca', 'bb': 'bb', 'backbone': 'bb'}
 
 def parseCIF(pdb, **kwargs):
     """Returns an :class:`.AtomGroup` and/or dictionary containing header data
-    parsed from an mmCIF file.
+    parsed from an mmCIF file. If not found, the mmCIF file will be downloaded
+    from the PDB. It will be downloaded in uncompressed format regardless of
+    the compressed keyword.
 
     This function extends :func:`.parseCIFStream`.
 
@@ -62,6 +64,7 @@ def parseCIF(pdb, **kwargs):
 
     :arg pdb: a PDB identifier or a filename
         If needed, mmCIF files are downloaded using :func:`.fetchPDB()` function.
+    :type pdb: str
     """
     title = kwargs.get('title', None)
     if not os.path.isfile(pdb):
@@ -69,10 +72,16 @@ def parseCIF(pdb, **kwargs):
             if title is None:
                 title = pdb
                 kwargs['title'] = title
-            filename = fetchPDB(pdb, report=True, format='cif',compressed=False)
-            if filename is None:
-                raise IOError('mmCIF file for {0} could not be downloaded.'
-                              .format(pdb))
+
+            if os.path.isfile(pdb + '.cif'):
+                filename = pdb + '.cif'
+            elif os.path.isfile(pdb + '.cif.gz'):
+                filename = pdb + '.cif.gz'
+            else:
+                filename = fetchPDB(pdb, report=True, format='cif',compressed=False)
+                if filename is None:
+                    raise IOError('mmCIF file for {0} could not be downloaded.'
+                                  .format(pdb))
             pdb = filename
         else:
             raise IOError('{0} is not a valid filename or a valid PDB '
