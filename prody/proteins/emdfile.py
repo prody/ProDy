@@ -201,9 +201,9 @@ def writeEMD(filename,emd):
     f.write(st.pack('<f',emd.Lx))
     f.write(st.pack('<f',emd.Ly))
     f.write(st.pack('<f',emd.Lz))
-    f.write(st.pack('<L',emd.a))
-    f.write(st.pack('<L',emd.b))
-    f.write(st.pack('<L',emd.c))
+    f.write(st.pack('<f',emd.a))
+    f.write(st.pack('<f',emd.b))
+    f.write(st.pack('<f',emd.c))
     f.write(st.pack('<L',emd.mapc))
     f.write(st.pack('<L',emd.mapr))
     f.write(st.pack('<L',emd.maps))
@@ -256,9 +256,9 @@ class EMDMAP:
         self.Lz = st.unpack('<f', stream.read(4))[0]
     
         # Cell angles (Degrees) (3 words, 12 bytes, 53-64)
-        self.a = st.unpack('<L', stream.read(4))[0]
-        self.b = st.unpack('<L', stream.read(4))[0]
-        self.c = st.unpack('<L', stream.read(4))[0]
+        self.a = st.unpack('<f', stream.read(4))[0]
+        self.b = st.unpack('<f', stream.read(4))[0]
+        self.c = st.unpack('<f', stream.read(4))[0]
 
         # Which axis corresponds to column, row, and sections (1, 2, 3 for x, y ,z)
         # (3 words, 12 bytes, 65-76)
