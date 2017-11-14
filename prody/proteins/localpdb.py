@@ -350,21 +350,21 @@ def fetchPDB(*pdb, **kwargs):
             tryHTTP = True
             LOGGER.warn('Downloading PDB files via FTP failed ({0}), '
                         'trying HTTP.'.format(str(err)))
-        else:
-            if fns is None:
-                tryHTTP = True
-            elif isinstance(fns, list): 
-                downloads = [not_found[i][1] for i in range(len(fns)) if fns[i] is None]
-                if len(downloads) > 0: 
-                    tryHTTP = True
-            if tryHTTP:
-                LOGGER.warn('Downloading PDB files via FTP failed, '
-                        'trying HTTP.')
-                try:
-                    fns = fetchPDBviaHTTP(*downloads, check=False, **kwargs)
-                except Exception as err:
-                    LOGGER.warn('Downloading PDB files via HTTP also failed '
-                                '({0}).'.format(str(err)))
+   
+    if fns is None:
+        tryHTTP = True
+    elif isinstance(fns, list): 
+        downloads = [not_found[i][1] for i in range(len(fns)) if fns[i] is None]
+        if len(downloads) > 0: 
+            tryHTTP = True
+    if tryHTTP:
+        LOGGER.warn('Downloading PDB files via FTP failed, '
+                    'trying HTTP.')
+    try:
+        fns = fetchPDBviaHTTP(*downloads, check=False, **kwargs)
+    except Exception as err:
+        LOGGER.warn('Downloading PDB files via HTTP also failed '
+                    '({0}).'.format(str(err)))
     
     if len(downloads) == 1: fns = [fns]
     if fns:

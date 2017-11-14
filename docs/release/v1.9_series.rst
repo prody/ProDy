@@ -4,6 +4,15 @@ ProDy 1.9 Series
 .. contents::
    :local:
 
+1.9.3 (Oct 09, 2017)
+------------------------------------------------------------------------------
+
+*Bugfixes*
+
+  * Bug fix about http and ftp based pdb downloads. 
+
+  * Bug fixes in PRS calculations. 
+
 1.9.2 (Aug 29, 2017)
 ------------------------------------------------------------------------------
 
