@@ -269,7 +269,7 @@ def calcSqFlucts(modes):
         return sq_flucts
 
 
-def calcCrossCorr(modes, n_cpu=1):
+def calcCrossCorr(modes, n_cpu=1, norm=True):
     """Returns cross-correlations matrix.  For a 3-d model, cross-correlations
     matrix is an NxN matrix, where N is the number of atoms.  Each element of
     this matrix is the trace of the submatrix corresponding to a pair of atoms.
@@ -331,8 +331,10 @@ def calcCrossCorr(modes, n_cpu=1):
                 covariance += queue.get()
     else:
         covariance = calcCovariance(modes)
-    diag = np.power(covariance.diagonal(), 0.5)
-    return covariance / np.outer(diag, diag)
+    if norm:
+        diag = np.power(covariance.diagonal(), 0.5)
+        covariance /= np.outer(diag, diag)
+    return covariance
 
 
 def _crossCorrelations(queue, n_atoms, array, variances, indices):
