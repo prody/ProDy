@@ -54,7 +54,9 @@ _PDBSubsets = {'ca': 'ca', 'calpha': 'ca', 'bb': 'bb', 'backbone': 'bb'}
 
 def parseCIF(pdb, **kwargs):
     """Returns an :class:`.AtomGroup` and/or dictionary containing header data
-    parsed from an mmCIF file.
+    parsed from an mmCIF file. If not found, the mmCIF file will be downloaded
+    from the PDB. It will be downloaded in uncompressed format regardless of
+    the compressed keyword.
 
     This function extends :func:`.parseCIFStream`.
 
@@ -62,6 +64,7 @@ def parseCIF(pdb, **kwargs):
 
     :arg pdb: a PDB identifier or a filename
         If needed, mmCIF files are downloaded using :func:`.fetchPDB()` function.
+    :type pdb: str
     """
     title = kwargs.get('title', None)
     if not os.path.isfile(pdb):
@@ -69,10 +72,16 @@ def parseCIF(pdb, **kwargs):
             if title is None:
                 title = pdb
                 kwargs['title'] = title
-            filename = fetchPDB(pdb, report=True, format='cif',compressed=False)
-            if filename is None:
-                raise IOError('mmCIF file for {0} could not be downloaded.'
-                              .format(pdb))
+
+            if os.path.isfile(pdb + '.cif'):
+                filename = pdb + '.cif'
+            elif os.path.isfile(pdb + '.cif.gz'):
+                filename = pdb + '.cif.gz'
+            else:
+                filename = fetchPDB(pdb, report=True, format='cif',compressed=False)
+                if filename is None:
+                    raise IOError('mmCIF file for {0} could not be downloaded.'
+                                  .format(pdb))
             pdb = filename
         else:
             raise IOError('{0} is not a valid filename or a valid PDB '
@@ -176,15 +185,22 @@ def _parseCIFLines(atomgroup, lines, model, chain, subset,
     i = 0
     models = []
     nModels = 0
+    fields = {}
+    fieldCounter = -1
+    foundModelNumFieldID = False
     foundAtomBlock = False
     doneAtomBlock = False
     while not doneAtomBlock:
         line = lines[i]
-        if line[:6] == 'ATOM  ' or line[:6] == 'HETATM':
+        if line[:11] == '_atom_site.':
+            fieldCounter += 1
+            fields[line.split('.')[1].strip()] = fieldCounter
+
+        if line.startswith('ATOM') or line.startswith('HETATM'):
             if not foundAtomBlock:
                 foundAtomBlock = True
                 start = i
-            models.append(line.split()[20]) # pdbx_PDB_model_num
+            models.append(line.split()[fields['pdbx_PDB_model_num']])
             if models[asize] != models[asize-1]:
                 nModels += 1
             asize += 1
@@ -241,22 +257,22 @@ def _parseCIFLines(atomgroup, lines, model, chain, subset,
 
     acount = 0
     for line in lines[start:stop]:
-        startswith = line.split()[0] # group_PDB
+        startswith = line.split()[fields['group_PDB']]
 
-        atomname = line.split()[-2] # auth_atom_id in stardard pos
-        resname = line.split()[-4] # auth_comp_id in standard pos
+        atomname = line.split()[fields['auth_atom_id']]
+        resname = line.split()[fields['auth_comp_id']]
 
         if subset is not None:
             if not (atomname in subset and resname in protein_resnames):
                 continue
 
-        chID = line.split()[-3] # auth_asym_id in stardard pos
+        chID = line.split()[fields['auth_asym_id']]
         if chain is not None:
             if not chID in chain:
                 LOGGER.info('The loop has entered the chID continue block!!')
                 continue
 
-        alt = line.split()[4] # label_alt_id in standard pos
+        alt = line.split()[fields['label_alt_id']]
         if alt not in which_altlocs:
             LOGGER.info('The loop has entered the alt continue block!!')
             LOGGER.info('line = {0}'.format(line))
@@ -270,20 +286,22 @@ def _parseCIFLines(atomgroup, lines, model, chain, subset,
                 LOGGER.info('The loop has entered the model break block!!')
                 break
 
-        coordinates[acount] = line.split()[10:13]
+        coordinates[acount] = [line.split()[fields['Cartn_x']], \
+                              line.split()[fields['Cartn_y']], \
+                              line.split()[fields['Cartn_z']]]
         atomnames[acount] = atomname
         resnames[acount] = resname
-        resnums[acount] = line.split()[16] # auth_seq_id
+        resnums[acount] = line.split()[fields['auth_seq_id']]
         chainids[acount] = chID
         hetero[acount] = startswith == 'HETATM' # True or False
         if chainids[acount] != chainids[acount-1]: termini[acount] = True
         altlocs[acount] = alt
-        icodes[acount] = line.split()[9] # pdbx_PDB_ins_code
+        icodes[acount] = line.split()[fields['pdbx_PDB_ins_code']]
         if icodes[acount] == '?': icodes[acount] = ''
-        serials[acount] = line.split()[1] # id
-        elements[acount] = line.split()[2] # type_symbol
-        bfactors[acount] = line.split()[14]
-        occupancies[acount] = line.split()[13]
+        serials[acount] = line.split()[fields['id']]
+        elements[acount] = line.split()[fields['type_symbol']]
+        bfactors[acount] = line.split()[fields['B_iso_or_equiv']]
+        occupancies[acount] = line.split()[fields['occupancy']]
         
         acount += 1
 

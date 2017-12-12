@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""This module defines functions for parsing and writing `PDB files`_.
+"""This module defines functions for parsing and writing `EMD map files`_.
 
 .. _EMD maps: http://emdatabank.org/mapformat.html"""
 
@@ -13,10 +13,12 @@ from prody.atomic import ATOMIC_FIELDS
 from prody.utilities import openFile
 from prody import LOGGER, SETTINGS
 
+from .localpdb import fetchPDB
+
 import struct as st
 import numpy as np
 
-__all__ = ['parseEMDStream', 'parseEMD']
+__all__ = ['parseEMDStream', 'parseEMD', 'writeEMD', 'TRNET']
 
 class EMDParseError(Exception):
     pass
@@ -30,11 +32,13 @@ def parseEMD(emd, **kwargs):
 
     See :ref:`parseEMD` for a detailed usage example. 
 
-    :arg emd: an EMD identifier or a file name, EMD files should be locally available. 
+    :arg emd: an EMD identifier or a file name. A 4-digit EMDataBank identifier can be provided
+    to download it via FTP.
+    :type emd: str
 
     :arg cutoff: density cutoff to read EMD map. The regions with lower density than given cutoff 
     are discarded.
-    :type cutoff: float
+    :type cutoff: float or None
 
     :arg n_nodes: A bead based network will be constructed over provided density map. n_nodes parameter
     will show the number of beads that will fit to density map. 
@@ -43,78 +47,86 @@ def parseEMD(emd, **kwargs):
     :arg num_iter: After reading density map, coordinates are predicted with topological domain reconstruction
     method. This parameter is the total number of iterations of this algorithm: 
     :type num_iter: integer
+
+    :arg return_map: Return the density map itself. Default is False in line with previous behaviour.
+        This value is reset to True if make_nodes is False as something must be returned.
+    :type return_map: bool
+
+    :arg make_nodes: Use the topology representing network algorithm to fit pseudoatom nodes to the map.
+        Default is False and sets return_map to True.
+    :type make_nodes: bool
     """
 
     title = kwargs.get('title', None)
-    cutoff = float(kwargs.get('cutoff', 1.20))
-    n_nodes = int(kwargs.get('n_nodes', 1000))
-    num_iter = int(kwargs.get('num_iter', 20))
     if not os.path.isfile(emd):
-        raise IOError('EMD file {0} is not available in the directory {1}'
-                        .format(emd),os.getcwd())
+        if len(emd) == 4 and emd.isdigit():
+            if title is None:
+                title = emd
+                kwargs['title'] = title
+
+            if os.path.isfile(emd + '.map'):
+                filename = emd + '.map'
+            elif os.path.isfile(emd + '.map.gz'):
+                filename = emd + '.map.gz'
+            else:
+                filename = fetchPDB(emd, report=True, format='emd',compressed=False)
+                if filename is None:
+                    raise IOError('EMD map file for {0} could not be downloaded.'
+                                  .format(emd))
+            emd = filename
+        else:   
+            raise IOError('EMD file {0} is not available in the directory {1}'
+                           .format(emd),os.getcwd())
     if title is None:
-        title, ext = os.path.splitext(os.path.split(emd)[1])
-        kwargs['title'] = title
-    kwargs['cutoff'] = cutoff
-    kwargs['n_nodes'] = n_nodes
+        kwargs['title'], ext = os.path.splitext(os.path.split(emd)[1])
+
     emdStream = openFile(emd, 'rb')
     result = parseEMDStream(emdStream, **kwargs)
     emdStream.close()
     return result
 
-def _parseEMDLines(atomgroup, stream, cutoff=1.2, n_nodes=1000, num_iter=20, format='EMD'):
+def _parseEMDLines(atomgroup, stream, cutoff=None, n_nodes=1000, num_iter=20,return_map=False,make_nodes=False):
     """ Returns an AtomGroup. see also :func:`.parseEMDStream()`.
 
     :arg stream: stream from parser.
     """
 
-    format = format.upper()
-    if format == 'EMD' or format == 'MAP':
-        isEMD = True
-    else:
-        isEMD = False
-
-    n_atoms = n_nodes
-    if n_atoms > 0:
-        asize = n_atoms
-
-    alength = asize
-    coordinates = np.zeros((asize, 3), dtype=float)
-    atomnames = np.zeros(asize, dtype=ATOMIC_FIELDS['name'].dtype)
-    resnames = np.zeros(asize, dtype=ATOMIC_FIELDS['resname'].dtype)
-    resnums = np.zeros(asize, dtype=ATOMIC_FIELDS['resnum'].dtype)
-    chainids = np.zeros(asize, dtype=ATOMIC_FIELDS['chain'].dtype)
-    hetero = np.zeros(asize, dtype=bool)
-    termini = np.zeros(asize, dtype=bool)
-    altlocs = np.zeros(asize, dtype=ATOMIC_FIELDS['altloc'].dtype)
-    icodes = np.zeros(asize, dtype=ATOMIC_FIELDS['icode'].dtype)
-    serials = np.zeros(asize, dtype=ATOMIC_FIELDS['serial'].dtype)
-    segnames = np.zeros(asize, dtype=ATOMIC_FIELDS['segment'].dtype)
-    elements = np.zeros(asize, dtype=ATOMIC_FIELDS['element'].dtype)
-    bfactors = np.zeros(asize, dtype=ATOMIC_FIELDS['beta'].dtype)
-    occupancies = np.zeros(asize, dtype=ATOMIC_FIELDS['occupancy'].dtype)
-    anisou = None
-    siguij = None
+    if not n_nodes > 0:
+        raise ValueError('n_nodes should be larger than 0')
 
     emd = EMDMAP(stream, cutoff)
-    trn = TRNET(n_nodes = asize)
-    trn.inputMap(emd, sample='density')
 
-    trn.run(tmax = num_iter)
-    for i in range(asize):
-        coordinates[i,:] = trn.W[i,:]
-        atomnames[i] = 'B'
-        resnames[i] = 'CGB'
-        resnums[i] = i+1
-        chainids[i] = 'X'
+    if make_nodes:
+        coordinates = np.zeros((n_nodes, 3), dtype=float)
+        atomnames = np.zeros(n_nodes, dtype=ATOMIC_FIELDS['name'].dtype)
+        resnames = np.zeros(n_nodes, dtype=ATOMIC_FIELDS['resname'].dtype)
+        resnums = np.zeros(n_nodes, dtype=ATOMIC_FIELDS['resnum'].dtype)
+        chainids = np.zeros(n_nodes, dtype=ATOMIC_FIELDS['chain'].dtype)
 
-    atomgroup.setCoords(coordinates)
-    atomgroup.setNames(atomnames)
-    atomgroup.setResnames(resnames)
-    atomgroup.setResnums(resnums)
-    atomgroup.setChids(chainids)
+        trn = TRNET(n_nodes = n_nodes)
+        trn.inputMap(emd, sample='density')
 
-    return atomgroup
+        trn.run(tmax = num_iter)
+        for i in range(n_nodes):
+            coordinates[i,:] = trn.W[i,:]
+            atomnames[i] = 'B'
+            resnames[i] = 'CGB'
+            resnums[i] = i+1
+            chainids[i] = 'X'
+
+        atomgroup.setCoords(coordinates)
+        atomgroup.setNames(atomnames)
+        atomgroup.setResnames(resnames)
+        atomgroup.setResnums(resnums)
+        atomgroup.setChids(chainids)
+ 
+    if make_nodes:
+        if return_map:
+            return emd, atomgroup
+        else:
+            return atomgroup
+    else:
+        return emd
 
 
 def parseEMDStream(stream, **kwargs):
@@ -123,30 +135,100 @@ def parseEMDStream(stream, **kwargs):
     :arg stream: Anything that implements the method ``readlines``
         (e.g. :class:`file`, buffer, stdin)"""
 
-    cutoff = float(kwargs.get('cutoff', 1.20))
+    cutoff = kwargs.get('cutoff', None)
+    if cutoff is not None:
+        cutoff = float(cutoff)
+
     n_nodes = int(kwargs.get('n_nodes', 1000))
     num_iter = int(kwargs.get('num_iter', 20))
+    return_map = kwargs.get('return_map',False)
+    make_nodes = kwargs.get('make_nodes',False)
 
-    ag = None
-    title_suffix = ''
-    if 'ag' in kwargs:
-        ag = kwargs['ag']
-        if not isinstance(ag, AtomGroup):
-            raise TypeError('ag must be an AtomGroup instance')
-        n_csets = ag.numCoordsets()
+    if return_map is False and make_nodes is False:
+        LOGGER.warn('At least one of return_map and make_nodes should be True. '
+                    'Setting make_nodes to False was an intentional change from the default '
+                    'so return_map has been set to True.')
+        kwargs['return_map'] = True
+
+    title_suffix = kwargs.get('title_suffix','')
+    atomgroup = AtomGroup(str(kwargs.get('title', 'Unknown')) + title_suffix)
+
+    if make_nodes:
+        LOGGER.info('Building coordinates from electron density map. This may take a while.')
+        LOGGER.timeit()
+
+        if return_map:
+            emd, atomgroup = _parseEMDLines(atomgroup, stream, cutoff=cutoff, n_nodes=n_nodes, \
+                                            num_iter=num_iter, return_map=return_map, \
+                                            make_nodes=make_nodes)
+        else:
+            atomgroup = _parseEMDLines(atomgroup, stream, cutoff=cutoff, n_nodes=n_nodes, \
+                                       num_iter=num_iter, return_map=return_map, \
+                                       make_nodes=make_nodes)
+        LOGGER.report('{0} atoms and {1} coordinate sets were '
+                      'parsed in %.2fs.'.format(atomgroup.numAtoms(), atomgroup.numCoordsets()))
     else: 
-        ag = AtomGroup(str(kwargs.get('title', 'Unknown')) + title_suffix)
-        n_csets = 0
+        emd = _parseEMDLines(atomgroup, stream, cutoff=cutoff, n_nodes=n_nodes, \
+                             num_iter=num_iter, return_map=return_map, \
+                             make_nodes=make_nodes)
 
-    biomol = kwargs.get('biomol', False)
-    hd = None
-    LOGGER.warn('Building coordinates from electron density map. This may take a while.')
-    LOGGER.timeit()
-    _parseEMDLines(ag, stream, cutoff=cutoff, n_nodes=n_nodes, num_iter=num_iter, format='EMD')
-    LOGGER.report('{0} atoms and {1} coordinate sets were '
-                      'parsed in %.2fs.'.format(ag.numAtoms(),
-                         ag.numCoordsets() - n_csets))
-    return ag
+    if make_nodes:
+        if return_map:
+            return emd, atomgroup
+        else:
+            return atomgroup
+    else:
+        return emd
+
+def writeEMD(filename,emd):
+    '''
+    Write a map file in MRC2014 format (counting words 25 to 49 as 'extra').
+
+    :arg emd: an EMD object containing data to be written to file
+    :type emd: :class:`.EMD`
+    '''
+
+    f = open(filename, "wb")
+    f.write(st.pack('<L',emd.NC))
+    f.write(st.pack('<L',emd.NR))
+    f.write(st.pack('<L',emd.NS))
+    f.write(st.pack('<L',emd.mode))
+    f.write(st.pack('<L',emd.ncstart))
+    f.write(st.pack('<L',emd.nrstart))
+    f.write(st.pack('<L',emd.nsstart))
+    f.write(st.pack('<L',emd.Nx))
+    f.write(st.pack('<L',emd.Ny))
+    f.write(st.pack('<L',emd.Nz))
+    f.write(st.pack('<f',emd.Lx))
+    f.write(st.pack('<f',emd.Ly))
+    f.write(st.pack('<f',emd.Lz))
+    f.write(st.pack('<f',emd.a))
+    f.write(st.pack('<f',emd.b))
+    f.write(st.pack('<f',emd.c))
+    f.write(st.pack('<L',emd.mapc))
+    f.write(st.pack('<L',emd.mapr))
+    f.write(st.pack('<L',emd.maps))
+    f.write(st.pack('<f',emd.dmin))
+    f.write(st.pack('<f',emd.dmax))
+    f.write(st.pack('<f',emd.dmean))
+    f.write(st.pack('<L',emd.ispg))
+    f.write(st.pack('<L',emd.nsymbt))
+    f.write(st.pack('<100s',emd.extra))
+    f.write(st.pack('<f',emd.x0))
+    f.write(st.pack('<f',emd.y0))
+    f.write(st.pack('<f',emd.z0))
+    f.write(st.pack('<4s',emd.wordMAP))
+    f.write(st.pack('<4s',emd.machst))
+    f.write(st.pack('<f',emd.rms))
+    f.write(st.pack('<L',emd.nlabels))
+    f.write(st.pack('<800s',emd.labels))
+
+    for s in xrange(0, emd.NS):
+        for r in xrange(0, emd.NR):
+            for c in xrange(0, emd.NC):
+                f.write(st.pack('<f',emd.density[s,r,c]))
+
+    f.close()
 
 class EMDMAP:
     def __init__(self, stream, cutoff):
@@ -190,22 +272,37 @@ class EMDMAP:
         self.dmax = st.unpack('<f', stream.read(4))[0]
         self.dmean = st.unpack('<f', stream.read(4))[0]
 
-        # Not interested (1 word, 4 bytes, 89-92)
-        stream.read(1*4)
+        # Space group number (1 word, 4 bytes, 89-92)
+        # For EM/ET, this encodes the type of data:
+        # 0 for 2D images and image stacks, 1 for 3D volumes, 401 for volume stacks
+        self.ispg = st.unpack('<L', stream.read(4))[0]
 
-        # Not interested (1 word, 4 bytes, 93-96)
-        self.nsym = st.unpack('<L', stream.read(4))[0]
+        # size of extended header (1 word, 4 bytes, 93-96)
+        # contained symmetry records in original format definition
+        self.nsymbt = st.unpack('<L', stream.read(4))[0]
 
-        # Not interested (25 word, 4 bytes, 97-196)
-        stream.read(25*4)
+        # we treat this all as extra stuff like MRC2014 format (25 word, 100 bytes, 97-196)
+        self.extra = st.unpack('<100s', stream.read(100))[0]
 
         # origins for x, y, z (3 words, 12 bytes, 197-208)
         self.x0 = st.unpack('<f', stream.read(4))[0]
         self.y0 = st.unpack('<f', stream.read(4))[0]
         self.z0 = st.unpack('<f', stream.read(4))[0]
 
-        # Not interested (204 words, 816 bytes, 209-1024)
-        stream.read(204*4)
+        # the character string 'MAP' to identify file type (1 word, 4 bytes, 209-212)
+        self.wordMAP = st.unpack('<4s', stream.read(4))[0] 
+
+        # machine stamp encoding byte ordering of data (1 word, 4 bytes, 213-216)
+        self.machst = st.unpack('<4s', stream.read(4))[0]
+
+        # rms deviation of map from mean density (1 word, 4 bytes, 217-220)
+        self.rms = st.unpack('<f', stream.read(4))[0]
+
+        # number of labels being used (1 word, 4 bytes, 221-224)
+        self.nlabels = st.unpack('<L', stream.read(4))[0]
+
+        # 10 80-character text labels, which we leave concatenated (200 words, 800 bytes, 225-1024)
+        self.labels = st.unpack('<800s', stream.read(800))[0]
 
         # Data blocks (1024-end)
         self.density = np.empty([self.NS, self.NR, self.NC])
@@ -213,7 +310,7 @@ class EMDMAP:
             for r in xrange(0, self.NR):
                 for c in xrange(0, self.NC):
                     d = st.unpack('<f', stream.read(4))[0]
-                    if not np.isnan(cutoff) and d < cutoff:
+                    if cutoff is not None and d < cutoff:
                         d = 0
                     self.density[s, r, c] = d
 
