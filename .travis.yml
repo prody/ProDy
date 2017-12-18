@@ -17,6 +17,8 @@ install:
   - conda install --yes numpy scipy pip nose
   - if [[ $TRAVIS_PYTHON_VERSION == "2.6" ]]; then conda install --yes pyparsing biopython unittest2; fi
   - if [[ $TRAVIS_PYTHON_VERSION == "2.7" ]]; then conda install --yes pyparsing biopython unittest2; fi
+  - if [[ $TRAVIS_PYTHON_VERSION == "3.3" ]]; then conda install --yes biopython; fi
+  - if [[ $TRAVIS_PYTHON_VERSION == "3.4" ]]; then conda install --yes biopython; fi
   - python setup.py build install
 script:
   - cd docs; nosetests prody -a '!slow'
