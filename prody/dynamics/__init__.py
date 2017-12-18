@@ -209,6 +209,10 @@ from . import functions
 from .functions import *
 __all__.extend(functions.__all__)
 
+from . import perturb
+from .perturb import *
+__all__.extend(perturb.__all__)
+
 from . import plotting
 from .plotting import *
 __all__.extend(plotting.__all__)
