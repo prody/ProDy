@@ -449,6 +449,12 @@ def writePerturbResponsePDB(prs_matrix,pdbIn,**kwargs):
     :arg returnData: whether to return effectiveness and sensitivity for analysis
         default is False
     :type returnProfiles: bool
+
+    :arg effectiveness: effectiveness profile
+    :type array
+
+    :arg sensitivity: sensitivity profile
+    :type array
     """
 
     if not type(prs_matrix) is np.ndarray:

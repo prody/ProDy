@@ -974,8 +974,12 @@ def showPerturbResponse(**kwargs):
         default is False
     :type returnData: bool
 	
-	:arg percentile: percentile argument for showMatrix
-	:type percentile: float
+    :arg percentile: percentile argument for showMatrix
+    :type percentile: float
+
+    Return values are prs_matrix, effectiveness, sensitivity, ax1, ax2, im, ax4
+    The PRS matrix will not be return if it is provided. 
+    If returnData is False then only the last four objects are returned.
     """
 
     import matplotlib.pyplot as plt
