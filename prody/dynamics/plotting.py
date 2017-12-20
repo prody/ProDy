@@ -988,7 +988,7 @@ def showPerturbResponse(**kwargs):
             raise ValueError('Please provide a PRS matrix or model.')
         else:
             if kwargs.get('normMatrix') is None:
-                kwargs.set('normMatrix',True)
+                kwargs.get('normMatrix',True)
             prs_matrix = calcPerturbResponse(**kwargs)
 
     effectiveness = kwargs.get('effectiveness')
@@ -1029,11 +1029,11 @@ def showPerturbResponse(**kwargs):
 
         returnData = kwargs.get('returnData',False)
         if not returnData:
-            return
+            return ax1, ax2, im, ax4 
         elif kwargs.get('prs_matrix') is not None:
-            return effectiveness, sensitivity
+            return effectiveness, sensitivity, ax1, ax2, im, ax4
         else:
-            return prs_matrix, effectiveness, sensitivity
+            return prs_matrix, effectiveness, sensitivity, ax1, ax2, im, ax4
 
 def showPerturbResponseProfiles(prs_matrix,atoms,**kwargs):
     """Plot as a line graph the average response to perturbation of

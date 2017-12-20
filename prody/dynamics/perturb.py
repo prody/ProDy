@@ -18,6 +18,7 @@ from .nma import NMA
 from .modeset import ModeSet
 from .mode import VectorBase, Mode, Vector
 from .gnm import GNMBase
+from .analysis import calcCovariance
 
 __all__ = ['calcPerturbResponse', 'parsePerturbResponseMatrix',
            'calcPerturbResponseProfiles', 'writePerturbResponsePDB']
