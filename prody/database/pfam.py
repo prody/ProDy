@@ -50,7 +50,7 @@ def searchPfam(query, **kwargs):
     chain identifier.  UniProt ID of the specified chain, or the first
     protein chain will be used for searching the Pfam database."""
 
-    prefix = '{http://pfam.xfam.org/}'
+    prefix = '{https://pfam.xfam.org/}'
     query = str(query)
     if isfile(query):
         from prody.sequence import MSAFile
