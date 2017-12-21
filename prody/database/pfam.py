@@ -78,13 +78,13 @@ def searchPfam(query, **kwargs):
         enc_params = urllib.urlencode(parameters).encode('utf-8')
         request = urllib2.Request('https://www.ebi.ac.uk/Tools/hmmer/search/hmmscan', enc_params)
 
-    results_url = urllib2.urlopen(request).getheader('location')
+        results_url = urllib2.urlopen(request).getheader('location')
 
         res_params = { 'output' : 'xml' }
-    enc_res_params = urllib.urlencode(res_params)
-    modified_res_url = results_url + '?' + enc_res_params
+        enc_res_params = urllib.urlencode(res_params)
+        modified_res_url = results_url + '?' + enc_res_params
 
-    result_request = urllib2.Request(modified_res_url) 
+        result_request = urllib2.Request(modified_res_url) 
         # url = ( urllib2.urlopen(request).geturl() + '?output=xml') 
         LOGGER.debug('Submitted Pfam search for sequence "{0}...".'
                      .format(seq[:MINSEQLEN]))
