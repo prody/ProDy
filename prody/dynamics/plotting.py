@@ -20,7 +20,7 @@ from .modeset import ModeSet
 from .analysis import calcSqFlucts, calcProjection
 from .analysis import calcCrossCorr, calcPairDeformationDist
 from .analysis import calcFractVariance, calcCrossProjection 
-from .analysis import calcPerturbResponse, calcPerturbResponseProfiles
+from .perturb import calcPerturbResponse, calcPerturbResponseProfiles
 from .compare import calcOverlap
 from prody.atomic import AtomGroup, Selection
 
