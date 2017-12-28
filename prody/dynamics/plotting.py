@@ -1005,7 +1005,7 @@ def showPerturbResponse(**kwargs):
         else:
             returnData = False
 
-        ax1, ax2, im, ax3, ax4 = showMatrix(prs_matrix, sensitivity, effectiveness, **kwargs)
+        ax1, ax2, im, ax3, ax4 = showMatrix(prs_matrix, effectiveness, sensitivity, **kwargs)
 
     else:
         if not isinstance(atoms, AtomGroup) and not isinstance(atoms, Selection):
@@ -1021,36 +1021,7 @@ def showPerturbResponse(**kwargs):
         if effectiveness is None or sensitivity is None:
             atoms, effectiveness, sensitivity = calcPerturbResponseProfiles(prs_matrix,atoms)
 
-        ax1, ax2, im, ax3, ax4 = showMatrix(prs_matrix, sensitivity, effectiveness, **kwargs)
-
-        # Add bars along the top that are colored by chain
-
-        ax1_xlim_left, ax1_xlim_right = ax1.get_xlim()
-        ax1_ylim_bottom, ax1_ylim_top = ax1.get_ylim()
-
-        n = 0
-        chain_colors = 'gcmyrwbk'
-        for i in atoms.getHierView().iterChains():
-            ax1.plot([i.getResindices()[0], i.getResindices()[-1]], \
-                     [ax1_ylim_top*1.5, ax1_ylim_top*1.5], '-', linewidth=3, \
-                     color=chain_colors[n])
-            n += 1
-
-        ax1.autoscale()
-        ax1.set_xlim(ax1_xlim_left, ax1_xlim_right)
-
-        ax2_xlim_left, ax2_xlim_right = ax2.get_xlim()
-        ax2_ylim_bottom, ax2_ylim_top = ax2.get_ylim()
-
-        n = 0
-        for i in atoms.getHierView().iterChains():
-            ax2.plot([ax2_xlim_left*1.5, ax2_xlim_left*1.5], \
-                     [i.getResindices()[0], i.getResindices()[-1]], '-', linewidth=3, \
-                     color=chain_colors[n])
-            n += 1
-
-        ax2.autoscale()
-        ax2.set_ylim(ax2_ylim_bottom, ax2_ylim_top)
+        ax1, ax2, im, ax3, ax4 = showMatrix(prs_matrix, effectiveness, sensitivity, **kwargs)
 
     if not returnData:
         return ax1, ax2, im, ax3, ax4
@@ -1358,7 +1329,7 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
         if not isinstance(atoms, AtomGroup) and not isinstance(atoms, Selection):
             raise TypeError('atoms must be an AtomGroup instance')
 
-        # Add bars along the top that are colored by chain
+        # Add bars along the top that are colored by chain and number the axis with residue numbers
 
         ax1_xlim_left, ax1_xlim_right = ax1.get_xlim()
         ax1_ylim_bottom, ax1_ylim_top = ax1.get_ylim()
@@ -1372,12 +1343,18 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
                      [ax1_ylim_top*1.5, ax1_ylim_top*1.5], '-', linewidth=3, \
                      color=chain_colors[n])
 
-            for j in range(4):
-                resnum_tick_locs.append(i.getResindices()[i.numAtoms()/4*j])
-                resnum_tick_labels.append(i.getResnums()[i.numAtoms()/4*j])
+            for j in range(2):
+                resnum_tick_locs.append(i.getResindices()[i.numAtoms()/2*j])
+                resnum_tick_labels.append(i.getResnums()[i.numAtoms()/2*j])
 
             n += 1
 
+        resnum_tick_locs = array(resnum_tick_locs)
+        resnum_tick_labels = array(resnum_tick_labels)
+
+        ax1.set_xticks(resnum_tick_locs,resnum_tick_labels)
+        ax2.set_yticks(resnum_tick_locs,resnum_tick_labels)
+        ax3.set_xticks(resnum_tick_locs,resnum_tick_labels)
         ax3.set_yticks(resnum_tick_locs,resnum_tick_labels)
 
         ax1.autoscale()

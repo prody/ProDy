@@ -214,7 +214,7 @@ def calcPerturbResponseProfiles(prs_matrix,atoms=None):
     else:
         return effectiveness, sensitivity
 
-def writePerturbResponsePDB(prs_matrix,pdbIn,**kwargs):
+def writePerturbResponsePDB(prs_matrix,pdbIn=None,**kwargs):
     """ Write the average response to perturbation of
     a particular residue (a row of a perturbation response matrix)
     or the average effect of perturbation of a particular residue
@@ -227,8 +227,9 @@ def writePerturbResponsePDB(prs_matrix,pdbIn,**kwargs):
     profiles will be written out instead. These two profiles are also returned
     as arrays for further analysis if they aren't already provided.
 
-    :arg prs_matrix: a perturbation response matrix
-    :type prs_matrix: ndarray
+    :arg prs_matrix: a perturbation response matrix 
+        or a :class:`.AtomGroup` object with a PRS matrix associated as data
+    :type prs_matrix: array or :class:`.AtomGroup`
 
     :arg pdbIn: file name for the input PDB file where you would like the PRS
         data mapped
@@ -272,9 +273,12 @@ def writePerturbResponsePDB(prs_matrix,pdbIn,**kwargs):
     :type array
     """
 
-    if not type(prs_matrix) is np.ndarray:
-        raise TypeError('Please provide a valid PRS matrix in numpy ndarray format.')
-           
+    if not isinstance(prs_matrix,np.ndarray):
+        try:
+            prs_matrix = prs_matrix.getData('prs_matrix')
+        except:
+            raise TypeError('Please provide a valid PRS matrix in numpy ndarray format.')
+
     try:
         fi = open(pdbIn,'r')
         lines = fi.readlines()
@@ -283,7 +287,10 @@ def writePerturbResponsePDB(prs_matrix,pdbIn,**kwargs):
         raise PRSMatrixParseError('Please provide a valid file name for the input PDB.')
  
     chain = kwargs.get('chain', None)
-    structure = parsePDB(pdbIn).calpha
+
+    structure = parsePDB(pdbIn,subset='ca')
+    structure.setData('prs_matrix',prs_matrix)
+
     hv = structure.getHierView()
     chains = []
     for i in range(len(list(hv))):
@@ -303,10 +310,13 @@ def writePerturbResponsePDB(prs_matrix,pdbIn,**kwargs):
         pdbOut = None
 
     if resnum is None:
-        effectiveness = kwargs.get('effectiveness')
-        sensitivity = kwargs.get('sensitivity')
+        effectiveness = kwargs.get('effectiveness',None)
+        sensitivity = kwargs.get('sensitivity',None)
         if effectiveness is None or sensitivity is None:
             effectiveness, sensitivity = calcPerturbResponseProfiles(prs_matrix)
+
+        structure.setData('effectiveness',effectiveness)
+        structure.setData('sensitivity',sensitivity)
 
         file_effs_name = '{0}_effectiveness.pdb'.format(out_stem)
         file_sens_name = '{0}_sensitivity.pdb'.format(out_stem)
@@ -318,20 +328,17 @@ def writePerturbResponsePDB(prs_matrix,pdbIn,**kwargs):
                 fileEffs.write(line)                    
                 fileSens.write(line)
             elif line.find('ATOM') == 0:
-                sel_line_res = structure.select('resid {0}'.format(line[22:26]))
-                j = np.where(structure.getResnums() == int(line[22:26]))[0] \
-                    [np.where(sel_line_res.getChids() == line[21])[0][0]]
-                fileEffs.write(line[:60] + ' '*(6-len('{:3.2f}'.format(( \
-                               effectiveness[j]*100/np.max(effectiveness))))) \
-                               + '{:3.2f}'.format((effectiveness[j]) \
-                               *100/np.max(effectiveness)) + line[66:])
-                fileSens.write(line[:60] + ' '*(6-len('{:3.2f}'.format((\
-                               sensitivity[j]*100/np.max(sensitivity))))) \
-                               + '{:3.2f}'.format((sensitivity[j]) \
-                               *100/np.max(sensitivity)) + line[66:])
+                fileEffs.write(line[:60] + '{:6.2f}'.format(float(structure.select( \
+                               'chain {0} and resnum {1}'.format(line[21],line[22:26])) \
+                               .getData('effectiveness')) * 100/np.max( \
+                               structure.getData('effectiveness'))) + line[66:])
+                fileSens.write(line[:60] + '{:6.2f}'.format(float(structure.select( \
+                               'chain {0} and resnum {1}'.format(line[21],line[22:26])) \
+                               .getData('sensitivity')) * 100/np.max( \
+                               structure.getData('sensitivity'))) + line[66:])
             elif line.find('HETATM') == 0:
-                fileEffs.write(line[:60] + ' '*2 + '0.00' + line[66:])
-                fileSens.write(line[:60] + ' '*2 + '0.00' + line[66:])
+                fileEffs.write(line[:60] + '  0.00' + line[66:])
+                fileSens.write(line[:60] + '  0.00' + line[66:])
                       
         fileEffs.close()
         fileSens.close()
@@ -340,57 +347,46 @@ def writePerturbResponsePDB(prs_matrix,pdbIn,**kwargs):
 
         returnData = kwargs.get('returnData',False)
         if returnData:
-            return effectiveness, sensitivity
+            return structure, effectiveness, sensitivity
         else:
             return
  
-    timesNF = 0
     direction = kwargs.get('direction','effect')
     for n in range(len(chain)):
         if not chain[n] in chains:
             raise PRSMatrixParseError('Chain {0} was not found in {1}'.format(chain[n], pdbIn))
 
-        chainNum = int(np.where(chains == chain[n])[0])
-        chainAg = list(hv)[chainNum]
-        if not resnum in chainAg.getResnums():
-            LOGGER.info('A residue with number {0} was not found',
-                        ' in chain {1}. Continuing to next chain.' \
-                        .format(resnum, chain[n]))
-            timesNF += 1
-            continue
-
     if pdbOut is None:
         pdbOut = []
-        for n in range(len(chain)):
-            chainNum = int(np.where(chains == chain[n])[0])
-            i = np.where(structure.getResnums() == resnum)[0][chainNum-timesNF]
-            pdbOut.append('{0}_{1}_{2}{3}_{4}.pdb'.format(out_stem, chain[n], \
-                           structure.getResnames()[i], resnum, direction))
+        for c in chain:
+            pdbOut.append('{0}_{1}_{2}{3}_{4}.pdb' \
+                          .format(out_stem, c, \
+                                  str(structure.select('chain {0} and resnum {1}' \
+                                      .format(c, resnum)).getResnames()), \
+                                  resnum, direction))
 
-    for n in range(len(chain)):
-        chainNum = int(np.where(chains == chain)[0])
-        i = np.where(structure.getResnums() == resnum)[0][chainNum-timesNF]
+    for c in chain:
         fo = open(pdbOut[n],'w')
         for line in lines:
             if line.find('ATOM') != 0 and line.find('HETATM') != 0 and line.find('ANISOU') != 0:
                 fo.write(line)
             elif line.find('ATOM') == 0:
-                sel_line_res = structure.select('resid {0}'.format(line[22:26]))
-                j = np.where(structure.getResnums() == int(line[22:26]))[0] \
-                    [np.where(sel_line_res.getChids() == line[21])[0][0]]
-
                 if direction is 'effect':
-                    fo.write(line[:60] + ' '*(6-len('{:3.2f}'.format(( \
-                             prs_matrix[i][j])*100/np.max(prs_matrix)))) \
-                             + '{:3.2f}'.format((prs_matrix[i][j]) \
-                             *100/np.max(prs_matrix)) + line[66:])
+                    fo.write(line[:60] + '{:6.2f}'.format(float(structure.getData('prs_matrix') \
+                                         [structure.select('chain {0} and resnum {1}' \
+                                          .format(c, resnum)).getResindices(), \
+                                          structure.select('chain {0} and resnum {1}' \
+                                          .format(line[21], line[22:26])).getResindices()])*100) \
+                             + line[66:])
                 else:
-                    fo.write(line[:60] + ' '*(6-len('{:3.2f}'.format(( \
-                             prs_matrix[j][i])*100/np.max(prs_matrix)))) \
-                             + '{:3.2f}'.format((prs_matrix[j][i]) \
-                             *100/np.max(prs_matrix)) + line[66:])
+                    fo.write(line[:60] + '{:6.2f}'.format(float(structure.getData('prs_matrix') \
+                                         [structure.select('chain {0} and resnum {1}' \
+                                          .format(line[21], line[22:26])).getResindices(), \
+                                          structure.select('chain {0} and resnum {1}' \
+                                          .format(c, resnum)).getResindices()])*100) \
+                             + line[66:])
             elif line.find('HETATM') == 0:
-                fo.write(line[:60] + ' '*2 + '0.00' + line[66:])
+                fo.write(line[:60] + '  0.00' + line[66:])
 
         LOGGER.info('Perturbation responses for specific residues were written' \
                     ' to {0}.'.format(', '.join(pdbOut)))
