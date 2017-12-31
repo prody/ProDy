@@ -187,13 +187,15 @@ Finally, normal modes can be visualized and animated using VMD plugin
 
 __all__ = []
 
-#from . import sm
-#from .sm import *
-#__all__.extend(sm.__all__)
+from . import entropy
+from .entropy import *
+__all__.extend(entropy.__all__)
+
 
 from . import analysis
 from .analysis import *
 __all__.extend(analysis.__all__)
+
 
 from . import compare
 from .compare import *
@@ -206,6 +208,10 @@ __all__.extend(editing.__all__)
 from . import functions
 from .functions import *
 __all__.extend(functions.__all__)
+
+from . import perturb
+from .perturb import *
+__all__.extend(perturb.__all__)
 
 from . import plotting
 from .plotting import *

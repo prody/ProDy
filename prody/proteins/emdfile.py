@@ -49,10 +49,11 @@ def parseEMD(emd, **kwargs):
     :type num_iter: integer
 
     :arg return_map: Return the density map itself. Default is False in line with previous behaviour.
+        This value is reset to True if make_nodes is False as something must be returned.
     :type return_map: bool
 
     :arg make_nodes: Use the topology representing network algorithm to fit pseudoatom nodes to the map.
-        Default is True. Changing this to False is equivalent to asking for return_map to be True.
+        Default is False and sets return_map to True.
     :type make_nodes: bool
     """
 
@@ -84,7 +85,7 @@ def parseEMD(emd, **kwargs):
     emdStream.close()
     return result
 
-def _parseEMDLines(atomgroup, stream, cutoff=None, n_nodes=1000, num_iter=20,return_map=False,make_nodes=True):
+def _parseEMDLines(atomgroup, stream, cutoff=None, n_nodes=1000, num_iter=20,return_map=False,make_nodes=False):
     """ Returns an AtomGroup. see also :func:`.parseEMDStream()`.
 
     :arg stream: stream from parser.
@@ -141,7 +142,7 @@ def parseEMDStream(stream, **kwargs):
     n_nodes = int(kwargs.get('n_nodes', 1000))
     num_iter = int(kwargs.get('num_iter', 20))
     return_map = kwargs.get('return_map',False)
-    make_nodes = kwargs.get('make_nodes',True)
+    make_nodes = kwargs.get('make_nodes',False)
 
     if return_map is False and make_nodes is False:
         LOGGER.warn('At least one of return_map and make_nodes should be True. '
