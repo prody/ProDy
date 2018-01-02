@@ -18,6 +18,7 @@ from .nma import NMA
 from .modeset import ModeSet
 from .mode import VectorBase, Mode, Vector
 from .gnm import GNMBase
+from .analysis import calcCovariance
 
 __all__ = ['calcPerturbResponse', 'parsePerturbResponseMatrix',
            'calcPerturbResponseProfiles', 'writePerturbResponsePDB']
@@ -26,22 +27,22 @@ class PRSMatrixParseError(Exception):
     pass
 
 
-def calcPerturbResponse(model, atoms=None, **kwargs):
+def calcPerturbResponse(model, **kwargs):
 
-    """Returns a matrix of profiles from scanning of the response of the
+    """Returns a matrix of profiles from scanning the response of the
     structure to random perturbations at specific atom (or node) positions.
     The function implements the perturbation response scanning (PRS) method
     described in [CA09]_.  Rows of the matrix are the average magnitude of the
     responses obtained by perturbing the atom/node position at that row index,
     i.e. ``prs_profile[i,j]`` will give the response of residue/node *j* to
     perturbations in residue/node *i*.  PRS is performed using the covariance
-    matrix from *model*, e.g. :class:`.ANM` instance.  Each residue/node is
-    perturbed *repeats* times with a random unit force vector.  When *atoms*
-    instance is given, PRS profile for residues will be added as an attribute
-    which then can be retrieved as ``atoms.getData('prs_profile')``.  *model*
-    and *atoms* must have the same number of atoms. *atoms* must be an
-    :class:`.AtomGroup` instance. write_output is a Bool variable to write
-    normalized asymmetric PRS matrix to a file. 
+    matrix from *model*, e.g. :class:`.ANM` instance.
+
+    When an *atoms* instance is given, the PRS matrix will be added as data, 
+    which can be retrieved with ``atoms.getData('prs_matrix')``.  
+
+    *model* and *atoms* must have the same number of atoms. *atoms* must be an
+    :class:`.AtomGroup` instance. 
 
     .. [CA09] Atilgan C, Atilgan AR, Perturbation-Response Scanning
        Reveals Ligand Entry-Exit Mechanisms of Ferric Binding Protein.
@@ -55,96 +56,22 @@ def calcPerturbResponse(model, atoms=None, **kwargs):
     
       writeArray('prs_matrix.txt', prs_matrix, format='%8.6f', delimiter='\t')
 
-    You can also control which operation is used for getting a single matrix
-    from the repeated force application and whether to normalise the matrix
-    at the end. If you do choose to normalise the matrix, you can still save
-    the original matrix before normalisation as well.
-
-    :arg operation: which operation to perform to get a single response matrix::
-        the mean, variance, max or min of the set of repeats. Another operation 
-        is to select elements from the matrix showing biggest difference from 
-        the square sum of the covariance matrix. The Default is the mean.
-        To obtain all response matrices, set operation=None without quotes.
-        You can also ask for 'all' operations or provide a list containing
-        any set of them.
-    :type operation: str or list
-
-    :arg noForce: whether to use the covariance matrix directly rather
-        than applying forces. This appears to be equivalent when scanning for
-        response magnitudes and will be much quicker. Default is True.
-    :type noForce: bool
-
-    :arg normMatrix: whether to normalise the single response matrix by
-        dividing each row by its diagonal, Default is True
-    :type normMatrix: bool
-
     :arg saveMatrix: whether to save the last matrix generated to a text file.
         Default is False
     :type saveMatrix: bool
 
-    :arg saveOrig: whether to save the original matrix despite normalisation.
-        This is the same as saveMatrix when not normalizing. Default is False
-    :type saveOrig: bool
-
-    :arg baseSaveName: The central part of the file name for saved
-        matrices, which you can set. This is surrounded by underscores. 
-        The beginning says orig or norm and the end says which operation 
-        was used. Default is 'response_matrix'.
-    :type baseSaveName: str
-
-    :arg acceptDirection: select reference direction for forces to be accepted.
-        Can be 'in' (towards center of atoms), 'out' (away from center),
-        or 'all'. Default is 'all'; Using other directions requires atoms.
-    :type acceptDirection: str
+    :arg saveName: The file name for saved matrices
+        Default is 'response_matrix.txt'.
+    :type saveName: str
     """
-    noForce = kwargs.get('noForce',True)
-    repeats = kwargs.get('repeats', 100)
-    if not noForce:
-        operation = kwargs.get('operation','mea')
-
-        if operation is not None:
-            if type(operation) is str:
-                if operation == 'all' or operation == 'all operations':
-                    operationList = ['var','mea','max','min','dif']
-                else:
-                    operationList = []
-                    operationList.append(operation.lower()[:3])
-            elif type(operation) is list:
-                operationList = operation
-                for i in range(len(operationList)):
-                    operationList[i] = operationList[i].lower()[:3]
-
-            operationList = np.array(operationList) 
-            found_valid_operation = False
-
-            if 'var' in operationList:
-                found_valid_operation = True
-
-            if 'max' in operationList:
-                found_valid_operation = True
-
-            if 'mea' in operationList:
-                found_valid_operation = True
-
-            if 'min' in operationList:
-                found_valid_operation = True
-
-            if 'dif' in operationList:
-                found_valid_operation = True
-
-            if not found_valid_operation:
-                raise ValueError('Operation should be mean, variance, max, min or ' \
-                                 'or difference (from covariance matrix) in quotes ' \
-                                 'or a list containing a set of these or None.')
 
     if not isinstance(model, (NMA, ModeSet, Mode)):
         raise TypeError('model must be an NMA, ModeSet, or Mode instance')
-    elif not model.is3d() and not noForce:
-        raise TypeError('model must be a 3-dimensional NMA instance' \
-                        'for using PRS with force')
+
     if isinstance(model, NMA) and len(model) == 0:
         raise ValueError('model must have normal modes calculated')
 
+    atoms = kwargs.get('atoms',None)
     if atoms is not None:
         if isinstance(atoms, Selection):
             atoms = atoms.copy()
@@ -158,7 +85,6 @@ def calcPerturbResponse(model, atoms=None, **kwargs):
     LOGGER.info('Calculating covariance matrix')
     LOGGER.timeit('_prody_cov')
 
-    assert isinstance(repeats, int), 'repeats must be an integer'
     cov = calcCovariance(model)
     if cov is None:
         raise ValueError('model did not return a covariance matrix')
@@ -168,190 +94,68 @@ def calcPerturbResponse(model, atoms=None, **kwargs):
                   '_prody_cov')
 
     LOGGER.progress('Calculating perturbation response', n_atoms, '_prody_prs_mat')
-    matrix_dict = {}
 
-    if noForce or 'dif' in operationList:
-        if not model.is3d():
-            n_by_n_cov_squared = cov**2
-
-        else:
-            cov_squared = cov**2
-            n_by_3n_cov_squared = np.zeros((n_atoms, 3 * n_atoms))
-            n_by_n_cov_squared = np.zeros((n_atoms, n_atoms))
-            i3 = -3
-            i3p3 = 0
-            for i in range(n_atoms):
-                i3 += 3
-                i3p3 += 3
-                n_by_3n_cov_squared[i,:] = (cov_squared[i3:i3p3,:]).sum(0)
-
-            j3 = -3
-            j3p3 = 0
-            for j in range(n_atoms):
-                j3 += 3
-                j3p3 += 3                
-                n_by_n_cov_squared[:,j] = (n_by_3n_cov_squared[:,j3:j3p3]).sum(1)
-
-    if noForce:
-        matrix_dict['noForce'] = n_by_n_cov_squared
-        LOGGER.clear()
-        LOGGER.report('Perturbation response matrix calculated in %.1fs.',
-                      '_prody_prs_mat')
+    if not model.is3d():
+        prs_matrix = cov**2
 
     else:
-
-        acceptDirection = kwargs.get('acceptDirection','all')
-        if acceptDirection is not 'all':
-            if atoms is None:
-                acceptDirection = 'all'
-                LOGGER.info('A specific direction for accepting forces was' \
-                            ' provided without an atoms object. This' \
-                            ' direction will be ignored and all forces will' \
-                            ' be accepted.')
-            else:
-                coords = atoms.getCoords()
-                atoms_center = array([np.mean(coords[:,0]), \
-                                      np.mean(coords[:,1]), \
-                                      np.mean(coords[:,2])])
- 
-        mag = kwargs.get('mag',1)
-        response_matrix = np.zeros((repeats, n_atoms, n_atoms)) 
+        cov_squared = cov**2
+        n_by_3n_cov_squared = np.zeros((n_atoms, 3 * n_atoms))
+        prs_matrix = np.zeros((n_atoms, n_atoms))
         i3 = -3
         i3p3 = 0
         for i in range(n_atoms):
             i3 += 3
             i3p3 += 3
-            forces = np.random.randn(repeats * 3).reshape((repeats, 3))
-            forces /= ((forces**2).sum(1)**0.5).reshape((repeats, 1)) * mag
-            for n in range(repeats):
-                force = forces[n]
+            n_by_3n_cov_squared[i,:] = (cov_squared[i3:i3p3,:]).sum(0)
 
-                if acceptDirection is 'in' or acceptDirection is 'out':
-                    res_coords = atoms.getCoords()[i]
-                    vec_to_center = atoms_center - res_coords
-                    vec_to_center /= (((atoms_center - res_coords)**2).sum()**0.5)
-                    force_overlap = np.dot(force,vec_to_center)
+        j3 = -3
+        j3p3 = 0
+        for j in range(n_atoms):
+            j3 += 3
+            j3p3 += 3                
+            prs_matrix[:,j] = (n_by_3n_cov_squared[:,j3:j3p3]).sum(1)
 
-                    if acceptDirection is 'in' and force_overlap < 0:
-                        force *= -1
-
-                    if acceptDirection is 'out' and force_overlap > 0:
-                        force *= -1
-
-                response_matrix[n,i,:] = (
-                    np.dot(cov[:, i3:i3p3], force)
-                    ** 2).reshape((n_atoms, 3)).sum(1)
-            LOGGER.update(i, '_prody_prs_mat')
-
-        LOGGER.clear()
-        LOGGER.report('Perturbation response scanning matrix calculated in %.1fs.',
+    LOGGER.clear()
+    LOGGER.report('Perturbation response matrix calculated in %.1fs.',
                       '_prody_prs_mat')
 
-        LOGGER.progress('Performing matrix combination operations', n_atoms, \
-                        '_prody_prs_ops')
-
-        if 'var' in operationList:
-            matrix_dict['var'] = np.var(response_matrix,axis=0) 
-
-        if 'max' in operationList:
-            matrix_dict['max'] = np.amax(response_matrix,axis=0)
-
-        if 'mea' in operationList:
-            matrix_dict['mea'] = np.mean(response_matrix,axis=0) 
-
-        if 'min' in operationList:
-            matrix_dict['min'] = np.amin(response_matrix,axis=0)
-
-        if 'dif' in operationList:
-            matrix_dict['dif'] = np.max(abs(response_matrix - n_by_n_cov_squared) \
-                                       , axis=0)
-
-            LOGGER.report('Perturbation response matrix operations completed in %.1fs.',
-                          '_prody_prs_ops')
-
-        if operation is None:
-            LOGGER.info('Operation is None so all {0} repeats are output.' \
-                        ' This is not compatible with saving, normalizing' \
-                        ' or mapping to atoms at present.'.format(repeats))
-            return response_matrix
-
-    if atoms is not None: 
-        atoms.setData('prs_profile', matrix_dict[matrix_dict.keys()[0]])
-        if len(matrix_dict.keys()) > 1:
-            LOGGER.info('Only one matrix can be added as data to atoms so' \
-                        ' the first one was chosen. The operation that generated' \
-                        ' it was {0} (1st 3 letters).'.format(matrix_dict.keys()[0]))
-
-    saveOrig = kwargs.get('saveOrig',False)
     saveMatrix = kwargs.get('saveMatrix',False)
-    normMatrix = kwargs.get('normMatrix',True)
     suppressDiag = kwargs.get('suppressDiag',False)
-    baseSaveName = kwargs.get('baseSaveName','response_matrix')
+    saveName = kwargs.get('saveName','response_matrix.txt')
 
-    if saveOrig == True or saveMatrix == True and normMatrix == False:
-       # save the original PRS matrix for each operation
-       for m in matrix_dict.keys():
-           np.savetxt('orig_{0}_{1}.txt'.format(baseSaveName,m), \
-                      matrix_dict[m], delimiter='\t', fmt='%8.6f')
-    
-    if normMatrix == True:
-        norm_PRS_mat = {}
-        # calculate the normalized PRS matrix for each operation
-        for m in matrix_dict.keys():
-            self_dp = np.diag(matrix_dict[m])  # using self displacement (diagonal of
-                                              # the original matrix) as a
-                                              # normalization factor
-            self_dp = self_dp.reshape(n_atoms, 1)
-            norm_PRS_mat[m] = matrix_dict[m] / np.repeat(self_dp, n_atoms, axis=1)
+    norm_prs_matrix = np.zeros((n_atoms, n_atoms))
+    self_dp = np.diag(prs_matrix)  
+    self_dp = self_dp.reshape(n_atoms, 1)
+    norm_prs_matrix = prs_matrix / np.repeat(self_dp, n_atoms, axis=1)
 
-            if suppressDiag == True:
-                # suppress the diagonal (self displacement) to facilitate
-                # visualizing the response profile
-                norm_PRS_mat[m] = norm_PRS_mat[m] - np.diag(np.diag(norm_PRS_mat[m]))
+    if suppressDiag == True:
+       # suppress the diagonal (self displacement) to facilitate
+       # visualizing the response profile
+       norm_prs_matrix = norm_prs_matrix - np.diag(np.diag(norm_prs_matrix))
 
-            if saveMatrix == True:
-                np.savetxt('norm_{0}_{1}.txt'.format(baseSaveName,m), \
-                           norm_PRS_mat[m], delimiter='\t', fmt='%8.6f')
+    if saveMatrix == True:
+        np.savetxt(saveName, norm_prs_matrix, delimiter='\t', fmt='%8.6f')
 
     LOGGER.report('Perturbation response scanning completed in %.1fs.',
                   '_prody_prs_all')
 
-    matrix_list = []
-    for m in matrix_dict.keys():
-        if normMatrix == True:
-            matrix_list.append(norm_PRS_mat[m])
-        else:
-            matrix_list.append(matrix_dict[m])
-    matrix_array = array(matrix_list)
-
-    returnFormat = kwargs.get('returnFormat','array')
-    returnFormat = returnFormat.lower()
-
-    if len(matrix_array) == 1:
-        return matrix_array.reshape(n_atoms,n_atoms)
-    
-    if returnFormat is 'both':
-        LOGGER.info('You have requested return in both formats.' \
-                    ' Array comes first.')
-        return matrix_array, matrix_dict
-    elif 'dict' in returnFormat:
-        LOGGER.info('Output has been returned as a dictionary of matrices.')
-        return matrix_dict
+    if atoms is not None:
+        atoms.setData('prs_matrix',norm_prs_matrix)
+        return atoms, norm_prs_matrix
     else:
-        LOGGER.info('Output has been returned as an array of matrices,' \
-                    ' which you can split into individual matrices.')
-        return matrix_array
+        return norm_prs_matrix
 
-def parsePerturbResponseMatrix(prs_matrix_file='prs_matrix.txt',normMatrix=True):
+def parsePerturbResponseMatrix(prs_matrix_file='prs_matrix.txt',normMatrix=False):
     """Parses a perturbation response matrix from a file into a numpy ndarray.
 
     :arg prs_matrix_file: name of the file containing a PRS matrix, default is
         'prs_matrix.txt' as is used in the example under calcPerturbResponse.
     :type prs_matrix_file: str
 
-    :arg normMatrix: whether to normalise the PRS matrix after parsing it.
-        Default is True. If you have already normalised this before saving,
-        or you do not want it normalised then set this to False.
+    :arg normMatrix: whether to normalize the PRS matrix after parsing it.
+        Default is False. If you used an old version of the script 
+        and didn't normalize before saving, set this to True.
     :type norm: bool
 
     """
@@ -381,13 +185,17 @@ def parsePerturbResponseMatrix(prs_matrix_file='prs_matrix.txt',normMatrix=True)
     else:
        return prs_matrix
 
-def calcPerturbResponseProfiles(prs_matrix):
+def calcPerturbResponseProfiles(prs_matrix,atoms=None):
     """ Calculate the effectiveness and sensitivity
     profiles, which are the averages over the rows
     and columns of the PRS matrix.
 
     :arg prs_matrix: a perturbation response matrix
     :type prs_matrix: ndarray 
+
+    When an *atoms* instance is given, the profiles will be added as data, 
+    which can be retrieved with ``atoms.getData('effectiveness')`` and 
+    ``atoms.getData('sensitivity')``. 
     """
 
     effectiveness = []
@@ -396,9 +204,17 @@ def calcPerturbResponseProfiles(prs_matrix):
         effectiveness.append(np.mean(prs_matrix[i]))
         sensitivity.append(np.mean(prs_matrix.T[i]))
 
-    return np.array(effectiveness), np.array(sensitivity)
+    effectiveness = np.array(effectiveness)
+    sensitivity = np.array(sensitivity)
 
-def writePerturbResponsePDB(prs_matrix,pdbIn,**kwargs):
+    if atoms is not None:
+        atoms.setData('effectiveness',effectiveness)
+        atoms.setData('sensitivity',sensitivity)
+        return atoms, effectiveness, sensitivity
+    else:
+        return effectiveness, sensitivity
+
+def writePerturbResponsePDB(prs_matrix,pdbIn=None,**kwargs):
     """ Write the average response to perturbation of
     a particular residue (a row of a perturbation response matrix)
     or the average effect of perturbation of a particular residue
@@ -411,8 +227,9 @@ def writePerturbResponsePDB(prs_matrix,pdbIn,**kwargs):
     profiles will be written out instead. These two profiles are also returned
     as arrays for further analysis if they aren't already provided.
 
-    :arg prs_matrix: a perturbation response matrix
-    :type prs_matrix: ndarray
+    :arg prs_matrix: a perturbation response matrix 
+        or a :class:`.AtomGroup` object with a PRS matrix associated as data
+    :type prs_matrix: array or :class:`.AtomGroup`
 
     :arg pdbIn: file name for the input PDB file where you would like the PRS
         data mapped
@@ -448,11 +265,20 @@ def writePerturbResponsePDB(prs_matrix,pdbIn,**kwargs):
     :arg returnData: whether to return effectiveness and sensitivity for analysis
         default is False
     :type returnProfiles: bool
+
+    :arg effectiveness: effectiveness profile
+    :type array
+
+    :arg sensitivity: sensitivity profile
+    :type array
     """
 
-    if not type(prs_matrix) is np.ndarray:
-        raise TypeError('Please provide a valid PRS matrix in numpy ndarray format.')
-           
+    if not isinstance(prs_matrix,np.ndarray):
+        try:
+            prs_matrix = prs_matrix.getData('prs_matrix')
+        except:
+            raise TypeError('Please provide a valid PRS matrix in numpy ndarray format.')
+
     try:
         fi = open(pdbIn,'r')
         lines = fi.readlines()
@@ -461,7 +287,10 @@ def writePerturbResponsePDB(prs_matrix,pdbIn,**kwargs):
         raise PRSMatrixParseError('Please provide a valid file name for the input PDB.')
  
     chain = kwargs.get('chain', None)
-    structure = parsePDB(pdbIn).calpha
+
+    structure = parsePDB(pdbIn,subset='ca')
+    structure.setData('prs_matrix',prs_matrix)
+
     hv = structure.getHierView()
     chains = []
     for i in range(len(list(hv))):
@@ -481,10 +310,13 @@ def writePerturbResponsePDB(prs_matrix,pdbIn,**kwargs):
         pdbOut = None
 
     if resnum is None:
-        effectiveness = kwargs.get('effectiveness')
-        sensitivity = kwargs.get('sensitivity')
+        effectiveness = kwargs.get('effectiveness',None)
+        sensitivity = kwargs.get('sensitivity',None)
         if effectiveness is None or sensitivity is None:
             effectiveness, sensitivity = calcPerturbResponseProfiles(prs_matrix)
+
+        structure.setData('effectiveness',effectiveness)
+        structure.setData('sensitivity',sensitivity)
 
         file_effs_name = '{0}_effectiveness.pdb'.format(out_stem)
         file_sens_name = '{0}_sensitivity.pdb'.format(out_stem)
@@ -496,20 +328,17 @@ def writePerturbResponsePDB(prs_matrix,pdbIn,**kwargs):
                 fileEffs.write(line)                    
                 fileSens.write(line)
             elif line.find('ATOM') == 0:
-                sel_line_res = structure.select('resid {0}'.format(line[22:26]))
-                j = np.where(structure.getResnums() == int(line[22:26]))[0] \
-                    [np.where(sel_line_res.getChids() == line[21])[0][0]]
-                fileEffs.write(line[:60] + ' '*(6-len('{:3.2f}'.format(( \
-                               effectiveness[j]*100/np.max(effectiveness))))) \
-                               + '{:3.2f}'.format((effectiveness[j]) \
-                               *100/np.max(effectiveness)) + line[66:])
-                fileSens.write(line[:60] + ' '*(6-len('{:3.2f}'.format((\
-                               sensitivity[j]*100/np.max(sensitivity))))) \
-                               + '{:3.2f}'.format((sensitivity[j]) \
-                               *100/np.max(sensitivity)) + line[66:])
+                fileEffs.write(line[:60] + '{:6.2f}'.format(float(structure.select( \
+                               'chain {0} and resnum {1}'.format(line[21],line[22:26])) \
+                               .getData('effectiveness')) * 100/np.max( \
+                               structure.getData('effectiveness'))) + line[66:])
+                fileSens.write(line[:60] + '{:6.2f}'.format(float(structure.select( \
+                               'chain {0} and resnum {1}'.format(line[21],line[22:26])) \
+                               .getData('sensitivity')) * 100/np.max( \
+                               structure.getData('sensitivity'))) + line[66:])
             elif line.find('HETATM') == 0:
-                fileEffs.write(line[:60] + ' '*2 + '0.00' + line[66:])
-                fileSens.write(line[:60] + ' '*2 + '0.00' + line[66:])
+                fileEffs.write(line[:60] + '  0.00' + line[66:])
+                fileSens.write(line[:60] + '  0.00' + line[66:])
                       
         fileEffs.close()
         fileSens.close()
@@ -518,57 +347,46 @@ def writePerturbResponsePDB(prs_matrix,pdbIn,**kwargs):
 
         returnData = kwargs.get('returnData',False)
         if returnData:
-            return effectiveness, sensitivity
+            return structure, effectiveness, sensitivity
         else:
             return
  
-    timesNF = 0
     direction = kwargs.get('direction','effect')
     for n in range(len(chain)):
         if not chain[n] in chains:
             raise PRSMatrixParseError('Chain {0} was not found in {1}'.format(chain[n], pdbIn))
 
-        chainNum = int(np.where(chains == chain[n])[0])
-        chainAg = list(hv)[chainNum]
-        if not resnum in chainAg.getResnums():
-            LOGGER.info('A residue with number {0} was not found',
-                        ' in chain {1}. Continuing to next chain.' \
-                        .format(resnum, chain[n]))
-            timesNF += 1
-            continue
-
     if pdbOut is None:
         pdbOut = []
-        for n in range(len(chain)):
-            chainNum = int(np.where(chains == chain[n])[0])
-            i = np.where(structure.getResnums() == resnum)[0][chainNum-timesNF]
-            pdbOut.append('{0}_{1}_{2}{3}_{4}.pdb'.format(out_stem, chain[n], \
-                           structure.getResnames()[i], resnum, direction))
+        for c in chain:
+            pdbOut.append('{0}_{1}_{2}{3}_{4}.pdb' \
+                          .format(out_stem, c, \
+                                  str(structure.select('chain {0} and resnum {1}' \
+                                      .format(c, resnum)).getResnames()), \
+                                  resnum, direction))
 
-    for n in range(len(chain)):
-        chainNum = int(np.where(chains == chain)[0])
-        i = np.where(structure.getResnums() == resnum)[0][chainNum-timesNF]
+    for c in chain:
         fo = open(pdbOut[n],'w')
         for line in lines:
             if line.find('ATOM') != 0 and line.find('HETATM') != 0 and line.find('ANISOU') != 0:
                 fo.write(line)
             elif line.find('ATOM') == 0:
-                sel_line_res = structure.select('resid {0}'.format(line[22:26]))
-                j = np.where(structure.getResnums() == int(line[22:26]))[0] \
-                    [np.where(sel_line_res.getChids() == line[21])[0][0]]
-
                 if direction is 'effect':
-                    fo.write(line[:60] + ' '*(6-len('{:3.2f}'.format(( \
-                             prs_matrix[i][j])*100/np.max(prs_matrix)))) \
-                             + '{:3.2f}'.format((prs_matrix[i][j]) \
-                             *100/np.max(prs_matrix)) + line[66:])
+                    fo.write(line[:60] + '{:6.2f}'.format(float(structure.getData('prs_matrix') \
+                                         [structure.select('chain {0} and resnum {1}' \
+                                          .format(c, resnum)).getResindices(), \
+                                          structure.select('chain {0} and resnum {1}' \
+                                          .format(line[21], line[22:26])).getResindices()])*100) \
+                             + line[66:])
                 else:
-                    fo.write(line[:60] + ' '*(6-len('{:3.2f}'.format(( \
-                             prs_matrix[j][i])*100/np.max(prs_matrix)))) \
-                             + '{:3.2f}'.format((prs_matrix[j][i]) \
-                             *100/np.max(prs_matrix)) + line[66:])
+                    fo.write(line[:60] + '{:6.2f}'.format(float(structure.getData('prs_matrix') \
+                                         [structure.select('chain {0} and resnum {1}' \
+                                          .format(line[21], line[22:26])).getResindices(), \
+                                          structure.select('chain {0} and resnum {1}' \
+                                          .format(c, resnum)).getResindices()])*100) \
+                             + line[66:])
             elif line.find('HETATM') == 0:
-                fo.write(line[:60] + ' '*2 + '0.00' + line[66:])
+                fo.write(line[:60] + '  0.00' + line[66:])
 
         LOGGER.info('Perturbation responses for specific residues were written' \
                     ' to {0}.'.format(', '.join(pdbOut)))

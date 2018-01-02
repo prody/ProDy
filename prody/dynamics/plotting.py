@@ -955,13 +955,13 @@ def showPerturbResponse(**kwargs):
     :class:`.AtomGroup` instance.
 
     :arg prs_matrix: a perturbation response matrix
-    :type prs_matrix: ndarray
+    :type prs_matrix: array
 
     :arg effectiveness: an effectiveness profile from a PRS matrix
-    :type effectiveness: list
+    :type effectiveness: array
 
     :arg sensitivity: a sensitivity profile from a PRS matrix
-    :type sensitivity: list
+    :type sensitivity: array
 
     :arg model: any object with a calcCovariance method
         e.g. :class:`.ANM` instance
@@ -974,66 +974,67 @@ def showPerturbResponse(**kwargs):
         default is False
     :type returnData: bool
 	
-	:arg percentile: percentile argument for showMatrix
-	:type percentile: float
+    :arg percentile: percentile argument for showMatrix
+    :type percentile: float
+
+    Return values are prs_matrix, effectiveness, sensitivity, ax1, ax2, im, ax3, ax4
+    The PRS matrix, effectiveness and sensitivity will not be returned if provided. 
+    If returnData is False then only the last five objects are returned.
     """
 
     import matplotlib.pyplot as plt
     import matplotlib
 
     prs_matrix = kwargs.get('prs_matrix')
-    model = kwargs.get('model')
-    if prs_matrix is None: 
-        if model is None:
-            raise ValueError('Please provide a PRS matrix or model.')
-        else:
-            if kwargs.get('normMatrix') is None:
-                kwargs.set('normMatrix',True)
-            prs_matrix = calcPerturbResponse(**kwargs)
-
     effectiveness = kwargs.get('effectiveness')
     sensitivity = kwargs.get('sensitivity')
-    if effectiveness is None:
-        effectiveness, sensitivity = calcPerturbResponseProfiles(prs_matrix)
-
-    percentile = kwargs.get('percentile')
-    if percentile is None:
-        ax1, ax2, im, ax4 = showMatrix(prs_matrix, sensitivity, effectiveness)
-    else:
-        ax1, ax2, im, ax4 = showMatrix(prs_matrix, sensitivity, effectiveness, percentile=percentile)
-    
+    model = kwargs.pop('model')
     atoms = kwargs.get('atoms')
-    if atoms is not None:
+    returnData = kwargs.pop('returnData')
+
+    if atoms is None:
+
+        if prs_matrix is None:
+            if model is None:
+                raise ValueError('Please provide a PRS matrix or model.')
+            else:
+                prs_matrix = calcPerturbResponse(model=model)
+
+        if effectiveness is None or sensitivity is None:
+            effectiveness, sensitivity = calcPerturbResponseProfiles(prs_matrix)
+        else:
+            returnData = False
+
+        ax1, ax2, im, ax3, ax4 = showMatrix(prs_matrix, effectiveness, sensitivity, **kwargs)
+
+    else:
         if not isinstance(atoms, AtomGroup) and not isinstance(atoms, Selection):
             raise TypeError('atoms must be an AtomGroup instance')
         elif model is not None and atoms.numAtoms() != model.numAtoms():
             raise ValueError('model and atoms must have the same number atoms')
 
-        ax1_xlim_left, ax1_xlim_right = ax1.get_xlim()
-        ax1_ylim_bottom, ax1_ylim_top = ax1.get_ylim()
+        if prs_matrix is None: 
+            if model is None:
+                raise ValueError('Please provide a PRS matrix or model.')
+            atoms, prs_matrix = calcPerturbResponse(model=model,atoms=atoms)
 
-        for i in atoms.getHierView().iterChains():
-            ax1.plot([i.getResindices()[0], i.getResindices()[-1]], [ax1_ylim_top*1.5, ax1_ylim_top*1.5], '-', linewidth=3)
+        if effectiveness is None or sensitivity is None:
+            atoms, effectiveness, sensitivity = calcPerturbResponseProfiles(prs_matrix,atoms)
 
-        ax1.autoscale()
-        ax1.set_xlim(ax1_xlim_left, ax1_xlim_right)
+        ax1, ax2, im, ax3, ax4 = showMatrix(prs_matrix, effectiveness, sensitivity, **kwargs)
 
-        ax2_xlim_left, ax2_xlim_right = ax2.get_xlim()
-        ax2_ylim_bottom, ax2_ylim_top = ax2.get_ylim()
-
-        for i in atoms.getHierView().iterChains():
-            ax2.plot([ax2_xlim_left*1.5, ax2_xlim_left*1.5], [i.getResindices()[0], i.getResindices()[-1]], '-', linewidth=3)
-
-        ax2.autoscale()
-        ax2.set_ylim(ax2_ylim_bottom, ax2_ylim_top)
-
-        returnData = kwargs.get('returnData',False)
-        if not returnData:
-            return
-        elif kwargs.get('prs_matrix') is not None:
-            return effectiveness, sensitivity
-        else:
-            return prs_matrix, effectiveness, sensitivity
+    if not returnData:
+        return ax1, ax2, im, ax3, ax4
+    elif kwargs.get('prs_matrix') is not None:
+       if atoms is not None:
+           return atoms, effectiveness, sensitivity, ax1, ax2, im, ax3, ax4
+       else:
+           return effectiveness, sensitivity, ax1, ax2, im, ax3, ax4
+    else:
+       if atoms is not None:
+           return atoms, prs_matrix, effectiveness, sensitivity, ax1, ax2, im, ax3, ax4
+       else:
+           return prs_matrix, effectiveness, sensitivity, ax1, ax2, im, ax3, ax4
 
 def showPerturbResponseProfiles(prs_matrix,atoms,**kwargs):
     """Plot as a line graph the average response to perturbation of
@@ -1204,7 +1205,13 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
 
     :arg percentile: A percentile threshold to remove outliers, i.e. only showing data within *p*-th 
                      to *100-p*-th percentile.
-    :type percentile: float"""
+    :type percentile: float
+
+    :arg atoms: a :class: `AtomGroup` instance for matching 
+        residue numbers and chain IDs. 
+    :type atoms: :class: `AtomGroup`
+
+    """
 
     import matplotlib.pyplot as mpl
     from matplotlib import cm
@@ -1221,6 +1228,11 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
     
     W = 8
     H = 8
+
+    atoms = kwargs.pop('atoms', None)
+    if atoms is not None:
+        if not isinstance(atoms, AtomGroup) and not isinstance(atoms, Selection):
+            raise TypeError('atoms must be an AtomGroup instance')
 
     curve_axes = None
 
@@ -1304,13 +1316,65 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
     im = imshow(matrix, aspect=aspect, vmin=vmin, vmax=vmax, cmap=cmap, **kwargs)
     ax3.set_xlim([-0.5, len(matrix)+0.5])
     ax3.set_ylim([-0.5, len(matrix)+0.5])
+
+
     if ncol > 1:
         ax3.set_yticklabels([])
 
     ax4 = mpl.subplot(gs_bar[-1])
     mpl.colorbar(cax=ax4)
 
+    atoms = kwargs.pop('atoms', None)
+    if atoms is not None:
+        if not isinstance(atoms, AtomGroup) and not isinstance(atoms, Selection):
+            raise TypeError('atoms must be an AtomGroup instance')
+
+        # Add bars along the top that are colored by chain and number the axis with residue numbers
+
+        ax1_xlim_left, ax1_xlim_right = ax1.get_xlim()
+        ax1_ylim_bottom, ax1_ylim_top = ax1.get_ylim()
+
+        n = 0
+        resnum_tick_locs = []
+        resnum_tick_labels = []
+        chain_colors = 'gcmyrwbk'
+        for i in atoms.getHierView().iterChains():
+            ax1.plot([i.getResindices()[0], i.getResindices()[-1]], \
+                     [ax1_ylim_top*1.5, ax1_ylim_top*1.5], '-', linewidth=3, \
+                     color=chain_colors[n])
+
+            for j in range(2):
+                resnum_tick_locs.append(i.getResindices()[i.numAtoms()/2*j])
+                resnum_tick_labels.append(i.getResnums()[i.numAtoms()/2*j])
+
+            n += 1
+
+        resnum_tick_locs = array(resnum_tick_locs)
+        resnum_tick_labels = array(resnum_tick_labels)
+
+        ax1.set_xticks(resnum_tick_locs,resnum_tick_labels)
+        ax2.set_yticks(resnum_tick_locs,resnum_tick_labels)
+        ax3.set_xticks(resnum_tick_locs,resnum_tick_labels)
+        ax3.set_yticks(resnum_tick_locs,resnum_tick_labels)
+
+        ax1.autoscale()
+        ax1.set_xlim(ax1_xlim_left, ax1_xlim_right)
+
+        ax2_xlim_left, ax2_xlim_right = ax2.get_xlim()
+        ax2_ylim_bottom, ax2_ylim_top = ax2.get_ylim()
+
+        n = 0
+        for i in atoms.getHierView().iterChains():
+            ax2.plot([ax2_xlim_left*1.5, ax2_xlim_left*1.5], \
+                     [i.getResindices()[0], i.getResindices()[-1]], '-', linewidth=3, \
+                     color=chain_colors[n])
+            n += 1
+
+        ax2.autoscale()
+        ax2.set_ylim(ax2_ylim_bottom, ax2_ylim_top)
+
+
     if SETTINGS['auto_show']:
         showFigure()
 
-    return ax1, ax2, im, ax4
+    return ax1, ax2, im, ax3, ax4
