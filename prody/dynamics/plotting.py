@@ -751,7 +751,7 @@ def showDiffMatrix(matrix1, matrix2, *args, **kwargs):
     """Show the difference between two cross-correlation matrices from
     different models. For given *matrix1* and *matrix2* show the difference
     between them in the form of (matrix2 - matrix1) and plot the difference
-    matrix using :func:`~matplotlib.pyplot.imshow`. When :class:`.NMA` models
+    matrix using :func:`showMatrix`. When :class:`.NMA` models
     are passed instead of matrices, the functions could call
     :func:`.calcCrossCorr` function to calculate the matrices for given modes.
 
@@ -786,8 +786,8 @@ def showDiffMatrix(matrix1, matrix2, *args, **kwargs):
         diff = np.abs(diff)
     if kwargs.pop('new_fig', True):
         plt.figure()
-    show = plt.imshow(diff, *args, **kwargs), plt.colorbar()
-    plt.axis([-.5, shape1[1] - .5, -.5, shape1[0] - .5])
+    show = showMatrix(diff, *args, **kwargs)
+    show.im3.axis([-.5, shape1[1] - .5, -.5, shape1[0] - .5])
     plt.title('Difference Matrix')
     if SETTINGS['auto_show']:
         showFigure()
@@ -818,10 +818,10 @@ def showMechStiff(model, coords, *args, **kwargs):
 
     if kwargs.pop('new_fig', True):
         fig = plt.figure(num=None, figsize=(10,8), dpi=100, facecolor='w')
-    show = plt.imshow(MechStiff, *args, **kwargs), plt.colorbar()
-    plt.clim(math.floor(np.min(MechStiff[np.nonzero(MechStiff)])), \
-                                           round(np.amax(MechStiff),1))
-    #plt.title('Mechanical Stiffness Matrix')# for {0}'.format(str(model)))
+    vmin = math.floor(np.min(MechStiff[np.nonzero(MechStiff)]))
+    vmax = round(np.amax(MechStiff),1)
+    show = showMatrix(MechStiff, vmin=vmin, vmax=vmax, *args, **kwargs)
+    plt.title('Mechanical Stiffness Matrix')# for {0}'.format(str(model)))
     plt.xlabel('Indices', fontsize='16')
     plt.ylabel('Indices', fontsize='16')
     if SETTINGS['auto_show']:
@@ -847,9 +847,11 @@ def showNormDistFunct(model, coords, *args, **kwargs):
 
     if kwargs.pop('new_fig', True):
         fig = plt.figure(num=None, figsize=(10,8), dpi=100, facecolor='w')
-    show = plt.imshow(normdistfunct, *args, **kwargs), plt.colorbar()
-    plt.clim(math.floor(np.min(normdistfunct[np.nonzero(normdistfunct)])), \
-                                           round(np.amax(normdistfunct),1))
+    vmin = math.floor(np.min(normdistfunct[np.nonzero(normdistfunct)]))
+    vmax = round(np.amax(normdistfunct),1)
+    show = showMatrix(normdistfunct, vmin=vmin, vmax=vmax, *args, **kwargs)
+    #plt.clim(math.floor(np.min(normdistfunct[np.nonzero(normdistfunct)])), \
+    #                                       round(np.amax(normdistfunct),1))
     plt.title('Normalized Distance Fluctution Matrix')
     plt.xlabel('Indices', fontsize='16')
     plt.ylabel('Indices', fontsize='16')
@@ -882,7 +884,7 @@ def showPairDeformationDist(model, coords, ind1, ind2, *args, **kwargs):
         #plt.title(str(model))
         plt.plot(d_pair[0], d_pair[1], 'k-', linewidth=1.5, *args, **kwargs)
         plt.xlabel('mode (k)', fontsize = '18')
-        plt.ylabel('d$^k$' '($\AA$)', fontsize = '18')    
+        plt.ylabel('d$^k$' '($\AA$)', fontsize = '18')
     if SETTINGS['auto_show']:
         showFigure()
     return plt.show
@@ -1187,7 +1189,7 @@ def showPerturbResponseProfiles(prs_matrix,atoms,**kwargs):
     else:
         return
 
-def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
+def showMatrix(matrix=None, x_array=None, y_array=None, **kwargs):
     """Show a matrix using :meth:`~matplotlib.axes.Axes.imshow`. Curves on x- and y-axis can be added.
     The first return value is the :class:`~matplotlib.axes.Axes` object for the upper plot, and the second
     return value is equivalent object for the left plot. The third return value is 
@@ -1207,6 +1209,14 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
                      to *100-p*-th percentile.
     :type percentile: float
 
+    :arg vmin: Minimum value that can be used together with vmax 
+               as an alternative way to remove outliers
+    :type vmin: float
+
+    :arg vmax: Maximum value that can be used together with vmin 
+               as alternative way to remove outliers
+    :type vmax: float
+
     :arg atoms: a :class: `AtomGroup` instance for matching 
         residue numbers and chain IDs. 
     :type atoms: :class: `AtomGroup`
@@ -1220,33 +1230,34 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
     from matplotlib.pyplot import figure, imshow
 
     p = kwargs.pop('percentile', None)
-    if p is not None:
+    vmin = kwargs.pop('vmin', None)
+    vmax = kwargs.pop('vmax', None)
+
+    if vmin is None and vmax is None and p is not None:
         vmin = np.percentile(matrix, p)
         vmax = np.percentile(matrix, 100-p)
-    else:
-        vmin = vmax = None
     
-    W = 8
-    H = 8
+    W = 10
+    H = 10
     aspect = 'auto'
 
     if x_array is not None and y_array is not None:
-        nrow = 3; ncol = 3
+        nrow = 3; ncol = 5
         i = 1; j = 1
         width_ratios = [1, W, 0.2]
         height_ratios = [1, H, 0.2]
     elif x_array is not None and y_array is None:
-        nrow = 3; ncol = 2
+        nrow = 3; ncol = 4
         i = 1; j = 0
         width_ratios = [W, 0.2]
         height_ratios = [1, H, 0.2]
     elif x_array is None and y_array is not None:
-        nrow = 2; ncol = 3
+        nrow = 2; ncol = 5
         i = 0; j = 1
         width_ratios = [1, W, 0.2]
         height_ratios = [H, 0.2]
     else:
-        nrow = 2; ncol = 2
+        nrow = 2; ncol = 4
         i = 0; j = 0
         width_ratios = [W, 0.2]
         height_ratios = [H, 0.2]
@@ -1257,16 +1268,18 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
     left_index = (i,j-1)
     right_index = (i,j+1)
 
-    outer = GridSpec(1, 2, width_ratios = [15, 1], hspace=0.) 
-    gs = GridSpecFromSubplotSpec(nrow, ncol, subplot_spec = outer[0], width_ratios=width_ratios,
-                    height_ratios=height_ratios, hspace=0., wspace=0.)
+    outer = GridSpec(1, 3, width_ratios = [sum(width_ratios), 1, 4], hspace=0., wspace=0.3) 
+
+    gs = GridSpecFromSubplotSpec(nrow, ncol-2, subplot_spec = outer[0], width_ratios=width_ratios,
+                                 height_ratios=height_ratios, hspace=0., wspace=0.)
 
     gs_bar = GridSpecFromSubplotSpec(nrow-1, 1, subplot_spec = outer[1], height_ratios=height_ratios[:-1], hspace=0., wspace=0.)
+    gs_legend = GridSpecFromSubplotSpec(nrow-1, 1, subplot_spec = outer[2], height_ratios=height_ratios[:-1], hspace=0., wspace=0.)
 
     new_fig = kwargs.pop('new_fig', True)
 
     if new_fig:
-        plt.figure()
+        fig = plt.figure(figsize=[9.5,6]) 
     axes = []
 
     atoms = kwargs.pop('atoms', None)
@@ -1289,7 +1302,7 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
         ax1.set_ylim(y1.min(), y1.max())
         ax1.axis('off')
 
-    if ncol > 2:
+    if ncol > 4:
         x2 = y_array
         y2 = np.arange(len(x2))
         ax2 = plt.subplot(gs[left_index])
@@ -1323,18 +1336,25 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
         resnum_tick_locs = []
         resnum_tick_labels = []
         chain_colors = 'gcmyrwbk'
+        chain_handles = []
         for i in atoms.getHierView().iterChains():
-            ax5.plot([i.getResindices()[0], i.getResindices()[-1]], [0, 0], \
-                     '-', linewidth=3, color=chain_colors[n])
+            
+            chain_handle, = ax5.plot([i.getResindices()[0], i.getResindices()[-1]], [0, 0], \
+                                     '-', linewidth=3, color=chain_colors[n], label=str(i))
+            chain_handles.append(chain_handle)
 
             ax6.plot([0,0], [np.flip(i.getResindices(),0)[0], np.flip(i.getResindices(),0)[-1]], \
-                     '-', linewidth=3, color=chain_colors[n])
+                     '-', linewidth=3, color=chain_colors[n], label=str(i))
 
             for j in range(2):
                 resnum_tick_locs.append(i.getResindices()[i.numAtoms()/2*j])
                 resnum_tick_labels.append(i.getResnums()[i.numAtoms()/2*j])
 
             n += 1
+
+        ax7 = plt.subplot(gs_legend[-1])
+        plt.legend(handles=chain_handles, loc=2, bbox_to_anchor=(0.25, 1))
+        ax7.axis('off')
 
         resnum_tick_locs.append(i.getResindices()[-1])
         resnum_tick_labels.append(i.getResnums()[-1])
@@ -1359,4 +1379,4 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
     if SETTINGS['auto_show']:
         showFigure()
 
-    return ax1, ax2, im, ax3, ax4, ax5, ax6
+    return ax1, ax2, im, ax3, ax4, ax5, ax6, ax7
