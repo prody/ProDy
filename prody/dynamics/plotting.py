@@ -33,7 +33,7 @@ __all__ = ['showContactMap', 'showCrossCorr',
            'showDiffMatrix','showMechStiff','showNormDistFunct',
            'showPairDeformationDist','showMeanMechStiff', 
            'showPerturbResponse', 'showPerturbResponseProfiles',
-           'showMatrix']
+           'showMatrix', 'showPlot']
 
 
 def showEllipsoid(modes, onto=None, n_std=2, scale=1., *args, **kwargs):
@@ -512,29 +512,50 @@ def showMode(mode, *args, **kwargs):
     
     import matplotlib.pyplot as plt
     show_hinge = kwargs.pop('hinge', False)
-    show_zero = kwargs.pop('zero', False)
+    show_zero = kwargs.pop('zero', True)
+    atoms = kwargs.get('atoms',None)
     if not isinstance(mode, (Mode, Vector)):
         raise TypeError('mode must be a Mode or Vector instance, '
                         'not {0}'.format(type(mode)))
-    if kwargs.pop('new_fig', True):
-        plt.figure()
-
     if mode.is3d():
         a3d = mode.getArrayNx3()
-        show = plt.plot(a3d[:, 0], *args, label='x-component', **kwargs)
-        plt.plot(a3d[:, 1], *args, label='y-component', **kwargs)
-        plt.plot(a3d[:, 2], *args, label='z-component', **kwargs)
+        show = []
+        show.append(showPlot(a3d[:, 0], *args, label='x-component', **kwargs))
+        show.append(showPlot(a3d[:, 1], *args, label='y-component', **kwargs))
+        show.append(showPlot(a3d[:, 2], *args, label='z-component', **kwargs))
+        if atoms is not None:
+            show[0][0].set_title(str(mode))
+        else:
+            show[0].set_title(str(mode))
     else:
         a1d = mode._getArray()
-        show = plt.plot(a1d, *args, **kwargs)
+        show = showPlot(a1d, *args, **kwargs)
         if show_hinge and isinstance(mode, Mode):
             hinges = mode.getHinges()
             if hinges is not None:
-                plt.plot(hinges, a1d[hinges], 'r*')
-    plt.title(str(mode))
-    plt.xlabel('Indices')
+                if atoms is not None:
+                    show[0].plot(hinges, a1d[hinges], 'r*')
+                else:
+                    show.plot(hinges, a1d[hinges], 'r*')
+        if atoms is not None:
+            show[0].set_title(str(mode))
+        else:
+            show.set_title(str(mode))
     if show_zero:
-        plt.plot(plt.xlim(), (0,0), 'r--')
+        if not mode.is3d():
+            if atoms is not None:
+                show[0].plot(plt.xlim(), (0,0), 'r--')
+            else:
+                show.plot(plt.xlim(), (0,0), 'r--')
+        else:
+            if atoms is not None:
+                show[0][0].plot(plt.xlim(), (0,0), 'r--')
+                show[1][0].plot(plt.xlim(), (0,0), 'r--')
+                show[2][0].plot(plt.xlim(), (0,0), 'r--')
+            else:
+                show[0].plot(plt.xlim(), (0,0), 'r--')
+                show[1].plot(plt.xlim(), (0,0), 'r--')
+                show[2].plot(plt.xlim(), (0,0), 'r--')
     if SETTINGS['auto_show']:
         showFigure()
     return show
@@ -545,21 +566,17 @@ def showSqFlucts(modes, *args, **kwargs):
     also :func:`.calcSqFlucts`."""
 
     import matplotlib.pyplot as plt
-    if kwargs.pop('new_fig', True):
-        plt.figure()
-
     show_hinge = kwargs.pop('hinge', False)
     sqf = calcSqFlucts(modes)
     if not 'label' in kwargs:
         kwargs['label'] = str(modes)
-    show = plt.plot(sqf, *args, **kwargs)
-    plt.xlabel('Indices')
-    plt.ylabel('Square fluctuations')
-    plt.title(str(modes))
+    show = showPlot(sqf, *args, **kwargs) 
+    show[0].set_ylabel('Square fluctuations')
+    show[0].set_title(str(modes))
     if show_hinge and not modes.is3d():
         hinges = modes.getHinges()
         if hinges is not None:
-            plt.plot(hinges, sqf[hinges], 'r*')
+            show[0].plot(hinges, sqf[hinges], 'r*')
     if SETTINGS['auto_show']:
         showFigure()
     return show
@@ -571,9 +588,6 @@ def showScaledSqFlucts(modes, *args, **kwargs):
     the same mean squared fluctuations as *modes*."""
 
     import matplotlib.pyplot as plt
-    if kwargs.pop('new_fig', True):
-        plt.figure()
-
     sqf = calcSqFlucts(modes)
     mean = sqf.mean()
     args = list(args)
@@ -584,7 +598,7 @@ def showScaledSqFlucts(modes, *args, **kwargs):
             modesarg.append(args.pop(i))
         else:
             i += 1
-    show = [plt.plot(sqf, *args, label=str(modes), **kwargs)]
+    show = showPlot(sqf, *args, label=str(modes), **kwargs)
     plt.xlabel('Indices')
     plt.ylabel('Square fluctuations')
     for modes in modesarg:
@@ -603,9 +617,6 @@ def showNormedSqFlucts(modes, *args, **kwargs):
     """
 
     import matplotlib.pyplot as plt
-    if kwargs.pop('new_fig', True):
-        plt.figure()
-
     sqf = calcSqFlucts(modes)
     args = list(args)
     modesarg = []
@@ -615,8 +626,8 @@ def showNormedSqFlucts(modes, *args, **kwargs):
             modesarg.append(args.pop(i))
         else:
             i += 1
-    show = [plt.plot(sqf/(sqf**2).sum()**0.5, *args,
-                     label='{0}'.format(str(modes)), **kwargs)]
+    show = showPlot(sqf/(sqf**2).sum()**0.5, *args,
+                     label='{0}'.format(str(modes)), **kwargs)
     plt.xlabel('Indices')
     plt.ylabel('Square fluctuations')
     for modes in modesarg:
@@ -1229,6 +1240,11 @@ def showMatrix(matrix=None, x_array=None, y_array=None, **kwargs):
     from matplotlib.collections import LineCollection
     from matplotlib.pyplot import figure, imshow
 
+    if matrix is None:
+        raise TypeError('You need to provide a matrix.') 
+    elif len(np.shape(matrix)) != 2:
+        raise ValueError('The matrix must be a 2D array.')
+
     p = kwargs.pop('percentile', None)
     vmin = kwargs.pop('vmin', None)
     vmax = kwargs.pop('vmax', None)
@@ -1277,7 +1293,6 @@ def showMatrix(matrix=None, x_array=None, y_array=None, **kwargs):
     gs_legend = GridSpecFromSubplotSpec(nrow-1, 1, subplot_spec = outer[2], height_ratios=height_ratios[:-1], hspace=0., wspace=0.)
 
     new_fig = kwargs.pop('new_fig', True)
-
     if new_fig:
         fig = plt.figure(figsize=[9.5,6]) 
     axes = []
@@ -1380,3 +1395,86 @@ def showMatrix(matrix=None, x_array=None, y_array=None, **kwargs):
         showFigure()
 
     return ax1, ax2, im, ax3, ax4, ax5, ax6, ax7
+
+def showPlot(y,**kwargs):
+
+    """
+    TBF
+    """
+
+    atoms = kwargs.pop('atoms',None)
+
+    import matplotlib.pyplot as plt
+    from matplotlib import cm
+    from matplotlib.gridspec import GridSpec, GridSpecFromSubplotSpec
+    from matplotlib.collections import LineCollection
+    from matplotlib.pyplot import figure, imshow
+
+    if y is None:
+        raise TypeError('You need to provide data for the y-axis.')
+    elif len(np.shape(y)) != 1:
+        raise ValueError('The data must be a 1D array.')
+
+    new_fig = kwargs.pop('new_fig', True)
+    if new_fig:
+        fig = plt.figure(figsize=[9.5,6])
+    axes = [] 
+
+    if atoms is not None:
+        height_ratios = [15,0.2]
+        nrows = 2
+    else:
+        height_ratios = None
+        nrows = 1
+
+    outer = GridSpec(1, 2, width_ratios = [16, 4], hspace=0., wspace=0.)
+
+    gs = GridSpecFromSubplotSpec(nrows, 1, subplot_spec = outer[0], height_ratios=height_ratios, hspace=0., wspace=0.)
+
+    gs_legend = GridSpecFromSubplotSpec(1, 1, subplot_spec = outer[1], hspace=0., wspace=0.)
+    
+    ax1 = plt.subplot(gs[0])
+    ax1.plot(y,**kwargs)
+
+    if nrows > 1:
+        ax2 = plt.subplot(gs[1])
+       
+        n = 0
+        resnum_tick_locs = []
+        resnum_tick_labels = []
+        chain_colors = 'gcmyrwbk'
+        chain_handles = []
+        for i in atoms.getHierView().iterChains():
+
+            chain_handle, = ax2.plot([i.getResindices()[0], i.getResindices()[-1]], [0, 0], \
+                                     '-', linewidth=3, color=chain_colors[n], label=str(i))
+            chain_handles.append(chain_handle)
+
+            for j in range(2):
+                resnum_tick_locs.append(i.getResindices()[i.numAtoms()/2*j])
+                resnum_tick_labels.append(i.getResnums()[i.numAtoms()/2*j])
+
+            n += 1
+ 
+        ax3 = plt.subplot(gs_legend[-1])
+        plt.legend(handles=chain_handles, loc=2, bbox_to_anchor=(0.25, 1))
+        ax3.axis('off')
+
+        resnum_tick_locs.append(i.getResindices()[-1])
+        resnum_tick_labels.append(i.getResnums()[-1])
+
+        resnum_tick_locs = np.array(resnum_tick_locs)
+        resnum_tick_labels = np.array(resnum_tick_labels)
+
+        ax1.set_xticks([])
+
+        ax2.set_xticks(resnum_tick_locs)
+        ax2.set_xticklabels(resnum_tick_labels)
+        ax2.set_yticks([])
+
+        ax2.set_xlim([-0.5, len(y)+0.5])
+
+    if atoms is not None:
+        return ax1, ax2, ax3
+    else:
+        return ax1
