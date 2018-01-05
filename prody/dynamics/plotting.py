@@ -1232,7 +1232,23 @@ def showMatrix(matrix=None, x_array=None, y_array=None, **kwargs):
         residue numbers and chain IDs. 
     :type atoms: :class: `AtomGroup`
 
-    """
+    :arg num_div: the number of divisions for each chain
+        default 2
+    :type num_div: int
+
+    :arg resnum_tick_labels: residue number labels in place of num_div.
+         A list can be used to set the same labels on all chains or 
+         a dictionary of lists to set different labels for each chain
+    :type resnum_tick_labels: list or dictionary
+
+    :arg add_last_resi: whether to add a label for the last residue
+        default False
+    :type add_last_resi: bool
+    """ 
+
+    num_div = kwargs.pop('num_div',2)
+    resnum_tick_labels = kwargs.pop('resnum_tick_labels',None)
+    add_last_resi = kwargs.pop('add_last_resi',False)
 
     import matplotlib.pyplot as plt
     from matplotlib import cm
@@ -1349,7 +1365,18 @@ def showMatrix(matrix=None, x_array=None, y_array=None, **kwargs):
 
         n = 0
         resnum_tick_locs = []
-        resnum_tick_labels = []
+        resnum_tick_labels_list = []
+
+        if resnum_tick_labels is None:
+            resnum_tick_labels = []
+            user_set_labels = False
+        elif type(resnum_tick_labels) is list:
+            user_set_labels = list
+        elif type(resnum_tick_labels) is dict:
+            user_set_labels = dict
+        else:
+            raise TypeError('The resnum tick labels should be a list or dictionary of lists')
+
         chain_colors = 'gcmyrwbk'
         chain_handles = []
         for i in atoms.getHierView().iterChains():
@@ -1361,9 +1388,20 @@ def showMatrix(matrix=None, x_array=None, y_array=None, **kwargs):
             ax6.plot([0,0], [np.flip(i.getResindices(),0)[0], np.flip(i.getResindices(),0)[-1]], \
                      '-', linewidth=3, color=chain_colors[n], label=str(i))
 
-            for j in range(2):
-                resnum_tick_locs.append(i.getResindices()[i.numAtoms()/2*j])
-                resnum_tick_labels.append(i.getResnums()[i.numAtoms()/2*j])
+            if not user_set_labels:
+                for j in range(num_div):
+                    resnum_tick_locs.append(i.getResindices()[i.numAtoms()/num_div*j])
+                    resnum_tick_labels.append(i.getResnums()[i.numAtoms()/num_div*j])
+            elif user_set_labels is list:
+                for j in resnum_tick_labels:
+                    resnum_tick_locs.append(i.getResindices()[np.where(i.getResnums() == j)[0][0]])
+                    resnum_tick_labels_list.append(j)
+            else:
+                for k in resnum_tick_labels.keys():
+                    if i.getChids()[0] == k:
+                       for j in resnum_tick_labels[k]:
+                           resnum_tick_locs.append(i.getResindices()[np.where(i.getResnums() == j)[0][0]])
+                           resnum_tick_labels_list.append(j)
 
             n += 1
 
@@ -1371,16 +1409,18 @@ def showMatrix(matrix=None, x_array=None, y_array=None, **kwargs):
         plt.legend(handles=chain_handles, loc=2, bbox_to_anchor=(0.25, 1))
         ax7.axis('off')
 
-        resnum_tick_locs.append(i.getResindices()[-1])
-        resnum_tick_labels.append(i.getResnums()[-1])
+        if add_last_resi:
+            resnum_tick_locs.append(atoms.getResindices()[-1])
+            resnum_tick_labels_list.append(atoms.getResnums()[-1])
 
         resnum_tick_locs = np.array(resnum_tick_locs)
-        resnum_tick_labels = np.array(resnum_tick_labels)
+        resnum_tick_labels = np.array(resnum_tick_labels_list)
 
         ax3.axis('off')
 
         ax5.set_xticks(resnum_tick_locs)
         ax5.set_xticklabels(resnum_tick_labels)
+        ax5.tick_params(labelsize=6)
         ax5.set_yticks([])
 
         ax6.set_xticks([])
@@ -1508,7 +1548,7 @@ def showPlot(y,**kwargs):
 
         if add_last_resi:
             resnum_tick_locs.append(atoms.getResindices()[-1])
-            resnum_tick_labels.append(atoms.getResnums()[-1])
+            resnum_tick_labels_list.append(atoms.getResnums()[-1])
 
         resnum_tick_locs = np.array(resnum_tick_locs)
         resnum_tick_labels = np.array(resnum_tick_labels_list)
