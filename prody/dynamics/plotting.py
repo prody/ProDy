@@ -1399,15 +1399,20 @@ def showMatrix(matrix=None, x_array=None, y_array=None, **kwargs):
 def showPlot(y,**kwargs):
 
     """
-    TBF
-
+    Show a plot with the option to include chain color bars using provided atoms.
+    
+    :arg atoms: a :class: `AtomGroup` instance for matching 
+        residue numbers and chain IDs. 
+    :type atoms: :class: `AtomGroup`
+    
     :arg num_div: the number of divisions for each chain
         default 2
     :type num_div: int
 
-    :arg resnum_tick_labels: residue number labels for each chain 
-        to be used instead of num_div
-    :type resnum_tick_labels: list
+    :arg resnum_tick_labels: residue number labels in place of num_div.
+         A list can be used to set the same labels on all chains or 
+         a dictionary of lists to set different labels for each chain
+    :type resnum_tick_labels: list or dictionary
 
     :arg add_last_resi: whether to add a label for the last residue
         default False
@@ -1444,7 +1449,8 @@ def showPlot(y,**kwargs):
 
     outer = GridSpec(1, 2, width_ratios = [16, 4], hspace=0., wspace=0.)
 
-    gs = GridSpecFromSubplotSpec(nrows, 1, subplot_spec = outer[0], height_ratios=height_ratios, hspace=0., wspace=0.)
+    gs = GridSpecFromSubplotSpec(nrows, 1, subplot_spec = outer[0], \
+                                 height_ratios=height_ratios, hspace=0., wspace=0.)
 
     gs_legend = GridSpecFromSubplotSpec(1, 1, subplot_spec = outer[1], hspace=0., wspace=0.)
     
@@ -1455,12 +1461,17 @@ def showPlot(y,**kwargs):
         ax2 = plt.subplot(gs[1])
 
         resnum_tick_locs = []
+        resnum_tick_labels_list = []
+
         if resnum_tick_labels is None:
             resnum_tick_labels = []
-            already_set_labels = False
+            user_set_labels = False
+        elif type(resnum_tick_labels) is list:
+            user_set_labels = list
+        elif type(resnum_tick_labels) is dict:
+            user_set_labels = dict
         else:
-            resnum_tick_labels = resnum_tick_labels * atoms.numChains()
-            already_set_labels = True
+            raise TypeError('The resnum tick labels should be a list or dictionary of lists')
 
         n = 0
         chain_colors = 'gcmyrwbk'
@@ -1471,13 +1482,20 @@ def showPlot(y,**kwargs):
                                      '-', linewidth=3, color=chain_colors[n], label=str(i))
             chain_handles.append(chain_handle)
 
-            if not already_set_labels:
+            if not user_set_labels:
                 for j in range(num_div):
                     resnum_tick_locs.append(i.getResindices()[i.numAtoms()/num_div*j])
                     resnum_tick_labels.append(i.getResnums()[i.numAtoms()/num_div*j])
-            else:
+            elif user_set_labels is list:
                 for j in resnum_tick_labels:
-                    resnum_tick_locs.append(i.getResindices()[np.where(i.getResnums() == j)])
+                    resnum_tick_locs.append(i.getResindices()[np.where(i.getResnums() == j)[0][0]])
+                    resnum_tick_labels_list.append(j)
+            else:
+                for k in resnum_tick_labels.keys():
+                    if i.getChids()[0] == k:
+                       for j in resnum_tick_labels[k]: 
+                           resnum_tick_locs.append(i.getResindices()[np.where(i.getResnums() == j)[0][0]])
+                           resnum_tick_labels_list.append(j)
 
             n += 1
  
@@ -1485,17 +1503,21 @@ def showPlot(y,**kwargs):
         plt.legend(handles=chain_handles, loc=2, bbox_to_anchor=(0.25, 1))
         ax3.axis('off')
 
+        if not user_set_labels:
+            resnum_tick_labels_list = resnum_tick_labels
+
         if add_last_resi:
             resnum_tick_locs.append(atoms.getResindices()[-1])
             resnum_tick_labels.append(atoms.getResnums()[-1])
 
         resnum_tick_locs = np.array(resnum_tick_locs)
-        resnum_tick_labels = np.array(resnum_tick_labels)
+        resnum_tick_labels = np.array(resnum_tick_labels_list)
 
         ax1.set_xticks([])
 
         ax2.set_xticks(resnum_tick_locs)
         ax2.set_xticklabels(resnum_tick_labels)
+        ax2.tick_params(labelsize=6)
         ax2.set_yticks([])
 
         ax2.set_xlim([-0.5, len(y)+0.5])
