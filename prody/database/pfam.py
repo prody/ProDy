@@ -50,7 +50,7 @@ def searchPfam(query, **kwargs):
     chain identifier.  UniProt ID of the specified chain, or the first
     protein chain will be used for searching the Pfam database."""
 
-    prefix = '{http://pfam.xfam.org/}'
+    prefix = '{https://pfam.xfam.org/}'
     query = str(query)
     if isfile(query):
         from prody.sequence import MSAFile
@@ -76,13 +76,21 @@ def searchPfam(query, **kwargs):
         fseq = '>Seq\n' + seq
         parameters = { 'hmmdb' : 'pfam', 'seq': fseq }
         enc_params = urllib.urlencode(parameters).encode('utf-8')
-        request = urllib2.Request('http://www.ebi.ac.uk/Tools/hmmer/search/hmmscan', enc_params)
+        request = urllib2.Request('https://www.ebi.ac.uk/Tools/hmmer/search/hmmscan', enc_params)
 
-        url = ( urllib2.urlopen(request).geturl() + '?output=xml') 
+        results_url = urllib2.urlopen(request).getheader('location')
+
+        res_params = { 'output' : 'xml' }
+        enc_res_params = urllib.urlencode(res_params)
+        modified_res_url = results_url + '?' + enc_res_params
+
+        result_request = urllib2.Request(modified_res_url) 
+        # url = ( urllib2.urlopen(request).geturl() + '?output=xml') 
         LOGGER.debug('Submitted Pfam search for sequence "{0}...".'
                      .format(seq[:MINSEQLEN]))
 
-        xml = openURL(url, timeout=timeout).read()
+        xml = urllib2.urlopen(result_request).read()
+        # openURL(url, timeout=timeout).read()
         
         try:
             root = ET.XML(xml)
