@@ -1400,9 +1400,24 @@ def showPlot(y,**kwargs):
 
     """
     TBF
-    """
 
+    :arg num_div: the number of divisions for each chain
+        default 2
+    :type num_div: int
+
+    :arg resnum_tick_labels: residue number labels for each chain 
+        to be used instead of num_div
+    :type resnum_tick_labels: list
+
+    :arg add_last_resi: whether to add a label for the last residue
+        default False
+    :type add_last_resi: bool
+    """
     atoms = kwargs.pop('atoms',None)
+
+    num_div = kwargs.pop('num_div',2)
+    resnum_tick_labels = kwargs.pop('resnum_tick_labels',None)
+    add_last_resi = kwargs.pop('add_last_resi',False)
 
     import matplotlib.pyplot as plt
     from matplotlib import cm
@@ -1438,10 +1453,16 @@ def showPlot(y,**kwargs):
 
     if nrows > 1:
         ax2 = plt.subplot(gs[1])
-       
-        n = 0
+
         resnum_tick_locs = []
-        resnum_tick_labels = []
+        if resnum_tick_labels is None:
+            resnum_tick_labels = []
+            already_set_labels = False
+        else:
+            resnum_tick_labels = resnum_tick_labels * atoms.numChains()
+            already_set_labels = True
+
+        n = 0
         chain_colors = 'gcmyrwbk'
         chain_handles = []
         for i in atoms.getHierView().iterChains():
@@ -1450,9 +1471,13 @@ def showPlot(y,**kwargs):
                                      '-', linewidth=3, color=chain_colors[n], label=str(i))
             chain_handles.append(chain_handle)
 
-            for j in range(2):
-                resnum_tick_locs.append(i.getResindices()[i.numAtoms()/2*j])
-                resnum_tick_labels.append(i.getResnums()[i.numAtoms()/2*j])
+            if not already_set_labels:
+                for j in range(num_div):
+                    resnum_tick_locs.append(i.getResindices()[i.numAtoms()/num_div*j])
+                    resnum_tick_labels.append(i.getResnums()[i.numAtoms()/num_div*j])
+            else:
+                for j in resnum_tick_labels:
+                    resnum_tick_locs.append(i.getResindices()[np.where(i.getResnums() == j)])
 
             n += 1
  
@@ -1460,8 +1485,9 @@ def showPlot(y,**kwargs):
         plt.legend(handles=chain_handles, loc=2, bbox_to_anchor=(0.25, 1))
         ax3.axis('off')
 
-        resnum_tick_locs.append(i.getResindices()[-1])
-        resnum_tick_labels.append(i.getResnums()[-1])
+        if add_last_resi:
+            resnum_tick_locs.append(atoms.getResindices()[-1])
+            resnum_tick_labels.append(atoms.getResnums()[-1])
 
         resnum_tick_locs = np.array(resnum_tick_locs)
         resnum_tick_labels = np.array(resnum_tick_labels)
