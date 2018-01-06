@@ -1244,6 +1244,10 @@ def showMatrix(matrix=None, x_array=None, y_array=None, **kwargs):
     :arg add_last_resi: whether to add a label for the last residue
         default False
     :type add_last_resi: bool
+
+    :arg label_size: size for resnum labels
+        default is 6, which works well for 4 residues on 4 chains
+    :type label_size: int
     """ 
 
     num_div = kwargs.pop('num_div',2)
@@ -1300,7 +1304,7 @@ def showMatrix(matrix=None, x_array=None, y_array=None, **kwargs):
     left_index = (i,j-1)
     right_index = (i,j+1)
 
-    outer = GridSpec(1, 3, width_ratios = [sum(width_ratios), 1, 4], hspace=0., wspace=0.3) 
+    outer = GridSpec(1, 3, width_ratios = [sum(width_ratios), 1, 4], hspace=0., wspace=0.2) 
 
     gs = GridSpecFromSubplotSpec(nrow, ncol-2, subplot_spec = outer[0], width_ratios=width_ratios,
                                  height_ratios=height_ratios, hspace=0., wspace=0.)
@@ -1319,6 +1323,8 @@ def showMatrix(matrix=None, x_array=None, y_array=None, **kwargs):
             raise TypeError('atoms must be an AtomGroup instance')
     
     cmap = kwargs.pop('cmap', 'jet')
+    label_size = kwargs.pop('label_size', 6)
+
     ax1 = ax2 = ax3 = im = ax4 = ax5 = ax6 = None
     if nrow > 2:
         y1 = x_array
@@ -1420,13 +1426,14 @@ def showMatrix(matrix=None, x_array=None, y_array=None, **kwargs):
 
         ax5.set_xticks(resnum_tick_locs)
         ax5.set_xticklabels(resnum_tick_labels)
-        ax5.tick_params(labelsize=6)
+        ax5.tick_params(labelsize=label_size)
         ax5.set_yticks([])
 
         ax6.set_xticks([])
         ax6.yaxis.tick_right()
         ax6.set_yticks(resnum_tick_locs)
         ax6.set_yticklabels(resnum_tick_labels)
+        ax6.tick_params(labelsize=label_size)
 
         ax5.set_xlim([-0.5, len(matrix)+0.5])
         ax6.set_ylim([-0.5, len(matrix)+0.5])
@@ -1457,12 +1464,17 @@ def showPlot(y,**kwargs):
     :arg add_last_resi: whether to add a label for the last residue
         default False
     :type add_last_resi: bool
+
+    :arg label_size: size for resnum labels
+        default is 6, which works well for 4 residues on 4 chains
+    :type label_size: int
     """
     atoms = kwargs.pop('atoms',None)
 
     num_div = kwargs.pop('num_div',2)
     resnum_tick_labels = kwargs.pop('resnum_tick_labels',None)
     add_last_resi = kwargs.pop('add_last_resi',False)
+    label_size = kwargs.pop('label_size',6)
 
     import matplotlib.pyplot as plt
     from matplotlib import cm
@@ -1557,7 +1569,7 @@ def showPlot(y,**kwargs):
 
         ax2.set_xticks(resnum_tick_locs)
         ax2.set_xticklabels(resnum_tick_labels)
-        ax2.tick_params(labelsize=6)
+        ax2.tick_params(labelsize=label_size)
         ax2.set_yticks([])
 
         ax2.set_xlim([-0.5, len(y)+0.5])
