@@ -511,9 +511,12 @@ def showMode(mode, *args, **kwargs):
     """Show mode array using :func:`~matplotlib.pyplot.plot`."""
     
     import matplotlib.pyplot as plt
-    show_hinge = kwargs.pop('hinge', False)
-    show_zero = kwargs.pop('zero', True)
+
+    show_hinges = kwargs.pop('show_hinges', False)
+    show_zero = kwargs.pop('show_zero', True)
+    overlay_chains = kwargs.get('overlay_chains',False)
     atoms = kwargs.get('atoms',None)
+
     if not isinstance(mode, (Mode, Vector)):
         raise TypeError('mode must be a Mode or Vector instance, '
                         'not {0}'.format(type(mode)))
@@ -530,11 +533,22 @@ def showMode(mode, *args, **kwargs):
     else:
         a1d = mode._getArray()
         show = showPlot(a1d, *args, **kwargs)
-        if show_hinge and isinstance(mode, Mode):
+        if show_hinges and isinstance(mode, Mode):
             hinges = mode.getHinges()
             if hinges is not None:
                 if atoms is not None:
-                    show[0].plot(hinges, a1d[hinges], 'r*')
+                    if overlay_chains:
+                        n = 0
+                        chain_colors = 'gcmyrwbk'
+                        for i in atoms.getHierView().iterChains():
+                            for hinge in hinges:
+                                if i.getResindices()[0] < hinge < i.getResindices()[-1]:
+                                    show[0].plot(hinge - i.getResindices()[0], \
+                                                 a1d[hinge], '*', color=chain_colors[n], \
+                                                 markeredgecolor='k', markersize=10)
+                            n += 1
+                    else:
+                        show[0].plot(hinges, a1d[hinges], 'r*')
                 else:
                     show.plot(hinges, a1d[hinges], 'r*')
         if atoms is not None:
@@ -544,18 +558,18 @@ def showMode(mode, *args, **kwargs):
     if show_zero:
         if not mode.is3d():
             if atoms is not None:
-                show[0].plot(plt.xlim(), (0,0), 'r--')
+                show[0].plot(show[0].get_xlim(), (0,0), '--', color='grey')
             else:
-                show.plot(plt.xlim(), (0,0), 'r--')
+                show.plot(show.get_xlim(), (0,0), '--', color='grey')
         else:
             if atoms is not None:
-                show[0][0].plot(plt.xlim(), (0,0), 'r--')
-                show[1][0].plot(plt.xlim(), (0,0), 'r--')
-                show[2][0].plot(plt.xlim(), (0,0), 'r--')
+                show[0][0].plot(show[0][0].get_xlim(), (0,0), '--', color='grey')
+                show[1][0].plot(show[1][0].get_xlim(), (0,0), '--', color='grey')
+                show[2][0].plot(show[2][0].get_xlim(), (0,0), '--', color='grey')
             else:
-                show[0].plot(plt.xlim(), (0,0), 'r--')
-                show[1].plot(plt.xlim(), (0,0), 'r--')
-                show[2].plot(plt.xlim(), (0,0), 'r--')
+                show[0].plot(show[0].get_xlim(), (0,0), '--', color='grey')
+                show[1].plot(show[1].get_xlim(), (0,0), '--', color='grey')
+                show[2].plot(show[2].get_xlim(), (0,0), '--', color='grey')
     if SETTINGS['auto_show']:
         showFigure()
     return show
@@ -1049,7 +1063,7 @@ def showPerturbResponse(**kwargs):
        else:
            return prs_matrix, effectiveness, sensitivity, showMatrix_returns
 
-def showPerturbResponseProfiles(prs_matrix,atoms,**kwargs):
+def showPerturbResponseProfiles(prs_matrix,atoms=None,**kwargs):
     """Plot as a line graph the average response to perturbation of
     a particular residue (a row of a perturbation response matrix)
     or the average effect of perturbation of a particular residue
@@ -1102,9 +1116,6 @@ def showPerturbResponseProfiles(prs_matrix,atoms,**kwargs):
         default is False
     :type returnProfiles: bool
     """
-    import matplotlib.pyplot as plt
-    import matplotlib
-
     model = kwargs.get('model')
     if not type(prs_matrix) is np.ndarray:
         if prs_matrix is None:
@@ -1139,7 +1150,6 @@ def showPerturbResponseProfiles(prs_matrix,atoms,**kwargs):
 
     resnum = kwargs.get('resnum', None)
     direction = kwargs.get('direction','effect')
-    overlay = kwargs.get('overlay',False)
 
     if resnum is not None: 
         timesNotFound = 0
@@ -1172,33 +1182,14 @@ def showPerturbResponseProfiles(prs_matrix,atoms,**kwargs):
             effectiveness, sensitivity = calcPerturbResponseProfiles(prs_matrix)
         profiles = [effectiveness, sensitivity]
 
-    chain_colors = 'gcmyrwbk'
-    borders = [0]
-    for n in range(len(list(hv))):
-        borders.append(borders[n] + len(list(hv)[n].getResnums()))
-
     for profile in profiles:
-        plt.figure()
-        for n in range(len(borders)-1):
-            if not overlay:
-                plt.plot(range(borders[n],borders[n+1]), \
-                         profile[borders[n]:borders[n+1]], \
-                         color=chain_colors[n])
-            else:
-                plt.plot(atoms.getResnums()[borders[0]:borders[1]], \
-                         profile[borders[n]:borders[n+1]], \
-                         color=chain_colors[n])
-
-        if not overlay:
-            plt.axis([0,borders[-1],0,np.max(profile)])
-        else:
-            plt.axis([atoms.getResnums()[borders[0]],atoms.getResnums()[borders[1]-1],0,np.max(profile)])
+        show = showPlot(profile,atoms=atoms,**kwargs)
 
     returnData = kwargs.get('returnData',False)
     if returnData:
-        return profiles
+        return show, profiles
     else:
-        return
+        return show
 
 def showMatrix(matrix=None, x_array=None, y_array=None, **kwargs):
     """Show a matrix using :meth:`~matplotlib.axes.Axes.imshow`. Curves on x- and y-axis can be added.
@@ -1468,8 +1459,18 @@ def showPlot(y,**kwargs):
     :arg label_size: size for resnum labels
         default is 6, which works well for 4 residues on 4 chains
     :type label_size: int
+
+    :arg overlay_chains: overlay the chains rather than having them one after another
+        default False
+    :type overlay_chains: bool
+
+    :arg domain_bar: color the bar at the bottom by domains rather than chains
+        default False
+    :type domain_bar: bool
     """
     atoms = kwargs.pop('atoms',None)
+    overlay_chains = kwargs.pop('overlay_chains',False)
+    domain_bar = kwargs.pop('domain_bar',False)
 
     num_div = kwargs.pop('num_div',2)
     resnum_tick_labels = kwargs.pop('resnum_tick_labels',None)
@@ -1507,7 +1508,18 @@ def showPlot(y,**kwargs):
     gs_legend = GridSpecFromSubplotSpec(1, 1, subplot_spec = outer[1], hspace=0., wspace=0.)
     
     ax1 = plt.subplot(gs[0])
-    ax1.plot(y,**kwargs)
+
+    chain_colors = 'gcmyrwbk'
+    chain_handles = []
+
+    if overlay_chains:
+        n = 0
+        for i in atoms.getHierView().iterChains():
+            chain_handle, = ax1.plot(y[i.getResindices()[0]:i.getResindices()[-1]], color=chain_colors[n], label=str(i), **kwargs)
+            chain_handles.append(chain_handle)
+            n += 1
+    else:
+        ax1.plot(y, **kwargs)
 
     if nrows > 1:
         ax2 = plt.subplot(gs[1])
@@ -1526,13 +1538,11 @@ def showPlot(y,**kwargs):
             raise TypeError('The resnum tick labels should be a list or dictionary of lists')
 
         n = 0
-        chain_colors = 'gcmyrwbk'
-        chain_handles = []
         for i in atoms.getHierView().iterChains():
-
-            chain_handle, = ax2.plot([i.getResindices()[0], i.getResindices()[-1]], [0, 0], \
-                                     '-', linewidth=3, color=chain_colors[n], label=str(i))
-            chain_handles.append(chain_handle)
+            if not overlay_chains:
+                chain_handle, = ax2.plot([i.getResindices()[0], i.getResindices()[-1]], [0, 0], \
+                                         '-', linewidth=3, color=chain_colors[n], label=str(i))
+                chain_handles.append(chain_handle)
 
             if not user_set_labels:
                 for j in range(num_div):
@@ -1550,6 +1560,43 @@ def showPlot(y,**kwargs):
                            resnum_tick_labels_list.append(j)
 
             n += 1
+
+        if domain_bar:
+            try:
+                atoms.getData('domain')[0]
+            except:
+                raise ValueError('A domain bar can only be generated if \
+there is domain data associated with \
+the atoms.')
+
+            borders = {}
+            for i in range(atoms.numAtoms()/atoms.numChains()):
+                if atoms.getData('domain')[i] != atoms.getData('domain')[i-1]:
+                    if i != 0:
+                        borders[atoms.getData('domain')[i-1]][-1].append(i-1)
+                    if not atoms.getData('domain')[i] in borders.keys():
+                        borders[atoms.getData('domain')[i]] = []
+                    borders[atoms.getData('domain')[i]].append([])
+                    borders[atoms.getData('domain')[i]][-1].append(i)
+
+            hsv = plt.get_cmap('hsv')
+            colors = hsv(np.linspace(0, 1.0, len(borders.keys())))
+
+            for chain in atoms.getHierView().iterChains():
+                domains_found = []
+                for i in range(chain.numAtoms()):
+                    if not atoms.getData('domain')[i] in domains_found and str(atoms.getData('domain')[i]) is not '':
+                        n = 0
+                        for j in borders[atoms.getData('domain')[i]]:
+                            m = 0
+                            if m == 0:
+                                domain_handle, = ax2.plot([j[0], j[-1]], [0, 0], '-', linewidth=3, \
+                                                          color=colors[n], label=str(atoms.getData('domain')[i]))
+                                chain_handles.append(domain_handle)
+                            else:
+                                ax2.plot([j[0], j[-1]], [0, 0], '-', linewidth=3, color=colors[n])
+                            m += 1
+                        n += 1
  
         ax3 = plt.subplot(gs_legend[-1])
         plt.legend(handles=chain_handles, loc=2, bbox_to_anchor=(0.25, 1))
@@ -1567,12 +1614,15 @@ def showPlot(y,**kwargs):
 
         ax1.set_xticks([])
 
+        if overlay_chains:
+            ax1.set_xlim(-0.5,atoms.numAtoms()/atoms.numChains()+0.5)
+
         ax2.set_xticks(resnum_tick_locs)
         ax2.set_xticklabels(resnum_tick_labels)
         ax2.tick_params(labelsize=label_size)
         ax2.set_yticks([])
 
-        ax2.set_xlim([-0.5, len(y)+0.5])
+        ax2.set_xlim(ax1.get_xlim())
 
     if atoms is not None:
         return ax1, ax2, ax3
