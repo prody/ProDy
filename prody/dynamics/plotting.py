@@ -221,9 +221,11 @@ def showProjection(ensemble, modes, *args, **kwargs):
 
     import matplotlib.pyplot as plt
 
+    cmap = kwargs.pop('cmap', plt.cm.jet)
+
     if kwargs.pop('new_fig', True):
         plt.figure()
-    projection = calcProjection(ensemble, modes, kwargs.pop('rmsd', True), kwargs.pop('norm', True))
+    projection = calcProjection(ensemble, modes, kwargs.pop('rmsd', True))
 
     if projection.ndim == 1 or projection.shape[1] == 1:
         show = plt.hist(projection.flatten(), *args, **kwargs)
@@ -275,7 +277,7 @@ def showProjection(ensemble, modes, *args, **kwargs):
 
     modes = [m for m in modes]
     if len(modes) == 2:
-        plot = plt.plot
+        plot = plt.scatter
         show = plt.gcf()
         text = plt.text
     else:
@@ -305,7 +307,7 @@ def showProjection(ensemble, modes, *args, **kwargs):
         else:
             kwargs.pop('label', None)
 
-        plot(*(list(projection[indices].T) + args), **kwargs)
+        plot(*(list(projection[indices].T) + args), cmap=cmap, **kwargs)
 
     if texts:
         kwargs = {}
