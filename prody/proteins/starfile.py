@@ -84,6 +84,9 @@ def parseSTAR(filename):
                 fieldCounter += 1
             dataItemsCounter += 1
 
+        elif line.startswith('#'):
+            pass
+
         else:
             raise TypeError('This file does not conform to the STAR file format.' \
                             'There is a problem with line {0}:\n {1}'.format(lineNumber, line))
