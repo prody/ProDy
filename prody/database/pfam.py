@@ -188,7 +188,6 @@ def searchPfam(query, **kwargs):
             raise ValueError('failed to parse results XML, check URL: ' + url)
     else:
 	key = '{' + root.items()[1][1].split()[0] + '}'
-	print key
         results = dictElement(root[0], key)
         try:
             xml_matches = results['matches']
