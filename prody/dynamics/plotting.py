@@ -955,13 +955,13 @@ def showPerturbResponse(**kwargs):
     :class:`.AtomGroup` instance.
 
     :arg prs_matrix: a perturbation response matrix
-    :type prs_matrix: ndarray
+    :type prs_matrix: array
 
     :arg effectiveness: an effectiveness profile from a PRS matrix
-    :type effectiveness: list
+    :type effectiveness: array
 
     :arg sensitivity: a sensitivity profile from a PRS matrix
-    :type sensitivity: list
+    :type sensitivity: array
 
     :arg model: any object with a calcCovariance method
         e.g. :class:`.ANM` instance
@@ -974,66 +974,67 @@ def showPerturbResponse(**kwargs):
         default is False
     :type returnData: bool
 	
-	:arg percentile: percentile argument for showMatrix
-	:type percentile: float
+    :arg percentile: percentile argument for showMatrix
+    :type percentile: float
+
+    Return values are prs_matrix, effectiveness, sensitivity, ax1, ax2, im, ax3, ax4
+    The PRS matrix, effectiveness and sensitivity will not be returned if provided. 
+    If returnData is False then only the last five objects are returned.
     """
 
     import matplotlib.pyplot as plt
     import matplotlib
 
     prs_matrix = kwargs.get('prs_matrix')
-    model = kwargs.get('model')
-    if prs_matrix is None: 
-        if model is None:
-            raise ValueError('Please provide a PRS matrix or model.')
-        else:
-            if kwargs.get('normMatrix') is None:
-                kwargs.set('normMatrix',True)
-            prs_matrix = calcPerturbResponse(**kwargs)
-
     effectiveness = kwargs.get('effectiveness')
     sensitivity = kwargs.get('sensitivity')
-    if effectiveness is None:
-        effectiveness, sensitivity = calcPerturbResponseProfiles(prs_matrix)
-
-    percentile = kwargs.get('percentile')
-    if percentile is None:
-        ax1, ax2, im, ax4 = showMatrix(prs_matrix, sensitivity, effectiveness)
-    else:
-        ax1, ax2, im, ax4 = showMatrix(prs_matrix, sensitivity, effectiveness, percentile=percentile)
-    
+    model = kwargs.pop('model')
     atoms = kwargs.get('atoms')
-    if atoms is not None:
+    returnData = kwargs.pop('returnData',False)
+
+    if atoms is None:
+
+        if prs_matrix is None:
+            if model is None:
+                raise ValueError('Please provide a PRS matrix or model.')
+            else:
+                prs_matrix = calcPerturbResponse(model=model)
+
+        if effectiveness is None or sensitivity is None:
+            effectiveness, sensitivity = calcPerturbResponseProfiles(prs_matrix)
+        else:
+            returnData = False
+
+        showMatrix_returns = showMatrix(prs_matrix, effectiveness, sensitivity, **kwargs)
+
+    else:
         if not isinstance(atoms, AtomGroup) and not isinstance(atoms, Selection):
             raise TypeError('atoms must be an AtomGroup instance')
         elif model is not None and atoms.numAtoms() != model.numAtoms():
             raise ValueError('model and atoms must have the same number atoms')
 
-        ax1_xlim_left, ax1_xlim_right = ax1.get_xlim()
-        ax1_ylim_bottom, ax1_ylim_top = ax1.get_ylim()
+        if prs_matrix is None: 
+            if model is None:
+                raise ValueError('Please provide a PRS matrix or model.')
+            atoms, prs_matrix = calcPerturbResponse(model=model,atoms=atoms)
 
-        for i in atoms.getHierView().iterChains():
-            ax1.plot([i.getResindices()[0], i.getResindices()[-1]], [ax1_ylim_top*1.5, ax1_ylim_top*1.5], '-', linewidth=3)
+        if effectiveness is None or sensitivity is None:
+            atoms, effectiveness, sensitivity = calcPerturbResponseProfiles(prs_matrix,atoms)
 
-        ax1.autoscale()
-        ax1.set_xlim(ax1_xlim_left, ax1_xlim_right)
+        showMatrix_returns = showMatrix(prs_matrix, effectiveness, sensitivity, **kwargs)
 
-        ax2_xlim_left, ax2_xlim_right = ax2.get_xlim()
-        ax2_ylim_bottom, ax2_ylim_top = ax2.get_ylim()
-
-        for i in atoms.getHierView().iterChains():
-            ax2.plot([ax2_xlim_left*1.5, ax2_xlim_left*1.5], [i.getResindices()[0], i.getResindices()[-1]], '-', linewidth=3)
-
-        ax2.autoscale()
-        ax2.set_ylim(ax2_ylim_bottom, ax2_ylim_top)
-
-        returnData = kwargs.get('returnData',False)
-        if not returnData:
-            return
-        elif kwargs.get('prs_matrix') is not None:
-            return effectiveness, sensitivity
-        else:
-            return prs_matrix, effectiveness, sensitivity
+    if not returnData:
+        return showMatrix_returns
+    elif kwargs.get('prs_matrix') is not None:
+       if atoms is not None:
+           return atoms, effectiveness, sensitivity, showMatrix_returns
+       else:
+           return effectiveness, sensitivity, showMatrix_returns
+    else:
+       if atoms is not None:
+           return atoms, prs_matrix, effectiveness, sensitivity, showMatrix_returns
+       else:
+           return prs_matrix, effectiveness, sensitivity, showMatrix_returns
 
 def showPerturbResponseProfiles(prs_matrix,atoms,**kwargs):
     """Plot as a line graph the average response to perturbation of
@@ -1204,9 +1205,15 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
 
     :arg percentile: A percentile threshold to remove outliers, i.e. only showing data within *p*-th 
                      to *100-p*-th percentile.
-    :type percentile: float"""
+    :type percentile: float
 
-    import matplotlib.pyplot as mpl
+    :arg atoms: a :class: `AtomGroup` instance for matching 
+        residue numbers and chain IDs. 
+    :type atoms: :class: `AtomGroup`
+
+    """
+
+    import matplotlib.pyplot as plt
     from matplotlib import cm
     from matplotlib.gridspec import GridSpec, GridSpecFromSubplotSpec
     from matplotlib.collections import LineCollection
@@ -1221,96 +1228,135 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
     
     W = 8
     H = 8
-
-    curve_axes = None
+    aspect = 'auto'
 
     if x_array is not None and y_array is not None:
-        nrow = 2; ncol = 2
+        nrow = 3; ncol = 3
         i = 1; j = 1
-        width_ratios = [1, W]
-        height_ratios = [1, H]
-        aspect = 'auto'
+        width_ratios = [1, W, 0.2]
+        height_ratios = [1, H, 0.2]
     elif x_array is not None and y_array is None:
-        nrow = 2; ncol = 1
+        nrow = 3; ncol = 2
         i = 1; j = 0
-        width_ratios = [W]
-        height_ratios = [1, H]
-        aspect = 'auto'
+        width_ratios = [W, 0.2]
+        height_ratios = [1, H, 0.2]
     elif x_array is None and y_array is not None:
-        nrow = 1; ncol = 2
+        nrow = 2; ncol = 3
         i = 0; j = 1
-        width_ratios = [1, W]
-        height_ratios = [H]
-        aspect = 'auto'
+        width_ratios = [1, W, 0.2]
+        height_ratios = [H, 0.2]
     else:
-        nrow = 1; ncol = 1
+        nrow = 2; ncol = 2
         i = 0; j = 0
-        width_ratios = [W]
-        height_ratios = [H]
-        aspect = None
+        width_ratios = [W, 0.2]
+        height_ratios = [H, 0.2]
 
     main_index = (i,j)
     upper_index = (i-1,j)
+    lower_index = (i+1,j)
     left_index = (i,j-1)
+    right_index = (i,j+1)
 
     outer = GridSpec(1, 2, width_ratios = [15, 1], hspace=0.) 
     gs = GridSpecFromSubplotSpec(nrow, ncol, subplot_spec = outer[0], width_ratios=width_ratios,
                     height_ratios=height_ratios, hspace=0., wspace=0.)
 
-    gs_bar = GridSpecFromSubplotSpec(nrow, 1, subplot_spec = outer[1], height_ratios=height_ratios, hspace=0., wspace=0.)
+    gs_bar = GridSpecFromSubplotSpec(nrow-1, 1, subplot_spec = outer[1], height_ratios=height_ratios[:-1], hspace=0., wspace=0.)
 
     new_fig = kwargs.pop('new_fig', True)
 
     if new_fig:
-        mpl.figure()
+        plt.figure()
     axes = []
-    
-    ax1 = ax2 = ax3 = im = ax4 = None
-    if nrow > 1:
-        ax1 = mpl.subplot(gs[upper_index])
-        ax1.set_xticklabels([])
-        
-        y = x_array
-        x = np.arange(len(y))
-        points = np.array([x, y]).T.reshape(-1, 1, 2)
-        segments = np.concatenate([points[:-1], points[1:]], axis=1)
-        cmap = cm.jet(y)
-        lc = LineCollection(segments, array=y, linewidths=1, cmap='jet')
-        ax1.add_collection(lc)
 
-        ax1.set_xlim(x.min(), x.max())
-        ax1.set_ylim(y.min(), y.max())
+    atoms = kwargs.pop('atoms', None)
+    if atoms is not None:
+        if not isinstance(atoms, AtomGroup) and not isinstance(atoms, Selection):
+            raise TypeError('atoms must be an AtomGroup instance')
+    
+    cmap = kwargs.pop('cmap', 'jet')
+    ax1 = ax2 = ax3 = im = ax4 = ax5 = ax6 = None
+    if nrow > 2:
+        y1 = x_array
+        x1 = np.arange(len(y1))
+        ax1 = plt.subplot(gs[upper_index])
+        points1 = np.array([x1, y1]).T.reshape(-1, 1, 2)
+        segments1 = np.concatenate([points1[:-1], points1[1:]], axis=1)
+        lc1 = LineCollection(segments1, array=y1, linewidths=1, cmap=cmap)
+        ax1.add_collection(lc1)
+
+        ax1.set_xlim(x1.min(), x1.max())
+        ax1.set_ylim(y1.min(), y1.max())
         ax1.axis('off')
 
-    if ncol > 1:
-        ax2 = mpl.subplot(gs[left_index])
-        ax2.set_xticklabels([])
-        
-        y = y_array
-        x = np.arange(len(y))
-        points = np.array([y, x]).T.reshape(-1, 1, 2)
-        segments = np.concatenate([points[:-1], points[1:]], axis=1)
-        cmap = cm.jet(y)
-        lc = LineCollection(segments, array=y, linewidths=1, cmap='jet')
-        ax2.add_collection(lc)
+    if ncol > 2:
+        x2 = y_array
+        y2 = np.arange(len(x2))
+        ax2 = plt.subplot(gs[left_index])
+        points2 = np.array([x2, y2]).T.reshape(-1, 1, 2)
+        segments2 = np.concatenate([points2[:-1], points2[1:]], axis=1)
+        lc2 = LineCollection(segments2, array=x2, linewidths=1, cmap=cmap)
+        ax2.add_collection(lc2)
 
-        ax2.set_xlim(y.min(), y.max())
-        ax2.set_ylim(x.min(), x.max())
+        ax2.set_xlim(x2.min(), x2.max())
+        ax2.set_ylim(y2.min(), y2.max())
         ax2.axis('off')
         ax2.invert_xaxis()
 
-    ax3 = mpl.subplot(gs[main_index])
-    cmap = kwargs.pop('cmap', 'jet')
+    ax3 = plt.subplot(gs[main_index])
     im = imshow(matrix, aspect=aspect, vmin=vmin, vmax=vmax, cmap=cmap, **kwargs)
     ax3.set_xlim([-0.5, len(matrix)+0.5])
     ax3.set_ylim([-0.5, len(matrix)+0.5])
-    if ncol > 1:
-        ax3.set_yticklabels([])
+    ax3.yaxis.tick_right()
 
-    ax4 = mpl.subplot(gs_bar[-1])
-    mpl.colorbar(cax=ax4)
+    ax4 = plt.subplot(gs_bar[-1])
+    plt.colorbar(cax=ax4)
+ 
+    if atoms is not None:
+
+        # Add bars along the bottom and right that are colored by chain and numbered with residue
+
+        ax5 = plt.subplot(gs[lower_index])
+        ax6 = plt.subplot(gs[right_index])
+
+        n = 0
+        resnum_tick_locs = []
+        resnum_tick_labels = []
+        chain_colors = 'gcmyrwbk'
+        for i in atoms.getHierView().iterChains():
+            ax5.plot([i.getResindices()[0], i.getResindices()[-1]], [0, 0], \
+                     '-', linewidth=3, color=chain_colors[n])
+
+            ax6.plot([0,0], [np.flip(i.getResindices(),0)[0], np.flip(i.getResindices(),0)[-1]], \
+                     '-', linewidth=3, color=chain_colors[n])
+
+            for j in range(2):
+                resnum_tick_locs.append(i.getResindices()[i.numAtoms()/2*j])
+                resnum_tick_labels.append(i.getResnums()[i.numAtoms()/2*j])
+
+            n += 1
+
+        resnum_tick_locs.append(i.getResindices()[-1])
+        resnum_tick_labels.append(i.getResnums()[-1])
+
+        resnum_tick_locs = np.array(resnum_tick_locs)
+        resnum_tick_labels = np.array(resnum_tick_labels)
+
+        ax3.axis('off')
+
+        ax5.set_xticks(resnum_tick_locs)
+        ax5.set_xticklabels(resnum_tick_labels)
+        ax5.set_yticks([])
+
+        ax6.set_xticks([])
+        ax6.yaxis.tick_right()
+        ax6.set_yticks(resnum_tick_locs)
+        ax6.set_yticklabels(resnum_tick_labels)
+
+        ax5.set_xlim([-0.5, len(matrix)+0.5])
+        ax6.set_ylim([-0.5, len(matrix)+0.5])
 
     if SETTINGS['auto_show']:
         showFigure()
 
-    return ax1, ax2, im, ax4
+    return ax1, ax2, im, ax3, ax4, ax5, ax6
