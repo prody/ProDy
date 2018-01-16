@@ -130,29 +130,30 @@ def searchPfam(query, **kwargs):
                             .format(seq[:4], str(err)))
             else:
                 chid = seq[4:].upper()
-                for poly in polymers:
-                    if chid and poly.chid != chid:
+ 
+            for poly in polymers:
+                if chid and poly.chid != chid:
+                    continue
+                for dbref in poly.dbrefs:
+                    if dbref.database != 'UniProt':
                         continue
-                    for dbref in poly.dbrefs:
-                        if dbref.database != 'UniProt':
-                            continue
-                        idcode = dbref.idcode
-                        LOGGER.info('UniProt ID code {0} for {1} chain '
-                                    '{2} will be used.'
-                                    .format(idcode, seq[:4], poly.chid))
-                        break
-                    if idcode is not None:
-                        break
+                    idcode = dbref.idcode
+                    LOGGER.info('UniProt ID code {0} for {1} chain '
+                                '{2} will be used.'
+                                .format(idcode, seq[:4], poly.chid))
+                    break
+                if idcode is not None:
+                    break
             if idcode is None:
                 LOGGER.warn('A UniProt ID code for PDB {0} could not be '
                             'parsed.'.format(repr(seq)))
-                url = 'http://pfam.xfam.org/protein/' + seq + '?output=xml'
+                url = 'https://pfam.xfam.org/protein/' + seq + '?output=xml'
             else:
-                url = ('http://pfam.xfam.org/protein/' +
+                url = ('https://pfam.xfam.org/protein/' +
                        idcode + '?output=xml')
 
         else:
-            url = 'http://pfam.xfam.org/protein/' + seq + '?output=xml'
+            url = 'https://pfam.xfam.org/protein/' + seq + '?output=xml'
 
     LOGGER.debug('Retrieving Pfam search results: ' + url)
     xml = None
@@ -186,7 +187,9 @@ def searchPfam(query, **kwargs):
         except IndexError:
             raise ValueError('failed to parse results XML, check URL: ' + url)
     else:
-        results = dictElement(root[0], prefix)
+	key = '{' + root.items()[1][1].split()[0] + '}'
+	print key
+        results = dictElement(root[0], key)
         try:
             xml_matches = results['matches']
         except KeyError:
