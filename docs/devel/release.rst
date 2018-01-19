@@ -75,16 +75,15 @@ How to Make a Release
    If this command runs for all supported Python versions, release is good
    to go.
 
-#. Register new release to PyPI::
+#. Put all installation source and executable in dist directory. 
 
-     $ python setup.py register
+#. Upload the new release files to the PyPI_ using twine::
+
+     $ twine upload dist/*
+
 
    This will offer a number of options. ProDy on PyPI is owned by user
    ``prody.devel``.
-
-
-#. Upload the new release files to the PyPI_.
-
 
 #. Commit final changes, if there are any::
 

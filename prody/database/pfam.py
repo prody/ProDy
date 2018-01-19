@@ -50,7 +50,7 @@ def searchPfam(query, **kwargs):
     chain identifier.  UniProt ID of the specified chain, or the first
     protein chain will be used for searching the Pfam database."""
 
-    prefix = '{http://pfam.xfam.org/}'
+    prefix = '{https://pfam.xfam.org/}'
     query = str(query)
     if isfile(query):
         from prody.sequence import MSAFile
@@ -76,13 +76,21 @@ def searchPfam(query, **kwargs):
         fseq = '>Seq\n' + seq
         parameters = { 'hmmdb' : 'pfam', 'seq': fseq }
         enc_params = urllib.urlencode(parameters).encode('utf-8')
-        request = urllib2.Request('http://www.ebi.ac.uk/Tools/hmmer/search/hmmscan', enc_params)
+        request = urllib2.Request('https://www.ebi.ac.uk/Tools/hmmer/search/hmmscan', enc_params)
 
-        url = ( urllib2.urlopen(request).geturl() + '?output=xml') 
+        results_url = urllib2.urlopen(request).getheader('location')
+
+        res_params = { 'output' : 'xml' }
+        enc_res_params = urllib.urlencode(res_params)
+        modified_res_url = results_url + '?' + enc_res_params
+
+        result_request = urllib2.Request(modified_res_url) 
+        # url = ( urllib2.urlopen(request).geturl() + '?output=xml') 
         LOGGER.debug('Submitted Pfam search for sequence "{0}...".'
                      .format(seq[:MINSEQLEN]))
 
-        xml = openURL(url, timeout=timeout).read()
+        xml = urllib2.urlopen(result_request).read()
+        # openURL(url, timeout=timeout).read()
         
         try:
             root = ET.XML(xml)
@@ -122,29 +130,30 @@ def searchPfam(query, **kwargs):
                             .format(seq[:4], str(err)))
             else:
                 chid = seq[4:].upper()
-                for poly in polymers:
-                    if chid and poly.chid != chid:
+ 
+            for poly in polymers:
+                if chid and poly.chid != chid:
+                    continue
+                for dbref in poly.dbrefs:
+                    if dbref.database != 'UniProt':
                         continue
-                    for dbref in poly.dbrefs:
-                        if dbref.database != 'UniProt':
-                            continue
-                        idcode = dbref.idcode
-                        LOGGER.info('UniProt ID code {0} for {1} chain '
-                                    '{2} will be used.'
-                                    .format(idcode, seq[:4], poly.chid))
-                        break
-                    if idcode is not None:
-                        break
+                    idcode = dbref.idcode
+                    LOGGER.info('UniProt ID code {0} for {1} chain '
+                                '{2} will be used.'
+                                .format(idcode, seq[:4], poly.chid))
+                    break
+                if idcode is not None:
+                    break
             if idcode is None:
                 LOGGER.warn('A UniProt ID code for PDB {0} could not be '
                             'parsed.'.format(repr(seq)))
-                url = 'http://pfam.xfam.org/protein/' + seq + '?output=xml'
+                url = 'https://pfam.xfam.org/protein/' + seq + '?output=xml'
             else:
-                url = ('http://pfam.xfam.org/protein/' +
+                url = ('https://pfam.xfam.org/protein/' +
                        idcode + '?output=xml')
 
         else:
-            url = 'http://pfam.xfam.org/protein/' + seq + '?output=xml'
+            url = 'https://pfam.xfam.org/protein/' + seq + '?output=xml'
 
     LOGGER.debug('Retrieving Pfam search results: ' + url)
     xml = None
@@ -178,7 +187,8 @@ def searchPfam(query, **kwargs):
         except IndexError:
             raise ValueError('failed to parse results XML, check URL: ' + url)
     else:
-        results = dictElement(root[0], prefix)
+        key = '{' + root.items()[1][1].split()[0] + '}'
+        results = dictElement(root[0], key)
         try:
             xml_matches = results['matches']
         except KeyError:
