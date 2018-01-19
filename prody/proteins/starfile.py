@@ -35,7 +35,7 @@ def parseSTAR(filename):
     currentLoop = -1
     fieldCounter = 0
     dataItemsCounter = 0
-
+    lineNumber = 0
     for line in lines:
         if line.startswith('data_'):
             currentDataBlock = line[5:].strip()
@@ -57,7 +57,7 @@ def parseSTAR(filename):
             currentField = line.strip().split()[0]
 
             if inLoop:
-                finalDictionary[currentDataBlock][currentLoop]['fields'][fieldCounter] = currentField
+                finalDictionary[currentDataBlock][currentLoop]['fields'][fieldCounter + 1] = currentField
                 dataItemsCounter = 0
             else:
                 if startingBlock:
@@ -65,7 +65,7 @@ def parseSTAR(filename):
                     finalDictionary[currentDataBlock]['data'] = {}
                     startingBlock = False
                     dataItemsCounter = 0
-                finalDictionary[currentDataBlock]['fields'][fieldCounter] = currentField
+                finalDictionary[currentDataBlock]['fields'][fieldCounter + 1] = currentField
                 finalDictionary[currentDataBlock]['data'][dataItemsCounter] = {}
                 finalDictionary[currentDataBlock]['data'][dataItemsCounter][currentField] = line.strip().split()[1]
                 dataItemsCounter += 1
@@ -79,7 +79,7 @@ def parseSTAR(filename):
             finalDictionary[currentDataBlock][currentLoop]['data'][dataItemsCounter] = {}
             fieldCounter = 0
             for fieldEntry in line.strip().split():
-                currentField = finalDictionary[currentDataBlock][currentLoop]['fields'][fieldCounter]
+                currentField = finalDictionary[currentDataBlock][currentLoop]['fields'][fieldCounter + 1]
                 finalDictionary[currentDataBlock][currentLoop]['data'][dataItemsCounter][currentField] = fieldEntry
                 fieldCounter += 1
             dataItemsCounter += 1
@@ -88,7 +88,10 @@ def parseSTAR(filename):
             pass
 
         else:
-            raise TypeError('This file does not conform to the STAR file format.')
+            raise TypeError('This file does not conform to the STAR file format.' \
+                            'There is a problem with line {0}:\n {1}'.format(lineNumber, line))
+
+        lineNumber += 1
 
     return finalDictionary
 
