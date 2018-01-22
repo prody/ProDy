@@ -107,7 +107,7 @@ def loadModel(filename):
     elif type_ == 'NMA':
         nma = NMA(title)
     else:
-        raise IOError('NMA model type is not recognized'.format(type_))
+        raise IOError('NMA model type is not recognized: {0}'.format(type_))
     dict_ = nma.__dict__
     for attr in attr_dict.files:
         if attr in ('type', '_name', '_title'):
