@@ -158,8 +158,8 @@ def calcSubspaceOverlap(modes1, modes2):
     return rmsip
 
 
-def calcCovOverlap(modelA, modelB):
-    """Returns overlap between covariances of *modelA* and *modelB*.  Overlap
+def calcCovOverlap(modes1, modes2):
+    """Returns overlap between covariances of *modes1* and *modes2*.  Overlap
     between covariances are calculated using normal modes (eigenvectors),
     hence modes in both models must have been calculated.  This function
     implements equation 11 in [BH02]_.
@@ -167,17 +167,14 @@ def calcCovOverlap(modelA, modelB):
     .. [BH02] Hess B. Convergence of sampling in protein simulations.
        *Phys Rev E* **2002** 65(3):031910."""
 
-    if modelA.is3d() ^ modelB.is3d():
+    if modes1.is3d() ^ modes2.is3d():
         raise TypeError('models must be either both 1-dimensional or 3-dimensional')
-    if len(modelA) == 0 or len(modelB) == 0:
-        raise TypeError('modes must be calculated for both models, '
-                        'try calcModes method')
-    if modelA.numAtoms() != modelB.numAtoms():
-        raise ValueError('modelA and modelB must have same number of atoms')
-    arrayA = modelA._getArray()
-    varA = modelA.getVariances()
-    arrayB = modelB._getArray()
-    varB = modelB.getVariances()
+    if modes1.numAtoms() != modes2.numAtoms():
+        raise ValueError('modes1 and modes2 must have same number of atoms')
+    arrayA = modes1._getArray()
+    varA = modes1.getVariances()
+    arrayB = modes2._getArray()
+    varB = modes2.getVariances()
 
     dotAB = np.dot(arrayA.T, arrayB)**2
     outerAB = np.outer(varA**0.5, varB**0.5)
