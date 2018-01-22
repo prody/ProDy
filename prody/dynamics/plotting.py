@@ -265,7 +265,7 @@ def showProjection(ensemble, modes, *args, **kwargs):
     elif labels is not None:
         raise TypeError('label must be a string or a list')
 
-    kwargs['ls'] = kwargs.pop('linestyle', None) or kwargs.pop('ls', 'None')
+    kwargs['linestyle'] = kwargs.pop('linestyle', None) or kwargs.pop('ls', 'None')
 
     texts = kwargs.pop('text', None)
     if texts:
