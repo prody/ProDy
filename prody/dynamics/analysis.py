@@ -22,8 +22,8 @@ from .gnm import GNMBase
 __all__ = ['calcCollectivity', 'calcCovariance', 'calcCrossCorr',
            'calcFractVariance', 'calcSqFlucts', 'calcTempFactors',
            'calcProjection', 'calcCrossProjection', 'calcPerturbResponse',
-           'calcSpecDimension', 'calcPairDeformationDist',
-           'calcEntropyTransfer', 'calcOverallNetEntropyTransfer']
+           'calcSpecDimension', 'calcPairDeformationDist']
+           #'calcEntropyTransfer', 'calcOverallNetEntropyTransfer']
 
 def calcCollectivity(mode, masses=None):
     """Returns collectivity of the mode.  This function implements collectivity
