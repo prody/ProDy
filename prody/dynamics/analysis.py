@@ -9,20 +9,23 @@ import numpy as np
 from prody import LOGGER
 from prody.proteins import parsePDB
 from prody.atomic import AtomGroup, Selection
-from prody.ensemble import Ensemble, Conformation
+from prody.ensemble import Ensemble, Conformation, trimPDBEnsemble
 from prody.trajectory import TrajBase
 from prody.utilities import importLA
-from numpy import sqrt, arange, log, polyfit, array
+from numpy import sqrt, arange, log, polyfit, array, arccos
+from Bio.Phylo.TreeConstruction import DistanceCalculator, DistanceTreeConstructor
 
 from .nma import NMA
 from .modeset import ModeSet
 from .mode import VectorBase, Mode, Vector
 from .gnm import GNMBase
+from .functions import calcENM
+from .compare import calcCovOverlap
 
 __all__ = ['calcCollectivity', 'calcCovariance', 'calcCrossCorr',
            'calcFractVariance', 'calcSqFlucts', 'calcTempFactors',
            'calcProjection', 'calcCrossProjection', 'calcPerturbResponse',
-           'calcSpecDimension', 'calcPairDeformationDist']
+           'calcSpecDimension', 'calcPairDeformationDist', 'calcOverlapTree']
            #'calcEntropyTransfer', 'calcOverallNetEntropyTransfer']
 
 def calcCollectivity(mode, masses=None):
@@ -60,7 +63,7 @@ def calcCollectivity(mode, masses=None):
             else:
                 u2in = (m.getArrayNx3() ** 2)
         u2in = u2in * (1 / u2in.sum() ** 0.5)
-        coll = np.exp(-(u2in * np.log(u2in)).sum()) / m.numAtoms()
+        coll = np.exp(-(u2in * log(u2in)).sum()) / m.numAtoms()
         colls.append(coll)
     
     if len(mode) == 1:
@@ -444,7 +447,7 @@ def calcPairDeformationDist(model, coords, ind1, ind2, kbt=1.):
     for m in xrange(6,n_modes):
         U_ij_k = [(eigvecs[ind1*3][m] - eigvecs[ind2*3][m]), (eigvecs[ind1*3+1][m] \
             - eigvecs[ind2*3+1][m]), (eigvecs[ind1*3+2][m] - eigvecs[ind2*3+2][m])] 
-        D_ij_k = abs(np.sqrt(kbt/eigvals[m])*(np.vdot(r_ij_norm[ind1][ind2], U_ij_k)))  
+        D_ij_k = abs(sqrt(kbt/eigvals[m])*(np.vdot(r_ij_norm[ind1][ind2], U_ij_k)))  
         D_pair_k.append(D_ij_k)
         mode_nr.append(m)
 
@@ -533,3 +536,57 @@ def calcPerturbResponse(model, atoms=None, repeats=100):
     np.savetxt('norm_PRS_matrix', norm_PRS_mat, delimiter='\t', fmt='%8.6f')
     return response_matrix
 
+def calcOverlapTree(ensemble, occupancy=0.9, model='gnm', trim='trim', n_modes=20):
+    """Description"""
+
+    # missing: type check
+    ## obtain the original atoms before triming
+    ori_atoms = ensemble.getAtoms().copy()
+    ori_coordsets = ensemble.getCoordsets()
+
+    ensemble = trimPDBEnsemble(ensemble, occupancy=occupancy)
+    remain_atoms = ensemble.getAtoms().copy()
+    sels = []
+    for chain in remain_atoms.iterChains():
+        chid = chain.getChid()
+        remain_indices = chain.getResindices()
+        sel = 'chain %s and '%chid + 'resindex ' + ' '.join(str(i) for i in remain_indices)
+        sels.append(sel)
+    selstr = ' or '.join(sels)
+
+    labels = ensemble.getLabels()
+
+    ### ENMs ###
+    ## ENM for every conf
+    enms = []
+    n_total_modes = 0
+    for i in range(len(ensemble)):
+        ori_atoms.setCoords(ori_coordsets[i])
+        enm, atoms = calcENM(ori_atoms, selstr, model=model, trim=trim, 
+                            n_modes=n_modes, title=labels[i])
+        n_total_modes += enm.numModes()
+        enms.append(enm)
+
+    overlaps = np.zeros((len(enms), len(enms)))
+    for i, enmi in enumerate(enms):
+        for j, enmj in enumerate(enms):
+            covlap = calcCovOverlap(enmi, enmj)
+            overlaps[i, j] = covlap
+
+    ### build tree based on similarity matrix ###
+    dist_mat = arccos(overlaps)
+
+    def _toDistanceMatrix(names, matrix):
+        from Bio.Phylo.TreeConstruction import _DistanceMatrix
+        dist_mat = []
+        n, _ = matrix.shape
+        for i in range(n):
+            dist_mat.append(matrix[i, :i+1].tolist())
+        
+        return _DistanceMatrix(names, dist_mat)
+
+    dm = _toDistanceMatrix(names=labels, matrix=dist_mat)
+    constructor = DistanceTreeConstructor()
+    tree = constructor.nj(dm)
+
+    return tree, enms, dist_mat
