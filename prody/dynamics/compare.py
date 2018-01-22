@@ -167,8 +167,8 @@ def calcCovOverlap(modelA, modelB):
     .. [BH02] Hess B. Convergence of sampling in protein simulations.
        *Phys Rev E* **2002** 65(3):031910."""
 
-    if not modelA.is3d() or not modelB.is3d():
-        raise TypeError('both models must be 3-dimensional')
+    if modelA.is3d() ^ modelB.is3d():
+        raise TypeError('models must be either both 1-dimensional or 3-dimensional')
     if len(modelA) == 0 or len(modelB) == 0:
         raise TypeError('modes must be calculated for both models, '
                         'try calcModes method')
