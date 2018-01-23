@@ -13,7 +13,6 @@ from prody.ensemble import Ensemble, Conformation, trimPDBEnsemble
 from prody.trajectory import TrajBase
 from prody.utilities import importLA
 from numpy import sqrt, arange, log, polyfit, array, arccos
-from Bio.Phylo.TreeConstruction import DistanceCalculator, DistanceTreeConstructor
 
 from .nma import NMA
 from .modeset import ModeSet
@@ -536,21 +535,29 @@ def calcPerturbResponse(model, atoms=None, repeats=100):
     np.savetxt('norm_PRS_matrix', norm_PRS_mat, delimiter='\t', fmt='%8.6f')
     return response_matrix
 
-def calcOverlapTree(ensemble, occupancy=0.9, model='gnm', trim='trim', n_modes=20):
+def calcOverlapTree(ensemble, occupancy=0.9, model='gnm', trim='trim', n_modes=20, method='nj'):
     """Description"""
 
     # missing: type check
+    try: 
+        from Bio.Phylo.TreeConstruction import DistanceCalculator, DistanceTreeConstructor
+    except ImportError:
+        raise ImportError('Phylo module could not be imported. '
+            'Reinstall ProDy or install Biopython '
+            'to solve the problem.')
+    method = method.strip().lower()
+
     ## obtain the original atoms before triming
-    ori_atoms = ensemble.getAtoms().copy()
+    ori_atoms = ensemble.getAtoms()
     ori_coordsets = ensemble.getCoordsets()
 
     ensemble = trimPDBEnsemble(ensemble, occupancy=occupancy)
-    remain_atoms = ensemble.getAtoms().copy()
+    remain_atoms = ensemble.getAtoms()
     sels = []
-    for chain in remain_atoms.iterChains():
+    for chain in remain_atoms.getHierView().iterChains():
         chid = chain.getChid()
-        remain_indices = chain.getResindices()
-        sel = 'chain %s and '%chid + 'resindex ' + ' '.join(str(i) for i in remain_indices)
+        remain_resnums = chain.getResnums()
+        sel = 'chain %s and '%chid + 'resnum ' + ' '.join(str(i) for i in remain_resnums)
         sels.append(sel)
     selstr = ' or '.join(sels)
 
@@ -559,14 +566,12 @@ def calcOverlapTree(ensemble, occupancy=0.9, model='gnm', trim='trim', n_modes=2
     ### ENMs ###
     ## ENM for every conf
     enms = []
-    n_total_modes = 0
-    for i in range(len(ensemble)):
+    for i in range(ensemble.numConfs()):
         ori_atoms.setCoords(ori_coordsets[i])
         enm, atoms = calcENM(ori_atoms, selstr, model=model, trim=trim, 
                             n_modes=n_modes, title=labels[i])
-        n_total_modes += enm.numModes()
         enms.append(enm)
-
+    
     overlaps = np.zeros((len(enms), len(enms)))
     for i, enmi in enumerate(enms):
         for j, enmj in enumerate(enms):
@@ -587,6 +592,11 @@ def calcOverlapTree(ensemble, occupancy=0.9, model='gnm', trim='trim', n_modes=2
 
     dm = _toDistanceMatrix(names=labels, matrix=dist_mat)
     constructor = DistanceTreeConstructor()
-    tree = constructor.nj(dm)
+    if method == 'nj':
+        tree = constructor.nj(dm)
+    elif method == 'upgma':
+        tree = constructor.upgma(dm)
+    else:
+        raise ValueError('Method can be only either "nj" or "upgma".')
 
     return tree, enms, dist_mat
