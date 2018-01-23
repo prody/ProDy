@@ -275,12 +275,17 @@ def showProjection(ensemble, modes, *args, **kwargs):
             raise TypeError('length of text must be {0}'.format(num))
         size = kwargs.pop('fontsize', None) or kwargs.pop('size', None)
 
+    indict = defaultdict(list)
+    for i, opts in enumerate(zip(markers, colors, labels)):  # PY3K: OK
+        indict[opts].append(i)
+
     modes = [m for m in modes]
     if len(modes) == 2:
+        kwargs['c'] = colors
         plot = plt.scatter
         show = plt.gcf()
         text = plt.text
-    else:
+    else: 
         from mpl_toolkits.mplot3d import Axes3D
         cf = plt.gcf()
         show = None
@@ -293,15 +298,14 @@ def showProjection(ensemble, modes, *args, **kwargs):
         plot = show.plot
         text = show.text
 
-    indict = defaultdict(list)
-    for i, opts in enumerate(zip(markers, colors, labels)):  # PY3K: OK
-        indict[opts].append(i)
-
     args = list(args)
     for opts, indices in indict.items():  # PY3K: OK
         marker, color, label = opts
         kwargs['marker'] = marker
-        kwargs['color'] = color
+
+        if len(modes) != 2:
+            kwargs['color'] = color
+
         if label:
             kwargs['label'] = label
         else:
@@ -586,9 +590,14 @@ def showSqFlucts(modes, *args, **kwargs):
     sqf = calcSqFlucts(modes)
     if not 'label' in kwargs:
         kwargs['label'] = str(modes)
-    show = showPlot(sqf, *args, **kwargs) 
-    show[0].set_ylabel('Square fluctuations')
-    show[0].set_title(str(modes))
+    show = showPlot(sqf, *args, **kwargs)
+    atoms = kwargs.get('atoms',None)
+    if atoms is not None:
+        show[0].set_ylabel('Square fluctuations')
+        show[0].set_title(str(modes))
+    else:
+        show.set_ylabel('Square fluctuations')
+        show.set_title(str(modes))
     if show_hinge and not modes.is3d():
         hinges = modes.getHinges()
         if hinges is not None:
