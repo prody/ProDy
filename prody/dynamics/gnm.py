@@ -602,12 +602,12 @@ class TrimedGNM(GNM):
         else:
             return self.getArray()
 
-    def alignTail(length, axis=0):
+    def fixTail(self, length):
         def _fixLength(vector, length, filled_value=0, axis=0):
             shape = vector.shape
             dim = len(shape)
 
-            if shape[axis] < l:
+            if shape[axis] < length:
                 dl = length - shape[0]
                 pad_width = []
                 for i in range(dim):
