@@ -75,7 +75,12 @@ def saveModel(nma, filename=None, matrices=False, **kwargs):
         attr_dict['type'] = 'tGNM'
         attr_dict['mask'] = nma.mask
         attr_dict['useTrimed'] = nma.useTrimed
-    filename += '.' + type_.lower() + '.npz'
+    suffix = '.' + type_.lower()
+    if not filename.lower().endswith('.npz'):
+        if not filename.lower().endswith(suffix):
+            filename += suffix + '.npz'
+        else:
+            filename += '.npz'
     ostream = openFile(filename, 'wb', **kwargs)
     np.savez(ostream, **attr_dict)
     ostream.close()
