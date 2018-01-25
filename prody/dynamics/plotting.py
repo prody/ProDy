@@ -296,7 +296,7 @@ def showProjection(ensemble, modes, *args, **kwargs):
                 break
         if show is None:
             show = Axes3D(cf)
-        plot = show.plot
+        plot = show.scatter
         text = show.text
 
     args = list(args)
