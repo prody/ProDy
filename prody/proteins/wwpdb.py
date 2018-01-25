@@ -30,8 +30,8 @@ WWPDB_FTP_SERVERS = {
     'jp'     : _WWPDB_PDBj,
 }
 
-_URL_US = lambda pdb: ('http://www.files.rcsb.org/pub/pdb/data/structures/all/pdb/pdb%s.ent.gz' %
-                       pdb.upper())
+_URL_US = lambda pdb: ('https://files.rcsb.org/pub/pdb/data/structures/all/pdb/pdb%s.ent.gz' %
+                       pdb.lower())
 _URL_EU = lambda pdb: ('http://www.ebi.ac.uk/pdbe-srv/view/files/%s.ent.gz' %
                        pdb.lower())
 _URL_JP = lambda pdb: ('http://www.pdbj.org/pdb_all/pdb%s.ent.gz' %
