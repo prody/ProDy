@@ -615,7 +615,7 @@ class TrimedGNM(GNM):
                         pad_width.append((0, dl))
                     else:
                         pad_width.append((0, 0))
-                vector = pad(vector, pad_width, 'constant', constant_values=(filled_value,))
+                vector = np.pad(vector, pad_width, 'constant', constant_values=(filled_value,))
             elif shape[axis] > length:
                 vector = vector[:length]
             return vector
