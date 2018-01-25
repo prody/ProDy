@@ -280,12 +280,10 @@ def showProjection(ensemble, modes, *args, **kwargs):
         indict[opts].append(i)
 
     modes = [m for m in modes]
-    if len(modes) == 2:
-        kwargs['c'] = colors
+    if len(modes) == 2: 
         plot = plt.scatter
         show = plt.gcf()
         text = plt.text
-        kwargs['cmap'] = cmap
     else: 
         from mpl_toolkits.mplot3d import Axes3D
         cf = plt.gcf()
@@ -299,13 +297,13 @@ def showProjection(ensemble, modes, *args, **kwargs):
         plot = show.scatter
         text = show.text
 
+    kwargs['marker'] = marker
+    kwargs['c'] = colors
+    kwargs['cmap'] = cmap
+
     args = list(args)
     for opts, indices in indict.items():  # PY3K: OK
         marker, color, label = opts
-        kwargs['marker'] = marker
-
-        if len(modes) != 2:
-            kwargs['color'] = color
 
         if label:
             kwargs['label'] = label
