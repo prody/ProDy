@@ -285,6 +285,7 @@ def showProjection(ensemble, modes, *args, **kwargs):
         plot = plt.scatter
         show = plt.gcf()
         text = plt.text
+        kwargs['cmap'] = cmap
     else: 
         from mpl_toolkits.mplot3d import Axes3D
         cf = plt.gcf()
@@ -311,7 +312,7 @@ def showProjection(ensemble, modes, *args, **kwargs):
         else:
             kwargs.pop('label', None)
 
-        plot(*(list(projection[indices].T) + args), cmap=cmap, **kwargs)
+        plot(*(list(projection[indices].T) + args), **kwargs)
 
     if texts:
         kwargs = {}
