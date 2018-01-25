@@ -16,10 +16,12 @@ from .gnm import GNM, GNMBase, ZERO, TrimedGNM
 from .pca import PCA, EDA
 from .mode import Vector, Mode
 from .modeset import ModeSet
+from .editing import sliceModel, reduceModel
 
 __all__ = ['parseArray', 'parseModes', 'parseSparseMatrix',
            'writeArray', 'writeModes',
-           'saveModel', 'loadModel', 'saveVector', 'loadVector']
+           'saveModel', 'loadModel', 'saveVector', 'loadVector',
+           'calcENM']
 
 
 def saveModel(nma, filename=None, matrices=False, **kwargs):
@@ -73,7 +75,12 @@ def saveModel(nma, filename=None, matrices=False, **kwargs):
         attr_dict['type'] = 'tGNM'
         attr_dict['mask'] = nma.mask
         attr_dict['useTrimed'] = nma.useTrimed
-    filename += '.' + type_.lower() + '.npz'
+    suffix = '.' + type_.lower()
+    if not filename.lower().endswith('.npz'):
+        if not filename.lower().endswith(suffix):
+            filename += suffix + '.npz'
+        else:
+            filename += '.npz'
     ostream = openFile(filename, 'wb', **kwargs)
     np.savez(ostream, **attr_dict)
     ostream.close()
@@ -107,7 +114,7 @@ def loadModel(filename):
     elif type_ == 'NMA':
         nma = NMA(title)
     else:
-        raise IOError('NMA model type is not recognized'.format(type_))
+        raise IOError('NMA model type is not recognized: {0}'.format(type_))
     dict_ = nma.__dict__
     for attr in attr_dict.files:
         if attr in ('type', '_name', '_title'):
@@ -340,3 +347,78 @@ def parseSparseMatrix(filename, symmetric=False, delimiter=None, skiprows=0,
     if symmetric:
         matrix[icol, irow] = sparse[:, idata]
     return matrix
+
+def calcENM(atoms, selstr='all', model='anm', trim='trim', gamma=1.0, 
+            title=None, n_modes=None, **kwargs):
+    """Returns an :class:`ANM` or `GNM` instance and atoms used for the 
+    calculationsn. The model can be trimmed, sliced, or reduced based on 
+    the selection.
+
+    :arg atoms: Atoms on which ENM is performed. It can be any :class:`Atomic` 
+    class that supports selection.
+    :type atoms: :class:`Atomic`, :class:`AtomGroup`, or :class:`Selection`
+
+    :arg selstr: Part of the atoms that is considered as the system. 
+    If set to 'all', then all atoms will be considered as the system.
+    :type selstr: str
+
+    :arg model: Type of ENM that will be performed. It can be either 'anm' 
+    or 'gnm'.
+    :type model: str
+
+    :arg trim: Type of method that will be used to trim the model. It can 
+    be either 'trim' , 'slice', or 'reduce'. If set to 'trim', the parts 
+    that is not in the selection will simply be removed.
+    :type trim: str
+    """
+    
+    if title is None:
+        title = atoms.getTitle()
+        
+    if isinstance(model, GNM):
+        model = 'gnm'
+    elif isinstance(model, ANM):
+        model = 'anm'
+    elif isinstance(model, str):
+        model = model.lower().strip() 
+    else:
+        raise TypeError('invalid type for model: {0}'.format(type(model)))
+
+    if isinstance(trim, str):
+        trim = trim.lower().strip()
+    elif trim is reduceModel:
+        trim = 'reduce'
+    elif trim is sliceModel:
+        trim = 'slice'
+    elif trim is None:
+        trim = 'trim'
+    else:
+        raise TypeError('invalid type for trim: {0}'.format(type(model)))
+
+    if trim == 'trim':
+        atoms = atoms.select(selstr)
+    
+    enm = None
+    if model == 'anm':
+        anm = ANM(title)
+        anm.buildHessian(atoms, gamma=gamma, **kwargs)
+        enm = anm
+    elif model == 'gnm':
+        gnm = GNM(title)
+        gnm.buildKirchhoff(atoms, gamma=gamma, **kwargs)
+        enm = gnm
+    else:
+        raise TypeError('model should be either ANM or GNM instead of {0}'.format(model))
+    
+    if trim == 'slice':
+        enm.calcModes(n_modes=n_modes)
+        enm, atoms = sliceModel(enm, atoms, selstr)  
+        if model == 'gnm':
+            enm.calcHinges()
+    elif trim == 'reduce':
+        enm, atoms = reduceModel(enm, atoms, selstr)
+        enm.calcModes(n_modes=n_modes)
+    else:
+        enm.calcModes(n_modes=n_modes)
+    
+    return enm, atoms
