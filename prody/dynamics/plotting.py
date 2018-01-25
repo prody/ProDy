@@ -225,7 +225,7 @@ def showProjection(ensemble, modes, *args, **kwargs):
 
     if kwargs.pop('new_fig', True):
         plt.figure()
-    projection = calcProjection(ensemble, modes, kwargs.pop('rmsd', True))
+    projection = calcProjection(ensemble, modes, kwargs.pop('rmsd', True), kwargs.pop('norm', True))
 
     if projection.ndim == 1 or projection.shape[1] == 1:
         show = plt.hist(projection.flatten(), *args, **kwargs)
