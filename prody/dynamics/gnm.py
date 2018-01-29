@@ -16,7 +16,7 @@ from prody.utilities import importLA, checkCoords
 from .nma import NMA
 from .gamma import Gamma
 
-__all__ = ['GNM', 'calcGNM', 'TrimedGNM']
+__all__ = ['GNM', 'calcGNM', 'TrimedGNM', 'test']
 
 ZERO = 1e-6
 
@@ -222,6 +222,127 @@ class GNM(GNMBase):
         self._kirchhoff = kirchhoff
         self._n_atoms = n_atoms
         self._dof = n_atoms
+
+    def buildAffinity(self, coords=None, cutoff=7.0):
+
+        if self._kirchhoff == None:
+            try: 
+                self.buildKirchhoff(coords, cutoff)
+            except:
+                raise TypeError('You should provide the coordinates of the proteins')
+
+        if not isinstance(self._kirchhoff, np.ndarray):
+            raise TypeError('kirchhoff must be a Numpy array')
+        elif (not self._kirchhoff.ndim == 2 or
+              self._kirchhoff.shape[0] != self._kirchhoff.shape[1]):
+            raise ValueError('kirchhoff must be a square matrix')
+        elif self._kirchhoff.dtype != float:
+            try:
+                self.kirchhoff = self.kirchhoff.astype(float)
+            except:
+                raise ValueError('kirchhoff.dtype must be float')
+
+        from scipy import sparse
+
+        self._diagonal = np.diag(self._kirchhoff)
+        
+        self._affinity = sparse.spdiags(self._diagonal, 0, len(self._diagonal), 
+            len(self._diagonal)).toarray() - self._kirchhoff
+
+    def calcHitTime(self, method='Z'):
+
+        if self._affinity is None:
+            raise ValueError('Affinity matrix is not built or set')
+
+        start = time.time()
+        linalg = importLA()
+        if method == 'Z':
+
+            D = self._diagonal
+            A = self._affinity
+
+            st = D / sum(D)
+
+            P = np.dot(np.diag(D**(-1)), A)
+
+            W = np.ones((len(st),1)) * st.T
+
+            Z = linalg.pinv(np.eye(P.shape[0], P.shape[1]) - P + W)
+
+            H = np.ones((len(st),1)) * np.diag(Z).T - Z
+            H = H / W
+            H = H.T
+
+        elif method == 'K':
+
+            K = self._kirchhoff
+            D = self._diagonal
+
+            K_inv = linalg.pinv(K)
+            sum_D = sum(D)
+
+            T1 = (sum_D * np.ones((len(D),1)) * diag(K_inv)).T
+
+            T2 = sum_D * K_inv
+            T3_i = np.dot((np.ones((len(D),1)) * D), K_inv)
+
+            H = T1 - T2 + T3_i - T3_i.T
+
+        self._hitTime = H
+        self._commuteTime = H + H.T
+
+
+        LOGGER.debug('Hitting and commute time are calculated in  {0:.2f}s.'
+                     .format(time.time()-start))    
+
+    def getAffinity(self):
+        """Returns a copy of the Kirchhoff matrix."""
+
+        if self._affinity is None:
+            return None
+        return self._affinity.copy()
+
+    def _getAffinity(self):
+        """Returns the Kirchhoff matrix."""
+
+        return self._affinity
+
+    def getDiagonal(self):
+        """Returns a copy of the Kirchhoff matrix."""
+
+        if self._diagonal is None:
+            return None
+        return self._diagonal.copy()
+
+    def _getDiagonal(self):
+        """Returns the Kirchhoff matrix."""
+
+        return self._diagonal
+
+    def getHitTime(self):
+        """Returns a copy of the Kirchhoff matrix."""
+
+        if self._hitTime is None:
+            return None
+        return self._hitTime.copy()
+
+    def _getHitTime(self):
+        """Returns the Kirchhoff matrix."""
+
+        return self._getHitTime
+
+    def getCommuteTime(self):
+        """Returns a copy of the Kirchhoff matrix."""
+
+        if self._commuteTime is None:
+            return None
+        return self._commuteTime.copy()
+
+    def _getCommuteTime(self):
+        """Returns the Kirchhoff matrix."""
+
+        return self._commuteTime    
+
 
     def calcModes(self, n_modes=20, zeros=False, turbo=True, hinges=True):
         """Calculate normal modes.  This method uses :func:`scipy.linalg.eigh`
@@ -459,7 +580,7 @@ class TrimedGNM(GNM):
         if self.useTrimed or np.isscalar(self.mask):
             return array
 
-        mask = ~self.mask.copy()
+        mask = self.mask.copy()
         N = len(mask)
         n, m = array.shape
         whole_array = np.zeros((N,m))
@@ -480,3 +601,41 @@ class TrimedGNM(GNM):
             return self._array
         else:
             return self.getArray()
+
+    def fixTail(self, length):
+        def _fixLength(vector, length, filled_value=0, axis=0):
+            shape = vector.shape
+            dim = len(shape)
+
+            if shape[axis] < length:
+                dl = length - shape[0]
+                pad_width = []
+                for i in range(dim):
+                    if i == axis:
+                        pad_width.append((0, dl))
+                    else:
+                        pad_width.append((0, 0))
+                vector = np.pad(vector, pad_width, 'constant', constant_values=(filled_value,))
+            elif shape[axis] > length:
+                vector = vector[:length]
+            return vector
+
+        if np.isscalar(self.mask):
+            self.mask = ones(self.numAtoms(), dtype=bool)
+
+        self.mask = _fixLength(self.mask, length, False)
+        return
+
+def test():
+    
+    from prody import parsePDB
+    pdb = parsePDB('1z83',subset='ca',chain='A')
+
+    gnm = GNM()
+    gnm.buildAffinity(pdb)
+    gnm.calcHitTime()
+
+    hitTime = gnm.getHitTime()
+    commuteTime = gnm.getCommuteTime()
+
+    return hitTime, commuteTime

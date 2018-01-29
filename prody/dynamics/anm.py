@@ -302,7 +302,7 @@ class ANMBase(NMA):
 
         if self._hessian is None:
             raise ValueError('Hessian matrix is not built or set')
-        if str(n_modes).lower() is 'all':
+        if str(n_modes) is 'all':
             n_modes = None
         assert n_modes is None or isinstance(n_modes, int) and n_modes > 0, \
             'n_modes must be a positive integer'

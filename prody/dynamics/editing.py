@@ -362,7 +362,11 @@ def reduceModel(model, atoms, select):
     so = matrix[system, :][:, other]
     os = matrix[other, :][:, system]
     oo = matrix[other, :][:, other]
-    matrix = ss - np.dot(so, np.dot(linalg.inv(oo), os))
+    try:
+        invoo = linalg.inv(oo)
+    except:
+        invoo = linalg.pinv(oo)
+    matrix = ss - np.dot(so, np.dot(invoo, os))
 
     if isinstance(model, GNM):
         gnm = GNM(model.getTitle() + ' reduced')
