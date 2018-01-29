@@ -134,7 +134,7 @@ def fetchPDBviaFTP(*pdb, **kwargs):
     if format == 'pdb':
         ftp_divided = 'pdb/data/structures/divided/pdb'
         ftp_pdbext = '.ent.gz'
-        ftp_prefix = 'pdb'
+        ftp_prefix = pdb[1:3] + '/pdb'
         extension = '.pdb'
     elif format == 'xml':
         if noatom:
