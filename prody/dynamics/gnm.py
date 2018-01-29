@@ -580,7 +580,7 @@ class TrimedGNM(GNM):
         if self.useTrimed or np.isscalar(self.mask):
             return array
 
-        mask = ~self.mask.copy()
+        mask = self.mask.copy()
         N = len(mask)
         n, m = array.shape
         whole_array = np.zeros((N,m))
@@ -601,6 +601,30 @@ class TrimedGNM(GNM):
             return self._array
         else:
             return self.getArray()
+
+    def fixTail(self, length):
+        def _fixLength(vector, length, filled_value=0, axis=0):
+            shape = vector.shape
+            dim = len(shape)
+
+            if shape[axis] < length:
+                dl = length - shape[0]
+                pad_width = []
+                for i in range(dim):
+                    if i == axis:
+                        pad_width.append((0, dl))
+                    else:
+                        pad_width.append((0, 0))
+                vector = np.pad(vector, pad_width, 'constant', constant_values=(filled_value,))
+            elif shape[axis] > length:
+                vector = vector[:length]
+            return vector
+
+        if np.isscalar(self.mask):
+            self.mask = ones(self.numAtoms(), dtype=bool)
+
+        self.mask = _fixLength(self.mask, length, False)
+        return
 
 def test():
     

@@ -88,11 +88,11 @@ class HiC(object):
 
         if self._map is None: 
             return None
-        if self.mask is False:
+        if np.isscalar(self.mask):
             return self._map
 
         M = ma.array(self._map)
-        M.mask = np.diag(self.mask)
+        M.mask = np.diag(~self.mask)
         return ma.compress_rowcols(M)
     
     def align(self, array, axis=None):
@@ -104,7 +104,7 @@ class HiC(object):
         if np.isscalar(self.mask):
             return ret
 
-        mask = ~self.mask.copy()
+        mask = self.mask.copy()
 
         l_full = self.getCompleteMap().shape[0]
         l_trim = self.getTrimedMap().shape[0]
@@ -199,8 +199,8 @@ class HiC(object):
         mask_nan = np.isnan(d)
         # combine two masks
         mask = np.logical_or(mask_nan, mask_zero)
-        self.mask = mask
-        return mask
+        self.mask = ~mask
+        return self.mask
 
     def _makeSymmetric(self):
         """Ensures the symmetricity of the contact map."""
@@ -264,7 +264,7 @@ class HiC(object):
             if full_length != len(labels):
                 _labels = np.empty(full_length)
                 _labels.fill(np.nan)
-                _labels[~self.mask] = labels
+                _labels[self.mask] = labels
 
                 currlbl = labels[np.argmax(~np.isnan(labels))]
 
@@ -286,7 +286,7 @@ class HiC(object):
         lbl = self._labels
         mask = self.mask
         if self.useTrimed:
-            lbl = lbl[~mask]
+            lbl = lbl[mask]
         return lbl
 
     def getDomainList(self):

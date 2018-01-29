@@ -207,4 +207,3 @@ def showEmbedding(modes, labels=None, trace=True, headtail=True, cmap='prism'):
     if SETTINGS['auto_show']:
         showFigure()
     return f
-    
