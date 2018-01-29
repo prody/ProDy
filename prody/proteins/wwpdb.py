@@ -132,7 +132,7 @@ def fetchPDBviaFTP(*pdb, **kwargs):
     noatom = bool(kwargs.pop('noatom', False))
 
     if format == 'pdb':
-        ftp_divided = 'data/structures/divided/pdb'
+        ftp_divided = 'pdb/data/structures/divided/pdb'
         ftp_pdbext = '.ent.gz'
         ftp_prefix = 'pdb'
         extension = '.pdb'
