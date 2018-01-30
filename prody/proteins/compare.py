@@ -799,7 +799,7 @@ def mapOntoChain(atoms, chain, **kwargs):
     coverage = kwargs.get('overlap')
     if coverage is None:
         coverage = kwargs.get('coverage', 70.)
-    pwalign = kwargs.get('pwalign', None)
+    pwalign = kwargs.get('pwalign', True)
     fast = kwargs.get('fast', False)
 
     if isinstance(atoms, Chain):
@@ -860,7 +860,7 @@ def mapOntoChain(atoms, chain, **kwargs):
                          .format(_seqid, _cover))
             unmapped.append(simple_chain)
 
-    if pwalign or (not mappings and (pwalign is None or pwalign)):
+    if pwalign or (not mappings and pwalign):
         LOGGER.debug('Trying to map atoms based on {0} sequence alignment:'
                      .format(ALIGNMENT_METHOD))
         for simple_chain in unmapped:
@@ -958,23 +958,25 @@ def getTrivialMapping(target, chain):
     return target_list, chain_list, n_match, n_mapped
 
 
-def getAlignedMapping(target, chain):
-    pairwise2 = importBioPairwise2()
-    if ALIGNMENT_METHOD == 'local':
-        alignment = pairwise2.align.localms(target.getSequence(),
-                                            chain.getSequence(),
-                                            MATCH_SCORE, MISMATCH_SCORE,
-                                            GAP_PENALTY,  GAP_EXT_PENALTY,
-                                            one_alignment_only=1)
-    else:
-        alignment = pairwise2.align.globalms(target.getSequence(),
-                                             chain.getSequence(),
-                                             MATCH_SCORE, MISMATCH_SCORE,
-                                             GAP_PENALTY, GAP_EXT_PENALTY,
-                                             one_alignment_only=1)
+def getAlignedMapping(target, chain, alignment=None):
+    if alignment is None:
+        pairwise2 = importBioPairwise2()
+        if ALIGNMENT_METHOD == 'local':
+            alignments = pairwise2.align.localms(target.getSequence(),
+                                                chain.getSequence(),
+                                                MATCH_SCORE, MISMATCH_SCORE,
+                                                GAP_PENALTY,  GAP_EXT_PENALTY,
+                                                one_alignment_only=1)
+        else:
+            alignments = pairwise2.align.globalms(target.getSequence(),
+                                                chain.getSequence(),
+                                                MATCH_SCORE, MISMATCH_SCORE,
+                                                GAP_PENALTY, GAP_EXT_PENALTY,
+                                                one_alignment_only=1)
+        alignment = alignments[0]
 
-    this = alignment[0][0]
-    that = alignment[0][1]
+    this = alignment[0]
+    that = alignment[1]
 
     amatch = []
     bmatch = []
@@ -997,7 +999,7 @@ def getAlignedMapping(target, chain):
             else:
                 bmatch.append(None)
         elif b not in (GAP, NONE_A):
-                bres = next(biter)
+            bres = next(biter)
     return amatch, bmatch, n_match, n_mapped
 
 
