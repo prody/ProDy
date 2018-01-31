@@ -85,11 +85,13 @@ def Discretize(V, **kwargs):
         raise ImportError('Use of this function (Discretize) requires the '
                           'installation of sklearn.')
 
-    n_clusters = kwargs.pop('n_clusters', None)
-    if n_clusters is not None:
-        print('Discretization does not need to desiginate the number of clusters.')
+    copy = kwargs.pop('copy', True)
+    max_svd_restarts = kwargs.pop('max_svd_restarts', 30)
+    n_iter_max = kwargs.pop('n_iter_max', 20)
+    random_state = kwargs.pop('random_state', None)
 
-    labels = discretize(V, **kwargs)
+    labels = discretize(V, copy=copy, max_svd_restarts=max_svd_restarts, 
+                        n_iter_max=n_iter_max, random_state=random_state)
     return labels
 
 def showLinkage(V, **kwargs):

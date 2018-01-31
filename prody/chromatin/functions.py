@@ -7,7 +7,7 @@ from prody.utilities import importLA
 from prody import LOGGER, SETTINGS
 from prody.utilities import showFigure
 
-__all__ = ['showMap', 'showDomains', 'showEmbedding']
+__all__ = ['showMap', 'showDomains', 'showEmbedding', 'getDomainList']
 
 ## normalization methods ##
 def div0(a, b):
@@ -214,3 +214,17 @@ def showEmbedding(modes, labels=None, trace=True, headtail=True, cmap='prism'):
     if SETTINGS['auto_show']:
         showFigure()
     return f
+
+def getDomainList(labels):
+    """Returns a list of domain separations. The list has two columns: the first is for 
+    the domain starts and the second is for the domain ends."""
+
+    indicators = np.diff(labels)
+    indicators = np.append(1., indicators)
+    indicators[-1] = 1
+    sites = np.where(indicators != 0)[0]
+    starts = sites[:-1]
+    ends = sites[1:]
+    domains = np.array([starts, ends]).T
+
+    return domains
