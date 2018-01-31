@@ -102,7 +102,7 @@ def showDomains(domains, linespec='r-', **kwargs):
         showFigure()
     return plt
 
-def _getEigvecs(modes, row_norm=False):
+def _getEigvecs(modes, row_norm=False, remove_zero_rows=False):
     if isinstance(modes, (ModeSet, NMA)):
         V = modes.getEigvecs()
     elif isinstance(modes, Mode):
@@ -132,7 +132,14 @@ def _getEigvecs(modes, row_norm=False):
         norms = la.norm(V, axis=1)
         N = np.diag(div0(1., norms))
         V = np.dot(N, V)
-    return V
+    
+    # remove rows with all zeros
+    m, _ = V.shape
+    mask = np.ones(m, dtype=bool)
+    if remove_zero_rows:
+        mask = V.any(axis=1)
+        V = V[mask]
+    return V, mask
 
 def showEmbedding(modes, labels=None, trace=True, headtail=True, cmap='prism'):
     """Visualizes Laplacian embedding of Hi-C data. 
@@ -160,7 +167,7 @@ def showEmbedding(modes, labels=None, trace=True, headtail=True, cmap='prism'):
     if labels is not None:
         if len(labels) != m:
             raise ValueError('Modes (%d) and the Hi-C map (%d) should have the same number'
-                                ' of atoms. Turn off "useTrimed" if you intended to apply the'
+                                ' of atoms. Turn off "useTrimmed" if you intended to apply the'
                                 ' modes to the full map.'
                                 %(m, len(labels)))
     if n > 3:
