@@ -360,11 +360,11 @@ def fetchPDB(*pdb, **kwargs):
     if tryHTTP:
         LOGGER.warn('Downloading PDB files via FTP failed, '
                     'trying HTTP.')
-    try:
-        fns = fetchPDBviaHTTP(*downloads, check=False, **kwargs)
-    except Exception as err:
-        LOGGER.warn('Downloading PDB files via HTTP also failed '
-                    '({0}).'.format(str(err)))
+        try:
+            fns = fetchPDBviaHTTP(*downloads, check=False, **kwargs)
+        except Exception as err:
+            LOGGER.warn('Downloading PDB files via HTTP also failed '
+                        '({0}).'.format(str(err)))
     
     if len(downloads) == 1: fns = [fns]
     if fns:
