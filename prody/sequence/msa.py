@@ -696,3 +696,28 @@ def specMergeMSA(*msa, **kwargs):
     merger = MSA(merger, labels=labels, mapping=mapping,
                  title=' + '.join([m.getTitle() for m in msa]))
     return merger
+
+def showAlignment(alignment, row_size=60, max_seqs=5):
+    """
+    Prints out an alignment as sets of short rows with labels.
+
+    arg alignment: any object with aligned sequence
+    type alignment: :class: `.MSA`, tuple or list
+
+    arg row_size: the size of each row
+        default 60
+    type row_size: int
+
+    arg max_seqs: the maximum number of sequences to show
+        default 5
+    type max_seqs: int
+    """
+    if len(alignment) < max_seqs: 
+        max_seqs = len(alignment)
+
+    for i in range(int(round(len(alignment[0])/float(row_size)))):
+        for j in range(max_seqs):
+           print alignment[j].getLabel(), '\t', str(alignment[j])[60*i:60*(i+1)]
+        print '\n'
+
+    return
