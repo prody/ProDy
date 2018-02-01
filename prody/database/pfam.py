@@ -429,6 +429,10 @@ def fetchPfamPdbChains(**kwargs):
         The PFAM domain that ends closest to this will be selected. 
     :type end: int
 
+    :arg dbrefs: Whether to return database references.
+        Default is True
+    :type dbrefs: bool
+
     You must provide one of these two arguments.
     Use of query requires start or end to also be provided.
     """
@@ -436,6 +440,7 @@ def fetchPfamPdbChains(**kwargs):
     query = kwargs.get('query',None)
     start = kwargs.get('start',None)
     end = kwargs.get('end',None)
+    dbrefs = kwargs.get('dbrefs',True)
 
     if domain is None:
         if query is None:
@@ -490,12 +495,13 @@ def fetchPfamPdbChains(**kwargs):
             ag, header = parsePDB(entry['PDB_ID'], compressed=False, \
                                   report=False, subset='ca', header=True)
 
-        selection_ag = ag.select('resnum {0} to {1}' \
-                                .format(entry['PdbResNumStart'], \
-                                        entry['PdbResNumEnd'])).copy()
-        chains.append(selection_ag.getHierView()[entry['CHAIN_ID']])
+        if header[entry['CHAIN_ID']].dbrefs != [] or not dbrefs:
+            selection_ag = ag.select('resnum {0} to {1}' \
+                                    .format(entry['PdbResNumStart'], \
+                                            entry['PdbResNumEnd'])).copy()
 
-        accessions.append(header[entry['CHAIN_ID']].dbrefs[0].accession)
+            chains.append(selection_ag.getHierView()[entry['CHAIN_ID']])
+            accessions.append(header[entry['CHAIN_ID']].dbrefs[0].accession)
 
     if kwargs.get('pfam_acc',None) is not None:
         return accessions, chains
