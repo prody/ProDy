@@ -3,6 +3,7 @@
 
 from numpy import all, zeros, dtype, array, char, cumsum
 from .sequence import Sequence, splitSeqLabel
+from prody.atomic import Atomic
 
 from prody import LOGGER
 
@@ -717,8 +718,8 @@ def showAlignment(alignment, row_size=60, max_seqs=5):
 
     for i in range(int(round(len(alignment[0])/float(row_size)))):
         for j in range(max_seqs):
-           LOGGER.info(alignment[j].getLabel() + '\t' + str(alignment[j])[60*i:60*(i+1)]) 
-        LOGGER.info('\n')
+           print(alignment[j].getLabel() + '\t' + str(alignment[j])[60*i:60*(i+1)]) 
+        print('\n')
 
     return
 
@@ -786,8 +787,11 @@ def alignSequenceToPDB(pdb,msa,label,chain='A',match=5,mismatch=-1,gap_opening=-
     try:
         seqIndex = msa.getIndex(label)
     except:
+<<<<<<< HEAD
         print msa
         print label
+=======
+>>>>>>> 80525a2157cba864509c123f254de5b68bbb0491
         raise ValueError('Please provide a label that can be found in msa')
         
     refMsaSeq = str(msa[seqIndex]).upper().replace('-','.')
