@@ -721,3 +721,100 @@ def showAlignment(alignment, row_size=60, max_seqs=5):
         LOGGER.info('\n')
 
     return
+
+def alignSequenceToPDB(pdb,msa,label,chain='A',match=5,mismatch=-1,gap_opening=-10,gap_extension=-1,another_seq=False):
+    """
+    Align a sequence from an MSA to a PDB and create two sets of indices. 
+    The first set, which is simply called indices, maps the residue numbers in the PDB to the reference sequence.
+    The second set, msa_indices, indexes the reference sequence in the msa and 
+    is used for retrieving values from the first indices.
+    
+    :arg pdb: an AtomGroup object or a PDB identifier or file name
+    :type pdb: AtomGroup or str
+    
+    :arg msa: MSA object
+    :type msa: :class:`.MSA`
+    
+    :arg label: a label for a sequence in msa, 
+        ``msa.getIndex(label)`` must return a sequence index, a PDB identifier
+        is also acceptable
+    :type label: str
+    
+    :arg chain: which chain from pdb to use for alignment
+    :type chain: str
+    
+    :arg match: a positive integer, used to reward finding a match
+        The default is 5, which we found to work in a test case.
+    :type match: int
+    
+    :arg mismatch: a negative integer, used to penalise finding a mismatch
+        The default is -1, which we found to work in a test case
+    :type mismatch: int
+    
+    :arg gap_opening: a negative integer, used to penalise opening a gap
+        The default is -10, which we found to work in a test case
+    :type gap_opening: int
+    
+    :arg gap_extension: a negative integer, used to penalise extending a gap
+        The default is -1, which we found to work in a test case
+    :type gap_extension: int
+    """
+    if not another_seq:
+        if isinstance(pdb, str):
+            ag = parsePDB(pdb)
+            title = ag.getTitle()
+        elif isinstance(pdb, Atomic):
+            ag = pdb
+        else:
+            raise TypeError('pdb must be an atomic class, not {0}'
+                        .format(type(pdb)))
+        pdbSeq = ag.select('chain %s' % chain).getSequence()
+        
+    else:
+        if not isinstance(pdb, Sequence):
+            if not isinstance(pdb, str):
+                raise TypeError('pdb argument should be a string or a sequence when another_seq is true')
+        pdbSeq = str(pdb)
+    
+    if not isinstance(msa, MSA):
+        raise TypeError('msa must be an MSA instance')
+
+    try:
+        seqIndex = msa.getIndex(label)
+    except:
+        print msa
+        print label
+        raise ValueError('Please provide a label that can be found in msa')
+        
+    refMsaSeq = str(msa[seqIndex]).upper().replace('-','.')
+    
+    alignment = pairwise2.align.globalms(pdbSeq,refMsaSeq, \
+                                         match, mismatch, gap_opening, gap_extension)
+    pdb_indices = [-1]
+    msa_indices = [-1]
+
+    for i in range(len(alignment[0][0])):
+        if alignment[0][0][i] != '-':
+            pdb_indices.append(pdb_indices[i]+1)
+        else:
+            pdb_indices.append(pdb_indices[i])
+        
+        if alignment[0][1][i] != '-':
+            msa_indices.append(msa_indices[i]+1)
+        else:
+            msa_indices.append(msa_indices[i])
+        
+    indices = []
+    for i in range(len(alignment[0][0])):
+        if alignment[0][0][i] == '-' or alignment[0][1][i] == '-':
+            indices.append('')
+        else:
+            if not another_seq:
+                indices.append(pdb.getResnums()[pdb_indices[i]])
+            else:
+                indices.append('')
+                
+    indices = array(indices)
+    msa_indices = array(msa_indices)
+            
+    return refMsaSeq, alignment, indices, msa_indices
