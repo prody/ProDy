@@ -4,7 +4,9 @@
 from numpy import all, zeros, dtype, array, char, cumsum
 from .sequence import Sequence, splitSeqLabel
 from prody.atomic import Atomic
-
+from Bio import AlignIO
+from Bio import pairwise2
+from Bio.SubsMat import MatrixInfo as matlist
 from prody import LOGGER
 
 __all__ = ['MSA', 'refineMSA', 'mergeMSA', 'specMergeMSA',
