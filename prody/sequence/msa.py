@@ -724,11 +724,15 @@ def showAlignment(alignment, row_size=60, max_seqs=5):
 
 def alignSequenceToPDB(pdb,msa,label,chain='A',match=5,mismatch=-1,gap_opening=-10,gap_extension=-1,another_seq=False):
     """
-    Align a sequence from an MSA to a PDB and create two sets of indices. 
-    The first set, which is simply called indices, maps the residue numbers in the PDB to the reference sequence.
-    The second set, msa_indices, indexes the reference sequence in the msa and 
-    is used for retrieving values from the first indices.
+    Align a sequence from an MSA to a PDB and create two sets of 
+    indices. The sequence from the MSA (refSeq), the alignment and 
+    the two sets of indices are returned. 
     
+    The first set (indices) maps the residue numbers in the PDB to 
+    the reference sequence. The second set (msa_indices) indexes the 
+    reference sequence in the msa and is used for retrieving values 
+    from the first indices.
+
     :arg pdb: an AtomGroup object or a PDB identifier or file name
     :type pdb: AtomGroup or str
     
