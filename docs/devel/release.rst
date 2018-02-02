@@ -49,7 +49,7 @@ How to Make a Release
 #. Generate the source distributions::
 
      $ cd ..
-     $ python setup.py sdist --formats=gztar,zip
+     $ python setup.py sdist --formats=gztar
 
 
 #. Prepare and test Windows installers (see :ref:`wininst`).
