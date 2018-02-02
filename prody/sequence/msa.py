@@ -717,7 +717,7 @@ def showAlignment(alignment, row_size=60, max_seqs=5):
 
     for i in range(int(round(len(alignment[0])/float(row_size)))):
         for j in range(max_seqs):
-           print alignment[j].getLabel(), '\t', str(alignment[j])[60*i:60*(i+1)]
-        print '\n'
+           print(alignment[j].getLabel(), '\t', str(alignment[j])[60*i:60*(i+1)])
+        print('\n')
 
     return
