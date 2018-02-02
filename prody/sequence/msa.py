@@ -2,12 +2,12 @@
 """This module defines MSA analysis functions."""
 
 from numpy import all, zeros, dtype, array, char, cumsum
-
 from .sequence import Sequence, splitSeqLabel
 
 from prody import LOGGER
 
-__all__ = ['MSA', 'refineMSA', 'mergeMSA', 'specMergeMSA']
+__all__ = ['MSA', 'refineMSA', 'mergeMSA', 'specMergeMSA',
+          'showAlignment']
 
 try:
     range = xrange
@@ -717,7 +717,7 @@ def showAlignment(alignment, row_size=60, max_seqs=5):
 
     for i in range(int(round(len(alignment[0])/float(row_size)))):
         for j in range(max_seqs):
-           print(alignment[j].getLabel(), '\t', str(alignment[j])[60*i:60*(i+1)])
-        print('\n')
+           LOGGER.info(alignment[j].getLabel() + '\t' + str(alignment[j])[60*i:60*(i+1)]) 
+        LOGGER.info('\n')
 
     return
