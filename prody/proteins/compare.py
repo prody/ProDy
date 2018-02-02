@@ -17,7 +17,7 @@ if PY2K:
     range = xrange
 
 __all__ = ['matchChains', 'matchAlign', 'mapOntoChain',
-           'getMatchScore', 'setMatchScore',
+           'mapChainByChain', 'getMatchScore', 'setMatchScore',
            'getMismatchScore', 'setMismatchScore',
            'getGapPenalty', 'setGapPenalty',
            'getGapExtPenalty', 'setGapExtPenalty',
@@ -1006,8 +1006,8 @@ def getAlignedMapping(target, chain, alignment=None):
                                                 one_alignment_only=1)
         alignment = alignments[0]
 
-    this = alignment[0]
-    that = alignment[1]
+    this = str(alignment[0])
+    that = str(alignment[1])
 
     amatch = []
     bmatch = []

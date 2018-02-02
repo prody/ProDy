@@ -95,7 +95,7 @@ def parsePDB(pdb, **kwargs):
             if title is None:
                 title = pdb
                 kwargs['title'] = title
-            filename = fetchPDB(pdb, report=True, **kwargs)
+            filename = fetchPDB(pdb, **kwargs)
             if filename is None:
                 raise IOError('PDB file for {0} could not be downloaded.'
                               .format(pdb))
@@ -124,6 +124,7 @@ def parsePDBStream(stream, **kwargs):
     :arg stream: Anything that implements the method ``readlines``
         (e.g. :class:`file`, buffer, stdin)"""
 
+    report = kwargs.get('report',True)
     model = kwargs.get('model')
     header = kwargs.get('header', False)
     assert isinstance(header, bool), 'header must be a boolean'
@@ -186,13 +187,15 @@ def parsePDBStream(stream, **kwargs):
             hd, split = getHeaderDict(lines)
         _parsePDBLines(ag, lines, split, model, chain, subset, altloc)
         if ag.numAtoms() > 0:
-            LOGGER.report('{0} atoms and {1} coordinate set(s) were '
-                          'parsed in %.2fs.'.format(ag.numAtoms(),
-                           ag.numCoordsets() - n_csets))
+            if report:
+                LOGGER.report('{0} atoms and {1} coordinate set(s) were '
+                              'parsed in %.2fs.'.format(ag.numAtoms(),
+                               ag.numCoordsets() - n_csets))
         else:
             ag = None
-            LOGGER.warn('Atomic data could not be parsed, please '
-                        'check the input file.')
+            if report:
+                LOGGER.warn('Atomic data could not be parsed, please '
+                            'check the input file.')
     elif header:
         hd, split = getHeaderDict(stream)
 
@@ -208,12 +211,13 @@ def parsePDBStream(stream, **kwargs):
         if biomol:
             ag = buildBiomolecules(hd, ag)
 
-            if isinstance(ag, list):
-                LOGGER.info('Biomolecular transformations were applied, {0} '
-                            'biomolecule(s) are returned.'.format(len(ag)))
-            else:
-                LOGGER.info('Biomolecular transformations were applied to the '
-                            'coordinate data.')
+            if report:
+                if isinstance(ag, list):
+                    LOGGER.info('Biomolecular transformations were applied, {0} '
+                                'biomolecule(s) are returned.'.format(len(ag)))
+                else:
+                    LOGGER.info('Biomolecular transformations were applied to the '
+                                'coordinate data.')
     if model != 0:
         if header:
             return ag, hd

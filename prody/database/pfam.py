@@ -4,11 +4,12 @@
 __author__ = 'Anindita Dutta, Ahmet Bakan, Cihan Kaya'
 
 import re
-
+import numpy as np
 from os.path import join, isfile
 from prody import LOGGER, PY3K
 from prody.utilities import makePath, openURL, gunzip, openFile, dictElement
 from prody.utilities import relpath
+from prody.proteins import parsePDB
 
 if PY3K:
     import urllib.parse as urllib
@@ -17,7 +18,7 @@ else:
     import urllib
     import urllib2
 
-__all__ = ['searchPfam', 'fetchPfamMSA', 'searchUniprotID']
+__all__ = ['searchPfam', 'fetchPfamMSA', 'searchUniprotID', 'fetchPfamPdbChains']
 
 FASTA = 'fasta'
 SELEX = 'selex'
@@ -225,9 +226,9 @@ def searchUniprotID(query, search_b=False, skip_a=False, **kwargs):
     """Returns Pfam search results in a dictionary.  Matching Pfam accession
     as keys will map to evalue, alignment start and end residue positions.
 
-    :arg query: UniProt ID, PDB identifier, protein sequence, or a sequence
-        file, sequence queries must not contain without gaps and must be at
-        least 16 characters long
+    :arg query: UniProt ID, PDB identifier, protein sequence, or a 
+        sequence file. Sequence queries must not contain gaps and 
+        must be at least 16 characters long
     :type query: str
 
     :arg search_b: search Pfam-B families when **True**
@@ -407,6 +408,105 @@ def fetchPfamMSA(acc, alignment='full', compressed=False, **kwargs):
 
     return filepath
 
+def fetchPfamPdbChains(**kwargs):
+    """Returns a list of AtomGroups containing sections of chains that 
+    correspond to a particular PFAM domain family. These are defined by 
+    alignment start and end residue numbers.
+
+    :arg pfam_acc: The accession number for a pfam domain family, if known.
+        Alternatively you can select a family based on a query (see below).
+    :type pfam_acc: str
+
+    :arg query: UniProt ID or PDB ID
+        If a PDB ID is provided the corresponding UniProt ID is used.
+    :type query: str
+
+    :arg start: Residue number for defining the start of the domain.
+        The PFAM domain that starts closest to this will be selected. 
+    :type start: int
+
+    :arg end: Residue number for defining the end of the domain.
+        The PFAM domain that ends closest to this will be selected. 
+    :type end: int
+
+    :arg dbrefs: Whether to return database references.
+        Default is True
+    :type dbrefs: bool
+
+    You must provide one of these two arguments.
+    Use of query requires start or end to also be provided.
+    """
+    domain = kwargs.get('pfam_acc',None)
+    query = kwargs.get('query',None)
+    start = kwargs.get('start',None)
+    end = kwargs.get('end',None)
+    dbrefs = kwargs.get('dbrefs',True)
+
+    if domain is None:
+        if query is None:
+            raise ValueError('Please provide a value for pfam_acc or query.')
+        else:
+            pfam_matches = searchPfam(query)
+
+            if start is not None and type(start) is int:
+                start_diff = []
+                for i, key in enumerate(pfam_matches):
+                    start_diff.append(int(pfam_matches[key]['locations'][0]['start']) - start)
+                start_diff = np.array(start_diff)
+                domain = pfam_matches.keys()[np.where(abs(start_diff) == min(abs(start_diff)))[0][0]]
+
+            elif end is not None and type(end) is int:
+                end_diff = []
+                for i, key in enumerate(pfam_matches):
+                    end_diff.append(int(pfam_matches[key]['locations'][0]['end']) - end)
+                end_diff = np.array(end_diff)
+                domain = pfam_matches.keys()[np.where(abs(end_diff) == min(abs(end_diff)))[0][0]]
+
+            else:
+                raise ValueError('Please provide an integer for start or end when using query.')
+
+    from ftplib import FTP
+    data = []
+    ftp_host = 'ftp.ebi.ac.uk'
+    ftp = FTP(ftp_host)
+    ftp.login('')
+    ftp.cwd('pub/databases/Pfam/mappings')
+    ftp.retrlines('RETR pdb_pfam_mapping.txt', data.append) 
+
+    fields = []
+    for field in data[0].strip().split('\t'):
+        fields.append(field)
+    
+    data_dict = {}
+    i = -1
+    for line in data[1:]:
+        if line.find(domain) != -1:
+            i += 1
+            data_dict[i] = {}
+            for j, entry in enumerate(line.strip().split('\t')):
+                data_dict[i][fields[j]] = entry
+            
+    pdb_ids = []
+    chains = []
+    accessions = []
+    for key in data_dict:
+        entry = data_dict[key]
+        if not entry['PDB_ID'] in pdb_ids:
+            ag, header = parsePDB(entry['PDB_ID'], compressed=False, \
+                                  report=False, subset='ca', header=True)
+
+        if header[entry['CHAIN_ID']].dbrefs != [] or not dbrefs:
+            selection_ag = ag.select('resnum {0} to {1}' \
+                                    .format(entry['PdbResNumStart'], \
+                                            entry['PdbResNumEnd'])).copy()
+
+            chains.append(selection_ag.getHierView()[entry['CHAIN_ID']])
+            accessions.append(header[entry['CHAIN_ID']].dbrefs[0])
+
+    if kwargs.get('pfam_acc',None) is not None:
+        return accessions, chains
+    else:
+        return domain, accessions, chains
 
 if __name__ == '__main__':
 
