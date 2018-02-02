@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
 """This module defines MSA analysis functions."""
 
-from numpy import all, zeros, dtype, array, char, cumsum
+from numpy import all, zeros, dtype, array, char, cumsum, ceil
 from .sequence import Sequence, splitSeqLabel
 from prody.atomic import Atomic
 from Bio import AlignIO
 from Bio import pairwise2
 from Bio.SubsMat import MatrixInfo as matlist
 from prody import LOGGER
+import sys
 
 __all__ = ['MSA', 'refineMSA', 'mergeMSA', 'specMergeMSA',
           'showAlignment', 'alignSequenceToPDB']
@@ -700,28 +701,43 @@ def specMergeMSA(*msa, **kwargs):
                  title=' + '.join([m.getTitle() for m in msa]))
     return merger
 
-def showAlignment(alignment, row_size=60, max_seqs=5):
+def showAlignment(alignment, row_size=60, max_seqs=5, **kwargs):
     """
     Prints out an alignment as sets of short rows with labels.
 
-    arg alignment: any object with aligned sequence
-    type alignment: :class: `.MSA`, tuple or list
+    :arg alignment: any object with aligned sequence
+    :type alignment: :class: `.MSA`, tuple or list
 
-    arg row_size: the size of each row
+    :arg row_size: the size of each row
         default 60
-    type row_size: int
+    :type row_size: int
 
-    arg max_seqs: the maximum number of sequences to show
+    :arg max_seqs: the maximum number of sequences to show
         default 5
-    type max_seqs: int
+    :type max_seqs: int
+
+    :arg indices: a set of indices for some or all sequences
+        that will be shown above the relevant sequences
+    :type indices: array, list or tuple of arrays, lists or tuples
     """
+    indices = kwargs.get('indices',None)
+
     if len(alignment) < max_seqs: 
         max_seqs = len(alignment)
 
-    for i in range(int(round(len(alignment[0])/float(row_size)))):
+    for i in range(int(ceil(len(alignment[0])/float(row_size)))):
         for j in range(max_seqs):
-           print(alignment[j].getLabel() + '\t' + str(alignment[j])[60*i:60*(i+1)]) 
-        print('\n')
+            
+            sys.stdout.write('\n' + ' '*len(alignment[j].getLabel()[:10]) + '\t')
+            for k in range(row_size*i+10,row_size*(i+1)+10,10):
+                try:
+                    sys.stdout.write('{:10d}'.format(int(indices[j][k])))
+                except:
+                    sys.stdout.write(' '*10)
+            sys.stdout.write('\n')
+
+            sys.stdout.write(alignment[j].getLabel()[:10] + '\t' + str(alignment[j])[60*i:60*(i+1)]) 
+        sys.stdout.write('\n')
 
     return
 
@@ -789,17 +805,13 @@ def alignSequenceToPDB(pdb,msa,label,chain='A',match=5,mismatch=-1,gap_opening=-
     try:
         seqIndex = msa.getIndex(label)
     except:
-<<<<<<< HEAD
-        print msa
-        print label
-=======
->>>>>>> 80525a2157cba864509c123f254de5b68bbb0491
         raise ValueError('Please provide a label that can be found in msa')
         
     refMsaSeq = str(msa[seqIndex]).upper().replace('-','.')
     
-    alignment = pairwise2.align.globalms(pdbSeq,refMsaSeq, \
+    alignment = pairwise2.align.globalms(pdbSeq, refMsaSeq, \
                                          match, mismatch, gap_opening, gap_extension)
+
     pdb_indices = [-1]
     msa_indices = [-1]
 
@@ -826,5 +838,9 @@ def alignSequenceToPDB(pdb,msa,label,chain='A',match=5,mismatch=-1,gap_opening=-
                 
     indices = array(indices)
     msa_indices = array(msa_indices)
-            
+    
+    seq1 = Sequence(alignment[0][0],ag.getTitle())
+    seq2 = Sequence(alignment[1][0],label)
+    alignment = (seq1, seq2)
+        
     return refMsaSeq, alignment, indices, msa_indices
