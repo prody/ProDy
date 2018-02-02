@@ -7,7 +7,7 @@ from .sequence import Sequence, splitSeqLabel
 from prody import LOGGER
 
 __all__ = ['MSA', 'refineMSA', 'mergeMSA', 'specMergeMSA',
-          'showAlignment']
+          'showAlignment', 'alignSequenceToPDB']
 
 try:
     range = xrange
