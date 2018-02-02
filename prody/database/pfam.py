@@ -501,7 +501,7 @@ def fetchPfamPdbChains(**kwargs):
                                             entry['PdbResNumEnd'])).copy()
 
             chains.append(selection_ag.getHierView()[entry['CHAIN_ID']])
-            accessions.append(header[entry['CHAIN_ID']].dbrefs[0].accession)
+            accessions.append(header[entry['CHAIN_ID']].dbrefs[0])
 
     if kwargs.get('pfam_acc',None) is not None:
         return accessions, chains

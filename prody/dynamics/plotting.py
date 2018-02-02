@@ -193,21 +193,31 @@ def showProjection(ensemble, modes, *args, **kwargs):
         deviation(s) will be projected, or a deformation vector
     :type ensemble: :class:`.Ensemble`, :class:`.Conformation`,
         :class:`.Vector`, :class:`.Trajectory`
+
     :arg modes: up to three normal modes
     :type modes: :class:`.Mode`, :class:`.ModeSet`, :class:`.NMA`
-    :arg color: a color name or a list of color name, default is ``'blue'``
+
+    :arg color: a color name or a list of color names or values, 
+        default is ``'blue'``
     :type color: str, list
+
     :arg label: label or a list of labels
     :type label: str, list
+
     :arg marker: a marker or a list of markers, default is ``'o'``
     :type marker: str, list
+
     :arg linestyle: line style, default is ``'None'``
     :type linestyle: str
+
     :arg text: list of text labels, one for each conformation
     :type text: list
+
     :arg fontsize: font size for text labels
     :type fontsize: int
+
     :arg new_fig: if ``True`` then a new figure will be created before plotting.
+        default is True
     :type new_fig: bool
 
     The projected values are by default converted to RMSD.  Pass ``rmsd=False``
@@ -216,15 +226,54 @@ def showProjection(ensemble, modes, *args, **kwargs):
     Matplotlib function used for plotting depends on the number of modes:
 
       * 1 mode: :func:`~matplotlib.pyplot.hist`
-      * 2 modes: :func:`~matplotlib.pyplot.plot`
-      * 3 modes: :meth:`~mpl_toolkits.mplot3d.Axes3D.plot`"""
+      * 2 modes: :func:`~matplotlib.pyplot.scatter`
+      * 3 modes: :meth:`~mpl_toolkits.mplot3d.Axes3D.scatter`"""
 
     import matplotlib.pyplot as plt
 
-    cmap = kwargs.pop('cmap', plt.cm.jet)
+    W = 10
+    H = 10
+    aspect = 'auto'
+
+    if x_array is not None and y_array is not None:
+        nrow = 3; ncol = 5
+        i = 1; j = 1
+        width_ratios = [1, W, 0.2]
+        height_ratios = [1, H, 0.2]
+    elif x_array is not None and y_array is None:
+        nrow = 3; ncol = 4
+        i = 1; j = 0
+        width_ratios = [W, 0.2]
+        height_ratios = [1, H, 0.2]
+    elif x_array is None and y_array is not None:
+        nrow = 2; ncol = 5
+        i = 0; j = 1
+        width_ratios = [1, W, 0.2]
+        height_ratios = [H, 0.2]
+    else:
+        nrow = 2; ncol = 4
+        i = 0; j = 0
+        width_ratios = [W, 0.2]
+        height_ratios = [H, 0.2]
+
+    main_index = (i,j)
+    upper_index = (i-1,j)
+    lower_index = (i+1,j)
+    left_index = (i,j-1)
+    right_index = (i,j+1)
+
+    outer = GridSpec(1, 3, width_ratios = [sum(width_ratios), 1, 4], hspace=0., wspace=0.2)
+
+    gs = GridSpecFromSubplotSpec(nrow, ncol-2, subplot_spec = outer[0], width_ratios=width_ratios,
+                                 height_ratios=height_ratios, hspace=0., wspace=0.)
+
+    gs_bar = GridSpecFromSubplotSpec(nrow-1, 1, subplot_spec = outer[1], height_ratios=height_ratios[:-1], hspace=0., wspace=0.)
+    gs_legend = GridSpecFromSubplotSpec(nrow-1, 1, subplot_spec = outer[2], height_ratios=height_ratios[:-1], hspace=0., wspace=0.)
+
+    cmap = kwargs.pop('cmap', None)
 
     if kwargs.pop('new_fig', True):
-        plt.figure()
+        fig, ax = plt.subplots() 
     projection = calcProjection(ensemble, modes, kwargs.pop('rmsd', True), kwargs.pop('norm', True))
 
     if projection.ndim == 1 or projection.shape[1] == 1:
@@ -281,7 +330,7 @@ def showProjection(ensemble, modes, *args, **kwargs):
 
     modes = [m for m in modes]
     if len(modes) == 2: 
-        plot = plt.scatter
+        plot = plt.plot
         show = plt.gcf()
         text = plt.text
     else: 
@@ -294,16 +343,16 @@ def showProjection(ensemble, modes, *args, **kwargs):
                 break
         if show is None:
             show = Axes3D(cf)
-        plot = show.scatter
+        plot = show.plot
         text = show.text
-
-    kwargs['marker'] = marker
-    kwargs['c'] = colors
-    kwargs['cmap'] = cmap
 
     args = list(args)
     for opts, indices in indict.items():  # PY3K: OK
         marker, color, label = opts
+        kwargs['marker'] = marker
+        if cmap is not None:
+            color = cmap.colors[int(float(color))]
+        kwargs['c'] = color
 
         if label:
             kwargs['label'] = label
@@ -1325,8 +1374,7 @@ def showMatrix(matrix=None, x_array=None, y_array=None, **kwargs):
     
     cmap = kwargs.pop('cmap', 'jet')
     label_size = kwargs.pop('label_size', 6)
-
-    ax1 = ax2 = ax3 = im = ax4 = ax5 = ax6 = None
+ 
     if nrow > 2:
         y1 = x_array
         x1 = np.arange(len(y1))
@@ -1576,8 +1624,8 @@ def showPlot(y,**kwargs):
                 atoms.getData('domain')[0]
             except:
                 raise ValueError('A domain bar can only be generated if \
-there is domain data associated with \
-the atoms.')
+                                  there is domain data associated with \
+                                  the atoms.')
 
             borders = {}
             for i in range(atoms.numAtoms()/atoms.numChains()):
