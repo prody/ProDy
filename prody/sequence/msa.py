@@ -719,8 +719,13 @@ def showAlignment(alignment, row_size=60, max_seqs=5, **kwargs):
     :arg indices: a set of indices for some or all sequences
         that will be shown above the relevant sequences
     :type indices: array, list or tuple of arrays, lists or tuples
+
+    :arg index_start: how far along the alignment to start putting indices
+        default 0
+    :type index_start: int
     """
     indices = kwargs.get('indices',None)
+    index_start = kwargs.get('index_start',0)
 
     if len(alignment) < max_seqs: 
         max_seqs = len(alignment)
@@ -731,9 +736,14 @@ def showAlignment(alignment, row_size=60, max_seqs=5, **kwargs):
             sys.stdout.write('\n' + ' '*len(alignment[j].getLabel()[:10]) + '\t')
             for k in range(row_size*i+10,row_size*(i+1)+10,10):
                 try:
-                    sys.stdout.write('{:10d}'.format(int(indices[j][k])))
+                    if k > index_start + 10:
+                        sys.stdout.write('{:10d}'.format(int(indices[j][k])))
+                    elif k > index_start:
+                        sys.stdout.write(' '*(k-index_start))
+                    else:
+                        sys.stdout.write(' '*10)
                 except:
-                    sys.stdout.write(' '*10)
+                        sys.stdout.write(' '*10)
             sys.stdout.write('\n')
 
             sys.stdout.write(alignment[j].getLabel()[:10] + '\t' + str(alignment[j])[60*i:60*(i+1)]) 
@@ -812,8 +822,8 @@ def alignSequenceToPDB(pdb,msa,label,chain='A',match=5,mismatch=-1,gap_opening=-
     alignment = pairwise2.align.globalms(pdbSeq, refMsaSeq, \
                                          match, mismatch, gap_opening, gap_extension)
 
-    pdb_indices = [-1]
-    msa_indices = [-1]
+    pdb_indices = [0]
+    msa_indices = [0]
 
     for i in range(len(alignment[0][0])):
         if alignment[0][0][i] != '-':

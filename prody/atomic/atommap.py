@@ -4,7 +4,7 @@ arbitrary order.
 
 .. _atommaps:
 
-How AtomMap's work
+How AtomMap works
 ===============================================================================
 
 :class:`AtomMap` class adds great flexibility to manipulating atomic data.
