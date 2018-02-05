@@ -62,12 +62,14 @@ _parsePDBdoc = _parsePQRdoc + """
     :type altloc: str
 
     :arg biomol: if **True**, biomolecule obtained by transforming the
-        coordinates using information from header section will be returned
-    :type biomol: False
+        coordinates using information from header section will be returned.
+        Default is False
+    :type biomol: bool
 
     :arg secondary: if **True**, secondary structure information from header
-        section will be assigned atoms
-    :type secondary: False
+        section will be assigned to atoms.
+        Default is False
+    :type secondary: bool
 
     If ``model=0`` and ``header=True``, return header dictionary only.
 
