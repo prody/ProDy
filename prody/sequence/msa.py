@@ -840,7 +840,7 @@ def alignSequenceToPDB(pdb,msa,label,chain='A',match=5,mismatch=-1,gap_opening=-
     msa_indices = array(msa_indices)
     
     seq1 = Sequence(alignment[0][0],ag.getTitle())
-    seq2 = Sequence(alignment[1][0],label)
+    seq2 = Sequence(alignment[0][1],label)
     alignment = (seq1, seq2)
         
     return refMsaSeq, alignment, indices, msa_indices
