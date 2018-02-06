@@ -354,7 +354,7 @@ def fetchPfamMSA(acc, alignment='full', compressed=False, **kwargs):
 
             if align_format not in FORMAT_OPTIONS['format']:
                 raise ValueError('alignment format must be of type selex'
-                                 ' stockholm or fasta. MSF not supported')
+                                 ' stockholm or fasta. MSF not sups set to start aported')
 
             if align_format == SELEX:
                 align_format, extension = 'pfam', '.slx'
@@ -496,9 +496,18 @@ def fetchPfamPdbChains(**kwargs):
                                   report=False, subset='ca', header=True)
 
         if header[entry['CHAIN_ID']].dbrefs != [] or not dbrefs:
-            selection_ag = ag.select('resnum {0} to {1}' \
-                                    .format(entry['PdbResNumStart'], \
-                                            entry['PdbResNumEnd'])).copy()
+            if int(entry['PdbResNumStart']) - header['polymers'][0].dbrefs[0].first[-1] > 0:
+                selection_ag = ag.select('resnum {0} to {1}' \
+                .format(int(entry['PdbResNumStart']) \
+                        - header['polymers'][0].dbrefs[0].first[-1], \
+                        int(entry['PdbResNumEnd']) \
+                        - header['polymers'][0].dbrefs[0].first[-1] \
+                       )).copy()
+            else:
+                selection_ag = ag.select('resnum {0} to {1}' \
+                .format(int(entry['PdbResNumStart']), \
+                        int(entry['PdbResNumEnd']))).copy()
+
 
             chains.append(selection_ag.getHierView()[entry['CHAIN_ID']])
             accessions.append(header[entry['CHAIN_ID']].dbrefs[0])
