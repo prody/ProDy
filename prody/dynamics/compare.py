@@ -187,6 +187,10 @@ def calcCovOverlap(modes1, modes2):
     return 1 - diff / np.sqrt(varA.sum() + varB.sum())
 
 def matchModes(modes1, modes2):
+    """Returns the optimal matching between *modes1* and *modes2*. *modes1* 
+    and *modes2* should have equal number of modes, and the function will 
+    return a nested list where each item is a list containing a pair of modes."""
+
     from scipy.optimize import linear_sum_assignment
 
     if len(modes1) != len(modes2):
