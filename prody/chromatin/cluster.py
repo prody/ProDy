@@ -1,7 +1,7 @@
 import numpy as np
 from prody import LOGGER, SETTINGS
 from prody.utilities import showFigure
-from functions import _getEigvecs
+from prody.chromatin.functions import _getEigvecs
 
 __all__ = ['getGNMDomains', 'KMeans', 'Hierarchy', 'Discretize', 'showLinkage']
 
