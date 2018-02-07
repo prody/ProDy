@@ -13,7 +13,7 @@ from .gnm import ZERO
 
 __all__ = ['calcOverlap', 'calcCumulOverlap', 'calcSubspaceOverlap',
            'calcCovOverlap', 'printOverlapTable', 'writeOverlapTable',
-           'matchModes']
+           'pairModes']
 
 
 def calcOverlap(rows, cols):
@@ -186,7 +186,7 @@ def calcCovOverlap(modes1, modes2):
         diff = diff ** 0.5
     return 1 - diff / np.sqrt(varA.sum() + varB.sum())
 
-def matchModes(modes1, modes2):
+def pairModes(modes1, modes2):
     """Returns the optimal matching between *modes1* and *modes2*. *modes1* 
     and *modes2* should have equal number of modes, and the function will 
     return a nested list where each item is a list containing a pair of modes."""
