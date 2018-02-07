@@ -12,7 +12,8 @@ from .mode import Mode, Vector
 from .gnm import ZERO
 
 __all__ = ['calcOverlap', 'calcCumulOverlap', 'calcSubspaceOverlap',
-           'calcCovOverlap', 'printOverlapTable', 'writeOverlapTable']
+           'calcCovOverlap', 'printOverlapTable', 'writeOverlapTable',
+           'matchModes']
 
 
 def calcOverlap(rows, cols):
@@ -184,3 +185,21 @@ def calcCovOverlap(modes1, modes2):
     else:
         diff = diff ** 0.5
     return 1 - diff / np.sqrt(varA.sum() + varB.sum())
+
+def matchModes(modes1, modes2):
+    from scipy.optimize import linear_sum_assignment
+
+    if len(modes1) != len(modes2):
+        raise ValueError('Same number of modes should be provided.')
+    overlaps = calcOverlap(modes1, modes2)
+
+    costs = 1 - abs(overlaps)
+    row_ind, col_ind = linear_sum_assignment(costs)
+
+    mode_pairs = []
+    for i in range(len(row_ind)):
+        r = row_ind[i]; c = col_ind[i]
+        mode_pair = [modes1[r], modes2[c]]
+        mode_pairs.append(mode_pair)
+
+    return mode_pairs
