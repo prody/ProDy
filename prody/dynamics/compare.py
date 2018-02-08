@@ -13,7 +13,7 @@ from .gnm import ZERO
 
 __all__ = ['calcOverlap', 'calcCumulOverlap', 'calcSubspaceOverlap',
            'calcCovOverlap', 'printOverlapTable', 'writeOverlapTable',
-           'pairModes']
+           'pairModes', 'matchModes']
 
 
 def calcOverlap(rows, cols):
@@ -187,7 +187,7 @@ def calcCovOverlap(modes1, modes2):
     return 1 - diff / np.sqrt(varA.sum() + varB.sum())
 
 def pairModes(modes1, modes2):
-    """Returns the optimal matching between *modes1* and *modes2*. *modes1* 
+    """Returns the optimal matches between *modes1* and *modes2*. *modes1* 
     and *modes2* should have equal number of modes, and the function will 
     return a nested list where each item is a list containing a pair of modes."""
 
@@ -207,3 +207,36 @@ def pairModes(modes1, modes2):
         mode_pairs.append(mode_pair)
 
     return mode_pairs
+
+def matchModes(*modesets):
+    """Returns the matches of modes among *modesets*. Note that the first 
+    modeset will be treated as the reference so that only the matching 
+    of each modeset to the first modeset is garanteed to be optimal."""
+
+    P = []
+    modes0 = modesets[0]
+
+    n_modes = len(modes0)
+    n_sets = len(modesets)
+
+    for i, modes in enumerate(modesets):
+        if i > 0:
+            pairs = pairModes(modes0, modes)
+            P.append(pairs)
+
+    from operator import itemgetter
+    def modeorder_compare(m1, m2):
+        return m1.getIndex() - m2.getIndex()
+
+    for pairs in P:
+        pairs = sorted(pairs, key=itemgetter(0), cmp=modeorder_compare)
+    
+    matches = [[None for _ in range(n_sets)] for _ in range(n_modes)]
+    for i in range(n_modes):
+        for j in range(n_sets):
+            if j == 0:
+                matches[i][j] = P[0][i][0]
+            else:
+                matches[i][j] = P[j-1][i][1]
+
+    return matches

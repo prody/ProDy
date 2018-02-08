@@ -49,8 +49,10 @@ def showMap(map, spec='', **kwargs):
     
     if 'p' in spec:
         p = kwargs.pop('p', 5)
-        vmin = np.percentile(map, p)
-        vmax = np.percentile(map, 100-p)
+        lp = kwargs.pop('lp', p)
+        hp = kwargs.pop('hp', 100-p)
+        vmin = np.percentile(map, lp)
+        vmax = np.percentile(map, hp)
     else:
         vmin = vmax = None
     
