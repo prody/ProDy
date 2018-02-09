@@ -10,6 +10,7 @@ from prody import LOGGER, PY3K
 from prody.utilities import makePath, openURL, gunzip, openFile, dictElement
 from prody.utilities import relpath
 from prody.proteins import parsePDB
+from prody.sequence import parseMSA, refineMSA, MSA
 
 if PY3K:
     import urllib.parse as urllib
@@ -18,7 +19,7 @@ else:
     import urllib
     import urllib2
 
-__all__ = ['searchPfam', 'fetchPfamMSA', 'searchUniprotID', 'fetchPfamPdbChains']
+__all__ = ['searchPfam', 'fetchPfamMSA', 'searchUniprotID', 'fetchPfamPDBChains']
 
 FASTA = 'fasta'
 SELEX = 'selex'
@@ -408,7 +409,7 @@ def fetchPfamMSA(acc, alignment='full', compressed=False, **kwargs):
 
     return filepath
 
-def fetchPfamPdbChains(**kwargs):
+def fetchPfamPDBChains(**kwargs):
     """Returns a list of AtomGroups containing sections of chains that 
     correspond to a particular PFAM domain family. These are defined by 
     alignment start and end residue numbers.
@@ -419,7 +420,13 @@ def fetchPfamPdbChains(**kwargs):
 
     :arg query: UniProt ID or PDB ID
         If a PDB ID is provided the corresponding UniProt ID is used.
+        If no query is provided but a pfam_acc is then the first entry
+        will be used as a query. 
+        This query is also used for label refinement of the pfam domain MSA.
     :type query: str
+
+    You must provide one of these two arguments.
+    Use of query requires start or end to also be provided.
 
     :arg start: Residue number for defining the start of the domain.
         The PFAM domain that starts closest to this will be selected. 
@@ -428,21 +435,13 @@ def fetchPfamPdbChains(**kwargs):
     :arg end: Residue number for defining the end of the domain.
         The PFAM domain that ends closest to this will be selected. 
     :type end: int
-
-    :arg dbrefs: Whether to return database references.
-        Default is True
-    :type dbrefs: bool
-
-    You must provide one of these two arguments.
-    Use of query requires start or end to also be provided.
     """
-    domain = kwargs.get('pfam_acc',None)
+    pfam_acc = kwargs.get('pfam_acc',None)
     query = kwargs.get('query',None)
     start = kwargs.get('start',None)
     end = kwargs.get('end',None)
-    dbrefs = kwargs.get('dbrefs',True)
 
-    if domain is None:
+    if pfam_acc is None:
         if query is None:
             raise ValueError('Please provide a value for pfam_acc or query.')
         else:
@@ -453,14 +452,14 @@ def fetchPfamPdbChains(**kwargs):
                 for i, key in enumerate(pfam_matches):
                     start_diff.append(int(pfam_matches[key]['locations'][0]['start']) - start)
                 start_diff = np.array(start_diff)
-                domain = pfam_matches.keys()[np.where(abs(start_diff) == min(abs(start_diff)))[0][0]]
+                pfam_acc = pfam_matches.keys()[np.where(abs(start_diff) == min(abs(start_diff)))[0][0]]
 
             elif end is not None and type(end) is int:
                 end_diff = []
                 for i, key in enumerate(pfam_matches):
                     end_diff.append(int(pfam_matches[key]['locations'][0]['end']) - end)
                 end_diff = np.array(end_diff)
-                domain = pfam_matches.keys()[np.where(abs(end_diff) == min(abs(end_diff)))[0][0]]
+                pfam_acc = pfam_matches.keys()[np.where(abs(end_diff) == min(abs(end_diff)))[0][0]]
 
             else:
                 raise ValueError('Please provide an integer for start or end when using query.')
@@ -477,74 +476,52 @@ def fetchPfamPdbChains(**kwargs):
     for field in data[0].strip().split('\t'):
         fields.append(field)
     
-    data_dict = {}
-    i = -1
+    data_dict = []
     for line in data[1:]:
-        if line.find(domain) != -1:
-            i += 1
-            data_dict[i] = {}
+        if line.find(pfam_acc) != -1:
+            data_dict.append({})
             for j, entry in enumerate(line.strip().split('\t')):
-                data_dict[i][fields[j]] = entry
-            
-    pdb_ids = []
+                data_dict[-1][fields[j]] = entry
+
+    if query is None:
+        query_header = parsePDBHeader(data_dict[0]['PDB_ID'])
+        query = query_header['polymers'][data_dict[0]['CHAIN_ID']].dbrefs[0].idcode
+
+    msa_name = fetchPfamMSA(pfam_acc, format='fasta')
+    full_msa = parseMSA(msa_name)
+
+    pdb_ids = []            
+    ags = []
+    headers = []
     chains = []
-    accessions = []
-    for key in data_dict:
-        entry = data_dict[key]
-        if not entry['PDB_ID'] in pdb_ids:
-            ag, header = parsePDB(entry['PDB_ID'], compressed=False, \
-                                  report=False, subset='ca', header=True)
+    msa = []
+    labels = []
+    for i in range(len(data_dict)):
+        pdb_id = data_dict[i]['PDB_ID']
+        if not pdb_id in pdb_ids:
+            ag, header = parsePDB(pdb_id, compressed=False, \
+                                  report=False, subset='ca', \
+                                  header=True, **kwargs)
+            ags.append(ag)
+            headers.append(header)
+            pdb_ids.append(pdb_id)
 
-        if header[entry['CHAIN_ID']].dbrefs != [] or not dbrefs:
-            selection_ag = ag.select('resnum {0} to {1}' \
-                                    .format(entry['PdbResNumStart'], \
-                                            entry['PdbResNumEnd'])).copy()
+        for chain in header['polymers']:
+            if chain.dbrefs != []:
+                if full_msa.getIndex(chain.dbrefs[0].idcode) is not None:
+                    chains.append(ag.getHierView()[chain.chid])
+                    if not chain.dbrefs[0].idcode in labels:
+                        msa.append(list(str(full_msa[full_msa.getIndex(chain.dbrefs[0].idcode)])))
+                        labels.append(chain.dbrefs[0].idcode)
 
-            chains.append(selection_ag.getHierView()[entry['CHAIN_ID']])
-            accessions.append(header[entry['CHAIN_ID']].dbrefs[0])
+    pfam_pdb_msa = MSA(msa=np.array(msa), labels=labels, title='PFAM PDB MSA')
+    pfam_pdb_msa = refineMSA(pfam_pdb_msa,colocc=0.01)
+
+    LOGGER.info('{0} PDBs have been parsed and {1} chains have been extracted. \
+                '.format(len(ags),len(chains)))
 
     if kwargs.get('pfam_acc',None) is not None:
-        return accessions, chains
+        return data_dict, query, ags, headers, chains, pfam_pdb_msa
     else:
-        return domain, accessions, chains
+        return data_dict, pfam_acc, ags, headers, chains, pfam_pdb_msa
 
-if __name__ == '__main__':
-
-    from prody import *
-    #filepath = fetchPfamMSA('PF00497',alignment='seed',compressed=False,
-    #                         format='stockholm',gaps='dashes')
-    #print filepath
-    #results = list(iterSequences(filepath))
-
-    #filepath1 = fetchPfamMSA('PF00007',alignment='seed',compressed=True,
-    #                         timeout=5)
-    #filepath2 = fetchPfamMSA('PF00007',alignment='seed',compressed=True,
-    #                         format='selex')
-    #filepath3 = fetchPfamMSA('PF00007',alignment='seed',compressed=False,
-    #                         format='fasta', outname='mymsa')
-    #results_sth = list(MSAFile(filepath1))
-    #results_slx = list(MSAFile(filepath2))
-    #results_fasta = list(MSAFile(filepath3))
-    #from Bio import AlignIO
-    #alignment = AlignIO.read(filepath3,'fasta')
-    #results_obj = list(MSAFile(alignment))
-    #import numpy
-    #numpy.testing.assert_equal(results_fasta,results_obj)
-
-    #matches1 = searchPfam('P12821')
-    #matches1 = searchPfam('P08581')
-    #matches2 = searchPfam('test.seq')
-
-    """matches2 = searchPfam('PMFIVNTNVPRASVPDGFLSELTQQLAQATGKPPQYIAVHVVPDQLMAFGGSSEPCALCSLHSIGKIGGAQNRSYSKLLC\
-GLLAERLRISPDRVYINYYDMNAANVGWNNSTFA', evalue=2, skipAs=True)
-    """
-    #matches3 = searchPfam('NSIQIGGLFPRGADQEYSAFRVGMVQFSTSEFRLTPHIDNLEVANSFAVTNAFCSQFSRGVYAIFGFYDKKSVNTITSFC\
-#GTLHVSFITPSFPTDGTHPFVIQMRPDLKGALLSLIEYYQWDKFAYLYDSDRGLSTLQAVLDSAAEKKWQVTAINVGNINNDKKDETYRSLFQDLELKKERRVILDCERDKVNDIVDQVITIGKHVKGYHYIIANLGFTDGDLLKIQFGGAEVSGFQIVD\
-#YDDSLVSKFIERWSTLEEKEYPGAHTATIKYTSALTYDAVQVMTEAFRNLRKQRIEISRRGNAGDCLANPAVPWGQGVEI\
-#ERALKQVQVEGLSGNIKFDQNGKRINYTINIMELKTNGPRKIGYWSEVDKMVLTEDDTSGLEQKTVVVTTILESPYVMMK\
-#ANHAALAGNERYEGYCVDLAAEIAKHCGFKYKLTIVGDGKYGARDADTKIWNGMVGELVYGKADIAIAPLTITLVREEVI\
-#DFSKPFMSLGISIMIKKPQKSKPGVFSFLDPLAYEIWMCIVFAYIGVSVVLFLVSRFSPYEWHTEEFEDGRETQSSESTN\
-#EFGIFNSLWFSLGAFMQQGADISPRSLSGRIVGGVWWFFTLIIISSYTANLAAFLTVERMVSPIESAEDLSKQTEIAYGT\
-#LDSGSTKEFFRRSKIAVFDKMWTYMRSAEPSVFVRTTAEGVARVRKSKGKYAYLLESTMNEYIEQRKPCDTMKVGGNLDS\
-#KGYGIATPKGSSLGTPVNLAVLKLSEQGLLDKLKNKWWYDKGECGAKDSGSKEKTSALSLSNVAGVFYILVGGLGLAMLV\
-#ALIEFCYKSRAEAKRMKGLVPRG', delay=10, evalue=2, searchBs=True)
