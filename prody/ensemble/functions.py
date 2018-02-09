@@ -356,25 +356,32 @@ def calcTree(ensemble, distance_matrix):
         node.name = None
     return tree
 
-def buildPDBEnsemble(refpdb, PDBs, title='Unknown', labels=None, seqid=94, coverage=85, mapping_func=mapOntoChain, occupancy=None, unmapped=None):  
+def buildPDBEnsemble(refpdb, PDBs, title='Unknown', labels=None, seqid=94, coverage=85, mapping_func=mapOntoChain, occupancy=None, unmapped=None):
     """Builds a PDB ensemble from a given reference structure and a list of PDB structures. 
     Note that the reference structure should be included in the list as well.
 
     :arg refpdb: Reference structure
     :type refpdb: :class:`.Chain`, :class:`.Selection`, or :class:`.AtomGroup`
+
     :arg PDBs: A list of PDB structures
     :type PDBs: iterable
+
     :arg title: The title of the ensemble
     :type title: str
+
     :arg labels: labels of the conformations
     :type labels: list
+
     :arg seqid: Minimal sequence identity (percent)
     :type seqid: int
+
     :arg coverage: Minimal sequence overlap (percent)
     :type coverage: int
+
     :arg occupancy: Minimal occupancy of columns (range from 0 to 1). Columns whose occupancy
     is below this value will be trimmed.
     :type occupancy: float
+
     :arg unmapped: A list of PDB IDs that cannot be included in the ensemble. This is an 
     output argument. 
     :type unmapped: list
@@ -387,7 +394,7 @@ def buildPDBEnsemble(refpdb, PDBs, title='Unknown', labels=None, seqid=94, cover
         if len(labels) != len(PDBs):
             raise TypeError('Labels and PDBs must have the same lengths.')
 
-    # obtain the hierarhical view of the referrence PDB
+    # obtain the hierarhical view of the reference PDB
     refhv = refpdb.getHierView()
     refchains = list(refhv)
 
