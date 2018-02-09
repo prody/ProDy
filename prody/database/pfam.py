@@ -19,7 +19,7 @@ else:
     import urllib
     import urllib2
 
-__all__ = ['searchPfam', 'fetchPfamMSA', 'searchUniprotID', 'fetchPfamPdbChains']
+__all__ = ['searchPfam', 'fetchPfamMSA', 'searchUniprotID', 'fetchPfamPDBChains']
 
 FASTA = 'fasta'
 SELEX = 'selex'
@@ -409,7 +409,7 @@ def fetchPfamMSA(acc, alignment='full', compressed=False, **kwargs):
 
     return filepath
 
-def fetchPfamPdbChains(**kwargs):
+def fetchPfamPDBChains(**kwargs):
     """Returns a list of AtomGroups containing sections of chains that 
     correspond to a particular PFAM domain family. These are defined by 
     alignment start and end residue numbers.
@@ -436,12 +436,12 @@ def fetchPfamPdbChains(**kwargs):
         The PFAM domain that ends closest to this will be selected. 
     :type end: int
     """
-    domain = kwargs.get('pfam_acc',None)
+    pfam_acc = kwargs.get('pfam_acc',None)
     query = kwargs.get('query',None)
     start = kwargs.get('start',None)
     end = kwargs.get('end',None)
 
-    if domain is None:
+    if pfam_acc is None:
         if query is None:
             raise ValueError('Please provide a value for pfam_acc or query.')
         else:
@@ -452,14 +452,14 @@ def fetchPfamPdbChains(**kwargs):
                 for i, key in enumerate(pfam_matches):
                     start_diff.append(int(pfam_matches[key]['locations'][0]['start']) - start)
                 start_diff = np.array(start_diff)
-                domain = pfam_matches.keys()[np.where(abs(start_diff) == min(abs(start_diff)))[0][0]]
+                pfam_acc = pfam_matches.keys()[np.where(abs(start_diff) == min(abs(start_diff)))[0][0]]
 
             elif end is not None and type(end) is int:
                 end_diff = []
                 for i, key in enumerate(pfam_matches):
                     end_diff.append(int(pfam_matches[key]['locations'][0]['end']) - end)
                 end_diff = np.array(end_diff)
-                domain = pfam_matches.keys()[np.where(abs(end_diff) == min(abs(end_diff)))[0][0]]
+                pfam_acc = pfam_matches.keys()[np.where(abs(end_diff) == min(abs(end_diff)))[0][0]]
 
             else:
                 raise ValueError('Please provide an integer for start or end when using query.')
@@ -476,47 +476,51 @@ def fetchPfamPdbChains(**kwargs):
     for field in data[0].strip().split('\t'):
         fields.append(field)
     
-    data_dict = {}
-    i = -1
+    data_dict = []
     for line in data[1:]:
-        if line.find(domain) != -1:
-            i += 1
-            data_dict[i] = {}
+        if line.find(pfam_acc) != -1:
+            data_dict.append({})
             for j, entry in enumerate(line.strip().split('\t')):
-                data_dict[i][fields[j]] = entry
+                data_dict[-1][fields[j]] = entry
 
     if query is None:
         query_header = parsePDBHeader(data_dict[0]['PDB_ID'])
         query = query_header['polymers'][data_dict[0]['CHAIN_ID']].dbrefs[0].idcode
 
-    msa_name = fetchPfamMSA(domain, format='fasta')
-    fetched_msa = parseMSA(msa_name)
-    refined_msa = refineMSA(fetched_msa, label=query)
+    msa_name = fetchPfamMSA(pfam_acc, format='fasta')
+    full_msa = parseMSA(msa_name)
 
     pdb_ids = []            
     ags = []
     headers = []
     chains = []
-    for key in data_dict:
-        pdb_id = data_dict[key]['PDB_ID']
-        pdb_id = entry['PDB_ID']
+    msa = []
+    labels = []
+    for i in range(len(data_dict)):
+        pdb_id = data_dict[i]['PDB_ID']
         if not pdb_id in pdb_ids:
-            ag, header = parsePDB(pdb_ids[-1], compressed=False, \
+            ag, header = parsePDB(pdb_id, compressed=False, \
                                   report=False, subset='ca', \
                                   header=True, **kwargs)
             ags.append(ag)
             headers.append(header)
+            pdb_ids.append(pdb_id)
 
         for chain in header['polymers']:
             if chain.dbrefs != []:
-                if refined_msa.getIndex(chain.dbrefs[0].idcode) is not None:
+                if full_msa.getIndex(chain.dbrefs[0].idcode) is not None:
                     chains.append(ag.getHierView()[chain.chid])
+                    if not chain.dbrefs[0].idcode in labels:
+                        msa.append(list(str(full_msa[full_msa.getIndex(chain.dbrefs[0].idcode)])))
+                        labels.append(chain.dbrefs[0].idcode)
+
+    pfam_pdb_msa = MSA(msa=array(msa), labels=labels, title='PFAM PDB MSA')
 
     LOGGER.info('{0} PDBs have been parsed and {1} chains have been extracted. \
                 '.format(len(ags),len(chains)))
 
     if kwargs.get('pfam_acc',None) is not None:
-        return data_dict, query, ags, headers, chains, refined_msa
+        return data_dict, query, ags, headers, chains, pfam_pdb_msa
     else:
-        return data_dict, domain, ags, headers, chains, refined_msa
+        return data_dict, pfam_acc, ags, headers, chains, pfam_pdb_msa
 
