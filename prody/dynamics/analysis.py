@@ -248,7 +248,13 @@ def calcSqFlucts(modes):
 
     if not isinstance(modes, (VectorBase, NMA, ModeSet)):
         try:
-            modes = [ mode for mode in modes ]
+            modes2 = []
+            for mode in modes:
+                if not isinstance(mode, Mode):
+                    raise TypeError('modes can be a list of Mode instances, '
+                                    'not {0}'.format(type(mode)))
+                modes2.append(mode)
+            mode = list(modes2)
         except TypeError:
             raise TypeError('modes must be a Mode, NMA, ModeSet instance, '
                             'or a list of Mode instances, not {0}'.format(type(modes)))
@@ -575,6 +581,23 @@ def calcEnsembleENMs(ensemble, occupancy=0.9, model='gnm', trim='trim', n_modes=
     
     return enms
 
+def _checkEnsembleType(ensemble, **kwargs):
+    if isinstance(ensemble, Ensemble):
+        enms = calcEnsembleENMs(ensemble, **kwargs)
+    else:
+        try:
+            enms = []
+            for enm in ensemble:
+                if not isinstance(enm, (Mode, NMA, ModeSet)):
+                    raise TypeError('ensemble can be a list of Mode, '
+                                    'NMA, or ModeSet instances, '
+                                    'not {0}'.format(type(enm)))
+                enms.append(enm)
+        except TypeError:
+            raise TypeError('ensemble must be an Ensemble instance, '
+                            'or a list of NMA, Mode, or ModeSet instances.')
+    return enms
+
 def calcOverlapTree(ensemble, method='nj', **kwargs):
     """Description"""
 
@@ -587,7 +610,7 @@ def calcOverlapTree(ensemble, method='nj', **kwargs):
             'to solve the problem.')
     method = method.strip().lower()
 
-    enms = calcEnsembleENMs(ensemble, **kwargs)
+    enms = _checkEnsembleType(ensemble, **kwargs)
     labels = ensemble.getLabels()
     
     overlaps = np.zeros((len(enms), len(enms)))
@@ -622,18 +645,29 @@ def calcOverlapTree(ensemble, method='nj', **kwargs):
 def calcSignatureProfile(ensemble, index, **kwargs):
     """Description"""
 
-    enms = calcEnsembleENMs(ensemble, **kwargs)
+    enms = _checkEnsembleType(ensemble, **kwargs)
+    
     matches = matchModes(*enms)
 
-    modes = matches[index]
-    V = []
-    v0 = modes[0].getEigvec()
-    for mode in modes:
-        v = mode.getEigvec()
-        c = dot(v, v0)
-        if c < 0:
-            v *= -1
-        V.append(v)
+    if np.isscalar(index):
+        modes = matches[index]
+        V = []
+        v0 = modes[0].getEigvec()
+        for mode in modes:
+            v = mode.getEigvec()
+            c = dot(v, v0)
+            if c < 0:
+                v *= -1
+            V.append(v)
+    else:
+        V = []
+        for j in range(len(matches)):
+            modes = []
+            for i in index:
+                mode = matches[i][j]
+                modes.append(mode)
+            sqfs = calcSqFlucts(modes)
+            V.append(sqfs)
     V = np.vstack(V)
 
     meanV = V.mean(axis=0)
