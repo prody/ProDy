@@ -18,8 +18,8 @@ from prody import LOGGER, SETTINGS
 from .header import getHeaderDict, buildBiomolecules, assignSecstr, isHelix, isSheet
 from .localpdb import fetchPDB
 
-__all__ = ['parsePDBStream', 'parsePDB', 'parsePQR',
-           'writePDBStream', 'writePDB',]
+__all__ = ['parsePDBStream', 'parsePDB', 'parseChainsList', 'parsePQR',
+           'writePDBStream', 'writePDB', 'writeChainsList']
 
 class PDBParseError(Exception):
     pass
@@ -803,6 +803,59 @@ _writePDBdoc = """
     :arg occupancy: a list or array of number to be outputted in occupancy
         column
     """
+
+def writeChainsList(chains,filename='chains_list.txt'):
+    """
+    Write a text file containing a list of chains that can be parsed.
+
+    :arg chains: a list of :class:`.Chain` objects
+    
+    :arg filename: the name of the file to be written
+    :type filename: string
+    """
+
+    fo = open(filename,'w')
+    for chain in chains:
+        fo.write(chain.getTitle() + ' ' + chain.getChid() + '\n')
+    fo.close()
+    return
+
+def parseChainsList(filename='chains_list.txt'):
+    """
+    Parse a set of PDBs and extract chains based on a list in a text file.
+
+    :arg filename: the name of the file to be read
+    :type filename: string
+
+    Returns: lists containing an :class:'.AtomGroup' for each PDB, 
+    the headers for those PDBs, and the requested :class:`.Chain` objects
+    """
+        
+    fi = open(filename,'r')
+    lines = fi.readlines()
+    fi.close()
+
+    pdb_ids = []
+    ags = []
+    headers = []
+    chains = []
+    for line in lines:
+        pdb_id = line.split()[0].split('_')[0]
+        if not pdb_id in pdb_ids:
+            pdb_ids.append(pdb_id)
+
+            ag, header = parsePDB(pdb_ids[-1], compressed=False, report=False, \
+                                  subset=line.split()[0].split('_')[1], header=True)
+
+            ags.append(ag)
+            headers.append(header)
+
+        chains.append(ag.getHierView()[line.strip().split()[1]])
+
+    LOGGER.info('{0} PDBs have been parsed and {1} chains have been extracted. \
+                '.format(len(ags),len(chains)))
+
+    return ags, headers, chains
 
 def writePDBStream(stream, atoms, csets=None, **kwargs):
     """Write *atoms* in PDB format to a *stream*.
