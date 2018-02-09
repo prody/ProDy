@@ -1484,7 +1484,7 @@ def showMatrix(matrix=None, x_array=None, y_array=None, **kwargs):
         ax6.tick_params(labelsize=label_size)
 
         ax5.set_xlim([-0.5, len(matrix)+0.5])
-        ax6.set_ylim([-0.5, len(matrix)+0.5])
+        ax6.set_ylim([-0.5, len(matrix.T)+0.5])
 
     if SETTINGS['auto_show']:
         showFigure()
