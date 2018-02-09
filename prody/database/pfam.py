@@ -10,7 +10,7 @@ from prody import LOGGER, PY3K
 from prody.utilities import makePath, openURL, gunzip, openFile, dictElement
 from prody.utilities import relpath
 from prody.proteins import parsePDB
-from prody.sequence import parseMSA, refineMSA
+from prody.sequence import parseMSA, refineMSA, MSA
 
 if PY3K:
     import urllib.parse as urllib
@@ -514,7 +514,8 @@ def fetchPfamPDBChains(**kwargs):
                         msa.append(list(str(full_msa[full_msa.getIndex(chain.dbrefs[0].idcode)])))
                         labels.append(chain.dbrefs[0].idcode)
 
-    pfam_pdb_msa = MSA(msa=array(msa), labels=labels, title='PFAM PDB MSA')
+    pfam_pdb_msa = MSA(msa=np.array(msa), labels=labels, title='PFAM PDB MSA')
+    pfam_pdb_msa = refineMSA(pfam_pdb_msa,colocc=0.01)
 
     LOGGER.info('{0} PDBs have been parsed and {1} chains have been extracted. \
                 '.format(len(ags),len(chains)))
