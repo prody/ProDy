@@ -1,8 +1,9 @@
 import numpy as np
 from prody import LOGGER, SETTINGS
 from prody.utilities import showFigure
+from prody.chromatin.functions import _getEigvecs
 
-__all__ = ['KMeans', 'Hierarchy', 'showLinkage']
+__all__ = ['getGNMDomains', 'KMeans', 'Hierarchy', 'Discretize', 'showLinkage']
 
 def KMeans(V, **kwargs):
     """Performs k-means clustering on *V*. The function uses :func:`sklearn.cluster.KMeans`. See sklearn documents 
@@ -77,6 +78,22 @@ def Hierarchy(V, **kwargs):
     labels = fcluster(Z, t, criterion=criterion, depth=depth, R=R, monocrit=monocrit)
     return labels.flatten()
 
+def Discretize(V, **kwargs):
+    try:
+        from sklearn.cluster.spectral import discretize
+    except ImportError:
+        raise ImportError('Use of this function (Discretize) requires the '
+                          'installation of sklearn.')
+
+    copy = kwargs.pop('copy', True)
+    max_svd_restarts = kwargs.pop('max_svd_restarts', 30)
+    n_iter_max = kwargs.pop('n_iter_max', 20)
+    random_state = kwargs.pop('random_state', None)
+
+    labels = discretize(V, copy=copy, max_svd_restarts=max_svd_restarts, 
+                        n_iter_max=n_iter_max, random_state=random_state)
+    return labels
+
 def showLinkage(V, **kwargs):
     """Shows the dendrogram of hierarchical clustering on *V*. See :func:`scipy.cluster.hierarchy.dendrogram` for details.
 
@@ -84,9 +101,8 @@ def showLinkage(V, **kwargs):
     :type V: :class:`numpy.ndarray`
 
     """
-    from .functions import _getEigvecs
 
-    V = _getEigvecs(V, row_norm=True)
+    V, _ = _getEigvecs(V, row_norm=True, remove_zero_rows=True)
     try:
         from scipy.cluster.hierarchy import linkage, fcluster, dendrogram
     except ImportError:
@@ -103,3 +119,31 @@ def showLinkage(V, **kwargs):
         showFigure()
     return Z
     
+def getGNMDomains(modes, method=Hierarchy, **kwargs):
+    """Uses spectral clustering to separate structural domains in the chromosome.
+    
+    :arg modes: GNM modes used for segmentation
+    :type modes: :class:`ModeSet`
+
+    :arg method: Label assignment algorithm used after Laplacian embedding of loci.
+    :type method: func
+    """
+
+    V, mask = _getEigvecs(modes, row_norm=True, remove_zero_rows=True)
+
+    labels_ = method(V, **kwargs)
+
+    labels = np.empty(len(mask))
+    labels.fill(np.nan)
+    labels[mask] = labels_
+
+    currlbl = labels_[np.argmax(~np.isnan(labels_))]
+
+    for i in range(len(labels)):
+        l = labels[i]
+        if np.isnan(l):
+            labels[i] = currlbl
+        elif currlbl != l:
+            currlbl = l
+
+    return labels

@@ -3,7 +3,6 @@ import numpy as np
 from scipy.sparse import coo_matrix
 from scipy.stats import mode
 from prody.chromatin.norm import VCnorm, SQRTVCnorm, Filenorm
-from prody.chromatin.cluster import KMeans, Hierarchy
 from prody.chromatin.functions import div0, showMap, showDomains, _getEigvecs
 
 from prody.dynamics import GNM, TrimedGNM
@@ -26,13 +25,13 @@ class HiC(object):
         self._map = None
         self.mask = False
         self._labels = 0
-        self.useTrimed = True
+        self.useTrimmed = True
         self.bin = bin
         self.Map = map
     
     @property
     def Map(self):
-        if self.useTrimed:
+        if self.useTrimmed:
             return self.getTrimedMap()
         else:
             return self._map
@@ -63,10 +62,10 @@ class HiC(object):
             return self.Map[i,j]
 
     def __len__(self):
-        return len(self._map)
+        return len(self.Map)
     
     def numAtoms(self):
-        return len(self._map)
+        return len(self.Map)
 
     def getTitle(self):
         """Returns title of the instance."""
@@ -223,7 +222,7 @@ class HiC(object):
     def calcGNM(self, n_modes=None):
         """Calculates GNM on the current Hi-C map."""
 
-        if self.useTrimed:
+        if self.useTrimmed:
             gnm = TrimedGNM(self._title, self.mask)
         else:
             gnm = GNM(self._title)
@@ -239,34 +238,26 @@ class HiC(object):
         self.Map = N
         return N
     
-    def segment(self, modes, method=Hierarchy, **kwargs):
+    def setDomains(self, labels, **kwargs):
         """Uses spectral clustering to identify structural domains on the chromosome.
         
-        :arg modes: GNM modes used for segmentation
-        :type modes: :class:`ModeSet`
+        :arg labels: domain labels
+        :type labels: array-like
 
         :arg method: Label assignment algorithm used after Laplacian embedding.
         :type method: func
         """
+        wastrimmed = self.useTrimmed
 
-        V = _getEigvecs(modes, True)
-
-        if len(self.Map) != V.shape[0]:
-            raise ValueError('Modes (%d) and the Hi-C map (%d) should have the same number'
-                             ' of atoms. Turn off "useTrimed" if you intended to apply the'
-                             ' modes to the full map.'
-                             %(V.shape[0], len(self.Map)))
-
-        labels = method(V, **kwargs)
-
-        if self.useTrimed:
-            full_length = len(self._map)
+        self.useTrimmed = True
+        if len(labels) == self.numAtoms():
+            full_length = self.numAtoms()
             if full_length != len(labels):
                 _labels = np.empty(full_length)
                 _labels.fill(np.nan)
                 _labels[self.mask] = labels
 
-                currlbl = labels[np.argmax(~np.isnan(labels))]
+                currlbl = labels[0]
 
                 for i in range(len(_labels)):
                     l = _labels[i]
@@ -275,7 +266,14 @@ class HiC(object):
                     elif currlbl != l:
                         currlbl = l
                 labels = _labels
+        else:
+            self.useTrimmed = False
+            if len(labels) != self.numAtoms():
+                raise ValueError('The length of the labels should match either the length '
+                                 'of trimmed or untrimmed Hi-C map. Turn off "useTrimmed" if '
+                                 'you intended to set the labels to the full map.')
         
+        self.useTrimmed = wastrimmed
         self._labels = labels
         return self.getDomains()
     
@@ -285,7 +283,7 @@ class HiC(object):
 
         lbl = self._labels
         mask = self.mask
-        if self.useTrimed:
+        if self.useTrimmed:
             lbl = lbl[mask]
         return lbl
 

@@ -130,6 +130,7 @@ def fetchPDBviaFTP(*pdb, **kwargs):
     compressed = bool(kwargs.pop('compressed', True))
     format = str(kwargs.pop('format', 'pdb')).lower()
     noatom = bool(kwargs.pop('noatom', False))
+    report = kwargs.get('report', True)
 
     if format == 'pdb':
         ftp_divided = 'pdb/data/structures/divided/pdb'
@@ -190,7 +191,8 @@ def fetchPDBviaFTP(*pdb, **kwargs):
 
 
     ftp_name, ftp_host, ftp_path = WWPDB_FTP_SERVERS[wwPDBServer() or 'us']
-    LOGGER.debug('Connecting wwPDB FTP server {0}.'.format(ftp_name))
+    if report:
+        LOGGER.debug('Connecting wwPDB FTP server {0}.'.format(ftp_name))
 
     from ftplib import FTP
     try:
@@ -237,8 +239,9 @@ def fetchPDBviaFTP(*pdb, **kwargs):
                         [write(block) for block in data]
 
                     filename = normpath(relpath(second(filename, pdb)))
-                    LOGGER.debug('{0} downloaded ({1})'
-                                 .format(pdb, sympath(filename)))
+                    if report: 
+                        LOGGER.debug('{0} downloaded ({1})'
+                                     .format(pdb, sympath(filename)))
                     success += 1
                     filenames.append(filename)
                 else:
@@ -249,7 +252,7 @@ def fetchPDBviaFTP(*pdb, **kwargs):
 
         ftp.quit()
 
-    if kwargs.get('report', True):
+    if report:
         LOGGER.debug('PDB download via FTP completed ({0} downloaded, '
                      '{1} failed).'.format(success, failure))
     if len(identifiers) == 1:
@@ -273,6 +276,7 @@ def fetchPDBviaHTTP(*pdb, **kwargs):
 
     output_folder = kwargs.pop('folder', None)
     compressed = bool(kwargs.pop('compressed', True))
+    report = kwargs.get('report', True)
 
     extension = '.pdb'
     local_folder = pathPDBFolder()
@@ -337,7 +341,7 @@ def fetchPDBviaHTTP(*pdb, **kwargs):
                             .format(pdb))
                 failure += 1
                 filenames.append(None)
-    if kwargs.get('report', True):
+    if report:
         LOGGER.debug('PDB download via HTTP completed ({0} downloaded, '
                      '{1} failed).'.format(success, failure))
     if len(identifiers) == 1:
