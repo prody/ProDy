@@ -231,44 +231,44 @@ def showProjection(ensemble, modes, *args, **kwargs):
 
     import matplotlib.pyplot as plt
 
-    W = 10
-    H = 10
-    aspect = 'auto'
+    #W = 10
+    #H = 10
+    #aspect = 'auto'
 
-    if x_array is not None and y_array is not None:
-        nrow = 3; ncol = 5
-        i = 1; j = 1
-        width_ratios = [1, W, 0.2]
-        height_ratios = [1, H, 0.2]
-    elif x_array is not None and y_array is None:
-        nrow = 3; ncol = 4
-        i = 1; j = 0
-        width_ratios = [W, 0.2]
-        height_ratios = [1, H, 0.2]
-    elif x_array is None and y_array is not None:
-        nrow = 2; ncol = 5
-        i = 0; j = 1
-        width_ratios = [1, W, 0.2]
-        height_ratios = [H, 0.2]
-    else:
-        nrow = 2; ncol = 4
-        i = 0; j = 0
-        width_ratios = [W, 0.2]
-        height_ratios = [H, 0.2]
+    #if x_array is not None and y_array is not None:
+    #    nrow = 3; ncol = 5
+    #    i = 1; j = 1
+    #    width_ratios = [1, W, 0.2]
+    #    height_ratios = [1, H, 0.2]
+    #elif x_array is not None and y_array is None:
+    #    nrow = 3; ncol = 4
+    #    i = 1; j = 0
+    #    width_ratios = [W, 0.2]
+    #    height_ratios = [1, H, 0.2]
+    #elif x_array is None and y_array is not None:
+    #    nrow = 2; ncol = 5
+    #    i = 0; j = 1
+    #    width_ratios = [1, W, 0.2]
+    #    height_ratios = [H, 0.2]
+    #else:
+    #    nrow = 2; ncol = 4
+    #    i = 0; j = 0
+    #    width_ratios = [W, 0.2]
+    #    height_ratios = [H, 0.2]
 
-    main_index = (i,j)
-    upper_index = (i-1,j)
-    lower_index = (i+1,j)
-    left_index = (i,j-1)
-    right_index = (i,j+1)
+    #main_index = (i,j)
+    #upper_index = (i-1,j)
+    #lower_index = (i+1,j)
+    #left_index = (i,j-1)
+    #right_index = (i,j+1)
 
-    outer = GridSpec(1, 3, width_ratios = [sum(width_ratios), 1, 4], hspace=0., wspace=0.2)
+    #outer = GridSpec(1, 3, width_ratios = [sum(width_ratios), 1, 4], hspace=0., wspace=0.2)
 
-    gs = GridSpecFromSubplotSpec(nrow, ncol-2, subplot_spec = outer[0], width_ratios=width_ratios,
-                                 height_ratios=height_ratios, hspace=0., wspace=0.)
+    #gs = GridSpecFromSubplotSpec(nrow, ncol-2, subplot_spec = outer[0], width_ratios=width_ratios,
+    #                             height_ratios=height_ratios, hspace=0., wspace=0.)
 
-    gs_bar = GridSpecFromSubplotSpec(nrow-1, 1, subplot_spec = outer[1], height_ratios=height_ratios[:-1], hspace=0., wspace=0.)
-    gs_legend = GridSpecFromSubplotSpec(nrow-1, 1, subplot_spec = outer[2], height_ratios=height_ratios[:-1], hspace=0., wspace=0.)
+    #gs_bar = GridSpecFromSubplotSpec(nrow-1, 1, subplot_spec = outer[1], height_ratios=height_ratios[:-1], hspace=0., wspace=0.)
+    #gs_legend = GridSpecFromSubplotSpec(nrow-1, 1, subplot_spec = outer[2], height_ratios=height_ratios[:-1], hspace=0., wspace=0.)
 
     cmap = kwargs.pop('cmap', None)
 
