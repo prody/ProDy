@@ -499,11 +499,12 @@ def fetchPfamPDBChains(**kwargs):
     for i in range(len(data_dict)):
         pdb_id = data_dict[i]['PDB_ID']
         if not pdb_id in pdb_ids:
-            ag, header = parsePDB(pdb_ids[-1], compressed=False, \
+            ag, header = parsePDB(pdb_id, compressed=False, \
                                   report=False, subset='ca', \
                                   header=True, **kwargs)
             ags.append(ag)
             headers.append(header)
+            pdb_ids.append(pdb_id)
 
         for chain in header['polymers']:
             if chain.dbrefs != []:
