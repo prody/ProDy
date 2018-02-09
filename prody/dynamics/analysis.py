@@ -12,19 +12,20 @@ from prody.atomic import AtomGroup, Selection
 from prody.ensemble import Ensemble, Conformation, trimPDBEnsemble
 from prody.trajectory import TrajBase
 from prody.utilities import importLA
-from numpy import sqrt, arange, log, polyfit, array, arccos
+from numpy import sqrt, arange, log, polyfit, array, arccos, dot
 
 from .nma import NMA
 from .modeset import ModeSet
 from .mode import VectorBase, Mode, Vector
 from .gnm import GNMBase
 from .functions import calcENM
-from .compare import calcCovOverlap
+from .compare import calcCovOverlap, matchModes
 
 __all__ = ['calcCollectivity', 'calcCovariance', 'calcCrossCorr',
            'calcFractVariance', 'calcSqFlucts', 'calcTempFactors',
            'calcProjection', 'calcCrossProjection', 'calcPerturbResponse',
-           'calcSpecDimension', 'calcPairDeformationDist', 'calcOverlapTree']
+           'calcSpecDimension', 'calcPairDeformationDist', 'calcEnsembleENMs', 
+           'calcOverlapTree']
            #'calcEntropyTransfer', 'calcOverallNetEntropyTransfer']
 
 def calcCollectivity(mode, masses=None):
@@ -535,17 +536,8 @@ def calcPerturbResponse(model, atoms=None, repeats=100):
     np.savetxt('norm_PRS_matrix', norm_PRS_mat, delimiter='\t', fmt='%8.6f')
     return response_matrix
 
-def calcOverlapTree(ensemble, occupancy=0.9, model='gnm', trim='trim', n_modes=20, method='nj'):
+def calcEnsembleENMs(ensemble, occupancy=0.9, model='gnm', trim='trim', n_modes=20):
     """Description"""
-
-    # missing: type check
-    try: 
-        from Bio.Phylo.TreeConstruction import DistanceCalculator, DistanceTreeConstructor
-    except ImportError:
-        raise ImportError('Phylo module could not be imported. '
-            'Reinstall ProDy or install Biopython '
-            'to solve the problem.')
-    method = method.strip().lower()
 
     ## obtain the original atoms before triming
     ori_atoms = ensemble.getAtoms()
@@ -571,6 +563,23 @@ def calcOverlapTree(ensemble, occupancy=0.9, model='gnm', trim='trim', n_modes=2
         enm, atoms = calcENM(ori_atoms, selstr, model=model, trim=trim, 
                             n_modes=n_modes, title=labels[i])
         enms.append(enm)
+    
+    return enms
+
+def calcOverlapTree(ensemble, method='nj', **kwargs):
+    """Description"""
+
+    # missing: type check
+    try: 
+        from Bio.Phylo.TreeConstruction import DistanceCalculator, DistanceTreeConstructor
+    except ImportError:
+        raise ImportError('Phylo module could not be imported. '
+            'Reinstall ProDy or install Biopython '
+            'to solve the problem.')
+    method = method.strip().lower()
+
+    enms = calcEnsembleENMs(ensemble, **kwargs)
+    labels = ensemble.getLabels()
     
     overlaps = np.zeros((len(enms), len(enms)))
     for i, enmi in enumerate(enms):
@@ -600,3 +609,26 @@ def calcOverlapTree(ensemble, occupancy=0.9, model='gnm', trim='trim', n_modes=2
         raise ValueError('Method can be only either "nj" or "upgma".')
 
     return tree, enms, dist_mat
+
+def calcSignatureProfile(ensemble, index, **kwargs):
+    """Description"""
+
+    enms = calcEnsembleENMs(ensemble, **kwargs)
+    matches = matchModes(*enms)
+
+    modes = matches[index]
+    V = []
+    v0 = modes[0].getEigvec()
+    for mode in modes:
+        v = mode.getEigvec()
+        c = dot(v, v0)
+        if c < 0:
+            v *= -1
+        V.append(v)
+    V = np.vstack(V)
+
+    meanV = V.mean(axis=0)
+    stdV = V.std(axis=0)
+
+    return meanV, stdV
+    
