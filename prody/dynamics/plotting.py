@@ -1375,6 +1375,7 @@ def showMatrix(matrix=None, x_array=None, y_array=None, **kwargs):
     cmap = kwargs.pop('cmap', 'jet')
     label_size = kwargs.pop('label_size', 6)
  
+    ax1 = ax2 = ax3 = ax4 = ax5 = ax6 = ax7 = None
     if nrow > 2:
         y1 = x_array
         x1 = np.arange(len(y1))
@@ -1404,8 +1405,6 @@ def showMatrix(matrix=None, x_array=None, y_array=None, **kwargs):
 
     ax3 = plt.subplot(gs[main_index])
     im = imshow(matrix, aspect=aspect, vmin=vmin, vmax=vmax, cmap=cmap, **kwargs)
-    ax3.set_xlim([-0.5, len(matrix)+0.5])
-    ax3.set_ylim([-0.5, len(matrix)+0.5])
     ax3.yaxis.tick_right()
 
     ax4 = plt.subplot(gs_bar[-1])
@@ -1485,11 +1484,11 @@ def showMatrix(matrix=None, x_array=None, y_array=None, **kwargs):
         ax6.tick_params(labelsize=label_size)
 
         ax5.set_xlim([-0.5, len(matrix)+0.5])
-        ax6.set_ylim([-0.5, len(matrix)+0.5])
+        ax6.set_ylim([-0.5, len(matrix.T)+0.5])
 
     if SETTINGS['auto_show']:
         showFigure()
-
+ 
     return ax1, ax2, im, ax3, ax4, ax5, ax6, ax7
 
 def showPlot(y,**kwargs):
