@@ -25,7 +25,7 @@ __all__ = ['calcCollectivity', 'calcCovariance', 'calcCrossCorr',
            'calcFractVariance', 'calcSqFlucts', 'calcTempFactors',
            'calcProjection', 'calcCrossProjection', 'calcPerturbResponse',
            'calcSpecDimension', 'calcPairDeformationDist', 'calcEnsembleENMs', 
-           'calcOverlapTree']
+           'calcSignatureProfile', 'calcOverlapTree']
            #'calcEntropyTransfer', 'calcOverallNetEntropyTransfer']
 
 def calcCollectivity(mode, masses=None):
@@ -247,16 +247,25 @@ def calcSqFlucts(modes):
     relative units."""
 
     if not isinstance(modes, (VectorBase, NMA, ModeSet)):
-        raise TypeError('modes must be a Mode, NMA, or ModeSet instance, '
-                        'not {0}'.format(type(modes)))
-    is3d = modes.is3d()
+        try:
+            modes = [ mode for mode in modes ]
+        except TypeError:
+            raise TypeError('modes must be a Mode, NMA, ModeSet instance, '
+                            'or a list of Mode instances, not {0}'.format(type(modes)))
+    if isinstance(modes, list):
+        is3d = modes[0].is3d()
+        n_atoms = modes[0].numAtoms()
+    else:
+        is3d = modes.is3d()
+        n_atoms = modes.numAtoms()
+
     if isinstance(modes, Vector):
         if is3d:
             return (modes._getArrayNx3()**2).sum(axis=1)
         else:
             return (modes._getArray() ** 2)
     else:
-        sq_flucts = np.zeros(modes.numAtoms())
+        sq_flucts = np.zeros(n_atoms)
         if isinstance(modes, VectorBase):
             modes = [modes]
         for mode in modes:
