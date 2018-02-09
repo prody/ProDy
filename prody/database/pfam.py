@@ -355,7 +355,7 @@ def fetchPfamMSA(acc, alignment='full', compressed=False, **kwargs):
 
             if align_format not in FORMAT_OPTIONS['format']:
                 raise ValueError('alignment format must be of type selex'
-                                 ' stockholm or fasta. MSF not sups set to start aported')
+                                 ' stockholm or fasta. MSF not supported')
 
             if align_format == SELEX:
                 align_format, extension = 'pfam', '.slx'
