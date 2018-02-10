@@ -668,10 +668,10 @@ def calcSignatureProfile(ensemble, index, **kwargs):
                 modes.append(mode)
             sqfs = calcSqFlucts(modes)
             V.append(sqfs)
-    V = np.vstack(V)
+    V = np.vstack(V); V = V.T
 
-    meanV = V.mean(axis=0)
-    stdV = V.std(axis=0)
+    meanV = V.mean(axis=1)
+    stdV = V.std(axis=1)
 
-    return meanV, stdV
+    return meanV, stdV, V
     
