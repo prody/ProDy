@@ -33,7 +33,8 @@ __all__ = ['showContactMap', 'showCrossCorr',
            'showDiffMatrix','showMechStiff','showNormDistFunct',
            'showPairDeformationDist','showMeanMechStiff', 
            'showPerturbResponse', 'showPerturbResponseProfiles',
-           'showMatrix', 'showPlot', 'showTree', 'showTree_networkx']
+           'showMatrix', 'showPlot', 'showTree', 'showTree_networkx',
+           'showSignatureProfile']
 
 
 def showEllipsoid(modes, onto=None, n_std=2, scale=1., *args, **kwargs):
@@ -1778,3 +1779,32 @@ def showTree_networkx(tree, node_size=20, node_color='red', withlabels=True, sca
         showFigure()
 
     return mpl.gca()
+
+def showSignatureProfile(ensemble, index, linespec='-', **kwargs):
+    """Description"""
+
+    from matplotlib.pyplot import figure, plot, fill_between, gca
+    from .analysis import getSignatureProfile
+
+    V, (meanV, stdV) = getSignatureProfile(ensemble, index, **kwargs)
+    minV = V.min(axis=1)
+    maxV = V.max(axis=1)
+
+    x = range(meanV.shape[0])
+
+    new_fig = kwargs.pop('new_fig', True)
+
+    if new_fig:
+        figure()
+    line = plot(x, meanV, linespec)[0]
+    color = line.get_color()
+    fill_between(x, minV, maxV,
+                alpha=0.3, facecolor=color,
+                linewidth=1, antialiased=True)
+    fill_between(x, meanV-stdV, meanV+stdV,
+                alpha=0.5, facecolor=color,
+                linewidth=1, antialiased=True)
+    
+    if SETTINGS['auto_show']:
+        showFigure()
+    return gca()
