@@ -25,7 +25,7 @@ __all__ = ['calcCollectivity', 'calcCovariance', 'calcCrossCorr',
            'calcFractVariance', 'calcSqFlucts', 'calcTempFactors',
            'calcProjection', 'calcCrossProjection', 'calcPerturbResponse',
            'calcSpecDimension', 'calcPairDeformationDist', 'calcEnsembleENMs', 
-           'calcSignatureProfile', 'calcOverlapTree']
+           'getSignatureProfile', 'calcOverlapTree']
            #'calcEntropyTransfer', 'calcOverallNetEntropyTransfer']
 
 def calcCollectivity(mode, masses=None):
@@ -642,7 +642,7 @@ def calcOverlapTree(ensemble, method='nj', **kwargs):
 
     return tree, enms, dist_mat
 
-def calcSignatureProfile(ensemble, index, **kwargs):
+def getSignatureProfile(ensemble, index, **kwargs):
     """Description"""
 
     enms = _checkEnsembleType(ensemble, **kwargs)
@@ -673,5 +673,5 @@ def calcSignatureProfile(ensemble, index, **kwargs):
     meanV = V.mean(axis=1)
     stdV = V.std(axis=1)
 
-    return meanV, stdV, V
+    return V, (meanV, stdV)
     
