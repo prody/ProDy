@@ -600,7 +600,12 @@ class Ensemble(object):
     def getRMSDs(self, pairwise=False):
         """Returns root mean square deviations (RMSDs) for selected atoms.
         Conformations can be aligned using one of :meth:`superpose` or
-        :meth:`iterpose` methods prior to RMSD calculation."""
+        :meth:`iterpose` methods prior to RMSD calculation.
+        
+        :arg pairwise: if ``True`` then it will return pairwise RMSDs 
+        as an n-by-n matrix. n is the number of conformations.
+        :type pairwise: bool
+        """
 
         if self._confs is None or self._coords is None:
             return None
