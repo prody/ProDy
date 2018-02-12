@@ -19,13 +19,13 @@ from .modeset import ModeSet
 from .mode import VectorBase, Mode, Vector
 from .gnm import GNMBase
 from .functions import calcENM
-from .compare import calcCovOverlap, matchModes
+from .compare import calcSpectralOverlap, matchModes
 
 __all__ = ['calcCollectivity', 'calcCovariance', 'calcCrossCorr',
            'calcFractVariance', 'calcSqFlucts', 'calcTempFactors',
            'calcProjection', 'calcCrossProjection', 'calcPerturbResponse',
            'calcSpecDimension', 'calcPairDeformationDist', 'calcEnsembleENMs', 
-           'getSignatureProfile', 'calcOverlapTree']
+           'getSignatureProfile', 'calcSpectralDistances']
            #'calcEntropyTransfer', 'calcOverallNetEntropyTransfer']
 
 def calcCollectivity(mode, masses=None):
@@ -581,7 +581,7 @@ def calcEnsembleENMs(ensemble, occupancy=0.9, model='gnm', trim='trim', n_modes=
     
     return enms
 
-def _checkEnsembleType(ensemble, **kwargs):
+def _getEnsembleENMs(ensemble, **kwargs):
     if isinstance(ensemble, Ensemble):
         enms = calcEnsembleENMs(ensemble, **kwargs)
     else:
@@ -598,54 +598,26 @@ def _checkEnsembleType(ensemble, **kwargs):
                             'or a list of NMA, Mode, or ModeSet instances.')
     return enms
 
-def calcOverlapTree(ensemble, method='nj', **kwargs):
+def calcSpectralDistances(ensemble, **kwargs):
     """Description"""
 
-    # missing: type check
-    try: 
-        from Bio.Phylo.TreeConstruction import DistanceCalculator, DistanceTreeConstructor
-    except ImportError:
-        raise ImportError('Phylo module could not be imported. '
-            'Reinstall ProDy or install Biopython '
-            'to solve the problem.')
-    method = method.strip().lower()
-
-    enms = _checkEnsembleType(ensemble, **kwargs)
-    labels = ensemble.getLabels()
+    enms = _getEnsembleENMs(ensemble, **kwargs)
     
     overlaps = np.zeros((len(enms), len(enms)))
     for i, enmi in enumerate(enms):
         for j, enmj in enumerate(enms):
-            covlap = calcCovOverlap(enmi, enmj)
+            covlap = calcSpectralOverlap(enmi, enmj)
             overlaps[i, j] = covlap
 
     ### build tree based on similarity matrix ###
     dist_mat = arccos(overlaps)
 
-    def _toDistanceMatrix(names, matrix):
-        from Bio.Phylo.TreeConstruction import _DistanceMatrix
-        dist_mat = []
-        n, _ = matrix.shape
-        for i in range(n):
-            dist_mat.append(matrix[i, :i+1].tolist())
-        
-        return _DistanceMatrix(names, dist_mat)
-
-    dm = _toDistanceMatrix(names=labels, matrix=dist_mat)
-    constructor = DistanceTreeConstructor()
-    if method == 'nj':
-        tree = constructor.nj(dm)
-    elif method == 'upgma':
-        tree = constructor.upgma(dm)
-    else:
-        raise ValueError('Method can be only either "nj" or "upgma".')
-
-    return tree, enms, dist_mat
+    return dist_mat
 
 def getSignatureProfile(ensemble, index, **kwargs):
     """Description"""
 
-    enms = _checkEnsembleType(ensemble, **kwargs)
+    enms = _getEnsembleENMs(ensemble, **kwargs)
     
     matches = matchModes(*enms)
 

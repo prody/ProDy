@@ -1746,7 +1746,7 @@ def showTree_networkx(tree, node_size=20, node_color='red', withlabels=True, sca
 
     for node in G.nodes():
         lbl = node.name
-        if 'Inner' in lbl:
+        if lbl is None:
             lbl = ''
             colors.append('black')
             sizes.append(0)
