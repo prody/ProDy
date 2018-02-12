@@ -111,6 +111,9 @@ class Ensemble(object):
         ensemble.setCoords(self._coords.copy())
         ensemble.addCoordset(self._confs.copy())
         ensemble.addCoordset(other.getCoordsets())
+
+        if self._enms is None and other._enms is None:
+            ensemble._enms = None
         if self._weights is not None:
             LOGGER.info('Atom weights from {0} are used in {1}.'
                         .format(repr(self._title), repr(ensemble.getTitle())))
