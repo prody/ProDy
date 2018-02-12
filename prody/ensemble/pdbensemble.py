@@ -323,7 +323,7 @@ class PDBEnsemble(Ensemble):
             ssqf += ((conf - mean) * weights[i]) ** 2
         return ssqf.sum(1) / weightsum.flatten()
 
-    def getRMSDs(self):
+    def getRMSDs(self, pairwise=False):
         """Calculate and return root mean square deviations (RMSDs). Note that
         you might need to align the conformations using :meth:`superpose` or
         :meth:`iterpose` before calculating RMSDs."""
@@ -333,10 +333,20 @@ class PDBEnsemble(Ensemble):
 
         indices = self._indices
         if indices is None:
-            return getRMSD(self._coords, self._confs, self._weights)
+            indices = np.arange(self._confs.shape[1])
+        
+        weights = self._weights[:, indices] if self._weights is not None else None
+
+        if pairwise:
+            n_confs = self.numConfs()
+            RMSDs = np.zeros((n_confs, n_confs))
+            for i in range(n_confs):
+                for j in range(n_confs):
+                    RMSDs[i, j] = getRMSD(self._confs[i, indices], self._confs[j, indices], weights)
         else:
-            return getRMSD(self._coords[indices], self._confs[:, indices],
-                           self._weights[:, indices])
+            RMSDs = getRMSD(self._coords[indices], self._confs[:, indices], weights)
+
+        return RMSDs
 
     def setWeights(self, weights):
         """Set atomic weights."""

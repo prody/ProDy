@@ -419,13 +419,13 @@ def getRMSD(ref, tar, weights=None):
     else:
         if tar.ndim == 2:
             return np.sqrt((((ref-tar) ** 2) * weights).sum() *
-                           (1 / weights.sum()))
+                           (1. / weights.sum()))
         else:
             rmsd = np.zeros(len(tar))
             if weights.ndim == 2:
                 for i, t in enumerate(tar):
                     rmsd[i] = (((ref-t) ** 2) * weights).sum()
-                return np.sqrt(rmsd * (1 / weights.sum()))
+                return np.sqrt(rmsd * (1. / weights.sum()))
             else:
                 for i, t in enumerate(tar):
                     rmsd[i] = (((ref-t) ** 2) * weights[i]).sum()
