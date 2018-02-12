@@ -326,7 +326,12 @@ class PDBEnsemble(Ensemble):
     def getRMSDs(self, pairwise=False):
         """Calculate and return root mean square deviations (RMSDs). Note that
         you might need to align the conformations using :meth:`superpose` or
-        :meth:`iterpose` before calculating RMSDs."""
+        :meth:`iterpose` before calculating RMSDs.
+
+        :arg pairwise: if ``True`` then it will return pairwise RMSDs 
+        as an n-by-n matrix. n is the number of conformations.
+        :type pairwise: bool
+        """
 
         if self._confs is None or self._coords is None:
             return None
