@@ -12,19 +12,20 @@ from prody.atomic import AtomGroup, Selection
 from prody.ensemble import Ensemble, Conformation, trimPDBEnsemble
 from prody.trajectory import TrajBase
 from prody.utilities import importLA
-from numpy import sqrt, arange, log, polyfit, array, arccos
+from numpy import sqrt, arange, log, polyfit, array, arccos, dot
 
 from .nma import NMA
 from .modeset import ModeSet
 from .mode import VectorBase, Mode, Vector
 from .gnm import GNMBase
 from .functions import calcENM
-from .compare import calcCovOverlap
+from .compare import calcSpectralOverlap, matchModes
 
 __all__ = ['calcCollectivity', 'calcCovariance', 'calcCrossCorr',
            'calcFractVariance', 'calcSqFlucts', 'calcTempFactors',
            'calcProjection', 'calcCrossProjection', 'calcPerturbResponse',
-           'calcSpecDimension', 'calcPairDeformationDist', 'calcOverlapTree']
+           'calcSpecDimension', 'calcPairDeformationDist', 'calcEnsembleENMs', 
+           'getSignatureProfile', 'calcSpectralDistances']
            #'calcEntropyTransfer', 'calcOverallNetEntropyTransfer']
 
 def calcCollectivity(mode, masses=None):
@@ -246,16 +247,31 @@ def calcSqFlucts(modes):
     relative units."""
 
     if not isinstance(modes, (VectorBase, NMA, ModeSet)):
-        raise TypeError('modes must be a Mode, NMA, or ModeSet instance, '
-                        'not {0}'.format(type(modes)))
-    is3d = modes.is3d()
+        try:
+            modes2 = []
+            for mode in modes:
+                if not isinstance(mode, Mode):
+                    raise TypeError('modes can be a list of Mode instances, '
+                                    'not {0}'.format(type(mode)))
+                modes2.append(mode)
+            mode = list(modes2)
+        except TypeError:
+            raise TypeError('modes must be a Mode, NMA, ModeSet instance, '
+                            'or a list of Mode instances, not {0}'.format(type(modes)))
+    if isinstance(modes, list):
+        is3d = modes[0].is3d()
+        n_atoms = modes[0].numAtoms()
+    else:
+        is3d = modes.is3d()
+        n_atoms = modes.numAtoms()
+
     if isinstance(modes, Vector):
         if is3d:
             return (modes._getArrayNx3()**2).sum(axis=1)
         else:
             return (modes._getArray() ** 2)
     else:
-        sq_flucts = np.zeros(modes.numAtoms())
+        sq_flucts = np.zeros(n_atoms)
         if isinstance(modes, VectorBase):
             modes = [modes]
         for mode in modes:
@@ -535,17 +551,8 @@ def calcPerturbResponse(model, atoms=None, repeats=100):
     np.savetxt('norm_PRS_matrix', norm_PRS_mat, delimiter='\t', fmt='%8.6f')
     return response_matrix
 
-def calcOverlapTree(ensemble, occupancy=0.9, model='gnm', trim='trim', n_modes=20, method='nj'):
+def calcEnsembleENMs(ensemble, occupancy=0.9, model='gnm', trim='trim', n_modes=20):
     """Description"""
-
-    # missing: type check
-    try: 
-        from Bio.Phylo.TreeConstruction import DistanceCalculator, DistanceTreeConstructor
-    except ImportError:
-        raise ImportError('Phylo module could not be imported. '
-            'Reinstall ProDy or install Biopython '
-            'to solve the problem.')
-    method = method.strip().lower()
 
     ## obtain the original atoms before triming
     ori_atoms = ensemble.getAtoms()
@@ -572,31 +579,71 @@ def calcOverlapTree(ensemble, occupancy=0.9, model='gnm', trim='trim', n_modes=2
                             n_modes=n_modes, title=labels[i])
         enms.append(enm)
     
+    return enms
+
+def _getEnsembleENMs(ensemble, **kwargs):
+    if isinstance(ensemble, Ensemble):
+        enms = calcEnsembleENMs(ensemble, **kwargs)
+    else:
+        try:
+            enms = []
+            for enm in ensemble:
+                if not isinstance(enm, (Mode, NMA, ModeSet)):
+                    raise TypeError('ensemble can be a list of Mode, '
+                                    'NMA, or ModeSet instances, '
+                                    'not {0}'.format(type(enm)))
+                enms.append(enm)
+        except TypeError:
+            raise TypeError('ensemble must be an Ensemble instance, '
+                            'or a list of NMA, Mode, or ModeSet instances.')
+    return enms
+
+def calcSpectralDistances(ensemble, **kwargs):
+    """Description"""
+
+    enms = _getEnsembleENMs(ensemble, **kwargs)
+    
     overlaps = np.zeros((len(enms), len(enms)))
     for i, enmi in enumerate(enms):
         for j, enmj in enumerate(enms):
-            covlap = calcCovOverlap(enmi, enmj)
+            covlap = calcSpectralOverlap(enmi, enmj)
             overlaps[i, j] = covlap
 
     ### build tree based on similarity matrix ###
     dist_mat = arccos(overlaps)
 
-    def _toDistanceMatrix(names, matrix):
-        from Bio.Phylo.TreeConstruction import _DistanceMatrix
-        dist_mat = []
-        n, _ = matrix.shape
-        for i in range(n):
-            dist_mat.append(matrix[i, :i+1].tolist())
-        
-        return _DistanceMatrix(names, dist_mat)
+    return dist_mat
 
-    dm = _toDistanceMatrix(names=labels, matrix=dist_mat)
-    constructor = DistanceTreeConstructor()
-    if method == 'nj':
-        tree = constructor.nj(dm)
-    elif method == 'upgma':
-        tree = constructor.upgma(dm)
+def getSignatureProfile(ensemble, index, **kwargs):
+    """Description"""
+
+    enms = _getEnsembleENMs(ensemble, **kwargs)
+    
+    matches = matchModes(*enms)
+
+    if np.isscalar(index):
+        modes = matches[index]
+        V = []
+        v0 = modes[0].getEigvec()
+        for mode in modes:
+            v = mode.getEigvec()
+            c = dot(v, v0)
+            if c < 0:
+                v *= -1
+            V.append(v)
     else:
-        raise ValueError('Method can be only either "nj" or "upgma".')
+        V = []
+        for j in range(len(matches)):
+            modes = []
+            for i in index:
+                mode = matches[i][j]
+                modes.append(mode)
+            sqfs = calcSqFlucts(modes)
+            V.append(sqfs)
+    V = np.vstack(V); V = V.T
 
-    return tree, enms, dist_mat
+    meanV = V.mean(axis=1)
+    stdV = V.std(axis=1)
+
+    return V, (meanV, stdV)
+    

@@ -324,7 +324,7 @@ def alignPDBEnsemble(ensemble, suffix='_aligned', outdir='.', gzip=False):
     else:
         return output
 
-def calcTree(ensemble, distance_matrix):
+def calcTree(ensemble, distance_matrix, method='nj'):
     """ Given a distance matrix for an ensemble, it creates an returns a tree structure.
     :arg ensemble: an ensemble with labels. 
     :type ensemble: prody.ensemble.Ensemble or prody.ensemble.PDBEnsemble
@@ -342,7 +342,7 @@ def calcTree(ensemble, distance_matrix):
     names = ensemble.getLabels()
     if len(names) != distance_matrix.shape[0] or len(names) != distance_matrix.shape[1]:
         raise ValueError("The size of matrix and ensemble has a mismatch.")
-        return None
+        
     matrix = []
     k = 1
     for row in distance_matrix:
@@ -351,7 +351,15 @@ def calcTree(ensemble, distance_matrix):
     from Bio.Phylo.TreeConstruction import _DistanceMatrix
     dm = _DistanceMatrix(names, matrix)
     constructor = Phylo.TreeConstruction.DistanceTreeConstructor()
-    tree = constructor.nj(dm)
+
+    method = method.strip().lower()
+    if method == 'nj':
+        tree = constructor.nj(dm)
+    elif method == 'upgma':
+        tree = constructor.upgma(dm)
+    else:
+        raise ValueError('Method can be only either "nj" or "upgma".')
+
     for node in tree.get_nonterminals():
         node.name = None
     return tree

@@ -2,7 +2,7 @@
 """This module defines a class for handling ensembles of conformations."""
 
 from numpy import dot, add, subtract, array, ndarray, sign, concatenate, unique
-from numpy import zeros, ones
+from numpy import zeros, ones, arange
 
 from prody import LOGGER
 from prody.atomic import Atomic
@@ -111,6 +111,7 @@ class Ensemble(object):
         ensemble.setCoords(self._coords.copy())
         ensemble.addCoordset(self._confs.copy())
         ensemble.addCoordset(other.getCoordsets())
+
         if self._weights is not None:
             LOGGER.info('Atom weights from {0} are used in {1}.'
                         .format(repr(self._title), repr(ensemble.getTitle())))
@@ -596,19 +597,32 @@ class Ensemble(object):
 
         return self._getCoordsets() - self._getCoords()
 
-    def getRMSDs(self):
+    def getRMSDs(self, pairwise=False):
         """Returns root mean square deviations (RMSDs) for selected atoms.
         Conformations can be aligned using one of :meth:`superpose` or
-        :meth:`iterpose` methods prior to RMSD calculation."""
+        :meth:`iterpose` methods prior to RMSD calculation.
+        
+        :arg pairwise: if ``True`` then it will return pairwise RMSDs 
+        as an n-by-n matrix. n is the number of conformations.
+        :type pairwise: bool
+        """
 
         if self._confs is None or self._coords is None:
             return None
-        if self._indices is None:
-            return getRMSD(self._coords, self._confs, self._weights)
+
+        indices = self._indices
+        if indices is None:
+            indices = arange(self._confs.shape[1])
+        
+        weights = self._weights[indices] if self._weights is not None else None
+
+        if pairwise:
+            n_confs = self.numConfs()
+            RMSDs = zeros((n_confs, n_confs))
+            for i in range(n_confs):
+                for j in range(n_confs):
+                    RMSDs[i, j] = getRMSD(self._confs[i, indices], self._confs[j, indices], weights)
         else:
-            indices = self._indices
-            if self._weights is None:
-                return getRMSD(self._coords[indices], self._confs[:, indices])
-            else:
-                return getRMSD(self._coords[indices], self._confs[:, indices],
-                               self._weights[indices])
+            RMSDs = getRMSD(self._coords[indices], self._confs[:, indices], weights)
+
+        return RMSDs
