@@ -23,7 +23,7 @@ from .compare import calcSpectralOverlap, matchModes
 
 __all__ = ['calcCollectivity', 'calcCovariance', 'calcCrossCorr',
            'calcFractVariance', 'calcSqFlucts', 'calcTempFactors',
-           'calcProjection', 'calcCrossProjection', 'calcPerturbResponse',
+           'calcProjection', 'calcCrossProjection', 
            'calcSpecDimension', 'calcPairDeformationDist', 'calcEnsembleENMs', 
            'getSignatureProfile', 'calcSpectralDistances']
            #'calcEntropyTransfer', 'calcOverallNetEntropyTransfer']
