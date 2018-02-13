@@ -2,7 +2,7 @@
    :target: http://travis-ci.org/#!/prody/ProDy
 
 .. image:: https://pypip.in/v/ProDy/badge.png
-   :target: https://pypi.python.org/pypi/ProDy
+   :target: https://pypi.org/project/ProDy/
 
 .. image:: https://pypip.in/d/ProDy/badge.png
    :target: https://crate.io/packages/ProDy/
