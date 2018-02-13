@@ -255,41 +255,6 @@ def showOccupancies(pdbensemble, *args, **kwargs):
         showFigure()
     return show
 
-
-def checkWeights(weights, n_atoms, n_csets=None):
-    """Returns weights if checks pass, otherwise raise an exception."""
-
-    assert isinstance(n_atoms, int) or isinstance(n_atoms, long) and n_atoms > 0, \
-        'n_atoms must be a positive integer'
-    assert n_csets is None or isinstance(n_csets, int) or isinstance(n_atoms, long) and n_csets > 0, \
-        'n_csets must be a positive integer'
-
-    if not isinstance(weights, np.ndarray):
-        raise TypeError('weights must be a Numpy array')
-    elif n_csets is None and weights.ndim not in (1, 2):
-        raise ValueError('weights.dim must be 1 or 2')
-    elif n_csets is not None:
-        if weights.ndim not in (1, 2, 3):
-            raise ValueError('weights.dim must be 1, 2, or 3')
-        elif weights.ndim == 3 and weights.shape[0] != n_csets:
-            raise ValueError('weights.shape must be (n_csets, n_atoms, 1)')
-    elif weights.ndim in (2, 3) and weights.shape[-1] != 1:
-        raise ValueError('shape of weights must be ([n_csets,] n_atoms, 1)')
-    elif weights.dtype != float:
-        try:
-            weights = weights.astype(float)
-        except ValueError:
-            raise ValueError('weights.astype(float) failed, float type could '
-                             'not be assigned')
-    if np.any(weights < 0):
-        raise ValueError('all weights must greater or equal to 0')
-    if weights.ndim == 1:
-        weights = weights.reshape((n_atoms, 1))
-    if n_csets is not None and weights.ndim == 2:
-        weights = np.tile(weights.reshape((1, n_atoms, 1)), (n_csets, 1, 1))
-    return weights
-
-
 def alignPDBEnsemble(ensemble, suffix='_aligned', outdir='.', gzip=False):
     """Align PDB files using transformations from *ensemble*, which may be
     a :class:`.PDBEnsemble` or a :class:`.PDBConformation` instance. Label of
