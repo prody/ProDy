@@ -7,12 +7,11 @@ from numpy import zeros, ones, arange
 from prody import LOGGER
 from prody.atomic import Atomic
 from prody.measure import getRMSD
-from prody.utilities import importLA, checkCoords
+from prody.utilities import importLA, checkCoords, checkWeights
 
 from .conformation import *
 
 __all__ = ['Ensemble']
-
 
 class Ensemble(object):
 

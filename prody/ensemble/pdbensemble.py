@@ -4,7 +4,7 @@ import numpy as np
 
 from prody.atomic import Atomic, AtomGroup
 from prody.measure import getRMSD, getTransformation
-from prody.utilities import checkCoords
+from prody.utilities import checkCoords, checkWeights
 from prody import LOGGER
 
 from .ensemble import Ensemble
