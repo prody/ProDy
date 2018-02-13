@@ -75,13 +75,12 @@ def checkWeights(weights, natoms, ncsets=None, dtype=float):
     if ncsets:
         if ndim not in NDIM123:
             raise ValueError('weights.dim must be 1, 2, or 3')
-        if ncsets > 1:
-            if ndim == 3 and shape[0] != ncsets:
+        if ndim == 3:
+            if shape[0] != ncsets:
                 raise ValueError('weights.shape must be '
-                                   '(ncsets, natoms[, 1])')
+                                '(ncsets, natoms[, 1])')
+        if ndim < 3:
             weights = tile(weights.reshape((1, natoms, 1)), (ncsets, 1, 1))
-        elif ndim < 3:
-            weights = weights.reshape((1, natoms, 1))
     else:
         if ndim not in NDIM12:
             raise ValueError('weights.dim must be 1 or 2')
