@@ -1,7 +1,7 @@
 .. image:: https://secure.travis-ci.org/prody/ProDy.png?branch=master
    :target: http://travis-ci.org/#!/prody/ProDy
 
-.. image:: https://pypip.in/v/ProDy/badge.png
+.. image:: https://img.shields.io/pypi/v/ProDy.svg
    :target: https://pypi.org/project/ProDy/
 
 .. image:: https://pypip.in/d/ProDy/badge.png
