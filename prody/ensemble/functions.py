@@ -7,7 +7,7 @@ import numpy as np
 from prody.proteins import fetchPDB, parsePDB, writePDB, mapOntoChain
 from prody.utilities import openFile, showFigure
 from prody import LOGGER, SETTINGS
-from prody.atomic import AtomMap, Chain, AtomGroup, Selection, Segment, Select
+from prody.atomic import AtomMap, Chain, AtomGroup, Selection, Segment, Select, AtomSubset
 
 from .ensemble import *
 from .pdbensemble import *
@@ -32,7 +32,7 @@ def saveEnsemble(ensemble, filename=None, **kwargs):
         raise ValueError('ensemble instance does not contain data')
 
     dict_ = ensemble.__dict__
-    attr_list = ['_title', '_confs', '_weights', '_coords']
+    attr_list = ['_title', '_confs', '_weights', '_coords', '_indices']
     if isinstance(ensemble, PDBEnsemble):
         attr_list.append('_labels')
         attr_list.append('_trans')
@@ -43,8 +43,13 @@ def saveEnsemble(ensemble, filename=None, **kwargs):
         value = dict_[attr]
         if value is not None:
             attr_dict[attr] = value
-            
-    attr_dict['_atoms'] = np.array([dict_['_atoms'], 0])
+
+    atoms = dict_['_atoms']
+    indices = dict_['_indices']
+    if atoms is not None and indices is None:
+        atoms = atoms.copy()
+
+    attr_dict['_atoms'] = np.array([atoms, 0])
     filename += '.ens.npz'
     ostream = openFile(filename, 'wb', **kwargs)
     np.savez(ostream, **attr_dict)
@@ -76,10 +81,15 @@ def loadEnsemble(filename):
         atoms = attr_dict['_atoms'][0]
     else:
         atoms = None
-    ensemble.setAtoms(atoms)    
+    ensemble.setAtoms(atoms)
+    if '_indices' in attr_dict:
+        indices = attr_dict['_indices']
+    else:
+        indices = None
+    ensemble._indices = indices
     if isPDBEnsemble:
         confs = attr_dict['_confs']
-        ensemble.addCoordset(attr_dict['_confs'], weights)
+        ensemble.addCoordset(confs, weights)
         if '_identifiers' in attr_dict.files:
             ensemble._labels = list(attr_dict['_identifiers'])
         if '_labels' in attr_dict.files:
@@ -109,19 +119,31 @@ def trimPDBEnsemble(pdb_ensemble, **kwargs):
         ``0 < occupancy <= 1``
     :type occupancy: float
 
-    :arg selstr: The function will trim residues that are NOT specified by 
+    :arg selstr: the function will trim residues that are NOT specified by 
         the selection string.
     :type selstr: str
 
+    :arg hard: hard trimming or soft trimming. If set to `False`, *pdb_ensemble* 
+    will be trimmed by selection. This is useful for example when one uses 
+    :func:`calcEnsembleENMs` and :func:`sliceModel` or :func:`reduceModel`
+    to calculate the modes from the remaining part while still taking the 
+    removed part into consideration (e.g. as the environment).
+    :type hard: bool
+
     """
+
+    atoms = pdb_ensemble.getAtoms()
+    selstr = kwargs.pop('selstr', None)
+    occupancy = kwargs.pop('occupancy', None)
+    hard = kwargs.pop('hard', False) or atoms is None
 
     if not isinstance(pdb_ensemble, PDBEnsemble):
         raise TypeError('pdb_ensemble argument must be a PDBEnsemble')
     if pdb_ensemble.numConfs() == 0 or pdb_ensemble.numAtoms() == 0:
         raise ValueError('pdb_ensemble must have conformations')
 
-    if 'occupancy' in kwargs:
-        occupancy = float(kwargs['occupancy'])
+    if occupancy is not None:
+        occupancy = float(occupancy)
         assert 0 < occupancy <= 1, ('occupancy is not > 0 and <= 1: '
                                     '{0}'.format(repr(occupancy)))
         n_confs = pdb_ensemble.numConfs()
@@ -131,8 +153,7 @@ def trimPDBEnsemble(pdb_ensemble, **kwargs):
         #weights = weights.flatten()
         #mean_weights = weights / n_confs
         torf = occupancies >= occupancy
-    elif 'selstr' in kwargs:
-        selstr = kwargs['selstr']
+    elif selstr is not None:
         atoms = pdb_ensemble.getAtoms()
         assert atoms is not None, 'atoms are empty'
         selector = Select()
@@ -142,28 +163,51 @@ def trimPDBEnsemble(pdb_ensemble, **kwargs):
         torf = np.ones(n_atoms, dtype=bool)
 
     trimmed = PDBEnsemble(pdb_ensemble.getTitle())
+    if hard:
+        if atoms is not None:
+            trim_atoms_idx = [n for n,t in enumerate(torf) if t]
+            if type(atoms) is Chain:
+                trim_atoms=Chain(atoms.copy(), trim_atoms_idx, atoms._hv)
+            elif type(atoms) is AtomGroup:
+                trim_atoms= AtomMap(atoms, trim_atoms_idx)
+            else:
+                trim_atoms= AtomMap(atoms.copy(), trim_atoms_idx)
+            trimmed.setAtoms(trim_atoms)
 
-    atoms = pdb_ensemble.getAtoms()
-    if atoms is not None:
-        trim_atoms_idx = [n for n,t in enumerate(torf) if t]
-        if type(atoms) is Chain:
-            trim_atoms=Chain(atoms.copy(), trim_atoms_idx, atoms._hv)
-        elif type(atoms) is AtomGroup:
-            trim_atoms= AtomMap(atoms,trim_atoms_idx)
+        coords = pdb_ensemble.getCoords()
+        if coords is not None:
+            trimmed.setCoords(coords[torf])
+        confs = pdb_ensemble.getCoordsets()
+        if confs is not None:
+            weights = pdb_ensemble.getWeights()
+            labels = pdb_ensemble.getLabels()
+            trimmed.addCoordset(confs[:, torf], weights[:, torf], labels)
+    else:
+        indices = np.where(torf)
+        selids = pdb_ensemble._indices
+
+        if selids is not None:
+            ag = atoms.getAtomGroup()
+            indices = selids[indices]
         else:
-            trim_atoms= AtomMap(atoms.copy(),trim_atoms_idx)
-        trimmed.setAtoms(trim_atoms)
+            ag = atoms.copy()
+        selstr = '' if selstr is None else selstr
+        select = Selection(ag, indices, selstr, ag._acsi) 
+        trimmed.setAtoms(ag)
+        trimmed.setAtoms(select)
 
-    coords = pdb_ensemble.getCoords()
-    if coords is not None:
-        trimmed.setCoords(coords[torf])
-    confs = pdb_ensemble.getCoordsets()
-    if confs is not None:
-        weights = pdb_ensemble.getWeights()
-        labels = pdb_ensemble.getLabels()
-        trimmed.addCoordset(confs[:, torf], weights[:, torf], labels)
+        coords = pdb_ensemble.getCoords(selected=False)
+        if coords is not None:
+            trimmed.setCoords(coords)
+        confs = pdb_ensemble.getCoordsets(selected=False)
+        if confs is not None:
+            weights = pdb_ensemble.getWeights(selected=False)
+            labels = pdb_ensemble.getLabels()
+            trimmed.addCoordset(confs, weights, labels)
+
+        trimmed.setAtoms(select)
+
     return trimmed
-
 
 def calcOccupancies(pdb_ensemble, normed=False):
     """Returns occupancy calculated from weights of a :class:`.PDBEnsemble`.
@@ -210,41 +254,6 @@ def showOccupancies(pdbensemble, *args, **kwargs):
     if SETTINGS['auto_show']:
         showFigure()
     return show
-
-
-def checkWeights(weights, n_atoms, n_csets=None):
-    """Returns weights if checks pass, otherwise raise an exception."""
-
-    assert isinstance(n_atoms, int) or isinstance(n_atoms, long) and n_atoms > 0, \
-        'n_atoms must be a positive integer'
-    assert n_csets is None or isinstance(n_csets, int) or isinstance(n_atoms, long) and n_csets > 0, \
-        'n_csets must be a positive integer'
-
-    if not isinstance(weights, np.ndarray):
-        raise TypeError('weights must be a Numpy array')
-    elif n_csets is None and weights.ndim not in (1, 2):
-        raise ValueError('weights.dim must be 1 or 2')
-    elif n_csets is not None:
-        if weights.ndim not in (1, 2, 3):
-            raise ValueError('weights.dim must be 1, 2, or 3')
-        elif weights.ndim == 3 and weights.shape[0] != n_csets:
-            raise ValueError('weights.shape must be (n_csets, n_atoms, 1)')
-    elif weights.ndim in (2, 3) and weights.shape[-1] != 1:
-        raise ValueError('shape of weights must be ([n_csets,] n_atoms, 1)')
-    elif weights.dtype != float:
-        try:
-            weights = weights.astype(float)
-        except ValueError:
-            raise ValueError('weights.astype(float) failed, float type could '
-                             'not be assigned')
-    if np.any(weights < 0):
-        raise ValueError('all weights must greater or equal to 0')
-    if weights.ndim == 1:
-        weights = weights.reshape((n_atoms, 1))
-    if n_csets is not None and weights.ndim == 2:
-        weights = np.tile(weights.reshape((1, n_atoms, 1)), (n_csets, 1, 1))
-    return weights
-
 
 def alignPDBEnsemble(ensemble, suffix='_aligned', outdir='.', gzip=False):
     """Align PDB files using transformations from *ensemble*, which may be
@@ -324,7 +333,7 @@ def alignPDBEnsemble(ensemble, suffix='_aligned', outdir='.', gzip=False):
     else:
         return output
 
-def calcTree(ensemble, distance_matrix):
+def calcTree(ensemble, distance_matrix, method='nj'):
     """ Given a distance matrix for an ensemble, it creates an returns a tree structure.
     :arg ensemble: an ensemble with labels. 
     :type ensemble: prody.ensemble.Ensemble or prody.ensemble.PDBEnsemble
@@ -342,7 +351,7 @@ def calcTree(ensemble, distance_matrix):
     names = ensemble.getLabels()
     if len(names) != distance_matrix.shape[0] or len(names) != distance_matrix.shape[1]:
         raise ValueError("The size of matrix and ensemble has a mismatch.")
-        return None
+
     matrix = []
     k = 1
     for row in distance_matrix:
@@ -351,7 +360,15 @@ def calcTree(ensemble, distance_matrix):
     from Bio.Phylo.TreeConstruction import _DistanceMatrix
     dm = _DistanceMatrix(names, matrix)
     constructor = Phylo.TreeConstruction.DistanceTreeConstructor()
-    tree = constructor.nj(dm)
+
+    method = method.strip().lower()
+    if method == 'nj':
+        tree = constructor.nj(dm)
+    elif method == 'upgma':
+        tree = constructor.upgma(dm)
+    else:
+        raise ValueError('Method can be only either "nj" or "upgma".')
+
     for node in tree.get_nonterminals():
         node.name = None
     return tree

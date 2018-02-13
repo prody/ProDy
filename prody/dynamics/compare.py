@@ -12,7 +12,7 @@ from .mode import Mode, Vector
 from .gnm import ZERO
 
 __all__ = ['calcOverlap', 'calcCumulOverlap', 'calcSubspaceOverlap',
-           'calcCovOverlap', 'printOverlapTable', 'writeOverlapTable',
+           'calcSpectralOverlap', 'calcCovOverlap', 'printOverlapTable', 'writeOverlapTable',
            'pairModes', 'matchModes']
 
 
@@ -159,7 +159,7 @@ def calcSubspaceOverlap(modes1, modes2):
     return rmsip
 
 
-def calcCovOverlap(modes1, modes2):
+def calcSpectralOverlap(modes1, modes2):
     """Returns overlap between covariances of *modes1* and *modes2*.  Overlap
     between covariances are calculated using normal modes (eigenvectors),
     hence modes in both models must have been calculated.  This function
@@ -185,6 +185,8 @@ def calcCovOverlap(modes1, modes2):
     else:
         diff = diff ** 0.5
     return 1 - diff / np.sqrt(varA.sum() + varB.sum())
+
+calcCovOverlap = calcSpectralOverlap
 
 def pairModes(modes1, modes2):
     """Returns the optimal matches between *modes1* and *modes2*. *modes1* 
