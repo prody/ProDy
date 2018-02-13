@@ -7,6 +7,9 @@
 .. image:: https://img.shields.io/github/commit-activity/y/prody/ProDy.svg
    :target: https://github.com/prody/ProDy/commits/master
 
+.. image:: https://img.shields.io/pypi/dm/ProDy.svg
+   :target: http://prody.csb.pitt.edu/downloads/
+
 SYNOPSIS
 --------
 
