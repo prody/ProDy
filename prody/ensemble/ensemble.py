@@ -220,21 +220,21 @@ class Ensemble(object):
             self._n_atoms = atoms.numAtoms()
             self._atoms = atoms
 
-    def getCoords(self):
+    def getCoords(self, selected=True):
         """Returns a copy of reference coordinates for selected atoms."""
 
         if self._coords is None:
             return None
-        if self._indices is None:
+        if self._indices is None or not selected:
             return self._coords.copy()
         return self._coords[self._indices]
 
-    def _getCoords(self):
+    def _getCoords(self, selected=True):
         """Returns a view of reference coordinates for selected atoms."""
 
         if self._coords is None:
             return None
-        if self._indices is None:
+        if self._indices is None or not selected:
             return self._coords
         return self._coords[self._indices]
 
@@ -262,23 +262,23 @@ class Ensemble(object):
         self._coords = coords
         self._n_atoms = coords.shape[0]
 
-    def getWeights(self):
+    def getWeights(self, selected=True):
         """Returns a copy of weights of selected atoms."""
 
         if self._weights is None:
             return None
-        if self._indices is None:
+        if self._indices is None or not selected:
             return self._weights.copy()
         if self._weights.ndim == 2:
             return self._weights[self._indices]
         else:
             return self._weights[:, self._indices]
 
-    def _getWeights(self):
+    def _getWeights(self, selected=True):
 
         if self._weights is None:
             return None
-        if self._indices is None:
+        if self._indices is None or not selected:
             return self._weights
         if self._weights.ndim == 2:
             return self._weights[self._indices]
@@ -339,7 +339,7 @@ class Ensemble(object):
             self._confs = concatenate((self._confs, coords), axis=0)
         self._n_csets += n_confs
 
-    def getCoordsets(self, indices=None):
+    def getCoordsets(self, indices=None, selected=True):
         """Returns a copy of coordinate set(s) at given *indices*, which may be
         an integer, a list of integers or ``None``. ``None`` returns all
         coordinate sets.  For reference coordinates, use :meth:`getCoordinates`
@@ -347,7 +347,7 @@ class Ensemble(object):
 
         if self._confs is None:
             return None
-        if self._indices is None:
+        if self._indices is None or not selected:
             if indices is None:
                 return self._confs.copy()
             else:
@@ -376,25 +376,25 @@ class Ensemble(object):
         raise IndexError('indices must be an integer, a list/array of '
                          'integers, a slice, or None')
 
-    def _getCoordsets(self, indices=None):
+    def _getCoordsets(self, indices=None, selected=True):
 
         if self._confs is None:
             return None
-        if self._indices is None:
+        if self._indices is None or not selected:
             if indices is None:
                 return self._confs
-                try:
-                    return self._confs[indices]
-                except IndexError:
-                    pass
+            try:
+                return self._confs[indices]
+            except IndexError:
+                pass
         else:
             selids = self._indices
             if indices is None:
                 return self._confs[:, selids]
-                try:
-                    return self._confs[indices, selids]
-                except IndexError:
-                    pass
+            try:
+                return self._confs[indices, selids]
+            except IndexError:
+                pass
         raise IndexError('indices must be an integer, a list/array of '
                          'integers, a slice, or None')
 
