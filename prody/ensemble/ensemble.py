@@ -2,17 +2,16 @@
 """This module defines a class for handling ensembles of conformations."""
 
 from numpy import dot, add, subtract, array, ndarray, sign, concatenate, unique
-from numpy import zeros, ones, arange
+from numpy import zeros, ones, arange, any, tile
 
 from prody import LOGGER
 from prody.atomic import Atomic
 from prody.measure import getRMSD
-from prody.utilities import importLA, checkCoords
+from prody.utilities import importLA, checkCoords, checkWeights
 
 from .conformation import *
 
 __all__ = ['Ensemble']
-
 
 class Ensemble(object):
 

@@ -3,8 +3,8 @@
 
 from numpy import ndarray, unique
 
-from prody.ensemble import Ensemble, checkWeights
-from prody.utilities import checkCoords
+from prody.ensemble import Ensemble
+from prody.utilities import checkCoords, checkWeights
 
 from .frame import Frame
 
