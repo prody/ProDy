@@ -2,7 +2,7 @@
 """This module defines a class for handling ensembles of conformations."""
 
 from numpy import dot, add, subtract, array, ndarray, sign, concatenate, unique
-from numpy import zeros, ones, arange, any, tile
+from numpy import zeros, ones, arange
 
 from prody import LOGGER
 from prody.atomic import Atomic
