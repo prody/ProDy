@@ -5,7 +5,7 @@
    :target: https://pypi.org/project/ProDy/
 
 .. image:: https://img.shields.io/github/commit-activity/y/prody/ProDy.svg
-   :target: http://prody.csb.pitt.edu/
+   :target: https://github.com/prody/ProDy/commits/master
 
 SYNOPSIS
 --------
