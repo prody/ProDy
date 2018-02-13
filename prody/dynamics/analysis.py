@@ -8,7 +8,7 @@ import numpy as np
 
 from prody import LOGGER
 from prody.proteins import parsePDB
-from prody.atomic import AtomGroup, Selection
+from prody.atomic import AtomGroup
 from prody.ensemble import Ensemble, Conformation, trimPDBEnsemble
 from prody.trajectory import TrajBase
 from prody.utilities import importLA
@@ -551,31 +551,23 @@ def calcPerturbResponse(model, atoms=None, repeats=100):
     np.savetxt('norm_PRS_matrix', norm_PRS_mat, delimiter='\t', fmt='%8.6f')
     return response_matrix
 
-def calcEnsembleENMs(ensemble, occupancy=0.9, model='gnm', trim='trim', n_modes=20):
+def calcEnsembleENMs(ensemble, model='gnm', trim='trim', n_modes=20):
     """Description"""
 
-    ## obtain the original atoms before triming
-    ori_atoms = ensemble.getAtoms()
-    ori_coordsets = ensemble.getCoordsets()
-
-    ensemble = trimPDBEnsemble(ensemble, occupancy=occupancy)
-    remain_atoms = ensemble.getAtoms()
-    sels = []
-    for chain in remain_atoms.getHierView().iterChains():
-        chid = chain.getChid()
-        remain_resnums = chain.getResnums()
-        sel = 'chain %s and '%chid + 'resnum ' + ' '.join(str(i) for i in remain_resnums)
-        sels.append(sel)
-    selstr = ' or '.join(sels)
-
+    atoms = ensemble.getAtoms()
+    select = None
+    if ensemble._indices is not None:
+        select = atoms
+        atoms = atoms.getAtomGroup()
+        
     labels = ensemble.getLabels()
 
     ### ENMs ###
     ## ENM for every conf
     enms = []
     for i in range(ensemble.numConfs()):
-        ori_atoms.setCoords(ori_coordsets[i])
-        enm, atoms = calcENM(ori_atoms, selstr, model=model, trim=trim, 
+        atoms.setCoords(ensemble.getCoordsets(i, selected=False))
+        enm, _ = calcENM(atoms, select, model=model, trim=trim, 
                             n_modes=n_modes, title=labels[i])
         enms.append(enm)
     

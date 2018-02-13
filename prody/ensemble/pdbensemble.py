@@ -228,7 +228,7 @@ class PDBEnsemble(Ensemble):
 
         return list(self._labels)
 
-    def getCoordsets(self, indices=None):
+    def getCoordsets(self, indices=None, selected=True):
         """Returns a copy of coordinate set(s) at given *indices* for selected
         atoms. *indices* may be an integer, a list of integers or ``None``.
         ``None`` returns all coordinate sets.
@@ -245,7 +245,7 @@ class PDBEnsemble(Ensemble):
         else:
             indices = np.array([indices]).flatten()
         coords = self._coords
-        if self._indices is None:
+        if self._indices is None or not selected:
             confs = self._confs[indices].copy()
             for i, w in enumerate(self._weights[indices]):
                 which = w.flatten() == 0
