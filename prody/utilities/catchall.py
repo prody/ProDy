@@ -1,0 +1,92 @@
+"""This module defines miscellaneous utility functions."""
+
+from numpy import unique, linalg, diag, sqrt, dot
+import scipy.cluster.hierarchy as sch
+from scipy import spatial
+
+__all__ = ['calcTree', 'clusterMatrix']
+
+def calcTree(names, distance_matrix, method='nj'):
+    """ Given a distance matrix for an ensemble, it creates an returns a tree structure.
+    :arg names: an list of names. 
+    :type names: list-like
+    :arg distance_matrix: a square matrix with length of ensemble. If numbers does not mismatch
+    it will raise an error. 
+    :type distance_matrix: numpy.ndarray 
+    """
+    try: 
+        from Bio import Phylo
+    except ImportError:
+        raise ImportError('Phylo module could not be imported. '
+            'Reinstall ProDy or install Biopython '
+            'to solve the problem.')
+    
+    if len(names) != distance_matrix.shape[0] or len(names) != distance_matrix.shape[1]:
+        raise ValueError("Mismatch between the sizes of matrix and names.")
+
+    matrix = []
+    k = 1
+    for row in distance_matrix:
+        matrix.append(list(row[:k]))
+        k = k + 1
+    from Bio.Phylo.TreeConstruction import _DistanceMatrix
+    dm = _DistanceMatrix(names, matrix)
+    constructor = Phylo.TreeConstruction.DistanceTreeConstructor()
+
+    method = method.strip().lower()
+    if method == 'nj':
+        tree = constructor.nj(dm)
+    elif method == 'upgma':
+        tree = constructor.upgma(dm)
+    else:
+        raise ValueError('Method can be only either "nj" or "upgma".')
+
+    for node in tree.get_nonterminals():
+        node.name = None
+    return tree
+
+def clusterMatrix(similarity_matrix=None, distance_matrix=None, labels=None, no_plot=True, **kwargs):
+    """
+    Cluster a similarity matrix or a distance matrix using scipy.cluster.hierarchy and 
+    return the indices, sorted matrix, sorted labels, and sorting dendrogram dict.
+    
+    :arg similarity_matrix: an N-by-N matrix containing some measure of similarity 
+        such as sequence identity, mode-mode overlap, or spectral overlap
+    :type similarity_matrix: array
+    
+    :arg distance_matrix: an N-by-N matrix containing some measure of distance 
+        such as 1. - seqid_matrix, rmsds, or distances in PCA space
+    :type similarity_matrix: array
+    
+    :arg labels: labels for each matrix row that can be returned sorted
+    :type labels: list
+    
+    Other arguments for scipy.hierarchy.linkage and scipy.hierarchy.dendrogram
+        can also be provided and will be taken as kwargs.
+        
+    :arg no_plot: If True, don't plot the dendrogram.
+        default is True
+    :type no_plot: bool
+    """
+    if similarity_matrix is None and distance_matrix is None:
+        raise ValueError('Please provide a similarity matrix or a distance matrix')
+    elif distance_matrix is None:
+        distance_matrix = 1. - similarity_matrix
+    
+    orientation = kwargs.pop('orientiation','right')
+    
+    formatted_distance_matrix = spatial.distance.squareform(distance_matrix)
+    linkage_matrix = sch.linkage(formatted_distance_matrix, **kwargs)
+    sorting_dendrogram = sch.dendrogram(linkage_matrix, orientation=orientation, labels=labels, no_plot=no_plot)
+
+    indices = sorting_dendrogram['leaves']
+    sorted_labels = sorting_dendrogram['ivl']
+    
+    if similarity_matrix is None:
+        sorted_matrix = distance_matrix[indices,:]
+    else:
+        sorted_matrix = similarity_matrix[indices,:]
+    sorted_matrix = sorted_matrix[:,indices]
+    
+    return indices, sorted_matrix, sorted_labels, sorting_dendrogram
+    

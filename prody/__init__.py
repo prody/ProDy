@@ -60,6 +60,11 @@ SETTINGS.load()
 
 __all__ = ['checkUpdates', 'confProDy', 'startLogfile', 'closeLogfile', 'plog']
 
+from . import utilities
+from .utilities import *
+__all__.extend(utilities.__all__)
+__all__.append('utilities')
+
 from . import kdtree
 from .kdtree import *
 __all__.extend(kdtree.__all__)
