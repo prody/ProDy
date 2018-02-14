@@ -8,23 +8,22 @@ import numpy as np
 
 from prody import LOGGER
 from prody.proteins import parsePDB
-from prody.atomic import AtomGroup, Selection
-from prody.ensemble import Ensemble, Conformation, trimPDBEnsemble
+from prody.atomic import AtomGroup
+from prody.ensemble import Ensemble, Conformation
 from prody.trajectory import TrajBase
-from prody.utilities import importLA
-from numpy import sqrt, arange, log, polyfit, array, arccos
+from prody.utilities import importLA, checkCoords
+from numpy import sqrt, arange, log, polyfit, array, arccos, dot
 
 from .nma import NMA
 from .modeset import ModeSet
 from .mode import VectorBase, Mode, Vector
 from .gnm import GNMBase
 from .functions import calcENM
-from .compare import calcCovOverlap
 
 __all__ = ['calcCollectivity', 'calcCovariance', 'calcCrossCorr',
            'calcFractVariance', 'calcSqFlucts', 'calcTempFactors',
-           'calcProjection', 'calcCrossProjection', 'calcPerturbResponse',
-           'calcSpecDimension', 'calcPairDeformationDist', 'calcOverlapTree']
+           'calcProjection', 'calcCrossProjection',
+           'calcSpecDimension', 'calcPairDeformationDist']
            #'calcEntropyTransfer', 'calcOverallNetEntropyTransfer']
 
 def calcCollectivity(mode, masses=None):
@@ -246,16 +245,31 @@ def calcSqFlucts(modes):
     relative units."""
 
     if not isinstance(modes, (VectorBase, NMA, ModeSet)):
-        raise TypeError('modes must be a Mode, NMA, or ModeSet instance, '
-                        'not {0}'.format(type(modes)))
-    is3d = modes.is3d()
+        try:
+            modes2 = []
+            for mode in modes:
+                if not isinstance(mode, Mode):
+                    raise TypeError('modes can be a list of Mode instances, '
+                                    'not {0}'.format(type(mode)))
+                modes2.append(mode)
+            mode = list(modes2)
+        except TypeError:
+            raise TypeError('modes must be a Mode, NMA, ModeSet instance, '
+                            'or a list of Mode instances, not {0}'.format(type(modes)))
+    if isinstance(modes, list):
+        is3d = modes[0].is3d()
+        n_atoms = modes[0].numAtoms()
+    else:
+        is3d = modes.is3d()
+        n_atoms = modes.numAtoms()
+
     if isinstance(modes, Vector):
         if is3d:
             return (modes._getArrayNx3()**2).sum(axis=1)
         else:
             return (modes._getArray() ** 2)
     else:
-        sq_flucts = np.zeros(modes.numAtoms())
+        sq_flucts = np.zeros(n_atoms)
         if isinstance(modes, VectorBase):
             modes = [modes]
         for mode in modes:
@@ -453,150 +467,3 @@ def calcPairDeformationDist(model, coords, ind1, ind2, kbt=1.):
     LOGGER.report('Deformation was calculated in %.2lfs.', label='_pairdef')
     
     return mode_nr, D_pair_k
-
-def calcPerturbResponse(model, atoms=None, repeats=100):
-    """Returns a matrix of profiles from scanning of the response of the
-    structure to random perturbations at specific atom (or node) positions.
-    The function implements the perturbation response scanning (PRS) method
-    described in [CA09]_.  Rows of the matrix are the average magnitude of the
-    responses obtained by perturbing the atom/node position at that row index,
-    i.e. ``prs_profile[i,j]`` will give the response of residue/node *j* to
-    perturbations in residue/node *i*.  PRS is performed using the covariance
-    matrix from *model*, e.t. :class:`.ANM` instance.  Each residue/node is
-    perturbed *repeats* times with a random unit force vector.  When *atoms*
-    instance is given, PRS profile for residues will be added as an attribute
-    which then can be retrieved as ``atoms.getData('prs_profile')``.  *model*
-    and *atoms* must have the same number of atoms. *atoms* must be an
-    :class:`.AtomGroup` instance.
-
-
-    .. [CA09] Atilgan C, Atilgan AR, Perturbation-Response Scanning
-       Reveals Ligand Entry-Exit Mechanisms of Ferric Binding Protein.
-       *PLoS Comput Biol* **2009** 5(10):e1000544.
-
-    The PRS matrix can be saved as follows::
-
-      prs_matrix = calcPerturbationResponse(p38_anm)
-      writeArray('prs_matrix.txt', prs_matrix, format='%8.6f', delimiter='\t')
-    """
-
-    if not isinstance(model, NMA):
-        raise TypeError('model must be an NMA instance')
-    elif not model.is3d():
-        raise TypeError('model must be a 3-dimensional NMA instance')
-    elif len(model) == 0:
-        raise ValueError('model must have normal modes calculated')
-    if atoms is not None:
-        if not isinstance(atoms, AtomGroup):
-            raise TypeError('atoms must be an AtomGroup instance')
-        elif atoms.numAtoms() != model.numAtoms():
-            raise ValueError('model and atoms must have the same number atoms')
-
-    assert isinstance(repeats, int), 'repeats must be an integer'
-    cov = calcCovariance(model)
-    if cov is None:
-        raise ValueError('model did not return a covariance matrix')
-
-    n_atoms = model.numAtoms()
-    response_matrix = np.zeros((n_atoms, n_atoms))
-    LOGGER.progress('Calculating perturbation response', n_atoms, '_prody_prs')
-    i3 = -3
-    i3p3 = 0
-    for i in range(n_atoms):
-        i3 += 3
-        i3p3 += 3
-        forces = np.random.rand(repeats * 3).reshape((repeats, 3))
-        forces /= ((forces**2).sum(1)**0.5).reshape((repeats, 1))
-        for force in forces:
-            response_matrix[i] += (
-                np.dot(cov[:, i3:i3p3], force)
-                ** 2).reshape((n_atoms, 3)).sum(1)
-        LOGGER.update(i, '_prody_prs')
-
-    response_matrix /= repeats
-    LOGGER.clear()
-    LOGGER.report('Perturbation response scanning completed in %.1fs.',
-                  '_prody_prs')
-    if atoms is not None:
-        atoms.setData('prs_profile', response_matrix)
-    return response_matrix
-
-    # save the original PRS matrix
-    np.savetxt('orig_PRS_matrix', response_matrix, delimiter='\t', fmt='%8.6f')
-    # calculate the normalized PRS matrix
-    self_dp = np.diag(response_matrix)  # using self displacement (diagonal of
-                               # the original matrix) as a
-                               # normalization factor
-    self_dp = self_dp.reshape(n_atoms, 1)
-    norm_PRS_mat = response_matrix / np.repeat(self_dp, n_atoms, axis=1)
-    # suppress the diagonal (self displacement) to facilitate
-    # visualizing the response profile
-    norm_PRS_mat = norm_PRS_mat - np.diag(np.diag(norm_PRS_mat))
-    np.savetxt('norm_PRS_matrix', norm_PRS_mat, delimiter='\t', fmt='%8.6f')
-    return response_matrix
-
-def calcOverlapTree(ensemble, occupancy=0.9, model='gnm', trim='trim', n_modes=20, method='nj'):
-    """Description"""
-
-    # missing: type check
-    try: 
-        from Bio.Phylo.TreeConstruction import DistanceCalculator, DistanceTreeConstructor
-    except ImportError:
-        raise ImportError('Phylo module could not be imported. '
-            'Reinstall ProDy or install Biopython '
-            'to solve the problem.')
-    method = method.strip().lower()
-
-    ## obtain the original atoms before triming
-    ori_atoms = ensemble.getAtoms()
-    ori_coordsets = ensemble.getCoordsets()
-
-    ensemble = trimPDBEnsemble(ensemble, occupancy=occupancy)
-    remain_atoms = ensemble.getAtoms()
-    sels = []
-    for chain in remain_atoms.getHierView().iterChains():
-        chid = chain.getChid()
-        remain_resnums = chain.getResnums()
-        sel = 'chain %s and '%chid + 'resnum ' + ' '.join(str(i) for i in remain_resnums)
-        sels.append(sel)
-    selstr = ' or '.join(sels)
-
-    labels = ensemble.getLabels()
-
-    ### ENMs ###
-    ## ENM for every conf
-    enms = []
-    for i in range(ensemble.numConfs()):
-        ori_atoms.setCoords(ori_coordsets[i])
-        enm, atoms = calcENM(ori_atoms, selstr, model=model, trim=trim, 
-                            n_modes=n_modes, title=labels[i])
-        enms.append(enm)
-    
-    overlaps = np.zeros((len(enms), len(enms)))
-    for i, enmi in enumerate(enms):
-        for j, enmj in enumerate(enms):
-            covlap = calcCovOverlap(enmi, enmj)
-            overlaps[i, j] = covlap
-
-    ### build tree based on similarity matrix ###
-    dist_mat = arccos(overlaps)
-
-    def _toDistanceMatrix(names, matrix):
-        from Bio.Phylo.TreeConstruction import _DistanceMatrix
-        dist_mat = []
-        n, _ = matrix.shape
-        for i in range(n):
-            dist_mat.append(matrix[i, :i+1].tolist())
-        
-        return _DistanceMatrix(names, dist_mat)
-
-    dm = _toDistanceMatrix(names=labels, matrix=dist_mat)
-    constructor = DistanceTreeConstructor()
-    if method == 'nj':
-        tree = constructor.nj(dm)
-    elif method == 'upgma':
-        tree = constructor.upgma(dm)
-    else:
-        raise ValueError('Method can be only either "nj" or "upgma".')
-
-    return tree, enms, dist_mat

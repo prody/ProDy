@@ -231,45 +231,6 @@ def showProjection(ensemble, modes, *args, **kwargs):
 
     import matplotlib.pyplot as plt
 
-    #W = 10
-    #H = 10
-    #aspect = 'auto'
-
-    #if x_array is not None and y_array is not None:
-    #    nrow = 3; ncol = 5
-    #    i = 1; j = 1
-    #    width_ratios = [1, W, 0.2]
-    #    height_ratios = [1, H, 0.2]
-    #elif x_array is not None and y_array is None:
-    #    nrow = 3; ncol = 4
-    #    i = 1; j = 0
-    #    width_ratios = [W, 0.2]
-    #    height_ratios = [1, H, 0.2]
-    #elif x_array is None and y_array is not None:
-    #    nrow = 2; ncol = 5
-    #    i = 0; j = 1
-    #    width_ratios = [1, W, 0.2]
-    #    height_ratios = [H, 0.2]
-    #else:
-    #    nrow = 2; ncol = 4
-    #    i = 0; j = 0
-    #    width_ratios = [W, 0.2]
-    #    height_ratios = [H, 0.2]
-
-    #main_index = (i,j)
-    #upper_index = (i-1,j)
-    #lower_index = (i+1,j)
-    #left_index = (i,j-1)
-    #right_index = (i,j+1)
-
-    #outer = GridSpec(1, 3, width_ratios = [sum(width_ratios), 1, 4], hspace=0., wspace=0.2)
-
-    #gs = GridSpecFromSubplotSpec(nrow, ncol-2, subplot_spec = outer[0], width_ratios=width_ratios,
-    #                             height_ratios=height_ratios, hspace=0., wspace=0.)
-
-    #gs_bar = GridSpecFromSubplotSpec(nrow-1, 1, subplot_spec = outer[1], height_ratios=height_ratios[:-1], hspace=0., wspace=0.)
-    #gs_legend = GridSpecFromSubplotSpec(nrow-1, 1, subplot_spec = outer[2], height_ratios=height_ratios[:-1], hspace=0., wspace=0.)
-
     cmap = kwargs.pop('cmap', None)
 
     if kwargs.pop('new_fig', True):
@@ -1375,6 +1336,7 @@ def showMatrix(matrix=None, x_array=None, y_array=None, **kwargs):
     cmap = kwargs.pop('cmap', 'jet')
     label_size = kwargs.pop('label_size', 6)
  
+    ax1 = ax2 = ax3 = ax4 = ax5 = ax6 = ax7 = None
     if nrow > 2:
         y1 = x_array
         x1 = np.arange(len(y1))
@@ -1404,8 +1366,6 @@ def showMatrix(matrix=None, x_array=None, y_array=None, **kwargs):
 
     ax3 = plt.subplot(gs[main_index])
     im = imshow(matrix, aspect=aspect, vmin=vmin, vmax=vmax, cmap=cmap, **kwargs)
-    ax3.set_xlim([-0.5, len(matrix)+0.5])
-    ax3.set_ylim([-0.5, len(matrix)+0.5])
     ax3.yaxis.tick_right()
 
     ax4 = plt.subplot(gs_bar[-1])
@@ -1485,11 +1445,11 @@ def showMatrix(matrix=None, x_array=None, y_array=None, **kwargs):
         ax6.tick_params(labelsize=label_size)
 
         ax5.set_xlim([-0.5, len(matrix)+0.5])
-        ax6.set_ylim([-0.5, len(matrix)+0.5])
+        ax6.set_ylim([-0.5, len(matrix.T)+0.5])
 
     if SETTINGS['auto_show']:
         showFigure()
-
+ 
     return ax1, ax2, im, ax3, ax4, ax5, ax6, ax7
 
 def showPlot(y,**kwargs):
@@ -1628,7 +1588,7 @@ def showPlot(y,**kwargs):
                                   the atoms.')
 
             borders = {}
-            for i in range(atoms.numAtoms()/atoms.numChains()):
+            for i in range(atoms.numAtoms()/atoms.getHierView().numChains()):
                 if atoms.getData('domain')[i] != atoms.getData('domain')[i-1]:
                     if i != 0:
                         borders[atoms.getData('domain')[i-1]][-1].append(i-1)
@@ -1673,7 +1633,7 @@ def showPlot(y,**kwargs):
         ax1.set_xticks([])
 
         if overlay_chains:
-            ax1.set_xlim(-0.5,atoms.numAtoms()/atoms.numChains()+0.5)
+            ax1.set_xlim(-0.5,atoms.numAtoms()/atoms.getHierView().numChains()+0.5)
 
         ax2.set_xticks(resnum_tick_locs)
         ax2.set_xticklabels(resnum_tick_labels)
@@ -1746,7 +1706,7 @@ def showTree_networkx(tree, node_size=20, node_color='red', withlabels=True, sca
 
     for node in G.nodes():
         lbl = node.name
-        if 'Inner' in lbl:
+        if lbl is None:
             lbl = ''
             colors.append('black')
             sizes.append(0)

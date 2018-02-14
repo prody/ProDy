@@ -7,7 +7,7 @@ from os.path import abspath, join, isfile, isdir, split, splitext
 import numpy as np
 
 from prody import LOGGER, SETTINGS, PY3K
-from prody.atomic import AtomGroup
+from prody.atomic import AtomGroup, AtomSubset
 from prody.utilities import openFile, isExecutable, which, PLATFORM, addext
 
 from .nma import NMA
@@ -348,7 +348,7 @@ def parseSparseMatrix(filename, symmetric=False, delimiter=None, skiprows=0,
         matrix[icol, irow] = sparse[:, idata]
     return matrix
 
-def calcENM(atoms, selstr='all', model='anm', trim='trim', gamma=1.0, 
+def calcENM(atoms, select=None, model='anm', trim='trim', gamma=1.0, 
             title=None, n_modes=None, **kwargs):
     """Returns an :class:`ANM` or `GNM` instance and atoms used for the 
     calculationsn. The model can be trimmed, sliced, or reduced based on 
@@ -358,9 +358,9 @@ def calcENM(atoms, selstr='all', model='anm', trim='trim', gamma=1.0,
     class that supports selection.
     :type atoms: :class:`Atomic`, :class:`AtomGroup`, or :class:`Selection`
 
-    :arg selstr: Part of the atoms that is considered as the system. 
-    If set to 'all', then all atoms will be considered as the system.
-    :type selstr: str
+    :arg select: Part of the atoms that is considered as the system. 
+    If set to `None`, then all atoms will be considered as the system.
+    :type select: str or :class:`Selection`
 
     :arg model: Type of ENM that will be performed. It can be either 'anm' 
     or 'gnm'.
@@ -396,7 +396,12 @@ def calcENM(atoms, selstr='all', model='anm', trim='trim', gamma=1.0,
         raise TypeError('invalid type for trim: {0}'.format(type(model)))
 
     if trim == 'trim':
-        atoms = atoms.select(selstr)
+        if isinstance(select, str):
+            atoms = atoms.select(select)
+        elif isinstance(select, AtomSubset):
+            atoms = select
+        else:
+            raise TypeError('select must be a string or a Selection instance')
     
     enm = None
     if model == 'anm':
@@ -410,15 +415,18 @@ def calcENM(atoms, selstr='all', model='anm', trim='trim', gamma=1.0,
     else:
         raise TypeError('model should be either ANM or GNM instead of {0}'.format(model))
     
-    if trim == 'slice':
-        enm.calcModes(n_modes=n_modes)
-        enm, atoms = sliceModel(enm, atoms, selstr)  
-        if model == 'gnm':
-            enm.calcHinges()
-    elif trim == 'reduce':
-        enm, atoms = reduceModel(enm, atoms, selstr)
+    if select is None:
         enm.calcModes(n_modes=n_modes)
     else:
-        enm.calcModes(n_modes=n_modes)
+        if trim == 'slice':
+            enm.calcModes(n_modes=n_modes)
+            enm, atoms = sliceModel(enm, atoms, select)  
+            if model == 'gnm':
+                enm.calcHinges()
+        elif trim == 'reduce':
+            enm, atoms = reduceModel(enm, atoms, select)
+            enm.calcModes(n_modes=n_modes)
+        else:
+            enm.calcModes(n_modes=n_modes)
     
     return enm, atoms

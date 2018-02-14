@@ -1,11 +1,14 @@
-.. image:: https://secure.travis-ci.org/prody/ProDy.png?branch=master
+.. image:: https://img.shields.io/travis/prody/ProDy.svg
    :target: http://travis-ci.org/#!/prody/ProDy
 
-.. image:: https://pypip.in/v/ProDy/badge.png
-   :target: https://pypi.python.org/pypi/ProDy
+.. image:: https://img.shields.io/pypi/v/ProDy.svg
+   :target: https://pypi.org/project/ProDy/
 
-.. image:: https://pypip.in/d/ProDy/badge.png
-   :target: https://crate.io/packages/ProDy/
+.. image:: https://img.shields.io/github/commit-activity/y/prody/ProDy.svg
+   :target: https://github.com/prody/ProDy/commits/master
+
+.. image:: https://img.shields.io/badge/dynamic/json.svg?label=downloads&colorB=&prefix=&suffix=&query=stat&uri=http%3A%2F%2Fprody.csb.pitt.edu%2Fstatistics%2Fstatistics.json
+   :target: http://prody.csb.pitt.edu/downloads/
 
 SYNOPSIS
 --------

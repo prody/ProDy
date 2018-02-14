@@ -4,7 +4,7 @@ import numpy as np
 
 from prody.atomic import Atomic, AtomGroup
 from prody.measure import getRMSD, getTransformation
-from prody.utilities import checkCoords
+from prody.utilities import checkCoords, checkWeights
 from prody import LOGGER
 
 from .ensemble import Ensemble
@@ -228,7 +228,7 @@ class PDBEnsemble(Ensemble):
 
         return list(self._labels)
 
-    def getCoordsets(self, indices=None):
+    def getCoordsets(self, indices=None, selected=True):
         """Returns a copy of coordinate set(s) at given *indices* for selected
         atoms. *indices* may be an integer, a list of integers or ``None``.
         ``None`` returns all coordinate sets.
@@ -245,7 +245,7 @@ class PDBEnsemble(Ensemble):
         else:
             indices = np.array([indices]).flatten()
         coords = self._coords
-        if self._indices is None:
+        if self._indices is None or not selected:
             confs = self._confs[indices].copy()
             for i, w in enumerate(self._weights[indices]):
                 which = w.flatten() == 0
@@ -323,20 +323,35 @@ class PDBEnsemble(Ensemble):
             ssqf += ((conf - mean) * weights[i]) ** 2
         return ssqf.sum(1) / weightsum.flatten()
 
-    def getRMSDs(self):
+    def getRMSDs(self, pairwise=False):
         """Calculate and return root mean square deviations (RMSDs). Note that
         you might need to align the conformations using :meth:`superpose` or
-        :meth:`iterpose` before calculating RMSDs."""
+        :meth:`iterpose` before calculating RMSDs.
+
+        :arg pairwise: if ``True`` then it will return pairwise RMSDs 
+        as an n-by-n matrix. n is the number of conformations.
+        :type pairwise: bool
+        """
 
         if self._confs is None or self._coords is None:
             return None
 
         indices = self._indices
         if indices is None:
-            return getRMSD(self._coords, self._confs, self._weights)
+            indices = np.arange(self._confs.shape[1])
+        
+        weights = self._weights[:, indices] if self._weights is not None else None
+
+        if pairwise:
+            n_confs = self.numConfs()
+            RMSDs = np.zeros((n_confs, n_confs))
+            for i in range(n_confs):
+                for j in range(n_confs):
+                    RMSDs[i, j] = getRMSD(self._confs[i, indices], self._confs[j, indices], weights)
         else:
-            return getRMSD(self._coords[indices], self._confs[:, indices],
-                           self._weights[:, indices])
+            RMSDs = getRMSD(self._coords[indices], self._confs[:, indices], weights)
+
+        return RMSDs
 
     def setWeights(self, weights):
         """Set atomic weights."""
