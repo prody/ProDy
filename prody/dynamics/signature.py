@@ -14,7 +14,8 @@ from .functions import calcENM
 from .compare import calcSpectralOverlap, matchModes
 from .analysis import calcSqFlucts
 
-__all__ = ['calcEnsembleENMs', 'getSignatureProfile', 'calcSpectralDistances']
+__all__ = ['calcEnsembleENMs', 'getSignatureProfile', 'calcSpectralDistances',
+           'showSignatureProfile']
 
 def calcEnsembleENMs(ensemble, model='gnm', trim='trim', n_modes=20):
     """Description"""
@@ -104,3 +105,31 @@ def getSignatureProfile(ensemble, index, **kwargs):
 
     return V, (meanV, stdV)
     
+def showSignatureProfile(ensemble, index, linespec='-', **kwargs):
+    """Description"""
+
+    from matplotlib.pyplot import figure, plot, fill_between, gca
+    from .signature import getSignatureProfile
+
+    V, (meanV, stdV) = getSignatureProfile(ensemble, index, **kwargs)
+    minV = V.min(axis=1)
+    maxV = V.max(axis=1)
+
+    x = range(meanV.shape[0])
+
+    new_fig = kwargs.pop('new_fig', True)
+
+    if new_fig:
+        figure()
+    line = plot(x, meanV, linespec)[0]
+    color = line.get_color()
+    fill_between(x, minV, maxV,
+                alpha=0.3, facecolor=color,
+                linewidth=1, antialiased=True)
+    fill_between(x, meanV-stdV, meanV+stdV,
+                alpha=0.5, facecolor=color,
+                linewidth=1, antialiased=True)
+    
+    if SETTINGS['auto_show']:
+        showFigure()
+    return gca()
