@@ -33,8 +33,7 @@ __all__ = ['showContactMap', 'showCrossCorr',
            'showDiffMatrix','showMechStiff','showNormDistFunct',
            'showPairDeformationDist','showMeanMechStiff', 
            'showPerturbResponse', 'showPerturbResponseProfiles',
-           'showMatrix', 'showPlot', 'showTree', 'showTree_networkx',
-           'showSignatureProfile']
+           'showMatrix', 'showPlot', 'showTree', 'showTree_networkx']
 
 
 def showEllipsoid(modes, onto=None, n_std=2, scale=1., *args, **kwargs):
@@ -231,45 +230,6 @@ def showProjection(ensemble, modes, *args, **kwargs):
       * 3 modes: :meth:`~mpl_toolkits.mplot3d.Axes3D.scatter`"""
 
     import matplotlib.pyplot as plt
-
-    #W = 10
-    #H = 10
-    #aspect = 'auto'
-
-    #if x_array is not None and y_array is not None:
-    #    nrow = 3; ncol = 5
-    #    i = 1; j = 1
-    #    width_ratios = [1, W, 0.2]
-    #    height_ratios = [1, H, 0.2]
-    #elif x_array is not None and y_array is None:
-    #    nrow = 3; ncol = 4
-    #    i = 1; j = 0
-    #    width_ratios = [W, 0.2]
-    #    height_ratios = [1, H, 0.2]
-    #elif x_array is None and y_array is not None:
-    #    nrow = 2; ncol = 5
-    #    i = 0; j = 1
-    #    width_ratios = [1, W, 0.2]
-    #    height_ratios = [H, 0.2]
-    #else:
-    #    nrow = 2; ncol = 4
-    #    i = 0; j = 0
-    #    width_ratios = [W, 0.2]
-    #    height_ratios = [H, 0.2]
-
-    #main_index = (i,j)
-    #upper_index = (i-1,j)
-    #lower_index = (i+1,j)
-    #left_index = (i,j-1)
-    #right_index = (i,j+1)
-
-    #outer = GridSpec(1, 3, width_ratios = [sum(width_ratios), 1, 4], hspace=0., wspace=0.2)
-
-    #gs = GridSpecFromSubplotSpec(nrow, ncol-2, subplot_spec = outer[0], width_ratios=width_ratios,
-    #                             height_ratios=height_ratios, hspace=0., wspace=0.)
-
-    #gs_bar = GridSpecFromSubplotSpec(nrow-1, 1, subplot_spec = outer[1], height_ratios=height_ratios[:-1], hspace=0., wspace=0.)
-    #gs_legend = GridSpecFromSubplotSpec(nrow-1, 1, subplot_spec = outer[2], height_ratios=height_ratios[:-1], hspace=0., wspace=0.)
 
     cmap = kwargs.pop('cmap', None)
 
@@ -1628,7 +1588,7 @@ def showPlot(y,**kwargs):
                                   the atoms.')
 
             borders = {}
-            for i in range(atoms.numAtoms()/atoms.numChains()):
+            for i in range(atoms.numAtoms()/atoms.getHierView().numChains()):
                 if atoms.getData('domain')[i] != atoms.getData('domain')[i-1]:
                     if i != 0:
                         borders[atoms.getData('domain')[i-1]][-1].append(i-1)
@@ -1673,7 +1633,7 @@ def showPlot(y,**kwargs):
         ax1.set_xticks([])
 
         if overlay_chains:
-            ax1.set_xlim(-0.5,atoms.numAtoms()/atoms.numChains()+0.5)
+            ax1.set_xlim(-0.5,atoms.numAtoms()/atoms.getHierView().numChains()+0.5)
 
         ax2.set_xticks(resnum_tick_locs)
         ax2.set_xticklabels(resnum_tick_labels)
@@ -1779,32 +1739,3 @@ def showTree_networkx(tree, node_size=20, node_color='red', withlabels=True, sca
         showFigure()
 
     return mpl.gca()
-
-def showSignatureProfile(ensemble, index, linespec='-', **kwargs):
-    """Description"""
-
-    from matplotlib.pyplot import figure, plot, fill_between, gca
-    from .signature import getSignatureProfile
-
-    V, (meanV, stdV) = getSignatureProfile(ensemble, index, **kwargs)
-    minV = V.min(axis=1)
-    maxV = V.max(axis=1)
-
-    x = range(meanV.shape[0])
-
-    new_fig = kwargs.pop('new_fig', True)
-
-    if new_fig:
-        figure()
-    line = plot(x, meanV, linespec)[0]
-    color = line.get_color()
-    fill_between(x, minV, maxV,
-                alpha=0.3, facecolor=color,
-                linewidth=1, antialiased=True)
-    fill_between(x, meanV-stdV, meanV+stdV,
-                alpha=0.5, facecolor=color,
-                linewidth=1, antialiased=True)
-    
-    if SETTINGS['auto_show']:
-        showFigure()
-    return gca()

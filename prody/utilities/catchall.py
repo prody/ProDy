@@ -1,10 +1,12 @@
 """This module defines miscellaneous utility functions."""
 
+import numpy as np
+
 from numpy import unique, linalg, diag, sqrt, dot
 import scipy.cluster.hierarchy as sch
 from scipy import spatial
 
-__all__ = ['calcTree', 'clusterMatrix']
+__all__ = ['calcTree', 'clusterMatrix', 'showData']
 
 def calcTree(names, distance_matrix, method='nj'):
     """ Given a distance matrix for an ensemble, it creates an returns a tree structure.
@@ -89,4 +91,60 @@ def clusterMatrix(similarity_matrix=None, distance_matrix=None, labels=None, no_
     sorted_matrix = sorted_matrix[:,indices]
     
     return indices, sorted_matrix, sorted_labels, sorting_dendrogram
+
+def showData(y, **kwargs):
+
+    """
+    Show data using :func:`~matplotlib.axes.Axes.plot`. *y* can be an 
+    1-D array or a 2-D matrix of column vectors.
     
+    :arg dy: an array of variances of *y* which will be plotted as a 
+    band along *y*. It should have the same shape with *y*.
+    :type dy: `~numpy.ndarray`
+
+    :arg alpha: the transparency of the band(s).
+    :type alpha: float
+
+    :arg ticklabels: user-defined tick labels for x-axis.
+    :type ticklabels: list
+    """
+    
+    # note for developers: this function serves as a low-level 
+    # plotting function which provides basic utilities for other 
+    # plotting functions. Therefore showFigure and new_fig are 
+    # not handled in this function as it should be already handled in 
+    # the caller.
+
+    ticklabels = kwargs.pop('ticklabels', None)
+    dy = kwargs.pop('dy', None)
+    alpha = kwargs.pop('alpha', 0.5)
+
+    from matplotlib import cm, ticker
+    from matplotlib.pyplot import figure, gca, xlim
+
+    y = np.array(y)
+    dy = np.array(dy)
+
+    ax = gca()
+    lines = ax.plot(y, **kwargs)
+
+    if dy is not None:
+        if y.shape != dy.shape:
+            raise ValueError('y and dy should have the same shape.')
+
+        x = np.arange(len(y))
+        for i, line in enumerate(lines):
+            color = line.get_color()
+            if len(lines) == 1:
+                _y = y; _dy = dy
+            else:
+                _y = y[:, i]; _dy = dy[:, i]
+            ax.fill_between(x, _y-_dy, _y+_dy,
+                    alpha=alpha, facecolor=color,
+                    linewidth=1, antialiased=True)
+
+    xlim([0, len(y)])
+
+    if ticklabels is not None:
+        ax.get_xaxis().set_major_formatter(ticker.IndexFormatter(ticklabels))
+    return ax
