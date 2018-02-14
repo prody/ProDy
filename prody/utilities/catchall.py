@@ -96,6 +96,10 @@ def showData(*args, **kwargs):
     """
     Show data using :func:`~matplotlib.axes.Axes.plot`. 
     
+    :arg x: (optional) x coordinates. *x* can be an 1-D array or a 2-D matrix of 
+    column vectors.
+    :type x: `~numpy.ndarray`
+
     :arg y: data array. *y* can be an 1-D array or a 2-D matrix of 
     column vectors.
     :type y: `~numpy.ndarray`

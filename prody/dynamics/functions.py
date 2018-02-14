@@ -395,7 +395,7 @@ def calcENM(atoms, select=None, model='anm', trim='trim', gamma=1.0,
     else:
         raise TypeError('invalid type for trim: {0}'.format(type(model)))
 
-    if trim == 'trim':
+    if trim == 'trim' and select is not None:
         if isinstance(select, str):
             atoms = atoms.select(select)
         elif isinstance(select, AtomSubset):

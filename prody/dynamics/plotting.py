@@ -33,7 +33,8 @@ __all__ = ['showContactMap', 'showCrossCorr',
            'showDiffMatrix','showMechStiff','showNormDistFunct',
            'showPairDeformationDist','showMeanMechStiff', 
            'showPerturbResponse', 'showPerturbResponseProfiles',
-           'showMatrix', 'showPlot', 'showTree', 'showTree_networkx']
+           'showMatrix', 'showPlot', 'showAtomicData', 'showTree', 
+           'showTree_networkx']
 
 
 def showEllipsoid(modes, onto=None, n_std=2, scale=1., *args, **kwargs):
@@ -1452,7 +1453,63 @@ def showMatrix(matrix=None, x_array=None, y_array=None, **kwargs):
  
     return ax1, ax2, im, ax3, ax4, ax5, ax6, ax7
 
-def showPlot(y,**kwargs):
+def showAtomicData(y, atoms=None, **kwargs):
+    """
+    Show a plot with the option to include chain color bars using provided atoms.
+    
+    :arg atoms: a :class: `AtomGroup` instance for matching 
+        residue numbers and chain IDs. 
+    :type atoms: :class: `AtomGroup`
+
+    :arg add_last_resi: whether to add a label for the last residue
+        default False
+    :type add_last_resi: bool
+
+    :arg label_size: size for resnum labels
+        default is 6, which works well for 4 residues on 4 chains
+    :type label_size: int
+
+    :arg overlay_chains: overlay the chains rather than having them one after another
+        default False
+    :type overlay_chains: bool
+
+    :arg domain_bar: color the bar at the bottom by domains rather than chains
+        default False
+    :type domain_bar: bool
+    """
+
+    overlay_chains = kwargs.pop('overlay_chains',False)
+    domain_bar = kwargs.pop('domain_bar',False)
+
+    add_last_resi = kwargs.pop('add_last_resi',False)
+    label_size = kwargs.pop('label_size',6)
+
+    from prody.utilities import showData
+    from matplotlib.pyplot import figure, imshow
+
+    new_fig = kwargs.pop('new_fig', True)
+    if new_fig:
+        figure()
+    
+    ticklabels = None
+    if atoms is not None:
+        hv = atoms.getHierView()
+        if hv.numChains() == 0:
+            raise ValueError('atoms should contain at least one chain.')
+        elif hv.numChains() == 1:
+            ticklabels = atoms.getResnums()
+        else:
+            ticklabels = []
+            for chain in hv.iterChains():
+                for n in chain.getResnums():
+                    lbl = '%s:%d'%(chain.getChid(), n)
+                    ticklabels.append(lbl)
+    
+    ax = showData(y, ticklabels=ticklabels)
+
+    return ax
+
+def showPlot(y, **kwargs):
 
     """
     Show a plot with the option to include chain color bars using provided atoms.
