@@ -128,12 +128,11 @@ def showData(*args, **kwargs):
     from matplotlib import cm, ticker
     from matplotlib.pyplot import figure, gca, xlim
 
-    dy = np.array(dy)
-
     ax = gca()
     lines = ax.plot(*args, **kwargs)
 
     if dy is not None:
+        dy = np.array(dy)
         if dy.ndim == 1:
             n, = dy.shape; m = 1
         elif dy.ndim == 2:

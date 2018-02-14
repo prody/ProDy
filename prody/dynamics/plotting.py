@@ -1486,6 +1486,7 @@ def showAtomicData(y, atoms=None, **kwargs):
 
     from prody.utilities import showData
     from matplotlib.pyplot import figure, imshow
+    from matplotlib import ticker
 
     new_fig = kwargs.pop('new_fig', True)
     if new_fig:
@@ -1506,7 +1507,11 @@ def showAtomicData(y, atoms=None, **kwargs):
                     ticklabels.append(lbl)
     
     ax = showData(y, ticklabels=ticklabels)
+    ax.xaxis.set_major_locator(ticker.AutoLocator())
+    ax.xaxis.set_minor_locator(ticker.AutoMinorLocator())
 
+    if SETTINGS['auto_show']:
+        showFigure()
     return ax
 
 def showPlot(y, **kwargs):
