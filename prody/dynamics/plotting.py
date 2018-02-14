@@ -1588,7 +1588,7 @@ def showPlot(y,**kwargs):
                                   the atoms.')
 
             borders = {}
-            for i in range(atoms.numAtoms()/atoms.numChains()):
+            for i in range(atoms.numAtoms()/atoms.getHierView().numChains()):
                 if atoms.getData('domain')[i] != atoms.getData('domain')[i-1]:
                     if i != 0:
                         borders[atoms.getData('domain')[i-1]][-1].append(i-1)
@@ -1633,7 +1633,7 @@ def showPlot(y,**kwargs):
         ax1.set_xticks([])
 
         if overlay_chains:
-            ax1.set_xlim(-0.5,atoms.numAtoms()/atoms.numChains()+0.5)
+            ax1.set_xlim(-0.5,atoms.numAtoms()/atoms.getHierView().numChains()+0.5)
 
         ax2.set_xticks(resnum_tick_locs)
         ax2.set_xticklabels(resnum_tick_labels)

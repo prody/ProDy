@@ -4,7 +4,8 @@ for conformations in an ensemble."""
 
 import numpy as np
 
-from prody import LOGGER
+from prody import LOGGER, SETTINGS
+from prody.utilities import showFigure
 from prody.ensemble import Ensemble
 
 from .nma import NMA
