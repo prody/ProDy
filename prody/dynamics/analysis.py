@@ -9,9 +9,9 @@ import numpy as np
 from prody import LOGGER
 from prody.proteins import parsePDB
 from prody.atomic import AtomGroup
-from prody.ensemble import Ensemble, Conformation, trimPDBEnsemble
+from prody.ensemble import Ensemble, Conformation
 from prody.trajectory import TrajBase
-from prody.utilities import importLA
+from prody.utilities import importLA, checkCoords
 from numpy import sqrt, arange, log, polyfit, array, arccos, dot
 
 from .nma import NMA
@@ -19,13 +19,11 @@ from .modeset import ModeSet
 from .mode import VectorBase, Mode, Vector
 from .gnm import GNMBase
 from .functions import calcENM
-from .compare import calcSpectralOverlap, matchModes
 
 __all__ = ['calcCollectivity', 'calcCovariance', 'calcCrossCorr',
            'calcFractVariance', 'calcSqFlucts', 'calcTempFactors',
-           'calcProjection', 'calcCrossProjection', 
-           'calcSpecDimension', 'calcPairDeformationDist', 'calcEnsembleENMs', 
-           'getSignatureProfile', 'calcSpectralDistances']
+           'calcProjection', 'calcCrossProjection',
+           'calcSpecDimension', 'calcPairDeformationDist']
            #'calcEntropyTransfer', 'calcOverallNetEntropyTransfer']
 
 def calcCollectivity(mode, masses=None):
@@ -469,92 +467,3 @@ def calcPairDeformationDist(model, coords, ind1, ind2, kbt=1.):
     LOGGER.report('Deformation was calculated in %.2lfs.', label='_pairdef')
     
     return mode_nr, D_pair_k
-
-def calcEnsembleENMs(ensemble, model='gnm', trim='trim', n_modes=20):
-    """Description"""
-
-    atoms = ensemble.getAtoms()
-    select = None
-    if ensemble._indices is not None:
-        select = atoms
-        atoms = atoms.getAtomGroup()
-        
-    labels = ensemble.getLabels()
-
-    ### ENMs ###
-    ## ENM for every conf
-    enms = []
-    for i in range(ensemble.numConfs()):
-        atoms.setCoords(ensemble.getCoordsets(i, selected=False))
-        enm, _ = calcENM(atoms, select, model=model, trim=trim, 
-                            n_modes=n_modes, title=labels[i])
-        enms.append(enm)
-    
-    return enms
-
-def _getEnsembleENMs(ensemble, **kwargs):
-    if isinstance(ensemble, Ensemble):
-        enms = calcEnsembleENMs(ensemble, **kwargs)
-    else:
-        try:
-            enms = []
-            for enm in ensemble:
-                if not isinstance(enm, (Mode, NMA, ModeSet)):
-                    raise TypeError('ensemble can be a list of Mode, '
-                                    'NMA, or ModeSet instances, '
-                                    'not {0}'.format(type(enm)))
-                enms.append(enm)
-        except TypeError:
-            raise TypeError('ensemble must be an Ensemble instance, '
-                            'or a list of NMA, Mode, or ModeSet instances.')
-    return enms
-
-def calcSpectralDistances(ensemble, **kwargs):
-    """Description"""
-
-    enms = _getEnsembleENMs(ensemble, **kwargs)
-    
-    overlaps = np.zeros((len(enms), len(enms)))
-    for i, enmi in enumerate(enms):
-        for j, enmj in enumerate(enms):
-            covlap = calcSpectralOverlap(enmi, enmj)
-            overlaps[i, j] = covlap
-
-    ### build tree based on similarity matrix ###
-    dist_mat = arccos(overlaps)
-
-    return dist_mat
-
-def getSignatureProfile(ensemble, index, **kwargs):
-    """Description"""
-
-    enms = _getEnsembleENMs(ensemble, **kwargs)
-    
-    matches = matchModes(*enms)
-
-    if np.isscalar(index):
-        modes = matches[index]
-        V = []
-        v0 = modes[0].getEigvec()
-        for mode in modes:
-            v = mode.getEigvec()
-            c = dot(v, v0)
-            if c < 0:
-                v *= -1
-            V.append(v)
-    else:
-        V = []
-        for j in range(len(matches)):
-            modes = []
-            for i in index:
-                mode = matches[i][j]
-                modes.append(mode)
-            sqfs = calcSqFlucts(modes)
-            V.append(sqfs)
-    V = np.vstack(V); V = V.T
-
-    meanV = V.mean(axis=1)
-    stdV = V.std(axis=1)
-
-    return V, (meanV, stdV)
-    

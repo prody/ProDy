@@ -66,6 +66,10 @@ __all__ = []
 from .checkers import *
 from .logger import *
 from .settings import *
-from .pathtools import *
 from .misctools import *
+from .pathtools import *
 from .doctools import *
+
+from . import catchall
+from .catchall import *
+__all__.extend(catchall.__all__)

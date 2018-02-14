@@ -281,3 +281,7 @@ __all__.extend(exanm.__all__)
 #from . import saxs
 #from .saxs import *
 #__all__.extend(saxs.__all__)
+
+from . import signature
+from .signature import *
+__all__.extend(signature.__all__)
