@@ -15,7 +15,7 @@ from .conformation import *
 
 __all__ = ['saveEnsemble', 'loadEnsemble', 'trimPDBEnsemble',
            'calcOccupancies', 'showOccupancies', 'alignPDBEnsemble',
-           'calcTree', 'buildPDBEnsemble', 'addPDBEnsemble']
+           'buildPDBEnsemble', 'addPDBEnsemble']
 
 
 def saveEnsemble(ensemble, filename=None, **kwargs):
@@ -332,46 +332,6 @@ def alignPDBEnsemble(ensemble, suffix='_aligned', outdir='.', gzip=False):
         return output[0]
     else:
         return output
-
-def calcTree(ensemble, distance_matrix, method='nj'):
-    """ Given a distance matrix for an ensemble, it creates an returns a tree structure.
-    :arg ensemble: an ensemble with labels. 
-    :type ensemble: prody.ensemble.Ensemble or prody.ensemble.PDBEnsemble
-    :arg distance_matrix: a square matrix with length of ensemble. If numbers does not mismatch
-    it will raise an error. 
-    :type distance_matrix: numpy.ndarray 
-    """
-    try: 
-        from Bio import Phylo
-    except ImportError:
-        raise ImportError('Phylo module could not be imported. '
-            'Reinstall ProDy or install Biopython '
-            'to solve the problem.')
-    
-    names = ensemble.getLabels()
-    if len(names) != distance_matrix.shape[0] or len(names) != distance_matrix.shape[1]:
-        raise ValueError("The size of matrix and ensemble has a mismatch.")
-
-    matrix = []
-    k = 1
-    for row in distance_matrix:
-        matrix.append(list(row[:k]))
-        k = k + 1
-    from Bio.Phylo.TreeConstruction import _DistanceMatrix
-    dm = _DistanceMatrix(names, matrix)
-    constructor = Phylo.TreeConstruction.DistanceTreeConstructor()
-
-    method = method.strip().lower()
-    if method == 'nj':
-        tree = constructor.nj(dm)
-    elif method == 'upgma':
-        tree = constructor.upgma(dm)
-    else:
-        raise ValueError('Method can be only either "nj" or "upgma".')
-
-    for node in tree.get_nonterminals():
-        node.name = None
-    return tree
 
 def buildPDBEnsemble(refpdb, PDBs, title='Unknown', labels=None, seqid=94, coverage=85, mapping_func=mapOntoChain, occupancy=None, unmapped=None):
     """Builds a PDB ensemble from a given reference structure and a list of PDB structures. 

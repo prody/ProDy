@@ -1784,7 +1784,7 @@ def showSignatureProfile(ensemble, index, linespec='-', **kwargs):
     """Description"""
 
     from matplotlib.pyplot import figure, plot, fill_between, gca
-    from .analysis import getSignatureProfile
+    from .signature import getSignatureProfile
 
     V, (meanV, stdV) = getSignatureProfile(ensemble, index, **kwargs)
     minV = V.min(axis=1)
