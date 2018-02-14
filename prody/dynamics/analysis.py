@@ -22,7 +22,7 @@ from .functions import calcENM
 
 __all__ = ['calcCollectivity', 'calcCovariance', 'calcCrossCorr',
            'calcFractVariance', 'calcSqFlucts', 'calcTempFactors',
-           'calcProjection', 'calcCrossProjection', 'calcPerturbResponse',
+           'calcProjection', 'calcCrossProjection',
            'calcSpecDimension', 'calcPairDeformationDist']
            #'calcEntropyTransfer', 'calcOverallNetEntropyTransfer']
 
@@ -467,84 +467,3 @@ def calcPairDeformationDist(model, coords, ind1, ind2, kbt=1.):
     LOGGER.report('Deformation was calculated in %.2lfs.', label='_pairdef')
     
     return mode_nr, D_pair_k
-
-def calcPerturbResponse(model, atoms=None, repeats=100):
-    """Returns a matrix of profiles from scanning of the response of the
-    structure to random perturbations at specific atom (or node) positions.
-    The function implements the perturbation response scanning (PRS) method
-    described in [CA09]_.  Rows of the matrix are the average magnitude of the
-    responses obtained by perturbing the atom/node position at that row index,
-    i.e. ``prs_profile[i,j]`` will give the response of residue/node *j* to
-    perturbations in residue/node *i*.  PRS is performed using the covariance
-    matrix from *model*, e.t. :class:`.ANM` instance.  Each residue/node is
-    perturbed *repeats* times with a random unit force vector.  When *atoms*
-    instance is given, PRS profile for residues will be added as an attribute
-    which then can be retrieved as ``atoms.getData('prs_profile')``.  *model*
-    and *atoms* must have the same number of atoms. *atoms* must be an
-    :class:`.AtomGroup` instance.
-
-
-    .. [CA09] Atilgan C, Atilgan AR, Perturbation-Response Scanning
-       Reveals Ligand Entry-Exit Mechanisms of Ferric Binding Protein.
-       *PLoS Comput Biol* **2009** 5(10):e1000544.
-
-    The PRS matrix can be saved as follows::
-
-      prs_matrix = calcPerturbationResponse(p38_anm)
-      writeArray('prs_matrix.txt', prs_matrix, format='%8.6f', delimiter='\t')
-    """
-
-    if not isinstance(model, NMA):
-        raise TypeError('model must be an NMA instance')
-    elif not model.is3d():
-        raise TypeError('model must be a 3-dimensional NMA instance')
-    elif len(model) == 0:
-        raise ValueError('model must have normal modes calculated')
-    if atoms is not None:
-        if not isinstance(atoms, AtomGroup):
-            raise TypeError('atoms must be an AtomGroup instance')
-        elif atoms.numAtoms() != model.numAtoms():
-            raise ValueError('model and atoms must have the same number atoms')
-
-    assert isinstance(repeats, int), 'repeats must be an integer'
-    cov = calcCovariance(model)
-    if cov is None:
-        raise ValueError('model did not return a covariance matrix')
-
-    n_atoms = model.numAtoms()
-    response_matrix = np.zeros((n_atoms, n_atoms))
-    LOGGER.progress('Calculating perturbation response', n_atoms, '_prody_prs')
-    i3 = -3
-    i3p3 = 0
-    for i in range(n_atoms):
-        i3 += 3
-        i3p3 += 3
-        forces = np.random.rand(repeats * 3).reshape((repeats, 3))
-        forces /= ((forces**2).sum(1)**0.5).reshape((repeats, 1))
-        for force in forces:
-            response_matrix[i] += (
-                np.dot(cov[:, i3:i3p3], force)
-                ** 2).reshape((n_atoms, 3)).sum(1)
-        LOGGER.update(i, '_prody_prs')
-
-    response_matrix /= repeats
-    LOGGER.clear()
-    LOGGER.report('Perturbation response scanning completed in %.1fs.',
-                  '_prody_prs')
-    if atoms is not None:
-        atoms.setData('prs_profile', response_matrix)
-    return response_matrix
-
-    # save the original PRS matrix
-    np.savetxt('orig_PRS_matrix', response_matrix, delimiter='\t', fmt='%8.6f')
-    # calculate the normalized PRS matrix
-    self_dp = np.diag(response_matrix)  # using self displacement (diagonal of
-                               # the original matrix) as a
-                               # normalization factor
-    self_dp = self_dp.reshape(n_atoms, 1)
-    norm_PRS_mat = response_matrix / np.repeat(self_dp, n_atoms, axis=1)
-    # suppress the diagonal (self displacement) to facilitate
-    # visualizing the response profile
-    norm_PRS_mat = norm_PRS_mat - np.diag(np.diag(norm_PRS_mat))
-    np.savetxt('norm_PRS_matrix', norm_PRS_mat, delimiter='\t', fmt='%8.6f')
-    return response_matrix
