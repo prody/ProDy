@@ -50,7 +50,8 @@ def calcTree(names, distance_matrix, method='nj'):
 def clusterMatrix(similarity_matrix=None, distance_matrix=None, labels=None, no_plot=True, **kwargs):
     """
     Cluster a similarity matrix or a distance matrix using scipy.cluster.hierarchy and 
-    return the indices, sorted matrix, sorted labels, and sorting dendrogram dict.
+    return the linkage matrix, indices, sorted matrix, sorted labels, and 
+    dendrogram dict.
     
     :arg similarity_matrix: an N-by-N matrix containing some measure of similarity 
         such as sequence identity, mode-mode overlap, or spectral overlap
@@ -90,7 +91,7 @@ def clusterMatrix(similarity_matrix=None, distance_matrix=None, labels=None, no_
         sorted_matrix = similarity_matrix[indices,:]
     sorted_matrix = sorted_matrix[:,indices]
     
-    return indices, sorted_matrix, sorted_labels, sorting_dendrogram
+    return linkage_matrix, indices, sorted_matrix, sorted_labels, sorting_dendrogram
 
 def showData(y, **kwargs):
 
