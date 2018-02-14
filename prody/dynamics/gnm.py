@@ -320,14 +320,14 @@ class GNM(GNMBase):
         return self._diagonal
 
     def getHitTime(self):
-        """Returns a copy of the Kirchhoff matrix."""
+        """Returns a copy of the hit time matrix."""
 
         if self._hitTime is None:
             return None
         return self._hitTime.copy()
 
     def _getHitTime(self):
-        """Returns the Kirchhoff matrix."""
+        """Returns the hit time matrix."""
 
         return self._getHitTime
 
