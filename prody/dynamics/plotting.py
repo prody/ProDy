@@ -1479,14 +1479,11 @@ def showAtomicData(y, atoms=None, **kwargs):
     """
 
     overlay_chains = kwargs.pop('overlay_chains', False)
-    show_domains = kwargs.pop('show_domains', True)
+    show_domains = kwargs.pop('show_domains', None)
     domain_bar = kwargs.pop('domain_bar', False)
 
-    add_last_resi = kwargs.pop('add_last_resi', False)
-    label_size = kwargs.pop('label_size', 6)
-
     from prody.utilities import showData
-    from matplotlib.pyplot import figure, imshow
+    from matplotlib.pyplot import figure, imshow, ylim
     from matplotlib import ticker
 
     new_fig = kwargs.pop('new_fig', True)
@@ -1499,18 +1496,38 @@ def showAtomicData(y, atoms=None, **kwargs):
         if hv.numChains() == 0:
             raise ValueError('atoms should contain at least one chain.')
         elif hv.numChains() == 1:
+            if show_domains is None:
+                show_domains = False
             ticklabels = atoms.getResnums()
         else:
             ticklabels = []
             chids = atoms.getChids()
             resnums = atoms.getResnums()
             ticklabels = ['%s:%d'%(c, n) for c, n in zip(chids, resnums)]
-            if show_domains:
-                pass
-    
+            
     ax = showData(y, ticklabels=ticklabels)
     ax.xaxis.set_major_locator(ticker.AutoLocator())
     ax.xaxis.set_minor_locator(ticker.AutoMinorLocator())
+
+    if show_domains is None:
+        show_domains = atoms is not None
+
+    if show_domains and atoms is not None:
+        yl = ylim()
+        d_loc = yl[0]
+        D = []
+        chids = atoms.getChids()
+        uni_chids = np.unique(chids)
+        for chid in uni_chids:
+            d = chids == chid
+            D.append(d)
+        D = np.vstack(D).T
+        F = np.zeros(D.shape)
+        F[~D] = np.nan
+        F[D] = d_loc
+
+        ax.plot(F, linewidth=5)
+        ylim(yl)
 
     if SETTINGS['auto_show']:
         showFigure()
