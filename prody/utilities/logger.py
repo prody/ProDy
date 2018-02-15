@@ -243,10 +243,12 @@ class PackageLogger(object):
         self._msg = msg
         self._line = ''
 
-    def update(self, step, label=None):
+    def update(self, step, msg=None, label=None):
         """Update progress status to current line in the console."""
 
         assert isinstance(step, numbers.Integral), 'step must be a positive integer'
+        if msg is not None:
+            self._msg = msg
         n = self._steps
         i = step
         if self._level < logging.WARNING and n > 0 and i <= n and \
