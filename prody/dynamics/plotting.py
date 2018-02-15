@@ -1478,11 +1478,12 @@ def showAtomicData(y, atoms=None, **kwargs):
     :type domain_bar: bool
     """
 
-    overlay_chains = kwargs.pop('overlay_chains',False)
-    domain_bar = kwargs.pop('domain_bar',False)
+    overlay_chains = kwargs.pop('overlay_chains', False)
+    show_domains = kwargs.pop('show_domains', True)
+    domain_bar = kwargs.pop('domain_bar', False)
 
-    add_last_resi = kwargs.pop('add_last_resi',False)
-    label_size = kwargs.pop('label_size',6)
+    add_last_resi = kwargs.pop('add_last_resi', False)
+    label_size = kwargs.pop('label_size', 6)
 
     from prody.utilities import showData
     from matplotlib.pyplot import figure, imshow
@@ -1501,10 +1502,11 @@ def showAtomicData(y, atoms=None, **kwargs):
             ticklabels = atoms.getResnums()
         else:
             ticklabels = []
-            for chain in hv.iterChains():
-                for n in chain.getResnums():
-                    lbl = '%s:%d'%(chain.getChid(), n)
-                    ticklabels.append(lbl)
+            chids = atoms.getChids()
+            resnums = atoms.getResnums()
+            ticklabels = ['%s:%d'%(c, n) for c, n in zip(chids, resnums)]
+            if show_domains:
+                pass
     
     ax = showData(y, ticklabels=ticklabels)
     ax.xaxis.set_major_locator(ticker.AutoLocator())
