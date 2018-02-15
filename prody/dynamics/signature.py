@@ -14,10 +14,11 @@ from .mode import Mode, Vector
 from .functions import calcENM
 from .compare import calcSpectralOverlap, matchModes
 from .analysis import calcSqFlucts
+from .plotting import showAtomicData
 from .anm import ANM
 from .gnm import GNM
 
-__all__ = ['calcEnsembleENMs', 'getSignatureProfile', 'calcSpectralDistances',
+__all__ = ['calcEnsembleENMs', 'getSignatureProfile', 'calcEnsembleSpectralOverlaps',
            'showSignatureProfile']
 
 def calcEnsembleENMs(ensemble, model='gnm', trim='trim', n_modes=20):
@@ -80,7 +81,7 @@ def _getEnsembleENMs(ensemble, **kwargs):
                             'or a list of NMA, Mode, or ModeSet instances.')
     return enms
 
-def calcSpectralDistances(ensemble, **kwargs):
+def calcEnsembleSpectralOverlaps(ensemble, distance=False, **kwargs):
     """Description"""
 
     enms = _getEnsembleENMs(ensemble, **kwargs)
@@ -91,10 +92,10 @@ def calcSpectralDistances(ensemble, **kwargs):
             covlap = calcSpectralOverlap(enmi, enmj)
             overlaps[i, j] = covlap
 
-    ### build tree based on similarity matrix ###
-    dist_mat = np.arccos(overlaps)
+    if distance:
+        overlaps = np.arccos(overlaps)
 
-    return dist_mat
+    return overlaps
 
 def getSignatureProfile(ensemble, index, **kwargs):
     """Description"""
@@ -145,8 +146,18 @@ def showSignatureProfile(ensemble, index, linespec='-', **kwargs):
 
     if new_fig:
         figure()
-    line = plot(x, meanV, linespec)[0]
+    
+    atoms = kwargs.pop('atoms', None)
+    if atoms is None:
+        try:
+            atoms = ensemble.getAtoms()
+        except:
+            pass
+
+    ax = showAtomicData(meanV, atoms=atoms, linespec=linespec, new_fig=False, **kwargs)
+    line = ax.lines[0]
     color = line.get_color()
+    x, _ = line.get_data()
     fill_between(x, minV, maxV,
                 alpha=0.3, facecolor=color,
                 linewidth=1, antialiased=True)
