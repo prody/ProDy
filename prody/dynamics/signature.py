@@ -157,3 +157,47 @@ def showSignatureProfile(ensemble, index, linespec='-', **kwargs):
     if SETTINGS['auto_show']:
         showFigure()
     return gca()
+    
+def calcAverageCrossCorr(modes, *args, **kwargs):
+    """Calculate average cross-correlations for a list of modes."""
+    matches = matchModes(*modes)
+
+    CCs = []
+    for mode_i in matches[0]:
+        CC = calcCrossCorr(mode_i)
+        CCs.append(CC)
+    C = np.vstack(CCs)
+
+    n_atoms = modes[0].numAtoms()
+    C = C.reshape(len(CCs), n_atoms, n_atoms)
+    mean = C.mean(axis=0)
+    std = C.std(axis=0)
+    return mean, std
+
+def showAverageCrossCorr(modes, *args, **kwargs):
+    """Show average cross-correlations using :func:`~matplotlib.pyplot.imshow`.  By
+    default, *origin=lower* and *interpolation=bilinear* keyword  arguments
+    are passed to this function, but user can overwrite these parameters.
+    See also :func:`.calcAverageCrossCorr`."""
+
+    import matplotlib.pyplot as plt
+    if kwargs.pop('new_fig', True):
+        plt.figure()
+
+    arange = np.arange(modes[0].numAtoms())
+    mean, std = calcAverageCrossCorr(modes)
+    # cross_correlations = np.zeros((arange[-1]+2, arange[-1]+2))
+    # cross_correlations[arange[0]+1:,
+                       # arange[0]+1:] = calcCrossCorr(modes)
+    if not 'interpolation' in kwargs:
+        kwargs['interpolation'] = 'bilinear'
+    if not 'origin' in kwargs:
+        kwargs['origin'] = 'lower'
+    show = plt.imshow(mean, *args, **kwargs), plt.colorbar()
+    plt.axis([arange[0]+0.5, arange[-1]+1.5, arange[0]+0.5, arange[-1]+1.5])
+    plt.title('Average Cross-correlations')
+    plt.xlabel('Indices')
+    plt.ylabel('Indices')
+    if SETTINGS['auto_show']:
+        showFigure()
+    return show
