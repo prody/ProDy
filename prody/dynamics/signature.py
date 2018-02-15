@@ -14,12 +14,21 @@ from .mode import Mode, Vector
 from .functions import calcENM
 from .compare import calcSpectralOverlap, matchModes
 from .analysis import calcSqFlucts
+from .anm import ANM
+from .gnm import GNM
 
 __all__ = ['calcEnsembleENMs', 'getSignatureProfile', 'calcSpectralDistances',
            'showSignatureProfile']
 
 def calcEnsembleENMs(ensemble, model='gnm', trim='trim', n_modes=20):
     """Description"""
+
+    if model is GNM:
+        model_type = 'GNM'
+    elif model is ANM:
+        model_type = 'ANM'
+    else:
+        model_type = str(model).strip().upper()
 
     atoms = ensemble.getAtoms()
     select = None
@@ -29,15 +38,29 @@ def calcEnsembleENMs(ensemble, model='gnm', trim='trim', n_modes=20):
         
     labels = ensemble.getLabels()
 
+    verb = LOGGER.verbosity
+    LOGGER.verbosity = 'info'
     ### ENMs ###
     ## ENM for every conf
     enms = []
-    for i in range(ensemble.numConfs()):
+    n_confs = ensemble.numConfs()
+    LOGGER.progress('Calculating {0} {1} modes for {2} conformations...'
+                    .format(n_modes, model_type, n_confs), n_confs)
+
+    for i in range(n_confs):
         atoms.setCoords(ensemble.getCoordsets(i, selected=False))
         enm, _ = calcENM(atoms, select, model=model, trim=trim, 
                             n_modes=n_modes, title=labels[i])
         enms.append(enm)
+
+        lbl = labels[i] if labels[i] != '' else '%d-th conformation'%(i+1)
+        LOGGER.update(i)
     
+    LOGGER.update(n_confs, 'Finished.')
+    LOGGER.verbosity = verb
+
+    LOGGER.info('{0} {1} modes were calculated for each of the {2} conformations.'
+                        .format(n_modes, model_type, n_confs))
     return enms
 
 def _getEnsembleENMs(ensemble, **kwargs):
