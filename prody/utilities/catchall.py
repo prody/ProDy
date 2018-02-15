@@ -92,12 +92,18 @@ def clusterMatrix(similarity_matrix=None, distance_matrix=None, labels=None, no_
     
     return indices, sorted_matrix, sorted_labels, sorting_dendrogram
 
-def showData(y, **kwargs):
-
+def showData(*args, **kwargs):
     """
-    Show data using :func:`~matplotlib.axes.Axes.plot`. *y* can be an 
-    1-D array or a 2-D matrix of column vectors.
+    Show data using :func:`~matplotlib.axes.Axes.plot`. 
     
+    :arg x: (optional) x coordinates. *x* can be an 1-D array or a 2-D matrix of 
+    column vectors.
+    :type x: `~numpy.ndarray`
+
+    :arg y: data array. *y* can be an 1-D array or a 2-D matrix of 
+    column vectors.
+    :type y: `~numpy.ndarray`
+
     :arg dy: an array of variances of *y* which will be plotted as a 
     band along *y*. It should have the same shape with *y*.
     :type dy: `~numpy.ndarray`
@@ -122,28 +128,31 @@ def showData(y, **kwargs):
     from matplotlib import cm, ticker
     from matplotlib.pyplot import figure, gca, xlim
 
-    y = np.array(y)
-    dy = np.array(dy)
-
     ax = gca()
-    lines = ax.plot(y, **kwargs)
+    lines = ax.plot(*args, **kwargs)
 
     if dy is not None:
-        if y.shape != dy.shape:
-            raise ValueError('y and dy should have the same shape.')
-
-        x = np.arange(len(y))
+        dy = np.array(dy)
+        if dy.ndim == 1:
+            n, = dy.shape; m = 1
+        elif dy.ndim == 2:
+            n, m = dy.shape
+        else:
+            raise ValueError('dy should be either 1-D or 2-D.')
+        
         for i, line in enumerate(lines):
             color = line.get_color()
-            if len(lines) == 1:
-                _y = y; _dy = dy
+            x, y = line.get_data()
+            if m != 1 and m != len(lines) or n != len(y):
+                raise ValueError('The shapes of dy and y do not match.')
+
+            if dy.ndim == 1:
+                _dy = dy
             else:
-                _y = y[:, i]; _dy = dy[:, i]
-            ax.fill_between(x, _y-_dy, _y+_dy,
+                _dy = dy[:, i]
+            ax.fill_between(x, y-_dy, y+_dy,
                     alpha=alpha, facecolor=color,
                     linewidth=1, antialiased=True)
-
-    xlim([0, len(y)])
 
     if ticklabels is not None:
         ax.get_xaxis().set_major_formatter(ticker.IndexFormatter(ticklabels))
