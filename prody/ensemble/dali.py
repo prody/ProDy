@@ -2,20 +2,22 @@
 """This module defines functions for Dali searching Protein Data Bank."""
 
 import re
+import numpy as np
+from prody.atomic import Atomic, AtomGroup, AtomMap
+from prody.measure import getRMSD, getTransformation
+from prody.utilities import checkCoords, checkWeights
 from prody import LOGGER, PY3K
+from prody import parsePDB
 if PY3K:
     import urllib.parse as urllib
     import urllib.request as urllib2
 else:
     import urllib
     import urllib2
-
-import numpy as np
-from prody import parsePDB, Ensemble, PDBEnsemble, AtomMap
+from .ensemble import Ensemble
+from .pdbensemble import PDBEnsemble
 
 __all__ = ['daliRecord', 'daliSearchPDB']
-    
-# from prody import *
 
 def daliSearchPDB(pdbId, chainId, daliURL=None, subset='fullPDB', **kwargs):
     """Search Dali server with input of PDB ID and chain ID.
@@ -257,8 +259,8 @@ class daliRecord(object):
                 map_sel.append(temp_dict['map_sel'][i])
             dum_sel = list(ref_indices_set - set(map_ref))
             atommap = AtomMap(sel_pdb_ca, indices=map_sel, mapping=map_ref, dummies=dum_sel)
-            ensemble.addCoordset(atommap, weights=atommap.getFlags('mapped'))
-            # ensemble.addCoordset(atommap, weights=atommap.getFlags('mapped'), degeneracy=True)
+            # ensemble.addCoordset(atommap, weights=atommap.getFlags('mapped'))
+            ensemble.addCoordset(atommap, weights=atommap.getFlags('mapped'), degeneracy=True)
         ensemble.iterpose()
         RMSDs = ensemble.getRMSDs()
         return ensemble
