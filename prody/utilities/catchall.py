@@ -6,7 +6,7 @@ from numpy import unique, linalg, diag, sqrt, dot
 import scipy.cluster.hierarchy as sch
 from scipy import spatial
 
-__all__ = ['calcTree', 'clusterMatrix', 'showData']
+__all__ = ['calcTree', 'clusterMatrix', 'showData', 'reorderMatrix']
 
 def calcTree(names, distance_matrix, method='nj'):
     """ Given a distance matrix for an ensemble, it creates an returns a tree structure.
@@ -158,3 +158,61 @@ def showData(*args, **kwargs):
     if ticklabels is not None:
         ax.get_xaxis().set_major_formatter(ticker.IndexFormatter(ticklabels))
     return ax
+
+def reorderMatrix(names, matrix, tree):
+    """
+    Reorder a matrix based on a tree and return the reordered matrix 
+    and indices for reordering other things.
+
+    :arg names: a list of names associated with the rows of the matrix
+        These names must match the ones used to generate the tree.
+    :type names: a list of strings
+
+    :arg matrix: any square matrix
+    :type matrix: 2D array
+
+    :arg tree: any tree from calcTree
+    :type tree: Bio.Phylo.BaseTree.Tree
+    """
+    try:
+        from Bio import Phylo
+    except ImportError:
+        raise ImportError('Phylo module could not be imported. '
+            'Reinstall ProDy or install Biopython '
+            'to solve the problem.')
+
+    if type(names) is not list:
+        raise TypeError('names should be a list.')
+
+    if type(names[0]) is not str:
+        raise TypeError('names should be a list of strings.')    
+
+    if type(matrix) is not np.ndarray:
+        raise TypeError('matrix should be a numpy array.')
+
+    if matrix.ndim != 2:
+        raise ValueError('matrix should be a 2D matrix.')
+
+    if np.shape(matrix)[0] != np.shape(matrix)[1]:
+        raise ValueError('matrix should be a square matrix')
+
+    if type(tree) is not Phylo.BaseTree.Tree:
+        raise TypeError('tree should be a BioPython Tree')
+
+    if len(names) != len(matrix):
+        raise ValueError('names should have entries for each matrix row/column')
+
+    if len(names) != len(tree.get_terminals()):
+        raise ValueError('names should have entries for each tree terminal')
+
+    if len(tree.get_terminals()) != len(matrix):
+        raise ValueError('matrix should have a row for each tree terminal')
+
+    indices = []
+    for terminal in tree.get_terminals():
+        indices.append(np.where(np.array(names) == str(terminal))[0][0])
+
+    reordered_matrix = matrix[:,indices]
+    reordered_matrix = reordered_matrix[indices,:]
+    
+    return reordered_matrix, indices
