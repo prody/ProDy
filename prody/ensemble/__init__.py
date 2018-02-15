@@ -56,3 +56,7 @@ __all__.extend(pdbensemble.__all__)
 from . import conformation
 from .conformation import *
 __all__.extend(conformation.__all__)
+
+from . import dali
+from .dali import *
+__all__.extend(dali.__all__)
