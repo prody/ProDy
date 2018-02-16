@@ -13,12 +13,14 @@ from .modeset import ModeSet
 from .mode import Mode, Vector
 from .functions import calcENM
 from .compare import calcSpectralOverlap, matchModes
+
 from .analysis import calcSqFlucts, calcCrossCorr
+from .plotting import showAtomicData
 from .anm import ANM
 from .gnm import GNM
 from .plotting import showMatrix
 
-__all__ = ['calcEnsembleENMs', 'getSignatureProfile', 'calcSpectralDistances',
+__all__ = ['calcEnsembleENMs', 'getSignatureProfile', 'calcEnsembleSpectralOverlaps',
            'showSignatureProfile', 'calcAverageCrossCorr', 'showAverageCrossCorr', 'showMatrixAverageCrossCorr']
 
 def calcEnsembleENMs(ensemble, model='gnm', trim='trim', n_modes=20):
@@ -81,7 +83,7 @@ def _getEnsembleENMs(ensemble, **kwargs):
                             'or a list of NMA, Mode, or ModeSet instances.')
     return enms
 
-def calcSpectralDistances(ensemble, **kwargs):
+def calcEnsembleSpectralOverlaps(ensemble, distance=False, **kwargs):
     """Description"""
 
     enms = _getEnsembleENMs(ensemble, **kwargs)
@@ -92,13 +94,25 @@ def calcSpectralDistances(ensemble, **kwargs):
             covlap = calcSpectralOverlap(enmi, enmj)
             overlaps[i, j] = covlap
 
-    ### build tree based on similarity matrix ###
-    dist_mat = np.arccos(overlaps)
+    if distance:
+        overlaps = np.arccos(overlaps)
 
-    return dist_mat
+    return overlaps
 
 def getSignatureProfile(ensemble, index, **kwargs):
-    """Description"""
+    """
+    Get the signature profile of *ensemble*. If *ensemble* is an instance of 
+    :class:`Ensemble` then the ENMs will be first calculated using 
+    :func:`calcEnsembleENMs`. 
+    
+    :arg ensemble: an ensemble of structures or ENMs 
+    :type ensemble: :class: `Ensemble` or list
+
+    :arg index: mode index for displaying the mode shape or a list 
+                of mode indices for displaying the mean square fluctuations. 
+                The list can contain only one index.
+    :type index: int or list
+    """
 
     enms = _getEnsembleENMs(ensemble, **kwargs)
     
@@ -131,7 +145,24 @@ def getSignatureProfile(ensemble, index, **kwargs):
     return V, (meanV, stdV)
     
 def showSignatureProfile(ensemble, index, linespec='-', **kwargs):
-    """Description"""
+    """
+    Show the signature profile of *ensemble* using :func:`showAtomicData`. 
+    
+    :arg ensemble: an ensemble of structures or ENMs 
+    :type ensemble: :class: `Ensemble` or list
+
+    :arg index: mode index for displaying the mode shape or a list 
+                of mode indices for displaying the mean square fluctuations. 
+                The list can contain only one index.
+    :type index: int or list
+
+    :arg atoms: an object with method :func:`getResnums` for use 
+                on the x-axis.
+    :type atoms: :class:`Atomic` 
+
+    :arg alpha: the transparency of the band(s).
+    :type alpha: float
+    """
 
     from matplotlib.pyplot import figure, plot, fill_between, gca
     from .signature import getSignatureProfile
@@ -146,8 +177,18 @@ def showSignatureProfile(ensemble, index, linespec='-', **kwargs):
 
     if new_fig:
         figure()
-    line = plot(x, meanV, linespec)[0]
+    
+    atoms = kwargs.pop('atoms', None)
+    if atoms is None:
+        try:
+            atoms = ensemble.getAtoms()
+        except:
+            pass
+
+    ax = showAtomicData(meanV, atoms=atoms, linespec=linespec, new_fig=False, **kwargs)
+    line = ax.lines[0]
     color = line.get_color()
+    x, _ = line.get_data()
     fill_between(x, minV, maxV,
                 alpha=0.3, facecolor=color,
                 linewidth=1, antialiased=True)
