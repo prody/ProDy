@@ -1451,6 +1451,8 @@ def showMatrix(matrix=None, x_array=None, y_array=None, **kwargs):
     if SETTINGS['auto_show']:
         showFigure()
  
+    plt.sca(ax3)
+
     return ax1, ax2, im, ax3, ax4, ax5, ax6, ax7
 
 def showAtomicData(y, atoms=None, linespec='-', **kwargs):
