@@ -79,7 +79,32 @@ _parsePDBdoc = _parsePQRdoc + """
 
 _PDBSubsets = {'ca': 'ca', 'calpha': 'ca', 'bb': 'bb', 'backbone': 'bb'}
 
-def parsePDB(pdb, **kwargs):
+def parsePDB(*pdb, **kwargs):
+    n_pdb = len(pdb)
+    if n_pdb == 1:
+        return _parsePDB(pdb[0], **kwargs)
+    else:
+        results = []
+
+        argnames = ['model', 'header', 'chain', 'subset', 'altloc']
+        defaults = [None, False, None, None, 'A']
+
+        lstkwargs = {}
+        for name, default in zip(argnames, defaults):
+            argval = kwargs.pop(name, default)
+            if np.isscalar(argval):
+                argval = [argval]*n_pdb
+            lstkwargs[name] = argval
+
+        for i, p in enumerate(pdb):
+            for name in argnames:
+                kwargs[name] = lstkwargs[name][i]
+            result = _parsePDB(p, **kwargs)
+            results.append(result)
+        return results
+
+
+def _parsePDB(pdb, **kwargs):
     """Returns an :class:`.AtomGroup` and/or dictionary containing header data
     parsed from a PDB file.
 
