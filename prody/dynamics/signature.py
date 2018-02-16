@@ -13,13 +13,15 @@ from .modeset import ModeSet
 from .mode import Mode, Vector
 from .functions import calcENM
 from .compare import calcSpectralOverlap, matchModes
-from .analysis import calcSqFlucts
+
+from .analysis import calcSqFlucts, calcCrossCorr
 from .plotting import showAtomicData
 from .anm import ANM
 from .gnm import GNM
+from .plotting import showMatrix
 
 __all__ = ['calcEnsembleENMs', 'getSignatureProfile', 'calcEnsembleSpectralOverlaps',
-           'showSignatureProfile']
+           'showSignatureProfile', 'calcAverageCrossCorr', 'showAverageCrossCorr', 'showMatrixAverageCrossCorr']
 
 def calcEnsembleENMs(ensemble, model='gnm', trim='trim', n_modes=20):
     """Description"""
@@ -197,3 +199,76 @@ def showSignatureProfile(ensemble, index, linespec='-', **kwargs):
     if SETTINGS['auto_show']:
         showFigure()
     return gca()
+    
+def calcAverageCrossCorr(modesEnsemble, modeIndex, *args, **kwargs):
+    """Calculate average cross-correlations for a modesEnsemble (a list of modes)."""
+    
+    matches = matchModes(*modesEnsemble)
+    CCs = []
+    for mode_i in matches[modeIndex]:
+        CC = calcCrossCorr(mode_i)
+        CCs.append(CC)
+    C = np.vstack(CCs)
+
+    n_atoms = modesEnsemble[0].numAtoms()
+    C = C.reshape(len(CCs), n_atoms, n_atoms)
+    mean = C.mean(axis=0)
+    std = C.std(axis=0)
+    return C, mean, std
+
+def showAverageCrossCorr(modesEnsemble, modeIndex, plotStd=False, *args, **kwargs):
+    """Show average cross-correlations using :func:`~matplotlib.pyplot.imshow`.  By
+    default, *origin=lower* and *interpolation=bilinear* keyword  arguments
+    are passed to this function, but user can overwrite these parameters.
+    See also :func:`.calcAverageCrossCorr`."""
+
+    import matplotlib.pyplot as plt
+    if kwargs.pop('new_fig', True):
+        plt.figure()
+    arange = np.arange(modesEnsemble[0].numAtoms())
+    C, mean, std = calcAverageCrossCorr(modesEnsemble, modeIndex)
+    if plotStd:
+        matrixData = std
+    else:
+        matrixData = mean
+    if not 'interpolation' in kwargs:
+        kwargs['interpolation'] = 'bilinear'
+    if not 'origin' in kwargs:
+        kwargs['origin'] = 'lower'
+    show = plt.imshow(matrixData, *args, **kwargs), plt.colorbar()
+    plt.axis([arange[0]+0.5, arange[-1]+1.5, arange[0]+0.5, arange[-1]+1.5])
+    if plotStd:
+        plt.title('Std - Average Cross-correlations')
+    else:
+        plt.title('Average Cross-correlations')
+    plt.xlabel('Indices')
+    plt.ylabel('Indices')
+    if SETTINGS['auto_show']:
+        showFigure()
+    return show
+
+def showMatrixAverageCrossCorr(modesEnsemble, modeIndex, plotStd=False, *args, **kwargs):
+    """Show average cross-correlations using :func:`showMatrix`.  By
+    default, *origin=lower* and *interpolation=bilinear* keyword  arguments
+    are passed to this function, but user can overwrite these parameters.
+    See also :func:`.calcAverageCrossCorr`."""
+
+    C, mean, std = calcAverageCrossCorr(modesEnsemble, modeIndex)
+    if plotStd:
+        matrixData = std
+    else:
+        matrixData = mean
+    if not 'interpolation' in kwargs:
+        kwargs['interpolation'] = 'bilinear'
+    if not 'origin' in kwargs:
+        kwargs['origin'] = 'lower'
+    show = showMatrix(matrixData, *args, **kwargs)
+    # if plotStd:
+        # title('Std - Average Cross-correlations')
+    # else:
+        # title('Average Cross-correlations')
+    # xlabel('Indices')
+    # ylabel('Indices')
+    if SETTINGS['auto_show']:
+        showFigure()
+    return show
