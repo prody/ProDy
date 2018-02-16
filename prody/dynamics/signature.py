@@ -172,11 +172,6 @@ def showSignatureProfile(ensemble, index, linespec='-', **kwargs):
     maxV = V.max(axis=1)
 
     x = range(meanV.shape[0])
-
-    new_fig = kwargs.pop('new_fig', True)
-
-    if new_fig:
-        figure()
     
     atoms = kwargs.pop('atoms', None)
     if atoms is None:
@@ -185,7 +180,7 @@ def showSignatureProfile(ensemble, index, linespec='-', **kwargs):
         except:
             pass
 
-    ax = showAtomicData(meanV, atoms=atoms, linespec=linespec, new_fig=False, **kwargs)
+    ax = showAtomicData(meanV, atoms=atoms, linespec=linespec, **kwargs)
     line = ax.lines[0]
     color = line.get_color()
     x, _ = line.get_data()
@@ -196,8 +191,6 @@ def showSignatureProfile(ensemble, index, linespec='-', **kwargs):
                 alpha=0.5, facecolor=color,
                 linewidth=1, antialiased=True)
     
-    if SETTINGS['auto_show']:
-        showFigure()
     return gca()
     
 def calcAverageCrossCorr(modesEnsemble, modeIndex, *args, **kwargs):
@@ -223,7 +216,7 @@ def showAverageCrossCorr(modesEnsemble, modeIndex, plotStd=False, *args, **kwarg
     See also :func:`.calcAverageCrossCorr`."""
 
     import matplotlib.pyplot as plt
-    if kwargs.pop('new_fig', True):
+    if SETTINGS['auto_show']:
         plt.figure()
     arange = np.arange(modesEnsemble[0].numAtoms())
     C, mean, std = calcAverageCrossCorr(modesEnsemble, modeIndex)

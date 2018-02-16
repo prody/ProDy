@@ -133,7 +133,7 @@ def showFractVars(modes, *args, **kwargs):
         raise TypeError('modes must be NMA, or ModeSet, not {0}'
                         .format(type(modes)))
     
-    if kwargs.pop('new_fig', True):
+    if SETTINGS['auto_show']:
         plt.figure()
 
     fracts = calcFractVariance(modes)
@@ -169,7 +169,7 @@ def showCumulFractVars(modes, *args, **kwargs):
     else:
         indices = np.arange(len(modes)) + 0.5
     
-    if kwargs.pop('new_fig', True):
+    if SETTINGS['auto_show']:
         plt.figure()
 
     fracts = calcFractVariance(modes).cumsum()
@@ -217,10 +217,6 @@ def showProjection(ensemble, modes, *args, **kwargs):
     :arg fontsize: font size for text labels
     :type fontsize: int
 
-    :arg new_fig: if ``True`` then a new figure will be created before plotting.
-        default is True
-    :type new_fig: bool
-
     The projected values are by default converted to RMSD.  Pass ``rmsd=False``
     to use projection itself.
 
@@ -234,7 +230,7 @@ def showProjection(ensemble, modes, *args, **kwargs):
 
     cmap = kwargs.pop('cmap', None)
 
-    if kwargs.pop('new_fig', True):
+    if SETTINGS['auto_show']:
         fig, ax = plt.subplots() 
     projection = calcProjection(ensemble, modes, kwargs.pop('rmsd', True), kwargs.pop('norm', True))
 
@@ -384,7 +380,7 @@ def showCrossProjection(ensemble, mode_x, mode_y, scale=None, *args, **kwargs):
 
     import matplotlib.pyplot as plt
 
-    if kwargs.pop('new_fig', True):
+    if SETTINGS['auto_show']:
         plt.figure()
 
     norm = kwargs.pop('norm', True)
@@ -479,7 +475,7 @@ def showOverlapTable(modes_x, modes_y, **kwargs):
     cmap = kwargs.pop('cmap', plt.cm.jet)
     norm = kwargs.pop('norm', matplotlib.colors.Normalize(0, 1))
 
-    if kwargs.pop('new_fig', True):
+    if SETTINGS['auto_show']:
         plt.figure()
     show = (plt.pcolor(overlap, cmap=cmap, norm=norm, **kwargs),
             plt.colorbar())
@@ -502,7 +498,7 @@ def showCrossCorr(modes, *args, **kwargs):
     See also :func:`.calcCrossCorr`."""
 
     import matplotlib.pyplot as plt
-    if kwargs.pop('new_fig', True):
+    if SETTINGS['auto_show']:
         plt.figure()
 
     arange = np.arange(modes.numAtoms())
@@ -678,7 +674,7 @@ def showContactMap(enm, *args, **kwargs):
     """Show Kirchhoff matrix using :func:`~matplotlib.pyplot.spy`."""
 
     import matplotlib.pyplot as plt
-    if kwargs.pop('new_fig', True):
+    if SETTINGS['auto_show']:
         plt.figure()
         
     if not isinstance(enm, GNMBase):
@@ -707,7 +703,7 @@ def showOverlap(mode, modes, *args, **kwargs):
 
     import matplotlib.pyplot as plt
 
-    if kwargs.pop('new_fig', True):
+    if SETTINGS['auto_show']:
         plt.figure()
 
     if not isinstance(mode, (Mode, Vector)):
@@ -751,7 +747,7 @@ def showCumulOverlap(mode, modes, *args, **kwargs):
     else:
         arange = modes.getIndices() + 0.5
     
-    if kwargs.pop('new_fig', True):
+    if SETTINGS['auto_show']:
         plt.figure()
     show = plt.plot(arange, cumov, *args, **kwargs)
     plt.title('Cumulative overlap with {0}'.format(str(mode)))
@@ -830,7 +826,7 @@ def showDiffMatrix(matrix1, matrix2, *args, **kwargs):
         kwargs['origin'] = 'lower'
     if kwargs.pop('abs', False):
         diff = np.abs(diff)
-    if kwargs.pop('new_fig', True):
+    if SETTINGS['auto_show']:
         plt.figure()
     show = showMatrix(diff, *args, **kwargs)
     show.im3.axis([-.5, shape1[1] - .5, -.5, shape1[0] - .5])
@@ -862,7 +858,7 @@ def showMechStiff(model, coords, *args, **kwargs):
     MechStiff = model.getStiffness()
     matplotlib.rcParams['font.size'] = '14'
 
-    if kwargs.pop('new_fig', True):
+    if SETTINGS['auto_show']:
         fig = plt.figure(num=None, figsize=(10,8), dpi=100, facecolor='w')
     vmin = math.floor(np.min(MechStiff[np.nonzero(MechStiff)]))
     vmax = round(np.amax(MechStiff),1)
@@ -891,7 +887,7 @@ def showNormDistFunct(model, coords, *args, **kwargs):
         
     matplotlib.rcParams['font.size'] = '14'
 
-    if kwargs.pop('new_fig', True):
+    if SETTINGS['auto_show']:
         fig = plt.figure(num=None, figsize=(10,8), dpi=100, facecolor='w')
     vmin = math.floor(np.min(normdistfunct[np.nonzero(normdistfunct)]))
     vmax = round(np.amax(normdistfunct),1)
@@ -1324,8 +1320,7 @@ def showMatrix(matrix=None, x_array=None, y_array=None, **kwargs):
     gs_bar = GridSpecFromSubplotSpec(nrow-1, 1, subplot_spec = outer[1], height_ratios=height_ratios[:-1], hspace=0., wspace=0.)
     gs_legend = GridSpecFromSubplotSpec(nrow-1, 1, subplot_spec = outer[2], height_ratios=height_ratios[:-1], hspace=0., wspace=0.)
 
-    new_fig = kwargs.pop('new_fig', True)
-    if new_fig:
+    if SETTINGS['auto_show']:
         fig = plt.figure(figsize=[9.5,6]) 
     axes = []
 
@@ -1465,14 +1460,21 @@ def showAtomicData(y, atoms=None, linespec='-', **kwargs):
 
     :arg chain_bar: display a bar at the bottom to show chain separations. 
                     If set to `None`, it will be decided depends on whether *atoms* 
-                    is provided.
-                    default `None`
+                    is provided. 
+                    Default is `None`.
     :type chain_bar: bool
 
     :arg domain_bar: the same with *chain_bar* but show domain separations instead. 
                     *atoms* needs to have *domain* data associated to it.
-                    default `None`
+                    Default is `None`.
     :type domain_bar: bool
+
+    :arg figure: if set to `None`, then a new figure will be created if *auto_show* 
+                is `True`, otherwise it will be plotted on the current figure. If set 
+                to a figure number or a :class:`~matplotlib.figure.Figure` instance, 
+                no matter what 'auto_show' value is, plots will be drawn on the *figure*.
+                Default is `None`.
+    :type figure: :class:`~matplotlib.figure.Figure`, int, or str
     """
     
     chain_bar = kwargs.pop('chain_bar', None)
@@ -1480,11 +1482,22 @@ def showAtomicData(y, atoms=None, linespec='-', **kwargs):
 
     from prody.utilities import showData
     from matplotlib.pyplot import figure, ylim
+    from matplotlib.figure import Figure
     from matplotlib import ticker
 
-    new_fig = kwargs.pop('new_fig', True)
-    if new_fig:
-        figure()
+    fig = kwargs.pop('figure', None)
+
+    if isinstance(fig, Figure):
+        fig_num = fig.number
+    elif fig is None or isinstance(fig, (int, str)):
+        fig_num = fig
+    else:
+        raise TypeError('figure can be either an instance of matplotlib.figure.Figure '
+                        'or a figure number.')
+    if SETTINGS['auto_show']:
+        figure(fig_num)
+    elif fig_num is not None:
+        figure(fig_num)
 
     try:
         y = np.array(y)
@@ -1615,8 +1628,7 @@ def showPlot(y, **kwargs):
     elif len(np.shape(y)) != 1:
         raise ValueError('The data must be a 1D array.')
 
-    new_fig = kwargs.pop('new_fig', True)
-    if new_fig:
+    if SETTINGS['auto_show']:
         fig = plt.figure(figsize=[9.5,6])
     axes = [] 
 
@@ -1828,7 +1840,7 @@ def showTree_networkx(tree, node_size=20, node_color='red', withlabels=True, sca
             colors.append(nc)
         labels[node] = lbl
 
-    if kwargs.pop('new_fig', True):
+    if SETTINGS['auto_show']:
         mpl.figure()
 
     layout = networkx.spring_layout(G, scale=scale, iterations=iterations)

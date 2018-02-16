@@ -119,9 +119,8 @@ def showData(*args, **kwargs):
     
     # note for developers: this function serves as a low-level 
     # plotting function which provides basic utilities for other 
-    # plotting functions. Therefore showFigure and new_fig are 
-    # not handled in this function as it should be already handled in 
-    # the caller.
+    # plotting functions. Therefore showFigure is not handled 
+    # in this function as it should be already handled in the caller.
 
     ticklabels = kwargs.pop('ticklabels', None)
     dy = kwargs.pop('dy', None)
