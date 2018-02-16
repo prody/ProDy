@@ -5,7 +5,7 @@ for conformations in an ensemble."""
 import numpy as np
 
 from prody import LOGGER, SETTINGS
-from prody.utilities import showFigure
+from prody.utilities import showFigure, showMatrix
 from prody.ensemble import Ensemble
 
 from .nma import NMA
@@ -18,7 +18,6 @@ from .analysis import calcSqFlucts, calcCrossCorr
 from .plotting import showAtomicData
 from .anm import ANM
 from .gnm import GNM
-from .plotting import showMatrix
 
 __all__ = ['calcEnsembleENMs', 'getSignatureProfile', 'calcEnsembleSpectralOverlaps',
            'showSignatureProfile', 'calcAverageCrossCorr', 'showAverageCrossCorr', 'showMatrixAverageCrossCorr']
@@ -246,6 +245,10 @@ def showMatrixAverageCrossCorr(modesEnsemble, modeIndex, plotStd=False, *args, *
     are passed to this function, but user can overwrite these parameters.
     See also :func:`.calcAverageCrossCorr`."""
 
+    import matplotlib.pyplot as plt
+
+    if SETTINGS['auto_show']:
+        plt.figure()
     C, mean, std = calcAverageCrossCorr(modesEnsemble, modeIndex)
     if plotStd:
         matrixData = std
@@ -255,7 +258,7 @@ def showMatrixAverageCrossCorr(modesEnsemble, modeIndex, plotStd=False, *args, *
         kwargs['interpolation'] = 'bilinear'
     if not 'origin' in kwargs:
         kwargs['origin'] = 'lower'
-    show = showMatrix(matrixData, *args, **kwargs)
+    show = plt.imshow(matrixData, *args, **kwargs)
     # if plotStd:
         # title('Std - Average Cross-correlations')
     # else:
