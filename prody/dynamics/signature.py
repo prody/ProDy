@@ -13,12 +13,15 @@ from .modeset import ModeSet
 from .mode import Mode, Vector
 from .functions import calcENM
 from .compare import calcSpectralOverlap, matchModes
-from .analysis import calcSqFlucts
+
+from .analysis import calcSqFlucts, calcCrossCorr
+from .plotting import showAtomicData
 from .anm import ANM
 from .gnm import GNM
+from .plotting import showMatrix
 
-__all__ = ['calcEnsembleENMs', 'getSignatureProfile', 'calcSpectralDistances',
-           'showSignatureProfile']
+__all__ = ['calcEnsembleENMs', 'getSignatureProfile', 'calcEnsembleSpectralOverlaps',
+           'showSignatureProfile', 'calcAverageCrossCorr', 'showAverageCrossCorr', 'showMatrixAverageCrossCorr']
 
 def calcEnsembleENMs(ensemble, model='gnm', trim='trim', n_modes=20):
     """Description"""
@@ -80,7 +83,7 @@ def _getEnsembleENMs(ensemble, **kwargs):
                             'or a list of NMA, Mode, or ModeSet instances.')
     return enms
 
-def calcSpectralDistances(ensemble, **kwargs):
+def calcEnsembleSpectralOverlaps(ensemble, distance=False, **kwargs):
     """Description"""
 
     enms = _getEnsembleENMs(ensemble, **kwargs)
@@ -91,13 +94,25 @@ def calcSpectralDistances(ensemble, **kwargs):
             covlap = calcSpectralOverlap(enmi, enmj)
             overlaps[i, j] = covlap
 
-    ### build tree based on similarity matrix ###
-    dist_mat = np.arccos(overlaps)
+    if distance:
+        overlaps = np.arccos(overlaps)
 
-    return dist_mat
+    return overlaps
 
 def getSignatureProfile(ensemble, index, **kwargs):
-    """Description"""
+    """
+    Get the signature profile of *ensemble*. If *ensemble* is an instance of 
+    :class:`Ensemble` then the ENMs will be first calculated using 
+    :func:`calcEnsembleENMs`. 
+    
+    :arg ensemble: an ensemble of structures or ENMs 
+    :type ensemble: :class: `Ensemble` or list
+
+    :arg index: mode index for displaying the mode shape or a list 
+                of mode indices for displaying the mean square fluctuations. 
+                The list can contain only one index.
+    :type index: int or list
+    """
 
     enms = _getEnsembleENMs(ensemble, **kwargs)
     
@@ -130,7 +145,24 @@ def getSignatureProfile(ensemble, index, **kwargs):
     return V, (meanV, stdV)
     
 def showSignatureProfile(ensemble, index, linespec='-', **kwargs):
-    """Description"""
+    """
+    Show the signature profile of *ensemble* using :func:`showAtomicData`. 
+    
+    :arg ensemble: an ensemble of structures or ENMs 
+    :type ensemble: :class: `Ensemble` or list
+
+    :arg index: mode index for displaying the mode shape or a list 
+                of mode indices for displaying the mean square fluctuations. 
+                The list can contain only one index.
+    :type index: int or list
+
+    :arg atoms: an object with method :func:`getResnums` for use 
+                on the x-axis.
+    :type atoms: :class:`Atomic` 
+
+    :arg alpha: the transparency of the band(s).
+    :type alpha: float
+    """
 
     from matplotlib.pyplot import figure, plot, fill_between, gca
     from .signature import getSignatureProfile
@@ -140,13 +172,18 @@ def showSignatureProfile(ensemble, index, linespec='-', **kwargs):
     maxV = V.max(axis=1)
 
     x = range(meanV.shape[0])
+    
+    atoms = kwargs.pop('atoms', None)
+    if atoms is None:
+        try:
+            atoms = ensemble.getAtoms()
+        except:
+            pass
 
-    new_fig = kwargs.pop('new_fig', True)
-
-    if new_fig:
-        figure()
-    line = plot(x, meanV, linespec)[0]
+    ax = showAtomicData(meanV, atoms=atoms, linespec=linespec, **kwargs)
+    line = ax.lines[-1]
     color = line.get_color()
+    x, _ = line.get_data()
     fill_between(x, minV, maxV,
                 alpha=0.3, facecolor=color,
                 linewidth=1, antialiased=True)
@@ -154,6 +191,77 @@ def showSignatureProfile(ensemble, index, linespec='-', **kwargs):
                 alpha=0.5, facecolor=color,
                 linewidth=1, antialiased=True)
     
+    return gca()
+    
+def calcAverageCrossCorr(modesEnsemble, modeIndex, *args, **kwargs):
+    """Calculate average cross-correlations for a modesEnsemble (a list of modes)."""
+    
+    matches = matchModes(*modesEnsemble)
+    CCs = []
+    for mode_i in matches[modeIndex]:
+        CC = calcCrossCorr(mode_i)
+        CCs.append(CC)
+    C = np.vstack(CCs)
+
+    n_atoms = modesEnsemble[0].numAtoms()
+    C = C.reshape(len(CCs), n_atoms, n_atoms)
+    mean = C.mean(axis=0)
+    std = C.std(axis=0)
+    return C, mean, std
+
+def showAverageCrossCorr(modesEnsemble, modeIndex, plotStd=False, *args, **kwargs):
+    """Show average cross-correlations using :func:`~matplotlib.pyplot.imshow`.  By
+    default, *origin=lower* and *interpolation=bilinear* keyword  arguments
+    are passed to this function, but user can overwrite these parameters.
+    See also :func:`.calcAverageCrossCorr`."""
+
+    import matplotlib.pyplot as plt
+    if SETTINGS['auto_show']:
+        plt.figure()
+    arange = np.arange(modesEnsemble[0].numAtoms())
+    C, mean, std = calcAverageCrossCorr(modesEnsemble, modeIndex)
+    if plotStd:
+        matrixData = std
+    else:
+        matrixData = mean
+    if not 'interpolation' in kwargs:
+        kwargs['interpolation'] = 'bilinear'
+    if not 'origin' in kwargs:
+        kwargs['origin'] = 'lower'
+    show = plt.imshow(matrixData, *args, **kwargs), plt.colorbar()
+    plt.axis([arange[0]+0.5, arange[-1]+1.5, arange[0]+0.5, arange[-1]+1.5])
+    if plotStd:
+        plt.title('Std - Average Cross-correlations')
+    else:
+        plt.title('Average Cross-correlations')
+    plt.xlabel('Indices')
+    plt.ylabel('Indices')
     if SETTINGS['auto_show']:
         showFigure()
-    return gca()
+    return show
+
+def showMatrixAverageCrossCorr(modesEnsemble, modeIndex, plotStd=False, *args, **kwargs):
+    """Show average cross-correlations using :func:`showMatrix`.  By
+    default, *origin=lower* and *interpolation=bilinear* keyword  arguments
+    are passed to this function, but user can overwrite these parameters.
+    See also :func:`.calcAverageCrossCorr`."""
+
+    C, mean, std = calcAverageCrossCorr(modesEnsemble, modeIndex)
+    if plotStd:
+        matrixData = std
+    else:
+        matrixData = mean
+    if not 'interpolation' in kwargs:
+        kwargs['interpolation'] = 'bilinear'
+    if not 'origin' in kwargs:
+        kwargs['origin'] = 'lower'
+    show = showMatrix(matrixData, *args, **kwargs)
+    # if plotStd:
+        # title('Std - Average Cross-correlations')
+    # else:
+        # title('Average Cross-correlations')
+    # xlabel('Indices')
+    # ylabel('Indices')
+    if SETTINGS['auto_show']:
+        showFigure()
+    return show

@@ -5,6 +5,7 @@ import numpy as np
 from numpy import unique, linalg, diag, sqrt, dot
 import scipy.cluster.hierarchy as sch
 from scipy import spatial
+from .misctools import addBreaks
 
 __all__ = ['calcTree', 'clusterMatrix', 'showData', 'reorderMatrix', 'findSubgroups']
 
@@ -118,13 +119,13 @@ def showData(*args, **kwargs):
     
     # note for developers: this function serves as a low-level 
     # plotting function which provides basic utilities for other 
-    # plotting functions. Therefore showFigure and new_fig are 
-    # not handled in this function as it should be already handled in 
-    # the caller.
+    # plotting functions. Therefore showFigure is not handled 
+    # in this function as it should be already handled in the caller.
 
     ticklabels = kwargs.pop('ticklabels', None)
     dy = kwargs.pop('dy', None)
     alpha = kwargs.pop('alpha', 0.5)
+    gap = kwargs.pop('gap', False)
 
     from matplotlib import cm, ticker
     from matplotlib.pyplot import figure, gca, xlim
@@ -151,7 +152,15 @@ def showData(*args, **kwargs):
                 _dy = dy
             else:
                 _dy = dy[:, i]
-            ax.fill_between(x, y-_dy, y+_dy,
+            
+            if gap:
+                x_new, y_new = addBreaks(x, y)
+                line.set_data(x_new, y_new)
+                _, _dy = addBreaks(x, _dy)
+            else:
+                x_new, y_new = x, y
+
+            ax.fill_between(x_new, y_new-_dy, y_new+_dy,
                     alpha=alpha, facecolor=color,
                     linewidth=1, antialiased=True)
 

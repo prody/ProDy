@@ -246,12 +246,13 @@ def checkUpdates():
       confProDy(check_updates=0) # do not auto check updates
       confProDy(check_updates=-1) # check at the start of every session"""
 
+    pypi_url = 'https://pypi.python.org/pypi'
     if PY3K:
         import xmlrpc.client
-        pypi = xmlrpc.client.Server('https://pypi.python.org/pypi')
+        pypi = xmlrpc.client.Server(pypi_url)
     else:
         import xmlrpclib
-        pypi = xmlrpclib.Server('https://pypi.python.org/pypi')
+        pypi = xmlrpclib.Server(pypi_url)
     releases = pypi.package_releases('ProDy')
     if releases[0] == __version__:
         LOGGER.info('You are using the latest ProDy release (v{0:s}).'
