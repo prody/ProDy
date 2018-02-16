@@ -5,8 +5,9 @@ import numpy as np
 from numpy import unique, linalg, diag, sqrt, dot
 import scipy.cluster.hierarchy as sch
 from scipy import spatial
+from .misctools import addBreaks
 
-__all__ = ['calcTree', 'clusterMatrix', 'showData', 'reorderMatrix']
+__all__ = ['calcTree', 'clusterMatrix', 'showData', 'reorderMatrix', 'findSubgroups']
 
 def calcTree(names, distance_matrix, method='nj'):
     """ Given a distance matrix for an ensemble, it creates an returns a tree structure.
@@ -125,6 +126,7 @@ def showData(*args, **kwargs):
     ticklabels = kwargs.pop('ticklabels', None)
     dy = kwargs.pop('dy', None)
     alpha = kwargs.pop('alpha', 0.5)
+    gap = kwargs.pop('gap', False)
 
     from matplotlib import cm, ticker
     from matplotlib.pyplot import figure, gca, xlim
@@ -151,7 +153,15 @@ def showData(*args, **kwargs):
                 _dy = dy
             else:
                 _dy = dy[:, i]
-            ax.fill_between(x, y-_dy, y+_dy,
+            
+            if gap:
+                x_new, y_new = addBreaks(x, y)
+                line.set_data(x_new, y_new)
+                _, _dy = addBreaks(x, _dy)
+            else:
+                x_new, y_new = x, y
+
+            ax.fill_between(x_new, y_new-_dy, y_new+_dy,
                     alpha=alpha, facecolor=color,
                     linewidth=1, antialiased=True)
 
@@ -216,3 +226,23 @@ def reorderMatrix(names, matrix, tree):
     reordered_matrix = reordered_matrix[indices,:]
     
     return reordered_matrix, indices
+
+def findSubgroups(tree, cutoff=0.8):
+    """
+    Divide a tree into subgroups using a distance cutoff.
+    Returns a list of lists with labels divided into subgroups.
+    """
+
+    subgroups = [[]]
+
+    for i, target_i in enumerate(tree.get_terminals()):
+        subgroups[-1].append(str(target_i))
+        for j, target_j in enumerate(tree.get_terminals()[:-1]):
+            if i == j+1:
+                neighbour_distance = tree.distance(target_i,target_j)
+                if neighbour_distance > cutoff:
+                    subgroups.append([])
+
+    subgroups[-1].append(str(target_i))
+
+    return subgroups
