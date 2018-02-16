@@ -59,7 +59,6 @@ def daliSearchPDB(pdbId, chainId, daliURL=None, subset='fullPDB', **kwargs):
     else:
         return None
 
-
 class daliRecord(object):
 
     """A class to store results from Dali PDB search."""
@@ -126,7 +125,6 @@ class daliRecord(object):
         file_name = file_name[:-7]
         # LOGGER.info(url+file_name+self._subset+'.txt')
         data = urllib2.urlopen(url+file_name+self._subset+'.txt').read()
-
         with open("temp.txt", "a+") as file_temp: file_temp.write(url+file_name + '\n' + data)
         data_list = data.strip().split('# ')
         # No:  Chain   Z    rmsd lali nres  %id PDB  Description -> data_list[3]
@@ -172,7 +170,6 @@ class daliRecord(object):
         self._pdbListAll = tuple(pdbListAll)
         self._pdbList = self._pdbListAll
         self._alignPDB = dali_temp_dict
-
         LOGGER.info(str(len(pdbListAll)) + ' Dali results have been searched.')
         return True
         
@@ -242,13 +239,11 @@ class daliRecord(object):
         ref_pdb_ca = ref_pdb.select("protein and name CA").copy()
         ref_chain = ref_pdb_ca.getHierView().getChain(self._chainId)
         ref_indices_set = set(range(len(ref_chain)))
-
         ensemble = PDBEnsemble('3h5v-A')
         ensemble.setAtoms(ref_chain)
         ensemble.setCoords(ref_chain)
-
         for pdb_chain in pdbList:
-            print pdb_chain
+            # print(pdb_chain)
             temp_dict = daliInfo[pdb_chain]
             sel_pdb = parsePDB(pdb_chain[0:4]).select('chain '+pdb_chain[5:6]).copy()
             sel_pdb_ca = sel_pdb.select("protein and name CA").copy()
@@ -264,4 +259,3 @@ class daliRecord(object):
         ensemble.iterpose()
         RMSDs = ensemble.getRMSDs()
         return ensemble
-    
