@@ -11,7 +11,7 @@ from collections import defaultdict
 import numpy as np
 
 from prody import LOGGER, SETTINGS
-from prody.utilities import showFigure
+from prody.utilities import showFigure, addBreaks
 
 from .nma import NMA
 from .gnm import GNMBase
@@ -539,16 +539,16 @@ def showMode(mode, *args, **kwargs):
     if mode.is3d():
         a3d = mode.getArrayNx3()
         show = []
-        show.append(showPlot(a3d[:, 0], *args, label='x-component', **kwargs))
-        show.append(showPlot(a3d[:, 1], *args, label='y-component', **kwargs))
-        show.append(showPlot(a3d[:, 2], *args, label='z-component', **kwargs))
+        show.append(plt.plot(a3d[:, 0], *args, label='x-component', **kwargs))
+        show.append(plt.plot(a3d[:, 1], *args, label='y-component', **kwargs))
+        show.append(plt.plot(a3d[:, 2], *args, label='z-component', **kwargs))
         if atoms is not None:
             show[0][0].set_title(str(mode))
         else:
             show[0].set_title(str(mode))
     else:
         a1d = mode._getArray()
-        show = showPlot(a1d, *args, **kwargs)
+        show = plt.plot(a1d, *args, **kwargs)
         if show_hinges and isinstance(mode, Mode):
             hinges = mode.getHinges()
             if hinges is not None:
@@ -600,7 +600,7 @@ def showSqFlucts(modes, *args, **kwargs):
     sqf = calcSqFlucts(modes)
     if not 'label' in kwargs:
         kwargs['label'] = str(modes)
-    show = showPlot(sqf, *args, **kwargs)
+    show = plt.plot(sqf, *args, **kwargs)
     atoms = kwargs.get('atoms',None)
     if atoms is not None:
         show[0].set_ylabel('Square fluctuations')
@@ -633,7 +633,7 @@ def showScaledSqFlucts(modes, *args, **kwargs):
             modesarg.append(args.pop(i))
         else:
             i += 1
-    show = showPlot(sqf, *args, label=str(modes), **kwargs)
+    show = plt.plot(sqf, *args, label=str(modes), **kwargs)
     plt.xlabel('Indices')
     plt.ylabel('Square fluctuations')
     for modes in modesarg:
@@ -661,7 +661,7 @@ def showNormedSqFlucts(modes, *args, **kwargs):
             modesarg.append(args.pop(i))
         else:
             i += 1
-    show = showPlot(sqf/(sqf**2).sum()**0.5, *args,
+    show = plt.plot(sqf/(sqf**2).sum()**0.5, *args,
                      label='{0}'.format(str(modes)), **kwargs)
     plt.xlabel('Indices')
     plt.ylabel('Square fluctuations')
@@ -1204,7 +1204,7 @@ def showPerturbResponseProfiles(prs_matrix,atoms=None,**kwargs):
         profiles = [effectiveness, sensitivity]
 
     for profile in profiles:
-        show = showPlot(profile,atoms=atoms,**kwargs)
+        show = showAtomicData(profile,atoms=atoms,**kwargs)
 
     returnData = kwargs.get('returnData',False)
     if returnData:
@@ -1455,7 +1455,7 @@ def showMatrix(matrix=None, x_array=None, y_array=None, **kwargs):
 
     return ax1, ax2, im, ax3, ax4, ax5, ax6, ax7
 
-def showAtomicData(y, atoms=None, **kwargs):
+def showAtomicData(y, atoms=None, linespec='-', **kwargs):
     """
     Show a plot with the option to include chain color bars using provided atoms.
     
@@ -1463,34 +1463,33 @@ def showAtomicData(y, atoms=None, **kwargs):
         residue numbers and chain IDs. 
     :type atoms: :class: `AtomGroup`
 
-    :arg add_last_resi: whether to add a label for the last residue
-        default False
-    :type add_last_resi: bool
+    :arg chain_bar: display a bar at the bottom to show chain separations. 
+                    If set to `None`, it will be decided depends on whether *atoms* 
+                    is provided.
+                    default `None`
+    :type chain_bar: bool
 
-    :arg label_size: size for resnum labels
-        default is 6, which works well for 4 residues on 4 chains
-    :type label_size: int
-
-    :arg overlay_chains: overlay the chains rather than having them one after another
-        default False
-    :type overlay_chains: bool
-
-    :arg domain_bar: color the bar at the bottom by domains rather than chains
-        default False
+    :arg domain_bar: the same with *chain_bar* but show domain separations instead. 
+                    *atoms* needs to have *domain* data associated to it.
+                    default `None`
     :type domain_bar: bool
     """
-
-    overlay_chains = kwargs.pop('overlay_chains', False)
-    show_domains = kwargs.pop('show_domains', None)
-    domain_bar = kwargs.pop('domain_bar', False)
+    
+    chain_bar = kwargs.pop('chain_bar', None)
+    domain_bar = kwargs.pop('domain_bar', None)
 
     from prody.utilities import showData
-    from matplotlib.pyplot import figure, imshow, ylim
+    from matplotlib.pyplot import figure, ylim
     from matplotlib import ticker
 
     new_fig = kwargs.pop('new_fig', True)
     if new_fig:
         figure()
+
+    try:
+        y = np.array(y)
+    except:
+        raise TypeError('y should be an array-like instance.')
     
     ticklabels = None
     if atoms is not None:
@@ -1498,23 +1497,22 @@ def showAtomicData(y, atoms=None, **kwargs):
         if hv.numChains() == 0:
             raise ValueError('atoms should contain at least one chain.')
         elif hv.numChains() == 1:
-            if show_domains is None:
-                show_domains = False
+            if chain_bar is None:
+                chain_bar = False
             ticklabels = atoms.getResnums()
         else:
-            ticklabels = []
             chids = atoms.getChids()
             resnums = atoms.getResnums()
             ticklabels = ['%s:%d'%(c, n) for c, n in zip(chids, resnums)]
-            
-    ax = showData(y, ticklabels=ticklabels)
+
+    ax = showData(y, linespec, ticklabels=ticklabels, **kwargs)
     ax.xaxis.set_major_locator(ticker.AutoLocator())
     ax.xaxis.set_minor_locator(ticker.AutoMinorLocator())
 
-    if show_domains is None:
-        show_domains = atoms is not None
+    if chain_bar is None:
+        chain_bar = atoms is not None
 
-    if show_domains and atoms is not None:
+    if chain_bar and atoms is not None:
         yl = ylim()
         d_loc = yl[0]
         D = []
@@ -1522,6 +1520,34 @@ def showAtomicData(y, atoms=None, **kwargs):
         uni_chids = np.unique(chids)
         for chid in uni_chids:
             d = chids == chid
+            D.append(d)
+        D = np.vstack(D).T
+        F = np.zeros(D.shape)
+        F[~D] = np.nan
+        F[D] = d_loc
+
+        ax.plot(F, linewidth=5)
+        ylim(yl)
+
+    try:
+        domains = atoms.getData('domain')
+        uni_domids = np.unique(domains)
+        if domain_bar is None:
+            domain_bar = len(uni_domids) > 1
+    except:
+        if domain_bar is None:
+            domain_bar = False
+        elif domain_bar:
+            raise ValueError('A domain bar can only be generated if \
+                            there is domain data associated with \
+                            the atoms.')
+
+    if domain_bar and atoms is not None:
+        yl = ylim()
+        d_loc = yl[1]
+        D = []
+        for domid in uni_domids:
+            d = domains == domid
             D.append(d)
         D = np.vstack(D).T
         F = np.zeros(D.shape)
