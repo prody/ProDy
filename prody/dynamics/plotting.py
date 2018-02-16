@@ -1460,19 +1460,21 @@ def showAtomicData(y, atoms=None, linespec='-', **kwargs):
 
     :arg chain_bar: display a bar at the bottom to show chain separations. 
                     If set to `None`, it will be decided depends on whether *atoms* 
-                    is provided.
-                    default `None`
+                    is provided. 
+                    Default is `None`.
     :type chain_bar: bool
 
     :arg domain_bar: the same with *chain_bar* but show domain separations instead. 
                     *atoms* needs to have *domain* data associated to it.
-                    default `None`
+                    Default is `None`.
     :type domain_bar: bool
 
-    :arg figure: If set to `None`, then a new figure will be created if *auto_show* 
-                is `True`. If not, no matter what 'auto_show' value is, plots will 
-                be drawn on the *figure*.
-    :type figure: bool
+    :arg figure: if set to `None`, then a new figure will be created if *auto_show* 
+                is `True`, otherwise it will be plotted on the current figure. If set 
+                to a figure number or a :class:`~matplotlib.figure.Figure` instance, 
+                no matter what 'auto_show' value is, plots will be drawn on the *figure*.
+                Default is `None`.
+    :type figure: :class:`~matplotlib.figure.Figure`, int, or str
     """
     
     chain_bar = kwargs.pop('chain_bar', None)
@@ -1480,10 +1482,18 @@ def showAtomicData(y, atoms=None, linespec='-', **kwargs):
 
     from prody.utilities import showData
     from matplotlib.pyplot import figure, ylim
+    from matplotlib.figure import Figure
     from matplotlib import ticker
 
     fig = kwargs.pop('figure', None)
-    fig_num = None if fig is None else fig.number
+
+    if isinstance(fig, Figure):
+        fig_num = fig.number
+    elif fig is None or isinstance(fig, (int, str)):
+        fig_num = fig
+    else:
+        raise TypeError('figure can be either an instance of matplotlib.figure.Figure '
+                        'or a figure number.')
     if SETTINGS['auto_show']:
         figure(fig_num)
     elif fig_num is not None:
