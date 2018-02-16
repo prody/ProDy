@@ -188,10 +188,15 @@ def calcSpectralOverlap(modes1, modes2):
 
 calcCovOverlap = calcSpectralOverlap
 
-def pairModes(modes1, modes2):
+def pairModes(modes1, modes2, index=False):
     """Returns the optimal matches between *modes1* and *modes2*. *modes1* 
     and *modes2* should have equal number of modes, and the function will 
-    return a nested list where each item is a list containing a pair of modes."""
+    return a nested list where each item is a list containing a pair of modes.
+
+    :arg index: if `True` then indices of modes will be returned instead of 
+                :class:`Mode` instances.
+    :type index: bool
+    """
 
     from scipy.optimize import linear_sum_assignment
 
@@ -202,6 +207,9 @@ def pairModes(modes1, modes2):
     costs = 1 - abs(overlaps)
     row_ind, col_ind = linear_sum_assignment(costs)
 
+    if index:
+        return zip(row_ind, col_ind)
+
     mode_pairs = []
     for i in range(len(row_ind)):
         r = row_ind[i]; c = col_ind[i]
@@ -210,11 +218,17 @@ def pairModes(modes1, modes2):
 
     return mode_pairs
 
-def matchModes(*modesets):
+def matchModes(*modesets, **kwargs):
     """Returns the matches of modes among *modesets*. Note that the first 
     modeset will be treated as the reference so that only the matching 
-    of each modeset to the first modeset is garanteed to be optimal."""
+    of each modeset to the first modeset is garanteed to be optimal.
+    
+    :arg index: if `True` then indices of modes will be returned instead of 
+                :class:`Mode` instances.
+    :type index: bool
+    """
 
+    index = kwargs.pop('index', False)
     P = []
     modes0 = modesets[0]
 
@@ -223,11 +237,13 @@ def matchModes(*modesets):
 
     for i, modes in enumerate(modesets):
         if i > 0:
-            pairs = pairModes(modes0, modes)
+            pairs = pairModes(modes0, modes, index=index)
             P.append(pairs)
 
     from operator import itemgetter
     def modeorder_compare(m1, m2):
+        if isinstance(m1, (int, np.integer)) and isinstance(m2, (int, np.integer)):
+            return m1 - m2
         return m1.getIndex() - m2.getIndex()
 
     for pairs in P:
