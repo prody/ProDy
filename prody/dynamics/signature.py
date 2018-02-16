@@ -181,7 +181,7 @@ def showSignatureProfile(ensemble, index, linespec='-', **kwargs):
             pass
 
     ax = showAtomicData(meanV, atoms=atoms, linespec=linespec, **kwargs)
-    line = ax.lines[0]
+    line = ax.lines[-1]
     color = line.get_color()
     x, _ = line.get_data()
     fill_between(x, minV, maxV,
