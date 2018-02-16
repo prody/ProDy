@@ -230,12 +230,13 @@ def showAverageCrossCorr(modesEnsemble, modeIndex, plotStd=False, *args, **kwarg
         kwargs['origin'] = 'lower'
     show = plt.imshow(matrixData, *args, **kwargs), plt.colorbar()
     plt.axis([arange[0]+0.5, arange[-1]+1.5, arange[0]+0.5, arange[-1]+1.5])
+    title_str = ', mode '+str(modeIndex+1)
     if plotStd:
-        plt.title('Std - Average Cross-correlations')
+        plt.title('Std - Cross-correlations'+title_str, size=14)
     else:
-        plt.title('Average Cross-correlations')
-    plt.xlabel('Indices')
-    plt.ylabel('Indices')
+        plt.title('Average Cross-correlations'+title_str, size=14)
+    plt.xlabel('Indices', size=14)
+    plt.ylabel('Indices', size=14)
     if SETTINGS['auto_show']:
         showFigure()
     return show
@@ -246,6 +247,7 @@ def showMatrixAverageCrossCorr(modesEnsemble, modeIndex, plotStd=False, *args, *
     are passed to this function, but user can overwrite these parameters.
     See also :func:`.calcAverageCrossCorr`."""
 
+    import matplotlib.pyplot as plt
     C, mean, std = calcAverageCrossCorr(modesEnsemble, modeIndex)
     if plotStd:
         matrixData = std
@@ -256,12 +258,13 @@ def showMatrixAverageCrossCorr(modesEnsemble, modeIndex, plotStd=False, *args, *
     if not 'origin' in kwargs:
         kwargs['origin'] = 'lower'
     show = showMatrix(matrixData, *args, **kwargs)
-    # if plotStd:
-        # title('Std - Average Cross-correlations')
-    # else:
-        # title('Average Cross-correlations')
-    # xlabel('Indices')
-    # ylabel('Indices')
+    title_str = ', mode '+str(modeIndex+1)
+    if plotStd:
+        plt.title('Std - Cross-correlations'+title_str, size=14)
+    else:
+        plt.title('Average Cross-correlations'+title_str, size=14)
+    plt.xlabel('Indices', size=14)
+    plt.ylabel('Indices', size=14)
     if SETTINGS['auto_show']:
         showFigure()
     return show
