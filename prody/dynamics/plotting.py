@@ -1461,24 +1461,18 @@ def showAtomicData(y, atoms=None, linespec='-', **kwargs):
         residue numbers and chain IDs. 
     :type atoms: :class: `AtomGroup`
 
-    :arg add_last_resi: whether to add a label for the last residue
-        default False
-    :type add_last_resi: bool
+    :arg chain_bar: display a bar at the bottom to show chain separations. 
+                    If set to `None`, it will be decided depends on whether *atoms* 
+                    is provided.
+                    default `None`
+    :type chain_bar: bool
 
-    :arg label_size: size for resnum labels
-        default is 6, which works well for 4 residues on 4 chains
-    :type label_size: int
-
-    :arg overlay_chains: overlay the chains rather than having them one after another
-        default False
-    :type overlay_chains: bool
-
-    :arg domain_bar: color the bar at the bottom by domains rather than chains
-        default False
+    :arg domain_bar: the same with *chain_bar* but show domain separations instead. 
+                    *atoms* needs to have *domain* data associated to it.
+                    default `None`
     :type domain_bar: bool
     """
-
-    overlay_chains = kwargs.pop('overlay_chains', False)
+    
     chain_bar = kwargs.pop('chain_bar', None)
     domain_bar = kwargs.pop('domain_bar', None)
 
