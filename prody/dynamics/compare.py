@@ -249,7 +249,10 @@ def matchModes(*modesets, **kwargs):
     for pairs in P:
         pairs = sorted(pairs, key=itemgetter(0), cmp=modeorder_compare)
     
-    matches = [[None for _ in range(n_sets)] for _ in range(n_modes)]
+    if index:
+        matches = np.zeros((n_modes, n_sets))
+    else:
+        matches = [[None for _ in range(n_sets)] for _ in range(n_modes)]
     for i in range(n_modes):
         for j in range(n_sets):
             if j == 0:
