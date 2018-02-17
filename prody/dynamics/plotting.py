@@ -33,7 +33,7 @@ __all__ = ['showContactMap', 'showCrossCorr',
            'showDiffMatrix','showMechStiff','showNormDistFunct',
            'showPairDeformationDist','showMeanMechStiff', 
            'showPerturbResponse', 'showPerturbResponseProfiles',
-           'showMatrix', 'showPlot', 'showAtomicData', 'showTree', 
+           'showAtomicMatrix', 'showPlot', 'showAtomicData', 'showTree', 
            'showTree_networkx']
 
 
@@ -862,7 +862,7 @@ def showMechStiff(model, coords, *args, **kwargs):
         fig = plt.figure(num=None, figsize=(10,8), dpi=100, facecolor='w')
     vmin = math.floor(np.min(MechStiff[np.nonzero(MechStiff)]))
     vmax = round(np.amax(MechStiff),1)
-    show = showMatrix(MechStiff, vmin=vmin, vmax=vmax, *args, **kwargs)
+    show = showAtomicMatrix(MechStiff, vmin=vmin, vmax=vmax, *args, **kwargs)
     plt.title('Mechanical Stiffness Matrix')# for {0}'.format(str(model)))
     plt.xlabel('Indices', fontsize='16')
     plt.ylabel('Indices', fontsize='16')
@@ -891,7 +891,7 @@ def showNormDistFunct(model, coords, *args, **kwargs):
         fig = plt.figure(num=None, figsize=(10,8), dpi=100, facecolor='w')
     vmin = math.floor(np.min(normdistfunct[np.nonzero(normdistfunct)]))
     vmax = round(np.amax(normdistfunct),1)
-    show = showMatrix(normdistfunct, vmin=vmin, vmax=vmax, *args, **kwargs)
+    show = showAtomicMatrix(normdistfunct, vmin=vmin, vmax=vmax, *args, **kwargs)
     #plt.clim(math.floor(np.min(normdistfunct[np.nonzero(normdistfunct)])), \
     #                                       round(np.amax(normdistfunct),1))
     plt.title('Normalized Distance Fluctution Matrix')
@@ -1018,7 +1018,7 @@ def showPerturbResponse(**kwargs):
         default is False
     :type returnData: bool
 	
-    :arg percentile: percentile argument for showMatrix
+    :arg percentile: percentile argument for showAtomicMatrix
     :type percentile: float
 
     Return values are prs_matrix, effectiveness, sensitivity, ax1, ax2, im, ax3, ax4
@@ -1049,7 +1049,7 @@ def showPerturbResponse(**kwargs):
         else:
             returnData = False
 
-        showMatrix_returns = showMatrix(prs_matrix, effectiveness, sensitivity, **kwargs)
+        showMatrix_returns = showAtomicMatrix(prs_matrix, effectiveness, sensitivity, **kwargs)
 
     else:
         if not isinstance(atoms, AtomGroup) and not isinstance(atoms, Selection):
@@ -1065,7 +1065,7 @@ def showPerturbResponse(**kwargs):
         if effectiveness is None or sensitivity is None:
             atoms, effectiveness, sensitivity = calcPerturbResponseProfiles(prs_matrix,atoms)
 
-        showMatrix_returns = showMatrix(prs_matrix, effectiveness, sensitivity, **kwargs)
+        showMatrix_returns = showAtomicMatrix(prs_matrix, effectiveness, sensitivity, **kwargs)
 
     if not returnData:
         return showMatrix_returns
@@ -1208,7 +1208,7 @@ def showPerturbResponseProfiles(prs_matrix,atoms=None,**kwargs):
     else:
         return show
 
-def showMatrix(matrix=None, x_array=None, y_array=None, **kwargs):
+def showAtomicMatrix(matrix=None, x_array=None, y_array=None, **kwargs):
     """Show a matrix using :meth:`~matplotlib.axes.Axes.imshow`. Curves on x- and y-axis can be added.
     The first return value is the :class:`~matplotlib.axes.Axes` object for the upper plot, and the second
     return value is equivalent object for the left plot. The third return value is 

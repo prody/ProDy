@@ -5,7 +5,7 @@ for conformations in an ensemble."""
 import numpy as np
 
 from prody import LOGGER, SETTINGS
-from prody.utilities import showFigure
+from prody.utilities import showFigure, showMatrix
 from prody.ensemble import Ensemble
 
 from .nma import NMA
@@ -18,7 +18,6 @@ from .analysis import calcSqFlucts, calcCrossCorr
 from .plotting import showAtomicData
 from .anm import ANM
 from .gnm import GNM
-from .plotting import showMatrix
 
 __all__ = ['calcEnsembleENMs', 'getSignatureProfile', 'calcEnsembleSpectralOverlaps',
            'showSignatureProfile', 'calcAverageCrossCorr', 'showAverageCrossCorr', 'showMatrixAverageCrossCorr']
@@ -193,23 +192,24 @@ def showSignatureProfile(ensemble, index, linespec='-', **kwargs):
     
     return gca()
     
-def calcAverageCrossCorr(modesEnsemble, modeIndex, *args, **kwargs):
-    """Calculate average cross-correlations for a modesEnsemble (a list of modes)."""
+def calcAverageCrossCorr(modeEnsemble, modeIndex, *args, **kwargs):
+    """Calculate average cross-correlations for a modeEnsemble (a list of modes)."""
     
-    matches = matchModes(*modesEnsemble)
+    matches = matchModes(*modeEnsemble, index=True)
+    n_sets = len(modeEnsemble)
     CCs = []
-    for mode_i in matches[modeIndex]:
-        CC = calcCrossCorr(mode_i)
+    for i in range(n_sets):
+        CC = calcCrossCorr(modeEnsemble[i][modeIndex])
         CCs.append(CC)
     C = np.vstack(CCs)
-
-    n_atoms = modesEnsemble[0].numAtoms()
+    n_atoms = modeEnsemble[0].numAtoms()
     C = C.reshape(len(CCs), n_atoms, n_atoms)
     mean = C.mean(axis=0)
     std = C.std(axis=0)
+        
     return C, mean, std
 
-def showAverageCrossCorr(modesEnsemble, modeIndex, plotStd=False, *args, **kwargs):
+def showAverageCrossCorr(modeEnsemble, modeIndex, plotStd=False, *args, **kwargs):
     """Show average cross-correlations using :func:`~matplotlib.pyplot.imshow`.  By
     default, *origin=lower* and *interpolation=bilinear* keyword  arguments
     are passed to this function, but user can overwrite these parameters.
@@ -218,8 +218,8 @@ def showAverageCrossCorr(modesEnsemble, modeIndex, plotStd=False, *args, **kwarg
     import matplotlib.pyplot as plt
     if SETTINGS['auto_show']:
         plt.figure()
-    arange = np.arange(modesEnsemble[0].numAtoms())
-    C, mean, std = calcAverageCrossCorr(modesEnsemble, modeIndex)
+    arange = np.arange(modeEnsemble[0].numAtoms())
+    C, mean, std = calcAverageCrossCorr(modeEnsemble, modeIndex)
     if plotStd:
         matrixData = std
     else:
@@ -228,25 +228,35 @@ def showAverageCrossCorr(modesEnsemble, modeIndex, plotStd=False, *args, **kwarg
         kwargs['interpolation'] = 'bilinear'
     if not 'origin' in kwargs:
         kwargs['origin'] = 'lower'
-    show = plt.imshow(matrixData, *args, **kwargs), plt.colorbar()
-    plt.axis([arange[0]+0.5, arange[-1]+1.5, arange[0]+0.5, arange[-1]+1.5])
-    if plotStd:
-        plt.title('Std - Average Cross-correlations')
+    cmap = kwargs.pop('cmap', 'jet')
+    show = plt.imshow(matrixData, cmap=cmap, *args, **kwargs), plt.colorbar()
+    if np.isscalar(modeIndex):
+        title_str = ', mode '+str(modeIndex+1)
     else:
-        plt.title('Average Cross-correlations')
-    plt.xlabel('Indices')
-    plt.ylabel('Indices')
+        modeIndexStr = ','.join([str(x+1) for x in modeIndex])
+        if len(modeIndexStr) > 8:
+            title_str = ', '+str(len(modeIndex))+' modes '+modeIndexStr[:5]+'...'
+        else:
+            title_str = ', modes '+modeIndexStr
+        # title_str = ', '+str(len(modeIndex))+' modes'
+    if plotStd:
+        plt.title('Std - Cross-correlations'+title_str, size=14)
+    else:
+        plt.title('Avg - Cross-correlations'+title_str, size=14)
+    plt.xlabel('Indices', size=14)
+    plt.ylabel('Indices', size=14)
     if SETTINGS['auto_show']:
         showFigure()
     return show
 
-def showMatrixAverageCrossCorr(modesEnsemble, modeIndex, plotStd=False, *args, **kwargs):
+def showMatrixAverageCrossCorr(modeEnsemble, modeIndex, plotStd=False, *args, **kwargs):
     """Show average cross-correlations using :func:`showMatrix`.  By
     default, *origin=lower* and *interpolation=bilinear* keyword  arguments
     are passed to this function, but user can overwrite these parameters.
     See also :func:`.calcAverageCrossCorr`."""
 
-    C, mean, std = calcAverageCrossCorr(modesEnsemble, modeIndex)
+    import matplotlib.pyplot as plt
+    C, mean, std = calcAverageCrossCorr(modeEnsemble, modeIndex)
     if plotStd:
         matrixData = std
     else:
@@ -255,13 +265,23 @@ def showMatrixAverageCrossCorr(modesEnsemble, modeIndex, plotStd=False, *args, *
         kwargs['interpolation'] = 'bilinear'
     if not 'origin' in kwargs:
         kwargs['origin'] = 'lower'
-    show = showMatrix(matrixData, *args, **kwargs)
-    # if plotStd:
-        # title('Std - Average Cross-correlations')
-    # else:
-        # title('Average Cross-correlations')
-    # xlabel('Indices')
-    # ylabel('Indices')
+    cmap = kwargs.pop('cmap', 'jet')
+    show = showMatrix(matrixData, cmap=cmap, *args, **kwargs)
+    if np.isscalar(modeIndex):
+        title_str = ', mode '+str(modeIndex+1)
+    else:
+        # modeIndexStr = ','.join([str(x+1) for x in modeIndex])
+        # if len(modeIndexStr) > 8:
+            # title_str = ', '+str(len(modeIndex))+' modes '+modeIndexStr[:5]+'...'
+        # else:
+            # title_str = ', modes '+modeIndexStr
+        title_str = ', '+str(len(modeIndex))+' modes'
+    if plotStd:
+        plt.title('Std - Cross-correlations'+title_str, size=12)
+    else:
+        plt.title('Avg - Cross-correlations'+title_str, size=12)
+    plt.xlabel('Indices', size=14)
+    plt.ylabel('Indices', size=14)
     if SETTINGS['auto_show']:
         showFigure()
     return show
