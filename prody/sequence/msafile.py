@@ -18,21 +18,26 @@ __all__ = ['MSAFile', 'splitSeqLabel', 'parseMSA', 'writeMSA']
 FASTA = 'FASTA'
 SELEX = 'SELEX'
 STOCKHOLM = 'Stockholm'
+CLUSTAL = 'CLUSTAL'
 MSAFORMATS = {
     FASTA.lower(): FASTA,
     SELEX.lower(): SELEX,
     STOCKHOLM.lower(): STOCKHOLM,
+    CLUSTAL.lower(): CLUSTAL,
 }
 MSAEXTMAP = {
     FASTA: '.fasta',
     SELEX: '.slx',
     STOCKHOLM: '.sth',
+    CLUSTAL: '.aln',
     FASTA.lower(): '.fasta',
     SELEX.lower(): '.slx',
     STOCKHOLM.lower(): '.sth',
+    CLUSTAL.lower(): '.aln', 
     '.sth': STOCKHOLM,
     '.slx': SELEX,
-    '.fasta': FASTA
+    '.fasta': FASTA,
+    '.aln': CLUSTAL
 }
 
 WSJOIN = ' '.join
@@ -50,13 +55,13 @@ except NameError:
 
 class MSAFile(object):
 
-    """Handle MSA files in FASTA, SELEX and Stockholm formats."""
+    """Handle MSA files in FASTA, SELEX, CLUSTAL and Stockholm formats."""
 
     def __init__(self, msa, mode='r', format=None, aligned=True, **kwargs):
         """*msa* may be a filename or a stream.  Multiple sequence alignments
         can be read from or written in FASTA (:file:`.fasta`), Stockholm
-        (:file:`.sth`), or SELEX (:file:`.slx`) *format*.  For spesified
-        extensions, *format* argument is not needed.  If *aligned* is
+        (:file:`.sth`), CLUSTAL (:file:`.aln`), or SELEX (:file:`.slx`) *format*.  
+        For specified extensions, *format* argument is not needed. If *aligned* is
         **True**, unaligned sequences in the file or stream will cause an
         :exc:`IOError` exception.  *filter*, a function that returns a
         boolean, can be used for filtering sequences, see :meth:`setFilter`
@@ -138,7 +143,7 @@ class MSAFile(object):
             except AttributeError:
                 pass
 
-            self.setFilter(kwargs.get('filter', None),
+            self.stFilter(kwargs.get('filter', None),
                            kwargs.get('filter_full', False))
             self.setSlice(kwargs.get('slice', None))
             self._iter = self._itermap[format](self)
@@ -468,7 +473,7 @@ class MSAFile(object):
 
 def parseMSA(filename, **kwargs):
     """Returns an :class:`.MSA` instance that stores multiple sequence alignment
-    and sequence labels parsed from Stockholm, SELEX, or FASTA format
+    and sequence labels parsed from Stockholm, SELEX, CLUSTAL, or FASTA format
     *filename* file, which may be a compressed file. Uncompressed MSA files
     are parsed using C code at a fraction of the time it would take to parse
     compressed files in Python."""
@@ -533,12 +538,16 @@ def parseMSA(filename, **kwargs):
 
         if format == FASTA:
             from .msaio import parseFasta as parser
+            msaarr = empty(filesize, '|S1')
         elif format == SELEX or format == STOCKHOLM:
             from .msaio import parseSelex as parser
+            msaarr = empty(filesize, '|S1')
+        elif format == CLUSTAL:
+            parser = parseClustal
+            msaarr = []
         else:
             raise IOError('MSA file format is not recognized from the '
                           'extension')
-        msaarr = empty(filesize, '|S1')
         msaarr, labels, mapping, lcount = parser(filename, msaarr)
         if lcount != len(msaarr):
             LOGGER.warn('Failed to parse {0} sequence labels.'
@@ -555,6 +564,39 @@ def parseMSA(filename, **kwargs):
                       .format(*msaarr.shape), '_parsemsa')
     return msa
 
+def parseClustal(filename, msaarr):
+    """
+    Parses a CLUSTAL format (:file:`.aln`) alignment file.
+    """
+    msafile = open(filename,'r')
+    lines = msafile.readlines()
+    msafile.close()
+
+    msa_dict = {}
+    keys = []
+    for line in lines:
+        foundBadItem = False
+        try:
+            key = line.strip().split()[0]
+            seq = line.strip().split()[1]
+        except:
+            continue
+        for badItem in ['*', ' ', ':', 'CLUSTAL', '.']:
+            if badItem in key:
+                foundBadItem = True
+                continue
+        if foundBadItem:
+            continue
+        if not key in keys:
+            keys.append(key)
+            msa_dict[key] = seq
+        else:
+            msa_dict[key] = msa_dict[key] + seq
+
+    for key in keys:
+        msaarr.append(list(msa_dict[key]))
+
+    return array(msaarr), keys, None, len(keys)
 
 def writeMSA(filename, msa, **kwargs):
     """Returns *filename* containing *msa*, a :class:`.MSA` or :class:`.MSAFile`
