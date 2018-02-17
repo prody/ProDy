@@ -184,7 +184,13 @@ class daliRecord(object):
     def getHits(self):
         return self._alignPDB
         
-    def filter(self, cutoff_len=None, cutoff_rmsd=0.5, cutoff_Z=20, cutoff_identity=20):
+    def getFilterList(self):
+        filterDict = self._filterDict
+        temp_str = ', '.join([str(len(filterDict['len'])), str(len(filterDict['rmsd'])), str(len(filterDict['Z'])), str(len(filterDict['identity']))])
+        LOGGER.info('Filter out [' + temp_str + '] for [length, RMSD, Z, identity]')
+        return self._filterList
+        
+    def filter(self, cutoff_len=None, cutoff_rmsd=0.5, cutoff_Z=20, cutoff_identity=0):
         """Filters out PDBs from the PDBList and returns the PDB list.
         PDBs satisfy any of following criterion will be filtered out.
         (1) Length of aligned residues < cutoff_len;
@@ -197,8 +203,10 @@ class daliRecord(object):
         pdbListAll = self._pdbListAll
         missing_ind_dict = dict()
         ref_indices_set = set(range(self._max_index))
-        filterList = []
-        filterMissing = []
+        filterListLen = []
+        filterListRMSD = []
+        filterListZ = []
+        filterListIdentiry = []
         if cutoff_len == None:
             cutoff_len = int(0.8*self._max_index)
         for pdb_chain in pdbListAll:
@@ -206,19 +214,19 @@ class daliRecord(object):
             # filter: len_align, identity, rmsd, Z
             if temp_dict['len_align'] < cutoff_len:
                 # print('Filter out ' + pdb_chain + ', len_align: ' + str(temp_dict['len_align']))
-                filterList.append(pdb_chain)
+                filterListLen.append(pdb_chain)
                 continue
             if temp_dict['rmsd'] < cutoff_rmsd:
                 # print('Filter out ' + pdb_chain + ', rmsd: ' + str(temp_dict['rmsd']))
-                filterList.append(pdb_chain)
+                filterListRMSD.append(pdb_chain)
                 continue
             if temp_dict['Z'] < cutoff_Z:
                 # print('Filter out ' + pdb_chain + ', Z: ' + str(temp_dict['Z']))
-                filterList.append(pdb_chain)
+                filterListZ.append(pdb_chain)
                 continue
             if temp_dict['identity'] < cutoff_identity:
                 # print('Filter out ' + pdb_chain + ', identity: ' + str(temp_dict['identity']))
-                filterList.append(pdb_chain)
+                filterListIdentiry.append(pdb_chain)
                 continue
             temp_diff = list(ref_indices_set - set(temp_dict['map_ref']))
             for diff_i in temp_diff:
@@ -226,8 +234,11 @@ class daliRecord(object):
                     missing_ind_dict[diff_i] = 1
                 else:
                     missing_ind_dict[diff_i] += 1
-        self._filterList = filterList
         self._missing_ind_dict = missing_ind_dict
+        filterList = filterListLen + filterListRMSD + filterListZ + filterListIdentiry
+        filterDict = {'len': filterListLen, 'rmsd': filterListRMSD, 'Z': filterListZ, 'identity': filterListIdentiry}
+        self._filterList = filterList
+        self._filterDict = filterDict
         self._pdbList = list(set(list(self._pdbListAll)) - set(filterList))
         LOGGER.info(str(len(filterList)) + ' PDBs have been filtered out from '+str(len(pdbListAll))+' Dali hits.')
         return self._pdbList
