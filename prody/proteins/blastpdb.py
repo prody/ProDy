@@ -293,3 +293,4 @@ def showSequenceTree(hits):
         raise ImportError("Pylab or matplotlib is not installed.")
     Phylo.draw(tree)
     return tree, msa
+
