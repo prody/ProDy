@@ -208,7 +208,7 @@ def pairModes(modes1, modes2, index=False):
     row_ind, col_ind = linear_sum_assignment(costs)
 
     if index:
-        return zip(row_ind, col_ind)
+        return np.array(zip(row_ind, col_ind))
 
     mode_pairs = []
     for i in range(len(row_ind)):
