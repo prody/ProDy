@@ -787,7 +787,7 @@ def showDiffMatrix(matrix1, matrix2, *args, **kwargs):
     """Show the difference between two cross-correlation matrices from
     different models. For given *matrix1* and *matrix2* show the difference
     between them in the form of (matrix2 - matrix1) and plot the difference
-    matrix using :func:`showMatrix`. When :class:`.NMA` models
+    matrix using :func:`showAtomicMatrix`. When :class:`.NMA` models
     are passed instead of matrices, the functions could call
     :func:`.calcCrossCorr` function to calculate the matrices for given modes.
 
@@ -822,7 +822,7 @@ def showDiffMatrix(matrix1, matrix2, *args, **kwargs):
         diff = np.abs(diff)
     if SETTINGS['auto_show']:
         plt.figure()
-    show = showMatrix(diff, *args, **kwargs)
+    show = showAtomicMatrix(diff, *args, **kwargs)
     #show.im3.axis([-.5, shape1[1] - .5, -.5, shape1[0] - .5])
     plt.title('Difference Matrix')
     if SETTINGS['auto_show']:

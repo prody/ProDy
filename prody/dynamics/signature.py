@@ -15,7 +15,7 @@ from .functions import calcENM
 from .compare import calcSpectralOverlap, matchModes
 
 from .analysis import calcSqFlucts, calcCrossCorr
-from .plotting import showAtomicData
+from .plotting import showAtomicData, showAtomicMatrix
 from .anm import ANM
 from .gnm import GNM
 
@@ -179,7 +179,7 @@ def showSignatureProfile(ensemble, index, linespec='-', **kwargs):
         except:
             pass
 
-    lines, _, bars = showAtomicData(meanV, atoms=atoms, linespec=linespec, **kwargs)
+    lines, _, bars, _ = showAtomicData(meanV, atoms=atoms, linespec=linespec, **kwargs)
     line = lines[-1]
     color = line.get_color()
     x, _ = line.get_data()
@@ -231,7 +231,7 @@ def showAverageCrossCorr(modeEnsemble, modeIndex, plotStd=False, *args, **kwargs
     if not 'origin' in kwargs:
         kwargs['origin'] = 'lower'
     cmap = kwargs.pop('cmap', 'jet')
-    show = plt.imshow(matrixData, cmap=cmap, *args, **kwargs), plt.colorbar()
+    show = showAtomicMatrix(matrixData, cmap=cmap, *args, **kwargs), plt.colorbar()
     if np.isscalar(modeIndex):
         title_str = ', mode '+str(modeIndex+1)
     else:
