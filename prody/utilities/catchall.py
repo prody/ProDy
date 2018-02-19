@@ -184,7 +184,7 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
     from matplotlib import cm
     from matplotlib.gridspec import GridSpec, GridSpecFromSubplotSpec
     from matplotlib.collections import LineCollection
-    from matplotlib.pyplot import figure, imshow
+    from matplotlib.pyplot import imshow, gca
 
     p = kwargs.pop('percentile', None)
     if p is not None:
@@ -193,8 +193,7 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
     else:
         vmin = vmax = None
     
-    W = 8
-    H = 8
+    W = H = 8
 
     curve_axes = None
 
@@ -227,11 +226,19 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
     upper_index = (i-1,j)
     left_index = (i,j-1)
 
-    outer = GridSpec(1, 2, width_ratios = [15, 1], hspace=0.) 
-    gs = GridSpecFromSubplotSpec(nrow, ncol, subplot_spec = outer[0], width_ratios=width_ratios,
-                    height_ratios=height_ratios, hspace=0., wspace=0.)
+    complex_layout = nrow > 1 and ncol > 1
+    cb = kwargs.pop('colorbar', True)
 
-    gs_bar = GridSpecFromSubplotSpec(nrow, 1, subplot_spec = outer[1], height_ratios=height_ratios, hspace=0., wspace=0.)
+    if complex_layout:
+        if cb:
+            outer = GridSpec(1, 2, width_ratios = [15, 1], hspace=0.) 
+            gs = GridSpecFromSubplotSpec(nrow, ncol, subplot_spec = outer[0], width_ratios=width_ratios,
+                            height_ratios=height_ratios, hspace=0., wspace=0.)
+
+            gs_bar = GridSpecFromSubplotSpec(nrow, 1, subplot_spec = outer[1], height_ratios=height_ratios, hspace=0., wspace=0.)
+        else:
+            gs = GridSpec(nrow, ncol, width_ratios=width_ratios, 
+                        height_ratios=height_ratios, hspace=0., wspace=0.)
 
     if nrow > 1:
         ax1 = mpl.subplot(gs[upper_index])
@@ -266,23 +273,25 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
         ax2.axis('off')
         ax2.invert_xaxis()
 
-    ax3 = mpl.subplot(gs[main_index])
+    if complex_layout:
+        ax3 = mpl.subplot(gs[main_index])
+    else:
+        ax3 = gca()
     cmap = kwargs.pop('cmap', 'jet')
-    im = imshow(matrix, aspect=aspect, vmin=vmin, vmax=vmax, **kwargs)
+    imshow(matrix, aspect=aspect, vmin=vmin, vmax=vmax, **kwargs)
     #ax3.set_xlim([-0.5, matrix.shape[0]+0.5])
     #ax3.set_ylim([-0.5, matrix.shape[1]+0.5])
     if ncol > 1:
         ax3.set_yticklabels([])
 
-    cb = kwargs.pop('colorbar', True)
     if cb:
-        if nrow > 1:
+        if complex_layout:
             ax4 = mpl.subplot(gs_bar[-1])
             mpl.colorbar(cax=ax4)
         else:
             mpl.colorbar()
 
-    return im
+    return ax3
 
 def reorderMatrix(names, matrix, tree):
     """
