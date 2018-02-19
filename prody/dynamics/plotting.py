@@ -11,7 +11,7 @@ from collections import defaultdict
 import numpy as np
 
 from prody import LOGGER, SETTINGS
-from prody.utilities import showFigure, addBreaks
+from prody.utilities import showFigure, addBreaks, showMatrix
 
 from .nma import NMA
 from .gnm import GNMBase
