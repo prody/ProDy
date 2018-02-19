@@ -179,18 +179,20 @@ def showSignatureProfile(ensemble, index, linespec='-', **kwargs):
         except:
             pass
 
-    ax = showAtomicData(meanV, atoms=atoms, linespec=linespec, **kwargs)
-    line = ax.lines[-1]
+    lines, _, bars = showAtomicData(meanV, atoms=atoms, linespec=linespec, **kwargs)
+    line = lines[-1]
     color = line.get_color()
     x, _ = line.get_data()
-    fill_between(x, minV, maxV,
-                alpha=0.3, facecolor=color,
-                linewidth=1, antialiased=True)
-    fill_between(x, meanV-stdV, meanV+stdV,
-                alpha=0.5, facecolor=color,
-                linewidth=1, antialiased=True)
-    
-    return gca()
+    polys = []
+    poly = fill_between(x, minV, maxV,
+                        alpha=0.3, facecolor=color,
+                        linewidth=1, antialiased=True)
+    polys.append(poly)
+    poly = fill_between(x, meanV-stdV, meanV+stdV,
+                        alpha=0.5, facecolor=color,
+                        linewidth=1, antialiased=True)
+    polys.append(poly)
+    return lines, polys, bars
     
 def calcAverageCrossCorr(modeEnsemble, modeIndex, *args, **kwargs):
     """Calculate average cross-correlations for a modeEnsemble (a list of modes)."""

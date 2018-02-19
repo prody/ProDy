@@ -1481,7 +1481,7 @@ def showAtomicData(y, atoms=None, linespec='-', **kwargs):
     domain_bar = kwargs.pop('domain_bar', None)
 
     from prody.utilities import showData
-    from matplotlib.pyplot import figure, ylim
+    from matplotlib.pyplot import figure, ylim, plot
     from matplotlib.figure import Figure
     from matplotlib import ticker
 
@@ -1518,10 +1518,9 @@ def showAtomicData(y, atoms=None, linespec='-', **kwargs):
             resnums = atoms.getResnums()
             ticklabels = ['%s:%d'%(c, n) for c, n in zip(chids, resnums)]
 
-    ax = showData(y, linespec, ticklabels=ticklabels, **kwargs)
-    ax.xaxis.set_major_locator(ticker.AutoLocator())
-    ax.xaxis.set_minor_locator(ticker.AutoMinorLocator())
+    lines, polys = showData(y, linespec, ticklabels=ticklabels, **kwargs)
 
+    bars = []
     if chain_bar is None:
         chain_bar = atoms is not None
 
@@ -1539,7 +1538,8 @@ def showAtomicData(y, atoms=None, linespec='-', **kwargs):
         F[~D] = np.nan
         F[D] = d_loc
 
-        ax.plot(F, linewidth=5)
+        bar = plot(F, linewidth=5)
+        bars.append(bar)
         ylim(yl)
 
     try:
@@ -1567,12 +1567,13 @@ def showAtomicData(y, atoms=None, linespec='-', **kwargs):
         F[~D] = np.nan
         F[D] = d_loc
 
-        ax.plot(F, linewidth=5)
+        bar = plot(F, linewidth=5)
+        bars.append(bar)
         ylim(yl)
 
     if SETTINGS['auto_show']:
         showFigure()
-    return ax
+    return lines, polys, bars
 
 def showPlot(y, **kwargs):
 
