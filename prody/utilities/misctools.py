@@ -1,10 +1,12 @@
 """This module defines miscellaneous utility functions."""
 
 from numpy import unique, linalg, diag, sqrt, dot
+from numpy import diff, where, insert, nan
+from collections import Counter
 
 __all__ = ['Everything', 'rangeString', 'alnum', 'importLA', 'dictElement',
            'intorfloat', 'startswith', 'showFigure', 'countBytes', 'sqrtm',
-           'saxsWater']
+           'saxsWater', 'count', 'addBreaks']
 
 
 class Everything(object):
@@ -158,7 +160,7 @@ def sqrtm(matrix):
     return dot(dot(U,D),VT)
 
 def getMasses(elements):
-    """get the mass atom. """
+    """Gets the mass atom. """
     
     import numpy as np
     mass_dict = {'C':12,'N':14,'S':32,'O':16,'H':1}
@@ -173,6 +175,25 @@ def getMasses(elements):
             else:
                 masses[i] = 0.
         return masses
+
+def count(L, a=None):
+    return len([b for b in L if b is a])
+
+def addBreaks(x, y, axis=0):
+    """Finds breaks in x, extends them by one position and adds NaN at the 
+    corresponding position in y. x needs to be an 1-D array, y can be a 
+    matrix of column (or row) vectors"""
+
+    d = diff(x)
+    counter = Counter(d)
+    step = counter.most_common(1)[0][0]
+
+    breaks = where(d != step)[0]
+    for b in reversed(breaks):
+        x = insert(x, b+1, x[b]+step)
+        y = insert(y, b+1, nan, axis=axis)
+
+    return x, y
 
 def saxsWater():
     return [[-48.347,-49.439,-50.456],

@@ -15,11 +15,11 @@ from prody.atomic import ATOMIC_FIELDS
 from prody.utilities import openFile
 from prody import LOGGER, SETTINGS
 
-from .header import getHeaderDict, buildBiomolecules, assignSecstr
+from .header import getHeaderDict, buildBiomolecules, assignSecstr, isHelix, isSheet
 from .localpdb import fetchPDB
 
-__all__ = ['parsePDBStream', 'parsePDB', 'parsePQR',
-           'writePDBStream', 'writePDB',]
+__all__ = ['parsePDBStream', 'parsePDB', 'parseChainsList', 'parsePQR',
+           'writePDBStream', 'writePDB', 'writeChainsList']
 
 class PDBParseError(Exception):
     pass
@@ -62,12 +62,14 @@ _parsePDBdoc = _parsePQRdoc + """
     :type altloc: str
 
     :arg biomol: if **True**, biomolecule obtained by transforming the
-        coordinates using information from header section will be returned
-    :type biomol: False
+        coordinates using information from header section will be returned.
+        Default is False
+    :type biomol: bool
 
     :arg secondary: if **True**, secondary structure information from header
-        section will be assigned atoms
-    :type secondary: False
+        section will be assigned to atoms.
+        Default is False
+    :type secondary: bool
 
     If ``model=0`` and ``header=True``, return header dictionary only.
 
@@ -77,7 +79,7 @@ _parsePDBdoc = _parsePQRdoc + """
 
 _PDBSubsets = {'ca': 'ca', 'calpha': 'ca', 'bb': 'bb', 'backbone': 'bb'}
 
-def parsePDB(pdb, **kwargs):
+def parsePDB(*pdb, **kwargs):
     """Returns an :class:`.AtomGroup` and/or dictionary containing header data
     parsed from a PDB file.
 
@@ -85,23 +87,71 @@ def parsePDB(pdb, **kwargs):
 
     See :ref:`parsepdb` for a detailed usage example.
 
-    :arg pdb: a PDB identifier or a filename
+    :arg pdb: one PDB identifier or a filename or a list of them.
         If needed, PDB files are downloaded using :func:`.fetchPDB()` function.
+        You can also provide arguments that you would like passed on to fetchPDB().
     """
+    n_pdb = len(pdb)
+    if n_pdb == 1:
+        return _parsePDB(pdb[0], **kwargs)
+    else:
+        verb = LOGGER.verbosity
+        LOGGER.verbosity = 'info'
+
+        results = []
+        lstkwargs = {}
+        for key in kwargs:
+            argval = kwargs.get(key)
+            if np.isscalar(argval):
+                argval = [argval]*n_pdb
+            lstkwargs[key] = argval
+
+        LOGGER.progress('Retrieving {0} PDB structures...'
+                    .format(n_pdb), n_pdb)
+        for i, p in enumerate(pdb):
+            kwargs = {}
+            for key in lstkwargs:
+                kwargs[key] = lstkwargs[key][i]
+            LOGGER.update(i, 'Retrieving {0}...'.format(p))
+            result = _parsePDB(p, **kwargs)
+            results.append(result)
+
+        LOGGER.update(n_pdb, '{0} PDB structures retrieved'.format(n_pdb))
+        LOGGER.verbosity = verb
+        return results
+
+def _getPDBid(pdb):
+    l = len(pdb)
+    if l == 4:
+        pdbid, chain = pdb, ''
+    elif l == 5:
+        pdbid = pdb[:4]; chain = pdb[-1]
+    elif ':' in pdb:
+        i = pdb.find(':')
+        pdbid = pdb[:i]; chain = pdb[i+1:]
+    else:
+        raise IOError('{0} is not a valid filename or a valid PDB '
+                      'identifier.'.format(pdb))
+    if not pdbid.isalnum():
+        raise IOError('{0} is not a valid filename or a valid PDB '
+                      'identifier.'.format(pdb))
+    if chain != '' and not chain.isalnum():
+        raise IOError('{0} is not a valid chain identifier.'.format(chain))
+    return pdbid, chain
+
+def _parsePDB(pdb, **kwargs):
     title = kwargs.get('title', None)
+    chain = ''
     if not os.path.isfile(pdb):
-        if len(pdb) == 4 and pdb.isalnum():
-            if title is None:
-                title = pdb
-                kwargs['title'] = title
-            filename = fetchPDB(pdb, report=True)
-            if filename is None:
-                raise IOError('PDB file for {0} could not be downloaded.'
-                              .format(pdb))
-            pdb = filename
-        else:
-            raise IOError('{0} is not a valid filename or a valid PDB '
-                          'identifier.'.format(pdb))
+        pdb, chain = _getPDBid(pdb)
+        if title is None:
+            title = pdb
+            kwargs['title'] = title
+        filename = fetchPDB(pdb, **kwargs)
+        if filename is None:
+            raise IOError('PDB file for {0} could not be downloaded.'
+                          .format(pdb))
+        pdb = filename
     if title is None:
         title, ext = os.path.splitext(os.path.split(pdb)[1])
         if ext == '.gz':
@@ -110,6 +160,8 @@ def parsePDB(pdb, **kwargs):
             title = title[3:]
         kwargs['title'] = title
     pdb = openFile(pdb, 'rt')
+    if chain != '':
+        kwargs['chain'] = chain
     result = parsePDBStream(pdb, **kwargs)
     pdb.close()
     return result
@@ -186,12 +238,12 @@ def parsePDBStream(stream, **kwargs):
         _parsePDBLines(ag, lines, split, model, chain, subset, altloc)
         if ag.numAtoms() > 0:
             LOGGER.report('{0} atoms and {1} coordinate set(s) were '
-                          'parsed in %.2fs.'.format(ag.numAtoms(),
-                           ag.numCoordsets() - n_csets))
+                              'parsed in %.2fs.'.format(ag.numAtoms(),
+                               ag.numCoordsets() - n_csets))
         else:
             ag = None
             LOGGER.warn('Atomic data could not be parsed, please '
-                        'check the input file.')
+                            'check the input file.')
     elif header:
         hd, split = getHeaderDict(stream)
 
@@ -545,7 +597,7 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                     else:
                         atomgroup._setCoords(coordinates)
                 else:
-                    coordsets = np.zeros((diff//acount+1, acount, 3))
+                    coordsets = np.zeros((int(diff//acount+1), acount, 3))
                     coordsets[0] = coordinates[:acount]
                     onlycoords = True
                 atomnames.resize(acount, refcheck=False)
@@ -764,6 +816,18 @@ PDBLINE = ('{0:6s}{1:5d} {2:4s}{3:1s}'
            '{11:6.2f}{12:6.2f}      '
            '{13:4s}{14:2s}\n')
 
+#HELIXLINE = ('HELIX  %3d %3s %-3s %1s %4d%1s %-3s %1s %4d%1s%2d'
+#             '                               %5d\n')
+
+HELIXLINE = ('HELIX  {serNum:3d} {helixID:>3s} '
+             '{initResName:<3s} {initChainID:1s} {initSeqNum:4d}{initICode:1s} '
+             '{endResName:<3s} {endChainID:1s} {endSeqNum:4d}{endICode:1s}'
+             '{helixClass:2d}                               {length:5d}\n')             
+
+SHEETLINE = ('SHEET  {strand:3d} {sheetID:>3s}{numStrands:2d} '
+             '{initResName:3s} {initChainID:1s}{initSeqNum:4d}{initICode:1s} '
+             '{endResName:3s} {endChainID:1s}{endSeqNum:4d}{endICode:1s}{sense:2d} \n')
+
 PDBLINE_LT100K = ('%-6s%5d %-4s%1s%-4s%1s%4d%1s   '
                   '%8.3f%8.3f%8.3f%6.2f%6.2f      '
                   '%4s%2s\n')
@@ -784,6 +848,59 @@ _writePDBdoc = """
     :arg occupancy: a list or array of number to be outputted in occupancy
         column
     """
+
+def writeChainsList(chains,filename='chains_list.txt'):
+    """
+    Write a text file containing a list of chains that can be parsed.
+
+    :arg chains: a list of :class:`.Chain` objects
+    
+    :arg filename: the name of the file to be written
+    :type filename: string
+    """
+
+    fo = open(filename,'w')
+    for chain in chains:
+        fo.write(chain.getTitle() + ' ' + chain.getChid() + '\n')
+    fo.close()
+    return
+
+def parseChainsList(filename='chains_list.txt'):
+    """
+    Parse a set of PDBs and extract chains based on a list in a text file.
+
+    :arg filename: the name of the file to be read
+    :type filename: string
+
+    Returns: lists containing an :class:'.AtomGroup' for each PDB, 
+    the headers for those PDBs, and the requested :class:`.Chain` objects
+    """
+        
+    fi = open(filename,'r')
+    lines = fi.readlines()
+    fi.close()
+
+    pdb_ids = []
+    ags = []
+    headers = []
+    chains = []
+    for line in lines:
+        pdb_id = line.split()[0].split('_')[0]
+        if not pdb_id in pdb_ids:
+            pdb_ids.append(pdb_id)
+
+            ag, header = parsePDB(pdb_ids[-1], compressed=False, report=False, \
+                                  subset=line.split()[0].split('_')[1], header=True)
+
+            ags.append(ag)
+            headers.append(header)
+
+        chains.append(ag.getHierView()[line.strip().split()[1]])
+
+    LOGGER.info('{0} PDBs have been parsed and {1} chains have been extracted. \
+                '.format(len(ags),len(chains)))
+
+    return ags, headers, chains
 
 def writePDBStream(stream, atoms, csets=None, **kwargs):
     """Write *atoms* in PDB format to a *stream*.
@@ -901,8 +1018,62 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
     if segments is None:
         segments = np.zeros(n_atoms, s_or_u + '6')
 
+    # write remarks
     stream.write('REMARK {0}\n'.format(remark))
 
+    # write secondary structures (if any)
+    secondary = kwargs.get('secondary', True)
+    secstrs = atoms._getSecstrs()
+    if secstrs is not None and secondary:
+        secindices = atoms._getSecindices()
+        secclasses = atoms._getSecclasses()
+        secids = atoms._getSecids()
+
+        # write helices
+        for i in range(1,max(secindices)+1):
+            torf = np.logical_and(isHelix(secstrs), secindices==i)
+            if torf.any():
+                helix_resnums = resnums[torf]
+                helix_chainids = chainids[torf]
+                helix_resnames = resnames[torf]
+                helix_secclasses = secclasses[torf]
+                helix_secids = secids[torf]
+                helix_icodes = icodes[torf]
+                L = helix_resnums[-1] - helix_resnums[0] + 1
+
+                stream.write(HELIXLINE.format(serNum=i, helixID=helix_secids[0], 
+                            initResName=helix_resnames[0], initChainID=helix_chainids[0], 
+                            initSeqNum=helix_resnums[0], initICode=helix_icodes[0],
+                            endResName=helix_resnames[-1], endChainID=helix_chainids[-1], 
+                            endSeqNum=helix_resnums[-1], endICode=helix_icodes[-1],
+                            helixClass=helix_secclasses[0], length=L))
+        
+        # write strands
+        torf_all_sheets = isSheet(secstrs)
+        sheet_secids = secids[torf_all_sheets]
+
+        for sheet_id in np.unique(sheet_secids):
+            torf_strands_in_sheet = np.logical_and(torf_all_sheets, secids==sheet_id)
+            strand_indices = secindices[torf_strands_in_sheet]
+            numStrands = len(np.unique(strand_indices))
+
+            for i in np.unique(strand_indices):
+                torf_strand = np.logical_and(torf_strands_in_sheet, secindices==i)
+                strand_resnums = resnums[torf_strand]
+                strand_chainids = chainids[torf_strand]
+                strand_resnames = resnames[torf_strand]
+                strand_secclasses = secclasses[torf_strand]
+                strand_icodes = icodes[torf_strand]
+
+                stream.write(SHEETLINE.format(strand=i, sheetID=sheet_id, numStrands=numStrands,
+                            initResName=strand_resnames[0], initChainID=strand_chainids[0], 
+                            initSeqNum=strand_resnums[0], initICode=strand_icodes[0],
+                            endResName=strand_resnames[-1], endChainID=strand_chainids[-1], 
+                            endSeqNum=strand_resnums[-1], endICode=strand_icodes[-1],
+                            sense=strand_secclasses[0]))
+        pass
+
+    # write atoms
     multi = len(coordsets) > 1
     write = stream.write
     for m, coords in enumerate(coordsets):

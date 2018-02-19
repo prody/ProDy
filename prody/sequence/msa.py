@@ -1,13 +1,17 @@
 # -*- coding: utf-8 -*-
 """This module defines MSA analysis functions."""
 
-from numpy import all, zeros, dtype, array, char, cumsum
-
+from numpy import all, zeros, dtype, array, char, cumsum, ceil, where
 from .sequence import Sequence, splitSeqLabel
-
+from prody.atomic import Atomic
+from Bio import AlignIO
+from Bio import pairwise2
+from Bio.SubsMat import MatrixInfo as matlist
 from prody import LOGGER
+import sys
 
-__all__ = ['MSA', 'refineMSA', 'mergeMSA', 'specMergeMSA']
+__all__ = ['MSA', 'refineMSA', 'mergeMSA', 'specMergeMSA',
+          'showAlignment', 'alignSequenceToMSA']
 
 try:
     range = xrange
@@ -33,7 +37,7 @@ class MSA(object):
         self._aligned = aligned = kwargs.get('aligned', True)
         if aligned:
             if ndim != 2:
-                raise ValueError('msa.dim must be 2')
+                raise ValueError('msa.ndim must be 2')
             if dtype_ != dtype('|S1'):
                 raise ValueError('msa must be a character array')
         numseq = shape[0]
@@ -287,7 +291,10 @@ class MSA(object):
         try:
             index = self._mapping[label]
         except KeyError:
-            return None
+            try:
+                return list(v for k,v in self._mapping.iteritems() if label in k)[0]
+            except:
+                return None
         except TypeError:
             mapping = self._mapping
             indices = []
@@ -330,12 +337,15 @@ class MSA(object):
             return 1
 
 
-def refineMSA(msa, label=None, rowocc=None, seqid=None, colocc=None, **kwargs):
+def refineMSA(msa, index=None, label=None, rowocc=None, seqid=None, colocc=None, **kwargs):
     """Refine *msa* by removing sequences (rows) and residues (columns) that
     contain gaps.
 
     :arg msa: multiple sequence alignment
     :type msa: :class:`.MSA`
+
+    :arg index: remove columns that are gaps in the sequence with that index
+    :type index: int
 
     :arg label: remove columns that are gaps in the sequence matching label,
         ``msa.getIndex(label)`` must return a sequence index, a PDB identifier
@@ -389,105 +399,118 @@ def refineMSA(msa, label=None, rowocc=None, seqid=None, colocc=None, **kwargs):
 
     title = []
     cols = None
-    index = None
-    if label is not None:
+
+    if index is not None:
         before = arr.shape[1]
         LOGGER.timeit('_refine')
-        try:
-            upper, lower = label.upper(), label.lower()
-        except AttributeError:
-            raise TypeError('label must be a string')
-
-        if msa is None:
-            raise TypeError('msa must be an MSA instance, '
-                            'label cannot be used')
-
-        index = msa.getIndex(label)
-        if index is None:
-                index = msa.getIndex(upper)
-        if index is None:
-                index = msa.getIndex(lower)
-
-        chain = None
-        if index is None and (len(label) == 4 or len(label) == 5):
-            from prody import parsePDB
-            try:
-                structure, header = parsePDB(label[:4], header=True)
-            except Exception as err:
-                raise IOError('failed to parse header for {0} ({1})'
-                              .format(label[:4], str(err)))
-
-            chid = label[4:].upper()
-            for poly in header['polymers']:
-                if chid and poly.chid != chid:
-                    continue
-                for dbref in poly.dbrefs:
-                    if index is None:
-                        index = msa.getIndex(dbref.idcode)
-                        if index is not None:
-                            LOGGER.info('{0} idcode {1} for {2}{3} '
-                                        'is found in chain {3}.'.format(
-                                        dbref.database, dbref.idcode,
-                                        label[:4], poly.chid, str(msa)))
-                            break
-                    if index is None:
-                        index = msa.getIndex(dbref.accession)
-                        if index is not None:
-                            LOGGER.info('{0} accession {1} for {2}{3} '
-                                        'is found in chain {3}.'.format(
-                                        dbref.database, dbref.accession,
-                                        label[:4], poly.chid, str(msa)))
-                            break
-            if index is not None:
-                chain = structure[poly.chid]
-
-        if index is None:
-            raise ValueError('label is not in msa, or msa is not indexed')
-        try:
-            len(index)
-        except TypeError:
-            pass
-        else:
-            raise ValueError('label {0} maps onto multiple sequences, '
-                             'so cannot be used for refinement'.format(label))
-
-        title.append('label=' + label)
         cols = char.isalpha(arr[index]).nonzero()[0]
         arr = arr.take(cols, 1)
-        LOGGER.report('Label refinement reduced number of columns from {0} to '
+        title.append('index=' + str(index))
+        LOGGER.report('Index refinement reduced number of columns from {0} to '
                       '{1} in %.2fs.'.format(before, arr.shape[1]), '_refine')
 
-        if chain is not None and not kwargs.get('keep', False):
+    if label is not None:
+        if index is not None:
+            LOGGER.info('An index was provided so the label will be ignored.')
+
+        else:
             before = arr.shape[1]
             LOGGER.timeit('_refine')
-            from prody.proteins.compare import importBioPairwise2
-            from prody.proteins.compare import MATCH_SCORE, MISMATCH_SCORE
-            from prody.proteins.compare import GAP_PENALTY, GAP_EXT_PENALTY
-            pw2 = importBioPairwise2()
-            chseq = chain.getSequence()
-            algn = pw2.align.localms(arr[index].tostring().upper(), chseq,
-                                     MATCH_SCORE, MISMATCH_SCORE,
-                                     GAP_PENALTY, GAP_EXT_PENALTY,
-                                     one_alignment_only=1)
-            torf = []
-            for s, c in zip(*algn[0][:2]):
-                if s == '-':
-                    continue
-                elif c != '-':
-                    torf.append(True)
-                else:
-                    torf.append(False)
-            torf = array(torf)
-            tsum = torf.sum()
-            assert tsum <= before, 'problem in mapping sequence to structure'
-            if tsum < before:
-                arr = arr.take(torf.nonzero()[0], 1)
-                LOGGER.report('Structure refinement reduced number of '
-                              'columns from {0} to {1} in %.2fs.'
-                              .format(before, arr.shape[1]), '_refine')
+            try:
+                upper, lower = label.upper(), label.lower()
+            except AttributeError:
+                raise TypeError('label must be a string')
+
+            if msa is None:
+                raise TypeError('msa must be an MSA instance, '
+                                'label cannot be used')
+
+            index = msa.getIndex(label)
+            if index is None:
+                    index = msa.getIndex(upper)
+            if index is None:
+                    index = msa.getIndex(lower)
+
+            chain = None
+            if index is None and (len(label) == 4 or len(label) == 5):
+                from prody import parsePDB
+                try:
+                    structure, header = parsePDB(label[:4], header=True)
+                except Exception as err:
+                    raise IOError('failed to parse header for {0} ({1})'
+                                  .format(label[:4], str(err)))
+
+                chid = label[4:].upper()
+                for poly in header['polymers']:
+                    if chid and poly.chid != chid:
+                        continue
+                    for dbref in poly.dbrefs:
+                        if index is None:
+                            index = msa.getIndex(dbref.idcode)
+                            if index is not None:
+                                LOGGER.info('{0} idcode {1} for {2}{3} '
+                                            'is found in chain {3}.'.format(
+                                            dbref.database, dbref.idcode,
+                                            label[:4], poly.chid, str(msa)))
+                                break
+                        if index is None:
+                            index = msa.getIndex(dbref.accession)
+                            if index is not None:
+                                LOGGER.info('{0} accession {1} for {2}{3} '
+                                            'is found in chain {3}.'.format(
+                                            dbref.database, dbref.accession,
+                                            label[:4], poly.chid, str(msa)))
+                                break
+                if index is not None:
+                    chain = structure[poly.chid]
+    
+            if index is None:
+                raise ValueError('label is not in msa, or msa is not indexed')
+            try:
+                len(index)
+            except TypeError:
+                pass
             else:
-                LOGGER.debug('All residues in the sequence are contained in '
-                             'PDB structure {0}.'.format(label))
+                raise ValueError('label {0} maps onto multiple sequences, '
+                                 'so cannot be used for refinement'.format(label))
+
+            title.append('label=' + label)
+            cols = char.isalpha(arr[index]).nonzero()[0]
+            arr = arr.take(cols, 1)
+            LOGGER.report('Label refinement reduced number of columns from {0} to '
+                          '{1} in %.2fs.'.format(before, arr.shape[1]), '_refine')
+
+            if chain is not None and not kwargs.get('keep', False):
+                before = arr.shape[1]
+                LOGGER.timeit('_refine')
+                from prody.proteins.compare import importBioPairwise2
+                from prody.proteins.compare import MATCH_SCORE, MISMATCH_SCORE
+                from prody.proteins.compare import GAP_PENALTY, GAP_EXT_PENALTY
+                pw2 = importBioPairwise2()
+                chseq = chain.getSequence()
+                algn = pw2.align.localms(arr[index].tostring().upper(), chseq,
+                                         MATCH_SCORE, MISMATCH_SCORE,
+                                         GAP_PENALTY, GAP_EXT_PENALTY,
+                                         one_alignment_only=1)
+                torf = []
+                for s, c in zip(*algn[0][:2]):
+                    if s == '-':
+                        continue
+                    elif c != '-':
+                        torf.append(True)
+                    else:
+                        torf.append(False)
+                torf = array(torf)
+                tsum = torf.sum()
+                assert tsum <= before, 'problem in mapping sequence to structure'
+                if tsum < before:
+                    arr = arr.take(torf.nonzero()[0], 1)
+                    LOGGER.report('Structure refinement reduced number of '
+                                  'columns from {0} to {1} in %.2fs.'
+                                  .format(before, arr.shape[1]), '_refine')
+                else:
+                    LOGGER.debug('All residues in the sequence are contained in '
+                                 'PDB structure {0}.'.format(label))
 
     from .analysis import calcMSAOccupancy, uniqueSequences
 
@@ -545,7 +568,7 @@ def refineMSA(msa, label=None, rowocc=None, seqid=None, colocc=None, **kwargs):
                       '_refine')
 
     if not title:
-        raise ValueError('label, rowocc, colocc all cannot be None')
+        raise ValueError('label, index, seqid, rowocc, colocc all cannot be None')
 
     # depending on slicing of rows, arr may not have it's own memory
     if arr.base is not None:
@@ -677,3 +700,188 @@ def specMergeMSA(*msa, **kwargs):
     merger = MSA(merger, labels=labels, mapping=mapping,
                  title=' + '.join([m.getTitle() for m in msa]))
     return merger
+
+def showAlignment(alignment, row_size=60, max_seqs=5, **kwargs):
+    """
+    Prints out an alignment as sets of short rows with labels.
+
+    :arg alignment: any object with aligned sequence
+    :type alignment: :class: `.MSA`, tuple or list
+
+    :arg row_size: the size of each row
+        default 60
+    :type row_size: int
+
+    :arg max_seqs: the maximum number of sequences to show
+        default 5
+    :type max_seqs: int
+
+    :arg indices: a set of indices for some or all sequences
+        that will be shown above the relevant sequences
+    :type indices: array, list or tuple of arrays, lists or tuples
+
+    :arg index_start: how far along the alignment to start putting indices
+        default 0
+    :type index_start: int
+
+    :arg index_stop: how far along the alignment to stop putting indices
+        default the point when the shortest sequence stops
+    :type index_stop: int
+    """
+    indices = kwargs.get('indices',None)
+    index_start = kwargs.get('index_start',0)
+    index_stop = kwargs.get('index_start',0)
+
+    if index_stop == 0 and indices is not None:
+        locs = []
+        maxes = [] 
+        for index in indices:
+            int_index = []
+            for i in index:
+                if i == '':
+                    int_index.append(0)
+                else:
+                    int_index.append(int(i))
+            int_index = array(int_index)
+            maxes.append(max(int_index))
+            locs.append(where(int_index == max(int_index))[0][0])
+        index_stop = locs[where(maxes == min(maxes))[0][0]]
+
+    if len(alignment) < max_seqs: 
+        max_seqs = len(alignment)
+
+    for i in range(int(ceil(len(alignment[0])/float(row_size)))):
+        for j in range(max_seqs):
+            
+            sys.stdout.write('\n' + ' '*len(alignment[j].getLabel()[:15]) + '\t')
+            for k in range(row_size*i+10,row_size*(i+1)+10,10):
+                try:
+                    if k > index_start + 10 and k < index_stop + 10:
+                        sys.stdout.write('{:10d}'.format(int(indices[j][k-1])))
+                    elif k > index_start:
+                        sys.stdout.write(' '*(k-index_start))
+                    else:
+                        sys.stdout.write(' '*10)
+                except:
+                        sys.stdout.write(' '*10)
+            sys.stdout.write('\n')
+
+            sys.stdout.write(alignment[j].getLabel()[:15] + '\t' + str(alignment[j])[60*i:60*(i+1)]) 
+        sys.stdout.write('\n')
+
+    return
+
+def alignSequenceToMSA(seq,msa,label,chain='A',match=5,mismatch=-1,gap_opening=-10,gap_extension=-1,seq_type='pdb'):
+    """
+    Align a sequence from a PDB or Sequence to a sequence from an MSA
+    and create two sets of indices. 
+
+    The sequence from the MSA (refSeq), the alignment and 
+    the two sets of indices are returned. 
+    
+    The first set (indices) maps the residue numbers in the PDB to 
+    the reference sequence. The second set (msa_indices) indexes the 
+    reference sequence in the msa and is used for retrieving values 
+    from the first indices.
+
+    :arg seq: an object with an associated sequence string 
+         or a sequence string itself
+    :type seq: AtomGroup, Sequence or str
+    
+    :arg msa: MSA object
+    :type msa: :class:`.MSA`
+    
+    :arg label: a label for a sequence in msa or a PDB ID
+        ``msa.getIndex(label)`` must return a sequence index
+    :type label: str
+    
+    :arg chain: which chain from pdb to use for alignment
+    :type chain: str
+    
+    :arg match: a positive integer, used to reward finding a match
+        The default is 5, which we found to work in a test case.
+    :type match: int
+    
+    :arg mismatch: a negative integer, used to penalise finding a mismatch
+        The default is -1, which we found to work in a test case
+    :type mismatch: int
+    
+    :arg gap_opening: a negative integer, used to penalise opening a gap
+        The default is -10, which we found to work in a test case
+    :type gap_opening: int
+    
+    :arg gap_extension: a negative integer, used to penalise extending a gap
+        The default is -1, which we found to work in a test case
+    :type gap_extension: int
+    """
+    if seq_type == 'pdb':
+        if isinstance(seq, str):
+            ag = parsePDB(seq)
+            title = ag.getTitle()
+        elif isinstance(seq, Atomic):
+            ag = seq
+        elif isinstance(seq, Sequence): 
+            raise TypeError('pdb must be an atomic class, not {0}'
+                            .format(type(seq)))
+
+        sequence = ag.select('chain %s' % chain).getSequence()
+
+        if label is None:
+            label = ag.getTitle().split('_')[0]
+        
+    else:
+        if not isinstance(seq, Sequence):
+            if not isinstance(seq, str):
+                raise TypeError("seq should be a string or a Sequence \
+                                if type is set to something other than 'pdb'.")
+
+        else:
+            sequence = str(seq)
+            label = seq.getLabel()
+        
+    
+    if not isinstance(msa, MSA):
+        raise TypeError('msa must be an MSA instance')
+
+    try:
+        seqIndex = msa.getIndex(label)
+    except:
+        raise ValueError('Please provide a label that can be found in msa')
+        
+    refMsaSeq = str(msa[seqIndex]).upper().replace('-','.')
+    
+    alignment = pairwise2.align.globalms(sequence, refMsaSeq, \
+                                         match, mismatch, gap_opening, gap_extension)
+
+    seq_indices = [0]
+    msa_indices = [0]
+
+    for i in range(len(alignment[0][0])):
+        if alignment[0][0][i] != '-':
+            seq_indices.append(seq_indices[i]+1)
+        else:
+            seq_indices.append(seq_indices[i])
+        
+        if alignment[0][1][i] != '-':
+            msa_indices.append(msa_indices[i]+1)
+        else:
+            msa_indices.append(msa_indices[i])
+        
+    indices = []
+    for i in range(len(alignment[0][0])):
+        if alignment[0][0][i] == '-' or alignment[0][1][i] == '-':
+            indices.append('')
+        else:
+            if seq_type == 'pdb':
+                indices.append(seq.getResnums()[seq_indices[i]])
+            else:
+                indices.append('')
+                
+    indices = array(indices)
+    msa_indices = array(msa_indices)
+    
+    seq1 = Sequence(alignment[0][0],ag.getTitle())
+    seq2 = Sequence(alignment[0][1],label)
+    alignment = (seq1, seq2)
+        
+    return refMsaSeq, alignment, indices, msa_indices

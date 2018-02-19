@@ -279,7 +279,7 @@ def reduceModel(model, atoms, select):
     energy.  This is based on the formulation in [KH00]_.  For :class:`.PCA`
     models, this function simply takes the sub-covariance matrix for selection.
 
-    .. [KH00] Konrad H, Andrei-Jose P, Serge D, Marie-Claire BF, Gerald RK.
+    .. [KH00] Hinsen K, Petrescu A-J, Dellerue S, Bellissent-Funel M-C, Kneller GR.
        Harmonicity in slow protein dynamics. *Chem Phys* **2000** 261:25-37.
 
     :arg model: dynamics model
@@ -362,7 +362,11 @@ def reduceModel(model, atoms, select):
     so = matrix[system, :][:, other]
     os = matrix[other, :][:, system]
     oo = matrix[other, :][:, other]
-    matrix = ss - np.dot(so, np.dot(linalg.inv(oo), os))
+    try:
+        invoo = linalg.inv(oo)
+    except:
+        invoo = linalg.pinv(oo)
+    matrix = ss - np.dot(so, np.dot(invoo, os))
 
     if isinstance(model, GNM):
         gnm = GNM(model.getTitle() + ' reduced')

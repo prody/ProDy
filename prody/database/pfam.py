@@ -4,11 +4,13 @@
 __author__ = 'Anindita Dutta, Ahmet Bakan, Cihan Kaya'
 
 import re
-
+import numpy as np
 from os.path import join, isfile
 from prody import LOGGER, PY3K
 from prody.utilities import makePath, openURL, gunzip, openFile, dictElement
 from prody.utilities import relpath
+from prody.proteins import parsePDB
+from prody.sequence import parseMSA, refineMSA, MSA
 
 if PY3K:
     import urllib.parse as urllib
@@ -17,14 +19,14 @@ else:
     import urllib
     import urllib2
 
-__all__ = ['searchPfam', 'fetchPfamMSA', 'searchUniprotID']
+__all__ = ['searchPfam', 'fetchPfamMSA', 'searchUniprotID', 'fetchPfamPDBChains']
 
 FASTA = 'fasta'
 SELEX = 'selex'
 STOCKHOLM = 'stockholm'
 
 DOWNLOAD_FORMATS = set(['seed', 'full', 'ncbi', 'metagenomics',
-                        'rp15', 'rp35', 'rp55', 'rp75'])
+                        'rp15', 'rp35', 'rp55', 'rp75', 'uniprot'])
 FORMAT_OPTIONS = ({'format': set([FASTA, SELEX, STOCKHOLM]),
                   'order': set(['tree', 'alphabetical']),
                   'inserts': set(['lower', 'upper']),
@@ -32,6 +34,7 @@ FORMAT_OPTIONS = ({'format': set([FASTA, SELEX, STOCKHOLM]),
 
 MINSEQLEN = 16
 
+prefix = 'https://pfam.xfam.org/'
 
 def searchPfam(query, **kwargs):
     """Returns Pfam search results in a dictionary.  Matching Pfam accession
@@ -50,7 +53,6 @@ def searchPfam(query, **kwargs):
     chain identifier.  UniProt ID of the specified chain, or the first
     protein chain will be used for searching the Pfam database."""
 
-    prefix = '{http://pfam.xfam.org/}'
     query = str(query)
     if isfile(query):
         from prody.sequence import MSAFile
@@ -76,13 +78,21 @@ def searchPfam(query, **kwargs):
         fseq = '>Seq\n' + seq
         parameters = { 'hmmdb' : 'pfam', 'seq': fseq }
         enc_params = urllib.urlencode(parameters).encode('utf-8')
-        request = urllib2.Request('http://www.ebi.ac.uk/Tools/hmmer/search/hmmscan', enc_params)
+        request = urllib2.Request('https://www.ebi.ac.uk/Tools/hmmer/search/hmmscan', enc_params)
 
-        url = ( urllib2.urlopen(request).geturl() + '?output=xml') 
+        results_url = urllib2.urlopen(request).getheader('location')
+
+        res_params = { 'output' : 'xml' }
+        enc_res_params = urllib.urlencode(res_params)
+        modified_res_url = results_url + '?' + enc_res_params
+
+        result_request = urllib2.Request(modified_res_url) 
+        # url = ( urllib2.urlopen(request).geturl() + '?output=xml') 
         LOGGER.debug('Submitted Pfam search for sequence "{0}...".'
                      .format(seq[:MINSEQLEN]))
 
-        xml = openURL(url, timeout=timeout).read()
+        xml = urllib2.urlopen(result_request).read()
+        # openURL(url, timeout=timeout).read()
         
         try:
             root = ET.XML(xml)
@@ -122,29 +132,29 @@ def searchPfam(query, **kwargs):
                             .format(seq[:4], str(err)))
             else:
                 chid = seq[4:].upper()
-                for poly in polymers:
-                    if chid and poly.chid != chid:
+ 
+            for poly in polymers:
+                if chid and poly.chid != chid:
+                    continue
+                for dbref in poly.dbrefs:
+                    if dbref.database != 'UniProt':
                         continue
-                    for dbref in poly.dbrefs:
-                        if dbref.database != 'UniProt':
-                            continue
-                        idcode = dbref.idcode
-                        LOGGER.info('UniProt ID code {0} for {1} chain '
-                                    '{2} will be used.'
-                                    .format(idcode, seq[:4], poly.chid))
-                        break
-                    if idcode is not None:
-                        break
+                    idcode = dbref.idcode
+                    LOGGER.info('UniProt ID code {0} for {1} chain '
+                                '{2} will be used.'
+                                .format(idcode, seq[:4], poly.chid))
+                    break
+                if idcode is not None:
+                    break
             if idcode is None:
                 LOGGER.warn('A UniProt ID code for PDB {0} could not be '
                             'parsed.'.format(repr(seq)))
-                url = 'http://pfam.xfam.org/protein/' + seq + '?output=xml'
+                url = prefix + 'protein/' + seq + '?output=xml'
             else:
-                url = ('http://pfam.xfam.org/protein/' +
-                       idcode + '?output=xml')
+                url = prefix + 'protein/' + idcode + '?output=xml'
 
         else:
-            url = 'http://pfam.xfam.org/protein/' + seq + '?output=xml'
+            url = prefix + 'protein/' + seq + '?output=xml'
 
     LOGGER.debug('Retrieving Pfam search results: ' + url)
     xml = None
@@ -178,7 +188,8 @@ def searchPfam(query, **kwargs):
         except IndexError:
             raise ValueError('failed to parse results XML, check URL: ' + url)
     else:
-        results = dictElement(root[0], prefix)
+        key = '{' + root.items()[1][1].split()[0] + '}'
+        results = dictElement(root[0], key)
         try:
             xml_matches = results['matches']
         except KeyError:
@@ -216,9 +227,9 @@ def searchUniprotID(query, search_b=False, skip_a=False, **kwargs):
     """Returns Pfam search results in a dictionary.  Matching Pfam accession
     as keys will map to evalue, alignment start and end residue positions.
 
-    :arg query: UniProt ID, PDB identifier, protein sequence, or a sequence
-        file, sequence queries must not contain without gaps and must be at
-        least 16 characters long
+    :arg query: UniProt ID, PDB identifier, protein sequence, or a 
+        sequence file. Sequence queries must not contain gaps and 
+        must be at least 16 characters long
     :type query: str
 
     :arg search_b: search Pfam-B families when **True**
@@ -241,14 +252,13 @@ def searchUniprotID(query, search_b=False, skip_a=False, **kwargs):
     chain identifier.  UniProt ID of the specified chain, or the first
     protein chain will be used for searching the Pfam database."""
 
-    prefix = '{http://pfam.xfam.org/}'
     query = str(query)
     seq = ''.join(query.split())
 
     import xml.etree.cElementTree as ET
     LOGGER.timeit('_pfam')
     timeout = int(kwargs.get('timeout', 60))
-    url = 'http://pfam.xfam.org/protein/' + seq + '?output=xml'
+    url = prefix + 'protein/' + seq + '?output=xml'
 
     LOGGER.debug('Retrieving Pfam search results: ' + url)
     xml = None
@@ -287,7 +297,8 @@ def fetchPfamMSA(acc, alignment='full', compressed=False, **kwargs):
 
     :arg alignment: alignment type, one of ``'full'`` (default), ``'seed'``,
          ``'ncbi'``, ``'metagenomics'``, ``'rp15'``, ``'rp35'``, ``'rp55'``,
-         or ``'rp75'`` where rp stands for representative proteomes
+         ``'rp75'`` or ``'uniprot'`` where rp stands for representative 
+         proteomes
 
     :arg compressed: gzip the downloaded MSA file, default is **False**
 
@@ -313,7 +324,7 @@ def fetchPfamMSA(acc, alignment='full', compressed=False, **kwargs):
 
     :arg folder: output folder, default is ``'.'``"""
 
-    url = 'http://pfam.xfam.org/family/acc?id=' + acc
+    url = prefix + 'family/acc?id=' + acc
     handle = openURL(url)
     orig_acc = acc
     acc = handle.readline().strip()
@@ -328,14 +339,14 @@ def fetchPfamMSA(acc, alignment='full', compressed=False, **kwargs):
     if alignment not in DOWNLOAD_FORMATS:
         raise ValueError('alignment must be one of full, seed, ncbi or'
                          ' metagenomics')
-    if alignment == 'ncbi' or alignment == 'metagenomics':
-        url = ('http://pfam.xfam.org/family/' + acc + '/alignment/' +
+    if alignment == 'ncbi' or alignment == 'metagenomics' or alignment == 'uniprot':
+        url = (prefix + 'family/' + acc + '/alignment/' +
                alignment + '/gzipped')
         url_flag = True
         extension = '.sth'
     else:
         if not kwargs:
-            url = ('http://pfam.xfam.org/family/' + acc + '/alignment/' +
+            url = (prefix + 'family/' + acc + '/alignment/' +
                    alignment + '/gzipped')
             url_flag = True
             extension = '.sth'
@@ -366,7 +377,7 @@ def fetchPfamMSA(acc, alignment='full', compressed=False, **kwargs):
             if order not in FORMAT_OPTIONS['order']:
                 raise ValueError('order must be of type tree or alphabetical')
 
-            url = ('http://pfam.xfam.org/family/' + acc + '/alignment/'
+            url = (prefix + 'family/' + acc + '/alignment/'
                    + alignment + '/format?format=' + align_format +
                    '&alnType=' + alignment + '&order=' + order[0] +
                    '&case=' + inserts[0] + '&gaps=' + gaps + '&download=1')
@@ -398,44 +409,119 @@ def fetchPfamMSA(acc, alignment='full', compressed=False, **kwargs):
 
     return filepath
 
+def fetchPfamPDBChains(**kwargs):
+    """Returns a list of AtomGroups containing sections of chains that 
+    correspond to a particular PFAM domain family. These are defined by 
+    alignment start and end residue numbers.
 
-if __name__ == '__main__':
+    :arg pfam_acc: The accession number for a pfam domain family, if known.
+        Alternatively you can select a family based on a query (see below).
+    :type pfam_acc: str
 
-    from prody import *
-    #filepath = fetchPfamMSA('PF00497',alignment='seed',compressed=False,
-    #                         format='stockholm',gaps='dashes')
-    #print filepath
-    #results = list(iterSequences(filepath))
+    :arg query: UniProt ID or PDB ID
+        If a PDB ID is provided the corresponding UniProt ID is used.
+        If no query is provided but a pfam_acc is then the first entry
+        will be used as a query. 
+        This query is also used for label refinement of the pfam domain MSA.
+    :type query: str
 
-    #filepath1 = fetchPfamMSA('PF00007',alignment='seed',compressed=True,
-    #                         timeout=5)
-    #filepath2 = fetchPfamMSA('PF00007',alignment='seed',compressed=True,
-    #                         format='selex')
-    #filepath3 = fetchPfamMSA('PF00007',alignment='seed',compressed=False,
-    #                         format='fasta', outname='mymsa')
-    #results_sth = list(MSAFile(filepath1))
-    #results_slx = list(MSAFile(filepath2))
-    #results_fasta = list(MSAFile(filepath3))
-    #from Bio import AlignIO
-    #alignment = AlignIO.read(filepath3,'fasta')
-    #results_obj = list(MSAFile(alignment))
-    #import numpy
-    #numpy.testing.assert_equal(results_fasta,results_obj)
+    You must provide one of these two arguments.
+    Use of query requires start or end to also be provided.
 
-    #matches1 = searchPfam('P12821')
-    #matches1 = searchPfam('P08581')
-    #matches2 = searchPfam('test.seq')
+    :arg start: Residue number for defining the start of the domain.
+        The PFAM domain that starts closest to this will be selected. 
+    :type start: int
 
-    """matches2 = searchPfam('PMFIVNTNVPRASVPDGFLSELTQQLAQATGKPPQYIAVHVVPDQLMAFGGSSEPCALCSLHSIGKIGGAQNRSYSKLLC\
-GLLAERLRISPDRVYINYYDMNAANVGWNNSTFA', evalue=2, skipAs=True)
+    :arg end: Residue number for defining the end of the domain.
+        The PFAM domain that ends closest to this will be selected. 
+    :type end: int
     """
-    #matches3 = searchPfam('NSIQIGGLFPRGADQEYSAFRVGMVQFSTSEFRLTPHIDNLEVANSFAVTNAFCSQFSRGVYAIFGFYDKKSVNTITSFC\
-#GTLHVSFITPSFPTDGTHPFVIQMRPDLKGALLSLIEYYQWDKFAYLYDSDRGLSTLQAVLDSAAEKKWQVTAINVGNINNDKKDETYRSLFQDLELKKERRVILDCERDKVNDIVDQVITIGKHVKGYHYIIANLGFTDGDLLKIQFGGAEVSGFQIVD\
-#YDDSLVSKFIERWSTLEEKEYPGAHTATIKYTSALTYDAVQVMTEAFRNLRKQRIEISRRGNAGDCLANPAVPWGQGVEI\
-#ERALKQVQVEGLSGNIKFDQNGKRINYTINIMELKTNGPRKIGYWSEVDKMVLTEDDTSGLEQKTVVVTTILESPYVMMK\
-#ANHAALAGNERYEGYCVDLAAEIAKHCGFKYKLTIVGDGKYGARDADTKIWNGMVGELVYGKADIAIAPLTITLVREEVI\
-#DFSKPFMSLGISIMIKKPQKSKPGVFSFLDPLAYEIWMCIVFAYIGVSVVLFLVSRFSPYEWHTEEFEDGRETQSSESTN\
-#EFGIFNSLWFSLGAFMQQGADISPRSLSGRIVGGVWWFFTLIIISSYTANLAAFLTVERMVSPIESAEDLSKQTEIAYGT\
-#LDSGSTKEFFRRSKIAVFDKMWTYMRSAEPSVFVRTTAEGVARVRKSKGKYAYLLESTMNEYIEQRKPCDTMKVGGNLDS\
-#KGYGIATPKGSSLGTPVNLAVLKLSEQGLLDKLKNKWWYDKGECGAKDSGSKEKTSALSLSNVAGVFYILVGGLGLAMLV\
-#ALIEFCYKSRAEAKRMKGLVPRG', delay=10, evalue=2, searchBs=True)
+    pfam_acc = kwargs.get('pfam_acc',None)
+    query = kwargs.get('query',None)
+    start = kwargs.get('start',None)
+    end = kwargs.get('end',None)
+
+    if pfam_acc is None:
+        if query is None:
+            raise ValueError('Please provide a value for pfam_acc or query.')
+        else:
+            pfam_matches = searchPfam(query)
+
+            if start is not None and type(start) is int:
+                start_diff = []
+                for i, key in enumerate(pfam_matches):
+                    start_diff.append(int(pfam_matches[key]['locations'][0]['start']) - start)
+                start_diff = np.array(start_diff)
+                pfam_acc = pfam_matches.keys()[np.where(abs(start_diff) == min(abs(start_diff)))[0][0]]
+
+            elif end is not None and type(end) is int:
+                end_diff = []
+                for i, key in enumerate(pfam_matches):
+                    end_diff.append(int(pfam_matches[key]['locations'][0]['end']) - end)
+                end_diff = np.array(end_diff)
+                pfam_acc = pfam_matches.keys()[np.where(abs(end_diff) == min(abs(end_diff)))[0][0]]
+
+            else:
+                raise ValueError('Please provide an integer for start or end when using query.')
+
+    from ftplib import FTP
+    data = []
+    ftp_host = 'ftp.ebi.ac.uk'
+    ftp = FTP(ftp_host)
+    ftp.login('')
+    ftp.cwd('pub/databases/Pfam/mappings')
+    ftp.retrlines('RETR pdb_pfam_mapping.txt', data.append) 
+
+    fields = []
+    for field in data[0].strip().split('\t'):
+        fields.append(field)
+    
+    data_dict = []
+    for line in data[1:]:
+        if line.find(pfam_acc) != -1:
+            data_dict.append({})
+            for j, entry in enumerate(line.strip().split('\t')):
+                data_dict[-1][fields[j]] = entry
+
+    if query is None:
+        query_header = parsePDBHeader(data_dict[0]['PDB_ID'])
+        query = query_header['polymers'][data_dict[0]['CHAIN_ID']].dbrefs[0].idcode
+
+    msa_name = fetchPfamMSA(pfam_acc, format='fasta')
+    full_msa = parseMSA(msa_name)
+
+    pdb_ids = []            
+    ags = []
+    headers = []
+    chains = []
+    msa = []
+    labels = []
+    for i in range(len(data_dict)):
+        pdb_id = data_dict[i]['PDB_ID']
+        if not pdb_id in pdb_ids:
+            ag, header = parsePDB(pdb_id, compressed=False, \
+                                  report=False, subset='ca', \
+                                  header=True, **kwargs)
+            ags.append(ag)
+            headers.append(header)
+            pdb_ids.append(pdb_id)
+
+        for chain in header['polymers']:
+            if chain.dbrefs != []:
+                if full_msa.getIndex(chain.dbrefs[0].idcode) is not None:
+                    chains.append(ag.getHierView()[chain.chid])
+                    if not chain.dbrefs[0].idcode in labels:
+                        msa.append(list(str(full_msa[full_msa.getIndex(chain.dbrefs[0].idcode)])))
+                        labels.append(chain.dbrefs[0].idcode)
+
+    pfam_pdb_msa = MSA(msa=np.array(msa), labels=labels, title='PFAM PDB MSA')
+    pfam_pdb_msa = refineMSA(pfam_pdb_msa,colocc=0.01)
+
+    LOGGER.info('{0} PDBs have been parsed and {1} chains have been extracted. \
+                '.format(len(ags),len(chains)))
+
+    if kwargs.get('pfam_acc',None) is not None:
+        return data_dict, query, ags, headers, chains, pfam_pdb_msa
+    else:
+        return data_dict, pfam_acc, ags, headers, chains, pfam_pdb_msa
+

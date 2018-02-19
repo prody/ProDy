@@ -11,12 +11,25 @@ from .bond import trimBonds
 from .fields import READONLY
 
 
-__all__ = ['Atomic']
+__all__ = ['Atomic', 'AAMAP']
 
 SELECT = None
 isSelectionMacro = None
 NOTALLNONE = set(['not', 'all', 'none', 'index', 'sequence', 'x', 'y', 'z'])
 
+AAMAP = {
+    'ALA': 'A', 'ARG': 'R', 'ASN': 'N', 'ASP': 'D', 'CYS': 'C', 'GLN': 'Q',
+    'GLU': 'E', 'GLY': 'G', 'HIS': 'H', 'ILE': 'I', 'LEU': 'L', 'LYS': 'K',
+    'MET': 'M', 'PHE': 'F', 'PRO': 'P', 'SER': 'S', 'THR': 'T', 'TRP': 'W',
+    'TYR': 'Y', 'VAL': 'V',
+    'ASX': 'B', 'GLX': 'Z', 'SEC': 'U', 'PYL': 'O', 'XLE': 'J',
+}
+_ = {}
+for aaa, a in AAMAP.items():
+    _[a] = aaa
+AAMAP.update(_)
+AAMAP.update({'PTR': 'Y', 'TPO': 'T', 'SEP': 'S', 'CSO': 'C',
+              'HSD': 'H', 'HSP': 'H', 'HSE': 'H'})
 
 class Atomic(object):
 
@@ -198,3 +211,22 @@ class Atomic(object):
         documentation for details and usage examples."""
 
         return SELECT.select(self, selstr, **kwargs)
+
+    def getTitle(self):
+        """Returns title of the instance."""
+        try:
+            ag = self.getAtomGroup()
+        except AttributeError:
+            ag = self
+        return ag._title
+    
+    def getSequence(self, **kwargs):
+        """Returns one-letter sequence string for amino acids.
+        When *allres* keyword argument is **True**, sequence will include all
+        residues (e.g. water molecules) in the chain and **X** will be used for
+        non-standard residue names."""
+
+        get = AAMAP.get
+        seq = ''.join([get(res, 'X') for res in self.getResnames()])
+        
+        return seq

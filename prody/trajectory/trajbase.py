@@ -3,8 +3,8 @@
 
 from numpy import ndarray, unique
 
-from prody.ensemble import Ensemble, checkWeights
-from prody.utilities import checkCoords
+from prody.ensemble import Ensemble
+from prody.utilities import checkCoords, checkWeights
 
 from .frame import Frame
 
@@ -306,7 +306,7 @@ class TrajBase(object):
             yield self.nextCoordset()
 
     def getCoordsets(self, indices=None):
-        """Returnss coordinate sets at given *indices*. *indices* may be an
+        """Returns coordinate sets at given *indices*. *indices* may be an
         integer, a list of ordered integers or ``None``. ``None`` returns all
         coordinate sets. If a list of indices is given, unique numbers will
         be selected and sorted. That is, this method will always return unique

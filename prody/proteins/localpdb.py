@@ -221,6 +221,7 @@ def fetchPDB(*pdb, **kwargs):
 
     folder = kwargs.get('folder', '.')
     compressed = kwargs.get('compressed')
+    report = kwargs.get('report')
 
     # check *folder* specified by the user, usually pwd ('.')
     filedict = findPDBFiles(folder, compressed=compressed)
@@ -241,7 +242,7 @@ def fetchPDB(*pdb, **kwargs):
     if not not_found:
         if len(filenames) == 1:
             filenames = filenames[0]
-            if exists:
+            if exists and report:
                 LOGGER.debug('PDB file is found in working directory ({0}).'
                              .format(sympath(filenames)))
         return filenames
@@ -286,7 +287,7 @@ def fetchPDB(*pdb, **kwargs):
     if not not_found:
         if len(identifiers) == 1:
             fn = filenames[0]
-            if kwargs.get('report', True):
+            if report:
                 items = fn.split(pathsep)
                 if len(items) > 5:
                     fndisp = pathsep.join(items[:3] + ['...'] + items[-1:])
@@ -323,17 +324,49 @@ def fetchPDB(*pdb, **kwargs):
 
     if fns:
         downloads = [pdb for i, pdb in not_found]
+
     fns = None
-    try:
-        fns = fetchPDBviaFTP(*downloads, check=False, **kwargs)
-    except Exception as err:
-        LOGGER.warn('Downloading PDB files via FTP failed ({0}), '
-                    'trying HTTP.'.format(str(err)))
+
+    tp = kwargs.pop('tp', None)
+    if tp is not None:
+        tp = tp.lower()
+    
+    if tp == 'http':
+        try:
+            fns = fetchPDBviaHTTP(*downloads, check=False, **kwargs)
+        except Exception as err:
+            LOGGER.warn('Downloading PDB files via HTTP failed '
+                        '({0}).'.format(str(err)))
+    elif tp == 'ftp':
+        try:
+            fns = fetchPDBviaFTP(*downloads, check=False, **kwargs)
+        except Exception as err:
+            LOGGER.warn('Downloading PDB files via FTP failed '
+                        '({0}).'.format(str(err)))
+    else:
+        tryHTTP = False
+        try:
+            fns = fetchPDBviaFTP(*downloads, check=False, **kwargs)
+        except Exception as err:
+            tryHTTP = True
+            LOGGER.warn('Downloading PDB files via FTP failed ({0}), '
+                        'trying HTTP.'.format(str(err)))
+   
+    if fns is None:
+        tryHTTP = True
+    elif isinstance(fns, list): 
+        downloads = [not_found[i][1] for i in range(len(fns)) if fns[i] is None]
+        if len(downloads) > 0: 
+            tryHTTP = True
+    if tryHTTP:
+        LOGGER.warn('Downloading PDB files via FTP failed, '
+                    'trying HTTP.')
         try:
             fns = fetchPDBviaHTTP(*downloads, check=False, **kwargs)
         except Exception as err:
             LOGGER.warn('Downloading PDB files via HTTP also failed '
                         '({0}).'.format(str(err)))
+    
     if len(downloads) == 1: fns = [fns]
     if fns:
         for i, fn in zip([i for i, pdb in not_found], fns):

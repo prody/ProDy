@@ -7,19 +7,21 @@ from os.path import abspath, join, isfile, isdir, split, splitext
 import numpy as np
 
 from prody import LOGGER, SETTINGS, PY3K
-from prody.atomic import AtomGroup
+from prody.atomic import AtomGroup, AtomSubset
 from prody.utilities import openFile, isExecutable, which, PLATFORM, addext
 
 from .nma import NMA
 from .anm import ANM
-from .gnm import GNM, GNMBase, ZERO
+from .gnm import GNM, GNMBase, ZERO, TrimedGNM
 from .pca import PCA, EDA
 from .mode import Vector, Mode
 from .modeset import ModeSet
+from .editing import sliceModel, reduceModel
 
 __all__ = ['parseArray', 'parseModes', 'parseSparseMatrix',
            'writeArray', 'writeModes',
-           'saveModel', 'loadModel', 'saveVector', 'loadVector']
+           'saveModel', 'loadModel', 'saveVector', 'loadVector',
+           'calcENM']
 
 
 def saveModel(nma, filename=None, matrices=False, **kwargs):
@@ -69,7 +71,16 @@ def saveModel(nma, filename=None, matrices=False, **kwargs):
         value = dict_[attr]
         if value is not None:
             attr_dict[attr] = value
-    filename += '.' + type_.lower() + '.npz'
+    if isinstance(nma, TrimedGNM):
+        attr_dict['type'] = 'tGNM'
+        attr_dict['mask'] = nma.mask
+        attr_dict['useTrimed'] = nma.useTrimed
+    suffix = '.' + type_.lower()
+    if not filename.lower().endswith('.npz'):
+        if not filename.lower().endswith(suffix):
+            filename += suffix + '.npz'
+        else:
+            filename += '.npz'
     ostream = openFile(filename, 'wb', **kwargs)
     np.savez(ostream, **attr_dict)
     ostream.close()
@@ -98,10 +109,12 @@ def loadModel(filename):
         nma = EDA(title)
     elif type_ == 'GNM':
         nma = GNM(title)
+    elif type_ == 'tGNM':
+        nma = TrimedGNM(title)
     elif type_ == 'NMA':
         nma = NMA(title)
     else:
-        raise IOError('NMA model type is not recognized'.format(type_))
+        raise IOError('NMA model type is not recognized: {0}'.format(type_))
     dict_ = nma.__dict__
     for attr in attr_dict.files:
         if attr in ('type', '_name', '_title'):
@@ -334,3 +347,86 @@ def parseSparseMatrix(filename, symmetric=False, delimiter=None, skiprows=0,
     if symmetric:
         matrix[icol, irow] = sparse[:, idata]
     return matrix
+
+def calcENM(atoms, select=None, model='anm', trim='trim', gamma=1.0, 
+            title=None, n_modes=None, **kwargs):
+    """Returns an :class:`ANM` or `GNM` instance and atoms used for the 
+    calculationsn. The model can be trimmed, sliced, or reduced based on 
+    the selection.
+
+    :arg atoms: Atoms on which ENM is performed. It can be any :class:`Atomic` 
+    class that supports selection.
+    :type atoms: :class:`Atomic`, :class:`AtomGroup`, or :class:`Selection`
+
+    :arg select: Part of the atoms that is considered as the system. 
+    If set to `None`, then all atoms will be considered as the system.
+    :type select: str or :class:`Selection`
+
+    :arg model: Type of ENM that will be performed. It can be either 'anm' 
+    or 'gnm'.
+    :type model: str
+
+    :arg trim: Type of method that will be used to trim the model. It can 
+    be either 'trim' , 'slice', or 'reduce'. If set to 'trim', the parts 
+    that is not in the selection will simply be removed.
+    :type trim: str
+    """
+    
+    if title is None:
+        title = atoms.getTitle()
+        
+    if model is GNM:
+        model = 'gnm'
+    elif model is ANM:
+        model = 'anm'
+    elif isinstance(model, str):
+        model = model.lower().strip() 
+    else:
+        raise TypeError('invalid type for model: {0}'.format(type(model)))
+
+    if isinstance(trim, str):
+        trim = trim.lower().strip()
+    elif trim is reduceModel:
+        trim = 'reduce'
+    elif trim is sliceModel:
+        trim = 'slice'
+    elif trim is None:
+        trim = 'trim'
+    else:
+        raise TypeError('invalid type for trim: {0}'.format(type(model)))
+
+    if trim == 'trim' and select is not None:
+        if isinstance(select, str):
+            atoms = atoms.select(select)
+        elif isinstance(select, AtomSubset):
+            atoms = select
+        else:
+            raise TypeError('select must be a string or a Selection instance')
+    
+    enm = None
+    if model == 'anm':
+        anm = ANM(title)
+        anm.buildHessian(atoms, gamma=gamma, **kwargs)
+        enm = anm
+    elif model == 'gnm':
+        gnm = GNM(title)
+        gnm.buildKirchhoff(atoms, gamma=gamma, **kwargs)
+        enm = gnm
+    else:
+        raise TypeError('model should be either ANM or GNM instead of {0}'.format(model))
+    
+    if select is None:
+        enm.calcModes(n_modes=n_modes)
+    else:
+        if trim == 'slice':
+            enm.calcModes(n_modes=n_modes)
+            enm, atoms = sliceModel(enm, atoms, select)  
+            if model == 'gnm':
+                enm.calcHinges()
+        elif trim == 'reduce':
+            enm, atoms = reduceModel(enm, atoms, select)
+            enm.calcModes(n_modes=n_modes)
+        else:
+            enm.calcModes(n_modes=n_modes)
+    
+    return enm, atoms

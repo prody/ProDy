@@ -3,6 +3,7 @@
 views of atom groups."""
 
 from numpy import unique, zeros, arange, concatenate
+from prody.utilities.misctools import count
 
 from .atomgroup import AtomGroup
 from .selection import Selection
@@ -15,9 +16,9 @@ __all__ = ['HierView']
 
 class HierView(object):
 
-    """Hierarchical views can be generated for :class:`.AtomGroup` and
-    :class:`.Selection` instances.  Indexing a :class:`HierView` instance
-    returns a :class:`.Chain`  instance.
+    """Hierarchical views can be generated for :class:`.AtomGroup`,
+    :class:`.Selection`, and :class:`.Chain` instances. Indexing a 
+    :class:`HierView` instance returns a :class:`.Chain` instance.
 
     Some :class:`object` methods are customized as follows:
 
@@ -42,8 +43,8 @@ class HierView(object):
 
     def __init__(self, atoms, **kwargs):
 
-        if not isinstance(atoms, (AtomGroup, Selection)):
-            raise TypeError('atoms must be an AtomGroup or Selection instance')
+        if not isinstance(atoms, (AtomGroup, Selection, Chain, Segment)):
+            raise TypeError('atoms must be an AtomGroup, Selection, Chain, or Segment instance')
 
         self._atoms = atoms
         self.update(**kwargs)
@@ -410,7 +411,7 @@ class HierView(object):
         """Returns number of residues."""
 
         return (len(self._residues) if self._ag is self._atoms else
-                len(self._residues) - self._residues.count(None))
+                len(self._residues) - count(self._residues, None))
 
     def iterResidues(self):
         """Yield residues."""
@@ -467,7 +468,7 @@ class HierView(object):
         """Returns number of chains."""
 
         return (len(self._chains) if self._ag is self._atoms else
-                len(self._chains) - self._chains.count(None))
+                len(self._chains) - count(self._chains, None))
 
     def getSegment(self, segname):
         """Returns segment with name *segname*, if it is present."""
@@ -483,7 +484,7 @@ class HierView(object):
         """Returns number of chains."""
 
         return (len(self._segments) if self._ag is self._atoms else
-                len(self._segments) - self._segments.count(None))
+                len(self._segments) - count(self._segments, None))
 
     def iterSegments(self):
         """Yield segments."""

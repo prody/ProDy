@@ -1,6 +1,6 @@
 """ProDy is a package for Protein Dynamics, Sequence, and Structure Analysis"""
 
-__version__ = '1.8.2'
+__version__ = '1.9.4'
 __release__ = __version__ # + '-dev' # comment out '-dev' before a release
 
 import sys
@@ -60,6 +60,11 @@ SETTINGS.load()
 
 __all__ = ['checkUpdates', 'confProDy', 'startLogfile', 'closeLogfile', 'plog']
 
+from . import utilities
+from .utilities import *
+__all__.extend(utilities.__all__)
+__all__.append('utilities')
+
 from . import kdtree
 from .kdtree import *
 __all__.extend(kdtree.__all__)
@@ -106,6 +111,11 @@ from . import trajectory
 from .trajectory import *
 __all__.extend(trajectory.__all__)
 __all__.append('trajectory')
+
+from . import chromatin
+from .chromatin import *
+__all__.extend(chromatin.__all__)
+__all__.append('chromatin')
 
 #from . import comd
 #from .comd import *
@@ -236,12 +246,13 @@ def checkUpdates():
       confProDy(check_updates=0) # do not auto check updates
       confProDy(check_updates=-1) # check at the start of every session"""
 
+    pypi_url = 'https://pypi.python.org/pypi'
     if PY3K:
         import xmlrpc.client
-        pypi = xmlrpc.client.Server('https://pypi.python.org/pypi')
+        pypi = xmlrpc.client.Server(pypi_url)
     else:
         import xmlrpclib
-        pypi = xmlrpclib.Server('https://pypi.python.org/pypi')
+        pypi = xmlrpclib.Server(pypi_url)
     releases = pypi.package_releases('ProDy')
     if releases[0] == __version__:
         LOGGER.info('You are using the latest ProDy release (v{0:s}).'

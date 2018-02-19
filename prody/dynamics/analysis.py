@@ -7,22 +7,24 @@ import time
 import numpy as np
 
 from prody import LOGGER
+from prody.proteins import parsePDB
 from prody.atomic import AtomGroup
 from prody.ensemble import Ensemble, Conformation
 from prody.trajectory import TrajBase
-from prody.utilities import importLA
-from numpy import sqrt, arange, log, polyfit
+from prody.utilities import importLA, checkCoords
+from numpy import sqrt, arange, log, polyfit, array, arccos, dot
 
 from .nma import NMA
 from .modeset import ModeSet
 from .mode import VectorBase, Mode, Vector
 from .gnm import GNMBase
+from .functions import calcENM
 
 __all__ = ['calcCollectivity', 'calcCovariance', 'calcCrossCorr',
            'calcFractVariance', 'calcSqFlucts', 'calcTempFactors',
-           'calcProjection', 'calcCrossProjection', 'calcPerturbResponse', 
-           'calcSpecDimension', 'calcPairDeformationDist',]
-
+           'calcProjection', 'calcCrossProjection',
+           'calcSpecDimension', 'calcPairDeformationDist']
+           #'calcEntropyTransfer', 'calcOverallNetEntropyTransfer']
 
 def calcCollectivity(mode, masses=None):
     """Returns collectivity of the mode.  This function implements collectivity
@@ -39,23 +41,33 @@ def calcCollectivity(mode, masses=None):
     :arg masses: atomic masses
     :type masses: :class:`numpy.ndarray`"""
 
-    if not isinstance(mode, Mode):
-        raise TypeError('mode must be a Mode instance')
+    if not isinstance(mode, (Mode, ModeSet)):
+        raise TypeError('mode must be a Mode or ModeSet instance')
+    if isinstance(mode, Mode):
+        mode = [mode]
+    
+    colls = []
 
-    is3d = mode.is3d()
-    if masses is not None:
-        if len(masses) != mode.numAtoms():
-            raise ValueError('length of massesmust be equal to number of atoms')
-        if is3d:
-            u2in = (mode.getArrayNx3() ** 2).sum(1) / masses
-    else:
-        if is3d:
-            u2in = (mode.getArrayNx3() ** 2).sum(1)
+    for m in mode:
+        is3d = m.is3d()
+        if masses is not None:
+            if len(masses) != m.numAtoms():
+                raise ValueError('length of masses must be equal to number of atoms')
+            if is3d:
+                u2in = (m.getArrayNx3() ** 2).sum(1) / masses
         else:
-            u2in = (mode.getArrayNx3() ** 2)
-    u2in = u2in * (1 / u2in.sum() ** 0.5)
-    coll = np.exp(-(u2in * np.log(u2in)).sum()) / mode.numAtoms()
-    return coll
+            if is3d:
+                u2in = (m.getArrayNx3() ** 2).sum(1)
+            else:
+                u2in = (m.getArrayNx3() ** 2)
+        u2in = u2in * (1 / u2in.sum() ** 0.5)
+        coll = np.exp(-(u2in * log(u2in)).sum()) / m.numAtoms()
+        colls.append(coll)
+    
+    if len(mode) == 1:
+        return coll
+    else:
+        return colls
 
 def calcSpecDimension(mode):
 
@@ -103,7 +115,7 @@ def calcFractVariance(mode):
     return var / trace
 
 
-def calcProjection(ensemble, modes, rmsd=True):
+def calcProjection(ensemble, modes, rmsd=True, norm=True):
     """Returns projection of conformational deviations onto given modes.
     *ensemble* coordinates are used to calculate the deviations that are
     projected onto *modes*.  For K conformations and M modes, a (K,M)
@@ -153,6 +165,11 @@ def calcProjection(ensemble, modes, rmsd=True):
         deviations = deviations.reshape((1, deviations.shape[0] * 3))
     else:
         deviations = deviations.reshape((1, deviations.shape[0]))
+    la = importLA()
+    if norm:
+        N = la.norm(deviations)
+        if N != 0:
+            deviations = deviations / N
     projection = np.dot(deviations, modes._getArray())
     if rmsd:
         projection = (1 / (n_atoms ** 0.5)) * projection
@@ -192,8 +209,8 @@ def calcCrossProjection(ensemble, mode1, mode2, scale=None, **kwargs):
         scale = scale.lower()
         assert scale in ('x', 'y'), 'scale must be x or y'
 
-    xcoords = calcProjection(ensemble, mode1, kwargs.get('rmsd', True))
-    ycoords = calcProjection(ensemble, mode2, kwargs.pop('rmsd', True))
+    xcoords = calcProjection(ensemble, mode1, kwargs.get('rmsd', True), kwargs.get('norm', True))
+    ycoords = calcProjection(ensemble, mode2, kwargs.pop('rmsd', True), kwargs.pop('norm', True))
     if scale:
         scalar = kwargs.get('scalar', None)
         if scalar:
@@ -228,16 +245,31 @@ def calcSqFlucts(modes):
     relative units."""
 
     if not isinstance(modes, (VectorBase, NMA, ModeSet)):
-        raise TypeError('modes must be a Mode, NMA, or ModeSet instance, '
-                        'not {0}'.format(type(modes)))
-    is3d = modes.is3d()
+        try:
+            modes2 = []
+            for mode in modes:
+                if not isinstance(mode, Mode):
+                    raise TypeError('modes can be a list of Mode instances, '
+                                    'not {0}'.format(type(mode)))
+                modes2.append(mode)
+            mode = list(modes2)
+        except TypeError:
+            raise TypeError('modes must be a Mode, NMA, ModeSet instance, '
+                            'or a list of Mode instances, not {0}'.format(type(modes)))
+    if isinstance(modes, list):
+        is3d = modes[0].is3d()
+        n_atoms = modes[0].numAtoms()
+    else:
+        is3d = modes.is3d()
+        n_atoms = modes.numAtoms()
+
     if isinstance(modes, Vector):
         if is3d:
             return (modes._getArrayNx3()**2).sum(axis=1)
         else:
             return (modes._getArray() ** 2)
     else:
-        sq_flucts = np.zeros(modes.numAtoms())
+        sq_flucts = np.zeros(n_atoms)
         if isinstance(modes, VectorBase):
             modes = [modes]
         for mode in modes:
@@ -249,7 +281,7 @@ def calcSqFlucts(modes):
         return sq_flucts
 
 
-def calcCrossCorr(modes, n_cpu=1):
+def calcCrossCorr(modes, n_cpu=1, norm=True):
     """Returns cross-correlations matrix.  For a 3-d model, cross-correlations
     matrix is an NxN matrix, where N is the number of atoms.  Each element of
     this matrix is the trace of the submatrix corresponding to a pair of atoms.
@@ -280,7 +312,7 @@ def calcCrossCorr(modes, n_cpu=1):
         else:
             n_modes = len(modes)
             indices = np.arange(n_modes)
-        array = model._array
+        array = model._getArray()
         n_atoms = model._n_atoms
         variances = model._vars
         if n_cpu == 1:
@@ -311,8 +343,10 @@ def calcCrossCorr(modes, n_cpu=1):
                 covariance += queue.get()
     else:
         covariance = calcCovariance(modes)
-    diag = np.power(covariance.diagonal(), 0.5)
-    return covariance / np.outer(diag, diag)
+    if norm:
+        diag = np.power(covariance.diagonal(), 0.5)
+        covariance /= np.outer(diag, diag)
+    return covariance
 
 
 def _crossCorrelations(queue, n_atoms, array, variances, indices):
@@ -355,88 +389,6 @@ def calcCovariance(modes):
         return modes.getCovariance()
     else:
         raise TypeError('modes must be a Mode, NMA, or ModeSet instance')
-
-
-def calcPerturbResponse(model, atoms=None, repeats=100):
-    """Returns a matrix of profiles from scanning of the response of the
-    structure to random perturbations at specific atom (or node) positions.
-    The function implements the perturbation response scanning (PRS) method
-    described in [CA09]_.  Rows of the matrix are the average magnitude of the
-    responses obtained by perturbing the atom/node position at that row index,
-    i.e. ``prs_profile[i,j]`` will give the response of residue/node *j* to
-    perturbations in residue/node *i*.  PRS is performed using the covariance
-    matrix from *model*, e.t. :class:`.ANM` instance.  Each residue/node is
-    perturbed *repeats* times with a random unit force vector.  When *atoms*
-    instance is given, PRS profile for residues will be added as an attribute
-    which then can be retrieved as ``atoms.getData('prs_profile')``.  *model*
-    and *atoms* must have the same number of atoms. *atoms* must be an
-    :class:`.AtomGroup` instance.
-
-
-    .. [CA09] Atilgan C, Atilgan AR, Perturbation-Response Scanning
-       Reveals Ligand Entry-Exit Mechanisms of Ferric Binding Protein.
-       *PLoS Comput Biol* **2009** 5(10):e1000544.
-
-    The PRS matrix can be saved as follows::
-
-      prs_matrix = calcPerturbationResponse(p38_anm)
-      writeArray('prs_matrix.txt', prs_matrix, format='%8.6f', delimiter='\t')
-    """
-
-    if not isinstance(model, NMA):
-        raise TypeError('model must be an NMA instance')
-    elif not model.is3d():
-        raise TypeError('model must be a 3-dimensional NMA instance')
-    elif len(model) == 0:
-        raise ValueError('model must have normal modes calculated')
-    if atoms is not None:
-        if not isinstance(atoms, AtomGroup):
-            raise TypeError('atoms must be an AtomGroup instance')
-        elif atoms.numAtoms() != model.numAtoms():
-            raise ValueError('model and atoms must have the same number atoms')
-
-    assert isinstance(repeats, int), 'repeats must be an integer'
-    cov = calcCovariance(model)
-    if cov is None:
-        raise ValueError('model did not return a covariance matrix')
-
-    n_atoms = model.numAtoms()
-    response_matrix = np.zeros((n_atoms, n_atoms))
-    LOGGER.progress('Calculating perturbation response', n_atoms, '_prody_prs')
-    i3 = -3
-    i3p3 = 0
-    for i in range(n_atoms):
-        i3 += 3
-        i3p3 += 3
-        forces = np.random.rand(repeats * 3).reshape((repeats, 3))
-        forces /= ((forces**2).sum(1)**0.5).reshape((repeats, 1))
-        for force in forces:
-            response_matrix[i] += (
-                np.dot(cov[:, i3:i3p3], force)
-                ** 2).reshape((n_atoms, 3)).sum(1)
-        LOGGER.update(i, '_prody_prs')
-
-    response_matrix /= repeats
-    LOGGER.clear()
-    LOGGER.report('Perturbation response scanning completed in %.1fs.',
-                  '_prody_prs')
-    if atoms is not None:
-        atoms.setData('prs_profile', response_matrix)
-    return response_matrix
-
-    # save the original PRS matrix
-    np.savetxt('orig_PRS_matrix', response_matrix, delimiter='\t', fmt='%8.6f')
-    # calculate the normalized PRS matrix
-    self_dp = np.diag(response_matrix)  # using self displacement (diagonal of
-                               # the original matrix) as a
-                               # normalization factor
-    self_dp = self_dp.reshape(n_atoms, 1)
-    norm_PRS_mat = response_matrix / np.repeat(self_dp, n_atoms, axis=1)
-    # suppress the diagonal (self displacement) to facilitate
-    # visualizing the response profile
-    norm_PRS_mat = norm_PRS_mat - np.diag(np.diag(norm_PRS_mat))
-    np.savetxt('norm_PRS_matrix', norm_PRS_mat, delimiter='\t', fmt='%8.6f')
-    return response_matrix
 
 
 def calcPairDeformationDist(model, coords, ind1, ind2, kbt=1.):
@@ -508,11 +460,10 @@ def calcPairDeformationDist(model, coords, ind1, ind2, kbt=1.):
     for m in xrange(6,n_modes):
         U_ij_k = [(eigvecs[ind1*3][m] - eigvecs[ind2*3][m]), (eigvecs[ind1*3+1][m] \
             - eigvecs[ind2*3+1][m]), (eigvecs[ind1*3+2][m] - eigvecs[ind2*3+2][m])] 
-        D_ij_k = abs(np.sqrt(kbt/eigvals[m])*(np.vdot(r_ij_norm[ind1][ind2], U_ij_k)))  
+        D_ij_k = abs(sqrt(kbt/eigvals[m])*(np.vdot(r_ij_norm[ind1][ind2], U_ij_k)))  
         D_pair_k.append(D_ij_k)
         mode_nr.append(m)
 
     LOGGER.report('Deformation was calculated in %.2lfs.', label='_pairdef')
     
     return mode_nr, D_pair_k
-

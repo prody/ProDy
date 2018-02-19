@@ -8,7 +8,7 @@ from numpy import indices, tril_indices
 from prody import LOGGER
 
 __all__ = ['calcShannonEntropy', 'buildMutinfoMatrix', 'calcMSAOccupancy',
-           'applyMutinfoCorr', 'applyMutinfoNorm', 'calcRankorder',
+           'applyMutinfoCorr', 'applyMutinfoNorm', 'calcRankorder', 'filterRankedPairs',
            'buildSeqidMatrix', 'uniqueSequences', 'buildOMESMatrix',
            'buildSCAMatrix', 'buildDirectInfoMatrix', 'calcMeff', 'buildPCMatrix']
 
@@ -254,6 +254,92 @@ def applyMutinfoCorr(mutinfo, corr='prod'):
 
     return mi
 
+def filterRankedPairs(indices, msa_indices, rank_row, rank_col, zscore_sort, \
+                      num_of_pairs=20, seqDistance=5, resi_range=None, \
+                      pdbDistance=8, chain1='A', chain2='A'):
+    '''
+    indices and msa_indices are lists output from alignSequenceToPDB
+    
+    rank_row, rank_col and zscore_sort are the outputs from calcRankorder
+    
+    :arg num_of_pairs: The number of pairs to be output, if no value is given
+        then all pairs are output. Default is 20
+    :type num_of_pairs: int
+    
+    :arg seqDistance: Remove pairs that are closer than this in the reference sequence
+        Default is 5
+    :type seqDistance: int
+    
+    :arg pdbDistance: Remove pairs with Calpha atoms further apart than this in the PDB
+        Default is 8
+    :type pdbDistance: int
+    
+    :arg chain1: The chain used for the residue specified by rank_row when measuring distances
+    :type chain1: str
+    
+    :arg chain2: The chain used for the residue specified by rank_col when measuring distances
+    :type chain2: str
+    '''
+    
+    if indices is None:
+        raiseValueError('Please provide indices output from alignSequenceToPDB')
+    elif type(indices) != list:
+        raiseTypeError('Please provide a valid indices list')
+        
+    if msa_indices is None:
+        raiseValueError('Please provide msa_indices output from alignSequenceToPDB')
+    elif type(indices) != list:
+        raiseTypeError('Please provide valid msa_indices, which should be a list')
+        
+    if rank_row is None:
+        raiseValueError('Please provide ranked row from calcRankorder')
+        
+    if rank_col is None:
+        raiseValueError('Please provide ranked col from calcRankorder')
+    
+    if zscore_sort is None:
+        raiseValueError('Please provide sorted Z scores from calcRankorder')
+    
+    if num_of_pairs is None:
+        num_of_pairs = len(rank_row)
+        
+    pairList = []
+    i = -1
+    j = 0
+    while j < num_of_pairs:
+        
+        i += 1
+        
+        if type(indices[np.where(msa_indices == rank_row[i])[0][0]]) != np.int64 or \
+        type(indices[np.where(msa_indices == rank_col[i])[0][0]]) != np.int64:
+            continue
+        
+        if indices[np.where(msa_indices == rank_row[i])[0][0]] - \
+        indices[np.where(msa_indices == rank_col[i])[0][0]] < seqDistance:
+            continue        
+        
+        distance = calcDistance(pdb.select('chain %s and resid %s' % (chain1, \
+                                           indices[np.where(msa_indices == \
+                                           rank_row[i])[0][0]])).copy(), \
+                                pdb.select('chain %s and resid %s' % (chain2, \
+                                           indices[np.where(msa_indices == \
+                                           rank_col[i])[0][0]])).copy())
+        if distance > pdbDistance:
+            continue
+            
+        if resi_range is not None:
+            if not indices[np.where(msa_indices == rank_row[i])[0][0]] in resi_range and \
+            not indices[np.where(msa_indices == rank_col[i])[0][0]] in resi_range:
+                continue
+            
+        pairList.append('%3d' % i + ':\t%3d' % indices[np.where(msa_indices == \
+        rank_row[i])[0][0]] + '\t' + '%3d' % indices[np.where(msa_indices == \
+        rank_col[i])[0][0]] + '\t' + '%5.1f' % zscore_sort[i] + '\t' + \
+        '%5.1f' % distance + '\n')
+        
+        j += 1
+    
+    return pairList
 
 def buildSeqidMatrix(msa, turbo=True):
     """Returns sequence identity matrix for *msa*."""

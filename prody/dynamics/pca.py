@@ -176,7 +176,8 @@ class PCA(NMA):
         to diagonalize the covariance matrix.
 
         :arg n_modes: number of non-zero eigenvalues/vectors to calculate,
-            default is 20, for **None** all modes will be calculated
+            default is 20,
+            if **None** or 'all' is given, all modes will be calculated
         :type n_modes: int
 
         :arg turbo: when available, use a memory intensive but faster way to
@@ -188,6 +189,8 @@ class PCA(NMA):
             raise ValueError('covariance matrix is not built or set')
         start = time.time()
         dof = self._dof
+        if str(n_modes).lower() is 'all':
+            n_modes = None
         if linalg.__package__.startswith('scipy'):
             if n_modes is None:
                 eigvals = None

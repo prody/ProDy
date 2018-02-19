@@ -276,14 +276,14 @@ class Mode(VectorBase):
     def getArray(self):
         """Returns a copy of the normal mode array (eigenvector)."""
 
-        return self._model._array[:, self._index].copy()
+        return self._model.getArray()[:, self._index].copy()
 
     getEigvec = getArray
 
     def _getArray(self):
         """Returns a copy of the normal mode array (eigenvector)."""
 
-        return self._model._array[:, self._index]
+        return self._model._getArray()[:, self._index]
 
     def getEigval(self):
         """Returns normal mode eigenvalue.  For :class:`.PCA` and :class:`.EDA`
@@ -309,7 +309,9 @@ class Mode(VectorBase):
             return
         else:
             return self._model.getHinges(self._index)
-        
+    
+    def numHinges(self):
+        return len(self.getHinges())
 
 class Vector(VectorBase):
 

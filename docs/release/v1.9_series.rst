@@ -1,0 +1,76 @@
+ProDy 1.9 Series
+===============================================================================
+
+.. contents::
+   :local:
+
+1.9.4 (Feb 02, 2018)
+------------------------------------------------------------------------------
+
+* Undocumented release and fixes. 
+
+1.9.3 (Oct 09, 2017)
+------------------------------------------------------------------------------
+
+*Bugfixes*
+
+  * Bug fix about http and ftp based pdb downloads. 
+
+  * Bug fixes in PRS calculations. 
+
+1.9.2 (Aug 29, 2017)
+------------------------------------------------------------------------------
+
+** New Features**:
+
+*Migration to pypi.org*
+
+  * All repositories are moved to pypi.org
+
+
+1.9.1 (Aug 18, 2017)
+------------------------------------------------------------------------------
+
+** New Features**:
+
+*PDB Secondary Structures*
+
+  * It is possible to write secondary structure infrmation to PDBs. 
+
+*Bugfixes*
+
+  * Fixed the problem about clang compiler for saxs tools.
+
+  * If FTP client is not working, HTTP client will be used when downloading PDBs.
+
+1.9 (May 23, 2017)
+-------------------------------------------------------------------------------
+
+**New Features**:
+
+*Perturbation Response Scanning*
+
+  * Perturbation Response Scanning method is fully implemented with 
+    new plotting tools. 
+
+  * Effectors and sensors are calculated from PRS tool. 
+
+*Visualization with py3Dmol*
+
+  * In jupyter notebook, if you have installed py3Dmol you can use
+  py3Dmol visualization directly instead of simple matplotlib 
+  visualization. 
+
+*mmcif parser*
+
+  * Another structural format cif is also a part of ProDy parser now. 
+
+*Bugfixes*
+
+  * Various indexing issues are fixed. 
+
+  * Some of the obsolete pdbs will not be downloaded anymore, instead
+  replaced pdbs will be downloaded. This will change the priority 
+  between ftp and http servers.  
+
+

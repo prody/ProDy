@@ -12,7 +12,8 @@ from .mode import Mode, Vector
 from .gnm import ZERO
 
 __all__ = ['calcOverlap', 'calcCumulOverlap', 'calcSubspaceOverlap',
-           'calcCovOverlap', 'printOverlapTable', 'writeOverlapTable']
+           'calcSpectralOverlap', 'calcCovOverlap', 'printOverlapTable', 'writeOverlapTable',
+           'pairModes', 'matchModes']
 
 
 def calcOverlap(rows, cols):
@@ -158,8 +159,8 @@ def calcSubspaceOverlap(modes1, modes2):
     return rmsip
 
 
-def calcCovOverlap(modelA, modelB):
-    """Returns overlap between covariances of *modelA* and *modelB*.  Overlap
+def calcSpectralOverlap(modes1, modes2):
+    """Returns overlap between covariances of *modes1* and *modes2*.  Overlap
     between covariances are calculated using normal modes (eigenvectors),
     hence modes in both models must have been calculated.  This function
     implements equation 11 in [BH02]_.
@@ -167,17 +168,14 @@ def calcCovOverlap(modelA, modelB):
     .. [BH02] Hess B. Convergence of sampling in protein simulations.
        *Phys Rev E* **2002** 65(3):031910."""
 
-    if not modelA.is3d() or not modelB.is3d():
-        raise TypeError('both models must be 3-dimensional')
-    if len(modelA) == 0 or len(modelB) == 0:
-        raise TypeError('modes must be calculated for both models, '
-                        'try calcModes method')
-    if modelA.numAtoms() != modelB.numAtoms():
-        raise ValueError('modelA and modelB must have same number of atoms')
-    arrayA = modelA._getArray()
-    varA = modelA.getVariances()
-    arrayB = modelB._getArray()
-    varB = modelB.getVariances()
+    if modes1.is3d() ^ modes2.is3d():
+        raise TypeError('models must be either both 1-dimensional or 3-dimensional')
+    if modes1.numAtoms() != modes2.numAtoms():
+        raise ValueError('modes1 and modes2 must have same number of atoms')
+    arrayA = modes1._getArray()
+    varA = modes1.getVariances()
+    arrayB = modes2._getArray()
+    varB = modes2.getVariances()
 
     dotAB = np.dot(arrayA.T, arrayB)**2
     outerAB = np.outer(varA**0.5, varB**0.5)
@@ -187,3 +185,79 @@ def calcCovOverlap(modelA, modelB):
     else:
         diff = diff ** 0.5
     return 1 - diff / np.sqrt(varA.sum() + varB.sum())
+
+calcCovOverlap = calcSpectralOverlap
+
+def pairModes(modes1, modes2, index=False):
+    """Returns the optimal matches between *modes1* and *modes2*. *modes1* 
+    and *modes2* should have equal number of modes, and the function will 
+    return a nested list where each item is a list containing a pair of modes.
+
+    :arg index: if `True` then indices of modes will be returned instead of 
+                :class:`Mode` instances.
+    :type index: bool
+    """
+
+    from scipy.optimize import linear_sum_assignment
+
+    if len(modes1) != len(modes2):
+        raise ValueError('Same number of modes should be provided.')
+    overlaps = calcOverlap(modes1, modes2)
+
+    costs = 1 - abs(overlaps)
+    row_ind, col_ind = linear_sum_assignment(costs)
+
+    if index:
+        return np.array(zip(row_ind, col_ind))
+
+    mode_pairs = []
+    for i in range(len(row_ind)):
+        r = row_ind[i]; c = col_ind[i]
+        mode_pair = [modes1[r], modes2[c]]
+        mode_pairs.append(mode_pair)
+
+    return mode_pairs
+
+def matchModes(*modesets, **kwargs):
+    """Returns the matches of modes among *modesets*. Note that the first 
+    modeset will be treated as the reference so that only the matching 
+    of each modeset to the first modeset is garanteed to be optimal.
+    
+    :arg index: if `True` then indices of modes will be returned instead of 
+                :class:`Mode` instances.
+    :type index: bool
+    """
+
+    index = kwargs.pop('index', False)
+    P = []
+    modes0 = modesets[0]
+
+    n_modes = len(modes0)
+    n_sets = len(modesets)
+
+    for i, modes in enumerate(modesets):
+        if i > 0:
+            pairs = pairModes(modes0, modes, index=index)
+            P.append(pairs)
+
+    from operator import itemgetter
+    def modeorder_compare(m1, m2):
+        if isinstance(m1, (int, np.integer)) and isinstance(m2, (int, np.integer)):
+            return m1 - m2
+        return m1.getIndex() - m2.getIndex()
+
+    for pairs in P:
+        pairs = sorted(pairs, key=itemgetter(0), cmp=modeorder_compare)
+    
+    if index:
+        matches = np.zeros((n_modes, n_sets))
+    else:
+        matches = [[None for _ in range(n_sets)] for _ in range(n_modes)]
+    for i in range(n_modes):
+        for j in range(n_sets):
+            if j == 0:
+                matches[i][j] = P[0][i][0]
+            else:
+                matches[i][j] = P[j-1][i][1]
+
+    return matches
