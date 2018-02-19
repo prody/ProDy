@@ -1268,8 +1268,13 @@ def showAtomicMatrix(matrix, x_array=None, y_array=None, atoms=None, **kwargs):
     elif fig_num is not None:
         figure(fig_num)
 
+    n_row, n_col = matrix.shape
     ticklabels = None
     if atoms is not None:
+        n_atoms = atoms.numAtoms()
+        if n_atoms != n_row and n_atoms != n_col:
+            raise ValueError('The number of atoms ({0}) is inconsistent with the shape '
+                             'of the matrix ({1}, {2}).'.format(n_atoms, n_row, n_col))
         hv = atoms.getHierView()
         if hv.numChains() == 0:
             raise ValueError('atoms should contain at least one chain.')
@@ -1346,7 +1351,7 @@ def showAtomicMatrix(matrix, x_array=None, y_array=None, atoms=None, **kwargs):
                                          horizontalalignment='left', 
                                          verticalalignment='center')
             texts.append(txt)
-        _y = np.arange(matrix.shape[0])
+        _y = np.arange(n_row)
         Y = np.tile(_y, (len(uni_domids), 1)).T
         bar = plot(F, Y, linewidth=5)
         bars.append(bar)
