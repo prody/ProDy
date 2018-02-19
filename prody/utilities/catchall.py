@@ -133,6 +133,7 @@ def showData(*args, **kwargs):
     ax = gca()
     lines = ax.plot(*args, **kwargs)
 
+    polys = []
     if dy is not None:
         dy = np.array(dy)
         if dy.ndim == 1:
@@ -160,13 +161,18 @@ def showData(*args, **kwargs):
             else:
                 x_new, y_new = x, y
 
-            ax.fill_between(x_new, y_new-_dy, y_new+_dy,
-                    alpha=alpha, facecolor=color,
-                    linewidth=1, antialiased=True)
+            poly = ax.fill_between(x_new, y_new-_dy, y_new+_dy,
+                                   alpha=alpha, facecolor=color,
+                                   linewidth=1, antialiased=True)
+            polys.append(poly)
 
     if ticklabels is not None:
         ax.get_xaxis().set_major_formatter(ticker.IndexFormatter(ticklabels))
-    return ax
+    
+    ax.xaxis.set_major_locator(ticker.AutoLocator())
+    ax.xaxis.set_minor_locator(ticker.AutoMinorLocator())
+
+    return lines, polys
 
 def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
     """Show a matrix using :meth:`~matplotlib.axes.Axes.imshow`. Curves on x- and y-axis can be added.
@@ -184,7 +190,7 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
     from matplotlib import cm
     from matplotlib.gridspec import GridSpec, GridSpecFromSubplotSpec
     from matplotlib.collections import LineCollection
-    from matplotlib.pyplot import figure, imshow
+    from matplotlib.pyplot import imshow, gca
 
     p = kwargs.pop('percentile', None)
     if p is not None:
@@ -193,8 +199,7 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
     else:
         vmin = vmax = None
     
-    W = 8
-    H = 8
+    W = H = 8
 
     curve_axes = None
 
@@ -227,12 +232,21 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
     upper_index = (i-1,j)
     left_index = (i,j-1)
 
-    outer = GridSpec(1, 2, width_ratios = [15, 1], hspace=0.) 
-    gs = GridSpecFromSubplotSpec(nrow, ncol, subplot_spec = outer[0], width_ratios=width_ratios,
-                    height_ratios=height_ratios, hspace=0., wspace=0.)
+    complex_layout = nrow > 1 and ncol > 1
+    cb = kwargs.pop('colorbar', True)
 
-    gs_bar = GridSpecFromSubplotSpec(nrow, 1, subplot_spec = outer[1], height_ratios=height_ratios, hspace=0., wspace=0.)
+    if complex_layout:
+        if cb:
+            outer = GridSpec(1, 2, width_ratios = [15, 1], hspace=0.) 
+            gs = GridSpecFromSubplotSpec(nrow, ncol, subplot_spec = outer[0], width_ratios=width_ratios,
+                            height_ratios=height_ratios, hspace=0., wspace=0.)
 
+            gs_bar = GridSpecFromSubplotSpec(nrow, 1, subplot_spec = outer[1], height_ratios=height_ratios, hspace=0., wspace=0.)
+        else:
+            gs = GridSpec(nrow, ncol, width_ratios=width_ratios, 
+                        height_ratios=height_ratios, hspace=0., wspace=0.)
+
+    lines = []
     if nrow > 1:
         ax1 = mpl.subplot(gs[upper_index])
         ax1.set_xticklabels([])
@@ -242,8 +256,9 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
         points = np.array([x, y]).T.reshape(-1, 1, 2)
         segments = np.concatenate([points[:-1], points[1:]], axis=1)
         cmap = cm.jet(y)
-        lc = LineCollection(segments, array=y, linewidths=1, cmap='jet')
-        ax1.add_collection(lc)
+        lcy = LineCollection(segments, array=x, linewidths=1, cmap='jet')
+        lines.append(lcy)
+        ax1.add_collection(lcy)
 
         ax1.set_xlim(x.min(), x.max())
         ax1.set_ylim(y.min(), y.max())
@@ -258,15 +273,18 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
         points = np.array([y, x]).T.reshape(-1, 1, 2)
         segments = np.concatenate([points[:-1], points[1:]], axis=1)
         cmap = cm.jet(y)
-        lc = LineCollection(segments, array=y, linewidths=1, cmap='jet')
-        ax2.add_collection(lc)
+        lcx = LineCollection(segments, array=y, linewidths=1, cmap='jet')
+        lines.append(lcx)
+        ax2.add_collection(lcx)
 
         ax2.set_xlim(y.min(), y.max())
         ax2.set_ylim(x.min(), x.max())
         ax2.axis('off')
         ax2.invert_xaxis()
 
-    ax3 = mpl.subplot(gs[main_index])
+    if complex_layout:
+        ax3 = mpl.subplot(gs[main_index])
+    
     cmap = kwargs.pop('cmap', 'jet')
     im = imshow(matrix, aspect=aspect, vmin=vmin, vmax=vmax, **kwargs)
     #ax3.set_xlim([-0.5, matrix.shape[0]+0.5])
@@ -274,15 +292,15 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
     if ncol > 1:
         ax3.set_yticklabels([])
 
-    cb = kwargs.pop('colorbar', True)
+    colorbar = None
     if cb:
-        if nrow > 1:
+        if complex_layout:
             ax4 = mpl.subplot(gs_bar[-1])
-            mpl.colorbar(cax=ax4)
+            colorbar = mpl.colorbar(cax=ax4)
         else:
-            mpl.colorbar()
+            colorbar = mpl.colorbar()
 
-    return im
+    return im, lines, colorbar
 
 def reorderMatrix(names, matrix, tree):
     """
