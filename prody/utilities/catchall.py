@@ -187,10 +187,10 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
     :type percentile: float"""
 
     import matplotlib.pyplot as mpl
-    from matplotlib import cm
+    from matplotlib import cm, ticker
     from matplotlib.gridspec import GridSpec, GridSpecFromSubplotSpec
     from matplotlib.collections import LineCollection
-    from matplotlib.pyplot import imshow, gca
+    from matplotlib.pyplot import imshow, gca, sca
 
     p = kwargs.pop('percentile', None)
     if p is not None:
@@ -201,7 +201,7 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
     
     W = H = 8
 
-    curve_axes = None
+    ticklabels = kwargs.pop('ticklabels', None)
 
     if x_array is not None and y_array is not None:
         nrow = 2; ncol = 2
@@ -232,7 +232,7 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
     upper_index = (i-1,j)
     left_index = (i,j-1)
 
-    complex_layout = nrow > 1 and ncol > 1
+    complex_layout = nrow > 1 or ncol > 1
     cb = kwargs.pop('colorbar', True)
 
     if complex_layout:
@@ -284,22 +284,38 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
 
     if complex_layout:
         ax3 = mpl.subplot(gs[main_index])
+    else:
+        ax3 = gca()
     
     cmap = kwargs.pop('cmap', 'jet')
-    im = imshow(matrix, aspect=aspect, vmin=vmin, vmax=vmax, **kwargs)
+    im = ax3.imshow(matrix, aspect=aspect, vmin=vmin, vmax=vmax, **kwargs)
     #ax3.set_xlim([-0.5, matrix.shape[0]+0.5])
     #ax3.set_ylim([-0.5, matrix.shape[1]+0.5])
-    if ncol > 1:
-        ax3.set_yticklabels([])
 
+    if ticklabels is not None:
+        ax3.xaxis.set_major_formatter(ticker.IndexFormatter(ticklabels))
+        if ncol == 1:
+            ax3.yaxis.set_major_formatter(ticker.IndexFormatter(ticklabels))
+    
+    ax3.xaxis.set_major_locator(ticker.AutoLocator())
+    ax3.xaxis.set_minor_locator(ticker.AutoMinorLocator())
+
+    ax3.yaxis.set_major_locator(ticker.AutoLocator())
+    ax3.yaxis.set_minor_locator(ticker.AutoMinorLocator())
+
+    if ncol > 1:
+        ax3.yaxis.set_major_formatter(ticker.NullFormatter())
+        
     colorbar = None
     if cb:
         if complex_layout:
             ax4 = mpl.subplot(gs_bar[-1])
-            colorbar = mpl.colorbar(cax=ax4)
+            colorbar = mpl.colorbar(mappable=im, cax=ax4)
         else:
             colorbar = mpl.colorbar()
 
+    if complex_layout:
+        sca(ax3)
     return im, lines, colorbar
 
 def reorderMatrix(names, matrix, tree):
