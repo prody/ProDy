@@ -1,23 +1,37 @@
 # -*- coding: utf-8 -*-
-"""This module defines functions for blast searching Protein Data Bank."""
+"""This module defines functions for blast searching the Protein Data Bank."""
 
 import os.path
-import os
 
-from prody import LOGGER
+from prody import LOGGER, PY3K
 from prody.utilities import dictElement, openURL, which
 from prody.sequence.msafile import parseMSA
 
+import platform, os, re, sys, time, urllib
+from xmltramp2 import xmltramp
+
+if PY3K:
+    import urllib.parse as urllib
+    import urllib.request as urllib2
+else:
+    import urllib
+    import urllib2
+
+import xmltodict
+
+from prody.sequence import Sequence
+from prody.atomic import Atomic
+from prody.proteins.pdbfile import parsePDB
+
 __all__ = ['PDBBlastRecord', 'blastPDB', 'showSequenceTree']
 
-
-def blastPDB(sequence, filename=None, **kwargs):
+def blastPDB(sequence='runexample', filename=None, **kwargs):
     """Returns a :class:`PDBBlastRecord` instance that contains results from
-    blast searching of ProteinDataBank database *sequence* using NCBI blastp.
+    blast searching *sequence* against the PDB using NCBI blastp.
 
-    :arg sequence: single-letter code amino acid sequence of the protein
-        without any gap characters, all white spaces will be removed
-    :type sequence: str
+    :arg sequence: an object with an associated sequence string 
+         or a sequence string itself
+    :type sequence: :class:`Atomic`, :class:`Sequence`, or str
 
     :arg filename: a *filename* to save the results in XML format
     :type filename: str
@@ -25,25 +39,27 @@ def blastPDB(sequence, filename=None, **kwargs):
     *hitlist_size* (default is ``250``) and *expect* (default is ``1e-10``)
     search parameters can be adjusted by the user.  *sleep* keyword argument
     (default is ``2`` seconds) determines how long to wait to reconnect for
-    results.  Sleep time is doubled when results are not ready.  *timeout*
-    (default is 120s) determines when to give up waiting for the results.
+    results.  Sleep time is multiplied by 1.5 when results are not ready.  
+    *timeout* (default is 120 s) determines when to give up waiting for the results.
     """
 
     if sequence == 'runexample':
         sequence = ('ASFPVEILPFLYLGCAKDSTNLDVLEEFGIKYILNVTPNLPNLFENAGEFKYKQIPI'
                     'SDHWSQNLSQFFPEAISFIDEARGKNCGVLVHSLAGISRSVTVTVAYLMQKLNLSMN'
                     'DAYDIVKMKKSNISPNFNFMGQLLDFERTL')
+    elif isinstance(sequence, Atomic):
+        sequence = sequence.select('calpha and chain %s' % chain).getSequence()
+    elif isinstance(sequence, Sequence):
+        sequence = str(sequence)
+    elif isinstance(sequence, str):
+        if len(sequence) == 4 or len(sequence) == 5:
+            ag = parsePDB(sequence)
+            sequence = ag.select('calpha and chain %s' % chain).getSequence()
     else:
-        try:
-            sequence = ''.join(sequence.split())
-            _ = sequence.isalpha()
-        except AttributeError:
-            raise TypeError('sequence must be a string')
-        else:
-            if not _:
-                raise ValueError('not a valid protein sequence')
-    headers = {'User-agent': 'ProDy'}
+        raise TypeError('seq must be an atomic class, sequence class, or str not {0}'
+                        .format(type(sequence)))
 
+    headers = {'User-agent': 'ProDy'}
     query = [('DATABASE', 'pdb'), ('ENTREZ_QUERY', '(none)'),
              ('PROGRAM', 'blastp'),]
 
@@ -60,10 +76,6 @@ def blastPDB(sequence, filename=None, **kwargs):
 
     sleep = float(kwargs.pop('sleep', 2))
     timeout = float(kwargs.pop('timeout', 120))
-
-    if kwargs:
-        LOGGER.warn('Keyword argument(s) {0} are not used.'
-                    .format(', '.join([repr(key) for key in kwargs])))
 
     try:
         import urllib.parse
@@ -100,7 +112,7 @@ def blastPDB(sequence, filename=None, **kwargs):
 
     while True:
         LOGGER.sleep(int(sleep), 'to reconnect NCBI for search results.')
-        LOGGER.write('Connecting NCBI for search results...')
+        LOGGER.write('Connecting to NCBI for search results...')
         handle = openURL(url, data=data, headers=headers)
         results = handle.read()
         index = results.find(b'Status=')
@@ -117,6 +129,7 @@ def blastPDB(sequence, filename=None, **kwargs):
             return None
     LOGGER.clear()
     LOGGER.report('Blast search completed in %.1fs.', '_prody_blast')
+
     try:
         ext_xml = filename.lower().endswith('.xml')
     except AttributeError:
@@ -128,23 +141,25 @@ def blastPDB(sequence, filename=None, **kwargs):
         out.write(results)
         out.close()
         LOGGER.info('Results are saved as {0}.'.format(repr(filename)))
+
     return PDBBlastRecord(results, sequence)
 
 
 class PDBBlastRecord(object):
 
-    """A class to store results from ProteinDataBank blast search."""
+    """A class to store results from blast searches."""
 
 
     def __init__(self, xml, sequence=None):
-        """Instantiate a PDBlast object instance.
+        """Instantiate a PDBBlastRecord object instance.
 
         :arg xml: blast search results in XML format or an XML file that
             contains the results
         :type xml: str
 
         :arg sequence: query sequence
-        :type sequence: str"""
+        :type sequence: str
+        """
 
         if sequence:
             try:
