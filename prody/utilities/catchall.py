@@ -318,7 +318,7 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
         sca(ax3)
     return im, lines, colorbar
 
-def reorderMatrix(names, matrix, tree):
+def reorderMatrix(matrix, tree, names=None):
     """
     Reorder a matrix based on a tree and return the reordered matrix 
     and indices for reordering other things.
@@ -340,13 +340,7 @@ def reorderMatrix(names, matrix, tree):
             'Reinstall ProDy or install Biopython '
             'to solve the problem.')
 
-    if type(names) is not list:
-        raise TypeError('names should be a list.')
-
-    if type(names[0]) is not str:
-        raise TypeError('names should be a list of strings.')    
-
-    if type(matrix) is not np.ndarray:
+    if not isinstance(matrix, np.ndarray):
         raise TypeError('matrix should be a numpy array.')
 
     if matrix.ndim != 2:
@@ -355,7 +349,16 @@ def reorderMatrix(names, matrix, tree):
     if np.shape(matrix)[0] != np.shape(matrix)[1]:
         raise ValueError('matrix should be a square matrix')
 
-    if type(tree) is not Phylo.BaseTree.Tree and type(tree) is not Phylo.Newick.Tree:
+    if names is None:
+        names = [str(i) for i in range(len(matrix))]
+
+    if not isinstance(names, list):
+        raise TypeError('names should be a list.')
+
+    if not isinstance(names[0], str):
+        raise TypeError('names should be a list of strings.')    
+
+    if not isinstance(tree, Phylo.BaseTree.Tree):
         raise TypeError('tree should be a BioPython Tree')
 
     if len(names) != len(matrix):
