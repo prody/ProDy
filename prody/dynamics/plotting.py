@@ -1244,7 +1244,7 @@ def showAtomicMatrix(matrix, x_array=None, y_array=None, atoms=None, **kwargs):
                 to a figure number or a :class:`~matplotlib.figure.Figure` instance, 
                 no matter what 'auto_show' value is, plots will be drawn on the *figure*.
                 Default is `None`.
-    :type figure: :class:`~matplotlib.figure.Figure`, int, or str
+    :type figure: :class:`~matplotlib.figure.Figure`, int, str
     """ 
 
     from prody.utilities import showMatrix
@@ -1383,7 +1383,7 @@ def showAtomicData(y, atoms=None, linespec='-', **kwargs):
                 to a figure number or a :class:`~matplotlib.figure.Figure` instance, 
                 no matter what 'auto_show' value is, plots will be drawn on the *figure*.
                 Default is `None`.
-    :type figure: :class:`~matplotlib.figure.Figure`, int, or str
+    :type figure: :class:`~matplotlib.figure.Figure`, int, str
     """
     
     chain_bar = kwargs.pop('chain_bar', None)
