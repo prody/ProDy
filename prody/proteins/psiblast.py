@@ -12,7 +12,7 @@ else:
     import urllib
     import urllib2
 
-#import xmltodict
+import xml.etree.cElementTree as ET
 
 from prody.sequence import Sequence
 from prody.atomic import Atomic
@@ -332,13 +332,14 @@ def checkPsiBlastParameter(parameter, value):
     data = file.read()
     file.close()
     
-    data = xmltodict.parse(data)
+    data = ET.XML(data)
+    data = dictElement(data)
 
-    if data[u'parameter'][u'type'].encode() == 'STRING':
+    if data['type'] == 'STRING':
         type = str
-    elif data[u'parameter'][u'type'].encode() == 'INTEGER':
+    elif data['type'] == 'INTEGER':
         type = int
-    elif data[u'parameter'][u'type'].encode() == 'DOUBLE':
+    elif data['type'] == 'DOUBLE':
         type = float
     
     if not isinstance(value,type):
@@ -347,9 +348,9 @@ def checkPsiBlastParameter(parameter, value):
     
     values = []
     str_values = []
-    for i in range(len(data[u'parameter'][u'values'][u'value'])):
-        values.append(type(data[u'parameter'][u'values'][u'value'][i][u'value'].encode()))
-        str_values.append(data[u'parameter'][u'values'][u'value'][i][u'value'].encode())
+    for element in data['values']:
+        values.append(type(dictElement(element)['value']))
+        str_values.append(str(dictElement(element)['value']))
 
     if not value in values:
         raise ValueError(parameter + ' should be one of ' + \
