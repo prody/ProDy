@@ -30,28 +30,26 @@ def psiBlastRun(sequence='runexample', cycles=2, filename=None, **kwargs):
     :type cycles: int
     """
     psithr = kwargs.get('psithr', 1.0e-3)
-    jobId = kwargs.get('previousjobid','')
-    selectedHits = kwargs.get('selectedHits','selected_hits.txt')
+    job_id = kwargs.get('previousjobid','') 
+    selHits = kwargs.get('selectedHits','')
 
     cycles_done = 0
     results_list = []
-    jobIds = []
+    job_ids = []
     while cycles_done < cycles:
-        jobId, results, sequence = psiBlastCycle(sequence, filename, \
-                                                 previousjobid=jobId, \
-                                                 selectedHits=selectedHits, \
+        if cycles_done > 0:
+            selHits = 'http://www.ebi.ac.uk/Tools/services/rest/psiblast/result/' \
+                      + job_id + '/preselected_seq'
+        job_id, results, sequence = psiBlastCycle(sequence, filename, \
+                                                 previousjobid=job_id, \
+                                                 selectedHits=selHits, \
                                                  **kwargs)
         results_list.append(results)
+        job_ids.append(job_id)
         cycles_done += 1
-        LOGGER.info('Finished cycle {0} with job ID {1}.'.format(cycles_done, jobId))
+        LOGGER.info('Finished cycle {0} with job ID {1}.'.format(cycles_done, job_id))
 
-        fo = open(selectedHits,'w')
-        for hit in results._hits:
-             if hit[2]['expectation'] < psithr:
-                 fo.write(hit[2]['pdb_id'] + '_' + hit[2]['chain_id'] + '\n')
-        fo.close() 
-
-    return jobIds, results_list, sequence
+    return job_ids, results_list, sequence
 
 def psiBlastCycle(sequence='runexample', filename=None, **kwargs):
     """Returns a :class:`PDBBlastRecord` instance that contains results from
@@ -169,22 +167,25 @@ def psiBlastCycle(sequence='runexample', filename=None, **kwargs):
         sequence = ('ASFPVEILPFLYLGCAKDSTNLDVLEEFGIKYILNVTPNLPNLFENAGEFKYKQIPI'
                     'SDHWSQNLSQFFPEAISFIDEARGKNCGVLVHSLAGISRSVTVTVAYLMQKLNLSMN'
                     'DAYDIVKMKKSNISPNFNFMGQLLDFERTL')
+
     elif isinstance(sequence, Atomic):
         chain = sequence.getChids()[0] 
         sequence = sequence.select('calpha and chain %s' % chain).getSequence()
+
     elif isinstance(sequence, Sequence):
         sequence = str(sequence)
+
     elif isinstance(sequence, str):
         if len(sequence) == 4 or len(sequence) == 5:
-            ag = parsePDB(sequence[:4])
-            if len(sequence) == 5:
-                chain = sequence[-1]
-            else:
-                chain = sequence.getChids()[0]
+            sequence = parsePDB(sequence[:4])
+            chain = sequence.getChids()[0]
             sequence = ag.select('calpha and chain %s' % chain).getSequence()
+
     else:
-        raise TypeError('seq must be an atomic class, sequence class, or str not {0}'
+        raise TypeError('sequence must be Atomic, Sequence, or str not {0}'
                         .format(type(sequence)))
+
+    sequence = ''.join(sequence.split())
 
     query = [('sequence', sequence)] 
 
@@ -272,18 +273,18 @@ def psiBlastCycle(sequence='runexample', filename=None, **kwargs):
     data = urlencode(query)
 
     # submit the job
-    baseUrl = 'http://www.ebi.ac.uk/Tools/services/rest/psiblast/'
-    url = baseUrl + 'run/'
+    base_url = 'http://www.ebi.ac.uk/Tools/services/rest/psiblast/'
+    url = base_url + 'run/'
     LOGGER.timeit('_prody_psi-blast')
     LOGGER.info('PSI-Blast searching NCBI PDB database for "{0}..."'
                 .format(sequence[:5]))
 
     handle = openURL(url, data=data, headers=headers)
-    jobId = handle.read()
+    job_id = handle.read()
     handle.close()
 
     # check the status
-    url = baseUrl + 'status/' + jobId
+    url = base_url + 'status/' + job_id
     handle = openURL(url)
     status = handle.read()
     handle.close()
@@ -309,7 +310,7 @@ def psiBlastCycle(sequence='runexample', filename=None, **kwargs):
     LOGGER.info('The status is {0}'.format(status))
  
     # get the results
-    url = baseUrl + 'result/' + jobId + '/xml'
+    url = base_url + 'result/' + job_id + '/xml'
     handle = openURL(url)
     results = handle.read()
     handle.close()
@@ -324,13 +325,12 @@ def psiBlastCycle(sequence='runexample', filename=None, **kwargs):
     else:
         if not ext_xml:
             filename += '.xml'
-        out = open(filename, 'w')
-        out.write(results)
-        out.close()
+        f_out = open(filename, 'w')
+        f_out.write(results)
+        f_out.close()
         LOGGER.info('Results are saved as {0}.'.format(repr(filename)))
     
-    return jobId, PsiBlastRecord(results, sequence), sequence
-    return jobId, results, sequence
+    return job_id, PsiBlastRecord(results, sequence), sequence
 
 def checkPsiBlastParameter(parameter, value):
     """Checks that the value provided for a parameter is in the xml page for that parameter
@@ -342,9 +342,9 @@ def checkPsiBlastParameter(parameter, value):
     :arg value: value being checked
     :type value: any
     """
-    file = urllib2.urlopen('http://www.ebi.ac.uk/Tools/services/rest/psiblast/parameterdetails/' + parameter)
-    data = file.read()
-    file.close()
+    info_file = urllib2.urlopen('http://www.ebi.ac.uk/Tools/services/rest/psiblast/parameterdetails/' + parameter)
+    data = info_file.read()
+    info_file.close()
     
     data = ET.XML(data)
     data = dictElement(data)

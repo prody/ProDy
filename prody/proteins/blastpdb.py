@@ -44,24 +44,25 @@ def blastPDB(sequence='runexample', filename=None, **kwargs):
         sequence = ('ASFPVEILPFLYLGCAKDSTNLDVLEEFGIKYILNVTPNLPNLFENAGEFKYKQIPI'
                     'SDHWSQNLSQFFPEAISFIDEARGKNCGVLVHSLAGISRSVTVTVAYLMQKLNLSMN'
                     'DAYDIVKMKKSNISPNFNFMGQLLDFERTL')
+
     elif isinstance(sequence, Atomic):
         chain = sequence.getChids()[0]
         sequence = sequence.select('calpha and chain %s' % chain).getSequence()
+
     elif isinstance(sequence, Sequence):
         sequence = str(sequence)
+
     elif isinstance(sequence, str):
         if len(sequence) == 4 or len(sequence) == 5:
-            ag = parsePDB(sequence[:4])
-
-            if len(sequence) == 5:
-                chain = sequence[-1]
-            else:
-                chain = sequence.getChids()[0]
-
+            sequence = parsePDB(sequence)
+            chain = sequence.getChids()[0]
             sequence = ag.select('calpha and chain %s' % chain).getSequence()
+
     else:
-        raise TypeError('seq must be an atomic class, sequence class, or str not {0}'
+        raise TypeError('sequence must be Atomic, Sequence, or str not {0}'
                         .format(type(sequence)))
+
+    sequence = ''.join(sequence.split())
 
     headers = {'User-agent': 'ProDy'}
     query = [('DATABASE', 'pdb'), ('ENTREZ_QUERY', '(none)'),
@@ -240,7 +241,7 @@ class PDBBlastRecord(object):
 
         return dict(self._param)
 
-    def getHits(self, percent_identity=0., percent_overlap=0., chain=False):
+    def getHits(self, percent_identity=90., percent_overlap=70., chain=False):
         """Returns a dictionary in which PDB identifiers are mapped to structure
         and alignment information.
 
@@ -288,20 +289,23 @@ def showSequenceTree(hits):
     """
     clustalw = which('clustalw')
     if clustalw is None:
-        try: clustalw = which('clustalw2')
-        except: raise ValueError("The executable for clustalw does not exist, \
-                                  install clustalw or add it to the path.")
+        try: 
+            clustalw = which('clustalw2')
+        except: 
+            raise EnvironmentError("The executable for clustalw was not found, \
+                                    install clustalw or add it to the path.")
     try:
         from Bio import Phylo
     except:
         raise ImportError("Phylo is not installed properly.")
-    with open("hits.fasta","w") as inp:
+
+    with open("hits.fasta","w") as f_out:
         for z in hits:
-            inp.write(">" + str(z) + "\n")
-            inp.write(hits[z]['hseq'])
-            inp.write("\n")
-    cmd = clustalw + " hits.fasta"
-    os.system(cmd)
+            f_out.write(">" + str(z) + "\n")
+            f_out.write(hits[z]['hseq'])
+            f_out.write("\n")
+
+    os.system(clustalw + " hits.fasta")
     msa = parseMSA('hits.aln')
     tree = Phylo.read("hits.dnd","newick")
     try:
@@ -311,3 +315,25 @@ def showSequenceTree(hits):
     Phylo.draw(tree)
     return tree, msa
 
+def runClustalw(sequences, prefix='msa'):
+    """
+    Runs clustalw on set of sequences then parses and returns the new MSA.
+    """
+    # 1. check if sequences are in a fasta file and if not make one
+    if 
+    if isinstance(sequences, MSA):
+        writeMSA(sequences, prefix + '.fasta')
+
+    # 2. find and run clustalw
+    clustalw = which('clustalw')
+    if clustalw is None:
+        try:
+            clustalw = which('clustalw2')
+        except:
+            raise EnvironmentError("The executable for clustalw was not found, \
+                                    install clustalw or add it to the path.")
+
+    os.system(clustalw + " " + prefix + ".fasta")
+
+    # 3. parse and return the new MSA
+    return parseMSA('hits.aln')
