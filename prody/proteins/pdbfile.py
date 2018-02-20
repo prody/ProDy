@@ -205,11 +205,11 @@ def parsePDBStream(stream, **kwargs):
         if secondary:
             if auto_secondary:
                 try:
-                    ag = assignSecstr(hd, ag)
+                    ag = assignSecstr(hd, ag, report=report)
                 except ValueError:
                     pass
             else:
-                ag = assignSecstr(hd, ag)
+                ag = assignSecstr(hd, ag, report=report)
         if biomol:
             ag = buildBiomolecules(hd, ag)
 

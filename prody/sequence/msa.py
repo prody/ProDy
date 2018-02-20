@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 """This module defines MSA analysis functions."""
 
-from numpy import all, zeros, dtype, array, char, cumsum, ceil, where
+from numpy import all, zeros, dtype, array, char, cumsum, ceil 
+from numpy import where, sort, concatenate
 from .sequence import Sequence, splitSeqLabel
 from prody.atomic import Atomic
 from Bio import AlignIO
@@ -771,7 +772,7 @@ def showAlignment(alignment, row_size=60, max_seqs=5, **kwargs):
 
     return
 
-def alignSequenceToMSA(seq,msa,label,chain='A',match=5,mismatch=-1,gap_opening=-10,gap_extension=-1,seq_type='pdb'):
+def alignSequenceToMSA(seq,msa,label,chain='A',match=5,mismatch=-1,gap_opening=-10,gap_extension=-1):
     """
     Align a sequence from a PDB or Sequence to a sequence from an MSA
     and create two sets of indices. 
@@ -786,7 +787,7 @@ def alignSequenceToMSA(seq,msa,label,chain='A',match=5,mismatch=-1,gap_opening=-
 
     :arg seq: an object with an associated sequence string 
          or a sequence string itself
-    :type seq: AtomGroup, Sequence or str
+    :type seq: :class:`Atomic`, :class:`Sequence`, or str
     
     :arg msa: MSA object
     :type msa: :class:`.MSA`
@@ -813,44 +814,54 @@ def alignSequenceToMSA(seq,msa,label,chain='A',match=5,mismatch=-1,gap_opening=-
     :arg gap_extension: a negative integer, used to penalise extending a gap
         The default is -1, which we found to work in a test case
     :type gap_extension: int
-    """
-    if seq_type == 'pdb':
-        if isinstance(seq, str):
-            ag = parsePDB(seq)
-            title = ag.getTitle()
-        elif isinstance(seq, Atomic):
-            ag = seq
-        elif isinstance(seq, Sequence): 
-            raise TypeError('pdb must be an atomic class, not {0}'
-                            .format(type(seq)))
-
+    """ 
+    if isinstance(seq, Atomic):
+        ag = seq
         sequence = ag.select('chain %s' % chain).getSequence()
 
-        if label is None:
-            label = ag.getTitle().split('_')[0]
-        
-    else:
-        if not isinstance(seq, Sequence):
-            if not isinstance(seq, str):
-                raise TypeError("seq should be a string or a Sequence \
-                                if type is set to something other than 'pdb'.")
+    elif isinstance(seq, Sequence):
+         sequence = str(seq)
+         ag = None
 
+    elif isinstance(seq, str):
+
+        if len(seq) == 4 or len(seq) == 5:
+            ag = parsePDB(seq)
+            sequence = ag.select('chain %s' % chain).getSequence()
+                 
         else:
-            sequence = str(seq)
-            label = seq.getLabel()
-        
-    
+            sequence = seq
+            ag = None
+
+    else: 
+        raise TypeError('seq must be an atomic class, sequence class, or str not {0}'
+                        .format(type(seq)))
+
     if not isinstance(msa, MSA):
         raise TypeError('msa must be an MSA instance')
+
+    if label is None:
+        if ag:
+            label = ag.getTitle().split('_')[0]
+
+        elif isinstance(seq, Sequence):
+            label = seq.getLabel()
+
+        else:
+            raise ValueError('A label cannot be extracted from seq so please provide one.')
 
     try:
         seqIndex = msa.getIndex(label)
     except:
-        raise ValueError('Please provide a label that can be found in msa')
-        
-    refMsaSeq = str(msa[seqIndex]).upper().replace('-','.')
+        raise ValueError('Please provide a label that can be found in msa.')
+
+    if isinstance(msa[seqIndex], Sequence):
+        refMsaSeq = str(msa[seqIndex]).upper().replace('-','.')
+
+    else:
+        raise TypeError('The output from querying that label against msa is not a single sequence.')
     
-    alignment = pairwise2.align.globalms(sequence, refMsaSeq, \
+    alignment = pairwise2.align.globalms(sequence, str(refMsaSeq), \
                                          match, mismatch, gap_opening, gap_extension)
 
     seq_indices = [0]
@@ -872,16 +883,18 @@ def alignSequenceToMSA(seq,msa,label,chain='A',match=5,mismatch=-1,gap_opening=-
         if alignment[0][0][i] == '-' or alignment[0][1][i] == '-':
             indices.append('')
         else:
-            if seq_type == 'pdb':
-                indices.append(seq.getResnums()[seq_indices[i]])
+            if isinstance(seq, Atomic):
+                indices.append(seq.getIndices()[seq_indices[i]])
             else:
                 indices.append('')
                 
     indices = array(indices)
     msa_indices = array(msa_indices)
     
-    seq1 = Sequence(alignment[0][0],ag.getTitle())
-    seq2 = Sequence(alignment[0][1],label)
-    alignment = (seq1, seq2)
-        
+    alignment = MSA(msa=array(array(list(alignment[0][0])), \
+                              array(list(alignment[0][1]))), \
+                    labels=[ag.getTitle(), label])
+
+    
+    
     return refMsaSeq, alignment, indices, msa_indices
