@@ -297,4 +297,3 @@ class PDBBlastRecord(object):
                 f_out.write("\n")
 
         return filename
-
