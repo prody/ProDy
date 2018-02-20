@@ -264,6 +264,7 @@ class PDBBlastRecord(object):
 def showSequenceTree(hits):
     """Returns a plot that contains a dendrogram of the sequence similarities among
     the sequences in given hit list. 
+    
     :arg hits: A dictionary that contains hits that are obtained from a blast record object. 
     :type hits: dict
     """
