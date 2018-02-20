@@ -7,7 +7,6 @@ from prody import LOGGER, PY3K
 from prody.utilities import dictElement, openURL, which
 
 import platform, os, re, sys, time, urllib
-from xmltramp2 import xmltramp
 
 if PY3K:
     import urllib.parse as urllib
