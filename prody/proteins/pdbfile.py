@@ -174,7 +174,7 @@ def parsePDBStream(stream, **kwargs):
 
     :arg stream: Anything that implements the method ``readlines``
         (e.g. :class:`file`, buffer, stdin)"""
-
+    report = kwargs.get('report', True)
     model = kwargs.get('model')
     header = kwargs.get('header', False)
     assert isinstance(header, bool), 'header must be a boolean'

@@ -290,6 +290,8 @@ def psiBlastCycle(sequence='runexample', filename=None, **kwargs):
             return None
 
     # check status once it's not running and tell the user
+    LOGGER.sleep(int(sleep), 'to reconnect to EBI for status.')
+    LOGGER.write('Connecting to EBI for status...')
     handle = openURL(url)
     status = handle.read()
     handle.close()
