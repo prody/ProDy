@@ -39,6 +39,7 @@ def psiBlastRun(sequence='runexample', cycles=2, filename=None, **kwargs):
         jobIds.append(jobId)
         kwargs['previousjobid'] = jobId
         cycles_done += 1
+        LOGGER.info('Finished cycle {0} with job ID {1}.'.format(cycles_done, jobId))
 
     return jobId, results_list, sequence
 
