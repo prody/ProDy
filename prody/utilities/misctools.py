@@ -89,7 +89,7 @@ def importLA():
 
 
 def dictElement(element, prefix=None):
-    """Returnss a dictionary built from the children of *element*, which must be
+    """Returns a dictionary built from the children of *element*, which must be
     a :class:`xml.etree.ElementTree.Element` instance.  Keys of the dictionary
     are *tag* of children without the *prefix*, or namespace.  Values depend on
     the content of the child.  If a child does not have any children, its text
