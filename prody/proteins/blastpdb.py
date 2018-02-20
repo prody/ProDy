@@ -45,12 +45,19 @@ def blastPDB(sequence='runexample', filename=None, **kwargs):
                     'SDHWSQNLSQFFPEAISFIDEARGKNCGVLVHSLAGISRSVTVTVAYLMQKLNLSMN'
                     'DAYDIVKMKKSNISPNFNFMGQLLDFERTL')
     elif isinstance(sequence, Atomic):
+        chain = sequence.getChids()[0]
         sequence = sequence.select('calpha and chain %s' % chain).getSequence()
     elif isinstance(sequence, Sequence):
         sequence = str(sequence)
     elif isinstance(sequence, str):
         if len(sequence) == 4 or len(sequence) == 5:
-            ag = parsePDB(sequence)
+            ag = parsePDB(sequence[:4])
+
+            if len(sequence) == 5:
+                chain = sequence[-1]
+            else:
+                chain = sequence.getChids()[0]
+
             sequence = ag.select('calpha and chain %s' % chain).getSequence()
     else:
         raise TypeError('seq must be an atomic class, sequence class, or str not {0}'
@@ -209,10 +216,8 @@ class PDBBlastRecord(object):
                 p_overlap = (100.0 * (data['align-len'] - data['gaps']) /
                               query_len)
                 data['percent_coverage'] = p_overlap
-                data['percent_overlap'] = p_overlap
+                
                 for item in (hit['id'] + hit['def']).split('>gi'):
-                    #>gi|1633462|pdb|4AKE|A Chain A, Adenylate Kinase
-                    #                        __________TITLE__________
                     head, title = item.split(None, 1)
                     head = head.split('|')
                     pdb_id = head[-2].lower()
@@ -235,15 +240,15 @@ class PDBBlastRecord(object):
 
         return dict(self._param)
 
-    def getHits(self, percent_identity=90., percent_overlap=70., chain=False):
+    def getHits(self, percent_identity=0., percent_overlap=0., chain=False):
         """Returns a dictionary in which PDB identifiers are mapped to structure
         and alignment information.
 
         :arg percent_identity: PDB hits with percent sequence identity equal
-            to or higher than this value will be returned, default is ``90.0``
+            to or higher than this value will be returned, default is ``0.``
         :type percent_identity: float
         :arg percent_overlap: PDB hits with percent coverage of the query
-          sequence equivalent or better will be returned, default is ``70.0``
+          sequence equivalent or better will be returned, default is ``0.``
         :type percent_overlap: float
         :arg chain: if chain is **True**, individual chains in a PDB file
           will be considered as separate hits , default is **False**

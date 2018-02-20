@@ -1,5 +1,5 @@
 import os.path
-
+import numpy as np
 from prody import LOGGER, PY3K
 from prody.utilities import dictElement, openURL, which
 
@@ -29,19 +29,29 @@ def psiBlastRun(sequence='runexample', cycles=2, filename=None, **kwargs):
         default is 2
     :type cycles: int
     """
-    jobId = kwargs.get('jobId',None)
+    psithr = kwargs.get('psithr', 1.0e-3)
+    jobId = kwargs.get('previousjobid','')
+    selectedHits = kwargs.get('selectedHits','selected_hits.txt')
+
     cycles_done = 0
     results_list = []
     jobIds = []
     while cycles_done < cycles:
-        jobId, results, sequence = psiBlastCycle(sequence, filename, **kwargs)
+        jobId, results, sequence = psiBlastCycle(sequence, filename, \
+                                                 previousjobid=jobId, \
+                                                 selectedHits=selectedHits, \
+                                                 **kwargs)
         results_list.append(results)
-        jobIds.append(jobId)
-        kwargs['previousjobid'] = jobId
         cycles_done += 1
         LOGGER.info('Finished cycle {0} with job ID {1}.'.format(cycles_done, jobId))
 
-    return jobId, results_list, sequence
+        fo = open(selectedHits,'w')
+        for hit in results._hits:
+             if hit[2]['expectation'] < psithr:
+                 fo.write(hit[2]['pdb_id'] + '_' + hit[2]['chain_id'] + '\n')
+        fo.close() 
+
+    return jobIds, results_list, sequence
 
 def psiBlastCycle(sequence='runexample', filename=None, **kwargs):
     """Returns a :class:`PDBBlastRecord` instance that contains results from
@@ -319,7 +329,8 @@ def psiBlastCycle(sequence='runexample', filename=None, **kwargs):
         out.close()
         LOGGER.info('Results are saved as {0}.'.format(repr(filename)))
     
-    return jobId, results, sequence #PsiBlastRecord(results, sequence)
+    return jobId, PsiBlastRecord(results, sequence), sequence
+    return jobId, results, sequence
 
 def checkPsiBlastParameter(parameter, value):
     """Checks that the value provided for a parameter is in the xml page for that parameter
@@ -390,13 +401,99 @@ class PsiBlastRecord(object):
                     raise ValueError('not a valid protein sequence')
         self._sequence = sequence
 
-        #data_dict = xml2dict(results)
-        #root = data_dict[data_dict.keys()[0]]
-        #header = root['Header']
-        #parameters = header['parameters']
-        #query_len = parameters['sequences']['sequence']['length']
-        #if sequence and len(sequence) != query_len:
-        #    raise ValueError('xml sequence length and the length of the provided '
-        #                     'sequence do not match')
+        tree = ET.fromstring(results)
+        header = tree.getchildren()[0]
+        parameters = dictElement(header.getchildren()[2], '{http://www.ebi.ac.uk/schema}')
+        query_len = int(parameters.items()[0][1].getchildren()[0].items()[0][1])
+
+        self._params = np.sum([parameters.items()[0][1].getchildren()[0].items(), \
+                               parameters.items()[1:-2], \
+                               parameters.items()[-2][1].getchildren()[0].items(), \
+                               [(parameters.items()[-1])]])
+
+        result = tree.getchildren()[1] 
+        hits = []
+        for hit in result.getchildren()[0]:
+            alignments = dictElement(hit.getchildren()[0], '{http://www.ebi.ac.uk/schema}')
+            data = dictElement(alignments['alignment'], '{http://www.ebi.ac.uk/schema}')
+ 
+            for key in ['gaps', 'score']:
+                if key in data.keys():
+                    data[key] = int(data[key])
+                else:
+                    data[key] = 0
+
+            data['query-len'] = query_len
+
+            for key in ['bits', 'expectation', 'identity']:
+                data[key] = float(data[key])
+
+            p_identity = data['identity'] 
+            data['percent_identity'] = p_identity
+            p_overlap = (100.0 * (len(data['querySeq']) - data['gaps']) /
+                         query_len)
+            data['percent_coverage'] = p_overlap
+
+            pdbch = dict(data)
+            pdbch['pdb_id'] = hit.items()[0][1][:4]
+            pdbch['chain_id'] = hit.items()[0][1][-1]
+            pdbch['description'] = hit.items()[2][1]
+            hits.append((p_identity, p_overlap, pdbch))
+
+        hits.sort(key=lambda hit: hit[0], reverse=True)
+        self._hits = hits
         
+        if sequence and len(sequence) != query_len:
+            raise ValueError('xml sequence length and the length of the provided '
+                             'sequence do not match')
         
+    def getSequence(self):
+        """Returns the query sequence that was used in the search."""
+
+        return self._sequence
+
+    def getParameters(self):
+        """Returns parameters used in blast search."""
+
+        return dict(self._param)
+
+    def getHits(self, percent_identity=0., percent_overlap=0., chain=False):
+        """Returns a dictionary in which PDB identifiers are mapped to structure
+        and alignment information.
+
+        :arg percent_identity: PDB hits with percent sequence identity equal
+            to or higher than this value will be returned, default is ``0.``
+        :type percent_identity: float
+        :arg percent_overlap: PDB hits with percent coverage of the query
+          sequence equivalent or better will be returned, default is ``0.``
+        :type percent_overlap: float
+        :arg chain: if chain is **True**, individual chains in a PDB file
+          will be considered as separate hits , default is **False**
+        :type chain: bool"""
+
+        assert isinstance(percent_identity, (float, int)), \
+            'percent_identity must be a float or an integer'
+        assert isinstance(percent_overlap, (float, int)), \
+            'percent_overlap must be a float or an integer'
+        assert isinstance(chain, bool), 'chain must be a boolean'
+
+        hits = {}
+        for p_identity, p_overlap, hit in self._hits:
+            if p_identity < percent_identity:
+                break
+            if p_overlap < percent_overlap:
+                continue
+            if chain:
+                key = (hit['pdb_id'], hit['chain_id'])
+            else:
+                key = hit['pdb_id']
+            if not key in hits:
+                hits[key] = hit
+        return hits
+
+    def getBest(self):
+        """Returns a dictionary containing structure and alignment information
+        for the hit with highest sequence identity."""
+
+        return dict(self._hits[0][2])
+ 
