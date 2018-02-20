@@ -143,7 +143,7 @@ class MSAFile(object):
             except AttributeError:
                 pass
 
-            self.stFilter(kwargs.get('filter', None),
+            self.setFilter(kwargs.get('filter', None),
                            kwargs.get('filter_full', False))
             self.setSlice(kwargs.get('slice', None))
             self._iter = self._itermap[format](self)
