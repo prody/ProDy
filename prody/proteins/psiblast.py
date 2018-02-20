@@ -20,7 +20,7 @@ from prody.proteins.pdbfile import parsePDB
 
 __all__ = ['PsiBlastRecord', 'psiBlastCycle', 'psiBlastRun']
 
-def psiBlastRun(sequence='runexample', cycles=2, filename=None, **kwargs):
+def psiBlastRun(sequence, cycles=2, filename=None, **kwargs):
     """Returns the results from a full PSI-BLAST run (multiple cycles).
     All arguments are the same as psiBlastCycle and are passed to it
     except for cycles.
@@ -31,18 +31,19 @@ def psiBlastRun(sequence='runexample', cycles=2, filename=None, **kwargs):
     """
     psithr = kwargs.get('psithr', 1.0e-3)
     job_id = kwargs.get('previousjobid','') 
-    selHits = kwargs.get('selectedHits','')
+    selectedHits = kwargs.get('selectedHits','')
 
     cycles_done = 0
     results_list = []
     job_ids = []
     while cycles_done < cycles:
         if cycles_done > 0:
-            selHits = 'http://www.ebi.ac.uk/Tools/services/rest/psiblast/result/' \
+            selectedHits = 'http://www.ebi.ac.uk/Tools/services/rest/psiblast/result/' \
                       + job_id + '/preselected_seq'
+            sequence = None
         job_id, results, sequence = psiBlastCycle(sequence, filename, \
                                                  previousjobid=job_id, \
-                                                 selectedHits=selHits, \
+                                                 selectedHits=selectedHits, \
                                                  **kwargs)
         results_list.append(results)
         job_ids.append(job_id)
@@ -51,7 +52,7 @@ def psiBlastRun(sequence='runexample', cycles=2, filename=None, **kwargs):
 
     return job_ids, results_list, sequence
 
-def psiBlastCycle(sequence='runexample', filename=None, **kwargs):
+def psiBlastCycle(sequence, filename=None, **kwargs):
     """Returns a :class:`PDBBlastRecord` instance that contains results from
     a single cycle of EBI psiblast.
 
@@ -169,25 +170,25 @@ def psiBlastCycle(sequence='runexample', filename=None, **kwargs):
                     'DAYDIVKMKKSNISPNFNFMGQLLDFERTL')
 
     elif isinstance(sequence, Atomic):
-        chain = sequence.getChids()[0] 
-        sequence = sequence.select('calpha and chain %s' % chain).getSequence()
+        sequence = sequence.calpha.getSequence()
 
     elif isinstance(sequence, Sequence):
         sequence = str(sequence)
 
     elif isinstance(sequence, str):
-        if len(sequence) == 4 or len(sequence) == 5:
-            sequence = parsePDB(sequence[:4])
-            chain = sequence.getChids()[0]
-            sequence = ag.select('calpha and chain %s' % chain).getSequence()
+        if len(sequence) == 4 or len(sequence) == 5 or len(sequence) == 6:
+            sequence = parsePDB(sequence)
+            sequence = ag.calpha.getSequence()
+        sequence = ''.join(sequence.split())
+
+    elif sequence is None:
+        pass
 
     else:
         raise TypeError('sequence must be Atomic, Sequence, or str not {0}'
                         .format(type(sequence)))
 
-    sequence = ''.join(sequence.split())
-
-    query = [('sequence', sequence)] 
+    query = [('sequence', sequence)]
 
     email = kwargs.get('email','prody-devel@gmail.com')
     if not isinstance(email, str):

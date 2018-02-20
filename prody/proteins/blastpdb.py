@@ -45,8 +45,7 @@ def blastPDB(sequence, filename=None, **kwargs):
                     'DAYDIVKMKKSNISPNFNFMGQLLDFERTL')
 
     elif isinstance(sequence, Atomic):
-        chain = sequence.getChids()[0]
-        sequence = sequence.select('calpha and chain %s' % chain).getSequence()
+        sequence = sequence.calpha.getSequence()
 
     elif isinstance(sequence, Sequence):
         sequence = str(sequence)
@@ -54,14 +53,12 @@ def blastPDB(sequence, filename=None, **kwargs):
     elif isinstance(sequence, str):
         if len(sequence) == 4 or len(sequence) == 5:
             sequence = parsePDB(sequence)
-            chain = sequence.getChids()[0]
-            sequence = ag.select('calpha and chain %s' % chain).getSequence()
+            sequence = ag.calpha.getSequence()
+        sequence = ''.join(sequence.split())
 
     else:
         raise TypeError('sequence must be Atomic, Sequence, or str not {0}'
                         .format(type(sequence)))
-
-    sequence = ''.join(sequence.split())
 
     headers = {'User-agent': 'ProDy'}
     query = [('DATABASE', 'pdb'), ('ENTREZ_QUERY', '(none)'),
