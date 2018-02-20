@@ -126,10 +126,12 @@ def parsePDB(*pdb, **kwargs):
         LOGGER.update(n_pdb, '{0} PDB structures retrieved'.format(n_pdb))
         LOGGER.verbosity = verb
        
-    for i in reversed(range(len(results))):
+        for i in reversed(range(len(results))):
             if all(j is None for j in results[i]):
                 results.pop(i)
-        if len(results) == 1: results = results[0]
+        if len(results) == 1:
+            results = results[0]
+
         return results
 
 def _getPDBid(pdb):
