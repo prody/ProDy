@@ -12,7 +12,7 @@ else:
     import urllib
     import urllib2
 
-import xmltodict
+#import xmltodict
 
 from prody.sequence import Sequence
 from prody.atomic import Atomic
@@ -386,13 +386,13 @@ class PsiBlastRecord(object):
                     raise ValueError('not a valid protein sequence')
         self._sequence = sequence
 
-        data_dict = xml2dict(results)
-        root = data_dict[data_dict.keys()[0]]
-        header = root['Header']
-        parameters = header['parameters']
-        query_len = parameters['sequences']['sequence']['length']
-        if sequence and len(sequence) != query_len:
-            raise ValueError('xml sequence length and the length of the provided '
-                             'sequence do not match')
+        #data_dict = xml2dict(results)
+        #root = data_dict[data_dict.keys()[0]]
+        #header = root['Header']
+        #parameters = header['parameters']
+        #query_len = parameters['sequences']['sequence']['length']
+        #if sequence and len(sequence) != query_len:
+        #    raise ValueError('xml sequence length and the length of the provided '
+        #                     'sequence do not match')
         
         

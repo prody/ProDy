@@ -16,8 +16,6 @@ else:
     import urllib
     import urllib2
 
-import xmltodict
-
 from prody.sequence import Sequence
 from prody.atomic import Atomic
 from prody.proteins.pdbfile import parsePDB
