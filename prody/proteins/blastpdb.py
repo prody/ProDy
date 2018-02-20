@@ -1,22 +1,33 @@
 # -*- coding: utf-8 -*-
-"""This module defines functions for blast searching Protein Data Bank."""
+"""This module defines functions for blast searching the Protein Data Bank."""
 
 import os.path
-import os
-
-from prody import LOGGER
+import numpy as np
+from prody import LOGGER, PY3K
 from prody.utilities import dictElement, openURL, which
+from prody.sequence import parseMSA, MSA, Sequence
 
-__all__ = ['PDBBlastRecord', 'blastPDB', 'showSequenceTree']
+import platform, os, re, sys, time, urllib
 
+if PY3K:
+    import urllib.parse as urllib
+    import urllib.request as urllib2
+else:
+    import urllib
+    import urllib2
+
+from prody.atomic import Atomic
+from prody.proteins.pdbfile import parsePDB
+
+__all__ = ['PDBBlastRecord', 'blastPDB',]
 
 def blastPDB(sequence, filename=None, **kwargs):
     """Returns a :class:`PDBBlastRecord` instance that contains results from
-    blast searching of ProteinDataBank database *sequence* using NCBI blastp.
+    blast searching *sequence* against the PDB using NCBI blastp.
 
-    :arg sequence: single-letter code amino acid sequence of the protein
-        without any gap characters, all white spaces will be removed
-    :type sequence: str
+    :arg sequence: an object with an associated sequence string 
+         or a sequence string itself
+    :type sequence: :class:`Atomic`, :class:`Sequence`, or str
 
     :arg filename: a *filename* to save the results in XML format
     :type filename: str
@@ -24,27 +35,35 @@ def blastPDB(sequence, filename=None, **kwargs):
     *hitlist_size* (default is ``250``) and *expect* (default is ``1e-10``)
     search parameters can be adjusted by the user.  *sleep* keyword argument
     (default is ``2`` seconds) determines how long to wait to reconnect for
-    results.  Sleep time is doubled when results are not ready.  *timeout*
-    (default is 120s) determines when to give up waiting for the results.
+    results.  Sleep time is multiplied by 1.5 when results are not ready.  
+    *timeout* (default is 120 s) determines when to give up waiting for the results.
     """
 
     if sequence == 'runexample':
         sequence = ('ASFPVEILPFLYLGCAKDSTNLDVLEEFGIKYILNVTPNLPNLFENAGEFKYKQIPI'
                     'SDHWSQNLSQFFPEAISFIDEARGKNCGVLVHSLAGISRSVTVTVAYLMQKLNLSMN'
                     'DAYDIVKMKKSNISPNFNFMGQLLDFERTL')
-    else:
-        try:
-            sequence = ''.join(sequence.split())
-            _ = sequence.isalpha()
-        except AttributeError:
-            raise TypeError('sequence must be a string')
-        else:
-            if not _:
-                raise ValueError('not a valid protein sequence')
-    headers = {'User-agent': 'ProDy'}
 
+    elif isinstance(sequence, Atomic):
+        sequence = sequence.calpha.getSequence()
+
+    elif isinstance(sequence, Sequence):
+        sequence = str(sequence)
+
+    elif isinstance(sequence, str):
+        if len(sequence) == 4 or len(sequence) == 5:
+            sequence = parsePDB(sequence)
+            sequence = ag.calpha.getSequence()
+        sequence = ''.join(sequence.split())
+
+    else:
+        raise TypeError('sequence must be Atomic, Sequence, or str not {0}'
+                        .format(type(sequence)))
+
+    headers = {'User-agent': 'ProDy'}
     query = [('DATABASE', 'pdb'), ('ENTREZ_QUERY', '(none)'),
              ('PROGRAM', 'blastp'),]
+
     expect = float(kwargs.pop('expect', 10e-10))
     if expect <= 0:
         raise ValueError('expect must be a positive number')
@@ -58,10 +77,6 @@ def blastPDB(sequence, filename=None, **kwargs):
 
     sleep = float(kwargs.pop('sleep', 2))
     timeout = float(kwargs.pop('timeout', 120))
-
-    if kwargs:
-        LOGGER.warn('Keyword argument(s) {0} are not used.'
-                    .format(', '.join([repr(key) for key in kwargs])))
 
     try:
         import urllib.parse
@@ -98,7 +113,7 @@ def blastPDB(sequence, filename=None, **kwargs):
 
     while True:
         LOGGER.sleep(int(sleep), 'to reconnect NCBI for search results.')
-        LOGGER.write('Connecting NCBI for search results...')
+        LOGGER.write('Connecting to NCBI for search results...')
         handle = openURL(url, data=data, headers=headers)
         results = handle.read()
         index = results.find(b'Status=')
@@ -115,6 +130,7 @@ def blastPDB(sequence, filename=None, **kwargs):
             return None
     LOGGER.clear()
     LOGGER.report('Blast search completed in %.1fs.', '_prody_blast')
+
     try:
         ext_xml = filename.lower().endswith('.xml')
     except AttributeError:
@@ -126,23 +142,25 @@ def blastPDB(sequence, filename=None, **kwargs):
         out.write(results)
         out.close()
         LOGGER.info('Results are saved as {0}.'.format(repr(filename)))
+
     return PDBBlastRecord(results, sequence)
 
 
 class PDBBlastRecord(object):
 
-    """A class to store results from ProteinDataBank blast search."""
+    """A class to store results from blast searches."""
 
 
     def __init__(self, xml, sequence=None):
-        """Instantiate a PDBlast object instance.
+        """Instantiate a PDBBlastRecord object instance.
 
         :arg xml: blast search results in XML format or an XML file that
             contains the results
         :type xml: str
 
         :arg sequence: query sequence
-        :type sequence: str"""
+        :type sequence: str
+        """
 
         if sequence:
             try:
@@ -195,10 +213,8 @@ class PDBBlastRecord(object):
                 p_overlap = (100.0 * (data['align-len'] - data['gaps']) /
                               query_len)
                 data['percent_coverage'] = p_overlap
-                data['percent_overlap'] = p_overlap
+                
                 for item in (hit['id'] + hit['def']).split('>gi'):
-                    #>gi|1633462|pdb|4AKE|A Chain A, Adenylate Kinase
-                    #                        __________TITLE__________
                     head, title = item.split(None, 1)
                     head = head.split('|')
                     pdb_id = head[-2].lower()
@@ -221,15 +237,15 @@ class PDBBlastRecord(object):
 
         return dict(self._param)
 
-    def getHits(self, percent_identity=90., percent_overlap=70., chain=False):
+    def getHits(self, percent_identity=0., percent_overlap=0., chain=False):
         """Returns a dictionary in which PDB identifiers are mapped to structure
         and alignment information.
 
         :arg percent_identity: PDB hits with percent sequence identity equal
-            to or higher than this value will be returned, default is ``90.0``
+            to or higher than this value will be returned, default is ``0.``
         :type percent_identity: float
         :arg percent_overlap: PDB hits with percent coverage of the query
-          sequence equivalent or better will be returned, default is ``70.0``
+          sequence equivalent or better will be returned, default is ``0.``
         :type percent_overlap: float
         :arg chain: if chain is **True**, individual chains in a PDB file
           will be considered as separate hits , default is **False**
@@ -261,32 +277,23 @@ class PDBBlastRecord(object):
 
         return dict(self._hits[0][2])
 
-def showSequenceTree(hits):
-    """Returns a plot that contains a dendrogram of the sequence similarities among
-    the sequences in given hit list. 
+    def writeSequences(self, filename, **kwargs):
+        """
+        Returns a plot that contains a dendrogram of the sequence similarities among
+        the sequences in given hit list. 
+
+        :arg hits: A dictionary that contains hits that are obtained from a blast record object. 
+        :type hits: dict
+
+        Arguments of getHits can be parsed as kwargs.
+        """
+        if not filename.lower().endswith('.fasta'):
+            filename += '.fasta'
     
-    :arg hits: A dictionary that contains hits that are obtained from a blast record object. 
-    :type hits: dict
-    """
-    clustalw = which('clustalw')
-    if clustalw is None:
-        print("The executable for clustalw does not exists, install or add clustalw to path.")
-        return
-    try:
-        from Bio import Phylo
-    except:
-        raise ImportError("Phylo is not installed properly.")
-    with open("hits.fasta","w") as inp:
-        for z in hits:
-            inp.write(">" + str(z) + "\n")
-            inp.write(hits[z]['hseq'])
-            inp.write("\n")
-    cmd = clustalw + " hits.fasta"
-    os.system(cmd)
-    tree = Phylo.read("hits.dnd","newick")
-    try:
-        import pylab
-    except:
-        raise ImportError("Pylab or matplotlib is not installed.")
-    Phylo.draw(tree)
-    return
+        with open(filename,'w') as f_out:
+            for z in self.getHits(**kwargs):
+                f_out.write(">" + str(z) + "\n")
+                f_out.write(hits[z]['hseq'])
+                f_out.write("\n")
+
+        return filename

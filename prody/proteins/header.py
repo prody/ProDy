@@ -732,7 +732,7 @@ def _getPolymers(lines):
                             repr(dbref.dbabbr), repr(dbabbr)))
                 continue
             dbacc = line[29:38].strip()
-            if dbref.accession != dbacc:
+            if dbref.accession[:9] != dbacc[:9]:
                 LOGGER.warn('SEQADV for chain {2}: accession code '
                             'mismatch, expected {3} parsed {4} '
                             '({0}:{1})'.format(pdbid, i, ch,
@@ -1002,8 +1002,10 @@ def assignSecstr(header, atoms, coil=False):
         res.setSecindices(value[1])
         res.setSecstrs('E')
         count += 1
+
     LOGGER.info('Secondary structures were assigned to {0} residues.'
                 .format(count))
+
     return atoms
 
 
