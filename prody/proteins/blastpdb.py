@@ -5,6 +5,7 @@ import os.path
 
 from prody import LOGGER, PY3K
 from prody.utilities import dictElement, openURL, which
+from prody.sequence.msafile import parseMSA
 
 import platform, os, re, sys, time, urllib
 
@@ -59,7 +60,8 @@ def blastPDB(sequence='runexample', filename=None, **kwargs):
 
     headers = {'User-agent': 'ProDy'}
     query = [('DATABASE', 'pdb'), ('ENTREZ_QUERY', '(none)'),
-             ('PROGRAM', 'blastp')]
+             ('PROGRAM', 'blastp'),]
+
     expect = float(kwargs.pop('expect', 10e-10))
     if expect <= 0:
         raise ValueError('expect must be a positive number')
@@ -283,8 +285,9 @@ def showSequenceTree(hits):
     """
     clustalw = which('clustalw')
     if clustalw is None:
-        print("The executable for clustalw does not exists, install or add clustalw to path.")
-        return
+        try: clustalw = which('clustalw2')
+        except: raise ValueError("The executable for clustalw does not exist, \
+                                  install clustalw or add it to the path.")
     try:
         from Bio import Phylo
     except:
@@ -296,10 +299,12 @@ def showSequenceTree(hits):
             inp.write("\n")
     cmd = clustalw + " hits.fasta"
     os.system(cmd)
+    msa = parseMSA('hits.aln')
     tree = Phylo.read("hits.dnd","newick")
     try:
         import pylab
     except:
         raise ImportError("Pylab or matplotlib is not installed.")
     Phylo.draw(tree)
-    return
+    return tree, msa
+

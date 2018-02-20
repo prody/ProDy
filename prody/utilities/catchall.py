@@ -355,7 +355,7 @@ def reorderMatrix(names, matrix, tree):
     if np.shape(matrix)[0] != np.shape(matrix)[1]:
         raise ValueError('matrix should be a square matrix')
 
-    if type(tree) is not Phylo.BaseTree.Tree:
+    if type(tree) is not Phylo.BaseTree.Tree and type(tree) is not Phylo.Newick.Tree:
         raise TypeError('tree should be a BioPython Tree')
 
     if len(names) != len(matrix):
