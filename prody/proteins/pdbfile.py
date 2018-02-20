@@ -126,7 +126,7 @@ def parsePDB(*pdb, **kwargs):
         LOGGER.update(n_pdb, '{0} PDB structures retrieved'.format(n_pdb))
         LOGGER.verbosity = verb
        
-	for i in reversed(range(len(results))):
+    for i in reversed(range(len(results))):
             if all(j is None for j in results[i]):
                 results.pop(i)
         if len(results) == 1: results = results[0]
@@ -817,8 +817,8 @@ def _evalAltlocs(atomgroup, altloc, chainids, resnums, resnames, atomnames):
         LOGGER.info('{0} out of {1} altloc {2} lines were parsed.'
                     .format(success, len(lines), repr(key)))
         if success > 0:
-            LOGGER.info('Altloc {0} is appended as a coordinate set to the '
-                        'atom group.'.format(repr(key), atomgroup.getTitle()))
+            LOGGER.info('Altloc {0} is appended as a coordinate set to '
+                        'atomgroup {1}.'.format(repr(key), atomgroup.getTitle()))
             atomgroup.addCoordset(xyz, label='altloc ' + key)
 
 PDBLINE = ('{0:6s}{1:5d} {2:4s}{3:1s}'
