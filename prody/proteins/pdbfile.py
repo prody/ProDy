@@ -114,10 +114,22 @@ def parsePDB(*pdb, **kwargs):
                 kwargs[key] = lstkwargs[key][i]
             LOGGER.update(i, 'Retrieving {0}...'.format(p))
             result = _parsePDB(p, **kwargs)
+            if not isinstance(result, tuple):
+                if isinstance(result, dict):
+                    result = (None, result)
+                else:
+                    result = (result, None)
             results.append(result)
+
+        results = zip(*results)
 
         LOGGER.update(n_pdb, '{0} PDB structures retrieved'.format(n_pdb))
         LOGGER.verbosity = verb
+       
+	for i in reversed(range(len(results))):
+            if all(j is None for j in results[i]):
+                results.pop(i)
+        if len(results) == 1: results = results[0]
         return results
 
 def _getPDBid(pdb):
@@ -173,8 +185,7 @@ def parsePDBStream(stream, **kwargs):
     parsed from a stream of PDB lines.
 
     :arg stream: Anything that implements the method ``readlines``
-        (e.g. :class:`file`, buffer, stdin)"""
-    report = kwargs.get('report', True)
+        (e.g. :class:`file`, buffer, stdin)""" 
     model = kwargs.get('model')
     header = kwargs.get('header', False)
     assert isinstance(header, bool), 'header must be a boolean'
@@ -251,11 +262,11 @@ def parsePDBStream(stream, **kwargs):
         if secondary:
             if auto_secondary:
                 try:
-                    ag = assignSecstr(hd, ag, report=report)
+                    ag = assignSecstr(hd, ag)
                 except ValueError:
                     pass
             else:
-                ag = assignSecstr(hd, ag, report=report)
+                ag = assignSecstr(hd, ag)
         if biomol:
             ag = buildBiomolecules(hd, ag)
 
@@ -849,14 +860,15 @@ _writePDBdoc = """
         column
     """
 
-def writeChainsList(chains,filename='chains_list.txt'):
+def writeChainsList(chains, filename):
     """
     Write a text file containing a list of chains that can be parsed.
 
     :arg chains: a list of :class:`.Chain` objects
+    :type chains: list
     
     :arg filename: the name of the file to be written
-    :type filename: string
+    :type filename: str
     """
 
     fo = open(filename,'w')
@@ -865,17 +877,19 @@ def writeChainsList(chains,filename='chains_list.txt'):
     fo.close()
     return
 
-def parseChainsList(filename='chains_list.txt'):
+def parseChainsList(filename):
     """
     Parse a set of PDBs and extract chains based on a list in a text file.
 
     :arg filename: the name of the file to be read
-    :type filename: string
+    :type filename: str
 
     Returns: lists containing an :class:'.AtomGroup' for each PDB, 
     the headers for those PDBs, and the requested :class:`.Chain` objects
     """
-        
+    verb = LOGGER.verbosity
+    LOGGER.verbosity = 'info'
+    
     fi = open(filename,'r')
     lines = fi.readlines()
     fi.close()
@@ -884,12 +898,15 @@ def parseChainsList(filename='chains_list.txt'):
     ags = []
     headers = []
     chains = []
-    for line in lines:
+    num_lines = len(lines)
+    LOGGER.progress('Starting', num_lines)
+    for i, line in enumerate(lines):
+        LOGGER.update(i, 'Parsing lines...')
         pdb_id = line.split()[0].split('_')[0]
         if not pdb_id in pdb_ids:
             pdb_ids.append(pdb_id)
 
-            ag, header = parsePDB(pdb_ids[-1], compressed=False, report=False, \
+            ag, header = parsePDB(pdb_id, compressed=False, \
                                   subset=line.split()[0].split('_')[1], header=True)
 
             ags.append(ag)
@@ -897,6 +914,7 @@ def parseChainsList(filename='chains_list.txt'):
 
         chains.append(ag.getHierView()[line.strip().split()[1]])
 
+    LOGGER.verbosity = verb
     LOGGER.info('{0} PDBs have been parsed and {1} chains have been extracted. \
                 '.format(len(ags),len(chains)))
 

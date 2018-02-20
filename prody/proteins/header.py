@@ -915,7 +915,7 @@ def isSheet(secstrs):
     torf = secstrs == 'E'
     return torf
 
-def assignSecstr(header, atoms, coil=False, report=True):
+def assignSecstr(header, atoms, coil=False):
     """Assign secondary structure from *header* dictionary to *atoms*.
     *header* must be a dictionary parsed using the :func:`.parsePDB`.
     *atoms* may be an instance of :class:`.AtomGroup`, :class:`.Selection`,
@@ -1003,9 +1003,8 @@ def assignSecstr(header, atoms, coil=False, report=True):
         res.setSecstrs('E')
         count += 1
 
-    if report:
-        LOGGER.info('Secondary structures were assigned to {0} residues.'
-                    .format(count))
+    LOGGER.info('Secondary structures were assigned to {0} residues.'
+                .format(count))
 
     return atoms
 

@@ -2,10 +2,10 @@
 """This module defines functions for blast searching the Protein Data Bank."""
 
 import os.path
-
+import numpy as np
 from prody import LOGGER, PY3K
 from prody.utilities import dictElement, openURL, which
-from prody.sequence.msafile import parseMSA
+from prody.sequence import parseMSA, MSA, Sequence
 
 import platform, os, re, sys, time, urllib
 
@@ -16,13 +16,12 @@ else:
     import urllib
     import urllib2
 
-from prody.sequence import Sequence
 from prody.atomic import Atomic
 from prody.proteins.pdbfile import parsePDB
 
-__all__ = ['PDBBlastRecord', 'blastPDB', 'showSequenceTree']
+__all__ = ['PDBBlastRecord', 'blastPDB',]
 
-def blastPDB(sequence='runexample', filename=None, **kwargs):
+def blastPDB(sequence, filename=None, **kwargs):
     """Returns a :class:`PDBBlastRecord` instance that contains results from
     blast searching *sequence* against the PDB using NCBI blastp.
 
@@ -241,7 +240,7 @@ class PDBBlastRecord(object):
 
         return dict(self._param)
 
-    def getHits(self, percent_identity=90., percent_overlap=70., chain=False):
+    def getHits(self, percent_identity=0., percent_overlap=0., chain=False):
         """Returns a dictionary in which PDB identifiers are mapped to structure
         and alignment information.
 
@@ -281,59 +280,24 @@ class PDBBlastRecord(object):
 
         return dict(self._hits[0][2])
 
-def showSequenceTree(hits):
-    """Returns a plot that contains a dendrogram of the sequence similarities among
-    the sequences in given hit list. 
-    :arg hits: A dictionary that contains hits that are obtained from a blast record object. 
-    :type hits: dict
-    """
-    clustalw = which('clustalw')
-    if clustalw is None:
-        try: 
-            clustalw = which('clustalw2')
-        except: 
-            raise EnvironmentError("The executable for clustalw was not found, \
-                                    install clustalw or add it to the path.")
-    try:
-        from Bio import Phylo
-    except:
-        raise ImportError("Phylo is not installed properly.")
+    def writeSequences(self, filename, **kwargs):
+        """
+        Returns a plot that contains a dendrogram of the sequence similarities among
+        the sequences in given hit list. 
 
-    with open("hits.fasta","w") as f_out:
-        for z in hits:
-            f_out.write(">" + str(z) + "\n")
-            f_out.write(hits[z]['hseq'])
-            f_out.write("\n")
+        :arg hits: A dictionary that contains hits that are obtained from a blast record object. 
+        :type hits: dict
 
-    os.system(clustalw + " hits.fasta")
-    msa = parseMSA('hits.aln')
-    tree = Phylo.read("hits.dnd","newick")
-    try:
-        import pylab
-    except:
-        raise ImportError("Pylab or matplotlib is not installed.")
-    Phylo.draw(tree)
-    return tree, msa
+        Arguments of getHits can be parsed as kwargs.
+        """
+        if not filename.lower().endswith('.fasta'):
+            filename += '.fasta'
+    
+        with open(filename,'w') as f_out:
+            for z in self.getHits(**kwargs):
+                f_out.write(">" + str(z) + "\n")
+                f_out.write(hits[z]['hseq'])
+                f_out.write("\n")
 
-def runClustalw(sequences, prefix='msa'):
-    """
-    Runs clustalw on set of sequences then parses and returns the new MSA.
-    """
-    # 1. check if sequences are in a fasta file and if not make one
-    if 
-    if isinstance(sequences, MSA):
-        writeMSA(sequences, prefix + '.fasta')
+        return filename
 
-    # 2. find and run clustalw
-    clustalw = which('clustalw')
-    if clustalw is None:
-        try:
-            clustalw = which('clustalw2')
-        except:
-            raise EnvironmentError("The executable for clustalw was not found, \
-                                    install clustalw or add it to the path.")
-
-    os.system(clustalw + " " + prefix + ".fasta")
-
-    # 3. parse and return the new MSA
-    return parseMSA('hits.aln')
