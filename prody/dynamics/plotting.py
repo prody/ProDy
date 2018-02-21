@@ -1204,6 +1204,38 @@ def showPerturbResponseProfiles(prs_matrix,atoms=None,**kwargs):
     else:
         return show
 
+def _checkDomainBarParameter(domain_bar, defpos, atoms, label):
+    show = atoms is not None
+    pos = defpos
+
+    if not show:
+        return show, pos
+
+    # check if the user wants to show or not
+    from numbers import Number
+    if isinstance(domain_bar, bool):
+        show &= domain_bar
+        pos = defpos
+    elif isinstance(domain_bar, Number):
+        show &= True    # this line does nothing but is left for readability
+        pos = domain_bar
+
+    # check if the domain bar can be shown or not
+    try:
+        data = atoms.getData(label)
+        uniq = np.unique(data)
+        if domain_bar is None:
+            show &= len(uniq) > 1
+    except:
+        if domain_bar is None:
+            show &= False
+        if show:
+            raise ValueError('A {0} bar can only be generated if '
+                             'there is {0} data associated with '
+                             'the atoms.'.format(label))
+
+    return show, pos, data
+
 def showAtomicMatrix(matrix, x_array=None, y_array=None, atoms=None, **kwargs):
     """Show a matrix using :meth:`~matplotlib.axes.Axes.imshow`. Curves on x- and y-axis can be added.
     The first return value is the :class:`~matplotlib.axes.Axes` object for the upper plot, and the second
@@ -1254,6 +1286,8 @@ def showAtomicMatrix(matrix, x_array=None, y_array=None, atoms=None, **kwargs):
 
     chain_bar = kwargs.pop('chain_bar', None)
     domain_bar = kwargs.pop('domain_bar', None)
+    chain_text_loc = kwargs.pop('chain_text_loc', 'below')
+    domain_text_loc = kwargs.pop('domain_text_loc', 'below')
     fig = kwargs.pop('figure', None)
 
     if isinstance(fig, Figure):
@@ -1270,11 +1304,12 @@ def showAtomicMatrix(matrix, x_array=None, y_array=None, atoms=None, **kwargs):
 
     n_row, n_col = matrix.shape
     ticklabels = None
-    sides = (False, False)
+    sides = []
     if atoms is not None:
         n_atoms = atoms.numAtoms()
-        sides = (n_atoms == n_row, n_atoms == n_col)
-        if not any(sides):
+        if n_atoms == n_row: sides.append('x') 
+        if n_atoms == n_col: sides.append('y')
+        if not sides:
             raise ValueError('The number of atoms ({0}) is inconsistent with the shape '
                              'of the matrix ({1}, {2}).'.format(n_atoms, n_row, n_col))
         hv = atoms.getHierView()
@@ -1291,36 +1326,30 @@ def showAtomicMatrix(matrix, x_array=None, y_array=None, atoms=None, **kwargs):
 
     im, lines, colorbar = showMatrix(matrix, x_array, y_array, ticklabels=ticklabels, **kwargs) 
     
+    ## draw domain & chain bars
+    show_chain, chain_pos, chids = _checkDomainBarParameter(chain_bar, 1., atoms, 'chain')
+
     bars = []
     texts = []
-    if chain_bar is None:
-        chain_bar = atoms is not None
-
-    if chain_bar and atoms is not None:
-        showDomainBar(atoms.getChids(), loc=1., axis='x', 
-                      text_loc='below', text_color='w')
+    if show_chain:
+        b, t = showDomainBar(chids, loc=chain_pos, axis='x', 
+                             text_loc=chain_text_loc, text_color='w')
+        bars.extend(b)
+        texts.extend(t)
 
     # force turnning off domain_bar if chain_bar and only one side is 
     # available
-    if not all(sides):
+    if len(sides) < 2:
         if domain_bar is None and chain_bar:
             domain_bar = False
-    try:
-        domains = atoms.getData('domain')
-        uni_domids = np.unique(domains)
-        if domain_bar is None:
-            domain_bar = len(uni_domids) > 1
-    except:
-        if domain_bar is None:
-            domain_bar = False
-        elif domain_bar:
-            raise ValueError('A domain bar can only be generated if \
-                            there is domain data associated with \
-                            the atoms.')
 
-    if domain_bar and atoms is not None:
-        showDomainBar(domains, loc=0., axis='y', 
-                      text_loc='below', text_color='w')
+    show_domain, domain_pos, domains = _checkDomainBarParameter(domain_bar, 0., atoms, 'domain')
+
+    if show_domain:
+        b, t = showDomainBar(domains, loc=domain_pos, axis='y', 
+                             text_loc=domain_text_loc, text_color='w')
+        bars.extend(b)
+        texts.extend(t)
 
     return im, lines, colorbar, texts
 
@@ -1353,9 +1382,12 @@ def showAtomicData(y, atoms=None, linespec='-', **kwargs):
     
     chain_bar = kwargs.pop('chain_bar', None)
     domain_bar = kwargs.pop('domain_bar', None)
+    chain_text_loc = kwargs.pop('chain_text_loc', 'above')
+    domain_text_loc = kwargs.pop('domain_text_loc', 'below')
+    zero_line = kwargs.pop('show_zero', False)
 
     from prody.utilities import showData
-    from matplotlib.pyplot import figure, ylim, plot, text
+    from matplotlib.pyplot import figure, xlim, ylim, plot, text
     from matplotlib.figure import Figure
     from matplotlib import ticker
 
@@ -1393,51 +1425,25 @@ def showAtomicData(y, atoms=None, linespec='-', **kwargs):
             ticklabels = ['%s:%d'%(c, n) for c, n in zip(chids, resnums)]
 
     lines, polys = showData(y, linespec, ticklabels=ticklabels, **kwargs)
+    if zero_line:
+        l = xlim()
+        plot(l, [0, 0], '--', color='gray')
 
     bars = []
     texts = []
     if chain_bar is None:
         chain_bar = atoms is not None
 
-    from numbers import Number
-    show_chain = atoms is not None
-    h_chain = 0.
-    if isinstance(chain_bar, bool):
-        show_chain &= chain_bar
-        h_chain = 0.
-    elif isinstance(chain_bar, Number):
-        show_chain &= True    # this line does nothing but is left for readability
-        h_chain = chain_bar
+    show_chain, chain_pos, chids = _checkDomainBarParameter(chain_bar, 0., atoms, 'chain')
      
     if show_chain:
-        b, t = showDomainBar(atoms.getChids(), loc=0., axis='x', text_loc='above')
+        b, t = showDomainBar(atoms.getChids(), loc=chain_pos, axis='x', text_loc=chain_text_loc)
         bars.extend(b)
         texts.extend(t)
 
-    try:
-        domains = atoms.getData('domain')
-        uni_domids = np.unique(domains)
-        if domain_bar is None:
-            domain_bar = len(uni_domids) > 1
-    except:
-        if domain_bar is None:
-            domain_bar = False
-        elif domain_bar:
-            raise ValueError('A domain bar can only be generated if \
-                            there is domain data associated with \
-                            the atoms.')
-
-    show_domain = atoms is not None
-    h_domain = 0.
-    if isinstance(show_domain, bool):
-        show_domain &= domain_bar
-        h_domain = 1.
-    elif isinstance(show_domain, Number):
-        show_domain &= True    # this line does nothing but is left for readability
-        h_domain = domain_bar
-
+    show_domain, domain_pos, domains = _checkDomainBarParameter(domain_bar, 1., atoms, 'domain')
     if show_domain:
-        b, t = showDomainBar(domains, loc=1., axis='x', text_loc='below')
+        b, t = showDomainBar(domains, loc=domain_pos, axis='x', text_loc=domain_text_loc)
         bars.extend(b)
         texts.extend(t)
 

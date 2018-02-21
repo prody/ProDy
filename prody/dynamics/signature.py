@@ -6,7 +6,7 @@ import numpy as np
 
 from prody import LOGGER, SETTINGS
 from prody.utilities import showFigure, showMatrix
-from prody.ensemble import Ensemble
+from prody.ensemble import Ensemble, Conformation
 
 from .nma import NMA
 from .modeset import ModeSet
@@ -68,6 +68,8 @@ def calcEnsembleENMs(ensemble, model='gnm', trim='trim', n_modes=20):
 def _getEnsembleENMs(ensemble, **kwargs):
     if isinstance(ensemble, Ensemble):
         enms = calcEnsembleENMs(ensemble, **kwargs)
+    if isinstance(ensemble, Conformation):
+        enms = calcEnsembleENMs([ensemble], **kwargs)
     else:
         try:
             enms = []
@@ -179,7 +181,10 @@ def showSignatureProfile(ensemble, index, linespec='-', **kwargs):
         except:
             pass
 
-    lines, _, bars, _ = showAtomicData(meanV, atoms=atoms, linespec=linespec, **kwargs)
+    zero_line = kwargs.pop('show_zero', None)
+    if zero_line is None:
+        zero_line = np.isscalar(index)
+    lines, _, bars, _ = showAtomicData(meanV, atoms=atoms, linespec=linespec, show_zero=zero_line, **kwargs)
     line = lines[-1]
     color = line.get_color()
     x, _ = line.get_data()
