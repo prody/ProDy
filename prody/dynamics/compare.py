@@ -234,6 +234,14 @@ def matchModes(*modesets, **kwargs):
 
     n_modes = len(modes0)
     n_sets = len(modesets)
+    if n_sets == 1:
+        matches = []
+        modes = modesets[0]
+        for mode in modes:
+            matches.append([mode])
+        return matches
+    elif n_sets == 0:
+        raise ValueError('at least one modeset should be given')
 
     for i, modes in enumerate(modesets):
         if i > 0:
@@ -253,6 +261,7 @@ def matchModes(*modesets, **kwargs):
         matches = np.zeros((n_modes, n_sets))
     else:
         matches = [[None for _ in range(n_sets)] for _ in range(n_modes)]
+
     for i in range(n_modes):
         for j in range(n_sets):
             if j == 0:

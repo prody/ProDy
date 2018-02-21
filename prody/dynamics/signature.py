@@ -131,7 +131,7 @@ def getSignatureProfile(ensemble, index, **kwargs):
             V.append(v)
     else:
         V = []
-        for j in range(len(matches)):
+        for j in range(len(enms)):
             modes = []
             for i in index:
                 mode = matches[i][j]

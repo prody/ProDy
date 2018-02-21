@@ -78,12 +78,13 @@ class PDBEnsemble(Ensemble):
         elif isinstance(index, slice):
             ens = PDBEnsemble('{0} ({1[0]}:{1[1]}:{1[2]})'.format(
                               self._title, index.indices(len(self))))
-            ens.setCoords(self.getCoords())
+            ens.setCoords(self.getCoords(selected=False))
             ens.addCoordset(self._confs[index].copy(),
                             self._weights[index].copy(),
                             label=self._labels[index])
             if self._trans is not None:
                 ens._trans = self._trans[index]
+            ens.setAtoms(self.getAtoms())
             return ens
 
         elif isinstance(index, (list, np.ndarray)):

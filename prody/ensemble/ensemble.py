@@ -78,10 +78,12 @@ class Ensemble(object):
         elif isinstance(index, slice):
             ens = Ensemble('{0} ({1[0]}:{1[1]}:{1[2]})'.format(
                                 self._title, index.indices(len(self))))
-            ens.setCoords(self.getCoords())
-            ens.addCoordset(self.getCoordsets(index))
+            ens.setCoords(self.getCoords(selected=False))
+            ens.addCoordset(self.getCoordsets(index, selected=False))
             if self._weights is not None:
-                ens.setWeights(self.getWeights())
+                ens.setWeights(self.getWeights(selected=False))
+            
+            ens.setAtoms(self.getAtoms())
             return ens
 
         elif isinstance(index, (list, ndarray)):
