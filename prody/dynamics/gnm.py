@@ -225,7 +225,7 @@ class GNM(GNMBase):
 
     def buildAffinity(self, coords=None, cutoff=7.0):
 
-        if self._kirchhoff == None:
+        if self._kirchhoff is None:
             try: 
                 self.buildKirchhoff(coords, cutoff)
             except:
