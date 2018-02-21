@@ -111,12 +111,13 @@ class Ensemble(object):
                                                other.getTitle()))
         ensemble.setCoords(self._coords.copy())
         ensemble.addCoordset(self._confs.copy())
-        ensemble.addCoordset(other.getCoordsets())
+        ensemble.addCoordset(other.getCoordsets(selected=False))
 
         if self._weights is not None:
             LOGGER.info('Atom weights from {0} are used in {1}.'
                         .format(repr(self._title), repr(ensemble.getTitle())))
             ensemble.setWeights(self._weights)
+        ensemble.setAtoms(self.getAtoms())
         return ensemble
 
     def __iter__(self):
@@ -302,15 +303,15 @@ class Ensemble(object):
         try:
             if self._coords is not None:
                 if hasattr(coords, '_getCoordsets'):
-                    coords = coords._getCoordsets()
+                    coords = coords._getCoordsets(selected=False)
                 elif hasattr(coords, '_getCoords'):
-                    coords = coords._getCoords()
+                    coords = coords._getCoords(selected=False)
                     coords = array(coords)
             else:
                 if hasattr(coords, 'getCoordsets'):
-                    coords = coords.getCoordsets()
+                    coords = coords.getCoordsets(selected=False)
                 elif hasattr(coords, 'getCoords'):
-                    coords = coords.getCoords()
+                    coords = coords.getCoords(selected=False)
                     coords = array(coords)
 
         except AttributeError:

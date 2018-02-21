@@ -53,11 +53,12 @@ class PDBEnsemble(Ensemble):
                                                   other.getTitle()))
         ensemble.setCoords(self._coords.copy())
         ensemble.addCoordset(self._confs.copy(), self._weights.copy())
-        other_weights = other.getWeights()
+        other_weights = other.getWeights(selected=False)
         if other_weights is None:
-            ensemble.addCoordset(other.getCoordsets())
+            ensemble.addCoordset(other.getCoordsets(selected=False))
         else:
             ensemble.addCoordset(other._confs.copy(), other_weights)
+        ensemble.setAtoms(self.getAtoms())
         return ensemble
 
     def __iter__(self):
@@ -153,9 +154,9 @@ class PDBEnsemble(Ensemble):
         atoms = coords
         try:
             if self._coords is not None and hasattr(coords, '_getCoordsets'):
-                coords = coords._getCoordsets()
+                coords = coords._getCoordsets(selected=False)
             else:
-                coords = coords.getCoordsets()
+                coords = coords.getCoordsets(selected=False)
 
         except AttributeError:
             label = label or 'Unknown'
