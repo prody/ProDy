@@ -1450,8 +1450,23 @@ def showDomainBar(domains, loc=0., axis='x', **kwargs):
     Plot a bar on top of the current axis which is colored based 
     on domain separations.
     
-    :arg domains: -
-    :type domains: -
+    :arg domains: a list of domain labels 
+    :type domains: list, tuple, :class:~numpy.ndarray
+
+    :arg loc: relative position of the domain bar. **0** means at 
+              bottom/left and **1** means at top/right
+    :type loc: float
+
+    :arg axis: on which axis the bar will be plotted. It can be 
+               either **x** or **y**
+    :type axis: str
+
+    :arg text_loc: location of text labels. It can be either 
+                   **above** or **below**
+    :type text_loc: str
+
+    :arg text_color: color of the text labels
+    :type text_color: str or tuple or list
     """
 
     from matplotlib.pyplot import plot, text, xlim, ylim
