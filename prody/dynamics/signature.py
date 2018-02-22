@@ -34,7 +34,6 @@ class Signature(object):
 
     def __init__(self, vecs, vals=None, title=None, is3d=False):
         vecs = np.array(vecs)
-        self._vars = vals
 
         ndim = vecs.ndim
         if ndim == 1:
@@ -46,10 +45,10 @@ class Signature(object):
         if vals is None:
             vals = np.zeros(shape[1])
         if np.isscalar(vals):
-            vals = np.array(vals)
+            vals = [vals]
         if len(vals) != shape[0]:
             raise ValueError('the number of vals does not match the number of vecs')
-        self._vars = vals
+        self._vars = np.array(vals)
 
         if title is None:
             self._title = '{0} vectors of size {1}'.format(shape[0], shape[1:])
@@ -63,7 +62,7 @@ class Signature(object):
         return self._array.shape[0]
 
     def __iter__(self):
-        for mode in zip(self._array.T, self._vars):
+        for mode in zip(self._array, self._vars):
             yield mode
 
     def __repr__(self):
@@ -109,20 +108,27 @@ class Signature(object):
 
         return self._title
 
-    def getValues(self):
+    def getValues(self, index=None):
         """Returns variances of vectors. """
-
+        if index is not None:
+            return self._vars[index]
         return self._vars.copy()
 
-    def getArray(self):
+    def getArray(self, index=None):
         """Returns a copy of row vectors."""
+
+        if index is not None:
+            return self._array[index].copy()
 
         return self._array.copy()
 
     getVectors = getArray
 
-    def _getArray(self):
+    def _getArray(self, index=None):
         """Returns row vectors."""
+
+        if index is not None:
+            return self._array[index]
 
         return self._array
 
@@ -183,7 +189,7 @@ def calcEnsembleENMs(ensemble, model='gnm', trim='trim', n_modes=20):
                             n_modes=n_modes, title=labels[i])
         enms.append(enm)
 
-        lbl = labels[i] if labels[i] != '' else '%d-th conformation'%(i+1)
+        #lbl = labels[i] if labels[i] != '' else '%d-th conformation'%(i+1)
         LOGGER.update(i)
     
     LOGGER.update(n_confs, 'Finished.')
@@ -345,18 +351,31 @@ def calcSignatureCrossCorr(ensemble, index, *args, **kwargs):
     
     enms = _getEnsembleENMs(ensemble, **kwargs)
     matches = matchModes(*enms)
-    n_sets = len(enms)
-    CCs = []
-    for i in range(n_sets):
-        CC = calcCrossCorr(matches[i][index])
-        CCs.append(CC)
-    C = np.vstack(CCs)
     n_atoms = enms[0].numAtoms()
-    C = C.reshape(len(CCs), n_atoms, n_atoms)
-    mean = C.mean(axis=0)
-    std = C.std(axis=0)
+    n_sets = len(enms)
+
+    C = np.zeros((n_sets, n_atoms, n_atoms))
+    W = []; is3d = None
+    for i in range(n_sets):
+        m = matches[i][index]
+        c = calcCrossCorr(m)
+        C[i, :, :] = c
+        if np.isscalar(index):
+            var = m.getVariance()
+        else:
+            var = np.sum(m.getVariances())
+        W.append(var)
+        if is3d is None:
+            is3d = m.is3d()
+    
+    try:
+        title = ensemble.getTitle()
+    except AttributeError:
+        title = None
+
+    sig = Signature(C, W, title=title, is3d=is3d)
         
-    return C, mean, std
+    return sig
 
 def showAverageCrossCorr(ensemble, index, show_std=False, *args, **kwargs):
     """Show average cross-correlations using :func:`~matplotlib.pyplot.imshow`.  By
@@ -368,7 +387,7 @@ def showAverageCrossCorr(ensemble, index, show_std=False, *args, **kwargs):
     if SETTINGS['auto_show']:
         plt.figure()
         
-    C, mean, std = calcSignatureCrossCorr(ensemble, index)
+    C = calcSignatureCrossCorr(ensemble, index)
 
     atoms = kwargs.pop('atoms', None)
     if atoms is None:
@@ -378,9 +397,9 @@ def showAverageCrossCorr(ensemble, index, show_std=False, *args, **kwargs):
             pass
 
     if show_std:
-        matrixData = std
+        matrixData = C.std()
     else:
-        matrixData = mean
+        matrixData = C.mean()
     if not 'interpolation' in kwargs:
         kwargs['interpolation'] = 'bilinear'
 
