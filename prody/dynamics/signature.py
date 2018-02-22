@@ -19,8 +19,121 @@ from .plotting import showAtomicData, showAtomicMatrix
 from .anm import ANM
 from .gnm import GNM
 
-__all__ = ['calcEnsembleENMs', 'getSignatureProfile', 'calcEnsembleSpectralOverlaps',
+__all__ = ['Signature', 'calcEnsembleENMs', 'getSignatureProfile', 'calcEnsembleSpectralOverlaps',
            'showSignatureProfile', 'calcAverageCrossCorr', 'showAverageCrossCorr', 'showMatrixAverageCrossCorr']
+
+class Signature(object):
+    """
+    A class for signature dynamics calculated from an :class:`Ensemble`. 
+    or :class:`PDBEnsemble`. The class is a collection of column vectors, 
+    and each is associated with a value.
+    """
+
+    __slots__ = ['_array', '_vars', '_title', '_is3d']
+
+    def __init__(self, vecs, vals=None, title=None, is3d=False):
+        vecs = np.array(vecs)
+        self._vars = vals
+
+        ndim = vecs.ndim
+        if ndim == 1:
+            vecs = vecs[:, np.newaxis]
+        elif ndim > 2:
+            raise ValueError('array can be only 1-D or 2-D')
+        self._array = vecs
+        shape = vecs.shape
+
+        if vals is None:
+            vals = np.zeros(shape[1])
+        self._vars = vals
+
+        if title is None:
+            self._title = '%d vectors of length %d'%shape
+        else:
+            self._title = title
+
+        self._is3d = is3d
+
+    def __len__(self):
+        """Returns the number of vectors."""
+        return self._array.shape[1]
+
+    def __iter__(self):
+        for mode in zip(self._array.T, self._vars):
+            yield mode
+
+    def __repr__(self):
+        return '<Signature: %d vectors of length %d>'%self._array.shape
+
+    def __str__(self):
+        return self.getTitle()
+    
+    def __getitem__(self, index):
+        """A list or tuple of integers can be used for indexing."""
+
+        vecs = self._array[:, index]
+        vals = self._vars[index]
+        return Signature(vecs, vals, is3d=self.is3d)
+
+    def is3d(self):
+        """Returns **True** is model is 3-dimensional."""
+        
+        return self._is3d
+
+    def numAtoms(self):
+        """Returns number of atoms."""
+
+        return self._array.shape[0]
+
+    def numVectors(self):
+        """Returns number of modes in the instance (not necessarily maximum
+        number of possible modes)."""
+
+        return len(self)
+
+    numModes = numVectors
+
+    def getTitle(self):
+        """Returns title of the signature."""
+
+        return self._title
+
+    def getValues(self):
+        """Returns variances of vectors. """
+
+        return self._vars.copy()
+
+    def getArray(self):
+        """Returns a copy of vectors."""
+
+        return self._array.copy()
+
+    getVectors = getArray
+
+    def _getArray(self):
+        """Returns vectors."""
+
+        return self._array
+
+    def getMean(self):
+        return self._array.mean(axis=1)
+    mean = getMean
+
+    def getVariance(self):
+        return self._array.var(axis=1)
+    var = getVariance
+    
+    def getStd(self):
+        return self._array.std(axis=1)
+    std = getStd
+
+    def getMin(self):
+        return self._array.min(axis=1)
+    min = getMin
+
+    def getMax(self):
+        return self._array.max(axis=1)
+    max = getMax
 
 def calcEnsembleENMs(ensemble, model='gnm', trim='trim', n_modes=20):
     """Description"""
@@ -123,31 +236,40 @@ def getSignatureProfile(ensemble, index, **kwargs):
     
     matches = matchModes(*enms)
 
+    V = []; W = []; is3d = None
     if np.isscalar(index):
         modes = matches[index]
-        V = []
         v0 = modes[0].getEigvec()
         for mode in modes:
             v = mode.getEigvec()
             c = np.dot(v, v0)
             if c < 0:
                 v *= -1
-            V.append(v)
+            w = mode.getVariance()
+            V.append(v); W.append(w)
     else:
-        V = []
         for j in range(len(enms)):
-            modes = []
+            model = None
+            indices = []
             for i in index:
                 mode = matches[i][j]
-                modes.append(mode)
+                indices.append(mode.getIndex())
+                if model is None: 
+                    model = mode.getModel()
+
+            modes = ModeSet(model, indices)
             sqfs = calcSqFlucts(modes)
-            V.append(sqfs)
+            vars = modes.getVariances()
+            V.append(sqfs); W.append(np.sum(vars))
     V = np.vstack(V); V = V.T
 
-    meanV = V.mean(axis=1)
-    stdV = V.std(axis=1)
+    try:
+        title = ensemble.getTitle()
+    except AttributeError:
+        title = None
+    sig = Signature(V, W, title=title, is3d=mode.is3d())
 
-    return V, (meanV, stdV)
+    return sig
     
 def showSignatureProfile(ensemble, index, linespec='-', **kwargs):
     """
@@ -172,10 +294,8 @@ def showSignatureProfile(ensemble, index, linespec='-', **kwargs):
     from matplotlib.pyplot import figure, plot, fill_between, gca
     from .signature import getSignatureProfile
 
-    V, (meanV, stdV) = getSignatureProfile(ensemble, index, **kwargs)
-    minV = V.min(axis=1)
-    maxV = V.max(axis=1)
-
+    V = getSignatureProfile(ensemble, index, **kwargs)
+    meanV, stdV, minV, maxV = V.mean(), V.std(), V.min(), V.max()
     x = range(meanV.shape[0])
     
     atoms = kwargs.pop('atoms', None)
