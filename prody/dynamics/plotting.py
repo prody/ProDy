@@ -1351,6 +1351,9 @@ def showAtomicMatrix(matrix, x_array=None, y_array=None, atoms=None, **kwargs):
         bars.extend(b)
         texts.extend(t)
 
+    if SETTINGS['auto_show']:
+        showFigure()
+        
     return im, lines, colorbar, texts
 
 def showAtomicData(y, atoms=None, linespec='-', **kwargs):

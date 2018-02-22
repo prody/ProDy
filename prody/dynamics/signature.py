@@ -32,7 +32,7 @@ class Signature(object):
 
     __slots__ = ['_array', '_vars', '_title', '_is3d']
 
-    def __init__(self, vecs, vals=None, title=None, is3d=False):
+    def __init__(self, vecs, vars=None, title=None, is3d=False):
         vecs = np.array(vecs)
 
         ndim = vecs.ndim
@@ -42,13 +42,13 @@ class Signature(object):
         self._array = vecs
         shape = vecs.shape
 
-        if vals is None:
-            vals = np.zeros(shape[1])
-        if np.isscalar(vals):
-            vals = [vals]
-        if len(vals) != shape[0]:
-            raise ValueError('the number of vals does not match the number of vecs')
-        self._vars = np.array(vals)
+        if vars is None:
+            vars = np.zeros(shape[1])
+        if np.isscalar(vars):
+            vars = [vars]
+        if len(vars) != shape[0]:
+            raise ValueError('the number of vars does not match the number of vecs')
+        self._vars = np.array(vars)
 
         if title is None:
             self._title = '{0} vectors of size {1}'.format(shape[0], shape[1:])
@@ -76,10 +76,10 @@ class Signature(object):
         """A list or tuple of integers can be used for indexing."""
 
         vecs = self._array[index]
-        vals = self._vars[index]
+        vars = self._vars[index]
         if np.isscalar(index):
             vecs = np.array([vecs])
-        return Signature(vecs, vals, is3d=self.is3d)
+        return Signature(vecs, vars, is3d=self.is3d)
 
     def is3d(self):
         """Returns **True** is model is 3-dimensional."""
@@ -108,7 +108,7 @@ class Signature(object):
 
         return self._title
 
-    def getValues(self, index=None):
+    def getVariances(self, index=None):
         """Returns variances of vectors. """
         if index is not None:
             return self._vars[index]
@@ -135,10 +135,6 @@ class Signature(object):
     def getMean(self):
         return self._array.mean(axis=0)
     mean = getMean
-
-    def getVariance(self):
-        return self._array.var(axis=0)
-    var = getVariance
     
     def getStd(self):
         return self._array.std(axis=0)
@@ -448,5 +444,30 @@ def showSignatureVariances(signature, **kwargs):
     Show the distribution of signature variances using 
     :func:`~matplotlib.pyplot.hist`.
     """
+    
+    from matplotlib.pyplot import figure, hist, annotate
+    from matplotlib.figure import Figure
 
-    return
+    fig = kwargs.pop('figure', None)
+
+    if isinstance(fig, Figure):
+        fig_num = fig.number
+    elif fig is None or isinstance(fig, (int, str)):
+        fig_num = fig
+    else:
+        raise TypeError('figure can be either an instance of matplotlib.figure.Figure '
+                        'or a figure number.')
+    if SETTINGS['auto_show']:
+        figure(fig_num)
+    elif fig_num is not None:
+        figure(fig_num)
+
+    vars = signature.getVariances()
+
+    n, bins, patches = hist(vars)
+
+    if SETTINGS['auto_show']:
+        showFigure()
+
+    return n, bins, patches
+    
