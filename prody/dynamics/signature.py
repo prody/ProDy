@@ -5,8 +5,8 @@ for conformations in an ensemble."""
 import numpy as np
 
 from prody import LOGGER, SETTINGS
-from prody.utilities import showFigure, showMatrix
-from prody.ensemble import Ensemble
+from prody.utilities import showFigure, showMatrix, copy
+from prody.ensemble import Ensemble, Conformation
 
 from .nma import NMA
 from .modeset import ModeSet
@@ -50,7 +50,11 @@ def calcEnsembleENMs(ensemble, model='gnm', trim='trim', n_modes=20):
                     .format(n_modes, model_type, n_confs), n_confs)
 
     for i in range(n_confs):
-        atoms.setCoords(ensemble.getCoordsets(i, selected=False))
+        coords = ensemble.getCoordsets(i, selected=False)
+        if atoms is not None:
+            atoms.setCoords(coords)
+        else:
+            atoms = coords
         enm, _ = calcENM(atoms, select, model=model, trim=trim, 
                             n_modes=n_modes, title=labels[i])
         enms.append(enm)
@@ -68,6 +72,8 @@ def calcEnsembleENMs(ensemble, model='gnm', trim='trim', n_modes=20):
 def _getEnsembleENMs(ensemble, **kwargs):
     if isinstance(ensemble, Ensemble):
         enms = calcEnsembleENMs(ensemble, **kwargs)
+    if isinstance(ensemble, Conformation):
+        enms = calcEnsembleENMs([ensemble], **kwargs)
     else:
         try:
             enms = []
@@ -129,7 +135,7 @@ def getSignatureProfile(ensemble, index, **kwargs):
             V.append(v)
     else:
         V = []
-        for j in range(len(matches)):
+        for j in range(len(enms)):
             modes = []
             for i in index:
                 mode = matches[i][j]
@@ -179,7 +185,10 @@ def showSignatureProfile(ensemble, index, linespec='-', **kwargs):
         except:
             pass
 
-    lines, _, bars, _ = showAtomicData(meanV, atoms=atoms, linespec=linespec, **kwargs)
+    zero_line = kwargs.pop('show_zero', None)
+    if zero_line is None:
+        zero_line = np.isscalar(index)
+    lines, _, bars, _ = showAtomicData(meanV, atoms=atoms, linespec=linespec, show_zero=zero_line, **kwargs)
     line = lines[-1]
     color = line.get_color()
     x, _ = line.get_data()

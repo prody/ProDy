@@ -166,6 +166,7 @@ def showData(*args, **kwargs):
                                    linewidth=1, antialiased=True)
             polys.append(poly)
 
+    ax.margins(x=0)
     if ticklabels is not None:
         ax.get_xaxis().set_major_formatter(ticker.IndexFormatter(ticklabels))
     
@@ -190,7 +191,7 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
     from matplotlib import cm, ticker
     from matplotlib.gridspec import GridSpec, GridSpecFromSubplotSpec
     from matplotlib.collections import LineCollection
-    from matplotlib.pyplot import imshow, gca, sca
+    from matplotlib.pyplot import imshow, gca, sca, sci
 
     p = kwargs.pop('percentile', None)
     if p is not None:
@@ -202,6 +203,7 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
     W = H = 8
 
     ticklabels = kwargs.pop('ticklabels', None)
+    allticks = kwargs.pop('allticks', False) # this argument is temporary and will be replaced by better implementation
 
     if x_array is not None and y_array is not None:
         nrow = 2; ncol = 2
@@ -288,7 +290,7 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
         ax3 = gca()
     
     cmap = kwargs.pop('cmap', 'jet')
-    im = ax3.imshow(matrix, aspect=aspect, vmin=vmin, vmax=vmax, **kwargs)
+    im = ax3.imshow(matrix, aspect=aspect, vmin=vmin, vmax=vmax, cmap=cmap, **kwargs)
     #ax3.set_xlim([-0.5, matrix.shape[0]+0.5])
     #ax3.set_ylim([-0.5, matrix.shape[1]+0.5])
 
@@ -296,12 +298,16 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
         ax3.xaxis.set_major_formatter(ticker.IndexFormatter(ticklabels))
         if ncol == 1:
             ax3.yaxis.set_major_formatter(ticker.IndexFormatter(ticklabels))
-    
-    ax3.xaxis.set_major_locator(ticker.AutoLocator())
-    ax3.xaxis.set_minor_locator(ticker.AutoMinorLocator())
 
-    ax3.yaxis.set_major_locator(ticker.AutoLocator())
-    ax3.yaxis.set_minor_locator(ticker.AutoMinorLocator())
+    if allticks:
+        ax3.xaxis.set_major_locator(ticker.IndexLocator(offset=0.5, base=1.))
+        ax3.yaxis.set_major_locator(ticker.IndexLocator(offset=0.5, base=1.))
+    else:
+        ax3.xaxis.set_major_locator(ticker.AutoLocator())
+        ax3.xaxis.set_minor_locator(ticker.AutoMinorLocator())
+
+        ax3.yaxis.set_major_locator(ticker.AutoLocator())
+        ax3.yaxis.set_minor_locator(ticker.AutoMinorLocator())
 
     if ncol > 1:
         ax3.yaxis.set_major_formatter(ticker.NullFormatter())
@@ -312,10 +318,10 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
             ax4 = mpl.subplot(gs_bar[-1])
             colorbar = mpl.colorbar(mappable=im, cax=ax4)
         else:
-            colorbar = mpl.colorbar()
+            colorbar = mpl.colorbar(mappable=im)
 
-    if complex_layout:
-        sca(ax3)
+    sca(ax3)
+    sci(im)
     return im, lines, colorbar
 
 def reorderMatrix(matrix, tree, names=None):

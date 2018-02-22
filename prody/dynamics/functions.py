@@ -7,7 +7,7 @@ from os.path import abspath, join, isfile, isdir, split, splitext
 import numpy as np
 
 from prody import LOGGER, SETTINGS, PY3K
-from prody.atomic import AtomGroup, AtomSubset
+from prody.atomic import Atomic, AtomGroup, AtomSubset
 from prody.utilities import openFile, isExecutable, which, PLATFORM, addext
 
 from .nma import NMA
@@ -372,8 +372,14 @@ def calcENM(atoms, select=None, model='anm', trim='trim', gamma=1.0,
     :type trim: str
     """
     
-    if title is None:
-        title = atoms.getTitle()
+    if not isinstance(atoms, Atomic):
+        if select is not None:
+            raise TypeError('atoms should be Atomic if it needs to be selected')
+    try:
+        if title is None:
+            title = atoms.getTitle()
+    except AttributeError:
+        title = 'Unknown'
         
     if model is GNM:
         model = 'gnm'
