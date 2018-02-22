@@ -44,7 +44,7 @@ def psiBlastRun(sequence, cycles=2, filename=None, **kwargs):
         job_id, results, sequence = psiBlastCycle(sequence, filename, \
                                                  previousjobid=job_id, \
                                                  selectedHits=selectedHits, \
-                                                 **kwargs)
+                                                 cycle=cycles_done, **kwargs)
         results_list.append(results)
         job_ids.append(job_id)
         cycles_done += 1
@@ -52,7 +52,7 @@ def psiBlastRun(sequence, cycles=2, filename=None, **kwargs):
 
     return job_ids, results_list, sequence
 
-def psiBlastCycle(sequence, filename=None, **kwargs):
+def psiBlastCycle(sequence=None, filename=None, **kwargs):
     """Returns a :class:`PDBBlastRecord` instance that contains results from
     a single cycle of EBI psiblast.
 
@@ -163,7 +163,12 @@ def psiBlastCycle(sequence, filename=None, **kwargs):
         default is 120 seconds
     :type timeout: float
 
+    :arg cycle: cycle number
+    :type cycle: int
+
     """
+    cycle = kwargs.get('cycle',0)
+
     if sequence == 'runexample':
         sequence = ('ASFPVEILPFLYLGCAKDSTNLDVLEEFGIKYILNVTPNLPNLFENAGEFKYKQIPI'
                     'SDHWSQNLSQFFPEAISFIDEARGKNCGVLVHSLAGISRSVTVTVAYLMQKLNLSMN'
@@ -176,19 +181,22 @@ def psiBlastCycle(sequence, filename=None, **kwargs):
         sequence = str(sequence)
 
     elif isinstance(sequence, str):
-        if len(sequence) == 4 or len(sequence) == 5 or len(sequence) == 6:
-            sequence = parsePDB(sequence)
+        if len(sequence) in [4, 5, 6]:
+            ag = parsePDB(sequence)
             sequence = ag.calpha.getSequence()
         sequence = ''.join(sequence.split())
 
     elif sequence is None:
-        pass
-
+        if cycle == 0: 
+            cycle = 1
     else:
         raise TypeError('sequence must be Atomic, Sequence, or str not {0}'
                         .format(type(sequence)))
 
-    query = [('sequence', sequence)]
+    if cycle == 0:
+        query = [('sequence', sequence)]
+    else:
+        query = []
 
     email = kwargs.get('email','prody-devel@gmail.com')
     if not isinstance(email, str):
@@ -199,7 +207,19 @@ def psiBlastCycle(sequence, filename=None, **kwargs):
         raise ValueError('email must be a valid email address with a . after the @ sign')
     query.append(('email', email))
     query.append(('title', 'ProDy psiBlastPDB request'))
- 
+
+    previousjobid = kwargs.get('previousjobid','')
+    if previousjobid is not '':
+        query.append(('previousjobid',previousjobid))
+
+    selectedHits = kwargs.get('selectedHits','')
+    if selectedHits is not '':
+        query.append(('selectedHits',selectedHits))
+
+    database = kwargs.get('database','pdb')
+    checkPsiBlastParameter('database', database)
+    query.append(('database',database))
+
     matrix = kwargs.get('matrix', 'BLOSUM62')
     checkPsiBlastParameter('matrix', matrix)
     query.append(('matrix',matrix))
@@ -241,25 +261,22 @@ def psiBlastCycle(sequence, filename=None, **kwargs):
     filter = kwargs.get('filter','F')
     checkPsiBlastParameter('filter', filter)
     query.append(('filter',filter))
-            
-    seqrange = kwargs.get('seqrange', None)
-    if seqrange is None:
-        seqrange = '0-' + str(len(sequence))
-    elif not isinstance(seqrange, str):
-        raise TypeError('seqrange should be a string')
-    elif len(seqrange.split('-')) != 2:
-        raise ValueError('seqrange should take the form START-END')
-    try:
-        start = int(seqrange.split('-')[0])
-        end = int(seqrange.split('-')[1])
-    except:
-        raise ValueError('seqrange should be START-END with START and END being integers')
-    query.append(('seqrange',seqrange))
     
-    database = kwargs.get('database','pdb')
-    checkPsiBlastParameter('database', database)
-    query.append(('database',database))
- 
+    if previousjobid is '' and selectedHits is '':
+        seqrange = kwargs.get('seqrange', None)
+        if seqrange is None:
+            seqrange = '0-' + str(len(sequence))
+        elif not isinstance(seqrange, str):
+            raise TypeError('seqrange should be a string')
+        elif len(seqrange.split('-')) != 2:
+            raise ValueError('seqrange should take the form START-END')
+        try:
+            start = int(seqrange.split('-')[0])
+            end = int(seqrange.split('-')[1])
+        except:
+            raise ValueError('seqrange should be START-END with START and END being integers')
+        query.append(('seqrange',seqrange))
+        
     headers = { 'User-Agent' : 'ProDy' }
     
     try:
@@ -277,8 +294,12 @@ def psiBlastCycle(sequence, filename=None, **kwargs):
     base_url = 'http://www.ebi.ac.uk/Tools/services/rest/psiblast/'
     url = base_url + 'run/'
     LOGGER.timeit('_prody_psi-blast')
-    LOGGER.info('PSI-Blast searching NCBI PDB database for "{0}..."'
-                .format(sequence[:5]))
+    if cycle == 0:
+        LOGGER.info('PSI-Blast searching PDB database for "{0}..."'
+                    .format(sequence[:5]))
+    else:
+        LOGGER.info('PSI-Blast searching PDB database, cycle={0}'
+                    .format(cycle))
 
     handle = openURL(url, data=data, headers=headers)
     job_id = handle.read()
@@ -291,7 +312,7 @@ def psiBlastCycle(sequence, filename=None, **kwargs):
     handle.close()
                     
     # keep checking the status until it's no longer running
-    while status is 'RUNNING':
+    while status == 'RUNNING':
         LOGGER.sleep(int(sleep), 'to reconnect to EBI for status.')
         LOGGER.write('Connecting to EBI for status...')
         handle = openURL(url)
@@ -302,36 +323,32 @@ def psiBlastCycle(sequence, filename=None, **kwargs):
             LOGGER.warn('PSI-Blast search time out.')
             return None
 
-    # check status once it's not running and tell the user
-    LOGGER.sleep(int(sleep), 'to reconnect to EBI for status.')
-    LOGGER.write('Connecting to EBI for status...')
-    handle = openURL(url)
-    status = handle.read()
-    handle.close()
     LOGGER.info('The status is {0}'.format(status))
- 
-    # get the results
-    url = base_url + 'result/' + job_id + '/xml'
-    handle = openURL(url)
-    results = handle.read()
-    handle.close()
-
     LOGGER.clear()
     LOGGER.report('PSI-Blast search completed in %.1fs.', '_prody_psi-blast')
-    
-    try:
-        ext_xml = filename.lower().endswith('.xml')
-    except AttributeError:
-        pass
+ 
+    if cycle != 1:
+        # get the results
+        url = base_url + 'result/' + job_id + '/xml'
+        handle = openURL(url)
+        results = handle.read()
+        handle.close()
+        
+        try:
+            ext_xml = filename.lower().endswith('.xml')
+        except AttributeError:
+            pass
+        else:
+            if not ext_xml:
+                filename += '.xml'
+            f_out = open(filename, 'w')
+            f_out.write(results)
+            f_out.close()
+            LOGGER.info('Results are saved as {0}.'.format(repr(filename)))
+        
+        return job_id, PsiBlastRecord(results, sequence)
     else:
-        if not ext_xml:
-            filename += '.xml'
-        f_out = open(filename, 'w')
-        f_out.write(results)
-        f_out.close()
-        LOGGER.info('Results are saved as {0}.'.format(repr(filename)))
-    
-    return job_id, PsiBlastRecord(results, sequence), sequence
+        return job_id
 
 def checkPsiBlastParameter(parameter, value):
     """Checks that the value provided for a parameter is in the xml page for that parameter

@@ -51,8 +51,8 @@ def blastPDB(sequence, filename=None, **kwargs):
         sequence = str(sequence)
 
     elif isinstance(sequence, str):
-        if len(sequence) == 4 or len(sequence) == 5:
-            sequence = parsePDB(sequence)
+        if len(sequence) in [4, 5, 6]:
+            ag = parsePDB(sequence)
             sequence = ag.calpha.getSequence()
         sequence = ''.join(sequence.split())
 
