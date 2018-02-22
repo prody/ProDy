@@ -4,7 +4,7 @@ import numpy as np
 
 from prody.atomic import Atomic, AtomGroup
 from prody.measure import getRMSD, getTransformation
-from prody.utilities import checkCoords, checkWeights
+from prody.utilities import checkCoords, checkWeights, copy
 from prody import LOGGER
 
 from .ensemble import Ensemble
@@ -51,13 +51,13 @@ class PDBEnsemble(Ensemble):
 
         ensemble = PDBEnsemble('{0} + {1}'.format(self.getTitle(),
                                                   other.getTitle()))
-        ensemble.setCoords(self._coords.copy())
-        ensemble.addCoordset(self._confs.copy(), self._weights.copy())
-        other_weights = other.getWeights(selected=False)
-        if other_weights is None:
-            ensemble.addCoordset(other.getCoordsets(selected=False))
-        else:
-            ensemble.addCoordset(other._confs.copy(), other_weights)
+        ensemble.setCoords(copy(self._coords))
+        weights = copy(self._weights)
+        if self._confs is not None:
+            ensemble.addCoordset(copy(self._confs), weights)
+        
+        other_weights = copy(other._weights)
+        ensemble.addCoordset(copy(other._confs), other_weights)
         ensemble.setAtoms(self.getAtoms())
         return ensemble
 
@@ -79,7 +79,7 @@ class PDBEnsemble(Ensemble):
         elif isinstance(index, slice):
             ens = PDBEnsemble('{0} ({1[0]}:{1[1]}:{1[2]})'.format(
                               self._title, index.indices(len(self))))
-            ens.setCoords(self.getCoords(selected=False))
+            ens.setCoords(copy(self._coords))
             ens.addCoordset(self._confs[index].copy(),
                             self._weights[index].copy(),
                             label=self._labels[index])
@@ -90,7 +90,7 @@ class PDBEnsemble(Ensemble):
 
         elif isinstance(index, (list, np.ndarray)):
             ens = PDBEnsemble('Conformations of {0}'.format(self._title))
-            ens.setCoords(self.getCoords())
+            ens.setCoords(copy(self._coords))
             ens.addCoordset(self._confs[index].copy(),
                             self._weights[index].copy(),
                             label=[self._labels[i] for i in index])
@@ -153,10 +153,16 @@ class PDBEnsemble(Ensemble):
 
         atoms = coords
         try:
-            if self._coords is not None and hasattr(coords, '_getCoordsets'):
-                coords = coords._getCoordsets(selected=False)
+            if self._coords is not None:
+                if isinstance(coords, Ensemble):
+                    coords = coords._getCoordsets(selected=False)
+                elif hasattr(coords, '_getCoordsets'):
+                    coords = coords._getCoordsets()
             else:
-                coords = coords.getCoordsets(selected=False)
+                if isinstance(coords, Ensemble):
+                    coords = coords.getCoordsets(selected=False)
+                elif hasattr(coords, 'getCoordsets'):
+                    coords = coords.getCoordsets()
 
         except AttributeError:
             label = label or 'Unknown'
@@ -255,7 +261,7 @@ class PDBEnsemble(Ensemble):
         else:
             selids = self._indices
             coords = coords[selids]
-            confs = self._confs[indices, selids]
+            confs = self._confs[indices, selids].copy()
             for i, w in enumerate(self._weights[indices]):
                 which = w[selids].flatten() == 0
                 confs[i, which] = coords[which]

@@ -7,7 +7,7 @@ from numpy import zeros, ones, arange
 from prody import LOGGER
 from prody.atomic import Atomic
 from prody.measure import getRMSD
-from prody.utilities import importLA, checkCoords, checkWeights
+from prody.utilities import importLA, checkCoords, checkWeights, copy
 
 from .conformation import *
 
@@ -78,20 +78,20 @@ class Ensemble(object):
         elif isinstance(index, slice):
             ens = Ensemble('{0} ({1[0]}:{1[1]}:{1[2]})'.format(
                                 self._title, index.indices(len(self))))
-            ens.setCoords(self.getCoords(selected=False))
-            ens.addCoordset(self.getCoordsets(index, selected=False))
+            ens.setCoords(copy(self._coords))
+            ens.addCoordset(self._confs[index].copy())
             if self._weights is not None:
-                ens.setWeights(self.getWeights(selected=False))
+                ens.setWeights(self._weights.copy())
             
             ens.setAtoms(self.getAtoms())
             return ens
 
         elif isinstance(index, (list, ndarray)):
             ens = Ensemble('Conformations of {0}'.format(self._title))
-            ens.setCoords(self.getCoords())
-            ens.addCoordset(self.getCoordsets(index))
+            ens.setCoords(copy(self._coords))
+            ens.addCoordset(self._confs[index].copy())
             if self._weights is not None:
-                ens.setWeights(self.getWeights())
+                ens.setWeights(self._weights.copy())
             return ens
 
         else:
@@ -109,9 +109,12 @@ class Ensemble(object):
 
         ensemble = Ensemble('{0} + {1}'.format(self.getTitle(),
                                                other.getTitle()))
-        ensemble.setCoords(self._coords.copy())
-        ensemble.addCoordset(self._confs.copy())
-        ensemble.addCoordset(other.getCoordsets(selected=False))
+        if self._coords is not None:
+            ensemble.setCoords(self._coords.copy())
+        if self._confs is not None:
+            ensemble.addCoordset(self._confs.copy())
+        if other._confs is not None:
+            ensemble.addCoordset(other._confs.copy())
 
         if self._weights is not None:
             LOGGER.info('Atom weights from {0} are used in {1}.'
@@ -222,23 +225,23 @@ class Ensemble(object):
             self._n_atoms = atoms.numAtoms()
             self._atoms = atoms
 
-    def getCoords(self, selected=True):
+    def getCoords(self):
         """Returns a copy of reference coordinates for selected atoms."""
 
         if self._coords is None:
             return None
-        if self._indices is None or not selected:
+        if self._indices is None:
             return self._coords.copy()
-        return self._coords[self._indices]
+        return self._coords[self._indices].copy()
 
-    def _getCoords(self, selected=True):
+    def _getCoords(self):
         """Returns a view of reference coordinates for selected atoms."""
 
         if self._coords is None:
             return None
-        if self._indices is None or not selected:
+        if self._indices is None:
             return self._coords
-        return self._coords[self._indices]
+        return self._coords[self._indices].copy()
 
     def setCoords(self, coords):
         """Set *coords* as the ensemble reference coordinate set.  *coords*
@@ -247,10 +250,13 @@ class Ensemble(object):
 
         atoms = coords
         try:
-            coords = atoms.getCoords()
+            if isinstance(coords, Ensemble):
+                coords = copy(coords._coords)
+            else:
+                coords = coords.getCoords()
         except AttributeError:
             pass
-        else:
+        finally:
             if coords is None:
                 raise ValueError('coordinates of {0} are not set'
                                  .format(str(atoms)))
@@ -264,23 +270,23 @@ class Ensemble(object):
         self._coords = coords
         self._n_atoms = coords.shape[0]
 
-    def getWeights(self, selected=True):
+    def getWeights(self):
         """Returns a copy of weights of selected atoms."""
 
         if self._weights is None:
             return None
-        if self._indices is None or not selected:
+        if self._indices is None:
             return self._weights.copy()
         if self._weights.ndim == 2:
-            return self._weights[self._indices]
+            return self._weights[self._indices].copy()
         else:
-            return self._weights[:, self._indices]
+            return self._weights[:, self._indices].copy()
 
-    def _getWeights(self, selected=True):
+    def _getWeights(self):
 
         if self._weights is None:
             return None
-        if self._indices is None or not selected:
+        if self._indices is None:
             return self._weights
         if self._weights.ndim == 2:
             return self._weights[self._indices]
@@ -302,16 +308,20 @@ class Ensemble(object):
         n_atoms = self._n_atoms
         try:
             if self._coords is not None:
-                if hasattr(coords, '_getCoordsets'):
+                if isinstance(coords, Ensemble):
                     coords = coords._getCoordsets(selected=False)
+                elif hasattr(coords, '_getCoordsets'):
+                    coords = coords._getCoordsets()
                 elif hasattr(coords, '_getCoords'):
-                    coords = coords._getCoords(selected=False)
+                    coords = coords._getCoords()
                     coords = array(coords)
             else:
-                if hasattr(coords, 'getCoordsets'):
+                if isinstance(coords, Ensemble):
                     coords = coords.getCoordsets(selected=False)
+                elif hasattr(coords, 'getCoordsets'):
+                    coords = coords.getCoordsets()
                 elif hasattr(coords, 'getCoords'):
-                    coords = coords.getCoords(selected=False)
+                    coords = coords.getCoords()
                     coords = array(coords)
 
         except AttributeError:
@@ -378,11 +388,11 @@ class Ensemble(object):
         raise IndexError('indices must be an integer, a list/array of '
                          'integers, a slice, or None')
 
-    def _getCoordsets(self, indices=None, selected=True):
+    def _getCoordsets(self, indices=None):
 
         if self._confs is None:
             return None
-        if self._indices is None or not selected:
+        if self._indices is None:
             if indices is None:
                 return self._confs
             try:

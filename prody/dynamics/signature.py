@@ -5,7 +5,7 @@ for conformations in an ensemble."""
 import numpy as np
 
 from prody import LOGGER, SETTINGS
-from prody.utilities import showFigure, showMatrix
+from prody.utilities import showFigure, showMatrix, copy
 from prody.ensemble import Ensemble, Conformation
 
 from .nma import NMA
@@ -50,7 +50,11 @@ def calcEnsembleENMs(ensemble, model='gnm', trim='trim', n_modes=20):
                     .format(n_modes, model_type, n_confs), n_confs)
 
     for i in range(n_confs):
-        atoms.setCoords(ensemble.getCoordsets(i, selected=False))
+        coords = ensemble.getCoordsets(i, selected=False)
+        if atoms is not None:
+            atoms.setCoords(coords)
+        else:
+            atoms = coords
         enm, _ = calcENM(atoms, select, model=model, trim=trim, 
                             n_modes=n_modes, title=labels[i])
         enms.append(enm)
