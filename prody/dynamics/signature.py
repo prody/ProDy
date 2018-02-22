@@ -385,7 +385,7 @@ def calcSignatureCrossCorr(ensemble, index, *args, **kwargs):
     return sig
 
 def showSignatureCrossCorr(ensemble, index, show_std=False, **kwargs):
-    """Show average cross-correlations using :func:`~matplotlib.pyplot.imshow`. 
+    """Show average cross-correlations using :func:`showAtomicMatrix`. 
     By default, *origin=lower* and *interpolation=bilinear* keyword  arguments
     are passed to this function, but user can overwrite these parameters.
     See also :func:`.calcSignatureCrossCorr`.
@@ -444,4 +444,9 @@ def showSignatureCrossCorr(ensemble, index, show_std=False, **kwargs):
     return show
 
 def showSignatureVariances(signature, **kwargs):
-    pass
+    """
+    Show the distribution of signature variances using 
+    :func:`~matplotlib.pyplot.hist`.
+    """
+
+    return
