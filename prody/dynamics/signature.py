@@ -19,8 +19,8 @@ from .plotting import showAtomicData, showAtomicMatrix
 from .anm import ANM
 from .gnm import GNM
 
-__all__ = ['Signature', 'calcEnsembleENMs', 'calcSignatureProfile', 'calcEnsembleSpectralOverlaps',
-           'showSignatureProfile', 'calcSignatureCrossCorr', 'showAverageCrossCorr']
+__all__ = ['Signature', 'calcEnsembleENMs', 'calcSignatureMobility', 'calcEnsembleSpectralOverlaps',
+           'showSignatureMobility', 'calcSignatureCrossCorr', 'showSignatureCrossCorr']
 
 class Signature(object):
     """
@@ -34,7 +34,6 @@ class Signature(object):
 
     def __init__(self, vecs, vals=None, title=None, is3d=False):
         vecs = np.array(vecs)
-        self._vars = vals
 
         ndim = vecs.ndim
         if ndim == 1:
@@ -46,10 +45,10 @@ class Signature(object):
         if vals is None:
             vals = np.zeros(shape[1])
         if np.isscalar(vals):
-            vals = np.array(vals)
+            vals = [vals]
         if len(vals) != shape[0]:
             raise ValueError('the number of vals does not match the number of vecs')
-        self._vars = vals
+        self._vars = np.array(vals)
 
         if title is None:
             self._title = '{0} vectors of size {1}'.format(shape[0], shape[1:])
@@ -63,7 +62,7 @@ class Signature(object):
         return self._array.shape[0]
 
     def __iter__(self):
-        for mode in zip(self._array.T, self._vars):
+        for mode in zip(self._array, self._vars):
             yield mode
 
     def __repr__(self):
@@ -109,20 +108,27 @@ class Signature(object):
 
         return self._title
 
-    def getValues(self):
+    def getValues(self, index=None):
         """Returns variances of vectors. """
-
+        if index is not None:
+            return self._vars[index]
         return self._vars.copy()
 
-    def getArray(self):
+    def getArray(self, index=None):
         """Returns a copy of row vectors."""
+
+        if index is not None:
+            return self._array[index].copy()
 
         return self._array.copy()
 
     getVectors = getArray
 
-    def _getArray(self):
+    def _getArray(self, index=None):
         """Returns row vectors."""
+
+        if index is not None:
+            return self._array[index]
 
         return self._array
 
@@ -183,7 +189,7 @@ def calcEnsembleENMs(ensemble, model='gnm', trim='trim', n_modes=20):
                             n_modes=n_modes, title=labels[i])
         enms.append(enm)
 
-        lbl = labels[i] if labels[i] != '' else '%d-th conformation'%(i+1)
+        #lbl = labels[i] if labels[i] != '' else '%d-th conformation'%(i+1)
         LOGGER.update(i)
     
     LOGGER.update(n_confs, 'Finished.')
@@ -228,9 +234,9 @@ def calcEnsembleSpectralOverlaps(ensemble, distance=False, **kwargs):
 
     return overlaps
 
-def calcSignatureProfile(ensemble, index, **kwargs):
+def calcSignatureMobility(ensemble, index, **kwargs):
     """
-    Get the signature profile of *ensemble*. If *ensemble* is an instance of 
+    Get the signature mobility of *ensemble*. If *ensemble* is an instance of 
     :class:`Ensemble` then the ENMs will be first calculated using 
     :func:`calcEnsembleENMs`. 
     
@@ -276,17 +282,20 @@ def calcSignatureProfile(ensemble, index, **kwargs):
 
     return sig
     
-def showSignatureProfile(ensemble, index, linespec='-', **kwargs):
+def showSignatureMobility(ensemble, index, linespec='-', **kwargs):
     """
-    Show the signature profile of *ensemble* using :func:`showAtomicData`. 
+    Show the signature mobility of *ensemble* using :func:`showAtomicData`. 
     
-    :arg ensemble: an ensemble of structures or ENMs 
-    :type ensemble: :class: `Ensemble` or list
+    :arg ensemble: an ensemble of structures or ENMs, or a signature profile 
+    :type ensemble: :class: `Ensemble`, list, :class:`Signature`
 
     :arg index: mode index for displaying the mode shape or a list 
                 of mode indices for displaying the mean square fluctuations. 
                 The list can contain only one index.
     :type index: int or list
+
+    :arg linespec: line specifications that will be passed to :func:`showAtomicData`
+    :type linespec: str
 
     :arg atoms: an object with method :func:`getResnums` for use 
                 on the x-axis.
@@ -299,7 +308,11 @@ def showSignatureProfile(ensemble, index, linespec='-', **kwargs):
     from matplotlib.pyplot import figure, plot, fill_between, \
                                   gca, xlabel, ylabel, title
 
-    V = calcSignatureProfile(ensemble, index, **kwargs)
+    if isinstance(ensemble, Signature):
+        V = ensemble
+    else:
+        V = calcSignatureMobility(ensemble, index, **kwargs)
+
     meanV, stdV, minV, maxV = V.mean(), V.std(), V.min(), V.max()
     x = range(meanV.shape[0])
     
@@ -345,30 +358,57 @@ def calcSignatureCrossCorr(ensemble, index, *args, **kwargs):
     
     enms = _getEnsembleENMs(ensemble, **kwargs)
     matches = matchModes(*enms)
-    n_sets = len(enms)
-    CCs = []
-    for i in range(n_sets):
-        CC = calcCrossCorr(matches[i][index])
-        CCs.append(CC)
-    C = np.vstack(CCs)
     n_atoms = enms[0].numAtoms()
-    C = C.reshape(len(CCs), n_atoms, n_atoms)
-    mean = C.mean(axis=0)
-    std = C.std(axis=0)
-        
-    return C, mean, std
+    n_sets = len(enms)
 
-def showAverageCrossCorr(ensemble, index, show_std=False, *args, **kwargs):
-    """Show average cross-correlations using :func:`~matplotlib.pyplot.imshow`.  By
-    default, *origin=lower* and *interpolation=bilinear* keyword  arguments
+    C = np.zeros((n_sets, n_atoms, n_atoms))
+    W = []; is3d = None
+    for i in range(n_sets):
+        m = matches[i][index]
+        c = calcCrossCorr(m)
+        C[i, :, :] = c
+        if np.isscalar(index):
+            var = m.getVariance()
+        else:
+            var = np.sum(m.getVariances())
+        W.append(var)
+        if is3d is None:
+            is3d = m.is3d()
+    
+    try:
+        title = ensemble.getTitle()
+    except AttributeError:
+        title = None
+
+    sig = Signature(C, W, title=title, is3d=is3d)
+        
+    return sig
+
+def showSignatureCrossCorr(ensemble, index, show_std=False, **kwargs):
+    """Show average cross-correlations using :func:`showAtomicMatrix`. 
+    By default, *origin=lower* and *interpolation=bilinear* keyword  arguments
     are passed to this function, but user can overwrite these parameters.
-    See also :func:`.calcSignatureCrossCorr`."""
+    See also :func:`.calcSignatureCrossCorr`.
+    
+    :arg ensemble: an ensemble of structures or ENMs, or a signature profile 
+    :type ensemble: :class: `Ensemble`, list, :class:`Signature`
+
+    :arg index: mode index for displaying the mode shape or a list 
+                of mode indices for displaying the mean square fluctuations. 
+                The list can contain only one index.
+    :type index: int or list
+
+    :arg atoms: an object with method :func:`getResnums` for use 
+                on the x-axis.
+    :type atoms: :class:`Atomic` 
+    """
 
     import matplotlib.pyplot as plt
-    if SETTINGS['auto_show']:
-        plt.figure()
-        
-    C, mean, std = calcSignatureCrossCorr(ensemble, index)
+    
+    if isinstance(ensemble, Signature):
+        C = ensemble
+    else:
+        C = calcSignatureCrossCorr(ensemble, index, **kwargs)
 
     atoms = kwargs.pop('atoms', None)
     if atoms is None:
@@ -378,13 +418,13 @@ def showAverageCrossCorr(ensemble, index, show_std=False, *args, **kwargs):
             pass
 
     if show_std:
-        matrixData = std
+        matrixData = C.std()
     else:
-        matrixData = mean
+        matrixData = C.mean()
     if not 'interpolation' in kwargs:
         kwargs['interpolation'] = 'bilinear'
 
-    show = showAtomicMatrix(matrixData, atoms=atoms, *args, **kwargs)
+    show = showAtomicMatrix(matrixData, atoms=atoms, **kwargs)
     if np.isscalar(index):
         title_str = ', mode '+str(index+1)
     else:
@@ -400,7 +440,13 @@ def showAverageCrossCorr(ensemble, index, show_std=False, *args, **kwargs):
         plt.title('Cross-correlations (average)'+title_str)
     plt.xlabel('Residues')
     plt.ylabel('Residues')
-    if SETTINGS['auto_show']:
-        showFigure()
+    
     return show
 
+def showSignatureVariances(signature, **kwargs):
+    """
+    Show the distribution of signature variances using 
+    :func:`~matplotlib.pyplot.hist`.
+    """
+
+    return
