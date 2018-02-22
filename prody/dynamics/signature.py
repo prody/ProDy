@@ -19,14 +19,15 @@ from .plotting import showAtomicData, showAtomicMatrix
 from .anm import ANM
 from .gnm import GNM
 
-__all__ = ['Signature', 'calcEnsembleENMs', 'getSignatureProfile', 'calcEnsembleSpectralOverlaps',
-           'showSignatureProfile', 'calcAverageCrossCorr', 'showAverageCrossCorr', 'showMatrixAverageCrossCorr']
+__all__ = ['Signature', 'calcEnsembleENMs', 'calcSignatureProfile', 'calcEnsembleSpectralOverlaps',
+           'showSignatureProfile', 'calcSignatureCrossCorr', 'showAverageCrossCorr']
 
 class Signature(object):
     """
     A class for signature dynamics calculated from an :class:`Ensemble`. 
-    or :class:`PDBEnsemble`. The class is a collection of column vectors, 
-    and each is associated with a value.
+    or :class:`PDBEnsemble`. The class is a collection of row vectors, and 
+    each is associated with a value. The vectors can have more than one 
+    dimension.
     """
 
     __slots__ = ['_array', '_vars', '_title', '_is3d']
@@ -37,18 +38,21 @@ class Signature(object):
 
         ndim = vecs.ndim
         if ndim == 1:
-            vecs = vecs[:, np.newaxis]
-        elif ndim > 2:
-            raise ValueError('array can be only 1-D or 2-D')
+            vecs = np.reshape(1, len(vecs))
+
         self._array = vecs
         shape = vecs.shape
 
         if vals is None:
             vals = np.zeros(shape[1])
+        if np.isscalar(vals):
+            vals = np.array(vals)
+        if len(vals) != shape[0]:
+            raise ValueError('the number of vals does not match the number of vecs')
         self._vars = vals
 
         if title is None:
-            self._title = '%d vectors of length %d'%shape
+            self._title = '{0} vectors of size {1}'.format(shape[0], shape[1:])
         else:
             self._title = title
 
@@ -56,14 +60,15 @@ class Signature(object):
 
     def __len__(self):
         """Returns the number of vectors."""
-        return self._array.shape[1]
+        return self._array.shape[0]
 
     def __iter__(self):
         for mode in zip(self._array.T, self._vars):
             yield mode
 
     def __repr__(self):
-        return '<Signature: %d vectors of length %d>'%self._array.shape
+        shape = self._array.shape
+        return '<Signature: {0} vectors of size {1}>'.format(shape[0], shape[1:])
 
     def __str__(self):
         return self.getTitle()
@@ -71,8 +76,10 @@ class Signature(object):
     def __getitem__(self, index):
         """A list or tuple of integers can be used for indexing."""
 
-        vecs = self._array[:, index]
+        vecs = self._array[index]
         vals = self._vars[index]
+        if np.isscalar(index):
+            vecs = np.array([vecs])
         return Signature(vecs, vals, is3d=self.is3d)
 
     def is3d(self):
@@ -83,7 +90,7 @@ class Signature(object):
     def numAtoms(self):
         """Returns number of atoms."""
 
-        return self._array.shape[0]
+        return self._array.shape[1]
 
     def numVectors(self):
         """Returns number of modes in the instance (not necessarily maximum
@@ -92,6 +99,10 @@ class Signature(object):
         return len(self)
 
     numModes = numVectors
+
+    def getShape(self):
+        return self._array.shape[1:]
+    shape = getShape
 
     def getTitle(self):
         """Returns title of the signature."""
@@ -104,35 +115,35 @@ class Signature(object):
         return self._vars.copy()
 
     def getArray(self):
-        """Returns a copy of vectors."""
+        """Returns a copy of row vectors."""
 
         return self._array.copy()
 
     getVectors = getArray
 
     def _getArray(self):
-        """Returns vectors."""
+        """Returns row vectors."""
 
         return self._array
 
     def getMean(self):
-        return self._array.mean(axis=1)
+        return self._array.mean(axis=0)
     mean = getMean
 
     def getVariance(self):
-        return self._array.var(axis=1)
+        return self._array.var(axis=0)
     var = getVariance
     
     def getStd(self):
-        return self._array.std(axis=1)
+        return self._array.std(axis=0)
     std = getStd
 
     def getMin(self):
-        return self._array.min(axis=1)
+        return self._array.min(axis=0)
     min = getMin
 
     def getMax(self):
-        return self._array.max(axis=1)
+        return self._array.max(axis=0)
     max = getMax
 
 def calcEnsembleENMs(ensemble, model='gnm', trim='trim', n_modes=20):
@@ -217,7 +228,7 @@ def calcEnsembleSpectralOverlaps(ensemble, distance=False, **kwargs):
 
     return overlaps
 
-def getSignatureProfile(ensemble, index, **kwargs):
+def calcSignatureProfile(ensemble, index, **kwargs):
     """
     Get the signature profile of *ensemble*. If *ensemble* is an instance of 
     :class:`Ensemble` then the ENMs will be first calculated using 
@@ -234,40 +245,34 @@ def getSignatureProfile(ensemble, index, **kwargs):
 
     enms = _getEnsembleENMs(ensemble, **kwargs)
     
-    matches = matchModes(*enms)
+    modesets = matchModes(*enms)
 
-    V = []; W = []; is3d = None
+    V = []; W = []
     if np.isscalar(index):
-        modes = matches[index]
-        v0 = modes[0].getEigvec()
-        for mode in modes:
+        v0 = modesets[0][index].getEigvec()
+        for modeset in modesets:
+            mode = modeset[index]
             v = mode.getEigvec()
             c = np.dot(v, v0)
             if c < 0:
                 v *= -1
             w = mode.getVariance()
             V.append(v); W.append(w)
+        is3d = mode.is3d()
     else:
-        for j in range(len(enms)):
-            model = None
-            indices = []
-            for i in index:
-                mode = matches[i][j]
-                indices.append(mode.getIndex())
-                if model is None: 
-                    model = mode.getModel()
-
-            modes = ModeSet(model, indices)
+        for modeset in modesets:
+            modes = modeset[index]
             sqfs = calcSqFlucts(modes)
             vars = modes.getVariances()
             V.append(sqfs); W.append(np.sum(vars))
-    V = np.vstack(V); V = V.T
+        is3d = modeset.is3d()
+    V = np.vstack(V)
 
     try:
         title = ensemble.getTitle()
     except AttributeError:
         title = None
-    sig = Signature(V, W, title=title, is3d=mode.is3d())
+    sig = Signature(V, W, title=title, is3d=is3d)
 
     return sig
     
@@ -291,10 +296,10 @@ def showSignatureProfile(ensemble, index, linespec='-', **kwargs):
     :type alpha: float
     """
 
-    from matplotlib.pyplot import figure, plot, fill_between, gca
-    from .signature import getSignatureProfile
+    from matplotlib.pyplot import figure, plot, fill_between, \
+                                  gca, xlabel, ylabel, title
 
-    V = getSignatureProfile(ensemble, index, **kwargs)
+    V = calcSignatureProfile(ensemble, index, **kwargs)
     meanV, stdV, minV, maxV = V.mean(), V.std(), V.min(), V.max()
     x = range(meanV.shape[0])
     
@@ -321,98 +326,81 @@ def showSignatureProfile(ensemble, index, linespec='-', **kwargs):
                         alpha=0.5, facecolor=color,
                         linewidth=1, antialiased=True)
     polys.append(poly)
+
+    xlabel('Residues')
+
+    if isinstance(ensemble, Ensemble):
+        title_str = ensemble.getTitle()
+    else:
+        if np.isscalar(index):
+            title_str = 'mode %d'%(index+1)
+        else:
+            title_str = '%d modes'%len(index)
+    title('Signature profile of ' + title_str)
+
     return lines, polys, bars
     
-def calcAverageCrossCorr(modeEnsemble, modeIndex, *args, **kwargs):
+def calcSignatureCrossCorr(ensemble, index, *args, **kwargs):
     """Calculate average cross-correlations for a modeEnsemble (a list of modes)."""
     
-    matches = matchModes(*modeEnsemble, index=True)
-    n_sets = len(modeEnsemble)
+    enms = _getEnsembleENMs(ensemble, **kwargs)
+    matches = matchModes(*enms)
+    n_sets = len(enms)
     CCs = []
     for i in range(n_sets):
-        CC = calcCrossCorr(modeEnsemble[i][modeIndex])
+        CC = calcCrossCorr(matches[i][index])
         CCs.append(CC)
     C = np.vstack(CCs)
-    n_atoms = modeEnsemble[0].numAtoms()
+    n_atoms = enms[0].numAtoms()
     C = C.reshape(len(CCs), n_atoms, n_atoms)
     mean = C.mean(axis=0)
     std = C.std(axis=0)
         
     return C, mean, std
 
-def showAverageCrossCorr(modeEnsemble, modeIndex, plotStd=False, *args, **kwargs):
+def showAverageCrossCorr(ensemble, index, show_std=False, *args, **kwargs):
     """Show average cross-correlations using :func:`~matplotlib.pyplot.imshow`.  By
     default, *origin=lower* and *interpolation=bilinear* keyword  arguments
     are passed to this function, but user can overwrite these parameters.
-    See also :func:`.calcAverageCrossCorr`."""
+    See also :func:`.calcSignatureCrossCorr`."""
 
     import matplotlib.pyplot as plt
     if SETTINGS['auto_show']:
         plt.figure()
-    arange = np.arange(modeEnsemble[0].numAtoms())
-    C, mean, std = calcAverageCrossCorr(modeEnsemble, modeIndex)
-    if plotStd:
+        
+    C, mean, std = calcSignatureCrossCorr(ensemble, index)
+
+    atoms = kwargs.pop('atoms', None)
+    if atoms is None:
+        try:
+            atoms = ensemble.getAtoms()
+        except:
+            pass
+
+    if show_std:
         matrixData = std
     else:
         matrixData = mean
     if not 'interpolation' in kwargs:
         kwargs['interpolation'] = 'bilinear'
-    if not 'origin' in kwargs:
-        kwargs['origin'] = 'lower'
-    cmap = kwargs.pop('cmap', 'jet')
-    show = showAtomicMatrix(matrixData, cmap=cmap, *args, **kwargs), plt.colorbar()
-    if np.isscalar(modeIndex):
-        title_str = ', mode '+str(modeIndex+1)
+
+    show = showAtomicMatrix(matrixData, atoms=atoms, *args, **kwargs)
+    if np.isscalar(index):
+        title_str = ', mode '+str(index+1)
     else:
-        modeIndexStr = ','.join([str(x+1) for x in modeIndex])
+        modeIndexStr = ','.join([str(x+1) for x in index])
         if len(modeIndexStr) > 8:
-            title_str = ', '+str(len(modeIndex))+' modes '+modeIndexStr[:5]+'...'
+            title_str = ', '+str(len(index))+' modes '+modeIndexStr[:5]+'...'
         else:
             title_str = ', modes '+modeIndexStr
         # title_str = ', '+str(len(modeIndex))+' modes'
-    if plotStd:
-        plt.title('Std - Cross-correlations'+title_str, size=14)
+    if show_std:
+        plt.title('Cross-correlations (standard deviation)'+title_str)
     else:
-        plt.title('Avg - Cross-correlations'+title_str, size=14)
-    plt.xlabel('Indices', size=14)
-    plt.ylabel('Indices', size=14)
+        plt.title('Cross-correlations (average)'+title_str)
+    plt.xlabel('Residues')
+    plt.ylabel('Residues')
     if SETTINGS['auto_show']:
         showFigure()
     return show
 
-def showMatrixAverageCrossCorr(modeEnsemble, modeIndex, plotStd=False, *args, **kwargs):
-    """Show average cross-correlations using :func:`showMatrix`.  By
-    default, *origin=lower* and *interpolation=bilinear* keyword  arguments
-    are passed to this function, but user can overwrite these parameters.
-    See also :func:`.calcAverageCrossCorr`."""
-
-    import matplotlib.pyplot as plt
-    C, mean, std = calcAverageCrossCorr(modeEnsemble, modeIndex)
-    if plotStd:
-        matrixData = std
-    else:
-        matrixData = mean
-    if not 'interpolation' in kwargs:
-        kwargs['interpolation'] = 'bilinear'
-    if not 'origin' in kwargs:
-        kwargs['origin'] = 'lower'
-    cmap = kwargs.pop('cmap', 'jet')
-    show = showMatrix(matrixData, cmap=cmap, *args, **kwargs)
-    if np.isscalar(modeIndex):
-        title_str = ', mode '+str(modeIndex+1)
-    else:
-        # modeIndexStr = ','.join([str(x+1) for x in modeIndex])
-        # if len(modeIndexStr) > 8:
-            # title_str = ', '+str(len(modeIndex))+' modes '+modeIndexStr[:5]+'...'
-        # else:
-            # title_str = ', modes '+modeIndexStr
-        title_str = ', '+str(len(modeIndex))+' modes'
-    if plotStd:
-        plt.title('Std - Cross-correlations'+title_str, size=12)
-    else:
-        plt.title('Avg - Cross-correlations'+title_str, size=12)
-    plt.xlabel('Indices', size=14)
-    plt.ylabel('Indices', size=14)
-    if SETTINGS['auto_show']:
-        showFigure()
-    return show
