@@ -225,21 +225,21 @@ class Ensemble(object):
             self._n_atoms = atoms.numAtoms()
             self._atoms = atoms
 
-    def getCoords(self):
+    def getCoords(self, selected=True):
         """Returns a copy of reference coordinates for selected atoms."""
 
         if self._coords is None:
             return None
-        if self._indices is None:
+        if self._indices is None or not selected:
             return self._coords.copy()
         return self._coords[self._indices].copy()
 
-    def _getCoords(self):
+    def _getCoords(self, selected=True):
         """Returns a view of reference coordinates for selected atoms."""
 
         if self._coords is None:
             return None
-        if self._indices is None:
+        if self._indices is None or not selected:
             return self._coords
         return self._coords[self._indices].copy()
 
@@ -270,23 +270,23 @@ class Ensemble(object):
         self._coords = coords
         self._n_atoms = coords.shape[0]
 
-    def getWeights(self):
+    def getWeights(self, selected=True):
         """Returns a copy of weights of selected atoms."""
 
         if self._weights is None:
             return None
-        if self._indices is None:
+        if self._indices is None or not selected:
             return self._weights.copy()
         if self._weights.ndim == 2:
             return self._weights[self._indices].copy()
         else:
             return self._weights[:, self._indices].copy()
 
-    def _getWeights(self):
+    def _getWeights(self, selected=True):
 
         if self._weights is None:
             return None
-        if self._indices is None:
+        if self._indices is None or not selected:
             return self._weights
         if self._weights.ndim == 2:
             return self._weights[self._indices]
