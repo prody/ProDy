@@ -19,8 +19,8 @@ from .plotting import showAtomicData, showAtomicMatrix
 from .anm import ANM
 from .gnm import GNM
 
-__all__ = ['Signature', 'calcEnsembleENMs', 'calcSignatureProfile', 'calcEnsembleSpectralOverlaps',
-           'showSignatureProfile', 'calcSignatureCrossCorr', 'showAverageCrossCorr']
+__all__ = ['Signature', 'calcEnsembleENMs', 'calcSignatureMobility', 'calcEnsembleSpectralOverlaps',
+           'showSignatureMobility', 'calcSignatureCrossCorr', 'showSignatureCrossCorr']
 
 class Signature(object):
     """
@@ -234,9 +234,9 @@ def calcEnsembleSpectralOverlaps(ensemble, distance=False, **kwargs):
 
     return overlaps
 
-def calcSignatureProfile(ensemble, index, **kwargs):
+def calcSignatureMobility(ensemble, index, **kwargs):
     """
-    Get the signature profile of *ensemble*. If *ensemble* is an instance of 
+    Get the signature mobility of *ensemble*. If *ensemble* is an instance of 
     :class:`Ensemble` then the ENMs will be first calculated using 
     :func:`calcEnsembleENMs`. 
     
@@ -282,17 +282,20 @@ def calcSignatureProfile(ensemble, index, **kwargs):
 
     return sig
     
-def showSignatureProfile(ensemble, index, linespec='-', **kwargs):
+def showSignatureMobility(ensemble, index, linespec='-', **kwargs):
     """
-    Show the signature profile of *ensemble* using :func:`showAtomicData`. 
+    Show the signature mobility of *ensemble* using :func:`showAtomicData`. 
     
-    :arg ensemble: an ensemble of structures or ENMs 
-    :type ensemble: :class: `Ensemble` or list
+    :arg ensemble: an ensemble of structures or ENMs, or a signature profile 
+    :type ensemble: :class: `Ensemble`, list, :class:`Signature`
 
     :arg index: mode index for displaying the mode shape or a list 
                 of mode indices for displaying the mean square fluctuations. 
                 The list can contain only one index.
     :type index: int or list
+
+    :arg linespec: line specifications that will be passed to :func:`showAtomicData`
+    :type linespec: str
 
     :arg atoms: an object with method :func:`getResnums` for use 
                 on the x-axis.
@@ -305,7 +308,11 @@ def showSignatureProfile(ensemble, index, linespec='-', **kwargs):
     from matplotlib.pyplot import figure, plot, fill_between, \
                                   gca, xlabel, ylabel, title
 
-    V = calcSignatureProfile(ensemble, index, **kwargs)
+    if isinstance(ensemble, Signature):
+        V = ensemble
+    else:
+        V = calcSignatureMobility(ensemble, index, **kwargs)
+
     meanV, stdV, minV, maxV = V.mean(), V.std(), V.min(), V.max()
     x = range(meanV.shape[0])
     
@@ -377,17 +384,31 @@ def calcSignatureCrossCorr(ensemble, index, *args, **kwargs):
         
     return sig
 
-def showAverageCrossCorr(ensemble, index, show_std=False, *args, **kwargs):
-    """Show average cross-correlations using :func:`~matplotlib.pyplot.imshow`.  By
-    default, *origin=lower* and *interpolation=bilinear* keyword  arguments
+def showSignatureCrossCorr(ensemble, index, show_std=False, **kwargs):
+    """Show average cross-correlations using :func:`~matplotlib.pyplot.imshow`. 
+    By default, *origin=lower* and *interpolation=bilinear* keyword  arguments
     are passed to this function, but user can overwrite these parameters.
-    See also :func:`.calcSignatureCrossCorr`."""
+    See also :func:`.calcSignatureCrossCorr`.
+    
+    :arg ensemble: an ensemble of structures or ENMs, or a signature profile 
+    :type ensemble: :class: `Ensemble`, list, :class:`Signature`
+
+    :arg index: mode index for displaying the mode shape or a list 
+                of mode indices for displaying the mean square fluctuations. 
+                The list can contain only one index.
+    :type index: int or list
+
+    :arg atoms: an object with method :func:`getResnums` for use 
+                on the x-axis.
+    :type atoms: :class:`Atomic` 
+    """
 
     import matplotlib.pyplot as plt
-    if SETTINGS['auto_show']:
-        plt.figure()
-        
-    C = calcSignatureCrossCorr(ensemble, index)
+    
+    if isinstance(ensemble, Signature):
+        C = ensemble
+    else:
+        C = calcSignatureCrossCorr(ensemble, index, **kwargs)
 
     atoms = kwargs.pop('atoms', None)
     if atoms is None:
@@ -403,7 +424,7 @@ def showAverageCrossCorr(ensemble, index, show_std=False, *args, **kwargs):
     if not 'interpolation' in kwargs:
         kwargs['interpolation'] = 'bilinear'
 
-    show = showAtomicMatrix(matrixData, atoms=atoms, *args, **kwargs)
+    show = showAtomicMatrix(matrixData, atoms=atoms, **kwargs)
     if np.isscalar(index):
         title_str = ', mode '+str(index+1)
     else:
@@ -419,7 +440,8 @@ def showAverageCrossCorr(ensemble, index, show_std=False, *args, **kwargs):
         plt.title('Cross-correlations (average)'+title_str)
     plt.xlabel('Residues')
     plt.ylabel('Residues')
-    if SETTINGS['auto_show']:
-        showFigure()
+    
     return show
 
+def showSignatureVariances(signature, **kwargs):
+    pass
