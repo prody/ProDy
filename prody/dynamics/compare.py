@@ -200,23 +200,24 @@ def pairModes(modes1, modes2, index=False):
 
     from scipy.optimize import linear_sum_assignment
 
+    if not (isinstance(modes1, (ModeSet, NMA)) \
+        and isinstance(modes2, (ModeSet, NMA))):
+        raise TypeError('modes1 and modes2 should be ModeSet instances')
+
     if len(modes1) != len(modes2):
-        raise ValueError('Same number of modes should be provided.')
+        raise ValueError('the same number of modes should be provided')
     overlaps = calcOverlap(modes1, modes2)
 
     costs = 1 - abs(overlaps)
     row_ind, col_ind = linear_sum_assignment(costs)
 
     if index:
-        return np.array(zip(row_ind, col_ind))
+        return row_ind, col_ind
 
-    mode_pairs = []
-    for i in range(len(row_ind)):
-        r = row_ind[i]; c = col_ind[i]
-        mode_pair = [modes1[r], modes2[c]]
-        mode_pairs.append(mode_pair)
+    outmodes1 = ModeSet(modes1.getModel(), row_ind)
+    outmodes2 = ModeSet(modes2.getModel(), col_ind)
 
-    return mode_pairs
+    return outmodes1, outmodes2
 
 def matchModes(*modesets, **kwargs):
     """Returns the matches of modes among *modesets*. Note that the first 
@@ -229,44 +230,19 @@ def matchModes(*modesets, **kwargs):
     """
 
     index = kwargs.pop('index', False)
-    P = []
-    modes0 = modesets[0]
+    modeset0 = modesets[0]
+    ret = [modeset0]
 
-    n_modes = len(modes0)
+    n_modes = len(modeset0)
     n_sets = len(modesets)
     if n_sets == 1:
-        matches = []
-        modes = modesets[0]
-        for mode in modes:
-            matches.append([mode])
-        return matches
+        return modesets
     elif n_sets == 0:
         raise ValueError('at least one modeset should be given')
 
-    for i, modes in enumerate(modesets):
+    for i, modeset in enumerate(modesets):
         if i > 0:
-            pairs = pairModes(modes0, modes, index=index)
-            P.append(pairs)
-
-    from operator import itemgetter
-    def modeorder_compare(m1, m2):
-        if isinstance(m1, (int, np.integer)) and isinstance(m2, (int, np.integer)):
-            return m1 - m2
-        return m1.getIndex() - m2.getIndex()
-
-    for pairs in P:
-        pairs = sorted(pairs, key=itemgetter(0), cmp=modeorder_compare)
+            _, reordered_modeset = pairModes(modeset0, modeset, index=index)
+            ret.append(reordered_modeset)
     
-    if index:
-        matches = np.zeros((n_modes, n_sets))
-    else:
-        matches = [[None for _ in range(n_sets)] for _ in range(n_modes)]
-
-    for i in range(n_modes):
-        for j in range(n_sets):
-            if j == 0:
-                matches[i][j] = P[0][i][0]
-            else:
-                matches[i][j] = P[j-1][i][1]
-
-    return matches
+    return ret
