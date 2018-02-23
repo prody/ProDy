@@ -173,8 +173,10 @@ def calcEnsembleENMs(ensemble, model='gnm', trim='trim', n_modes=20):
     ## ENM for every conf
     enms = []
     n_confs = ensemble.numConfs()
+
+    str_modes = 'all' if n_modes is None else str(n_modes)
     LOGGER.progress('Calculating {0} {1} modes for {2} conformations...'
-                    .format(n_modes, model_type, n_confs), n_confs)
+                    .format(str_modes, model_type, n_confs), n_confs)
 
     for i in range(n_confs):
         coords = ensemble.getCoordsets(i, selected=False)
@@ -193,7 +195,7 @@ def calcEnsembleENMs(ensemble, model='gnm', trim='trim', n_modes=20):
     LOGGER.verbosity = verb
 
     LOGGER.info('{0} {1} modes were calculated for each of the {2} conformations.'
-                        .format(n_modes, model_type, n_confs))
+                        .format(str_modes, model_type, n_confs))
     return enms
 
 def _getEnsembleENMs(ensemble, **kwargs):
@@ -245,12 +247,12 @@ def calcSignatureMobility(ensemble, index, **kwargs):
                 The list can contain only one index.
     :type index: int or list
 
-    :arg fractional: if set to ``True``, mode variances are normalized, default
+    :arg fraction: if set to ``True``, fractions of mode variances are calculated, default
                     is ``False``
-    :type fractional: bool
+    :type fraction: bool
     """
 
-    fract = kwargs.pop('fractional', False)
+    fract = kwargs.pop('fraction', False)
     enms = _getEnsembleENMs(ensemble, **kwargs)
     
     modesets = matchModes(*enms)

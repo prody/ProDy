@@ -1209,7 +1209,7 @@ def _checkDomainBarParameter(domain_bar, defpos, atoms, label):
     pos = defpos
 
     if not show:
-        return show, pos
+        return show, pos, atoms
 
     # check if the user wants to show or not
     from numbers import Number
@@ -1353,7 +1353,7 @@ def showAtomicMatrix(matrix, x_array=None, y_array=None, atoms=None, **kwargs):
 
     if SETTINGS['auto_show']:
         showFigure()
-        
+
     return im, lines, colorbar, texts
 
 def showAtomicData(y, atoms=None, linespec='-', **kwargs):
