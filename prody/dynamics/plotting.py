@@ -1307,8 +1307,8 @@ def showAtomicMatrix(matrix, x_array=None, y_array=None, atoms=None, **kwargs):
     sides = []
     if atoms is not None:
         n_atoms = atoms.numAtoms()
-        if n_atoms == n_row: sides.append('x') 
-        if n_atoms == n_col: sides.append('y')
+        if n_atoms == n_row: sides.append('y') 
+        if n_atoms == n_col: sides.append('x')
         if not sides:
             raise ValueError('The number of atoms ({0}) is inconsistent with the shape '
                              'of the matrix ({1}, {2}).'.format(n_atoms, n_row, n_col))
@@ -1332,7 +1332,7 @@ def showAtomicMatrix(matrix, x_array=None, y_array=None, atoms=None, **kwargs):
     bars = []
     texts = []
     if show_chain:
-        b, t = showDomainBar(chids, loc=chain_pos, axis='x', 
+        b, t = showDomainBar(chids, loc=chain_pos, axis=sides[-1], 
                              text_loc=chain_text_loc, text_color='w')
         bars.extend(b)
         texts.extend(t)
@@ -1340,13 +1340,16 @@ def showAtomicMatrix(matrix, x_array=None, y_array=None, atoms=None, **kwargs):
     # force turnning off domain_bar if chain_bar and only one side is 
     # available
     if len(sides) < 2:
-        if domain_bar is None and chain_bar:
+        if show_chain:
+            if domain_bar is not None:
+                LOGGER.warn('There is only one side of the matrix matches with atoms so domain bar '
+                            'will not be shown. Turn off chain_bar if you want to show the domain bar.')
             domain_bar = False
-
+            
     show_domain, domain_pos, domains = _checkDomainBarParameter(domain_bar, 0., atoms, 'domain')
 
     if show_domain:
-        b, t = showDomainBar(domains, loc=domain_pos, axis='y', 
+        b, t = showDomainBar(domains, loc=domain_pos, axis=sides[0], 
                              text_loc=domain_text_loc, text_color='w')
         bars.extend(b)
         texts.extend(t)
