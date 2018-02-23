@@ -3,11 +3,12 @@
 
 __author__ = 'Anindita Dutta, Ahmet Bakan, Wenzhi Mao'
 
-from numpy import dtype, zeros, empty, ones
-from numpy import indices, tril_indices
+from numpy import dtype, zeros, empty, ones, where
+from numpy import indices, tril_indices, array
 from prody import LOGGER
 from prody.sequence.msa import MSA
 from prody.sequence.msafile import parseMSA, writeMSA
+from prody.sequence.sequence import Sequence
 
 __all__ = ['calcShannonEntropy', 'buildMutinfoMatrix', 'calcMSAOccupancy',
            'applyMutinfoCorr', 'applyMutinfoNorm', 'calcRankorder', 'filterRankedPairs',
@@ -314,30 +315,30 @@ def filterRankedPairs(indices, msa_indices, rank_row, rank_col, zscore_sort, \
         
         i += 1
         
-        if type(indices[np.where(msa_indices == rank_row[i])[0][0]]) != np.int64 or \
-        type(indices[np.where(msa_indices == rank_col[i])[0][0]]) != np.int64:
+        if type(indices[where(msa_indices == rank_row[i])[0][0]]) != np.int64 or \
+        type(indices[where(msa_indices == rank_col[i])[0][0]]) != np.int64:
             continue
         
-        if indices[np.where(msa_indices == rank_row[i])[0][0]] - \
-        indices[np.where(msa_indices == rank_col[i])[0][0]] < seqDistance:
+        if indices[where(msa_indices == rank_row[i])[0][0]] - \
+        indices[where(msa_indices == rank_col[i])[0][0]] < seqDistance:
             continue        
         
         distance = calcDistance(pdb.select('chain %s and resid %s' % (chain1, \
-                                           indices[np.where(msa_indices == \
+                                           indices[where(msa_indices == \
                                            rank_row[i])[0][0]])).copy(), \
                                 pdb.select('chain %s and resid %s' % (chain2, \
-                                           indices[np.where(msa_indices == \
+                                           indices[where(msa_indices == \
                                            rank_col[i])[0][0]])).copy())
         if distance > pdbDistance:
             continue
             
         if resi_range is not None:
-            if not indices[np.where(msa_indices == rank_row[i])[0][0]] in resi_range and \
-            not indices[np.where(msa_indices == rank_col[i])[0][0]] in resi_range:
+            if not indices[where(msa_indices == rank_row[i])[0][0]] in resi_range and \
+            not indices[where(msa_indices == rank_col[i])[0][0]] in resi_range:
                 continue
             
-        pairList.append('%3d' % i + ':\t%3d' % indices[np.where(msa_indices == \
-        rank_row[i])[0][0]] + '\t' + '%3d' % indices[np.where(msa_indices == \
+        pairList.append('%3d' % i + ':\t%3d' % indices[where(msa_indices == \
+        rank_row[i])[0][0]] + '\t' + '%3d' % indices[where(msa_indices == \
         rank_col[i])[0][0]] + '\t' + '%5.1f' % zscore_sort[i] + '\t' + \
         '%5.1f' % distance + '\n')
         
@@ -701,10 +702,16 @@ def alignMultipleSequences(sequences, **kwargs):
             sequences = msa
 
         if isinstance(sequences[0], str):
+            max_len = 0
+            for sequence in sequences:
+                if len(sequence) > max_len:
+                    max_len = len(sequence)
+
             msa = []
             for sequence in sequences:
-                msa.append(np.array(list(sequence)))
-            sequences = np.array(msa)
+                sequence = sequence + '-'*(max_len - len(sequence))
+                msa.append(array(list(sequence)))
+            sequences = array(msa)
 
         labels = kwargs.get('labels',None)
         if labels is None or len(labels) != len(sequences):
@@ -721,7 +728,7 @@ def alignMultipleSequences(sequences, **kwargs):
     prefix = kwargs.get('prefix',None)
     if isinstance(sequences, MSA):
         if prefix is not None:
-            sequences = writeMSA(sequences, prefix + '.fasta')
+            sequences = writeMSA(prefix + '.fasta', sequences)
         else:
             raise ValueError('please provide a prefix for the MSA file to be '
                              'fed to clustalw')
