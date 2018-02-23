@@ -20,7 +20,7 @@ from .anm import ANM
 from .gnm import GNM
 
 __all__ = ['Signature', 'calcEnsembleENMs', 'calcSignatureMobility', 'calcEnsembleSpectralOverlaps',
-           'showSignatureMobility', 'calcSignatureCrossCorr', 'showSignatureCrossCorr',
+           'showSignatureMobility', 'calcSignatureCrossCorr', 'showSignatureCrossCorr', 'showVarianceBar',
            'showSignatureVariances']
 
 class Signature(object):
@@ -515,3 +515,6 @@ def showSignatureVariances(*signatures, **kwargs):
         showFigure()
 
     return n, bins, patches
+
+def showVarianceBar(*signatures, **kwargs):
+    pass
