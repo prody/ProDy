@@ -6,6 +6,7 @@ from numpy import unique, linalg, diag, sqrt, dot
 import scipy.cluster.hierarchy as sch
 from scipy import spatial
 from .misctools import addBreaks
+from Bio import Phylo
 
 __all__ = ['calcTree', 'clusterMatrix', 'showData', 'showMatrix', 'reorderMatrix', 'findSubgroups']
 
@@ -187,7 +188,7 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
                      to *100-p*-th percentile.
     :type percentile: float"""
 
-    import matplotlib.pyplot as mpl
+    import matplotlib.pyplot as plt
     from matplotlib import cm, ticker
     from matplotlib.gridspec import GridSpec, GridSpecFromSubplotSpec
     from matplotlib.collections import LineCollection
@@ -216,6 +217,12 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
         i = 1; j = 0
         width_ratios = [W]
         height_ratios = [1, H]
+        aspect = 'auto'
+    elif isinstance(y_array, Phylo.BaseTree.Tree):
+        nrow = 2; ncol = 2
+        i = 1; j = 1
+        width_ratios = [W, W]
+        height_ratios = [W, H]
         aspect = 'auto'
     elif x_array is None and y_array is not None:
         nrow = 1; ncol = 2
@@ -250,42 +257,52 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
 
     lines = []
     if nrow > 1:
-        ax1 = mpl.subplot(gs[upper_index])
-        ax1.set_xticklabels([])
-        
-        y = x_array
-        x = np.arange(len(y))
-        points = np.array([x, y]).T.reshape(-1, 1, 2)
-        segments = np.concatenate([points[:-1], points[1:]], axis=1)
-        cmap = cm.jet(y)
-        lcy = LineCollection(segments, array=x, linewidths=1, cmap='jet')
-        lines.append(lcy)
-        ax1.add_collection(lcy)
+        ax1 = plt.subplot(gs[upper_index])
 
-        ax1.set_xlim(x.min(), x.max())
-        ax1.set_ylim(y.min(), y.max())
+        if isinstance(y_array, Phylo.BaseTree.Tree):
+            pass
+
+        else:
+            ax1.set_xticklabels([])
+            
+            y = x_array
+            x = np.arange(len(y))
+            points = np.array([x, y]).T.reshape(-1, 1, 2)
+            segments = np.concatenate([points[:-1], points[1:]], axis=1)
+            cmap = cm.jet(y)
+            lcy = LineCollection(segments, array=x, linewidths=1, cmap='jet')
+            lines.append(lcy)
+            ax1.add_collection(lcy)
+
+            ax1.set_xlim(x.min(), x.max())
+            ax1.set_ylim(y.min(), y.max())
         ax1.axis('off')
 
     if ncol > 1:
-        ax2 = mpl.subplot(gs[left_index])
-        ax2.set_xticklabels([])
+        ax2 = plt.subplot(gs[left_index])
         
-        y = y_array
-        x = np.arange(len(y))
-        points = np.array([y, x]).T.reshape(-1, 1, 2)
-        segments = np.concatenate([points[:-1], points[1:]], axis=1)
-        cmap = cm.jet(y)
-        lcx = LineCollection(segments, array=y, linewidths=1, cmap='jet')
-        lines.append(lcx)
-        ax2.add_collection(lcx)
+        if isinstance(y_array, Phylo.BaseTree.Tree):
+            Phylo.draw(y_array, do_show=False, axes=ax2, **kwargs)
+        else:
 
-        ax2.set_xlim(y.min(), y.max())
-        ax2.set_ylim(x.min(), x.max())
+            ax2.set_xticklabels([])
+            
+            y = y_array
+            x = np.arange(len(y))
+            points = np.array([y, x]).T.reshape(-1, 1, 2)
+            segments = np.concatenate([points[:-1], points[1:]], axis=1)
+            cmap = cm.jet(y)
+            lcx = LineCollection(segments, array=y, linewidths=1, cmap='jet')
+            lines.append(lcx)
+            ax2.add_collection(lcx)
+            ax2.set_xlim(y.min(), y.max())
+            ax2.set_ylim(x.min(), x.max())
+            ax2.invert_xaxis()
+
         ax2.axis('off')
-        ax2.invert_xaxis()
 
     if complex_layout:
-        ax3 = mpl.subplot(gs[main_index])
+        ax3 = plt.subplot(gs[main_index])
     else:
         ax3 = gca()
     
@@ -318,10 +335,10 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
     colorbar = None
     if cb:
         if complex_layout:
-            ax4 = mpl.subplot(gs_bar[-1])
-            colorbar = mpl.colorbar(mappable=im, cax=ax4)
+            ax4 = plt.subplot(gs_bar[-1])
+            colorbar = plt.colorbar(mappable=im, cax=ax4)
         else:
-            colorbar = mpl.colorbar(mappable=im)
+            colorbar = plt.colorbar(mappable=im)
 
     sca(ax3)
     sci(im)
