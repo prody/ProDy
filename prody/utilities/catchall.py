@@ -289,8 +289,8 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
     else:
         ax3 = gca()
     
-    #if not 'origin' in kwargs:
-    #    kwargs['origin'] = 'lower'
+    if not 'origin' in kwargs:
+        kwargs['origin'] = 'lower'
     if not 'cmap' in kwargs:
         kwargs['cmap'] = 'jet'
     im = ax3.imshow(matrix, aspect=aspect, vmin=vmin, vmax=vmax, **kwargs)
