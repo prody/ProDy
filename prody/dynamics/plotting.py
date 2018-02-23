@@ -1286,7 +1286,7 @@ def showAtomicMatrix(matrix, x_array=None, y_array=None, atoms=None, **kwargs):
 
     chain_bar = kwargs.pop('chain_bar', None)
     domain_bar = kwargs.pop('domain_bar', None)
-    chain_text_loc = kwargs.pop('chain_text_loc', 'below')
+    chain_text_loc = kwargs.pop('chain_text_loc', 'above')
     domain_text_loc = kwargs.pop('domain_text_loc', 'below')
     fig = kwargs.pop('figure', None)
 
@@ -1327,7 +1327,7 @@ def showAtomicMatrix(matrix, x_array=None, y_array=None, atoms=None, **kwargs):
     im, lines, colorbar = showMatrix(matrix, x_array, y_array, ticklabels=ticklabels, **kwargs) 
     
     ## draw domain & chain bars
-    show_chain, chain_pos, chids = _checkDomainBarParameter(chain_bar, 1., atoms, 'chain')
+    show_chain, chain_pos, chids = _checkDomainBarParameter(chain_bar, 0., atoms, 'chain')
 
     bars = []
     texts = []
