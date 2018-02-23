@@ -1332,7 +1332,7 @@ def showAtomicMatrix(matrix, x_array=None, y_array=None, atoms=None, **kwargs):
     bars = []
     texts = []
     if show_chain:
-        b, t = showDomainBar(chids, loc=chain_pos, axis=sides[0], 
+        b, t = showDomainBar(chids, loc=chain_pos, axis=sides[-1], 
                              text_loc=chain_text_loc, text_color='w')
         bars.extend(b)
         texts.extend(t)
@@ -1349,7 +1349,7 @@ def showAtomicMatrix(matrix, x_array=None, y_array=None, atoms=None, **kwargs):
     show_domain, domain_pos, domains = _checkDomainBarParameter(domain_bar, 0., atoms, 'domain')
 
     if show_domain:
-        b, t = showDomainBar(domains, loc=domain_pos, axis=sides[-1], 
+        b, t = showDomainBar(domains, loc=domain_pos, axis=sides[0], 
                              text_loc=domain_text_loc, text_color='w')
         bars.extend(b)
         texts.extend(t)
