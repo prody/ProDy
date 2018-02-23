@@ -14,13 +14,14 @@ from .mode import Mode, Vector
 from .functions import calcENM
 from .compare import calcSpectralOverlap, matchModes
 
-from .analysis import calcSqFlucts, calcCrossCorr
+from .analysis import calcSqFlucts, calcCrossCorr, calcFractVariance
 from .plotting import showAtomicData, showAtomicMatrix
 from .anm import ANM
 from .gnm import GNM
 
 __all__ = ['Signature', 'calcEnsembleENMs', 'calcSignatureMobility', 'calcEnsembleSpectralOverlaps',
-           'showSignatureMobility', 'calcSignatureCrossCorr', 'showSignatureCrossCorr']
+           'showSignatureMobility', 'calcSignatureCrossCorr', 'showSignatureCrossCorr',
+           'showSignatureVariances']
 
 class Signature(object):
     """
@@ -32,7 +33,7 @@ class Signature(object):
 
     __slots__ = ['_array', '_vars', '_title', '_is3d']
 
-    def __init__(self, vecs, vals=None, title=None, is3d=False):
+    def __init__(self, vecs, vars=None, title=None, is3d=False):
         vecs = np.array(vecs)
 
         ndim = vecs.ndim
@@ -42,13 +43,13 @@ class Signature(object):
         self._array = vecs
         shape = vecs.shape
 
-        if vals is None:
-            vals = np.zeros(shape[1])
-        if np.isscalar(vals):
-            vals = [vals]
-        if len(vals) != shape[0]:
-            raise ValueError('the number of vals does not match the number of vecs')
-        self._vars = np.array(vals)
+        if vars is None:
+            vars = np.zeros(shape[1])
+        if np.isscalar(vars):
+            vars = [vars]
+        if len(vars) != shape[0]:
+            raise ValueError('the number of vars does not match the number of vecs')
+        self._vars = np.array(vars)
 
         if title is None:
             self._title = '{0} vectors of size {1}'.format(shape[0], shape[1:])
@@ -76,10 +77,10 @@ class Signature(object):
         """A list or tuple of integers can be used for indexing."""
 
         vecs = self._array[index]
-        vals = self._vars[index]
+        vars = self._vars[index]
         if np.isscalar(index):
             vecs = np.array([vecs])
-        return Signature(vecs, vals, is3d=self.is3d)
+        return Signature(vecs, vars, is3d=self.is3d)
 
     def is3d(self):
         """Returns **True** is model is 3-dimensional."""
@@ -108,7 +109,7 @@ class Signature(object):
 
         return self._title
 
-    def getValues(self, index=None):
+    def getVariances(self, index=None):
         """Returns variances of vectors. """
         if index is not None:
             return self._vars[index]
@@ -135,10 +136,6 @@ class Signature(object):
     def getMean(self):
         return self._array.mean(axis=0)
     mean = getMean
-
-    def getVariance(self):
-        return self._array.var(axis=0)
-    var = getVariance
     
     def getStd(self):
         return self._array.std(axis=0)
@@ -247,8 +244,13 @@ def calcSignatureMobility(ensemble, index, **kwargs):
                 of mode indices for displaying the mean square fluctuations. 
                 The list can contain only one index.
     :type index: int or list
+
+    :arg fractional: if set to ``True``, mode variances are normalized, default
+                    is ``False``
+    :type fractional: bool
     """
 
+    fract = kwargs.pop('fractional', False)
     enms = _getEnsembleENMs(ensemble, **kwargs)
     
     modesets = matchModes(*enms)
@@ -262,23 +264,32 @@ def calcSignatureMobility(ensemble, index, **kwargs):
             c = np.dot(v, v0)
             if c < 0:
                 v *= -1
-            w = mode.getVariance()
+            if not fract:
+                w = mode.getVariance()
+            else:
+                w = calcFractVariance(mode)
             V.append(v); W.append(w)
         is3d = mode.is3d()
     else:
         for modeset in modesets:
             modes = modeset[index]
             sqfs = calcSqFlucts(modes)
-            vars = modes.getVariances()
-            V.append(sqfs); W.append(np.sum(vars))
+            if not fract:
+                w = modes.getVariances().sum()
+            else:
+                w = calcFractVariance(modes).cumsum()[-1]
+            V.append(sqfs); W.append(w)
         is3d = modeset.is3d()
     V = np.vstack(V)
 
     try:
-        title = ensemble.getTitle()
+        title_str = ensemble.getTitle()
     except AttributeError:
-        title = None
-    sig = Signature(V, W, title=title, is3d=is3d)
+        if np.isscalar(index):
+            title_str = 'mode %d'%(index+1)
+        else:
+            title_str = '%d modes'%len(index)
+    sig = Signature(V, W, title=title_str, is3d=is3d)
 
     return sig
     
@@ -443,10 +454,62 @@ def showSignatureCrossCorr(ensemble, index, show_std=False, **kwargs):
     
     return show
 
-def showSignatureVariances(signature, **kwargs):
+def showSignatureVariances(*signatures, **kwargs):
     """
     Show the distribution of signature variances using 
     :func:`~matplotlib.pyplot.hist`.
     """
+    
+    from matplotlib.pyplot import figure, hist, annotate, legend, xlabel, ylabel
+    from matplotlib.figure import Figure
 
-    return
+    fig = kwargs.pop('figure', None)
+
+    if isinstance(fig, Figure):
+        fig_num = fig.number
+    elif fig is None or isinstance(fig, (int, str)):
+        fig_num = fig
+    else:
+        raise TypeError('figure can be either an instance of matplotlib.figure.Figure '
+                        'or a figure number.')
+    if SETTINGS['auto_show']:
+        figure(fig_num)
+    elif fig_num is not None:
+        figure(fig_num)
+
+    show_legend = kwargs.pop('legend', True)
+
+    W = []; legends = []; weights = []
+    for signature in signatures:
+        vars = signature.getVariances()
+        W.append(vars)
+        legends.append(signature.getTitle())
+        weight = np.ones_like(vars)/float(len(vars))
+        weights.append(weight)
+
+    W = np.vstack(W[::-1])  # reversed to accommodate with matplotlib.pyplot.hist
+    weights = np.vstack(weights[::-1]) 
+    legends = legends[::-1]
+
+    bins = kwargs.pop('bins', 'auto')
+    if bins == 'auto':
+        _, bins = np.histogram(W.flatten(), bins='auto')
+    elif np.isscalar(bins) and isinstance(bins, (int, np.integer)):
+        step = (W.max() - W.min())/bins
+        bins = np.arange(W.min(), W.max(), step)
+
+    histtype = kwargs.pop('histtype', 'stepfilled')
+    label = kwargs.pop('label', legends)
+    weights = kwargs.pop('weights', weights)
+    n, bins, patches = hist(W.T, bins=bins, weights=weights.T, 
+                            histtype=histtype, label=label, **kwargs)
+    if show_legend:
+        legend()
+
+    xlabel('Variance')
+    ylabel('Probability')
+
+    if SETTINGS['auto_show']:
+        showFigure()
+
+    return n, bins, patches
