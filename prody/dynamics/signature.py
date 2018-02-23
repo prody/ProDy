@@ -279,7 +279,7 @@ def calcSignatureMobility(ensemble, index, **kwargs):
             if not fract:
                 w = modes.getVariances().sum()
             else:
-                w = calcFractVariance(modes).cumsum()[-1]
+                w = calcFractVariance(modes).sum()
             V.append(sqfs); W.append(w)
         is3d = modeset.is3d()
     V = np.vstack(V)
@@ -369,6 +369,7 @@ def showSignatureMobility(ensemble, index, linespec='-', **kwargs):
 def calcSignatureCrossCorr(ensemble, index, *args, **kwargs):
     """Calculate average cross-correlations for a modeEnsemble (a list of modes)."""
     
+    fract = kwargs.pop('fraction', False)
     enms = _getEnsembleENMs(ensemble, **kwargs)
     matches = matchModes(*enms)
     n_atoms = enms[0].numAtoms()
@@ -380,10 +381,15 @@ def calcSignatureCrossCorr(ensemble, index, *args, **kwargs):
         m = matches[i][index]
         c = calcCrossCorr(m)
         C[i, :, :] = c
-        if np.isscalar(index):
-            var = m.getVariance()
+        if not fract:
+            if np.isscalar(index):
+                var = m.getVariance()
+            else:
+                var = m.getVariances()
         else:
-            var = np.sum(m.getVariances())
+            var = calcFractVariance(m)
+        if np.isscalar(index):
+            var = var.sum()
         W.append(var)
         if is3d is None:
             is3d = m.is3d()
