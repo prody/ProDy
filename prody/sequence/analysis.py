@@ -3,12 +3,17 @@
 
 __author__ = 'Anindita Dutta, Ahmet Bakan, Wenzhi Mao'
 
+import os
 from numpy import dtype, zeros, empty, ones, where
-from numpy import indices, tril_indices, array
+from numpy import indices, tril_indices, array, ceil
 from prody import LOGGER
+from prody.utilities import which
 from prody.sequence.msa import MSA
 from prody.sequence.msafile import parseMSA, writeMSA
 from prody.sequence.sequence import Sequence
+from prody.atomic import Atomic
+from Bio import pairwise2
+import sys
 
 __all__ = ['calcShannonEntropy', 'buildMutinfoMatrix', 'calcMSAOccupancy',
            'applyMutinfoCorr', 'applyMutinfoNorm', 'calcRankorder', 'filterRankedPairs',
@@ -905,7 +910,7 @@ def alignSequenceToMSA(seq, msa, label, match=5, mismatch=-1, gap_opening=-10, g
     except:
         raise ValueError('Please provide a label that can be found in msa.')
 
-    if isinstance(msa[seqIndex], Sequence):
+    if isinstance(seqIndex, int):
         refMsaSeq = str(msa[seqIndex]).upper().replace('-','.')
 
     else:
@@ -931,8 +936,8 @@ def alignSequenceToMSA(seq, msa, label, match=5, mismatch=-1, gap_opening=-10, g
     seq_indices = array(seq_indices)
     msa_indices = array(msa_indices)
 
-    alignment = MSA(msa=array(array(list(alignment[0][0])), \
-                              array(list(alignment[0][1]))), \
+    alignment = MSA(msa=array([array(list(alignment[0][0])), \
+                               array(list(alignment[0][1]))]), \
                     labels=[ag.getTitle(), label])
 
     return alignment, seq_indices, msa_indices
