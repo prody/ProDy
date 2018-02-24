@@ -301,7 +301,6 @@ def psiBlastCycle(sequence=None, filename=None, **kwargs):
         LOGGER.info('PSI-Blast searching PDB database, cycle={0}'
                     .format(cycle))
 
-    #from poster.encode import multipart_encode
     handle = openURL(url, data=data, headers=headers)
     job_id = handle.read()
     handle.close()
@@ -325,29 +324,31 @@ def psiBlastCycle(sequence=None, filename=None, **kwargs):
             return None
 
     LOGGER.info('The status is {0}'.format(status))
- 
-    # get the results
-    url = base_url + 'result/' + job_id + '/xml'
-    handle = openURL(url)
-    results = handle.read()
-    handle.close()
-
     LOGGER.clear()
     LOGGER.report('PSI-Blast search completed in %.1fs.', '_prody_psi-blast')
-    
-    try:
-        ext_xml = filename.lower().endswith('.xml')
-    except AttributeError:
-        pass
+ 
+    if cycle != 1:
+        # get the results
+        url = base_url + 'result/' + job_id + '/xml'
+        handle = openURL(url)
+        results = handle.read()
+        handle.close()
+        
+        try:
+            ext_xml = filename.lower().endswith('.xml')
+        except AttributeError:
+            pass
+        else:
+            if not ext_xml:
+                filename += '.xml'
+            f_out = open(filename, 'w')
+            f_out.write(results)
+            f_out.close()
+            LOGGER.info('Results are saved as {0}.'.format(repr(filename)))
+        
+        return job_id, PsiBlastRecord(results, sequence)
     else:
-        if not ext_xml:
-            filename += '.xml'
-        f_out = open(filename, 'w')
-        f_out.write(results)
-        f_out.close()
-        LOGGER.info('Results are saved as {0}.'.format(repr(filename)))
-    
-    return job_id, PsiBlastRecord(results, sequence), sequence
+        return job_id
 
 def checkPsiBlastParameter(parameter, value):
     """Checks that the value provided for a parameter is in the xml page for that parameter

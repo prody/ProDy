@@ -34,7 +34,7 @@ __all__ = ['showContactMap', 'showCrossCorr',
            'showPairDeformationDist','showMeanMechStiff', 
            'showPerturbResponse', 'showPerturbResponseProfiles',
            'showAtomicMatrix', 'showAtomicData', 'showTree', 
-           'showTree_networkx']
+           'showTree_networkx', 'showDomainBar']
 
 
 def showEllipsoid(modes, onto=None, n_std=2, scale=1., *args, **kwargs):
@@ -1204,6 +1204,38 @@ def showPerturbResponseProfiles(prs_matrix,atoms=None,**kwargs):
     else:
         return show
 
+def _checkDomainBarParameter(domain_bar, defpos, atoms, label):
+    show = atoms is not None
+    pos = defpos
+
+    if not show:
+        return show, pos, atoms
+
+    # check if the user wants to show or not
+    from numbers import Number
+    if isinstance(domain_bar, bool):
+        show &= domain_bar
+        pos = defpos
+    elif isinstance(domain_bar, Number):
+        show &= True    # this line does nothing but is left for readability
+        pos = domain_bar
+
+    # check if the domain bar can be shown or not
+    try:
+        data = atoms.getData(label)
+        uniq = np.unique(data)
+        if domain_bar is None:
+            show &= len(uniq) > 1
+    except:
+        if domain_bar is None:
+            show &= False
+        if show:
+            raise ValueError('A {0} bar can only be generated if '
+                             'there is {0} data associated with '
+                             'the atoms.'.format(label))
+
+    return show, pos, data
+
 def showAtomicMatrix(matrix, x_array=None, y_array=None, atoms=None, **kwargs):
     """Show a matrix using :meth:`~matplotlib.axes.Axes.imshow`. Curves on x- and y-axis can be added.
     The first return value is the :class:`~matplotlib.axes.Axes` object for the upper plot, and the second
@@ -1244,7 +1276,7 @@ def showAtomicMatrix(matrix, x_array=None, y_array=None, atoms=None, **kwargs):
                 to a figure number or a :class:`~matplotlib.figure.Figure` instance, 
                 no matter what 'auto_show' value is, plots will be drawn on the *figure*.
                 Default is `None`.
-    :type figure: :class:`~matplotlib.figure.Figure`, int, or str
+    :type figure: :class:`~matplotlib.figure.Figure`, int, str
     """ 
 
     from prody.utilities import showMatrix
@@ -1254,6 +1286,8 @@ def showAtomicMatrix(matrix, x_array=None, y_array=None, atoms=None, **kwargs):
 
     chain_bar = kwargs.pop('chain_bar', None)
     domain_bar = kwargs.pop('domain_bar', None)
+    chain_text_loc = kwargs.pop('chain_text_loc', 'below')
+    domain_text_loc = kwargs.pop('domain_text_loc', 'below')
     fig = kwargs.pop('figure', None)
 
     if isinstance(fig, Figure):
@@ -1268,8 +1302,16 @@ def showAtomicMatrix(matrix, x_array=None, y_array=None, atoms=None, **kwargs):
     elif fig_num is not None:
         figure(fig_num)
 
+    n_row, n_col = matrix.shape
     ticklabels = None
+    sides = []
     if atoms is not None:
+        n_atoms = atoms.numAtoms()
+        if n_atoms == n_row: sides.append('x') 
+        if n_atoms == n_col: sides.append('y')
+        if not sides:
+            raise ValueError('The number of atoms ({0}) is inconsistent with the shape '
+                             'of the matrix ({1}, {2}).'.format(n_atoms, n_row, n_col))
         hv = atoms.getHierView()
         if hv.numChains() == 0:
             raise ValueError('atoms should contain at least one chain.')
@@ -1284,73 +1326,33 @@ def showAtomicMatrix(matrix, x_array=None, y_array=None, atoms=None, **kwargs):
 
     im, lines, colorbar = showMatrix(matrix, x_array, y_array, ticklabels=ticklabels, **kwargs) 
     
+    ## draw domain & chain bars
+    show_chain, chain_pos, chids = _checkDomainBarParameter(chain_bar, 1., atoms, 'chain')
+
     bars = []
     texts = []
-    if chain_bar is None:
-        chain_bar = atoms is not None
+    if show_chain:
+        b, t = showDomainBar(chids, loc=chain_pos, axis='x', 
+                             text_loc=chain_text_loc, text_color='w')
+        bars.extend(b)
+        texts.extend(t)
 
-    if chain_bar and atoms is not None:
-        yl = ylim(); xl = xlim()
-        d_loc = yl[1]
-        D = []
-        chids = atoms.getChids()
-        uni_chids = np.unique(chids)
-        for chid in uni_chids:
-            d = chids == chid
-            D.append(d)
-        D = np.vstack(D).T
-        F = np.zeros(D.shape)
-        F[~D] = np.nan
-        F[D] = d_loc
-
-        for i, chid in enumerate(uni_chids):
-            locs = np.where(D[:, i])[0]
-            pos = np.median(locs)
-            txt = text(pos, d_loc, chid, horizontalalignment='center', 
-                                         verticalalignment='top',
-                                         color='w')
-            texts.append(txt)
-        bar = plot(F, linewidth=5)
-        bars.append(bar)
-        ylim(yl); xlim(xl)
-
-    try:
-        domains = atoms.getData('domain')
-        uni_domids = np.unique(domains)
-        if domain_bar is None:
-            domain_bar = len(uni_domids) > 1
-    except:
-        if domain_bar is None:
+    # force turnning off domain_bar if chain_bar and only one side is 
+    # available
+    if len(sides) < 2:
+        if domain_bar is None and chain_bar:
             domain_bar = False
-        elif domain_bar:
-            raise ValueError('A domain bar can only be generated if \
-                            there is domain data associated with \
-                            the atoms.')
 
-    if domain_bar and atoms is not None:
-        xl = xlim(); yl = ylim()
-        d_loc = xl[0]
-        D = []
-        for domid in uni_domids:
-            d = domains == domid
-            D.append(d)
-        D = np.vstack(D).T
-        F = np.zeros(D.shape)
-        F[~D] = np.nan
-        F[D] = d_loc
+    show_domain, domain_pos, domains = _checkDomainBarParameter(domain_bar, 0., atoms, 'domain')
 
-        for i, chid in enumerate(uni_domids):
-            locs = np.where(D[:, i])[0]
-            pos = np.median(locs)
-            txt = text(d_loc, pos, chid, rotation='vertical', color='w',
-                                         horizontalalignment='left', 
-                                         verticalalignment='center')
-            texts.append(txt)
-        _y = np.arange(matrix.shape[0])
-        Y = np.tile(_y, (len(uni_domids), 1)).T
-        bar = plot(F, Y, linewidth=5)
-        bars.append(bar)
-        xlim(xl); ylim(yl)
+    if show_domain:
+        b, t = showDomainBar(domains, loc=domain_pos, axis='y', 
+                             text_loc=domain_text_loc, text_color='w')
+        bars.extend(b)
+        texts.extend(t)
+
+    if SETTINGS['auto_show']:
+        showFigure()
 
     return im, lines, colorbar, texts
 
@@ -1378,14 +1380,17 @@ def showAtomicData(y, atoms=None, linespec='-', **kwargs):
                 to a figure number or a :class:`~matplotlib.figure.Figure` instance, 
                 no matter what 'auto_show' value is, plots will be drawn on the *figure*.
                 Default is `None`.
-    :type figure: :class:`~matplotlib.figure.Figure`, int, or str
+    :type figure: :class:`~matplotlib.figure.Figure`, int, str
     """
     
     chain_bar = kwargs.pop('chain_bar', None)
     domain_bar = kwargs.pop('domain_bar', None)
+    chain_text_loc = kwargs.pop('chain_text_loc', 'above')
+    domain_text_loc = kwargs.pop('domain_text_loc', 'below')
+    zero_line = kwargs.pop('show_zero', False)
 
     from prody.utilities import showData
-    from matplotlib.pyplot import figure, ylim, plot, text
+    from matplotlib.pyplot import figure, xlim, ylim, plot, text
     from matplotlib.figure import Figure
     from matplotlib import ticker
 
@@ -1423,74 +1428,117 @@ def showAtomicData(y, atoms=None, linespec='-', **kwargs):
             ticklabels = ['%s:%d'%(c, n) for c, n in zip(chids, resnums)]
 
     lines, polys = showData(y, linespec, ticklabels=ticklabels, **kwargs)
+    if zero_line:
+        l = xlim()
+        plot(l, [0, 0], '--', color='gray')
 
     bars = []
     texts = []
     if chain_bar is None:
         chain_bar = atoms is not None
 
-    if chain_bar and atoms is not None:
-        yl = ylim()
-        d_loc = yl[0]
-        D = []
-        chids = atoms.getChids()
-        uni_chids = np.unique(chids)
-        for chid in uni_chids:
-            d = chids == chid
-            D.append(d)
-        D = np.vstack(D).T
-        F = np.zeros(D.shape)
-        F[~D] = np.nan
-        F[D] = d_loc
+    show_chain, chain_pos, chids = _checkDomainBarParameter(chain_bar, 0., atoms, 'chain')
+     
+    if show_chain:
+        b, t = showDomainBar(atoms.getChids(), loc=chain_pos, axis='x', text_loc=chain_text_loc)
+        bars.extend(b)
+        texts.extend(t)
 
-        for i, chid in enumerate(uni_chids):
-            locs = np.where(D[:, i])[0]
-            pos = np.median(locs)
-            txt = text(pos, d_loc, chid, horizontalalignment='center', 
-                                         verticalalignment='bottom')
-            texts.append(txt)
-        bar = plot(F, linewidth=5)
-        bars.append(bar)
-        ylim(yl)
-
-    try:
-        domains = atoms.getData('domain')
-        uni_domids = np.unique(domains)
-        if domain_bar is None:
-            domain_bar = len(uni_domids) > 1
-    except:
-        if domain_bar is None:
-            domain_bar = False
-        elif domain_bar:
-            raise ValueError('A domain bar can only be generated if \
-                            there is domain data associated with \
-                            the atoms.')
-
-    if domain_bar and atoms is not None:
-        yl = ylim()
-        d_loc = yl[1]
-        D = []
-        for domid in uni_domids:
-            d = domains == domid
-            D.append(d)
-        D = np.vstack(D).T
-        F = np.zeros(D.shape)
-        F[~D] = np.nan
-        F[D] = d_loc
-
-        for i, chid in enumerate(uni_domids):
-            locs = np.where(D[:, i])[0]
-            pos = np.median(locs)
-            txt = text(pos, d_loc, chid, horizontalalignment='center', 
-                                         verticalalignment='top')
-            texts.append(txt)
-        bar = plot(F, linewidth=5)
-        bars.append(bar)
-        ylim(yl)
+    show_domain, domain_pos, domains = _checkDomainBarParameter(domain_bar, 1., atoms, 'domain')
+    if show_domain:
+        b, t = showDomainBar(domains, loc=domain_pos, axis='x', text_loc=domain_text_loc)
+        bars.extend(b)
+        texts.extend(t)
 
     if SETTINGS['auto_show']:
         showFigure()
     return lines, polys, bars, texts
+
+def showDomainBar(domains, loc=0., axis='x', **kwargs):
+    """
+    Plot a bar on top of the current axis which is colored based 
+    on domain separations.
+    
+    :arg domains: a list of domain labels 
+    :type domains: list, tuple, :class:~numpy.ndarray
+
+    :arg loc: relative position of the domain bar. **0** means at 
+              bottom/left and **1** means at top/right
+    :type loc: float
+
+    :arg axis: on which axis the bar will be plotted. It can be 
+               either **x** or **y**
+    :type axis: str
+
+    :arg text_loc: location of text labels. It can be either 
+                   **above** or **below**
+    :type text_loc: str
+
+    :arg text_color: color of the text labels
+    :type text_color: str or tuple or list
+    """
+
+    from matplotlib.pyplot import plot, text, xlim, ylim
+
+    text_color = kwargs.pop('text_color', 'k')
+
+    text_loc = kwargs.pop('text_loc', 'above')
+    if not isinstance(text_loc, str):
+        raise TypeError('text_loc should be a str')
+    
+    text_loc = text_loc.lower().strip()
+    if not text_loc in ['above', 'below']:
+        raise ValueError('text_loc can only be either "above" or "below"')
+
+    halign = 'left' if text_loc == 'below' else 'right'
+    valign = 'top' if text_loc == 'below' else 'bottom'
+
+    uni_domids = np.unique(domains)
+
+    if axis == 'y':
+        lim = xlim
+    elif axis == 'x':
+        lim = ylim
+    else:
+        raise ValueError('axis can be either "x" or "y"')
+
+    L = lim()
+    d_loc = L[0] + loc * (L[1] - L[0])
+    D = []
+
+    for domid in uni_domids:
+        d = domains == domid
+        D.append(d)
+    D = np.vstack(D).T
+    F = np.zeros(D.shape)
+    F[~D] = np.nan
+    F[D] = d_loc
+
+    bars = []
+    texts = []
+    for i, chid in enumerate(uni_domids):
+        locs = np.where(D[:, i])[0]
+        pos = np.median(locs)
+        if axis == 'y':
+            txt = text(d_loc, pos, chid, rotation='vertical', 
+                                         color=text_color,
+                                         horizontalalignment=halign, 
+                                         verticalalignment='center')
+        else:
+            txt = text(pos, d_loc, chid, color=text_color,
+                                         horizontalalignment='center', 
+                                         verticalalignment=valign)
+        texts.append(txt)
+    if axis == 'y':
+        _y = np.arange(len(domains))
+        Y = np.tile(_y, (len(uni_domids), 1)).T
+        bar = plot(F, Y, linewidth=5)
+    else:
+        bar = plot(F, linewidth=5)
+
+    bars.extend(bar)
+    lim(L)
+    return bars, texts
 
 def showTree(tree, format='ascii', **kwargs):
     """ Given a tree, creates visualization in different formats. 
