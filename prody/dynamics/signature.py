@@ -31,9 +31,9 @@ class Signature(object):
     dimension.
     """
 
-    __slots__ = ['_array', '_vars', '_title', '_is3d']
+    __slots__ = ['_array', '_vars', '_title', '_labels', '_is3d']
 
-    def __init__(self, vecs, vars=None, title=None, is3d=False):
+    def __init__(self, vecs, vars=None, labels=None, title=None, is3d=False):
         vecs = np.array(vecs)
 
         ndim = vecs.ndim
@@ -55,7 +55,8 @@ class Signature(object):
             self._title = '{0} vectors of size {1}'.format(shape[0], shape[1:])
         else:
             self._title = title
-
+        
+        self._labels = labels
         self._is3d = is3d
 
     def __len__(self):
@@ -248,11 +249,11 @@ def calcSignatureMobility(ensemble, index, **kwargs):
     :type index: int or list
 
     :arg fraction: if set to ``True``, fractions of mode variances are calculated, default
-                    is ``False``
+                    is ``True``
     :type fraction: bool
     """
 
-    fract = kwargs.pop('fraction', False)
+    fract = kwargs.pop('fraction', True)
     enms = _getEnsembleENMs(ensemble, **kwargs)
     
     modesets = matchModes(*enms)
@@ -369,7 +370,7 @@ def showSignatureMobility(ensemble, index, linespec='-', **kwargs):
 def calcSignatureCrossCorr(ensemble, index, *args, **kwargs):
     """Calculate average cross-correlations for a modeEnsemble (a list of modes)."""
     
-    fract = kwargs.pop('fraction', False)
+    fract = kwargs.pop('fraction', True)
     enms = _getEnsembleENMs(ensemble, **kwargs)
     matches = matchModes(*enms)
     n_atoms = enms[0].numAtoms()
@@ -522,5 +523,50 @@ def showSignatureVariances(*signatures, **kwargs):
 
     return n, bins, patches
 
-def showVarianceBar(*signatures, **kwargs):
-    pass
+def showVarianceBar(variances, labels=None, **kwargs):
+
+    from matplotlib.pyplot import figure, gca
+    from matplotlib.figure import Figure
+    from matplotlib.colorbar import ColorbarBase
+    from matplotlib.colors import Normalize
+    from matplotlib import cm, colors
+    
+    fig = kwargs.pop('figure', None)
+
+    if isinstance(fig, Figure):
+        fig_num = fig.number
+    elif fig is None or isinstance(fig, (int, str)):
+        fig_num = fig
+    else:
+        raise TypeError('figure can be either an instance of matplotlib.figure.Figure '
+                        'or a figure number.')
+    if SETTINGS['auto_show']:
+        figure(fig_num)
+    elif fig_num is not None:
+        figure(fig_num)
+
+    meanVar = variances.mean()
+    stdVar = variances.std()
+    
+    variances = (variances - meanVar)/stdVar
+
+    maxVar = variances.max()
+    minVar = variances.min()
+
+    # Set the colormap and norm to correspond to the data for which
+    # the colorbar will be used.
+    cmap = kwargs.pop('cmap', 'jet')
+    norm = Normalize(vmin=minVar, vmax=maxVar)
+
+    # ColorbarBase derives from ScalarMappable and puts a colorbar
+    # in a specified axes, so it has everything needed for a
+    # standalone colorbar.  There are many more kwargs, but the
+    # following gives a basic continuous colorbar with ticks
+    # and labels.
+    cb = ColorbarBase(gca(), cmap=cmap, norm=norm,
+                      orientation='horizontal')
+    cb.set_label('Variances')
+
+    if SETTINGS['auto_show']:
+        showFigure()
+    return cb
