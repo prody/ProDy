@@ -19,7 +19,7 @@ from .plotting import showAtomicData, showAtomicMatrix
 from .anm import ANM
 from .gnm import GNM
 
-__all__ = ['Signature', 'calcEnsembleENMs', 'showSignature', 'showSignatureMode', 
+__all__ = ['ModeEnsemble', 'Signature', 'calcEnsembleENMs', 'showSignature', 'showSignatureMode', 
            'showSignatureSqFlucts', 'calcEnsembleSpectralOverlaps', 'calcSignatureSqFlucts', 
            'calcSignatureCrossCorr', 'showSignatureCrossCorr', 'showVarianceBar',
            'showSignatureVariances']
@@ -73,8 +73,7 @@ class ModeEnsemble(object):
             except Exception:
                 raise IndexError('indices must be int, slice, list, or tuple')
             else:
-                modesets = self._modesets[index]
-                labels = self._labels[index] if self._labels else None
+                return self._modesets[index]
         
         ens = ModeEnsemble(title=self.getTitle())
         ens.addModeSet(modesets, label=labels)
