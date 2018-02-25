@@ -46,10 +46,6 @@ class ModeEnsemble(object):
             yield modeset
 
     def __repr__(self):
-        n_modes = n_atoms = 0
-        if self._modesets:
-            n_modes = self._modesets[0].numModes()
-            n_atoms = self._modesets[0].numAtoms()
         return '<ModeEnsemble: {0} modesets ({1} modes, {2} atoms)>'\
                 .format(len(self), self.numModes(), self.numAtoms())
 
@@ -107,30 +103,16 @@ class ModeEnsemble(object):
     def getArray(self, mode_index=0):
         """Returns a copy of row vectors."""
 
-        modesets = self._modesets
-
-        V = []
-        v0 = modesets[0][mode_index].getEigvec()
-        for modeset in modesets:
-            mode = modeset[mode_index]
-            v = mode.getEigvec()
-            c = np.dot(v, v0)
-            if c < 0:
-                v *= -1
-            V.append(v)
-        is3d = mode.is3d()
-        
-        V = np.vstack(V)
-
-        title = self.getTitle()
-        sig = Signature(V, title=title, is3d=is3d)
-
+        if np.isscalar(mode_index):
+            sig = self.getEigvec(mode_index)
+        else:
+            sig = self.getEigvecs(mode_index)
         return sig
     
     _getArray = getArray
     
     def getEigvec(self, mode_index=0):
-        """Returns a copy of row vectors."""
+        """Returns a copy of eigenvector."""
 
         modesets = self._modesets
 
@@ -151,10 +133,12 @@ class ModeEnsemble(object):
         return sig
 
     def getEigvecs(self, mode_indices=None):
+        """Returns a copy of eigenvectors."""
+
         modesets = self._modesets
         V = []
         for modeset in modesets:
-            modes = modeset[mode_indices]
+            modes = modeset if mode_indices is None else modeset[mode_indices]
             vecs = modes.getEigvecs()
             V.append(vecs)
         is3d = modeset.is3d()
