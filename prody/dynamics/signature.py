@@ -23,6 +23,153 @@ __all__ = ['Signature', 'calcEnsembleENMs', 'calcSignatureMobility', 'calcEnsemb
            'showSignatureMobility', 'calcSignatureCrossCorr', 'showSignatureCrossCorr', 'showVarianceBar',
            'showSignatureVariances']
 
+class ModeEnsemble(object):
+    """
+    A class for ENMs calculated for conformations in an :class:`Ensemble`. 
+    or :class:`PDBEnsemble`. 
+    """
+
+    __slots__ = ['_modesets', '_title', '_labels']
+
+    def __init__(self, labels=None, title=None):
+        self._modesets = []
+        self._title = 'Unknown' if title is None else title
+        self._labels = labels
+
+    def __len__(self):
+        """Returns the number of vectors."""
+
+        return len(self._modesets)
+
+    def __iter__(self):
+        for modeset in self._modesets:
+            yield modeset
+
+    def __repr__(self):
+        n_modes = n_atoms = 0
+        if self._modesets:
+            n_modes = self._modesets[0].numModes()
+            n_atoms = self._modesets[0].numAtoms()
+        return '<ModeEnsemble: {0} modesets ({1} modes, {2} atoms)>'\
+                .format(len(self), self.numModes(), self.numAtoms())
+
+    def __str__(self):
+        return self.getTitle()
+    
+    def __getitem__(self, index):
+        """A list or tuple of integers can be used for indexing."""
+
+        # needs more efficient implementation
+        modesets = list(np.array(self._modesets)[index])
+        labels = list(np.array(self._labels)[index]) if self._labels else None
+        
+        ens = ModeEnsemble(labels=labels, title=self.getTitle())
+        ens._modesets = modesets
+        return ens
+
+    def is3d(self):
+        """Returns **True** is model is 3-dimensional."""
+        
+        if self._modesets:
+            return self._modesets[0].is3d()
+        return False
+
+    def numAtoms(self):
+        """Returns number of atoms."""
+
+        if self._modesets:
+            return self._modesets[0].numAtoms()
+        return 0
+
+    def numModes(self):
+        """Returns number of modes in the instance (not necessarily maximum
+        number of possible modes)."""
+
+        if self._modesets:
+            return self._modesets[0].numModes()
+        return 0
+
+    def numModeSets(self):
+        """Returns number of modesets in the instance."""
+
+        return len(self)
+
+    def getTitle(self):
+        """Returns title of the signature."""
+
+        return self._title
+
+    def getModeSets(self, index=None):
+        if index is None:
+            return self._modesets
+        return self[index]._modesets
+
+    def getArray(self, mode_index=0):
+        """Returns a copy of row vectors."""
+
+        modesets = self._modesets
+
+        V = []
+        v0 = modesets[0][mode_index].getEigvec()
+        for modeset in modesets:
+            mode = modeset[mode_index]
+            v = mode.getEigvec()
+            c = np.dot(v, v0)
+            if c < 0:
+                v *= -1
+            V.append(v)
+        is3d = mode.is3d()
+        
+        V = np.vstack(V)
+
+        title = self.getTitle()
+        sig = Signature(V, title=title, is3d=is3d)
+
+        return sig
+    
+    _getArray = getArray
+    
+    def getEigvec(self, mode_index=0):
+        """Returns a copy of row vectors."""
+
+        modesets = self._modesets
+
+        V = []
+        v0 = modesets[0][mode_index].getEigvec()
+        for modeset in modesets:
+            mode = modeset[mode_index]
+            v = mode.getEigvec()
+            c = np.dot(v, v0)
+            if c < 0:
+                v *= -1
+            V.append(v)
+        is3d = mode.is3d()
+        V = np.vstack(V)
+
+        title = self.getTitle()
+        sig = Signature(V, title=title, is3d=is3d)
+        return sig
+
+    def getEigvecs(self, mode_indices=None):
+        modesets = self._modesets
+        V = []
+        for modeset in modesets:
+            modes = modeset[mode_indices]
+            vecs = modes.getEigvecs()
+            V.append(vecs)
+        is3d = modeset.is3d()
+        V = np.array(V)
+
+        title = self.getTitle()
+        sig = Signature(V, title=title, is3d=is3d)
+        return sig
+
+    def match(self):
+        if self._modesets:
+            self._modesets = matchModes(*self._modesets)
+        return
+
+
 class Signature(object):
     """
     A class for signature dynamics calculated from an :class:`Ensemble`. 
@@ -31,25 +178,13 @@ class Signature(object):
     dimension.
     """
 
-    __slots__ = ['_array', '_vars', '_title', '_labels', '_is3d']
+    __slots__ = ['_array', '_title', '_labels', '_is3d']
 
-    def __init__(self, vecs, vars=None, labels=None, title=None, is3d=False):
+    def __init__(self, vecs, labels=None, title=None, is3d=False):
         vecs = np.array(vecs)
-
-        ndim = vecs.ndim
-        if ndim == 1:
-            vecs = np.reshape(1, len(vecs))
 
         self._array = vecs
         shape = vecs.shape
-
-        if vars is None:
-            vars = np.zeros(shape[1])
-        if np.isscalar(vars):
-            vars = [vars]
-        if len(vars) != shape[0]:
-            raise ValueError('the number of vars does not match the number of vecs')
-        self._vars = np.array(vars)
 
         if title is None:
             self._title = '{0} vectors of size {1}'.format(shape[0], shape[1:])
@@ -64,7 +199,7 @@ class Signature(object):
         return self._array.shape[0]
 
     def __iter__(self):
-        for mode in zip(self._array, self._vars):
+        for mode in self._array:
             yield mode
 
     def __repr__(self):
@@ -78,10 +213,12 @@ class Signature(object):
         """A list or tuple of integers can be used for indexing."""
 
         vecs = self._array[index]
-        vars = self._vars[index]
+        labels = self._labels
         if np.isscalar(index):
             vecs = np.array([vecs])
-        return Signature(vecs, vars, is3d=self.is3d)
+        if labels is not None:
+            labels = list(np.array(labels)[index])
+        return Signature(vecs, labels=labels, is3d=self.is3d)
 
     def is3d(self):
         """Returns **True** is model is 3-dimensional."""
@@ -109,12 +246,6 @@ class Signature(object):
         """Returns title of the signature."""
 
         return self._title
-
-    def getVariances(self, index=None):
-        """Returns variances of vectors. """
-        if index is not None:
-            return self._vars[index]
-        return self._vars.copy()
 
     def getArray(self, index=None):
         """Returns a copy of row vectors."""
@@ -247,18 +378,12 @@ def calcSignatureMobility(ensemble, index, **kwargs):
                 of mode indices for displaying the mean square fluctuations. 
                 The list can contain only one index.
     :type index: int or list
-
-    :arg fraction: if set to ``True``, fractions of mode variances are calculated, default
-                    is ``True``
-    :type fraction: bool
     """
 
-    fract = kwargs.pop('fraction', True)
     enms = _getEnsembleENMs(ensemble, **kwargs)
-    
     modesets = matchModes(*enms)
 
-    V = []; W = []
+    V = []
     if np.isscalar(index):
         v0 = modesets[0][index].getEigvec()
         for modeset in modesets:
@@ -267,21 +392,13 @@ def calcSignatureMobility(ensemble, index, **kwargs):
             c = np.dot(v, v0)
             if c < 0:
                 v *= -1
-            if not fract:
-                w = mode.getVariance()
-            else:
-                w = calcFractVariance(mode)
-            V.append(v); W.append(w)
+            V.append(v)
         is3d = mode.is3d()
     else:
         for modeset in modesets:
             modes = modeset[index]
             sqfs = calcSqFlucts(modes)
-            if not fract:
-                w = modes.getVariances().sum()
-            else:
-                w = calcFractVariance(modes).sum()
-            V.append(sqfs); W.append(w)
+            V.append(sqfs)
         is3d = modeset.is3d()
     V = np.vstack(V)
 
@@ -292,7 +409,7 @@ def calcSignatureMobility(ensemble, index, **kwargs):
             title_str = 'mode %d'%(index+1)
         else:
             title_str = '%d modes'%len(index)
-    sig = Signature(V, W, title=title_str, is3d=is3d)
+    sig = Signature(V, title=title_str, is3d=is3d)
 
     return sig
     
@@ -370,25 +487,41 @@ def showSignatureMobility(ensemble, index, linespec='-', **kwargs):
 def calcSignatureCrossCorr(ensemble, index, *args, **kwargs):
     """Calculate average cross-correlations for a modeEnsemble (a list of modes)."""
     
-    fract = kwargs.pop('fraction', True)
     enms = _getEnsembleENMs(ensemble, **kwargs)
     matches = matchModes(*enms)
     n_atoms = enms[0].numAtoms()
     n_sets = len(enms)
 
     C = np.zeros((n_sets, n_atoms, n_atoms))
-    W = []; is3d = None
+    is3d = None
     for i in range(n_sets):
         m = matches[i][index]
         c = calcCrossCorr(m)
         C[i, :, :] = c
-        if not fract:
-            if np.isscalar(index):
-                var = m.getVariance()
-            else:
-                var = m.getVariances()
-        else:
-            var = calcFractVariance(m)
+        
+        if is3d is None:
+            is3d = m.is3d()
+    
+    try:
+        title = ensemble.getTitle()
+    except AttributeError:
+        title = None
+
+    sig = Signature(C, title=title, is3d=is3d)
+        
+    return sig
+
+def calcSignatureFractVariance(ensemble, index, *args, **kwargs):
+    """Calculate average cross-correlations for a modeEnsemble (a list of modes)."""
+    
+    enms = _getEnsembleENMs(ensemble, **kwargs)
+    matches = matchModes(*enms)
+    n_sets = len(enms)
+
+    W = []; is3d = None
+    for i in range(n_sets):
+        m = matches[i][index]
+        var = calcFractVariance(m)
         if np.isscalar(index):
             var = var.sum()
         W.append(var)
@@ -400,7 +533,7 @@ def calcSignatureCrossCorr(ensemble, index, *args, **kwargs):
     except AttributeError:
         title = None
 
-    sig = Signature(C, W, title=title, is3d=is3d)
+    sig = Signature(W, title=title, is3d=is3d)
         
     return sig
 
