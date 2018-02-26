@@ -26,7 +26,7 @@ __all__ = ['ModeEnsemble', 'Signature', 'calcEnsembleENMs', 'showSignature', 'sh
 
 class ModeEnsemble(object):
     """
-    A class for ENMs calculated for conformations in an :class:`Ensemble`. 
+    A collection of ENMs calculated for conformations in an :class:`Ensemble`. 
     or :class:`PDBEnsemble`. 
     """
 
@@ -47,6 +47,17 @@ class ModeEnsemble(object):
         for modeset in self._modesets:
             yield modeset
 
+    iterModeSets = __iter__
+
+    def iterModes(self):
+        for i in range(self.numModes()):
+            modesets = []
+            for modeset in self._modesets:
+                modesets.append(modeset[i])
+            ens = ModeEnsemble(self.getTitle())
+            ens._modesets = modesets
+            yield ens
+
     def __repr__(self):
         return '<ModeEnsemble: {0} modesets ({1} modes, {2} atoms)>'\
                 .format(len(self), self.numModes(), self.numAtoms())
@@ -54,29 +65,49 @@ class ModeEnsemble(object):
     def __str__(self):
         return self.getTitle()
     
-    def __getitem__(self, index):
-        """A list or tuple of integers can be used for indexing."""
+    def _getitembase(self, modeset_index, mode_index):
 
-        if isinstance(index, slice):
-            modesets = self._modesets[index]
-            labels = self._labels[index] if self._labels else None
-        elif isinstance(index, (list, tuple)):
+        if isinstance(modeset_index, slice):
+            modesets = self._modesets[modeset_index]
+            labels = self._labels[modeset_index] if self._labels else None
+        elif isinstance(modeset_index, (list, tuple)):
             modesets = []; labels = []
-            for i in index:
+            for i in modeset_index:
                 assert isinstance(i, int), 'all indices must be integers'
                 modesets.append(self._modesets[i])
                 if self._labels is not None:
                     labels.append(self._labels[i])
         else:
             try:
-                index = int(index)
+                modeset_index = int(modeset_index)
             except Exception:
                 raise IndexError('indices must be int, slice, list, or tuple')
             else:
-                return self._modesets[index]
+                return self._modesets[modeset_index][mode_index]
         
+        for i in range(len(modesets)):
+            modesets[i] = modesets[i][mode_index]
+
         ens = ModeEnsemble(title=self.getTitle())
         ens.addModeSet(modesets, label=labels)
+        return ens
+
+    def __getitem__(self, index):
+        """A list or tuple of integers can be used for indexing."""
+
+        modeset_index = slice(None, None, None)
+        mode_index = slice(None, None, None)
+
+        if isinstance(index, tuple):
+            if len(index) >= 1:
+                modeset_index = index[0]
+            if len(index) >= 2:
+                mode_index = index[1]
+            if len(index) >= 3:
+                raise ValueError('ModeEnsemble indexing supports up to two arguments')
+        else:
+            modeset_index = index
+        ens = self._getitembase(modeset_index, mode_index)
         return ens
 
     def __add__(self, other):
@@ -715,7 +746,7 @@ def showSignatureVariances(mode_ensemble, index, **kwargs):
 
     return n, bins, patches
 
-def showVarianceBar(variances, labels=None, **kwargs):
+def showVarianceBar(mode_ensemble, index, labels=None, **kwargs):
 
     from matplotlib.pyplot import figure, gca
     from matplotlib.figure import Figure
@@ -737,10 +768,17 @@ def showVarianceBar(variances, labels=None, **kwargs):
     elif fig_num is not None:
         figure(fig_num)
 
-    meanVar = variances.mean()
-    stdVar = variances.std()
+    fract = kwargs.pop('fraction', True)
+
+    if fract:
+        sig = calcSignatureFractVariance(mode_ensemble, index)
+    else:
+        sig = mode_ensemble.getVariances(index) 
+
+    meanVar = sig.mean()
+    stdVar = sig.std()
     
-    variances = (variances - meanVar)/stdVar
+    variances = (sig.getArray() - meanVar)/stdVar
 
     maxVar = variances.max()
     minVar = variances.min()
