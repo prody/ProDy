@@ -26,7 +26,7 @@ __all__ = ['ModeEnsemble', 'Signature', 'calcEnsembleENMs', 'showSignature', 'sh
 
 class ModeEnsemble(object):
     """
-    A class for ENMs calculated for conformations in an :class:`Ensemble`. 
+    A collection of ENMs calculated for conformations in an :class:`Ensemble`. 
     or :class:`PDBEnsemble`. 
     """
 
@@ -47,6 +47,17 @@ class ModeEnsemble(object):
         for modeset in self._modesets:
             yield modeset
 
+    iterModeSets = __iter__
+
+    def iterModes(self):
+        for i in range(self.numModes()):
+            modesets = []
+            for modeset in self._modesets:
+                modesets.append(modeset[i])
+            ens = ModeEnsemble(self.getTitle())
+            ens._modesets = modesets
+            yield ens
+
     def __repr__(self):
         return '<ModeEnsemble: {0} modesets ({1} modes, {2} atoms)>'\
                 .format(len(self), self.numModes(), self.numAtoms())
@@ -54,29 +65,51 @@ class ModeEnsemble(object):
     def __str__(self):
         return self.getTitle()
     
-    def __getitem__(self, index):
-        """A list or tuple of integers can be used for indexing."""
+    def _getitembase(self, modeset_index, mode_index):
 
-        if isinstance(index, slice):
-            modesets = self._modesets[index]
-            labels = self._labels[index] if self._labels else None
-        elif isinstance(index, (list, tuple)):
+        if isinstance(modeset_index, slice):
+            modesets = self._modesets[modeset_index]
+            labels = self._labels[modeset_index] if self._labels else None
+        elif isinstance(modeset_index, (list, tuple)):
             modesets = []; labels = []
-            for i in index:
+            for i in modeset_index:
                 assert isinstance(i, int), 'all indices must be integers'
                 modesets.append(self._modesets[i])
                 if self._labels is not None:
                     labels.append(self._labels[i])
         else:
             try:
-                index = int(index)
+                modeset_index = int(modeset_index)
             except Exception:
                 raise IndexError('indices must be int, slice, list, or tuple')
             else:
-                return self._modesets[index]
+                return self._modesets[modeset_index][mode_index]
         
+        if np.isscalar(mode_index):
+            mode_index = [mode_index]
+        for i in range(len(modesets)):
+            modesets[i] = modesets[i][mode_index]
+
         ens = ModeEnsemble(title=self.getTitle())
         ens.addModeSet(modesets, label=labels)
+        return ens
+
+    def __getitem__(self, index):
+        """A list or tuple of integers can be used for indexing."""
+
+        modeset_index = slice(None, None, None)
+        mode_index = slice(None, None, None)
+
+        if isinstance(index, tuple):
+            if len(index) >= 1:
+                modeset_index = index[0]
+            if len(index) >= 2:
+                mode_index = index[1]
+            if len(index) >= 3:
+                raise ValueError('ModeEnsemble indexing supports up to two arguments')
+        else:
+            modeset_index = index
+        ens = self._getitembase(modeset_index, mode_index)
         return ens
 
     def __add__(self, other):
@@ -230,7 +263,7 @@ class ModeEnsemble(object):
         return
 
     def addModeSet(self, modeset, label=None):
-        if isinstance(modeset, (NMA, ModeSet)):
+        if isinstance(modeset, (NMA, ModeSet, Mode)):
             modesets = [modeset]
         else:
             modesets = modeset
@@ -255,14 +288,18 @@ class ModeEnsemble(object):
             modeset = modesets[i]
             if isinstance(modeset, NMA):
                 modeset = modeset[:]
+            elif isinstance(modeset, Mode):
+                modeset = ModeSet(modeset.getModel(), [modeset.getIndex()])
             if not isinstance(modeset, ModeSet):
-                raise TypeError('modesets should be a list of ModeSet instances')
+                raise TypeError('modesets should be a list of Mode or ModeSet instances')
             if self._modesets:
                 if modeset.numAtoms() != self.numAtoms():
                     raise ValueError('to be added, modesets should contain exactly %d atoms'%self.numAtoms())
                 if modeset.numModes() < self.numModes():
                     raise ValueError('to be added, modesets should contain at least %d modes'%self.numModes())
-                self._modesets.append(modeset[:self.numModes()])
+                if modeset.numModes() > self.numModes():
+                    modeset = modeset[:self.numModes()]
+                self._modesets.append(modeset)
             else:
                 self._modesets = [modeset]
 
@@ -309,13 +346,7 @@ class Signature(object):
     def __getitem__(self, index):
         """A list or tuple of integers can be used for indexing."""
 
-        vecs = self._array[index]
-        labels = self._labels
-        if np.isscalar(index):
-            vecs = np.array([vecs])
-        if labels is not None:
-            labels = list(np.array(labels)[index])
-        return Signature(vecs, labels=labels, is3d=self.is3d)
+        return self._array[index]
 
     def is3d(self):
         """Returns **True** is model is 3-dimensional."""
@@ -466,15 +497,12 @@ def calcEnsembleSpectralOverlaps(ensemble, distance=False, **kwargs):
 
     return overlaps
 
-def calcSignatureSqFlucts(mode_ensemble, indices, **kwargs):
+def calcSignatureSqFlucts(mode_ensemble, **kwargs):
     """
     Get the signature square fluctuations of *mode_ensemble*. 
     
     :arg mode_ensemble: an ensemble of structures or ENMs 
     :type mode_ensemble: :class: `ModeEnsemble`
-
-    :arg indices: mode indices for displaying the mean square fluctuations. 
-    :type indices: int or list
     """
 
     if not isinstance(mode_ensemble, ModeEnsemble):
@@ -483,14 +511,13 @@ def calcSignatureSqFlucts(mode_ensemble, indices, **kwargs):
     modesets.match()
 
     V = []
-    for modeset in modesets:
-        modes = modeset[indices]
+    for modes in modesets:
         sqfs = calcSqFlucts(modes)
         V.append(sqfs)
-    is3d = modeset.is3d()
+    is3d = modes.is3d()
     V = np.vstack(V)
 
-    title_str = '%d modes'%len(indices)
+    title_str = '%d modes'%len(mode_ensemble)
     sig = Signature(V, title=title_str, is3d=is3d)
 
     return sig
@@ -543,15 +570,15 @@ def showSignature(signature, linespec='-', **kwargs):
 
     return lines, polys, bars
 
-def showSignatureMode(mode_ensemble, index):
-    mode = mode_ensemble.getEigvec(index)
+def showSignatureMode(mode_ensemble):
+    mode = mode_ensemble.getEigvec()
     return showSignature(mode, atoms=mode_ensemble.getAtoms(), show_zero=True)
 
-def showSignatureSqFlucts(mode_ensemble, indices):
-    sqf = calcSignatureSqFlucts(mode_ensemble, indices)
+def showSignatureSqFlucts(mode_ensemble):
+    sqf = calcSignatureSqFlucts(mode_ensemble)
     return showSignature(sqf, atoms=mode_ensemble.getAtoms(), show_zero=False)
 
-def calcSignatureCrossCorr(mode_ensemble, index):
+def calcSignatureCrossCorr(mode_ensemble):
     """Calculate average cross-correlations for a modeEnsemble (a list of modes)."""
     
     if not isinstance(mode_ensemble, ModeEnsemble):
@@ -565,7 +592,7 @@ def calcSignatureCrossCorr(mode_ensemble, index):
     C = np.zeros((n_sets, n_atoms, n_atoms))
     is3d = None
     for i in range(n_sets):
-        m = matches[i][index]
+        m = matches[i]
         c = calcCrossCorr(m)
         C[i, :, :] = c
         
@@ -576,7 +603,7 @@ def calcSignatureCrossCorr(mode_ensemble, index):
         
     return sig
 
-def calcSignatureFractVariance(mode_ensemble, index):
+def calcSignatureFractVariance(mode_ensemble):
     """Calculate average cross-correlations for a modeEnsemble (a list of modes)."""
     
     if not isinstance(mode_ensemble, ModeEnsemble):
@@ -588,10 +615,8 @@ def calcSignatureFractVariance(mode_ensemble, index):
 
     W = []; is3d = None
     for i in range(n_sets):
-        m = matches[i][index]
+        m = matches[i]
         var = calcFractVariance(m)
-        if np.isscalar(index):
-            var = var.sum()
         W.append(var)
         if is3d is None:
             is3d = m.is3d()
@@ -600,7 +625,7 @@ def calcSignatureFractVariance(mode_ensemble, index):
         
     return sig
 
-def showSignatureCrossCorr(mode_ensemble, index, show_std=False, **kwargs):
+def showSignatureCrossCorr(mode_ensemble, show_std=False, **kwargs):
     """Show average cross-correlations using :func:`showAtomicMatrix`. 
     By default, *origin=lower* and *interpolation=bilinear* keyword  arguments
     are passed to this function, but user can overwrite these parameters.
@@ -609,11 +634,6 @@ def showSignatureCrossCorr(mode_ensemble, index, show_std=False, **kwargs):
     :arg ensemble: an ensemble of structures or ENMs, or a signature profile 
     :type ensemble: :class: `Ensemble`, list, :class:`Signature`
 
-    :arg index: mode index for displaying the mode shape or a list 
-                of mode indices for displaying the mean square fluctuations. 
-                The list can contain only one index.
-    :type index: int or list
-
     :arg atoms: an object with method :func:`getResnums` for use 
                 on the x-axis.
     :type atoms: :class:`Atomic` 
@@ -621,7 +641,7 @@ def showSignatureCrossCorr(mode_ensemble, index, show_std=False, **kwargs):
 
     import matplotlib.pyplot as plt
     
-    C = calcSignatureCrossCorr(mode_ensemble, index, **kwargs)
+    C = calcSignatureCrossCorr(mode_ensemble, **kwargs)
 
     atoms = kwargs.pop('atoms', None)
     if atoms is None:
@@ -638,12 +658,14 @@ def showSignatureCrossCorr(mode_ensemble, index, show_std=False, **kwargs):
         kwargs['interpolation'] = 'bilinear'
 
     show = showAtomicMatrix(matrixData, atoms=atoms, **kwargs)
-    if np.isscalar(index):
-        title_str = ', mode '+str(index+1)
+
+    indices = mode_ensemble.getIndices()[0]
+    if len(indices) == 1:
+        title_str = ', mode '+str(indices[0]+1)
     else:
-        modeIndexStr = ','.join([str(x+1) for x in index])
+        modeIndexStr = ','.join([str(x+1) for x in indices])
         if len(modeIndexStr) > 8:
-            title_str = ', '+str(len(index))+' modes '+modeIndexStr[:5]+'...'
+            title_str = ', '+str(len(indices))+' modes '+modeIndexStr[:5]+'...'
         else:
             title_str = ', modes '+modeIndexStr
         # title_str = ', '+str(len(modeIndex))+' modes'
@@ -656,7 +678,7 @@ def showSignatureCrossCorr(mode_ensemble, index, show_std=False, **kwargs):
     
     return show
 
-def showSignatureVariances(mode_ensemble, index, **kwargs):
+def showSignatureVariances(mode_ensemble, **kwargs):
     """
     Show the distribution of signature variances using 
     :func:`~matplotlib.pyplot.hist`.
@@ -683,14 +705,14 @@ def showSignatureVariances(mode_ensemble, index, **kwargs):
     show_legend = kwargs.pop('legend', True)
 
     if fract:
-        sig = calcSignatureFractVariance(mode_ensemble, index)
+        sig = calcSignatureFractVariance(mode_ensemble)
     else:
-        sig = mode_ensemble.getVariances(index) 
+        sig = mode_ensemble.getVariances() 
     W = sig.getArray()[:, ::-1] # reversed to accommodate with matplotlib.pyplot.hist
     weights = np.ones_like(W)/float(len(W))
-    if np.isscalar(index):
-        index = [index]
-    legends = ['mode %d'%(i+1) for i in index][::-1]
+
+    indices = mode_ensemble.getIndices()[0]
+    legends = ['mode %d'%(i+1) for i in indices][::-1]
 
     bins = kwargs.pop('bins', 'auto')
     if bins == 'auto':
@@ -715,12 +737,12 @@ def showSignatureVariances(mode_ensemble, index, **kwargs):
 
     return n, bins, patches
 
-def showVarianceBar(variances, labels=None, **kwargs):
+def showVarianceBar(mode_ensemble, labels=None, **kwargs):
 
     from matplotlib.pyplot import figure, gca
     from matplotlib.figure import Figure
     from matplotlib.colorbar import ColorbarBase
-    from matplotlib.colors import Normalize
+    from matplotlib.colors import Normalize, NoNorm
     from matplotlib import cm, colors
     
     fig = kwargs.pop('figure', None)
@@ -737,26 +759,28 @@ def showVarianceBar(variances, labels=None, **kwargs):
     elif fig_num is not None:
         figure(fig_num)
 
-    meanVar = variances.mean()
-    stdVar = variances.std()
+    fract = kwargs.pop('fraction', True)
+
+    if fract:
+        sig = calcSignatureFractVariance(mode_ensemble)
+    else:
+        sig = mode_ensemble.getVariances() 
+
+    meanVar = sig.mean()
+    stdVar = sig.std()
     
-    variances = (variances - meanVar)/stdVar
+    variances = (sig.getArray() - meanVar)/stdVar
 
     maxVar = variances.max()
     minVar = variances.min()
 
-    # Set the colormap and norm to correspond to the data for which
-    # the colorbar will be used.
     cmap = kwargs.pop('cmap', 'jet')
     norm = Normalize(vmin=minVar, vmax=maxVar)
-
-    # ColorbarBase derives from ScalarMappable and puts a colorbar
-    # in a specified axes, so it has everything needed for a
-    # standalone colorbar.  There are many more kwargs, but the
-    # following gives a basic continuous colorbar with ticks
-    # and labels.
     cb = ColorbarBase(gca(), cmap=cmap, norm=norm,
                       orientation='horizontal')
+
+    if labels is not None:
+        pass                      
     cb.set_label('Variances')
 
     if SETTINGS['auto_show']:
