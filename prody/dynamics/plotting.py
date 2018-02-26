@@ -1584,10 +1584,11 @@ def showTree(tree, format='ascii', **kwargs):
     elif format == 'networkx':
         node_size = kwargs.pop('node_size', 20)
         node_color = kwargs.pop('node_color', 'red')
+        node_shape = kwargs.pop('node_shape', 'o')
         withlabels = kwargs.pop('withlabels', True)
         scale = kwargs.pop('scale', 1.)
         iterations = kwargs.pop('iterations', 500)
-        obj = showTree_networkx(tree, node_size, node_color, 
+        obj = showTree_networkx(tree, node_size, node_color, node_shape,
                                 withlabels, scale, iterations, **kwargs)
 
         return obj
@@ -1643,9 +1644,8 @@ def showTree_networkx(tree, node_size=20, node_color='red', node_shape='o', with
         networkx.draw_networkx_nodes(G, pos=layout, withlabels=False, node_size=sizes, 
                                         node_shape=shape_types[0], node_color=colors)
     else:
-        for shape in shape_types:
-            node_list = []
-
+        for shape in shape_groups:
+            node_list = shape_groups[shape]
             networkx.draw_networkx_nodes(G, pos=layout, withlabels=False, node_size=sizes, 
                                         node_shape=shape, node_color=colors, 
                                         node_list=node_list)
