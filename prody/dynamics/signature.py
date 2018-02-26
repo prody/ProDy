@@ -146,75 +146,71 @@ class ModeEnsemble(object):
     
     _getArray = getArray
     
-    def getEigvec(self, mode_index=0):
-        """Returns a copy of eigenvector."""
-
+    def _getModeData(self, name, mode_index=0, sign_correction=False):
         modesets = self._modesets
 
         V = []
-        v0 = modesets[0][mode_index].getEigvec()
-        for modeset in modesets:
+        for i, modeset in enumerate(modesets):
             mode = modeset[mode_index]
-            v = mode.getEigvec()
-            c = np.dot(v, v0)
-            if c < 0:
-                v *= -1
+            func = getattr(mode, name)
+            v = func()
+            if sign_correction:
+                if i == 0:
+                    v0 = v
+                else:
+                    c = np.dot(v, v0)
+                    if c < 0:
+                        v *= -1
             V.append(v)
         is3d = mode.is3d()
         V = np.vstack(V)
 
         title = 'mode %d'%(mode_index+1)
-        sig = Signature(V, title=title, is3d=is3d)
+        sig = Signature(V, title=title, labels=self.getLabels(), is3d=is3d)
         return sig
+
+    def _getData(self, name, mode_indices=None):
+        modesets = self._modesets
+        V = []
+        for modeset in modesets:
+            modes = modeset if mode_indices is None else modeset[mode_indices]
+            func = getattr(modes, name)
+            vecs = func()
+            V.append(vecs)
+        is3d = modeset.is3d()
+        V = np.array(V)
+
+        title = '%d modes'%len(V)
+        sig = Signature(V, title=title, labels=self.getLabels(), is3d=is3d)
+        return sig
+
+    def getEigvec(self, mode_index=0):
+        """Returns a copy of eigenvector."""
+
+        return self._getModeData('getEigvec', mode_index, sign_correction=True)
 
     def getEigvecs(self, mode_indices=None):
         """Returns a copy of eigenvectors."""
 
-        modesets = self._modesets
-        V = []
-        for modeset in modesets:
-            modes = modeset if mode_indices is None else modeset[mode_indices]
-            vecs = modes.getEigvecs()
-            V.append(vecs)
-        is3d = modeset.is3d()
-        V = np.array(V)
+        return self._getData('getEigvecs', mode_indices)
 
-        title = '%d modes'%len(V)
-        sig = Signature(V, title=title, is3d=is3d)
-        return sig
+    def getVariance(self, mode_index=0):
+        
+        return self._getModeData('getVariance', mode_index)
+
+    def getVariances(self, mode_indices=None):
+        
+        return self._getData('getVariances', mode_indices)
 
     def getIndex(self, mode_index=0):
         """Returns indices of modes matched to the reference modeset."""
 
-        modesets = self._modesets
-
-        V = []
-        for modeset in modesets:
-            mode = modeset[mode_index]
-            v = mode.getIndex()
-            V.append(v)
-        is3d = mode.is3d()
-        V = np.vstack(V)
-
-        title = 'mode %d'%(mode_index+1)
-        sig = Signature(V, title=title, is3d=is3d)
-        return sig
+        return self._getModeData('getIndex', mode_index)
 
     def getIndices(self, mode_indices=None):
         """Returns indices of modes in the mode ensemble."""
         
-        modesets = self._modesets
-        V = []
-        for modeset in modesets:
-            modes = modeset if mode_indices is None else modeset[mode_indices]
-            vecs = modes.getIndices()
-            V.append(vecs)
-        is3d = modeset.is3d()
-        V = np.array(V)
-
-        title = '%d modes'%len(V)
-        sig = Signature(V, title=title, is3d=is3d)
-        return sig
+        return self._getData('getIndices', mode_indices)
 
     def getAtoms(self):
         return self._atoms
@@ -347,6 +343,9 @@ class Signature(object):
         """Returns title of the signature."""
 
         return self._title
+
+    def getLabels(self):
+        return self._labels
 
     def getArray(self, index=None):
         """Returns a copy of row vectors."""
@@ -552,7 +551,7 @@ def showSignatureSqFlucts(mode_ensemble, indices):
     sqf = calcSignatureSqFlucts(mode_ensemble, indices)
     return showSignature(sqf, atoms=mode_ensemble.getAtoms(), show_zero=False)
 
-def calcSignatureCrossCorr(mode_ensemble, index, *args, **kwargs):
+def calcSignatureCrossCorr(mode_ensemble, index):
     """Calculate average cross-correlations for a modeEnsemble (a list of modes)."""
     
     if not isinstance(mode_ensemble, ModeEnsemble):
@@ -577,7 +576,7 @@ def calcSignatureCrossCorr(mode_ensemble, index, *args, **kwargs):
         
     return sig
 
-def calcSignatureFractVariance(mode_ensemble, index, *args, **kwargs):
+def calcSignatureFractVariance(mode_ensemble, index):
     """Calculate average cross-correlations for a modeEnsemble (a list of modes)."""
     
     if not isinstance(mode_ensemble, ModeEnsemble):
@@ -657,7 +656,7 @@ def showSignatureCrossCorr(mode_ensemble, index, show_std=False, **kwargs):
     
     return show
 
-def showSignatureVariances(*signatures, **kwargs):
+def showSignatureVariances(mode_ensemble, index, **kwargs):
     """
     Show the distribution of signature variances using 
     :func:`~matplotlib.pyplot.hist`.
@@ -680,19 +679,18 @@ def showSignatureVariances(*signatures, **kwargs):
     elif fig_num is not None:
         figure(fig_num)
 
+    fract = kwargs.pop('fraction', True)
     show_legend = kwargs.pop('legend', True)
 
-    W = []; legends = []; weights = []
-    for signature in signatures:
-        vars = signature.getVariances()
-        W.append(vars)
-        legends.append(signature.getTitle())
-        weight = np.ones_like(vars)/float(len(vars))
-        weights.append(weight)
-
-    W = np.vstack(W[::-1])  # reversed to accommodate with matplotlib.pyplot.hist
-    weights = np.vstack(weights[::-1]) 
-    legends = legends[::-1]
+    if fract:
+        sig = calcSignatureFractVariance(mode_ensemble, index)
+    else:
+        sig = mode_ensemble.getVariances(index) 
+    W = sig.getArray()[:, ::-1] # reversed to accommodate with matplotlib.pyplot.hist
+    weights = np.ones_like(W)/float(len(W))
+    if np.isscalar(index):
+        index = [index]
+    legends = ['mode %d'%(i+1) for i in index][::-1]
 
     bins = kwargs.pop('bins', 'auto')
     if bins == 'auto':
@@ -704,7 +702,7 @@ def showSignatureVariances(*signatures, **kwargs):
     histtype = kwargs.pop('histtype', 'stepfilled')
     label = kwargs.pop('label', legends)
     weights = kwargs.pop('weights', weights)
-    n, bins, patches = hist(W.T, bins=bins, weights=weights.T, 
+    n, bins, patches = hist(W, bins=bins, weights=weights, 
                             histtype=histtype, label=label, **kwargs)
     if show_legend:
         legend()
