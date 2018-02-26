@@ -737,9 +737,9 @@ def showSignatureVariances(mode_ensemble, **kwargs):
 
     return n, bins, patches
 
-def showVarianceBar(mode_ensemble, labels=None, **kwargs):
+def showVarianceBar(mode_ensemble, highlights=None, **kwargs):
 
-    from matplotlib.pyplot import figure, gca
+    from matplotlib.pyplot import figure, gca, annotate, subplots_adjust, plot
     from matplotlib.figure import Figure
     from matplotlib.colorbar import ColorbarBase
     from matplotlib.colors import Normalize, NoNorm
@@ -755,34 +755,84 @@ def showVarianceBar(mode_ensemble, labels=None, **kwargs):
         raise TypeError('figure can be either an instance of matplotlib.figure.Figure '
                         'or a figure number.')
     if SETTINGS['auto_show']:
-        figure(fig_num)
+        if fig_num is None:
+            figure(figsize=(6, 2))
+        else:
+            figure(fig_num)
     elif fig_num is not None:
         figure(fig_num)
+    ax = gca()
+
+    # adjust layouts
+    box = ax.get_position()
+    _, _, _, height = box.bounds
+    ratio = 2.5
+    box.y1 = box.y0 + height/ratio
+    #box.y0 += height/7.
+    ax.set_position(box)
 
     fract = kwargs.pop('fraction', True)
+
+    #defarrow = {'width':1, 'headwidth':2, 
+    #            'facecolor':'black',
+    #            'headlength': 4}
+    defarrow = {'arrowstyle': '->'}
+    arrowprops = kwargs.pop('arrowprops', defarrow)
 
     if fract:
         sig = calcSignatureFractVariance(mode_ensemble)
     else:
         sig = mode_ensemble.getVariances() 
 
-    meanVar = sig.mean()
-    stdVar = sig.std()
+    variances = sig.getArray().sum(axis=1)
+    #meanVar = variances.mean()
+    #stdVar = variances.std()
     
-    variances = (sig.getArray() - meanVar)/stdVar
+    #variances = (variances - meanVar)/stdVar
 
     maxVar = variances.max()
     minVar = variances.min()
 
     cmap = kwargs.pop('cmap', 'jet')
     norm = Normalize(vmin=minVar, vmax=maxVar)
-    cb = ColorbarBase(gca(), cmap=cmap, norm=norm,
+    cb = ColorbarBase(ax, cmap=cmap, norm=norm,
                       orientation='horizontal')
 
-    if labels is not None:
-        pass                      
+    if not highlights:
+        highlights = range(len(mode_ensemble))
+
+    indices = []; labels = []
+    ens_labels = mode_ensemble.getLabels()
+    for hl in highlights:
+        if isinstance(hl, str):
+            if not ens_labels:
+                raise TypeError('highlights should be a list of integers because '
+                                    'mode_ensemble has no label')
+            indices.append(ens_labels.index(hl))
+            labels.append(hl)
+        else:
+            try:
+                index = int(hl)
+            except:
+                raise TypeError('highlights should be a list of integers or strings') 
+            indices.append(index)
+            if ens_labels:
+                labels.append(ens_labels[index])
+            else:
+                labels.append(str(index))
+
+    annotations = []
+    for i, label in zip(indices, labels):
+        x = norm(variances[i])
+        an = annotate(label, xy=(x, 1), xytext=(x, ratio), arrowprops=arrowprops)
+        annotations.append(an)
+
+    for i in range(len(variances)):
+        x = norm(variances[i])
+        plot([x, x], [0, 1], 'w')
+
     cb.set_label('Variances')
 
     if SETTINGS['auto_show']:
         showFigure()
-    return cb
+    return cb, annotations
