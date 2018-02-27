@@ -832,7 +832,7 @@ def showAlignment(alignment, row_size=60, max_seqs=5, **kwargs):
                             sys.stdout.write(' '*10)
                 sys.stdout.write('\n')
 
-            sys.stdout.write(alignment[j].getLabel()[:15] + '\t' + str(alignment[j])[60*i:60*(i+1)])
+            sys.stdout.write(alignment[j].getLabel()[:15] + '\t' + str(alignment[j])[60*i:60*(i+1)] + '\n')
         sys.stdout.write('\n')
 
     return

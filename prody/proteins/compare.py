@@ -958,7 +958,7 @@ def mapChainByChain(atoms, ref, **kwargs):
     """This function is similar to :func:`.mapOntoChain` but correspondence 
     of chains is found by their chain identifiers. """
     hv = atoms.getHierView()
-    for chain in ref.getHierView():
+    for chain in ref.getHierView().iterChains():
         for target_chain in hv.iterChains():
             if target_chain.getChid() == chain.getChid():
                 mappings = mapOntoChain(target_chain, chain, **kwargs)
