@@ -686,9 +686,10 @@ def alignMultipleSequences(sequences, **kwargs):
     Aligns sequences with clustalw or clustalw2 and returns the resulting MSA.
 
     :arg sequences: a file, MSA object or a list or array containing sequences
-       as Sequence objects or strings. If strings are used then labels
-       must be provided using ``labels``
-    :type sequences: :class:`.MSAFile`, :class:`.MSA`, :class:`~numpy.ndarray`, str
+       as Atomic objects with :func:`getSequence` or Sequence objects or strings. 
+       If strings are used then labels must be provided using ``labels``
+    :type sequences: :class:`Atomic`, :class:`.MSAFile`, :class:`.MSA`, 
+        :class:`~numpy.ndarray`, str
 
     :arg labels: a list of labels to go with the sequences
     :type labels: list
@@ -699,6 +700,11 @@ def alignMultipleSequences(sequences, **kwargs):
     # 1. check if sequences are in a fasta file and if not make one
 
     if isinstance(sequences, list) or isinstance(sequences, np.ndarray):
+        if isinstance(sequences[0], Atomic):
+            msa = []
+            for sequence in sequences:
+                msa.append(sequence.getSequence())
+            sequences = msa
 
         if isinstance(sequences[0], Sequence):
             msa = []
@@ -750,9 +756,9 @@ def alignMultipleSequences(sequences, **kwargs):
     # 2. find and run alignment method
     clustalw = which('clustalw')
     if clustalw is None:
-        try:
+        if which('clustalw2') is not None:
             clustalw = which('clustalw2')
-        except:
+        else:
             raise EnvironmentError("The executable for clustalw was not found, \
                                     install clustalw or add it to the path.")
 
@@ -812,21 +818,21 @@ def showAlignment(alignment, row_size=60, max_seqs=5, **kwargs):
 
     for i in range(int(ceil(len(alignment[0])/float(row_size)))):
         for j in range(max_seqs):
+            if indices is not None:
+                sys.stdout.write('\n' + ' '*len(alignment[j].getLabel()[:15]) + '\t')
+                for k in range(row_size*i+10,row_size*(i+1)+10,10):
+                    try:
+                        if k > index_start + 10 and k < index_stop + 10:
+                            sys.stdout.write('{:10d}'.format(int(indices[j][k-1])))
+                        elif k > index_start:
+                            sys.stdout.write(' '*(k-index_start))
+                        else:
+                            sys.stdout.write(' '*10)
+                    except:
+                            sys.stdout.write(' '*10)
+                sys.stdout.write('\n')
 
-            sys.stdout.write('\n' + ' '*len(alignment[j].getLabel()[:15]) + '\t')
-            for k in range(row_size*i+10,row_size*(i+1)+10,10):
-                try:
-                    if k > index_start + 10 and k < index_stop + 10:
-                        sys.stdout.write('{:10d}'.format(int(indices[j][k-1])))
-                    elif k > index_start:
-                        sys.stdout.write(' '*(k-index_start))
-                    else:
-                        sys.stdout.write(' '*10)
-                except:
-                        sys.stdout.write(' '*10)
-            sys.stdout.write('\n')
-
-            sys.stdout.write(alignment[j].getLabel()[:15] + '\t' + str(alignment[j])[60*i:60*(i+1)])
+            sys.stdout.write(alignment[j].getLabel()[:15] + '\t' + str(alignment[j])[60*i:60*(i+1)] + '\n')
         sys.stdout.write('\n')
 
     return

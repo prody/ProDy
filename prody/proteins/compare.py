@@ -954,14 +954,15 @@ def mapOntoChain(atoms, chain, **kwargs):
         mappings.sort(compare, reverse=True)
     return mappings
 
-def mapChainByChain(atoms, chain, **kwargs):
+def mapChainByChain(atoms, ref, **kwargs):
     """This function is similar to :func:`.mapOntoChain` but correspondence 
     of chains is found by their chain identifiers. """
     hv = atoms.getHierView()
-    for target_chain in hv.iterChains():
-        if target_chain.getChid() == chain.getChid():
-            mappings = mapOntoChain(target_chain, chain, **kwargs)
-            return mappings
+    for chain in ref.getHierView().iterChains():
+        for target_chain in hv.iterChains():
+            if target_chain.getChid() == chain.getChid():
+                mappings = mapOntoChain(target_chain, chain, **kwargs)
+                return mappings
     return []
 
 def getTrivialMapping(target, chain):
