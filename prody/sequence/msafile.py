@@ -19,25 +19,30 @@ FASTA = 'FASTA'
 SELEX = 'SELEX'
 STOCKHOLM = 'Stockholm'
 CLUSTAL = 'CLUSTAL'
+PIR = 'PIR'
 MSAFORMATS = {
     FASTA.lower(): FASTA,
     SELEX.lower(): SELEX,
     STOCKHOLM.lower(): STOCKHOLM,
     CLUSTAL.lower(): CLUSTAL,
+    PIR.lower(): PIR,
 }
 MSAEXTMAP = {
     FASTA: '.fasta',
     SELEX: '.slx',
     STOCKHOLM: '.sth',
     CLUSTAL: '.aln',
+    PIR: '.ali',
     FASTA.lower(): '.fasta',
     SELEX.lower(): '.slx',
     STOCKHOLM.lower(): '.sth',
     CLUSTAL.lower(): '.aln', 
+    PIR.lower(): '.ali',
     '.sth': STOCKHOLM,
     '.slx': SELEX,
     '.fasta': FASTA,
-    '.aln': CLUSTAL
+    '.aln': CLUSTAL,
+    '.ali': PIR,
 }
 
 WSJOIN = ' '.join
@@ -545,6 +550,9 @@ def parseMSA(filename, **kwargs):
         elif format == CLUSTAL:
             parser = parseClustal
             msaarr = []
+        elif format == PIR:
+            parser = parsePIR
+            msaarr = []
         else:
             raise IOError('MSA file format is not recognized from the '
                           'extension')
@@ -597,6 +605,29 @@ def parseClustal(filename, msaarr):
         msaarr.append(list(msa_dict[key]))
 
     return array(msaarr), keys, None, len(keys)
+
+def parsePIR(filename, msaarr):
+    msafile = open(filename,'r')
+    lines = msafile.readlines()
+    msafile.close()
+
+    labels = []
+    i = -1
+
+    for line in lines:
+        if line.startswith('>P1;'):
+            labels.append(line.strip()[len('>P1;'):])
+            i += 1
+            msaarr.append([])
+        elif line.startswith('s') or line.strip() == '':
+            pass
+        else:
+            msaarr[i].append(line.strip())
+
+    for i in range(len(msaarr)):
+        msaarr[i] = list(''.join(msaarr[i]))
+
+    return array(msaarr), labels, None, len(labels)
 
 def writeMSA(filename, msa, **kwargs):
     """Returns *filename* containing *msa*, a :class:`.MSA` or :class:`.MSAFile`
