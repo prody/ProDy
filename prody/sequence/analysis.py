@@ -686,9 +686,10 @@ def alignMultipleSequences(sequences, **kwargs):
     Aligns sequences with clustalw or clustalw2 and returns the resulting MSA.
 
     :arg sequences: a file, MSA object or a list or array containing sequences
-       as Sequence objects or strings. If strings are used then labels
-       must be provided using ``labels``
-    :type sequences: :class:`.MSAFile`, :class:`.MSA`, :class:`~numpy.ndarray`, str
+       as Atomic objects with :func:`getSequence` or Sequence objects or strings. 
+       If strings are used then labels must be provided using ``labels``
+    :type sequences: :class:`Atomic`, :class:`.MSAFile`, :class:`.MSA`, 
+        :class:`~numpy.ndarray`, str
 
     :arg labels: a list of labels to go with the sequences
     :type labels: list
@@ -699,6 +700,11 @@ def alignMultipleSequences(sequences, **kwargs):
     # 1. check if sequences are in a fasta file and if not make one
 
     if isinstance(sequences, list) or isinstance(sequences, np.ndarray):
+        if isinstance(sequences[0], Atomic):
+            msa = []
+            for sequence in sequences:
+                msa.append(sequence.getSequence())
+            sequences = msa
 
         if isinstance(sequences[0], Sequence):
             msa = []
