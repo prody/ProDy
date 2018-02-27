@@ -812,19 +812,19 @@ def showAlignment(alignment, row_size=60, max_seqs=5, **kwargs):
 
     for i in range(int(ceil(len(alignment[0])/float(row_size)))):
         for j in range(max_seqs):
-
-            sys.stdout.write('\n' + ' '*len(alignment[j].getLabel()[:15]) + '\t')
-            for k in range(row_size*i+10,row_size*(i+1)+10,10):
-                try:
-                    if k > index_start + 10 and k < index_stop + 10:
-                        sys.stdout.write('{:10d}'.format(int(indices[j][k-1])))
-                    elif k > index_start:
-                        sys.stdout.write(' '*(k-index_start))
-                    else:
-                        sys.stdout.write(' '*10)
-                except:
-                        sys.stdout.write(' '*10)
-            sys.stdout.write('\n')
+            if indices is not None:
+                sys.stdout.write('\n' + ' '*len(alignment[j].getLabel()[:15]) + '\t')
+                for k in range(row_size*i+10,row_size*(i+1)+10,10):
+                    try:
+                        if k > index_start + 10 and k < index_stop + 10:
+                            sys.stdout.write('{:10d}'.format(int(indices[j][k-1])))
+                        elif k > index_start:
+                            sys.stdout.write(' '*(k-index_start))
+                        else:
+                            sys.stdout.write(' '*10)
+                    except:
+                            sys.stdout.write(' '*10)
+                sys.stdout.write('\n')
 
             sys.stdout.write(alignment[j].getLabel()[:15] + '\t' + str(alignment[j])[60*i:60*(i+1)])
         sys.stdout.write('\n')
