@@ -756,9 +756,9 @@ def alignMultipleSequences(sequences, **kwargs):
     # 2. find and run alignment method
     clustalw = which('clustalw')
     if clustalw is None:
-        try:
+        if which('clustalw2') is not None:
             clustalw = which('clustalw2')
-        except:
+        else:
             raise EnvironmentError("The executable for clustalw was not found, \
                                     install clustalw or add it to the path.")
 
