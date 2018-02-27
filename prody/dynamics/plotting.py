@@ -1588,8 +1588,9 @@ def showTree(tree, format='ascii', **kwargs):
         withlabels = kwargs.pop('withlabels', True)
         scale = kwargs.pop('scale', 1.)
         iterations = kwargs.pop('iterations', 500)
-        obj = showTree_networkx(tree, node_size, node_color, node_shape,
-                                withlabels, scale, iterations, **kwargs)
+        obj = showTree_networkx(tree, node_size=node_size, node_color=node_color, 
+                                node_shape=node_shape, withlabels=withlabels, 
+                                scale=scale, iterations=iterations, **kwargs)
 
         return obj
 
@@ -1611,13 +1612,14 @@ def showTree_networkx(tree, node_size=20, node_color='red', node_shape='o', with
     for s in shape_types:
         shape_groups[s] = []
 
-    for node in G.nodes():
+    nodes = []
+    for i, node in enumerate(G.nodes()):
         lbl = node.name
         if lbl is None:
             lbl = ''
             colors.append('black')
             sizes.append(0)
-            shape_groups['o'].append(node)
+            shape_groups['o'].append(i)
         else:
             sizes.append(node_size)
             if isinstance(node_color, str):
@@ -1630,8 +1632,9 @@ def showTree_networkx(tree, node_size=20, node_color='red', node_shape='o', with
                 ns = node_shape
             else:
                 ns = node_shape[lbl] if lbl in node_shape else 'o'
-            shape_groups[ns].append(node)
+            shape_groups[ns].append(i)
         labels[node] = lbl
+        nodes.append(node)
 
     if SETTINGS['auto_show']:
         mpl.figure()
@@ -1642,13 +1645,16 @@ def showTree_networkx(tree, node_size=20, node_color='red', node_shape='o', with
     
     if np.isscalar(node_shape):
         networkx.draw_networkx_nodes(G, pos=layout, withlabels=False, node_size=sizes, 
-                                        node_shape=shape_types[0], node_color=colors)
+                                        node_shape=node_shape, node_color=colors)
     else:
         for shape in shape_groups:
-            node_list = shape_groups[shape]
-            networkx.draw_networkx_nodes(G, pos=layout, withlabels=False, node_size=sizes, 
-                                        node_shape=shape, node_color=colors, 
-                                        node_list=node_list)
+            nodelist = [nodes[i] for i in shape_groups[shape]]
+            nodesizes = [sizes[i] for i in shape_groups[shape]]
+            nodecolors = [colors[i] for i in shape_groups[shape]]
+            if not nodelist: continue
+            networkx.draw_networkx_nodes(G, pos=layout, withlabels=False, node_size=nodesizes, 
+                                        node_shape=shape, node_color=nodecolors, 
+                                        nodelist=nodelist)
 
     if withlabels:
         fontdict = kwargs.pop('fontdict', None)
