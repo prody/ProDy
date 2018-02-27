@@ -347,15 +347,19 @@ class PDBEnsemble(Ensemble):
         indices = self._indices
         if indices is None:
             indices = np.arange(self._confs.shape[1])
-        
-        weights = self._weights[:, indices] if self._weights is not None else None
 
+        weights = self._weights[:, indices] if self._weights is not None else None
         if pairwise:
             n_confs = self.numConfs()
             RMSDs = np.zeros((n_confs, n_confs))
             for i in range(n_confs):
-                for j in range(n_confs):
-                    RMSDs[i, j] = getRMSD(self._confs[i, indices], self._confs[j, indices], weights)
+                for j in range(i+1, n_confs):
+                    if weights is None:
+                        w = None
+                    else:
+                        wi = weights[i]; wj = weights[j]
+                        w = wi * wj
+                    RMSDs[i, j] = RMSDs[j, i] = getRMSD(self._confs[i, indices], self._confs[j, indices], w)
         else:
             RMSDs = getRMSD(self._coords[indices], self._confs[:, indices], weights)
 
