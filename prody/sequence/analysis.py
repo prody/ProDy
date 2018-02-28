@@ -20,7 +20,7 @@ __all__ = ['calcShannonEntropy', 'buildMutinfoMatrix', 'calcMSAOccupancy',
            'buildSeqidMatrix', 'uniqueSequences', 'buildOMESMatrix',
            'buildSCAMatrix', 'buildDirectInfoMatrix', 'calcMeff', 
            'buildPCMatrix', 'alignMultipleSequences', 'showAlignment', 
-           'alignSequenceToMSA', 'calcPercentIdentities',]
+           'alignSequenceToMSA', 'calcPercentIdentities', 'alignSequencesByChain',]
 
 
 doc_turbo = """
