@@ -4,11 +4,11 @@
 __author__ = 'Anindita Dutta, Ahmet Bakan, Wenzhi Mao'
 
 import os
-from numpy import dtype, zeros, empty, ones, where
-from numpy import indices, tril_indices, array, ceil
+from numpy import dtype, zeros, empty, ones, where, ceil
+from numpy import indices, tril_indices, array, ndarray
 from prody import LOGGER
 from prody.utilities import which
-from prody.sequence.msa import MSA
+from prody.sequence.msa import MSA, refineMSA
 from prody.sequence.msafile import parseMSA, writeMSA
 from prody.sequence.sequence import Sequence
 from prody.atomic import Atomic
@@ -20,7 +20,7 @@ __all__ = ['calcShannonEntropy', 'buildMutinfoMatrix', 'calcMSAOccupancy',
            'buildSeqidMatrix', 'uniqueSequences', 'buildOMESMatrix',
            'buildSCAMatrix', 'buildDirectInfoMatrix', 'calcMeff', 
            'buildPCMatrix', 'alignMultipleSequences', 'showAlignment', 
-           'alignSequenceToMSA', 'calcPercentIdentities',]
+           'alignSequenceToMSA', 'calcPercentIdentities', 'alignSequencesByChain',]
 
 
 doc_turbo = """
@@ -694,6 +694,80 @@ def msaeye(msa, unique, turbo):
     elapsed1 = toc1 - tic1
     print(elapsed1)
 
+def alignSequencesByChain(PDBs, **kwargs):
+    """
+    Runs alignMultipleSequences for each chain and optionally joins the results.
+    Returns either a single MSA or a dictionary containing an MSA for each chain.
+
+    :arg PDBs: a list or array of :class:`AtomGroup` objects or PDB IDs
+        a mixed list containing both is acceptable
+    :type PDBs: list or :class:`~numpy.ndarray`
+
+    :arg join_chains: whether to join chain alignments
+        default is True
+    :type join_chains: bool 
+
+    :arg join_char: a character for joining chain alignments
+        default is '/' as used by PIR format alignments
+    :type join_char: str
+    """
+    if not (isinstance(PDBs, list) or isinstance(PDBs, ndarray)):
+        raise TypeError('sequences should be a list or array')
+    else:
+        pdbs = []
+        chains = []
+        for i, pdb in enumerate(PDBs):
+            if isinstance(pdb, str):
+                if len(pdb) in [4, 5, 6]:
+                    pdbs.append(parsePDB(pdb))
+                else:
+                    raise ValueError('string entries in PDBs should be of length 4, 5 or 6')
+            elif isinstance(pdb, Atomic):
+                pdbs.append(pdb)
+            else:
+                raise TypeError('each entry in PDBs must be a :class:`Atomic` instance or a PDB ID')
+
+            chains.append([])
+            for chain in pdbs[i].getHierView().iterChains():
+                chains[i].append(chain)
+
+            if i != 0 and len(chains[i]) != len(chains[0]):
+                raise ValueError('all pdbs should have the same number of chains')
+            else:
+                chains = array(chains)
+
+        chain_alignments = []
+        alignments = {}
+        for j in range(len(chains[0])):
+            msa = alignMultipleSequences(chains[:][j], prefix=pdbs[0].getChids()[j])
+            msa = refineMSA(msa, colocc=1e-9) # remove gap-only cols
+            chain_alignments.append(msa)
+            alignments[pdbs[0].getChids()[j]] = msa
+
+        join_chains = kwargs.get('join_chains', True)
+        join_char = kwargs.get('join_char','/')
+        if join_chains:
+            aligned_sequences = list(zeros(shape(chain_alignments)).T)
+            for j in range(shape(chain_alignments)[1]):
+                aligned_sequences[j] = list(aligned_sequences[j])
+            
+            orig_labels = []
+            for i, chain_alignment in enumerate(chain_alignments):
+                for j, sequence in enumerate(chain_alignment):
+                    aligned_sequences[j][i] = str(sequence)
+                    if i == 0: orig_labels.append(sequence.getLabel())
+
+            joined_msaarr = []
+            for j in range(shape(chain_alignments)[1]):
+                joined_msaarr.append(array(list(join_char.join(aligned_sequences))))
+            joined_msaarr = array(joined_msaarr)
+            
+            result = MSA(joined_msaarr, title='joined_chains', labels=orig_labels)
+
+        else:
+            result = alignments
+                
+        return result
 
 def alignMultipleSequences(sequences, **kwargs):
     """
@@ -712,18 +786,23 @@ def alignMultipleSequences(sequences, **kwargs):
     :type prefix: str
     """
     # 1. check if sequences are in a fasta file and if not make one
+    fetched_labels = []
 
-    if isinstance(sequences, list) or isinstance(sequences, np.ndarray):
+    if not (isinstance(sequences, list) or isinstance(sequences, ndarray)):
+        raise TypeError('sequences should be a list or array')
+    else:
         if isinstance(sequences[0], Atomic):
             msa = []
             for sequence in sequences:
                 msa.append(sequence.getSequence())
+                fetched_labels.append(sequence.getTitle())
             sequences = msa
 
         if isinstance(sequences[0], Sequence):
             msa = []
             for sequence in sequences:
                 msa.append(str(sequence))
+                fetched_labels.append(sequence.getLabel())
             sequences = msa
 
         if isinstance(sequences[0], str):
@@ -740,15 +819,13 @@ def alignMultipleSequences(sequences, **kwargs):
 
         labels = kwargs.get('labels',None)
         if labels is None or len(labels) != len(sequences):
-            if sequences[0].getLabel() is not '':
-                labels = []
-                for sequence in sequences:
-                    labels.append(sequence.getLabel())
+            if fetched_labels is not []:
+                labels = fetched_labels
             else:
                 raise ValueError('sequences can only be provided as a list of '
                                  'strings if corresponding labels are provided')
-        else:
-            sequences = MSA(msa=sequences, labels=labels)
+
+        sequences = MSA(msa=sequences, labels=labels)
 
     prefix = kwargs.get('prefix',None)
     if isinstance(sequences, MSA):
@@ -833,7 +910,7 @@ def showAlignment(alignment, row_size=60, max_seqs=5, **kwargs):
     for i in range(int(ceil(len(alignment[0])/float(row_size)))):
         for j in range(max_seqs):
             if indices is not None:
-                sys.stdout.write('\n' + ' '*len(alignment[j].getLabel()[:15]) + '\t')
+                sys.stdout.write('\n' + ' '*15 + '\t')
                 for k in range(row_size*i+10,row_size*(i+1)+10,10):
                     try:
                         if k > index_start + 10 and k < index_stop + 10:
@@ -846,9 +923,12 @@ def showAlignment(alignment, row_size=60, max_seqs=5, **kwargs):
                             sys.stdout.write(' '*10)
                 sys.stdout.write('\n')
 
-            sys.stdout.write(alignment[j].getLabel()[:15] + '\t' + str(alignment[j])[60*i:60*(i+1)] + '\n')
-        sys.stdout.write('\n')
+            sys.stdout.write(alignment[j].getLabel()[:15] + \
+                             ' ' * (15-len(alignment[j].getLabel()[:15])) + \
+                             '\t' + str(alignment[j])[60*i:60*(i+1)] + '\n')
 
+        sys.stdout.write('\n')
+        
     return
 
 def alignSequenceToMSA(seq, msa, label, match=5, mismatch=-1, gap_opening=-10, gap_extension=-1):
