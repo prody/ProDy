@@ -333,8 +333,9 @@ def alignPDBEnsemble(ensemble, suffix='_aligned', outdir='.', gzip=False):
     else:
         return output
 
-def buildPDBEnsemble(refpdb, PDBs, title='Unknown', labels=None, seqid=94, coverage=85, mapping_func=mapOntoChain, \
-                     occupancy=None, unmapped=None, **kwargs):
+
+def buildPDBEnsemble(refpdb, PDBs, title='Unknown', labels=None, seqid=94, coverage=85, 
+                     mapping_func=mapOntoChain, occupancy=None, unmapped=None, **kwargs):
     """Builds a PDB ensemble from a given reference structure and a list of PDB structures. 
     Note that the reference structure should be included in the list as well.
 
@@ -388,7 +389,7 @@ def buildPDBEnsemble(refpdb, PDBs, title='Unknown', labels=None, seqid=94, cover
     
     # build the ensemble
     if unmapped is None: unmapped = []
-    for i,pdb in enumerate(PDBs):
+    for i, pdb in enumerate(PDBs):
         if not isinstance(pdb, (Chain, Selection, AtomGroup)):
             raise TypeError('PDBs must be a list of Chain, Selection, or AtomGroup.')
         
@@ -402,7 +403,9 @@ def buildPDBEnsemble(refpdb, PDBs, title='Unknown', labels=None, seqid=94, cover
         for chain in refchains:
             mappings = mapping_func(pdb, chain,
                                     seqid=seqid,
-                                    coverage=coverage, **kwargs)
+                                    coverage=coverage,
+                                    index=i,
+                                    **kwargs)
             if len(mappings) > 0:
                 atommaps.append(mappings[0][0])
             else:
