@@ -720,10 +720,12 @@ def alignSequencesByChain(PDBs, **kwargs):
             if isinstance(pdb, str):
                 if len(pdb) in [4, 5, 6]:
                     pdbs.append(parsePDB(pdb))
-                elif isinstance(pdb, Atomic):
-                    pdbs.append(pdb)
                 else:
-                    raise TypeError('each entry in PDBs must be a :class:`Atomic` instance or a PDB ID')
+                    raise ValueError('string entries in PDBs should be of length 4, 5 or 6')
+            elif isinstance(pdb, Atomic):
+                pdbs.append(pdb)
+            else:
+                raise TypeError('each entry in PDBs must be a :class:`Atomic` instance or a PDB ID')
 
             chains.append([])
             for chain in pdbs[i].getHierView().iterChains():
