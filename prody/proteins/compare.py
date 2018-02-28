@@ -17,7 +17,8 @@ if PY2K:
     range = xrange
 
 __all__ = ['matchChains', 'matchAlign', 'mapOntoChain',
-           'mapChainByChain', 'getMatchScore', 'setMatchScore',
+           'mapChainByChain', 'mapOntoChainByAlignment', 
+-          'getMatchScore', 'setMatchScore',
            'getMismatchScore', 'setMismatchScore',
            'getGapPenalty', 'setGapPenalty',
            'getGapExtPenalty', 'setGapExtPenalty',
@@ -963,6 +964,26 @@ def mapChainByChain(atoms, ref, **kwargs):
             if target_chain.getChid() == chain.getChid():
                 mappings = mapOntoChain(target_chain, chain, **kwargs)
                 return mappings
+    return []
+
+def mapOntoChainByAlignment(atoms, chain, **kwargs):
+    """This function is similar to :func:`.mapOntoChain` but correspondence 
+    of chains is found by alignment provided. """
+
+    alignments = kwargs.pop('alignments', None)
+    if alignments is None:
+        return mapOntoChain(atoms, chain, **kwargs)
+    else:
+        index = kwargs.pop('index', 0)
+        alignment = alignments[index]
+        tar_aligned_seq = alignment[-1]
+        hv = atoms.getHierView()
+        for target_chain in hv.iterChains():
+            tar_seq = target_chain.getSequence()
+            if tar_seq == tar_aligned_seq.replace('-', ''):
+                mappings = mapOntoChain(target_chain, chain, alignment=alignment, **kwargs)
+                return mappings
+        LOGGER.warn('The sequence of chain does not match that in alignment (index = %d).'%index)
     return []
 
 def getTrivialMapping(target, chain):

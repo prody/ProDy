@@ -381,23 +381,9 @@ def buildPDBEnsemble(refpdb, PDBs, title='Unknown', labels=None, seqid=94, cover
         if len(labels) != len(PDBs):
             raise TypeError('labels and PDBs must have the same lengths.')
 
-    alignment_list = kwargs.get('alignment_list', None)
-    if alignment_list is None:
-        alignment_list = [None]* len(PDBs)
-    else:
-        if len(alignment_list) != len(PDBs):
-            raise TypeError('alignment_list and PDBs must have the same lengths.')
-
-    alignments_list = kwargs.get('alignments_list', None)
-    if alignments_list is None:
-        alignments_list = [None]* len(PDBs)
-    else:
-        if len(alignments_list) != len(PDBs):
-            raise TypeError('alignments_list and PDBs must have the same lengths.')
-
     # obtain the hierarhical view of the reference PDB
     refhv = refpdb.getHierView()
-    refchains = refhv.iterChains()
+    refchains = list(refhv)
 
     # obtain the atommap of all the chains combined.
     atoms = refchains[0]
