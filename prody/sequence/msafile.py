@@ -773,10 +773,10 @@ def writePIR(filename, msa, **kwargs):
         sequence = str(msa[i])
         msafile.write('>P1;' + msa.getLabel(i) + '\n')
         msafile.write(types[i] + ':' + msa.getLabel(i))
-        msafile.write(first_resnums + ':' + first_chains + ':')
-        msafile.write(last_resnums + ':' + last_chains + ':')
-        msafile.write(protein_names + ':' + protein_sources + ':')
-        msafile.write(resolutions + ':' + r_factors + ':')
+        msafile.write(first_resnums[i] + ':' + first_chains[i] + ':')
+        msafile.write(last_resnums[i] + ':' + last_chains[i] + ':')
+        msafile.write(protein_names[i] + ':' + protein_sources[i] + ':')
+        msafile.write(resolutions[i] + ':' + r_factors[i] + ':')
         msafile.write('\n')
 
         for j in range(len(sequence)/60):
