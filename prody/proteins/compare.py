@@ -820,7 +820,7 @@ def mapOntoChain(atoms, chain, **kwargs):
             map_ag = atoms.getAtomGroup()
         chains = list(atoms.getHierView().iterChains())
         LOGGER.debug('Evaluating {0}: {1} chains are identified'
-                     .format(str(atoms), len(chains)))
+                     .format(str(atoms), len(chains))) 
 
     if subset != 'all':
         target_chain = target_chain.select(subset
