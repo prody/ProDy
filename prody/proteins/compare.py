@@ -820,7 +820,7 @@ def mapOntoChain(atoms, chain, **kwargs):
             map_ag = atoms.getAtomGroup()
         chains = list(atoms.getHierView().iterChains())
         LOGGER.debug('Evaluating {0}: {1} chains are identified'
-                     .format(str(atoms), len(chains)))
+                     .format(str(atoms), len(chains))) 
 
     if subset != 'all':
         target_chain = target_chain.select(subset
@@ -886,7 +886,7 @@ def mapOntoChain(atoms, chain, **kwargs):
                                  simple_target.getTitle()))
             if alignments is not None:
                 if chid in alignments:
-                    curr_alignment = alignments[chid]git checkout -b prody-master master
+                    curr_alignment = alignments[chid]
                 else:
                     curr_alignment = alignment
             result = getAlignedMapping(simple_target, simple_chain, alignment=curr_alignment)
