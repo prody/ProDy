@@ -426,13 +426,8 @@ def buildPDBEnsemble(refpdb, PDBs, title='Unknown', labels=None, seqid=94, cover
             mappings = mapping_func(pdb, chain,
                                     seqid=seqid,
                                     coverage=coverage,
-<<<<<<< HEAD
-                                    alignment=alignment_list[i],
-                                    alignments=alignments_list[i])
-=======
                                     index=i,
                                     **kwargs)
->>>>>>> cf2acc36ebca45a19e199210e9b8b35353f2f792
             if len(mappings) > 0:
                 atommaps.append(mappings[0][0])
             else:
