@@ -20,7 +20,7 @@ __all__ = ['calcShannonEntropy', 'buildMutinfoMatrix', 'calcMSAOccupancy',
            'buildSeqidMatrix', 'uniqueSequences', 'buildOMESMatrix',
            'buildSCAMatrix', 'buildDirectInfoMatrix', 'calcMeff', 
            'buildPCMatrix', 'alignMultipleSequences', 'showAlignment', 
-           'alignSequenceToMSA',]
+           'alignSequenceToMSA', 'calcPercentIdentities',]
 
 
 doc_turbo = """
@@ -30,6 +30,20 @@ doc_turbo = """
     allocation fails, the implementation will fall back to slower and
     memory efficient mode."""
 
+def calcPercentIdentities(msa):
+    percent_ids = []
+    aas = ['A','C','D','E','F','G','H','I','J','K','L', \
+           'M','N','P','Q','R','S','T','V','W','Y','-']
+
+    for i in range(len(msa)):
+        col_list = list(msa.getArray()[:,i])
+        max_count = 0
+        for aa in aas:
+            if col_list.count(aa) > max_count:
+                max_count = col_list.count(aa)
+        percent_ids.append(float(max_count)/float(len(col_list))*100)
+
+    return percent_ids
 
 def getMSA(msa):
     """Returns MSA character array."""

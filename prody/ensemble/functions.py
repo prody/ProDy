@@ -333,6 +333,7 @@ def alignPDBEnsemble(ensemble, suffix='_aligned', outdir='.', gzip=False):
     else:
         return output
 
+
 def buildPDBEnsemble(refpdb, PDBs, title='Unknown', labels=None, seqid=94, coverage=85, 
                      mapping_func=mapOntoChain, occupancy=None, unmapped=None, **kwargs):
     """Builds a PDB ensemble from a given reference structure and a list of PDB structures. 
@@ -374,7 +375,7 @@ def buildPDBEnsemble(refpdb, PDBs, title='Unknown', labels=None, seqid=94, cover
 
     # obtain the hierarhical view of the reference PDB
     refhv = refpdb.getHierView()
-    refchains = list(refhv)
+    refchains = refhv.iterChains()
 
     # obtain the atommap of all the chains combined.
     atoms = refchains[0]
