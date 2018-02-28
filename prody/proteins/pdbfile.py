@@ -79,7 +79,7 @@ _parsePDBdoc = _parsePQRdoc + """
 
 _PDBSubsets = {'ca': 'ca', 'calpha': 'ca', 'bb': 'bb', 'backbone': 'bb'}
 
-def parsePDB(pdb, **kwargs):
+def parsePDB(*pdb, **kwargs):
     """Returns an :class:`.AtomGroup` and/or dictionary containing header data
     parsed from a PDB file.
 
@@ -87,24 +87,85 @@ def parsePDB(pdb, **kwargs):
 
     See :ref:`parsepdb` for a detailed usage example.
 
-    :arg pdb: a PDB identifier or a filename
+    :arg pdb: one PDB identifier or a filename or a list of them.
         If needed, PDB files are downloaded using :func:`.fetchPDB()` function.
         You can also provide arguments that you would like passed on to fetchPDB().
     """
+    n_pdb = len(pdb)
+    if n_pdb == 1:
+        return _parsePDB(pdb[0], **kwargs)
+    else:
+        verb = LOGGER.verbosity
+        LOGGER.verbosity = 'info'
+
+        results = []
+        lstkwargs = {}
+        for key in kwargs:
+            argval = kwargs.get(key)
+            if np.isscalar(argval):
+                argval = [argval]*n_pdb
+            lstkwargs[key] = argval
+
+        LOGGER.progress('Retrieving {0} PDB structures...'
+                    .format(n_pdb), n_pdb)
+        for i, p in enumerate(pdb):
+            kwargs = {}
+            for key in lstkwargs:
+                kwargs[key] = lstkwargs[key][i]
+            LOGGER.update(i, 'Retrieving {0}...'.format(p))
+            result = _parsePDB(p, **kwargs)
+            if not isinstance(result, tuple):
+                if isinstance(result, dict):
+                    result = (None, result)
+                else:
+                    result = (result, None)
+            results.append(result)
+
+        results = zip(*results)
+
+        LOGGER.update(n_pdb, '{0} PDB structures retrieved'.format(n_pdb))
+        LOGGER.verbosity = verb
+       
+        for i in reversed(range(len(results))):
+            if all(j is None for j in results[i]):
+                results.pop(i)
+        if len(results) == 1:
+            results = results[0]
+
+        return results
+
+def _getPDBid(pdb):
+    l = len(pdb)
+    if l == 4:
+        pdbid, chain = pdb, ''
+    elif l == 5:
+        pdbid = pdb[:4]; chain = pdb[-1]
+    elif ':' in pdb:
+        i = pdb.find(':')
+        pdbid = pdb[:i]; chain = pdb[i+1:]
+    else:
+        raise IOError('{0} is not a valid filename or a valid PDB '
+                      'identifier.'.format(pdb))
+    if not pdbid.isalnum():
+        raise IOError('{0} is not a valid filename or a valid PDB '
+                      'identifier.'.format(pdb))
+    if chain != '' and not chain.isalnum():
+        raise IOError('{0} is not a valid chain identifier.'.format(chain))
+    return pdbid, chain
+
+def _parsePDB(pdb, **kwargs):
     title = kwargs.get('title', None)
+    chain = ''
     if not os.path.isfile(pdb):
-        if len(pdb) == 4 and pdb.isalnum():
-            if title is None:
-                title = pdb
-                kwargs['title'] = title
-            filename = fetchPDB(pdb, **kwargs)
-            if filename is None:
-                raise IOError('PDB file for {0} could not be downloaded.'
-                              .format(pdb))
-            pdb = filename
-        else:
-            raise IOError('{0} is not a valid filename or a valid PDB '
-                          'identifier.'.format(pdb))
+        pdb, chain = _getPDBid(pdb)
+        if title is None:
+            title = pdb
+            kwargs['title'] = title
+        filename = fetchPDB(pdb, **kwargs)
+        if filename is None:
+            raise IOError('PDB file for {0} could not be downloaded.'
+                          .format(pdb))
+        pdb = filename
     if title is None:
         title, ext = os.path.splitext(os.path.split(pdb)[1])
         if ext == '.gz':
@@ -113,6 +174,8 @@ def parsePDB(pdb, **kwargs):
             title = title[3:]
         kwargs['title'] = title
     pdb = openFile(pdb, 'rt')
+    if chain != '':
+        kwargs['chain'] = chain
     result = parsePDBStream(pdb, **kwargs)
     pdb.close()
     return result
@@ -124,9 +187,7 @@ def parsePDBStream(stream, **kwargs):
     parsed from a stream of PDB lines.
 
     :arg stream: Anything that implements the method ``readlines``
-        (e.g. :class:`file`, buffer, stdin)"""
-
-    report = kwargs.get('report',True)
+        (e.g. :class:`file`, buffer, stdin)""" 
     model = kwargs.get('model')
     header = kwargs.get('header', False)
     assert isinstance(header, bool), 'header must be a boolean'
@@ -189,14 +250,12 @@ def parsePDBStream(stream, **kwargs):
             hd, split = getHeaderDict(lines)
         _parsePDBLines(ag, lines, split, model, chain, subset, altloc)
         if ag.numAtoms() > 0:
-            if report:
-                LOGGER.report('{0} atoms and {1} coordinate set(s) were '
+            LOGGER.report('{0} atoms and {1} coordinate set(s) were '
                               'parsed in %.2fs.'.format(ag.numAtoms(),
                                ag.numCoordsets() - n_csets))
         else:
             ag = None
-            if report:
-                LOGGER.warn('Atomic data could not be parsed, please '
+            LOGGER.warn('Atomic data could not be parsed, please '
                             'check the input file.')
     elif header:
         hd, split = getHeaderDict(stream)
@@ -213,13 +272,12 @@ def parsePDBStream(stream, **kwargs):
         if biomol:
             ag = buildBiomolecules(hd, ag)
 
-            if report:
-                if isinstance(ag, list):
-                    LOGGER.info('Biomolecular transformations were applied, {0} '
-                                'biomolecule(s) are returned.'.format(len(ag)))
-                else:
-                    LOGGER.info('Biomolecular transformations were applied to the '
-                                'coordinate data.')
+            if isinstance(ag, list):
+                LOGGER.info('Biomolecular transformations were applied, {0} '
+                            'biomolecule(s) are returned.'.format(len(ag)))
+            else:
+                LOGGER.info('Biomolecular transformations were applied to the '
+                            'coordinate data.')
     if model != 0:
         if header:
             return ag, hd
@@ -761,8 +819,8 @@ def _evalAltlocs(atomgroup, altloc, chainids, resnums, resnames, atomnames):
         LOGGER.info('{0} out of {1} altloc {2} lines were parsed.'
                     .format(success, len(lines), repr(key)))
         if success > 0:
-            LOGGER.info('Altloc {0} is appended as a coordinate set to the '
-                        'atom group.'.format(repr(key), atomgroup.getTitle()))
+            LOGGER.info('Altloc {0} is appended as a coordinate set to '
+                        'atomgroup {1}.'.format(repr(key), atomgroup.getTitle()))
             atomgroup.addCoordset(xyz, label='altloc ' + key)
 
 PDBLINE = ('{0:6s}{1:5d} {2:4s}{3:1s}'
@@ -804,14 +862,15 @@ _writePDBdoc = """
         column
     """
 
-def writeChainsList(chains,filename='chains_list.txt'):
+def writeChainsList(chains, filename):
     """
     Write a text file containing a list of chains that can be parsed.
 
     :arg chains: a list of :class:`.Chain` objects
+    :type chains: list
     
     :arg filename: the name of the file to be written
-    :type filename: string
+    :type filename: str
     """
 
     fo = open(filename,'w')
@@ -820,17 +879,19 @@ def writeChainsList(chains,filename='chains_list.txt'):
     fo.close()
     return
 
-def parseChainsList(filename='chains_list.txt'):
+def parseChainsList(filename):
     """
     Parse a set of PDBs and extract chains based on a list in a text file.
 
     :arg filename: the name of the file to be read
-    :type filename: string
+    :type filename: str
 
     Returns: lists containing an :class:'.AtomGroup' for each PDB, 
     the headers for those PDBs, and the requested :class:`.Chain` objects
     """
-        
+    verb = LOGGER.verbosity
+    LOGGER.verbosity = 'info'
+    
     fi = open(filename,'r')
     lines = fi.readlines()
     fi.close()
@@ -839,12 +900,15 @@ def parseChainsList(filename='chains_list.txt'):
     ags = []
     headers = []
     chains = []
-    for line in lines:
+    num_lines = len(lines)
+    LOGGER.progress('Starting', num_lines)
+    for i, line in enumerate(lines):
+        LOGGER.update(i, 'Parsing lines...')
         pdb_id = line.split()[0].split('_')[0]
         if not pdb_id in pdb_ids:
             pdb_ids.append(pdb_id)
 
-            ag, header = parsePDB(pdb_ids[-1], compressed=False, report=False, \
+            ag, header = parsePDB(pdb_id, compressed=False, \
                                   subset=line.split()[0].split('_')[1], header=True)
 
             ags.append(ag)
@@ -852,6 +916,7 @@ def parseChainsList(filename='chains_list.txt'):
 
         chains.append(ag.getHierView()[line.strip().split()[1]])
 
+    LOGGER.verbosity = verb
     LOGGER.info('{0} PDBs have been parsed and {1} chains have been extracted. \
                 '.format(len(ags),len(chains)))
 

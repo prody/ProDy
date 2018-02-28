@@ -33,8 +33,8 @@ __all__ = ['showContactMap', 'showCrossCorr',
            'showDiffMatrix','showMechStiff','showNormDistFunct',
            'showPairDeformationDist','showMeanMechStiff', 
            'showPerturbResponse', 'showPerturbResponseProfiles',
-           'showAtomicMatrix', 'showPlot', 'showAtomicData', 'showTree', 
-           'showTree_networkx']
+           'showAtomicMatrix', 'showAtomicData', 'showTree', 
+           'showTree_networkx', 'showDomainBar']
 
 
 def showEllipsoid(modes, onto=None, n_std=2, scale=1., *args, **kwargs):
@@ -538,10 +538,11 @@ def showMode(mode, *args, **kwargs):
         show.append(plt.plot(a3d[:, 0], *args, label='x-component', **kwargs))
         show.append(plt.plot(a3d[:, 1], *args, label='y-component', **kwargs))
         show.append(plt.plot(a3d[:, 2], *args, label='z-component', **kwargs))
+
         if atoms is not None:
-            show[0][0].set_title(str(mode))
+            plt.title(str(mode))
         else:
-            show[0].set_title(str(mode))
+            plt.title(str(mode))
     else:
         a1d = mode._getArray()
         show = plt.plot(a1d, *args, **kwargs)
@@ -555,33 +556,26 @@ def showMode(mode, *args, **kwargs):
                         for i in atoms.getHierView().iterChains():
                             for hinge in hinges:
                                 if i.getResindices()[0] < hinge < i.getResindices()[-1]:
-                                    show[0].plot(hinge - i.getResindices()[0], \
+                                    plt.plot(hinge - i.getResindices()[0], \
                                                  a1d[hinge], '*', color=chain_colors[n], \
                                                  markeredgecolor='k', markersize=10)
                             n += 1
                     else:
-                        show[0].plot(hinges, a1d[hinges], 'r*')
+                        plt.plot(hinges, a1d[hinges], 'r*')
                 else:
-                    show.plot(hinges, a1d[hinges], 'r*')
+                    plt.plot(hinges, a1d[hinges], 'r*')
         if atoms is not None:
-            show[0].set_title(str(mode))
+            plt.title(str(mode))
         else:
-            show.set_title(str(mode))
+            plt.title(str(mode))
     if show_zero:
         if not mode.is3d():
             if atoms is not None:
-                show[0].plot(show[0].get_xlim(), (0,0), '--', color='grey')
+                plt.plot(plt.xlim(), (0,0), '--', color='grey')
             else:
-                show.plot(show.get_xlim(), (0,0), '--', color='grey')
+                plt.plot(plt.xlim(), (0,0), '--', color='grey')
         else:
-            if atoms is not None:
-                show[0][0].plot(show[0][0].get_xlim(), (0,0), '--', color='grey')
-                show[1][0].plot(show[1][0].get_xlim(), (0,0), '--', color='grey')
-                show[2][0].plot(show[2][0].get_xlim(), (0,0), '--', color='grey')
-            else:
-                show[0].plot(show[0].get_xlim(), (0,0), '--', color='grey')
-                show[1].plot(show[1].get_xlim(), (0,0), '--', color='grey')
-                show[2].plot(show[2].get_xlim(), (0,0), '--', color='grey')
+            plt.plot(plt.xlim(), (0,0), '--', color='grey')
     if SETTINGS['auto_show']:
         showFigure()
     return show
@@ -793,7 +787,7 @@ def showDiffMatrix(matrix1, matrix2, *args, **kwargs):
     """Show the difference between two cross-correlation matrices from
     different models. For given *matrix1* and *matrix2* show the difference
     between them in the form of (matrix2 - matrix1) and plot the difference
-    matrix using :func:`showMatrix`. When :class:`.NMA` models
+    matrix using :func:`showAtomicMatrix`. When :class:`.NMA` models
     are passed instead of matrices, the functions could call
     :func:`.calcCrossCorr` function to calculate the matrices for given modes.
 
@@ -828,8 +822,8 @@ def showDiffMatrix(matrix1, matrix2, *args, **kwargs):
         diff = np.abs(diff)
     if SETTINGS['auto_show']:
         plt.figure()
-    show = showMatrix(diff, *args, **kwargs)
-    show.im3.axis([-.5, shape1[1] - .5, -.5, shape1[0] - .5])
+    show = showAtomicMatrix(diff, *args, **kwargs)
+    #show.im3.axis([-.5, shape1[1] - .5, -.5, shape1[0] - .5])
     plt.title('Difference Matrix')
     if SETTINGS['auto_show']:
         showFigure()
@@ -1017,7 +1011,7 @@ def showPerturbResponse(**kwargs):
     :arg returnData: whether to return data for further analysis
         default is False
     :type returnData: bool
-	
+    
     :arg percentile: percentile argument for showAtomicMatrix
     :type percentile: float
 
@@ -1133,6 +1127,8 @@ def showPerturbResponseProfiles(prs_matrix,atoms=None,**kwargs):
         default is False
     :type returnProfiles: bool
     """
+    from .perturb import PRSMatrixParseError
+
     model = kwargs.get('model')
     if not type(prs_matrix) is np.ndarray:
         if prs_matrix is None:
@@ -1172,7 +1168,7 @@ def showPerturbResponseProfiles(prs_matrix,atoms=None,**kwargs):
         timesNotFound = 0
         for n in range(len(chain)):
             if not chain[n] in chains:
-                raise PRSMatrixParseError('Chain {0} was not found in {1}'.format(chain[n], pdbIn))
+                raise PRSMatrixParseError('Chain {0} was not found in chains'.format(chain[n]))
 
             chainNum = int(np.where(chains == chain[n])[0])
             chainAg = list(hv)[chainNum]
@@ -1208,7 +1204,39 @@ def showPerturbResponseProfiles(prs_matrix,atoms=None,**kwargs):
     else:
         return show
 
-def showAtomicMatrix(matrix=None, x_array=None, y_array=None, **kwargs):
+def _checkDomainBarParameter(domain_bar, defpos, atoms, label):
+    show = atoms is not None
+    pos = defpos
+
+    if not show:
+        return show, pos, atoms
+
+    # check if the user wants to show or not
+    from numbers import Number
+    if isinstance(domain_bar, bool):
+        show &= domain_bar
+        pos = defpos
+    elif isinstance(domain_bar, Number):
+        show &= True    # this line does nothing but is left for readability
+        pos = domain_bar
+
+    # check if the domain bar can be shown or not
+    try:
+        data = atoms.getData(label)
+        uniq = np.unique(data)
+        if domain_bar is None:
+            show &= len(uniq) > 1
+    except:
+        if domain_bar is None:
+            show &= False
+        if show:
+            raise ValueError('A {0} bar can only be generated if '
+                             'there is {0} data associated with '
+                             'the atoms.'.format(label))
+
+    return show, pos, data
+
+def showAtomicMatrix(matrix, x_array=None, y_array=None, atoms=None, **kwargs):
     """Show a matrix using :meth:`~matplotlib.axes.Axes.imshow`. Curves on x- and y-axis can be added.
     The first return value is the :class:`~matplotlib.axes.Axes` object for the upper plot, and the second
     return value is equivalent object for the left plot. The third return value is 
@@ -1228,234 +1256,8 @@ def showAtomicMatrix(matrix=None, x_array=None, y_array=None, **kwargs):
                      to *100-p*-th percentile.
     :type percentile: float
 
-    :arg vmin: Minimum value that can be used together with vmax 
-               as an alternative way to remove outliers
-    :type vmin: float
-
-    :arg vmax: Maximum value that can be used together with vmin 
-               as alternative way to remove outliers
-    :type vmax: float
-
     :arg atoms: a :class: `AtomGroup` instance for matching 
-        residue numbers and chain IDs. 
-    :type atoms: :class: `AtomGroup`
-
-    :arg num_div: the number of divisions for each chain
-        default 2
-    :type num_div: int
-
-    :arg resnum_tick_labels: residue number labels in place of num_div.
-         A list can be used to set the same labels on all chains or 
-         a dictionary of lists to set different labels for each chain
-    :type resnum_tick_labels: list or dictionary
-
-    :arg add_last_resi: whether to add a label for the last residue
-        default False
-    :type add_last_resi: bool
-
-    :arg label_size: size for resnum labels
-        default is 6, which works well for 4 residues on 4 chains
-    :type label_size: int
-    """ 
-
-    num_div = kwargs.pop('num_div',2)
-    resnum_tick_labels = kwargs.pop('resnum_tick_labels',None)
-    add_last_resi = kwargs.pop('add_last_resi',False)
-
-    import matplotlib.pyplot as plt
-    from matplotlib import cm
-    from matplotlib.gridspec import GridSpec, GridSpecFromSubplotSpec
-    from matplotlib.collections import LineCollection
-    from matplotlib.pyplot import figure, imshow
-
-    if matrix is None:
-        raise TypeError('You need to provide a matrix.') 
-    elif len(np.shape(matrix)) != 2:
-        raise ValueError('The matrix must be a 2D array.')
-
-    p = kwargs.pop('percentile', None)
-    vmin = kwargs.pop('vmin', None)
-    vmax = kwargs.pop('vmax', None)
-
-    if vmin is None and vmax is None and p is not None:
-        vmin = np.percentile(matrix, p)
-        vmax = np.percentile(matrix, 100-p)
-    
-    W = 10
-    H = 10
-    aspect = 'auto'
-
-    if x_array is not None and y_array is not None:
-        nrow = 3; ncol = 5
-        i = 1; j = 1
-        width_ratios = [1, W, 0.2]
-        height_ratios = [1, H, 0.2]
-    elif x_array is not None and y_array is None:
-        nrow = 3; ncol = 4
-        i = 1; j = 0
-        width_ratios = [W, 0.2]
-        height_ratios = [1, H, 0.2]
-    elif x_array is None and y_array is not None:
-        nrow = 2; ncol = 5
-        i = 0; j = 1
-        width_ratios = [1, W, 0.2]
-        height_ratios = [H, 0.2]
-    else:
-        nrow = 2; ncol = 4
-        i = 0; j = 0
-        width_ratios = [W, 0.2]
-        height_ratios = [H, 0.2]
-
-    main_index = (i,j)
-    upper_index = (i-1,j)
-    lower_index = (i+1,j)
-    left_index = (i,j-1)
-    right_index = (i,j+1)
-
-    outer = GridSpec(1, 3, width_ratios = [sum(width_ratios), 1, 4], hspace=0., wspace=0.2) 
-
-    gs = GridSpecFromSubplotSpec(nrow, ncol-2, subplot_spec = outer[0], width_ratios=width_ratios,
-                                 height_ratios=height_ratios, hspace=0., wspace=0.)
-
-    gs_bar = GridSpecFromSubplotSpec(nrow-1, 1, subplot_spec = outer[1], height_ratios=height_ratios[:-1], hspace=0., wspace=0.)
-    gs_legend = GridSpecFromSubplotSpec(nrow-1, 1, subplot_spec = outer[2], height_ratios=height_ratios[:-1], hspace=0., wspace=0.)
-
-    if SETTINGS['auto_show']:
-        fig = plt.figure(figsize=[9.5,6]) 
-    axes = []
-
-    atoms = kwargs.pop('atoms', None)
-    if atoms is not None:
-        if not isinstance(atoms, AtomGroup) and not isinstance(atoms, Selection):
-            raise TypeError('atoms must be an AtomGroup instance')
-    
-    cmap = kwargs.pop('cmap', 'jet')
-    label_size = kwargs.pop('label_size', 6)
- 
-    ax1 = ax2 = ax3 = ax4 = ax5 = ax6 = ax7 = None
-    if nrow > 2:
-        y1 = x_array
-        x1 = np.arange(len(y1))
-        ax1 = plt.subplot(gs[upper_index])
-        points1 = np.array([x1, y1]).T.reshape(-1, 1, 2)
-        segments1 = np.concatenate([points1[:-1], points1[1:]], axis=1)
-        lc1 = LineCollection(segments1, array=y1, linewidths=1, cmap=cmap)
-        ax1.add_collection(lc1)
-
-        ax1.set_xlim(x1.min(), x1.max())
-        ax1.set_ylim(y1.min(), y1.max())
-        ax1.axis('off')
-
-    if ncol > 4:
-        x2 = y_array
-        y2 = np.arange(len(x2))
-        ax2 = plt.subplot(gs[left_index])
-        points2 = np.array([x2, y2]).T.reshape(-1, 1, 2)
-        segments2 = np.concatenate([points2[:-1], points2[1:]], axis=1)
-        lc2 = LineCollection(segments2, array=x2, linewidths=1, cmap=cmap)
-        ax2.add_collection(lc2)
-
-        ax2.set_xlim(x2.min(), x2.max())
-        ax2.set_ylim(y2.min(), y2.max())
-        ax2.axis('off')
-        ax2.invert_xaxis()
-
-    ax3 = plt.subplot(gs[main_index])
-    im = imshow(matrix, aspect=aspect, vmin=vmin, vmax=vmax, cmap=cmap, **kwargs)
-    ax3.yaxis.tick_right()
-
-    ax4 = plt.subplot(gs_bar[-1])
-    plt.colorbar(cax=ax4)
- 
-    if atoms is not None:
-
-        # Add bars along the bottom and right that are colored by chain and numbered with residue
-
-        ax5 = plt.subplot(gs[lower_index])
-        ax6 = plt.subplot(gs[right_index])
-
-        n = 0
-        resnum_tick_locs = []
-        resnum_tick_labels_list = []
-
-        if resnum_tick_labels is None:
-            resnum_tick_labels = []
-            user_set_labels = False
-        elif type(resnum_tick_labels) is list:
-            user_set_labels = list
-        elif type(resnum_tick_labels) is dict:
-            user_set_labels = dict
-        else:
-            raise TypeError('The resnum tick labels should be a list or dictionary of lists')
-
-        chain_colors = 'gcmyrwbk'
-        chain_handles = []
-        for i in atoms.getHierView().iterChains():
-            
-            chain_handle, = ax5.plot([i.getResindices()[0], i.getResindices()[-1]], [0, 0], \
-                                     '-', linewidth=3, color=chain_colors[n], label=str(i))
-            chain_handles.append(chain_handle)
-
-            ax6.plot([0,0], [np.flip(i.getResindices(),0)[0], np.flip(i.getResindices(),0)[-1]], \
-                     '-', linewidth=3, color=chain_colors[n], label=str(i))
-
-            if not user_set_labels:
-                for j in range(num_div):
-                    resnum_tick_locs.append(i.getResindices()[i.numAtoms()/num_div*j])
-                    resnum_tick_labels.append(i.getResnums()[i.numAtoms()/num_div*j])
-            elif user_set_labels is list:
-                for j in resnum_tick_labels:
-                    resnum_tick_locs.append(i.getResindices()[np.where(i.getResnums() == j)[0][0]])
-                    resnum_tick_labels_list.append(j)
-            else:
-                for k in resnum_tick_labels.keys():
-                    if i.getChids()[0] == k:
-                       for j in resnum_tick_labels[k]:
-                           resnum_tick_locs.append(i.getResindices()[np.where(i.getResnums() == j)[0][0]])
-                           resnum_tick_labels_list.append(j)
-
-            n += 1
-
-        ax7 = plt.subplot(gs_legend[-1])
-        plt.legend(handles=chain_handles, loc=2, bbox_to_anchor=(0.25, 1))
-        ax7.axis('off')
-
-        if add_last_resi:
-            resnum_tick_locs.append(atoms.getResindices()[-1])
-            resnum_tick_labels_list.append(atoms.getResnums()[-1])
-
-        resnum_tick_locs = np.array(resnum_tick_locs)
-        resnum_tick_labels = np.array(resnum_tick_labels_list)
-
-        ax3.axis('off')
-
-        ax5.set_xticks(resnum_tick_locs)
-        ax5.set_xticklabels(resnum_tick_labels)
-        ax5.tick_params(labelsize=label_size)
-        ax5.set_yticks([])
-
-        ax6.set_xticks([])
-        ax6.yaxis.tick_right()
-        ax6.set_yticks(resnum_tick_locs)
-        ax6.set_yticklabels(resnum_tick_labels)
-        ax6.tick_params(labelsize=label_size)
-
-        ax5.set_xlim([-0.5, len(matrix)+0.5])
-        ax6.set_ylim([-0.5, len(matrix.T)+0.5])
-
-    if SETTINGS['auto_show']:
-        showFigure()
- 
-    plt.sca(ax3)
-
-    return ax1, ax2, im, ax3, ax4, ax5, ax6, ax7
-
-def showAtomicData(y, atoms=None, linespec='-', **kwargs):
-    """
-    Show a plot with the option to include chain color bars using provided atoms.
-    
-    :arg atoms: a :class: `AtomGroup` instance for matching 
-        residue numbers and chain IDs. 
+        residue numbers and chain identifiers. 
     :type atoms: :class: `AtomGroup`
 
     :arg chain_bar: display a bar at the bottom to show chain separations. 
@@ -1474,14 +1276,124 @@ def showAtomicData(y, atoms=None, linespec='-', **kwargs):
                 to a figure number or a :class:`~matplotlib.figure.Figure` instance, 
                 no matter what 'auto_show' value is, plots will be drawn on the *figure*.
                 Default is `None`.
-    :type figure: :class:`~matplotlib.figure.Figure`, int, or str
+    :type figure: :class:`~matplotlib.figure.Figure`, int, str
+    """ 
+
+    from prody.utilities import showMatrix
+    from matplotlib.pyplot import figure, xlim, ylim, plot, text
+    from matplotlib.figure import Figure
+    from matplotlib import ticker
+
+    chain_bar = kwargs.pop('chain_bar', None)
+    domain_bar = kwargs.pop('domain_bar', None)
+    chain_text_loc = kwargs.pop('chain_text_loc', 'above')
+    domain_text_loc = kwargs.pop('domain_text_loc', 'below')
+    fig = kwargs.pop('figure', None)
+
+    if isinstance(fig, Figure):
+        fig_num = fig.number
+    elif fig is None or isinstance(fig, (int, str)):
+        fig_num = fig
+    else:
+        raise TypeError('figure can be either an instance of matplotlib.figure.Figure '
+                        'or a figure number.')
+    if SETTINGS['auto_show']:
+        figure(fig_num)
+    elif fig_num is not None:
+        figure(fig_num)
+
+    n_row, n_col = matrix.shape
+    ticklabels = None
+    sides = []
+    if atoms is not None:
+        n_atoms = atoms.numAtoms()
+        if n_atoms == n_row: sides.append('y') 
+        if n_atoms == n_col: sides.append('x')
+        if not sides:
+            raise ValueError('The number of atoms ({0}) is inconsistent with the shape '
+                             'of the matrix ({1}, {2}).'.format(n_atoms, n_row, n_col))
+        hv = atoms.getHierView()
+        if hv.numChains() == 0:
+            raise ValueError('atoms should contain at least one chain.')
+        elif hv.numChains() == 1:
+            if chain_bar is None:
+                chain_bar = False
+            ticklabels = atoms.getResnums()
+        else:
+            chids = atoms.getChids()
+            resnums = atoms.getResnums()
+            ticklabels = ['%s:%d'%(c, n) for c, n in zip(chids, resnums)]
+
+    im, lines, colorbar = showMatrix(matrix, x_array, y_array, ticklabels=ticklabels, **kwargs) 
+    
+    ## draw domain & chain bars
+    show_chain, chain_pos, chids = _checkDomainBarParameter(chain_bar, 0., atoms, 'chain')
+
+    bars = []
+    texts = []
+    if show_chain:
+        b, t = showDomainBar(chids, loc=chain_pos, axis=sides[-1], 
+                             text_loc=chain_text_loc, text_color='w')
+        bars.extend(b)
+        texts.extend(t)
+
+    # force turnning off domain_bar if chain_bar and only one side is 
+    # available
+    if len(sides) < 2:
+        if show_chain:
+            if domain_bar is not None:
+                LOGGER.warn('There is only one side of the matrix matches with atoms so domain bar '
+                            'will not be shown. Turn off chain_bar if you want to show the domain bar.')
+            domain_bar = False
+            
+    show_domain, domain_pos, domains = _checkDomainBarParameter(domain_bar, 0., atoms, 'domain')
+
+    if show_domain:
+        b, t = showDomainBar(domains, loc=domain_pos, axis=sides[0], 
+                             text_loc=domain_text_loc, text_color='w')
+        bars.extend(b)
+        texts.extend(t)
+
+    if SETTINGS['auto_show']:
+        showFigure()
+
+    return im, lines, colorbar, texts
+
+def showAtomicData(y, atoms=None, linespec='-', **kwargs):
+    """
+    Show a plot with the option to include chain color bars using provided atoms.
+    
+    :arg atoms: a :class: `AtomGroup` instance for matching 
+        residue numbers and chain identifiers. 
+    :type atoms: :class: `AtomGroup`
+
+    :arg chain_bar: display a bar at the bottom to show chain separations. 
+                    If set to `None`, it will be decided depends on whether *atoms* 
+                    is provided. 
+                    Default is `None`.
+    :type chain_bar: bool
+
+    :arg domain_bar: the same with *chain_bar* but show domain separations instead. 
+                    *atoms* needs to have *domain* data associated to it.
+                    Default is `None`.
+    :type domain_bar: bool
+
+    :arg figure: if set to `None`, then a new figure will be created if *auto_show* 
+                is `True`, otherwise it will be plotted on the current figure. If set 
+                to a figure number or a :class:`~matplotlib.figure.Figure` instance, 
+                no matter what 'auto_show' value is, plots will be drawn on the *figure*.
+                Default is `None`.
+    :type figure: :class:`~matplotlib.figure.Figure`, int, str
     """
     
     chain_bar = kwargs.pop('chain_bar', None)
     domain_bar = kwargs.pop('domain_bar', None)
+    chain_text_loc = kwargs.pop('chain_text_loc', 'above')
+    domain_text_loc = kwargs.pop('domain_text_loc', 'below')
+    zero_line = kwargs.pop('show_zero', False)
 
     from prody.utilities import showData
-    from matplotlib.pyplot import figure, ylim
+    from matplotlib.pyplot import figure, xlim, ylim, plot, text
     from matplotlib.figure import Figure
     from matplotlib import ticker
 
@@ -1518,262 +1430,126 @@ def showAtomicData(y, atoms=None, linespec='-', **kwargs):
             resnums = atoms.getResnums()
             ticklabels = ['%s:%d'%(c, n) for c, n in zip(chids, resnums)]
 
-    ax = showData(y, linespec, ticklabels=ticklabels, **kwargs)
-    ax.xaxis.set_major_locator(ticker.AutoLocator())
-    ax.xaxis.set_minor_locator(ticker.AutoMinorLocator())
+    lines, polys = showData(y, linespec, ticklabels=ticklabels, **kwargs)
+    if zero_line:
+        l = xlim()
+        plot(l, [0, 0], '--', color='gray')
 
+    bars = []
+    texts = []
     if chain_bar is None:
         chain_bar = atoms is not None
 
-    if chain_bar and atoms is not None:
-        yl = ylim()
-        d_loc = yl[0]
-        D = []
-        chids = atoms.getChids()
-        uni_chids = np.unique(chids)
-        for chid in uni_chids:
-            d = chids == chid
-            D.append(d)
-        D = np.vstack(D).T
-        F = np.zeros(D.shape)
-        F[~D] = np.nan
-        F[D] = d_loc
+    show_chain, chain_pos, chids = _checkDomainBarParameter(chain_bar, 0., atoms, 'chain')
+     
+    if show_chain:
+        b, t = showDomainBar(atoms.getChids(), loc=chain_pos, axis='x', text_loc=chain_text_loc)
+        bars.extend(b)
+        texts.extend(t)
 
-        ax.plot(F, linewidth=5)
-        ylim(yl)
-
-    try:
-        domains = atoms.getData('domain')
-        uni_domids = np.unique(domains)
-        if domain_bar is None:
-            domain_bar = len(uni_domids) > 1
-    except:
-        if domain_bar is None:
-            domain_bar = False
-        elif domain_bar:
-            raise ValueError('A domain bar can only be generated if \
-                            there is domain data associated with \
-                            the atoms.')
-
-    if domain_bar and atoms is not None:
-        yl = ylim()
-        d_loc = yl[1]
-        D = []
-        for domid in uni_domids:
-            d = domains == domid
-            D.append(d)
-        D = np.vstack(D).T
-        F = np.zeros(D.shape)
-        F[~D] = np.nan
-        F[D] = d_loc
-
-        ax.plot(F, linewidth=5)
-        ylim(yl)
+    show_domain, domain_pos, domains = _checkDomainBarParameter(domain_bar, 1., atoms, 'domain')
+    if show_domain:
+        b, t = showDomainBar(domains, loc=domain_pos, axis='x', text_loc=domain_text_loc)
+        bars.extend(b)
+        texts.extend(t)
 
     if SETTINGS['auto_show']:
         showFigure()
-    return ax
+    return lines, polys, bars, texts
 
-def showPlot(y, **kwargs):
-
+def showDomainBar(domains, loc=0., axis='x', **kwargs):
     """
-    Show a plot with the option to include chain color bars using provided atoms.
+    Plot a bar on top of the current axis which is colored based 
+    on domain separations.
     
-    :arg atoms: a :class: `AtomGroup` instance for matching 
-        residue numbers and chain IDs. 
-    :type atoms: :class: `AtomGroup`
-    
-    :arg num_div: the number of divisions for each chain
-        default 2
-    :type num_div: int
+    :arg domains: a list of domain labels 
+    :type domains: list, tuple, :class:~numpy.ndarray
 
-    :arg resnum_tick_labels: residue number labels in place of num_div.
-         A list can be used to set the same labels on all chains or 
-         a dictionary of lists to set different labels for each chain
-    :type resnum_tick_labels: list or dictionary
+    :arg loc: relative position of the domain bar. **0** means at 
+              bottom/left and **1** means at top/right
+    :type loc: float
 
-    :arg add_last_resi: whether to add a label for the last residue
-        default False
-    :type add_last_resi: bool
+    :arg axis: on which axis the bar will be plotted. It can be 
+               either **x** or **y**
+    :type axis: str
 
-    :arg label_size: size for resnum labels
-        default is 6, which works well for 4 residues on 4 chains
-    :type label_size: int
+    :arg text_loc: location of text labels. It can be either 
+                   **above** or **below**
+    :type text_loc: str
 
-    :arg overlay_chains: overlay the chains rather than having them one after another
-        default False
-    :type overlay_chains: bool
-
-    :arg domain_bar: color the bar at the bottom by domains rather than chains
-        default False
-    :type domain_bar: bool
+    :arg text_color: color of the text labels
+    :type text_color: str or tuple or list
     """
-    atoms = kwargs.pop('atoms',None)
-    overlay_chains = kwargs.pop('overlay_chains',False)
-    domain_bar = kwargs.pop('domain_bar',False)
 
-    num_div = kwargs.pop('num_div',2)
-    resnum_tick_labels = kwargs.pop('resnum_tick_labels',None)
-    add_last_resi = kwargs.pop('add_last_resi',False)
-    label_size = kwargs.pop('label_size',6)
+    from matplotlib.pyplot import plot, text, xlim, ylim
 
-    import matplotlib.pyplot as plt
-    from matplotlib import cm
-    from matplotlib.gridspec import GridSpec, GridSpecFromSubplotSpec
-    from matplotlib.collections import LineCollection
-    from matplotlib.pyplot import figure, imshow
+    text_color = kwargs.pop('text_color', 'k')
 
-    if y is None:
-        raise TypeError('You need to provide data for the y-axis.')
-    elif len(np.shape(y)) != 1:
-        raise ValueError('The data must be a 1D array.')
-
-    if SETTINGS['auto_show']:
-        fig = plt.figure(figsize=[9.5,6])
-    axes = [] 
-
-    if atoms is not None:
-        height_ratios = [15,0.2]
-        nrows = 2
-    else:
-        height_ratios = None
-        nrows = 1
-
-    outer = GridSpec(1, 2, width_ratios = [16, 4], hspace=0., wspace=0.)
-
-    gs = GridSpecFromSubplotSpec(nrows, 1, subplot_spec = outer[0], \
-                                 height_ratios=height_ratios, hspace=0., wspace=0.)
-
-    gs_legend = GridSpecFromSubplotSpec(1, 1, subplot_spec = outer[1], hspace=0., wspace=0.)
+    text_loc = kwargs.pop('text_loc', 'above')
+    if not isinstance(text_loc, str):
+        raise TypeError('text_loc should be a str')
     
-    ax1 = plt.subplot(gs[0])
+    text_loc = text_loc.lower().strip()
+    if not text_loc in ['above', 'below']:
+        raise ValueError('text_loc can only be either "above" or "below"')
 
-    chain_colors = 'gcmyrwbk'
-    chain_handles = []
+    halign = 'left' if text_loc == 'below' else 'right'
+    valign = 'top' if text_loc == 'below' else 'bottom'
 
-    if overlay_chains:
-        n = 0
-        for i in atoms.getHierView().iterChains():
-            chain_handle, = ax1.plot(y[i.getResindices()[0]:i.getResindices()[-1]], color=chain_colors[n], label=str(i), **kwargs)
-            chain_handles.append(chain_handle)
-            n += 1
+    uni_domids = np.unique(domains)
+
+    if axis == 'y':
+        lim = xlim
+    elif axis == 'x':
+        lim = ylim
     else:
-        ax1.plot(y, **kwargs)
+        raise ValueError('axis can be either "x" or "y"')
 
-    if nrows > 1:
-        ax2 = plt.subplot(gs[1])
+    L = lim()
+    d_loc = L[0] + loc * (L[1] - L[0])
+    D = []
 
-        resnum_tick_locs = []
-        resnum_tick_labels_list = []
+    for domid in uni_domids:
+        d = domains == domid
+        D.append(d)
+    D = np.vstack(D).T
+    F = np.zeros(D.shape)
+    F[~D] = np.nan
+    F[D] = d_loc
 
-        if resnum_tick_labels is None:
-            resnum_tick_labels = []
-            user_set_labels = False
-        elif type(resnum_tick_labels) is list:
-            user_set_labels = list
-        elif type(resnum_tick_labels) is dict:
-            user_set_labels = dict
+    bars = []
+    texts = []
+    for i, chid in enumerate(uni_domids):
+        locs = np.where(D[:, i])[0]
+        pos = np.median(locs)
+        if axis == 'y':
+            txt = text(d_loc, pos, chid, rotation='vertical', 
+                                         color=text_color,
+                                         horizontalalignment=halign, 
+                                         verticalalignment='center')
         else:
-            raise TypeError('The resnum tick labels should be a list or dictionary of lists')
-
-        n = 0
-        for i in atoms.getHierView().iterChains():
-            if not overlay_chains:
-                chain_handle, = ax2.plot([i.getResindices()[0], i.getResindices()[-1]], [0, 0], \
-                                         '-', linewidth=3, color=chain_colors[n], label=str(i))
-                chain_handles.append(chain_handle)
-
-            if not user_set_labels:
-                for j in range(num_div):
-                    resnum_tick_locs.append(i.getResindices()[i.numAtoms()/num_div*j])
-                    resnum_tick_labels.append(i.getResnums()[i.numAtoms()/num_div*j])
-            elif user_set_labels is list:
-                for j in resnum_tick_labels:
-                    resnum_tick_locs.append(i.getResindices()[np.where(i.getResnums() == j)[0][0]])
-                    resnum_tick_labels_list.append(j)
-            else:
-                for k in resnum_tick_labels.keys():
-                    if i.getChids()[0] == k:
-                       for j in resnum_tick_labels[k]: 
-                           resnum_tick_locs.append(i.getResindices()[np.where(i.getResnums() == j)[0][0]])
-                           resnum_tick_labels_list.append(j)
-
-            n += 1
-
-        if domain_bar:
-            try:
-                atoms.getData('domain')[0]
-            except:
-                raise ValueError('A domain bar can only be generated if \
-                                  there is domain data associated with \
-                                  the atoms.')
-
-            borders = {}
-            for i in range(atoms.numAtoms()/atoms.getHierView().numChains()):
-                if atoms.getData('domain')[i] != atoms.getData('domain')[i-1]:
-                    if i != 0:
-                        borders[atoms.getData('domain')[i-1]][-1].append(i-1)
-                    if not atoms.getData('domain')[i] in borders.keys():
-                        borders[atoms.getData('domain')[i]] = []
-                    borders[atoms.getData('domain')[i]].append([])
-                    borders[atoms.getData('domain')[i]][-1].append(i)
-
-            hsv = plt.get_cmap('hsv')
-            colors = hsv(np.linspace(0, 1.0, len(borders.keys())))
-
-            for chain in atoms.getHierView().iterChains():
-                domains_found = []
-                for i in range(chain.numAtoms()):
-                    if not atoms.getData('domain')[i] in domains_found and str(atoms.getData('domain')[i]) is not '':
-                        n = 0
-                        for j in borders[atoms.getData('domain')[i]]:
-                            m = 0
-                            if m == 0:
-                                domain_handle, = ax2.plot([j[0], j[-1]], [0, 0], '-', linewidth=3, \
-                                                          color=colors[n], label=str(atoms.getData('domain')[i]))
-                                chain_handles.append(domain_handle)
-                            else:
-                                ax2.plot([j[0], j[-1]], [0, 0], '-', linewidth=3, color=colors[n])
-                            m += 1
-                        n += 1
- 
-        ax3 = plt.subplot(gs_legend[-1])
-        plt.legend(handles=chain_handles, loc=2, bbox_to_anchor=(0.25, 1))
-        ax3.axis('off')
-
-        if not user_set_labels:
-            resnum_tick_labels_list = resnum_tick_labels
-
-        if add_last_resi:
-            resnum_tick_locs.append(atoms.getResindices()[-1])
-            resnum_tick_labels_list.append(atoms.getResnums()[-1])
-
-        resnum_tick_locs = np.array(resnum_tick_locs)
-        resnum_tick_labels = np.array(resnum_tick_labels_list)
-
-        ax1.set_xticks([])
-
-        if overlay_chains:
-            ax1.set_xlim(-0.5,atoms.numAtoms()/atoms.getHierView().numChains()+0.5)
-
-        ax2.set_xticks(resnum_tick_locs)
-        ax2.set_xticklabels(resnum_tick_labels)
-        ax2.tick_params(labelsize=label_size)
-        ax2.set_yticks([])
-
-        ax2.set_xlim(ax1.get_xlim())
-
-    if atoms is not None:
-        return ax1, ax2, ax3
+            txt = text(pos, d_loc, chid, color=text_color,
+                                         horizontalalignment='center', 
+                                         verticalalignment=valign)
+        texts.append(txt)
+    if axis == 'y':
+        _y = np.arange(len(domains))
+        Y = np.tile(_y, (len(uni_domids), 1)).T
+        bar = plot(F, Y, linewidth=5)
     else:
-        return ax1
+        bar = plot(F, linewidth=5)
+
+    bars.extend(bar)
+    lim(L)
+    return bars, texts
 
 def showTree(tree, format='ascii', **kwargs):
     """ Given a tree, creates visualization in different formats. 
-    arg tree: Tree needs to be unrooted and should be generated by tree generator from Phylo in biopython. 
+    arg tree: Tree needs to be unrooted and should be generated by tree 
+    generator from Phylo in biopython. 
     type tree: Bio.Phylo.BaseTree.Tree
-    arg format: Depending on the format, you will see different forms of trees. Acceptable formats are `plt`
-    and `ascii`.
+    arg format: Depending on the format, you will see different forms of trees. 
+    Acceptable formats are `plt`, `ascii` and `networkx`.
     type format: str
     arg font_size: Font size for branch labels
     type: float
@@ -1788,30 +1564,37 @@ def showTree(tree, format='ascii', **kwargs):
             'to solve the problem.')
     font_size = float(kwargs.get('font_size', 8.0))
     line_width = float(kwargs.get('line_width', 1.5))
+
     if format == 'ascii':
-        obj = Phylo.draw_ascii(tree)
-    elif format == 'pylab' or format == 'matplotlib': 
+        Phylo.draw_ascii(tree)
+        return
+
+    elif format == 'pylab' or format == 'matplotlib' or format == 'plt': 
         try:
             import pylab
         except:
             raise ImportError("Pylab or matplotlib is not installed.")
         pylab.rcParams["font.size"]=font_size
         pylab.rcParams["lines.linewidth"]=line_width
-        obj = Phylo.draw(tree, do_show=False)
+        Phylo.draw(tree, do_show=False, **kwargs)
         pylab.xlabel('distance')
         pylab.ylabel('proteins')
+        return
+
     elif format == 'networkx':
         node_size = kwargs.pop('node_size', 20)
         node_color = kwargs.pop('node_color', 'red')
+        node_shape = kwargs.pop('node_shape', 'o')
         withlabels = kwargs.pop('withlabels', True)
         scale = kwargs.pop('scale', 1.)
         iterations = kwargs.pop('iterations', 500)
-        obj = showTree_networkx(tree, node_size, node_color, 
-                                withlabels, scale, iterations, **kwargs)
+        obj = showTree_networkx(tree, node_size=node_size, node_color=node_color, 
+                                node_shape=node_shape, withlabels=withlabels, 
+                                scale=scale, iterations=iterations, **kwargs)
 
-    return obj
+        return obj
 
-def showTree_networkx(tree, node_size=20, node_color='red', withlabels=True, scale=1., iterations=500, **kwargs):
+def showTree_networkx(tree, node_size=20, node_color='red', node_shape='o', withlabels=True, scale=1., iterations=500, **kwargs):
     from Bio import Phylo
     import matplotlib.pyplot as mpl
 
@@ -1824,13 +1607,19 @@ def showTree_networkx(tree, node_size=20, node_color='red', withlabels=True, sca
     labels = {}
     colors = []
     sizes = []
+    shape_types = 'so^>v<dph8'
+    shape_groups = {}
+    for s in shape_types:
+        shape_groups[s] = []
 
-    for node in G.nodes():
+    nodes = []
+    for i, node in enumerate(G.nodes()):
         lbl = node.name
         if lbl is None:
             lbl = ''
             colors.append('black')
             sizes.append(0)
+            shape_groups['o'].append(i)
         else:
             sizes.append(node_size)
             if isinstance(node_color, str):
@@ -1838,13 +1627,34 @@ def showTree_networkx(tree, node_size=20, node_color='red', withlabels=True, sca
             else:
                 nc = node_color[lbl] if lbl in node_color else 'red'
             colors.append(nc)
+
+            if isinstance(node_shape, str):
+                ns = node_shape
+            else:
+                ns = node_shape[lbl] if lbl in node_shape else 'o'
+            shape_groups[ns].append(i)
         labels[node] = lbl
+        nodes.append(node)
 
     if SETTINGS['auto_show']:
         mpl.figure()
 
     layout = networkx.spring_layout(G, scale=scale, iterations=iterations)
-    networkx.draw(G, pos=layout, withlabels=False, node_size=sizes, node_color=colors)
+    #networkx.draw(G, pos=layout, withlabels=False, node_size=sizes, node_color=colors)
+    networkx.draw_networkx_edges(G, pos=layout)
+    
+    if np.isscalar(node_shape):
+        networkx.draw_networkx_nodes(G, pos=layout, withlabels=False, node_size=sizes, 
+                                        node_shape=node_shape, node_color=colors)
+    else:
+        for shape in shape_groups:
+            nodelist = [nodes[i] for i in shape_groups[shape]]
+            nodesizes = [sizes[i] for i in shape_groups[shape]]
+            nodecolors = [colors[i] for i in shape_groups[shape]]
+            if not nodelist: continue
+            networkx.draw_networkx_nodes(G, pos=layout, withlabels=False, node_size=nodesizes, 
+                                        node_shape=shape, node_color=nodecolors, 
+                                        nodelist=nodelist)
 
     if withlabels:
         fontdict = kwargs.pop('fontdict', None)

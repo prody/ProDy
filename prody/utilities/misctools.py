@@ -6,7 +6,7 @@ from collections import Counter
 
 __all__ = ['Everything', 'rangeString', 'alnum', 'importLA', 'dictElement',
            'intorfloat', 'startswith', 'showFigure', 'countBytes', 'sqrtm',
-           'saxsWater', 'count', 'addBreaks']
+           'saxsWater', 'count', 'addBreaks', 'copy']
 
 
 class Everything(object):
@@ -89,7 +89,7 @@ def importLA():
 
 
 def dictElement(element, prefix=None):
-    """Returnss a dictionary built from the children of *element*, which must be
+    """Returns a dictionary built from the children of *element*, which must be
     a :class:`xml.etree.ElementTree.Element` instance.  Keys of the dictionary
     are *tag* of children without the *prefix*, or namespace.  Values depend on
     the content of the child.  If a child does not have any children, its text
@@ -194,6 +194,11 @@ def addBreaks(x, y, axis=0):
         y = insert(y, b+1, nan, axis=axis)
 
     return x, y
+
+def copy(x):
+    if x is None:
+        return None
+    return x.copy()
 
 def saxsWater():
     return [[-48.347,-49.439,-50.456],

@@ -6,6 +6,7 @@ from numpy import unique, linalg, diag, sqrt, dot
 import scipy.cluster.hierarchy as sch
 from scipy import spatial
 from .misctools import addBreaks
+from Bio import Phylo
 
 __all__ = ['calcTree', 'clusterMatrix', 'showData', 'showMatrix', 'reorderMatrix', 'findSubgroups']
 
@@ -133,6 +134,7 @@ def showData(*args, **kwargs):
     ax = gca()
     lines = ax.plot(*args, **kwargs)
 
+    polys = []
     if dy is not None:
         dy = np.array(dy)
         if dy.ndim == 1:
@@ -160,13 +162,19 @@ def showData(*args, **kwargs):
             else:
                 x_new, y_new = x, y
 
-            ax.fill_between(x_new, y_new-_dy, y_new+_dy,
-                    alpha=alpha, facecolor=color,
-                    linewidth=1, antialiased=True)
+            poly = ax.fill_between(x_new, y_new-_dy, y_new+_dy,
+                                   alpha=alpha, facecolor=color,
+                                   linewidth=1, antialiased=True)
+            polys.append(poly)
 
+    ax.margins(x=0)
     if ticklabels is not None:
         ax.get_xaxis().set_major_formatter(ticker.IndexFormatter(ticklabels))
-    return ax
+    
+    ax.xaxis.set_major_locator(ticker.AutoLocator())
+    ax.xaxis.set_minor_locator(ticker.AutoMinorLocator())
+
+    return lines, polys
 
 def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
     """Show a matrix using :meth:`~matplotlib.axes.Axes.imshow`. Curves on x- and y-axis can be added.
@@ -180,11 +188,11 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
                      to *100-p*-th percentile.
     :type percentile: float"""
 
-    import matplotlib.pyplot as mpl
-    from matplotlib import cm
+    import matplotlib.pyplot as plt
+    from matplotlib import cm, ticker
     from matplotlib.gridspec import GridSpec, GridSpecFromSubplotSpec
     from matplotlib.collections import LineCollection
-    from matplotlib.pyplot import figure, imshow
+    from matplotlib.pyplot import imshow, gca, sca, sci
 
     p = kwargs.pop('percentile', None)
     if p is not None:
@@ -193,10 +201,10 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
     else:
         vmin = vmax = None
     
-    W = 8
-    H = 8
+    W = H = 8
 
-    curve_axes = None
+    ticklabels = kwargs.pop('ticklabels', None)
+    allticks = kwargs.pop('allticks', False) # this argument is temporary and will be replaced by better implementation
 
     if x_array is not None and y_array is not None:
         nrow = 2; ncol = 2
@@ -209,6 +217,12 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
         i = 1; j = 0
         width_ratios = [W]
         height_ratios = [1, H]
+        aspect = 'auto'
+    elif isinstance(y_array, Phylo.BaseTree.Tree):
+        nrow = 2; ncol = 2
+        i = 1; j = 1
+        width_ratios = [W, W]
+        height_ratios = [W, H]
         aspect = 'auto'
     elif x_array is None and y_array is not None:
         nrow = 1; ncol = 2
@@ -227,64 +241,110 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
     upper_index = (i-1,j)
     left_index = (i,j-1)
 
-    outer = GridSpec(1, 2, width_ratios = [15, 1], hspace=0.) 
-    gs = GridSpecFromSubplotSpec(nrow, ncol, subplot_spec = outer[0], width_ratios=width_ratios,
-                    height_ratios=height_ratios, hspace=0., wspace=0.)
+    complex_layout = nrow > 1 or ncol > 1
+    cb = kwargs.pop('colorbar', True)
 
-    gs_bar = GridSpecFromSubplotSpec(nrow, 1, subplot_spec = outer[1], height_ratios=height_ratios, hspace=0., wspace=0.)
+    if complex_layout:
+        if cb:
+            outer = GridSpec(1, 2, width_ratios = [15, 1], hspace=0.) 
+            gs = GridSpecFromSubplotSpec(nrow, ncol, subplot_spec = outer[0], width_ratios=width_ratios,
+                            height_ratios=height_ratios, hspace=0., wspace=0.)
 
+            gs_bar = GridSpecFromSubplotSpec(nrow, 1, subplot_spec = outer[1], height_ratios=height_ratios, hspace=0., wspace=0.)
+        else:
+            gs = GridSpec(nrow, ncol, width_ratios=width_ratios, 
+                        height_ratios=height_ratios, hspace=0., wspace=0.)
+
+    lines = []
     if nrow > 1:
-        ax1 = mpl.subplot(gs[upper_index])
-        ax1.set_xticklabels([])
-        
-        y = x_array
-        x = np.arange(len(y))
-        points = np.array([x, y]).T.reshape(-1, 1, 2)
-        segments = np.concatenate([points[:-1], points[1:]], axis=1)
-        cmap = cm.jet(y)
-        lc = LineCollection(segments, array=y, linewidths=1, cmap='jet')
-        ax1.add_collection(lc)
+        ax1 = plt.subplot(gs[upper_index])
 
-        ax1.set_xlim(x.min(), x.max())
-        ax1.set_ylim(y.min(), y.max())
+        if isinstance(y_array, Phylo.BaseTree.Tree):
+            pass
+
+        else:
+            ax1.set_xticklabels([])
+            
+            y = x_array
+            x = np.arange(len(y))
+            points = np.array([x, y]).T.reshape(-1, 1, 2)
+            segments = np.concatenate([points[:-1], points[1:]], axis=1)
+            cmap = cm.jet(y)
+            lcy = LineCollection(segments, array=x, linewidths=1, cmap='jet')
+            lines.append(lcy)
+            ax1.add_collection(lcy)
+
+            ax1.set_xlim(x.min(), x.max())
+            ax1.set_ylim(y.min(), y.max())
         ax1.axis('off')
 
     if ncol > 1:
-        ax2 = mpl.subplot(gs[left_index])
-        ax2.set_xticklabels([])
+        ax2 = plt.subplot(gs[left_index])
         
-        y = y_array
-        x = np.arange(len(y))
-        points = np.array([y, x]).T.reshape(-1, 1, 2)
-        segments = np.concatenate([points[:-1], points[1:]], axis=1)
-        cmap = cm.jet(y)
-        lc = LineCollection(segments, array=y, linewidths=1, cmap='jet')
-        ax2.add_collection(lc)
+        if isinstance(y_array, Phylo.BaseTree.Tree):
+            Phylo.draw(y_array, do_show=False, axes=ax2, **kwargs)
+        else:
 
-        ax2.set_xlim(y.min(), y.max())
-        ax2.set_ylim(x.min(), x.max())
+            ax2.set_xticklabels([])
+            
+            y = y_array
+            x = np.arange(len(y))
+            points = np.array([y, x]).T.reshape(-1, 1, 2)
+            segments = np.concatenate([points[:-1], points[1:]], axis=1)
+            cmap = cm.jet(y)
+            lcx = LineCollection(segments, array=y, linewidths=1, cmap='jet')
+            lines.append(lcx)
+            ax2.add_collection(lcx)
+            ax2.set_xlim(y.min(), y.max())
+            ax2.set_ylim(x.min(), x.max())
+            ax2.invert_xaxis()
+
         ax2.axis('off')
-        ax2.invert_xaxis()
 
-    ax3 = mpl.subplot(gs[main_index])
-    cmap = kwargs.pop('cmap', 'jet')
-    im = imshow(matrix, aspect=aspect, vmin=vmin, vmax=vmax, **kwargs)
+    if complex_layout:
+        ax3 = plt.subplot(gs[main_index])
+    else:
+        ax3 = gca()
+    
+    if not 'origin' in kwargs:
+        kwargs['origin'] = 'lower'
+    if not 'cmap' in kwargs:
+        kwargs['cmap'] = 'jet'
+    im = ax3.imshow(matrix, aspect=aspect, vmin=vmin, vmax=vmax, **kwargs)
     #ax3.set_xlim([-0.5, matrix.shape[0]+0.5])
     #ax3.set_ylim([-0.5, matrix.shape[1]+0.5])
+
+    if ticklabels is not None:
+        ax3.xaxis.set_major_formatter(ticker.IndexFormatter(ticklabels))
+        if ncol == 1:
+            ax3.yaxis.set_major_formatter(ticker.IndexFormatter(ticklabels))
+
+    if allticks:
+        ax3.xaxis.set_major_locator(ticker.IndexLocator(offset=0.5, base=1.))
+        ax3.yaxis.set_major_locator(ticker.IndexLocator(offset=0.5, base=1.))
+    else:
+        ax3.xaxis.set_major_locator(ticker.AutoLocator())
+        ax3.xaxis.set_minor_locator(ticker.AutoMinorLocator())
+
+        ax3.yaxis.set_major_locator(ticker.AutoLocator())
+        ax3.yaxis.set_minor_locator(ticker.AutoMinorLocator())
+
     if ncol > 1:
-        ax3.set_yticklabels([])
-
-    cb = kwargs.pop('colorbar', True)
+        ax3.yaxis.set_major_formatter(ticker.NullFormatter())
+        
+    colorbar = None
     if cb:
-        if nrow > 1:
-            ax4 = mpl.subplot(gs_bar[-1])
-            mpl.colorbar(cax=ax4)
+        if complex_layout:
+            ax4 = plt.subplot(gs_bar[-1])
+            colorbar = plt.colorbar(mappable=im, cax=ax4)
         else:
-            mpl.colorbar()
+            colorbar = plt.colorbar(mappable=im)
 
-    return im
+    sca(ax3)
+    sci(im)
+    return im, lines, colorbar
 
-def reorderMatrix(names, matrix, tree):
+def reorderMatrix(matrix, tree, names=None):
     """
     Reorder a matrix based on a tree and return the reordered matrix 
     and indices for reordering other things.
@@ -306,13 +366,7 @@ def reorderMatrix(names, matrix, tree):
             'Reinstall ProDy or install Biopython '
             'to solve the problem.')
 
-    if type(names) is not list:
-        raise TypeError('names should be a list.')
-
-    if type(names[0]) is not str:
-        raise TypeError('names should be a list of strings.')    
-
-    if type(matrix) is not np.ndarray:
+    if not isinstance(matrix, np.ndarray):
         raise TypeError('matrix should be a numpy array.')
 
     if matrix.ndim != 2:
@@ -321,7 +375,16 @@ def reorderMatrix(names, matrix, tree):
     if np.shape(matrix)[0] != np.shape(matrix)[1]:
         raise ValueError('matrix should be a square matrix')
 
-    if type(tree) is not Phylo.BaseTree.Tree:
+    if names is None:
+        names = [str(i) for i in range(len(matrix))]
+
+    if not isinstance(names, list):
+        raise TypeError('names should be a list.')
+
+    if not isinstance(names[0], str):
+        raise TypeError('names should be a list of strings.')    
+
+    if not isinstance(tree, Phylo.BaseTree.Tree):
         raise TypeError('tree should be a BioPython Tree')
 
     if len(names) != len(matrix):
