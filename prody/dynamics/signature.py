@@ -415,6 +415,11 @@ class Signature(object):
 def calcEnsembleENMs(ensemble, model='gnm', trim='trim', n_modes=20):
     """Description"""
 
+    if isinstance(ensemble, Conformation):
+        conformation = ensemble
+        ensemble = conformation.getEnsemble()
+        index = conformation.getIndex()
+        ensemble = ensemble[index:index+1]
     if model is GNM:
         model_type = 'GNM'
     elif model is ANM:
@@ -466,10 +471,8 @@ def calcEnsembleENMs(ensemble, model='gnm', trim='trim', n_modes=20):
     return modeens
 
 def _getEnsembleENMs(ensemble, **kwargs):
-    if isinstance(ensemble, Ensemble):
+    if isinstance(ensemble, (Ensemble, Conformation)):
         enms = calcEnsembleENMs(ensemble, **kwargs)
-    elif isinstance(ensemble, Conformation):
-        enms = calcEnsembleENMs([ensemble], **kwargs)
     elif isinstance(ensemble, ModeEnsemble):
         enms = ensemble
     else:
