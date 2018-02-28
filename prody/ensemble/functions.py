@@ -333,8 +333,9 @@ def alignPDBEnsemble(ensemble, suffix='_aligned', outdir='.', gzip=False):
     else:
         return output
 
-def buildPDBEnsemble(refpdb, PDBs, title='Unknown', labels=None, seqid=94, coverage=85, mapping_func=mapOntoChain, \
-                     occupancy=None, unmapped=None, **kwargs):
+
+def buildPDBEnsemble(refpdb, PDBs, title='Unknown', labels=None, seqid=94, coverage=85, 
+                     mapping_func=mapOntoChain, occupancy=None, unmapped=None, **kwargs):
     """Builds a PDB ensemble from a given reference structure and a list of PDB structures. 
     Note that the reference structure should be included in the list as well.
 
@@ -425,8 +426,13 @@ def buildPDBEnsemble(refpdb, PDBs, title='Unknown', labels=None, seqid=94, cover
             mappings = mapping_func(pdb, chain,
                                     seqid=seqid,
                                     coverage=coverage,
+<<<<<<< HEAD
                                     alignment=alignment_list[i],
                                     alignments=alignments_list[i])
+=======
+                                    index=i,
+                                    **kwargs)
+>>>>>>> cf2acc36ebca45a19e199210e9b8b35353f2f792
             if len(mappings) > 0:
                 atommaps.append(mappings[0][0])
             else:

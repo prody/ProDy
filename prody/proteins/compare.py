@@ -886,7 +886,7 @@ def mapOntoChain(atoms, chain, **kwargs):
                                  simple_target.getTitle()))
             if alignments is not None:
                 if chid in alignments:
-                    curr_alignment = alignments[chid]
+                    curr_alignment = alignments[chid]git checkout -b prody-master master
                 else:
                     curr_alignment = alignment
             result = getAlignedMapping(simple_target, simple_chain, alignment=curr_alignment)
