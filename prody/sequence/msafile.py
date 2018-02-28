@@ -643,13 +643,13 @@ def writeClustal(filename, msa):
 
     for i, sequence in enumerate(msa):
         sequence = str(msa[i])
-        for j in range(len(sequence)/60):
+        for j in range(len(sequence)/50):
             msafile.write(msa.getLabel(i) + ' '*(20-len(msa.getLabel(i))))
-            msafile.write(sequence[j*60:(j+1)*60] + '\t' + str((j+1)*60))
+            msafile.write(sequence[j*60:(j+1)*50] + '\t' + str((j+1)*50))
             msafile.write('\n')
 
         msafile.write(msa.getLabel(i) + ' '*(20-len(msa.getLabel(i))))
-        msafile.write(sequence[(j+1)*60:] + '\t' + str((j+1)*60))
+        msafile.write(sequence[(j+1)*50:] + '\t' + str((j+1)*50))
         msafile.write('\n')
 
     msafile.close()
