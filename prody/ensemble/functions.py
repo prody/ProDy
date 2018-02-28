@@ -333,7 +333,8 @@ def alignPDBEnsemble(ensemble, suffix='_aligned', outdir='.', gzip=False):
     else:
         return output
 
-def buildPDBEnsemble(refpdb, PDBs, title='Unknown', labels=None, seqid=94, coverage=85, mapping_func=mapOntoChain, occupancy=None, unmapped=None):
+def buildPDBEnsemble(refpdb, PDBs, title='Unknown', labels=None, seqid=94, coverage=85, mapping_func=mapOntoChain, \
+                     occupancy=None, unmapped=None, **kwargs):
     """Builds a PDB ensemble from a given reference structure and a list of PDB structures. 
     Note that the reference structure should be included in the list as well.
 
@@ -362,6 +363,14 @@ def buildPDBEnsemble(refpdb, PDBs, title='Unknown', labels=None, seqid=94, cover
     :arg unmapped: A list of PDB IDs that cannot be included in the ensemble. This is an 
     output argument. 
     :type unmapped: list
+
+    :arg alignment_list: list of alignment duplets for mapping function
+        default is list of None
+    :type alignment_list: list
+
+    :arg alignments_list: list of alignments for mapping function
+        default is list of None
+    :type alignments_list: list
     """
 
     if not isinstance(refpdb, (Chain, Segment, Selection, AtomGroup)):
@@ -369,11 +378,25 @@ def buildPDBEnsemble(refpdb, PDBs, title='Unknown', labels=None, seqid=94, cover
     
     if labels is not None:
         if len(labels) != len(PDBs):
-            raise TypeError('Labels and PDBs must have the same lengths.')
+            raise TypeError('labels and PDBs must have the same lengths.')
+
+    alignment_list = kwargs.get('alignment_list', None)
+    if alignment_list is None:
+        alignment_list = [None]* len(PDBs)
+    else:
+        if len(alignment_list) != len(PDBs):
+            raise TypeError('alignment_list and PDBs must have the same lengths.')
+
+    alignments_list = kwargs.get('alignments_list', None)
+    if alignments_list is None:
+        alignments_list = [None]* len(PDBs)
+    else:
+        if len(alignments_list) != len(PDBs):
+            raise TypeError('alignments_list and PDBs must have the same lengths.')
 
     # obtain the hierarhical view of the reference PDB
     refhv = refpdb.getHierView()
-    refchains = list(refhv)
+    refchains = refhv.iterChains()
 
     # obtain the atommap of all the chains combined.
     atoms = refchains[0]
@@ -387,7 +410,7 @@ def buildPDBEnsemble(refpdb, PDBs, title='Unknown', labels=None, seqid=94, cover
     
     # build the ensemble
     if unmapped is None: unmapped = []
-    for i,pdb in enumerate(PDBs):
+    for i, pdb in enumerate(PDBs):
         if not isinstance(pdb, (Chain, Selection, AtomGroup)):
             raise TypeError('PDBs must be a list of Chain, Selection, or AtomGroup.')
         
@@ -401,7 +424,9 @@ def buildPDBEnsemble(refpdb, PDBs, title='Unknown', labels=None, seqid=94, cover
         for chain in refchains:
             mappings = mapping_func(pdb, chain,
                                     seqid=seqid,
-                                    coverage=coverage)
+                                    coverage=coverage,
+                                    alignment=alignment_list[i],
+                                    alignments=alignments_list[i])
             if len(mappings) > 0:
                 atommaps.append(mappings[0][0])
             else:
