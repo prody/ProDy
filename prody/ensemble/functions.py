@@ -375,7 +375,7 @@ def buildPDBEnsemble(refpdb, PDBs, title='Unknown', labels=None, seqid=94, cover
 
     # obtain the hierarhical view of the reference PDB
     refhv = refpdb.getHierView()
-    refchains = refhv.iterChains()
+    refchains = list(refhv)
 
     # obtain the atommap of all the chains combined.
     atoms = refchains[0]

@@ -17,7 +17,8 @@ if PY2K:
     range = xrange
 
 __all__ = ['matchChains', 'matchAlign', 'mapOntoChain',
-           'mapChainByChain', 'getMatchScore', 'setMatchScore',
+           'mapChainByChain', 'mapOntoChainByAlignment', 
+           'getMatchScore', 'setMatchScore',
            'getMismatchScore', 'setMismatchScore',
            'getGapPenalty', 'setGapPenalty',
            'getGapExtPenalty', 'setGapExtPenalty',
