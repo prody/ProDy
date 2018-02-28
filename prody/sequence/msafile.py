@@ -664,6 +664,10 @@ def writePIR(filename, msa, **kwargs):
     :arg msa: a multiple sequence alignment in :class:`MSA` format
     :type msa: :class:`MSA` instance
 
+    :arg chain_sep: chain separation character or list of them
+        default is '/'
+    :type chain_sep: str, list
+
     :arg types: a list of strings for field 1, PIR types (Sequence or StructureX)
         default is all Sequence
     :type types: list
@@ -710,87 +714,116 @@ def writePIR(filename, msa, **kwargs):
     """
     msafile = open(filename, 'w')
 
-    types = kwargs.get('types', None)
-    if types is None: 
-        types = ['Sequence'] * msa.numSequences()
+    chain_sep = kwargs.get('types', '/')
+    if isinstance(chain_sep, str): 
+        chain_sep = [chain_sep] * msa.numSequences()
+    elif isinstance(chain_sep, list) and isinstance(chain_sep[0], str):
+        if len(chain_sep) != msa.numSequences():
+            raise ValueError('There should be an entry in chain_sep list for each sequence in msa')
     else:
+        raise TypeError('chain_sep should be a string or list of strings')
+
+    types = kwargs.get('types', 'Sequence')
+    if types is None: 
+        types = [types] * msa.numSequences()
+    elif isinstance(types, list) and isinstance(types[0], str):
         if len(types) != msa.numSequences():
             raise ValueError('There should be an entry in types list for each sequence in msa')
+    else:
+        raise TypeError('types should be a string or list of strings')
 
     labels = kwargs.get('labels', None)
     if labels is None: 
         labels = []
         for sequence in msa:
             labels.append(sequence.getLabel())
-    else:
-        if len(types) != msa.numSequences():
+    elif isinstance(labels, list) and isinstance(labels[0], str):
+        if len(labels) != msa.numSequences():
             raise ValueError('There should be an entry in labels list for each sequence in msa')
-
-    first_resnums = kwargs.get('first_resnums', None)
-    if first_resnums is None: 
-        first_resnums = ['     '] * msa.numSequences()
     else:
+        raise TypeError('labels should be a string or list of strings')
+
+    first_resnums = kwargs.get('first_resnums', '     ')
+    if isinstance(first_resnums, str) and len(first_resnums) == 5: 
+        first_resnums = [first_resnums] * msa.numSequences()
+    elif isinstance(first_resnums, list) and isinstance(first_resnums, str):
         if len(first_resnums) != msa.numSequences():
             raise ValueError('There should be an entry in first_resnums list for each sequence in msa')
-
-    first_chains = kwargs.get('first_chains', None)
-    if first_chains is None: 
-        first_chains = [' '] * msa.numSequences()
     else:
+        raise TypeError('first_resnums should be a string of length 5 or list of them')
+
+    first_chains = kwargs.get('first_chains', ' ')
+    if isinstance(first_chains, str) and len(first_chains) == 1: 
+        first_chains = [first_chains] * msa.numSequences()
+    elif isinstance(first_chains, list) and isinstance(first_chains, str):
         if len(first_chains) != msa.numSequences():
             raise ValueError('There should be an entry in first_chains list for each sequence in msa')
-
-    last_resnums = kwargs.get('last_resnums', None)
-    if last_resnums is None: 
-        last_resnums = ['     '] * msa.numSequences()
     else:
+        raise TypeError('first_chains should be a string of length 1 or list of them')
+
+    last_resnums = kwargs.get('last_resnums', '     ')
+    if isinstance(last_resnums, str) and len(last_resnums) == 5: 
+        last_resnums = [last_resnums] * msa.numSequences()
+    elif isinstance(last_resnums, list) and isinstance(last_resnums, str):
         if len(last_resnums) != msa.numSequences():
             raise ValueError('There should be an entry in last_resnums list for each sequence in msa')
-
-    last_chains = kwargs.get('last_chains', None)
-    if last_chains is None: 
-        last_chains = [' '] * msa.numSequences()
     else:
+        raise TypeError('last_resnums should be a string of length 5 or list of them')
+
+    last_chains = kwargs.get('last_chains', ' ')
+    if isinstance(last_chains, str) and len(last_chains) == 1: 
+        last_chains = [last_chains] * msa.numSequences()
+    elif isinstance(last_chains, list) and isinstance(last_chains, str):
         if len(last_chains) != msa.numSequences():
             raise ValueError('There should be an entry in last_chains list for each sequence in msa')
-
-    protein_names = kwargs.get('protein_names', None)
-    if protein_names is None: 
-        protein_names = [''] * msa.numSequences()
     else:
+        raise TypeError('last_chains should be a string of length 1 or list of them')
+
+    protein_names = kwargs.get('protein_names', '')
+    if isinstance(protein_names, str): 
+        protein_names = [protein_names] * msa.numSequences()
+    elif isinstance(protein_names, list) and isinstance(protein_names, str):
         if len(protein_names) != msa.numSequences():
             raise ValueError('There should be an entry in protein_names list for each sequence in msa')
-
-    protein_sources = kwargs.get('protein_sources', None)
-    if protein_sources is None: 
-        protein_sources = [''] * msa.numSequences()
     else:
+        raise TypeError('protein_names should be a string or list of strings')
+
+    protein_sources = kwargs.get('protein_sources', '')
+    if isinstance(protein_sources, str): 
+        protein_sources = [protein_sources] * msa.numSequences()
+    elif isinstance(protein_sources, list) and isinstance(protein_sources, str):
         if len(protein_sources) != msa.numSequences():
             raise ValueError('There should be an entry in protein_sources list for each sequence in msa')
-
-    resolutions = kwargs.get('resolutions', None)
-    if resolutions is None: 
-        resolutions = [''] * msa.numSequences()
     else:
+        raise TypeError('protein_sources should be a string or list of strings')
+
+    resolutions = kwargs.get('resolutions', '')
+    if isinstance(resolutions, str): 
+        resolutions = [resolutions] * msa.numSequences()
+    elif isinstance(resolutions, list) and isinstance(resolutions, str):
         if len(resolutions) != msa.numSequences():
             raise ValueError('There should be an entry in resolutions list for each sequence in msa')
-
-    r_factors = kwargs.get('r_factors', None)
-    if r_factors is None: 
-        r_factors = [''] * msa.numSequences()
     else:
+        raise TypeError('resolutions should be a string or list of strings')
+
+    r_factors = kwargs.get('r_factors', '')
+    if isinstance(r_factors, str): 
+        r_factors = [r_factors] * msa.numSequences()
+    elif isinstance(r_factors, list) and isinstance(r_factors, str):
         if len(r_factors) != msa.numSequences():
             raise ValueError('There should be an entry in r_factors list for each sequence in msa')
+    else:
+        raise TypeError('r_factors should be a string or list of strings')
 
     for i, sequence in enumerate(msa):
-        sequence = str(msa[i])
+        sequence = str(msa[i]).replace(chain_sep,'/')
         msafile.write('>P1;' + labels[i] + '\n')
         msafile.write(types[i] + ':' + labels[i])
         msafile.write(first_resnums[i] + ':' + first_chains[i] + ':')
         msafile.write(last_resnums[i] + ':' + last_chains[i] + ':')
         msafile.write(protein_names[i] + ':' + protein_sources[i] + ':')
         msafile.write(resolutions[i] + ':' + r_factors[i] + ':')
-        msafile.write('\n')
+        msafile.write('*\n')
 
         for j in range(len(sequence)/60):
             msafile.write(sequence[j*60:(j+1)*60] + '\n')
