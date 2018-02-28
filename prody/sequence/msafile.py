@@ -668,6 +668,10 @@ def writePIR(filename, msa, **kwargs):
         default is all Sequence
     :type types: list
 
+    :arg labels: a list of strings for field 2, sequence labels
+        default is to take them from msa
+    :type labels: list
+
     :arg first_resnums: contents for field 3, residue number for the first residue.
         This should be a list of strings each having length 5, 
         default is all '     '
@@ -712,6 +716,15 @@ def writePIR(filename, msa, **kwargs):
     else:
         if len(types) != msa.numSequences():
             raise ValueError('There should be an entry in types list for each sequence in msa')
+
+    labels = kwargs.get('labels', None)
+    if labels is None: 
+        labels = []
+        for sequence in msa:
+            labels.append(sequence.getLabel())
+    else:
+        if len(types) != msa.numSequences():
+            raise ValueError('There should be an entry in labels list for each sequence in msa')
 
     first_resnums = kwargs.get('first_resnums', None)
     if first_resnums is None: 
@@ -771,8 +784,8 @@ def writePIR(filename, msa, **kwargs):
 
     for i, sequence in enumerate(msa):
         sequence = str(msa[i])
-        msafile.write('>P1;' + msa.getLabel(i) + '\n')
-        msafile.write(types[i] + ':' + msa.getLabel(i))
+        msafile.write('>P1;' + labels[i] + '\n')
+        msafile.write(types[i] + ':' + labels[i])
         msafile.write(first_resnums[i] + ':' + first_chains[i] + ':')
         msafile.write(last_resnums[i] + ':' + last_chains[i] + ':')
         msafile.write(protein_names[i] + ':' + protein_sources[i] + ':')
