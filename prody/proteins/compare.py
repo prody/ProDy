@@ -18,7 +18,7 @@ if PY2K:
 
 __all__ = ['matchChains', 'matchAlign', 'mapOntoChain',
            'mapChainByChain', 'mapOntoChainByAlignment', 
--          'getMatchScore', 'setMatchScore',
+           'getMatchScore', 'setMatchScore',
            'getMismatchScore', 'setMismatchScore',
            'getGapPenalty', 'setGapPenalty',
            'getGapExtPenalty', 'setGapExtPenalty',
