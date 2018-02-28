@@ -364,6 +364,14 @@ def buildPDBEnsemble(refpdb, PDBs, title='Unknown', labels=None, seqid=94, cover
     :arg unmapped: A list of PDB IDs that cannot be included in the ensemble. This is an 
     output argument. 
     :type unmapped: list
+
+    :arg alignment_list: list of alignment duplets for mapping function
+        default is list of None
+    :type alignment_list: list
+
+    :arg alignments_list: list of alignments for mapping function
+        default is list of None
+    :type alignments_list: list
     """
 
     if not isinstance(refpdb, (Chain, Segment, Selection, AtomGroup)):
@@ -371,7 +379,7 @@ def buildPDBEnsemble(refpdb, PDBs, title='Unknown', labels=None, seqid=94, cover
     
     if labels is not None:
         if len(labels) != len(PDBs):
-            raise TypeError('Labels and PDBs must have the same lengths.')
+            raise TypeError('labels and PDBs must have the same lengths.')
 
     # obtain the hierarhical view of the reference PDB
     refhv = refpdb.getHierView()
