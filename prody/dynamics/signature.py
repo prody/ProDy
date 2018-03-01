@@ -92,6 +92,7 @@ class ModeEnsemble(object):
 
         ens = ModeEnsemble(title=self.getTitle())
         ens.addModeSet(modesets, label=labels)
+        ens.setAtoms(self.getAtoms())
         return ens
 
     def __getitem__(self, index):
