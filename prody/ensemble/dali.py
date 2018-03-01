@@ -253,20 +253,32 @@ class daliRecord(object):
         ensemble = PDBEnsemble('3h5v-A')
         ensemble.setAtoms(ref_chain)
         ensemble.setCoords(ref_chain)
+        failPDBList = []
         for pdb_chain in pdbList:
             # print(pdb_chain)
             temp_dict = daliInfo[pdb_chain]
             sel_pdb = parsePDB(pdb_chain[0:4]).select('chain '+pdb_chain[5:6]).copy()
             sel_pdb_ca = sel_pdb.select("protein and name CA").copy()
-            map_ref = []
-            map_sel = []
-            for i in range(len(temp_dict['map_ref'])):
-                map_ref.append(temp_dict['map_ref'][i])
-                map_sel.append(temp_dict['map_sel'][i])
+            map_ref = temp_dict['map_ref']
+            map_sel = temp_dict['map_sel']
+            # map_ref = []
+            # map_sel = []
+            # for i in range(len(temp_dict['map_ref'])):
+                # map_ref.append(temp_dict['map_ref'][i])
+                # map_sel.append(temp_dict['map_sel'][i])
             dum_sel = list(ref_indices_set - set(map_ref))
             atommap = AtomMap(sel_pdb_ca, indices=map_sel, mapping=map_ref, dummies=dum_sel)
             # ensemble.addCoordset(atommap, weights=atommap.getFlags('mapped'))
-            ensemble.addCoordset(atommap, weights=atommap.getFlags('mapped'), degeneracy=True)
-        ensemble.iterpose()
-        RMSDs = ensemble.getRMSDs()
+            try:
+                ensemble.addCoordset(atommap, weights=atommap.getFlags('mapped'), degeneracy=True)
+            except:
+                failPDBList.append(pdb_chain)
+        self._failPDBList = failPDBList
+        if failPDBList != []:
+            print('failed to add '+str(len(failPDBList))+' PDB chain to ensemble: '+' '.join(failPDBList))
+        try:
+            ensemble.iterpose()
+            RMSDs = ensemble.getRMSDs()
+        except:
+            LOGGER.warn('failed to iterpose the ensemble.')
         return ensemble
