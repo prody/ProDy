@@ -18,3 +18,7 @@ __all__ = []
 from . import pfam
 from .pfam import *
 __all__.extend(pfam.__all__)
+
+from . import uniprot
+from .uniprot import *
+__all__.extend(uniprot.__all__)
