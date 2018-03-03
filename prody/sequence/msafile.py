@@ -678,17 +678,17 @@ def writePIR(filename, msa, **kwargs):
 
     :arg first_resnums: contents for field 3, residue number for the first residue.
         This should be a list of strings each having length 5, 
-        default is all '     '
+        default is all 'FIRST'
     :type first_resnums: list
 
     :arg first_chains: contents for field 4, chain ID for the first residue
         This should be a list of strings each having length 1, 
-        default is all ' '
+        default is all '@'
     :type first_chains: list
 
     :arg last_resnums: contents for field 5, residue number for the last residue.
         This should be a list of strings each having length 5, 
-        default is all '     '
+        default is all 'LAST '
     :type last_resnums: list
 
     :arg last_chains: contents for field 6, chain ID for the last residue
@@ -743,7 +743,7 @@ def writePIR(filename, msa, **kwargs):
     else:
         raise TypeError('labels should be a string or list of strings')
 
-    first_resnums = kwargs.get('first_resnums', '     ')
+    first_resnums = kwargs.get('first_resnums', 'FIRST')
     if isinstance(first_resnums, str) and len(first_resnums) == 5: 
         first_resnums = [first_resnums] * msa.numSequences()
     elif isinstance(first_resnums, list) and isinstance(first_resnums, str):
@@ -752,7 +752,7 @@ def writePIR(filename, msa, **kwargs):
     else:
         raise TypeError('first_resnums should be a string of length 5 or list of them')
 
-    first_chains = kwargs.get('first_chains', ' ')
+    first_chains = kwargs.get('first_chains', '@')
     if isinstance(first_chains, str) and len(first_chains) == 1: 
         first_chains = [first_chains] * msa.numSequences()
     elif isinstance(first_chains, list) and isinstance(first_chains, str):
@@ -761,7 +761,7 @@ def writePIR(filename, msa, **kwargs):
     else:
         raise TypeError('first_chains should be a string of length 1 or list of them')
 
-    last_resnums = kwargs.get('last_resnums', '     ')
+    last_resnums = kwargs.get('last_resnums', 'LAST ')
     if isinstance(last_resnums, str) and len(last_resnums) == 5: 
         last_resnums = [last_resnums] * msa.numSequences()
     elif isinstance(last_resnums, list) and isinstance(last_resnums, str):
@@ -816,18 +816,18 @@ def writePIR(filename, msa, **kwargs):
         raise TypeError('r_factors should be a string or list of strings')
 
     for i, sequence in enumerate(msa):
-        sequence = str(msa[i]).replace(chain_sep,'/')
+        sequence = str(sequence).replace(chain_sep[i],'/')
         msafile.write('>P1;' + labels[i] + '\n')
-        msafile.write(types[i] + ':' + labels[i])
+        msafile.write(types[i] + ':' + labels[i] + ':')
         msafile.write(first_resnums[i] + ':' + first_chains[i] + ':')
         msafile.write(last_resnums[i] + ':' + last_chains[i] + ':')
         msafile.write(protein_names[i] + ':' + protein_sources[i] + ':')
-        msafile.write(resolutions[i] + ':' + r_factors[i] + ':')
-        msafile.write('*\n')
+        msafile.write(resolutions[i] + ':' + r_factors[i])
+        msafile.write('\n')
 
         for j in range(len(sequence)/60):
             msafile.write(sequence[j*60:(j+1)*60] + '\n')
-        msafile.write(sequence[(j+1)*60:] + '\n\n')
+        msafile.write(sequence[(j+1)*60:] + '*\n\n')
 
     msafile.close()
     return
