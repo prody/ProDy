@@ -350,24 +350,20 @@ def getHeaderDict(stream, *keys):
 
 def _getBiomoltrans(lines):
 
-    applyToChains = (' ')
+    
     biomolecule = defaultdict(list)
-    currentBiomolecule = '1'
     for i, line in lines['REMARK 350']:
-
-        if line[13:18] == 'BIOMT':
+        if line[11:23] == 'BIOMOLECULE:':
+            currentBiomolecule = line.split()[-1]
+            applyToChains = [' ']
+        elif line[11:41] == 'APPLY THE FOLLOWING TO CHAINS:' or line[30:41] == 'AND CHAINS:':
+            applyToChains.extend(line[41:].replace(' ', '')
+                                 .strip().strip(',').split(','))
+        elif line[13:18] == 'BIOMT':
             biomt = biomolecule[currentBiomolecule]
             if len(biomt) == 0:
                 biomt.append(applyToChains)
             biomt.append(line[23:])
-        elif line[11:41] == 'APPLY THE FOLLOWING TO CHAINS:':
-            applyToChains = line[41:].replace(' ',
-                                              '').strip().strip(',').split(',')
-        elif line[30:41] == 'AND CHAINS:':
-            applyToChains.extend(line[41:].replace(' ', '')
-                                 .strip().strip(',').split(','))
-        elif line[11:23] == 'BIOMOLECULE:':
-            currentBiomolecule = line.split()[-1]
     return dict(biomolecule)
 
 

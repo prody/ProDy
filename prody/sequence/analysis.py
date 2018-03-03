@@ -19,7 +19,7 @@ __all__ = ['calcShannonEntropy', 'buildMutinfoMatrix', 'calcMSAOccupancy',
            'applyMutinfoCorr', 'applyMutinfoNorm', 'calcRankorder', 'filterRankedPairs',
            'buildSeqidMatrix', 'uniqueSequences', 'buildOMESMatrix',
            'buildSCAMatrix', 'buildDirectInfoMatrix', 'calcMeff', 
-           'buildPCMatrix', 'alignMultipleSequences', 'showAlignment', 
+           'buildPCMatrix', 'buildMSA', 'showAlignment', 
            'alignSequenceToMSA', 'calcPercentIdentities', 'alignSequencesByChain',]
 
 
@@ -696,7 +696,7 @@ def msaeye(msa, unique, turbo):
 
 def alignSequencesByChain(PDBs, **kwargs):
     """
-    Runs alignMultipleSequences for each chain and optionally joins the results.
+    Runs buildMSA for each chain and optionally joins the results.
     Returns either a single MSA or a dictionary containing an MSA for each chain.
 
     :arg PDBs: a list or array of :class:`AtomGroup` objects or PDB IDs
@@ -739,7 +739,7 @@ def alignSequencesByChain(PDBs, **kwargs):
         chain_alignments = []
         alignments = {}
         for j in range(len(chains[0])):
-            msa = alignMultipleSequences(chains[:][j], prefix=pdbs[0].getChids()[j])
+            msa = buildMSA(chains[:][j], prefix=pdbs[0].getChids()[j])
             msa = refineMSA(msa, colocc=1e-9) # remove gap-only cols
             chain_alignments.append(msa)
             alignments[pdbs[0].getChids()[j]] = msa
@@ -769,7 +769,7 @@ def alignSequencesByChain(PDBs, **kwargs):
                 
         return result
 
-def alignMultipleSequences(sequences, **kwargs):
+def buildMSA(sequences, **kwargs):
     """
     Aligns sequences with clustalw or clustalw2 and returns the resulting MSA.
 
@@ -784,6 +784,10 @@ def alignMultipleSequences(sequences, **kwargs):
 
     :arg prefix: a prefix for filenames
     :type prefix: str
+
+    :arg do_alignment: whether to do alignment with clustalw(2)
+        default True
+    :type do_alignment: bool
     """
     # 1. check if sequences are in a fasta file and if not make one
     fetched_labels = []
@@ -844,19 +848,23 @@ def alignMultipleSequences(sequences, **kwargs):
         pos = sequences.rfind('.')
         prefix = sequences[:pos]
 
-    # 2. find and run alignment method
-    clustalw = which('clustalw')
-    if clustalw is None:
-        if which('clustalw2') is not None:
-            clustalw = which('clustalw2')
-        else:
-            raise EnvironmentError("The executable for clustalw was not found, \
-                                    install clustalw or add it to the path.")
+    do_alignment = kwargs.get('do_alignment',True)
+    if do_alignment:
+        # 2. find and run alignment method
+        clustalw = which('clustalw')
+        if clustalw is None:
+            if which('clustalw2') is not None:
+                clustalw = which('clustalw2')
+            else:
+                raise EnvironmentError("The executable for clustalw was not found, \
+                                        install clustalw or add it to the path.")
 
-    os.system(clustalw + " " + sequences)
+        os.system(clustalw + " " + sequences)
 
-    # 3. parse and return the new MSA
-    return parseMSA(prefix + '.aln')
+        # 3. parse and return the new MSA
+        return parseMSA(prefix + '.aln')
+    else:
+        return 
 
 def showAlignment(alignment, row_size=60, max_seqs=5, **kwargs):
     """
