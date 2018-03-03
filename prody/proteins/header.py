@@ -350,24 +350,25 @@ def getHeaderDict(stream, *keys):
 
 def _getBiomoltrans(lines):
 
-    applyToChains = (' ')
+    
     biomolecule = defaultdict(list)
-    currentBiomolecule = '1'
     for i, line in lines['REMARK 350']:
-
-        if line[13:18] == 'BIOMT':
-            biomt = biomolecule[currentBiomolecule]
-            if len(biomt) == 0:
-                biomt.append(applyToChains)
-            biomt.append(line[23:])
-        elif line[11:41] == 'APPLY THE FOLLOWING TO CHAINS:':
-            applyToChains = line[41:].replace(' ',
-                                              '').strip().strip(',').split(',')
-        elif line[30:41] == 'AND CHAINS:':
+        if line[11:23] == 'BIOMOLECULE:':
+            currentBiomolecule = line.split()[-1]
+            applyToChains = []
+        elif line[11:41] == 'APPLY THE FOLLOWING TO CHAINS:' \
+        or line[30:41] == 'AND CHAINS:':
             applyToChains.extend(line[41:].replace(' ', '')
                                  .strip().strip(',').split(','))
-        elif line[11:23] == 'BIOMOLECULE:':
-            currentBiomolecule = line.split()[-1]
+        elif line[13:18] == 'BIOMT':
+            biomt = biomolecule[currentBiomolecule]
+            if line[13:19] == 'BIOMT1':
+                if applyToChains == []:
+                    applyToChains = biomt[0]
+                biomt.append(applyToChains)
+            elif line[13:19]:
+                applyToChains = []
+            biomt.append(line[23:])
     return dict(biomolecule)
 
 
@@ -1032,14 +1033,17 @@ def buildBiomolecules(header, atoms, biomol=None):
 
     if not isinstance(header, dict):
         raise TypeError('header must be a dictionary')
+
     if not isinstance(atoms, Atomic):
         raise TypeError('atoms must be an Atomic instance')
+
     biomt = header.get('biomoltrans')
     if not isinstance(biomt, dict) or len(biomt) == 0:
         raise ValueError("header doesn't contain biomolecular transformations")
 
     if not isinstance(atoms, AtomGroup):
         atoms = atoms.copy()
+
     biomols = []
     if biomol is None:
         keys = list(biomt)
@@ -1060,23 +1064,23 @@ def buildBiomolecules(header, atoms, biomol=None):
         # mt is a list, first item is list of chain identifiers
         # following items are lines corresponding to transformation
         # mt must have 3n + 1 lines
-        if (len(mt) - 1) % 3 != 0:
+        if (len(mt)) % 4 != 0:
             LOGGER.warn('Biomolecular transformations {0} were not '
                         'applied'.format(i))
             continue
 
-        for times in range(int((len(mt) - 1) / 3)):
+        for times in range(int((len(mt)) / 4)):
             rotation = np.zeros((3, 3))
             translation = np.zeros(3)
-            line = np.fromstring(mt[times*3+1], sep=' ')
-            rotation[0, :] = line[:3]
-            translation[0] = line[3]
-            line = np.fromstring(mt[times*3+2], sep=' ')
-            rotation[1, :] = line[:3]
-            translation[1] = line[3]
-            line = np.fromstring(mt[times*3+3], sep=' ')
-            rotation[2, :] = line[:3]
-            translation[2] = line[3]
+            line0 = np.fromstring(mt[times*4+1], sep=' ')
+            rotation[0, :] = line0[:3]
+            translation[0] = line0[3]
+            line1 = np.fromstring(mt[times*4+2], sep=' ')
+            rotation[1, :] = line1[:3]
+            translation[1] = line1[3]
+            line2 = np.fromstring(mt[times*4+3], sep=' ')
+            rotation[2, :] = line2[:3]
+            translation[2] = line2[3]
             t = Transformation(rotation, translation)
 
             newag = atoms.select('chain ' + ' '.join(mt[0])).copy()
@@ -1088,6 +1092,7 @@ def buildBiomolecules(header, atoms, biomol=None):
                 newag = t.apply(newag)
             newag.setACSIndex(0)
             ags.append(newag)
+
         if ags:
             newag = ags.pop(0)
             while ags:
