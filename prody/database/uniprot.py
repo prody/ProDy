@@ -38,9 +38,9 @@ def queryUniprot(id, loop_through=[]):
     record_file.close()
     data = ET.XML(data)
 
-    data = dictElement(data.getchildren()[0], '{http://uniprot.org/uniprot}')
+    data = dictElement(data.getchildren()[0], '{http://uniprot.org/uniprot}', number_multiples=True)
 
     if loop_through != []:
-        data = dictElementLoop(data, loop_through, '{http://uniprot.org/uniprot}')
+        data = dictElementLoop(data, loop_through, '{http://uniprot.org/uniprot}', number_multiples=True)
     
     return data

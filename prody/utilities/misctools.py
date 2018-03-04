@@ -88,7 +88,7 @@ def importLA():
     return linalg
 
 
-def dictElement(element, prefix=None):
+def dictElement(element, prefix=None, number_multiples=False):
     """Returns a dictionary built from the children of *element*, which must be
     a :class:`xml.etree.ElementTree.Element` instance.  Keys of the dictionary
     are *tag* of children without the *prefix*, or namespace.  Values depend on
@@ -117,7 +117,8 @@ def dictElement(element, prefix=None):
         else:
             i += 1
 
-        tag = tag + '{:>4}'.format(str(i))
+        if number_multiples:
+            tag = tag + '{:>4}'.format(str(i))
             
         if len(child) == 0:
             if child.text is None:
@@ -129,7 +130,7 @@ def dictElement(element, prefix=None):
 
     return dict_
 
-def dictElementLoop(dict_, keys, prefix=None):
+def dictElementLoop(dict_, keys, prefix=None, number_multiples=False):
     if isinstance(keys, str):
         keys = [keys]
 
@@ -141,20 +142,20 @@ def dictElementLoop(dict_, keys, prefix=None):
             raise ValueError('all keys should be keys of dict_')
 
     for orig_key in keys:
-        dict2 = dictElement(dict_[orig_key], prefix)
+        dict2 = dictElement(dict_[orig_key], prefix, number_multiples)
         finished = 0
         while not finished:
             dict3 = dict2.copy()
             try:
                 key = dict2.keys()[0]
-                dict2[key] = dictElement(dict2[key], prefix)
+                dict2[key] = dictElement(dict2[key], prefix, number_multiples)
             except:
                 finished = 1
             else:
                 dict2 = dict3
                 for key in dict2.keys():
-                    dict2[key] = dictElement(dict2[key], prefix)
-                    
+                    dict2[key] = dictElement(dict2[key], prefix, number_multiples)
+
         dict_[orig_key] = dict2
 
     return dict_
