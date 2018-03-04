@@ -30,7 +30,7 @@ def queryUniprot(id, loop_through=[]):
         raise TypeError('id should be a string')
 
     try:
-        record_file = urllib2.urlopen('http://www.uniprot.org/uniprot/{0}.xml'.format(id))
+        record_file = openURL('http://www.uniprot.org/uniprot/{0}.xml'.format(id))
     except:
         raise ValueError('No Uniprot record found with that id')
     
