@@ -6,7 +6,7 @@ from collections import Counter
 
 __all__ = ['Everything', 'rangeString', 'alnum', 'importLA', 'dictElement',
            'intorfloat', 'startswith', 'showFigure', 'countBytes', 'sqrtm',
-           'saxsWater', 'count', 'addBreaks', 'copy']
+           'saxsWater', 'count', 'addBreaks', 'copy', 'dictElementLoop']
 
 
 class Everything(object):
@@ -94,22 +94,70 @@ def dictElement(element, prefix=None):
     are *tag* of children without the *prefix*, or namespace.  Values depend on
     the content of the child.  If a child does not have any children, its text
     attribute is the value.  If a child has children, then the child is the
-    value."""
+    value.
+    """
+    if type(element) in [str, list, int]:
+        raise TypeError('element should be an Element not str, list or int')
 
     dict_ = {}
     length = False
     if isinstance(prefix, str):
         length = len(prefix)
+
+    prev_tag = ''
     for child in element:
         tag = child.tag
+
         if length and tag.startswith(prefix):
             tag = tag[length:]
+
+        if tag != prev_tag:
+            prev_tag = tag
+            i = 0
+        else:
+            i += 1
+
+        tag = tag + '{:>4}'.format(str(i))
+            
         if len(child) == 0:
-            dict_[tag] = child.text
+            if child.text is None:
+                dict_[tag] = child.items()
+            else:
+                dict_[tag] = child.text
         else:
             dict_[tag] = child
+
     return dict_
 
+def dictElementLoop(dict_, keys, prefix=None):
+    if isinstance(keys, str):
+        keys = [keys]
+
+    if not isinstance(keys, list) or len(keys) is None:
+        raise TypeError('keys should be a list of keys')
+
+    for key in keys:
+        if not key in dict_.keys():
+            raise ValueError('all keys should be keys of dict_')
+
+    for orig_key in keys:
+        dict2 = dictElement(dict_[orig_key], prefix)
+        finished = 0
+        while not finished:
+            dict3 = dict2.copy()
+            try:
+                key = dict2.keys()[0]
+                dict2[key] = dictElement(dict2[key], prefix)
+            except:
+                finished = 1
+            else:
+                dict2 = dict3
+                for key in dict2.keys():
+                    dict2[key] = dictElement(dict2[key], prefix)
+                    
+        dict_[orig_key] = dict2
+
+    return dict_
 
 def intorfloat(x):
     """Returns ``int(x)``, or ``float(x)`` upon :exc:`ValueError`."""

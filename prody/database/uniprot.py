@@ -1,7 +1,7 @@
 import os.path
 import numpy as np
 from prody import LOGGER, PY3K
-from prody.utilities import dictElement, openURL, which
+from prody.utilities import dictElement, dictElementLoop, openURL, which
 
 import platform, os, re, sys, time, urllib
 
@@ -18,8 +18,13 @@ from prody.sequence import Sequence
 
 __all__ = ['queryUniprot', ]
 
-def queryUniprot(id):
-    """Query Uniprot with *id* and return a `dictionary` containing the results"""
+def queryUniprot(id, loop_through=[]):
+    """Query Uniprot with *id* and return a `dictionary` containing the results
+    
+    :arg loop_through: entries through which you want to loop dictElements
+        until there aren't any elements left
+    :type loop_through: list
+    """
 
     if not isinstance(id, str):
         raise TypeError('id should be a string')
@@ -33,4 +38,9 @@ def queryUniprot(id):
     record_file.close()
     data = ET.XML(data)
 
+    data = dictElement(data.getchildren()[0], '{http://uniprot.org/uniprot}')
+
+    if loop_through != []:
+        data = dictElementLoop(data, loop_through, '{http://uniprot.org/uniprot}')
+    
     return data
