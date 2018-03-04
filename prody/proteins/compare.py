@@ -793,11 +793,10 @@ def mapOntoChain(atoms, chain, **kwargs):
     *pwalign* keyword. If ``pwalign=True`` is passed, pairwise alignment is
     enforced."""
 
-    target_chain = chain
     if not isinstance(atoms, (AtomGroup, Chain, Selection)):
         raise TypeError('atoms must be an AtomGroup, a Chain, or a '
                         'Selection instance')
-    if not isinstance(target_chain, Chain):
+    if not isinstance(chain, Chain):
         raise TypeError('chain must be Chain instance')
 
     subset = str(kwargs.get('subset', 'calpha')).lower()
@@ -824,8 +823,9 @@ def mapOntoChain(atoms, chain, **kwargs):
                      .format(str(atoms), len(chains))) 
 
     if subset != 'all':
-        target_chain = target_chain.select(subset
-                                        ).getHierView()[target_chain.getChid()]
+        for t_chain in chain.select(subset).getHierView().iterChains():
+            if t_chain.getChid() == chain.getChid():
+                target_chain = chain
 
     mappings = []
     unmapped = []
@@ -880,7 +880,6 @@ def mapOntoChain(atoms, chain, **kwargs):
         LOGGER.debug('Trying to map atoms based on {0} sequence alignment:'
                         .format(ALIGNMENT_METHOD))
 
-        curr_alignment = alignment
         for chid, simple_chain in zip(unmapped_chids, unmapped):
             LOGGER.debug('  Comparing {0} (len={1}) with {2}:'
                          .format(simple_chain.getTitle(), len(simple_chain),
@@ -890,6 +889,7 @@ def mapOntoChain(atoms, chain, **kwargs):
                     curr_alignment = alignments[chid]
                 else:
                     curr_alignment = alignment
+                    
             result = getAlignedMapping(simple_target, simple_chain, alignment=curr_alignment)
             if result is not None:
                 target_list, chain_list, n_match, n_mapped = result

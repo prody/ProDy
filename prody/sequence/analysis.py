@@ -712,7 +712,10 @@ def alignSequencesByChain(PDBs, **kwargs):
     :type join_char: str
     """
     if not (isinstance(PDBs, list) or isinstance(PDBs, ndarray)):
-        raise TypeError('sequences should be a list or array')
+        raise TypeError('PDBs should be a list or array')
+
+    if PDBs == []:
+        raise ValueError('PDBs should not be an empty list')
 
     pdbs = []
     chains = []
@@ -734,14 +737,39 @@ def alignSequencesByChain(PDBs, **kwargs):
         if i != 0 and len(chains[i]) != len(chains[0]):
             raise ValueError('all pdbs should have the same number of chains')
 
+    labels = []
+    for pdb in pdbs:
+        chids = ''
+        for chain in list(pdb.getHierView()):
+            chids += chain.getChid()
+        labels.append(pdb.getTitle().split('_')[0] + '_' + chids)
+
     chains = array(chains)
     chain_alignments = []
     alignments = {}
+    labels_lists = []
     for j in range(len(chains[0])):
-        msa = alignMultipleSequences(chains[:,j], prefix=pdbs[0].getChids()[j])
-        msa = refineMSA(msa, colocc=1e-9) # remove gap-only cols
+        prefix = chains[0,j].getChid()
+        msa = buildMSA(chains[:,j], prefix=prefix, labels=labels)
+
+        # make all alignments have the sequences in the same order as the 0th
+        labels_lists.append([])
+        for sequence in msa:
+            labels_lists[j].append(sequence.getLabel())
+
+        if j > 0:
+            msaarr = []
+            for label in labels_lists[0]:
+                msaarr.append(msa.getArray()[msa.getIndex(label)])
+                
+            msaarr = array(msaarr)
+            msa = MSA(msaarr, title='reordered_msa_1', labels=list(labels_lists[0]))
+            writeMSA(prefix + '.aln', msa)
+
         chain_alignments.append(msa)
-        alignments[pdbs[0].getChids()[j]] = msa
+
+        # after reordering, create the alignments dictionary
+        alignments[labels_lists[0][0].split('_')[1][j]] = msa
 
     join_chains = kwargs.get('join_chains', True)
     join_char = kwargs.get('join_char','/')
@@ -754,7 +782,8 @@ def alignSequencesByChain(PDBs, **kwargs):
         for i, chain_alignment in enumerate(chain_alignments):
             for j, sequence in enumerate(chain_alignment):
                 aligned_sequences[j][i] = str(sequence)
-                if i == 0: orig_labels.append(sequence.getLabel())
+                if i == 0: 
+                    orig_labels.append(sequence.getLabel())
 
         joined_msaarr = []
         for j in range(shape(chain_alignments)[1]):
@@ -762,6 +791,7 @@ def alignSequencesByChain(PDBs, **kwargs):
         joined_msaarr = array(joined_msaarr)
         
         result = MSA(joined_msaarr, title='joined_chains', labels=orig_labels)
+        result = refineMSA(result, colocc=1e-9) # remove gap-only cols
 
     else:
         result = alignments
@@ -869,7 +899,7 @@ def showAlignment(alignment, row_size=60, max_seqs=5, **kwargs):
     """
     Prints out an alignment as sets of short rows with labels.
 
-    :arg alignment: any object with aligned sequence
+    :arg alignment: any object with aligned sequences
     :type alignment: :class: `.MSA`, tuple or list
 
     :arg row_size: the size of each row
@@ -882,7 +912,7 @@ def showAlignment(alignment, row_size=60, max_seqs=5, **kwargs):
 
     :arg indices: a set of indices for some or all sequences
         that will be shown above the relevant sequences
-    :type indices: array, list or tuple of arrays, lists or tuples
+    :type indices: `~numpy.ndarray`, list, tuple
 
     :arg index_start: how far along the alignment to start putting indices
         default 0
@@ -891,7 +921,30 @@ def showAlignment(alignment, row_size=60, max_seqs=5, **kwargs):
     :arg index_stop: how far along the alignment to stop putting indices
         default the point when the shortest sequence stops
     :type index_stop: int
+
+    :arg labels: a list of labels, required if alignment is a list of strings
+    :type labels: list, tuple, `~numpy.ndarray`
     """
+    labels = kwargs.get('labels', None)
+    if labels is None:
+        if not isinstance(labels, list) and not isinstance(labels, tuple) \
+        and not isinstance(labels, ndarray):
+            raise TypeError('labels should be a list or tuple.')
+
+        if not isinstance(labels[0], str):
+            raise TypeError('each label should be a string.')
+
+        if len(labels) < max_seqs:
+            raise ValueError('there should be a label for every sequence shown.')
+
+        if isinstance(alignment, MSA) or (isinstance(alignment[0], sequence)):
+            labels = []
+            for sequence in alignment:
+                labels.append(sequence.getLabel())
+        else:
+            if isinstance(alignment[0], str):
+                raise ValueError('labels must be provided if alignment contains strings')
+
     indices = kwargs.get('indices',None)
     index_start = kwargs.get('index_start',0)
     index_stop = kwargs.get('index_start',0)
@@ -930,8 +983,8 @@ def showAlignment(alignment, row_size=60, max_seqs=5, **kwargs):
                             sys.stdout.write(' '*10)
                 sys.stdout.write('\n')
 
-            sys.stdout.write(alignment[j].getLabel()[:15] + \
-                             ' ' * (15-len(alignment[j].getLabel()[:15])) + \
+            sys.stdout.write(labels[j][:15] + \
+                             ' ' * (15-len(labels[j][:15])) + \
                              '\t' + str(alignment[j])[60*i:60*(i+1)] + '\n')
 
         sys.stdout.write('\n')

@@ -8,6 +8,7 @@ from prody.proteins import fetchPDB, parsePDB, writePDB, mapOntoChain
 from prody.utilities import openFile, showFigure, copy
 from prody import LOGGER, SETTINGS
 from prody.atomic import AtomMap, Chain, AtomGroup, Selection, Segment, Select, AtomSubset
+from prody.sequence import MSA
 
 from .ensemble import *
 from .pdbensemble import *
@@ -358,20 +359,16 @@ def buildPDBEnsemble(refpdb, PDBs, title='Unknown', labels=None, seqid=94, cover
     :type coverage: int
 
     :arg occupancy: Minimal occupancy of columns (range from 0 to 1). Columns whose occupancy
-    is below this value will be trimmed.
+        is below this value will be trimmed.
     :type occupancy: float
 
     :arg unmapped: A list of PDB IDs that cannot be included in the ensemble. This is an 
-    output argument. 
+        output argument. 
     :type unmapped: list
 
-    :arg alignment_list: list of alignment duplets for mapping function
-        default is list of None
-    :type alignment_list: list
-
-    :arg alignments_list: list of alignments for mapping function
-        default is list of None
-    :type alignments_list: list
+    :arg msa: A multiple sequence alignment that can be converted into
+        alignments for mapOntoChainByAlignment
+    :type msa: `:class:MSA`
     """
 
     if not isinstance(refpdb, (Chain, Segment, Selection, AtomGroup)):
@@ -379,11 +376,22 @@ def buildPDBEnsemble(refpdb, PDBs, title='Unknown', labels=None, seqid=94, cover
     
     if labels is not None:
         if len(labels) != len(PDBs):
-            raise TypeError('labels and PDBs must have the same lengths.')
+            raise ValueError('labels and PDBs must be the same length.')
 
-    # obtain the hierarhical view of the reference PDB
-    refhv = refpdb.getHierView()
-    refchains = list(refhv)
+    msa = kwargs.get('msa', None)
+    if msa is not None:
+        if len(msa) != len(PDBs):
+            raise ValueError('msa and PDBs must be the same length.')
+
+        alignments = []
+        refseq = msa[msa.getIndex(refpdb.getTitle())]
+        for sequence in msa:
+            alignments.append([str(refseq), str(sequence)])
+
+        kwargs['alignments'] = alignments
+
+    # obtain refchains from the hierarhical view of the reference PDB
+    refchains = list(refpdb.getHierView())
 
     # obtain the atommap of all the chains combined.
     atoms = refchains[0]
@@ -425,8 +433,8 @@ def buildPDBEnsemble(refpdb, PDBs, title='Unknown', labels=None, seqid=94, cover
         
         # combine the mappings of pdb to reference chains
         atommap = atommaps[0]
-        for i in range(1, len(atommaps)):
-            atommap += atommaps[i]
+        for j in range(1, len(atommaps)):
+            atommap += atommaps[j]
         
         # add the mappings to the ensemble
         ensemble.addCoordset(atommap, weights=atommap.getFlags('mapped'), label = lbl)
@@ -466,11 +474,10 @@ def addPDBEnsemble(ensemble, PDBs, refpdb=None, labels=None, seqid=94, coverage=
         if len(labels) != len(PDBs):
             raise TypeError('Labels and PDBs must have the same lengths.')
 
-    # obtain the hierarhical view of the referrence PDB
+    # obtain refchains from the hierarhical view of the reference PDB
     if refpdb is None:
         refpdb = ensemble.getAtoms()
-    refhv = refpdb.getHierView()
-    refchains = list(refhv)
+    refchains = list(refpdb.getHierView())
 
     # obtain the atommap of all the chains combined.
     atoms = refchains[0]

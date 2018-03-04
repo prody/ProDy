@@ -1569,7 +1569,7 @@ def showTree(tree, format='ascii', **kwargs):
         Phylo.draw_ascii(tree)
         return
 
-    elif format == 'pylab' or format == 'matplotlib' or format == 'plt': 
+    elif format == 'plt': 
         try:
             import pylab
         except:
@@ -1593,6 +1593,9 @@ def showTree(tree, format='ascii', **kwargs):
                                 scale=scale, iterations=iterations, **kwargs)
 
         return obj
+    
+    else:
+        raise ValueError('format should be ascii or plt or networkx.')
 
 def showTree_networkx(tree, node_size=20, node_color='red', node_shape='o', withlabels=True, scale=1., iterations=500, **kwargs):
     from Bio import Phylo
