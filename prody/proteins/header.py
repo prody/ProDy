@@ -1100,6 +1100,7 @@ def buildBiomolecules(header, atoms, biomol=None):
             newag.setTitle('{0} biomolecule {1}'
                            .format(atoms.getTitle(), i))
             biomols.append(newag)
+            
     if biomols:
         if len(biomols) == 1:
             return biomols[0]

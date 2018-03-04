@@ -633,23 +633,24 @@ def writeClustal(filename, msa):
     """A simple writer for CLUSTAL format alignments.
 
     This lacks the characters showing degree of conservation
-    and is likely to not conform to the CLUSTAL format standards."""
-
-    LOGGER.warn('This function is not complete. Please use with caution.')
+    but otherwise conforms to the CLUSTAL format standards."""
 
     msafile = open(filename, 'w')
 
     msafile.write('CLUSTALW file written by ProDy\n\n')
 
-    for i, sequence in enumerate(msa):
-        sequence = str(msa[i])
-        for j in range(len(sequence)/50):
-            msafile.write(msa.getLabel(i) + ' '*(20-len(msa.getLabel(i))))
-            msafile.write(sequence[j*60:(j+1)*50] + '\t' + str((j+1)*50))
+    for j in range(msa.numResidues()/60):
+        for i in range(msa.numSequences()):
+            sequence = str(msa[i])
+            msafile.write(msa.getLabel(i) + ' '*(16-len(msa.getLabel(i))))
+            msafile.write(sequence[j*60:(j+1)*60])
             msafile.write('\n')
+        msafile.write('\n\n')
 
-        msafile.write(msa.getLabel(i) + ' '*(20-len(msa.getLabel(i))))
-        msafile.write(sequence[(j+1)*50:] + '\t' + str((j+1)*50))
+    for i in range(msa.numSequences()):
+        sequence = str(msa[i])
+        msafile.write(msa.getLabel(i) + ' '*(16-len(msa.getLabel(i))))
+        msafile.write(sequence[(j+1)*60:])
         msafile.write('\n')
 
     msafile.close()

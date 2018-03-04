@@ -41,6 +41,6 @@ def queryUniprot(id, loop_through=[]):
     data = dictElement(data.getchildren()[0], '{http://uniprot.org/uniprot}', number_multiples=True)
 
     if loop_through != []:
-        data = dictElementLoop(data, loop_through, '{http://uniprot.org/uniprot}', number_multiples=True)
+        data = dictElementLoop(data, loop_through, '{http://uniprot.org/uniprot}')
     
     return data
