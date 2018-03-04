@@ -712,7 +712,10 @@ def alignSequencesByChain(PDBs, **kwargs):
     :type join_char: str
     """
     if not (isinstance(PDBs, list) or isinstance(PDBs, ndarray)):
-        raise TypeError('sequences should be a list or array')
+        raise TypeError('PDBs should be a list or array')
+
+    if PDBs == []:
+        raise ValueError('PDBs should not be an empty list')
 
     pdbs = []
     chains = []
@@ -734,14 +737,39 @@ def alignSequencesByChain(PDBs, **kwargs):
         if i != 0 and len(chains[i]) != len(chains[0]):
             raise ValueError('all pdbs should have the same number of chains')
 
+    labels = []
+    for pdb in pdbs:
+        chids = ''
+        for chain in list(pdb.getHierView()):
+            chids += chain.getChid()
+        labels.append(pdb.getTitle().split('_')[0] + '_' + chids)
+
     chains = array(chains)
     chain_alignments = []
     alignments = {}
+    labels_lists = []
     for j in range(len(chains[0])):
-        msa = alignMultipleSequences(chains[:,j], prefix=pdbs[0].getChids()[j])
-        msa = refineMSA(msa, colocc=1e-9) # remove gap-only cols
+        prefix = chains[0,j].getChid()
+        msa = buildMSA(chains[:,j], prefix=prefix, labels=labels)
+
+        # make all alignments have the sequences in the same order as the 0th
+        labels_lists.append([])
+        for sequence in msa:
+            labels_lists[j].append(sequence.getLabel())
+
+        if j > 0:
+            msaarr = []
+            for label in labels_lists[0]:
+                msaarr.append(msa.getArray()[msa.getIndex(label)])
+                
+            msaarr = array(msaarr)
+            msa = MSA(msaarr, title='reordered_msa_1', labels=list(labels_lists[0]))
+            writeMSA(prefix + '.aln', msa)
+
         chain_alignments.append(msa)
-        alignments[pdbs[0].getChids()[j]] = msa
+
+        # after reordering, create the alignments dictionary
+        alignments[labels_lists[0][0].split('_')[1][j]] = msa
 
     join_chains = kwargs.get('join_chains', True)
     join_char = kwargs.get('join_char','/')
@@ -754,7 +782,8 @@ def alignSequencesByChain(PDBs, **kwargs):
         for i, chain_alignment in enumerate(chain_alignments):
             for j, sequence in enumerate(chain_alignment):
                 aligned_sequences[j][i] = str(sequence)
-                if i == 0: orig_labels.append(sequence.getLabel())
+                if i == 0: 
+                    orig_labels.append(sequence.getLabel())
 
         joined_msaarr = []
         for j in range(shape(chain_alignments)[1]):
@@ -762,6 +791,7 @@ def alignSequencesByChain(PDBs, **kwargs):
         joined_msaarr = array(joined_msaarr)
         
         result = MSA(joined_msaarr, title='joined_chains', labels=orig_labels)
+        result = refineMSA(result, colocc=1e-9) # remove gap-only cols
 
     else:
         result = alignments

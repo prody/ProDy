@@ -61,7 +61,7 @@ _parsePDBdoc = _parsePQRdoc + """
          distinct coordinate set, default is ``"A"``
     :type altloc: str
 
-    :arg biomol: if **True**, biomolecule obtained by transforming the
+    :arg biomol: if **True**, biomolecules are obtained by transforming the
         coordinates using information from header section will be returned.
         Default is False
     :type biomol: bool
@@ -87,9 +87,10 @@ def parsePDB(*pdb, **kwargs):
 
     See :ref:`parsepdb` for a detailed usage example.
 
-    :arg pdb: one PDB identifier or a filename or a list of them.
+    :arg pdb: one PDB identifier or filename, or a list of them.
         If needed, PDB files are downloaded using :func:`.fetchPDB()` function.
-        You can also provide arguments that you would like passed on to fetchPDB().
+    
+    You can also provide arguments that you would like passed on to fetchPDB().
     """
     n_pdb = len(pdb)
     if n_pdb == 1:
@@ -188,6 +189,7 @@ def parsePDBStream(stream, **kwargs):
 
     :arg stream: Anything that implements the method ``readlines``
         (e.g. :class:`file`, buffer, stdin)""" 
+    
     model = kwargs.get('model')
     header = kwargs.get('header', False)
     assert isinstance(header, bool), 'header must be a boolean'
@@ -278,6 +280,7 @@ def parsePDBStream(stream, **kwargs):
             else:
                 LOGGER.info('Biomolecular transformations were applied to the '
                             'coordinate data.')
+
     if model != 0:
         if header:
             return ag, hd
