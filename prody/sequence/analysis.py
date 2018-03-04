@@ -899,7 +899,7 @@ def showAlignment(alignment, row_size=60, max_seqs=5, **kwargs):
     """
     Prints out an alignment as sets of short rows with labels.
 
-    :arg alignment: any object with aligned sequence
+    :arg alignment: any object with aligned sequences
     :type alignment: :class: `.MSA`, tuple or list
 
     :arg row_size: the size of each row
@@ -912,7 +912,7 @@ def showAlignment(alignment, row_size=60, max_seqs=5, **kwargs):
 
     :arg indices: a set of indices for some or all sequences
         that will be shown above the relevant sequences
-    :type indices: array, list or tuple of arrays, lists or tuples
+    :type indices: `~numpy.ndarray`, list, tuple
 
     :arg index_start: how far along the alignment to start putting indices
         default 0
@@ -921,7 +921,30 @@ def showAlignment(alignment, row_size=60, max_seqs=5, **kwargs):
     :arg index_stop: how far along the alignment to stop putting indices
         default the point when the shortest sequence stops
     :type index_stop: int
+
+    :arg labels: a list of labels, required if alignment is a list of strings
+    :type labels: list, tuple, `~numpy.ndarray`
     """
+    labels = kwargs.get('labels', None)
+    if labels is None:
+        if not isinstance(labels, list) and not isinstance(labels, tuple) \
+        and not isinstance(labels, ndarray):
+            raise TypeError('labels should be a list or tuple.')
+
+        if not isinstance(labels[0], str):
+            raise TypeError('each label should be a string.')
+
+        if len(labels) < max_seqs:
+            raise ValueError('there should be a label for every sequence shown.')
+
+        if isinstance(alignment, MSA) or (isinstance(alignment[0], sequence)):
+            labels = []
+            for sequence in alignment:
+                labels.append(sequence.getLabel())
+        else:
+            if isinstance(alignment[0], str):
+                raise ValueError('labels must be provided if alignment contains strings')
+
     indices = kwargs.get('indices',None)
     index_start = kwargs.get('index_start',0)
     index_stop = kwargs.get('index_start',0)
@@ -960,8 +983,8 @@ def showAlignment(alignment, row_size=60, max_seqs=5, **kwargs):
                             sys.stdout.write(' '*10)
                 sys.stdout.write('\n')
 
-            sys.stdout.write(alignment[j].getLabel()[:15] + \
-                             ' ' * (15-len(alignment[j].getLabel()[:15])) + \
+            sys.stdout.write(labels[j][:15] + \
+                             ' ' * (15-len(labels[j][:15])) + \
                              '\t' + str(alignment[j])[60*i:60*(i+1)] + '\n')
 
         sys.stdout.write('\n')

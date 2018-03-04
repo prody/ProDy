@@ -388,7 +388,7 @@ def buildPDBEnsemble(refpdb, PDBs, title='Unknown', labels=None, seqid=94, cover
         for sequence in msa:
             alignments.append([str(refseq), str(sequence)])
 
-        kwargs.set('alignments', alignments)
+        kwargs['alignments'] = alignments
 
     # obtain refchains from the hierarhical view of the reference PDB
     refchains = list(refpdb.getHierView())
@@ -433,8 +433,8 @@ def buildPDBEnsemble(refpdb, PDBs, title='Unknown', labels=None, seqid=94, cover
         
         # combine the mappings of pdb to reference chains
         atommap = atommaps[0]
-        for i in range(1, len(atommaps)):
-            atommap += atommaps[i]
+        for j in range(1, len(atommaps)):
+            atommap += atommaps[j]
         
         # add the mappings to the ensemble
         ensemble.addCoordset(atommap, weights=atommap.getFlags('mapped'), label = lbl)
