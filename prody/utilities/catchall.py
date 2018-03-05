@@ -205,6 +205,7 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
 
     ticklabels = kwargs.pop('ticklabels', None)
     allticks = kwargs.pop('allticks', False) # this argument is temporary and will be replaced by better implementation
+    origin = kwargs.pop('origin', 'lower')
 
     if x_array is not None and y_array is not None:
         nrow = 2; ncol = 2
@@ -222,7 +223,7 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
         nrow = 2; ncol = 2
         i = 1; j = 1
         width_ratios = [W, W]
-        height_ratios = [W, H]
+        height_ratios = [H, H]
         aspect = 'auto'
     elif x_array is None and y_array is not None:
         nrow = 1; ncol = 2
@@ -306,8 +307,7 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
     else:
         ax3 = gca()
     
-    if not 'origin' in kwargs:
-        kwargs['origin'] = 'lower'
+    kwargs['origin'] = origin
     if not 'cmap' in kwargs:
         kwargs['cmap'] = 'jet'
     im = ax3.imshow(matrix, aspect=aspect, vmin=vmin, vmax=vmax, **kwargs)
