@@ -809,6 +809,9 @@ def mapOntoChain(atoms, chain, **kwargs):
         coverage = kwargs.get('coverage', 70.)
     pwalign = kwargs.get('pwalign', True)
     fast = kwargs.get('fast', False)
+    alignment  = kwargs.pop('alignment', None)
+    alignments = kwargs.pop('alignments', None)
+    prealigned = alignment is not None or alignments is not None
 
     if isinstance(atoms, Chain):
         chains = [atoms]
@@ -831,13 +834,12 @@ def mapOntoChain(atoms, chain, **kwargs):
     unmapped = []
     unmapped_chids = []
     target_ag = target_chain.getAtomGroup()
-    simple_target = SimpleChain(target_chain, True)
+    simple_target = SimpleChain(target_chain, False)
     if fast is False:
         LOGGER.debug('Trying to map atoms based on residue numbers and '
                  'identities:')
     for chain in chains:
-        simple_chain = SimpleChain(True)
-        simple_chain.buildFromChain(chain)
+        simple_chain = SimpleChain(chain, False)
         if len(simple_chain) == 0:
             if fast is False:
                 LOGGER.debug('  Skipping {0}, which does not contain any amino '
@@ -848,33 +850,29 @@ def mapOntoChain(atoms, chain, **kwargs):
                      .format(simple_chain.getTitle(), len(simple_chain),
                              simple_target.getTitle()))
 
-        target_list, chain_list, n_match, n_mapped = getTrivialMapping(
-            simple_target, simple_chain)
-        if n_mapped > 0:
-            _seqid = n_match * 100 / n_mapped
-            _cover = n_mapped * 100 / max(len(simple_target), len(simple_chain))
-        else:
-            _seqid = 0
-            _cover = 0
+        _seqid = _cover = -1
+        if not prealigned:
+            target_list, chain_list, n_match, n_mapped = getTrivialMapping(
+                simple_target, simple_chain)
+            if n_mapped > 0:
+                _seqid = n_match * 100 / n_mapped
+                _cover = n_mapped * 100 / max(len(simple_target), len(simple_chain))
 
-        if _seqid >= seqid and _cover >= coverage:
+        if (_seqid >= seqid and _cover >= coverage) and not prealigned:
             if fast is False:
                 LOGGER.debug('\tMapped: {0} residues match with {1:.0f}% '
-                         'sequence identity and {2:.0f}% overlap.'
-                         .format(n_mapped, _seqid, _cover))
+                        'sequence identity and {2:.0f}% overlap.'
+                        .format(n_mapped, _seqid, _cover))
             mappings.append((target_list, chain_list, _seqid, _cover))
         else:
             if fast is False:
                 LOGGER.debug('\tFailed to match chains based on residue numbers '
-                         '(seqid={0:.0f}%, overlap={1:.0f}%).'
-                         .format(_seqid, _cover))
+                        '(seqid={0:.0f}%, overlap={1:.0f}%).'
+                        .format(_seqid, _cover))
             unmapped.append(simple_chain)
             unmapped_chids.append(chain.getChid())
 
     if pwalign or (not mappings and pwalign):
-        alignment  = kwargs.pop('alignment', None)
-        alignments = kwargs.pop('alignments', None)
-
         if not(alignment is None and alignments is None):
             LOGGER.debug('Predefined alignments are provided.')
         LOGGER.debug('Trying to map atoms based on {0} sequence alignment:'
@@ -884,11 +882,10 @@ def mapOntoChain(atoms, chain, **kwargs):
             LOGGER.debug('  Comparing {0} (len={1}) with {2}:'
                          .format(simple_chain.getTitle(), len(simple_chain),
                                  simple_target.getTitle()))
+            curr_alignment = alignment
             if alignments is not None:
                 if chid in alignments:
                     curr_alignment = alignments[chid]
-                else:
-                    curr_alignment = alignment
                     
             result = getAlignedMapping(simple_target, simple_chain, alignment=curr_alignment)
             if result is not None:
@@ -1030,6 +1027,17 @@ def getAlignedMapping(target, chain, alignment=None):
 
     this = str(alignment[0])
     that = str(alignment[1])
+    this_seq = this.upper()
+    for gap in GAPCHARS:
+        this_seq = this_seq.replace(gap, '')
+    that_seq = that.upper()
+    for gap in GAPCHARS:
+        that_seq = that_seq.replace(gap, '')
+
+    if target.getSequence().upper() != this_seq:
+        return None
+    if chain.getSequence().upper() != that_seq:
+        return None
 
     amatch = []
     bmatch = []
