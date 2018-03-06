@@ -720,15 +720,10 @@ def alignSequencesByChain(PDBs, **kwargs):
     pdbs = []
     chains = []
     for i, pdb in enumerate(PDBs):
-        if isinstance(pdb, str):
-            if len(pdb) in [4, 5, 6]:
-                pdbs.append(parsePDB(pdb))
-            else: 
-                raise ValueError('string entries in PDBs should be of length 4, 5 or 6')
-        elif isinstance(pdb, Atomic):
+        if isinstance(pdb, Atomic):
             pdbs.append(pdb)
         else:
-            raise TypeError('each entry in PDBs must be a :class:`Atomic` instance or a PDB ID')
+            raise TypeError('each entry in PDBs must be a :class:`Atomic` instance')
 
         chains.append([])
         for chain in list(pdbs[i].getHierView()):
@@ -749,8 +744,8 @@ def alignSequencesByChain(PDBs, **kwargs):
     alignments = {}
     labels_lists = []
     for j in range(len(chains[0])):
-        prefix = chains[0,j].getChid()
-        msa = buildMSA(chains[:,j], prefix=prefix, labels=labels)
+        prefix = 'chain_' + chains[0, j].getChid()
+        msa = buildMSA(chains[:, j], title=prefix, labels=labels)
 
         # make all alignments have the sequences in the same order as the 0th
         labels_lists.append([])
@@ -772,7 +767,7 @@ def alignSequencesByChain(PDBs, **kwargs):
         alignments[labels_lists[0][0].split('_')[1][j]] = msa
 
     join_chains = kwargs.get('join_chains', True)
-    join_char = kwargs.get('join_char','/')
+    join_char = kwargs.get('join_char', '/')
     if join_chains:
         aligned_sequences = list(zeros(shape(chain_alignments)).T)
         for j in range(shape(chain_alignments)[1]):
@@ -798,87 +793,71 @@ def alignSequencesByChain(PDBs, **kwargs):
             
     return result
 
-def buildMSA(sequences, **kwargs):
+def buildMSA(sequences, title='Unknown', labels=None, **kwargs):
     """
     Aligns sequences with clustalw or clustalw2 and returns the resulting MSA.
 
     :arg sequences: a file, MSA object or a list or array containing sequences
        as Atomic objects with :func:`getSequence` or Sequence objects or strings. 
        If strings are used then labels must be provided using ``labels``
-    :type sequences: :class:`Atomic`, :class:`.MSAFile`, :class:`.MSA`, 
+    :type sequences: :class:`Atomic`, :class:`.MSA`, 
         :class:`~numpy.ndarray`, str
+
+    :arg title: the title for the MSA and it will be used as the prefix for output files.
+    :type title: str
 
     :arg labels: a list of labels to go with the sequences
     :type labels: list
 
-    :arg prefix: a prefix for filenames
-    :type prefix: str
-
-    :arg do_alignment: whether to do alignment with clustalw(2)
+    :arg align: whether to do alignment with clustalw(2)
         default True
-    :type do_alignment: bool
+    :type align: bool
     """
+    
+    align = kwargs.get('align', True)
     # 1. check if sequences are in a fasta file and if not make one
-    fetched_labels = []
-
-    if not (isinstance(sequences, list) or isinstance(sequences, ndarray)):
-        raise TypeError('sequences should be a list or array')
-    else:
-        if isinstance(sequences[0], Atomic):
-            msa = []
-            for sequence in sequences:
-                msa.append(sequence.getSequence())
-                fetched_labels.append(sequence.getTitle())
-            sequences = msa
-
-        if isinstance(sequences[0], Sequence):
-            msa = []
-            for sequence in sequences:
-                msa.append(str(sequence))
-                fetched_labels.append(sequence.getLabel())
-            sequences = msa
-
-        if isinstance(sequences[0], str):
+    if isinstance(sequences, str):
+        filename = sequences
+    elif not isinstance(sequences, MSA):
+        try:
             max_len = 0
             for sequence in sequences:
                 if len(sequence) > max_len:
                     max_len = len(sequence)
 
             msa = []
-            for sequence in sequences:
-                sequence = sequence + '-'*(max_len - len(sequence))
-                msa.append(array(list(sequence)))
+            fetched_labels = []
+            for i, sequence in enumerate(sequences):
+                if isinstance(sequence, Atomic):
+                    strseq = sequence.getSequence()
+                    label = sequence.getTitle()
+                elif isinstance(sequence, Sequence):
+                    strseq = str(sequence)
+                    label = sequence.getLabel()
+                elif isinstance(sequence, str):
+                    strseq = sequence
+                    label = str(i + 1)
+                else:
+                    raise TypeError('sequences should be a list of strings, '
+                                    'Atomic, or Sequence instances')
+                strseq = strseq + '-'*(max_len - len(strseq))
+                msa.append(array(list(strseq)))
+                fetched_labels.append(label)
             sequences = array(msa)
+        except:
+            raise TypeError('sequences should be iterable')
 
-        labels = kwargs.get('labels',None)
-        if labels is None or len(labels) != len(sequences):
-            if fetched_labels is not []:
-                labels = fetched_labels
-            else:
-                raise ValueError('sequences can only be provided as a list of '
-                                 'strings if corresponding labels are provided')
+        # "if a list" is a pythonic way to check if a list is empty or not (or none)
+        if not labels and fetched_labels:
+            labels = fetched_labels
+        # labels checkers are removed because they will be properly handled in MSA class initialization
+        msa = MSA(msa=sequences, title=title, labels=labels)
 
-        sequences = MSA(msa=sequences, labels=labels)
+        if align:
+            filename = writeMSA(title + '.fasta', msa)
 
-    prefix = kwargs.get('prefix',None)
-    if isinstance(sequences, MSA):
-        if prefix is not None:
-            sequences = writeMSA(prefix + '.fasta', sequences)
-        else:
-            raise ValueError('please provide a prefix for the MSA file to be '
-                             'fed to clustalw')
-
-    try:
-        msa = parseMSA(sequences)
-    except:
-        raise ValueError('sequences is not an MSA file and could not be made into one')
-
-    if prefix is None: 
-        pos = sequences.rfind('.')
-        prefix = sequences[:pos]
-
-    do_alignment = kwargs.get('do_alignment',True)
-    if do_alignment:
+    
+    if align:
         # 2. find and run alignment method
         clustalw = which('clustalw')
         if clustalw is None:
@@ -888,10 +867,10 @@ def buildMSA(sequences, **kwargs):
                 raise EnvironmentError("The executable for clustalw was not found, \
                                         install clustalw or add it to the path.")
 
-        os.system(clustalw + " " + sequences)
+        os.system('"%s" %s'%(clustalw, filename))
 
         # 3. parse and return the new MSA
-        return parseMSA(prefix + '.aln')
+        return parseMSA(title + '.aln')
     else:
         return 
 
@@ -937,7 +916,7 @@ def showAlignment(alignment, row_size=60, max_seqs=5, **kwargs):
         if len(labels) < max_seqs:
             raise ValueError('there should be a label for every sequence shown.')
 
-        if isinstance(alignment, MSA) or (isinstance(alignment[0], sequence)):
+        if isinstance(alignment, MSA) or (isinstance(alignment[0], Sequence)):
             labels = []
             for sequence in alignment:
                 labels.append(sequence.getLabel())
@@ -1006,7 +985,7 @@ def alignSequenceToMSA(seq, msa, label, match=5, mismatch=-1, gap_opening=-10, g
 
     :arg seq: an object with an associated sequence string 
          or a sequence string itself
-    :type seq: :class:`Atomic`, :class:`Sequence`, or str
+    :type seq: :class:`Atomic`, :class:`Sequence`
     
     :arg msa: MSA object
     :type msa: :class:`.MSA`
@@ -1037,19 +1016,9 @@ def alignSequenceToMSA(seq, msa, label, match=5, mismatch=-1, gap_opening=-10, g
     if isinstance(seq, Atomic):
         ag = seq
         sequence = ag.calpha.getSequence()
-
     elif isinstance(seq, Sequence):
          sequence = str(seq)
          ag = None
-
-    elif isinstance(seq, str):
-        if len(seq) == 4 or len(seq) == 5:
-            ag = parsePDB(seq)
-            sequence = ag.calpha.getSequence()
-        else:
-            sequence = seq
-            ag = None
-
     else:
         raise TypeError('seq must be an atomic class, sequence class, or str not {0}'
                         .format(type(seq)))

@@ -8,7 +8,6 @@ from prody.proteins import fetchPDB, parsePDB, writePDB, mapOntoChain
 from prody.utilities import openFile, showFigure, copy
 from prody import LOGGER, SETTINGS
 from prody.atomic import AtomMap, Chain, AtomGroup, Selection, Segment, Select, AtomSubset
-from prody.sequence import MSA
 
 from .ensemble import *
 from .pdbensemble import *
@@ -365,10 +364,6 @@ def buildPDBEnsemble(refpdb, PDBs, title='Unknown', labels=None, seqid=94, cover
     :arg unmapped: A list of PDB IDs that cannot be included in the ensemble. This is an 
         output argument. 
     :type unmapped: list
-
-    :arg msa: A multiple sequence alignment that can be converted into
-        alignments for mapOntoChainByAlignment
-    :type msa: `:class:MSA`
     """
 
     if not isinstance(refpdb, (Chain, Segment, Selection, AtomGroup)):
@@ -377,18 +372,6 @@ def buildPDBEnsemble(refpdb, PDBs, title='Unknown', labels=None, seqid=94, cover
     if labels is not None:
         if len(labels) != len(PDBs):
             raise ValueError('labels and PDBs must be the same length.')
-
-    msa = kwargs.get('msa', None)
-    if msa is not None:
-        if len(msa) != len(PDBs):
-            raise ValueError('msa and PDBs must be the same length.')
-
-        alignments = []
-        refseq = msa[msa.getIndex(refpdb.getTitle())]
-        for sequence in msa:
-            alignments.append([str(refseq), str(sequence)])
-
-        kwargs['alignments'] = alignments
 
     # obtain refchains from the hierarhical view of the reference PDB
     refchains = list(refpdb.getHierView())
