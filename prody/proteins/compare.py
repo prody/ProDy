@@ -12,6 +12,7 @@ from prody.atomic import AAMAP
 from prody.atomic import flags
 from prody.measure import calcTransformation, printRMSD, calcDistance
 from prody import LOGGER, SELECT, PY2K
+from prody.sequence import MSA
 
 if PY2K:
     range = xrange
@@ -965,14 +966,26 @@ def mapChainByChain(atoms, ref, **kwargs):
 
 def mapOntoChainByAlignment(atoms, chain, **kwargs):
     """This function is similar to :func:`.mapOntoChain` but correspondence 
-    of chains is found by alignment provided. """
+    of chains is found by alignment provided. 
+    
+    :arg alignments: A list of predefined alignments. It can be also a 
+                    dictionary or :class:`MSA` instance where the keys or 
+                    labels are the title of *atoms* or *chains*. 
+    :type alignments: list, dict, :class:`MSA`
+    """
 
     alignments = kwargs.pop('alignments', None)
     if alignments is None:
         return mapOntoChain(atoms, chain, **kwargs)
     else:
-        index = kwargs.pop('index', 0)
-        alignment = alignments[index]
+        if isinstance(alignments, (MSA, dict)):
+            refseq = str(alignments[chain.getTitle()])
+            tarseq = str(alignments[atoms.getTitle()])
+            alignment = [refseq, tarseq]
+        else:
+            index = kwargs.pop('index', 0)
+            alignment = alignments[index]
+
         tar_aligned_seq = alignment[-1]
         hv = atoms.getHierView()
         for target_chain in hv.iterChains():
@@ -980,7 +993,7 @@ def mapOntoChainByAlignment(atoms, chain, **kwargs):
             if tar_seq == tar_aligned_seq.replace('-', ''):
                 mappings = mapOntoChain(target_chain, chain, alignment=alignment, **kwargs)
                 return mappings
-        LOGGER.warn('The sequence of chain does not match that in alignment (index = %d).'%index)
+        LOGGER.warn('The sequence of chain does not match that in alignment (%s).'%atoms.getTitle())
     return []
 
 def getTrivialMapping(target, chain):
