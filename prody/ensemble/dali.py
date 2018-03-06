@@ -145,7 +145,7 @@ class daliRecord(object):
         self._mapping = map_temp_dict
         self._data = data_list[3]
         lines = data_list[3].strip().split('\n')
-        daliInfo = np.genfromtxt(lines[1:], delimiter = (4,3,6,5,5,5,6,5,57), usecols = [0,2,3,4,5,6,7], dtype=[('id', '<i4'), ('pdb_chain', '|S6'), ('Z', '<f4'), ('rmsd', '<f4'), ('len_align', '<i4'), ('res_num', '<i4'), ('identity', '<i4')])
+        daliInfo = np.genfromtxt(lines[1:], delimiter = (4,3,6,5,5,5,6,5,57), usecols = [0,2,3,4,5,6,7,8], dtype=[('id', '<i4'), ('pdb_chain', '|S6'), ('Z', '<f4'), ('rmsd', '<f4'), ('len_align', '<i4'), ('res_num', '<i4'), ('identity', '<i4'), ('title', '|S70')])
         if daliInfo.ndim == 0:
             daliInfo = np.array([daliInfo])
         pdbListAll = []
@@ -275,7 +275,7 @@ class daliRecord(object):
                 failPDBList.append(pdb_chain)
         self._failPDBList = failPDBList
         if failPDBList != []:
-            print('failed to add '+str(len(failPDBList))+' PDB chain to ensemble: '+' '.join(failPDBList))
+            LOGGER.warn('failed to add '+str(len(failPDBList))+' PDB chain to ensemble: '+' '.join(failPDBList))
         try:
             ensemble.iterpose()
             RMSDs = ensemble.getRMSDs()
