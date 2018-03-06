@@ -163,7 +163,7 @@ def showData(*args, **kwargs):
                 x_new, y_new = x, y
 
             poly = ax.fill_between(x_new, y_new-_dy, y_new+_dy,
-                                   alpha=alpha, facecolor=color,
+                                   alpha=alpha, facecolor=color, edgecolor=color,
                                    linewidth=1, antialiased=True)
             polys.append(poly)
 

@@ -561,11 +561,11 @@ def showSignature(signature, linespec='-', **kwargs):
     x, _ = line.get_data()
     polys = []
     poly = fill_between(x, minV, maxV,
-                        alpha=0.3, facecolor=color,
+                        alpha=0.3, facecolor=color, edgecolor=color,
                         linewidth=1, antialiased=True)
     polys.append(poly)
     poly = fill_between(x, meanV-stdV, meanV+stdV,
-                        alpha=0.5, facecolor=color,
+                        alpha=0.5, facecolor=color, edgecolor=color,
                         linewidth=1, antialiased=True)
     polys.append(poly)
 
@@ -803,7 +803,7 @@ def showVarianceBar(mode_ensemble, highlights=None, **kwargs):
                       orientation='horizontal')
 
     if not highlights:
-        highlights = range(len(mode_ensemble))
+        highlights = []
 
     indices = []; labels = []
     ens_labels = mode_ensemble.getLabels()
