@@ -366,15 +366,15 @@ def buildPDBEnsemble(refpdb, PDBs, title='Unknown', labels=None, seqid=94, cover
     :type unmapped: list
     """
 
-    if not isinstance(refpdb, (Chain, Segment, Selection, AtomGroup)):
-        raise TypeError('Refpdb must be a Chain, Segment, Selection, or AtomGroup.')
-    
     if labels is not None:
         if len(labels) != len(PDBs):
             raise ValueError('labels and PDBs must be the same length.')
 
     # obtain refchains from the hierarhical view of the reference PDB
-    refchains = list(refpdb.getHierView())
+    try:
+        refchains = list(refpdb.getHierView())
+    except AttributeError:
+        raise TypeError('refpdb must have getHierView')
 
     # obtain the atommap of all the chains combined.
     atoms = refchains[0]
@@ -389,9 +389,11 @@ def buildPDBEnsemble(refpdb, PDBs, title='Unknown', labels=None, seqid=94, cover
     # build the ensemble
     if unmapped is None: unmapped = []
     for i, pdb in enumerate(PDBs):
-        if not isinstance(pdb, (Chain, Selection, AtomGroup)):
-            raise TypeError('PDBs must be a list of Chain, Selection, or AtomGroup.')
-        
+        try:
+            pdb.getHierView()
+        except AttributeError:
+            raise TypeError('PDBs must be a list of instances having the access to getHierView')
+            
         if labels is None:
             lbl = pdb.getTitle()
         else:

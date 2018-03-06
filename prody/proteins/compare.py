@@ -987,10 +987,12 @@ def mapOntoChainByAlignment(atoms, chain, **kwargs):
             alignment = alignments[index]
 
         tar_aligned_seq = alignment[-1]
+        for char in GAPCHARS:
+            tar_aligned_seq = tar_aligned_seq.replace(char, '').upper()
         hv = atoms.getHierView()
         for target_chain in hv.iterChains():
-            tar_seq = target_chain.getSequence()
-            if tar_seq == tar_aligned_seq.replace('-', ''):
+            tar_seq = target_chain.getSequence().upper()
+            if tar_seq == tar_aligned_seq:
                 mappings = mapOntoChain(target_chain, chain, alignment=alignment, **kwargs)
                 return mappings
         LOGGER.warn('The sequence of chain does not match that in alignment (%s).'%atoms.getTitle())
