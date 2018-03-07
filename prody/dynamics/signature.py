@@ -561,11 +561,11 @@ def showSignature(signature, linespec='-', **kwargs):
     x, _ = line.get_data()
     polys = []
     poly = fill_between(x, minV, maxV,
-                        alpha=0.3, facecolor=color, edgecolor=color,
+                        alpha=0.3, facecolor=color, edgecolor=None,
                         linewidth=1, antialiased=True)
     polys.append(poly)
     poly = fill_between(x, meanV-stdV, meanV+stdV,
-                        alpha=0.5, facecolor=color, edgecolor=color,
+                        alpha=0.5, facecolor=color, edgecolor=None,
                         linewidth=1, antialiased=True)
     polys.append(poly)
 
