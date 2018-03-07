@@ -380,7 +380,10 @@ def calcENM(atoms, select=None, model='anm', trim='trim', gamma=1.0,
             title = atoms.getTitle()
     except AttributeError:
         title = 'Unknown'
-        
+
+    zeros = kwargs.pop('zeros', False)
+    turbo = kwargs.pop('turbo', True)
+    
     if model is GNM:
         model = 'gnm'
     elif model is ANM:
