@@ -63,11 +63,15 @@ class daliRecord(object):
 
     """A class to store results from Dali PDB search."""
 
-    def __init__(self, url, pdbId=None, chainId=None, subset='fullPDB'):
+    def __init__(self, url, pdbId=None, chainId=None, subset='fullPDB', localFile=False):
         """Instantiate a daliPDB object instance.
 
-        :arg subset: fullPDB, PDB25, PDB50, PDB90
-        :type sequence: str"""
+        :arg url: url of Dali results page or local dali results file.
+        :arg pdbId: PDB code for searched protein.
+        :arg chainId: chain identifier (only one chain can be assigned for PDB).
+        :arg subset: fullPDB, PDB25, PDB50, PDB90. Ignored if localFile=True (url is a local file).
+        :arg localFile: provided url is a path for local dali results file.
+        """
 
         self._url = url
         self._pdbId = pdbId
@@ -79,53 +83,59 @@ class daliRecord(object):
         else:
             self._subset = "-"+subset[3:]
         
-        self.isSuccess = self.getRecord(self._url)
+        self.isSuccess = self.getRecord(self._url, localFile=localFile)
 
-    def getRecord(self, url):
-        sleep = 2
-        timeout = 120
-        LOGGER.timeit('_dali')
-        log_message = ''
-        try_error = 3
-        while True:
-            LOGGER.sleep(int(sleep), 'to reconnect Dali '+log_message)
-            LOGGER.clear()
-            LOGGER.write('Connecting Dali for search results...')
-            LOGGER.clear()
-            try:
-                html = urllib2.urlopen(url).read()
-            except:
-                try_error -= 1
-                if try_error >= 0:
-                    LOGGER.sleep(2, '. Connection error happened. Trying to reconnect...')
-                    continue
-                else:
+    def getRecord(self, url, localFile=False):
+        if localFile:
+            dali_file = open(url, 'r')
+            data = dali_file.read()
+            dali_file.close()
+        else:
+            sleep = 2
+            timeout = 120
+            LOGGER.timeit('_dali')
+            log_message = ''
+            try_error = 3
+            while True:
+                LOGGER.sleep(int(sleep), 'to reconnect Dali '+log_message)
+                LOGGER.clear()
+                LOGGER.write('Connecting Dali for search results...')
+                LOGGER.clear()
+                try:
                     html = urllib2.urlopen(url).read()
-            if html.find('Status: Queued') > -1:
-                log_message = '(Dali searching is queued)...'
-            elif html.find('Status: Running') > -1:
-                log_message = '(Dali searching is running)...'
-            elif html.find('Your job') == -1 and html.find('.txt') > -1:
-                break
-            elif html.find('ERROR:') > -1:
-                LOGGER.warn(': Dali search reported an ERROR!')
-                return None
-                break
-            sleep = 20 if int(sleep * 1.5) >= 20 else int(sleep * 1.5)
-            if LOGGER.timing('_dali') > timeout:
-                LOGGER.warn(': Dali search is time out. \nThe results can be obtained using getRecord() function later.')
-                return None
-                break
+                except:
+                    try_error -= 1
+                    if try_error >= 0:
+                        LOGGER.sleep(2, '. Connection error happened. Trying to reconnect...')
+                        continue
+                    else:
+                        html = urllib2.urlopen(url).read()
+                if html.find('Status: Queued') > -1:
+                    log_message = '(Dali searching is queued)...'
+                elif html.find('Status: Running') > -1:
+                    log_message = '(Dali searching is running)...'
+                elif html.find('Your job') == -1 and html.find('.txt') > -1:
+                    break
+                elif html.find('ERROR:') > -1:
+                    LOGGER.warn(': Dali search reported an ERROR!')
+                    return None
+                    break
+                sleep = 20 if int(sleep * 1.5) >= 20 else int(sleep * 1.5)
+                if LOGGER.timing('_dali') > timeout:
+                    LOGGER.warn(': Dali search is time out. \nThe results can be obtained using getRecord() function later.')
+                    return None
+                    break
+                LOGGER.clear()
             LOGGER.clear()
-        LOGGER.clear()
-        LOGGER.report('Dali results completed in %.1fs.', '_dali')
-        lines = html.strip().split('\n')
-        with open("temp.txt", "w") as file_temp: file_temp.write(html + '\n')
-        file_name = re.search('=.+-90\.txt', html).group()[1:]
-        file_name = file_name[:-7]
-        # LOGGER.info(url+file_name+self._subset+'.txt')
-        data = urllib2.urlopen(url+file_name+self._subset+'.txt').read()
-        with open("temp.txt", "a+") as file_temp: file_temp.write(url+file_name + '\n' + data)
+            LOGGER.report('Dali results completed in %.1fs.', '_dali')
+            lines = html.strip().split('\n')
+            file_name = re.search('=.+-90\.txt', html).group()[1:]
+            file_name = file_name[:-7]
+            # LOGGER.info(url+file_name+self._subset+'.txt')
+            data = urllib2.urlopen(url+file_name+self._subset+'.txt').read()
+            temp_name = file_name+self._subset+'_dali.txt'
+            with open(temp_name, "w") as file_temp: file_temp.write(html + '\n' + url+file_name + '\n' + data)
+            # with open(temp_name, "a+") as file_temp: file_temp.write(url+file_name + '\n' + data)
         data_list = data.strip().split('# ')
         # No:  Chain   Z    rmsd lali nres  %id PDB  Description -> data_list[3]
         # Structural equivalences -> data_list[4]
