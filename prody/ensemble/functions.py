@@ -8,7 +8,6 @@ from prody.proteins import fetchPDB, parsePDB, writePDB, mapOntoChain
 from prody.utilities import openFile, showFigure, copy
 from prody import LOGGER, SETTINGS
 from prody.atomic import AtomMap, Chain, AtomGroup, Selection, Segment, Select, AtomSubset
-from prody.sequence import MSA
 
 from .ensemble import *
 from .pdbensemble import *
@@ -365,33 +364,17 @@ def buildPDBEnsemble(refpdb, PDBs, title='Unknown', labels=None, seqid=94, cover
     :arg unmapped: A list of PDB IDs that cannot be included in the ensemble. This is an 
         output argument. 
     :type unmapped: list
-
-    :arg msa: A multiple sequence alignment that can be converted into
-        alignments for mapOntoChainByAlignment
-    :type msa: `:class:MSA`
     """
 
-    if not isinstance(refpdb, (Chain, Segment, Selection, AtomGroup)):
-        raise TypeError('Refpdb must be a Chain, Segment, Selection, or AtomGroup.')
-    
     if labels is not None:
         if len(labels) != len(PDBs):
             raise ValueError('labels and PDBs must be the same length.')
 
-    msa = kwargs.get('msa', None)
-    if msa is not None:
-        if len(msa) != len(PDBs):
-            raise ValueError('msa and PDBs must be the same length.')
-
-        alignments = []
-        refseq = msa[msa.getIndex(refpdb.getTitle())]
-        for sequence in msa:
-            alignments.append([str(refseq), str(sequence)])
-
-        kwargs['alignments'] = alignments
-
     # obtain refchains from the hierarhical view of the reference PDB
-    refchains = list(refpdb.getHierView())
+    try:
+        refchains = list(refpdb.getHierView())
+    except AttributeError:
+        raise TypeError('refpdb must have getHierView')
 
     # obtain the atommap of all the chains combined.
     atoms = refchains[0]
@@ -405,10 +388,18 @@ def buildPDBEnsemble(refpdb, PDBs, title='Unknown', labels=None, seqid=94, cover
     
     # build the ensemble
     if unmapped is None: unmapped = []
+
+    verb = LOGGER.verbosity
+    LOGGER.verbosity = 'info'
+
+    LOGGER.progress('Building the ensemble...', len(PDBs))
     for i, pdb in enumerate(PDBs):
-        if not isinstance(pdb, (Chain, Selection, AtomGroup)):
-            raise TypeError('PDBs must be a list of Chain, Selection, or AtomGroup.')
-        
+        LOGGER.update(i, 'Mapping %s to the reference...'%pdb)
+        try:
+            pdb.getHierView()
+        except AttributeError:
+            raise TypeError('PDBs must be a list of instances having the access to getHierView')
+            
         if labels is None:
             lbl = pdb.getTitle()
         else:
@@ -439,6 +430,9 @@ def buildPDBEnsemble(refpdb, PDBs, title='Unknown', labels=None, seqid=94, cover
         # add the mappings to the ensemble
         ensemble.addCoordset(atommap, weights=atommap.getFlags('mapped'), label = lbl)
     
+    LOGGER.update(len(PDBs), 'Finished.')
+    LOGGER.verbosity = verb
+
     if occupancy is not None:
         ensemble = trimPDBEnsemble(ensemble, occupancy=occupancy)
     ensemble.iterpose()

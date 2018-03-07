@@ -413,7 +413,7 @@ class Signature(object):
         return self._array.max(axis=0)
     max = getMax
 
-def calcEnsembleENMs(ensemble, model='gnm', trim='trim', n_modes=20):
+def calcEnsembleENMs(ensemble, model='gnm', trim='trim', n_modes=20, **kwargs):
     """Description"""
 
     if isinstance(ensemble, Conformation):
@@ -454,7 +454,7 @@ def calcEnsembleENMs(ensemble, model='gnm', trim='trim', n_modes=20):
         else:
             atoms = coords
         enm, _ = calcENM(atoms, select, model=model, trim=trim, 
-                            n_modes=n_modes, title=labels[i])
+                            n_modes=n_modes, title=labels[i], **kwargs)
         enms.append(enm)
 
         #lbl = labels[i] if labels[i] != '' else '%d-th conformation'%(i+1)
@@ -561,11 +561,11 @@ def showSignature(signature, linespec='-', **kwargs):
     x, _ = line.get_data()
     polys = []
     poly = fill_between(x, minV, maxV,
-                        alpha=0.3, facecolor=color,
+                        alpha=0.3, facecolor=color, edgecolor=None,
                         linewidth=1, antialiased=True)
     polys.append(poly)
     poly = fill_between(x, meanV-stdV, meanV+stdV,
-                        alpha=0.5, facecolor=color,
+                        alpha=0.5, facecolor=color, edgecolor=None,
                         linewidth=1, antialiased=True)
     polys.append(poly)
 
@@ -803,7 +803,7 @@ def showVarianceBar(mode_ensemble, highlights=None, **kwargs):
                       orientation='horizontal')
 
     if not highlights:
-        highlights = range(len(mode_ensemble))
+        highlights = []
 
     indices = []; labels = []
     ens_labels = mode_ensemble.getLabels()

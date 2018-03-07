@@ -46,6 +46,9 @@ class MSA(object):
             raise ValueError('len(labels) must be equal to number of '
                              'sequences')
         self._labels = labels
+        if labels is None:
+            self._labels = [str(i+1) for i in range(numseq)]
+        
         mapping = kwargs.get('mapping')
         if mapping is None:
             if labels is not None:
@@ -71,9 +74,6 @@ class MSA(object):
             except Exception:
                 raise TypeError('mapping must be a dictionary')
         self._mapping = mapping
-        if labels is None:
-            self._labels = [None] * numseq
-
         self._msa = msa
         self._title = str(title) or 'Unknown'
         self._split = bool(kwargs.get('split', True))

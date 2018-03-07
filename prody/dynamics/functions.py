@@ -380,7 +380,10 @@ def calcENM(atoms, select=None, model='anm', trim='trim', gamma=1.0,
             title = atoms.getTitle()
     except AttributeError:
         title = 'Unknown'
-        
+
+    zeros = kwargs.pop('zeros', False)
+    turbo = kwargs.pop('turbo', True)
+
     if model is GNM:
         model = 'gnm'
     elif model is ANM:
@@ -416,17 +419,17 @@ def calcENM(atoms, select=None, model='anm', trim='trim', gamma=1.0,
         raise TypeError('model should be either ANM or GNM instead of {0}'.format(model))
     
     if select is None:
-        enm.calcModes(n_modes=n_modes)
+        enm.calcModes(n_modes=n_modes, zeros=zeros, turbo=turbo)
     else:
         if trim == 'slice':
-            enm.calcModes(n_modes=n_modes)
+            enm.calcModes(n_modes=n_modes, zeros=zeros, turbo=turbo)
             enm, atoms = sliceModel(enm, atoms, select)  
             if model == 'gnm':
                 enm.calcHinges()
         elif trim == 'reduce':
             enm, atoms = reduceModel(enm, atoms, select)
-            enm.calcModes(n_modes=n_modes)
+            enm.calcModes(n_modes=n_modes, zeros=zeros, turbo=turbo)
         else:
-            enm.calcModes(n_modes=n_modes)
+            enm.calcModes(n_modes=n_modes, zeros=zeros, turbo=turbo)
     
     return enm, atoms
