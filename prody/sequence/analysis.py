@@ -870,9 +870,9 @@ def buildMSA(sequences, title='Unknown', labels=None, **kwargs):
         os.system('"%s" %s'%(clustalw, filename))
 
         # 3. parse and return the new MSA
-        return parseMSA(title + '.aln')
-    else:
-        return 
+        msa = parseMSA(title + '.aln')
+
+    return msa
 
 def showAlignment(alignment, row_size=60, max_seqs=5, **kwargs):
     """
