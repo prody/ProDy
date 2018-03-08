@@ -1588,16 +1588,17 @@ def showTree(tree, format='ascii', **kwargs):
         withlabels = kwargs.pop('withlabels', True)
         scale = kwargs.pop('scale', 1.)
         iterations = kwargs.pop('iterations', 500)
+        k = kwargs.pop('k', None)
         obj = showTree_networkx(tree, node_size=node_size, node_color=node_color, 
                                 node_shape=node_shape, withlabels=withlabels, 
-                                scale=scale, iterations=iterations, **kwargs)
+                                scale=scale, iterations=iterations, k=k, **kwargs)
 
         return obj
     
     else:
         raise ValueError('format should be ascii or plt or networkx.')
 
-def showTree_networkx(tree, node_size=20, node_color='red', node_shape='o', withlabels=True, scale=1., iterations=500, **kwargs):
+def showTree_networkx(tree, node_size=20, node_color='red', node_shape='o', withlabels=True, scale=1., iterations=500, k=None, **kwargs):
     from Bio import Phylo
     import matplotlib.pyplot as mpl
 
@@ -1642,7 +1643,7 @@ def showTree_networkx(tree, node_size=20, node_color='red', node_shape='o', with
     if SETTINGS['auto_show']:
         mpl.figure()
 
-    layout = networkx.spring_layout(G, scale=scale, iterations=iterations)
+    layout = networkx.spring_layout(G, scale=scale, iterations=iterations, k=k)
     #networkx.draw(G, pos=layout, withlabels=False, node_size=sizes, node_color=colors)
     networkx.draw_networkx_edges(G, pos=layout)
     
