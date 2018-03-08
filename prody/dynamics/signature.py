@@ -521,7 +521,7 @@ def calcSignatureSqFlucts(mode_ensemble, **kwargs):
     is3d = modes.is3d()
     V = np.vstack(V)
 
-    title_str = '%d modes'%len(mode_ensemble)
+    title_str = '%d modes'%mode_ensemble.numModes()
     sig = Signature(V, title=title_str, is3d=is3d)
 
     return sig
@@ -561,11 +561,11 @@ def showSignature(signature, linespec='-', **kwargs):
     x, _ = line.get_data()
     polys = []
     poly = fill_between(x, minV, maxV,
-                        alpha=0.3, facecolor=color, edgecolor=None,
+                        alpha=0.15, facecolor=color, edgecolor=None,
                         linewidth=1, antialiased=True)
     polys.append(poly)
     poly = fill_between(x, meanV-stdV, meanV+stdV,
-                        alpha=0.5, facecolor=color, edgecolor=None,
+                        alpha=0.35, facecolor=color, edgecolor=None,
                         linewidth=1, antialiased=True)
     polys.append(poly)
 
@@ -603,7 +603,8 @@ def calcSignatureCrossCorr(mode_ensemble):
         if is3d is None:
             is3d = m.is3d()
 
-    sig = Signature(C, title=mode_ensemble.getTitle(), is3d=is3d)
+    title_str = '%d modes'%mode_ensemble.numModes()
+    sig = Signature(C, title=title_str, is3d=is3d)
         
     return sig
 
@@ -625,7 +626,8 @@ def calcSignatureFractVariance(mode_ensemble):
         if is3d is None:
             is3d = m.is3d()
 
-    sig = Signature(W, title=mode_ensemble.getTitle(), is3d=is3d)
+    title_str = '%d modes'%mode_ensemble.numModes()
+    sig = Signature(W, title=title_str, is3d=is3d)
         
     return sig
 
