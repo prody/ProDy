@@ -332,9 +332,13 @@ def which(program):
     http://stackoverflow.com/questions/377017/"""
 
     fpath, fname = os.path.split(program)
+    fname, fext = os.path.splitext(fname)
+
     if fpath and isExecutable(program):
         return program
     else:
+        if os.name == 'nt' and fext == '':
+            program += '.exe'
         for path in os.environ["PATH"].split(os.pathsep):
             path = os.path.join(path, program)
             if isExecutable(path):

@@ -6,6 +6,7 @@ from numpy import unique, linalg, diag, sqrt, dot
 import scipy.cluster.hierarchy as sch
 from scipy import spatial
 from .misctools import addBreaks
+from Bio import Phylo
 
 __all__ = ['calcTree', 'clusterMatrix', 'showData', 'showMatrix', 'reorderMatrix', 'findSubgroups']
 
@@ -162,10 +163,11 @@ def showData(*args, **kwargs):
                 x_new, y_new = x, y
 
             poly = ax.fill_between(x_new, y_new-_dy, y_new+_dy,
-                                   alpha=alpha, facecolor=color,
+                                   alpha=alpha, facecolor=color, edgecolor=None,
                                    linewidth=1, antialiased=True)
             polys.append(poly)
 
+    ax.margins(x=0)
     if ticklabels is not None:
         ax.get_xaxis().set_major_formatter(ticker.IndexFormatter(ticklabels))
     
@@ -186,11 +188,11 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
                      to *100-p*-th percentile.
     :type percentile: float"""
 
-    import matplotlib.pyplot as mpl
+    import matplotlib.pyplot as plt
     from matplotlib import cm, ticker
     from matplotlib.gridspec import GridSpec, GridSpecFromSubplotSpec
     from matplotlib.collections import LineCollection
-    from matplotlib.pyplot import imshow, gca, sca
+    from matplotlib.pyplot import imshow, gca, sca, sci
 
     p = kwargs.pop('percentile', None)
     if p is not None:
@@ -202,6 +204,8 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
     W = H = 8
 
     ticklabels = kwargs.pop('ticklabels', None)
+    allticks = kwargs.pop('allticks', False) # this argument is temporary and will be replaced by better implementation
+    origin = kwargs.pop('origin', 'lower')
 
     if x_array is not None and y_array is not None:
         nrow = 2; ncol = 2
@@ -214,6 +218,12 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
         i = 1; j = 0
         width_ratios = [W]
         height_ratios = [1, H]
+        aspect = 'auto'
+    elif isinstance(y_array, Phylo.BaseTree.Tree):
+        nrow = 2; ncol = 2
+        i = 1; j = 1
+        width_ratios = [W, W]
+        height_ratios = [H, H]
         aspect = 'auto'
     elif x_array is None and y_array is not None:
         nrow = 1; ncol = 2
@@ -248,46 +258,58 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
 
     lines = []
     if nrow > 1:
-        ax1 = mpl.subplot(gs[upper_index])
-        ax1.set_xticklabels([])
-        
-        y = x_array
-        x = np.arange(len(y))
-        points = np.array([x, y]).T.reshape(-1, 1, 2)
-        segments = np.concatenate([points[:-1], points[1:]], axis=1)
-        cmap = cm.jet(y)
-        lcy = LineCollection(segments, array=x, linewidths=1, cmap='jet')
-        lines.append(lcy)
-        ax1.add_collection(lcy)
+        ax1 = plt.subplot(gs[upper_index])
 
-        ax1.set_xlim(x.min(), x.max())
-        ax1.set_ylim(y.min(), y.max())
+        if isinstance(y_array, Phylo.BaseTree.Tree):
+            pass
+
+        else:
+            ax1.set_xticklabels([])
+            
+            y = x_array
+            x = np.arange(len(y))
+            points = np.array([x, y]).T.reshape(-1, 1, 2)
+            segments = np.concatenate([points[:-1], points[1:]], axis=1)
+            cmap = cm.jet(y)
+            lcy = LineCollection(segments, array=x, linewidths=1, cmap='jet')
+            lines.append(lcy)
+            ax1.add_collection(lcy)
+
+            ax1.set_xlim(x.min(), x.max())
+            ax1.set_ylim(y.min(), y.max())
         ax1.axis('off')
 
     if ncol > 1:
-        ax2 = mpl.subplot(gs[left_index])
-        ax2.set_xticklabels([])
+        ax2 = plt.subplot(gs[left_index])
         
-        y = y_array
-        x = np.arange(len(y))
-        points = np.array([y, x]).T.reshape(-1, 1, 2)
-        segments = np.concatenate([points[:-1], points[1:]], axis=1)
-        cmap = cm.jet(y)
-        lcx = LineCollection(segments, array=y, linewidths=1, cmap='jet')
-        lines.append(lcx)
-        ax2.add_collection(lcx)
+        if isinstance(y_array, Phylo.BaseTree.Tree):
+            Phylo.draw(y_array, do_show=False, axes=ax2, **kwargs)
+        else:
 
-        ax2.set_xlim(y.min(), y.max())
-        ax2.set_ylim(x.min(), x.max())
+            ax2.set_xticklabels([])
+            
+            y = y_array
+            x = np.arange(len(y))
+            points = np.array([y, x]).T.reshape(-1, 1, 2)
+            segments = np.concatenate([points[:-1], points[1:]], axis=1)
+            cmap = cm.jet(y)
+            lcx = LineCollection(segments, array=y, linewidths=1, cmap='jet')
+            lines.append(lcx)
+            ax2.add_collection(lcx)
+            ax2.set_xlim(y.min(), y.max())
+            ax2.set_ylim(x.min(), x.max())
+            ax2.invert_xaxis()
+
         ax2.axis('off')
-        ax2.invert_xaxis()
 
     if complex_layout:
-        ax3 = mpl.subplot(gs[main_index])
+        ax3 = plt.subplot(gs[main_index])
     else:
         ax3 = gca()
     
-    cmap = kwargs.pop('cmap', 'jet')
+    kwargs['origin'] = origin
+    if not 'cmap' in kwargs:
+        kwargs['cmap'] = 'jet'
     im = ax3.imshow(matrix, aspect=aspect, vmin=vmin, vmax=vmax, **kwargs)
     #ax3.set_xlim([-0.5, matrix.shape[0]+0.5])
     #ax3.set_ylim([-0.5, matrix.shape[1]+0.5])
@@ -296,12 +318,16 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
         ax3.xaxis.set_major_formatter(ticker.IndexFormatter(ticklabels))
         if ncol == 1:
             ax3.yaxis.set_major_formatter(ticker.IndexFormatter(ticklabels))
-    
-    ax3.xaxis.set_major_locator(ticker.AutoLocator())
-    ax3.xaxis.set_minor_locator(ticker.AutoMinorLocator())
 
-    ax3.yaxis.set_major_locator(ticker.AutoLocator())
-    ax3.yaxis.set_minor_locator(ticker.AutoMinorLocator())
+    if allticks:
+        ax3.xaxis.set_major_locator(ticker.IndexLocator(offset=0.5, base=1.))
+        ax3.yaxis.set_major_locator(ticker.IndexLocator(offset=0.5, base=1.))
+    else:
+        ax3.xaxis.set_major_locator(ticker.AutoLocator())
+        ax3.xaxis.set_minor_locator(ticker.AutoMinorLocator())
+
+        ax3.yaxis.set_major_locator(ticker.AutoLocator())
+        ax3.yaxis.set_minor_locator(ticker.AutoMinorLocator())
 
     if ncol > 1:
         ax3.yaxis.set_major_formatter(ticker.NullFormatter())
@@ -309,16 +335,16 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
     colorbar = None
     if cb:
         if complex_layout:
-            ax4 = mpl.subplot(gs_bar[-1])
-            colorbar = mpl.colorbar(mappable=im, cax=ax4)
+            ax4 = plt.subplot(gs_bar[-1])
+            colorbar = plt.colorbar(mappable=im, cax=ax4)
         else:
-            colorbar = mpl.colorbar()
+            colorbar = plt.colorbar(mappable=im)
 
-    if complex_layout:
-        sca(ax3)
+    sca(ax3)
+    sci(im)
     return im, lines, colorbar
 
-def reorderMatrix(names, matrix, tree):
+def reorderMatrix(matrix, tree, names=None):
     """
     Reorder a matrix based on a tree and return the reordered matrix 
     and indices for reordering other things.
@@ -340,13 +366,7 @@ def reorderMatrix(names, matrix, tree):
             'Reinstall ProDy or install Biopython '
             'to solve the problem.')
 
-    if type(names) is not list:
-        raise TypeError('names should be a list.')
-
-    if type(names[0]) is not str:
-        raise TypeError('names should be a list of strings.')    
-
-    if type(matrix) is not np.ndarray:
+    if not isinstance(matrix, np.ndarray):
         raise TypeError('matrix should be a numpy array.')
 
     if matrix.ndim != 2:
@@ -355,7 +375,16 @@ def reorderMatrix(names, matrix, tree):
     if np.shape(matrix)[0] != np.shape(matrix)[1]:
         raise ValueError('matrix should be a square matrix')
 
-    if type(tree) is not Phylo.BaseTree.Tree:
+    if names is None:
+        names = [str(i) for i in range(len(matrix))]
+
+    if not isinstance(names, list):
+        raise TypeError('names should be a list.')
+
+    if not isinstance(names[0], str):
+        raise TypeError('names should be a list of strings.')    
+
+    if not isinstance(tree, Phylo.BaseTree.Tree):
         raise TypeError('tree should be a BioPython Tree')
 
     if len(names) != len(matrix):

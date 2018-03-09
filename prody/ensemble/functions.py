@@ -5,7 +5,7 @@ import os.path
 import numpy as np
 
 from prody.proteins import fetchPDB, parsePDB, writePDB, mapOntoChain
-from prody.utilities import openFile, showFigure
+from prody.utilities import openFile, showFigure, copy
 from prody import LOGGER, SETTINGS
 from prody.atomic import AtomMap, Chain, AtomGroup, Selection, Segment, Select, AtomSubset
 
@@ -196,12 +196,12 @@ def trimPDBEnsemble(pdb_ensemble, **kwargs):
         trimmed.setAtoms(ag)
         trimmed.setAtoms(select)
 
-        coords = pdb_ensemble.getCoords(selected=False)
+        coords = copy(pdb_ensemble._coords)
         if coords is not None:
             trimmed.setCoords(coords)
-        confs = pdb_ensemble.getCoordsets(selected=False)
+        confs = copy(pdb_ensemble._confs)
         if confs is not None:
-            weights = pdb_ensemble.getWeights(selected=False)
+            weights = copy(pdb_ensemble._weights)
             labels = pdb_ensemble.getLabels()
             trimmed.addCoordset(confs, weights, labels)
 
@@ -333,7 +333,9 @@ def alignPDBEnsemble(ensemble, suffix='_aligned', outdir='.', gzip=False):
     else:
         return output
 
-def buildPDBEnsemble(refpdb, PDBs, title='Unknown', labels=None, seqid=94, coverage=85, mapping_func=mapOntoChain, occupancy=None, unmapped=None):
+
+def buildPDBEnsemble(refpdb, PDBs, title='Unknown', labels=None, seqid=94, coverage=85, 
+                     mapping_func=mapOntoChain, occupancy=None, unmapped=None, **kwargs):
     """Builds a PDB ensemble from a given reference structure and a list of PDB structures. 
     Note that the reference structure should be included in the list as well.
 
@@ -356,24 +358,23 @@ def buildPDBEnsemble(refpdb, PDBs, title='Unknown', labels=None, seqid=94, cover
     :type coverage: int
 
     :arg occupancy: Minimal occupancy of columns (range from 0 to 1). Columns whose occupancy
-    is below this value will be trimmed.
+        is below this value will be trimmed.
     :type occupancy: float
 
     :arg unmapped: A list of PDB IDs that cannot be included in the ensemble. This is an 
-    output argument. 
+        output argument. 
     :type unmapped: list
     """
 
-    if not isinstance(refpdb, (Chain, Segment, Selection, AtomGroup)):
-        raise TypeError('Refpdb must be a Chain, Segment, Selection, or AtomGroup.')
-    
     if labels is not None:
         if len(labels) != len(PDBs):
-            raise TypeError('Labels and PDBs must have the same lengths.')
+            raise ValueError('labels and PDBs must be the same length.')
 
-    # obtain the hierarhical view of the reference PDB
-    refhv = refpdb.getHierView()
-    refchains = list(refhv)
+    # obtain refchains from the hierarhical view of the reference PDB
+    try:
+        refchains = list(refpdb.getHierView())
+    except AttributeError:
+        raise TypeError('refpdb must have getHierView')
 
     # obtain the atommap of all the chains combined.
     atoms = refchains[0]
@@ -387,10 +388,18 @@ def buildPDBEnsemble(refpdb, PDBs, title='Unknown', labels=None, seqid=94, cover
     
     # build the ensemble
     if unmapped is None: unmapped = []
-    for i,pdb in enumerate(PDBs):
-        if not isinstance(pdb, (Chain, Selection, AtomGroup)):
-            raise TypeError('PDBs must be a list of Chain, Selection, or AtomGroup.')
-        
+
+    verb = LOGGER.verbosity
+    LOGGER.verbosity = 'info'
+
+    LOGGER.progress('Building the ensemble...', len(PDBs))
+    for i, pdb in enumerate(PDBs):
+        LOGGER.update(i, 'Mapping %s to the reference...'%pdb)
+        try:
+            pdb.getHierView()
+        except AttributeError:
+            raise TypeError('PDBs must be a list of instances having the access to getHierView')
+            
         if labels is None:
             lbl = pdb.getTitle()
         else:
@@ -401,7 +410,9 @@ def buildPDBEnsemble(refpdb, PDBs, title='Unknown', labels=None, seqid=94, cover
         for chain in refchains:
             mappings = mapping_func(pdb, chain,
                                     seqid=seqid,
-                                    coverage=coverage)
+                                    coverage=coverage,
+                                    index=i,
+                                    **kwargs)
             if len(mappings) > 0:
                 atommaps.append(mappings[0][0])
             else:
@@ -413,12 +424,15 @@ def buildPDBEnsemble(refpdb, PDBs, title='Unknown', labels=None, seqid=94, cover
         
         # combine the mappings of pdb to reference chains
         atommap = atommaps[0]
-        for i in range(1, len(atommaps)):
-            atommap += atommaps[i]
+        for j in range(1, len(atommaps)):
+            atommap += atommaps[j]
         
         # add the mappings to the ensemble
         ensemble.addCoordset(atommap, weights=atommap.getFlags('mapped'), label = lbl)
     
+    LOGGER.update(len(PDBs), 'Finished.')
+    LOGGER.verbosity = verb
+
     if occupancy is not None:
         ensemble = trimPDBEnsemble(ensemble, occupancy=occupancy)
     ensemble.iterpose()
@@ -454,11 +468,10 @@ def addPDBEnsemble(ensemble, PDBs, refpdb=None, labels=None, seqid=94, coverage=
         if len(labels) != len(PDBs):
             raise TypeError('Labels and PDBs must have the same lengths.')
 
-    # obtain the hierarhical view of the referrence PDB
+    # obtain refchains from the hierarhical view of the reference PDB
     if refpdb is None:
         refpdb = ensemble.getAtoms()
-    refhv = refpdb.getHierView()
-    refchains = list(refhv)
+    refchains = list(refpdb.getHierView())
 
     # obtain the atommap of all the chains combined.
     atoms = refchains[0]

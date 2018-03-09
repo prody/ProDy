@@ -63,11 +63,15 @@ class daliRecord(object):
 
     """A class to store results from Dali PDB search."""
 
-    def __init__(self, url, pdbId=None, chainId=None, subset='fullPDB'):
+    def __init__(self, url, pdbId=None, chainId=None, subset='fullPDB', localFile=False):
         """Instantiate a daliPDB object instance.
 
-        :arg subset: fullPDB, PDB25, PDB50, PDB90
-        :type sequence: str"""
+        :arg url: url of Dali results page or local dali results file.
+        :arg pdbId: PDB code for searched protein.
+        :arg chainId: chain identifier (only one chain can be assigned for PDB).
+        :arg subset: fullPDB, PDB25, PDB50, PDB90. Ignored if localFile=True (url is a local file).
+        :arg localFile: provided url is a path for local dali results file.
+        """
 
         self._url = url
         self._pdbId = pdbId
@@ -79,53 +83,59 @@ class daliRecord(object):
         else:
             self._subset = "-"+subset[3:]
         
-        self.isSuccess = self.getRecord(self._url)
+        self.isSuccess = self.getRecord(self._url, localFile=localFile)
 
-    def getRecord(self, url):
-        sleep = 2
-        timeout = 120
-        LOGGER.timeit('_dali')
-        log_message = ''
-        try_error = 3
-        while True:
-            LOGGER.sleep(int(sleep), 'to reconnect Dali '+log_message)
-            LOGGER.clear()
-            LOGGER.write('Connecting Dali for search results...')
-            LOGGER.clear()
-            try:
-                html = urllib2.urlopen(url).read()
-            except:
-                try_error -= 1
-                if try_error >= 0:
-                    LOGGER.sleep(2, '. Connection error happened. Trying to reconnect...')
-                    continue
-                else:
+    def getRecord(self, url, localFile=False):
+        if localFile:
+            dali_file = open(url, 'r')
+            data = dali_file.read()
+            dali_file.close()
+        else:
+            sleep = 2
+            timeout = 120
+            LOGGER.timeit('_dali')
+            log_message = ''
+            try_error = 3
+            while True:
+                LOGGER.sleep(int(sleep), 'to reconnect Dali '+log_message)
+                LOGGER.clear()
+                LOGGER.write('Connecting Dali for search results...')
+                LOGGER.clear()
+                try:
                     html = urllib2.urlopen(url).read()
-            if html.find('Status: Queued') > -1:
-                log_message = '(Dali searching is queued)...'
-            elif html.find('Status: Running') > -1:
-                log_message = '(Dali searching is running)...'
-            elif html.find('Your job') == -1 and html.find('.txt') > -1:
-                break
-            elif html.find('ERROR:') > -1:
-                LOGGER.warn(': Dali search reported an ERROR!')
-                return None
-                break
-            sleep = 20 if int(sleep * 1.5) >= 20 else int(sleep * 1.5)
-            if LOGGER.timing('_dali') > timeout:
-                LOGGER.warn(': Dali search is time out. \nThe results can be obtained using getRecord() function later.')
-                return None
-                break
+                except:
+                    try_error -= 1
+                    if try_error >= 0:
+                        LOGGER.sleep(2, '. Connection error happened. Trying to reconnect...')
+                        continue
+                    else:
+                        html = urllib2.urlopen(url).read()
+                if html.find('Status: Queued') > -1:
+                    log_message = '(Dali searching is queued)...'
+                elif html.find('Status: Running') > -1:
+                    log_message = '(Dali searching is running)...'
+                elif html.find('Your job') == -1 and html.find('.txt') > -1:
+                    break
+                elif html.find('ERROR:') > -1:
+                    LOGGER.warn(': Dali search reported an ERROR!')
+                    return None
+                    break
+                sleep = 20 if int(sleep * 1.5) >= 20 else int(sleep * 1.5)
+                if LOGGER.timing('_dali') > timeout:
+                    LOGGER.warn(': Dali search is time out. \nThe results can be obtained using getRecord() function later.')
+                    return None
+                    break
+                LOGGER.clear()
             LOGGER.clear()
-        LOGGER.clear()
-        LOGGER.report('Dali results completed in %.1fs.', '_dali')
-        lines = html.strip().split('\n')
-        with open("temp.txt", "w") as file_temp: file_temp.write(html + '\n')
-        file_name = re.search('=.+-90\.txt', html).group()[1:]
-        file_name = file_name[:-7]
-        # LOGGER.info(url+file_name+self._subset+'.txt')
-        data = urllib2.urlopen(url+file_name+self._subset+'.txt').read()
-        with open("temp.txt", "a+") as file_temp: file_temp.write(url+file_name + '\n' + data)
+            LOGGER.report('Dali results completed in %.1fs.', '_dali')
+            lines = html.strip().split('\n')
+            file_name = re.search('=.+-90\.txt', html).group()[1:]
+            file_name = file_name[:-7]
+            # LOGGER.info(url+file_name+self._subset+'.txt')
+            data = urllib2.urlopen(url+file_name+self._subset+'.txt').read()
+            temp_name = file_name+self._subset+'_dali.txt'
+            with open(temp_name, "w") as file_temp: file_temp.write(html + '\n' + url+file_name + '\n' + data)
+            # with open(temp_name, "a+") as file_temp: file_temp.write(url+file_name + '\n' + data)
         data_list = data.strip().split('# ')
         # No:  Chain   Z    rmsd lali nres  %id PDB  Description -> data_list[3]
         # Structural equivalences -> data_list[4]
@@ -145,7 +155,7 @@ class daliRecord(object):
         self._mapping = map_temp_dict
         self._data = data_list[3]
         lines = data_list[3].strip().split('\n')
-        daliInfo = np.genfromtxt(lines[1:], delimiter = (4,3,6,5,5,5,6,5,57), usecols = [0,2,3,4,5,6,7], dtype=[('id', '<i4'), ('pdb_chain', '|S6'), ('Z', '<f4'), ('rmsd', '<f4'), ('len_align', '<i4'), ('res_num', '<i4'), ('identity', '<i4')])
+        daliInfo = np.genfromtxt(lines[1:], delimiter = (4,3,6,5,5,5,6,5,57), usecols = [0,2,3,4,5,6,7,8], dtype=[('id', '<i4'), ('pdb_chain', '|S6'), ('Z', '<f4'), ('rmsd', '<f4'), ('len_align', '<i4'), ('res_num', '<i4'), ('identity', '<i4'), ('title', '|S70')])
         if daliInfo.ndim == 0:
             daliInfo = np.array([daliInfo])
         pdbListAll = []
@@ -253,20 +263,32 @@ class daliRecord(object):
         ensemble = PDBEnsemble('3h5v-A')
         ensemble.setAtoms(ref_chain)
         ensemble.setCoords(ref_chain)
+        failPDBList = []
         for pdb_chain in pdbList:
             # print(pdb_chain)
             temp_dict = daliInfo[pdb_chain]
             sel_pdb = parsePDB(pdb_chain[0:4]).select('chain '+pdb_chain[5:6]).copy()
             sel_pdb_ca = sel_pdb.select("protein and name CA").copy()
-            map_ref = []
-            map_sel = []
-            for i in range(len(temp_dict['map_ref'])):
-                map_ref.append(temp_dict['map_ref'][i])
-                map_sel.append(temp_dict['map_sel'][i])
+            map_ref = temp_dict['map_ref']
+            map_sel = temp_dict['map_sel']
+            # map_ref = []
+            # map_sel = []
+            # for i in range(len(temp_dict['map_ref'])):
+                # map_ref.append(temp_dict['map_ref'][i])
+                # map_sel.append(temp_dict['map_sel'][i])
             dum_sel = list(ref_indices_set - set(map_ref))
             atommap = AtomMap(sel_pdb_ca, indices=map_sel, mapping=map_ref, dummies=dum_sel)
             # ensemble.addCoordset(atommap, weights=atommap.getFlags('mapped'))
-            ensemble.addCoordset(atommap, weights=atommap.getFlags('mapped'), degeneracy=True)
-        ensemble.iterpose()
-        RMSDs = ensemble.getRMSDs()
+            try:
+                ensemble.addCoordset(atommap, weights=atommap.getFlags('mapped'), degeneracy=True)
+            except:
+                failPDBList.append(pdb_chain)
+        self._failPDBList = failPDBList
+        if failPDBList != []:
+            LOGGER.warn('failed to add '+str(len(failPDBList))+' PDB chain to ensemble: '+' '.join(failPDBList))
+        try:
+            ensemble.iterpose()
+            RMSDs = ensemble.getRMSDs()
+        except:
+            LOGGER.warn('failed to iterpose the ensemble.')
         return ensemble

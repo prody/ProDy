@@ -11,6 +11,7 @@ from prody.utilities import makePath, openURL, gunzip, openFile, dictElement
 from prody.utilities import relpath
 from prody.proteins import parsePDB
 from prody.sequence import parseMSA, refineMSA, MSA
+from .uniprot import queryUniprot
 
 if PY3K:
     import urllib.parse as urllib
@@ -19,7 +20,7 @@ else:
     import urllib
     import urllib2
 
-__all__ = ['searchPfam', 'fetchPfamMSA', 'searchUniprotID', 'fetchPfamPDBChains']
+__all__ = ['searchPfam', 'fetchPfamMSA', 'searchUniprotID', 'fetchPfamPDBs']
 
 FASTA = 'fasta'
 SELEX = 'selex'
@@ -409,7 +410,7 @@ def fetchPfamMSA(acc, alignment='full', compressed=False, **kwargs):
 
     return filepath
 
-def fetchPfamPDBChains(**kwargs):
+def fetchPfamPDBs(**kwargs):
     """Returns a list of AtomGroups containing sections of chains that 
     correspond to a particular PFAM domain family. These are defined by 
     alignment start and end residue numbers.
@@ -435,11 +436,16 @@ def fetchPfamPDBChains(**kwargs):
     :arg end: Residue number for defining the end of the domain.
         The PFAM domain that ends closest to this will be selected. 
     :type end: int
+
+    :arg return_data: Whether to return the data dictionary from
+        the Pfam mapping table, default is False
+    :type return_data: bool
     """
-    pfam_acc = kwargs.get('pfam_acc',None)
-    query = kwargs.get('query',None)
-    start = kwargs.get('start',None)
-    end = kwargs.get('end',None)
+    pfam_acc = kwargs.pop('pfam_acc',None)
+    query = kwargs.pop('query',None)
+    start = kwargs.pop('start',None)
+    end = kwargs.pop('end',None)
+    return_data = kwargs.pop('return_data', False)
 
     if pfam_acc is None:
         if query is None:
@@ -483,45 +489,18 @@ def fetchPfamPDBChains(**kwargs):
             for j, entry in enumerate(line.strip().split('\t')):
                 data_dict[-1][fields[j]] = entry
 
-    if query is None:
-        query_header = parsePDBHeader(data_dict[0]['PDB_ID'])
-        query = query_header['polymers'][data_dict[0]['CHAIN_ID']].dbrefs[0].idcode
-
-    msa_name = fetchPfamMSA(pfam_acc, format='fasta')
-    full_msa = parseMSA(msa_name)
-
-    pdb_ids = []            
-    ags = []
-    headers = []
-    chains = []
-    msa = []
-    labels = []
+    pdb_ids = []
+    pdbs = []
+    headers = []            
     for i in range(len(data_dict)):
         pdb_id = data_dict[i]['PDB_ID']
         if not pdb_id in pdb_ids:
-            ag, header = parsePDB(pdb_id, compressed=False, \
-                                  report=False, subset='ca', \
-                                  header=True, **kwargs)
-            ags.append(ag)
-            headers.append(header)
             pdb_ids.append(pdb_id)
 
-        for chain in header['polymers']:
-            if chain.dbrefs != []:
-                if full_msa.getIndex(chain.dbrefs[0].idcode) is not None:
-                    chains.append(ag.getHierView()[chain.chid])
-                    if not chain.dbrefs[0].idcode in labels:
-                        msa.append(list(str(full_msa[full_msa.getIndex(chain.dbrefs[0].idcode)])))
-                        labels.append(chain.dbrefs[0].idcode)
+    result = parsePDB(*pdb_ids, **kwargs)
 
-    pfam_pdb_msa = MSA(msa=np.array(msa), labels=labels, title='PFAM PDB MSA')
-    pfam_pdb_msa = refineMSA(pfam_pdb_msa,colocc=0.01)
-
-    LOGGER.info('{0} PDBs have been parsed and {1} chains have been extracted. \
-                '.format(len(ags),len(chains)))
-
-    if kwargs.get('pfam_acc',None) is not None:
-        return data_dict, query, ags, headers, chains, pfam_pdb_msa
+    if return_data:
+        return data_dict, result
     else:
-        return data_dict, pfam_acc, ags, headers, chains, pfam_pdb_msa
+        return result
 

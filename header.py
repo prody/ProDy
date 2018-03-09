@@ -363,10 +363,8 @@ def _getBiomoltrans(lines):
         elif line[13:18] == 'BIOMT':
             biomt = biomolecule[currentBiomolecule]
             if line[13:19] == 'BIOMT1':
-                if applyToChains == []:
-                    applyToChains = biomt[0]
                 biomt.append(applyToChains)
-            elif line[13:19]:
+            elif line[13:19] == 'BIOMT3':
                 applyToChains = []
             biomt.append(line[23:])
     return dict(biomolecule)
@@ -1064,23 +1062,23 @@ def buildBiomolecules(header, atoms, biomol=None):
         # mt is a list, first item is list of chain identifiers
         # following items are lines corresponding to transformation
         # mt must have 3n + 1 lines
-        if (len(mt)) % 4 != 0:
+        if (len(mt) - 1) % 3 != 0:
             LOGGER.warn('Biomolecular transformations {0} were not '
                         'applied'.format(i))
             continue
 
-        for times in range(int((len(mt)) / 4)):
+        for times in range(int((len(mt) - 1) / 3)):
             rotation = np.zeros((3, 3))
             translation = np.zeros(3)
-            line0 = np.fromstring(mt[times*4+1], sep=' ')
-            rotation[0, :] = line0[:3]
-            translation[0] = line0[3]
-            line1 = np.fromstring(mt[times*4+2], sep=' ')
-            rotation[1, :] = line1[:3]
-            translation[1] = line1[3]
-            line2 = np.fromstring(mt[times*4+3], sep=' ')
-            rotation[2, :] = line2[:3]
-            translation[2] = line2[3]
+            line = np.fromstring(mt[times*3+1], sep=' ')
+            rotation[0, :] = line[:3]
+            translation[0] = line[3]
+            line = np.fromstring(mt[times*3+2], sep=' ')
+            rotation[1, :] = line[:3]
+            translation[1] = line[3]
+            line = np.fromstring(mt[times*3+3], sep=' ')
+            rotation[2, :] = line[:3]
+            translation[2] = line[3]
             t = Transformation(rotation, translation)
 
             newag = atoms.select('chain ' + ' '.join(mt[0])).copy()
@@ -1092,7 +1090,6 @@ def buildBiomolecules(header, atoms, biomol=None):
                 newag = t.apply(newag)
             newag.setACSIndex(0)
             ags.append(newag)
-
         if ags:
             newag = ags.pop(0)
             while ags:
@@ -1100,7 +1097,6 @@ def buildBiomolecules(header, atoms, biomol=None):
             newag.setTitle('{0} biomolecule {1}'
                            .format(atoms.getTitle(), i))
             biomols.append(newag)
-            
     if biomols:
         if len(biomols) == 1:
             return biomols[0]

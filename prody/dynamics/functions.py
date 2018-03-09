@@ -7,7 +7,7 @@ from os.path import abspath, join, isfile, isdir, split, splitext
 import numpy as np
 
 from prody import LOGGER, SETTINGS, PY3K
-from prody.atomic import AtomGroup, AtomSubset
+from prody.atomic import Atomic, AtomGroup, AtomSubset
 from prody.utilities import openFile, isExecutable, which, PLATFORM, addext
 
 from .nma import NMA
@@ -372,36 +372,39 @@ def calcENM(atoms, select=None, model='anm', trim='trim', gamma=1.0,
     :type trim: str
     """
     
-    if title is None:
-        title = atoms.getTitle()
-        
+    if not isinstance(atoms, Atomic):
+        if select is not None:
+            raise TypeError('atoms should be Atomic if it needs to be selected')
+    try:
+        if title is None:
+            title = atoms.getTitle()
+    except AttributeError:
+        title = 'Unknown'
+
+    zeros = kwargs.pop('zeros', False)
+    turbo = kwargs.pop('turbo', True)
+
     if model is GNM:
         model = 'gnm'
     elif model is ANM:
         model = 'anm'
-    elif isinstance(model, str):
-        model = model.lower().strip() 
     else:
-        raise TypeError('invalid type for model: {0}'.format(type(model)))
+        model = str(model).lower().strip() 
 
-    if isinstance(trim, str):
-        trim = trim.lower().strip()
-    elif trim is reduceModel:
+    if trim is reduceModel:
         trim = 'reduce'
     elif trim is sliceModel:
         trim = 'slice'
     elif trim is None:
         trim = 'trim'
     else:
-        raise TypeError('invalid type for trim: {0}'.format(type(model)))
+        trim = str(trim).lower().strip()
 
     if trim == 'trim' and select is not None:
-        if isinstance(select, str):
-            atoms = atoms.select(select)
-        elif isinstance(select, AtomSubset):
+        if isinstance(select, AtomSubset):
             atoms = select
         else:
-            raise TypeError('select must be a string or a Selection instance')
+            atoms = atoms.select(str(select))
     
     enm = None
     if model == 'anm':
@@ -416,17 +419,17 @@ def calcENM(atoms, select=None, model='anm', trim='trim', gamma=1.0,
         raise TypeError('model should be either ANM or GNM instead of {0}'.format(model))
     
     if select is None:
-        enm.calcModes(n_modes=n_modes)
+        enm.calcModes(n_modes=n_modes, zeros=zeros, turbo=turbo)
     else:
         if trim == 'slice':
-            enm.calcModes(n_modes=n_modes)
+            enm.calcModes(n_modes=n_modes, zeros=zeros, turbo=turbo)
             enm, atoms = sliceModel(enm, atoms, select)  
             if model == 'gnm':
                 enm.calcHinges()
         elif trim == 'reduce':
             enm, atoms = reduceModel(enm, atoms, select)
-            enm.calcModes(n_modes=n_modes)
+            enm.calcModes(n_modes=n_modes, zeros=zeros, turbo=turbo)
         else:
-            enm.calcModes(n_modes=n_modes)
+            enm.calcModes(n_modes=n_modes, zeros=zeros, turbo=turbo)
     
     return enm, atoms

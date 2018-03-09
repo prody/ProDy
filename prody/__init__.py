@@ -17,9 +17,6 @@ else:
     if tuple(map(int, np.__version__.split('.')[:2])) < (1, 4):
         raise ImportError('Numpy v1.4 or later is required for ProDy')
 
-from .utilities import PackageLogger, PackageSettings
-from .utilities import getPackagePath, joinRepr, tabulate
-
 DEPRECATION_WARNINGS = False
 
 
@@ -53,17 +50,19 @@ def turnonDepracationWarnings(action='always'):
 _PY3K = PY3K = sys.version_info[0] > 2
 PY2K = not PY3K
 
-LOGGER = PackageLogger('.prody')
-
-SETTINGS = PackageSettings('prody', logger=LOGGER)
-SETTINGS.load()
-
 __all__ = ['checkUpdates', 'confProDy', 'startLogfile', 'closeLogfile', 'plog']
 
 from . import utilities
 from .utilities import *
+from .utilities import PackageLogger, PackageSettings
+from .utilities import getPackagePath, joinRepr, tabulate
 __all__.extend(utilities.__all__)
 __all__.append('utilities')
+
+LOGGER = PackageLogger('.prody')
+
+SETTINGS = PackageSettings('prody', logger=LOGGER)
+SETTINGS.load()
 
 from . import kdtree
 from .kdtree import *
