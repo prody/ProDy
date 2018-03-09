@@ -1391,6 +1391,9 @@ def showAtomicData(y, atoms=None, linespec='-', **kwargs):
     chain_text_loc = kwargs.pop('chain_text_loc', 'above')
     domain_text_loc = kwargs.pop('domain_text_loc', 'below')
     zero_line = kwargs.pop('show_zero', False)
+    show_text = kwargs.pop('show_text', True)
+    show_domain_text = kwargs.pop('show_domain_text', show_text)
+    show_chain_text = kwargs.pop('show_chain_text', show_text)
 
     from prody.utilities import showData
     from matplotlib.pyplot import figure, xlim, ylim, plot, text
@@ -1443,13 +1446,15 @@ def showAtomicData(y, atoms=None, linespec='-', **kwargs):
     show_chain, chain_pos, chids = _checkDomainBarParameter(chain_bar, 0., atoms, 'chain')
      
     if show_chain:
-        b, t = showDomainBar(atoms.getChids(), loc=chain_pos, axis='x', text_loc=chain_text_loc)
+        b, t = showDomainBar(atoms.getChids(), loc=chain_pos, axis='x', 
+                             text_loc=chain_text_loc, show_text=show_chain_text)
         bars.extend(b)
         texts.extend(t)
 
     show_domain, domain_pos, domains = _checkDomainBarParameter(domain_bar, 1., atoms, 'domain')
     if show_domain:
-        b, t = showDomainBar(domains, loc=domain_pos, axis='x', text_loc=domain_text_loc)
+        b, t = showDomainBar(domains, loc=domain_pos, axis='x', 
+                             text_loc=domain_text_loc,  show_text=show_domain_text)
         bars.extend(b)
         texts.extend(t)
 
@@ -1473,6 +1478,9 @@ def showDomainBar(domains, loc=0., axis='x', **kwargs):
                either **x** or **y**
     :type axis: str
 
+    :arg show_text: whether show the text or not. Default is ``True``
+    :type show_text: bool
+
     :arg text_loc: location of text labels. It can be either 
                    **above** or **below**
     :type text_loc: str
@@ -1483,6 +1491,7 @@ def showDomainBar(domains, loc=0., axis='x', **kwargs):
 
     from matplotlib.pyplot import plot, text, xlim, ylim
 
+    show_text = kwargs.pop('show_text', True)
     text_color = kwargs.pop('text_color', 'k')
 
     text_loc = kwargs.pop('text_loc', 'above')
@@ -1497,6 +1506,7 @@ def showDomainBar(domains, loc=0., axis='x', **kwargs):
     valign = 'top' if text_loc == 'below' else 'bottom'
 
     uni_domids = np.unique(domains)
+    uni_domids = uni_domids[uni_domids!='']
 
     if axis == 'y':
         lim = xlim
@@ -1508,30 +1518,33 @@ def showDomainBar(domains, loc=0., axis='x', **kwargs):
     L = lim()
     d_loc = L[0] + loc * (L[1] - L[0])
     D = []
+    bars = []
+    texts = []
 
     for domid in uni_domids:
         d = domains == domid
         D.append(d)
+    if not D:
+        return bars, texts
     D = np.vstack(D).T
     F = np.zeros(D.shape)
     F[~D] = np.nan
     F[D] = d_loc
 
-    bars = []
-    texts = []
-    for i, chid in enumerate(uni_domids):
-        locs = np.where(D[:, i])[0]
-        pos = np.median(locs)
-        if axis == 'y':
-            txt = text(d_loc, pos, chid, rotation='vertical', 
-                                         color=text_color,
-                                         horizontalalignment=halign, 
-                                         verticalalignment='center')
-        else:
-            txt = text(pos, d_loc, chid, color=text_color,
-                                         horizontalalignment='center', 
-                                         verticalalignment=valign)
-        texts.append(txt)
+    if show_text:
+        for i, chid in enumerate(uni_domids):
+            locs = np.where(D[:, i])[0]
+            pos = np.median(locs)
+            if axis == 'y':
+                txt = text(d_loc, pos, chid, rotation='vertical', 
+                                            color=text_color,
+                                            horizontalalignment=halign, 
+                                            verticalalignment='center')
+            else:
+                txt = text(pos, d_loc, chid, color=text_color,
+                                            horizontalalignment='center', 
+                                            verticalalignment=valign)
+            texts.append(txt)
     if axis == 'y':
         _y = np.arange(len(domains))
         Y = np.tile(_y, (len(uni_domids), 1)).T
@@ -1540,7 +1553,7 @@ def showDomainBar(domains, loc=0., axis='x', **kwargs):
         bar = plot(F, linewidth=5)
 
     bars.extend(bar)
-    lim(L)
+    lim(L, auto=True)
     return bars, texts
 
 def showTree(tree, format='ascii', **kwargs):
