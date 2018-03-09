@@ -398,7 +398,7 @@ def reorderMatrix(matrix, tree, names=None):
 
     indices = []
     for terminal in tree.get_terminals():
-        indices.append(np.where(np.array(names) == str(terminal))[0][0])
+        indices.append(np.where(np.array(names) == str(terminal.name))[0][0])
 
     reordered_matrix = matrix[:,indices]
     reordered_matrix = reordered_matrix[indices,:]

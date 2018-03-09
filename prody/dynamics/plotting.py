@@ -1642,7 +1642,8 @@ def showTree_networkx(tree, node_size=20, node_color='red', node_shape='o', with
     if SETTINGS['auto_show']:
         mpl.figure()
 
-    layout = networkx.spring_layout(G, scale=scale, iterations=iterations)
+    k = kwargs.pop('k', None)
+    layout = networkx.spring_layout(G, k=k, scale=scale, iterations=iterations)
     #networkx.draw(G, pos=layout, withlabels=False, node_size=sizes, node_color=colors)
     networkx.draw_networkx_edges(G, pos=layout)
     
