@@ -545,7 +545,7 @@ def showSignature(signature, linespec='-', **kwargs):
     """
 
     from matplotlib.pyplot import figure, plot, fill_between, \
-                                  gca, xlabel, ylabel, title
+                                  gca, xlabel, ylabel, title, ylim
 
     V = signature
         
@@ -555,7 +555,11 @@ def showSignature(signature, linespec='-', **kwargs):
     atoms = kwargs.pop('atoms', None)
 
     zero_line = kwargs.pop('show_zero', False)
-    lines, _, bars, _ = showAtomicData(meanV, atoms=atoms, linespec=linespec, show_zero=zero_line, **kwargs)
+    lines, _, bars, _ = showAtomicData(meanV, atoms=atoms, linespec=linespec, 
+                                       show_zero=zero_line, **kwargs)
+
+    ori_ylim = ylim()
+    ori_height = ori_ylim[1] - ori_ylim[0]
     line = lines[-1]
     color = line.get_color()
     x, _ = line.get_data()
@@ -569,18 +573,28 @@ def showSignature(signature, linespec='-', **kwargs):
                         linewidth=1, antialiased=True)
     polys.append(poly)
 
+    # readjust domain/chain bars' locations
+    cur_ylim = ylim()
+    cur_height = cur_ylim[1] - cur_ylim[0]
+    for bar in bars:
+        Y = bar.get_ydata()
+        new_Y = (Y - ori_ylim[0]) / ori_height * cur_height + cur_ylim[0]
+        bar.set_ydata(new_Y)
+
     xlabel('Residues')
     title('Signature profile of ' + V.getTitle())
 
     return lines, polys, bars
 
-def showSignatureMode(mode_ensemble):
+def showSignatureMode(mode_ensemble, **kwargs):
     mode = mode_ensemble.getEigvec()
-    return showSignature(mode, atoms=mode_ensemble.getAtoms(), show_zero=True)
+    show_zero = kwargs.pop('show_zero', True)
+    return showSignature(mode, atoms=mode_ensemble.getAtoms(), show_zero=show_zero, **kwargs)
 
-def showSignatureSqFlucts(mode_ensemble):
+def showSignatureSqFlucts(mode_ensemble, **kwargs):
     sqf = calcSignatureSqFlucts(mode_ensemble)
-    return showSignature(sqf, atoms=mode_ensemble.getAtoms(), show_zero=False)
+    show_zero = kwargs.pop('show_zero', False)
+    return showSignature(sqf, atoms=mode_ensemble.getAtoms(), show_zero=show_zero, **kwargs)
 
 def calcSignatureCrossCorr(mode_ensemble):
     """Calculate average cross-correlations for a modeEnsemble (a list of modes)."""
