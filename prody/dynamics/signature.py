@@ -468,8 +468,8 @@ class Signature(object):
         weights = None
         if self._weights is not None:
             weights = self._weights[:, :, 0]
-        mean = np.average(self._array, weights=weights)
-        variance = np.average((self._array - mean)**2, weights=weights)
+        mean = np.average(self._array, weights=weights, axis=0)
+        variance = np.average((self._array - mean)**2, weights=weights, axis=0)
         return np.sqrt(variance)
     std = getStd
 
