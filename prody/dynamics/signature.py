@@ -342,12 +342,18 @@ class ModeEnsemble(object):
         else:
             index = list(index)
         
+        n_modesets = self.numModeSets()
+
         for i in reversed(index):
             self._modesets.pop(i)
+            if self._labels:
+                self._labels.pop(i)
 
-        if self._weights:
-            self._weights = self._weights[index, :, :]
-        pass
+        if self._weights is not None:
+            torf = np.ones(n_modesets, dtype=bool)
+            torf[index] = False
+            self._weights = self._weights[torf, :, :]
+
 
 class Signature(object):
     """
