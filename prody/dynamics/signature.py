@@ -5,7 +5,7 @@ for conformations in an ensemble."""
 import numpy as np
 
 from prody import LOGGER, SETTINGS
-from prody.utilities import showFigure, showMatrix, copy
+from prody.utilities import showFigure, showMatrix, copy, checkWeights
 from prody.ensemble import Ensemble, Conformation
 
 from .nma import NMA
@@ -30,13 +30,14 @@ class ModeEnsemble(object):
     or :class:`PDBEnsemble`. 
     """
 
-    __slots__ = ['_modesets', '_title', '_labels', '_atoms']
+    __slots__ = ['_modesets', '_title', '_labels', '_atoms', '_weights']
 
     def __init__(self, title=None):
         self._modesets = []
         self._title = 'Unknown' if title is None else title
         self._labels = None
         self._atoms = None
+        self._weights = None
 
     def __len__(self):
         """Returns the number of vectors."""
@@ -90,8 +91,13 @@ class ModeEnsemble(object):
         for i in range(len(modesets)):
             modesets[i] = modesets[i][mode_index]
 
+        if self._weights is None:
+            weights = None
+        else:
+            weights = self._weights[modeset_index, :, :]
+
         ens = ModeEnsemble(title=self.getTitle())
-        ens.addModeSet(modesets, label=labels)
+        ens.addModeSet(modesets, weights=weights, label=labels)
         ens.setAtoms(self.getAtoms())
         return ens
 
@@ -129,7 +135,8 @@ class ModeEnsemble(object):
         ensemble.addModeSet(self._modesets, self._labels)
         ensemble.setAtoms(self.getAtoms())
         
-        ensemble.addModeSet(other.getModeSets(), label=other.getLabels())
+        ensemble.addModeSet(other.getModeSets(), weights=other.getWeights(),
+                            label=other.getLabels())
         return ensemble
 
     def is3d(self):
@@ -156,13 +163,26 @@ class ModeEnsemble(object):
 
     def numModeSets(self):
         """Returns number of modesets in the instance."""
-
         return len(self)
 
     def getTitle(self):
         """Returns title of the signature."""
-
         return self._title
+
+    def getWeights(self):
+        """Returns a copy of weights."""
+        return copy(self._weights)
+
+    def setWeights(self, weights):
+        """Set atomic weights."""
+
+        n_atoms = self.numAtoms()
+        n_modesets = self.numModeSets()
+
+        if n_atoms > 0 and n_modesets > 0:
+            self._weights = checkWeights(weights, n_atoms, n_modesets)
+        else:
+            raise RuntimeError('modesets must be set before weights can be assigned')
 
     def getModeSets(self, index=None):
         if index is None:
@@ -263,7 +283,7 @@ class ModeEnsemble(object):
             self._modesets = matchModes(*self._modesets)
         return
 
-    def addModeSet(self, modeset, label=None):
+    def addModeSet(self, modeset, weights=None, label=None):
         if isinstance(modeset, (NMA, ModeSet, Mode)):
             modesets = [modeset]
         else:
@@ -276,7 +296,7 @@ class ModeEnsemble(object):
                 labels = label
             if len(labels) != len(modesets):
                 raise ValueError('labels should have the same length as modesets')
-        
+
         if not self._labels and labels:
             self._labels = ['']*len(self._modesets)
             self._labels.extend(labels)
@@ -304,6 +324,20 @@ class ModeEnsemble(object):
             else:
                 self._modesets = [modeset]
 
+        if weights is None:
+            weights = np.ones((len(modesets), self.numAtoms(), 1))
+            if self._weights is not None:
+                self._weights = np.concatenate((self._weights, weights), axis=0)
+            else:
+                self._weights = weights
+        else:
+            weights = checkWeights(weights, self.numAtoms(), len(modesets))
+            if self._weights is None:
+                self._weights = np.ones((self.numModeSets()-len(modesets), self.numAtoms(), 1))
+            self._weights = np.concatenate((self._weights, weights), axis=0)
+
+    def delModeSet(self, modeset, weights=None, label=None):
+        pass
 
 class Signature(object):
     """
@@ -467,7 +501,8 @@ def calcEnsembleENMs(ensemble, model='gnm', trim='trim', n_modes=20, **kwargs):
                         .format(str_modes, model_type, n_confs))
 
     modeens = ModeEnsemble(title=ensemble.getTitle())
-    modeens.addModeSet(enms, label=ensemble.getLabels())
+    modeens.addModeSet(enms, weights=ensemble.getWeights(), 
+                             label=ensemble.getLabels())
     modeens.setAtoms(ensemble.getAtoms())
     return modeens
 
