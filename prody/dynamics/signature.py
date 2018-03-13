@@ -223,13 +223,20 @@ class ModeEnsemble(object):
         sig = Signature(V, title=title, labels=self.getLabels(), is3d=is3d)
         return sig
 
-    def _getData(self, name, mode_indices=None):
+    def _getData(self, name, mode_indices=None, sign_correction=False):
         modesets = self._modesets
         V = []
-        for modeset in modesets:
+        for i, modeset in enumerate(modesets):
             modes = modeset if mode_indices is None else modeset[mode_indices]
             func = getattr(modes, name)
             vecs = func()
+            if sign_correction:
+                if i == 0:
+                    vecs0 = vecs
+                else:
+                    c = np.sign(np.dot(vecs.T, vecs0))
+                    c = np.diag(np.diag(c))
+                    vecs = np.dot(vecs, c)
             V.append(vecs)
         is3d = modeset.is3d()
         V = np.array(V)
@@ -238,15 +245,15 @@ class ModeEnsemble(object):
         sig = Signature(V, title=title, labels=self.getLabels(), is3d=is3d)
         return sig
 
-    def getEigvec(self, mode_index=0):
+    def getEigvec(self, mode_index=0, sign_correction=True):
         """Returns a copy of eigenvector."""
 
         return self._getModeData('getEigvec', mode_index, sign_correction=True)
 
-    def getEigvecs(self, mode_indices=None):
+    def getEigvecs(self, mode_indices=None, sign_correction=True):
         """Returns a copy of eigenvectors."""
 
-        return self._getData('getEigvecs', mode_indices)
+        return self._getData('getEigvecs', mode_indices, sign_correction=True)
 
     def getVariance(self, mode_index=0):
         
