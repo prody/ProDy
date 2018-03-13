@@ -457,13 +457,19 @@ class Signature(object):
 
     def getMean(self):
         #return self._array.mean(axis=0)
-        return np.average(self._array, axis=0, weights=self._weights)
+        weights = None
+        if self._weights is not None:
+            weights = self._weights[:, :, 0]
+        return np.average(self._array, axis=0, weights=weights)
     mean = getMean
     
     def getStd(self):
         #return self._array.std(axis=0)
-        mean = np.average(self._array, weights=self._weights)
-        variance = np.average((self._array - mean)**2, weights=self._weights)
+        weights = None
+        if self._weights is not None:
+            weights = self._weights[:, :, 0]
+        mean = np.average(self._array, weights=weights)
+        variance = np.average((self._array - mean)**2, weights=weights)
         return np.sqrt(variance)
     std = getStd
 
