@@ -336,7 +336,17 @@ class ModeEnsemble(object):
                 self._weights = np.ones((self.numModeSets()-len(modesets), self.numAtoms(), 1))
             self._weights = np.concatenate((self._weights, weights), axis=0)
 
-    def delModeSet(self, modeset, weights=None, label=None):
+    def delModeSet(self, index):
+        if np.isscalar(index):
+            index = [index]
+        else:
+            index = list(index)
+        
+        for i in reversed(index):
+            self._modesets.pop(i)
+
+        if self._weights:
+            self._weights = self._weights[index, :, :]
         pass
 
 class Signature(object):
