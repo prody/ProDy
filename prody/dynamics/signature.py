@@ -220,7 +220,7 @@ class ModeEnsemble(object):
         V = np.vstack(V)
 
         title = 'mode %d'%(mode_index+1)
-        sig = Signature(V, title=title, labels=self.getLabels(), is3d=is3d)
+        sig = Signature(V, title=title, weights=self.getWeights(), labels=self.getLabels(), is3d=is3d)
         return sig
 
     def _getData(self, name, mode_indices=None, sign_correction=False):
@@ -242,7 +242,7 @@ class ModeEnsemble(object):
         V = np.array(V)
 
         title = '%d modes'%len(V)
-        sig = Signature(V, title=title, labels=self.getLabels(), is3d=is3d)
+        sig = Signature(V, title=title, weights=self.getWeights(), labels=self.getLabels(), is3d=is3d)
         return sig
 
     def getEigvec(self, mode_index=0, sign_correction=True):
@@ -370,9 +370,9 @@ class Signature(object):
     dimension.
     """
 
-    __slots__ = ['_array', '_title', '_labels', '_is3d']
+    __slots__ = ['_array', '_title', '_labels', '_is3d', '_weights']
 
-    def __init__(self, vecs, labels=None, title=None, is3d=False):
+    def __init__(self, vecs, weights=None, labels=None, title=None, is3d=False):
         vecs = np.array(vecs)
 
         self._array = vecs
@@ -385,6 +385,7 @@ class Signature(object):
         
         self._labels = labels
         self._is3d = is3d
+        self._weights = weights
 
     def __len__(self):
         """Returns the number of vectors."""
@@ -455,11 +456,15 @@ class Signature(object):
         return self._array
 
     def getMean(self):
-        return self._array.mean(axis=0)
+        #return self._array.mean(axis=0)
+        return np.average(self._array, axis=0, weights=self._weights)
     mean = getMean
     
     def getStd(self):
-        return self._array.std(axis=0)
+        #return self._array.std(axis=0)
+        mean = np.average(self._array, weights=self._weights)
+        variance = np.average((self._array - mean)**2, weights=self._weights)
+        return np.sqrt(variance)
     std = getStd
 
     def getMin(self):
@@ -469,6 +474,12 @@ class Signature(object):
     def getMax(self):
         return self._array.max(axis=0)
     max = getMax
+
+    def getWeights(self):
+        return self._weights
+
+    def setWeights(self, weights):
+        self._weights = weights
 
 def calcEnsembleENMs(ensemble, model='gnm', trim='trim', n_modes=20, **kwargs):
     """Description"""
