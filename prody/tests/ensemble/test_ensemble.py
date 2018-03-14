@@ -201,7 +201,7 @@ class TestEnsemble(TestCase):
 
         anti_sel = ATOMS.select('not resnum 1 to 3')
         ensemble.setAtoms(anti_sel)
-        new_conf = ensemble.getCoordset()[-1]
+        new_conf = ensemble.getCoordsets()[-1]
         coords = ensemble.getCoords()
         assert_allclose(new_conf, coords,
                         rtol=0, atol=1e-3,
