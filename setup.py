@@ -73,7 +73,8 @@ PACKAGE_DATA = {
                     'datafiles/*.coo',
                     'datafiles/dcd*.dcd',
                     'datafiles/xml*.xml',
-                    'datafiles/msa*',]
+                    'datafiles/msa*',],
+    'prody.atomic': ['mod_res_map.dat']
 }
 
 PACKAGE_DIR = {}
