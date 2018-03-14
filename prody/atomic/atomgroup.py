@@ -171,13 +171,7 @@ class AtomGroup(Atomic):
 
         acsi = self._acsi
 
-        if isinstance(index, int):
-            n_atoms = self._n_atoms
-            if index >= n_atoms or index < -n_atoms:
-                raise IndexError('index out of bounds')
-            return Atom(self, index if index >= 0 else n_atoms + index, acsi)
-
-        elif isinstance(index, slice):
+        if isinstance(index, slice):
             start, stop, step = index.indices(self._n_atoms)
             start = start or 0
             index = np.arange(start, stop, step)
@@ -198,7 +192,14 @@ class AtomGroup(Atomic):
             return self.getHierView()[index]
 
         else:
-            raise TypeError('invalid index')
+            try:
+                index = int(index)
+                n_atoms = self._n_atoms
+                if index >= n_atoms or index < -n_atoms:
+                    raise IndexError('index out of bounds')
+                return Atom(self, index if index >= 0 else n_atoms + index, acsi)
+            except:
+                raise TypeError('invalid index')
 
     def __len__(self):
 

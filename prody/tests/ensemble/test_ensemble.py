@@ -184,3 +184,15 @@ class TestEnsemble(TestCase):
                      'failed at concatenation for Ensemble')
         assert_equal(ensemble.getWeights(), ENSEMBLEW.getWeights(),
                      'failed at concatenation for Ensemble')
+
+    def testSelection(self):
+        """Test atom selection of ensemble."""
+
+        sel = ATOMS.select('resnum 1 to 3')
+        ENSEMBLE.setAtoms(sel)
+        assert_equal(ENSEMBLE.getCoordsets(), sel.getCoordsets(),
+                     'selection failed')
+
+        ENSEMBLE.setAtoms(ATOMS)
+        assert_equal(ENSEMBLE.getCoordsets(), ATOMS.getCoordsets(),
+                     'restoration failed')

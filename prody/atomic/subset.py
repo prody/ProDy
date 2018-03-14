@@ -47,6 +47,13 @@ class AtomSubset(AtomPointer):
 
         return len(self._indices)
 
+    def __getitem__(self, index):
+        try:
+            index = self._indices[index]
+            return self._ag[index]
+        except:
+            raise TypeError('invalid index')
+
     def getCoords(self):
         """Returns a copy of coordinates from the active coordinate set."""
 
