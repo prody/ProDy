@@ -285,7 +285,7 @@ class GNM(GNMBase):
             K_inv = linalg.pinv(K)
             sum_D = sum(D)
 
-            T1 = (sum_D * np.ones((len(D),1)) * diag(K_inv)).T
+            T1 = (sum_D * np.ones((len(D),1)) * np.diag(K_inv)).T
 
             T2 = sum_D * K_inv
             T3_i = np.dot((np.ones((len(D),1)) * D), K_inv)
@@ -623,7 +623,7 @@ class TrimedGNM(GNM):
             return vector
 
         if np.isscalar(self.mask):
-            self.mask = ones(self.numAtoms(), dtype=bool)
+            self.mask = np.ones(self.numAtoms(), dtype=bool)
 
         self.mask = _fixLength(self.mask, length, False)
         return
