@@ -628,10 +628,10 @@ def _getPolymers(lines):
         i += 1
         if line[12] == ' ':
             LOGGER.warn('DBREF2 chain identifier is not specified '
-                        '({0}:{1})'.format(pdbid, i, ch))
+                        '({0}:{1})'.format(pdbid, ch))
         elif line[12] != ch:
             LOGGER.warn('DBREF1 and DBREF2 chain id mismatch'
-                        '({0}:{1})'.format(pdbid, i, ch))
+                        '({0}:{1})'.format(pdbid, ch))
 
         dbref.accession = line[18:40].strip()
         try:
@@ -709,16 +709,16 @@ def _getPolymers(lines):
         try:
             resnum = int(line[18:22].strip())
         except:
-            continue
             LOGGER.warn('SEQADV for chain {2}: failed to parse PDB sequence '
                         'number ({0}:{1})'.format(pdbid, i, ch))
+            continue
         icode = line[22].strip()
         try:
             dbnum = int(line[43:48].strip())
         except:
-            continue
             LOGGER.warn('SEQADV for chain {2}: failed to parse database '
                         'sequence number ({0}:{1})'.format(pdbid, i, ch))
+            continue            
 
         comment = line[49:70].strip()
         match = False
@@ -741,9 +741,9 @@ def _getPolymers(lines):
                 continue
             dbref.diff.append((resname, resnum, icode, dbnum, dbnum, comment))
         if not match:
-            continue
             LOGGER.warn('SEQADV for chain {2}: database sequence reference '
                         'not found ({0}:{1})'.format(pdbid, i, ch))
+            continue
 
     string = ' '.join([line[10:].strip() for i, line in lines['COMPND']])
     if string.startswith('MOL_ID'):

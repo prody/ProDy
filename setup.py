@@ -68,6 +68,7 @@ PACKAGES = ['prody',
             'prody.tests.trajectory',
             'prody.tests.utilities',]
 PACKAGE_DATA = {
+    'prody.utilities': ['datafiles/*.dat'],
     'prody.tests': ['datafiles/pdb*.pdb',
                     'datafiles/*.dat',
                     'datafiles/*.coo',
@@ -154,4 +155,5 @@ setup(
     #scripts=SCRIPTS,
     install_requires=['NumPy (>=1.7)', ],
     #provides=['ProDy ({0:s})'.format(__version__)]
+    include_package_data=True
 )
