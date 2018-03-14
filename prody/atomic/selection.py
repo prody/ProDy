@@ -53,7 +53,7 @@ class Selection(AtomSubset):
         else:
             try:
                 index = self._indices[index]
-                return self.getAtomGroup()[index]
+                return self._ag[index]
             except:
                 raise TypeError('invalid index')
 
