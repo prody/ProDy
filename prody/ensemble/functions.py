@@ -45,11 +45,8 @@ def saveEnsemble(ensemble, filename=None, **kwargs):
             attr_dict[attr] = value
 
     atoms = dict_['_atoms']
-    indices = dict_['_indices']
-    if atoms is not None and indices is None:
-        atoms = atoms.copy()
-
     attr_dict['_atoms'] = np.array([atoms, 0])
+
     filename += '.ens.npz'
     ostream = openFile(filename, 'wb', **kwargs)
     np.savez(ostream, **attr_dict)
@@ -431,6 +428,7 @@ def buildPDBEnsemble(refpdb, PDBs, title='Unknown', labels=None, seqid=94, cover
         
         # add the mappings to the ensemble
         ensemble.addCoordset(atommap, weights=atommap.getFlags('mapped'), label = lbl)
+        ensemble._atommaps.append(atommap)
     
     LOGGER.update(len(PDBs), 'Finished.')
     LOGGER.verbosity = verb
