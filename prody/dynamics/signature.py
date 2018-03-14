@@ -512,9 +512,9 @@ def calcEnsembleENMs(ensemble, model='gnm', trim='trim', n_modes=20, **kwargs):
 
     atoms = ensemble.getAtoms()
     select = None
-    if ensemble._indices is not None:
+    if ensemble.isSelected():
         select = atoms
-        atoms = atoms.getAtomGroup()
+        atoms = ensemble.getAtoms(selected=False)
         
     labels = ensemble.getLabels()
 
@@ -531,11 +531,11 @@ def calcEnsembleENMs(ensemble, model='gnm', trim='trim', n_modes=20, **kwargs):
 
     for i in range(n_confs):
         coords = ensemble.getCoordsets(i, selected=False)
+        nodes = coords[0, :, :]
         if atoms is not None:
-            atoms.setCoords(coords)
-        else:
-            atoms = coords
-        enm, _ = calcENM(atoms, select, model=model, trim=trim, 
+            atoms.setCoords(nodes)
+            nodes = atoms
+        enm, _ = calcENM(nodes, select, model=model, trim=trim, 
                             n_modes=n_modes, title=labels[i], **kwargs)
         enms.append(enm)
 
