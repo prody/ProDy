@@ -3,8 +3,8 @@
 :mod:`~prody.atomic` classes are derived from."""
 
 from numpy import all, arange
-
-from prody import LOGGER
+from os import path
+from prody import LOGGER, __path__
 
 from . import flags
 from .bond import trimBonds
@@ -18,7 +18,8 @@ isSelectionMacro = None
 NOTALLNONE = set(['not', 'all', 'none', 'index', 'sequence', 'x', 'y', 'z'])
 
 MODMAP = {}
-with open('mod_res_map.dat', 'rb') as f:
+datafile = path.join(__path__[0], 'atomic', 'mod_res_map.dat')
+with open(datafile, 'rb') as f:
     lines = f.readlines()
     for line in lines:
         try:
