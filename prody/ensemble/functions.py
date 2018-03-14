@@ -428,7 +428,6 @@ def buildPDBEnsemble(refpdb, PDBs, title='Unknown', labels=None, seqid=94, cover
         
         # add the mappings to the ensemble
         ensemble.addCoordset(atommap, weights=atommap.getFlags('mapped'), label = lbl)
-        ensemble._atommaps.append(atommap)
     
     LOGGER.update(len(PDBs), 'Finished.')
     LOGGER.verbosity = verb
