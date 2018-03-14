@@ -523,7 +523,7 @@ class GNM(GNMBase):
                 r_ij_n = LA.norm(r_ij, axis=2)
 
         #with np.errstate(divide='ignore'):
-        r_ij_n[np.diag_indices_from(r_ij_n)] = 1e-5  # div by 0
+        r_ij_n[np.diag_indices_from(r_ij_n)] = ZERO  # div by 0
         crossC = abs(crossC)
         normdistfluct = np.divide(np.sqrt(crossC), r_ij_n)
         LOGGER.report('NDF calculated in %.2lfs.', label='_ndf')
@@ -627,17 +627,3 @@ class TrimedGNM(GNM):
 
         self.mask = _fixLength(self.mask, length, False)
         return
-
-def test():
-    
-    from prody import parsePDB
-    pdb = parsePDB('1z83',subset='ca',chain='A')
-
-    gnm = GNM()
-    gnm.buildKirchhoff(pdb)
-    gnm.calcHitTime()
-
-    hitTime = gnm.getHitTime()
-    commuteTime = gnm.getCommuteTime()
-
-    return hitTime, commuteTime
