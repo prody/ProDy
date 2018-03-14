@@ -13,3 +13,4 @@ include prody/tests/datafiles/*.xml
 include prody/tests/datafiles/msa*
 include scripts/prody*
 include scripts/evol*
+include prody/atomic/*.dat

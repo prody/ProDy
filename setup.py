@@ -68,13 +68,13 @@ PACKAGES = ['prody',
             'prody.tests.trajectory',
             'prody.tests.utilities',]
 PACKAGE_DATA = {
+    'prody.atomic': ['*.dat'],
     'prody.tests': ['datafiles/pdb*.pdb',
                     'datafiles/*.dat',
                     'datafiles/*.coo',
                     'datafiles/dcd*.dcd',
                     'datafiles/xml*.xml',
-                    'datafiles/msa*',],
-    'prody.atomic': ['mod_res_map.dat']
+                    'datafiles/msa*',]
 }
 
 PACKAGE_DIR = {}
