@@ -2,7 +2,7 @@
 """This module defines a class for handling ensembles of conformations."""
 
 from numpy import dot, add, subtract, array, ndarray, sign, concatenate, unique
-from numpy import zeros, ones, arange
+from numpy import zeros, ones, arange, isscalar
 
 from prody import LOGGER
 from prody.atomic import Atomic
@@ -413,7 +413,7 @@ class Ensemble(object):
     def delCoordset(self, index):
         """Delete a coordinate set from the ensemble."""
 
-        if isinstance(index, int):
+        if isscalar(index):
             index = [index]
         else:
             index = list(index)
