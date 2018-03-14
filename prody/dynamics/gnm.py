@@ -112,6 +112,12 @@ class GNM(GNMBase):
     .. [TH97] Haliloglu T, Bahar I, Erman B. Gaussian dynamics of folded
        proteins. *Phys. Rev. Lett.* **1997** 79:3090-3093."""
 
+    def __init__(self, name='Unknown'):
+        super(GNM, self).__init__(name)
+        self._affinity = None
+        self._hitTime = None
+        self._commuteTime = None
+
     def setKirchhoff(self, kirchhoff):
         """Set Kirchhoff matrix."""
 
@@ -130,6 +136,7 @@ class GNM(GNMBase):
         self._kirchhoff = kirchhoff
         self._n_atoms = kirchhoff.shape[0]
         self._dof = kirchhoff.shape[0]
+        self._affinity = None
 
     def buildKirchhoff(self, coords, cutoff=10., gamma=1., **kwargs):
         """Build Kirchhoff matrix for given coordinate set.
@@ -223,13 +230,10 @@ class GNM(GNMBase):
         self._n_atoms = n_atoms
         self._dof = n_atoms
 
-    def buildAffinity(self, coords=None, cutoff=7.0):
+    def _buildAffinity(self):
 
         if self._kirchhoff is None:
-            try: 
-                self.buildKirchhoff(coords, cutoff)
-            except:
-                raise TypeError('You should provide the coordinates of the proteins')
+            raise TypeError('Kirchhoff needs to be built before affinities can be computed')
 
         if not isinstance(self._kirchhoff, np.ndarray):
             raise TypeError('kirchhoff must be a Numpy array')
@@ -252,7 +256,7 @@ class GNM(GNMBase):
     def calcHitTime(self, method='Z'):
 
         if self._affinity is None:
-            raise ValueError('Affinity matrix is not built or set')
+            self._buildAffinity()
 
         start = time.time()
         linalg = importLA()
@@ -299,7 +303,7 @@ class GNM(GNMBase):
         """Returns a copy of the Kirchhoff matrix."""
 
         if self._affinity is None:
-            return None
+            self._buildAffinity()
         return self._affinity.copy()
 
     def _getAffinity(self):
@@ -503,13 +507,11 @@ class GNM(GNMBase):
             model.buildKirchhoff(coords)
             model.calcModes() 
             
-        linalg = importLA()
+        LA = importLA()
         n_atoms = model.numAtoms()
-        n_modes = model.numModes()
         LOGGER.timeit('_ndf')
     
         from .analysis import calcCrossCorr
-        from numpy import linalg as LA
         # <dRi, dRi>, <dRj, dRj> = 1
         crossC = 2-2*calcCrossCorr(model)
         r_ij = np.zeros((n_atoms,n_atoms,3))
@@ -522,8 +524,8 @@ class GNM(GNMBase):
 
         #with np.errstate(divide='ignore'):
         r_ij_n[np.diag_indices_from(r_ij_n)] = 1e-5  # div by 0
-        crossC=abs(crossC)
-        normdistfluct = np.divide(np.sqrt(crossC),r_ij_n)
+        crossC = abs(crossC)
+        normdistfluct = np.divide(np.sqrt(crossC), r_ij_n)
         LOGGER.report('NDF calculated in %.2lfs.', label='_ndf')
         normdistfluct[np.diag_indices_from(normdistfluct)] = 0  # div by 0
         return normdistfluct
