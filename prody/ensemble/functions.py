@@ -335,7 +335,7 @@ def alignPDBEnsemble(ensemble, suffix='_aligned', outdir='.', gzip=False):
 
 
 def buildPDBEnsemble(refpdb, PDBs, title='Unknown', labels=None, seqid=94, coverage=85, 
-                     mapping_func=mapOntoChain, occupancy=None, unmapped=None, **kwargs):
+                     mapping_func=mapOntoChain, unmapped=None, **kwargs):
     """Builds a PDB ensemble from a given reference structure and a list of PDB structures. 
     Note that the reference structure should be included in the list as well.
 
@@ -365,6 +365,8 @@ def buildPDBEnsemble(refpdb, PDBs, title='Unknown', labels=None, seqid=94, cover
         output argument. 
     :type unmapped: list
     """
+
+    occupancy = kwargs.pop('occupancy', None)
 
     if labels is not None:
         if len(labels) != len(PDBs):
