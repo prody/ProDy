@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 """This module defines a class for handling ensembles of conformations."""
 
-from numpy import dot, add, subtract, array, ndarray, sign, concatenate, unique
+from numpy import dot, add, subtract, array, ndarray, sign, concatenate
 from numpy import zeros, ones, arange, isscalar, max, intersect1d, where
+from numpy import newaxis, unique, repeat
 
 from prody import LOGGER
 from prody.atomic import Atomic
@@ -326,6 +327,7 @@ class Ensemble(object):
         with :meth:`getCoordsets` method."""
 
         n_atoms = self._n_atoms
+        n_select = self.numSelected()
         try:
             if self._coords is not None:
                 if isinstance(coords, Ensemble):
@@ -352,18 +354,27 @@ class Ensemble(object):
 
         try:
             checkCoords(coords, csets=True, natoms=n_atoms)
-        except TypeError:
-            raise TypeError('coords must be a numpy array or an object '
-                            'with `getCoords` method')
-
-        if not n_atoms:
-            self._n_atoms = n_atoms = coords.shape[-2]
+        except:
+            try:
+                checkCoords(coords, csets=True, natoms=n_select)
+            except TypeError:
+                raise TypeError('coords must be a numpy array or an object '
+                                'with `getCoords` method')
 
         if coords.ndim == 2:
-            coords = coords.reshape((1, n_atoms, 3))
+            n_nodes, _ = coords.shape
+            coords = coords.reshape((1, n_nodes, 3))
             n_confs = 1
         else:
-            n_confs = coords.shape[0]
+            n_confs, n_nodes, _ = coords.shape
+
+        if not n_atoms:
+            self._n_atoms = n_atoms = n_nodes
+
+        if n_nodes == n_select and self.isSelected():
+            full_coords = repeat(self._coords[newaxis, :, :], n_confs, axis=0)
+            full_coords[:, self._indices, :] = coords
+            coords = full_coords
 
         if self._confs is None:
             self._confs = coords
