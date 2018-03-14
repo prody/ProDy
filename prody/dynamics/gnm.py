@@ -16,7 +16,7 @@ from prody.utilities import importLA, checkCoords
 from .nma import NMA
 from .gamma import Gamma
 
-__all__ = ['GNM', 'calcGNM', 'TrimedGNM', 'test']
+__all__ = ['GNM', 'calcGNM', 'TrimedGNM']
 
 ZERO = 1e-6
 
