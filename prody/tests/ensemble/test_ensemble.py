@@ -194,6 +194,5 @@ class TestEnsemble(TestCase):
                      'selection failed')
 
         ENSEMBLE.setAtoms(ATOMS)
-        assert_equal(ENSEMBLE.getCoordsets(), sel.getCoordsets(),
+        assert_equal(ENSEMBLE.getCoordsets(), ATOMS.getCoordsets(),
                      'restoration failed')
-                     
