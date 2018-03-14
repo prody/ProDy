@@ -58,7 +58,8 @@ class PDBEnsemble(Ensemble):
         
         other_weights = copy(other._weights)
         ensemble.addCoordset(copy(other._confs), other_weights)
-        ensemble.setAtoms(self.getAtoms())
+        ensemble.setAtoms(self._atoms)
+        ensemble._indices = self._indices
         return ensemble
 
     def __iter__(self):
@@ -85,7 +86,8 @@ class PDBEnsemble(Ensemble):
                             label=self._labels[index])
             if self._trans is not None:
                 ens._trans = self._trans[index]
-            ens.setAtoms(self.getAtoms())
+            ens.setAtoms(self._atoms)
+            ens._indices = self._indices
             return ens
 
         elif isinstance(index, (list, np.ndarray)):
@@ -96,6 +98,8 @@ class PDBEnsemble(Ensemble):
                             label=[self._labels[i] for i in index])
             if self._trans is not None:
                 ens._trans = self._trans[index]
+            ens.setAtoms(self._atoms)
+            ens._indices = self._indices
             return ens
         else:
             raise IndexError('invalid index')
@@ -152,6 +156,8 @@ class PDBEnsemble(Ensemble):
         list of identifiers, is used to label conformations."""
 
         atoms = coords
+        n_atoms = self.numAtoms()
+        n_select = self.numSelected()
         try:
             if self._coords is not None:
                 if isinstance(coords, Ensemble):
@@ -180,18 +186,29 @@ class PDBEnsemble(Ensemble):
             else:
                 label = label or str(coords)
         try:
-            checkCoords(coords, csets=True, natoms=self._n_atoms)
-        except TypeError:
-            raise TypeError('coords must be a Numpy array or must have '
-                            '`getCoords` attribute')
+            checkCoords(coords, csets=True, natoms=n_atoms)
+        except:
+            try:
+                checkCoords(coords, csets=True, natoms=n_select)
+            except TypeError:
+                raise TypeError('coords must be a numpy array or an object '
+                                'with `getCoords` method')
 
         if coords.ndim == 2:
-            coords = coords.reshape((1, self._n_atoms, 3))
+            n_nodes, _ = coords.shape
+            coords = coords.reshape((1, n_nodes, 3))
+            n_csets = 1
+        else:
+            n_csets, n_nodes, _ = coords.shape
 
-        n_csets, n_atoms, _ = coords.shape
-        if not self._n_atoms:
-            self._n_atoms = n_atoms
+        if not n_atoms:
+            self._n_atoms = n_nodes
 
+        if n_nodes == n_select and self.isSelected():
+            full_coords = np.repeat(self._coords[np.newaxis, :, :], n_csets, axis=0)
+            full_coords[:, self._indices, :] = coords
+            coords = full_coords
+        
         if weights is None:
             weights = np.ones((n_csets, n_atoms, 1), dtype=float)
         else:
