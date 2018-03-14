@@ -2,7 +2,7 @@
 """This module defines a class for handling ensembles of conformations."""
 
 from numpy import dot, add, subtract, array, ndarray, sign, concatenate, unique
-from numpy import zeros, ones, arange, isscalar
+from numpy import zeros, ones, arange, isscalar, max, intersect1d, where
 
 from prody import LOGGER
 from prody.atomic import Atomic
@@ -83,7 +83,8 @@ class Ensemble(object):
             if self._weights is not None:
                 ens.setWeights(self._weights.copy())
             
-            ens.setAtoms(self.getAtoms())
+            ens.setAtoms(self._atoms)
+            ens._indices = self._indices
             return ens
 
         elif isinstance(index, (list, ndarray)):
@@ -92,6 +93,9 @@ class Ensemble(object):
             ens.addCoordset(self._confs[index].copy())
             if self._weights is not None:
                 ens.setWeights(self._weights.copy())
+
+            ens.setAtoms(self._atoms)
+            ens._indices = self._indices
             return ens
 
         else:
@@ -120,7 +124,8 @@ class Ensemble(object):
             LOGGER.info('Atom weights from {0} are used in {1}.'
                         .format(repr(self._title), repr(ensemble.getTitle())))
             ensemble.setWeights(self._weights)
-        ensemble.setAtoms(self.getAtoms())
+        ensemble.setAtoms(self._atoms)
+        ensemble._indices = self._indices
         return ensemble
 
     def __iter__(self):
@@ -161,10 +166,17 @@ class Ensemble(object):
 
         return self._n_atoms if self._indices is None else len(self._indices)
 
-    def getAtoms(self):
-        """Returns associated/selected atoms."""
+    def isSelected(self):
+        """Returns if a subset of atoms are selected."""
+        return self._indices is not None
 
-        return self._atoms
+    def getAtoms(self, selected=True):
+        """Returns associated/selected atoms."""
+        if self._atoms is None:
+            return None
+        if self._indices is None or not selected:
+            return self._atoms
+        return self._atoms[self._indices]
 
     def setAtoms(self, atoms):
         """Set *atoms* or specify a selection of atoms to be considered in
@@ -204,26 +216,34 @@ class Ensemble(object):
                     if any(indices != unique(indices)):
                         raise ValueError('atoms must be ordered by indices')
 
-            if atoms.numAtoms() == n_atoms:
+            if atoms.numAtoms() == n_atoms: # atoms is a complete set (AtomSubset can be a complete set)
                 self._atoms = atoms
                 self._indices = None
 
-            else:
+            else: # atoms is a subset
                 try:
                     ag = atoms.getAtomGroup()
                 except AttributeError:
                     raise ValueError('atoms must indicate a subset or must '
                                      'match the ensemble size')
                 else:
-                    if ag.numAtoms() != n_atoms:
-                        raise ValueError('atoms must point to an AtomGroup '
-                                         'of the same size as the ensemble')
-                    self._atoms = atoms
-                    self._indices = atoms.getIndices()
+                    indices = atoms.getIndices()
+                    if ag.numAtoms() != n_atoms: # ag and ensemble sizes do not match
+                        if hasattr(self._atoms, 'getIndices'): # if ensemble.atoms is a AtomSubset
+                            if ag.numAtoms() != self._atoms.getAtomGroup().numAtoms():
+                                raise ValueError('the AtomGroup of atoms does not match that of the ensemble')
+                            indices0 = self._atoms.getIndices()
+                            mut_indices = intersect1d(indices0, indices)
+                            self._indices = [where(indices0==i)[0][0] for i in mut_indices]
+                        else: # ensemble.atoms is an AtomGroup
+                            raise ValueError('the AtomGroup of atoms does not match the ensemble size')
+                    else:  # ag and ensemble sizes match
+                        self._indices = indices
 
-        else:
+        else: # if assigning atoms to a new ensemble
             self._n_atoms = atoms.numAtoms()
             self._atoms = atoms
+            self._indices = None
 
     def getCoords(self, selected=True):
         """Returns a copy of reference coordinates for selected atoms."""

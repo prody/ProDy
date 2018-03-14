@@ -224,6 +224,7 @@ class Atomic(object):
         return new
 
     __copy__ = copy
+    toAtomGroup = copy
 
     def select(self, selstr, **kwargs):
         """Returns atoms matching *selstr* criteria.  See :mod:`~.select` module

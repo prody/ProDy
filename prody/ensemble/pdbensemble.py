@@ -58,7 +58,8 @@ class PDBEnsemble(Ensemble):
         
         other_weights = copy(other._weights)
         ensemble.addCoordset(copy(other._confs), other_weights)
-        ensemble.setAtoms(self.getAtoms())
+        ensemble.setAtoms(self._atoms)
+        ensemble._indices = self._indices
         return ensemble
 
     def __iter__(self):
@@ -85,7 +86,8 @@ class PDBEnsemble(Ensemble):
                             label=self._labels[index])
             if self._trans is not None:
                 ens._trans = self._trans[index]
-            ens.setAtoms(self.getAtoms())
+            ens.setAtoms(self._atoms)
+            ens._indices = self._indices
             return ens
 
         elif isinstance(index, (list, np.ndarray)):
@@ -96,6 +98,8 @@ class PDBEnsemble(Ensemble):
                             label=[self._labels[i] for i in index])
             if self._trans is not None:
                 ens._trans = self._trans[index]
+            ens.setAtoms(self._atoms)
+            ens._indices = self._indices
             return ens
         else:
             raise IndexError('invalid index')
