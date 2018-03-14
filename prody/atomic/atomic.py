@@ -5,11 +5,11 @@
 from numpy import all, arange
 from os import path
 from prody import LOGGER, __path__
+from prody.utilities import openData
 
 from . import flags
 from .bond import trimBonds
 from .fields import READONLY
-
 
 __all__ = ['Atomic', 'AAMAP']
 
@@ -18,15 +18,12 @@ isSelectionMacro = None
 NOTALLNONE = set(['not', 'all', 'none', 'index', 'sequence', 'x', 'y', 'z'])
 
 MODMAP = {}
-datafile = path.join(__path__[0], 'atomic', 'mod_res_map.dat')
-with open(datafile, 'rb') as f:
-    lines = f.readlines()
-    for line in lines:
-        try:
-            mod, aa = line.strip().split(' ')
-            MODMAP[mod] = aa
-        except:
-            continue
+for line in openData('mod_res_map.dat'):
+    try:
+        mod, aa = line.strip().split(' ')
+        MODMAP[mod] = aa
+    except:
+        continue
 
 AAMAP = {
     'ALA': 'A', 'ARG': 'R', 'ASN': 'N', 'ASP': 'D', 'CYS': 'C', 'GLN': 'Q',

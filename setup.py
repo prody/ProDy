@@ -68,7 +68,7 @@ PACKAGES = ['prody',
             'prody.tests.trajectory',
             'prody.tests.utilities',]
 PACKAGE_DATA = {
-    'prody.atomic': ['*.dat'],
+    'prody.utilities': ['datafiles/*.dat'],
     'prody.tests': ['datafiles/pdb*.pdb',
                     'datafiles/*.dat',
                     'datafiles/*.coo',

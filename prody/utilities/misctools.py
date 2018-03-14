@@ -6,7 +6,7 @@ from collections import Counter
 
 __all__ = ['Everything', 'rangeString', 'alnum', 'importLA', 'dictElement',
            'intorfloat', 'startswith', 'showFigure', 'countBytes', 'sqrtm',
-           'saxsWater', 'count', 'addBreaks', 'copy', 'dictElementLoop']
+           'saxsWater', 'count', 'addBreaks', 'copy', 'dictElementLoop', 'openData']
 
 
 class Everything(object):
@@ -248,6 +248,13 @@ def copy(x):
     if x is None:
         return None
     return x.copy()
+
+def openData(filename, mode='rb'):
+    import pkg_resources
+
+    datafile = pkg_resources.resource_filename('prody.utilities', 'datafiles/%s'%filename)
+    with open(datafile, mode) as f:
+        yield f
 
 def saxsWater():
     return [[-48.347,-49.439,-50.456],
