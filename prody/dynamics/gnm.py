@@ -634,7 +634,7 @@ def test():
     pdb = parsePDB('1z83',subset='ca',chain='A')
 
     gnm = GNM()
-    gnm.buildAffinity(pdb)
+    gnm.buildKirchhoff(pdb)
     gnm.calcHitTime()
 
     hitTime = gnm.getHitTime()
