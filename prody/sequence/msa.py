@@ -37,7 +37,7 @@ class MSA(object):
 
         if ndim < 1:
             raise ValueError('msa.ndim should be at least 1')
-        if dtype_.char != 'S':
+        if dtype_.char not in ['S', 'U']:
             raise ValueError('msa must be a character array')
 
         self._aligned = aligned = kwargs.get('aligned', True)
