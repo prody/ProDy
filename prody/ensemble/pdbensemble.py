@@ -355,7 +355,7 @@ class PDBEnsemble(Ensemble):
         """Delete a coordinate set from the ensemble."""
 
         Ensemble.delCoordset(self, index)
-        if isinstance(index, (int, long)):
+        if isinstance(index, int):
             index = [index]
         else:
             index = list(index)
