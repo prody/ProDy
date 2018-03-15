@@ -255,8 +255,7 @@ def getDataPath(filename):
     return pkg_resources.resource_filename('prody.utilities', 'datafiles/%s'%filename)
 
 def openData(filename, mode='rb'):
-    with open(getDataPath(filename), mode) as f:
-        yield f
+    return open(getDataPath(filename), mode)
 
 def saxsWater():
     filename = getDataPath('saxs_water.dat')
