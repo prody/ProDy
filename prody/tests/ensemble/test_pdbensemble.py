@@ -148,6 +148,6 @@ class TestPDBEnsemble(TestCase):
         assert_equal(ensemble.numCoordsets(), n_conf+n_csets,
                      'adding coordsets failed')
 
-        ensemble.addCoordsets(ATOMS, degeneracy=False)
+        ensemble.addCoordsets(ATOMS, degeneracy=True)
         assert_equal(ensemble.numCoordsets(), n_conf+n_csets+1,
                      'adding coordsets failed')

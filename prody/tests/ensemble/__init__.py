@@ -51,4 +51,6 @@ for i in range(ATOMS.numCoordsets()):
         weights[-i] = 0
         PDBENSEMBLE2.addCoordset(ATOMS, weights=weights, degeneracy=True)
     else:
-        PDBENSEMBLE2.addCoordset(ATOMS)
+        PDBENSEMBLE2.addCoordset(ATOMS, degeneracy=True)
+
+ATOMS.setACSIndex(0)
