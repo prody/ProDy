@@ -96,6 +96,8 @@ class TestRefinement(TestCase):
 
         assert_array_equal(refined._getArray(), expected)
 
+    def testAddition(self):
+        msa = FASTA + FASTA
 
 class TestMerging(TestCase):
 
