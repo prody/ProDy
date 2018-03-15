@@ -230,19 +230,22 @@ class PDBEnsemble(Ensemble):
             weights = checkWeights(weights, n_atoms, n_csets)
 
         # check sequences
+        seqs = None
         sequence = kwargs.pop('sequence', None)
         n_repeats = 1 if degeneracy else n_csets
         if hasattr(atoms, 'getSequence'):
-            seq = atoms.getSequence()
-            seqs = [seq for _ in range(n_repeats)]
             if sequence is not None:
                 LOGGER.warn('sequence is supplied though coords has getSequence')
+            sequence = atoms.getSequence()
+            seqs = [sequence for _ in range(n_repeats)]
         else:
             if sequence is None:
                 try:
                     sequence = self.getAtoms().getSequence()
                 except AttributeError:
-                    sequence = ''.join('X' for _ in range(n_atoms))
+                    if self._msa:
+                        sequence = ''.join('X' for _ in range(n_atoms))
+                    # sequence and seqs remains to be None if MSA has not been created
             if isinstance(sequence, Sequence):
                 seqs = [str(sequence)]
             elif isinstance(sequence, MSA):
@@ -250,9 +253,10 @@ class PDBEnsemble(Ensemble):
             elif np.isscalar(sequence):
                 seqs = [sequence for _ in range(n_repeats)]
         
-        if len(seqs) != n_repeats:
-            raise ValueError('the number of sequences should be either one or '
-                             'that of coordsets')
+        if seqs:
+            if len(seqs) != n_repeats:
+                raise ValueError('the number of sequences should be either one or '
+                                'that of coordsets')
 
         # assign new values
         if n_csets > 1:
@@ -285,12 +289,13 @@ class PDBEnsemble(Ensemble):
             raise RuntimeError('_confs and _weights must be set or None at '
                                'the same time')
 
-        msa = MSA(seqs, title=self.getTitle(), labels=labels)
-        if self._msa is None:
-            self._msa = msa
-        else:
-            self._msa += msa
-            self._msa.setTitle(self.getTitle())
+        if seqs:
+            msa = MSA(seqs, title=self.getTitle(), labels=labels)
+            if self._msa is None:
+                self._msa = msa
+            else:
+                self._msa += msa
+                self._msa.setTitle(self.getTitle())
 
     def getMSA(self, indices=None, selected=True):
         """Returns an MSA of selected atoms."""
