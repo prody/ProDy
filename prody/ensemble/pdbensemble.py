@@ -196,7 +196,7 @@ class PDBEnsemble(Ensemble):
                 if coords.shape[0] < ag.numCoordsets():
                     label += 'm' + str(atoms.getACSIndex())
             else:
-                label = label or str(coords)
+                label = label or 'Unknown'
 
         # check coordinates
         try:
@@ -262,7 +262,7 @@ class PDBEnsemble(Ensemble):
         if n_csets > 1:
             if not degeneracy:
                 if isinstance(label, str):
-                    labels = ['{0}_{1}'.format(label, i+1) for i in range(n_csets)]
+                    labels = ['{0}_m{1}'.format(label, i+1) for i in range(n_csets)]
                 else:
                     if len(label) != n_csets:
                         raise ValueError('length of label and number of '
