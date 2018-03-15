@@ -5,7 +5,7 @@
 from numpy import all, arange
 from os import path
 from prody import LOGGER, __path__
-from prody.utilities import openData
+from prody.utilities import getDataPath
 
 from . import flags
 from .bond import trimBonds
@@ -17,8 +17,10 @@ SELECT = None
 isSelectionMacro = None
 NOTALLNONE = set(['not', 'all', 'none', 'index', 'sequence', 'x', 'y', 'z'])
 
+with open(getDataPath('mod_res_map.dat'), 'rb') as f:
+    lines = f.readlines()
 MODMAP = {}
-for line in openData('mod_res_map.dat'):
+for line in lines:
     try:
         mod, aa = line.strip().split(' ')
         MODMAP[mod] = aa
