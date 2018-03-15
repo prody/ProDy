@@ -62,8 +62,13 @@ class PDBEnsemble(Ensemble):
         other_weights = copy(other._weights)
         ensemble.addCoordset(copy(other._confs), weights=other_weights, 
                              label=other.getLabels(), sequence=other._msa)
-        ensemble.setAtoms(self._atoms)
-        ensemble._indices = self._indices
+
+        if self._atoms is not None:
+            ensemble.setAtoms(self._atoms)
+            ensemble._indices = self._indices
+        else:
+            ensemble.setAtoms(other._atoms)
+            ensemble._indices = other._indices
         return ensemble
 
     def __iter__(self):

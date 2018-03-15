@@ -125,8 +125,15 @@ class Ensemble(object):
             LOGGER.info('Atom weights from {0} are used in {1}.'
                         .format(repr(self._title), repr(ensemble.getTitle())))
             ensemble.setWeights(self._weights)
-        ensemble.setAtoms(self._atoms)
-        ensemble._indices = self._indices
+        elif other._weights is not None:
+            ensemble.setWeights(other._weights)
+        
+        if self._atoms is not None:
+            ensemble.setAtoms(self._atoms)
+            ensemble._indices = self._indices
+        else:
+            ensemble.setAtoms(other._atoms)
+            ensemble._indices = other._indices
         return ensemble
 
     def __iter__(self):
