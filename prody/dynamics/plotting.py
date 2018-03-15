@@ -339,9 +339,6 @@ def showProjection(ensemble, modes, *args, **kwargs):
     if SETTINGS['auto_show']:
         showFigure()
 
-    if returnAx:
-        return show, fig, ax
-
     return show
 
 
