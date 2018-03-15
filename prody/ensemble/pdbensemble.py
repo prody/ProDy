@@ -175,6 +175,8 @@ class PDBEnsemble(Ensemble):
         atoms = coords
         n_atoms = self.numAtoms()
         n_select = self.numSelected()
+        n_confs = self.numCoordsets()
+
         try:
             if degeneracy:
                 if self._coords is not None:
@@ -282,6 +284,7 @@ class PDBEnsemble(Ensemble):
                                 'that of coordsets')
 
         # assign new values
+        # update labels
         if n_csets > 1:
             if not degeneracy:
                 if isinstance(label, str):
@@ -297,6 +300,24 @@ class PDBEnsemble(Ensemble):
             labels = [label]
         self._labels.extend(labels)
 
+        # update sequences
+        if seqs:
+            msa = MSA(seqs, title=self.getTitle(), labels=labels)
+            if self._msa is None:
+                if n_confs > 0:
+                    def_seqs = np.zeros((n_confs, n_atoms), dtype='|S')
+                    def_seqs[:] = 'X'
+
+                    old_labels = [self._labels[i] for i in range(n_confs)]
+                    self._msa = MSA(def_seqs, title=self.getTitle(), labels=old_labels)
+                    self._msa += msa
+                else:
+                    self._msa = msa
+            else:
+                self._msa += msa
+                self._msa.setTitle(self.getTitle())
+
+        # update coordinates
         if self._confs is None and self._weights is None:
             self._confs = coords
             self._weights = weights
@@ -309,14 +330,6 @@ class PDBEnsemble(Ensemble):
         else:
             raise RuntimeError('_confs and _weights must be set or None at '
                                'the same time')
-
-        if seqs:
-            msa = MSA(seqs, title=self.getTitle(), labels=labels)
-            if self._msa is None:
-                self._msa = msa
-            else:
-                self._msa += msa
-                self._msa.setTitle(self.getTitle())
 
     def getMSA(self, indices=None, selected=True):
         """Returns an MSA of selected atoms."""
