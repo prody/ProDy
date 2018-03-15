@@ -305,7 +305,7 @@ class PDBEnsemble(Ensemble):
             msa = MSA(seqs, title=self.getTitle(), labels=labels)
             if self._msa is None:
                 if n_confs > 0:
-                    def_seqs = np.zeros((n_confs, n_atoms), dtype='|S')
+                    def_seqs = np.zeros((n_confs, n_atoms), dtype='|S1')
                     def_seqs[:] = 'X'
 
                     old_labels = [self._labels[i] for i in range(n_confs)]
