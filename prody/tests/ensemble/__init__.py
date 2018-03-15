@@ -49,7 +49,6 @@ for i in range(ATOMS.numCoordsets()):
     if i > 0:
         weights[i] = 0
         weights[-i] = 0
-        PDBENSEMBLE2.addCoordset(ATOMS, weights=weights)
+        PDBENSEMBLE2.addCoordset(ATOMS, weights=weights, degeneracy=True)
     else:
         PDBENSEMBLE2.addCoordset(ATOMS)
-        

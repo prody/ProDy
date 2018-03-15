@@ -171,16 +171,28 @@ class PDBEnsemble(Ensemble):
         n_atoms = self.numAtoms()
         n_select = self.numSelected()
         try:
-            if self._coords is not None:
-                if isinstance(coords, Ensemble):
-                    coords = coords._getCoordsets(selected=False)
-                elif hasattr(coords, '_getCoordsets'):
-                    coords = coords._getCoordsets()
+            if degeneracy:
+                if self._coords is not None:
+                    if isinstance(coords, Ensemble):
+                        coords = coords._getCoords(selected=False)
+                    elif hasattr(coords, '_getCoords'):
+                        coords = coords._getCoords()
+                else:
+                    if isinstance(coords, Ensemble):
+                        coords = coords.getCoords(selected=False)
+                    elif hasattr(coords, 'getCoords'):
+                        coords = coords.getCoords()
             else:
-                if isinstance(coords, Ensemble):
-                    coords = coords.getCoordsets(selected=False)
-                elif hasattr(coords, 'getCoordsets'):
-                    coords = coords.getCoordsets()
+                if self._coords is not None:
+                    if isinstance(coords, Ensemble):
+                        coords = coords._getCoordsets(selected=False)
+                    elif hasattr(coords, '_getCoordsets'):
+                        coords = coords._getCoordsets()
+                else:
+                    if isinstance(coords, Ensemble):
+                        coords = coords.getCoordsets(selected=False)
+                    elif hasattr(coords, 'getCoordsets'):
+                        coords = coords.getCoordsets()
 
         except AttributeError:
             label = label or 'Unknown'
@@ -214,7 +226,12 @@ class PDBEnsemble(Ensemble):
             n_csets = 1
         else:
             n_csets, n_nodes, _ = coords.shape
+            if degeneracy:
+                coords = coords[:1]
+                weights = weights[:1]
 
+        n_repeats = 1 if degeneracy else n_csets
+       
         if not n_atoms:
             self._n_atoms = n_nodes
 
@@ -232,7 +249,6 @@ class PDBEnsemble(Ensemble):
         # check sequences
         seqs = None
         sequence = kwargs.pop('sequence', None)
-        n_repeats = 1 if degeneracy else n_csets
         if hasattr(atoms, 'getSequence'):
             if sequence is not None:
                 LOGGER.warn('sequence is supplied though coords has getSequence')
@@ -270,8 +286,6 @@ class PDBEnsemble(Ensemble):
                     labels = label
             else:
                 labels = [label]
-                coords = np.reshape(coords[0],(1,coords[0].shape[0],coords[0].shape[1]))
-                weights = np.reshape(weights[0],(1,weights[0].shape[0],weights[0].shape[1]))
         else:
             labels = [label]
         self._labels.extend(labels)
