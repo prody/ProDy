@@ -29,7 +29,7 @@ class MSA(object):
         label to sequence index in *msa* array. If *mapping* is not given,
         one will be build from *labels*."""
 
-        msa = array(msa)
+        msa = array(msa, dtype='|S')
         try:
             ndim, dtype_, shape = msa.ndim, msa.dtype, msa.shape
         except AttributeError:
