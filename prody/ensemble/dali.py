@@ -279,10 +279,11 @@ class daliRecord(object):
                 # map_sel.append(temp_dict['map_sel'][i])
             dum_sel = list(ref_indices_set - set(map_ref))
             atommap = AtomMap(sel_pdb_ca, indices=map_sel, mapping=map_ref, dummies=dum_sel)
-            self._msa.append(np.fromstring(atommap.getSequence(), dtype='S1'))
             # ensemble.addCoordset(atommap, weights=atommap.getFlags('mapped'))
             try:
                 ensemble.addCoordset(atommap, weights=atommap.getFlags('mapped'), degeneracy=True)
+                self._msa.append(np.fromstring(atommap.getSequence(), dtype='S1'))
+                # self._msa.append(atommap.getSequence())
             except:
                 failPDBList.append(pdb_chain)
         self._failPDBList = failPDBList
