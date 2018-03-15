@@ -231,7 +231,8 @@ def showProjection(ensemble, modes, *args, **kwargs):
     cmap = kwargs.pop('cmap', None)
 
     if SETTINGS['auto_show']:
-        fig, ax = plt.subplots() 
+        fig = plt.figure()
+ 
     projection = calcProjection(ensemble, modes, kwargs.pop('rmsd', True), kwargs.pop('norm', True))
 
     if projection.ndim == 1 or projection.shape[1] == 1:
@@ -336,6 +337,7 @@ def showProjection(ensemble, modes, *args, **kwargs):
 
     if SETTINGS['auto_show']:
         showFigure()
+
     return show
 
 
