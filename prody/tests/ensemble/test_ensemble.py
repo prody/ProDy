@@ -170,7 +170,7 @@ class TestEnsemble(TestCase):
                     'concatenation failed')
         assert_equal(ensemble.getCoords(), COORDS,
                      'concatenation failed')
-        self.assertIsNone(ensemble.getWeights(), 'concatenation failed')
+        assert_equal(ensemble.getWeights(), ENSEMBLEW.getWeights(), 'concatenation failed')
 
     def testConcatenationWeightsNoweights(self):
         """Test concatenation of ensembles with and without weights."""
