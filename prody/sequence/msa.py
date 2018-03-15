@@ -2,7 +2,7 @@
 """This module defines MSA analysis functions."""
 
 from numpy import all, zeros, dtype, array, char, cumsum, ceil 
-from numpy import where, sort, concatenate
+from numpy import where, sort, concatenate, vstack, isscalar
 from .sequence import Sequence, splitSeqLabel
 from prody.atomic import Atomic
 from Bio import AlignIO
@@ -29,42 +29,56 @@ class MSA(object):
         label to sequence index in *msa* array. If *mapping* is not given,
         one will be build from *labels*."""
 
+        msa = array(msa, dtype='|S')
         try:
             ndim, dtype_, shape = msa.ndim, msa.dtype, msa.shape
         except AttributeError:
             raise TypeError('msa is not a Numpy array')
 
+        if ndim < 1:
+            raise ValueError('msa.ndim should be at least 1')
+        if dtype_.char not in ['S', 'U']:
+            raise ValueError('msa must be a character array')
+
         self._aligned = aligned = kwargs.get('aligned', True)
-        if aligned:
-            if ndim != 2:
-                raise ValueError('msa.ndim must be 2')
-            if dtype_ != dtype('|S1'):
-                raise ValueError('msa must be a character array')
+        if ndim != 2:
+            n_seq = msa.shape[0]
+            l_seq = dtype_.itemsize
+            new_msa = zeros((n_seq, l_seq), dtype='|S1')
+            for i, strarr in enumerate(msa):
+                for j in range(l_seq):
+                    if j < len(strarr):
+                        new_msa[i, j] = strarr[j]
+                    else:
+                        if aligned:
+                            raise ValueError('msa does not the same lengths')
+                        new_msa[i, j] = '.'
+                msa = new_msa
         numseq = shape[0]
 
         if labels and len(labels) != numseq:
             raise ValueError('len(labels) must be equal to number of '
                              'sequences')
-        self._labels = labels
+        
         if labels is None:
-            self._labels = [str(i+1) for i in range(numseq)]
+            labels = [str(i+1) for i in range(numseq)]
+        self._labels = labels
         
         mapping = kwargs.get('mapping')
         if mapping is None:
-            if labels is not None:
-                # map labels to sequence index
-                self._mapping = mapping = {}
-                for index, label in enumerate(labels):
-                    label = splitSeqLabel(label)[0]
+            # map labels to sequence index
+            self._mapping = mapping = {}
+            for index, label in enumerate(labels):
+                label = splitSeqLabel(label)[0]
+                try:
+                    value = mapping[label]
+                except KeyError:
+                    mapping[label] = index
+                else:
                     try:
-                        value = mapping[label]
-                    except KeyError:
-                        mapping[label] = index
-                    else:
-                        try:
-                            value.append(index)
-                        except AttributeError:
-                            mapping[label] = [value, index]
+                        value.append(index)
+                    except AttributeError:
+                        mapping[label] = [value, index]
 
         elif mapping:
             try:
@@ -95,6 +109,22 @@ class MSA(object):
     def __len__(self):
 
         return len(self._msa)
+
+    def __add__(self, other):
+        """Concatenate two MSAs."""
+        A = self.getArray()
+        B = other.getArray()
+        AB = vstack((A, B))
+        aligned = self._aligned or other._aligned
+
+        labels = list(self._labels)
+        labels.extend(other._labels)
+
+        split = self._split or other._split
+
+        msa = MSA(AB, title='(%s) + (%s)'%(self.getTitle(), other.getTitle()), 
+                  aligned=aligned, labels=labels, split=split)
+        return msa
 
     def __getitem__(self, index):
 
@@ -171,7 +201,7 @@ class MSA(object):
         if msa.base is not None:
             msa = msa.copy()
 
-        return MSA(msa=msa, title=self._title + '\'', labels=lbls,
+        return MSA(msa=msa, title=self._title, labels=lbls,
                    aligned=self._aligned)
 
     def __iter__(self):
@@ -326,6 +356,12 @@ class MSA(object):
             for label in self._labels:
                 yield splitSeqLabel(label)[0]
 
+    def getLabels(self, full=False):
+        """Returns all labels"""
+
+        labels = [label for label in self.iterLabels(full=full)]
+        return labels
+
     def countLabel(self, label):
         """Returns the number of sequences that *label* maps onto."""
 
@@ -335,7 +371,6 @@ class MSA(object):
             return 0
         except TypeError:
             return 1
-
 
 def refineMSA(msa, index=None, label=None, rowocc=None, seqid=None, colocc=None, **kwargs):
     """Refine *msa* by removing sequences (rows) and residues (columns) that

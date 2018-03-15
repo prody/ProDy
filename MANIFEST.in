@@ -11,5 +11,7 @@ include prody/tests/datafiles/*.dat
 include prody/tests/datafiles/*.pdb
 include prody/tests/datafiles/*.xml
 include prody/tests/datafiles/msa*
+include prody/utilities/datafiles/*.dat
+include prody/utilities/datafiles/*.txt
 include scripts/prody*
 include scripts/evol*

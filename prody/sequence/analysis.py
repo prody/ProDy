@@ -5,7 +5,7 @@ __author__ = 'Anindita Dutta, Ahmet Bakan, Wenzhi Mao'
 
 import os
 from numpy import dtype, zeros, empty, ones, where, ceil, shape
-from numpy import indices, tril_indices, array, ndarray
+from numpy import indices, tril_indices, array, ndarray, isscalar
 from prody import LOGGER
 from prody.utilities import which
 from prody.sequence.msa import MSA, refineMSA
@@ -384,9 +384,9 @@ buildSeqidMatrix.__doc__ += doc_turbo
 
 
 def uniqueSequences(msa, seqid=0.98, turbo=True):
-    """Returns a boolean array marking unique sequences in ``msa``.  A sequence
-    sharing sequence identity of ``seqid`` or more with another sequence coming
-    before itself in ``msa`` will have a **False** value in the array."""
+    """Returns a boolean array marking unique sequences in *msa*.  A sequence
+    sharing sequence identity of *seqid* or more with another sequence coming
+    before itself in *msa* will have a ``False`` value in the array."""
 
     msa = getMSA(msa)
 
@@ -403,11 +403,11 @@ uniqueSequences.__doc__ += doc_turbo
 
 def calcRankorder(matrix, zscore=False, **kwargs):
     """Returns indices of elements and corresponding values sorted in
-    descending order, if *descend* is **True** (default). Can apply a zscore
+    descending order, if *descend* is ``True`` (default). Can apply a zscore
     normalization; by default along *axis* - 0 such that each column has
-    mean=0 and std=1.  If *zcore* analysis is used, return value contains the
+    ``mean=0`` and ``std=1``.  If *zcore* analysis is used, return value contains the
     zscores. If matrix is smymetric only lower triangle indices will be
-    returned, with diagonal elements if *diag* is **True** (default)."""
+    returned, with diagonal elements if *diag* is ``True`` (default)."""
 
     try:
         ndim, shape = matrix.ndim, matrix.shape
@@ -696,12 +696,11 @@ def msaeye(msa, unique, turbo):
 
 def alignSequencesByChain(PDBs, **kwargs):
     """
-    Runs buildMSA for each chain and optionally joins the results.
-    Returns either a single MSA or a dictionary containing an MSA for each chain.
+    Runs :method:`buildMSA` for each chain and optionally joins the results.
+    Returns either a single :class:`MSA` or a dictionary containing an :class:`MSA` for each chain.
 
-    :arg PDBs: a list or array of :class:`AtomGroup` objects or PDB IDs
-        a mixed list containing both is acceptable
-    :type PDBs: list or :class:`~numpy.ndarray`
+    :arg PDBs: a list of :class:`AtomGroup` objects
+    :type PDBs: list
 
     :arg join_chains: whether to join chain alignments
         default is True
@@ -711,10 +710,11 @@ def alignSequencesByChain(PDBs, **kwargs):
         default is '/' as used by PIR format alignments
     :type join_char: str
     """
-    if not (isinstance(PDBs, list) or isinstance(PDBs, ndarray)):
+    
+    if not isscalar(PDBs):
         raise TypeError('PDBs should be a list or array')
 
-    if PDBs == []:
+    if not PDBs:
         raise ValueError('PDBs should not be an empty list')
 
     pdbs = []

@@ -180,6 +180,13 @@ class TestGNMResults(testGNMBase):
         assert_equal(slow._getKirchhoff(), gnm._getKirchhoff(),
                      'slow method does not reproduce same Kirchhoff')
 
+    def testCommuteTime(self):
+        gnm = GNM()
+        gnm.buildKirchhoff(ATOMS)
+        gnm.calcHitTime()
+
+        hitTime = gnm.getHitTime()
+        commuteTime = gnm.getCommuteTime()
 
 class TestGNM(unittest.TestCase):
 

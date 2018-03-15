@@ -5,7 +5,7 @@ for conformations in an ensemble."""
 import numpy as np
 
 from prody import LOGGER, SETTINGS
-from prody.utilities import showFigure, showMatrix, copy
+from prody.utilities import showFigure, showMatrix, copy, checkWeights
 from prody.ensemble import Ensemble, Conformation
 
 from .nma import NMA
@@ -30,13 +30,14 @@ class ModeEnsemble(object):
     or :class:`PDBEnsemble`. 
     """
 
-    __slots__ = ['_modesets', '_title', '_labels', '_atoms']
+    __slots__ = ['_modesets', '_title', '_labels', '_atoms', '_weights']
 
     def __init__(self, title=None):
         self._modesets = []
         self._title = 'Unknown' if title is None else title
         self._labels = None
         self._atoms = None
+        self._weights = None
 
     def __len__(self):
         """Returns the number of vectors."""
@@ -90,8 +91,13 @@ class ModeEnsemble(object):
         for i in range(len(modesets)):
             modesets[i] = modesets[i][mode_index]
 
+        if self._weights is None:
+            weights = None
+        else:
+            weights = self._weights[modeset_index, :, :]
+
         ens = ModeEnsemble(title=self.getTitle())
-        ens.addModeSet(modesets, label=labels)
+        ens.addModeSet(modesets, weights=weights, label=labels)
         ens.setAtoms(self.getAtoms())
         return ens
 
@@ -129,7 +135,8 @@ class ModeEnsemble(object):
         ensemble.addModeSet(self._modesets, self._labels)
         ensemble.setAtoms(self.getAtoms())
         
-        ensemble.addModeSet(other.getModeSets(), label=other.getLabels())
+        ensemble.addModeSet(other.getModeSets(), weights=other.getWeights(),
+                            label=other.getLabels())
         return ensemble
 
     def is3d(self):
@@ -156,13 +163,26 @@ class ModeEnsemble(object):
 
     def numModeSets(self):
         """Returns number of modesets in the instance."""
-
         return len(self)
 
     def getTitle(self):
         """Returns title of the signature."""
-
         return self._title
+
+    def getWeights(self):
+        """Returns a copy of weights."""
+        return copy(self._weights)
+
+    def setWeights(self, weights):
+        """Set atomic weights."""
+
+        n_atoms = self.numAtoms()
+        n_modesets = self.numModeSets()
+
+        if n_atoms > 0 and n_modesets > 0:
+            self._weights = checkWeights(weights, n_atoms, n_modesets)
+        else:
+            raise RuntimeError('modesets must be set before weights can be assigned')
 
     def getModeSets(self, index=None):
         if index is None:
@@ -180,7 +200,7 @@ class ModeEnsemble(object):
     
     _getArray = getArray
     
-    def _getModeData(self, name, mode_index=0, sign_correction=False):
+    def _getModeData(self, name, mode_index=0, weights=None, sign_correction=False):
         modesets = self._modesets
 
         V = []
@@ -200,33 +220,53 @@ class ModeEnsemble(object):
         V = np.vstack(V)
 
         title = 'mode %d'%(mode_index+1)
-        sig = Signature(V, title=title, labels=self.getLabels(), is3d=is3d)
+        sig = Signature(V, title=title, weights=weights, labels=self.getLabels(), is3d=is3d)
         return sig
 
-    def _getData(self, name, mode_indices=None):
+    def _getData(self, name, mode_indices=None, weights=None, sign_correction=False):
         modesets = self._modesets
         V = []
-        for modeset in modesets:
+        for i, modeset in enumerate(modesets):
             modes = modeset if mode_indices is None else modeset[mode_indices]
             func = getattr(modes, name)
             vecs = func()
+            if sign_correction:
+                if i == 0:
+                    vecs0 = vecs
+                else:
+                    c = np.sign(np.dot(vecs.T, vecs0))
+                    c = np.diag(np.diag(c))
+                    vecs = np.dot(vecs, c)
             V.append(vecs)
         is3d = modeset.is3d()
         V = np.array(V)
 
         title = '%d modes'%len(V)
-        sig = Signature(V, title=title, labels=self.getLabels(), is3d=is3d)
+        sig = Signature(V, title=title, weights=weights, labels=self.getLabels(), is3d=is3d)
         return sig
 
-    def getEigvec(self, mode_index=0):
+    def getEigvec(self, mode_index=0, sign_correction=True):
         """Returns a copy of eigenvector."""
 
-        return self._getModeData('getEigvec', mode_index, sign_correction=True)
+        weights = self.getWeights()
+        if weights is not None:
+            weights = weights[:, :, 0]
+        return self._getModeData('getEigvec', mode_index, weights=weights, sign_correction=True)
 
-    def getEigvecs(self, mode_indices=None):
+    def getEigvecs(self, mode_indices=None, sign_correction=True):
         """Returns a copy of eigenvectors."""
 
-        return self._getData('getEigvecs', mode_indices)
+        weights = self.getWeights()
+        if weights is not None:
+            weights = weights[:, :, 0]
+            if mode_indices is None:
+                n_modes = len(mode_indices)
+            else:
+                n_modes = self.numModes()
+            W = [weights.copy() for _ in range(n_modes)]  # almost equivalent to W = [weights]*n_modes
+            W = np.stack(W, axis=-1)
+
+        return self._getData('getEigvecs', mode_indices, weights=W, sign_correction=True)
 
     def getVariance(self, mode_index=0):
         
@@ -263,7 +303,7 @@ class ModeEnsemble(object):
             self._modesets = matchModes(*self._modesets)
         return
 
-    def addModeSet(self, modeset, label=None):
+    def addModeSet(self, modeset, weights=None, label=None):
         if isinstance(modeset, (NMA, ModeSet, Mode)):
             modesets = [modeset]
         else:
@@ -276,7 +316,7 @@ class ModeEnsemble(object):
                 labels = label
             if len(labels) != len(modesets):
                 raise ValueError('labels should have the same length as modesets')
-        
+
         if not self._labels and labels:
             self._labels = ['']*len(self._modesets)
             self._labels.extend(labels)
@@ -304,6 +344,36 @@ class ModeEnsemble(object):
             else:
                 self._modesets = [modeset]
 
+        if weights is None:
+            weights = np.ones((len(modesets), self.numAtoms(), 1))
+            if self._weights is not None:
+                self._weights = np.concatenate((self._weights, weights), axis=0)
+            else:
+                self._weights = weights
+        else:
+            weights = checkWeights(weights, self.numAtoms(), len(modesets))
+            if self._weights is None:
+                self._weights = np.ones((self.numModeSets()-len(modesets), self.numAtoms(), 1))
+            self._weights = np.concatenate((self._weights, weights), axis=0)
+
+    def delModeSet(self, index):
+        if np.isscalar(index):
+            index = [index]
+        else:
+            index = list(index)
+        
+        n_modesets = self.numModeSets()
+
+        for i in reversed(index):
+            self._modesets.pop(i)
+            if self._labels:
+                self._labels.pop(i)
+
+        if self._weights is not None:
+            torf = np.ones(n_modesets, dtype=bool)
+            torf[index] = False
+            self._weights = self._weights[torf, :, :]
+
 
 class Signature(object):
     """
@@ -313,9 +383,9 @@ class Signature(object):
     dimension.
     """
 
-    __slots__ = ['_array', '_title', '_labels', '_is3d']
+    __slots__ = ['_array', '_title', '_labels', '_is3d', '_weights']
 
-    def __init__(self, vecs, labels=None, title=None, is3d=False):
+    def __init__(self, vecs, weights=None, labels=None, title=None, is3d=False):
         vecs = np.array(vecs)
 
         self._array = vecs
@@ -328,6 +398,7 @@ class Signature(object):
         
         self._labels = labels
         self._is3d = is3d
+        self._weights = weights
 
     def __len__(self):
         """Returns the number of vectors."""
@@ -398,11 +469,16 @@ class Signature(object):
         return self._array
 
     def getMean(self):
-        return self._array.mean(axis=0)
+        #return self._array.mean(axis=0)
+        return np.average(self._array, axis=0, weights=self._weights)
     mean = getMean
     
     def getStd(self):
-        return self._array.std(axis=0)
+        #return self._array.std(axis=0)
+        mean = np.average(self._array, weights=self._weights, axis=0)
+        variance = np.average((self._array - mean)**2, 
+                              weights=self._weights, axis=0)
+        return np.sqrt(variance)
     std = getStd
 
     def getMin(self):
@@ -412,6 +488,12 @@ class Signature(object):
     def getMax(self):
         return self._array.max(axis=0)
     max = getMax
+
+    def getWeights(self):
+        return self._weights
+
+    def setWeights(self, weights):
+        self._weights = weights
 
 def calcEnsembleENMs(ensemble, model='gnm', trim='trim', n_modes=20, **kwargs):
     """Description"""
@@ -430,9 +512,9 @@ def calcEnsembleENMs(ensemble, model='gnm', trim='trim', n_modes=20, **kwargs):
 
     atoms = ensemble.getAtoms()
     select = None
-    if ensemble._indices is not None:
+    if ensemble.isSelected():
         select = atoms
-        atoms = atoms.getAtomGroup()
+        atoms = ensemble.getAtoms(selected=False)
         
     labels = ensemble.getLabels()
 
@@ -449,11 +531,11 @@ def calcEnsembleENMs(ensemble, model='gnm', trim='trim', n_modes=20, **kwargs):
 
     for i in range(n_confs):
         coords = ensemble.getCoordsets(i, selected=False)
+        nodes = coords[0, :, :]
         if atoms is not None:
-            atoms.setCoords(coords)
-        else:
-            atoms = coords
-        enm, _ = calcENM(atoms, select, model=model, trim=trim, 
+            atoms.setCoords(nodes)
+            nodes = atoms
+        enm, _ = calcENM(nodes, select, model=model, trim=trim, 
                             n_modes=n_modes, title=labels[i], **kwargs)
         enms.append(enm)
 
@@ -463,11 +545,26 @@ def calcEnsembleENMs(ensemble, model='gnm', trim='trim', n_modes=20, **kwargs):
     LOGGER.update(n_confs, 'Finished.')
     LOGGER.verbosity = verb
 
+    min_n_modes = ensemble.numAtoms() * 3
+    for enm in enms:
+        n_modes = enm.numModes()
+        if n_modes < min_n_modes:
+            min_n_modes = n_modes
+
+    for i in range(len(enms)):
+        n_modes = enms[i].numModes()
+        if n_modes > min_n_modes:
+            enms[i] = enms[i][:min_n_modes]
+            LOGGER.warn('last {0} modes for {1} has been discarded because at least one '
+                        'conformation has only {2} modes'.format(n_modes-min_n_modes, 
+                        enms[i].getTitle(), min_n_modes))
+
     LOGGER.info('{0} {1} modes were calculated for each of the {2} conformations.'
                         .format(str_modes, model_type, n_confs))
 
     modeens = ModeEnsemble(title=ensemble.getTitle())
-    modeens.addModeSet(enms, label=ensemble.getLabels())
+    modeens.addModeSet(enms, weights=ensemble.getWeights(), 
+                             label=ensemble.getLabels())
     modeens.setAtoms(ensemble.getAtoms())
     return modeens
 
@@ -522,7 +619,11 @@ def calcSignatureSqFlucts(mode_ensemble, **kwargs):
     V = np.vstack(V)
 
     title_str = '%d modes'%mode_ensemble.numModes()
-    sig = Signature(V, title=title_str, is3d=is3d)
+    weights = mode_ensemble.getWeights()
+    if weights is not None:
+        weights = weights[:, :, 0]
+    labels = mode_ensemble.getLabels()
+    sig = Signature(V, title=title_str, weights=weights, labels=labels, is3d=is3d)
 
     return sig
     
@@ -596,7 +697,7 @@ def showSignatureSqFlucts(mode_ensemble, **kwargs):
     show_zero = kwargs.pop('show_zero', False)
     return showSignature(sqf, atoms=mode_ensemble.getAtoms(), show_zero=show_zero, **kwargs)
 
-def calcSignatureCrossCorr(mode_ensemble):
+def calcSignatureCrossCorr(mode_ensemble, norm=True):
     """Calculate average cross-correlations for a modeEnsemble (a list of modes)."""
     
     if not isinstance(mode_ensemble, ModeEnsemble):
@@ -611,14 +712,23 @@ def calcSignatureCrossCorr(mode_ensemble):
     is3d = None
     for i in range(n_sets):
         m = matches[i]
-        c = calcCrossCorr(m)
+        c = calcCrossCorr(m, norm=norm)
         C[i, :, :] = c
         
         if is3d is None:
             is3d = m.is3d()
 
     title_str = '%d modes'%mode_ensemble.numModes()
-    sig = Signature(C, title=title_str, is3d=is3d)
+    weights = mode_ensemble.getWeights()
+    if weights is not None:
+        W = np.zeros((mode_ensemble.numModeSets(), 
+                      mode_ensemble.numAtoms(), 
+                      mode_ensemble.numAtoms()))
+        for i, w in enumerate(weights):
+            w2 = np.outer(w, w)
+            W[i, :, :] = w2
+    labels = mode_ensemble.getLabels()
+    sig = Signature(C, title=title_str, weights=W, labels=labels, is3d=is3d)
         
     return sig
 
@@ -641,7 +751,8 @@ def calcSignatureFractVariance(mode_ensemble):
             is3d = m.is3d()
 
     title_str = '%d modes'%mode_ensemble.numModes()
-    sig = Signature(W, title=title_str, is3d=is3d)
+    labels = mode_ensemble.getLabels()
+    sig = Signature(W, title=title_str, weights=None, labels=labels, is3d=is3d)
         
     return sig
 
