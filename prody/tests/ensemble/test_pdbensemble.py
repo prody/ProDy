@@ -139,4 +139,15 @@ class TestPDBEnsemble(TestCase):
 
         assert_equal(msa, msa2, 'associated MSA concatenation failed')
 
+    def testAddCoordsets(self):
+        ensemble = PDBENSEMBLE2[:]
+        n_conf = ensemble.numCoordsets()
+        n_csets = ATOMS.numCoordsets()
 
+        ensemble.addCoordsets(ATOMS)
+        assert_equal(ensemble.numCoordsets(), n_conf+n_csets,
+                     'adding coordsets failed')
+
+        ensemble.addCoordsets(ATOMS, degeneracy=False)
+        assert_equal(ensemble.numCoordsets(), n_conf+n_csets+1,
+                     'adding coordsets failed')

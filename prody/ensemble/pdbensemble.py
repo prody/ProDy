@@ -228,7 +228,6 @@ class PDBEnsemble(Ensemble):
             n_csets, n_nodes, _ = coords.shape
             if degeneracy:
                 coords = coords[:1]
-                weights = weights[:1]
 
         n_repeats = 1 if degeneracy else n_csets
        
@@ -245,6 +244,9 @@ class PDBEnsemble(Ensemble):
             weights = np.ones((n_csets, n_atoms, 1), dtype=float)
         else:
             weights = checkWeights(weights, n_atoms, n_csets)
+
+        if degeneracy:
+            weights = weights[:1]
 
         # check sequences
         seqs = None
