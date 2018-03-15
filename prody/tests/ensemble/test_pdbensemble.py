@@ -137,7 +137,7 @@ class TestPDBEnsemble(TestCase):
         msa = PDBENSEMBLEA.getMSA()
         msa2 = ensemble.getMSA(arange(3,6))
 
-        assert_equal(msa, msa2, 'associated MSA concatenation failed')
+        assert_equal(msa.getArray(), msa2.getArray(), 'associated MSA concatenation failed')
 
     def testAddCoordsets(self):
         ensemble = PDBENSEMBLEA[:]
