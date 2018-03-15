@@ -37,7 +37,7 @@ class MSA(object):
 
         if ndim < 1:
             raise ValueError('msa.ndim should be at least 1')
-        if dtype_.char not in ['S', 'U']:
+        if dtype_.char != 'S':
             raise ValueError('msa must be a character array')
 
         self._aligned = aligned = kwargs.get('aligned', True)
@@ -122,7 +122,7 @@ class MSA(object):
 
         split = self._split or other._split
 
-        msa = MSA(AB, title='(%s) + (%s)'%(self.getTitle(), other.getTitle()), 
+        msa = MSA(AB, title='%s + %s'%(self.getTitle(), other.getTitle()), 
                   aligned=aligned, labels=labels, split=split)
         return msa
 

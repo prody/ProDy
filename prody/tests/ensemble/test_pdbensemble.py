@@ -5,7 +5,7 @@ from prody.tests import TestCase
 from numpy import arange
 from numpy.testing import assert_equal
 
-from . import ATOMS, PDBENSEMBLE, COORDS, WEIGHTS_BOOL, ENSEMBLE, WEIGHTS
+from . import ATOMS, PDBENSEMBLE, PDBENSEMBLE2, COORDS, WEIGHTS_BOOL, ENSEMBLE, WEIGHTS
 
 class TestPDBEnsemble(TestCase):
 
@@ -13,10 +13,15 @@ class TestPDBEnsemble(TestCase):
 
         assert_equal(PDBENSEMBLE.getCoords(), COORDS,
                      'failed to set reference coordinates for PDBEnsemble')
+        assert_equal(PDBENSEMBLE2.getCoords(), COORDS,
+                     'failed to set reference coordinates for PDBEnsemble')
 
     def testGetCoordsets(self):
 
         assert_equal(PDBENSEMBLE.getCoordsets()[WEIGHTS_BOOL],
+                     ATOMS.getCoordsets()[WEIGHTS_BOOL],
+                     'failed to add coordinate sets for PDBEnsemble')
+        assert_equal(PDBENSEMBLE2.getCoordsets()[WEIGHTS_BOOL],
                      ATOMS.getCoordsets()[WEIGHTS_BOOL],
                      'failed to add coordinate sets for PDBEnsemble')
 
@@ -30,30 +35,39 @@ class TestPDBEnsemble(TestCase):
                                'wrong shape for weights of PDBEnsemble')
         assert_equal(PDBENSEMBLE.getWeights(), WEIGHTS,
                      'failed to get correct weights')
+        
+        self.assertEqual(PDBENSEMBLE2.getWeights().ndim, 3,
+                        'wrong ndim for weights of PDBEnsemble')
+        self.assertTupleEqual(PDBENSEMBLE2.getWeights().shape,
+                              (PDBENSEMBLE2.numCoordsets(),
+                               PDBENSEMBLE2.numAtoms(), 1),
+                               'wrong shape for weights of PDBEnsemble')
+        assert_equal(PDBENSEMBLE2.getWeights(), WEIGHTS,
+                     'failed to get correct weights')
 
 
     def testSlicingCopy(self):
 
-        SLICE = PDBENSEMBLE[:]
-        assert_equal(SLICE.getCoords(), PDBENSEMBLE.getCoords(),
+        SLICE = PDBENSEMBLE2[:]
+        assert_equal(SLICE.getCoords(), PDBENSEMBLE2.getCoords(),
                      'slicing copy failed to set reference coordinates')
-        assert_equal(SLICE.getCoordsets(), PDBENSEMBLE.getCoordsets(),
+        assert_equal(SLICE.getCoordsets(), PDBENSEMBLE2.getCoordsets(),
                      'slicing copy failed to add coordinate sets')
 
     def testSlicing(self):
 
-        SLICE = PDBENSEMBLE[:2]
-        assert_equal(SLICE.getCoords(), PDBENSEMBLE.getCoords(),
+        SLICE = PDBENSEMBLE2[:2]
+        assert_equal(SLICE.getCoords(), PDBENSEMBLE2.getCoords(),
                      'slicing failed to set reference coordinates')
-        assert_equal(SLICE.getCoordsets(), PDBENSEMBLE.getCoordsets([0,1]),
+        assert_equal(SLICE.getCoordsets(), PDBENSEMBLE2.getCoordsets([0,1]),
                      'slicing failed to add coordinate sets')
 
     def testSlicingList(self):
 
-        SLICE = PDBENSEMBLE[[0,2]]
-        assert_equal(SLICE.getCoords(), PDBENSEMBLE.getCoords(),
+        SLICE = PDBENSEMBLE2[[0,2]]
+        assert_equal(SLICE.getCoords(), PDBENSEMBLE2.getCoords(),
                      'slicing failed to set reference coordinates')
-        assert_equal(SLICE.getCoordsets(), PDBENSEMBLE.getCoordsets([0,2]),
+        assert_equal(SLICE.getCoordsets(), PDBENSEMBLE2.getCoordsets([0,2]),
                      'slicing failed to add coordinate sets')
 
     def testSlicingWeights(self):
@@ -82,7 +96,7 @@ class TestPDBEnsemble(TestCase):
 
     def testDelCoordsetMiddle(self):
 
-        ensemble = PDBENSEMBLE[:]
+        ensemble = PDBENSEMBLE2[:]
         ensemble.delCoordset(1)
         assert_equal(ensemble.getCoordsets()[WEIGHTS_BOOL[[0,2]]],
                      ATOMS.getCoordsets([0,2])[WEIGHTS_BOOL[[0,2]]],
@@ -91,8 +105,8 @@ class TestPDBEnsemble(TestCase):
     def testDelCoordsetAll(self):
         """Test consequences of deleting all coordinate sets."""
 
-        ensemble = PDBENSEMBLE[:]
-        ensemble.delCoordset(arange(len(PDBENSEMBLE)))
+        ensemble = PDBENSEMBLE2[:]
+        ensemble.delCoordset(arange(len(PDBENSEMBLE2)))
         self.assertIsNone(ensemble.getCoordsets(),
                         'failed to delete all coordinate sets')
         self.assertIsNone(ensemble.getWeights(), 'failed to delete weights '
@@ -104,12 +118,12 @@ class TestPDBEnsemble(TestCase):
     def testConcatenation(self):
         """Test concatenation of PDB ensembles."""
 
-        ensemble = PDBENSEMBLE + PDBENSEMBLE
+        ensemble = PDBENSEMBLE + PDBENSEMBLE2
         assert_equal(ensemble.getCoordsets(arange(3)),
                      PDBENSEMBLE.getCoordsets(),
                      'concatenation failed')
         assert_equal(ensemble.getCoordsets(arange(3,6)),
-                     PDBENSEMBLE.getCoordsets(),
+                     PDBENSEMBLE2.getCoordsets(),
                      'concatenation failed')
         assert_equal(ensemble.getCoords(), COORDS,
                      'concatenation failed')
@@ -117,5 +131,12 @@ class TestPDBEnsemble(TestCase):
                      PDBENSEMBLE.getWeights(),
                      'concatenation failed')
         assert_equal(ensemble.getWeights()[arange(3,6)],
-                     PDBENSEMBLE.getWeights(),
+                     PDBENSEMBLE2.getWeights(),
                      'concatenation failed')
+
+        msa = PDBENSEMBLE2.getMSA()
+        msa2 = ensemble.getMSA(arange(3,6))
+
+        assert_equal(msa, msa2, 'associated MSA concatenation failed')
+
+

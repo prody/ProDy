@@ -39,3 +39,17 @@ PDBCONF = PDBENSEMBLE[0]
 WEIGHTS = array(WEIGHTS)
 WEIGHTS_BOOL = tile(WEIGHTS.astype(bool), (1,1,3))
 WEIGHTS_BOOL_INVERSE = invert(WEIGHTS_BOOL)
+
+PDBENSEMBLE2 = PDBEnsemble('PDBEnsemble 2')
+PDBENSEMBLE2.setAtoms(ATOMS)
+PDBENSEMBLE2.setCoords(COORDS)
+for i in range(ATOMS.numCoordsets()):
+    weights = ones((len(ATOMS), 1), dtype=float)
+    ATOMS.setACSIndex(i)
+    if i > 0:
+        weights[i] = 0
+        weights[-i] = 0
+        PDBENSEMBLE2.addCoordset(ATOMS, weights=weights)
+    else:
+        PDBENSEMBLE2.addCoordset(ATOMS)
+        
