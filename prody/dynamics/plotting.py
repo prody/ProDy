@@ -228,9 +228,11 @@ def showProjection(ensemble, modes, *args, **kwargs):
 
     import matplotlib.pyplot as plt
 
+    returnAx = kwargs.pop('returnAx',False)
+
     cmap = kwargs.pop('cmap', None)
 
-    if SETTINGS['auto_show']:
+    if kwargs.pop('new_fig',True):
         fig, ax = plt.subplots() 
     projection = calcProjection(ensemble, modes, kwargs.pop('rmsd', True), kwargs.pop('norm', True))
 
@@ -336,6 +338,10 @@ def showProjection(ensemble, modes, *args, **kwargs):
 
     if SETTINGS['auto_show']:
         showFigure()
+
+    if returnAx:
+        return show, fig, ax
+
     return show
 
 
