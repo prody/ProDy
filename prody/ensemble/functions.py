@@ -47,6 +47,10 @@ def saveEnsemble(ensemble, filename=None, **kwargs):
     atoms = dict_['_atoms']
     attr_dict['_atoms'] = np.array([atoms, 0])
 
+    if isinstance(ensemble, PDBEnsemble):
+        msa = dict_['_msa']
+        attr_dict['_msa'] = np.array([msa, 0])
+
     filename += '.ens.npz'
     ostream = openFile(filename, 'wb', **kwargs)
     np.savez(ostream, **attr_dict)
@@ -93,6 +97,8 @@ def loadEnsemble(filename):
             ensemble._labels = list(attr_dict['_labels'])
         if '_trans' in attr_dict.files:
             ensemble._trans = attr_dict['_trans']
+        if '_msa' in attr_dict.files:
+            ensemble._msa = attr_dict['_msa']
     else:
         ensemble.addCoordset(attr_dict['_confs'])
         if weights is not None:
@@ -178,7 +184,10 @@ def trimPDBEnsemble(pdb_ensemble, **kwargs):
         if confs is not None:
             weights = pdb_ensemble.getWeights()
             labels = pdb_ensemble.getLabels()
-            trimmed.addCoordset(confs[:, torf], weights[:, torf], labels)
+            msa = pdb_ensemble.getMSA()
+            if msa:
+                msa = msa[:, torf]
+            trimmed.addCoordset(confs[:, torf], weights[:, torf], labels, sequence=msa)
     else:
         indices = np.where(torf)
         selids = pdb_ensemble._indices
@@ -200,7 +209,8 @@ def trimPDBEnsemble(pdb_ensemble, **kwargs):
         if confs is not None:
             weights = copy(pdb_ensemble._weights)
             labels = pdb_ensemble.getLabels()
-            trimmed.addCoordset(confs, weights, labels)
+            msa = pdb_ensemble.getMSA()
+            trimmed.addCoordset(confs, weights, labels, sequence=msa)
 
         trimmed.setAtoms(select)
 

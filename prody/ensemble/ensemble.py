@@ -103,8 +103,8 @@ class Ensemble(object):
             raise IndexError('invalid index')
 
     def __add__(self, other):
-        """Concatenate ensembles. The reference coordinates and weights of
-        *self* is used in the resulting ensemble."""
+        """Concatenate ensembles. The reference coordinates, atoms, 
+        and weights of *self* is used in the resulting ensemble."""
 
         if not isinstance(other, Ensemble):
             raise TypeError('an Ensemble instance cannot be added to an {0} '
