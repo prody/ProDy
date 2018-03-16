@@ -642,7 +642,7 @@ def calcSignatureSqFlucts(mode_ensemble, **kwargs):
     if weights is not None:
         weights = weights[:, :, 0]
     labels = mode_ensemble.getLabels()
-    
+
     # even the original model is 3d, sqfs are still 1d
     sig = Signature(V, title=title_str, weights=weights, labels=labels, is3d=False)
 
@@ -673,12 +673,12 @@ def showSignature(signature, linespec='-', **kwargs):
         
     meanV, stdV, minV, maxV = V.mean(), V.std(), V.min(), V.max()
 
-    def _showSignature(meanV, stdV, minV, maxV):
-        x = range(meanV.shape[0])
-        
-        atoms = kwargs.pop('atoms', None)
+    atoms = kwargs.pop('atoms', None)
 
-        zero_line = kwargs.pop('show_zero', False)
+    zero_line = kwargs.pop('show_zero', False)
+
+    def _showSignature(meanV, stdV, minV, maxV, atoms=None, zero_line=False):
+        x = range(meanV.shape[0])
         lines, _, bars, _ = showAtomicData(meanV, atoms=atoms, linespec=linespec, 
                                         show_zero=zero_line, **kwargs)
 
@@ -715,8 +715,13 @@ def showSignature(signature, linespec='-', **kwargs):
         minV = np.reshape(minV, (V.numAtoms(), 3)).T
         maxV = np.reshape(maxV, (V.numAtoms(), 3)).T
 
+        atoms_ = None; zero_line_ = False
         for i in range(3):
-            _lines, _bars, _polys = _showSignature(meanV[i], stdV[i], minV[i], maxV[i])
+            if i == 2:
+                atoms_ = atoms
+                zero_line_ = zero_line
+            _lines, _bars, _polys = _showSignature(meanV[i], stdV[i], minV[i], maxV[i], 
+                                                   atoms=atoms_, zero_line=zero_line_)
             lines.extend(_lines)
             bars.extend(_bars)
             polys.extend(_polys)
