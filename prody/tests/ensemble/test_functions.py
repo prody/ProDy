@@ -4,7 +4,7 @@ from prody.tests import TestCase
 
 from numpy.testing import assert_equal
 
-from prody import calcOccupancies, PDBEnsemble
+from prody import calcOccupancies, trimPDBEnsemble, PDBEnsemble
 from . import PDBENSEMBLE, WEIGHTS, ENSEMBLE, ATOMS, PDBENSEMBLEA
 
 
@@ -29,11 +29,11 @@ class TestTrimPDBEnsemble(TestCase):
         weights = ensemble.getWeights()
         weights[:, 0, :] = 0.
         ensemble.setWeights(weights)
-        ensemble_trimed = TestTrimPDBEnsemble(ensemble, occupancy=0.9)
+        ensemble_trimed = trimPDBEnsemble(ensemble, occupancy=0.9)
         assert(calcOccupancies(ensemble_trimed).min() > 0.9,
                      'soft trimPDBEnsemble failed')
         
-        ensemble_trimed2 = TestTrimPDBEnsemble(ensemble, occupancy=0.9, hard=True)
+        ensemble_trimed2 = trimPDBEnsemble(ensemble, occupancy=0.9, hard=True)
         assert(calcOccupancies(ensemble_trimed2).min() > 0.9,
                      'hard trimPDBEnsemble failed')
 
