@@ -439,15 +439,15 @@ class Signature(object):
     def numAtoms(self):
         """Returns number of atoms."""
 
-        return self._array.shape[1]
+        n_atoms = self._array.shape[1]
+        if self.is3d():
+            n_atoms /= 3
+        return n_atoms
 
-    def numVectors(self):
-        """Returns number of modes in the instance (not necessarily maximum
-        number of possible modes)."""
+    def numModeSets(self):
+        """Returns number of modesets in the instance """
 
         return len(self)
-
-    numModes = numVectors
 
     def getShape(self):
         return self._array.shape[1:]
@@ -635,7 +635,6 @@ def calcSignatureSqFlucts(mode_ensemble, **kwargs):
     for modes in modesets:
         sqfs = calcSqFlucts(modes)
         V.append(sqfs)
-    is3d = modes.is3d()
     V = np.vstack(V)
 
     title_str = '%d modes'%mode_ensemble.numModes()
@@ -643,7 +642,9 @@ def calcSignatureSqFlucts(mode_ensemble, **kwargs):
     if weights is not None:
         weights = weights[:, :, 0]
     labels = mode_ensemble.getLabels()
-    sig = Signature(V, title=title_str, weights=weights, labels=labels, is3d=is3d)
+
+    # even the original model is 3d, sqfs are still 1d
+    sig = Signature(V, title=title_str, weights=weights, labels=labels, is3d=False)
 
     return sig
     
@@ -671,36 +672,65 @@ def showSignature(signature, linespec='-', **kwargs):
     V = signature
         
     meanV, stdV, minV, maxV = V.mean(), V.std(), V.min(), V.max()
-    x = range(meanV.shape[0])
-    
+
     atoms = kwargs.pop('atoms', None)
 
     zero_line = kwargs.pop('show_zero', False)
-    lines, _, bars, _ = showAtomicData(meanV, atoms=atoms, linespec=linespec, 
-                                       show_zero=zero_line, **kwargs)
 
-    ori_ylim = ylim()
-    ori_height = ori_ylim[1] - ori_ylim[0]
-    line = lines[-1]
-    color = line.get_color()
-    x, _ = line.get_data()
-    polys = []
-    poly = fill_between(x, minV, maxV,
-                        alpha=0.15, facecolor=color, edgecolor=None,
-                        linewidth=1, antialiased=True)
-    polys.append(poly)
-    poly = fill_between(x, meanV-stdV, meanV+stdV,
-                        alpha=0.35, facecolor=color, edgecolor=None,
-                        linewidth=1, antialiased=True)
-    polys.append(poly)
+    def _showSignature(meanV, stdV, minV, maxV, atoms=None, zero_line=False):
+        x = range(meanV.shape[0])
+        lines, _, bars, _ = showAtomicData(meanV, atoms=atoms, linespec=linespec, 
+                                        show_zero=zero_line, **kwargs)
 
-    # readjust domain/chain bars' locations
-    cur_ylim = ylim()
-    cur_height = cur_ylim[1] - cur_ylim[0]
-    for bar in bars:
-        Y = bar.get_ydata()
-        new_Y = (Y - ori_ylim[0]) / ori_height * cur_height + cur_ylim[0]
-        bar.set_ydata(new_Y)
+        ori_ylim = ylim()
+        ori_height = ori_ylim[1] - ori_ylim[0]
+        line = lines[-1]
+        color = line.get_color()
+        x, _ = line.get_data()
+        polys = []
+        poly = fill_between(x, minV, maxV,
+                            alpha=0.15, facecolor=color, edgecolor=None,
+                            linewidth=1, antialiased=True)
+        polys.append(poly)
+        poly = fill_between(x, meanV-stdV, meanV+stdV,
+                            alpha=0.35, facecolor=color, edgecolor=None,
+                            linewidth=1, antialiased=True)
+        polys.append(poly)
+
+        # readjust domain/chain bars' locations
+        cur_ylim = ylim()
+        cur_height = cur_ylim[1] - cur_ylim[0]
+        for bar in bars:
+            Y = bar.get_ydata()
+            new_Y = (Y - ori_ylim[0]) / ori_height * cur_height + cur_ylim[0]
+            bar.set_ydata(new_Y)
+            
+        return lines, bars, polys
+
+    bars = []; polys = []; lines = []
+
+    if V.is3d():
+        meanV = np.reshape(meanV, (V.numAtoms(), 3)).T
+        stdV = np.reshape(stdV, (V.numAtoms(), 3)).T
+        minV = np.reshape(minV, (V.numAtoms(), 3)).T
+        maxV = np.reshape(maxV, (V.numAtoms(), 3)).T
+
+        atoms_ = None; zero_line_ = False
+        for i in range(3):
+            if i == 2:
+                atoms_ = atoms
+                zero_line_ = zero_line
+            _lines, _bars, _polys = _showSignature(meanV[i], stdV[i], minV[i], maxV[i], 
+                                                   atoms=atoms_, zero_line=zero_line_)
+            lines.extend(_lines)
+            bars.extend(_bars)
+            polys.extend(_polys)
+
+    else:
+        _lines, _bars, _polys = _showSignature(meanV, stdV, minV, maxV)
+        lines.extend(_lines)
+        bars.extend(_bars)
+        polys.extend(_polys)
 
     xlabel('Residues')
     title('Signature profile of ' + V.getTitle())
@@ -747,14 +777,10 @@ def calcSignatureCrossCorr(mode_ensemble, norm=True):
     n_sets = len(matches)
 
     C = np.zeros((n_sets, n_atoms, n_atoms))
-    is3d = None
     for i in range(n_sets):
         m = matches[i]
         c = calcCrossCorr(m, norm=norm)
         C[i, :, :] = c
-        
-        if is3d is None:
-            is3d = m.is3d()
 
     title_str = '%d modes'%mode_ensemble.numModes()
     weights = mode_ensemble.getWeights()
@@ -766,7 +792,9 @@ def calcSignatureCrossCorr(mode_ensemble, norm=True):
             w2 = np.outer(w, w)
             W[i, :, :] = w2
     labels = mode_ensemble.getLabels()
-    sig = Signature(C, title=title_str, weights=W, labels=labels, is3d=is3d)
+
+    # even the original model is 3d, cross-correlations are still 1d
+    sig = Signature(C, title=title_str, weights=W, labels=labels, is3d=False)
         
     return sig
 
