@@ -135,9 +135,10 @@ def trimPDBEnsemble(pdb_ensemble, occupancy=None, **kwargs):
 
     """
 
-    atoms = pdb_ensemble._atoms
     selstr = kwargs.pop('selstr', None)
-    hard = kwargs.pop('hard', False) or atoms is None
+    hard = kwargs.pop('hard', False) or pdb_ensemble._atoms is None
+
+    atoms = pdb_ensemble.getAtoms(selected=hard)
 
     if not isinstance(pdb_ensemble, PDBEnsemble):
         raise TypeError('pdb_ensemble argument must be a PDBEnsemble')
@@ -167,12 +168,7 @@ def trimPDBEnsemble(pdb_ensemble, occupancy=None, **kwargs):
     if hard:
         if atoms is not None:
             trim_atoms_idx = [n for n,t in enumerate(torf) if t]
-            if type(atoms) is Chain:
-                trim_atoms=Chain(atoms.copy(), trim_atoms_idx, atoms._hv)
-            elif type(atoms) is AtomGroup:
-                trim_atoms= AtomMap(atoms, trim_atoms_idx)
-            else:
-                trim_atoms= AtomMap(atoms.copy(), trim_atoms_idx)
+            trim_atoms = atoms[trim_atoms_idx]
             trimmed.setAtoms(trim_atoms)
 
         coords = pdb_ensemble.getCoords()
@@ -187,7 +183,7 @@ def trimPDBEnsemble(pdb_ensemble, occupancy=None, **kwargs):
                 msa = msa[:, torf]
             trimmed.addCoordset(confs[:, torf], weights[:, torf], labels, sequence=msa)
     else:
-        indices = np.where(torf)
+        indices = np.where(torf)[0]
         selids = pdb_ensemble._indices
 
         if selids is not None:

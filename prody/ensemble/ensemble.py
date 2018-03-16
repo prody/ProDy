@@ -326,7 +326,13 @@ class Ensemble(object):
 
         if self._n_atoms == 0:
             raise AttributeError('first set reference coordinates')
-        self._weights = checkWeights(weights, self._n_atoms, None)
+        try:
+            self._weights = checkWeights(weights, self._n_atoms, None)
+        except ValueError:
+            weights = checkWeights(weights, self.numSelected(), None)
+            if not self._weights:
+                self._weights = ones((self._n_atoms, 1), dtype=float)
+            self._weights[self._indices, :] = weights    
 
     def addCoordset(self, coords):
         """Add coordinate set(s) to the ensemble.  *coords* must be a Numpy
