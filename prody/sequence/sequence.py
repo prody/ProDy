@@ -22,6 +22,8 @@ def splitSeqLabel(label):
     from sequence label."""
 
     try:
+        if label == '':
+            raise Exception
         idcode, start, end = SPLITLABEL(label)
     except Exception:
         return label, None, None

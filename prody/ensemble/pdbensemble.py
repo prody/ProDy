@@ -311,6 +311,7 @@ class PDBEnsemble(Ensemble):
                     old_labels = [self._labels[i] for i in range(n_confs)]
                     self._msa = MSA(def_seqs, title=self.getTitle(), labels=old_labels)
                     self._msa += msa
+                    self._msa.setTitle(self.getTitle())
                 else:
                     self._msa = msa
             else:
