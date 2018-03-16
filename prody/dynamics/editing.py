@@ -293,7 +293,7 @@ def reduceModel(model, atoms, select):
                          'built')
 
     which, select = sliceAtoms(atoms, select)
-    system = np.zeros(matrix.shape[0], dtype=bool)
+    system = np.zeros(model.numAtoms(), dtype=bool)
     system[which] = True
 
     other = np.invert(system)
