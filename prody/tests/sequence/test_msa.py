@@ -107,6 +107,11 @@ class TestRefinement(TestCase):
         msa.extend(FASTA)
         assert_equal(msa[numSeq:].getArray(), FASTA.getArray(), 'MSA extension failed')
 
+        seqs = [str(seq) for seq in FASTA]
+        msa = FASTA[:]
+        msa.extend(FASTA)
+        assert_equal(msa[numSeq:].getArray(), FASTA.getArray(), 'MSA extension failed')
+
 class TestMerging(TestCase):
 
 
