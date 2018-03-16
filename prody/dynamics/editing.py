@@ -299,8 +299,8 @@ def reduceModel(model, atoms, select):
     other = np.invert(system)
 
     if model.is3d():
-        system = np.tile(system, (3, 1)).transpose().flatten()
-        other = np.tile(other, (3, 1)).transpose().flatten()
+        system = np.repeat(system, 3)
+        other = np.repeat(other, 3)
     ss = matrix[system, :][:, system]
     if isinstance(model, PCA):
         eda = PCA(model.getTitle() + ' reduced')
