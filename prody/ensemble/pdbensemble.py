@@ -310,13 +310,11 @@ class PDBEnsemble(Ensemble):
 
                     old_labels = [self._labels[i] for i in range(n_confs)]
                     self._msa = MSA(def_seqs, title=self.getTitle(), labels=old_labels)
-                    self._msa += msa
-                    self._msa.setTitle(self.getTitle())
+                    self._msa.extend(msa)
                 else:
                     self._msa = msa
             else:
-                self._msa += msa
-                self._msa.setTitle(self.getTitle())
+                self._msa.extend(msa)
 
         # update coordinates
         if self._confs is None and self._weights is None:

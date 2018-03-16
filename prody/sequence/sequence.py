@@ -22,7 +22,7 @@ def splitSeqLabel(label):
     from sequence label."""
 
     try:
-        if label == '':
+        if label.strip() == '':
             raise Exception
         idcode, start, end = SPLITLABEL(label)
     except Exception:
@@ -103,6 +103,9 @@ class Sequence(object):
         """Returns :class:`.MSA` instance or **None**."""
 
         return self._msa
+
+    def getArray(self):
+        return self._array
 
     def getIndex(self):
         """Returns sequence index or **None**."""
