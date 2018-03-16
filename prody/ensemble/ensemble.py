@@ -233,7 +233,7 @@ class Ensemble(object):
                     self._indices, _ = sliceAtoms(self._atoms, atoms)
                 else:
                     raise ValueError('size mismatch between this ensemble ({0} atoms) and atoms ({1} atoms)'
-                                     .format(n_atoms), atoms.numAtoms())
+                                     .format(n_atoms, atoms.numAtoms()))
 
         else: # if assigning atoms to a new ensemble
             self._n_atoms = atoms.numAtoms()
