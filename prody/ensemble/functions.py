@@ -106,7 +106,7 @@ def loadEnsemble(filename):
     return ensemble
 
 
-def trimPDBEnsemble(pdb_ensemble, **kwargs):
+def trimPDBEnsemble(pdb_ensemble, occupancy=None, **kwargs):
     """Returns a new PDB ensemble obtained by trimming given *pdb_ensemble*.
     This function helps selecting atoms in a pdb ensemble based on one of the
     following criteria, and returns them in a new :class:`.PDBEnsemble`
@@ -135,9 +135,8 @@ def trimPDBEnsemble(pdb_ensemble, **kwargs):
 
     """
 
-    atoms = pdb_ensemble.getAtoms()
+    atoms = pdb_ensemble._atoms
     selstr = kwargs.pop('selstr', None)
-    occupancy = kwargs.pop('occupancy', None)
     hard = kwargs.pop('hard', False) or atoms is None
 
     if not isinstance(pdb_ensemble, PDBEnsemble):
@@ -157,7 +156,6 @@ def trimPDBEnsemble(pdb_ensemble, **kwargs):
         #mean_weights = weights / n_confs
         torf = occupancies >= occupancy
     elif selstr is not None:
-        atoms = pdb_ensemble.getAtoms()
         assert atoms is not None, 'atoms are empty'
         selector = Select()
         torf = selector.getBoolArray(atoms, selstr)
@@ -193,13 +191,13 @@ def trimPDBEnsemble(pdb_ensemble, **kwargs):
         selids = pdb_ensemble._indices
 
         if selids is not None:
-            ag = atoms.getAtomGroup()
             indices = selids[indices]
-        else:
-            ag = atoms.copy()
+
         selstr = '' if selstr is None else selstr
-        select = Selection(ag, indices, selstr, ag._acsi) 
-        trimmed.setAtoms(ag)
+        select = atoms[indices]
+        if isinstance(select, Selection):
+            select._selstr = selstr
+        trimmed.setAtoms(atoms)
         trimmed.setAtoms(select)
 
         coords = copy(pdb_ensemble._coords)

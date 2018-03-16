@@ -242,7 +242,7 @@ class Ensemble(object):
                                 raise ValueError('the AtomGroup of atoms does not match that of the ensemble')
                             indices0 = self._atoms.getIndices()
                             mut_indices = intersect1d(indices0, indices)
-                            self._indices = [where(indices0==i)[0][0] for i in mut_indices]
+                            self._indices = array([where(indices0==i)[0][0] for i in mut_indices])
                         else: # ensemble.atoms is an AtomGroup
                             raise ValueError('the AtomGroup of atoms does not match the ensemble size')
                     else:  # ag and ensemble sizes match
