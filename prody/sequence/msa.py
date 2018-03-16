@@ -116,9 +116,14 @@ class MSA(object):
 
     def __add__(self, other):
         """Concatenate two MSAs."""
+
         A = self.getArray()
         B = other.getArray()
-        AB = vstack((A, B))
+        try:
+            AB = vstack((A, B))
+        except:
+            raise ValueError('failed to add {0} and {1} together'
+                             .format(repr(self), repr(other)))
         aligned = self._aligned or other._aligned
 
         labels = list(self._labels)
