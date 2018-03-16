@@ -213,7 +213,7 @@ class PDBEnsemble(Ensemble):
                     ag = atoms.getAtomGroup()
                 label = ag.getTitle()
                 if coords.shape[0] < ag.numCoordsets():
-                    label += 'm' + str(atoms.getACSIndex())
+                    label += '_m' + str(atoms.getACSIndex())
             else:
                 label = label or 'Unknown'
 
