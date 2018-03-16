@@ -414,13 +414,13 @@ def findSubgroups(tree, cutoff=0.8):
     subgroups = [[]]
 
     for i, target_i in enumerate(tree.get_terminals()):
-        subgroups[-1].append(str(target_i))
-        for j, target_j in enumerate(tree.get_terminals()[:-1]):
+        for j, target_j in enumerate(tree.get_terminals()):
             if i == j+1:
+                subgroups[-1].append(str(target_j))
                 neighbour_distance = tree.distance(target_i,target_j)
                 if neighbour_distance > cutoff:
                     subgroups.append([])
 
-    subgroups[-1].append(str(target_i))
+    subgroups[-1].append(str(target_j))
 
     return subgroups

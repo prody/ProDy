@@ -415,7 +415,7 @@ def refineMSA(msa, index=None, label=None, rowocc=None, seqid=None, colocc=None,
     :class:`.DBRef`).
 
     The order of refinements are applied in the order of arguments.  If *label*
-    and *unique* is specified is specified, sequence matching *label* will
+    and *unique* is specified, sequence matching *label* will
     be kept in the refined :class:`.MSA` although it may be similar to some
     other sequence."""
 
