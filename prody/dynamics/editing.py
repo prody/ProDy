@@ -4,7 +4,7 @@
 import numpy as np
 
 from prody.atomic import Atomic, AtomGroup, AtomMap, AtomSubset, HierView
-from prody.atomic import Selection, SELECT
+from prody.atomic import Selection, SELECT, sliceAtoms
 from prody.utilities import importLA
 from prody import _PY3K
 
@@ -137,29 +137,6 @@ def extendVector(vector, nodes, atoms):
     extended = Vector(vec[indices], 'Extended ' + str(vector), vector.is3d())
     return extended, atommap
 
-
-def slice(atoms, select):
-
-    if atoms == select:
-        raise ValueError('atoms and select arguments are the same')
-    if select in atoms:
-        indices = select._getIndices()
-    elif isinstance(select, str):
-        select = atoms.select(select)
-        indices = select._getIndices()
-    else:
-        raise TypeError('select must be a string or a Selection instance')
-
-    if isinstance(atoms, AtomGroup):
-        which = indices
-    else:
-        idxset = set(indices)
-        which = np.array([i for i, idx in enumerate(atoms._getIndices())
-                          if idx in idxset])
-
-    return which, select
-
-
 def sliceVector(vector, atoms, select):
     """Returns part of the *vector* for *atoms* matching *select*.  Note that
     returned :class:`.Vector` instance is not normalized.
@@ -184,7 +161,7 @@ def sliceVector(vector, atoms, select):
     if atoms.numAtoms() != vector.numAtoms():
         raise ValueError('number of atoms in model and atoms must be equal')
 
-    which, sel = slice(atoms, select)
+    which, sel = sliceAtoms(atoms, select)
 
     vec = Vector(vector.getArrayNx3()[
                  which, :].flatten(),
@@ -221,7 +198,7 @@ def sliceMode(mode, atoms, select):
     if atoms.numAtoms() != mode.numAtoms():
         raise ValueError('number of atoms in model and atoms must be equal')
 
-    which, sel = slice(atoms, select)
+    which, sel = sliceAtoms(atoms, select)
 
     vec = Vector(mode.getArrayNx3()[which, :].flatten() *
                  mode.getVariance()**0.5,
@@ -255,7 +232,7 @@ def sliceModel(model, atoms, select):
 
     array = model._getArray()
 
-    which, sel = slice(atoms, select)
+    which, sel = sliceAtoms(atoms, select)
 
     nma = type(model)('{0} slice {1}'
                       .format(model.getTitle(), select))
@@ -315,39 +292,9 @@ def reduceModel(model, atoms, select):
         raise ValueError('model matrix (Hessian/Kirchhoff/Covariance) is not '
                          'built')
 
-    if isinstance(select, str):
-        system = SELECT.getBoolArray(atoms, select)
-        n_sel = sum(system)
-        if n_sel == 0:
-            raise ValueError('select matches 0 atoms')
-        if len(atoms) == n_sel:
-            raise ValueError('select matches all atoms')
-
-        if isinstance(atoms, AtomGroup):
-            ag = atoms
-            which = np.arange(len(atoms))[system]
-        else:
-            ag = atoms.getAtomGroup()
-            which = atoms._getIndices()[system]
-        sel = Selection(ag, which, select, atoms.getACSIndex())
-
-    elif isinstance(select, AtomSubset):
-        sel = select
-        if isinstance(atoms, AtomGroup):
-            if sel.getAtomGroup() != atoms:
-                raise ValueError('select and atoms do not match')
-            system = np.zeros(len(atoms), bool)
-            system[sel._getIndices()] = True
-        else:
-            if atoms.getAtomGroup() != sel.getAtomGroup():
-                raise ValueError('select and atoms do not match')
-            elif not sel in atoms:
-                raise ValueError('select is not a subset of atoms')
-            idxset = set(atoms._getIndices())
-            system = np.array([idx in idxset for idx in sel._getIndices()])
-
-    else:
-        raise TypeError('select must be a string or a Selection instance')
+    which, select = sliceAtoms(atoms, select)
+    system = np.zeros(matrix.shape[0], dtype=bool)
+    system[which] = True
 
     other = np.invert(system)
 
@@ -371,12 +318,12 @@ def reduceModel(model, atoms, select):
     if isinstance(model, GNM):
         gnm = GNM(model.getTitle() + ' reduced')
         gnm.setKirchhoff(matrix)
-        return gnm, sel
+        return gnm, select
     elif isinstance(model, ANM):
         anm = ANM(model.getTitle() + ' reduced')
         anm.setHessian(matrix)
-        return anm, sel
+        return anm, select
     elif isinstance(model, PCA):
         eda = PCA(model.getTitle() + ' reduced')
         eda.setCovariance(matrix)
-        return eda, sel
+        return eda, select

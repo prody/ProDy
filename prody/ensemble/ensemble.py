@@ -6,7 +6,7 @@ from numpy import zeros, ones, arange, isscalar, max, intersect1d, where
 from numpy import newaxis, unique, repeat
 
 from prody import LOGGER
-from prody.atomic import Atomic
+from prody.atomic import Atomic, sliceAtoms
 from prody.measure import getRMSD
 from prody.utilities import importLA, checkCoords, checkWeights, copy
 
@@ -229,24 +229,11 @@ class Ensemble(object):
                 self._indices = None
 
             else: # atoms is a subset
-                try:
-                    ag = atoms.getAtomGroup()
-                except AttributeError:
-                    raise ValueError('atoms must indicate a subset or must '
-                                     'match the ensemble size')
+                if self._atoms:
+                    self._indices, _ = sliceAtoms(self._atoms, atoms)
                 else:
-                    indices = atoms.getIndices()
-                    if ag.numAtoms() != n_atoms: # ag and ensemble sizes do not match
-                        if hasattr(self._atoms, 'getIndices'): # if ensemble.atoms is a AtomSubset
-                            if ag.numAtoms() != self._atoms.getAtomGroup().numAtoms():
-                                raise ValueError('the AtomGroup of atoms does not match that of the ensemble')
-                            indices0 = self._atoms.getIndices()
-                            mut_indices = intersect1d(indices0, indices)
-                            self._indices = array([where(indices0==i)[0][0] for i in mut_indices])
-                        else: # ensemble.atoms is an AtomGroup
-                            raise ValueError('the AtomGroup of atoms does not match the ensemble size')
-                    else:  # ag and ensemble sizes match
-                        self._indices = indices
+                    raise ValueError('size mismatch between this ensemble ({0} atoms) and atoms ({1} atoms)'
+                                     .format(n_atoms), atoms.numAtoms())
 
         else: # if assigning atoms to a new ensemble
             self._n_atoms = atoms.numAtoms()

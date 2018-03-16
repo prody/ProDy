@@ -3,7 +3,7 @@
 
 from textwrap import wrap
 
-from numpy import load, savez, zeros
+from numpy import load, savez, zeros, array
 
 from prody.utilities import openFile, rangeString
 from prody import LOGGER
@@ -18,7 +18,7 @@ from .fields import ATOMIC_FIELDS
 from .selection import Selection
 
 __all__ = ['iterFragments', 'findFragments', 'loadAtoms', 'saveAtoms',
-           'isReserved', 'listReservedWords', 'sortAtoms']
+           'isReserved', 'listReservedWords', 'sortAtoms', 'sliceAtoms']
 
 
 SAVE_SKIP_ATOMGROUP = set(['numbonds', 'fragindex'])
@@ -279,3 +279,25 @@ def sortAtoms(atoms, label, reverse=False):
         ag = atoms.getAtomGroup()
         sort = indices[sort]
     return AtomMap(ag, sort, acsi)
+
+
+def sliceAtoms(atoms, select):
+
+    if atoms == select:
+        raise ValueError('atoms and select arguments are the same')
+    if select in atoms:
+        indices = select._getIndices()
+    elif isinstance(select, str):
+        select = atoms.select(select)
+        indices = select._getIndices()
+    else:
+        raise TypeError('select must be a string or a Selection instance')
+
+    if isinstance(atoms, AtomGroup):
+        which = indices
+    else:
+        idxset = set(indices)
+        which = array([i for i, idx in enumerate(atoms._getIndices())
+                          if idx in idxset])
+
+    return which, select

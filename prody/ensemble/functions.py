@@ -119,13 +119,10 @@ def trimPDBEnsemble(pdb_ensemble, occupancy=None, **kwargs):
     or equal to *occupancy* keyword argument.  Occupancies for atoms will be
     calculated using ``calcOccupancies(pdb_ensemble, normed=True)``.
 
-    :arg occupancy: occupancy for selecting atoms, must satisfy
+    :arg occupancy: occupancy for selecting atoms, must satisfy. If set to 
+                    *None* then *hard* trimming will be performed.
         ``0 < occupancy <= 1``
     :type occupancy: float
-
-    :arg selstr: the function will trim residues that are NOT specified by 
-        the selection string.
-    :type selstr: str
 
     :arg hard: hard trimming or soft trimming. If set to `False`, *pdb_ensemble* 
     will be trimmed by selection. This is useful for example when one uses 
@@ -136,8 +133,8 @@ def trimPDBEnsemble(pdb_ensemble, occupancy=None, **kwargs):
 
     """
 
-    selstr = kwargs.pop('selstr', None)
-    hard = kwargs.pop('hard', False) or pdb_ensemble._atoms is None
+    hard = kwargs.pop('hard', False) or pdb_ensemble._atoms is None \
+           or occupancy is None
 
     atoms = pdb_ensemble.getAtoms(selected=hard)
 
@@ -157,10 +154,6 @@ def trimPDBEnsemble(pdb_ensemble, occupancy=None, **kwargs):
         #weights = weights.flatten()
         #mean_weights = weights / n_confs
         torf = occupancies >= occupancy
-    elif selstr is not None:
-        assert atoms is not None, 'atoms are empty'
-        selector = Select()
-        torf = selector.getBoolArray(atoms, selstr)
     else:
         n_atoms = pdb_ensemble.getCoords().shape[0]
         torf = np.ones(n_atoms, dtype=bool)
@@ -190,10 +183,7 @@ def trimPDBEnsemble(pdb_ensemble, occupancy=None, **kwargs):
         if selids is not None:
             indices = selids[indices]
 
-        selstr = '' if selstr is None else selstr
         select = atoms[indices]
-        if isinstance(select, Selection):
-            select._selstr = selstr
         trimmed.setAtoms(atoms)
         trimmed.setAtoms(select)
 
