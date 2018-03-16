@@ -72,15 +72,8 @@ class Chain(AtomSubset):
 
         if isinstance(key, tuple):
             return self.getResidue(*key)
-
-        elif isinstance(key, slice):
-            resnums = set(arange(*key.indices(self._getResnums().max()+1)))
-            _list = self._list
-            return [_list[i] for (rn, ic), i in self._dict.items()
-                    if rn in resnums]
-
         else:
-            return self.getResidue(key)
+            return AtomSubset.__getitem__(self, key)
 
     def getSegment(self):
         """Returns segment of the chain."""

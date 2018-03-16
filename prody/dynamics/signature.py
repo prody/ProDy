@@ -2,6 +2,7 @@
 """This module defines functions for analyzing normal modes obtained 
 for conformations in an ensemble."""
 
+import time
 import numpy as np
 
 from prody import LOGGER, SETTINGS
@@ -30,7 +31,7 @@ class ModeEnsemble(object):
     or :class:`PDBEnsemble`. 
     """
 
-    __slots__ = ['_modesets', '_title', '_labels', '_atoms', '_weights']
+    __slots__ = ['_modesets', '_title', '_labels', '_atoms', '_weights', '_matched']
 
     def __init__(self, title=None):
         self._modesets = []
@@ -38,6 +39,7 @@ class ModeEnsemble(object):
         self._labels = None
         self._atoms = None
         self._weights = None
+        self._matched = False
 
     def __len__(self):
         """Returns the number of vectors."""
@@ -99,6 +101,7 @@ class ModeEnsemble(object):
         ens = ModeEnsemble(title=self.getTitle())
         ens.addModeSet(modesets, weights=weights, label=labels)
         ens.setAtoms(self.getAtoms())
+        ens._matched = self._matched
         return ens
 
     def __getitem__(self, index):
@@ -137,6 +140,7 @@ class ModeEnsemble(object):
         
         ensemble.addModeSet(other.getModeSets(), weights=other.getWeights(),
                             label=other.getLabels())
+        ensemble._matched = self._matched and other._matched
         return ensemble
 
     def is3d(self):
@@ -251,6 +255,8 @@ class ModeEnsemble(object):
         weights = self.getWeights()
         if weights is not None:
             weights = weights[:, :, 0]
+            if self.is3d():
+                weights = np.repeat(weights, 3, axis=1)
         return self._getModeData('getEigvec', mode_index, weights=weights, sign_correction=True)
 
     def getEigvecs(self, mode_indices=None, sign_correction=True):
@@ -259,12 +265,14 @@ class ModeEnsemble(object):
         weights = self.getWeights()
         if weights is not None:
             weights = weights[:, :, 0]
-            if mode_indices is None:
+            if mode_indices is not None:
                 n_modes = len(mode_indices)
             else:
                 n_modes = self.numModes()
             W = [weights.copy() for _ in range(n_modes)]  # almost equivalent to W = [weights]*n_modes
             W = np.stack(W, axis=-1)
+            if self.is3d():
+                W = np.repeat(W, 3, axis=1)
 
         return self._getData('getEigvecs', mode_indices, weights=W, sign_correction=True)
 
@@ -301,6 +309,7 @@ class ModeEnsemble(object):
     def match(self):
         if self._modesets:
             self._modesets = matchModes(*self._modesets)
+        self._matched = True
         return
 
     def addModeSet(self, modeset, weights=None, label=None):
@@ -374,6 +383,8 @@ class ModeEnsemble(object):
             torf[index] = False
             self._weights = self._weights[torf, :, :]
 
+    def isMatched(self):
+        return self._matched
 
 class Signature(object):
     """
@@ -498,6 +509,7 @@ class Signature(object):
 def calcEnsembleENMs(ensemble, model='gnm', trim='trim', n_modes=20, **kwargs):
     """Description"""
 
+    match = kwargs.pop('match', True)
     if isinstance(ensemble, Conformation):
         conformation = ensemble
         ensemble = conformation.getEnsemble()
@@ -509,6 +521,8 @@ def calcEnsembleENMs(ensemble, model='gnm', trim='trim', n_modes=20, **kwargs):
         model_type = 'ANM'
     else:
         model_type = str(model).strip().upper()
+
+    start = time.time()
 
     atoms = ensemble.getAtoms()
     select = None
@@ -559,13 +573,16 @@ def calcEnsembleENMs(ensemble, model='gnm', trim='trim', n_modes=20, **kwargs):
                         'conformation has only {2} modes'.format(n_modes-min_n_modes, 
                         enms[i].getTitle(), min_n_modes))
 
-    LOGGER.info('{0} {1} modes were calculated for each of the {2} conformations.'
-                        .format(str_modes, model_type, n_confs))
+    LOGGER.info('{0} {1} modes were calculated for each of the {2} conformations in {3:.2f}s.'
+                        .format(str_modes, model_type, n_confs, time.time()-start))
 
     modeens = ModeEnsemble(title=ensemble.getTitle())
     modeens.addModeSet(enms, weights=ensemble.getWeights(), 
                              label=ensemble.getLabels())
     modeens.setAtoms(ensemble.getAtoms())
+
+    if match:
+        modeens.match()
     return modeens
 
 def _getEnsembleENMs(ensemble, **kwargs):
@@ -608,9 +625,12 @@ def calcSignatureSqFlucts(mode_ensemble, **kwargs):
 
     if not isinstance(mode_ensemble, ModeEnsemble):
         raise TypeError('mode_ensemble should be an instance of ModeEnsemble')
-    modesets = mode_ensemble
-    modesets.match()
+    
+    if not mode_ensemble.isMatched():
+        LOGGER.warn('modes in mode_ensemble did not match cross modesets. '
+                    'Consider running mode_ensemble.match() prior to using this function')
 
+    modesets = mode_ensemble
     V = []
     for modes in modesets:
         sqfs = calcSqFlucts(modes)
@@ -688,11 +708,27 @@ def showSignature(signature, linespec='-', **kwargs):
     return lines, polys, bars
 
 def showSignatureMode(mode_ensemble, **kwargs):
+
+    if not isinstance(mode_ensemble, ModeEnsemble):
+        raise TypeError('mode_ensemble should be an instance of ModeEnsemble')
+
+    if not mode_ensemble.isMatched():
+        LOGGER.warn('modes in mode_ensemble did not match cross modesets. '
+                    'Consider running mode_ensemble.match() prior to using this function')
+
     mode = mode_ensemble.getEigvec()
     show_zero = kwargs.pop('show_zero', True)
     return showSignature(mode, atoms=mode_ensemble.getAtoms(), show_zero=show_zero, **kwargs)
 
 def showSignatureSqFlucts(mode_ensemble, **kwargs):
+
+    if not isinstance(mode_ensemble, ModeEnsemble):
+        raise TypeError('mode_ensemble should be an instance of ModeEnsemble')
+
+    if not mode_ensemble.isMatched():
+        LOGGER.warn('modes in mode_ensemble did not match cross modesets. '
+                    'Consider running mode_ensemble.match() prior to using this function')
+
     sqf = calcSignatureSqFlucts(mode_ensemble)
     show_zero = kwargs.pop('show_zero', False)
     return showSignature(sqf, atoms=mode_ensemble.getAtoms(), show_zero=show_zero, **kwargs)
@@ -703,7 +739,9 @@ def calcSignatureCrossCorr(mode_ensemble, norm=True):
     if not isinstance(mode_ensemble, ModeEnsemble):
         raise TypeError('mode_ensemble should be an instance of ModeEnsemble')
 
-    mode_ensemble.match()
+    if not mode_ensemble.isMatched():
+        LOGGER.warn('modes in mode_ensemble did not match cross modesets. '
+                    'Consider running mode_ensemble.match() prior to using this function')
     matches = mode_ensemble
     n_atoms = matches.numAtoms()
     n_sets = len(matches)
@@ -738,7 +776,10 @@ def calcSignatureFractVariance(mode_ensemble):
     if not isinstance(mode_ensemble, ModeEnsemble):
         raise TypeError('mode_ensemble should be an instance of ModeEnsemble')
 
-    mode_ensemble.match()
+    if not mode_ensemble.isMatched():
+        LOGGER.warn('modes in mode_ensemble did not match cross modesets. '
+                    'Consider running mode_ensemble.match() prior to using this function')
+
     matches = mode_ensemble
     n_sets = len(matches)
 
