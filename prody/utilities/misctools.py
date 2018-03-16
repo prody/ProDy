@@ -7,7 +7,7 @@ from collections import Counter
 __all__ = ['Everything', 'rangeString', 'alnum', 'importLA', 'dictElement',
            'intorfloat', 'startswith', 'showFigure', 'countBytes', 'sqrtm',
            'saxsWater', 'count', 'addBreaks', 'copy', 'dictElementLoop', 
-           'getDataPath', 'openData']
+           'getDataPath', 'openData', 'chr2']
 
 
 class Everything(object):
@@ -260,3 +260,10 @@ def openData(filename, mode='rb'):
 def saxsWater():
     filename = getDataPath('saxs_water.dat')
     return loadtxt(filename, delimiter=',')
+
+def chr2(a):
+    try:
+        c = chr(a)
+    except TypeError:
+        c = str(a)
+    return c

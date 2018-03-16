@@ -2,13 +2,17 @@
 """This module defines MSA analysis functions."""
 
 from numpy import all, zeros, dtype, array, char, cumsum, ceil 
-from numpy import where, sort, concatenate, vstack, isscalar
-from .sequence import Sequence, splitSeqLabel
-from prody.atomic import Atomic
+from numpy import where, sort, concatenate, vstack, isscalar, chararray
+
 from Bio import AlignIO
 from Bio import pairwise2
 from Bio.SubsMat import MatrixInfo as matlist
+
 from prody import LOGGER
+from prody.atomic import Atomic
+from prody.utilities import chr2
+from .sequence import Sequence, splitSeqLabel
+
 import sys
 
 __all__ = ['MSA', 'refineMSA', 'mergeMSA', 'specMergeMSA',]
@@ -37,18 +41,18 @@ class MSA(object):
 
         if ndim < 1:
             raise ValueError('msa.ndim should be at least 1')
-        if dtype_.char not in ['S', 'U']:
+        if dtype_.char != 'S':
             raise ValueError('msa must be a character array')
 
         self._aligned = aligned = kwargs.get('aligned', True)
         if ndim != 2:
             n_seq = msa.shape[0]
             l_seq = dtype_.itemsize
-            new_msa = zeros((n_seq, l_seq), dtype='|S1')
+            new_msa = chararray((n_seq, l_seq))
             for i, strarr in enumerate(msa):
                 for j in range(l_seq):
                     if j < len(strarr):
-                        new_msa[i, j] = strarr[j]
+                        new_msa[i, j] = chr2(strarr[j])
                     else:
                         if aligned:
                             raise ValueError('msa does not the same lengths')
@@ -122,7 +126,7 @@ class MSA(object):
 
         split = self._split or other._split
 
-        msa = MSA(AB, title='(%s) + (%s)'%(self.getTitle(), other.getTitle()), 
+        msa = MSA(AB, title='%s + %s'%(self.getTitle(), other.getTitle()), 
                   aligned=aligned, labels=labels, split=split)
         return msa
 
