@@ -264,7 +264,6 @@ class daliRecord(object):
         ensemble.setAtoms(ref_chain)
         ensemble.setCoords(ref_chain)
         failPDBList = []
-        self._msa = []
         for pdb_chain in pdbList:
             # print(pdb_chain)
             temp_dict = daliInfo[pdb_chain]
@@ -279,7 +278,6 @@ class daliRecord(object):
                 # map_sel.append(temp_dict['map_sel'][i])
             dum_sel = list(ref_indices_set - set(map_ref))
             atommap = AtomMap(sel_pdb_ca, indices=map_sel, mapping=map_ref, dummies=dum_sel)
-            self._msa.append(np.fromstring(atommap.getSequence(), dtype='S1'))
             # ensemble.addCoordset(atommap, weights=atommap.getFlags('mapped'))
             try:
                 ensemble.addCoordset(atommap, weights=atommap.getFlags('mapped'), degeneracy=True)
