@@ -2,7 +2,7 @@
 """This module defines a class for handling ensembles of conformations."""
 
 from numpy import dot, add, subtract, array, ndarray, sign, concatenate
-from numpy import zeros, ones, arange, isscalar, max, intersect1d, where
+from numpy import zeros, ones, arange, isscalar, max
 from numpy import newaxis, unique, repeat
 
 from prody import LOGGER
