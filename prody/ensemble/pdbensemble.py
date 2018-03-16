@@ -490,21 +490,12 @@ class PDBEnsemble(Ensemble):
 
         if self._n_atoms == 0:
             raise AttributeError('coordinates are not set')
-        elif not isinstance(weights, np.ndarray):
-            raise TypeError('weights must be an ndarray instance')
-        elif weights.shape[:2] != (self._n_csets, self._n_atoms):
-            raise ValueError('shape of weights must (n_confs, n_atoms[, 1])')
-        if weights.dtype not in (np.float32, float):
-            try:
-                weights = weights.astype(float)
-            except ValueError:
-                raise ValueError('coords array cannot be assigned type '
-                                 '{0}'.format(float))
-        if np.any(weights < 0):
-            raise ValueError('weights must greater or equal to 0')
 
-        if weights.ndim == 2:
-            weights = weights.reshape((self._n_csets, self._n_atoms, 1))
-        self._weights = weights
-
+        try:
+            self._weights = checkWeights(weights, self._n_atoms, self._n_csets)
+        except ValueError:
+            weights = checkWeights(weights, self.numSelected(), self._n_csets)
+            if not self._weights:
+                self._weights = np.ones((self._n_csets, self._n_atoms, 1), dtype=float)
+            self._weights[self._indices, :] = weights    
 

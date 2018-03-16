@@ -2,6 +2,7 @@
 """This module defines functions for analyzing normal modes obtained 
 for conformations in an ensemble."""
 
+import time
 import numpy as np
 
 from prody import LOGGER, SETTINGS
@@ -510,6 +511,8 @@ def calcEnsembleENMs(ensemble, model='gnm', trim='trim', n_modes=20, **kwargs):
     else:
         model_type = str(model).strip().upper()
 
+    start = time.time()
+
     atoms = ensemble.getAtoms()
     select = None
     if ensemble.isSelected():
@@ -559,13 +562,14 @@ def calcEnsembleENMs(ensemble, model='gnm', trim='trim', n_modes=20, **kwargs):
                         'conformation has only {2} modes'.format(n_modes-min_n_modes, 
                         enms[i].getTitle(), min_n_modes))
 
-    LOGGER.info('{0} {1} modes were calculated for each of the {2} conformations.'
-                        .format(str_modes, model_type, n_confs))
+    LOGGER.info('{0} {1} modes were calculated for each of the {2} conformations in {3:.2f}s.'
+                        .format(str_modes, model_type, n_confs, time.time()-start))
 
     modeens = ModeEnsemble(title=ensemble.getTitle())
     modeens.addModeSet(enms, weights=ensemble.getWeights(), 
                              label=ensemble.getLabels())
     modeens.setAtoms(ensemble.getAtoms())
+
     return modeens
 
 def _getEnsembleENMs(ensemble, **kwargs):

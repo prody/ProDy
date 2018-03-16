@@ -242,7 +242,7 @@ class Ensemble(object):
                                 raise ValueError('the AtomGroup of atoms does not match that of the ensemble')
                             indices0 = self._atoms.getIndices()
                             mut_indices = intersect1d(indices0, indices)
-                            self._indices = [where(indices0==i)[0][0] for i in mut_indices]
+                            self._indices = array([where(indices0==i)[0][0] for i in mut_indices])
                         else: # ensemble.atoms is an AtomGroup
                             raise ValueError('the AtomGroup of atoms does not match the ensemble size')
                     else:  # ag and ensemble sizes match
@@ -326,7 +326,13 @@ class Ensemble(object):
 
         if self._n_atoms == 0:
             raise AttributeError('first set reference coordinates')
-        self._weights = checkWeights(weights, self._n_atoms, None)
+        try:
+            self._weights = checkWeights(weights, self._n_atoms, None)
+        except ValueError:
+            weights = checkWeights(weights, self.numSelected(), None)
+            if not self._weights:
+                self._weights = ones((self._n_atoms, 1), dtype=float)
+            self._weights[self._indices, :] = weights    
 
     def addCoordset(self, coords):
         """Add coordinate set(s) to the ensemble.  *coords* must be a Numpy
