@@ -189,11 +189,13 @@ class TestEnsemble(TestCase):
         """Test atom selection of ensemble."""
 
         sel = ATOMS.select('resnum 1 to 3')
-        ENSEMBLE.setAtoms(sel)
-        assert_equal(ENSEMBLE.getCoordsets(), sel.getCoordsets(),
+        ensemble = ENSEMBLE[:]
+        ensemble.setAtoms(ATOMS)
+        ensemble.setAtoms(sel)
+        assert_equal(ensemble.getCoordsets(), sel.getCoordsets(),
                      'selection failed')
 
-        ensemble = ENSEMBLE + ENSEMBLE
+        ensemble = ensemble + ensemble
         assert_equal(ensemble._indices, ENSEMBLE._indices,
                      'concatenation failed for Ensemble after selection')
 
