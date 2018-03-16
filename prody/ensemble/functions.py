@@ -1,6 +1,7 @@
 """This module defines a functions for handling conformational ensembles."""
 
 import os.path
+import time
 
 import numpy as np
 
@@ -379,6 +380,7 @@ def buildPDBEnsemble(refpdb, PDBs, title='Unknown', labels=None, seqid=94, cover
     except AttributeError:
         raise TypeError('refpdb must have getHierView')
 
+    start = time.time()
     # obtain the atommap of all the chains combined.
     atoms = refchains[0]
     for i in range(1, len(refchains)):
@@ -439,6 +441,9 @@ def buildPDBEnsemble(refpdb, PDBs, title='Unknown', labels=None, seqid=94, cover
     if occupancy is not None:
         ensemble = trimPDBEnsemble(ensemble, occupancy=occupancy)
     ensemble.iterpose()
+
+    LOGGER.debug('Ensemble ({0} conformations) were built in {1:.2f}s.'
+                     .format(ensemble.numConfs(), time.time()-start))
 
     return ensemble
 

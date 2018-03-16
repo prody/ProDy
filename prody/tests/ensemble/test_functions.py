@@ -5,7 +5,7 @@ from prody.tests import TestCase
 from numpy.testing import assert_equal
 
 from prody import calcOccupancies, PDBEnsemble
-from . import PDBENSEMBLE, WEIGHTS, ENSEMBLE, ATOMS
+from . import PDBENSEMBLE, WEIGHTS, ENSEMBLE, ATOMS, PDBENSEMBLEA
 
 
 class TestCalcOccupancies(TestCase):
