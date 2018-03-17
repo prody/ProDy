@@ -415,8 +415,8 @@ class sdarray(ndarray):
     the collection. 
     
     :class:`sdarray` functions exactly the same as :class:`~numpy.ndarray`, 
-    except that :method:`sdarray.mean()`, :method:`sdarray.std()`, 
-    :method:`sdarray.max()`, :method:`sdarray.min()` are overriden. 
+    except that :method:`sdarray.mean`, :method:`sdarray.std`, 
+    :method:`sdarray.max`, :method:`sdarray.min` are overriden. 
     Average, standard deviation, minimum, maximum, etc. are weighted and 
     calculated over the first axis by default. "sdarray" stands for 
     "signature dynamics array".
