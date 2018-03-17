@@ -427,22 +427,26 @@ class sdarray(ndarray):
 
     In [2]: from numpy import mean
 
-    In [3]: sdarr = sdarray([[1, 2, 3], [4, 5, 6]])
+    In [3]: sdarr = sdarray([[1, 2, 3], [4, 5, 6]], weights=[[0, 1, 1], [1, 1, 1]])
     Out[3]:
     sdarray([[1, 2, 3],
             [4, 5, 6]])
+    weights=
+    array([[0, 1, 1],
+        [1, 1, 1]])
     ```
-    Then
+    Then if we use the :method:`sdarray.mean`: 
     ```
     In [4]: sdarr.mean()
-    Out[4]: array([2.5, 3.5, 4.5])
+    Out[4]: array([4., 3.5, 4.5])
     ```
     will compute the **weighted** average over the modesets (first axis), whereas
     ```
     In [5]: mean(sdarr)
     Out[5]: 3.5
     ```
-    will just perform a usually `numpy.mean` calculation, assuming `axis=None` and **unweighted**.
+    will just perform a usually `numpy.mean` calculation, assuming `axis=None` 
+    and **unweighted**.
 
     Notes for developper: please read following article about subclassing 
     :class:`~numpy.ndarray` before modifying this class:
@@ -465,7 +469,7 @@ class sdarray(ndarray):
         
         obj._labels = labels
         obj._is3d = is3d
-        obj._weights = weights
+        obj._weights = np.asarray(weights)
         return obj
 
     def __getitem__(self, index):
@@ -479,6 +483,14 @@ class sdarray(ndarray):
         """Returns **True** is model is 3-dimensional."""
         
         return self._is3d
+
+    def __repr__(self):
+        arr_repr = ndarray.__repr__(self)
+        weights = self._weights
+        if weights is not None:
+            weights_repr = repr(weights)
+            arr_repr += '\nweights=\n{0}'.format(weights_repr)
+        return arr_repr
 
     def numAtoms(self):
         """Returns the number of atoms assuming it is represented by the second axis."""
