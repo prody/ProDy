@@ -421,6 +421,29 @@ class sdarray(ndarray):
     calculated over the first axis by default. "sdarray" stands for 
     "signature dynamics array".
 
+    Suppose:
+    ```
+    In [1]: from prody import sdarray
+
+    In [2]: from numpy import mean
+
+    In [3]: sdarr = sdarray([[1, 2, 3], [4, 5, 6]])
+    Out[3]:
+    sdarray([[1, 2, 3],
+            [4, 5, 6]])
+    ```
+    Then
+    ```
+    In [4]: sdarr.mean()
+    Out[4]: array([2.5, 3.5, 4.5])
+    ```
+    will compute the **weighted** average over the modesets (first axis), whereas
+    ```
+    In [5]: mean(sdarr)
+    Out[5]: 3.5
+    ```
+    will just perform a usually `numpy.mean` calculation, assuming `axis=None` and **unweighted**.
+
     Notes for developper: please read following article about subclassing 
     :class:`~numpy.ndarray` before modifying this class:
 
