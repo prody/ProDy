@@ -3,6 +3,7 @@
 for conformations in an ensemble."""
 
 import time
+from numpy import ndarray
 import numpy as np
 
 from prody import LOGGER, SETTINGS
@@ -20,7 +21,7 @@ from .plotting import showAtomicData, showAtomicMatrix
 from .anm import ANM
 from .gnm import GNM
 
-__all__ = ['ModeEnsemble', 'Signature', 'calcEnsembleENMs', 'showSignature', 'showSignatureMode', 
+__all__ = ['ModeEnsemble', 'sdarray', 'calcEnsembleENMs', 'showSignature', 'showSignatureMode', 
            'showSignatureSqFlucts', 'calcEnsembleSpectralOverlaps', 'calcSignatureSqFlucts', 
            'calcSignatureCrossCorr', 'showSignatureCrossCorr', 'showVarianceBar',
            'showSignatureVariances']
@@ -42,7 +43,7 @@ class ModeEnsemble(object):
         self._matched = False
 
     def __len__(self):
-        """Returns the number of vectors."""
+        """Returns the number of modesets."""
 
         return len(self._modesets)
 
@@ -189,12 +190,17 @@ class ModeEnsemble(object):
             raise RuntimeError('modesets must be set before weights can be assigned')
 
     def getModeSets(self, index=None):
+        """
+        Returns the modeset of the given index. If index is **None** then all 
+        modesets are returned.
+        """
+
         if index is None:
             return self._modesets
         return self[index]._modesets
 
     def getArray(self, mode_index=0):
-        """Returns a copy of row vectors."""
+        """Returns a sdarray of row arrays."""
 
         if np.isscalar(mode_index):
             sig = self.getEigvec(mode_index)
@@ -224,7 +230,7 @@ class ModeEnsemble(object):
         V = np.vstack(V)
 
         title = 'mode %d'%(mode_index+1)
-        sig = Signature(V, title=title, weights=weights, labels=self.getLabels(), is3d=is3d)
+        sig = sdarray(V, title=title, weights=weights, labels=self.getLabels(), is3d=is3d)
         return sig
 
     def _getData(self, name, mode_indices=None, weights=None, sign_correction=False):
@@ -246,11 +252,11 @@ class ModeEnsemble(object):
         V = np.array(V)
 
         title = '%d modes'%len(V)
-        sig = Signature(V, title=title, weights=weights, labels=self.getLabels(), is3d=is3d)
+        sig = sdarray(V, title=title, weights=weights, labels=self.getLabels(), is3d=is3d)
         return sig
 
     def getEigvec(self, mode_index=0, sign_correction=True):
-        """Returns a copy of eigenvector."""
+        """Returns a sdarray of eigenvector across modesets."""
 
         weights = self.getWeights()
         if weights is not None:
@@ -260,7 +266,7 @@ class ModeEnsemble(object):
         return self._getModeData('getEigvec', mode_index, weights=weights, sign_correction=True)
 
     def getEigvecs(self, mode_indices=None, sign_correction=True):
-        """Returns a copy of eigenvectors."""
+        """Returns a sdarray of eigenvectors across modesets."""
 
         weights = self.getWeights()
         if weights is not None:
@@ -277,11 +283,13 @@ class ModeEnsemble(object):
         return self._getData('getEigvecs', mode_indices, weights=W, sign_correction=True)
 
     def getVariance(self, mode_index=0):
+        """Returns variances of a given mode index with respect to the reference."""
         
         return self._getModeData('getVariance', mode_index)
 
     def getVariances(self, mode_indices=None):
-        
+        """Returns a sdarray of variances across modesets."""
+
         return self._getData('getVariances', mode_indices)
 
     def getIndex(self, mode_index=0):
@@ -295,24 +303,34 @@ class ModeEnsemble(object):
         return self._getData('getIndices', mode_indices)
 
     def getAtoms(self):
+        """Returns associated atoms of the mode ensemble."""
+
         return self._atoms
 
     def setAtoms(self, atoms):
+        """Sets the atoms of the mode ensemble."""
+
         if atoms is not None and self._atoms is not None:
             if len(atoms) != self.numAtoms():
                 raise ValueError('atoms should have %d atoms'%self.numAtoms())
         self._atoms = atoms
 
     def getLabels(self):
+        """Returns the labels of the mode ensemble."""
+
         return self._labels
 
     def match(self):
+        """Matches the modes across mode sets according the mode overlaps."""
+
         if self._modesets:
             self._modesets = matchModes(*self._modesets)
         self._matched = True
         return
 
     def addModeSet(self, modeset, weights=None, label=None):
+        """Adds a modeset or modesets to the mode ensemble."""
+
         if isinstance(modeset, (NMA, ModeSet, Mode)):
             modesets = [modeset]
         else:
@@ -366,6 +384,8 @@ class ModeEnsemble(object):
             self._weights = np.concatenate((self._weights, weights), axis=0)
 
     def delModeSet(self, index):
+        """Removes a modeset or modesets from the mode ensemble."""
+
         if np.isscalar(index):
             index = [index]
         else:
@@ -384,52 +404,52 @@ class ModeEnsemble(object):
             self._weights = self._weights[torf, :, :]
 
     def isMatched(self):
+        """Returns whether the modes are matched across modesets in the mode ensemble"""
+
         return self._matched
 
-class Signature(object):
+class sdarray(ndarray):
     """
-    A class for signature dynamics calculated from an :class:`Ensemble`. 
-    or :class:`PDBEnsemble`. The class is a collection of row vectors, and 
-    each is associated with a value. The vectors can have more than one 
-    dimension.
+    A class for representing a collection of arrays. It is derived from 
+    :class:`~numpy.ndarray`, and the first axis is reserved for indexing 
+    the collection. Average, standard deviation, minimum, maximum, etc. 
+    are calculated over the first axis. "sdarray" stands for "signature 
+    dynamics array".
+
+    Notes for developper: please read following article about subclassing 
+    :class:`~numpy.ndarray` before modifying this class:
+
+    https://docs.scipy.org/doc/numpy-1.14.0/user/basics.subclassing.html
     """
 
     __slots__ = ['_array', '_title', '_labels', '_is3d', '_weights']
 
-    def __init__(self, vecs, weights=None, labels=None, title=None, is3d=False):
-        vecs = np.array(vecs)
+    def __new__(self, array, weights=None, labels=None, title=None, is3d=False):
 
-        self._array = vecs
-        shape = vecs.shape
+        array = np.asarray(array)
+        obj = array.view(self)
+        shape = array.shape
 
         if title is None:
-            self._title = '{0} vectors of size {1}'.format(shape[0], shape[1:])
+            obj._title = '{0} arrays of size {1}'.format(shape[0], shape[1:])
         else:
-            self._title = title
+            obj._title = title
         
-        self._labels = labels
-        self._is3d = is3d
-        self._weights = weights
+        obj._labels = labels
+        obj._is3d = is3d
+        obj._weights = weights
+        return obj
 
-    def __len__(self):
-        """Returns the number of vectors."""
-        return self._array.shape[0]
-
-    def __iter__(self):
-        for mode in self._array:
-            yield mode
+    def __getitem__(self, index):
+        arr = np.asarray(self)
+        return arr[index]
 
     def __repr__(self):
-        shape = self._array.shape
-        return '<Signature: {0} vectors of size {1}>'.format(shape[0], shape[1:])
+        shape = self.shape
+        return '<sdarray: {0} arrays of size {1}>'.format(shape[0], shape[1:])
 
     def __str__(self):
         return self.getTitle()
-    
-    def __getitem__(self, index):
-        """A list or tuple of integers can be used for indexing."""
-
-        return self._array[index]
 
     def is3d(self):
         """Returns **True** is model is 3-dimensional."""
@@ -437,21 +457,21 @@ class Signature(object):
         return self._is3d
 
     def numAtoms(self):
-        """Returns number of atoms."""
+        """Returns number of atoms assuming it is represented by the second axis."""
 
-        n_atoms = self._array.shape[1]
-        if self.is3d():
-            n_atoms /= 3
-        return n_atoms
+        try:
+            n_atoms = self.shape[1]
+            if self.is3d():
+                n_atoms /= 3
+            return n_atoms
+        except IndexError:
+            LOGGER.warn('{0} is not related to the number of atoms'.format(self.getTitle()))
+            return 0
 
     def numModeSets(self):
         """Returns number of modesets in the instance """
 
         return len(self)
-
-    def getShape(self):
-        return self._array.shape[1:]
-    shape = getShape
 
     def getTitle(self):
         """Returns title of the signature."""
@@ -461,44 +481,24 @@ class Signature(object):
     def getLabels(self):
         return self._labels
 
-    def getArray(self, index=None):
-        """Returns a copy of row vectors."""
-
-        if index is not None:
-            return self._array[index].copy()
-
-        return self._array.copy()
-
-    getVectors = getArray
-
-    def _getArray(self, index=None):
-        """Returns row vectors."""
-
-        if index is not None:
-            return self._array[index]
-
-        return self._array
-
-    def getMean(self):
-        #return self._array.mean(axis=0)
-        return np.average(self._array, axis=0, weights=self._weights)
-    mean = getMean
+    def mean(self, axis=0, **kwargs):
+        arr = np.asarray(self)
+        return np.average(arr, axis=axis, weights=self._weights)
     
-    def getStd(self):
-        #return self._array.std(axis=0)
-        mean = np.average(self._array, weights=self._weights, axis=0)
-        variance = np.average((self._array - mean)**2, 
-                              weights=self._weights, axis=0)
+    def std(self, axis=0, **kwargs):
+        arr = np.asarray(self)
+        mean = np.average(arr, weights=self._weights, axis=axis)
+        variance = np.average((arr - mean)**2, 
+                              weights=self._weights, axis=axis)
         return np.sqrt(variance)
-    std = getStd
 
-    def getMin(self):
-        return self._array.min(axis=0)
-    min = getMin
+    def min(self, axis=0, **kwargs):
+        arr = np.asarray(self)
+        return arr.min(axis=axis)
 
-    def getMax(self):
-        return self._array.max(axis=0)
-    max = getMax
+    def max(self, axis=0, **kwargs):
+        arr = np.asarray(self)
+        return arr.max(axis=axis)
 
     def getWeights(self):
         return self._weights
@@ -644,7 +644,7 @@ def calcSignatureSqFlucts(mode_ensemble, **kwargs):
     labels = mode_ensemble.getLabels()
 
     # even the original model is 3d, sqfs are still 1d
-    sig = Signature(V, title=title_str, weights=weights, labels=labels, is3d=False)
+    sig = sdarray(V, title=title_str, weights=weights, labels=labels, is3d=False)
 
     return sig
     
@@ -653,7 +653,7 @@ def showSignature(signature, linespec='-', **kwargs):
     Show the signature dynamics using :func:`showAtomicData`. 
     
     :arg signature: the signature dynamics to be plotted 
-    :type signature: :class:`Signature`
+    :type signature: :class:`sdarray`
 
     :arg linespec: line specifications that will be passed to :func:`showAtomicData`
     :type linespec: str
@@ -727,7 +727,8 @@ def showSignature(signature, linespec='-', **kwargs):
             polys.extend(_polys)
 
     else:
-        _lines, _bars, _polys = _showSignature(meanV, stdV, minV, maxV)
+        _lines, _bars, _polys = _showSignature(meanV, stdV, minV, maxV, 
+                                               atoms=atoms, zero_line=zero_line)
         lines.extend(_lines)
         bars.extend(_bars)
         polys.extend(_polys)
@@ -794,7 +795,7 @@ def calcSignatureCrossCorr(mode_ensemble, norm=True):
     labels = mode_ensemble.getLabels()
 
     # even the original model is 3d, cross-correlations are still 1d
-    sig = Signature(C, title=title_str, weights=W, labels=labels, is3d=False)
+    sig = sdarray(C, title=title_str, weights=W, labels=labels, is3d=False)
         
     return sig
 
@@ -821,7 +822,7 @@ def calcSignatureFractVariance(mode_ensemble):
 
     title_str = '%d modes'%mode_ensemble.numModes()
     labels = mode_ensemble.getLabels()
-    sig = Signature(W, title=title_str, weights=None, labels=labels, is3d=is3d)
+    sig = sdarray(W, title=title_str, weights=None, labels=labels, is3d=is3d)
         
     return sig
 
@@ -832,7 +833,7 @@ def showSignatureCrossCorr(mode_ensemble, show_std=False, **kwargs):
     See also :func:`.calcSignatureCrossCorr`.
     
     :arg ensemble: an ensemble of structures or ENMs, or a signature profile 
-    :type ensemble: :class: `Ensemble`, list, :class:`Signature`
+    :type ensemble: :class: `Ensemble`, list, :class:`sdarray`
 
     :arg atoms: an object with method :func:`getResnums` for use 
                 on the x-axis.
