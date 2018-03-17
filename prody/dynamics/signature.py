@@ -412,9 +412,14 @@ class sdarray(ndarray):
     """
     A class for representing a collection of arrays. It is derived from 
     :class:`~numpy.ndarray`, and the first axis is reserved for indexing 
-    the collection. Average, standard deviation, minimum, maximum, etc. 
-    are calculated over the first axis. "sdarray" stands for "signature 
-    dynamics array".
+    the collection. 
+    
+    :class:`sdarray` functions exactly the same as :class:`~numpy.ndarray`, 
+    except that :method:`sdarray.mean()`, :method:`sdarray.std()`, 
+    :method:`sdarray.max()`, :method:`sdarray.min()` are overriden. 
+    Average, standard deviation, minimum, maximum, etc. are weighted and 
+    calculated over the first axis by default. "sdarray" stands for 
+    "signature dynamics array".
 
     Notes for developper: please read following article about subclassing 
     :class:`~numpy.ndarray` before modifying this class:
@@ -444,10 +449,6 @@ class sdarray(ndarray):
         arr = np.asarray(self)
         return arr[index]
 
-    def __repr__(self):
-        shape = self.shape
-        return '<sdarray: {0} arrays of size {1}>'.format(shape[0], shape[1:])
-
     def __str__(self):
         return self.getTitle()
 
@@ -457,7 +458,7 @@ class sdarray(ndarray):
         return self._is3d
 
     def numAtoms(self):
-        """Returns number of atoms assuming it is represented by the second axis."""
+        """Returns the number of atoms assuming it is represented by the second axis."""
 
         try:
             n_atoms = self.shape[1]
@@ -469,23 +470,29 @@ class sdarray(ndarray):
             return 0
 
     def numModeSets(self):
-        """Returns number of modesets in the instance """
+        """Returns the number of modesets in the instance """
 
         return len(self)
 
     def getTitle(self):
-        """Returns title of the signature."""
+        """Returns the title of the signature."""
 
         return self._title
 
     def getLabels(self):
+        """Returns the labels of the signature."""
+
         return self._labels
 
     def mean(self, axis=0, **kwargs):
+        """Calculates the weighted average of the sdarray over modesets (`axis=0`)."""
+
         arr = np.asarray(self)
         return np.average(arr, axis=axis, weights=self._weights)
     
     def std(self, axis=0, **kwargs):
+        """Calculates the weighted standard deviations of the sdarray over modesets (`axis=0`)."""
+
         arr = np.asarray(self)
         mean = np.average(arr, weights=self._weights, axis=axis)
         variance = np.average((arr - mean)**2, 
@@ -493,17 +500,25 @@ class sdarray(ndarray):
         return np.sqrt(variance)
 
     def min(self, axis=0, **kwargs):
+        """Calculates the minimum values of the sdarray over modesets (`axis=0`)."""
+
         arr = np.asarray(self)
         return arr.min(axis=axis)
 
     def max(self, axis=0, **kwargs):
+        """Calculates the maximum values of the sdarray over modesets (`axis=0`)."""
+
         arr = np.asarray(self)
         return arr.max(axis=axis)
 
     def getWeights(self):
+        """Returns the weights of the signature."""
+
         return self._weights
 
     def setWeights(self, weights):
+        """Sets the weights of the signature."""
+
         self._weights = weights
 
 def calcEnsembleENMs(ensemble, model='gnm', trim='trim', n_modes=20, **kwargs):
