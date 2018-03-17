@@ -435,12 +435,12 @@ class sdarray(ndarray):
     array([[0, 1, 1],
         [1, 1, 1]])
     ```
-    Then if we use the :method:`sdarray.mean`: 
+    Then if we use the :method:`sdarray.mean`,
     ```
     In [4]: sdarr.mean()
     Out[4]: array([4., 3.5, 4.5])
     ```
-    will compute the **weighted** average over the modesets (first axis), whereas
+    It will compute the **weighted** average over the modesets (first axis), whereas
     ```
     In [5]: mean(sdarr)
     Out[5]: 3.5
