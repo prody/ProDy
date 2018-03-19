@@ -42,3 +42,8 @@ class TestTrimPDBEnsemble(TestCase):
         assert_equal(atoms.getIndices(), atoms2.getIndices(), 
                     'soft trimPDBEnsemble returns a wrong result')
 
+        msa1 = ensemble_trimed.getMSA()
+        msa2 = ensemble_trimed2.getMSA()
+        assert_equal(msa1.getArray(), msa2.getArray(), 
+                    'soft trimPDBEnsemble returns a wrong result')
+

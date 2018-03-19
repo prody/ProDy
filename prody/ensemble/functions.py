@@ -46,13 +46,18 @@ def saveEnsemble(ensemble, filename=None, **kwargs):
             attr_dict[attr] = value
 
     atoms = dict_['_atoms']
+    if atoms:
+        atoms = atoms.copy()
     attr_dict['_atoms'] = np.array([atoms, 0])
 
     if isinstance(ensemble, PDBEnsemble):
         msa = dict_['_msa']
         attr_dict['_msa'] = np.array([msa, 0])
 
-    filename += '.ens.npz'
+    if filename.endswith('.ens'):
+        filename += '.npz'
+    if not filename.endswith('.npz'):
+        filename += '.ens.npz'
     ostream = openFile(filename, 'wb', **kwargs)
     np.savez(ostream, **attr_dict)
     ostream.close()
@@ -99,7 +104,7 @@ def loadEnsemble(filename):
         if '_trans' in attr_dict.files:
             ensemble._trans = attr_dict['_trans']
         if '_msa' in attr_dict.files:
-            ensemble._msa = attr_dict['_msa']
+            ensemble._msa = attr_dict['_msa'][0]
     else:
         ensemble.addCoordset(attr_dict['_confs'])
         if weights is not None:
@@ -194,7 +199,7 @@ def trimPDBEnsemble(pdb_ensemble, occupancy=None, **kwargs):
         if confs is not None:
             weights = copy(pdb_ensemble._weights)
             labels = pdb_ensemble.getLabels()
-            msa = pdb_ensemble.getMSA()
+            msa = pdb_ensemble._msa
             trimmed.addCoordset(confs, weights, labels, sequence=msa)
 
         trimmed.setAtoms(select)
