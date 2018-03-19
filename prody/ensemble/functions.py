@@ -99,7 +99,7 @@ def loadEnsemble(filename):
         if '_trans' in attr_dict.files:
             ensemble._trans = attr_dict['_trans']
         if '_msa' in attr_dict.files:
-            ensemble._msa = attr_dict['_msa']
+            ensemble._msa = attr_dict['_msa'][0]
     else:
         ensemble.addCoordset(attr_dict['_confs'])
         if weights is not None:
