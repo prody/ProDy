@@ -88,9 +88,6 @@ def calcShannonEntropy(msa, ambiguity=True, omitgaps=True, **kwargs):
 
     msa = getMSA(msa)
     length = msa.shape[1]
-    if msa.shape[0]<100:
-        LOGGER.warning('SCA performs the best with higher number of sequences, and '
-                       'minimal number of sequences is recommended as 100.')
     entropy = empty(length, float)
     from .msatools import msaentropy
     return msaentropy(msa, entropy,
@@ -521,6 +518,10 @@ def buildSCAMatrix(msa, turbo=True, **kwargs):
     are considered as gaps."""
 
     msa = getMSA(msa)
+    if msa.shape[0]<100:
+        LOGGER.warning('SCA performs the best with higher number of sequences, and '
+                       'minimal number of sequences is recommended as 100.')
+                       
     from .msatools import msasca
     LOGGER.timeit('_sca')
     length = msa.shape[1]
