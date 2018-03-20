@@ -172,13 +172,10 @@ class MSA(object):
         if cols is None:
             msa = self._msa[rows]
         else:
-            if isinstance(cols, (slice, int)):
+            try:
                 msa = self._msa[rows, cols]
-            else:
-                try:
-                    msa = self._msa[rows].take(cols, 1)
-                except TypeError:
-                    raise IndexError('invalid index: ' + str(index))
+            except TypeError:
+                raise IndexError('invalid index: ' + str(index))
 
         try:
             lbls = self._labels[rows]
