@@ -224,3 +224,7 @@ from .starfile import *
 __all__.extend(starfile.__all__)
 
 from .pdbfile import PDBParseError
+
+from . import cath
+from .cath import *
+__all__.extend(cath.__all__)
