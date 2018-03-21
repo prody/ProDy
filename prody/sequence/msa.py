@@ -1,14 +1,18 @@
 # -*- coding: utf-8 -*-
 """This module defines MSA analysis functions."""
 
-from numpy import all, zeros, dtype, array, char, cumsum, ceil 
-from numpy import where, sort, concatenate, vstack, isscalar
-from .sequence import Sequence, splitSeqLabel
-from prody.atomic import Atomic
+from numpy import all, zeros, dtype, array, char, cumsum, ceil, reshape
+from numpy import where, sort, concatenate, vstack, isscalar, chararray
+
 from Bio import AlignIO
 from Bio import pairwise2
 from Bio.SubsMat import MatrixInfo as matlist
+
 from prody import LOGGER
+from prody.atomic import Atomic
+from prody.utilities import toChararray
+from .sequence import Sequence, splitSeqLabel
+
 import sys
 
 __all__ = ['MSA', 'refineMSA', 'mergeMSA', 'specMergeMSA',]
@@ -29,32 +33,9 @@ class MSA(object):
         label to sequence index in *msa* array. If *mapping* is not given,
         one will be build from *labels*."""
 
-        msa = array(msa, dtype='|S')
-        try:
-            ndim, dtype_, shape = msa.ndim, msa.dtype, msa.shape
-        except AttributeError:
-            raise TypeError('msa is not a Numpy array')
-
-        if ndim < 1:
-            raise ValueError('msa.ndim should be at least 1')
-        if dtype_.char not in ['S', 'U']:
-            raise ValueError('msa must be a character array')
-
         self._aligned = aligned = kwargs.get('aligned', True)
-        if ndim != 2:
-            n_seq = msa.shape[0]
-            l_seq = dtype_.itemsize
-            new_msa = zeros((n_seq, l_seq), dtype='|S1')
-            for i, strarr in enumerate(msa):
-                for j in range(l_seq):
-                    if j < len(strarr):
-                        new_msa[i, j] = strarr[j]
-                    else:
-                        if aligned:
-                            raise ValueError('msa does not the same lengths')
-                        new_msa[i, j] = '.'
-                msa = new_msa
-        numseq = shape[0]
+        msa = toChararray(msa, aligned)
+        numseq = msa.shape[0]
 
         if labels and len(labels) != numseq:
             raise ValueError('len(labels) must be equal to number of '
@@ -65,32 +46,41 @@ class MSA(object):
         self._labels = labels
         
         mapping = kwargs.get('mapping')
-        if mapping is None:
-            # map labels to sequence index
-            self._mapping = mapping = {}
-            for index, label in enumerate(labels):
-                label = splitSeqLabel(label)[0]
-                try:
-                    value = mapping[label]
-                except KeyError:
-                    mapping[label] = index
-                else:
-                    try:
-                        value.append(index)
-                    except AttributeError:
-                        mapping[label] = [value, index]
+        self._map(mapping)
+        self._msa = msa
+        self._title = str(title) or 'Unknown'
+        self._split = bool(kwargs.get('split', True))
 
-        elif mapping:
+    def _map(self, mapping=None):
+
+        labels = self._labels
+        if mapping is not None:
             try:
                 mapping['isdict']
             except KeyError:
                 pass
             except Exception:
                 raise TypeError('mapping must be a dictionary')
-        self._mapping = mapping
-        self._msa = msa
-        self._title = str(title) or 'Unknown'
-        self._split = bool(kwargs.get('split', True))
+            
+            for key, value in mapping.items():
+                values = [value] if isscalar(value) else value
+                for i in values:
+                    if labels[i] != key:
+                        labels[i] = key
+        
+        self._mapping = mapping = {}
+        for index, label in enumerate(labels):
+            label = splitSeqLabel(label)[0]
+            try:
+                value = mapping[label]
+            except KeyError:
+                mapping[label] = index
+            else:
+                try:
+                    value.append(index)
+                except AttributeError:
+                    mapping[label] = [value, index]
+        return mapping
 
     def __str__(self):
 
@@ -112,9 +102,14 @@ class MSA(object):
 
     def __add__(self, other):
         """Concatenate two MSAs."""
+
         A = self.getArray()
         B = other.getArray()
-        AB = vstack((A, B))
+        try:
+            AB = vstack((A, B))
+        except:
+            raise ValueError('failed to add {0} and {1} together: shapes do not match'
+                             .format(repr(self), repr(other)))
         aligned = self._aligned or other._aligned
 
         labels = list(self._labels)
@@ -122,7 +117,7 @@ class MSA(object):
 
         split = self._split or other._split
 
-        msa = MSA(AB, title='(%s) + (%s)'%(self.getTitle(), other.getTitle()), 
+        msa = MSA(AB, title='%s + %s'%(self.getTitle(), other.getTitle()), 
                   aligned=aligned, labels=labels, split=split)
         return msa
 
@@ -177,13 +172,10 @@ class MSA(object):
         if cols is None:
             msa = self._msa[rows]
         else:
-            if isinstance(cols, (slice, int)):
+            try:
                 msa = self._msa[rows, cols]
-            else:
-                try:
-                    msa = self._msa[rows].take(cols, 1)
-                except TypeError:
-                    raise IndexError('invalid index: ' + str(index))
+            except TypeError:
+                raise IndexError('invalid index: ' + str(index))
 
         try:
             lbls = self._labels[rows]
@@ -240,6 +232,38 @@ class MSA(object):
 
     split = property(_getSplit, _setSplit,
                      doc='Return split label when iterating or indexing.')
+
+    def extend(self, other):
+        """Adds *other* to this MSA."""
+
+        A = self.getArray()
+        if isinstance(other, MSA):
+            B = other.getArray()
+            otherlabels = other._labels
+        elif isinstance(other, Sequence):
+            B = other.getArray()
+            B = reshape(B, (1, B.shape[0]))
+            otherlabels = other.getLabel(full=True)
+        else:
+            try:
+                B = toChararray(other, aligned=False)
+                numA, numB = A.shape[0], B.shape[0]
+                otherlabels = [str(i+1) for i in range(numA, numA+numB)]
+            except:
+                raise ValueError('failed to add {1} to {0}'
+                             .format(repr(self), repr(other)))
+        try:
+            AB = vstack((A, B))
+        except:
+            raise ValueError('failed to add {1} to {0}: shapes do not match'
+                             .format(repr(self), repr(other)))
+
+        labels = list(self._labels)
+        labels.extend(otherlabels)
+
+        self._msa = AB
+        self._labels = labels
+        self._map()
 
     def isAligned(self):
         """Returns **True** if MSA is aligned."""
@@ -411,7 +435,7 @@ def refineMSA(msa, index=None, label=None, rowocc=None, seqid=None, colocc=None,
     :class:`.DBRef`).
 
     The order of refinements are applied in the order of arguments.  If *label*
-    and *unique* is specified is specified, sequence matching *label* will
+    and *unique* is specified, sequence matching *label* will
     be kept in the refined :class:`.MSA` although it may be similar to some
     other sequence."""
 
@@ -484,7 +508,7 @@ def refineMSA(msa, index=None, label=None, rowocc=None, seqid=None, colocc=None,
                             index = msa.getIndex(dbref.idcode)
                             if index is not None:
                                 LOGGER.info('{0} idcode {1} for {2}{3} '
-                                            'is found in chain {3}.'.format(
+                                            'is found in chain {4}.'.format(
                                             dbref.database, dbref.idcode,
                                             label[:4], poly.chid, str(msa)))
                                 break
@@ -492,7 +516,7 @@ def refineMSA(msa, index=None, label=None, rowocc=None, seqid=None, colocc=None,
                             index = msa.getIndex(dbref.accession)
                             if index is not None:
                                 LOGGER.info('{0} accession {1} for {2}{3} '
-                                            'is found in chain {3}.'.format(
+                                            'is found in chain {4}.'.format(
                                             dbref.database, dbref.accession,
                                             label[:4], poly.chid, str(msa)))
                                 break
@@ -615,13 +639,11 @@ def refineMSA(msa, index=None, label=None, rowocc=None, seqid=None, colocc=None,
         if rows is None:
             from copy import copy
             labels = copy(msa._labels)
-            mapping = copy(msa._mapping)
         else:
             labels = msa._labels
             labels = [labels[i] for i in rows]
-            mapping = None
         return MSA(arr, title=msa.getTitle() + ' refined ({0})'
-                   .format(', '.join(title)), labels=labels, mapping=mapping)
+                   .format(', '.join(title)), labels=labels)
 
 
 def mergeMSA(*msa, **kwargs):
@@ -663,19 +685,15 @@ def mergeMSA(*msa, **kwargs):
     idx_arr_rng = list(zip([m.getIndex for m in msa], arrs, rngs))
 
     merger = zeros((len(common), sum(lens)), '|S1')
-    index = 0
     labels = []
-    mapping = {}
-    for label in msa[0].iterLabels():
+    for index, label in enumerate(common):
         if label not in common:
             continue
         for idx, arr, (start, end) in idx_arr_rng:
             merger[index, start:end] = arr[idx(label)]
 
         labels.append(label)
-        mapping[label] = index
-        index += 1
-    merger = MSA(merger, labels=labels, mapping=mapping,
+    merger = MSA(merger, labels=labels,
                  title=' + '.join([m.getTitle() for m in msa]))
     return merger
 
@@ -721,17 +739,14 @@ def specMergeMSA(*msa, **kwargs):
     idx_arr_rng = list(zip([m.getIndex for m in msa], arrs, rngs))
 
     merger = zeros((len(common), sum(lens)), '|S1')
-    index = 0
     labels = []
     mapping = {}
-    for lbl in common:
+    for index, lbl in enumerate(common):
         merger[index, 0:start]=list(str(msa[0][msa[0].getIndex(labells[0][lbl])]))
         merger[index, start:end]=list(str(msa[1][msa[1].getIndex(labells[1][lbl])]))
         label = labells[0][lbl]
 
         labels.append(label)
-        mapping[label] = index
-        index += 1
-    merger = MSA(merger, labels=labels, mapping=mapping,
+    merger = MSA(merger, labels=labels,
                  title=' + '.join([m.getTitle() for m in msa]))
     return merger

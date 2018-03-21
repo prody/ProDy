@@ -2,11 +2,11 @@
 """This module defines a class for handling ensembles of conformations."""
 
 from numpy import dot, add, subtract, array, ndarray, sign, concatenate
-from numpy import zeros, ones, arange, isscalar, max, intersect1d, where
+from numpy import zeros, ones, arange, isscalar, max
 from numpy import newaxis, unique, repeat
 
 from prody import LOGGER
-from prody.atomic import Atomic
+from prody.atomic import Atomic, sliceAtoms
 from prody.measure import getRMSD
 from prody.utilities import importLA, checkCoords, checkWeights, copy
 
@@ -125,8 +125,15 @@ class Ensemble(object):
             LOGGER.info('Atom weights from {0} are used in {1}.'
                         .format(repr(self._title), repr(ensemble.getTitle())))
             ensemble.setWeights(self._weights)
-        ensemble.setAtoms(self._atoms)
-        ensemble._indices = self._indices
+        elif other._weights is not None:
+            ensemble.setWeights(other._weights)
+        
+        if self._atoms is not None:
+            ensemble.setAtoms(self._atoms)
+            ensemble._indices = self._indices
+        else:
+            ensemble.setAtoms(other._atoms)
+            ensemble._indices = other._indices
         return ensemble
 
     def __iter__(self):
@@ -222,24 +229,11 @@ class Ensemble(object):
                 self._indices = None
 
             else: # atoms is a subset
-                try:
-                    ag = atoms.getAtomGroup()
-                except AttributeError:
-                    raise ValueError('atoms must indicate a subset or must '
-                                     'match the ensemble size')
+                if self._atoms:
+                    self._indices, _ = sliceAtoms(self._atoms, atoms)
                 else:
-                    indices = atoms.getIndices()
-                    if ag.numAtoms() != n_atoms: # ag and ensemble sizes do not match
-                        if hasattr(self._atoms, 'getIndices'): # if ensemble.atoms is a AtomSubset
-                            if ag.numAtoms() != self._atoms.getAtomGroup().numAtoms():
-                                raise ValueError('the AtomGroup of atoms does not match that of the ensemble')
-                            indices0 = self._atoms.getIndices()
-                            mut_indices = intersect1d(indices0, indices)
-                            self._indices = [where(indices0==i)[0][0] for i in mut_indices]
-                        else: # ensemble.atoms is an AtomGroup
-                            raise ValueError('the AtomGroup of atoms does not match the ensemble size')
-                    else:  # ag and ensemble sizes match
-                        self._indices = indices
+                    raise ValueError('size mismatch between this ensemble ({0} atoms) and atoms ({1} atoms)'
+                                     .format(n_atoms, atoms.numAtoms()))
 
         else: # if assigning atoms to a new ensemble
             self._n_atoms = atoms.numAtoms()
@@ -319,7 +313,13 @@ class Ensemble(object):
 
         if self._n_atoms == 0:
             raise AttributeError('first set reference coordinates')
-        self._weights = checkWeights(weights, self._n_atoms, None)
+        try:
+            self._weights = checkWeights(weights, self._n_atoms, None)
+        except ValueError:
+            weights = checkWeights(weights, self.numSelected(), None)
+            if not self._weights:
+                self._weights = ones((self._n_atoms, 1), dtype=float)
+            self._weights[self._indices, :] = weights    
 
     def addCoordset(self, coords):
         """Add coordinate set(s) to the ensemble.  *coords* must be a Numpy

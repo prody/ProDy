@@ -1,6 +1,7 @@
 """This module defines a functions for handling conformational ensembles."""
 
 import os.path
+import time
 
 import numpy as np
 
@@ -45,13 +46,18 @@ def saveEnsemble(ensemble, filename=None, **kwargs):
             attr_dict[attr] = value
 
     atoms = dict_['_atoms']
+    if atoms:
+        atoms = atoms.copy()
     attr_dict['_atoms'] = np.array([atoms, 0])
 
     if isinstance(ensemble, PDBEnsemble):
         msa = dict_['_msa']
         attr_dict['_msa'] = np.array([msa, 0])
 
-    filename += '.ens.npz'
+    if filename.endswith('.ens'):
+        filename += '.npz'
+    if not filename.endswith('.npz'):
+        filename += '.ens.npz'
     ostream = openFile(filename, 'wb', **kwargs)
     np.savez(ostream, **attr_dict)
     ostream.close()
@@ -98,7 +104,7 @@ def loadEnsemble(filename):
         if '_trans' in attr_dict.files:
             ensemble._trans = attr_dict['_trans']
         if '_msa' in attr_dict.files:
-            ensemble._msa = attr_dict['_msa']
+            ensemble._msa = attr_dict['_msa'][0]
     else:
         ensemble.addCoordset(attr_dict['_confs'])
         if weights is not None:
@@ -106,7 +112,7 @@ def loadEnsemble(filename):
     return ensemble
 
 
-def trimPDBEnsemble(pdb_ensemble, **kwargs):
+def trimPDBEnsemble(pdb_ensemble, occupancy=None, **kwargs):
     """Returns a new PDB ensemble obtained by trimming given *pdb_ensemble*.
     This function helps selecting atoms in a pdb ensemble based on one of the
     following criteria, and returns them in a new :class:`.PDBEnsemble`
@@ -118,13 +124,10 @@ def trimPDBEnsemble(pdb_ensemble, **kwargs):
     or equal to *occupancy* keyword argument.  Occupancies for atoms will be
     calculated using ``calcOccupancies(pdb_ensemble, normed=True)``.
 
-    :arg occupancy: occupancy for selecting atoms, must satisfy
+    :arg occupancy: occupancy for selecting atoms, must satisfy. If set to 
+                    *None* then *hard* trimming will be performed.
         ``0 < occupancy <= 1``
     :type occupancy: float
-
-    :arg selstr: the function will trim residues that are NOT specified by 
-        the selection string.
-    :type selstr: str
 
     :arg hard: hard trimming or soft trimming. If set to `False`, *pdb_ensemble* 
     will be trimmed by selection. This is useful for example when one uses 
@@ -135,10 +138,10 @@ def trimPDBEnsemble(pdb_ensemble, **kwargs):
 
     """
 
-    atoms = pdb_ensemble.getAtoms()
-    selstr = kwargs.pop('selstr', None)
-    occupancy = kwargs.pop('occupancy', None)
-    hard = kwargs.pop('hard', False) or atoms is None
+    hard = kwargs.pop('hard', False) or pdb_ensemble._atoms is None \
+           or occupancy is None
+
+    atoms = pdb_ensemble.getAtoms(selected=hard)
 
     if not isinstance(pdb_ensemble, PDBEnsemble):
         raise TypeError('pdb_ensemble argument must be a PDBEnsemble')
@@ -156,11 +159,6 @@ def trimPDBEnsemble(pdb_ensemble, **kwargs):
         #weights = weights.flatten()
         #mean_weights = weights / n_confs
         torf = occupancies >= occupancy
-    elif selstr is not None:
-        atoms = pdb_ensemble.getAtoms()
-        assert atoms is not None, 'atoms are empty'
-        selector = Select()
-        torf = selector.getBoolArray(atoms, selstr)
     else:
         n_atoms = pdb_ensemble.getCoords().shape[0]
         torf = np.ones(n_atoms, dtype=bool)
@@ -169,12 +167,7 @@ def trimPDBEnsemble(pdb_ensemble, **kwargs):
     if hard:
         if atoms is not None:
             trim_atoms_idx = [n for n,t in enumerate(torf) if t]
-            if type(atoms) is Chain:
-                trim_atoms=Chain(atoms.copy(), trim_atoms_idx, atoms._hv)
-            elif type(atoms) is AtomGroup:
-                trim_atoms= AtomMap(atoms, trim_atoms_idx)
-            else:
-                trim_atoms= AtomMap(atoms.copy(), trim_atoms_idx)
+            trim_atoms = atoms[trim_atoms_idx]
             trimmed.setAtoms(trim_atoms)
 
         coords = pdb_ensemble.getCoords()
@@ -189,17 +182,14 @@ def trimPDBEnsemble(pdb_ensemble, **kwargs):
                 msa = msa[:, torf]
             trimmed.addCoordset(confs[:, torf], weights[:, torf], labels, sequence=msa)
     else:
-        indices = np.where(torf)
+        indices = np.where(torf)[0]
         selids = pdb_ensemble._indices
 
         if selids is not None:
-            ag = atoms.getAtomGroup()
             indices = selids[indices]
-        else:
-            ag = atoms.copy()
-        selstr = '' if selstr is None else selstr
-        select = Selection(ag, indices, selstr, ag._acsi) 
-        trimmed.setAtoms(ag)
+
+        select = atoms[indices]
+        trimmed.setAtoms(atoms)
         trimmed.setAtoms(select)
 
         coords = copy(pdb_ensemble._coords)
@@ -209,7 +199,7 @@ def trimPDBEnsemble(pdb_ensemble, **kwargs):
         if confs is not None:
             weights = copy(pdb_ensemble._weights)
             labels = pdb_ensemble.getLabels()
-            msa = pdb_ensemble.getMSA()
+            msa = pdb_ensemble._msa
             trimmed.addCoordset(confs, weights, labels, sequence=msa)
 
         trimmed.setAtoms(select)
@@ -385,6 +375,7 @@ def buildPDBEnsemble(refpdb, PDBs, title='Unknown', labels=None, seqid=94, cover
     except AttributeError:
         raise TypeError('refpdb must have getHierView')
 
+    start = time.time()
     # obtain the atommap of all the chains combined.
     atoms = refchains[0]
     for i in range(1, len(refchains)):
@@ -445,6 +436,9 @@ def buildPDBEnsemble(refpdb, PDBs, title='Unknown', labels=None, seqid=94, cover
     if occupancy is not None:
         ensemble = trimPDBEnsemble(ensemble, occupancy=occupancy)
     ensemble.iterpose()
+
+    LOGGER.debug('Ensemble ({0} conformations) were built in {1:.2f}s.'
+                     .format(ensemble.numConfs(), time.time()-start))
 
     return ensemble
 
