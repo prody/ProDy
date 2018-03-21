@@ -823,18 +823,28 @@ def buildMSA(sequences, title='Unknown', labels=None, **kwargs):
         try:
             max_len = 0
             for sequence in sequences:
-                if len(sequence) > max_len:
-                    max_len = len(sequence)
+                if isinstance(sequence, Atomic):
+                    if len(sequence.ca.copy()) > max_len:
+                        max_len = len(sequence.ca.copy())
+                elif isinstance(sequence, MSA):
+                    if len(sequence[0]) > max_len:
+                        max_len = len(sequence[0])
+                else:
+                    if len(sequence) > max_len:
+                        max_len = len(sequence)
 
             msa = []
             fetched_labels = []
             for i, sequence in enumerate(sequences):
                 if isinstance(sequence, Atomic):
-                    strseq = sequence.getSequence()
+                    strseq = sequence.ca.copy().getSequence()
                     label = sequence.getTitle()
                 elif isinstance(sequence, Sequence):
                     strseq = str(sequence)
                     label = sequence.getLabel()
+                elif isinstance(sequence, MSA):
+                    strseq = str(sequence[0])
+                    label = sequence.getLabel(0)
                 elif isinstance(sequence, str):
                     strseq = sequence
                     label = str(i + 1)
@@ -857,7 +867,7 @@ def buildMSA(sequences, title='Unknown', labels=None, **kwargs):
         if align:
             filename = writeMSA(title + '.fasta', msa)
 
-    
+
     if align:
         # 2. find and run alignment method
         clustalw = which('clustalw')
