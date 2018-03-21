@@ -95,6 +95,7 @@ def buildPDBChainCATHDict(cath_file, iscommpressed=True):
     cath_i_dict = dict()
     with open(cath_file, 'r') as file_temp:
         for line in file_temp:
+            line = line.strip()
             if line != '':
                 line_list = line.split(' ')
                 cath_dict_temp[line_list[0]] = line_list[1:]
