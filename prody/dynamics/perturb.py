@@ -146,11 +146,10 @@ def calcPerturbResponse(model, **kwargs):
     else:
         return norm_prs_matrix
 
-def parsePerturbResponseMatrix(prs_matrix_file='prs_matrix.txt',normMatrix=False):
+def parsePerturbResponseMatrix(prs_matrix_file, normMatrix=False):
     """Parses a perturbation response matrix from a file into a numpy ndarray.
 
-    :arg prs_matrix_file: name of the file containing a PRS matrix, default is
-        'prs_matrix.txt' as is used in the example under calcPerturbResponse.
+    :arg prs_matrix_file: name of the file containing a PRS matrix
     :type prs_matrix_file: str
 
     :arg normMatrix: whether to normalize the PRS matrix after parsing it.
@@ -159,17 +158,13 @@ def parsePerturbResponseMatrix(prs_matrix_file='prs_matrix.txt',normMatrix=False
     :type norm: bool
 
     """
-    fmat = open(prs_matrix_file,'r')
+    fmat = open(prs_matrix_file, 'rb')
     matlines = fmat.readlines()
     fmat.close()
 
     prs_matrix = []
     for line in matlines:
-       prs_matrix.append(line.split())
-
-    for i in range(len(prs_matrix)):
-     for j in range(len(prs_matrix)):
-        prs_matrix[i][j] = float(prs_matrix[i][j])
+        prs_matrix.append([float(entry) for entry in line.split()])
 
     prs_matrix = np.array(prs_matrix)
 
@@ -185,7 +180,7 @@ def parsePerturbResponseMatrix(prs_matrix_file='prs_matrix.txt',normMatrix=False
     else:
        return prs_matrix
 
-def calcPerturbResponseProfiles(prs_matrix,atoms=None):
+def calcPerturbResponseProfiles(prs_matrix, atoms=None):
     """ Calculate the effectiveness and sensitivity
     profiles, which are the averages over the rows
     and columns of the PRS matrix.
@@ -198,23 +193,23 @@ def calcPerturbResponseProfiles(prs_matrix,atoms=None):
     ``atoms.getData('sensitivity')``. 
     """
 
-    effectiveness = []
-    sensitivity = []
-    for i in range(len(prs_matrix)):
-        effectiveness.append(np.mean(prs_matrix[i]))
-        sensitivity.append(np.mean(prs_matrix.T[i]))
-
-    effectiveness = np.array(effectiveness)
-    sensitivity = np.array(sensitivity)
+    effectiveness = np.mean(prs_matrix, axis=1)
+    sensitivity = np.mean(prs_matrix, axis=0)
 
     if atoms is not None:
-        atoms.setData('effectiveness',effectiveness)
-        atoms.setData('sensitivity',sensitivity)
-        return atoms, effectiveness, sensitivity
-    else:
-        return effectiveness, sensitivity
+        try:
+            ag = atoms.getAtomGroup()
+            defdata = np.zeros(ag.numAtoms(), dtype=float)
+            ag.setData('effectiveness', defdata.copy())
+            ag.setData('sensitivity', defdata.copy())
+        except AttributeError:
+            pass
+        atoms.setData('effectiveness', effectiveness)
+        atoms.setData('sensitivity', sensitivity)
+        
+    return effectiveness, sensitivity
 
-def writePerturbResponsePDB(prs_matrix,pdbIn=None,**kwargs):
+def writePerturbResponsePDB(prs_matrix, pdbIn=None, **kwargs):
     """ Write the average response to perturbation of
     a particular residue (a row of a perturbation response matrix)
     or the average effect of perturbation of a particular residue
