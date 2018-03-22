@@ -269,21 +269,16 @@ def _parseCIFLines(atomgroup, lines, model, chain, subset,
         chID = line.split()[fields['auth_asym_id']]
         if chain is not None:
             if not chID in chain:
-                LOGGER.info('The loop has entered the chID continue block!!')
                 continue
 
         alt = line.split()[fields['label_alt_id']]
         if alt not in which_altlocs:
-            LOGGER.info('The loop has entered the alt continue block!!')
-            LOGGER.info('line = {0}'.format(line))
             continue
 
         if model is not None:
             if int(models[acount]) < model:
-                LOGGER.info('The loop has entered the model continue block!!')
                 continue
             elif int(models[acount]) > model:
-                LOGGER.info('The loop has entered the model break block!!')
                 break
 
         coordinates[acount] = [line.split()[fields['Cartn_x']], \

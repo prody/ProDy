@@ -25,7 +25,7 @@ def calcOverlap(rows, cols):
     if not isinstance(rows, (NMA, ModeSet, Mode, Vector)):
         raise TypeError('rows must be NMA, ModeSet, Mode, or Vector, not {0}'
                         .format(type(rows)))
-    if not isinstance(rows, (NMA, ModeSet, Mode, Vector)):
+    if not isinstance(cols, (NMA, ModeSet, Mode, Vector)):
         raise TypeError('cols must be NMA, ModeSet, Mode, or Vector, not {0}'
                         .format(type(cols)))
 
