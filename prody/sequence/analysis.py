@@ -5,7 +5,7 @@ __author__ = 'Anindita Dutta, Ahmet Bakan, Wenzhi Mao'
 
 import os
 from numpy import dtype, zeros, empty, ones, where, ceil, shape
-from numpy import indices, tril_indices, array, ndarray, isscalar
+from numpy import indices, tril_indices, array, ndarray 
 from prody import LOGGER
 from prody.utilities import which
 from prody.sequence.msa import MSA, refineMSA
@@ -712,7 +712,7 @@ def alignSequencesByChain(PDBs, **kwargs):
     :type join_char: str
     """
     
-    if not isinstance(PDBs, [list, array]):
+    if not isinstance(PDBs, list) and not isinstance(PDBs, ndarray) and not isinstance(PDBs, tuple):
         raise TypeError('PDBs should be a list or array')
 
     if not PDBs:
@@ -918,7 +918,7 @@ def showAlignment(alignment, row_size=60, max_seqs=5, **kwargs):
 
     labels = kwargs.get('labels', None)
     if labels is not None:
-        if not isinstance(labels, [list, array]):
+        if not isinstance(labels, list) and not isinstance(labels, ndarray) and not isinstance(labels, tuple):
             raise TypeError('labels should be a list of strings')
 
         for label in labels:
