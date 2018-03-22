@@ -52,8 +52,8 @@ def calcTree(names, distance_matrix, method='nj'):
 def clusterMatrix(matrix, labels=None, similarity=False, return_linkage=None, **kwargs):
     """
     Cluster a distance matrix or a similarity matrix using scipy.cluster.hierarchy and 
-    return the linkage matrix, indices, sorted matrix, sorted labels, and 
-    dendrogram dict.
+    return the sorted matrix, indices used for sorting, sorted labels (if **labels** are passed),  
+    and linkage matrix (if **return_linkage** is **True**).
     
     :arg matrix: an N-by-N matrix containing some measure of distance 
         such as ``1 - seqid_matrix``, rmsds, or distances in PCA space
@@ -66,10 +66,13 @@ def clusterMatrix(matrix, labels=None, similarity=False, return_linkage=None, **
                    ``1 - matrix`` will be used for constructing the dendrogram.
     :type similarity: bool
 
-    :arg no_plot: If **True**, don't plot the dendrogram.
+    :arg no_plot: if **True**, don't plot the dendrogram.
         default is **True**
     :type no_plot: bool
     
+    :arg reversed: if set to **True**, then the sorting indices will be reversed.
+    :type reversed: bool
+
     Other arguments for :method:`~scipy.hierarchy.linkage` and :method:`~scipy.hierarchy.dendrogram`
         can also be provided and will be taken as **kwargs**.
     """

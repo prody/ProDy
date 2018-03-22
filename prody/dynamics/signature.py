@@ -473,10 +473,21 @@ class sdarray(ndarray):
         return obj
 
     def __getitem__(self, index):
-        arr = np.asarray(self)[index]
-        if arr.ndim == self.ndim:
-            return sdarray(arr, is3d=self.is3d)
-        return arr
+        if isinstance(index, tuple):
+            index0 = index[0]
+            index1 = index[1:]
+        else:
+            index0 = index
+            index1 = ()
+
+        arr = np.asarray(self)[index0]
+        if arr.ndim != self.ndim:
+            arr = np.expand_dims(arr, axis=0)
+            arr = arr[:1, index1]
+        
+        labels = np.array(self._labels)[index0]
+        w = self._weights[index1]
+        return sdarray(arr, weihts=w, labels=list(labels), title=self._title, is3d=self.is3d)
 
     def __str__(self):
         return self.getTitle()
