@@ -49,36 +49,38 @@ def calcTree(names, distance_matrix, method='nj'):
         node.name = None
     return tree
 
-def clusterMatrix(similarity_matrix=None, distance_matrix=None, labels=None, no_plot=True, **kwargs):
+def clusterMatrix(matrix, labels=None, similarity=False, no_plot=True, **kwargs):
     """
-    Cluster a similarity matrix or a distance matrix using scipy.cluster.hierarchy and 
+    Cluster a distance matrix or a similarity matrix using scipy.cluster.hierarchy and 
     return the linkage matrix, indices, sorted matrix, sorted labels, and 
     dendrogram dict.
     
-    :arg similarity_matrix: an N-by-N matrix containing some measure of similarity 
-        such as sequence identity, mode-mode overlap, or spectral overlap
-    :type similarity_matrix: array
-    
-    :arg distance_matrix: an N-by-N matrix containing some measure of distance 
+    :arg matrix: an N-by-N matrix containing some measure of distance 
         such as 1. - seqid_matrix, rmsds, or distances in PCA space
-    :type similarity_matrix: array
+    :type matrix: :class:`~numpy.ndarray`
     
     :arg labels: labels for each matrix row that can be returned sorted
     :type labels: list
+
+    :arg similarity: whether the given matrix is similarity matrix or not. If set to **True**, then 
+                   ``1 - matrix`` will be used for constructing the dendrogram.
+    :type similarity: bool
     
-    Other arguments for scipy.hierarchy.linkage and scipy.hierarchy.dendrogram
+    Other arguments for :method:`~scipy.hierarchy.linkage` and :method:`~scipy.hierarchy.dendrogram`
         can also be provided and will be taken as kwargs.
         
     :arg no_plot: If True, don't plot the dendrogram.
         default is True
     :type no_plot: bool
     """
-    if similarity_matrix is None and distance_matrix is None:
-        raise ValueError('Please provide a similarity matrix or a distance matrix')
-    elif distance_matrix is None:
-        distance_matrix = 1. - similarity_matrix
+
+    if similarity:
+        distance_matrix = 1. - matrix
+    else:
+        distance_matrix = matrix
     
-    orientation = kwargs.pop('orientiation','right')
+    orientation = kwargs.pop('orientiation', 'right')
+    reversed = kwargs.pop('reversed', False)
     
     formatted_distance_matrix = spatial.distance.squareform(distance_matrix)
     linkage_matrix = sch.linkage(formatted_distance_matrix, **kwargs)
@@ -86,14 +88,15 @@ def clusterMatrix(similarity_matrix=None, distance_matrix=None, labels=None, no_
 
     indices = sorting_dendrogram['leaves']
     sorted_labels = sorting_dendrogram['ivl']
+
+    if reversed:
+        indices = indices[::-1]
+        sorted_labels[::-1]
     
-    if similarity_matrix is None:
-        sorted_matrix = distance_matrix[indices,:]
-    else:
-        sorted_matrix = similarity_matrix[indices,:]
-    sorted_matrix = sorted_matrix[:,indices]
+    sorted_matrix = matrix[indices, :]
+    sorted_matrix = sorted_matrix[:, indices]
     
-    return linkage_matrix, indices, sorted_matrix, sorted_labels, sorting_dendrogram
+    return sorted_matrix, indices, sorted_labels, linkage_matrix, sorting_dendrogram
 
 def showData(*args, **kwargs):
     """
