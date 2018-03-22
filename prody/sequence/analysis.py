@@ -712,7 +712,7 @@ def alignSequencesByChain(PDBs, **kwargs):
     :type join_char: str
     """
     
-    if not isscalar(PDBs):
+    if not isinstance(PDBs, [list, array]):
         raise TypeError('PDBs should be a list or array')
 
     if not PDBs:
@@ -918,7 +918,7 @@ def showAlignment(alignment, row_size=60, max_seqs=5, **kwargs):
 
     labels = kwargs.get('labels', None)
     if labels is not None:
-        if not isscalar(labels):
+        if not isinstance(labels, [list, array]):
             raise TypeError('labels should be a list of strings')
 
         for label in labels:
