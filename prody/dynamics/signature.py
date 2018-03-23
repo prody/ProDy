@@ -610,8 +610,6 @@ def calcEnsembleENMs(ensemble, model='gnm', trim='trim', n_modes=20, **kwargs):
         
     labels = ensemble.getLabels()
 
-    verb = LOGGER.verbosity
-    LOGGER.verbosity = 'info'
     ### ENMs ###
     ## ENM for every conf
     enms = []
@@ -622,6 +620,7 @@ def calcEnsembleENMs(ensemble, model='gnm', trim='trim', n_modes=20, **kwargs):
                     .format(str_modes, model_type, n_confs), n_confs)
 
     for i in range(n_confs):
+        LOGGER.update(i)
         coords = ensemble.getCoordsets(i, selected=False)
         nodes = coords[0, :, :]
         if atoms is not None:
@@ -632,10 +631,7 @@ def calcEnsembleENMs(ensemble, model='gnm', trim='trim', n_modes=20, **kwargs):
         enms.append(enm)
 
         #lbl = labels[i] if labels[i] != '' else '%d-th conformation'%(i+1)
-        LOGGER.update(i)
-    
-    LOGGER.update(n_confs, 'Finished.')
-    LOGGER.verbosity = verb
+    LOGGER.finish()
 
     min_n_modes = ensemble.numAtoms() * 3
     for enm in enms:
