@@ -11,9 +11,11 @@ import numbers
 
 __all__ = ['PackageLogger', 'LOGGING_LEVELS']
 
+LOGGING_PROGRESS = logging.INFO + 5
+
 LOGGING_LEVELS = {'debug': logging.DEBUG,
                 'info': logging.INFO,
-                'progress': logging.INFO + 5,
+                'progress': LOGGING_PROGRESS,
                 'warning': logging.WARNING,
                 'error': logging.ERROR,
                 'critical': logging.CRITICAL,
@@ -157,9 +159,10 @@ class PackageLogger(object):
     def clear(self):
         """Clear current line in ``sys.stderr``."""
 
-        if self._line and self._level < logging.WARNING:
-            sys.stderr.write('\r' + ' ' * (len(self._line)) + '\r')
-            self._line = ''
+        if self._level != LOGGING_PROGRESS: 
+            if self._line and self._level < logging.WARNING:
+                sys.stderr.write('\r' + ' ' * (len(self._line)) + '\r')
+                self._line = ''
 
     def exit(self, status=0):
         """Exit the interpreter."""
@@ -281,11 +284,11 @@ class PackageLogger(object):
             self.finish()
 
     def finish(self):
-        self.clear()
         if not hasattr(self, '_verb'):
             raise RuntimeError('finish before starting a progress')
         self._setverbosity(self._verb)
         del self._verb
+        self.clear()
 
     def sleep(self, seconds, msg=''):
         """Sleep for seconds while updating screen message every second.
