@@ -106,7 +106,7 @@ def clusterMatrix(matrix, labels=None, similarity=False, return_linkage=None, **
         return_vals.append(sorted_labels)
     if return_linkage:
         return_vals.append(linkage_matrix)
-    return return_vals
+    return tuple(return_vals) # convert to tuple to avoid [pylint] E0632:Possible unbalanced tuple unpacking
 
 def showData(*args, **kwargs):
     """
