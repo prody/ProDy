@@ -284,11 +284,10 @@ class PackageLogger(object):
             self.finish()
 
     def finish(self):
-        if not hasattr(self, '_verb'):
-            raise RuntimeError('finish before starting a progress')
-        self._setverbosity(self._verb)
-        del self._verb
-        self.clear()
+        if hasattr(self, '_verb'):
+            self._setverbosity(self._verb)
+            del self._verb
+            self.clear()
 
     def sleep(self, seconds, msg=''):
         """Sleep for seconds while updating screen message every second.
