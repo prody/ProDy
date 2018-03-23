@@ -562,13 +562,15 @@ def calcMSF(coordsets):
         LOGGER.progress('Evaluating {0} frames from {1}:'
                         .format(ncsets, str(coordsets)), ncsets,
                         '_prody_calcMSF')
+        ncsets = 0
         coordsets.reset()
-        for ncsets, frame in enumerate(coordsets):
+        for frame in coordsets:
             frame.superpose()
             coords = frame._getCoords()
             total += coords
             sqsum += coords ** 2
-            LOGGER.update(ncsets + 1, '_prody_calcMSF')
+            ncsets += 1
+            LOGGER.update(ncsets, '_prody_calcMSF')
         msf = (sqsum/ncsets - (total/ncsets)**2).sum(1)
         LOGGER.finish()
         coordsets.goto(nfi)
