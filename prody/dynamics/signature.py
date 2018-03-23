@@ -481,13 +481,18 @@ class sdarray(ndarray):
             index1 = ()
 
         arr = np.asarray(self)[index0]
+        w = self._weights[index0]
         if arr.ndim != self.ndim:
             arr = np.expand_dims(arr, axis=0)
-            arr = arr[:1, index1]
+            w = np.expand_dims(w, axis=0)
+        new_index = [slice(None, None, None)]
+        new_index.extend(index1)
+
+        arr = arr[new_index]
+        w = w[new_index]
         
         labels = np.array(self._labels)[index0]
-        w = self._weights[index1]
-        return sdarray(arr, weihts=w, labels=list(labels), title=self._title, is3d=self.is3d)
+        return sdarray(arr, weights=w, labels=list(labels), title=self._title, is3d=self.is3d)
 
     def __str__(self):
         return self.getTitle()
@@ -568,6 +573,16 @@ class sdarray(ndarray):
         """Sets the weights of the signature."""
 
         self._weights = weights
+
+    def getArray(self):
+        """Returns the signature as an numpy array."""
+
+        return np.asarray(self)
+
+    def setArray(self, arr):
+        """Sets the signature array."""
+
+        self[:] = arr
 
 def calcEnsembleENMs(ensemble, model='gnm', trim='trim', n_modes=20, **kwargs):
     """Description"""
