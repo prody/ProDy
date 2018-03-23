@@ -13,6 +13,7 @@ __all__ = ['PackageLogger', 'LOGGING_LEVELS']
 
 LOGGING_LEVELS = {'debug': logging.DEBUG,
                 'info': logging.INFO,
+                'progress': logging.INFO + 5,
                 'warning': logging.WARNING,
                 'error': logging.ERROR,
                 'critical': logging.CRITICAL,
@@ -243,6 +244,9 @@ class PackageLogger(object):
         self._msg = msg
         self._line = ''
 
+        self._verb = self._getverbosity()
+        self._setverbosity('progress')
+
     def update(self, step, msg=None, label=None):
         """Update progress status to current line in the console."""
 
@@ -273,6 +277,15 @@ class PackageLogger(object):
             sys.stderr.flush()
             self._prev = prev
             self._line = line
+        if i == n:
+            self.finish()
+
+    def finish(self):
+        self.clear()
+        if not hasattr(self, '_verb'):
+            raise RuntimeError('finish before starting a progress')
+        self._setverbosity(self._verb)
+        del self._verb
 
     def sleep(self, seconds, msg=''):
         """Sleep for seconds while updating screen message every second.

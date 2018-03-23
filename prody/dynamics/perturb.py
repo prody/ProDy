@@ -93,7 +93,7 @@ def calcPerturbResponse(model, **kwargs):
     LOGGER.report('Covariance matrix calculated in %.1fs.',
                   '_prody_cov')
 
-    LOGGER.progress('Calculating perturbation response', n_atoms, '_prody_prs_mat')
+    LOGGER.report('Calculating perturbation response', n_atoms, '_prody_prs_mat')
 
     if not model.is3d():
         prs_matrix = cov**2
