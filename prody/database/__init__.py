@@ -22,3 +22,7 @@ __all__.extend(pfam.__all__)
 from . import uniprot
 from .uniprot import *
 __all__.extend(uniprot.__all__)
+
+from . import cath
+from .cath import *
+__all__.extend(cath.__all__)
