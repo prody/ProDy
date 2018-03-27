@@ -268,7 +268,7 @@ class daliRecord(object):
         ensemble.setCoords(ref_chain)
         failPDBList = []
         for pdb_chain in pdbList:
-            print(pdb_chain)
+            # print(pdb_chain)
             temp_dict = daliInfo[pdb_chain]
             sel_pdb = parsePDB(pdb_chain[0:4], report=False).select('chain '+pdb_chain[5:6]).copy()
             sel_pdb_ca = sel_pdb.select("protein and name CA").copy()
