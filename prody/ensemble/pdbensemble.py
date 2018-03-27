@@ -107,9 +107,10 @@ class PDBEnsemble(Ensemble):
         elif isinstance(index, (list, np.ndarray)):
             ens = PDBEnsemble('Conformations of {0}'.format(self._title))
             ens.setCoords(copy(self._coords))
+            labels = list(np.array(self._labels)[index])
             ens.addCoordset(self._confs[index].copy(),
                             self._weights[index].copy(),
-                            label=[self._labels[i] for i in index],
+                            label=labels,
                             sequence=msa)
             if self._trans is not None:
                 ens._trans = self._trans[index]

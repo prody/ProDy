@@ -473,8 +473,26 @@ class sdarray(ndarray):
         return obj
 
     def __getitem__(self, index):
-        arr = np.asarray(self)
-        return arr[index]
+        if isinstance(index, tuple):
+            index0 = index[0]
+            index1 = index[1:]
+        else:
+            index0 = index
+            index1 = ()
+
+        arr = np.asarray(self)[index0]
+        w = self._weights[index0]
+        if arr.ndim != self.ndim:
+            arr = np.expand_dims(arr, axis=0)
+            w = np.expand_dims(w, axis=0)
+        new_index = [slice(None, None, None)]
+        new_index.extend(index1)
+
+        arr = arr[new_index]
+        w = w[new_index]
+        
+        labels = np.array(self._labels)[index0]
+        return sdarray(arr, weights=w, labels=list(labels), title=self._title, is3d=self.is3d)
 
     def __str__(self):
         return self.getTitle()
@@ -556,6 +574,16 @@ class sdarray(ndarray):
 
         self._weights = weights
 
+    def getArray(self):
+        """Returns the signature as an numpy array."""
+
+        return np.asarray(self)
+
+    def setArray(self, arr):
+        """Sets the signature array."""
+
+        self[:] = arr
+
 def calcEnsembleENMs(ensemble, model='gnm', trim='trim', n_modes=20, **kwargs):
     """Description"""
 
@@ -582,8 +610,6 @@ def calcEnsembleENMs(ensemble, model='gnm', trim='trim', n_modes=20, **kwargs):
         
     labels = ensemble.getLabels()
 
-    verb = LOGGER.verbosity
-    LOGGER.verbosity = 'info'
     ### ENMs ###
     ## ENM for every conf
     enms = []
@@ -594,6 +620,7 @@ def calcEnsembleENMs(ensemble, model='gnm', trim='trim', n_modes=20, **kwargs):
                     .format(str_modes, model_type, n_confs), n_confs)
 
     for i in range(n_confs):
+        LOGGER.update(i)
         coords = ensemble.getCoordsets(i, selected=False)
         nodes = coords[0, :, :]
         if atoms is not None:
@@ -604,10 +631,7 @@ def calcEnsembleENMs(ensemble, model='gnm', trim='trim', n_modes=20, **kwargs):
         enms.append(enm)
 
         #lbl = labels[i] if labels[i] != '' else '%d-th conformation'%(i+1)
-        LOGGER.update(i)
-    
-    LOGGER.update(n_confs, 'Finished.')
-    LOGGER.verbosity = verb
+    LOGGER.finish()
 
     min_n_modes = ensemble.numAtoms() * 3
     for enm in enms:

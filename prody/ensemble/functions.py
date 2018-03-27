@@ -389,12 +389,9 @@ def buildPDBEnsemble(refpdb, PDBs, title='Unknown', labels=None, seqid=94, cover
     # build the ensemble
     if unmapped is None: unmapped = []
 
-    verb = LOGGER.verbosity
-    LOGGER.verbosity = 'info'
-
     LOGGER.progress('Building the ensemble...', len(PDBs))
     for i, pdb in enumerate(PDBs):
-        LOGGER.update(i, 'Mapping %s to the reference...'%pdb)
+        LOGGER.update(i + 1, 'Mapping %s to the reference...'%pdb)
         try:
             pdb.getHierView()
         except AttributeError:
@@ -429,15 +426,14 @@ def buildPDBEnsemble(refpdb, PDBs, title='Unknown', labels=None, seqid=94, cover
         
         # add the mappings to the ensemble
         ensemble.addCoordset(atommap, weights=atommap.getFlags('mapped'), label = lbl)
-    
-    LOGGER.update(len(PDBs), 'Finished.')
-    LOGGER.verbosity = verb
+
+    LOGGER.finish()
 
     if occupancy is not None:
         ensemble = trimPDBEnsemble(ensemble, occupancy=occupancy)
     ensemble.iterpose()
-
-    LOGGER.debug('Ensemble ({0} conformations) were built in {1:.2f}s.'
+    
+    LOGGER.info('Ensemble ({0} conformations) were built in {1:.2f}s.'
                      .format(ensemble.numConfs(), time.time()-start))
 
     return ensemble
