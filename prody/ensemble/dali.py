@@ -86,7 +86,7 @@ class daliRecord(object):
         else:
             self._subset = "-"+subset[3:]
         timeout = kwargs.pop('timeout', 120)
-        self.isSuccess = self.getRecord(self._url, localFile=localFile)
+        self.isSuccess = self.getRecord(self._url, localFile=localFile, timeout=timeout)
 
     def getRecord(self, url, localFile=False, **kwargs):
         if localFile:
