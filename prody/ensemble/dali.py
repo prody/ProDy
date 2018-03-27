@@ -26,7 +26,8 @@ def daliSearchPDB(pdbId, chainId, daliURL=None, subset='fullPDB', **kwargs):
     :arg subset: fullPDB, PDB25, PDB50, PDB90
     :type sequence: str"""
     LOGGER.timeit('_dali')
-    timeout = 120
+    # timeout = 120
+    timeout = kwargs.pop('timeout', 120)
     
     if daliURL is None:
         daliURL = "http://ekhidna2.biocenter.helsinki.fi/cgi-bin/sans/dump.cgi"
@@ -48,12 +49,14 @@ def daliSearchPDB(pdbId, chainId, daliURL=None, subset='fullPDB', **kwargs):
             else:
                 url = urllib2.urlopen(request).url
                 break
-    if url.split('.')[-1].lower() in ['html', 'php']:
-        url = url.strip(url.split('/')[-1])
+    # if url.split('.')[-1].lower() in ['html', 'php']:
+        # print('test -1: '+url)
+        # url = url.strip(url.split('/')[-1])
+        # url = url.strip('index.html').strip('index.php')
     LOGGER.debug('Submitted Dali search for PDB and chain "{0} and {1}".'.format(pdbId, chainId))
     LOGGER.info(url)
     LOGGER.clear()
-    obj = daliRecord(url, pdbId, chainId, subset=subset)
+    obj = daliRecord(url, pdbId, chainId, subset=subset, timeout=timeout)
     if obj.isSuccess:
         return obj
     else:
@@ -63,7 +66,7 @@ class daliRecord(object):
 
     """A class to store results from Dali PDB search."""
 
-    def __init__(self, url, pdbId=None, chainId=None, subset='fullPDB', localFile=False):
+    def __init__(self, url, pdbId=None, chainId=None, subset='fullPDB', localFile=False, **kwargs):
         """Instantiate a daliPDB object instance.
 
         :arg url: url of Dali results page or local dali results file.
@@ -82,17 +85,18 @@ class daliRecord(object):
             self._subset = ""
         else:
             self._subset = "-"+subset[3:]
-        
+        timeout = kwargs.pop('timeout', 120)
         self.isSuccess = self.getRecord(self._url, localFile=localFile)
 
-    def getRecord(self, url, localFile=False):
+    def getRecord(self, url, localFile=False, **kwargs):
         if localFile:
             dali_file = open(url, 'r')
             data = dali_file.read()
             dali_file.close()
         else:
             sleep = 2
-            timeout = 120
+            # timeout = 120
+            timeout = kwargs.pop('timeout', 120)
             LOGGER.timeit('_dali')
             log_message = ''
             try_error = 3
