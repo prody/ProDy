@@ -49,10 +49,9 @@ def daliSearchPDB(pdbId, chainId, daliURL=None, subset='fullPDB', **kwargs):
             else:
                 url = urllib2.urlopen(request).url
                 break
-    # if url.split('.')[-1].lower() in ['html', 'php']:
+    if url.split('.')[-1].lower() in ['html', 'php']:
         # print('test -1: '+url)
-        # url = url.strip(url.split('/')[-1])
-        # url = url.strip('index.html').strip('index.php')
+        url = url.replace(url.split('/')[-1], '')
     LOGGER.debug('Submitted Dali search for PDB and chain "{0} and {1}".'.format(pdbId, chainId))
     LOGGER.info(url)
     LOGGER.clear()
