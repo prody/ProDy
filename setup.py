@@ -102,6 +102,10 @@ EXTENSIONS = [
               include_dirs=[numpy.get_include()]),
 ]
 
+# grab all of the .h and .cpp files in cealign/ and cealign/tnt
+srcList = [ x for x in glob(join("prody/proteins/ccealign", "*.cpp")) ]
+incDirs = [ "prody/proteins/ccealign/tnt" ]
+
 CONTRIBUTED = [
     Extension('prody.proteins.cpairwise2',
               [join('prody', 'proteins', 'cpairwise2.c')]),
@@ -109,6 +113,7 @@ CONTRIBUTED = [
               [join('prody', 'kdtree', 'KDTree.c'),
                join('prody', 'kdtree', 'KDTreemodule.c')],
               include_dirs=[numpy.get_include()]),
+    Extension('prody.proteins.ccealign', sources=srcList, include_dirs=incDirs  )
 ]
 
 for ext in CONTRIBUTED:

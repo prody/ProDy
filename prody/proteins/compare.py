@@ -17,13 +17,11 @@ from prody.sequence import MSA
 if PY2K:
     range = xrange
 
-__all__ = ['matchChains', 'matchAlign', 'mapOntoChain',
-           'mapChainByChain', 'mapOntoChainByAlignment', 
-           'getMatchScore', 'setMatchScore',
-           'getMismatchScore', 'setMismatchScore',
-           'getGapPenalty', 'setGapPenalty',
-           'getGapExtPenalty', 'setGapExtPenalty',
-           'getAlignmentMethod', 'setAlignmentMethod']
+__all__ = ['matchChains', 'matchAlign', 'mapOntoChain', 'mapChainByChain', 
+           'mapOntoChainByAlignment', 'getMatchScore', 'setMatchScore',
+           'getMismatchScore', 'setMismatchScore', 'getGapPenalty', 
+           'setGapPenalty', 'getGapExtPenalty', 'setGapExtPenalty',
+           'getAlignmentMethod', 'setAlignmentMethod', 'cealign']
 
 MATCH_SCORE = 1.0
 MISMATCH_SCORE = 0.0
@@ -1072,6 +1070,29 @@ def getAlignedMapping(target, chain, alignment=None):
             bres = next(biter)
     return amatch, bmatch, n_match, n_mapped
 
+def cealign(target, mobile):
+    from ccealign import ccealign
+
+    tar_coords = target._getCoords().tolist()
+    mob_coords = mobile._getCoords().tolist()
+
+    aln_info = ccealign((tar_coords, mob_coords))
+
+    paths, bestIdx, nres, rmsd = aln_info[:4]
+    path = paths[bestIdx]
+
+    I = [p[-1] for p in path]
+    mapping = [p[0] for p in path]
+
+    try:
+        ag = mobile.getAtomGroup()
+        indices = ag.getIndices()[I]
+    except AttributeError:
+        ag = mobile
+        indices = I
+
+    am = AtomMap(ag, indices, mapping=mapping)
+    return path, nres, rmsd
 
 if __name__ == '__main__':
 
