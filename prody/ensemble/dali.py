@@ -259,7 +259,7 @@ class daliRecord(object):
     def buildDaliEnsemble(self):
         daliInfo = self._alignPDB
         pdbList = self._pdbList
-        ref_pdb = parsePDB(self._pdbId).select('chain '+self._chainId).copy()
+        ref_pdb = parsePDB(self._pdbId, report=False).select('chain '+self._chainId).copy()
         ref_pdb_ca = ref_pdb.select("protein and name CA").copy()
         ref_chain = ref_pdb_ca.getHierView().getChain(self._chainId)
         ref_indices_set = set(range(len(ref_chain)))
@@ -268,9 +268,9 @@ class daliRecord(object):
         ensemble.setCoords(ref_chain)
         failPDBList = []
         for pdb_chain in pdbList:
-            # print(pdb_chain)
+            print(pdb_chain)
             temp_dict = daliInfo[pdb_chain]
-            sel_pdb = parsePDB(pdb_chain[0:4]).select('chain '+pdb_chain[5:6]).copy()
+            sel_pdb = parsePDB(pdb_chain[0:4], report=False).select('chain '+pdb_chain[5:6]).copy()
             sel_pdb_ca = sel_pdb.select("protein and name CA").copy()
             map_ref = temp_dict['map_ref']
             map_sel = temp_dict['map_sel']
