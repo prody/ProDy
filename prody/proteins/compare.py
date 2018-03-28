@@ -11,19 +11,20 @@ from prody.atomic import Chain, AtomGroup, Selection
 from prody.atomic import AAMAP
 from prody.atomic import flags
 from prody.measure import calcTransformation, printRMSD, calcDistance
-from prody import LOGGER, SELECT, PY2K
+from prody import LOGGER, SELECT, PY2K, PY3K
 from prody.sequence import MSA
 
 if PY2K:
     range = xrange
 
-__all__ = ['matchChains', 'matchAlign', 'mapOntoChain',
-           'mapChainByChain', 'mapOntoChainByAlignment', 
-           'getMatchScore', 'setMatchScore',
-           'getMismatchScore', 'setMismatchScore',
-           'getGapPenalty', 'setGapPenalty',
-           'getGapExtPenalty', 'setGapExtPenalty',
-           'getAlignmentMethod', 'setAlignmentMethod']
+if PY3K:
+    basestring = str
+
+__all__ = ['matchChains', 'matchAlign', 'mapOntoChain', 'mapChainByChain', 
+           'mapOntoChainByAlignment', 'getMatchScore', 'setMatchScore',
+           'getMismatchScore', 'setMismatchScore', 'getGapPenalty', 
+           'setGapPenalty', 'getGapExtPenalty', 'setGapExtPenalty',
+           'getAlignmentMethod', 'setAlignmentMethod', 'getCEAlignMapping']
 
 MATCH_SCORE = 1.0
 MISMATCH_SCORE = 0.0
@@ -166,6 +167,10 @@ class SimpleResidue(object):
     def getResname(self):
         return self._name
 
+    def getCoords(self):
+        if self._res:
+            return self._res._getCoords()
+        return None
 
 class SimpleChain(object):
 
@@ -175,7 +180,7 @@ class SimpleChain(object):
     SimpleChain instances can be indexed using residue numbers. If a residue
     with given number is not found in the chain, **None** is returned."""
 
-    __slots__ = ['_list', '_seq', '_title', '_dict', '_gaps']
+    __slots__ = ['_list', '_seq', '_title', '_dict', '_gaps', '_coords']
 
     def __init__(self, chain=None, allow_gaps=False):
         """Initialize SimpleChain with a chain id and a sequence (available).
@@ -192,6 +197,7 @@ class SimpleChain(object):
         self._seq = ''
         self._title = None
         self._gaps = allow_gaps
+        self._coords = None
         if isinstance(chain, Chain):
             self.buildFromChain(chain)
         elif isinstance(chain, str):
@@ -212,7 +218,7 @@ class SimpleChain(object):
 
     def __getitem__(self, index):
         if isinstance(index, int):
-            self._dict.get((index, ''))
+            return self._dict.get((index, ''))
         return self._dict.get(index)
 
     def getSequence(self):
@@ -220,6 +226,9 @@ class SimpleChain(object):
 
     def getTitle(self):
         return self._title
+
+    def getCoords(self):
+        return self._coords
 
     def buildFromSequence(self, sequence, resnums=None):
         """Build from amino acid sequence.
@@ -275,6 +284,7 @@ class SimpleChain(object):
             self._seq += aa
             self._list.append(simpres)
             self._dict[(resid, incod)] = simpres
+        self._coords = chain._getCoords()
         self._title = 'Chain {0} from {1}'.format(chain.getChid(),
                                                   chain.getAtomGroup()
                                                   .getTitle())
@@ -771,8 +781,15 @@ def mapOntoChain(atoms, chain, **kwargs):
     :keyword overlap: percent overlap, default is 90
     :type overlap: float
 
-    :keyword pwalign: perform pairwise sequence alignment
-    :type pwalign: bool
+    :keyword pwalign: if **True**, then pairwise sequence alignment will 
+    be performed. If **False** then a simple mapping will be performed 
+    based on residue numbers (as well as insertion codes). If set to 
+    ``"ce"`` or ``"cealign"``, then the CE algorithm [IS98]_ will be 
+    performed. It can also be a list of prealigned sequences in which 
+    the first one should be the reference. Default is **None**, in which 
+    case a simple mapping will be first performed and then sequence 
+    alignment if failed.
+    :type pwalign: bool, list, str
 
     :keyword alignment: a duplet of pre-aligned sequences with gaps.
     :type alignment: tuple or list
@@ -789,7 +806,12 @@ def mapOntoChain(atoms, chain, **kwargs):
     alignment, and mapping is performed based on the sequence alignment.
     User can control, whether sequence alignment is performed or not with
     *pwalign* keyword. If ``pwalign=True`` is passed, pairwise alignment is
-    enforced."""
+    enforced.
+    
+    .. [IS98] Shindyalov IN, Bourne PE. Protein structure alignment by 
+       incremental combinatorial extension (CE) of the optimal path. 
+       *Protein engineering* **1998** 11(9):739-47.
+    """
 
     if not isinstance(atoms, (AtomGroup, Chain, Selection)):
         raise TypeError('atoms must be an AtomGroup, a Chain, or a '
@@ -806,9 +828,13 @@ def mapOntoChain(atoms, chain, **kwargs):
     if coverage is None:
         coverage = kwargs.get('coverage', 70.)
     pwalign = kwargs.get('pwalign', None)
-    alignment  = kwargs.pop('alignment', None)
-    alignments = kwargs.pop('alignments', None)
-    prealigned = alignment is not None or alignments is not None
+    alignment = None
+    if pwalign is not None:
+        if isinstance(pwalign, basestring):
+            pwalign = str(pwalign).strip().lower()
+        elif not isinstance(pwalign, bool):
+            alignment = pwalign
+            pwalign = True
 
     if isinstance(atoms, Chain):
         chains = [atoms]
@@ -845,44 +871,50 @@ def mapOntoChain(atoms, chain, **kwargs):
                             simple_target.getTitle()))
 
         _seqid = _cover = -1
-        if not (prealigned or pwalign):
+        if not pwalign:
             target_list, chain_list, n_match, n_mapped = getTrivialMapping(
                 simple_target, simple_chain)
             if n_mapped > 0:
                 _seqid = n_match * 100 / n_mapped
                 _cover = n_mapped * 100 / max(len(simple_target), len(simple_chain))
 
-        if (_seqid >= seqid and _cover >= coverage) and not prealigned:
+        if (_seqid >= seqid and _cover >= coverage) and not pwalign:
             LOGGER.debug('\tMapped: {0} residues match with {1:.0f}% '
                     'sequence identity and {2:.0f}% overlap.'
                     .format(n_mapped, _seqid, _cover))
             mappings.append((target_list, chain_list, _seqid, _cover))
         else:
-            LOGGER.debug('\tFailed to match chains based on residue numbers '
-                    '(seqid={0:.0f}%, overlap={1:.0f}%).'
-                    .format(_seqid, _cover))
+            if not pwalign:
+                LOGGER.debug('\tFailed to match chains based on residue numbers '
+                        '(seqid={0:.0f}%, overlap={1:.0f}%).'
+                        .format(_seqid, _cover))
             unmapped.append(simple_chain)
             unmapped_chids.append(chain.getChid())
 
     if not mappings and pwalign is None:
         pwalign = True
 
-    if pwalign or prealigned:
-        LOGGER.debug('Trying to map atoms based on {0} sequence alignment:'
-                    .format(ALIGNMENT_METHOD))
-        if prealigned:
-            LOGGER.debug('Predefined alignments are provided.')
+    if pwalign:
+        if alignment is None:
+            aln_type = 'sequence alignment'
+            method = 'ALIGNMENT_METHOD'
+            if pwalign in ['ce', 'cealign']:
+                aln_type = 'structure alignment'
+                method = 'CE'
+            LOGGER.debug('Trying to map atoms based on {0} {1}:'
+                    .format(method, aln_type))
+        else:
+            LOGGER.debug('Trying to map atoms based on predefined alignment:')
 
         for chid, simple_chain in zip(unmapped_chids, unmapped):
             LOGGER.debug('  Comparing {0} (len={1}) with {2}:'
                         .format(simple_chain.getTitle(), len(simple_chain),
                                 simple_target.getTitle()))
-            curr_alignment = alignment
-            if alignments is not None:
-                if chid in alignments:
-                    curr_alignment = alignments[chid]
-                    
-            result = getAlignedMapping(simple_target, simple_chain, alignment=curr_alignment)
+            if method == 'CE':
+                result = getCEAlignMapping(simple_target, simple_chain)
+            else:
+                result = getAlignedMapping(simple_target, simple_chain, alignment=alignment)
+
             if result is not None:
                 target_list, chain_list, n_match, n_mapped = result
                 if n_mapped > 0:
@@ -934,11 +966,9 @@ def mapOntoChain(atoms, chain, **kwargs):
 
         atommap = AM(map_ag, indices_chain, chain.getACSIndex(),
                      mapping=indices_mapping, dummies=indices_dummies,
-                     title=title_chn + ' -> ' +
-                     title_tar )
+                     title=title_chn + ' -> ' + title_tar )
         selection = AM(target_ag, indices_target, target_chain.getACSIndex(),
-                       title=title_tar + ' -> ' +
-                       title_chn, intarrays=True)
+                       title=title_tar + ' -> ' + title_chn, intarrays=True)
 
         mappings[mi] = (atommap, selection, _seqid, _cover)
     if len(mappings) > 1:
@@ -987,7 +1017,7 @@ def mapOntoChainByAlignment(atoms, chain, **kwargs):
         for target_chain in hv.iterChains():
             tar_seq = target_chain.getSequence().upper()
             if tar_seq == tar_aligned_seq:
-                mappings = mapOntoChain(target_chain, chain, alignment=alignment, **kwargs)
+                mappings = mapOntoChain(target_chain, chain, pwalign=alignment, **kwargs)
                 return mappings
         LOGGER.warn('The sequence of chain does not match that in alignment (%s).'%atoms.getTitle())
     return []
@@ -1035,17 +1065,26 @@ def getAlignedMapping(target, chain, alignment=None):
         alignment = alignments[0]
 
     this = str(alignment[0])
-    that = str(alignment[1])
     this_seq = this.upper()
     for gap in GAPCHARS:
         this_seq = this_seq.replace(gap, '')
-    that_seq = that.upper()
-    for gap in GAPCHARS:
-        that_seq = that_seq.replace(gap, '')
 
     if target.getSequence().upper() != this_seq:
         return None
-    if chain.getSequence().upper() != that_seq:
+
+    iteraln = iter(alignment)
+    next(iteraln)
+    found = False
+    for seq in iteraln:
+        that = str(seq)
+        that_seq = that.upper()
+        for gap in GAPCHARS:
+            that_seq = that_seq.replace(gap, '')
+
+        if chain.getSequence().upper() == that_seq:
+            found = True; break
+
+    if not found:
         return None
 
     amatch = []
@@ -1072,6 +1111,63 @@ def getAlignedMapping(target, chain, alignment=None):
             bres = next(biter)
     return amatch, bmatch, n_match, n_mapped
 
+def getCEAlignMapping(target, chain):
+    from .ccealign import ccealign
+
+    tar_coords = target.getCoords().tolist()
+    mob_coords = chain.getCoords().tolist()
+
+    def add_tail_dummies(coords, window=8):
+        natoms = len(coords)
+        if natoms < window:
+            raise ValueError('the system is too small to be aligned '
+                             'by CE algorithm (at least {0} residues)'
+                             .format(window))
+        rest = natoms % window
+
+        tail_indices = []
+        for i in range(rest):
+            tail_indices.append(len(coords))
+            coords.append(coords[-(i+1)])
+        
+        return tail_indices
+
+    tar_dummies = add_tail_dummies(tar_coords)
+    mob_dummies = add_tail_dummies(mob_coords)
+    aln_info = ccealign((tar_coords, mob_coords))
+
+    paths, bestIdx, nres, rmsd = aln_info[:4]
+    path = paths[bestIdx]
+
+    tar_indices = []
+    chn_indices = []
+    for i, j in path:
+        if i not in tar_dummies:
+            if j not in mob_dummies:
+                tar_indices.append(i)
+                chn_indices.append(j)
+
+    chain_res_list = [res for res in chain]
+
+    amatch = []
+    bmatch = []
+    n_match = 0
+    n_mapped = 0
+    for i, a in enumerate(target):
+        ares = a.getResidue()
+        amatch.append(ares)
+        if i in tar_indices:
+            n = tar_indices.index(i)
+            b = chain_res_list[chn_indices[n]]
+            bres = b.getResidue()
+            bmatch.append(bres)
+            if a.getResname() == b.getResname():
+                n_match += 1
+            n_mapped += 1
+        else:
+            bmatch.append(None)
+
+    return amatch, bmatch, n_match, n_mapped
 
 if __name__ == '__main__':
 
