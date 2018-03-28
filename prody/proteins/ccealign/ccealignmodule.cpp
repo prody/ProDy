@@ -550,12 +550,13 @@ PyObject* pythonizePath( pathCache pathBuffer, int bufferSize, int smaller, int 
 			if ( pathBuffer[i][j].first != -1 )
 			{
 				int k = 0;
-				while ( k++ < winSize )
+				while ( k < winSize )
 				{
 					PyObject* curPair = Py_BuildValue( "[i,i]", pathBuffer[i][j].first+k, pathBuffer[i][j].second+k );
 					Py_INCREF(curPair);
 		
 					PyList_Append(curList,curPair);
+					k++;
 				}
 			}
 			j++;

@@ -160,5 +160,4 @@ setup(
     #scripts=SCRIPTS,
     install_requires=['NumPy (>=1.7)', ],
     #provides=['ProDy ({0:s})'.format(__version__)]
-    include_package_data=True
 )
