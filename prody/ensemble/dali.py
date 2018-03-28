@@ -16,6 +16,7 @@ else:
     import urllib2
 from .ensemble import Ensemble
 from .pdbensemble import PDBEnsemble
+import os
 
 __all__ = ['daliRecord', 'daliSearchPDB']
 
@@ -55,7 +56,7 @@ def daliSearchPDB(pdbId, chainId, daliURL=None, subset='fullPDB', **kwargs):
     LOGGER.debug('Submitted Dali search for PDB and chain "{0} and {1}".'.format(pdbId, chainId))
     LOGGER.info(url)
     LOGGER.clear()
-    obj = daliRecord(url, pdbId, chainId, subset=subset, timeout=timeout)
+    obj = daliRecord(url, pdbId, chainId, subset=subset, timeout=timeout, **kwargs)
     if obj.isSuccess:
         return obj
     else:
@@ -85,7 +86,7 @@ class daliRecord(object):
         else:
             self._subset = "-"+subset[3:]
         timeout = kwargs.pop('timeout', 120)
-        self.isSuccess = self.getRecord(self._url, localFile=localFile, timeout=timeout)
+        self.isSuccess = self.getRecord(self._url, localFile=localFile, timeout=timeout, **kwargs)
 
     def getRecord(self, url, localFile=False, **kwargs):
         if localFile:
@@ -136,8 +137,11 @@ class daliRecord(object):
             file_name = file_name[:-7]
             # LOGGER.info(url+file_name+self._subset+'.txt')
             data = urllib2.urlopen(url+file_name+self._subset+'.txt').read()
+            localfolder = kwargs.pop('localfolder', '.')
             temp_name = file_name+self._subset+'_dali.txt'
-            with open(temp_name, "w") as file_temp: file_temp.write(html + '\n' + url+file_name + '\n' + data)
+            if localfolder != '.' and not os.path.exists(localfolder):
+                os.mkdir(localfolder)
+            with open(localfolder+os.sep+temp_name, "w") as file_temp: file_temp.write(html + '\n' + url+file_name + '\n' + data)
             # with open(temp_name, "a+") as file_temp: file_temp.write(url+file_name + '\n' + data)
         data_list = data.strip().split('# ')
         # No:  Chain   Z    rmsd lali nres  %id PDB  Description -> data_list[3]
@@ -183,7 +187,7 @@ class daliRecord(object):
         self._pdbListAll = tuple(pdbListAll)
         self._pdbList = self._pdbListAll
         self._alignPDB = dali_temp_dict
-        LOGGER.info(str(len(pdbListAll)) + ' Dali results have been searched.')
+        LOGGER.info('Obtained ' + str(len(pdbListAll)) + ' PDB chains from Dali for '+self._pdbId+self._chainId+'.')
         return True
         
     def getPDBList(self):
