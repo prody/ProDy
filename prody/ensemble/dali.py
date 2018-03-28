@@ -298,25 +298,30 @@ class daliRecord(object):
         daliInfo = self._alignPDB
         pdbList = self._pdbList
         ref_pdb = parsePDB(self._pdbId, report=False).select('chain '+self._chainId).copy()
-        ref_pdb_ca = ref_pdb.select("protein and name CA").copy()
+        try:
+            ref_pdb_ca = ref_pdb.select("protein and name CA").copy()
+        except:
+            ref_pdb_ca = ref_pdb.select("name CA and not resname CA").copy()
         ref_chain = ref_pdb_ca.getHierView().getChain(self._chainId)
         ref_indices_set = set(range(len(ref_chain)))
         ensemble = PDBEnsemble('Dali ensemble - ' + str(self._pdbId) + '-' + str(self._chainId))
         ensemble.setAtoms(ref_chain)
         ensemble.setCoords(ref_chain)
         failPDBList = []
-        for pdb_chain in pdbList:
+        n_confs = len(pdbList)
+        LOGGER.progress('Building PDB ensemble for {0} conformations from Dali...'
+                        .format(n_confs), n_confs)
+        for i in range(n_confs):
+            pdb_chain = pdbList[i]
             # print(pdb_chain)
             temp_dict = daliInfo[pdb_chain]
             sel_pdb = parsePDB(pdb_chain[0:4], report=False).select('chain '+pdb_chain[5:6]).copy()
-            sel_pdb_ca = sel_pdb.select("protein and name CA").copy()
+            try:
+                sel_pdb_ca = sel_pdb.select("protein and name CA").copy()
+            except:
+                sel_pdb_ca = sel_pdb.select("name CA and not resname CA").copy()
             map_ref = temp_dict['map_ref']
             map_sel = temp_dict['map_sel']
-            # map_ref = []
-            # map_sel = []
-            # for i in range(len(temp_dict['map_ref'])):
-                # map_ref.append(temp_dict['map_ref'][i])
-                # map_sel.append(temp_dict['map_sel'][i])
             dum_sel = list(ref_indices_set - set(map_ref))
             atommap = AtomMap(sel_pdb_ca, indices=map_sel, mapping=map_ref, dummies=dum_sel)
             # ensemble.addCoordset(atommap, weights=atommap.getFlags('mapped'))
@@ -324,6 +329,8 @@ class daliRecord(object):
                 ensemble.addCoordset(atommap, weights=atommap.getFlags('mapped'), degeneracy=True)
             except:
                 failPDBList.append(pdb_chain)
+            LOGGER.update(i)
+        LOGGER.finish()
         self._failPDBList = failPDBList
         if failPDBList != []:
             LOGGER.warn('failed to add '+str(len(failPDBList))+' PDB chain to ensemble: '+' '.join(failPDBList))
