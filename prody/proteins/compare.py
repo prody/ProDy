@@ -781,8 +781,15 @@ def mapOntoChain(atoms, chain, **kwargs):
     :keyword overlap: percent overlap, default is 90
     :type overlap: float
 
-    :keyword pwalign: perform pairwise sequence alignment
-    :type pwalign: bool
+    :keyword pwalign: if **True**, then pairwise sequence alignment will 
+    be performed. If **False** then a simple mapping will be performed 
+    based on residue numbers (as well as insertion codes). If set to 
+    ``"ce"`` or ``"cealign"``, then the CE algorithm [IS98]_ will be 
+    performed. It can also be a list of prealigned sequences in which 
+    the first one should be the reference. Default is **None**, in which 
+    case a simple mapping will be first performed and then sequence 
+    alignment if failed.
+    :type pwalign: bool, list, str
 
     :keyword alignment: a duplet of pre-aligned sequences with gaps.
     :type alignment: tuple or list
@@ -799,7 +806,12 @@ def mapOntoChain(atoms, chain, **kwargs):
     alignment, and mapping is performed based on the sequence alignment.
     User can control, whether sequence alignment is performed or not with
     *pwalign* keyword. If ``pwalign=True`` is passed, pairwise alignment is
-    enforced."""
+    enforced.
+    
+    .. [IS98] Shindyalov IN, Bourne PE. Protein structure alignment by 
+       incremental combinatorial extension (CE) of the optimal path. 
+       *Protein engineering* **1998** 11(9):739-47.
+    """
 
     if not isinstance(atoms, (AtomGroup, Chain, Selection)):
         raise TypeError('atoms must be an AtomGroup, a Chain, or a '
