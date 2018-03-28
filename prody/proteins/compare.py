@@ -966,11 +966,9 @@ def mapOntoChain(atoms, chain, **kwargs):
 
         atommap = AM(map_ag, indices_chain, chain.getACSIndex(),
                      mapping=indices_mapping, dummies=indices_dummies,
-                     title=title_chn + ' -> ' +
-                     title_tar )
+                     title=title_chn + ' -> ' + title_tar )
         selection = AM(target_ag, indices_target, target_chain.getACSIndex(),
-                       title=title_tar + ' -> ' +
-                       title_chn, intarrays=True)
+                       title=title_tar + ' -> ' + title_chn, intarrays=True)
 
         mappings[mi] = (atommap, selection, _seqid, _cover)
     if len(mappings) > 1:
@@ -1114,7 +1112,7 @@ def getAlignedMapping(target, chain, alignment=None):
     return amatch, bmatch, n_match, n_mapped
 
 def getCEAlignMapping(target, chain):
-    from ccealign import ccealign
+    from .ccealign import ccealign
 
     tar_coords = target.getCoords().tolist()
     mob_coords = chain.getCoords().tolist()

@@ -808,17 +808,31 @@ static PyMethodDef CEMethods[] = {
 	{NULL, NULL, 0, NULL}
 };
 
-PyMODINIT_FUNC
-initccealign(void)
-{
-	(void) Py_InitModule("ccealign", CEMethods);
-}
+#if PY_MAJOR_VERSION >= 3
 
-int
-main(int argc, char* argv[])
+static struct PyModuleDef ccealign = {
+        PyModuleDef_HEAD_INIT,
+        "ccealign",
+        "CEalign.",
+        -1,
+        CEMethods,
+};
+PyMODINIT_FUNC PyInit_ccealign(void) {
+    return PyModule_Create(&ccealign);
+}
+#else
+PyMODINIT_FUNC initccealign(void)
+{
+	(void) Py_InitModule3("ccealign", CEMethods, "CEalign.");
+}
+#endif
+
+/*
+int main(int argc, char* argv[])
 {
 	Py_SetProgramName(argv[0]);
 	Py_Initialize();
 	initccealign();
 	return(EXIT_SUCCESS);
 }
+*/
