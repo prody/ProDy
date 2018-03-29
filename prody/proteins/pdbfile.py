@@ -185,7 +185,6 @@ def parsePDBStream(stream, **kwargs):
     :arg stream: Anything that implements the method ``readlines``
         (e.g. :class:`file`, buffer, stdin)""" 
     
-    report = kwargs.get('report',True)
     model = kwargs.get('model')
     header = kwargs.get('header', False)
     assert isinstance(header, bool), 'header must be a boolean'
@@ -248,10 +247,9 @@ def parsePDBStream(stream, **kwargs):
             hd, split = getHeaderDict(lines)
         _parsePDBLines(ag, lines, split, model, chain, subset, altloc)
         if ag.numAtoms() > 0:
-            if report:
-                LOGGER.report('{0} atoms and {1} coordinate set(s) were '
-                                  'parsed in %.2fs.'.format(ag.numAtoms(),
-                                   ag.numCoordsets() - n_csets))
+            LOGGER.report('{0} atoms and {1} coordinate set(s) were '
+                          'parsed in %.2fs.'.format(ag.numAtoms(),
+                          ag.numCoordsets() - n_csets))
         else:
             ag = None
             LOGGER.warn('Atomic data could not be parsed, please '
@@ -295,7 +293,6 @@ def parsePQR(filename, **kwargs):
     :arg filename: a PQR filename
     :type filename: str"""
 
-    report = kwargs.get('report',True)
     title = kwargs.get('title', kwargs.get('name'))
     model = 1
     header = False
@@ -341,10 +338,9 @@ def parsePQR(filename, **kwargs):
     ag = _parsePDBLines(ag, lines, split=0, model=1, chain=chain,
                         subset=subset, altloc_torf=False, format='pqr')
     if ag.numAtoms() > 0:
-        if report:
-            LOGGER.report('{0} atoms and {1} coordinate sets were '
-                          'parsed in %.2fs.'.format(ag.numAtoms(),
-                             ag.numCoordsets() - n_csets))
+        LOGGER.report('{0} atoms and {1} coordinate sets were '
+                      'parsed in %.2fs.'.format(ag.numAtoms(),
+                      ag.numCoordsets() - n_csets))
         return ag
     else:
         return None

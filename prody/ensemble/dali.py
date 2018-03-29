@@ -123,12 +123,10 @@ class daliRecord(object):
                 elif html.find('ERROR:') > -1:
                     LOGGER.warn(': Dali search reported an ERROR!')
                     return None
-                    break
                 sleep = 20 if int(sleep * 1.5) >= 20 else int(sleep * 1.5)
                 if LOGGER.timing('_dali') > timeout:
                     LOGGER.warn(': Dali search is time out. \nThe results can be obtained using getRecord() function later.')
                     return None
-                    break
                 LOGGER.clear()
             LOGGER.clear()
             LOGGER.report('Dali results completed in %.1fs.', '_dali')
@@ -301,25 +299,30 @@ class daliRecord(object):
     def buildDaliEnsemble(self):
         daliInfo = self._alignPDB
         pdbList = self._pdbList
-        ref_pdb = parsePDB(self._pdbId, report=False).select('chain '+self._chainId).copy()
-        try:
-            ref_pdb_ca = ref_pdb.select("protein and name CA").copy()
-        except:
-            ref_pdb_ca = ref_pdb.select("name CA and not resname CA").copy()
+
+        n_confs = len(pdbList)
+        LOGGER.progress('Building PDB ensemble for {0} conformations from Dali...'
+                        .format(n_confs), n_confs)
+
+        ref_pdb = parsePDB(self._pdbId).select('chain '+self._chainId).copy()
+
+        ref_pdb_ca = ref_pdb.select("protein and name CA")
+        if ref_pdb_ca is None:
+            ref_pdb_ca = ref_pdb.select("name CA and not resname CA")
+        ref_pdb_ca = ref_pdb_ca.copy()
+
         ref_chain = ref_pdb_ca.getHierView().getChain(self._chainId)
         ref_indices_set = set(range(len(ref_chain)))
         ensemble = PDBEnsemble('Dali ensemble - ' + str(self._pdbId) + '-' + str(self._chainId))
         ensemble.setAtoms(ref_chain)
         ensemble.setCoords(ref_chain)
         failPDBList = []
-        n_confs = len(pdbList)
-        LOGGER.progress('Building PDB ensemble for {0} conformations from Dali...'
-                        .format(n_confs), n_confs)
+        
         for i in range(n_confs):
             pdb_chain = pdbList[i]
             # print(pdb_chain)
             temp_dict = daliInfo[pdb_chain]
-            sel_pdb = parsePDB(pdb_chain[0:4], report=False).select('chain '+pdb_chain[5:6]).copy()
+            sel_pdb = parsePDB(pdb_chain[0:4]).select('chain '+pdb_chain[5:6]).copy()
             try:
                 sel_pdb_ca = sel_pdb.select("protein and name CA").copy()
             except:
