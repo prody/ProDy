@@ -1,5 +1,5 @@
 //
-// ccealign -- structural alignment plugin modele for PyMol
+// ccealign -- structural alignment for ProDy (originally designed as a plugin for PyMol)
 //
 
 //////////////////////////////////////////////////////////////////////////////
@@ -32,6 +32,9 @@
 //  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
 //////////////////////////////////////////////////////////////////////////////
+
+/* Modified by: She Zhang */
+
 #include "ccealignmodule.h"
 
 
