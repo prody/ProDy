@@ -365,9 +365,14 @@ def buildPDBEnsemble(refpdb, PDBs, title='Unknown', labels=None, seqid=94, cover
 
     occupancy = kwargs.pop('occupancy', None)
 
+    if len(PDBs) == 1:
+        raise ValueError('PDBs should have at least two items')
     if labels is not None:
         if len(labels) != len(PDBs):
-            raise ValueError('labels and PDBs must be the same length.')
+            raise ValueError('labels and PDBs must be the same length')
+
+    if refpdb not in PDBs:
+        raise ValueError('refpdb should be also in the PDBs')
 
     # obtain refchains from the hierarhical view of the reference PDB
     try:
@@ -391,7 +396,7 @@ def buildPDBEnsemble(refpdb, PDBs, title='Unknown', labels=None, seqid=94, cover
 
     LOGGER.progress('Building the ensemble...', len(PDBs))
     for i, pdb in enumerate(PDBs):
-        LOGGER.update(i + 1, 'Mapping %s to the reference...'%pdb)
+        LOGGER.update(i, 'Mapping %s to the reference...'%pdb)
         try:
             pdb.getHierView()
         except AttributeError:

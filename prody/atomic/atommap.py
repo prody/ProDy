@@ -70,11 +70,6 @@ i.e. ``""``.
 
 """
 
-try:
-    from sys import maxint as DUMMY
-except ImportError:
-    from sys import maxsize as DUMMY
-
 from numpy import arange, array, ones, zeros, dtype
 
 from prody.utilities import rangeString
@@ -86,6 +81,7 @@ from .pointer import AtomPointer
 
 __all__ = ['AtomMap']
 
+DUMMY = -1
 
 class AtomMap(AtomPointer):
 
@@ -142,7 +138,7 @@ class AtomMap(AtomPointer):
                 dummies = (indices == DUMMY).nonzero()[0]
                 if len(dummies):
                     self._dummies = dummies
-                    self._mapping = (indices < DUMMY).nonzero()[0]
+                    self._mapping = (indices > DUMMY).nonzero()[0]
                     self._indices = indices[self._mapping]
                     self._idarray = indices
                 else:
@@ -162,8 +158,8 @@ class AtomMap(AtomPointer):
                 mapping = array(mapping, int)
                 if dummy_array:
                     dummies = array(dummies, int)
-            if any(mapping[1:] - mapping[:-1] < 0):
-                raise ValueError('mapping must be an ordered array')
+            #if any(mapping[1:] - mapping[:-1] < 0):
+            #    raise ValueError('mapping must be an ordered array')
             self._len = len(indices)
             if dummy_array:
                 self._indices = indices
@@ -235,7 +231,7 @@ class AtomMap(AtomPointer):
         ag = self._ag
         acsi = self.getACSIndex()
         for index in self.getIndices():
-            yield Atom(ag, index, acsi) if index < DUMMY else None
+            yield Atom(ag, index, acsi) if index > DUMMY else None
 
     __iter__ = iterAtoms
 
