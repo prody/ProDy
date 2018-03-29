@@ -39,13 +39,13 @@
 #include <math.h>
 
 // include the template numerical toolkit
-#include "../../utilities/tnt/tnt.h"
+#include "tnt.h"
 
 // for reflections
-#include "../../utilities/tnt/jama_lu.h"
+#include "jama_lu.h"
 
 // for the SVD
-#include "../../utilities/tnt/jama_svd.h"
+#include "jama_svd.h"
 
 /////////////////////////////////////////////////////////////////////////////
 //
