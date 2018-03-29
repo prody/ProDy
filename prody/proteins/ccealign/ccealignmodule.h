@@ -1,5 +1,5 @@
 //
-// ccealign -- structural alignment plugin for PyMol
+// ccealign -- structural alignment for ProDy (originally designed as a plugin for PyMol)
 //
 
 //////////////////////////////////////////////////////////////////////////////
@@ -33,17 +33,19 @@
 //
 //////////////////////////////////////////////////////////////////////////////
 
+/* Modified by: She Zhang */
+
 #include <Python.h>
 #include <math.h>
 
 // include the template numerical toolkit
-#include "tnt/tnt.h"
+#include "../../utilities/tnt/tnt.h"
 
 // for reflections
-#include "jama_lu.h"
+#include "../../utilities/tnt/jama_lu.h"
 
 // for the SVD
-#include "jama_svd.h"
+#include "../../utilities/tnt/jama_svd.h"
 
 /////////////////////////////////////////////////////////////////////////////
 //
