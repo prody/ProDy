@@ -24,8 +24,11 @@ __all__ = ['matchChains', 'matchAlign', 'mapOntoChain', 'mapChainByChain',
            'mapOntoChainByAlignment', 'getMatchScore', 'setMatchScore',
            'getMismatchScore', 'setMismatchScore', 'getGapPenalty', 
            'setGapPenalty', 'getGapExtPenalty', 'setGapExtPenalty',
-           'getAlignmentMethod', 'setAlignmentMethod', 'getCEAlignMapping']
+           'getTrivialSeqId', 'setTrivialSeqId', 'getTrivialCoverage', 
+           'setTrivialCoverage', 'getAlignmentMethod', 'setAlignmentMethod']
 
+TRIVIAL_SEQID = 90.
+TRIVIAL_COVERAGE = 50.
 MATCH_SCORE = 1.0
 MISMATCH_SCORE = 0.0
 GAP_PENALTY = -1.
@@ -61,6 +64,36 @@ def importBioPairwise2():
         PW2 = pairwise2
     return PW2
 
+
+def getTrivialSeqId():
+    """Returns sequence identity used in the trivial mapping."""
+
+    return TRIVIAL_SEQID
+
+
+def setTrivialSeqId(seqid):
+    """Set sequence identity used in the trivial mapping."""
+
+    if isinstance(seqid, (float, int)) and seqid >= 0:
+        global TRIVIAL_SEQID
+        TRIVIAL_SEQID = seqid
+    else:
+        raise TypeError('seqid must be a positive number or zero')
+
+def getTrivialCoverage():
+    """Returns sequence coverage used in the trivial mapping."""
+
+    return TRIVIAL_COVERAGE
+
+
+def setTrivialCoverage(coverage):
+    """Set sequence coverage used in the trivial mapping."""
+
+    if isinstance(coverage, (float, int)) and coverage >= 0:
+        global TRIVIAL_COVERAGE
+        TRIVIAL_COVERAGE = coverage
+    else:
+        raise TypeError('coverage must be a positive number or zero')
 
 def getMatchScore():
     """Returns match score used to align sequences."""
@@ -870,15 +903,19 @@ def mapOntoChain(atoms, chain, **kwargs):
                     .format(simple_chain.getTitle(), len(simple_chain),
                             simple_target.getTitle()))
 
+        # trivial mapping serves as a first simple trial of alignment the two 
+        # sequences based on residue number, therefore the sequence identity 
+        # (TRIVIAL_SEQID) criterion is strict.
         _seqid = _cover = -1
-        if not pwalign:
-            target_list, chain_list, n_match, n_mapped = getTrivialMapping(
-                simple_target, simple_chain)
-            if n_mapped > 0:
-                _seqid = n_match * 100 / n_mapped
-                _cover = n_mapped * 100 / max(len(simple_target), len(simple_chain))
+        target_list, chain_list, n_match, n_mapped = getTrivialMapping(
+            simple_target, simple_chain)
+        if n_mapped > 0:
+            _seqid = n_match * 100 / n_mapped
+            _cover = n_mapped * 100 / max(len(simple_target), len(simple_chain))
 
-        if (_seqid >= seqid and _cover >= coverage) and not pwalign:
+        trivial_seqid = TRIVIAL_SEQID if pwalign else seqid
+        trivial_cover = TRIVIAL_COVERAGE if pwalign else coverage
+        if _seqid >= trivial_seqid and _cover >= trivial_cover:
             LOGGER.debug('\tMapped: {0} residues match with {1:.0f}% '
                     'sequence identity and {2:.0f}% overlap.'
                     .format(n_mapped, _seqid, _cover))
@@ -894,7 +931,7 @@ def mapOntoChain(atoms, chain, **kwargs):
     if not mappings and pwalign is None:
         pwalign = True
 
-    if pwalign:
+    if pwalign and unmapped:
         if alignment is None:
             aln_type = 'sequence alignment'
             method = 'ALIGNMENT_METHOD'
