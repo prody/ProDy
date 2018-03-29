@@ -80,7 +80,10 @@ PACKAGE_DATA = {
 PACKAGE_DIR = {}
 for pkg in PACKAGES:
     PACKAGE_DIR[pkg] = join(*pkg.split('.'))
+    
 from glob import glob
+tntDir = join('prody', 'utilities', 'tnt')
+
 EXTENSIONS = [
     Extension('prody.dynamics.rtbtools',
               glob(join('prody', 'dynamics', 'rtbtools.c')),
@@ -101,9 +104,6 @@ EXTENSIONS = [
               [join('prody', 'sequence', 'seqtools.c'),],
               include_dirs=[numpy.get_include()]),
 ]
-
-# grab all of the .h and .cpp files in cealign/ and cealign/tnt
-tntDir = join('prody', 'utilities', 'tnt')
 
 CONTRIBUTED = [
     Extension('prody.proteins.cpairwise2',
