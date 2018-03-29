@@ -305,10 +305,12 @@ class daliRecord(object):
                         .format(n_confs), n_confs)
 
         ref_pdb = parsePDB(self._pdbId).select('chain '+self._chainId).copy()
-        try:
-            ref_pdb_ca = ref_pdb.select("protein and name CA").copy()
-        except:
-            ref_pdb_ca = ref_pdb.select("name CA and not resname CA").copy()
+
+        ref_pdb_ca = ref_pdb.select("protein and name CA")
+        if ref_pdb_ca is None:
+            ref_pdb_ca = ref_pdb.select("name CA and not resname CA")
+        ref_pdb_ca = ref_pdb_ca.copy()
+
         ref_chain = ref_pdb_ca.getHierView().getChain(self._chainId)
         ref_indices_set = set(range(len(ref_chain)))
         ensemble = PDBEnsemble('Dali ensemble - ' + str(self._pdbId) + '-' + str(self._chainId))
