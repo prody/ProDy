@@ -364,6 +364,7 @@ def buildPDBEnsemble(refpdb, PDBs, title='Unknown', labels=None, seqid=94, cover
     """
 
     occupancy = kwargs.pop('occupancy', None)
+    degeneracy = kwargs.pop('degeneracy', True)
 
     if len(PDBs) == 1:
         raise ValueError('PDBs should have at least two items')
@@ -430,7 +431,8 @@ def buildPDBEnsemble(refpdb, PDBs, title='Unknown', labels=None, seqid=94, cover
             atommap += atommaps[j]
         
         # add the mappings to the ensemble
-        ensemble.addCoordset(atommap, weights=atommap.getFlags('mapped'), label = lbl)
+        ensemble.addCoordset(atommap, weights=atommap.getFlags('mapped'), 
+                             label = lbl, degeneracy=degeneracy)
 
     LOGGER.finish()
 
@@ -448,23 +450,31 @@ def addPDBEnsemble(ensemble, PDBs, refpdb=None, labels=None, seqid=94, coverage=
 
     :arg ensemble: The ensemble to which the PDBs are added.
     :type ensemble: :class:`.PDBEnsemble`
+
     :arg refpdb: Reference structure. If set to `None`, it will be set to `ensemble.getAtoms()` automatically.
     :type refpdb: :class:`.Chain`, :class:`.Selection`, or :class:`.AtomGroup`
+
     :arg PDBs: A list of PDB structures
     :type PDBs: iterable
+
     :arg title: The title of the ensemble
     :type title: str
+
     :arg labels: labels of the conformations
     :type labels: list
+
     :arg seqid: Minimal sequence identity (percent)
     :type seqid: int
+
     :arg coverage: Minimal sequence overlap (percent)
     :type coverage: int
-    :arg occupancy: Minimal occupancy of columns (range from 0 to 1). Columns whose occupancy
-    is below this value will be trimmed.
+
+    :arg occupancy: Minimal occupancy of columns (range from 0 to 1). Columns whose occupancy 
+                    is below this value will be trimmed.
     :type occupancy: float
+
     :arg unmapped: A list of PDB IDs that cannot be included in the ensemble. This is an 
-    output argument. 
+                   output argument. 
     :type unmapped: list
     """
 
