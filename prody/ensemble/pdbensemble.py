@@ -2,6 +2,7 @@
 
 import numpy as np
 
+from prody.sequence import MSA, Sequence
 from prody.atomic import Atomic, AtomGroup
 from prody.measure import getRMSD, getTransformation
 from prody.utilities import checkCoords, checkWeights, copy
@@ -30,6 +31,7 @@ class PDBEnsemble(Ensemble):
         self._labels = []
         Ensemble.__init__(self, title)
         self._trans = None
+        self._msa = None
 
     def __repr__(self):
 
@@ -54,11 +56,19 @@ class PDBEnsemble(Ensemble):
         ensemble.setCoords(copy(self._coords))
         weights = copy(self._weights)
         if self._confs is not None:
-            ensemble.addCoordset(copy(self._confs), weights)
+            ensemble.addCoordset(copy(self._confs), weights=weights, 
+                                 label=self.getLabels(), sequence=self._msa)
         
         other_weights = copy(other._weights)
-        ensemble.addCoordset(copy(other._confs), other_weights)
-        ensemble.setAtoms(self.getAtoms())
+        ensemble.addCoordset(copy(other._confs), weights=other_weights, 
+                             label=other.getLabels(), sequence=other._msa)
+
+        if self._atoms is not None:
+            ensemble.setAtoms(self._atoms)
+            ensemble._indices = self._indices
+        else:
+            ensemble.setAtoms(other._atoms)
+            ensemble._indices = other._indices
         return ensemble
 
     def __iter__(self):
@@ -73,6 +83,9 @@ class PDBEnsemble(Ensemble):
     def __getitem__(self, index):
         """Returns a conformation at given index."""
 
+        msa = self._msa
+        if msa:
+            msa = self._msa[index]
         if isinstance(index, int):
             return self.getConformation(index)
 
@@ -80,22 +93,29 @@ class PDBEnsemble(Ensemble):
             ens = PDBEnsemble('{0} ({1[0]}:{1[1]}:{1[2]})'.format(
                               self._title, index.indices(len(self))))
             ens.setCoords(copy(self._coords))
+            
             ens.addCoordset(self._confs[index].copy(),
                             self._weights[index].copy(),
-                            label=self._labels[index])
+                            label=self._labels[index],
+                            sequence=msa)
             if self._trans is not None:
                 ens._trans = self._trans[index]
-            ens.setAtoms(self.getAtoms())
+            ens.setAtoms(self._atoms)
+            ens._indices = self._indices
             return ens
 
         elif isinstance(index, (list, np.ndarray)):
             ens = PDBEnsemble('Conformations of {0}'.format(self._title))
             ens.setCoords(copy(self._coords))
+            labels = list(np.array(self._labels)[index])
             ens.addCoordset(self._confs[index].copy(),
                             self._weights[index].copy(),
-                            label=[self._labels[i] for i in index])
+                            label=labels,
+                            sequence=msa)
             if self._trans is not None:
                 ens._trans = self._trans[index]
+            ens.setAtoms(self._atoms)
+            ens._indices = self._indices
             return ens
         else:
             raise IndexError('invalid index')
@@ -140,10 +160,10 @@ class PDBEnsemble(Ensemble):
 
     iterpose.__doc__ = Ensemble.iterpose.__doc__
 
-    def addCoordset(self, coords, weights=None, label=None, degeneracy=False):
+    def addCoordset(self, coords, weights=None, label=None, **kwargs):
         """Add coordinate set(s) to the ensemble.  *coords* must be a Numpy
         array with suitable shape and dimensionality, or an object with
-        :meth:`getCoordsets` method.  *weights* is an optional argument.
+        :meth:`getCoordsets`. *weights* is an optional argument.
         If provided, its length must match number of atoms.  Weights of
         missing (not resolved) atoms must be ``0`` and weights of those
         that are resolved can be anything greater than ``0``.  If not
@@ -151,18 +171,36 @@ class PDBEnsemble(Ensemble):
         set equal to ``1``. *label*, which may be a PDB identifier or a
         list of identifiers, is used to label conformations."""
 
+        degeneracy = kwargs.pop('degeneracy', False)
+
         atoms = coords
+        n_atoms = self.numAtoms()
+        n_select = self.numSelected()
+        n_confs = self.numCoordsets()
+
         try:
-            if self._coords is not None:
-                if isinstance(coords, Ensemble):
-                    coords = coords._getCoordsets(selected=False)
-                elif hasattr(coords, '_getCoordsets'):
-                    coords = coords._getCoordsets()
+            if degeneracy:
+                if self._coords is not None:
+                    if isinstance(coords, Ensemble):
+                        coords = coords._getCoords(selected=False)
+                    elif hasattr(coords, '_getCoords'):
+                        coords = coords._getCoords()
+                else:
+                    if isinstance(coords, Ensemble):
+                        coords = coords.getCoords(selected=False)
+                    elif hasattr(coords, 'getCoords'):
+                        coords = coords.getCoords()
             else:
-                if isinstance(coords, Ensemble):
-                    coords = coords.getCoordsets(selected=False)
-                elif hasattr(coords, 'getCoordsets'):
-                    coords = coords.getCoordsets()
+                if self._coords is not None:
+                    if isinstance(coords, Ensemble):
+                        coords = coords._getCoordsets(selected=False)
+                    elif hasattr(coords, '_getCoordsets'):
+                        coords = coords._getCoordsets()
+                else:
+                    if isinstance(coords, Ensemble):
+                        coords = coords.getCoordsets(selected=False)
+                    elif hasattr(coords, 'getCoordsets'):
+                        coords = coords.getCoordsets()
 
         except AttributeError:
             label = label or 'Unknown'
@@ -176,60 +214,134 @@ class PDBEnsemble(Ensemble):
                     ag = atoms.getAtomGroup()
                 label = ag.getTitle()
                 if coords.shape[0] < ag.numCoordsets():
-                    label += 'm' + str(atoms.getACSIndex())
+                    label += '_m' + str(atoms.getACSIndex())
             else:
-                label = label or str(coords)
+                label = label or 'Unknown'
+
+        # check coordinates
         try:
-            checkCoords(coords, csets=True, natoms=self._n_atoms)
-        except TypeError:
-            raise TypeError('coords must be a Numpy array or must have '
-                            '`getCoords` attribute')
+            checkCoords(coords, csets=True, natoms=n_atoms)
+        except:
+            try:
+                checkCoords(coords, csets=True, natoms=n_select)
+            except TypeError:
+                raise TypeError('coords must be a numpy array or an object '
+                                'with `getCoords` method')
 
         if coords.ndim == 2:
-            coords = coords.reshape((1, self._n_atoms, 3))
+            n_nodes, _ = coords.shape
+            coords = coords.reshape((1, n_nodes, 3))
+            n_csets = 1
+        else:
+            n_csets, n_nodes, _ = coords.shape
+            if degeneracy:
+                coords = coords[:1]
 
-        n_csets, n_atoms, _ = coords.shape
-        if not self._n_atoms:
-            self._n_atoms = n_atoms
+        n_repeats = 1 if degeneracy else n_csets
+       
+        if not n_atoms:
+            self._n_atoms = n_nodes
 
+        if n_nodes == n_select and self.isSelected():
+            full_coords = np.repeat(self._coords[np.newaxis, :, :], n_csets, axis=0)
+            full_coords[:, self._indices, :] = coords
+            coords = full_coords
+        
+        # check weights
         if weights is None:
             weights = np.ones((n_csets, n_atoms, 1), dtype=float)
         else:
             weights = checkWeights(weights, n_atoms, n_csets)
 
+        if degeneracy:
+            weights = weights[:1]
+
+        # check sequences
+        seqs = None
+        sequence = kwargs.pop('sequence', None)
+        if hasattr(atoms, 'getSequence'):
+            if sequence is not None:
+                LOGGER.warn('sequence is supplied though coords has getSequence')
+            sequence = atoms.getSequence()
+            seqs = [sequence for _ in range(n_repeats)]
+        else:
+            if sequence is None:
+                try:
+                    sequence = self.getAtoms().getSequence()
+                except AttributeError:
+                    if self._msa:
+                        sequence = ''.join('X' for _ in range(n_atoms))
+                    # sequence and seqs remains to be None if MSA has not been created
+            if isinstance(sequence, Sequence):
+                seqs = [str(sequence)]
+            elif isinstance(sequence, MSA):
+                seqs = [str(seq) for seq in sequence]
+            elif np.isscalar(sequence):
+                seqs = [sequence for _ in range(n_repeats)]
+        
+        if seqs:
+            if len(seqs) != n_repeats:
+                raise ValueError('the number of sequences should be either one or '
+                                'that of coordsets')
+
+        # assign new values
+        # update labels
         if n_csets > 1:
-            if degeneracy == False:
+            if not degeneracy:
                 if isinstance(label, str):
-                    self._labels.extend('{0}_m{1}'
-                        .format(label, i+1) for i in range(n_csets))
+                    labels = ['{0}_m{1}'.format(label, i+1) for i in range(n_csets)]
                 else:
                     if len(label) != n_csets:
                         raise ValueError('length of label and number of '
                                          'coordinate sets must be the same')
-                    self._labels.extend(label)
+                    labels = label
             else:
-                self._labels.append(label)
-                coords = np.reshape(coords[0],(1,coords[0].shape[0],coords[0].shape[1]))
-                weights = np.reshape(weights[0],(1,weights[0].shape[0],weights[0].shape[1]))
+                labels = [label]
         else:
-            self._labels.append(label)
+            labels = [label]
+        self._labels.extend(labels)
+
+        # update sequences
+        if seqs:
+            msa = MSA(seqs, title=self.getTitle(), labels=labels)
+            if self._msa is None:
+                if n_confs > 0:
+                    def_seqs = np.chararray((n_confs, n_atoms))
+                    def_seqs[:] = 'X'
+
+                    old_labels = [self._labels[i] for i in range(n_confs)]
+                    self._msa = MSA(def_seqs, title=self.getTitle(), labels=old_labels)
+                    self._msa.extend(msa)
+                else:
+                    self._msa = msa
+            else:
+                self._msa.extend(msa)
+
+        # update coordinates
         if self._confs is None and self._weights is None:
             self._confs = coords
             self._weights = weights
-            if degeneracy==False:
-                self._n_csets = n_csets
-            else:
-                self._n_csets = 1
+            self._n_csets = n_repeats
+            
         elif self._confs is not None and self._weights is not None:
             self._confs = np.concatenate((self._confs, coords), axis=0)
             self._weights = np.concatenate((self._weights, weights), axis=0)
-            if degeneracy == False:
-                self._n_csets += n_csets
-            else:
-                self._n_csets += 1
+            self._n_csets += n_repeats
         else:
             raise RuntimeError('_confs and _weights must be set or None at '
                                'the same time')
+
+    def getMSA(self, indices=None, selected=True):
+        """Returns an MSA of selected atoms."""
+
+        selected = selected and self._indices is not None
+        if self._msa is None:
+            return None
+        
+        atom_indices = self._indices if selected else slice(None, None, None)
+        indices = indices if indices is not None else slice(None, None, None)
+        
+        return self._msa[indices, atom_indices]
 
     def getLabels(self):
         """Returns identifiers of the conformations in the ensemble."""
@@ -289,6 +401,13 @@ class PDBEnsemble(Ensemble):
         index.sort(reverse=True)
         for i in index:
             self._labels.pop(i)
+
+        if self._msa is not None:
+            rest = []
+            for i in range(self._msa.numSequences()):
+                if i not in index:
+                    rest.append(i)
+            self._msa = self._msa[rest]
 
     def getConformation(self, index):
         """Returns conformation at given index."""
@@ -370,21 +489,12 @@ class PDBEnsemble(Ensemble):
 
         if self._n_atoms == 0:
             raise AttributeError('coordinates are not set')
-        elif not isinstance(weights, np.ndarray):
-            raise TypeError('weights must be an ndarray instance')
-        elif weights.shape[:2] != (self._n_csets, self._n_atoms):
-            raise ValueError('shape of weights must (n_confs, n_atoms[, 1])')
-        if weights.dtype not in (np.float32, float):
-            try:
-                weights = weights.astype(float)
-            except ValueError:
-                raise ValueError('coords array cannot be assigned type '
-                                 '{0}'.format(float))
-        if np.any(weights < 0):
-            raise ValueError('weights must greater or equal to 0')
 
-        if weights.ndim == 2:
-            weights = weights.reshape((self._n_csets, self._n_atoms, 1))
-        self._weights = weights
-
+        try:
+            self._weights = checkWeights(weights, self._n_atoms, self._n_csets)
+        except ValueError:
+            weights = checkWeights(weights, self.numSelected(), self._n_csets)
+            if not self._weights:
+                self._weights = np.ones((self._n_csets, self._n_atoms, 1), dtype=float)
+            self._weights[self._indices, :] = weights    
 

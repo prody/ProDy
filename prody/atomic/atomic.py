@@ -18,19 +18,20 @@ isSelectionMacro = None
 NOTALLNONE = set(['not', 'all', 'none', 'index', 'sequence', 'x', 'y', 'z'])
 
 MODMAP = {}
-for line in openData('mod_res_map.dat'):
-    try:
-        mod, aa = line.strip().split(' ')
-        MODMAP[mod] = aa
-    except:
-        continue
+with openData('mod_res_map.dat') as f:
+    for line in f:
+        try:
+            mod, aa = line.strip().split(' ')
+            MODMAP[mod] = aa
+        except:
+            continue
 
 AAMAP = {
     'ALA': 'A', 'ARG': 'R', 'ASN': 'N', 'ASP': 'D', 'CYS': 'C', 'GLN': 'Q',
     'GLU': 'E', 'GLY': 'G', 'HIS': 'H', 'ILE': 'I', 'LEU': 'L', 'LYS': 'K',
     'MET': 'M', 'PHE': 'F', 'PRO': 'P', 'SER': 'S', 'THR': 'T', 'TRP': 'W',
     'TYR': 'Y', 'VAL': 'V',
-    'ASX': 'B', 'GLX': 'Z', 'SEC': 'U', 'PYL': 'O', 'XLE': 'J',
+    'ASX': 'B', 'GLX': 'Z', 'SEC': 'U', 'PYL': 'O', 'XLE': 'J', '': '-'
 }
 
 # add bases
@@ -224,6 +225,7 @@ class Atomic(object):
         return new
 
     __copy__ = copy
+    toAtomGroup = copy
 
     def select(self, selstr, **kwargs):
         """Returns atoms matching *selstr* criteria.  See :mod:`~.select` module

@@ -231,7 +231,8 @@ def showProjection(ensemble, modes, *args, **kwargs):
     cmap = kwargs.pop('cmap', None)
 
     if SETTINGS['auto_show']:
-        fig, ax = plt.subplots() 
+        fig = plt.figure()
+ 
     projection = calcProjection(ensemble, modes, kwargs.pop('rmsd', True), kwargs.pop('norm', True))
 
     if projection.ndim == 1 or projection.shape[1] == 1:
@@ -336,6 +337,7 @@ def showProjection(ensemble, modes, *args, **kwargs):
 
     if SETTINGS['auto_show']:
         showFigure()
+
     return show
 
 
@@ -993,13 +995,13 @@ def showPerturbResponse(**kwargs):
     :class:`.AtomGroup` instance.
 
     :arg prs_matrix: a perturbation response matrix
-    :type prs_matrix: array
+    :type prs_matrix: :class:`~numpy.array`
 
     :arg effectiveness: an effectiveness profile from a PRS matrix
-    :type effectiveness: array
+    :type effectiveness: :class:`~numpy.array`
 
     :arg sensitivity: a sensitivity profile from a PRS matrix
-    :type sensitivity: array
+    :type sensitivity: :class:`~numpy.array`
 
     :arg model: any object with a calcCovariance method
         e.g. :class:`.ANM` instance
@@ -1028,7 +1030,7 @@ def showPerturbResponse(**kwargs):
     sensitivity = kwargs.get('sensitivity')
     model = kwargs.pop('model')
     atoms = kwargs.get('atoms')
-    returnData = kwargs.pop('returnData',False)
+    returnData = kwargs.pop('returnData', False)
 
     if atoms is None:
 

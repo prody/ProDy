@@ -16,6 +16,7 @@ else:
     import urllib2
 from .ensemble import Ensemble
 from .pdbensemble import PDBEnsemble
+import os
 
 __all__ = ['daliRecord', 'daliSearchPDB']
 
@@ -26,7 +27,8 @@ def daliSearchPDB(pdbId, chainId, daliURL=None, subset='fullPDB', **kwargs):
     :arg subset: fullPDB, PDB25, PDB50, PDB90
     :type sequence: str"""
     LOGGER.timeit('_dali')
-    timeout = 120
+    # timeout = 120
+    timeout = kwargs.pop('timeout', 120)
     
     if daliURL is None:
         daliURL = "http://ekhidna2.biocenter.helsinki.fi/cgi-bin/sans/dump.cgi"
@@ -49,11 +51,12 @@ def daliSearchPDB(pdbId, chainId, daliURL=None, subset='fullPDB', **kwargs):
                 url = urllib2.urlopen(request).url
                 break
     if url.split('.')[-1].lower() in ['html', 'php']:
-        url = url.strip(url.split('/')[-1])
+        # print('test -1: '+url)
+        url = url.replace(url.split('/')[-1], '')
     LOGGER.debug('Submitted Dali search for PDB and chain "{0} and {1}".'.format(pdbId, chainId))
     LOGGER.info(url)
     LOGGER.clear()
-    obj = daliRecord(url, pdbId, chainId, subset=subset)
+    obj = daliRecord(url, pdbId, chainId, subset=subset, timeout=timeout, **kwargs)
     if obj.isSuccess:
         return obj
     else:
@@ -63,7 +66,7 @@ class daliRecord(object):
 
     """A class to store results from Dali PDB search."""
 
-    def __init__(self, url, pdbId=None, chainId=None, subset='fullPDB', localFile=False):
+    def __init__(self, url, pdbId=None, chainId=None, subset='fullPDB', localFile=False, **kwargs):
         """Instantiate a daliPDB object instance.
 
         :arg url: url of Dali results page or local dali results file.
@@ -82,17 +85,18 @@ class daliRecord(object):
             self._subset = ""
         else:
             self._subset = "-"+subset[3:]
-        
-        self.isSuccess = self.getRecord(self._url, localFile=localFile)
+        timeout = kwargs.pop('timeout', 120)
+        self.isSuccess = self.getRecord(self._url, localFile=localFile, timeout=timeout, **kwargs)
 
-    def getRecord(self, url, localFile=False):
+    def getRecord(self, url, localFile=False, **kwargs):
         if localFile:
             dali_file = open(url, 'r')
             data = dali_file.read()
             dali_file.close()
         else:
             sleep = 2
-            timeout = 120
+            # timeout = 120
+            timeout = kwargs.pop('timeout', 120)
             LOGGER.timeit('_dali')
             log_message = ''
             try_error = 3
@@ -119,12 +123,10 @@ class daliRecord(object):
                 elif html.find('ERROR:') > -1:
                     LOGGER.warn(': Dali search reported an ERROR!')
                     return None
-                    break
                 sleep = 20 if int(sleep * 1.5) >= 20 else int(sleep * 1.5)
                 if LOGGER.timing('_dali') > timeout:
                     LOGGER.warn(': Dali search is time out. \nThe results can be obtained using getRecord() function later.')
                     return None
-                    break
                 LOGGER.clear()
             LOGGER.clear()
             LOGGER.report('Dali results completed in %.1fs.', '_dali')
@@ -133,8 +135,11 @@ class daliRecord(object):
             file_name = file_name[:-7]
             # LOGGER.info(url+file_name+self._subset+'.txt')
             data = urllib2.urlopen(url+file_name+self._subset+'.txt').read()
+            localfolder = kwargs.pop('localfolder', '.')
             temp_name = file_name+self._subset+'_dali.txt'
-            with open(temp_name, "w") as file_temp: file_temp.write(html + '\n' + url+file_name + '\n' + data)
+            if localfolder != '.' and not os.path.exists(localfolder):
+                os.mkdir(localfolder)
+            with open(localfolder+os.sep+temp_name, "w") as file_temp: file_temp.write(html + '\n' + url+file_name + '\n' + data)
             # with open(temp_name, "a+") as file_temp: file_temp.write(url+file_name + '\n' + data)
         data_list = data.strip().split('# ')
         # No:  Chain   Z    rmsd lali nres  %id PDB  Description -> data_list[3]
@@ -180,7 +185,7 @@ class daliRecord(object):
         self._pdbListAll = tuple(pdbListAll)
         self._pdbList = self._pdbListAll
         self._alignPDB = dali_temp_dict
-        LOGGER.info(str(len(pdbListAll)) + ' Dali results have been searched.')
+        LOGGER.info('Obtained ' + str(len(pdbListAll)) + ' PDB chains from Dali for '+self._pdbId+self._chainId+'.')
         return True
         
     def getPDBList(self):
@@ -200,15 +205,54 @@ class daliRecord(object):
         LOGGER.info('Filter out [' + temp_str + '] for [length, RMSD, Z, identity]')
         return self._filterList
         
-    def filter(self, cutoff_len=None, cutoff_rmsd=0.5, cutoff_Z=20, cutoff_identity=0):
+    def filter(self, cutoff_len=None, cutoff_rmsd=None, cutoff_Z=None, cutoff_identity=None):
         """Filters out PDBs from the PDBList and returns the PDB list.
         PDBs satisfy any of following criterion will be filtered out.
-        (1) Length of aligned residues < cutoff_len;
-        (2) RMSD < cutoff_rmsd;
-        (3) Z score < cutoff_Z;
-        (4) Identity < cutoff_identity.
-        By default, cutoff_len is None and a cutoff of 0.8*Length will be applied.
+        (1) Length of aligned residues < cutoff_len; cutoff_len must be a ratio of length (between 0 and 1), or a length of aligned residues; (0.8)
+        (2) RMSD < cutoff_rmsd; (1.0)
+        (3) Z score < cutoff_Z; (20)
+        (4) Identity < cutoff_identity. (90)
         """
+        if cutoff_len == None:
+            cutoff_len = int(0.8*self._max_index)
+        elif not isinstance(cutoff_len, (float, int)):
+            raise TypeError('cutoff_len must be a float or an integer')
+        elif cutoff_len <= 1 and cutoff_len > 0:
+            cutoff_len = int(cutoff_len*self._max_index)
+        elif cutoff_len <= self._max_index and cutoff_len > 0:
+            cutoff_len = int(cutoff_len)
+        else:
+            raise ValueError('cutoff_len must be a float between 0 and 1, or an int not greater than the max length')
+            
+        if cutoff_rmsd == None:
+            cutoff_rmsd = 0
+        elif not isinstance(cutoff_rmsd, (float, int)):
+            raise TypeError('cutoff_rmsd must be a float or an integer')
+        elif cutoff_rmsd >= 0:
+            cutoff_rmsd = float(cutoff_rmsd)
+        else:
+            raise ValueError('cutoff_rmsd must be a number not less than 0')
+            
+        if cutoff_Z == None:
+            cutoff_Z = 0
+        elif not isinstance(cutoff_Z, (float, int)):
+            raise TypeError('cutoff_Z must be a float or an integer')
+        elif cutoff_Z >= 0:
+            cutoff_Z = float(cutoff_rmsd)
+        else:
+            raise ValueError('cutoff_Z must be a number not less than 0')
+            
+        if cutoff_identity == None or cutoff_identity == 0:
+            cutoff_identity = 100
+        elif not isinstance(cutoff_identity, (float, int)):
+            raise TypeError('cutoff_identity must be a float or an integer')
+        elif cutoff_identity <= 1 and cutoff_len > 0:
+            cutoff_identity = float(cutoff_len*100)
+        elif cutoff_identity <= 100 and cutoff_len > 0:
+            cutoff_identity = float(cutoff_identity)
+        else:
+            raise ValueError('cutoff_identity must be a float between 0 and 1, or a number between 0 and 100')
+            
         daliInfo = self._alignPDB
         pdbListAll = self._pdbListAll
         missing_ind_dict = dict()
@@ -217,8 +261,7 @@ class daliRecord(object):
         filterListRMSD = []
         filterListZ = []
         filterListIdentiry = []
-        if cutoff_len == None:
-            cutoff_len = int(0.8*self._max_index)
+        
         for pdb_chain in pdbListAll:
             temp_dict = daliInfo[pdb_chain]
             # filter: len_align, identity, rmsd, Z
@@ -234,7 +277,7 @@ class daliRecord(object):
                 # print('Filter out ' + pdb_chain + ', Z: ' + str(temp_dict['Z']))
                 filterListZ.append(pdb_chain)
                 continue
-            if temp_dict['identity'] < cutoff_identity:
+            if temp_dict['identity'] > cutoff_identity:
                 # print('Filter out ' + pdb_chain + ', identity: ' + str(temp_dict['identity']))
                 filterListIdentiry.append(pdb_chain)
                 continue
@@ -256,26 +299,36 @@ class daliRecord(object):
     def buildDaliEnsemble(self):
         daliInfo = self._alignPDB
         pdbList = self._pdbList
+
+        n_confs = len(pdbList)
+        LOGGER.progress('Building PDB ensemble for {0} conformations from Dali...'
+                        .format(n_confs), n_confs)
+
         ref_pdb = parsePDB(self._pdbId).select('chain '+self._chainId).copy()
-        ref_pdb_ca = ref_pdb.select("protein and name CA").copy()
+
+        ref_pdb_ca = ref_pdb.select("protein and name CA")
+        if ref_pdb_ca is None:
+            ref_pdb_ca = ref_pdb.select("name CA and not resname CA")
+        ref_pdb_ca = ref_pdb_ca.copy()
+
         ref_chain = ref_pdb_ca.getHierView().getChain(self._chainId)
         ref_indices_set = set(range(len(ref_chain)))
-        ensemble = PDBEnsemble('3h5v-A')
+        ensemble = PDBEnsemble('Dali ensemble - ' + str(self._pdbId) + '-' + str(self._chainId))
         ensemble.setAtoms(ref_chain)
         ensemble.setCoords(ref_chain)
         failPDBList = []
-        for pdb_chain in pdbList:
+        
+        for i in range(n_confs):
+            pdb_chain = pdbList[i]
             # print(pdb_chain)
             temp_dict = daliInfo[pdb_chain]
             sel_pdb = parsePDB(pdb_chain[0:4]).select('chain '+pdb_chain[5:6]).copy()
-            sel_pdb_ca = sel_pdb.select("protein and name CA").copy()
+            try:
+                sel_pdb_ca = sel_pdb.select("protein and name CA").copy()
+            except:
+                sel_pdb_ca = sel_pdb.select("name CA and not resname CA").copy()
             map_ref = temp_dict['map_ref']
             map_sel = temp_dict['map_sel']
-            # map_ref = []
-            # map_sel = []
-            # for i in range(len(temp_dict['map_ref'])):
-                # map_ref.append(temp_dict['map_ref'][i])
-                # map_sel.append(temp_dict['map_sel'][i])
             dum_sel = list(ref_indices_set - set(map_ref))
             atommap = AtomMap(sel_pdb_ca, indices=map_sel, mapping=map_ref, dummies=dum_sel)
             # ensemble.addCoordset(atommap, weights=atommap.getFlags('mapped'))
@@ -283,6 +336,8 @@ class daliRecord(object):
                 ensemble.addCoordset(atommap, weights=atommap.getFlags('mapped'), degeneracy=True)
             except:
                 failPDBList.append(pdb_chain)
+            LOGGER.update(i)
+        LOGGER.finish()
         self._failPDBList = failPDBList
         if failPDBList != []:
             LOGGER.warn('failed to add '+str(len(failPDBList))+' PDB chain to ensemble: '+' '.join(failPDBList))

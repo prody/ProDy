@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 """This module defines a class for handling ensembles of conformations."""
 
-from numpy import dot, add, subtract, array, ndarray, sign, concatenate, unique
-from numpy import zeros, ones, arange, isscalar
+from numpy import dot, add, subtract, array, ndarray, sign, concatenate
+from numpy import zeros, ones, arange, isscalar, max
+from numpy import newaxis, unique, repeat
 
 from prody import LOGGER
-from prody.atomic import Atomic
+from prody.atomic import Atomic, sliceAtoms
 from prody.measure import getRMSD
 from prody.utilities import importLA, checkCoords, checkWeights, copy
 
@@ -83,7 +84,8 @@ class Ensemble(object):
             if self._weights is not None:
                 ens.setWeights(self._weights.copy())
             
-            ens.setAtoms(self.getAtoms())
+            ens.setAtoms(self._atoms)
+            ens._indices = self._indices
             return ens
 
         elif isinstance(index, (list, ndarray)):
@@ -92,14 +94,17 @@ class Ensemble(object):
             ens.addCoordset(self._confs[index].copy())
             if self._weights is not None:
                 ens.setWeights(self._weights.copy())
+
+            ens.setAtoms(self._atoms)
+            ens._indices = self._indices
             return ens
 
         else:
             raise IndexError('invalid index')
 
     def __add__(self, other):
-        """Concatenate ensembles. The reference coordinates and weights of
-        *self* is used in the resulting ensemble."""
+        """Concatenate ensembles. The reference coordinates, atoms, 
+        and weights of *self* is used in the resulting ensemble."""
 
         if not isinstance(other, Ensemble):
             raise TypeError('an Ensemble instance cannot be added to an {0} '
@@ -120,7 +125,15 @@ class Ensemble(object):
             LOGGER.info('Atom weights from {0} are used in {1}.'
                         .format(repr(self._title), repr(ensemble.getTitle())))
             ensemble.setWeights(self._weights)
-        ensemble.setAtoms(self.getAtoms())
+        elif other._weights is not None:
+            ensemble.setWeights(other._weights)
+        
+        if self._atoms is not None:
+            ensemble.setAtoms(self._atoms)
+            ensemble._indices = self._indices
+        else:
+            ensemble.setAtoms(other._atoms)
+            ensemble._indices = other._indices
         return ensemble
 
     def __iter__(self):
@@ -161,10 +174,17 @@ class Ensemble(object):
 
         return self._n_atoms if self._indices is None else len(self._indices)
 
-    def getAtoms(self):
-        """Returns associated/selected atoms."""
+    def isSelected(self):
+        """Returns if a subset of atoms are selected."""
+        return self._indices is not None
 
-        return self._atoms
+    def getAtoms(self, selected=True):
+        """Returns associated/selected atoms."""
+        if self._atoms is None:
+            return None
+        if self._indices is None or not selected:
+            return self._atoms
+        return self._atoms[self._indices]
 
     def setAtoms(self, atoms):
         """Set *atoms* or specify a selection of atoms to be considered in
@@ -204,26 +224,21 @@ class Ensemble(object):
                     if any(indices != unique(indices)):
                         raise ValueError('atoms must be ordered by indices')
 
-            if atoms.numAtoms() == n_atoms:
+            if atoms.numAtoms() == n_atoms: # atoms is a complete set (AtomSubset can be a complete set)
                 self._atoms = atoms
                 self._indices = None
 
-            else:
-                try:
-                    ag = atoms.getAtomGroup()
-                except AttributeError:
-                    raise ValueError('atoms must indicate a subset or must '
-                                     'match the ensemble size')
+            else: # atoms is a subset
+                if self._atoms:
+                    self._indices, _ = sliceAtoms(self._atoms, atoms)
                 else:
-                    if ag.numAtoms() != n_atoms:
-                        raise ValueError('atoms must point to an AtomGroup '
-                                         'of the same size as the ensemble')
-                    self._atoms = atoms
-                    self._indices = atoms.getIndices()
+                    raise ValueError('size mismatch between this ensemble ({0} atoms) and atoms ({1} atoms)'
+                                     .format(n_atoms, atoms.numAtoms()))
 
-        else:
+        else: # if assigning atoms to a new ensemble
             self._n_atoms = atoms.numAtoms()
             self._atoms = atoms
+            self._indices = None
 
     def getCoords(self, selected=True):
         """Returns a copy of reference coordinates for selected atoms."""
@@ -298,7 +313,13 @@ class Ensemble(object):
 
         if self._n_atoms == 0:
             raise AttributeError('first set reference coordinates')
-        self._weights = checkWeights(weights, self._n_atoms, None)
+        try:
+            self._weights = checkWeights(weights, self._n_atoms, None)
+        except ValueError:
+            weights = checkWeights(weights, self.numSelected(), None)
+            if not self._weights:
+                self._weights = ones((self._n_atoms, 1), dtype=float)
+            self._weights[self._indices, :] = weights    
 
     def addCoordset(self, coords):
         """Add coordinate set(s) to the ensemble.  *coords* must be a Numpy
@@ -306,6 +327,7 @@ class Ensemble(object):
         with :meth:`getCoordsets` method."""
 
         n_atoms = self._n_atoms
+        n_select = self.numSelected()
         try:
             if self._coords is not None:
                 if isinstance(coords, Ensemble):
@@ -332,18 +354,27 @@ class Ensemble(object):
 
         try:
             checkCoords(coords, csets=True, natoms=n_atoms)
-        except TypeError:
-            raise TypeError('coords must be a numpy array or an object '
-                            'with `getCoords` method')
-
-        if not n_atoms:
-            self._n_atoms = n_atoms = coords.shape[-2]
+        except:
+            try:
+                checkCoords(coords, csets=True, natoms=n_select)
+            except TypeError:
+                raise TypeError('coords must be a numpy array or an object '
+                                'with `getCoords` method')
 
         if coords.ndim == 2:
-            coords = coords.reshape((1, n_atoms, 3))
+            n_nodes, _ = coords.shape
+            coords = coords.reshape((1, n_nodes, 3))
             n_confs = 1
         else:
-            n_confs = coords.shape[0]
+            n_confs, n_nodes, _ = coords.shape
+
+        if not n_atoms:
+            self._n_atoms = n_atoms = n_nodes
+
+        if n_nodes == n_select and self.isSelected():
+            full_coords = repeat(self._coords[newaxis, :, :], n_confs, axis=0)
+            full_coords[:, self._indices, :] = coords
+            coords = full_coords
 
         if self._confs is None:
             self._confs = coords
@@ -524,8 +555,8 @@ class Ensemble(object):
             else:
                 add(dot(movs[i], rotation),
                     (tar_com - dot(mob_com, rotation)), movs[i])
-            LOGGER.update(i, '_prody_ensemble')
-        LOGGER.clear()
+            LOGGER.update(i + 1, '_prody_ensemble')
+        LOGGER.finish()
 
     def iterpose(self, rmsd=0.0001):
         """Iteratively superpose the ensemble until convergence.  Initially,

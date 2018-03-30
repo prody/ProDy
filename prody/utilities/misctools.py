@@ -1,13 +1,13 @@
 """This module defines miscellaneous utility functions."""
 
-from numpy import unique, linalg, diag, sqrt, dot
-from numpy import diff, where, insert, nan, loadtxt
+from numpy import unique, linalg, diag, sqrt, dot, chararray
+from numpy import diff, where, insert, nan, loadtxt, array
 from collections import Counter
 
 __all__ = ['Everything', 'rangeString', 'alnum', 'importLA', 'dictElement',
            'intorfloat', 'startswith', 'showFigure', 'countBytes', 'sqrtm',
            'saxsWater', 'count', 'addBreaks', 'copy', 'dictElementLoop', 
-           'getDataPath', 'openData']
+           'getDataPath', 'openData', 'chr2', 'toChararray']
 
 
 class Everything(object):
@@ -255,9 +255,43 @@ def getDataPath(filename):
     return pkg_resources.resource_filename('prody.utilities', 'datafiles/%s'%filename)
 
 def openData(filename, mode='rb'):
-    with open(getDataPath(filename), mode) as f:
-        yield f
+    return open(getDataPath(filename), mode)
 
 def saxsWater():
     filename = getDataPath('saxs_water.dat')
     return loadtxt(filename, delimiter=',')
+
+def chr2(a):
+    try:
+        c = chr(a)
+    except TypeError:
+        c = str(a)
+    return c
+
+def toChararray(arr, aligned=False):
+    arr = array(arr, dtype='|S')
+    try:
+        ndim, dtype_, shape = arr.ndim, arr.dtype, arr.shape
+    except AttributeError:
+        raise TypeError('arr is not a Numpy array')
+
+    if ndim < 1:
+        raise ValueError('arr.ndim should be at least 1')
+    if dtype_.char != 'S':
+        raise ValueError('arr must be a character array')
+
+    if ndim != 2:
+        n_seq = shape[0]
+        l_seq = dtype_.itemsize
+        new_arr = chararray((n_seq, l_seq))
+        for i, s in enumerate(arr):
+            for j in range(l_seq):
+                if j < len(s):
+                    new_arr[i, j] = chr2(s[j])
+                else:
+                    if aligned:
+                        raise ValueError('arr does not the same lengths')
+                    new_arr[i, j] = '.'
+    else:
+        new_arr = array(arr, dtype='|S1')
+    return new_arr

@@ -102,6 +102,9 @@ EXTENSIONS = [
               include_dirs=[numpy.get_include()]),
 ]
 
+# grab all of the .h and .cpp files in cealign/ and cealign/tnt
+tntDir = join('prody', 'utilities', 'tnt')
+
 CONTRIBUTED = [
     Extension('prody.proteins.cpairwise2',
               [join('prody', 'proteins', 'cpairwise2.c')]),
@@ -109,6 +112,9 @@ CONTRIBUTED = [
               [join('prody', 'kdtree', 'KDTree.c'),
                join('prody', 'kdtree', 'KDTreemodule.c')],
               include_dirs=[numpy.get_include()]),
+    Extension('prody.proteins.ccealign', 
+              [join('prody', 'proteins', 'ccealign', 'ccealignmodule.cpp')], 
+              include_dirs=[tntDir]  )
 ]
 
 for ext in CONTRIBUTED:
@@ -155,5 +161,4 @@ setup(
     #scripts=SCRIPTS,
     install_requires=['NumPy (>=1.7)', ],
     #provides=['ProDy ({0:s})'.format(__version__)]
-    include_package_data=True
 )
