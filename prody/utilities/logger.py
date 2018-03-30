@@ -243,7 +243,7 @@ class PackageLogger(object):
         self._steps = steps
         self._last = 0
         self._times[label] = time.time()
-        self._prev = (0, 0)
+        self._prev = (-1, 0)
         self._msg = msg
         self._line = ''
 
