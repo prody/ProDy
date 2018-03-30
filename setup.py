@@ -106,8 +106,6 @@ EXTENSIONS = [
 ]
 
 CONTRIBUTED = [
-    Extension('prody.proteins.cpairwise2',
-              [join('prody', 'proteins', 'cpairwise2.c')]),
     Extension('prody.kdtree._CKDTree',
               [join('prody', 'kdtree', 'KDTree.c'),
                join('prody', 'kdtree', 'KDTreemodule.c')],
