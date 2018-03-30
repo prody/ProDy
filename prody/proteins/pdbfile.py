@@ -127,6 +127,7 @@ def parsePDB(*pdb, **kwargs):
                 results.pop(i)
         if len(results) == 1:
             results = results[0]
+        results = list(results)
 
         return results
 
