@@ -5,7 +5,7 @@
 
 from collections import defaultdict
 import os.path
-
+import time
 
 import numpy as np
 
@@ -104,6 +104,7 @@ def parsePDB(*pdb, **kwargs):
                 argval = [argval]*n_pdb
             lstkwargs[key] = argval
 
+        start = time.time()
         LOGGER.progress('Retrieving {0} PDB structures...'
                     .format(n_pdb), n_pdb)
         for i, p in enumerate(pdb):
@@ -128,6 +129,9 @@ def parsePDB(*pdb, **kwargs):
         if len(results) == 1:
             results = results[0]
         results = list(results)
+
+        LOGGER.info('{0} PDBs were parsed in {1:.2f}s.'
+                     .format(len(results), time.time()-start))
 
         return results
 
@@ -214,7 +218,7 @@ def parsePDBStream(stream, **kwargs):
             raise TypeError('chain must be a string')
         elif len(chain) == 0:
             raise ValueError('chain must not be an empty string')
-        title_suffix = '_' + chain + title_suffix
+        title_suffix = chain + title_suffix
     ag = None
     if 'ag' in kwargs:
         ag = kwargs['ag']

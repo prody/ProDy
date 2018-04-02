@@ -263,19 +263,18 @@ class PackageLogger(object):
             start = self._times[label]
             self._last = i
             percent = 100 * i / n
-            if percent > 3:
-                seconds = int(math.ceil((time.time()-start) * (n-i)/i))
-                prev = (percent, seconds)
-            else:
-                prev = (percent, 0)
-            if self._prev == prev:
-                return
+            #if percent > 3:
+            seconds = int(math.ceil((time.time()-start) * (n-i)/i))
+            prev = (percent, seconds)
+            #else:
+                #prev = (percent, 0)
+            #if self._prev == prev:
+            #    return
             sys.stderr.write('\r' + ' ' * (len(self._line)) + '\r')
-            if percent > 3:
-                line = self._prefix + self._msg + \
-                    ' [%3d%%] %ds' % (percent, seconds)
-            else:
-                line = self._prefix + self._msg + ' [%3d%%]' % percent
+            #if percent > 3:
+            line = self._prefix + self._msg + ' [%3d%%] %ds' % (percent, seconds)
+            #else:
+            #    line = self._prefix + self._msg + ' [%3d%%]' % percent
             sys.stderr.write(line)
             sys.stderr.flush()
             self._prev = prev
