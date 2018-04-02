@@ -18,9 +18,9 @@ from .ensemble import Ensemble
 from .pdbensemble import PDBEnsemble
 import os
 
-__all__ = ['daliRecord', 'daliSearchPDB']
+__all__ = ['daliRecord', 'searchDali']
 
-def daliSearchPDB(pdbId, chainId, daliURL=None, subset='fullPDB', **kwargs):
+def searchDali(pdbId, chainId, daliURL=None, subset='fullPDB', **kwargs):
     """Search Dali server with input of PDB ID and chain ID.
     Dali server: http://ekhidna2.biocenter.helsinki.fi/dali/
     
