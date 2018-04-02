@@ -226,7 +226,7 @@ def fetchPDBviaFTP(*pdb, **kwargs):
                                 'download .gz files in the current network.'
                                 .format(pdb, str(error)))
                 else:
-                    LOGGER.warn('{0} download failed. {1} does not exist '
+                    LOGGER.info('{0} download failed. {1} does not exist '
                                 'on {2}.'.format(ftp_fn, pdb, ftp_host))
                 failure += 1
                 filenames.append(None)
@@ -344,37 +344,6 @@ def fetchPDBviaHTTP(*pdb, **kwargs):
         return filenames[0]
     else:
         return filenames
-
-def getPath(output_folder, compressed):
-    extension = '.pdb'
-    if output_folder is None:
-        local_folder = pathPDBFolder()
-        if local_folder:
-            local_folder, is_divided = local_folder
-            if is_divided:
-                first = lambda pdb: join(makePath(join(local_folder, pdb[1:3])),
-                                        'pdb' + pdb + '.pdb.gz')
-            else:
-                first = lambda pdb: join(local_folder, pdb + '.pdb.gz')
-            if output_folder is None:
-                second = lambda filename, pdb: filename
-            else:
-                if compressed:
-                    second = lambda filename, pdb: (copyFile(filename,
-                                join(output_folder, pdb + extension + '.gz')))
-                else:
-                    second = lambda filename, pdb: gunzip(filename,
-                                join(output_folder, pdb + extension))
-
-    else:
-        if output_folder is None:
-            output_folder = getcwd()
-        if compressed:
-            first = lambda pdb: join(output_folder, pdb + extension + '.gz')
-            second = lambda filename, pdb: filename
-        else:
-            first = lambda pdb: join(output_folder, pdb + extension)
-            second = lambda filename, pdb: gunzip(first(pdb), first(pdb))
 
 if __name__ == '__main__':
 

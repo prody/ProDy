@@ -66,7 +66,6 @@ def pathPDBFolder(folder=None, divided=False):
 
 wwpdb.pathPDBFolder = pathPDBFolder
 
-
 def pathPDBMirror(path=None, format=None):
     """Returns or specify PDB mirror path to be used by :func:`.fetchPDB`.
     To release the current mirror, pass an invalid path, e.g. ``path=''``.
@@ -345,8 +344,6 @@ def fetchPDB(*pdb, **kwargs):
             fns = fetchPDBviaFTP(*downloads, check=False, **kwargs)
         except Exception as err:
             tryHTTP = True
-            LOGGER.warn('Downloading PDB files via FTP failed ({0}), '
-                        'trying HTTP.'.format(str(err)))
    
     if fns is None:
         tryHTTP = True
@@ -355,7 +352,7 @@ def fetchPDB(*pdb, **kwargs):
         if len(downloads) > 0: 
             tryHTTP = True
     if tryHTTP:
-        LOGGER.warn('Downloading PDB files via FTP failed, '
+        LOGGER.info('Downloading PDB files via FTP failed, '
                     'trying HTTP.')
         try:
             fns = fetchPDBviaHTTP(*downloads, check=False, **kwargs)
