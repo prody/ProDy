@@ -479,6 +479,8 @@ def addPDBEnsemble(ensemble, PDBs, refpdb=None, labels=None, seqid=94, coverage=
     :type unmapped: list
     """
 
+    degeneracy = kwargs.pop('degeneracy', True)
+
     if labels is not None:
         if len(labels) != len(PDBs):
             raise TypeError('Labels and PDBs must have the same lengths.')
@@ -532,9 +534,10 @@ def addPDBEnsemble(ensemble, PDBs, refpdb=None, labels=None, seqid=94, coverage=
             atommap += atommaps[i]
         
         # add the mappings to the ensemble
-        ensemble.addCoordset(atommap, weights=atommap.getFlags('mapped'), label = lbl)
+        ensemble.addCoordset(atommap, weights=atommap.getFlags('mapped'), 
+                             label=lbl, degeneracy=degeneracy)
     LOGGER.finish()
-    
+
     if occupancy is not None:
         ensemble = trimPDBEnsemble(ensemble, occupancy=occupancy)
     ensemble.iterpose()
