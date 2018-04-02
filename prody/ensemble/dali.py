@@ -262,7 +262,8 @@ class daliRecord(object):
         filterListZ = []
         filterListIdentiry = []
         
-        for pdb_chain in pdbListAll:
+        # keep the first PDB (query PDB)
+        for pdb_chain in pdbListAll[1:]:
             temp_dict = daliInfo[pdb_chain]
             # filter: len_align, identity, rmsd, Z
             if temp_dict['len_align'] < cutoff_len:
@@ -292,7 +293,7 @@ class daliRecord(object):
         filterDict = {'len': filterListLen, 'rmsd': filterListRMSD, 'Z': filterListZ, 'identity': filterListIdentiry}
         self._filterList = filterList
         self._filterDict = filterDict
-        self._pdbList = list(set(list(self._pdbListAll)) - set(filterList))
+        self._pdbList = [self._pdbListAll[0]] + list(set(list(self._pdbListAll[1:])) - set(filterList))
         LOGGER.info(str(len(filterList)) + ' PDBs have been filtered out from '+str(len(pdbListAll))+' Dali hits.')
         return self._pdbList
         
