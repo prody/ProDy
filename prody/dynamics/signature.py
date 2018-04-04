@@ -902,7 +902,7 @@ def calcSignatureFractVariance(mode_ensemble):
 
 def showSignatureCrossCorr(mode_ensemble, std=False, **kwargs):
     """Show average cross-correlations using :func:`showAtomicMatrix`. 
-    By default, *origin=lower* and *interpolation=bilinear* keyword  arguments
+    By default, *origin=lower* and *interpolation=bilinear* keyword arguments
     are passed to this function, but user can overwrite these parameters.
     See also :func:`.calcSignatureCrossCorr`.
     
@@ -916,7 +916,8 @@ def showSignatureCrossCorr(mode_ensemble, std=False, **kwargs):
 
     import matplotlib.pyplot as plt
     
-    C = calcSignatureCrossCorr(mode_ensemble, **kwargs)
+    norm = kwargs.pop('norm', True)
+    C = calcSignatureCrossCorr(mode_ensemble, norm=norm)
 
     atoms = kwargs.pop('atoms', None)
     if atoms is None:
