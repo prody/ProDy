@@ -900,7 +900,7 @@ def calcSignatureFractVariance(mode_ensemble):
         
     return sig
 
-def showSignatureCrossCorr(mode_ensemble, show_std=False, **kwargs):
+def showSignatureCrossCorr(mode_ensemble, std=False, **kwargs):
     """Show average cross-correlations using :func:`showAtomicMatrix`. 
     By default, *origin=lower* and *interpolation=bilinear* keyword  arguments
     are passed to this function, but user can overwrite these parameters.
@@ -925,7 +925,7 @@ def showSignatureCrossCorr(mode_ensemble, show_std=False, **kwargs):
         except:
             pass
 
-    if show_std:
+    if std:
         matrixData = C.std()
     else:
         matrixData = C.mean()
@@ -944,7 +944,7 @@ def showSignatureCrossCorr(mode_ensemble, show_std=False, **kwargs):
         else:
             title_str = ', modes '+modeIndexStr
         # title_str = ', '+str(len(modeIndex))+' modes'
-    if show_std:
+    if std:
         plt.title('Cross-correlations (standard deviation)'+title_str)
     else:
         plt.title('Cross-correlations (average)'+title_str)
