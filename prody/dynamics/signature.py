@@ -459,7 +459,7 @@ class sdarray(ndarray):
     https://docs.scipy.org/doc/numpy-1.14.0/user/basics.subclassing.html
     """
 
-    __slots__ = ['_array', '_title', '_labels', '_is3d', '_weights']
+    __slots__ = ['_title', '_labels', '_is3d', '_weights']
 
     def __new__(self, array, weights=None, labels=None, title=None, is3d=False):
 
@@ -472,6 +472,8 @@ class sdarray(ndarray):
         else:
             obj._title = title
         
+        if labels is not None and np.isscalar(labels):
+            labels = [labels]
         obj._labels = labels
         obj._is3d = is3d
 
@@ -507,6 +509,15 @@ class sdarray(ndarray):
         if labels is not None:
             labels = np.array(labels)[index0].tolist()
         return sdarray(arr, weights=w, labels=labels, title=self._title, is3d=self.is3d)
+
+    def __array_finalize__(self, obj):
+        if obj is None:
+            return
+
+        self._title = getattr(obj, '_title', None)
+        self._weights = getattr(obj, '_weights', None)
+        self._is3d = getattr(obj, '_is3d', None)
+        self._labels = getattr(obj, '_labels', None)
 
     def __str__(self):
         return self.getTitle()
