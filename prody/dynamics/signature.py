@@ -324,7 +324,12 @@ class ModeEnsemble(object):
         """Matches the modes across mode sets according the mode overlaps."""
 
         if self._modesets:
+            start = time.time()
             self._modesets = matchModes(*self._modesets)
+            LOGGER.debug('{0} modes across {1} modesets were matched in {2:.2f}s.'
+                            .format(self.numModes(), self.numModeSets(), time.time()-start))
+        else:
+            LOGGER.warn('modeensemble has no modesets')
         self._matched = True
         return
 
@@ -469,7 +474,10 @@ class sdarray(ndarray):
         
         obj._labels = labels
         obj._is3d = is3d
-        obj._weights = np.asarray(weights)
+
+        if weights is not None:
+            weights = np.asarray(weights)
+        obj._weights = weights
         return obj
 
     def __getitem__(self, index):
@@ -481,18 +489,24 @@ class sdarray(ndarray):
             index1 = ()
 
         arr = np.asarray(self)[index0]
-        w = self._weights[index0]
+        w = self._weights
+        if w is not None:
+            w = w[index0]
         if arr.ndim != self.ndim:
             arr = np.expand_dims(arr, axis=0)
-            w = np.expand_dims(w, axis=0)
+            if w is not None:
+                w = np.expand_dims(w, axis=0)
         new_index = [slice(None, None, None)]
         new_index.extend(index1)
 
         arr = arr[new_index]
-        w = w[new_index]
+        if w is not None:
+            w = w[new_index]
         
-        labels = np.array(self._labels)[index0]
-        return sdarray(arr, weights=w, labels=list(labels), title=self._title, is3d=self.is3d)
+        labels = self._labels
+        if labels is not None:
+            labels = np.array(labels)[index0].tolist()
+        return sdarray(arr, weights=w, labels=labels, title=self._title, is3d=self.is3d)
 
     def __str__(self):
         return self.getTitle()
@@ -935,7 +949,7 @@ def showSignatureCrossCorr(mode_ensemble, std=False, **kwargs):
 
     show = showAtomicMatrix(matrixData, atoms=atoms, **kwargs)
 
-    indices = mode_ensemble.getIndices()[0]
+    indices = np.asarray(mode_ensemble.getIndices())[0]
     if len(indices) == 1:
         title_str = ', mode '+str(indices[0]+1)
     else:
