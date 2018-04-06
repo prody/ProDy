@@ -64,11 +64,11 @@ def saveEnsemble(ensemble, filename=None, **kwargs):
     return filename
 
 
-def loadEnsemble(filename):
+def loadEnsemble(filename, **kwargs):
     """Returns ensemble instance loaded from *filename*.  This function makes
     use of :func:`numpy.load` function.  See also :func:`saveEnsemble`"""
 
-    attr_dict = np.load(filename)
+    attr_dict = np.load(filename, **kwargs)
     if '_weights' in attr_dict:
         weights = attr_dict['_weights']
     else:

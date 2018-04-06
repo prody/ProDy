@@ -324,7 +324,12 @@ class ModeEnsemble(object):
         """Matches the modes across mode sets according the mode overlaps."""
 
         if self._modesets:
+            start = time.time()
             self._modesets = matchModes(*self._modesets)
+            LOGGER.debug('{0} modes across {1} modesets were matched in {2:.2f}s.'
+                            .format(self.numModes(), self.numModeSets(), time.time()-start))
+        else:
+            LOGGER.warn('modeensemble has no modesets')
         self._matched = True
         return
 
@@ -454,7 +459,7 @@ class sdarray(ndarray):
     https://docs.scipy.org/doc/numpy-1.14.0/user/basics.subclassing.html
     """
 
-    __slots__ = ['_array', '_title', '_labels', '_is3d', '_weights']
+    __slots__ = ['_title', '_labels', '_is3d', '_weights']
 
     def __new__(self, array, weights=None, labels=None, title=None, is3d=False):
 
@@ -467,9 +472,14 @@ class sdarray(ndarray):
         else:
             obj._title = title
         
+        if labels is not None and np.isscalar(labels):
+            labels = [labels]
         obj._labels = labels
         obj._is3d = is3d
-        obj._weights = np.asarray(weights)
+
+        if weights is not None:
+            weights = np.asarray(weights)
+        obj._weights = weights
         return obj
 
     def __getitem__(self, index):
@@ -481,18 +491,33 @@ class sdarray(ndarray):
             index1 = ()
 
         arr = np.asarray(self)[index0]
-        w = self._weights[index0]
+        w = self._weights
+        if w is not None:
+            w = w[index0]
         if arr.ndim != self.ndim:
             arr = np.expand_dims(arr, axis=0)
-            w = np.expand_dims(w, axis=0)
+            if w is not None:
+                w = np.expand_dims(w, axis=0)
         new_index = [slice(None, None, None)]
         new_index.extend(index1)
 
         arr = arr[new_index]
-        w = w[new_index]
+        if w is not None:
+            w = w[new_index]
         
-        labels = np.array(self._labels)[index0]
-        return sdarray(arr, weights=w, labels=list(labels), title=self._title, is3d=self.is3d)
+        labels = self._labels
+        if labels is not None:
+            labels = np.array(labels)[index0].tolist()
+        return sdarray(arr, weights=w, labels=labels, title=self._title, is3d=self.is3d)
+
+    def __array_finalize__(self, obj):
+        if obj is None:
+            return
+
+        self._title = getattr(obj, '_title', None)
+        self._weights = getattr(obj, '_weights', None)
+        self._is3d = getattr(obj, '_is3d', None)
+        self._labels = getattr(obj, '_labels', None)
 
     def __str__(self):
         return self.getTitle()
@@ -900,9 +925,9 @@ def calcSignatureFractVariance(mode_ensemble):
         
     return sig
 
-def showSignatureCrossCorr(mode_ensemble, show_std=False, **kwargs):
+def showSignatureCrossCorr(mode_ensemble, std=False, **kwargs):
     """Show average cross-correlations using :func:`showAtomicMatrix`. 
-    By default, *origin=lower* and *interpolation=bilinear* keyword  arguments
+    By default, *origin=lower* and *interpolation=bilinear* keyword arguments
     are passed to this function, but user can overwrite these parameters.
     See also :func:`.calcSignatureCrossCorr`.
     
@@ -916,7 +941,8 @@ def showSignatureCrossCorr(mode_ensemble, show_std=False, **kwargs):
 
     import matplotlib.pyplot as plt
     
-    C = calcSignatureCrossCorr(mode_ensemble, **kwargs)
+    norm = kwargs.pop('norm', True)
+    C = calcSignatureCrossCorr(mode_ensemble, norm=norm)
 
     atoms = kwargs.pop('atoms', None)
     if atoms is None:
@@ -925,7 +951,7 @@ def showSignatureCrossCorr(mode_ensemble, show_std=False, **kwargs):
         except:
             pass
 
-    if show_std:
+    if std:
         matrixData = C.std()
     else:
         matrixData = C.mean()
@@ -934,7 +960,7 @@ def showSignatureCrossCorr(mode_ensemble, show_std=False, **kwargs):
 
     show = showAtomicMatrix(matrixData, atoms=atoms, **kwargs)
 
-    indices = mode_ensemble.getIndices()[0]
+    indices = np.asarray(mode_ensemble.getIndices())[0]
     if len(indices) == 1:
         title_str = ', mode '+str(indices[0]+1)
     else:
@@ -944,7 +970,7 @@ def showSignatureCrossCorr(mode_ensemble, show_std=False, **kwargs):
         else:
             title_str = ', modes '+modeIndexStr
         # title_str = ', '+str(len(modeIndex))+' modes'
-    if show_std:
+    if std:
         plt.title('Cross-correlations (standard deviation)'+title_str)
     else:
         plt.title('Cross-correlations (average)'+title_str)
