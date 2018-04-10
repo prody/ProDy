@@ -712,11 +712,11 @@ def alignSequencesByChain(PDBs, **kwargs):
     :type join_char: str
     """
     
-    if not isinstance(PDBs, list) and not isinstance(PDBs, ndarray) and not isinstance(PDBs, tuple):
-        raise TypeError('PDBs should be a list or array')
+    if isscalar(PDBs):
+        raise TypeError('PDBs should be array-like')
 
     if not PDBs:
-        raise ValueError('PDBs should not be an empty list')
+        raise ValueError('PDBs should not be empty')
 
     pdbs = []
     chains = []
@@ -837,7 +837,7 @@ def buildMSA(sequences, title='Unknown', labels=None, **kwargs):
             fetched_labels = []
             for i, sequence in enumerate(sequences):
                 if isinstance(sequence, Atomic):
-                    strseq = sequence.ca.copy().getSequence()
+                    strseq = sequence.ca.getSequence()
                     label = sequence.getTitle()
                 elif isinstance(sequence, Sequence):
                     strseq = str(sequence)
@@ -845,6 +845,8 @@ def buildMSA(sequences, title='Unknown', labels=None, **kwargs):
                 elif isinstance(sequence, MSA):
                     strseq = str(sequence[0])
                     label = sequence.getLabel(0)
+                    LOGGER.warn('Only the first sequence in the MSA at entry {0} is used.'
+                                .format(i))
                 elif isinstance(sequence, str):
                     strseq = sequence
                     label = str(i + 1)
@@ -918,8 +920,8 @@ def showAlignment(alignment, row_size=60, max_seqs=5, **kwargs):
 
     labels = kwargs.get('labels', None)
     if labels is not None:
-        if not isinstance(labels, list) and not isinstance(labels, ndarray) and not isinstance(labels, tuple):
-            raise TypeError('labels should be a list of strings')
+        if isscalar(labels):
+            raise TypeError('labels should be array-like')
 
         for label in labels:
             if not isinstance(label, str):
