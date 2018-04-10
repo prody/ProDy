@@ -5,7 +5,7 @@
 
 from collections import defaultdict
 import os.path
-
+import time
 
 import numpy as np
 
@@ -96,9 +96,6 @@ def parsePDB(*pdb, **kwargs):
     if n_pdb == 1:
         return _parsePDB(pdb[0], **kwargs)
     else:
-        verb = LOGGER.verbosity
-        LOGGER.verbosity = 'info'
-
         results = []
         lstkwargs = {}
         for key in kwargs:
@@ -107,6 +104,7 @@ def parsePDB(*pdb, **kwargs):
                 argval = [argval]*n_pdb
             lstkwargs[key] = argval
 
+        start = time.time()
         LOGGER.progress('Retrieving {0} PDB structures...'
                     .format(n_pdb), n_pdb)
         for i, p in enumerate(pdb):
@@ -123,15 +121,17 @@ def parsePDB(*pdb, **kwargs):
             results.append(result)
 
         results = zip(*results)
-
-        LOGGER.update(n_pdb, '{0} PDB structures retrieved'.format(n_pdb))
-        LOGGER.verbosity = verb
+        LOGGER.finish()
        
         for i in reversed(range(len(results))):
             if all(j is None for j in results[i]):
                 results.pop(i)
         if len(results) == 1:
             results = results[0]
+        results = list(results)
+
+        LOGGER.info('{0} PDBs were parsed in {1:.2f}s.'
+                     .format(len(results), time.time()-start))
 
         return results
 
@@ -218,7 +218,7 @@ def parsePDBStream(stream, **kwargs):
             raise TypeError('chain must be a string')
         elif len(chain) == 0:
             raise ValueError('chain must not be an empty string')
-        title_suffix = '_' + chain + title_suffix
+        title_suffix = chain + title_suffix
     ag = None
     if 'ag' in kwargs:
         ag = kwargs['ag']
@@ -253,8 +253,8 @@ def parsePDBStream(stream, **kwargs):
         _parsePDBLines(ag, lines, split, model, chain, subset, altloc)
         if ag.numAtoms() > 0:
             LOGGER.report('{0} atoms and {1} coordinate set(s) were '
-                              'parsed in %.2fs.'.format(ag.numAtoms(),
-                               ag.numCoordsets() - n_csets))
+                          'parsed in %.2fs.'.format(ag.numAtoms(),
+                          ag.numCoordsets() - n_csets))
         else:
             ag = None
             LOGGER.warn('Atomic data could not be parsed, please '
@@ -345,7 +345,7 @@ def parsePQR(filename, **kwargs):
     if ag.numAtoms() > 0:
         LOGGER.report('{0} atoms and {1} coordinate sets were '
                       'parsed in %.2fs.'.format(ag.numAtoms(),
-                         ag.numCoordsets() - n_csets))
+                      ag.numCoordsets() - n_csets))
         return ag
     else:
         return None
@@ -892,8 +892,6 @@ def parseChainsList(filename):
     Returns: lists containing an :class:'.AtomGroup' for each PDB, 
     the headers for those PDBs, and the requested :class:`.Chain` objects
     """
-    verb = LOGGER.verbosity
-    LOGGER.verbosity = 'info'
     
     fi = open(filename,'r')
     lines = fi.readlines()
@@ -919,7 +917,7 @@ def parseChainsList(filename):
 
         chains.append(ag.getHierView()[line.strip().split()[1]])
 
-    LOGGER.verbosity = verb
+    LOGGER.finish()
     LOGGER.info('{0} PDBs have been parsed and {1} chains have been extracted. \
                 '.format(len(ags),len(chains)))
 

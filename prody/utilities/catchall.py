@@ -5,7 +5,7 @@ import numpy as np
 from numpy import unique, linalg, diag, sqrt, dot
 import scipy.cluster.hierarchy as sch
 from scipy import spatial
-from .misctools import addBreaks
+from .misctools import addBreaks, interpY
 from Bio import Phylo
 
 __all__ = ['calcTree', 'clusterMatrix', 'showData', 'showMatrix', 'reorderMatrix', 'findSubgroups']
@@ -49,51 +49,68 @@ def calcTree(names, distance_matrix, method='nj'):
         node.name = None
     return tree
 
-def clusterMatrix(similarity_matrix=None, distance_matrix=None, labels=None, no_plot=True, **kwargs):
+def clusterMatrix(distance_matrix=None, similarity_matrix=None, labels=None, return_linkage=None, **kwargs):
     """
-    Cluster a similarity matrix or a distance matrix using scipy.cluster.hierarchy and 
-    return the linkage matrix, indices, sorted matrix, sorted labels, and 
-    dendrogram dict.
-    
-    :arg similarity_matrix: an N-by-N matrix containing some measure of similarity 
-        such as sequence identity, mode-mode overlap, or spectral overlap
-    :type similarity_matrix: array
+    Cluster a distance matrix using scipy.cluster.hierarchy and 
+    return the sorted matrix, indices used for sorting, sorted labels (if **labels** are passed),  
+    and linkage matrix (if **return_linkage** is **True**). Set ``similarity=True`` for clustering a similarity matrix
     
     :arg distance_matrix: an N-by-N matrix containing some measure of distance 
         such as 1. - seqid_matrix, rmsds, or distances in PCA space
-    :type similarity_matrix: array
+    :type similarity_matrix: :class:`~numpy.ndarray`
+
+    :arg similarity_matrix: an N-by-N matrix containing some measure of similarity 
+        such as sequence identity, mode-mode overlap, or spectral overlap
+    :type similarity_matrix: :class:`~numpy.ndarray`
     
     :arg labels: labels for each matrix row that can be returned sorted
     :type labels: list
-    
-    Other arguments for scipy.hierarchy.linkage and scipy.hierarchy.dendrogram
-        can also be provided and will be taken as kwargs.
-        
-    :arg no_plot: If True, don't plot the dendrogram.
-        default is True
+
+    :arg no_plot: if **True**, don't plot the dendrogram.
+        default is **True**
     :type no_plot: bool
+    
+    :arg reversed: if set to **True**, then the sorting indices will be reversed.
+    :type reversed: bool
+
+    Other arguments for :method:`~scipy.hierarchy.linkage` and :method:`~scipy.hierarchy.dendrogram`
+        can also be provided and will be taken as **kwargs**.
     """
+
     if similarity_matrix is None and distance_matrix is None:
-        raise ValueError('Please provide a similarity matrix or a distance matrix')
-    elif distance_matrix is None:
+        raise ValueError('Please provide a distance matrix or a similarity matrix')
+    
+    orientation = kwargs.pop('orientiation', 'right')
+    reversed = kwargs.pop('reversed', False)
+    no_plot = kwargs.pop('no_plot', True)
+
+    if distance_matrix is None:
+        matrix = similarity_matrix
         distance_matrix = 1. - similarity_matrix
-    
-    orientation = kwargs.pop('orientiation','right')
-    
+    else:
+        matrix = distance_matrix
+        
     formatted_distance_matrix = spatial.distance.squareform(distance_matrix)
     linkage_matrix = sch.linkage(formatted_distance_matrix, **kwargs)
     sorting_dendrogram = sch.dendrogram(linkage_matrix, orientation=orientation, labels=labels, no_plot=no_plot)
 
     indices = sorting_dendrogram['leaves']
     sorted_labels = sorting_dendrogram['ivl']
+
+    if reversed:
+        indices = indices[::-1]
+        sorted_labels = sorted_labels[::-1]
     
-    if similarity_matrix is None:
-        sorted_matrix = distance_matrix[indices,:]
-    else:
-        sorted_matrix = similarity_matrix[indices,:]
-    sorted_matrix = sorted_matrix[:,indices]
+    sorted_matrix = matrix[indices, :]
+    sorted_matrix = sorted_matrix[:, indices]
     
-    return linkage_matrix, indices, sorted_matrix, sorted_labels, sorting_dendrogram
+    return_vals = [sorted_matrix, indices]
+
+    if labels is not None:
+        return_vals.append(sorted_labels)
+    if return_linkage:
+        return_vals.append(linkage_matrix)
+    return tuple(return_vals) # convert to tuple to avoid [pylint] E0632:Possible unbalanced tuple unpacking
 
 def showData(*args, **kwargs):
     """
@@ -201,7 +218,7 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
     else:
         vmin = vmax = None
     
-    W = H = 8
+    W = H = kwargs.pop('ratio', 6)
 
     ticklabels = kwargs.pop('ticklabels', None)
     allticks = kwargs.pop('allticks', False) # this argument is temporary and will be replaced by better implementation
@@ -245,16 +262,11 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
     complex_layout = nrow > 1 or ncol > 1
     cb = kwargs.pop('colorbar', True)
 
-    if complex_layout:
-        if cb:
-            outer = GridSpec(1, 2, width_ratios = [15, 1], hspace=0.) 
-            gs = GridSpecFromSubplotSpec(nrow, ncol, subplot_spec = outer[0], width_ratios=width_ratios,
-                            height_ratios=height_ratios, hspace=0., wspace=0.)
+    ax1 = ax2 = ax3 = None
 
-            gs_bar = GridSpecFromSubplotSpec(nrow, 1, subplot_spec = outer[1], height_ratios=height_ratios, hspace=0., wspace=0.)
-        else:
-            gs = GridSpec(nrow, ncol, width_ratios=width_ratios, 
-                        height_ratios=height_ratios, hspace=0., wspace=0.)
+    if complex_layout:
+        gs = GridSpec(nrow, ncol, width_ratios=width_ratios, 
+                      height_ratios=height_ratios, hspace=0., wspace=0.)
 
     lines = []
     if nrow > 1:
@@ -267,16 +279,15 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
             ax1.set_xticklabels([])
             
             y = x_array
-            x = np.arange(len(y))
-            points = np.array([x, y]).T.reshape(-1, 1, 2)
+            xp, yp = interpY(y)
+            points = np.array([xp, yp]).T.reshape(-1, 1, 2)
             segments = np.concatenate([points[:-1], points[1:]], axis=1)
-            cmap = cm.jet(y)
-            lcy = LineCollection(segments, array=x, linewidths=1, cmap='jet')
+            lcy = LineCollection(segments, array=yp, linewidths=1, cmap='jet')
             lines.append(lcy)
             ax1.add_collection(lcy)
 
-            ax1.set_xlim(x.min(), x.max())
-            ax1.set_ylim(y.min(), y.max())
+            ax1.set_xlim(xp.min(), xp.max())
+            ax1.set_ylim(yp.min(), yp.max())
         ax1.axis('off')
 
     if ncol > 1:
@@ -285,19 +296,17 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
         if isinstance(y_array, Phylo.BaseTree.Tree):
             Phylo.draw(y_array, do_show=False, axes=ax2, **kwargs)
         else:
-
             ax2.set_xticklabels([])
             
             y = y_array
-            x = np.arange(len(y))
-            points = np.array([y, x]).T.reshape(-1, 1, 2)
+            xp, yp = interpY(y)
+            points = np.array([yp, xp]).T.reshape(-1, 1, 2)
             segments = np.concatenate([points[:-1], points[1:]], axis=1)
-            cmap = cm.jet(y)
-            lcx = LineCollection(segments, array=y, linewidths=1, cmap='jet')
+            lcx = LineCollection(segments, array=yp, linewidths=1, cmap='jet')
             lines.append(lcx)
             ax2.add_collection(lcx)
-            ax2.set_xlim(y.min(), y.max())
-            ax2.set_ylim(x.min(), x.max())
+            ax2.set_xlim(yp.min(), yp.max())
+            ax2.set_ylim(xp.min(), xp.max())
             ax2.invert_xaxis()
 
         ax2.axis('off')
@@ -334,9 +343,12 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
         
     colorbar = None
     if cb:
-        if complex_layout:
-            ax4 = plt.subplot(gs_bar[-1])
-            colorbar = plt.colorbar(mappable=im, cax=ax4)
+        if nrow > 1:
+            axes = [ax1, ax2, ax3]
+            while None in axes:
+                axes.remove(None)
+            s = H / (H + 1.)
+            colorbar = plt.colorbar(mappable=im, ax=axes, anchor=(0, 0), shrink=s)
         else:
             colorbar = plt.colorbar(mappable=im)
 

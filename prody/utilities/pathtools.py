@@ -10,7 +10,7 @@ import platform
 import os.path
 from os.path import isfile, isdir, join, split, splitext
 from os.path import getsize, isabs, exists, abspath
-from shutil import copy
+from shutil import copy, Error as shError
 
 PLATFORM = platform.system()
 USERHOME = os.getenv('USERPROFILE') or os.getenv('HOME')
@@ -372,7 +372,7 @@ def openDB(filename, *args):
         import anydbm as dbm
     except ImportError:
         import dbm
-    return anydbm.open(filename, *args)
+    return dbm.open(filename, *args)
 
 
 def openSQLite(filename, *args):
@@ -425,7 +425,10 @@ def glob(*pathnames):
 def copyFile(src, dst):
     """Returns *dst*, a copy of *src*."""
 
-    copy(src, dst)
+    try:
+        copy(src, dst)
+    except shError:
+        return dst
     return dst
 
 

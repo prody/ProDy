@@ -178,11 +178,11 @@ class MSA(object):
                 raise IndexError('invalid index: ' + str(index))
 
         try:
-            lbls = self._labels[rows]
+            lbls = list(array(self._labels)[rows])
         except TypeError:
             labels = self._labels
             lbls = [labels[i] for i in rows]
-        else:
+        finally:
             if not isinstance(lbls, list):
                 lbls = [lbls]
 

@@ -80,7 +80,10 @@ PACKAGE_DATA = {
 PACKAGE_DIR = {}
 for pkg in PACKAGES:
     PACKAGE_DIR[pkg] = join(*pkg.split('.'))
+    
 from glob import glob
+tntDir = join('prody', 'utilities', 'tnt')
+
 EXTENSIONS = [
     Extension('prody.dynamics.rtbtools',
               glob(join('prody', 'dynamics', 'rtbtools.c')),
@@ -103,12 +106,13 @@ EXTENSIONS = [
 ]
 
 CONTRIBUTED = [
-    Extension('prody.proteins.cpairwise2',
-              [join('prody', 'proteins', 'cpairwise2.c')]),
     Extension('prody.kdtree._CKDTree',
               [join('prody', 'kdtree', 'KDTree.c'),
                join('prody', 'kdtree', 'KDTreemodule.c')],
               include_dirs=[numpy.get_include()]),
+    Extension('prody.proteins.ccealign', 
+              [join('prody', 'proteins', 'ccealign', 'ccealignmodule.cpp')], 
+              include_dirs=[tntDir]  )
 ]
 
 for ext in CONTRIBUTED:
@@ -155,5 +159,4 @@ setup(
     #scripts=SCRIPTS,
     install_requires=['NumPy (>=1.7)', ],
     #provides=['ProDy ({0:s})'.format(__version__)]
-    include_package_data=True
 )
