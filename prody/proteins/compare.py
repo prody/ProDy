@@ -932,9 +932,9 @@ def mapOntoChain(atoms, chain, **kwargs):
         pwalign = True
 
     if pwalign and unmapped:
+        method = 'ALIGNMENT_METHOD'
         if alignment is None:
             aln_type = 'sequence alignment'
-            method = 'ALIGNMENT_METHOD'
             if pwalign in ['ce', 'cealign']:
                 aln_type = 'structure alignment'
                 method = 'CE'
