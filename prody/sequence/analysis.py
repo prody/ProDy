@@ -712,11 +712,11 @@ def alignSequencesByChain(PDBs, **kwargs):
     :type join_char: str
     """
     
-    if not isscalar(PDBs):
-        raise TypeError('PDBs should be a list or array')
+    if isscalar(PDBs):
+        raise TypeError('PDBs should be array-like')
 
     if not PDBs:
-        raise ValueError('PDBs should not be an empty list')
+        raise ValueError('PDBs should not be empty')
 
     pdbs = []
     chains = []
@@ -743,29 +743,13 @@ def alignSequencesByChain(PDBs, **kwargs):
     chains = array(chains)
     chain_alignments = []
     alignments = {}
-    labels_lists = []
     for j in range(len(chains[0])):
         prefix = 'chain_' + chains[0, j].getChid()
         msa = buildMSA(chains[:, j], title=prefix, labels=labels)
-
-        # make all alignments have the sequences in the same order as the 0th
-        labels_lists.append([])
-        for sequence in msa:
-            labels_lists[j].append(sequence.getLabel())
-
-        if j > 0:
-            msaarr = []
-            for label in labels_lists[0]:
-                msaarr.append(msa.getArray()[msa.getIndex(label)])
-                
-            msaarr = array(msaarr)
-            msa = MSA(msaarr, title='reordered_msa_1', labels=list(labels_lists[0]))
-            writeMSA(prefix + '.aln', msa)
-
+        msa = refineMSA(msa, colocc=1e-9) # remove gap-only cols
+        
         chain_alignments.append(msa)
-
-        # after reordering, create the alignments dictionary
-        alignments[labels_lists[0][0].split('_')[1][j]] = msa
+        alignments[labels[0].split('_')[1][j]] = msa
 
     join_chains = kwargs.get('join_chains', True)
     join_char = kwargs.get('join_char', '/')
@@ -787,7 +771,6 @@ def alignSequencesByChain(PDBs, **kwargs):
         joined_msaarr = array(joined_msaarr)
         
         result = MSA(joined_msaarr, title='joined_chains', labels=orig_labels)
-        result = refineMSA(result, colocc=1e-9) # remove gap-only cols
 
     else:
         result = alignments
@@ -823,18 +806,30 @@ def buildMSA(sequences, title='Unknown', labels=None, **kwargs):
         try:
             max_len = 0
             for sequence in sequences:
-                if len(sequence) > max_len:
-                    max_len = len(sequence)
+                if isinstance(sequence, Atomic):
+                    if len(sequence.ca.copy()) > max_len:
+                        max_len = len(sequence.ca.copy())
+                elif isinstance(sequence, MSA):
+                    if len(sequence[0]) > max_len:
+                        max_len = len(sequence[0])
+                else:
+                    if len(sequence) > max_len:
+                        max_len = len(sequence)
 
             msa = []
             fetched_labels = []
             for i, sequence in enumerate(sequences):
                 if isinstance(sequence, Atomic):
-                    strseq = sequence.getSequence()
+                    strseq = sequence.ca.getSequence()
                     label = sequence.getTitle()
                 elif isinstance(sequence, Sequence):
                     strseq = str(sequence)
                     label = sequence.getLabel()
+                elif isinstance(sequence, MSA):
+                    strseq = str(sequence[0])
+                    label = sequence.getLabel(0)
+                    LOGGER.warn('Only the first sequence in the MSA at entry {0} is used.'
+                                .format(i))
                 elif isinstance(sequence, str):
                     strseq = sequence
                     label = str(i + 1)
@@ -857,7 +852,7 @@ def buildMSA(sequences, title='Unknown', labels=None, **kwargs):
         if align:
             filename = writeMSA(title + '.fasta', msa)
 
-    
+
     if align:
         # 2. find and run alignment method
         clustalw = which('clustalw')
@@ -868,7 +863,7 @@ def buildMSA(sequences, title='Unknown', labels=None, **kwargs):
                 raise EnvironmentError("The executable for clustalw was not found, \
                                         install clustalw or add it to the path.")
 
-        os.system('"%s" %s'%(clustalw, filename))
+        os.system('"%s" %s -OUTORDER=INPUT'%(clustalw, filename))
 
         # 3. parse and return the new MSA
         msa = parseMSA(title + '.aln')
@@ -908,8 +903,8 @@ def showAlignment(alignment, row_size=60, max_seqs=5, **kwargs):
 
     labels = kwargs.get('labels', None)
     if labels is not None:
-        if not isscalar(labels):
-            raise TypeError('labels should be a list of strings')
+        if isscalar(labels):
+            raise TypeError('labels should be array-like')
 
         for label in labels:
             if not isinstance(label, str):
