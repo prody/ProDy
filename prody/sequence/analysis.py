@@ -743,29 +743,13 @@ def alignSequencesByChain(PDBs, **kwargs):
     chains = array(chains)
     chain_alignments = []
     alignments = {}
-    labels_lists = []
     for j in range(len(chains[0])):
         prefix = 'chain_' + chains[0, j].getChid()
         msa = buildMSA(chains[:, j], title=prefix, labels=labels)
-
-        # make all alignments have the sequences in the same order as the 0th
-        labels_lists.append([])
-        for sequence in msa:
-            labels_lists[j].append(sequence.getLabel())
-
-        if j > 0:
-            msaarr = []
-            for label in labels_lists[0]:
-                msaarr.append(msa.getArray()[msa.getIndex(label)])
-                
-            msaarr = array(msaarr)
-            msa = MSA(msaarr, title='reordered_msa_1', labels=list(labels_lists[0]))
-            writeMSA(prefix + '.aln', msa)
-
+        msa = refineMSA(msa, colocc=1e-9) # remove gap-only cols
+        
         chain_alignments.append(msa)
-
-        # after reordering, create the alignments dictionary
-        alignments[labels_lists[0][0].split('_')[1][j]] = msa
+        alignments[labels[0].split('_')[1][j]] = msa
 
     join_chains = kwargs.get('join_chains', True)
     join_char = kwargs.get('join_char', '/')
@@ -787,7 +771,6 @@ def alignSequencesByChain(PDBs, **kwargs):
         joined_msaarr = array(joined_msaarr)
         
         result = MSA(joined_msaarr, title='joined_chains', labels=orig_labels)
-        result = refineMSA(result, colocc=1e-9) # remove gap-only cols
 
     else:
         result = alignments
@@ -880,7 +863,7 @@ def buildMSA(sequences, title='Unknown', labels=None, **kwargs):
                 raise EnvironmentError("The executable for clustalw was not found, \
                                         install clustalw or add it to the path.")
 
-        os.system('"%s" %s'%(clustalw, filename))
+        os.system('"%s" %s -OUTORDER=INPUT'%(clustalw, filename))
 
         # 3. parse and return the new MSA
         msa = parseMSA(title + '.aln')
