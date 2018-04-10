@@ -738,7 +738,7 @@ def alignSequencesByChain(PDBs, **kwargs):
         chids = ''
         for chain in list(pdb.getHierView()):
             chids += chain.getChid()
-        labels.append(pdb.getTitle().split('_')[0] + '_' + chids)
+        labels.append(pdb.getTitle() + '_' + chids)
 
     chains = array(chains)
     chain_alignments = []
@@ -753,27 +753,25 @@ def alignSequencesByChain(PDBs, **kwargs):
 
     join_chains = kwargs.get('join_chains', True)
     join_char = kwargs.get('join_char', '/')
-    if join_chains:
-        aligned_sequences = list(zeros(shape(chain_alignments)).T)
-        for j in range(shape(chain_alignments)[1]):
-            aligned_sequences[j] = list(aligned_sequences[j])
-        
-        orig_labels = []
-        for i, chain_alignment in enumerate(chain_alignments):
-            for j, sequence in enumerate(chain_alignment):
-                aligned_sequences[j][i] = str(sequence)
-                if i == 0: 
-                    orig_labels.append(sequence.getLabel())
 
+    if len(chains[0]) == 1:
+        join_chains = False
+
+    if join_chains:
         joined_msaarr = []
-        for j in range(shape(chain_alignments)[1]):
-            joined_msaarr.append(array(list(join_char.join(aligned_sequences[j]))))
-        joined_msaarr = array(joined_msaarr)
+        for i, chain_alignment in enumerate(chain_alignments):
+            pdb_seqs = []
+            for j, sequence in enumerate(chain_alignment):
+                pdb_seqs.append(sequence)
+            joined_msaarr.append(join_char.join(pdb_seqs))
         
-        result = MSA(joined_msaarr, title='joined_chains', labels=orig_labels)
+        result = MSA(joined_msaarr, title='joined_chains', 
+                     labels=[label.split('_')[0] for label in labels])
 
     else:
         result = alignments
+        if len(result) == 1:
+            result = result[list(result.keys())[0]]
             
     return result
 
