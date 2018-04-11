@@ -1027,6 +1027,15 @@ def showSignatureVariances(mode_ensemble, **kwargs):
     weights = kwargs.pop('weights', weights)
     n, bins, patches = hist(W, bins=bins, weights=weights, 
                             histtype=histtype, label=label, **kwargs)
+
+    colors = []
+    for patch_i in patches:
+        colors.append(patch_i[0].get_facecolor())
+
+    for i, patch_i in enumerate(patches):
+        for j, patch_j in enumerate(patch_i):
+            patch_j.set_color(colors[-(i+1)])
+
     if show_legend:
         legend()
 
