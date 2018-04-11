@@ -70,3 +70,8 @@ license (http://www.opensource.org/licenses/mit-license.php).
 Argparse module (http://code.google.com/p/argparse/) is distributed with ProDy.
 Argparse is developed by Steven J. Bethard and is available under the Python
 Software Foundation License.
+
+CEalign module is distributed with ProDy. The original CE method was developed 
+by Ilya Shindyalov and Philip Bourne. The Python version which is used by ProDy 
+is developed by Jason Vertrees and available under the New BSD license. 
+
