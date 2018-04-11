@@ -8,7 +8,7 @@ from collections import Counter
 __all__ = ['Everything', 'rangeString', 'alnum', 'importLA', 'dictElement',
            'intorfloat', 'startswith', 'showFigure', 'countBytes', 'sqrtm',
            'saxsWater', 'count', 'addBreaks', 'copy', 'dictElementLoop', 
-           'getDataPath', 'openData', 'chr2', 'toChararray', 'interpY']
+           'getDataPath', 'openData', 'chr2', 'toChararray', 'interpY', 'cmp']
 
 
 class Everything(object):
@@ -318,3 +318,6 @@ def interpY(Y):
         Xp.append(x2)
         Yp.append(y2)
     return array(Xp), array(Yp)
+
+def cmp(a, b):
+    return (a > b) - (a < b)

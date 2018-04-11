@@ -13,6 +13,7 @@ from prody.atomic import flags
 from prody.measure import calcTransformation, printRMSD, calcDistance
 from prody import LOGGER, SELECT, PY2K, PY3K
 from prody.sequence import MSA
+from prody.utilities import cmp
 
 if PY2K:
     range = xrange
