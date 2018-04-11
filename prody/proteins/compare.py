@@ -932,16 +932,16 @@ def mapOntoChain(atoms, chain, **kwargs):
         pwalign = True
 
     if pwalign and unmapped:
-        method = 'ALIGNMENT_METHOD'
+        aln_type = 'alignment'
+        method = 'predefined'
         if alignment is None:
             aln_type = 'sequence alignment'
+            method = ALIGNMENT_METHOD
             if pwalign in ['ce', 'cealign']:
                 aln_type = 'structure alignment'
                 method = 'CE'
-            LOGGER.debug('Trying to map atoms based on {0} {1}:'
-                    .format(method, aln_type))
-        else:
-            LOGGER.debug('Trying to map atoms based on predefined alignment:')
+        LOGGER.debug('Trying to map atoms based on {0} {1}:'
+                     .format(method, aln_type))
 
         for chid, simple_chain in zip(unmapped_chids, unmapped):
             LOGGER.debug('  Comparing {0} (len={1}) with {2}:'
