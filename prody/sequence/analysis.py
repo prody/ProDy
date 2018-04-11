@@ -844,6 +844,8 @@ def buildMSA(sequences, title='Unknown', labels=None, **kwargs):
         # "if a list" is a pythonic way to check if a list is empty or not (or none)
         if not labels and fetched_labels:
             labels = fetched_labels
+
+        label = [label.replace(' ','_') for label in labels]
         # labels checkers are removed because they will be properly handled in MSA class initialization
         msa = MSA(msa=sequences, title=title, labels=labels)
 
