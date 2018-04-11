@@ -1012,7 +1012,7 @@ def showSignatureVariances(mode_ensemble, **kwargs):
     W = sig.getArray()[:, ::-1] # reversed to accommodate with matplotlib.pyplot.hist
     weights = np.ones_like(W)/float(len(W))
 
-    indices = mode_ensemble.getIndices()[0]
+    indices = mode_ensemble.getIndices().getArray()[0]
     legends = ['mode %d'%(i+1) for i in indices][::-1]
 
     bins = kwargs.pop('bins', 'auto')
