@@ -189,7 +189,7 @@ class PCA(NMA):
             raise ValueError('covariance matrix is not built or set')
         start = time.time()
         dof = self._dof
-        if str(n_modes).lower() is 'all':
+        if str(n_modes).lower() == 'all':
             n_modes = None
         if linalg.__package__.startswith('scipy'):
             if n_modes is None:

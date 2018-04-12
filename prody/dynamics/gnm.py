@@ -369,7 +369,7 @@ class GNM(GNMBase):
 
         if self._kirchhoff is None:
             raise ValueError('Kirchhoff matrix is not built or set')
-        if str(n_modes).lower() is 'all':
+        if str(n_modes).lower() == 'all':
             n_modes = None
         assert n_modes is None or isinstance(n_modes, int) and n_modes > 0, \
             'n_modes must be a positive integer'
