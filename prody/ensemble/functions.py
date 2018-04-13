@@ -68,6 +68,8 @@ def loadEnsemble(filename, **kwargs):
     """Returns ensemble instance loaded from *filename*.  This function makes
     use of :func:`numpy.load` function.  See also :func:`saveEnsemble`"""
 
+    if not 'encoding' in kwargs:
+        kwargs['encoding'] = 'latin1'
     attr_dict = np.load(filename, **kwargs)
     if '_weights' in attr_dict:
         weights = attr_dict['_weights']

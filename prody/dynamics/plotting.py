@@ -1510,8 +1510,11 @@ def showDomainBar(domains, loc=0., axis='x', **kwargs):
     halign = 'left' if text_loc == 'below' else 'right'
     valign = 'top' if text_loc == 'below' else 'bottom'
 
+    if len(domains) == 0:
+        raise ValueError('domains should not be empty')
+    EMPTY_CHAR = domains[0][:0]
     uni_domids = np.unique(domains)
-    uni_domids = uni_domids[uni_domids!='']
+    uni_domids = uni_domids[uni_domids!=EMPTY_CHAR]
 
     if axis == 'y':
         lim = xlim
