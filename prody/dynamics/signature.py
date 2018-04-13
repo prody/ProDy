@@ -14,7 +14,7 @@ from .nma import NMA
 from .modeset import ModeSet
 from .mode import Mode, Vector
 from .functions import calcENM
-from .compare import calcSpectralOverlap, matchModes
+from .compare import calcSpectralOverlap, matchModes, calcOverlap
 
 from .analysis import calcSqFlucts, calcCrossCorr, calcFractVariance
 from .plotting import showAtomicData, showAtomicMatrix
@@ -24,7 +24,7 @@ from .gnm import GNM
 __all__ = ['ModeEnsemble', 'sdarray', 'calcEnsembleENMs', 'showSignature', 'showSignatureMode', 
            'showSignatureSqFlucts', 'calcEnsembleSpectralOverlaps', 'calcSignatureSqFlucts', 
            'calcSignatureCrossCorr', 'showSignatureCrossCorr', 'showVarianceBar',
-           'showSignatureVariances']
+           'showSignatureVariances', 'calcSignatureOverlaps', 'showSignatureOverlapsDiag']
 
 class ModeEnsemble(object):
     """
@@ -746,7 +746,37 @@ def calcSignatureSqFlucts(mode_ensemble, **kwargs):
     sig = sdarray(V, title=title_str, weights=weights, labels=labels, is3d=False)
 
     return sig
-    
+
+def _showSignature(meanV, stdV, minV, maxV, atoms=None, zero_line=False):
+    x = range(meanV.shape[0])
+    lines, _, bars, _ = showAtomicData(meanV, atoms=atoms, linespec=linespec, 
+                                    show_zero=zero_line, **kwargs)
+
+    ori_ylim = ylim()
+    ori_height = ori_ylim[1] - ori_ylim[0]
+    line = lines[-1]
+    color = line.get_color()
+    x, _ = line.get_data()
+    polys = []
+    poly = fill_between(x, minV, maxV,
+                        alpha=0.15, facecolor=color, edgecolor=None,
+                        linewidth=1, antialiased=True)
+    polys.append(poly)
+    poly = fill_between(x, meanV-stdV, meanV+stdV,
+                        alpha=0.35, facecolor=color, edgecolor=None,
+                        linewidth=1, antialiased=True)
+    polys.append(poly)
+
+    # readjust domain/chain bars' locations
+    cur_ylim = ylim()
+    cur_height = cur_ylim[1] - cur_ylim[0]
+    for bar in bars:
+        Y = bar.get_ydata()
+        new_Y = (Y - ori_ylim[0]) / ori_height * cur_height + cur_ylim[0]
+        bar.set_ydata(new_Y)
+        
+    return lines, bars, polys
+
 def showSignature(signature, linespec='-', **kwargs):
     """
     Show the signature dynamics using :func:`showAtomicData`. 
@@ -775,36 +805,6 @@ def showSignature(signature, linespec='-', **kwargs):
     atoms = kwargs.pop('atoms', None)
 
     zero_line = kwargs.pop('show_zero', False)
-
-    def _showSignature(meanV, stdV, minV, maxV, atoms=None, zero_line=False):
-        x = range(meanV.shape[0])
-        lines, _, bars, _ = showAtomicData(meanV, atoms=atoms, linespec=linespec, 
-                                        show_zero=zero_line, **kwargs)
-
-        ori_ylim = ylim()
-        ori_height = ori_ylim[1] - ori_ylim[0]
-        line = lines[-1]
-        color = line.get_color()
-        x, _ = line.get_data()
-        polys = []
-        poly = fill_between(x, minV, maxV,
-                            alpha=0.15, facecolor=color, edgecolor=None,
-                            linewidth=1, antialiased=True)
-        polys.append(poly)
-        poly = fill_between(x, meanV-stdV, meanV+stdV,
-                            alpha=0.35, facecolor=color, edgecolor=None,
-                            linewidth=1, antialiased=True)
-        polys.append(poly)
-
-        # readjust domain/chain bars' locations
-        cur_ylim = ylim()
-        cur_height = cur_ylim[1] - cur_ylim[0]
-        for bar in bars:
-            Y = bar.get_ydata()
-            new_Y = (Y - ori_ylim[0]) / ori_height * cur_height + cur_ylim[0]
-            bar.set_ydata(new_Y)
-            
-        return lines, bars, polys
 
     bars = []; polys = []; lines = []
 
@@ -898,8 +898,50 @@ def calcSignatureCrossCorr(mode_ensemble, norm=True):
         
     return sig
 
+def calcSignatureOverlaps(mode_ensemble):
+    """Calculate average mode-mode overlaps for a modeEnsemble (a list of modes)."""
+    
+    if not isinstance(mode_ensemble, ModeEnsemble):
+        raise TypeError('mode_ensemble should be an instance of ModeEnsemble')
+
+    if not mode_ensemble.isMatched():
+        LOGGER.warn('modes in mode_ensemble did not match cross modesets. '
+                    'Consider running mode_ensemble.match() prior to using this function')
+
+    n_sets = mode_ensemble.numModeSets()
+    n_modes = mode_ensemble.numModes()
+
+    overlaps = sdarray(array = np.zeros((n_sets,n_sets,n_modes,n_modes)))
+
+    for i, modeset_i in enumerate(mode_ensemble):
+        for j, modeset_j in enumerate(mode_ensemble):
+            overlaps[i,j] = abs(calcOverlap(modeset_i, modeset_j))
+
+    return overlaps
+
+def showSignatureOverlapsDiag(mode_ensemble):
+
+    if not isinstance(mode_ensemble, ModeEnsemble):
+        raise TypeError('mode_ensemble should be an instance of ModeEnsemble')
+
+    if not mode_ensemble.isMatched():
+        LOGGER.warn('modes in mode_ensemble did not match cross modesets. '
+                    'Consider running mode_ensemble.match() prior to using this function')
+
+    n_sets = mode_ensemble.numModeSets()
+    n_modes = mode_ensemble.numModes()
+
+    overlaps = calcSignatureOverlaps(mode_ensemble)
+
+    meanV = np.diag(overlaps.mean().mean(axis=0))
+    stdV = np.diag(overlaps.std().std(axis=0))
+    maxV = np.diag(overlaps.max().max(axis=0))
+    minV = np.diag(overlaps.min().min(axis=0))
+
+    return _showSignature(meanV, stdV, minV, maxV)
+
 def calcSignatureFractVariance(mode_ensemble):
-    """Calculate average cross-correlations for a modeEnsemble (a list of modes)."""
+    """Calculate signature fractional variance for a modeEnsemble (a list of modes)."""
     
     if not isinstance(mode_ensemble, ModeEnsemble):
         raise TypeError('mode_ensemble should be an instance of ModeEnsemble')
