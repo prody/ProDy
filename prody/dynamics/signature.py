@@ -325,8 +325,8 @@ class ModeEnsemble(object):
         """Matches the modes across mode sets according the mode overlaps."""
 
         if self._modesets:
-            LOGGER.debug('Matching {0} modes across {1} modesets...'
-                            .format(self.numModes(), self.numModeSets()))
+            #LOGGER.debug('Matching {0} modes across {1} modesets...'
+            #                .format(self.numModes(), self.numModeSets()))
             start = time.time()
             self._modesets = matchModes(*self._modesets)
             LOGGER.debug('{0} modes across {1} modesets were matched in {2:.2f}s.'
