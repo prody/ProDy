@@ -229,7 +229,8 @@ class ModeEnsemble(object):
         is3d = mode.is3d()
         V = np.vstack(V)
 
-        title = 'mode %d'%(mode_index+1)
+        mode_num = modesets[0][mode_index].getIndex()
+        title = 'mode %d'%(mode_num+1)
         sig = sdarray(V, title=title, weights=weights, labels=self.getLabels(), is3d=is3d)
         return sig
 
@@ -324,6 +325,8 @@ class ModeEnsemble(object):
         """Matches the modes across mode sets according the mode overlaps."""
 
         if self._modesets:
+            LOGGER.debug('Matching {0} modes across {1} modesets...'
+                            .format(self.numModes(), self.numModeSets()))
             start = time.time()
             self._modesets = matchModes(*self._modesets)
             LOGGER.debug('{0} modes across {1} modesets were matched in {2:.2f}s.'
