@@ -10,7 +10,7 @@ from collections import defaultdict
 
 import numpy as np
 
-from prody import LOGGER, SETTINGS
+from prody import LOGGER, SETTINGS, PY3K
 from prody.utilities import showFigure, addBreaks
 
 from .nma import NMA
@@ -592,18 +592,15 @@ def showSqFlucts(modes, *args, **kwargs):
     sqf = calcSqFlucts(modes)
     if not 'label' in kwargs:
         kwargs['label'] = str(modes)
-    show = plt.plot(sqf, *args, **kwargs)
-    atoms = kwargs.get('atoms',None)
-    if atoms is not None:
-        show[0].set_ylabel('Square fluctuations')
-        show[0].set_title(str(modes))
-    else:
-        show.set_ylabel('Square fluctuations')
-        show.set_title(str(modes))
+
+    atoms = kwargs.get('atoms', None)
+    show = showAtomicData(sqf, *args, atoms=atoms, **kwargs)
+    plt.ylabel('Square fluctuations')
+    plt.title(str(modes))
     if show_hinge and not modes.is3d():
         hinges = modes.getHinges()
         if hinges is not None:
-            show[0].plot(hinges, sqf[hinges], 'r*')
+            plt.plot(hinges, sqf[hinges], 'r*')
     if SETTINGS['auto_show']:
         showFigure()
     return show
@@ -1512,6 +1509,8 @@ def showDomainBar(domains, loc=0., axis='x', **kwargs):
 
     if len(domains) == 0:
         raise ValueError('domains should not be empty')
+    if PY3K:
+        domains = np.asarray(domains, dtype='U')
     EMPTY_CHAR = domains[0][:0]
     uni_domids = np.unique(domains)
     uni_domids = uni_domids[uni_domids!=EMPTY_CHAR]
