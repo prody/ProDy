@@ -828,7 +828,7 @@ def showSignature(signature, linespec='-', **kwargs):
                 zero_line_ = zero_line
             _lines, _bars, _polys = _showSignature(meanV[i], stdV[i], minV[i], maxV[i], 
                                                    atoms=atoms_, zero_line=zero_line_,
-                                                   linespec=linespec)
+                                                   linespec=linespec, **kwargs)
             lines.extend(_lines)
             bars.extend(_bars)
             polys.extend(_polys)
@@ -836,7 +836,7 @@ def showSignature(signature, linespec='-', **kwargs):
     else:
         _lines, _bars, _polys = _showSignature(meanV, stdV, minV, maxV, 
                                                atoms=atoms, zero_line=zero_line,
-                                               linespec=linespec)
+                                               linespec=linespec, **kwargs)
         lines.extend(_lines)
         bars.extend(_bars)
         polys.extend(_polys)
