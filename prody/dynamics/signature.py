@@ -17,14 +17,15 @@ from .functions import calcENM
 from .compare import calcSpectralOverlap, matchModes, calcOverlap
 
 from .analysis import calcSqFlucts, calcCrossCorr, calcFractVariance
-from .plotting import showAtomicData, showAtomicMatrix
+from .plotting import showAtomicLine, showAtomicMatrix
 from .anm import ANM
 from .gnm import GNM
 
-__all__ = ['ModeEnsemble', 'sdarray', 'calcEnsembleENMs', 'showSignature', 'showSignatureMode', 
+__all__ = ['ModeEnsemble', 'sdarray', 'calcEnsembleENMs', 'showSignatureLine', 'showAtomicLinePlus', 
+           'showSignatureMode', 
            'showSignatureSqFlucts', 'calcEnsembleSpectralOverlaps', 'calcSignatureSqFlucts', 
            'calcSignatureCrossCorr', 'showSignatureCrossCorr', 'showVarianceBar',
-           'showSignatureVariances', 'calcSignatureOverlaps', 'showSignatureOverlapsDiag']
+           'showSignatureVariances', 'calcSignatureOverlaps', 'showSignatureOverlaps']
 
 class ModeEnsemble(object):
     """
@@ -485,28 +486,47 @@ class sdarray(ndarray):
         obj._weights = weights
         return obj
 
+    # def __getitem__(self, index):
+    #     if isinstance(index, tuple):
+    #         index0 = index[0]
+    #         index1 = index[1:]
+    #     else:
+    #         index0 = index
+    #         index1 = ()
+
+    #     arr = np.asarray(self)[index0]
+    #     w = self._weights
+    #     if w is not None:
+    #         w = w[index0]
+    #     if arr.ndim != self.ndim:
+    #         arr = np.expand_dims(arr, axis=0)
+    #         if w is not None:
+    #             w = np.expand_dims(w, axis=0)
+    #     new_index = [slice(None, None, None)]
+    #     new_index.extend(index1)
+
+    #     arr = arr[new_index]
+    #     if w is not None:
+    #         w = w[new_index]
+        
+    #     labels = self._labels
+    #     if labels is not None:
+    #         labels = np.array(labels)[index0].tolist()
+    #     return sdarray(arr, weights=w, labels=labels, title=self._title, is3d=self.is3d)
+
     def __getitem__(self, index):
         if isinstance(index, tuple):
             index0 = index[0]
-            index1 = index[1:]
         else:
             index0 = index
-            index1 = ()
 
-        arr = np.asarray(self)[index0]
+        arr = self[index]
+        if np.ndim(arr) == 0:
+            return arr
+
         w = self._weights
         if w is not None:
-            w = w[index0]
-        if arr.ndim != self.ndim:
-            arr = np.expand_dims(arr, axis=0)
-            if w is not None:
-                w = np.expand_dims(w, axis=0)
-        new_index = [slice(None, None, None)]
-        new_index.extend(index1)
-
-        arr = arr[new_index]
-        if w is not None:
-            w = w[new_index]
+            w = w[index]
         
         labels = self._labels
         if labels is not None:
@@ -750,13 +770,15 @@ def calcSignatureSqFlucts(mode_ensemble, **kwargs):
 
     return sig
 
-def _showSignature(meanV, stdV, minV, maxV, atoms=None, zero_line=False, **kwargs):
+def showAtomicLinePlus(y, std=None, min=None, max=None, atoms=None, **kwargs):
     from matplotlib.pyplot import figure, plot, fill_between, \
                                   gca, xlabel, ylabel, title, ylim
 
-    x = range(meanV.shape[0])
-    linespec = kwargs.pop('linespec','-')
-    lines, _, bars, _ = showAtomicData(meanV, atoms=atoms, linespec=linespec, 
+    linespec = kwargs.pop('linespec', '-')
+    zero_line = kwargs.pop('zero_line', False)
+
+    x = range(y.shape[0])
+    lines, _, bars, _ = showAtomicLine(y, atoms=atoms, linespec=linespec, 
                                        show_zero=zero_line, **kwargs)
 
     ori_ylim = ylim()
@@ -765,14 +787,18 @@ def _showSignature(meanV, stdV, minV, maxV, atoms=None, zero_line=False, **kwarg
     color = line.get_color()
     x, _ = line.get_data()
     polys = []
-    poly = fill_between(x, minV, maxV,
-                        alpha=0.15, facecolor=color, edgecolor=None,
-                        linewidth=1, antialiased=True)
-    polys.append(poly)
-    poly = fill_between(x, meanV-stdV, meanV+stdV,
-                        alpha=0.35, facecolor=color, edgecolor=None,
-                        linewidth=1, antialiased=True)
-    polys.append(poly)
+
+    if not None in (min, max):
+        poly = fill_between(x, min, max,
+                            alpha=0.15, facecolor=color, edgecolor=None,
+                            linewidth=1, antialiased=True)
+        polys.append(poly)
+        
+    if std is not None:
+        poly = fill_between(x, y-std, y+std,
+                            alpha=0.35, facecolor=color, edgecolor=None,
+                            linewidth=1, antialiased=True)
+        polys.append(poly)
 
     # readjust domain/chain bars' locations
     cur_ylim = ylim()
@@ -784,14 +810,14 @@ def _showSignature(meanV, stdV, minV, maxV, atoms=None, zero_line=False, **kwarg
         
     return lines, bars, polys
 
-def showSignature(signature, linespec='-', **kwargs):
+def showSignatureLine(signature, linespec='-', **kwargs):
     """
-    Show the signature dynamics using :func:`showAtomicData`. 
+    Show the signature dynamics using :func:`showAtomicLine`. 
     
     :arg signature: the signature dynamics to be plotted 
     :type signature: :class:`sdarray`
 
-    :arg linespec: line specifications that will be passed to :func:`showAtomicData`
+    :arg linespec: line specifications that will be passed to :func:`showAtomicLine`
     :type linespec: str
 
     :arg atoms: an object with method :func:`getResnums` for use 
@@ -826,7 +852,7 @@ def showSignature(signature, linespec='-', **kwargs):
             if i == 2:
                 atoms_ = atoms
                 zero_line_ = zero_line
-            _lines, _bars, _polys = _showSignature(meanV[i], stdV[i], minV[i], maxV[i], 
+            _lines, _bars, _polys = showAtomicLinePlus(meanV[i], stdV[i], minV[i], maxV[i], 
                                                    atoms=atoms_, zero_line=zero_line_,
                                                    linespec=linespec, **kwargs)
             lines.extend(_lines)
@@ -834,7 +860,7 @@ def showSignature(signature, linespec='-', **kwargs):
             polys.extend(_polys)
 
     else:
-        _lines, _bars, _polys = _showSignature(meanV, stdV, minV, maxV, 
+        _lines, _bars, _polys = showAtomicLinePlus(meanV, stdV, minV, maxV, 
                                                atoms=atoms, zero_line=zero_line,
                                                linespec=linespec, **kwargs)
         lines.extend(_lines)
@@ -857,7 +883,7 @@ def showSignatureMode(mode_ensemble, **kwargs):
 
     mode = mode_ensemble.getEigvec()
     show_zero = kwargs.pop('show_zero', True)
-    return showSignature(mode, atoms=mode_ensemble.getAtoms(), show_zero=show_zero, **kwargs)
+    return showSignatureLine(mode, atoms=mode_ensemble.getAtoms(), show_zero=show_zero, **kwargs)
 
 def showSignatureSqFlucts(mode_ensemble, **kwargs):
 
@@ -870,7 +896,7 @@ def showSignatureSqFlucts(mode_ensemble, **kwargs):
 
     sqf = calcSignatureSqFlucts(mode_ensemble)
     show_zero = kwargs.pop('show_zero', False)
-    return showSignature(sqf, atoms=mode_ensemble.getAtoms(), show_zero=show_zero, **kwargs)
+    return showSignatureLine(sqf, atoms=mode_ensemble.getAtoms(), show_zero=show_zero, **kwargs)
 
 def calcSignatureCrossCorr(mode_ensemble, norm=True):
     """Calculate average cross-correlations for a modeEnsemble (a list of modes)."""
@@ -907,7 +933,7 @@ def calcSignatureCrossCorr(mode_ensemble, norm=True):
         
     return sig
 
-def calcSignatureOverlaps(mode_ensemble):
+def calcSignatureOverlaps(mode_ensemble, diag=True):
     """Calculate average mode-mode overlaps for a modeEnsemble (a list of modes)."""
     
     if not isinstance(mode_ensemble, ModeEnsemble):
@@ -920,15 +946,29 @@ def calcSignatureOverlaps(mode_ensemble):
     n_sets = mode_ensemble.numModeSets()
     n_modes = mode_ensemble.numModes()
 
-    overlaps = sdarray(array = np.zeros((n_sets,n_sets,n_modes,n_modes)))
+    if diag:
+        overlaps = np.zeros((n_modes, n_sets, n_sets))
+        for m in range(mode_ensemble.numModes()):
+            for i, modeset_i in enumerate(mode_ensemble):
+                mode_i = modeset_i[m]
+                for j, modeset_j in enumerate(mode_ensemble):
+                    mode_j = modeset_j[m]
+                    if j >= i:
+                        overlaps[m, i, j] = overlaps[m, j, i] = abs(calcOverlap(mode_i, mode_j))
+                    
+    else:
+        overlaps = np.zeros((n_modes, n_modes, n_sets, n_sets))
 
-    for i, modeset_i in enumerate(mode_ensemble):
-        for j, modeset_j in enumerate(mode_ensemble):
-            overlaps[i,j] = abs(calcOverlap(modeset_i, modeset_j))
+        for i, modeset_i in enumerate(mode_ensemble):
+            for j, modeset_j in enumerate(mode_ensemble):
+                if j >= i:                
+                    overlaps[:,:,i,j] = overlaps[:,:,j,i] = abs(calcOverlap(modeset_i, modeset_j))
 
     return overlaps
 
-def showSignatureOverlapsDiag(mode_ensemble):
+def showSignatureOverlaps(mode_ensemble):
+
+    from matplotlib.pyplot import *
 
     if not isinstance(mode_ensemble, ModeEnsemble):
         raise TypeError('mode_ensemble should be an instance of ModeEnsemble')
@@ -937,17 +977,18 @@ def showSignatureOverlapsDiag(mode_ensemble):
         LOGGER.warn('modes in mode_ensemble did not match cross modesets. '
                     'Consider running mode_ensemble.match() prior to using this function')
 
-    n_sets = mode_ensemble.numModeSets()
-    n_modes = mode_ensemble.numModes()
+    overlaps = calcSignatureOverlaps(mode_ensemble, diag=True)
+    r, c = np.triu_indices(overlaps.shape[1], k=1)
+    overlap_triu = overlaps[:, r, c]
 
-    overlaps = calcSignatureOverlaps(mode_ensemble)
+    meanV = overlap_triu.mean(axis=1)
+    stdV = overlap_triu.std(axis=1)
 
-    meanV = np.diag(overlaps.mean().mean(axis=0))
-    stdV = np.diag(overlaps.std().std(axis=0))
-    maxV = np.diag(overlaps.max().max(axis=0))
-    minV = np.diag(overlaps.min().min(axis=0))
-
-    return _showSignature(meanV, stdV, minV, maxV)
+    show = showAtomicLinePlus(meanV, stdV)
+    xlabel('Mode index')
+    ylabel('Overlap')
+    
+    return show
 
 def calcSignatureFractVariance(mode_ensemble):
     """Calculate signature fractional variance for a modeEnsemble (a list of modes)."""
@@ -1011,7 +1052,7 @@ def showSignatureCrossCorr(mode_ensemble, std=False, **kwargs):
 
     show = showAtomicMatrix(matrixData, atoms=atoms, **kwargs)
 
-    indices = np.asarray(mode_ensemble.getIndices())[0]
+    indices = mode_ensemble.getIndices()[0]
     if len(indices) == 1:
         title_str = ', mode '+str(indices[0]+1)
     else:

@@ -27,13 +27,14 @@ from prody.atomic import AtomGroup, Selection
 __all__ = ['showContactMap', 'showCrossCorr',
            'showCumulOverlap', 'showFractVars',
            'showCumulFractVars', 'showMode',
-           'showOverlap', 'showOverlapTable', 'showProjection',
-           'showCrossProjection', 'showEllipsoid', 'showSqFlucts',
-           'showScaledSqFlucts', 'showNormedSqFlucts', 'resetTicks',
+           'showOverlap', 'showOverlaps', 'showOverlapTable', 
+           'showProjection', 'showCrossProjection', 
+           'showEllipsoid', 'showSqFlucts', 'showScaledSqFlucts', 
+           'showNormedSqFlucts', 'resetTicks',
            'showDiffMatrix','showMechStiff','showNormDistFunct',
            'showPairDeformationDist','showMeanMechStiff', 
            'showPerturbResponse', 'showPerturbResponseProfiles',
-           'showAtomicMatrix', 'showAtomicData', 'showTree', 
+           'showAtomicMatrix', 'showAtomicLine', 'showTree', 
            'showTree_networkx', 'showDomainBar']
 
 
@@ -594,7 +595,7 @@ def showSqFlucts(modes, *args, **kwargs):
         kwargs['label'] = str(modes)
 
     atoms = kwargs.get('atoms', None)
-    show = showAtomicData(sqf, *args, atoms=atoms, **kwargs)
+    show = showAtomicLine(sqf, *args, atoms=atoms, **kwargs)
     plt.ylabel('Square fluctuations')
     plt.title(str(modes))
     if show_hinge and not modes.is3d():
@@ -718,6 +719,7 @@ def showOverlap(mode, modes, *args, **kwargs):
         showFigure()
     return show
 
+showOverlaps = showOverlap
 
 def showCumulOverlap(mode, modes, *args, **kwargs):
     """Show cumulative overlap using :func:`~matplotlib.pyplot.plot`.
@@ -1195,7 +1197,7 @@ def showPerturbResponseProfiles(prs_matrix,atoms=None,**kwargs):
         profiles = [effectiveness, sensitivity]
 
     for profile in profiles:
-        show = showAtomicData(profile,atoms=atoms,**kwargs)
+        show = showAtomicLine(profile,atoms=atoms,**kwargs)
 
     returnData = kwargs.get('returnData',False)
     if returnData:
@@ -1361,7 +1363,7 @@ def showAtomicMatrix(matrix, x_array=None, y_array=None, atoms=None, **kwargs):
 
     return im, lines, colorbar, texts
 
-def showAtomicData(y, atoms=None, linespec='-', **kwargs):
+def showAtomicLine(y, atoms=None, linespec='-', **kwargs):
     """
     Show a plot with the option to include chain color bars using provided atoms.
     
@@ -1397,7 +1399,7 @@ def showAtomicData(y, atoms=None, linespec='-', **kwargs):
     show_domain_text = kwargs.pop('show_domain_text', show_text)
     show_chain_text = kwargs.pop('show_chain_text', show_text)
 
-    from prody.utilities import showData
+    from prody.utilities import showLine
     from matplotlib.pyplot import figure, xlim, ylim, plot, text
     from matplotlib.figure import Figure
     from matplotlib import ticker
@@ -1435,7 +1437,7 @@ def showAtomicData(y, atoms=None, linespec='-', **kwargs):
             resnums = atoms.getResnums()
             ticklabels = ['%s:%d'%(c, n) for c, n in zip(chids, resnums)]
 
-    lines, polys = showData(y, linespec, ticklabels=ticklabels, **kwargs)
+    lines, polys = showLine(y, linespec, ticklabels=ticklabels, **kwargs)
     if zero_line:
         l = xlim()
         plot(l, [0, 0], '--', color='gray')
