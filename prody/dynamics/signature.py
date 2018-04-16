@@ -325,8 +325,8 @@ class ModeEnsemble(object):
         """Matches the modes across mode sets according the mode overlaps."""
 
         if self._modesets:
-            LOGGER.debug('Matching {0} modes across {1} modesets...'
-                            .format(self.numModes(), self.numModeSets()))
+            #LOGGER.debug('Matching {0} modes across {1} modesets...'
+            #                .format(self.numModes(), self.numModeSets()))
             start = time.time()
             self._modesets = matchModes(*self._modesets)
             LOGGER.debug('{0} modes across {1} modesets were matched in {2:.2f}s.'
@@ -750,10 +750,14 @@ def calcSignatureSqFlucts(mode_ensemble, **kwargs):
 
     return sig
 
-def _showSignature(meanV, stdV, minV, maxV, atoms=None, zero_line=False):
+def _showSignature(meanV, stdV, minV, maxV, atoms=None, zero_line=False, **kwargs):
+    from matplotlib.pyplot import figure, plot, fill_between, \
+                                  gca, xlabel, ylabel, title, ylim
+
     x = range(meanV.shape[0])
+    linespec = kwargs.pop('linespec','-')
     lines, _, bars, _ = showAtomicData(meanV, atoms=atoms, linespec=linespec, 
-                                    show_zero=zero_line, **kwargs)
+                                       show_zero=zero_line, **kwargs)
 
     ori_ylim = ylim()
     ori_height = ori_ylim[1] - ori_ylim[0]
@@ -823,14 +827,16 @@ def showSignature(signature, linespec='-', **kwargs):
                 atoms_ = atoms
                 zero_line_ = zero_line
             _lines, _bars, _polys = _showSignature(meanV[i], stdV[i], minV[i], maxV[i], 
-                                                   atoms=atoms_, zero_line=zero_line_)
+                                                   atoms=atoms_, zero_line=zero_line_,
+                                                   linespec=linespec, **kwargs)
             lines.extend(_lines)
             bars.extend(_bars)
             polys.extend(_polys)
 
     else:
         _lines, _bars, _polys = _showSignature(meanV, stdV, minV, maxV, 
-                                               atoms=atoms, zero_line=zero_line)
+                                               atoms=atoms, zero_line=zero_line,
+                                               linespec=linespec, **kwargs)
         lines.extend(_lines)
         bars.extend(_bars)
         polys.extend(_polys)
