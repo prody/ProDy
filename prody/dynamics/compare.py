@@ -243,6 +243,7 @@ def matchModes(*modesets, **kwargs):
     LOGGER.progress('Matching {0} modes across {1} modesets...'
                     .format(n_modes, n_sets), n_sets)
     for i, modeset in enumerate(modesets):
+        LOGGER.update(i)
         if i > 0:
             _, reordered_modeset = pairModes(modeset0, modeset, index=index)
             ret.append(reordered_modeset)
