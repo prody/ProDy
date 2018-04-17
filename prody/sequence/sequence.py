@@ -12,7 +12,7 @@ try:
 except NameError:
     pass
 
-SPLITLABEL = re.compile('/*-*').split
+SPLITLABEL = re.compile(r'[/-]+').split
 
 __all__ = ['Sequence']
 

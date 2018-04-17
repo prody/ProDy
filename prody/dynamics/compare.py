@@ -3,7 +3,7 @@
 models."""
 
 import numpy as np
-
+from prody import LOGGER, SETTINGS
 from prody.utilities import openFile
 
 from .nma import NMA
@@ -240,9 +240,13 @@ def matchModes(*modesets, **kwargs):
     elif n_sets == 0:
         raise ValueError('at least one modeset should be given')
 
+    LOGGER.progress('Matching {0} modes across {1} modesets...'
+                    .format(n_modes, n_sets), n_sets)
     for i, modeset in enumerate(modesets):
+        LOGGER.update(i)
         if i > 0:
             _, reordered_modeset = pairModes(modeset0, modeset, index=index)
             ret.append(reordered_modeset)
+    LOGGER.finish()
     
     return ret
