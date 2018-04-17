@@ -6,11 +6,6 @@ from .nmaoptions import *
 from . import nmaoptions
 from numbers import Integral
 
-try:
-    range = xrange
-except NameError:
-    pass
-
 DEFAULTS = {}
 HELPTEXT = {}
 for key, txt, val in [

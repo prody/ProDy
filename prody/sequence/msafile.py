@@ -52,11 +52,6 @@ NUMLINES = 1000
 LEN_FASTA_LINE = 60
 LEN_SELEX_LABEL = 31
 
-try:
-    range = xrange
-except NameError:
-    pass
-
 
 class MSAFile(object):
 

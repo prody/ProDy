@@ -25,8 +25,8 @@ from . import flags
 
 __all__ = ['AtomGroup']
 
-if PY2K: range = xrange
-
+if PY2K: 
+    range = xrange
 
 def checkLabel(label):
     """Check suitability of *label* for labeling user data or flags."""

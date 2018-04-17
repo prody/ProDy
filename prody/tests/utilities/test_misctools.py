@@ -2,10 +2,6 @@ from prody.tests import TestCase
 
 from prody.utilities import rangeString
 
-try:
-    range = xrange
-except NameError:
-    pass
 
 class TestRangeString(TestCase):
 

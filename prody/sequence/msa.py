@@ -17,12 +17,6 @@ import sys
 
 __all__ = ['MSA', 'refineMSA', 'mergeMSA', 'specMergeMSA',]
 
-try:
-    range = xrange
-except NameError:
-    pass
-
-
 class MSA(object):
 
     """Store and manipulate multiple sequence alignments."""
