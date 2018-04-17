@@ -342,16 +342,14 @@ class ModeEnsemble(object):
         if not self._matched:
             LOGGER.warn('Mode ensemble has not been matched')
         else:
-            collectivities = zeros(self.numModeSets(),self.numModes())
-            for i, modeset in enumerate(self._modesets):
-                collectivies[i] = calcCollectivity(modeset)
+            collectivities = calcSignatureCollectivity(self)
             
-            mean_coll = collectivities.mean(axis=0)
+            mean_coll = collectivities.mean()
             coll_order = np.argsort(mean_coll)
 
             ret = []
             for modeset in self._modesets:
-                ret.append(ModeSet(modeset.getModel(),coll_order))
+                ret.append(ModeSet(modeset.getModel(), coll_order))
 
             self._modesets = ret
 
@@ -481,16 +479,21 @@ class sdarray(ndarray):
     https://docs.scipy.org/doc/numpy-1.14.0/user/basics.subclassing.html
     """
 
-    __slots__ = ['_title', '_labels', '_is3d', '_weights']
+    __slots__ = ['_title', '_labels', '_is3d', '_weights', '_oneset']
 
-    def __new__(self, array, weights=None, labels=None, title=None, is3d=False):
+    def __new__(self, array, weights=None, labels=None, title=None, is3d=False, 
+                oneset=False):
 
         array = np.asarray(array)
         obj = array.view(self)
         shape = array.shape
 
         if title is None:
-            obj._title = '{0} arrays of size {1}'.format(shape[0], shape[1:])
+            if oneset:
+                obj._title = '1 array of size {0}'.format(shape)
+            else:
+                obj._title = '{0} array{2} of size {1}'.format(
+                             shape[0], shape[1:], 's' if shape[0]>1 else '')
         else:
             obj._title = title
         
@@ -502,6 +505,7 @@ class sdarray(ndarray):
         if weights is not None:
             weights = np.asarray(weights)
         obj._weights = weights
+        obj._oneset = oneset
         return obj
 
     # def __getitem__(self, index):
@@ -533,14 +537,20 @@ class sdarray(ndarray):
     #     return sdarray(arr, weights=w, labels=labels, title=self._title, is3d=self.is3d)
 
     def __getitem__(self, index):
-        if isinstance(index, tuple):
-            index0 = index[0]
+
+        if self._oneset:
+            index0 = 0
         else:
-            index0 = index
+            if isinstance(index, tuple):
+                index0 = index[0]
+            else:
+                index0 = index
 
         arr = np.asarray(self)[index]
         if np.ndim(arr) == 0:
             return arr
+
+        oneset = np.isscalar(index0)
 
         w = self._weights
         if w is not None:
@@ -549,7 +559,8 @@ class sdarray(ndarray):
         labels = self._labels
         if labels is not None:
             labels = np.array(labels)[index0].tolist()
-        return sdarray(arr, weights=w, labels=labels, title=self._title, is3d=self.is3d)
+        return sdarray(arr, weights=w, labels=labels, title=self._title, 
+                       is3d=self.is3d, oneset=oneset)
 
     def __array_finalize__(self, obj):
         if obj is None:
@@ -559,6 +570,7 @@ class sdarray(ndarray):
         self._weights = getattr(obj, '_weights', None)
         self._is3d = getattr(obj, '_is3d', None)
         self._labels = getattr(obj, '_labels', None)
+        self._oneset = getattr(obj, '_oneset', None)
 
     def __str__(self):
         return self.getTitle()
@@ -580,7 +592,10 @@ class sdarray(ndarray):
         """Returns the number of atoms assuming it is represented by the second axis."""
 
         try:
-            n_atoms = self.shape[1]
+            if self._oneset:
+                n_atoms = self.shape[0]
+            else:
+                n_atoms = self.shape[1]
             if self.is3d():
                 n_atoms /= 3
             return n_atoms
@@ -591,7 +606,9 @@ class sdarray(ndarray):
     def numModeSets(self):
         """Returns the number of modesets in the instance """
 
-        return len(self)
+        if self._oneset:
+            return 1
+        return self.shape[0]
 
     def getTitle(self):
         """Returns the title of the signature."""
@@ -640,15 +657,12 @@ class sdarray(ndarray):
 
         self._weights = weights
 
+    weights = property(getWeights, setWeights)
+
     def getArray(self):
         """Returns the signature as an numpy array."""
 
         return np.asarray(self)
-
-    def setArray(self, arr):
-        """Sets the signature array."""
-
-        self[:] = arr
 
 def calcEnsembleENMs(ensemble, model='gnm', trim='trim', n_modes=20, **kwargs):
     """Description"""
@@ -917,7 +931,7 @@ def showSignatureSqFlucts(mode_ensemble, **kwargs):
     return showSignatureLine(sqf, atoms=mode_ensemble.getAtoms(), show_zero=show_zero, **kwargs)
 
 def calcSignatureCrossCorr(mode_ensemble, norm=True):
-    """Calculate average cross-correlations for a modeEnsemble (a list of modes)."""
+    """Calculate average cross-correlations for a ModeEnsemble."""
     
     if not isinstance(mode_ensemble, ModeEnsemble):
         raise TypeError('mode_ensemble should be an instance of ModeEnsemble')
@@ -951,8 +965,35 @@ def calcSignatureCrossCorr(mode_ensemble, norm=True):
         
     return sig
 
+def calcSignatureCollectivity(mode_ensemble, masses=None):
+    """Calculate average collectivities for a ModeEnsemble."""
+    
+    if not isinstance(mode_ensemble, ModeEnsemble):
+        raise TypeError('mode_ensemble should be an instance of ModeEnsemble')
+
+    if not mode_ensemble.isMatched():
+        LOGGER.warn('modes in mode_ensemble did not match cross modesets. '
+                    'Consider running mode_ensemble.match() prior to using this function')
+    
+    n_modes = mode_ensemble.numModes()
+    n_sets = len(mode_ensemble)
+
+    C = np.zeros((n_sets, n_modes))
+    for i in range(n_sets):
+        m = mode_ensemble[i]
+        c = calcCollectivity(m, masses=masses)
+        C[i, :] = c
+
+    title_str = 'collectivities of %d modes'%mode_ensemble.numModes()
+    labels = mode_ensemble.getLabels()
+
+    # even the original model is 3d, cross-correlations are still 1d
+    sig = sdarray(C, title=title_str, weights=None, labels=labels, is3d=False)
+        
+    return sig
+
 def calcSignatureOverlaps(mode_ensemble, diag=True):
-    """Calculate average mode-mode overlaps for a modeEnsemble (a list of modes)."""
+    """Calculate average mode-mode overlaps for a ModeEnsemble."""
     
     if not isinstance(mode_ensemble, ModeEnsemble):
         raise TypeError('mode_ensemble should be an instance of ModeEnsemble')
@@ -986,7 +1027,7 @@ def calcSignatureOverlaps(mode_ensemble, diag=True):
 
 def showSignatureOverlaps(mode_ensemble):
 
-    import matplotlib.pyplot as plt
+    from matplotlib.pyplot import xlabel, ylabel
 
     if not isinstance(mode_ensemble, ModeEnsemble):
         raise TypeError('mode_ensemble should be an instance of ModeEnsemble')
@@ -1003,13 +1044,13 @@ def showSignatureOverlaps(mode_ensemble):
     stdV = overlap_triu.std(axis=1)
 
     show = showAtomicLinePlus(meanV, stdV)
-    plt.xlabel('Mode index')
-    plt.ylabel('Overlap')
+    xlabel('Mode index')
+    ylabel('Overlap')
     
     return show
 
 def calcSignatureFractVariance(mode_ensemble):
-    """Calculate signature fractional variance for a modeEnsemble (a list of modes)."""
+    """Calculate signature fractional variance for a ModeEnsemble."""
     
     if not isinstance(mode_ensemble, ModeEnsemble):
         raise TypeError('mode_ensemble should be an instance of ModeEnsemble')
