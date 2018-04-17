@@ -16,7 +16,7 @@ from .mode import Mode, Vector
 from .functions import calcENM
 from .compare import calcSpectralOverlap, matchModes, calcOverlap
 
-from .analysis import calcSqFlucts, calcCrossCorr, calcFractVariance
+from .analysis import calcSqFlucts, calcCrossCorr, calcFractVariance, calcCollectivity
 from .plotting import showAtomicLine, showAtomicMatrix
 from .anm import ANM
 from .gnm import GNM
@@ -333,9 +333,27 @@ class ModeEnsemble(object):
             LOGGER.debug('{0} modes across {1} modesets were matched in {2:.2f}s.'
                             .format(self.numModes(), self.numModeSets(), time.time()-start))
         else:
-            LOGGER.warn('modeensemble has no modesets')
+            LOGGER.warn('Mode ensemble has no modesets')
         self._matched = True
         return
+
+    def reorder(self):
+        """Reorders the modes across mode sets according to their collectivity"""
+        if not self._matched:
+            LOGGER.warn('Mode ensemble has not been matched')
+        else:
+            collectivities = zeros(self.numModeSets(),self.numModes())
+            for i, modeset in enumerate(self._modesets):
+                collectivies[i] = calcCollectivity(modeset)
+            
+            mean_coll = collectivities.mean(axis=0)
+            coll_order = np.argsort(mean_coll)
+
+            ret = []
+            for modeset in self._modesets:
+                ret.append(ModeSet(modeset.getModel(),coll_order))
+
+            self._modesets = ret
 
     def addModeSet(self, modeset, weights=None, label=None):
         """Adds a modeset or modesets to the mode ensemble."""
