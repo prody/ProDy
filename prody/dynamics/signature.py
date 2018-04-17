@@ -343,14 +343,14 @@ class ModeEnsemble(object):
         if not self._matched:
             LOGGER.warn('Mode ensemble has not been matched')
         else:
-            collectivities = calcSignatureCollectivity(self)
+            vars = self.getVariances()
             
-            mean_coll = collectivities.mean()
-            coll_order = np.argsort(mean_coll)
+            mean_var = vars.mean()
+            order = np.argsort(mean_var)[::-1]
 
             ret = []
             for modeset in self._modesets:
-                ret.append(ModeSet(modeset.getModel(), coll_order))
+                ret.append(ModeSet(modeset.getModel(), order))
 
             self._modesets = ret
 
