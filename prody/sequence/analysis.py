@@ -403,7 +403,7 @@ def calcRankorder(matrix, zscore=False, **kwargs):
     descending order, if *descend* is ``True`` (default). Can apply a zscore
     normalization; by default along *axis* - 0 such that each column has
     ``mean=0`` and ``std=1``.  If *zcore* analysis is used, return value contains the
-    zscores. If matrix is smymetric only lower triangle indices will be
+    zscores. If matrix is symmetric only lower triangle indices will be
     returned, with diagonal elements if *diag* is ``True`` (default)."""
 
     try:
