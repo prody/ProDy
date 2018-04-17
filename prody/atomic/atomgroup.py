@@ -3,6 +3,7 @@
 multiple coordinate sets in :class:`numpy.ndarray` instances."""
 
 from time import time
+from numbers import Integral
 
 import numpy as np
 
@@ -537,7 +538,7 @@ class AtomGroup(Atomic):
             return None
         if indices is None:
             return self._coords.copy()
-        if isinstance(indices, (int, slice)):
+        if isinstance(indices, (Integral, slice)):
             return self._coords[indices].copy()
 
         # following fancy indexing makes a copy, so .copy() is not needed
@@ -630,7 +631,7 @@ class AtomGroup(Atomic):
         n_csets = self._n_csets
         if n_csets == 0:
             self._acsi = 0
-        if not isinstance(index, int):
+        if not isinstance(index, Integral):
             raise TypeError('index must be an integer')
         if n_csets <= index or n_csets < abs(index):
             raise IndexError('coordinate set index is out of range')
@@ -905,7 +906,7 @@ class AtomGroup(Atomic):
         (default is 1) specifies increment.  If atoms with matching serial
         numbers are not found, **None** will be returned."""
 
-        if not isinstance(serial, int):
+        if not isinstance(serial, Integral):
             raise TypeError('serial must be an integer')
         if serial < 0:
             raise ValueError('serial must be greater than or equal to zero')
@@ -918,7 +919,7 @@ class AtomGroup(Atomic):
                 if index != -1:
                     return Atom(self, index)
         else:
-            if not isinstance(stop, int):
+            if not isinstance(stop, Integral):
                 raise TypeError('stop must be an integer')
             if stop <= serial:
                 raise ValueError('stop must be greater than serial')
@@ -926,7 +927,7 @@ class AtomGroup(Atomic):
             if step is None:
                 step = 1
             else:
-                if not isinstance(step, int):
+                if not isinstance(step, Integral):
                     raise TypeError('step must be an integer')
                 if step < 1:
                     raise ValueError('step must be greater than zero')

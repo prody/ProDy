@@ -3,6 +3,7 @@
 (ANM) calculations."""
 
 import numpy as np
+from numbers import Integral
 
 from prody import LOGGER
 from prody.atomic import Atomic, AtomGroup
@@ -76,11 +77,11 @@ class ANMBase(NMA):
         model = self.getModel()
         if AA == 'all':
             sm = model.getStiffness()
-        elif type(AA) == int:
+        elif isinstance(AA, Integral): 
             sm = model.getStiffness()[0: AA, (-1)*AA-1:-1]
-        elif type(AA) == list and len(AA) == 1:
+        elif not np.isscalar(AA) and len(AA) == 1:
             sm = model.getStiffness()[0: AA, (-1)*AA-1:-1]
-        elif type(AA) == list and len(AA) == 4:
+        elif not np.isscalar(AA) and len(AA) == 4:
             sm = model.getStiffness()[AA[0]:AA[1],AA[2]:AA[3]]
         if minAA > 0:
             sm2 = sm[minAA:-1,0:-1-minAA]  # matrix without close contacts
@@ -110,20 +111,20 @@ class ANMBase(NMA):
         model = self.getModel()
         if AA == 'all':
             sm = model.getStiffness()
-        elif type(AA) == int:
+        elif isinstance(AA, Integral):
             sm = model.getStiffness()[0: AA, (-1)*AA-1:-1]
         minK = np.min(sm[np.nonzero(sm)]) 
         maxK = np.amax(sm)
         
         if value == 'minK':
-            indices = np.where(sm == np.min(sm[np.nonzero(sm)]))
+            indices = np.where(sm == minK)
         elif value == 'maxK':
-            indices = np.where(sm == np.amax(sm))
+            indices = np.where(sm == maxK)
         try:
             residue_diff = abs(indices[0][0]-indices[0][1])
         except: residue_diff = abs(indices[0]-indices[1])
-        sm_mod = sm
-        checking=True
+        sm_mod = sm.copy()
+        checking = True
         while checking:
             if residue_diff < minAA:
                 sm_mod[indices[0][0],indices[0][1]] = 0
@@ -144,11 +145,11 @@ class ANMBase(NMA):
                 elif value == 'maxK':
                     mK = np.amax(sm_mod)
                     indices = np.where(sm_mod == np.amax(sm_mod))
-                checking=False
-                if len(indices[0]) == 2:
-                    return mK, list(indices[0])
-                else:
-                    return mK, list(indices[0])+list(indices[1])
+                checking = False
+
+        if len(indices[0]) == 2:
+            return mK, list(indices[0])
+        return mK, list(indices[0])+list(indices[1])
 
     
     def setHessian(self, hessian):

@@ -3,15 +3,20 @@
 
 __author__ = 'Anindita Dutta, Ahmet Bakan, Wenzhi Mao'
 
+from numbers import Integral
 import os
-from numpy import dtype, zeros, empty, ones, where, ceil, shape
+
+from numpy import dtype, zeros, empty, ones, where, ceil, shape, eye
 from numpy import indices, tril_indices, array, ndarray, isscalar
-from prody import LOGGER
+
+from prody import LOGGER, timeit
 from prody.utilities import which
 from prody.sequence.msa import MSA, refineMSA
 from prody.sequence.msafile import parseMSA, writeMSA
 from prody.sequence.sequence import Sequence
 from prody.atomic import Atomic
+from prody.measure import calcDistance
+
 from Bio import pairwise2
 import sys
 
@@ -275,7 +280,7 @@ def applyMutinfoCorr(mutinfo, corr='prod'):
 
     return mi
 
-def filterRankedPairs(indices, msa_indices, rank_row, rank_col, zscore_sort, \
+def filterRankedPairs(pdb, indices, msa_indices, rank_row, rank_col, zscore_sort, \
                       num_of_pairs=20, seqDistance=5, resi_range=None, \
                       pdbDistance=8, chain1='A', chain2='A'):
     '''
@@ -302,24 +307,20 @@ def filterRankedPairs(indices, msa_indices, rank_row, rank_col, zscore_sort, \
     :type chain2: str
     '''
     
-    if indices is None:
-        raiseValueError('Please provide indices output from alignSequenceToPDB')
-    elif type(indices) != list:
-        raiseTypeError('Please provide a valid indices list')
+    if isscalar(indices):
+        raise TypeError('Please provide a valid indices list')
         
-    if msa_indices is None:
-        raiseValueError('Please provide msa_indices output from alignSequenceToPDB')
-    elif type(indices) != list:
-        raiseTypeError('Please provide valid msa_indices, which should be a list')
+    if isscalar(msa_indices):
+        raise TypeError('Please provide valid msa_indices, which should be a list')
         
-    if rank_row is None:
-        raiseValueError('Please provide ranked row from calcRankorder')
+    if isscalar(rank_row):
+        raise TypeError('Please provide ranked row from calcRankorder')
         
-    if rank_col is None:
-        raiseValueError('Please provide ranked col from calcRankorder')
+    if isscalar(rank_col):
+        raise ValueError('Please provide ranked col from calcRankorder')
     
-    if zscore_sort is None:
-        raiseValueError('Please provide sorted Z scores from calcRankorder')
+    if isscalar(zscore_sort):
+        raise ValueError('Please provide sorted Z scores from calcRankorder')
     
     if num_of_pairs is None:
         num_of_pairs = len(rank_row)
@@ -331,32 +332,26 @@ def filterRankedPairs(indices, msa_indices, rank_row, rank_col, zscore_sort, \
         
         i += 1
         
-        if type(indices[where(msa_indices == rank_row[i])[0][0]]) != np.int64 or \
-        type(indices[where(msa_indices == rank_col[i])[0][0]]) != np.int64:
+        row_idx = indices[where(msa_indices == rank_row[i])[0][0]]
+        col_idx = indices[where(msa_indices == rank_col[i])[0][0]]
+        if not isinstance(row_idx, Integral) or not isinstance(col_idx, Integral):
             continue
         
-        if indices[where(msa_indices == rank_row[i])[0][0]] - \
-        indices[where(msa_indices == rank_col[i])[0][0]] < seqDistance:
+        if row_idx - col_idx < seqDistance:
             continue        
         
         distance = calcDistance(pdb.select('chain %s and resid %s' % (chain1, \
-                                           indices[where(msa_indices == \
-                                           rank_row[i])[0][0]])).copy(), \
+                                           row_idx)).copy(), \
                                 pdb.select('chain %s and resid %s' % (chain2, \
-                                           indices[where(msa_indices == \
-                                           rank_col[i])[0][0]])).copy())
+                                           row_idx)).copy())
         if distance > pdbDistance:
             continue
             
         if resi_range is not None:
-            if not indices[where(msa_indices == rank_row[i])[0][0]] in resi_range and \
-            not indices[where(msa_indices == rank_col[i])[0][0]] in resi_range:
+            if not row_idx in resi_range and not col_idx in resi_range:
                 continue
             
-        pairList.append('%3d' % i + ':\t%3d' % indices[where(msa_indices == \
-        rank_row[i])[0][0]] + '\t' + '%3d' % indices[where(msa_indices == \
-        rank_col[i])[0][0]] + '\t' + '%5.1f' % zscore_sort[i] + '\t' + \
-        '%5.1f' % distance + '\n')
+        pairList.append('%3d:\t%3d\t%3d\t%5.1f\t%5.1f\n'%(i, row_idx, col_idx, zscore_sort[i], distance))
         
         j += 1
     
@@ -642,58 +637,6 @@ def calcMeff(msa, seqid=.8, refine=False, weight=False, **kwargs):
         meff = msameff(msa, theta=1.-seqid, meff_only=weight, refine=refine)
     LOGGER.report('Meff was calculated in %.2fs.', '_meff')
     return meff
-
-def msaeye(msa, unique, turbo):
-    tic1 = timeit.default_timer()
-    length = msa.shape[1]
-    number = msa.shape[0]
-    # number = 5
-    array = eye(int(number))
-
-    seqs = []
-    for i in xrange(number):
-        seqs.append(msa[i,:])
-    iseq = zeros((number, length), dtype=int)
-
-    for i in xrange(0,number-1):
-        if i == 0:
-            for k in xrange(length):
-                if ord(seqs[i][k])>90:
-                    iseq[i,k]=ord(seqs[i][k])-96 if ord(seqs[i][k])-96 > 0 and ord(seqs[i][k])-96 < 26 else 0
-                else:
-                    iseq[i,k]=ord(seqs[i][k])-64 if ord(seqs[i][k])-64 > 0 and ord(seqs[i][k])-64 < 26 else 0
-            for j in xrange(i+1,number):
-                score=0.
-                ncols=0.
-                for k in xrange(length):
-                    if ord(seqs[j][k])>90:
-                        iseq[j,k]=ord(seqs[j][k])-96 if ord(seqs[j][k])-96 > 0 and ord(seqs[j][k])-96 < 26 else 0
-                    else:
-                        iseq[j,k]=ord(seqs[j][k])-64 if ord(seqs[j][k])-64 > 0 and ord(seqs[j][k])-64 < 26 else 0
-                    if iseq[i,k] or iseq[j,k]:
-                        ncols += 1
-                        if iseq[i,k]==iseq[j,k]:
-                            score+=1
-                array[i,j]=float(score)/ncols
-                array[j,i]=array[i,j]
-            # print iseq[0]
-            # print seqs[0]
-            # raw_input()
-        else:
-            for j in xrange(i+1,number):
-                score=0.
-                ncols=0.
-                for k in xrange(length):
-                    if iseq[i,k] or iseq[j,k]:
-                        ncols += 1
-                        if iseq[i,k]==iseq[j,k]:
-                            score+=1
-                array[i,j]= float(score)/ncols#float(sum((iseq[i] == iseq[j])*(iseq[i]*iseq[j]!=0))) / sum(iseq[i]*iseq[j]!=0)
-                array[j,i]=array[i,j]
-
-    toc1 = timeit.default_timer()
-    elapsed1 = toc1 - tic1
-    print(elapsed1)
 
 def alignSequencesByChain(PDBs, **kwargs):
     """
