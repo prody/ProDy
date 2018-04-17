@@ -14,8 +14,6 @@ else:
 
 import xml.etree.cElementTree as ET
 
-from prody.sequence import Sequence
-
 __all__ = ['queryUniprot', ]
 
 def queryUniprot(id, loop_through=[]):

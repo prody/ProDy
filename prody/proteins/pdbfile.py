@@ -5,7 +5,7 @@
 
 from collections import defaultdict
 import os.path
-
+import time
 
 import numpy as np
 
@@ -104,6 +104,7 @@ def parsePDB(*pdb, **kwargs):
                 argval = [argval]*n_pdb
             lstkwargs[key] = argval
 
+        start = time.time()
         LOGGER.progress('Retrieving {0} PDB structures...'
                     .format(n_pdb), n_pdb)
         for i, p in enumerate(pdb):
@@ -127,6 +128,10 @@ def parsePDB(*pdb, **kwargs):
                 results.pop(i)
         if len(results) == 1:
             results = results[0]
+        results = list(results)
+
+        LOGGER.info('{0} PDBs were parsed in {1:.2f}s.'
+                     .format(len(results), time.time()-start))
 
         return results
 
@@ -213,7 +218,7 @@ def parsePDBStream(stream, **kwargs):
             raise TypeError('chain must be a string')
         elif len(chain) == 0:
             raise ValueError('chain must not be an empty string')
-        title_suffix = '_' + chain + title_suffix
+        title_suffix = chain + title_suffix
     ag = None
     if 'ag' in kwargs:
         ag = kwargs['ag']
@@ -480,7 +485,7 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                         i += 1
                 else:
                     raise PDBParseError('invalid or missing coordinate(s) at '
-                                         'line {0}.'.format(i+1))
+                                         'line {0}'.format(i+1))
             if onlycoords:
                 acount += 1
                 i += 1
@@ -492,7 +497,7 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                 try:
                     serials[acount] = int(line[6:11], 16)
                 except ValueError:
-                    LOGGER.warn('Failed to parse serial number in line {0}.'
+                    LOGGER.warn('failed to parse serial number in line {0}'
                                 .format(i))
                     serials[acount] = serials[acount-1]+1
             altlocs[acount] = alt

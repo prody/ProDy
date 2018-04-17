@@ -5,10 +5,10 @@ import numpy as np
 from numpy import unique, linalg, diag, sqrt, dot
 import scipy.cluster.hierarchy as sch
 from scipy import spatial
-from .misctools import addBreaks
+from .misctools import addBreaks, interpY
 from Bio import Phylo
 
-__all__ = ['calcTree', 'clusterMatrix', 'showData', 'showMatrix', 'reorderMatrix', 'findSubgroups']
+__all__ = ['calcTree', 'clusterMatrix', 'showLine', 'showMatrix', 'reorderMatrix', 'findSubgroups']
 
 def calcTree(names, distance_matrix, method='nj'):
     """ Given a distance matrix for an ensemble, it creates an returns a tree structure.
@@ -112,9 +112,9 @@ def clusterMatrix(distance_matrix=None, similarity_matrix=None, labels=None, ret
         return_vals.append(linkage_matrix)
     return tuple(return_vals) # convert to tuple to avoid [pylint] E0632:Possible unbalanced tuple unpacking
 
-def showData(*args, **kwargs):
+def showLine(*args, **kwargs):
     """
-    Show data using :func:`~matplotlib.axes.Axes.plot`. 
+    Show 1-D data using :func:`~matplotlib.axes.Axes.plot`. 
     
     :arg x: (optional) x coordinates. *x* can be an 1-D array or a 2-D matrix of 
     column vectors.
@@ -218,7 +218,7 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
     else:
         vmin = vmax = None
     
-    W = H = 8
+    W = H = kwargs.pop('ratio', 6)
 
     ticklabels = kwargs.pop('ticklabels', None)
     allticks = kwargs.pop('allticks', False) # this argument is temporary and will be replaced by better implementation
@@ -262,16 +262,11 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
     complex_layout = nrow > 1 or ncol > 1
     cb = kwargs.pop('colorbar', True)
 
-    if complex_layout:
-        if cb:
-            outer = GridSpec(1, 2, width_ratios = [15, 1], hspace=0.) 
-            gs = GridSpecFromSubplotSpec(nrow, ncol, subplot_spec = outer[0], width_ratios=width_ratios,
-                            height_ratios=height_ratios, hspace=0., wspace=0.)
+    ax1 = ax2 = ax3 = None
 
-            gs_bar = GridSpecFromSubplotSpec(nrow, 1, subplot_spec = outer[1], height_ratios=height_ratios, hspace=0., wspace=0.)
-        else:
-            gs = GridSpec(nrow, ncol, width_ratios=width_ratios, 
-                        height_ratios=height_ratios, hspace=0., wspace=0.)
+    if complex_layout:
+        gs = GridSpec(nrow, ncol, width_ratios=width_ratios, 
+                      height_ratios=height_ratios, hspace=0., wspace=0.)
 
     lines = []
     if nrow > 1:
@@ -284,16 +279,15 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
             ax1.set_xticklabels([])
             
             y = x_array
-            x = np.arange(len(y))
-            points = np.array([x, y]).T.reshape(-1, 1, 2)
+            xp, yp = interpY(y)
+            points = np.array([xp, yp]).T.reshape(-1, 1, 2)
             segments = np.concatenate([points[:-1], points[1:]], axis=1)
-            cmap = cm.jet(y)
-            lcy = LineCollection(segments, array=x, linewidths=1, cmap='jet')
+            lcy = LineCollection(segments, array=yp, linewidths=1, cmap='jet')
             lines.append(lcy)
             ax1.add_collection(lcy)
 
-            ax1.set_xlim(x.min(), x.max())
-            ax1.set_ylim(y.min(), y.max())
+            ax1.set_xlim(xp.min(), xp.max())
+            ax1.set_ylim(yp.min(), yp.max())
         ax1.axis('off')
 
     if ncol > 1:
@@ -302,19 +296,17 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
         if isinstance(y_array, Phylo.BaseTree.Tree):
             Phylo.draw(y_array, do_show=False, axes=ax2, **kwargs)
         else:
-
             ax2.set_xticklabels([])
             
             y = y_array
-            x = np.arange(len(y))
-            points = np.array([y, x]).T.reshape(-1, 1, 2)
+            xp, yp = interpY(y)
+            points = np.array([yp, xp]).T.reshape(-1, 1, 2)
             segments = np.concatenate([points[:-1], points[1:]], axis=1)
-            cmap = cm.jet(y)
-            lcx = LineCollection(segments, array=y, linewidths=1, cmap='jet')
+            lcx = LineCollection(segments, array=yp, linewidths=1, cmap='jet')
             lines.append(lcx)
             ax2.add_collection(lcx)
-            ax2.set_xlim(y.min(), y.max())
-            ax2.set_ylim(x.min(), x.max())
+            ax2.set_xlim(yp.min(), yp.max())
+            ax2.set_ylim(xp.min(), xp.max())
             ax2.invert_xaxis()
 
         ax2.axis('off')
@@ -351,9 +343,12 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
         
     colorbar = None
     if cb:
-        if complex_layout:
-            ax4 = plt.subplot(gs_bar[-1])
-            colorbar = plt.colorbar(mappable=im, cax=ax4)
+        if nrow > 1:
+            axes = [ax1, ax2, ax3]
+            while None in axes:
+                axes.remove(None)
+            s = H / (H + 1.)
+            colorbar = plt.colorbar(mappable=im, ax=axes, anchor=(0, 0), shrink=s)
         else:
             colorbar = plt.colorbar(mappable=im)
 

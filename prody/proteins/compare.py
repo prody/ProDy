@@ -13,6 +13,7 @@ from prody.atomic import flags
 from prody.measure import calcTransformation, printRMSD, calcDistance
 from prody import LOGGER, SELECT, PY2K, PY3K
 from prody.sequence import MSA
+from prody.utilities import cmp
 
 if PY2K:
     range = xrange
@@ -933,15 +934,17 @@ def mapOntoChain(atoms, chain, **kwargs):
 
     if pwalign and unmapped:
         if alignment is None:
-            aln_type = 'sequence alignment'
-            method = 'ALIGNMENT_METHOD'
             if pwalign in ['ce', 'cealign']:
                 aln_type = 'structure alignment'
                 method = 'CE'
-            LOGGER.debug('Trying to map atoms based on {0} {1}:'
-                    .format(method, aln_type))
+            else:
+                aln_type = 'sequence alignment'
+                method = ALIGNMENT_METHOD
         else:
-            LOGGER.debug('Trying to map atoms based on predefined alignment:')
+            aln_type = 'alignment'
+            method = 'predefined'
+        LOGGER.debug('Trying to map atoms based on {0} {1}:'
+                     .format(method, aln_type))
 
         for chid, simple_chain in zip(unmapped_chids, unmapped):
             LOGGER.debug('  Comparing {0} (len={1}) with {2}:'

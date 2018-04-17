@@ -2,12 +2,13 @@
 
 from numpy import unique, linalg, diag, sqrt, dot, chararray
 from numpy import diff, where, insert, nan, loadtxt, array
+from numpy import sign, arange, asarray
 from collections import Counter
 
 __all__ = ['Everything', 'rangeString', 'alnum', 'importLA', 'dictElement',
            'intorfloat', 'startswith', 'showFigure', 'countBytes', 'sqrtm',
            'saxsWater', 'count', 'addBreaks', 'copy', 'dictElementLoop', 
-           'getDataPath', 'openData', 'chr2', 'toChararray']
+           'getDataPath', 'openData', 'chr2', 'toChararray', 'interpY', 'cmp']
 
 
 class Everything(object):
@@ -295,3 +296,28 @@ def toChararray(arr, aligned=False):
     else:
         new_arr = array(arr, dtype='|S1')
     return new_arr
+
+def interpY(Y):
+    Y = asarray(Y, dtype=float)
+    n = len(Y)
+    X = arange(n)
+
+    dy = (Y.max() - Y.min()) / n
+
+    Xp = [X[0]]; Yp = [Y[0]]
+    for i in range(n-1):
+        y1, y2 = Y[i], Y[i+1]
+        x1, x2 = X[i], X[i+1]
+        if abs(y2 - y1) > dy:
+            sdy = sign(y2 - y1)*dy
+            yp = arange(Y[i]+sdy, Y[i+1], sdy)
+            xp = (yp - y1)/(y2 - y1)*(x2 - x1) + x1
+            Xp.extend(xp)
+            Yp.extend(yp)
+
+        Xp.append(x2)
+        Yp.append(y2)
+    return array(Xp), array(Yp)
+
+def cmp(a, b):
+    return (a > b) - (a < b)

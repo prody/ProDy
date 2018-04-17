@@ -64,11 +64,13 @@ def saveEnsemble(ensemble, filename=None, **kwargs):
     return filename
 
 
-def loadEnsemble(filename):
+def loadEnsemble(filename, **kwargs):
     """Returns ensemble instance loaded from *filename*.  This function makes
     use of :func:`numpy.load` function.  See also :func:`saveEnsemble`"""
 
-    attr_dict = np.load(filename)
+    if not 'encoding' in kwargs:
+        kwargs['encoding'] = 'latin1'
+    attr_dict = np.load(filename, **kwargs)
     if '_weights' in attr_dict:
         weights = attr_dict['_weights']
     else:
@@ -364,6 +366,7 @@ def buildPDBEnsemble(refpdb, PDBs, title='Unknown', labels=None, seqid=94, cover
     """
 
     occupancy = kwargs.pop('occupancy', None)
+    degeneracy = kwargs.pop('degeneracy', True)
 
     if len(PDBs) == 1:
         raise ValueError('PDBs should have at least two items')
@@ -396,7 +399,7 @@ def buildPDBEnsemble(refpdb, PDBs, title='Unknown', labels=None, seqid=94, cover
 
     LOGGER.progress('Building the ensemble...', len(PDBs))
     for i, pdb in enumerate(PDBs):
-        LOGGER.update(i, 'Mapping %s to the reference...'%pdb)
+        LOGGER.update(i, 'Mapping %s to the reference...'%pdb.getTitle())
         try:
             pdb.getHierView()
         except AttributeError:
@@ -430,7 +433,8 @@ def buildPDBEnsemble(refpdb, PDBs, title='Unknown', labels=None, seqid=94, cover
             atommap += atommaps[j]
         
         # add the mappings to the ensemble
-        ensemble.addCoordset(atommap, weights=atommap.getFlags('mapped'), label = lbl)
+        ensemble.addCoordset(atommap, weights=atommap.getFlags('mapped'), 
+                             label = lbl, degeneracy=degeneracy)
 
     LOGGER.finish()
 
@@ -443,30 +447,41 @@ def buildPDBEnsemble(refpdb, PDBs, title='Unknown', labels=None, seqid=94, cover
 
     return ensemble
 
-def addPDBEnsemble(ensemble, PDBs, refpdb=None, labels=None, seqid=94, coverage=85, mapping_func=mapOntoChain, occupancy=None, unmapped=None):  
+def addPDBEnsemble(ensemble, PDBs, refpdb=None, labels=None, seqid=94, coverage=85, 
+                   mapping_func=mapOntoChain, occupancy=None, unmapped=None, **kwargs):  
     """Adds extra structures to a given PDB ensemble. 
 
     :arg ensemble: The ensemble to which the PDBs are added.
     :type ensemble: :class:`.PDBEnsemble`
+
     :arg refpdb: Reference structure. If set to `None`, it will be set to `ensemble.getAtoms()` automatically.
     :type refpdb: :class:`.Chain`, :class:`.Selection`, or :class:`.AtomGroup`
+
     :arg PDBs: A list of PDB structures
     :type PDBs: iterable
+
     :arg title: The title of the ensemble
     :type title: str
+
     :arg labels: labels of the conformations
     :type labels: list
+
     :arg seqid: Minimal sequence identity (percent)
     :type seqid: int
+
     :arg coverage: Minimal sequence overlap (percent)
     :type coverage: int
-    :arg occupancy: Minimal occupancy of columns (range from 0 to 1). Columns whose occupancy
-    is below this value will be trimmed.
+
+    :arg occupancy: Minimal occupancy of columns (range from 0 to 1). Columns whose occupancy 
+                    is below this value will be trimmed.
     :type occupancy: float
+
     :arg unmapped: A list of PDB IDs that cannot be included in the ensemble. This is an 
-    output argument. 
+                   output argument. 
     :type unmapped: list
     """
+
+    degeneracy = kwargs.pop('degeneracy', True)
 
     if labels is not None:
         if len(labels) != len(PDBs):
@@ -477,6 +492,8 @@ def addPDBEnsemble(ensemble, PDBs, refpdb=None, labels=None, seqid=94, coverage=
         refpdb = ensemble.getAtoms()
     refchains = list(refpdb.getHierView())
 
+    start = time.time()
+
     # obtain the atommap of all the chains combined.
     atoms = refchains[0]
     for i in range(1, len(refchains)):
@@ -484,7 +501,10 @@ def addPDBEnsemble(ensemble, PDBs, refpdb=None, labels=None, seqid=94, coverage=
     
     # add the PDBs to the ensemble
     if unmapped is None: unmapped = []
-    for i,pdb in enumerate(PDBs):
+
+    LOGGER.progress('Appending the ensemble...', len(PDBs))
+    for i, pdb in enumerate(PDBs):
+        LOGGER.update(i, 'Mapping %s to the reference...'%pdb.getTitle())
         if not isinstance(pdb, (Chain, Selection, AtomGroup)):
             raise TypeError('PDBs must be a list of Chain, Selection, or AtomGroup.')
         
@@ -498,7 +518,9 @@ def addPDBEnsemble(ensemble, PDBs, refpdb=None, labels=None, seqid=94, coverage=
         for chain in refchains:
             mappings = mapping_func(pdb, chain,
                                     seqid=seqid,
-                                    coverage=coverage)
+                                    coverage=coverage,
+                                    index=i,
+                                    **kwargs)
             if len(mappings) > 0:
                 atommaps.append(mappings[0][0])
             else:
@@ -514,11 +536,16 @@ def addPDBEnsemble(ensemble, PDBs, refpdb=None, labels=None, seqid=94, coverage=
             atommap += atommaps[i]
         
         # add the mappings to the ensemble
-        ensemble.addCoordset(atommap, weights=atommap.getFlags('mapped'), label = lbl)
-    
+        ensemble.addCoordset(atommap, weights=atommap.getFlags('mapped'), 
+                             label=lbl, degeneracy=degeneracy)
+    LOGGER.finish()
+
     if occupancy is not None:
         ensemble = trimPDBEnsemble(ensemble, occupancy=occupancy)
     ensemble.iterpose()
+
+    LOGGER.info('{0} PDBs were added to the ensemble in {1:.2f}s.'
+                     .format(len(PDBs) - len(unmapped), time.time()-start))
 
     return ensemble
 

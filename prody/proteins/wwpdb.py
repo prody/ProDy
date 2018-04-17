@@ -132,7 +132,6 @@ def fetchPDBviaFTP(*pdb, **kwargs):
     compressed = bool(kwargs.pop('compressed', True))
     format = str(kwargs.pop('format', 'pdb')).lower()
     noatom = bool(kwargs.pop('noatom', False))
-    report = kwargs.get('report', True)
 
     if format == 'pdb':
         ftp_divided = 'pdb/data/structures/divided/pdb'
@@ -193,8 +192,7 @@ def fetchPDBviaFTP(*pdb, **kwargs):
 
 
     ftp_name, ftp_host, ftp_path = WWPDB_FTP_SERVERS[wwPDBServer() or 'us']
-    if report:
-        LOGGER.debug('Connecting wwPDB FTP server {0}.'.format(ftp_name))
+    LOGGER.debug('Connecting wwPDB FTP server {0}.'.format(ftp_name))
 
     from ftplib import FTP
     try:
@@ -228,7 +226,7 @@ def fetchPDBviaFTP(*pdb, **kwargs):
                                 'download .gz files in the current network.'
                                 .format(pdb, str(error)))
                 else:
-                    LOGGER.warn('{0} download failed. {1} does not exist '
+                    LOGGER.info('{0} download failed. {1} does not exist '
                                 'on {2}.'.format(ftp_fn, pdb, ftp_host))
                 failure += 1
                 filenames.append(None)
@@ -241,9 +239,8 @@ def fetchPDBviaFTP(*pdb, **kwargs):
                         [write(block) for block in data]
 
                     filename = normpath(relpath(second(filename, pdb)))
-                    if report: 
-                        LOGGER.debug('{0} downloaded ({1})'
-                                     .format(pdb, sympath(filename)))
+                    LOGGER.debug('{0} downloaded ({1})'
+                                 .format(pdb, sympath(filename)))
                     success += 1
                     filenames.append(filename)
                 else:
@@ -254,9 +251,8 @@ def fetchPDBviaFTP(*pdb, **kwargs):
 
         ftp.quit()
 
-    if report:
-        LOGGER.debug('PDB download via FTP completed ({0} downloaded, '
-                     '{1} failed).'.format(success, failure))
+    LOGGER.debug('PDB download via FTP completed ({0} downloaded, '
+                 '{1} failed).'.format(success, failure))
     if len(identifiers) == 1:
         return filenames[0]
     else:
@@ -278,7 +274,6 @@ def fetchPDBviaHTTP(*pdb, **kwargs):
 
     output_folder = kwargs.pop('folder', None)
     compressed = bool(kwargs.pop('compressed', True))
-    report = kwargs.get('report', True)
 
     extension = '.pdb'
     local_folder = pathPDBFolder()
@@ -343,9 +338,8 @@ def fetchPDBviaHTTP(*pdb, **kwargs):
                             .format(pdb))
                 failure += 1
                 filenames.append(None)
-    if report:
-        LOGGER.debug('PDB download via HTTP completed ({0} downloaded, '
-                     '{1} failed).'.format(success, failure))
+    LOGGER.debug('PDB download via HTTP completed ({0} downloaded, '
+                 '{1} failed).'.format(success, failure))
     if len(identifiers) == 1:
         return filenames[0]
     else:

@@ -10,7 +10,7 @@ from collections import defaultdict
 
 import numpy as np
 
-from prody import LOGGER, SETTINGS
+from prody import LOGGER, SETTINGS, PY3K
 from prody.utilities import showFigure, addBreaks
 
 from .nma import NMA
@@ -27,13 +27,14 @@ from prody.atomic import AtomGroup, Selection
 __all__ = ['showContactMap', 'showCrossCorr',
            'showCumulOverlap', 'showFractVars',
            'showCumulFractVars', 'showMode',
-           'showOverlap', 'showOverlapTable', 'showProjection',
-           'showCrossProjection', 'showEllipsoid', 'showSqFlucts',
-           'showScaledSqFlucts', 'showNormedSqFlucts', 'resetTicks',
+           'showOverlap', 'showOverlaps', 'showOverlapTable', 
+           'showProjection', 'showCrossProjection', 
+           'showEllipsoid', 'showSqFlucts', 'showScaledSqFlucts', 
+           'showNormedSqFlucts', 'resetTicks',
            'showDiffMatrix','showMechStiff','showNormDistFunct',
            'showPairDeformationDist','showMeanMechStiff', 
            'showPerturbResponse', 'showPerturbResponseProfiles',
-           'showAtomicMatrix', 'showAtomicData', 'showTree', 
+           'showAtomicMatrix', 'showAtomicLine', 'showTree', 
            'showTree_networkx', 'showDomainBar']
 
 
@@ -592,18 +593,15 @@ def showSqFlucts(modes, *args, **kwargs):
     sqf = calcSqFlucts(modes)
     if not 'label' in kwargs:
         kwargs['label'] = str(modes)
-    show = plt.plot(sqf, *args, **kwargs)
-    atoms = kwargs.get('atoms',None)
-    if atoms is not None:
-        show[0].set_ylabel('Square fluctuations')
-        show[0].set_title(str(modes))
-    else:
-        show.set_ylabel('Square fluctuations')
-        show.set_title(str(modes))
+
+    atoms = kwargs.get('atoms', None)
+    show = showAtomicLine(sqf, *args, atoms=atoms, **kwargs)
+    plt.ylabel('Square fluctuations')
+    plt.title(str(modes))
     if show_hinge and not modes.is3d():
         hinges = modes.getHinges()
         if hinges is not None:
-            show[0].plot(hinges, sqf[hinges], 'r*')
+            plt.plot(hinges, sqf[hinges], 'r*')
     if SETTINGS['auto_show']:
         showFigure()
     return show
@@ -721,6 +719,7 @@ def showOverlap(mode, modes, *args, **kwargs):
         showFigure()
     return show
 
+showOverlaps = showOverlap
 
 def showCumulOverlap(mode, modes, *args, **kwargs):
     """Show cumulative overlap using :func:`~matplotlib.pyplot.plot`.
@@ -1198,7 +1197,7 @@ def showPerturbResponseProfiles(prs_matrix,atoms=None,**kwargs):
         profiles = [effectiveness, sensitivity]
 
     for profile in profiles:
-        show = showAtomicData(profile,atoms=atoms,**kwargs)
+        show = showAtomicLine(profile,atoms=atoms,**kwargs)
 
     returnData = kwargs.get('returnData',False)
     if returnData:
@@ -1290,6 +1289,9 @@ def showAtomicMatrix(matrix, x_array=None, y_array=None, atoms=None, **kwargs):
     domain_bar = kwargs.pop('domain_bar', None)
     chain_text_loc = kwargs.pop('chain_text_loc', 'above')
     domain_text_loc = kwargs.pop('domain_text_loc', 'below')
+    show_text = kwargs.pop('show_text', True)
+    show_domain_text = kwargs.pop('show_domain_text', show_text)
+    show_chain_text = kwargs.pop('show_chain_text', show_text)
     fig = kwargs.pop('figure', None)
 
     if isinstance(fig, Figure):
@@ -1335,7 +1337,7 @@ def showAtomicMatrix(matrix, x_array=None, y_array=None, atoms=None, **kwargs):
     texts = []
     if show_chain:
         b, t = showDomainBar(chids, loc=chain_pos, axis=sides[-1], 
-                             text_loc=chain_text_loc, text_color='w')
+                             text_loc=chain_text_loc, text_color='w', show_text=show_chain_text)
         bars.extend(b)
         texts.extend(t)
 
@@ -1352,7 +1354,7 @@ def showAtomicMatrix(matrix, x_array=None, y_array=None, atoms=None, **kwargs):
 
     if show_domain:
         b, t = showDomainBar(domains, loc=domain_pos, axis=sides[0], 
-                             text_loc=domain_text_loc, text_color='w')
+                             text_loc=domain_text_loc, text_color='w', show_text=show_domain_text)
         bars.extend(b)
         texts.extend(t)
 
@@ -1361,7 +1363,7 @@ def showAtomicMatrix(matrix, x_array=None, y_array=None, atoms=None, **kwargs):
 
     return im, lines, colorbar, texts
 
-def showAtomicData(y, atoms=None, linespec='-', **kwargs):
+def showAtomicLine(y, atoms=None, linespec='-', **kwargs):
     """
     Show a plot with the option to include chain color bars using provided atoms.
     
@@ -1397,7 +1399,7 @@ def showAtomicData(y, atoms=None, linespec='-', **kwargs):
     show_domain_text = kwargs.pop('show_domain_text', show_text)
     show_chain_text = kwargs.pop('show_chain_text', show_text)
 
-    from prody.utilities import showData
+    from prody.utilities import showLine
     from matplotlib.pyplot import figure, xlim, ylim, plot, text
     from matplotlib.figure import Figure
     from matplotlib import ticker
@@ -1435,7 +1437,7 @@ def showAtomicData(y, atoms=None, linespec='-', **kwargs):
             resnums = atoms.getResnums()
             ticklabels = ['%s:%d'%(c, n) for c, n in zip(chids, resnums)]
 
-    lines, polys = showData(y, linespec, ticklabels=ticklabels, **kwargs)
+    lines, polys = showLine(y, linespec, ticklabels=ticklabels, **kwargs)
     if zero_line:
         l = xlim()
         plot(l, [0, 0], '--', color='gray')
@@ -1507,8 +1509,13 @@ def showDomainBar(domains, loc=0., axis='x', **kwargs):
     halign = 'left' if text_loc == 'below' else 'right'
     valign = 'top' if text_loc == 'below' else 'bottom'
 
+    if len(domains) == 0:
+        raise ValueError('domains should not be empty')
+    if PY3K:
+        domains = np.asarray(domains, dtype='U')
+    EMPTY_CHAR = domains[0][:0]
     uni_domids = np.unique(domains)
-    uni_domids = uni_domids[uni_domids!='']
+    uni_domids = uni_domids[uni_domids!=EMPTY_CHAR]
 
     if axis == 'y':
         lim = xlim
