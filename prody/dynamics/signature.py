@@ -788,7 +788,7 @@ def showAtomicLinePlus(y, std=None, min=None, max=None, atoms=None, **kwargs):
     x, _ = line.get_data()
     polys = []
 
-    if not None in (min, max):
+    if min is not None and max is not None:
         poly = fill_between(x, min, max,
                             alpha=0.15, facecolor=color, edgecolor=None,
                             linewidth=1, antialiased=True)
