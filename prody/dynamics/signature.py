@@ -295,6 +295,16 @@ class ModeEnsemble(object):
 
         return self._getData('getVariances', mode_indices)
 
+    def getEigval(self, mode_index=0):
+        """Returns eigenvalue of a given mode index with respect to the reference."""
+        
+        return self._getModeData('getEigval', mode_index)
+
+    def getEigvals(self, mode_indices=None):
+        """Returns a sdarray of eigenvalues across modesets."""
+
+        return self._getData('getEigvals', mode_indices)
+
     def getIndex(self, mode_index=0):
         """Returns indices of modes matched to the reference modeset."""
 
@@ -343,10 +353,10 @@ class ModeEnsemble(object):
         if not self._matched:
             LOGGER.warn('Mode ensemble has not been matched')
         else:
-            vars = self.getVariances()
+            vals = self.getEigvals()
             
-            mean_var = vars.mean()
-            order = np.argsort(mean_var)[::-1]
+            mean_val = vals.mean()
+            order = np.argsort(mean_val)
 
             ret = []
             for modeset in self._modesets:
