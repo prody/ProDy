@@ -22,8 +22,9 @@ from .anm import ANM
 from .gnm import GNM
 
 __all__ = ['ModeEnsemble', 'sdarray', 'calcEnsembleENMs', 'showSignatureLine', 'showAtomicLinePlus', 
-           'showSignatureMode', 
+           'showSignatureMode', 'showSignatureDistribution', 'showSignatureCollectivity',
            'showSignatureSqFlucts', 'calcEnsembleSpectralOverlaps', 'calcSignatureSqFlucts', 
+           'calcSignatureCollectivity',
            'calcSignatureCrossCorr', 'showSignatureCrossCorr', 'showVarianceBar',
            'showSignatureVariances', 'calcSignatureOverlaps', 'showSignatureOverlaps']
 
@@ -668,7 +669,7 @@ class sdarray(ndarray):
 
         return np.asarray(self)
 
-def calcEnsembleENMs(ensemble, model='gnm', trim='trim', n_modes=20, **kwargs):
+def calcEnsembleENMs(ensemble, model='gnm', trim='reduce', n_modes=20, **kwargs):
     """Description"""
 
     match = kwargs.pop('match', True)
@@ -1134,9 +1135,9 @@ def showSignatureCrossCorr(mode_ensemble, std=False, **kwargs):
     
     return show
 
-def showSignatureVariances(mode_ensemble, **kwargs):
+def showSignatureDistribution(signature, **kwargs):
     """
-    Show the distribution of signature variances using 
+    Show the distribution of signature values using 
     :func:`~matplotlib.pyplot.hist`.
     """
     
@@ -1156,20 +1157,11 @@ def showSignatureVariances(mode_ensemble, **kwargs):
         figure(fig_num)
     elif fig_num is not None:
         figure(fig_num)
-
-    fract = kwargs.pop('fraction', True)
-    show_legend = kwargs.pop('legend', True)
-
-    if fract:
-        sig = calcSignatureFractVariance(mode_ensemble)
-    else:
-        sig = mode_ensemble.getVariances() 
-    W = sig.getArray()[:, ::-1] # reversed to accommodate with matplotlib.pyplot.hist
+        
+    W = signature.getArray()[:, ::-1] # reversed to accommodate with matplotlib.pyplot.hist
     weights = np.ones_like(W)/float(len(W))
-
-    indices = np.asarray(mode_ensemble.getIndices())[0]
-    legends = ['mode %d'%(i+1) for i in indices][::-1]
-
+    
+    show_legend = kwargs.pop('legend', True)
     bins = kwargs.pop('bins', 'auto')
     if bins == 'auto':
         _, bins = np.histogram(W.flatten(), bins='auto')
@@ -1178,10 +1170,11 @@ def showSignatureVariances(mode_ensemble, **kwargs):
         bins = np.arange(W.min(), W.max(), step)
 
     histtype = kwargs.pop('histtype', 'stepfilled')
-    label = kwargs.pop('label', legends)
+    label = kwargs.pop('label', None)
+    labels = kwargs.pop('labels', label)
     weights = kwargs.pop('weights', weights)
     n, bins, patches = hist(W, bins=bins, weights=weights, 
-                            histtype=histtype, label=label, **kwargs)
+                            histtype=histtype, label=labels, **kwargs)
 
     colors = []
     for patch_i in patches:
@@ -1194,13 +1187,54 @@ def showSignatureVariances(mode_ensemble, **kwargs):
     if show_legend:
         legend()
 
-    xlabel('Variance')
+    xlabel('Signature value')
     ylabel('Probability')
 
     if SETTINGS['auto_show']:
         showFigure()
 
     return n, bins, patches
+
+def showSignatureVariances(mode_ensemble, **kwargs):
+    """
+    Show the distribution of signature variances using 
+    :func:`showSignatureDistribution`.
+    """
+
+    from matplotlib.pyplot import xlabel
+
+    fract = kwargs.pop('fraction', True)
+
+    if fract:
+        sig = calcSignatureFractVariance(mode_ensemble)
+    else:
+        sig = mode_ensemble.getVariances() 
+
+    indices = np.asarray(mode_ensemble.getIndices())[0]
+    labels = ['mode %d'%(i+1) for i in indices][::-1]
+
+    show = showSignatureDistribution(sig, label=labels, **kwargs)
+
+    xlabel('Variance')
+    return show
+
+def showSignatureCollectivity(mode_ensemble, **kwargs):
+    """
+    Show the distribution of signature variances using 
+    :func:`showSignatureDistribution`.
+    """
+
+    from matplotlib.pyplot import xlabel
+
+    sig = calcSignatureCollectivity(mode_ensemble)
+
+    indices = np.asarray(mode_ensemble.getIndices())[0]
+    labels = ['mode %d'%(i+1) for i in indices][::-1]
+
+    show = showSignatureDistribution(sig, label=labels, **kwargs)
+
+    xlabel('Collectivity')
+    return show
 
 def showVarianceBar(mode_ensemble, highlights=None, **kwargs):
 
