@@ -986,7 +986,7 @@ def calcSignatureOverlaps(mode_ensemble, diag=True):
 
 def showSignatureOverlaps(mode_ensemble):
 
-    from matplotlib.pyplot import *
+    import matplotlib.pyplot as plt
 
     if not isinstance(mode_ensemble, ModeEnsemble):
         raise TypeError('mode_ensemble should be an instance of ModeEnsemble')
@@ -1003,8 +1003,8 @@ def showSignatureOverlaps(mode_ensemble):
     stdV = overlap_triu.std(axis=1)
 
     show = showAtomicLinePlus(meanV, stdV)
-    xlabel('Mode index')
-    ylabel('Overlap')
+    plt.xlabel('Mode index')
+    plt.ylabel('Overlap')
     
     return show
 
