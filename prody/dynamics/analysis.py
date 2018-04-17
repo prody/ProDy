@@ -24,7 +24,7 @@ __all__ = ['calcCollectivity', 'calcCovariance', 'calcCrossCorr',
            'calcFractVariance', 'calcSqFlucts', 'calcTempFactors',
            'calcProjection', 'calcCrossProjection',
            'calcSpecDimension', 'calcPairDeformationDist',
-           'calcDistFluct']
+           'calcDistFlucts']
            #'calcEntropyTransfer', 'calcOverallNetEntropyTransfer']
 
 def calcCollectivity(mode, masses=None):
@@ -362,7 +362,7 @@ def _crossCorrelations(queue, n_atoms, array, variances, indices):
                               axes=([0, 1], [1, 0]))
     queue.put(covariance)
 
-def calcDistFluct(modes, n_cpu=1, norm=True):
+def calcDistFlucts(modes, n_cpu=1, norm=True):
     """Returns the matrix of distance fluctuations (i.e. an NxN matrix
     where N is the number of residues, of MSFs in the inter-residue distances)
     computed from the cross-correlation matrix (see Eq. 12.E.1 in [IB18]_). 
