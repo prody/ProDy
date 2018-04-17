@@ -716,8 +716,8 @@ def _getPolymers(lines):
         try:
             dbnum = int(line[43:48].strip())
         except:
-            LOGGER.warn('SEQADV for chain {2}: failed to parse database '
-                        'sequence number ({0}:{1})'.format(pdbid, i, ch))
+            #LOGGER.warn('SEQADV for chain {2}: failed to parse database '
+            #            'sequence number ({0}:{1})'.format(pdbid, i, ch))
             continue            
 
         comment = line[49:70].strip()
