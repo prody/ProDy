@@ -538,7 +538,7 @@ class sdarray(ndarray):
         else:
             index0 = index
 
-        arr = np.asarray(self)[index]
+        arr = np.asarray(self[index])
         if np.ndim(arr) == 0:
             return arr
 
