@@ -499,6 +499,10 @@ class sdarray(ndarray):
         
         if labels is not None and np.isscalar(labels):
             labels = [labels]
+        
+        n_modesets = 1 if oneset else len(array)
+        if len(labels) != n_modesets:
+            raise ValueError('the number of labels does not match the size of the array')
         obj._labels = labels
         obj._is3d = is3d
 
