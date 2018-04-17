@@ -9,7 +9,7 @@ import os
 from numpy import dtype, zeros, empty, ones, where, ceil, shape, eye
 from numpy import indices, tril_indices, array, ndarray, isscalar
 
-from prody import LOGGER, timeit
+from prody import LOGGER
 from prody.utilities import which
 from prody.sequence.msa import MSA, refineMSA
 from prody.sequence.msafile import parseMSA, writeMSA
