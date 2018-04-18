@@ -111,7 +111,7 @@ class PCA(NMA):
                 coordsum += coords
                 cov += np.outer(coords, coords)
                 n_confs += 1
-                LOGGER.update(n_confs, '_prody_pca')
+                LOGGER.update(n_confs, label='_prody_pca')
             LOGGER.finish()
             cov /= n_confs
             coordsum /= n_confs
@@ -146,7 +146,7 @@ class PCA(NMA):
                     for i, coords in enumerate(coordsets.reshape(s)):
                         deviations = coords - mean
                         cov += np.outer(deviations, deviations)
-                        LOGGER.update(n_confs, '_prody_pca')
+                        LOGGER.update(n_confs, label='_prody_pca')
                     LOGGER.finish()
                     cov /= n_confs
                     self._cov = cov
