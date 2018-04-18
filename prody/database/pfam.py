@@ -7,7 +7,9 @@ import re
 from numbers import Integral
 
 import numpy as np
+import os
 from os.path import join, isfile
+
 from prody import LOGGER, PY3K
 from prody.utilities import makePath, openURL, gunzip, openFile, dictElement
 from prody.utilities import relpath
@@ -481,6 +483,8 @@ def parsePfamPDBs(**kwargs):
     ftp.retrbinary('RETR pdbmap.gz', data_file.write)
     ftp.quit()
     data_file.close()
+
+    os.system('gunzip pdbmap.gz')
 
     data_file = open('pdbmap', 'r')
     data = data_file.readlines()
