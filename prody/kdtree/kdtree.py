@@ -2,7 +2,7 @@
 """This module defines :class:`KDTree` class for dealing with atomic coordinate
 sets and handling periodic boundary conditions."""
 
-from numpy import array, ndarray, concatenate
+from numpy import array, ndarray, concatenate, empty
 
 from prody import LOGGER
 
@@ -196,7 +196,7 @@ class KDTree(object):
                 kdtree = self._kdtree
                 search = kdtree.search_center_radius
                 get_radii = kdtree.get_radii
-                get_indices = kdtree.get_indices
+                get_indices = lambda : get_KDTree_indices(kdtree)
                 get_count = kdtree.get_count
 
                 _dict = {}
@@ -247,7 +247,7 @@ class KDTree(object):
         if self.getCount():
             if self._unitcell is None:
                 if self._neighbors is None:
-                    return self._kdtree.get_indices()
+                    return get_KDTree_indices(self._kdtree)
                 else:
                     return array([(n.index1, n.index2)
                                   for n in self._neighbors], int)
@@ -279,3 +279,14 @@ class KDTree(object):
                 return self._kdtree.neighbor_get_count()
         else:
             return len(self._pbcdict)
+
+def get_KDTree_indices(kdtree):
+    new_indices = None
+    try:
+        new_indices = kdtree.get_indices()
+    except:
+        n = kdtree.get_count()
+        if n:
+            new_indices = empty(n, int)
+            kdtree.get_indices(new_indices)
+    return new_indices
