@@ -129,7 +129,7 @@ def fetchPDBClusters(sqid=None):
             out.close()
             count += 1
         LOGGER.update(i, label='_prody_fetchPDBClusters')
-    LOGGER.finish(label='_prody_fetchPDBClusters')
+    LOGGER.finish()
     if len(PDB_CLUSTERS) == count:
         LOGGER.info('All PDB clusters were downloaded successfully.')
     elif count == 0:

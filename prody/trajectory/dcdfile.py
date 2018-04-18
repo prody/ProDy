@@ -599,7 +599,7 @@ def writeDCD(filename, trajectory, start=None, stop=None, step=None,
     if isAtomic:
         trajectory.setACSIndex(acsi)
     j += 1
-    LOGGER.finish(label='_prody_writeDCD')
+    LOGGER.finish()
     dcd.close()
     time_ = time() - time_ or 0.01
     dcd_size = 1.0 * (56 + (n_atoms * 3 + 6) * 4 ) * n_csets / (1024*1024)

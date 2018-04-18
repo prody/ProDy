@@ -556,7 +556,7 @@ class Ensemble(object):
                 add(dot(movs[i], rotation),
                     (tar_com - dot(mob_com, rotation)), movs[i])
             LOGGER.update(i + 1, label='_prody_ensemble')
-        LOGGER.finish(label='_prody_ensemble')
+        LOGGER.finish()
 
     def iterpose(self, rmsd=0.0001):
         """Iteratively superpose the ensemble until convergence.  Initially,

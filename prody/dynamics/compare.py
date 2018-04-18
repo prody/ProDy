@@ -247,6 +247,6 @@ def matchModes(*modesets, **kwargs):
         if i > 0:
             _, reordered_modeset = pairModes(modeset0, modeset, index=index)
             ret.append(reordered_modeset)
-    LOGGER.finish(label='_prody_matchModes')
+    LOGGER.finish()
     
     return ret
