@@ -437,7 +437,7 @@ def buildPDBEnsemble(refpdb, PDBs, title='Unknown', labels=None, seqid=94, cover
         ensemble.addCoordset(atommap, weights=atommap.getFlags('mapped'), 
                              label = lbl, degeneracy=degeneracy)
 
-    LOGGER.finish()
+    LOGGER.finish(label='_prody_buildPDBEnsemble')
 
     if occupancy is not None:
         ensemble = trimPDBEnsemble(ensemble, occupancy=occupancy)
@@ -540,7 +540,7 @@ def addPDBEnsemble(ensemble, PDBs, refpdb=None, labels=None, seqid=94, coverage=
         # add the mappings to the ensemble
         ensemble.addCoordset(atommap, weights=atommap.getFlags('mapped'), 
                              label=lbl, degeneracy=degeneracy)
-    LOGGER.finish()
+    LOGGER.finish(label='_prody_addPDBEnsemble')
 
     if occupancy is not None:
         ensemble = trimPDBEnsemble(ensemble, occupancy=occupancy)

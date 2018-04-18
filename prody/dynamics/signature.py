@@ -726,7 +726,7 @@ def calcEnsembleENMs(ensemble, model='gnm', trim='reduce', n_modes=20, **kwargs)
         enms.append(enm)
 
         #lbl = labels[i] if labels[i] != '' else '%d-th conformation'%(i+1)
-    LOGGER.finish()
+    LOGGER.finish(label='_prody_calcEnsembleENMs')
 
     min_n_modes = ensemble.numAtoms() * 3
     for enm in enms:

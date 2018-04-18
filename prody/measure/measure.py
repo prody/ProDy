@@ -571,7 +571,7 @@ def calcMSF(coordsets):
             sqsum += coords ** 2
             ncsets += 1
             LOGGER.update(ncsets, label='_prody_calcMSF')
-        LOGGER.finish()
+        LOGGER.finish(label='_prody_calcMSF')
         msf = (sqsum/ncsets - (total/ncsets)**2).sum(1)
         coordsets.goto(nfi)
     return msf

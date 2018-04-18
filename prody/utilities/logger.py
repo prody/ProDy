@@ -282,11 +282,13 @@ class PackageLogger(object):
         if i == n:
             self.finish()
 
-    def finish(self):
-        if hasattr(self, '_verb'):
-            self._setverbosity(self._verb)
-            del self._verb
-            self.clear()
+    def finish(self, label=None):
+        del self._times[label]
+        if len(self._times) == 0:
+            if hasattr(self, '_verb'):
+                self._setverbosity(self._verb)
+                del self._verb
+                self.clear()
 
     def sleep(self, seconds, msg=''):
         """Sleep for seconds while updating screen message every second.

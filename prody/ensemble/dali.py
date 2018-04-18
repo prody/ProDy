@@ -338,7 +338,7 @@ class daliRecord(object):
             except:
                 failPDBList.append(pdb_chain)
             LOGGER.update(i, label='_prody_buildDaliEnsemble')
-        LOGGER.finish()
+        LOGGER.finish(label='_prody_buildDaliEnsemble')
         self._failPDBList = failPDBList
         if failPDBList != []:
             LOGGER.warn('failed to add '+str(len(failPDBList))+' PDB chain to ensemble: '+' '.join(failPDBList))

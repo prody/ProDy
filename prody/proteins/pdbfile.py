@@ -121,8 +121,8 @@ def parsePDB(*pdb, **kwargs):
                     result = (result, None)
             results.append(result)
 
-        results = zip(*results)
-        LOGGER.finish()
+        results = list(zip(*results))
+        LOGGER.finish(label='_prody_parsePDB')
        
         for i in reversed(range(len(results))):
             if all(j is None for j in results[i]):
@@ -918,7 +918,7 @@ def parseChainsList(filename):
 
         chains.append(ag.getHierView()[line.strip().split()[1]])
 
-    LOGGER.finish()
+    LOGGER.finish(label='_prody_parseChainsList')
     LOGGER.info('{0} PDBs have been parsed and {1} chains have been extracted. \
                 '.format(len(ags),len(chains)))
 
