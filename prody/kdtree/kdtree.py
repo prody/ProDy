@@ -299,5 +299,5 @@ def get_KDTree_radii(kdtree):
         n = kdtree.get_count()
         if n:
             radii = empty(n, int)
-            kdtree.get_indices(radii)
+            kdtree.get_radii(radii)
     return radii
