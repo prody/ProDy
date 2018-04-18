@@ -298,6 +298,6 @@ def get_KDTree_radii(kdtree):
     except:
         n = kdtree.get_count()
         if n:
-            radii = empty(n, int)
+            radii = empty(n, float)
             kdtree.get_radii(radii)
     return radii
