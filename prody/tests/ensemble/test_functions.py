@@ -30,11 +30,11 @@ class TestTrimPDBEnsemble(TestCase):
         weights[:, 0, :] = 0.
         ensemble.setWeights(weights)
         ensemble_trimed = trimPDBEnsemble(ensemble, occupancy=0.9)
-        assert_equal(calcOccupancies(ensemble_trimed).min() > 0.9,
+        assert(calcOccupancies(ensemble_trimed).min() > 0.9,
                      'soft trimPDBEnsemble failed')
         
         ensemble_trimed2 = trimPDBEnsemble(ensemble, occupancy=0.9, hard=True)
-        assert_equal(calcOccupancies(ensemble_trimed2).min() > 0.9,
+        assert(calcOccupancies(ensemble_trimed2).min() > 0.9,
                      'hard trimPDBEnsemble failed')
 
         atoms = ensemble_trimed.getAtoms()
