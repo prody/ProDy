@@ -471,7 +471,7 @@ def calcPairDeformationDist(model, coords, ind1, ind2, kbt=1.):
     ind1 = ind1 - resnum_list[0]
     ind2 = ind2 - resnum_list[0]
 
-    for m in xrange(6,n_modes):
+    for m in range(6,n_modes):
         U_ij_k = [(eigvecs[ind1*3][m] - eigvecs[ind2*3][m]), (eigvecs[ind1*3+1][m] \
             - eigvecs[ind2*3+1][m]), (eigvecs[ind1*3+2][m] - eigvecs[ind2*3+2][m])] 
         D_ij_k = abs(sqrt(kbt/eigvals[m])*(np.vdot(r_ij_norm[ind1][ind2], U_ij_k)))  

@@ -303,7 +303,7 @@ class daliRecord(object):
 
         n_confs = len(pdbList)
         LOGGER.progress('Building PDB ensemble for {0} conformations from Dali...'
-                        .format(n_confs), n_confs)
+                        .format(n_confs), n_confs, '_prody_buildDaliEnsemble')
 
         ref_pdb = parsePDB(self._pdbId).select('chain '+self._chainId).copy()
 
@@ -337,7 +337,7 @@ class daliRecord(object):
                 ensemble.addCoordset(atommap, weights=atommap.getFlags('mapped'), degeneracy=True)
             except:
                 failPDBList.append(pdb_chain)
-            LOGGER.update(i)
+            LOGGER.update(i, label='_prody_buildDaliEnsemble')
         LOGGER.finish()
         self._failPDBList = failPDBList
         if failPDBList != []:

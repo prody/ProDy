@@ -99,10 +99,11 @@ def buildPDBChainCATHDict(cath_file, iscommpressed=True):
             if line != '':
                 line_list = line.split(' ')
                 cath_dict_temp[line_list[0]] = line_list[1:]
-                if cath_i_dict.has_key(line[0:5]):
-                    cath_i_dict[line[0:5]].append(line[5:7])
+                key, value = line[0:5], line[5:7]
+                if key in cath_i_dict:
+                    cath_i_dict[key].append(value)
                 else:
-                    cath_i_dict[line[0:5]] = [line[5:7]]
+                    cath_i_dict[key] = [value]
     pdbChain2CATH = dict()
     for key, values in cath_i_dict.items():
         pdbChain2CATH[key] = []

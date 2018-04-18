@@ -12,11 +12,6 @@ from prody.tests import unittest
 from prody.tests.datafiles import *
 from prody.atomic.atommap import DUMMY
 
-try:
-    range = xrange
-except NameError:
-    pass
-
 prody.atomic.select.DEBUG = False
 LOGGER.verbosity = 'none'
 

@@ -397,9 +397,10 @@ def buildPDBEnsemble(refpdb, PDBs, title='Unknown', labels=None, seqid=94, cover
     # build the ensemble
     if unmapped is None: unmapped = []
 
-    LOGGER.progress('Building the ensemble...', len(PDBs))
+    LOGGER.progress('Building the ensemble...', len(PDBs), '_prody_buildPDBEnsemble')
     for i, pdb in enumerate(PDBs):
-        LOGGER.update(i, 'Mapping %s to the reference...'%pdb.getTitle())
+        LOGGER.update(i, 'Mapping %s to the reference...'%pdb.getTitle(), 
+                      label='_prody_buildPDBEnsemble')
         try:
             pdb.getHierView()
         except AttributeError:
@@ -502,9 +503,10 @@ def addPDBEnsemble(ensemble, PDBs, refpdb=None, labels=None, seqid=94, coverage=
     # add the PDBs to the ensemble
     if unmapped is None: unmapped = []
 
-    LOGGER.progress('Appending the ensemble...', len(PDBs))
+    LOGGER.progress('Appending the ensemble...', len(PDBs), '_prody_addPDBEnsemble')
     for i, pdb in enumerate(PDBs):
-        LOGGER.update(i, 'Mapping %s to the reference...'%pdb.getTitle())
+        LOGGER.update(i, 'Mapping %s to the reference...'%pdb.getTitle(), 
+                      label='_prody_addPDBEnsemble')
         if not isinstance(pdb, (Chain, Selection, AtomGroup)):
             raise TypeError('PDBs must be a list of Chain, Selection, or AtomGroup.')
         

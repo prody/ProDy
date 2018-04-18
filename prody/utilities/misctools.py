@@ -4,6 +4,7 @@ from numpy import unique, linalg, diag, sqrt, dot, chararray
 from numpy import diff, where, insert, nan, loadtxt, array
 from numpy import sign, arange, asarray
 from collections import Counter
+import numbers
 
 __all__ = ['Everything', 'rangeString', 'alnum', 'importLA', 'dictElement',
            'intorfloat', 'startswith', 'showFigure', 'countBytes', 'sqrtm',
@@ -255,7 +256,7 @@ def getDataPath(filename):
     import pkg_resources
     return pkg_resources.resource_filename('prody.utilities', 'datafiles/%s'%filename)
 
-def openData(filename, mode='rb'):
+def openData(filename, mode='r'):
     return open(getDataPath(filename), mode)
 
 def saxsWater():
