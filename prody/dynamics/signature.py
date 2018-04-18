@@ -295,6 +295,16 @@ class ModeEnsemble(object):
 
         return self._getData('getVariances', mode_indices)
 
+    def getEigval(self, mode_index=0):
+        """Returns eigenvalue of a given mode index with respect to the reference."""
+        
+        return self._getModeData('getEigval', mode_index)
+
+    def getEigvals(self, mode_indices=None):
+        """Returns a sdarray of eigenvalues across modesets."""
+
+        return self._getData('getEigvals', mode_indices)
+
     def getIndex(self, mode_index=0):
         """Returns indices of modes matched to the reference modeset."""
 
@@ -343,14 +353,14 @@ class ModeEnsemble(object):
         if not self._matched:
             LOGGER.warn('Mode ensemble has not been matched')
         else:
-            collectivities = calcSignatureCollectivity(self)
+            vals = self.getEigvals()
             
-            mean_coll = collectivities.mean()
-            coll_order = np.argsort(mean_coll)
+            mean_val = vals.mean()
+            order = np.argsort(mean_val)
 
             ret = []
             for modeset in self._modesets:
-                ret.append(ModeSet(modeset.getModel(), coll_order))
+                ret.append(ModeSet(modeset.getModel(), order))
 
             self._modesets = ret
 
@@ -702,10 +712,10 @@ def calcEnsembleENMs(ensemble, model='gnm', trim='reduce', n_modes=20, **kwargs)
 
     str_modes = 'all' if n_modes is None else str(n_modes)
     LOGGER.progress('Calculating {0} {1} modes for {2} conformations...'
-                    .format(str_modes, model_type, n_confs), n_confs)
+                    .format(str_modes, model_type, n_confs), n_confs, '_prody_calcEnsembleENMs')
 
     for i in range(n_confs):
-        LOGGER.update(i)
+        LOGGER.update(i, label='_prody_calcEnsembleENMs')
         coords = ensemble.getCoordsets(i, selected=False)
         nodes = coords[0, :, :]
         if atoms is not None:

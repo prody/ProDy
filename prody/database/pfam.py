@@ -4,6 +4,8 @@
 __author__ = 'Anindita Dutta, Ahmet Bakan, Cihan Kaya'
 
 import re
+from numbers import Integral
+
 import numpy as np
 from os.path import join, isfile
 from prody import LOGGER, PY3K
@@ -98,7 +100,7 @@ def searchPfam(query, **kwargs):
         try:
             root = ET.XML(xml)
         except Exception as err:
-            raise ValueError('failed to parse results XML, check URL: ' + url)
+            raise ValueError('failed to parse results XML, check URL: ' + modified_res_url)
         matches = {}
         for child in root[0]:
             if child.tag == 'hits':
@@ -453,14 +455,14 @@ def fetchPfamPDBs(**kwargs):
         else:
             pfam_matches = searchPfam(query)
 
-            if start is not None and type(start) is int:
+            if start is not None and isinstance(start, Integral):
                 start_diff = []
                 for i, key in enumerate(pfam_matches):
                     start_diff.append(int(pfam_matches[key]['locations'][0]['start']) - start)
                 start_diff = np.array(start_diff)
                 pfam_acc = pfam_matches.keys()[np.where(abs(start_diff) == min(abs(start_diff)))[0][0]]
 
-            elif end is not None and type(end) is int:
+            elif end is not None and isinstance(end, Integral):
                 end_diff = []
                 for i, key in enumerate(pfam_matches):
                     end_diff.append(int(pfam_matches[key]['locations'][0]['end']) - end)

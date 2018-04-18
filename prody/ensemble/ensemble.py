@@ -555,7 +555,7 @@ class Ensemble(object):
             else:
                 add(dot(movs[i], rotation),
                     (tar_com - dot(mob_com, rotation)), movs[i])
-            LOGGER.update(i + 1, '_prody_ensemble')
+            LOGGER.update(i + 1, label='_prody_ensemble')
         LOGGER.finish()
 
     def iterpose(self, rmsd=0.0001):

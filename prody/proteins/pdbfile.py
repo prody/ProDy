@@ -106,12 +106,13 @@ def parsePDB(*pdb, **kwargs):
 
         start = time.time()
         LOGGER.progress('Retrieving {0} PDB structures...'
-                    .format(n_pdb), n_pdb)
+                    .format(n_pdb), n_pdb, '_prody_parsePDB')
         for i, p in enumerate(pdb):
             kwargs = {}
             for key in lstkwargs:
                 kwargs[key] = lstkwargs[key][i]
-            LOGGER.update(i, 'Retrieving {0}...'.format(p))
+            LOGGER.update(i, 'Retrieving {0}...'.format(p), 
+                          label='_prody_parsePDB')
             result = _parsePDB(p, **kwargs)
             if not isinstance(result, tuple):
                 if isinstance(result, dict):
@@ -120,7 +121,7 @@ def parsePDB(*pdb, **kwargs):
                     result = (result, None)
             results.append(result)
 
-        results = zip(*results)
+        results = list(zip(*results))
         LOGGER.finish()
        
         for i in reversed(range(len(results))):
@@ -902,9 +903,9 @@ def parseChainsList(filename):
     headers = []
     chains = []
     num_lines = len(lines)
-    LOGGER.progress('Starting', num_lines)
+    LOGGER.progress('Starting', num_lines, '_prody_parseChainsList')
     for i, line in enumerate(lines):
-        LOGGER.update(i, 'Parsing lines...')
+        LOGGER.update(i, 'Parsing lines...', label='_prody_parseChainsList')
         pdb_id = line.split()[0].split('_')[0]
         if not pdb_id in pdb_ids:
             pdb_ids.append(pdb_id)
