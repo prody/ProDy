@@ -2,6 +2,7 @@
 
 import os.path
 import time
+from numbers import Integral
 
 import numpy as np
 
@@ -333,16 +334,18 @@ def alignPDBEnsemble(ensemble, suffix='_aligned', outdir='.', gzip=False):
         return output
 
 
-def buildPDBEnsemble(refpdb, PDBs, title='Unknown', labels=None, seqid=94, coverage=85, 
+def buildPDBEnsemble(PDBs, refpdb=None, title='Unknown', labels=None, seqid=94, coverage=85, 
                      mapping_func=mapOntoChain, unmapped=None, **kwargs):
     """Builds a PDB ensemble from a given reference structure and a list of PDB structures. 
     Note that the reference structure should be included in the list as well.
 
-    :arg refpdb: Reference structure
-    :type refpdb: :class:`.Chain`, :class:`.Selection`, or :class:`.AtomGroup`
-
     :arg PDBs: A list of PDB structures
     :type PDBs: iterable
+
+    :arg refpdb: Reference structure or the index to the reference in ``PDBs``. If **None**,
+                 then the first item in ``PDBs`` will be considered as the reference. 
+                 Default is **None**
+    :type refpdb: int, :class:`.Chain`, :class:`.Selection`, or :class:`.AtomGroup`
 
     :arg title: The title of the ensemble
     :type title: str
@@ -374,8 +377,13 @@ def buildPDBEnsemble(refpdb, PDBs, title='Unknown', labels=None, seqid=94, cover
         if len(labels) != len(PDBs):
             raise ValueError('labels and PDBs must be the same length')
 
-    if refpdb not in PDBs:
-        raise ValueError('refpdb should be also in the PDBs')
+    if refpdb is None:
+        refpdb = PDBs[0]
+    elif isinstance(refpdb, Integral):
+        refpdb = PDBs[refpdb]
+    else:
+        if refpdb not in PDBs:
+            raise ValueError('refpdb should be also in the PDBs')
 
     # obtain refchains from the hierarhical view of the reference PDB
     try:
