@@ -22,7 +22,7 @@ else:
     import urllib
     import urllib2
 
-__all__ = ['searchPfam', 'fetchPfamMSA', 'searchUniprotID', 'fetchPfamPDBs']
+__all__ = ['searchPfam', 'fetchPfamMSA', 'searchUniprotID', 'parsePfamPDBs']
 
 FASTA = 'fasta'
 SELEX = 'selex'
@@ -412,7 +412,7 @@ def fetchPfamMSA(acc, alignment='full', compressed=False, **kwargs):
 
     return filepath
 
-def fetchPfamPDBs(**kwargs):
+def parsePfamPDBs(**kwargs):
     """Returns a list of AtomGroups containing sections of chains that 
     correspond to a particular PFAM domain family. These are defined by 
     alignment start and end residue numbers.
@@ -473,33 +473,33 @@ def fetchPfamPDBs(**kwargs):
                 raise ValueError('Please provide an integer for start or end when using query.')
 
     from ftplib import FTP
-    data = []
+    data_file = open('pdbmap.gz','wb')
     ftp_host = 'ftp.ebi.ac.uk'
     ftp = FTP(ftp_host)
-    ftp.login('')
-    ftp.cwd('pub/databases/Pfam/mappings')
-    ftp.retrlines('RETR pdb_pfam_mapping.txt', data.append) 
+    ftp.login()
+    ftp.cwd('pub/databases/Pfam/current_release')
+    ftp.retrbinary('RETR pdbmap.gz', data_file.write)
+    ftp.quit()
+    data_file.close()
 
-    fields = []
-    for field in data[0].strip().split('\t'):
-        fields.append(field)
+    data_file = open('pdbmap', 'r')
+    data = data_file.readlines()
+    data_file.close()
+
+    fields = ['PDB_ID', 'chain', 'nothing', 'PFAM_Name', 'PFAM_ACC', 'UniprotID', 'PdbRange']
     
-    data_dict = []
-    for line in data[1:]:
+    data_dicts = []
+    for line in data:
         if line.find(pfam_acc) != -1:
-            data_dict.append({})
+            data_dicts.append({})
             for j, entry in enumerate(line.strip().split('\t')):
-                data_dict[-1][fields[j]] = entry
+                data_dicts[-1][fields[j]] = entry.strip(';')
 
-    pdb_ids = []
-    pdbs = []
-    headers = []            
-    for i in range(len(data_dict)):
-        pdb_id = data_dict[i]['PDB_ID']
-        if not pdb_id in pdb_ids:
-            pdb_ids.append(pdb_id)
-
-    result = parsePDB(*pdb_ids, **kwargs)
+    result = [parsePDB(data_dict['PDB_ID'], chain=data_dict['chain'],
+                       **kwargs).select('resnum {0} to {1}'
+                       .format(data_dict['PdbRange'].split('-')[0],
+                               data_dict['PdbRange'].split('-')[1])).copy()
+              for data_dict in data_dicts]
 
     if return_data:
         return data_dict, result
