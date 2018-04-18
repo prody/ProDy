@@ -499,11 +499,12 @@ def parsePfamPDBs(**kwargs):
             for j, entry in enumerate(line.strip().split('\t')):
                 data_dicts[-1][fields[j]] = entry.strip(';')
 
-    result = [parsePDB(data_dict['PDB_ID'], chain=data_dict['chain'],
-                       **kwargs).select('resnum {0} to {1}'
+    pdb_ids = [data_dict['PDB_ID'] for data_dict in data_dicts]
+    chains = [data_dict['chains'] for data_dict in data_dicts]
+    result = parsePDB(*pdb_ids, chain=chains, header=True, **kwargs)
+                       .select('resnum {0} to {1}'
                        .format(data_dict['PdbRange'].split('-')[0],
                                data_dict['PdbRange'].split('-')[1])).copy()
-              for data_dict in data_dicts]
 
     if return_data:
         return data_dict, result
