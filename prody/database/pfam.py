@@ -475,6 +475,8 @@ def parsePfamPDBs(**kwargs):
                 raise ValueError('Please provide an integer for start or end when using query.')
 
     from ftplib import FTP
+    import gzip
+
     data_file = open('pdbmap.gz','wb')
     ftp_host = 'ftp.ebi.ac.uk'
     ftp = FTP(ftp_host)
@@ -484,11 +486,8 @@ def parsePfamPDBs(**kwargs):
     ftp.quit()
     data_file.close()
 
-    os.system('gunzip pdbmap.gz')
-
-    data_file = open('pdbmap', 'r')
-    data = data_file.readlines()
-    data_file.close()
+    with gzip.open('pdbmap.gz', 'rb') as f:
+        data = f.read()
 
     fields = ['PDB_ID', 'chain', 'nothing', 'PFAM_Name', 'PFAM_ACC', 'UniprotID', 'PdbRange']
     
