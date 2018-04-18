@@ -500,18 +500,17 @@ def parsePfamPDBs(**kwargs):
                 data_dicts[-1][fields[j]] = entry.strip(';')
 
     pdb_ids = [data_dict['PDB_ID'] for data_dict in data_dicts]
-    chains = [data_dict['chains'] for data_dict in data_dicts]
+    chains = [data_dict['chain'] for data_dict in data_dicts]
     ags, headers = parsePDB(*pdb_ids, chain=chains, header=True, **kwargs)
 
-    results = []
-    i = 0
-    for ag, header in zip(ags, headers):
-        results.append([])
-        results[i].append(ag.select('resnum {0} to {1}'
-                            .format(data_dicts[i]['PdbRange'].split('-')[0],
-                                    data_dicts[i]['PdbRange'].split('-')[1]))
-                            .copy())
-        results[i].append(header)
+    ags = list(ags)
+    for i in range(len(ags)):
+        ags[i] = ag.select('resnum {0} to {1}'.format(
+            data_dicts[i]['PdbRange'].split('-')[0],
+            data_dicts[i]['PdbRange'].split('-')[1])).copy()
+    ags = tuple(ags)
+    
+    results = ags, headers
 
     if return_data:
         return data_dict, results
