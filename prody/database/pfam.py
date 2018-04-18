@@ -486,13 +486,13 @@ def parsePfamPDBs(**kwargs):
     ftp.quit()
     data_file.close()
 
-    with gzip.open('pdbmap.gz', 'rb') as f:
+    with gzip.GzipFile('pdbmap.gz', 'rb') as f:
         data = f.read()
 
     fields = ['PDB_ID', 'chain', 'nothing', 'PFAM_Name', 'PFAM_ACC', 'UniprotID', 'PdbRange']
     
     data_dicts = []
-    for line in data:
+    for line in data.split('\n'):
         if line.find(pfam_acc) != -1:
             data_dicts.append({})
             for j, entry in enumerate(line.strip().split('\t')):
