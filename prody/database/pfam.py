@@ -483,7 +483,8 @@ def parsePfamPDBs(query, **kwargs):
     if PY3K:
         data = data.decode()
 
-    fields = ['PDB_ID', 'chain', 'nothing', 'PFAM_Name', 'PFAM_ACC', 'UniprotID', 'PdbRange']
+    fields = ['PDB_ID', 'chain', 'nothing', 'PFAM_Name', 'PFAM_ACC', 
+              'UniprotID', 'UniprotResnumRange']
     
     data_dicts = []
     for line in data.split('\n'):
@@ -499,11 +500,25 @@ def parsePfamPDBs(query, **kwargs):
     ags, headers = parsePDB(*pdb_ids, chain=chains, header=True, **kwargs)
 
     ags = list(ags)
+    headers = list(headers)
+    no_dbrefs = []
     for i, ag in enumerate(ags):
-        pdbRange = data_dicts[i]['PdbRange'].split('-')
-        ags[i] = ag.select('resnum {0} to {1}'.format(
-                           pdbRange[0], pdbRange[1]))
+        if headers[i][data_dicts[i]['chain']].dbrefs != []:
+            resnumRange = data_dicts[i]['UniprotResnumRange'].split('-')
+            first = headers[i][data_dicts[i]['chain']].dbrefs[0].first
+            
+            ags[i] = ag.select('resnum {0} to {1}'.format(
+                int(resnumRange[0]) - (first[-1] - first[0]),
+                int(resnumRange[1]) - (first[-1] - first[0]))) 
+        else:
+            no_dbrefs.append(i)
+
+    for i in reversed(no_dbrefs):
+        ags.pop(i)
+        headers.pop(i)
+
     ags = tuple(ags)
+    headers = tuple(headers)
     
     if header:
         results = ags, headers
