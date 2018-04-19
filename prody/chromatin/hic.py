@@ -433,9 +433,9 @@ def writeMap(filename, map, bin=None, format='%f'):
         return writeArray(filename, spmat, format=fmt)
 
 def saveHiC(hic, filename=None, map=True, **kwargs):
-    """Saves *HiC* model data as :file:`filename.hic.npz`. If *map* is ``False``, 
+    """Saves *HiC* model data as :file:`filename.hic.npz`. If *map* is **True**, 
     Hi-C contact map will not be saved and it can be loaded from raw data file 
-    later. If *filename* is ``None``, name of the Hi-C instance will be used as 
+    later. If *filename* is **None**, name of the Hi-C instance will be used as 
     the filename, after ``" "`` (white spaces) in the name are replaced with 
     ``"_"`` (underscores). Upon successful completion of saving, filename is 
     returned. This function makes use of :func:`numpy.savez` function."""

@@ -226,7 +226,7 @@ class AtomMap(AtomPointer):
         return len(self._getSubset(flag)) if flag else self._len
 
     def iterAtoms(self):
-        """Yield atoms, and ``None`` for dummies."""
+        """Yield atoms, and **None** for dummies."""
 
         ag = self._ag
         acsi = self.getACSIndex()

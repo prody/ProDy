@@ -1482,7 +1482,7 @@ def showDomainBar(domains, loc=0., axis='x', **kwargs):
                either **x** or **y**
     :type axis: str
 
-    :arg show_text: whether show the text or not. Default is ``True``
+    :arg show_text: whether show the text or not. Default is **True**
     :type show_text: bool
 
     :arg text_loc: location of text labels. It can be either 
