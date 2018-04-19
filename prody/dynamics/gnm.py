@@ -33,6 +33,9 @@ class GNMBase(NMA):
         self._kirchhoff = None
         self._gamma = None
         self._hinges = None
+        self._affinity = None
+        self._hitTime = None
+        self._commuteTime = None
 
     def __repr__(self):
 
@@ -46,12 +49,24 @@ class GNMBase(NMA):
 
     def _reset(self):
 
-        NMA._reset(self)
+        super(GNMBase, self)._reset()
         self._cutoff = None
         self._gamma = None
         self._kirchhoff = None
         self._is3d = False
+        self._hinges = None
+        self._affinity = None
+        self._hitTime = None
+        self._commuteTime = None
 
+    def _clear(self):
+        self._trace = None
+        self._cov = None
+        self._hinges = None
+        self._affinity = None
+        self._hitTime = None
+        self._commuteTime = None
+        
     def getCutoff(self):
         """Returns cutoff distance."""
 
@@ -136,7 +151,6 @@ class GNM(GNMBase):
         self._kirchhoff = kirchhoff
         self._n_atoms = kirchhoff.shape[0]
         self._dof = kirchhoff.shape[0]
-        self._affinity = None
 
     def buildKirchhoff(self, coords, cutoff=10., gamma=1., **kwargs):
         """Build Kirchhoff matrix for given coordinate set.
@@ -327,7 +341,7 @@ class GNM(GNMBase):
         """Returns a copy of the hit time matrix."""
 
         if self._hitTime is None:
-            return None
+            self.calcHitTime()
         return self._hitTime.copy()
 
     def _getHitTime(self):
@@ -339,7 +353,7 @@ class GNM(GNMBase):
         """Returns a copy of the Kirchhoff matrix."""
 
         if self._commuteTime is None:
-            return None
+            self.calcHitTime()
         return self._commuteTime.copy()
 
     def _getCommuteTime(self):
@@ -375,6 +389,7 @@ class GNM(GNMBase):
             'n_modes must be a positive integer'
         assert isinstance(zeros, bool), 'zeros must be a boolean'
         assert isinstance(turbo, bool), 'turbo must be a boolean'
+        self._clear()
         linalg = importLA()
         start = time.time()
         shift = 0
@@ -529,6 +544,10 @@ class GNM(GNMBase):
         LOGGER.report('NDF calculated in %.2lfs.', label='_ndf')
         normdistfluct[np.diag_indices_from(normdistfluct)] = 0  # div by 0
         return normdistfluct
+
+    def setEigens(self, vectors, values=None):
+        self._clear()
+        super(GNMBase, self).setEigens(vectors, values)
 
 
 def calcGNM(pdb, selstr='calpha', cutoff=15., gamma=1., n_modes=20,

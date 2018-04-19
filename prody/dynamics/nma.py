@@ -87,6 +87,9 @@ class NMA(object):
 
         self._is3d = True
 
+    def _clear(self):
+        pass
+
     def _getMode(self, index):
 
         if self._n_modes == 0:
@@ -207,15 +210,10 @@ class NMA(object):
     def calcModes(self):
         """"""
 
-        pass
-
     def addEigenpair(self, vector, value=None):
         """Add eigen *vector* and eigen *value* pair(s) to the instance.
         If eigen *value* is omitted, it will be set to 1.  Inverse
         eigenvalues are set as variances."""
-
-        if self._array is None:
-            self.setEigens()
 
         try:
             ndim, shape = vector.ndim, vector.shape
@@ -228,6 +226,8 @@ class NMA(object):
             raise ValueError('eigenvectors must correspond to vector columns')
         else:
             vector = vector.reshape((shape[0], 1))
+
+        eigval = value
 
         if eigval is None:
             if ndim == 1:
@@ -248,6 +248,9 @@ class NMA(object):
                 elif value.shape[0] != value.shape[0]:
                     raise ValueError('number of eigenvectors and eigenvalues '
                                      'must match')
+
+        if self._array is None:
+            return self.setEigens(vector, value)
 
         if vector.shape[0] != self._array.shape[0]:
             raise ValueError('shape of vector do not match shape of '
@@ -297,5 +300,7 @@ class NMA(object):
         self._n_atoms = n_atoms
         self._n_modes = n_modes
         self._vars = 1 / values
+
+        self._clear()
 
 
