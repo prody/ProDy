@@ -480,6 +480,8 @@ def parsePfamPDBs(query, **kwargs):
     data_stream.close()
 
     data = gunzip(zip_data)
+    if PY3K:
+        data = data.decode()
 
     fields = ['PDB_ID', 'chain', 'nothing', 'PFAM_Name', 'PFAM_ACC', 'UniprotID', 'PdbRange']
     
@@ -498,9 +500,9 @@ def parsePfamPDBs(query, **kwargs):
 
     ags = list(ags)
     for i, ag in enumerate(ags):
+        pdbRange = data_dicts[i]['PdbRange'].split('-')
         ags[i] = ag.select('resnum {0} to {1}'.format(
-            data_dicts[i]['PdbRange'].split('-')[0],
-            data_dicts[i]['PdbRange'].split('-')[1])).copy()
+                           pdbRange[0], pdbRange[1]))
     ags = tuple(ags)
     
     if header:
