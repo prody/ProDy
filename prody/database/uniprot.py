@@ -12,16 +12,16 @@ else:
     import urllib
     import urllib2
 
-import xml.etree.cElementTree as ET
+from xml.etree.cElementTree import XML, Element
 
 __all__ = ['queryUniprot', ]
 
-def queryUniprot(id, loop_through=[]):
+def queryUniprot(id, expand=[], regex=True):
     """Query Uniprot with *id* and return a `dictionary` containing the results
     
-    :arg loop_through: entries through which you want to loop dictElements
+    :arg expand: entries through which you want to loop dictElements
         until there aren't any elements left
-    :type loop_through: list
+    :type expand: list
     """
 
     if not isinstance(id, str):
@@ -34,11 +34,38 @@ def queryUniprot(id, loop_through=[]):
     
     data = record_file.read()
     record_file.close()
-    data = ET.XML(data)
+    data = XML(data)
 
     data = dictElement(data.getchildren()[0], '{http://uniprot.org/uniprot}', number_multiples=True)
 
-    if loop_through != []:
-        data = dictElementLoop(data, loop_through, '{http://uniprot.org/uniprot}')
+    for key in data:
+        value = data[key]
+        if not key.startswith('dbReference'):
+            continue
+        if not isinstance(value, Element):
+            continue
+        
+        if value.get('type') != 'PDB':
+            continue
+
+        pdbid = value.get('id')
+        refdata = {'PDB': pdbid}
+        for prop in value:
+            prop_key = prop.get('type')
+            prop_val = prop.get('value')
+            refdata[prop_key] = prop_val
+        data[key] = refdata
+            
+    if expand:
+        keys = []
+        if regex:
+            for lt in expand:
+                lt_re = re.compile(lt)
+                for key in data.keys():
+                    if lt_re.match(key):
+                        keys.append(key)
+        else:
+            keys = expand
+        data = dictElementLoop(data, keys, '{http://uniprot.org/uniprot}')
     
     return data

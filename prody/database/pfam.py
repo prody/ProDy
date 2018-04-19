@@ -429,6 +429,7 @@ def parsePfamPDBs(query, **kwargs):
 
     :arg start: Residue number for defining the start of the domain.
         The PFAM domain that starts closest to this will be selected. 
+        Default is 1
     :type start: int
 
     :arg end: Residue number for defining the end of the domain.
@@ -440,7 +441,7 @@ def parsePfamPDBs(query, **kwargs):
     :type return_data: bool
     """
     
-    start = kwargs.pop('start', None)
+    start = kwargs.pop('start', 1)
     end = kwargs.pop('end', None)
     return_data = kwargs.pop('return_data', False)
 
@@ -468,6 +469,7 @@ def parsePfamPDBs(query, **kwargs):
                              'when using a UniProt ID or PDB ID.')
 
     from ftplib import FTP
+    from .uniprot import queryUniprot
 
     data_stream = BytesIO()
     ftp_host = 'ftp.ebi.ac.uk'
@@ -496,34 +498,64 @@ def parsePfamPDBs(query, **kwargs):
     pdb_ids = [data_dict['PDB_ID'] for data_dict in data_dicts]
     chains = [data_dict['chain'] for data_dict in data_dicts]
 
-    header = kwargs.pop('header',False)
-    ags, headers = parsePDB(*pdb_ids, chain=chains, header=True, **kwargs)
+    results = parsePDB(*pdb_ids, chain=chains, **kwargs)
 
+    header = kwargs.get('header', False)
+    if header:
+        ags, headers = results
+    else:
+        ags = results
+
+    comma_spliter = re.compile(r'\s*,\s*').split
+    space_spliter = re.compile(r'\s+').split
     ags = list(ags)
-    headers = list(headers)
-    no_dbrefs = []
+    #headers = list(headers)
+    no_info = []
     for i, ag in enumerate(ags):
-        if headers[i][data_dicts[i]['chain']].dbrefs != []:
-            resnumRange = data_dicts[i]['UniprotResnumRange'].split('-')
-            first = headers[i][data_dicts[i]['chain']].dbrefs[0].first
-            
-            ags[i] = ag.select('resnum {0} to {1}'.format(
-                int(resnumRange[0]) - (first[-1] - first[0]),
-                int(resnumRange[1]) - (first[-1] - first[0]))) 
-        else:
-            no_dbrefs.append(i)
+        data_dict = data_dicts[i]
+        #dbrefs = headers[i][data_dict['chain']].dbrefs
+        #if dbrefs:
+        pfamRange = data_dict['UniprotResnumRange'].split('-')
+        uniprotID = data_dict['UniprotID']
+        uniData = queryUniprot(uniprotID)
+        resrange = None
+        for key, value in uniData:
+            if not key.startswith('dbReference'):
+                continue
+            try:
+                pdbid = value['PDB']
+            except:
+                continue
+            if pdbid != data_dict['PDB_ID']:
+                continue
+            pdbchains = value['chains']
 
-    for i in reversed(no_dbrefs):
+            # example chain strings: "A=27-139, B=140-150" or "A/B=27-150"
+            pdbchains = comma_spliter(pdbchains)
+            for chain in pdbchains:
+                chids, resrange = space_spliter(chain)
+                chids = [chid.strip() for chid in chids.split('/')]
+                if data_dict['chain'] in chids:
+                    resrange = resrange.split('-')
+                    break
+
+            #first = dbrefs[0].first
+        if resrange:
+            pfStart, pfEnd = int(pfamRange[0]), int(pfamRange[1])
+            uniStart, uniEnd = int(resrange[0]), int(resrange[1])
+
+            resiStart = pfStart - uniStart
+            resiEnd = pfEnd - uniEnd
+            ags[i] = ag.select('resindex {0} to {1}'.format(
+                               resiStart, resiEnd)) 
+        else:
+            no_info.append(i)
+
+    for i in reversed(no_info):
         ags.pop(i)
         headers.pop(i)
 
     ags = tuple(ags)
-    headers = tuple(headers)
-    
-    if header:
-        results = ags, headers
-    else:
-        results = ags
 
     if return_data:
         return results, data_dicts
