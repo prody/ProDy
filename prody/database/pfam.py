@@ -506,11 +506,25 @@ def parsePfamPDBs(**kwargs):
     ags, headers = parsePDB(*pdb_ids, chain=chains, header=True, **kwargs)
 
     ags = list(ags)
+    headers = list(headers)
+    no_dbrefs = []
     for i, ag in enumerate(ags):
-        ags[i] = ag.select('resnum {0} to {1}'.format(
-            data_dicts[i]['PdbRange'].split('-')[0],
-            data_dicts[i]['PdbRange'].split('-')[1])).copy()
+        if headers[i][data_dicts[i]['chain']].dbrefs != []:
+            dbrefs0 = headers[i][data_dicts[i]['chain']].dbrefs[0]
+            ags[i] = ag.select('resnum {0} to {1}'.format(
+                int(data_dicts[i]['UniprotResnumRange'].split('-')[0])
+                - (dbrefs0.first[-1] - dbrefs0.first[0]),
+                int(data_dicts[i]['UniprotResnumRange'].split('-')[1])
+                - (dbrefs0.first[-1] - dbrefs0.first[0]))).copy()
+        else:
+            no_dbrefs.append(i)
+
+    for i in reversed(no_dbrefs):
+        ags.pop(i)
+        headers.pop(i)
+
     ags = tuple(ags)
+    headers = tuple(headers)
     
     if header:
         results = ags, headers
