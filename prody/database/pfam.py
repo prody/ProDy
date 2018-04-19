@@ -515,8 +515,7 @@ def parsePfamPDBs(**kwargs):
             
             ags[i] = ag.select('resnum {0} to {1}'.format(
                 int(resnumRange[0]) - (first[-1] - first[0]),
-                int(resnumRange[1]) - (first[-1] - first[0])))
-                .copy()
+                int(resnumRange[1]) - (first[-1] - first[0]))) 
         else:
             no_dbrefs.append(i)
 
