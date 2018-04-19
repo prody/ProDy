@@ -183,12 +183,13 @@ class PCA(NMA):
         :arg turbo: when available, use a memory intensive but faster way to
             calculate modes, default is **True**
         :type turbo: bool"""
-
+        
         linalg = importLA()
         if self._cov is None:
             raise ValueError('covariance matrix is not built or set')
         start = time.time()
         dof = self._dof
+        self._clear()
         if str(n_modes).lower() == 'all':
             n_modes = None
         if linalg.__package__.startswith('scipy'):
@@ -288,6 +289,7 @@ class PCA(NMA):
         """Set eigen *vectors* and eigen *values*.  If eigen *values* are
         omitted, they will be set to 1.  Eigenvalues are set as variances."""
 
+        self._clear()
         NMA.setEigens(self, vectors, values)
         self._vars = self._eigvals
 
