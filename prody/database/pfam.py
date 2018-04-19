@@ -510,12 +510,12 @@ def parsePfamPDBs(**kwargs):
     no_dbrefs = []
     for i, ag in enumerate(ags):
         if headers[i][data_dicts[i]['chain']].dbrefs != []:
+            resnumRange = data_dicts[i]['UniprotResnumRange'].split('-')
             dbrefs0 = headers[i][data_dicts[i]['chain']].dbrefs[0]
             ags[i] = ag.select('resnum {0} to {1}'.format(
-                int(data_dicts[i]['UniprotResnumRange'].split('-')[0])
-                - (dbrefs0.first[-1] - dbrefs0.first[0]),
-                int(data_dicts[i]['UniprotResnumRange'].split('-')[1])
-                - (dbrefs0.first[-1] - dbrefs0.first[0]))).copy()
+                int(resnumRange[0]) - (dbrefs0.first[-1] - dbrefs0.first[0]),
+                int(resnumRange[1]) - (dbrefs0.first[-1] - dbrefs0.first[0])))
+                .copy()
         else:
             no_dbrefs.append(i)
 
