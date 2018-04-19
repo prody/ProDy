@@ -29,10 +29,17 @@ class ANMBase(NMA):
 
     def _reset(self):
 
-        GNMBase._reset(self)
+        super(ANMBase, self)._reset()
+        self._cutoff = None
+        self._gamma = None
         self._hessian = None
         self._stiffness = None
         self._is3d = True
+    
+    def _clear(self):
+        self._trace = None
+        self._cov = None
+        self._stiffness = None
 
     def getHessian(self):
         """Returns a copy of the Hessian matrix."""
@@ -309,6 +316,7 @@ class ANMBase(NMA):
             'n_modes must be a positive integer'
         assert isinstance(zeros, bool), 'zeros must be a boolean'
         assert isinstance(turbo, bool), 'turbo must be a boolean'
+        self._clear()
         linalg = importLA()
         LOGGER.timeit('_anm_calc_modes')
         shift = 5
@@ -423,6 +431,10 @@ class ANMBase(NMA):
         
         LOGGER.info('The range of effective force constant is: {0} to {1}.'
                                    .format(np.min(sm[np.nonzero(sm)]), np.amax(sm)))
+
+    def setEigens(self, vectors, values=None):
+        self._clear()
+        super(ANMBase, self).setEigens(vectors, values)
         
 
 class ANM(ANMBase, GNMBase):
