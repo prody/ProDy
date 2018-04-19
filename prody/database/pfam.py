@@ -503,7 +503,6 @@ def parsePfamPDBs(query, **kwargs):
     headers = list(headers)
     no_dbrefs = []
     for i, ag in enumerate(ags):
-
         if headers[i][data_dicts[i]['chain']].dbrefs != []:
             resnumRange = data_dicts[i]['UniprotResnumRange'].split('-')
             first = headers[i][data_dicts[i]['chain']].dbrefs[0].first
