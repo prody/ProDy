@@ -489,7 +489,8 @@ def parsePfamPDBs(**kwargs):
     with gzip.GzipFile('pdbmap.gz', 'rb') as f:
         data = f.read()
 
-    fields = ['PDB_ID', 'chain', 'nothing', 'PFAM_Name', 'PFAM_ACC', 'UniprotID', 'PdbRange']
+    fields = ['PDB_ID', 'chain', 'nothing', 'PFAM_Name', 'PFAM_ACC', 
+              'UniprotID', 'UniprotResnumRange']
     
     data_dicts = []
     for line in data.split('\n'):
