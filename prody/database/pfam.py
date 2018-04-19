@@ -9,6 +9,8 @@ from numbers import Integral
 import numpy as np
 import os
 from os.path import join, isfile
+from io import BytesIO
+import zlib
 
 from prody import LOGGER, PY3K
 from prody.utilities import makePath, openURL, gunzip, openFile, dictElement
@@ -414,24 +416,16 @@ def fetchPfamMSA(acc, alignment='full', compressed=False, **kwargs):
 
     return filepath
 
-def parsePfamPDBs(**kwargs):
+def parsePfamPDBs(query, **kwargs):
     """Returns a list of AtomGroups containing sections of chains that 
     correspond to a particular PFAM domain family. These are defined by 
     alignment start and end residue numbers.
 
-    :arg pfam_acc: The accession number for a pfam domain family, if known.
-        Alternatively you can select a family based on a query (see below).
-    :type pfam_acc: str
-
-    :arg query: UniProt ID or PDB ID
+    :arg query: Pfam accession number, UniProt ID or PDB ID
         If a PDB ID is provided the corresponding UniProt ID is used.
-        If no query is provided but a pfam_acc is then the first entry
-        will be used as a query. 
+        Use of UniProt ID or PDB ID requires start or end to also be provided.
         This query is also used for label refinement of the pfam domain MSA.
     :type query: str
-
-    You must provide one of these two arguments.
-    Use of query requires start or end to also be provided.
 
     :arg start: Residue number for defining the start of the domain.
         The PFAM domain that starts closest to this will be selected. 
@@ -445,49 +439,47 @@ def parsePfamPDBs(**kwargs):
         the Pfam mapping table, default is False
     :type return_data: bool
     """
-    pfam_acc = kwargs.pop('pfam_acc',None)
-    query = kwargs.pop('query',None)
-    start = kwargs.pop('start',None)
-    end = kwargs.pop('end',None)
+    
+    start = kwargs.pop('start', None)
+    end = kwargs.pop('end', None)
     return_data = kwargs.pop('return_data', False)
 
-    if pfam_acc is None:
-        if query is None:
-            raise ValueError('Please provide a value for pfam_acc or query.')
+    if len(query) > 4 and query.startswith('PF'):
+        pfam_acc = query
+    else:
+        pfam_matches = searchPfam(query)
+
+        if isinstance(start, Integral):
+            start_diff = []
+            for i, key in enumerate(pfam_matches):
+                start_diff.append(int(pfam_matches[key]['locations'][0]['start']) - start)
+            start_diff = np.array(start_diff)
+            pfam_acc = pfam_matches.keys()[np.where(abs(start_diff) == min(abs(start_diff)))[0][0]]
+
+        elif isinstance(end, Integral):
+            end_diff = []
+            for i, key in enumerate(pfam_matches):
+                end_diff.append(int(pfam_matches[key]['locations'][0]['end']) - end)
+            end_diff = np.array(end_diff)
+            pfam_acc = pfam_matches.keys()[np.where(abs(end_diff) == min(abs(end_diff)))[0][0]]
+
         else:
-            pfam_matches = searchPfam(query)
-
-            if start is not None and isinstance(start, Integral):
-                start_diff = []
-                for i, key in enumerate(pfam_matches):
-                    start_diff.append(int(pfam_matches[key]['locations'][0]['start']) - start)
-                start_diff = np.array(start_diff)
-                pfam_acc = pfam_matches.keys()[np.where(abs(start_diff) == min(abs(start_diff)))[0][0]]
-
-            elif end is not None and isinstance(end, Integral):
-                end_diff = []
-                for i, key in enumerate(pfam_matches):
-                    end_diff.append(int(pfam_matches[key]['locations'][0]['end']) - end)
-                end_diff = np.array(end_diff)
-                pfam_acc = pfam_matches.keys()[np.where(abs(end_diff) == min(abs(end_diff)))[0][0]]
-
-            else:
-                raise ValueError('Please provide an integer for start or end when using query.')
+            raise ValueError('Please provide an integer for start or end '
+                             'when using a UniProt ID or PDB ID.')
 
     from ftplib import FTP
-    import gzip
 
-    data_file = open('pdbmap.gz','wb')
+    data_stream = BytesIO()
     ftp_host = 'ftp.ebi.ac.uk'
     ftp = FTP(ftp_host)
     ftp.login()
     ftp.cwd('pub/databases/Pfam/current_release')
-    ftp.retrbinary('RETR pdbmap.gz', data_file.write)
+    ftp.retrbinary('RETR pdbmap.gz', data_stream.write)
     ftp.quit()
-    data_file.close()
+    zip_data = data_stream.getvalue()
+    data_stream.close()
 
-    with gzip.GzipFile('pdbmap.gz', 'rb') as f:
-        data = f.read()
+    data = gunzip(zip_data)
 
     fields = ['PDB_ID', 'chain', 'nothing', 'PFAM_Name', 'PFAM_ACC', 'UniprotID', 'PdbRange']
     
@@ -517,7 +509,6 @@ def parsePfamPDBs(**kwargs):
         results = ags
 
     if return_data:
-        return data_dict, results
-    else:
-        return results
+        return results, data_dicts
+    return results
 
