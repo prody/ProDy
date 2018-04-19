@@ -59,8 +59,8 @@ def searchDali(pdbId, chainId, daliURL=None, subset='fullPDB', **kwargs):
     obj = daliRecord(url, pdbId, chainId, subset=subset, timeout=timeout, **kwargs)
     if obj.isSuccess:
         return obj
-    else:
-        return None
+    
+    return None
 
 class daliRecord(object):
 
