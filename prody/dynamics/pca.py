@@ -177,7 +177,7 @@ class PCA(NMA):
 
         :arg n_modes: number of non-zero eigenvalues/vectors to calculate,
             default is 20,
-            if **None** or 'all' is given, all modes will be calculated
+            if **None** or ``'all'`` is given, all modes will be calculated
         :type n_modes: int
 
         :arg turbo: when available, use a memory intensive but faster way to

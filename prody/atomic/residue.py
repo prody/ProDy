@@ -58,7 +58,7 @@ class Residue(AtomSubset):
                                          self.getIcode() or '')
 
     def getAtom(self, name):
-        """Returns atom with given *name*, ``None`` if not found.  Assumes that
+        """Returns atom with given *name*, **None** if not found.  Assumes that
         atom names in the residue are unique.  If more than one atoms with the
         given *name* exists, the one with the smaller index will be returned.
         """

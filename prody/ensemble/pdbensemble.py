@@ -350,8 +350,8 @@ class PDBEnsemble(Ensemble):
 
     def getCoordsets(self, indices=None, selected=True):
         """Returns a copy of coordinate set(s) at given *indices* for selected
-        atoms. *indices* may be an integer, a list of integers or ``None``.
-        ``None`` returns all coordinate sets.
+        atoms. *indices* may be an integer, a list of integers or **None**.
+        **None** returns all coordinate sets.
 
         .. warning:: When there are atoms with weights equal to zero (0),
            their coordinates will be replaced with the coordinates of the
@@ -455,7 +455,7 @@ class PDBEnsemble(Ensemble):
         you might need to align the conformations using :meth:`superpose` or
         :meth:`iterpose` before calculating RMSDs.
 
-        :arg pairwise: if ``True`` then it will return pairwise RMSDs 
+        :arg pairwise: if **True** then it will return pairwise RMSDs 
         as an n-by-n matrix. n is the number of conformations.
         :type pairwise: bool
         """

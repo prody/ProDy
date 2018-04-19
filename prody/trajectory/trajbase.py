@@ -307,7 +307,7 @@ class TrajBase(object):
 
     def getCoordsets(self, indices=None):
         """Returns coordinate sets at given *indices*. *indices* may be an
-        integer, a list of ordered integers or ``None``. ``None`` returns all
+        integer, a list of ordered integers or **None**. **None** returns all
         coordinate sets. If a list of indices is given, unique numbers will
         be selected and sorted. That is, this method will always return unique
         coordinate sets in the order they appear in the trajectory file.
@@ -362,6 +362,6 @@ class TrajBase(object):
         pass
 
     def hasUnitcell(self):
-        """Returns ``True`` if trajectory has unitcell data."""
+        """Returns **True** if trajectory has unitcell data."""
 
         pass

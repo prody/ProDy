@@ -22,7 +22,7 @@ __all__ = ['saveEnsemble', 'loadEnsemble', 'trimPDBEnsemble',
 
 def saveEnsemble(ensemble, filename=None, **kwargs):
     """Save *ensemble* model data as :file:`filename.ens.npz`.  If *filename*
-    is ``None``, title of the *ensemble* will be used as the filename, after
+    is **None**, title of the *ensemble* will be used as the filename, after
     white spaces in the title are replaced with underscores.  Extension is
     :file:`.ens.npz`. Upon successful completion of saving, filename is
     returned. This function makes use of :func:`numpy.savez` function."""
@@ -213,7 +213,7 @@ def calcOccupancies(pdb_ensemble, normed=False):
     """Returns occupancy calculated from weights of a :class:`.PDBEnsemble`.
     Any non-zero weight will be considered equal to one.  Occupancies are
     calculated by binary weights for each atom over the conformations in
-    the ensemble. When *normed* is ``True``, total weights will be divided
+    the ensemble. When *normed* is **True**, total weights will be divided
     by the number of atoms.  This function can be used to see how many times
     a residue is resolved when analyzing an ensemble of X-ray structures."""
 

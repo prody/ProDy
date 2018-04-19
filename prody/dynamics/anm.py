@@ -298,14 +298,14 @@ class ANMBase(NMA):
         :func:`numpy.linalg.eigh` is used.
 
         :arg n_modes: number of non-zero eigenvalues/vectors to calculate.
-            If ``None`` or 'all' is given, all modes will be calculated.
+            If **None** or ``'all'`` is given, all modes will be calculated.
         :type n_modes: int or None, default is 20
 
-        :arg zeros: If ``True``, modes with zero eigenvalues will be kept.
-        :type zeros: bool, default is ``False``
+        :arg zeros: If **True**, modes with zero eigenvalues will be kept.
+        :type zeros: bool, default is **True**
 
         :arg turbo: Use a memory intensive, but faster way to calculate modes.
-        :type turbo: bool, default is ``True``
+        :type turbo: bool, default is **True**
         """
 
         if self._hessian is None:
@@ -393,8 +393,8 @@ class ANMBase(NMA):
         :arg coords: a coordinate set or an object with ``getCoords`` method
         :type coords: :class:`numpy.ndarray`.
         :arg n_modes: number of non-zero eigenvalues/vectors to calculate.
-            If ``None`` is given, all modes will be calculated (3x number of atoms).
-        :type n_modes: int or ``None``, default is 20.
+            If **None** is given, all modes will be calculated (3x number of atoms).
+        :type n_modes: int or **None**, default is 20.
         
         Author: Mustafa Tekpinar & Karolina Mikulska-Ruminska & Cihan Kaya
         """

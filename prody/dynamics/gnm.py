@@ -368,17 +368,17 @@ class GNM(GNMBase):
         :func:`numpy.linalg.eigh` is used.
 
         :arg n_modes: number of non-zero eigenvalues/vectors to calculate.
-              If ``None`` or 'all' is given, all modes will be calculated.
+              If **None** or ``'all'`` is given, all modes will be calculated.
         :type n_modes: int or None, default is 20
 
-        :arg zeros: If ``True``, modes with zero eigenvalues will be kept.
-        :type zeros: bool, default is ``False``
+        :arg zeros: If **True**, modes with zero eigenvalues will be kept.
+        :type zeros: bool, default is **True**
 
         :arg turbo: Use a memory intensive, but faster way to calculate modes.
-        :type turbo: bool, default is ``True``
+        :type turbo: bool, default is **True**
 
         :arg hinges: Identify hinge sites after modes are computed.
-        :type hinges: bool, default is ``True``
+        :type hinges: bool, default is **True**
         """
 
         if self._kirchhoff is None:
@@ -477,7 +477,7 @@ class GNM(GNMBase):
 
         :arg modeIndex: indices of modes. This parameter can be a scalar, a list, 
             or logical indices.
-        :type modeIndex: int or list, default is ``None``
+        :type modeIndex: int or list, default is **None**
         """
         if self._hinges is None:
             LOGGER.info('Warning: hinges are not calculated, thus null is returned. '
@@ -614,7 +614,7 @@ class TrimedGNM(GNM):
 
     def _getArray(self):
         """Returns eigenvectors array. The function returns 
-        a copy of the array if useTrimed is ``True``."""
+        a copy of the array if useTrimed is **True**."""
 
         if self._array is None: return None
 

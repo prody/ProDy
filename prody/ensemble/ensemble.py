@@ -384,7 +384,7 @@ class Ensemble(object):
 
     def getCoordsets(self, indices=None, selected=True):
         """Returns a copy of coordinate set(s) at given *indices*, which may be
-        an integer, a list of integers or ``None``. ``None`` returns all
+        an integer, a list of integers or **None**. **None** returns all
         coordinate sets.  For reference coordinates, use :meth:`getCoordinates`
         method."""
 
@@ -645,7 +645,7 @@ class Ensemble(object):
         Conformations can be aligned using one of :meth:`superpose` or
         :meth:`iterpose` methods prior to RMSD calculation.
         
-        :arg pairwise: if ``True`` then it will return pairwise RMSDs 
+        :arg pairwise: if **True** then it will return pairwise RMSDs 
         as an n-by-n matrix. n is the number of conformations.
         :type pairwise: bool
         """
