@@ -440,6 +440,7 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
         altloc_torf = True
 
     acount = 0
+    coordsets = None
     altloc = defaultdict(list)
     i = start
     END = False
@@ -589,8 +590,9 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                 i += 1
                 break
             diff = stop - i - 1
-            if diff < acount:
-                END = True
+            END = diff < acount
+            if coordsets is not None:
+                END = END or nmodel >= coordsets.shape[0]
             if onlycoords:
                 if acount < n_atoms:
                     LOGGER.warn('Discarding model {0}, which contains '
