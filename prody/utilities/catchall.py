@@ -8,7 +8,7 @@ from scipy import spatial
 from .misctools import addBreaks, interpY
 from Bio import Phylo
 
-__all__ = ['calcTree', 'clusterMatrix', 'showLine', 'showMatrix', 'reorderMatrix', 'findSubgroups']
+__all__ = ['calcTree', 'clusterMatrix', 'showLines', 'showMatrix', 'reorderMatrix', 'findSubgroups']
 
 def calcTree(names, distance_matrix, method='nj'):
     """ Given a distance matrix for an ensemble, it creates an returns a tree structure.
@@ -112,7 +112,7 @@ def clusterMatrix(distance_matrix=None, similarity_matrix=None, labels=None, ret
         return_vals.append(linkage_matrix)
     return tuple(return_vals) # convert to tuple to avoid [pylint] E0632:Possible unbalanced tuple unpacking
 
-def showLine(*args, **kwargs):
+def showLines(*args, **kwargs):
     """
     Show 1-D data using :func:`~matplotlib.axes.Axes.plot`. 
     

@@ -104,6 +104,13 @@ def loadEnsemble(filename, **kwargs):
             ensemble._labels = list(attr_dict['_identifiers'])
         if '_labels' in attr_dict.files:
             ensemble._labels = list(attr_dict['_labels'])
+        if ensemble._labels:
+            for i, label in enumerate(ensemble._labels):
+                if not isinstance(label, str):
+                    try:
+                        ensemble._labels[i] = label.decode()
+                    except AttributeError:
+                        ensemble._labels[i] = str(label)
         if '_trans' in attr_dict.files:
             ensemble._trans = attr_dict['_trans']
         if '_msa' in attr_dict.files:
