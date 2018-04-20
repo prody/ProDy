@@ -17,11 +17,11 @@ from .functions import calcENM
 from .compare import calcSpectralOverlap, matchModes, calcOverlap
 
 from .analysis import calcSqFlucts, calcCrossCorr, calcFractVariance, calcCollectivity
-from .plotting import showAtomicLine, showAtomicMatrix
+from .plotting import showAtomicLines, showAtomicMatrix
 from .anm import ANM
 from .gnm import GNM
 
-__all__ = ['ModeEnsemble', 'sdarray', 'calcEnsembleENMs', 'showSignatureLine', 'showAtomicLinePlus', 
+__all__ = ['ModeEnsemble', 'sdarray', 'calcEnsembleENMs', 'showSignatureLine', 'showAtomicLinesPlus', 
            'showSignatureMode', 'showSignatureDistribution', 'showSignatureCollectivity',
            'showSignatureSqFlucts', 'calcEnsembleSpectralOverlaps', 'calcSignatureSqFlucts', 
            'calcSignatureCollectivity',
@@ -817,7 +817,7 @@ def calcSignatureSqFlucts(mode_ensemble, **kwargs):
 
     return sig
 
-def showAtomicLinePlus(y, std=None, min=None, max=None, atoms=None, **kwargs):
+def showAtomicLinesPlus(y, std=None, min=None, max=None, atoms=None, **kwargs):
     from matplotlib.pyplot import figure, plot, fill_between, \
                                   gca, xlabel, ylabel, title, ylim
 
@@ -825,7 +825,7 @@ def showAtomicLinePlus(y, std=None, min=None, max=None, atoms=None, **kwargs):
     zero_line = kwargs.pop('zero_line', False)
 
     x = range(y.shape[0])
-    lines, _, bars, _ = showAtomicLine(y, atoms=atoms, linespec=linespec, 
+    lines, _, bars, _ = showAtomicLines(y, atoms=atoms, linespec=linespec, 
                                        show_zero=zero_line, **kwargs)
 
     ori_ylim = ylim()
@@ -859,12 +859,12 @@ def showAtomicLinePlus(y, std=None, min=None, max=None, atoms=None, **kwargs):
 
 def showSignatureLine(signature, linespec='-', **kwargs):
     """
-    Show the signature dynamics using :func:`showAtomicLine`. 
+    Show the signature dynamics using :func:`showAtomicLines`. 
     
     :arg signature: the signature dynamics to be plotted 
     :type signature: :class:`sdarray`
 
-    :arg linespec: line specifications that will be passed to :func:`showAtomicLine`
+    :arg linespec: line specifications that will be passed to :func:`showAtomicLines`
     :type linespec: str
 
     :arg atoms: an object with method :func:`getResnums` for use 
@@ -899,7 +899,7 @@ def showSignatureLine(signature, linespec='-', **kwargs):
             if i == 2:
                 atoms_ = atoms
                 zero_line_ = zero_line
-            _lines, _bars, _polys = showAtomicLinePlus(meanV[i], stdV[i], minV[i], maxV[i], 
+            _lines, _bars, _polys = showAtomicLinesPlus(meanV[i], stdV[i], minV[i], maxV[i], 
                                                    atoms=atoms_, zero_line=zero_line_,
                                                    linespec=linespec, **kwargs)
             lines.extend(_lines)
@@ -907,7 +907,7 @@ def showSignatureLine(signature, linespec='-', **kwargs):
             polys.extend(_polys)
 
     else:
-        _lines, _bars, _polys = showAtomicLinePlus(meanV, stdV, minV, maxV, 
+        _lines, _bars, _polys = showAtomicLinesPlus(meanV, stdV, minV, maxV, 
                                                atoms=atoms, zero_line=zero_line,
                                                linespec=linespec, **kwargs)
         lines.extend(_lines)
@@ -1058,7 +1058,7 @@ def showSignatureOverlaps(mode_ensemble):
     meanV = overlap_triu.mean(axis=1)
     stdV = overlap_triu.std(axis=1)
 
-    show = showAtomicLinePlus(meanV, stdV)
+    show = showAtomicLinesPlus(meanV, stdV)
     xlabel('Mode index')
     ylabel('Overlap')
     
