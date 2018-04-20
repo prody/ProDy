@@ -21,7 +21,7 @@ from .plotting import showAtomicLines, showAtomicMatrix
 from .anm import ANM
 from .gnm import GNM
 
-__all__ = ['ModeEnsemble', 'sdarray', 'calcEnsembleENMs', 'showSignatureLine', 'showAtomicLinesPlus', 
+__all__ = ['ModeEnsemble', 'sdarray', 'calcEnsembleENMs', 'showSignature1D', 'showSignatureAtomicLines', 
            'showSignatureMode', 'showSignatureDistribution', 'showSignatureCollectivity',
            'showSignatureSqFlucts', 'calcEnsembleSpectralOverlaps', 'calcSignatureSqFlucts', 
            'calcSignatureCollectivity',
@@ -817,7 +817,7 @@ def calcSignatureSqFlucts(mode_ensemble, **kwargs):
 
     return sig
 
-def showAtomicLinesPlus(y, std=None, min=None, max=None, atoms=None, **kwargs):
+def showSignatureAtomicLines(y, std=None, min=None, max=None, atoms=None, **kwargs):
     from matplotlib.pyplot import figure, plot, fill_between, \
                                   gca, xlabel, ylabel, title, ylim
 
@@ -857,7 +857,7 @@ def showAtomicLinesPlus(y, std=None, min=None, max=None, atoms=None, **kwargs):
         
     return lines, bars, polys
 
-def showSignatureLine(signature, linespec='-', **kwargs):
+def showSignature1D(signature, linespec='-', **kwargs):
     """
     Show the signature dynamics using :func:`showAtomicLines`. 
     
@@ -899,7 +899,7 @@ def showSignatureLine(signature, linespec='-', **kwargs):
             if i == 2:
                 atoms_ = atoms
                 zero_line_ = zero_line
-            _lines, _bars, _polys = showAtomicLinesPlus(meanV[i], stdV[i], minV[i], maxV[i], 
+            _lines, _bars, _polys = showSignatureAtomicLines(meanV[i], stdV[i], minV[i], maxV[i], 
                                                    atoms=atoms_, zero_line=zero_line_,
                                                    linespec=linespec, **kwargs)
             lines.extend(_lines)
@@ -907,7 +907,7 @@ def showSignatureLine(signature, linespec='-', **kwargs):
             polys.extend(_polys)
 
     else:
-        _lines, _bars, _polys = showAtomicLinesPlus(meanV, stdV, minV, maxV, 
+        _lines, _bars, _polys = showSignatureAtomicLines(meanV, stdV, minV, maxV, 
                                                atoms=atoms, zero_line=zero_line,
                                                linespec=linespec, **kwargs)
         lines.extend(_lines)
@@ -930,7 +930,7 @@ def showSignatureMode(mode_ensemble, **kwargs):
 
     mode = mode_ensemble.getEigvec()
     show_zero = kwargs.pop('show_zero', True)
-    return showSignatureLine(mode, atoms=mode_ensemble.getAtoms(), show_zero=show_zero, **kwargs)
+    return showSignature1D(mode, atoms=mode_ensemble.getAtoms(), show_zero=show_zero, **kwargs)
 
 def showSignatureSqFlucts(mode_ensemble, **kwargs):
 
@@ -943,7 +943,7 @@ def showSignatureSqFlucts(mode_ensemble, **kwargs):
 
     sqf = calcSignatureSqFlucts(mode_ensemble)
     show_zero = kwargs.pop('show_zero', False)
-    return showSignatureLine(sqf, atoms=mode_ensemble.getAtoms(), show_zero=show_zero, **kwargs)
+    return showSignature1D(sqf, atoms=mode_ensemble.getAtoms(), show_zero=show_zero, **kwargs)
 
 def calcSignatureCrossCorr(mode_ensemble, norm=True):
     """Calculate average cross-correlations for a ModeEnsemble."""
@@ -1058,7 +1058,7 @@ def showSignatureOverlaps(mode_ensemble):
     meanV = overlap_triu.mean(axis=1)
     stdV = overlap_triu.std(axis=1)
 
-    show = showAtomicLinesPlus(meanV, stdV)
+    show = showSignatureAtomicLines(meanV, stdV)
     xlabel('Mode index')
     ylabel('Overlap')
     
