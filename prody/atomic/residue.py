@@ -75,8 +75,9 @@ class Residue(AtomSubset):
         """Returns the chain that the residue belongs to."""
 
         chid = self.getChid()
+        segname = self.getSegname()
         if chid is not None:
-            return self._hv.getChain(chid)
+            return self._hv.getChain(chid, segname)
 
     def getResnum(self):
         """Returns residue number."""

@@ -249,7 +249,7 @@ class HierView(object):
                     idx = _indices[i:][sgnms[i:] == s]
                     segindex += 1
                     segindices[idx] = segindex
-                    _dict[s] = segindex
+                    _dict[s or None] = segindex
                     _segments.append(idx)
 
         ag._data['segindex'] = segindices
@@ -301,7 +301,7 @@ class HierView(object):
                     pc = c
                     ps = s
                     _i = i
-                s_c = (ps, pc or None)
+                s_c = (ps or None, pc or None)
                 cid = _dict.get(s_c)
                 idx = _indices[_i:]
                 if cid is None:
@@ -436,7 +436,7 @@ class HierView(object):
         """Returns chain with identifier *chid*, if it is present."""
 
         try:
-            index = self._dict[(segname or self._getSegname(),
+            index = self._dict[(segname or self._getSegname() or None,
                                 chid or None)]
         except KeyError:
             pass
