@@ -229,7 +229,7 @@ class SimpleChain(object):
         self._dict = dict()
         self._list = list()
         self._seq = ''
-        self._title = None
+        self._title = ''
         self._gaps = allow_gaps
         self._coords = None
         if isinstance(chain, Chain):
@@ -883,9 +883,10 @@ def mapOntoChain(atoms, chain, **kwargs):
                      .format(str(atoms), len(chains))) 
 
     if subset != 'all':
-        for t_chain in chain.select(subset).getHierView().iterChains():
-            if t_chain.getChid() == chain.getChid():
-                target_chain = chain
+        chid = chain.getChid()
+        segname = chain.getSegname()
+        chain_subset = chain.select(subset)
+        target_chain = chain_subset.getHierView()[segname, chid]
 
     mappings = []
     unmapped = []
@@ -1156,13 +1157,11 @@ def getCEAlignMapping(target, chain):
 
     tar_coords = target.getCoords().tolist()
     mob_coords = chain.getCoords().tolist()
-
+    
     def add_tail_dummies(coords, window=8):
         natoms = len(coords)
         if natoms < window:
-            raise ValueError('the system is too small to be aligned '
-                             'by CE algorithm (at least {0} residues)'
-                             .format(window))
+            return None
         rest = natoms % window
 
         tail_indices = []
@@ -1172,8 +1171,21 @@ def getCEAlignMapping(target, chain):
         
         return tail_indices
 
-    tar_dummies = add_tail_dummies(tar_coords)
-    mob_dummies = add_tail_dummies(mob_coords)
+    window = 8
+    tar_dummies = add_tail_dummies(tar_coords, window)
+    if tar_dummies is None:
+        LOGGER.warn('target ({1}) is too small to be aligned '
+                    'by CE algorithm (at least {0} residues)'
+                    .format(window, repr(target)))
+        return None
+
+    mob_dummies = add_tail_dummies(mob_coords, window)
+    if mob_dummies is None:
+        LOGGER.warn('chain ({1}) is too small to be aligned '
+                    'by CE algorithm (at least {0} residues)'
+                    .format(window, repr(chain)))
+        return None
+
     aln_info = ccealign((tar_coords, mob_coords))
 
     paths, bestIdx, nres, rmsd = aln_info[:4]
