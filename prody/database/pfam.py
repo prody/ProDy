@@ -416,7 +416,7 @@ def fetchPfamMSA(acc, alignment='full', compressed=False, **kwargs):
 
     return filepath
 
-def parsePfamPDBs(query, **kwargs):
+def parsePfamPDBs(query, data=[], **kwargs):
     """Returns a list of AtomGroups containing sections of chains that 
     correspond to a particular PFAM domain family. These are defined by 
     alignment start and end residue numbers.
@@ -433,12 +433,12 @@ def parsePfamPDBs(query, **kwargs):
     :type start: int
 
     :arg end: Residue number for defining the end of the domain.
-        The PFAM domain that ends closest to this will be selected. 
+              The PFAM domain that ends closest to this will be selected. 
     :type end: int
 
-    :arg return_data: Whether to return the data dictionary from
-        the Pfam mapping table, default is False
-    :type return_data: bool
+    :arg data: If given the data dictionary from the Pfam mapping table will 
+               be output through this argument.
+    :type data: list
     """
     
     start = kwargs.pop('start', 1)
@@ -481,15 +481,15 @@ def parsePfamPDBs(query, **kwargs):
     zip_data = data_stream.getvalue()
     data_stream.close()
 
-    data = gunzip(zip_data)
+    rawdata = gunzip(zip_data)
     if PY3K:
-        data = data.decode()
+        rawdata = rawdata.decode()
 
     fields = ['PDB_ID', 'chain', 'nothing', 'PFAM_Name', 'PFAM_ACC', 
               'UniprotID', 'UniprotResnumRange']
     
     data_dicts = []
-    for line in data.split('\n'):
+    for line in rawdata.split('\n'):
         if line.find(pfam_acc) != -1:
             data_dicts.append({})
             for j, entry in enumerate(line.strip().split('\t')):
@@ -503,12 +503,14 @@ def parsePfamPDBs(query, **kwargs):
     header = kwargs.get('header', False)
     if header:
         ags, headers = results
+        ags, headers = list(ags), list(headers)
+        results = [ags, headers]
     else:
         ags = results
+        ags = list(ags)
+        results = [ags]
 
     comma_spliter = re.compile(r'\s*,\s*').split
-    space_spliter = re.compile(r'\s+').split
-    ags = list(ags)
     #headers = list(headers)
     no_info = []
     for i, ag in enumerate(ags):
@@ -519,7 +521,7 @@ def parsePfamPDBs(query, **kwargs):
         uniprotID = data_dict['UniprotID']
         uniData = queryUniprot(uniprotID)
         resrange = None
-        for key, value in uniData:
+        for key, value in uniData.items():
             if not key.startswith('dbReference'):
                 continue
             try:
@@ -533,7 +535,7 @@ def parsePfamPDBs(query, **kwargs):
             # example chain strings: "A=27-139, B=140-150" or "A/B=27-150"
             pdbchains = comma_spliter(pdbchains)
             for chain in pdbchains:
-                chids, resrange = space_spliter(chain)
+                chids, resrange = chain.split('=')
                 chids = [chid.strip() for chid in chids.split('/')]
                 if data_dict['chain'] in chids:
                     resrange = resrange.split('-')
@@ -545,19 +547,23 @@ def parsePfamPDBs(query, **kwargs):
             uniStart, uniEnd = int(resrange[0]), int(resrange[1])
 
             resiStart = pfStart - uniStart
-            resiEnd = pfEnd - uniEnd
+            resiEnd = pfEnd - uniStart
             ags[i] = ag.select('resindex {0} to {1}'.format(
-                               resiStart, resiEnd)) 
+                            resiStart, resiEnd)) 
         else:
             no_info.append(i)
 
     for i in reversed(no_info):
         ags.pop(i)
-        headers.pop(i)
+        if header:
+            headers.pop(i)
 
-    ags = tuple(ags)
-
-    if return_data:
-        return results, data_dicts
+    results = [ags]
+    if header:
+        results.append(headers)
+    if isinstance(data, list):
+        data.extend(data_dicts)
+    else:
+        LOGGER.warn('data should be a list in order to get output')
     return results
 
