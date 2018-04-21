@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 """This module defines MSA analysis functions."""
 
+from numbers import Integral
+
 from numpy import all, zeros, dtype, array, char, cumsum, ceil, reshape
 from numpy import where, sort, concatenate, vstack, isscalar, chararray
 
@@ -117,7 +119,7 @@ class MSA(object):
 
     def __getitem__(self, index):
 
-        if isinstance(index, int):
+        if isinstance(index, Integral):
             return Sequence(self, index)
 
         if isinstance(index, str):

@@ -1,5 +1,6 @@
 """This module defines a class for handling ensembles of PDB conformations."""
 
+from numbers import Integral
 import numpy as np
 
 from prody.sequence import MSA, Sequence
@@ -86,7 +87,7 @@ class PDBEnsemble(Ensemble):
         msa = self._msa
         if msa:
             msa = self._msa[index]
-        if isinstance(index, int):
+        if isinstance(index, Integral):
             return self.getConformation(index)
 
         elif isinstance(index, slice):
@@ -394,7 +395,7 @@ class PDBEnsemble(Ensemble):
         """Delete a coordinate set from the ensemble."""
 
         Ensemble.delCoordset(self, index)
-        if isinstance(index, int):
+        if isinstance(index, Integral):
             index = [index]
         else:
             index = list(index)
@@ -414,7 +415,7 @@ class PDBEnsemble(Ensemble):
 
         if self._confs is None:
             raise AttributeError('conformations are not set')
-        if not isinstance(index, int):
+        if not isinstance(index, Integral):
             raise TypeError('index must be an integer')
         n_confs = self._n_csets
         if -n_confs <= index < n_confs:
