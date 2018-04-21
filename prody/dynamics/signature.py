@@ -24,7 +24,7 @@ from .gnm import GNM
 __all__ = ['ModeEnsemble', 'sdarray', 'calcEnsembleENMs', 'showSignature1D', 'showSignatureAtomicLines', 
            'showSignatureMode', 'showSignatureDistribution', 'showSignatureCollectivity',
            'showSignatureSqFlucts', 'calcEnsembleSpectralOverlaps', 'calcSignatureSqFlucts', 
-           'calcSignatureCollectivity',
+           'calcSignatureCollectivity', 'calcSignatureFractVariance',
            'calcSignatureCrossCorr', 'showSignatureCrossCorr', 'showVarianceBar',
            'showSignatureVariances', 'calcSignatureOverlaps', 'showSignatureOverlaps']
 
