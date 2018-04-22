@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """This module defines base class for trajectory handling."""
 
+from numbers import Integral
 from numpy import ndarray, unique
 
 from prody.ensemble import Ensemble
@@ -46,7 +47,7 @@ class TrajBase(object):
         if self._closed:
             raise ValueError('I/O operation on closed file')
 
-        if isinstance(index, int):
+        if isinstance(index, Integral):
             return self.getFrame(index)
 
         elif isinstance(index, (slice, list, ndarray)):

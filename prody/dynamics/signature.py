@@ -3,6 +3,7 @@
 for conformations in an ensemble."""
 
 import time
+from numbers import Integral
 from numpy import ndarray
 import numpy as np
 
@@ -79,7 +80,7 @@ class ModeEnsemble(object):
         elif isinstance(modeset_index, (list, tuple)):
             modesets = []; labels = []
             for i in modeset_index:
-                assert isinstance(i, int), 'all indices must be integers'
+                assert isinstance(i, Integral), 'all indices must be integers'
                 modesets.append(self._modesets[i])
                 if self._labels is not None:
                     labels.append(self._labels[i])

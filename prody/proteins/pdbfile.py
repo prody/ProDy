@@ -6,6 +6,7 @@
 from collections import defaultdict
 import os.path
 import time
+from numbers import Integral
 
 import numpy as np
 
@@ -198,7 +199,7 @@ def parsePDBStream(stream, **kwargs):
     subset = kwargs.get('subset')
     altloc = kwargs.get('altloc', 'A')
     if model is not None:
-        if isinstance(model, int):
+        if isinstance(model, Integral):
             if model < 0:
                 raise ValueError('model must be greater than 0')
         else:

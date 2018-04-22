@@ -1,3 +1,5 @@
+from numbers import Integral
+
 from numpy import ma
 import numpy as np
 from scipy.sparse import coo_matrix
@@ -55,7 +57,7 @@ class HiC(object):
         return 'HiC ' + self._title
 
     def __getitem__(self, index):
-        if isinstance(index, int):
+        if isinstance(index, Integral):
             return self.Map.flatten()[index]
         else:
             i, j = index
@@ -159,12 +161,12 @@ class HiC(object):
                 elif s[axis] == l_full:
                     mask = np.expand_dims(mask, axis=otheraxis)
                     mask = mask.repeat(s[otheraxis])
-                    ret = map[mask]
+                    ret = self._map[mask]
                 else:
                     raise ValueError('The size of the array (%d) does not '
                                     'match that of either the full (%d) '
                                     'or trimed (%d).'
-                                    %(sh[0], l_full, l_trim))
+                                    %(s[0], l_full, l_trim))
         
         return ret
 
