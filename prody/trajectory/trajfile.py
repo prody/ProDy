@@ -2,6 +2,7 @@
 """This module defines a base class for format specific trajectory classes."""
 
 from os.path import isfile, abspath, split, splitext
+from numbers import Integral
 
 import numpy as np
 
@@ -101,7 +102,7 @@ class TrajFile(TrajBase):
 
         if self._closed:
             raise ValueError('I/O operation on closed file')
-        if not isinstance(index, int):
+        if not isinstance(index, Integral):
             raise IndexError('index must be an integer')
         if not 0 <= index < self._n_csets:
             raise IndexError('index must be greater or equal to 0 and less '

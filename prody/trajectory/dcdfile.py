@@ -304,7 +304,7 @@ class DCDFile(TrajFile):
 
     def getCoordsets(self, indices=None):
         """Returnss coordinate sets at given *indices*. *indices* may be an
-        integer, a list of integers or ``None``. ``None`` returns all
+        integer, a list of integers or **None**. **None** returns all
         coordinate sets."""
 
         if self._closed:

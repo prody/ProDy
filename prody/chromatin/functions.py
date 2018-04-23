@@ -153,10 +153,10 @@ def showEmbedding(modes, labels=None, trace=True, headtail=True, cmap='prism'):
     :arg labels: a list of integers indicating the segmentation of the sequence.
     :type labels: list
 
-    :arg trace: if ``True`` then the trace of the sequence will be indicated by a grey dashed line.
+    :arg trace: if **True** then the trace of the sequence will be indicated by a grey dashed line.
     :type trace: bool
 
-    :arg headtail: if ``True`` then a star and a closed circle will indicate the head and the tail 
+    :arg headtail: if **True** then a star and a closed circle will indicate the head and the tail 
     of the sequence respectively.
     :type headtail: bool
 

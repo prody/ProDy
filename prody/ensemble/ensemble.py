@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 """This module defines a class for handling ensembles of conformations."""
 
+from numbers import Integral
+
 from numpy import dot, add, subtract, array, ndarray, sign, concatenate
 from numpy import zeros, ones, arange, isscalar, max
 from numpy import newaxis, unique, repeat
@@ -73,7 +75,7 @@ class Ensemble(object):
         # else:
         #     return SubEnsemble
 
-        if isinstance(index, int):
+        if isinstance(index, Integral):
             return self.getConformation(index)
 
         elif isinstance(index, slice):
@@ -384,7 +386,7 @@ class Ensemble(object):
 
     def getCoordsets(self, indices=None, selected=True):
         """Returns a copy of coordinate set(s) at given *indices*, which may be
-        an integer, a list of integers or ``None``. ``None`` returns all
+        an integer, a list of integers or **None**. **None** returns all
         coordinate sets.  For reference coordinates, use :meth:`getCoordinates`
         method."""
 
@@ -477,7 +479,7 @@ class Ensemble(object):
 
         if self._confs is None:
             raise AttributeError('conformations are not set')
-        if not isinstance(index, int):
+        if not isinstance(index, Integral):
             raise TypeError('index must be an integer')
         n_confs = self._n_csets
         if -n_confs <= index < n_confs:
@@ -645,7 +647,7 @@ class Ensemble(object):
         Conformations can be aligned using one of :meth:`superpose` or
         :meth:`iterpose` methods prior to RMSD calculation.
         
-        :arg pairwise: if ``True`` then it will return pairwise RMSDs 
+        :arg pairwise: if **True** then it will return pairwise RMSDs 
         as an n-by-n matrix. n is the number of conformations.
         :type pairwise: bool
         """
