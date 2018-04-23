@@ -2,6 +2,8 @@
 """This module defines functions for comparing and mapping polypeptide chains.
 """
 
+from numbers import Integral
+
 import numpy as np
 from numpy import arange
 PW2 = None
@@ -251,7 +253,7 @@ class SimpleChain(object):
         return '{0} with {1} residues'.format(self._title, len(self._list))
 
     def __getitem__(self, index):
-        if isinstance(index, int):
+        if isinstance(index, Integral):
             return self._dict.get((index, ''))
         return self._dict.get(index)
 

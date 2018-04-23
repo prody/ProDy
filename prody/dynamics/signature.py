@@ -3,6 +3,7 @@
 for conformations in an ensemble."""
 
 import time
+from numbers import Integral
 from numpy import ndarray
 import numpy as np
 
@@ -17,14 +18,14 @@ from .functions import calcENM
 from .compare import calcSpectralOverlap, matchModes, calcOverlap
 
 from .analysis import calcSqFlucts, calcCrossCorr, calcFractVariance, calcCollectivity
-from .plotting import showAtomicLine, showAtomicMatrix
+from .plotting import showAtomicLines, showAtomicMatrix
 from .anm import ANM
 from .gnm import GNM
 
-__all__ = ['ModeEnsemble', 'sdarray', 'calcEnsembleENMs', 'showSignatureLine', 'showAtomicLinePlus', 
+__all__ = ['ModeEnsemble', 'sdarray', 'calcEnsembleENMs', 'showSignature1D', 'showSignatureAtomicLines', 
            'showSignatureMode', 'showSignatureDistribution', 'showSignatureCollectivity',
            'showSignatureSqFlucts', 'calcEnsembleSpectralOverlaps', 'calcSignatureSqFlucts', 
-           'calcSignatureCollectivity',
+           'calcSignatureCollectivity', 'calcSignatureFractVariance',
            'calcSignatureCrossCorr', 'showSignatureCrossCorr', 'showVarianceBar',
            'showSignatureVariances', 'calcSignatureOverlaps', 'showSignatureOverlaps']
 
@@ -79,7 +80,7 @@ class ModeEnsemble(object):
         elif isinstance(modeset_index, (list, tuple)):
             modesets = []; labels = []
             for i in modeset_index:
-                assert isinstance(i, int), 'all indices must be integers'
+                assert isinstance(i, Integral), 'all indices must be integers'
                 modesets.append(self._modesets[i])
                 if self._labels is not None:
                     labels.append(self._labels[i])
@@ -817,7 +818,7 @@ def calcSignatureSqFlucts(mode_ensemble, **kwargs):
 
     return sig
 
-def showAtomicLinePlus(y, std=None, min=None, max=None, atoms=None, **kwargs):
+def showSignatureAtomicLines(y, std=None, min=None, max=None, atoms=None, **kwargs):
     from matplotlib.pyplot import figure, plot, fill_between, \
                                   gca, xlabel, ylabel, title, ylim
 
@@ -825,7 +826,7 @@ def showAtomicLinePlus(y, std=None, min=None, max=None, atoms=None, **kwargs):
     zero_line = kwargs.pop('zero_line', False)
 
     x = range(y.shape[0])
-    lines, _, bars, _ = showAtomicLine(y, atoms=atoms, linespec=linespec, 
+    lines, _, bars, _ = showAtomicLines(y, atoms=atoms, linespec=linespec, 
                                        show_zero=zero_line, **kwargs)
 
     ori_ylim = ylim()
@@ -857,14 +858,14 @@ def showAtomicLinePlus(y, std=None, min=None, max=None, atoms=None, **kwargs):
         
     return lines, bars, polys
 
-def showSignatureLine(signature, linespec='-', **kwargs):
+def showSignature1D(signature, linespec='-', **kwargs):
     """
-    Show the signature dynamics using :func:`showAtomicLine`. 
+    Show the signature dynamics using :func:`showAtomicLines`. 
     
     :arg signature: the signature dynamics to be plotted 
     :type signature: :class:`sdarray`
 
-    :arg linespec: line specifications that will be passed to :func:`showAtomicLine`
+    :arg linespec: line specifications that will be passed to :func:`showAtomicLines`
     :type linespec: str
 
     :arg atoms: an object with method :func:`getResnums` for use 
@@ -899,7 +900,7 @@ def showSignatureLine(signature, linespec='-', **kwargs):
             if i == 2:
                 atoms_ = atoms
                 zero_line_ = zero_line
-            _lines, _bars, _polys = showAtomicLinePlus(meanV[i], stdV[i], minV[i], maxV[i], 
+            _lines, _bars, _polys = showSignatureAtomicLines(meanV[i], stdV[i], minV[i], maxV[i], 
                                                    atoms=atoms_, zero_line=zero_line_,
                                                    linespec=linespec, **kwargs)
             lines.extend(_lines)
@@ -907,7 +908,7 @@ def showSignatureLine(signature, linespec='-', **kwargs):
             polys.extend(_polys)
 
     else:
-        _lines, _bars, _polys = showAtomicLinePlus(meanV, stdV, minV, maxV, 
+        _lines, _bars, _polys = showSignatureAtomicLines(meanV, stdV, minV, maxV, 
                                                atoms=atoms, zero_line=zero_line,
                                                linespec=linespec, **kwargs)
         lines.extend(_lines)
@@ -930,7 +931,7 @@ def showSignatureMode(mode_ensemble, **kwargs):
 
     mode = mode_ensemble.getEigvec()
     show_zero = kwargs.pop('show_zero', True)
-    return showSignatureLine(mode, atoms=mode_ensemble.getAtoms(), show_zero=show_zero, **kwargs)
+    return showSignature1D(mode, atoms=mode_ensemble.getAtoms(), show_zero=show_zero, **kwargs)
 
 def showSignatureSqFlucts(mode_ensemble, **kwargs):
 
@@ -943,7 +944,7 @@ def showSignatureSqFlucts(mode_ensemble, **kwargs):
 
     sqf = calcSignatureSqFlucts(mode_ensemble)
     show_zero = kwargs.pop('show_zero', False)
-    return showSignatureLine(sqf, atoms=mode_ensemble.getAtoms(), show_zero=show_zero, **kwargs)
+    return showSignature1D(sqf, atoms=mode_ensemble.getAtoms(), show_zero=show_zero, **kwargs)
 
 def calcSignatureCrossCorr(mode_ensemble, norm=True):
     """Calculate average cross-correlations for a ModeEnsemble."""
@@ -1058,7 +1059,7 @@ def showSignatureOverlaps(mode_ensemble):
     meanV = overlap_triu.mean(axis=1)
     stdV = overlap_triu.std(axis=1)
 
-    show = showAtomicLinePlus(meanV, stdV)
+    show = showSignatureAtomicLines(meanV, stdV)
     xlabel('Mode index')
     ylabel('Overlap')
     
