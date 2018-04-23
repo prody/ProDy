@@ -210,9 +210,10 @@ class PDBEnsemble(Ensemble):
             if coords is None:
                 raise ValueError('coordinates are not set')
             elif label is None and isinstance(atoms, Atomic):
-                ag = atoms
                 if not isinstance(atoms, AtomGroup):
                     ag = atoms.getAtomGroup()
+                else:
+                    ag = atoms
                 label = ag.getTitle()
                 if coords.shape[0] < ag.numCoordsets():
                     label += '_m' + str(atoms.getACSIndex())
