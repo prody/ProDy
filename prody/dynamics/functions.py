@@ -27,9 +27,9 @@ __all__ = ['parseArray', 'parseModes', 'parseSparseMatrix',
 def saveModel(nma, filename=None, matrices=False, **kwargs):
     """Save *nma* model data as :file:`filename.nma.npz`.  By default,
     eigenvalues, eigenvectors, variances, trace of covariance matrix,
-    and name of the model will be saved.  If *matrices* is ``True``,
+    and name of the model will be saved.  If *matrices* is **True**,
     covariance, Hessian or Kirchhoff matrices are saved too, whichever
-    are available.  If *filename* is ``None``, name of the NMA instance
+    are available.  If *filename* is **None**, name of the NMA instance
     will be used as the filename, after ``" "`` (white spaces) in the name
     are replaced with ``"_"`` (underscores).  Extension may differ based
     on the type of the NMA model.  For ANM models, it is :file:`.anm.npz`.
@@ -199,7 +199,7 @@ def parseModes(normalmodes, eigenvalues=None, nm_delimiter=None,
 
     :arg nm_usecols: Which columns to read from *normalmodes*, with 0 being the
         first. For example, ``usecols = (1,4,5)`` will extract the 2nd, 5th and
-        6th columns. The default, ``None``, results in all columns being read.
+        6th columns. The default, **None**, results in all columns being read.
     :type nm_usecols: list
 
     :arg ev_delimiter: The string used to separate values in *eigenvalues*.
@@ -212,7 +212,7 @@ def parseModes(normalmodes, eigenvalues=None, nm_delimiter=None,
 
     :arg ev_usecols: Which columns to read from *eigenvalues*, with 0 being the
         first. For example, ``usecols = (1,4,5)`` will extract the 2nd, 5th and
-        6th columns. The default, ``None``, results in all columns being read.
+        6th columns. The default, **None**, results in all columns being read.
     :type ev_usecols: list
 
     :arg ev_usevalues: Which columns to use after the eigenvalue column is
@@ -274,7 +274,7 @@ def parseArray(filename, delimiter=None, skiprows=0, usecols=None,
 
     :arg usecols: Which columns to read, with 0 being the first. For example,
         ``usecols = (1,4,5)`` will extract the 2nd, 5th and 6th columns.
-        The default, ``None``, results in all columns being read.
+        The default, **None**, results in all columns being read.
     :type usecols: list
 
     :arg dtype: Data-type of the resulting array, default is :func:`float`.
@@ -302,8 +302,8 @@ def parseSparseMatrix(filename, symmetric=False, delimiter=None, skiprows=0,
         :file:`.gz` or :file:`.bz2`, the file is first decompressed.
     :type filename: str or file
 
-    :arg symmetric: Set ``True`` if the file contains triangular part of a
-        symmetric matrix, default is ``False``.
+    :arg symmetric: Set **True** if the file contains triangular part of a
+        symmetric matrix, default is **True**.
     :type symmetric: bool
 
     :arg delimiter: The string used to separate values. By default,

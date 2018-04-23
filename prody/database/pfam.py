@@ -4,8 +4,14 @@
 __author__ = 'Anindita Dutta, Ahmet Bakan, Cihan Kaya'
 
 import re
+from numbers import Integral
+
 import numpy as np
+import os
 from os.path import join, isfile
+from io import BytesIO
+import zlib
+
 from prody import LOGGER, PY3K
 from prody.utilities import makePath, openURL, gunzip, openFile, dictElement
 from prody.utilities import relpath
@@ -20,7 +26,7 @@ else:
     import urllib
     import urllib2
 
-__all__ = ['searchPfam', 'fetchPfamMSA', 'searchUniprotID', 'fetchPfamPDBs']
+__all__ = ['searchPfam', 'fetchPfamMSA', 'searchUniprotID', 'parsePfamPDBs']
 
 FASTA = 'fasta'
 SELEX = 'selex'
@@ -98,7 +104,7 @@ def searchPfam(query, **kwargs):
         try:
             root = ET.XML(xml)
         except Exception as err:
-            raise ValueError('failed to parse results XML, check URL: ' + url)
+            raise ValueError('failed to parse results XML, check URL: ' + modified_res_url)
         matches = {}
         for child in root[0]:
             if child.tag == 'hits':
@@ -410,97 +416,154 @@ def fetchPfamMSA(acc, alignment='full', compressed=False, **kwargs):
 
     return filepath
 
-def fetchPfamPDBs(**kwargs):
+def parsePfamPDBs(query, data=[], **kwargs):
     """Returns a list of AtomGroups containing sections of chains that 
     correspond to a particular PFAM domain family. These are defined by 
     alignment start and end residue numbers.
 
-    :arg pfam_acc: The accession number for a pfam domain family, if known.
-        Alternatively you can select a family based on a query (see below).
-    :type pfam_acc: str
-
-    :arg query: UniProt ID or PDB ID
+    :arg query: Pfam accession number, UniProt ID or PDB ID
         If a PDB ID is provided the corresponding UniProt ID is used.
-        If no query is provided but a pfam_acc is then the first entry
-        will be used as a query. 
+        Use of UniProt ID or PDB ID requires start or end to also be provided.
         This query is also used for label refinement of the pfam domain MSA.
     :type query: str
 
-    You must provide one of these two arguments.
-    Use of query requires start or end to also be provided.
-
     :arg start: Residue number for defining the start of the domain.
         The PFAM domain that starts closest to this will be selected. 
+        Default is 1
     :type start: int
 
     :arg end: Residue number for defining the end of the domain.
-        The PFAM domain that ends closest to this will be selected. 
+              The PFAM domain that ends closest to this will be selected. 
     :type end: int
 
-    :arg return_data: Whether to return the data dictionary from
-        the Pfam mapping table, default is False
-    :type return_data: bool
+    :arg data: If given the data dictionary from the Pfam mapping table will 
+               be output through this argument.
+    :type data: list
     """
-    pfam_acc = kwargs.pop('pfam_acc',None)
-    query = kwargs.pop('query',None)
-    start = kwargs.pop('start',None)
-    end = kwargs.pop('end',None)
+    
+    start = kwargs.pop('start', 1)
+    end = kwargs.pop('end', None)
     return_data = kwargs.pop('return_data', False)
 
-    if pfam_acc is None:
-        if query is None:
-            raise ValueError('Please provide a value for pfam_acc or query.')
+    if len(query) > 4 and query.startswith('PF'):
+        pfam_acc = query
+    else:
+        pfam_matches = searchPfam(query)
+
+        if isinstance(start, Integral):
+            start_diff = []
+            for i, key in enumerate(pfam_matches):
+                start_diff.append(int(pfam_matches[key]['locations'][0]['start']) - start)
+            start_diff = np.array(start_diff)
+            pfam_acc = pfam_matches.keys()[np.where(abs(start_diff) == min(abs(start_diff)))[0][0]]
+
+        elif isinstance(end, Integral):
+            end_diff = []
+            for i, key in enumerate(pfam_matches):
+                end_diff.append(int(pfam_matches[key]['locations'][0]['end']) - end)
+            end_diff = np.array(end_diff)
+            pfam_acc = pfam_matches.keys()[np.where(abs(end_diff) == min(abs(end_diff)))[0][0]]
+
         else:
-            pfam_matches = searchPfam(query)
-
-            if start is not None and type(start) is int:
-                start_diff = []
-                for i, key in enumerate(pfam_matches):
-                    start_diff.append(int(pfam_matches[key]['locations'][0]['start']) - start)
-                start_diff = np.array(start_diff)
-                pfam_acc = pfam_matches.keys()[np.where(abs(start_diff) == min(abs(start_diff)))[0][0]]
-
-            elif end is not None and type(end) is int:
-                end_diff = []
-                for i, key in enumerate(pfam_matches):
-                    end_diff.append(int(pfam_matches[key]['locations'][0]['end']) - end)
-                end_diff = np.array(end_diff)
-                pfam_acc = pfam_matches.keys()[np.where(abs(end_diff) == min(abs(end_diff)))[0][0]]
-
-            else:
-                raise ValueError('Please provide an integer for start or end when using query.')
+            raise ValueError('Please provide an integer for start or end '
+                             'when using a UniProt ID or PDB ID.')
 
     from ftplib import FTP
-    data = []
+    from .uniprot import queryUniprot
+
+    data_stream = BytesIO()
     ftp_host = 'ftp.ebi.ac.uk'
     ftp = FTP(ftp_host)
-    ftp.login('')
-    ftp.cwd('pub/databases/Pfam/mappings')
-    ftp.retrlines('RETR pdb_pfam_mapping.txt', data.append) 
+    ftp.login()
+    ftp.cwd('pub/databases/Pfam/current_release')
+    ftp.retrbinary('RETR pdbmap.gz', data_stream.write)
+    ftp.quit()
+    zip_data = data_stream.getvalue()
+    data_stream.close()
 
-    fields = []
-    for field in data[0].strip().split('\t'):
-        fields.append(field)
+    rawdata = gunzip(zip_data)
+    if PY3K:
+        rawdata = rawdata.decode()
+
+    fields = ['PDB_ID', 'chain', 'nothing', 'PFAM_Name', 'PFAM_ACC', 
+              'UniprotID', 'UniprotResnumRange']
     
-    data_dict = []
-    for line in data[1:]:
+    data_dicts = []
+    for line in rawdata.split('\n'):
         if line.find(pfam_acc) != -1:
-            data_dict.append({})
+            data_dicts.append({})
             for j, entry in enumerate(line.strip().split('\t')):
-                data_dict[-1][fields[j]] = entry
+                data_dicts[-1][fields[j]] = entry.strip(';')
 
-    pdb_ids = []
-    pdbs = []
-    headers = []            
-    for i in range(len(data_dict)):
-        pdb_id = data_dict[i]['PDB_ID']
-        if not pdb_id in pdb_ids:
-            pdb_ids.append(pdb_id)
+    pdb_ids = [data_dict['PDB_ID'] for data_dict in data_dicts]
+    chains = [data_dict['chain'] for data_dict in data_dicts]
 
-    result = parsePDB(*pdb_ids, **kwargs)
+    results = parsePDB(*pdb_ids, chain=chains, **kwargs)
 
-    if return_data:
-        return data_dict, result
+    header = kwargs.get('header', False)
+    if header:
+        ags, headers = results
+        ags, headers = list(ags), list(headers)
+        results = [ags, headers]
     else:
-        return result
+        ags = results
+        ags = list(ags)
+        results = [ags]
+
+    comma_spliter = re.compile(r'\s*,\s*').split
+    #headers = list(headers)
+    no_info = []
+    for i, ag in enumerate(ags):
+        data_dict = data_dicts[i]
+        #dbrefs = headers[i][data_dict['chain']].dbrefs
+        #if dbrefs:
+        pfamRange = data_dict['UniprotResnumRange'].split('-')
+        uniprotID = data_dict['UniprotID']
+        uniData = queryUniprot(uniprotID)
+        resrange = None
+        for key, value in uniData.items():
+            if not key.startswith('dbReference'):
+                continue
+            try:
+                pdbid = value['PDB']
+            except:
+                continue
+            if pdbid != data_dict['PDB_ID']:
+                continue
+            pdbchains = value['chains']
+
+            # example chain strings: "A=27-139, B=140-150" or "A/B=27-150"
+            pdbchains = comma_spliter(pdbchains)
+            for chain in pdbchains:
+                chids, resrange = chain.split('=')
+                chids = [chid.strip() for chid in chids.split('/')]
+                if data_dict['chain'] in chids:
+                    resrange = resrange.split('-')
+                    break
+
+            #first = dbrefs[0].first
+        if resrange:
+            pfStart, pfEnd = int(pfamRange[0]), int(pfamRange[1])
+            uniStart, uniEnd = int(resrange[0]), int(resrange[1])
+
+            resiStart = pfStart - uniStart
+            resiEnd = pfEnd - uniStart
+            ags[i] = ag.select('resindex {0} to {1}'.format(
+                            resiStart, resiEnd)) 
+        else:
+            no_info.append(i)
+
+    for i in reversed(no_info):
+        ags.pop(i)
+        if header:
+            headers.pop(i)
+
+    results = [ags]
+    if header:
+        results.append(headers)
+    if isinstance(data, list):
+        data.extend(data_dicts)
+    else:
+        LOGGER.warn('data should be a list in order to get output')
+    return results
 

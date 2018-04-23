@@ -304,7 +304,7 @@ class DCDFile(TrajFile):
 
     def getCoordsets(self, indices=None):
         """Returnss coordinate sets at given *indices*. *indices* may be an
-        integer, a list of integers or ``None``. ``None`` returns all
+        integer, a list of integers or **None**. **None** returns all
         coordinate sets."""
 
         if self._closed:
@@ -595,7 +595,7 @@ def writeDCD(filename, trajectory, start=None, stop=None, step=None,
                       firsttimestep=first_ts, framefreq=framefreq)
         else:
             dcd.write(frame._getCoords(), uc)
-        LOGGER.update(i, '_prody_writeDCD')
+        LOGGER.update(i, label='_prody_writeDCD')
     if isAtomic:
         trajectory.setACSIndex(acsi)
     j += 1

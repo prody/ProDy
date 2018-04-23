@@ -6,11 +6,6 @@ from prody.atomic import atommap
 from prody.tests import unittest
 from prody.tests.datafiles import *
 
-try:
-    range = xrange
-except NameError:
-    pass
-
 prody.atomic.select.DEBUG = False
 LOGGER.verbosity = 'none'
 

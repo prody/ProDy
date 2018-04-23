@@ -223,9 +223,9 @@ def writeEMD(filename,emd):
     f.write(st.pack('<L',emd.nlabels))
     f.write(st.pack('<800s',emd.labels))
 
-    for s in xrange(0, emd.NS):
-        for r in xrange(0, emd.NR):
-            for c in xrange(0, emd.NC):
+    for s in range(0, emd.NS):
+        for r in range(0, emd.NR):
+            for c in range(0, emd.NC):
                 f.write(st.pack('<f',emd.density[s,r,c]))
 
     f.close()
@@ -306,9 +306,9 @@ class EMDMAP:
 
         # Data blocks (1024-end)
         self.density = np.empty([self.NS, self.NR, self.NC])
-        for s in xrange(0, self.NS):
-            for r in xrange(0, self.NR):
-                for c in xrange(0, self.NC):
+        for s in range(0, self.NS):
+            for r in range(0, self.NR):
+                for c in range(0, self.NC):
                     d = st.unpack('<f', stream.read(4))[0]
                     if cutoff is not None and d < cutoff:
                         d = 0
@@ -371,7 +371,7 @@ class TRNET:
     def inputMap(self, emdmap, sample = 'density'):
         self.map = emdmap
         # initialize the positions of nodes
-        for i in xrange(self.N):
+        for i in range(self.N):
             if sample == 'density':
                 p = self.map.drawsample()
             elif sample == 'uniform':
@@ -394,7 +394,7 @@ class TRNET:
         # calc the squared distances \\ws - v\\^2
         D = v - self.W
         sD = np.empty(self.N)
-        for i in xrange(self.N):
+        for i in range(self.N):
             d = D[i, :]
             sD[i] = np.dot(d,d)
         
@@ -420,7 +420,7 @@ class TRNET:
             i1 = I[1]
             
             # refresh connections
-            for i in xrange(self.N):
+            for i in range(self.N):
                 if i == i1:
                     self.C[i0, i] = 1
                     self.C[i, i0] = 1
@@ -437,7 +437,7 @@ class TRNET:
         if calcC:
             Ti = Ti * self.N
             Tf = Tf * self.N        
-        for t in xrange(1, tmax + 1):
+        for t in range(1, tmax + 1):
             # calc the parameters
             tt = float(t) / tmax
             l = li * np.power(lf / li, tt)
@@ -458,7 +458,7 @@ class TRNET:
         li = li * self.N
         Ti = Ti * self.N
         Tf = Tf * self.N        
-        for t in xrange(k0, k + 1):
+        for t in range(k0, k + 1):
             # calc the parameters
             tt = float(t) / tmax
             l = li * np.power(lf / li, tt)

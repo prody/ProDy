@@ -4,6 +4,9 @@ from numpy import unique, linalg, diag, sqrt, dot, chararray
 from numpy import diff, where, insert, nan, loadtxt, array
 from numpy import sign, arange, asarray
 from collections import Counter
+import numbers
+
+from xml.etree.ElementTree import Element
 
 __all__ = ['Everything', 'rangeString', 'alnum', 'importLA', 'dictElement',
            'intorfloat', 'startswith', 'showFigure', 'countBytes', 'sqrtm',
@@ -92,15 +95,13 @@ def importLA():
 
 def dictElement(element, prefix=None, number_multiples=False):
     """Returns a dictionary built from the children of *element*, which must be
-    a :class:`xml.etree.ElementTree.Element` instance.  Keys of the dictionary
-    are *tag* of children without the *prefix*, or namespace.  Values depend on
-    the content of the child.  If a child does not have any children, its text
-    attribute is the value.  If a child has children, then the child is the
+    a :class:`xml.etree.ElementTree.Element` instance. Keys of the dictionary
+    are *tag* of children without the *prefix*, or namespace. Values depend on
+    the content of the child. If a child does not have any children, its text
+    attribute is the value. If a child has children, then the child is the
     value.
     """
-    if type(element) in [str, list, int]:
-        raise TypeError('element should be an Element not str, list or int')
-
+    
     dict_ = {}
     length = False
     if isinstance(prefix, str):
@@ -132,33 +133,32 @@ def dictElement(element, prefix=None, number_multiples=False):
 
     return dict_
 
-def dictElementLoop(dict_, keys, prefix=None, number_multiples=False):
+def dictElementLoop(dict_, keys=None, prefix=None, number_multiples=False):
+
     if isinstance(keys, str):
         keys = [keys]
 
-    if not isinstance(keys, list) or len(keys) is None:
-        raise TypeError('keys should be a list of keys')
-
-    for key in keys:
-        if not key in dict_.keys():
-            raise ValueError('all keys should be keys of dict_')
+    if not keys:
+        keys = dict_.keys()
 
     for orig_key in keys:
-        dict2 = dictElement(dict_[orig_key], prefix, number_multiples)
-        finished = 0
-        while not finished:
-            dict3 = dict2.copy()
-            try:
-                key = dict2.keys()[0]
-                dict2[key] = dictElement(dict2[key], prefix, number_multiples)
-            except:
-                finished = 1
-            else:
-                dict2 = dict3
-                for key in dict2.keys():
+        item = dict_[orig_key]
+        if isinstance(item, Element):
+            dict2 = dictElement(dict_[orig_key], prefix, number_multiples)
+            finished = False
+            while not finished:
+                dict3 = dict2.copy()
+                try:
+                    key = dict2.keys()[0]
                     dict2[key] = dictElement(dict2[key], prefix, number_multiples)
+                except:
+                    finished = True
+                else:
+                    dict2 = dict3
+                    for key in dict2.keys():
+                        dict2[key] = dictElement(dict2[key], prefix, number_multiples)
 
-        dict_[orig_key] = dict2
+            dict_[orig_key] = dict2
 
     return dict_
 
@@ -255,7 +255,7 @@ def getDataPath(filename):
     import pkg_resources
     return pkg_resources.resource_filename('prody.utilities', 'datafiles/%s'%filename)
 
-def openData(filename, mode='rb'):
+def openData(filename, mode='r'):
     return open(getDataPath(filename), mode)
 
 def saxsWater():

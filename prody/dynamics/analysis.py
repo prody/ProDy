@@ -23,7 +23,8 @@ from .functions import calcENM
 __all__ = ['calcCollectivity', 'calcCovariance', 'calcCrossCorr',
            'calcFractVariance', 'calcSqFlucts', 'calcTempFactors',
            'calcProjection', 'calcCrossProjection',
-           'calcSpecDimension', 'calcPairDeformationDist']
+           'calcSpecDimension', 'calcPairDeformationDist',
+           'calcDistFlucts']
            #'calcEntropyTransfer', 'calcOverallNetEntropyTransfer']
 
 def calcCollectivity(mode, masses=None):
@@ -361,11 +362,24 @@ def _crossCorrelations(queue, n_atoms, array, variances, indices):
                               axes=([0, 1], [1, 0]))
     queue.put(covariance)
 
+def calcDistFlucts(modes, n_cpu=1, norm=True):
+    """Returns the matrix of distance fluctuations (i.e. an NxN matrix
+    where N is the number of residues, of MSFs in the inter-residue distances)
+    computed from the cross-correlation matrix (see Eq. 12.E.1 in [IB18]_). 
+    The arguments are the same as in :meth:`.calcCrossCorr`.
+
+    .. [IB18] Dill K, Jernigan RL, Bahar I. Protein Actions: Principles and
+       Modeling. *Garland Science* **2017**. """
+
+    cc = calcCrossCorr(modes, n_cpu=n_cpu, norm=norm)
+    cc_diag = np.diag(cc).reshape(-1,1)
+    distFluct = cc_diag.T + cc_diag -2.*cc
+    return distFluct
 
 def calcTempFactors(modes, atoms):
     """Returns temperature (β) factors calculated using *modes* from a
-    :class:`.ANM` or :class:`.GNM` instance scaled according to the
-    experimental β-factors from *atoms*."""
+    :class:`.ANM` or :class:`.GNM` instance scaled according to the 
+    experimental B-factors from *atoms*."""
 
     model = modes.getModel()
     if not isinstance(model, GNMBase):
@@ -457,7 +471,7 @@ def calcPairDeformationDist(model, coords, ind1, ind2, kbt=1.):
     ind1 = ind1 - resnum_list[0]
     ind2 = ind2 - resnum_list[0]
 
-    for m in xrange(6,n_modes):
+    for m in range(6,n_modes):
         U_ij_k = [(eigvecs[ind1*3][m] - eigvecs[ind2*3][m]), (eigvecs[ind1*3+1][m] \
             - eigvecs[ind2*3+1][m]), (eigvecs[ind1*3+2][m] - eigvecs[ind2*3+2][m])] 
         D_ij_k = abs(sqrt(kbt/eigvals[m])*(np.vdot(r_ij_norm[ind1][ind2], U_ij_k)))  

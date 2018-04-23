@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """This module defines atom pointer base class."""
 
+from numbers import Integral
 from numpy import all, array, concatenate, ones, unique
 
 from .atomic import Atomic
@@ -199,7 +200,7 @@ class AtomPointer(Atomic):
         if self._ag._coords is None:
             raise AttributeError('coordinates are not set')
 
-        if not isinstance(index, int):
+        if not isinstance(index, Integral):
             raise TypeError('index must be an integer')
 
         n_csets = self._ag._n_csets
