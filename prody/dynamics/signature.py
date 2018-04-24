@@ -1410,6 +1410,7 @@ def loadModeEnsemble(filename, **kwargs):
     matched = getValue(data, '_matched', False)
     title = getValue(data, '_title', None)
     modesets = getValue(data, '_modesets', [])
+    atoms = getValue(data, '_atoms', [None])[0]
 
     if isinstance(title, np.ndarray):
         title = np.asarray(title, dtype=str)
@@ -1425,5 +1426,6 @@ def loadModeEnsemble(filename, **kwargs):
     modeens._labels = labels
     modeens._matched = matched
     modeens._modesets = modesets
+    modeens._atoms = atoms
 
     return modeens
