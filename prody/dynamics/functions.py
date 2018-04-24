@@ -87,20 +87,28 @@ def saveModel(nma, filename=None, matrices=False, **kwargs):
     return filename
 
 
-def loadModel(filename):
+def loadModel(filename, **kwargs):
     """Returns NMA instance after loading it from file (*filename*).
     This function makes use of :func:`numpy.load` function.  See
     also :func:`saveModel`."""
 
-    attr_dict = np.load(filename)
+    if not 'encoding' in kwargs:
+        kwargs['encoding'] = 'latin1'
+    attr_dict = np.load(filename, **kwargs)
     try:
         type_ = attr_dict['type']
     except KeyError:
         raise IOError('{0} is not a valid NMA model file'.format(filename))
+    if isinstance(type_, np.ndarray):
+        type_ = np.asarray(type_, dtype=str)
+    type_ = str(type_)
     try:
-        title = str(attr_dict['_title'])
+        title = attr_dict['_title']
     except KeyError:
-        title = str(attr_dict['_name'])
+        title = attr_dict['_name']
+    if isinstance(title, np.ndarray):
+        title = np.asarray(title, dtype=str)
+    title = str(title)
     if type_ == 'ANM':
         nma = ANM(title)
     elif type_ == 'PCA':

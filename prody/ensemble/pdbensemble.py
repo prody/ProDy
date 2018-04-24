@@ -106,7 +106,7 @@ class PDBEnsemble(Ensemble):
             return ens
 
         elif isinstance(index, (list, np.ndarray)):
-            ens = PDBEnsemble('Conformations of {0}'.format(self._title))
+            ens = PDBEnsemble('{0}'.format(self._title))
             ens.setCoords(copy(self._coords))
             labels = list(np.array(self._labels)[index])
             ens.addCoordset(self._confs[index].copy(),

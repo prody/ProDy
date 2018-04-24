@@ -8,7 +8,7 @@ from numpy import ndarray
 import numpy as np
 
 from prody import LOGGER, SETTINGS
-from prody.utilities import showFigure, showMatrix, copy, checkWeights
+from prody.utilities import showFigure, showMatrix, copy, checkWeights, openFile, getValue
 from prody.ensemble import Ensemble, Conformation
 
 from .nma import NMA
@@ -27,7 +27,8 @@ __all__ = ['ModeEnsemble', 'sdarray', 'calcEnsembleENMs', 'showSignature1D', 'sh
            'showSignatureSqFlucts', 'calcEnsembleSpectralOverlaps', 'calcSignatureSqFlucts', 
            'calcSignatureCollectivity', 'calcSignatureFractVariance',
            'calcSignatureCrossCorr', 'showSignatureCrossCorr', 'showVarianceBar',
-           'showSignatureVariances', 'calcSignatureOverlaps', 'showSignatureOverlaps']
+           'showSignatureVariances', 'calcSignatureOverlaps', 'showSignatureOverlaps',
+           'saveModeEnsemble', 'loadModeEnsemble']
 
 class ModeEnsemble(object):
     """
@@ -1348,3 +1349,83 @@ def showVarianceBar(mode_ensemble, highlights=None, **kwargs):
     if SETTINGS['auto_show']:
         showFigure()
     return cb, annotations
+
+def saveModeEnsemble(mode_ensemble, filename=None, atoms=False, **kwargs):
+    """Save *mode_ensemble* as :file:`filename.modeens.npz`.  If *filename* 
+    is **None**, title of the ModeEnsemble instance will be used as the 
+    filename, after ``" "`` (white spaces) in the title are replaced with 
+    ``"_"`` (underscores).  Upon successful completion of saving, filename 
+    is returned. This function makes use of :func:`numpy.savez_compressed` 
+    function."""
+
+    if not isinstance(mode_ensemble, ModeEnsemble):
+        raise TypeError('invalid type for mode_ensemble, {0}'
+                        .format(type(mode_ensemble)))
+    if len(mode_ensemble) == 0:
+        raise ValueError('mode_ensemble instance does not contain data')
+
+    attr_list = ['_modesets', '_title', '_labels', '_weights', '_matched']
+    attr_dict = {}
+
+    if atoms:
+        attr_list.append('_atoms')
+    
+    for attr in attr_list:
+        value = getattr(mode_ensemble, attr)
+        if value is not None:
+            if attr == '_atoms':
+                value = [value, None]
+            if attr == '_modesets':
+                value = list(value)
+                value.append(None)
+            attr_dict[attr] = value
+
+    if filename is None:
+        filename = mode_ensemble.getTitle().replace(' ', '_')
+    
+    suffix = '.modeens'
+    if not filename.lower().endswith('.npz'):
+        if not filename.lower().endswith(suffix):
+            filename += suffix + '.npz'
+        else:
+            filename += '.npz'
+            
+    ostream = openFile(filename, 'wb', **kwargs)
+    np.savez_compressed(ostream, **attr_dict)
+    ostream.close()
+
+    return filename
+
+def loadModeEnsemble(filename, **kwargs):
+    """Returns ModeEnsemble instance after loading it from file (*filename*).
+    This function makes use of :func:`numpy.load` function.  See
+    also :func:`saveModeEnsemble`."""
+
+    if not 'encoding' in kwargs:
+        kwargs['encoding'] = 'latin1'
+    data = np.load(filename, **kwargs)
+    
+    weights = getValue(data, '_weights', None)
+    labels = getValue(data, '_labels', None)
+    matched = getValue(data, '_matched', False)
+    title = getValue(data, '_title', None)
+    modesets = getValue(data, '_modesets', [])
+    atoms = getValue(data, '_atoms', [None])[0]
+
+    if isinstance(title, np.ndarray):
+        title = np.asarray(title, dtype=str)
+    title = str(title)
+
+    if isinstance(modesets, np.ndarray):
+        modesets = modesets.tolist()
+    while (None in modesets):
+        modesets.remove(None)
+
+    modeens = ModeEnsemble(title=title)
+    modeens._weights = weights
+    modeens._labels = labels
+    modeens._matched = matched
+    modeens._modesets = modesets
+    modeens._atoms = atoms
+
+    return modeens
