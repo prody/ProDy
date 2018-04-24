@@ -11,7 +11,8 @@ from xml.etree.ElementTree import Element
 __all__ = ['Everything', 'rangeString', 'alnum', 'importLA', 'dictElement',
            'intorfloat', 'startswith', 'showFigure', 'countBytes', 'sqrtm',
            'saxsWater', 'count', 'addBreaks', 'copy', 'dictElementLoop', 
-           'getDataPath', 'openData', 'chr2', 'toChararray', 'interpY', 'cmp']
+           'getDataPath', 'openData', 'chr2', 'toChararray', 'interpY', 'cmp',
+           'getValue']
 
 
 class Everything(object):
@@ -321,3 +322,9 @@ def interpY(Y):
 
 def cmp(a, b):
     return (a > b) - (a < b)
+
+def getValue(dict_, attr, default=None):
+    value = default
+    if attr in dict_:
+        value = dict_[attr]
+    return value

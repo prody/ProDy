@@ -106,7 +106,7 @@ class PDBEnsemble(Ensemble):
             return ens
 
         elif isinstance(index, (list, np.ndarray)):
-            ens = PDBEnsemble('Conformations of {0}'.format(self._title))
+            ens = PDBEnsemble('{0}'.format(self._title))
             ens.setCoords(copy(self._coords))
             labels = list(np.array(self._labels)[index])
             ens.addCoordset(self._confs[index].copy(),
@@ -288,19 +288,17 @@ class PDBEnsemble(Ensemble):
 
         # assign new values
         # update labels
-        if n_csets > 1:
-            if not degeneracy:
-                if isinstance(label, str):
-                    labels = ['{0}_m{1}'.format(label, i+1) for i in range(n_csets)]
-                else:
-                    if len(label) != n_csets:
-                        raise ValueError('length of label and number of '
-                                         'coordinate sets must be the same')
-                    labels = label
+        if n_csets > 1 and not degeneracy:
+            if isinstance(label, str):
+                labels = ['{0}_m{1}'.format(label, i+1) for i in range(n_csets)]
             else:
-                labels = [label]
+                if len(label) != n_csets:
+                    raise ValueError('length of label and number of '
+                                        'coordinate sets must be the same')
+                labels = label
         else:
-            labels = [label]
+            labels = [label] if np.isscalar(label) else label
+
         self._labels.extend(labels)
 
         # update sequences

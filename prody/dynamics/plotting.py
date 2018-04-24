@@ -1292,6 +1292,8 @@ def showAtomicMatrix(matrix, x_array=None, y_array=None, atoms=None, **kwargs):
     show_text = kwargs.pop('show_text', True)
     show_domain_text = kwargs.pop('show_domain_text', show_text)
     show_chain_text = kwargs.pop('show_chain_text', show_text)
+    barwidth = kwargs.pop('barwidth', 5)
+    barwidth = kwargs.pop('bar_width', barwidth)
     fig = kwargs.pop('figure', None)
 
     if isinstance(fig, Figure):
@@ -1337,7 +1339,8 @@ def showAtomicMatrix(matrix, x_array=None, y_array=None, atoms=None, **kwargs):
     texts = []
     if show_chain:
         b, t = showDomainBar(chids, loc=chain_pos, axis=sides[-1], 
-                             text_loc=chain_text_loc, text_color='w', show_text=show_chain_text)
+                             text_loc=chain_text_loc, text_color='w', show_text=show_chain_text,
+                             barwidth=barwidth)
         bars.extend(b)
         texts.extend(t)
 
@@ -1354,7 +1357,8 @@ def showAtomicMatrix(matrix, x_array=None, y_array=None, atoms=None, **kwargs):
 
     if show_domain:
         b, t = showDomainBar(domains, loc=domain_pos, axis=sides[0], 
-                             text_loc=domain_text_loc, text_color='w', show_text=show_domain_text)
+                             text_loc=domain_text_loc, text_color='w', show_text=show_domain_text,
+                             barwidth=barwidth)
         bars.extend(b)
         texts.extend(t)
 
@@ -1398,6 +1402,8 @@ def showAtomicLines(y, atoms=None, linespec='-', **kwargs):
     show_text = kwargs.pop('show_text', True)
     show_domain_text = kwargs.pop('show_domain_text', show_text)
     show_chain_text = kwargs.pop('show_chain_text', show_text)
+    barwidth = kwargs.pop('barwidth', 5)
+    barwidth = kwargs.pop('bar_width', barwidth)
 
     from prody.utilities import showLines
     from matplotlib.pyplot import figure, xlim, ylim, plot, text
@@ -1451,14 +1457,16 @@ def showAtomicLines(y, atoms=None, linespec='-', **kwargs):
      
     if show_chain:
         b, t = showDomainBar(atoms.getChids(), loc=chain_pos, axis='x', 
-                             text_loc=chain_text_loc, show_text=show_chain_text)
+                             text_loc=chain_text_loc, show_text=show_chain_text,
+                             barwidth=barwidth)
         bars.extend(b)
         texts.extend(t)
 
     show_domain, domain_pos, domains = _checkDomainBarParameter(domain_bar, 1., atoms, 'domain')
     if show_domain:
         b, t = showDomainBar(domains, loc=domain_pos, axis='x', 
-                             text_loc=domain_text_loc,  show_text=show_domain_text)
+                             text_loc=domain_text_loc,  show_text=show_domain_text,
+                             barwidth=barwidth)
         bars.extend(b)
         texts.extend(t)
 
@@ -1497,6 +1505,9 @@ def showDomainBar(domains, loc=0., axis='x', **kwargs):
 
     show_text = kwargs.pop('show_text', True)
     text_color = kwargs.pop('text_color', 'k')
+
+    barwidth = kwargs.pop('barwidth', 5)
+    barwidth = kwargs.pop('bar_width', barwidth)
 
     text_loc = kwargs.pop('text_loc', 'above')
     if not isinstance(text_loc, str):
@@ -1557,9 +1568,9 @@ def showDomainBar(domains, loc=0., axis='x', **kwargs):
     if axis == 'y':
         _y = np.arange(len(domains))
         Y = np.tile(_y, (len(uni_domids), 1)).T
-        bar = plot(F, Y, linewidth=5)
+        bar = plot(F, Y, linewidth=barwidth, solid_capstyle='butt')
     else:
-        bar = plot(F, linewidth=5)
+        bar = plot(F, linewidth=barwidth, solid_capstyle='butt')
 
     bars.extend(bar)
     lim(L, auto=True)

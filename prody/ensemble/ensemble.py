@@ -91,7 +91,7 @@ class Ensemble(object):
             return ens
 
         elif isinstance(index, (list, ndarray)):
-            ens = Ensemble('Conformations of {0}'.format(self._title))
+            ens = Ensemble('{0}'.format(self._title))
             ens.setCoords(copy(self._coords))
             ens.addCoordset(self._confs[index].copy())
             if self._weights is not None:
