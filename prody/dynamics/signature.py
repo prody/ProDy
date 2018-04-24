@@ -929,7 +929,8 @@ def showSignatureMode(mode_ensemble, **kwargs):
         LOGGER.warn('modes in mode_ensemble did not match cross modesets. '
                     'Consider running mode_ensemble.match() prior to using this function')
 
-    mode = mode_ensemble.getEigvec()
+    scale = kwargs.pop('scale', 1.0)
+    mode = mode_ensemble.getEigvec() * scale
     show_zero = kwargs.pop('show_zero', True)
     return showSignature1D(mode, atoms=mode_ensemble.getAtoms(), show_zero=show_zero, **kwargs)
 
@@ -942,7 +943,8 @@ def showSignatureSqFlucts(mode_ensemble, **kwargs):
         LOGGER.warn('modes in mode_ensemble did not match cross modesets. '
                     'Consider running mode_ensemble.match() prior to using this function')
 
-    sqf = calcSignatureSqFlucts(mode_ensemble)
+    scale = kwargs.pop('scale', 1.0)
+    sqf = calcSignatureSqFlucts(mode_ensemble) * scale
     show_zero = kwargs.pop('show_zero', False)
     return showSignature1D(sqf, atoms=mode_ensemble.getAtoms(), show_zero=show_zero, **kwargs)
 
