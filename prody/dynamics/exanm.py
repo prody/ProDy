@@ -10,7 +10,7 @@ from prody.utilities import importLA, checkCoords
 from prody.kdtree import KDTree
 from numpy import sqrt, zeros, linalg, min, max, mean
 
-from .anm import ANMBase, calcANM
+from .anm import ANMBase, calcANM, ANM
 from .gnm import checkENMParameters
 from .editing import reduceModel
 
@@ -28,7 +28,7 @@ class Increment(object):
         return self._i
 
 
-class exANM(ANMBase):
+class exANM(ANM):
 
     """Class for explicit ANM (exANM) method ([FT00]_).
     Optional arguments build a membrane lattice permit analysis of membrane
@@ -128,7 +128,6 @@ class exANM(ANMBase):
                                 else:
                                     membrane = np.append(membrane, X, axis=0)
                                 atm = atm + 1 
-        #print atm             
 
         self._membrane = AtomGroup(title="Membrane")
         self._membrane.setCoords(membrane)
@@ -165,7 +164,7 @@ class exANM(ANMBase):
         :type 
         
         :arg lat: lattice type which could be FCC(face-centered-cubic)(default), 
-        SC(simple cubic), SH(simple hexagonal)
+            SC(simple cubic), SH(simple hexagonal)
         :type lat: str
         """
 
@@ -260,20 +259,16 @@ class exANM(ANMBase):
             raise TypeError('coords must be an AtomGroup object '
                                 'with `getCoords` method')
     
-    def writeCombinedPDB(self,filename):
+    def writeCombinedPDB(self, filename):
         """ Given membrane coordinates it will write a pdb file with membrane coordinates. 
         :arg filename: filename for the pdb file. 
         :type filename: str
-
-        :arg membrane: membrane coordinates or the membrane structure. 
-        :type membrane: nd.array
         """
-        if self._combined is None:
-            combineMembraneProtein(self,coords)
         try:
-            writePDB(filename,self._combined)
+            writePDB(filename, self._combined)
         except TypeError:
-            raise "Membrane not found. Use buildMembrane() function."    
+            raise "Combined membrane and protein not found. Use buildMembrane()" \
+                  " and combineMembraneProtein() functions."    
     
 
 def assign_lpvs(lat):

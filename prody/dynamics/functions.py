@@ -11,9 +11,10 @@ from prody.atomic import Atomic, AtomGroup, AtomSubset
 from prody.utilities import openFile, isExecutable, which, PLATFORM, addext
 
 from .nma import NMA
-from .anm import ANM
+from .anm import ANM, ANMBase
 from .gnm import GNM, GNMBase, ZERO, TrimedGNM
 from .pca import PCA, EDA
+from .exanm import exANM
 from .mode import Vector, Mode
 from .modeset import ModeSet
 from .editing import sliceModel, reduceModel
@@ -64,6 +65,10 @@ def saveModel(nma, filename=None, matrices=False, **kwargs):
     else:
         type_ = 'NMA'
 
+    if isinstance(nma, exANM):
+        type_ = 'exANM'
+        attr_list.append('_membrane')
+
     if matrices:
         attr_list.append('_cov')
     attr_dict = {'type': type_}
@@ -71,10 +76,12 @@ def saveModel(nma, filename=None, matrices=False, **kwargs):
         value = dict_[attr]
         if value is not None:
             attr_dict[attr] = value
+
     if isinstance(nma, TrimedGNM):
         attr_dict['type'] = 'tGNM'
         attr_dict['mask'] = nma.mask
         attr_dict['useTrimed'] = nma.useTrimed
+
     suffix = '.' + type_.lower()
     if not filename.lower().endswith('.npz'):
         if not filename.lower().endswith(suffix):
@@ -94,18 +101,23 @@ def loadModel(filename, **kwargs):
 
     if not 'encoding' in kwargs:
         kwargs['encoding'] = 'latin1'
+
     attr_dict = np.load(filename, **kwargs)
     try:
         type_ = attr_dict['type']
     except KeyError:
         raise IOError('{0} is not a valid NMA model file'.format(filename))
+
     if isinstance(type_, np.ndarray):
         type_ = np.asarray(type_, dtype=str)
+
     type_ = str(type_)
+
     try:
         title = attr_dict['_title']
     except KeyError:
         title = attr_dict['_name']
+
     if isinstance(title, np.ndarray):
         title = np.asarray(title, dtype=str)
     title = str(title)
@@ -119,10 +131,13 @@ def loadModel(filename, **kwargs):
         nma = GNM(title)
     elif type_ == 'tGNM':
         nma = TrimedGNM(title)
+    elif type_ == 'exANM':
+        nma = exANM(title)
     elif type_ == 'NMA':
         nma = NMA(title)
     else:
         raise IOError('NMA model type is not recognized: {0}'.format(type_))
+
     dict_ = nma.__dict__
     for attr in attr_dict.files:
         if attr in ('type', '_name', '_title'):
@@ -131,6 +146,15 @@ def loadModel(filename, **kwargs):
             dict_[attr] = float(attr_dict[attr])
         elif attr in ('_dof', '_n_atoms', '_n_modes'):
             dict_[attr] = int(attr_dict[attr])
+        elif attr in ('_membrane'):
+            arr = attr_dict[attr] # This is an array containing atoms
+            dict_[attr] = AtomGroup(title="Membrane")
+            dict_[attr].setCoords([atom.getCoords() for atom in arr])
+            dict_[attr].setResnums(range(len(arr)))
+            dict_[attr].setResnames(["NE1" for i in range(len(arr))])
+            dict_[attr].setChids(["Q" for i in range(len(arr))])
+            dict_[attr].setElements(["Q1" for i in range(len(arr))])
+            dict_[attr].setNames(["Q1" for i in range(len(arr))])
         else:
             dict_[attr] = attr_dict[attr]
     return nma
