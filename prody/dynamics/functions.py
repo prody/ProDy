@@ -11,7 +11,7 @@ from prody.atomic import Atomic, AtomGroup, AtomSubset
 from prody.utilities import openFile, isExecutable, which, PLATFORM, addext
 
 from .nma import NMA
-from .anm import ANM, ANMBase
+from .anm import ANM
 from .gnm import GNM, GNMBase, ZERO, TrimedGNM
 from .pca import PCA, EDA
 from .exanm import exANM
