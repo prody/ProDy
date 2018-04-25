@@ -45,9 +45,7 @@ class NMA(object):
             indices = np.arange(*index.indices(len(self)))
             if len(indices) > 0:
                 return ModeSet(self, indices)
-        elif isinstance(index, (list, tuple)):
-            for i in index:
-                assert isinstance(i, int), 'all indices must be integers'
+        elif isinstance(index, (list, tuple, np.ndarray)):
             if len(index) == 1:
                 return self._getMode(index[0])
             return ModeSet(self, index)
