@@ -275,7 +275,7 @@ class NMA(object):
         else:
             dof = shape[0]
             if self._is3d:
-                n_atoms = dof / 3
+                n_atoms = dof // 3
             else:
                 n_atoms = dof
             if self._n_atoms > 0 and n_atoms != self._n_atoms:
