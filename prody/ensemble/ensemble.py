@@ -209,10 +209,9 @@ class Ensemble(object):
 
         n_atoms = self._n_atoms
         if n_atoms:
-
             if atoms.numAtoms() > n_atoms:
                 raise ValueError('atoms must be same size or smaller than '
-                                 'the ensemble')
+                                'the ensemble')
 
             try:
                 dummies = atoms.numDummies()
@@ -231,12 +230,17 @@ class Ensemble(object):
                 self._indices = None
 
             else: # atoms is a subset
-                if self._atoms:
-                    self._indices, _ = sliceAtoms(self._atoms, atoms)
-                else:
-                    raise ValueError('size mismatch between this ensemble ({0} atoms) and atoms ({1} atoms)'
-                                     .format(n_atoms, atoms.numAtoms()))
-
+                if not self._atoms:
+                    try:
+                        ag = atoms.getAtomGroup()
+                    except AttributeError:
+                        ag = atoms
+                    if ag.numAtoms() != n_atoms:
+                        raise ValueError('size mismatch between this ensemble ({0} atoms) and atoms ({1} atoms)'
+                                        .format(n_atoms, ag.numAtoms()))
+                    self._atoms = ag
+                self._indices, _ = sliceAtoms(self._atoms, atoms)
+                
         else: # if assigning atoms to a new ensemble
             self._n_atoms = atoms.numAtoms()
             self._atoms = atoms

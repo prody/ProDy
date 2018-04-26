@@ -12,7 +12,7 @@ from prody.utilities import openFile, isExecutable, which, PLATFORM, addext
 
 from .nma import NMA
 from .anm import ANM
-from .gnm import GNM, GNMBase, ZERO, TrimedGNM
+from .gnm import GNM, GNMBase, ZERO, TrimmedGNM
 from .pca import PCA, EDA
 from .exanm import exANM
 from .mode import Vector, Mode
@@ -65,10 +65,6 @@ def saveModel(nma, filename=None, matrices=False, **kwargs):
     else:
         type_ = 'NMA'
 
-    if isinstance(nma, exANM):
-        type_ = 'exANM'
-        attr_list.append('_membrane')
-
     if matrices:
         attr_list.append('_cov')
     attr_dict = {'type': type_}
@@ -77,12 +73,17 @@ def saveModel(nma, filename=None, matrices=False, **kwargs):
         if value is not None:
             attr_dict[attr] = value
 
-    if isinstance(nma, TrimedGNM):
+    if isinstance(nma, TrimmedGNM):
         attr_dict['type'] = 'tGNM'
         attr_dict['mask'] = nma.mask
-        attr_dict['useTrimed'] = nma.useTrimed
+        attr_dict['useTrimmed'] = nma.useTrimmed
 
-    suffix = '.' + type_.lower()
+    if isinstance(nma, exANM):
+        attr_dict['type'] = 'exANM'
+        attr_dict['_membrane'] = np.array([nma._membrane, None])
+        attr_dict['_combined'] = np.array([nma._combined, None])
+
+    suffix = '.' + attr_dict['type'].lower()
     if not filename.lower().endswith('.npz'):
         if not filename.lower().endswith(suffix):
             filename += suffix + '.npz'
@@ -130,7 +131,7 @@ def loadModel(filename, **kwargs):
     elif type_ == 'GNM':
         nma = GNM(title)
     elif type_ == 'tGNM':
-        nma = TrimedGNM(title)
+        nma = TrimmedGNM(title)
     elif type_ == 'exANM':
         nma = exANM(title)
     elif type_ == 'NMA':
@@ -146,15 +147,8 @@ def loadModel(filename, **kwargs):
             dict_[attr] = float(attr_dict[attr])
         elif attr in ('_dof', '_n_atoms', '_n_modes'):
             dict_[attr] = int(attr_dict[attr])
-        elif attr in ('_membrane'):
-            arr = attr_dict[attr] # This is an array containing atoms
-            dict_[attr] = AtomGroup(title="Membrane")
-            dict_[attr].setCoords([atom.getCoords() for atom in arr])
-            dict_[attr].setResnums(range(len(arr)))
-            dict_[attr].setResnames(["NE1" for i in range(len(arr))])
-            dict_[attr].setChids(["Q" for i in range(len(arr))])
-            dict_[attr].setElements(["Q1" for i in range(len(arr))])
-            dict_[attr].setNames(["Q1" for i in range(len(arr))])
+        elif attr in ('_membrane', '_combined'):
+            dict_[attr] = attr_dict[attr][0] 
         else:
             dict_[attr] = attr_dict[attr]
     return nma

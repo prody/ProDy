@@ -7,14 +7,14 @@ from scipy.stats import mode
 from prody.chromatin.norm import VCnorm, SQRTVCnorm, Filenorm
 from prody.chromatin.functions import div0, showMap, showDomains, _getEigvecs
 
-from prody.dynamics import GNM, TrimedGNM
+from prody.dynamics import GNM, TrimmedGNM
 from prody.dynamics.functions import writeArray
 from prody.dynamics.mode import Mode
 from prody.dynamics.modeset import ModeSet
 
 from prody.utilities import openFile, importLA
 
-__all__ = ['HiC', 'TrimedGNM', 'parseHiC', 'parseHiCStream', 'saveHiC', 'loadHiC', 'writeMap']
+__all__ = ['HiC', 'TrimmedGNM', 'parseHiC', 'parseHiCStream', 'saveHiC', 'loadHiC', 'writeMap']
 
 class HiC(object):
 
@@ -225,7 +225,7 @@ class HiC(object):
         """Calculates GNM on the current Hi-C map."""
 
         if self.useTrimmed:
-            gnm = TrimedGNM(self._title, self.mask)
+            gnm = TrimmedGNM(self._title, self.mask)
         else:
             gnm = GNM(self._title)
         gnm.setKirchhoff(self.getKirchhoff())

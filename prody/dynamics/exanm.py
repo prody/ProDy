@@ -6,7 +6,7 @@ import numpy as np
 from prody import LOGGER
 from prody.atomic import Atomic, AtomGroup
 from prody.proteins import parsePDB, writePDB
-from prody.utilities import importLA, checkCoords
+from prody.utilities import importLA, checkCoords, copy
 from prody.kdtree import KDTree
 from numpy import sqrt, zeros, linalg, min, max, mean
 
@@ -62,16 +62,12 @@ class exANM(ANM):
         :type R: float
 
         :arg r: radius of individual barrel-type membrane protein default is 2.5.
-        :type 
+        :type r: float
         
         :arg lat: lattice type which could be FCC(face-centered-cubic)(default), 
         SC(simple cubic), SH(simple hexagonal)
         :type lat: str
         """
-        if type(coords) is AtomGroup:
-            buildAg = True
-        else:
-            buildAg = False
         
         try:
             coords = (coords._getCoords() if hasattr(coords, '_getCoords') else
@@ -85,6 +81,7 @@ class exANM(ANM):
 
         self._n_atoms = natoms = int(coords.shape[0])
 
+        LOGGER.timeit('_membrane')
         pxlo = min(np.append(coords[:,0],10000))
         pxhi = max(np.append(coords[:,0],-10000))
         pylo = min(np.append(coords[:,1],10000))
@@ -106,10 +103,9 @@ class exANM(ANM):
         #print pxlo, pxhi, pylo, pyhi, pzlo, pzhi
         #print lpv[0,2],lpv[1,2],lpv[2,2]
         #print R,r,imax,jmax,kmax
-        membrane = zeros((1,3))
-
-        LOGGER.timeit('_membrane')
-        membrane = zeros((1,3))
+        #membrane = zeros((1,3))
+        
+        membrane = None
         atm = 0
         for i in range(-int(imax),int(imax+1)):
             for j in range(-int(jmax),int(jmax+1)):
@@ -129,14 +125,18 @@ class exANM(ANM):
                                     membrane = np.append(membrane, X, axis=0)
                                 atm = atm + 1 
 
-        self._membrane = AtomGroup(title="Membrane")
-        self._membrane.setCoords(membrane)
-        self._membrane.setResnums(range(atm))
-        self._membrane.setResnames(["NE1" for i in range(atm)])
-        self._membrane.setChids(["Q" for i in range(atm)])
-        self._membrane.setElements(["Q1" for i in range(atm)])
-        self._membrane.setNames(["Q1" for i in range(atm)])
-        LOGGER.report('Membrane was built in %2.fs.', label='_membrane')
+        if membrane is None:
+            self._membrane = None
+            LOGGER.warn('no membrane is built. The protein should be transformed to the correct origin as in OPM')
+        else:
+            self._membrane = AtomGroup(title="Membrane")
+            self._membrane.setCoords(membrane)
+            self._membrane.setResnums(range(atm))
+            self._membrane.setResnames(["NE1" for i in range(atm)])
+            self._membrane.setChids(["Q" for i in range(atm)])
+            self._membrane.setElements(["Q1" for i in range(atm)])
+            self._membrane.setNames(["Q1" for i in range(atm)])
+            LOGGER.report('Membrane was built in %2.fs.', label='_membrane')
 
     def buildHessian(self, coords, cutoff=15., gamma=1., **kwargs):
         """Build Hessian matrix for given coordinate set.
@@ -168,6 +168,11 @@ class exANM(ANM):
         :type lat: str
         """
 
+        if isinstance(coords, Atomic):
+            atoms = coords
+        else:
+            atoms = None
+
         try:
             coords = (coords._getCoords() if hasattr(coords, '_getCoords') else
                       coords.getCoords())
@@ -190,8 +195,12 @@ class exANM(ANM):
 
 
         LOGGER.timeit('_exanm')
-        coords = np.concatenate((coords,self._membrane.getCoords()),axis=0)
-        self._combined_coords = coords
+        
+        if atoms:
+            coords = self._combineMembraneProtein(atoms)
+        else:
+            coords = self._combineMembraneProtein(coords)
+
         total_natoms = int(coords.shape[0])
         self._hessian = np.zeros((natoms*3, natoms*3), float)
         total_hessian = np.zeros((total_natoms*3, total_natoms*3), float)
@@ -245,30 +254,29 @@ class exANM(ANM):
     def getMembrane(self):
         """Returns a copy of the membrane coordinates."""
 
-        if self._membrane is not None:
-            return self._membrane.copy()
+        return copy(self._membrane)
 
     def _getMembrane(self):
         return self._membrane
 
-    def combineMembraneProtein(self, coords):
-        try:
-            if type(coords) is AtomGroup:
-                self._combined = coords + self._membrane
-        except TypeError:
-            raise TypeError('coords must be an AtomGroup object '
-                                'with `getCoords` method')
-    
-    def writeCombinedPDB(self, filename):
-        """ Given membrane coordinates it will write a pdb file with membrane coordinates. 
-        :arg filename: filename for the pdb file. 
-        :type filename: str
-        """
-        try:
-            writePDB(filename, self._combined)
-        except TypeError:
-            raise "Combined membrane and protein not found. Use buildMembrane()" \
-                  " and combineMembraneProtein() functions."    
+    def getCombined(self):
+        """Returns a copy of the combined atoms or coordinates."""
+
+        return copy(self._combined)
+
+    def _getCombined(self):
+        return self._combined
+
+    def _combineMembraneProtein(self, coords):
+        if self._membrane is not None:
+            if isinstance(coords, Atomic):
+                self._combined = coords.copy() + self._membrane
+                coords = self._combined.getCoords()
+            else:
+                self._combined = coords = np.concatenate((coords, self._membrane.getCoords()), axis=0)
+        else:
+            self._combined = coords = copy(coords)
+        return coords
     
 
 def assign_lpvs(lat):
