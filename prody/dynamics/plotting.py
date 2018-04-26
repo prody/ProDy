@@ -20,9 +20,9 @@ from .modeset import ModeSet
 from .analysis import calcSqFlucts, calcProjection
 from .analysis import calcCrossCorr, calcPairDeformationDist
 from .analysis import calcFractVariance, calcCrossProjection 
-from .perturb import calcPerturbResponse, calcPerturbResponseProfiles
+from .perturb import calcPerturbResponse
 from .compare import calcOverlap
-from prody.atomic import AtomGroup, Selection
+from prody.atomic import AtomGroup, Selection, Atomic
 
 __all__ = ['showContactMap', 'showCrossCorr',
            'showCumulOverlap', 'showFractVars',
@@ -33,7 +33,7 @@ __all__ = ['showContactMap', 'showCrossCorr',
            'showNormedSqFlucts', 'resetTicks',
            'showDiffMatrix','showMechStiff','showNormDistFunct',
            'showPairDeformationDist','showMeanMechStiff', 
-           'showPerturbResponse', 'showPerturbResponseProfiles',
+           'showPerturbResponse',
            'showAtomicMatrix', 'showAtomicLines', 'showTree', 
            'showTree_networkx', 'showDomainBar']
 
@@ -463,7 +463,7 @@ def showOverlapTable(modes_x, modes_y, **kwargs):
 
     Default arguments for :func:`~matplotlib.pyplot.pcolor`:
 
-      * ``cmap=plt.cm.jet``
+      * ``cmap='jet'``
       * ``norm=matplotlib.colors.Normalize(0, 1)``"""
 
     import matplotlib.pyplot as plt
@@ -475,7 +475,7 @@ def showOverlapTable(modes_x, modes_y, **kwargs):
     elif overlap.ndim == 1:
         overlap = overlap.reshape((modes_y.numModes(), modes_x.numModes()))
 
-    cmap = kwargs.pop('cmap', plt.cm.jet)
+    cmap = kwargs.pop('cmap', 'jet')
     norm = kwargs.pop('norm', matplotlib.colors.Normalize(0, 1))
 
     if SETTINGS['auto_show']:
@@ -921,7 +921,7 @@ def showPairDeformationDist(model, coords, ind1, ind2, *args, **kwargs):
         #plt.title(str(model))
         plt.plot(d_pair[0], d_pair[1], 'k-', linewidth=1.5, *args, **kwargs)
         plt.xlabel('mode (k)', fontsize = '18')
-        plt.ylabel('d$^k$' '($\AA$)', fontsize = '18')
+        plt.ylabel(r'd$^k$ ($\AA$)', fontsize = '18')
     if SETTINGS['auto_show']:
         showFigure()
     return plt.show
@@ -982,25 +982,12 @@ def showMeanMechStiff(model, coords, header, chain='A', *args, **kwargs):
         showFigure()
     return plt.show
 
-def showPerturbResponse(**kwargs):
+def showPerturbResponse(model, atoms=None, matrix=True, **kwargs):
     """ Plot the PRS matrix with the profiles along the right and bottom.
 
-    If no PRS matrix or profiles are provided, these will be calculated first
-    using the provided options with a provided model (e.g. ANM, GNM or EDA).
-    So as to obtain different sensors and effectors, normMatrix=True by default.
-
     If atoms are provided then residue numbers can be used from there.
-    *model* and *atoms* must have the same number of atoms. *atoms* must be an
-    :class:`.AtomGroup` instance.
-
-    :arg prs_matrix: a perturbation response matrix
-    :type prs_matrix: :class:`~numpy.array`
-
-    :arg effectiveness: an effectiveness profile from a PRS matrix
-    :type effectiveness: :class:`~numpy.array`
-
-    :arg sensitivity: a sensitivity profile from a PRS matrix
-    :type sensitivity: :class:`~numpy.array`
+    *model* and *atoms* must have the same number of atoms. *atoms* must 
+    be an :class:`.Atomic` instance.
 
     :arg model: any object with a calcCovariance method
         e.g. :class:`.ANM` instance
@@ -1008,202 +995,31 @@ def showPerturbResponse(**kwargs):
 
     :arg atoms: a :class: `AtomGroup` instance
     :type atoms: AtomGroup
-
-    :arg returnData: whether to return data for further analysis
-        default is False
-    :type returnData: bool
     
     :arg percentile: percentile argument for showAtomicMatrix
     :type percentile: float
-
-    Return values are prs_matrix, effectiveness, sensitivity, ax1, ax2, im, ax3, ax4
-    The PRS matrix, effectiveness and sensitivity will not be returned if provided. 
-    If returnData is False then only the last five objects are returned.
     """
 
-    import matplotlib.pyplot as plt
-    import matplotlib
+    from matplotlib.pyplot import gcf, xlabel, ylabel, legend
 
-    prs_matrix = kwargs.get('prs_matrix')
-    effectiveness = kwargs.get('effectiveness')
-    sensitivity = kwargs.get('sensitivity')
-    model = kwargs.pop('model')
-    atoms = kwargs.get('atoms')
-    returnData = kwargs.pop('returnData', False)
+    prs_matrix, effectiveness, sensitivity = calcPerturbResponse(model, atoms=atoms)
 
-    if atoms is None:
-
-        if prs_matrix is None:
-            if model is None:
-                raise ValueError('Please provide a PRS matrix or model.')
-            else:
-                prs_matrix = calcPerturbResponse(model=model)
-
-        if effectiveness is None or sensitivity is None:
-            effectiveness, sensitivity = calcPerturbResponseProfiles(prs_matrix)
-        else:
-            returnData = False
-
-        showMatrix_returns = showAtomicMatrix(prs_matrix, effectiveness, sensitivity, **kwargs)
-
+    if matrix:
+        show = showAtomicMatrix(prs_matrix, 
+                                x_array=effectiveness, 
+                                y_array=sensitivity, 
+                                atoms=atoms, 
+                                **kwargs)
+        #xlabel('Residues')
+        ylabel('Residues')
     else:
-        if not isinstance(atoms, AtomGroup) and not isinstance(atoms, Selection):
-            raise TypeError('atoms must be an AtomGroup instance')
-        elif model is not None and atoms.numAtoms() != model.numAtoms():
-            raise ValueError('model and atoms must have the same number atoms')
-
-        if prs_matrix is None: 
-            if model is None:
-                raise ValueError('Please provide a PRS matrix or model.')
-            atoms, prs_matrix = calcPerturbResponse(model=model,atoms=atoms)
-
-        if effectiveness is None or sensitivity is None:
-            atoms, effectiveness, sensitivity = calcPerturbResponseProfiles(prs_matrix,atoms)
-
-        showMatrix_returns = showAtomicMatrix(prs_matrix, effectiveness, sensitivity, **kwargs)
-
-    if not returnData:
-        return showMatrix_returns
-    elif kwargs.get('prs_matrix') is not None:
-       if atoms is not None:
-           return atoms, effectiveness, sensitivity, showMatrix_returns
-       else:
-           return effectiveness, sensitivity, showMatrix_returns
-    else:
-       if atoms is not None:
-           return atoms, prs_matrix, effectiveness, sensitivity, showMatrix_returns
-       else:
-           return prs_matrix, effectiveness, sensitivity, showMatrix_returns
-
-def showPerturbResponseProfiles(prs_matrix,atoms=None,**kwargs):
-    """Plot as a line graph the average response to perturbation of
-    a particular residue (a row of a perturbation response matrix)
-    or the average effect of perturbation of a particular residue
-    (a column of a normalized perturbation response matrix).
-
-    If no PRS matrix or profiles are provided, these will be calculated first
-    using the provided options with a provided model (e.g. ANM, GNM or EDA).
-    So as to obtain different sensitivity and effectiveness, normMatrix=True by default.
-
-    If no residue number is given then the effectiveness and sensitivity
-    profiles will be plotted instead. These two profiles are also returned
-    as arrays for further analysis if they aren't already provided.
-
-    :arg prs_matrix: a perturbation response matrix
-    :type prs_matrix: ndarray
-
-    :arg atoms: a :class: `AtomGroup` instance for matching 
-        residue numbers and chain IDs. 
-    :type atoms: AtomGroup
-
-    :arg effectiveness: an effectiveness profile from a PRS matrix
-    :type effectiveness: list
-
-    :arg sensitivity: a sensitivity profile from a PRS matrix
-    :type sensitivity: list
-
-    :arg model: any object with a calcCovariance method
-        e.g. :class:`.ANM` instance
-        *model* and *atoms* must have the same number of atoms.
-    :type model: NMA
-
-    :arg chain: chain identifier for the residue of interest
-        default is to make a plot for each chain in the protein
-    :type chain: str
-
-    :arg resnum: residue number for the residue of interest
-    :type resnum: int
-
-    :arg direction: the direction you want to use to read data out
-        of the PRS matrix for plotting: the options are 'effect' or 'response'.
-        Default is 'effect'.
-        A row gives the effect on each residue of peturbing the specified 
-        residue.
-        A column gives the response of the specified residue to perturbing 
-        each residue.
-        If no residue number is provided then this option will be ignored
-    :type direction: str
-
-    :arg returnData: whether to return profiles for further analysis
-        default is False
-    :type returnProfiles: bool
-    """
-    from .perturb import PRSMatrixParseError
-
-    model = kwargs.get('model')
-    if not type(prs_matrix) is np.ndarray:
-        if prs_matrix is None:
-            if model is None:
-                raise ValueError('Please provide a PRS matrix or model.')
-            else:
-                if kwargs.get('normMatrix') is None:
-                    kwargs.set('normMatrix',True)
-                prs_matrix = calcPerturbResponse(**kwargs)
-        else:
-            raise TypeError('Please provide a valid PRS matrix (as array).')
-
-    if atoms is None:
-        raise ValueError('Please provide an AtomGroup object for matching ' \
-                         'residue numbers and chain IDs.')
-    else:
-        if not isinstance(atoms, AtomGroup) and not isinstance(atoms, Selection):
-            raise TypeError('atoms must be an AtomGroup instance')
-        elif model is not None and atoms.numAtoms() != model.numAtoms():
-            raise ValueError('model and atoms must have the same number atoms')
-
-    chain = kwargs.get('chain')
-    hv = atoms.getHierView()
-    chains = []
-    for i in range(len(list(hv))):
-        chainAg = list(hv)[i]
-        chains.append(chainAg.getChids()[0])
-
-    chains = np.array(chains)
-    if chain is None:
-        chain = ''.join(chains)
-
-    resnum = kwargs.get('resnum', None)
-    direction = kwargs.get('direction','effect')
-
-    if resnum is not None: 
-        timesNotFound = 0
-        for n in range(len(chain)):
-            if not chain[n] in chains:
-                raise PRSMatrixParseError('Chain {0} was not found in chains'.format(chain[n]))
-
-            chainNum = int(np.where(chains == chain[n])[0])
-            chainAg = list(hv)[chainNum]
-            if not resnum in chainAg.getResnums():
-                LOGGER.info('A residue with number {0} was not found' \
-                            ' in chain {1}. Continuing to next chain.' \
-                            .format(resnum, chain[n]))
-                timesNotFound += 1
-                continue
-
-        profiles = []
-        for n in range(len(chain)):
-            chainNum = int(np.where(chains == chain[n])[0])
-            i = np.where(atoms.getResnums() == resnum)[0][chainNum-timesNotFound] 
-            if direction is 'effect':
-                profiles.append(prs_matrix[i,:])
-            else:
-                profiles.append(prs_matrix[:,i])
-
-    else:
-        effectiveness = kwargs.get('effectiveness')
-        sensitivity = kwargs.get('sensitivity')
-        if effectiveness is None or sensitivity is None:
-            effectiveness, sensitivity = calcPerturbResponseProfiles(prs_matrix)
-        profiles = [effectiveness, sensitivity]
-
-    for profile in profiles:
-        show = showAtomicLines(profile,atoms=atoms,**kwargs)
-
-    returnData = kwargs.get('returnData',False)
-    if returnData:
-        return show, profiles
-    else:
-        return show
+        show_eff = showAtomicLines(effectiveness, atoms=atoms, **kwargs)
+        kwargs.pop('figure', None); fig = gcf()
+        show_sen = showAtomicLines(sensitivity, atoms=atoms, figure=fig, **kwargs)
+        show = [show_eff, show_sen]
+        xlabel('Residues')
+        legend(['Effectiveness', 'Sensitivity'])
+    return show
 
 def _checkDomainBarParameter(domain_bar, defpos, atoms, label):
     show = atoms is not None

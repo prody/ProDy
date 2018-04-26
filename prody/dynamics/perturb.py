@@ -20,14 +20,13 @@ from .mode import VectorBase, Mode, Vector
 from .gnm import GNMBase
 from .analysis import calcCovariance
 
-__all__ = ['calcPerturbResponse', 'parsePerturbResponseMatrix',
-           'calcPerturbResponseProfiles', 'writePerturbResponsePDB']
+__all__ = ['calcPerturbResponse', 'parsePerturbResponseMatrix']
 
 class PRSMatrixParseError(Exception):
     pass
 
 
-def calcPerturbResponse(model, **kwargs):
+def calcPerturbResponse(model, atoms=None, **kwargs):
 
     """Returns a matrix of profiles from scanning the response of the
     structure to random perturbations at specific atom (or node) positions.
@@ -48,21 +47,17 @@ def calcPerturbResponse(model, **kwargs):
        Reveals Ligand Entry-Exit Mechanisms of Ferric Binding Protein.
        *PLoS Comput Biol* **2009** 5(10):e1000544.
 
-    The PRS matrix can be calculated and saved as follows::
+    The PRS matrix can be calculated as follows::
 
-      prs_matrix = calcPerturbResponse(p38_anm, saveMatrix=True)
+      prs_matrix, _, _ = calcPerturbResponse(p38_anm)
       
-    The PRS matrix can also be save later as follows::
+    Then the PRS matrix can be saved as follows::
     
       writeArray('prs_matrix.txt', prs_matrix, format='%8.6f', delimiter='\t')
 
-    :arg saveMatrix: whether to save the last matrix generated to a text file.
-        Default is False
-    :type saveMatrix: bool
-
-    :arg saveName: The file name for saved matrices
-        Default is 'response_matrix.txt'.
-    :type saveName: str
+    :arg filename: If not **None**, the PRS matrix will be saved to the file.
+        Default is **None**.
+    :type filename: str
     """
 
     if not isinstance(model, (NMA, ModeSet, Mode)):
@@ -81,20 +76,20 @@ def calcPerturbResponse(model, **kwargs):
             raise ValueError('model and atoms must have the same number atoms')
 
     n_atoms = model.numAtoms()
-    LOGGER.timeit('_prody_prs_all')
-    LOGGER.info('Calculating covariance matrix')
-    LOGGER.timeit('_prody_cov')
+    #LOGGER.timeit('_prody_prs_all')
+    #LOGGER.info('Calculating covariance matrix')
+    #LOGGER.timeit('_prody_cov')
 
     cov = calcCovariance(model)
     if cov is None:
         raise ValueError('model did not return a covariance matrix')
 
-    LOGGER.clear()
-    LOGGER.report('Covariance matrix calculated in %.1fs.',
-                  '_prody_cov')
+    #LOGGER.clear()
+    #LOGGER.report('Covariance matrix calculated in %.1fs.',
+    #              '_prody_cov')
 
-    LOGGER.report('Calculating perturbation response', n_atoms, '_prody_prs_mat')
-
+    #LOGGER.info('Calculating perturbation response')
+    #LOGGER.timeit('_prody_prs_mat')
     if not model.is3d():
         prs_matrix = cov**2
 
@@ -116,43 +111,54 @@ def calcPerturbResponse(model, **kwargs):
             j3p3 += 3                
             prs_matrix[:,j] = (n_by_3n_cov_squared[:,j3:j3p3]).sum(1)
 
-    LOGGER.clear()
-    LOGGER.report('Perturbation response matrix calculated in %.1fs.',
-                      '_prody_prs_mat')
+    #LOGGER.clear()
+    #LOGGER.report('Perturbation response matrix calculated in %.1fs.',
+    #                  '_prody_prs_mat')
 
-    saveMatrix = kwargs.get('saveMatrix',False)
-    suppressDiag = kwargs.get('suppressDiag',False)
-    saveName = kwargs.get('saveName','response_matrix.txt')
+    no_diag = kwargs.get('no_diag', False)
+    #filename = kwargs.get('filename', None)
 
     norm_prs_matrix = np.zeros((n_atoms, n_atoms))
     self_dp = np.diag(prs_matrix)  
     self_dp = self_dp.reshape(n_atoms, 1)
     norm_prs_matrix = prs_matrix / np.repeat(self_dp, n_atoms, axis=1)
 
-    if suppressDiag == True:
+    effectiveness = np.mean(norm_prs_matrix, axis=1)
+    sensitivity = np.mean(norm_prs_matrix, axis=0)
+
+    if no_diag:
        # suppress the diagonal (self displacement) to facilitate
        # visualizing the response profile
        norm_prs_matrix = norm_prs_matrix - np.diag(np.diag(norm_prs_matrix))
 
-    if saveMatrix == True:
-        np.savetxt(saveName, norm_prs_matrix, delimiter='\t', fmt='%8.6f')
+    #if filename:
+    #    np.savetxt(filename, norm_prs_matrix, delimiter='\t', fmt='%8.6f')
 
-    LOGGER.report('Perturbation response scanning completed in %.1fs.',
-                  '_prody_prs_all')
+    #LOGGER.report('Perturbation response scanning completed in %.1fs.',
+    #              '_prody_prs_all')
 
     if atoms is not None:
-        atoms.setData('prs_matrix',norm_prs_matrix)
-        return atoms, norm_prs_matrix
-    else:
-        return norm_prs_matrix
+        try:
+            ag = atoms.getAtomGroup()
+            defdata = np.zeros(ag.numAtoms(), dtype=float)
+            ag.setData('effectiveness', defdata.copy())
+            ag.setData('sensitivity', defdata.copy())
+        except AttributeError:
+            pass
+        atoms.setData('effectiveness', effectiveness)
+        atoms.setData('sensitivity', sensitivity)
 
-def parsePerturbResponseMatrix(prs_matrix_file, normMatrix=False):
+        #atoms.setData('prs_matrix', norm_prs_matrix)
+
+    return norm_prs_matrix, effectiveness, sensitivity
+
+def parsePerturbResponseMatrix(prs_matrix_file, norm=False):
     """Parses a perturbation response matrix from a file into a numpy ndarray.
 
     :arg prs_matrix_file: name of the file containing a PRS matrix
     :type prs_matrix_file: str
 
-    :arg normMatrix: whether to normalize the PRS matrix after parsing it.
+    :arg norm: whether to normalize the PRS matrix after parsing it.
         Default is False. If you used an old version of the script 
         and didn't normalize before saving, set this to True.
     :type norm: bool
@@ -168,221 +174,13 @@ def parsePerturbResponseMatrix(prs_matrix_file, normMatrix=False):
 
     prs_matrix = np.array(prs_matrix)
 
-    if normMatrix == True:
+    if norm:
        # normalize the PRS matrix
        self_dp = np.diag(prs_matrix)  # using self displacement (diagonal of
                               # the original matrix) as a
                               # normalization factor
        self_dp = self_dp.reshape(len(prs_matrix), 1)
-       norm_PRS_mat = prs_matrix / np.repeat(self_dp, len(prs_matrix), axis=1)
-       return norm_PRS_mat
+       prs_matrix = prs_matrix / np.repeat(self_dp, len(prs_matrix), axis=1)
 
-    else:
-       return prs_matrix
-
-def calcPerturbResponseProfiles(prs_matrix, atoms=None):
-    """ Calculate the effectiveness and sensitivity
-    profiles, which are the averages over the rows
-    and columns of the PRS matrix.
-
-    :arg prs_matrix: a perturbation response matrix
-    :type prs_matrix: ndarray 
-
-    When an *atoms* instance is given, the profiles will be added as data, 
-    which can be retrieved with ``atoms.getData('effectiveness')`` and 
-    ``atoms.getData('sensitivity')``. 
-    """
-
-    effectiveness = np.mean(prs_matrix, axis=1)
-    sensitivity = np.mean(prs_matrix, axis=0)
-
-    if atoms is not None:
-        try:
-            ag = atoms.getAtomGroup()
-            defdata = np.zeros(ag.numAtoms(), dtype=float)
-            ag.setData('effectiveness', defdata.copy())
-            ag.setData('sensitivity', defdata.copy())
-        except AttributeError:
-            pass
-        atoms.setData('effectiveness', effectiveness)
-        atoms.setData('sensitivity', sensitivity)
-        
-    return effectiveness, sensitivity
-
-def writePerturbResponsePDB(prs_matrix, pdbIn=None, **kwargs):
-    """ Write the average response to perturbation of
-    a particular residue (a row of a perturbation response matrix)
-    or the average effect of perturbation of a particular residue
-    (a column of a normalized perturbation response matrix)
-    into the b-factor field of a PDB file for visualisation in a
-    molecular graphics program.
-    If no chain is given this will be done for that residue in all chains.
-
-    If no residue number is given then the effectiveness and sensitivity
-    profiles will be written out instead. These two profiles are also returned
-    as arrays for further analysis if they aren't already provided.
-
-    :arg prs_matrix: a perturbation response matrix 
-        or a :class:`.AtomGroup` object with a PRS matrix associated as data
-    :type prs_matrix: array or :class:`.AtomGroup`
-
-    :arg pdbIn: file name for the input PDB file where you would like the PRS
-        data mapped
-    :type pdbIn: str
-
-    :arg pdbOut: a list of file names (enclosed in square
-        brackets) for the output PDB file, default is to append
-        the chain and residue info (name and number) onto the pdbIn stem.
-        The input for pdbOut can also be used as a stem if you enter a 
-        single string enclosed in quotes.
-        If no residue number is supplied, chain is ignored and the default 
-        is to append '_effectiveness' and '_sensitivity' onto the stem.
-    :type pdbOut: list
-
-    :arg chain: chain identifier for the residue of interest, default is all chains
-        If you want to analyse residues in a subset of chains, concatentate them
-        together e.g. 'AC'
-    :type chain: str
-
-    :arg resnum: residue number for the residue of interest
-    :type resnum: int
-
-    :arg direction: the direction you want to use to read data out
-        of the PRS matrix for plotting: the options are 'effect' or 'response'.
-        Default is 'effect'.
-        A row gives the effect on each residue of peturbing the specified 
-        residue.
-        A column gives the response of the specified residue to perturbing 
-        each residue.
-        If no residue number is provided then this option will be ignored
-    :type direction: str
-
-    :arg returnData: whether to return effectiveness and sensitivity for analysis
-        default is False
-    :type returnProfiles: bool
-
-    :arg effectiveness: effectiveness profile
-    :type array
-
-    :arg sensitivity: sensitivity profile
-    :type array
-    """
-
-    if not isinstance(prs_matrix,np.ndarray):
-        try:
-            prs_matrix = prs_matrix.getData('prs_matrix')
-        except:
-            raise TypeError('Please provide a valid PRS matrix in numpy ndarray format.')
-
-    try:
-        fi = open(pdbIn,'r')
-        lines = fi.readlines()
-        fi.close()
-    except:
-        raise PRSMatrixParseError('Please provide a valid file name for the input PDB.')
- 
-    chain = kwargs.get('chain', None)
-
-    structure = parsePDB(pdbIn,subset='ca')
-    structure.setData('prs_matrix',prs_matrix)
-
-    hv = structure.getHierView()
-    chains = []
-    for i in range(len(list(hv))):
-        chainAg = list(hv)[i]
-        chains.append(chainAg.getChids()[0])
-
-    chains = np.array(chains)
-    if chain is None:
-        chain = ''.join(chains)
-
-    resnum = kwargs.get('resnum', None)
-    pdbOut = kwargs.get('pdbOut', None)
-    if pdbOut is None:
-        out_stem = pdbIn.split('.')[0]
-    elif type(pdbOut) is str:
-        out_stem = pdbOut.split('.')[0]
-        pdbOut = None
-
-    if resnum is None:
-        effectiveness = kwargs.get('effectiveness',None)
-        sensitivity = kwargs.get('sensitivity',None)
-        if effectiveness is None or sensitivity is None:
-            effectiveness, sensitivity = calcPerturbResponseProfiles(prs_matrix)
-
-        structure.setData('effectiveness',effectiveness)
-        structure.setData('sensitivity',sensitivity)
-
-        file_effs_name = '{0}_effectiveness.pdb'.format(out_stem)
-        file_sens_name = '{0}_sensitivity.pdb'.format(out_stem)
-        fileEffs = open(file_effs_name,'w')
-        fileSens = open(file_sens_name,'w')
-
-        for line in lines:            
-            if line.find('ATOM') != 0 and line.find('HETATM') != 0 and line.find('ANISOU') != 0:
-                fileEffs.write(line)                    
-                fileSens.write(line)
-            elif line.find('ATOM') == 0:
-                fileEffs.write(line[:60] + '{:6.2f}'.format(float(structure.select( \
-                               'chain {0} and resnum {1}'.format(line[21],line[22:26])) \
-                               .getData('effectiveness')) * 100/np.max( \
-                               structure.getData('effectiveness'))) + line[66:])
-                fileSens.write(line[:60] + '{:6.2f}'.format(float(structure.select( \
-                               'chain {0} and resnum {1}'.format(line[21],line[22:26])) \
-                               .getData('sensitivity')) * 100/np.max( \
-                               structure.getData('sensitivity'))) + line[66:])
-            elif line.find('HETATM') == 0:
-                fileEffs.write(line[:60] + '  0.00' + line[66:])
-                fileSens.write(line[:60] + '  0.00' + line[66:])
-                      
-        fileEffs.close()
-        fileSens.close()
-        LOGGER.info('The effectiveness and sensitivity profiles were written' \
-                    ' to {0} and {1}.'.format(file_effs_name,file_sens_name))
-
-        returnData = kwargs.get('returnData',False)
-        if returnData:
-            return structure, effectiveness, sensitivity
-        else:
-            return
- 
-    direction = kwargs.get('direction','effect')
-    for n in range(len(chain)):
-        if not chain[n] in chains:
-            raise PRSMatrixParseError('Chain {0} was not found in {1}'.format(chain[n], pdbIn))
-
-    if pdbOut is None:
-        pdbOut = []
-        for c in chain:
-            pdbOut.append('{0}_{1}_{2}{3}_{4}.pdb' \
-                          .format(out_stem, c, \
-                                  str(structure.select('chain {0} and resnum {1}' \
-                                      .format(c, resnum)).getResnames()), \
-                                  resnum, direction))
-
-    for c in chain:
-        fo = open(pdbOut[n],'w')
-        for line in lines:
-            if line.find('ATOM') != 0 and line.find('HETATM') != 0 and line.find('ANISOU') != 0:
-                fo.write(line)
-            elif line.find('ATOM') == 0:
-                if direction is 'effect':
-                    fo.write(line[:60] + '{:6.2f}'.format(float(structure.getData('prs_matrix') \
-                                         [structure.select('chain {0} and resnum {1}' \
-                                          .format(c, resnum)).getResindices(), \
-                                          structure.select('chain {0} and resnum {1}' \
-                                          .format(line[21], line[22:26])).getResindices()])*100) \
-                             + line[66:])
-                else:
-                    fo.write(line[:60] + '{:6.2f}'.format(float(structure.getData('prs_matrix') \
-                                         [structure.select('chain {0} and resnum {1}' \
-                                          .format(line[21], line[22:26])).getResindices(), \
-                                          structure.select('chain {0} and resnum {1}' \
-                                          .format(c, resnum)).getResindices()])*100) \
-                             + line[66:])
-            elif line.find('HETATM') == 0:
-                fo.write(line[:60] + '  0.00' + line[66:])
-
-        LOGGER.info('Perturbation responses for specific residues were written' \
-                    ' to {0}.'.format(', '.join(pdbOut)))
+    return prs_matrix
 

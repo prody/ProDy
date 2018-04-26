@@ -771,7 +771,16 @@ def _getEnsembleENMs(ensemble, **kwargs):
     return enms
 
 def calcEnsembleSpectralOverlaps(ensemble, distance=False, **kwargs):
-    """Description"""
+    """Calculate the spectral overlaps between each pair of conformations in the 
+    *ensemble*.
+    
+    :arg ensemble: an ensemble of structures or ENMs 
+    :type ensemble: :class: `Ensemble`, :class: `ModeEnsemble`
+
+    :arg distance: if set to **True**, spectral overlap will be converted to spectral 
+                   distance via arccos.
+    :type distance: bool
+    """
 
     enms = _getEnsembleENMs(ensemble, **kwargs)
     
@@ -790,7 +799,7 @@ def calcSignatureSqFlucts(mode_ensemble, **kwargs):
     """
     Get the signature square fluctuations of *mode_ensemble*. 
     
-    :arg mode_ensemble: an ensemble of structures or ENMs 
+    :arg mode_ensemble: an ensemble of ENMs 
     :type mode_ensemble: :class: `ModeEnsemble`
     """
 
@@ -820,6 +829,29 @@ def calcSignatureSqFlucts(mode_ensemble, **kwargs):
     return sig
 
 def showSignatureAtomicLines(y, std=None, min=None, max=None, atoms=None, **kwargs):
+    """
+    Show the signature dynamics data using :func:`showAtomicLines`. 
+    
+    :arg y: the mean values of signature dynamics to be plotted 
+    :type y: :class:`~numpy.ndarray`
+
+    :arg std: the standard deviations of signature dynamics to be plotted 
+    :type std: :class:`~numpy.ndarray`
+
+    :arg min: the minimum values of signature dynamics to be plotted 
+    :type min: :class:`~numpy.ndarray`
+
+    :arg max: the maximum values of signature dynamics to be plotted 
+    :type max: :class:`~numpy.ndarray`
+
+    :arg linespec: line specifications that will be passed to :func:`showAtomicLines`
+    :type linespec: str
+
+    :arg atoms: an object with method :func:`getResnums` for use 
+                on the x-axis.
+    :type atoms: :class:`Atomic` 
+    """
+
     from matplotlib.pyplot import figure, plot, fill_between, \
                                   gca, xlabel, ylabel, title, ylim
 
@@ -861,7 +893,7 @@ def showSignatureAtomicLines(y, std=None, min=None, max=None, atoms=None, **kwar
 
 def showSignature1D(signature, linespec='-', **kwargs):
     """
-    Show the signature dynamics using :func:`showAtomicLines`. 
+    Show *signature* using :func:`showAtomicLines`. 
     
     :arg signature: the signature dynamics to be plotted 
     :type signature: :class:`sdarray`
