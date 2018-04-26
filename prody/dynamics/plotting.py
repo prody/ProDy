@@ -529,6 +529,7 @@ def showMode(mode, *args, **kwargs):
 
     show_hinges = kwargs.pop('show_hinges', False)
     show_zero = kwargs.pop('show_zero', True)
+    show_zero = kwargs.pop('zero', show_zero)
     overlay_chains = kwargs.get('overlay_chains',False)
     atoms = kwargs.get('atoms',None)
 
@@ -1081,16 +1082,16 @@ def showAtomicMatrix(matrix, x_array=None, y_array=None, atoms=None, **kwargs):
         residue numbers and chain identifiers. 
     :type atoms: :class: `AtomGroup`
 
-    :arg chain_bar: display a bar at the bottom to show chain separations. 
+    :arg chain: display a bar at the bottom to show chain separations. 
                     If set to `None`, it will be decided depends on whether *atoms* 
                     is provided. 
                     Default is `None`.
-    :type chain_bar: bool
+    :type chain: bool
 
-    :arg domain_bar: the same with *chain_bar* but show domain separations instead. 
+    :arg domain: the same with *chain_bar* but show domain separations instead. 
                     *atoms* needs to have *domain* data associated to it.
                     Default is `None`.
-    :type domain_bar: bool
+    :type domain: bool
 
     :arg figure: if set to `None`, then a new figure will be created if *auto_show* 
                 is `True`, otherwise it will be plotted on the current figure. If set 
@@ -1106,12 +1107,17 @@ def showAtomicMatrix(matrix, x_array=None, y_array=None, atoms=None, **kwargs):
     from matplotlib import ticker
 
     chain_bar = kwargs.pop('chain_bar', None)
+    chain_bar = kwargs.pop('chain', chain_bar)
     domain_bar = kwargs.pop('domain_bar', None)
+    domain_bar = kwargs.pop('domain', domain_bar)
     chain_text_loc = kwargs.pop('chain_text_loc', 'above')
     domain_text_loc = kwargs.pop('domain_text_loc', 'below')
     show_text = kwargs.pop('show_text', True)
+    show_text = kwargs.pop('text', show_text)
     show_domain_text = kwargs.pop('show_domain_text', show_text)
+    show_domain_text = kwargs.pop('domain_text', show_domain_text)
     show_chain_text = kwargs.pop('show_chain_text', show_text)
+    show_chain_text = kwargs.pop('chain_text', show_chain_text)
     barwidth = kwargs.pop('barwidth', 5)
     barwidth = kwargs.pop('bar_width', barwidth)
     fig = kwargs.pop('figure', None)
@@ -1195,16 +1201,16 @@ def showAtomicLines(y, atoms=None, linespec='-', **kwargs):
         residue numbers and chain identifiers. 
     :type atoms: :class: `AtomGroup`
 
-    :arg chain_bar: display a bar at the bottom to show chain separations. 
+    :arg chain: display a bar at the bottom to show chain separations. 
                     If set to `None`, it will be decided depends on whether *atoms* 
                     is provided. 
                     Default is `None`.
-    :type chain_bar: bool
+    :type chain: bool
 
-    :arg domain_bar: the same with *chain_bar* but show domain separations instead. 
+    :arg domain: the same with *chain_bar* but show domain separations instead. 
                     *atoms* needs to have *domain* data associated to it.
                     Default is `None`.
-    :type domain_bar: bool
+    :type domain: bool
 
     :arg figure: if set to `None`, then a new figure will be created if *auto_show* 
                 is `True`, otherwise it will be plotted on the current figure. If set 
@@ -1215,13 +1221,19 @@ def showAtomicLines(y, atoms=None, linespec='-', **kwargs):
     """
     
     chain_bar = kwargs.pop('chain_bar', None)
+    chain_bar = kwargs.pop('chain', chain_bar)
     domain_bar = kwargs.pop('domain_bar', None)
+    domain_bar = kwargs.pop('domain', domain_bar)
     chain_text_loc = kwargs.pop('chain_text_loc', 'above')
     domain_text_loc = kwargs.pop('domain_text_loc', 'below')
     zero_line = kwargs.pop('show_zero', False)
+    zero_line = kwargs.pop('zero', zero_line)
     show_text = kwargs.pop('show_text', True)
+    show_text = kwargs.pop('text', show_text)
     show_domain_text = kwargs.pop('show_domain_text', show_text)
+    show_domain_text = kwargs.pop('domain_text', show_domain_text)
     show_chain_text = kwargs.pop('show_chain_text', show_text)
+    show_chain_text = kwargs.pop('chain_text', show_chain_text)
     barwidth = kwargs.pop('barwidth', 5)
     barwidth = kwargs.pop('bar_width', barwidth)
 
@@ -1324,6 +1336,7 @@ def showDomainBar(domains, loc=0., axis='x', **kwargs):
     from matplotlib.pyplot import plot, text, xlim, ylim
 
     show_text = kwargs.pop('show_text', True)
+    show_text = kwargs.pop('text', show_text)
     text_color = kwargs.pop('text_color', 'k')
 
     barwidth = kwargs.pop('barwidth', 5)

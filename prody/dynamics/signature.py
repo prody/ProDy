@@ -907,6 +907,10 @@ def showSignature1D(signature, linespec='-', **kwargs):
 
     :arg alpha: the transparency of the band(s).
     :type alpha: float
+
+    :arg range: whether shows the minimum and maximum values. 
+                Default is **True**
+    :type range: bool
     """
 
     from matplotlib.pyplot import figure, plot, fill_between, \
@@ -917,8 +921,9 @@ def showSignature1D(signature, linespec='-', **kwargs):
     meanV, stdV, minV, maxV = V.mean(), V.std(), V.min(), V.max()
 
     atoms = kwargs.pop('atoms', None)
-
     zero_line = kwargs.pop('show_zero', False)
+    zero_line = kwargs.pop('zero', zero_line)
+    show_range = kwargs.pop('range', True)
 
     bars = []; polys = []; lines = []
 
@@ -933,6 +938,8 @@ def showSignature1D(signature, linespec='-', **kwargs):
             if i == 2:
                 atoms_ = atoms
                 zero_line_ = zero_line
+            if not show_range:
+                minV[i] = maxV[i] = None
             _lines, _bars, _polys = showSignatureAtomicLines(meanV[i], stdV[i], minV[i], maxV[i], 
                                                    atoms=atoms_, zero_line=zero_line_,
                                                    linespec=linespec, **kwargs)
@@ -941,6 +948,8 @@ def showSignature1D(signature, linespec='-', **kwargs):
             polys.extend(_polys)
 
     else:
+        if not show_range:
+            minV = maxV = None
         _lines, _bars, _polys = showSignatureAtomicLines(meanV, stdV, minV, maxV, 
                                                atoms=atoms, zero_line=zero_line,
                                                linespec=linespec, **kwargs)
