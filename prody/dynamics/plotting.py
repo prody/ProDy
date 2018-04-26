@@ -1165,7 +1165,7 @@ def showAtomicMatrix(matrix, x_array=None, y_array=None, atoms=None, **kwargs):
     texts = []
     if show_chain:
         b, t = showDomainBar(chids, loc=chain_pos, axis=sides[-1], 
-                             text_loc=chain_text_loc, text_color='w', show_text=show_chain_text,
+                             text_loc=chain_text_loc, text_color='w', text=show_chain_text,
                              barwidth=barwidth)
         bars.extend(b)
         texts.extend(t)
@@ -1183,7 +1183,7 @@ def showAtomicMatrix(matrix, x_array=None, y_array=None, atoms=None, **kwargs):
 
     if show_domain:
         b, t = showDomainBar(domains, loc=domain_pos, axis=sides[0], 
-                             text_loc=domain_text_loc, text_color='w', show_text=show_domain_text,
+                             text_loc=domain_text_loc, text_color='w', text=show_domain_text,
                              barwidth=barwidth)
         bars.extend(b)
         texts.extend(t)
@@ -1289,7 +1289,7 @@ def showAtomicLines(y, atoms=None, linespec='-', **kwargs):
      
     if show_chain:
         b, t = showDomainBar(atoms.getChids(), loc=chain_pos, axis='x', 
-                             text_loc=chain_text_loc, show_text=show_chain_text,
+                             text_loc=chain_text_loc, text=show_chain_text,
                              barwidth=barwidth)
         bars.extend(b)
         texts.extend(t)
@@ -1297,7 +1297,7 @@ def showAtomicLines(y, atoms=None, linespec='-', **kwargs):
     show_domain, domain_pos, domains = _checkDomainBarParameter(domain_bar, 1., atoms, 'domain')
     if show_domain:
         b, t = showDomainBar(domains, loc=domain_pos, axis='x', 
-                             text_loc=domain_text_loc,  show_text=show_domain_text,
+                             text_loc=domain_text_loc,  text=show_domain_text,
                              barwidth=barwidth)
         bars.extend(b)
         texts.extend(t)
