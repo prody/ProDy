@@ -813,7 +813,7 @@ def buildMSA(sequences, title='Unknown', labels=None, **kwargs):
 
     return msa
 
-def showAlignment(alignment, row_size=60, max_seqs=5, **kwargs):
+def showAlignment(alignment, row_size=60, **kwargs):
     """
     Prints out an alignment as sets of short rows with labels.
 
@@ -823,10 +823,6 @@ def showAlignment(alignment, row_size=60, max_seqs=5, **kwargs):
     :arg row_size: the size of each row
         default 60
     :type row_size: int
-
-    :arg max_seqs: the maximum number of sequences to show
-        default 5
-    :type max_seqs: int
 
     :arg indices: a set of indices for some or all sequences
         that will be shown above the relevant sequences
@@ -853,7 +849,7 @@ def showAlignment(alignment, row_size=60, max_seqs=5, **kwargs):
             if not isinstance(label, str):
                 raise TypeError('each label should be a string')
 
-        if len(labels) < max_seqs:
+        if len(labels) < len(alignment):
             raise ValueError('there should be a label for every sequence shown')
     else:
         labels = []
@@ -882,11 +878,8 @@ def showAlignment(alignment, row_size=60, max_seqs=5, **kwargs):
             locs.append(where(int_index == max(int_index))[0][0])
         index_stop = locs[where(maxes == min(maxes))[0][0]]
 
-    if len(alignment) < max_seqs:
-        max_seqs = len(alignment)
-
     for i in range(int(ceil(len(alignment[0])/float(row_size)))):
-        for j in range(max_seqs):
+        for j in range(len(alignment)):
             if indices is not None:
                 sys.stdout.write('\n' + ' '*15 + '\t')
                 for k in range(row_size*i+10,row_size*(i+1)+10,10):
