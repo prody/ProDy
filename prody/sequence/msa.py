@@ -10,7 +10,7 @@ from Bio import AlignIO
 from Bio import pairwise2
 from Bio.SubsMat import MatrixInfo as matlist
 
-from prody import LOGGER
+from prody import LOGGER, PY3K
 from prody.atomic import Atomic
 from prody.utilities import toChararray
 from .sequence import Sequence, splitSeqLabel
@@ -39,6 +39,12 @@ class MSA(object):
         
         if labels is None:
             labels = [str(i+1) for i in range(numseq)]
+
+        if PY3K:
+            for i, label in enumerate(labels):
+                if not isinstance(label, str):
+                    labels[i] = label.decode()
+                    
         self._labels = labels
         
         mapping = kwargs.get('mapping')
