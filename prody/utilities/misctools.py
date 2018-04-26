@@ -232,8 +232,8 @@ def count(L, a=None):
     return len([b for b in L if b is a])
 
 def addBreaks(x, y, axis=0):
-    """Finds breaks in x, extends them by one position and adds NaN at the 
-    corresponding position in y. x needs to be an 1-D array, y can be a 
+    """Finds breaks in *x*, extends them by one position and adds **nan** at the 
+    corresponding position in *y*. *x* needs to be an 1-D array, *y* can be a 
     matrix of column (or row) vectors"""
 
     d = diff(x)

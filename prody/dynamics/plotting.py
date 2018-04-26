@@ -1010,15 +1010,19 @@ def showPerturbResponse(model, atoms=None, matrix=True, **kwargs):
                                 y_array=sensitivity, 
                                 atoms=atoms, 
                                 **kwargs)
-        #xlabel('Residues')
-        ylabel('Residues')
+        xlabel('Residues')
+        #ylabel('Residues')
     else:
-        show_eff = showAtomicLines(effectiveness, atoms=atoms, **kwargs)
+        domain_bar = kwargs.pop('domain_bar', True)
+        kwargs.pop('label', None)
+        show_eff = showAtomicLines(effectiveness, atoms=atoms, 
+                                   domain_bar=False, label='Effectiveness', **kwargs)
         kwargs.pop('figure', None); fig = gcf()
-        show_sen = showAtomicLines(sensitivity, atoms=atoms, figure=fig, **kwargs)
+        show_sen = showAtomicLines(sensitivity, atoms=atoms, figure=fig, 
+                                   domain_bar=domain_bar, label='Sensitivity', **kwargs)
         show = [show_eff, show_sen]
         xlabel('Residues')
-        legend(['Effectiveness', 'Sensitivity'])
+        legend()
     return show
 
 def _checkDomainBarParameter(domain_bar, defpos, atoms, label):
@@ -1339,7 +1343,7 @@ def showDomainBar(domains, loc=0., axis='x', **kwargs):
     if len(domains) == 0:
         raise ValueError('domains should not be empty')
     if PY3K:
-        domains = np.asarray(domains, dtype='U')
+        domains = np.asarray(domains, dtype=str)
     EMPTY_CHAR = domains[0][:0]
     uni_domids = np.unique(domains)
     uni_domids = uni_domids[uni_domids!=EMPTY_CHAR]
@@ -1369,18 +1373,25 @@ def showDomainBar(domains, loc=0., axis='x', **kwargs):
 
     if show_text:
         for i, chid in enumerate(uni_domids):
-            locs = np.where(D[:, i])[0]
-            pos = np.median(locs)
-            if axis == 'y':
-                txt = text(d_loc, pos, chid, rotation='vertical', 
-                                            color=text_color,
-                                            horizontalalignment=halign, 
-                                            verticalalignment='center')
-            else:
-                txt = text(pos, d_loc, chid, color=text_color,
-                                            horizontalalignment='center', 
-                                            verticalalignment=valign)
-            texts.append(txt)
+            d = D[:, i].astype(int)
+            d *= np.arange(len(d)) + 1
+            # find the position for the texts
+            #locs = np.where(d)[0]
+            idx = np.where(d)[0]
+            locs = np.split(d[idx], np.where(np.diff(idx)!=1)[0] + 1)
+
+            for loc in locs:
+                pos = np.median(loc)
+                if axis == 'y':
+                    txt = text(d_loc, pos, chid, rotation='vertical', 
+                                                color=text_color,
+                                                horizontalalignment=halign, 
+                                                verticalalignment='center')
+                else:
+                    txt = text(pos, d_loc, chid, color=text_color,
+                                                horizontalalignment='center', 
+                                                verticalalignment=valign)
+                texts.append(txt)
     if axis == 'y':
         _y = np.arange(len(domains))
         Y = np.tile(_y, (len(uni_domids), 1)).T
