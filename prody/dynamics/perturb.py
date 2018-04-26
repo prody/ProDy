@@ -20,11 +20,7 @@ from .mode import VectorBase, Mode, Vector
 from .gnm import GNMBase
 from .analysis import calcCovariance
 
-__all__ = ['calcPerturbResponse', 'parsePerturbResponseMatrix']
-
-class PRSMatrixParseError(Exception):
-    pass
-
+__all__ = ['calcPerturbResponse']
 
 def calcPerturbResponse(model, atoms=None, **kwargs):
 
@@ -47,17 +43,6 @@ def calcPerturbResponse(model, atoms=None, **kwargs):
        Reveals Ligand Entry-Exit Mechanisms of Ferric Binding Protein.
        *PLoS Comput Biol* **2009** 5(10):e1000544.
 
-    The PRS matrix can be calculated as follows::
-
-      prs_matrix, _, _ = calcPerturbResponse(p38_anm)
-      
-    Then the PRS matrix can be saved as follows::
-    
-      writeArray('prs_matrix.txt', prs_matrix, format='%8.6f', delimiter='\t')
-
-    :arg filename: If not **None**, the PRS matrix will be saved to the file.
-        Default is **None**.
-    :type filename: str
     """
 
     if not isinstance(model, (NMA, ModeSet, Mode)):
@@ -80,9 +65,7 @@ def calcPerturbResponse(model, atoms=None, **kwargs):
     #LOGGER.info('Calculating covariance matrix')
     #LOGGER.timeit('_prody_cov')
 
-    cov = calcCovariance(model)
-    if cov is None:
-        raise ValueError('model did not return a covariance matrix')
+    cov = model.getCovariance()
 
     #LOGGER.clear()
     #LOGGER.report('Covariance matrix calculated in %.1fs.',
@@ -151,36 +134,4 @@ def calcPerturbResponse(model, atoms=None, **kwargs):
         #atoms.setData('prs_matrix', norm_prs_matrix)
 
     return norm_prs_matrix, effectiveness, sensitivity
-
-def parsePerturbResponseMatrix(prs_matrix_file, norm=False):
-    """Parses a perturbation response matrix from a file into a numpy ndarray.
-
-    :arg prs_matrix_file: name of the file containing a PRS matrix
-    :type prs_matrix_file: str
-
-    :arg norm: whether to normalize the PRS matrix after parsing it.
-        Default is False. If you used an old version of the script 
-        and didn't normalize before saving, set this to True.
-    :type norm: bool
-
-    """
-    fmat = open(prs_matrix_file, 'rb')
-    matlines = fmat.readlines()
-    fmat.close()
-
-    prs_matrix = []
-    for line in matlines:
-        prs_matrix.append([float(entry) for entry in line.split()])
-
-    prs_matrix = np.array(prs_matrix)
-
-    if norm:
-       # normalize the PRS matrix
-       self_dp = np.diag(prs_matrix)  # using self displacement (diagonal of
-                              # the original matrix) as a
-                              # normalization factor
-       self_dp = self_dp.reshape(len(prs_matrix), 1)
-       prs_matrix = prs_matrix / np.repeat(self_dp, len(prs_matrix), axis=1)
-
-    return prs_matrix
 

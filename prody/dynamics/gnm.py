@@ -16,7 +16,7 @@ from prody.utilities import importLA, checkCoords
 from .nma import NMA
 from .gamma import Gamma
 
-__all__ = ['GNM', 'calcGNM', 'TrimedGNM']
+__all__ = ['GNM', 'calcGNM', 'TrimmedGNM']
 
 ZERO = 1e-6
 
@@ -574,11 +574,11 @@ def calcGNM(pdb, selstr='calpha', cutoff=15., gamma=1., n_modes=20,
     gnm.calcModes(n_modes, zeros, hinges=hinges)
     return gnm, sel
 
-class TrimedGNM(GNM):
-    def __init__(self, name='Unknown', mask=False, useTrimed=True):
-        super(TrimedGNM, self).__init__(name)
+class TrimmedGNM(GNM):
+    def __init__(self, name='Unknown', mask=False, useTrimmed=True):
+        super(TrimmedGNM, self).__init__(name)
         self.mask = False
-        self.useTrimed = useTrimed
+        self.useTrimmed = useTrimmed
 
         if not np.isscalar(mask):
             self.mask = np.array(mask)
@@ -586,7 +586,7 @@ class TrimedGNM(GNM):
     def numAtoms(self):
         """Returns number of atoms."""
 
-        if self.useTrimed or np.isscalar(self.mask):
+        if self.useTrimmed or np.isscalar(self.mask):
             return self._n_atoms
         else:
             return len(self.mask)
@@ -598,7 +598,7 @@ class TrimedGNM(GNM):
 
         array = self._array.copy()
 
-        if self.useTrimed or np.isscalar(self.mask):
+        if self.useTrimmed or np.isscalar(self.mask):
             return array
 
         mask = self.mask.copy()
@@ -614,11 +614,11 @@ class TrimedGNM(GNM):
 
     def _getArray(self):
         """Returns eigenvectors array. The function returns 
-        a copy of the array if useTrimed is **True**."""
+        a copy of the array if useTrimmed is **True**."""
 
         if self._array is None: return None
 
-        if self.useTrimed or np.isscalar(self.mask):
+        if self.useTrimmed or np.isscalar(self.mask):
             return self._array
         else:
             return self.getArray()

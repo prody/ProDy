@@ -236,9 +236,13 @@ class AtomGroup(Atomic):
             that = other._data.get(key)
             if this is not None or that is not None:
                 if this is None:
-                    this = np.zeros(that.shape, that.dtype)
+                    shape = list(that.shape)
+                    shape[0] = len(self)
+                    this = np.zeros(shape, that.dtype)
                 if that is None:
-                    that = np.zeros(this.shape, this.dtype)
+                    shape = list(this.shape)
+                    shape[0] = len(other)
+                    that = np.zeros(shape, this.dtype)
                 new._data[key] = np.concatenate((this, that))
 
         if self._bonds is not None and other._bonds is not None:
@@ -1167,11 +1171,12 @@ for fname, field in ATOMIC_FIELDS.items():
                     raise ValueError('length of array must match number '
                                     'of atoms')
 
-                if isinstance(array, list):
-                    array = np.array(array, dtype)
-                elif not isinstance(array, np.ndarray):
+                if not np.isscalar(array):
+                    array = np.asarray(array, dtype)
+                else:
                     raise TypeError('array must be an ndarray or a list')
-                elif array.ndim != ndim:
+
+                if array.ndim != ndim:
                     raise ValueError('array must be {0} '
                                     'dimensional'.format(ndim))
                 elif array.dtype != dtype:

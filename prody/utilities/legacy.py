@@ -916,3 +916,38 @@ def writePerturbResponsePDB(prs_matrix, pdbIn=None, **kwargs):
         LOGGER.info('Perturbation responses for specific residues were written' \
                     ' to {0}.'.format(', '.join(pdbOut)))
 
+def parsePerturbResponseMatrix(prs_matrix_file, norm=False):
+    """Parses a perturbation response matrix from a file into a numpy ndarray.
+
+    :arg prs_matrix_file: name of the file containing a PRS matrix
+    :type prs_matrix_file: str
+
+    :arg norm: whether to normalize the PRS matrix after parsing it.
+        Default is False. If you used an old version of the script 
+        and didn't normalize before saving, set this to True.
+    :type norm: bool
+
+    """
+    fmat = open(prs_matrix_file, 'rb')
+    matlines = fmat.readlines()
+    fmat.close()
+
+    prs_matrix = []
+    for line in matlines:
+        prs_matrix.append([float(entry) for entry in line.split()])
+
+    prs_matrix = np.array(prs_matrix)
+
+    if norm:
+       # normalize the PRS matrix
+       self_dp = np.diag(prs_matrix)  # using self displacement (diagonal of
+                              # the original matrix) as a
+                              # normalization factor
+       self_dp = self_dp.reshape(len(prs_matrix), 1)
+       prs_matrix = prs_matrix / np.repeat(self_dp, len(prs_matrix), axis=1)
+
+    return prs_matrix
+
+class PRSMatrixParseError(Exception):
+    pass
+    
