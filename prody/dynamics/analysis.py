@@ -366,7 +366,7 @@ def calcDistFlucts(modes, n_cpu=1, norm=True):
     """Returns the matrix of distance fluctuations (i.e. an NxN matrix
     where N is the number of residues, of MSFs in the inter-residue distances)
     computed from the cross-correlation matrix (see Eq. 12.E.1 in [IB18]_). 
-    The arguments are the same as in :meth:`.calcCrossCorr`
+    The arguments are the same as in :meth:`.calcCrossCorr`.
 
     .. [IB18] Dill K, Jernigan RL, Bahar I. Protein Actions: Principles and
        Modeling. *Garland Science* **2017**. """
@@ -378,8 +378,8 @@ def calcDistFlucts(modes, n_cpu=1, norm=True):
 
 def calcTempFactors(modes, atoms):
     """Returns temperature (β) factors calculated using *modes* from a
-    :class:`.ANM` or :class:`.GNM` instance scaled according to the
-    experimental β-factors from *atoms*."""
+    :class:`.ANM` or :class:`.GNM` instance scaled according to the 
+    experimental B-factors from *atoms*."""
 
     model = modes.getModel()
     if not isinstance(model, GNMBase):

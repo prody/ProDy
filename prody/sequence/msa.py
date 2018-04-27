@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 """This module defines MSA analysis functions."""
 
+from numbers import Integral
+
 from numpy import all, zeros, dtype, array, char, cumsum, ceil, reshape
 from numpy import where, sort, concatenate, vstack, isscalar, chararray
 
@@ -8,7 +10,7 @@ from Bio import AlignIO
 from Bio import pairwise2
 from Bio.SubsMat import MatrixInfo as matlist
 
-from prody import LOGGER
+from prody import LOGGER, PY3K
 from prody.atomic import Atomic
 from prody.utilities import toChararray
 from .sequence import Sequence, splitSeqLabel
@@ -37,6 +39,12 @@ class MSA(object):
         
         if labels is None:
             labels = [str(i+1) for i in range(numseq)]
+
+        if PY3K:
+            for i, label in enumerate(labels):
+                if not isinstance(label, str):
+                    labels[i] = label.decode()
+                    
         self._labels = labels
         
         mapping = kwargs.get('mapping')
@@ -117,7 +125,7 @@ class MSA(object):
 
     def __getitem__(self, index):
 
-        if isinstance(index, int):
+        if isinstance(index, Integral):
             return Sequence(self, index)
 
         if isinstance(index, str):
@@ -340,7 +348,7 @@ class MSA(object):
             index = self._mapping[label]
         except KeyError:
             try:
-                return list(v for k,v in self._mapping.iteritems() if label in k)[0]
+                return list(v for k, v in self._mapping.items() if label in k)[0]
             except:
                 return None
         except TypeError:
@@ -693,10 +701,10 @@ def mergeMSA(*msa, **kwargs):
 
 def specMergeMSA(*msa, **kwargs):
     """Returns an :class:`.MSA` obtained from merging parts of the sequences
-    of proteins present in multiple *msa* instances.  Sequences are matched
+    of proteins present in multiple *msa* instances. Sequences are matched
     based on species section of protein identifiers found in the sequence labels.  
     Order of sequences in the merged MSA will follow the order of sequences in the
-    first *msa* instance.  Note that protein identifiers that map to multiple
+    first *msa* instance. Note that protein identifiers that map to multiple
     sequences will be excluded."""
 
     if len(msa) <= 1:
@@ -734,10 +742,10 @@ def specMergeMSA(*msa, **kwargs):
 
     merger = zeros((len(common), sum(lens)), '|S1')
     labels = []
-    mapping = {}
     for index, lbl in enumerate(common):
-        merger[index, 0:start]=list(str(msa[0][msa[0].getIndex(labells[0][lbl])]))
-        merger[index, start:end]=list(str(msa[1][msa[1].getIndex(labells[1][lbl])]))
+        for idx, arr, (start, end) in idx_arr_rng:
+            merger[index, 0:start]=list(str(msa[0][msa[0].getIndex(labells[0][lbl])]))
+            merger[index, start:end]=list(str(msa[1][msa[1].getIndex(labells[1][lbl])]))
         label = labells[0][lbl]
 
         labels.append(label)

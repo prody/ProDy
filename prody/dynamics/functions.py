@@ -12,8 +12,9 @@ from prody.utilities import openFile, isExecutable, which, PLATFORM, addext
 
 from .nma import NMA
 from .anm import ANM
-from .gnm import GNM, GNMBase, ZERO, TrimedGNM
+from .gnm import GNM, GNMBase, ZERO, TrimmedGNM
 from .pca import PCA, EDA
+from .exanm import exANM
 from .mode import Vector, Mode
 from .modeset import ModeSet
 from .editing import sliceModel, reduceModel
@@ -27,9 +28,9 @@ __all__ = ['parseArray', 'parseModes', 'parseSparseMatrix',
 def saveModel(nma, filename=None, matrices=False, **kwargs):
     """Save *nma* model data as :file:`filename.nma.npz`.  By default,
     eigenvalues, eigenvectors, variances, trace of covariance matrix,
-    and name of the model will be saved.  If *matrices* is ``True``,
+    and name of the model will be saved.  If *matrices* is **True**,
     covariance, Hessian or Kirchhoff matrices are saved too, whichever
-    are available.  If *filename* is ``None``, name of the NMA instance
+    are available.  If *filename* is **None**, name of the NMA instance
     will be used as the filename, after ``" "`` (white spaces) in the name
     are replaced with ``"_"`` (underscores).  Extension may differ based
     on the type of the NMA model.  For ANM models, it is :file:`.anm.npz`.
@@ -71,11 +72,18 @@ def saveModel(nma, filename=None, matrices=False, **kwargs):
         value = dict_[attr]
         if value is not None:
             attr_dict[attr] = value
-    if isinstance(nma, TrimedGNM):
+
+    if isinstance(nma, TrimmedGNM):
         attr_dict['type'] = 'tGNM'
         attr_dict['mask'] = nma.mask
-        attr_dict['useTrimed'] = nma.useTrimed
-    suffix = '.' + type_.lower()
+        attr_dict['useTrimmed'] = nma.useTrimmed
+
+    if isinstance(nma, exANM):
+        attr_dict['type'] = 'exANM'
+        attr_dict['_membrane'] = np.array([nma._membrane, None])
+        attr_dict['_combined'] = np.array([nma._combined, None])
+
+    suffix = '.' + attr_dict['type'].lower()
     if not filename.lower().endswith('.npz'):
         if not filename.lower().endswith(suffix):
             filename += suffix + '.npz'
@@ -87,20 +95,33 @@ def saveModel(nma, filename=None, matrices=False, **kwargs):
     return filename
 
 
-def loadModel(filename):
+def loadModel(filename, **kwargs):
     """Returns NMA instance after loading it from file (*filename*).
     This function makes use of :func:`numpy.load` function.  See
     also :func:`saveModel`."""
 
-    attr_dict = np.load(filename)
+    if not 'encoding' in kwargs:
+        kwargs['encoding'] = 'latin1'
+
+    attr_dict = np.load(filename, **kwargs)
     try:
         type_ = attr_dict['type']
     except KeyError:
         raise IOError('{0} is not a valid NMA model file'.format(filename))
+
+    if isinstance(type_, np.ndarray):
+        type_ = np.asarray(type_, dtype=str)
+
+    type_ = str(type_)
+
     try:
-        title = str(attr_dict['_title'])
+        title = attr_dict['_title']
     except KeyError:
-        title = str(attr_dict['_name'])
+        title = attr_dict['_name']
+
+    if isinstance(title, np.ndarray):
+        title = np.asarray(title, dtype=str)
+    title = str(title)
     if type_ == 'ANM':
         nma = ANM(title)
     elif type_ == 'PCA':
@@ -110,11 +131,14 @@ def loadModel(filename):
     elif type_ == 'GNM':
         nma = GNM(title)
     elif type_ == 'tGNM':
-        nma = TrimedGNM(title)
+        nma = TrimmedGNM(title)
+    elif type_ == 'exANM':
+        nma = exANM(title)
     elif type_ == 'NMA':
         nma = NMA(title)
     else:
         raise IOError('NMA model type is not recognized: {0}'.format(type_))
+
     dict_ = nma.__dict__
     for attr in attr_dict.files:
         if attr in ('type', '_name', '_title'):
@@ -123,6 +147,8 @@ def loadModel(filename):
             dict_[attr] = float(attr_dict[attr])
         elif attr in ('_dof', '_n_atoms', '_n_modes'):
             dict_[attr] = int(attr_dict[attr])
+        elif attr in ('_membrane', '_combined'):
+            dict_[attr] = attr_dict[attr][0] 
         else:
             dict_[attr] = attr_dict[attr]
     return nma
@@ -199,7 +225,7 @@ def parseModes(normalmodes, eigenvalues=None, nm_delimiter=None,
 
     :arg nm_usecols: Which columns to read from *normalmodes*, with 0 being the
         first. For example, ``usecols = (1,4,5)`` will extract the 2nd, 5th and
-        6th columns. The default, ``None``, results in all columns being read.
+        6th columns. The default, **None**, results in all columns being read.
     :type nm_usecols: list
 
     :arg ev_delimiter: The string used to separate values in *eigenvalues*.
@@ -212,7 +238,7 @@ def parseModes(normalmodes, eigenvalues=None, nm_delimiter=None,
 
     :arg ev_usecols: Which columns to read from *eigenvalues*, with 0 being the
         first. For example, ``usecols = (1,4,5)`` will extract the 2nd, 5th and
-        6th columns. The default, ``None``, results in all columns being read.
+        6th columns. The default, **None**, results in all columns being read.
     :type ev_usecols: list
 
     :arg ev_usevalues: Which columns to use after the eigenvalue column is
@@ -274,7 +300,7 @@ def parseArray(filename, delimiter=None, skiprows=0, usecols=None,
 
     :arg usecols: Which columns to read, with 0 being the first. For example,
         ``usecols = (1,4,5)`` will extract the 2nd, 5th and 6th columns.
-        The default, ``None``, results in all columns being read.
+        The default, **None**, results in all columns being read.
     :type usecols: list
 
     :arg dtype: Data-type of the resulting array, default is :func:`float`.
@@ -302,8 +328,8 @@ def parseSparseMatrix(filename, symmetric=False, delimiter=None, skiprows=0,
         :file:`.gz` or :file:`.bz2`, the file is first decompressed.
     :type filename: str or file
 
-    :arg symmetric: Set ``True`` if the file contains triangular part of a
-        symmetric matrix, default is ``False``.
+    :arg symmetric: Set **True** if the file contains triangular part of a
+        symmetric matrix, default is **True**.
     :type symmetric: bool
 
     :arg delimiter: The string used to separate values. By default,

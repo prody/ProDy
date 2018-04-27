@@ -378,7 +378,7 @@ buildSeqidMatrix.__doc__ += doc_turbo
 def uniqueSequences(msa, seqid=0.98, turbo=True):
     """Returns a boolean array marking unique sequences in *msa*.  A sequence
     sharing sequence identity of *seqid* or more with another sequence coming
-    before itself in *msa* will have a ``False`` value in the array."""
+    before itself in *msa* will have a **True** value in the array."""
 
     msa = getMSA(msa)
 
@@ -395,11 +395,11 @@ uniqueSequences.__doc__ += doc_turbo
 
 def calcRankorder(matrix, zscore=False, **kwargs):
     """Returns indices of elements and corresponding values sorted in
-    descending order, if *descend* is ``True`` (default). Can apply a zscore
+    descending order, if *descend* is **True** (default). Can apply a zscore
     normalization; by default along *axis* - 0 such that each column has
     ``mean=0`` and ``std=1``.  If *zcore* analysis is used, return value contains the
     zscores. If matrix is symmetric only lower triangle indices will be
-    returned, with diagonal elements if *diag* is ``True`` (default)."""
+    returned, with diagonal elements if *diag* is **True** (default)."""
 
     try:
         ndim, shape = matrix.ndim, matrix.shape
@@ -813,7 +813,7 @@ def buildMSA(sequences, title='Unknown', labels=None, **kwargs):
 
     return msa
 
-def showAlignment(alignment, row_size=60, max_seqs=5, **kwargs):
+def showAlignment(alignment, row_size=60, **kwargs):
     """
     Prints out an alignment as sets of short rows with labels.
 
@@ -823,10 +823,6 @@ def showAlignment(alignment, row_size=60, max_seqs=5, **kwargs):
     :arg row_size: the size of each row
         default 60
     :type row_size: int
-
-    :arg max_seqs: the maximum number of sequences to show
-        default 5
-    :type max_seqs: int
 
     :arg indices: a set of indices for some or all sequences
         that will be shown above the relevant sequences
@@ -853,7 +849,7 @@ def showAlignment(alignment, row_size=60, max_seqs=5, **kwargs):
             if not isinstance(label, str):
                 raise TypeError('each label should be a string')
 
-        if len(labels) < max_seqs:
+        if len(labels) < len(alignment):
             raise ValueError('there should be a label for every sequence shown')
     else:
         labels = []
@@ -882,11 +878,8 @@ def showAlignment(alignment, row_size=60, max_seqs=5, **kwargs):
             locs.append(where(int_index == max(int_index))[0][0])
         index_stop = locs[where(maxes == min(maxes))[0][0]]
 
-    if len(alignment) < max_seqs:
-        max_seqs = len(alignment)
-
     for i in range(int(ceil(len(alignment[0])/float(row_size)))):
-        for j in range(max_seqs):
+        for j in range(len(alignment)):
             if indices is not None:
                 sys.stdout.write('\n' + ' '*15 + '\t')
                 for k in range(row_size*i+10,row_size*(i+1)+10,10):
