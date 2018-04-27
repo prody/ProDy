@@ -77,7 +77,7 @@ class ModeEnsemble(object):
 
         if isinstance(modeset_index, slice):
             modesets = self._modesets[modeset_index]
-            labels = self._labels[modeset_index] if self._labels else None
+            labels = None if self._labels is None else self._labels[modeset_index]
         elif isinstance(modeset_index, (list, tuple)):
             modesets = []; labels = []
             for i in modeset_index:
