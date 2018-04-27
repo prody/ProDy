@@ -12,9 +12,10 @@ if sys.version_info[:2] < (2, 7):
     sys.stderr.write('Python 2.6 and older is not supported\n')
     sys.exit()
 
-if sys.version_info[:2] < (3, 4):
-    sys.stderr.write('Python 3.4 and older is not supported\n')
-    sys.exit()
+if sys.version_info[0] == 3:
+    if sys.version_info[1] < 4:
+        sys.stderr.write('Python 3.4 and older is not supported\n')
+        sys.exit()
 
 if os.name == 'java':
     sys.stderr.write('JavaOS is not supported\n')
