@@ -385,11 +385,7 @@ class ANMBase(NMA):
 
         """Calculate stiffness matrix calculated using :class:`.ANM` instance. 
         Method described in [EB08]_. 
-    
-        .. [EB08] Eyal E., Bahar I. Toward a Molecular Understanding of 
-            the Anisotropic Response of Proteins to External Forces:
-            Insights from Elastic Network Models. *Biophys J* **2008** 94:3424-34355. 
-    
+
         :arg coords: a coordinate set or an object with ``getCoords`` method
         :type coords: :class:`numpy.ndarray`.
         :arg n_modes: number of non-zero eigenvalues/vectors to calculate.

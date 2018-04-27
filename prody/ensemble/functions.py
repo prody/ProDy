@@ -131,24 +131,25 @@ def trimPDBEnsemble(pdb_ensemble, occupancy=None, **kwargs):
     following criteria, and returns them in a new :class:`.PDBEnsemble`
     instance.
 
-    **Occupancy**
-
     Resulting PDB ensemble will contain atoms whose occupancies are greater
-    or equal to *occupancy* keyword argument.  Occupancies for atoms will be
+    or equal to *occupancy* keyword argument. Occupancies for atoms will be
     calculated using ``calcOccupancies(pdb_ensemble, normed=True)``.
 
-    :arg occupancy: occupancy for selecting atoms, must satisfy. If set to 
-                    *None* then *hard* trimming will be performed.
-        ``0 < occupancy <= 1``
+    :arg occupancy: occupancy for selecting atoms, must satisfy
+        ``0 < occupancy <= 1``.
+        If set to *None* then *hard* trimming will be performed.
     :type occupancy: float
 
-    :arg hard: hard trimming or soft trimming. If set to `False`, *pdb_ensemble* 
-    will be trimmed by selection. This is useful for example when one uses 
-    :func:`calcEnsembleENMs` and :func:`sliceModel` or :func:`reduceModel`
-    to calculate the modes from the remaining part while still taking the 
-    removed part into consideration (e.g. as the environment).
+    :arg hard: Whether to perform hard trimming.
+        Default is **False**
+        If set to **True**, atoms will be completely removed from *pdb_ensemble*.
+        If set to **False**, a soft trimming of *pdb_ensemble* will be done
+        where atoms will be removed from the active selection. This is useful, 
+        for example, when one uses :func:`calcEnsembleENMs` 
+        together with :func:`sliceModel` or :func:`reduceModel`
+        to calculate the modes from the remaining part while still taking the 
+        removed part into consideration (e.g. as the environment).
     :type hard: bool
-
     """
 
     hard = kwargs.pop('hard', False) or pdb_ensemble._atoms is None \

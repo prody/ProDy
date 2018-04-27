@@ -648,7 +648,7 @@ class Ensemble(object):
         :meth:`iterpose` methods prior to RMSD calculation.
         
         :arg pairwise: if **True** then it will return pairwise RMSDs 
-        as an n-by-n matrix. n is the number of conformations.
+            as an n-by-n matrix. n is the number of conformations.
         :type pairwise: bool
         """
 
