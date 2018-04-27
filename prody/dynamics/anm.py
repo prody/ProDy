@@ -29,10 +29,17 @@ class ANMBase(NMA):
 
     def _reset(self):
 
-        GNMBase._reset(self)
+        super(ANMBase, self)._reset()
+        self._cutoff = None
+        self._gamma = None
         self._hessian = None
         self._stiffness = None
         self._is3d = True
+    
+    def _clear(self):
+        self._trace = None
+        self._cov = None
+        self._stiffness = None
 
     def getHessian(self):
         """Returns a copy of the Hessian matrix."""
@@ -291,14 +298,14 @@ class ANMBase(NMA):
         :func:`numpy.linalg.eigh` is used.
 
         :arg n_modes: number of non-zero eigenvalues/vectors to calculate.
-            If ``None`` or 'all' is given, all modes will be calculated.
+            If **None** or ``'all'`` is given, all modes will be calculated.
         :type n_modes: int or None, default is 20
 
-        :arg zeros: If ``True``, modes with zero eigenvalues will be kept.
-        :type zeros: bool, default is ``False``
+        :arg zeros: If **True**, modes with zero eigenvalues will be kept.
+        :type zeros: bool, default is **True**
 
         :arg turbo: Use a memory intensive, but faster way to calculate modes.
-        :type turbo: bool, default is ``True``
+        :type turbo: bool, default is **True**
         """
 
         if self._hessian is None:
@@ -309,6 +316,7 @@ class ANMBase(NMA):
             'n_modes must be a positive integer'
         assert isinstance(zeros, bool), 'zeros must be a boolean'
         assert isinstance(turbo, bool), 'turbo must be a boolean'
+        self._clear()
         linalg = importLA()
         LOGGER.timeit('_anm_calc_modes')
         shift = 5
@@ -385,8 +393,8 @@ class ANMBase(NMA):
         :arg coords: a coordinate set or an object with ``getCoords`` method
         :type coords: :class:`numpy.ndarray`.
         :arg n_modes: number of non-zero eigenvalues/vectors to calculate.
-            If ``None`` is given, all modes will be calculated (3x number of atoms).
-        :type n_modes: int or ``None``, default is 20.
+            If **None** is given, all modes will be calculated (3x number of atoms).
+        :type n_modes: int or **None**, default is 20.
         
         Author: Mustafa Tekpinar & Karolina Mikulska-Ruminska & Cihan Kaya
         """
@@ -423,6 +431,10 @@ class ANMBase(NMA):
         
         LOGGER.info('The range of effective force constant is: {0} to {1}.'
                                    .format(np.min(sm[np.nonzero(sm)]), np.amax(sm)))
+
+    def setEigens(self, vectors, values=None):
+        self._clear()
+        super(ANMBase, self).setEigens(vectors, values)
         
 
 class ANM(ANMBase, GNMBase):

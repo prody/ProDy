@@ -1,5 +1,6 @@
 """This module defines a class for handling ensembles of PDB conformations."""
 
+from numbers import Integral
 import numpy as np
 
 from prody.sequence import MSA, Sequence
@@ -86,7 +87,7 @@ class PDBEnsemble(Ensemble):
         msa = self._msa
         if msa:
             msa = self._msa[index]
-        if isinstance(index, int):
+        if isinstance(index, Integral):
             return self.getConformation(index)
 
         elif isinstance(index, slice):
@@ -105,7 +106,7 @@ class PDBEnsemble(Ensemble):
             return ens
 
         elif isinstance(index, (list, np.ndarray)):
-            ens = PDBEnsemble('Conformations of {0}'.format(self._title))
+            ens = PDBEnsemble('{0}'.format(self._title))
             ens.setCoords(copy(self._coords))
             labels = list(np.array(self._labels)[index])
             ens.addCoordset(self._confs[index].copy(),
@@ -209,9 +210,10 @@ class PDBEnsemble(Ensemble):
             if coords is None:
                 raise ValueError('coordinates are not set')
             elif label is None and isinstance(atoms, Atomic):
-                ag = atoms
                 if not isinstance(atoms, AtomGroup):
                     ag = atoms.getAtomGroup()
+                else:
+                    ag = atoms
                 label = ag.getTitle()
                 if coords.shape[0] < ag.numCoordsets():
                     label += '_m' + str(atoms.getACSIndex())
@@ -286,19 +288,17 @@ class PDBEnsemble(Ensemble):
 
         # assign new values
         # update labels
-        if n_csets > 1:
-            if not degeneracy:
-                if isinstance(label, str):
-                    labels = ['{0}_m{1}'.format(label, i+1) for i in range(n_csets)]
-                else:
-                    if len(label) != n_csets:
-                        raise ValueError('length of label and number of '
-                                         'coordinate sets must be the same')
-                    labels = label
+        if n_csets > 1 and not degeneracy:
+            if isinstance(label, str):
+                labels = ['{0}_m{1}'.format(label, i+1) for i in range(n_csets)]
             else:
-                labels = [label]
+                if len(label) != n_csets:
+                    raise ValueError('length of label and number of '
+                                        'coordinate sets must be the same')
+                labels = label
         else:
-            labels = [label]
+            labels = [label] if np.isscalar(label) else label
+
         self._labels.extend(labels)
 
         # update sequences
@@ -350,8 +350,8 @@ class PDBEnsemble(Ensemble):
 
     def getCoordsets(self, indices=None, selected=True):
         """Returns a copy of coordinate set(s) at given *indices* for selected
-        atoms. *indices* may be an integer, a list of integers or ``None``.
-        ``None`` returns all coordinate sets.
+        atoms. *indices* may be an integer, a list of integers or **None**.
+        **None** returns all coordinate sets.
 
         .. warning:: When there are atoms with weights equal to zero (0),
            their coordinates will be replaced with the coordinates of the
@@ -394,7 +394,7 @@ class PDBEnsemble(Ensemble):
         """Delete a coordinate set from the ensemble."""
 
         Ensemble.delCoordset(self, index)
-        if isinstance(index, int):
+        if isinstance(index, Integral):
             index = [index]
         else:
             index = list(index)
@@ -414,7 +414,7 @@ class PDBEnsemble(Ensemble):
 
         if self._confs is None:
             raise AttributeError('conformations are not set')
-        if not isinstance(index, int):
+        if not isinstance(index, Integral):
             raise TypeError('index must be an integer')
         n_confs = self._n_csets
         if -n_confs <= index < n_confs:
@@ -455,7 +455,7 @@ class PDBEnsemble(Ensemble):
         you might need to align the conformations using :meth:`superpose` or
         :meth:`iterpose` before calculating RMSDs.
 
-        :arg pairwise: if ``True`` then it will return pairwise RMSDs 
+        :arg pairwise: if **True** then it will return pairwise RMSDs 
         as an n-by-n matrix. n is the number of conformations.
         :type pairwise: bool
         """

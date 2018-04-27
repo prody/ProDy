@@ -709,8 +709,8 @@ def _getPolymers(lines):
         try:
             resnum = int(line[18:22].strip())
         except:
-            LOGGER.warn('SEQADV for chain {2}: failed to parse PDB sequence '
-                        'number ({0}:{1})'.format(pdbid, i, ch))
+            #LOGGER.warn('SEQADV for chain {2}: failed to parse PDB sequence '
+            #            'number ({0}:{1})'.format(pdbid, i, ch))
             continue
         icode = line[22].strip()
         try:

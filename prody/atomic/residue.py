@@ -58,7 +58,7 @@ class Residue(AtomSubset):
                                          self.getIcode() or '')
 
     def getAtom(self, name):
-        """Returns atom with given *name*, ``None`` if not found.  Assumes that
+        """Returns atom with given *name*, **None** if not found.  Assumes that
         atom names in the residue are unique.  If more than one atoms with the
         given *name* exists, the one with the smaller index will be returned.
         """
@@ -75,8 +75,9 @@ class Residue(AtomSubset):
         """Returns the chain that the residue belongs to."""
 
         chid = self.getChid()
+        segname = self.getSegname()
         if chid is not None:
-            return self._hv.getChain(chid)
+            return self._hv.getChain(chid, segname)
 
     def getResnum(self):
         """Returns residue number."""

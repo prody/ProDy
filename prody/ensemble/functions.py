@@ -2,6 +2,7 @@
 
 import os.path
 import time
+from numbers import Integral
 
 import numpy as np
 
@@ -21,7 +22,7 @@ __all__ = ['saveEnsemble', 'loadEnsemble', 'trimPDBEnsemble',
 
 def saveEnsemble(ensemble, filename=None, **kwargs):
     """Save *ensemble* model data as :file:`filename.ens.npz`.  If *filename*
-    is ``None``, title of the *ensemble* will be used as the filename, after
+    is **None**, title of the *ensemble* will be used as the filename, after
     white spaces in the title are replaced with underscores.  Extension is
     :file:`.ens.npz`. Upon successful completion of saving, filename is
     returned. This function makes use of :func:`numpy.savez` function."""
@@ -48,11 +49,11 @@ def saveEnsemble(ensemble, filename=None, **kwargs):
     atoms = dict_['_atoms']
     if atoms:
         atoms = atoms.copy()
-    attr_dict['_atoms'] = np.array([atoms, 0])
+    attr_dict['_atoms'] = np.array([atoms, None])
 
     if isinstance(ensemble, PDBEnsemble):
         msa = dict_['_msa']
-        attr_dict['_msa'] = np.array([msa, 0])
+        attr_dict['_msa'] = np.array([msa, None])
 
     if filename.endswith('.ens'):
         filename += '.npz'
@@ -77,9 +78,12 @@ def loadEnsemble(filename, **kwargs):
         weights = None   
     isPDBEnsemble = False
     try:
-        title = str(attr_dict['_title'])
+        title = attr_dict['_title']
     except KeyError:
-        title = str(attr_dict['_name'])
+        title = attr_dict['_name']
+    if isinstance(title, np.ndarray):
+        title = np.asarray(title, dtype=str)
+    title = str(title)
     if weights is not None and weights.ndim == 3:
         isPDBEnsemble = True
         ensemble = PDBEnsemble(title)
@@ -103,6 +107,13 @@ def loadEnsemble(filename, **kwargs):
             ensemble._labels = list(attr_dict['_identifiers'])
         if '_labels' in attr_dict.files:
             ensemble._labels = list(attr_dict['_labels'])
+        if ensemble._labels:
+            for i, label in enumerate(ensemble._labels):
+                if not isinstance(label, str):
+                    try:
+                        ensemble._labels[i] = label.decode()
+                    except AttributeError:
+                        ensemble._labels[i] = str(label)
         if '_trans' in attr_dict.files:
             ensemble._trans = attr_dict['_trans']
         if '_msa' in attr_dict.files:
@@ -212,7 +223,7 @@ def calcOccupancies(pdb_ensemble, normed=False):
     """Returns occupancy calculated from weights of a :class:`.PDBEnsemble`.
     Any non-zero weight will be considered equal to one.  Occupancies are
     calculated by binary weights for each atom over the conformations in
-    the ensemble. When *normed* is ``True``, total weights will be divided
+    the ensemble. When *normed* is **True**, total weights will be divided
     by the number of atoms.  This function can be used to see how many times
     a residue is resolved when analyzing an ensemble of X-ray structures."""
 
@@ -333,16 +344,18 @@ def alignPDBEnsemble(ensemble, suffix='_aligned', outdir='.', gzip=False):
         return output
 
 
-def buildPDBEnsemble(refpdb, PDBs, title='Unknown', labels=None, seqid=94, coverage=85, 
+def buildPDBEnsemble(PDBs, ref=None, title='Unknown', labels=None, seqid=94, coverage=85, 
                      mapping_func=mapOntoChain, unmapped=None, **kwargs):
     """Builds a PDB ensemble from a given reference structure and a list of PDB structures. 
     Note that the reference structure should be included in the list as well.
 
-    :arg refpdb: Reference structure
-    :type refpdb: :class:`.Chain`, :class:`.Selection`, or :class:`.AtomGroup`
-
     :arg PDBs: A list of PDB structures
     :type PDBs: iterable
+
+    :arg ref: Reference structure or the index to the reference in ``PDBs``. If **None**,
+                 then the first item in ``PDBs`` will be considered as the reference. 
+                 Default is **None**
+    :type ref: int, :class:`.Chain`, :class:`.Selection`, or :class:`.AtomGroup`
 
     :arg title: The title of the ensemble
     :type title: str
@@ -374,8 +387,14 @@ def buildPDBEnsemble(refpdb, PDBs, title='Unknown', labels=None, seqid=94, cover
         if len(labels) != len(PDBs):
             raise ValueError('labels and PDBs must be the same length')
 
-    if refpdb not in PDBs:
-        raise ValueError('refpdb should be also in the PDBs')
+    if ref is None:
+        refpdb = PDBs[0]
+    elif isinstance(ref, Integral):
+        refpdb = PDBs[ref]
+    else:
+        refpdb = ref
+        if refpdb not in PDBs:
+            raise ValueError('refpdb should be also in the PDBs')
 
     # obtain refchains from the hierarhical view of the reference PDB
     try:

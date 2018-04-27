@@ -101,8 +101,8 @@ def Filenorm(M, **kwargs):
     the path to the file. The file should be one-column, and ideally has the 
     same number of entries with the size of *M* (extra entries will be ignored). 
     Say *F* is vector of the normalization factors, *N* is the normalized matrix, 
-    if *expected* is ``False``, ``N[i,j] = M[i,j]/F[i]/F[j]``. If *expected* is
-    ``True``, ``N[i,j] = M[i,j]/F[|i-j|]``."""
+    if *expected* is **True**, ``N[i,j] = M[i,j]/F[i]/F[j]``. If *expected* is
+    **True**, ``N[i,j] = M[i,j]/F[|i-j|]``."""
 
     filename = kwargs.get('filename')
     expected = kwargs.get('expected', False)
