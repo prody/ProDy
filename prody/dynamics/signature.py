@@ -1462,6 +1462,9 @@ def loadModeEnsemble(filename, **kwargs):
     while (None in modesets):
         modesets.remove(None)
 
+    if labels is not None:
+        labels = labels.tolist()
+
     modeens = ModeEnsemble(title=title)
     modeens._weights = weights
     modeens._labels = labels
