@@ -2,6 +2,7 @@
 """This module defines :class:`Bond` for dealing with bond information provided
 by using :meth:`.AtomGroup.setBonds` method."""
 
+from numbers import Integral
 import numpy as np
 
 __all__ = ['Bond']
@@ -101,7 +102,7 @@ class Bond(object):
         if self._ag._coords is None:
             raise AttributeError('coordinates are not set')
 
-        if not isinstance(index, int):
+        if not isinstance(index, Integral):
             raise TypeError('index must be an integer')
 
         n_csets = self._ag._n_csets

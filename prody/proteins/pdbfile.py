@@ -5,7 +5,8 @@
 
 from collections import defaultdict
 import os.path
-
+import time
+from numbers import Integral
 
 import numpy as np
 
@@ -104,13 +105,15 @@ def parsePDB(*pdb, **kwargs):
                 argval = [argval]*n_pdb
             lstkwargs[key] = argval
 
+        start = time.time()
         LOGGER.progress('Retrieving {0} PDB structures...'
-                    .format(n_pdb), n_pdb)
+                    .format(n_pdb), n_pdb, '_prody_parsePDB')
         for i, p in enumerate(pdb):
             kwargs = {}
             for key in lstkwargs:
                 kwargs[key] = lstkwargs[key][i]
-            LOGGER.update(i, 'Retrieving {0}...'.format(p))
+            LOGGER.update(i, 'Retrieving {0}...'.format(p), 
+                          label='_prody_parsePDB')
             result = _parsePDB(p, **kwargs)
             if not isinstance(result, tuple):
                 if isinstance(result, dict):
@@ -119,7 +122,7 @@ def parsePDB(*pdb, **kwargs):
                     result = (result, None)
             results.append(result)
 
-        results = zip(*results)
+        results = list(zip(*results))
         LOGGER.finish()
        
         for i in reversed(range(len(results))):
@@ -127,6 +130,10 @@ def parsePDB(*pdb, **kwargs):
                 results.pop(i)
         if len(results) == 1:
             results = results[0]
+        results = list(results)
+
+        LOGGER.info('{0} PDBs were parsed in {1:.2f}s.'
+                     .format(len(results), time.time()-start))
 
         return results
 
@@ -192,7 +199,7 @@ def parsePDBStream(stream, **kwargs):
     subset = kwargs.get('subset')
     altloc = kwargs.get('altloc', 'A')
     if model is not None:
-        if isinstance(model, int):
+        if isinstance(model, Integral):
             if model < 0:
                 raise ValueError('model must be greater than 0')
         else:
@@ -213,7 +220,7 @@ def parsePDBStream(stream, **kwargs):
             raise TypeError('chain must be a string')
         elif len(chain) == 0:
             raise ValueError('chain must not be an empty string')
-        title_suffix = '_' + chain + title_suffix
+        title_suffix = chain + title_suffix
     ag = None
     if 'ag' in kwargs:
         ag = kwargs['ag']
@@ -434,6 +441,7 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
         altloc_torf = True
 
     acount = 0
+    coordsets = None
     altloc = defaultdict(list)
     i = start
     END = False
@@ -480,7 +488,7 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                         i += 1
                 else:
                     raise PDBParseError('invalid or missing coordinate(s) at '
-                                         'line {0}.'.format(i+1))
+                                         'line {0}'.format(i+1))
             if onlycoords:
                 acount += 1
                 i += 1
@@ -492,7 +500,7 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                 try:
                     serials[acount] = int(line[6:11], 16)
                 except ValueError:
-                    LOGGER.warn('Failed to parse serial number in line {0}.'
+                    LOGGER.warn('failed to parse serial number in line {0}'
                                 .format(i))
                     serials[acount] = serials[acount-1]+1
             altlocs[acount] = alt
@@ -583,8 +591,9 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                 i += 1
                 break
             diff = stop - i - 1
-            if diff < acount:
-                END = True
+            END = diff < acount
+            if coordsets is not None:
+                END = END or nmodel >= coordsets.shape[0]
             if onlycoords:
                 if acount < n_atoms:
                     LOGGER.warn('Discarding model {0}, which contains '
@@ -897,9 +906,9 @@ def parseChainsList(filename):
     headers = []
     chains = []
     num_lines = len(lines)
-    LOGGER.progress('Starting', num_lines)
+    LOGGER.progress('Starting', num_lines, '_prody_parseChainsList')
     for i, line in enumerate(lines):
-        LOGGER.update(i, 'Parsing lines...')
+        LOGGER.update(i, 'Parsing lines...', label='_prody_parseChainsList')
         pdb_id = line.split()[0].split('_')[0]
         if not pdb_id in pdb_ids:
             pdb_ids.append(pdb_id)

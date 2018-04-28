@@ -2,6 +2,7 @@
 
 import os.path
 import time
+from numbers import Integral
 
 import numpy as np
 
@@ -21,10 +22,10 @@ __all__ = ['saveEnsemble', 'loadEnsemble', 'trimPDBEnsemble',
 
 def saveEnsemble(ensemble, filename=None, **kwargs):
     """Save *ensemble* model data as :file:`filename.ens.npz`.  If *filename*
-    is ``None``, title of the *ensemble* will be used as the filename, after
+    is **None**, title of the *ensemble* will be used as the filename, after
     white spaces in the title are replaced with underscores.  Extension is
     :file:`.ens.npz`. Upon successful completion of saving, filename is
-    returned. This function makes use of :func:`numpy.savez` function."""
+    returned. This function makes use of :func:`~numpy.savez` function."""
 
     if not isinstance(ensemble, Ensemble):
         raise TypeError('invalid type for ensemble, {0}'
@@ -48,11 +49,11 @@ def saveEnsemble(ensemble, filename=None, **kwargs):
     atoms = dict_['_atoms']
     if atoms:
         atoms = atoms.copy()
-    attr_dict['_atoms'] = np.array([atoms, 0])
+    attr_dict['_atoms'] = np.array([atoms, None])
 
     if isinstance(ensemble, PDBEnsemble):
         msa = dict_['_msa']
-        attr_dict['_msa'] = np.array([msa, 0])
+        attr_dict['_msa'] = np.array([msa, None])
 
     if filename.endswith('.ens'):
         filename += '.npz'
@@ -64,20 +65,25 @@ def saveEnsemble(ensemble, filename=None, **kwargs):
     return filename
 
 
-def loadEnsemble(filename):
+def loadEnsemble(filename, **kwargs):
     """Returns ensemble instance loaded from *filename*.  This function makes
-    use of :func:`numpy.load` function.  See also :func:`saveEnsemble`"""
+    use of :func:`~numpy.load` function.  See also :func:`saveEnsemble`"""
 
-    attr_dict = np.load(filename)
+    if not 'encoding' in kwargs:
+        kwargs['encoding'] = 'latin1'
+    attr_dict = np.load(filename, **kwargs)
     if '_weights' in attr_dict:
         weights = attr_dict['_weights']
     else:
         weights = None   
     isPDBEnsemble = False
     try:
-        title = str(attr_dict['_title'])
+        title = attr_dict['_title']
     except KeyError:
-        title = str(attr_dict['_name'])
+        title = attr_dict['_name']
+    if isinstance(title, np.ndarray):
+        title = np.asarray(title, dtype=str)
+    title = str(title)
     if weights is not None and weights.ndim == 3:
         isPDBEnsemble = True
         ensemble = PDBEnsemble(title)
@@ -101,6 +107,13 @@ def loadEnsemble(filename):
             ensemble._labels = list(attr_dict['_identifiers'])
         if '_labels' in attr_dict.files:
             ensemble._labels = list(attr_dict['_labels'])
+        if ensemble._labels:
+            for i, label in enumerate(ensemble._labels):
+                if not isinstance(label, str):
+                    try:
+                        ensemble._labels[i] = label.decode()
+                    except AttributeError:
+                        ensemble._labels[i] = str(label)
         if '_trans' in attr_dict.files:
             ensemble._trans = attr_dict['_trans']
         if '_msa' in attr_dict.files:
@@ -118,24 +131,25 @@ def trimPDBEnsemble(pdb_ensemble, occupancy=None, **kwargs):
     following criteria, and returns them in a new :class:`.PDBEnsemble`
     instance.
 
-    **Occupancy**
-
     Resulting PDB ensemble will contain atoms whose occupancies are greater
-    or equal to *occupancy* keyword argument.  Occupancies for atoms will be
+    or equal to *occupancy* keyword argument. Occupancies for atoms will be
     calculated using ``calcOccupancies(pdb_ensemble, normed=True)``.
 
-    :arg occupancy: occupancy for selecting atoms, must satisfy. If set to 
-                    *None* then *hard* trimming will be performed.
-        ``0 < occupancy <= 1``
+    :arg occupancy: occupancy for selecting atoms, must satisfy
+        ``0 < occupancy <= 1``.
+        If set to *None* then *hard* trimming will be performed.
     :type occupancy: float
 
-    :arg hard: hard trimming or soft trimming. If set to `False`, *pdb_ensemble* 
-    will be trimmed by selection. This is useful for example when one uses 
-    :func:`calcEnsembleENMs` and :func:`sliceModel` or :func:`reduceModel`
-    to calculate the modes from the remaining part while still taking the 
-    removed part into consideration (e.g. as the environment).
+    :arg hard: Whether to perform hard trimming.
+        Default is **False**
+        If set to **True**, atoms will be completely removed from *pdb_ensemble*.
+        If set to **False**, a soft trimming of *pdb_ensemble* will be done
+        where atoms will be removed from the active selection. This is useful, 
+        for example, when one uses :func:`calcEnsembleENMs` 
+        together with :func:`sliceModel` or :func:`reduceModel`
+        to calculate the modes from the remaining part while still taking the 
+        removed part into consideration (e.g. as the environment).
     :type hard: bool
-
     """
 
     hard = kwargs.pop('hard', False) or pdb_ensemble._atoms is None \
@@ -210,7 +224,7 @@ def calcOccupancies(pdb_ensemble, normed=False):
     """Returns occupancy calculated from weights of a :class:`.PDBEnsemble`.
     Any non-zero weight will be considered equal to one.  Occupancies are
     calculated by binary weights for each atom over the conformations in
-    the ensemble. When *normed* is ``True``, total weights will be divided
+    the ensemble. When *normed* is **True**, total weights will be divided
     by the number of atoms.  This function can be used to see how many times
     a residue is resolved when analyzing an ensemble of X-ray structures."""
 
@@ -262,7 +276,7 @@ def alignPDBEnsemble(ensemble, suffix='_aligned', outdir='.', gzip=False):
     with label *2k39_ca_selection_'resnum_<_71'_m116* will be applied to 116th
     model of structure **2k39**.  After applicable transformations are made,
     structure will be written into *outputdir* as :file:`2k39_aligned.pdb`.
-    If *gzip* is **True**, output files will be compressed.  Return value is
+    If ``gzip=True``, output files will be compressed.  Return value is
     the output filename or list of filenames, in the order files are processed.
     Note that if multiple models from a file are aligned, that filename will
     appear in the list multiple times."""
@@ -331,16 +345,18 @@ def alignPDBEnsemble(ensemble, suffix='_aligned', outdir='.', gzip=False):
         return output
 
 
-def buildPDBEnsemble(refpdb, PDBs, title='Unknown', labels=None, seqid=94, coverage=85, 
+def buildPDBEnsemble(PDBs, ref=None, title='Unknown', labels=None, seqid=94, coverage=85, 
                      mapping_func=mapOntoChain, unmapped=None, **kwargs):
     """Builds a PDB ensemble from a given reference structure and a list of PDB structures. 
     Note that the reference structure should be included in the list as well.
 
-    :arg refpdb: Reference structure
-    :type refpdb: :class:`.Chain`, :class:`.Selection`, or :class:`.AtomGroup`
-
     :arg PDBs: A list of PDB structures
     :type PDBs: iterable
+
+    :arg ref: Reference structure or the index to the reference in ``PDBs``. If **None**,
+                 then the first item in ``PDBs`` will be considered as the reference. 
+                 Default is **None**
+    :type ref: int, :class:`.Chain`, :class:`.Selection`, or :class:`.AtomGroup`
 
     :arg title: The title of the ensemble
     :type title: str
@@ -364,6 +380,7 @@ def buildPDBEnsemble(refpdb, PDBs, title='Unknown', labels=None, seqid=94, cover
     """
 
     occupancy = kwargs.pop('occupancy', None)
+    degeneracy = kwargs.pop('degeneracy', True)
 
     if len(PDBs) == 1:
         raise ValueError('PDBs should have at least two items')
@@ -371,8 +388,14 @@ def buildPDBEnsemble(refpdb, PDBs, title='Unknown', labels=None, seqid=94, cover
         if len(labels) != len(PDBs):
             raise ValueError('labels and PDBs must be the same length')
 
-    if refpdb not in PDBs:
-        raise ValueError('refpdb should be also in the PDBs')
+    if ref is None:
+        refpdb = PDBs[0]
+    elif isinstance(ref, Integral):
+        refpdb = PDBs[ref]
+    else:
+        refpdb = ref
+        if refpdb not in PDBs:
+            raise ValueError('refpdb should be also in the PDBs')
 
     # obtain refchains from the hierarhical view of the reference PDB
     try:
@@ -394,9 +417,10 @@ def buildPDBEnsemble(refpdb, PDBs, title='Unknown', labels=None, seqid=94, cover
     # build the ensemble
     if unmapped is None: unmapped = []
 
-    LOGGER.progress('Building the ensemble...', len(PDBs))
+    LOGGER.progress('Building the ensemble...', len(PDBs), '_prody_buildPDBEnsemble')
     for i, pdb in enumerate(PDBs):
-        LOGGER.update(i, 'Mapping %s to the reference...'%pdb)
+        LOGGER.update(i, 'Mapping %s to the reference...'%pdb.getTitle(), 
+                      label='_prody_buildPDBEnsemble')
         try:
             pdb.getHierView()
         except AttributeError:
@@ -430,7 +454,8 @@ def buildPDBEnsemble(refpdb, PDBs, title='Unknown', labels=None, seqid=94, cover
             atommap += atommaps[j]
         
         # add the mappings to the ensemble
-        ensemble.addCoordset(atommap, weights=atommap.getFlags('mapped'), label = lbl)
+        ensemble.addCoordset(atommap, weights=atommap.getFlags('mapped'), 
+                             label = lbl, degeneracy=degeneracy)
 
     LOGGER.finish()
 
@@ -443,30 +468,41 @@ def buildPDBEnsemble(refpdb, PDBs, title='Unknown', labels=None, seqid=94, cover
 
     return ensemble
 
-def addPDBEnsemble(ensemble, PDBs, refpdb=None, labels=None, seqid=94, coverage=85, mapping_func=mapOntoChain, occupancy=None, unmapped=None):  
+def addPDBEnsemble(ensemble, PDBs, refpdb=None, labels=None, seqid=94, coverage=85, 
+                   mapping_func=mapOntoChain, occupancy=None, unmapped=None, **kwargs):  
     """Adds extra structures to a given PDB ensemble. 
 
     :arg ensemble: The ensemble to which the PDBs are added.
     :type ensemble: :class:`.PDBEnsemble`
+
     :arg refpdb: Reference structure. If set to `None`, it will be set to `ensemble.getAtoms()` automatically.
     :type refpdb: :class:`.Chain`, :class:`.Selection`, or :class:`.AtomGroup`
+
     :arg PDBs: A list of PDB structures
     :type PDBs: iterable
+
     :arg title: The title of the ensemble
     :type title: str
+
     :arg labels: labels of the conformations
     :type labels: list
+
     :arg seqid: Minimal sequence identity (percent)
     :type seqid: int
+
     :arg coverage: Minimal sequence overlap (percent)
     :type coverage: int
-    :arg occupancy: Minimal occupancy of columns (range from 0 to 1). Columns whose occupancy
-    is below this value will be trimmed.
+
+    :arg occupancy: Minimal occupancy of columns (range from 0 to 1). Columns whose occupancy 
+                    is below this value will be trimmed.
     :type occupancy: float
+
     :arg unmapped: A list of PDB IDs that cannot be included in the ensemble. This is an 
-    output argument. 
+                   output argument. 
     :type unmapped: list
     """
+
+    degeneracy = kwargs.pop('degeneracy', True)
 
     if labels is not None:
         if len(labels) != len(PDBs):
@@ -477,6 +513,8 @@ def addPDBEnsemble(ensemble, PDBs, refpdb=None, labels=None, seqid=94, coverage=
         refpdb = ensemble.getAtoms()
     refchains = list(refpdb.getHierView())
 
+    start = time.time()
+
     # obtain the atommap of all the chains combined.
     atoms = refchains[0]
     for i in range(1, len(refchains)):
@@ -484,7 +522,11 @@ def addPDBEnsemble(ensemble, PDBs, refpdb=None, labels=None, seqid=94, coverage=
     
     # add the PDBs to the ensemble
     if unmapped is None: unmapped = []
-    for i,pdb in enumerate(PDBs):
+
+    LOGGER.progress('Appending the ensemble...', len(PDBs), '_prody_addPDBEnsemble')
+    for i, pdb in enumerate(PDBs):
+        LOGGER.update(i, 'Mapping %s to the reference...'%pdb.getTitle(), 
+                      label='_prody_addPDBEnsemble')
         if not isinstance(pdb, (Chain, Selection, AtomGroup)):
             raise TypeError('PDBs must be a list of Chain, Selection, or AtomGroup.')
         
@@ -498,7 +540,9 @@ def addPDBEnsemble(ensemble, PDBs, refpdb=None, labels=None, seqid=94, coverage=
         for chain in refchains:
             mappings = mapping_func(pdb, chain,
                                     seqid=seqid,
-                                    coverage=coverage)
+                                    coverage=coverage,
+                                    index=i,
+                                    **kwargs)
             if len(mappings) > 0:
                 atommaps.append(mappings[0][0])
             else:
@@ -514,11 +558,16 @@ def addPDBEnsemble(ensemble, PDBs, refpdb=None, labels=None, seqid=94, coverage=
             atommap += atommaps[i]
         
         # add the mappings to the ensemble
-        ensemble.addCoordset(atommap, weights=atommap.getFlags('mapped'), label = lbl)
-    
+        ensemble.addCoordset(atommap, weights=atommap.getFlags('mapped'), 
+                             label=lbl, degeneracy=degeneracy)
+    LOGGER.finish()
+
     if occupancy is not None:
         ensemble = trimPDBEnsemble(ensemble, occupancy=occupancy)
     ensemble.iterpose()
+
+    LOGGER.info('{0} PDBs were added to the ensemble in {1:.2f}s.'
+                     .format(len(PDBs) - len(unmapped), time.time()-start))
 
     return ensemble
 

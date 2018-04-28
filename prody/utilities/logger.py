@@ -68,6 +68,8 @@ class PackageLogger(object):
         self._line = None
         self._times = {}
 
+        self._n_progress = 0
+
     # ====================
     # Attributes
     # ====================
@@ -243,12 +245,14 @@ class PackageLogger(object):
         self._steps = steps
         self._last = 0
         self._times[label] = time.time()
-        self._prev = (0, 0)
+        self._prev = (-1, 0)
         self._msg = msg
         self._line = ''
 
-        self._verb = self._getverbosity()
-        self._setverbosity('progress')
+        if not hasattr(self, '_verb'):
+            self._verb = self._getverbosity()
+            self._setverbosity('progress')
+        self._n_progress += 1
 
     def update(self, step, msg=None, label=None):
         """Update progress status to current line in the console."""
@@ -263,31 +267,32 @@ class PackageLogger(object):
             start = self._times[label]
             self._last = i
             percent = 100 * i / n
-            if percent > 3:
-                seconds = int(math.ceil((time.time()-start) * (n-i)/i))
-                prev = (percent, seconds)
-            else:
-                prev = (percent, 0)
-            if self._prev == prev:
-                return
+            #if percent > 3:
+            seconds = int(math.ceil((time.time()-start) * (n-i)/i))
+            prev = (percent, seconds)
+            #else:
+                #prev = (percent, 0)
+            #if self._prev == prev:
+            #    return
             sys.stderr.write('\r' + ' ' * (len(self._line)) + '\r')
-            if percent > 3:
-                line = self._prefix + self._msg + \
-                    ' [%3d%%] %ds' % (percent, seconds)
-            else:
-                line = self._prefix + self._msg + ' [%3d%%]' % percent
+            #if percent > 3:
+            line = self._prefix + self._msg + ' [%3d%%] %ds' % (percent, seconds)
+            #else:
+            #    line = self._prefix + self._msg + ' [%3d%%]' % percent
             sys.stderr.write(line)
             sys.stderr.flush()
             self._prev = prev
             self._line = line
-        if i == n:
-            self.finish()
 
     def finish(self):
-        if hasattr(self, '_verb'):
-            self._setverbosity(self._verb)
-            del self._verb
-            self.clear()
+        self._n_progress -= 1
+        if self._n_progress < 0:
+            self._n_progress = 0
+        if self._n_progress == 0:
+            if hasattr(self, '_verb'):
+                self._setverbosity(self._verb)
+                del self._verb
+                self.clear()
 
     def sleep(self, seconds, msg=''):
         """Sleep for seconds while updating screen message every second.

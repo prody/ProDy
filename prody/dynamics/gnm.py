@@ -16,7 +16,7 @@ from prody.utilities import importLA, checkCoords
 from .nma import NMA
 from .gamma import Gamma
 
-__all__ = ['GNM', 'calcGNM', 'TrimedGNM']
+__all__ = ['GNM', 'calcGNM', 'TrimmedGNM']
 
 ZERO = 1e-6
 
@@ -33,6 +33,9 @@ class GNMBase(NMA):
         self._kirchhoff = None
         self._gamma = None
         self._hinges = None
+        self._affinity = None
+        self._hitTime = None
+        self._commuteTime = None
 
     def __repr__(self):
 
@@ -46,12 +49,24 @@ class GNMBase(NMA):
 
     def _reset(self):
 
-        NMA._reset(self)
+        super(GNMBase, self)._reset()
         self._cutoff = None
         self._gamma = None
         self._kirchhoff = None
         self._is3d = False
+        self._hinges = None
+        self._affinity = None
+        self._hitTime = None
+        self._commuteTime = None
 
+    def _clear(self):
+        self._trace = None
+        self._cov = None
+        self._hinges = None
+        self._affinity = None
+        self._hitTime = None
+        self._commuteTime = None
+        
     def getCutoff(self):
         """Returns cutoff distance."""
 
@@ -136,7 +151,6 @@ class GNM(GNMBase):
         self._kirchhoff = kirchhoff
         self._n_atoms = kirchhoff.shape[0]
         self._dof = kirchhoff.shape[0]
-        self._affinity = None
 
     def buildKirchhoff(self, coords, cutoff=10., gamma=1., **kwargs):
         """Build Kirchhoff matrix for given coordinate set.
@@ -327,7 +341,7 @@ class GNM(GNMBase):
         """Returns a copy of the hit time matrix."""
 
         if self._hitTime is None:
-            return None
+            self.calcHitTime()
         return self._hitTime.copy()
 
     def _getHitTime(self):
@@ -339,7 +353,7 @@ class GNM(GNMBase):
         """Returns a copy of the Kirchhoff matrix."""
 
         if self._commuteTime is None:
-            return None
+            self.calcHitTime()
         return self._commuteTime.copy()
 
     def _getCommuteTime(self):
@@ -354,27 +368,28 @@ class GNM(GNMBase):
         :func:`numpy.linalg.eigh` is used.
 
         :arg n_modes: number of non-zero eigenvalues/vectors to calculate.
-              If ``None`` or 'all' is given, all modes will be calculated.
+              If **None** or ``'all'`` is given, all modes will be calculated.
         :type n_modes: int or None, default is 20
 
-        :arg zeros: If ``True``, modes with zero eigenvalues will be kept.
-        :type zeros: bool, default is ``False``
+        :arg zeros: If **True**, modes with zero eigenvalues will be kept.
+        :type zeros: bool, default is **True**
 
         :arg turbo: Use a memory intensive, but faster way to calculate modes.
-        :type turbo: bool, default is ``True``
+        :type turbo: bool, default is **True**
 
         :arg hinges: Identify hinge sites after modes are computed.
-        :type hinges: bool, default is ``True``
+        :type hinges: bool, default is **True**
         """
 
         if self._kirchhoff is None:
             raise ValueError('Kirchhoff matrix is not built or set')
-        if str(n_modes).lower() is 'all':
+        if str(n_modes).lower() == 'all':
             n_modes = None
         assert n_modes is None or isinstance(n_modes, int) and n_modes > 0, \
             'n_modes must be a positive integer'
         assert isinstance(zeros, bool), 'zeros must be a boolean'
         assert isinstance(turbo, bool), 'turbo must be a boolean'
+        self._clear()
         linalg = importLA()
         start = time.time()
         shift = 0
@@ -462,7 +477,7 @@ class GNM(GNMBase):
 
         :arg modeIndex: indices of modes. This parameter can be a scalar, a list, 
             or logical indices.
-        :type modeIndex: int or list, default is ``None``
+        :type modeIndex: int or list, default is **None**
         """
         if self._hinges is None:
             LOGGER.info('Warning: hinges are not calculated, thus null is returned. '
@@ -530,6 +545,10 @@ class GNM(GNMBase):
         normdistfluct[np.diag_indices_from(normdistfluct)] = 0  # div by 0
         return normdistfluct
 
+    def setEigens(self, vectors, values=None):
+        self._clear()
+        super(GNMBase, self).setEigens(vectors, values)
+
 
 def calcGNM(pdb, selstr='calpha', cutoff=15., gamma=1., n_modes=20,
             zeros=False, hinges=True):
@@ -555,11 +574,11 @@ def calcGNM(pdb, selstr='calpha', cutoff=15., gamma=1., n_modes=20,
     gnm.calcModes(n_modes, zeros, hinges=hinges)
     return gnm, sel
 
-class TrimedGNM(GNM):
-    def __init__(self, name='Unknown', mask=False, useTrimed=True):
-        super(TrimedGNM, self).__init__(name)
+class TrimmedGNM(GNM):
+    def __init__(self, name='Unknown', mask=False, useTrimmed=True):
+        super(TrimmedGNM, self).__init__(name)
         self.mask = False
-        self.useTrimed = useTrimed
+        self.useTrimmed = useTrimmed
 
         if not np.isscalar(mask):
             self.mask = np.array(mask)
@@ -567,7 +586,7 @@ class TrimedGNM(GNM):
     def numAtoms(self):
         """Returns number of atoms."""
 
-        if self.useTrimed or np.isscalar(self.mask):
+        if self.useTrimmed or np.isscalar(self.mask):
             return self._n_atoms
         else:
             return len(self.mask)
@@ -579,7 +598,7 @@ class TrimedGNM(GNM):
 
         array = self._array.copy()
 
-        if self.useTrimed or np.isscalar(self.mask):
+        if self.useTrimmed or np.isscalar(self.mask):
             return array
 
         mask = self.mask.copy()
@@ -595,11 +614,11 @@ class TrimedGNM(GNM):
 
     def _getArray(self):
         """Returns eigenvectors array. The function returns 
-        a copy of the array if useTrimed is ``True``."""
+        a copy of the array if useTrimmed is **True**."""
 
         if self._array is None: return None
 
-        if self.useTrimed or np.isscalar(self.mask):
+        if self.useTrimmed or np.isscalar(self.mask):
             return self._array
         else:
             return self.getArray()

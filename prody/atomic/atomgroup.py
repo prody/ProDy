@@ -3,6 +3,7 @@
 multiple coordinate sets in :class:`numpy.ndarray` instances."""
 
 from time import time
+from numbers import Integral
 
 import numpy as np
 
@@ -24,8 +25,8 @@ from . import flags
 
 __all__ = ['AtomGroup']
 
-if PY2K: range = xrange
-
+if PY2K: 
+    range = xrange
 
 def checkLabel(label):
     """Check suitability of *label* for labeling user data or flags."""
@@ -235,9 +236,13 @@ class AtomGroup(Atomic):
             that = other._data.get(key)
             if this is not None or that is not None:
                 if this is None:
-                    this = np.zeros(that.shape, that.dtype)
+                    shape = list(that.shape)
+                    shape[0] = len(self)
+                    this = np.zeros(shape, that.dtype)
                 if that is None:
-                    that = np.zeros(this.shape, this.dtype)
+                    shape = list(this.shape)
+                    shape[0] = len(other)
+                    that = np.zeros(shape, this.dtype)
                 new._data[key] = np.concatenate((this, that))
 
         if self._bonds is not None and other._bonds is not None:
@@ -537,7 +542,7 @@ class AtomGroup(Atomic):
             return None
         if indices is None:
             return self._coords.copy()
-        if isinstance(indices, (int, slice)):
+        if isinstance(indices, (Integral, slice)):
             return self._coords[indices].copy()
 
         # following fancy indexing makes a copy, so .copy() is not needed
@@ -630,7 +635,7 @@ class AtomGroup(Atomic):
         n_csets = self._n_csets
         if n_csets == 0:
             self._acsi = 0
-        if not isinstance(index, int):
+        if not isinstance(index, Integral):
             raise TypeError('index must be an integer')
         if n_csets <= index or n_csets < abs(index):
             raise IndexError('coordinate set index is out of range')
@@ -905,7 +910,7 @@ class AtomGroup(Atomic):
         (default is 1) specifies increment.  If atoms with matching serial
         numbers are not found, **None** will be returned."""
 
-        if not isinstance(serial, int):
+        if not isinstance(serial, Integral):
             raise TypeError('serial must be an integer')
         if serial < 0:
             raise ValueError('serial must be greater than or equal to zero')
@@ -918,7 +923,7 @@ class AtomGroup(Atomic):
                 if index != -1:
                     return Atom(self, index)
         else:
-            if not isinstance(stop, int):
+            if not isinstance(stop, Integral):
                 raise TypeError('stop must be an integer')
             if stop <= serial:
                 raise ValueError('stop must be greater than serial')
@@ -926,7 +931,7 @@ class AtomGroup(Atomic):
             if step is None:
                 step = 1
             else:
-                if not isinstance(step, int):
+                if not isinstance(step, Integral):
                     raise TypeError('step must be an integer')
                 if step < 1:
                     raise ValueError('step must be greater than zero')
@@ -1166,11 +1171,12 @@ for fname, field in ATOMIC_FIELDS.items():
                     raise ValueError('length of array must match number '
                                     'of atoms')
 
-                if isinstance(array, list):
-                    array = np.array(array, dtype)
-                elif not isinstance(array, np.ndarray):
+                if not np.isscalar(array):
+                    array = np.asarray(array, dtype)
+                else:
                     raise TypeError('array must be an ndarray or a list')
-                elif array.ndim != ndim:
+
+                if array.ndim != ndim:
                     raise ValueError('array must be {0} '
                                     'dimensional'.format(ndim))
                 elif array.dtype != dtype:

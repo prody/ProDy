@@ -3,15 +3,20 @@
 
 __author__ = 'Anindita Dutta, Ahmet Bakan, Wenzhi Mao'
 
+from numbers import Integral
 import os
-from numpy import dtype, zeros, empty, ones, where, ceil, shape
+
+from numpy import dtype, zeros, empty, ones, where, ceil, shape, eye
 from numpy import indices, tril_indices, array, ndarray, isscalar
+
 from prody import LOGGER
 from prody.utilities import which
 from prody.sequence.msa import MSA, refineMSA
 from prody.sequence.msafile import parseMSA, writeMSA
 from prody.sequence.sequence import Sequence
 from prody.atomic import Atomic
+from prody.measure import calcDistance
+
 from Bio import pairwise2
 import sys
 
@@ -275,7 +280,7 @@ def applyMutinfoCorr(mutinfo, corr='prod'):
 
     return mi
 
-def filterRankedPairs(indices, msa_indices, rank_row, rank_col, zscore_sort, \
+def filterRankedPairs(pdb, indices, msa_indices, rank_row, rank_col, zscore_sort, \
                       num_of_pairs=20, seqDistance=5, resi_range=None, \
                       pdbDistance=8, chain1='A', chain2='A'):
     '''
@@ -302,24 +307,20 @@ def filterRankedPairs(indices, msa_indices, rank_row, rank_col, zscore_sort, \
     :type chain2: str
     '''
     
-    if indices is None:
-        raiseValueError('Please provide indices output from alignSequenceToPDB')
-    elif type(indices) != list:
-        raiseTypeError('Please provide a valid indices list')
+    if isscalar(indices):
+        raise TypeError('Please provide a valid indices list')
         
-    if msa_indices is None:
-        raiseValueError('Please provide msa_indices output from alignSequenceToPDB')
-    elif type(indices) != list:
-        raiseTypeError('Please provide valid msa_indices, which should be a list')
+    if isscalar(msa_indices):
+        raise TypeError('Please provide valid msa_indices, which should be a list')
         
-    if rank_row is None:
-        raiseValueError('Please provide ranked row from calcRankorder')
+    if isscalar(rank_row):
+        raise TypeError('Please provide ranked row from calcRankorder')
         
-    if rank_col is None:
-        raiseValueError('Please provide ranked col from calcRankorder')
+    if isscalar(rank_col):
+        raise ValueError('Please provide ranked col from calcRankorder')
     
-    if zscore_sort is None:
-        raiseValueError('Please provide sorted Z scores from calcRankorder')
+    if isscalar(zscore_sort):
+        raise ValueError('Please provide sorted Z scores from calcRankorder')
     
     if num_of_pairs is None:
         num_of_pairs = len(rank_row)
@@ -331,32 +332,26 @@ def filterRankedPairs(indices, msa_indices, rank_row, rank_col, zscore_sort, \
         
         i += 1
         
-        if type(indices[where(msa_indices == rank_row[i])[0][0]]) != np.int64 or \
-        type(indices[where(msa_indices == rank_col[i])[0][0]]) != np.int64:
+        row_idx = indices[where(msa_indices == rank_row[i])[0][0]]
+        col_idx = indices[where(msa_indices == rank_col[i])[0][0]]
+        if not isinstance(row_idx, Integral) or not isinstance(col_idx, Integral):
             continue
         
-        if indices[where(msa_indices == rank_row[i])[0][0]] - \
-        indices[where(msa_indices == rank_col[i])[0][0]] < seqDistance:
+        if row_idx - col_idx < seqDistance:
             continue        
         
         distance = calcDistance(pdb.select('chain %s and resid %s' % (chain1, \
-                                           indices[where(msa_indices == \
-                                           rank_row[i])[0][0]])).copy(), \
+                                           row_idx)).copy(), \
                                 pdb.select('chain %s and resid %s' % (chain2, \
-                                           indices[where(msa_indices == \
-                                           rank_col[i])[0][0]])).copy())
+                                           row_idx)).copy())
         if distance > pdbDistance:
             continue
             
         if resi_range is not None:
-            if not indices[where(msa_indices == rank_row[i])[0][0]] in resi_range and \
-            not indices[where(msa_indices == rank_col[i])[0][0]] in resi_range:
+            if not row_idx in resi_range and not col_idx in resi_range:
                 continue
             
-        pairList.append('%3d' % i + ':\t%3d' % indices[where(msa_indices == \
-        rank_row[i])[0][0]] + '\t' + '%3d' % indices[where(msa_indices == \
-        rank_col[i])[0][0]] + '\t' + '%5.1f' % zscore_sort[i] + '\t' + \
-        '%5.1f' % distance + '\n')
+        pairList.append('%3d:\t%3d\t%3d\t%5.1f\t%5.1f\n'%(i, row_idx, col_idx, zscore_sort[i], distance))
         
         j += 1
     
@@ -383,7 +378,7 @@ buildSeqidMatrix.__doc__ += doc_turbo
 def uniqueSequences(msa, seqid=0.98, turbo=True):
     """Returns a boolean array marking unique sequences in *msa*.  A sequence
     sharing sequence identity of *seqid* or more with another sequence coming
-    before itself in *msa* will have a ``False`` value in the array."""
+    before itself in *msa* will have a **True** value in the array."""
 
     msa = getMSA(msa)
 
@@ -400,11 +395,11 @@ uniqueSequences.__doc__ += doc_turbo
 
 def calcRankorder(matrix, zscore=False, **kwargs):
     """Returns indices of elements and corresponding values sorted in
-    descending order, if *descend* is ``True`` (default). Can apply a zscore
+    descending order, if *descend* is **True** (default). Can apply a zscore
     normalization; by default along *axis* - 0 such that each column has
     ``mean=0`` and ``std=1``.  If *zcore* analysis is used, return value contains the
-    zscores. If matrix is smymetric only lower triangle indices will be
-    returned, with diagonal elements if *diag* is ``True`` (default)."""
+    zscores. If matrix is symmetric only lower triangle indices will be
+    returned, with diagonal elements if *diag* is **True** (default)."""
 
     try:
         ndim, shape = matrix.ndim, matrix.shape
@@ -643,61 +638,9 @@ def calcMeff(msa, seqid=.8, refine=False, weight=False, **kwargs):
     LOGGER.report('Meff was calculated in %.2fs.', '_meff')
     return meff
 
-def msaeye(msa, unique, turbo):
-    tic1 = timeit.default_timer()
-    length = msa.shape[1]
-    number = msa.shape[0]
-    # number = 5
-    array = eye(int(number))
-
-    seqs = []
-    for i in xrange(number):
-        seqs.append(msa[i,:])
-    iseq = zeros((number, length), dtype=int)
-
-    for i in xrange(0,number-1):
-        if i == 0:
-            for k in xrange(length):
-                if ord(seqs[i][k])>90:
-                    iseq[i,k]=ord(seqs[i][k])-96 if ord(seqs[i][k])-96 > 0 and ord(seqs[i][k])-96 < 26 else 0
-                else:
-                    iseq[i,k]=ord(seqs[i][k])-64 if ord(seqs[i][k])-64 > 0 and ord(seqs[i][k])-64 < 26 else 0
-            for j in xrange(i+1,number):
-                score=0.
-                ncols=0.
-                for k in xrange(length):
-                    if ord(seqs[j][k])>90:
-                        iseq[j,k]=ord(seqs[j][k])-96 if ord(seqs[j][k])-96 > 0 and ord(seqs[j][k])-96 < 26 else 0
-                    else:
-                        iseq[j,k]=ord(seqs[j][k])-64 if ord(seqs[j][k])-64 > 0 and ord(seqs[j][k])-64 < 26 else 0
-                    if iseq[i,k] or iseq[j,k]:
-                        ncols += 1
-                        if iseq[i,k]==iseq[j,k]:
-                            score+=1
-                array[i,j]=float(score)/ncols
-                array[j,i]=array[i,j]
-            # print iseq[0]
-            # print seqs[0]
-            # raw_input()
-        else:
-            for j in xrange(i+1,number):
-                score=0.
-                ncols=0.
-                for k in xrange(length):
-                    if iseq[i,k] or iseq[j,k]:
-                        ncols += 1
-                        if iseq[i,k]==iseq[j,k]:
-                            score+=1
-                array[i,j]= float(score)/ncols#float(sum((iseq[i] == iseq[j])*(iseq[i]*iseq[j]!=0))) / sum(iseq[i]*iseq[j]!=0)
-                array[j,i]=array[i,j]
-
-    toc1 = timeit.default_timer()
-    elapsed1 = toc1 - tic1
-    print(elapsed1)
-
 def alignSequencesByChain(PDBs, **kwargs):
     """
-    Runs :method:`buildMSA` for each chain and optionally joins the results.
+    Runs :func:`buildMSA` for each chain and optionally joins the results.
     Returns either a single :class:`MSA` or a dictionary containing an :class:`MSA` for each chain.
 
     :arg PDBs: a list of :class:`AtomGroup` objects
@@ -712,11 +655,11 @@ def alignSequencesByChain(PDBs, **kwargs):
     :type join_char: str
     """
     
-    if not isscalar(PDBs):
-        raise TypeError('PDBs should be a list or array')
+    if isscalar(PDBs):
+        raise TypeError('PDBs should be array-like')
 
     if not PDBs:
-        raise ValueError('PDBs should not be an empty list')
+        raise ValueError('PDBs should not be empty')
 
     pdbs = []
     chains = []
@@ -738,59 +681,40 @@ def alignSequencesByChain(PDBs, **kwargs):
         chids = ''
         for chain in list(pdb.getHierView()):
             chids += chain.getChid()
-        labels.append(pdb.getTitle().split('_')[0] + '_' + chids)
+        labels.append(pdb.getTitle() + '_' + chids)
 
     chains = array(chains)
     chain_alignments = []
     alignments = {}
-    labels_lists = []
     for j in range(len(chains[0])):
         prefix = 'chain_' + chains[0, j].getChid()
         msa = buildMSA(chains[:, j], title=prefix, labels=labels)
-
-        # make all alignments have the sequences in the same order as the 0th
-        labels_lists.append([])
-        for sequence in msa:
-            labels_lists[j].append(sequence.getLabel())
-
-        if j > 0:
-            msaarr = []
-            for label in labels_lists[0]:
-                msaarr.append(msa.getArray()[msa.getIndex(label)])
-                
-            msaarr = array(msaarr)
-            msa = MSA(msaarr, title='reordered_msa_1', labels=list(labels_lists[0]))
-            writeMSA(prefix + '.aln', msa)
-
+        msa = refineMSA(msa, colocc=1e-9) # remove gap-only cols
+        
         chain_alignments.append(msa)
-
-        # after reordering, create the alignments dictionary
-        alignments[labels_lists[0][0].split('_')[1][j]] = msa
+        alignments[labels[0].split('_')[1][j]] = msa
 
     join_chains = kwargs.get('join_chains', True)
     join_char = kwargs.get('join_char', '/')
-    if join_chains:
-        aligned_sequences = list(zeros(shape(chain_alignments)).T)
-        for j in range(shape(chain_alignments)[1]):
-            aligned_sequences[j] = list(aligned_sequences[j])
-        
-        orig_labels = []
-        for i, chain_alignment in enumerate(chain_alignments):
-            for j, sequence in enumerate(chain_alignment):
-                aligned_sequences[j][i] = str(sequence)
-                if i == 0: 
-                    orig_labels.append(sequence.getLabel())
 
+    if len(chains[0]) == 1:
+        join_chains = False
+
+    if join_chains:
         joined_msaarr = []
-        for j in range(shape(chain_alignments)[1]):
-            joined_msaarr.append(array(list(join_char.join(aligned_sequences[j]))))
-        joined_msaarr = array(joined_msaarr)
+        for i, chain_alignment in enumerate(chain_alignments):
+            pdb_seqs = []
+            for j, sequence in enumerate(chain_alignment):
+                pdb_seqs.append(sequence)
+            joined_msaarr.append(join_char.join(pdb_seqs))
         
-        result = MSA(joined_msaarr, title='joined_chains', labels=orig_labels)
-        result = refineMSA(result, colocc=1e-9) # remove gap-only cols
+        result = MSA(joined_msaarr, title='joined_chains', 
+                     labels=[label.split('_')[0] for label in labels])
 
     else:
         result = alignments
+        if len(result) == 1:
+            result = result[list(result.keys())[0]]
             
     return result
 
@@ -823,18 +747,30 @@ def buildMSA(sequences, title='Unknown', labels=None, **kwargs):
         try:
             max_len = 0
             for sequence in sequences:
-                if len(sequence) > max_len:
-                    max_len = len(sequence)
+                if isinstance(sequence, Atomic):
+                    if len(sequence.ca.copy()) > max_len:
+                        max_len = len(sequence.ca.copy())
+                elif isinstance(sequence, MSA):
+                    if len(sequence[0]) > max_len:
+                        max_len = len(sequence[0])
+                else:
+                    if len(sequence) > max_len:
+                        max_len = len(sequence)
 
             msa = []
             fetched_labels = []
             for i, sequence in enumerate(sequences):
                 if isinstance(sequence, Atomic):
-                    strseq = sequence.getSequence()
+                    strseq = sequence.ca.getSequence()
                     label = sequence.getTitle()
                 elif isinstance(sequence, Sequence):
                     strseq = str(sequence)
                     label = sequence.getLabel()
+                elif isinstance(sequence, MSA):
+                    strseq = str(sequence[0])
+                    label = sequence.getLabel(0)
+                    LOGGER.warn('Only the first sequence in the MSA at entry {0} is used.'
+                                .format(i))
                 elif isinstance(sequence, str):
                     strseq = sequence
                     label = str(i + 1)
@@ -851,13 +787,15 @@ def buildMSA(sequences, title='Unknown', labels=None, **kwargs):
         # "if a list" is a pythonic way to check if a list is empty or not (or none)
         if not labels and fetched_labels:
             labels = fetched_labels
+
+        label = [label.replace(' ','_') for label in labels]
         # labels checkers are removed because they will be properly handled in MSA class initialization
         msa = MSA(msa=sequences, title=title, labels=labels)
 
         if align:
             filename = writeMSA(title + '.fasta', msa)
 
-    
+
     if align:
         # 2. find and run alignment method
         clustalw = which('clustalw')
@@ -868,14 +806,14 @@ def buildMSA(sequences, title='Unknown', labels=None, **kwargs):
                 raise EnvironmentError("The executable for clustalw was not found, \
                                         install clustalw or add it to the path.")
 
-        os.system('"%s" %s'%(clustalw, filename))
+        os.system('"%s" %s -OUTORDER=INPUT'%(clustalw, filename))
 
         # 3. parse and return the new MSA
         msa = parseMSA(title + '.aln')
 
     return msa
 
-def showAlignment(alignment, row_size=60, max_seqs=5, **kwargs):
+def showAlignment(alignment, row_size=60, **kwargs):
     """
     Prints out an alignment as sets of short rows with labels.
 
@@ -885,10 +823,6 @@ def showAlignment(alignment, row_size=60, max_seqs=5, **kwargs):
     :arg row_size: the size of each row
         default 60
     :type row_size: int
-
-    :arg max_seqs: the maximum number of sequences to show
-        default 5
-    :type max_seqs: int
 
     :arg indices: a set of indices for some or all sequences
         that will be shown above the relevant sequences
@@ -908,14 +842,14 @@ def showAlignment(alignment, row_size=60, max_seqs=5, **kwargs):
 
     labels = kwargs.get('labels', None)
     if labels is not None:
-        if not isscalar(labels):
-            raise TypeError('labels should be a list of strings')
+        if isscalar(labels):
+            raise TypeError('labels should be array-like')
 
         for label in labels:
             if not isinstance(label, str):
                 raise TypeError('each label should be a string')
 
-        if len(labels) < max_seqs:
+        if len(labels) < len(alignment):
             raise ValueError('there should be a label for every sequence shown')
     else:
         labels = []
@@ -944,11 +878,8 @@ def showAlignment(alignment, row_size=60, max_seqs=5, **kwargs):
             locs.append(where(int_index == max(int_index))[0][0])
         index_stop = locs[where(maxes == min(maxes))[0][0]]
 
-    if len(alignment) < max_seqs:
-        max_seqs = len(alignment)
-
     for i in range(int(ceil(len(alignment[0])/float(row_size)))):
-        for j in range(max_seqs):
+        for j in range(len(alignment)):
             if indices is not None:
                 sys.stdout.write('\n' + ' '*15 + '\t')
                 for k in range(row_size*i+10,row_size*(i+1)+10,10):

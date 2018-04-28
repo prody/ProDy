@@ -3,6 +3,7 @@
 (ANM) calculations."""
 
 import numpy as np
+from numbers import Integral
 
 from prody import LOGGER
 from prody.atomic import Atomic, AtomGroup
@@ -28,10 +29,17 @@ class ANMBase(NMA):
 
     def _reset(self):
 
-        GNMBase._reset(self)
+        super(ANMBase, self)._reset()
+        self._cutoff = None
+        self._gamma = None
         self._hessian = None
         self._stiffness = None
         self._is3d = True
+    
+    def _clear(self):
+        self._trace = None
+        self._cov = None
+        self._stiffness = None
 
     def getHessian(self):
         """Returns a copy of the Hessian matrix."""
@@ -76,11 +84,11 @@ class ANMBase(NMA):
         model = self.getModel()
         if AA == 'all':
             sm = model.getStiffness()
-        elif type(AA) == int:
+        elif isinstance(AA, Integral): 
             sm = model.getStiffness()[0: AA, (-1)*AA-1:-1]
-        elif type(AA) == list and len(AA) == 1:
+        elif not np.isscalar(AA) and len(AA) == 1:
             sm = model.getStiffness()[0: AA, (-1)*AA-1:-1]
-        elif type(AA) == list and len(AA) == 4:
+        elif not np.isscalar(AA) and len(AA) == 4:
             sm = model.getStiffness()[AA[0]:AA[1],AA[2]:AA[3]]
         if minAA > 0:
             sm2 = sm[minAA:-1,0:-1-minAA]  # matrix without close contacts
@@ -110,20 +118,20 @@ class ANMBase(NMA):
         model = self.getModel()
         if AA == 'all':
             sm = model.getStiffness()
-        elif type(AA) == int:
+        elif isinstance(AA, Integral):
             sm = model.getStiffness()[0: AA, (-1)*AA-1:-1]
         minK = np.min(sm[np.nonzero(sm)]) 
         maxK = np.amax(sm)
         
         if value == 'minK':
-            indices = np.where(sm == np.min(sm[np.nonzero(sm)]))
+            indices = np.where(sm == minK)
         elif value == 'maxK':
-            indices = np.where(sm == np.amax(sm))
+            indices = np.where(sm == maxK)
         try:
             residue_diff = abs(indices[0][0]-indices[0][1])
         except: residue_diff = abs(indices[0]-indices[1])
-        sm_mod = sm
-        checking=True
+        sm_mod = sm.copy()
+        checking = True
         while checking:
             if residue_diff < minAA:
                 sm_mod[indices[0][0],indices[0][1]] = 0
@@ -144,11 +152,11 @@ class ANMBase(NMA):
                 elif value == 'maxK':
                     mK = np.amax(sm_mod)
                     indices = np.where(sm_mod == np.amax(sm_mod))
-                checking=False
-                if len(indices[0]) == 2:
-                    return mK, list(indices[0])
-                else:
-                    return mK, list(indices[0])+list(indices[1])
+                checking = False
+
+        if len(indices[0]) == 2:
+            return mK, list(indices[0])
+        return mK, list(indices[0])+list(indices[1])
 
     
     def setHessian(self, hessian):
@@ -290,24 +298,25 @@ class ANMBase(NMA):
         :func:`numpy.linalg.eigh` is used.
 
         :arg n_modes: number of non-zero eigenvalues/vectors to calculate.
-            If ``None`` or 'all' is given, all modes will be calculated.
+            If **None** or ``'all'`` is given, all modes will be calculated.
         :type n_modes: int or None, default is 20
 
-        :arg zeros: If ``True``, modes with zero eigenvalues will be kept.
-        :type zeros: bool, default is ``False``
+        :arg zeros: If **True**, modes with zero eigenvalues will be kept.
+        :type zeros: bool, default is **True**
 
         :arg turbo: Use a memory intensive, but faster way to calculate modes.
-        :type turbo: bool, default is ``True``
+        :type turbo: bool, default is **True**
         """
 
         if self._hessian is None:
             raise ValueError('Hessian matrix is not built or set')
-        if str(n_modes) is 'all':
+        if str(n_modes).lower() == 'all':
             n_modes = None
         assert n_modes is None or isinstance(n_modes, int) and n_modes > 0, \
             'n_modes must be a positive integer'
         assert isinstance(zeros, bool), 'zeros must be a boolean'
         assert isinstance(turbo, bool), 'turbo must be a boolean'
+        self._clear()
         linalg = importLA()
         LOGGER.timeit('_anm_calc_modes')
         shift = 5
@@ -376,16 +385,12 @@ class ANMBase(NMA):
 
         """Calculate stiffness matrix calculated using :class:`.ANM` instance. 
         Method described in [EB08]_. 
-    
-        .. [EB08] Eyal E., Bahar I. Toward a Molecular Understanding of 
-            the Anisotropic Response of Proteins to External Forces:
-            Insights from Elastic Network Models. *Biophys J* **2008** 94:3424-34355. 
-    
+
         :arg coords: a coordinate set or an object with ``getCoords`` method
         :type coords: :class:`numpy.ndarray`.
         :arg n_modes: number of non-zero eigenvalues/vectors to calculate.
-            If ``None`` is given, all modes will be calculated (3x number of atoms).
-        :type n_modes: int or ``None``, default is 20.
+            If **None** is given, all modes will be calculated (3x number of atoms).
+        :type n_modes: int or **None**, default is 20.
         
         Author: Mustafa Tekpinar & Karolina Mikulska-Ruminska & Cihan Kaya
         """
@@ -422,6 +427,10 @@ class ANMBase(NMA):
         
         LOGGER.info('The range of effective force constant is: {0} to {1}.'
                                    .format(np.min(sm[np.nonzero(sm)]), np.amax(sm)))
+
+    def setEigens(self, vectors, values=None):
+        self._clear()
+        super(ANMBase, self).setEigens(vectors, values)
         
 
 class ANM(ANMBase, GNMBase):

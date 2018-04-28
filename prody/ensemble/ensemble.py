@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 """This module defines a class for handling ensembles of conformations."""
 
+from numbers import Integral
+
 from numpy import dot, add, subtract, array, ndarray, sign, concatenate
 from numpy import zeros, ones, arange, isscalar, max
 from numpy import newaxis, unique, repeat
@@ -73,7 +75,7 @@ class Ensemble(object):
         # else:
         #     return SubEnsemble
 
-        if isinstance(index, int):
+        if isinstance(index, Integral):
             return self.getConformation(index)
 
         elif isinstance(index, slice):
@@ -89,7 +91,7 @@ class Ensemble(object):
             return ens
 
         elif isinstance(index, (list, ndarray)):
-            ens = Ensemble('Conformations of {0}'.format(self._title))
+            ens = Ensemble('{0}'.format(self._title))
             ens.setCoords(copy(self._coords))
             ens.addCoordset(self._confs[index].copy())
             if self._weights is not None:
@@ -207,10 +209,9 @@ class Ensemble(object):
 
         n_atoms = self._n_atoms
         if n_atoms:
-
             if atoms.numAtoms() > n_atoms:
                 raise ValueError('atoms must be same size or smaller than '
-                                 'the ensemble')
+                                'the ensemble')
 
             try:
                 dummies = atoms.numDummies()
@@ -229,12 +230,17 @@ class Ensemble(object):
                 self._indices = None
 
             else: # atoms is a subset
-                if self._atoms:
-                    self._indices, _ = sliceAtoms(self._atoms, atoms)
-                else:
-                    raise ValueError('size mismatch between this ensemble ({0} atoms) and atoms ({1} atoms)'
-                                     .format(n_atoms, atoms.numAtoms()))
-
+                if not self._atoms:
+                    try:
+                        ag = atoms.getAtomGroup()
+                    except AttributeError:
+                        ag = atoms
+                    if ag.numAtoms() != n_atoms:
+                        raise ValueError('size mismatch between this ensemble ({0} atoms) and atoms ({1} atoms)'
+                                        .format(n_atoms, ag.numAtoms()))
+                    self._atoms = ag
+                self._indices, _ = sliceAtoms(self._atoms, atoms)
+                
         else: # if assigning atoms to a new ensemble
             self._n_atoms = atoms.numAtoms()
             self._atoms = atoms
@@ -384,7 +390,7 @@ class Ensemble(object):
 
     def getCoordsets(self, indices=None, selected=True):
         """Returns a copy of coordinate set(s) at given *indices*, which may be
-        an integer, a list of integers or ``None``. ``None`` returns all
+        an integer, a list of integers or **None**. **None** returns all
         coordinate sets.  For reference coordinates, use :meth:`getCoordinates`
         method."""
 
@@ -477,7 +483,7 @@ class Ensemble(object):
 
         if self._confs is None:
             raise AttributeError('conformations are not set')
-        if not isinstance(index, int):
+        if not isinstance(index, Integral):
             raise TypeError('index must be an integer')
         n_confs = self._n_csets
         if -n_confs <= index < n_confs:
@@ -555,7 +561,7 @@ class Ensemble(object):
             else:
                 add(dot(movs[i], rotation),
                     (tar_com - dot(mob_com, rotation)), movs[i])
-            LOGGER.update(i + 1, '_prody_ensemble')
+            LOGGER.update(i + 1, label='_prody_ensemble')
         LOGGER.finish()
 
     def iterpose(self, rmsd=0.0001):
@@ -645,8 +651,8 @@ class Ensemble(object):
         Conformations can be aligned using one of :meth:`superpose` or
         :meth:`iterpose` methods prior to RMSD calculation.
         
-        :arg pairwise: if ``True`` then it will return pairwise RMSDs 
-        as an n-by-n matrix. n is the number of conformations.
+        :arg pairwise: if **True** then it will return pairwise RMSDs 
+            as an n-by-n matrix. n is the number of conformations.
         :type pairwise: bool
         """
 

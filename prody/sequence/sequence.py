@@ -7,12 +7,7 @@ from numpy import char, fromstring
 
 from prody import LOGGER, PY3K
 
-try:
-    range = xrange
-except NameError:
-    pass
-
-SPLITLABEL = re.compile('/*-*').split
+SPLITLABEL = re.compile(r'[/-]+').split
 
 __all__ = ['Sequence']
 

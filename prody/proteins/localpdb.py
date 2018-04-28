@@ -66,7 +66,6 @@ def pathPDBFolder(folder=None, divided=False):
 
 wwpdb.pathPDBFolder = pathPDBFolder
 
-
 def pathPDBMirror(path=None, format=None):
     """Returns or specify PDB mirror path to be used by :func:`.fetchPDB`.
     To release the current mirror, pass an invalid path, e.g. ``path=''``.
@@ -190,15 +189,13 @@ def fetchPDBfromMirror(*pdb, **kwargs):
 
     if len(identifiers) == 1:
         fn = filenames[0]
-        if kwargs.get('report', True):
-            if success:
-                LOGGER.debug('PDB file is found in the local mirror ({0}).'
-                             .format(sympath(fn)))
+        if success:
+            LOGGER.debug('PDB file is found in the local mirror ({0}).'
+                            .format(sympath(fn)))
         return fn
     else:
-        if kwargs.get('report', True):
-            LOGGER.debug('PDB files found in the local mirror ({0} found, '
-                         '{1} missed).'.format(success, failure))
+        LOGGER.debug('PDB files found in the local mirror ({0} found, '
+                        '{1} missed).'.format(success, failure))
         return filenames
 
 
@@ -221,7 +218,6 @@ def fetchPDB(*pdb, **kwargs):
 
     folder = kwargs.get('folder', '.')
     compressed = kwargs.get('compressed')
-    report = kwargs.get('report')
 
     # check *folder* specified by the user, usually pwd ('.')
     filedict = findPDBFiles(folder, compressed=compressed)
@@ -242,7 +238,7 @@ def fetchPDB(*pdb, **kwargs):
     if not not_found:
         if len(filenames) == 1:
             filenames = filenames[0]
-            if exists and report:
+            if exists:
                 LOGGER.debug('PDB file is found in working directory ({0}).'
                              .format(sympath(filenames)))
         return filenames
@@ -287,14 +283,13 @@ def fetchPDB(*pdb, **kwargs):
     if not not_found:
         if len(identifiers) == 1:
             fn = filenames[0]
-            if report:
-                items = fn.split(pathsep)
-                if len(items) > 5:
-                    fndisp = pathsep.join(items[:3] + ['...'] + items[-1:])
-                else:
-                    fndisp = relpath(fn)
-                LOGGER.debug('PDB file is found in the local folder ({0}).'
-                             .format(fndisp))
+            items = fn.split(pathsep)
+            if len(items) > 5:
+                fndisp = pathsep.join(items[:3] + ['...'] + items[-1:])
+            else:
+                fndisp = relpath(fn)
+            LOGGER.debug('PDB file is found in the local folder ({0}).'
+                            .format(fndisp))
             return fn
         else:
             return filenames
@@ -349,8 +344,6 @@ def fetchPDB(*pdb, **kwargs):
             fns = fetchPDBviaFTP(*downloads, check=False, **kwargs)
         except Exception as err:
             tryHTTP = True
-            LOGGER.warn('Downloading PDB files via FTP failed ({0}), '
-                        'trying HTTP.'.format(str(err)))
    
     if fns is None:
         tryHTTP = True
@@ -359,7 +352,7 @@ def fetchPDB(*pdb, **kwargs):
         if len(downloads) > 0: 
             tryHTTP = True
     if tryHTTP:
-        LOGGER.warn('Downloading PDB files via FTP failed, '
+        LOGGER.info('Downloading PDB files via FTP failed, '
                     'trying HTTP.')
         try:
             fns = fetchPDBviaHTTP(*downloads, check=False, **kwargs)

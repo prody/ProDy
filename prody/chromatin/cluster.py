@@ -49,11 +49,7 @@ def Hierarchy(V, **kwargs):
     :type n_clusters: int
     """
 
-    try:
-        from scipy.cluster.hierarchy import linkage, fcluster, inconsistent
-    except ImportError:
-        raise ImportError('Use of this function (Hierarchy) requires the '
-                          'installation of scipy.')
+    from scipy.cluster.hierarchy import linkage, fcluster, inconsistent
     
     method = kwargs.pop('method', 'single')
     metric = kwargs.pop('metric', 'euclidean')
@@ -104,7 +100,7 @@ def showLinkage(V, **kwargs):
 
     V, _ = _getEigvecs(V, row_norm=True, remove_zero_rows=True)
     try:
-        from scipy.cluster.hierarchy import linkage, fcluster, dendrogram
+        from scipy.cluster.hierarchy import linkage, dendrogram
     except ImportError:
         raise ImportError('Use of this function (showLinkage) requires the '
                           'installation of scipy.')

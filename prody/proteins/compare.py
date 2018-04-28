@@ -2,6 +2,8 @@
 """This module defines functions for comparing and mapping polypeptide chains.
 """
 
+from numbers import Integral
+
 import numpy as np
 from numpy import arange
 PW2 = None
@@ -13,6 +15,7 @@ from prody.atomic import flags
 from prody.measure import calcTransformation, printRMSD, calcDistance
 from prody import LOGGER, SELECT, PY2K, PY3K
 from prody.sequence import MSA
+from prody.utilities import cmp
 
 if PY2K:
     range = xrange
@@ -228,7 +231,7 @@ class SimpleChain(object):
         self._dict = dict()
         self._list = list()
         self._seq = ''
-        self._title = None
+        self._title = ''
         self._gaps = allow_gaps
         self._coords = None
         if isinstance(chain, Chain):
@@ -250,7 +253,7 @@ class SimpleChain(object):
         return '{0} with {1} residues'.format(self._title, len(self._list))
 
     def __getitem__(self, index):
-        if isinstance(index, int):
+        if isinstance(index, Integral):
             return self._dict.get((index, ''))
         return self._dict.get(index)
 
@@ -882,9 +885,10 @@ def mapOntoChain(atoms, chain, **kwargs):
                      .format(str(atoms), len(chains))) 
 
     if subset != 'all':
-        for t_chain in chain.select(subset).getHierView().iterChains():
-            if t_chain.getChid() == chain.getChid():
-                target_chain = chain
+        chid = chain.getChid()
+        segname = chain.getSegname()
+        chain_subset = chain.select(subset)
+        target_chain = chain_subset.getHierView()[segname, chid]
 
     mappings = []
     unmapped = []
@@ -933,15 +937,17 @@ def mapOntoChain(atoms, chain, **kwargs):
 
     if pwalign and unmapped:
         if alignment is None:
-            aln_type = 'sequence alignment'
-            method = 'ALIGNMENT_METHOD'
             if pwalign in ['ce', 'cealign']:
                 aln_type = 'structure alignment'
                 method = 'CE'
-            LOGGER.debug('Trying to map atoms based on {0} {1}:'
-                    .format(method, aln_type))
+            else:
+                aln_type = 'sequence alignment'
+                method = ALIGNMENT_METHOD
         else:
-            LOGGER.debug('Trying to map atoms based on predefined alignment:')
+            aln_type = 'alignment'
+            method = 'predefined'
+        LOGGER.debug('Trying to map atoms based on {0} {1}:'
+                     .format(method, aln_type))
 
         for chid, simple_chain in zip(unmapped_chids, unmapped):
             LOGGER.debug('  Comparing {0} (len={1}) with {2}:'
@@ -1153,13 +1159,11 @@ def getCEAlignMapping(target, chain):
 
     tar_coords = target.getCoords().tolist()
     mob_coords = chain.getCoords().tolist()
-
+    
     def add_tail_dummies(coords, window=8):
         natoms = len(coords)
         if natoms < window:
-            raise ValueError('the system is too small to be aligned '
-                             'by CE algorithm (at least {0} residues)'
-                             .format(window))
+            return None
         rest = natoms % window
 
         tail_indices = []
@@ -1169,8 +1173,21 @@ def getCEAlignMapping(target, chain):
         
         return tail_indices
 
-    tar_dummies = add_tail_dummies(tar_coords)
-    mob_dummies = add_tail_dummies(mob_coords)
+    window = 8
+    tar_dummies = add_tail_dummies(tar_coords, window)
+    if tar_dummies is None:
+        LOGGER.warn('target ({1}) is too small to be aligned '
+                    'by CE algorithm (at least {0} residues)'
+                    .format(window, repr(target)))
+        return None
+
+    mob_dummies = add_tail_dummies(mob_coords, window)
+    if mob_dummies is None:
+        LOGGER.warn('chain ({1}) is too small to be aligned '
+                    'by CE algorithm (at least {0} residues)'
+                    .format(window, repr(chain)))
+        return None
+
     aln_info = ccealign((tar_coords, mob_coords))
 
     paths, bestIdx, nres, rmsd = aln_info[:4]

@@ -18,9 +18,9 @@ from .ensemble import Ensemble
 from .pdbensemble import PDBEnsemble
 import os
 
-__all__ = ['daliRecord', 'daliSearchPDB']
+__all__ = ['daliRecord', 'searchDali']
 
-def daliSearchPDB(pdbId, chainId, daliURL=None, subset='fullPDB', **kwargs):
+def searchDali(pdbId, chainId, daliURL=None, subset='fullPDB', **kwargs):
     """Search Dali server with input of PDB ID and chain ID.
     Dali server: http://ekhidna2.biocenter.helsinki.fi/dali/
     
@@ -59,8 +59,8 @@ def daliSearchPDB(pdbId, chainId, daliURL=None, subset='fullPDB', **kwargs):
     obj = daliRecord(url, pdbId, chainId, subset=subset, timeout=timeout, **kwargs)
     if obj.isSuccess:
         return obj
-    else:
-        return None
+    
+    return None
 
 class daliRecord(object):
 
@@ -262,7 +262,8 @@ class daliRecord(object):
         filterListZ = []
         filterListIdentiry = []
         
-        for pdb_chain in pdbListAll:
+        # keep the first PDB (query PDB)
+        for pdb_chain in pdbListAll[1:]:
             temp_dict = daliInfo[pdb_chain]
             # filter: len_align, identity, rmsd, Z
             if temp_dict['len_align'] < cutoff_len:
@@ -292,7 +293,7 @@ class daliRecord(object):
         filterDict = {'len': filterListLen, 'rmsd': filterListRMSD, 'Z': filterListZ, 'identity': filterListIdentiry}
         self._filterList = filterList
         self._filterDict = filterDict
-        self._pdbList = list(set(list(self._pdbListAll)) - set(filterList))
+        self._pdbList = [self._pdbListAll[0]] + list(set(list(self._pdbListAll[1:])) - set(filterList))
         LOGGER.info(str(len(filterList)) + ' PDBs have been filtered out from '+str(len(pdbListAll))+' Dali hits.')
         return self._pdbList
         
@@ -302,7 +303,7 @@ class daliRecord(object):
 
         n_confs = len(pdbList)
         LOGGER.progress('Building PDB ensemble for {0} conformations from Dali...'
-                        .format(n_confs), n_confs)
+                        .format(n_confs), n_confs, '_prody_buildDaliEnsemble')
 
         ref_pdb = parsePDB(self._pdbId).select('chain '+self._chainId).copy()
 
@@ -320,9 +321,8 @@ class daliRecord(object):
         
         for i in range(n_confs):
             pdb_chain = pdbList[i]
-            # print(pdb_chain)
             temp_dict = daliInfo[pdb_chain]
-            sel_pdb = parsePDB(pdb_chain[0:4]).select('chain '+pdb_chain[5:6]).copy()
+            sel_pdb = parsePDB(pdb_chain[:4]).select('chain '+pdb_chain[5]).copy()
             try:
                 sel_pdb_ca = sel_pdb.select("protein and name CA").copy()
             except:
@@ -331,19 +331,20 @@ class daliRecord(object):
             map_sel = temp_dict['map_sel']
             dum_sel = list(ref_indices_set - set(map_ref))
             atommap = AtomMap(sel_pdb_ca, indices=map_sel, mapping=map_ref, dummies=dum_sel)
-            # ensemble.addCoordset(atommap, weights=atommap.getFlags('mapped'))
             try:
                 ensemble.addCoordset(atommap, weights=atommap.getFlags('mapped'), degeneracy=True)
             except:
                 failPDBList.append(pdb_chain)
-            LOGGER.update(i)
+            LOGGER.update(i, label='_prody_buildDaliEnsemble')
         LOGGER.finish()
         self._failPDBList = failPDBList
         if failPDBList != []:
-            LOGGER.warn('failed to add '+str(len(failPDBList))+' PDB chain to ensemble: '+' '.join(failPDBList))
+            LOGGER.warn('failed to add ' + str(len(failPDBList)) + 
+                        ' PDB chain to ensemble: ' + ' '.join(failPDBList))
         try:
             ensemble.iterpose()
             RMSDs = ensemble.getRMSDs()
         except:
             LOGGER.warn('failed to iterpose the ensemble.')
+            
         return ensemble

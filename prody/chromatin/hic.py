@@ -1,3 +1,5 @@
+from numbers import Integral
+
 from numpy import ma
 import numpy as np
 from scipy.sparse import coo_matrix
@@ -5,14 +7,14 @@ from scipy.stats import mode
 from prody.chromatin.norm import VCnorm, SQRTVCnorm, Filenorm
 from prody.chromatin.functions import div0, showMap, showDomains, _getEigvecs
 
-from prody.dynamics import GNM, TrimedGNM
+from prody.dynamics import GNM, TrimmedGNM
 from prody.dynamics.functions import writeArray
 from prody.dynamics.mode import Mode
 from prody.dynamics.modeset import ModeSet
 
 from prody.utilities import openFile, importLA
 
-__all__ = ['HiC', 'TrimedGNM', 'parseHiC', 'parseHiCStream', 'saveHiC', 'loadHiC', 'writeMap']
+__all__ = ['HiC', 'TrimmedGNM', 'parseHiC', 'parseHiCStream', 'saveHiC', 'loadHiC', 'writeMap']
 
 class HiC(object):
 
@@ -55,7 +57,7 @@ class HiC(object):
         return 'HiC ' + self._title
 
     def __getitem__(self, index):
-        if isinstance(index, int):
+        if isinstance(index, Integral):
             return self.Map.flatten()[index]
         else:
             i, j = index
@@ -159,12 +161,12 @@ class HiC(object):
                 elif s[axis] == l_full:
                     mask = np.expand_dims(mask, axis=otheraxis)
                     mask = mask.repeat(s[otheraxis])
-                    ret = map[mask]
+                    ret = self._map[mask]
                 else:
                     raise ValueError('The size of the array (%d) does not '
                                     'match that of either the full (%d) '
                                     'or trimed (%d).'
-                                    %(sh[0], l_full, l_trim))
+                                    %(s[0], l_full, l_trim))
         
         return ret
 
@@ -223,7 +225,7 @@ class HiC(object):
         """Calculates GNM on the current Hi-C map."""
 
         if self.useTrimmed:
-            gnm = TrimedGNM(self._title, self.mask)
+            gnm = TrimmedGNM(self._title, self.mask)
         else:
             gnm = GNM(self._title)
         gnm.setKirchhoff(self.getKirchhoff())
@@ -433,9 +435,9 @@ def writeMap(filename, map, bin=None, format='%f'):
         return writeArray(filename, spmat, format=fmt)
 
 def saveHiC(hic, filename=None, map=True, **kwargs):
-    """Saves *HiC* model data as :file:`filename.hic.npz`. If *map* is ``False``, 
+    """Saves *HiC* model data as :file:`filename.hic.npz`. If *map* is **True**, 
     Hi-C contact map will not be saved and it can be loaded from raw data file 
-    later. If *filename* is ``None``, name of the Hi-C instance will be used as 
+    later. If *filename* is **None**, name of the Hi-C instance will be used as 
     the filename, after ``" "`` (white spaces) in the name are replaced with 
     ``"_"`` (underscores). Upon successful completion of saving, filename is 
     returned. This function makes use of :func:`numpy.savez` function."""

@@ -3,7 +3,7 @@
 models."""
 
 import numpy as np
-
+from prody import LOGGER, SETTINGS
 from prody.utilities import openFile
 
 from .nma import NMA
@@ -158,15 +158,18 @@ def calcSubspaceOverlap(modes1, modes2):
     rmsip = np.sqrt(np.power(overlap, 2).sum() / length)
     return rmsip
 
+calcSpectralOverlapRef = """
+.. [BH02] Hess B. Convergence of sampling in protein simulations.
+*Phys Rev E* **2002** 65(3):031910.
+"""
 
 def calcSpectralOverlap(modes1, modes2):
     """Returns overlap between covariances of *modes1* and *modes2*.  Overlap
     between covariances are calculated using normal modes (eigenvectors),
     hence modes in both models must have been calculated.  This function
     implements equation 11 in [BH02]_.
-
-    .. [BH02] Hess B. Convergence of sampling in protein simulations.
-       *Phys Rev E* **2002** 65(3):031910."""
+    
+    """
 
     if modes1.is3d() ^ modes2.is3d():
         raise TypeError('models must be either both 1-dimensional or 3-dimensional')
@@ -187,6 +190,7 @@ def calcSpectralOverlap(modes1, modes2):
     return 1 - diff / np.sqrt(varA.sum() + varB.sum())
 
 calcCovOverlap = calcSpectralOverlap
+calcSpectralOverlap.__doc__ += calcSpectralOverlapRef
 
 def pairModes(modes1, modes2, index=False):
     """Returns the optimal matches between *modes1* and *modes2*. *modes1* 
@@ -240,9 +244,13 @@ def matchModes(*modesets, **kwargs):
     elif n_sets == 0:
         raise ValueError('at least one modeset should be given')
 
+    LOGGER.progress('Matching {0} modes across {1} modesets...'
+                    .format(n_modes, n_sets), n_sets, '_prody_matchModes')
     for i, modeset in enumerate(modesets):
+        LOGGER.update(i, label='_prody_matchModes')
         if i > 0:
             _, reordered_modeset = pairModes(modeset0, modeset, index=index)
             ret.append(reordered_modeset)
+    LOGGER.finish()
     
     return ret

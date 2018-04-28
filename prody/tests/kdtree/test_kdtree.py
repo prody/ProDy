@@ -16,7 +16,6 @@ class TestKDTree(unittest.TestCase):
         self.coords = tile(arange(10), (3,1)).T.astype(float)
         self.kdtree = KDTree(self.coords)
 
-
     def testSearch(self):
 
         kdtree = self.kdtree
@@ -73,3 +72,4 @@ class TestKDTreePBC(unittest.TestCase):
 
         KDTREE_PBC.search(2)
         self.assertEqual(8, KDTREE_PBC.getCount())
+

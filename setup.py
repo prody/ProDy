@@ -8,9 +8,14 @@ from distutils.core import setup
 from distutils.extension import Extension
 from distutils.command.install import install
 
-if sys.version_info[:2] < (2, 6):
-    sys.stderr.write('Python 2.5 and older is not supported\n')
+if sys.version_info[:2] < (2, 7):
+    sys.stderr.write('Python 2.6 and older is not supported\n')
     sys.exit()
+
+if sys.version_info[0] == 3:
+    if sys.version_info[1] < 4:
+        sys.stderr.write('Python 3.4 and older is not supported\n')
+        sys.exit()
 
 if os.name == 'java':
     sys.stderr.write('JavaOS is not supported\n')
@@ -20,12 +25,12 @@ try:
     import numpy
 except ImportError:
     sys.stderr.write('numpy is not installed, you can find it at: '
-                     'http://numpy.scipy.org\n')
+                     'http://www.numpy.org/\n')
     sys.exit()
 
-if [int(dgt) for dgt in numpy.__version__.split('.')[:2]] < [1, 4]:
-    sys.stderr.write('numpy v1.4 or later is required, you can find it at: '
-                     'http://numpy.scipy.org\n')
+if [int(dgt) for dgt in numpy.__version__.split('.')[:2]] < [1, 10]:
+    sys.stderr.write('numpy v1.10 or later is required, you can find it at: '
+                     'http://www.numpy.org/\n')
     sys.exit()
 
 
@@ -80,7 +85,10 @@ PACKAGE_DATA = {
 PACKAGE_DIR = {}
 for pkg in PACKAGES:
     PACKAGE_DIR[pkg] = join(*pkg.split('.'))
+    
 from glob import glob
+tntDir = join('prody', 'utilities', 'tnt')
+
 EXTENSIONS = [
     Extension('prody.dynamics.rtbtools',
               glob(join('prody', 'dynamics', 'rtbtools.c')),
@@ -102,12 +110,7 @@ EXTENSIONS = [
               include_dirs=[numpy.get_include()]),
 ]
 
-# grab all of the .h and .cpp files in cealign/ and cealign/tnt
-tntDir = join('prody', 'utilities', 'tnt')
-
 CONTRIBUTED = [
-    Extension('prody.proteins.cpairwise2',
-              [join('prody', 'proteins', 'cpairwise2.c')]),
     Extension('prody.kdtree._CKDTree',
               [join('prody', 'kdtree', 'KDTree.c'),
                join('prody', 'kdtree', 'KDTreemodule.c')],
@@ -159,6 +162,6 @@ setup(
                  'Topic :: Scientific/Engineering :: Chemistry',
                 ],
     #scripts=SCRIPTS,
-    install_requires=['NumPy (>=1.7)', ],
+    install_requires=['NumPy (>=1.10)', ],
     #provides=['ProDy ({0:s})'.format(__version__)]
 )
