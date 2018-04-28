@@ -381,20 +381,20 @@ def calcENM(atoms, select=None, model='anm', trim='trim', gamma=1.0,
     the selection.
 
     :arg atoms: Atoms on which ENM is performed. It can be any :class:`Atomic` 
-    class that supports selection.
+        class that supports selection.
     :type atoms: :class:`Atomic`, :class:`AtomGroup`, or :class:`Selection`
 
     :arg select: Part of the atoms that is considered as the system. 
-    If set to `None`, then all atoms will be considered as the system.
+        If set to `None`, then all atoms will be considered as the system.
     :type select: str or :class:`Selection`
 
     :arg model: Type of ENM that will be performed. It can be either 'anm' 
-    or 'gnm'.
+        or 'gnm'.
     :type model: str
 
     :arg trim: Type of method that will be used to trim the model. It can 
-    be either 'trim' , 'slice', or 'reduce'. If set to 'trim', the parts 
-    that is not in the selection will simply be removed.
+        be either 'trim' , 'slice', or 'reduce'. If set to 'trim', the parts 
+        that is not in the selection will simply be removed.
     :type trim: str
     """
     
