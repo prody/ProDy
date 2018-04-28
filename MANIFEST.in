@@ -3,6 +3,7 @@ include setup.py
 include prody/*.py
 include prody/*/*.py
 include prody/*/*.c
+include prody/*/*.cpp
 include prody/*/*.h
 include prody/tests/*/*.py
 include prody/tests/datafiles/*.coo
