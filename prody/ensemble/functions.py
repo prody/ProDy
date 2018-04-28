@@ -276,7 +276,7 @@ def alignPDBEnsemble(ensemble, suffix='_aligned', outdir='.', gzip=False):
     with label *2k39_ca_selection_'resnum_<_71'_m116* will be applied to 116th
     model of structure **2k39**.  After applicable transformations are made,
     structure will be written into *outputdir* as :file:`2k39_aligned.pdb`.
-    If *gzip* is **True**, output files will be compressed.  Return value is
+    If ``gzip=True``, output files will be compressed.  Return value is
     the output filename or list of filenames, in the order files are processed.
     Note that if multiple models from a file are aligned, that filename will
     appear in the list multiple times."""
