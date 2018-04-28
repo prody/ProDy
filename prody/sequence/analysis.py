@@ -640,7 +640,7 @@ def calcMeff(msa, seqid=.8, refine=False, weight=False, **kwargs):
 
 def alignSequencesByChain(PDBs, **kwargs):
     """
-    Runs :method:`buildMSA` for each chain and optionally joins the results.
+    Runs :func:`buildMSA` for each chain and optionally joins the results.
     Returns either a single :class:`MSA` or a dictionary containing an :class:`MSA` for each chain.
 
     :arg PDBs: a list of :class:`AtomGroup` objects

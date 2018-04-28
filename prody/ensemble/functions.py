@@ -25,7 +25,7 @@ def saveEnsemble(ensemble, filename=None, **kwargs):
     is **None**, title of the *ensemble* will be used as the filename, after
     white spaces in the title are replaced with underscores.  Extension is
     :file:`.ens.npz`. Upon successful completion of saving, filename is
-    returned. This function makes use of :func:`numpy.savez` function."""
+    returned. This function makes use of :func:`~numpy.savez` function."""
 
     if not isinstance(ensemble, Ensemble):
         raise TypeError('invalid type for ensemble, {0}'
@@ -67,7 +67,7 @@ def saveEnsemble(ensemble, filename=None, **kwargs):
 
 def loadEnsemble(filename, **kwargs):
     """Returns ensemble instance loaded from *filename*.  This function makes
-    use of :func:`numpy.load` function.  See also :func:`saveEnsemble`"""
+    use of :func:`~numpy.load` function.  See also :func:`saveEnsemble`"""
 
     if not 'encoding' in kwargs:
         kwargs['encoding'] = 'latin1'

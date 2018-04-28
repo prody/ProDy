@@ -847,7 +847,7 @@ def showSignatureAtomicLines(y, std=None, min=None, max=None, atoms=None, **kwar
     :arg linespec: line specifications that will be passed to :func:`showAtomicLines`
     :type linespec: str
 
-    :arg atoms: an object with method :func:`getResnums` for use 
+    :arg atoms: an object with method :method:`getResnums` for use 
                 on the x-axis.
     :type atoms: :class:`Atomic` 
     """
@@ -1396,7 +1396,7 @@ def saveModeEnsemble(mode_ensemble, filename=None, atoms=False, **kwargs):
     is **None**, title of the ModeEnsemble instance will be used as the 
     filename, after ``" "`` (white spaces) in the title are replaced with 
     ``"_"`` (underscores).  Upon successful completion of saving, filename 
-    is returned. This function makes use of :func:`numpy.savez_compressed` 
+    is returned. This function makes use of :func:`~numpy.savez_compressed` 
     function."""
 
     if not isinstance(mode_ensemble, ModeEnsemble):
