@@ -97,7 +97,7 @@ def saveModel(nma, filename=None, matrices=False, **kwargs):
 
 def loadModel(filename, **kwargs):
     """Returns NMA instance after loading it from file (*filename*).
-    This function makes use of :func:`numpy.load` function.  See
+    This function makes use of :func:`~numpy.load` function.  See
     also :func:`saveModel`."""
 
     if not 'encoding' in kwargs:
