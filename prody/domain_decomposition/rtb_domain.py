@@ -4,7 +4,7 @@ from sklearn.neighbors import radius_neighbors_graph
 from sklearn.cluster import SpectralClustering
 import matplotlib.pyplot as plt
 from prody import *
-
+'''zxdfsdgdf'''
 
 def rtb_domain(pdb, ndomains_l, ndomains_u,
                msf_other, radius=15., affinity=None):

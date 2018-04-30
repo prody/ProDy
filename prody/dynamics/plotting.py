@@ -352,27 +352,37 @@ def showCrossProjection(ensemble, mode_x, mode_y, scale=None, *args, **kwargs):
         projected, or a deformation vector
     :type ensemble: :class:`.Ensemble`, :class:`.Conformation`,
         :class:`.Vector`, :class:`.Trajectory`
+
     :arg mode_x: projection onto this mode will be shown along x-axis
     :type mode_x: :class:`.Mode`, :class:`.Vector`
+
     :arg mode_y: projection onto this mode will be shown along y-axis
     :type mode_y: :class:`.Mode`, :class:`.Vector`
+
     :arg scale: scale width of the projection onto mode ``x`` or ``y``,
         best scaling factor will be calculated and printed on the console,
         absolute value of scalar makes the with of two projection same,
         sign of scalar makes the projections yield a positive correlation
     :type scale: str
+
     :arg scalar: scalar factor for projection onto selected mode
     :type scalar: float
+
     :arg color: a color name or a list of color name, default is ``'blue'``
     :type color: str, list
+
     :arg label: label or a list of labels
     :type label: str, list
+
     :arg marker: a marker or a list of markers, default is ``'o'``
     :type marker: str, list
+
     :arg linestyle: line style, default is ``'None'``
     :type linestyle: str
+
     :arg text: list of text labels, one for each conformation
     :type text: list
+    
     :arg fontsize: font size for text labels
     :type fontsize: int
 
@@ -692,6 +702,7 @@ def showOverlap(mode, modes, *args, **kwargs):
 
     :arg mode: a single mode/vector
     :type mode: :class:`.Mode`, :class:`.Vector`
+
     :arg modes: multiple modes
     :type modes: :class:`.ModeSet`, :class:`.ANM`, :class:`.GNM`, :class:`.PCA`
     """
@@ -725,7 +736,6 @@ showOverlaps = showOverlap
 def showCumulOverlap(mode, modes, *args, **kwargs):
     """Show cumulative overlap using :func:`~matplotlib.pyplot.plot`.
 
-    :type mode: :class:`.Mode`, :class:`.Vector`
     :arg modes: multiple modes
     :type modes: :class:`.ModeSet`, :class:`.ANM`, :class:`.GNM`, :class:`.PCA`
     """
@@ -789,14 +799,14 @@ def showDiffMatrix(matrix1, matrix2, *args, **kwargs):
     """Show the difference between two cross-correlation matrices from
     different models. For given *matrix1* and *matrix2* show the difference
     between them in the form of (matrix2 - matrix1) and plot the difference
-    matrix using :func:`showAtomicMatrix`. When :class:`.NMA` models
+    matrix using :func:`.showAtomicMatrix`. When :class:`.NMA` models
     are passed instead of matrices, the functions could call
     :func:`.calcCrossCorr` function to calculate the matrices for given modes.
 
     To display the absolute values in the difference matrix, user could set
     *abs* keyword argument **True**.
 
-    By default, *origin=lower* and *interpolation=bilinear* keyword arguments
+    By default, ``origin="lower"`` and ``interpolation="bilinear"`` keyword arguments
     are passed to this function, but user can overwrite these parameters.
     """
 
@@ -836,13 +846,13 @@ def showDiffMatrix(matrix1, matrix2, *args, **kwargs):
 
 def showMechStiff(model, coords, *args, **kwargs):
     """Show mechanical stiffness matrix using :func:`~matplotlib.pyplot.imshow`.
-    By default, *origin=lower* keyword  arguments are passed to this function, 
+    By default, ``origin="lower"`` keyword  arguments are passed to this function, 
     but user can overwrite these parameters."""
 
     import math
     import matplotlib
     import matplotlib.pyplot as plt
-    arange = np.arange(model.numAtoms())
+
     model.buildMechStiff(coords)
 
     if not 'origin' in kwargs:
@@ -869,7 +879,7 @@ def showMechStiff(model, coords, *args, **kwargs):
 
 def showNormDistFunct(model, coords, *args, **kwargs):
     """Show normalized distance fluctuation matrix using 
-    :func:`~matplotlib.pyplot.imshow`. By default, *origin=lower* 
+    :func:`~matplotlib.pyplot.imshow`. By default, ``origin="lower"`` 
     keyword  arguments are passed to this function, 
     but user can overwrite these parameters."""
 
@@ -931,7 +941,7 @@ def showPairDeformationDist(model, coords, ind1, ind2, *args, **kwargs):
 def showMeanMechStiff(model, coords, header, chain='A', *args, **kwargs):
     """Show mean value of effective spring constant with secondary structure
     taken from MechStiff. Header is needed to obatin secondary structure range.
-    Using ``'jet_r'`` as argument color map will be reverse (similar to VMD 
+    Using ``"jet_r"`` as argument color map will be reverse (similar to VMD 
     program coding).
     """
     meanStiff = np.array([np.mean(model.getStiffness(), axis=0)])
@@ -957,7 +967,7 @@ def showMeanMechStiff(model, coords, header, chain='A', *args, **kwargs):
                                            .format(min(meanStiff[0]), max(meanStiff[0])))
         plt.ylim(ax_bottom,ax_top)
         plt.xlabel('residue', fontsize = '22')
-        plt.ylabel('mean $\kappa$ [a.u.]', fontsize = '22')
+        plt.ylabel(r'mean $\kappa$ [a.u.]', fontsize = '22')
 
     ax = fig.add_subplot(411, aspect='equal')
     plt.imshow(meanStiff, *args, **kwargs)
@@ -978,7 +988,7 @@ def showMeanMechStiff(model, coords, header, chain='A', *args, **kwargs):
                     ax.add_patch(patches.Arrow(end+1,0,add_beg*(-1),0,width=4.65, \
                     fill=False, linestyle='solid',edgecolor='black', linewidth=2))
     plt.axis('off')
-    ax.set_ylim(-1.7,1.7)
+    ax.set_ylim(-1.7, 1.7)
     if SETTINGS['auto_show']:
         showFigure()
     return plt.show
@@ -1418,16 +1428,20 @@ def showDomainBar(domains, loc=0., axis='x', **kwargs):
 
 def showTree(tree, format='ascii', **kwargs):
     """ Given a tree, creates visualization in different formats. 
+    
     arg tree: Tree needs to be unrooted and should be generated by tree 
-    generator from Phylo in biopython. 
-    type tree: Bio.Phylo.BaseTree.Tree
-    arg format: Depending on the format, you will see different forms of trees. 
-    Acceptable formats are `plt`, `ascii` and `networkx`.
+        generator from Phylo in biopython. 
+    type tree: :class:`~Bio.Phylo.BaseTree.Tree`
+
+    arg format: depending on the format, you will see different forms of trees. 
+        Acceptable formats are ``"plt"``, ``"ascii"`` and ``"networkx"``.
     type format: str
-    arg font_size: Font size for branch labels
-    type: float
-    arg line_width: The line width for each branch
-    type: float
+
+    arg font_size: font size for branch labels
+    type font_size: float
+
+    arg line_width: the line width for each branch
+    type line_width: float
     """
     try: 
         from Bio import Phylo
@@ -1471,7 +1485,18 @@ def showTree(tree, format='ascii', **kwargs):
     else:
         raise ValueError('format should be ascii or plt or networkx.')
 
-def showTree_networkx(tree, node_size=20, node_color='red', node_shape='o', withlabels=True, scale=1., iterations=500, k=None, **kwargs):
+def showTree_networkx(tree, node_size=20, node_color='red', node_shape='o', 
+                      withlabels=True, scale=1., iterations=500, k=None, 
+                      **kwargs):
+    """ Given a tree, creates visualization using :module:`~networkx`. See 
+    :func:`~networkx.spring_layout` and :func:`~networkx.draw_networkx_nodes` 
+    for more details.
+
+    arg tree: Tree needs to be unrooted and should be generated by tree 
+        generator from Phylo in biopython. 
+    type tree: :class:`~Bio.Phylo.BaseTree.Tree`
+    """
+
     from Bio import Phylo
     import matplotlib.pyplot as mpl
 
