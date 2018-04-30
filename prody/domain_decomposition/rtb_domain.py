@@ -15,7 +15,7 @@ def rtb_domain(pdb, ndomains_l, ndomains_u,
     labels = {}
 
     if affinity is None:
-        affinity = radius_neighbors_graph(coo, radius).toarray()
+        affinity = radius_neighbors_graph(coo, radius)
     else:
         affinity = affinity
 
