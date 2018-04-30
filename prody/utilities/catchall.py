@@ -12,11 +12,13 @@ __all__ = ['calcTree', 'clusterMatrix', 'showLines', 'showMatrix', 'reorderMatri
 
 def calcTree(names, distance_matrix, method='nj'):
     """ Given a distance matrix for an ensemble, it creates an returns a tree structure.
-    :arg names: an list of names. 
-    :type names: list-like
+
+    :arg names: an list of names
+    :type names: list, :class:`~numpy.ndarray`
+
     :arg distance_matrix: a square matrix with length of ensemble. If numbers does not mismatch
-    it will raise an error. 
-    :type distance_matrix: numpy.ndarray 
+        it will raise an error
+    :type distance_matrix: :class:`~numpy.ndarray`
     """
     try: 
         from Bio import Phylo
@@ -73,7 +75,7 @@ def clusterMatrix(distance_matrix=None, similarity_matrix=None, labels=None, ret
     :arg reversed: if set to **True**, then the sorting indices will be reversed.
     :type reversed: bool
 
-    Other arguments for :method:`~scipy.hierarchy.linkage` and :method:`~scipy.hierarchy.dendrogram`
+    Other arguments for :func:`~scipy.hierarchy.linkage` and :func:`~scipy.hierarchy.dendrogram`
         can also be provided and will be taken as **kwargs**.
     """
 
@@ -117,15 +119,15 @@ def showLines(*args, **kwargs):
     Show 1-D data using :func:`~matplotlib.axes.Axes.plot`. 
     
     :arg x: (optional) x coordinates. *x* can be an 1-D array or a 2-D matrix of 
-    column vectors.
+        column vectors.
     :type x: `~numpy.ndarray`
 
     :arg y: data array. *y* can be an 1-D array or a 2-D matrix of 
-    column vectors.
+        column vectors.
     :type y: `~numpy.ndarray`
 
     :arg dy: an array of variances of *y* which will be plotted as a 
-    band along *y*. It should have the same shape with *y*.
+        band along *y*. It should have the same shape with *y*.
     :type dy: `~numpy.ndarray`
 
     :arg alpha: the transparency of the band(s).
@@ -195,15 +197,20 @@ def showLines(*args, **kwargs):
 
 def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
     """Show a matrix using :meth:`~matplotlib.axes.Axes.imshow`. Curves on x- and y-axis can be added.
-    :arg matrix: Matrix to be displayed.
+
+    :arg matrix: matrix to be displayed
     :type matrix: :class:`~numpy.ndarray`
-    :arg x_array: Data to be plotted above the matrix.
+
+    :arg x_array: data to be plotted above the matrix
     :type x_array: :class:`~numpy.ndarray`
-    :arg y_array: Data to be plotted on the left side of the matrix.
+
+    :arg y_array: data to be plotted on the left side of the matrix
     :type y_array: :class:`~numpy.ndarray`
-    :arg percentile: A percentile threshold to remove outliers, i.e. only showing data within *p*-th 
-                     to *100-p*-th percentile.
-    :type percentile: float"""
+
+    :arg percentile: a percentile threshold to remove outliers, i.e. only showing data within *p*-th 
+                     to *100-p*-th percentile
+    :type percentile: float
+    """
 
     import matplotlib.pyplot as plt
     from matplotlib import cm, ticker

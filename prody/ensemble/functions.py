@@ -25,7 +25,7 @@ def saveEnsemble(ensemble, filename=None, **kwargs):
     is **None**, title of the *ensemble* will be used as the filename, after
     white spaces in the title are replaced with underscores.  Extension is
     :file:`.ens.npz`. Upon successful completion of saving, filename is
-    returned. This function makes use of :func:`numpy.savez` function."""
+    returned. This function makes use of :func:`~numpy.savez` function."""
 
     if not isinstance(ensemble, Ensemble):
         raise TypeError('invalid type for ensemble, {0}'
@@ -67,7 +67,7 @@ def saveEnsemble(ensemble, filename=None, **kwargs):
 
 def loadEnsemble(filename, **kwargs):
     """Returns ensemble instance loaded from *filename*.  This function makes
-    use of :func:`numpy.load` function.  See also :func:`saveEnsemble`"""
+    use of :func:`~numpy.load` function.  See also :func:`saveEnsemble`"""
 
     if not 'encoding' in kwargs:
         kwargs['encoding'] = 'latin1'
@@ -131,24 +131,25 @@ def trimPDBEnsemble(pdb_ensemble, occupancy=None, **kwargs):
     following criteria, and returns them in a new :class:`.PDBEnsemble`
     instance.
 
-    **Occupancy**
-
     Resulting PDB ensemble will contain atoms whose occupancies are greater
-    or equal to *occupancy* keyword argument.  Occupancies for atoms will be
+    or equal to *occupancy* keyword argument. Occupancies for atoms will be
     calculated using ``calcOccupancies(pdb_ensemble, normed=True)``.
 
-    :arg occupancy: occupancy for selecting atoms, must satisfy. If set to 
-                    *None* then *hard* trimming will be performed.
-        ``0 < occupancy <= 1``
+    :arg occupancy: occupancy for selecting atoms, must satisfy
+        ``0 < occupancy <= 1``.
+        If set to *None* then *hard* trimming will be performed.
     :type occupancy: float
 
-    :arg hard: hard trimming or soft trimming. If set to `False`, *pdb_ensemble* 
-    will be trimmed by selection. This is useful for example when one uses 
-    :func:`calcEnsembleENMs` and :func:`sliceModel` or :func:`reduceModel`
-    to calculate the modes from the remaining part while still taking the 
-    removed part into consideration (e.g. as the environment).
+    :arg hard: Whether to perform hard trimming.
+        Default is **False**
+        If set to **True**, atoms will be completely removed from *pdb_ensemble*.
+        If set to **False**, a soft trimming of *pdb_ensemble* will be done
+        where atoms will be removed from the active selection. This is useful, 
+        for example, when one uses :func:`calcEnsembleENMs` 
+        together with :func:`sliceModel` or :func:`reduceModel`
+        to calculate the modes from the remaining part while still taking the 
+        removed part into consideration (e.g. as the environment).
     :type hard: bool
-
     """
 
     hard = kwargs.pop('hard', False) or pdb_ensemble._atoms is None \
@@ -275,7 +276,7 @@ def alignPDBEnsemble(ensemble, suffix='_aligned', outdir='.', gzip=False):
     with label *2k39_ca_selection_'resnum_<_71'_m116* will be applied to 116th
     model of structure **2k39**.  After applicable transformations are made,
     structure will be written into *outputdir* as :file:`2k39_aligned.pdb`.
-    If *gzip* is **True**, output files will be compressed.  Return value is
+    If ``gzip=True``, output files will be compressed.  Return value is
     the output filename or list of filenames, in the order files are processed.
     Note that if multiple models from a file are aligned, that filename will
     appear in the list multiple times."""
