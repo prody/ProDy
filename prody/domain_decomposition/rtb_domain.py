@@ -1,4 +1,5 @@
 import numpy as np
+from scipy import sparse
 from sklearn.neighbors import radius_neighbors_graph
 from sklearn.cluster import SpectralClustering
 import matplotlib.pyplot as plt
@@ -35,7 +36,7 @@ def rtb_domain(pdb, ndomains_l, ndomains_u,
         cc_other_rtb.append(np.corrcoef(msf_other, msf_rtb[n])[0, 1])
         cc_bfact_rtb.append(np.corrcoef(bfact, msf_rtb[n])[0, 1])
 
-    return np.array(cc_other_rtb), np.array(cc_bfact_rtb), msf_rtb
+    return np.array(cc_other_rtb), np.array(cc_bfact_rtb), msf_rtb, labels
 
 
 def plot_cc(rtb):
@@ -58,7 +59,7 @@ def plot_msf(other, rtb):
     plt.figure(figsize=(10, 5), dpi=100)
     plt.plot(other, label='Other MSFs')
     for n in range(2, 11):
-        plt.plot(rtb[n] * np.mean(anm) / np.mean(rtb[n]), label='{}'.format(n))
+        plt.plot(rtb[n] * np.mean(other) / np.mean(rtb[n]), label='{}'.format(n))
     plt.legend()
     plt.xlabel('# of res')
     plt.ylabel('MSFs of both other and RTBs')
