@@ -818,21 +818,21 @@ def mapOntoChain(atoms, chain, **kwargs):
     :type overlap: float
 
     :keyword pwalign: if **True**, then pairwise sequence alignment will 
-    be performed. If **False** then a simple mapping will be performed 
-    based on residue numbers (as well as insertion codes). If set to 
-    ``"ce"`` or ``"cealign"``, then the CE algorithm [IS98]_ will be 
-    performed. It can also be a list of prealigned sequences in which 
-    the first one should be the reference. Default is **None**, in which 
-    case a simple mapping will be first performed and then sequence 
-    alignment if failed.
+        be performed. If **False** then a simple mapping will be performed 
+        based on residue numbers (as well as insertion codes). If set to 
+        ``"ce"`` or ``"cealign"``, then the CE algorithm [IS98]_ will be 
+        performed. It can also be a list of prealigned sequences in which 
+        the first one should be the reference. Default is **None**, in which 
+        case a simple mapping will be first performed and then sequence 
+        alignment if failed.
     :type pwalign: bool, list, str
 
     :keyword alignment: a duplet of pre-aligned sequences with gaps.
     :type alignment: tuple or list
 
     :keyword alignments: a dictionary of alignments with chain 
-    identifiers being the keys. Note that if a chain is not included 
-    in this dictionary then *alignment* will be used.
+        identifiers being the keys. Note that if a chain is not included 
+        in this dictionary then *alignment* will be used.
     :type alignments: dictionary
 
     This function tries to map *atoms* to *chain* based on residue

@@ -50,7 +50,7 @@ ProDy 0.8 Series
     :func:`.blastPDB` function for fast access to structures of
     the same protein (at 95% sequence identity level) or similar proteins.
 
-  * Perturbation response scanning method described in [CA09]_ is implemented
+  * Perturbation response scanning method described in [AA09]_ is implemented
     as :func:`.scanPerturbationResponse` based on the code provided
     by Ying Liu.
 
