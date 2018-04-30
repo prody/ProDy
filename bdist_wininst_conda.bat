@@ -1,6 +1,3 @@
 del /S /Q /F build\*.*
-python setup.py bdist_wininst
-activate py27
-python setup.py bdist_wininst
-activate py35
-python setup.py bdist_wininst
+C:\anaconda2\python.exe setup.py bdist_wininst
+C:\anaconda3\python.exe setup.py bdist_wininst
