@@ -3,8 +3,8 @@ from scipy import sparse
 from sklearn.neighbors import radius_neighbors_graph
 from sklearn.cluster import SpectralClustering
 import matplotlib.pyplot as plt
-from prody import *
-'''zxdfsdgdf'''
+from prody import ANM, RTB, calcSqFlucts
+
 
 def rtb_domain(pdb, ndomains_l, ndomains_u,
                msf_other, radius=15., affinity=None):
@@ -39,11 +39,11 @@ def rtb_domain(pdb, ndomains_l, ndomains_u,
     return np.array(cc_other_rtb), np.array(cc_bfact_rtb), msf_rtb, labels
 
 
-def plot_cc(rtb):
+def plot_cc(rtb, n_domains_l, n_domains_u):
     
     fig, ax = plt.subplots(nrows=1, ncols=2, figsize=(8, 4), dpi=100)
-    ax[0].plot(np.arange(2, 11), rtb[0])
-    ax[1].plot(np.arange(2, 11), rtb[1])
+    ax[0].plot(np.arange(n_domains_l, n_domains_u + 1), rtb[0])
+    ax[1].plot(np.arange(n_domains_l, n_domains_u + 1), rtb[1])
     ax[0].set_xlabel('# of domains')
     ax[0].set_ylabel("CC between Other's and RTBs' MSFs")
 
@@ -54,11 +54,11 @@ def plot_cc(rtb):
     plt.show()
 
 
-def plot_msf(other, rtb):
+def plot_msf(other, rtb, n_domains_l, n_domains_u):
     
     plt.figure(figsize=(10, 5), dpi=100)
     plt.plot(other, label='Other MSFs')
-    for n in range(2, 11):
+    for n in range( n_domains_l, n_domains_u + 1):
         plt.plot(rtb[n] * np.mean(other) / np.mean(rtb[n]), label='{}'.format(n))
     plt.legend()
     plt.xlabel('# of res')
