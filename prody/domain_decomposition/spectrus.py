@@ -87,7 +87,7 @@ def calcMBS(simMatrix, nEvals=20):
             # compute MBS at site i
             mbs_i = np.sum(1./evals[1:])
         except Exception:
-            print 'Warning'
+            print('Warning')
             mbs_i = None
         # build MBS profile
         mbs.append( mbs_i )
