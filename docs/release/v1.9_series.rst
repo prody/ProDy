@@ -4,6 +4,65 @@ ProDy 1.9 Series
 .. contents::
    :local:
 
+1.9.5 (Apr 30, 2018)
+------------------------------------------------------------------------------
+
+**New Features**:
+
+*Visualization*
+
+  * Added :func:`.showAtomicLines` and :func:`.showAtomicMatrix` functions to 
+  improve visualization.
+
+  * Added an *networkx* option to :func:`.showTree` so that the user can choose 
+  to use :module:`~networkx` to visualize a given tree.
+
+*Signature Dynamics*
+
+  * Added :func:`.calcEnsembleENMs` to compute ENMs on each conformation of a 
+  given ensemble to obtain an ensemble of modes.
+
+  * Added :class:`.ModeEnsemble` and :class:`.sdarray` classes as the basic 
+  data types for signature dynamics.
+
+  * Added functions such as :func:`.calcSignatureSqFlucts`, 
+  :func:`.calcSignatureCrossCorr`, :func:`.calcSignatureFractVariance` to 
+  extract signature dynamics.
+
+  * Added :func:`.calcEnsembleSpectralOverlaps` to obtain dynamical 
+  overlaps/distances among the conformations in a given ensemble.
+
+*Ensemble and PDBEnsemble*
+
+  * Associated an :class:`.MSA` object to the :class:`.PDBEnsemble` class.
+
+  * Added an *pairwise* option to :method:`.Ensemble.getRMSDs` to obtain an 
+  RMSD table of every pair of conformations in the ensemble.
+
+  * Improved :method:`.Ensemble.setAtoms` for selecting a subset of 
+  residues/atoms of the ensemble.
+
+*Databases and Web Services*
+
+  * Added methods and classes for obtaining data from *CATH* and *Dali*.
+  
+  * Added additional functions for *Uniprot* and *Pfam* such as 
+  :func:`.queryUniprot` and :func:`.parsePfamPDBs`.
+
+*Bug Fixes and Improvement*
+
+  * Fixed compatibility problems for Python 2 and 3.
+
+  * Improved the :func:`.saveModel` function to include class-specific features.
+
+  * Fixed a bug related to the :class:`.Atomgroup` addition method.
+
+  * Bug fixes to :class:`.NMA` classes.
+
+  * Fixed a problem with :class:`.MSA` indexing.
+
+  * Other bug fixes.
+
 1.9.4 (Feb 02, 2018)
 ------------------------------------------------------------------------------
 
