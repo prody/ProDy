@@ -1,6 +1,8 @@
 import numpy as np
 from scipy import sparse
-from prody import *
+from prody import buildDistMatrix, calcDistFlucts
+
+__all__ = ['calcSpectrusSims', 'MBSPointMutation', 'calcMBS']
 
 
 def calcSpectrusSims(distFlucts, pdb, cutoff=15., sigma='MRSDF'):

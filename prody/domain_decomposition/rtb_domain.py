@@ -5,6 +5,7 @@ from sklearn.cluster import SpectralClustering
 import matplotlib.pyplot as plt
 from prody import ANM, RTB, calcSqFlucts
 
+__all__ = ['rtb_domain', 'plot_cc', 'plot_msf']
 
 def rtb_domain(pdb, ndomains_l, ndomains_u,
                msf_other, radius=15., affinity=None):
