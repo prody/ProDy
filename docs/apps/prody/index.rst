@@ -38,4 +38,6 @@ the output files are prefixed with :file:`p38_anm`::
 
   $ prody anm -c 14 -s "calpha resnum < 340" -p p38_anm 1p38
 
-The output file :file:`p38_anm.nmd` can be visualized using NMWiz_.
+The output file :file:`p38_anm.nmd` can be visualized using `NMWiz`_.
+
+.. _NMWiz: http://prody.csb.pitt.edu/nmwiz/

@@ -23,6 +23,7 @@ Signature Dynamics
   * Added :func:`.calcEnsembleSpectralOverlaps` to obtain dynamical 
   overlaps/distances among the conformations in a given ensemble.
 
+
 **New Features**:
 
 *Visualization*
@@ -31,16 +32,17 @@ Signature Dynamics
   improve visualization.
 
   * Added an *networkx* option to :func:`.showTree` so that the user can choose 
-  to use :module:`~networkx` to visualize a given tree.
+  to use :mod:`~networkx` to visualize a given tree.
+
 
 *Ensemble and PDBEnsemble*
 
   * Associated an :class:`.MSA` object to the :class:`.PDBEnsemble` class.
 
-  * Added an *pairwise* option to :method:`.Ensemble.getRMSDs` to obtain an 
+  * Added an *pairwise* option to :meth:`.Ensemble.getRMSDs` to obtain an 
   RMSD table of every pair of conformations in the ensemble.
 
-  * Improved :method:`.Ensemble.setAtoms` for selecting a subset of 
+  * Improved :meth:`.Ensemble.setAtoms` for selecting a subset of 
   residues/atoms of the ensemble.
 
 *Databases and Web Services*

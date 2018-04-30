@@ -453,8 +453,8 @@ class sdarray(ndarray):
     the collection. 
     
     :class:`sdarray` functions exactly the same as :class:`~numpy.ndarray`, 
-    except that :method:`sdarray.mean`, :method:`sdarray.std`, 
-    :method:`sdarray.max`, :method:`sdarray.min` are overriden. 
+    except that :meth:`sdarray.mean`, :meth:`sdarray.std`, 
+    :meth:`sdarray.max`, :meth:`sdarray.min` are overriden. 
     Average, standard deviation, minimum, maximum, etc. are weighted and 
     calculated over the first axis by default. "sdarray" stands for 
     "signature dynamics array".
@@ -473,7 +473,7 @@ class sdarray(ndarray):
     array([[0, 1, 1],
         [1, 1, 1]])
     ```
-    Then if we use the :method:`sdarray.mean`,
+    Then if we use the :meth:`sdarray.mean`,
     ```
     In [4]: sdarr.mean()
     Out[4]: array([4., 3.5, 4.5])
@@ -847,7 +847,7 @@ def showSignatureAtomicLines(y, std=None, min=None, max=None, atoms=None, **kwar
     :arg linespec: line specifications that will be passed to :func:`showAtomicLines`
     :type linespec: str
 
-    :arg atoms: an object with method :method:`getResnums` for use 
+    :arg atoms: an object with method :meth:`getResnums` for use 
                 on the x-axis.
     :type atoms: :class:`Atomic` 
     """

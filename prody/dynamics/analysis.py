@@ -415,13 +415,13 @@ def calcPairDeformationDist(model, coords, ind1, ind2, kbt=1.):
         the Anisotropic Response of Proteins to External Forces:
         Insights from Elastic Network Models. *Biophys J* **2008** 94:3424-34355. 
     
-    :arg model: this is an 3-dimensional NMA instance from a :class:`.ANM
+    :arg model: this is an 3-dimensional :class:`NMA` instance from a :class:`.ANM`
         calculations.
     :type model: :class:`.ANM`  
 
-    :arg coords: a coordinate set or an object with ``getCoords`` method.
-        Recommended: coords = parsePDB('pdbfile').select('protein and name CA').
-    :type coords: :class:`numpy.ndarray`.
+    :arg coords: a coordinate set or an object with :meth:`getCoords` method.
+        Recommended: ``coords = parsePDB('pdbfile').select('protein and name CA')``.
+    :type coords: :class:`~numpy.ndarray`.
 
     :arg ind1: first residue number.
     :type ind1: int 

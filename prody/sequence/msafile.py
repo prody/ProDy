@@ -64,9 +64,9 @@ class MSAFile(object):
         For specified extensions, *format* argument is not needed. If *aligned* is
         **True**, unaligned sequences in the file or stream will cause an
         :exc:`IOError` exception.  *filter*, a function that returns a
-        boolean, can be used for filtering sequences, see :method:`MSAFile.setFilter`
+        boolean, can be used for filtering sequences, see :meth:`MSAFile.setFilter`
         for details.  *slice* can be used to slice sequences, and is applied
-        after filtering, see :method:`MSAFile.setSlice` for details."""
+        after filtering, see :meth:`MSAFile.setSlice` for details."""
 
         if mode[0] not in 'rwa':
             raise ValueError("mode string must be one of 'r', 'w', or 'a', "
