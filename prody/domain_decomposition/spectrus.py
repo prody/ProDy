@@ -1,5 +1,6 @@
 import numpy as np
 from scipy import sparse
+from prody import LOGGER, SETTINGS
 from prody import buildDistMatrix, calcDistFlucts
 
 __all__ = ['calcSpectrusSims', 'MBSPointMutation', 'calcMBS']
@@ -77,7 +78,7 @@ def calcMBS(simMatrix, nEvals=20):
     for i in range(n):
         try:
             # cut "non-covalent" bonds around atom 'i'
-            modSim = _MBSPointMutation(simMatrix, i)
+            modSim = MBSPointMutation(simMatrix, i)
             # compute laplacian's spectrum of eigvals
             laplacian = sparse.csgraph.laplacian(modSim, normed=True)
             evals = sparse.linalg.eigsh(laplacian, k=nEvals, which='SM',
@@ -86,8 +87,9 @@ def calcMBS(simMatrix, nEvals=20):
             evals = np.sort(evals)
             # compute MBS at site i
             mbs_i = np.sum(1./evals[1:])
-        except Exception:
-            print('Warning')
+        except Exception as err:
+            LOGGER.warn('Unable to compute MBS at position '
+                        '{0}. {1}'.format(i, err))
             mbs_i = None
         # build MBS profile
         mbs.append( mbs_i )
