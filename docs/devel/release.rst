@@ -56,12 +56,12 @@ How to Make a Release
 
    Installers should be prepared for the following versions of Python::
 
-     $ C:\Python27\python setup.py bdist_wininst
-     $ C:\Python35\python setup.py bdist_wininst
-     $ C:\Python36\python setup.py bdist_wininst
+     $ C:\Python27\python setup.py bdist_msi
+     $ C:\Python35\python setup.py bdist_msi
+     $ C:\Python36\python setup.py bdist_msi
 
 
-   Alternatively, use :program:`bdist_wininst.bat` to run these commands.
+   Alternatively, use :program:`bdist_msi.bat` to run these commands.
    When there is a newer Python major release, it should be added to this
    list. Don't forget to pull most recent changes to your Windows machine.
 

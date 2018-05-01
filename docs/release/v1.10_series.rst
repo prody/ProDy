@@ -8,6 +8,10 @@ ProDy 1.10 Series
 ------------------------------------------------------------------------------
 
   * Added the function sliceAtomicData for slicing data based on slicing atoms.
+  
+  * Updated the documentation for making a release.
+
+  * Other documentation and minor fixes.
 
 1.10 (Apr 30, 2018)
 ------------------------------------------------------------------------------
