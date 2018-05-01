@@ -539,6 +539,7 @@ def showMode(mode, *args, **kwargs):
 
     show_hinges = kwargs.pop('show_hinges', False)
     show_zero = kwargs.pop('show_zero', True)
+    show_hinges = kwargs.pop('hinge', show_hinges)
     show_zero = kwargs.pop('zero', show_zero)
     overlay_chains = kwargs.get('overlay_chains',False)
     atoms = kwargs.get('atoms',None)
