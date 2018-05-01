@@ -6,7 +6,6 @@ from numpy import unique, linalg, diag, sqrt, dot
 import scipy.cluster.hierarchy as sch
 from scipy import spatial
 from .misctools import addBreaks, interpY
-from Bio import Phylo
 
 __all__ = ['calcTree', 'clusterMatrix', 'showLines', 'showMatrix', 'reorderMatrix', 'findSubgroups']
 
@@ -231,6 +230,16 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
     allticks = kwargs.pop('allticks', False) # this argument is temporary and will be replaced by better implementation
     origin = kwargs.pop('origin', 'lower')
 
+    tree_mode = False
+    if np.isscalar(y_array):
+        try: 
+            from Bio import Phylo
+        except ImportError:
+            raise ImportError('Phylo module could not be imported. '
+                'Reinstall ProDy or install Biopython '
+                'to solve the problem.')
+        tree_mode = isinstance(y_array, Phylo.BaseTree.Tree)
+
     if x_array is not None and y_array is not None:
         nrow = 2; ncol = 2
         i = 1; j = 1
@@ -242,12 +251,6 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
         i = 1; j = 0
         width_ratios = [W]
         height_ratios = [1, H]
-        aspect = 'auto'
-    elif isinstance(y_array, Phylo.BaseTree.Tree):
-        nrow = 2; ncol = 2
-        i = 1; j = 1
-        width_ratios = [W, W]
-        height_ratios = [H, H]
         aspect = 'auto'
     elif x_array is None and y_array is not None:
         nrow = 1; ncol = 2
@@ -262,9 +265,16 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
         height_ratios = [H]
         aspect = None
 
-    main_index = (i,j)
-    upper_index = (i-1,j)
-    left_index = (i,j-1)
+    if tree_mode:
+        nrow = 2; ncol = 2
+        i = 1; j = 1
+        width_ratios = [W, W]
+        height_ratios = [H, H]
+        aspect = 'auto'
+
+    main_index = (i, j)
+    upper_index = (i-1, j)
+    left_index = (i, j-1)
 
     complex_layout = nrow > 1 or ncol > 1
     cb = kwargs.pop('colorbar', True)
@@ -279,10 +289,7 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
     if nrow > 1:
         ax1 = plt.subplot(gs[upper_index])
 
-        if isinstance(y_array, Phylo.BaseTree.Tree):
-            pass
-
-        else:
+        if not tree_mode:
             ax1.set_xticklabels([])
             
             y = x_array
@@ -300,7 +307,7 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
     if ncol > 1:
         ax2 = plt.subplot(gs[left_index])
         
-        if isinstance(y_array, Phylo.BaseTree.Tree):
+        if tree_mode:
             Phylo.draw(y_array, do_show=False, axes=ax2, **kwargs)
         else:
             ax2.set_xticklabels([])
@@ -368,15 +375,15 @@ def reorderMatrix(matrix, tree, names=None):
     Reorder a matrix based on a tree and return the reordered matrix 
     and indices for reordering other things.
 
+    :arg matrix: any square matrix
+    :type matrix: :class:`~numpy.ndarray`
+
+    :arg tree: any tree from :func:`calcTree`
+    :type tree: :class:`~Bio.Phylo.BaseTree.Tree`
+
     :arg names: a list of names associated with the rows of the matrix
         These names must match the ones used to generate the tree.
-    :type names: a list of strings
-
-    :arg matrix: any square matrix
-    :type matrix: 2D array
-
-    :arg tree: any tree from calcTree
-    :type tree: Bio.Phylo.BaseTree.Tree
+    :type names: list
     """
     try:
         from Bio import Phylo
@@ -385,23 +392,17 @@ def reorderMatrix(matrix, tree, names=None):
             'Reinstall ProDy or install Biopython '
             'to solve the problem.')
 
-    if not isinstance(matrix, np.ndarray):
+    try:
+        if matrix.ndim != 2:
+            raise ValueError('matrix should be a 2D matrix.')
+    except AttributeError:
         raise TypeError('matrix should be a numpy array.')
-
-    if matrix.ndim != 2:
-        raise ValueError('matrix should be a 2D matrix.')
 
     if np.shape(matrix)[0] != np.shape(matrix)[1]:
         raise ValueError('matrix should be a square matrix')
 
-    if names is None:
+    if not names:
         names = [str(i) for i in range(len(matrix))]
-
-    if not isinstance(names, list):
-        raise TypeError('names should be a list.')
-
-    if not isinstance(names[0], str):
-        raise TypeError('names should be a list of strings.')    
 
     if not isinstance(tree, Phylo.BaseTree.Tree):
         raise TypeError('tree should be a BioPython Tree')
