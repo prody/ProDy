@@ -421,10 +421,10 @@ def parsePfamPDBs(query, data=[], **kwargs):
     correspond to a particular PFAM domain family. These are defined by 
     alignment start and end residue numbers.
 
-    :arg query: Pfam accession number, UniProt ID or PDB ID
+    :arg query: UniProt ID or PDB ID
         If a PDB ID is provided the corresponding UniProt ID is used.
-        Use of UniProt ID or PDB ID requires start or end to also be provided.
-        This query is also used for label refinement of the pfam domain MSA.
+        If this returns multiple matches then start or end must also be provided.
+        This query is also used for label refinement of the Pfam domain MSA.
     :type query: str
 
     :arg start: Residue number for defining the start of the domain.
@@ -433,17 +433,16 @@ def parsePfamPDBs(query, data=[], **kwargs):
     :type start: int
 
     :arg end: Residue number for defining the end of the domain.
-              The PFAM domain that ends closest to this will be selected. 
+        The PFAM domain that ends closest to this will be selected. 
     :type end: int
 
     :arg data: If given the data dictionary from the Pfam mapping table will 
-               be output through this argument.
+        be output through this argument.
     :type data: list
     """
     
     start = kwargs.pop('start', 1)
     end = kwargs.pop('end', None)
-    return_data = kwargs.pop('return_data', False)
 
     if len(query) > 4 and query.startswith('PF'):
         pfam_acc = query
@@ -511,12 +510,9 @@ def parsePfamPDBs(query, data=[], **kwargs):
         results = [ags]
 
     comma_spliter = re.compile(r'\s*,\s*').split
-    #headers = list(headers)
     no_info = []
     for i, ag in enumerate(ags):
         data_dict = data_dicts[i]
-        #dbrefs = headers[i][data_dict['chain']].dbrefs
-        #if dbrefs:
         pfamRange = data_dict['UniprotResnumRange'].split('-')
         uniprotID = data_dict['UniprotID']
         uniData = queryUniprot(uniprotID)
@@ -541,7 +537,6 @@ def parsePfamPDBs(query, data=[], **kwargs):
                     resrange = resrange.split('-')
                     break
 
-            #first = dbrefs[0].first
         if resrange:
             pfStart, pfEnd = int(pfamRange[0]), int(pfamRange[1])
             uniStart, uniEnd = int(resrange[0]), int(resrange[1])

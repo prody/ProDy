@@ -1038,8 +1038,8 @@ def mapOntoChainByAlignment(atoms, chain, **kwargs):
     of chains is found by alignment provided. 
     
     :arg alignments: A list of predefined alignments. It can be also a 
-                    dictionary or :class:`MSA` instance where the keys or 
-                    labels are the title of *atoms* or *chains*. 
+        dictionary or :class:`MSA` instance where the keys or 
+        labels are the title of *atoms* or *chains*. 
     :type alignments: list, dict, :class:`MSA`
     """
 
