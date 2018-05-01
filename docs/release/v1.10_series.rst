@@ -4,7 +4,7 @@ ProDy 1.10 Series
 .. contents::
    :local:
 
-1.10 (May 1, 2018)
+1.10.1 (May 1, 2018)
 ------------------------------------------------------------------------------
 
   * Added the function sliceAtomicData for slicing data based on slicing atoms.
