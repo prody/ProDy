@@ -1112,6 +1112,7 @@ def showAtomicMatrixSliceLines(matrix, atoms=None, selection=None, **kwargs):
     :type returnProfiles: bool
     """
     import matplotlib.pyplot as plt
+    returnData = kwargs.pop('returnData',False)
 
     if not type(matrix) is np.ndarray:
         if prs_matrix is None:
@@ -1146,7 +1147,6 @@ def showAtomicMatrixSliceLines(matrix, atoms=None, selection=None, **kwargs):
     if len(show) == 1:
         show = show[0]
 
-    returnData = kwargs.get('returnData',False)
     if returnData:
         return show, profiles
     else:
