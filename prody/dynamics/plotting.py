@@ -468,7 +468,7 @@ def showCrossProjection(ensemble, mode_x, mode_y, scale=None, *args, **kwargs):
 def showOverlapTable(modes_x, modes_y, **kwargs):
     """Show overlap table using :func:`~matplotlib.pyplot.pcolor`.  *modes_x*
     and *modes_y* are sets of normal modes, and correspond to x and y axes of
-    the plot.  Note that mode indices are incremented by 1.  List of modes
+    the plot.  Note that mode indices are incremented by **1**.  List of modes
     is assumed to contain a set of contiguous modes from the same model.
 
     Default arguments for :func:`~matplotlib.pyplot.pcolor`:
@@ -1003,24 +1003,20 @@ def showPerturbResponse(model, atoms=None, show_matrix=True, selection=None, **k
 
     :arg model: any object with a calcCovariance method
         e.g. :class:`.ANM` instance
-    :type model: NMA
+    :type model: :class:`.NMA`
 
-    :arg atoms: a :class:`AtomGroup` instance
-    :type atoms: AtomGroup
+    :arg atoms: a :class: `AtomGroup` instance for matching residue numbers and chain 
+        identifiers
+    :type atoms: :class:`.AtomGroup`
 
-    :arg show_matrix: whether to show the matrix, default is True
+    :arg show_matrix: whether to show the matrix, default is **True**
     :type show_matrix: bool
 
-    :arg selection: a :class:`Selection` instance or selection str for showing 
-        residue-specific profiles. This can only be used with matrix=False.
+    :arg selection: a :class:`Selection` instance or selection string for showing 
+        residue-specific profiles. This can only be used with ``show_matrix=False``.
     :tye selection: :class:`Selection`, str
-
-    :keyword direction: direction for showing residue-specific profiles
-        Default is row, which corresponds to the effect of perturbing a given residue
-        on each of the others. Alternatively, it could be col corresponding to the 
-        sensitivity of a given residue to perturbations of each of the others.
     
-    :arg percentile: percentile argument for showAtomicMatrix
+    :keyword percentile: percentile argument for showAtomicMatrix
     :type percentile: float
     """
 
@@ -1097,21 +1093,20 @@ def showAtomicMatrix(matrix, x_array=None, y_array=None, atoms=None, **kwargs):
     the :class:`~matplotlib.image.AxesImage` object for the matrix plot. The last return value is the 
     :class:`~matplotlib.axes.Axes` object for the color bar.
 
-    :arg matrix: Matrix to be displayed.
+    :arg matrix: matrix to be displayed
     :type matrix: :class:`~numpy.ndarray`
 
-    :arg x_array: Data to be plotted above the matrix.
+    :arg x_array: data to be plotted above the matrix
     :type x_array: :class:`~numpy.ndarray`
 
-    :arg y_array: Data to be plotted on the left side of the matrix.
+    :arg y_array: data to be plotted on the left side of the matrix
     :type y_array: :class:`~numpy.ndarray`
 
     :arg percentile: A percentile threshold to remove outliers, i.e. only showing data within *p*-th 
                      to *100-p*-th percentile.
     :type percentile: float
 
-    :arg atoms: a :class: `AtomGroup` instance for matching 
-        residue numbers and chain identifiers. 
+    :arg atoms: a :class: `AtomGroup` instance for matching residue numbers and chain identifiers
     :type atoms: :class: `AtomGroup`
 
     :arg chain: display a bar at the bottom to show chain separations. 
@@ -1234,21 +1229,21 @@ def showAtomicLines(y, atoms=None, linespec='-', **kwargs):
     :type atoms: :class: `AtomGroup`
 
     :arg chain: display a bar at the bottom to show chain separations. 
-                    If set to `None`, it will be decided depends on whether *atoms* 
-                    is provided. 
-                    Default is `None`.
+                If set to **None**, it will be decided depends on whether *atoms* 
+                is provided. 
+                Default is **None**.
     :type chain: bool
 
     :arg domain: the same with *chain_bar* but show domain separations instead. 
                     *atoms* needs to have *domain* data associated to it.
-                    Default is `None`.
+                    Default is **None**.
     :type domain: bool
 
-    :arg figure: if set to `None`, then a new figure will be created if *auto_show* 
-                is `True`, otherwise it will be plotted on the current figure. If set 
+    :arg figure: if set to **None**, then a new figure will be created if *auto_show* 
+                is **True**, otherwise it will be plotted on the current figure. If set 
                 to a figure number or a :class:`~matplotlib.figure.Figure` instance, 
                 no matter what 'auto_show' value is, plots will be drawn on the *figure*.
-                Default is `None`.
+                Default is **None**.
     :type figure: :class:`~matplotlib.figure.Figure`, int, str
     """
     

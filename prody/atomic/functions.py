@@ -306,21 +306,19 @@ def sliceAtoms(atoms, select):
     return which, select
 
 def sliceAtomicData(data, atoms=None, selection=None, axis=0):
-    """Slice a matrix using indices extracted using sliceAtoms.
+    """Slice a matrix using indices extracted using :func:`sliceAtoms`.
 
     :arg matrix: any matrix (2D array)
     :type matrix: `~numpy.ndarray`
 
-    :arg selection: a :class:`Selection` instance or selection string. 
+    :arg selection: a :class:`Selection` instance or selection string
     :type selection: :class:`Selection`, str
 
     :arg axis: the axis/direction you want to use to slice data from the matrix.
-        The options are 0 or 1 or None like in `:mod:~numpy`. Default is 0 (row).
-    :type direction: int, str
+        The options are **0** or **1** or **None** like in :mod:`~numpy`. 
+        Default is **0** (row).
+    :type axis: int
 
-    :arg returnData: whether to return profiles for further analysis
-        default is False
-    :type returnProfiles: bool
     """
 
     if isscalar(data):
@@ -352,9 +350,9 @@ def sliceAtomicData(data, atoms=None, selection=None, axis=0):
         profiles = data[indices,:]
     elif axis == 1:
         profiles = data[:,indices]
-    elif axis == None:
+    elif axis is None:
         profiles = data[indices,:][:,indices]
     else:
-        raise ValueError('axis should be 0, 1 or "both"')
+        raise ValueError('axis should be 0, 1 or None')
 
     return profiles
