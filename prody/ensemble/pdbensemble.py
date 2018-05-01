@@ -456,7 +456,7 @@ class PDBEnsemble(Ensemble):
         :meth:`iterpose` before calculating RMSDs.
 
         :arg pairwise: if **True** then it will return pairwise RMSDs 
-        as an n-by-n matrix. n is the number of conformations.
+            as an n-by-n matrix. n is the number of conformations.
         :type pairwise: bool
         """
 
