@@ -33,7 +33,7 @@ __all__ = ['showContactMap', 'showCrossCorr',
            'showNormedSqFlucts', 'resetTicks',
            'showDiffMatrix','showMechStiff','showNormDistFunct',
            'showPairDeformationDist','showMeanMechStiff', 
-           'showPerturbResponse',
+           'showPerturbResponse', 'showPerturbResponseProfile',
            'showAtomicMatrix', 'showAtomicLines', 'showTree', 
            'showTree_networkx', 'showDomainBar']
 
@@ -1067,6 +1067,117 @@ def _checkDomainBarParameter(domain_bar, defpos, atoms, label):
                              'the atoms.'.format(label))
 
     return show, pos, data
+
+def showPerturbResponseProfiles(prs_matrix, atoms=None, chain=None, resnum=None, **kwargs):
+    """Plot as a line graph the average response to perturbation of
+    a particular residue (a row of a perturbation response matrix)
+    or the average effect of perturbation of a particular residue
+    (a column of a normalized perturbation response matrix).
+
+    If no PRS matrix or profiles are provided, these will be calculated first
+    using the provided options with a provided model (e.g. ANM, GNM or EDA).
+    So as to obtain different sensitivity and effectiveness, normMatrix=True by default.
+
+    If no residue number is given then the effectiveness and sensitivity
+    profiles will be plotted instead. These two profiles are also returned
+    as arrays for further analysis if they aren't already provided.
+
+    :arg prs_matrix: a perturbation response matrix
+    :type prs_matrix: ndarray
+
+    :arg atoms: a :class: `AtomGroup` instance for matching 
+        residue numbers and chain IDs. 
+    :type atoms: AtomGroup
+
+    :arg chain: chain identifier for the residue of interest
+        default is to make a plot for each chain in the protein
+    :type chain: str
+
+    :arg resnum: residue number for the residue of interest
+    :type resnum: int
+
+    :arg direction: the direction you want to use to read data out
+        of the PRS matrix for plotting: the options are 'effect' or 'response'.
+        Default is 'effect'.
+        A row gives the effect on each residue of peturbing the specified 
+        residue.
+        A column gives the response of the specified residue to perturbing 
+        each residue.
+    :type direction: str
+
+    :arg returnData: whether to return profiles for further analysis
+        default is False
+    :type returnProfiles: bool
+    """
+    from .perturb import PRSMatrixParseError
+
+    if not type(prs_matrix) is np.ndarray:
+        if prs_matrix is None:
+            raise ValueError('Please provide a PRS matrix.')
+        else:
+            raise TypeError('Please provide a valid PRS matrix (as array).')
+
+    if atoms is None:
+        raise ValueError('Please provide an AtomGroup object for matching ' \
+                         'residue numbers and chain IDs.')
+    else:
+        if not isinstance(atoms, Atomic):
+            raise TypeError('atoms must be an Atomicinstance')
+        elif atoms.numAtoms() != len(prs_matrix):
+            raise ValueError('prs_matrix and atoms must have the same size')
+
+    chain = kwargs.get('chain')
+    hv = atoms.getHierView()
+    chains = []
+    for i in range(len(list(hv))):
+        chainAg = list(hv)[i]
+        chains.append(chainAg.getChids()[0])
+
+    chains = np.array(chains)
+    if chain is None:
+        chain = ''.join(chains)
+
+    resnum = kwargs.get('resnum', None)
+    direction = kwargs.get('direction','effect')
+
+    if resnum is None or not resnum in atoms.getResnums():
+        raise ValueError('Please provide a valid resnum')
+
+    timesNotFound = 0
+    for n in range(len(chain)):
+        if not chain[n] in chains:
+            raise PRSMatrixParseError('Chain {0} was not found in chains'.format(chain[n]))
+
+        chainNum = int(np.where(chains == chain[n])[0])
+        chainAg = list(hv)[chainNum]
+        if not resnum in chainAg.getResnums():
+            LOGGER.info('A residue with number {0} was not found' \
+                        ' in chain {1}. Continuing to next chain.' \
+                        .format(resnum, chain[n]))
+            timesNotFound += 1
+            continue
+
+    profiles = []
+    for n in range(len(chain)):
+        chainNum = int(np.where(chains == chain[n])[0])
+        i = np.where(atoms.getResnums() == resnum)[0][chainNum-timesNotFound] 
+        if direction is 'effect':
+            profiles.append(prs_matrix[i,:])
+        else:
+            profiles.append(prs_matrix[:,i])
+
+    show = []
+    for profile in profiles:
+        show.append(showAtomicLines(profile,atoms=atoms,**kwargs))
+
+    if len(show) == 1:
+        show = show[0]
+
+    returnData = kwargs.get('returnData',False)
+    if returnData:
+        return show, profiles
+    else:
+        return show
 
 def showAtomicMatrix(matrix, x_array=None, y_array=None, atoms=None, **kwargs):
     """Show a matrix using :meth:`~matplotlib.axes.Axes.imshow`. Curves on x- and y-axis can be added.
