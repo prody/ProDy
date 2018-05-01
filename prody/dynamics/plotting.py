@@ -1169,7 +1169,7 @@ def showPerturbResponseProfiles(prs_matrix, atoms=None, chain=None, resnum=None,
 
     show = []
     for profile in profiles:
-        show.append(showAtomicLines(profile,atoms=atoms,**kwargs))
+        show.append(showAtomicLines(profile, atoms=atoms, **kwargs))
 
     if len(show) == 1:
         show = show[0]
