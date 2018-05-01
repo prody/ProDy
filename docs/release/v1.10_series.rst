@@ -4,14 +4,16 @@ ProDy 1.10 Series
 .. contents::
    :local:
 
-1.10.1 (May 1, 2019)
+1.10.1 (May 1, 2018)
 ------------------------------------------------------------------------------
+
+  * Added the function sliceAtomicData for slicing data based on slicing atoms.
   
   * Updated the documentation for making a release.
 
   * Other documentation and minor fixes.
 
-1.10 (Apr 30, 2019)
+1.10 (Apr 30, 2018)
 ------------------------------------------------------------------------------
 
 Signature Dynamics
@@ -59,7 +61,7 @@ Signature Dynamics
   * Added additional functions for *Uniprot* and *Pfam* such as 
   :func:`.queryUniprot` and :func:`.parsePfamPDBs`.
 
-*Bug Fixes and Improvement*
+*Bug Fixes and Improvements*
 
   * Fixed compatibility problems for Python 2 and 3.
 

@@ -22,7 +22,7 @@ from .analysis import calcCrossCorr, calcPairDeformationDist
 from .analysis import calcFractVariance, calcCrossProjection 
 from .perturb import calcPerturbResponse
 from .compare import calcOverlap
-from prody.atomic import AtomGroup, Selection, Atomic
+from prody.atomic import AtomGroup, Selection, Atomic, sliceAtoms, sliceAtomicData
 
 __all__ = ['showContactMap', 'showCrossCorr',
            'showCumulOverlap', 'showFractVars',
@@ -994,7 +994,7 @@ def showMeanMechStiff(model, coords, header, chain='A', *args, **kwargs):
         showFigure()
     return plt.show
 
-def showPerturbResponse(model, atoms=None, matrix=True, **kwargs):
+def showPerturbResponse(model, atoms=None, show_matrix=True, selection=None, **kwargs):
     """ Plot the PRS matrix with the profiles along the right and bottom.
 
     If atoms are provided then residue numbers can be used from there.
@@ -1005,36 +1005,55 @@ def showPerturbResponse(model, atoms=None, matrix=True, **kwargs):
         e.g. :class:`.ANM` instance
     :type model: NMA
 
-    :arg atoms: a :class: `AtomGroup` instance
+    :arg atoms: a :class:`AtomGroup` instance
     :type atoms: AtomGroup
+
+    :arg show_matrix: whether to show the matrix, default is True
+    :type show_matrix: bool
+
+    :arg selection: a :class:`Selection` instance or selection str for showing 
+        residue-specific profiles. This can only be used with matrix=False.
+    :tye selection: :class:`Selection`, str
+
+    :keyword direction: direction for showing residue-specific profiles
+        Default is row, which corresponds to the effect of perturbing a given residue
+        on each of the others. Alternatively, it could be col corresponding to the 
+        sensitivity of a given residue to perturbations of each of the others.
     
     :arg percentile: percentile argument for showAtomicMatrix
     :type percentile: float
     """
 
-    from matplotlib.pyplot import gcf, xlabel, ylabel, legend
+    from matplotlib.pyplot import gcf, xlabel, ylabel, legend, figure
 
     prs_matrix, effectiveness, sensitivity = calcPerturbResponse(model, atoms=atoms)
 
-    if matrix:
-        show = showAtomicMatrix(prs_matrix, 
-                                x_array=effectiveness, 
-                                y_array=sensitivity, 
-                                atoms=atoms, 
+    if show_matrix:
+        show = showAtomicMatrix(prs_matrix, x_array=effectiveness, 
+                                y_array=sensitivity, atoms=atoms, 
                                 **kwargs)
-        xlabel('Residues')
-        #ylabel('Residues')
+        ylabel('Residues')
+
     else:
-        domain_bar = kwargs.pop('domain_bar', True)
-        kwargs.pop('label', None)
-        show_eff = showAtomicLines(effectiveness, atoms=atoms, 
-                                   domain_bar=False, label='Effectiveness', **kwargs)
-        kwargs.pop('figure', None); fig = gcf()
-        show_sen = showAtomicLines(sensitivity, atoms=atoms, figure=fig, 
-                                   domain_bar=domain_bar, label='Sensitivity', **kwargs)
-        show = [show_eff, show_sen]
-        xlabel('Residues')
-        legend()
+        if selection is None:
+            kwargs.pop('figure', 'effectiveness'); fig = gcf()
+            domain_bar = kwargs.pop('domain_bar', True)
+            kwargs.pop('label', None)
+            show_eff = showAtomicLines(effectiveness, atoms=atoms, 
+                                       domain_bar=False, label='Effectiveness', **kwargs)
+            kwargs.pop('figure', 'sensitivity'); fig = gcf()
+            show_sen = showAtomicLines(sensitivity, atoms=atoms, figure=fig, 
+                                       domain_bar=domain_bar, label='Sensitivity', **kwargs)
+            show = [show_eff, show_sen]
+        else:
+            show = []
+            profiles = sliceAtomicData(prs_matrix, atoms=atoms, selection=selection)
+            for i, profile in enumerate(profiles):
+                kwargs.pop('figure', None); fig = gcf()
+                show.append(showAtomicLines(profile, atoms, **kwargs))
+
+    xlabel('Residues')
+    
     return show
 
 def _checkDomainBarParameter(domain_bar, defpos, atoms, label):
@@ -1068,6 +1087,8 @@ def _checkDomainBarParameter(domain_bar, defpos, atoms, label):
                              'the atoms.'.format(label))
 
     return show, pos, data
+
+
 
 def showAtomicMatrix(matrix, x_array=None, y_array=None, atoms=None, **kwargs):
     """Show a matrix using :meth:`~matplotlib.axes.Axes.imshow`. Curves on x- and y-axis can be added.
