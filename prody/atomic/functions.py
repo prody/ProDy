@@ -315,7 +315,7 @@ def sliceAtomicData(data, atoms=None, selection=None, axis=0):
     :type selection: :class:`Selection`, str
 
     :arg axis: the axis/direction you want to use to slice data from the matrix.
-        The options are 0 or 1 like in `~numpy` or 'both'. Default is 0 (row).
+        The options are 0 or 1 or None like in `:mod:~numpy`. Default is 0 (row).
     :type direction: int, str
 
     :arg returnData: whether to return profiles for further analysis
@@ -352,7 +352,7 @@ def sliceAtomicData(data, atoms=None, selection=None, axis=0):
         profiles = data[indices,:]
     elif axis == 1:
         profiles = data[:,indices]
-    elif axis == 'both':
+    elif axis == None:
         profiles = data[indices,:][:,indices]
     else:
         raise ValueError('axis should be 0, 1 or "both"')
