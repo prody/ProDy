@@ -77,7 +77,7 @@ def fetchPDBLigand(cci, filename=None):
             path = None
         #url = ('http://ligand-expo.rcsb.org/reports/{0[0]}/{0}/{0}'
         #       '.xml'.format(cci.upper()))
-        url = 'http://www.pdb.org/pdb/files/ligand/{0}.xml'.format(cci.upper())
+        url = 'http://files.rcsb.org/ligands/download/{0}.xml'.format(cci.upper())
         if not xml:
             #'http://www.pdb.org/pdb/files/ligand/{0}.xml'
             try:
