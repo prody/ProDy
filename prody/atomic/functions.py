@@ -285,6 +285,15 @@ def sortAtoms(atoms, label, reverse=False):
 
 
 def sliceAtoms(atoms, select):
+    """Slice *atoms* using the selection defined by *select*.
+
+    :arg atoms: atoms to be selected from
+    :type atoms: :class:`Atomic`
+
+    :arg select: a :class:`Selection` instance or selection string
+    :type select: :class:`Selection`, str
+
+    """
 
     if atoms == select:
         raise ValueError('atoms and select arguments are the same')
@@ -310,6 +319,9 @@ def sliceAtomicData(data, atoms, select, axis=0):
 
     :arg matrix: any matrix (2D array)
     :type matrix: `~numpy.ndarray`
+
+    :arg atoms: atoms to be selected from
+    :type atoms: :class:`Atomic`
 
     :arg select: a :class:`Selection` instance or selection string
     :type select: :class:`Selection`, str
