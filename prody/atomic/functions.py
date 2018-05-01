@@ -285,6 +285,15 @@ def sortAtoms(atoms, label, reverse=False):
 
 
 def sliceAtoms(atoms, select):
+    """Slice *atoms* using the selection defined by *select*.
+
+    :arg atoms: atoms to be selected from
+    :type atoms: :class:`Atomic`
+
+    :arg select: a :class:`Selection` instance or selection string
+    :type select: :class:`Selection`, str
+
+    """
 
     if atoms == select:
         raise ValueError('atoms and select arguments are the same')
@@ -305,22 +314,23 @@ def sliceAtoms(atoms, select):
 
     return which, select
 
-def sliceAtomicData(data, atoms=None, selection=None, axis=0):
-    """Slice a matrix using indices extracted using sliceAtoms.
+def sliceAtomicData(data, atoms, select, axis=0):
+    """Slice a matrix using indices extracted using :func:`sliceAtoms`.
 
     :arg matrix: any matrix (2D array)
     :type matrix: `~numpy.ndarray`
 
-    :arg selection: a :class:`Selection` instance or selection string. 
-    :type selection: :class:`Selection`, str
+    :arg atoms: atoms to be selected from
+    :type atoms: :class:`Atomic`
+
+    :arg select: a :class:`Selection` instance or selection string
+    :type select: :class:`Selection`, str
 
     :arg axis: the axis/direction you want to use to slice data from the matrix.
-        The options are 0 or 1 or None like in `:mod:~numpy`. Default is 0 (row).
-    :type direction: int, str
+        The options are **0** or **1** or **None** like in :mod:`~numpy`. 
+        Default is **0** (row).
+    :type axis: int
 
-    :arg returnData: whether to return profiles for further analysis
-        default is False
-    :type returnProfiles: bool
     """
 
     if isscalar(data):
@@ -328,9 +338,6 @@ def sliceAtomicData(data, atoms=None, selection=None, axis=0):
 
     if not isinstance(data, ndarray):
         data = asarray(data)
-
-    if atoms is None:
-        raise ValueError('Please provide atoms for slicing.')
 
     if not isinstance(atoms, Atomic):
         raise TypeError('atoms must be an Atomic instance')
@@ -344,7 +351,7 @@ def sliceAtomicData(data, atoms=None, selection=None, axis=0):
         else:
             raise ValueError('data and atoms must have the same size')
 
-    indices, _ = sliceAtoms(atoms, selection)
+    indices, _ = sliceAtoms(atoms, select)
     if is3d:
         indices = array([[i*3, i*3+1, i*3+2] for i in indices]).reshape(3*len(indices))
 
@@ -352,9 +359,9 @@ def sliceAtomicData(data, atoms=None, selection=None, axis=0):
         profiles = data[indices,:]
     elif axis == 1:
         profiles = data[:,indices]
-    elif axis == None:
+    elif axis is None:
         profiles = data[indices,:][:,indices]
     else:
-        raise ValueError('axis should be 0, 1 or "both"')
+        raise ValueError('axis should be 0, 1 or None')
 
     return profiles

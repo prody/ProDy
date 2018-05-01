@@ -427,11 +427,16 @@ def parsePfamPDBs(query, data=[], **kwargs):
         This query is also used for label refinement of the Pfam domain MSA.
     :type query: str
 
-    :arg start: Residue number for defining the start of the domain.
+    :arg data: If given the data list from the Pfam mapping table will 
+               be output through this argument.
+    :type data: list
+
+    :keyword start: Residue number for defining the start of the domain.
         The PFAM domain that starts closest to this will be selected. 
-        Default is 1
+        Default is **1**
     :type start: int
 
+<<<<<<< HEAD
     :arg end: Residue number for defining the end of the domain.
         The PFAM domain that ends closest to this will be selected. 
     :type end: int
@@ -439,6 +444,11 @@ def parsePfamPDBs(query, data=[], **kwargs):
     :arg data: If given the data dictionary from the Pfam mapping table will 
         be output through this argument.
     :type data: list
+=======
+    :keyword end: Residue number for defining the end of the domain.
+              The PFAM domain that ends closest to this will be selected. 
+    :type end: int
+>>>>>>> 0bb9d9ff30e132222e05717dd596f051095a2d4d
     """
     
     start = kwargs.pop('start', 1)

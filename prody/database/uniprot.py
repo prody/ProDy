@@ -12,7 +12,8 @@ else:
     import urllib
     import urllib2
 
-from xml.etree.cElementTree import XML, Element
+from xml.etree.cElementTree import XML
+from xml.etree.ElementTree import Element
 
 __all__ = ['queryUniprot', ]
 
