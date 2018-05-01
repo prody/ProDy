@@ -428,7 +428,7 @@ def parsePfamPDBs(query, data=[], **kwargs):
     :type query: str
 
     :arg data: If given the data list from the Pfam mapping table will 
-               be output through this argument.
+        be output through this argument.
     :type data: list
 
     :keyword start: Residue number for defining the start of the domain.
@@ -437,7 +437,7 @@ def parsePfamPDBs(query, data=[], **kwargs):
     :type start: int
 
     :keyword end: Residue number for defining the end of the domain.
-              The PFAM domain that ends closest to this will be selected. 
+        The PFAM domain that ends closest to this will be selected. 
     :type end: int
     """
     
