@@ -33,7 +33,7 @@ __all__ = ['showContactMap', 'showCrossCorr',
            'showNormedSqFlucts', 'resetTicks',
            'showDiffMatrix','showMechStiff','showNormDistFunct',
            'showPairDeformationDist','showMeanMechStiff', 
-           'showPerturbResponse', 'showPerturbResponseProfile',
+           'showPerturbResponse', 'showPerturbResponseProfiles',
            'showAtomicMatrix', 'showAtomicLines', 'showTree', 
            'showTree_networkx', 'showDomainBar']
 
