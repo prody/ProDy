@@ -4,6 +4,13 @@ ProDy 1.10 Series
 .. contents::
    :local:
 
+1.10.1 (May 1, 2019)
+------------------------------------------------------------------------------
+  
+  * Updated the documentation for making a release.
+
+  * Other documentation and minor fixes.
+
 1.10 (Apr 30, 2019)
 ------------------------------------------------------------------------------
 
