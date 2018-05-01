@@ -1146,6 +1146,7 @@ def showAtomicMatrixSliceLines(matrix, atoms=None, selection=None, **kwargs):
 
     if len(show) == 1:
         show = show[0]
+        profiles = profiles[0]
 
     if returnData:
         return show, profiles
