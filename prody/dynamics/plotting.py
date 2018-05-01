@@ -22,7 +22,7 @@ from .analysis import calcCrossCorr, calcPairDeformationDist
 from .analysis import calcFractVariance, calcCrossProjection 
 from .perturb import calcPerturbResponse
 from .compare import calcOverlap
-from prody.atomic import AtomGroup, Selection, Atomic, sliceAtoms
+from prody.atomic import AtomGroup, Selection, Atomic, sliceAtoms, sliceAtomicData
 
 __all__ = ['showContactMap', 'showCrossCorr',
            'showCumulOverlap', 'showFractVars',
@@ -33,7 +33,7 @@ __all__ = ['showContactMap', 'showCrossCorr',
            'showNormedSqFlucts', 'resetTicks',
            'showDiffMatrix','showMechStiff','showNormDistFunct',
            'showPairDeformationDist','showMeanMechStiff', 
-           'showPerturbResponse', 'showAtomicMatrixSliceLines',
+           'showPerturbResponse',
            'showAtomicMatrix', 'showAtomicLines', 'showTree', 
            'showTree_networkx', 'showDomainBar']
 
@@ -1024,7 +1024,7 @@ def showPerturbResponse(model, atoms=None, show_matrix=True, selection=None, **k
     :type percentile: float
     """
 
-    from matplotlib.pyplot import gcf, xlabel, ylabel, legend
+    from matplotlib.pyplot import gcf, xlabel, ylabel, legend, figure
 
     prs_matrix, effectiveness, sensitivity = calcPerturbResponse(model, atoms=atoms)
 
@@ -1036,16 +1036,21 @@ def showPerturbResponse(model, atoms=None, show_matrix=True, selection=None, **k
 
     else:
         if selection is None:
+            kwargs.pop('figure', 1); fig = gcf()
             domain_bar = kwargs.pop('domain_bar', True)
             kwargs.pop('label', None)
             show_eff = showAtomicLines(effectiveness, atoms=atoms, 
                                        domain_bar=False, label='Effectiveness', **kwargs)
-            kwargs.pop('figure', None); fig = gcf()
+            kwargs.pop('figure', 2); fig = gcf()
             show_sen = showAtomicLines(sensitivity, atoms=atoms, figure=fig, 
                                        domain_bar=domain_bar, label='Sensitivity', **kwargs)
             show = [show_eff, show_sen]
         else:
-            show = showAtomicMatrixSliceLines(matrix, atoms, selection, **kwargs)
+            show = []
+            profiles = sliceAtomicData(prs_matrix, atoms=atoms, selection=selection)
+            for i, profile in enumerate(profiles):
+                kwargs.pop('figure', i+1); fig = gcf()
+                show.append(showAtomicLines(profile, atoms, **kwargs))
 
     xlabel('Residues')
     
@@ -1083,75 +1088,7 @@ def _checkDomainBarParameter(domain_bar, defpos, atoms, label):
 
     return show, pos, data
 
-def showAtomicMatrixSliceLines(matrix, atoms=None, selection=None, **kwargs):
-    """Plot as a line graph the response of all residues to perturbation of
-    a particular residue (a row of a perturbation response matrix)
-    or the effect of perturbation of a particular residue
-    (a column of a normalized perturbation response matrix).
 
-    If no PRS matrix or profiles are provided, these will be calculated first
-    using the provided options with a provided model (e.g. ANM, GNM or EDA).
-    So as to obtain different sensitivity and effectiveness, normMatrix=True by default.
-
-    If no residue number is given then the effectiveness and sensitivity
-    profiles will be plotted instead. These two profiles are also returned
-    as arrays for further analysis if they aren't already provided.
-
-    :arg matrix: any matrix (2D array)
-    :type matrix: `~numpy.ndarray`
-
-    :arg selection: a :class:`Selection` instance or selection string. 
-    :type selection: :class:`Selection`, str
-
-    :arg direction: the direction you want to use to read data out.
-        The options are 'row' or 'col'. Default is 'row'.
-    :type direction: str
-
-    :arg returnData: whether to return profiles for further analysis
-        default is False
-    :type returnProfiles: bool
-    """
-    import matplotlib.pyplot as plt
-    returnData = kwargs.pop('returnData',False)
-
-    if not type(matrix) is np.ndarray:
-        if prs_matrix is None:
-            raise ValueError('Please provide a matrix.')
-        else:
-            raise TypeError('Please provide a valid PRS matrix (as array).')
-
-    if atoms is None:
-        raise ValueError('Please provide atoms for slicing.')
-    else:
-        if not isinstance(atoms, Atomic):
-            raise TypeError('atoms must be an Atomic instance')
-        elif atoms.numAtoms() != len(matrix):
-            raise ValueError('matrix and atoms must have the same size')
-
-    _, sele = sliceAtoms(atoms, selection)
-
-    direction = kwargs.get('direction','effect')
-
-    show = []
-    profiles = []
-    for atom in sele:
-        plt.figure()
-        i = atom.getResindex()
-        if direction is 'row':
-            profiles.append(matrix[i,:])
-            show.append(showAtomicLines(profiles[-1], atoms=atoms, **kwargs))
-        else:
-            profiles.append(matrix[:,i])
-            show.append(showAtomicLines(profiles[-1], atoms=atoms, **kwargs))
-
-    if len(show) == 1:
-        show = show[0]
-        profiles = profiles[0]
-
-    if returnData:
-        return show, profiles
-    else:
-        return show
 
 def showAtomicMatrix(matrix, x_array=None, y_array=None, atoms=None, **kwargs):
     """Show a matrix using :meth:`~matplotlib.axes.Axes.imshow`. Curves on x- and y-axis can be added.

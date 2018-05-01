@@ -4,6 +4,7 @@
 from textwrap import wrap
 
 from numpy import load, savez, zeros, array
+from numpy import ndarray, asarray, isscalar
 
 from prody.utilities import openFile, rangeString
 from prody import LOGGER
@@ -11,6 +12,7 @@ from prody import LOGGER
 from . import flags
 from . import select
 
+from .atomic import Atomic
 from .atomgroup import AtomGroup
 from .atommap import AtomMap
 from .bond import trimBonds, evalBonds
@@ -18,7 +20,8 @@ from .fields import ATOMIC_FIELDS
 from .selection import Selection
 
 __all__ = ['iterFragments', 'findFragments', 'loadAtoms', 'saveAtoms',
-           'isReserved', 'listReservedWords', 'sortAtoms', 'sliceAtoms']
+           'isReserved', 'listReservedWords', 'sortAtoms', 'sliceAtoms', 
+           'sliceAtomicData']
 
 
 SAVE_SKIP_ATOMGROUP = set(['numbonds', 'fragindex'])
@@ -301,3 +304,57 @@ def sliceAtoms(atoms, select):
                           if idx in idxset])
 
     return which, select
+
+def sliceAtomicData(data, atoms=None, selection=None, axis=0):
+    """Slice a matrix using indices extracted using sliceAtoms.
+
+    :arg matrix: any matrix (2D array)
+    :type matrix: `~numpy.ndarray`
+
+    :arg selection: a :class:`Selection` instance or selection string. 
+    :type selection: :class:`Selection`, str
+
+    :arg axis: the axis/direction you want to use to slice data from the matrix.
+        The options are 0 or 1 like in `~numpy` or 'both'. Default is 0 (row).
+    :type direction: int, str
+
+    :arg returnData: whether to return profiles for further analysis
+        default is False
+    :type returnProfiles: bool
+    """
+
+    if isscalar(data):
+        raise TypeError('The data must be array-like.')
+
+    if not isinstance(data, ndarray):
+        data = asarray(data)
+
+    if atoms is None:
+        raise ValueError('Please provide atoms for slicing.')
+
+    if not isinstance(atoms, Atomic):
+        raise TypeError('atoms must be an Atomic instance')
+
+    natoms = atoms.numAtoms()
+
+    is3d = False
+    if len(data) != natoms:
+        if data.shape[0] == natoms * 3:
+            is3d = True
+        else:
+            raise ValueError('data and atoms must have the same size')
+
+    indices, _ = sliceAtoms(atoms, selection)
+    if is3d:
+        indices = array([[i*3, i*3+1, i*3+2] for i in indices]).reshape(3*len(indices))
+
+    if axis == 0:
+        profiles = data[indices,:]
+    elif axis == 1:
+        profiles = data[:,indices]
+    elif axis == 'both':
+        profiles = data[indices,:][:,indices]
+    else:
+        raise ValueError('axis should be 0, 1 or "both"')
+
+    return profiles
