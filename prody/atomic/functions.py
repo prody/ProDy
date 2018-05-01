@@ -305,14 +305,14 @@ def sliceAtoms(atoms, select):
 
     return which, select
 
-def sliceAtomicData(data, atoms=None, selection=None, axis=0):
+def sliceAtomicData(data, atoms, select, axis=0):
     """Slice a matrix using indices extracted using :func:`sliceAtoms`.
 
     :arg matrix: any matrix (2D array)
     :type matrix: `~numpy.ndarray`
 
-    :arg selection: a :class:`Selection` instance or selection string
-    :type selection: :class:`Selection`, str
+    :arg select: a :class:`Selection` instance or selection string
+    :type select: :class:`Selection`, str
 
     :arg axis: the axis/direction you want to use to slice data from the matrix.
         The options are **0** or **1** or **None** like in :mod:`~numpy`. 
@@ -327,9 +327,6 @@ def sliceAtomicData(data, atoms=None, selection=None, axis=0):
     if not isinstance(data, ndarray):
         data = asarray(data)
 
-    if atoms is None:
-        raise ValueError('Please provide atoms for slicing.')
-
     if not isinstance(atoms, Atomic):
         raise TypeError('atoms must be an Atomic instance')
 
@@ -342,7 +339,7 @@ def sliceAtomicData(data, atoms=None, selection=None, axis=0):
         else:
             raise ValueError('data and atoms must have the same size')
 
-    indices, _ = sliceAtoms(atoms, selection)
+    indices, _ = sliceAtoms(atoms, select)
     if is3d:
         indices = array([[i*3, i*3+1, i*3+2] for i in indices]).reshape(3*len(indices))
 
