@@ -22,7 +22,7 @@ from .analysis import calcCrossCorr, calcPairDeformationDist
 from .analysis import calcFractVariance, calcCrossProjection 
 from .perturb import calcPerturbResponse
 from .compare import calcOverlap
-from prody.atomic import AtomGroup, Selection, Atomic
+from prody.atomic import AtomGroup, Selection, Atomic, sliceAtoms
 
 __all__ = ['showContactMap', 'showCrossCorr',
            'showCumulOverlap', 'showFractVars',
@@ -33,7 +33,7 @@ __all__ = ['showContactMap', 'showCrossCorr',
            'showNormedSqFlucts', 'resetTicks',
            'showDiffMatrix','showMechStiff','showNormDistFunct',
            'showPairDeformationDist','showMeanMechStiff', 
-           'showPerturbResponse', 'showPerturbResponseProfiles',
+           'showPerturbResponse', 'showAtomicMatrixSliceLines',
            'showAtomicMatrix', 'showAtomicLines', 'showTree', 
            'showTree_networkx', 'showDomainBar']
 
@@ -994,7 +994,7 @@ def showMeanMechStiff(model, coords, header, chain='A', *args, **kwargs):
         showFigure()
     return plt.show
 
-def showPerturbResponse(model, atoms=None, matrix=True, **kwargs):
+def showPerturbResponse(model, atoms=None, show_matrix=True, selection=None, **kwargs):
     """ Plot the PRS matrix with the profiles along the right and bottom.
 
     If atoms are provided then residue numbers can be used from there.
@@ -1005,8 +1005,20 @@ def showPerturbResponse(model, atoms=None, matrix=True, **kwargs):
         e.g. :class:`.ANM` instance
     :type model: NMA
 
-    :arg atoms: a :class: `AtomGroup` instance
+    :arg atoms: a :class:`AtomGroup` instance
     :type atoms: AtomGroup
+
+    :arg show_matrix: whether to show the matrix, default is True
+    :type show_matrix: bool
+
+    :arg selection: a :class:`Selection` instance or selection str for showing 
+        residue-specific profiles. This can only be used with matrix=False.
+    :tye selection: :class:`Selection`, str
+
+    :keyword direction: direction for showing residue-specific profiles
+        Default is row, which corresponds to the effect of perturbing a given residue
+        on each of the others. Alternatively, it could be col corresponding to the 
+        sensitivity of a given residue to perturbations of each of the others.
     
     :arg percentile: percentile argument for showAtomicMatrix
     :type percentile: float
@@ -1016,25 +1028,27 @@ def showPerturbResponse(model, atoms=None, matrix=True, **kwargs):
 
     prs_matrix, effectiveness, sensitivity = calcPerturbResponse(model, atoms=atoms)
 
-    if matrix:
-        show = showAtomicMatrix(prs_matrix, 
-                                x_array=effectiveness, 
-                                y_array=sensitivity, 
-                                atoms=atoms, 
+    if show_matrix:
+        show = showAtomicMatrix(prs_matrix, x_array=effectiveness, 
+                                y_array=sensitivity, atoms=atoms, 
                                 **kwargs)
-        xlabel('Residues')
-        #ylabel('Residues')
+        ylabel('Residues')
+
     else:
-        domain_bar = kwargs.pop('domain_bar', True)
-        kwargs.pop('label', None)
-        show_eff = showAtomicLines(effectiveness, atoms=atoms, 
-                                   domain_bar=False, label='Effectiveness', **kwargs)
-        kwargs.pop('figure', None); fig = gcf()
-        show_sen = showAtomicLines(sensitivity, atoms=atoms, figure=fig, 
-                                   domain_bar=domain_bar, label='Sensitivity', **kwargs)
-        show = [show_eff, show_sen]
-        xlabel('Residues')
-        legend()
+        if selection is None:
+            domain_bar = kwargs.pop('domain_bar', True)
+            kwargs.pop('label', None)
+            show_eff = showAtomicLines(effectiveness, atoms=atoms, 
+                                       domain_bar=False, label='Effectiveness', **kwargs)
+            kwargs.pop('figure', None); fig = gcf()
+            show_sen = showAtomicLines(sensitivity, atoms=atoms, figure=fig, 
+                                       domain_bar=domain_bar, label='Sensitivity', **kwargs)
+            show = [show_eff, show_sen]
+        else:
+            show = showAtomicMatrixSliceLines(matrix, atoms, selection, **kwargs)
+
+    xlabel('Residues')
+    
     return show
 
 def _checkDomainBarParameter(domain_bar, defpos, atoms, label):
@@ -1069,10 +1083,10 @@ def _checkDomainBarParameter(domain_bar, defpos, atoms, label):
 
     return show, pos, data
 
-def showPerturbResponseProfiles(prs_matrix, atoms=None, chain=None, resnum=None, **kwargs):
-    """Plot as a line graph the average response to perturbation of
+def showAtomicMatrixSliceLines(matrix, atoms=None, selection=None, **kwargs):
+    """Plot as a line graph the response of all residues to perturbation of
     a particular residue (a row of a perturbation response matrix)
-    or the average effect of perturbation of a particular residue
+    or the effect of perturbation of a particular residue
     (a column of a normalized perturbation response matrix).
 
     If no PRS matrix or profiles are provided, these will be calculated first
@@ -1083,27 +1097,14 @@ def showPerturbResponseProfiles(prs_matrix, atoms=None, chain=None, resnum=None,
     profiles will be plotted instead. These two profiles are also returned
     as arrays for further analysis if they aren't already provided.
 
-    :arg prs_matrix: a perturbation response matrix
-    :type prs_matrix: ndarray
+    :arg matrix: any matrix (2D array)
+    :type matrix: `~numpy.ndarray`
 
-    :arg atoms: a :class: `AtomGroup` instance for matching 
-        residue numbers and chain IDs. 
-    :type atoms: AtomGroup
+    :arg selection: a :class:`Selection` instance or selection string. 
+    :type selection: :class:`Selection`, str
 
-    :arg chain: chain identifier for the residue of interest
-        default is to make a plot for each chain in the protein
-    :type chain: str
-
-    :arg resnum: residue number for the residue of interest
-    :type resnum: int
-
-    :arg direction: the direction you want to use to read data out
-        of the PRS matrix for plotting: the options are 'effect' or 'response'.
-        Default is 'effect'.
-        A row gives the effect on each residue of peturbing the specified 
-        residue.
-        A column gives the response of the specified residue to perturbing 
-        each residue.
+    :arg direction: the direction you want to use to read data out.
+        The options are 'row' or 'col'. Default is 'row'.
     :type direction: str
 
     :arg returnData: whether to return profiles for further analysis
@@ -1112,64 +1113,31 @@ def showPerturbResponseProfiles(prs_matrix, atoms=None, chain=None, resnum=None,
     """
     from .perturb import PRSMatrixParseError
 
-    if not type(prs_matrix) is np.ndarray:
+    if not type(matrix) is np.ndarray:
         if prs_matrix is None:
-            raise ValueError('Please provide a PRS matrix.')
+            raise ValueError('Please provide a matrix.')
         else:
             raise TypeError('Please provide a valid PRS matrix (as array).')
 
     if atoms is None:
-        raise ValueError('Please provide an AtomGroup object for matching ' \
-                         'residue numbers and chain IDs.')
+        raise ValueError('Please provide atoms for slicing.')
     else:
         if not isinstance(atoms, Atomic):
-            raise TypeError('atoms must be an Atomicinstance')
-        elif atoms.numAtoms() != len(prs_matrix):
-            raise ValueError('prs_matrix and atoms must have the same size')
+            raise TypeError('atoms must be an Atomic instance')
+        elif atoms.numAtoms() != len(matrix):
+            raise ValueError('matrix and atoms must have the same size')
 
-    chain = kwargs.get('chain')
-    hv = atoms.getHierView()
-    chains = []
-    for i in range(len(list(hv))):
-        chainAg = list(hv)[i]
-        chains.append(chainAg.getChids()[0])
+    _, sele = sliceAtoms(atoms, selection)
 
-    chains = np.array(chains)
-    if chain is None:
-        chain = ''.join(chains)
-
-    resnum = kwargs.get('resnum', None)
     direction = kwargs.get('direction','effect')
 
-    if resnum is None or not resnum in atoms.getResnums():
-        raise ValueError('Please provide a valid resnum')
-
-    timesNotFound = 0
-    for n in range(len(chain)):
-        if not chain[n] in chains:
-            raise PRSMatrixParseError('Chain {0} was not found in chains'.format(chain[n]))
-
-        chainNum = int(np.where(chains == chain[n])[0])
-        chainAg = list(hv)[chainNum]
-        if not resnum in chainAg.getResnums():
-            LOGGER.info('A residue with number {0} was not found' \
-                        ' in chain {1}. Continuing to next chain.' \
-                        .format(resnum, chain[n]))
-            timesNotFound += 1
-            continue
-
-    profiles = []
-    for n in range(len(chain)):
-        chainNum = int(np.where(chains == chain[n])[0])
-        i = np.where(atoms.getResnums() == resnum)[0][chainNum-timesNotFound] 
-        if direction is 'effect':
-            profiles.append(prs_matrix[i,:])
-        else:
-            profiles.append(prs_matrix[:,i])
-
     show = []
-    for profile in profiles:
-        show.append(showAtomicLines(profile, atoms=atoms, **kwargs))
+    for atom in sele:
+        i = atom.getResindex()
+        if direction is 'row':
+            show.append(showAtomicLines(matrix[i,:], atoms=atoms, **kwargs))
+        else:
+            show.append(showAtomicLines(matrix[:,i], atoms=atoms, **kwargs))
 
     if len(show) == 1:
         show = show[0]
