@@ -1111,7 +1111,7 @@ def showAtomicMatrixSliceLines(matrix, atoms=None, selection=None, **kwargs):
         default is False
     :type returnProfiles: bool
     """
-    from .perturb import PRSMatrixParseError
+    import matplotlib.pyplot as plt
 
     if not type(matrix) is np.ndarray:
         if prs_matrix is None:
@@ -1132,12 +1132,16 @@ def showAtomicMatrixSliceLines(matrix, atoms=None, selection=None, **kwargs):
     direction = kwargs.get('direction','effect')
 
     show = []
+    profiles = []
     for atom in sele:
+        plt.figure()
         i = atom.getResindex()
         if direction is 'row':
-            show.append(showAtomicLines(matrix[i,:], atoms=atoms, **kwargs))
+            profiles.append(matrix[i,:])
+            show.append(showAtomicLines(profiles[-1], atoms=atoms, **kwargs))
         else:
-            show.append(showAtomicLines(matrix[:,i], atoms=atoms, **kwargs))
+            profiles.append(matrix[:,i])
+            show.append(showAtomicLines(profiles[-1], atoms=atoms, **kwargs))
 
     if len(show) == 1:
         show = show[0]
