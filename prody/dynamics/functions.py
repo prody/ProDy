@@ -35,7 +35,7 @@ def saveModel(nma, filename=None, matrices=False, **kwargs):
     are replaced with ``"_"`` (underscores).  Extension may differ based
     on the type of the NMA model.  For ANM models, it is :file:`.anm.npz`.
     Upon successful completion of saving, filename is returned. This
-    function makes use of :func:`numpy.savez` function."""
+    function makes use of :func:`~numpy.savez` function."""
 
     if not isinstance(nma, NMA):
         raise TypeError('invalid type for nma, {0}'.format(type(nma)))
