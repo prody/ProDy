@@ -436,19 +436,9 @@ def parsePfamPDBs(query, data=[], **kwargs):
         Default is **1**
     :type start: int
 
-<<<<<<< HEAD
-    :arg end: Residue number for defining the end of the domain.
-        The PFAM domain that ends closest to this will be selected. 
-    :type end: int
-
-    :arg data: If given the data dictionary from the Pfam mapping table will 
-        be output through this argument.
-    :type data: list
-=======
     :keyword end: Residue number for defining the end of the domain.
               The PFAM domain that ends closest to this will be selected. 
     :type end: int
->>>>>>> 0bb9d9ff30e132222e05717dd596f051095a2d4d
     """
     
     start = kwargs.pop('start', 1)
