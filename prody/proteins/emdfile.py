@@ -76,7 +76,7 @@ def parseEMD(emd, **kwargs):
             emd = filename
         else:   
             raise IOError('EMD file {0} is not available in the directory {1}'
-                           .format(emd),os.getcwd())
+                           .format(emd, os.getcwd()))
     if title is None:
         kwargs['title'], ext = os.path.splitext(os.path.split(emd)[1])
 
@@ -142,7 +142,7 @@ def parseEMDStream(stream, **kwargs):
     n_nodes = int(kwargs.get('n_nodes', 1000))
     num_iter = int(kwargs.get('num_iter', 20))
     return_map = kwargs.get('return_map',False)
-    make_nodes = kwargs.get('make_nodes',False)
+    make_nodes = kwargs.get('make_nodes',True)
 
     if return_map is False and make_nodes is False:
         LOGGER.warn('At least one of return_map and make_nodes should be True. '

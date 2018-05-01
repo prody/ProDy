@@ -889,6 +889,8 @@ def mapOntoChain(atoms, chain, **kwargs):
         segname = chain.getSegname()
         chain_subset = chain.select(subset)
         target_chain = chain_subset.getHierView()[segname, chid]
+    else:
+        target_chain = chain
 
     mappings = []
     unmapped = []
