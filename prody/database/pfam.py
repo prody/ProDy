@@ -60,7 +60,6 @@ def searchPfam(query, **kwargs):
     chain identifier.  UniProt ID of the specified chain, or the first
     protein chain will be used for searching the Pfam database."""
 
-    query = str(query)
     if isfile(query):
         from prody.sequence import MSAFile
         try:
@@ -195,7 +194,7 @@ def searchPfam(query, **kwargs):
         except IndexError:
             raise ValueError('failed to parse results XML, check URL: ' + url)
     else:
-        key = '{' + root.items()[1][1].split()[0] + '}'
+        key = '{' + prefix + '}'
         results = dictElement(root[0], key)
         try:
             xml_matches = results['matches']
@@ -448,20 +447,21 @@ def parsePfamPDBs(query, data=[], **kwargs):
         pfam_acc = query
     else:
         pfam_matches = searchPfam(query)
+        keys = list(pfam_matches.keys())
 
         if isinstance(start, Integral):
             start_diff = []
             for i, key in enumerate(pfam_matches):
                 start_diff.append(int(pfam_matches[key]['locations'][0]['start']) - start)
             start_diff = np.array(start_diff)
-            pfam_acc = pfam_matches.keys()[np.where(abs(start_diff) == min(abs(start_diff)))[0][0]]
+            pfam_acc = keys[np.where(abs(start_diff) == min(abs(start_diff)))[0][0]]
 
         elif isinstance(end, Integral):
             end_diff = []
             for i, key in enumerate(pfam_matches):
                 end_diff.append(int(pfam_matches[key]['locations'][0]['end']) - end)
             end_diff = np.array(end_diff)
-            pfam_acc = pfam_matches.keys()[np.where(abs(end_diff) == min(abs(end_diff)))[0][0]]
+            pfam_acc = keys[np.where(abs(end_diff) == min(abs(end_diff)))[0][0]]
 
         else:
             raise ValueError('Please provide an integer for start or end '
@@ -503,20 +503,23 @@ def parsePfamPDBs(query, data=[], **kwargs):
     if header:
         ags, headers = results
         ags, headers = list(ags), list(headers)
-        results = [ags, headers]
+        results = (ags, headers)
     else:
         ags = results
         ags = list(ags)
-        results = [ags]
+        results = ags
 
+    LOGGER.progress('Extracting Pfam domains...', len(ags))
     comma_spliter = re.compile(r'\s*,\s*').split
     no_info = []
     for i, ag in enumerate(ags):
+        LOGGER.update(i)
         data_dict = data_dicts[i]
         pfamRange = data_dict['UniprotResnumRange'].split('-')
         uniprotID = data_dict['UniprotID']
         uniData = queryUniprot(uniprotID)
         resrange = None
+        found = False
         for key, value in uniData.items():
             if not key.startswith('dbReference'):
                 continue
@@ -535,9 +538,12 @@ def parsePfamPDBs(query, data=[], **kwargs):
                 chids = [chid.strip() for chid in chids.split('/')]
                 if data_dict['chain'] in chids:
                     resrange = resrange.split('-')
+                    found = True
                     break
+            if found:
+                break
 
-        if resrange:
+        if found:
             pfStart, pfEnd = int(pfamRange[0]), int(pfamRange[1])
             uniStart, uniEnd = int(resrange[0]), int(resrange[1])
 
@@ -547,18 +553,17 @@ def parsePfamPDBs(query, data=[], **kwargs):
                             resiStart, resiEnd)) 
         else:
             no_info.append(i)
+    LOGGER.finish()
 
     for i in reversed(no_info):
         ags.pop(i)
         if header:
             headers.pop(i)
 
-    results = [ags]
-    if header:
-        results.append(headers)
     if isinstance(data, list):
         data.extend(data_dicts)
     else:
         LOGGER.warn('data should be a list in order to get output')
+    
     return results
 
