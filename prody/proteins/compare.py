@@ -1100,11 +1100,8 @@ def getDictMapping(target, chain, map_dict):
         LOGGER.warn('map_dict does not have the mapping for {0}'.format(key))
         return None
 
-    tar_indices = []
-    chn_indices = []
-    for i, j in mapping:
-        tar_indices.append(i)
-        chn_indices.append(j)
+    tar_indices = mapping[0]
+    chn_indices = mapping[1]
 
     chain_res_list = [res for res in chain]
 

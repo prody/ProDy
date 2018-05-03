@@ -216,13 +216,19 @@ class daliRecord(object):
     
     def getMapping(self, key):
         try:
-            map = self._alignPDB[key]
+            info = self._alignPDB[key]
+            mapping = [info['map_ref'], info['map_sel']]
         except KeyError:
             return None
-        return map
+        return mapping
 
     def getMappings(self):
-        return self._alignPDB
+        map_dict = {}
+        for key in self._alignPDB:
+            info = self._alignPDB[key]
+            mapping = [info['map_ref'], info['map_sel']]
+            map_dict[key] = mapping
+        return map_dict
 
     mappings = property(getMappings)
 
