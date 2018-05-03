@@ -354,8 +354,8 @@ def buildPDBEnsemble(PDBs, ref=None, title='Unknown', labels=None, seqid=94, cov
     :type PDBs: iterable
 
     :arg ref: Reference structure or the index to the reference in ``PDBs``. If **None**,
-                 then the first item in ``PDBs`` will be considered as the reference. 
-                 Default is **None**
+        then the first item in ``PDBs`` will be considered as the reference. 
+        Default is **None**
     :type ref: int, :class:`.Chain`, :class:`.Selection`, or :class:`.AtomGroup`
 
     :arg title: The title of the ensemble
