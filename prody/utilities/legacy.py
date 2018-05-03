@@ -820,4 +820,39 @@ def parsePerturbResponseMatrix(prs_matrix_file, norm=False):
 
 class PRSMatrixParseError(Exception):
     pass
+
+def buildDaliEnsemble(PDBs, record):
+    daliInfo = record._alignPDB
+
+    n_confs = len(PDBs)
     
+    ref_pdb_ca = PDBs[0]
+    ref_chain = list(ref_pdb_ca.getHierView().iterChains())[0]
+    ref_indices_set = set(range(len(ref_chain)))
+    ensemble = PDBEnsemble('Dali ensemble - ' + record.getTitle())
+    ensemble.setAtoms(ref_chain)
+    ensemble.setCoords(ref_chain)
+    
+    LOGGER.progress('Building PDB ensemble for {0} conformations from Dali...'
+                    .format(n_confs), n_confs, '_prody_buildDaliEnsemble')
+
+    for i, pdb in enumerate(PDBs):
+        pdb_chain = pdb.getTitle()[:5]
+        temp_dict = daliInfo[pdb_chain]
+        
+        sel_pdb_ca = PDBs[i]
+        map_ref = temp_dict['map_ref']
+        map_sel = temp_dict['map_sel']
+        dum_sel = list(ref_indices_set - set(map_ref))
+        atommap = AtomMap(sel_pdb_ca, indices=map_sel, mapping=map_ref, dummies=dum_sel)
+        ensemble.addCoordset(atommap, weights=atommap.getFlags('mapped'), degeneracy=True)
+
+        LOGGER.update(i, label='_prody_buildDaliEnsemble')
+    LOGGER.finish()
+
+    try:
+        ensemble.iterpose()
+    except:
+        LOGGER.warn('failed to iterpose the ensemble.')
+        
+    return ensemble
