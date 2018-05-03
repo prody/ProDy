@@ -85,7 +85,7 @@ def parseEMD(emd, **kwargs):
     emdStream.close()
     return result
 
-def _parseEMDLines(atomgroup, stream, cutoff=None, n_nodes=1000, num_iter=20,return_map=False,make_nodes=False):
+def _parseEMDLines(atomgroup, stream, cutoff=None, n_nodes=1000, num_iter=20, map=False, make_nodes=False):
     """ Returns an AtomGroup. see also :func:`.parseEMDStream()`.
 
     :arg stream: stream from parser.
@@ -121,8 +121,8 @@ def _parseEMDLines(atomgroup, stream, cutoff=None, n_nodes=1000, num_iter=20,ret
         atomgroup.setChids(chainids)
  
     if make_nodes:
-        if return_map:
-            return emd, atomgroup
+        if map:
+            return atomgroup, emd
         else:
             return atomgroup
     else:
@@ -141,7 +141,7 @@ def parseEMDStream(stream, **kwargs):
 
     n_nodes = int(kwargs.get('n_nodes', 1000))
     num_iter = int(kwargs.get('num_iter', 20))
-    return_map = kwargs.get('return_map',False)
+    return_map = kwargs.get('map',False)
     make_nodes = kwargs.get('make_nodes',True)
 
     if return_map is False and make_nodes is False:
