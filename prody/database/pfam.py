@@ -549,7 +549,7 @@ def parsePfamPDBs(query, data=[], **kwargs):
             chain_accessions = [dbref.accession for dbref in header[data_dict['chain']].dbrefs]
             right_part = where(array(chain_accessions) == data_dict['UniprotID'])[0][0]
             right_dbref = header[data_dict['chain']].dbrefs[right_part]
-            partStart = ag.getResindices()[where(ag.getResnums() == right_dbref.first[0])][0]
+            partStart = ag.getResindices()[np.where(ag.getResnums() == right_dbref.first[0])][0]
             pfStart, pfEnd = int(pfamRange[0]), int(pfamRange[1])
             uniStart, uniEnd = int(resrange[0]), int(resrange[1])
 
