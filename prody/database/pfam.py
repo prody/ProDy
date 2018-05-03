@@ -485,7 +485,7 @@ def parsePfamPDBs(query, data=[], **kwargs):
         rawdata = rawdata.decode()
 
     fields = ['PDB_ID', 'chain', 'nothing', 'PFAM_Name', 'PFAM_ACC', 
-              'UniprotID', 'UniprotResnumRange']
+              'UniprotAcc', 'UniprotResnumRange']
     
     data_dicts = []
     for line in rawdata.split('\n'):
@@ -497,27 +497,28 @@ def parsePfamPDBs(query, data=[], **kwargs):
     pdb_ids = [data_dict['PDB_ID'] for data_dict in data_dicts]
     chains = [data_dict['chain'] for data_dict in data_dicts]
 
-    results = parsePDB(*pdb_ids, chain=chains, **kwargs)
+    header = kwargs.pop('header', False)
+    results = parsePDB(*pdb_ids, chain=chains, header=True, **kwargs)
 
-    header = kwargs.get('header', False)
+    ags, headers = results
+    ags, headers = list(ags), list(headers)
+
     if header:
-        ags, headers = results
-        ags, headers = list(ags), list(headers)
         results = (ags, headers)
     else:
-        ags = results
-        ags = list(ags)
+#        ags = results
+#        ags = list(ags)
         results = ags
 
     LOGGER.progress('Extracting Pfam domains...', len(ags))
-    comma_spliter = re.compile(r'\s*,\s*').split
+    comma_splitter = re.compile(r'\s*,\s*').split
     no_info = []
     for i, ag in enumerate(ags):
         LOGGER.update(i)
         data_dict = data_dicts[i]
         pfamRange = data_dict['UniprotResnumRange'].split('-')
-        uniprotID = data_dict['UniprotID']
-        uniData = queryUniprot(uniprotID)
+        uniprotAcc = data_dict['UniprotAcc']
+        uniData = queryUniprot(uniprotAcc)
         resrange = None
         found = False
         for key, value in uniData.items():
@@ -532,7 +533,7 @@ def parsePfamPDBs(query, data=[], **kwargs):
             pdbchains = value['chains']
 
             # example chain strings: "A=27-139, B=140-150" or "A/B=27-150"
-            pdbchains = comma_spliter(pdbchains)
+            pdbchains = comma_splitter(pdbchains)
             for chain in pdbchains:
                 chids, resrange = chain.split('=')
                 chids = [chid.strip() for chid in chids.split('/')]
@@ -544,11 +545,16 @@ def parsePfamPDBs(query, data=[], **kwargs):
                 break
 
         if found:
+            header = headers[i]
+            chain_accessions = [dbref.accession for dbref in header[data_dict['chain']].dbrefs]
+            right_part = np.where(np.array(chain_accessions) == data_dict['UniprotAcc'])[0][0]
+            right_dbref = header[data_dict['chain']].dbrefs[right_part]
+            partStart = ag.getResindices()[np.where(ag.getResnums() == right_dbref.first[0])][0]
             pfStart, pfEnd = int(pfamRange[0]), int(pfamRange[1])
             uniStart, uniEnd = int(resrange[0]), int(resrange[1])
 
-            resiStart = pfStart - uniStart
-            resiEnd = pfEnd - uniStart
+            resiStart = pfStart - uniStart + partStart
+            resiEnd = pfEnd - uniStart + partStart
             ags[i] = ag.select('resindex {0} to {1}'.format(
                             resiStart, resiEnd)) 
         else:
