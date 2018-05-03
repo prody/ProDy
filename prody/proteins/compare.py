@@ -1109,27 +1109,24 @@ def getAlignedMapping(target, chain, alignment=None):
                                                 one_alignment_only=1)
         alignment = alignments[0]
 
-    this = str(alignment[0])
-    this_seq = this.upper()
-    for gap in GAPCHARS:
-        this_seq = this_seq.replace(gap, '')
+    def _findAlignment(sequence, alignment):
+        for seq in alignment:
+            strseq = str(seq).upper()
+            for gap in GAPCHARS:
+                strseq = strseq.replace(gap, '')
 
-    if target.getSequence().upper() != this_seq:
+            if sequence.upper() == strseq:
+                return seq
         return None
 
-    iteraln = iter(alignment)
-    next(iteraln)
-    found = False
-    for seq in iteraln:
-        that = str(seq)
-        that_seq = that.upper()
-        for gap in GAPCHARS:
-            that_seq = that_seq.replace(gap, '')
+    this = _findAlignment(target.getSequence(), alignment)
+    if this is None:
+        LOGGER.warn('alignment does not contain the target sequence')
+        return None
 
-        if chain.getSequence().upper() == that_seq:
-            found = True; break
-
-    if not found:
+    that = _findAlignment(chain.getSequence(), alignment)
+    if that is None:
+        LOGGER.warn('alignment does not contain the chain sequence')
         return None
 
     amatch = []
