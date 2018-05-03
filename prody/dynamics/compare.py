@@ -166,6 +166,7 @@ def calcSpectralOverlap(modes1, modes2):
 
     .. [BH02] Hess B. Convergence of sampling in protein simulations.
     *Phys Rev E* **2002** 65(3):031910.
+    
     """
 
     if modes1.is3d() ^ modes2.is3d():
