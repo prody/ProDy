@@ -262,7 +262,7 @@ def parseModes(normalmodes, eigenvalues=None, nm_delimiter=None,
     return nma
 
 
-def writeArray(filename, array, format='%d', delimiter=' '):
+def writeArray(filename, array, format='%3.2f', delimiter=' '):
     """Write 1-d or 2-d array data into a delimited text file.
 
     This function is using :func:`numpy.savetxt` to write the file, after
