@@ -125,7 +125,7 @@ def getLevel(cath_id):
     return len(cath_id.split('.'))
 
 def isLeaf(cath_id):
-    level = self.getLevel(cath_id)
+    level = getLevel(cath_id)
 
     if level > 4:
         raise ValueError('invalid cath_id: {0}'.format(cath_id))
