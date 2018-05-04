@@ -17,7 +17,6 @@ def fetchCATH(filename, ftp_host=None, ftp_path=None, **kwargs):
     if ftp_path == None:
         ftp_path = '/cath/releases/daily-release/newest/'
     from ftplib import FTP
-    report = kwargs.get('report', True)
     output_folder = kwargs.pop('folder', None)
     ftp_fn = filename
     try:
@@ -57,9 +56,8 @@ def fetchCATH(filename, ftp_host=None, ftp_path=None, **kwargs):
                         [write(block) for block in data]
 
                     filename_full = normpath(relpath(filename_full))
-                    if report: 
-                        LOGGER.debug('{0} downloaded ({1})'
-                                     .format(ftp_fn, sympath(filename_full)))
+                    LOGGER.debug('{0} downloaded ({1})'
+                                    .format(ftp_fn, sympath(filename_full)))
                     success += 1
                     filenames.append(filename_full)
                 else:
