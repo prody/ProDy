@@ -33,7 +33,7 @@ class Increment(object):
 class RTB(ANMBase):
 
     """Class for Rotations and Translations of Blocks (RTB) method ([FT00]_).
-    Optional arguments permit imposing constrains along Z-direction as in
+    Optional arguments permit imposing constraints along Z-direction as in
     *imANM* method described in [TL12]_.
 
     .. [FT00] Tama F, Gadea FJ, Marques O, Sanejouand YH. Building-block
