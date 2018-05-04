@@ -4,11 +4,133 @@ from os import getcwd, remove
 from os.path import sep as pathsep
 from os.path import isdir, isfile, join, split, splitext, normpath
 
-from prody import LOGGER, SETTINGS
+from prody import LOGGER, SETTINGS, PY3K
 from prody.utilities import makePath, gunzip, relpath, copyFile, openURL
 from prody.utilities import sympath
 
-__all__ = ['fetchCATH', 'buildCATHNameDict', 'buildPDBChainCATHDict']
+if PY3K:
+    import urllib.parse as urllib
+    import urllib.request as urllib2
+else:
+    import urllib
+    import urllib2
+
+__all__ = ['CATHDB', 'fetchCATH', 'buildCATHNameDict', 'buildPDBChainCATHDict']
+
+class CATHDB(object):
+    def __init__(self, url=None, name_path=None, domain_path=None):
+        self._url = url or 'http://download.cathdb.info'
+        self._name_path = name_path or \
+            '/cath/releases/latest-release/cath-classification-data/cath-names.txt'
+        
+        self._domain_path = domain_path or \
+            '/cath/releases/latest-release/cath-classification-data/cath-domain-boundaries-seqreschopping.txt'
+
+        self._raw_names = None
+        self._raw_domains = None
+        self._data = {}
+
+        self.update()
+    
+    def update(self):
+        """Update data and files from CATH."""
+
+        self._fetch()
+        self._parse()
+
+    def _fetch(self):
+        """Download CATH files via HTTP."""
+
+        try:
+            response = urllib2.urlopen(self._url + self._name_path)
+            name_data = response.read()
+        except Exception as error:
+            raise type(error)('HTTP connection problem when extracting CATH names: '\
+                              + repr(error))
+
+        try:
+            response = urllib2.urlopen(self._url + self._domain_path)
+            domain_data = response.read()
+        except Exception as error:
+            raise type(error)('HTTP connection problem when extracting domains: '\
+                              + repr(error))
+
+        if PY3K:
+            name_data = name_data.decode()
+            domain_data = domain_data.decode()
+
+        self._raw_names = name_data
+        self._raw_domains = domain_data
+
+        self._data = {}
+        
+    def _parse(self):
+        """Parse CATH files."""
+        
+        name_data = self._raw_names 
+        domain_data = self._raw_domains
+
+        # parsing the name file
+        lines = name_data.splitlines()
+        for line in lines:
+            text = line.strip()
+            if not text:
+                continue
+            if text.startswith('#'):
+                continue
+            items = text.split()
+
+            cath_id, domain_id, cath_name = items
+
+            self._data[cath_id]['pdb'] = domain_id[:4]
+            self._data[cath_id]['chain'] = domain_id[4]
+            self._data[cath_id]['name'] = cath_name
+            self._data[cath_id]['domain'] = domain_id
+
+        # parsing the domain file
+        lines = domain_data.splitlines()
+        for line in lines:
+            # Example: 3hgnA02	13-111,228-240
+            text = line.strip()
+            if not text:
+                continue
+            if text.startswith('#'):
+                continue
+            items = text.split()
+
+            domain_id, resrange = items
+
+            cath_ids = self._searchDomain(domain_id, mode='all')
+            
+
+
+    def _searchDomain(self, domain_id, mode='leaf'):
+        
+        mode = mode.lower()
+        data = self._data
+
+        keys = []
+        for key, value in data.items():
+            if value.get('domain') == domain_id:
+                if mode == 'leaf':
+                    if isLeaf(key):
+                        return key
+                elif mode == 'all':
+                    keys.append(key)
+                else:
+                    return key
+        return keys
+
+def getLevel(cath_id):
+    return len(cath_id.split('.'))
+
+def isLeaf(cath_id):
+    level = self.getLevel(cath_id)
+
+    if level > 4:
+        raise ValueError('invalid cath_id: {0}'.format(cath_id))
+
+    return level == 4
 
 def fetchCATH(filename, ftp_host=None, ftp_path=None, **kwargs):
     """Downloads CATH file via FTP."""
