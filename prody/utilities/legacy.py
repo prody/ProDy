@@ -856,3 +856,61 @@ def buildDaliEnsemble(PDBs, record):
         LOGGER.warn('failed to iterpose the ensemble.')
         
     return ensemble
+
+def fetchCATH(filename, ftp_host=None, ftp_path=None, **kwargs):
+    """Downloads CATH file via FTP."""
+    if ftp_host == None:
+        ftp_host = 'orengoftp.biochem.ucl.ac.uk'
+    if ftp_path == None:
+        ftp_path = '/cath/releases/daily-release/newest/'
+    from ftplib import FTP
+    output_folder = kwargs.pop('folder', None)
+    ftp_fn = filename
+    try:
+        ftp = FTP(ftp_host)
+    except Exception as error:
+        raise type(error)('FTP connection problem, potential reason: '
+                          'no internet connectivity')
+    else:
+        success = 0
+        failure = 0
+        filenames = []
+        ftp.login('')
+        
+        data = []
+        try:
+            ftp.cwd(ftp_path)
+            ftp.retrbinary('RETR ' + ftp_fn, data.append)
+        except Exception as error:
+            if ftp_fn in ftp.nlst():
+                LOGGER.warn('{0} download failed ({1}). It is '
+                            'possible that you do not have rights to '
+                            'download .gz files in the current network.'
+                            .format(ftp_fn, str(error)))
+            else:
+                LOGGER.warn('{0} download failed. {1} does not exist '
+                            'on {2}.'.format(ftp_fn, ftp_fn, ftp_host))
+            failure += 1
+            filenames.append(None)
+        else:
+            if len(data):
+                if output_folder is None:
+                    output_folder = getcwd()
+                    filename_full = join(output_folder, ftp_fn)
+
+                    with open(filename_full, 'w+b') as pdbfile:
+                        write = pdbfile.write
+                        [write(block) for block in data]
+
+                    filename_full = normpath(relpath(filename_full))
+                    LOGGER.debug('{0} downloaded ({1})'
+                                    .format(ftp_fn, sympath(filename_full)))
+                    success += 1
+                    filenames.append(filename_full)
+                else:
+                    LOGGER.warn('{0} download failed, reason unknown.'
+                                .format(ftp_fn))
+                    failure += 1
+                    filenames.append(None)
+        ftp.quit()
+        
