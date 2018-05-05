@@ -161,7 +161,7 @@ class CATHDB(object):
             node = ET.SubElement(root, domain_id, attrib=attrib)
 
         # parsing the boundary file
-        lines = domain_data.splitlines()
+        lines = boundary_data.splitlines()
         for line in lines:
             # Example: 3hgnA02	13-111,228-240
             text = line.strip()
