@@ -18,7 +18,7 @@ from prody.ensemble import Ensemble
 from prody.ensemble import PDBEnsemble
 import os
 
-__all__ = ['daliRecord', 'searchDali']
+__all__ = ['DaliRecord', 'searchDali']
 
 def searchDali(pdbId, chainId, daliURL=None, subset='fullPDB', **kwargs):
     """Search Dali server with input of PDB ID and chain ID.
@@ -59,13 +59,13 @@ def searchDali(pdbId, chainId, daliURL=None, subset='fullPDB', **kwargs):
     LOGGER.debug('Submitted Dali search for PDB and chain "{0} and {1}".'.format(pdbId, chainId))
     LOGGER.info(url)
     LOGGER.clear()
-    obj = daliRecord(url, pdbId, chainId, subset=subset, timeout=timeout, **kwargs)
+    obj = DaliRecord(url, pdbId, chainId, subset=subset, timeout=timeout, **kwargs)
     if obj.isSuccess:
         return obj
     
     return None
 
-class daliRecord(object):
+class DaliRecord(object):
 
     """A class to store results from Dali PDB search."""
 
@@ -158,7 +158,8 @@ class daliRecord(object):
         mapping = []
         lines = data_list[4].strip().split('\n')
         self._lines_4 = lines
-        mapping_temp = np.genfromtxt(lines[1:], delimiter = (4,1,14,6,2,4,4,5,2,4,4,3,5,4,3,5,6,3,5,4,3,5,28), usecols = [0,3,5,7,9,12,15,15,18,21], dtype='|i4')
+        mapping_temp = np.genfromtxt(lines[1:], delimiter = (4,1,14,6,2,4,4,5,2,4,4,3,5,4,3,5,6,3,5,4,3,5,28), 
+                                     usecols = [0,3,5,7,9,12,15,15,18,21], dtype='|i4')
         # [0,3,5,7,9,12,15,15,18,21] -> [index, residue_a, residue_b, residue_i_a, residue_i_b, resid_a, resid_b, resid_i_a, resid_i_b]
         for map_i in mapping_temp:
             if not map_i[0] in map_temp_dict:
@@ -169,7 +170,9 @@ class daliRecord(object):
         self._mapping = map_temp_dict
         self._data = data_list[3]
         lines = data_list[3].strip().split('\n')
-        daliInfo = np.genfromtxt(lines[1:], delimiter = (4,3,6,5,5,5,6,5,57), usecols = [0,2,3,4,5,6,7,8], dtype=[('id', '<i4'), ('pdb_chain', '|S6'), ('Z', '<f4'), ('rmsd', '<f4'), ('len_align', '<i4'), ('res_num', '<i4'), ('identity', '<i4'), ('title', '|S70')])
+        daliInfo = np.genfromtxt(lines[1:], delimiter = (4,3,6,5,5,5,6,5,57), usecols = [0,2,3,4,5,6,7,8], 
+                                dtype=[('id', '<i4'), ('pdb_chain', '|S6'), ('Z', '<f4'), ('rmsd', '<f4'), 
+                                ('len_align', '<i4'), ('nres', '<i4'), ('identity', '<i4'), ('title', '|S70')])
         if daliInfo.ndim == 0:
             daliInfo = np.array([daliInfo])
         pdbListAll = []
@@ -186,7 +189,7 @@ class daliRecord(object):
             temp_dict['Z'] = temp[2]
             temp_dict['rmsd'] = temp[3]
             temp_dict['len_align'] = temp[4]
-            temp_dict['res_num'] = temp[5]
+            temp_dict['nres'] = temp[5]
             temp_dict['identity'] = temp[6]
             temp_dict['mapping'] = (np.array(map_temp_dict[temp[0]])-1).tolist()
             temp_dict['map_ref'] = [x for map_i in (np.array(map_temp_dict[temp[0]])-1).tolist() for x in range(map_i[0], map_i[1]+1)]

@@ -819,24 +819,24 @@ def mapOntoChain(atoms, chain, **kwargs):
     :keyword overlap: percent overlap, default is 90
     :type overlap: float
 
+    :keyword mapping: if ``"ce"`` or ``"cealign"``, then the CE algorithm [IS98]_ will be 
+        performed. It can also be a list of prealigned sequences, a :class:`.MSA` instance,
+        or a dict of indices such as that derived from a :class:`.DaliRecord`.
+        If set to anything other than the options listed above, including the default value 
+        (**None**), a simple mapping will be first attempted and if that failed 
+        then sequence alignment with a function from :mod:`~Bio.pairwise2` will be used 
+        unless *pwalign* is set to **False**, in which case the mapping will fail.
+    :type mapping: list, str
+
     :keyword pwalign: if **True**, then pairwise sequence alignment will 
         be performed. If **False** then a simple mapping will be performed 
-        based on residue numbers (as well as insertion codes). If set to 
-        ``"ce"`` or ``"cealign"``, then the CE algorithm [IS98]_ will be 
-        performed. It can also be a list of prealigned sequences in which 
-        the first one should be the reference. Default is **None**, in which 
-        case a simple mapping will be first performed and then sequence 
-        alignment if failed.
-    :type pwalign: bool, list, str
+        based on residue numbers (as well as insertion codes). This will be 
+        overridden by the *mapping* keyword's value. 
+    :type pwalign: bool
 
     This function tries to map *atoms* to *chain* based on residue
     numbers and types. Each individual chain in *atoms* is compared to
-    target *chain*. This works well for different structures of the same
-    protein. When it fails, :mod:`Bio.pairwise2` is used for sequence
-    alignment, and mapping is performed based on the sequence alignment.
-    User can control, whether sequence alignment is performed or not with
-    *pwalign* keyword. If ``pwalign=True`` is passed, pairwise alignment is
-    enforced.
+    target *chain*.
     
     .. [IS98] Shindyalov IN, Bourne PE. Protein structure alignment by 
        incremental combinatorial extension (CE) of the optimal path. 
@@ -858,6 +858,7 @@ def mapOntoChain(atoms, chain, **kwargs):
     if coverage is None:
         coverage = kwargs.get('coverage', 70.)
     pwalign = kwargs.get('pwalign', None)
+    pwalign = kwargs.get('mapping', pwalign)
     alignment = None
     if pwalign is not None:
         if isinstance(pwalign, basestring):
@@ -1109,12 +1110,22 @@ def getDictMapping(target, chain, map_dict):
     bmatch = []
     n_match = 0
     n_mapped = 0
-    for i, a in enumerate(target):
+    for i, a in enumerate(target):  
         ares = a.getResidue()
         amatch.append(ares)
         if i in tar_indices:
-            n = tar_indices.index(i)
-            b = chain_res_list[chn_indices[n]]
+            try:
+                n = tar_indices.index(i)
+            except IndexError:
+                LOGGER.warn('\nthe number of residues in the map_dict ({0} residues) is inconsistent with {2} ({1} residues)'
+                            .format(max(tar_indices)+1, len(chain_res_list), target.getTitle()))
+                return None
+            try:
+                b = chain_res_list[chn_indices[n]]
+            except IndexError:
+                LOGGER.warn('\nthe number of residues in the map_dict ({0} residues) is inconsistent with {2} ({1} residues)'
+                            .format(max(chn_indices)+1, len(chain_res_list), chain.getTitle()))
+                return None
             bres = b.getResidue()
             bmatch.append(bres)
             if a.getResname() == b.getResname():
