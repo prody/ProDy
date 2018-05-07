@@ -13,7 +13,7 @@ import numpy as np
 from prody.atomic import AtomGroup
 from prody.atomic import flags
 from prody.atomic import ATOMIC_FIELDS
-from prody.utilities import openFile
+from prody.utilities import openFile, isListLike
 from prody import LOGGER, SETTINGS
 
 from .header import getHeaderDict, buildBiomolecules, assignSecstr, isHelix, isSheet
@@ -93,7 +93,13 @@ def parsePDB(*pdb, **kwargs):
     
     You can also provide arguments that you would like passed on to fetchPDB().
     """
+
     n_pdb = len(pdb)
+    if n_pdb == 1:
+        if isListLike(pdb[0]):
+            pdb = pdb[0]
+            n_pdb = len(pdb)
+            
     if n_pdb == 1:
         return _parsePDB(pdb[0], **kwargs)
     else:
