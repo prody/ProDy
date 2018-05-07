@@ -544,17 +544,28 @@ def parsePfamPDBs(query, data=[], **kwargs):
             if found:
                 break
 
+        multi = False
         if found:
             header = headers[i]
-            chain_accessions = [dbref.accession for dbref in header[data_dict['chain']].dbrefs]
-            right_part = where(array(chain_accessions) == data_dict['UniprotID'])[0][0]
+            chain_accessions = [dbref.accession 
+                                for dbref in header[data_dict['chain']].dbrefs]
+            if len(chain_accessions) > 1:
+                multi = True
+            else:
+                multi = False
+            right_part = np.where(np.array(chain_accessions) == 
+                                  data_dict['UniprotAcc'])[0][0]
             right_dbref = header[data_dict['chain']].dbrefs[right_part]
-            partStart = ag.getResindices()[np.where(ag.getResnums() == right_dbref.first[0])][0]
+            chainStart = ag.select('chain {0}'.format(data_dict['chain'])
+                                  ).getResnums()[0]
+            missing = chainStart - right_dbref.first[0]
+            partStart = ag.getResindices()[np.where(ag.getResnums() == 
+                                           right_dbref.first[0] + missing)][0]
             pfStart, pfEnd = int(pfamRange[0]), int(pfamRange[1])
             uniStart, uniEnd = int(resrange[0]), int(resrange[1])
 
-            resiStart = pfStart - uniStart + partStart
-            resiEnd = pfEnd - uniStart + partStart
+            resiStart = pfStart - uniStart + partStart - missing
+            resiEnd = pfEnd - uniStart + partStart - missing
             ags[i] = ag.select('resindex {0} to {1}'.format(
                             resiStart, resiEnd)) 
         else:

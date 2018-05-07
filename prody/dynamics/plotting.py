@@ -234,7 +234,7 @@ def showProjection(ensemble, modes, *args, **kwargs):
     if SETTINGS['auto_show']:
         fig = plt.figure()
  
-    projection = calcProjection(ensemble, modes, kwargs.pop('rmsd', True), kwargs.pop('norm', True))
+    projection = calcProjection(ensemble, modes, kwargs.pop('rmsd', True), kwargs.pop('norm', False))
 
     if projection.ndim == 1 or projection.shape[1] == 1:
         show = plt.hist(projection.flatten(), *args, **kwargs)
@@ -396,7 +396,7 @@ def showCrossProjection(ensemble, mode_x, mode_y, scale=None, *args, **kwargs):
     if SETTINGS['auto_show']:
         plt.figure()
 
-    norm = kwargs.pop('norm', True)
+    norm = kwargs.pop('norm', False)
     xcoords, ycoords = calcCrossProjection(ensemble, mode_x, mode_y,
                                            scale=scale, norm=norm, **kwargs)
 
@@ -994,7 +994,7 @@ def showMeanMechStiff(model, coords, header, chain='A', *args, **kwargs):
         showFigure()
     return plt.show
 
-def showPerturbResponse(model, atoms=None, show_matrix=True, selection=None, **kwargs):
+def showPerturbResponse(model, atoms=None, show_matrix=True, select=None, **kwargs):
     """ Plot the PRS matrix with the profiles along the right and bottom.
 
     If atoms are provided then residue numbers can be used from there.
@@ -1022,6 +1022,8 @@ def showPerturbResponse(model, atoms=None, show_matrix=True, selection=None, **k
 
     from matplotlib.pyplot import gcf, xlabel, ylabel, legend, figure
 
+    select = kwargs.pop('select',None)
+
     prs_matrix, effectiveness, sensitivity = calcPerturbResponse(model, atoms=atoms)
 
     if show_matrix:
@@ -1031,7 +1033,7 @@ def showPerturbResponse(model, atoms=None, show_matrix=True, selection=None, **k
         ylabel('Residues')
 
     else:
-        if selection is None:
+        if select is None:
             kwargs.pop('figure', 'effectiveness'); fig = gcf()
             domain_bar = kwargs.pop('domain_bar', True)
             kwargs.pop('label', None)
@@ -1043,7 +1045,7 @@ def showPerturbResponse(model, atoms=None, show_matrix=True, selection=None, **k
             show = [show_eff, show_sen]
         else:
             show = []
-            profiles = sliceAtomicData(prs_matrix, atoms=atoms, selection=selection)
+            profiles = sliceAtomicData(prs_matrix, atoms=atoms, select=select)
             for i, profile in enumerate(profiles):
                 kwargs.pop('figure', None); fig = gcf()
                 show.append(showAtomicLines(profile, atoms, **kwargs))

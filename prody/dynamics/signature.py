@@ -78,7 +78,7 @@ class ModeEnsemble(object):
         if isinstance(modeset_index, slice):
             modesets = self._modesets[modeset_index]
             labels = None if self._labels is None else self._labels[modeset_index]
-        elif isinstance(modeset_index, (list, tuple)):
+        elif not np.isscalar(modeset_index):
             modesets = []; labels = []
             for i in modeset_index:
                 assert isinstance(i, Integral), 'all indices must be integers'
@@ -89,7 +89,7 @@ class ModeEnsemble(object):
             try:
                 modeset_index = int(modeset_index)
             except Exception:
-                raise IndexError('indices must be int, slice, list, or tuple')
+                raise IndexError('indices must be int, slice, or array-like objects')
             else:
                 return self._modesets[modeset_index][mode_index]
         

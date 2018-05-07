@@ -159,18 +159,16 @@ def parseEMDStream(stream, **kwargs):
 
         if map:
             emd, atomgroup = _parseEMDLines(atomgroup, stream, cutoff=cutoff, n_nodes=n_nodes, \
-                                            num_iter=num_iter, return_map=return_map, \
-                                            make_nodes=make_nodes)
+                                            num_iter=num_iter, map=map, make_nodes=make_nodes)
         else:
             atomgroup = _parseEMDLines(atomgroup, stream, cutoff=cutoff, n_nodes=n_nodes, \
-                                       num_iter=num_iter, return_map=return_map, \
-                                       make_nodes=make_nodes)
+                                       num_iter=num_iter, map=map, make_nodes=make_nodes)
+
         LOGGER.report('{0} atoms and {1} coordinate sets were '
                       'parsed in %.2fs.'.format(atomgroup.numAtoms(), atomgroup.numCoordsets()))
     else: 
         emd = _parseEMDLines(atomgroup, stream, cutoff=cutoff, n_nodes=n_nodes, \
-                             num_iter=num_iter, return_map=return_map, \
-                             make_nodes=make_nodes)
+                             num_iter=num_iter, map=map, make_nodes=make_nodes)
 
     if make_nodes:
         if map:
