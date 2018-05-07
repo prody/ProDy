@@ -7,7 +7,7 @@ from numbers import Integral
 import numpy as np
 
 from prody.proteins import fetchPDB, parsePDB, writePDB, mapOntoChain
-from prody.utilities import openFile, showFigure, copy
+from prody.utilities import openFile, showFigure, copy, isListLike
 from prody import LOGGER, SETTINGS
 from prody.atomic import AtomMap, Chain, AtomGroup, Selection, Segment, Select, AtomSubset
 
@@ -345,7 +345,7 @@ def alignPDBEnsemble(ensemble, suffix='_aligned', outdir='.', gzip=False):
         return output
 
 
-def buildPDBEnsemble(PDBs, ref=None, title='Unknown', labels=None, seqid=94, coverage=85, 
+def buildPDBEnsemble(*PDBs, ref=None, title='Unknown', labels=None, seqid=94, coverage=85, 
                      mapping_func=mapOntoChain, unmapped=None, **kwargs):
     """Builds a PDB ensemble from a given reference structure and a list of PDB structures. 
     Note that the reference structure should be included in the list as well.
@@ -384,7 +384,10 @@ def buildPDBEnsemble(PDBs, ref=None, title='Unknown', labels=None, seqid=94, cov
     subset = str(kwargs.get('subset', 'calpha')).lower()
 
     if len(PDBs) == 1:
-        raise ValueError('PDBs should have at least two items')
+        if isListLike(PDBs[0]):
+            PDBs = PDBs[0]
+        else:
+            raise ValueError('PDBs should have at least two items')
     if labels is not None:
         if len(labels) != len(PDBs):
             raise ValueError('labels and PDBs must be the same length')
@@ -472,7 +475,7 @@ def buildPDBEnsemble(PDBs, ref=None, title='Unknown', labels=None, seqid=94, cov
 
     return ensemble
 
-def addPDBEnsemble(ensemble, PDBs, refpdb=None, labels=None, seqid=94, coverage=85, 
+def addPDBEnsemble(ensemble, *PDBs, refpdb=None, labels=None, seqid=94, coverage=85, 
                    mapping_func=mapOntoChain, occupancy=None, unmapped=None, **kwargs):  
     """Adds extra structures to a given PDB ensemble. 
 
@@ -508,6 +511,10 @@ def addPDBEnsemble(ensemble, PDBs, refpdb=None, labels=None, seqid=94, coverage=
 
     degeneracy = kwargs.pop('degeneracy', True)
 
+    if len(PDBs) == 1:
+        if isListLike(PDBs[0]):
+            PDBs = PDBs[0]
+            
     if labels is not None:
         if len(labels) != len(PDBs):
             raise TypeError('Labels and PDBs must have the same lengths.')

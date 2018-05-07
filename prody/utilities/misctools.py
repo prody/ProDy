@@ -3,7 +3,7 @@ import re
 
 from numpy import unique, linalg, diag, sqrt, dot, chararray
 from numpy import diff, where, insert, nan, loadtxt, array
-from numpy import sign, arange, asarray
+from numpy import sign, arange, asarray, ndarray
 from collections import Counter
 import numbers
 
@@ -13,11 +13,20 @@ __all__ = ['Everything', 'rangeString', 'alnum', 'importLA', 'dictElement',
            'intorfloat', 'startswith', 'showFigure', 'countBytes', 'sqrtm',
            'saxsWater', 'count', 'addBreaks', 'copy', 'dictElementLoop', 
            'getDataPath', 'openData', 'chr2', 'toChararray', 'interpY', 'cmp',
-           'getValue', 'indentElement', 'isPDB']
+           'getValue', 'indentElement', 'isPDB', 'isURL', 'isListLike']
 
 # Note that the chain id can be blank (space). Examples:
 # 3TT1, 3tt1A, 3tt1:A, 3tt1_A, 3tt1-A, 3tt1 A
 isPDB = re.compile('^[A-Za-z0-9]{4}[ -_:]{,1}[A-Za-z0-9 ]{,1}$').match
+
+# django url validation regex
+isURL = re.compile(
+        r'^(?:http|ftp)s?://' # http:// or https://
+        r'(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+(?:[A-Z]{2,6}\.?|[A-Z0-9-]{2,}\.?)|' #domain...
+        r'localhost|' #localhost...
+        r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})' # ...or ip
+        r'(?::\d+)?' # optional port
+        r'(?:/?|[/?]\S+)$', re.IGNORECASE).match
 
 class Everything(object):
 
@@ -349,3 +358,6 @@ def indentElement(elem, level=0):
         if level and (not elem.tail or not elem.tail.strip()):
             elem.tail = j
     return elem 
+
+def isListLike(a):
+    return isinstance(a, (list, tuple, ndarray))

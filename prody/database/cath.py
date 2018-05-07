@@ -8,7 +8,7 @@ from numbers import Integral
 
 from prody import LOGGER, SETTINGS, PY3K
 from prody.utilities import makePath, gunzip, relpath, copyFile, openURL
-from prody.utilities import sympath, indentElement, isPDB
+from prody.utilities import sympath, indentElement, isPDB, isURL, isListLike
 
 if PY3K:
     import urllib.parse as urllib
@@ -19,7 +19,7 @@ else:
 
 import xml.etree.ElementTree as ET
 
-__all__ = ['CATHDB']
+__all__ = ['CATHDB', 'CATHElement']
 
 CATH_URL = 'http://download.cathdb.info'
 CATH_NAME_PATH = '/cath/releases/latest-release/cath-classification-data/cath-names.txt'
@@ -41,7 +41,7 @@ class CATHElement(ET.Element):
             return self.attrib[index]
 
     def __repr__(self):
-        if isDomain:
+        if self.isDomain():
             return '<CATHElement: {0}>'.format(self.id)
         return '<CATHElement: {0} ({1} members)>'.format(self.id, len(self))
 
@@ -56,6 +56,72 @@ class CATHElement(ET.Element):
     
     id = property(getID, setID)
 
+    def find(self, key):
+        for child in self:
+            if child.tag == key:
+                return child
+        return None
+
+    def numDomains(self):
+        n_leaves = 0
+        if self.isDomain():
+            n_leaves = 1
+        else:
+            for child in self:
+                if child.isLeaf():
+                    n_leaves += 1
+                else:
+                    n_leaves += child.numDomains()
+        return n_leaves
+
+    def getDomains(self):
+        leaves = []
+        if self.isDomain():
+            leaves.append(self)
+        else:
+            for child in self:
+                if child.isLeaf():
+                    leaves.append(child)
+                else:
+                    leaves.extend(child.getDomains())
+        return leaves
+
+    def getPDBs(self, include_chain=True):
+        pdbs = []
+        if self.isDomain():
+            pdb_id = self.attrib['pdb']
+            if include_chain:
+                pdb_id += self.attrib['chain']
+            pdbs.append(pdb_id)
+        else:
+            for child in self:
+                if child.isLeaf():
+                    pdbs.append(child)
+                else:
+                    pdbs.extend(child.getPDBs(include_chain=include_chain))
+        return pdbs
+
+class CATHCollection(CATHElement):
+    def __init__(self, items):
+        super(CATHCollection, self).__init__(tag='cath', attrib={})
+
+        if not isListLike(items):
+            items = [items]
+
+        for item in items:
+            self.append(item)
+
+    def __repr__(self):
+        names = []
+        n = 0
+        for child in self:
+            n += 1
+            if n > 100:
+                names.append('...')
+            else:
+                names.append(repr(child))
+
+        return '<CATHCollection:\n[%s]>'%'\n'.join(names)
 
 class CATHDB(ET.ElementTree):
     def __init__(self, source=CATH_URL):
@@ -65,11 +131,14 @@ class CATHDB(ET.ElementTree):
         self._raw_names = None
         self._raw_domains = None
         self._raw_boundaries = None
-        self._result = None
+        self._map = {'root': self.root}
 
         if source is not None:
             self.update()
     
+    def __repr__(self):
+        return "<CATHDB: {0} members>".format(len(self.root))
+
     def reset(self):
         # by removing the immediate children of root, 
         # all the descendants will be removed
@@ -91,12 +160,10 @@ class CATHDB(ET.ElementTree):
         if isinstance(source, str):
             if isfile(source):
                 type_ = 1
+            elif isURL(source):
+                type_ = 0
             else:
-                try:
-                    tree = ET.fromstring(source)
-                    type_ = 2
-                except:
-                    type_ = 0
+                type_ = 2
         elif hasattr(source, 'read'):
                 type_ = 1
         else:
@@ -110,12 +177,16 @@ class CATHDB(ET.ElementTree):
             LOGGER.info('Parsing CATH files...')
             self._parse()
         elif type_ == 1:
+            LOGGER.info('Reading data from the local xml file...')
             tree = ET.parse(source)
+        elif type_ == 2:
+            LOGGER.info('Parsing input string...')
+            tree = ET.fromstring(source)
 
         # post-processing
         if type_ > 0:
             root = tree.getroot()
-            nodes = root.findall('.//*')
+            nodes = root.iter()
 
             # remove prefix from node tags
             for node in nodes:
@@ -127,13 +198,26 @@ class CATHDB(ET.ElementTree):
                 node.attrib['length'] = int(node.attrib['length'])
             
             copy2(root, self.root)
+            self._update_map()
 
         LOGGER.report('CATH local database built in %.2fs.', '_cath_update')
 
+    def _update_map(self, parent=None):
+        if parent is None:
+            parent = self.root
+        for child in parent:
+            self._map[child.id] = child
+            self._update_map(child)
+
     def copy(self):
-        root = CATHElement('root')
         db = CATHDB(source=None)
-        copy2(self.root, root)
+        copy2(self.root, db.root)
+
+        db._map = self._map
+        db._source = self._source
+        db._raw_names = self._raw_names
+        db._raw_domains = self._raw_domains
+        db._raw_boundaries = self._raw_boundaries
         return db
 
     def save(self, file='cath.xml'):
@@ -156,7 +240,7 @@ class CATHDB(ET.ElementTree):
             node.attrib['length'] = str(node.attrib['length'])
         
         # add prefix to node tags
-        nodes = root.findall('.//*')
+        nodes = root.iter()
         for node in nodes:
             node.tag = 'id.' + node.tag
 
@@ -170,15 +254,21 @@ class CATHDB(ET.ElementTree):
 
         LOGGER.report('CATH local database saved in %.2fs.', '_cath_write')
 
-    def get(self, identifier='root'):
-        """Get an :class:`xml.etree.Element` object given a tag name."""
+    def find(self, identifier='root'):
+        """Find an :class:`xml.etree.Element` object given *identifier*."""
 
         if len(self.root) is None:
             raise ValueError('local database has not been built, '
                              'please call update() first')
         if identifier != 'root':
-            iter = self.iter(identifier)
-            data = next(iter)
+            try:
+                data = self._map[identifier]
+            except KeyError:
+                iter = self.iter(identifier)
+                try:
+                    data = next(iter)
+                except StopIteration:
+                    data = None
         else:
             data = self.root
         return data
@@ -253,15 +343,18 @@ class CATHDB(ET.ElementTree):
             if level == 1:
                 node = CATHElement(cath_id, attrib=attrib)
                 root.append(node)
+                self._map[cath_id] = node
             else:
                 parent_id = getParent(cath_id)
-                parent = findNodeByCATH(root, parent_id)
+                #parent = findNodeByCATH(root, parent_id)
+                parent = self.find(parent_id)
                 if parent is None:
                     LOGGER.warn('error encountered when building the tree: {0}'
                                 .format(cath_id))
                     continue
                 node = CATHElement(cath_id, attrib=attrib)
                 parent.append(node)
+                self._map[cath_id] = node
 
         # parsing the domain file
         lines = domain_data.splitlines()
@@ -303,13 +396,15 @@ class CATHDB(ET.ElementTree):
                       'length': length,
                       'range': ''}
 
-            parent = findNodeByCATH(root, cath_id)
+            #parent = findNodeByCATH(root, cath_id)
+            parent = self.find(cath_id)
             if parent is None:
                 LOGGER.warn('error encountered when assigning domains: {0}'
                             .format(domain_id))
                 continue
             node = CATHElement(domain_id, attrib=attrib)
             parent.append(node)
+            self._map[domain_id] = node
 
         # parsing the boundary file
         lines = boundary_data.splitlines()
@@ -324,7 +419,8 @@ class CATHDB(ET.ElementTree):
 
             domain_id, resrange = items
 
-            node = findNodeByCATH(root, cath_id)
+            #node = findNodeByCATH(root, cath_id)
+            parent = self.find(cath_id)
             if node is None:
                 LOGGER.warn('error encountered when assigning domain boundaries: {0}'
                             .format(domain_id))
@@ -338,17 +434,17 @@ class CATHDB(ET.ElementTree):
 
         ret = None
         if isCATH(identifier):
-            ret = self.get(identifier)
+            ret = self.find(identifier)
         elif isDomain(identifier):
             identifier = identifier[:4].lower() + identifier[-3:]
-            ret = self.get(identifier)
+            ret = self.find(identifier)
         elif isPDB(identifier):
             pdb_id = identifier[:4].lower()
             chain = identifier[4:]
             for gap in ' -_:':
                 chain = chain.replace(gap, '')
             
-            root = self.get()
+            root = self.find()
             nodes = root.findall('.//*[@pdb="%s"]'%pdb_id)
             if chain.strip() != '':
                 for i in range(len(nodes)-1, -1, -1):
@@ -360,13 +456,9 @@ class CATHDB(ET.ElementTree):
             raise ValueError('identifier can be a 4-digit PDB ID plus 1-digit chain ID '
                              '(optional), 7-digit domain ID, or CATH ID.')
         
-        self._result = ret
+        if ret is not None:
+            ret = CATHCollection(ret)
         return ret
-
-    def getCATH(self, node=None):
-        if node is None:
-            node = self._result
-        return node.attrib['cath']
 
 # Note: all the following functions should be kept hidden from users
 def splitCATH(cath_id, cumul=False):
@@ -382,8 +474,6 @@ def splitCATH(cath_id, cumul=False):
 def findNodeByCATH(root, cath_id):
     fields = splitCATH(cath_id, cumul=True)
 
-    if len(fields) == 3:
-        pass
     node = root
     for field in fields:
         node = node.find(field)
