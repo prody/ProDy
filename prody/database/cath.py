@@ -147,10 +147,21 @@ class CATHElement(ET.Element):
 
         return ret
 
+    def getchildren(self):
+        children = super(CATHElement, self).getchildren()
+        collection = CATHCollection(children, self)
+        return collection
 
 class CATHCollection(CATHElement):
-    def __init__(self, items):
-        super(CATHCollection, self).__init__(tag='cath', attrib={})
+    def __init__(self, items, element=None):
+        if element is not None:
+            tag = element.tag
+            attrib = element.attrib
+        else:
+            tag = 'cath'
+            attrib = {}
+
+        super(CATHCollection, self).__init__(tag=tag, attrib=attrib)
 
         if not isListLike(items):
             items = [items]
@@ -165,6 +176,7 @@ class CATHCollection(CATHElement):
             n += 1
             if n > 100:
                 names.append('...')
+                break
             else:
                 names.append(repr(child))
 
@@ -177,6 +189,15 @@ class CATHCollection(CATHElement):
         return cath
 
     cath = property(getCATH)
+
+    def getID(self):
+        tags = []
+        for child in self:
+            tags.append(child.tag)
+        return tags
+    
+    id = property(getID)
+
 
 class CATHDB(ET.ElementTree):
     def __init__(self, source=CATH_URL):
@@ -521,7 +542,8 @@ class CATHDB(ET.ElementTree):
                              '(optional), 7-digit domain ID, or CATH ID.')
         
         if ret is not None:
-            ret = CATHCollection(ret)
+            if isinstance(ret, list):
+                ret = CATHCollection(ret)
         return ret
 
 # Note: all the following functions should be kept hidden from users
