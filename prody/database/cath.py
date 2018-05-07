@@ -7,6 +7,7 @@ import re
 from numbers import Integral
 
 from prody import LOGGER, SETTINGS, PY3K
+from prody.proteins import parsePDB
 from prody.utilities import makePath, gunzip, relpath, copyFile, openURL
 from prody.utilities import sympath, indentElement, isPDB, isURL, isListLike
 
@@ -68,7 +69,7 @@ class CATHElement(ET.Element):
             n_leaves = 1
         else:
             for child in self:
-                if child.isLeaf():
+                if child.isDomain():
                     n_leaves += 1
                 else:
                     n_leaves += child.numDomains()
@@ -80,26 +81,72 @@ class CATHElement(ET.Element):
             leaves.append(self)
         else:
             for child in self:
-                if child.isLeaf():
+                if child.isDomain():
                     leaves.append(child)
                 else:
                     leaves.extend(child.getDomains())
         return leaves
 
-    def getPDBs(self, include_chain=True):
+    def getDomainData(self, attr):
+        leaves = self.getDomains()
+        data = []
+
+        for leaf in leaves:
+            data.append(leaf[attr])
+        return data
+
+    def getPDBs(self, chain=True):
+        leaves = self.getDomains()
         pdbs = []
-        if self.isDomain():
-            pdb_id = self.attrib['pdb']
-            if include_chain:
-                pdb_id += self.attrib['chain']
+
+        for leaf in leaves:
+            pdb_id = leaf.attrib['pdb']
+            if chain:
+                pdb_id += leaf.attrib['chain']
             pdbs.append(pdb_id)
-        else:
-            for child in self:
-                if child.isLeaf():
-                    pdbs.append(child)
-                else:
-                    pdbs.extend(child.getPDBs(include_chain=include_chain))
+        
         return pdbs
+
+    def getSelectStrs(self):
+        leaves = self.getDomains()
+        data = []
+
+        for leaf in leaves:
+            rangestr = leaf.attrib['range']
+            selstr = range2selstr(rangestr)
+            data.append(selstr)
+        return data
+
+    def getCATH(self):
+        return self.attrib['cath']
+
+    cath = property(getCATH)
+
+    def parsePDBs(self, **kwargs):
+        """Load PDB into memory as :class:`.AtomGroup` instances using :func:`.parsePDB` and 
+        perform selection based on residue ranges given by CATH."""
+        
+        pdbs = self.getPDBs(True)
+        selstrs = self.getSelectStrs()
+        header = kwargs.get('header', False)
+
+        LOGGER.timeit('_cath_parsePDB')
+        LOGGER.info('Parsing {0} PDB files...'.format(len(pdbs)))
+        ret = parsePDB(*pdbs, **kwargs)
+
+        if header:
+            prots, _ = ret
+        else:
+            prots = ret
+
+        LOGGER.info('Extracting domains...')
+        for i in range(len(prots)):
+            sel = prots[i].select(selstrs[i])
+            prots[i] = sel
+        LOGGER.report('CATH domains are parsed and extracted in %.2fs', '_cath_parsePDB')
+
+        return ret
+
 
 class CATHCollection(CATHElement):
     def __init__(self, items):
@@ -123,6 +170,14 @@ class CATHCollection(CATHElement):
 
         return '<CATHCollection:\n[%s]>'%'\n'.join(names)
 
+    def getCATH(self):
+        cath = []
+        for child in self:
+            cath.append(child.attrib['cath'])
+        return cath
+
+    cath = property(getCATH)
+
 class CATHDB(ET.ElementTree):
     def __init__(self, source=CATH_URL):
         self.root = CATHElement('root')
@@ -132,6 +187,9 @@ class CATHDB(ET.ElementTree):
         self._raw_domains = None
         self._raw_boundaries = None
         self._map = {'root': self.root}
+
+        # this property is only for debug purposes and will not be copied
+        self._unclassified = {}
 
         if source is not None:
             self.update()
@@ -144,6 +202,8 @@ class CATHDB(ET.ElementTree):
         # all the descendants will be removed
         for child in self.root:
             self.root.remove(child)
+
+        self._unclassified = {}
 
     def update(self, source=None):
         """Update data and files from CATH."""
@@ -419,8 +479,12 @@ class CATHDB(ET.ElementTree):
 
             domain_id, resrange = items
 
-            #node = findNodeByCATH(root, cath_id)
-            parent = self.find(cath_id)
+            if domain_id in self._map:
+                node = self.find(domain_id)
+            else:
+                self._unclassified[domain_id] = resrange
+                continue
+
             if node is None:
                 LOGGER.warn('error encountered when assigning domain boundaries: {0}'
                             .format(domain_id))
@@ -503,3 +567,41 @@ def copy2(a, b):
         node = CATHElement(c.tag, c.attrib)
         b.append(node)
         copy2(c, node)
+
+def range2selstr(rangestr):
+    if rangestr.strip() == '':
+        return None
+    frags = rangestr.split(',')
+    sels = []
+    for frag in frags:
+        try:
+            fromtos = frag.split('-')
+            if len(fromtos) == 2:
+                fro, to = fromtos
+            else:
+                LOGGER.warn('range "%s" is irregular'%rangestr)
+                fro = '1'
+                to = fromtos[-1]
+            fro_num = intResnum(fro)
+            to_num = intResnum(to)
+
+            if fro_num > to_num:
+                LOGGER.warn('range "%s" is irregular'%rangestr)
+                to_num = fro_num
+                fro_num = 1
+            fro = str(fro_num)
+            to = str(to_num)
+        except ValueError:
+            print('error occurred when parsing "%s"'%rangestr)
+            continue
+        sels.append('resnum %s to %s'%(fro, to))
+    selstr = ' or '.join(sels)
+    return selstr
+
+def intResnum(resnum):
+    match = re.findall('[0-9\\-]+', resnum)
+    num = None
+    if match:
+        num = int(match[0])
+    return num
+    
