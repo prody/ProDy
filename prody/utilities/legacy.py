@@ -1014,3 +1014,11 @@ def fetchCATH(filename, ftp_host=None, ftp_path=None, **kwargs):
                     failure += 1
                     filenames.append(None)
         ftp.quit()
+
+# ftp://orengoftp.biochem.ucl.ac.uk/cath/releases/daily-release/newest/
+
+# fetchCATH('cath-b-newest-names.gz')
+# cath_id2name = buildCATHNameDict('cath-b-newest-names.gz')
+
+# fetchCATH('cath-b-newest-all.gz')
+# pdbChain2CATH = buildPDBChainCATHDict('cath-b-newest-all.gz')

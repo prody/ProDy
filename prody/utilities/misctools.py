@@ -17,7 +17,7 @@ __all__ = ['Everything', 'rangeString', 'alnum', 'importLA', 'dictElement',
 
 # Note that the chain id can be blank (space). Examples:
 # 3TT1, 3tt1A, 3tt1:A, 3tt1_A, 3tt1-A, 3tt1 A
-isPDB = re.compile('^[A-Za-z0-9]{4}[ -_:]{,1}[A-Za-z0-9 ]{1}$').match
+isPDB = re.compile('^[A-Za-z0-9]{4}[ -_:]{,1}[A-Za-z0-9 ]{,1}$').match
 
 class Everything(object):
 

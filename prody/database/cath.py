@@ -4,6 +4,7 @@ from os.path import sep as pathsep
 from os.path import isdir, isfile, join, split, splitext, normpath
 
 import re
+from numbers import Integral
 
 from prody import LOGGER, SETTINGS, PY3K
 from prody.utilities import makePath, gunzip, relpath, copyFile, openURL
@@ -29,30 +30,70 @@ isCATH = re.compile('^[0-9.]+$').match
 # Note that if the chain id is blank, it will be represented by "0" in CATH domain ID.
 isDomain = re.compile('^[A-Za-z0-9]{5}[0-9]{2}$').match
 
-class CATHDB(object):
-    def __init__(self, source=None):
+class CATHElement(ET.Element):
+    def __init__(self, tag, attrib={}, **extra):
+        super(CATHElement, self).__init__(tag, attrib, **extra)
 
-        self._source = source or CATH_URL
+    def __getitem__(self, index):
+        if isinstance(index, Integral):
+            return super(CATHElement, self).__getitem__(index)
+        else:
+            return self.attrib[index]
+
+    def __repr__(self):
+        if isDomain:
+            return '<CATHElement: {0}>'.format(self.id)
+        return '<CATHElement: {0} ({1} members)>'.format(self.id, len(self))
+
+    def isDomain(self):
+        return isDomain(self.id)
+
+    def getID(self):
+        return self.tag
+
+    def setID(self, value):
+        self.tag = value
+    
+    id = property(getID, setID)
+
+
+class CATHDB(ET.ElementTree):
+    def __init__(self, source=CATH_URL):
+        self.root = CATHElement('root')
+        super(CATHDB, self).__init__(self.root)
+        self._source = source
         self._raw_names = None
         self._raw_domains = None
         self._raw_boundaries = None
-        self.tree = None
+        self._result = None
 
-        self.update()
+        if source is not None:
+            self.update()
     
+    def reset(self):
+        # by removing the immediate children of root, 
+        # all the descendants will be removed
+        for child in self.root:
+            self.root.remove(child)
+
     def update(self, source=None):
         """Update data and files from CATH."""
 
         self._source = source = self._source or source
-        LOGGER.timeit('_cath_update')
+        self.reset()
+        if source is None:
+            return
 
+        LOGGER.timeit('_cath_update')
+        
         type_ = 0
+        tree = None
         if isinstance(source, str):
             if isfile(source):
                 type_ = 1
             else:
                 try:
-                    self.tree = ET.fromstring(source)
+                    tree = ET.fromstring(source)
                     type_ = 2
                 except:
                     type_ = 0
@@ -69,13 +110,14 @@ class CATHDB(object):
             LOGGER.info('Parsing CATH files...')
             self._parse()
         elif type_ == 1:
-            self.tree = ET.parse(source)
+            tree = ET.parse(source)
 
+        # post-processing
         if type_ > 0:
-            root = self.tree.getroot()
+            root = tree.getroot()
+            nodes = root.findall('.//*')
 
             # remove prefix from node tags
-            nodes = root.findall('.//*')
             for node in nodes:
                 node.tag = node.tag.lstrip('id.')
 
@@ -83,8 +125,16 @@ class CATHDB(object):
             length_nodes = root.findall('.//*[@length]')
             for node in length_nodes:
                 node.attrib['length'] = int(node.attrib['length'])
+            
+            copy2(root, self.root)
 
         LOGGER.report('CATH local database built in %.2fs.', '_cath_update')
+
+    def copy(self):
+        root = CATHElement('root')
+        db = CATHDB(source=None)
+        copy2(self.root, root)
+        return db
 
     def save(self, file='cath.xml'):
         """Write local CATH database to an XML file. *file* can either be a 
@@ -93,12 +143,11 @@ class CATHDB(object):
         LOGGER.timeit('_cath_write')
         LOGGER.info('Writing data to xml...')
 
-        if self.tree is None:
-            raise ValueError('local database has not been built')
+        if not len(self.root):
+            raise ValueError('local database has not been built, '
+                             'please call update() first')
 
-        from copy import deepcopy
-
-        tree = deepcopy(self.tree)
+        tree = self.copy()
         root = tree.getroot()
 
         # convert int to str
@@ -124,14 +173,14 @@ class CATHDB(object):
     def get(self, identifier='root'):
         """Get an :class:`xml.etree.Element` object given a tag name."""
 
-        if self.tree is None:
-            raise ValueError('local database has not been built')
-        data = self.tree
+        if len(self.root) is None:
+            raise ValueError('local database has not been built, '
+                             'please call update() first')
         if identifier != 'root':
-            iter = data.iter(identifier)
+            iter = self.iter(identifier)
             data = next(iter)
         else:
-            data = data.getroot()
+            data = self.root
         return data
 
     def _fetch(self):
@@ -166,8 +215,6 @@ class CATHDB(object):
         self._raw_names = name_data
         self._raw_domains = domain_data
         self._raw_boundaries = boundary_data
-
-        self.tree = None
         
     def _parse(self):
         """Parse CATH files into a :class:`~xml.etree.ElementTree` structure. 
@@ -180,7 +227,7 @@ class CATHDB(object):
         domain_data = self._raw_domains
         boundary_data = self._raw_boundaries
 
-        root = ET.Element('root')
+        root = self.root
 
         # parsing the name file
         lines = name_data.splitlines()
@@ -197,12 +244,15 @@ class CATHDB(object):
             #chain = domain_id[4]
 
             level = getLevel(cath_id)
-            attrib = {'rep': domain_id,
+            attrib = {'cath': cath_id,
+                      'rep': domain_id,
                       'name': cath_name,}
                       #'pdb': pdb_id,
                       #'chain': chain}
+            
             if level == 1:
-                node = ET.SubElement(root, cath_id, attrib=attrib)
+                node = CATHElement(cath_id, attrib=attrib)
+                root.append(node)
             else:
                 parent_id = getParent(cath_id)
                 parent = findNodeByCATH(root, parent_id)
@@ -210,7 +260,8 @@ class CATHDB(object):
                     LOGGER.warn('error encountered when building the tree: {0}'
                                 .format(cath_id))
                     continue
-                node = ET.SubElement(parent, cath_id, attrib=attrib)
+                node = CATHElement(cath_id, attrib=attrib)
+                parent.append(node)
 
         # parsing the domain file
         lines = domain_data.splitlines()
@@ -238,6 +289,8 @@ class CATHDB(object):
             domain_id = items[0]
             pdb_id = domain_id[:4]
             chain = domain_id[4]
+            if chain == '0':
+                chain = ''
             
             cath_id = '.'.join(items[1:5])
             #S35, S60, S95, S100 = items[5:9]
@@ -255,7 +308,8 @@ class CATHDB(object):
                 LOGGER.warn('error encountered when assigning domains: {0}'
                             .format(domain_id))
                 continue
-            node = ET.SubElement(parent, domain_id, attrib=attrib)
+            node = CATHElement(domain_id, attrib=attrib)
+            parent.append(node)
 
         # parsing the boundary file
         lines = boundary_data.splitlines()
@@ -276,31 +330,45 @@ class CATHDB(object):
                             .format(domain_id))
                 continue
             node.attrib['range'] = resrange
-        
-        self.tree = ET.ElementTree(root)
     
     def search(self, identifier):
-        """Search the *identifier* against the local CATH database. *identifier* 
-        can be a 4-digit PDB ID plus 1-digit chain ID (optional), 7-digit domain ID, 
-        or CATH ID."""
+        """Search the *identifier* against the local CATH database and return a list 
+        of :class:`~xml.etree.ElementTree` instances. *identifier* can be a 4-digit 
+        PDB ID plus an 1-digit chain ID (optional), 7-digit domain ID, or CATH ID."""
 
+        ret = None
         if isCATH(identifier):
-            return self.get(identifier)
+            ret = self.get(identifier)
         elif isDomain(identifier):
             identifier = identifier[:4].lower() + identifier[-3:]
-            return self.get(identifier)
+            ret = self.get(identifier)
         elif isPDB(identifier):
             pdb_id = identifier[:4].lower()
             chain = identifier[4:]
-
             for gap in ' -_:':
                 chain = chain.replace(gap, '')
             
+            root = self.get()
+            nodes = root.findall('.//*[@pdb="%s"]'%pdb_id)
+            if chain.strip() != '':
+                for i in range(len(nodes)-1, -1, -1):
+                    node = nodes[i]
+                    if node.attrib['chain'] != chain:
+                        del nodes[i]
+            ret = nodes
         else:
             raise ValueError('identifier can be a 4-digit PDB ID plus 1-digit chain ID '
                              '(optional), 7-digit domain ID, or CATH ID.')
-        pass
+        
+        self._result = ret
+        return ret
 
+    def getCATH(self, node=None):
+        if node is None:
+            node = self._result
+        return node.attrib['cath']
+
+# Note: all the following functions should be kept hidden from users
 def splitCATH(cath_id, cumul=False):
     fields = cath_id.split('.')
 
@@ -339,10 +407,9 @@ def isLeaf(cath_id):
 
     return level == 4
 
-# ftp://orengoftp.biochem.ucl.ac.uk/cath/releases/daily-release/newest/
-
-# fetchCATH('cath-b-newest-names.gz')
-# cath_id2name = buildCATHNameDict('cath-b-newest-names.gz')
-
-# fetchCATH('cath-b-newest-all.gz')
-# pdbChain2CATH = buildPDBChainCATHDict('cath-b-newest-all.gz')
+def copy2(a, b):
+    """Copy a tree structure from *a* to *b*"""
+    for c in a:
+        node = CATHElement(c.tag, c.attrib)
+        b.append(node)
+        copy2(c, node)
