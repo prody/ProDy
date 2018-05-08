@@ -363,7 +363,6 @@ class CATHDB(ET.ElementTree):
             f = filename
         else:
             fn = filename
-            f = open(filename, 'w')
 
         LOGGER.info('Writing data to {0}...'.format(fn))
 
@@ -386,7 +385,9 @@ class CATHDB(ET.ElementTree):
 
         # add indentation to nodes
         indentElement(root)
-
+        
+        if isinstance(filename, str):
+            f = open(filename, 'wb')
         tree.write(f, encoding='utf-8')
         f.close()
 
