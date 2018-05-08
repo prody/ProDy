@@ -1073,10 +1073,14 @@ def _checkDomainBarParameter(domain_bar, defpos, atoms, label):
     # check if the domain bar can be shown or not
     try:
         data = atoms.getData(label)
-        uniq = np.unique(data)
-        if domain_bar is None:
-            show &= len(uniq) > 1
+        if data is not None:
+            uniq = np.unique(data)
+            if domain_bar is None:
+                show &= len(uniq) > 1
     except:
+        data = None
+
+    if data is None:
         if domain_bar is None:
             show &= False
         if show:
