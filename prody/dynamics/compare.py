@@ -165,7 +165,7 @@ def calcSpectralOverlap(modes1, modes2):
     implements equation 11 in [BH02]_.
 
     .. [BH02] Hess B. Convergence of sampling in protein simulations.
-    *Phys Rev E* **2002** 65(3):031910.
+        *Phys Rev E* **2002** 65(3):031910.
     
     """
 
