@@ -222,7 +222,10 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
         vmin = np.percentile(matrix, p)
         vmax = np.percentile(matrix, 100-p)
     else:
-        vmin = vmax = None
+        vmin = kwargs.pop('vmin', None)
+        vmax = kwargs.pop('vmax', None)
+
+    
     
     W = H = kwargs.pop('ratio', 6)
 
