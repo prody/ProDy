@@ -7,8 +7,15 @@ from prody import ANM, RTB, calcSqFlucts
 
 __all__ = ['rtb_domain', 'plot_cc', 'plot_msf']
 
-def rtb_domain(pdb, ndomains_l, ndomains_u,
-               msf_other, radius=15., affinity=None):
+
+def rtb_domain(pdb,
+               ndomains_l,
+               ndomains_u,
+               msf_other,
+               radius=15.,
+               affinity=None,
+               n_init=10,
+               n_jobs=-1):
 
     coo = pdb.getCoords()
     bfact = pdb.getBetas()
@@ -20,7 +27,8 @@ def rtb_domain(pdb, ndomains_l, ndomains_u,
         affinity = affinity
 
     for n in range(ndomains_l, ndomains_u + 1):
-        sc_pre = SpectralClustering(n_clusters=n, affinity='precomputed')
+        sc_pre = SpectralClustering(
+            n_clusters=n, affinity='precomputed', n_init=n_init, n_jobs=n_jobs)
         sc_pre_labels = sc_pre.fit_predict(affinity)
         labels[n] = sc_pre_labels
 
@@ -41,10 +49,12 @@ def rtb_domain(pdb, ndomains_l, ndomains_u,
 
 
 def plot_cc(rtb, n_domains_l, n_domains_u):
-    
+
     fig, ax = plt.subplots(nrows=1, ncols=2, figsize=(8, 4), dpi=100)
-    ax[0].plot(np.arange(n_domains_l, n_domains_u + 1), rtb[0])
-    ax[1].plot(np.arange(n_domains_l, n_domains_u + 1), rtb[1])
+    ax[0].grid()
+    ax[0].plot(np.arange(n_domains_l, n_domains_u + 1), rtb[0], '.-')
+    ax[1].grid()
+    ax[1].plot(np.arange(n_domains_l, n_domains_u + 1), rtb[1], '.-')
     ax[0].set_xlabel('# of domains')
     ax[0].set_ylabel("CC between Other's and RTBs' MSFs")
 
@@ -56,11 +66,12 @@ def plot_cc(rtb, n_domains_l, n_domains_u):
 
 
 def plot_msf(other, rtb, n_domains_l, n_domains_u):
-    
+
     plt.figure(figsize=(10, 5), dpi=100)
     plt.plot(other, label='Other MSFs')
-    for n in range( n_domains_l, n_domains_u + 1):
-        plt.plot(rtb[n] * np.mean(other) / np.mean(rtb[n]), label='{}'.format(n))
+    for n in range(n_domains_l, n_domains_u + 1):
+        plt.plot(
+            rtb[n] * np.mean(other) / np.mean(rtb[n]), label='{}'.format(n))
     plt.legend()
     plt.xlabel('# of res')
     plt.ylabel('MSFs of both other and RTBs')
