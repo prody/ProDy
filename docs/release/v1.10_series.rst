@@ -25,17 +25,17 @@ Signature Dynamics
 ^^^^^^^^^^^^^^^^^^
 
   * Added :func:`.calcEnsembleENMs` to compute ENMs on each conformation of a 
-  given ensemble to obtain an ensemble of modes.
+    given ensemble to obtain an ensemble of modes.
 
   * Added :class:`.ModeEnsemble` and :class:`.sdarray` classes as the basic 
-  data types for signature dynamics.
+    data types for signature dynamics.
 
   * Added functions such as :func:`.calcSignatureSqFlucts`, 
-  :func:`.calcSignatureCrossCorr`, :func:`.calcSignatureFractVariance` to 
-  extract signature dynamics.
+    :func:`.calcSignatureCrossCorr`, :func:`.calcSignatureFractVariance` to 
+    extract signature dynamics.
 
   * Added :func:`.calcEnsembleSpectralOverlaps` to obtain dynamical 
-  overlaps/distances among the conformations in a given ensemble.
+    overlaps/distances among the conformations in a given ensemble.
 
 
 **New Features**:
@@ -43,10 +43,10 @@ Signature Dynamics
 *Visualization*
 
   * Added :func:`.showAtomicLines` and :func:`.showAtomicMatrix` functions to 
-  improve visualization.
+    improve visualization.
 
   * Added an *networkx* option to :func:`.showTree` so that the user can choose 
-  to use :mod:`~networkx` to visualize a given tree.
+    to use :mod:`~networkx` to visualize a given tree.
 
 
 *Ensemble and PDBEnsemble*
@@ -54,17 +54,17 @@ Signature Dynamics
   * Associated an :class:`.MSA` object to the :class:`.PDBEnsemble` class.
 
   * Added an *pairwise* option to :meth:`.Ensemble.getRMSDs` to obtain an 
-  RMSD table of every pair of conformations in the ensemble.
+    RMSD table of every pair of conformations in the ensemble.
 
   * Improved :meth:`.Ensemble.setAtoms` for selecting a subset of 
-  residues/atoms of the ensemble.
+    residues/atoms of the ensemble.
 
 *Databases and Web Services*
 
   * Added methods and classes for obtaining data from *CATH* and *Dali*.
   
   * Added additional functions for *Uniprot* and *Pfam* such as 
-  :func:`.queryUniprot` and :func:`.parsePfamPDBs`.
+    :func:`.queryUniprot` and :func:`.parsePfamPDBs`.
 
 *Bug Fixes and Improvements*
 

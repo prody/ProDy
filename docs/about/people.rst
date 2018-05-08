@@ -20,6 +20,8 @@ Development Team
 
 `Hongchun Li`_ is currently maintaining and developing ANM and GNM servers. 
 
+`James Krieger`_ is currently helping develop *ProDy*.
+
 `Anindita Dutta`_ contributed to the development of *Evol*,
 :mod:`.database` and :mod:`~.prody.sequence` modules.
 
@@ -56,7 +58,8 @@ insights.
 .. _Ying Liu: http://www.linkedin.com/pub/ying-liu/15/48b/5a9
 .. _Kian Ho: https://github.com/kianho
 .. _Gökçen Eraslan: http://blog.yeredusuncedernegi.com/
-.. _Tim Lezon: www.csb.pitt.edu/Faculty/Lezon/
+.. _Tim Lezon: http://www.csb.pitt.edu/Faculty/Lezon/
 .. _Chakra Chennubhotla: http://www.csb.pitt.edu/Faculty/Chakra/
 .. _She (John) Zhang: http://www.csb.pitt.edu/Faculty/bahar/lab.html
 .. _Hongchun Li: http://www.csb.pitt.edu/Faculty/bahar/lab.html
+.. _James Krieger: http://www.csb.pitt.edu/Faculty/bahar/lab.html

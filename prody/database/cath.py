@@ -349,12 +349,23 @@ class CATHDB(ET.ElementTree):
         db._raw_boundaries = self._raw_boundaries
         return db
 
-    def save(self, file='cath.xml'):
-        """Write local CATH database to an XML file. *file* can either be a 
+    def save(self, filename='cath.xml'):
+        """Write local CATH database to an XML file. *filename* can either be a 
         file name or a handle."""
 
         LOGGER.timeit('_cath_write')
-        LOGGER.info('Writing data to xml...')
+
+        if not isinstance(filename, str):
+            try:
+                fn = filename.name
+            except AttributeError:
+                fn = repr(filename)
+            f = filename
+        else:
+            fn = filename
+            f = open(filename, 'w')
+
+        LOGGER.info('Writing data to {0}...'.format(fn))
 
         if not len(self.root):
             raise ValueError('local database has not been built, '
@@ -376,10 +387,8 @@ class CATHDB(ET.ElementTree):
         # add indentation to nodes
         indentElement(root)
 
-        if isinstance(file, str):
-            file = open(file, 'wb')
-        tree.write(file)
-        file.close()
+        tree.write(f, encoding='utf-8')
+        f.close()
 
         LOGGER.report('CATH local database saved in %.2fs.', '_cath_write')
 
@@ -426,10 +435,10 @@ class CATHDB(ET.ElementTree):
             raise type(error)('HTTP connection problem when extracting domain boundaries: '\
                               + repr(error))
 
-        if PY3K:
-            name_data = name_data.decode()
-            domain_data = domain_data.decode()
-            boundary_data = boundary_data.decode()
+        #if PY3K:
+        name_data = name_data.decode('utf-8')
+        domain_data = domain_data.decode('utf-8')
+        boundary_data = boundary_data.decode('utf-8')
 
         self._raw_names = name_data
         self._raw_domains = domain_data

@@ -50,7 +50,7 @@ ProDy 0.8 Series
     :func:`.blastPDB` function for fast access to structures of
     the same protein (at 95% sequence identity level) or similar proteins.
 
-  * Perturbation response scanning method described in [AA09]_ is implemented
+  * Perturbation response scanning method described in [CA09]_ is implemented
     as :func:`.scanPerturbationResponse` based on the code provided
     by Ying Liu.
 
@@ -288,3 +288,8 @@ Normal Mode Wizard
 **Changes**:
 
   * Help is provided in a text window to provide a cleaner GUI.
+
+
+.. [CA09] Atilgan C, Atilgan AR. 
+   Perturbation-response scanning reveals ligand entry-exit mechanisms of ferric 
+   binding protein. *PLoS Comput. Biol.* **2009** 5:e1000544.

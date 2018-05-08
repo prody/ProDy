@@ -10,9 +10,6 @@ help:
 	@echo "  remove 	to remove contributed modules"
 	@echo "  test		to clone, build and test"
 
-build2.6:
-	python2.6 setup.py build_ext --inplace --force
-
 build2:
 	python2 setup.py build_ext --inplace --force
 
@@ -26,7 +23,6 @@ remove:
 	rm -f prody/kdtree/*c
 	rm -f prody/atomic/pyparsing*py
 	rm -f prody/apps/argparse.py
-	rm -f prody/proteins/*pairwise2.*
 
 test:
 	TMPDIR=`mktemp -d`; REPOPATH=`pwd`; echo $$TMPDIR; cd $$TMPDIR; \
