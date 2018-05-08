@@ -34,8 +34,9 @@ isCATH = re.compile('^[0-9.]+$').match
 isDomain = re.compile('^[A-Za-z0-9]{5}[0-9]{2}$').match
 
 class CATHElement(ET.Element):
-    def __init__(self, tag, attrib={}, **extra):
+    def __init__(self, tag, attrib={}, parent=None, **extra):
         super(CATHElement, self).__init__(tag, attrib, **extra)
+        self._parent = parent
 
     def __getitem__(self, index):
         if isinstance(index, Integral):
@@ -58,6 +59,21 @@ class CATHElement(ET.Element):
         self.tag = value
     
     id = property(getID, setID)
+
+    def getchildren(self):
+        children = super(CATHElement, self).getchildren()
+        collection = CATHCollection(children, self)
+        return collection
+
+    children = property(getchildren)
+
+    def getparent(self):
+        return self._parent
+
+    def setparent(self, value):
+        self._parent = value
+    
+    parent = property(getparent, setparent)
 
     def find(self, key):
         for child in self:
@@ -108,8 +124,8 @@ class CATHElement(ET.Element):
             pdbs.append(pdb_id)
         
         return pdbs
-
-    def getSelectStrs(self):
+    
+    def getSelStrs(self):
         leaves = self.getDomains()
         data = []
 
@@ -124,12 +140,27 @@ class CATHElement(ET.Element):
 
     cath = property(getCATH)
 
+    def getName(self):
+        try: 
+            name = self.attrib['name'].lstrip(':')
+            if name == '':
+                name = 'Superfamily %s'%self.cath
+        except KeyError:
+            if self.parent is not None:
+                name = self.parent.name
+            else:
+                name = None # which shouldn't occur
+        return name
+
+    name = property(getName)
+
+
     def parsePDBs(self, **kwargs):
         """Load PDB into memory as :class:`.AtomGroup` instances using :func:`.parsePDB` and 
         perform selection based on residue ranges given by CATH."""
         
         pdbs = self.getPDBs(True)
-        selstrs = self.getSelectStrs()
+        selstrs = self.getSelStrs()
         header = kwargs.get('header', False)
         model = kwargs.get('model', None)
 
@@ -151,10 +182,6 @@ class CATHElement(ET.Element):
 
         return ret
 
-    def getchildren(self):
-        children = super(CATHElement, self).getchildren()
-        collection = CATHCollection(children, self)
-        return collection
 
 class CATHCollection(CATHElement):
     def __init__(self, items, element=None):
@@ -170,8 +197,14 @@ class CATHCollection(CATHElement):
         if not isListLike(items):
             items = [items]
 
+        parents = []
         for item in items:
             self.append(item)
+            parents.append(item.parent)
+
+        uniq_parents = set(parents)
+        if len(uniq_parents) == 1:
+            self._parent = parents[0]
 
     def __repr__(self):
         names = []
@@ -186,6 +219,9 @@ class CATHCollection(CATHElement):
 
         return '<CATHCollection:\n[%s]>'%'\n'.join(names)
 
+    def isDomain(self):
+        return False
+
     def getCATH(self):
         cath = []
         for child in self:
@@ -193,6 +229,14 @@ class CATHCollection(CATHElement):
         return cath
 
     cath = property(getCATH)
+
+    def getName(self):
+        names = []
+        for child in self:
+            names.append(child.name)
+        return names
+
+    name = property(getName)
 
     def getID(self):
         tags = []
@@ -426,7 +470,7 @@ class CATHDB(ET.ElementTree):
                       #'chain': chain}
             
             if level == 1:
-                node = CATHElement(cath_id, attrib=attrib)
+                node = CATHElement(cath_id, attrib=attrib, parent=root)
                 root.append(node)
                 self._map[cath_id] = node
             else:
@@ -437,7 +481,7 @@ class CATHDB(ET.ElementTree):
                     LOGGER.warn('error encountered when building the tree: {0}'
                                 .format(cath_id))
                     continue
-                node = CATHElement(cath_id, attrib=attrib)
+                node = CATHElement(cath_id, attrib=attrib, parent=parent)
                 parent.append(node)
                 self._map[cath_id] = node
 
@@ -487,7 +531,7 @@ class CATHDB(ET.ElementTree):
                 LOGGER.warn('error encountered when assigning domains: {0}'
                             .format(domain_id))
                 continue
-            node = CATHElement(domain_id, attrib=attrib)
+            node = CATHElement(domain_id, attrib=attrib, parent=parent)
             parent.append(node)
             self._map[domain_id] = node
 
@@ -590,7 +634,7 @@ def isLeaf(cath_id):
 def copy2(a, b):
     """Copy a tree structure from *a* to *b*"""
     for c in a:
-        node = CATHElement(c.tag, c.attrib)
+        node = CATHElement(c.tag, c.attrib, b)
         b.append(node)
         copy2(c, node)
 
