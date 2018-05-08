@@ -498,10 +498,15 @@ def parsePfamPDBs(query, data=[], **kwargs):
     chains = [data_dict['chain'] for data_dict in data_dicts]
 
     header = kwargs.pop('header', False)
+    model = kwargs.get('model', None)
     results = parsePDB(*pdb_ids, chain=chains, header=True, **kwargs)
 
     ags, headers = results
     ags, headers = list(ags), list(headers)
+
+    if model == 0:
+        LOGGER.info('only header is requested and returned')
+        return results
 
     if header:
         results = (ags, headers)
