@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+"""This module defines functions for query CATH database."""
 
 from os import getcwd, remove
 from os.path import sep as pathsep

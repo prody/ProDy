@@ -3,8 +3,6 @@
 import numpy as np
 
 from numpy import unique, linalg, diag, sqrt, dot
-import scipy.cluster.hierarchy as sch
-from scipy import spatial
 from .misctools import addBreaks, interpY
 
 __all__ = ['calcTree', 'clusterMatrix', 'showLines', 'showMatrix', 'reorderMatrix', 'findSubgroups']
@@ -78,6 +76,8 @@ def clusterMatrix(distance_matrix=None, similarity_matrix=None, labels=None, ret
         can also be provided and will be taken as **kwargs**.
     """
 
+    import scipy.cluster.hierarchy as sch
+    from scipy import spatial
     if similarity_matrix is None and distance_matrix is None:
         raise ValueError('Please provide a distance matrix or a similarity matrix')
     

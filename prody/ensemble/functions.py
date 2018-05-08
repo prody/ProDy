@@ -17,7 +17,7 @@ from .conformation import *
 
 __all__ = ['saveEnsemble', 'loadEnsemble', 'trimPDBEnsemble',
            'calcOccupancies', 'showOccupancies', 'alignPDBEnsemble',
-           'buildPDBEnsemble', 'addPDBEnsemble']
+           'buildPDBEnsemble', 'addPDBEnsemble', 'refineEnsemble']
 
 
 def saveEnsemble(ensemble, filename=None, **kwargs):
@@ -576,3 +576,44 @@ def addPDBEnsemble(ensemble, PDBs, refpdb=None, labels=None, seqid=94, coverage=
 
     return ensemble
 
+def refineEnsemble(ens, lower=.5, upper=10.):
+    """Refine a PDB ensemble based on RMSD criterions.""" 
+
+    from scipy.cluster.hierarchy import linkage, fcluster
+    from scipy.spatial.distance import squareform
+
+    ### calculate RMSDs ###
+    RMSD = ens.getRMSDs(pairwise=True)
+    rmsd = ens.getRMSDs()
+
+    ### imposeing upper bound ###
+    I = np.where(rmsd < upper)[0]
+    reens = ens[I]
+    I = I.reshape(-1, 1)
+    reRMSD = RMSD[I, I.T]
+
+    ### hierarchical clustering ###
+    v = squareform(reRMSD)
+    Z = linkage(v)
+
+    labels = fcluster(Z, lower, criterion='distance')
+    uniq_labels = unique(labels)
+
+    clusters = []
+    for label in uniq_labels:
+        indices = np.where(labels==label)[0]
+        clusters.append(indices)
+
+    J = ones(len(clusters), dtype=int) * -1
+    for i, cluster in enumerate(clusters):
+        if len(cluster) > 0:
+            weights = [ens[j].getWeights().sum() for j in cluster]
+            j = np.argmax(weights)
+            J[i] = cluster[j]
+        else:
+            J[i] = cluster[0]
+
+    ### refine ensemble ###
+    reens = reens[J]
+
+    return reens
