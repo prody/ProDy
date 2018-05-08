@@ -131,20 +131,22 @@ class CATHElement(ET.Element):
         pdbs = self.getPDBs(True)
         selstrs = self.getSelectStrs()
         header = kwargs.get('header', False)
+        model = kwargs.get('model', None)
 
         LOGGER.timeit('_cath_parsePDB')
         LOGGER.info('Parsing {0} PDB files...'.format(len(pdbs)))
         ret = parsePDB(*pdbs, **kwargs)
 
-        if header:
-            prots, _ = ret
-        else:
-            prots = ret
+        if model != 0:
+            if header:
+                prots, _ = ret
+            else:
+                prots = ret
 
-        LOGGER.info('Extracting domains...')
-        for i in range(len(prots)):
-            sel = prots[i].select(selstrs[i])
-            prots[i] = sel
+            LOGGER.info('Extracting domains...')
+            for i in range(len(prots)):
+                sel = prots[i].select(selstrs[i])
+                prots[i] = sel
         LOGGER.report('CATH domains are parsed and extracted in %.2fs', '_cath_parsePDB')
 
         return ret
