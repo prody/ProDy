@@ -6,7 +6,7 @@ from prody import buildDistMatrix, calcDistFlucts
 __all__ = ['calcSpectrusSims', 'MBSPointMutation', 'calcMBS']
 
 
-def calcSpectrusSims(distFlucts, pdb, cutoff=15., sigma='MRSDF'):
+def calcSpectrusSims(distFlucts, pdb, cutoff=10., sigma='MRSDF'):
     
     coords = pdb.getCoords()
     n = coords.shape[0]

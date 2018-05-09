@@ -12,10 +12,11 @@ def rtb_domain(pdb,
                ndomains_l,
                ndomains_u,
                msf_other,
-               radius=15.,
+               radius=10.,
                affinity=None,
                n_init=10,
-               n_jobs=-1):
+               n_jobs=-1,
+               method='discretize'):
 
     coo = pdb.getCoords()
     bfact = pdb.getBetas()
@@ -28,8 +29,8 @@ def rtb_domain(pdb,
 
     for n in range(ndomains_l, ndomains_u + 1):
         sc_pre = SpectralClustering(
-            n_clusters=n, affinity='precomputed', n_init=n_init, n_jobs=n_jobs)
-        sc_pre_labels = sc_pre.fit_predict(affinity)
+            n_clusters=n, affinity='precomputed', n_init=n_init, n_jobs=n_jobs, assign_labels=method)
+        sc_pre_labels = sc_pre.fit(affinity).labels_
         labels[n] = sc_pre_labels
 
     msf_rtb = {}
