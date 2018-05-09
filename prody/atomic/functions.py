@@ -364,4 +364,7 @@ def sliceAtomicData(data, atoms, select, axis=0):
     else:
         raise ValueError('axis should be 0, 1 or None')
 
+    if len(profiles) == 1:
+        return profiles[0]
+        
     return profiles
