@@ -1012,9 +1012,9 @@ def showPerturbResponse(model, atoms=None, show_matrix=True, select=None, **kwar
     :arg show_matrix: whether to show the matrix, default is **True**
     :type show_matrix: bool
 
-    :arg selection: a :class:`Selection` instance or selection string for showing 
+    :arg select: a :class:`Selection` instance or selection string for showing 
         residue-specific profiles. This can only be used with ``show_matrix=False``.
-    :tye selection: :class:`Selection`, str
+    :tye select: :class:`Selection`, str
     
     :keyword percentile: percentile argument for showAtomicMatrix
     :type percentile: float
@@ -1035,13 +1035,16 @@ def showPerturbResponse(model, atoms=None, show_matrix=True, select=None, **kwar
     else:
         if select is None:
             kwargs.pop('figure', 'effectiveness'); fig = gcf()
-            domain_bar = kwargs.pop('domain_bar', True)
+            domains = kwargs.pop('domains', None)
+            chains = kwargs.pop('chains', None)
             kwargs.pop('label', None)
             show_eff = showAtomicLines(effectiveness, atoms=atoms, 
-                                       domain_bar=False, label='Effectiveness', **kwargs)
+                                       domains=False, chains=False,
+                                       label='Effectiveness', **kwargs)
             kwargs.pop('figure', 'sensitivity'); fig = gcf()
             show_sen = showAtomicLines(sensitivity, atoms=atoms, figure=fig, 
-                                       domain_bar=domain_bar, label='Sensitivity', **kwargs)
+                                       domains=domains, chains=chains,
+                                       label='Sensitivity', **kwargs)
             show = [show_eff, show_sen]
         else:
             show = []
@@ -1054,7 +1057,7 @@ def showPerturbResponse(model, atoms=None, show_matrix=True, select=None, **kwar
     
     return show
 
-def _checkDomainBarParameter(domain_bar, defpos, atoms, label):
+def _checkDomainBarParameter(domains, defpos, atoms, label):
     show = atoms is not None
     pos = defpos
 
@@ -1063,25 +1066,25 @@ def _checkDomainBarParameter(domain_bar, defpos, atoms, label):
 
     # check if the user wants to show or not
     from numbers import Number
-    if isinstance(domain_bar, bool):
-        show &= domain_bar
+    if isinstance(domains, bool):
+        show &= domains
         pos = defpos
-    elif isinstance(domain_bar, Number):
+    elif isinstance(domains, Number):
         show &= True    # this line does nothing but is left for readability
-        pos = domain_bar
+        pos = domains
 
     # check if the domain bar can be shown or not
     try:
         data = atoms.getData(label)
         if data is not None:
             uniq = np.unique(data)
-            if domain_bar is None:
+            if domains is None:
                 show &= len(uniq) > 1
     except:
         data = None
 
     if data is None:
-        if domain_bar is None:
+        if domains is None:
             show &= False
         if show:
             raise ValueError('A {0} bar can only be generated if '
@@ -1121,7 +1124,7 @@ def showAtomicMatrix(matrix, x_array=None, y_array=None, atoms=None, **kwargs):
                     Default is `None`.
     :type chain: bool
 
-    :arg domain: the same with *chain_bar* but show domain separations instead. 
+    :arg domain: the same with *chains* but show domain separations instead. 
                     *atoms* needs to have *domain* data associated to it.
                     Default is `None`.
     :type domain: bool
@@ -1139,10 +1142,10 @@ def showAtomicMatrix(matrix, x_array=None, y_array=None, atoms=None, **kwargs):
     from matplotlib.figure import Figure
     from matplotlib import ticker
 
-    chain_bar = kwargs.pop('chain_bar', None)
-    chain_bar = kwargs.pop('chain', chain_bar)
-    domain_bar = kwargs.pop('domain_bar', None)
-    domain_bar = kwargs.pop('domain', domain_bar)
+    chains = kwargs.pop('chains', None)
+    chains = kwargs.pop('chain', chains)
+    domains = kwargs.pop('domains', None)
+    domains = kwargs.pop('domain', domains)
     chain_text_loc = kwargs.pop('chain_text_loc', 'above')
     domain_text_loc = kwargs.pop('domain_text_loc', 'below')
     show_text = kwargs.pop('show_text', True)
@@ -1181,8 +1184,8 @@ def showAtomicMatrix(matrix, x_array=None, y_array=None, atoms=None, **kwargs):
         if hv.numChains() == 0:
             raise ValueError('atoms should contain at least one chain.')
         elif hv.numChains() == 1:
-            if chain_bar is None:
-                chain_bar = False
+            if chains is None:
+                chains = False
             ticklabels = atoms.getResnums()
         else:
             chids = atoms.getChids()
@@ -1192,7 +1195,7 @@ def showAtomicMatrix(matrix, x_array=None, y_array=None, atoms=None, **kwargs):
     im, lines, colorbar = showMatrix(matrix, x_array, y_array, ticklabels=ticklabels, **kwargs) 
     
     ## draw domain & chain bars
-    show_chain, chain_pos, chids = _checkDomainBarParameter(chain_bar, 0., atoms, 'chain')
+    show_chain, chain_pos, chids = _checkDomainBarParameter(chains, 0., atoms, 'chain')
 
     bars = []
     texts = []
@@ -1203,16 +1206,16 @@ def showAtomicMatrix(matrix, x_array=None, y_array=None, atoms=None, **kwargs):
         bars.extend(b)
         texts.extend(t)
 
-    # force turnning off domain_bar if chain_bar and only one side is 
+    # force turnning off domains if chains and only one side is 
     # available
     if len(sides) < 2:
         if show_chain:
-            if domain_bar is not None:
+            if domains is not None:
                 LOGGER.warn('There is only one side of the matrix matches with atoms so domain bar '
-                            'will not be shown. Turn off chain_bar if you want to show the domain bar.')
-            domain_bar = False
+                            'will not be shown. Turn off chains if you want to show the domain bar.')
+            domains = False
             
-    show_domain, domain_pos, domains = _checkDomainBarParameter(domain_bar, 0., atoms, 'domain')
+    show_domain, domain_pos, domains = _checkDomainBarParameter(domains, 0., atoms, 'domain')
 
     if show_domain:
         b, t = showDomainBar(domains, loc=domain_pos, axis=sides[0], 
@@ -1235,28 +1238,26 @@ def showAtomicLines(y, atoms=None, linespec='-', **kwargs):
     :type atoms: :class: `AtomGroup`
 
     :arg chain: display a bar at the bottom to show chain separations. 
-                If set to **None**, it will be decided depends on whether *atoms* 
-                is provided. 
-                Default is **None**.
+        If set to **None**, it will be decided depends on whether *atoms* 
+        is provided. 
+        Default is **None**.
     :type chain: bool
 
-    :arg domain: the same with *chain_bar* but show domain separations instead. 
-                    *atoms* needs to have *domain* data associated to it.
-                    Default is **None**.
+    :arg domain: the same with *chains* but show domain separations instead. 
+        *atoms* needs to have *domain* data associated to it.
+        Default is **None**.
     :type domain: bool
 
     :arg figure: if set to **None**, then a new figure will be created if *auto_show* 
-                is **True**, otherwise it will be plotted on the current figure. If set 
-                to a figure number or a :class:`~matplotlib.figure.Figure` instance, 
-                no matter what 'auto_show' value is, plots will be drawn on the *figure*.
-                Default is **None**.
+        is **True**, otherwise it will be plotted on the current figure. If set 
+        to a figure number or string or a :class:`~matplotlib.figure.Figure` instance, 
+        no matter what 'auto_show' value is, plots will be drawn on the *figure*.
+        Default is **None**.
     :type figure: :class:`~matplotlib.figure.Figure`, int, str
     """
     
-    chain_bar = kwargs.pop('chain_bar', None)
-    chain_bar = kwargs.pop('chain', chain_bar)
-    domain_bar = kwargs.pop('domain_bar', None)
-    domain_bar = kwargs.pop('domain', domain_bar)
+    chains = kwargs.pop('chains', None)
+    domains = kwargs.pop('domains', None)
     chain_text_loc = kwargs.pop('chain_text_loc', 'above')
     domain_text_loc = kwargs.pop('domain_text_loc', 'below')
     zero_line = kwargs.pop('show_zero', False)
@@ -1300,8 +1301,8 @@ def showAtomicLines(y, atoms=None, linespec='-', **kwargs):
         if hv.numChains() == 0:
             raise ValueError('atoms should contain at least one chain.')
         elif hv.numChains() == 1:
-            if chain_bar is None:
-                chain_bar = False
+            if chains is None:
+                chains = False
             ticklabels = atoms.getResnums()
         else:
             chids = atoms.getChids()
@@ -1315,10 +1316,10 @@ def showAtomicLines(y, atoms=None, linespec='-', **kwargs):
 
     bars = []
     texts = []
-    if chain_bar is None:
-        chain_bar = atoms is not None
+    if chains is None:
+        chains = atoms is not None
 
-    show_chain, chain_pos, chids = _checkDomainBarParameter(chain_bar, 0., atoms, 'chain')
+    show_chain, chain_pos, chids = _checkDomainBarParameter(chains, 0., atoms, 'chain')
      
     if show_chain:
         b, t = showDomainBar(atoms.getChids(), loc=chain_pos, axis='x', 
@@ -1327,7 +1328,7 @@ def showAtomicLines(y, atoms=None, linespec='-', **kwargs):
         bars.extend(b)
         texts.extend(t)
 
-    show_domain, domain_pos, domains = _checkDomainBarParameter(domain_bar, 1., atoms, 'domain')
+    show_domain, domain_pos, domains = _checkDomainBarParameter(domains, 1., atoms, 'domain')
     if show_domain:
         b, t = showDomainBar(domains, loc=domain_pos, axis='x', 
                              text_loc=domain_text_loc,  text=show_domain_text,
