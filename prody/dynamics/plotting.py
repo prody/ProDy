@@ -1035,15 +1035,15 @@ def showPerturbResponse(model, atoms=None, show_matrix=True, select=None, **kwar
     else:
         if select is None:
             kwargs.pop('figure', 'effectiveness'); fig = gcf()
-            domain = kwargs.pop('domain_bar', None)
-            chain = kwargs.pop('chain_bar', None)
+            domain_bar = kwargs.pop('domain_bar', None)
+            chain_bar = kwargs.pop('chain_bar', None)
             kwargs.pop('label', None)
             show_eff = showAtomicLines(effectiveness, atoms=atoms, 
                                        domain=False, chain=False,
                                        label='Effectiveness', **kwargs)
             kwargs.pop('figure', 'sensitivity'); fig = gcf()
             show_sen = showAtomicLines(sensitivity, atoms=atoms, figure=fig, 
-                                       domain=domain, chain=chain,
+                                       domain_bar=domain_bar, chain_bar=chain_bar,
                                        label='Sensitivity', **kwargs)
             show = [show_eff, show_sen]
         else:
