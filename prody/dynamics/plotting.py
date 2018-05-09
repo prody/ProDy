@@ -1012,9 +1012,9 @@ def showPerturbResponse(model, atoms=None, show_matrix=True, select=None, **kwar
     :arg show_matrix: whether to show the matrix, default is **True**
     :type show_matrix: bool
 
-    :arg selection: a :class:`Selection` instance or selection string for showing 
+    :arg select: a :class:`Selection` instance or selection string for showing 
         residue-specific profiles. This can only be used with ``show_matrix=False``.
-    :tye selection: :class:`Selection`, str
+    :tye select: :class:`Selection`, str
     
     :keyword percentile: percentile argument for showAtomicMatrix
     :type percentile: float
@@ -1035,8 +1035,8 @@ def showPerturbResponse(model, atoms=None, show_matrix=True, select=None, **kwar
     else:
         if select is None:
             kwargs.pop('figure', 'effectiveness'); fig = gcf()
-            domain = kwargs.pop('domain', False)
-            chain = kwargs.pop('chain', True)
+            domain = kwargs.pop('domain_bar', None)
+            chain = kwargs.pop('chain_bar', None)
             kwargs.pop('label', None)
             show_eff = showAtomicLines(effectiveness, atoms=atoms, 
                                        domain=False, chain=False,
