@@ -1039,7 +1039,7 @@ def showPerturbResponse(model, atoms=None, show_matrix=True, select=None, **kwar
             chains = kwargs.pop('chains', None)
             kwargs.pop('label', None)
             show_eff = showAtomicLines(effectiveness, atoms=atoms, 
-                                       domain=False, chain=False,
+                                       domains=False, chains=False,
                                        label='Effectiveness', **kwargs)
             kwargs.pop('figure', 'sensitivity'); fig = gcf()
             show_sen = showAtomicLines(sensitivity, atoms=atoms, figure=fig, 
