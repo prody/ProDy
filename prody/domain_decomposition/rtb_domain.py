@@ -11,16 +11,26 @@ __all__ = ['rtb_domain', 'plot_cc', 'plot_msf']
 def rtb_domain(pdb,
                ndomains_l,
                ndomains_u,
-               msf_other,
+               msf_other=None,
+               n_modes=10,
                radius=10.,
                affinity=None,
                n_init=10,
                n_jobs=-1,
                method='discretize'):
 
+    assert n_modes is None or isinstance(n_modes, int) and n_modes > 0, \
+            'n_modes must be a positive integer or None'
+
     coo = pdb.getCoords()
     bfact = pdb.getBetas()
     labels = {}
+
+    if msf_other is None:
+        anm = ANM()
+        anm.buildHessian(pdb)
+        anm.calcModes(n_modes=n_modes)
+        msf_other = calcSqFlucts(anm)
 
     if affinity is None:
         affinity = radius_neighbors_graph(coo, radius)
@@ -41,8 +51,9 @@ def rtb_domain(pdb,
 
     for n in range(ndomains_l, ndomains_u + 1):
         rtb.buildHessian(coords=coo, blocks=labels[n])
-        rtb.calcModes(None)
-        msf_rtb[n] = calcSqFlucts(rtb)
+        rtb.calcModes(n_modes=None)
+        _n_modes = rtb._dof if n_modes is None else min(rtb._dof, n_modes) 
+        msf_rtb[n] = calcSqFlucts(rtb[:_n_modes])
         cc_other_rtb.append(np.corrcoef(msf_other, msf_rtb[n])[0, 1])
         cc_bfact_rtb.append(np.corrcoef(bfact, msf_rtb[n])[0, 1])
 
