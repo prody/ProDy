@@ -21,7 +21,7 @@ from .selection import Selection
 
 __all__ = ['iterFragments', 'findFragments', 'loadAtoms', 'saveAtoms',
            'isReserved', 'listReservedWords', 'sortAtoms', 'sliceAtoms', 
-           'sliceAtomicData']
+           'sliceAtomicData', 'extendAtomicData']
 
 
 SAVE_SKIP_ATOMGROUP = set(['numbonds', 'fragindex'])
@@ -317,8 +317,8 @@ def sliceAtoms(atoms, select):
 def sliceAtomicData(data, atoms, select, axis=0):
     """Slice a matrix using indices extracted using :func:`sliceAtoms`.
 
-    :arg matrix: any matrix (2D array)
-    :type matrix: `~numpy.ndarray`
+    :arg data: any data array
+    :type data: `~numpy.ndarray`
 
     :arg atoms: atoms to be selected from
     :type atoms: :class:`Atomic`
@@ -353,7 +353,9 @@ def sliceAtomicData(data, atoms, select, axis=0):
 
     indices, _ = sliceAtoms(atoms, select)
     if is3d:
-        indices = array([[i*3, i*3+1, i*3+2] for i in indices]).reshape(3*len(indices))
+        indices = array([[i*3, i*3+1, i*3+2] 
+                        for i in indices]
+                        ).reshape(3*len(indices))
 
     if axis == 0:
         profiles = data[indices,:]
@@ -368,3 +370,57 @@ def sliceAtomicData(data, atoms, select, axis=0):
         return profiles[0]
         
     return profiles
+
+def extendAtomicData(data, nodes, atoms):
+    """Slice a matrix using indices extracted using :func:`sliceAtoms`.
+
+    :arg data: any data array
+    :type data: `~numpy.ndarray`
+
+    :arg nodes: a set of atoms that has been used
+        as nodes in data generation
+    :type nodes: :class:`
+
+    :arg atoms: atoms to be selected from
+    :type atoms: :class:`Atomic`
+
+    """
+    from collections import Counter
+
+    if isscalar(data):
+        raise TypeError('The data must be array-like.')
+
+    if not isinstance(data, ndarray):
+        data = asarray(data)
+
+    if not isinstance(nodes, Atomic):
+        raise TypeError('nodes must be an Atomic instance')
+
+    if not isinstance(atoms, Atomic):
+        raise TypeError('atoms must be an Atomic instance')
+
+    nnodes = nodes.numAtoms()
+
+    is3d = False
+    if len(data) != nnodes:
+        if data.shape[0] == nnodes * 3:
+            is3d = True
+        else:
+            raise ValueError('data and atoms must have the same size')
+
+    indices = nodes.getResindices()
+    if is3d:
+        indices = array([[i*3, i*3+1, i*3+2] 
+                        for i in indices]
+                        ).reshape(3*len(indices))
+
+    data_ext = []
+    resid_counter = Counter(atoms.getResindices())
+    for i in indices:
+        data_ext.extend(resid_counter.values()[i]*[data[i]])
+
+    resnums_selstr = ' '.join([str(resnum) for resnum in nodes.getResnums()])
+    rest = atoms.select('not resnum {0}'.format(resnums_selstr))
+    data_ext.extend(zeros(rest.numAtoms()))
+        
+    return data_ext
