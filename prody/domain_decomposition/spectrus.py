@@ -16,7 +16,7 @@ def calcSpectrusSims(distFlucts, pdb, cutoff=10., sigma='MRSDF'):
                          'size (now %d and %d)' %(distFlucts.shape[0], n))
 
     # identify atom pairs within cutoff and store relative dist. flucts
-    nearestNeighs = np.full((n, n), True)
+    nearestNeighs = np.full((n, n), True, dtype=bool)
     np.fill_diagonal(nearestNeighs, False)
     if isinstance(cutoff, (int, float)):
         # compute inter-atomic distances
@@ -93,7 +93,7 @@ def calcMBS(simMatrix, nEvals=20):
             mbs_i = None
         # build MBS profile
         mbs.append( mbs_i )
-    return mbs
+    return np.array(mbs)
 
 
 
