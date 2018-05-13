@@ -6,6 +6,7 @@ import numpy as np
 from prody.atomic import Atomic, AtomGroup, AtomMap, AtomSubset, HierView
 from prody.atomic import Selection, SELECT, sliceAtoms
 from prody.utilities import importLA
+from prody.measure import calcDistance
 from prody import _PY3K
 
 from .nma import NMA
@@ -44,19 +45,79 @@ def extend(model, nodes, atoms):
         raise ValueError('nodes must be a subset of atoms')
 
     atom_indices = []
+    real_indices = []   # indices of atoms that are used as nodes (with real mode data)
     indices = []
     get = HierView(atoms).getResidue
+    residues = []
 
     for i, node in enumerate(i_nodes):
         res = get(node.getChid() or None, node.getResnum(),
                   node.getIcode() or None, node.getSegname() or None)
         if res is None:
             raise ValueError('atoms must contain a residue for all atoms')
-        atom_indices.append(res._getIndices())
-        if is3d:
-            indices.append(list(range(i*3, (i+1)*3)) * len(res))
+
+        res_atom_indices = res._getIndices()
+        if res not in residues:
+            atom_indices.append(res_atom_indices)
+
+            res_real_indices = np.ones(len(res_atom_indices)) * -1
+            real_indices.append(res_real_indices)
+
+            if is3d:
+                nma_indices = list(range(i*3, (i+1)*3)) * len(res)
+            else:
+                nma_indices = [i] * len(res)
+
+            indices.append(nma_indices)
+            residues.append(res)
         else:
-            indices.append([i] * len(res))
+            k = np.where(res_atom_indices==node.getIndex())[0][0]
+            if is3d:
+                nma_indices[k*3:(k+1)*3] = list(range(i*3, (i+1)*3))
+            else:
+                nma_indices[k] = i
+
+            res_real_indices = real_indices[residues.index(res)]
+        
+        # register the real node
+        node_index = node.getIndex()
+        res_real_indices[res_atom_indices == node_index] = i
+    
+    def getClosest(a, B):
+        D = []
+        for b in B:
+            d = calcDistance(a, b)
+            D.append(d)
+        
+        i = np.argmin(D)
+        return B[i]
+
+    for i, res_real_indices in enumerate(real_indices):
+        arr = np.array(res_real_indices)
+        # this residue is represented by one node, so no correction is needed
+        if sum(arr >= 0) == 1: 
+            continue
+        # otherwise replace the data of extended atoms by that of 
+        # the nearest real node in the residue
+        else:
+            # get all the atoms in this residue
+            res_atoms = np.array(residues[i])
+            # get the real and extended atoms
+            real_atoms = res_atoms[arr >= 0]
+            for j in range(len(res_real_indices)):
+                if res_real_indices[j] >= 0:
+                    continue
+                else:
+                    atom = res_atoms[j]
+                    closest_real_atom = getClosest(atom, real_atoms)
+                    k = np.where(real_atoms == closest_real_atom)[0][0]
+                    
+                    nma_indices = indices[i]
+                    if is3d:
+                        nma_indices[j*3:(j+1)*3] = nma_indices[k*3:(k+1)*3]
+                    else:
+                        nma_indices[j] = nma_indices[k]
+
     atom_indices = np.concatenate(atom_indices)
     indices = np.concatenate(indices)
 

@@ -1022,3 +1022,50 @@ def fetchCATH(filename, ftp_host=None, ftp_path=None, **kwargs):
 
 # fetchCATH('cath-b-newest-all.gz')
 # pdbChain2CATH = buildPDBChainCATHDict('cath-b-newest-all.gz')
+
+def extend(model, nodes, atoms):
+    """Returns mapping indices and an :class:`.AtomMap`."""
+
+    try:
+        n_atoms = model.numAtoms()
+        is3d = model.is3d()
+    except AttributeError:
+        raise ValueError('model must be an NMA instance')
+
+    try:
+        n_nodes = nodes.numAtoms()
+        i_nodes = nodes.iterAtoms()
+    except AttributeError:
+        raise ValueError('nodes must be an Atomic instance')
+
+    if n_atoms != n_nodes:
+        raise ValueError('atom numbers must be the same')
+
+    if not nodes in atoms:
+        raise ValueError('nodes must be a subset of atoms')
+
+    atom_indices = []
+    indices = []
+    get = HierView(atoms).getResidue
+
+    for i, node in enumerate(i_nodes):
+        res = get(node.getChid() or None, node.getResnum(),
+                  node.getIcode() or None, node.getSegname() or None)
+        if res is None:
+            raise ValueError('atoms must contain a residue for all atoms')
+        atom_indices.append(res._getIndices())
+        if is3d:
+            indices.append(list(range(i*3, (i+1)*3)) * len(res))
+        else:
+            indices.append([i] * len(res))
+    atom_indices = np.concatenate(atom_indices)
+    indices = np.concatenate(indices)
+
+    try:
+        ag = atoms.getAtomGroup()
+    except AttributeError:
+        ag = atoms
+    atommap = AtomMap(ag, atom_indices, atoms.getACSIndex(),
+                      title=str(atoms), intarrays=True)
+    return indices, atommap
+    
