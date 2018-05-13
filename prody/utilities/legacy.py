@@ -270,13 +270,13 @@ def showPlot(y, **kwargs):
         default False
     :type overlay_chains: bool
 
-    :arg domain_bar: color the bar at the bottom by domains rather than chains
+    :arg domains: color the bar at the bottom by domains rather than chains
         default False
-    :type domain_bar: bool
+    :type domains: bool
     """
     atoms = kwargs.pop('atoms',None)
     overlay_chains = kwargs.pop('overlay_chains',False)
-    domain_bar = kwargs.pop('domain_bar',False)
+    domains = kwargs.pop('domains',False)
 
     num_div = kwargs.pop('num_div',2)
     resnum_tick_labels = kwargs.pop('resnum_tick_labels',None)
@@ -366,7 +366,7 @@ def showPlot(y, **kwargs):
 
             n += 1
 
-        if domain_bar:
+        if domains:
             try:
                 atoms.getData('domain')[0]
             except:
