@@ -3,7 +3,7 @@
 and measuring quantities."""
 
 from numpy import ndarray, power, sqrt, array, zeros, arccos
-from numpy import sign, tile, concatenate, pi, cross, subtract, round, var
+from numpy import sign, tile, concatenate, pi, cross, subtract, var
 
 from prody.atomic import Atomic, Residue, Atom
 from prody.utilities import importLA, checkCoords, getDistance

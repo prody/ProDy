@@ -2,7 +2,7 @@
 import re
 
 from numpy import unique, linalg, diag, sqrt, dot, chararray
-from numpy import diff, where, insert, nan, loadtxt, array
+from numpy import diff, where, insert, nan, loadtxt, array, round
 from numpy import sign, arange, asarray, ndarray, subtract, power
 from collections import Counter
 import numbers
