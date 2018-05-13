@@ -1049,7 +1049,7 @@ def showPerturbResponse(model, atoms=None, show_matrix=True, select=None, **kwar
         else:
             show = []
             profiles = sliceAtomicData(prs_matrix, atoms=atoms, select=select)
-            for i, profile in enumerate(profiles):
+            for profile in profiles:
                 kwargs.pop('figure', None); fig = gcf()
                 show.append(showAtomicLines(profile, atoms, **kwargs))
 

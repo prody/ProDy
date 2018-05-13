@@ -1068,4 +1068,56 @@ def extend(model, nodes, atoms):
     atommap = AtomMap(ag, atom_indices, atoms.getACSIndex(),
                       title=str(atoms), intarrays=True)
     return indices, atommap
-    
+
+def extendAtomicData(data, nodes, atoms):
+    """Extend a coarse grained data obtained for *nodes* to *atoms*.
+
+    :arg data: any data array
+    :type data: `~numpy.ndarray`
+
+    :arg nodes: a set of atoms that has been used
+        as nodes in data generation
+    :type nodes: :class:`
+
+    :arg atoms: atoms to be selected from
+    :type atoms: :class:`Atomic`
+
+    """
+    from collections import Counter
+
+    try:
+        data = asarray(data)
+    except:
+        raise TypeError('The data must be array-like.')
+
+    if not isinstance(nodes, Atomic):
+        raise TypeError('nodes must be an Atomic instance')
+
+    if not isinstance(atoms, Atomic):
+        raise TypeError('atoms must be an Atomic instance')
+
+    nnodes = nodes.numAtoms()
+
+    is3d = False
+    if len(data) != nnodes:
+        if data.shape[0] == nnodes * 3:
+            is3d = True
+        else:
+            raise ValueError('data and atoms must have the same size')
+
+    indices = nodes.getResindices()
+    if is3d:
+        indices = array([[i*3, i*3+1, i*3+2] 
+                        for i in indices]
+                        ).reshape(3*len(indices))
+
+    data_ext = []
+    resid_counter = Counter(atoms.getResindices())
+    for i in indices:
+        data_ext.extend(resid_counter.values()[i]*[data[i]])
+
+    resid_selstr = ' '.join([str(resid) for resid in nodes.getResindices()])
+    rest = atoms.select('not resid {0}'.format(resid_selstr))
+    data_ext.extend(zeros(rest.numAtoms()))
+        
+    return data_ext

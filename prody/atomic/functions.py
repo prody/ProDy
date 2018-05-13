@@ -3,10 +3,10 @@
 
 from textwrap import wrap
 
-from numpy import load, savez, zeros, array
-from numpy import ndarray, asarray, isscalar
+from numpy import load, savez, ones, zeros, array, argmin, where
+from numpy import ndarray, asarray, isscalar, concatenate, arange, ix_
 
-from prody.utilities import openFile, rangeString
+from prody.utilities import openFile, rangeString, getDistance
 from prody import LOGGER
 
 from . import flags
@@ -18,10 +18,11 @@ from .atommap import AtomMap
 from .bond import trimBonds, evalBonds
 from .fields import ATOMIC_FIELDS
 from .selection import Selection
+from .hierview import HierView
 
 __all__ = ['iterFragments', 'findFragments', 'loadAtoms', 'saveAtoms',
            'isReserved', 'listReservedWords', 'sortAtoms', 'sliceAtoms', 
-           'sliceAtomicData', 'extendAtomicData']
+           'extendAtoms', 'sliceAtomicData', 'extendAtomicData']
 
 
 SAVE_SKIP_ATOMGROUP = set(['numbonds', 'fragindex'])
@@ -314,6 +315,102 @@ def sliceAtoms(atoms, select):
 
     return which, select
 
+def extendAtoms(nodes, atoms, is3d=False):
+    """Returns extended mapping indices and an :class:`.AtomMap`."""
+
+    try:
+        i_nodes = nodes.iterAtoms()
+    except AttributeError:
+        raise ValueError('nodes must be an Atomic instance')
+
+    if not nodes in atoms:
+        raise ValueError('nodes must be a subset of atoms')
+
+    atom_indices = []
+    real_indices = []   # indices of atoms that are used as nodes (with real mode data)
+    indices = []
+    get = HierView(atoms).getResidue
+    residues = []
+
+    for i, node in enumerate(i_nodes):
+        res = get(node.getChid() or None, node.getResnum(),
+                  node.getIcode() or None, node.getSegname() or None)
+        if res is None:
+            raise ValueError('atoms must contain a residue for all atoms')
+
+        res_atom_indices = res._getIndices()
+        if res not in residues:
+            atom_indices.append(res_atom_indices)
+
+            res_real_indices = ones(len(res_atom_indices)) * -1
+            real_indices.append(res_real_indices)
+
+            if is3d:
+                nma_indices = list(range(i*3, (i+1)*3)) * len(res)
+            else:
+                nma_indices = [i] * len(res)
+
+            indices.append(nma_indices)
+            residues.append(res)
+        else:
+            k = where(res_atom_indices==node.getIndex())[0][0]
+            if is3d:
+                nma_indices[k*3:(k+1)*3] = list(range(i*3, (i+1)*3))
+            else:
+                nma_indices[k] = i
+
+            res_real_indices = real_indices[residues.index(res)]
+        
+        # register the real node
+        node_index = node.getIndex()
+        res_real_indices[res_atom_indices == node_index] = i
+    
+    def getClosest(a, B):
+        D = []
+        for b in B:
+            d = getDistance(a._getCoords(), b._getCoords())
+            D.append(d)
+        
+        i = argmin(D)
+        return B[i]
+
+    for i, res_real_indices in enumerate(real_indices):
+        arr = array(res_real_indices)
+        # this residue is represented by one node, so no correction is needed
+        if sum(arr >= 0) == 1: 
+            continue
+        # otherwise replace the data of extended atoms by that of 
+        # the nearest real node in the residue
+        else:
+            # get all the atoms in this residue
+            res_atoms = array(residues[i])
+            # get the real and extended atoms
+            real_atoms = res_atoms[arr >= 0]
+            for j in range(len(res_real_indices)):
+                if res_real_indices[j] >= 0:
+                    continue
+                else:
+                    atom = res_atoms[j]
+                    closest_real_atom = getClosest(atom, real_atoms)
+                    k = where(real_atoms == closest_real_atom)[0][0]
+                    
+                    nma_indices = indices[i]
+                    if is3d:
+                        nma_indices[j*3:(j+1)*3] = nma_indices[k*3:(k+1)*3]
+                    else:
+                        nma_indices[j] = nma_indices[k]
+
+    atom_indices = concatenate(atom_indices)
+    indices = concatenate(indices)
+
+    try:
+        ag = atoms.getAtomGroup()
+    except AttributeError:
+        ag = atoms
+    atommap = AtomMap(ag, atom_indices, atoms.getACSIndex(),
+                      title=str(atoms), intarrays=True)
+    return indices, atommap
+
 def sliceAtomicData(data, atoms, select, axis=0):
     """Slice a matrix using indices extracted using :func:`sliceAtoms`.
 
@@ -326,10 +423,10 @@ def sliceAtomicData(data, atoms, select, axis=0):
     :arg select: a :class:`Selection` instance or selection string
     :type select: :class:`Selection`, str
 
-    :arg axis: the axis/direction you want to use to slice data from the matrix.
-        The options are **0** or **1** or **None** like in :mod:`~numpy`. 
-        Default is **0** (row).
-    :type axis: int
+    :arg axis: the axis along which the data is sliced. See :mod:`~numpy` 
+               for details of this parameter. 
+               Default is **None** (all axes)
+    :type axis: int, list
 
     """
 
@@ -357,22 +454,23 @@ def sliceAtomicData(data, atoms, select, axis=0):
                         for i in indices]
                         ).reshape(3*len(indices))
 
-    if axis == 0:
-        profiles = data[indices,:]
-    elif axis == 1:
-        profiles = data[:,indices]
-    elif axis is None:
-        profiles = data[indices,:][:,indices]
+    if axis is not None:
+        I = [arange(s) for s in data.shape] 
+        axes = [axis] if isscalar(axis) else axis
+        for ax in axes:
+            I[ax] = indices
     else:
-        raise ValueError('axis should be 0, 1 or None')
+        I = [indices] * data.ndim
+    
+    profiles = data[ix_(*I)]
 
     if len(profiles) == 1:
         return profiles[0]
         
     return profiles
 
-def extendAtomicData(data, nodes, atoms):
-    """Slice a matrix using indices extracted using :func:`sliceAtoms`.
+def extendAtomicData(data, nodes, atoms, axis=0):
+    """Extend a coarse grained data obtained for *nodes* to *atoms*.
 
     :arg data: any data array
     :type data: `~numpy.ndarray`
@@ -384,20 +482,17 @@ def extendAtomicData(data, nodes, atoms):
     :arg atoms: atoms to be selected from
     :type atoms: :class:`Atomic`
 
+    :arg axis: the axis/direction you want to use to slice data from the matrix.
+        The options are **0** or **1** or **None** like in :mod:`~numpy`. 
+        Default is **0** (row).
+    :type axis: int
+
     """
-    from collections import Counter
-
-    if isscalar(data):
-        raise TypeError('The data must be array-like.')
-
-    if not isinstance(data, ndarray):
+    
+    try:
         data = asarray(data)
-
-    if not isinstance(nodes, Atomic):
-        raise TypeError('nodes must be an Atomic instance')
-
-    if not isinstance(atoms, Atomic):
-        raise TypeError('atoms must be an Atomic instance')
+    except:
+        raise TypeError('The data must be array-like.')
 
     nnodes = nodes.numAtoms()
 
@@ -408,19 +503,16 @@ def extendAtomicData(data, nodes, atoms):
         else:
             raise ValueError('data and atoms must have the same size')
 
-    indices = nodes.getResindices()
-    if is3d:
-        indices = array([[i*3, i*3+1, i*3+2] 
-                        for i in indices]
-                        ).reshape(3*len(indices))
+    indices, atommap = extendAtoms(nodes, atoms, is3d)
+    
+    if axis is not None:
+        I = [arange(s) for s in data.shape] 
+        axes = [axis] if isscalar(axis) else axis
+        for ax in axes:
+            I[ax] = indices
+    else:
+        I = [indices] * data.ndim
 
-    data_ext = []
-    resid_counter = Counter(atoms.getResindices())
-    for i in indices:
-        data_ext.extend(resid_counter.values()[i]*[data[i]])
-
-    resnums_selstr = ' '.join([str(resnum) for resnum in nodes.getResnums()])
-    rest = atoms.select('not resnum {0}'.format(resnums_selstr))
-    data_ext.extend(zeros(rest.numAtoms()))
+    data_ext = data[ix_(*I)]
         
-    return data_ext
+    return data_ext, atommap

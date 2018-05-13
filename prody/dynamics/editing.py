@@ -3,10 +3,9 @@
 
 import numpy as np
 
-from prody.atomic import Atomic, AtomGroup, AtomMap, AtomSubset, HierView
-from prody.atomic import Selection, SELECT, sliceAtoms
+from prody.atomic import Atomic, AtomGroup, AtomMap, AtomSubset
+from prody.atomic import Selection, SELECT, sliceAtoms, extendAtoms
 from prody.utilities import importLA
-from prody.measure import calcDistance
 from prody import _PY3K
 
 from .nma import NMA
@@ -23,113 +22,6 @@ __all__ = ['extendModel', 'extendMode', 'extendVector',
            'reduceModel']
 
 
-def extend(model, nodes, atoms):
-    """Returns mapping indices and an :class:`.AtomMap`."""
-
-    try:
-        n_atoms = model.numAtoms()
-        is3d = model.is3d()
-    except AttributeError:
-        raise ValueError('model must be an NMA instance')
-
-    try:
-        n_nodes = nodes.numAtoms()
-        i_nodes = nodes.iterAtoms()
-    except AttributeError:
-        raise ValueError('nodes must be an Atomic instance')
-
-    if n_atoms != n_nodes:
-        raise ValueError('atom numbers must be the same')
-
-    if not nodes in atoms:
-        raise ValueError('nodes must be a subset of atoms')
-
-    atom_indices = []
-    real_indices = []   # indices of atoms that are used as nodes (with real mode data)
-    indices = []
-    get = HierView(atoms).getResidue
-    residues = []
-
-    for i, node in enumerate(i_nodes):
-        res = get(node.getChid() or None, node.getResnum(),
-                  node.getIcode() or None, node.getSegname() or None)
-        if res is None:
-            raise ValueError('atoms must contain a residue for all atoms')
-
-        res_atom_indices = res._getIndices()
-        if res not in residues:
-            atom_indices.append(res_atom_indices)
-
-            res_real_indices = np.ones(len(res_atom_indices)) * -1
-            real_indices.append(res_real_indices)
-
-            if is3d:
-                nma_indices = list(range(i*3, (i+1)*3)) * len(res)
-            else:
-                nma_indices = [i] * len(res)
-
-            indices.append(nma_indices)
-            residues.append(res)
-        else:
-            k = np.where(res_atom_indices==node.getIndex())[0][0]
-            if is3d:
-                nma_indices[k*3:(k+1)*3] = list(range(i*3, (i+1)*3))
-            else:
-                nma_indices[k] = i
-
-            res_real_indices = real_indices[residues.index(res)]
-        
-        # register the real node
-        node_index = node.getIndex()
-        res_real_indices[res_atom_indices == node_index] = i
-    
-    def getClosest(a, B):
-        D = []
-        for b in B:
-            d = calcDistance(a, b)
-            D.append(d)
-        
-        i = np.argmin(D)
-        return B[i]
-
-    for i, res_real_indices in enumerate(real_indices):
-        arr = np.array(res_real_indices)
-        # this residue is represented by one node, so no correction is needed
-        if sum(arr >= 0) == 1: 
-            continue
-        # otherwise replace the data of extended atoms by that of 
-        # the nearest real node in the residue
-        else:
-            # get all the atoms in this residue
-            res_atoms = np.array(residues[i])
-            # get the real and extended atoms
-            real_atoms = res_atoms[arr >= 0]
-            for j in range(len(res_real_indices)):
-                if res_real_indices[j] >= 0:
-                    continue
-                else:
-                    atom = res_atoms[j]
-                    closest_real_atom = getClosest(atom, real_atoms)
-                    k = np.where(real_atoms == closest_real_atom)[0][0]
-                    
-                    nma_indices = indices[i]
-                    if is3d:
-                        nma_indices[j*3:(j+1)*3] = nma_indices[k*3:(k+1)*3]
-                    else:
-                        nma_indices[j] = nma_indices[k]
-
-    atom_indices = np.concatenate(atom_indices)
-    indices = np.concatenate(indices)
-
-    try:
-        ag = atoms.getAtomGroup()
-    except AttributeError:
-        ag = atoms
-    atommap = AtomMap(ag, atom_indices, atoms.getACSIndex(),
-                      title=str(atoms), intarrays=True)
-    return indices, atommap
-
-
 def extendModel(model, nodes, atoms, norm=False):
     """Extend a coarse grained *model* built for *nodes* to *atoms*.  *model*
     may be :class:`.ANM`, :class:`.GNM`, :class:`.PCA`, or :class:`.NMA`
@@ -144,7 +36,10 @@ def extendModel(model, nodes, atoms, norm=False):
     except AttributeError:
         raise ValueError('model must be an NMA instance')
 
-    indices, atommap = extend(model, nodes, atoms)
+    if model.numAtoms() != nodes.numAtoms():
+        raise ValueError('atom numbers must be the same')
+
+    indices, atommap = extendAtoms(nodes, atoms, model.is3d())
 
     evecs = evecs[indices, :]
     if norm:
@@ -173,7 +68,7 @@ def extendMode(mode, nodes, atoms, norm=False):
     except AttributeError:
         raise ValueError('mode must be a normal Mode instance')
 
-    indices, atommap = extend(mode, nodes, atoms)
+    indices, atommap = extendAtoms(nodes, atoms, mode.is3d())
     vec = vec[indices]
     if norm:
         vec /= ((vec) ** 2).sum() ** 0.5
@@ -194,7 +89,10 @@ def extendVector(vector, nodes, atoms):
     except AttributeError:
         raise ValueError('vector must be a Vector instance')
 
-    indices, atommap = extend(vector, nodes, atoms)
+    if vector.numAtoms() != nodes.numAtoms():
+        raise ValueError('atom numbers must be the same')
+
+    indices, atommap = extendAtoms(nodes, atoms, vector.is3d())
     extended = Vector(vec[indices], 'Extended ' + str(vector), vector.is3d())
     return extended, atommap
 
