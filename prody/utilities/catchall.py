@@ -213,7 +213,7 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
 
     import matplotlib.pyplot as plt
     from matplotlib import cm, ticker
-    from matplotlib.gridspec import GridSpec, GridSpecFromSubplotSpec
+    from matplotlib.gridspec import GridSpec
     from matplotlib.collections import LineCollection
     from matplotlib.pyplot import imshow, gca, sca, sci
 

@@ -1022,3 +1022,102 @@ def fetchCATH(filename, ftp_host=None, ftp_path=None, **kwargs):
 
 # fetchCATH('cath-b-newest-all.gz')
 # pdbChain2CATH = buildPDBChainCATHDict('cath-b-newest-all.gz')
+
+def extend(model, nodes, atoms):
+    """Returns mapping indices and an :class:`.AtomMap`."""
+
+    try:
+        n_atoms = model.numAtoms()
+        is3d = model.is3d()
+    except AttributeError:
+        raise ValueError('model must be an NMA instance')
+
+    try:
+        n_nodes = nodes.numAtoms()
+        i_nodes = nodes.iterAtoms()
+    except AttributeError:
+        raise ValueError('nodes must be an Atomic instance')
+
+    if n_atoms != n_nodes:
+        raise ValueError('atom numbers must be the same')
+
+    if not nodes in atoms:
+        raise ValueError('nodes must be a subset of atoms')
+
+    atom_indices = []
+    indices = []
+    get = HierView(atoms).getResidue
+
+    for i, node in enumerate(i_nodes):
+        res = get(node.getChid() or None, node.getResnum(),
+                  node.getIcode() or None, node.getSegname() or None)
+        if res is None:
+            raise ValueError('atoms must contain a residue for all atoms')
+        atom_indices.append(res._getIndices())
+        if is3d:
+            indices.append(list(range(i*3, (i+1)*3)) * len(res))
+        else:
+            indices.append([i] * len(res))
+    atom_indices = np.concatenate(atom_indices)
+    indices = np.concatenate(indices)
+
+    try:
+        ag = atoms.getAtomGroup()
+    except AttributeError:
+        ag = atoms
+    atommap = AtomMap(ag, atom_indices, atoms.getACSIndex(),
+                      title=str(atoms), intarrays=True)
+    return indices, atommap
+
+def extendAtomicData(data, nodes, atoms):
+    """Extend a coarse grained data obtained for *nodes* to *atoms*.
+
+    :arg data: any data array
+    :type data: `~numpy.ndarray`
+
+    :arg nodes: a set of atoms that has been used
+        as nodes in data generation
+    :type nodes: :class:`
+
+    :arg atoms: atoms to be selected from
+    :type atoms: :class:`Atomic`
+
+    """
+    from collections import Counter
+
+    try:
+        data = asarray(data)
+    except:
+        raise TypeError('The data must be array-like.')
+
+    if not isinstance(nodes, Atomic):
+        raise TypeError('nodes must be an Atomic instance')
+
+    if not isinstance(atoms, Atomic):
+        raise TypeError('atoms must be an Atomic instance')
+
+    nnodes = nodes.numAtoms()
+
+    is3d = False
+    if len(data) != nnodes:
+        if data.shape[0] == nnodes * 3:
+            is3d = True
+        else:
+            raise ValueError('data and atoms must have the same size')
+
+    indices = nodes.getResindices()
+    if is3d:
+        indices = array([[i*3, i*3+1, i*3+2] 
+                        for i in indices]
+                        ).reshape(3*len(indices))
+
+    data_ext = []
+    resid_counter = Counter(atoms.getResindices())
+    for i in indices:
+        data_ext.extend(resid_counter.values()[i]*[data[i]])
+
+    resid_selstr = ' '.join([str(resid) for resid in nodes.getResindices()])
+    rest = atoms.select('not resid {0}'.format(resid_selstr))
+    data_ext.extend(zeros(rest.numAtoms()))
+        
+    return data_ext

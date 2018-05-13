@@ -2,8 +2,8 @@
 import re
 
 from numpy import unique, linalg, diag, sqrt, dot, chararray
-from numpy import diff, where, insert, nan, loadtxt, array
-from numpy import sign, arange, asarray, ndarray
+from numpy import diff, where, insert, nan, loadtxt, array, round
+from numpy import sign, arange, asarray, ndarray, subtract, power
 from collections import Counter
 import numbers
 
@@ -13,7 +13,8 @@ __all__ = ['Everything', 'rangeString', 'alnum', 'importLA', 'dictElement',
            'intorfloat', 'startswith', 'showFigure', 'countBytes', 'sqrtm',
            'saxsWater', 'count', 'addBreaks', 'copy', 'dictElementLoop', 
            'getDataPath', 'openData', 'chr2', 'toChararray', 'interpY', 'cmp',
-           'getValue', 'indentElement', 'isPDB', 'isURL', 'isListLike']
+           'getValue', 'indentElement', 'isPDB', 'isURL', 'isListLike',
+           'getDistance']
 
 # Note that the chain id can be blank (space). Examples:
 # 3TT1, 3tt1A, 3tt1:A, 3tt1_A, 3tt1-A, 3tt1 A
@@ -361,3 +362,10 @@ def indentElement(elem, level=0):
 
 def isListLike(a):
     return isinstance(a, (list, tuple, ndarray))
+
+def getDistance(coords1, coords2, unitcell=None):
+
+    diff = coords1 - coords2
+    if unitcell is not None:
+        diff = subtract(diff, round(diff/unitcell)*unitcell, diff)
+    return sqrt(power(diff, 2, diff).sum(axis=-1))

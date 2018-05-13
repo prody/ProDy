@@ -8,6 +8,7 @@ from prody.utilities.misctools import count
 from .atomgroup import AtomGroup
 from .selection import Selection
 from .chain import Chain
+from .atommap import AtomMap
 from .residue import Residue
 from .segment import Segment
 
@@ -43,8 +44,8 @@ class HierView(object):
 
     def __init__(self, atoms, **kwargs):
 
-        if not isinstance(atoms, (AtomGroup, Selection, Chain, Segment)):
-            raise TypeError('atoms must be an AtomGroup, Selection, Chain, or Segment instance')
+        if not isinstance(atoms, (AtomGroup, Selection, Chain, Segment, AtomMap)):
+            raise TypeError('atoms must be an AtomGroup, Selection, Chain, AtomMap or Segment instance')
 
         self._atoms = atoms
         self.update(**kwargs)
