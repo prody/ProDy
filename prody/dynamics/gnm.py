@@ -535,7 +535,8 @@ class GNM(GNMBase):
             for j in range(i+1,n_atoms):
                 r_ij[i][j] = coords[j,:] - coords[i,:]
                 r_ij[j][i] = r_ij[i][j]
-                r_ij_n = LA.norm(r_ij, axis=2)
+                
+        r_ij_n = LA.norm(r_ij, axis=2)
 
         #with np.errstate(divide='ignore'):
         r_ij_n[np.diag_indices_from(r_ij_n)] = ZERO  # div by 0
