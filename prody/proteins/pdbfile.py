@@ -529,6 +529,7 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                 hetero[acount] = startswith[0] == 'H'
                 segnames[acount] = line[72:76]
                 elements[acount] = line[76:78]
+                charges[acount] = line[78:80]
             else:
                 try:
                     charges[acount] = line[54:62]
