@@ -1010,6 +1010,7 @@ def mapOntoChain(atoms, chain, **kwargs):
         title_tar = 'Chain {0} from {1}'.format(ch_tar.getChid(), ch_tar.getAtomGroup().getTitle())
         title_chn = 'Chain {0} from {1}'.format(ch_chn.getChid(), ch_chn.getAtomGroup().getTitle())
 
+        # note that chain here is from atoms
         atommap = AM(map_ag, indices_chain, chain.getACSIndex(),
                      mapping=indices_mapping, dummies=indices_dummies,
                      title=title_chn + ' -> ' + title_tar )
