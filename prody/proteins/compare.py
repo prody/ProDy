@@ -867,25 +867,28 @@ def mapOntoChain(atoms, chain, **kwargs):
             alignment = pwalign
             pwalign = True
 
-    if isinstance(atoms, Chain):
-        chains = [atoms]
-        map_ag = atoms.getAtomGroup()
-    else:
-        if isinstance(atoms, AtomGroup):
-            map_ag = atoms
-        else:
-            map_ag = atoms.getAtomGroup()
-        chains = list(atoms.getHierView().iterChains())
-        LOGGER.debug('Evaluating {0}: {1} chains are identified'
-                     .format(str(atoms), len(chains))) 
-
     if subset != 'all':
         chid = chain.getChid()
         segname = chain.getSegname()
         chain_subset = chain.select(subset)
         target_chain = chain_subset.getHierView()[segname, chid]
+        
+        mobile = atoms.select(subset)
     else:
         target_chain = chain
+        mobile = atoms
+
+    if isinstance(mobile, Chain):
+        chains = [mobile]
+        map_ag = mobile.getAtomGroup()
+    else:
+        if isinstance(mobile, AtomGroup):
+            map_ag = mobile
+        else:
+            map_ag = mobile.getAtomGroup()
+        chains = list(mobile.getHierView().iterChains())
+        LOGGER.debug('Evaluating {0}: {1} chains are identified'
+                     .format(str(atoms), len(chains))) 
 
     mappings = []
     unmapped = []
