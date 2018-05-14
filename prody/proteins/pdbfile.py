@@ -414,8 +414,8 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
         occupancies = np.zeros(asize, dtype=ATOMIC_FIELDS['occupancy'].dtype)
         anisou = None
         siguij = None
-    else:
         charges = np.zeros(asize, dtype=ATOMIC_FIELDS['charge'].dtype)
+    else:
         radii = np.zeros(asize, dtype=ATOMIC_FIELDS['radius'].dtype)
 
     asize = 2000 # increase array length by this much when needed
