@@ -162,6 +162,6 @@ setup(
                  'Topic :: Scientific/Engineering :: Chemistry',
                 ],
     #scripts=SCRIPTS,
-    install_requires=['NumPy (>=1.10)', ],
+    #install_requires=['NumPy (>=1.10)', ],
     #provides=['ProDy ({0:s})'.format(__version__)]
 )
