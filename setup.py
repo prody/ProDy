@@ -4,9 +4,12 @@ import platform
 from os import sep as dirsep
 from os.path import isfile, join
 
-from distutils.core import setup
-from distutils.extension import Extension
-from distutils.command.install import install
+#from distutils.core import setup
+#from distutils.extension import Extension
+#from distutils.command.install import install
+
+from setuptools import setup
+from setuptools import Extension
 
 if sys.version_info[:2] < (2, 7):
     sys.stderr.write('Python 2.6 and older is not supported\n')
