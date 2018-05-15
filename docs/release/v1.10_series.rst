@@ -4,6 +4,26 @@ ProDy 1.10 Series
 .. contents::
    :local:
 
+1.10.3 (May 14, 2018)
+------------------------------------------------------------------------------
+
+**New Features**:
+
+  * Added :class:`.CATHDB` for querying information from CATH database.
+
+  * Added :func:`.sliceAtomicData` and :func:`.extendAtomicData` to slice more 
+    extend data based on :class:`.Selection` or other types of :class:`.Atomic` 
+    objects.
+
+*Bug Fixes and Improvements*
+
+  * Switched to Python Wheel for distributing on Windows. This will allow 
+    Windows users to `pip install prody`.
+
+  * Fixed a error when compiling C++ extensions on MacOS.
+
+  * Various bug fixes according to issues proposed on the GitHub.
+
 1.10.2 (May 2, 2018)
 ------------------------------------------------------------------------------
 
