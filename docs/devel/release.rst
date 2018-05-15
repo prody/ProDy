@@ -19,6 +19,7 @@ How to Make a Release
 #. Update the version number in:
 
    * :file:`prody/__init__.py`
+   * :file:`./PKG-INFO`
 
    Also, commend ``+ '-dev'`` out, so that documentation will build
    for a stable release.
