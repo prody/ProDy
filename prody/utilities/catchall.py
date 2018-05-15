@@ -218,13 +218,13 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
     from matplotlib.pyplot import imshow, gca, sca, sci
 
     p = kwargs.pop('percentile', None)
+    vmin = vmax = None
     if p is not None:
         vmin = np.percentile(matrix, p)
         vmax = np.percentile(matrix, 100-p)
-    else:
-        vmin = kwargs.pop('vmin', None)
-        vmax = kwargs.pop('vmax', None)
-
+    
+    vmin = kwargs.pop('vmin', vmin)
+    vmax = kwargs.pop('vmax', vmax)
     
     
     W = H = kwargs.pop('ratio', 6)
