@@ -127,11 +127,14 @@ for ext in CONTRIBUTED:
     if all([isfile(src) for src in ext.sources]):
         EXTENSIONS.append(ext)
 
-SCRIPTS = ['scripts/prody', 'scripts/evol']
-if (platform.system() == 'Windows' or
-    len(sys.argv) > 1 and sys.argv[1] not in ('build', 'install')):
-    for script in list(SCRIPTS):
-        SCRIPTS.append(script + '.bat')
+# SCRIPTS = ['scripts/prody', 'scripts/evol']
+# if (platform.system() == 'Windows' or
+#     len(sys.argv) > 1 and sys.argv[1] not in ('build', 'install')):
+#     for script in list(SCRIPTS):
+#         SCRIPTS.append(script + '.bat')
+
+
+SCRIPTS = ['prody=prody.apps:prody_main', 'evol=prody.apps:evol_main']
 
 setup(
     name='ProDy',
@@ -164,7 +167,10 @@ setup(
                  'Topic :: Scientific/Engineering :: Bio-Informatics',
                  'Topic :: Scientific/Engineering :: Chemistry',
                 ],
-    scripts=SCRIPTS,
+    #scripts=SCRIPTS,
+    entry_points = {
+        'console_scripts': SCRIPTS,
+    }
     #install_requires=['NumPy (>=1.10)', ],
     #provides=['ProDy ({0:s})'.format(__version__)]
 )
