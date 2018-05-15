@@ -192,7 +192,7 @@ def writeHeatmap(filename, heatmap, **kwargs):
     try:
         write, close, stream = filename.write, lambda: None, filename
     except AttributeError:
-        out = openFile(addext(filename, '.hm'), 'wb')
+        out = openFile(addext(filename, '.hm'), 'w')
         write, close, stream = out.write, out.close, out
 
     format = kwargs.pop('format', '%f')
