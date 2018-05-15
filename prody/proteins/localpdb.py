@@ -345,7 +345,7 @@ def fetchPDB(*pdb, **kwargs):
         except Exception as err:
             tryHTTP = True
    
-    if fns is None:
+    if fns is None or None in fns:
         tryHTTP = True
     elif isinstance(fns, list): 
         downloads = [not_found[i][1] for i in range(len(fns)) if fns[i] is None]
