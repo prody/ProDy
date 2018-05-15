@@ -811,7 +811,7 @@ def showDiffMatrix(matrix1, matrix2, *args, **kwargs):
     are passed to this function, but user can overwrite these parameters.
     """
 
-    import matplotlib.pyplot as plt
+    from matplotlib.pyplot import title, xlabel, ylabel
     try:
         dim1, shape1 = matrix1.ndim, matrix1.shape
     except AttributeError:
@@ -833,15 +833,15 @@ def showDiffMatrix(matrix1, matrix2, *args, **kwargs):
         kwargs['origin'] = 'lower'
     if kwargs.pop('abs', False):
         diff = np.abs(diff)
-    if SETTINGS['auto_show']:
-        plt.figure()
+    #if SETTINGS['auto_show']:
+    #    figure()
     show = showAtomicMatrix(diff, *args, **kwargs)
     #show.im3.axis([-.5, shape1[1] - .5, -.5, shape1[0] - .5])
-    plt.title('Difference Matrix')
-    if SETTINGS['auto_show']:
-        showFigure()
-    plt.xlabel('Indices')
-    plt.ylabel('Indices')
+    title('Difference Matrix')
+    #if SETTINGS['auto_show']:
+    #    showFigure()
+    xlabel('Indices')
+    ylabel('Indices')
     return show
 
 
@@ -850,31 +850,30 @@ def showMechStiff(model, coords, *args, **kwargs):
     By default, ``origin="lower"`` keyword  arguments are passed to this function, 
     but user can overwrite these parameters."""
 
-    import math
-    import matplotlib
-    import matplotlib.pyplot as plt
+    from math import floor
+    #from matplotlib import rcParams
+    from matplotlib.pyplot import title, xlabel, ylabel
 
     model.buildMechStiff(coords)
 
     if not 'origin' in kwargs:
         kwargs['origin'] = 'lower'
-    if 'jet_r' in kwargs:
-        import matplotlib.cm as plt
-        kwargs['jet_r'] = 'cmap=cm.jet_r'
+    if not 'cmap' in kwargs:
+        kwargs['cmap'] = 'jet_r'
         
     MechStiff = model.getStiffness()
-    matplotlib.rcParams['font.size'] = '14'
+    #rcParams['font.size'] = '14'
 
-    if SETTINGS['auto_show']:
-        fig = plt.figure(num=None, figsize=(10,8), dpi=100, facecolor='w')
-    vmin = math.floor(np.min(MechStiff[np.nonzero(MechStiff)]))
+    #if SETTINGS['auto_show']:
+    #    fig = plt.figure(num=None, figsize=(10,8), dpi=100, facecolor='w')
+    vmin = floor(np.min(MechStiff[np.nonzero(MechStiff)]))
     vmax = round(np.amax(MechStiff),1)
     show = showAtomicMatrix(MechStiff, vmin=vmin, vmax=vmax, *args, **kwargs)
-    plt.title('Mechanical Stiffness Matrix')# for {0}'.format(str(model)))
-    plt.xlabel('Indices', fontsize='16')
-    plt.ylabel('Indices', fontsize='16')
-    if SETTINGS['auto_show']:
-        showFigure()
+    title('Mechanical Stiffness Matrix')# for {0}'.format(str(model)))
+    xlabel('Indices') #, fontsize='16')
+    ylabel('Indices') #, fontsize='16')
+    #if SETTINGS['auto_show']:
+    #    showFigure()
     return show
 
 
@@ -884,28 +883,28 @@ def showNormDistFunct(model, coords, *args, **kwargs):
     keyword  arguments are passed to this function, 
     but user can overwrite these parameters."""
 
-    import math
-    import matplotlib
-    import matplotlib.pyplot as plt
+    from math import floor
+    #import matplotlib
+    from matplotlib.pyplot import xlabel, ylabel, title
     normdistfunct = model.getNormDistFluct(coords)
 
     if not 'origin' in kwargs:
         kwargs['origin'] = 'lower'
         
-    matplotlib.rcParams['font.size'] = '14'
+    #matplotlib.rcParams['font.size'] = '14'
 
-    if SETTINGS['auto_show']:
-        fig = plt.figure(num=None, figsize=(10,8), dpi=100, facecolor='w')
-    vmin = math.floor(np.min(normdistfunct[np.nonzero(normdistfunct)]))
-    vmax = round(np.amax(normdistfunct),1)
+    #if SETTINGS['auto_show']:
+    #    fig = plt.figure(num=None, figsize=(10,8), dpi=100, facecolor='w')
+    vmin = floor(np.min(normdistfunct[np.nonzero(normdistfunct)]))
+    vmax = round(np.amax(normdistfunct), 1)
     show = showAtomicMatrix(normdistfunct, vmin=vmin, vmax=vmax, *args, **kwargs)
     #plt.clim(math.floor(np.min(normdistfunct[np.nonzero(normdistfunct)])), \
     #                                       round(np.amax(normdistfunct),1))
-    plt.title('Normalized Distance Fluctution Matrix')
-    plt.xlabel('Indices', fontsize='16')
-    plt.ylabel('Indices', fontsize='16')
-    if SETTINGS['auto_show']:
-        showFigure()
+    title('Normalized Distance Fluctution Matrix')
+    xlabel('Indices') #, fontsize='16')
+    ylabel('Indices') #, fontsize='16')
+    #if SETTINGS['auto_show']:
+    #    showFigure()
     return show
 
 
