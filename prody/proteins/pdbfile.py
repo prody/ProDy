@@ -414,8 +414,8 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
         occupancies = np.zeros(asize, dtype=ATOMIC_FIELDS['occupancy'].dtype)
         anisou = None
         siguij = None
-    else:
         charges = np.zeros(asize, dtype=ATOMIC_FIELDS['charge'].dtype)
+    else:
         radii = np.zeros(asize, dtype=ATOMIC_FIELDS['radius'].dtype)
 
     asize = 2000 # increase array length by this much when needed
@@ -529,6 +529,10 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                 hetero[acount] = startswith[0] == 'H'
                 segnames[acount] = line[72:76]
                 elements[acount] = line[76:78]
+                try:
+                    charges[acount] = int(line[79] + line[78])
+                except:
+                    charges[acount] = 0
             else:
                 try:
                     charges[acount] = line[54:62]
