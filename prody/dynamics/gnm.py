@@ -548,7 +548,7 @@ class GNM(GNMBase):
 
     def setEigens(self, vectors, values=None):
         self._clear()
-        super(GNMBase, self).setEigens(vectors, values)
+        super(GNM, self).setEigens(vectors, values)
 
 
 def calcGNM(pdb, selstr='calpha', cutoff=15., gamma=1., n_modes=20,

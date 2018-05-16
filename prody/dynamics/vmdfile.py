@@ -12,7 +12,7 @@ import numpy as np
 
 from prody import LOGGER, SETTINGS, PY3K
 from prody.atomic import AtomGroup
-from prody.utilities import openFile, isExecutable, which, PLATFORM, addext
+from prody.utilities import openFile, isExecutable, which, PLATFORM, addext, checkCoords
 from prody.proteins import writePDB
 
 from .nma import NMA
@@ -23,8 +23,8 @@ from .mode import Vector, Mode
 from .modeset import ModeSet
 from .nmdfile import viewNMDinVMD, pathVMD, getVMDpath, setVMDpath
 
-def writeVMDstiffness(model, pdb, indices, k_range, filename='vmd_out', \
-                            selstr='protein and name CA', loadToVMD=True):
+def writeVMDstiffness(stiffness, pdb, indices, k_range, filename='vmd_out', \
+                            selstr='protein and name CA', loadToVMD=False):
    
     """Returns three *filename* files: (1) PDB file with coordinates. 
     (2) TCL file containing vmd commands for loading PDB file with accurate 	
@@ -72,15 +72,7 @@ def writeVMDstiffness(model, pdb, indices, k_range, filename='vmd_out', \
             raise TypeError('pdb must be a Numpy array or an object '
                             'with `getCoords` method')
     
-    if not isinstance(model, NMA):
-        raise TypeError('model must be an NMA instance')
-    elif not model.is3d():
-        raise TypeError('model must be a 3-dimensional NMA instance')
-    elif len(model) == 0:
-        raise ValueError('model must have normal modes calculated')
-    elif model.getStiffness() is None:
-        raise ValueError('model must have stiffness matrix calculated')
-    elif len(indices)==0:
+    if len(indices)==0:
         raise ValueError('indices cannot be an empty array')
 
     if len(indices)==1:
@@ -130,7 +122,7 @@ def writeVMDstiffness(model, pdb, indices, k_range, filename='vmd_out', \
         nr_baza_col = [] # Resid of aa are here
         out.write("draw color "+str(colors[color_nr])+"\n")
             
-        for nr_i, i in enumerate(model.getStiffness()[r]):
+        for nr_i, i in enumerate(stiffness[r]):
             if k_range[0] < float(i) < k_range[1]:
                 baza_col.append(i)
                 nr_baza_col.append(nr_i+resnum_list[0])
@@ -165,7 +157,7 @@ def writeVMDstiffness(model, pdb, indices, k_range, filename='vmd_out', \
     out.close()
     out_txt.close()
 
-    if (loadToVMD == True):
+    if loadToVMD:
         from prody import pathVMD
         LOGGER.info('File will be loaded to VMD program.')
         os.system(pathVMD()+" -e "+str(filename)+".tcl")
@@ -177,8 +169,8 @@ def writeVMDstiffness(model, pdb, indices, k_range, filename='vmd_out', \
         return 'None'   
 
 
-def writeDeformProfile(model, pdb, filename='dp_out', selstr='protein and name CA',\
-                                            pdb_selstr='protein', loadToVMD=True):
+def writeDeformProfile(stiffness, pdb, filename='dp_out', selstr='protein and name CA',\
+                                            pdb_selstr='protein', loadToVMD=False):
 
     """Calculate deformability (plasticity) profile of molecule based on mechanical
     stiffness matrix (see [EB08]_).
@@ -202,7 +194,7 @@ def writeDeformProfile(model, pdb, filename='dp_out', selstr='protein and name C
     
     pdb = pdb.select(pdb_selstr)
     coords = pdb.select(selstr)
-    meanSiff = np.mean(model.getStiffness(), axis=0)
+    meanSiff = np.mean(stiffness, axis=0)
     
     out_mean = open(filename+'_mean.txt','w')   # mean value of Kij for each residue
     for nr_i, i in enumerate(meanSiff):
@@ -214,7 +206,7 @@ def writeDeformProfile(model, pdb, filename='dp_out', selstr='protein and name C
     
     meanStiff_all = []        
     for i in range(coords.numAtoms()):
-         meanStiff_all.extend(aa_counter.values()[i]*[round(meanSiff[i], 2)])
+        meanStiff_all.extend(list(aa_counter.values())[i]*[round(meanSiff[i], 2)])
         
     kw = {'occupancy': meanStiff_all}
     writePDB(filename, pdb, **kw)                
@@ -231,14 +223,14 @@ def writeDeformProfile(model, pdb, filename='dp_out', selstr='protein and name C
     out_tcl.write('menu colorscalebar on \n')
     out_tcl.close()
 
-    if (loadToVMD == True):
+    if loadToVMD:
         from prody import pathVMD
         LOGGER.info('File will be loaded to VMD program.')
         os.system(pathVMD()+" -e "+str(filename)+".tcl")
 
 
 def calcChainsNormDistFluct(coords, ch1, ch2, cutoff=10., percent=5, rangeAng=5, \
-                                        filename='ch_ndf_out', loadToVMD=True):
+                                        filename='ch_ndf_out', loadToVMD=False):
 
     '''Calculate protein-protein interaction using getNormDistFluct() from 
     :class:`.GNM` model. It is assigned to protein complex.
@@ -347,7 +339,7 @@ def calcChainsNormDistFluct(coords, ch1, ch2, cutoff=10., percent=5, rangeAng=5,
     out_tcl.close()
     out_pairs.close()
 
-    if (loadToVMD == True):
+    if loadToVMD:
         from prody import pathVMD
         LOGGER.info('File will be loaded to VMD program.')
         os.system(pathVMD()+" -e "+str(filename)+".tcl")

@@ -12,6 +12,7 @@ import numpy as np
 
 from prody import LOGGER, SETTINGS, PY3K
 from prody.utilities import showFigure, addBreaks
+from prody.atomic import AtomGroup, Selection, Atomic, sliceAtoms, sliceAtomicData
 
 from .nma import NMA
 from .gnm import GNMBase
@@ -22,7 +23,6 @@ from .analysis import calcCrossCorr, calcPairDeformationDist
 from .analysis import calcFractVariance, calcCrossProjection 
 from .perturb import calcPerturbResponse
 from .compare import calcOverlap
-from prody.atomic import AtomGroup, Selection, Atomic, sliceAtoms, sliceAtomicData
 
 __all__ = ['showContactMap', 'showCrossCorr',
            'showCumulOverlap', 'showFractVars',
@@ -845,7 +845,7 @@ def showDiffMatrix(matrix1, matrix2, *args, **kwargs):
     return show
 
 
-def showMechStiff(model, coords, *args, **kwargs):
+def showMechStiff(stiffness, atoms, **kwargs):
     """Show mechanical stiffness matrix using :func:`~matplotlib.pyplot.imshow`.
     By default, ``origin="lower"`` keyword  arguments are passed to this function, 
     but user can overwrite these parameters."""
@@ -854,23 +854,23 @@ def showMechStiff(model, coords, *args, **kwargs):
     #from matplotlib import rcParams
     from matplotlib.pyplot import title, xlabel, ylabel
 
-    model.buildMechStiff(coords)
+    from .mechstiff import calcStiffnessRange
+
+    sm = stiffness
 
     if not 'origin' in kwargs:
         kwargs['origin'] = 'lower'
     if not 'cmap' in kwargs:
         kwargs['cmap'] = 'jet_r'
         
-    MechStiff = model.getStiffness()
     #rcParams['font.size'] = '14'
 
     #if SETTINGS['auto_show']:
     #    fig = plt.figure(num=None, figsize=(10,8), dpi=100, facecolor='w')
-    vmin = floor(np.min(MechStiff[np.nonzero(MechStiff)]))
-    vmax = round(np.amax(MechStiff),1)
+    vmin, vmax = calcStiffnessRange(sm)
     vmin = kwargs.pop('vmin', vmin)
     vmax = kwargs.pop('vmax', vmax)
-    show = showAtomicMatrix(MechStiff, vmin=vmin, vmax=vmax, *args, **kwargs)
+    show = showAtomicMatrix(sm, atoms=atoms, vmin=vmin, vmax=vmax, **kwargs)
     title('Mechanical Stiffness Matrix')# for {0}'.format(str(model)))
     xlabel('Indices') #, fontsize='16')
     ylabel('Indices') #, fontsize='16')
@@ -879,7 +879,7 @@ def showMechStiff(model, coords, *args, **kwargs):
     return show
 
 
-def showNormDistFunct(model, coords, *args, **kwargs):
+def showNormDistFunct(model, coords, **kwargs):
     """Show normalized distance fluctuation matrix using 
     :func:`~matplotlib.pyplot.imshow`. By default, ``origin="lower"`` 
     keyword  arguments are passed to this function, 
@@ -901,7 +901,7 @@ def showNormDistFunct(model, coords, *args, **kwargs):
     vmax = round(np.amax(normdistfunct), 1)
     vmin = kwargs.pop('vmin', vmin)
     vmax = kwargs.pop('vmax', vmax)
-    show = showAtomicMatrix(normdistfunct, vmin=vmin, vmax=vmax, *args, **kwargs)
+    show = showAtomicMatrix(normdistfunct, vmin=vmin, vmax=vmax, **kwargs)
     #plt.clim(math.floor(np.min(normdistfunct[np.nonzero(normdistfunct)])), \
     #                                       round(np.amax(normdistfunct),1))
     title('Normalized Distance Fluctution Matrix')
@@ -926,8 +926,6 @@ def showPairDeformationDist(model, coords, ind1, ind2, *args, **kwargs):
         raise TypeError('model must be a 3-dimensional NMA instance')
     elif len(model) == 0:
         raise ValueError('model must have normal modes calculated')
-    elif model.getStiffness() is None:
-        raise ValueError('model must have stiffness matrix calculated')
 
     d_pair = calcPairDeformationDist(model, coords, ind1, ind2)
     with plt.style.context('fivethirtyeight'):
@@ -942,17 +940,18 @@ def showPairDeformationDist(model, coords, ind1, ind2, *args, **kwargs):
     return plt.show
 
 
-def showMeanMechStiff(model, coords, header, chain='A', *args, **kwargs):
+def showMeanMechStiff(stiffness, atoms, header, chain='A', *args, **kwargs):
     """Show mean value of effective spring constant with secondary structure
     taken from MechStiff. Header is needed to obatin secondary structure range.
     Using ``"jet_r"`` as argument color map will be reverse (similar to VMD 
     program coding).
     """
-    meanStiff = np.array([np.mean(model.getStiffness(), axis=0)])
+    
+    meanStiff = np.array([np.mean(stiffness, axis=0)])
     import matplotlib
     import matplotlib.pyplot as plt
     import matplotlib.patches as patches
-    fig=plt.figure(figsize=[18,6], facecolor='w', dpi=100)
+    fig = plt.figure(figsize=[18,6], facecolor='w', dpi=100)
     
     if 'jet_r' in kwargs:
        import matplotlib.cm as plt
@@ -963,8 +962,8 @@ def showMeanMechStiff(model, coords, header, chain='A', *args, **kwargs):
     with plt.style.context('fivethirtyeight'):
         ax = fig.add_subplot(111)
         matplotlib.rcParams['font.size'] = '24'
-        plt.plot(np.arange(len(meanStiff[0]))+coords.getResnums()[0],meanStiff[0], 'k-', linewidth = 3)
-        plt.xlim(coords.getResnums()[0], coords.getResnums()[-1])
+        plt.plot(np.arange(len(meanStiff[0]))+atoms.getResnums()[0],meanStiff[0], 'k-', linewidth = 3)
+        plt.xlim(atoms.getResnums()[0], atoms.getResnums()[-1])
         ax_top=round(np.max(meanStiff[0])+((np.max(meanStiff[0])-np.min(meanStiff[0]))/3))
         ax_bottom=np.floor(np.min(meanStiff[0]))
         LOGGER.info('The range of mean effective force constant is: {0} to {1}.'
@@ -978,8 +977,8 @@ def showMeanMechStiff(model, coords, header, chain='A', *args, **kwargs):
     header_ss = header['sheet_range'] + header['helix_range']
     for i in range(len(header_ss)):
         if header_ss[i][1] == chain:
-            beg = int(header_ss[i][-2])-coords.getResnums()[0]
-            end = int(header_ss[i][-1])-coords.getResnums()[0]
+            beg = int(header_ss[i][-2])-atoms.getResnums()[0]
+            end = int(header_ss[i][-1])-atoms.getResnums()[0]
             add_beg = end - beg
             if header_ss[i][0] == 'H':
                 ax.add_patch(patches.Rectangle((beg+1,-0.7),add_beg,\
