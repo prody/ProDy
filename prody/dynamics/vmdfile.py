@@ -12,7 +12,7 @@ import numpy as np
 
 from prody import LOGGER, SETTINGS, PY3K
 from prody.atomic import AtomGroup
-from prody.utilities import openFile, isExecutable, which, PLATFORM, addext
+from prody.utilities import openFile, isExecutable, which, PLATFORM, addext, checkCoords
 from prody.proteins import writePDB
 
 from .nma import NMA
@@ -214,7 +214,7 @@ def writeDeformProfile(model, pdb, filename='dp_out', selstr='protein and name C
     
     meanStiff_all = []        
     for i in range(coords.numAtoms()):
-         meanStiff_all.extend(aa_counter.values()[i]*[round(meanSiff[i], 2)])
+        meanStiff_all.extend(list(aa_counter.values())[i]*[round(meanSiff[i], 2)])
         
     kw = {'occupancy': meanStiff_all}
     writePDB(filename, pdb, **kw)                

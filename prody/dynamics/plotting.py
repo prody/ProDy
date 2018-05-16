@@ -845,7 +845,7 @@ def showDiffMatrix(matrix1, matrix2, *args, **kwargs):
     return show
 
 
-def showMechStiff(model, coords, *args, **kwargs):
+def showMechStiff(model, coords, **kwargs):
     """Show mechanical stiffness matrix using :func:`~matplotlib.pyplot.imshow`.
     By default, ``origin="lower"`` keyword  arguments are passed to this function, 
     but user can overwrite these parameters."""
@@ -870,7 +870,7 @@ def showMechStiff(model, coords, *args, **kwargs):
     vmax = round(np.amax(MechStiff),1)
     vmin = kwargs.pop('vmin', vmin)
     vmax = kwargs.pop('vmax', vmax)
-    show = showAtomicMatrix(MechStiff, vmin=vmin, vmax=vmax, *args, **kwargs)
+    show = showAtomicMatrix(MechStiff, vmin=vmin, vmax=vmax, **kwargs)
     title('Mechanical Stiffness Matrix')# for {0}'.format(str(model)))
     xlabel('Indices') #, fontsize='16')
     ylabel('Indices') #, fontsize='16')
@@ -879,7 +879,7 @@ def showMechStiff(model, coords, *args, **kwargs):
     return show
 
 
-def showNormDistFunct(model, coords, *args, **kwargs):
+def showNormDistFunct(model, coords, **kwargs):
     """Show normalized distance fluctuation matrix using 
     :func:`~matplotlib.pyplot.imshow`. By default, ``origin="lower"`` 
     keyword  arguments are passed to this function, 
@@ -901,7 +901,7 @@ def showNormDistFunct(model, coords, *args, **kwargs):
     vmax = round(np.amax(normdistfunct), 1)
     vmin = kwargs.pop('vmin', vmin)
     vmax = kwargs.pop('vmax', vmax)
-    show = showAtomicMatrix(normdistfunct, vmin=vmin, vmax=vmax, *args, **kwargs)
+    show = showAtomicMatrix(normdistfunct, vmin=vmin, vmax=vmax, **kwargs)
     #plt.clim(math.floor(np.min(normdistfunct[np.nonzero(normdistfunct)])), \
     #                                       round(np.amax(normdistfunct),1))
     title('Normalized Distance Fluctution Matrix')

@@ -448,8 +448,6 @@ def calcPairDeformationDist(model, coords, ind1, ind2, kbt=1.):
         raise TypeError('model must be a 3-dimensional NMA instance')
     elif len(model) == 0:
         raise ValueError('model must have normal modes calculated')
-    elif model.getStiffness() is None:
-        raise ValueError('model must have stiffness matrix calculated')
     
     linalg = importLA()
     n_atoms = model.numAtoms()
