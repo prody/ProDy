@@ -6,7 +6,6 @@ Dynamics Models
 
 Following classes are designed for modeling and analysis of protein dynamics:
 
-  * :class:`.SM`  - Stiffness Matric calculation
   * :class:`.ANM` - Anisotropic network model, for coarse-grained NMA
   * :class:`.GNM` - Gaussian network model, for coarse-grained dynamics
     analysis
