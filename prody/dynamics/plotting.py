@@ -868,6 +868,8 @@ def showMechStiff(model, coords, *args, **kwargs):
     #    fig = plt.figure(num=None, figsize=(10,8), dpi=100, facecolor='w')
     vmin = floor(np.min(MechStiff[np.nonzero(MechStiff)]))
     vmax = round(np.amax(MechStiff),1)
+    vmin = kwargs.pop('vmin', vmin)
+    vmax = kwargs.pop('vmax', vmax)
     show = showAtomicMatrix(MechStiff, vmin=vmin, vmax=vmax, *args, **kwargs)
     title('Mechanical Stiffness Matrix')# for {0}'.format(str(model)))
     xlabel('Indices') #, fontsize='16')
@@ -897,6 +899,8 @@ def showNormDistFunct(model, coords, *args, **kwargs):
     #    fig = plt.figure(num=None, figsize=(10,8), dpi=100, facecolor='w')
     vmin = floor(np.min(normdistfunct[np.nonzero(normdistfunct)]))
     vmax = round(np.amax(normdistfunct), 1)
+    vmin = kwargs.pop('vmin', vmin)
+    vmax = kwargs.pop('vmax', vmax)
     show = showAtomicMatrix(normdistfunct, vmin=vmin, vmax=vmax, *args, **kwargs)
     #plt.clim(math.floor(np.min(normdistfunct[np.nonzero(normdistfunct)])), \
     #                                       round(np.amax(normdistfunct),1))
@@ -1111,28 +1115,28 @@ def showAtomicMatrix(matrix, x_array=None, y_array=None, atoms=None, **kwargs):
     :type y_array: :class:`~numpy.ndarray`
 
     :arg percentile: A percentile threshold to remove outliers, i.e. only showing data within *p*-th 
-                     to *100-p*-th percentile.
+        to *100-p*-th percentile.
     :type percentile: float
 
     :arg atoms: a :class: `AtomGroup` instance for matching residue numbers and chain identifiers
     :type atoms: :class: `AtomGroup`
 
     :arg chain: display a bar at the bottom to show chain separations. 
-                    If set to `None`, it will be decided depends on whether *atoms* 
-                    is provided. 
-                    Default is `None`.
+        If set to `None`, it will be decided depends on whether *atoms* 
+        is provided. 
+        Default is `None`.
     :type chain: bool
 
     :arg domain: the same with *chains* but show domain separations instead. 
-                    *atoms* needs to have *domain* data associated to it.
-                    Default is `None`.
+        *atoms* needs to have *domain* data associated to it.
+        Default is `None`.
     :type domain: bool
 
     :arg figure: if set to `None`, then a new figure will be created if *auto_show* 
-                is `True`, otherwise it will be plotted on the current figure. If set 
-                to a figure number or a :class:`~matplotlib.figure.Figure` instance, 
-                no matter what 'auto_show' value is, plots will be drawn on the *figure*.
-                Default is `None`.
+        is `True`, otherwise it will be plotted on the current figure. If set 
+        to a figure number or a :class:`~matplotlib.figure.Figure` instance, 
+        no matter what 'auto_show' value is, plots will be drawn on the *figure*.
+        Default is `None`.
     :type figure: :class:`~matplotlib.figure.Figure`, int, str
     """ 
 
