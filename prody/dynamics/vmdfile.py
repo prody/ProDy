@@ -29,7 +29,7 @@ def writeVMDstiffness(stiffness, pdb, indices, k_range, prefix='vmd_out', \
     """
     Returns three files starting with the provided prefix:
 
-    (1) PDB file with coordinates. 
+    (1) A PDB file that can be used in the TCL script. 
 
     (2) TCL file containing vmd commands for loading PDB file with accurate 	
     vmd representation. Pair of residues with selected *k_range* of 
@@ -38,8 +38,8 @@ def writeVMDstiffness(stiffness, pdb, indices, k_range, prefix='vmd_out', \
     *indices*, different pair for each residue will be colored in the 
     different colors.
 
-    (3) TXT file contains pair of residues with effective spring constant in
-    selected range *k_range*.    
+    (3) TXT file containing pair of residues with effective spring constant 
+    in selected range *k_range*.    
 
     .. note::
 
@@ -195,9 +195,9 @@ def writeDeformProfile(stiffness, pdb, filename='dp_out', \
     :arg pdb: a coordinate set or an object with ``getCoords`` method
     :type pdb: :class:`numpy.ndarray`    
     
-    Note: selection can be done usig ``select`` and ``pdb_selstr``. ``selstr`` define
-    ``model`` selection (used for building :class:`.ANM` model) and ``pdb_selstr`` 
-    will be used in VMD program for visualization. 
+    Note: selection can be done using ``select`` and ``pdb_selstr``. 
+    ``select`` defines ``model`` selection (used for building :class:`.ANM` model) 
+    and ``pdb_selstr`` will be used in VMD program for visualization. 
     
     By default files are saved as *filename* and loaded to VMD program. To change 
     it use ``loadToVMD=False``.
@@ -208,11 +208,11 @@ def writeDeformProfile(stiffness, pdb, filename='dp_out', \
     """
     
     pdb = sliceAtoms(pdb, pdb_selstr)
-    coords = sliceAtoms(pdb, selstr)
-    meanSiff = np.mean(stiffness, axis=0)
+    coords = sliceAtoms(pdb, select)
+    meanStiff = np.mean(stiffness, axis=0)
     
     out_mean = open(filename+'_mean.txt','w')   # mean value of Kij for each residue
-    for nr_i, i in enumerate(meanSiff):
+    for nr_i, i in enumerate(meanStiff):
         out_mean.write("{} {}\n".format(nr_i, i))
     out_mean.close()
     
@@ -221,10 +221,9 @@ def writeDeformProfile(stiffness, pdb, filename='dp_out', \
     
     meanStiff_all = []        
     for i in range(coords.numAtoms()):
-        meanStiff_all.extend(list(aa_counter.values())[i]*[round(meanSiff[i], 2)])
+        meanStiff_all.extend(list(aa_counter.values())[i]*[round(meanStiff[i], 2)])
         
-    kw = {'occupancy': meanStiff_all}
-    writePDB(filename, pdb, **kw)                
+    writePDB(filename, pdb, occupancy=meanStiff_all)                
     LOGGER.info('PDB file with deformability profile has been saved.')
     LOGGER.info('Creating TCL file.')
     out_tcl = open(filename+'.tcl','w')
