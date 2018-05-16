@@ -11,7 +11,7 @@ from os.path import abspath, join, split, splitext
 import numpy as np
 
 from prody import LOGGER, SETTINGS, PY3K
-from prody.atomic import AtomGroup
+from prody.atomic import AtomGroup, sliceAtoms
 from prody.utilities import openFile, isExecutable, which, PLATFORM, addext, checkCoords
 from prody.proteins import writePDB
 
@@ -34,9 +34,9 @@ def writeVMDstiffness(stiffness, pdb, indices, k_range, prefix='vmd_out', \
     (2) TCL file containing vmd commands for loading PDB file with accurate 	
     vmd representation. Pair of residues with selected *k_range* of 
     effective spring constant are shown in VMD respresentation with 
-    solid line between them. If more than one residue will be selected in 
-    *indices*, different pair for each residue will be colored in the different 
-    colors.
+    solid line between them. If more than one residue is selected in 
+    *indices*, different pair for each residue will be colored in the 
+    different colors.
 
     (3) TXT file contains pair of residues with effective spring constant in
     selected range *k_range*.    
@@ -54,13 +54,13 @@ def writeVMDstiffness(stiffness, pdb, indices, k_range, prefix='vmd_out', \
     :type stiffness: :class:`~numpy.ndarray`
 
     :arg pdb: a coordinate set or an object with ``getCoords`` method
-    :type pdb: :class:`~numpy.ndarray`. 
+    :type pdb: :class:`~numpy.ndarray`, :class:`.Atomic` 
 
-    :arg indices: amino acid number.
-    :type indices: ``[int, int]`` or ``[int]`` for one amino acid 
+    :arg indices: an amino acid number or a pair of amino acid numbers
+    :type indices: list
 
-    :arg k_range: effective force constant value.
-    :type k_range: int or float, ``[int, int]``
+    :arg k_range: effective force constant value or range of values
+    :type k_range: int, float, list
     
     :arg select: a selection or selection string
         default is 'protein and name CA'
@@ -73,8 +73,8 @@ def writeVMDstiffness(stiffness, pdb, indices, k_range, prefix='vmd_out', \
     """
 
     try:
-        coords_sel = pdb.sliceAtoms(selstr)
-        resnum_list = coords_sel.getResnums()  
+        coords_sel = sliceAtoms(pdb, select)
+        resnum_list = coords_sel.getResnums()
         coords = (coords_sel._getCoords() if hasattr(coords_sel, '_getCoords') else
                   coords_sel.getCoords())
     except AttributeError:
@@ -84,15 +84,15 @@ def writeVMDstiffness(stiffness, pdb, indices, k_range, prefix='vmd_out', \
             raise TypeError('pdb must be a Numpy array or an object '
                             'with `getCoords` method')
     
-    if len(indices)==0:
+    if len(indices) == 0:
         raise ValueError('indices cannot be an empty array')
 
-    if len(indices)==1:
-        indices0=indices[0]-resnum_list[0]
-        indices1=indices[0]-resnum_list[0]
-    elif len(indices)==2:
-        indices0=indices[0]-resnum_list[0]
-        indices1=indices[1]-resnum_list[0]
+    if len(indices) == 1:
+        indices0 = indices[0] - resnum_list[0]
+        indices1 = indices[0] - resnum_list[0]
+    elif len(indices) == 2:
+        indices0 = indices[0] - resnum_list[0]
+        indices1 = indices[1] - resnum_list[0]
 
     out = openFile(addext(prefix, '.tcl'), 'w')
     out_txt = openFile(addext(prefix,'.txt'), 'w')
@@ -129,7 +129,7 @@ def writeVMDstiffness(stiffness, pdb, indices, k_range, prefix='vmd_out', \
     
     color_nr = 1 # starting from red color in VMD
     ResCounter = []
-    for r in range(indices0, indices1+1):
+    for r in range(indices0, indices1 + 1):
         baza_col = [] # Value of Kij is here for each residue
         nr_baza_col = [] # Resid of aa are here
         out.write("draw color "+str(colors[color_nr])+"\n")
@@ -181,8 +181,9 @@ def writeVMDstiffness(stiffness, pdb, indices, k_range, prefix='vmd_out', \
         return 'None'   
 
 
-def writeDeformProfile(stiffness, pdb, filename='dp_out', selstr='protein and name CA',\
-                                            pdb_selstr='protein', loadToVMD=False):
+def writeDeformProfile(stiffness, pdb, filename='dp_out', \
+                       select='protein and name CA', \
+                       pdb_selstr='protein', loadToVMD=False):
 
     """Calculate deformability (plasticity) profile of molecule based on mechanical
     stiffness matrix (see [EB08]_).
@@ -194,7 +195,7 @@ def writeDeformProfile(stiffness, pdb, filename='dp_out', selstr='protein and na
     :arg pdb: a coordinate set or an object with ``getCoords`` method
     :type pdb: :class:`numpy.ndarray`    
     
-    Note: selection can be done usig ``selstr`` and ``pdb_selstr``. ``selstr`` define
+    Note: selection can be done usig ``select`` and ``pdb_selstr``. ``selstr`` define
     ``model`` selection (used for building :class:`.ANM` model) and ``pdb_selstr`` 
     will be used in VMD program for visualization. 
     
@@ -203,10 +204,11 @@ def writeDeformProfile(stiffness, pdb, filename='dp_out', selstr='protein and na
      
     Mean value of mechanical stiffness for molecule can be found in occupancy column
     in PDB file.
+
     """
     
-    pdb = pdb.select(pdb_selstr)
-    coords = pdb.select(selstr)
+    pdb = sliceAtoms(pdb, pdb_selstr)
+    coords = sliceAtoms(pdb, selstr)
     meanSiff = np.mean(stiffness, axis=0)
     
     out_mean = open(filename+'_mean.txt','w')   # mean value of Kij for each residue
