@@ -856,8 +856,6 @@ def showMechStiff(stiffness, atoms, **kwargs):
 
     from .mechstiff import calcStiffnessRange
 
-    sm = stiffness
-
     if not 'origin' in kwargs:
         kwargs['origin'] = 'lower'
     if not 'cmap' in kwargs:
@@ -867,10 +865,10 @@ def showMechStiff(stiffness, atoms, **kwargs):
 
     #if SETTINGS['auto_show']:
     #    fig = plt.figure(num=None, figsize=(10,8), dpi=100, facecolor='w')
-    vmin, vmax = calcStiffnessRange(sm)
+    vmin, vmax = calcStiffnessRange(stiffness)
     vmin = kwargs.pop('vmin', vmin)
     vmax = kwargs.pop('vmax', vmax)
-    show = showAtomicMatrix(sm, atoms=atoms, vmin=vmin, vmax=vmax, **kwargs)
+    show = showAtomicMatrix(stiffness, atoms=atoms, vmin=vmin, vmax=vmax, **kwargs)
     title('Mechanical Stiffness Matrix')# for {0}'.format(str(model)))
     xlabel('Indices') #, fontsize='16')
     ylabel('Indices') #, fontsize='16')
@@ -954,20 +952,21 @@ def showMeanMechStiff(stiffness, atoms, header, chain='A', *args, **kwargs):
     fig = plt.figure(figsize=[18,6], facecolor='w', dpi=100)
     
     if 'jet_r' in kwargs:
-       import matplotlib.cm as plt
-       kwargs['jet_r'] = 'cmap=cm.jet_r'
+       kwargs['cmap'] = 'jet_r'
     if 'nearest' in kwargs:
-        kwargs['nearest'] = 'interpolation=nearest'
+        kwargs['interpolation'] = 'nearest'
 
     with plt.style.context('fivethirtyeight'):
         ax = fig.add_subplot(111)
         matplotlib.rcParams['font.size'] = '24'
-        plt.plot(np.arange(len(meanStiff[0]))+atoms.getResnums()[0],meanStiff[0], 'k-', linewidth = 3)
+        plt.plot(np.arange(len(meanStiff[0])) + atoms.getResnums()[0], 
+                           meanStiff[0], 'k-', linewidth = 3)
         plt.xlim(atoms.getResnums()[0], atoms.getResnums()[-1])
-        ax_top=round(np.max(meanStiff[0])+((np.max(meanStiff[0])-np.min(meanStiff[0]))/3))
+        ax_top=round(np.max(meanStiff[0]) + ((np.max(meanStiff[0]) \
+                     - np.min(meanStiff[0]))/3))
         ax_bottom=np.floor(np.min(meanStiff[0]))
         LOGGER.info('The range of mean effective force constant is: {0} to {1}.'
-                                           .format(min(meanStiff[0]), max(meanStiff[0])))
+                    .format(min(meanStiff[0]), max(meanStiff[0])))
         plt.ylim(ax_bottom,ax_top)
         plt.xlabel('residue', fontsize = '22')
         plt.ylabel(r'mean $\kappa$ [a.u.]', fontsize = '22')
