@@ -3,20 +3,19 @@
 import numpy as np
 
 from numpy import unique, linalg, diag, sqrt, dot
-import scipy.cluster.hierarchy as sch
-from scipy import spatial
 from .misctools import addBreaks, interpY
-from Bio import Phylo
 
 __all__ = ['calcTree', 'clusterMatrix', 'showLines', 'showMatrix', 'reorderMatrix', 'findSubgroups']
 
 def calcTree(names, distance_matrix, method='nj'):
     """ Given a distance matrix for an ensemble, it creates an returns a tree structure.
-    :arg names: an list of names. 
-    :type names: list-like
+
+    :arg names: an list of names
+    :type names: list, :class:`~numpy.ndarray`
+
     :arg distance_matrix: a square matrix with length of ensemble. If numbers does not mismatch
-    it will raise an error. 
-    :type distance_matrix: numpy.ndarray 
+        it will raise an error
+    :type distance_matrix: :class:`~numpy.ndarray`
     """
     try: 
         from Bio import Phylo
@@ -73,10 +72,12 @@ def clusterMatrix(distance_matrix=None, similarity_matrix=None, labels=None, ret
     :arg reversed: if set to **True**, then the sorting indices will be reversed.
     :type reversed: bool
 
-    Other arguments for :method:`~scipy.hierarchy.linkage` and :method:`~scipy.hierarchy.dendrogram`
+    Other arguments for :func:`~scipy.hierarchy.linkage` and :func:`~scipy.hierarchy.dendrogram`
         can also be provided and will be taken as **kwargs**.
     """
 
+    import scipy.cluster.hierarchy as sch
+    from scipy import spatial
     if similarity_matrix is None and distance_matrix is None:
         raise ValueError('Please provide a distance matrix or a similarity matrix')
     
@@ -117,15 +118,15 @@ def showLines(*args, **kwargs):
     Show 1-D data using :func:`~matplotlib.axes.Axes.plot`. 
     
     :arg x: (optional) x coordinates. *x* can be an 1-D array or a 2-D matrix of 
-    column vectors.
+        column vectors.
     :type x: `~numpy.ndarray`
 
     :arg y: data array. *y* can be an 1-D array or a 2-D matrix of 
-    column vectors.
+        column vectors.
     :type y: `~numpy.ndarray`
 
     :arg dy: an array of variances of *y* which will be plotted as a 
-    band along *y*. It should have the same shape with *y*.
+        band along *y*. It should have the same shape with *y*.
     :type dy: `~numpy.ndarray`
 
     :arg alpha: the transparency of the band(s).
@@ -195,34 +196,54 @@ def showLines(*args, **kwargs):
 
 def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
     """Show a matrix using :meth:`~matplotlib.axes.Axes.imshow`. Curves on x- and y-axis can be added.
-    :arg matrix: Matrix to be displayed.
-    :type matrix: :class:`~numpy.ndarray`
-    :arg x_array: Data to be plotted above the matrix.
-    :type x_array: :class:`~numpy.ndarray`
-    :arg y_array: Data to be plotted on the left side of the matrix.
-    :type y_array: :class:`~numpy.ndarray`
-    :arg percentile: A percentile threshold to remove outliers, i.e. only showing data within *p*-th 
-                     to *100-p*-th percentile.
-    :type percentile: float"""
 
-    import matplotlib.pyplot as plt
-    from matplotlib import cm, ticker
-    from matplotlib.gridspec import GridSpec, GridSpecFromSubplotSpec
+    :arg matrix: matrix to be displayed
+    :type matrix: :class:`~numpy.ndarray`
+
+    :arg x_array: data to be plotted above the matrix
+    :type x_array: :class:`~numpy.ndarray`
+
+    :arg y_array: data to be plotted on the left side of the matrix
+    :type y_array: :class:`~numpy.ndarray`
+
+    :arg percentile: a percentile threshold to remove outliers, i.e. only showing data within *p*-th 
+                     to *100-p*-th percentile
+    :type percentile: float
+    """
+
+    from matplotlib import ticker
+    from matplotlib.gridspec import GridSpec
     from matplotlib.collections import LineCollection
-    from matplotlib.pyplot import imshow, gca, sca, sci
+    from matplotlib.pyplot import gca, sca, sci, colorbar, subplot
 
     p = kwargs.pop('percentile', None)
+    vmin = vmax = None
     if p is not None:
         vmin = np.percentile(matrix, p)
         vmax = np.percentile(matrix, 100-p)
-    else:
-        vmin = vmax = None
+    
+    vmin = kwargs.pop('vmin', vmin)
+    vmax = kwargs.pop('vmax', vmax)
+    
     
     W = H = kwargs.pop('ratio', 6)
 
     ticklabels = kwargs.pop('ticklabels', None)
+    xticklabels = kwargs.pop('xticklabels', ticklabels)
+    yticklabels = kwargs.pop('yticklabels', ticklabels)
+
     allticks = kwargs.pop('allticks', False) # this argument is temporary and will be replaced by better implementation
     origin = kwargs.pop('origin', 'lower')
+
+    tree_mode = False
+    if np.isscalar(y_array):
+        try: 
+            from Bio import Phylo
+        except ImportError:
+            raise ImportError('Phylo module could not be imported. '
+                'Reinstall ProDy or install Biopython '
+                'to solve the problem.')
+        tree_mode = isinstance(y_array, Phylo.BaseTree.Tree)
 
     if x_array is not None and y_array is not None:
         nrow = 2; ncol = 2
@@ -235,12 +256,6 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
         i = 1; j = 0
         width_ratios = [W]
         height_ratios = [1, H]
-        aspect = 'auto'
-    elif isinstance(y_array, Phylo.BaseTree.Tree):
-        nrow = 2; ncol = 2
-        i = 1; j = 1
-        width_ratios = [W, W]
-        height_ratios = [H, H]
         aspect = 'auto'
     elif x_array is None and y_array is not None:
         nrow = 1; ncol = 2
@@ -255,12 +270,19 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
         height_ratios = [H]
         aspect = None
 
-    main_index = (i,j)
-    upper_index = (i-1,j)
-    left_index = (i,j-1)
+    if tree_mode:
+        nrow = 2; ncol = 2
+        i = 1; j = 1
+        width_ratios = [W, W]
+        height_ratios = [H, H]
+        aspect = 'auto'
+
+    main_index = (i, j)
+    upper_index = (i-1, j)
+    left_index = (i, j-1)
 
     complex_layout = nrow > 1 or ncol > 1
-    cb = kwargs.pop('colorbar', True)
+    show_colorbar = kwargs.pop('colorbar', True)
 
     ax1 = ax2 = ax3 = None
 
@@ -270,12 +292,9 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
 
     lines = []
     if nrow > 1:
-        ax1 = plt.subplot(gs[upper_index])
+        ax1 = subplot(gs[upper_index])
 
-        if isinstance(y_array, Phylo.BaseTree.Tree):
-            pass
-
-        else:
+        if not tree_mode:
             ax1.set_xticklabels([])
             
             y = x_array
@@ -291,9 +310,9 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
         ax1.axis('off')
 
     if ncol > 1:
-        ax2 = plt.subplot(gs[left_index])
+        ax2 = subplot(gs[left_index])
         
-        if isinstance(y_array, Phylo.BaseTree.Tree):
+        if tree_mode:
             Phylo.draw(y_array, do_show=False, axes=ax2, **kwargs)
         else:
             ax2.set_xticklabels([])
@@ -312,7 +331,7 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
         ax2.axis('off')
 
     if complex_layout:
-        ax3 = plt.subplot(gs[main_index])
+        ax3 = subplot(gs[main_index])
     else:
         ax3 = gca()
     
@@ -323,10 +342,10 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
     #ax3.set_xlim([-0.5, matrix.shape[0]+0.5])
     #ax3.set_ylim([-0.5, matrix.shape[1]+0.5])
 
-    if ticklabels is not None:
-        ax3.xaxis.set_major_formatter(ticker.IndexFormatter(ticklabels))
-        if ncol == 1:
-            ax3.yaxis.set_major_formatter(ticker.IndexFormatter(ticklabels))
+    if xticklabels is not None:
+        ax3.xaxis.set_major_formatter(ticker.IndexFormatter(xticklabels))
+    if yticklabels is not None and ncol == 1:
+        ax3.yaxis.set_major_formatter(ticker.IndexFormatter(yticklabels))
 
     if allticks:
         ax3.xaxis.set_major_locator(ticker.IndexLocator(offset=0.5, base=1.))
@@ -341,35 +360,35 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
     if ncol > 1:
         ax3.yaxis.set_major_formatter(ticker.NullFormatter())
         
-    colorbar = None
-    if cb:
+    cb = None
+    if show_colorbar:
         if nrow > 1:
             axes = [ax1, ax2, ax3]
             while None in axes:
                 axes.remove(None)
             s = H / (H + 1.)
-            colorbar = plt.colorbar(mappable=im, ax=axes, anchor=(0, 0), shrink=s)
+            cb = colorbar(mappable=im, ax=axes, anchor=(0, 0), shrink=s)
         else:
-            colorbar = plt.colorbar(mappable=im)
+            cb = colorbar(mappable=im)
 
     sca(ax3)
     sci(im)
-    return im, lines, colorbar
+    return im, lines, cb
 
 def reorderMatrix(matrix, tree, names=None):
     """
     Reorder a matrix based on a tree and return the reordered matrix 
     and indices for reordering other things.
 
+    :arg matrix: any square matrix
+    :type matrix: :class:`~numpy.ndarray`
+
+    :arg tree: any tree from :func:`calcTree`
+    :type tree: :class:`~Bio.Phylo.BaseTree.Tree`
+
     :arg names: a list of names associated with the rows of the matrix
         These names must match the ones used to generate the tree.
-    :type names: a list of strings
-
-    :arg matrix: any square matrix
-    :type matrix: 2D array
-
-    :arg tree: any tree from calcTree
-    :type tree: Bio.Phylo.BaseTree.Tree
+    :type names: list
     """
     try:
         from Bio import Phylo
@@ -378,23 +397,17 @@ def reorderMatrix(matrix, tree, names=None):
             'Reinstall ProDy or install Biopython '
             'to solve the problem.')
 
-    if not isinstance(matrix, np.ndarray):
+    try:
+        if matrix.ndim != 2:
+            raise ValueError('matrix should be a 2D matrix.')
+    except AttributeError:
         raise TypeError('matrix should be a numpy array.')
-
-    if matrix.ndim != 2:
-        raise ValueError('matrix should be a 2D matrix.')
 
     if np.shape(matrix)[0] != np.shape(matrix)[1]:
         raise ValueError('matrix should be a square matrix')
 
-    if names is None:
+    if not names:
         names = [str(i) for i in range(len(matrix))]
-
-    if not isinstance(names, list):
-        raise TypeError('names should be a list.')
-
-    if not isinstance(names[0], str):
-        raise TypeError('names should be a list of strings.')    
 
     if not isinstance(tree, Phylo.BaseTree.Tree):
         raise TypeError('tree should be a BioPython Tree')

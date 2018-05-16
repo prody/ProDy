@@ -7,7 +7,7 @@ from numbers import Integral
 import numpy as np
 
 from prody.proteins import fetchPDB, parsePDB, writePDB, mapOntoChain
-from prody.utilities import openFile, showFigure, copy
+from prody.utilities import openFile, showFigure, copy, isListLike
 from prody import LOGGER, SETTINGS
 from prody.atomic import AtomMap, Chain, AtomGroup, Selection, Segment, Select, AtomSubset
 
@@ -17,7 +17,7 @@ from .conformation import *
 
 __all__ = ['saveEnsemble', 'loadEnsemble', 'trimPDBEnsemble',
            'calcOccupancies', 'showOccupancies', 'alignPDBEnsemble',
-           'buildPDBEnsemble', 'addPDBEnsemble']
+           'buildPDBEnsemble', 'addPDBEnsemble', 'refineEnsemble']
 
 
 def saveEnsemble(ensemble, filename=None, **kwargs):
@@ -25,7 +25,7 @@ def saveEnsemble(ensemble, filename=None, **kwargs):
     is **None**, title of the *ensemble* will be used as the filename, after
     white spaces in the title are replaced with underscores.  Extension is
     :file:`.ens.npz`. Upon successful completion of saving, filename is
-    returned. This function makes use of :func:`numpy.savez` function."""
+    returned. This function makes use of :func:`~numpy.savez` function."""
 
     if not isinstance(ensemble, Ensemble):
         raise TypeError('invalid type for ensemble, {0}'
@@ -49,11 +49,11 @@ def saveEnsemble(ensemble, filename=None, **kwargs):
     atoms = dict_['_atoms']
     if atoms:
         atoms = atoms.copy()
-    attr_dict['_atoms'] = np.array([atoms, 0])
+    attr_dict['_atoms'] = np.array([atoms, None])
 
     if isinstance(ensemble, PDBEnsemble):
         msa = dict_['_msa']
-        attr_dict['_msa'] = np.array([msa, 0])
+        attr_dict['_msa'] = np.array([msa, None])
 
     if filename.endswith('.ens'):
         filename += '.npz'
@@ -67,7 +67,7 @@ def saveEnsemble(ensemble, filename=None, **kwargs):
 
 def loadEnsemble(filename, **kwargs):
     """Returns ensemble instance loaded from *filename*.  This function makes
-    use of :func:`numpy.load` function.  See also :func:`saveEnsemble`"""
+    use of :func:`~numpy.load` function.  See also :func:`saveEnsemble`"""
 
     if not 'encoding' in kwargs:
         kwargs['encoding'] = 'latin1'
@@ -131,24 +131,25 @@ def trimPDBEnsemble(pdb_ensemble, occupancy=None, **kwargs):
     following criteria, and returns them in a new :class:`.PDBEnsemble`
     instance.
 
-    **Occupancy**
-
     Resulting PDB ensemble will contain atoms whose occupancies are greater
-    or equal to *occupancy* keyword argument.  Occupancies for atoms will be
+    or equal to *occupancy* keyword argument. Occupancies for atoms will be
     calculated using ``calcOccupancies(pdb_ensemble, normed=True)``.
 
-    :arg occupancy: occupancy for selecting atoms, must satisfy. If set to 
-                    *None* then *hard* trimming will be performed.
-        ``0 < occupancy <= 1``
+    :arg occupancy: occupancy for selecting atoms, must satisfy
+        ``0 < occupancy <= 1``.
+        If set to *None* then *hard* trimming will be performed.
     :type occupancy: float
 
-    :arg hard: hard trimming or soft trimming. If set to `False`, *pdb_ensemble* 
-    will be trimmed by selection. This is useful for example when one uses 
-    :func:`calcEnsembleENMs` and :func:`sliceModel` or :func:`reduceModel`
-    to calculate the modes from the remaining part while still taking the 
-    removed part into consideration (e.g. as the environment).
+    :arg hard: Whether to perform hard trimming.
+        Default is **False**
+        If set to **True**, atoms will be completely removed from *pdb_ensemble*.
+        If set to **False**, a soft trimming of *pdb_ensemble* will be done
+        where atoms will be removed from the active selection. This is useful, 
+        for example, when one uses :func:`calcEnsembleENMs` 
+        together with :func:`sliceModel` or :func:`reduceModel`
+        to calculate the modes from the remaining part while still taking the 
+        removed part into consideration (e.g. as the environment).
     :type hard: bool
-
     """
 
     hard = kwargs.pop('hard', False) or pdb_ensemble._atoms is None \
@@ -275,7 +276,7 @@ def alignPDBEnsemble(ensemble, suffix='_aligned', outdir='.', gzip=False):
     with label *2k39_ca_selection_'resnum_<_71'_m116* will be applied to 116th
     model of structure **2k39**.  After applicable transformations are made,
     structure will be written into *outputdir* as :file:`2k39_aligned.pdb`.
-    If *gzip* is **True**, output files will be compressed.  Return value is
+    If ``gzip=True``, output files will be compressed.  Return value is
     the output filename or list of filenames, in the order files are processed.
     Note that if multiple models from a file are aligned, that filename will
     appear in the list multiple times."""
@@ -353,8 +354,8 @@ def buildPDBEnsemble(PDBs, ref=None, title='Unknown', labels=None, seqid=94, cov
     :type PDBs: iterable
 
     :arg ref: Reference structure or the index to the reference in ``PDBs``. If **None**,
-                 then the first item in ``PDBs`` will be considered as the reference. 
-                 Default is **None**
+        then the first item in ``PDBs`` will be considered as the reference. 
+        Default is **None**
     :type ref: int, :class:`.Chain`, :class:`.Selection`, or :class:`.AtomGroup`
 
     :arg title: The title of the ensemble
@@ -380,9 +381,11 @@ def buildPDBEnsemble(PDBs, ref=None, title='Unknown', labels=None, seqid=94, cov
 
     occupancy = kwargs.pop('occupancy', None)
     degeneracy = kwargs.pop('degeneracy', True)
+    subset = str(kwargs.get('subset', 'calpha')).lower()
 
     if len(PDBs) == 1:
         raise ValueError('PDBs should have at least two items')
+
     if labels is not None:
         if len(labels) != len(PDBs):
             raise ValueError('labels and PDBs must be the same length')
@@ -397,6 +400,9 @@ def buildPDBEnsemble(PDBs, ref=None, title='Unknown', labels=None, seqid=94, cov
             raise ValueError('refpdb should be also in the PDBs')
 
     # obtain refchains from the hierarhical view of the reference PDB
+    if subset != 'all':
+        refpdb = refpdb.select(subset)
+        
     try:
         refchains = list(refpdb.getHierView())
     except AttributeError:
@@ -570,3 +576,44 @@ def addPDBEnsemble(ensemble, PDBs, refpdb=None, labels=None, seqid=94, coverage=
 
     return ensemble
 
+def refineEnsemble(ens, lower=.5, upper=10.):
+    """Refine a PDB ensemble based on RMSD criterions.""" 
+
+    from scipy.cluster.hierarchy import linkage, fcluster
+    from scipy.spatial.distance import squareform
+
+    ### calculate RMSDs ###
+    RMSD = ens.getRMSDs(pairwise=True)
+    rmsd = ens.getRMSDs()
+
+    ### imposeing upper bound ###
+    I = np.where(rmsd < upper)[0]
+    reens = ens[I]
+    I = I.reshape(-1, 1)
+    reRMSD = RMSD[I, I.T]
+
+    ### hierarchical clustering ###
+    v = squareform(reRMSD)
+    Z = linkage(v)
+
+    labels = fcluster(Z, lower, criterion='distance')
+    uniq_labels = unique(labels)
+
+    clusters = []
+    for label in uniq_labels:
+        indices = np.where(labels==label)[0]
+        clusters.append(indices)
+
+    J = ones(len(clusters), dtype=int) * -1
+    for i, cluster in enumerate(clusters):
+        if len(cluster) > 0:
+            weights = [ens[j].getWeights().sum() for j in cluster]
+            j = np.argmax(weights)
+            J[i] = cluster[j]
+        else:
+            J[i] = cluster[0]
+
+    ### refine ensemble ###
+    reens = reens[J]
+
+    return reens

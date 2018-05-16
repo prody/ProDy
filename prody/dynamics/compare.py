@@ -158,7 +158,6 @@ def calcSubspaceOverlap(modes1, modes2):
     rmsip = np.sqrt(np.power(overlap, 2).sum() / length)
     return rmsip
 
-
 def calcSpectralOverlap(modes1, modes2):
     """Returns overlap between covariances of *modes1* and *modes2*.  Overlap
     between covariances are calculated using normal modes (eigenvectors),
@@ -166,7 +165,9 @@ def calcSpectralOverlap(modes1, modes2):
     implements equation 11 in [BH02]_.
 
     .. [BH02] Hess B. Convergence of sampling in protein simulations.
-       *Phys Rev E* **2002** 65(3):031910."""
+        *Phys Rev E* **2002** 65(3):031910.
+    
+    """
 
     if modes1.is3d() ^ modes2.is3d():
         raise TypeError('models must be either both 1-dimensional or 3-dimensional')
@@ -186,7 +187,12 @@ def calcSpectralOverlap(modes1, modes2):
         diff = diff ** 0.5
     return 1 - diff / np.sqrt(varA.sum() + varB.sum())
 
-calcCovOverlap = calcSpectralOverlap
+def calcCovOverlap(modes1, modes2):
+    """Returns overlap between covariances of *modes1* and *modes2*.  Overlap
+    between covariances are calculated using normal modes (eigenvectors),
+    hence modes in both models must have been calculated.  This function
+    implements equation 11 in [BH02]_."""
+    return calcSpectralOverlap(modes1, modes2)
 
 def pairModes(modes1, modes2, index=False):
     """Returns the optimal matches between *modes1* and *modes2*. *modes1* 
@@ -194,7 +200,7 @@ def pairModes(modes1, modes2, index=False):
     return a nested list where each item is a list containing a pair of modes.
 
     :arg index: if `True` then indices of modes will be returned instead of 
-                :class:`Mode` instances.
+        :class:`Mode` instances.
     :type index: bool
     """
 

@@ -12,8 +12,9 @@ from prody.utilities import openFile, isExecutable, which, PLATFORM, addext
 
 from .nma import NMA
 from .anm import ANM
-from .gnm import GNM, GNMBase, ZERO, TrimedGNM
+from .gnm import GNM, GNMBase, ZERO, TrimmedGNM
 from .pca import PCA, EDA
+from .exanm import exANM
 from .mode import Vector, Mode
 from .modeset import ModeSet
 from .editing import sliceModel, reduceModel
@@ -34,7 +35,7 @@ def saveModel(nma, filename=None, matrices=False, **kwargs):
     are replaced with ``"_"`` (underscores).  Extension may differ based
     on the type of the NMA model.  For ANM models, it is :file:`.anm.npz`.
     Upon successful completion of saving, filename is returned. This
-    function makes use of :func:`numpy.savez` function."""
+    function makes use of :func:`~numpy.savez` function."""
 
     if not isinstance(nma, NMA):
         raise TypeError('invalid type for nma, {0}'.format(type(nma)))
@@ -71,11 +72,18 @@ def saveModel(nma, filename=None, matrices=False, **kwargs):
         value = dict_[attr]
         if value is not None:
             attr_dict[attr] = value
-    if isinstance(nma, TrimedGNM):
+
+    if isinstance(nma, TrimmedGNM):
         attr_dict['type'] = 'tGNM'
         attr_dict['mask'] = nma.mask
-        attr_dict['useTrimed'] = nma.useTrimed
-    suffix = '.' + type_.lower()
+        attr_dict['useTrimmed'] = nma.useTrimmed
+
+    if isinstance(nma, exANM):
+        attr_dict['type'] = 'exANM'
+        attr_dict['_membrane'] = np.array([nma._membrane, None])
+        attr_dict['_combined'] = np.array([nma._combined, None])
+
+    suffix = '.' + attr_dict['type'].lower()
     if not filename.lower().endswith('.npz'):
         if not filename.lower().endswith(suffix):
             filename += suffix + '.npz'
@@ -87,20 +95,33 @@ def saveModel(nma, filename=None, matrices=False, **kwargs):
     return filename
 
 
-def loadModel(filename):
+def loadModel(filename, **kwargs):
     """Returns NMA instance after loading it from file (*filename*).
-    This function makes use of :func:`numpy.load` function.  See
+    This function makes use of :func:`~numpy.load` function.  See
     also :func:`saveModel`."""
 
-    attr_dict = np.load(filename)
+    if not 'encoding' in kwargs:
+        kwargs['encoding'] = 'latin1'
+
+    attr_dict = np.load(filename, **kwargs)
     try:
         type_ = attr_dict['type']
     except KeyError:
         raise IOError('{0} is not a valid NMA model file'.format(filename))
+
+    if isinstance(type_, np.ndarray):
+        type_ = np.asarray(type_, dtype=str)
+
+    type_ = str(type_)
+
     try:
-        title = str(attr_dict['_title'])
+        title = attr_dict['_title']
     except KeyError:
-        title = str(attr_dict['_name'])
+        title = attr_dict['_name']
+
+    if isinstance(title, np.ndarray):
+        title = np.asarray(title, dtype=str)
+    title = str(title)
     if type_ == 'ANM':
         nma = ANM(title)
     elif type_ == 'PCA':
@@ -110,11 +131,14 @@ def loadModel(filename):
     elif type_ == 'GNM':
         nma = GNM(title)
     elif type_ == 'tGNM':
-        nma = TrimedGNM(title)
+        nma = TrimmedGNM(title)
+    elif type_ == 'exANM':
+        nma = exANM(title)
     elif type_ == 'NMA':
         nma = NMA(title)
     else:
         raise IOError('NMA model type is not recognized: {0}'.format(type_))
+
     dict_ = nma.__dict__
     for attr in attr_dict.files:
         if attr in ('type', '_name', '_title'):
@@ -123,6 +147,8 @@ def loadModel(filename):
             dict_[attr] = float(attr_dict[attr])
         elif attr in ('_dof', '_n_atoms', '_n_modes'):
             dict_[attr] = int(attr_dict[attr])
+        elif attr in ('_membrane', '_combined'):
+            dict_[attr] = attr_dict[attr][0] 
         else:
             dict_[attr] = attr_dict[attr]
     return nma
@@ -236,7 +262,7 @@ def parseModes(normalmodes, eigenvalues=None, nm_delimiter=None,
     return nma
 
 
-def writeArray(filename, array, format='%d', delimiter=' '):
+def writeArray(filename, array, format='%3.2f', delimiter=' '):
     """Write 1-d or 2-d array data into a delimited text file.
 
     This function is using :func:`numpy.savetxt` to write the file, after
@@ -355,20 +381,20 @@ def calcENM(atoms, select=None, model='anm', trim='trim', gamma=1.0,
     the selection.
 
     :arg atoms: Atoms on which ENM is performed. It can be any :class:`Atomic` 
-    class that supports selection.
+        class that supports selection.
     :type atoms: :class:`Atomic`, :class:`AtomGroup`, or :class:`Selection`
 
     :arg select: Part of the atoms that is considered as the system. 
-    If set to `None`, then all atoms will be considered as the system.
+        If set to `None`, then all atoms will be considered as the system.
     :type select: str or :class:`Selection`
 
     :arg model: Type of ENM that will be performed. It can be either 'anm' 
-    or 'gnm'.
+        or 'gnm'.
     :type model: str
 
     :arg trim: Type of method that will be used to trim the model. It can 
-    be either 'trim' , 'slice', or 'reduce'. If set to 'trim', the parts 
-    that is not in the selection will simply be removed.
+        be either 'trim' , 'slice', or 'reduce'. If set to 'trim', the parts 
+        that is not in the selection will simply be removed.
     :type trim: str
     """
     

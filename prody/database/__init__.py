@@ -26,3 +26,7 @@ __all__.extend(uniprot.__all__)
 from . import cath
 from .cath import *
 __all__.extend(cath.__all__)
+
+from . import dali
+from .dali import *
+__all__.extend(dali.__all__)

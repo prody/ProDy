@@ -164,3 +164,4 @@ class Chain(AtomSubset):
         """Returns a hierarchical view of the this chain."""
 
         return HierView(self, **kwargs)
+        

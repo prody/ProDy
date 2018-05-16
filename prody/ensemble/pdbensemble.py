@@ -106,7 +106,7 @@ class PDBEnsemble(Ensemble):
             return ens
 
         elif isinstance(index, (list, np.ndarray)):
-            ens = PDBEnsemble('Conformations of {0}'.format(self._title))
+            ens = PDBEnsemble('{0}'.format(self._title))
             ens.setCoords(copy(self._coords))
             labels = list(np.array(self._labels)[index])
             ens.addCoordset(self._confs[index].copy(),
@@ -210,9 +210,10 @@ class PDBEnsemble(Ensemble):
             if coords is None:
                 raise ValueError('coordinates are not set')
             elif label is None and isinstance(atoms, Atomic):
-                ag = atoms
                 if not isinstance(atoms, AtomGroup):
                     ag = atoms.getAtomGroup()
+                else:
+                    ag = atoms
                 label = ag.getTitle()
                 if coords.shape[0] < ag.numCoordsets():
                     label += '_m' + str(atoms.getACSIndex())
@@ -455,7 +456,7 @@ class PDBEnsemble(Ensemble):
         :meth:`iterpose` before calculating RMSDs.
 
         :arg pairwise: if **True** then it will return pairwise RMSDs 
-        as an n-by-n matrix. n is the number of conformations.
+            as an n-by-n matrix. n is the number of conformations.
         :type pairwise: bool
         """
 

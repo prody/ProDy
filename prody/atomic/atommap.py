@@ -375,6 +375,11 @@ class AtomMap(AtomPointer):
 
         return 'index ' + rangeString(self._indices)
 
+    def getHierView(self, **kwargs):
+        """Returns a hierarchical view of the this chain."""
+
+        return HierView(self, **kwargs)
+
 
 for fname, field in ATOMIC_FIELDS.items():
 

@@ -211,7 +211,7 @@ class DCDFile(TrajFile):
 
         self._first_byte = self._file.tell()
         n_csets = (getsize(self._filename) - self._first_byte
-                                                    ) / self._bytes_per_frame
+                                                    ) // self._bytes_per_frame
         if n_csets != self._n_csets:
             LOGGER.warning('DCD header claims {0} frames, file size '
                            'indicates there are actually {1} frames.'

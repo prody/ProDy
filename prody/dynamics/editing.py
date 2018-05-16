@@ -3,8 +3,8 @@
 
 import numpy as np
 
-from prody.atomic import Atomic, AtomGroup, AtomMap, AtomSubset, HierView
-from prody.atomic import Selection, SELECT, sliceAtoms
+from prody.atomic import Atomic, AtomGroup, AtomMap, AtomSubset
+from prody.atomic import Selection, SELECT, sliceAtoms, extendAtoms
 from prody.utilities import importLA
 from prody import _PY3K
 
@@ -22,53 +22,6 @@ __all__ = ['extendModel', 'extendMode', 'extendVector',
            'reduceModel']
 
 
-def extend(model, nodes, atoms):
-    """Returns mapping indices and an :class:`.AtomMap`."""
-
-    try:
-        n_atoms = model.numAtoms()
-        is3d = model.is3d()
-    except AttributeError:
-        raise ValueError('model must be an NMA instance')
-
-    try:
-        n_nodes = nodes.numAtoms()
-        i_nodes = nodes.iterAtoms()
-    except AttributeError:
-        raise ValueError('nodes must be an Atomic instance')
-
-    if n_atoms != n_nodes:
-        raise ValueError('atom numbers must be the same')
-
-    if not nodes in atoms:
-        raise ValueError('nodes must be a subset of atoms')
-
-    atom_indices = []
-    indices = []
-    get = HierView(atoms).getResidue
-
-    for i, node in enumerate(i_nodes):
-        res = get(node.getChid() or None, node.getResnum(),
-                  node.getIcode() or None, node.getSegname() or None)
-        if res is None:
-            raise ValueError('atoms must contain a residue for all atoms')
-        atom_indices.append(res._getIndices())
-        if is3d:
-            indices.append(list(range(i*3, (i+1)*3)) * len(res))
-        else:
-            indices.append([i] * len(res))
-    atom_indices = np.concatenate(atom_indices)
-    indices = np.concatenate(indices)
-
-    try:
-        ag = atoms.getAtomGroup()
-    except AttributeError:
-        ag = atoms
-    atommap = AtomMap(ag, atom_indices, atoms.getACSIndex(),
-                      title=str(atoms), intarrays=True)
-    return indices, atommap
-
-
 def extendModel(model, nodes, atoms, norm=False):
     """Extend a coarse grained *model* built for *nodes* to *atoms*.  *model*
     may be :class:`.ANM`, :class:`.GNM`, :class:`.PCA`, or :class:`.NMA`
@@ -83,7 +36,10 @@ def extendModel(model, nodes, atoms, norm=False):
     except AttributeError:
         raise ValueError('model must be an NMA instance')
 
-    indices, atommap = extend(model, nodes, atoms)
+    if model.numAtoms() != nodes.numAtoms():
+        raise ValueError('atom numbers must be the same')
+
+    indices, atommap = extendAtoms(nodes, atoms, model.is3d())
 
     evecs = evecs[indices, :]
     if norm:
@@ -112,7 +68,7 @@ def extendMode(mode, nodes, atoms, norm=False):
     except AttributeError:
         raise ValueError('mode must be a normal Mode instance')
 
-    indices, atommap = extend(mode, nodes, atoms)
+    indices, atommap = extendAtoms(nodes, atoms, mode.is3d())
     vec = vec[indices]
     if norm:
         vec /= ((vec) ** 2).sum() ** 0.5
@@ -133,7 +89,10 @@ def extendVector(vector, nodes, atoms):
     except AttributeError:
         raise ValueError('vector must be a Vector instance')
 
-    indices, atommap = extend(vector, nodes, atoms)
+    if vector.numAtoms() != nodes.numAtoms():
+        raise ValueError('atom numbers must be the same')
+
+    indices, atommap = extendAtoms(nodes, atoms, vector.is3d())
     extended = Vector(vec[indices], 'Extended ' + str(vector), vector.is3d())
     return extended, atommap
 

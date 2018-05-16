@@ -20,9 +20,9 @@ from .modeset import ModeSet
 from .analysis import calcSqFlucts, calcProjection
 from .analysis import calcCrossCorr, calcPairDeformationDist
 from .analysis import calcFractVariance, calcCrossProjection 
-from .perturb import calcPerturbResponse, calcPerturbResponseProfiles
+from .perturb import calcPerturbResponse
 from .compare import calcOverlap
-from prody.atomic import AtomGroup, Selection
+from prody.atomic import AtomGroup, Selection, Atomic, sliceAtoms, sliceAtomicData
 
 __all__ = ['showContactMap', 'showCrossCorr',
            'showCumulOverlap', 'showFractVars',
@@ -33,7 +33,7 @@ __all__ = ['showContactMap', 'showCrossCorr',
            'showNormedSqFlucts', 'resetTicks',
            'showDiffMatrix','showMechStiff','showNormDistFunct',
            'showPairDeformationDist','showMeanMechStiff', 
-           'showPerturbResponse', 'showPerturbResponseProfiles',
+           'showPerturbResponse',
            'showAtomicMatrix', 'showAtomicLines', 'showTree', 
            'showTree_networkx', 'showDomainBar']
 
@@ -199,23 +199,23 @@ def showProjection(ensemble, modes, *args, **kwargs):
     :arg modes: up to three normal modes
     :type modes: :class:`.Mode`, :class:`.ModeSet`, :class:`.NMA`
 
-    :arg color: a color name or a list of color names or values, 
+    :keyword color: a color name or a list of color names or values, 
         default is ``'blue'``
     :type color: str, list
 
-    :arg label: label or a list of labels
+    :keyword label: label or a list of labels
     :type label: str, list
 
-    :arg marker: a marker or a list of markers, default is ``'o'``
+    :keyword marker: a marker or a list of markers, default is ``'o'``
     :type marker: str, list
 
-    :arg linestyle: line style, default is ``'None'``
+    :keyword linestyle: line style, default is ``'None'``
     :type linestyle: str
 
-    :arg text: list of text labels, one for each conformation
+    :keyword text: list of text labels, one for each conformation
     :type text: list
 
-    :arg fontsize: font size for text labels
+    :keyword fontsize: font size for text labels
     :type fontsize: int
 
     The projected values are by default converted to RMSD.  Pass ``rmsd=False``
@@ -234,7 +234,7 @@ def showProjection(ensemble, modes, *args, **kwargs):
     if SETTINGS['auto_show']:
         fig = plt.figure()
  
-    projection = calcProjection(ensemble, modes, kwargs.pop('rmsd', True), kwargs.pop('norm', True))
+    projection = calcProjection(ensemble, modes, kwargs.pop('rmsd', True), kwargs.pop('norm', False))
 
     if projection.ndim == 1 or projection.shape[1] == 1:
         show = plt.hist(projection.flatten(), *args, **kwargs)
@@ -352,28 +352,38 @@ def showCrossProjection(ensemble, mode_x, mode_y, scale=None, *args, **kwargs):
         projected, or a deformation vector
     :type ensemble: :class:`.Ensemble`, :class:`.Conformation`,
         :class:`.Vector`, :class:`.Trajectory`
+
     :arg mode_x: projection onto this mode will be shown along x-axis
     :type mode_x: :class:`.Mode`, :class:`.Vector`
+
     :arg mode_y: projection onto this mode will be shown along y-axis
     :type mode_y: :class:`.Mode`, :class:`.Vector`
+
     :arg scale: scale width of the projection onto mode ``x`` or ``y``,
         best scaling factor will be calculated and printed on the console,
         absolute value of scalar makes the with of two projection same,
         sign of scalar makes the projections yield a positive correlation
     :type scale: str
-    :arg scalar: scalar factor for projection onto selected mode
+
+    :keyword scalar: scalar factor for projection onto selected mode
     :type scalar: float
-    :arg color: a color name or a list of color name, default is ``'blue'``
+
+    :keyword color: a color name or a list of color name, default is ``'blue'``
     :type color: str, list
-    :arg label: label or a list of labels
+
+    :keyword label: label or a list of labels
     :type label: str, list
-    :arg marker: a marker or a list of markers, default is ``'o'``
+
+    :keyword marker: a marker or a list of markers, default is ``'o'``
     :type marker: str, list
-    :arg linestyle: line style, default is ``'None'``
+
+    :keyword linestyle: line style, default is ``'None'``
     :type linestyle: str
-    :arg text: list of text labels, one for each conformation
+
+    :keyword text: list of text labels, one for each conformation
     :type text: list
-    :arg fontsize: font size for text labels
+    
+    :keyword fontsize: font size for text labels
     :type fontsize: int
 
 
@@ -386,7 +396,7 @@ def showCrossProjection(ensemble, mode_x, mode_y, scale=None, *args, **kwargs):
     if SETTINGS['auto_show']:
         plt.figure()
 
-    norm = kwargs.pop('norm', True)
+    norm = kwargs.pop('norm', False)
     xcoords, ycoords = calcCrossProjection(ensemble, mode_x, mode_y,
                                            scale=scale, norm=norm, **kwargs)
 
@@ -458,12 +468,12 @@ def showCrossProjection(ensemble, mode_x, mode_y, scale=None, *args, **kwargs):
 def showOverlapTable(modes_x, modes_y, **kwargs):
     """Show overlap table using :func:`~matplotlib.pyplot.pcolor`.  *modes_x*
     and *modes_y* are sets of normal modes, and correspond to x and y axes of
-    the plot.  Note that mode indices are incremented by 1.  List of modes
+    the plot.  Note that mode indices are incremented by **1**.  List of modes
     is assumed to contain a set of contiguous modes from the same model.
 
     Default arguments for :func:`~matplotlib.pyplot.pcolor`:
 
-      * ``cmap=plt.cm.jet``
+      * ``cmap='jet'``
       * ``norm=matplotlib.colors.Normalize(0, 1)``"""
 
     import matplotlib.pyplot as plt
@@ -475,7 +485,7 @@ def showOverlapTable(modes_x, modes_y, **kwargs):
     elif overlap.ndim == 1:
         overlap = overlap.reshape((modes_y.numModes(), modes_x.numModes()))
 
-    cmap = kwargs.pop('cmap', plt.cm.jet)
+    cmap = kwargs.pop('cmap', 'jet')
     norm = kwargs.pop('norm', matplotlib.colors.Normalize(0, 1))
 
     if SETTINGS['auto_show']:
@@ -529,6 +539,8 @@ def showMode(mode, *args, **kwargs):
 
     show_hinges = kwargs.pop('show_hinges', False)
     show_zero = kwargs.pop('show_zero', True)
+    show_hinges = kwargs.pop('hinge', show_hinges)
+    show_zero = kwargs.pop('zero', show_zero)
     overlay_chains = kwargs.get('overlay_chains',False)
     atoms = kwargs.get('atoms',None)
 
@@ -691,6 +703,7 @@ def showOverlap(mode, modes, *args, **kwargs):
 
     :arg mode: a single mode/vector
     :type mode: :class:`.Mode`, :class:`.Vector`
+
     :arg modes: multiple modes
     :type modes: :class:`.ModeSet`, :class:`.ANM`, :class:`.GNM`, :class:`.PCA`
     """
@@ -724,7 +737,6 @@ showOverlaps = showOverlap
 def showCumulOverlap(mode, modes, *args, **kwargs):
     """Show cumulative overlap using :func:`~matplotlib.pyplot.plot`.
 
-    :type mode: :class:`.Mode`, :class:`.Vector`
     :arg modes: multiple modes
     :type modes: :class:`.ModeSet`, :class:`.ANM`, :class:`.GNM`, :class:`.PCA`
     """
@@ -788,18 +800,18 @@ def showDiffMatrix(matrix1, matrix2, *args, **kwargs):
     """Show the difference between two cross-correlation matrices from
     different models. For given *matrix1* and *matrix2* show the difference
     between them in the form of (matrix2 - matrix1) and plot the difference
-    matrix using :func:`showAtomicMatrix`. When :class:`.NMA` models
+    matrix using :func:`.showAtomicMatrix`. When :class:`.NMA` models
     are passed instead of matrices, the functions could call
     :func:`.calcCrossCorr` function to calculate the matrices for given modes.
 
     To display the absolute values in the difference matrix, user could set
     *abs* keyword argument **True**.
 
-    By default, *origin=lower* and *interpolation=bilinear* keyword arguments
+    By default, ``origin="lower"`` and ``interpolation="bilinear"`` keyword arguments
     are passed to this function, but user can overwrite these parameters.
     """
 
-    import matplotlib.pyplot as plt
+    from matplotlib.pyplot import title, xlabel, ylabel
     try:
         dim1, shape1 = matrix1.ndim, matrix1.shape
     except AttributeError:
@@ -821,79 +833,82 @@ def showDiffMatrix(matrix1, matrix2, *args, **kwargs):
         kwargs['origin'] = 'lower'
     if kwargs.pop('abs', False):
         diff = np.abs(diff)
-    if SETTINGS['auto_show']:
-        plt.figure()
+    #if SETTINGS['auto_show']:
+    #    figure()
     show = showAtomicMatrix(diff, *args, **kwargs)
     #show.im3.axis([-.5, shape1[1] - .5, -.5, shape1[0] - .5])
-    plt.title('Difference Matrix')
-    if SETTINGS['auto_show']:
-        showFigure()
-    plt.xlabel('Indices')
-    plt.ylabel('Indices')
+    title('Difference Matrix')
+    #if SETTINGS['auto_show']:
+    #    showFigure()
+    xlabel('Indices')
+    ylabel('Indices')
     return show
 
 
 def showMechStiff(model, coords, *args, **kwargs):
     """Show mechanical stiffness matrix using :func:`~matplotlib.pyplot.imshow`.
-    By default, *origin=lower* keyword  arguments are passed to this function, 
+    By default, ``origin="lower"`` keyword  arguments are passed to this function, 
     but user can overwrite these parameters."""
 
-    import math
-    import matplotlib
-    import matplotlib.pyplot as plt
-    arange = np.arange(model.numAtoms())
+    from math import floor
+    #from matplotlib import rcParams
+    from matplotlib.pyplot import title, xlabel, ylabel
+
     model.buildMechStiff(coords)
 
     if not 'origin' in kwargs:
         kwargs['origin'] = 'lower'
-    if 'jet_r' in kwargs:
-        import matplotlib.cm as plt
-        kwargs['jet_r'] = 'cmap=cm.jet_r'
+    if not 'cmap' in kwargs:
+        kwargs['cmap'] = 'jet_r'
         
     MechStiff = model.getStiffness()
-    matplotlib.rcParams['font.size'] = '14'
+    #rcParams['font.size'] = '14'
 
-    if SETTINGS['auto_show']:
-        fig = plt.figure(num=None, figsize=(10,8), dpi=100, facecolor='w')
-    vmin = math.floor(np.min(MechStiff[np.nonzero(MechStiff)]))
+    #if SETTINGS['auto_show']:
+    #    fig = plt.figure(num=None, figsize=(10,8), dpi=100, facecolor='w')
+    vmin = floor(np.min(MechStiff[np.nonzero(MechStiff)]))
     vmax = round(np.amax(MechStiff),1)
+    vmin = kwargs.pop('vmin', vmin)
+    vmax = kwargs.pop('vmax', vmax)
     show = showAtomicMatrix(MechStiff, vmin=vmin, vmax=vmax, *args, **kwargs)
-    plt.title('Mechanical Stiffness Matrix')# for {0}'.format(str(model)))
-    plt.xlabel('Indices', fontsize='16')
-    plt.ylabel('Indices', fontsize='16')
-    if SETTINGS['auto_show']:
-        showFigure()
+    title('Mechanical Stiffness Matrix')# for {0}'.format(str(model)))
+    xlabel('Indices') #, fontsize='16')
+    ylabel('Indices') #, fontsize='16')
+    #if SETTINGS['auto_show']:
+    #    showFigure()
     return show
 
 
 def showNormDistFunct(model, coords, *args, **kwargs):
     """Show normalized distance fluctuation matrix using 
-    :func:`~matplotlib.pyplot.imshow`. By default, *origin=lower* 
+    :func:`~matplotlib.pyplot.imshow`. By default, ``origin="lower"`` 
     keyword  arguments are passed to this function, 
     but user can overwrite these parameters."""
 
-    import math
-    import matplotlib
-    import matplotlib.pyplot as plt
+    from math import floor
+    #import matplotlib
+    from matplotlib.pyplot import xlabel, ylabel, title
     normdistfunct = model.getNormDistFluct(coords)
 
     if not 'origin' in kwargs:
         kwargs['origin'] = 'lower'
         
-    matplotlib.rcParams['font.size'] = '14'
+    #matplotlib.rcParams['font.size'] = '14'
 
-    if SETTINGS['auto_show']:
-        fig = plt.figure(num=None, figsize=(10,8), dpi=100, facecolor='w')
-    vmin = math.floor(np.min(normdistfunct[np.nonzero(normdistfunct)]))
-    vmax = round(np.amax(normdistfunct),1)
+    #if SETTINGS['auto_show']:
+    #    fig = plt.figure(num=None, figsize=(10,8), dpi=100, facecolor='w')
+    vmin = floor(np.min(normdistfunct[np.nonzero(normdistfunct)]))
+    vmax = round(np.amax(normdistfunct), 1)
+    vmin = kwargs.pop('vmin', vmin)
+    vmax = kwargs.pop('vmax', vmax)
     show = showAtomicMatrix(normdistfunct, vmin=vmin, vmax=vmax, *args, **kwargs)
     #plt.clim(math.floor(np.min(normdistfunct[np.nonzero(normdistfunct)])), \
     #                                       round(np.amax(normdistfunct),1))
-    plt.title('Normalized Distance Fluctution Matrix')
-    plt.xlabel('Indices', fontsize='16')
-    plt.ylabel('Indices', fontsize='16')
-    if SETTINGS['auto_show']:
-        showFigure()
+    title('Normalized Distance Fluctution Matrix')
+    xlabel('Indices') #, fontsize='16')
+    ylabel('Indices') #, fontsize='16')
+    #if SETTINGS['auto_show']:
+    #    showFigure()
     return show
 
 
@@ -921,7 +936,7 @@ def showPairDeformationDist(model, coords, ind1, ind2, *args, **kwargs):
         #plt.title(str(model))
         plt.plot(d_pair[0], d_pair[1], 'k-', linewidth=1.5, *args, **kwargs)
         plt.xlabel('mode (k)', fontsize = '18')
-        plt.ylabel('d$^k$' '($\AA$)', fontsize = '18')
+        plt.ylabel(r'd$^k$ ($\AA$)', fontsize = '18')
     if SETTINGS['auto_show']:
         showFigure()
     return plt.show
@@ -930,7 +945,7 @@ def showPairDeformationDist(model, coords, ind1, ind2, *args, **kwargs):
 def showMeanMechStiff(model, coords, header, chain='A', *args, **kwargs):
     """Show mean value of effective spring constant with secondary structure
     taken from MechStiff. Header is needed to obatin secondary structure range.
-    Using ``'jet_r'`` as argument color map will be reverse (similar to VMD 
+    Using ``"jet_r"`` as argument color map will be reverse (similar to VMD 
     program coding).
     """
     meanStiff = np.array([np.mean(model.getStiffness(), axis=0)])
@@ -956,7 +971,7 @@ def showMeanMechStiff(model, coords, header, chain='A', *args, **kwargs):
                                            .format(min(meanStiff[0]), max(meanStiff[0])))
         plt.ylim(ax_bottom,ax_top)
         plt.xlabel('residue', fontsize = '22')
-        plt.ylabel('mean $\kappa$ [a.u.]', fontsize = '22')
+        plt.ylabel(r'mean $\kappa$ [a.u.]', fontsize = '22')
 
     ax = fig.add_subplot(411, aspect='equal')
     plt.imshow(meanStiff, *args, **kwargs)
@@ -977,235 +992,75 @@ def showMeanMechStiff(model, coords, header, chain='A', *args, **kwargs):
                     ax.add_patch(patches.Arrow(end+1,0,add_beg*(-1),0,width=4.65, \
                     fill=False, linestyle='solid',edgecolor='black', linewidth=2))
     plt.axis('off')
-    ax.set_ylim(-1.7,1.7)
+    ax.set_ylim(-1.7, 1.7)
     if SETTINGS['auto_show']:
         showFigure()
     return plt.show
 
-def showPerturbResponse(**kwargs):
+def showPerturbResponse(model, atoms=None, show_matrix=True, select=None, **kwargs):
     """ Plot the PRS matrix with the profiles along the right and bottom.
 
-    If no PRS matrix or profiles are provided, these will be calculated first
-    using the provided options with a provided model (e.g. ANM, GNM or EDA).
-    So as to obtain different sensors and effectors, normMatrix=True by default.
-
     If atoms are provided then residue numbers can be used from there.
-    *model* and *atoms* must have the same number of atoms. *atoms* must be an
-    :class:`.AtomGroup` instance.
-
-    :arg prs_matrix: a perturbation response matrix
-    :type prs_matrix: :class:`~numpy.array`
-
-    :arg effectiveness: an effectiveness profile from a PRS matrix
-    :type effectiveness: :class:`~numpy.array`
-
-    :arg sensitivity: a sensitivity profile from a PRS matrix
-    :type sensitivity: :class:`~numpy.array`
+    *model* and *atoms* must have the same number of atoms. *atoms* must 
+    be an :class:`.Atomic` instance.
 
     :arg model: any object with a calcCovariance method
         e.g. :class:`.ANM` instance
-    :type model: NMA
+    :type model: :class:`.NMA`
 
-    :arg atoms: a :class: `AtomGroup` instance
-    :type atoms: AtomGroup
+    :arg atoms: a :class: `AtomGroup` instance for matching residue numbers and chain 
+        identifiers
+    :type atoms: :class:`.AtomGroup`
 
-    :arg returnData: whether to return data for further analysis
-        default is False
-    :type returnData: bool
+    :arg show_matrix: whether to show the matrix, default is **True**
+    :type show_matrix: bool
+
+    :arg select: a :class:`Selection` instance or selection string for showing 
+        residue-specific profiles. This can only be used with ``show_matrix=False``.
+    :tye select: :class:`Selection`, str
     
-    :arg percentile: percentile argument for showAtomicMatrix
+    :keyword percentile: percentile argument for showAtomicMatrix
     :type percentile: float
-
-    Return values are prs_matrix, effectiveness, sensitivity, ax1, ax2, im, ax3, ax4
-    The PRS matrix, effectiveness and sensitivity will not be returned if provided. 
-    If returnData is False then only the last five objects are returned.
     """
 
-    import matplotlib.pyplot as plt
-    import matplotlib
+    from matplotlib.pyplot import gcf, xlabel, ylabel, legend, figure
 
-    prs_matrix = kwargs.get('prs_matrix')
-    effectiveness = kwargs.get('effectiveness')
-    sensitivity = kwargs.get('sensitivity')
-    model = kwargs.pop('model')
-    atoms = kwargs.get('atoms')
-    returnData = kwargs.pop('returnData', False)
+    select = kwargs.pop('select',None)
 
-    if atoms is None:
+    prs_matrix, effectiveness, sensitivity = calcPerturbResponse(model, atoms=atoms)
 
-        if prs_matrix is None:
-            if model is None:
-                raise ValueError('Please provide a PRS matrix or model.')
-            else:
-                prs_matrix = calcPerturbResponse(model=model)
+    if show_matrix:
+        show = showAtomicMatrix(prs_matrix, x_array=effectiveness, 
+                                y_array=sensitivity, atoms=atoms, 
+                                **kwargs)
+        ylabel('Residues')
 
-        if effectiveness is None or sensitivity is None:
-            effectiveness, sensitivity = calcPerturbResponseProfiles(prs_matrix)
+    else:
+        if select is None:
+            kwargs.pop('figure', 'effectiveness'); fig = gcf()
+            domains = kwargs.pop('domains', None)
+            chains = kwargs.pop('chains', None)
+            kwargs.pop('label', None)
+            show_eff = showAtomicLines(effectiveness, atoms=atoms, 
+                                       domains=False, chains=False,
+                                       label='Effectiveness', **kwargs)
+            kwargs.pop('figure', 'sensitivity'); fig = gcf()
+            show_sen = showAtomicLines(sensitivity, atoms=atoms, figure=fig, 
+                                       domains=domains, chains=chains,
+                                       label='Sensitivity', **kwargs)
+            show = [show_eff, show_sen]
         else:
-            returnData = False
+            show = []
+            profiles = sliceAtomicData(prs_matrix, atoms=atoms, select=select, axis=0)
+            for profile in profiles:
+                kwargs.pop('figure', None); fig = gcf()
+                show.append(showAtomicLines(profile, atoms, **kwargs))
 
-        showMatrix_returns = showAtomicMatrix(prs_matrix, effectiveness, sensitivity, **kwargs)
+    xlabel('Residues')
+    
+    return show
 
-    else:
-        if not isinstance(atoms, AtomGroup) and not isinstance(atoms, Selection):
-            raise TypeError('atoms must be an AtomGroup instance')
-        elif model is not None and atoms.numAtoms() != model.numAtoms():
-            raise ValueError('model and atoms must have the same number atoms')
-
-        if prs_matrix is None: 
-            if model is None:
-                raise ValueError('Please provide a PRS matrix or model.')
-            atoms, prs_matrix = calcPerturbResponse(model=model,atoms=atoms)
-
-        if effectiveness is None or sensitivity is None:
-            atoms, effectiveness, sensitivity = calcPerturbResponseProfiles(prs_matrix,atoms)
-
-        showMatrix_returns = showAtomicMatrix(prs_matrix, effectiveness, sensitivity, **kwargs)
-
-    if not returnData:
-        return showMatrix_returns
-    elif kwargs.get('prs_matrix') is not None:
-       if atoms is not None:
-           return atoms, effectiveness, sensitivity, showMatrix_returns
-       else:
-           return effectiveness, sensitivity, showMatrix_returns
-    else:
-       if atoms is not None:
-           return atoms, prs_matrix, effectiveness, sensitivity, showMatrix_returns
-       else:
-           return prs_matrix, effectiveness, sensitivity, showMatrix_returns
-
-def showPerturbResponseProfiles(prs_matrix,atoms=None,**kwargs):
-    """Plot as a line graph the average response to perturbation of
-    a particular residue (a row of a perturbation response matrix)
-    or the average effect of perturbation of a particular residue
-    (a column of a normalized perturbation response matrix).
-
-    If no PRS matrix or profiles are provided, these will be calculated first
-    using the provided options with a provided model (e.g. ANM, GNM or EDA).
-    So as to obtain different sensitivity and effectiveness, normMatrix=True by default.
-
-    If no residue number is given then the effectiveness and sensitivity
-    profiles will be plotted instead. These two profiles are also returned
-    as arrays for further analysis if they aren't already provided.
-
-    :arg prs_matrix: a perturbation response matrix
-    :type prs_matrix: ndarray
-
-    :arg atoms: a :class: `AtomGroup` instance for matching 
-        residue numbers and chain IDs. 
-    :type atoms: AtomGroup
-
-    :arg effectiveness: an effectiveness profile from a PRS matrix
-    :type effectiveness: list
-
-    :arg sensitivity: a sensitivity profile from a PRS matrix
-    :type sensitivity: list
-
-    :arg model: any object with a calcCovariance method
-        e.g. :class:`.ANM` instance
-        *model* and *atoms* must have the same number of atoms.
-    :type model: NMA
-
-    :arg chain: chain identifier for the residue of interest
-        default is to make a plot for each chain in the protein
-    :type chain: str
-
-    :arg resnum: residue number for the residue of interest
-    :type resnum: int
-
-    :arg direction: the direction you want to use to read data out
-        of the PRS matrix for plotting: the options are 'effect' or 'response'.
-        Default is 'effect'.
-        A row gives the effect on each residue of peturbing the specified 
-        residue.
-        A column gives the response of the specified residue to perturbing 
-        each residue.
-        If no residue number is provided then this option will be ignored
-    :type direction: str
-
-    :arg returnData: whether to return profiles for further analysis
-        default is False
-    :type returnProfiles: bool
-    """
-    from .perturb import PRSMatrixParseError
-
-    model = kwargs.get('model')
-    if not type(prs_matrix) is np.ndarray:
-        if prs_matrix is None:
-            if model is None:
-                raise ValueError('Please provide a PRS matrix or model.')
-            else:
-                if kwargs.get('normMatrix') is None:
-                    kwargs.set('normMatrix',True)
-                prs_matrix = calcPerturbResponse(**kwargs)
-        else:
-            raise TypeError('Please provide a valid PRS matrix (as array).')
-
-    if atoms is None:
-        raise ValueError('Please provide an AtomGroup object for matching ' \
-                         'residue numbers and chain IDs.')
-    else:
-        if not isinstance(atoms, AtomGroup) and not isinstance(atoms, Selection):
-            raise TypeError('atoms must be an AtomGroup instance')
-        elif model is not None and atoms.numAtoms() != model.numAtoms():
-            raise ValueError('model and atoms must have the same number atoms')
-
-    chain = kwargs.get('chain')
-    hv = atoms.getHierView()
-    chains = []
-    for i in range(len(list(hv))):
-        chainAg = list(hv)[i]
-        chains.append(chainAg.getChids()[0])
-
-    chains = np.array(chains)
-    if chain is None:
-        chain = ''.join(chains)
-
-    resnum = kwargs.get('resnum', None)
-    direction = kwargs.get('direction','effect')
-
-    if resnum is not None: 
-        timesNotFound = 0
-        for n in range(len(chain)):
-            if not chain[n] in chains:
-                raise PRSMatrixParseError('Chain {0} was not found in chains'.format(chain[n]))
-
-            chainNum = int(np.where(chains == chain[n])[0])
-            chainAg = list(hv)[chainNum]
-            if not resnum in chainAg.getResnums():
-                LOGGER.info('A residue with number {0} was not found' \
-                            ' in chain {1}. Continuing to next chain.' \
-                            .format(resnum, chain[n]))
-                timesNotFound += 1
-                continue
-
-        profiles = []
-        for n in range(len(chain)):
-            chainNum = int(np.where(chains == chain[n])[0])
-            i = np.where(atoms.getResnums() == resnum)[0][chainNum-timesNotFound] 
-            if direction is 'effect':
-                profiles.append(prs_matrix[i,:])
-            else:
-                profiles.append(prs_matrix[:,i])
-
-    else:
-        effectiveness = kwargs.get('effectiveness')
-        sensitivity = kwargs.get('sensitivity')
-        if effectiveness is None or sensitivity is None:
-            effectiveness, sensitivity = calcPerturbResponseProfiles(prs_matrix)
-        profiles = [effectiveness, sensitivity]
-
-    for profile in profiles:
-        show = showAtomicLines(profile,atoms=atoms,**kwargs)
-
-    returnData = kwargs.get('returnData',False)
-    if returnData:
-        return show, profiles
-    else:
-        return show
-
-def _checkDomainBarParameter(domain_bar, defpos, atoms, label):
+def _checkDomainBarParameter(domains, defpos, atoms, label):
     show = atoms is not None
     pos = defpos
 
@@ -1214,21 +1069,25 @@ def _checkDomainBarParameter(domain_bar, defpos, atoms, label):
 
     # check if the user wants to show or not
     from numbers import Number
-    if isinstance(domain_bar, bool):
-        show &= domain_bar
+    if isinstance(domains, bool):
+        show &= domains
         pos = defpos
-    elif isinstance(domain_bar, Number):
+    elif isinstance(domains, Number):
         show &= True    # this line does nothing but is left for readability
-        pos = domain_bar
+        pos = domains
 
     # check if the domain bar can be shown or not
     try:
         data = atoms.getData(label)
-        uniq = np.unique(data)
-        if domain_bar is None:
-            show &= len(uniq) > 1
+        if data is not None:
+            uniq = np.unique(data)
+            if domains is None:
+                show &= len(uniq) > 1
     except:
-        if domain_bar is None:
+        data = None
+
+    if data is None:
+        if domains is None:
             show &= False
         if show:
             raise ValueError('A {0} bar can only be generated if '
@@ -1237,6 +1096,8 @@ def _checkDomainBarParameter(domain_bar, defpos, atoms, label):
 
     return show, pos, data
 
+
+
 def showAtomicMatrix(matrix, x_array=None, y_array=None, atoms=None, **kwargs):
     """Show a matrix using :meth:`~matplotlib.axes.Axes.imshow`. Curves on x- and y-axis can be added.
     The first return value is the :class:`~matplotlib.axes.Axes` object for the upper plot, and the second
@@ -1244,57 +1105,60 @@ def showAtomicMatrix(matrix, x_array=None, y_array=None, atoms=None, **kwargs):
     the :class:`~matplotlib.image.AxesImage` object for the matrix plot. The last return value is the 
     :class:`~matplotlib.axes.Axes` object for the color bar.
 
-    :arg matrix: Matrix to be displayed.
+    :arg matrix: matrix to be displayed
     :type matrix: :class:`~numpy.ndarray`
 
-    :arg x_array: Data to be plotted above the matrix.
+    :arg x_array: data to be plotted above the matrix
     :type x_array: :class:`~numpy.ndarray`
 
-    :arg y_array: Data to be plotted on the left side of the matrix.
+    :arg y_array: data to be plotted on the left side of the matrix
     :type y_array: :class:`~numpy.ndarray`
 
     :arg percentile: A percentile threshold to remove outliers, i.e. only showing data within *p*-th 
-                     to *100-p*-th percentile.
+        to *100-p*-th percentile.
     :type percentile: float
 
-    :arg atoms: a :class: `AtomGroup` instance for matching 
-        residue numbers and chain identifiers. 
+    :arg atoms: a :class: `AtomGroup` instance for matching residue numbers and chain identifiers
     :type atoms: :class: `AtomGroup`
 
-    :arg chain_bar: display a bar at the bottom to show chain separations. 
-                    If set to `None`, it will be decided depends on whether *atoms* 
-                    is provided. 
-                    Default is `None`.
-    :type chain_bar: bool
+    :keyword chain: display a bar at the bottom to show chain separations. 
+        If set to `None`, it will be decided depends on whether *atoms* 
+        is provided. 
+        Default is `None`.
+    :type chain: bool
 
-    :arg domain_bar: the same with *chain_bar* but show domain separations instead. 
-                    *atoms* needs to have *domain* data associated to it.
-                    Default is `None`.
-    :type domain_bar: bool
+    :keyword domain: the same with *chains* but show domain separations instead. 
+        *atoms* needs to have *domain* data associated to it.
+        Default is `None`.
+    :type domain: bool
 
-    :arg figure: if set to `None`, then a new figure will be created if *auto_show* 
-                is `True`, otherwise it will be plotted on the current figure. If set 
-                to a figure number or a :class:`~matplotlib.figure.Figure` instance, 
-                no matter what 'auto_show' value is, plots will be drawn on the *figure*.
-                Default is `None`.
+    :keyword figure: if set to `None`, then a new figure will be created if *auto_show* 
+        is `True`, otherwise it will be plotted on the current figure. If set 
+        to a figure number or a :class:`~matplotlib.figure.Figure` instance, 
+        no matter what 'auto_show' value is, plots will be drawn on the *figure*.
+        Default is `None`.
     :type figure: :class:`~matplotlib.figure.Figure`, int, str
     """ 
 
     from prody.utilities import showMatrix
-    from matplotlib.pyplot import figure, xlim, ylim, plot, text
+    from matplotlib.pyplot import figure
     from matplotlib.figure import Figure
-    from matplotlib import ticker
 
-    chain_bar = kwargs.pop('chain_bar', None)
-    domain_bar = kwargs.pop('domain_bar', None)
+    show_chain = kwargs.pop('chains', None)
+    show_chain = kwargs.pop('chain', show_chain)
+    show_domain = kwargs.pop('domains', None)
+    show_domain = kwargs.pop('domain', show_domain)
     chain_text_loc = kwargs.pop('chain_text_loc', 'above')
     domain_text_loc = kwargs.pop('domain_text_loc', 'below')
-    show_text = kwargs.pop('show_text', True)
-    show_domain_text = kwargs.pop('show_domain_text', show_text)
-    show_chain_text = kwargs.pop('show_chain_text', show_text)
+    show_text = kwargs.pop('text', True)
+    show_domain_text = kwargs.pop('domain_text', show_text)
+    show_chain_text = kwargs.pop('chain_text', show_text)
     barwidth = kwargs.pop('barwidth', 5)
     barwidth = kwargs.pop('bar_width', barwidth)
     fig = kwargs.pop('figure', None)
+    ticklabels = kwargs.pop('ticklabels', None)
+    text_color = kwargs.pop('text_color', 'k')
+    text_color = kwargs.pop('textcolor', text_color)
 
     if isinstance(fig, Figure):
         fig_num = fig.number
@@ -1309,56 +1173,111 @@ def showAtomicMatrix(matrix, x_array=None, y_array=None, atoms=None, **kwargs):
         figure(fig_num)
 
     n_row, n_col = matrix.shape
-    ticklabels = None
-    sides = []
-    if atoms is not None:
-        n_atoms = atoms.numAtoms()
-        if n_atoms == n_row: sides.append('y') 
-        if n_atoms == n_col: sides.append('x')
-        if not sides:
-            raise ValueError('The number of atoms ({0}) is inconsistent with the shape '
-                             'of the matrix ({1}, {2}).'.format(n_atoms, n_row, n_col))
+
+    # do not use isscalar because Atomic objects are not scalars
+    if isinstance(atoms, (list, tuple, np.ndarray)): 
+        if len(atoms) == 1:
+            xatoms = yatoms = atoms[0]
+        else:
+            try:
+                xatoms_, yatoms_ = atoms
+            except ValueError:
+                raise ValueError('atoms must be either one or two Atomic objects')
+            try:
+                n_xatoms, n_yatoms = xatoms_.numAtoms(), yatoms_.numAtoms()
+            except:
+                raise TypeError('atoms must be an Atomic object or a list of Atomic objects')
+            if n_xatoms != n_col:
+                if n_yatoms == n_col:
+                    xatoms = yatoms_  # swap xatoms and yatoms
+                else:
+                    xatoms = None
+                    LOGGER.warn('the number of columns ({0}) in matrix does not '
+                                'match that of either {1} ({2} atoms) or {3} '
+                                '({4} atoms)'.format(n_col, xatoms_, n_xatoms, yatoms_, n_yatoms))
+            else:
+                xatoms = xatoms_
+            
+            if n_yatoms != n_row:
+                if n_xatoms == n_row:
+                    yatoms = xatoms_  # swap xatoms and yatoms
+                else:
+                    yatoms = None
+                    LOGGER.warn('the number of rows ({0}) in matrix does not '
+                                'match that of either {1} ({2} atoms) or {3} '
+                                '({4} atoms)'.format(n_row, xatoms_, n_xatoms, yatoms_, n_yatoms))
+            else:
+                yatoms = yatoms_
+    else:
+        xatoms = yatoms = atoms
+
+    # an additional check for the case of xatoms = yatoms = atoms
+    if xatoms is not None and xatoms.numAtoms() != n_col:
+        xatoms = None
+
+    if yatoms is not None and yatoms.numAtoms() != n_row:
+        yatoms = None
+
+    def getTickLabels(atoms):
+        if atoms is None:
+            return None
+
         hv = atoms.getHierView()
         if hv.numChains() == 0:
             raise ValueError('atoms should contain at least one chain.')
         elif hv.numChains() == 1:
-            if chain_bar is None:
-                chain_bar = False
             ticklabels = atoms.getResnums()
         else:
             chids = atoms.getChids()
             resnums = atoms.getResnums()
             ticklabels = ['%s:%d'%(c, n) for c, n in zip(chids, resnums)]
-
-    im, lines, colorbar = showMatrix(matrix, x_array, y_array, ticklabels=ticklabels, **kwargs) 
+        return ticklabels
     
-    ## draw domain & chain bars
-    show_chain, chain_pos, chids = _checkDomainBarParameter(chain_bar, 0., atoms, 'chain')
-
+    if ticklabels is None: 
+        xticklabels = kwargs.pop('xticklabels', getTickLabels(xatoms))
+        yticklabels = kwargs.pop('yticklabels', getTickLabels(yatoms))
+    else: # if the user provides ticklabels, then always use them
+        xticklabels = yticklabels = ticklabels
+    im, lines, colorbar = showMatrix(matrix, x_array, y_array, xticklabels=xticklabels, yticklabels=yticklabels, **kwargs) 
+    
     bars = []
     texts = []
+
+    ## draw chain bars
+    # x
+    show_chain, chain_pos, chids = _checkDomainBarParameter(show_chain, 0., xatoms, 'chain')
+
     if show_chain:
-        b, t = showDomainBar(chids, loc=chain_pos, axis=sides[-1], 
-                             text_loc=chain_text_loc, text_color='w', show_text=show_chain_text,
-                             barwidth=barwidth)
+        b, t = showDomainBar(chids, loc=chain_pos, axis='x', text_loc=chain_text_loc, 
+                             text_color=text_color, text=show_chain_text, barwidth=barwidth)
         bars.extend(b)
         texts.extend(t)
 
-    # force turnning off domain_bar if chain_bar and only one side is 
-    # available
-    if len(sides) < 2:
-        if show_chain:
-            if domain_bar is not None:
-                LOGGER.warn('There is only one side of the matrix matches with atoms so domain bar '
-                            'will not be shown. Turn off chain_bar if you want to show the domain bar.')
-            domain_bar = False
-            
-    show_domain, domain_pos, domains = _checkDomainBarParameter(domain_bar, 0., atoms, 'domain')
+    # y
+    show_chain, chain_pos, chids = _checkDomainBarParameter(show_chain, 0., yatoms, 'chain')
+
+    if show_chain:
+        b, t = showDomainBar(chids, loc=chain_pos, axis='y', text_loc=chain_text_loc, 
+                             text_color=text_color, text=show_chain_text, barwidth=barwidth)
+        bars.extend(b)
+        texts.extend(t)
+  
+    show_domain, domain_pos, domains = _checkDomainBarParameter(show_domain, 1., xatoms, 'domain')
+
+    ## draw domain bars
+    # x
+    if show_domain:
+        b, t = showDomainBar(domains, loc=domain_pos, axis='x', text_loc=domain_text_loc, 
+                             text_color=text_color, text=show_domain_text, barwidth=barwidth)
+        bars.extend(b)
+        texts.extend(t)
+
+    # y
+    show_domain, domain_pos, domains = _checkDomainBarParameter(show_domain, 1., yatoms, 'domain')
 
     if show_domain:
-        b, t = showDomainBar(domains, loc=domain_pos, axis=sides[0], 
-                             text_loc=domain_text_loc, text_color='w', show_text=show_domain_text,
-                             barwidth=barwidth)
+        b, t = showDomainBar(domains, loc=domain_pos, axis='y', text_loc=domain_text_loc, 
+                             text_color=text_color, text=show_domain_text, barwidth=barwidth)
         bars.extend(b)
         texts.extend(t)
 
@@ -1375,33 +1294,37 @@ def showAtomicLines(y, atoms=None, linespec='-', **kwargs):
         residue numbers and chain identifiers. 
     :type atoms: :class: `AtomGroup`
 
-    :arg chain_bar: display a bar at the bottom to show chain separations. 
-                    If set to `None`, it will be decided depends on whether *atoms* 
-                    is provided. 
-                    Default is `None`.
-    :type chain_bar: bool
+    :keyword chain: display a bar at the bottom to show chain separations. 
+        If set to **None**, it will be decided depends on whether *atoms* 
+        is provided. 
+        Default is **None**.
+    :type chain: bool
 
-    :arg domain_bar: the same with *chain_bar* but show domain separations instead. 
-                    *atoms* needs to have *domain* data associated to it.
-                    Default is `None`.
-    :type domain_bar: bool
+    :keyword domain: the same with *chains* but show domain separations instead. 
+        *atoms* needs to have *domain* data associated to it.
+        Default is **None**.
+    :type domain: bool
 
-    :arg figure: if set to `None`, then a new figure will be created if *auto_show* 
-                is `True`, otherwise it will be plotted on the current figure. If set 
-                to a figure number or a :class:`~matplotlib.figure.Figure` instance, 
-                no matter what 'auto_show' value is, plots will be drawn on the *figure*.
-                Default is `None`.
+    :keyword figure: if set to **None**, then a new figure will be created if *auto_show* 
+        is **True**, otherwise it will be plotted on the current figure. If set 
+        to a figure number or string or a :class:`~matplotlib.figure.Figure` instance, 
+        no matter what 'auto_show' value is, plots will be drawn on the *figure*.
+        Default is **None**.
     :type figure: :class:`~matplotlib.figure.Figure`, int, str
     """
     
-    chain_bar = kwargs.pop('chain_bar', None)
-    domain_bar = kwargs.pop('domain_bar', None)
+    show_chain = kwargs.pop('chains', None)
+    show_domain = kwargs.pop('domains', None)
+    show_chain = kwargs.pop('chain', show_chain)
+    show_domain = kwargs.pop('domain', show_domain)
+
     chain_text_loc = kwargs.pop('chain_text_loc', 'above')
     domain_text_loc = kwargs.pop('domain_text_loc', 'below')
     zero_line = kwargs.pop('show_zero', False)
-    show_text = kwargs.pop('show_text', True)
-    show_domain_text = kwargs.pop('show_domain_text', show_text)
-    show_chain_text = kwargs.pop('show_chain_text', show_text)
+    zero_line = kwargs.pop('zero', zero_line)
+    show_text = kwargs.pop('text', True)
+    show_domain_text = kwargs.pop('domain_text', show_text)
+    show_chain_text = kwargs.pop('chain_text', show_text)
     barwidth = kwargs.pop('barwidth', 5)
     barwidth = kwargs.pop('bar_width', barwidth)
 
@@ -1435,8 +1358,6 @@ def showAtomicLines(y, atoms=None, linespec='-', **kwargs):
         if hv.numChains() == 0:
             raise ValueError('atoms should contain at least one chain.')
         elif hv.numChains() == 1:
-            if chain_bar is None:
-                chain_bar = False
             ticklabels = atoms.getResnums()
         else:
             chids = atoms.getChids()
@@ -1450,22 +1371,20 @@ def showAtomicLines(y, atoms=None, linespec='-', **kwargs):
 
     bars = []
     texts = []
-    if chain_bar is None:
-        chain_bar = atoms is not None
 
-    show_chain, chain_pos, chids = _checkDomainBarParameter(chain_bar, 0., atoms, 'chain')
+    show_chain, chain_pos, chids = _checkDomainBarParameter(show_chain, 0., atoms, 'chain')
      
     if show_chain:
         b, t = showDomainBar(atoms.getChids(), loc=chain_pos, axis='x', 
-                             text_loc=chain_text_loc, show_text=show_chain_text,
+                             text_loc=chain_text_loc, text=show_chain_text,
                              barwidth=barwidth)
         bars.extend(b)
         texts.extend(t)
 
-    show_domain, domain_pos, domains = _checkDomainBarParameter(domain_bar, 1., atoms, 'domain')
+    show_domain, domain_pos, domains = _checkDomainBarParameter(show_domain, 1., atoms, 'domain')
     if show_domain:
         b, t = showDomainBar(domains, loc=domain_pos, axis='x', 
-                             text_loc=domain_text_loc,  show_text=show_domain_text,
+                             text_loc=domain_text_loc,  text=show_domain_text,
                              barwidth=barwidth)
         bars.extend(b)
         texts.extend(t)
@@ -1490,20 +1409,21 @@ def showDomainBar(domains, loc=0., axis='x', **kwargs):
                either **x** or **y**
     :type axis: str
 
-    :arg show_text: whether show the text or not. Default is **True**
+    :keyword show_text: whether show the text or not. Default is **True**
     :type show_text: bool
 
-    :arg text_loc: location of text labels. It can be either 
+    :keyword text_loc: location of text labels. It can be either 
                    **above** or **below**
     :type text_loc: str
 
-    :arg text_color: color of the text labels
+    :keyword text_color: color of the text labels
     :type text_color: str or tuple or list
     """
 
-    from matplotlib.pyplot import plot, text, xlim, ylim
+    from matplotlib.pyplot import plot, text, xlim, ylim, gca
 
     show_text = kwargs.pop('show_text', True)
+    show_text = kwargs.pop('text', show_text)
     text_color = kwargs.pop('text_color', 'k')
 
     barwidth = kwargs.pop('barwidth', 5)
@@ -1517,13 +1437,13 @@ def showDomainBar(domains, loc=0., axis='x', **kwargs):
     if not text_loc in ['above', 'below']:
         raise ValueError('text_loc can only be either "above" or "below"')
 
-    halign = 'left' if text_loc == 'below' else 'right'
+    halign = 'right' if text_loc == 'below' else 'left'
     valign = 'top' if text_loc == 'below' else 'bottom'
 
     if len(domains) == 0:
         raise ValueError('domains should not be empty')
     if PY3K:
-        domains = np.asarray(domains, dtype='U')
+        domains = np.asarray(domains, dtype=str)
     EMPTY_CHAR = domains[0][:0]
     uni_domids = np.unique(domains)
     uni_domids = uni_domids[uni_domids!=EMPTY_CHAR]
@@ -1553,18 +1473,27 @@ def showDomainBar(domains, loc=0., axis='x', **kwargs):
 
     if show_text:
         for i, chid in enumerate(uni_domids):
-            locs = np.where(D[:, i])[0]
-            pos = np.median(locs)
-            if axis == 'y':
-                txt = text(d_loc, pos, chid, rotation='vertical', 
-                                            color=text_color,
-                                            horizontalalignment=halign, 
-                                            verticalalignment='center')
-            else:
-                txt = text(pos, d_loc, chid, color=text_color,
-                                            horizontalalignment='center', 
-                                            verticalalignment=valign)
-            texts.append(txt)
+            d = D[:, i].astype(int)
+            d *= np.arange(len(d)) + 1
+            # find the position for the texts
+            #locs = np.where(d)[0]
+            idx = np.where(d)[0]
+            locs = np.split(d[idx], np.where(np.diff(idx)!=1)[0] + 1)
+
+            for loc in locs:
+                pos = np.median(loc)
+                if axis == 'y':
+                    txt = text(d_loc, pos, chid, rotation=-90, 
+                                                color=text_color,
+                                                horizontalalignment=halign, 
+                                                verticalalignment='center')
+                else:
+                    txt = text(pos, d_loc, chid, color=text_color,
+                                                horizontalalignment='center', 
+                                                verticalalignment=valign)
+                texts.append(txt)
+    
+    gca().set_prop_cycle(None)
     if axis == 'y':
         _y = np.arange(len(domains))
         Y = np.tile(_y, (len(uni_domids), 1)).T
@@ -1578,17 +1507,23 @@ def showDomainBar(domains, loc=0., axis='x', **kwargs):
 
 def showTree(tree, format='ascii', **kwargs):
     """ Given a tree, creates visualization in different formats. 
+    
     arg tree: Tree needs to be unrooted and should be generated by tree 
-    generator from Phylo in biopython. 
-    type tree: Bio.Phylo.BaseTree.Tree
-    arg format: Depending on the format, you will see different forms of trees. 
-    Acceptable formats are `plt`, `ascii` and `networkx`.
+        generator from Phylo in biopython. 
+    type tree: :class:`~Bio.Phylo.BaseTree.Tree`
+
+    arg format: depending on the format, you will see different forms of trees. 
+        Acceptable formats are ``"plt"``, ``"ascii"`` and ``"networkx"``.
     type format: str
-    arg font_size: Font size for branch labels
-    type: float
-    arg line_width: The line width for each branch
-    type: float
+
+    keyword font_size: font size for branch labels
+    type font_size: float
+
+    keyword line_width: the line width for each branch
+    type line_width: float
+
     """
+
     try: 
         from Bio import Phylo
     except ImportError:
@@ -1631,7 +1566,19 @@ def showTree(tree, format='ascii', **kwargs):
     else:
         raise ValueError('format should be ascii or plt or networkx.')
 
-def showTree_networkx(tree, node_size=20, node_color='red', node_shape='o', withlabels=True, scale=1., iterations=500, k=None, **kwargs):
+def showTree_networkx(tree, node_size=20, node_color='red', node_shape='o', 
+                      withlabels=True, scale=1., iterations=500, k=None, 
+                      **kwargs):
+    """ Given a tree, creates visualization using :mod:`~networkx`. See 
+    :func:`~networkx.spring_layout` and :func:`~networkx.draw_networkx_nodes` 
+    for more details.
+
+    arg tree: Tree needs to be unrooted and should be generated by tree 
+        generator from Phylo in biopython. 
+    type tree: :class:`~Bio.Phylo.BaseTree.Tree`
+    
+    """
+
     from Bio import Phylo
     import matplotlib.pyplot as mpl
 
@@ -1700,7 +1647,7 @@ def showTree_networkx(tree, node_size=20, node_color='red', node_shape='o', with
             fontcolor = kwargs.pop('font_color', 'black')
             fontdict = {'size': fontsize, 'color': fontcolor}
 
-        for node, pos in layout.iteritems():
+        for node, pos in layout.items():
             mpl.text(pos[0], pos[1], labels[node], fontdict=fontdict)
 
     if SETTINGS['auto_show']:

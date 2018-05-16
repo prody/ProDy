@@ -14,18 +14,21 @@ if PY3K:
 else:
     import urllib
     import urllib2
-from .ensemble import Ensemble
-from .pdbensemble import PDBEnsemble
+from prody.ensemble import Ensemble
+from prody.ensemble import PDBEnsemble
 import os
 
-__all__ = ['daliRecord', 'searchDali']
+__all__ = ['DaliRecord', 'searchDali']
 
 def searchDali(pdbId, chainId, daliURL=None, subset='fullPDB', **kwargs):
     """Search Dali server with input of PDB ID and chain ID.
     Dali server: http://ekhidna2.biocenter.helsinki.fi/dali/
     
     :arg subset: fullPDB, PDB25, PDB50, PDB90
-    :type sequence: str"""
+    :type subset: str
+    
+    """
+
     LOGGER.timeit('_dali')
     # timeout = 120
     timeout = kwargs.pop('timeout', 120)
@@ -56,17 +59,17 @@ def searchDali(pdbId, chainId, daliURL=None, subset='fullPDB', **kwargs):
     LOGGER.debug('Submitted Dali search for PDB and chain "{0} and {1}".'.format(pdbId, chainId))
     LOGGER.info(url)
     LOGGER.clear()
-    obj = daliRecord(url, pdbId, chainId, subset=subset, timeout=timeout, **kwargs)
+    obj = DaliRecord(url, pdbId, chainId, subset=subset, timeout=timeout, **kwargs)
     if obj.isSuccess:
         return obj
     
     return None
 
-class daliRecord(object):
+class DaliRecord(object):
 
     """A class to store results from Dali PDB search."""
 
-    def __init__(self, url, pdbId=None, chainId=None, subset='fullPDB', localFile=False, **kwargs):
+    def __init__(self, url, pdbId, chainId, subset='fullPDB', localFile=False, **kwargs):
         """Instantiate a daliPDB object instance.
 
         :arg url: url of Dali results page or local dali results file.
@@ -86,6 +89,8 @@ class daliRecord(object):
         else:
             self._subset = "-"+subset[3:]
         timeout = kwargs.pop('timeout', 120)
+
+        self._title = pdbId + '-' + chainId
         self.isSuccess = self.getRecord(self._url, localFile=localFile, timeout=timeout, **kwargs)
 
     def getRecord(self, url, localFile=False, **kwargs):
@@ -114,6 +119,8 @@ class daliRecord(object):
                         continue
                     else:
                         html = urllib2.urlopen(url).read()
+                if PY3K:
+                    html = html.decode()
                 if html.find('Status: Queued') > -1:
                     log_message = '(Dali searching is queued)...'
                 elif html.find('Status: Running') > -1:
@@ -135,6 +142,8 @@ class daliRecord(object):
             file_name = file_name[:-7]
             # LOGGER.info(url+file_name+self._subset+'.txt')
             data = urllib2.urlopen(url+file_name+self._subset+'.txt').read()
+            if PY3K:
+                data = data.decode()
             localfolder = kwargs.pop('localfolder', '.')
             temp_name = file_name+self._subset+'_dali.txt'
             if localfolder != '.' and not os.path.exists(localfolder):
@@ -149,7 +158,8 @@ class daliRecord(object):
         mapping = []
         lines = data_list[4].strip().split('\n')
         self._lines_4 = lines
-        mapping_temp = np.genfromtxt(lines[1:], delimiter = (4,1,14,6,2,4,4,5,2,4,4,3,5,4,3,5,6,3,5,4,3,5,28), usecols = [0,3,5,7,9,12,15,15,18,21], dtype='|i4')
+        mapping_temp = np.genfromtxt(lines[1:], delimiter = (4,1,14,6,2,4,4,5,2,4,4,3,5,4,3,5,6,3,5,4,3,5,28), 
+                                     usecols = [0,3,5,7,9,12,15,15,18,21], dtype='|i4')
         # [0,3,5,7,9,12,15,15,18,21] -> [index, residue_a, residue_b, residue_i_a, residue_i_b, resid_a, resid_b, resid_i_a, resid_i_b]
         for map_i in mapping_temp:
             if not map_i[0] in map_temp_dict:
@@ -160,7 +170,9 @@ class daliRecord(object):
         self._mapping = map_temp_dict
         self._data = data_list[3]
         lines = data_list[3].strip().split('\n')
-        daliInfo = np.genfromtxt(lines[1:], delimiter = (4,3,6,5,5,5,6,5,57), usecols = [0,2,3,4,5,6,7,8], dtype=[('id', '<i4'), ('pdb_chain', '|S6'), ('Z', '<f4'), ('rmsd', '<f4'), ('len_align', '<i4'), ('res_num', '<i4'), ('identity', '<i4'), ('title', '|S70')])
+        daliInfo = np.genfromtxt(lines[1:], delimiter = (4,3,6,5,5,5,6,5,57), usecols = [0,2,3,4,5,6,7,8], 
+                                dtype=[('id', '<i4'), ('pdb_chain', '|S6'), ('Z', '<f4'), ('rmsd', '<f4'), 
+                                ('len_align', '<i4'), ('nres', '<i4'), ('identity', '<i4'), ('title', '|S70')])
         if daliInfo.ndim == 0:
             daliInfo = np.array([daliInfo])
         pdbListAll = []
@@ -169,18 +181,20 @@ class daliRecord(object):
         for temp in self._daliInfo:
             temp_dict = dict()
             pdb_chain = temp[1].strip()[0:6]
-            temp_dict['pdbId'] = pdb_chain[0:4]
-            temp_dict['chainId'] = pdb_chain[5:6]
-            temp_dict['pdb_chain'] = pdb_chain
+            if PY3K:
+                pdb_chain = pdb_chain.decode()
+            temp_dict['pdbId'] = pdbid = pdb_chain[0:4].lower()
+            temp_dict['chainId'] = chid = pdb_chain[5:6].upper()
+            temp_dict['pdb_chain'] = pdb_chain = pdbid + chid
             temp_dict['Z'] = temp[2]
             temp_dict['rmsd'] = temp[3]
             temp_dict['len_align'] = temp[4]
-            temp_dict['res_num'] = temp[5]
+            temp_dict['nres'] = temp[5]
             temp_dict['identity'] = temp[6]
             temp_dict['mapping'] = (np.array(map_temp_dict[temp[0]])-1).tolist()
             temp_dict['map_ref'] = [x for map_i in (np.array(map_temp_dict[temp[0]])-1).tolist() for x in range(map_i[0], map_i[1]+1)]
             temp_dict['map_sel'] = [x for map_i in (np.array(map_temp_dict[temp[0]])-1).tolist() for x in range(map_i[2], map_i[3]+1)]
-            dali_temp_dict[temp_dict['pdb_chain']] = temp_dict
+            dali_temp_dict[pdb_chain] = temp_dict
             pdbListAll.append(pdb_chain)
         self._pdbListAll = tuple(pdbListAll)
         self._pdbList = self._pdbListAll
@@ -188,12 +202,10 @@ class daliRecord(object):
         LOGGER.info('Obtained ' + str(len(pdbListAll)) + ' PDB chains from Dali for '+self._pdbId+self._chainId+'.')
         return True
         
-    def getPDBList(self):
-        """Returns PDB list (filters may applied)"""
-        return self._pdbList
-        
-    def getPDBListAll(self):
-        """Returns all PDB list"""
+    def getPDBs(self, filtered=True):
+        """Returns PDB list (filters may be applied)"""
+        if filtered:
+            return self._pdbList
         return self._pdbListAll
         
     def getHits(self):
@@ -204,7 +216,25 @@ class daliRecord(object):
         temp_str = ', '.join([str(len(filterDict['len'])), str(len(filterDict['rmsd'])), str(len(filterDict['Z'])), str(len(filterDict['identity']))])
         LOGGER.info('Filter out [' + temp_str + '] for [length, RMSD, Z, identity]')
         return self._filterList
-        
+    
+    def getMapping(self, key):
+        try:
+            info = self._alignPDB[key]
+            mapping = [info['map_ref'], info['map_sel']]
+        except KeyError:
+            return None
+        return mapping
+
+    def getMappings(self):
+        map_dict = {}
+        for key in self._alignPDB:
+            info = self._alignPDB[key]
+            mapping = [info['map_ref'], info['map_sel']]
+            map_dict[key] = mapping
+        return map_dict
+
+    mappings = property(getMappings)
+
     def filter(self, cutoff_len=None, cutoff_rmsd=None, cutoff_Z=None, cutoff_identity=None):
         """Filters out PDBs from the PDBList and returns the PDB list.
         PDBs satisfy any of following criterion will be filtered out.
@@ -296,55 +326,9 @@ class daliRecord(object):
         self._pdbList = [self._pdbListAll[0]] + list(set(list(self._pdbListAll[1:])) - set(filterList))
         LOGGER.info(str(len(filterList)) + ' PDBs have been filtered out from '+str(len(pdbListAll))+' Dali hits.')
         return self._pdbList
-        
-    def buildDaliEnsemble(self):
-        daliInfo = self._alignPDB
-        pdbList = self._pdbList
+    
+    def getTitle(self):
+        """Return the title of the record"""
 
-        n_confs = len(pdbList)
-        LOGGER.progress('Building PDB ensemble for {0} conformations from Dali...'
-                        .format(n_confs), n_confs, '_prody_buildDaliEnsemble')
+        return self._title
 
-        ref_pdb = parsePDB(self._pdbId).select('chain '+self._chainId).copy()
-
-        ref_pdb_ca = ref_pdb.select("protein and name CA")
-        if ref_pdb_ca is None:
-            ref_pdb_ca = ref_pdb.select("name CA and not resname CA")
-        ref_pdb_ca = ref_pdb_ca.copy()
-
-        ref_chain = ref_pdb_ca.getHierView().getChain(self._chainId)
-        ref_indices_set = set(range(len(ref_chain)))
-        ensemble = PDBEnsemble('Dali ensemble - ' + str(self._pdbId) + '-' + str(self._chainId))
-        ensemble.setAtoms(ref_chain)
-        ensemble.setCoords(ref_chain)
-        failPDBList = []
-        
-        for i in range(n_confs):
-            pdb_chain = pdbList[i]
-            # print(pdb_chain)
-            temp_dict = daliInfo[pdb_chain]
-            sel_pdb = parsePDB(pdb_chain[0:4]).select('chain '+pdb_chain[5:6]).copy()
-            try:
-                sel_pdb_ca = sel_pdb.select("protein and name CA").copy()
-            except:
-                sel_pdb_ca = sel_pdb.select("name CA and not resname CA").copy()
-            map_ref = temp_dict['map_ref']
-            map_sel = temp_dict['map_sel']
-            dum_sel = list(ref_indices_set - set(map_ref))
-            atommap = AtomMap(sel_pdb_ca, indices=map_sel, mapping=map_ref, dummies=dum_sel)
-            # ensemble.addCoordset(atommap, weights=atommap.getFlags('mapped'))
-            try:
-                ensemble.addCoordset(atommap, weights=atommap.getFlags('mapped'), degeneracy=True)
-            except:
-                failPDBList.append(pdb_chain)
-            LOGGER.update(i, label='_prody_buildDaliEnsemble')
-        LOGGER.finish()
-        self._failPDBList = failPDBList
-        if failPDBList != []:
-            LOGGER.warn('failed to add '+str(len(failPDBList))+' PDB chain to ensemble: '+' '.join(failPDBList))
-        try:
-            ensemble.iterpose()
-            RMSDs = ensemble.getRMSDs()
-        except:
-            LOGGER.warn('failed to iterpose the ensemble.')
-        return ensemble

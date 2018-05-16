@@ -60,7 +60,7 @@ ProDy 1.0 Series
     file header data automatically.  See :func:`.assignSecstr` and
     :func:`.confProDy` for usage details.
 
-  * :program:`prody align` makes use of :option:`--select` when aligning
+  * :program:`prody align` makes use of *select* when aligning
     multiple structures. See usage examples: :ref:`prody-align`
 
   * :func:`.printRMSD` function that prints minimum, maximum, and mean RMSD

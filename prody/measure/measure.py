@@ -3,10 +3,10 @@
 and measuring quantities."""
 
 from numpy import ndarray, power, sqrt, array, zeros, arccos
-from numpy import sign, tile, concatenate, pi, cross, subtract, round, var
+from numpy import sign, tile, concatenate, pi, cross, subtract, var
 
 from prody.atomic import Atomic, Residue, Atom
-from prody.utilities import importLA, checkCoords
+from prody.utilities import importLA, checkCoords, getDistance
 from prody import LOGGER, PY2K
 
 if PY2K:
@@ -130,14 +130,6 @@ def calcDistance(atoms1, atoms2, unitcell=None):
             raise ValueError('unitcell.shape must be (3,)')
 
     return getDistance(atoms1, atoms2, unitcell)
-
-
-def getDistance(coords1, coords2, unitcell=None):
-
-    diff = coords1 - coords2
-    if unitcell is not None:
-        diff = subtract(diff, round(diff/unitcell)*unitcell, diff)
-    return sqrt(power(diff, 2, diff).sum(axis=-1))
 
 
 def calcAngle(atoms1, atoms2, atoms3, radian=False):
