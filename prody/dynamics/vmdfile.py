@@ -24,9 +24,11 @@ from .modeset import ModeSet
 from .nmdfile import viewNMDinVMD, pathVMD, getVMDpath, setVMDpath
 
 def writeVMDstiffness(stiffness, pdb, indices, k_range, filename='vmd_out', \
-                            selstr='protein and name CA', loadToVMD=False):
+                      selstr='protein and name CA', loadToVMD=False):
    
-    """Returns three *filename* files: (1) PDB file with coordinates. 
+    """
+    Returns three *filename* files: 
+    (1) PDB file with coordinates. 
     (2) TCL file containing vmd commands for loading PDB file with accurate 	
     vmd representation. Pair of residues with selected *k_range* of 
     effective spring constant are shown in VMD respresentation with 
@@ -49,16 +51,19 @@ def writeVMDstiffness(stiffness, pdb, indices, k_range, filename='vmd_out', \
     :arg model: this is an 3-dimensional NMA instance from a :class:`.ANM
         calculations
     :type model: :class:`.ANM`
+
     :arg pdb: a coordinate set or an object with ``getCoords`` method
     :type pdb: :class:`numpy.ndarray`. 
+
     :arg indices: amino acid number.
-    :type indices: ``[int, int]`` or ``[int]`` for one amino acid    
+    :type indices: ``[int, int]`` or ``[int]`` for one amino acid 
+
     :arg k_range: effective force constant value.
     :type k_range: int or float, ``[int, int]``
     
     By default files are saved as *filename* and loaded to VMD program and 
     *selstr* is a selection from :class:`.Select`
-     """
+    """
 
     try:
         coords_sel = pdb.select(selstr)
@@ -134,7 +139,7 @@ def writeVMDstiffness(stiffness, pdb, indices, k_range, filename='vmd_out', \
                 else:
                     out.write("draw line "+'{'+str(coords[r])[1:-1]+'} {'+\
                        str(coords[nr_i])[1:-1]+'} width 3 style solid \n')
-                    out_txt.write(str(resid_r)+'\t'+resid_r2+'\t'+str(i)+'\n')
+                    out_txt.write(resid_r + '\t' + resid_r2 + '\t' + str(i) + '\n')
                     ResCounter.append(len(baza_col))
                         
             else: pass
