@@ -211,11 +211,10 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
     :type percentile: float
     """
 
-    import matplotlib.pyplot as plt
-    from matplotlib import cm, ticker
+    from matplotlib import ticker
     from matplotlib.gridspec import GridSpec
     from matplotlib.collections import LineCollection
-    from matplotlib.pyplot import imshow, gca, sca, sci
+    from matplotlib.pyplot import gca, sca, sci, colorbar, subplot
 
     p = kwargs.pop('percentile', None)
     if p is not None:
@@ -230,6 +229,9 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
     W = H = kwargs.pop('ratio', 6)
 
     ticklabels = kwargs.pop('ticklabels', None)
+    xticklabels = kwargs.pop('xticklabels', ticklabels)
+    yticklabels = kwargs.pop('yticklabels', ticklabels)
+
     allticks = kwargs.pop('allticks', False) # this argument is temporary and will be replaced by better implementation
     origin = kwargs.pop('origin', 'lower')
 
@@ -280,7 +282,7 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
     left_index = (i, j-1)
 
     complex_layout = nrow > 1 or ncol > 1
-    cb = kwargs.pop('colorbar', True)
+    show_colorbar = kwargs.pop('colorbar', True)
 
     ax1 = ax2 = ax3 = None
 
@@ -290,7 +292,7 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
 
     lines = []
     if nrow > 1:
-        ax1 = plt.subplot(gs[upper_index])
+        ax1 = subplot(gs[upper_index])
 
         if not tree_mode:
             ax1.set_xticklabels([])
@@ -308,7 +310,7 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
         ax1.axis('off')
 
     if ncol > 1:
-        ax2 = plt.subplot(gs[left_index])
+        ax2 = subplot(gs[left_index])
         
         if tree_mode:
             Phylo.draw(y_array, do_show=False, axes=ax2, **kwargs)
@@ -329,7 +331,7 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
         ax2.axis('off')
 
     if complex_layout:
-        ax3 = plt.subplot(gs[main_index])
+        ax3 = subplot(gs[main_index])
     else:
         ax3 = gca()
     
@@ -340,10 +342,10 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
     #ax3.set_xlim([-0.5, matrix.shape[0]+0.5])
     #ax3.set_ylim([-0.5, matrix.shape[1]+0.5])
 
-    if ticklabels is not None:
-        ax3.xaxis.set_major_formatter(ticker.IndexFormatter(ticklabels))
-        if ncol == 1:
-            ax3.yaxis.set_major_formatter(ticker.IndexFormatter(ticklabels))
+    if xticklabels is not None:
+        ax3.xaxis.set_major_formatter(ticker.IndexFormatter(xticklabels))
+    if yticklabels is not None and ncol == 1:
+        ax3.yaxis.set_major_formatter(ticker.IndexFormatter(yticklabels))
 
     if allticks:
         ax3.xaxis.set_major_locator(ticker.IndexLocator(offset=0.5, base=1.))
@@ -358,20 +360,20 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
     if ncol > 1:
         ax3.yaxis.set_major_formatter(ticker.NullFormatter())
         
-    colorbar = None
-    if cb:
+    cb = None
+    if show_colorbar:
         if nrow > 1:
             axes = [ax1, ax2, ax3]
             while None in axes:
                 axes.remove(None)
             s = H / (H + 1.)
-            colorbar = plt.colorbar(mappable=im, ax=axes, anchor=(0, 0), shrink=s)
+            cb = colorbar(mappable=im, ax=axes, anchor=(0, 0), shrink=s)
         else:
-            colorbar = plt.colorbar(mappable=im)
+            cb = colorbar(mappable=im)
 
     sca(ax3)
     sci(im)
-    return im, lines, colorbar
+    return im, lines, cb
 
 def reorderMatrix(matrix, tree, names=None):
     """
