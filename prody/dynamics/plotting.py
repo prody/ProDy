@@ -199,23 +199,23 @@ def showProjection(ensemble, modes, *args, **kwargs):
     :arg modes: up to three normal modes
     :type modes: :class:`.Mode`, :class:`.ModeSet`, :class:`.NMA`
 
-    :arg color: a color name or a list of color names or values, 
+    :keyword color: a color name or a list of color names or values, 
         default is ``'blue'``
     :type color: str, list
 
-    :arg label: label or a list of labels
+    :keyword label: label or a list of labels
     :type label: str, list
 
-    :arg marker: a marker or a list of markers, default is ``'o'``
+    :keyword marker: a marker or a list of markers, default is ``'o'``
     :type marker: str, list
 
-    :arg linestyle: line style, default is ``'None'``
+    :keyword linestyle: line style, default is ``'None'``
     :type linestyle: str
 
-    :arg text: list of text labels, one for each conformation
+    :keyword text: list of text labels, one for each conformation
     :type text: list
 
-    :arg fontsize: font size for text labels
+    :keyword fontsize: font size for text labels
     :type fontsize: int
 
     The projected values are by default converted to RMSD.  Pass ``rmsd=False``
@@ -365,25 +365,25 @@ def showCrossProjection(ensemble, mode_x, mode_y, scale=None, *args, **kwargs):
         sign of scalar makes the projections yield a positive correlation
     :type scale: str
 
-    :arg scalar: scalar factor for projection onto selected mode
+    :keyword scalar: scalar factor for projection onto selected mode
     :type scalar: float
 
-    :arg color: a color name or a list of color name, default is ``'blue'``
+    :keyword color: a color name or a list of color name, default is ``'blue'``
     :type color: str, list
 
-    :arg label: label or a list of labels
+    :keyword label: label or a list of labels
     :type label: str, list
 
-    :arg marker: a marker or a list of markers, default is ``'o'``
+    :keyword marker: a marker or a list of markers, default is ``'o'``
     :type marker: str, list
 
-    :arg linestyle: line style, default is ``'None'``
+    :keyword linestyle: line style, default is ``'None'``
     :type linestyle: str
 
-    :arg text: list of text labels, one for each conformation
+    :keyword text: list of text labels, one for each conformation
     :type text: list
     
-    :arg fontsize: font size for text labels
+    :keyword fontsize: font size for text labels
     :type fontsize: int
 
 
@@ -1121,18 +1121,18 @@ def showAtomicMatrix(matrix, x_array=None, y_array=None, atoms=None, **kwargs):
     :arg atoms: a :class: `AtomGroup` instance for matching residue numbers and chain identifiers
     :type atoms: :class: `AtomGroup`
 
-    :arg chain: display a bar at the bottom to show chain separations. 
+    :keyword chain: display a bar at the bottom to show chain separations. 
         If set to `None`, it will be decided depends on whether *atoms* 
         is provided. 
         Default is `None`.
     :type chain: bool
 
-    :arg domain: the same with *chains* but show domain separations instead. 
+    :keyword domain: the same with *chains* but show domain separations instead. 
         *atoms* needs to have *domain* data associated to it.
         Default is `None`.
     :type domain: bool
 
-    :arg figure: if set to `None`, then a new figure will be created if *auto_show* 
+    :keyword figure: if set to `None`, then a new figure will be created if *auto_show* 
         is `True`, otherwise it will be plotted on the current figure. If set 
         to a figure number or a :class:`~matplotlib.figure.Figure` instance, 
         no matter what 'auto_show' value is, plots will be drawn on the *figure*.
@@ -1294,18 +1294,18 @@ def showAtomicLines(y, atoms=None, linespec='-', **kwargs):
         residue numbers and chain identifiers. 
     :type atoms: :class: `AtomGroup`
 
-    :arg chain: display a bar at the bottom to show chain separations. 
+    :keyword chain: display a bar at the bottom to show chain separations. 
         If set to **None**, it will be decided depends on whether *atoms* 
         is provided. 
         Default is **None**.
     :type chain: bool
 
-    :arg domain: the same with *chains* but show domain separations instead. 
+    :keyword domain: the same with *chains* but show domain separations instead. 
         *atoms* needs to have *domain* data associated to it.
         Default is **None**.
     :type domain: bool
 
-    :arg figure: if set to **None**, then a new figure will be created if *auto_show* 
+    :keyword figure: if set to **None**, then a new figure will be created if *auto_show* 
         is **True**, otherwise it will be plotted on the current figure. If set 
         to a figure number or string or a :class:`~matplotlib.figure.Figure` instance, 
         no matter what 'auto_show' value is, plots will be drawn on the *figure*.
@@ -1409,14 +1409,14 @@ def showDomainBar(domains, loc=0., axis='x', **kwargs):
                either **x** or **y**
     :type axis: str
 
-    :arg show_text: whether show the text or not. Default is **True**
+    :keyword show_text: whether show the text or not. Default is **True**
     :type show_text: bool
 
-    :arg text_loc: location of text labels. It can be either 
+    :keyword text_loc: location of text labels. It can be either 
                    **above** or **below**
     :type text_loc: str
 
-    :arg text_color: color of the text labels
+    :keyword text_color: color of the text labels
     :type text_color: str or tuple or list
     """
 
@@ -1516,10 +1516,10 @@ def showTree(tree, format='ascii', **kwargs):
         Acceptable formats are ``"plt"``, ``"ascii"`` and ``"networkx"``.
     type format: str
 
-    arg font_size: font size for branch labels
+    keyword font_size: font size for branch labels
     type font_size: float
 
-    arg line_width: the line width for each branch
+    keyword line_width: the line width for each branch
     type line_width: float
 
     """
