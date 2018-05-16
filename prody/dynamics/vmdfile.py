@@ -24,7 +24,7 @@ from .modeset import ModeSet
 from .nmdfile import viewNMDinVMD, pathVMD, getVMDpath, setVMDpath
 
 def writeVMDstiffness(model, pdb, indices, k_range, filename='vmd_out', \
-                            selstr='protein and name CA', loadToVMD=True):
+                            selstr='protein and name CA', loadToVMD=False):
    
     """Returns three *filename* files: (1) PDB file with coordinates. 
     (2) TCL file containing vmd commands for loading PDB file with accurate 	
@@ -165,7 +165,7 @@ def writeVMDstiffness(model, pdb, indices, k_range, filename='vmd_out', \
     out.close()
     out_txt.close()
 
-    if (loadToVMD == True):
+    if loadToVMD:
         from prody import pathVMD
         LOGGER.info('File will be loaded to VMD program.')
         os.system(pathVMD()+" -e "+str(filename)+".tcl")
@@ -178,7 +178,7 @@ def writeVMDstiffness(model, pdb, indices, k_range, filename='vmd_out', \
 
 
 def writeDeformProfile(model, pdb, filename='dp_out', selstr='protein and name CA',\
-                                            pdb_selstr='protein', loadToVMD=True):
+                                            pdb_selstr='protein', loadToVMD=False):
 
     """Calculate deformability (plasticity) profile of molecule based on mechanical
     stiffness matrix (see [EB08]_).
@@ -231,14 +231,14 @@ def writeDeformProfile(model, pdb, filename='dp_out', selstr='protein and name C
     out_tcl.write('menu colorscalebar on \n')
     out_tcl.close()
 
-    if (loadToVMD == True):
+    if loadToVMD:
         from prody import pathVMD
         LOGGER.info('File will be loaded to VMD program.')
         os.system(pathVMD()+" -e "+str(filename)+".tcl")
 
 
 def calcChainsNormDistFluct(coords, ch1, ch2, cutoff=10., percent=5, rangeAng=5, \
-                                        filename='ch_ndf_out', loadToVMD=True):
+                                        filename='ch_ndf_out', loadToVMD=False):
 
     '''Calculate protein-protein interaction using getNormDistFluct() from 
     :class:`.GNM` model. It is assigned to protein complex.
@@ -347,7 +347,7 @@ def calcChainsNormDistFluct(coords, ch1, ch2, cutoff=10., percent=5, rangeAng=5,
     out_tcl.close()
     out_pairs.close()
 
-    if (loadToVMD == True):
+    if loadToVMD:
         from prody import pathVMD
         LOGGER.info('File will be loaded to VMD program.')
         os.system(pathVMD()+" -e "+str(filename)+".tcl")
