@@ -183,6 +183,7 @@ def writeDeformProfile(stiffness, pdb, filename='dp_out', selstr='protein and na
     :arg model: this is an 3-dimensional NMA instance from a :class:`.ANM
         calculations
     :type model: :class:`.ANM`
+
     :arg pdb: a coordinate set or an object with ``getCoords`` method
     :type pdb: :class:`numpy.ndarray`    
     
@@ -242,24 +243,31 @@ def calcChainsNormDistFluct(coords, ch1, ch2, cutoff=10., percent=5, rangeAng=5,
     
     :arg coords: a coordinate set or an object with ``getCoords`` method. 
     :type coords: :class:`numpy.ndarray`.
+
     :arg ch1: first chain name
     :type ch1: 'A' or other letter as a string
+
     :arg ch2: second chain name 
     :type ch2: string
+
     :arg cutoff: cutoff distance (Å) for pairwise interactions
-              in Kirchhoff matrix, default is 10.0 Å
+        in Kirchhoff matrix, default is 10.0 Å
     :type cutoff: float
+
     :arg percent: percent of the highest and lowest results displayed in _VMD
-               program, default is 5% 
+        program, default is 5% 
     :type percent: int or float
+
     :arg rangeAng: cutoff range of protein-protein interactions, default is 5 Å
     :type rangeAng: int or float
+
     :arg filename: name of tcl file from _VMD program
     :type filename: str
     
     By default files are saved as *filename* and loaded to VMD program. 
     To change it use ``loadToVMD=False``. 
-            UNDER PREPARATION.. problems with not complete structures
+    
+    UNDER PREPARATION.. problems with not complete structures
     '''
     
     sele1 = coords.select('name CA and same residue as exwithin '+str(rangeAng) \
