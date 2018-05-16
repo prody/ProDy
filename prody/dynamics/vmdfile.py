@@ -23,7 +23,7 @@ from .mode import Vector, Mode
 from .modeset import ModeSet
 from .nmdfile import viewNMDinVMD, pathVMD, getVMDpath, setVMDpath
 
-def writeVMDstiffness(model, pdb, indices, k_range, filename='vmd_out', \
+def writeVMDstiffness(stiffness, pdb, indices, k_range, filename='vmd_out', \
                             selstr='protein and name CA', loadToVMD=False):
    
     """Returns three *filename* files: (1) PDB file with coordinates. 
@@ -72,15 +72,7 @@ def writeVMDstiffness(model, pdb, indices, k_range, filename='vmd_out', \
             raise TypeError('pdb must be a Numpy array or an object '
                             'with `getCoords` method')
     
-    if not isinstance(model, NMA):
-        raise TypeError('model must be an NMA instance')
-    elif not model.is3d():
-        raise TypeError('model must be a 3-dimensional NMA instance')
-    elif len(model) == 0:
-        raise ValueError('model must have normal modes calculated')
-    elif model.getStiffness() is None:
-        raise ValueError('model must have stiffness matrix calculated')
-    elif len(indices)==0:
+    if len(indices)==0:
         raise ValueError('indices cannot be an empty array')
 
     if len(indices)==1:
@@ -130,7 +122,7 @@ def writeVMDstiffness(model, pdb, indices, k_range, filename='vmd_out', \
         nr_baza_col = [] # Resid of aa are here
         out.write("draw color "+str(colors[color_nr])+"\n")
             
-        for nr_i, i in enumerate(model.getStiffness()[r]):
+        for nr_i, i in enumerate(stiffness[r]):
             if k_range[0] < float(i) < k_range[1]:
                 baza_col.append(i)
                 nr_baza_col.append(nr_i+resnum_list[0])
@@ -177,7 +169,7 @@ def writeVMDstiffness(model, pdb, indices, k_range, filename='vmd_out', \
         return 'None'   
 
 
-def writeDeformProfile(model, pdb, filename='dp_out', selstr='protein and name CA',\
+def writeDeformProfile(stiffness, pdb, filename='dp_out', selstr='protein and name CA',\
                                             pdb_selstr='protein', loadToVMD=False):
 
     """Calculate deformability (plasticity) profile of molecule based on mechanical
@@ -202,7 +194,7 @@ def writeDeformProfile(model, pdb, filename='dp_out', selstr='protein and name C
     
     pdb = pdb.select(pdb_selstr)
     coords = pdb.select(selstr)
-    meanSiff = np.mean(model.getStiffness(), axis=0)
+    meanSiff = np.mean(stiffness, axis=0)
     
     out_mean = open(filename+'_mean.txt','w')   # mean value of Kij for each residue
     for nr_i, i in enumerate(meanSiff):

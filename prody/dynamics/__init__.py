@@ -262,6 +262,10 @@ from . import heatmapper
 from .heatmapper import *
 __all__.extend(heatmapper.__all__)
 
+from . import mechstiff
+from .mechstiff import *
+__all__.extend(mechstiff.__all__)
+
 from . import nmdfile
 from .nmdfile import *
 __all__.extend(nmdfile.__all__)
