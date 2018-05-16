@@ -53,7 +53,7 @@ How to Make a Release
      $ python setup.py sdist --formats=gztar,zip
 
 
-#. Prepare and test Python Wheels on Windows (see :ref:`wininst`).
+#. Prepare and test `Python Wheels <https://pythonwheels.com/>`_ on Windows (see :ref:`wininst`).
 
    Wheels should be prepared for the following versions of Python::
 

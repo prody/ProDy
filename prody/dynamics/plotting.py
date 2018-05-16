@@ -811,7 +811,7 @@ def showDiffMatrix(matrix1, matrix2, *args, **kwargs):
     are passed to this function, but user can overwrite these parameters.
     """
 
-    import matplotlib.pyplot as plt
+    from matplotlib.pyplot import title, xlabel, ylabel
     try:
         dim1, shape1 = matrix1.ndim, matrix1.shape
     except AttributeError:
@@ -833,15 +833,15 @@ def showDiffMatrix(matrix1, matrix2, *args, **kwargs):
         kwargs['origin'] = 'lower'
     if kwargs.pop('abs', False):
         diff = np.abs(diff)
-    if SETTINGS['auto_show']:
-        plt.figure()
+    #if SETTINGS['auto_show']:
+    #    figure()
     show = showAtomicMatrix(diff, *args, **kwargs)
     #show.im3.axis([-.5, shape1[1] - .5, -.5, shape1[0] - .5])
-    plt.title('Difference Matrix')
-    if SETTINGS['auto_show']:
-        showFigure()
-    plt.xlabel('Indices')
-    plt.ylabel('Indices')
+    title('Difference Matrix')
+    #if SETTINGS['auto_show']:
+    #    showFigure()
+    xlabel('Indices')
+    ylabel('Indices')
     return show
 
 
@@ -850,33 +850,32 @@ def showMechStiff(model, coords, *args, **kwargs):
     By default, ``origin="lower"`` keyword  arguments are passed to this function, 
     but user can overwrite these parameters."""
 
-    import math
-    import matplotlib
-    import matplotlib.pyplot as plt
+    from math import floor
+    #from matplotlib import rcParams
+    from matplotlib.pyplot import title, xlabel, ylabel
 
     model.buildMechStiff(coords)
 
     if not 'origin' in kwargs:
         kwargs['origin'] = 'lower'
-    if 'jet_r' in kwargs:
-        import matplotlib.cm as plt
-        kwargs['jet_r'] = 'cmap=cm.jet_r'
+    if not 'cmap' in kwargs:
+        kwargs['cmap'] = 'jet_r'
         
     MechStiff = model.getStiffness()
-    matplotlib.rcParams['font.size'] = '14'
+    #rcParams['font.size'] = '14'
 
-    if SETTINGS['auto_show']:
-        fig = plt.figure(num=None, figsize=(10,8), dpi=100, facecolor='w')
-    vmin = math.floor(np.min(MechStiff[np.nonzero(MechStiff)]))
+    #if SETTINGS['auto_show']:
+    #    fig = plt.figure(num=None, figsize=(10,8), dpi=100, facecolor='w')
+    vmin = floor(np.min(MechStiff[np.nonzero(MechStiff)]))
     vmax = round(np.amax(MechStiff),1)
     vmin = kwargs.pop('vmin', vmin)
     vmax = kwargs.pop('vmax', vmax)
     show = showAtomicMatrix(MechStiff, vmin=vmin, vmax=vmax, *args, **kwargs)
-    plt.title('Mechanical Stiffness Matrix')# for {0}'.format(str(model)))
-    plt.xlabel('Indices', fontsize='16')
-    plt.ylabel('Indices', fontsize='16')
-    if SETTINGS['auto_show']:
-        showFigure()
+    title('Mechanical Stiffness Matrix')# for {0}'.format(str(model)))
+    xlabel('Indices') #, fontsize='16')
+    ylabel('Indices') #, fontsize='16')
+    #if SETTINGS['auto_show']:
+    #    showFigure()
     return show
 
 
@@ -886,30 +885,30 @@ def showNormDistFunct(model, coords, *args, **kwargs):
     keyword  arguments are passed to this function, 
     but user can overwrite these parameters."""
 
-    import math
-    import matplotlib
-    import matplotlib.pyplot as plt
+    from math import floor
+    #import matplotlib
+    from matplotlib.pyplot import xlabel, ylabel, title
     normdistfunct = model.getNormDistFluct(coords)
 
     if not 'origin' in kwargs:
         kwargs['origin'] = 'lower'
         
-    matplotlib.rcParams['font.size'] = '14'
+    #matplotlib.rcParams['font.size'] = '14'
 
-    if SETTINGS['auto_show']:
-        fig = plt.figure(num=None, figsize=(10,8), dpi=100, facecolor='w')
-    vmin = math.floor(np.min(normdistfunct[np.nonzero(normdistfunct)]))
-    vmax = round(np.amax(normdistfunct),1)
+    #if SETTINGS['auto_show']:
+    #    fig = plt.figure(num=None, figsize=(10,8), dpi=100, facecolor='w')
+    vmin = floor(np.min(normdistfunct[np.nonzero(normdistfunct)]))
+    vmax = round(np.amax(normdistfunct), 1)
     vmin = kwargs.pop('vmin', vmin)
     vmax = kwargs.pop('vmax', vmax)
     show = showAtomicMatrix(normdistfunct, vmin=vmin, vmax=vmax, *args, **kwargs)
     #plt.clim(math.floor(np.min(normdistfunct[np.nonzero(normdistfunct)])), \
     #                                       round(np.amax(normdistfunct),1))
-    plt.title('Normalized Distance Fluctution Matrix')
-    plt.xlabel('Indices', fontsize='16')
-    plt.ylabel('Indices', fontsize='16')
-    if SETTINGS['auto_show']:
-        showFigure()
+    title('Normalized Distance Fluctution Matrix')
+    xlabel('Indices') #, fontsize='16')
+    ylabel('Indices') #, fontsize='16')
+    #if SETTINGS['auto_show']:
+    #    showFigure()
     return show
 
 
@@ -1052,7 +1051,7 @@ def showPerturbResponse(model, atoms=None, show_matrix=True, select=None, **kwar
             show = [show_eff, show_sen]
         else:
             show = []
-            profiles = sliceAtomicData(prs_matrix, atoms=atoms, select=select)
+            profiles = sliceAtomicData(prs_matrix, atoms=atoms, select=select, axis=0)
             for profile in profiles:
                 kwargs.pop('figure', None); fig = gcf()
                 show.append(showAtomicLines(profile, atoms, **kwargs))
@@ -1142,25 +1141,24 @@ def showAtomicMatrix(matrix, x_array=None, y_array=None, atoms=None, **kwargs):
     """ 
 
     from prody.utilities import showMatrix
-    from matplotlib.pyplot import figure, xlim, ylim, plot, text
+    from matplotlib.pyplot import figure
     from matplotlib.figure import Figure
-    from matplotlib import ticker
 
-    chains = kwargs.pop('chains', None)
-    chains = kwargs.pop('chain', chains)
-    domains = kwargs.pop('domains', None)
-    domains = kwargs.pop('domain', domains)
+    show_chain = kwargs.pop('chains', None)
+    show_chain = kwargs.pop('chain', show_chain)
+    show_domain = kwargs.pop('domains', None)
+    show_domain = kwargs.pop('domain', show_domain)
     chain_text_loc = kwargs.pop('chain_text_loc', 'above')
     domain_text_loc = kwargs.pop('domain_text_loc', 'below')
-    show_text = kwargs.pop('show_text', True)
-    show_text = kwargs.pop('text', show_text)
-    show_domain_text = kwargs.pop('show_domain_text', show_text)
-    show_domain_text = kwargs.pop('domain_text', show_domain_text)
-    show_chain_text = kwargs.pop('show_chain_text', show_text)
-    show_chain_text = kwargs.pop('chain_text', show_chain_text)
+    show_text = kwargs.pop('text', True)
+    show_domain_text = kwargs.pop('domain_text', show_text)
+    show_chain_text = kwargs.pop('chain_text', show_text)
     barwidth = kwargs.pop('barwidth', 5)
     barwidth = kwargs.pop('bar_width', barwidth)
     fig = kwargs.pop('figure', None)
+    ticklabels = kwargs.pop('ticklabels', None)
+    text_color = kwargs.pop('text_color', 'k')
+    text_color = kwargs.pop('textcolor', text_color)
 
     if isinstance(fig, Figure):
         fig_num = fig.number
@@ -1175,56 +1173,111 @@ def showAtomicMatrix(matrix, x_array=None, y_array=None, atoms=None, **kwargs):
         figure(fig_num)
 
     n_row, n_col = matrix.shape
-    ticklabels = None
-    sides = []
-    if atoms is not None:
-        n_atoms = atoms.numAtoms()
-        if n_atoms == n_row: sides.append('y') 
-        if n_atoms == n_col: sides.append('x')
-        if not sides:
-            raise ValueError('The number of atoms ({0}) is inconsistent with the shape '
-                             'of the matrix ({1}, {2}).'.format(n_atoms, n_row, n_col))
+
+    # do not use isscalar because Atomic objects are not scalars
+    if isinstance(atoms, (list, tuple, np.ndarray)): 
+        if len(atoms) == 1:
+            xatoms = yatoms = atoms[0]
+        else:
+            try:
+                xatoms_, yatoms_ = atoms
+            except ValueError:
+                raise ValueError('atoms must be either one or two Atomic objects')
+            try:
+                n_xatoms, n_yatoms = xatoms_.numAtoms(), yatoms_.numAtoms()
+            except:
+                raise TypeError('atoms must be an Atomic object or a list of Atomic objects')
+            if n_xatoms != n_col:
+                if n_yatoms == n_col:
+                    xatoms = yatoms_  # swap xatoms and yatoms
+                else:
+                    xatoms = None
+                    LOGGER.warn('the number of columns ({0}) in matrix does not '
+                                'match that of either {1} ({2} atoms) or {3} '
+                                '({4} atoms)'.format(n_col, xatoms_, n_xatoms, yatoms_, n_yatoms))
+            else:
+                xatoms = xatoms_
+            
+            if n_yatoms != n_row:
+                if n_xatoms == n_row:
+                    yatoms = xatoms_  # swap xatoms and yatoms
+                else:
+                    yatoms = None
+                    LOGGER.warn('the number of rows ({0}) in matrix does not '
+                                'match that of either {1} ({2} atoms) or {3} '
+                                '({4} atoms)'.format(n_row, xatoms_, n_xatoms, yatoms_, n_yatoms))
+            else:
+                yatoms = yatoms_
+    else:
+        xatoms = yatoms = atoms
+
+    # an additional check for the case of xatoms = yatoms = atoms
+    if xatoms is not None and xatoms.numAtoms() != n_col:
+        xatoms = None
+
+    if yatoms is not None and yatoms.numAtoms() != n_row:
+        yatoms = None
+
+    def getTickLabels(atoms):
+        if atoms is None:
+            return None
+
         hv = atoms.getHierView()
         if hv.numChains() == 0:
             raise ValueError('atoms should contain at least one chain.')
         elif hv.numChains() == 1:
-            if chains is None:
-                chains = False
             ticklabels = atoms.getResnums()
         else:
             chids = atoms.getChids()
             resnums = atoms.getResnums()
             ticklabels = ['%s:%d'%(c, n) for c, n in zip(chids, resnums)]
-
-    im, lines, colorbar = showMatrix(matrix, x_array, y_array, ticklabels=ticklabels, **kwargs) 
+        return ticklabels
     
-    ## draw domain & chain bars
-    show_chain, chain_pos, chids = _checkDomainBarParameter(chains, 0., atoms, 'chain')
-
+    if ticklabels is None: 
+        xticklabels = kwargs.pop('xticklabels', getTickLabels(xatoms))
+        yticklabels = kwargs.pop('yticklabels', getTickLabels(yatoms))
+    else: # if the user provides ticklabels, then always use them
+        xticklabels = yticklabels = ticklabels
+    im, lines, colorbar = showMatrix(matrix, x_array, y_array, xticklabels=xticklabels, yticklabels=yticklabels, **kwargs) 
+    
     bars = []
     texts = []
+
+    ## draw chain bars
+    # x
+    show_chain, chain_pos, chids = _checkDomainBarParameter(show_chain, 0., xatoms, 'chain')
+
     if show_chain:
-        b, t = showDomainBar(chids, loc=chain_pos, axis=sides[-1], 
-                             text_loc=chain_text_loc, text_color='w', text=show_chain_text,
-                             barwidth=barwidth)
+        b, t = showDomainBar(chids, loc=chain_pos, axis='x', text_loc=chain_text_loc, 
+                             text_color=text_color, text=show_chain_text, barwidth=barwidth)
         bars.extend(b)
         texts.extend(t)
 
-    # force turnning off domains if chains and only one side is 
-    # available
-    if len(sides) < 2:
-        if show_chain:
-            if domains is not None:
-                LOGGER.warn('There is only one side of the matrix matches with atoms so domain bar '
-                            'will not be shown. Turn off chains if you want to show the domain bar.')
-            domains = False
-            
-    show_domain, domain_pos, domains = _checkDomainBarParameter(domains, 0., atoms, 'domain')
+    # y
+    show_chain, chain_pos, chids = _checkDomainBarParameter(show_chain, 0., yatoms, 'chain')
+
+    if show_chain:
+        b, t = showDomainBar(chids, loc=chain_pos, axis='y', text_loc=chain_text_loc, 
+                             text_color=text_color, text=show_chain_text, barwidth=barwidth)
+        bars.extend(b)
+        texts.extend(t)
+  
+    show_domain, domain_pos, domains = _checkDomainBarParameter(show_domain, 1., xatoms, 'domain')
+
+    ## draw domain bars
+    # x
+    if show_domain:
+        b, t = showDomainBar(domains, loc=domain_pos, axis='x', text_loc=domain_text_loc, 
+                             text_color=text_color, text=show_domain_text, barwidth=barwidth)
+        bars.extend(b)
+        texts.extend(t)
+
+    # y
+    show_domain, domain_pos, domains = _checkDomainBarParameter(show_domain, 1., yatoms, 'domain')
 
     if show_domain:
-        b, t = showDomainBar(domains, loc=domain_pos, axis=sides[0], 
-                             text_loc=domain_text_loc, text_color='w', text=show_domain_text,
-                             barwidth=barwidth)
+        b, t = showDomainBar(domains, loc=domain_pos, axis='y', text_loc=domain_text_loc, 
+                             text_color=text_color, text=show_domain_text, barwidth=barwidth)
         bars.extend(b)
         texts.extend(t)
 
@@ -1260,18 +1313,18 @@ def showAtomicLines(y, atoms=None, linespec='-', **kwargs):
     :type figure: :class:`~matplotlib.figure.Figure`, int, str
     """
     
-    chains = kwargs.pop('chains', None)
-    domains = kwargs.pop('domains', None)
+    show_chain = kwargs.pop('chains', None)
+    show_domain = kwargs.pop('domains', None)
+    show_chain = kwargs.pop('chain', show_chain)
+    show_domain = kwargs.pop('domain', show_domain)
+
     chain_text_loc = kwargs.pop('chain_text_loc', 'above')
     domain_text_loc = kwargs.pop('domain_text_loc', 'below')
     zero_line = kwargs.pop('show_zero', False)
     zero_line = kwargs.pop('zero', zero_line)
-    show_text = kwargs.pop('show_text', True)
-    show_text = kwargs.pop('text', show_text)
-    show_domain_text = kwargs.pop('show_domain_text', show_text)
-    show_domain_text = kwargs.pop('domain_text', show_domain_text)
-    show_chain_text = kwargs.pop('show_chain_text', show_text)
-    show_chain_text = kwargs.pop('chain_text', show_chain_text)
+    show_text = kwargs.pop('text', True)
+    show_domain_text = kwargs.pop('domain_text', show_text)
+    show_chain_text = kwargs.pop('chain_text', show_text)
     barwidth = kwargs.pop('barwidth', 5)
     barwidth = kwargs.pop('bar_width', barwidth)
 
@@ -1305,8 +1358,6 @@ def showAtomicLines(y, atoms=None, linespec='-', **kwargs):
         if hv.numChains() == 0:
             raise ValueError('atoms should contain at least one chain.')
         elif hv.numChains() == 1:
-            if chains is None:
-                chains = False
             ticklabels = atoms.getResnums()
         else:
             chids = atoms.getChids()
@@ -1320,10 +1371,8 @@ def showAtomicLines(y, atoms=None, linespec='-', **kwargs):
 
     bars = []
     texts = []
-    if chains is None:
-        chains = atoms is not None
 
-    show_chain, chain_pos, chids = _checkDomainBarParameter(chains, 0., atoms, 'chain')
+    show_chain, chain_pos, chids = _checkDomainBarParameter(show_chain, 0., atoms, 'chain')
      
     if show_chain:
         b, t = showDomainBar(atoms.getChids(), loc=chain_pos, axis='x', 
@@ -1332,7 +1381,7 @@ def showAtomicLines(y, atoms=None, linespec='-', **kwargs):
         bars.extend(b)
         texts.extend(t)
 
-    show_domain, domain_pos, domains = _checkDomainBarParameter(domains, 1., atoms, 'domain')
+    show_domain, domain_pos, domains = _checkDomainBarParameter(show_domain, 1., atoms, 'domain')
     if show_domain:
         b, t = showDomainBar(domains, loc=domain_pos, axis='x', 
                              text_loc=domain_text_loc,  text=show_domain_text,
@@ -1371,7 +1420,7 @@ def showDomainBar(domains, loc=0., axis='x', **kwargs):
     :type text_color: str or tuple or list
     """
 
-    from matplotlib.pyplot import plot, text, xlim, ylim
+    from matplotlib.pyplot import plot, text, xlim, ylim, gca
 
     show_text = kwargs.pop('show_text', True)
     show_text = kwargs.pop('text', show_text)
@@ -1388,7 +1437,7 @@ def showDomainBar(domains, loc=0., axis='x', **kwargs):
     if not text_loc in ['above', 'below']:
         raise ValueError('text_loc can only be either "above" or "below"')
 
-    halign = 'left' if text_loc == 'below' else 'right'
+    halign = 'right' if text_loc == 'below' else 'left'
     valign = 'top' if text_loc == 'below' else 'bottom'
 
     if len(domains) == 0:
@@ -1434,7 +1483,7 @@ def showDomainBar(domains, loc=0., axis='x', **kwargs):
             for loc in locs:
                 pos = np.median(loc)
                 if axis == 'y':
-                    txt = text(d_loc, pos, chid, rotation='vertical', 
+                    txt = text(d_loc, pos, chid, rotation=-90, 
                                                 color=text_color,
                                                 horizontalalignment=halign, 
                                                 verticalalignment='center')
@@ -1443,6 +1492,8 @@ def showDomainBar(domains, loc=0., axis='x', **kwargs):
                                                 horizontalalignment='center', 
                                                 verticalalignment=valign)
                 texts.append(txt)
+    
+    gca().set_prop_cycle(None)
     if axis == 'y':
         _y = np.arange(len(domains))
         Y = np.tile(_y, (len(uni_domids), 1)).T
@@ -1596,7 +1647,7 @@ def showTree_networkx(tree, node_size=20, node_color='red', node_shape='o',
             fontcolor = kwargs.pop('font_color', 'black')
             fontdict = {'size': fontsize, 'color': fontcolor}
 
-        for node, pos in layout.iteritems():
+        for node, pos in layout.items():
             mpl.text(pos[0], pos[1], labels[node], fontdict=fontdict)
 
     if SETTINGS['auto_show']:

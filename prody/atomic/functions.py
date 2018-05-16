@@ -411,7 +411,7 @@ def extendAtoms(nodes, atoms, is3d=False):
                       title=str(atoms), intarrays=True)
     return indices, atommap
 
-def sliceAtomicData(data, atoms, select, axis=0):
+def sliceAtomicData(data, atoms, select, axis=None):
     """Slice a matrix using indices extracted using :func:`sliceAtoms`.
 
     :arg data: any data array
@@ -469,7 +469,7 @@ def sliceAtomicData(data, atoms, select, axis=0):
         
     return profiles
 
-def extendAtomicData(data, nodes, atoms, axis=0):
+def extendAtomicData(data, nodes, atoms, axis=None):
     """Extend a coarse grained data obtained for *nodes* to *atoms*.
 
     :arg data: any data array
@@ -484,7 +484,7 @@ def extendAtomicData(data, nodes, atoms, axis=0):
 
     :arg axis: the axis/direction you want to use to slice data from the matrix.
         The options are **0** or **1** or **None** like in :mod:`~numpy`. 
-        Default is **0** (row).
+        Default is **None** (all axes)
     :type axis: int
 
     """
