@@ -23,37 +23,38 @@ from .mode import Vector, Mode
 from .modeset import ModeSet
 from .nmdfile import viewNMDinVMD, pathVMD, getVMDpath, setVMDpath
 
-def writeVMDstiffness(stiffness, pdb, indices, k_range, filename='vmd_out', \
-                      selstr='protein and name CA', loadToVMD=False):
+def writeVMDstiffness(stiffness, pdb, indices, k_range, prefix='vmd_out', \
+                      select='protein and name CA', loadToVMD=False):
    
     """
-    Returns three *filename* files: 
+    Returns three files starting with the provided prefix:
+
     (1) PDB file with coordinates. 
+
     (2) TCL file containing vmd commands for loading PDB file with accurate 	
     vmd representation. Pair of residues with selected *k_range* of 
     effective spring constant are shown in VMD respresentation with 
-    solid line between them.
-    If more than one residue will be selected in *indices*, different pair 
-    for each residue will be colored in the different colors.    
+    solid line between them. If more than one residue will be selected in 
+    *indices*, different pair for each residue will be colored in the different 
+    colors.
+
     (3) TXT file contains pair of residues with effective spring constant in
     selected range *k_range*.    
 
-    The effective spring constant calculation using ``buildSM`` method
-    from :class:`.ANM`.
-    
     .. note::
+
        #. This function skips modes with zero eigenvalues.
        #. If a :class:`.Vector` instance is given, it will be normalized
           before it is written. It's length before normalization will be
           written as the scaling factor of the vector.
           
 
-    :arg model: this is an 3-dimensional NMA instance from a :class:`.ANM
-        calculations
-    :type model: :class:`.ANM`
+    :arg stiffness: mechanical stiffness profile calculated with 
+        :func:`.calcMechStiff`
+    :type stiffness: :class:`~numpy.ndarray`
 
     :arg pdb: a coordinate set or an object with ``getCoords`` method
-    :type pdb: :class:`numpy.ndarray`. 
+    :type pdb: :class:`~numpy.ndarray`. 
 
     :arg indices: amino acid number.
     :type indices: ``[int, int]`` or ``[int]`` for one amino acid 
@@ -61,15 +62,21 @@ def writeVMDstiffness(stiffness, pdb, indices, k_range, filename='vmd_out', \
     :arg k_range: effective force constant value.
     :type k_range: int or float, ``[int, int]``
     
-    By default files are saved as *filename* and loaded to VMD program and 
-    *selstr* is a selection from :class:`.Select`
+    :arg select: a selection or selection string
+        default is 'protein and name CA'
+    :type select: :class:`.Select`, str
+
+    :arg loadToVMD: whether to load VMD and run the tcl file
+        default is False
+    :type loadToVMD: bool 
+
     """
 
     try:
-        coords_sel = pdb.select(selstr)
+        coords_sel = pdb.sliceAtoms(selstr)
         resnum_list = coords_sel.getResnums()  
         coords = (coords_sel._getCoords() if hasattr(coords_sel, '_getCoords') else
-                coords_sel.getCoords())
+                  coords_sel.getCoords())
     except AttributeError:
         try:
             checkCoords(coords_sel)
@@ -87,9 +94,9 @@ def writeVMDstiffness(stiffness, pdb, indices, k_range, filename='vmd_out', \
         indices0=indices[0]-resnum_list[0]
         indices1=indices[1]-resnum_list[0]
 
-    out = openFile(addext(filename, '.tcl'), 'w')
-    out_txt = openFile(addext(filename,'.txt'), 'w')
-    writePDB(filename + '.pdb', pdb)
+    out = openFile(addext(prefix, '.tcl'), 'w')
+    out_txt = openFile(addext(prefix,'.txt'), 'w')
+    writePDB(prefix + '.pdb', pdb)
 
     LOGGER.info('Creating VMD file.')
     
