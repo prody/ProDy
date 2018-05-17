@@ -73,7 +73,7 @@ def writeVMDstiffness(stiffness, pdb, indices, k_range, prefix='vmd_out', \
     """
 
     try:
-        coords_sel = sliceAtoms(pdb, select)
+        _, coords_sel = sliceAtoms(pdb, select)
         resnum_list = coords_sel.getResnums()
         coords = (coords_sel._getCoords() if hasattr(coords_sel, '_getCoords') else
                   coords_sel.getCoords())
@@ -207,8 +207,8 @@ def writeDeformProfile(stiffness, pdb, filename='dp_out', \
 
     """
     
-    pdb = sliceAtoms(pdb, pdb_selstr)
-    coords = sliceAtoms(pdb, select)
+    _, pdb = sliceAtoms(pdb, pdb_selstr)
+    _, coords = sliceAtoms(pdb, select)
     meanStiff = np.mean(stiffness, axis=0)
     
     out_mean = open(filename+'_mean.txt','w')   # mean value of Kij for each residue
