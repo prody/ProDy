@@ -850,7 +850,7 @@ def showMechStiff(stiffness, atoms, **kwargs):
     By default, ``origin="lower"`` keyword  arguments are passed to this function, 
     but user can overwrite these parameters."""
 
-    from math import floor
+    #from math import floor
     #from matplotlib import rcParams
     from matplotlib.pyplot import title, xlabel, ylabel
 
@@ -1021,7 +1021,7 @@ def showPerturbResponse(model, atoms=None, show_matrix=True, select=None, **kwar
     :type percentile: float
     """
 
-    from matplotlib.pyplot import gcf, xlabel, ylabel, legend, figure
+    from matplotlib.pyplot import gcf, xlabel, ylabel
 
     select = kwargs.pop('select',None)
 
@@ -1327,9 +1327,8 @@ def showAtomicLines(y, atoms=None, linespec='-', **kwargs):
     barwidth = kwargs.pop('bar_width', barwidth)
 
     from prody.utilities import showLines
-    from matplotlib.pyplot import figure, xlim, ylim, plot, text
+    from matplotlib.pyplot import figure, xlim, plot
     from matplotlib.figure import Figure
-    from matplotlib import ticker
 
     fig = kwargs.pop('figure', None)
 
