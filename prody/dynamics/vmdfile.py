@@ -23,11 +23,12 @@ from .mode import Vector, Mode
 from .modeset import ModeSet
 from .nmdfile import viewNMDinVMD, pathVMD, getVMDpath, setVMDpath
 
-def writeVMDstiffness(stiffness, pdb, indices, k_range, prefix='vmd_out', \
+def writeVMDstiffness(stiffness, pdb, indices, k_range, filename='vmd_out', \
                       select='protein and name CA', loadToVMD=False):
    
     """
-    Returns three files starting with the provided prefix:
+    Returns three files starting with the provided filename and having 
+    their own extensions:
 
     (1) A PDB file that can be used in the TCL script. 
 
@@ -71,9 +72,11 @@ def writeVMDstiffness(stiffness, pdb, indices, k_range, prefix='vmd_out', \
     :type loadToVMD: bool 
 
     """
+    if not isinstance(filename, str):
+        raise TypeError('filename should be a string')
 
     try:
-        coords_sel = sliceAtoms(pdb, select)
+        _, coords_sel = sliceAtoms(pdb, select)
         resnum_list = coords_sel.getResnums()
         coords = (coords_sel._getCoords() if hasattr(coords_sel, '_getCoords') else
                   coords_sel.getCoords())
@@ -94,9 +97,9 @@ def writeVMDstiffness(stiffness, pdb, indices, k_range, prefix='vmd_out', \
         indices0 = indices[0] - resnum_list[0]
         indices1 = indices[1] - resnum_list[0]
 
-    out = openFile(addext(prefix, '.tcl'), 'w')
-    out_txt = openFile(addext(prefix,'.txt'), 'w')
-    writePDB(prefix + '.pdb', pdb)
+    out = openFile(addext(filename, '.tcl'), 'w')
+    out_txt = openFile(addext(filename,'.txt'), 'w')
+    writePDB(filename + '.pdb', pdb)
 
     LOGGER.info('Creating VMD file.')
     
@@ -207,8 +210,8 @@ def writeDeformProfile(stiffness, pdb, filename='dp_out', \
 
     """
     
-    pdb = sliceAtoms(pdb, pdb_selstr)
-    coords = sliceAtoms(pdb, select)
+    _, pdb = sliceAtoms(pdb, pdb_selstr)
+    _, coords = sliceAtoms(pdb, select)
     meanStiff = np.mean(stiffness, axis=0)
     
     out_mean = open(filename+'_mean.txt','w')   # mean value of Kij for each residue
