@@ -3,7 +3,7 @@
 import numpy as np
 
 from numpy import unique, linalg, diag, sqrt, dot
-from .misctools import addBreaks, interpY
+from .misctools import addEnds, interpY
 
 __all__ = ['calcTree', 'clusterMatrix', 'showLines', 'showMatrix', 'reorderMatrix', 'findSubgroups']
 
@@ -162,9 +162,17 @@ def showLines(*args, **kwargs):
         else:
             raise ValueError('dy should be either 1-D or 2-D.')
         
-        for i, line in enumerate(lines):
-            color = line.get_color()
-            x, y = line.get_data()
+    for i, line in enumerate(lines):
+        color = line.get_color()
+        x, y = line.get_data()
+        
+        if gap:
+            x_new, y_new = addEnds(x, y)
+            line.set_data(x_new, y_new)
+        else:
+            x_new, y_new = x, y
+        
+        if dy is not None:
             if m != 1 and m != len(lines) or n != len(y):
                 raise ValueError('The shapes of dy and y do not match.')
 
@@ -172,22 +180,21 @@ def showLines(*args, **kwargs):
                 _dy = dy
             else:
                 _dy = dy[:, i]
-            
-            if gap:
-                x_new, y_new = addBreaks(x, y)
-                line.set_data(x_new, y_new)
-                _, _dy = addBreaks(x, _dy)
-            else:
-                x_new, y_new = x, y
 
+            if gap:
+                _, _dy = addEnds(x, _dy)
+                
             poly = ax.fill_between(x_new, y_new-_dy, y_new+_dy,
-                                   alpha=alpha, facecolor=color, edgecolor=None,
-                                   linewidth=1, antialiased=True)
+                                    alpha=alpha, facecolor=color, edgecolor=None,
+                                    linewidth=1, antialiased=True)
             polys.append(poly)
 
     ax.margins(x=0)
     if ticklabels is not None:
-        ax.get_xaxis().set_major_formatter(ticker.IndexFormatter(ticklabels))
+        if callable(ticklabels):
+            ax.get_xaxis().set_major_formatter(ticker.FuncFormatter(ticklabels))
+        else:
+            ax.get_xaxis().set_major_formatter(ticker.IndexFormatter(ticklabels))
     
     ax.xaxis.set_major_locator(ticker.AutoLocator())
     ax.xaxis.set_minor_locator(ticker.AutoMinorLocator())

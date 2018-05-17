@@ -11,7 +11,7 @@ from collections import defaultdict
 import numpy as np
 
 from prody import LOGGER, SETTINGS, PY3K
-from prody.utilities import showFigure, addBreaks
+from prody.utilities import showFigure, addEnds
 from prody.atomic import AtomGroup, Selection, Atomic, sliceAtoms, sliceAtomicData
 
 from .nma import NMA
@@ -1326,6 +1326,8 @@ def showAtomicLines(y, atoms=None, linespec='-', **kwargs):
     barwidth = kwargs.pop('barwidth', 5)
     barwidth = kwargs.pop('bar_width', barwidth)
 
+    gap = kwargs.pop('gap', False)
+
     from prody.utilities import showLines
     from matplotlib.pyplot import figure, xlim, plot
     from matplotlib.figure import Figure
@@ -1349,19 +1351,55 @@ def showAtomicLines(y, atoms=None, linespec='-', **kwargs):
     except:
         raise TypeError('y should be an array-like instance.')
     
+    x = None
     ticklabels = None
     if atoms is not None:
         hv = atoms.getHierView()
         if hv.numChains() == 0:
             raise ValueError('atoms should contain at least one chain.')
         elif hv.numChains() == 1:
-            ticklabels = atoms.getResnums()
+            if gap:
+                x = atoms.getResnums()
+                x -= x[0]
+                def func_ticklabels(val, pos):
+                    #The two args are the value and tick position
+                    return '{0}/{1}'.format(val, pos)
+                ticklabels = func_ticklabels
+            else:
+                ticklabels = atoms.getResnums()
         else:
-            chids = atoms.getChids()
-            resnums = atoms.getResnums()
-            ticklabels = ['%s:%d'%(c, n) for c, n in zip(chids, resnums)]
+            ticklabels = []
+            if gap: 
+                x = []; last_resnum = 0
 
-    lines, polys = showLines(y, linespec, ticklabels=ticklabels, **kwargs)
+            for chain in hv.iterChains():
+                chid = chain.getChid()
+                resnums = chain.getResnums()
+                
+                if gap:
+                    x.extend(resnums + last_resnum)
+                    last_resnum = resnums[-1]
+
+                    def func_ticklabels(val, pos):
+                    #The two args are the value and tick position
+                        return '{0}/{1}'.format(val, pos)
+                    ticklabels = func_ticklabels
+                else:
+                    ticklabels.extend('%s:%d'%(chid, resnum) for resnum in resnums)
+
+            if gap:
+                x -= x[0]
+                
+    else:
+        if gap:
+            LOGGER.warn('atoms need to be provided if gap=True')
+        gap = False
+
+    if gap:
+        lines, polys = showLines(x, y, linespec, ticklabels=ticklabels, gap=True, **kwargs)
+    else:
+        lines, polys = showLines(y, linespec, ticklabels=ticklabels, **kwargs)
+
     if zero_line:
         l = xlim()
         plot(l, [0, 0], '--', color='gray')
@@ -1372,7 +1410,7 @@ def showAtomicLines(y, atoms=None, linespec='-', **kwargs):
     show_chain, chain_pos, chids = _checkDomainBarParameter(show_chain, 0., atoms, 'chain')
      
     if show_chain:
-        b, t = showDomainBar(atoms.getChids(), loc=chain_pos, axis='x', 
+        b, t = showDomainBar(chids, x=x, loc=chain_pos, axis='x', 
                              text_loc=chain_text_loc, text=show_chain_text,
                              barwidth=barwidth)
         bars.extend(b)
@@ -1380,7 +1418,7 @@ def showAtomicLines(y, atoms=None, linespec='-', **kwargs):
 
     show_domain, domain_pos, domains = _checkDomainBarParameter(show_domain, 1., atoms, 'domain')
     if show_domain:
-        b, t = showDomainBar(domains, loc=domain_pos, axis='x', 
+        b, t = showDomainBar(domains, x=x, loc=domain_pos, axis='x', 
                              text_loc=domain_text_loc,  text=show_domain_text,
                              barwidth=barwidth)
         bars.extend(b)
@@ -1390,7 +1428,7 @@ def showAtomicLines(y, atoms=None, linespec='-', **kwargs):
         showFigure()
     return lines, polys, bars, texts
 
-def showDomainBar(domains, loc=0., axis='x', **kwargs):
+def showDomainBar(domains, x=None, loc=0., axis='x', **kwargs):
     """
     Plot a bar on top of the current axis which is colored based 
     on domain separations.
@@ -1491,12 +1529,15 @@ def showDomainBar(domains, loc=0., axis='x', **kwargs):
                 texts.append(txt)
     
     gca().set_prop_cycle(None)
+
+    if x is None:
+        x = np.arange(len(domains))
+    X = np.tile(x, (len(uni_domids), 1)).T
+
     if axis == 'y':
-        _y = np.arange(len(domains))
-        Y = np.tile(_y, (len(uni_domids), 1)).T
-        bar = plot(F, Y, linewidth=barwidth, solid_capstyle='butt')
+        bar = plot(F, X, linewidth=barwidth, solid_capstyle='butt')
     else:
-        bar = plot(F, linewidth=barwidth, solid_capstyle='butt')
+        bar = plot(X, F, linewidth=barwidth, solid_capstyle='butt')
 
     bars.extend(bar)
     lim(L, auto=True)
