@@ -71,7 +71,11 @@ def writeVMDstiffness(stiffness, pdb, indices, k_range, prefix='vmd_out', \
     :type loadToVMD: bool 
 
     """
-
+    if isinstance(prefix, str):
+        filename = prefix
+    else:
+        raise TypeError('prefix should be a string')
+        
     try:
         _, coords_sel = sliceAtoms(pdb, select)
         resnum_list = coords_sel.getResnums()
