@@ -1368,7 +1368,7 @@ def showAtomicLines(y, atoms=None, linespec='-', **kwargs):
             else:
                 ticklabels = atoms.getResnums()
         else:
-            ticklabels = []
+            labels = []
             if gap: 
                 x = []; last_resnum = 0
 
@@ -1376,19 +1376,22 @@ def showAtomicLines(y, atoms=None, linespec='-', **kwargs):
                 chid = chain.getChid()
                 resnums = chain.getResnums()
                 
+                labels.extend('%s:%d'%(chid, resnum) for resnum in resnums)
                 if gap:
                     x.extend(resnums + last_resnum)
                     last_resnum = resnums[-1]
+                    
+            def func_ticklabels(val, pos):
+                #The two args are the value and tick position
+                i = int(round(val))
 
-                    def func_ticklabels(val, pos):
-                    #The two args are the value and tick position
-                        return '{0}/{1}'.format(val, pos)
-                    ticklabels = func_ticklabels
-                else:
-                    ticklabels.extend('%s:%d'%(chid, resnum) for resnum in resnums)
-
+                return '{0}/{1}'.format(val, pos)
+                    
             if gap:
                 x -= x[0]
+                ticklabels = func_ticklabels
+            else:
+                ticklabels = labels
                 
     else:
         if gap:
