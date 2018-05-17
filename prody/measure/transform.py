@@ -90,7 +90,7 @@ class Transformation(object):
 
 
 def calcTransformation(mobile, target, weights=None):
-    """Returnss a :class:`Transformation` instance which, when applied to the
+    """Returns a :class:`Transformation` instance which, when applied to the
     atoms in *mobile*, minimizes the weighted RMSD between *mobile* and
     *target*.  *mobile* and *target* may be NumPy coordinate arrays, or
     :class:`.Atomic` instances, e.g. :class:`.AtomGroup`, :class:`.Chain`,
