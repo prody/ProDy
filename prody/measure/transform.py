@@ -349,10 +349,10 @@ def moveAtoms(atoms, **kwargs):
 
 
 def calcRMSD(reference, target=None, weights=None):
-    """Returns root-mean-square deviation(s) (RMSD) between reference and target
+    """Returns root-mean-square deviation (RMSD) between reference and target
     coordinates.
 
-    .. ipython:: pyhton
+    .. ipython:: python
 
        ens = loadEnsemble('p38_X-ray.ens.npz')
        ens.getRMSDs()
