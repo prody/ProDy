@@ -1344,6 +1344,15 @@ def showAtomicLines(y, atoms=None, linespec='-', **kwargs):
         Default is **None**.
     :type domain: bool
 
+    :keyword gap: whether show the gaps in the *atoms* or not.
+        Default is **False**.
+    :type gap: bool
+
+    :keyword overlay: whether overlay the curves based on the chain separations 
+        in *atoms* or not.
+        Default is **False**.
+    :type overlay: bool
+
     :keyword figure: if set to **None**, then a new figure will be created if *auto_show* 
         is **True**, otherwise it will be plotted on the current figure. If set 
         to a figure number or string or a :class:`~matplotlib.figure.Figure` instance, 
@@ -1526,8 +1535,8 @@ def showDomainBar(domains, x=None, loc=0., axis='x', **kwargs):
                either **x** or **y**
     :type axis: str
 
-    :keyword show_text: whether show the text or not. Default is **True**
-    :type show_text: bool
+    :keyword text: whether show the text or not. Default is **True**
+    :type text: bool
 
     :keyword text_loc: location of text labels. It can be either 
                    **above** or **below**
