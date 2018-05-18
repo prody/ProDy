@@ -3,7 +3,7 @@
 import numpy as np
 
 from numpy import unique, linalg, diag, sqrt, dot
-from .misctools import addBreaks, interpY
+from .misctools import addEnds, interpY
 
 __all__ = ['calcTree', 'clusterMatrix', 'showLines', 'showMatrix', 'reorderMatrix', 'findSubgroups']
 
@@ -145,6 +145,7 @@ def showLines(*args, **kwargs):
     dy = kwargs.pop('dy', None)
     alpha = kwargs.pop('alpha', 0.5)
     gap = kwargs.pop('gap', False)
+    labels = kwargs.pop('label', None)
 
     from matplotlib import cm, ticker
     from matplotlib.pyplot import figure, gca, xlim
@@ -153,41 +154,60 @@ def showLines(*args, **kwargs):
     lines = ax.plot(*args, **kwargs)
 
     polys = []
+    dy_ndim = 0
     if dy is not None:
-        dy = np.array(dy)
-        if dy.ndim == 1:
-            n, = dy.shape; m = 1
-        elif dy.ndim == 2:
-            n, m = dy.shape
+        if np.isscalar(dy[0]):
+            dy_ndim = 1
         else:
-            raise ValueError('dy should be either 1-D or 2-D.')
+            dy_ndim = 2
         
-        for i, line in enumerate(lines):
-            color = line.get_color()
-            x, y = line.get_data()
-            if m != 1 and m != len(lines) or n != len(y):
-                raise ValueError('The shapes of dy and y do not match.')
-
-            if dy.ndim == 1:
+    for i, line in enumerate(lines):
+        color = line.get_color()
+        x, y = line.get_data()
+        
+        if gap:
+            x_new, y_new = addEnds(x, y)
+            line.set_data(x_new, y_new)
+        else:
+            x_new, y_new = x, y
+        
+        if labels is not None:
+            if np.isscalar(labels):
+                line.set_label(labels)
+            else:
+                try:
+                    line.set_label(labels[i])
+                except IndexError:
+                    raise ValueError('The number of labels ({0}) and that of y ({1}) do not match.'
+                                     .format(len(labels), len(line)))
+        if dy is not None:
+            if dy_ndim == 1:
                 _dy = dy
             else:
-                _dy = dy[:, i]
-            
-            if gap:
-                x_new, y_new = addBreaks(x, y)
-                line.set_data(x_new, y_new)
-                _, _dy = addBreaks(x, _dy)
-            else:
-                x_new, y_new = x, y
+                try:
+                    _dy = dy[i]
+                except IndexError:
+                    raise ValueError('The number of dy ({0}) and that of y ({1}) do not match.'
+                                     .format(len(dy), len(line)))
 
+            if len(_dy) != len(y):
+                raise ValueError('The shapes of dy ({0}) and y ({1}) do not match.'
+                                 .format(len(_dy), len(y)))
+
+            if gap:
+                _, _dy = addEnds(x, _dy)
+                
             poly = ax.fill_between(x_new, y_new-_dy, y_new+_dy,
-                                   alpha=alpha, facecolor=color, edgecolor=None,
-                                   linewidth=1, antialiased=True)
+                                    alpha=alpha, facecolor=color, edgecolor=None,
+                                    linewidth=1, antialiased=True)
             polys.append(poly)
 
     ax.margins(x=0)
     if ticklabels is not None:
-        ax.get_xaxis().set_major_formatter(ticker.IndexFormatter(ticklabels))
+        if callable(ticklabels):
+            ax.get_xaxis().set_major_formatter(ticker.FuncFormatter(ticklabels))
+        else:
+            ax.get_xaxis().set_major_formatter(ticker.IndexFormatter(ticklabels))
     
     ax.xaxis.set_major_locator(ticker.AutoLocator())
     ax.xaxis.set_minor_locator(ticker.AutoMinorLocator())

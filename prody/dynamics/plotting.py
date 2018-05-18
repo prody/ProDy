@@ -11,7 +11,7 @@ from collections import defaultdict
 import numpy as np
 
 from prody import LOGGER, SETTINGS, PY3K
-from prody.utilities import showFigure, addBreaks
+from prody.utilities import showFigure, addEnds
 from prody.atomic import AtomGroup, Selection, Atomic, sliceAtoms, sliceAtomicData
 
 from .nma import NMA
@@ -1326,6 +1326,12 @@ def showAtomicLines(y, atoms=None, linespec='-', **kwargs):
     barwidth = kwargs.pop('barwidth', 5)
     barwidth = kwargs.pop('bar_width', barwidth)
 
+    gap = kwargs.pop('gap', False)
+    overlay = kwargs.pop('overlay', False)
+    overlay = kwargs.pop('overlay_chains', overlay)
+
+    dy = kwargs.pop('dy', None)
+
     from prody.utilities import showLines
     from matplotlib.pyplot import figure, xlim, plot
     from matplotlib.figure import Figure
@@ -1349,19 +1355,92 @@ def showAtomicLines(y, atoms=None, linespec='-', **kwargs):
     except:
         raise TypeError('y should be an array-like instance.')
     
-    ticklabels = None
+    x = None
+    ticklabels = labels = datalabels = None
+
+    def func_ticklabels(val, pos):
+        #The two args are the value and tick position
+        i = int(round(val))
+        J = np.where(x==i)[0]
+        if len(J):
+            label = labels[J[0]]
+        else:
+            label = ''
+
+        return label
+
     if atoms is not None:
+        if overlay:
+            if not gap:
+                gap = True
+            show_chain = False
+            show_domain = False
+
         hv = atoms.getHierView()
         if hv.numChains() == 0:
             raise ValueError('atoms should contain at least one chain.')
         elif hv.numChains() == 1:
-            ticklabels = atoms.getResnums()
+            labels = atoms.getResnums()
+            if gap:
+                x = atoms.getResnums()
+                ticklabels = func_ticklabels
         else:
-            chids = atoms.getChids()
-            resnums = atoms.getResnums()
-            ticklabels = ['%s:%d'%(c, n) for c, n in zip(chids, resnums)]
+            labels = []
+            if gap: 
+                x = []; last = 0
+            if overlay:
+                datalabels = [];  _y = []; _dy = []
 
-    lines, polys = showLines(y, linespec, ticklabels=ticklabels, **kwargs)
+            for chain in hv.iterChains():
+                chid = chain.getChid()
+                resnums = chain.getResnums()
+                
+                labels.extend('%s:%d'%(chid, resnum) for resnum in resnums)
+                if gap:
+                    if overlay:
+                        datalabels.append(chid)
+                        x.append(resnums)
+                        _y.append(y[last:last+len(resnums)])
+                        if dy is not None:
+                            _dy.append(dy[last:last+len(resnums)])
+                        last = len(resnums)
+                    else:
+                        x.extend(resnums + last)
+                        last = resnums[-1]
+                    
+        if gap:
+            if overlay:
+                ticklabels = None
+                y = _y
+                if dy is not None:
+                    dy = _dy
+            else:
+                x -= x[0]
+                ticklabels = func_ticklabels
+        else:
+            ticklabels = labels     
+    else:
+        if gap:
+            LOGGER.warn('atoms need to be provided if gap=True')
+        if overlay:
+            LOGGER.warn('atoms need to be provided if overlay=True')
+        gap = False
+        overlay = False
+
+    if gap:
+        if overlay:
+            Z = []
+            for z in zip(x, y):
+                Z.extend(z)
+                Z.append(linespec)
+            lines, polys = showLines(*Z, dy=dy, ticklabels=ticklabels, 
+                                     gap=True, label=datalabels, **kwargs)
+        else:
+            lines, polys = showLines(x, y, linespec, dy=dy, ticklabels=ticklabels, 
+                                     gap=True, **kwargs)
+    else:
+        lines, polys = showLines(y, linespec, dy=dy, ticklabels=ticklabels, **kwargs)
+
     if zero_line:
         l = xlim()
         plot(l, [0, 0], '--', color='gray')
@@ -1372,7 +1451,7 @@ def showAtomicLines(y, atoms=None, linespec='-', **kwargs):
     show_chain, chain_pos, chids = _checkDomainBarParameter(show_chain, 0., atoms, 'chain')
      
     if show_chain:
-        b, t = showDomainBar(atoms.getChids(), loc=chain_pos, axis='x', 
+        b, t = showDomainBar(chids, x=x, loc=chain_pos, axis='x', 
                              text_loc=chain_text_loc, text=show_chain_text,
                              barwidth=barwidth)
         bars.extend(b)
@@ -1380,7 +1459,7 @@ def showAtomicLines(y, atoms=None, linespec='-', **kwargs):
 
     show_domain, domain_pos, domains = _checkDomainBarParameter(show_domain, 1., atoms, 'domain')
     if show_domain:
-        b, t = showDomainBar(domains, loc=domain_pos, axis='x', 
+        b, t = showDomainBar(domains, x=x, loc=domain_pos, axis='x', 
                              text_loc=domain_text_loc,  text=show_domain_text,
                              barwidth=barwidth)
         bars.extend(b)
@@ -1390,7 +1469,7 @@ def showAtomicLines(y, atoms=None, linespec='-', **kwargs):
         showFigure()
     return lines, polys, bars, texts
 
-def showDomainBar(domains, loc=0., axis='x', **kwargs):
+def showDomainBar(domains, x=None, loc=0., axis='x', **kwargs):
     """
     Plot a bar on top of the current axis which is colored based 
     on domain separations.
@@ -1491,12 +1570,15 @@ def showDomainBar(domains, loc=0., axis='x', **kwargs):
                 texts.append(txt)
     
     gca().set_prop_cycle(None)
+
+    if x is None:
+        x = np.arange(len(domains))
+    X = np.tile(x, (len(uni_domids), 1)).T
+
     if axis == 'y':
-        _y = np.arange(len(domains))
-        Y = np.tile(_y, (len(uni_domids), 1)).T
-        bar = plot(F, Y, linewidth=barwidth, solid_capstyle='butt')
+        bar = plot(F, X, linewidth=barwidth, solid_capstyle='butt')
     else:
-        bar = plot(F, linewidth=barwidth, solid_capstyle='butt')
+        bar = plot(X, F, linewidth=barwidth, solid_capstyle='butt')
 
     bars.extend(bar)
     lim(L, auto=True)
