@@ -15,7 +15,7 @@ from prody.utilities import showFigure, addEnds
 from prody.atomic import AtomGroup, Selection, Atomic, sliceAtoms, sliceAtomicData
 
 from .nma import NMA
-from .gnm import GNMBase
+from .gnm import GNMBase, GNM
 from .mode import Mode, VectorBase, Vector
 from .modeset import ModeSet
 from .analysis import calcSqFlucts, calcProjection
@@ -676,25 +676,37 @@ def showNormedSqFlucts(modes, *args, **kwargs):
     return show
 
 
-def showContactMap(enm, *args, **kwargs):
-    """Show Kirchhoff matrix using :func:`~matplotlib.pyplot.spy`."""
+def showContactMap(enm, **kwargs):
+    """Show contact map using :func:`showAtomicMatrix`. *enm* can be 
+    either a :class:`.GNM` or :class:`.Atomic` object."""
 
     import matplotlib.pyplot as plt
-    if SETTINGS['auto_show']:
-        plt.figure()
+    #if SETTINGS['auto_show']:
+    #    plt.figure()
         
-    if not isinstance(enm, GNMBase):
-        raise TypeError('model argument must be an ENM instance')
-    kirchhoff = enm.getKirchhoff()
-    if kirchhoff is None:
+    if isinstance(enm, GNMBase):
+        K = enm.getKirchhoff()
+        atoms = kwargs.pop('atoms', None)
+    elif isinstance(enm, Atomic):
+        gnm = GNM()
+        gnm.buildKirchhoff(enm)
+        K = gnm.getKirchhoff()
+        atoms = kwargs.pop('atoms', enm)
+    else:
+        raise TypeError('model argument must be a GNM instance')
+
+    if K is None:
         LOGGER.warning('kirchhoff matrix is not set')
         return None
-    show = plt.spy(kirchhoff, *args, **kwargs)
+    
+    D = np.diag(np.diag(K) + 1.)
+    A = -(K - D)
+    show = showAtomicMatrix(A, atoms=atoms, **kwargs)
     plt.title('{0} contact map'.format(enm.getTitle()))
-    plt.xlabel('Residue index')
-    plt.ylabel('Residue index')
-    if SETTINGS['auto_show']:
-        showFigure()
+    plt.xlabel('Residue')
+    plt.ylabel('Residue')
+    #if SETTINGS['auto_show']:
+    #    showFigure()
     return show
 
 
@@ -1021,11 +1033,27 @@ def showPerturbResponse(model, atoms=None, show_matrix=True, select=None, **kwar
     :type percentile: float
     """
 
-    from matplotlib.pyplot import gcf, xlabel, ylabel
+    from matplotlib.pyplot import figure, xlabel, ylabel, title
 
-    select = kwargs.pop('select',None)
+    if isinstance(model, (NMA, ModeSet)):
+        prs_matrix, effectiveness, sensitivity = calcPerturbResponse(model, atoms=atoms)
+    else:
+        try:
+            prs_matrix = np.asarray(model)
+            effectiveness = np.mean(prs_matrix, axis=1)
+            sensitivity = np.mean(prs_matrix, axis=0)
+        except:
+            raise TypeError('model must be an NMA object or a PRS matrix')
 
-    prs_matrix, effectiveness, sensitivity = calcPerturbResponse(model, atoms=atoms)
+    domain = kwargs.pop('domains', None)
+    domain = domain_ = kwargs.pop('domain', domain)
+    chain = kwargs.pop('chains', None)
+    chain = chain_ = kwargs.pop('chain', chain)
+
+    if select is not None:
+        if atoms is None:
+            raise ValueError('atoms must be provided if select is given')
+        show_matrix = False
 
     if show_matrix:
         show = showAtomicMatrix(prs_matrix, x_array=effectiveness, 
@@ -1035,26 +1063,39 @@ def showPerturbResponse(model, atoms=None, show_matrix=True, select=None, **kwar
 
     else:
         if select is None:
-            kwargs.pop('figure', 'effectiveness'); fig = gcf()
-            domains = kwargs.pop('domains', None)
-            chains = kwargs.pop('chains', None)
+            fig = fig_ = kwargs.pop('figure', None) # this line needs to be in this block
+            if fig is None:
+                fig_ = figure('effectiveness')
+            else:
+                domain_ = chain_ = False 
             kwargs.pop('label', None)
-            show_eff = showAtomicLines(effectiveness, atoms=atoms, 
-                                       domains=False, chains=False,
+            show_eff = showAtomicLines(effectiveness, atoms=atoms, figure=fig or fig_,
+                                       domain=domain_, chain=chain_,
                                        label='Effectiveness', **kwargs)
-            kwargs.pop('figure', 'sensitivity'); fig = gcf()
-            show_sen = showAtomicLines(sensitivity, atoms=atoms, figure=fig, 
-                                       domains=domains, chains=chains,
+            if fig is None:
+                title('Effectiveness')
+            xlabel('Residues')
+            if fig is None:
+                fig_ = figure('sensitivity')
+            show_sen = showAtomicLines(sensitivity, atoms=atoms, figure=fig or fig_, 
+                                       domain=domain, chain=chain,
                                        label='Sensitivity', **kwargs)
+            if fig is None:
+                title('Sensitivity')
+            xlabel('Residues')
             show = [show_eff, show_sen]
         else:
             show = []
             profiles = sliceAtomicData(prs_matrix, atoms=atoms, select=select, axis=0)
-            for profile in profiles:
-                kwargs.pop('figure', None); fig = gcf()
-                show.append(showAtomicLines(profile, atoms, **kwargs))
+            
+            domain_ = chain_ = False 
+            for i, profile in enumerate(profiles):
+                if i == len(profiles)-1:  # last iteration turn the domain/chain bar back on
+                    domain_ = domain
+                    chain_ = chain
+                show.append(showAtomicLines(profile, atoms, domain=domain_, chain=chain_, **kwargs))
 
-    xlabel('Residues')
+            xlabel('Residues')
     
     return show
 
