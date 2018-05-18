@@ -145,6 +145,7 @@ def showLines(*args, **kwargs):
     dy = kwargs.pop('dy', None)
     alpha = kwargs.pop('alpha', 0.5)
     gap = kwargs.pop('gap', False)
+    labels = kwargs.pop('label', None)
 
     from matplotlib import cm, ticker
     from matplotlib.pyplot import figure, gca, xlim
@@ -153,14 +154,12 @@ def showLines(*args, **kwargs):
     lines = ax.plot(*args, **kwargs)
 
     polys = []
+    dy_ndim = 0
     if dy is not None:
-        dy = np.array(dy)
-        if dy.ndim == 1:
-            n, = dy.shape; m = 1
-        elif dy.ndim == 2:
-            n, m = dy.shape
+        if np.isscalar(dy[0]):
+            dy_ndim = 1
         else:
-            raise ValueError('dy should be either 1-D or 2-D.')
+            dy_ndim = 2
         
     for i, line in enumerate(lines):
         color = line.get_color()
@@ -172,14 +171,28 @@ def showLines(*args, **kwargs):
         else:
             x_new, y_new = x, y
         
+        if labels is not None:
+            if np.isscalar(labels):
+                line.set_label(labels)
+            else:
+                try:
+                    line.set_label(labels[i])
+                except IndexError:
+                    raise ValueError('The number of labels ({0}) and that of y ({1}) do not match.'
+                                     .format(len(labels), len(line)))
         if dy is not None:
-            if m != 1 and m != len(lines) or n != len(y):
-                raise ValueError('The shapes of dy and y do not match.')
-
-            if dy.ndim == 1:
+            if dy_ndim == 1:
                 _dy = dy
             else:
-                _dy = dy[:, i]
+                try:
+                    _dy = dy[i]
+                except IndexError:
+                    raise ValueError('The number of dy ({0}) and that of y ({1}) do not match.'
+                                     .format(len(dy), len(line)))
+
+            if len(_dy) != len(y):
+                raise ValueError('The shapes of dy ({0}) and y ({1}) do not match.'
+                                 .format(len(_dy), len(y)))
 
             if gap:
                 _, _dy = addEnds(x, _dy)

@@ -1327,6 +1327,10 @@ def showAtomicLines(y, atoms=None, linespec='-', **kwargs):
     barwidth = kwargs.pop('bar_width', barwidth)
 
     gap = kwargs.pop('gap', False)
+    overlay = kwargs.pop('overlay', False)
+    overlay = kwargs.pop('overlay_chains', overlay)
+
+    dy = kwargs.pop('dy', None)
 
     from prody.utilities import showLines
     from matplotlib.pyplot import figure, xlim, plot
@@ -1352,25 +1356,40 @@ def showAtomicLines(y, atoms=None, linespec='-', **kwargs):
         raise TypeError('y should be an array-like instance.')
     
     x = None
-    ticklabels = None
+    ticklabels = labels = datalabels = None
+
+    def func_ticklabels(val, pos):
+        #The two args are the value and tick position
+        i = int(round(val))
+        J = np.where(x==i)[0]
+        if len(J):
+            label = labels[J[0]]
+        else:
+            label = ''
+
+        return label
+
     if atoms is not None:
+        if overlay:
+            if not gap:
+                gap = True
+            show_chain = False
+            show_domain = False
+
         hv = atoms.getHierView()
         if hv.numChains() == 0:
             raise ValueError('atoms should contain at least one chain.')
         elif hv.numChains() == 1:
+            labels = atoms.getResnums()
             if gap:
                 x = atoms.getResnums()
-                x -= x[0]
-                def func_ticklabels(val, pos):
-                    #The two args are the value and tick position
-                    return '{0}/{1}'.format(val, pos)
                 ticklabels = func_ticklabels
-            else:
-                ticklabels = atoms.getResnums()
         else:
             labels = []
             if gap: 
-                x = []; last_resnum = 0
+                x = []; last = 0
+            if overlay:
+                datalabels = [];  _y = []; _dy = []
 
             for chain in hv.iterChains():
                 chid = chain.getChid()
@@ -1378,30 +1397,48 @@ def showAtomicLines(y, atoms=None, linespec='-', **kwargs):
                 
                 labels.extend('%s:%d'%(chid, resnum) for resnum in resnums)
                 if gap:
-                    x.extend(resnums + last_resnum)
-                    last_resnum = resnums[-1]
+                    if overlay:
+                        datalabels.append(chid)
+                        x.append(resnums)
+                        _y.append(y[last:last+len(resnums)])
+                        if dy is not None:
+                            _dy.append(dy[last:last+len(resnums)])
+                        last = len(resnums)
+                    else:
+                        x.extend(resnums + last)
+                        last = resnums[-1]
                     
-            def func_ticklabels(val, pos):
-                #The two args are the value and tick position
-                i = int(round(val))
-
-                return '{0}/{1}'.format(val, pos)
-                    
-            if gap:
+        if gap:
+            if overlay:
+                ticklabels = None
+                y = _y
+                if dy is not None:
+                    dy = _dy
+            else:
                 x -= x[0]
                 ticklabels = func_ticklabels
-            else:
-                ticklabels = labels
-                
+        else:
+            ticklabels = labels     
     else:
         if gap:
             LOGGER.warn('atoms need to be provided if gap=True')
+        if overlay:
+            LOGGER.warn('atoms need to be provided if overlay=True')
         gap = False
+        overlay = False
 
     if gap:
-        lines, polys = showLines(x, y, linespec, ticklabels=ticklabels, gap=True, **kwargs)
+        if overlay:
+            Z = []
+            for z in zip(x, y):
+                Z.extend(z)
+            lines, polys = showLines(*Z, linespec, dy=dy, ticklabels=ticklabels, 
+                                     gap=True, label=datalabels, **kwargs)
+        else:
+            lines, polys = showLines(x, y, linespec, dy=dy, ticklabels=ticklabels, 
+                                     gap=True, **kwargs)
     else:
-        lines, polys = showLines(y, linespec, ticklabels=ticklabels, **kwargs)
+        lines, polys = showLines(y, linespec, dy=dy, ticklabels=ticklabels, **kwargs)
 
     if zero_line:
         l = xlim()
