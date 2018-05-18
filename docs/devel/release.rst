@@ -78,8 +78,8 @@ How to Make a Release
 #. Put all installation source and executable in dist directory. 
 
 #. Upload the new release files to the PyPI_ using twine (NOTE: this step is 
-irreversible! If there were to be a change to ProDy after this step, then it needs 
-to be prepared as a whole new release)::
+   **irreversible**! If there were to be a change to ProDy after this step, then it needs 
+   to be prepared as a whole new release)::
 
      $ twine upload dist/*
 
