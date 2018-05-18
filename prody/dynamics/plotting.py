@@ -1432,7 +1432,8 @@ def showAtomicLines(y, atoms=None, linespec='-', **kwargs):
             Z = []
             for z in zip(x, y):
                 Z.extend(z)
-            lines, polys = showLines(*Z, linespec, dy=dy, ticklabels=ticklabels, 
+                Z.append(linespec)
+            lines, polys = showLines(*Z, dy=dy, ticklabels=ticklabels, 
                                      gap=True, label=datalabels, **kwargs)
         else:
             lines, polys = showLines(x, y, linespec, dy=dy, ticklabels=ticklabels, 
