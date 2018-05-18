@@ -1088,6 +1088,8 @@ def showPerturbResponse(model, atoms=None, show_matrix=True, select=None, **kwar
             axis = kwargs.pop('axis',0)
             show = []
             profiles = sliceAtomicData(prs_matrix, atoms=atoms, select=select, axis=axis)
+            if axis == 1: 
+                profiles = profiles.T
             
             domain_ = chain_ = False 
             for i, profile in enumerate(profiles):
