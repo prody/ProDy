@@ -907,7 +907,7 @@ mapHelix = {
 
 def isHelix(secstrs):
     torf = np.logical_and(secstrs=='', False)
-    for h in mapHelix.itervalues():
+    for h in mapHelix.values():
         if h != '':
             torf = np.logical_or(torf, secstrs==h)
     return torf
