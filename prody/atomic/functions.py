@@ -463,9 +463,6 @@ def sliceAtomicData(data, atoms, select, axis=None):
         I = [indices] * data.ndim
     
     profiles = data[ix_(*I)]
-
-    if len(profiles) == 1:
-        return profiles[0]
         
     return profiles
 
