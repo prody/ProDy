@@ -683,7 +683,8 @@ def showContactMap(enm, **kwargs):
     import matplotlib.pyplot as plt
     #if SETTINGS['auto_show']:
     #    plt.figure()
-        
+    
+    cmap = kwargs.pop('cmap', 'Greys')
     if isinstance(enm, GNMBase):
         K = enm.getKirchhoff()
         atoms = kwargs.pop('atoms', None)
