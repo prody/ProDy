@@ -1441,6 +1441,8 @@ def showAtomicLines(y, atoms=None, linespec='-', **kwargs):
             if gap:
                 x = atoms.getResnums()
                 ticklabels = func_ticklabels
+                if overlay:
+                    x = [x]; _y = [y]; _dy = [dy]
         else:
             labels = []
             if gap: 
