@@ -33,9 +33,9 @@ __all__ = ['showContactMap', 'showCrossCorr',
            'showNormedSqFlucts', 'resetTicks',
            'showDiffMatrix','showMechStiff','showNormDistFunct',
            'showPairDeformationDist','showMeanMechStiff', 
-           'showPerturbResponse',
-           'showAtomicMatrix', 'showAtomicLines', 'showTree', 
-           'showTree_networkx', 'showDomainBar']
+           'showPerturbResponse', 'showTree', 'showTree_networkx',
+           'showAtomicMatrix', 'pimshow', 'showAtomicLines', 'pplot', 
+           'showDomainBar']
 
 
 def showEllipsoid(modes, onto=None, n_std=2, scale=1., *args, **kwargs):
@@ -702,7 +702,7 @@ def showContactMap(enm, **kwargs):
     
     D = np.diag(np.diag(K) + 1.)
     A = -(K - D)
-    show = showAtomicMatrix(A, atoms=atoms, **kwargs)
+    show = showAtomicMatrix(A, atoms=atoms, cmap=cmap, **kwargs)
     plt.title('{0} contact map'.format(enm.getTitle()))
     plt.xlabel('Residue')
     plt.ylabel('Residue')
@@ -1322,6 +1322,8 @@ def showAtomicMatrix(matrix, x_array=None, y_array=None, atoms=None, **kwargs):
 
     return im, lines, colorbar, texts
 
+pimshow = showAtomicMatrix
+
 def showAtomicLines(y, atoms=None, linespec='-', **kwargs):
     """
     Show a plot with the option to include chain color bars using provided atoms.
@@ -1523,6 +1525,8 @@ def showAtomicLines(y, atoms=None, linespec='-', **kwargs):
     if SETTINGS['auto_show']:
         showFigure()
     return lines, polys, bars, texts
+
+pplot = showAtomicLines
 
 def showDomainBar(domains, x=None, loc=0., axis='x', **kwargs):
     """
