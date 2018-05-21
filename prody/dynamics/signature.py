@@ -78,7 +78,7 @@ class ModeEnsemble(object):
         if isinstance(modeset_index, slice):
             modesets = self._modesets[modeset_index]
             labels = None if self._labels is None else self._labels[modeset_index]
-        elif isinstance(modeset_index, (list, tuple)):
+        elif not np.isscalar(modeset_index):
             modesets = []; labels = []
             for i in modeset_index:
                 assert isinstance(i, Integral), 'all indices must be integers'
@@ -89,7 +89,7 @@ class ModeEnsemble(object):
             try:
                 modeset_index = int(modeset_index)
             except Exception:
-                raise IndexError('indices must be int, slice, list, or tuple')
+                raise IndexError('indices must be int, slice, or array-like objects')
             else:
                 return self._modesets[modeset_index][mode_index]
         
@@ -453,40 +453,13 @@ class sdarray(ndarray):
     the collection. 
     
     :class:`sdarray` functions exactly the same as :class:`~numpy.ndarray`, 
-    except that :method:`sdarray.mean`, :method:`sdarray.std`, 
-    :method:`sdarray.max`, :method:`sdarray.min` are overriden. 
+    except that :meth:`sdarray.mean`, :meth:`sdarray.std`, 
+    :meth:`sdarray.max`, :meth:`sdarray.min` are overriden. 
     Average, standard deviation, minimum, maximum, etc. are weighted and 
     calculated over the first axis by default. "sdarray" stands for 
     "signature dynamics array".
 
-    Suppose:
-    ```
-    In [1]: from prody import sdarray
-
-    In [2]: from numpy import mean
-
-    In [3]: sdarr = sdarray([[1, 2, 3], [4, 5, 6]], weights=[[0, 1, 1], [1, 1, 1]])
-    Out[3]:
-    sdarray([[1, 2, 3],
-            [4, 5, 6]])
-    weights=
-    array([[0, 1, 1],
-        [1, 1, 1]])
-    ```
-    Then if we use the :method:`sdarray.mean`,
-    ```
-    In [4]: sdarr.mean()
-    Out[4]: array([4., 3.5, 4.5])
-    ```
-    It will compute the **weighted** average over the modesets (first axis), whereas
-    ```
-    In [5]: mean(sdarr)
-    Out[5]: 3.5
-    ```
-    will just perform a usually `numpy.mean` calculation, assuming `axis=None` 
-    and **unweighted**.
-
-    Notes for developper: please read following article about subclassing 
+    Note for developers: please read the following article about subclassing 
     :class:`~numpy.ndarray` before modifying this class:
 
     https://docs.scipy.org/doc/numpy-1.14.0/user/basics.subclassing.html
@@ -847,7 +820,7 @@ def showSignatureAtomicLines(y, std=None, min=None, max=None, atoms=None, **kwar
     :arg linespec: line specifications that will be passed to :func:`showAtomicLines`
     :type linespec: str
 
-    :arg atoms: an object with method :method:`getResnums` for use 
+    :arg atoms: an object with method :meth:`getResnums` for use 
                 on the x-axis.
     :type atoms: :class:`Atomic` 
     """

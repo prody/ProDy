@@ -209,13 +209,25 @@ NMD_LABEL_MAP = {
 }
 
 
-def parseNMD(filename, type=None):
+def parseNMD(filename, type=NMA):
     """Returns :class:`.NMA` and :class:`.AtomGroup` instances storing data
-    parsed from *filename* in :file:`.nmd` format.  Type of :class:`.NMA`
-    instance, e.g. :class:`.PCA`, :class:`.ANM`, or :class:`.GNM` will
-    be determined based on mode data."""
+    parsed from *filename* in :file:`.nmd` format. Type should be :class:`.NMA`
+    or a subclass such as :class:`.PCA`, :class:`.ANM`, or :class:`.GNM`."""
 
-    assert not isinstance(type, NMA), 'type must be NMA, ANM, GNM, or PCA'
+    if isinstance(type, str):
+        type = type.upper().strip()
+        if 'ANM' in type:
+            type = ANM
+        elif 'GNM' in type:
+            type = GNM
+        elif 'PCA' in type or 'EDA' in type:
+            type = PCA
+        elif type == 'NMA':
+            type = NMA
+        else:
+            type = None
+    if not issubclass(type, NMA): 
+        raise TypeError('type must be NMA, ANM, GNM, or PCA')
 
     atomic = {}
     atomic.update([(label, None) for label in NMD_LABEL_MAP])
@@ -323,13 +335,10 @@ def parseNMD(filename, type=None):
     else:
         eigvals = eigvals[:, 1] ** 2
 
-    if is3d:
-        if eigvals is not None and np.all(eigvals[:-1] >= eigvals[1:]):
-            nma = PCA(name)
-        else:
-            nma = ANM(name)
-    else:
-        nma = GNM(name)
+    nma = type(name)
+    if type != PCA:
+        eigvals = 1./eigvals
+
     if count != array.shape[1]:
         array = array[:, :count].copy()
 

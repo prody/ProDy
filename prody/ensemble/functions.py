@@ -7,7 +7,7 @@ from numbers import Integral
 import numpy as np
 
 from prody.proteins import fetchPDB, parsePDB, writePDB, mapOntoChain
-from prody.utilities import openFile, showFigure, copy
+from prody.utilities import openFile, showFigure, copy, isListLike
 from prody import LOGGER, SETTINGS
 from prody.atomic import AtomMap, Chain, AtomGroup, Selection, Segment, Select, AtomSubset
 
@@ -17,7 +17,7 @@ from .conformation import *
 
 __all__ = ['saveEnsemble', 'loadEnsemble', 'trimPDBEnsemble',
            'calcOccupancies', 'showOccupancies', 'alignPDBEnsemble',
-           'buildPDBEnsemble', 'addPDBEnsemble']
+           'buildPDBEnsemble', 'addPDBEnsemble', 'refineEnsemble']
 
 
 def saveEnsemble(ensemble, filename=None, **kwargs):
@@ -354,8 +354,8 @@ def buildPDBEnsemble(PDBs, ref=None, title='Unknown', labels=None, seqid=94, cov
     :type PDBs: iterable
 
     :arg ref: Reference structure or the index to the reference in ``PDBs``. If **None**,
-                 then the first item in ``PDBs`` will be considered as the reference. 
-                 Default is **None**
+        then the first item in ``PDBs`` will be considered as the reference. 
+        Default is **None**
     :type ref: int, :class:`.Chain`, :class:`.Selection`, or :class:`.AtomGroup`
 
     :arg title: The title of the ensemble
@@ -381,9 +381,11 @@ def buildPDBEnsemble(PDBs, ref=None, title='Unknown', labels=None, seqid=94, cov
 
     occupancy = kwargs.pop('occupancy', None)
     degeneracy = kwargs.pop('degeneracy', True)
+    subset = str(kwargs.get('subset', 'calpha')).lower()
 
     if len(PDBs) == 1:
         raise ValueError('PDBs should have at least two items')
+
     if labels is not None:
         if len(labels) != len(PDBs):
             raise ValueError('labels and PDBs must be the same length')
@@ -398,6 +400,9 @@ def buildPDBEnsemble(PDBs, ref=None, title='Unknown', labels=None, seqid=94, cov
             raise ValueError('refpdb should be also in the PDBs')
 
     # obtain refchains from the hierarhical view of the reference PDB
+    if subset != 'all':
+        refpdb = refpdb.select(subset)
+        
     try:
         refchains = list(refpdb.getHierView())
     except AttributeError:
@@ -507,6 +512,14 @@ def addPDBEnsemble(ensemble, PDBs, refpdb=None, labels=None, seqid=94, coverage=
     if labels is not None:
         if len(labels) != len(PDBs):
             raise TypeError('Labels and PDBs must have the same lengths.')
+    else:
+        labels = []
+        
+        for pdb in PDBs:
+            if pdb is None:
+                labels.append(None)
+            else:
+                labels.append(pdb.getTitle())
 
     # obtain refchains from the hierarhical view of the reference PDB
     if refpdb is None:
@@ -525,15 +538,15 @@ def addPDBEnsemble(ensemble, PDBs, refpdb=None, labels=None, seqid=94, coverage=
 
     LOGGER.progress('Appending the ensemble...', len(PDBs), '_prody_addPDBEnsemble')
     for i, pdb in enumerate(PDBs):
+        lbl = labels[i]
+        if pdb is None:
+            unmapped.append(labels[i])
+            continue
+
         LOGGER.update(i, 'Mapping %s to the reference...'%pdb.getTitle(), 
                       label='_prody_addPDBEnsemble')
         if not isinstance(pdb, (Chain, Selection, AtomGroup)):
             raise TypeError('PDBs must be a list of Chain, Selection, or AtomGroup.')
-        
-        if labels is None:
-            lbl = pdb.getTitle()
-        else:
-            lbl = labels[i]
 
         atommaps = []
         # find the mapping of the pdb to each reference chain
@@ -571,3 +584,44 @@ def addPDBEnsemble(ensemble, PDBs, refpdb=None, labels=None, seqid=94, coverage=
 
     return ensemble
 
+def refineEnsemble(ens, lower=.5, upper=10.):
+    """Refine a PDB ensemble based on RMSD criterions.""" 
+
+    from scipy.cluster.hierarchy import linkage, fcluster
+    from scipy.spatial.distance import squareform
+
+    ### calculate RMSDs ###
+    RMSD = ens.getRMSDs(pairwise=True)
+    rmsd = ens.getRMSDs()
+
+    ### imposeing upper bound ###
+    I = np.where(rmsd < upper)[0]
+    reens = ens[I]
+    I = I.reshape(-1, 1)
+    reRMSD = RMSD[I, I.T]
+
+    ### hierarchical clustering ###
+    v = squareform(reRMSD)
+    Z = linkage(v)
+
+    labels = fcluster(Z, lower, criterion='distance')
+    uniq_labels = unique(labels)
+
+    clusters = []
+    for label in uniq_labels:
+        indices = np.where(labels==label)[0]
+        clusters.append(indices)
+
+    J = ones(len(clusters), dtype=int) * -1
+    for i, cluster in enumerate(clusters):
+        if len(cluster) > 0:
+            weights = [ens[j].getWeights().sum() for j in cluster]
+            j = np.argmax(weights)
+            J[i] = cluster[j]
+        else:
+            J[i] = cluster[0]
+
+    ### refine ensemble ###
+    reens = reens[J]
+
+    return reens

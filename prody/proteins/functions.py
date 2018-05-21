@@ -5,7 +5,7 @@ import numpy as np
 
 from prody.atomic import Atomic, Atom, AtomGroup, Selection, HierView
 from prody.utilities import openFile, showFigure
-from prody import SETTINGS
+from prody import SETTINGS, PY3K
 
 __all__ = ['view3D','showProtein', 'writePQR', ]
 
@@ -104,41 +104,52 @@ def view3D(*alist, **kwargs):
     of frames to animate over), amplitude (scaling factor), and animate
     (3Dmol.js animate options).
     """
-    import StringIO, py3Dmol
-    from pdbfile import writePDBStream
+
+    if PY3K:
+        from io import StringIO
+    else:
+        from StringIO import StringIO
+
+    try:
+        import py3Dmol
+    except:
+        raise ImportError('py3Dmol needs to be installed to use view3D')
     
-    pdb = StringIO.StringIO()
+    from .pdbfile import writePDBStream
+    
+    pdb = StringIO()
     
     for atoms in alist:
         writePDBStream(pdb, atoms)
     
-    width = kwargs.get('width',400)
-    height = kwargs.get('height',400)
+    width = kwargs.get('width', 400)
+    height = kwargs.get('height', 400)
     view = py3Dmol.view(width=width,height=height,js=kwargs.get('js','http://3dmol.csb.pitt.edu/build/3Dmol-min.js'))
     
-    #case insensitive kwargs..
-    bgcolor = kwargs['backgroundcolor'] if 'backgroundcolor' in kwargs else kwargs.get('backgroundColor','white')
+    # case insensitive kwargs..
+    bgcolor = kwargs.pop('backgroundcolor', 'white')
+    bgcolor = kwargs.pop('backgroundColor', bgcolor)
     view.setBackgroundColor(bgcolor)
-    view.addModels(pdb.getvalue(),'pdb')
+    view.addModels(pdb.getvalue(), 'pdb')
     view.setStyle({'cartoon': {'color':'spectrum'}})
     view.setStyle({'hetflag': True}, {'stick':{}})
     view.setStyle({'bonds': 0}, {'sphere':{'radius': 0.5}})    
 
     if 'flucts' in kwargs:
         garr = kwargs['flucts']
-        #note we are only getting info from last set of atoms..
+        # note we are only getting info from last set of atoms..
         if atoms.calpha.numAtoms() != len(garr):
             raise RuntimeError("Atom count mismatch: {} vs {}.  flucts styling assume a calpha selection.".format(atoms.calpha.numAtoms(), len(garr)))
         else:
-            #construct map from residue to flucts property
+            # construct map from residue to flucts property
             propmap = []
             for (i,a) in enumerate(atoms.calpha):
                 propmap.append({'chain': a.getChid(), 'resi':a.getResnum(), 'props': {'flucts': garr[i] } })
-            #set the atom property 
-            #TODO: implement something more efficient on the 3Dmol.js side (this is O(n*m)!)
+            # set the atom property 
+            # TODO: implement something more efficient on the 3Dmol.js side (this is O(n*m)!)
             view.mapAtomProperties(propmap)
             
-            #color by property using gradient
+            # color by property using gradient
             extreme = np.abs(garr).max()
             lo = -extreme if garr.min() < 0 else 0
             mid = np.mean(garr) if garr.min() >= 0 else 0
@@ -146,22 +157,22 @@ def view3D(*alist, **kwargs):
             view.setStyle({'cartoon':{'style':'trace'}})
             
     if 'vecs' in kwargs:
-        aarr = kwargs['vecs']  #has xyz coordinates
+        aarr = kwargs['vecs']  # has xyz coordinates
 
-        #note we are only getting info from last set of atoms..
+        # note we are only getting info from last set of atoms..
         if atoms.calpha.numAtoms()*3 != len(aarr):
             raise RuntimeError("Atom count mismatch: {} vs {}.  vecs animation assume a calpha selection.".format(atoms.calpha.numAtoms(), len(aarr)/3))
         else:
-            #construct map from residue to anm property and dx,dy,dz vectors
+            # construct map from residue to anm property and dx,dy,dz vectors
             propmap = []
             for (i,a) in enumerate(atoms.calpha):
                 propmap.append({'chain': a.getChid(), 'resi':a.getResnum(),
-                    'props': {'dy': aarr[3*i+1], 'dz': aarr[3*i+2] } });
-            #set the atom property 
-            #TODO: implement something more efficient on the 3Dmol.js side (this is O(n*m)!)
+                    'props': {'dy': aarr[3*i+1], 'dz': aarr[3*i+2] } })
+            # set the atom property 
+            # TODO: implement something more efficient on the 3Dmol.js side (this is O(n*m)!)
             view.mapAtomProperties(propmap)
             
-            #create vibrations
+            # create vibrations
             frames = kwargs.get('frames',10)
             amplitude = kwargs.get('amplitude',100)
             view.vibrate(frames, amplitude)
@@ -173,7 +184,7 @@ def view3D(*alist, **kwargs):
         view.setStyle({},kwargs['style'])
         
     if 'styles' in kwargs:
-        #allow simpler forms - convert them into a list
+        # allow simpler forms - convert them into a list
         styles = kwargs['styles']
         if type(styles) == dict:
             styles = ({},styles)

@@ -244,7 +244,7 @@ class HiC(object):
         """Uses spectral clustering to identify structural domains on the chromosome.
         
         :arg labels: domain labels
-        :type labels: array-like
+        :type labels: :class:`~numpy.ndarray`, list
 
         :arg method: Label assignment algorithm used after Laplacian embedding.
         :type method: func

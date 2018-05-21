@@ -6,12 +6,9 @@ Installation
 Required Software
 -----------------
 
-* `Python`_ 2.6, 2.7, 3.2 or later
+* `Python`_ 2.7, 3.5 or later
 
-  *Windows*: You need to use **32-bit** Python on Windows to be able to
-  install NumPy and ProDy.
-
-* `NumPy`_ 1.7 or later
+* `NumPy`_ 1.10 or later
 
 When compiling from source, on Linux for example, you will need a C compiler
 (e.g. :program:`gcc`) and Python developer libraries (i.e. :file:`python.h`).
@@ -42,7 +39,7 @@ For changes and list of new features see :ref:`changes`.
 
 **Linux**
 
-Download :file:`ProDy-x.{y}.{z}.tar.gz`.  Extract tarball contents and run
+Download :file:`ProDy-{x}.{y}.{z}.tar.gz`.  Extract tarball contents and run
 :file:`setup.py` as follows::
 
     $ tar -xzf ProDy-x.y.z.tar.gz
@@ -66,7 +63,7 @@ For installing ProDy, please follow the Linux installation instructions.
 Remove previously installed ProDy release from :program:`Uninstall a program`
 in :guilabel:`Control Panel`.
 
-Download :file:`ProDy-0.{x}.{y}.win32-py2.{z}.exe` and run to install ProDy.
+Download :file:`ProDy-1.{x}.{y}.win32-py2.{z}.exe` and run to install ProDy.
 
 To be able use :ref:`prody-apps` and :ref:`evol-apps` in command prompt
 (:program:`cmd.exe`), append Python and scripts folders (e.g.
