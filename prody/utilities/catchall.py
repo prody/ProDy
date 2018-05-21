@@ -3,7 +3,7 @@
 import numpy as np
 
 from numpy import unique, linalg, diag, sqrt, dot
-from .misctools import addBreaks, interpY
+from .misctools import addEnds, interpY
 
 __all__ = ['calcTree', 'clusterMatrix', 'showLines', 'showMatrix', 'reorderMatrix', 'findSubgroups']
 
@@ -129,8 +129,21 @@ def showLines(*args, **kwargs):
         band along *y*. It should have the same shape with *y*.
     :type dy: `~numpy.ndarray`
 
-    :arg alpha: the transparency of the band(s).
+    :arg lower: an array of lower bounds which will be plotted as a 
+        band along *y*. It should have the same shape with *y* and should be 
+        paired with *upper*.
+    :type lower: `~numpy.ndarray`
+
+    :arg upper: an array of upper bounds which will be plotted as a 
+        band along *y*. It should have the same shape with *y* and should be 
+        paired with *lower*.
+    :type upper: `~numpy.ndarray`
+
+    :arg alpha: the transparency of the band(s) for plotting *dy*.
     :type alpha: float
+
+    :arg beta: the transparency of the band(s) for plotting *miny* and *maxy*.
+    :type beta: float
 
     :arg ticklabels: user-defined tick labels for x-axis.
     :type ticklabels: list
@@ -143,8 +156,12 @@ def showLines(*args, **kwargs):
 
     ticklabels = kwargs.pop('ticklabels', None)
     dy = kwargs.pop('dy', None)
+    miny = kwargs.pop('lower', None)
+    maxy = kwargs.pop('upper', None)
     alpha = kwargs.pop('alpha', 0.5)
+    beta = kwargs.pop('beta', 0.25)
     gap = kwargs.pop('gap', False)
+    labels = kwargs.pop('label', None)
 
     from matplotlib import cm, ticker
     from matplotlib.pyplot import figure, gca, xlim
@@ -153,41 +170,82 @@ def showLines(*args, **kwargs):
     lines = ax.plot(*args, **kwargs)
 
     polys = []
-    if dy is not None:
-        dy = np.array(dy)
-        if dy.ndim == 1:
-            n, = dy.shape; m = 1
-        elif dy.ndim == 2:
-            n, m = dy.shape
-        else:
-            raise ValueError('dy should be either 1-D or 2-D.')
         
-        for i, line in enumerate(lines):
-            color = line.get_color()
-            x, y = line.get_data()
-            if m != 1 and m != len(lines) or n != len(y):
-                raise ValueError('The shapes of dy and y do not match.')
-
-            if dy.ndim == 1:
-                _dy = dy
+    for i, line in enumerate(lines):
+        color = line.get_color()
+        x, y = line.get_data()
+        
+        if gap:
+            x_new, y_new = addEnds(x, y)
+            line.set_data(x_new, y_new)
+        else:
+            x_new, y_new = x, y
+        
+        if labels is not None:
+            if np.isscalar(labels):
+                line.set_label(labels)
             else:
-                _dy = dy[:, i]
-            
+                try:
+                    line.set_label(labels[i])
+                except IndexError:
+                    raise ValueError('The number of labels ({0}) and that of y ({1}) do not match.'
+                                     .format(len(labels), len(line)))
+        
+        # the following function needs to be here so that line exists
+        def sub_array(a, i, tag='a'):
+            ndim = 0
+            if a is not None:
+                if np.isscalar(a[0]):
+                    ndim = 1   # a plain list (array)
+                else:
+                    ndim = 2   # a nested list (array)
+            else:
+                return None
+
+            if ndim == 1:
+                _a = a
+            else:
+                try:
+                    _a = a[i]
+                except IndexError:
+                    raise ValueError('The number of {2} ({0}) and that of y ({1}) do not match.'
+                                     .format(len(miny), len(line), tag))
+
+            if len(_a) != len(y):
+                raise ValueError('The shapes of {2} ({0}) and y ({1}) do not match.'
+                                 .format(len(_miny), len(y), tag))
+            return _a
+
+        if miny is not None and maxy is not None:
+            _miny = sub_array(miny, i)
+            _maxy = sub_array(maxy, i)
+
             if gap:
-                x_new, y_new = addBreaks(x, y)
-                line.set_data(x_new, y_new)
-                _, _dy = addBreaks(x, _dy)
-            else:
-                x_new, y_new = x, y
+                _, _miny = addEnds(x, _miny)
+                _, _maxy = addEnds(x, _maxy)
+                
+            poly = ax.fill_between(x_new, _miny, _maxy,
+                                    alpha=beta, facecolor=color, edgecolor=None,
+                                    linewidth=1, antialiased=True)
+            polys.append(poly)
 
+        if dy is not None:
+            _dy = sub_array(dy, i)
+
+            if gap:
+                _, _dy = addEnds(x, _dy)
+                
             poly = ax.fill_between(x_new, y_new-_dy, y_new+_dy,
-                                   alpha=alpha, facecolor=color, edgecolor=None,
-                                   linewidth=1, antialiased=True)
+                                    alpha=alpha, facecolor=color, edgecolor=None,
+                                    linewidth=1, antialiased=True)
             polys.append(poly)
 
     ax.margins(x=0)
     if ticklabels is not None:
-        ax.get_xaxis().set_major_formatter(ticker.IndexFormatter(ticklabels))
+        if callable(ticklabels):
+            ax.get_xaxis().set_major_formatter(ticker.FuncFormatter(ticklabels))
+        else:
+            ax.get_xaxis().set_major_formatter(ticker.IndexFormatter(ticklabels))
     
     ax.xaxis.set_major_locator(ticker.AutoLocator())
     ax.xaxis.set_minor_locator(ticker.AutoMinorLocator())

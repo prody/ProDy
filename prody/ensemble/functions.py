@@ -512,6 +512,14 @@ def addPDBEnsemble(ensemble, PDBs, refpdb=None, labels=None, seqid=94, coverage=
     if labels is not None:
         if len(labels) != len(PDBs):
             raise TypeError('Labels and PDBs must have the same lengths.')
+    else:
+        labels = []
+        
+        for pdb in PDBs:
+            if pdb is None:
+                labels.append(None)
+            else:
+                labels.append(pdb.getTitle())
 
     # obtain refchains from the hierarhical view of the reference PDB
     if refpdb is None:
@@ -530,15 +538,15 @@ def addPDBEnsemble(ensemble, PDBs, refpdb=None, labels=None, seqid=94, coverage=
 
     LOGGER.progress('Appending the ensemble...', len(PDBs), '_prody_addPDBEnsemble')
     for i, pdb in enumerate(PDBs):
+        lbl = labels[i]
+        if pdb is None:
+            unmapped.append(labels[i])
+            continue
+
         LOGGER.update(i, 'Mapping %s to the reference...'%pdb.getTitle(), 
                       label='_prody_addPDBEnsemble')
         if not isinstance(pdb, (Chain, Selection, AtomGroup)):
             raise TypeError('PDBs must be a list of Chain, Selection, or AtomGroup.')
-        
-        if labels is None:
-            lbl = pdb.getTitle()
-        else:
-            lbl = labels[i]
 
         atommaps = []
         # find the mapping of the pdb to each reference chain

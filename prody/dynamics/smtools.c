@@ -52,7 +52,7 @@ static PyObject *calcSM(PyObject *self, PyObject *args, PyObject *kwargs)
       double sum2=0.0;
       double cos_alpha_ij=0.0;
 
-      for(k=6; k<nmodes; k++){
+      for(k=0; k<nmodes; k++){
       //      u_ij_sup_k[0]=(eigvecs[k][ind_3j  ]-eigvecs[k][ind_3i  ]);
         u_ij_sup_k[0]=(U[(k)*3*numCA+j*3]-U[(k)*3*numCA+i*3]);
 

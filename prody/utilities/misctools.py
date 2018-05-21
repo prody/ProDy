@@ -11,7 +11,7 @@ from xml.etree.ElementTree import Element
 
 __all__ = ['Everything', 'rangeString', 'alnum', 'importLA', 'dictElement',
            'intorfloat', 'startswith', 'showFigure', 'countBytes', 'sqrtm',
-           'saxsWater', 'count', 'addBreaks', 'copy', 'dictElementLoop', 
+           'saxsWater', 'count', 'addEnds', 'copy', 'dictElementLoop', 
            'getDataPath', 'openData', 'chr2', 'toChararray', 'interpY', 'cmp',
            'getValue', 'indentElement', 'isPDB', 'isURL', 'isListLike',
            'getDistance']
@@ -245,7 +245,7 @@ def getMasses(elements):
 def count(L, a=None):
     return len([b for b in L if b is a])
 
-def addBreaks(x, y, axis=0):
+def addEnds(x, y, axis=0):
     """Finds breaks in *x*, extends them by one position and adds **nan** at the 
     corresponding position in *y*. *x* needs to be an 1-D array, *y* can be a 
     matrix of column (or row) vectors"""

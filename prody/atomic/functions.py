@@ -463,9 +463,6 @@ def sliceAtomicData(data, atoms, select, axis=None):
         I = [indices] * data.ndim
     
     profiles = data[ix_(*I)]
-
-    if len(profiles) == 1:
-        return profiles[0]
         
     return profiles
 
@@ -497,11 +494,11 @@ def extendAtomicData(data, nodes, atoms, axis=None):
     nnodes = nodes.numAtoms()
 
     is3d = False
-    if len(data) != nnodes:
+    if data.shape[0] != nnodes:
         if data.shape[0] == nnodes * 3:
             is3d = True
         else:
-            raise ValueError('data and atoms must have the same size')
+            raise ValueError('data and nodes must have the same size')
 
     indices, atommap = extendAtoms(nodes, atoms, is3d)
     
