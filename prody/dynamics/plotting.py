@@ -33,9 +33,9 @@ __all__ = ['showContactMap', 'showCrossCorr',
            'showNormedSqFlucts', 'resetTicks',
            'showDiffMatrix','showMechStiff','showNormDistFunct',
            'showPairDeformationDist','showMeanMechStiff', 
-           'showPerturbResponse',
-           'showAtomicMatrix', 'showAtomicLines', 'showTree', 
-           'showTree_networkx', 'showDomainBar']
+           'showPerturbResponse', 'showTree', 'showTree_networkx',
+           'showAtomicMatrix', 'pimshow', 'showAtomicLines', 'pplot', 
+           'showDomainBar']
 
 
 def showEllipsoid(modes, onto=None, n_std=2, scale=1., *args, **kwargs):
@@ -683,7 +683,8 @@ def showContactMap(enm, **kwargs):
     import matplotlib.pyplot as plt
     #if SETTINGS['auto_show']:
     #    plt.figure()
-        
+    
+    cmap = kwargs.pop('cmap', 'Greys')
     if isinstance(enm, GNMBase):
         K = enm.getKirchhoff()
         atoms = kwargs.pop('atoms', None)
@@ -701,7 +702,7 @@ def showContactMap(enm, **kwargs):
     
     D = np.diag(np.diag(K) + 1.)
     A = -(K - D)
-    show = showAtomicMatrix(A, atoms=atoms, **kwargs)
+    show = showAtomicMatrix(A, atoms=atoms, cmap=cmap, **kwargs)
     plt.title('{0} contact map'.format(enm.getTitle()))
     plt.xlabel('Residue')
     plt.ylabel('Residue')
@@ -1045,11 +1046,6 @@ def showPerturbResponse(model, atoms=None, show_matrix=True, select=None, **kwar
         except:
             raise TypeError('model must be an NMA object or a PRS matrix')
 
-    domain = kwargs.pop('domains', None)
-    domain = domain_ = kwargs.pop('domain', domain)
-    chain = kwargs.pop('chains', None)
-    chain = chain_ = kwargs.pop('chain', chain)
-
     if select is not None:
         if atoms is None:
             raise ValueError('atoms must be provided if select is given')
@@ -1066,19 +1062,18 @@ def showPerturbResponse(model, atoms=None, show_matrix=True, select=None, **kwar
             fig = fig_ = kwargs.pop('figure', None) # this line needs to be in this block
             if fig is None:
                 fig_ = figure('effectiveness')
+                final = True
             else:
-                domain_ = chain_ = False 
+                final = False 
             kwargs.pop('label', None)
             show_eff = showAtomicLines(effectiveness, atoms=atoms, figure=fig or fig_,
-                                       domain=domain_, chain=chain_,
-                                       label='Effectiveness', **kwargs)
+                                       label='Effectiveness', final=False, **kwargs)
             if fig is None:
                 title('Effectiveness')
             xlabel('Residues')
             if fig is None:
                 fig_ = figure('sensitivity')
             show_sen = showAtomicLines(sensitivity, atoms=atoms, figure=fig or fig_, 
-                                       domain=domain, chain=chain,
                                        label='Sensitivity', **kwargs)
             if fig is None:
                 title('Sensitivity')
@@ -1091,12 +1086,11 @@ def showPerturbResponse(model, atoms=None, show_matrix=True, select=None, **kwar
             if axis == 1: 
                 profiles = profiles.T
             
-            domain_ = chain_ = False 
+            final = False 
             for i, profile in enumerate(profiles):
                 if i == len(profiles)-1:  # last iteration turn the domain/chain bar back on
-                    domain_ = domain
-                    chain_ = chain
-                show.append(showAtomicLines(profile, atoms, domain=domain_, chain=chain_, **kwargs))
+                    final = True
+                show.append(showAtomicLines(profile, atoms, final=final, **kwargs))
 
             xlabel('Residues')
     
@@ -1328,6 +1322,8 @@ def showAtomicMatrix(matrix, x_array=None, y_array=None, atoms=None, **kwargs):
 
     return im, lines, colorbar, texts
 
+pimshow = showAtomicMatrix
+
 def showAtomicLines(y, atoms=None, linespec='-', **kwargs):
     """
     Show a plot with the option to include chain color bars using provided atoms.
@@ -1362,12 +1358,20 @@ def showAtomicLines(y, atoms=None, linespec='-', **kwargs):
         no matter what 'auto_show' value is, plots will be drawn on the *figure*.
         Default is **None**.
     :type figure: :class:`~matplotlib.figure.Figure`, int, str
+
+    :keyword final: if set to **False**, *chain* and *domain* will be set to **False** 
+                    no matter what their values are. This is used to stack plots onto one 
+                    another, and show only one domain/chain bar.
+    :type final: bool
     """
     
     show_chain = kwargs.pop('chains', None)
     show_domain = kwargs.pop('domains', None)
     show_chain = kwargs.pop('chain', show_chain)
     show_domain = kwargs.pop('domain', show_domain)
+    final = kwargs.pop('final', True)
+    if not final:
+        show_domain = show_chain = False
 
     chain_text_loc = kwargs.pop('chain_text_loc', 'above')
     domain_text_loc = kwargs.pop('domain_text_loc', 'below')
@@ -1437,6 +1441,8 @@ def showAtomicLines(y, atoms=None, linespec='-', **kwargs):
             if gap:
                 x = atoms.getResnums()
                 ticklabels = func_ticklabels
+                if overlay:
+                    x = [x]; _y = [y]; _dy = [dy]
         else:
             labels = []
             if gap: 
@@ -1521,6 +1527,8 @@ def showAtomicLines(y, atoms=None, linespec='-', **kwargs):
     if SETTINGS['auto_show']:
         showFigure()
     return lines, polys, bars, texts
+
+pplot = showAtomicLines
 
 def showDomainBar(domains, x=None, loc=0., axis='x', **kwargs):
     """

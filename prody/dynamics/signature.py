@@ -832,37 +832,10 @@ def showSignatureAtomicLines(y, std=None, min=None, max=None, atoms=None, **kwar
     zero_line = kwargs.pop('zero_line', False)
 
     x = range(y.shape[0])
-    lines, _, bars, _ = showAtomicLines(y, atoms=atoms, linespec=linespec, 
-                                       show_zero=zero_line, **kwargs)
-
-    ori_ylim = ylim()
-    ori_height = ori_ylim[1] - ori_ylim[0]
-    line = lines[-1]
-    color = line.get_color()
-    x, _ = line.get_data()
-    polys = []
-
-    if min is not None and max is not None:
-        poly = fill_between(x, min, max,
-                            alpha=0.15, facecolor=color, edgecolor=None,
-                            linewidth=1, antialiased=True)
-        polys.append(poly)
+    lines, polys, bars, texts = showAtomicLines(y, atoms=atoms, dy=std, lower=max, upper=min, 
+                                        linespec=linespec, show_zero=zero_line, **kwargs)
         
-    if std is not None:
-        poly = fill_between(x, y-std, y+std,
-                            alpha=0.35, facecolor=color, edgecolor=None,
-                            linewidth=1, antialiased=True)
-        polys.append(poly)
-
-    # readjust domain/chain bars' locations
-    cur_ylim = ylim()
-    cur_height = cur_ylim[1] - cur_ylim[0]
-    for bar in bars:
-        Y = bar.get_ydata()
-        new_Y = (Y - ori_ylim[0]) / ori_height * cur_height + cur_ylim[0]
-        bar.set_ydata(new_Y)
-        
-    return lines, bars, polys
+    return lines, polys, bars, texts
 
 def showSignature1D(signature, linespec='-', **kwargs):
     """
@@ -898,7 +871,7 @@ def showSignature1D(signature, linespec='-', **kwargs):
     zero_line = kwargs.pop('zero', zero_line)
     show_range = kwargs.pop('range', True)
 
-    bars = []; polys = []; lines = []
+    bars = []; polys = []; lines = []; texts = []
 
     if V.is3d():
         meanV = np.reshape(meanV, (V.numAtoms(), 3)).T
@@ -913,27 +886,29 @@ def showSignature1D(signature, linespec='-', **kwargs):
                 zero_line_ = zero_line
             if not show_range:
                 minV[i] = maxV[i] = None
-            _lines, _bars, _polys = showSignatureAtomicLines(meanV[i], stdV[i], minV[i], maxV[i], 
+            _lines, _polys, _bars, _texts = showSignatureAtomicLines(meanV[i], stdV[i], minV[i], maxV[i], 
                                                    atoms=atoms_, zero_line=zero_line_,
                                                    linespec=linespec, **kwargs)
             lines.extend(_lines)
             bars.extend(_bars)
             polys.extend(_polys)
+            texts.extend(_texts)
 
     else:
         if not show_range:
             minV = maxV = None
-        _lines, _bars, _polys = showSignatureAtomicLines(meanV, stdV, minV, maxV, 
+        _lines, _polys, _bars, _texts = showSignatureAtomicLines(meanV, stdV, minV, maxV, 
                                                atoms=atoms, zero_line=zero_line,
                                                linespec=linespec, **kwargs)
         lines.extend(_lines)
         bars.extend(_bars)
         polys.extend(_polys)
+        texts.extend(_texts)
 
     xlabel('Residues')
     title('Signature profile of ' + V.getTitle())
 
-    return lines, polys, bars
+    return lines, polys, bars, texts
 
 def showSignatureMode(mode_ensemble, **kwargs):
 

@@ -232,14 +232,22 @@ def showProtein(*atoms, **kwargs):
     
     """
 
+    use3Dmol = kwargs.pop('py3Dmol', None)
+
     alist = atoms
     for atoms in alist:
         if not isinstance(atoms, Atomic):
             raise TypeError('atoms must be an Atomic instance')
     
     import sys        
-    if 'py3Dmol' in sys.modules:    
-        return view3D(*alist, **kwargs).show()
+    if 'py3Dmol' in sys.modules: 
+        if use3Dmol is None:
+            use3Dmol = True
+
+    if use3Dmol:
+        mol = view3D(*alist, **kwargs)
+        mol.show()
+        return mol
     else:
         import matplotlib.pyplot as plt
         from mpl_toolkits.mplot3d import Axes3D
