@@ -209,6 +209,7 @@ def traverseMode(mode, atoms, n_steps=10, rmsd=1.5):
         confs_sub.append(confs_sub[-1] - array)
     confs_sub.reverse()
     ensemble = Ensemble('Conformations along {0}'.format(name))
+    ensemble.setAtoms(atoms)
     ensemble.setCoords(initial)
     ensemble.addCoordset(np.array(confs_sub + [initial] + confs_add))
     return ensemble
