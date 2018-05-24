@@ -535,14 +535,14 @@ def showCrossCorr(modes, *args, **kwargs):
 def showMode(mode, *args, **kwargs):
     """Show mode array using :func:`~matplotlib.pyplot.plot`."""
     
-    import matplotlib.pyplot as plt
+    from matplotlib.pyplot import plot, title, xlim
 
     show_hinges = kwargs.pop('show_hinges', False)
     show_zero = kwargs.pop('show_zero', True)
     show_hinges = kwargs.pop('hinge', show_hinges)
     show_zero = kwargs.pop('zero', show_zero)
-    overlay_chains = kwargs.get('overlay_chains',False)
-    atoms = kwargs.get('atoms',None)
+    atoms = kwargs.get('atoms', None)
+    final = kwargs.pop('final', True)
 
     if not isinstance(mode, (Mode, Vector)):
         raise TypeError('mode must be a Mode or Vector instance, '
@@ -550,49 +550,32 @@ def showMode(mode, *args, **kwargs):
     if mode.is3d():
         a3d = mode.getArrayNx3()
         show = []
-        show.append(plt.plot(a3d[:, 0], *args, label='x-component', **kwargs))
-        show.append(plt.plot(a3d[:, 1], *args, label='y-component', **kwargs))
-        show.append(plt.plot(a3d[:, 2], *args, label='z-component', **kwargs))
-
-        if atoms is not None:
-            plt.title(str(mode))
-        else:
-            plt.title(str(mode))
+        show.append(showAtomicLines(a3d[:, 0], atoms=atoms, label='x-component', final=False, **kwargs))
+        show.append(showAtomicLines(a3d[:, 1], atoms=atoms, label='y-component', final=False, **kwargs))
+        show.append(showAtomicLines(a3d[:, 2], atoms=atoms, label='z-component', final=final, **kwargs))
     else:
         a1d = mode._getArray()
-        show = plt.plot(a1d, *args, **kwargs)
+        show = showAtomicLines(a1d, *args, **kwargs)
         if show_hinges and isinstance(mode, Mode):
             hinges = mode.getHinges()
             if hinges is not None:
-                if atoms is not None:
-                    if overlay_chains:
-                        n = 0
-                        chain_colors = 'gcmyrwbk'
-                        for i in atoms.getHierView().iterChains():
-                            for hinge in hinges:
-                                if i.getResindices()[0] < hinge < i.getResindices()[-1]:
-                                    plt.plot(hinge - i.getResindices()[0], \
-                                                 a1d[hinge], '*', color=chain_colors[n], \
-                                                 markeredgecolor='k', markersize=10)
-                            n += 1
-                    else:
-                        plt.plot(hinges, a1d[hinges], 'r*')
-                else:
-                    plt.plot(hinges, a1d[hinges], 'r*')
-        if atoms is not None:
-            plt.title(str(mode))
-        else:
-            plt.title(str(mode))
+                #showAtomicLines(hinges, a1d[hinges], atoms=atoms, linespec='r*', final=False)
+                pass
+
+    if atoms is not None:
+        title(str(atoms))
+    else:
+        title(str(mode))
+
     if show_zero:
         if not mode.is3d():
             if atoms is not None:
-                plt.plot(plt.xlim(), (0,0), '--', color='grey')
+                plot(xlim(), (0,0), '--', color='grey')
             else:
-                plt.plot(plt.xlim(), (0,0), '--', color='grey')
+                plot(xlim(), (0,0), '--', color='grey')
         else:
-            plt.plot(plt.xlim(), (0,0), '--', color='grey')
-    if SETTINGS['auto_show']:
-        showFigure()
+            plot(xlim(), (0,0), '--', color='grey')
+
     return show
 
 
@@ -1408,7 +1391,8 @@ def showAtomicLines(y, atoms=None, linespec='-', **kwargs):
     else:
         raise TypeError('figure can be either an instance of matplotlib.figure.Figure '
                         'or a figure number.')
-    if SETTINGS['auto_show']:
+                        
+    if SETTINGS['auto_show'] and final:
         figure(fig_num)
     elif fig_num is not None:
         figure(fig_num)
