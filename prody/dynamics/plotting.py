@@ -1023,15 +1023,17 @@ def showPerturbResponse(model, atoms=None, show_matrix=True, select=None, **kwar
         identifiers
     :type atoms: :class:`.AtomGroup`
 
-    :arg show_matrix: whether to show the matrix, default is **True**
-    :type show_matrix: bool
-
     :arg select: a :class:`Selection` instance or selection string for showing 
         residue-specific profiles. This can only be used with ``show_matrix=False``.
     :tye select: :class:`Selection`, str
+
+    :keyword show_matrix: whether to show the matrix, 
+        default is **True**
+    :type show_matrix: bool
     
-    :keyword percentile: percentile argument for showAtomicMatrix
-    :type percentile: float
+    :keyword suppress_diag: whether to suppress the diagonal
+        default is **True**
+    :type suppress_diag: bool
     """
 
     from matplotlib.pyplot import figure, xlabel, ylabel, title
@@ -1046,14 +1048,18 @@ def showPerturbResponse(model, atoms=None, show_matrix=True, select=None, **kwar
         except:
             raise TypeError('model must be an NMA object or a PRS matrix')
 
+    suppress_diag = kwargs.pop('suppress_diag', True)
+    if suppress_diag:
+        prs_matrix = prs_matrix - np.eye(len(prs_matrix))
+
     if select is not None:
         if atoms is None:
             raise ValueError('atoms must be provided if select is given')
         show_matrix = False
 
     if show_matrix:
-        show = showAtomicMatrix(prs_matrix, x_array=effectiveness, 
-                                y_array=sensitivity, atoms=atoms, 
+        show = showAtomicMatrix(prs_matrix, x_array=sensitivity, 
+                                y_array=effectiveness, atoms=atoms, 
                                 **kwargs)
         ylabel('Residues')
 
