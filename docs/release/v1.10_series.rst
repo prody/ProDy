@@ -4,6 +4,13 @@ ProDy 1.10 Series
 .. contents::
    :local:
 
+1.10.6 (May 18, 2018)
+------------------------------------------------------------------------------
+
+**Bug Fixes and Improvements**:
+
+  * showPerturbResponse can now show rows and columns
+
 1.10.5 (May 18, 2018)
 ------------------------------------------------------------------------------
 
