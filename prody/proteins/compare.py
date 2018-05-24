@@ -1019,9 +1019,7 @@ def mapOntoChain(atoms, chain, **kwargs):
 
         mappings[mi] = (atommap, selection, _seqid, _cover)
     if len(mappings) > 1:
-        def compare(m1, m2):
-            return cmp(m1[2], m2[2])
-        mappings.sort(compare, reverse=True)
+        mappings.sort(key=lambda m: m[-2:], reverse=True)
     return mappings
 
 def mapChainByChain(atoms, ref, **kwargs):
