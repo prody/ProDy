@@ -157,9 +157,10 @@ class Ensemble(object):
 
         self._title = str(title)
 
-    def numAtoms(self):
+    def numAtoms(self, selected=True):
         """Returns number of atoms."""
-
+        if selected:
+            return self.numSelected()
         return self._n_atoms
 
     def numConfs(self):
