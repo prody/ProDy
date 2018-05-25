@@ -111,7 +111,7 @@ class Ensemble(object):
         if not isinstance(other, Ensemble):
             raise TypeError('an Ensemble instance cannot be added to an {0} '
                             'instance'.format(type(other)))
-        elif self.numAtoms() != other.numAtoms():
+        elif self._n_atoms != other._n_atoms:
             raise ValueError('Ensembles must have same number of atoms.')
 
         ensemble = Ensemble('{0} + {1}'.format(self.getTitle(),

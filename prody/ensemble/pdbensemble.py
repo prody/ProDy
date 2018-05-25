@@ -175,7 +175,7 @@ class PDBEnsemble(Ensemble):
         degeneracy = kwargs.pop('degeneracy', False)
 
         atoms = coords
-        n_atoms = self.numAtoms()
+        n_atoms = self._n_atoms
         n_select = self.numSelected()
         n_confs = self.numCoordsets()
 
