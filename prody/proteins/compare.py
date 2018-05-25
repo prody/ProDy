@@ -816,7 +816,7 @@ def mapOntoChain(atoms, chain, **kwargs):
     :keyword seqid: percent sequence identity, default is 90
     :type seqid: float
 
-    :keyword overlap: percent overlap, default is 90
+    :keyword overlap: percent overlap, default is 70
     :type overlap: float
 
     :keyword mapping: if ``"ce"`` or ``"cealign"``, then the CE algorithm [IS98]_ will be 

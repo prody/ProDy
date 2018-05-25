@@ -345,7 +345,7 @@ def alignPDBEnsemble(ensemble, suffix='_aligned', outdir='.', gzip=False):
         return output
 
 
-def buildPDBEnsemble(PDBs, ref=None, title='Unknown', labels=None, seqid=94, coverage=85, 
+def buildPDBEnsemble(PDBs, ref=None, title='Unknown', labels=None, seqid=90, coverage=70, 
                      mapping_func=mapOntoChain, unmapped=None, **kwargs):
     """Builds a PDB ensemble from a given reference structure and a list of PDB structures. 
     Note that the reference structure should be included in the list as well.
@@ -471,6 +471,8 @@ def buildPDBEnsemble(PDBs, ref=None, title='Unknown', labels=None, seqid=94, cov
     LOGGER.info('Ensemble ({0} conformations) were built in {1:.2f}s.'
                      .format(ensemble.numConfs(), time.time()-start))
 
+    if unmapped:
+        LOGGER.warn('{0} structures cannot be mapped.'.format(len(unmapped)))
     return ensemble
 
 def addPDBEnsemble(ensemble, PDBs, refpdb=None, labels=None, seqid=94, coverage=85, 
@@ -582,6 +584,9 @@ def addPDBEnsemble(ensemble, PDBs, refpdb=None, labels=None, seqid=94, coverage=
     LOGGER.info('{0} PDBs were added to the ensemble in {1:.2f}s.'
                      .format(len(PDBs) - len(unmapped), time.time()-start))
 
+    if unmapped:
+        LOGGER.warn('{0} structures cannot be mapped.'.format(len(unmapped)))
+
     return ensemble
 
 def refineEnsemble(ens, lower=.5, upper=10.):
@@ -594,7 +599,7 @@ def refineEnsemble(ens, lower=.5, upper=10.):
     RMSD = ens.getRMSDs(pairwise=True)
     rmsd = ens.getRMSDs()
 
-    ### imposeing upper bound ###
+    ### impose upper bound ###
     I = np.where(rmsd < upper)[0]
     reens = ens[I]
     I = I.reshape(-1, 1)
