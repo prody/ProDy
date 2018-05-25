@@ -111,7 +111,7 @@ class Ensemble(object):
         if not isinstance(other, Ensemble):
             raise TypeError('an Ensemble instance cannot be added to an {0} '
                             'instance'.format(type(other)))
-        elif self.numAtoms() != other.numAtoms():
+        elif self._n_atoms != other._n_atoms:
             raise ValueError('Ensembles must have same number of atoms.')
 
         ensemble = Ensemble('{0} + {1}'.format(self.getTitle(),
@@ -126,9 +126,9 @@ class Ensemble(object):
         if self._weights is not None:
             LOGGER.info('Atom weights from {0} are used in {1}.'
                         .format(repr(self._title), repr(ensemble.getTitle())))
-            ensemble.setWeights(self._weights)
+            ensemble.setWeights(self._weights.copy())
         elif other._weights is not None:
-            ensemble.setWeights(other._weights)
+            ensemble.setWeights(other._weights.copy())
         
         if self._atoms is not None:
             ensemble.setAtoms(self._atoms)
@@ -157,9 +157,10 @@ class Ensemble(object):
 
         self._title = str(title)
 
-    def numAtoms(self):
+    def numAtoms(self, selected=True):
         """Returns number of atoms."""
-
+        if selected:
+            return self.numSelected()
         return self._n_atoms
 
     def numConfs(self):

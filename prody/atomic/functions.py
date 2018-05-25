@@ -466,6 +466,8 @@ def sliceAtomicData(data, atoms, select, axis=None):
         
     return profiles
 
+sliceData = sliceAtomicData
+
 def extendAtomicData(data, nodes, atoms, axis=None):
     """Extend a coarse grained data obtained for *nodes* to *atoms*.
 
@@ -513,3 +515,5 @@ def extendAtomicData(data, nodes, atoms, axis=None):
     data_ext = data[ix_(*I)]
         
     return data_ext, atommap
+
+extendData = extendAtomicData
