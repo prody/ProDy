@@ -126,9 +126,9 @@ class Ensemble(object):
         if self._weights is not None:
             LOGGER.info('Atom weights from {0} are used in {1}.'
                         .format(repr(self._title), repr(ensemble.getTitle())))
-            ensemble.setWeights(self._weights)
+            ensemble.setWeights(self._weights.copy())
         elif other._weights is not None:
-            ensemble.setWeights(other._weights)
+            ensemble.setWeights(other._weights.copy())
         
         if self._atoms is not None:
             ensemble.setAtoms(self._atoms)
