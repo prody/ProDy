@@ -582,13 +582,21 @@ def showSqFlucts(modes, *args, **kwargs):
     """Show square fluctuations using :func:`.showAtomicLines`.  See
     also :func:`.calcSqFlucts`."""
 
+    from matplotlib.pyplot import title, ylabel, xlabel
+
     def _showSqFlucts(modes, *args, **kwargs):
-        from matplotlib.pyplot import title, ylabel
         show_hinge = kwargs.pop('hinge', False)
         norm = kwargs.pop('norm', False)
-        scale = kwargs.pop('scale', 1.)
 
         sqf = calcSqFlucts(modes)
+        
+        scaled = kwargs.pop('scaled', None)
+        if scaled is not None:
+            scale = scaled / sqf.mean()
+        else:
+            scale = 1.
+        scale = kwargs.pop('scale', scale)
+
         if norm:
             sqf = sqf / (sqf**2).sum()**0.5
         
@@ -601,8 +609,6 @@ def showSqFlucts(modes, *args, **kwargs):
         label = kwargs.pop('label', def_label)
 
         show = showAtomicLines(sqf, *args, label=label, **kwargs)
-        ylabel('Square fluctuations')
-        title(str(modes))
         if show_hinge and not modes.is3d():
             hinges = modes.getHinges()
             if hinges is not None:
@@ -611,7 +617,7 @@ def showSqFlucts(modes, *args, **kwargs):
         return show, sqf
 
     scaled = kwargs.pop('scaled', False)
-    scale = kwargs.pop('scale', 1.)
+    final = kwargs.pop('final', True)
 
     args = list(args)
     modesarg = []
@@ -623,16 +629,25 @@ def showSqFlucts(modes, *args, **kwargs):
             i += 1
 
     shows = []
-    show, sqf = _showSqFlucts(modes, *args, scale=scale, **kwargs)
+    _final = len(modesarg) == 0 and final
+    show, sqf = _showSqFlucts(modes, *args, final=_final, **kwargs)
     shows.append(show)
     if scaled:
         mean = sqf.mean()
+    else:
+        mean = None
 
-    for modes in modesarg:
-        if scaled:
-            scale = mean / sqf.mean()
-        show, sqf = _showSqFlucts(modes, *args, scale=scale, **kwargs)
+    for i, modes in enumerate(modesarg):
+        if i == len(modesarg)-1:
+            _final = final
+        
+        show, sqf = _showSqFlucts(modes, *args, scaled=mean, final=_final, **kwargs)
         shows.append(show)
+
+    xlabel('Residue')
+    ylabel('Square fluctuations')
+    if len(modesarg) == 0:
+        title(str(modes))
 
     return shows
 
@@ -1526,12 +1541,13 @@ def showAtomicLines(*args, **kwargs):
 
     if gap:
         if overlay:
+            labels = kwargs.pop('label', datalabels)
             Z = []
             for z in zip(x, y):
                 Z.extend(z)
                 Z.append(linespec)
-            lines, polys = showLines(*Z, linespec, dy=dy, ticklabels=ticklabels, 
-                                     gap=True, label=datalabels, **kwargs)
+            lines, polys = showLines(*Z, dy=dy, ticklabels=ticklabels, 
+                                     gap=True, label=labels, **kwargs)
         else:
             lines, polys = showLines(x, y, linespec, dy=dy, ticklabels=ticklabels, 
                                      gap=True, **kwargs)
