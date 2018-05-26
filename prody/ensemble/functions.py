@@ -345,7 +345,7 @@ def alignPDBEnsemble(ensemble, suffix='_aligned', outdir='.', gzip=False):
         return output
 
 
-def buildPDBEnsemble(PDBs, ref=None, title='Unknown', labels=None, seqid=90, coverage=70, 
+def buildPDBEnsemble(PDBs, ref=None, title='Unknown', labels=None, 
                      mapping_func=mapOntoChain, unmapped=None, **kwargs):
     """Builds a PDB ensemble from a given reference structure and a list of PDB structures. 
     Note that the reference structure should be included in the list as well.
@@ -363,12 +363,6 @@ def buildPDBEnsemble(PDBs, ref=None, title='Unknown', labels=None, seqid=90, cov
 
     :arg labels: labels of the conformations
     :type labels: list
-
-    :arg seqid: Minimal sequence identity (percent)
-    :type seqid: int
-
-    :arg coverage: Minimal sequence overlap (percent)
-    :type coverage: int
 
     :arg occupancy: Minimal occupancy of columns (range from 0 to 1). Columns whose occupancy
         is below this value will be trimmed.
@@ -440,8 +434,6 @@ def buildPDBEnsemble(PDBs, ref=None, title='Unknown', labels=None, seqid=90, cov
         # find the mapping of the pdb to each reference chain
         for chain in refchains:
             mappings = mapping_func(pdb, chain,
-                                    seqid=seqid,
-                                    coverage=coverage,
                                     index=i,
                                     **kwargs)
             if len(mappings) > 0:
@@ -475,7 +467,7 @@ def buildPDBEnsemble(PDBs, ref=None, title='Unknown', labels=None, seqid=90, cov
         LOGGER.warn('{0} structures cannot be mapped.'.format(len(unmapped)))
     return ensemble
 
-def addPDBEnsemble(ensemble, PDBs, refpdb=None, labels=None, seqid=94, coverage=85, 
+def addPDBEnsemble(ensemble, PDBs, refpdb=None, labels=None, 
                    mapping_func=mapOntoChain, occupancy=None, unmapped=None, **kwargs):  
     """Adds extra structures to a given PDB ensemble. 
 
@@ -554,8 +546,6 @@ def addPDBEnsemble(ensemble, PDBs, refpdb=None, labels=None, seqid=94, coverage=
         # find the mapping of the pdb to each reference chain
         for chain in refchains:
             mappings = mapping_func(pdb, chain,
-                                    seqid=seqid,
-                                    coverage=coverage,
                                     index=i,
                                     **kwargs)
             if len(mappings) > 0:
