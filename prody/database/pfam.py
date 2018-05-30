@@ -216,6 +216,14 @@ def searchPfam(query, **kwargs):
     if xml.find(b'There was a system error on your last request.') > 0:
         LOGGER.warn('No Pfam matches found for: ' + seq)
         return None
+    elif xml.find(b'No valid UniProt accession or ID') > 0:
+        try:
+            ag = parsePDB(seq[:4], chain=seq[4:], subset='ca')
+            seq = ag.getSequence()
+            return searchPfam(seq)
+        except:
+            LOGGER.warn('No valid UniProt accession or ID for: ' + seq)
+            return None
 
     try:
         root = ET.XML(xml)
