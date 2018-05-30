@@ -238,13 +238,14 @@ class DaliRecord(object):
     def filter(self, cutoff_len=None, cutoff_rmsd=None, cutoff_Z=None, cutoff_identity=None):
         """Filters out PDBs from the PDBList and returns the PDB list.
         PDBs satisfy any of following criterion will be filtered out.
-        (1) Length of aligned residues < cutoff_len; cutoff_len must be a ratio of length (between 0 and 1), or a length of aligned residues; (0.8)
-        (2) RMSD < cutoff_rmsd; (1.0)
-        (3) Z score < cutoff_Z; (20)
-        (4) Identity < cutoff_identity. (90)
+        (1) Length of aligned residues < cutoff_len (must be an integer or a float between 0 and 1);
+        (2) RMSD < cutoff_rmsd (must be a positive number);
+        (3) Z score < cutoff_Z (must be a positive number);
+        (4) Identity > cutoff_identity (must be an integer or a float between 0 and 1).
         """
         if cutoff_len == None:
-            cutoff_len = int(0.8*self._max_index)
+            # cutoff_len = int(0.8*self._max_index)
+            cutoff_len = 0
         elif not isinstance(cutoff_len, (float, int)):
             raise TypeError('cutoff_len must be a float or an integer')
         elif cutoff_len <= 1 and cutoff_len > 0:
@@ -268,7 +269,7 @@ class DaliRecord(object):
         elif not isinstance(cutoff_Z, (float, int)):
             raise TypeError('cutoff_Z must be a float or an integer')
         elif cutoff_Z >= 0:
-            cutoff_Z = float(cutoff_rmsd)
+            cutoff_Z = float(cutoff_Z)
         else:
             raise ValueError('cutoff_Z must be a number not less than 0')
             
@@ -276,13 +277,16 @@ class DaliRecord(object):
             cutoff_identity = 100
         elif not isinstance(cutoff_identity, (float, int)):
             raise TypeError('cutoff_identity must be a float or an integer')
-        elif cutoff_identity <= 1 and cutoff_len > 0:
-            cutoff_identity = float(cutoff_len*100)
-        elif cutoff_identity <= 100 and cutoff_len > 0:
+        elif cutoff_identity <= 1 and cutoff_identity > 0:
+            cutoff_identity = float(cutoff_identity*100)
+        elif cutoff_identity <= 100 and cutoff_identity > 0:
             cutoff_identity = float(cutoff_identity)
         else:
             raise ValueError('cutoff_identity must be a float between 0 and 1, or a number between 0 and 100')
             
+        # debug:
+        print('cutoff_len: ' + str(cutoff_len) + ', ' + 'cutoff_rmsd: ' + str(cutoff_rmsd) + ', ' + 'cutoff_Z: ' + str(cutoff_Z) + ', ' + 'cutoff_identity: ' + str(cutoff_identity))
+        
         daliInfo = self._alignPDB
         pdbListAll = self._pdbListAll
         missing_ind_dict = dict()
@@ -324,7 +328,7 @@ class DaliRecord(object):
         self._filterList = filterList
         self._filterDict = filterDict
         self._pdbList = [self._pdbListAll[0]] + list(set(list(self._pdbListAll[1:])) - set(filterList))
-        LOGGER.info(str(len(filterList)) + ' PDBs have been filtered out from '+str(len(pdbListAll))+' Dali hits.')
+        LOGGER.info(str(len(filterList)) + ' PDBs have been filtered out from '+str(len(pdbListAll))+' Dali hits (remaining: '+str(len(pdbListAll)-len(filterList))+').')
         return self._pdbList
     
     def getTitle(self):
