@@ -285,7 +285,7 @@ class DaliRecord(object):
             raise ValueError('cutoff_identity must be a float between 0 and 1, or a number between 0 and 100')
             
         # debug:
-        print('cutoff_len: ' + str(cutoff_len) + ', ' + 'cutoff_rmsd: ' + str(cutoff_rmsd) + ', ' + 'cutoff_Z: ' + str(cutoff_Z) + ', ' + 'cutoff_identity: ' + str(cutoff_identity))
+        # print('cutoff_len: ' + str(cutoff_len) + ', ' + 'cutoff_rmsd: ' + str(cutoff_rmsd) + ', ' + 'cutoff_Z: ' + str(cutoff_Z) + ', ' + 'cutoff_identity: ' + str(cutoff_identity))
         
         daliInfo = self._alignPDB
         pdbListAll = self._pdbListAll
