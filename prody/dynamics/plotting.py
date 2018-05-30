@@ -535,14 +535,14 @@ def showCrossCorr(modes, *args, **kwargs):
 def showMode(mode, *args, **kwargs):
     """Show mode array using :func:`~matplotlib.pyplot.plot`."""
     
-    import matplotlib.pyplot as plt
+    from matplotlib.pyplot import plot, title, xlim
 
     show_hinges = kwargs.pop('show_hinges', False)
     show_zero = kwargs.pop('show_zero', True)
     show_hinges = kwargs.pop('hinge', show_hinges)
     show_zero = kwargs.pop('zero', show_zero)
-    overlay_chains = kwargs.get('overlay_chains',False)
-    atoms = kwargs.get('atoms',None)
+    atoms = kwargs.get('atoms', None)
+    final = kwargs.pop('final', True)
 
     if not isinstance(mode, (Mode, Vector)):
         raise TypeError('mode must be a Mode or Vector instance, '
@@ -550,73 +550,106 @@ def showMode(mode, *args, **kwargs):
     if mode.is3d():
         a3d = mode.getArrayNx3()
         show = []
-        show.append(plt.plot(a3d[:, 0], *args, label='x-component', **kwargs))
-        show.append(plt.plot(a3d[:, 1], *args, label='y-component', **kwargs))
-        show.append(plt.plot(a3d[:, 2], *args, label='z-component', **kwargs))
-
-        if atoms is not None:
-            plt.title(str(mode))
-        else:
-            plt.title(str(mode))
+        show.append(showAtomicLines(a3d[:, 0], atoms=atoms, label='x-component', final=False, **kwargs))
+        show.append(showAtomicLines(a3d[:, 1], atoms=atoms, label='y-component', final=False, **kwargs))
+        show.append(showAtomicLines(a3d[:, 2], atoms=atoms, label='z-component', final=final, **kwargs))
     else:
         a1d = mode._getArray()
-        show = plt.plot(a1d, *args, **kwargs)
+        show = showAtomicLines(a1d, *args, **kwargs)
         if show_hinges and isinstance(mode, Mode):
             hinges = mode.getHinges()
             if hinges is not None:
-                if atoms is not None:
-                    if overlay_chains:
-                        n = 0
-                        chain_colors = 'gcmyrwbk'
-                        for i in atoms.getHierView().iterChains():
-                            for hinge in hinges:
-                                if i.getResindices()[0] < hinge < i.getResindices()[-1]:
-                                    plt.plot(hinge - i.getResindices()[0], \
-                                                 a1d[hinge], '*', color=chain_colors[n], \
-                                                 markeredgecolor='k', markersize=10)
-                            n += 1
-                    else:
-                        plt.plot(hinges, a1d[hinges], 'r*')
-                else:
-                    plt.plot(hinges, a1d[hinges], 'r*')
-        if atoms is not None:
-            plt.title(str(mode))
-        else:
-            plt.title(str(mode))
+                showAtomicLines(hinges, a1d[hinges], 'r*', atoms=atoms, final=False)
+
+    if atoms is not None:
+        title(str(atoms))
+    else:
+        title(str(mode))
+
     if show_zero:
         if not mode.is3d():
             if atoms is not None:
-                plt.plot(plt.xlim(), (0,0), '--', color='grey')
+                plot(xlim(), (0,0), '--', color='grey')
             else:
-                plt.plot(plt.xlim(), (0,0), '--', color='grey')
+                plot(xlim(), (0,0), '--', color='grey')
         else:
-            plt.plot(plt.xlim(), (0,0), '--', color='grey')
-    if SETTINGS['auto_show']:
-        showFigure()
+            plot(xlim(), (0,0), '--', color='grey')
+
     return show
 
 
 def showSqFlucts(modes, *args, **kwargs):
-    """Show square fluctuations using :func:`~matplotlib.pyplot.plot`.  See
+    """Show square fluctuations using :func:`.showAtomicLines`.  See
     also :func:`.calcSqFlucts`."""
 
-    import matplotlib.pyplot as plt
-    show_hinge = kwargs.pop('hinge', False)
-    sqf = calcSqFlucts(modes)
-    if not 'label' in kwargs:
-        kwargs['label'] = str(modes)
+    from matplotlib.pyplot import title, ylabel, xlabel
 
-    atoms = kwargs.get('atoms', None)
-    show = showAtomicLines(sqf, *args, atoms=atoms, **kwargs)
-    plt.ylabel('Square fluctuations')
-    plt.title(str(modes))
-    if show_hinge and not modes.is3d():
-        hinges = modes.getHinges()
-        if hinges is not None:
-            plt.plot(hinges, sqf[hinges], 'r*')
-    if SETTINGS['auto_show']:
-        showFigure()
-    return show
+    def _showSqFlucts(modes, *args, **kwargs):
+        show_hinge = kwargs.pop('hinge', False)
+        norm = kwargs.pop('norm', False)
+
+        sqf = calcSqFlucts(modes)
+        
+        scaled = kwargs.pop('scaled', None)
+        if scaled is not None:
+            scale = scaled / sqf.mean()
+        else:
+            scale = 1.
+        scale = kwargs.pop('scale', scale)
+
+        if norm:
+            sqf = sqf / (sqf**2).sum()**0.5
+        
+        if scale != 1.:
+            sqf *= scale
+            def_label = '{0} (x{1:.2f})'.format(str(modes), scale)
+        else:
+            def_label = str(modes)
+
+        label = kwargs.pop('label', def_label)
+
+        show = showAtomicLines(sqf, *args, label=label, **kwargs)
+        if show_hinge and not modes.is3d():
+            hinges = modes.getHinges()
+            if hinges is not None:
+                kwargs.pop('final', False)
+                showAtomicLines(hinges, sqf[hinges], 'r*', final=False, **kwargs)
+        return show, sqf
+
+    scaled = kwargs.pop('scaled', False)
+    final = kwargs.pop('final', True)
+
+    args = list(args)
+    modesarg = []
+    i = 0
+    while i < len(args):
+        if isinstance(args[i], (VectorBase, ModeSet, NMA)):
+            modesarg.append(args.pop(i))
+        else:
+            i += 1
+
+    shows = []
+    _final = len(modesarg) == 0 and final
+    show, sqf = _showSqFlucts(modes, *args, final=_final, **kwargs)
+    shows.append(show)
+    if scaled:
+        mean = sqf.mean()
+    else:
+        mean = None
+
+    for i, modes in enumerate(modesarg):
+        if i == len(modesarg)-1:
+            _final = final
+        
+        show, sqf = _showSqFlucts(modes, *args, scaled=mean, final=_final, **kwargs)
+        shows.append(show)
+
+    xlabel('Residue')
+    ylabel('Square fluctuations')
+    if len(modesarg) == 0:
+        title(str(modes))
+
+    return shows
 
 
 def showScaledSqFlucts(modes, *args, **kwargs):
@@ -624,28 +657,8 @@ def showScaledSqFlucts(modes, *args, **kwargs):
     Modes or mode sets given as additional arguments will be scaled to have
     the same mean squared fluctuations as *modes*."""
 
-    import matplotlib.pyplot as plt
-    sqf = calcSqFlucts(modes)
-    mean = sqf.mean()
-    args = list(args)
-    modesarg = []
-    i = 0
-    while i < len(args):
-        if isinstance(args[i], (VectorBase, ModeSet, NMA)):
-            modesarg.append(args.pop(i))
-        else:
-            i += 1
-    show = plt.plot(sqf, *args, label=str(modes), **kwargs)
-    plt.xlabel('Indices')
-    plt.ylabel('Square fluctuations')
-    for modes in modesarg:
-        sqf = calcSqFlucts(modes)
-        scalar = mean / sqf.mean()
-        show.append(plt.plot(sqf * scalar, *args,
-                             label='{0} (x{1:.2f})'.format(str(modes), scalar),
-                             **kwargs))
-    if SETTINGS['auto_show']:
-        showFigure()
+    scaled = kwargs.pop('scaled', True)
+    show = showSqFlucts(modes, *args, scaled=scaled, **kwargs)
     return show
 
 
@@ -653,26 +666,8 @@ def showNormedSqFlucts(modes, *args, **kwargs):
     """Show normalized square fluctuations via :func:`~matplotlib.pyplot.plot`.
     """
 
-    import matplotlib.pyplot as plt
-    sqf = calcSqFlucts(modes)
-    args = list(args)
-    modesarg = []
-    i = 0
-    while i < len(args):
-        if isinstance(args[i], (VectorBase, ModeSet, NMA)):
-            modesarg.append(args.pop(i))
-        else:
-            i += 1
-    show = plt.plot(sqf/(sqf**2).sum()**0.5, *args,
-                     label='{0}'.format(str(modes)), **kwargs)
-    plt.xlabel('Indices')
-    plt.ylabel('Square fluctuations')
-    for modes in modesarg:
-        sqf = calcSqFlucts(modes)
-        show.append(plt.plot(sqf/(sqf**2).sum()**0.5, *args,
-                    label='{0}'.format(str(modes)), **kwargs))
-    if SETTINGS['auto_show']:
-        showFigure()
+    norm = kwargs.pop('norm', True)
+    show = showSqFlucts(modes, *args, norm=norm, **kwargs)
     return show
 
 
@@ -1330,9 +1325,10 @@ def showAtomicMatrix(matrix, x_array=None, y_array=None, atoms=None, **kwargs):
 
 pimshow = showAtomicMatrix
 
-def showAtomicLines(y, atoms=None, linespec='-', **kwargs):
+def showAtomicLines(*args, **kwargs):
     """
-    Show a plot with the option to include chain color bars using provided atoms.
+    Show a plot with the option to use residue numbers and include chain/domain color 
+    bars using provided atoms.
     
     :arg atoms: a :class: `AtomGroup` instance for matching 
         residue numbers and chain identifiers. 
@@ -1371,6 +1367,27 @@ def showAtomicLines(y, atoms=None, linespec='-', **kwargs):
     :type final: bool
     """
     
+    x = None
+    xy_args = []
+    linespec = '-'
+    for arg in args:
+        if isinstance(arg, str):
+            linespec = arg
+        else:
+            xy_args.append(arg)
+
+    if len(xy_args) == 0:
+        raise ValueError('no data is given for plotting')
+    elif len(xy_args) == 1:
+        y = xy_args[0]
+    elif len(xy_args) >= 2: 
+        if len(xy_args) > 2:
+            LOGGER.warn("args contains more than x's and y's; only the first two arrays are used")
+        x = xy_args[0]
+        y = xy_args[1]
+
+    atoms = kwargs.pop('atoms', None)
+    linespec = kwargs.pop('linespec', linespec)
     show_chain = kwargs.pop('chains', None)
     show_domain = kwargs.pop('domains', None)
     show_chain = kwargs.pop('chain', show_chain)
@@ -1408,19 +1425,45 @@ def showAtomicLines(y, atoms=None, linespec='-', **kwargs):
     else:
         raise TypeError('figure can be either an instance of matplotlib.figure.Figure '
                         'or a figure number.')
-    if SETTINGS['auto_show']:
+                        
+    if SETTINGS['auto_show'] and final:
         figure(fig_num)
     elif fig_num is not None:
         figure(fig_num)
-
+    
     try:
-        y = np.array(y)
+        y = np.asarray(y)
     except:
         raise TypeError('y should be an array-like instance.')
-    
-    x = None
-    ticklabels = labels = datalabels = None
 
+    if x is not None:
+        _y = []
+        try:
+            x = np.asarray(x, dtype=int)
+        except:
+            raise TypeError('x should be an integer array.')
+
+        if x.min() < 0:
+            raise ValueError('x should be non-negative.')
+
+        if atoms is None:
+            I = np.arange(x.max() + 1)
+        else:
+            if x.max() + 1 > atoms.numAtoms():
+                raise ValueError('size mismatch between x ({0}) and atoms ({1})'
+                             .format(x.max(), atoms.numAtoms()))
+            I = np.arange(atoms.numAtoms())
+        
+        for i in I:
+            ix = np.where(x==i)[0]
+            if len(ix):
+                _y.append(y[ix[0]])
+            else:
+                _y.append(np.nan)
+        y = np.asarray(_y)
+        x = None # clear up x just in case
+
+    ticklabels = labels = datalabels = None
     def func_ticklabels(val, pos):
         #The two args are the value and tick position
         i = int(round(val))
@@ -1433,6 +1476,10 @@ def showAtomicLines(y, atoms=None, linespec='-', **kwargs):
         return label
 
     if atoms is not None:
+        if y.shape[0] != atoms.numAtoms():
+            raise ValueError('size mismatch between y ({0}) and atoms ({1})'
+                             .format(y.shape[0], atoms.numAtoms()))
+
         if overlay:
             if not gap:
                 gap = True
@@ -1494,12 +1541,13 @@ def showAtomicLines(y, atoms=None, linespec='-', **kwargs):
 
     if gap:
         if overlay:
+            labels = kwargs.pop('label', datalabels)
             Z = []
             for z in zip(x, y):
                 Z.extend(z)
                 Z.append(linespec)
             lines, polys = showLines(*Z, dy=dy, ticklabels=ticklabels, 
-                                     gap=True, label=datalabels, **kwargs)
+                                     gap=True, label=labels, **kwargs)
         else:
             lines, polys = showLines(x, y, linespec, dy=dy, ticklabels=ticklabels, 
                                      gap=True, **kwargs)
