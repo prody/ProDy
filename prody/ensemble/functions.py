@@ -600,14 +600,14 @@ def refineEnsemble(ens, lower=.5, upper=10.):
     Z = linkage(v)
 
     labels = fcluster(Z, lower, criterion='distance')
-    uniq_labels = unique(labels)
+    uniq_labels = np.unique(labels)
 
     clusters = []
     for label in uniq_labels:
         indices = np.where(labels==label)[0]
         clusters.append(indices)
 
-    J = ones(len(clusters), dtype=int) * -1
+    J = np.ones(len(clusters), dtype=int) * -1
     for i, cluster in enumerate(clusters):
         if len(cluster) > 0:
             weights = [ens[j].getWeights().sum() for j in cluster]

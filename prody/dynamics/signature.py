@@ -628,14 +628,24 @@ class sdarray(ndarray):
     def min(self, axis=0, **kwargs):
         """Calculates the minimum values of the sdarray over modesets (`axis=0`)."""
 
-        arr = np.asarray(self)
-        return arr.min(axis=axis)
+        # np.array instead asarray is used to make sure a copy of the original data is created
+        arr = np.array(self)
+        weights = self._weights
+        if weights is not None:
+            weights = weights.astype(bool)
+            arr[~weights] = np.nan
+        return np.nanmin(arr, axis=axis)
 
     def max(self, axis=0, **kwargs):
         """Calculates the maximum values of the sdarray over modesets (`axis=0`)."""
 
-        arr = np.asarray(self)
-        return arr.max(axis=axis)
+        # np.array instead asarray is used to make sure a copy of the original data is created
+        arr = np.array(self)
+        weights = self._weights
+        if weights is not None:
+            weights = weights.astype(bool)
+            arr[~weights] = np.nan
+        return np.nanmax(arr, axis=axis)
 
     def getWeights(self):
         """Returns the weights of the signature."""
