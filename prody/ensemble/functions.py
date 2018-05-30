@@ -600,7 +600,7 @@ def refineEnsemble(ens, lower=.5, upper=10.):
     Z = linkage(v)
 
     labels = fcluster(Z, lower, criterion='distance')
-    uniq_labels = unique(labels)
+    uniq_labels = np.unique(labels)
 
     clusters = []
     for label in uniq_labels:
