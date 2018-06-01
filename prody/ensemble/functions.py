@@ -579,44 +579,29 @@ def addPDBEnsemble(ensemble, PDBs, refpdb=None, labels=None,
 
     return ensemble
 
-def refineEnsemble(ens, lower=.5, upper=10.):
-    """Refine a PDB ensemble based on RMSD criterions.""" 
-
-    from scipy.cluster.hierarchy import linkage, fcluster
-    from scipy.spatial.distance import squareform
-
-    ### calculate RMSDs ###
-    RMSD = ens.getRMSDs(pairwise=True)
-    rmsd = ens.getRMSDs()
-
-    ### impose upper bound ###
-    I = np.where(rmsd < upper)[0]
-    reens = ens[I]
-    I = I.reshape(-1, 1)
-    reRMSD = RMSD[I, I.T]
-
-    ### hierarchical clustering ###
-    v = squareform(reRMSD)
-    Z = linkage(v)
-
-    labels = fcluster(Z, lower, criterion='distance')
-    uniq_labels = np.unique(labels)
-
-    clusters = []
-    for label in uniq_labels:
-        indices = np.where(labels==label)[0]
-        clusters.append(indices)
-
-    J = np.ones(len(clusters), dtype=int) * -1
-    for i, cluster in enumerate(clusters):
-        if len(cluster) > 0:
-            weights = [ens[j].getWeights().sum() for j in cluster]
-            j = np.argmax(weights)
-            J[i] = cluster[j]
-        else:
-            J[i] = cluster[0]
-
-    ### refine ensemble ###
-    reens = reens[J]
-
-    return reens
+def refineEnsemble(ens, lower=0.5, upper=None):
+    """Refine a structure ensemble based on RMSD criterions.""" 
+    
+    ens.iterpose()
+    RMSDs = ens.getRMSDs(pairwise=True)
+    n_confs = ens.numConfs()
+    isdel_temp = np.zeros(n_confs)
+    for i in range(n_confs):
+        for j in range(n_confs):
+            if i >= j:
+                continue
+            if isdel_temp[i] or isdel_temp[j] :
+                continue
+            else:
+                if RMSDs[i,j] < lower and lower != None:
+                    isdel_temp[j] = 1
+                if RMSDs[i,j] > upper and upper != None:
+                    isdel_temp[j] = 1
+    temp_list = isdel_temp.tolist()
+    ind_list = []
+    for i in range(n_confs):
+        if not temp_list[i]:
+            ind_list.append(i)
+    LOGGER.info(str(sum(temp_list)) + ' conformations were removed from ensemble.')
+    
+    return ens[ind_list]
