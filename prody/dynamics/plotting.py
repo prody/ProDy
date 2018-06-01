@@ -1159,21 +1159,21 @@ def showAtomicMatrix(matrix, x_array=None, y_array=None, atoms=None, **kwargs):
     :type atoms: :class: `AtomGroup`
 
     :keyword chain: display a bar at the bottom to show chain separations. 
-        If set to `None`, it will be decided depends on whether *atoms* 
+        If set to **None**, it will be decided depends on whether *atoms* 
         is provided. 
-        Default is `None`.
+        Default is **None**.
     :type chain: bool
 
     :keyword domain: the same with *chains* but show domain separations instead. 
         *atoms* needs to have *domain* data associated to it.
-        Default is `None`.
+        Default is **None**.
     :type domain: bool
 
-    :keyword figure: if set to `None`, then a new figure will be created if *auto_show* 
+    :keyword figure: if set to **None**, then a new figure will be created if *auto_show* 
         is `True`, otherwise it will be plotted on the current figure. If set 
         to a figure number or a :class:`~matplotlib.figure.Figure` instance, 
         no matter what 'auto_show' value is, plots will be drawn on the *figure*.
-        Default is `None`.
+        Default is **None**.
     :type figure: :class:`~matplotlib.figure.Figure`, int, str
     """ 
 
@@ -1224,8 +1224,8 @@ def showAtomicMatrix(matrix, x_array=None, y_array=None, atoms=None, **kwargs):
                 n_xatoms, n_yatoms = xatoms_.numAtoms(), yatoms_.numAtoms()
             except:
                 raise TypeError('atoms must be an Atomic object or a list of Atomic objects')
-            if n_xatoms != n_col:
-                if n_yatoms == n_col:
+            if n_xatoms != n_col and 3*n_xatoms != n_col:
+                if n_yatoms == n_col or 3*n_yatoms == n_col:
                     xatoms = yatoms_  # swap xatoms and yatoms
                 else:
                     xatoms = None
@@ -1235,8 +1235,8 @@ def showAtomicMatrix(matrix, x_array=None, y_array=None, atoms=None, **kwargs):
             else:
                 xatoms = xatoms_
             
-            if n_yatoms != n_row:
-                if n_xatoms == n_row:
+            if n_yatoms != n_row and 3*n_yatoms != n_row:
+                if n_xatoms == n_row or 3*n_xatoms == n_row:
                     yatoms = xatoms_  # swap xatoms and yatoms
                 else:
                     yatoms = None
@@ -1248,12 +1248,19 @@ def showAtomicMatrix(matrix, x_array=None, y_array=None, atoms=None, **kwargs):
     else:
         xatoms = yatoms = atoms
 
+    is3dx = is3dy = False
     # an additional check for the case of xatoms = yatoms = atoms
-    if xatoms is not None and xatoms.numAtoms() != n_col:
-        xatoms = None
+    if xatoms is not None:
+        if xatoms.numAtoms() != n_col and 3*xatoms.numAtoms() != n_col:
+            xatoms = None
+        else:
+            is3dx = xatoms.numAtoms()*3 == n_col
 
-    if yatoms is not None and yatoms.numAtoms() != n_row:
-        yatoms = None
+    if yatoms is not None:
+        if yatoms.numAtoms() != n_row and 3*yatoms.numAtoms() != n_row:
+            yatoms = None
+        else:
+            is3dy = yatoms.numAtoms()*3 == n_row
 
     def getTickLabels(atoms):
         if atoms is None:
@@ -1275,6 +1282,21 @@ def showAtomicMatrix(matrix, x_array=None, y_array=None, atoms=None, **kwargs):
         yticklabels = kwargs.pop('yticklabels', getTickLabels(yatoms))
     else: # if the user provides ticklabels, then always use them
         xticklabels = yticklabels = ticklabels
+    
+    if is3dx:
+        if len(xticklabels) != 3*n_col:
+            xticklabels_ = []
+            for label in xticklabels:
+                xticklabels_.extend([label]*3)
+            xticklabels = xticklabels_
+
+    if is3dy:
+        if len(yticklabels) != 3*n_row:
+            yticklabels_ = []
+            for label in yticklabels:
+                yticklabels_.extend([label]*3)
+            yticklabels = yticklabels_
+
     im, lines, colorbar = showMatrix(matrix, x_array, y_array, xticklabels=xticklabels, yticklabels=yticklabels, **kwargs) 
     
     bars = []
@@ -1286,7 +1308,7 @@ def showAtomicMatrix(matrix, x_array=None, y_array=None, atoms=None, **kwargs):
 
     if show_chain:
         b, t = showDomainBar(chids, loc=chain_pos, axis='x', text_loc=chain_text_loc, 
-                             text_color=text_color, text=show_chain_text, barwidth=barwidth)
+                             text_color=text_color, text=show_chain_text, barwidth=barwidth, is3d=is3dx)
         bars.extend(b)
         texts.extend(t)
 
@@ -1295,7 +1317,7 @@ def showAtomicMatrix(matrix, x_array=None, y_array=None, atoms=None, **kwargs):
 
     if show_chain:
         b, t = showDomainBar(chids, loc=chain_pos, axis='y', text_loc=chain_text_loc, 
-                             text_color=text_color, text=show_chain_text, barwidth=barwidth)
+                             text_color=text_color, text=show_chain_text, barwidth=barwidth, is3d=is3dy)
         bars.extend(b)
         texts.extend(t)
   
@@ -1305,7 +1327,7 @@ def showAtomicMatrix(matrix, x_array=None, y_array=None, atoms=None, **kwargs):
     # x
     if show_domain:
         b, t = showDomainBar(domains, loc=domain_pos, axis='x', text_loc=domain_text_loc, 
-                             text_color=text_color, text=show_domain_text, barwidth=barwidth)
+                             text_color=text_color, text=show_domain_text, barwidth=barwidth, is3d=is3dx)
         bars.extend(b)
         texts.extend(t)
 
@@ -1314,7 +1336,7 @@ def showAtomicMatrix(matrix, x_array=None, y_array=None, atoms=None, **kwargs):
 
     if show_domain:
         b, t = showDomainBar(domains, loc=domain_pos, axis='y', text_loc=domain_text_loc, 
-                             text_color=text_color, text=show_domain_text, barwidth=barwidth)
+                             text_color=text_color, text=show_domain_text, barwidth=barwidth, is3d=is3dy)
         bars.extend(b)
         texts.extend(t)
 
@@ -1620,6 +1642,8 @@ def showDomainBar(domains, x=None, loc=0., axis='x', **kwargs):
     barwidth = kwargs.pop('barwidth', 5)
     barwidth = kwargs.pop('bar_width', barwidth)
 
+    is3d = kwargs.pop('is3d', False)
+
     text_loc = kwargs.pop('text_loc', 'above')
     if not isinstance(text_loc, str):
         raise TypeError('text_loc should be a str')
@@ -1633,9 +1657,16 @@ def showDomainBar(domains, x=None, loc=0., axis='x', **kwargs):
 
     if len(domains) == 0:
         raise ValueError('domains should not be empty')
+
+    if is3d:
+        domains_ = []
+        for d in domains:
+            domains_.extend([d]*3)
+        domains = domains_
     if PY3K:
         domains = np.asarray(domains, dtype=str)
     EMPTY_CHAR = domains[0][:0]
+
     uni_domids = np.unique(domains)
     uni_domids = uni_domids[uni_domids!=EMPTY_CHAR]
 
