@@ -585,18 +585,18 @@ def refineEnsemble(ens, lower=.5, upper=10.):
     from scipy.cluster.hierarchy import linkage, fcluster
     from scipy.spatial.distance import squareform
 
-    ### calculate RMSDs ###
-    RMSD = ens.getRMSDs(pairwise=True)
+    ### calculate RMSDs with respect to the ref ###
     rmsd = ens.getRMSDs()
 
     ### impose upper bound ###
     I = np.where(rmsd < upper)[0]
     reens = ens[I]
-    I = I.reshape(-1, 1)
-    reRMSD = RMSD[I, I.T]
+
+    ### calculate pairwise RMSDs
+    RMSD = reens.getRMSDs(pairwise=True)
 
     ### hierarchical clustering ###
-    v = squareform(reRMSD)
+    v = squareform(RMSD)
     Z = linkage(v)
 
     labels = fcluster(Z, lower, criterion='distance')
