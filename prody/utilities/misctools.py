@@ -14,7 +14,7 @@ __all__ = ['Everything', 'rangeString', 'alnum', 'importLA', 'dictElement',
            'saxsWater', 'count', 'addEnds', 'copy', 'dictElementLoop', 
            'getDataPath', 'openData', 'chr2', 'toChararray', 'interpY', 'cmp',
            'getValue', 'indentElement', 'isPDB', 'isURL', 'isListLike',
-           'getDistance']
+           'getDistance', 'fastin']
 
 # Note that the chain id can be blank (space). Examples:
 # 3TT1, 3tt1A, 3tt1:A, 3tt1_A, 3tt1-A, 3tt1 A
@@ -369,3 +369,9 @@ def getDistance(coords1, coords2, unitcell=None):
     if unitcell is not None:
         diff = subtract(diff, round(diff/unitcell)*unitcell, diff)
     return sqrt(power(diff, 2, diff).sum(axis=-1))
+
+def fastin(a, B):
+    for b in reversed(B):
+        if a is b:
+            return True
+    return False
