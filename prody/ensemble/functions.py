@@ -597,11 +597,11 @@ def refineEnsemble(ens, lower=0.5, upper=None):
                     isdel_temp[j] = 1
                 if RMSDs[i,j] > upper and upper != None:
                     isdel_temp[j] = 1
-    temp_list = range(n_confs)
-    temp_list.reverse()
-    for i in temp_list:
-        if isdel_temp[i]:
-            ens.delCoordset(i)
+    temp_list = isdel_temp.tolist()
+    ind_list = []
+    for i in range(n_confs):
+        if not temp_list[i]:
+            ind_list.append(i)
     LOGGER.info(str(sum(temp_list)) + ' conformations were removed from ensemble.')
     
-    return ens
+    return ens[ind_list]
