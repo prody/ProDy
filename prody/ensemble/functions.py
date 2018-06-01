@@ -418,6 +418,8 @@ def buildPDBEnsemble(PDBs, ref=None, title='Unknown', labels=None,
 
     LOGGER.progress('Building the ensemble...', len(PDBs), '_prody_buildPDBEnsemble')
     for i, pdb in enumerate(PDBs):
+        if pdb is None:
+            continue
         LOGGER.update(i, 'Mapping %s to the reference...'%pdb.getTitle(), 
                       label='_prody_buildPDBEnsemble')
         try:
@@ -532,6 +534,8 @@ def addPDBEnsemble(ensemble, PDBs, refpdb=None, labels=None,
 
     LOGGER.progress('Appending the ensemble...', len(PDBs), '_prody_addPDBEnsemble')
     for i, pdb in enumerate(PDBs):
+        if pdb is None:
+            continue
         lbl = labels[i]
         if pdb is None:
             unmapped.append(labels[i])
@@ -584,21 +588,19 @@ def refineEnsemble(ens, lower=.5, upper=10.):
 
     from scipy.cluster.hierarchy import linkage, fcluster
     from scipy.spatial.distance import squareform
-
-    ### calculate RMSDs with respect to the ref ###
-    rmsd = ens.getRMSDs()
-
-    ### impose upper bound ###
-    I = np.where(rmsd < upper)[0]
-    reens = ens[I]
+    from collections import Counter
 
     ### calculate pairwise RMSDs
-    RMSD = reens.getRMSDs(pairwise=True)
+    RMSD = ens.getRMSDs(pairwise=True)
 
     ### hierarchical clustering ###
     v = squareform(RMSD)
     Z = linkage(v)
 
+    ### apply upper threshold ###
+    I = np.where(RMSD.max(axis=0) > upper)[0]
+
+    ### apply lower threshold ###
     labels = fcluster(Z, lower, criterion='distance')
     uniq_labels = np.unique(labels)
 
@@ -617,6 +619,7 @@ def refineEnsemble(ens, lower=.5, upper=10.):
             J[i] = cluster[0]
 
     ### refine ensemble ###
-    reens = reens[J]
+    K = np.intersect1d(I, J)
+    reens = ens[K]
 
     return reens
