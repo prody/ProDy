@@ -376,6 +376,7 @@ def buildPDBEnsemble(PDBs, ref=None, title='Unknown', labels=None,
     occupancy = kwargs.pop('occupancy', None)
     degeneracy = kwargs.pop('degeneracy', True)
     subset = str(kwargs.get('subset', 'calpha')).lower()
+    superpose = kwargs.pop('superpose', True)
 
     if len(PDBs) == 1:
         raise ValueError('PDBs should have at least two items')
@@ -470,7 +471,8 @@ def buildPDBEnsemble(PDBs, ref=None, title='Unknown', labels=None,
 
     if occupancy is not None:
         ensemble = trimPDBEnsemble(ensemble, occupancy=occupancy)
-    ensemble.iterpose()
+    if superpose:
+        ensemble.iterpose()
     
     LOGGER.info('Ensemble ({0} conformations) were built in {1:.2f}s.'
                      .format(ensemble.numConfs(), time.time()-start))
@@ -515,6 +517,7 @@ def addPDBEnsemble(ensemble, PDBs, refpdb=None, labels=None,
 
     degeneracy = kwargs.pop('degeneracy', True)
     subset = str(kwargs.get('subset', 'calpha')).lower()
+    superpose = kwargs.pop('superpose', True)
 
     if labels is not None:
         if len(labels) != len(PDBs):
@@ -586,7 +589,8 @@ def addPDBEnsemble(ensemble, PDBs, refpdb=None, labels=None,
 
     if occupancy is not None:
         ensemble = trimPDBEnsemble(ensemble, occupancy=occupancy)
-    ensemble.iterpose()
+    if superpose:
+        ensemble.iterpose()
 
     LOGGER.info('{0} PDBs were added to the ensemble in {1:.2f}s.'
                      .format(len(PDBs) - len(unmapped), time.time()-start))
@@ -603,18 +607,21 @@ def refineEnsemble(ens, lower=.5, upper=10.):
     from scipy.spatial.distance import squareform
     from collections import Counter
 
-    ### calculate pairwise RMSDs
+    ### calculate pairwise RMSDs ###
     RMSD = ens.getRMSDs(pairwise=True)
 
-    ### hierarchical clustering ###
+    # convert the RMSD table to the compressed form
     v = squareform(RMSD)
-    Z = linkage(v)
 
     ### apply upper threshold ###
-    I = np.where(RMSD.max(axis=0) > upper)[0]
+    Z_upper = linkage(v, method='complete')
+    labels = fcluster(Z_upper, upper, criterion='distance')
+    most_common_label = Counter(labels).most_common(1)[0][0]
+    I = np.where(labels==most_common_label)[0]
 
     ### apply lower threshold ###
-    labels = fcluster(Z, lower, criterion='distance')
+    Z_lower = linkage(v, method='single')
+    labels = fcluster(Z_lower, lower, criterion='distance')
     uniq_labels = np.unique(labels)
 
     clusters = []
@@ -623,16 +630,29 @@ def refineEnsemble(ens, lower=.5, upper=10.):
         clusters.append(indices)
 
     J = np.ones(len(clusters), dtype=int) * -1
+    rmsd = None
     for i, cluster in enumerate(clusters):
         if len(cluster) > 0:
+            # find the conformations with the largest coverage 
+            # (the weight of the ref should be 1)
             weights = [ens[j].getWeights().sum() for j in cluster]
-            j = np.argmax(weights)
+            js = np.where(weights==np.max(weights))[0]
+
+            # in the case where there are multiple structures with the same weight,
+            # the one with the smallest rmsd wrt the ens._coords is selected. 
+            if len(js) > 1:
+                # rmsd is not calulated unless necessary for the sake of efficiency
+                rmsd = ens.getRMSDs() if rmsd is None else rmsd
+                j = js[np.argmin(rmsd[js])]
+            else:
+                j = js[0]
             J[i] = cluster[j]
         else:
             J[i] = cluster[0]
 
     ### refine ensemble ###
     K = np.intersect1d(I, J)
+
     reens = ens[K]
 
     return reens
