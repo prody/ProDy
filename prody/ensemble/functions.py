@@ -382,7 +382,15 @@ def buildPDBEnsemble(PDBs, ref=None, title='Unknown', labels=None,
 
     if labels is not None:
         if len(labels) != len(PDBs):
-            raise ValueError('labels and PDBs must be the same length')
+            raise TypeError('Labels and PDBs must have the same lengths.')
+    else:
+        labels = []
+        
+        for pdb in PDBs:
+            if pdb is None:
+                labels.append(None)
+            else:
+                labels.append(pdb.getTitle())
 
     if ref is None:
         refpdb = PDBs[0]
@@ -419,7 +427,9 @@ def buildPDBEnsemble(PDBs, ref=None, title='Unknown', labels=None,
     LOGGER.progress('Building the ensemble...', len(PDBs), '_prody_buildPDBEnsemble')
     for i, pdb in enumerate(PDBs):
         if pdb is None:
+            unmapped.append(labels[i])
             continue
+
         LOGGER.update(i, 'Mapping %s to the reference...'%pdb.getTitle(), 
                       label='_prody_buildPDBEnsemble')
         try:
@@ -504,6 +514,7 @@ def addPDBEnsemble(ensemble, PDBs, refpdb=None, labels=None,
     """
 
     degeneracy = kwargs.pop('degeneracy', True)
+    subset = str(kwargs.get('subset', 'calpha')).lower()
 
     if labels is not None:
         if len(labels) != len(PDBs):
@@ -519,7 +530,11 @@ def addPDBEnsemble(ensemble, PDBs, refpdb=None, labels=None,
 
     # obtain refchains from the hierarhical view of the reference PDB
     if refpdb is None:
-        refpdb = ensemble.getAtoms()
+        refpdb = ensemble._atoms
+    else:
+        if subset != 'all':
+            refpdb = refpdb.select(subset)
+
     refchains = list(refpdb.getHierView())
 
     start = time.time()
@@ -534,8 +549,6 @@ def addPDBEnsemble(ensemble, PDBs, refpdb=None, labels=None,
 
     LOGGER.progress('Appending the ensemble...', len(PDBs), '_prody_addPDBEnsemble')
     for i, pdb in enumerate(PDBs):
-        if pdb is None:
-            continue
         lbl = labels[i]
         if pdb is None:
             unmapped.append(labels[i])
