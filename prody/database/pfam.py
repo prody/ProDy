@@ -224,11 +224,10 @@ def searchPfam(query, **kwargs):
         except:
             try:
                 ag = parsePDB(seq, subset='ca')
-                seq = ag.getSequence()
-                return searchPfam(seq)
+                ag_seq = ag.getSequence()
+                return searchPfam(ag_seq)
             except:
-                LOGGER.warn('No valid UniProt accession or ID for: ' + seq)
-                return None
+                raise ValueError('No valid UniProt accession or ID for: ' + seq)
 
     try:
         root = ET.XML(xml)
