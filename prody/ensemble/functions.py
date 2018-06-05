@@ -47,13 +47,13 @@ def saveEnsemble(ensemble, filename=None, **kwargs):
             attr_dict[attr] = value
 
     atoms = dict_['_atoms']
-    if atoms:
-        atoms = atoms.copy()
-    attr_dict['_atoms'] = np.array([atoms, None])
+    if atoms is not None:
+        attr_dict['_atoms'] = np.array([atoms, None])
 
     if isinstance(ensemble, PDBEnsemble):
         msa = dict_['_msa']
-        attr_dict['_msa'] = np.array([msa, None])
+        if msa is not None:
+            attr_dict['_msa'] = np.array([msa, None])
 
     if filename.endswith('.ens'):
         filename += '.npz'
@@ -376,13 +376,22 @@ def buildPDBEnsemble(PDBs, ref=None, title='Unknown', labels=None,
     occupancy = kwargs.pop('occupancy', None)
     degeneracy = kwargs.pop('degeneracy', True)
     subset = str(kwargs.get('subset', 'calpha')).lower()
+    superpose = kwargs.pop('superpose', True)
 
     if len(PDBs) == 1:
         raise ValueError('PDBs should have at least two items')
 
     if labels is not None:
         if len(labels) != len(PDBs):
-            raise ValueError('labels and PDBs must be the same length')
+            raise TypeError('Labels and PDBs must have the same lengths.')
+    else:
+        labels = []
+        
+        for pdb in PDBs:
+            if pdb is None:
+                labels.append(None)
+            else:
+                labels.append(pdb.getTitle())
 
     if ref is None:
         refpdb = PDBs[0]
@@ -418,6 +427,10 @@ def buildPDBEnsemble(PDBs, ref=None, title='Unknown', labels=None,
 
     LOGGER.progress('Building the ensemble...', len(PDBs), '_prody_buildPDBEnsemble')
     for i, pdb in enumerate(PDBs):
+        if pdb is None:
+            unmapped.append(labels[i])
+            continue
+
         LOGGER.update(i, 'Mapping %s to the reference...'%pdb.getTitle(), 
                       label='_prody_buildPDBEnsemble')
         try:
@@ -458,7 +471,8 @@ def buildPDBEnsemble(PDBs, ref=None, title='Unknown', labels=None,
 
     if occupancy is not None:
         ensemble = trimPDBEnsemble(ensemble, occupancy=occupancy)
-    ensemble.iterpose()
+    if superpose:
+        ensemble.iterpose()
     
     LOGGER.info('Ensemble ({0} conformations) were built in {1:.2f}s.'
                      .format(ensemble.numConfs(), time.time()-start))
@@ -502,6 +516,8 @@ def addPDBEnsemble(ensemble, PDBs, refpdb=None, labels=None,
     """
 
     degeneracy = kwargs.pop('degeneracy', True)
+    subset = str(kwargs.get('subset', 'calpha')).lower()
+    superpose = kwargs.pop('superpose', True)
 
     if labels is not None:
         if len(labels) != len(PDBs):
@@ -517,7 +533,11 @@ def addPDBEnsemble(ensemble, PDBs, refpdb=None, labels=None,
 
     # obtain refchains from the hierarhical view of the reference PDB
     if refpdb is None:
-        refpdb = ensemble.getAtoms()
+        refpdb = ensemble._atoms
+    else:
+        if subset != 'all':
+            refpdb = refpdb.select(subset)
+
     refchains = list(refpdb.getHierView())
 
     start = time.time()
@@ -569,7 +589,8 @@ def addPDBEnsemble(ensemble, PDBs, refpdb=None, labels=None,
 
     if occupancy is not None:
         ensemble = trimPDBEnsemble(ensemble, occupancy=occupancy)
-    ensemble.iterpose()
+    if superpose:
+        ensemble.iterpose()
 
     LOGGER.info('{0} PDBs were added to the ensemble in {1:.2f}s.'
                      .format(len(PDBs) - len(unmapped), time.time()-start))
@@ -584,39 +605,54 @@ def refineEnsemble(ens, lower=.5, upper=10.):
 
     from scipy.cluster.hierarchy import linkage, fcluster
     from scipy.spatial.distance import squareform
+    from collections import Counter
 
-    ### calculate RMSDs ###
+    ### calculate pairwise RMSDs ###
     RMSD = ens.getRMSDs(pairwise=True)
-    rmsd = ens.getRMSDs()
 
-    ### impose upper bound ###
-    I = np.where(rmsd < upper)[0]
-    reens = ens[I]
-    I = I.reshape(-1, 1)
-    reRMSD = RMSD[I, I.T]
+    # convert the RMSD table to the compressed form
+    v = squareform(RMSD)
 
-    ### hierarchical clustering ###
-    v = squareform(reRMSD)
-    Z = linkage(v)
+    ### apply upper threshold ###
+    Z_upper = linkage(v, method='complete')
+    labels = fcluster(Z_upper, upper, criterion='distance')
+    most_common_label = Counter(labels).most_common(1)[0][0]
+    I = np.where(labels==most_common_label)[0]
 
-    labels = fcluster(Z, lower, criterion='distance')
-    uniq_labels = unique(labels)
+    ### apply lower threshold ###
+    Z_lower = linkage(v, method='single')
+    labels = fcluster(Z_lower, lower, criterion='distance')
+    uniq_labels = np.unique(labels)
 
     clusters = []
     for label in uniq_labels:
         indices = np.where(labels==label)[0]
         clusters.append(indices)
 
-    J = ones(len(clusters), dtype=int) * -1
+    J = np.ones(len(clusters), dtype=int) * -1
+    rmsd = None
     for i, cluster in enumerate(clusters):
         if len(cluster) > 0:
+            # find the conformations with the largest coverage 
+            # (the weight of the ref should be 1)
             weights = [ens[j].getWeights().sum() for j in cluster]
-            j = np.argmax(weights)
+            js = np.where(weights==np.max(weights))[0]
+
+            # in the case where there are multiple structures with the same weight,
+            # the one with the smallest rmsd wrt the ens._coords is selected. 
+            if len(js) > 1:
+                # rmsd is not calulated unless necessary for the sake of efficiency
+                rmsd = ens.getRMSDs() if rmsd is None else rmsd
+                j = js[np.argmin(rmsd[js])]
+            else:
+                j = js[0]
             J[i] = cluster[j]
         else:
             J[i] = cluster[0]
 
     ### refine ensemble ###
-    reens = reens[J]
+    K = np.intersect1d(I, J)
+
+    reens = ens[K]
 
     return reens

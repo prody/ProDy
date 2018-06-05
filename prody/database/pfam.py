@@ -180,6 +180,7 @@ def searchPfam(query, **kwargs):
                     if dbref.database != 'UniProt':
                         continue
                     idcode = dbref.idcode
+                    accession = dbref.accession
                     LOGGER.info('UniProt ID code {0} for {1} chain '
                                 '{2} will be used.'
                                 .format(idcode, seq[:4], poly.chid))
@@ -218,12 +219,15 @@ def searchPfam(query, **kwargs):
         return None
     elif xml.find(b'No valid UniProt accession or ID') > 0:
         try:
-            ag = parsePDB(seq[:4], chain=seq[4:], subset='ca')
-            seq = ag.getSequence()
-            return searchPfam(seq)
+            url = prefix + 'protein/' + accession + '?output=xml'
+            xml = openURL(url, timeout=timeout).read()
         except:
-            LOGGER.warn('No valid UniProt accession or ID for: ' + seq)
-            return None
+            try:
+                ag = parsePDB(seq, subset='ca')
+                ag_seq = ag.getSequence()
+                return searchPfam(ag_seq)
+            except:
+                raise ValueError('No valid UniProt accession or ID for: ' + seq)
 
     try:
         root = ET.XML(xml)
