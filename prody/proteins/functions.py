@@ -7,7 +7,7 @@ from prody.atomic import Atomic, Atom, AtomGroup, Selection, HierView
 from prody.utilities import openFile, showFigure
 from prody import SETTINGS, PY3K
 
-__all__ = ['view3D','showProtein', 'writePQR', ]
+__all__ = ['view3D', 'showProtein', 'writePQR', ]
 
 
 def writePQR(filename, atoms):
@@ -124,7 +124,7 @@ def view3D(*alist, **kwargs):
     
     width = kwargs.get('width', 400)
     height = kwargs.get('height', 400)
-    view = py3Dmol.view(width=width,height=height,js=kwargs.get('js','http://3dmol.csb.pitt.edu/build/3Dmol-min.js'))
+    view = py3Dmol.view(width=width, height=height, js=kwargs.get('js','http://3dmol.csb.pitt.edu/build/3Dmol-min.js'))
     
     # case insensitive kwargs..
     bgcolor = kwargs.pop('backgroundcolor', 'white')
@@ -232,19 +232,39 @@ def showProtein(*atoms, **kwargs):
     
     """
 
-    use3Dmol = kwargs.pop('py3Dmol', None)
+    from prody.dynamics.mode import Mode
 
+    method = kwargs.pop('draw', None)
+    modes = kwargs.pop('mode', None)
+    modes = kwargs.pop('modes', modes)
+    scale = kwargs.pop('scale', 100)
+
+    # modes need to be specifically a list or a tuple (cannot be an array)
+    if modes is None:
+        n_modes = 0
+    else:
+        if not isinstance(modes, (tuple, list)):   
+            modes = [modes]
+        n_modes = len(modes)
+
+    if method is None:
+        import sys        
+        if 'py3Dmol' in sys.modules: 
+            method = 'py3Dmol'
+        else:
+            method = 'matplotlib'
+    method = method.lower()
+        
     alist = atoms
     for atoms in alist:
         if not isinstance(atoms, Atomic):
             raise TypeError('atoms must be an Atomic instance')
-    
-    import sys        
-    if 'py3Dmol' in sys.modules: 
-        if use3Dmol is None:
-            use3Dmol = True
+            
+    if n_modes and n_modes != len(alist):
+        raise RuntimeError('the number of proteins ({0}) does not match that of the modes ({1}).'
+                            .format(len(alist), n_modes))
 
-    if use3Dmol:
+    if '3dmol' in method:
         mol = view3D(*alist, **kwargs)
         mol.show()
         return mol
@@ -275,35 +295,33 @@ def showProtein(*atoms, **kwargs):
         cnames_copy = list(cnames)
         min_ = list()
         max_ = list()
-        for atoms in alist:
+        for i, atoms in enumerate(alist):
             if isinstance(atoms, AtomGroup):
                 title = atoms.getTitle()
             else:
                 title = atoms.getAtomGroup().getTitle()
             calpha = atoms.select('calpha')
             if calpha:
-                from prody.dynamics.mode import Mode
-                gnmmode = kwargs.get('mode', None)
-                if gnmmode is None:
-                    for ch in HierView(calpha, chain=True):
-                        xyz = ch._getCoords()
-                        chid = ch.getChid()
-                        if len(cnames) == 0:
-                            cnames = list(cnames_copy)
-                        show.plot(xyz[:, 0], xyz[:, 1], xyz[:, 2],
-                                label=title + '_' + chid,
-                                color=kwargs.get(chid, cnames.pop()).lower(),
-                                lw=kwargs.get('lw', 4))
-                else:
+                partition = False
+                mode = modes[i] if n_modes else None
+                if mode is not None:
+                    is3d = False
+                    try:
+                        arr = mode.getArray()
+                        is3d = mode.is3d()
+                        n_nodes = mode.numAtoms()
+                    except AttributeError:
+                        arr = mode
+                        is3d = len(arr) == len(calpha)*3
+                        n_nodes = len(arr)//3 if is3d else len(arr)
+                    if n_nodes != len(calpha):
+                        raise RuntimeError('size mismatch between the protein ({0} residues) and the mode ({1} nodes).'
+                                            .format(len(calpha), n_nodes))
+                    partition = not is3d
+
+                if partition:
                     xyz = calpha._getCoords()
                     chids = calpha.getChids()
-                    arr = []
-                    if isinstance(gnmmode, Mode):
-                        arr = gnmmode.getArray()
-                    else:
-                        arr = gnmmode
-                    if len(arr) != len(calpha):
-                        raise RuntimeError('The number of residues should be equal to the size of the GNM mode.')
                     rbody = []
                     last_sign = np.sign(arr[0])
                     last_chid = chids[0]
@@ -325,6 +343,26 @@ def showProtein(*atoms, **kwargs):
                             last_sign = s
                             last_chid = ch
                         rbody.append(i)
+                else:
+                    for ch in HierView(calpha, chain=True):
+                        xyz = ch._getCoords()
+                        chid = ch.getChid()
+                        if len(cnames) == 0:
+                            cnames = list(cnames_copy)
+                        show.plot(xyz[:, 0], xyz[:, 1], xyz[:, 2],
+                                label=title + '_' + chid,
+                                color=kwargs.get(chid, cnames.pop()).lower(),
+                                lw=kwargs.get('lw', 4))
+                    
+                    if mode is not None:
+                        from prody.utilities.drawtools import drawArrow3D
+                        XYZ = calpha._getCoords()
+                        arr = arr.reshape((n_nodes, 3))
+                        XYZ2 = XYZ + arr * scale
+                        for i, xyz in enumerate(XYZ):
+                            xyz2 = XYZ2[i]
+                            mutation_scale = kwargs.pop('mutation_scale', 10)
+                            drawArrow3D(xyz, xyz2, mutation_scale=mutation_scale, **kwargs)
 
             water = atoms.select('water and noh')
             if water:
