@@ -138,8 +138,13 @@ def parsePDB(*pdb, **kwargs):
             results = results[0]
         results = list(results)
 
+        if len(results) == 2:
+            numPdbs = len(results[0])
+        else:
+            numPdbs = len(results)
+
         LOGGER.info('{0} PDBs were parsed in {1:.2f}s.'
-                     .format(len(results), time.time()-start))
+                     .format(numPdbs, time.time()-start))
 
         return results
 
