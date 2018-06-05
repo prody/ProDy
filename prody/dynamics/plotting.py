@@ -1056,7 +1056,7 @@ def showPerturbResponse(model, atoms=None, show_matrix=True, select=None, **kwar
         show = showAtomicMatrix(prs_matrix, x_array=sensitivity, 
                                 y_array=effectiveness, atoms=atoms, 
                                 **kwargs)
-        ylabel('Residues')
+        xlabel('Residues')
 
     else:
         if select is None:
