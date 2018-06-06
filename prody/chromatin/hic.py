@@ -346,7 +346,7 @@ def parseHiC(filename, **kwargs):
         title = os.path.basename(filename)
     else:
         title = kwargs.pop('title')
-    with open(filename, 'rb') as filestream:
+    with open(filename, 'r') as filestream:
         hic = parseHiCStream(filestream, title=title, **kwargs)
     return hic
 
