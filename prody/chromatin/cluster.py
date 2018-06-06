@@ -3,7 +3,7 @@ from prody import LOGGER, SETTINGS
 from prody.utilities import showFigure
 from prody.chromatin.functions import _getEigvecs
 
-__all__ = ['getGNMDomains', 'KMeans', 'Hierarchy', 'Discretize', 'showLinkage']
+__all__ = ['calcGNMDomains', 'KMeans', 'Hierarchy', 'Discretize', 'showLinkage']
 
 def KMeans(V, **kwargs):
     """Performs k-means clustering on *V*. The function uses :func:`sklearn.cluster.KMeans`. See sklearn documents 
@@ -115,7 +115,7 @@ def showLinkage(V, **kwargs):
         showFigure()
     return Z
     
-def getGNMDomains(modes, method=Hierarchy, **kwargs):
+def calcGNMDomains(modes, method=Hierarchy, **kwargs):
     """Uses spectral clustering to separate structural domains in the chromosome.
     
     :arg modes: GNM modes used for segmentation
@@ -143,3 +143,4 @@ def getGNMDomains(modes, method=Hierarchy, **kwargs):
             currlbl = l
 
     return labels
+    
