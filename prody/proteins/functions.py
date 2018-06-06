@@ -112,7 +112,7 @@ def view3D(*alist, **kwargs):
     
     width = kwargs.get('width',400)
     height = kwargs.get('height',400)
-    view = py3Dmol.view(width=width,height=height,js=kwargs.get('js','http://localhost/3Dmol/build/3Dmol.js'))
+    view = py3Dmol.view(width=width,height=height,js=kwargs.get('js','http://3dmol.csb.pitt.edu/build/3Dmol-min.js'))
     
     #case insensitive kwargs..
     bgcolor = kwargs['backgroundcolor'] if 'backgroundcolor' in kwargs else kwargs.get('backgroundColor','white')
