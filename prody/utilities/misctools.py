@@ -30,13 +30,11 @@ isURL = re.compile(
         r'(?:/?|[/?]\S+)$', re.IGNORECASE).match
 
 class Everything(object):
-
     """A place for everything."""
 
     def __contains__(self, what):
 
         return True
-
 
 def rangeString(lint, sep=' ', rng=' to ', exc=False, pos=True):
     """Returns a structured string for a given list of integers.
