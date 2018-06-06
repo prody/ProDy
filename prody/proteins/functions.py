@@ -136,9 +136,10 @@ def view3D(*alist, **kwargs):
     zoomto = kwargs.pop('zoomto', {})
     bgcolor = kwargs.pop('backgroundcolor', 'white')
     bgcolor = kwargs.pop('backgroundColor', bgcolor)
-    frames = kwargs.get('frames', 30)
-    amplitude = kwargs.get('amplitude', 100)
-    interval = kwargs.get('interval', 1)
+    frames = kwargs.pop('frames', 30)
+    interval = kwargs.pop('interval', 1)
+    anim = kwargs.pop('anim', False)
+    scale = kwargs.pop('scale', 100)
 
     if modes is None:
         n_modes = 0
@@ -205,14 +206,23 @@ def view3D(*alist, **kwargs):
                     raise RuntimeError("Atom count mismatch: {} vs {}. mode animation assumes a calpha selection."
                                        .format(atoms.calpha.numAtoms(), len(arr)//3))
 
-                # construct map from residue to anm property and dx,dy,dz vectors
-                propmap = []
-                for j, a in enumerate(atoms.calpha):
-                    propmap.append({'model': -1, 'chain': a.getChid(), 'resi': int(a.getResnum()),
-                                    'props': {'dx': arr[3*i], 'dy': arr[3*j+1], 'dz': arr[3*j+2] } })
-                # set the atom property 
-                # TODO: implement something more efficient on the 3Dmol.js side (this is O(n*m)!)
-                view.mapAtomProperties(propmap)
+                if anim:
+                    # construct map from residue to anm property and dx,dy,dz vectors
+                    propmap = []
+                    for j, a in enumerate(atoms.calpha):
+                        propmap.append({'model': -1, 'chain': a.getChid(), 'resi': int(a.getResnum()),
+                                        'props': {'dx': arr[3*j], 'dy': arr[3*j+1], 'dz': arr[3*j+2] } })
+                    # set the atom property 
+                    # TODO: implement something more efficient on the 3Dmol.js side (this is O(n*m)!)
+                    view.mapAtomProperties(propmap)
+                else:
+                    for j, a in enumerate(atoms.calpha):
+                        start = a._getCoords()
+                        dcoords = arr[3*j:3*j+3]
+                        end = start + dcoords * scale
+                        view.addArrow({'start': {'x':start[0], 'y':start[1], 'z':start[2]},
+                                       'end': {'x':end[0], 'y':end[1], 'z':end[2]},
+                                       'radius': 0.3})
             else:
                 if atoms.calpha.numAtoms() != len(arr):
                     raise RuntimeError("Atom count mismatch: {} vs {}. mode styling assumes a calpha selection."
@@ -226,7 +236,7 @@ def view3D(*alist, **kwargs):
 
     if n_modes:
         #create vibrations
-        view.vibrate(frames, amplitude)
+        view.vibrate(frames, scale)
         
         animate = kwargs.get('animate', {'loop':'rock', 'interval':interval})
         view.animate(animate)     
@@ -281,8 +291,8 @@ def showProtein(*atoms, **kwargs):
     from prody.dynamics.mode import Mode
 
     method = kwargs.pop('draw', None)
-    modes = kwargs.pop('mode', None)
-    scale = kwargs.pop('scale', 100)
+    modes = kwargs.get('mode', None)
+    scale = kwargs.get('scale', 100)
 
     # modes need to be specifically a list or a tuple (cannot be an array)
     if modes is None:
@@ -309,8 +319,6 @@ def showProtein(*atoms, **kwargs):
                             .format(len(alist), n_modes))
 
     if '3dmol' in method:
-        if n_modes:
-            kwargs['mode'] = modes
         mol = view3D(*alist, **kwargs)
         mol.show()
         return mol
