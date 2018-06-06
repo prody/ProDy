@@ -32,7 +32,7 @@ class AtomSubset(AtomPointer):
 
         if not isinstance(indices, np.ndarray):
             indices = np.array(indices, int)
-        elif not np.issubdtype(indices.dtype, int):
+        elif not np.issubdtype(indices.dtype, np.signedinteger):
             indices = list(indices[0])
             indices = np.array(indices, int)
 
@@ -46,6 +46,13 @@ class AtomSubset(AtomPointer):
     def __len__(self):
 
         return len(self._indices)
+
+    def __getitem__(self, index):
+        try:
+            index = self._indices[index]
+            return self._ag[index]
+        except:
+            raise TypeError('invalid index')
 
     def getCoords(self):
         """Returns a copy of coordinates from the active coordinate set."""

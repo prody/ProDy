@@ -1,19 +1,23 @@
 # -*- coding: utf-8 -*-
 """This module defines MSA analysis functions."""
 
-from numpy import all, zeros, dtype, array, char, cumsum
+from numbers import Integral
 
+from numpy import all, zeros, dtype, array, char, cumsum, ceil, reshape
+from numpy import where, sort, concatenate, vstack, isscalar, chararray
+
+from Bio import AlignIO
+from Bio import pairwise2
+from Bio.SubsMat import MatrixInfo as matlist
+
+from prody import LOGGER, PY3K
+from prody.atomic import Atomic
+from prody.utilities import toChararray
 from .sequence import Sequence, splitSeqLabel
 
-from prody import LOGGER
+import sys
 
-__all__ = ['MSA', 'refineMSA', 'mergeMSA', 'specMergeMSA']
-
-try:
-    range = xrange
-except NameError:
-    pass
-
+__all__ = ['MSA', 'refineMSA', 'mergeMSA', 'specMergeMSA',]
 
 class MSA(object):
 
@@ -25,54 +29,60 @@ class MSA(object):
         label to sequence index in *msa* array. If *mapping* is not given,
         one will be build from *labels*."""
 
-        try:
-            ndim, dtype_, shape = msa.ndim, msa.dtype, msa.shape
-        except AttributeError:
-            raise TypeError('msa is not a Numpy array')
-
         self._aligned = aligned = kwargs.get('aligned', True)
-        if aligned:
-            if ndim != 2:
-                raise ValueError('msa.dim must be 2')
-            if dtype_ != dtype('|S1'):
-                raise ValueError('msa must be a character array')
-        numseq = shape[0]
+        msa = toChararray(msa, aligned)
+        numseq = msa.shape[0]
 
         if labels and len(labels) != numseq:
             raise ValueError('len(labels) must be equal to number of '
                              'sequences')
-        self._labels = labels
-        mapping = kwargs.get('mapping')
-        if mapping is None:
-            if labels is not None:
-                # map labels to sequence index
-                self._mapping = mapping = {}
-                for index, label in enumerate(labels):
-                    label = splitSeqLabel(label)[0]
-                    try:
-                        value = mapping[label]
-                    except KeyError:
-                        mapping[label] = index
-                    else:
-                        try:
-                            value.append(index)
-                        except AttributeError:
-                            mapping[label] = [value, index]
+        
+        if labels is None:
+            labels = [str(i+1) for i in range(numseq)]
 
-        elif mapping:
+        if PY3K:
+            for i, label in enumerate(labels):
+                if not isinstance(label, str):
+                    labels[i] = label.decode()
+                    
+        self._labels = labels
+        
+        mapping = kwargs.get('mapping')
+        self._map(mapping)
+        self._msa = msa
+        self._title = str(title) or 'Unknown'
+        self._split = bool(kwargs.get('split', True))
+
+    def _map(self, mapping=None):
+
+        labels = self._labels
+        if mapping is not None:
             try:
                 mapping['isdict']
             except KeyError:
                 pass
             except Exception:
                 raise TypeError('mapping must be a dictionary')
-        self._mapping = mapping
-        if labels is None:
-            self._labels = [None] * numseq
-
-        self._msa = msa
-        self._title = str(title) or 'Unknown'
-        self._split = bool(kwargs.get('split', True))
+            
+            for key, value in mapping.items():
+                values = [value] if isscalar(value) else value
+                for i in values:
+                    if labels[i] != key:
+                        labels[i] = key
+        
+        self._mapping = mapping = {}
+        for index, label in enumerate(labels):
+            label = splitSeqLabel(label)[0]
+            try:
+                value = mapping[label]
+            except KeyError:
+                mapping[label] = index
+            else:
+                try:
+                    value.append(index)
+                except AttributeError:
+                    mapping[label] = [value, index]
+        return mapping
 
     def __str__(self):
 
@@ -92,9 +102,30 @@ class MSA(object):
 
         return len(self._msa)
 
+    def __add__(self, other):
+        """Concatenate two MSAs."""
+
+        A = self.getArray()
+        B = other.getArray()
+        try:
+            AB = vstack((A, B))
+        except:
+            raise ValueError('failed to add {0} and {1} together: shapes do not match'
+                             .format(repr(self), repr(other)))
+        aligned = self._aligned or other._aligned
+
+        labels = list(self._labels)
+        labels.extend(other._labels)
+
+        split = self._split or other._split
+
+        msa = MSA(AB, title='%s + %s'%(self.getTitle(), other.getTitle()), 
+                  aligned=aligned, labels=labels, split=split)
+        return msa
+
     def __getitem__(self, index):
 
-        if isinstance(index, int):
+        if isinstance(index, Integral):
             return Sequence(self, index)
 
         if isinstance(index, str):
@@ -143,20 +174,17 @@ class MSA(object):
         if cols is None:
             msa = self._msa[rows]
         else:
-            if isinstance(cols, (slice, int)):
+            try:
                 msa = self._msa[rows, cols]
-            else:
-                try:
-                    msa = self._msa[rows].take(cols, 1)
-                except TypeError:
-                    raise IndexError('invalid index: ' + str(index))
+            except TypeError:
+                raise IndexError('invalid index: ' + str(index))
 
         try:
-            lbls = self._labels[rows]
+            lbls = list(array(self._labels)[rows])
         except TypeError:
             labels = self._labels
             lbls = [labels[i] for i in rows]
-        else:
+        finally:
             if not isinstance(lbls, list):
                 lbls = [lbls]
 
@@ -167,7 +195,7 @@ class MSA(object):
         if msa.base is not None:
             msa = msa.copy()
 
-        return MSA(msa=msa, title=self._title + '\'', labels=lbls,
+        return MSA(msa=msa, title=self._title, labels=lbls,
                    aligned=self._aligned)
 
     def __iter__(self):
@@ -206,6 +234,38 @@ class MSA(object):
 
     split = property(_getSplit, _setSplit,
                      doc='Return split label when iterating or indexing.')
+
+    def extend(self, other):
+        """Adds *other* to this MSA."""
+
+        A = self.getArray()
+        if isinstance(other, MSA):
+            B = other.getArray()
+            otherlabels = other._labels
+        elif isinstance(other, Sequence):
+            B = other.getArray()
+            B = reshape(B, (1, B.shape[0]))
+            otherlabels = other.getLabel(full=True)
+        else:
+            try:
+                B = toChararray(other, aligned=False)
+                numA, numB = A.shape[0], B.shape[0]
+                otherlabels = [str(i+1) for i in range(numA, numA+numB)]
+            except:
+                raise ValueError('failed to add {1} to {0}'
+                             .format(repr(self), repr(other)))
+        try:
+            AB = vstack((A, B))
+        except:
+            raise ValueError('failed to add {1} to {0}: shapes do not match'
+                             .format(repr(self), repr(other)))
+
+        labels = list(self._labels)
+        labels.extend(otherlabels)
+
+        self._msa = AB
+        self._labels = labels
+        self._map()
 
     def isAligned(self):
         """Returns **True** if MSA is aligned."""
@@ -287,7 +347,10 @@ class MSA(object):
         try:
             index = self._mapping[label]
         except KeyError:
-            return None
+            try:
+                return list(v for k, v in self._mapping.items() if label in k)[0]
+            except:
+                return None
         except TypeError:
             mapping = self._mapping
             indices = []
@@ -319,6 +382,12 @@ class MSA(object):
             for label in self._labels:
                 yield splitSeqLabel(label)[0]
 
+    def getLabels(self, full=False):
+        """Returns all labels"""
+
+        labels = [label for label in self.iterLabels(full=full)]
+        return labels
+
     def countLabel(self, label):
         """Returns the number of sequences that *label* maps onto."""
 
@@ -329,13 +398,15 @@ class MSA(object):
         except TypeError:
             return 1
 
-
-def refineMSA(msa, label=None, rowocc=None, seqid=None, colocc=None, **kwargs):
+def refineMSA(msa, index=None, label=None, rowocc=None, seqid=None, colocc=None, **kwargs):
     """Refine *msa* by removing sequences (rows) and residues (columns) that
     contain gaps.
 
     :arg msa: multiple sequence alignment
     :type msa: :class:`.MSA`
+
+    :arg index: remove columns that are gaps in the sequence with that index
+    :type index: int
 
     :arg label: remove columns that are gaps in the sequence matching label,
         ``msa.getIndex(label)`` must return a sequence index, a PDB identifier
@@ -366,7 +437,7 @@ def refineMSA(msa, label=None, rowocc=None, seqid=None, colocc=None, **kwargs):
     :class:`.DBRef`).
 
     The order of refinements are applied in the order of arguments.  If *label*
-    and *unique* is specified is specified, sequence matching *label* will
+    and *unique* is specified, sequence matching *label* will
     be kept in the refined :class:`.MSA` although it may be similar to some
     other sequence."""
 
@@ -389,105 +460,118 @@ def refineMSA(msa, label=None, rowocc=None, seqid=None, colocc=None, **kwargs):
 
     title = []
     cols = None
-    index = None
-    if label is not None:
+
+    if index is not None:
         before = arr.shape[1]
         LOGGER.timeit('_refine')
-        try:
-            upper, lower = label.upper(), label.lower()
-        except AttributeError:
-            raise TypeError('label must be a string')
-
-        if msa is None:
-            raise TypeError('msa must be an MSA instance, '
-                            'label cannot be used')
-
-        index = msa.getIndex(label)
-        if index is None:
-                index = msa.getIndex(upper)
-        if index is None:
-                index = msa.getIndex(lower)
-
-        chain = None
-        if index is None and (len(label) == 4 or len(label) == 5):
-            from prody import parsePDB
-            try:
-                structure, header = parsePDB(label[:4], header=True)
-            except Exception as err:
-                raise IOError('failed to parse header for {0} ({1})'
-                              .format(label[:4], str(err)))
-
-            chid = label[4:].upper()
-            for poly in header['polymers']:
-                if chid and poly.chid != chid:
-                    continue
-                for dbref in poly.dbrefs:
-                    if index is None:
-                        index = msa.getIndex(dbref.idcode)
-                        if index is not None:
-                            LOGGER.info('{0} idcode {1} for {2}{3} '
-                                        'is found in chain {3}.'.format(
-                                        dbref.database, dbref.idcode,
-                                        label[:4], poly.chid, str(msa)))
-                            break
-                    if index is None:
-                        index = msa.getIndex(dbref.accession)
-                        if index is not None:
-                            LOGGER.info('{0} accession {1} for {2}{3} '
-                                        'is found in chain {3}.'.format(
-                                        dbref.database, dbref.accession,
-                                        label[:4], poly.chid, str(msa)))
-                            break
-            if index is not None:
-                chain = structure[poly.chid]
-
-        if index is None:
-            raise ValueError('label is not in msa, or msa is not indexed')
-        try:
-            len(index)
-        except TypeError:
-            pass
-        else:
-            raise ValueError('label {0} maps onto multiple sequences, '
-                             'so cannot be used for refinement'.format(label))
-
-        title.append('label=' + label)
         cols = char.isalpha(arr[index]).nonzero()[0]
         arr = arr.take(cols, 1)
-        LOGGER.report('Label refinement reduced number of columns from {0} to '
+        title.append('index=' + str(index))
+        LOGGER.report('Index refinement reduced number of columns from {0} to '
                       '{1} in %.2fs.'.format(before, arr.shape[1]), '_refine')
 
-        if chain is not None and not kwargs.get('keep', False):
+    if label is not None:
+        if index is not None:
+            LOGGER.info('An index was provided so the label will be ignored.')
+
+        else:
             before = arr.shape[1]
             LOGGER.timeit('_refine')
-            from prody.proteins.compare import importBioPairwise2
-            from prody.proteins.compare import MATCH_SCORE, MISMATCH_SCORE
-            from prody.proteins.compare import GAP_PENALTY, GAP_EXT_PENALTY
-            pw2 = importBioPairwise2()
-            chseq = chain.getSequence()
-            algn = pw2.align.localms(arr[index].tostring().upper(), chseq,
-                                     MATCH_SCORE, MISMATCH_SCORE,
-                                     GAP_PENALTY, GAP_EXT_PENALTY,
-                                     one_alignment_only=1)
-            torf = []
-            for s, c in zip(*algn[0][:2]):
-                if s == '-':
-                    continue
-                elif c != '-':
-                    torf.append(True)
-                else:
-                    torf.append(False)
-            torf = array(torf)
-            tsum = torf.sum()
-            assert tsum <= before, 'problem in mapping sequence to structure'
-            if tsum < before:
-                arr = arr.take(torf.nonzero()[0], 1)
-                LOGGER.report('Structure refinement reduced number of '
-                              'columns from {0} to {1} in %.2fs.'
-                              .format(before, arr.shape[1]), '_refine')
+            try:
+                upper, lower = label.upper(), label.lower()
+            except AttributeError:
+                raise TypeError('label must be a string')
+
+            if msa is None:
+                raise TypeError('msa must be an MSA instance, '
+                                'label cannot be used')
+
+            index = msa.getIndex(label)
+            if index is None:
+                    index = msa.getIndex(upper)
+            if index is None:
+                    index = msa.getIndex(lower)
+
+            chain = None
+            if index is None and (len(label) == 4 or len(label) == 5):
+                from prody import parsePDB
+                try:
+                    structure, header = parsePDB(label[:4], header=True)
+                except Exception as err:
+                    raise IOError('failed to parse header for {0} ({1})'
+                                  .format(label[:4], str(err)))
+
+                chid = label[4:].upper()
+                for poly in header['polymers']:
+                    if chid and poly.chid != chid:
+                        continue
+                    for dbref in poly.dbrefs:
+                        if index is None:
+                            index = msa.getIndex(dbref.idcode)
+                            if index is not None:
+                                LOGGER.info('{0} idcode {1} for {2}{3} '
+                                            'is found in chain {4}.'.format(
+                                            dbref.database, dbref.idcode,
+                                            label[:4], poly.chid, str(msa)))
+                                break
+                        if index is None:
+                            index = msa.getIndex(dbref.accession)
+                            if index is not None:
+                                LOGGER.info('{0} accession {1} for {2}{3} '
+                                            'is found in chain {4}.'.format(
+                                            dbref.database, dbref.accession,
+                                            label[:4], poly.chid, str(msa)))
+                                break
+                if index is not None:
+                    chain = structure[poly.chid]
+    
+            if index is None:
+                raise ValueError('label is not in msa, or msa is not indexed')
+            try:
+                len(index)
+            except TypeError:
+                pass
             else:
-                LOGGER.debug('All residues in the sequence are contained in '
-                             'PDB structure {0}.'.format(label))
+                raise ValueError('label {0} maps onto multiple sequences, '
+                                 'so cannot be used for refinement'.format(label))
+
+            title.append('label=' + label)
+            cols = char.isalpha(arr[index]).nonzero()[0]
+            arr = arr.take(cols, 1)
+            LOGGER.report('Label refinement reduced number of columns from {0} to '
+                          '{1} in %.2fs.'.format(before, arr.shape[1]), '_refine')
+
+            if chain is not None and not kwargs.get('keep', False):
+                before = arr.shape[1]
+                LOGGER.timeit('_refine')
+                from prody.proteins.compare import importBioPairwise2
+                from prody.proteins.compare import MATCH_SCORE, MISMATCH_SCORE
+                from prody.proteins.compare import GAP_PENALTY, GAP_EXT_PENALTY
+                pw2 = importBioPairwise2()
+                chseq = chain.getSequence()
+                algn = pw2.align.localms(arr[index].tostring().upper(), chseq,
+                                         MATCH_SCORE, MISMATCH_SCORE,
+                                         GAP_PENALTY, GAP_EXT_PENALTY,
+                                         one_alignment_only=1)
+                torf = []
+                for s, c in zip(*algn[0][:2]):
+                    if s == '-':
+                        continue
+                    elif c != '-':
+                        torf.append(True)
+                    else:
+                        torf.append(False)
+                torf = array(torf)
+                tsum = torf.sum()
+                assert tsum <= before, 'problem in mapping sequence to structure'
+                if tsum < before:
+                    arr = arr.take(torf.nonzero()[0], 1)
+                    LOGGER.report('Structure refinement reduced number of '
+                                  'columns from {0} to {1} in %.2fs.'
+                                  .format(before, arr.shape[1]), '_refine')
+                else:
+                    LOGGER.debug('All residues in the sequence are contained in '
+                                 'PDB structure {0}.'.format(label))
 
     from .analysis import calcMSAOccupancy, uniqueSequences
 
@@ -545,7 +629,7 @@ def refineMSA(msa, label=None, rowocc=None, seqid=None, colocc=None, **kwargs):
                       '_refine')
 
     if not title:
-        raise ValueError('label, rowocc, colocc all cannot be None')
+        raise ValueError('label, index, seqid, rowocc, colocc all cannot be None')
 
     # depending on slicing of rows, arr may not have it's own memory
     if arr.base is not None:
@@ -557,13 +641,11 @@ def refineMSA(msa, label=None, rowocc=None, seqid=None, colocc=None, **kwargs):
         if rows is None:
             from copy import copy
             labels = copy(msa._labels)
-            mapping = copy(msa._mapping)
         else:
             labels = msa._labels
             labels = [labels[i] for i in rows]
-            mapping = None
         return MSA(arr, title=msa.getTitle() + ' refined ({0})'
-                   .format(', '.join(title)), labels=labels, mapping=mapping)
+                   .format(', '.join(title)), labels=labels)
 
 
 def mergeMSA(*msa, **kwargs):
@@ -605,28 +687,24 @@ def mergeMSA(*msa, **kwargs):
     idx_arr_rng = list(zip([m.getIndex for m in msa], arrs, rngs))
 
     merger = zeros((len(common), sum(lens)), '|S1')
-    index = 0
     labels = []
-    mapping = {}
-    for label in msa[0].iterLabels():
+    for index, label in enumerate(common):
         if label not in common:
             continue
         for idx, arr, (start, end) in idx_arr_rng:
             merger[index, start:end] = arr[idx(label)]
 
         labels.append(label)
-        mapping[label] = index
-        index += 1
-    merger = MSA(merger, labels=labels, mapping=mapping,
+    merger = MSA(merger, labels=labels,
                  title=' + '.join([m.getTitle() for m in msa]))
     return merger
 
 def specMergeMSA(*msa, **kwargs):
     """Returns an :class:`.MSA` obtained from merging parts of the sequences
-    of proteins present in multiple *msa* instances.  Sequences are matched
+    of proteins present in multiple *msa* instances. Sequences are matched
     based on species section of protein identifiers found in the sequence labels.  
     Order of sequences in the merged MSA will follow the order of sequences in the
-    first *msa* instance.  Note that protein identifiers that map to multiple
+    first *msa* instance. Note that protein identifiers that map to multiple
     sequences will be excluded."""
 
     if len(msa) <= 1:
@@ -663,17 +741,14 @@ def specMergeMSA(*msa, **kwargs):
     idx_arr_rng = list(zip([m.getIndex for m in msa], arrs, rngs))
 
     merger = zeros((len(common), sum(lens)), '|S1')
-    index = 0
     labels = []
-    mapping = {}
-    for lbl in common:
-        merger[index, 0:start]=list(str(msa[0][msa[0].getIndex(labells[0][lbl])]))
-        merger[index, start:end]=list(str(msa[1][msa[1].getIndex(labells[1][lbl])]))
+    for index, lbl in enumerate(common):
+        for idx, arr, (start, end) in idx_arr_rng:
+            merger[index, 0:start]=list(str(msa[0][msa[0].getIndex(labells[0][lbl])]))
+            merger[index, start:end]=list(str(msa[1][msa[1].getIndex(labells[1][lbl])]))
         label = labells[0][lbl]
 
         labels.append(label)
-        mapping[label] = index
-        index += 1
-    merger = MSA(merger, labels=labels, mapping=mapping,
+    merger = MSA(merger, labels=labels,
                  title=' + '.join([m.getTitle() for m in msa]))
     return merger

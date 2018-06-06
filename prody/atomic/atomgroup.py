@@ -3,6 +3,7 @@
 multiple coordinate sets in :class:`numpy.ndarray` instances."""
 
 from time import time
+from numbers import Integral
 
 import numpy as np
 
@@ -24,8 +25,8 @@ from . import flags
 
 __all__ = ['AtomGroup']
 
-if PY2K: range = xrange
-
+if PY2K: 
+    range = xrange
 
 def checkLabel(label):
     """Check suitability of *label* for labeling user data or flags."""
@@ -121,7 +122,8 @@ class AtomGroup(Atomic):
     __slots__ = ['_title', '_n_atoms', '_coords', '_hv', '_sn2i',
                  '_timestamps', '_kdtrees', '_bmap', '_bonds', '_cslabels',
                  '_acsi', '_n_csets', '_data', '_fragments',
-                 '_flags', '_flagsts', '_subsets']
+                 '_flags', '_flagsts', '_subsets', '_msa', 
+                 '_sequenceMap']
 
     def __init__(self, title='Unnamed'):
 
@@ -145,6 +147,8 @@ class AtomGroup(Atomic):
         self._flags = None
         self._flagsts = 0
         self._subsets = None
+        self._msa = None
+        self._sequenceMap = None
 
     def __repr__(self):
 
@@ -168,13 +172,7 @@ class AtomGroup(Atomic):
 
         acsi = self._acsi
 
-        if isinstance(index, int):
-            n_atoms = self._n_atoms
-            if index >= n_atoms or index < -n_atoms:
-                raise IndexError('index out of bounds')
-            return Atom(self, index if index >= 0 else n_atoms + index, acsi)
-
-        elif isinstance(index, slice):
+        if isinstance(index, slice):
             start, stop, step = index.indices(self._n_atoms)
             start = start or 0
             index = np.arange(start, stop, step)
@@ -195,7 +193,14 @@ class AtomGroup(Atomic):
             return self.getHierView()[index]
 
         else:
-            raise TypeError('invalid index')
+            try:
+                index = int(index)
+                n_atoms = self._n_atoms
+                if index >= n_atoms or index < -n_atoms:
+                    raise IndexError('index out of bounds')
+                return Atom(self, index if index >= 0 else n_atoms + index, acsi)
+            except:
+                raise TypeError('invalid index')
 
     def __len__(self):
 
@@ -231,9 +236,13 @@ class AtomGroup(Atomic):
             that = other._data.get(key)
             if this is not None or that is not None:
                 if this is None:
-                    this = np.zeros(that.shape, that.dtype)
+                    shape = list(that.shape)
+                    shape[0] = len(self)
+                    this = np.zeros(shape, that.dtype)
                 if that is None:
-                    that = np.zeros(this.shape, this.dtype)
+                    shape = list(this.shape)
+                    shape[0] = len(other)
+                    that = np.zeros(shape, this.dtype)
                 new._data[key] = np.concatenate((this, that))
 
         if self._bonds is not None and other._bonds is not None:
@@ -533,7 +542,7 @@ class AtomGroup(Atomic):
             return None
         if indices is None:
             return self._coords.copy()
-        if isinstance(indices, (int, slice)):
+        if isinstance(indices, (Integral, slice)):
             return self._coords[indices].copy()
 
         # following fancy indexing makes a copy, so .copy() is not needed
@@ -626,7 +635,7 @@ class AtomGroup(Atomic):
         n_csets = self._n_csets
         if n_csets == 0:
             self._acsi = 0
-        if not isinstance(index, int):
+        if not isinstance(index, Integral):
             raise TypeError('index must be an integer')
         if n_csets <= index or n_csets < abs(index):
             raise IndexError('coordinate set index is out of range')
@@ -639,6 +648,9 @@ class AtomGroup(Atomic):
 
         if self._hv is None:
             self._hv = HierView(self, **kwargs)
+        else:
+            self._hv.update(**kwargs)
+            
         return self._hv
 
     def numSegments(self):
@@ -689,11 +701,11 @@ class AtomGroup(Atomic):
         else:
             label = checkLabel(label)
 
-            try:
-                ndim, dtype, shape = data.ndim, data.dtype, data.shape
-            except AttributeError:
-                data = np.array(data)
-                ndim, dtype, shape = data.ndim, data.dtype, data.shape
+            if np.isscalar(data):
+                data = [data] * self._n_atoms
+                
+            data = np.asarray(data)
+            ndim, dtype, shape = data.ndim, data.dtype, data.shape
 
             if ndim == 1 and dtype == bool:
                 raise TypeError('1 dimensional boolean arrays are not '
@@ -898,7 +910,7 @@ class AtomGroup(Atomic):
         (default is 1) specifies increment.  If atoms with matching serial
         numbers are not found, **None** will be returned."""
 
-        if not isinstance(serial, int):
+        if not isinstance(serial, Integral):
             raise TypeError('serial must be an integer')
         if serial < 0:
             raise ValueError('serial must be greater than or equal to zero')
@@ -911,7 +923,7 @@ class AtomGroup(Atomic):
                 if index != -1:
                     return Atom(self, index)
         else:
-            if not isinstance(stop, int):
+            if not isinstance(stop, Integral):
                 raise TypeError('stop must be an integer')
             if stop <= serial:
                 raise ValueError('stop must be greater than serial')
@@ -919,7 +931,7 @@ class AtomGroup(Atomic):
             if step is None:
                 step = 1
             else:
-                if not isinstance(step, int):
+                if not isinstance(step, Integral):
                     raise TypeError('step must be an integer')
                 if step < 1:
                     raise ValueError('step must be greater than zero')
@@ -1150,29 +1162,33 @@ for fname, field in ATOMIC_FIELDS.items():
         if array is None:
             self._data.pop(var, None)
         else:
-            if self._n_atoms == 0:
-                self._n_atoms = len(array)
-            elif len(array) != self._n_atoms:
-                raise ValueError('length of array must match number '
-                                 'of atoms')
+            if np.isscalar(array):
+                self._data[var][:] = array
+            else:
+                if self._n_atoms == 0:
+                    self._n_atoms = len(array)
+                elif len(array) != self._n_atoms:
+                    raise ValueError('length of array must match number '
+                                    'of atoms')
 
-            if isinstance(array, list):
-                array = np.array(array, dtype)
-            elif not isinstance(array, np.ndarray):
-                raise TypeError('array must be an ndarray or a list')
-            elif array.ndim != ndim:
+                if not np.isscalar(array):
+                    array = np.asarray(array, dtype)
+                else:
+                    raise TypeError('array must be an ndarray or a list')
+
+                if array.ndim != ndim:
                     raise ValueError('array must be {0} '
-                                     'dimensional'.format(ndim))
-            elif array.dtype != dtype:
-                try:
-                    array = array.astype(dtype)
-                except ValueError:
-                    raise ValueError('array cannot be assigned type '
-                                     '{0}'.format(dtype))
-            self._data[var] = array
-            if none: self._none(none)
-            if flags and self._flags:
-                self._resetFlags(var)
+                                    'dimensional'.format(ndim))
+                elif array.dtype != dtype:
+                    try:
+                        array = array.astype(dtype)
+                    except ValueError:
+                        raise ValueError('array cannot be assigned type '
+                                        '{0}'.format(dtype))
+                self._data[var] = array
+                if none: self._none(none)
+                if flags and self._flags:
+                    self._resetFlags(var)
 
     setData = wrapSetMethod(setData)
     setData.__name__ = setMeth

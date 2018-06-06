@@ -90,7 +90,7 @@ class Transformation(object):
 
 
 def calcTransformation(mobile, target, weights=None):
-    """Returnss a :class:`Transformation` instance which, when applied to the
+    """Returns a :class:`Transformation` instance which, when applied to the
     atoms in *mobile*, minimizes the weighted RMSD between *mobile* and
     *target*.  *mobile* and *target* may be NumPy coordinate arrays, or
     :class:`.Atomic` instances, e.g. :class:`.AtomGroup`, :class:`.Chain`,
@@ -349,10 +349,10 @@ def moveAtoms(atoms, **kwargs):
 
 
 def calcRMSD(reference, target=None, weights=None):
-    """Returns root-mean-square deviation(s) (RMSD) between reference and target
+    """Returns root-mean-square deviation (RMSD) between reference and target
     coordinates.
 
-    .. ipython:: pyhton
+    .. ipython:: python
 
        ens = loadEnsemble('p38_X-ray.ens.npz')
        ens.getRMSDs()
@@ -419,13 +419,13 @@ def getRMSD(ref, tar, weights=None):
     else:
         if tar.ndim == 2:
             return np.sqrt((((ref-tar) ** 2) * weights).sum() *
-                           (1 / weights.sum()))
+                           (1. / weights.sum()))
         else:
             rmsd = np.zeros(len(tar))
             if weights.ndim == 2:
                 for i, t in enumerate(tar):
                     rmsd[i] = (((ref-t) ** 2) * weights).sum()
-                return np.sqrt(rmsd * (1 / weights.sum()))
+                return np.sqrt(rmsd * (1. / weights.sum()))
             else:
                 for i, t in enumerate(tar):
                     rmsd[i] = (((ref-t) ** 2) * weights[i]).sum()

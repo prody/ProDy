@@ -7,32 +7,35 @@ from os.path import abspath, join, isfile, isdir, split, splitext
 import numpy as np
 
 from prody import LOGGER, SETTINGS, PY3K
-from prody.atomic import AtomGroup
+from prody.atomic import Atomic, AtomGroup, AtomSubset
 from prody.utilities import openFile, isExecutable, which, PLATFORM, addext
 
 from .nma import NMA
 from .anm import ANM
-from .gnm import GNM, GNMBase, ZERO
+from .gnm import GNM, GNMBase, ZERO, TrimmedGNM
 from .pca import PCA, EDA
+from .exanm import exANM
 from .mode import Vector, Mode
 from .modeset import ModeSet
+from .editing import sliceModel, reduceModel
 
 __all__ = ['parseArray', 'parseModes', 'parseSparseMatrix',
            'writeArray', 'writeModes',
-           'saveModel', 'loadModel', 'saveVector', 'loadVector']
+           'saveModel', 'loadModel', 'saveVector', 'loadVector',
+           'calcENM']
 
 
 def saveModel(nma, filename=None, matrices=False, **kwargs):
     """Save *nma* model data as :file:`filename.nma.npz`.  By default,
     eigenvalues, eigenvectors, variances, trace of covariance matrix,
-    and name of the model will be saved.  If *matrices* is ``True``,
+    and name of the model will be saved.  If *matrices* is **True**,
     covariance, Hessian or Kirchhoff matrices are saved too, whichever
-    are available.  If *filename* is ``None``, name of the NMA instance
+    are available.  If *filename* is **None**, name of the NMA instance
     will be used as the filename, after ``" "`` (white spaces) in the name
     are replaced with ``"_"`` (underscores).  Extension may differ based
     on the type of the NMA model.  For ANM models, it is :file:`.anm.npz`.
     Upon successful completion of saving, filename is returned. This
-    function makes use of :func:`numpy.savez` function."""
+    function makes use of :func:`~numpy.savez` function."""
 
     if not isinstance(nma, NMA):
         raise TypeError('invalid type for nma, {0}'.format(type(nma)))
@@ -69,27 +72,56 @@ def saveModel(nma, filename=None, matrices=False, **kwargs):
         value = dict_[attr]
         if value is not None:
             attr_dict[attr] = value
-    filename += '.' + type_.lower() + '.npz'
+
+    if isinstance(nma, TrimmedGNM):
+        attr_dict['type'] = 'tGNM'
+        attr_dict['mask'] = nma.mask
+        attr_dict['useTrimmed'] = nma.useTrimmed
+
+    if isinstance(nma, exANM):
+        attr_dict['type'] = 'exANM'
+        attr_dict['_membrane'] = np.array([nma._membrane, None])
+        attr_dict['_combined'] = np.array([nma._combined, None])
+
+    suffix = '.' + attr_dict['type'].lower()
+    if not filename.lower().endswith('.npz'):
+        if not filename.lower().endswith(suffix):
+            filename += suffix + '.npz'
+        else:
+            filename += '.npz'
     ostream = openFile(filename, 'wb', **kwargs)
     np.savez(ostream, **attr_dict)
     ostream.close()
     return filename
 
 
-def loadModel(filename):
+def loadModel(filename, **kwargs):
     """Returns NMA instance after loading it from file (*filename*).
-    This function makes use of :func:`numpy.load` function.  See
+    This function makes use of :func:`~numpy.load` function.  See
     also :func:`saveModel`."""
 
-    attr_dict = np.load(filename)
+    if not 'encoding' in kwargs:
+        kwargs['encoding'] = 'latin1'
+
+    attr_dict = np.load(filename, **kwargs)
     try:
         type_ = attr_dict['type']
     except KeyError:
         raise IOError('{0} is not a valid NMA model file'.format(filename))
+
+    if isinstance(type_, np.ndarray):
+        type_ = np.asarray(type_, dtype=str)
+
+    type_ = str(type_)
+
     try:
-        title = str(attr_dict['_title'])
+        title = attr_dict['_title']
     except KeyError:
-        title = str(attr_dict['_name'])
+        title = attr_dict['_name']
+
+    if isinstance(title, np.ndarray):
+        title = np.asarray(title, dtype=str)
+    title = str(title)
     if type_ == 'ANM':
         nma = ANM(title)
     elif type_ == 'PCA':
@@ -98,10 +130,15 @@ def loadModel(filename):
         nma = EDA(title)
     elif type_ == 'GNM':
         nma = GNM(title)
+    elif type_ == 'tGNM':
+        nma = TrimmedGNM(title)
+    elif type_ == 'exANM':
+        nma = exANM(title)
     elif type_ == 'NMA':
         nma = NMA(title)
     else:
-        raise IOError('NMA model type is not recognized'.format(type_))
+        raise IOError('NMA model type is not recognized: {0}'.format(type_))
+
     dict_ = nma.__dict__
     for attr in attr_dict.files:
         if attr in ('type', '_name', '_title'):
@@ -110,6 +147,8 @@ def loadModel(filename):
             dict_[attr] = float(attr_dict[attr])
         elif attr in ('_dof', '_n_atoms', '_n_modes'):
             dict_[attr] = int(attr_dict[attr])
+        elif attr in ('_membrane', '_combined'):
+            dict_[attr] = attr_dict[attr][0] 
         else:
             dict_[attr] = attr_dict[attr]
     return nma
@@ -186,7 +225,7 @@ def parseModes(normalmodes, eigenvalues=None, nm_delimiter=None,
 
     :arg nm_usecols: Which columns to read from *normalmodes*, with 0 being the
         first. For example, ``usecols = (1,4,5)`` will extract the 2nd, 5th and
-        6th columns. The default, ``None``, results in all columns being read.
+        6th columns. The default, **None**, results in all columns being read.
     :type nm_usecols: list
 
     :arg ev_delimiter: The string used to separate values in *eigenvalues*.
@@ -199,7 +238,7 @@ def parseModes(normalmodes, eigenvalues=None, nm_delimiter=None,
 
     :arg ev_usecols: Which columns to read from *eigenvalues*, with 0 being the
         first. For example, ``usecols = (1,4,5)`` will extract the 2nd, 5th and
-        6th columns. The default, ``None``, results in all columns being read.
+        6th columns. The default, **None**, results in all columns being read.
     :type ev_usecols: list
 
     :arg ev_usevalues: Which columns to use after the eigenvalue column is
@@ -223,7 +262,7 @@ def parseModes(normalmodes, eigenvalues=None, nm_delimiter=None,
     return nma
 
 
-def writeArray(filename, array, format='%d', delimiter=' '):
+def writeArray(filename, array, format='%3.2f', delimiter=' '):
     """Write 1-d or 2-d array data into a delimited text file.
 
     This function is using :func:`numpy.savetxt` to write the file, after
@@ -261,7 +300,7 @@ def parseArray(filename, delimiter=None, skiprows=0, usecols=None,
 
     :arg usecols: Which columns to read, with 0 being the first. For example,
         ``usecols = (1,4,5)`` will extract the 2nd, 5th and 6th columns.
-        The default, ``None``, results in all columns being read.
+        The default, **None**, results in all columns being read.
     :type usecols: list
 
     :arg dtype: Data-type of the resulting array, default is :func:`float`.
@@ -289,8 +328,8 @@ def parseSparseMatrix(filename, symmetric=False, delimiter=None, skiprows=0,
         :file:`.gz` or :file:`.bz2`, the file is first decompressed.
     :type filename: str or file
 
-    :arg symmetric: Set ``True`` if the file contains triangular part of a
-        symmetric matrix, default is ``False``.
+    :arg symmetric: Set **True** if the file contains triangular part of a
+        symmetric matrix, default is **True**.
     :type symmetric: bool
 
     :arg delimiter: The string used to separate values. By default,
@@ -334,3 +373,89 @@ def parseSparseMatrix(filename, symmetric=False, delimiter=None, skiprows=0,
     if symmetric:
         matrix[icol, irow] = sparse[:, idata]
     return matrix
+
+def calcENM(atoms, select=None, model='anm', trim='trim', gamma=1.0, 
+            title=None, n_modes=None, **kwargs):
+    """Returns an :class:`ANM` or `GNM` instance and atoms used for the 
+    calculationsn. The model can be trimmed, sliced, or reduced based on 
+    the selection.
+
+    :arg atoms: Atoms on which ENM is performed. It can be any :class:`Atomic` 
+        class that supports selection.
+    :type atoms: :class:`Atomic`, :class:`AtomGroup`, or :class:`Selection`
+
+    :arg select: Part of the atoms that is considered as the system. 
+        If set to `None`, then all atoms will be considered as the system.
+    :type select: str or :class:`Selection`
+
+    :arg model: Type of ENM that will be performed. It can be either 'anm' 
+        or 'gnm'.
+    :type model: str
+
+    :arg trim: Type of method that will be used to trim the model. It can 
+        be either 'trim' , 'slice', or 'reduce'. If set to 'trim', the parts 
+        that is not in the selection will simply be removed.
+    :type trim: str
+    """
+    
+    if not isinstance(atoms, Atomic):
+        if select is not None:
+            raise TypeError('atoms should be Atomic if it needs to be selected')
+    try:
+        if title is None:
+            title = atoms.getTitle()
+    except AttributeError:
+        title = 'Unknown'
+
+    zeros = kwargs.pop('zeros', False)
+    turbo = kwargs.pop('turbo', True)
+
+    if model is GNM:
+        model = 'gnm'
+    elif model is ANM:
+        model = 'anm'
+    else:
+        model = str(model).lower().strip() 
+
+    if trim is reduceModel:
+        trim = 'reduce'
+    elif trim is sliceModel:
+        trim = 'slice'
+    elif trim is None:
+        trim = 'trim'
+    else:
+        trim = str(trim).lower().strip()
+
+    if trim == 'trim' and select is not None:
+        if isinstance(select, AtomSubset):
+            atoms = select
+        else:
+            atoms = atoms.select(str(select))
+    
+    enm = None
+    if model == 'anm':
+        anm = ANM(title)
+        anm.buildHessian(atoms, gamma=gamma, **kwargs)
+        enm = anm
+    elif model == 'gnm':
+        gnm = GNM(title)
+        gnm.buildKirchhoff(atoms, gamma=gamma, **kwargs)
+        enm = gnm
+    else:
+        raise TypeError('model should be either ANM or GNM instead of {0}'.format(model))
+    
+    if select is None:
+        enm.calcModes(n_modes=n_modes, zeros=zeros, turbo=turbo)
+    else:
+        if trim == 'slice':
+            enm.calcModes(n_modes=n_modes, zeros=zeros, turbo=turbo)
+            enm, atoms = sliceModel(enm, atoms, select)  
+            if model == 'gnm':
+                enm.calcHinges()
+        elif trim == 'reduce':
+            enm, atoms = reduceModel(enm, atoms, select)
+            enm.calcModes(n_modes=n_modes, zeros=zeros, turbo=turbo)
+        else:
+            enm.calcModes(n_modes=n_modes, zeros=zeros, turbo=turbo)
+    
+    return enm, atoms

@@ -3,14 +3,29 @@
 
 __author__ = 'Anindita Dutta, Ahmet Bakan, Wenzhi Mao'
 
-from numpy import dtype, zeros, empty, ones
-from numpy import indices, tril_indices
+from numbers import Integral
+import os
+
+from numpy import dtype, zeros, empty, ones, where, ceil, shape, eye
+from numpy import indices, tril_indices, array, ndarray, isscalar
+
 from prody import LOGGER
+from prody.utilities import which
+from prody.sequence.msa import MSA, refineMSA
+from prody.sequence.msafile import parseMSA, writeMSA
+from prody.sequence.sequence import Sequence
+from prody.atomic import Atomic
+from prody.measure import calcDistance
+
+from Bio import pairwise2
+import sys
 
 __all__ = ['calcShannonEntropy', 'buildMutinfoMatrix', 'calcMSAOccupancy',
-           'applyMutinfoCorr', 'applyMutinfoNorm', 'calcRankorder',
+           'applyMutinfoCorr', 'applyMutinfoNorm', 'calcRankorder', 'filterRankedPairs',
            'buildSeqidMatrix', 'uniqueSequences', 'buildOMESMatrix',
-           'buildSCAMatrix', 'buildDirectInfoMatrix', 'calcMeff', 'buildPCMatrix']
+           'buildSCAMatrix', 'buildDirectInfoMatrix', 'calcMeff', 
+           'buildPCMatrix', 'buildMSA', 'showAlignment', 
+           'alignSequenceToMSA', 'calcPercentIdentities', 'alignSequencesByChain',]
 
 
 doc_turbo = """
@@ -20,6 +35,20 @@ doc_turbo = """
     allocation fails, the implementation will fall back to slower and
     memory efficient mode."""
 
+def calcPercentIdentities(msa):
+    percent_ids = []
+    aas = ['A','C','D','E','F','G','H','I','J','K','L', \
+           'M','N','P','Q','R','S','T','V','W','Y','-']
+
+    for i in range(len(msa)):
+        col_list = list(msa.getArray()[:,i])
+        max_count = 0
+        for aa in aas:
+            if col_list.count(aa) > max_count:
+                max_count = col_list.count(aa)
+        percent_ids.append(float(max_count)/float(len(col_list))*100)
+
+    return percent_ids
 
 def getMSA(msa):
     """Returns MSA character array."""
@@ -64,9 +93,6 @@ def calcShannonEntropy(msa, ambiguity=True, omitgaps=True, **kwargs):
 
     msa = getMSA(msa)
     length = msa.shape[1]
-    if msa.shape[0]<100:
-        LOGGER.warning('SCA performs the best with higher number of sequences, and '
-                       'minimal number of sequences is recommended as 100.')
     entropy = empty(length, float)
     from .msatools import msaentropy
     return msaentropy(msa, entropy,
@@ -254,6 +280,82 @@ def applyMutinfoCorr(mutinfo, corr='prod'):
 
     return mi
 
+def filterRankedPairs(pdb, indices, msa_indices, rank_row, rank_col, zscore_sort, \
+                      num_of_pairs=20, seqDistance=5, resi_range=None, \
+                      pdbDistance=8, chain1='A', chain2='A'):
+    '''
+    indices and msa_indices are lists output from alignSequenceToPDB
+    
+    rank_row, rank_col and zscore_sort are the outputs from calcRankorder
+    
+    :arg num_of_pairs: The number of pairs to be output, if no value is given
+        then all pairs are output. Default is 20
+    :type num_of_pairs: int
+    
+    :arg seqDistance: Remove pairs that are closer than this in the reference sequence
+        Default is 5
+    :type seqDistance: int
+    
+    :arg pdbDistance: Remove pairs with Calpha atoms further apart than this in the PDB
+        Default is 8
+    :type pdbDistance: int
+    
+    :arg chain1: The chain used for the residue specified by rank_row when measuring distances
+    :type chain1: str
+    
+    :arg chain2: The chain used for the residue specified by rank_col when measuring distances
+    :type chain2: str
+    '''
+    
+    if isscalar(indices):
+        raise TypeError('Please provide a valid indices list')
+        
+    if isscalar(msa_indices):
+        raise TypeError('Please provide valid msa_indices, which should be a list')
+        
+    if isscalar(rank_row):
+        raise TypeError('Please provide ranked row from calcRankorder')
+        
+    if isscalar(rank_col):
+        raise ValueError('Please provide ranked col from calcRankorder')
+    
+    if isscalar(zscore_sort):
+        raise ValueError('Please provide sorted Z scores from calcRankorder')
+    
+    if num_of_pairs is None:
+        num_of_pairs = len(rank_row)
+        
+    pairList = []
+    i = -1
+    j = 0
+    while j < num_of_pairs:
+        
+        i += 1
+        
+        row_idx = indices[where(msa_indices == rank_row[i])[0][0]]
+        col_idx = indices[where(msa_indices == rank_col[i])[0][0]]
+        if not isinstance(row_idx, Integral) or not isinstance(col_idx, Integral):
+            continue
+        
+        if row_idx - col_idx < seqDistance:
+            continue        
+        
+        distance = calcDistance(pdb.select('chain %s and resid %s' % (chain1, \
+                                           row_idx)).copy(), \
+                                pdb.select('chain %s and resid %s' % (chain2, \
+                                           row_idx)).copy())
+        if distance > pdbDistance:
+            continue
+            
+        if resi_range is not None:
+            if not row_idx in resi_range and not col_idx in resi_range:
+                continue
+            
+        pairList.append('%3d:\t%3d\t%3d\t%5.1f\t%5.1f\n'%(i, row_idx, col_idx, zscore_sort[i], distance))
+        
+        j += 1
+    
+    return pairList
 
 def buildSeqidMatrix(msa, turbo=True):
     """Returns sequence identity matrix for *msa*."""
@@ -275,8 +377,8 @@ buildSeqidMatrix.__doc__ += doc_turbo
 
 def uniqueSequences(msa, seqid=0.98, turbo=True):
     """Returns a boolean array marking unique sequences in *msa*.  A sequence
-    sharing sequence identity of *sqid* or more with another sequence coming
-    before itself in *msa* will have a **False** value in the array."""
+    sharing sequence identity of *seqid* or more with another sequence coming
+    before itself in *msa* will have a **True** value in the array."""
 
     msa = getMSA(msa)
 
@@ -292,11 +394,11 @@ uniqueSequences.__doc__ += doc_turbo
 
 
 def calcRankorder(matrix, zscore=False, **kwargs):
-    """Returnss indices of elements and corresponding values sorted in
+    """Returns indices of elements and corresponding values sorted in
     descending order, if *descend* is **True** (default). Can apply a zscore
     normalization; by default along *axis* - 0 such that each column has
-    mean=0 and std=1.  If *zcore* analysis is used, return value contains the
-    zscores. If matrix is smymetric only lower triangle indices will be
+    ``mean=0`` and ``std=1``.  If *zcore* analysis is used, return value contains the
+    zscores. If matrix is symmetric only lower triangle indices will be
     returned, with diagonal elements if *diag* is **True** (default)."""
 
     try:
@@ -411,6 +513,10 @@ def buildSCAMatrix(msa, turbo=True, **kwargs):
     are considered as gaps."""
 
     msa = getMSA(msa)
+    if msa.shape[0]<100:
+        LOGGER.warning('SCA performs the best with higher number of sequences, and '
+                       'minimal number of sequences is recommended as 100.')
+                       
     from .msatools import msasca
     LOGGER.timeit('_sca')
     length = msa.shape[1]
@@ -532,54 +638,368 @@ def calcMeff(msa, seqid=.8, refine=False, weight=False, **kwargs):
     LOGGER.report('Meff was calculated in %.2fs.', '_meff')
     return meff
 
-def msaeye(msa, unique, turbo):
-    tic1 = timeit.default_timer()
-    length = msa.shape[1]
-    number = msa.shape[0]
-    # number = 5
-    array = eye(int(number))
+def alignSequencesByChain(PDBs, **kwargs):
+    """
+    Runs :func:`buildMSA` for each chain and optionally joins the results.
+    Returns either a single :class:`MSA` or a dictionary containing an :class:`MSA` for each chain.
 
-    seqs = []
-    for i in xrange(number):
-        seqs.append(msa[i,:])
-    iseq = zeros((number, length), dtype=int)
+    :arg PDBs: a list of :class:`AtomGroup` objects
+    :type PDBs: list
 
-    for i in xrange(0,number-1):
-        if i == 0:
-            for k in xrange(length):
-                if ord(seqs[i][k])>90:
-                    iseq[i,k]=ord(seqs[i][k])-96 if ord(seqs[i][k])-96 > 0 and ord(seqs[i][k])-96 < 26 else 0
-                else:
-                    iseq[i,k]=ord(seqs[i][k])-64 if ord(seqs[i][k])-64 > 0 and ord(seqs[i][k])-64 < 26 else 0
-            for j in xrange(i+1,number):
-                score=0.
-                ncols=0.
-                for k in xrange(length):
-                    if ord(seqs[j][k])>90:
-                        iseq[j,k]=ord(seqs[j][k])-96 if ord(seqs[j][k])-96 > 0 and ord(seqs[j][k])-96 < 26 else 0
-                    else:
-                        iseq[j,k]=ord(seqs[j][k])-64 if ord(seqs[j][k])-64 > 0 and ord(seqs[j][k])-64 < 26 else 0
-                    if iseq[i,k] or iseq[j,k]:
-                        ncols += 1
-                        if iseq[i,k]==iseq[j,k]:
-                            score+=1
-                array[i,j]=float(score)/ncols
-                array[j,i]=array[i,j]
-            # print iseq[0]
-            # print seqs[0]
-            # raw_input()
+    :arg join_chains: whether to join chain alignments
+        default is True
+    :type join_chains: bool 
+
+    :arg join_char: a character for joining chain alignments
+        default is '/' as used by PIR format alignments
+    :type join_char: str
+    """
+    
+    if isscalar(PDBs):
+        raise TypeError('PDBs should be array-like')
+
+    if not PDBs:
+        raise ValueError('PDBs should not be empty')
+
+    pdbs = []
+    chains = []
+    for i, pdb in enumerate(PDBs):
+        if isinstance(pdb, Atomic):
+            pdbs.append(pdb)
         else:
-            for j in xrange(i+1,number):
-                score=0.
-                ncols=0.
-                for k in xrange(length):
-                    if iseq[i,k] or iseq[j,k]:
-                        ncols += 1
-                        if iseq[i,k]==iseq[j,k]:
-                            score+=1
-                array[i,j]= float(score)/ncols#float(sum((iseq[i] == iseq[j])*(iseq[i]*iseq[j]!=0))) / sum(iseq[i]*iseq[j]!=0)
-                array[j,i]=array[i,j]
+            raise TypeError('each entry in PDBs must be a :class:`Atomic` instance')
 
-    toc1 = timeit.default_timer()
-    elapsed1 = toc1 - tic1
-    print(elapsed1)
+        chains.append([])
+        for chain in list(pdbs[i].getHierView()):
+            chains[i].append(chain)
+
+        if i != 0 and len(chains[i]) != len(chains[0]):
+            raise ValueError('all pdbs should have the same number of chains')
+
+    labels = []
+    for pdb in pdbs:
+        chids = ''
+        for chain in list(pdb.getHierView()):
+            chids += chain.getChid()
+        labels.append(pdb.getTitle() + '_' + chids)
+
+    chains = array(chains)
+    chain_alignments = []
+    alignments = {}
+    for j in range(len(chains[0])):
+        prefix = 'chain_' + chains[0, j].getChid()
+        msa = buildMSA(chains[:, j], title=prefix, labels=labels)
+        msa = refineMSA(msa, colocc=1e-9) # remove gap-only cols
+        
+        chain_alignments.append(msa)
+        alignments[labels[0].split('_')[1][j]] = msa
+
+    join_chains = kwargs.get('join_chains', True)
+    join_char = kwargs.get('join_char', '/')
+
+    if len(chains[0]) == 1:
+        join_chains = False
+
+    if join_chains:
+        joined_msaarr = []
+        for i, chain_alignment in enumerate(chain_alignments):
+            pdb_seqs = []
+            for j, sequence in enumerate(chain_alignment):
+                pdb_seqs.append(sequence)
+            joined_msaarr.append(join_char.join(pdb_seqs))
+        
+        result = MSA(joined_msaarr, title='joined_chains', 
+                     labels=[label.split('_')[0] for label in labels])
+
+    else:
+        result = alignments
+        if len(result) == 1:
+            result = result[list(result.keys())[0]]
+            
+    return result
+
+def buildMSA(sequences, title='Unknown', labels=None, **kwargs):
+    """
+    Aligns sequences with clustalw or clustalw2 and returns the resulting MSA.
+
+    :arg sequences: a file, MSA object or a list or array containing sequences
+       as Atomic objects with :func:`getSequence` or Sequence objects or strings. 
+       If strings are used then labels must be provided using ``labels``
+    :type sequences: :class:`Atomic`, :class:`.MSA`, 
+        :class:`~numpy.ndarray`, str
+
+    :arg title: the title for the MSA and it will be used as the prefix for output files.
+    :type title: str
+
+    :arg labels: a list of labels to go with the sequences
+    :type labels: list
+
+    :arg align: whether to do alignment with clustalw(2)
+        default True
+    :type align: bool
+    """
+    
+    align = kwargs.get('align', True)
+    # 1. check if sequences are in a fasta file and if not make one
+    if isinstance(sequences, str):
+        filename = sequences
+    elif not isinstance(sequences, MSA):
+        try:
+            max_len = 0
+            for sequence in sequences:
+                if isinstance(sequence, Atomic):
+                    if len(sequence.ca.copy()) > max_len:
+                        max_len = len(sequence.ca.copy())
+                elif isinstance(sequence, MSA):
+                    if len(sequence[0]) > max_len:
+                        max_len = len(sequence[0])
+                else:
+                    if len(sequence) > max_len:
+                        max_len = len(sequence)
+
+            msa = []
+            fetched_labels = []
+            for i, sequence in enumerate(sequences):
+                if isinstance(sequence, Atomic):
+                    strseq = sequence.ca.getSequence()
+                    label = sequence.getTitle()
+                elif isinstance(sequence, Sequence):
+                    strseq = str(sequence)
+                    label = sequence.getLabel()
+                elif isinstance(sequence, MSA):
+                    strseq = str(sequence[0])
+                    label = sequence.getLabel(0)
+                    LOGGER.warn('Only the first sequence in the MSA at entry {0} is used.'
+                                .format(i))
+                elif isinstance(sequence, str):
+                    strseq = sequence
+                    label = str(i + 1)
+                else:
+                    raise TypeError('sequences should be a list of strings, '
+                                    'Atomic, or Sequence instances')
+                strseq = strseq + '-'*(max_len - len(strseq))
+                msa.append(array(list(strseq)))
+                fetched_labels.append(label)
+            sequences = array(msa)
+        except:
+            raise TypeError('sequences should be iterable')
+
+        # "if a list" is a pythonic way to check if a list is empty or not (or none)
+        if not labels and fetched_labels:
+            labels = fetched_labels
+
+        label = [label.replace(' ','_') for label in labels]
+        # labels checkers are removed because they will be properly handled in MSA class initialization
+        msa = MSA(msa=sequences, title=title, labels=labels)
+
+        if align:
+            filename = writeMSA(title + '.fasta', msa)
+
+
+    if align:
+        # 2. find and run alignment method
+        clustalw = which('clustalw')
+        if clustalw is None:
+            if which('clustalw2') is not None:
+                clustalw = which('clustalw2')
+            else:
+                raise EnvironmentError("The executable for clustalw was not found, \
+                                        install clustalw or add it to the path.")
+
+        os.system('"%s" %s -OUTORDER=INPUT'%(clustalw, filename))
+
+        # 3. parse and return the new MSA
+        msa = parseMSA(title + '.aln')
+
+    return msa
+
+def showAlignment(alignment, row_size=60, **kwargs):
+    """
+    Prints out an alignment as sets of short rows with labels.
+
+    :arg alignment: any object with aligned sequences
+    :type alignment: :class: `.MSA`, tuple or list
+
+    :arg row_size: the size of each row
+        default 60
+    :type row_size: int
+
+    :arg indices: a set of indices for some or all sequences
+        that will be shown above the relevant sequences
+    :type indices: `~numpy.ndarray`, list, tuple
+
+    :arg index_start: how far along the alignment to start putting indices
+        default 0
+    :type index_start: int
+
+    :arg index_stop: how far along the alignment to stop putting indices
+        default the point when the shortest sequence stops
+    :type index_stop: int
+
+    :arg labels: a list of labels
+    :type labels: list, tuple, `~numpy.ndarray`
+    """
+
+    labels = kwargs.get('labels', None)
+    if labels is not None:
+        if isscalar(labels):
+            raise TypeError('labels should be array-like')
+
+        for label in labels:
+            if not isinstance(label, str):
+                raise TypeError('each label should be a string')
+
+        if len(labels) < len(alignment):
+            raise ValueError('there should be a label for every sequence shown')
+    else:
+        labels = []
+        for i, sequence in enumerate(alignment):
+            if hasattr(sequence, 'getLabel'):
+                labels.append(sequence.getLabel())
+            else:
+                labels.append(str(i+1))
+
+    indices = kwargs.get('indices',None)
+    index_start = kwargs.get('index_start',0)
+    index_stop = kwargs.get('index_start',0)
+
+    if index_stop == 0 and indices is not None:
+        locs = []
+        maxes = []
+        for index in indices:
+            int_index = []
+            for i in index:
+                if i == '':
+                    int_index.append(0)
+                else:
+                    int_index.append(int(i))
+            int_index = array(int_index)
+            maxes.append(max(int_index))
+            locs.append(where(int_index == max(int_index))[0][0])
+        index_stop = locs[where(maxes == min(maxes))[0][0]]
+
+    for i in range(int(ceil(len(alignment[0])/float(row_size)))):
+        for j in range(len(alignment)):
+            if indices is not None:
+                sys.stdout.write('\n' + ' '*15 + '\t')
+                for k in range(row_size*i+10,row_size*(i+1)+10,10):
+                    try:
+                        if k > index_start + 10 and k < index_stop + 10:
+                            sys.stdout.write('{:10d}'.format(int(indices[j][k-1])))
+                        elif k > index_start:
+                            sys.stdout.write(' '*(k-index_start))
+                        else:
+                            sys.stdout.write(' '*10)
+                    except:
+                            sys.stdout.write(' '*10)
+                sys.stdout.write('\n')
+
+            sys.stdout.write(labels[j][:15] + \
+                             ' ' * (15-len(labels[j][:15])) + \
+                             '\t' + str(alignment[j])[60*i:60*(i+1)] + '\n')
+
+        sys.stdout.write('\n')
+        
+    return
+
+def alignSequenceToMSA(seq, msa, label, match=5, mismatch=-1, gap_opening=-10, gap_extension=-1):
+    """
+    Align a sequence from a PDB or Sequence to a sequence from an MSA
+    and create two sets of indices. 
+
+    The sequence from the MSA (refSeq), the alignment and 
+    the two sets of indices are returned. 
+    
+    The first set (indices) maps the residue numbers in the PDB to 
+    the reference sequence. The second set (msa_indices) indexes the 
+    reference sequence in the msa and is used for retrieving values 
+    from the first indices.
+
+    :arg seq: an object with an associated sequence string 
+         or a sequence string itself
+    :type seq: :class:`Atomic`, :class:`Sequence`
+    
+    :arg msa: MSA object
+    :type msa: :class:`.MSA`
+    
+    :arg label: a label for a sequence in msa or a PDB ID
+        ``msa.getIndex(label)`` must return a sequence index
+    :type label: str
+    
+    :arg chain: which chain from pdb to use for alignment
+    :type chain: str
+    
+    :arg match: a positive integer, used to reward finding a match
+        The default is 5, which we found to work in a test case.
+    :type match: int
+    
+    :arg mismatch: a negative integer, used to penalise finding a mismatch
+        The default is -1, which we found to work in a test case
+    :type mismatch: int
+    
+    :arg gap_opening: a negative integer, used to penalise opening a gap
+        The default is -10, which we found to work in a test case
+    :type gap_opening: int
+    
+    :arg gap_extension: a negative integer, used to penalise extending a gap
+        The default is -1, which we found to work in a test case
+    :type gap_extension: int
+    """
+    if isinstance(seq, Atomic):
+        ag = seq
+        sequence = ag.calpha.getSequence()
+    elif isinstance(seq, Sequence):
+         sequence = str(seq)
+         ag = None
+    else:
+        raise TypeError('seq must be an atomic class, sequence class, or str not {0}'
+                        .format(type(seq)))
+
+    if not isinstance(msa, MSA):
+        raise TypeError('msa must be an MSA instance')
+
+    if label is None:
+        if ag:
+            label = ag.getTitle().split('_')[0]
+        elif isinstance(seq, Sequence):
+            label = seq.getLabel()
+        else:
+            raise ValueError('A label cannot be extracted from seq so please provide one.')
+
+    try:
+        seqIndex = msa.getIndex(label)
+    except:
+        raise ValueError('Please provide a label that can be found in msa.')
+
+    if isinstance(seqIndex, int):
+        refMsaSeq = str(msa[seqIndex]).upper().replace('-','.')
+
+    else:
+        raise TypeError('The output from querying that label against msa is not a single sequence.')
+
+    alignment = pairwise2.align.globalms(sequence, str(refMsaSeq), \
+                                         match, mismatch, gap_opening, gap_extension)
+
+    seq_indices = [0]
+    msa_indices = [0]
+
+    for i in range(len(alignment[0][0])):
+        if alignment[0][0][i] != '-':
+            seq_indices.append(seq_indices[i]+1)
+        else:
+            seq_indices.append(seq_indices[i])
+
+        if alignment[0][1][i] != '-':
+            msa_indices.append(msa_indices[i]+1)
+        else:
+            msa_indices.append(msa_indices[i])
+
+    seq_indices = array(seq_indices)
+    msa_indices = array(msa_indices)
+
+    alignment = MSA(msa=array([array(list(alignment[0][0])), \
+                               array(list(alignment[0][1]))]), \
+                    labels=[ag.getTitle(), label])
+
+    return alignment, seq_indices, msa_indices
+

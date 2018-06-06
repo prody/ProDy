@@ -16,7 +16,7 @@ from prody.utilities import importLA, checkCoords
 from .nma import NMA
 from .gamma import Gamma
 
-__all__ = ['GNM', 'calcGNM']
+__all__ = ['GNM', 'calcGNM', 'TrimmedGNM']
 
 ZERO = 1e-6
 
@@ -32,6 +32,10 @@ class GNMBase(NMA):
         self._cutoff = None
         self._kirchhoff = None
         self._gamma = None
+        self._hinges = None
+        self._affinity = None
+        self._hitTime = None
+        self._commuteTime = None
 
     def __repr__(self):
 
@@ -45,12 +49,24 @@ class GNMBase(NMA):
 
     def _reset(self):
 
-        NMA._reset(self)
+        super(GNMBase, self)._reset()
         self._cutoff = None
         self._gamma = None
         self._kirchhoff = None
         self._is3d = False
+        self._hinges = None
+        self._affinity = None
+        self._hitTime = None
+        self._commuteTime = None
 
+    def _clear(self):
+        self._trace = None
+        self._cov = None
+        self._hinges = None
+        self._affinity = None
+        self._hitTime = None
+        self._commuteTime = None
+        
     def getCutoff(self):
         """Returns cutoff distance."""
 
@@ -110,6 +126,12 @@ class GNM(GNMBase):
 
     .. [TH97] Haliloglu T, Bahar I, Erman B. Gaussian dynamics of folded
        proteins. *Phys. Rev. Lett.* **1997** 79:3090-3093."""
+
+    def __init__(self, name='Unknown'):
+        super(GNM, self).__init__(name)
+        self._affinity = None
+        self._hitTime = None
+        self._commuteTime = None
 
     def setKirchhoff(self, kirchhoff):
         """Set Kirchhoff matrix."""
@@ -222,28 +244,152 @@ class GNM(GNMBase):
         self._n_atoms = n_atoms
         self._dof = n_atoms
 
-    def calcModes(self, n_modes=20, zeros=False, turbo=True):
+    def _buildAffinity(self):
+
+        if self._kirchhoff is None:
+            raise TypeError('Kirchhoff needs to be built before affinities can be computed')
+
+        if not isinstance(self._kirchhoff, np.ndarray):
+            raise TypeError('kirchhoff must be a Numpy array')
+        elif (not self._kirchhoff.ndim == 2 or
+              self._kirchhoff.shape[0] != self._kirchhoff.shape[1]):
+            raise ValueError('kirchhoff must be a square matrix')
+        elif self._kirchhoff.dtype != float:
+            try:
+                self.kirchhoff = self.kirchhoff.astype(float)
+            except:
+                raise ValueError('kirchhoff.dtype must be float')
+
+        from scipy import sparse
+
+        self._diagonal = np.diag(self._kirchhoff)
+        
+        self._affinity = sparse.spdiags(self._diagonal, 0, len(self._diagonal), 
+            len(self._diagonal)).toarray() - self._kirchhoff
+
+    def calcHitTime(self, method='Z'):
+
+        if self._affinity is None:
+            self._buildAffinity()
+
+        start = time.time()
+        linalg = importLA()
+        if method == 'Z':
+
+            D = self._diagonal
+            A = self._affinity
+
+            st = D / sum(D)
+
+            P = np.dot(np.diag(D**(-1)), A)
+
+            W = np.ones((len(st),1)) * st.T
+
+            Z = linalg.pinv(np.eye(P.shape[0], P.shape[1]) - P + W)
+
+            H = np.ones((len(st),1)) * np.diag(Z).T - Z
+            H = H / W
+            H = H.T
+
+        elif method == 'K':
+
+            K = self._kirchhoff
+            D = self._diagonal
+
+            K_inv = linalg.pinv(K)
+            sum_D = sum(D)
+
+            T1 = (sum_D * np.ones((len(D),1)) * np.diag(K_inv)).T
+
+            T2 = sum_D * K_inv
+            T3_i = np.dot((np.ones((len(D),1)) * D), K_inv)
+
+            H = T1 - T2 + T3_i - T3_i.T
+
+        self._hitTime = H
+        self._commuteTime = H + H.T
+
+
+        LOGGER.debug('Hitting and commute time are calculated in  {0:.2f}s.'
+                     .format(time.time()-start))    
+
+    def getAffinity(self):
+        """Returns a copy of the Kirchhoff matrix."""
+
+        if self._affinity is None:
+            self._buildAffinity()
+        return self._affinity.copy()
+
+    def _getAffinity(self):
+        """Returns the Kirchhoff matrix."""
+
+        return self._affinity
+
+    def getDiagonal(self):
+        """Returns a copy of the Kirchhoff matrix."""
+
+        if self._diagonal is None:
+            return None
+        return self._diagonal.copy()
+
+    def _getDiagonal(self):
+        """Returns the Kirchhoff matrix."""
+
+        return self._diagonal
+
+    def getHitTime(self):
+        """Returns a copy of the hit time matrix."""
+
+        if self._hitTime is None:
+            self.calcHitTime()
+        return self._hitTime.copy()
+
+    def _getHitTime(self):
+        """Returns the hit time matrix."""
+
+        return self._getHitTime
+
+    def getCommuteTime(self):
+        """Returns a copy of the Kirchhoff matrix."""
+
+        if self._commuteTime is None:
+            self.calcHitTime()
+        return self._commuteTime.copy()
+
+    def _getCommuteTime(self):
+        """Returns the Kirchhoff matrix."""
+
+        return self._commuteTime    
+
+
+    def calcModes(self, n_modes=20, zeros=False, turbo=True, hinges=True):
         """Calculate normal modes.  This method uses :func:`scipy.linalg.eigh`
         function to diagonalize the Kirchhoff matrix. When Scipy is not found,
         :func:`numpy.linalg.eigh` is used.
 
         :arg n_modes: number of non-zero eigenvalues/vectors to calculate.
-              If ``None`` is given, all modes will be calculated.
+              If **None** or ``'all'`` is given, all modes will be calculated.
         :type n_modes: int or None, default is 20
 
-        :arg zeros: If ``True``, modes with zero eigenvalues will be kept.
-        :type zeros: bool, default is ``False``
+        :arg zeros: If **True**, modes with zero eigenvalues will be kept.
+        :type zeros: bool, default is **True**
 
         :arg turbo: Use a memory intensive, but faster way to calculate modes.
-        :type turbo: bool, default is ``True``
+        :type turbo: bool, default is **True**
+
+        :arg hinges: Identify hinge sites after modes are computed.
+        :type hinges: bool, default is **True**
         """
 
         if self._kirchhoff is None:
             raise ValueError('Kirchhoff matrix is not built or set')
+        if str(n_modes).lower() == 'all':
+            n_modes = None
         assert n_modes is None or isinstance(n_modes, int) and n_modes > 0, \
             'n_modes must be a positive integer'
         assert isinstance(zeros, bool), 'zeros must be a boolean'
         assert isinstance(turbo, bool), 'turbo must be a boolean'
+        self._clear()
         linalg = importLA()
         start = time.time()
         shift = 0
@@ -296,9 +442,59 @@ class GNM(GNMBase):
         self._trace = self._vars.sum()
         self._array = vectors[:, 1+shift:]
         self._n_modes = len(self._eigvals)
+        if hinges:
+            self.calcHinges()
         LOGGER.debug('{0} modes were calculated in {1:.2f}s.'
                      .format(self._n_modes, time.time()-start))
 
+    def calcHinges(self):
+        if self._array is None:
+            raise ValueError('Modes are not calculated.')
+        # obtain the eigenvectors
+        V = self._array
+        (m, n) = V.shape
+        hinges = []
+        for i in range(n):
+            v = V[:,i]
+            # obtain the signs of eigenvector
+            s = np.sign(v)
+            # obtain the relative magnitude of eigenvector
+            mag = np.sign(np.diff(np.abs(v)))
+            # obtain the cross-overs
+            torf = np.diff(s)!=0
+            indices = np.where(torf)[0]
+            # find which side is more close to zero
+            for i in range(len(indices)):
+                idx = indices[i]
+                if mag[idx] < 0:
+                    indices[i] += 1
+            hinges.append(indices)
+        self._hinges = np.array(hinges)
+        return self._hinges
+
+    def getHinges(self, modeIndex=None):
+        """Get residue index of hinge sites given mode indices.
+
+        :arg modeIndex: indices of modes. This parameter can be a scalar, a list, 
+            or logical indices.
+        :type modeIndex: int or list, default is **None**
+        """
+        if self._hinges is None:
+            LOGGER.info('Warning: hinges are not calculated, thus null is returned. '
+                        'Please call GNM.calcHinges() to calculate the hinge sites first.')
+            return None
+        if modeIndex is None:
+            hinges = self._hinges
+        else:
+            hinges = self._hinges[modeIndex]
+        if hinges.dtype is np.dtype('O'):
+            hingelist = [j for i in hinges for j in i]
+        else:
+            hingelist = [i for i in hinges]
+        return sorted(set(hingelist))
+    
+    def numHinges(self, modeIndex=None):
+        return len(self.getHinges(modeIndex=modeIndex))
 
     def getNormDistFluct(self, coords):
         """Normalized distance fluctuation
@@ -326,34 +522,37 @@ class GNM(GNMBase):
             model.buildKirchhoff(coords)
             model.calcModes() 
             
-        linalg = importLA()
+        LA = importLA()
         n_atoms = model.numAtoms()
-        n_modes = model.numModes()
         LOGGER.timeit('_ndf')
     
         from .analysis import calcCrossCorr
-        from numpy import linalg as LA
         # <dRi, dRi>, <dRj, dRj> = 1
         crossC = 2-2*calcCrossCorr(model)
         r_ij = np.zeros((n_atoms,n_atoms,3))
 
         for i in range(n_atoms):
-           for j in range(i+1,n_atoms):
-               r_ij[i][j] = coords[j,:] - coords[i,:]
-               r_ij[j][i] = r_ij[i][j]
-               r_ij_n = LA.norm(r_ij, axis=2)
+            for j in range(i+1,n_atoms):
+                r_ij[i][j] = coords[j,:] - coords[i,:]
+                r_ij[j][i] = r_ij[i][j]
+                
+        r_ij_n = LA.norm(r_ij, axis=2)
 
         #with np.errstate(divide='ignore'):
-        r_ij_n[np.diag_indices_from(r_ij_n)] = 1e-5  # div by 0
-        crossC=abs(crossC)
-        normdistfluct = np.divide(np.sqrt(crossC),r_ij_n)
+        r_ij_n[np.diag_indices_from(r_ij_n)] = ZERO  # div by 0
+        crossC = abs(crossC)
+        normdistfluct = np.divide(np.sqrt(crossC), r_ij_n)
         LOGGER.report('NDF calculated in %.2lfs.', label='_ndf')
         normdistfluct[np.diag_indices_from(normdistfluct)] = 0  # div by 0
         return normdistfluct
 
+    def setEigens(self, vectors, values=None):
+        self._clear()
+        super(GNM, self).setEigens(vectors, values)
+
 
 def calcGNM(pdb, selstr='calpha', cutoff=15., gamma=1., n_modes=20,
-            zeros=False):
+            zeros=False, hinges=True):
     """Returns a :class:`GNM` instance and atoms used for the calculations.
     By default only alpha carbons are considered, but selection string helps
     selecting a subset of it.  *pdb* can be :class:`.Atomic` instance."""
@@ -373,5 +572,78 @@ def calcGNM(pdb, selstr='calpha', cutoff=15., gamma=1., n_modes=20,
     gnm = GNM(title)
     sel = ag.select(selstr)
     gnm.buildKirchhoff(sel, cutoff, gamma)
-    gnm.calcModes(n_modes)
+    gnm.calcModes(n_modes, zeros, hinges=hinges)
     return gnm, sel
+
+class TrimmedGNM(GNM):
+    def __init__(self, name='Unknown', mask=False, useTrimmed=True):
+        super(TrimmedGNM, self).__init__(name)
+        self.mask = False
+        self.useTrimmed = useTrimmed
+
+        if not np.isscalar(mask):
+            self.mask = np.array(mask)
+
+    def numAtoms(self):
+        """Returns number of atoms."""
+
+        if self.useTrimmed or np.isscalar(self.mask):
+            return self._n_atoms
+        else:
+            return len(self.mask)
+
+    def getArray(self):
+        """Returns a copy of eigenvectors array."""
+
+        if self._array is None: return None
+
+        array = self._array.copy()
+
+        if self.useTrimmed or np.isscalar(self.mask):
+            return array
+
+        mask = self.mask.copy()
+        N = len(mask)
+        n, m = array.shape
+        whole_array = np.zeros((N,m))
+        mask = np.expand_dims(mask, axis=1)
+        mask = mask.repeat(m, axis=1)
+        whole_array[mask] = array.flatten()
+        return whole_array
+
+    getEigvecs = getArray
+
+    def _getArray(self):
+        """Returns eigenvectors array. The function returns 
+        a copy of the array if useTrimmed is **True**."""
+
+        if self._array is None: return None
+
+        if self.useTrimmed or np.isscalar(self.mask):
+            return self._array
+        else:
+            return self.getArray()
+
+    def fixTail(self, length):
+        def _fixLength(vector, length, filled_value=0, axis=0):
+            shape = vector.shape
+            dim = len(shape)
+
+            if shape[axis] < length:
+                dl = length - shape[0]
+                pad_width = []
+                for i in range(dim):
+                    if i == axis:
+                        pad_width.append((0, dl))
+                    else:
+                        pad_width.append((0, 0))
+                vector = np.pad(vector, pad_width, 'constant', constant_values=(filled_value,))
+            elif shape[axis] > length:
+                vector = vector[:length]
+            return vector
+
+        if np.isscalar(self.mask):
+            self.mask = np.ones(self.numAtoms(), dtype=bool)
+
+        self.mask = _fixLength(self.mask, length, False)
+        return

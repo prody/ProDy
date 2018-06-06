@@ -58,7 +58,21 @@ functions come as bonus features:
 .. seealso::
 
    Atom data (coordinates, atom names, residue names, etc.) parsed from
-   PDB/PSF/PQR files are stored in :class:`~.AtomGroup` instances.
+   PDB/PSF/PQR/mmCIF files are stored in :class:`~.AtomGroup` instances.
+   See :mod:`~prody.atomic` module documentation for more details.
+
+Parse mmCIF files
+=====================
+
+Following ProDy functions are for parsing :file:`.cif` files:
+
+  * :func:`.parseCIF` - parse :file:`.cif` formated file
+  * :func:`.parseCIFStream` - parse :file:`.cif` formated stream
+
+.. seealso::
+
+   Atom data (coordinates, atom names, residue names, etc.) parsed from
+   PDB/PSF/PQR/mmCIF files are stored in :class:`~.AtomGroup` instances.
    See :mod:`~prody.atomic` module documentation for more details.
 
 Quick visualization
@@ -132,6 +146,15 @@ and/or parse results:
   * :func:`.execSTRIDE` - execute :program:`stride`
   * :func:`.performSTRIDE` - execute :program:`stride` and parse results
   * :func:`.parseSTRIDE` - parse structural data from :program:`stride` output
+
+Execute EMD
+===========
+
+Following functions can be used to execute EMDMAP structural analysis program
+and/or parse results:
+
+  * :func:`.parseSTRIDE` - parse structural data from :program:`EMDMAP` output
+
 """
 
 __all__ = []
@@ -155,6 +178,14 @@ __all__.extend(pdbclusters.__all__)
 from . import blastpdb
 from .blastpdb import *
 __all__.extend(blastpdb.__all__)
+
+from . import psiblast
+from .psiblast import *
+__all__.extend(psiblast.__all__)
+
+from . import blastpdbUniProtKB
+from .blastpdbUniProtKB import *
+__all__.extend(blastpdbUniProtKB.__all__)
 
 from . import pdbligands
 from .pdbligands import *
@@ -180,4 +211,17 @@ from . import pdbfile
 from .pdbfile import *
 __all__.extend(pdbfile.__all__)
 
+from . import emdfile
+from .emdfile import *
+__all__.extend(emdfile.__all__)
+
+from . import ciffile
+from .ciffile import *
+__all__.extend(ciffile.__all__)
+
+from . import starfile
+from .starfile import *
+__all__.extend(starfile.__all__)
+
 from .pdbfile import PDBParseError
+

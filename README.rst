@@ -1,11 +1,14 @@
-.. image:: https://secure.travis-ci.org/prody/ProDy.png?branch=master
+.. image:: https://img.shields.io/travis/prody/ProDy.svg
    :target: http://travis-ci.org/#!/prody/ProDy
 
-.. image:: https://pypip.in/v/ProDy/badge.png
-   :target: https://pypi.python.org/pypi/ProDy
+.. image:: https://img.shields.io/pypi/v/ProDy.svg
+   :target: https://pypi.org/project/ProDy/
 
-.. image:: https://pypip.in/d/ProDy/badge.png
-   :target: https://crate.io/packages/ProDy/
+.. image:: https://img.shields.io/github/commit-activity/y/prody/ProDy.svg
+   :target: https://github.com/prody/ProDy/commits/master
+
+.. image:: https://img.shields.io/badge/dynamic/json.svg?label=downloads&colorB=&prefix=&suffix=&query=stat&uri=http%3A%2F%2Fprody.csb.pitt.edu%2Fstatistics%2Fstatistics.json
+   :target: http://prody.csb.pitt.edu/downloads/
 
 SYNOPSIS
 --------
@@ -67,3 +70,9 @@ license (http://www.opensource.org/licenses/mit-license.php).
 Argparse module (http://code.google.com/p/argparse/) is distributed with ProDy.
 Argparse is developed by Steven J. Bethard and is available under the Python
 Software Foundation License.
+
+CEalign module (https://pymolwiki.org/index.php/Cealign_plugin) is distributed 
+with ProDy. The original CE method was developed by Ilya Shindyalov and Philip 
+Bourne. The Python version which is used by ProDy is developed by Jason Vertrees 
+and available under the New BSD license. 
+

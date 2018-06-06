@@ -5,21 +5,22 @@
 
 from collections import defaultdict
 import os.path
-
+import time
+from numbers import Integral
 
 import numpy as np
 
 from prody.atomic import AtomGroup
 from prody.atomic import flags
 from prody.atomic import ATOMIC_FIELDS
-from prody.utilities import openFile
+from prody.utilities import openFile, isListLike
 from prody import LOGGER, SETTINGS
 
-from .header import getHeaderDict, buildBiomolecules, assignSecstr
+from .header import getHeaderDict, buildBiomolecules, assignSecstr, isHelix, isSheet
 from .localpdb import fetchPDB
 
-__all__ = ['parsePDBStream', 'parsePDB', 'parsePQR',
-           'writePDBStream', 'writePDB',]
+__all__ = ['parsePDBStream', 'parsePDB', 'parseChainsList', 'parsePQR',
+           'writePDBStream', 'writePDB', 'writeChainsList']
 
 class PDBParseError(Exception):
     pass
@@ -61,13 +62,15 @@ _parsePDBdoc = _parsePQRdoc + """
          distinct coordinate set, default is ``"A"``
     :type altloc: str
 
-    :arg biomol: if **True**, biomolecule obtained by transforming the
-        coordinates using information from header section will be returned
-    :type biomol: False
+    :arg biomol: if **True**, biomolecules are obtained by transforming the
+        coordinates using information from header section will be returned.
+        Default is False
+    :type biomol: bool
 
     :arg secondary: if **True**, secondary structure information from header
-        section will be assigned atoms
-    :type secondary: False
+        section will be assigned to atoms.
+        Default is False
+    :type secondary: bool
 
     If ``model=0`` and ``header=True``, return header dictionary only.
 
@@ -77,7 +80,7 @@ _parsePDBdoc = _parsePQRdoc + """
 
 _PDBSubsets = {'ca': 'ca', 'calpha': 'ca', 'bb': 'bb', 'backbone': 'bb'}
 
-def parsePDB(pdb, **kwargs):
+def parsePDB(*pdb, **kwargs):
     """Returns an :class:`.AtomGroup` and/or dictionary containing header data
     parsed from a PDB file.
 
@@ -85,23 +88,93 @@ def parsePDB(pdb, **kwargs):
 
     See :ref:`parsepdb` for a detailed usage example.
 
-    :arg pdb: a PDB identifier or a filename
+    :arg pdb: one PDB identifier or filename, or a list of them.
         If needed, PDB files are downloaded using :func:`.fetchPDB()` function.
+    
+    You can also provide arguments that you would like passed on to fetchPDB().
     """
+
+    n_pdb = len(pdb)
+    if n_pdb == 1:
+        if isListLike(pdb[0]):
+            pdb = pdb[0]
+            n_pdb = len(pdb)
+            
+    if n_pdb == 1:
+        return _parsePDB(pdb[0], **kwargs)
+    else:
+        results = []
+        lstkwargs = {}
+        for key in kwargs:
+            argval = kwargs.get(key)
+            if np.isscalar(argval):
+                argval = [argval]*n_pdb
+            lstkwargs[key] = argval
+
+        start = time.time()
+        LOGGER.progress('Retrieving {0} PDB structures...'
+                    .format(n_pdb), n_pdb, '_prody_parsePDB')
+        for i, p in enumerate(pdb):
+            kwargs = {}
+            for key in lstkwargs:
+                kwargs[key] = lstkwargs[key][i]
+            LOGGER.update(i, 'Retrieving {0}...'.format(p), 
+                          label='_prody_parsePDB')
+            result = _parsePDB(p, **kwargs)
+            if not isinstance(result, tuple):
+                if isinstance(result, dict):
+                    result = (None, result)
+                else:
+                    result = (result, None)
+            results.append(result)
+
+        results = list(zip(*results))
+        LOGGER.finish()
+       
+        for i in reversed(range(len(results))):
+            if all(j is None for j in results[i]):
+                results.pop(i)
+        if len(results) == 1:
+            results = results[0]
+        results = list(results)
+
+        LOGGER.info('{0} PDBs were parsed in {1:.2f}s.'
+                     .format(len(results), time.time()-start))
+
+        return results
+
+def _getPDBid(pdb):
+    l = len(pdb)
+    if l == 4:
+        pdbid, chain = pdb, ''
+    elif l == 5:
+        pdbid = pdb[:4]; chain = pdb[-1]
+    elif ':' in pdb:
+        i = pdb.find(':')
+        pdbid = pdb[:i]; chain = pdb[i+1:]
+    else:
+        raise IOError('{0} is not a valid filename or a valid PDB '
+                      'identifier.'.format(pdb))
+    if not pdbid.isalnum():
+        raise IOError('{0} is not a valid filename or a valid PDB '
+                      'identifier.'.format(pdb))
+    if chain != '' and not chain.isalnum():
+        raise IOError('{0} is not a valid chain identifier.'.format(chain))
+    return pdbid, chain
+
+def _parsePDB(pdb, **kwargs):
     title = kwargs.get('title', None)
+    chain = ''
     if not os.path.isfile(pdb):
-        if len(pdb) == 4 and pdb.isalnum():
-            if title is None:
-                title = pdb
-                kwargs['title'] = title
-            filename = fetchPDB(pdb, report=True)
-            if filename is None:
-                raise IOError('PDB file for {0} could not be downloaded.'
-                              .format(pdb))
-            pdb = filename
-        else:
-            raise IOError('{0} is not a valid filename or a valid PDB '
-                          'identifier.'.format(pdb))
+        pdb, chain = _getPDBid(pdb)
+        if title is None:
+            title = pdb
+            kwargs['title'] = title
+        filename = fetchPDB(pdb, **kwargs)
+        if filename is None:
+            raise IOError('PDB file for {0} could not be downloaded.'
+                          .format(pdb))
+        pdb = filename
     if title is None:
         title, ext = os.path.splitext(os.path.split(pdb)[1])
         if ext == '.gz':
@@ -110,6 +183,8 @@ def parsePDB(pdb, **kwargs):
             title = title[3:]
         kwargs['title'] = title
     pdb = openFile(pdb, 'rt')
+    if chain != '':
+        kwargs['chain'] = chain
     result = parsePDBStream(pdb, **kwargs)
     pdb.close()
     return result
@@ -121,8 +196,8 @@ def parsePDBStream(stream, **kwargs):
     parsed from a stream of PDB lines.
 
     :arg stream: Anything that implements the method ``readlines``
-        (e.g. :class:`file`, buffer, stdin)"""
-
+        (e.g. :class:`file`, buffer, stdin)""" 
+    
     model = kwargs.get('model')
     header = kwargs.get('header', False)
     assert isinstance(header, bool), 'header must be a boolean'
@@ -130,7 +205,7 @@ def parsePDBStream(stream, **kwargs):
     subset = kwargs.get('subset')
     altloc = kwargs.get('altloc', 'A')
     if model is not None:
-        if isinstance(model, int):
+        if isinstance(model, Integral):
             if model < 0:
                 raise ValueError('model must be greater than 0')
         else:
@@ -151,7 +226,7 @@ def parsePDBStream(stream, **kwargs):
             raise TypeError('chain must be a string')
         elif len(chain) == 0:
             raise ValueError('chain must not be an empty string')
-        title_suffix = '_' + chain + title_suffix
+        title_suffix = chain + title_suffix
     ag = None
     if 'ag' in kwargs:
         ag = kwargs['ag']
@@ -187,11 +262,11 @@ def parsePDBStream(stream, **kwargs):
         if ag.numAtoms() > 0:
             LOGGER.report('{0} atoms and {1} coordinate set(s) were '
                           'parsed in %.2fs.'.format(ag.numAtoms(),
-                           ag.numCoordsets() - n_csets))
+                          ag.numCoordsets() - n_csets))
         else:
             ag = None
             LOGGER.warn('Atomic data could not be parsed, please '
-                        'check the input file.')
+                            'check the input file.')
     elif header:
         hd, split = getHeaderDict(stream)
 
@@ -213,6 +288,7 @@ def parsePDBStream(stream, **kwargs):
             else:
                 LOGGER.info('Biomolecular transformations were applied to the '
                             'coordinate data.')
+
     if model != 0:
         if header:
             return ag, hd
@@ -277,7 +353,7 @@ def parsePQR(filename, **kwargs):
     if ag.numAtoms() > 0:
         LOGGER.report('{0} atoms and {1} coordinate sets were '
                       'parsed in %.2fs.'.format(ag.numAtoms(),
-                         ag.numCoordsets() - n_csets))
+                      ag.numCoordsets() - n_csets))
         return ag
     else:
         return None
@@ -338,8 +414,8 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
         occupancies = np.zeros(asize, dtype=ATOMIC_FIELDS['occupancy'].dtype)
         anisou = None
         siguij = None
-    else:
         charges = np.zeros(asize, dtype=ATOMIC_FIELDS['charge'].dtype)
+    else:
         radii = np.zeros(asize, dtype=ATOMIC_FIELDS['radius'].dtype)
 
     asize = 2000 # increase array length by this much when needed
@@ -371,6 +447,7 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
         altloc_torf = True
 
     acount = 0
+    coordsets = None
     altloc = defaultdict(list)
     i = start
     END = False
@@ -417,7 +494,7 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                         i += 1
                 else:
                     raise PDBParseError('invalid or missing coordinate(s) at '
-                                         'line {0}.'.format(i+1))
+                                         'line {0}'.format(i+1))
             if onlycoords:
                 acount += 1
                 i += 1
@@ -429,7 +506,7 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                 try:
                     serials[acount] = int(line[6:11], 16)
                 except ValueError:
-                    LOGGER.warn('Failed to parse serial number in line {0}.'
+                    LOGGER.warn('failed to parse serial number in line {0}'
                                 .format(i))
                     serials[acount] = serials[acount-1]+1
             altlocs[acount] = alt
@@ -452,6 +529,10 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                 hetero[acount] = startswith[0] == 'H'
                 segnames[acount] = line[72:76]
                 elements[acount] = line[76:78]
+                try:
+                    charges[acount] = int(line[79] + line[78])
+                except:
+                    charges[acount] = 0
             else:
                 try:
                     charges[acount] = line[54:62]
@@ -520,8 +601,9 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                 i += 1
                 break
             diff = stop - i - 1
-            if diff < acount:
-                END = True
+            END = diff < acount
+            if coordsets is not None:
+                END = END or nmodel >= coordsets.shape[0]
             if onlycoords:
                 if acount < n_atoms:
                     LOGGER.warn('Discarding model {0}, which contains '
@@ -539,24 +621,24 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                                     'same number of atoms')
                 # this is where to decide if more coordsets should be expected
                 if END:
-                    coordinates.resize((acount, 3))
+                    coordinates.resize((acount, 3), refcheck=False)
                     if addcoords:
                         atomgroup.addCoordset(coordinates)
                     else:
                         atomgroup._setCoords(coordinates)
                 else:
-                    coordsets = np.zeros((diff/acount+1, acount, 3))
+                    coordsets = np.zeros((int(diff//acount+1), acount, 3))
                     coordsets[0] = coordinates[:acount]
                     onlycoords = True
-                atomnames.resize(acount)
-                resnames.resize(acount)
-                resnums.resize(acount)
-                chainids.resize(acount)
-                hetero.resize(acount)
-                termini.resize(acount)
-                altlocs.resize(acount)
-                icodes.resize(acount)
-                serials.resize(acount)
+                atomnames.resize(acount, refcheck=False)
+                resnames.resize(acount, refcheck=False)
+                resnums.resize(acount, refcheck=False)
+                chainids.resize(acount, refcheck=False)
+                hetero.resize(acount, refcheck=False)
+                termini.resize(acount, refcheck=False)
+                altlocs.resize(acount, refcheck=False)
+                icodes.resize(acount, refcheck=False)
+                serials.resize(acount, refcheck=False)
                 if not only_subset:
                     atomnames = np.char.strip(atomnames)
                     resnames = np.char.strip(resnames)
@@ -570,23 +652,25 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                 atomgroup.setIcodes(np.char.strip(icodes))
                 atomgroup.setSerials(serials)
                 if isPDB:
-                    bfactors.resize(acount)
-                    occupancies.resize(acount)
-                    segnames.resize(acount)
-                    elements.resize(acount)
+                    bfactors.resize(acount, refcheck=False)
+                    occupancies.resize(acount, refcheck=False)
+                    segnames.resize(acount, refcheck=False)
+                    elements.resize(acount, refcheck=False)
                     atomgroup.setBetas(bfactors)
                     atomgroup.setOccupancies(occupancies)
                     atomgroup.setSegnames(np.char.strip(segnames))
                     atomgroup.setElements(np.char.strip(elements))
+                    from prody.utilities.misctools import getMasses
+                    atomgroup.setMasses(getMasses(np.char.strip(elements)))
                     if anisou is not None:
-                        anisou.resize((acount, 6))
+                        anisou.resize((acount, 6), refcheck=False)
                         atomgroup.setAnisous(anisou / 10000)
                     if siguij is not None:
-                        siguij.resize((acount, 6))
+                        siguij.resize((acount, 6), refcheck=False)
                         atomgroup.setAnistds(siguij / 10000)
                 else:
-                    charges.resize(acount)
-                    radii.resize(acount)
+                    charges.resize(acount, refcheck=False)
+                    radii.resize(acount, refcheck=False)
                     atomgroup.setCharges(charges)
                     atomgroup.setRadii(radii)
 
@@ -639,27 +723,27 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
             coordsets[nmodel] = coordinates
             nmodel += 1
         del coordinates
-        coordsets.resize((nmodel, atomgroup.numAtoms(), 3))
+        coordsets.resize((nmodel, atomgroup.numAtoms(), 3), refcheck=False)
         if addcoords:
             atomgroup.addCoordset(coordsets)
         else:
             atomgroup._setCoords(coordsets)
     elif not END:
         # this means last line was an ATOM line, so atomgroup is not decorated
-        coordinates.resize((acount, 3))
+        coordinates.resize((acount, 3), refcheck=False)
         if addcoords:
             atomgroup.addCoordset(coordinates)
         else:
             atomgroup._setCoords(coordinates)
-        atomnames.resize(acount)
-        resnames.resize(acount)
-        resnums.resize(acount)
-        chainids.resize(acount)
-        hetero.resize(acount)
-        termini.resize(acount)
-        altlocs.resize(acount)
-        icodes.resize(acount)
-        serials.resize(acount)
+        atomnames.resize(acount, refcheck=False)
+        resnames.resize(acount, refcheck=False)
+        resnums.resize(acount, refcheck=False)
+        chainids.resize(acount, refcheck=False)
+        hetero.resize(acount, refcheck=False)
+        termini.resize(acount, refcheck=False)
+        altlocs.resize(acount, refcheck=False)
+        icodes.resize(acount, refcheck=False)
+        serials.resize(acount, refcheck=False)
         if not only_subset:
             atomnames = np.char.strip(atomnames)
             resnames = np.char.strip(resnames)
@@ -674,22 +758,24 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
         atomgroup.setSerials(serials)
         if isPDB:
             if anisou is not None:
-                anisou.resize((acount, 6))
+                anisou.resize((acount, 6), refcheck=False)
                 atomgroup.setAnisous(anisou / 10000)
             if siguij is not None:
-                siguij.resize((acount, 6))
+                siguij.resize((acount, 6), refcheck=False)
                 atomgroup.setAnistds(siguij / 10000)
-            bfactors.resize(acount)
-            occupancies.resize(acount)
-            segnames.resize(acount)
-            elements.resize(acount)
+            bfactors.resize(acount, refcheck=False)
+            occupancies.resize(acount, refcheck=False)
+            segnames.resize(acount, refcheck=False)
+            elements.resize(acount, refcheck=False)
             atomgroup.setSegnames(np.char.strip(segnames))
             atomgroup.setElements(np.char.strip(elements))
+            from prody.utilities.misctools import getMasses
+            atomgroup.setMasses(getMasses(np.char.strip(elements)))
             atomgroup.setBetas(bfactors)
             atomgroup.setOccupancies(occupancies)
         else:
-            charges.resize(acount)
-            radii.resize(acount)
+            charges.resize(acount, refcheck=False)
+            radii.resize(acount, refcheck=False)
             atomgroup.setCharges(charges)
             atomgroup.setRadii(radii)
 
@@ -750,8 +836,8 @@ def _evalAltlocs(atomgroup, altloc, chainids, resnums, resnames, atomnames):
         LOGGER.info('{0} out of {1} altloc {2} lines were parsed.'
                     .format(success, len(lines), repr(key)))
         if success > 0:
-            LOGGER.info('Altloc {0} is appended as a coordinate set to the '
-                        'atom group.'.format(repr(key), atomgroup.getTitle()))
+            LOGGER.info('Altloc {0} is appended as a coordinate set to '
+                        'atomgroup {1}.'.format(repr(key), atomgroup.getTitle()))
             atomgroup.addCoordset(xyz, label='altloc ' + key)
 
 PDBLINE = ('{0:6s}{1:5d} {2:4s}{3:1s}'
@@ -759,6 +845,18 @@ PDBLINE = ('{0:6s}{1:5d} {2:4s}{3:1s}'
            '{8:8.3f}{9:8.3f}{10:8.3f}'
            '{11:6.2f}{12:6.2f}      '
            '{13:4s}{14:2s}\n')
+
+#HELIXLINE = ('HELIX  %3d %3s %-3s %1s %4d%1s %-3s %1s %4d%1s%2d'
+#             '                               %5d\n')
+
+HELIXLINE = ('HELIX  {serNum:3d} {helixID:>3s} '
+             '{initResName:<3s} {initChainID:1s} {initSeqNum:4d}{initICode:1s} '
+             '{endResName:<3s} {endChainID:1s} {endSeqNum:4d}{endICode:1s}'
+             '{helixClass:2d}                               {length:5d}\n')             
+
+SHEETLINE = ('SHEET  {strand:3d} {sheetID:>3s}{numStrands:2d} '
+             '{initResName:3s} {initChainID:1s}{initSeqNum:4d}{initICode:1s} '
+             '{endResName:3s} {endChainID:1s}{endSeqNum:4d}{endICode:1s}{sense:2d} \n')
 
 PDBLINE_LT100K = ('%-6s%5d %-4s%1s%-4s%1s%4d%1s   '
                   '%8.3f%8.3f%8.3f%6.2f%6.2f      '
@@ -780,6 +878,64 @@ _writePDBdoc = """
     :arg occupancy: a list or array of number to be outputted in occupancy
         column
     """
+
+def writeChainsList(chains, filename):
+    """
+    Write a text file containing a list of chains that can be parsed.
+
+    :arg chains: a list of :class:`.Chain` objects
+    :type chains: list
+    
+    :arg filename: the name of the file to be written
+    :type filename: str
+    """
+
+    fo = open(filename,'w')
+    for chain in chains:
+        fo.write(chain.getTitle() + ' ' + chain.getChid() + '\n')
+    fo.close()
+    return
+
+def parseChainsList(filename):
+    """
+    Parse a set of PDBs and extract chains based on a list in a text file.
+
+    :arg filename: the name of the file to be read
+    :type filename: str
+
+    Returns: lists containing an :class:'.AtomGroup' for each PDB, 
+    the headers for those PDBs, and the requested :class:`.Chain` objects
+    """
+    
+    fi = open(filename,'r')
+    lines = fi.readlines()
+    fi.close()
+
+    pdb_ids = []
+    ags = []
+    headers = []
+    chains = []
+    num_lines = len(lines)
+    LOGGER.progress('Starting', num_lines, '_prody_parseChainsList')
+    for i, line in enumerate(lines):
+        LOGGER.update(i, 'Parsing lines...', label='_prody_parseChainsList')
+        pdb_id = line.split()[0].split('_')[0]
+        if not pdb_id in pdb_ids:
+            pdb_ids.append(pdb_id)
+
+            ag, header = parsePDB(pdb_id, compressed=False, \
+                                  subset=line.split()[0].split('_')[1], header=True)
+
+            ags.append(ag)
+            headers.append(header)
+
+        chains.append(ag.getHierView()[line.strip().split()[1]])
+
+    LOGGER.finish()
+    LOGGER.info('{0} PDBs have been parsed and {1} chains have been extracted. \
+                '.format(len(ags),len(chains)))
+
+    return ags, headers, chains
 
 def writePDBStream(stream, atoms, csets=None, **kwargs):
     """Write *atoms* in PDB format to a *stream*.
@@ -897,8 +1053,62 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
     if segments is None:
         segments = np.zeros(n_atoms, s_or_u + '6')
 
+    # write remarks
     stream.write('REMARK {0}\n'.format(remark))
 
+    # write secondary structures (if any)
+    secondary = kwargs.get('secondary', True)
+    secstrs = atoms._getSecstrs()
+    if secstrs is not None and secondary:
+        secindices = atoms._getSecindices()
+        secclasses = atoms._getSecclasses()
+        secids = atoms._getSecids()
+
+        # write helices
+        for i in range(1,max(secindices)+1):
+            torf = np.logical_and(isHelix(secstrs), secindices==i)
+            if torf.any():
+                helix_resnums = resnums[torf]
+                helix_chainids = chainids[torf]
+                helix_resnames = resnames[torf]
+                helix_secclasses = secclasses[torf]
+                helix_secids = secids[torf]
+                helix_icodes = icodes[torf]
+                L = helix_resnums[-1] - helix_resnums[0] + 1
+
+                stream.write(HELIXLINE.format(serNum=i, helixID=helix_secids[0], 
+                            initResName=helix_resnames[0], initChainID=helix_chainids[0], 
+                            initSeqNum=helix_resnums[0], initICode=helix_icodes[0],
+                            endResName=helix_resnames[-1], endChainID=helix_chainids[-1], 
+                            endSeqNum=helix_resnums[-1], endICode=helix_icodes[-1],
+                            helixClass=helix_secclasses[0], length=L))
+        
+        # write strands
+        torf_all_sheets = isSheet(secstrs)
+        sheet_secids = secids[torf_all_sheets]
+
+        for sheet_id in np.unique(sheet_secids):
+            torf_strands_in_sheet = np.logical_and(torf_all_sheets, secids==sheet_id)
+            strand_indices = secindices[torf_strands_in_sheet]
+            numStrands = len(np.unique(strand_indices))
+
+            for i in np.unique(strand_indices):
+                torf_strand = np.logical_and(torf_strands_in_sheet, secindices==i)
+                strand_resnums = resnums[torf_strand]
+                strand_chainids = chainids[torf_strand]
+                strand_resnames = resnames[torf_strand]
+                strand_secclasses = secclasses[torf_strand]
+                strand_icodes = icodes[torf_strand]
+
+                stream.write(SHEETLINE.format(strand=i, sheetID=sheet_id, numStrands=numStrands,
+                            initResName=strand_resnames[0], initChainID=strand_chainids[0], 
+                            initSeqNum=strand_resnums[0], initICode=strand_icodes[0],
+                            endResName=strand_resnames[-1], endChainID=strand_chainids[-1], 
+                            endSeqNum=strand_resnums[-1], endICode=strand_icodes[-1],
+                            sense=strand_secclasses[0]))
+        pass
+
+    # write atoms
     multi = len(coordsets) > 1
     write = stream.write
     for m, coords in enumerate(coordsets):

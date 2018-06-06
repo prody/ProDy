@@ -4,11 +4,7 @@ graphical formats."""
 from ..apptools import *
 from .nmaoptions import *
 from . import nmaoptions
-
-try:
-    range = xrange
-except NameError:
-    pass
+from numbers import Integral
 
 DEFAULTS = {}
 HELPTEXT = {}
@@ -225,7 +221,7 @@ def prody_pca(coords, **kwargs):
                 for index in indices:
                         plt.figure(figsize=(width, height))
                         prody.showProjection(ensemble, pca[index])
-                        if isinstance(index, int):
+                        if isinstance(index, Integral):
                             index = [index]
                         index = [str(i+1) for i in index]
                         plt.savefig(join(outdir, prefix + '_proj_' +

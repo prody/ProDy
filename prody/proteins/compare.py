@@ -2,6 +2,8 @@
 """This module defines functions for comparing and mapping polypeptide chains.
 """
 
+from numbers import Integral
+
 import numpy as np
 from numpy import arange
 PW2 = None
@@ -11,18 +13,25 @@ from prody.atomic import Chain, AtomGroup, Selection
 from prody.atomic import AAMAP
 from prody.atomic import flags
 from prody.measure import calcTransformation, printRMSD, calcDistance
-from prody import LOGGER, SELECT, PY2K
+from prody import LOGGER, SELECT, PY2K, PY3K
+from prody.sequence import MSA
+from prody.utilities import cmp
 
 if PY2K:
     range = xrange
 
-__all__ = ['matchChains', 'matchAlign', 'mapOntoChain',
-           'getMatchScore', 'setMatchScore',
-           'getMismatchScore', 'setMismatchScore',
-           'getGapPenalty', 'setGapPenalty',
-           'getGapExtPenalty', 'setGapExtPenalty',
-           'getAlignmentMethod', 'setAlignmentMethod']
+if PY3K:
+    basestring = str
 
+__all__ = ['matchChains', 'matchAlign', 'mapOntoChain', 'mapChainByChain', 
+           'mapOntoChainByAlignment', 'getMatchScore', 'setMatchScore',
+           'getMismatchScore', 'setMismatchScore', 'getGapPenalty', 
+           'setGapPenalty', 'getGapExtPenalty', 'setGapExtPenalty',
+           'getTrivialSeqId', 'setTrivialSeqId', 'getTrivialCoverage', 
+           'setTrivialCoverage', 'getAlignmentMethod', 'setAlignmentMethod']
+
+TRIVIAL_SEQID = 90.
+TRIVIAL_COVERAGE = 50.
 MATCH_SCORE = 1.0
 MISMATCH_SCORE = 0.0
 GAP_PENALTY = -1.
@@ -58,6 +67,36 @@ def importBioPairwise2():
         PW2 = pairwise2
     return PW2
 
+
+def getTrivialSeqId():
+    """Returns sequence identity used in the trivial mapping."""
+
+    return TRIVIAL_SEQID
+
+
+def setTrivialSeqId(seqid):
+    """Set sequence identity used in the trivial mapping."""
+
+    if isinstance(seqid, (float, int)) and seqid >= 0:
+        global TRIVIAL_SEQID
+        TRIVIAL_SEQID = seqid
+    else:
+        raise TypeError('seqid must be a positive number or zero')
+
+def getTrivialCoverage():
+    """Returns sequence coverage used in the trivial mapping."""
+
+    return TRIVIAL_COVERAGE
+
+
+def setTrivialCoverage(coverage):
+    """Set sequence coverage used in the trivial mapping."""
+
+    if isinstance(coverage, (float, int)) and coverage >= 0:
+        global TRIVIAL_COVERAGE
+        TRIVIAL_COVERAGE = coverage
+    else:
+        raise TypeError('coverage must be a positive number or zero')
 
 def getMatchScore():
     """Returns match score used to align sequences."""
@@ -164,6 +203,10 @@ class SimpleResidue(object):
     def getResname(self):
         return self._name
 
+    def getCoords(self):
+        if self._res:
+            return self._res._getCoords()
+        return None
 
 class SimpleChain(object):
 
@@ -173,7 +216,7 @@ class SimpleChain(object):
     SimpleChain instances can be indexed using residue numbers. If a residue
     with given number is not found in the chain, **None** is returned."""
 
-    __slots__ = ['_list', '_seq', '_title', '_dict', '_gaps']
+    __slots__ = ['_list', '_seq', '_title', '_dict', '_gaps', '_coords', '_chain']
 
     def __init__(self, chain=None, allow_gaps=False):
         """Initialize SimpleChain with a chain id and a sequence (available).
@@ -188,8 +231,10 @@ class SimpleChain(object):
         self._dict = dict()
         self._list = list()
         self._seq = ''
-        self._title = None
+        self._title = ''
         self._gaps = allow_gaps
+        self._coords = None
+        self._chain = None
         if isinstance(chain, Chain):
             self.buildFromChain(chain)
         elif isinstance(chain, str):
@@ -209,8 +254,8 @@ class SimpleChain(object):
         return '{0} with {1} residues'.format(self._title, len(self._list))
 
     def __getitem__(self, index):
-        if isinstance(index, int):
-            self._dict.get((index, ''))
+        if isinstance(index, Integral):
+            return self._dict.get((index, ''))
         return self._dict.get(index)
 
     def getSequence(self):
@@ -218,6 +263,9 @@ class SimpleChain(object):
 
     def getTitle(self):
         return self._title
+
+    def getCoords(self):
+        return self._coords
 
     def buildFromSequence(self, sequence, resnums=None):
         """Build from amino acid sequence.
@@ -254,6 +302,7 @@ class SimpleChain(object):
         """Build from a :class:`.Chain`."""
 
         assert isinstance(chain, Chain), 'chain must be a Chain instance'
+        self._chain = chain
         gaps = self._gaps
         residues = list(chain.iterResidues())
         temp = residues[0].getResnum()-1
@@ -273,6 +322,7 @@ class SimpleChain(object):
             self._seq += aa
             self._list.append(simpres)
             self._dict[(resid, incod)] = simpres
+        self._coords = chain._getCoords()
         self._title = 'Chain {0} from {1}'.format(chain.getChid(),
                                                   chain.getAtomGroup()
                                                   .getTitle())
@@ -763,102 +813,165 @@ def mapOntoChain(atoms, chain, **kwargs):
         ``"heavy"`` (or ``"noh"``), or ``"all"``, default is ``"calpha"``
     :type subset: string
 
-    :keyword seqid: percent sequence identity, default is 90
+    :keyword seqid: percent sequence identity, default is **90** if sequence alignment is 
+        performed, otherwise **0**
     :type seqid: float
 
-    :keyword overlap: percent overlap, default is 90
+    :keyword overlap: percent overlap, default is **70**
     :type overlap: float
 
-    :keyword pwalign: perform pairwise sequence alignment
+    :keyword mapping: if ``"ce"`` or ``"cealign"``, then the CE algorithm [IS98]_ will be 
+        performed. It can also be a list of prealigned sequences, a :class:`.MSA` instance,
+        or a dict of indices such as that derived from a :class:`.DaliRecord`.
+        If set to anything other than the options listed above, including the default value 
+        (**None**), a simple mapping will be first attempted and if that failed 
+        then sequence alignment with a function from :mod:`~Bio.pairwise2` will be used 
+        unless *pwalign* is set to **False**, in which case the mapping will fail.
+    :type mapping: list, str
+
+    :keyword pwalign: if **True**, then pairwise sequence alignment will 
+        be performed. If **False** then a simple mapping will be performed 
+        based on residue numbers (as well as insertion codes). This will be 
+        overridden by the *mapping* keyword's value. 
     :type pwalign: bool
 
     This function tries to map *atoms* to *chain* based on residue
     numbers and types. Each individual chain in *atoms* is compared to
-    target *chain*. This works well for different structures of the same
-    protein. When it fails, :mod:`Bio.pairwise2` is used for sequence
-    alignment, and mapping is performed based on the sequence alignment.
-    User can control, whether sequence alignment is performed or not with
-    *pwalign* keyword. If ``pwalign=True`` is passed, pairwise alignment is
-    enforced."""
+    target *chain*.
+    
+    .. [IS98] Shindyalov IN, Bourne PE. Protein structure alignment by 
+       incremental combinatorial extension (CE) of the optimal path. 
+       *Protein engineering* **1998** 11(9):739-47.
+    """
 
-    target_chain = chain
     if not isinstance(atoms, (AtomGroup, Chain, Selection)):
         raise TypeError('atoms must be an AtomGroup, a Chain, or a '
                         'Selection instance')
-    if not isinstance(target_chain, Chain):
+    if not isinstance(chain, Chain):
         raise TypeError('chain must be Chain instance')
 
     subset = str(kwargs.get('subset', 'calpha')).lower()
     if subset not in _SUBSETS:
         raise ValueError('{0} is not a valid subset argument'
                          .format(str(subset)))
-    seqid = kwargs.get('seqid', 90.)
-    coverage = kwargs.get('overlap')
-    if coverage is None:
-        coverage = kwargs.get('coverage', 70.)
+    seqid = kwargs.get('seqid', None) 
+    coverage = kwargs.get('overlap', 70.)
+    coverage = kwargs.get('coverage', coverage) 
     pwalign = kwargs.get('pwalign', None)
+    pwalign = kwargs.get('mapping', pwalign)
+    alignment = None
+    if pwalign is not None:
+        if isinstance(pwalign, basestring):
+            pwalign = str(pwalign).strip().lower()
+        elif not isinstance(pwalign, bool):
+            alignment = pwalign
+            pwalign = True
 
-    if isinstance(atoms, Chain):
-        chains = [atoms]
-        map_ag = atoms.getAtomGroup()
-    else:
-        if isinstance(atoms, AtomGroup):
-            map_ag = atoms
-        else:
-            map_ag = atoms.getAtomGroup()
-        chains = list(atoms.getHierView().iterChains())
-        LOGGER.debug('Evaluating {0}: {1} chains are identified'
-                     .format(str(atoms), len(chains)))
+    # pwalign needs to be specifically False in this case (it could be None)
+    if pwalign is False and seqid is None:  
+        seqid = 90.
 
     if subset != 'all':
-        target_chain = target_chain.select(subset
-                                        ).getHierView()[target_chain.getChid()]
+        chid = chain.getChid()
+        segname = chain.getSegname()
+        chain_subset = chain.select(subset)
+        target_chain = chain_subset.getHierView()[segname, chid]
+        
+        mobile = atoms.select(subset)
+    else:
+        target_chain = chain
+        mobile = atoms
+
+    if isinstance(mobile, Chain):
+        chains = [mobile]
+        map_ag = mobile.getAtomGroup()
+    else:
+        if isinstance(mobile, AtomGroup):
+            map_ag = mobile
+        else:
+            map_ag = mobile.getAtomGroup()
+        chains = list(mobile.getHierView().iterChains())
+        LOGGER.debug('Evaluating {0}: {1} chains are identified'
+                     .format(str(atoms), len(chains))) 
 
     mappings = []
     unmapped = []
+    unmapped_chids = []
     target_ag = target_chain.getAtomGroup()
-    simple_target = SimpleChain(target_chain, True)
+    simple_target = SimpleChain(target_chain, False)
     LOGGER.debug('Trying to map atoms based on residue numbers and '
-                 'identities:')
+                'identities:')
     for chain in chains:
-        simple_chain = SimpleChain(True)
-        simple_chain.buildFromChain(chain)
+        simple_chain = SimpleChain(chain, False)
         if len(simple_chain) == 0:
             LOGGER.debug('  Skipping {0}, which does not contain any amino '
-                         'acid residues.'.format(simple_chain))
+                        'acid residues.'.format(simple_chain))
             continue
         LOGGER.debug('  Comparing {0} (len={1}) with {2}:'
-                     .format(simple_chain.getTitle(), len(simple_chain),
-                             simple_target.getTitle()))
+                    .format(simple_chain.getTitle(), len(simple_chain),
+                            simple_target.getTitle()))
 
+        # trivial mapping serves as a first simple trial of alignment the two 
+        # sequences based on residue number, therefore the sequence identity 
+        # (TRIVIAL_SEQID) criterion is strict.
+        _seqid = _cover = -1
         target_list, chain_list, n_match, n_mapped = getTrivialMapping(
             simple_target, simple_chain)
         if n_mapped > 0:
             _seqid = n_match * 100 / n_mapped
             _cover = n_mapped * 100 / max(len(simple_target), len(simple_chain))
-        else:
-            _seqid = 0
-            _cover = 0
 
-        if _seqid >= seqid and _cover >= coverage:
+        trivial_seqid = TRIVIAL_SEQID if pwalign else seqid
+        trivial_cover = TRIVIAL_COVERAGE if pwalign else coverage
+        if _seqid >= trivial_seqid and _cover >= trivial_cover:
             LOGGER.debug('\tMapped: {0} residues match with {1:.0f}% '
-                         'sequence identity and {2:.0f}% overlap.'
-                         .format(n_mapped, _seqid, _cover))
+                    'sequence identity and {2:.0f}% overlap.'
+                    .format(n_mapped, _seqid, _cover))
             mappings.append((target_list, chain_list, _seqid, _cover))
         else:
-            LOGGER.debug('\tFailed to match chains based on residue numbers '
-                         '(seqid={0:.0f}%, overlap={1:.0f}%).'
-                         .format(_seqid, _cover))
+            if not pwalign:
+                LOGGER.debug('\tFailed to match chains based on residue numbers '
+                        '(seqid={0:.0f}%, overlap={1:.0f}%).'
+                        .format(_seqid, _cover))
             unmapped.append(simple_chain)
+            unmapped_chids.append(chain.getChid())
 
-    if pwalign or (not mappings and (pwalign is None or pwalign)):
-        LOGGER.debug('Trying to map atoms based on {0} sequence alignment:'
-                     .format(ALIGNMENT_METHOD))
-        for simple_chain in unmapped:
+    if not mappings and pwalign is None:
+        pwalign = True
+
+    if pwalign and unmapped:
+        if alignment is None:
+            if pwalign in ['ce', 'cealign']:
+                aln_type = 'structure alignment'
+                method = 'CE'
+                if seqid is None:
+                    seqid = 0.
+            else:
+                aln_type = 'sequence alignment'
+                method = ALIGNMENT_METHOD
+                if seqid is None:
+                    seqid = 90.
+        else:
+            aln_type = 'alignment'
+            method = 'predefined'
+            if seqid is None:
+                seqid = 0.
+
+        LOGGER.debug('Trying to map atoms based on {0} {1}:'
+                     .format(method, aln_type))
+
+        for chid, simple_chain in zip(unmapped_chids, unmapped):
             LOGGER.debug('  Comparing {0} (len={1}) with {2}:'
-                         .format(simple_chain.getTitle(), len(simple_chain),
-                                 simple_target.getTitle()))
-            result = getAlignedMapping(simple_target, simple_chain)
+                        .format(simple_chain.getTitle(), len(simple_chain),
+                                simple_target.getTitle()))
+            if method == 'CE':
+                result = getCEAlignMapping(simple_target, simple_chain)
+            else:
+                if isinstance(alignment, dict):
+                    result = getDictMapping(simple_target, simple_chain, map_dict=alignment)
+                else:
+                    result = getAlignedMapping(simple_target, simple_chain, alignment=alignment)
+
             if result is not None:
                 target_list, chain_list, n_match, n_mapped = result
                 if n_mapped > 0:
@@ -908,21 +1021,62 @@ def mapOntoChain(atoms, chain, **kwargs):
         title_tar = 'Chain {0} from {1}'.format(ch_tar.getChid(), ch_tar.getAtomGroup().getTitle())
         title_chn = 'Chain {0} from {1}'.format(ch_chn.getChid(), ch_chn.getAtomGroup().getTitle())
 
+        # note that chain here is from atoms
         atommap = AM(map_ag, indices_chain, chain.getACSIndex(),
                      mapping=indices_mapping, dummies=indices_dummies,
-                     title=title_chn + ' -> ' +
-                     title_tar )
+                     title=title_chn + ' -> ' + title_tar )
         selection = AM(target_ag, indices_target, target_chain.getACSIndex(),
-                       title=title_tar + ' -> ' +
-                       title_chn, intarrays=True)
+                       title=title_tar + ' -> ' + title_chn, intarrays=True)
 
         mappings[mi] = (atommap, selection, _seqid, _cover)
     if len(mappings) > 1:
-        def compare(m1, m2):
-            return cmp(m1[2], m2[2])
-        mappings.sort(compare, reverse=True)
+        mappings.sort(key=lambda m: m[-2:], reverse=True)
     return mappings
 
+def mapChainByChain(atoms, ref, **kwargs):
+    """This function is similar to :func:`.mapOntoChain` but correspondence 
+    of chains is found by their chain identifiers. """
+    hv = atoms.getHierView()
+    for chain in ref.getHierView().iterChains():
+        for target_chain in hv.iterChains():
+            if target_chain.getChid() == chain.getChid():
+                mappings = mapOntoChainByAlignment(target_chain, chain, **kwargs)
+                return mappings
+    return []
+
+def mapOntoChainByAlignment(atoms, chain, **kwargs):
+    """This function is similar to :func:`.mapOntoChain` but correspondence 
+    of chains is found by alignment provided. 
+    
+    :arg alignments: A list of predefined alignments. It can be also a 
+        dictionary or :class:`MSA` instance where the keys or 
+        labels are the title of *atoms* or *chains*. 
+    :type alignments: list, dict, :class:`MSA`
+    """
+
+    alignments = kwargs.pop('alignments', None)
+    if alignments is None:
+        return mapOntoChain(atoms, chain, **kwargs)
+    else:
+        if isinstance(alignments, (MSA, dict)):
+            refseq = str(alignments[chain.getTitle()])
+            tarseq = str(alignments[atoms.getTitle()])
+            alignment = [refseq, tarseq]
+        else:
+            index = kwargs.pop('index', 0)
+            alignment = alignments[index]
+
+        tar_aligned_seq = alignment[-1]
+        for char in GAPCHARS:
+            tar_aligned_seq = tar_aligned_seq.replace(char, '').upper()
+        hv = atoms.getHierView()
+        for target_chain in hv.iterChains():
+            tar_seq = target_chain.getSequence().upper()
+            if tar_seq == tar_aligned_seq:
+                mappings = mapOntoChain(target_chain, chain, pwalign=alignment, **kwargs)
+                return mappings
+        LOGGER.warn('The sequence of chain does not match that in alignment (%s).'%atoms.getTitle())
+    return []
 
 def getTrivialMapping(target, chain):
     """Returns lists of matching residues (map based on residue number)."""
@@ -948,24 +1102,94 @@ def getTrivialMapping(target, chain):
 
     return target_list, chain_list, n_match, n_mapped
 
+def getDictMapping(target, chain, map_dict):
+    """Returns lists of matching residues (based on *map_dict*)."""
 
-def getAlignedMapping(target, chain):
-    pairwise2 = importBioPairwise2()
-    if ALIGNMENT_METHOD == 'local':
-        alignment = pairwise2.align.localms(target.getSequence(),
-                                            chain.getSequence(),
-                                            MATCH_SCORE, MISMATCH_SCORE,
-                                            GAP_PENALTY,  GAP_EXT_PENALTY,
-                                            one_alignment_only=1)
-    else:
-        alignment = pairwise2.align.globalms(target.getSequence(),
-                                             chain.getSequence(),
-                                             MATCH_SCORE, MISMATCH_SCORE,
-                                             GAP_PENALTY, GAP_EXT_PENALTY,
-                                             one_alignment_only=1)
+    pdbid = chain._chain.getTitle()[:4].lower()
+    chid = chain._chain.getChid().upper()
+    key = pdbid + chid
 
-    this = alignment[0][0]
-    that = alignment[0][1]
+    mapping = map_dict.get(key)
+    if mapping is None:
+        LOGGER.warn('map_dict does not have the mapping for {0}'.format(key))
+        return None
+
+    tar_indices = mapping[0]
+    chn_indices = mapping[1]
+
+    chain_res_list = [res for res in chain]
+
+    amatch = []
+    bmatch = []
+    n_match = 0
+    n_mapped = 0
+    for i, a in enumerate(target):  
+        ares = a.getResidue()
+        amatch.append(ares)
+        if i in tar_indices:
+            try:
+                n = tar_indices.index(i)
+            except IndexError:
+                LOGGER.warn('\nthe number of residues in the map_dict ({0} residues) is inconsistent with {2} ({1} residues)'
+                            .format(max(tar_indices)+1, len(chain_res_list), target.getTitle()))
+                return None
+            try:
+                b = chain_res_list[chn_indices[n]]
+            except IndexError:
+                LOGGER.warn('\nthe number of residues in the map_dict ({0} residues) is inconsistent with {2} ({1} residues)'
+                            .format(max(chn_indices)+1, len(chain_res_list), chain.getTitle()))
+                return None
+            bres = b.getResidue()
+            bmatch.append(bres)
+            if a.getResname() == b.getResname():
+                n_match += 1
+            n_mapped += 1
+        else:
+            bmatch.append(None)
+
+    return amatch, bmatch, n_match, n_mapped
+
+def getAlignedMapping(target, chain, alignment=None):
+    """Returns lists of matching residues (map based on pairwise 
+    alignment or predefined alignment)."""
+
+    if alignment is None:
+        pairwise2 = importBioPairwise2()
+        if ALIGNMENT_METHOD == 'local':
+            alignments = pairwise2.align.localms(target.getSequence(),
+                                                chain.getSequence(),
+                                                MATCH_SCORE, MISMATCH_SCORE,
+                                                GAP_PENALTY,  GAP_EXT_PENALTY,
+                                                one_alignment_only=1)
+        else:
+            alignments = pairwise2.align.globalms(target.getSequence(),
+                                                chain.getSequence(),
+                                                MATCH_SCORE, MISMATCH_SCORE,
+                                                GAP_PENALTY, GAP_EXT_PENALTY,
+                                                one_alignment_only=1)
+        alignment = alignments[0]
+
+    def _findAlignment(sequence, alignment):
+        for seq in alignment:
+            strseq = str(seq).upper()
+            for gap in GAPCHARS:
+                strseq = strseq.replace(gap, '')
+
+            if sequence.upper() == strseq:
+                return seq
+        return None
+
+    this = _findAlignment(target.getSequence(), alignment)
+    if this is None:
+        LOGGER.warn('alignment does not contain the target ({0}) sequence'
+                    .format(this.getTitle()))
+        return None
+
+    that = _findAlignment(chain.getSequence(), alignment)
+    if that is None:
+        LOGGER.warn('alignment does not contain the chain ({0}) sequence'
+                    .format(that.getTitle()))
+        return None
 
     amatch = []
     bmatch = []
@@ -988,9 +1212,77 @@ def getAlignedMapping(target, chain):
             else:
                 bmatch.append(None)
         elif b not in (GAP, NONE_A):
-                bres = next(biter)
+            bres = next(biter)
     return amatch, bmatch, n_match, n_mapped
 
+def getCEAlignMapping(target, chain):
+    from .ccealign import ccealign
+
+    tar_coords = target.getCoords().tolist()
+    mob_coords = chain.getCoords().tolist()
+    
+    def add_tail_dummies(coords, window=8):
+        natoms = len(coords)
+        if natoms < window:
+            return None
+        rest = natoms % window
+
+        tail_indices = []
+        for i in range(rest):
+            tail_indices.append(len(coords))
+            coords.append(coords[-(i+1)])
+        
+        return tail_indices
+
+    window = 8
+    tar_dummies = add_tail_dummies(tar_coords, window)
+    if tar_dummies is None:
+        LOGGER.warn('target ({1}) is too small to be aligned '
+                    'by CE algorithm (at least {0} residues)'
+                    .format(window, repr(target)))
+        return None
+
+    mob_dummies = add_tail_dummies(mob_coords, window)
+    if mob_dummies is None:
+        LOGGER.warn('chain ({1}) is too small to be aligned '
+                    'by CE algorithm (at least {0} residues)'
+                    .format(window, repr(chain)))
+        return None
+
+    aln_info = ccealign((tar_coords, mob_coords))
+
+    paths, bestIdx, nres, rmsd = aln_info[:4]
+    path = paths[bestIdx]
+
+    tar_indices = []
+    chn_indices = []
+    for i, j in path:
+        if i not in tar_dummies:
+            if j not in mob_dummies:
+                tar_indices.append(i)
+                chn_indices.append(j)
+
+    chain_res_list = [res for res in chain]
+
+    amatch = []
+    bmatch = []
+    n_match = 0
+    n_mapped = 0
+    for i, a in enumerate(target):
+        ares = a.getResidue()
+        amatch.append(ares)
+        if i in tar_indices:
+            n = tar_indices.index(i)
+            b = chain_res_list[chn_indices[n]]
+            bres = b.getResidue()
+            bmatch.append(bres)
+            if a.getResname() == b.getResname():
+                n_match += 1
+            n_mapped += 1
+        else:
+            bmatch.append(None)
+
+    return amatch, bmatch, n_match, n_mapped
 
 if __name__ == '__main__':
 

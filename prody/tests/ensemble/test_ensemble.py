@@ -170,7 +170,7 @@ class TestEnsemble(TestCase):
                     'concatenation failed')
         assert_equal(ensemble.getCoords(), COORDS,
                      'concatenation failed')
-        self.assertIsNone(ensemble.getWeights(), 'concatenation failed')
+        assert_equal(ensemble.getWeights(), ENSEMBLEW.getWeights(), 'concatenation failed')
 
     def testConcatenationWeightsNoweights(self):
         """Test concatenation of ensembles with and without weights."""
@@ -184,3 +184,33 @@ class TestEnsemble(TestCase):
                      'failed at concatenation for Ensemble')
         assert_equal(ensemble.getWeights(), ENSEMBLEW.getWeights(),
                      'failed at concatenation for Ensemble')
+
+    def testSelection(self):
+        """Test atom selection of ensemble."""
+
+        sel = ATOMS.select('resnum 1 to 3')
+        ensemble = ENSEMBLE[:]
+        ensemble.setAtoms(ATOMS)
+
+        ensemble.setAtoms(sel)
+        assert_equal(ensemble.getCoordsets(), sel.getCoordsets(),
+                     'selection failed')
+
+        ensemble2 = ensemble + ensemble
+        assert_equal(ensemble._indices, ensemble2._indices,
+                     'concatenation failed for Ensemble after selection')
+
+        ensemble2.addCoordset(sel.getCoords())
+
+        anti_sel = ATOMS.select('not resnum 1 to 3')
+        ensemble2.setAtoms(anti_sel)
+        new_conf = ensemble2.getCoordsets()[-1]
+        coords = ensemble2.getCoords()
+        assert_allclose(new_conf, coords,
+                        rtol=0, atol=1e-3,
+                        err_msg='failed at addCoordset for Ensemble after selection')
+
+        ensemble.setAtoms(ATOMS)
+        assert_equal(ensemble.getCoordsets(), ATOMS.getCoordsets(),
+                     'restoration failed')
+        

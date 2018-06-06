@@ -165,6 +165,11 @@ class PDBConformation(Conformation):
 
         self._ensemble._labels[self._index] = str(label)
 
+    def getSequence(self):
+        """Returns the sequence of the conformation."""
+
+        return self._ensemble.getMSA()[self._index]
+
     def getCoords(self):
         """Returns a copy of the coordinates of the conformation. If a subset
         of atoms are selected in the ensemble, coordinates for selected

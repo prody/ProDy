@@ -7,12 +7,7 @@ from numpy import char, fromstring
 
 from prody import LOGGER, PY3K
 
-try:
-    range = xrange
-except NameError:
-    pass
-
-SPLITLABEL = re.compile('/*-*').split
+SPLITLABEL = re.compile(r'[/-]+').split
 
 __all__ = ['Sequence']
 
@@ -22,6 +17,8 @@ def splitSeqLabel(label):
     from sequence label."""
 
     try:
+        if label.strip() == '':
+            raise Exception
         idcode, start, end = SPLITLABEL(label)
     except Exception:
         return label, None, None
@@ -101,6 +98,9 @@ class Sequence(object):
         """Returns :class:`.MSA` instance or **None**."""
 
         return self._msa
+
+    def getArray(self):
+        return self._array
 
     def getIndex(self):
         """Returns sequence index or **None**."""

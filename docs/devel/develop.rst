@@ -48,7 +48,6 @@ The next step is cloning the fork from your online account to your local
 system.  If you are not using the GitHub software, you can do it as follows::
 
   $ git clone https://github.com/prody/ProDy.git
-git
 
 This will create :file:`ProDy` folder with a copy of the project files in it::
 

@@ -13,9 +13,9 @@ from prody.utilities import sympath
 __all__ = ['wwPDBServer', 'fetchPDBviaFTP', 'fetchPDBviaHTTP']
 
 
-_WWPDB_RCSB = ('RCSB PDB (USA)', 'ftp.wwpdb.org', '/pub/pdb/')
-_WWPDB_PDBe = ('PDBe (Europe)', 'ftp.ebi.ac.uk', '/pub/databases/rcsb/pdb/')
-_WWPDB_PDBj = ('PDBj (Japan)', 'pdb.protein.osaka-u.ac.jp', '/pub/pdb/')
+_WWPDB_RCSB = ('RCSB PDB (USA)', 'ftp.wwpdb.org', '/pub/')
+_WWPDB_PDBe = ('PDBe (Europe)', 'ftp.ebi.ac.uk', '/pub/databases/rcsb/')
+_WWPDB_PDBj = ('PDBj (Japan)', 'pdb.protein.osaka-u.ac.jp', '/pub/')
 
 WWPDB_FTP_SERVERS = {
     'rcsb'   : _WWPDB_RCSB,
@@ -30,7 +30,9 @@ WWPDB_FTP_SERVERS = {
     'jp'     : _WWPDB_PDBj,
 }
 
-_URL_US = lambda pdb: ('http://www.rcsb.org/pdb/files/%s.pdb.gz' %
+# _URL_US = lambda pdb: ('https://files.rcsb.org/pub/pdb/data/structures/all/pdb/pdb%s.ent.gz' %
+                       # pdb.lower())
+_URL_US = lambda pdb: ('https://files.rcsb.org/download/%s.pdb.gz' %
                        pdb.upper())
 _URL_EU = lambda pdb: ('http://www.ebi.ac.uk/pdbe-srv/view/files/%s.ent.gz' %
                        pdb.lower())
@@ -108,17 +110,18 @@ def checkIdentifiers(*pdb):
 
 
 def fetchPDBviaFTP(*pdb, **kwargs):
-    """Retrieve PDB (default), PDBML, or mmCIF file(s) for specified *pdb*
+    """Retrieve PDB (default), PDBML, mmCIF, or EMD file(s) for specified *pdb*
     identifier(s) and return path(s).  Downloaded files will be stored in
     local PDB folder, if one is set using :meth:`.pathPDBFolder`, and copied
     into *folder*, if specified by the user.  If no destination folder is
     specified, files will be saved in the current working directory.  If
     *compressed* is **False**, decompressed files will be copied into
     *folder*.  *format* keyword argument can be used to retrieve
-    `PDBML <http://pdbml.pdb.org/>`_ and `mmCIF <http://mmcif.pdb.org/>`_
-    files: ``format='cif'`` will fetch an mmCIF file, and ``format='xml'``
-    will fetch a PDBML file.  If PDBML header file is desired, ``noatom=True``
-    argument will do the job."""
+    `PDBML <http://pdbml.pdb.org/>`_, `mmCIF <http://mmcif.pdb.org/>`_
+    and `PDBML <ftp://ftp.wwpdb.org/pub/emdb/doc/Map-format/current/EMDB_map_format.pdf>`_ 
+    files: ``format='cif'`` will fetch an mmCIF file, ``format='emd'`` will fetch an EMD file,
+    and ``format='xml'`` will fetch a PDBML file. 
+    If PDBML header file is desired, ``noatom=True`` argument will do the job."""
 
     if kwargs.get('check', True):
         identifiers = checkIdentifiers(*pdb)
@@ -131,25 +134,30 @@ def fetchPDBviaFTP(*pdb, **kwargs):
     noatom = bool(kwargs.pop('noatom', False))
 
     if format == 'pdb':
-        ftp_divided = 'data/structures/divided/pdb'
+        ftp_divided = 'pdb/data/structures/divided/pdb'
         ftp_pdbext = '.ent.gz'
         ftp_prefix = 'pdb'
         extension = '.pdb'
     elif format == 'xml':
         if noatom:
-            ftp_divided = 'data/structures/divided/XML-noatom'
+            ftp_divided = 'pdb/data/structures/divided/XML-noatom'
             ftp_pdbext = '-noatom.xml.gz'
             extension = '-noatom.xml'
         else:
-            ftp_divided = 'data/structures/divided/XML'
+            ftp_divided = 'pdb/data/structures/divided/XML'
             ftp_pdbext = '.xml.gz'
             extension = '.xml'
         ftp_prefix = ''
     elif format == 'cif':
-        ftp_divided = 'data/structures/divided/mmCIF'
+        ftp_divided = 'pdb/data/structures/divided/mmCIF'
         ftp_pdbext = '.cif.gz'
         ftp_prefix = ''
         extension = '.cif'
+    elif format == 'emd' or format == 'map':
+        ftp_divided = 'emdb/structures'
+        ftp_pdbext = '.map.gz'
+        ftp_prefix = 'emd_'
+        extension = '.map'
     else:
         raise ValueError(repr(format) + ' is not valid format')
 
@@ -206,7 +214,10 @@ def fetchPDBviaFTP(*pdb, **kwargs):
             try:
                 ftp.cwd(ftp_path)
                 ftp.cwd(ftp_divided)
-                ftp.cwd(pdb[1:3])
+                if format == 'emd':
+                    ftp.cwd('EMD-{0}/map'.format(pdb))
+                else:
+                    ftp.cwd(pdb[1:3])
                 ftp.retrbinary('RETR ' + ftp_fn, data.append)
             except Exception as error:
                 if ftp_fn in ftp.nlst():
@@ -215,7 +226,7 @@ def fetchPDBviaFTP(*pdb, **kwargs):
                                 'download .gz files in the current network.'
                                 .format(pdb, str(error)))
                 else:
-                    LOGGER.warn('{0} download failed. {1} does not exist '
+                    LOGGER.info('{0} download failed. {1} does not exist '
                                 'on {2}.'.format(ftp_fn, pdb, ftp_host))
                 failure += 1
                 filenames.append(None)
@@ -240,9 +251,8 @@ def fetchPDBviaFTP(*pdb, **kwargs):
 
         ftp.quit()
 
-    if kwargs.get('report', True):
-        LOGGER.debug('PDB download via FTP completed ({0} downloaded, '
-                     '{1} failed).'.format(success, failure))
+    LOGGER.debug('PDB download via FTP completed ({0} downloaded, '
+                 '{1} failed).'.format(success, failure))
     if len(identifiers) == 1:
         return filenames[0]
     else:
@@ -307,7 +317,7 @@ def fetchPDBviaHTTP(*pdb, **kwargs):
         try:
             handle = openURL(getURL(pdb))
         except Exception as err:
-            LOGGER.warn('{0} download failed ({0}).'.format(pdb, str(err)))
+            LOGGER.warn('{0} download failed ({1}).'.format(pdb, str(err)))
             failure += 1
             filenames.append(None)
         else:
@@ -328,9 +338,8 @@ def fetchPDBviaHTTP(*pdb, **kwargs):
                             .format(pdb))
                 failure += 1
                 filenames.append(None)
-    if kwargs.get('report', True):
-        LOGGER.debug('PDB download via HTTP completed ({0} downloaded, '
-                     '{1} failed).'.format(success, failure))
+    LOGGER.debug('PDB download via HTTP completed ({0} downloaded, '
+                 '{1} failed).'.format(success, failure))
     if len(identifiers) == 1:
         return filenames[0]
     else:

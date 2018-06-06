@@ -4,23 +4,9 @@
 from numpy import arange, unique
 
 from .subset import AtomSubset
+from .atomic import AAMAP
 
 __all__ = ['Chain']
-
-AAMAP = {
-    'ALA': 'A', 'ARG': 'R', 'ASN': 'N', 'ASP': 'D', 'CYS': 'C', 'GLN': 'Q',
-    'GLU': 'E', 'GLY': 'G', 'HIS': 'H', 'ILE': 'I', 'LEU': 'L', 'LYS': 'K',
-    'MET': 'M', 'PHE': 'F', 'PRO': 'P', 'SER': 'S', 'THR': 'T', 'TRP': 'W',
-    'TYR': 'Y', 'VAL': 'V',
-    'ASX': 'B', 'GLX': 'Z', 'SEC': 'U', 'PYL': 'O', 'XLE': 'J',
-}
-_ = {}
-for aaa, a in AAMAP.items():
-    _[a] = aaa
-AAMAP.update(_)
-AAMAP.update({'PTR': 'Y', 'TPO': 'T', 'SEP': 'S', 'CSO': 'C',
-              'HSD': 'H', 'HSP': 'H', 'HSE': 'H'})
-
 
 def getSequence(resnames):
     """Returns polypeptide sequence as from list of *resnames* (residue
@@ -86,15 +72,8 @@ class Chain(AtomSubset):
 
         if isinstance(key, tuple):
             return self.getResidue(*key)
-
-        elif isinstance(key, slice):
-            resnums = set(arange(*key.indices(self._getResnums().max()+1)))
-            _list = self._list
-            return [_list[i] for (rn, ic), i in self._dict.items()
-                    if rn in resnums]
-
         else:
-            return self.getResidue(key)
+            return AtomSubset.__getitem__(self, key)
 
     def getSegment(self):
         """Returns segment of the chain."""
@@ -180,3 +159,9 @@ class Chain(AtomSubset):
         else:
             return 'chain {0} and ({1})'.format(self.getChid(),
                                                 segment.getSelstr())
+
+    def getHierView(self, **kwargs):
+        """Returns a hierarchical view of the this chain."""
+
+        return HierView(self, **kwargs)
+        

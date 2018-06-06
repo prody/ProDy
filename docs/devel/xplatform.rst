@@ -19,7 +19,7 @@ Issues may arise when comparing Numpy integer types with Python :func:`int`.
 Python :func:`int` equivalent Numpy integer type on Windows (Win7 64bit,
 Python 32bit) is :class:`~numpy.int32`, while on Linux (Ubuntu 64bit) it is
 :class:`~numpy.int64`.  For example, the statement
-``isinstance(np.array([1], np.int64), int)`` may return ``False`` resulting
+``isinstance(np.array([1], np.int64), int)`` may return **True** resulting
 in unexpected behavior in ProDy functions or methods.  If Numpy integer type
 needs to be specified, using :class:`~numpy.int` seems a safe option.
 

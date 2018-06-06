@@ -20,7 +20,7 @@ static PyObject *calcSM(PyObject *self, PyObject *args, PyObject *kwargs)
   int numCA, i, j, k, nmodes;
   double *XYZ, *SM, *lambda, *U, kbt=1.;
   double **stiff_matrix;
-  double r_ij, x_ij, y_ij, z_ij, norm_U;
+  double r_ij, x_ij, y_ij, z_ij;//, norm_U;
   static char *kwlist[] = {"coords", "sm", "eigvecs", "eigvals",
           "natoms","n_modes",
           "kbt",NULL};
@@ -52,7 +52,7 @@ static PyObject *calcSM(PyObject *self, PyObject *args, PyObject *kwargs)
       double sum2=0.0;
       double cos_alpha_ij=0.0;
 
-      for(k=6; k<nmodes; k++){
+      for(k=0; k<nmodes; k++){
       //      u_ij_sup_k[0]=(eigvecs[k][ind_3j  ]-eigvecs[k][ind_3i  ]);
         u_ij_sup_k[0]=(U[(k)*3*numCA+j*3]-U[(k)*3*numCA+i*3]);
 

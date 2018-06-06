@@ -11,8 +11,11 @@ import numbers
 
 __all__ = ['PackageLogger', 'LOGGING_LEVELS']
 
+LOGGING_PROGRESS = logging.INFO + 5
+
 LOGGING_LEVELS = {'debug': logging.DEBUG,
                 'info': logging.INFO,
+                'progress': LOGGING_PROGRESS,
                 'warning': logging.WARNING,
                 'error': logging.ERROR,
                 'critical': logging.CRITICAL,
@@ -64,6 +67,8 @@ class PackageLogger(object):
         self._prev = None
         self._line = None
         self._times = {}
+
+        self._n_progress = 0
 
     # ====================
     # Attributes
@@ -156,9 +161,10 @@ class PackageLogger(object):
     def clear(self):
         """Clear current line in ``sys.stderr``."""
 
-        if self._line and self._level < logging.WARNING:
-            sys.stderr.write('\r' + ' ' * (len(self._line)) + '\r')
-            self._line = ''
+        if self._level != LOGGING_PROGRESS: 
+            if self._line and self._level < logging.WARNING:
+                sys.stderr.write('\r' + ' ' * (len(self._line)) + '\r')
+                self._line = ''
 
     def exit(self, status=0):
         """Exit the interpreter."""
@@ -239,14 +245,21 @@ class PackageLogger(object):
         self._steps = steps
         self._last = 0
         self._times[label] = time.time()
-        self._prev = (0, 0)
+        self._prev = (-1, 0)
         self._msg = msg
         self._line = ''
 
-    def update(self, step, label=None):
+        if not hasattr(self, '_verb'):
+            self._verb = self._getverbosity()
+            self._setverbosity('progress')
+        self._n_progress += 1
+
+    def update(self, step, msg=None, label=None):
         """Update progress status to current line in the console."""
 
         assert isinstance(step, numbers.Integral), 'step must be a positive integer'
+        if msg is not None:
+            self._msg = msg
         n = self._steps
         i = step
         if self._level < logging.WARNING and n > 0 and i <= n and \
@@ -254,23 +267,32 @@ class PackageLogger(object):
             start = self._times[label]
             self._last = i
             percent = 100 * i / n
-            if percent > 3:
-                seconds = int(math.ceil((time.time()-start) * (n-i)/i))
-                prev = (percent, seconds)
-            else:
-                prev = (percent, 0)
-            if self._prev == prev:
-                return
+            #if percent > 3:
+            seconds = int(math.ceil((time.time()-start) * (n-i)/i))
+            prev = (percent, seconds)
+            #else:
+                #prev = (percent, 0)
+            #if self._prev == prev:
+            #    return
             sys.stderr.write('\r' + ' ' * (len(self._line)) + '\r')
-            if percent > 3:
-                line = self._prefix + self._msg + \
-                    ' [%3d%%] %ds' % (percent, seconds)
-            else:
-                line = self._prefix + self._msg + ' [%3d%%]' % percent
+            #if percent > 3:
+            line = self._prefix + self._msg + ' [%3d%%] %ds' % (percent, seconds)
+            #else:
+            #    line = self._prefix + self._msg + ' [%3d%%]' % percent
             sys.stderr.write(line)
             sys.stderr.flush()
             self._prev = prev
             self._line = line
+
+    def finish(self):
+        self._n_progress -= 1
+        if self._n_progress < 0:
+            self._n_progress = 0
+        if self._n_progress == 0:
+            if hasattr(self, '_verb'):
+                self._setverbosity(self._verb)
+                del self._verb
+                self.clear()
 
     def sleep(self, seconds, msg=''):
         """Sleep for seconds while updating screen message every second.

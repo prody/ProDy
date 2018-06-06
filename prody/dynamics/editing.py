@@ -3,8 +3,8 @@
 
 import numpy as np
 
-from prody.atomic import Atomic, AtomGroup, AtomMap, AtomSubset, HierView
-from prody.atomic import Selection, SELECT
+from prody.atomic import Atomic, AtomGroup, AtomMap, AtomSubset
+from prody.atomic import Selection, SELECT, sliceAtoms, extendAtoms
 from prody.utilities import importLA
 from prody import _PY3K
 
@@ -22,53 +22,6 @@ __all__ = ['extendModel', 'extendMode', 'extendVector',
            'reduceModel']
 
 
-def extend(model, nodes, atoms):
-    """Returns mapping indices and an :class:`.AtomMap`."""
-
-    try:
-        n_atoms = model.numAtoms()
-        is3d = model.is3d()
-    except AttributeError:
-        raise ValueError('model must be an NMA instance')
-
-    try:
-        n_nodes = nodes.numAtoms()
-        i_nodes = nodes.iterAtoms()
-    except AttributeError:
-        raise ValueError('nodes must be an Atomic instance')
-
-    if n_atoms != n_nodes:
-        raise ValueError('atom numbers must be the same')
-
-    if not nodes in atoms:
-        raise ValueError('nodes must be a subset of atoms')
-
-    atom_indices = []
-    indices = []
-    get = HierView(atoms).getResidue
-
-    for i, node in enumerate(i_nodes):
-        res = get(node.getChid() or None, node.getResnum(),
-                  node.getIcode() or None, node.getSegname() or None)
-        if res is None:
-            raise ValueError('atoms must contain a residue for all atoms')
-        atom_indices.append(res._getIndices())
-        if is3d:
-            indices.append(list(range(i*3, (i+1)*3)) * len(res))
-        else:
-            indices.append([i] * len(res))
-    atom_indices = np.concatenate(atom_indices)
-    indices = np.concatenate(indices)
-
-    try:
-        ag = atoms.getAtomGroup()
-    except AttributeError:
-        ag = atoms
-    atommap = AtomMap(ag, atom_indices, atoms.getACSIndex(),
-                      title=str(atoms), intarrays=True)
-    return indices, atommap
-
-
 def extendModel(model, nodes, atoms, norm=False):
     """Extend a coarse grained *model* built for *nodes* to *atoms*.  *model*
     may be :class:`.ANM`, :class:`.GNM`, :class:`.PCA`, or :class:`.NMA`
@@ -83,7 +36,10 @@ def extendModel(model, nodes, atoms, norm=False):
     except AttributeError:
         raise ValueError('model must be an NMA instance')
 
-    indices, atommap = extend(model, nodes, atoms)
+    if model.numAtoms() != nodes.numAtoms():
+        raise ValueError('atom numbers must be the same')
+
+    indices, atommap = extendAtoms(nodes, atoms, model.is3d())
 
     evecs = evecs[indices, :]
     if norm:
@@ -112,7 +68,7 @@ def extendMode(mode, nodes, atoms, norm=False):
     except AttributeError:
         raise ValueError('mode must be a normal Mode instance')
 
-    indices, atommap = extend(mode, nodes, atoms)
+    indices, atommap = extendAtoms(nodes, atoms, mode.is3d())
     vec = vec[indices]
     if norm:
         vec /= ((vec) ** 2).sum() ** 0.5
@@ -133,32 +89,12 @@ def extendVector(vector, nodes, atoms):
     except AttributeError:
         raise ValueError('vector must be a Vector instance')
 
-    indices, atommap = extend(vector, nodes, atoms)
+    if vector.numAtoms() != nodes.numAtoms():
+        raise ValueError('atom numbers must be the same')
+
+    indices, atommap = extendAtoms(nodes, atoms, vector.is3d())
     extended = Vector(vec[indices], 'Extended ' + str(vector), vector.is3d())
     return extended, atommap
-
-
-def slice(atoms, select):
-
-    if atoms == select:
-        raise ValueError('atoms and select arguments are the same')
-    if select in atoms:
-        indices = select._getIndices()
-    elif isinstance(select, str):
-        select = atoms.select(select)
-        indices = select._getIndices()
-    else:
-        raise TypeError('select must be a string or a Selection instance')
-
-    if isinstance(atoms, AtomGroup):
-        which = indices
-    else:
-        idxset = set(indices)
-        which = np.array([i for i, idx in enumerate(atoms._getIndices())
-                          if idx in idxset])
-
-    return which, select
-
 
 def sliceVector(vector, atoms, select):
     """Returns part of the *vector* for *atoms* matching *select*.  Note that
@@ -184,7 +120,7 @@ def sliceVector(vector, atoms, select):
     if atoms.numAtoms() != vector.numAtoms():
         raise ValueError('number of atoms in model and atoms must be equal')
 
-    which, sel = slice(atoms, select)
+    which, sel = sliceAtoms(atoms, select)
 
     vec = Vector(vector.getArrayNx3()[
                  which, :].flatten(),
@@ -221,7 +157,7 @@ def sliceMode(mode, atoms, select):
     if atoms.numAtoms() != mode.numAtoms():
         raise ValueError('number of atoms in model and atoms must be equal')
 
-    which, sel = slice(atoms, select)
+    which, sel = sliceAtoms(atoms, select)
 
     vec = Vector(mode.getArrayNx3()[which, :].flatten() *
                  mode.getVariance()**0.5,
@@ -255,7 +191,7 @@ def sliceModel(model, atoms, select):
 
     array = model._getArray()
 
-    which, sel = slice(atoms, select)
+    which, sel = sliceAtoms(atoms, select)
 
     nma = type(model)('{0} slice {1}'
                       .format(model.getTitle(), select))
@@ -279,7 +215,7 @@ def reduceModel(model, atoms, select):
     energy.  This is based on the formulation in [KH00]_.  For :class:`.PCA`
     models, this function simply takes the sub-covariance matrix for selection.
 
-    .. [KH00] Konrad H, Andrei-Jose P, Serge D, Marie-Claire BF, Gerald RK.
+    .. [KH00] Hinsen K, Petrescu A-J, Dellerue S, Bellissent-Funel M-C, Kneller GR.
        Harmonicity in slow protein dynamics. *Chem Phys* **2000** 261:25-37.
 
     :arg model: dynamics model
@@ -315,45 +251,15 @@ def reduceModel(model, atoms, select):
         raise ValueError('model matrix (Hessian/Kirchhoff/Covariance) is not '
                          'built')
 
-    if isinstance(select, str):
-        system = SELECT.getBoolArray(atoms, select)
-        n_sel = sum(system)
-        if n_sel == 0:
-            raise ValueError('select matches 0 atoms')
-        if len(atoms) == n_sel:
-            raise ValueError('select matches all atoms')
-
-        if isinstance(atoms, AtomGroup):
-            ag = atoms
-            which = np.arange(len(atoms))[system]
-        else:
-            ag = atoms.getAtomGroup()
-            which = atoms._getIndices()[system]
-        sel = Selection(ag, which, select, atoms.getACSIndex())
-
-    elif isinstance(select, AtomSubset):
-        sel = select
-        if isinstance(atoms, AtomGroup):
-            if sel.getAtomGroup() != atoms:
-                raise ValueError('select and atoms do not match')
-            system = np.zeros(len(atoms), bool)
-            system[sel._getIndices()] = True
-        else:
-            if atoms.getAtomGroup() != sel.getAtomGroup():
-                raise ValueError('select and atoms do not match')
-            elif not sel in atoms:
-                raise ValueError('select is not a subset of atoms')
-            idxset = set(atoms._getIndices())
-            system = np.array([idx in idxset for idx in sel._getIndices()])
-
-    else:
-        raise TypeError('select must be a string or a Selection instance')
+    which, select = sliceAtoms(atoms, select)
+    system = np.zeros(model.numAtoms(), dtype=bool)
+    system[which] = True
 
     other = np.invert(system)
 
     if model.is3d():
-        system = np.tile(system, (3, 1)).transpose().flatten()
-        other = np.tile(other, (3, 1)).transpose().flatten()
+        system = np.repeat(system, 3)
+        other = np.repeat(other, 3)
     ss = matrix[system, :][:, system]
     if isinstance(model, PCA):
         eda = PCA(model.getTitle() + ' reduced')
@@ -362,17 +268,21 @@ def reduceModel(model, atoms, select):
     so = matrix[system, :][:, other]
     os = matrix[other, :][:, system]
     oo = matrix[other, :][:, other]
-    matrix = ss - np.dot(so, np.dot(linalg.inv(oo), os))
+    try:
+        invoo = linalg.inv(oo)
+    except:
+        invoo = linalg.pinv(oo)
+    matrix = ss - np.dot(so, np.dot(invoo, os))
 
     if isinstance(model, GNM):
         gnm = GNM(model.getTitle() + ' reduced')
         gnm.setKirchhoff(matrix)
-        return gnm, sel
+        return gnm, select
     elif isinstance(model, ANM):
         anm = ANM(model.getTitle() + ' reduced')
         anm.setHessian(matrix)
-        return anm, sel
+        return anm, select
     elif isinstance(model, PCA):
         eda = PCA(model.getTitle() + ' reduced')
         eda.setCovariance(matrix)
-        return eda, sel
+        return eda, select

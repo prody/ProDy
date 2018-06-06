@@ -3,10 +3,10 @@
 and measuring quantities."""
 
 from numpy import ndarray, power, sqrt, array, zeros, arccos
-from numpy import sign, tile, concatenate, pi, cross, subtract, round, var
+from numpy import sign, tile, concatenate, pi, cross, subtract, var
 
 from prody.atomic import Atomic, Residue, Atom
-from prody.utilities import importLA, checkCoords
+from prody.utilities import importLA, checkCoords, getDistance
 from prody import LOGGER, PY2K
 
 if PY2K:
@@ -132,14 +132,6 @@ def calcDistance(atoms1, atoms2, unitcell=None):
     return getDistance(atoms1, atoms2, unitcell)
 
 
-def getDistance(coords1, coords2, unitcell=None):
-
-    diff = coords1 - coords2
-    if unitcell is not None:
-        diff = subtract(diff, round(diff/unitcell)*unitcell, diff)
-    return sqrt(power(diff, 2, diff).sum(axis=-1))
-
-
 def calcAngle(atoms1, atoms2, atoms3, radian=False):
     """Returns the angle between atoms in degrees."""
 
@@ -201,10 +193,12 @@ def getDihedral(coords1, coords2, coords3, coords4, radian=False):
     v2 = v2 / (v2 * v2).sum(-1)**0.5
     porm = sign((v1 * a3).sum(-1))
     rad = arccos((v1*v2).sum(-1) / ((v1**2).sum(-1) * (v2**2).sum(-1))**0.5)
+    if not porm == 0:
+        rad = rad * porm
     if radian:
-        return porm * rad
+        return rad
     else:
-        return porm * rad * RAD2DEG
+        return rad * RAD2DEG
 
 
 def calcOmega(residue, radian=False, dist=4.1):
@@ -568,9 +562,9 @@ def calcMSF(coordsets):
             total += coords
             sqsum += coords ** 2
             ncsets += 1
-            LOGGER.update(ncsets, '_prody_calcMSF')
+            LOGGER.update(ncsets, label='_prody_calcMSF')
+        LOGGER.finish()
         msf = (sqsum/ncsets - (total/ncsets)**2).sum(1)
-        LOGGER.clear()
         coordsets.goto(nfi)
     return msf
 

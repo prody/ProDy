@@ -3,7 +3,11 @@ include setup.py
 include prody/*.py
 include prody/*/*.py
 include prody/*/*.c
+include prody/*/*/*.c
+include prody/*/*.cpp
+include prody/*/*/*.cpp
 include prody/*/*.h
+include prody/*/*/*.h
 include prody/tests/*/*.py
 include prody/tests/datafiles/*.coo
 include prody/tests/datafiles/*.dcd
@@ -11,5 +15,7 @@ include prody/tests/datafiles/*.dat
 include prody/tests/datafiles/*.pdb
 include prody/tests/datafiles/*.xml
 include prody/tests/datafiles/msa*
+include prody/utilities/datafiles/*.dat
+include prody/utilities/datafiles/*.txt
 include scripts/prody*
 include scripts/evol*

@@ -90,3 +90,8 @@ class Segment(AtomSubset):
                                                         self._selstr)
         else:
             return 'segname {0}'.format(self.getSegname())
+
+    def getHierView(self, **kwargs):
+        """Returns a hierarchical view of the this segment."""
+
+        return HierView(self, **kwargs)

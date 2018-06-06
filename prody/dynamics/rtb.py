@@ -33,7 +33,7 @@ class Increment(object):
 class RTB(ANMBase):
 
     """Class for Rotations and Translations of Blocks (RTB) method ([FT00]_).
-    Optional arguments permit imposing constrains along Z-direction as in
+    Optional arguments permit imposing constraints along Z-direction as in
     *imANM* method described in [TL12]_.
 
     .. [FT00] Tama F, Gadea FJ, Marques O, Sanejouand YH. Building-block
@@ -72,16 +72,16 @@ class RTB(ANMBase):
             default is 1.0
         :type scale: float
 
-	:arg membrane_low: minimum z-coordinate at which membrane scaling
+        :arg membrane_low: minimum z-coordinate at which membrane scaling
             is applied
             default is 1.0
-	:type membrane_low: float
+        :type membrane_low: float
 
-	:arg membrane_high: maximum z-coordinate at which membrane scaling
+        :arg membrane_high: maximum z-coordinate at which membrane scaling
             is applied.  If membrane_high < membrane_low, scaling will be 
-	    applied to the entire structure
+            applied to the entire structure
             default is -1.0
-         :type membrane_high: float
+        :type membrane_high: float
         """
 
 
@@ -160,14 +160,14 @@ class RTB(ANMBase):
         :func:`numpy.linalg.eigh` is used.
 
         :arg n_modes: number of non-zero eigenvalues/vectors to calculate.
-            If ``None`` is given, all modes will be calculated.
+            If **None** is given, all modes will be calculated.
         :type n_modes: int or None, default is 20
 
-        :arg zeros: If ``True``, modes with zero eigenvalues will be kept.
-        :type zeros: bool, default is ``False``
+        :arg zeros: If **True**, modes with zero eigenvalues will be kept.
+        :type zeros: bool, default is **True**
 
         :arg turbo: Use a memory intensive, but faster way to calculate modes.
-        :type turbo: bool, default is ``True``
+        :type turbo: bool, default is **True**
         """
         if n_modes is None:
             n_modes = self._dof

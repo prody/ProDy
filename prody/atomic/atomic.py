@@ -3,20 +3,53 @@
 :mod:`~prody.atomic` classes are derived from."""
 
 from numpy import all, arange
-
-from prody import LOGGER
+from os import path
+from prody import LOGGER, __path__
+from prody.utilities import openData
 
 from . import flags
 from .bond import trimBonds
 from .fields import READONLY
 
-
-__all__ = ['Atomic']
+__all__ = ['Atomic', 'AAMAP']
 
 SELECT = None
 isSelectionMacro = None
 NOTALLNONE = set(['not', 'all', 'none', 'index', 'sequence', 'x', 'y', 'z'])
 
+MODMAP = {}
+with openData('mod_res_map.dat') as f:
+    for line in f:
+        try:
+            mod, aa = line.strip().split(' ')
+            MODMAP[mod] = aa
+        except:
+            continue
+
+AAMAP = {
+    'ALA': 'A', 'ARG': 'R', 'ASN': 'N', 'ASP': 'D', 'CYS': 'C', 'GLN': 'Q',
+    'GLU': 'E', 'GLY': 'G', 'HIS': 'H', 'ILE': 'I', 'LEU': 'L', 'LYS': 'K',
+    'MET': 'M', 'PHE': 'F', 'PRO': 'P', 'SER': 'S', 'THR': 'T', 'TRP': 'W',
+    'TYR': 'Y', 'VAL': 'V',
+    'ASX': 'B', 'GLX': 'Z', 'SEC': 'U', 'PYL': 'O', 'XLE': 'J', '': '-'
+}
+
+# add bases
+AAMAP.update({'ADE': 'a', 'THY': 't', 'CYT': 'c',
+              'GUA': 'g', 'URA': 'u'})
+
+# add reversed mapping
+_ = {}
+for aaa, a in AAMAP.items():
+    _[a] = aaa
+AAMAP.update(_)
+
+# add modified AAs
+MODAAMAP = {}
+for mod, aa in MODMAP.items():
+    if aa in AAMAP:
+        MODAAMAP[mod] = AAMAP[aa]
+AAMAP.update(MODAAMAP)
 
 class Atomic(object):
 
@@ -192,9 +225,33 @@ class Atomic(object):
         return new
 
     __copy__ = copy
+    toAtomGroup = copy
 
     def select(self, selstr, **kwargs):
         """Returns atoms matching *selstr* criteria.  See :mod:`~.select` module
         documentation for details and usage examples."""
 
         return SELECT.select(self, selstr, **kwargs)
+
+    def getTitle(self):
+        """Returns title of the instance."""
+        try:
+            ag = self.getAtomGroup()
+        except AttributeError:
+            ag = self
+        return ag._title
+    
+    def getSequence(self, **kwargs):
+        """Returns one-letter sequence string for amino acids.
+        When *allres* keyword argument is **True**, sequence will include all
+        residues (e.g. water molecules) in the chain and **X** will be used for
+        non-standard residue names."""
+
+        get = AAMAP.get
+        if hasattr(self, 'getResnames'):
+            seq = ''.join([get(res, 'X') for res in self.getResnames()])
+        else:
+            res = self.getResname()
+            seq = get(res, 'X')
+        
+        return seq

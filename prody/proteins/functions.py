@@ -5,7 +5,7 @@ import numpy as np
 
 from prody.atomic import Atomic, Atom, AtomGroup, Selection, HierView
 from prody.utilities import openFile, showFigure
-from prody import SETTINGS
+from prody import SETTINGS, PY3K
 
 __all__ = ['view3D','showProtein', 'writePQR', ]
 
@@ -107,19 +107,31 @@ def view3D(*alist, **kwargs):
     If multiple structures are provided with the flucts or vecs arguments, these
     arguments must be provided as lists of arrays of the appropriate dimension.
     """
-    import StringIO, py3Dmol
-    from pdbfile import writePDBStream    
+
+    if PY3K:
+        from io import StringIO
+    else:
+        from StringIO import StringIO
+
+    try:
+        import py3Dmol
+    except:
+        raise ImportError('py3Dmol needs to be installed to use view3D')
     
-    width = kwargs.get('width',400)
-    height = kwargs.get('height',400)
+    from .pdbfile import writePDBStream    
+    
+    width = kwargs.get('width', 400)
+    height = kwargs.get('height', 400)
     view = py3Dmol.view(width=width,height=height,js=kwargs.get('js','http://3dmol.csb.pitt.edu/build/3Dmol-min.js'))
     
-    #case insensitive kwargs..
-    bgcolor = kwargs['backgroundcolor'] if 'backgroundcolor' in kwargs else kwargs.get('backgroundColor','white')
+    # case insensitive kwargs..
+    bgcolor = kwargs.pop('backgroundcolor', 'white')
+    bgcolor = kwargs.pop('backgroundColor', bgcolor)
     view.setBackgroundColor(bgcolor)
-        
+
+    # add models one at a time
     for (modeli,atoms) in enumerate(alist):
-        pdb = StringIO.StringIO()
+        pdb = StringIO()
         writePDBStream(pdb, atoms)
         
         view.addModel(pdb.getvalue(),'pdb')
@@ -174,7 +186,6 @@ def view3D(*alist, **kwargs):
                 #set the atom property 
                 #TODO: implement something more efficient on the 3Dmol.js side (this is O(n*m)!)
                 view.mapAtomProperties(propmap, {'model': -1})
-                           
 
     if 'vecs' in kwargs:
         #create vibrations
@@ -189,7 +200,7 @@ def view3D(*alist, **kwargs):
         view.setStyle({},kwargs['style'])
         
     if 'styles' in kwargs:
-        #allow simpler forms - convert them into a list
+        # allow simpler forms - convert them into a list
         styles = kwargs['styles']
         if type(styles) == dict:
             styles = ({},styles)
@@ -237,14 +248,22 @@ def showProtein(*atoms, **kwargs):
     
     """
 
+    use3Dmol = kwargs.pop('py3Dmol', None)
+
     alist = atoms
     for atoms in alist:
         if not isinstance(atoms, Atomic):
             raise TypeError('atoms must be an Atomic instance')
     
     import sys        
-    if 'py3Dmol' in sys.modules:    
-        return view3D(*alist, **kwargs).show()
+    if 'py3Dmol' in sys.modules: 
+        if use3Dmol is None:
+            use3Dmol = True
+
+    if use3Dmol:
+        mol = view3D(*alist, **kwargs)
+        mol.show()
+        return mol
     else:
         import matplotlib.pyplot as plt
         from mpl_toolkits.mplot3d import Axes3D
@@ -260,7 +279,7 @@ def showProtein(*atoms, **kwargs):
         cnames = dict(colors.cnames)
         wcolor = kwargs.get('water', 'red').lower()
         avoid = np.array(colors.hex2color(cnames.pop(wcolor, cnames.pop('red'))))
-        for cn, val in cnames.items():  # PY3K: OK
+        for cn, val in cnames.copy().items():  # PY3K: OK
             clr = np.array(colors.hex2color(val))
             if clr.sum() > 2.4:
                 cnames.pop(cn)
@@ -269,6 +288,7 @@ def showProtein(*atoms, **kwargs):
         cnames = list(cnames)
         import random
         random.shuffle(cnames)
+        cnames_copy = list(cnames)
         min_ = list()
         max_ = list()
         for atoms in alist:
@@ -278,13 +298,50 @@ def showProtein(*atoms, **kwargs):
                 title = atoms.getAtomGroup().getTitle()
             calpha = atoms.select('calpha')
             if calpha:
-                for ch in HierView(calpha, chain=True):
-                    xyz = ch._getCoords()
-                    chid = ch.getChid()
-                    show.plot(xyz[:, 0], xyz[:, 1], xyz[:, 2],
-                              label=title + '_' + chid,
-                              color=kwargs.get(chid, cnames.pop()).lower(),
-                              lw=kwargs.get('lw', 4))
+                from prody.dynamics.mode import Mode
+                gnmmode = kwargs.get('mode', None)
+                if gnmmode is None:
+                    for ch in HierView(calpha, chain=True):
+                        xyz = ch._getCoords()
+                        chid = ch.getChid()
+                        if len(cnames) == 0:
+                            cnames = list(cnames_copy)
+                        show.plot(xyz[:, 0], xyz[:, 1], xyz[:, 2],
+                                label=title + '_' + chid,
+                                color=kwargs.get(chid, cnames.pop()).lower(),
+                                lw=kwargs.get('lw', 4))
+                else:
+                    xyz = calpha._getCoords()
+                    chids = calpha.getChids()
+                    arr = []
+                    if isinstance(gnmmode, Mode):
+                        arr = gnmmode.getArray()
+                    else:
+                        arr = gnmmode
+                    if len(arr) != len(calpha):
+                        raise RuntimeError('The number of residues should be equal to the size of the GNM mode.')
+                    rbody = []
+                    last_sign = np.sign(arr[0])
+                    last_chid = chids[0]
+                    rcolor = ['red', 'red', 'blue']
+                    n = 1
+                    for i,a in enumerate(arr):
+                        s = np.sign(a)
+                        ch = chids[i]
+                        if s == 0: s = last_sign
+                        if last_sign != s or i == len(arr)-1 or last_chid != ch:
+                            if last_chid == ch:
+                                rbody.append(i)
+                            show.plot(xyz[rbody, 0], xyz[rbody, 1], xyz[rbody, 2],
+                            label=title + '_regid%d'%n,
+                            color=rcolor[int(last_sign+1)],
+                            lw=kwargs.get('lw', 4))
+                            rbody = []
+                            n += 1
+                            last_sign = s
+                            last_chid = ch
+                        rbody.append(i)
+
             water = atoms.select('water and noh')
             if water:
                 xyz = atoms.select('water')._getCoords()
@@ -299,6 +356,8 @@ def showProtein(*atoms, **kwargs):
                     resname = res.getResname()
                     resnum = str(res.getResnum())
                     chid = res.getChid()
+                    if len(cnames) == 0:
+                        cnames = list(cnames_copy)
                     show.plot(xyz[:, 0], xyz[:, 1], xyz[:, 2], ls='None',
                               color=kwargs.get(resname, cnames.pop()).lower(),
                               label=title + '_' + chid + '_' + resname + resnum,
