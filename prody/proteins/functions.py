@@ -92,83 +92,99 @@ def view3D(*alist, **kwargs):
     
     GNM/ANM Coloring
     
-    An array of fluctuation values can be provided with the flucts kwarg
+    An array of fluctuation values (flucts) can be provided with the flucts kwarg
     for visualization of GNM/ANM calculations.  The array is assumed to 
     correpond to a calpha selection of the provided protein.
     The default color will be set to a RWB color scheme on a per-residue
     basis.  If the fluctuation vector contains negative values, the
     midpoint (white) will be at zero.  Otherwise the midpoint is the mean.
     
-    An array of displacement vectors can be provided with the vecs kwarg.
+    An array of displacement vectors (vecs) can be provided with the vecs kwarg.
     The animation of these motions can be controlled with frames (number
     of frames to animate over), amplitude (scaling factor), and animate
     (3Dmol.js animate options).
+    
+    If multiple structures are provided with the flucts or vecs arguments, these
+    arguments must be provided as lists of arrays of the appropriate dimension.
     """
     import StringIO, py3Dmol
-    from pdbfile import writePDBStream
-    
-    pdb = StringIO.StringIO()
-    
-    for atoms in alist:
-        writePDBStream(pdb, atoms)
+    from pdbfile import writePDBStream    
     
     width = kwargs.get('width',400)
     height = kwargs.get('height',400)
-    view = py3Dmol.view(width=width,height=height,js=kwargs.get('js','http://3dmol.csb.pitt.edu/build/3Dmol-min.js'))
+    view = py3Dmol.view(width=width,height=height,js=kwargs.get('js','http://localhost/3Dmol/build/3Dmol.js'))
     
     #case insensitive kwargs..
     bgcolor = kwargs['backgroundcolor'] if 'backgroundcolor' in kwargs else kwargs.get('backgroundColor','white')
     view.setBackgroundColor(bgcolor)
-    view.addModels(pdb.getvalue(),'pdb')
-    view.setStyle({'cartoon': {'color':'spectrum'}})
-    view.setStyle({'hetflag': True}, {'stick':{}})
-    view.setStyle({'bonds': 0}, {'sphere':{'radius': 0.5}})    
+        
+    for (modeli,atoms) in enumerate(alist):
+        pdb = StringIO.StringIO()
+        writePDBStream(pdb, atoms)
+        
+        view.addModel(pdb.getvalue(),'pdb')
+        view.setStyle({'model': -1, 'cartoon': {'color':'spectrum'}})
+        view.setStyle({'model': -1, 'hetflag': True}, {'stick':{}})
+        view.setStyle({'model': -1, 'bonds': 0}, {'sphere':{'radius': 0.5}})    
 
-    if 'flucts' in kwargs:
-        garr = kwargs['flucts']
-        #note we are only getting info from last set of atoms..
-        if atoms.calpha.numAtoms() != len(garr):
-            raise RuntimeError("Atom count mismatch: {} vs {}.  flucts styling assume a calpha selection.".format(atoms.calpha.numAtoms(), len(garr)))
-        else:
-            #construct map from residue to flucts property
-            propmap = []
-            for (i,a) in enumerate(atoms.calpha):
-                propmap.append({'chain': a.getChid(), 'resi':a.getResnum(), 'props': {'flucts': garr[i] } })
-            #set the atom property 
-            #TODO: implement something more efficient on the 3Dmol.js side (this is O(n*m)!)
-            view.mapAtomProperties(propmap)
-            
-            #color by property using gradient
-            extreme = np.abs(garr).max()
-            lo = -extreme if garr.min() < 0 else 0
-            mid = np.mean(garr) if garr.min() >= 0 else 0
-            view.setColorByProperty({}, 'flucts', 'rwb', [extreme,lo,mid])
-            view.setStyle({'cartoon':{'style':'trace'}})
-            
+        if 'flucts' in kwargs:
+            garr = kwargs['flucts']
+            if len(alist) > 1: #multiple models
+                if len(garr) != len(alist):
+                    raise RuntimeError("Multiple structures passed with flucts, but flucts not list of arrays of correct length")
+                garr = garr[modeli]
+                if garr is None or len(garr) == 0:
+                    continue #skipy empty/none
+
+            if atoms.calpha.numAtoms() != len(garr):
+                raise RuntimeError("Atom count mismatch: {} vs {}.  flucts styling assume a calpha selection.".format(atoms.calpha.numAtoms(), len(garr)))
+            else:
+                #construct map from residue to flucts property
+                propmap = []
+                for (i,a) in enumerate(atoms.calpha):
+                    propmap.append({'model': -1, 'chain': a.getChid(), 'resi':a.getResnum(), 'props': {'flucts': garr[i] } })
+                #set the atom property 
+                #TODO: implement something more efficient on the 3Dmol.js side (this is O(n*m)!)
+                view.mapAtomProperties(propmap, {'model': -1})
+                
+                #color by property using gradient
+                extreme = np.abs(garr).max()
+                lo = -extreme if garr.min() < 0 else 0
+                mid = np.mean(garr) if garr.min() >= 0 else 0
+                view.setColorByProperty({'model': -1}, 'flucts', 'rwb', [extreme,lo,mid])
+                view.setStyle({'model': -1, 'cartoon':{'style':'trace'}})
+                
+        if 'vecs' in kwargs:
+            aarr = kwargs['vecs']  #has xyz coordinates
+            if len(alist) > 1: #multiple models
+                if len(aarr) != len(alist):
+                    raise RuntimeError("Multiple structures passed with vecs, but vecs not list of arrays of correct length")                
+                aarr = aarr[modeli]
+                if aarr is None or len(aarr) == 0:
+                    continue #skip empty/none
+                
+            if atoms.calpha.numAtoms()*3 != len(aarr):
+                raise RuntimeError("Atom count mismatch: {} vs {}.  vecs animation assume a calpha selection.".format(atoms.calpha.numAtoms(), len(aarr)/3))
+            else:
+                #construct map from residue to anm property and dx,dy,dz vectors
+                propmap = []
+                for (i,a) in enumerate(atoms.calpha):
+                    propmap.append({'chain': a.getChid(), 'resi':a.getResnum(),
+                        'props': {'dx': aarr[3*i], 'dy': aarr[3*i+1], 'dz': aarr[3*i+2] } });
+                #set the atom property 
+                #TODO: implement something more efficient on the 3Dmol.js side (this is O(n*m)!)
+                view.mapAtomProperties(propmap, {'model': -1})
+                           
+
     if 'vecs' in kwargs:
-        aarr = kwargs['vecs']  #has xyz coordinates
-
-        #note we are only getting info from last set of atoms..
-        if atoms.calpha.numAtoms()*3 != len(aarr):
-            raise RuntimeError("Atom count mismatch: {} vs {}.  vecs animation assume a calpha selection.".format(atoms.calpha.numAtoms(), len(aarr)/3))
-        else:
-            #construct map from residue to anm property and dx,dy,dz vectors
-            propmap = []
-            for (i,a) in enumerate(atoms.calpha):
-                propmap.append({'chain': a.getChid(), 'resi':a.getResnum(),
-                    'props': {'dy': aarr[3*i+1], 'dz': aarr[3*i+2] } });
-            #set the atom property 
-            #TODO: implement something more efficient on the 3Dmol.js side (this is O(n*m)!)
-            view.mapAtomProperties(propmap)
-            
-            #create vibrations
-            frames = kwargs.get('frames',10)
-            amplitude = kwargs.get('amplitude',100)
-            view.vibrate(frames, amplitude)
-            
-            animate = kwargs.get('animate',{'loop':'rock'})
-            view.animate(animate)                
-
+        #create vibrations
+        frames = kwargs.get('frames',10)
+        amplitude = kwargs.get('amplitude',100)
+        view.vibrate(frames, amplitude)
+        
+        animate = kwargs.get('animate',{'loop':'rock'})
+        view.animate(animate)     
+        
     if 'style' in kwargs: # this is never a list
         view.setStyle({},kwargs['style'])
         
@@ -181,7 +197,7 @@ def view3D(*alist, **kwargs):
             styles = [styles]
         for (sel, style) in styles:
             view.setStyle(sel, style)
-    
+        
     zoomto = kwargs['zoomto'] if 'zoomto' in kwargs else kwargs.get('zoomTo',{})
     view.zoomTo(zoomto)
             
