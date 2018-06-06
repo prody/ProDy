@@ -12,7 +12,7 @@ else:
     import urllib
     import urllib2
 
-from xml.etree.cElementTree import XML, Element
+from xml.etree.cElementTree import XML
 
 __all__ = ['queryUniprot', ]
 
@@ -42,10 +42,11 @@ def queryUniprot(id, expand=[], regex=True):
         value = data[key]
         if not key.startswith('dbReference'):
             continue
-        if not isinstance(value, Element):
-            continue
         
-        if value.get('type') != 'PDB':
+        try:
+            if value.get('type') != 'PDB':
+                continue
+        except AttributeError:
             continue
 
         pdbid = value.get('id')

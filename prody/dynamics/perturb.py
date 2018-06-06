@@ -61,18 +61,17 @@ def calcPerturbResponse(model, atoms=None, **kwargs):
             raise ValueError('model and atoms must have the same number atoms')
 
     n_atoms = model.numAtoms()
-    #LOGGER.timeit('_prody_prs_all')
-    #LOGGER.info('Calculating covariance matrix')
-    #LOGGER.timeit('_prody_cov')
+    LOGGER.timeit('_prody_prs_all')
+    LOGGER.info('Calculating covariance matrix')
+    LOGGER.timeit('_prody_cov')
 
     cov = model.getCovariance()
 
-    #LOGGER.clear()
-    #LOGGER.report('Covariance matrix calculated in %.1fs.',
-    #              '_prody_cov')
+    LOGGER.clear()
+    LOGGER.report('Covariance matrix calculated in %.1fs.', '_prody_cov')
 
-    #LOGGER.info('Calculating perturbation response')
-    #LOGGER.timeit('_prody_prs_mat')
+    LOGGER.info('Calculating perturbation response')
+    LOGGER.timeit('_prody_prs_mat')
     if not model.is3d():
         prs_matrix = cov**2
 
@@ -94,9 +93,9 @@ def calcPerturbResponse(model, atoms=None, **kwargs):
             j3p3 += 3                
             prs_matrix[:,j] = (n_by_3n_cov_squared[:,j3:j3p3]).sum(1)
 
-    #LOGGER.clear()
-    #LOGGER.report('Perturbation response matrix calculated in %.1fs.',
-    #                  '_prody_prs_mat')
+    LOGGER.clear()
+    LOGGER.report('Perturbation response matrix calculated in %.1fs.',
+                  '_prody_prs_mat')
 
     no_diag = kwargs.get('no_diag', False)
     #filename = kwargs.get('filename', None)
@@ -117,8 +116,8 @@ def calcPerturbResponse(model, atoms=None, **kwargs):
     #if filename:
     #    np.savetxt(filename, norm_prs_matrix, delimiter='\t', fmt='%8.6f')
 
-    #LOGGER.report('Perturbation response scanning completed in %.1fs.',
-    #              '_prody_prs_all')
+    LOGGER.report('Perturbation response scanning completed in %.1fs.',
+                  '_prody_prs_all')
 
     if atoms is not None:
         try:

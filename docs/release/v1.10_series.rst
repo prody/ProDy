@@ -4,53 +4,112 @@ ProDy 1.10 Series
 .. contents::
    :local:
 
-1.10 (Apr 30, 2019)
+
+1.10.7 (May 21, 2018)
+------------------------------------------------------------------------------
+
+**New Features**:
+
+  * Added *overlay* and *gap* option to :func:`.showAtomicLines`.
+
+**Bug Fixes and Improvements**:
+
+  * Reorganized MechStiff functions. Now MechStiff functions are moved out from 
+  the :class:`.ANM` class, and `get...` were renamed to `calc...`
+
+  * Fixed a problem that an error will be raised when searching a sequence 
+  against *Pfam*.
+  
+  * PY3K compatibility fixes.
+
+1.10.4 (May 15, 2018)
+------------------------------------------------------------------------------
+
+  * Minor fixes.
+
+1.10.3 (May 14, 2018)
+------------------------------------------------------------------------------
+
+**New Features**:
+
+  * Added :class:`.CATHDB` for querying information from CATH database.
+
+  * Added :func:`.sliceAtomicData` and :func:`.extendAtomicData` to slice more 
+    extend data based on :class:`.Selection` or other types of :class:`.Atomic` 
+    objects.
+
+**Bug Fixes and Improvements**:
+
+  * Switched to Python Wheel for distributing on Windows. This will allow 
+    Windows users to `pip install prody`.
+
+  * Fixed a error when compiling C++ extensions on MacOS.
+
+  * Various bug fixes according to issues proposed on the GitHub.
+
+1.10.2 (May 2, 2018)
+------------------------------------------------------------------------------
+
+  * Minor fixes.
+
+1.10.1 (May 1, 2018)
+------------------------------------------------------------------------------
+
+  * Added the function sliceAtomicData for slicing data based on slicing atoms.
+  
+  * Updated the documentation for making a release.
+
+  * Other documentation and minor fixes.
+
+1.10 (Apr 30, 2018)
 ------------------------------------------------------------------------------
 
 Signature Dynamics
 ^^^^^^^^^^^^^^^^^^
 
   * Added :func:`.calcEnsembleENMs` to compute ENMs on each conformation of a 
-  given ensemble to obtain an ensemble of modes.
+    given ensemble to obtain an ensemble of modes.
 
   * Added :class:`.ModeEnsemble` and :class:`.sdarray` classes as the basic 
-  data types for signature dynamics.
+    data types for signature dynamics.
 
   * Added functions such as :func:`.calcSignatureSqFlucts`, 
-  :func:`.calcSignatureCrossCorr`, :func:`.calcSignatureFractVariance` to 
-  extract signature dynamics.
+    :func:`.calcSignatureCrossCorr`, :func:`.calcSignatureFractVariance` to 
+    extract signature dynamics.
 
   * Added :func:`.calcEnsembleSpectralOverlaps` to obtain dynamical 
-  overlaps/distances among the conformations in a given ensemble.
+    overlaps/distances among the conformations in a given ensemble.
+
 
 **New Features**:
 
 *Visualization*
 
   * Added :func:`.showAtomicLines` and :func:`.showAtomicMatrix` functions to 
-  improve visualization.
+    improve visualization.
 
   * Added an *networkx* option to :func:`.showTree` so that the user can choose 
-  to use :module:`~networkx` to visualize a given tree.
+    to use :mod:`~networkx` to visualize a given tree.
+
 
 *Ensemble and PDBEnsemble*
 
   * Associated an :class:`.MSA` object to the :class:`.PDBEnsemble` class.
 
-  * Added an *pairwise* option to :method:`.Ensemble.getRMSDs` to obtain an 
-  RMSD table of every pair of conformations in the ensemble.
+  * Added an *pairwise* option to :meth:`.Ensemble.getRMSDs` to obtain an 
+    RMSD table of every pair of conformations in the ensemble.
 
-  * Improved :method:`.Ensemble.setAtoms` for selecting a subset of 
-  residues/atoms of the ensemble.
+  * Improved :meth:`.Ensemble.setAtoms` for selecting a subset of 
+    residues/atoms of the ensemble.
 
 *Databases and Web Services*
 
   * Added methods and classes for obtaining data from *CATH* and *Dali*.
   
   * Added additional functions for *Uniprot* and *Pfam* such as 
-  :func:`.queryUniprot` and :func:`.parsePfamPDBs`.
+    :func:`.queryUniprot` and :func:`.parsePfamPDBs`.
 
-*Bug Fixes and Improvement*
+**Bug Fixes and Improvements**:
 
   * Fixed compatibility problems for Python 2 and 3.
 

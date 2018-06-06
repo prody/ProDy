@@ -6,7 +6,6 @@ Dynamics Models
 
 Following classes are designed for modeling and analysis of protein dynamics:
 
-  * :class:`.SM`  - Stiffness Matric calculation
   * :class:`.ANM` - Anisotropic network model, for coarse-grained NMA
   * :class:`.GNM` - Gaussian network model, for coarse-grained dynamics
     analysis
@@ -261,6 +260,10 @@ __all__.extend(pca.__all__)
 from . import heatmapper
 from .heatmapper import *
 __all__.extend(heatmapper.__all__)
+
+from . import mechstiff
+from .mechstiff import *
+__all__.extend(mechstiff.__all__)
 
 from . import nmdfile
 from .nmdfile import *

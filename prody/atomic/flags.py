@@ -80,6 +80,7 @@ NONSTANDARD = {
     'SEP': set(['acyclic', 'surface', 'acidic', 'large', 'polar']),
     'TPO': set(['acyclic', 'surface', 'acidic', 'large', 'polar']),
     'PTR': set(['cyclic', 'aromatic', 'surface', 'acidic', 'large', 'polar']),
+    'PHD': set(['acyclic', 'acidic', 'surface', 'polar', 'large']),
     'XLE': set(['aliphatic', 'acyclic', 'buried', 'hydrophobic', 'large']),
     'XAA': set(),
 }

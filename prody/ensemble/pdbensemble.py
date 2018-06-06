@@ -175,7 +175,7 @@ class PDBEnsemble(Ensemble):
         degeneracy = kwargs.pop('degeneracy', False)
 
         atoms = coords
-        n_atoms = self.numAtoms()
+        n_atoms = self._n_atoms
         n_select = self.numSelected()
         n_confs = self.numCoordsets()
 
@@ -456,7 +456,7 @@ class PDBEnsemble(Ensemble):
         :meth:`iterpose` before calculating RMSDs.
 
         :arg pairwise: if **True** then it will return pairwise RMSDs 
-        as an n-by-n matrix. n is the number of conformations.
+            as an n-by-n matrix. n is the number of conformations.
         :type pairwise: bool
         """
 

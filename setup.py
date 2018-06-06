@@ -4,16 +4,19 @@ import platform
 from os import sep as dirsep
 from os.path import isfile, join
 
-from distutils.core import setup
-from distutils.extension import Extension
-from distutils.command.install import install
+#from distutils.core import setup
+#from distutils.extension import Extension
+#from distutils.command.install import install
+
+from setuptools import setup
+from setuptools import Extension
 
 if sys.version_info[:2] < (2, 7):
     sys.stderr.write('Python 2.6 and older is not supported\n')
     sys.exit()
 
 if sys.version_info[0] == 3:
-    if sys.version_info[1] < 4:
+    if sys.version_info[1] < 5:
         sys.stderr.write('Python 3.4 and older is not supported\n')
         sys.exit()
 
@@ -118,18 +121,21 @@ CONTRIBUTED = [
               include_dirs=[numpy.get_include()]),
     Extension('prody.proteins.ccealign', 
               [join('prody', 'proteins', 'ccealign', 'ccealignmodule.cpp')], 
-              include_dirs=[tntDir]  )
+              include_dirs=[tntDir], language='c++' )
 ]
 
 for ext in CONTRIBUTED:
     if all([isfile(src) for src in ext.sources]):
         EXTENSIONS.append(ext)
 
-SCRIPTS = ['scripts/prody', 'scripts/evol']
-if (platform.system() == 'Windows' or
-    len(sys.argv) > 1 and sys.argv[1] not in ('build', 'install')):
-    for script in list(SCRIPTS):
-        SCRIPTS.append(script + '.bat')
+# SCRIPTS = ['scripts/prody', 'scripts/evol']
+# if (platform.system() == 'Windows' or
+#     len(sys.argv) > 1 and sys.argv[1] not in ('build', 'install')):
+#     for script in list(SCRIPTS):
+#         SCRIPTS.append(script + '.bat')
+
+
+SCRIPTS = ['prody=prody.apps:prody_main', 'evol=prody.apps:evol_main']
 
 setup(
     name='ProDy',
@@ -163,6 +169,9 @@ setup(
                  'Topic :: Scientific/Engineering :: Chemistry',
                 ],
     #scripts=SCRIPTS,
-    install_requires=['NumPy (>=1.10)', ],
+    entry_points = {
+        'console_scripts': SCRIPTS,
+    }
+    #install_requires=['NumPy (>=1.10)', ],
     #provides=['ProDy ({0:s})'.format(__version__)]
 )

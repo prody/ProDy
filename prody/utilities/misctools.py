@@ -1,8 +1,9 @@
 """This module defines miscellaneous utility functions."""
+import re
 
 from numpy import unique, linalg, diag, sqrt, dot, chararray
-from numpy import diff, where, insert, nan, loadtxt, array
-from numpy import sign, arange, asarray
+from numpy import diff, where, insert, nan, loadtxt, array, round
+from numpy import sign, arange, asarray, ndarray, subtract, power
 from collections import Counter
 import numbers
 
@@ -10,19 +11,30 @@ from xml.etree.ElementTree import Element
 
 __all__ = ['Everything', 'rangeString', 'alnum', 'importLA', 'dictElement',
            'intorfloat', 'startswith', 'showFigure', 'countBytes', 'sqrtm',
-           'saxsWater', 'count', 'addBreaks', 'copy', 'dictElementLoop', 
+           'saxsWater', 'count', 'addEnds', 'copy', 'dictElementLoop', 
            'getDataPath', 'openData', 'chr2', 'toChararray', 'interpY', 'cmp',
-           'getValue']
+           'getValue', 'indentElement', 'isPDB', 'isURL', 'isListLike',
+           'getDistance', 'fastin']
 
+# Note that the chain id can be blank (space). Examples:
+# 3TT1, 3tt1A, 3tt1:A, 3tt1_A, 3tt1-A, 3tt1 A
+isPDB = re.compile('^[A-Za-z0-9]{4}[ -_:]{,1}[A-Za-z0-9 ]{,1}$').match
+
+# django url validation regex
+isURL = re.compile(
+        r'^(?:http|ftp)s?://' # http:// or https://
+        r'(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+(?:[A-Z]{2,6}\.?|[A-Z0-9-]{2,}\.?)|' #domain...
+        r'localhost|' #localhost...
+        r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})' # ...or ip
+        r'(?::\d+)?' # optional port
+        r'(?:/?|[/?]\S+)$', re.IGNORECASE).match
 
 class Everything(object):
-
     """A place for everything."""
 
     def __contains__(self, what):
 
         return True
-
 
 def rangeString(lint, sep=' ', rng=' to ', exc=False, pos=True):
     """Returns a structured string for a given list of integers.
@@ -231,7 +243,7 @@ def getMasses(elements):
 def count(L, a=None):
     return len([b for b in L if b is a])
 
-def addBreaks(x, y, axis=0):
+def addEnds(x, y, axis=0):
     """Finds breaks in *x*, extends them by one position and adds **nan** at the 
     corresponding position in *y*. *x* needs to be an 1-D array, *y* can be a 
     matrix of column (or row) vectors"""
@@ -328,3 +340,36 @@ def getValue(dict_, attr, default=None):
     if attr in dict_:
         value = dict_[attr]
     return value
+
+def indentElement(elem, level=0):
+    i = "\n" + level*"  "
+    j = "\n" + (level-1)*"  "
+    if len(elem):
+        if not elem.text or not elem.text.strip():
+            elem.text = i + "  "
+        if not elem.tail or not elem.tail.strip():
+            elem.tail = i
+        for subelem in elem:
+            indentElement(subelem, level+1)
+        if not elem.tail or not elem.tail.strip():
+            elem.tail = j
+    else:
+        if level and (not elem.tail or not elem.tail.strip()):
+            elem.tail = j
+    return elem 
+
+def isListLike(a):
+    return isinstance(a, (list, tuple, ndarray))
+
+def getDistance(coords1, coords2, unitcell=None):
+
+    diff = coords1 - coords2
+    if unitcell is not None:
+        diff = subtract(diff, round(diff/unitcell)*unitcell, diff)
+    return sqrt(power(diff, 2, diff).sum(axis=-1))
+
+def fastin(a, B):
+    for b in reversed(B):
+        if a is b:
+            return True
+    return False

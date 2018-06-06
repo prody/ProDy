@@ -78,7 +78,7 @@ class ModeEnsemble(object):
         if isinstance(modeset_index, slice):
             modesets = self._modesets[modeset_index]
             labels = None if self._labels is None else self._labels[modeset_index]
-        elif isinstance(modeset_index, (list, tuple)):
+        elif not np.isscalar(modeset_index):
             modesets = []; labels = []
             for i in modeset_index:
                 assert isinstance(i, Integral), 'all indices must be integers'
@@ -89,7 +89,7 @@ class ModeEnsemble(object):
             try:
                 modeset_index = int(modeset_index)
             except Exception:
-                raise IndexError('indices must be int, slice, list, or tuple')
+                raise IndexError('indices must be int, slice, or array-like objects')
             else:
                 return self._modesets[modeset_index][mode_index]
         
@@ -453,40 +453,13 @@ class sdarray(ndarray):
     the collection. 
     
     :class:`sdarray` functions exactly the same as :class:`~numpy.ndarray`, 
-    except that :method:`sdarray.mean`, :method:`sdarray.std`, 
-    :method:`sdarray.max`, :method:`sdarray.min` are overriden. 
+    except that :meth:`sdarray.mean`, :meth:`sdarray.std`, 
+    :meth:`sdarray.max`, :meth:`sdarray.min` are overriden. 
     Average, standard deviation, minimum, maximum, etc. are weighted and 
     calculated over the first axis by default. "sdarray" stands for 
     "signature dynamics array".
 
-    Suppose:
-    ```
-    In [1]: from prody import sdarray
-
-    In [2]: from numpy import mean
-
-    In [3]: sdarr = sdarray([[1, 2, 3], [4, 5, 6]], weights=[[0, 1, 1], [1, 1, 1]])
-    Out[3]:
-    sdarray([[1, 2, 3],
-            [4, 5, 6]])
-    weights=
-    array([[0, 1, 1],
-        [1, 1, 1]])
-    ```
-    Then if we use the :method:`sdarray.mean`,
-    ```
-    In [4]: sdarr.mean()
-    Out[4]: array([4., 3.5, 4.5])
-    ```
-    It will compute the **weighted** average over the modesets (first axis), whereas
-    ```
-    In [5]: mean(sdarr)
-    Out[5]: 3.5
-    ```
-    will just perform a usually `numpy.mean` calculation, assuming `axis=None` 
-    and **unweighted**.
-
-    Notes for developper: please read following article about subclassing 
+    Note for developers: please read the following article about subclassing 
     :class:`~numpy.ndarray` before modifying this class:
 
     https://docs.scipy.org/doc/numpy-1.14.0/user/basics.subclassing.html
@@ -655,14 +628,24 @@ class sdarray(ndarray):
     def min(self, axis=0, **kwargs):
         """Calculates the minimum values of the sdarray over modesets (`axis=0`)."""
 
-        arr = np.asarray(self)
-        return arr.min(axis=axis)
+        # np.array instead asarray is used to make sure a copy of the original data is created
+        arr = np.array(self)
+        weights = self._weights
+        if weights is not None:
+            weights = weights.astype(bool)
+            arr[~weights] = np.nan
+        return np.nanmin(arr, axis=axis)
 
     def max(self, axis=0, **kwargs):
         """Calculates the maximum values of the sdarray over modesets (`axis=0`)."""
 
-        arr = np.asarray(self)
-        return arr.max(axis=axis)
+        # np.array instead asarray is used to make sure a copy of the original data is created
+        arr = np.array(self)
+        weights = self._weights
+        if weights is not None:
+            weights = weights.astype(bool)
+            arr[~weights] = np.nan
+        return np.nanmax(arr, axis=axis)
 
     def getWeights(self):
         """Returns the weights of the signature."""
@@ -847,7 +830,7 @@ def showSignatureAtomicLines(y, std=None, min=None, max=None, atoms=None, **kwar
     :arg linespec: line specifications that will be passed to :func:`showAtomicLines`
     :type linespec: str
 
-    :arg atoms: an object with method :method:`getResnums` for use 
+    :arg atoms: an object with method :meth:`getResnums` for use 
                 on the x-axis.
     :type atoms: :class:`Atomic` 
     """
@@ -859,37 +842,10 @@ def showSignatureAtomicLines(y, std=None, min=None, max=None, atoms=None, **kwar
     zero_line = kwargs.pop('zero_line', False)
 
     x = range(y.shape[0])
-    lines, _, bars, _ = showAtomicLines(y, atoms=atoms, linespec=linespec, 
-                                       show_zero=zero_line, **kwargs)
-
-    ori_ylim = ylim()
-    ori_height = ori_ylim[1] - ori_ylim[0]
-    line = lines[-1]
-    color = line.get_color()
-    x, _ = line.get_data()
-    polys = []
-
-    if min is not None and max is not None:
-        poly = fill_between(x, min, max,
-                            alpha=0.15, facecolor=color, edgecolor=None,
-                            linewidth=1, antialiased=True)
-        polys.append(poly)
+    lines, polys, bars, texts = showAtomicLines(y, atoms=atoms, dy=std, lower=max, upper=min, 
+                                        linespec=linespec, show_zero=zero_line, **kwargs)
         
-    if std is not None:
-        poly = fill_between(x, y-std, y+std,
-                            alpha=0.35, facecolor=color, edgecolor=None,
-                            linewidth=1, antialiased=True)
-        polys.append(poly)
-
-    # readjust domain/chain bars' locations
-    cur_ylim = ylim()
-    cur_height = cur_ylim[1] - cur_ylim[0]
-    for bar in bars:
-        Y = bar.get_ydata()
-        new_Y = (Y - ori_ylim[0]) / ori_height * cur_height + cur_ylim[0]
-        bar.set_ydata(new_Y)
-        
-    return lines, bars, polys
+    return lines, polys, bars, texts
 
 def showSignature1D(signature, linespec='-', **kwargs):
     """
@@ -925,7 +881,7 @@ def showSignature1D(signature, linespec='-', **kwargs):
     zero_line = kwargs.pop('zero', zero_line)
     show_range = kwargs.pop('range', True)
 
-    bars = []; polys = []; lines = []
+    bars = []; polys = []; lines = []; texts = []
 
     if V.is3d():
         meanV = np.reshape(meanV, (V.numAtoms(), 3)).T
@@ -940,27 +896,29 @@ def showSignature1D(signature, linespec='-', **kwargs):
                 zero_line_ = zero_line
             if not show_range:
                 minV[i] = maxV[i] = None
-            _lines, _bars, _polys = showSignatureAtomicLines(meanV[i], stdV[i], minV[i], maxV[i], 
+            _lines, _polys, _bars, _texts = showSignatureAtomicLines(meanV[i], stdV[i], minV[i], maxV[i], 
                                                    atoms=atoms_, zero_line=zero_line_,
                                                    linespec=linespec, **kwargs)
             lines.extend(_lines)
             bars.extend(_bars)
             polys.extend(_polys)
+            texts.extend(_texts)
 
     else:
         if not show_range:
             minV = maxV = None
-        _lines, _bars, _polys = showSignatureAtomicLines(meanV, stdV, minV, maxV, 
+        _lines, _polys, _bars, _texts = showSignatureAtomicLines(meanV, stdV, minV, maxV, 
                                                atoms=atoms, zero_line=zero_line,
                                                linespec=linespec, **kwargs)
         lines.extend(_lines)
         bars.extend(_bars)
         polys.extend(_polys)
+        texts.extend(_texts)
 
     xlabel('Residues')
     title('Signature profile of ' + V.getTitle())
 
-    return lines, polys, bars
+    return lines, polys, bars, texts
 
 def showSignatureMode(mode_ensemble, **kwargs):
 

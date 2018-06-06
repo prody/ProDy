@@ -5,9 +5,9 @@ import numpy as np
 
 from prody.atomic import Atomic, Atom, AtomGroup, Selection, HierView
 from prody.utilities import openFile, showFigure
-from prody import SETTINGS
+from prody import SETTINGS, PY3K
 
-__all__ = ['view3D','showProtein', 'writePQR', ]
+__all__ = ['view3D', 'showProtein', 'writePQR', ]
 
 
 def writePQR(filename, atoms):
@@ -78,6 +78,14 @@ def writePQR(filename, atoms):
     stream.close()
     return filename
 
+def wrap_data(data):
+    try:
+        arr = data.getArray()
+        data = [data]
+    except AttributeError:
+        if np.isscalar(data[0]):
+            data = [data]
+    return data
 
 def view3D(*alist, **kwargs):
     """Return a py3Dmol view instance for interactive visualization in
@@ -92,88 +100,201 @@ def view3D(*alist, **kwargs):
     
     GNM/ANM Coloring
     
-    An array of fluctuation values can be provided with the flucts kwarg
+    An array of fluctuation values (flucts) can be provided with the flucts kwarg
     for visualization of GNM/ANM calculations.  The array is assumed to 
     correpond to a calpha selection of the provided protein.
     The default color will be set to a RWB color scheme on a per-residue
     basis.  If the fluctuation vector contains negative values, the
     midpoint (white) will be at zero.  Otherwise the midpoint is the mean.
     
-    An array of displacement vectors can be provided with the vecs kwarg.
+    An array of displacement vectors (vecs) can be provided with the vecs kwarg.
     The animation of these motions can be controlled with frames (number
     of frames to animate over), amplitude (scaling factor), and animate
     (3Dmol.js animate options).
+    
+    If multiple structures are provided with the flucts or vecs arguments, these
+    arguments must be provided as lists of arrays of the appropriate dimension.
     """
-    import StringIO, py3Dmol
-    from pdbfile import writePDBStream
+
+    if PY3K:
+        from io import StringIO
+    else:
+        from StringIO import StringIO
+
+    try:
+        import py3Dmol
+    except:
+        raise ImportError('py3Dmol needs to be installed to use view3D')
     
-    pdb = StringIO.StringIO()
+    from .pdbfile import writePDBStream
     
-    for atoms in alist:
+    width = kwargs.get('width', 400)
+    height = kwargs.get('height', 400)
+    data_list = kwargs.pop('data', None)
+    modes = kwargs.pop('mode', None)
+    style = kwargs.pop('style', [])
+    zoomto = kwargs.pop('zoomto', {})
+    bgcolor = kwargs.pop('backgroundcolor', 'white')
+    bgcolor = kwargs.pop('backgroundColor', bgcolor)
+
+    if modes is None:
+        n_modes = 0
+    else:
+        modes = wrap_data(modes)
+        n_modes = len(modes)
+
+    if data_list is None:
+        n_data = 0
+    else:
+        data_list = wrap_data(data_list)
+        n_data = len(data_list)
+
+    view = py3Dmol.view(width=width, height=height, js=kwargs.get('js','http://3dmol.csb.pitt.edu/build/3Dmol-min.js'))
+
+    i_chid = ord('A')
+    for i, atoms in enumerate(alist):
+        pdb = StringIO()
+        chids = atoms.getChids()
+        atoms.setChids(chr(i_chid))
         writePDBStream(pdb, atoms)
+        model = view.addModel(pdb.getvalue(), 'pdb')
+
+        if n_data:
+            data = data_list[i]
+            # note we are only getting info from last set of atoms..
+            if atoms.calpha.numAtoms() != len(data):
+                raise RuntimeError("Atom count mismatch: {} vs {}. data styling assumes a calpha selection."
+                                    .format(atoms.calpha.numAtoms(), len(data)))
+            else:
+                # construct map from residue to data property
+                propmap = []
+                for j, a in enumerate(atoms.calpha):
+                    propmap.append({'chain': a.getChid().tolist(), 'resi': a.getResnum().tolist(), 
+                                    'props': {'data': data[j] } })
+                # set the atom property 
+                # TODO: implement something more efficient on the 3Dmol.js side (this is O(n*m)!)
+                view.mapAtomProperties(propmap)
+                
+                # color by property using gradient
+                extreme = np.abs(data).max()
+                lo = -extreme if data.min() < 0 else 0
+                mid = np.mean(data) if data.min() >= 0 else 0
+                view.setColorByProperty({}, 'data', 'rwb', [extreme,lo,mid])
+                view.setStyle({'cartoon':{'style':'trace'}})
+            
+        if n_modes:
+            mode = modes[i]
+            try:
+                aarr = mode.getArray()
+                is3d = mode.is3d()
+            except AttributeError:
+                aarr = mode
+
+            if isinstance(aarr, np.ndarray):
+                aarr = aarr.tolist()
+            else:
+                aarr = list(aarr)
+
+            # note we are only getting info from last set of atoms..
+            if atoms.calpha.numAtoms()*3 != len(aarr):
+                raise RuntimeError("Atom count mismatch: {} vs {}. vecs animation assume a calpha selection."
+                                .format(atoms.calpha.numAtoms(), len(aarr)//3))
+            else:
+                # construct map from residue to anm property and dx,dy,dz vectors
+                propmap = []
+                for j, a in enumerate(atoms.calpha):
+                    propmap.append({'chain': a.getChid().tolist(), 'resi': a.getResnum().tolist(),
+                        'props': {'dy': aarr[3*j+1], 'dz': aarr[3*j+2] } })
+                # set the atom property 
+                # TODO: implement something more efficient on the 3Dmol.js side (this is O(n*m)!)
+                view.mapAtomProperties(propmap)
+                
+                # create vibrations
+                frames = kwargs.get('frames', 10)
+                amplitude = kwargs.get('amplitude', 100)
+                view.vibrate(frames, amplitude)
+                
+                animate = kwargs.get('animate', {'loop':'rock'})
+                view.animate(animate) 
+
+        atoms.setChids(chids)
+        i_chid += 1         
     
-    width = kwargs.get('width',400)
-    height = kwargs.get('height',400)
-    view = py3Dmol.view(width=width,height=height,js=kwargs.get('js','http://3dmol.csb.pitt.edu/build/3Dmol-min.js'))
-    
-    #case insensitive kwargs..
-    bgcolor = kwargs['backgroundcolor'] if 'backgroundcolor' in kwargs else kwargs.get('backgroundColor','white')
+    # setting styles ...
     view.setBackgroundColor(bgcolor)
-    view.addModels(pdb.getvalue(),'pdb')
-    view.setStyle({'cartoon': {'color':'spectrum'}})
-    view.setStyle({'hetflag': True}, {'stick':{}})
-    view.setStyle({'bonds': 0}, {'sphere':{'radius': 0.5}})    
 
-    if 'flucts' in kwargs:
-        garr = kwargs['flucts']
-        #note we are only getting info from last set of atoms..
-        if atoms.calpha.numAtoms() != len(garr):
-            raise RuntimeError("Atom count mismatch: {} vs {}.  flucts styling assume a calpha selection.".format(atoms.calpha.numAtoms(), len(garr)))
-        else:
-            #construct map from residue to flucts property
-            propmap = []
-            for (i,a) in enumerate(atoms.calpha):
-                propmap.append({'chain': a.getChid(), 'resi':a.getResnum(), 'props': {'flucts': garr[i] } })
-            #set the atom property 
-            #TODO: implement something more efficient on the 3Dmol.js side (this is O(n*m)!)
-            view.mapAtomProperties(propmap)
-            
-            #color by property using gradient
-            extreme = np.abs(garr).max()
-            lo = -extreme if garr.min() < 0 else 0
-            mid = np.mean(garr) if garr.min() >= 0 else 0
-            view.setColorByProperty({}, 'flucts', 'rwb', [extreme,lo,mid])
-            view.setStyle({'cartoon':{'style':'trace'}})
-            
+    # add models one at a time
+    for (modeli,atoms) in enumerate(alist):
+        pdb = StringIO()
+        writePDBStream(pdb, atoms)
+        
+        view.addModel(pdb.getvalue(),'pdb')
+        view.setStyle({'model': -1, 'cartoon': {'color':'spectrum'}})
+        view.setStyle({'model': -1, 'hetflag': True}, {'stick':{}})
+        view.setStyle({'model': -1, 'bonds': 0}, {'sphere':{'radius': 0.5}})    
+
+        if 'flucts' in kwargs:
+            garr = kwargs['flucts']
+            if len(alist) > 1: #multiple models
+                if len(garr) != len(alist):
+                    raise RuntimeError("Multiple structures passed with flucts, but flucts not list of arrays of correct length")
+                garr = garr[modeli]
+                if garr is None or len(garr) == 0:
+                    continue #skipy empty/none
+
+            if atoms.calpha.numAtoms() != len(garr):
+                raise RuntimeError("Atom count mismatch: {} vs {}.  flucts styling assume a calpha selection.".format(atoms.calpha.numAtoms(), len(garr)))
+            else:
+                #construct map from residue to flucts property
+                propmap = []
+                for (i,a) in enumerate(atoms.calpha):
+                    propmap.append({'model': -1, 'chain': a.getChid(), 'resi':a.getResnum(), 'props': {'flucts': garr[i] } })
+                #set the atom property 
+                #TODO: implement something more efficient on the 3Dmol.js side (this is O(n*m)!)
+                view.mapAtomProperties(propmap, {'model': -1})
+                
+                #color by property using gradient
+                extreme = np.abs(garr).max()
+                lo = -extreme if garr.min() < 0 else 0
+                mid = np.mean(garr) if garr.min() >= 0 else 0
+                view.setColorByProperty({'model': -1}, 'flucts', 'rwb', [extreme,lo,mid])
+                view.setStyle({'model': -1, 'cartoon':{'style':'trace'}})
+                
+        if 'vecs' in kwargs:
+            aarr = kwargs['vecs']  #has xyz coordinates
+            if len(alist) > 1: #multiple models
+                if len(aarr) != len(alist):
+                    raise RuntimeError("Multiple structures passed with vecs, but vecs not list of arrays of correct length")                
+                aarr = aarr[modeli]
+                if aarr is None or len(aarr) == 0:
+                    continue #skip empty/none
+                
+            if atoms.calpha.numAtoms()*3 != len(aarr):
+                raise RuntimeError("Atom count mismatch: {} vs {}.  vecs animation assume a calpha selection.".format(atoms.calpha.numAtoms(), len(aarr)/3))
+            else:
+                #construct map from residue to anm property and dx,dy,dz vectors
+                propmap = []
+                for (i,a) in enumerate(atoms.calpha):
+                    propmap.append({'chain': a.getChid(), 'resi':a.getResnum(),
+                        'props': {'dx': aarr[3*i], 'dy': aarr[3*i+1], 'dz': aarr[3*i+2] } });
+                #set the atom property 
+                #TODO: implement something more efficient on the 3Dmol.js side (this is O(n*m)!)
+                view.mapAtomProperties(propmap, {'model': -1})
+
     if 'vecs' in kwargs:
-        aarr = kwargs['vecs']  #has xyz coordinates
-
-        #note we are only getting info from last set of atoms..
-        if atoms.calpha.numAtoms()*3 != len(aarr):
-            raise RuntimeError("Atom count mismatch: {} vs {}.  vecs animation assume a calpha selection.".format(atoms.calpha.numAtoms(), len(aarr)/3))
-        else:
-            #construct map from residue to anm property and dx,dy,dz vectors
-            propmap = []
-            for (i,a) in enumerate(atoms.calpha):
-                propmap.append({'chain': a.getChid(), 'resi':a.getResnum(),
-                    'props': {'dy': aarr[3*i+1], 'dz': aarr[3*i+2] } });
-            #set the atom property 
-            #TODO: implement something more efficient on the 3Dmol.js side (this is O(n*m)!)
-            view.mapAtomProperties(propmap)
-            
-            #create vibrations
-            frames = kwargs.get('frames',10)
-            amplitude = kwargs.get('amplitude',100)
-            view.vibrate(frames, amplitude)
-            
-            animate = kwargs.get('animate',{'loop':'rock'})
-            view.animate(animate)                
-
+        #create vibrations
+        frames = kwargs.get('frames',10)
+        amplitude = kwargs.get('amplitude',100)
+        view.vibrate(frames, amplitude)
+        
+        animate = kwargs.get('animate',{'loop':'rock'})
+        view.animate(animate)     
+        
     if 'style' in kwargs: # this is never a list
         view.setStyle({},kwargs['style'])
         
     if 'styles' in kwargs:
-        #allow simpler forms - convert them into a list
+        # allow simpler forms - convert them into a list
         styles = kwargs['styles']
         if type(styles) == dict:
             styles = ({},styles)
@@ -181,7 +302,7 @@ def view3D(*alist, **kwargs):
             styles = [styles]
         for (sel, style) in styles:
             view.setStyle(sel, style)
-    
+        
     zoomto = kwargs['zoomto'] if 'zoomto' in kwargs else kwargs.get('zoomTo',{})
     view.zoomTo(zoomto)
             
@@ -221,14 +342,42 @@ def showProtein(*atoms, **kwargs):
     
     """
 
+    from prody.dynamics.mode import Mode
+
+    method = kwargs.pop('draw', None)
+    modes = kwargs.pop('mode', None)
+    scale = kwargs.pop('scale', 100)
+
+    # modes need to be specifically a list or a tuple (cannot be an array)
+    if modes is None:
+        n_modes = 0
+    else:
+        modes = wrap_data(modes)
+        n_modes = len(modes)
+
+    if method is None:
+        import sys        
+        if 'py3Dmol' in sys.modules: 
+            method = 'py3Dmol'
+        else:
+            method = 'matplotlib'
+    method = method.lower()
+        
     alist = atoms
     for atoms in alist:
         if not isinstance(atoms, Atomic):
             raise TypeError('atoms must be an Atomic instance')
-    
-    import sys        
-    if 'py3Dmol' in sys.modules:    
-        return view3D(*alist, **kwargs).show()
+            
+    if n_modes and n_modes != len(alist):
+        raise RuntimeError('the number of proteins ({0}) does not match that of the modes ({1}).'
+                            .format(len(alist), n_modes))
+
+    if '3dmol' in method:
+        if n_modes:
+            kwargs['mode'] = modes
+        mol = view3D(*alist, **kwargs)
+        mol.show()
+        return mol
     else:
         import matplotlib.pyplot as plt
         from mpl_toolkits.mplot3d import Axes3D
@@ -256,35 +405,33 @@ def showProtein(*atoms, **kwargs):
         cnames_copy = list(cnames)
         min_ = list()
         max_ = list()
-        for atoms in alist:
+        for i, atoms in enumerate(alist):
             if isinstance(atoms, AtomGroup):
                 title = atoms.getTitle()
             else:
                 title = atoms.getAtomGroup().getTitle()
             calpha = atoms.select('calpha')
             if calpha:
-                from prody.dynamics.mode import Mode
-                gnmmode = kwargs.get('mode', None)
-                if gnmmode is None:
-                    for ch in HierView(calpha, chain=True):
-                        xyz = ch._getCoords()
-                        chid = ch.getChid()
-                        if len(cnames) == 0:
-                            cnames = list(cnames_copy)
-                        show.plot(xyz[:, 0], xyz[:, 1], xyz[:, 2],
-                                label=title + '_' + chid,
-                                color=kwargs.get(chid, cnames.pop()).lower(),
-                                lw=kwargs.get('lw', 4))
-                else:
+                partition = False
+                mode = modes[i] if n_modes else None
+                if mode is not None:
+                    is3d = False
+                    try:
+                        arr = mode.getArray()
+                        is3d = mode.is3d()
+                        n_nodes = mode.numAtoms()
+                    except AttributeError:
+                        arr = mode
+                        is3d = len(arr) == len(calpha)*3
+                        n_nodes = len(arr)//3 if is3d else len(arr)
+                    if n_nodes != len(calpha):
+                        raise RuntimeError('size mismatch between the protein ({0} residues) and the mode ({1} nodes).'
+                                            .format(len(calpha), n_nodes))
+                    partition = not is3d
+
+                if partition:
                     xyz = calpha._getCoords()
                     chids = calpha.getChids()
-                    arr = []
-                    if isinstance(gnmmode, Mode):
-                        arr = gnmmode.getArray()
-                    else:
-                        arr = gnmmode
-                    if len(arr) != len(calpha):
-                        raise RuntimeError('The number of residues should be equal to the size of the GNM mode.')
                     rbody = []
                     last_sign = np.sign(arr[0])
                     last_chid = chids[0]
@@ -306,6 +453,26 @@ def showProtein(*atoms, **kwargs):
                             last_sign = s
                             last_chid = ch
                         rbody.append(i)
+                else:
+                    for ch in HierView(calpha, chain=True):
+                        xyz = ch._getCoords()
+                        chid = ch.getChid()
+                        if len(cnames) == 0:
+                            cnames = list(cnames_copy)
+                        show.plot(xyz[:, 0], xyz[:, 1], xyz[:, 2],
+                                label=title + '_' + chid,
+                                color=kwargs.get(chid, cnames.pop()).lower(),
+                                lw=kwargs.get('lw', 4))
+                    
+                    if mode is not None:
+                        from prody.utilities.drawtools import drawArrow3D
+                        XYZ = calpha._getCoords()
+                        arr = arr.reshape((n_nodes, 3))
+                        XYZ2 = XYZ + arr * scale
+                        for i, xyz in enumerate(XYZ):
+                            xyz2 = XYZ2[i]
+                            mutation_scale = kwargs.pop('mutation_scale', 10)
+                            drawArrow3D(xyz, xyz2, mutation_scale=mutation_scale, **kwargs)
 
             water = atoms.select('water and noh')
             if water:

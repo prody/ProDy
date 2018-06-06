@@ -7,7 +7,7 @@ from numbers import Integral
 import numpy as np
 
 from prody.proteins import fetchPDB, parsePDB, writePDB, mapOntoChain
-from prody.utilities import openFile, showFigure, copy
+from prody.utilities import openFile, showFigure, copy, isListLike
 from prody import LOGGER, SETTINGS
 from prody.atomic import AtomMap, Chain, AtomGroup, Selection, Segment, Select, AtomSubset
 
@@ -17,7 +17,7 @@ from .conformation import *
 
 __all__ = ['saveEnsemble', 'loadEnsemble', 'trimPDBEnsemble',
            'calcOccupancies', 'showOccupancies', 'alignPDBEnsemble',
-           'buildPDBEnsemble', 'addPDBEnsemble']
+           'buildPDBEnsemble', 'addPDBEnsemble', 'refineEnsemble']
 
 
 def saveEnsemble(ensemble, filename=None, **kwargs):
@@ -47,13 +47,13 @@ def saveEnsemble(ensemble, filename=None, **kwargs):
             attr_dict[attr] = value
 
     atoms = dict_['_atoms']
-    if atoms:
-        atoms = atoms.copy()
-    attr_dict['_atoms'] = np.array([atoms, None])
+    if atoms is not None:
+        attr_dict['_atoms'] = np.array([atoms, None])
 
     if isinstance(ensemble, PDBEnsemble):
         msa = dict_['_msa']
-        attr_dict['_msa'] = np.array([msa, None])
+        if msa is not None:
+            attr_dict['_msa'] = np.array([msa, None])
 
     if filename.endswith('.ens'):
         filename += '.npz'
@@ -345,7 +345,7 @@ def alignPDBEnsemble(ensemble, suffix='_aligned', outdir='.', gzip=False):
         return output
 
 
-def buildPDBEnsemble(PDBs, ref=None, title='Unknown', labels=None, seqid=94, coverage=85, 
+def buildPDBEnsemble(PDBs, ref=None, title='Unknown', labels=None, 
                      mapping_func=mapOntoChain, unmapped=None, **kwargs):
     """Builds a PDB ensemble from a given reference structure and a list of PDB structures. 
     Note that the reference structure should be included in the list as well.
@@ -354,8 +354,8 @@ def buildPDBEnsemble(PDBs, ref=None, title='Unknown', labels=None, seqid=94, cov
     :type PDBs: iterable
 
     :arg ref: Reference structure or the index to the reference in ``PDBs``. If **None**,
-                 then the first item in ``PDBs`` will be considered as the reference. 
-                 Default is **None**
+        then the first item in ``PDBs`` will be considered as the reference. 
+        Default is **None**
     :type ref: int, :class:`.Chain`, :class:`.Selection`, or :class:`.AtomGroup`
 
     :arg title: The title of the ensemble
@@ -363,12 +363,6 @@ def buildPDBEnsemble(PDBs, ref=None, title='Unknown', labels=None, seqid=94, cov
 
     :arg labels: labels of the conformations
     :type labels: list
-
-    :arg seqid: Minimal sequence identity (percent)
-    :type seqid: int
-
-    :arg coverage: Minimal sequence overlap (percent)
-    :type coverage: int
 
     :arg occupancy: Minimal occupancy of columns (range from 0 to 1). Columns whose occupancy
         is below this value will be trimmed.
@@ -381,12 +375,23 @@ def buildPDBEnsemble(PDBs, ref=None, title='Unknown', labels=None, seqid=94, cov
 
     occupancy = kwargs.pop('occupancy', None)
     degeneracy = kwargs.pop('degeneracy', True)
+    subset = str(kwargs.get('subset', 'calpha')).lower()
+    superpose = kwargs.pop('superpose', True)
 
     if len(PDBs) == 1:
         raise ValueError('PDBs should have at least two items')
+
     if labels is not None:
         if len(labels) != len(PDBs):
-            raise ValueError('labels and PDBs must be the same length')
+            raise TypeError('Labels and PDBs must have the same lengths.')
+    else:
+        labels = []
+        
+        for pdb in PDBs:
+            if pdb is None:
+                labels.append(None)
+            else:
+                labels.append(pdb.getTitle())
 
     if ref is None:
         refpdb = PDBs[0]
@@ -398,6 +403,9 @@ def buildPDBEnsemble(PDBs, ref=None, title='Unknown', labels=None, seqid=94, cov
             raise ValueError('refpdb should be also in the PDBs')
 
     # obtain refchains from the hierarhical view of the reference PDB
+    if subset != 'all':
+        refpdb = refpdb.select(subset)
+        
     try:
         refchains = list(refpdb.getHierView())
     except AttributeError:
@@ -419,6 +427,10 @@ def buildPDBEnsemble(PDBs, ref=None, title='Unknown', labels=None, seqid=94, cov
 
     LOGGER.progress('Building the ensemble...', len(PDBs), '_prody_buildPDBEnsemble')
     for i, pdb in enumerate(PDBs):
+        if pdb is None:
+            unmapped.append(labels[i])
+            continue
+
         LOGGER.update(i, 'Mapping %s to the reference...'%pdb.getTitle(), 
                       label='_prody_buildPDBEnsemble')
         try:
@@ -435,8 +447,6 @@ def buildPDBEnsemble(PDBs, ref=None, title='Unknown', labels=None, seqid=94, cov
         # find the mapping of the pdb to each reference chain
         for chain in refchains:
             mappings = mapping_func(pdb, chain,
-                                    seqid=seqid,
-                                    coverage=coverage,
                                     index=i,
                                     **kwargs)
             if len(mappings) > 0:
@@ -461,14 +471,17 @@ def buildPDBEnsemble(PDBs, ref=None, title='Unknown', labels=None, seqid=94, cov
 
     if occupancy is not None:
         ensemble = trimPDBEnsemble(ensemble, occupancy=occupancy)
-    ensemble.iterpose()
+    if superpose:
+        ensemble.iterpose()
     
     LOGGER.info('Ensemble ({0} conformations) were built in {1:.2f}s.'
                      .format(ensemble.numConfs(), time.time()-start))
 
+    if unmapped:
+        LOGGER.warn('{0} structures cannot be mapped.'.format(len(unmapped)))
     return ensemble
 
-def addPDBEnsemble(ensemble, PDBs, refpdb=None, labels=None, seqid=94, coverage=85, 
+def addPDBEnsemble(ensemble, PDBs, refpdb=None, labels=None, 
                    mapping_func=mapOntoChain, occupancy=None, unmapped=None, **kwargs):  
     """Adds extra structures to a given PDB ensemble. 
 
@@ -503,14 +516,28 @@ def addPDBEnsemble(ensemble, PDBs, refpdb=None, labels=None, seqid=94, coverage=
     """
 
     degeneracy = kwargs.pop('degeneracy', True)
+    subset = str(kwargs.get('subset', 'calpha')).lower()
+    superpose = kwargs.pop('superpose', True)
 
     if labels is not None:
         if len(labels) != len(PDBs):
             raise TypeError('Labels and PDBs must have the same lengths.')
+    else:
+        labels = []
+        
+        for pdb in PDBs:
+            if pdb is None:
+                labels.append(None)
+            else:
+                labels.append(pdb.getTitle())
 
     # obtain refchains from the hierarhical view of the reference PDB
     if refpdb is None:
-        refpdb = ensemble.getAtoms()
+        refpdb = ensemble._atoms
+    else:
+        if subset != 'all':
+            refpdb = refpdb.select(subset)
+
     refchains = list(refpdb.getHierView())
 
     start = time.time()
@@ -525,22 +552,20 @@ def addPDBEnsemble(ensemble, PDBs, refpdb=None, labels=None, seqid=94, coverage=
 
     LOGGER.progress('Appending the ensemble...', len(PDBs), '_prody_addPDBEnsemble')
     for i, pdb in enumerate(PDBs):
+        lbl = labels[i]
+        if pdb is None:
+            unmapped.append(labels[i])
+            continue
+
         LOGGER.update(i, 'Mapping %s to the reference...'%pdb.getTitle(), 
                       label='_prody_addPDBEnsemble')
         if not isinstance(pdb, (Chain, Selection, AtomGroup)):
             raise TypeError('PDBs must be a list of Chain, Selection, or AtomGroup.')
-        
-        if labels is None:
-            lbl = pdb.getTitle()
-        else:
-            lbl = labels[i]
 
         atommaps = []
         # find the mapping of the pdb to each reference chain
         for chain in refchains:
             mappings = mapping_func(pdb, chain,
-                                    seqid=seqid,
-                                    coverage=coverage,
                                     index=i,
                                     **kwargs)
             if len(mappings) > 0:
@@ -564,10 +589,70 @@ def addPDBEnsemble(ensemble, PDBs, refpdb=None, labels=None, seqid=94, coverage=
 
     if occupancy is not None:
         ensemble = trimPDBEnsemble(ensemble, occupancy=occupancy)
-    ensemble.iterpose()
+    if superpose:
+        ensemble.iterpose()
 
     LOGGER.info('{0} PDBs were added to the ensemble in {1:.2f}s.'
                      .format(len(PDBs) - len(unmapped), time.time()-start))
 
+    if unmapped:
+        LOGGER.warn('{0} structures cannot be mapped.'.format(len(unmapped)))
+
     return ensemble
 
+def refineEnsemble(ens, lower=.5, upper=10.):
+    """Refine a PDB ensemble based on RMSD criterions.""" 
+
+    from scipy.cluster.hierarchy import linkage, fcluster
+    from scipy.spatial.distance import squareform
+    from collections import Counter
+
+    ### calculate pairwise RMSDs ###
+    RMSD = ens.getRMSDs(pairwise=True)
+
+    # convert the RMSD table to the compressed form
+    v = squareform(RMSD)
+
+    ### apply upper threshold ###
+    Z_upper = linkage(v, method='complete')
+    labels = fcluster(Z_upper, upper, criterion='distance')
+    most_common_label = Counter(labels).most_common(1)[0][0]
+    I = np.where(labels==most_common_label)[0]
+
+    ### apply lower threshold ###
+    Z_lower = linkage(v, method='single')
+    labels = fcluster(Z_lower, lower, criterion='distance')
+    uniq_labels = np.unique(labels)
+
+    clusters = []
+    for label in uniq_labels:
+        indices = np.where(labels==label)[0]
+        clusters.append(indices)
+
+    J = np.ones(len(clusters), dtype=int) * -1
+    rmsd = None
+    for i, cluster in enumerate(clusters):
+        if len(cluster) > 0:
+            # find the conformations with the largest coverage 
+            # (the weight of the ref should be 1)
+            weights = [ens[j].getWeights().sum() for j in cluster]
+            js = np.where(weights==np.max(weights))[0]
+
+            # in the case where there are multiple structures with the same weight,
+            # the one with the smallest rmsd wrt the ens._coords is selected. 
+            if len(js) > 1:
+                # rmsd is not calulated unless necessary for the sake of efficiency
+                rmsd = ens.getRMSDs() if rmsd is None else rmsd
+                j = js[np.argmin(rmsd[js])]
+            else:
+                j = js[0]
+            J[i] = cluster[j]
+        else:
+            J[i] = cluster[0]
+
+    ### refine ensemble ###
+    K = np.intersect1d(I, J)
+
+    reens = ens[K]
+
+    return reens

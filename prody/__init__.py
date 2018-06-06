@@ -1,6 +1,6 @@
 """ProDy is a package for Protein Dynamics, Sequence, and Structure Analysis"""
 
-__version__ = '1.10.0'
+__version__ = '1.10.7'
 __release__ = __version__ # + '-dev' # comment out '-dev' before a release
 
 import sys
@@ -139,7 +139,7 @@ __all__.append('prody')
 CONFIGURATION = {
     'backup': (False, None, None),
     'backup_ext': ('.BAK', None, None),
-    'auto_show': (True, None, None),
+    'auto_show': (False, None, None),
     'ligand_xml_save': (False, None, None),
     'typo_warnings': (True, None, None),
     'check_updates': (0, None, None),
