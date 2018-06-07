@@ -569,7 +569,12 @@ def parsePfamPDBs(query, data=[], **kwargs):
         data_dict = data_dicts[i]
         pfamRange = data_dict['UniprotResnumRange'].split('-')
         uniprotAcc = data_dict['UniprotAcc']
-        uniData = queryUniprot(uniprotAcc)
+        try:
+            uniData = queryUniprot(uniprotAcc)
+        except:
+            LOGGER.warn('No Uniprot record found for {0}'.format(data_dict['PBD_ID']))
+            continue
+
         resrange = None
         found = False
         for key, value in uniData.items():
@@ -595,17 +600,20 @@ def parsePfamPDBs(query, data=[], **kwargs):
             if found:
                 break
 
-        multi = False
         if found:
             header = headers[i]
             chain_accessions = [dbref.accession 
                                 for dbref in header[data_dict['chain']].dbrefs]
-            if len(chain_accessions) > 1:
-                multi = True
-            else:
-                multi = False
-            right_part = np.where(np.array(chain_accessions) == 
-                                  data_dict['UniprotAcc'])[0][0]
+            try:
+                right_part = np.where(np.array(chain_accessions) == 
+                                      data_dict['UniprotAcc'])[0][0]
+            except:
+                LOGGER.warn('Could not map domains in {0}'
+                            .format(data_dict['PDB_ID'] 
+                            + data_dict['chain']))
+                no_info.append(i)
+                continue
+
             right_dbref = header[data_dict['chain']].dbrefs[right_part]
             chainStart = ag.select('chain {0}'.format(data_dict['chain'])
                                   ).getResnums()[0]

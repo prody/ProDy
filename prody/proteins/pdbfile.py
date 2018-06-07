@@ -118,7 +118,8 @@ def parsePDB(*pdb, **kwargs):
             kwargs = {}
             for key in lstkwargs:
                 kwargs[key] = lstkwargs[key][i]
-            LOGGER.update(i, 'Retrieving {0}...'.format(p), 
+            c = kwargs.get('chain','')
+            LOGGER.update(i, 'Retrieving {0}...'.format(p+c), 
                           label='_prody_parsePDB')
             result = _parsePDB(p, **kwargs)
             if not isinstance(result, tuple):
@@ -489,11 +490,12 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                 coordinates[acount, 2] = line[46:54]
             except:
                 if acount >= n_atoms > 0:
-                    if nmodel ==0:
+                    if nmodel == 0:
                         raise ValueError(format + 'file and AtomGroup ag must '
                                          'have same number of atoms')
-                    LOGGER.warn('Discarding model {0}, which contains more '
-                            'atoms than first model does.'.format(nmodel+1))
+                    LOGGER.warn('Discarding model {0}, which contains {1} more '
+                                'atoms than first model does.'
+                                .format(nmodel+1,acount-n_atoms+1))
                     acount = 0
                     nmodel += 1
                     coordinates = np.zeros((n_atoms, 3), dtype=float)
