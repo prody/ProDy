@@ -138,7 +138,9 @@ def parsePDB(*pdb, **kwargs):
             results = results[0]
         results = list(results)
 
-        if len(results) == 2:
+        model = kwargs.get('model')
+        header = kwargs.get('header', False)
+        if model != 0 and header:
             numPdbs = len(results[0])
         else:
             numPdbs = len(results)
@@ -271,7 +273,7 @@ def parsePDBStream(stream, **kwargs):
         else:
             ag = None
             LOGGER.warn('Atomic data could not be parsed, please '
-                            'check the input file.')
+                        'check the input file.')
     elif header:
         hd, split = getHeaderDict(stream)
 
