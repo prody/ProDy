@@ -29,21 +29,21 @@ class HiC(object):
         self._labels = 0
         self.useTrimmed = True
         self.bin = bin
-        self.Map = map
+        self.map = map
     
     @property
-    def Map(self):
+    def map(self):
         if self.useTrimmed:
             return self.getTrimedMap()
         else:
             return self._map
 
-    @Map.setter
-    def Map(self, map):
+    @map.setter
+    def map(self, value):
         if map is None: 
             self._map = None
         else:
-            self._map = np.array(map)
+            self._map = np.array(value)
             self._makeSymmetric()
             self._maskUnmappedRegions()
             self._labels = np.zeros(len(self._map))
@@ -58,16 +58,16 @@ class HiC(object):
 
     def __getitem__(self, index):
         if isinstance(index, Integral):
-            return self.Map.flatten()[index]
+            return self.map.flatten()[index]
         else:
             i, j = index
-            return self.Map[i,j]
+            return self.map[i,j]
 
     def __len__(self):
-        return len(self.Map)
+        return len(self.map)
     
     def numAtoms(self):
-        return len(self.Map)
+        return len(self.map)
 
     def getTitle(self):
         """Returns title of the instance."""
@@ -173,10 +173,10 @@ class HiC(object):
     def getKirchhoff(self):
         """Builds a Kirchhoff matrix based on the contact map."""
 
-        if self.Map is None:
+        if self.map is None:
             return None
         else:
-            M = self.Map
+            M = self.map
             
             I = np.eye(M.shape[0], dtype=bool)
             A = M.copy()
@@ -237,7 +237,7 @@ class HiC(object):
 
         M = self._map
         N = method(M, **kwargs)
-        self.Map = N
+        self.map = N
         return N
     
     def setDomains(self, labels, **kwargs):
@@ -315,7 +315,7 @@ class HiC(object):
             elif k.startswith('domain_'):
                 dm_kwargs[k[7:]] = kwargs.pop(k)
 
-        im = showMap(self.Map, spec, **kwargs)
+        im = showMap(self.map, spec, **kwargs)
 
         domains = self.getDomainList()
         if len(domains) > 1:
@@ -374,29 +374,34 @@ def parseHiCStream(stream, **kwargs):
     bin = kwargs.get('bin', None)
     size = D.shape
     if len(D.shape) <= 1:
-        raise ValueError("Cannot parse the file: input file only contains one column.")
+        raise ValueError("cannot parse the file: input file only contains one column.")
     if size[0] == size[1]:
         M = D
     else:
-        i, j, value = D.T
+        try:
+            I, J, value = D.T[:3]
+            I = I.astype(int)
+            J = J.astype(int)
+        except ValueError:
+            raise ValueError('the sparse matrix format should have three columns')
         # determine the bin size by the most frequent interval
         if bin is None:
-            loci = np.unique(np.sort(i))
+            loci = np.unique(np.sort(I))
             bins = np.diff(loci)
             bin = mode(bins)[0][0]
         # convert coordinate from basepair to locus index
-        i = i//bin
-        j = j//bin
+        I = I // bin
+        J = J // bin
         # make sure that the matrix is square
-        if np.max(i) != np.max(j):
-            b = np.max(np.append(i, j))
-            i = np.append(i, b)
-            j = np.append(j, b)
+        if np.max(I) != np.max(J):
+            b = np.max(np.append(I, I))
+            I = np.append(I, b)
+            J = np.append(J, b)
             value = np.append(value, 0.)
         # Convert to sparse matrix format, then full matrix format
         # and finally array type. Matrix format is avoided because
         # diag() won't work as intended for Matrix instances.
-        M = np.array(coo_matrix((value, (i,j))).todense())
+        M = np.array(coo_matrix((value, (I, J))).todense())
     return HiC(title=title, map=M, bin=bin)
 
 def writeMap(filename, map, bin=None, format='%f'):
