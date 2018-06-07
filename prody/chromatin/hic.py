@@ -394,7 +394,7 @@ def parseHiCStream(stream, **kwargs):
         J = J // bin
         # make sure that the matrix is square
         if np.max(I) != np.max(J):
-            b = np.max(np.append(I, I))
+            b = np.max(np.append(I, J))
             I = np.append(I, b)
             J = np.append(J, b)
             value = np.append(value, 0.)
