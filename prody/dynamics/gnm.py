@@ -476,8 +476,8 @@ class GNM(GNMBase):
         """Get residue index of hinge sites given mode indices.
 
         :arg modeIndex: indices of modes. This parameter can be a scalar, a list, 
-            or logical indices.
-        :type modeIndex: int or list, default is **None**
+            or logical indices. Default is **None**
+        :type modeIndex: int, list
         """
         if self._hinges is None:
             LOGGER.info('Warning: hinges are not calculated, thus null is returned. '
@@ -623,6 +623,17 @@ class TrimmedGNM(GNM):
             return self._array
         else:
             return self.getArray()
+
+    def getHinges(self, modeIndex=None):
+        """Get residue index of hinge sites given mode indices.
+
+        :arg modeIndex: indices of modes. This parameter can be a scalar, a list, 
+            or logical indices. Default is **None**
+        :type modeIndex: int, list
+        """
+
+        hinges = super(TrimmedGNM, self).getHinges(modeIndex)
+        return hinges
 
     def fixTail(self, length):
         def _fixLength(vector, length, filled_value=0, axis=0):
