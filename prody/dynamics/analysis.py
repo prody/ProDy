@@ -49,6 +49,9 @@ def calcCollectivity(mode, masses=None):
     
     colls = []
 
+    def log0(a):
+        return log(a + np.finfo(float).eps)
+
     for m in mode:
         is3d = m.is3d()
         if masses is not None:
@@ -62,7 +65,7 @@ def calcCollectivity(mode, masses=None):
             else:
                 u2in = (m.getArrayNx3() ** 2)
         u2in = u2in * (1 / u2in.sum() ** 0.5)
-        coll = np.exp(-(u2in * log(u2in)).sum()) / m.numAtoms()
+        coll = np.exp(-(u2in * log0(u2in)).sum()) / m.numAtoms()
         colls.append(coll)
     
     if len(mode) == 1:
