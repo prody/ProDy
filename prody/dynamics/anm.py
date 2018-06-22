@@ -68,7 +68,7 @@ class ANMBase(NMA):
         self._reset()
         self._hessian = hessian
         self._dof = hessian.shape[0]
-        self._n_atoms = self._dof / 3
+        self._n_atoms = self._dof // 3
         
     def buildHessian(self, coords, cutoff=15., gamma=1., **kwargs):
         """Build Hessian matrix for given coordinate set.
