@@ -640,7 +640,7 @@ class TrimmedGNM(GNM):
             return self.getArray()
 
     def getHinges(self, modeIndex=None, flag=False):
-        """Get residue index of hinge sites given mode indices.
+        """Gets residue index of hinge sites given mode indices.
 
         :arg modeIndex: indices of modes. This parameter can be a scalar, a list, 
             or logical indices. Default is **None**
@@ -660,6 +660,15 @@ class TrimmedGNM(GNM):
             return sorted(set(hinge_list))
 
     def fixTail(self, length):
+        """Fixes the tail of the model. If *length* is greater than the original size 
+        (number of nodes), then extra hidden nodes will be added to the model, and if 
+        not, the model will be trimmed so that the total number of nodes, including the 
+        hidden ones, will be equal to the *length*. Note that if *useTrimmed* is **True**, 
+        the *length* should be the number of *visible* nodes.
+
+        :arg length: length of the model after the fixation
+        :type length: int
+        """
         def _fixLength(vector, length, filled_value=0, axis=0):
             shape = vector.shape
             dim = len(shape)
