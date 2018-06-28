@@ -677,8 +677,16 @@ class TrimmedGNM(GNM):
                 vector = vector[:length]
             return vector
 
+        trimmed = self.useTrimmed
+        if trimmed:
+            trimmed_length = self.numAtoms()
+            self.useTrimmed = False
+            extra_length = self.numAtoms() - trimmed_length
+            length += extra_length
+
         if np.isscalar(self.mask):
             self.mask = np.ones(self.numAtoms(), dtype=bool)
 
         self.mask = _fixLength(self.mask, length, False)
+        self.useTrimmed = trimmed
         return
