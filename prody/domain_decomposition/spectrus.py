@@ -71,7 +71,7 @@ def MBSPointMutation(simMatrix, index):
     return newSim
 
 
-def calcMBS(simMatrix, nEvals=20):
+def calcMBSfromSim(simMatrix, nEvals=20):
 
     n = simMatrix.shape[0]
     mbs = []
@@ -96,4 +96,11 @@ def calcMBS(simMatrix, nEvals=20):
     return np.array(mbs)
 
 
+def calcMBS(anm, atomGroup, **kwargs) :
+
+    distFlucts = calcDistFlucts(anm, norm=False)
+    sparseSim, sigma = calcSpectrusSims(distFlucts, atomGroup, **kwargs)
+    mbs = calcMBSfromSim(sparseSim, **kwargs)
+
+    return mbs
 
