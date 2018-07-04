@@ -71,6 +71,17 @@ def MBSPointMutation(simMatrix, index, **kwargs):
     return newSim
 
 
+def _removeOutliers(data, Delta=100., **kwargs):
+    med = np.median(data)
+    # compute median of |distances from median|
+    dists = np.abs(data - med)
+    mdev = np.median(dists)
+    # replace entries with 'None' if outside the "safe"
+    # interval (median - Delta*mdev, median + Delta*mdev)
+    Delta_mdev = Delta * mdev
+    return np.where(dists<Delta_mdev, data, None) 
+
+
 def calcMBSfromSim(simMatrix, nEvals=20, **kwargs):
 
     n = simMatrix.shape[0]
@@ -93,7 +104,9 @@ def calcMBSfromSim(simMatrix, nEvals=20, **kwargs):
             mbs_i = None
         # build MBS profile
         mbs.append( mbs_i )
-    return np.array(mbs)
+    # remove outliers
+    mbs = _removeOutliers(mbs, **kwargs)
+    return mbs
 
 
 def calcMBS(anm, atomGroup, **kwargs):
@@ -103,4 +116,6 @@ def calcMBS(anm, atomGroup, **kwargs):
     mbs = calcMBSfromSim(sparseSim, **kwargs)
 
     return mbs
+
+
 
