@@ -72,20 +72,24 @@ def MBSPointMutation(simMatrix, index, **kwargs):
 
 
 def _removeOutliers(data, Delta=100., **kwargs):
-    med = np.median(data)
+    assert Delta > 0.
+    med = np.median(data[~np.isnan(data)])
     # compute median of |distances from median|
     dists = np.abs(data - med)
-    mdev = np.median(dists)
-    # replace entries with 'None' if outside the "safe"
+    mdev = np.median(dists[~np.isnan(dists)])
+    # replace entries with 'nan' if outside the "safe"
     # interval (median - Delta*mdev, median + Delta*mdev)
     Delta_mdev = Delta * mdev
-    return np.where(dists<Delta_mdev, data, None) 
+    for i, dist in enumerate(dists):
+        if np.isnan(dist) or dist>Delta_mdev:
+            data[i] = np.nan
+    return data 
 
 
 def calcMBSfromSim(simMatrix, nEvals=20, **kwargs):
 
     n = simMatrix.shape[0]
-    mbs = []
+    mbs = np.zeros(n) 
     for i in range(n):
         try:
             # cut "non-covalent" bonds around atom 'i'
@@ -97,13 +101,11 @@ def calcMBSfromSim(simMatrix, nEvals=20, **kwargs):
             # sort eigvals in ascending order
             evals = np.sort(evals)
             # compute MBS at site i
-            mbs_i = np.sum(1./evals[1:])
+            mbs[i] = np.sum(1./evals[1:])
         except Exception as err:
             LOGGER.warn('Unable to compute MBS at position '
                         '{0}. {1}'.format(i, err))
-            mbs_i = None
-        # build MBS profile
-        mbs.append( mbs_i )
+            mbs[i] = np.nan
     # remove outliers
     mbs = _removeOutliers(mbs, **kwargs)
     return mbs
