@@ -86,7 +86,8 @@ def _removeOutliers(data, Delta=100., **kwargs):
     return data 
 
 
-def calcMBSfromSim(simMatrix, nEvals=20, **kwargs):
+def calcMBSfromSim(simMatrix, nEvals=20, remove_outliers=True,
+                   remove_offset=True, **kwargs):
 
     n = simMatrix.shape[0]
     mbs = np.zeros(n) 
@@ -107,11 +108,18 @@ def calcMBSfromSim(simMatrix, nEvals=20, **kwargs):
                         '{0}. {1}'.format(i, err))
             mbs[i] = np.nan
     # remove outliers
-    mbs = _removeOutliers(mbs, **kwargs)
+    if remove_outliers is True:
+        mbs = _removeOutliers(mbs, **kwargs)
+    # remove offset
+    if remove_offset is True:
+        offset = min(mbs[~np.isnan(mbs)])
+        mbs = mbs - offset 
+
     return mbs
 
 
-def calcMBS(anm, atomGroup, **kwargs):
+def calcMBS(anm, atomGroup, remove_outliers=True, remove_offset=True, 
+            **kwargs):
 
     distFlucts = calcDistFlucts(anm, norm=False)
     sparseSim, sigma = calcSpectrusSims(distFlucts, atomGroup, **kwargs)
