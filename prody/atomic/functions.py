@@ -298,13 +298,15 @@ def sliceAtoms(atoms, select):
 
     if atoms == select:
         raise ValueError('atoms and select arguments are the same')
-    if select in atoms:
+
+    try:
         indices = select._getIndices()
-    elif isinstance(select, str):
-        select = atoms.select(select)
-        indices = select._getIndices()
-    else:
-        raise TypeError('select must be a string or a Selection instance')
+    except AttributeError:
+        if isinstance(select, str):
+            select = atoms.select(select)
+            indices = select._getIndices()
+        else:
+            raise TypeError('select must be a string or a Selection instance')
 
     if isinstance(atoms, AtomGroup):
         which = indices

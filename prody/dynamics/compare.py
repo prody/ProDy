@@ -126,7 +126,7 @@ def calcCumulOverlap(modes1, modes2, array=False):
     Returns a number of *modes1* contains a single :class:`.Mode` or a
     :class:`.Vector` instance. If *modes1* contains multiple modes, returns an
     array. Elements of the array correspond to cumulative overlaps for modes
-    in *modes1* with those in *modes2*.  If *array* is **True**, Return array
+    in *modes1* with those in *modes2*.  If *array* is **True**, returns an array
     of cumulative overlaps. Returned array has the shape ``(len(modes1),
     len(modes2))``.  Each row corresponds to cumulative overlaps calculated for
     modes in *modes1* with those in *modes2*.  Each value in a row corresponds
