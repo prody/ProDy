@@ -3,10 +3,10 @@ from scipy import sparse
 from prody import LOGGER, SETTINGS
 from prody import buildDistMatrix, calcDistFlucts
 
-__all__ = ['calcSpectrusSims', 'MBSPointMutation', 'calcMBS']
+__all__ = ['calcSpectrusSims', 'MBSPointMutation', 'calcMBS', 'calcMBSfromSim']
 
 
-def calcSpectrusSims(distFlucts, pdb, cutoff=10., sigma='MRSDF'):
+def calcSpectrusSims(distFlucts, pdb, cutoff=10., sigma='MRSDF', **kwargs):
     
     coords = pdb.getCoords()
     n = coords.shape[0]
@@ -54,7 +54,7 @@ def calcSpectrusSims(distFlucts, pdb, cutoff=10., sigma='MRSDF'):
     return sparseSims, sigma
 
 
-def MBSPointMutation(simMatrix, index):
+def MBSPointMutation(simMatrix, index, **kwargs):
 
     if sparse.issparse(simMatrix):
         # slightly faster
@@ -64,14 +64,14 @@ def MBSPointMutation(simMatrix, index):
     n = simMatrix.shape[0]
 
     # cut non-adjacent links around atom 'index'
-    nonNearestNeighs = range(0,index-1) + range(index+2,n)
+    nonNearestNeighs = list(range(0,index-1)) + list(range(index+2,n))
     for j in nonNearestNeighs:
         newSim[index, j] = 0
         newSim[j, index] = 0
     return newSim
 
 
-def calcMBSfromSim(simMatrix, nEvals=20):
+def calcMBSfromSim(simMatrix, nEvals=20, **kwargs):
 
     n = simMatrix.shape[0]
     mbs = []
@@ -96,7 +96,7 @@ def calcMBSfromSim(simMatrix, nEvals=20):
     return np.array(mbs)
 
 
-def calcMBS(anm, atomGroup, **kwargs) :
+def calcMBS(anm, atomGroup, **kwargs):
 
     distFlucts = calcDistFlucts(anm, norm=False)
     sparseSim, sigma = calcSpectrusSims(distFlucts, atomGroup, **kwargs)
