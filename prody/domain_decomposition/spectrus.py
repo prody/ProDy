@@ -89,6 +89,7 @@ def _removeOutliers(data, Delta=100., **kwargs):
 def calcMBSfromSim(simMatrix, nEvals=20, remove_outliers=True,
                    remove_offset=True, **kwargs):
 
+    LOGGER.timeit('_MBS')
     n = simMatrix.shape[0]
     mbs = np.zeros(n) 
     for i in range(n):
@@ -114,6 +115,7 @@ def calcMBSfromSim(simMatrix, nEvals=20, remove_outliers=True,
     if remove_offset is True:
         offset = min(mbs[~np.isnan(mbs)])
         mbs = mbs - offset 
+    LOGGER.report('MBS computed in %.1fs.', '_MBS')
 
     return mbs
 
