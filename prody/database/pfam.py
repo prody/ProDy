@@ -605,8 +605,11 @@ def parsePfamPDBs(query, data=[], **kwargs):
             chain_accessions = [dbref.accession 
                                 for dbref in header[data_dict['chain']].dbrefs]
             try:
-                right_part = np.where(np.array(chain_accessions) == 
-                                      data_dict['UniprotAcc'])[0][0]
+                if len(chain_accessions) > 0:
+                    right_part = np.where(np.array(chain_accessions) == 
+                                        data_dict['UniprotAcc'])[0][0]
+                else:
+                    raise ValueError('There is no accession for a chain in the Header')
             except:
                 LOGGER.warn('Could not map domains in {0}'
                             .format(data_dict['PDB_ID'] 
