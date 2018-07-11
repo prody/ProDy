@@ -108,13 +108,14 @@ def calcMBSfromSim(simMatrix, nEvals=20, remove_outliers=True,
             LOGGER.warn('Unable to compute MBS at position '
                         '{0}. {1}'.format(i, err))
             mbs[i] = np.nan
-    # remove outliers
-    if remove_outliers is True:
-        mbs = _removeOutliers(mbs, **kwargs)
-    # remove offset
-    if remove_offset is True:
-        offset = min(mbs[~np.isnan(mbs)])
-        mbs = mbs - offset 
+    if any(~np.isnan(mbs)):
+        # remove outliers
+        if remove_outliers is True:
+            mbs = _removeOutliers(mbs, **kwargs)
+        # remove offset
+        if remove_offset is True:
+            offset = min(mbs[~np.isnan(mbs)])
+            mbs = mbs - offset 
     LOGGER.report('MBS computed in %.1fs.', '_MBS')
 
     return mbs
