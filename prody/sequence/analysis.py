@@ -744,7 +744,7 @@ def buildMSA(sequences, title='Unknown', labels=None, **kwargs):
     """
     
     align = kwargs.get('align', True)
-    method = kwargs.get('method', 'clustalw')
+    method = kwargs.pop('method', 'clustalw')
     # 1. check if sequences are in a fasta file and if not make one
     if isinstance(sequences, str):
         filename = sequences
@@ -1026,7 +1026,7 @@ def alignSequenceToMSA(seq, msa, label, match=5, mismatch=-1, gap_opening=-10, g
 
     return alignment, seq_indices, msa_indices
 
-def alignTwoSequencesWithBiopython(seq1, seq2, label, match=5, mismatch=-1, gap_opening=-10, gap_extension=-1):
+def alignTwoSequencesWithBiopython(seq1, seq2, match=5, mismatch=-1, gap_opening=-10, gap_extension=-1):
     
     alignment = pairwise2.align.globalms(seq1, seq2, match, mismatch, gap_opening, gap_extension)
 
