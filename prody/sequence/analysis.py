@@ -1048,8 +1048,7 @@ def alignTwoSequencesWithBiopython(seq1, seq2, match=5, mismatch=-1, gap_opening
     msa_indices = array(msa_indices)
 
     alignment = MSA(msa=array([array(list(alignment[0][0])), \
-                               array(list(alignment[0][1]))]), \
-                    labels=[ag.getTitle(), label])
+                               array(list(alignment[0][1]))]))
 
     return alignment, seq_indices, msa_indices
 
