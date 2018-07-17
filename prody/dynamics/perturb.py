@@ -97,7 +97,7 @@ def calcPerturbResponse(model, atoms=None, **kwargs):
     LOGGER.report('Perturbation response matrix calculated in %.1fs.',
                   '_prody_prs_mat')
 
-    no_diag = kwargs.get('no_diag', False)
+    no_diag = kwargs.get('no_diag', True)
     #filename = kwargs.get('filename', None)
 
     norm_prs_matrix = np.zeros((n_atoms, n_atoms))
@@ -105,13 +105,13 @@ def calcPerturbResponse(model, atoms=None, **kwargs):
     self_dp = self_dp.reshape(n_atoms, 1)
     norm_prs_matrix = prs_matrix / np.repeat(self_dp, n_atoms, axis=1)
 
-    effectiveness = np.mean(norm_prs_matrix, axis=1)
-    sensitivity = np.mean(norm_prs_matrix, axis=0)
-
     if no_diag:
        # suppress the diagonal (self displacement) to facilitate
        # visualizing the response profile
        norm_prs_matrix = norm_prs_matrix - np.diag(np.diag(norm_prs_matrix))
+
+    effectiveness = np.mean(norm_prs_matrix, axis=1)
+    sensitivity = np.mean(norm_prs_matrix, axis=0)
 
     #if filename:
     #    np.savetxt(filename, norm_prs_matrix, delimiter='\t', fmt='%8.6f')
