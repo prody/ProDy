@@ -1068,7 +1068,7 @@ def showPerturbResponse(model, atoms=None, show_matrix=True, select=None, **kwar
                 final = False 
             kwargs.pop('label', None)
             show_eff = showAtomicLines(effectiveness, atoms=atoms, figure=fig or fig_,
-                                       label='Effectiveness', final=False, **kwargs)
+                                       label='Effectiveness', final=final, **kwargs)
             if fig is None:
                 title('Effectiveness')
             xlabel('Residues')
