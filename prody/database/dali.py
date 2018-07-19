@@ -132,11 +132,11 @@ class DaliRecord(object):
                     break
                 elif html.find('ERROR:') > -1:
                     LOGGER.warn(': Dali search reported an ERROR!')
-                    return None
+                    return False
                 sleep = 20 if int(sleep * 1.5) >= 20 else int(sleep * 1.5)
                 if LOGGER.timing('_dali') > timeout:
                     LOGGER.warn(': Dali search has timed out. \nThe results can be obtained later using the getRecord() method.')
-                    return None
+                    return False
                 LOGGER.clear()
             LOGGER.clear()
             LOGGER.report('Dali results completed in %.1fs.', '_dali')
