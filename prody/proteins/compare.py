@@ -854,7 +854,7 @@ def mapOntoChain(atoms, chain, **kwargs):
     if subset not in _SUBSETS:
         raise ValueError('{0} is not a valid subset argument'
                          .format(str(subset)))
-    seqid = kwargs.get('seqid', None) 
+    seqid = kwargs.get('seqid', 90.) 
     coverage = kwargs.get('overlap', 70.)
     coverage = kwargs.get('coverage', coverage) 
     pwalign = kwargs.get('pwalign', None)
@@ -866,10 +866,6 @@ def mapOntoChain(atoms, chain, **kwargs):
         elif not isinstance(pwalign, bool):
             alignment = pwalign
             pwalign = True
-
-    # pwalign needs to be specifically False in this case (it could be None)
-    if pwalign is False and seqid is None:  
-        seqid = 90.
 
     if subset != 'all':
         chid = chain.getChid()
@@ -944,17 +940,15 @@ def mapOntoChain(atoms, chain, **kwargs):
             if pwalign in ['ce', 'cealign']:
                 aln_type = 'structure alignment'
                 method = 'CE'
-                if seqid is None:
+                if not 'seqid' in kwargs:
                     seqid = 0.
             else:
                 aln_type = 'sequence alignment'
                 method = ALIGNMENT_METHOD
-                if seqid is None:
-                    seqid = 90.
         else:
             aln_type = 'alignment'
             method = 'predefined'
-            if seqid is None:
+            if not 'seqid' in kwargs:
                 seqid = 0.
 
         LOGGER.debug('Trying to map atoms based on {0} {1}:'
