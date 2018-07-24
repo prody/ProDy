@@ -625,7 +625,7 @@ def matchChains(atoms1, atoms2, **kwargs):
             LOGGER.debug('Trying to match chains based on {0} sequence '
                          'alignment:'.format(ALIGNMENT_METHOD))
             for simpch1, simpch2 in unmatched:
-                LOGGER.debug('  Comparing {0} (len={1}) and {2} '
+                LOGGER.debug(' Comparing {0} (len={1}) and {2} '
                              '(len={3}):'
                              .format(simpch1.getTitle(), len(simpch1),
                                      simpch2.getTitle(), len(simpch2)))

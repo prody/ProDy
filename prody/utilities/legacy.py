@@ -1,14 +1,16 @@
+import numpy as np
+
 def msaeye(msa, unique, turbo):
     tic1 = timeit.default_timer()
     length = msa.shape[1]
     number = msa.shape[0]
     # number = 5
-    array = eye(int(number))
+    array = np.eye(int(number))
 
     seqs = []
     for i in range(number):
         seqs.append(msa[i,:])
-    iseq = zeros((number, length), dtype=int)
+    iseq = np.zeros((number, length), dtype=int)
 
     for i in range(0,number-1):
         if i == 0:
@@ -650,7 +652,7 @@ def extendAtomicData(data, nodes, atoms):
     from collections import Counter
 
     try:
-        data = asarray(data)
+        data = np.asarray(data)
     except:
         raise TypeError('The data must be array-like.')
 
@@ -671,7 +673,7 @@ def extendAtomicData(data, nodes, atoms):
 
     indices = nodes.getResindices()
     if is3d:
-        indices = array([[i*3, i*3+1, i*3+2] 
+        indices = np.array([[i*3, i*3+1, i*3+2] 
                         for i in indices]
                         ).reshape(3*len(indices))
 
@@ -682,6 +684,6 @@ def extendAtomicData(data, nodes, atoms):
 
     resid_selstr = ' '.join([str(resid) for resid in nodes.getResindices()])
     rest = atoms.select('not resid {0}'.format(resid_selstr))
-    data_ext.extend(zeros(rest.numAtoms()))
+    data_ext.extend(np.zeros(rest.numAtoms()))
         
     return data_ext
