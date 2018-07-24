@@ -191,7 +191,7 @@ class DaliRecord(object):
             temp_name = file_name+self._subset+'_dali.txt'
             if localfolder != '.' and not os.path.exists(localfolder):
                 os.mkdir(localfolder)
-            with open(localfolder+os.sep+temp_name, "w") as file_temp: file_temp.write(html + '\n' + url+file_name + '\n' + data)
+            with open(localfolder+os.sep+temp_name, "w") as file_temp: file_temp.write(html + '\n' + url+file_name+self._subset+'.txt' + '\n' + data)
             # with open(temp_name, "a+") as file_temp: file_temp.write(url+file_name + '\n' + data)
         data_list = data.strip().split('# ')
         # No:  Chain   Z    rmsd lali nres  %id PDB  Description -> data_list[3]
