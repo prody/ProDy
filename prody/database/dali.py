@@ -14,7 +14,6 @@ from prody import parsePDB, writePDB
 # else:
     # import urllib
     # import urllib2
-import requests
 from prody.ensemble import Ensemble
 from prody.ensemble import PDBEnsemble
 import os
@@ -32,7 +31,9 @@ def searchDali(pdb, chainId, isLocal=False, subset='fullPDB', daliURL=None, **kw
     :type subset: str
     
     """
-
+    
+    import requests
+    
     LOGGER.timeit('_dali')
     # timeout = 120
     timeout = kwargs.pop('timeout', 120)
@@ -134,6 +135,8 @@ class DaliRecord(object):
             data = dali_file.read()
             dali_file.close()
         else:
+            import requests
+            
             if url == None:
                 url = self._url
             
