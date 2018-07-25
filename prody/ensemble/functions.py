@@ -603,56 +603,52 @@ def addPDBEnsemble(ensemble, PDBs, refpdb=None, labels=None,
 def refineEnsemble(ens, lower=.5, upper=10.):
     """Refine a PDB ensemble based on RMSD criterions.""" 
 
-    from scipy.cluster.hierarchy import linkage, fcluster
-    from scipy.spatial.distance import squareform
-    from collections import Counter
-
+    LOGGER.timeit('_prody_refineEnsemble')
+    from numpy import argsort
     ### calculate pairwise RMSDs ###
-    RMSD = ens.getRMSDs(pairwise=True)
+    RMSDs = ens.getRMSDs(pairwise=True)
 
-    # convert the RMSD table to the compressed form
-    v = squareform(RMSD)
+    def getRefinedIndices(A):
+        deg = A.sum(axis=0)
+        sorted_indices = list(argsort(deg))
+        sorted_indices.remove(0)
+        sorted_indices.insert(0, 0)
 
-    ### apply upper threshold ###
-    Z_upper = linkage(v, method='complete')
-    labels = fcluster(Z_upper, upper, criterion='distance')
-    most_common_label = Counter(labels).most_common(1)[0][0]
-    I = np.where(labels==most_common_label)[0]
+        n_confs = ens.numConfs()
+        isdel_temp = np.zeros(n_confs)
+        for a in range(n_confs):
+            i = sorted_indices[a]
+            for b in range(n_confs):
+                if a >= b:
+                    continue
+                j = sorted_indices[b]
+                if isdel_temp[i] or isdel_temp[j] :
+                    continue
+                else:
+                    if A[i,j]:
+                        isdel_temp[j] = 1
+        temp_list = isdel_temp.tolist()
+        ind_list = []
+        for i in range(n_confs):
+            if not temp_list[i]:
+                ind_list.append(i)
+        return ind_list
 
-    ### apply lower threshold ###
-    Z_lower = linkage(v, method='single')
-    labels = fcluster(Z_lower, lower, criterion='distance')
-    uniq_labels = np.unique(labels)
+    L = list(range(len(ens)))
+    U = list(range(len(ens)))
+    if lower is not None:
+        A = RMSDs < lower
+        L = getRefinedIndices(A)
 
-    clusters = []
-    for label in uniq_labels:
-        indices = np.where(labels==label)[0]
-        clusters.append(indices)
+    if upper is not None:
+        B = RMSDs > upper
+        U = getRefinedIndices(B)
+    
+    # find common indices from L and U
+    I = list(set(L) - (set(L) - set(U)))
+    reens = ens[I]
 
-    J = np.ones(len(clusters), dtype=int) * -1
-    rmsd = None
-    for i, cluster in enumerate(clusters):
-        if len(cluster) > 0:
-            # find the conformations with the largest coverage 
-            # (the weight of the ref should be 1)
-            weights = [ens[j].getWeights().sum() for j in cluster]
-            js = np.where(weights==np.max(weights))[0]
-
-            # in the case where there are multiple structures with the same weight,
-            # the one with the smallest rmsd wrt the ens._coords is selected. 
-            if len(js) > 1:
-                # rmsd is not calulated unless necessary for the sake of efficiency
-                rmsd = ens.getRMSDs() if rmsd is None else rmsd
-                j = js[np.argmin(rmsd[js])]
-            else:
-                j = js[0]
-            J[i] = cluster[j]
-        else:
-            J[i] = cluster[0]
-
-    ### refine ensemble ###
-    K = np.intersect1d(I, J)
-
-    reens = ens[K]
+    LOGGER.report('Ensemble was refined in %.2fs.', '_prody_refineEnsemble')
+    LOGGER.info('%d conformations were removed from ensemble.'%(len(ens) - len(I)))
 
     return reens

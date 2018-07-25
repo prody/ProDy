@@ -687,3 +687,62 @@ def extendAtomicData(data, nodes, atoms):
     data_ext.extend(np.zeros(rest.numAtoms()))
         
     return data_ext
+
+
+def refineEnsemble(ens, lower=.5, upper=10.):
+    """Refine a PDB ensemble based on RMSD criterions.""" 
+
+    from scipy.cluster.hierarchy import linkage, fcluster
+    from scipy.spatial.distance import squareform
+    from collections import Counter
+
+    ### calculate pairwise RMSDs ###
+    RMSD = ens.getRMSDs(pairwise=True)
+
+    # convert the RMSD table to the compressed form
+    v = squareform(RMSD)
+
+    ### apply upper threshold ###
+    Z_upper = linkage(v, method='complete')
+    labels = fcluster(Z_upper, upper, criterion='distance')
+    most_common_label = Counter(labels).most_common(1)[0][0]
+    I = np.where(labels==most_common_label)[0]
+
+    ### apply lower threshold ###
+    Z_lower = linkage(v, method='single')
+    labels = fcluster(Z_lower, lower, criterion='distance')
+    uniq_labels = np.unique(labels)
+
+    clusters = []
+    for label in uniq_labels:
+        indices = np.where(labels==label)[0]
+        clusters.append(indices)
+
+    J = np.ones(len(clusters), dtype=int) * -1
+    rmsd = None
+    for i, cluster in enumerate(clusters):
+        if len(cluster) > 0:
+            # find the conformations with the largest coverage 
+            # (the weight of the ref should be 1)
+            weights = [ens[j].getWeights().sum() for j in cluster]
+            js = np.where(weights==np.max(weights))[0]
+
+            # in the case where there are multiple structures with the same weight,
+            # the one with the smallest rmsd wrt the ens._coords is selected. 
+            if len(js) > 1:
+                # rmsd is not calulated unless necessary for the sake of efficiency
+                rmsd = ens.getRMSDs() if rmsd is None else rmsd
+                j = js[np.argmin(rmsd[js])]
+            else:
+                j = js[0]
+            J[i] = cluster[j]
+        else:
+            J[i] = cluster[0]
+
+    ### refine ensemble ###
+    K = np.intersect1d(I, J)
+
+    reens = ens[K]
+
+    return reens
+    
