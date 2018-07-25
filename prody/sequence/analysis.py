@@ -24,7 +24,7 @@ __all__ = ['calcShannonEntropy', 'buildMutinfoMatrix', 'calcMSAOccupancy',
            'applyMutinfoCorr', 'applyMutinfoNorm', 'calcRankorder', 'filterRankedPairs',
            'buildSeqidMatrix', 'uniqueSequences', 'buildOMESMatrix',
            'buildSCAMatrix', 'buildDirectInfoMatrix', 'calcMeff', 
-           'buildPCMatrix', 'buildMSA', 'showAlignment', 
+           'buildPCMatrix', 'buildMSA', 'showAlignment', 'alignTwoSequencesWithBiopython', 
            'alignSequenceToMSA', 'calcPercentIdentities', 'alignSequencesByChain',]
 
 
@@ -734,12 +734,17 @@ def buildMSA(sequences, title='Unknown', labels=None, **kwargs):
     :arg labels: a list of labels to go with the sequences
     :type labels: list
 
-    :arg align: whether to do alignment with clustalw(2)
+    :arg align: whether to align the sequences
         default True
     :type align: bool
+
+    :arg method: alignment method, one of either biopython.align.globalms or clustalw(2).
+        default 'clustalw'
+    :type align: str
     """
     
     align = kwargs.get('align', True)
+    method = kwargs.pop('method', 'clustalw')
     # 1. check if sequences are in a fasta file and if not make one
     if isinstance(sequences, str):
         filename = sequences
@@ -792,24 +797,42 @@ def buildMSA(sequences, title='Unknown', labels=None, **kwargs):
         # labels checkers are removed because they will be properly handled in MSA class initialization
         msa = MSA(msa=sequences, title=title, labels=labels)
 
-        if align:
+        if align and 'clustal' in method:
             filename = writeMSA(title + '.fasta', msa)
-
 
     if align:
         # 2. find and run alignment method
-        clustalw = which('clustalw')
-        if clustalw is None:
-            if which('clustalw2') is not None:
-                clustalw = which('clustalw2')
+        if 'biopython' in method:
+            if len(sequences) == 2:
+                msa, _, _ = alignTwoSequencesWithBiopython(sequences[0], sequences[1], **kwargs)
             else:
-                raise EnvironmentError("The executable for clustalw was not found, \
-                                        install clustalw or add it to the path.")
+                raise ValueError("Provide only two sequences or another method. \
+                                  Biopython pairwise alignment can only be used \
+                                  to build an MSA with two sequences.")
+        elif 'clustalw' in method:
+            clustalw = which('clustalw')
+            if clustalw is None:
+                if which('clustalw2') is not None:
+                    clustalw = which('clustalw2')
+                else:
+                    raise EnvironmentError("The executable for clustalw was not found, \
+                                            install clustalw or add it to the path.")
 
-        os.system('"%s" %s -OUTORDER=INPUT'%(clustalw, filename))
+            os.system('"%s" %s -OUTORDER=INPUT'%(clustalw, filename))
 
-        # 3. parse and return the new MSA
-        msa = parseMSA(title + '.aln')
+            # 3. parse and return the new MSA
+            msa = parseMSA(title + '.aln')
+
+        else:
+            alignTool = which(method)
+            if alignTool is None:
+                raise EnvironmentError("The executable for {0} was not found, \
+                                        install it or add it to the path.".format(alignTool))
+
+            os.system('"%s" %s -OUTORDER=INPUT'%(clustalw, filename))
+
+            # 3. parse and return the new MSA
+            msa = parseMSA(title + '.aln')
 
     return msa
 
@@ -1000,6 +1023,32 @@ def alignSequenceToMSA(seq, msa, label, match=5, mismatch=-1, gap_opening=-10, g
     alignment = MSA(msa=array([array(list(alignment[0][0])), \
                                array(list(alignment[0][1]))]), \
                     labels=[ag.getTitle(), label])
+
+    return alignment, seq_indices, msa_indices
+
+def alignTwoSequencesWithBiopython(seq1, seq2, match=5, mismatch=-1, gap_opening=-10, gap_extension=-1):
+    
+    alignment = pairwise2.align.globalms(seq1, seq2, match, mismatch, gap_opening, gap_extension)
+
+    seq_indices = [0]
+    msa_indices = [0]
+
+    for i in range(len(alignment[0][0])):
+        if alignment[0][0][i] != '-':
+            seq_indices.append(seq_indices[i]+1)
+        else:
+            seq_indices.append(seq_indices[i])
+
+        if alignment[0][1][i] != '-':
+            msa_indices.append(msa_indices[i]+1)
+        else:
+            msa_indices.append(msa_indices[i])
+
+    seq_indices = array(seq_indices)
+    msa_indices = array(msa_indices)
+
+    alignment = MSA(msa=array([array(list(alignment[0][0])), \
+                               array(list(alignment[0][1]))]))
 
     return alignment, seq_indices, msa_indices
 

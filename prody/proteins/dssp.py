@@ -37,7 +37,7 @@ def execDSSP(pdb, outputname=None, outputdir=None, stderr=True):
 
     dssp = which('mkdssp')
     if dssp is None:
-        which('dssp')
+        dssp = which('dssp')
     if dssp is None:
         raise EnvironmentError('command not found: dssp executable is not '
                                'found in one of system paths')

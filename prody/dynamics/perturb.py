@@ -109,6 +109,10 @@ def calcPerturbResponse(model, atoms=None, **kwargs):
        # suppress the diagonal (self displacement) to facilitate
        # visualizing the response profile
        norm_prs_matrix = norm_prs_matrix - np.diag(np.diag(norm_prs_matrix))
+    
+    W = 1 - np.eye(n_atoms)
+    effectiveness = np.average(norm_prs_matrix, weights=W, axis=1)
+    sensitivity = np.average(norm_prs_matrix, weights=W, axis=0)
 
     effectiveness = np.mean(norm_prs_matrix, axis=1)
     sensitivity = np.mean(norm_prs_matrix, axis=0)

@@ -60,10 +60,11 @@ def searchDali(pdbId, chainId, daliURL=None, subset='fullPDB', **kwargs):
     LOGGER.info(url)
     LOGGER.clear()
     obj = DaliRecord(url, pdbId, chainId, subset=subset, timeout=timeout, **kwargs)
-    if obj.isSuccess:
-        return obj
+    #if obj.isSuccess:
+        
+    return obj
     
-    return None
+    #return None
 
 class DaliRecord(object):
 
@@ -93,22 +94,24 @@ class DaliRecord(object):
         self._title = pdbId + '-' + chainId
         self.isSuccess = self.getRecord(self._url, localFile=localFile, timeout=timeout, **kwargs)
 
-    def getRecord(self, url, localFile=False, **kwargs):
+    def getRecord(self, url=None, localFile=False, **kwargs):
         if localFile:
             dali_file = open(url, 'r')
             data = dali_file.read()
             dali_file.close()
         else:
+            if url == None:
+                url = self._url
+            
             sleep = 2
-            # timeout = 120
             timeout = kwargs.pop('timeout', 120)
             LOGGER.timeit('_dali')
             log_message = ''
             try_error = 3
             while True:
-                LOGGER.sleep(int(sleep), 'to reconnect Dali '+log_message)
+                LOGGER.sleep(int(sleep), 'to reconnect to Dali '+log_message)
                 LOGGER.clear()
-                LOGGER.write('Connecting Dali for search results...')
+                LOGGER.write('Connecting to Dali for search results...')
                 LOGGER.clear()
                 try:
                     html = urllib2.urlopen(url).read()
@@ -122,18 +125,18 @@ class DaliRecord(object):
                 if PY3K:
                     html = html.decode()
                 if html.find('Status: Queued') > -1:
-                    log_message = '(Dali searching is queued)...'
+                    log_message = '(Dali search is queued)...'
                 elif html.find('Status: Running') > -1:
-                    log_message = '(Dali searching is running)...'
+                    log_message = '(Dali search is running)...'
                 elif html.find('Your job') == -1 and html.find('.txt') > -1:
                     break
                 elif html.find('ERROR:') > -1:
                     LOGGER.warn(': Dali search reported an ERROR!')
-                    return None
+                    return False
                 sleep = 20 if int(sleep * 1.5) >= 20 else int(sleep * 1.5)
                 if LOGGER.timing('_dali') > timeout:
-                    LOGGER.warn(': Dali search is time out. \nThe results can be obtained using getRecord() function later.')
-                    return None
+                    LOGGER.warn(': Dali search has timed out. \nThe results can be obtained later using the getRecord() method.')
+                    return False
                 LOGGER.clear()
             LOGGER.clear()
             LOGGER.report('Dali results completed in %.1fs.', '_dali')
