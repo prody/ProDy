@@ -7,43 +7,77 @@ from prody.atomic import Atomic, AtomGroup, AtomMap
 from prody.measure import getRMSD, getTransformation
 from prody.utilities import checkCoords, checkWeights
 from prody import LOGGER, PY3K
-from prody import parsePDB
-if PY3K:
-    import urllib.parse as urllib
-    import urllib.request as urllib2
-else:
-    import urllib
-    import urllib2
+from prody import parsePDB, writePDB
+# if PY3K:
+    # import urllib.parse as urllib
+    # import urllib.request as urllib2
+# else:
+    # import urllib
+    # import urllib2
 from prody.ensemble import Ensemble
 from prody.ensemble import PDBEnsemble
 import os
 
 __all__ = ['DaliRecord', 'searchDali']
 
-def searchDali(pdbId, chainId, daliURL=None, subset='fullPDB', **kwargs):
-    """Search Dali server with input of PDB ID and chain ID.
+def searchDali(pdb, chainId, isLocal=False, subset='fullPDB', daliURL=None, **kwargs):
+    """Search Dali server with input of PDB ID (or local PDB file) and chain ID.
     Dali server: http://ekhidna2.biocenter.helsinki.fi/dali/
     
+    :arg pdb: PDB code or local PDB file for searched protein
+    :arg chainId: chain identifier (only one chain can be assigned for PDB)
+    :arg isLocal: submit a local PDB file instead of a PDB code when **True**
     :arg subset: fullPDB, PDB25, PDB50, PDB90
     :type subset: str
     
     """
-
+    
+    import requests
+    
     LOGGER.timeit('_dali')
     # timeout = 120
     timeout = kwargs.pop('timeout', 120)
     
     if daliURL is None:
         daliURL = "http://ekhidna2.biocenter.helsinki.fi/cgi-bin/sans/dump.cgi"
-    pdbId = pdbId.lower()
-    pdb_chain = pdbId + chainId
-    parameters = { 'cd1' : pdb_chain, 'method': 'search', 'title': 'Title_'+pdb_chain, 'address': '' }
-    enc_params = urllib.urlencode(parameters).encode('utf-8')
-    request = urllib2.Request(daliURL, enc_params)
+    if len(chainId) != 1:
+        raise ValueError('input PDB chain identifier ' + chainId + ' is invalid')
+    if isLocal:
+        if not os.path.isfile(pdb):
+            raise ValueError('input PDB file ' + pdb + ' does not exist ')
+        atom = parsePDB(pdb)
+        chain_set = set(atom.getChids())
+        # pdbId = "s001"
+        pdbId = '.'.join(pdb.split(os.sep)[-1].split('.')[0:-1])
+        if not chainId in chain_set:
+            raise ValueError('input PDB file does not have chain ' + chainId)
+        elif len(chain_set) > 1:
+            atom = atom.select('chain '+chainId)
+            # local_temp_pdb = pdbId+chainId+'.pdb'
+            local_temp_pdb = 's001'+chainId+'.pdb'
+            writePDB(local_temp_pdb, atom)
+        else:
+            local_temp_pdb = pdb
+        files = {"file1" : open(local_temp_pdb, "rb")}
+        # case: multiple chains.             apply getRecord ? multiple times?
+        pdb_chain = ''
+        dali_title = 'Title_'+pdbId+chainId
+    else:
+        pdbId = pdb.lower()
+        if len(pdbId) != 4:
+            raise ValueError('input PDB code ' + pdb + ' is invalid')
+        files = ''
+        pdb_chain = pdbId + chainId
+        dali_title = 'Title_'+pdb_chain
+    parameters = { 'cd1' : pdb_chain, 'method': 'search', 'title': dali_title, 'address': '' }
+    # enc_params = urllib.urlencode(parameters).encode('utf-8')
+    # request = urllib2.Request(daliURL, enc_params)
+    request = requests.post(daliURL, parameters, files=files)
     try_error = 3
     while try_error >= 0:
         try:
-            url = urllib2.urlopen(request).url
+            # url = urllib2.urlopen(request).url
+            url = request.url
             break
         except:
             try_error -= 1
@@ -51,7 +85,8 @@ def searchDali(pdbId, chainId, daliURL=None, subset='fullPDB', **kwargs):
                 LOGGER.sleep(2, '. Connection error happened. Trying to reconnect...')
                 continue
             else:
-                url = urllib2.urlopen(request).url
+                # url = urllib2.urlopen(request).url
+                url = request.url
                 break
     if url.split('.')[-1].lower() in ['html', 'php']:
         # print('test -1: '+url)
@@ -73,11 +108,11 @@ class DaliRecord(object):
     def __init__(self, url, pdbId, chainId, subset='fullPDB', localFile=False, **kwargs):
         """Instantiate a daliPDB object instance.
 
-        :arg url: url of Dali results page or local dali results file.
-        :arg pdbId: PDB code for searched protein.
-        :arg chainId: chain identifier (only one chain can be assigned for PDB).
-        :arg subset: fullPDB, PDB25, PDB50, PDB90. Ignored if localFile=True (url is a local file).
-        :arg localFile: provided url is a path for local dali results file.
+        :arg url: url of Dali results page or local dali results file
+        :arg pdbId: PDB code for searched protein
+        :arg chainId: chain identifier (only one chain can be assigned for PDB)
+        :arg subset: fullPDB, PDB25, PDB50, PDB90. Ignored if localFile=True (url is a local file)
+        :arg localFile: provided url is a path for local dali results file
         """
 
         self._url = url
@@ -100,6 +135,8 @@ class DaliRecord(object):
             data = dali_file.read()
             dali_file.close()
         else:
+            import requests
+            
             if url == None:
                 url = self._url
             
@@ -114,14 +151,16 @@ class DaliRecord(object):
                 LOGGER.write('Connecting to Dali for search results...')
                 LOGGER.clear()
                 try:
-                    html = urllib2.urlopen(url).read()
+                    # html = urllib2.urlopen(url).read()
+                    html = requests.get(url).content
                 except:
                     try_error -= 1
                     if try_error >= 0:
                         LOGGER.sleep(2, '. Connection error happened. Trying to reconnect...')
                         continue
                     else:
-                        html = urllib2.urlopen(url).read()
+                        # html = urllib2.urlopen(url).read()
+                        html = requests.get(url).content
                 if PY3K:
                     html = html.decode()
                 if html.find('Status: Queued') > -1:
@@ -144,14 +183,15 @@ class DaliRecord(object):
             file_name = re.search('=.+-90\.txt', html).group()[1:]
             file_name = file_name[:-7]
             # LOGGER.info(url+file_name+self._subset+'.txt')
-            data = urllib2.urlopen(url+file_name+self._subset+'.txt').read()
+            # data = urllib2.urlopen(url+file_name+self._subset+'.txt').read()
+            data = requests.get(url+file_name+self._subset+'.txt').content
             if PY3K:
                 data = data.decode()
             localfolder = kwargs.pop('localfolder', '.')
             temp_name = file_name+self._subset+'_dali.txt'
             if localfolder != '.' and not os.path.exists(localfolder):
                 os.mkdir(localfolder)
-            with open(localfolder+os.sep+temp_name, "w") as file_temp: file_temp.write(html + '\n' + url+file_name + '\n' + data)
+            with open(localfolder+os.sep+temp_name, "w") as file_temp: file_temp.write(html + '\n' + url+file_name+self._subset+'.txt' + '\n' + data)
             # with open(temp_name, "a+") as file_temp: file_temp.write(url+file_name + '\n' + data)
         data_list = data.strip().split('# ')
         # No:  Chain   Z    rmsd lali nres  %id PDB  Description -> data_list[3]
