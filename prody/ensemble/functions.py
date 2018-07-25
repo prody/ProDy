@@ -605,14 +605,19 @@ def refineEnsemble(ens, lower=.5, upper=10.):
 
     LOGGER.timeit('_prody_refineEnsemble')
     from numpy import argsort
+
+    ### obtain reference index
+    rmsd = ens.getRMSDs()
+    ref_i = np.argmin(rmsd)
+
     ### calculate pairwise RMSDs ###
     RMSDs = ens.getRMSDs(pairwise=True)
 
     def getRefinedIndices(A):
         deg = A.sum(axis=0)
         sorted_indices = list(argsort(deg))
-        sorted_indices.remove(0)
-        sorted_indices.insert(0, 0)
+        sorted_indices.remove(ref_i)
+        sorted_indices.insert(0, ref_i)
 
         n_confs = ens.numConfs()
         isdel_temp = np.zeros(n_confs)
