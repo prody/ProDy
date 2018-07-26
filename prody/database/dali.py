@@ -118,7 +118,7 @@ class DaliRecord(object):
         self._url = url
         self._pdbId = pdbId
         # self._chainId = chainId
-        self._chainId = chainId.upper()
+        self._chainId = chainId
         subset = subset.upper()
         if subset == "FULLPDB" or subset not in ["PDB25", "PDB50", "PDB90"]:
             self._subset = ""
@@ -227,7 +227,7 @@ class DaliRecord(object):
             if PY3K:
                 pdb_chain = pdb_chain.decode()
             temp_dict['pdbId'] = pdbid = pdb_chain[0:4].lower()
-            temp_dict['chainId'] = chid = pdb_chain[5:6].upper()
+            temp_dict['chainId'] = chid = pdb_chain[5:6]
             temp_dict['pdb_chain'] = pdb_chain = pdbid + chid
             temp_dict['Z'] = temp[2]
             temp_dict['rmsd'] = temp[3]
