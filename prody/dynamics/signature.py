@@ -1302,13 +1302,12 @@ def showVarianceBar(mode_ensemble, highlights=None, **kwargs):
     
     #variances = (variances - meanVar)/stdVar
 
-    maxVar = variances.max()
-    minVar = variances.min()
-
-    cmap = kwargs.pop('cmap', 'jet')
-    norm = Normalize(vmin=minVar, vmax=maxVar)
-    cb = ColorbarBase(ax, cmap=cmap, norm=norm,
-                      orientation='horizontal')
+    bins = kwargs.pop('bins', 'auto')
+    hist, edges = np.histogram(variance, bins=bins)
+    for i in range(len(hist)):
+        x = [edges[i], edges[i+1]]
+        h = hist[i]
+        
 
     if not highlights:
         highlights = []
