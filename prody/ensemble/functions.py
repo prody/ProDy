@@ -371,6 +371,10 @@ def buildPDBEnsemble(PDBs, ref=None, title='Unknown', labels=None,
     :arg unmapped: A list of PDB IDs that cannot be included in the ensemble. This is an 
         output argument. 
     :type unmapped: list
+
+    :arg subset: A subset for selecting particular atoms from the input structures.
+        Default is calpha
+    :type subset: str
     """
 
     occupancy = kwargs.pop('occupancy', None)

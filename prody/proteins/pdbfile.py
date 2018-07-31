@@ -415,6 +415,7 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
     altlocs = np.zeros(asize, dtype=ATOMIC_FIELDS['altloc'].dtype)
     icodes = np.zeros(asize, dtype=ATOMIC_FIELDS['icode'].dtype)
     serials = np.zeros(asize, dtype=ATOMIC_FIELDS['serial'].dtype)
+    charges = np.zeros(asize, dtype=ATOMIC_FIELDS['charge'].dtype)
     if isPDB:
         segnames = np.zeros(asize, dtype=ATOMIC_FIELDS['segment'].dtype)
         elements = np.zeros(asize, dtype=ATOMIC_FIELDS['element'].dtype)
@@ -422,7 +423,6 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
         occupancies = np.zeros(asize, dtype=ATOMIC_FIELDS['occupancy'].dtype)
         anisou = None
         siguij = None
-        charges = np.zeros(asize, dtype=ATOMIC_FIELDS['charge'].dtype)
     else:
         radii = np.zeros(asize, dtype=ATOMIC_FIELDS['radius'].dtype)
 
