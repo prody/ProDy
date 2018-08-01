@@ -1250,14 +1250,31 @@ def showSignatureCollectivity(mode_ensemble, **kwargs):
     return show
 
 def showVarianceBar(mode_ensemble, highlights=None, **kwargs):
+    """Show the distribution of variances (cumulative if multiple modes) using 
+    :func:`~numpy.histogram`. 
+    
+    :arg mode_ensemble: an ensemble of modes whose variances are displayed
+    :type mode_ensemble: :class: `ModeEnsemble`
 
-    from matplotlib.pyplot import figure, gca, annotate, subplots_adjust, plot
+    :arg highlights: labels of conformations whose locations on the bar 
+                     will be highlighted by arrows and texts
+    :type highlights: list
+
+    :arg fraction: whether the variances should be weighted or not. 
+                   Default is **True**
+    :type fraction: bool
+    """
+
+    from matplotlib.pyplot import figure, gca, annotate, subplots_adjust
+    from matplotlib.pyplot import fill_between, xlabel, yticks, xlim
     from matplotlib.figure import Figure
-    from matplotlib.colorbar import ColorbarBase
     from matplotlib.colors import Normalize, NoNorm
     from matplotlib import cm, colors
     
     fig = kwargs.pop('figure', None)
+    fract = kwargs.pop('fraction', True)
+    bins = kwargs.pop('bins', 50)
+    cmap = kwargs.pop('cmap', 'Reds')
 
     if isinstance(fig, Figure):
         fig_num = fig.number
@@ -1283,8 +1300,6 @@ def showVarianceBar(mode_ensemble, highlights=None, **kwargs):
     #box.y0 += height/7.
     ax.set_position(box)
 
-    fract = kwargs.pop('fraction', True)
-
     #defarrow = {'width':1, 'headwidth':2, 
     #            'facecolor':'black',
     #            'headlength': 4}
@@ -1297,17 +1312,17 @@ def showVarianceBar(mode_ensemble, highlights=None, **kwargs):
         sig = mode_ensemble.getVariances() 
 
     variances = sig.getArray().sum(axis=1)
-    #meanVar = variances.mean()
-    #stdVar = variances.std()
     
-    #variances = (variances - meanVar)/stdVar
+    hist, edges = np.histogram(variances, bins=bins)
+    color_norm  = colors.Normalize(vmin=hist.min(), vmax=hist.max())
+    scalar_map = cm.ScalarMappable(norm=color_norm, cmap=cmap)
+    colors = scalar_map.to_rgba(hist)
 
-    bins = kwargs.pop('bins', 'auto')
-    hist, edges = np.histogram(variance, bins=bins)
+    areas = []
     for i in range(len(hist)):
         x = [edges[i], edges[i+1]]
-        h = hist[i]
-        
+        area = fill_between(x, [0, 0], [1, 1], color=colors[i])
+        areas.append(area)
 
     if not highlights:
         highlights = []
@@ -1334,19 +1349,21 @@ def showVarianceBar(mode_ensemble, highlights=None, **kwargs):
 
     annotations = []
     for i, label in zip(indices, labels):
-        x = norm(variances[i])
+        x = variances[i]
         an = annotate(label, xy=(x, 1), xytext=(x, ratio), arrowprops=arrowprops)
         annotations.append(an)
 
-    for i in range(len(variances)):
-        x = norm(variances[i])
-        plot([x, x], [0, 1], 'w')
+    # for i in range(len(variances)):
+    #     x = variances[i]
+    #     plot([x, x], [0, 1], 'w')
 
-    cb.set_label('Variances')
+    xlabel('Variances')
+    yticks([])
+    xlim([variances.min(), variances.max()])
 
     if SETTINGS['auto_show']:
         showFigure()
-    return cb, annotations
+    return areas, annotations
 
 def saveModeEnsemble(mode_ensemble, filename=None, atoms=False, **kwargs):
     """Save *mode_ensemble* as :file:`filename.modeens.npz`.  If *filename* 
