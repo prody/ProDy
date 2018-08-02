@@ -27,17 +27,17 @@ class TestSDArray(unittest.TestCase):
 
     def testSlicing(self):
         s = S[0]
-        assert_equal(s.shape, A[0].shape, 'failed at sdarray slicing')
+        assert s.shape==A[0].shape, 'failed at sdarray slicing'
         assert_array_equal(s.flatten(), A[0].flatten(), 'failed at sdarray slicing')
         assert_array_equal(s.getWeights().flatten(), W[0].flatten(), 'failed at sdarray slicing')
 
         s = S[:, 0]
-        assert_equal(s.shape, A[:, 0].shape, 'failed at sdarray slicing')
+        assert s.shape==A[:, 0].shape, 'failed at sdarray slicing'
         assert_array_equal(s.flatten(), A[:, 0].flatten(), 'failed at sdarray slicing')
         assert_array_equal(s.getWeights().flatten(), W[:, 0].flatten(), 'failed at sdarray slicing')
 
         s = S[:, :, :]
-        assert_equal(s.shape, A.shape, 'failed at sdarray slicing')
+        assert s.shape==A.shape, 'failed at sdarray slicing'
         assert_array_equal(s.flatten(), A.flatten(), 'failed at sdarray slicing')
         assert_array_equal(s.getWeights().flatten(), W.flatten(), 'failed at sdarray slicing')
 
