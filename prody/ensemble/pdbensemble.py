@@ -107,7 +107,7 @@ class PDBEnsemble(Ensemble):
             return ens
 
         elif isinstance(index, (list, np.ndarray)):
-            index2 = copy(index)
+            index2 = list(index)
             for i in range(len(index)):
                 if isinstance(index[i], str):
                     try:
