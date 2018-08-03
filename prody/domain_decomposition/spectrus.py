@@ -74,6 +74,9 @@ def MBSPointMutation(simMatrix, index, **kwargs):
 def _removeOutliers(data, Delta=100., **kwargs):
     assert Delta > 0.
     med = np.median(data[~np.isnan(data)])
+    if not 0 <= med <= 1e+4:
+        raise RuntimeError('MBS profile is not well defined: Check for ' +\
+        'possible disconnected components in the PDB structure and remove them.')
     # compute median of |distances from median|
     dists = np.abs(data - med)
     mdev = np.median(dists[~np.isnan(dists)])
