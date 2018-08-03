@@ -77,21 +77,35 @@ class ModeEnsemble(object):
 
         if isinstance(modeset_index, slice):
             modesets = self._modesets[modeset_index]
+            modeset_indices = modeset_index
             labels = None if self._labels is None else self._labels[modeset_index]
         elif not np.isscalar(modeset_index):
-            modesets = []; labels = []
+            modesets = []; modeset_indices = []; labels = []
             for i in modeset_index:
-                assert isinstance(i, Integral), 'all indices must be integers'
-                modesets.append(self._modesets[i])
+                if isinstance(i, Integral):
+                    j = i
+                elif isinstance(i, str):
+                    try:
+                        j = self._labels.index(i)
+                    except:
+                        raise IndexError('invalid label: %s'%i)
+                else:
+                    raise IndexError('all indices must be integers or strings (labels)')
+                modesets.append(self._modesets[j])
+                modeset_indices.append(j)
                 if self._labels is not None:
-                    labels.append(self._labels[i])
+                    labels.append(self._labels[j])
         else:
-            try:
-                modeset_index = int(modeset_index)
-            except Exception:
-                raise IndexError('indices must be int, slice, or array-like objects')
+            if isinstance(modeset_index, Integral):
+                pass
+            elif isinstance(modeset_index, str):
+                try:
+                    modeset_index = self._labels.index(modeset_index)
+                except:
+                    raise IndexError('invalid label: %s'%modeset_index)
             else:
-                return self._modesets[modeset_index][mode_index]
+                raise IndexError('indices must be int, slice, or array-like objects')
+            return self._modesets[modeset_index][mode_index]
         
         if np.isscalar(mode_index):
             mode_index = [mode_index]
@@ -101,7 +115,7 @@ class ModeEnsemble(object):
         if self._weights is None:
             weights = None
         else:
-            weights = self._weights[modeset_index, :, :]
+            weights = self._weights[modeset_indices, :, :]
 
         ens = ModeEnsemble(title=self.getTitle())
         ens.addModeSet(modesets, weights=weights, label=labels)

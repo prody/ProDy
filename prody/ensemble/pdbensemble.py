@@ -85,6 +85,7 @@ class PDBEnsemble(Ensemble):
         """Returns a conformation at given index."""
 
         msa = self._msa
+        labels = self._labels
         if msa:
             msa = self._msa[index]
         if isinstance(index, Integral):
@@ -106,18 +107,31 @@ class PDBEnsemble(Ensemble):
             return ens
 
         elif isinstance(index, (list, np.ndarray)):
+            index2 = copy(index)
+            for i in range(len(index)):
+                if isinstance(index[i], str):
+                    try:
+                        index2[i] = labels.index(index[i])
+                    except ValueError:
+                        raise IndexError('invalid label: %s'%index[i])
             ens = PDBEnsemble('{0}'.format(self._title))
             ens.setCoords(copy(self._coords))
-            labels = list(np.array(self._labels)[index])
-            ens.addCoordset(self._confs[index].copy(),
-                            self._weights[index].copy(),
+            labels = list(np.array(self._labels)[index2])
+            ens.addCoordset(self._confs[index2].copy(),
+                            self._weights[index2].copy(),
                             label=labels,
                             sequence=msa)
             if self._trans is not None:
-                ens._trans = self._trans[index]
+                ens._trans = self._trans[index2]
             ens.setAtoms(self._atoms)
             ens._indices = self._indices
             return ens
+        elif isinstance(index, str):
+            try:
+                i = labels.index(index)
+                return self.getConformation(i)
+            except ValueError:
+                raise IndexError('invalid label: %s'%index)
         else:
             raise IndexError('invalid index')
 
