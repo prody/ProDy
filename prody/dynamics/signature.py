@@ -682,7 +682,8 @@ def calcEnsembleENMs(ensemble, model='gnm', trim='reduce', n_modes=20, **kwargs)
 
     start = time.time()
 
-    atoms = ensemble.getAtoms()
+    atoms = ensemble.getAtoms().copy() # otherwise you update the original 
+                                       # atomgroup's coordinates later
     select = None
     if ensemble.isSelected():
         select = atoms
