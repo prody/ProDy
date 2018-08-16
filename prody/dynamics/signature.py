@@ -687,7 +687,7 @@ def calcEnsembleENMs(ensemble, model='gnm', trim='reduce', n_modes=20, **kwargs)
     select = None
     if ensemble.isSelected():
         select = atoms
-        atoms = ensemble.getAtoms(selected=False)
+        atoms = ensemble.getAtoms(selected=False).copy() # same as above
         
     labels = ensemble.getLabels()
 
