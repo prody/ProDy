@@ -1348,18 +1348,22 @@ def showVarianceBar(mode_ensemble, highlights=None, **kwargs):
             if not ens_labels:
                 raise TypeError('highlights should be a list of integers because '
                                     'mode_ensemble has no label')
-            indices.append(ens_labels.index(hl))
-            labels.append(hl)
+            index = ens_labels.index(hl)
+            if isinstance(highlights, dict):
+                label = highlights[hl]
+            else:
+                label = hl
         else:
             try:
                 index = int(hl)
             except:
                 raise TypeError('highlights should be a list of integers or strings') 
-            indices.append(index)
-            if ens_labels:
-                labels.append(ens_labels[index])
+            if isinstance(highlights, dict):
+                label = highlights[hl]
             else:
-                labels.append(str(index))
+                label = ens_labels[index] if ens_labels else str(index)
+        indices.append(index)
+        labels.append(label)
 
     annotations = []
     for i, label in zip(indices, labels):
