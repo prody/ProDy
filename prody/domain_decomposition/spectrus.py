@@ -101,8 +101,8 @@ def calcMBSfromSim(simMatrix, nEvals=20, remove_outliers=True,
             modSim = MBSPointMutation(simMatrix, i)
             # compute laplacian's spectrum of eigvals
             laplacian = sparse.csgraph.laplacian(modSim, normed=True)
-            evals = sparse.linalg.eigsh(laplacian, k=nEvals, which='SM',
-                                        return_eigenvectors=False)
+            evals = sparse.linalg.eigsh(laplacian, k=min(nEvals, n), 
+                                        which='SM', return_eigenvectors=False)
             # sort eigvals in ascending order
             evals = np.sort(evals)
             # compute MBS at site i
