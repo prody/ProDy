@@ -696,12 +696,13 @@ def calcEnsembleENMs(ensemble, model='gnm', trim='reduce', n_modes=20, **kwargs)
 
     start = time.time()
 
-    atoms = ensemble.getAtoms().copy() # otherwise you update the original 
-                                       # atomgroup's coordinates later
+    atoms = ensemble.getAtoms() 
     select = None
     if ensemble.isSelected():
         select = atoms
-        atoms = ensemble.getAtoms(selected=False).copy() # same as above
+        atoms = ensemble.getAtoms(selected=False)
+
+    ori_coords = atoms.getCoords()
         
     labels = ensemble.getLabels()
 
@@ -750,6 +751,8 @@ def calcEnsembleENMs(ensemble, model='gnm', trim='reduce', n_modes=20, **kwargs)
                              label=ensemble.getLabels())
     modeens.setAtoms(ensemble.getAtoms())
 
+    atoms.setCoords(ori_coords)
+    
     if match:
         modeens.match()
     return modeens
