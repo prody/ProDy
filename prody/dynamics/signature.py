@@ -823,6 +823,13 @@ def calcEnsembleSpectralOverlaps(ensemble, distance=False, turbo=False, **kwargs
     :arg distance: if set to **True**, spectral overlap will be converted to spectral 
                    distance via arccos.
     :type distance: bool
+
+    :arg turbo: if **True**, extra memory will be used to remember previous calculation 
+                results to accelerate the next calculation, so this option is particularly 
+                useful if spectral overlaps of the same ensemble are calculated repeatedly, 
+                e.g. using different number of modes.
+                Default is **False**
+    :type turbo: bool
     """
 
     enms = _getEnsembleENMs(ensemble, **kwargs)
