@@ -827,7 +827,8 @@ def calcEnsembleSpectralOverlaps(ensemble, distance=False, turbo=False, **kwargs
     :arg turbo: if **True**, extra memory will be used to remember previous calculation 
                 results to accelerate the next calculation, so this option is particularly 
                 useful if spectral overlaps of the same ensemble are calculated repeatedly, 
-                e.g. using different number of modes.
+                e.g. using different number of modes. Note that for single calculation, 
+                *turbo* will compromise the speed.
                 Default is **False**
     :type turbo: bool
     """
