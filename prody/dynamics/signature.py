@@ -350,7 +350,14 @@ class ModeEnsemble(object):
         return self._labels
 
     def match(self, turbo=False):
-        """Matches the modes across mode sets according the mode overlaps."""
+        """Matches the modes across mode sets according the mode overlaps.
+
+        :arg turbo: if **True** then the computation will be performed in parallel. 
+                The number of threads is set to be the same as the number of 
+                CPUs. Assigning a number to specify the number of threads to be 
+                used. Default is **False**
+        :type turbo: bool, int
+        """
 
         if self._modesets:
             #LOGGER.debug('Matching {0} modes across {1} modesets...'
@@ -679,7 +686,40 @@ class sdarray(ndarray):
         return np.asarray(self)
 
 def calcEnsembleENMs(ensemble, model='gnm', trim='reduce', n_modes=20, **kwargs):
-    """Description"""
+    """Calculates normal modes for each member of *ensemble*.
+    
+    :arg ensemble: normal modes of whose members to be computed
+    :type ensemble: :class:`.PDBEnsemble`
+
+    :arg model: type of ENM that will be performed. It can be either 'anm' 
+                or 'gnm'
+    :type model: str
+
+    :arg trim: type of method that will be used to trim the model. It can 
+               be either 'trim' , 'slice', or 'reduce'. If set to 'trim', the parts 
+               that is not in the selection will simply be removed
+    :type trim: str
+
+    :arg n_modes: number of modes to be computed
+    :type trim: int
+
+    :arg turbo: if **True** then the computation will be performed in parallel. 
+                The number of threads is set to be the same as the number of 
+                CPUs. Assigning a number to specify the number of threads to be 
+                used. Default is **False**
+    :type turbo: bool, int
+
+    :arg match: whether the modes should be matched using :func:`.matchModes`. 
+                Default is **True**
+    :type match: bool
+
+    :arg turbo: whether use :class:`~multiprocessing.Pool` to accelerate the computation. 
+                Note that if writing a script, ``if __name__ == '__main__'`` is necessary 
+                to protect your code when multi-tasking. 
+                See https://docs.python.org/2/library/multiprocessing.html for details.
+                Default is **False**
+    :type turbo: bool
+    """
 
     match = kwargs.pop('match', True)
     turbo = kwargs.pop('turbo', False)

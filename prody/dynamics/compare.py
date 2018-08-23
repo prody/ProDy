@@ -278,9 +278,18 @@ def matchModes(*modesets, **kwargs):
     modeset will be treated as the reference so that only the matching 
     of each modeset to the first modeset is garanteed to be optimal.
     
-    :arg index: if `True` then indices of modes will be returned instead of 
-                :class:`Mode` instances.
+    :arg index: if **True** then indices of modes will be returned instead of 
+                :class:`Mode` instances
     :type index: bool
+
+    :arg turbo: if **True** then the computation will be performed in parallel. 
+                The number of threads is set to be the same as the number of 
+                CPUs. Assigning a number to specify the number of threads to be 
+                used. Note that if writing a script, ``if __name__ == '__main__'`` 
+                is necessary to protect your code when multi-tasking. 
+                See https://docs.python.org/2/library/multiprocessing.html for details.
+                Default is **False**
+    :type turbo: bool, int
     """
 
     index = kwargs.pop('index', False)
