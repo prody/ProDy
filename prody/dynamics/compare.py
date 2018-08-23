@@ -15,6 +15,7 @@ __all__ = ['calcOverlap', 'calcCumulOverlap', 'calcSubspaceOverlap',
            'calcSpectralOverlap', 'calcCovOverlap', 'printOverlapTable', 'writeOverlapTable',
            'pairModes', 'matchModes']
 
+SO_CACHE = {}
 
 def calcOverlap(rows, cols):
     """Returns overlap (or correlation) between two sets of modes (*rows* and
@@ -158,7 +159,7 @@ def calcSubspaceOverlap(modes1, modes2):
     rmsip = np.sqrt(np.power(overlap, 2).sum() / length)
     return rmsip
 
-def calcSpectralOverlap(modes1, modes2):
+def calcSpectralOverlap(modes1, modes2, turbo=False):
     """Returns overlap between covariances of *modes1* and *modes2*.  Overlap
     between covariances are calculated using normal modes (eigenvectors),
     hence modes in both models must have been calculated.  This function
@@ -173,14 +174,51 @@ def calcSpectralOverlap(modes1, modes2):
         raise TypeError('models must be either both 1-dimensional or 3-dimensional')
     if modes1.numAtoms() != modes2.numAtoms():
         raise ValueError('modes1 and modes2 must have same number of atoms')
-    arrayA = modes1._getArray()
-    varA = modes1.getVariances()
-    arrayB = modes2._getArray()
-    varB = modes2.getVariances()
 
-    dotAB = np.dot(arrayA.T, arrayB)**2
-    outerAB = np.outer(varA**0.5, varB**0.5)
-    diff = (np.sum(varA.sum() + varB.sum()) - 2 * np.sum(outerAB * dotAB))
+    if isinstance(modes1, Mode):
+        varA = np.array([modes1.getVariance()])
+        I = np.array([modes1.getIndex()])
+    else:
+        varA = modes1.getVariances()
+        I = modes1.getIndices()
+
+    if isinstance(modes2, Mode):
+        varB = np.array([modes2.getVariance()])
+        J = np.array([modes2.getIndex()])
+    else:
+        varB = modes2.getVariances()
+        J = modes2.getIndices()
+
+    if turbo:
+        model1 = modes1.getModel()
+        model2 = modes2.getModel()
+
+        if (model1, model2) in SO_CACHE:
+            weights = SO_CACHE[(model1, model2)]
+        elif (model2, model1) in SO_CACHE:
+            weights = SO_CACHE[(model2, model1)]
+        else:
+            farrayA = model1._getArray()
+            farrayB = model2._getArray()
+
+            fvarA = model1.getVariances()
+            fvarB = model2.getVariances()
+
+            dotAB = np.dot(farrayA.T, farrayB)**2
+            outerAB = np.outer(fvarA**0.5, fvarB**0.5)
+            SO_CACHE[(model1, model2)] = weights = outerAB * dotAB
+        
+        weights = weights[I, :][:, J]
+    else:
+        arrayA = modes1._getArray()
+        arrayB = modes2._getArray()
+
+        dotAB = np.dot(arrayA.T, arrayB)**2
+        outerAB = np.outer(varA**0.5, varB**0.5)
+        weights = outerAB * dotAB
+
+    diff = (np.sum(varA.sum() + varB.sum()) - 2 * np.sum(weights))
+
     if diff < ZERO:
         diff = 0
     else:

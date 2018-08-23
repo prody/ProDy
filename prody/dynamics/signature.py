@@ -771,7 +771,7 @@ def _getEnsembleENMs(ensemble, **kwargs):
                             'or a list of NMA, Mode, or ModeSet instances.')
     return enms
 
-def calcEnsembleSpectralOverlaps(ensemble, distance=False, **kwargs):
+def calcEnsembleSpectralOverlaps(ensemble, distance=False, turbo=False, **kwargs):
     """Calculate the spectral overlaps between each pair of conformations in the 
     *ensemble*.
     
@@ -785,11 +785,11 @@ def calcEnsembleSpectralOverlaps(ensemble, distance=False, **kwargs):
 
     enms = _getEnsembleENMs(ensemble, **kwargs)
     
-    overlaps = np.zeros((len(enms), len(enms)))
-    for i, enmi in enumerate(enms):
-        for j, enmj in enumerate(enms):
-            covlap = calcSpectralOverlap(enmi, enmj)
-            overlaps[i, j] = covlap
+    overlaps = np.ones((len(enms), len(enms)))
+    for i in range(enms.numModeSets()):
+        for j in range(i+1, enms.numModeSets()):
+            covlap = calcSpectralOverlap(enms[i, :], enms[j, :], turbo=turbo)
+            overlaps[i, j] = overlaps[j, i] = covlap
 
     if distance:
         overlaps = np.arccos(overlaps)
