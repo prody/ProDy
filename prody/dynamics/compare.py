@@ -3,6 +3,7 @@
 models."""
 
 import numpy as np
+from numbers import Integral
 from prody import LOGGER, SETTINGS
 from prody.utilities import openFile
 
@@ -263,6 +264,15 @@ def pairModes(modes1, modes2, index=False):
 
     return outmodes1, outmodes2
 
+def _pairModes_wrapper(args):
+    modeset0, modesets, index = args
+
+    ret = []
+    for modeset in modesets:
+        _, reordered_modeset = pairModes(modeset0, modeset, index=index)
+        ret.append(reordered_modeset)
+    return ret
+
 def matchModes(*modesets, **kwargs):
     """Returns the matches of modes among *modesets*. Note that the first 
     modeset will be treated as the reference so that only the matching 
@@ -274,23 +284,57 @@ def matchModes(*modesets, **kwargs):
     """
 
     index = kwargs.pop('index', False)
+    turbo = kwargs.pop('turbo', False)
+
+    n_worker = None
+    if not isinstance(turbo, bool):
+        n_worker = int(turbo)
+
     modeset0 = modesets[0]
-    ret = [modeset0]
+    if index:
+        ret = [modeset0.getIndices()]
+    else:
+        ret = [modeset0]
 
     n_modes = len(modeset0)
     n_sets = len(modesets)
     if n_sets == 1:
-        return modesets
+        return ret
     elif n_sets == 0:
         raise ValueError('at least one modeset should be given')
 
-    LOGGER.progress('Matching {0} modes across {1} modesets...'
-                    .format(n_modes, n_sets), n_sets, '_prody_matchModes')
-    for i, modeset in enumerate(modesets):
-        LOGGER.update(i, label='_prody_matchModes')
-        if i > 0:
-            _, reordered_modeset = pairModes(modeset0, modeset, index=index)
-            ret.append(reordered_modeset)
-    LOGGER.finish()
+    if turbo:
+        from multiprocessing import Pool, cpu_count
+        from math import ceil
+        
+        if not n_worker:
+            n_worker = cpu_count()
+
+        LOGGER.info('Matching {0} modes across {1} modesets with {2} threads...'
+                        .format(n_modes, n_sets, n_worker))
+
+        pool = Pool(n_worker)
+        n_sets_per_worker = ceil((n_sets - 1) / n_worker)
+        args = []
+        for i in range(n_worker):
+            start = i*n_sets_per_worker + 1
+            end = (i+1)*n_sets_per_worker + 1
+            subset = modesets[start:end]
+            args.append((modeset0, subset, index))
+        nested_ret = pool.map(_pairModes_wrapper, args)
+        for entry in nested_ret:
+            ret.extend(entry)
+
+        pool.close()
+        pool.join()
+    else:
+        LOGGER.progress('Matching {0} modes across {1} modesets...'
+                        .format(n_modes, n_sets), n_sets, '_prody_matchModes')
+        for i, modeset in enumerate(modesets):
+            LOGGER.update(i, label='_prody_matchModes')
+            if i > 0:
+                _, reordered_modeset = pairModes(modeset0, modeset, index=index)
+                ret.append(reordered_modeset)
+        LOGGER.finish()
     
     return ret

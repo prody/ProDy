@@ -349,14 +349,14 @@ class ModeEnsemble(object):
 
         return self._labels
 
-    def match(self):
+    def match(self, turbo=False):
         """Matches the modes across mode sets according the mode overlaps."""
 
         if self._modesets:
             #LOGGER.debug('Matching {0} modes across {1} modesets...'
             #                .format(self.numModes(), self.numModeSets()))
             start = time.time()
-            self._modesets = matchModes(*self._modesets)
+            self._modesets = matchModes(*self._modesets, turbo=turbo)
             LOGGER.debug('{0} modes across {1} modesets were matched in {2:.2f}s.'
                             .format(self.numModes(), self.numModeSets(), time.time()-start))
         else:
@@ -682,6 +682,8 @@ def calcEnsembleENMs(ensemble, model='gnm', trim='reduce', n_modes=20, **kwargs)
     """Description"""
 
     match = kwargs.pop('match', True)
+    turbo = kwargs.pop('turbo', False)
+
     if isinstance(ensemble, Conformation):
         conformation = ensemble
         ensemble = conformation.getEnsemble()
@@ -754,7 +756,7 @@ def calcEnsembleENMs(ensemble, model='gnm', trim='reduce', n_modes=20, **kwargs)
     atoms.setCoords(ori_coords)
     
     if match:
-        modeens.match()
+        modeens.match(turbo=turbo)
     return modeens
 
 def _getEnsembleENMs(ensemble, **kwargs):
