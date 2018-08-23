@@ -349,14 +349,21 @@ class ModeEnsemble(object):
 
         return self._labels
 
-    def match(self):
-        """Matches the modes across mode sets according the mode overlaps."""
+    def match(self, turbo=False):
+        """Matches the modes across mode sets according the mode overlaps.
+
+        :arg turbo: if **True** then the computation will be performed in parallel. 
+                The number of threads is set to be the same as the number of 
+                CPUs. Assigning a number to specify the number of threads to be 
+                used. Default is **False**
+        :type turbo: bool, int
+        """
 
         if self._modesets:
             #LOGGER.debug('Matching {0} modes across {1} modesets...'
             #                .format(self.numModes(), self.numModeSets()))
             start = time.time()
-            self._modesets = matchModes(*self._modesets)
+            self._modesets = matchModes(*self._modesets, turbo=turbo)
             LOGGER.debug('{0} modes across {1} modesets were matched in {2:.2f}s.'
                             .format(self.numModes(), self.numModeSets(), time.time()-start))
         else:
@@ -679,9 +686,44 @@ class sdarray(ndarray):
         return np.asarray(self)
 
 def calcEnsembleENMs(ensemble, model='gnm', trim='reduce', n_modes=20, **kwargs):
-    """Description"""
+    """Calculates normal modes for each member of *ensemble*.
+    
+    :arg ensemble: normal modes of whose members to be computed
+    :type ensemble: :class:`.PDBEnsemble`
+
+    :arg model: type of ENM that will be performed. It can be either 'anm' 
+                or 'gnm'
+    :type model: str
+
+    :arg trim: type of method that will be used to trim the model. It can 
+               be either 'trim' , 'slice', or 'reduce'. If set to 'trim', the parts 
+               that is not in the selection will simply be removed
+    :type trim: str
+
+    :arg n_modes: number of modes to be computed
+    :type trim: int
+
+    :arg turbo: if **True** then the computation will be performed in parallel. 
+                The number of threads is set to be the same as the number of 
+                CPUs. Assigning a number to specify the number of threads to be 
+                used. Default is **False**
+    :type turbo: bool, int
+
+    :arg match: whether the modes should be matched using :func:`.matchModes`. 
+                Default is **True**
+    :type match: bool
+
+    :arg turbo: whether use :class:`~multiprocessing.Pool` to accelerate the computation. 
+                Note that if writing a script, ``if __name__ == '__main__'`` is necessary 
+                to protect your code when multi-tasking. 
+                See https://docs.python.org/2/library/multiprocessing.html for details.
+                Default is **False**
+    :type turbo: bool
+    """
 
     match = kwargs.pop('match', True)
+    turbo = kwargs.pop('turbo', False)
+
     if isinstance(ensemble, Conformation):
         conformation = ensemble
         ensemble = conformation.getEnsemble()
@@ -754,7 +796,7 @@ def calcEnsembleENMs(ensemble, model='gnm', trim='reduce', n_modes=20, **kwargs)
     atoms.setCoords(ori_coords)
     
     if match:
-        modeens.match()
+        modeens.match(turbo=turbo)
     return modeens
 
 def _getEnsembleENMs(ensemble, **kwargs):
@@ -771,7 +813,7 @@ def _getEnsembleENMs(ensemble, **kwargs):
                             'or a list of NMA, Mode, or ModeSet instances.')
     return enms
 
-def calcEnsembleSpectralOverlaps(ensemble, distance=False, **kwargs):
+def calcEnsembleSpectralOverlaps(ensemble, distance=False, turbo=False, **kwargs):
     """Calculate the spectral overlaps between each pair of conformations in the 
     *ensemble*.
     
@@ -781,15 +823,23 @@ def calcEnsembleSpectralOverlaps(ensemble, distance=False, **kwargs):
     :arg distance: if set to **True**, spectral overlap will be converted to spectral 
                    distance via arccos.
     :type distance: bool
+
+    :arg turbo: if **True**, extra memory will be used to remember previous calculation 
+                results to accelerate the next calculation, so this option is particularly 
+                useful if spectral overlaps of the same ensemble are calculated repeatedly, 
+                e.g. using different number of modes. Note that for single calculation, 
+                *turbo* will compromise the speed.
+                Default is **False**
+    :type turbo: bool
     """
 
     enms = _getEnsembleENMs(ensemble, **kwargs)
     
-    overlaps = np.zeros((len(enms), len(enms)))
-    for i, enmi in enumerate(enms):
-        for j, enmj in enumerate(enms):
-            covlap = calcSpectralOverlap(enmi, enmj)
-            overlaps[i, j] = covlap
+    overlaps = np.ones((len(enms), len(enms)))
+    for i in range(enms.numModeSets()):
+        for j in range(i+1, enms.numModeSets()):
+            covlap = calcSpectralOverlap(enms[i, :], enms[j, :], turbo=turbo)
+            overlaps[i, j] = overlaps[j, i] = covlap
 
     if distance:
         overlaps = np.arccos(overlaps)
