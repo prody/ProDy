@@ -183,7 +183,7 @@ def parseSTARStream(stream):
         elif line.startswith('_') or line.startswith(' _'):
             currentField = line.strip().split()[0]
 
-            if inLoop:starDict
+            if inLoop:
                 finalDictionary[currentDataBlock][currentLoop]['fields'][fieldCounter + 1] = currentField
                 dataItemsCounter = 0
             else:
@@ -317,7 +317,7 @@ def parseImagesFromSTAR(particlesSTAR, indices, **kwargs):
     elif isinstance(particlesSTAR, starLoop):
         indices = list(loop.getDict()['data'].keys())
 
-    if indices = []:
+    if indices == []:
         raise ValueError('particlesSTAR does not contain any data loop tables with image fields')
 
     image_stacks = {}
