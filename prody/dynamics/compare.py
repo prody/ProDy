@@ -3,6 +3,7 @@
 models."""
 
 import numpy as np
+from numbers import Integral
 from prody import LOGGER, SETTINGS
 from prody.utilities import openFile
 
@@ -15,6 +16,7 @@ __all__ = ['calcOverlap', 'calcCumulOverlap', 'calcSubspaceOverlap',
            'calcSpectralOverlap', 'calcCovOverlap', 'printOverlapTable', 'writeOverlapTable',
            'pairModes', 'matchModes']
 
+SO_CACHE = {}
 
 def calcOverlap(rows, cols):
     """Returns overlap (or correlation) between two sets of modes (*rows* and
@@ -158,7 +160,7 @@ def calcSubspaceOverlap(modes1, modes2):
     rmsip = np.sqrt(np.power(overlap, 2).sum() / length)
     return rmsip
 
-def calcSpectralOverlap(modes1, modes2):
+def calcSpectralOverlap(modes1, modes2, turbo=False):
     """Returns overlap between covariances of *modes1* and *modes2*.  Overlap
     between covariances are calculated using normal modes (eigenvectors),
     hence modes in both models must have been calculated.  This function
@@ -173,14 +175,51 @@ def calcSpectralOverlap(modes1, modes2):
         raise TypeError('models must be either both 1-dimensional or 3-dimensional')
     if modes1.numAtoms() != modes2.numAtoms():
         raise ValueError('modes1 and modes2 must have same number of atoms')
-    arrayA = modes1._getArray()
-    varA = modes1.getVariances()
-    arrayB = modes2._getArray()
-    varB = modes2.getVariances()
 
-    dotAB = np.dot(arrayA.T, arrayB)**2
-    outerAB = np.outer(varA**0.5, varB**0.5)
-    diff = (np.sum(varA.sum() + varB.sum()) - 2 * np.sum(outerAB * dotAB))
+    if isinstance(modes1, Mode):
+        varA = np.array([modes1.getVariance()])
+        I = np.array([modes1.getIndex()])
+    else:
+        varA = modes1.getVariances()
+        I = modes1.getIndices()
+
+    if isinstance(modes2, Mode):
+        varB = np.array([modes2.getVariance()])
+        J = np.array([modes2.getIndex()])
+    else:
+        varB = modes2.getVariances()
+        J = modes2.getIndices()
+
+    if turbo:
+        model1 = modes1.getModel()
+        model2 = modes2.getModel()
+
+        if (model1, model2) in SO_CACHE:
+            weights = SO_CACHE[(model1, model2)]
+        elif (model2, model1) in SO_CACHE:
+            weights = SO_CACHE[(model2, model1)]
+        else:
+            farrayA = model1._getArray()
+            farrayB = model2._getArray()
+
+            fvarA = model1.getVariances()
+            fvarB = model2.getVariances()
+
+            dotAB = np.dot(farrayA.T, farrayB)**2
+            outerAB = np.outer(fvarA**0.5, fvarB**0.5)
+            SO_CACHE[(model1, model2)] = weights = outerAB * dotAB
+        
+        weights = weights[I, :][:, J]
+    else:
+        arrayA = modes1._getArray()
+        arrayB = modes2._getArray()
+
+        dotAB = np.dot(arrayA.T, arrayB)**2
+        outerAB = np.outer(varA**0.5, varB**0.5)
+        weights = outerAB * dotAB
+
+    diff = (np.sum(varA.sum() + varB.sum()) - 2 * np.sum(weights))
+
     if diff < ZERO:
         diff = 0
     else:
@@ -225,34 +264,86 @@ def pairModes(modes1, modes2, index=False):
 
     return outmodes1, outmodes2
 
+def _pairModes_wrapper(args):
+    modeset0, modesets, index = args
+
+    ret = []
+    for modeset in modesets:
+        _, reordered_modeset = pairModes(modeset0, modeset, index=index)
+        ret.append(reordered_modeset)
+    return ret
+
 def matchModes(*modesets, **kwargs):
     """Returns the matches of modes among *modesets*. Note that the first 
     modeset will be treated as the reference so that only the matching 
     of each modeset to the first modeset is garanteed to be optimal.
     
-    :arg index: if `True` then indices of modes will be returned instead of 
-                :class:`Mode` instances.
+    :arg index: if **True** then indices of modes will be returned instead of 
+                :class:`Mode` instances
     :type index: bool
+
+    :arg turbo: if **True** then the computation will be performed in parallel. 
+                The number of threads is set to be the same as the number of 
+                CPUs. Assigning a number to specify the number of threads to be 
+                used. Note that if writing a script, ``if __name__ == '__main__'`` 
+                is necessary to protect your code when multi-tasking. 
+                See https://docs.python.org/2/library/multiprocessing.html for details.
+                Default is **False**
+    :type turbo: bool, int
     """
 
     index = kwargs.pop('index', False)
+    turbo = kwargs.pop('turbo', False)
+
+    n_worker = None
+    if not isinstance(turbo, bool):
+        n_worker = int(turbo)
+
     modeset0 = modesets[0]
-    ret = [modeset0]
+    if index:
+        ret = [modeset0.getIndices()]
+    else:
+        ret = [modeset0]
 
     n_modes = len(modeset0)
     n_sets = len(modesets)
     if n_sets == 1:
-        return modesets
+        return ret
     elif n_sets == 0:
         raise ValueError('at least one modeset should be given')
 
-    LOGGER.progress('Matching {0} modes across {1} modesets...'
-                    .format(n_modes, n_sets), n_sets, '_prody_matchModes')
-    for i, modeset in enumerate(modesets):
-        LOGGER.update(i, label='_prody_matchModes')
-        if i > 0:
-            _, reordered_modeset = pairModes(modeset0, modeset, index=index)
-            ret.append(reordered_modeset)
-    LOGGER.finish()
+    if turbo:
+        from multiprocessing import Pool, cpu_count
+        from math import ceil
+        
+        if not n_worker:
+            n_worker = cpu_count()
+
+        LOGGER.info('Matching {0} modes across {1} modesets with {2} threads...'
+                        .format(n_modes, n_sets, n_worker))
+
+        pool = Pool(n_worker)
+        n_sets_per_worker = ceil((n_sets - 1) / n_worker)
+        args = []
+        for i in range(n_worker):
+            start = i*n_sets_per_worker + 1
+            end = (i+1)*n_sets_per_worker + 1
+            subset = modesets[start:end]
+            args.append((modeset0, subset, index))
+        nested_ret = pool.map(_pairModes_wrapper, args)
+        for entry in nested_ret:
+            ret.extend(entry)
+
+        pool.close()
+        pool.join()
+    else:
+        LOGGER.progress('Matching {0} modes across {1} modesets...'
+                        .format(n_modes, n_sets), n_sets, '_prody_matchModes')
+        for i, modeset in enumerate(modesets):
+            LOGGER.update(i, label='_prody_matchModes')
+            if i > 0:
+                _, reordered_modeset = pairModes(modeset0, modeset, index=index)
+                ret.append(reordered_modeset)
+        LOGGER.finish()
     
     return ret
