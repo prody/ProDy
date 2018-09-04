@@ -6,6 +6,7 @@ from prody.tests import TestCase, skipIf, skipUnless
 from subprocess import Popen, PIPE
 
 from numpy.testing import *
+import numpy.testing.decorators as dec
 
 from prody import LOGGER
 LOGGER.verbosity = None
