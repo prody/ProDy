@@ -153,8 +153,18 @@ def parseImagesFromSTAR(particlesSTAR, indices, **kwargs):
 
     for i in indices:
         particle = particlesSTAR[i]
-        image_index = int(particle['_rlnImageName'].split('@')[0])-1
-        filename = particle['_rlnImageName'].split('@')[1]
+
+        try:
+            image_index = int(particle['_rlnImageName'].split('@')[0])-1
+            filename = particle['_rlnImageName'].split('@')[1]
+        except:
+            try:
+                image_index = int(particle['_image'].split('@')[0])-1
+                filename = particle['_image'].split('@')[1]
+            except:
+                raise ValueError('particlesSTAR does not contain data about particle image '
+                                 'location in either RELION or XMIPP format')
+
         if not filename in list(image_stacks.keys()):
             image_stacks[filename] = parseEMD(filename).density
 
