@@ -14,6 +14,8 @@ import numpy as np
 from prody.utilities import openFile
 from prody import LOGGER, SETTINGS
 
+from .emdfile import parseEMD
+
 __all__ = ['parseSTAR','writeSTAR']
 
 def parseSTAR(filename):
@@ -124,3 +126,34 @@ def writeSTAR(filename, starDict):
     star.close()
     return
 
+def parseImagesFromSTAR(particlesDict, indices, **kwargs):
+    from skimage.transform import rotate
+
+    saveImageArrays = kwargs.get('saveImages', False)
+    saveDirectory = kwargs.get('saveDirectory', None)
+
+    image_stacks = {}
+    rotated_images = []
+
+    if indices is None:
+        indices = list(particlesDict.keys())
+
+    for i in indices:
+        particle = particlesDict[i]
+        image_index = int(particle['_rlnImageName'].split('@')[0])-1
+        filename = particle['_rlnImageName'].split('@')[1]
+        if not filename in list(image_stacks.keys()):
+            image_stacks[filename] = parseEMD(filename).density
+
+        image = image_stacks[filename][image_index]
+
+        if saveImageArrays:
+            if saveDirectory is not None:
+                np.save('{0}/{1}'.format(saveDirectory, i), image)
+            else:
+                np.save('{1}'.format(i), image)
+
+        rotated_images.append(rotate(image, float(particle['_rlnAnglePsi']),
+                                     center=(180-float(particle['_rlnOriginX']), 180-float(particle['_rlnOriginY']))))
+
+    return rotated_images
