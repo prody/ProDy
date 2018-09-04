@@ -16,7 +16,8 @@ from prody import LOGGER, SETTINGS
 
 from .emdfile import parseEMD
 
-__all__ = ['parseSTAR','writeSTAR']
+__all__ = ['parseSTAR', 'writeSTAR', 'parseImagesFromSTAR']
+
 
 def parseSTAR(filename):
     """Returns a dictionary containing data
@@ -90,12 +91,13 @@ def parseSTAR(filename):
             pass
 
         else:
-            raise TypeError('This file does not conform to the STAR file format.' \
+            raise TypeError('This file does not conform to the STAR file format.'
                             'There is a problem with line {0}:\n {1}'.format(lineNumber, line))
 
         lineNumber += 1
 
     return finalDictionary
+
 
 def writeSTAR(filename, starDict):
     """Writes a STAR file from a dictionary containing data
@@ -109,31 +111,35 @@ def writeSTAR(filename, starDict):
         field names and finally data.
     """
 
-    star = open(filename,'w')
+    star = open(filename, 'w')
 
     for dataBlockKey in starDict:
         star.write('\ndata_' + dataBlockKey + '\n')
         for loopNumber in starDict[dataBlockKey]:
             star.write('\nloop_\n')
             for fieldNumber in starDict[dataBlockKey][loopNumber]['fields']:
-                star.write('_' + starDict[dataBlockKey][loopNumber]['fields'][fieldNumber] + '\n')
+                star.write('_' + starDict[dataBlockKey]
+                           [loopNumber]['fields'][fieldNumber] + '\n')
             for dataItemNumber in starDict[dataBlockKey][loopNumber]['data']:
                 for fieldNumber in starDict[dataBlockKey][loopNumber]['fields']:
                     currentField = starDict[dataBlockKey][loopNumber]['fields'][fieldNumber]
-                    star.write(starDict[dataBlockKey][loopNumber]['data'][dataItemNumber][currentField] + ' ')
+                    star.write(starDict[dataBlockKey][loopNumber]
+                               ['data'][dataItemNumber][currentField] + ' ')
                 star.write('\n')
 
     star.close()
     return
+
 
 def parseImagesFromSTAR(particlesDict, indices, **kwargs):
     from skimage.transform import rotate
 
     saveImageArrays = kwargs.get('saveImages', False)
     saveDirectory = kwargs.get('saveDirectory', None)
+    rotateImages = kwargs.get('rotateImages', True)
 
     image_stacks = {}
-    rotated_images = []
+    images = []
 
     if indices is None:
         indices = list(particlesDict.keys())
@@ -153,7 +159,11 @@ def parseImagesFromSTAR(particlesDict, indices, **kwargs):
             else:
                 np.save('{1}'.format(i), image)
 
-        rotated_images.append(rotate(image, float(particle['_rlnAnglePsi']),
-                                     center=(180-float(particle['_rlnOriginX']), 180-float(particle['_rlnOriginY']))))
+        if rotateImages:
+            images.append(rotate(image, float(particle['_rlnAnglePsi']),
+                                 center=(180-float(particle['_rlnOriginX']),
+                                         180-float(particle['_rlnOriginY']))))
+        else:
+            images.append(image)
 
-    return rotated_images
+    return images
