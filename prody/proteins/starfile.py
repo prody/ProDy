@@ -19,6 +19,124 @@ from .emdfile import parseEMD
 __all__ = ['parseSTAR', 'writeSTAR', 'parseImagesFromSTAR']
 
 
+class StarDict:
+    def __init__(self, parsingDict, title='unnamed'):
+        self._title = title
+        self._dict = parsingDict
+        self.dataBlocks = [StarDataBlock(self._dict, key)
+                           for key in list(self._dict.keys())]
+        self.numDataBlocks = len(self.dataBlocks)
+
+    def __getitem__(self, key):
+        try:
+            return np.array(self.dataBlocks)[key]
+        except:
+            try:
+                key = np.where(np.array(list(self._dict.keys())) == key)[0][0]
+                return self.dataBlocks[key]
+            except:
+                raise ValueError('The key for getting items should '
+                                 'be the name or number of a data block')
+
+    def getTitle(self):
+        return self._title
+
+    def setTitle(self, value):
+        self._title = value
+
+    def getDict(self):
+        return self._dict
+
+    def __repr__(self):
+        if self.numDataBlocks == 1:
+            return '<StarDict: {0} (1 data block)>'.format(self._title)
+        return '<StarDict: {0} ({1} data blocks)>'.format(self._title, self.numDataBlocks)
+
+
+class StarDataBlock:
+    def __init__(self, starDict, key):
+        self._title = key
+        self._dict = starDict[key]
+        self.loops = [StarLoop(self, index)
+                      for index in list(self._dict.keys())]
+        self.numLoops = len(self.loops)
+
+    def getLoop(self, index):
+        try:
+            return self.loops[index]
+        except:
+            raise ValueError('There is no loop with that index')
+
+    def getTitle(self):
+        return self._title
+
+    def setTitle(self, title):
+        self._title = title
+
+    def __getitem__(self, key):
+        try:
+            return np.array(self.loops)[key]
+        except:
+            try:
+                key = np.where(np.array(list(self._dict.keys())) == key)[0][0]
+                return self.loops[key]
+            except:
+                raise ValueError(
+                    'The key for getting items should be the name or number of a loop')
+
+    def __repr__(self):
+        if self.numLoops == 1:
+            return '<StarDataBlock: {0} ({1} loop)>'.format(self._title, self.numLoops)
+        return '<StarDataBlock: {0} ({1} loops)>'.format(self._title, self.numLoops)
+
+
+class StarLoop:
+    def __init__(self, dataBlock, index):
+        self._dict = dataBlock._dict[index]
+        self.fields = list(self._dict['fields'].values())
+        self.data = list(self._dict['data'].values())
+        self.numFields = len(self.fields)
+        self.numRows = len(self.data)
+        self._title = dataBlock._title + ' loop ' + str(index)
+
+    def getData(self, key):
+        if key in self.fields:
+            return [row[key] for row in self.data]
+        else:
+            raise ValueError('That field is not present in this loop')
+
+    def getTitle(self):
+        return self._title
+
+    def setTitle(self, title):
+        self._title = title
+
+    def __getitem__(self, key):
+        try:
+            return np.array(self.data)[key]
+        except:
+            try:
+                key = np.where(np.array(list(self._dict.keys())) == key)[0][0]
+                return self.data[key]
+            except:
+                try:
+                    return self.getData(key)
+                except:
+                    raise ValueError('The key for getting items should be fields, data, '
+                                     'or a field name or number corresponding to a '
+                                     'row or column of data')
+
+    def __repr__(self):
+        if self.numFields == 1 and self.numRows != 1:
+            return '<StarLoop: {0} (1 column and {2} rows)>'.format(self._title, self.numRows)
+        elif self.numFields != 1 and self.numRows == 1:
+            return '<StarLoop: {0} ({1} columns and 1 row)>'.format(self._title, self.numFields)
+        elif self.numFields == 1 and self.numRows == 1:
+            return '<StarLoop: {0} (1 column and 1 row)>'.format(self._title)
+        else:
+            return '<StarLoop: {0} ({1} columns and {2} rows)>'.format(self._title, self.numFields, self.numRows)
+
+
 def parseSTAR(filename):
     """Returns a dictionary containing data
     parsed from a Relion STAR file.
@@ -34,6 +152,12 @@ def parseSTAR(filename):
     lines = starfile.readlines()
     starfile.close()
 
+    parsingDict = parseSTARStream(lines)
+
+    return StarDict(parsingDict, filename)
+
+
+def parseSTARStream(stream):
     finalDictionary = {}
     currentLoop = -1
     fieldCounter = 0
@@ -59,7 +183,7 @@ def parseSTAR(filename):
         elif line.startswith('_') or line.startswith(' _'):
             currentField = line.strip().split()[0]
 
-            if inLoop:
+            if inLoop:starDict
                 finalDictionary[currentDataBlock][currentLoop]['fields'][fieldCounter + 1] = currentField
                 dataItemsCounter = 0
             else:
@@ -132,27 +256,80 @@ def writeSTAR(filename, starDict):
 
 
 def parseImagesFromSTAR(particlesSTAR, indices, **kwargs):
+    '''
+    Parses particle images using data from a STAR file containing information about them.
+
+
+    arg particlesSTAR: a dictionary containing STAR file data about particles or
+        a filename for a STAR file from which such data can be parsed.
+    type particlesSTAR: str, StarDict, StarDataBlock, StarLoop
+
+    arg indices: row indices of images to be parsed from data loop tables
+        These can be integers or list-like entries with top level keys as well as the integers.
+    type indices: list
+
+    arg saveImageArrays: whether to save the numpy array for each image to file
+        default is False
+    type saveImageArrays: bool
+
+    arg saveDirectory: directory where numpy image arrays are saved
+        default is None, which means save to the current working directory
+    type saveDirectory: str, None
+
+    arg rotateImages: whether to apply in plane translations and rotations using provided
+        psi and origin data
+    type rotateImages: bool 
+    '''
     from skimage.transform import rotate
 
-    saveImageArrays = kwargs.get('saveImages', False)
+    saveImageArrays = kwargs.get('saveImageArrays', False)
     saveDirectory = kwargs.get('saveDirectory', None)
     rotateImages = kwargs.get('rotateImages', True)
 
-    image_stacks = {}
-    images = []
-
-    if not isinstance(particlesSTAR, dict):
+    if not isinstance(particlesSTAR, (StarDict, StarDataBlock, StarLoop)):
         try:
             particlesSTAR = parseSTAR(particlesSTAR)
         except:
-            raise ValueError('particlesSTAR should be a dictionary parsed from a STAR file ' 
+            raise ValueError('particlesSTAR should be a dictionary parsed from a STAR file '
                              'or a filename corresponding to one')
 
     if indices is None:
-        indices = list(particlesSTAR.keys())
+        if isinstance(particlesSTAR, StarDict):
+            indices = [[dataBlock.getTitle()] for dataBlock in particlesSTAR.dataBlocks]
+            for i, entry in enumerate(reversed(indices)):          
+                for j, loop in enumerate(particlesSTAR[entry[0]][:]):
+                    foundImageField = False
+                    if ('_image' in loop.fields) or ('_rlnImageName' in loop.fields):
+                        indices[particlesSTAR.numDataBlocks-1-i].extend([j, list(loop.getDict()['data'].keys())])
+                        foundImageField = True
+                    if not foundImageField:
+                        indices.pop(particlesSTAR.numDataBlocks-1-i)
 
+    elif isinstance(particlesSTAR, StarDataBlock):
+        indices = [[loop.getTitle().split(' ')[-1]] for loop in particlesSTAR.loops]
+        for i, entry in enumerate(reversed(indices)):
+            loop = particlesSTAR[entry[0]]
+            if ('_image' in loop.fields) or ('_rlnImageName' in loop.fields):
+                indices[particlesSTAR.numLoops-1-i].extend([list(loop.getDict()['data'].keys())])
+            else:
+                indices.pop(particlesSTAR.numLoops-1-i)
+
+    elif isinstance(particlesSTAR, starLoop):
+        indices = list(loop.getDict()['data'].keys())
+
+    if indices = []:
+        raise ValueError('particlesSTAR does not contain any data loop tables with image fields')
+
+    image_stacks = {}
+    images = []
     for i in indices:
-        particle = particlesSTAR[i]
+
+        if isinstance(particlesSTAR, StarDict):
+            particle = particlesSTAR[i[0]][i[1]][i[2]]
+        elif isinstance(particlesSTAR, StarDataBlock):
+            particle = particlesSTAR[i[0]][i[1]]
+        elif isinstance(particlesSTAR, StarLoop):
+            particle = particlesSTAR[i]
 
         try:
             image_index = int(particle['_rlnImageName'].split('@')[0])-1
