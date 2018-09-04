@@ -4,6 +4,7 @@ from os.path import isfile, join, split, splitext
 from prody.tests import TestCase, skipIf, skipUnless
 
 from numpy.testing import *
+import numpy.testing.decorators as dec
 
 from prody.tests.datafiles import TEMPDIR, pathDatafile
 

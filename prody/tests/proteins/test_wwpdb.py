@@ -3,6 +3,7 @@
 import os
 
 from numpy.testing import *
+import numpy.testing.decorators as dec
 
 from prody import *
 from prody import LOGGER
