@@ -111,6 +111,9 @@ class StarLoop:
     def setTitle(self, title):
         self._title = title
 
+    def getDict(self):
+        return self._dict
+
     def __getitem__(self, key):
         try:
             return np.array(self.data)[key]
@@ -276,8 +279,8 @@ def parseImagesFromSTAR(particlesSTAR, indices, **kwargs):
         default is None, which means save to the current working directory
     type saveDirectory: str, None
 
-    arg rotateImages: whether to apply in plane translations and rotations using provided
-        psi and origin data
+    arg rotateImages: whether to apply in plane translations and rotations using 
+        provided psi and origin data, default is True
     type rotateImages: bool 
     '''
     from skimage.transform import rotate
@@ -293,6 +296,7 @@ def parseImagesFromSTAR(particlesSTAR, indices, **kwargs):
             raise ValueError('particlesSTAR should be a dictionary parsed from a STAR file '
                              'or a filename corresponding to one')
 
+    loops = []
     if indices is None:
         if isinstance(particlesSTAR, StarDict):
             indices = [[dataBlock.getTitle()] for dataBlock in particlesSTAR.dataBlocks]
@@ -302,20 +306,38 @@ def parseImagesFromSTAR(particlesSTAR, indices, **kwargs):
                     if ('_image' in loop.fields) or ('_rlnImageName' in loop.fields):
                         indices[particlesSTAR.numDataBlocks-1-i].extend([j, list(loop.getDict()['data'].keys())])
                         foundImageField = True
+                        loops.append(loop)
                     if not foundImageField:
                         indices.pop(particlesSTAR.numDataBlocks-1-i)
 
-    elif isinstance(particlesSTAR, StarDataBlock):
-        indices = [[loop.getTitle().split(' ')[-1]] for loop in particlesSTAR.loops]
-        for i, entry in enumerate(reversed(indices)):
-            loop = particlesSTAR[entry[0]]
-            if ('_image' in loop.fields) or ('_rlnImageName' in loop.fields):
-                indices[particlesSTAR.numLoops-1-i].extend([list(loop.getDict()['data'].keys())])
-            else:
-                indices.pop(particlesSTAR.numLoops-1-i)
+        elif isinstance(particlesSTAR, StarDataBlock):
+            indices = [[loop.getTitle().split(' ')[-1]] for loop in particlesSTAR.loops]
+            for i, entry in enumerate(reversed(indices)):
+                loop = particlesSTAR[entry[0]]
+                foundImageField = False
+                if ('_image' in loop.fields) or ('_rlnImageName' in loop.fields):
+                    indices[particlesSTAR.numLoops-1-i].extend([list(loop.getDict()['data'].keys())])
+                    foundImageField = True
+                    loops.append(loop)
+                if not foundImageField:
+                    indices.pop(particlesSTAR.numLoops-1-i)
 
-    elif isinstance(particlesSTAR, StarLoop):
-        indices = list(loop.getDict()['data'].keys())
+        elif isinstance(particlesSTAR, StarLoop):
+            indices = list(loop.getDict()['data'].keys())
+            loops.append(particlesSTAR)
+
+    elif len(indices[0]) > 1:
+        if isinstance(particlesSTAR, StarDict):
+            kw_indices = indices
+            indices = [[dataBlock.getTitle()] for dataBlock in particlesSTAR.dataBlocks]
+            for i, entry in enumerate(reversed(indices)):          
+                for j, loop in enumerate(particlesSTAR[entry[0]][:]):
+                    foundImageField = False
+                    if ('_image' in loop.fields) or ('_rlnImageName' in loop.fields):
+                        indices[particlesSTAR.numDataBlocks-1-i].extend([j, kw_indices])
+                        foundImageField = True
+                    if not foundImageField:
+                        indices.pop(particlesSTAR.numDataBlocks-1-i)
 
     if indices == []:
         raise ValueError('particlesSTAR does not contain any data loop tables with image fields')
@@ -323,6 +345,7 @@ def parseImagesFromSTAR(particlesSTAR, indices, **kwargs):
     image_stacks = {}
     images = []
     for i in indices:
+        for j in i[-1]:
 
         if isinstance(particlesSTAR, StarDict):
             particle = particlesSTAR[i[0]][i[1]][i[2]]
