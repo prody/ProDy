@@ -131,7 +131,7 @@ def writeSTAR(filename, starDict):
     return
 
 
-def parseImagesFromSTAR(particlesDict, indices, **kwargs):
+def parseImagesFromSTAR(particlesSTAR, indices, **kwargs):
     from skimage.transform import rotate
 
     saveImageArrays = kwargs.get('saveImages', False)
@@ -141,11 +141,18 @@ def parseImagesFromSTAR(particlesDict, indices, **kwargs):
     image_stacks = {}
     images = []
 
+    if not isinstance(particlesSTAR, dict):
+        try:
+            particlesSTAR = parseSTAR(particlesSTAR)
+        except:
+            raise ValueError('particlesSTAR should be a dictionary parsed from a STAR file ' 
+                             'or a filename corresponding to one')
+
     if indices is None:
-        indices = list(particlesDict.keys())
+        indices = list(particlesSTAR.keys())
 
     for i in indices:
-        particle = particlesDict[i]
+        particle = particlesSTAR[i]
         image_index = int(particle['_rlnImageName'].split('@')[0])-1
         filename = particle['_rlnImageName'].split('@')[1]
         if not filename in list(image_stacks.keys()):
