@@ -163,7 +163,7 @@ def parseSTARStream(stream):
     fieldCounter = 0
     dataItemsCounter = 0
     lineNumber = 0
-    for line in lines:
+    for line in stream:
         if line.startswith('data_'):
             currentDataBlock = line[5:].strip()
             finalDictionary[currentDataBlock] = {}
@@ -314,7 +314,7 @@ def parseImagesFromSTAR(particlesSTAR, indices, **kwargs):
             else:
                 indices.pop(particlesSTAR.numLoops-1-i)
 
-    elif isinstance(particlesSTAR, starLoop):
+    elif isinstance(particlesSTAR, StarLoop):
         indices = list(loop.getDict()['data'].keys())
 
     if indices == []:
