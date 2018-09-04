@@ -56,7 +56,7 @@ def parseSTAR(filename):
             finalDictionary[currentDataBlock][currentLoop]['data'] = {}
             fieldCounter = 0
 
-        elif line.startswith('_'):
+        elif line.startswith('_') or line.startswith(' _'):
             currentField = line.strip().split()[0]
 
             if inLoop:
