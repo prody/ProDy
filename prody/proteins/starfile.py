@@ -307,8 +307,8 @@ def parseImagesFromSTAR(particlesSTAR, indices, **kwargs):
                         indices[particlesSTAR.numDataBlocks-1-i].extend([j, list(loop.getDict()['data'].keys())])
                         foundImageField = True
                         loops.append(loop)
-                    if not foundImageField:
-                        indices.pop(particlesSTAR.numDataBlocks-1-i)
+                if not foundImageField:
+                    indices.pop(particlesSTAR.numDataBlocks-1-i)
 
         elif isinstance(particlesSTAR, StarDataBlock):
             indices = [[loop.getTitle().split(' ')[-1]] for loop in particlesSTAR.loops]
@@ -319,8 +319,8 @@ def parseImagesFromSTAR(particlesSTAR, indices, **kwargs):
                     indices[particlesSTAR.numLoops-1-i].extend([list(loop.getDict()['data'].keys())])
                     foundImageField = True
                     loops.append(loop)
-                if not foundImageField:
-                    indices.pop(particlesSTAR.numLoops-1-i)
+            if not foundImageField:
+                indices.pop(particlesSTAR.numLoops-1-i)
 
         elif isinstance(particlesSTAR, StarLoop):
             indices = list(loop.getDict()['data'].keys())
@@ -336,8 +336,11 @@ def parseImagesFromSTAR(particlesSTAR, indices, **kwargs):
                     if ('_image' in loop.fields) or ('_rlnImageName' in loop.fields):
                         indices[particlesSTAR.numDataBlocks-1-i].extend([j, kw_indices])
                         foundImageField = True
-                    if not foundImageField:
-                        indices.pop(particlesSTAR.numDataBlocks-1-i)
+                        loops.append(loop)
+                if not foundImageField:
+                    indices.pop(particlesSTAR.numDataBlocks-1-i)
+
+        
 
     if indices == []:
         raise ValueError('particlesSTAR does not contain any data loop tables with image fields')
@@ -345,8 +348,6 @@ def parseImagesFromSTAR(particlesSTAR, indices, **kwargs):
     image_stacks = {}
     images = []
     for i in indices:
-        for j in i[-1]:
-
         if isinstance(particlesSTAR, StarDict):
             particle = particlesSTAR[i[0]][i[1]][i[2]]
         elif isinstance(particlesSTAR, StarDataBlock):
