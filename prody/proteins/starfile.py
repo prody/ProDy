@@ -23,7 +23,7 @@ class StarDict:
     def __init__(self, parsingDict, title='unnamed'):
         self._title = title
         self._dict = parsingDict
-        self.dataBlocks = [StarDataBlock(self._dict, key)
+        self.dataBlocks = [StarDataBlock(self, key)
                            for key in list(self._dict.keys())]
         self.numDataBlocks = len(self.dataBlocks)
 
@@ -62,7 +62,8 @@ class StarDataBlock:
     def __init__(self, starDict, key):
         self._title = key
         self._dict = starDict._dict[key]
-        self.loops = [StarLoop(self, index) for index in list(self._dict.keys())]
+        self.loops = [StarLoop(self, index)
+                      for index in list(self._dict.keys())]
         self.numLoops = len(self.loops)
 
     def getLoop(self, index):
@@ -204,9 +205,11 @@ def parseSTARStream(stream):
                     finalDictionary[currentDataBlock]['data'] = {}
                     startingBlock = False
                     dataItemsCounter = 0
-                finalDictionary[currentDataBlock]['fields'][fieldCounter + 1] = currentField
+                finalDictionary[currentDataBlock]['fields'][fieldCounter +
+                                                            1] = currentField
                 finalDictionary[currentDataBlock]['data'][dataItemsCounter] = {}
-                finalDictionary[currentDataBlock]['data'][dataItemsCounter][currentField] = line.strip().split()[1]
+                finalDictionary[currentDataBlock]['data'][dataItemsCounter][currentField] = line.strip().split()[
+                    1]
                 dataItemsCounter += 1
 
             fieldCounter += 1
@@ -215,7 +218,8 @@ def parseSTARStream(stream):
             pass
 
         elif len(line.split()) == fieldCounter:
-            finalDictionary[currentDataBlock][currentLoop]['data'][dataItemsCounter] = {}
+            finalDictionary[currentDataBlock][currentLoop]['data'][dataItemsCounter] = {
+            }
             fieldCounter = 0
             for fieldEntry in line.strip().split():
                 currentField = finalDictionary[currentDataBlock][currentLoop]['fields'][fieldCounter + 1]
@@ -318,24 +322,27 @@ def parseImagesFromSTAR(particlesSTAR, indices, **kwargs):
                 for loop in dataBlock:
                     totalRows += loop.numRows
 
-            indices = np.array((particlesSTAR.numDataBlocks,maxLoops,))
-            for i, entry in enumerate(reversed(indices)):          
+            indices = np.array((particlesSTAR.numDataBlocks, maxLoops,))
+            for i, entry in enumerate(reversed(indices)):
                 for j, loop in enumerate(particlesSTAR[entry[0]][:]):
                     foundImageField = False
                     if ('_image' in loop.fields) or ('_rlnImageName' in loop.fields):
-                        indices[particlesSTAR.numDataBlocks-1-i].extend([j, list(loop.getDict()['data'].keys())])
+                        indices[particlesSTAR.numDataBlocks-1 -
+                                i].extend([j, list(loop.getDict()['data'].keys())])
                         foundImageField = True
                         loops.append(loop)
                 if not foundImageField:
                     indices.pop(particlesSTAR.numDataBlocks-1-i)
 
         elif isinstance(particlesSTAR, StarDataBlock):
-            indices = [[loop.getTitle().split(' ')[-1]] for loop in particlesSTAR.loops]
+            indices = [[loop.getTitle().split(' ')[-1]]
+                       for loop in particlesSTAR.loops]
             for i, entry in enumerate(reversed(indices)):
                 loop = particlesSTAR[entry[0]]
                 foundImageField = False
                 if ('_image' in loop.fields) or ('_rlnImageName' in loop.fields):
-                    indices[particlesSTAR.numLoops-1-i].extend([list(loop.getDict()['data'].keys())])
+                    indices[particlesSTAR.numLoops-1 -
+                            i].extend([list(loop.getDict()['data'].keys())])
                     foundImageField = True
                     loops.append(loop)
             if not foundImageField:
@@ -348,21 +355,22 @@ def parseImagesFromSTAR(particlesSTAR, indices, **kwargs):
     elif len(indices[0]) > 1:
         if isinstance(particlesSTAR, StarDict):
             kw_indices = indices
-            indices = [[dataBlock.getTitle()] for dataBlock in particlesSTAR.dataBlocks]
-            for i, entry in enumerate(reversed(indices)):          
+            indices = [[dataBlock.getTitle()]
+                       for dataBlock in particlesSTAR.dataBlocks]
+            for i, entry in enumerate(reversed(indices)):
                 for j, loop in enumerate(particlesSTAR[entry[0]][:]):
                     foundImageField = False
                     if ('_image' in loop.fields) or ('_rlnImageName' in loop.fields):
-                        indices[particlesSTAR.numDataBlocks-1-i].extend([j, kw_indices])
+                        indices[particlesSTAR.numDataBlocks -
+                                1-i].extend([j, kw_indices])
                         foundImageField = True
                         loops.append(loop)
                 if not foundImageField:
                     indices.pop(particlesSTAR.numDataBlocks-1-i)
 
-        
-
     if indices == []:
-        raise ValueError('particlesSTAR does not contain any data loop tables with image fields')
+        raise ValueError(
+            'particlesSTAR does not contain any data loop tables with image fields')
 
     image_stacks = {}
     images = []
