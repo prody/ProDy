@@ -61,7 +61,7 @@ class StarDict:
 class StarDataBlock:
     def __init__(self, starDict, key):
         self._title = key
-        self._dict = starDict[key]
+        self._dict = starDict._dict[key]
         self.loops = [StarLoop(self, index) for index in list(self._dict.keys())]
         self.numLoops = len(self.loops)
 
