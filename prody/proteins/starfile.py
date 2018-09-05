@@ -64,9 +64,14 @@ class StarDataBlock:
     def __init__(self, starDict, key):
         self._title = key
         self._dict = starDict._dict[key]
-        self.loops = [StarLoop(self, index)
-                      for index in list(self._dict.keys())]
-        self.numLoops = len(self.loops)
+
+        if list(self._dict.keys()) = ['fields','data']:
+            self.loops = []
+            self.numLoops = 0
+        else:
+            self.loops = [StarLoop(self, index)
+                        for index in list(self._dict.keys())]
+            self.numLoops = len(self.loops)
 
     def getLoop(self, index):
         try:
@@ -210,17 +215,15 @@ def parseSTARStream(stream):
                     finalDictionary[currentDataBlock]['data'] = {}
                     startingBlock = False
                     dataItemsCounter = 0
-                finalDictionary[currentDataBlock]['fields'][fieldCounter +
-                                                            1] = currentField
+                finalDictionary[currentDataBlock]['fields'][fieldCounter + 1] = currentField
                 finalDictionary[currentDataBlock]['data'][dataItemsCounter] = {}
-                finalDictionary[currentDataBlock]['data'][dataItemsCounter][currentField] = line.strip().split()[
-                    1]
+                finalDictionary[currentDataBlock]['data'][dataItemsCounter][currentField] = line.strip().split()[1]
                 dataItemsCounter += 1
 
             fieldCounter += 1
 
         elif line.strip() == '':
-            pass
+            inLoop = False
 
         elif len(line.split()) == fieldCounter:
             finalDictionary[currentDataBlock][currentLoop]['data'][dataItemsCounter] = {
@@ -322,8 +325,6 @@ def parseImagesFromSTAR(particlesSTAR, **kwargs):
             maxLoops = 0
             maxRows = 0
             for dataBlock in particlesSTAR:
-                if dataBlock.numLoops > maxLoops:
-                    maxLoops = dataBlock.numLoops
 
                 foundImageField = False
                 for loop in dataBlock:
@@ -334,41 +335,42 @@ def parseImagesFromSTAR(particlesSTAR, **kwargs):
                     else:
                         dataBlock.pop(int(loop.getTitle().split(' ')[-1]))
 
+                if dataBlock.numLoops > maxLoops:
+                    maxLoops = dataBlock.numLoops
+
                 if foundImageField:
                     dataBlocks.append(dataBlock)
 
-            indices = np.fromiter([i for i in range(len(dataBlocks)),
-                                   j for j in range(maxLoops),
-                                   k for k in range(maxRows)])
+            indices = np.zeros((len(dataBlocks),maxLoops,maxRows,3))
+            for i, dataBlock in enumerate(dataBlocks):
+                for j, loop in enumerate(dataBlock):
+                    for k in range(loop.numRows):
+                        indices[i,j,k] = np.array([i,j,k])
 
         elif isinstance(particlesSTAR, StarDataBlock):
             loops = []
             maxRows = 0
-            for loop in particlesSTAR:
+
+            for loop in dataBlock:
                 if ('_image' in loop.fields) or ('_rlnImageName' in loop.fields):
                     loops.append(loop)
                     if loop.numRows > maxRows:
                         maxRows = loop.numRows
 
-            indices = np.array()
-            for i, entry in enumerate(reversed(indices)):
-                loop = particlesSTAR[entry[0]]
-                foundImageField = False
-                if ('_image' in loop.fields) or ('_rlnImageName' in loop.fields):
-                    indices[particlesSTAR.numLoops-1 -
-                            i].extend([list(loop.getDict()['data'].keys())])
-                    foundImageField = True
-                    loops.append(loop)
-            if not foundImageField:
-                indices.pop(particlesSTAR.numLoops-1-i)
+            indices = np.zeros((len(loops),maxRows,2))
+            for j, loop in enumerate(dataBlock):
+                for k in range(loop.numRows):
+                    indices[j,k] = np.array([j,k])
 
         elif isinstance(particlesSTAR, StarLoop):
-            indices = list(loop.getDict()['data'].keys())
-            loops.append(particlesSTAR)
+            indices = np.array(particlesSTAR.getDict()['data'].keys())
 
-    elif len(indices[0]) > 1:
+    else:
         if isinstance(particlesSTAR, StarDict):
-            kw_indices = indices
+            if len(indices.shape) == 1:
+                kw_indices = indices
+                indices = 
+
             indices = [[dataBlock.getTitle()]
                        for dataBlock in particlesSTAR.dataBlocks]
             for i, entry in enumerate(reversed(indices)):
