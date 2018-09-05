@@ -94,15 +94,20 @@ class StarDataBlock:
             return '<StarDataBlock: {0} ({1} loop)>'.format(self._title, self.numLoops)
         return '<StarDataBlock: {0} ({1} loops)>'.format(self._title, self.numLoops)
 
+    def __iter__(self):
+        """Yield StarLoop instances."""
+        for key in list(self._dict.keys()):
+            yield StarLoop(self, key)
+
 
 class StarLoop:
-    def __init__(self, dataBlock, index):
-        self._dict = dataBlock._dict[index]
+    def __init__(self, dataBlock, key):
+        self._dict = dataBlock._dict[key]
         self.fields = list(self._dict['fields'].values())
         self.data = list(self._dict['data'].values())
         self.numFields = len(self.fields)
         self.numRows = len(self.data)
-        self._title = dataBlock._title + ' loop ' + str(index)
+        self._title = dataBlock._title + ' loop ' + str(key)
 
     def getData(self, key):
         if key in self.fields:
@@ -311,7 +316,8 @@ def parseImagesFromSTAR(particlesSTAR, indices, **kwargs):
 
             totalRows = 0
             for dataBlock in particlesSTAR:
-                for loop in 
+                for loop in dataBlock:
+                    totalRows += loop.numRows
 
             indices = np.array((particlesSTAR.numDataBlocks,maxLoops,))
             for i, entry in enumerate(reversed(indices)):          
