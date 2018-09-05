@@ -306,7 +306,7 @@ def parseImagesFromSTAR(particlesSTAR, **kwargs):
     '''
     from skimage.transform import rotate
 
-    indices = kwargs.get('indices', None)
+    kw_indices = kwargs.get('indices', None)
     saveImageArrays = kwargs.get('saveImageArrays', False)
     saveDirectory = kwargs.get('saveDirectory', None)
     rotateImages = kwargs.get('rotateImages', True)
@@ -318,71 +318,87 @@ def parseImagesFromSTAR(particlesSTAR, **kwargs):
             raise ValueError('particlesSTAR should be a dictionary parsed from a STAR file '
                              'or a filename corresponding to one')
 
-    
-    if indices is None:
-        if isinstance(particlesSTAR, StarDict):
-            dataBlocks = []
-            maxLoops = 0
-            maxRows = 0
-            for dataBlock in particlesSTAR:
+    if isinstance(particlesSTAR, StarDict):
+        dataBlocks = []
+        maxLoops = 0
+        maxRows = 0
+        for dataBlock in particlesSTAR:
 
-                foundImageField = False
-                for loop in dataBlock:
-                    if ('_image' in loop.fields) or ('_rlnImageName' in loop.fields):
-                        foundImageField = True
-                        if loop.numRows > maxRows:
-                            maxRows = loop.numRows
-                    else:
-                        dataBlock.pop(int(loop.getTitle().split(' ')[-1]))
-
-                if dataBlock.numLoops > maxLoops:
-                    maxLoops = dataBlock.numLoops
-
-                if foundImageField:
-                    dataBlocks.append(dataBlock)
-
-            indices = np.zeros((len(dataBlocks),maxLoops,maxRows,3))
-            for i, dataBlock in enumerate(dataBlocks):
-                for j, loop in enumerate(dataBlock):
-                    for k in range(loop.numRows):
-                        indices[i,j,k] = np.array([i,j,k])
-
-        elif isinstance(particlesSTAR, StarDataBlock):
-            loops = []
-            maxRows = 0
-
+            foundImageField = False
             for loop in dataBlock:
                 if ('_image' in loop.fields) or ('_rlnImageName' in loop.fields):
-                    loops.append(loop)
+                    foundImageField = True
                     if loop.numRows > maxRows:
                         maxRows = loop.numRows
+                else:
+                    dataBlock.pop(int(loop.getTitle().split(' ')[-1]))
 
-            indices = np.zeros((len(loops),maxRows,2))
+            if dataBlock.numLoops > maxLoops:
+                maxLoops = dataBlock.numLoops
+
+            if foundImageField:
+                dataBlocks.append(dataBlock)
+
+        indices = np.zeros((len(dataBlocks),maxLoops,maxRows,3))
+        for i, dataBlock in enumerate(dataBlocks):
             for j, loop in enumerate(dataBlock):
                 for k in range(loop.numRows):
-                    indices[j,k] = np.array([j,k])
+                    indices[i,j,k] = np.array([i,j,k], 
+                                              dtype=[('dataBlockNumber', int),
+                                                     ('loopNumber', int),
+                                                     ('rowNumber', int)])
+
+    elif isinstance(particlesSTAR, StarDataBlock):
+        loops = []
+        maxRows = 0
+
+        for loop in dataBlock:
+            if ('_image' in loop.fields) or ('_rlnImageName' in loop.fields):
+                loops.append(loop)
+                if loop.numRows > maxRows:
+                    maxRows = loop.numRows
+
+        indices = np.zeros((len(loops),maxRows,2))
+        for j, loop in enumerate(dataBlock):
+            for k in range(loop.numRows):
+                indices[j,k] = np.array([j,k])
+
+    elif isinstance(particlesSTAR, StarLoop):
+        indices = np.array(particlesSTAR.getDict()['data'].keys())
+
+    if kw_indices is not None:
+        if isinstance(kw_indices, np.ndarray):
+            ndim = kw_indices.ndim
+            shape = kw_indices.shape
+        else:
+            ndim = 0
+            shape = ()
+            portion1 = kw_indices
+            while len(portion1 > 1):
+                maxLen = 0
+                for portion2 in portion1:
+                    if len(portion2) > maxLen:
+                        portion = portion2
+                        maxLen = len(portion)
+                portion1 = portion
+                shape.append(maxLen)
+
+        if ndim == indices.ndim:
+                indices = kw_indices
+
+        elif isinstance(particlesSTAR, StarDict):
+            pass
+            # Replace the relevant part of the indices
+            # with what the user provided in kwargs
+
+        elif isinstance(particlesSTAR, StarDataBlock):
+            if len(np.array(kw_indices).shape)
+            # Replace the relevant part of the indices
+            # with what the user provided in kwargs
 
         elif isinstance(particlesSTAR, StarLoop):
-            indices = np.array(particlesSTAR.getDict()['data'].keys())
-
-    else:
-        if isinstance(particlesSTAR, StarDict):
-            if len(indices.shape) == 1:
-                kw_indices = indices
-                indices = 
-
-            indices = [[dataBlock.getTitle()]
-                       for dataBlock in particlesSTAR.dataBlocks]
-            for i, entry in enumerate(reversed(indices)):
-                for j, loop in enumerate(particlesSTAR[entry[0]][:]):
-                    foundImageField = False
-                    if ('_image' in loop.fields) or ('_rlnImageName' in loop.fields):
-                        indices[particlesSTAR.numDataBlocks -
-                                1-i].extend([j, kw_indices])
-                        foundImageField = True
-                        loops.append(loop)
-                if not foundImageField:
-                    indices.pop(particlesSTAR.numDataBlocks-1-i)
+            raise ValueError('indices should be a 1D array-like object'
+                             'when particlesSTAR is a loop table')
 
     if indices == []:
         raise ValueError(
