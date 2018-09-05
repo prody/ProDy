@@ -52,6 +52,11 @@ class StarDict:
             return '<StarDict: {0} (1 data block)>'.format(self._title)
         return '<StarDict: {0} ({1} data blocks)>'.format(self._title, self.numDataBlocks)
 
+    def __iter__(self):
+        """Yield StarDataBlock instances."""
+        for key in list(self._dict.keys()):
+            yield StarDataBlock(self, key)
+
 
 class StarDataBlock:
     def __init__(self, starDict, key):
@@ -299,7 +304,16 @@ def parseImagesFromSTAR(particlesSTAR, indices, **kwargs):
     loops = []
     if indices is None:
         if isinstance(particlesSTAR, StarDict):
-            indices = [[dataBlock.getTitle()] for dataBlock in particlesSTAR.dataBlocks]
+            maxLoops = 0
+            for dataBlock in particlesSTAR:
+                if dataBlock.numLoops > maxLoops:
+                    maxLoops = dataBlock.numLoops
+
+            totalRows = 0
+            for dataBlock in particlesSTAR:
+                for loop in 
+
+            indices = np.array((particlesSTAR.numDataBlocks,maxLoops,))
             for i, entry in enumerate(reversed(indices)):          
                 for j, loop in enumerate(particlesSTAR[entry[0]][:]):
                     foundImageField = False
