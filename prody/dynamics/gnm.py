@@ -598,6 +598,14 @@ class TrimmedGNM(GNM):
         else:
             return len(self.mask)
 
+    def numDOF(self):
+        """Returns number of degrees of freedom."""
+
+        if self.useTrimmed or np.isscalar(self.mask):
+            return self._dof
+        else:
+            return len(self.mask)
+
     def _extend(self, arr):
         if self.useTrimmed or np.isscalar(self.mask):
             return arr

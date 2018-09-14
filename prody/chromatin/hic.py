@@ -14,7 +14,7 @@ from prody.dynamics.modeset import ModeSet
 
 from prody.utilities import openFile, importLA
 
-__all__ = ['HiC', 'TrimmedGNM', 'parseHiC', 'parseHiCStream', 'saveHiC', 'loadHiC', 'writeMap']
+__all__ = ['HiC', 'parseHiC', 'parseHiCStream', 'saveHiC', 'loadHiC', 'writeMap']
 
 class HiC(object):
 
