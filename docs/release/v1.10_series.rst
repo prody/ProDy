@@ -4,6 +4,19 @@ ProDy 1.10 Series
 .. contents::
    :local:
 
+1.10.8 (Sept 18, 2018)
+------------------------------------------------------------------------------
+
+**New Features**:
+
+  * Added *turbo* option to :func:`.calcEnsembleSpectralOverlaps` and 
+  :func:`.matchModes`. Both options allow speed-up about 40%.
+
+**Bug Fixes and Improvements**:
+
+  * :func:`.writePDB` now can accept :class:`.Ensemble` as input.
+  
+  * PY3K compatibility fixes.
 
 1.10.7 (May 21, 2018)
 ------------------------------------------------------------------------------
