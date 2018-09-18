@@ -16,7 +16,7 @@ from prody.utilities import importLA, checkCoords
 from .nma import NMA
 from .gamma import Gamma
 
-__all__ = ['GNM', 'calcGNM', 'TrimmedGNM']
+__all__ = ['GNM', 'calcGNM', 'MaskedGNM']
 
 ZERO = 1e-6
 
@@ -581,11 +581,11 @@ def calcGNM(pdb, selstr='calpha', cutoff=15., gamma=1., n_modes=20,
     gnm.calcModes(n_modes, zeros, hinges=hinges)
     return gnm, sel
 
-class TrimmedGNM(GNM):
-    def __init__(self, name='Unknown', mask=False, useTrimmed=True):
-        super(TrimmedGNM, self).__init__(name)
+class MaskedGNM(GNM):
+    def __init__(self, name='Unknown', mask=False, masked=True):
+        super(MaskedGNM, self).__init__(name)
         self.mask = False
-        self.useTrimmed = useTrimmed
+        self.masked = masked
 
         if not np.isscalar(mask):
             self.mask = np.array(mask)
@@ -593,7 +593,7 @@ class TrimmedGNM(GNM):
     def numAtoms(self):
         """Returns number of atoms."""
 
-        if self.useTrimmed or np.isscalar(self.mask):
+        if self.masked or np.isscalar(self.mask):
             return self._n_atoms
         else:
             return len(self.mask)
@@ -601,13 +601,13 @@ class TrimmedGNM(GNM):
     def numDOF(self):
         """Returns number of degrees of freedom."""
 
-        if self.useTrimmed or np.isscalar(self.mask):
+        if self.masked or np.isscalar(self.mask):
             return self._dof
         else:
             return len(self.mask)
 
     def _extend(self, arr):
-        if self.useTrimmed or np.isscalar(self.mask):
+        if self.masked or np.isscalar(self.mask):
             return arr
 
         mask = self.mask.copy()
@@ -638,11 +638,11 @@ class TrimmedGNM(GNM):
 
     def _getArray(self):
         """Returns eigenvectors array. The function returns 
-        a copy of the array if useTrimmed is **True**."""
+        a copy of the array if *masked* is **True**."""
 
         if self._array is None: return None
 
-        if self.useTrimmed or np.isscalar(self.mask):
+        if self.masked or np.isscalar(self.mask):
             return self._array
         else:
             return self.getArray()
@@ -658,7 +658,7 @@ class TrimmedGNM(GNM):
         :type flag: bool
         """
 
-        hinges = super(TrimmedGNM, self).getHinges(modeIndex, True)
+        hinges = super(MaskedGNM, self).getHinges(modeIndex, True)
         hinges = self._extend(hinges)
 
         if flag:
@@ -671,7 +671,7 @@ class TrimmedGNM(GNM):
         """Fixes the tail of the model. If *length* is greater than the original size 
         (number of nodes), then extra hidden nodes will be added to the model, and if 
         not, the model will be trimmed so that the total number of nodes, including the 
-        hidden ones, will be equal to the *length*. Note that if *useTrimmed* is **True**, 
+        hidden ones, will be equal to the *length*. Note that if *masked* is **True**, 
         the *length* should be the number of *visible* nodes.
 
         :arg length: length of the model after the fixation
@@ -694,10 +694,10 @@ class TrimmedGNM(GNM):
                 vector = vector[:length]
             return vector
 
-        trimmed = self.useTrimmed
+        trimmed = self.masked
         if trimmed:
             trimmed_length = self.numAtoms()
-            self.useTrimmed = False
+            self.masked = False
             extra_length = self.numAtoms() - trimmed_length
             length += extra_length
 
@@ -705,5 +705,5 @@ class TrimmedGNM(GNM):
             self.mask = np.ones(self.numAtoms(), dtype=bool)
 
         self.mask = _fixLength(self.mask, length, False)
-        self.useTrimmed = trimmed
+        self.masked = trimmed
         return

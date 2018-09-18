@@ -7,7 +7,7 @@ from scipy.stats import mode
 from prody.chromatin.norm import VCnorm, SQRTVCnorm, Filenorm
 from prody.chromatin.functions import div0, showMap, showDomains, _getEigvecs
 
-from prody.dynamics import GNM, TrimmedGNM
+from prody.dynamics import GNM, MaskedGNM
 from prody.dynamics.functions import writeArray
 from prody.dynamics.mode import Mode
 from prody.dynamics.modeset import ModeSet
@@ -27,13 +27,13 @@ class HiC(object):
         self._map = None
         self.mask = False
         self._labels = 0
-        self.useTrimmed = True
+        self.masked = True
         self.bin = bin
         self.map = map
     
     @property
     def map(self):
-        if self.useTrimmed:
+        if self.masked:
             return self.getTrimedMap()
         else:
             return self._map
@@ -224,8 +224,8 @@ class HiC(object):
     def calcGNM(self, n_modes=None):
         """Calculates GNM on the current Hi-C map."""
 
-        if self.useTrimmed:
-            gnm = TrimmedGNM(self._title, self.mask)
+        if self.masked:
+            gnm = MaskedGNM(self._title, self.mask)
         else:
             gnm = GNM(self._title)
         gnm.setKirchhoff(self.getKirchhoff())
@@ -249,9 +249,9 @@ class HiC(object):
         :arg method: Label assignment algorithm used after Laplacian embedding.
         :type method: func
         """
-        wastrimmed = self.useTrimmed
+        wastrimmed = self.masked
 
-        self.useTrimmed = True
+        self.masked = True
         if len(labels) == self.numAtoms():
             full_length = self.numAtoms()
             if full_length != len(labels):
@@ -269,13 +269,13 @@ class HiC(object):
                         currlbl = l
                 labels = _labels
         else:
-            self.useTrimmed = False
+            self.masked = False
             if len(labels) != self.numAtoms():
                 raise ValueError('The length of the labels should match either the length '
-                                 'of trimmed or untrimmed Hi-C map. Turn off "useTrimmed" if '
+                                 'of masked or complete Hi-C map. Turn off "masked" if '
                                  'you intended to set the labels to the full map.')
         
-        self.useTrimmed = wastrimmed
+        self.masked = wastrimmed
         self._labels = labels
         return self.getDomains()
     
@@ -285,7 +285,7 @@ class HiC(object):
 
         lbl = self._labels
         mask = self.mask
-        if self.useTrimmed:
+        if self.masked:
             lbl = lbl[mask]
         return lbl
 
