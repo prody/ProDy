@@ -164,7 +164,9 @@ class TrajFile(TrajBase):
 
         if self._closed:
             raise ValueError('I/O operation on closed file')
-        if not isinstance(n, int):
+        try:
+            n = int(n)
+        except:
             raise ValueError('n must be an integer')
         if n > 0:
             left = self._n_csets - self._nfi
