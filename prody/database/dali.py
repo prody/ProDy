@@ -64,7 +64,13 @@ def searchDali(pdb, chain, subset='fullPDB', daliURL=None, **kwargs):
             atoms = parsePDB(pdb)
             chain_set = set(atoms.getChids())
             # pdbId = "s001"
-            pdbId = '.'.join(pdb.split(os.sep)[-1].split('.')[0:-1])
+            filename = os.path.basename(pdb)
+            filename, ext = os.path.splitext(filename)
+            if ext.lower() == '.gz':
+                filename2, ext2 = os.path.splitext(filename)
+                if ext2.lower() == '.pdb':
+                    filename = filename2
+            pdbId = filename
             if not chain in chain_set:
                 raise ValueError('input PDB file does not have chain ' + chain)
             
@@ -206,7 +212,12 @@ class DaliRecord(object):
             if PY3K:
                 data = data.decode()
             localfolder = kwargs.pop('localfolder', '.')
-            temp_name = file_name+self._subset+'_dali.txt'
+
+            if file_name.lower().startswith('s001'):
+                temp_name = self._pdbId + self._chain
+            else:
+                temp_name = file_name
+            temp_name += self._subset + '_dali.txt'
             if localfolder != '.' and not os.path.exists(localfolder):
                 os.mkdir(localfolder)
             with open(localfolder+os.sep+temp_name, "w") as file_temp: file_temp.write(html + '\n' + url+file_name+self._subset+'.txt' + '\n' + data)
