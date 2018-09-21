@@ -4,6 +4,7 @@
 import re
 import numpy as np
 from prody.atomic import Atomic, AtomGroup, AtomMap
+from prody.proteins.pdbfile import _getPDBid
 from prody.measure import getRMSD, getTransformation
 from prody.utilities import checkCoords, checkWeights, createStringIO
 from prody import LOGGER, PY3K
@@ -20,7 +21,7 @@ import os
 
 __all__ = ['DaliRecord', 'searchDali']
 
-def searchDali(pdb, chain, subset='fullPDB', daliURL=None, **kwargs):
+def searchDali(pdb, chain=None, subset='fullPDB', daliURL=None, **kwargs):
     """Search Dali server with input of PDB ID (or local PDB file) and chain ID.
     Dali server: http://ekhidna2.biocenter.helsinki.fi/dali/
     
@@ -39,17 +40,21 @@ def searchDali(pdb, chain, subset='fullPDB', daliURL=None, **kwargs):
     
     if daliURL is None:
         daliURL = "http://ekhidna2.biocenter.helsinki.fi/cgi-bin/sans/dump.cgi"
-    if len(chain) != 1:
-        raise ValueError('input PDB chain identifier ' + chain + ' is invalid')
     
     if isinstance(pdb, Atomic):
         atoms = pdb
         chain_set = set(atoms.getChids())
-        if not chain in chain_set:
+        if chain and not chain in chain_set:
             raise ValueError('input structure (%s) does not have chain %s'%(atoms.getTitle(), chain))
         
         if len(chain_set) > 1:
+            if not chain:
+                raise TypeError('the structure (%s) contains more than one chain, therefore a chain identifier '
+                                'needs to be specified'%pdb.getTitle())
             atoms = atoms.select('chain '+chain)
+        else:
+            chain = chain_set.pop()
+            
         stream = createStringIO()
         writePDBStream(stream, atoms)
         data = stream.getvalue()
@@ -71,10 +76,13 @@ def searchDali(pdb, chain, subset='fullPDB', daliURL=None, **kwargs):
                 if ext2.lower() == '.pdb':
                     filename = filename2
             pdbId = filename
-            if not chain in chain_set:
+            if chain and not chain in chain_set:
                 raise ValueError('input PDB file does not have chain ' + chain)
             
             if len(chain_set) > 1:
+                if not chain:
+                    raise TypeError('PDB file (%s) contains more than one chain, therefore a chain identifier '
+                                    'needs to be specified'%pdb)
                 atoms = atoms.select('chain '+chain)
                 #local_temp_pdb = pdbId+chain+'.pdb'
                 #local_temp_pdb = 's001'+chain+'.pdb'
@@ -84,17 +92,20 @@ def searchDali(pdb, chain, subset='fullPDB', daliURL=None, **kwargs):
                 stream.close()
             else:
                 data = open(pdb, "rb")
+                chain = chain_set.pop()
             files = {"file1" : data}
             # case: multiple chains.             apply getRecord ? multiple times?
             pdb_chain = ''
-            dali_title = 'Title_'+pdbId+chain
-        elif len(pdb) == 4:
-            pdbId = pdb.lower()
-            files = ''
-            pdb_chain = pdbId + chain
-            dali_title = 'Title_'+pdb_chain
+            dali_title = 'Title_' + pdbId + chain
         else:
-            raise ValueError('invalid input: ' + pdb)
+            pdbId, ch = _getPDBid(pdb)
+            if not chain:
+                chain = ch
+            if not chain:
+                raise TypeError('a chain identifier is needed for the search')
+            pdb_chain = pdbId + chain
+            dali_title = 'Title_' + pdb_chain
+            files = ''
     parameters = { 'cd1' : pdb_chain, 'method': 'search', 'title': dali_title, 'address': '' }
     # enc_params = urllib.urlencode(parameters).encode('utf-8')
     # request = urllib2.Request(daliURL, enc_params)
