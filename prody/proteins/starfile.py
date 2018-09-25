@@ -91,9 +91,13 @@ class StarDataBlock:
     def __getitem__(self, key):
         if self.loops == []:
             try:
-                return self._dict['data'][key]
+                return np.array(self._dict['data'])[key]
             except:
-                raise ValueError('The key for getting items should be the data entry number')
+                try:
+                    key = np.where(np.array(list(self._dict['data'].keys())) == key)[0][0]
+                    return self._dict['data'][key]
+                except:
+                    raise ValueError('The key for getting items should be the data entry number')
 
         else:
             try:
