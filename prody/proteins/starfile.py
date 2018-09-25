@@ -359,7 +359,7 @@ def parseImagesFromSTAR(particlesSTAR, **kwargs):
         for i, dataBlock in enumerate(dataBlocks):
             for j, loop in enumerate(dataBlock):
                 for k in range(loop.numRows):
-                    indices[i,j,k] = np.array([i,j,k],dtype=float)
+                    indices[i,j,k] = np.array([i,j,k])
 
     elif isinstance(particlesSTAR, StarDataBlock):
         loops = []
@@ -465,16 +465,16 @@ def parseImagesFromSTAR(particlesSTAR, **kwargs):
         for i in indices:
             for j in i:
                 for k in j:
-                    particles.append(particlesSTAR[k[0]][k[1]][k[2]])
+                    particles.append(particlesSTAR[int(k[0])][int(k[1])][int(k[2])])
 
     elif isinstance(particlesSTAR, StarDataBlock):
         for j in indices:
             for k in j:
-                particles.append(particlesSTAR[k[0]][k[1]])
+                particles.append(particlesSTAR[int(k[0])][int(k[1])])
 
     elif isinstance(particlesSTAR, StarLoop):
         for k in indices:
-            particles.append(particlesSTAR[k])
+            particles.append(particlesSTAR[int(k)])
 
     for particle in particles:
         try:
