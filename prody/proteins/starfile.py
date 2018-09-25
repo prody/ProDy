@@ -71,9 +71,11 @@ class StarDataBlock:
             self.numLoops = 0
             self.data = list(self._dict['data'].values())
             self.fields = list(self._dict['fields'].values())
+            self.numEntries = len(self.data)
+            self.numFields = len(self.fields)
         else:
             self.loops = [StarLoop(self, index)
-                        for index in list(self._dict.keys())]
+                          for index in list(self._dict.keys())]
             self.numLoops = len(self.loops)
 
     def getLoop(self, index):
@@ -89,18 +91,30 @@ class StarDataBlock:
         self._title = title
 
     def __getitem__(self, key):
-        try:
-            return np.array(self.loops)[key]
-        except:
+        if self.loops == []:
             try:
-                key = np.where(np.array(list(self._dict.keys())) == key)[0][0]
-                return self.loops[key]
+                return np.array(self._dict['data'][key])
             except:
-                raise ValueError(
-                    'The key for getting items should be the name or number of a loop')
+                try:
+                    return np.array(self.data)[key]
+                except:
+                    raise ValueError('The key for getting items should be the data entry number')
+
+        else:
+            try:
+                return np.array(self.loops)[key]
+            except:
+                try:
+                    key = np.where(np.array(list(self._dict.keys())) == key)[0][0]
+                    return self.loops[key]
+                except:
+                    raise ValueError(
+                        'The key for getting items should be the name or number of a loop')
 
     def __repr__(self):
-        if self.numLoops == 1:
+        if self.numLoops == 0:
+            return '<StarDataBlock: {0} ({1} entries)>'.format(self._title, self.numEntries)
+        elif self.numLoops == 1:
             return '<StarDataBlock: {0} ({1} loop)>'.format(self._title, self.numLoops)
         return '<StarDataBlock: {0} ({1} loops)>'.format(self._title, self.numLoops)
 
