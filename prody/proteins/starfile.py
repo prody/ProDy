@@ -453,20 +453,13 @@ def parseImagesFromSTAR(particlesSTAR, **kwargs):
     image_stacks = {}
     images = []
     particles = []
-    if isinstance(particlesSTAR, StarDict):
-        for i in indices:
-            for j in i:
-                for k in j:
-                    particles.append(particlesSTAR[int(k[0])][int(k[1])][int(k[2])])
-
-    elif isinstance(particlesSTAR, StarDataBlock):
-        for j in indices:
-            for k in j:
-                particles.append(particlesSTAR[int(k[0])][int(k[1])])
-
-    elif isinstance(particlesSTAR, StarLoop):
-        for k in indices:
-            particles.append(particlesSTAR[int(k)])
+    for k in indices:
+        if isinstance(particlesSTAR, StarDict):
+            particles.append(particlesSTAR[k[0]][k[1]][k[2]])
+        elif isinstance(particlesSTAR, StarDataBlock):
+            particles.append(particlesSTAR[k[0]][k[1]])
+        elif isinstance(particlesSTAR, StarLoop):
+            particles.append(particlesSTAR[k])
 
     for particle in particles:
         try:
