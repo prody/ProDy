@@ -66,7 +66,7 @@ class StarDataBlock:
         self._title = key
         self._dict = starDict._dict[key]
 
-        if list(self._dict.keys()) = ['fields','data']:
+        if list(self._dict.keys()) == ['fields','data']:
             self.loops = []
             self.numLoops = 0
             self.data = list(self._dict['data'].values())
@@ -386,7 +386,7 @@ def parseImagesFromSTAR(particlesSTAR, **kwargs):
             shape = kw_indices.shape
         else:
             ndim = 0
-            shape = ()
+            shape = []
             portion1 = kw_indices
             while len(portion1 > 1):
                 maxLen = 0
