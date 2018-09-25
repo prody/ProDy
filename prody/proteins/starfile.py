@@ -381,21 +381,13 @@ def parseImagesFromSTAR(particlesSTAR, **kwargs):
 
     if kw_indices is not None:
     # Convert keyword indices to valid indices if possible
-        if isinstance(kw_indices, np.ndarray):
-            ndim = kw_indices.ndim
-            shape = kw_indices.shape
-        else:
-            ndim = 0
-            shape = []
-            portion1 = kw_indices
-            while len(portion1 > 1):
-                maxLen = 0
-                for portion2 in portion1:
-                    if len(portion2) > maxLen:
-                        portion = portion2
-                        maxLen = len(portion)
-                portion1 = portion
-                shape.append(maxLen)
+        try:
+            kw_indices = np.array(kw_indices)
+        except:
+            raise TypeError('indices should be array-like')
+
+        ndim = kw_indices.ndim
+        shape = kw_indices.shape
 
         if ndim == indices.ndim:
                 indices = kw_indices
@@ -421,9 +413,9 @@ def parseImagesFromSTAR(particlesSTAR, **kwargs):
                 else:
                     if particlesSTAR[0].numLoops == 1:
                         indices = np.fromiter(((0, 0, index) for index in kw_indices), 
-                                            dtype=[('dataBlockNumber', int), 
-                                                   ('loopNumber', int), 
-                                                   ('rowNumber', int)])
+                                              dtype=[('dataBlockNumber', int), 
+                                                     ('loopNumber', int), 
+                                                     ('rowNumber', int)])
 
             if ndim == 2:
                 pass
@@ -454,6 +446,12 @@ def parseImagesFromSTAR(particlesSTAR, **kwargs):
         elif isinstance(particlesSTAR, StarLoop):
             raise ValueError('indices should be a 1D array-like object '
                              'when particlesSTAR is a loop table')
+
+    else:
+        indices = np.fromiter((index in indices), 
+                              dtype=[('dataBlockNumber', int), 
+                                     ('loopNumber', int), 
+                                     ('rowNumber', int)])
 
     if indices == []:
         raise ValueError('particlesSTAR does not contain any loops with image fields')
