@@ -371,7 +371,7 @@ def parseImagesFromSTAR(particlesSTAR, **kwargs):
                 if loop.numRows > maxRows:
                     maxRows = loop.numRows
 
-        indices = np.rand(len(loops),maxRows,2)
+        indices = np.random.rand(len(loops),maxRows,2)
         for j, loop in enumerate(dataBlock):
             for k in range(loop.numRows):
                 indices[j,k] = np.array([j,k])
@@ -506,4 +506,4 @@ def parseImagesFromSTAR(particlesSTAR, **kwargs):
         else:
             images.append(image)
 
-    return images
+    return np.array(images)
