@@ -73,7 +73,7 @@ class ModeSet(object):
     def numDOF(self):
         """Returns number of degrees of freedom."""
 
-        return self._model._dof
+        return self._model.numDOF()
 
     def getTitle(self):
         """Returns title of the mode set."""

@@ -169,7 +169,7 @@ def showEmbedding(modes, labels=None, trace=True, headtail=True, cmap='prism'):
     if labels is not None:
         if len(labels) != m:
             raise ValueError('Modes (%d) and the Hi-C map (%d) should have the same number'
-                                ' of atoms. Turn off "useTrimmed" if you intended to apply the'
+                                ' of atoms. Turn off "masked" if you intended to apply the'
                                 ' modes to the full map.'
                                 %(m, len(labels)))
     if n > 3:

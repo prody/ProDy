@@ -7,6 +7,8 @@ from numpy import sign, arange, asarray, ndarray, subtract, power
 from collections import Counter
 import numbers
 
+from prody import PY3K
+
 from xml.etree.ElementTree import Element
 
 __all__ = ['Everything', 'rangeString', 'alnum', 'importLA', 'dictElement',
@@ -14,7 +16,7 @@ __all__ = ['Everything', 'rangeString', 'alnum', 'importLA', 'dictElement',
            'saxsWater', 'count', 'addEnds', 'copy', 'dictElementLoop', 
            'getDataPath', 'openData', 'chr2', 'toChararray', 'interpY', 'cmp',
            'getValue', 'indentElement', 'isPDB', 'isURL', 'isListLike',
-           'getDistance', 'fastin']
+           'getDistance', 'fastin', 'createStringIO']
 
 # Note that the chain id can be blank (space). Examples:
 # 3TT1, 3tt1A, 3tt1:A, 3tt1_A, 3tt1-A, 3tt1 A
@@ -105,6 +107,12 @@ def importLA():
                               'NMA and structure alignment calculations')
     return linalg
 
+def createStringIO():
+    if PY3K:
+        from io import StringIO
+    else:
+        from StringIO import StringIO
+    return StringIO()
 
 def dictElement(element, prefix=None, number_multiples=False):
     """Returns a dictionary built from the children of *element*, which must be

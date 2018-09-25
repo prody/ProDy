@@ -405,11 +405,10 @@ class ModeEnsemble(object):
 
         if not self._labels and labels:
             self._labels = ['']*len(self._modesets)
-            self._labels.extend(labels)
 
         if not labels and self._labels:
             labels = ['']*len(modesets)
-            self._labels.extend(labels)
+        self._labels.extend(labels)
 
         for i in range(len(modesets)):
             modeset = modesets[i]
