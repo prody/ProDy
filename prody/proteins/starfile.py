@@ -359,7 +359,7 @@ def parseImagesFromSTAR(particlesSTAR, **kwargs):
         for i, dataBlock in enumerate(dataBlocks):
             for j, loop in enumerate(dataBlock):
                 for k in range(loop.numRows):
-                    indices[i,j,k] = np.array([i,j,k])
+                    indices[i,j,k] = np.array([i,j,k],dtype=float)
 
     elif isinstance(particlesSTAR, StarDataBlock):
         loops = []
@@ -379,8 +379,8 @@ def parseImagesFromSTAR(particlesSTAR, **kwargs):
     elif isinstance(particlesSTAR, StarLoop):
         indices = np.array(particlesSTAR.getDict()['data'].keys())
 
-    # Convert keyword indices to valid indices if possible
     if kw_indices is not None:
+    # Convert keyword indices to valid indices if possible
         if isinstance(kw_indices, np.ndarray):
             ndim = kw_indices.ndim
             shape = kw_indices.shape
@@ -460,14 +460,23 @@ def parseImagesFromSTAR(particlesSTAR, **kwargs):
 
     image_stacks = {}
     images = []
-    for i in indices:
-        if isinstance(particlesSTAR, StarDict):
-            particle = particlesSTAR[i[0]][i[1]][i[2]]
-        elif isinstance(particlesSTAR, StarDataBlock):
-            particle = particlesSTAR[i[0]][i[1]]
-        elif isinstance(particlesSTAR, StarLoop):
-            particle = particlesSTAR[i]
+    particles = []
+    if isinstance(particlesSTAR, StarDict):
+        for i in indices:
+            for j in i:
+                for k in j:
+                    particles.append(particlesSTAR[k[0]][k[1]][k[2]])
 
+    elif isinstance(particlesSTAR, StarDataBlock):
+        for j in indices:
+            for k in j:
+                particles.append(particlesSTAR[k[0]][k[1]])
+
+    elif isinstance(particlesSTAR, StarLoop):
+        for k in indices:
+            particles.append(particlesSTAR[k])
+
+    for particle in particles:
         try:
             image_index = int(particle['_rlnImageName'].split('@')[0])-1
             filename = particle['_rlnImageName'].split('@')[1]
