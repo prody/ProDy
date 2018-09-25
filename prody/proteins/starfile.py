@@ -408,28 +408,20 @@ def parseImagesFromSTAR(particlesSTAR, **kwargs):
 
         elif isinstance(particlesSTAR, StarDict):
             if ndim == 1:
-                if particlesSTAR.numDataBlocks == 1:
-                    if particlesSTAR[0].numLoops == 0:
-                        indices = kw_indices
-                    else:
-                        indices = np.fromiter(((0, j, index) for index in kw_indices 
-                                               for j, loop in enumerate(particlesSTAR)), 
-                                              dtype=[('dataBlockNumber', int), 
-                                                     ('loopNumber', int), 
-                                                     ('rowNumber', int)])
-                        if particlesSTAR[0].numLoops != 1:
-                            # This will almost never happen but we should warn about it anyway
-                            LOGGER.warn('particlesSTAR has multiple loop tables but '
-                                        'a 1D array-like object was provided as indices. '
-                                        'The same indices will therefore be used to parse '
-                                        'images from each loop.')
-
+                if particlesSTAR[0].numLoops == 0:
+                    indices = kw_indices
                 else:
-                    if particlesSTAR[0].numLoops == 1:
-                        indices = np.fromiter(((0, 0, index) for index in kw_indices), 
-                                              dtype=[('dataBlockNumber', int), 
-                                                     ('loopNumber', int), 
-                                                     ('rowNumber', int)])
+                    indices = np.fromiter(((0, j, index) for index in kw_indices 
+                                            for j, loop in enumerate(particlesSTAR)), 
+                                            dtype=[('dataBlockNumber', int), 
+                                                    ('loopNumber', int), 
+                                                    ('rowNumber', int)])
+                    if particlesSTAR[0].numLoops != 1:
+                        # This will almost never happen but we should warn about it anyway
+                        LOGGER.warn('particlesSTAR has multiple loop tables but '
+                                    'a 1D array-like object was provided as indices. '
+                                    'The same indices will therefore be used to parse '
+                                    'images from each loop.')
 
             if ndim == 2:
                 pass
@@ -487,7 +479,7 @@ def parseImagesFromSTAR(particlesSTAR, **kwargs):
             for j in indices:
                 for k in j:
                     particles.append(particlesSTAR[int(k[0])][int(k[1])])
-                    
+
         elif isinstance(particlesSTAR, StarLoop):
             for k in indices:
                 particles.append(particlesSTAR[int(k)])
