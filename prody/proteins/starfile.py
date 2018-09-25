@@ -447,12 +447,6 @@ def parseImagesFromSTAR(particlesSTAR, **kwargs):
             raise ValueError('indices should be a 1D array-like object '
                              'when particlesSTAR is a loop table')
 
-    else:
-        indices = np.fromiter((index[i,j,k] for index in indices), 
-                              dtype=[('dataBlockNumber', int), 
-                                     ('loopNumber', int), 
-                                     ('rowNumber', int)])
-
     if indices == []:
         raise ValueError('particlesSTAR does not contain any loops with image fields')
 
