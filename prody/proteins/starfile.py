@@ -379,14 +379,14 @@ def parseImagesFromSTAR(particlesSTAR, **kwargs):
         loops = []
         maxRows = 0
 
-        for loop in dataBlock:
+        for loop in particlesSTAR:
             if ('_image' in loop.fields) or ('_rlnImageName' in loop.fields):
                 loops.append(loop)
                 if loop.numRows > maxRows:
                     maxRows = loop.numRows
 
         indices = np.zeros((len(loops),maxRows,2),dtype=int)
-        for j, loop in enumerate(dataBlock):
+        for j, loop in enumerate(particlesSTAR):
             for k in range(loop.numRows):
                 indices[j,k] = np.array([j,k])
 
