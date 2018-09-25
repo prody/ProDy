@@ -412,11 +412,12 @@ def parseImagesFromSTAR(particlesSTAR, **kwargs):
                 if particlesSTAR[0].numLoops == 0:
                     indices = kw_indices
                 else:
-                    indices = np.fromiter(((0, j, index) for index in kw_indices 
-                                            for j, loop in enumerate(particlesSTAR)), 
+                    indices = np.fromiter(((i, j, index) for index in kw_indices 
+                                            for j, loop in enumerate(dataBlock)
+                                            for i, dataBlock in enumerate(particlesSTAR)), 
                                             dtype=[('dataBlockNumber', int), 
-                                                    ('loopNumber', int), 
-                                                    ('rowNumber', int)])
+                                                   ('loopNumber', int), 
+                                                   ('rowNumber', int)])
                     if particlesSTAR[0].numLoops != 1:
                         # This will almost never happen but we should warn about it anyway
                         LOGGER.warn('particlesSTAR has multiple loop tables but '
@@ -435,10 +436,9 @@ def parseImagesFromSTAR(particlesSTAR, **kwargs):
                 else:
                     indices = np.fromiter(((j, index) for index in kw_indices 
                                             for j, loop in enumerate(particlesSTAR)), 
-                                          dtype=[('dataBlockNumber', int), 
-                                                 ('loopNumber', int), 
+                                          dtype=[('loopNumber', int), 
                                                  ('rowNumber', int)])
-                    if particlesSTAR[0].numLoops != 1:
+                    if particlesSTAR.numLoops != 1:
                         # This will almost never happen but we should warn about it anyway
                         LOGGER.warn('particlesSTAR has multiple loop tables but '
                                     'a 1D array-like object was provided as indices. '
