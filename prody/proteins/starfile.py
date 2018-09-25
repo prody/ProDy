@@ -448,7 +448,7 @@ def parseImagesFromSTAR(particlesSTAR, **kwargs):
                              'when particlesSTAR is a loop table')
 
     else:
-        indices = np.fromiter((index in indices), 
+        indices = np.fromiter((index for index in indices), 
                               dtype=[('dataBlockNumber', int), 
                                      ('loopNumber', int), 
                                      ('rowNumber', int)])
