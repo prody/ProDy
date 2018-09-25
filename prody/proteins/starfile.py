@@ -380,7 +380,7 @@ def parseImagesFromSTAR(particlesSTAR, **kwargs):
         loops = []
         maxRows = 0
 
-        for loop in dataBlock:
+        for loop in particlesSTAR:
             if ('_image' in loop.fields) or ('_rlnImageName' in loop.fields):
                 loops.append(loop)
                 if loop.numRows > maxRows:
