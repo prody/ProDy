@@ -322,7 +322,7 @@ def parseImagesFromSTAR(particlesSTAR, **kwargs):
         except:
             raise ValueError('particlesSTAR should be a dictionary parsed from a STAR file, '
                              'a filename corresponding to one, or equivalent data dictionaries in '
-                             'a list-like object or a dictionary that can be index numerically')
+                             'a list-like object or a dictionary that can be indexed numerically')
 
     if isinstance(particlesSTAR, (dict, list, tuple, np.ndarray)):
         try:
@@ -331,7 +331,7 @@ def parseImagesFromSTAR(particlesSTAR, **kwargs):
         except:
             raise TypeError('particlesSTAR should be a dictionary parsed from a STAR file, '
                             'a filename corresponding to one, or equivalent data dictionaries in '
-                            'a list-like object or a dictionary that can be index numerically')
+                            'a list-like object or a dictionary that can be indexed numerically')
 
     # Check dimensions and generate full indices
     if isinstance(particlesSTAR, StarDict):
@@ -447,7 +447,7 @@ def parseImagesFromSTAR(particlesSTAR, **kwargs):
             raise ValueError('indices should be a 1D array-like object '
                              'when particlesSTAR is a loop table')
 
-    if indices == []:
+    if indices is np.array([]):
         raise ValueError('particlesSTAR does not contain any loops with image fields')
 
     image_stacks = {}
