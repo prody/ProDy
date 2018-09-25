@@ -411,9 +411,9 @@ def parseImagesFromSTAR(particlesSTAR, **kwargs):
                 if particlesSTAR[0].numLoops == 0:
                     indices = kw_indices
                 else:
-                    indices = np.fromiter(((i, j, index) for index in kw_indices 
+                    indices = np.fromiter([(i, j, index) for index in kw_indices 
                                             for j, loop in enumerate(dataBlock)
-                                            for i, dataBlock in enumerate(particlesSTAR)), 
+                                            for i, dataBlock in enumerate(particlesSTAR)], 
                                             dtype=[('dataBlockNumber', int), 
                                                    ('loopNumber', int), 
                                                    ('rowNumber', int)])
