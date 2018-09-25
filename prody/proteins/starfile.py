@@ -93,7 +93,8 @@ class StarDataBlock:
     def __getitem__(self, key):
         if self.loops == []:
             try:
-                return self._dict['data'][key]
+                return np.array(self._dict['data'][key])
+
             except:
                 try:
                     return np.array(self.data)[key]
