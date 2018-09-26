@@ -503,7 +503,7 @@ def parseImagesFromSTAR(particlesSTAR, **kwargs):
     # Parse images using particle dictionaries
     image_stacks = {}
     images = []
-    n_stk_images = 0
+    stk_images = []
     if particlesSTAR._prog == 'RELION':
         imageFieldKey = '_rlnImageName'
     else:
@@ -518,8 +518,9 @@ def parseImagesFromSTAR(particlesSTAR, **kwargs):
                              '{0} location in either RELION or XMIPP format'.format(i))
 
         if filename.endswith('.stk'):
-            n_stk_images += 1
-        elif not filename in list(image_stacks.keys()):
+            stk_images.append(i)
+
+        if not filename in list(image_stacks.keys()):
             image_stacks[filename] = parseEMD(filename).density
 
         image = image_stacks[filename][image_index]
@@ -545,9 +546,9 @@ def parseImagesFromSTAR(particlesSTAR, **kwargs):
         else:
             images.append(image)
 
-        if n_stk_images > 0:
+        if len(stk_images) > 0:
             LOGGER.warn('ProDy currently cannot parse images from XMIPP .stk files. '
-                        'Please be aware that {0} images will be absent '
-                        'from the final array.'.format(n_stk_images))
+                        'Please be aware that images {0} and {1} will be None '
+                        'from the final array.'.format(', '.join(stk_images[:-1]),stk_images[-1]))
 
     return np.array(images)
