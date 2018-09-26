@@ -551,9 +551,9 @@ def parseImagesFromSTAR(particlesSTAR, **kwargs):
         else:
             images.append(image)
 
-        if len(stk_images) > 0:
-            LOGGER.warn('ProDy currently cannot parse images from XMIPP .stk files. '
-                        'Please be aware that images {0} and {1} will be missing '
-                        'from the final array.'.format(', '.join(stk_images[:-1]),stk_images[-1]))
+    if len(stk_images) > 0:
+        LOGGER.warn('ProDy currently cannot parse images from XMIPP .stk files. '
+                    'Please be aware that images {0} and {1} will be missing '
+                    'from the final array.'.format(', '.join(stk_images[:-1]),stk_images[-1]))
 
     return np.array(images, parsed_images_data)
