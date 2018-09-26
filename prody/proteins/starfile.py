@@ -504,6 +504,7 @@ def parseImagesFromSTAR(particlesSTAR, **kwargs):
     # Parse images using particle dictionaries
     image_stacks = {}
     images = []
+    parsed_images_data = []
     stk_images = []
     if particlesSTAR._prog == 'RELION':
         imageFieldKey = '_rlnImageName'
@@ -512,19 +513,22 @@ def parseImagesFromSTAR(particlesSTAR, **kwargs):
         
     for i, particle in enumerate(particles):
         try:
-            image_index = int(particle[imageFieldKey].split('@')[0])-1
-            filename = particle[imageFieldKey].split('@')[1]
+            image_field = particle[imageFieldKey]
+            image_index = int(image_field.split('@')[0])-1
+            filename = image_field.split('@')[1]
         except:
             raise ValueError('particlesSTAR does not contain data about particle image '
                              '{0} location in either RELION or XMIPP format'.format(i))
 
         if filename.endswith('.stk'):
             stk_images.append(i)
+            continue
 
-        elif not filename in list(image_stacks.keys()):
+        if not filename in list(image_stacks.keys()):
             image_stacks[filename] = parseEMD(filename).density
 
         image = image_stacks[filename][image_index]
+        parsed_images_data.append(image_field)
 
         if saveImageArrays:
             if saveDirectory is not None:
@@ -552,4 +556,4 @@ def parseImagesFromSTAR(particlesSTAR, **kwargs):
                         'Please be aware that images {0} and {1} will be missing '
                         'from the final array.'.format(', '.join(stk_images[:-1]),stk_images[-1]))
 
-    return np.array(images)
+    return np.array(images, parsed_images_data)
