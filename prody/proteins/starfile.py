@@ -21,9 +21,10 @@ __all__ = ['parseSTAR', 'writeSTAR', 'parseImagesFromSTAR',
 
 
 class StarDict:
-    def __init__(self, parsingDict, title='unnamed'):
+    def __init__(self, parsingDict, prog, title='unnamed'):
         self._title = title
         self._dict = parsingDict
+        self._prog = prog
         self.dataBlocks = [StarDataBlock(self, key)
                            for key in list(self._dict.keys())]
         self.numDataBlocks = len(self.dataBlocks)
@@ -65,6 +66,7 @@ class StarDataBlock:
     def __init__(self, starDict, key):
         self._title = key
         self._dict = starDict._dict[key]
+        self._prog = starDict._prog
 
         if list(self._dict.keys()) == ['fields','data']:
             self.loops = []
@@ -131,6 +133,7 @@ class StarDataBlock:
 class StarLoop:
     def __init__(self, dataBlock, key):
         self._dict = dataBlock._dict[key]
+        self._prog = dataBlock._prog
         self.fields = list(self._dict['fields'].values())
         self.data = list(self._dict['data'].values())
         self.numFields = len(self.fields)
@@ -193,12 +196,13 @@ def parseSTAR(filename):
     lines = starfile.readlines()
     starfile.close()
 
-    parsingDict = parseSTARStream(lines)
+    parsingDict, prog = parseSTARStream(lines)
 
-    return StarDict(parsingDict, filename)
+    return StarDict(parsingDict, prog, filename)
 
 
 def parseSTARStream(stream):
+    prog = 'RELION'
     finalDictionary = {}
     currentLoop = -1
     fieldCounter = 0
@@ -253,7 +257,8 @@ def parseSTARStream(stream):
             dataItemsCounter += 1
 
         elif line.startswith('#'):
-            pass
+            if line.startswith('# XMIPP'):
+                prog = 'XMIPP'
 
         else:
             raise TypeError('This file does not conform to the STAR file format.'
@@ -261,7 +266,7 @@ def parseSTARStream(stream):
 
         lineNumber += 1
 
-    return finalDictionary
+    return finalDictionary, prog
 
 
 def writeSTAR(filename, starDict):
@@ -520,9 +525,17 @@ def parseImagesFromSTAR(particlesSTAR, **kwargs):
                 np.save('{1}'.format(i), image)
 
         if rotateImages:
-            images.append(rotate(image, float(particle['_rlnAnglePsi']),
-                                 center=(180-float(particle['_rlnOriginX']),
-                                         180-float(particle['_rlnOriginY']))))
+            if particlesSTAR._prog == 'RELION':
+                anglePsi = float(particle['_rlnAnglePsi'])
+                originX = float(particle['_rlnOriginX'])
+                originY = float(particle['_rlnOriginY'])
+            elif particleSTAR._prog == 'XMIPP':
+                anglePsi = float(particle['_anglePsi'])
+                originX = float(particle['_shiftX'])
+                originY = float(particle['_shiftY'])
+            images.append(rotate(image, anglePsi),
+                                 center=(float(image.shape[0])-originX,
+                                         float(image.shape[1])-originY))
         else:
             images.append(image)
 
