@@ -555,4 +555,4 @@ def parseImagesFromSTAR(particlesSTAR, **kwargs):
                     'Please be aware that images {0} and {1} will be missing '
                     'from the final array.'.format(', '.join(stk_images[:-1]),stk_images[-1]))
 
-    return np.array(images, parsed_images_data)
+    return np.array(images), parsed_images_data
