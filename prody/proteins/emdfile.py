@@ -136,7 +136,7 @@ def _parseEMDLines(atomgroup, stream, cutoff=None, n_nodes=1000, num_iter=20, ma
 
 
 def parseSTKStream(stream, **kwargs):
-    LOGGER.warn(ValueError('ProDy currently cannot parse .stk files correctly'))
+    LOGGER.warn('ProDy currently cannot parse .stk files correctly')
     return None
 
 
