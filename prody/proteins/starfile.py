@@ -520,7 +520,7 @@ def parseImagesFromSTAR(particlesSTAR, **kwargs):
                              '{0} location in either RELION or XMIPP format'.format(i))
 
         if filename.endswith('.stk'):
-            stk_images.append(i)
+            stk_images.append(str(i))
             continue
 
         if not filename in list(image_stacks.keys()):
