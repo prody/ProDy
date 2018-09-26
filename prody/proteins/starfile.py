@@ -373,8 +373,11 @@ def parseImagesFromSTAR(particlesSTAR, **kwargs):
         indices = np.zeros((len(dataBlocks),maxLoops,maxRows,3),dtype=int)
         for i, dataBlock in enumerate(dataBlocks):
             for j, loop in enumerate(dataBlock):
-                for k in range(loop.numRows):
-                    indices[i,j,k] = np.array([i,j,k])
+                for k in range(maxRows):
+                    if k < loop.numRows:
+                        indices[i,j,k] = np.array([i,j,k])
+                    else:
+                        indices[i,j,k] = np.array([0,0,0])
 
     elif isinstance(particlesSTAR, StarDataBlock):
         loops = []
@@ -405,7 +408,11 @@ def parseImagesFromSTAR(particlesSTAR, **kwargs):
         shape = kw_indices.shape
 
         if ndim == indices.ndim:
-                indices = kw_indices
+            for dim in range(ndim):
+                if kw_indices.shape[dim] > indices.shape[dim]:
+                    raise ValueError('provided indices has too many entries for dimension {0}'.format(dim))
+
+            indices = kw_indices
 
         elif isinstance(particlesSTAR, StarDict):
             if ndim == 1:
@@ -464,26 +471,30 @@ def parseImagesFromSTAR(particlesSTAR, **kwargs):
     if kw_indices is not None:
         for k in indices:
             if isinstance(particlesSTAR, StarDict):
-                particles.append(particlesSTAR[k[0]][k[1]][k[2]])
+                particles.append(dataBlocks[k[0]][k[1]][k[2]])
             elif isinstance(particlesSTAR, StarDataBlock):
                 particles.append(particlesSTAR[k[0]][k[1]])
             elif isinstance(particlesSTAR, StarLoop):
                 particles.append(particlesSTAR[k])
     else:
         if isinstance(particlesSTAR, StarDict):
-            for i in indices:
-                for j in i:
-                    for k in j:
-                        particles.append(particlesSTAR[int(k[0])][int(k[1])][int(k[2])])
+            for i, index_i in enumerate(indices):
+                for j, index_j in enumerate(index_i):
+                    for k, index_k in enumerate(index_j):
+                        if not (np.array_equal(index_k, np.array([0,0,0])) 
+                        and not (i == 0 and j == 0 and k == 0)):
+                            particles.append(dataBlocks[index_k[0]][index_k[1]][index_k[2]])
 
         elif isinstance(particlesSTAR, StarDataBlock):
-            for j in indices:
-                for k in j:
-                    particles.append(particlesSTAR[int(k[0])][int(k[1])])
+            for j, index_j in enumerate(indices):
+                for k, index_k in enumerate(index_j):
+                    if not (np.array_equal(index_k, np.array([0,0,0])) 
+                    and not (j == 0 and k == 0)):
+                        particles.append(particlesSTAR[index_k[0]][index_k[1]])
 
         elif isinstance(particlesSTAR, StarLoop):
             for k in indices:
-                particles.append(particlesSTAR[int(k)])
+                particles.append(particlesSTAR[k])
 
     for particle in particles:
         try:
