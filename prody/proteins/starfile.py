@@ -402,6 +402,7 @@ def parseImagesFromSTAR(particlesSTAR, **kwargs):
     elif isinstance(particlesSTAR, StarLoop):
         indices = np.array(particlesSTAR.getDict()['data'].keys())
 
+
     if kw_indices is not None:
     # Convert keyword indices to valid indices if possible
         try:
@@ -469,8 +470,7 @@ def parseImagesFromSTAR(particlesSTAR, **kwargs):
     if indices is np.array([]):
         raise ValueError('particlesSTAR does not contain any loops with image fields')
 
-    image_stacks = {}
-    images = []
+    # Use indices to collect particle data dictionaries
     particles = []
 
     if kw_indices is not None:
@@ -501,17 +501,25 @@ def parseImagesFromSTAR(particlesSTAR, **kwargs):
             for k in indices:
                 particles.append(particlesSTAR[k])
 
-    for particle in particles:
+    # Parse images using particle dictionaries
+    image_stacks = {}
+    images = []
+    stk_images = []
+    if particlesSTAR._prog == 'RELION':
+        imageFieldKey = '_rlnImageName'
+    else:
+        imageFieldKey = '_image'
+        
+    for i, particle in enumerate(particles):
         try:
-            image_index = int(particle['_rlnImageName'].split('@')[0])-1
-            filename = particle['_rlnImageName'].split('@')[1]
+            image_index = int(particle[imageFieldKey].split('@')[0])-1
+            filename = particle[imageFieldKey].split('@')[1]
         except:
-            try:
-                image_index = int(particle['_image'].split('@')[0])-1
-                filename = particle['_image'].split('@')[1]
-            except:
-                raise ValueError('particlesSTAR does not contain data about particle image '
-                                 'location in either RELION or XMIPP format')
+            raise ValueError('particlesSTAR does not contain data about particle image '
+                             '{0} location in either RELION or XMIPP format'.format(i))
+
+        if filename.endswith('.stk'):
+            stk_images.append(i)
 
         if not filename in list(image_stacks.keys()):
             image_stacks[filename] = parseEMD(filename).density
@@ -538,5 +546,10 @@ def parseImagesFromSTAR(particlesSTAR, **kwargs):
                                          float(image.shape[1])-originY)))
         else:
             images.append(image)
+
+        if len(stk_images) > 0:
+            LOGGER.warn('ProDy currently cannot parse images from XMIPP .stk files. '
+                        'Please be aware that images {0} and {1} will be None '
+                        'from the final array.'.format(', '.join(stk_images[:-1]),stk_images[-1]))
 
     return np.array(images)
