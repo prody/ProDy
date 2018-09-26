@@ -528,7 +528,7 @@ def parseImagesFromSTAR(particlesSTAR, **kwargs):
                 anglePsi = float(particle['_rlnAnglePsi'])
                 originX = float(particle['_rlnOriginX'])
                 originY = float(particle['_rlnOriginY'])
-            elif particleSTAR._prog == 'XMIPP':
+            elif particlesSTAR._prog == 'XMIPP':
                 anglePsi = float(particle['_anglePsi'])
                 originX = float(particle['_shiftX'])
                 originY = float(particle['_shiftY'])
