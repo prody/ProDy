@@ -521,7 +521,7 @@ def parseImagesFromSTAR(particlesSTAR, **kwargs):
         if filename.endswith('.stk'):
             stk_images.append(i)
 
-        if not filename in list(image_stacks.keys()):
+        elif not filename in list(image_stacks.keys()):
             image_stacks[filename] = parseEMD(filename).density
 
         image = image_stacks[filename][image_index]
@@ -549,7 +549,7 @@ def parseImagesFromSTAR(particlesSTAR, **kwargs):
 
         if len(stk_images) > 0:
             LOGGER.warn('ProDy currently cannot parse images from XMIPP .stk files. '
-                        'Please be aware that images {0} and {1} will be None '
+                        'Please be aware that images {0} and {1} will be missing '
                         'from the final array.'.format(', '.join(stk_images[:-1]),stk_images[-1]))
 
     return np.array(images)
