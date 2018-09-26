@@ -81,8 +81,14 @@ def parseEMD(emd, **kwargs):
         kwargs['title'], ext = os.path.splitext(os.path.split(emd)[1])
 
     emdStream = openFile(emd, 'rb')
-    result = parseEMDStream(emdStream, **kwargs)
+
+    if emd.endswith('.stk'):
+        result = parseSTKStream(emd, **kwargs)
+    else:
+        result = parseEMDStream(emdStream, **kwargs)
+
     emdStream.close()
+
     return result
 
 def _parseEMDLines(atomgroup, stream, cutoff=None, n_nodes=1000, num_iter=20, map=True, make_nodes=False):
@@ -127,6 +133,11 @@ def _parseEMDLines(atomgroup, stream, cutoff=None, n_nodes=1000, num_iter=20, ma
             return atomgroup
     else:
         return emd
+
+
+def parseSTKStream(stream, **kwargs):
+    LOGGER.warn(ValueError('ProDy currently cannot parse .stk files correctly'))
+    return None
 
 
 def parseEMDStream(stream, **kwargs):
