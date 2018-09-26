@@ -532,7 +532,7 @@ def parseImagesFromSTAR(particlesSTAR, **kwargs):
                 anglePsi = float(particle['_anglePsi'])
                 originX = float(particle['_shiftX'])
                 originY = float(particle['_shiftY'])
-            images.append(rotate(image, anglePsi),
+            images.append(rotate(image, anglePsi,
                                  center=(float(image.shape[0])-originX,
                                          float(image.shape[1])-originY))
         else:
