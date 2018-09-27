@@ -115,7 +115,10 @@ class StarDataBlock:
 
     def __repr__(self):
         if self.numLoops == 0:
-            return '<StarDataBlock: {0} ({1} entries)>'.format(self._title, self.numEntries)
+            if self.numEntries == 1:
+                return '<StarDataBlock: {0} ({1} entry)>'.format(self._title, self.numEntries)
+            else:
+                return '<StarDataBlock: {0} ({1} entries)>'.format(self._title, self.numEntries)
         elif self.numLoops == 1:
             return '<StarDataBlock: {0} ({1} loop)>'.format(self._title, self.numLoops)
         return '<StarDataBlock: {0} ({1} loops)>'.format(self._title, self.numLoops)
