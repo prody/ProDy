@@ -148,7 +148,7 @@ def view3D(*alist, **kwargs):
         data_list = wrap_data(data_list)
         n_data = len(data_list)
 
-    view = py3Dmol.view(width=width, height=height, js=kwargs.get('js','http://3dmol.csb.pitt.edu/build/3Dmol-min.js'))
+    view = py3Dmol.view(width=width, height=height, js=kwargs.get('js','http://3dmol.csb.pitt.edu/build/3Dmol.js'))
 
     def _mapData(atoms, data):
         # construct map from residue to data property
@@ -165,14 +165,14 @@ def view3D(*alist, **kwargs):
         lo = -extreme if np.min(data) < 0 else 0
         mid = np.mean(data) if np.min(data) >= 0 else 0
         view.setColorByProperty({'model': -1}, 'data', 'rwb', [extreme,lo,mid])
-        view.setStyle({'model': -1, 'cartoon':{'style':'trace'}})    
+        view.setStyle({'model': -1},{'cartoon':{'style':'trace'}})    
 
 
     for i, atoms in enumerate(alist):
         pdb = createStringIO()
         writePDBStream(pdb, atoms)
         view.addModel(pdb.getvalue(), 'pdb')
-        view.setStyle({'model': -1, 'cartoon': {'color':'spectrum'}})
+        view.setStyle({'model': -1}, {'cartoon': {'color':'spectrum'}})
         view.setStyle({'model': -1, 'hetflag': True}, {'stick':{}})
         view.setStyle({'model': -1, 'bonds': 0}, {'sphere':{'radius': 0.5}})    
 
