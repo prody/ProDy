@@ -171,7 +171,7 @@ def view3D(*alist, **kwargs):
     for i, atoms in enumerate(alist):
         pdb = createStringIO()
         writePDBStream(pdb, atoms)
-        view.addModel(pdb.getvalue(), 'pdb')
+        view.addModels(pdb.getvalue(), 'pdb')
         view.setStyle({'model': -1}, {'cartoon': {'color':'spectrum'}})
         view.setStyle({'model': -1, 'hetflag': True}, {'stick':{}})
         view.setStyle({'model': -1, 'bonds': 0}, {'sphere':{'radius': 0.5}})    
