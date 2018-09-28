@@ -315,7 +315,6 @@ def showProtein(*atoms, **kwargs):
 
     if '3dmol' in method:
         mol = view3D(*alist, **kwargs)
-        mol.show()
         return mol
     else:
         import matplotlib.pyplot as plt
