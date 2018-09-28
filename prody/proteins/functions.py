@@ -148,7 +148,7 @@ def view3D(*alist, **kwargs):
         data_list = wrap_data(data_list)
         n_data = len(data_list)
 
-    view = py3Dmol.view(width=width, height=height, js=kwargs.get('js','http://3dmol.csb.pitt.edu/build/3Dmol.js'))
+    view = py3Dmol.view(width=width, height=height, js=kwargs.get('js','http://3dmol.csb.pitt.edu/build/3Dmol-min.js'))
 
     def _mapData(atoms, data):
         # construct map from residue to data property
