@@ -163,7 +163,7 @@ def showEmbedding(modes, labels=None, trace=True, headtail=True, cmap='prism'):
     :arg cmap: the color map used to render the *labels*.
     :type cmap: str
     """
-    V = _getEigvecs(modes, True)
+    V, mask = _getEigvecs(modes, True)
     m,n = V.shape
 
     if labels is not None:
