@@ -485,8 +485,18 @@ def parseImagesFromSTAR(particlesSTAR, **kwargs):
         elif row_indices.ndim == 2:
             # A list-like of list-likes of the same size was provided
             if row_indices.shape[0] != len(dataBlocks):
-                raise ValueError('There should be an entry in row indices for '
-                                 'each data block')
+                if len(row_indices) == 0:
+                    # we will use same row indices for all data blocks 
+                    # and warn the user we are doing so
+                    if len(dataBlocks) != 1:
+                        LOGGER.warn('row_indices is 1D but there are multiple data blocks '
+                                    'so the same row indices will be used for each')
+                    
+                    row_indices = np.array([row_indices for i in range(len(dataBlocks))])
+                    # This also works if len(dataBlocks) == 1
+                else:
+                    raise ValueError('There should be an entry in row indices for '
+                                    'each data block')
         
         else:
             raise ValueError('row_indices should be 1D or 2D array-like objects')
