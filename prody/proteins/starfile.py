@@ -523,8 +523,9 @@ def parseImagesFromSTAR(particlesSTAR, **kwargs):
 
 
         indices = np.array(good_indices_list)
-        if indices is np.array([]):
-            raise ValueError('selection does not contain any rows with image fields')
+
+    if indices is np.array([]):
+        raise ValueError('selection does not contain any rows with image fields')
 
     # Use indices to collect particle data dictionaries
     particles = []
