@@ -60,7 +60,9 @@ class StarDict:
             yield StarDataBlock(self, key)
 
     def pop(self, index):
+        """Pop dataBlock with the given index from the list of dataBlocks in StarDict"""
         self.dataBlocks.pop(index)
+        self.numDataBlocks -= 1
 
 class StarDataBlock:
     def __init__(self, starDict, key):
@@ -129,7 +131,9 @@ class StarDataBlock:
             yield StarLoop(self, key)
 
     def pop(self, index):
+        """Pop loop with the given index from the list of loops in dataBlock"""
         self.loops.pop(index)
+        self.numLoops -= 1
 
 
 class StarLoop:
