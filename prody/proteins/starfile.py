@@ -333,6 +333,11 @@ def parseImagesFromSTAR(particlesSTAR, **kwargs):
         Default behavior is to use all rows about images
     type row_indices: list, :class:`~numpy.ndarray`
 
+    arg particle_indices: indices for particles regardless of STAR structure
+        default is take all particles
+        Please note: this acts after block_indices and row_indices
+    type particle_indices: list, :class"`~numpy.ndarray`
+
     arg saveImageArrays: whether to save the numpy array for each image to file
         default is False
     type saveImageArrays: bool
@@ -350,6 +355,7 @@ def parseImagesFromSTAR(particlesSTAR, **kwargs):
     block_indices = kwargs.get('block_indices', None)
     # No loop_indices because data blocks about particle images contain 1 loop 
     row_indices = kwargs.get('row_indices', None)
+    particle_indices = kwargs.get('particle_indices',None)
 
     saveImageArrays = kwargs.get('saveImageArrays', False)
     saveDirectory = kwargs.get('saveDirectory', None)
@@ -528,6 +534,9 @@ def parseImagesFromSTAR(particlesSTAR, **kwargs):
                 and not (i == 0 and j == 0 and k == 0)):
                     particles.append(particlesSTAR[index_k[0]][index_k[1]][index_k[2]])
 
+    if particle_indices is None:
+        particle_indices = list(range(len(particles)))
+
     # Parse images using particle dictionaries
     image_stacks = {}
     images = []
@@ -539,6 +548,9 @@ def parseImagesFromSTAR(particlesSTAR, **kwargs):
         imageFieldKey = '_image'
         
     for i, particle in enumerate(particles):
+        if not i in particle_indices:
+            continue
+
         try:
             image_field = particle[imageFieldKey]
             image_index = int(image_field.split('@')[0])-1
