@@ -165,14 +165,14 @@ def view3D(*alist, **kwargs):
         lo = -extreme if np.min(data) < 0 else 0
         mid = np.mean(data) if np.min(data) >= 0 else 0
         view.setColorByProperty({'model': -1}, 'data', 'rwb', [extreme,lo,mid])
-        view.setStyle({'model': -1, 'cartoon':{'style':'trace'}})    
+        view.setStyle({'model': -1},{'cartoon':{'style':'trace'}})    
 
 
     for i, atoms in enumerate(alist):
         pdb = createStringIO()
         writePDBStream(pdb, atoms)
-        view.addModel(pdb.getvalue(), 'pdb')
-        view.setStyle({'model': -1, 'cartoon': {'color':'spectrum'}})
+        view.addAsOneMolecule(pdb.getvalue(), 'pdb')
+        view.setStyle({'model': -1}, {'cartoon': {'color':'spectrum'}})
         view.setStyle({'model': -1, 'hetflag': True}, {'stick':{}})
         view.setStyle({'model': -1, 'bonds': 0}, {'sphere':{'radius': 0.5}})    
 
@@ -315,7 +315,6 @@ def showProtein(*atoms, **kwargs):
 
     if '3dmol' in method:
         mol = view3D(*alist, **kwargs)
-        mol.show()
         return mol
     else:
         import matplotlib.pyplot as plt
