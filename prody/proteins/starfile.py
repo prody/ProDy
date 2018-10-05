@@ -361,6 +361,7 @@ def parseImagesFromSTAR(particlesSTAR, **kwargs):
     loops = []
     maxLoops = 0
     maxRows = 0
+    dataBlock_goodness = []
     for dataBlock in particlesSTAR:
 
         foundImageField = False
@@ -378,15 +379,21 @@ def parseImagesFromSTAR(particlesSTAR, **kwargs):
 
         if foundImageField:
             dataBlocks.append(dataBlock)
+            dataBlock_goodness.append(True)
+        else:
+            dataBlock_goodness.append(False)
 
     indices = np.zeros((len(dataBlocks),maxLoops,maxRows,3),dtype=int)
-    for i, dataBlock in enumerate(dataBlocks):
-        for j, loop in enumerate(dataBlock):
-            for k in range(maxRows):
-                if k < loop.numRows:
-                    indices[i,j,k] = np.array([i,j,k])
-                else:
-                    indices[i,j,k] = np.array([0,0,0])
+    i = -1
+    for n, dataBlock in enumerate(particlesSTAR):
+        if dataBlock_goodness[n]:
+            i += 1
+            for j, loop in enumerate(dataBlock):
+                for k in range(maxRows):
+                    if k < loop.numRows:
+                        indices[i,j,k] = np.array([n,j,k])
+                    else:
+                        indices[i,j,k] = np.array([0,0,0])
 
     dataBlocks = np.array(dataBlocks)
     loops = np.array(loops)
@@ -502,7 +509,7 @@ def parseImagesFromSTAR(particlesSTAR, **kwargs):
             for k, index_k in enumerate(index_j):
                 if not (np.array_equal(index_k, np.array([0,0,0])) 
                 and not (i == 0 and j == 0 and k == 0)):
-                    particles.append(dataBlocks[index_k[0]][index_k[1]][index_k[2]])
+                    particles.append(particlesSTAR[index_k[0]][index_k[1]][index_k[2]])
 
     # Parse images using particle dictionaries
     image_stacks = {}
