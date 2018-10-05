@@ -461,18 +461,8 @@ def parseImagesFromSTAR(particlesSTAR, **kwargs):
                 # list likes with zeros
 
                 if len(row_indices) != len(dataBlocks):
-                    if len(row_indices) == 0:
-                        # we will use same row indices for all data blocks 
-                        # and warn the user we are doing so
-                        if len(dataBlocks) != 1:
-                            LOGGER.warn('row_indices is 1D but there are multiple data blocks '
-                                        'so the same row indices will be used for each')
-                        
-                        row_indices = np.array([row_indices for i in range(len(dataBlocks))])
-                        # This also works if len(dataBlocks) == 1
-                    else:
-                        raise ValueError('There should be an entry in row indices for '
-                                        'each data block')
+                    raise ValueError('There should be an entry in row indices for '
+                                     'each data block')
 
                 max_len = 0
                 for entry in row_indices:
