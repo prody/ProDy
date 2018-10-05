@@ -309,18 +309,24 @@ def writeSTAR(filename, starDict):
 
 def parseImagesFromSTAR(particlesSTAR, **kwargs):
     '''
-    Parses particle images using data from a STAR file containing information about them.
+    Parses particle images using data from a STAR file 
+    containing information about them.
 
+    arg particlesSTAR: a filename for a STAR file.
+    type particlesSTAR: str
 
-    arg particlesSTAR: a dictionary containing STAR file data about particles or
-        a filename for a STAR file from which such data can be parsed.
-        A dictionary or list-like object containing row dictionaries can also be used.
-    type particlesSTAR: str, StarDict, StarDataBlock, StarLoop, dict, list, tuple, :class:`~numpy.ndarray`
+    arg block_indices: indices for data blocks containing rows 
+        corresponding to images of interest
+        The indexing scheme is similar to that for numpy arrays.
+        Default behavior is use all data blocks about images
+    type block_indices: list, :class:`~numpy.ndarray`
 
-    arg indices: multi-dimensional indices for rows corresponding to images
-        array-like objects with too few indices can be used and then the same indices
-        will be considered across data blocks and loop tables 
-    type indices: list, tuple, :class:`~numpy.ndarray`
+    arg row_indices: indices for rows corresponding to images of interest
+        The indexing scheme is similar to that for numpy arrays. 
+        row_indices should be a 1D or 2D array-like.
+        If one value is given it will be applied to all loops.
+        Default behavior is to use all rows about images
+    type row_indices: list, :class:`~numpy.ndarray`
 
     arg saveImageArrays: whether to save the numpy array for each image to file
         default is False
