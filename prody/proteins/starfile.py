@@ -552,6 +552,9 @@ def parseImagesFromSTAR(particlesSTAR, **kwargs):
         imageFieldKey = '_image'
         
     for i, particle in enumerate(particles):
+        if i > max(particle_indices):
+            break
+            
         if not i in particle_indices:
             continue
 
