@@ -494,7 +494,7 @@ def parseImagesFromSTAR(particlesSTAR, **kwargs):
                         LOGGER.warn('row_indices is 1D but there are multiple data blocks '
                                     'so the same row indices will be used for each')
                     
-                    row_indices = np.array([row_indices for i in range(len(dataBlocks))])
+                    row_indices = np.array([row_indices[0] for i in range(len(dataBlocks))])
                     # This also works if len(dataBlocks) == 1
                 else:
                     raise ValueError('There should be an entry in row indices for '
