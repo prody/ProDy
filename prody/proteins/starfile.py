@@ -94,6 +94,9 @@ class StarDataBlock:
     def setTitle(self, title):
         self._title = title
 
+    def getDict(self):
+        return self._dict
+
     def __getitem__(self, key):
         if self.loops == []:
             try:
