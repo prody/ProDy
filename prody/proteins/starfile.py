@@ -434,6 +434,8 @@ def parseImagesFromSTAR(particlesSTAR, **kwargs):
                         'Default block indices corresponding to all dataBlocks '
                         'will be used instead.')
 
+    dataBlocks = particlesSTAR[block_indices]
+
     if row_indices is not None:
         try:
             row_indices = np.array(row_indices)
