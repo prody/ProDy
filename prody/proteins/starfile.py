@@ -123,9 +123,9 @@ class StarDataBlock:
             else:
                 return '<StarDataBlock: {0} ({1} entries)>'.format(self._title, self.numEntries)
         elif self.numLoops == 1:
-            return '<StarDataBlock: {0} ({1} loop containing {2} columns and {3} rows)>'
-                    .format(self._title, self.numLoops, 
-                            self.loops[0].numFields, self.loops[0].numRows)
+            return '<StarDataBlock: {0} ({1} loop containing ' \
+                    '{2} columns and {3} rows)>'.format(self._title, self.numLoops, \
+                                                        self.loops[0].numFields, self.loops[0].numRows)
         return '<StarDataBlock: {0} ({1} loops)>'.format(self._title, self.numLoops)
 
     def __iter__(self):
