@@ -484,7 +484,7 @@ def parseImagesFromSTAR(particlesSTAR, **kwargs):
 
         elif row_indices.ndim == 2:
             # A list-like of list-likes of the same size was provided
-            if row_indices.shape[0] != len(dataBlocks[block_indices]):
+            if row_indices.shape[0] != len(dataBlocks):
                 raise ValueError('There should be an entry in row indices for '
                                  'each data block')
         
