@@ -485,7 +485,7 @@ def parseImagesFromSTAR(particlesSTAR, **kwargs):
         elif row_indices.ndim == 2:
             # A list-like of list-likes of the same size was provided
             if row_indices.shape[0] != len(dataBlocks):
-                if len(row_indices) == 0:
+                if len(row_indices) == 1:
                     # we will use same row indices for all data blocks 
                     # and warn the user we are doing so
                     if len(dataBlocks) != 1:
