@@ -413,7 +413,7 @@ def parseImagesFromSTAR(particlesSTAR, **kwargs):
             raise TypeError('block_indices should be array-like')
 
         if block_indices.ndim != 1:
-            raise ValueError('block_indices should be 1-dimensional')
+            raise ValueError('block_indices should be a 1-dimensional array-like')
 
         for i, index in enumerate(list(reversed(block_indices))):
             try:
@@ -434,6 +434,8 @@ def parseImagesFromSTAR(particlesSTAR, **kwargs):
             LOGGER.warn('None of the block_indices corresponded to dataBlocks. '
                         'Default block indices corresponding to all dataBlocks '
                         'will be used instead.')
+
+    dataBlocks = particlesSTAR[block_indices]
 
     if row_indices is not None:
         try:
