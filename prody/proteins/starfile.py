@@ -38,7 +38,7 @@ class StarDict:
                 return self.dataBlocks[key]
             except:
                 raise ValueError('The key for getting items should '
-                                 'be the name or number of a data block')
+                                 'be the names or numbers of data blocks')
 
     def getTitle(self):
         return self._title
@@ -122,7 +122,9 @@ class StarDataBlock:
             else:
                 return '<StarDataBlock: {0} ({1} entries)>'.format(self._title, self.numEntries)
         elif self.numLoops == 1:
-            return '<StarDataBlock: {0} ({1} loop)>'.format(self._title, self.numLoops)
+            return '<StarDataBlock: {0} ({1} loop containing ' \
+                    '{2} columns and {3} rows)>'.format(self._title, self.numLoops, \
+                                                        self.loops[0].numFields, self.loops[0].numRows)
         return '<StarDataBlock: {0} ({1} loops)>'.format(self._title, self.numLoops)
 
     def __iter__(self):
@@ -324,7 +326,9 @@ def parseImagesFromSTAR(particlesSTAR, **kwargs):
     arg row_indices: indices for rows corresponding to images of interest
         The indexing scheme is similar to that for numpy arrays. 
         row_indices should be a 1D or 2D array-like.
-        If one value is given it will be applied to all loops.
+        2D row_indices should contain an entry for each relevant loop. 
+        If a 1D array-like is given the same row indices 
+        will be applied to all loops.
         Default behavior is to use all rows about images
     type row_indices: list, :class:`~numpy.ndarray`
 
