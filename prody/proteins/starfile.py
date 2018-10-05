@@ -516,7 +516,11 @@ def parseImagesFromSTAR(particlesSTAR, **kwargs):
                 for r, index_r in enumerate(row_indices[i]):
                     for k, index_k in enumerate(index_j):
                         if k == index_r:
-                            good_indices_list[i][j].append(index_k)
+                            if not (r != 0 and index_r == 0):
+                                good_indices_list[i][j].append(index_k)
+                            else:
+                                good_indices_list[i][j].append(np.array([0,0,0]))
+
 
         indices = np.array(good_indices_list)
         if indices is np.array([]):
