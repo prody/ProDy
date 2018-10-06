@@ -1091,7 +1091,7 @@ def showPerturbResponse(model, atoms=None, show_matrix=True, select=None, **kwar
             for i, profile in enumerate(profiles):
                 if i == len(profiles)-1:  # last iteration turn the domain/chain bar back on
                     final = True
-                show.append(showAtomicLines(profile, atoms, final=final, **kwargs))
+                show.append(showAtomicLines(profile, atoms=atoms, final=final, **kwargs))
 
             xlabel('Residues')
     
