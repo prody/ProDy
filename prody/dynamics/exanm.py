@@ -161,7 +161,7 @@ class exANM(ANM):
         :type R: float
 
         :arg r: radius of individual barrel-type membrane protein default is 2.5.
-        :type 
+        :type r: float
         
         :arg lat: lattice type which could be FCC(face-centered-cubic)(default), 
             SC(simple cubic), SH(simple hexagonal)
