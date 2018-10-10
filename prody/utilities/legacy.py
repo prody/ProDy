@@ -1,14 +1,16 @@
+import numpy as np
+
 def msaeye(msa, unique, turbo):
     tic1 = timeit.default_timer()
     length = msa.shape[1]
     number = msa.shape[0]
     # number = 5
-    array = eye(int(number))
+    array = np.eye(int(number))
 
     seqs = []
     for i in range(number):
         seqs.append(msa[i,:])
-    iseq = zeros((number, length), dtype=int)
+    iseq = np.zeros((number, length), dtype=int)
 
     for i in range(0,number-1):
         if i == 0:
@@ -650,7 +652,7 @@ def extendAtomicData(data, nodes, atoms):
     from collections import Counter
 
     try:
-        data = asarray(data)
+        data = np.asarray(data)
     except:
         raise TypeError('The data must be array-like.')
 
@@ -671,7 +673,7 @@ def extendAtomicData(data, nodes, atoms):
 
     indices = nodes.getResindices()
     if is3d:
-        indices = array([[i*3, i*3+1, i*3+2] 
+        indices = np.array([[i*3, i*3+1, i*3+2] 
                         for i in indices]
                         ).reshape(3*len(indices))
 
@@ -682,6 +684,165 @@ def extendAtomicData(data, nodes, atoms):
 
     resid_selstr = ' '.join([str(resid) for resid in nodes.getResindices()])
     rest = atoms.select('not resid {0}'.format(resid_selstr))
-    data_ext.extend(zeros(rest.numAtoms()))
+    data_ext.extend(np.zeros(rest.numAtoms()))
         
     return data_ext
+
+
+def refineEnsemble(ens, lower=.5, upper=10.):
+    """Refine a PDB ensemble based on RMSD criterions.""" 
+
+    from scipy.cluster.hierarchy import linkage, fcluster
+    from scipy.spatial.distance import squareform
+    from collections import Counter
+
+    ### calculate pairwise RMSDs ###
+    RMSD = ens.getRMSDs(pairwise=True)
+
+    # convert the RMSD table to the compressed form
+    v = squareform(RMSD)
+
+    ### apply upper threshold ###
+    Z_upper = linkage(v, method='complete')
+    labels = fcluster(Z_upper, upper, criterion='distance')
+    most_common_label = Counter(labels).most_common(1)[0][0]
+    I = np.where(labels==most_common_label)[0]
+
+    ### apply lower threshold ###
+    Z_lower = linkage(v, method='single')
+    labels = fcluster(Z_lower, lower, criterion='distance')
+    uniq_labels = np.unique(labels)
+
+    clusters = []
+    for label in uniq_labels:
+        indices = np.where(labels==label)[0]
+        clusters.append(indices)
+
+    J = np.ones(len(clusters), dtype=int) * -1
+    rmsd = None
+    for i, cluster in enumerate(clusters):
+        if len(cluster) > 0:
+            # find the conformations with the largest coverage 
+            # (the weight of the ref should be 1)
+            weights = [ens[j].getWeights().sum() for j in cluster]
+            js = np.where(weights==np.max(weights))[0]
+
+            # in the case where there are multiple structures with the same weight,
+            # the one with the smallest rmsd wrt the ens._coords is selected. 
+            if len(js) > 1:
+                # rmsd is not calulated unless necessary for the sake of efficiency
+                rmsd = ens.getRMSDs() if rmsd is None else rmsd
+                j = js[np.argmin(rmsd[js])]
+            else:
+                j = js[0]
+            J[i] = cluster[j]
+        else:
+            J[i] = cluster[0]
+
+    ### refine ensemble ###
+    K = np.intersect1d(I, J)
+
+    reens = ens[K]
+
+    return reens
+
+def showVarianceBar(mode_ensemble, highlights=None, **kwargs):
+
+    from matplotlib.pyplot import figure, gca, annotate, subplots_adjust, plot
+    from matplotlib.figure import Figure
+    from matplotlib.colorbar import ColorbarBase
+    from matplotlib.colors import Normalize, NoNorm
+    from matplotlib import cm, colors
+    
+    fig = kwargs.pop('figure', None)
+
+    if isinstance(fig, Figure):
+        fig_num = fig.number
+    elif fig is None or isinstance(fig, (int, str)):
+        fig_num = fig
+    else:
+        raise TypeError('figure can be either an instance of matplotlib.figure.Figure '
+                        'or a figure number.')
+    if SETTINGS['auto_show']:
+        if fig_num is None:
+            figure(figsize=(6, 2))
+        else:
+            figure(fig_num)
+    elif fig_num is not None:
+        figure(fig_num)
+    ax = gca()
+
+    # adjust layouts
+    box = ax.get_position()
+    _, _, _, height = box.bounds
+    ratio = 2.5
+    box.y1 = box.y0 + height/ratio
+    #box.y0 += height/7.
+    ax.set_position(box)
+
+    fract = kwargs.pop('fraction', True)
+
+    #defarrow = {'width':1, 'headwidth':2, 
+    #            'facecolor':'black',
+    #            'headlength': 4}
+    defarrow = {'arrowstyle': '->'}
+    arrowprops = kwargs.pop('arrowprops', defarrow)
+
+    if fract:
+        sig = calcSignatureFractVariance(mode_ensemble)
+    else:
+        sig = mode_ensemble.getVariances() 
+
+    variances = sig.getArray().sum(axis=1)
+    #meanVar = variances.mean()
+    #stdVar = variances.std()
+    
+    #variances = (variances - meanVar)/stdVar
+
+    maxVar = variances.max()
+    minVar = variances.min()
+
+    cmap = kwargs.pop('cmap', 'jet')
+    norm = Normalize(vmin=minVar, vmax=maxVar)
+    cb = ColorbarBase(ax, cmap=cmap, norm=norm,
+                      orientation='horizontal')
+
+    if not highlights:
+        highlights = []
+
+    indices = []; labels = []
+    ens_labels = mode_ensemble.getLabels()
+    for hl in highlights:
+        if isinstance(hl, str):
+            if not ens_labels:
+                raise TypeError('highlights should be a list of integers because '
+                                    'mode_ensemble has no label')
+            indices.append(ens_labels.index(hl))
+            labels.append(hl)
+        else:
+            try:
+                index = int(hl)
+            except:
+                raise TypeError('highlights should be a list of integers or strings') 
+            indices.append(index)
+            if ens_labels:
+                labels.append(ens_labels[index])
+            else:
+                labels.append(str(index))
+
+    annotations = []
+    for i, label in zip(indices, labels):
+        x = norm(variances[i])
+        an = annotate(label, xy=(x, 1), xytext=(x, ratio), arrowprops=arrowprops)
+        annotations.append(an)
+
+    for i in range(len(variances)):
+        x = norm(variances[i])
+        plot([x, x], [0, 1], 'w')
+
+    cb.set_label('Variances')
+
+    if SETTINGS['auto_show']:
+        showFigure()
+    return cb, annotations
+    

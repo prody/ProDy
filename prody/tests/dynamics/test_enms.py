@@ -3,6 +3,7 @@
 import numpy as np
 from numpy import arange
 from numpy.testing import *
+import numpy.testing.decorators as dec
 
 from prody import *
 from prody import LOGGER

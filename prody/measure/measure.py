@@ -121,7 +121,7 @@ def calcDistance(atoms1, atoms2, unitcell=None):
         except AttributeError:
             raise TypeError('atoms2 must be Atomic instance or an array')
     if atoms1.shape[-1] != 3 or atoms2.shape[-1] != 3:
-        raise ValueError('one and two must have shape ([M,]N,3)')
+        raise ValueError('atoms1 and atoms2 must have shape ([M,]N,3)')
 
     if unitcell is not None:
         if not isinstance(unitcell, ndarray):
