@@ -247,7 +247,7 @@ def pairModes(modes1, modes2, index=False):
 
     if not (isinstance(modes1, (ModeSet, NMA)) \
         and isinstance(modes2, (ModeSet, NMA))):
-        raise TypeError('modes1 and modes2 should be ModeSet instances')
+        raise TypeError('modes1 and modes2 should be ModeSet or NMA instances')
 
     if len(modes1) != len(modes2):
         raise ValueError('the same number of modes should be provided')
@@ -258,6 +258,12 @@ def pairModes(modes1, modes2, index=False):
 
     if index:
         return row_ind, col_ind
+
+    if isinstance(modes1, ModeSet):
+        row_ind = modes1._indices[row_ind]
+
+    if isinstance(modes2, ModeSet):
+        col_ind = modes2._indices[col_ind]
 
     outmodes1 = ModeSet(modes1.getModel(), row_ind)
     outmodes2 = ModeSet(modes2.getModel(), col_ind)
