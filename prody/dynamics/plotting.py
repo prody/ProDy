@@ -492,12 +492,23 @@ def showOverlapTable(modes_x, modes_y, **kwargs):
         plt.figure()
     show = (plt.pcolor(overlap, cmap=cmap, norm=norm, **kwargs),
             plt.colorbar())
+
     x_range = np.arange(1, modes_x.numModes() + 1)
-    plt.xticks(x_range-0.5, x_range)
+    if isinstance(modes_x, ModeSet):
+        x_ticklabels = modes_x._indices+1
+    else:
+        x_ticklabels = x_range
+    plt.xticks(x_range-0.5, x_ticklabels)
     plt.xlabel(str(modes_x))
+
     y_range = np.arange(1, modes_y.numModes() + 1)
-    plt.yticks(y_range-0.5, y_range)
+    if isinstance(modes_y, ModeSet):
+        y_ticklabels = modes_y._indices+1
+    else:
+        y_ticklabels = y_range
+    plt.yticks(y_range-0.5, y_ticklabels)
     plt.ylabel(str(modes_y))
+
     plt.axis([0, modes_x.numModes(), 0, modes_y.numModes()])
     if SETTINGS['auto_show']:
         showFigure()
