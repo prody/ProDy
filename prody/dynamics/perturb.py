@@ -114,9 +114,6 @@ def calcPerturbResponse(model, atoms=None, **kwargs):
     effectiveness = np.average(norm_prs_matrix, weights=W, axis=1)
     sensitivity = np.average(norm_prs_matrix, weights=W, axis=0)
 
-    effectiveness = np.mean(norm_prs_matrix, axis=1)
-    sensitivity = np.mean(norm_prs_matrix, axis=0)
-
     #if filename:
     #    np.savetxt(filename, norm_prs_matrix, delimiter='\t', fmt='%8.6f')
 
