@@ -8,8 +8,8 @@ from prody.atomic import Atomic, AtomGroup
 from prody.proteins import parsePDB, writePDB
 from prody.utilities import importLA, checkCoords, copy
 from prody.kdtree import KDTree
-from numpy import sqrt, zeros, linalg, min, max, mean, array, ceil
-from numpy.linalg import norm
+from numpy import sqrt, zeros, linalg, min, max, mean, array, ceil, dot
+from numpy.linalg import norm, inv
 
 from .anm import ANMBase, calcANM, ANM
 from .gnm import checkENMParameters
@@ -70,10 +70,7 @@ class exANM(ANM):
         :type lat: str
         """
         
-        if isinstance(coords, Atomic):
-            atoms = coords
-        else:
-            atoms = None
+        atoms = coords
 
         try:
             coords = (coords._getCoords() if hasattr(coords, '_getCoords') else
@@ -96,6 +93,7 @@ class exANM(ANM):
         lat = str(kwargs.get('lat', 'FCC'))
         V = assign_lpvs(lat)
 
+        ## determine the bound for ijk
         imax = (R + V[0,2] * (hu - hl)/2.)/r
         jmax = (R + V[1,2] * (hu - hl)/2.)/r
         kmax = (R + V[2,2] * (hu - hl)/2.)/r    
@@ -110,7 +108,7 @@ class exANM(ANM):
             for j in range(-jmax, jmax):
                 for k in range(-kmax, kmax):
                     c = array([i, j, k])
-                    xyz = 2.*r*(c @ V)
+                    xyz = 2.*r*dot(c, V)
                     
                     if xyz[2]>hl and xyz[2]<hu and \
                        xyz[0]>-R and xyz[0]<R and \
@@ -137,10 +135,7 @@ class exANM(ANM):
             self._membrane.setNames(["Q1" for i in range(atm)])
             LOGGER.report('Membrane was built in %2.fs.', label='_membrane')
 
-            if atoms:
-                coords = self._combineMembraneProtein(atoms)
-            else:
-                coords = self._combineMembraneProtein(coords)
+            coords = self._combineMembraneProtein(atoms)
             return coords
 
     def buildHessian(self, coords, cutoff=15., gamma=1., **kwargs):
@@ -173,6 +168,8 @@ class exANM(ANM):
         :type lat: str
         """
 
+        atoms = coords
+
         try:
             coords = (coords._getCoords() if hasattr(coords, '_getCoords') else
                       coords.getCoords())
@@ -191,7 +188,7 @@ class exANM(ANM):
             R = float(kwargs.get('R', 80))
             r = float(kwargs.get('r', 5))
             lat = str(kwargs.get('lat', 'FCC'))
-            coords = self.buildMembrane(coords, membrane_hi=membrane_hi, membrane_lo=membrane_lo, R=R, r=r, lat=lat)
+            coords = self.buildMembrane(atoms, membrane_hi=membrane_hi, membrane_lo=membrane_lo, R=R, r=r, lat=lat)
         else:
             coords = self._combined.getCoords()
 
@@ -250,17 +247,11 @@ class exANM(ANM):
     def getMembrane(self):
         """Returns a copy of the membrane coordinates."""
 
-        return copy(self._membrane)
-
-    def _getMembrane(self):
         return self._membrane
 
     def getCombined(self):
         """Returns a copy of the combined atoms or coordinates."""
 
-        return copy(self._combined)
-
-    def _getCombined(self):
         return self._combined
 
     def _combineMembraneProtein(self, coords):
