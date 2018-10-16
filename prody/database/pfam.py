@@ -180,6 +180,7 @@ def searchPfam(query, **kwargs):
                     if dbref.database != 'UniProt':
                         continue
                     idcode = dbref.idcode
+                    accession = dbref.accession
                     LOGGER.info('UniProt ID code {0} for {1} chain '
                                 '{2} will be used.'
                                 .format(idcode, seq[:4], poly.chid))
@@ -216,6 +217,17 @@ def searchPfam(query, **kwargs):
     if xml.find(b'There was a system error on your last request.') > 0:
         LOGGER.warn('No Pfam matches found for: ' + seq)
         return None
+    elif xml.find(b'No valid UniProt accession or ID') > 0:
+        try:
+            url = prefix + 'protein/' + accession + '?output=xml'
+            xml = openURL(url, timeout=timeout).read()
+        except:
+            try:
+                ag = parsePDB(seq, subset='ca')
+                ag_seq = ag.getSequence()
+                return searchPfam(ag_seq)
+            except:
+                raise ValueError('No valid UniProt accession or ID for: ' + seq)
 
     try:
         root = ET.XML(xml)
@@ -557,7 +569,12 @@ def parsePfamPDBs(query, data=[], **kwargs):
         data_dict = data_dicts[i]
         pfamRange = data_dict['UniprotResnumRange'].split('-')
         uniprotAcc = data_dict['UniprotAcc']
-        uniData = queryUniprot(uniprotAcc)
+        try:
+            uniData = queryUniprot(uniprotAcc)
+        except:
+            LOGGER.warn('No Uniprot record found for {0}'.format(data_dict['PBD_ID']))
+            continue
+
         resrange = None
         found = False
         for key, value in uniData.items():
@@ -583,17 +600,23 @@ def parsePfamPDBs(query, data=[], **kwargs):
             if found:
                 break
 
-        multi = False
         if found:
             header = headers[i]
             chain_accessions = [dbref.accession 
                                 for dbref in header[data_dict['chain']].dbrefs]
-            if len(chain_accessions) > 1:
-                multi = True
-            else:
-                multi = False
-            right_part = np.where(np.array(chain_accessions) == 
-                                  data_dict['UniprotAcc'])[0][0]
+            try:
+                if len(chain_accessions) > 0:
+                    right_part = np.where(np.array(chain_accessions) == 
+                                        data_dict['UniprotAcc'])[0][0]
+                else:
+                    raise ValueError('There is no accession for a chain in the Header')
+            except:
+                LOGGER.warn('Could not map domains in {0}'
+                            .format(data_dict['PDB_ID'] 
+                            + data_dict['chain']))
+                no_info.append(i)
+                continue
+
             right_dbref = header[data_dict['chain']].dbrefs[right_part]
             chainStart = ag.select('chain {0}'.format(data_dict['chain'])
                                   ).getResnums()[0]

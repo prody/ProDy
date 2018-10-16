@@ -7,6 +7,8 @@ from numpy import sign, arange, asarray, ndarray, subtract, power
 from collections import Counter
 import numbers
 
+from prody import PY3K
+
 from xml.etree.ElementTree import Element
 
 __all__ = ['Everything', 'rangeString', 'alnum', 'importLA', 'dictElement',
@@ -14,7 +16,7 @@ __all__ = ['Everything', 'rangeString', 'alnum', 'importLA', 'dictElement',
            'saxsWater', 'count', 'addEnds', 'copy', 'dictElementLoop', 
            'getDataPath', 'openData', 'chr2', 'toChararray', 'interpY', 'cmp',
            'getValue', 'indentElement', 'isPDB', 'isURL', 'isListLike',
-           'getDistance']
+           'getDistance', 'fastin', 'createStringIO']
 
 # Note that the chain id can be blank (space). Examples:
 # 3TT1, 3tt1A, 3tt1:A, 3tt1_A, 3tt1-A, 3tt1 A
@@ -30,13 +32,11 @@ isURL = re.compile(
         r'(?:/?|[/?]\S+)$', re.IGNORECASE).match
 
 class Everything(object):
-
     """A place for everything."""
 
     def __contains__(self, what):
 
         return True
-
 
 def rangeString(lint, sep=' ', rng=' to ', exc=False, pos=True):
     """Returns a structured string for a given list of integers.
@@ -107,6 +107,12 @@ def importLA():
                               'NMA and structure alignment calculations')
     return linalg
 
+def createStringIO():
+    if PY3K:
+        from io import StringIO
+    else:
+        from StringIO import StringIO
+    return StringIO()
 
 def dictElement(element, prefix=None, number_multiples=False):
     """Returns a dictionary built from the children of *element*, which must be
@@ -369,3 +375,9 @@ def getDistance(coords1, coords2, unitcell=None):
     if unitcell is not None:
         diff = subtract(diff, round(diff/unitcell)*unitcell, diff)
     return sqrt(power(diff, 2, diff).sum(axis=-1))
+
+def fastin(a, B):
+    for b in reversed(B):
+        if a is b:
+            return True
+    return False

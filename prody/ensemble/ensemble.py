@@ -40,8 +40,13 @@ class Ensemble(object):
 
         self._confs = None       # coordinate sets
 
+        if isinstance(title, Ensemble):
+            self._atoms = title.getAtoms()
+        elif isinstance(title, Atomic):
+            self._atoms = title
+
         if isinstance(title, (Atomic, Ensemble)):
-            self.setCoords(title.getCoords())
+            self.setCoords(title)
             self.addCoordset(title)
 
     def __repr__(self):
@@ -111,7 +116,7 @@ class Ensemble(object):
         if not isinstance(other, Ensemble):
             raise TypeError('an Ensemble instance cannot be added to an {0} '
                             'instance'.format(type(other)))
-        elif self.numAtoms() != other.numAtoms():
+        elif self._n_atoms != other._n_atoms:
             raise ValueError('Ensembles must have same number of atoms.')
 
         ensemble = Ensemble('{0} + {1}'.format(self.getTitle(),
@@ -126,9 +131,9 @@ class Ensemble(object):
         if self._weights is not None:
             LOGGER.info('Atom weights from {0} are used in {1}.'
                         .format(repr(self._title), repr(ensemble.getTitle())))
-            ensemble.setWeights(self._weights)
+            ensemble.setWeights(self._weights.copy())
         elif other._weights is not None:
-            ensemble.setWeights(other._weights)
+            ensemble.setWeights(other._weights.copy())
         
         if self._atoms is not None:
             ensemble.setAtoms(self._atoms)
@@ -157,9 +162,10 @@ class Ensemble(object):
 
         self._title = str(title)
 
-    def numAtoms(self):
+    def numAtoms(self, selected=True):
         """Returns number of atoms."""
-
+        if selected:
+            return self.numSelected()
         return self._n_atoms
 
     def numConfs(self):
@@ -425,11 +431,11 @@ class Ensemble(object):
         raise IndexError('indices must be an integer, a list/array of '
                          'integers, a slice, or None')
 
-    def _getCoordsets(self, indices=None):
+    def _getCoordsets(self, indices=None, selected=True):
 
         if self._confs is None:
             return None
-        if self._indices is None:
+        if self._indices is None or not selected:
             if indices is None:
                 return self._confs
             try:
@@ -669,8 +675,8 @@ class Ensemble(object):
             n_confs = self.numConfs()
             RMSDs = zeros((n_confs, n_confs))
             for i in range(n_confs):
-                for j in range(n_confs):
-                    RMSDs[i, j] = getRMSD(self._confs[i, indices], self._confs[j, indices], weights)
+                for j in range(i+1, n_confs):
+                    RMSDs[i, j] = RMSDs[j, i] = getRMSD(self._confs[i, indices], self._confs[j, indices], weights)
         else:
             RMSDs = getRMSD(self._coords[indices], self._confs[:, indices], weights)
 

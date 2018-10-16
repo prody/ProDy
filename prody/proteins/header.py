@@ -311,7 +311,8 @@ def getHeaderDict(stream, *keys):
             break
         lines[startswith].append((loc, line))
     if not loc:
-        raise ValueError('empty PDB file or stream')
+        #raise ValueError('empty PDB file or stream')
+        return None, loc
     for i, line in lines['REMARK']:
         lines[line[:10]].append((i, line))
 

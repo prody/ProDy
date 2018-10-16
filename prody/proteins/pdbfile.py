@@ -118,7 +118,8 @@ def parsePDB(*pdb, **kwargs):
             kwargs = {}
             for key in lstkwargs:
                 kwargs[key] = lstkwargs[key][i]
-            LOGGER.update(i, 'Retrieving {0}...'.format(p), 
+            c = kwargs.get('chain','')
+            LOGGER.update(i, 'Retrieving {0}...'.format(p+c), 
                           label='_prody_parsePDB')
             result = _parsePDB(p, **kwargs)
             if not isinstance(result, tuple):
@@ -138,8 +139,15 @@ def parsePDB(*pdb, **kwargs):
             results = results[0]
         results = list(results)
 
+        model = kwargs.get('model')
+        header = kwargs.get('header', False)
+        if model != 0 and header:
+            numPdbs = len(results[0])
+        else:
+            numPdbs = len(results)
+
         LOGGER.info('{0} PDBs were parsed in {1:.2f}s.'
-                     .format(len(results), time.time()-start))
+                     .format(numPdbs, time.time()-start))
 
         return results
 
@@ -266,7 +274,7 @@ def parsePDBStream(stream, **kwargs):
         else:
             ag = None
             LOGGER.warn('Atomic data could not be parsed, please '
-                            'check the input file.')
+                        'check the input file.')
     elif header:
         hd, split = getHeaderDict(stream)
 
@@ -407,6 +415,7 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
     altlocs = np.zeros(asize, dtype=ATOMIC_FIELDS['altloc'].dtype)
     icodes = np.zeros(asize, dtype=ATOMIC_FIELDS['icode'].dtype)
     serials = np.zeros(asize, dtype=ATOMIC_FIELDS['serial'].dtype)
+    charges = np.zeros(asize, dtype=ATOMIC_FIELDS['charge'].dtype)
     if isPDB:
         segnames = np.zeros(asize, dtype=ATOMIC_FIELDS['segment'].dtype)
         elements = np.zeros(asize, dtype=ATOMIC_FIELDS['element'].dtype)
@@ -414,7 +423,6 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
         occupancies = np.zeros(asize, dtype=ATOMIC_FIELDS['occupancy'].dtype)
         anisou = None
         siguij = None
-        charges = np.zeros(asize, dtype=ATOMIC_FIELDS['charge'].dtype)
     else:
         radii = np.zeros(asize, dtype=ATOMIC_FIELDS['radius'].dtype)
 
@@ -482,11 +490,12 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                 coordinates[acount, 2] = line[46:54]
             except:
                 if acount >= n_atoms > 0:
-                    if nmodel ==0:
+                    if nmodel == 0:
                         raise ValueError(format + 'file and AtomGroup ag must '
                                          'have same number of atoms')
-                    LOGGER.warn('Discarding model {0}, which contains more '
-                            'atoms than first model does.'.format(nmodel+1))
+                    LOGGER.warn('Discarding model {0}, which contains {1} more '
+                                'atoms than first model does.'
+                                .format(nmodel+1,acount-n_atoms+1))
                     acount = 0
                     nmodel += 1
                     coordinates = np.zeros((n_atoms, 3), dtype=float)

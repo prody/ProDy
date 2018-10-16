@@ -282,7 +282,7 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
     
     vmin = kwargs.pop('vmin', vmin)
     vmax = kwargs.pop('vmax', vmax)
-    
+    lw   = kwargs.pop('linewidth', 1)
     
     W = H = kwargs.pop('ratio', 6)
 
@@ -359,7 +359,7 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
             xp, yp = interpY(y)
             points = np.array([xp, yp]).T.reshape(-1, 1, 2)
             segments = np.concatenate([points[:-1], points[1:]], axis=1)
-            lcy = LineCollection(segments, array=yp, linewidths=1, cmap='jet')
+            lcy = LineCollection(segments, array=yp, linewidths=lw, cmap='jet')
             lines.append(lcy)
             ax1.add_collection(lcy)
 
@@ -379,7 +379,7 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
             xp, yp = interpY(y)
             points = np.array([yp, xp]).T.reshape(-1, 1, 2)
             segments = np.concatenate([points[:-1], points[1:]], axis=1)
-            lcx = LineCollection(segments, array=yp, linewidths=1, cmap='jet')
+            lcx = LineCollection(segments, array=yp, linewidths=lw, cmap='jet')
             lines.append(lcx)
             ax2.add_collection(lcx)
             ax2.set_xlim(yp.min(), yp.max())
