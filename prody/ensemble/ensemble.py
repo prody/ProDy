@@ -40,8 +40,13 @@ class Ensemble(object):
 
         self._confs = None       # coordinate sets
 
+        if isinstance(title, Ensemble):
+            self._atoms = title.getAtoms()
+        elif isinstance(title, Atomic):
+            self._atoms = title
+
         if isinstance(title, (Atomic, Ensemble)):
-            self.setCoords(title.getCoords())
+            self.setCoords(title)
             self.addCoordset(title)
 
     def __repr__(self):
@@ -426,11 +431,11 @@ class Ensemble(object):
         raise IndexError('indices must be an integer, a list/array of '
                          'integers, a slice, or None')
 
-    def _getCoordsets(self, indices=None):
+    def _getCoordsets(self, indices=None, selected=True):
 
         if self._confs is None:
             return None
-        if self._indices is None:
+        if self._indices is None or not selected:
             if indices is None:
                 return self._confs
             try:
