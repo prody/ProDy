@@ -39,8 +39,8 @@ def saveModel(nma, filename=None, matrices=False, **kwargs):
 
     if not isinstance(nma, NMA):
         raise TypeError('invalid type for nma, {0}'.format(type(nma)))
-    if len(nma) == 0:
-        raise ValueError('nma instance does not contain data')
+    #if len(nma) == 0:
+    #    raise ValueError('nma instance does not contain data')
 
     dict_ = nma.__dict__
     attr_list = ['_title', '_trace', '_array', '_eigvals', '_vars', '_n_atoms',
