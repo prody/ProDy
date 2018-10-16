@@ -30,9 +30,9 @@ class PDBEnsemble(Ensemble):
     def __init__(self, title='Unknown'):
 
         self._labels = []
-        Ensemble.__init__(self, title)
         self._trans = None
         self._msa = None
+        Ensemble.__init__(self, title)
 
     def __repr__(self):
 
