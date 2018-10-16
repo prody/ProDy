@@ -8,7 +8,8 @@ from prody.atomic import Atomic, AtomGroup
 from prody.proteins import parsePDB, writePDB
 from prody.utilities import importLA, checkCoords, copy
 from prody.kdtree import KDTree
-from numpy import sqrt, zeros, linalg, min, max, mean
+from numpy import sqrt, zeros, linalg, min, max, mean, array, ceil
+from numpy.linalg import norm
 
 from .anm import ANMBase, calcANM, ANM
 from .gnm import checkENMParameters
@@ -61,7 +62,7 @@ class exANM(ANM):
         :arg R: radius of all membrane in x-y direction default is 80. 
         :type R: float
 
-        :arg r: radius of individual barrel-type membrane protein default is 2.5.
+        :arg r: radius of individual barrel-type membrane protein default is 5.
         :type r: float
         
         :arg lat: lattice type which could be FCC(face-centered-cubic)(default), 
@@ -69,6 +70,11 @@ class exANM(ANM):
         :type lat: str
         """
         
+        if isinstance(coords, Atomic):
+            atoms = coords
+        else:
+            atoms = None
+
         try:
             coords = (coords._getCoords() if hasattr(coords, '_getCoords') else
                       coords.getCoords())
@@ -82,52 +88,45 @@ class exANM(ANM):
         self._n_atoms = natoms = int(coords.shape[0])
 
         LOGGER.timeit('_membrane')
-        pxlo = min(np.append(coords[:,0],10000))
-        pxhi = max(np.append(coords[:,0],-10000))
-        pylo = min(np.append(coords[:,1],10000))
-        pyhi = max(np.append(coords[:,1],-10000))
-        pzlo = min(np.append(coords[:,2],10000))
-        pzhi = max(np.append(coords[:,2],-10000))
 
-        membrane_hi = float(kwargs.get('membrane_hi', 13.0))
-        membrane_lo = float(kwargs.get('membrane_lo', -13.0))
+        hu = float(kwargs.get('membrane_hi', 13.0))
+        hl = float(kwargs.get('membrane_lo', -13.0))
         R = float(kwargs.get('R', 80))
         r = float(kwargs.get('r', 5))
         lat = str(kwargs.get('lat', 'FCC'))
-        lpv = assign_lpvs(lat)
+        V = assign_lpvs(lat)
 
-        imax = (R + lpv[0,2] * (membrane_hi - membrane_lo)/2.)/r
-        jmax = (R + lpv[1,2] * (membrane_hi - membrane_lo)/2.)/r
-        kmax = (R + lpv[2,2] * (membrane_hi - membrane_lo)/2.)/r    
+        imax = (R + V[0,2] * (hu - hl)/2.)/r
+        jmax = (R + V[1,2] * (hu - hl)/2.)/r
+        kmax = (R + V[2,2] * (hu - hl)/2.)/r    
 
-        #print pxlo, pxhi, pylo, pyhi, pzlo, pzhi
-        #print lpv[0,2],lpv[1,2],lpv[2,2]
-        #print R,r,imax,jmax,kmax
-        #membrane = zeros((1,3))
-        
-        membrane = None
+        imax = int(ceil(imax))
+        jmax = int(ceil(jmax))
+        kmax = int(ceil(kmax))
+
+        membrane = []
         atm = 0
-        for i in range(-int(imax),int(imax+1)):
-            for j in range(-int(jmax),int(jmax+1)):
-                for k in range(-int(kmax),int(kmax+1)):
-                    X = zeros((1,3))
-                    for p in range(3):
-                        X[0,p]=2.*r*(i*lpv[0,p]+j*lpv[1,p]+k*lpv[2,p])
-                    dd=0
-                    for p in range(3):
-                        dd += X[0,p] ** 2
-                    if dd<R**2 and X[0,2]>membrane_lo and X[0,2]<membrane_hi:
-                        if X[0,0]>pxlo-R/2 and X[0,0]<pxhi+R/2 and X[0,1]>pylo-R/2 and X[0,1]<pyhi+R/2 and X[0,2]>pzlo and X[0,2]<pzhi:
-                            if checkClash(X, coords[:natoms,:], radius=5):
-                                if atm == 0:
-                                    membrane = X
-                                else:
-                                    membrane = np.append(membrane, X, axis=0)
+        for i in range(-imax, imax):
+            for j in range(-jmax, jmax):
+                for k in range(-kmax, kmax):
+                    c = array([i, j, k])
+                    xyz = 2.*r*(c @ V)
+                    
+                    if xyz[2]>hl and xyz[2]<hu and \
+                       xyz[0]>-R and xyz[0]<R and \
+                       xyz[1]>-R and xyz[1]<R:
+                        dd = norm(xyz[:2])
+                        if dd<R:
+                            if checkClash(xyz, coords[:natoms,:], radius=5):
+                                membrane.append(xyz)
                                 atm = atm + 1 
+
+        membrane = array(membrane)
 
         if membrane is None:
             self._membrane = None
             LOGGER.warn('no membrane is built. The protein should be transformed to the correct origin as in OPM')
+            return coords
         else:
             self._membrane = AtomGroup(title="Membrane")
             self._membrane.setCoords(membrane)
@@ -137,6 +136,12 @@ class exANM(ANM):
             self._membrane.setElements(["Q1" for i in range(atm)])
             self._membrane.setNames(["Q1" for i in range(atm)])
             LOGGER.report('Membrane was built in %2.fs.', label='_membrane')
+
+            if atoms:
+                coords = self._combineMembraneProtein(atoms)
+            else:
+                coords = self._combineMembraneProtein(coords)
+            return coords
 
     def buildHessian(self, coords, cutoff=15., gamma=1., **kwargs):
         """Build Hessian matrix for given coordinate set.
@@ -168,11 +173,6 @@ class exANM(ANM):
         :type lat: str
         """
 
-        if isinstance(coords, Atomic):
-            atoms = coords
-        else:
-            atoms = None
-
         try:
             coords = (coords._getCoords() if hasattr(coords, '_getCoords') else
                       coords.getCoords())
@@ -191,15 +191,11 @@ class exANM(ANM):
             R = float(kwargs.get('R', 80))
             r = float(kwargs.get('r', 5))
             lat = str(kwargs.get('lat', 'FCC'))
-            self.buildMembrane(coords, membrane_hi=membrane_hi, membrane_lo=membrane_lo, R=R, r=r, lat=lat)
-
+            coords = self.buildMembrane(coords, membrane_hi=membrane_hi, membrane_lo=membrane_lo, R=R, r=r, lat=lat)
+        else:
+            coords = self._combined.getCoords()
 
         LOGGER.timeit('_exanm')
-        
-        if atoms:
-            coords = self._combineMembraneProtein(atoms)
-        else:
-            coords = self._combineMembraneProtein(coords)
 
         total_natoms = int(coords.shape[0])
         self._hessian = np.zeros((natoms*3, natoms*3), float)
