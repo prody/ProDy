@@ -65,8 +65,8 @@ class exANM(ANM):
         :arg r: radius of each membrane node. Default is **5**
         :type r: float
         
-        :arg lat: lattice type which could be FCC(face-centered-cubic)(default), 
-                  SC(simple cubic), SH(simple hexagonal)
+        :arg lat: lattice type which could be **FCC** (face-centered-cubic, default), 
+                  **SC** (simple cubic), **SH** (simple hexagonal)
         :type lat: str
 
         :arg exr: exclusive radius of each protein node. Default is **5.0**
