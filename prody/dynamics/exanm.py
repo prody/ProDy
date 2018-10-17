@@ -59,14 +59,14 @@ class exANM(ANM):
         :arg membrane_lo: the minimum z coordinate of the membrane. Default is **-13.0**
         :type membrane_lo: float
 
-        :arg R: radius of all membrane in x-y direction default is **80**. 
+        :arg R: radius of all membrane in x-y direction. Default is **80**
         :type R: float
 
-        :arg r: radius of each membrane node. Default is **5**.
+        :arg r: radius of each membrane node. Default is **5**
         :type r: float
         
         :arg lat: lattice type which could be FCC(face-centered-cubic)(default), 
-        SC(simple cubic), SH(simple hexagonal)
+                  SC(simple cubic), SH(simple hexagonal)
         :type lat: str
 
         :arg exr: exclusive radius of each protein node. Default is **5.0**
