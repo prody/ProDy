@@ -71,6 +71,10 @@ class exANM(ANM):
 
         :arg exr: exclusive radius of each protein node. Default is **5.0**
         :type exr: float
+
+        :arg hull: whether use convex hull to determine the protein's interior. 
+                          Turn it off if protein is multimer. Default is **True**
+        :type hull: bool
         """
         
         atoms = coords
@@ -95,12 +99,19 @@ class exANM(ANM):
         r = float(kwargs.pop('r', 5.))
         lat = str(kwargs.pop('lat', 'FCC'))
         exr = float(kwargs.pop('exr', 5.))
+        use_hull = kwargs.pop('hull', True)
         
         V = assign_lpvs(lat)
 
         # determine transmembrane part
         torf = np.logical_and(coords[:, -1] < hu, coords[:, -1] > hl)
         transmembrane = coords[torf, :]
+
+        if use_hull:
+            from scipy.spatial import ConvexHull
+            hull = ConvexHull(transmembrane)
+        else:
+            hull = transmembrane
 
         ## determine the bound for ijk
         imax = (R + V[0,2] * (hu - hl)/2.)/r
@@ -124,7 +135,7 @@ class exANM(ANM):
                        xyz[1]>-R and xyz[1]<R:
                         dd = norm(xyz[:2])
                         if dd<R:
-                            if checkClash(xyz, transmembrane, radius=exr):
+                            if checkClash(xyz, hull, radius=exr):
                                 membrane.append(xyz)
                                 atm = atm + 1 
 
@@ -208,10 +219,10 @@ class exANM(ANM):
                 total_hessian[res_j3:res_j33, res_j3:res_j33] = total_hessian[res_j3:res_j33, res_j3:res_j33] - super_element
 
         ss = total_hessian[:natoms*3, :natoms*3]
-        so = total_hessian[:natoms*3, natoms*3+1:]
-        os = total_hessian[natoms*3+1:,:natoms*3]
-        oo = total_hessian[natoms*3+1:, natoms*3+1:]
-        self._hessian = ss - np.dot(so, np.dot(linalg.inv(oo), os))
+        so = total_hessian[:natoms*3, natoms*3:]
+        os = total_hessian[natoms*3:,:natoms*3]
+        oo = total_hessian[natoms*3:, natoms*3:]
+        self._hessian = ss - np.dot(so, np.dot(linalg.pinv(oo), os))
         LOGGER.report('Hessian was built in %.2fs.', label='_exanm')
         self._dof = self._hessian.shape[0]
     
@@ -277,15 +288,30 @@ def assign_lpvs(lat):
         lpv[2,2]=1.
     return lpv
 
-def checkClash(node, system, radius=5.):
+def checkClash(node, hull, radius=5.):
     """ Check there is a clash between given coordinate and all pdb coordinates.
     **False** for clashing and **True** for not clashing."""
 
-    lb = system.min(axis=0)
-    ub = system.max(axis=0)
+    if isinstance(hull, np.ndarray):
+        H = hull
+        ishull = False
+    else:
+        H = hull.points[hull.vertices, :]
+        ishull = True
+
+    lb = H.min(axis=0)
+    ub = H.max(axis=0)
     if np.all(node > ub) or np.all(node < lb):
         return True
-    for coord in system:
+    
+    if ishull:
+        in_hull = all([dot(eq[:-1], node) + eq[-1] <= 0 
+                    for eq in hull.equations])
+
+        if in_hull:
+            return False
+
+    for coord in H:
         if linalg.norm(node-coord)<radius:
             return False
     return True
