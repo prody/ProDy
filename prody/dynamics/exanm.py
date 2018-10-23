@@ -73,8 +73,12 @@ class exANM(ANM):
         :type exr: float
 
         :arg hull: whether use convex hull to determine the protein's interior. 
-                          Turn it off if protein is multimer. Default is **True**
+                   Turn it off if protein is multimer. Default is **True**
         :type hull: bool
+
+        :arg center: whether transform the structure to the origin (only x- and y-axis). 
+                     Default is **True**
+        :type center: bool
         """
         
         atoms = coords
@@ -100,9 +104,14 @@ class exANM(ANM):
         lat = str(kwargs.pop('lat', 'FCC'))
         exr = float(kwargs.pop('exr', 5.))
         use_hull = kwargs.pop('hull', True)
+        centering = kwargs.pop('center', True)
         
         V = assign_lpvs(lat)
 
+        if centering:
+            c0 = coords.mean(axis=0)
+            c0[-1] = 0.
+            coords -= c0
         # determine transmembrane part
         torf = np.logical_and(coords[:, -1] < hu, coords[:, -1] > hl)
         transmembrane = coords[torf, :]
@@ -222,7 +231,7 @@ class exANM(ANM):
         so = total_hessian[:natoms*3, natoms*3:]
         os = total_hessian[natoms*3:,:natoms*3]
         oo = total_hessian[natoms*3:, natoms*3:]
-        self._hessian = ss - np.dot(so, np.dot(linalg.pinv(oo), os))
+        self._hessian = ss - np.dot(so, np.dot(linalg.inv(oo), os))
         LOGGER.report('Hessian was built in %.2fs.', label='_exanm')
         self._dof = self._hessian.shape[0]
     
