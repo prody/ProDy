@@ -97,8 +97,14 @@ class exANM(ANM):
 
         LOGGER.timeit('_membrane')
 
-        hu = float(kwargs.pop('membrane_hi', 13.0))
-        hl = float(kwargs.pop('membrane_lo', -13.0))
+        h = kwargs.pop('h', None)
+        if h is not None:
+            h = float(h)
+            hu = h
+            hl = -h
+        else:
+            hu = float(kwargs.pop('membrane_hi', 13.0))
+            hl = float(kwargs.pop('membrane_lo', -13.0))
         R = float(kwargs.pop('R', 80.))
         r = float(kwargs.pop('r', 3.1))
         lat = str(kwargs.pop('lat', 'FCC'))
