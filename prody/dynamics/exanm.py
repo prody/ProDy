@@ -62,7 +62,7 @@ class exANM(ANM):
         :arg R: radius of all membrane in x-y direction. Default is **80**
         :type R: float
 
-        :arg r: radius of each membrane node. Default is **2.5**
+        :arg r: radius of each membrane node. Default is **3.1**
         :type r: float
         
         :arg lat: lattice type which could be **FCC** (face-centered-cubic, default), 
@@ -100,7 +100,7 @@ class exANM(ANM):
         hu = float(kwargs.pop('membrane_hi', 13.0))
         hl = float(kwargs.pop('membrane_lo', -13.0))
         R = float(kwargs.pop('R', 80.))
-        r = float(kwargs.pop('r', 2.5))
+        r = float(kwargs.pop('r', 3.1))
         lat = str(kwargs.pop('lat', 'FCC'))
         exr = float(kwargs.pop('exr', 5.))
         use_hull = kwargs.pop('hull', True)
