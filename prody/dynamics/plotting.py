@@ -495,7 +495,7 @@ def showOverlapTable(modes_x, modes_y, **kwargs):
 
     x_range = np.arange(1, modes_x.numModes() + 1)
     if isinstance(modes_x, ModeSet):
-        x_ticklabels = modes_x._indices
+        x_ticklabels = modes_x._indices+1
     else:
         x_ticklabels = x_range
     plt.xticks(x_range-0.5, x_ticklabels)
@@ -503,7 +503,7 @@ def showOverlapTable(modes_x, modes_y, **kwargs):
 
     y_range = np.arange(1, modes_y.numModes() + 1)
     if isinstance(modes_y, ModeSet):
-        y_ticklabels = modes_y._indices
+        y_ticklabels = modes_y._indices+1
     else:
         y_ticklabels = y_range
     plt.yticks(y_range-0.5, y_ticklabels)
@@ -1102,7 +1102,7 @@ def showPerturbResponse(model, atoms=None, show_matrix=True, select=None, **kwar
             for i, profile in enumerate(profiles):
                 if i == len(profiles)-1:  # last iteration turn the domain/chain bar back on
                     final = True
-                show.append(showAtomicLines(profile, atoms, final=final, **kwargs))
+                show.append(showAtomicLines(profile, atoms=atoms, final=final, **kwargs))
 
             xlabel('Residues')
     

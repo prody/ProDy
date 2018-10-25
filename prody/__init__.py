@@ -122,6 +122,11 @@ from .chromatin import *
 __all__.extend(chromatin.__all__)
 __all__.append('chromatin')
 
+from . import domain_decomposition
+from .domain_decomposition import *
+__all__.extend(domain_decomposition.__all__)
+__all__.append('domain_decomposition')
+
 #from . import comd
 #from .comd import *
 #__all__.extend(comd.__all__)
