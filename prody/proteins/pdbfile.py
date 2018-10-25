@@ -461,33 +461,60 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
     END = False
     while i < stop:
         line = lines[i]
-        startswith = line[0:6]
+        if not isPDB:
+            fields = line.split()
+            if len(fields) == 10:
+                fields.insert(4, '')
+            elif len(fields) != 11:
+                LOGGER.warn('wrong number of fields for PQR format at line %d'%i)
+                i += 1
+                continue
 
-        if startswith == 'ATOM  ' or startswith == 'HETATM':
-            if only_subset:
+        if isPDB:
+            startswith = line[0:6].strip()
+        else:
+            startswith = fields[0]
+        
+        if startswith == 'ATOM' or startswith == 'HETATM':
+            if isPDB:
                 atomname = line[12:16].strip()
                 resname = line[17:21].strip()
+            else:
+                atomname= fields[2]
+                resname = fields[3]
+
+            if only_subset:
                 if not (atomname in subset and resname in protein_resnames):
                     i += 1
                     continue
-            else:
-                atomname = line[12:16]
-                resname = line[17:21]
 
-            chid = line[21]
+            if isPDB:
+                chid = line[21]
+            else:
+                chid = fields[4]
+
             if only_chains:
                 if not chid in chain:
                     i += 1
                     continue
-            alt = line[16]
-            if alt not in which_altlocs:
-                altloc[alt].append((line, i))
-                i += 1
-                continue
+            
+            if isPDB:
+                alt = line[16]
+                if alt not in which_altlocs:
+                    altloc[alt].append((line, i))
+                    i += 1
+                    continue
+            else:
+                alt = ' '
             try:
-                coordinates[acount, 0] = line[30:38]
-                coordinates[acount, 1] = line[38:46]
-                coordinates[acount, 2] = line[46:54]
+                if isPDB:
+                    coordinates[acount, 0] = line[30:38]
+                    coordinates[acount, 1] = line[38:46]
+                    coordinates[acount, 2] = line[46:54]
+                else:
+                    coordinates[acount, 0] = fields[6]
+                    coordinates[acount, 1] = fields[7]
+                    coordinates[acount, 2] = fields[8]
             except:
                 if acount >= n_atoms > 0:
                     if nmodel == 0:
@@ -499,8 +526,9 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                     acount = 0
                     nmodel += 1
                     coordinates = np.zeros((n_atoms, 3), dtype=float)
-                    while lines[i][:6] != 'ENDMDL':
-                        i += 1
+                    if isPDB:
+                        while lines[i][:6] != 'ENDMDL':
+                            i += 1
                 else:
                     raise PDBParseError('invalid or missing coordinate(s) at '
                                          'line {0}'.format(i+1))
@@ -510,10 +538,10 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                 continue
 
             try:
-                serials[acount] = line[6:11]
+                serials[acount] = int(line[6:11]) if isPDB else int(fields[1])
             except ValueError:
                 try:
-                    serials[acount] = int(line[6:11], 16)
+                    serials[acount] = int(line[6:11], 16) if isPDB else int(fields[1], 16)
                 except ValueError:
                     LOGGER.warn('failed to parse serial number in line {0}'
                                 .format(i))
@@ -522,8 +550,18 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
             atomnames[acount] = atomname
             resnames[acount] = resname
             chainids[acount] = chid
-            resnums[acount] = line[22:26]#.split()[0])
-            icodes[acount] = line[26]
+            if isPDB:
+                resnums[acount] = line[22:26] 
+                icodes[acount] = line[26] 
+            else:
+                resnum = fields[5]
+                if resnum[-1].isalpha():
+                    icode = resnum[-1]
+                else:
+                    icode = ' '
+                resnums[acount] = resnum
+                icodes[acount] = icode
+
             if isPDB:
                 try:
                     occupancies[acount] = line[54:60]
@@ -544,12 +582,12 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                     charges[acount] = 0
             else:
                 try:
-                    charges[acount] = line[54:62]
+                    charges[acount] = fields[9]
                 except:
                     LOGGER.warn('failed to parse charge at line {0}'
                                 .format(i))
                 try:
-                    radii[acount] = line[62:69]
+                    radii[acount] = fields[10]
                 except:
                     LOGGER.warn('failed to parse radius at line {0}'
                                 .format(i))
