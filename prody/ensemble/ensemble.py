@@ -89,7 +89,10 @@ class Ensemble(object):
             ens = Ensemble('{0} ({1[0]}:{1[1]}:{1[2]})'.format(
                                 self._title, index.indices(len(self))))
             ens.setCoords(copy(self._coords))
-            ens._data = self._data[index].copy()
+        
+            for key in list(self._data.keys()):
+                ens._data[key] = self._data[key][index].copy()
+
             ens.addCoordset(self._confs[index].copy())
             if self._weights is not None:
                 ens.setWeights(self._weights.copy())
