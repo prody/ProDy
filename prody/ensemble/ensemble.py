@@ -4,11 +4,12 @@
 from numbers import Integral
 
 from numpy import dot, add, subtract, array, ndarray, sign, concatenate
-from numpy import zeros, ones, arange, isscalar, max
+from numpy import zeros, ones, arange, isscalar, max, asarray
 from numpy import newaxis, unique, repeat
 
 from prody import LOGGER
 from prody.atomic import Atomic, sliceAtoms
+from prody.atomic.atomgroup import checkLabel
 from prody.measure import getRMSD
 from prody.utilities import importLA, checkCoords, checkWeights, copy
 
@@ -39,6 +40,7 @@ class Ensemble(object):
         self._indices = None  # indices of selected atoms
 
         self._confs = None       # coordinate sets
+        self._data = dict()
 
         if isinstance(title, Ensemble):
             self._atoms = title.getAtoms()
@@ -87,6 +89,7 @@ class Ensemble(object):
             ens = Ensemble('{0} ({1[0]}:{1[1]}:{1[2]})'.format(
                                 self._title, index.indices(len(self))))
             ens.setCoords(copy(self._coords))
+            ens._data = self._data
             ens.addCoordset(self._confs[index].copy())
             if self._weights is not None:
                 ens.setWeights(self._weights.copy())
@@ -681,3 +684,87 @@ class Ensemble(object):
             RMSDs = getRMSD(self._coords[indices], self._confs[:, indices], weights)
 
         return RMSDs
+
+    def setData(self, label, data):
+        """Store atomic *data* under *label*, which must:
+
+            * start with a letter
+            * contain only alphanumeric characters and underscore
+            * not be a reserved word (see :func:`.listReservedWords`)
+
+        *data* must be a :func:`list` or a :class:`~numpy.ndarray` and its
+        length must be equal to the number of atoms.  If the dimension of the
+        *data* array is 1, i.e. ``data.ndim==1``, *label* may be used to make
+        atom selections, e.g. ``"label 1 to 10"`` or ``"label C1 C2"``.  Note
+        that, if data with *label* is present, it will be overwritten."""
+
+        label = checkLabel(label)
+
+        if isscalar(data):
+            data = [data] * self._n_csets
+            
+        data = asarray(data)
+        ndim, dtype, shape = data.ndim, data.dtype, data.shape
+
+        if ndim == 1 and dtype == bool:
+            raise TypeError('1 dimensional boolean arrays are not '
+                            'accepted, use `setFlags` instead')
+
+        if len(data) != self._n_csets:
+            raise ValueError('len(data) must match number of coordinate sets')
+
+        self._data[label] = data
+
+    def delData(self, label):
+        """Return data associated with *label* and remove from the instance.
+        If data associated with *label* is not found, return **None**."""
+
+        return self._data.pop(label, None)
+
+    def getData(self, label):
+        """Returns a copy of the data array associated with *label*, or **None**
+        if such data is not present."""
+
+        data = self._getData(label)
+        if data is not None:
+            return data.copy()
+
+    def _getData(self, label):
+        """Returns data array associated with *label*, or **None** if such data
+        is not present."""
+
+        try:
+            return self._data[label]
+        except KeyError:
+            return None
+
+    def isDataLabel(self, label):
+        """Returns **True** if data associated with *label* is present."""
+
+        if label in self._data:
+            return True
+        else:
+            try:
+                return self._getData(label) is not None
+            except:
+                return False
+
+    def getDataLabels(self, which=None):
+        """Returns data labels.  For ``which='user'``, return only labels of
+        user provided data."""
+
+        if str(which).startswith('u'):  # user
+            labels = [key for key in (self._data or {})]
+        else:
+            labels = list(self._data or [])
+        labels.sort()
+        return labels
+
+    def getDataType(self, label):
+        """Returns type of the data (i.e. ``data.dtype``) associated with
+        *label*, or **None** label is not used."""
+
+        try:
+            return self._data[label].dtype
+        except KeyError:
+            return None
