@@ -1780,7 +1780,7 @@ def showTree(tree, format='ascii', **kwargs):
         Phylo.draw_ascii(tree)
         return
 
-    elif format == 'plt': 
+    elif format in ['plt', 'mpl', 'matplotlib']: 
         try:
             import pylab
         except:

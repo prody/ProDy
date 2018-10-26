@@ -33,6 +33,8 @@ def calcTree(names, distance_matrix, method='nj'):
         matrix.append(list(row[:k]))
         k = k + 1
     from Bio.Phylo.TreeConstruction import _DistanceMatrix
+    if isinstance(names, np.ndarray):
+        names = names.tolist()
     dm = _DistanceMatrix(names, matrix)
     constructor = Phylo.TreeConstruction.DistanceTreeConstructor()
 

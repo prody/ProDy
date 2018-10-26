@@ -8,7 +8,8 @@ from numpy import ndarray
 import numpy as np
 
 from prody import LOGGER, SETTINGS
-from prody.utilities import showFigure, showMatrix, copy, checkWeights, openFile, getValue
+from prody.utilities import showFigure, showMatrix, copy, checkWeights, openFile
+from prody.utilities import getValue, importLA
 from prody.ensemble import Ensemble, Conformation
 
 from .nma import NMA
@@ -851,6 +852,9 @@ def calcSignatureSqFlucts(mode_ensemble, **kwargs):
     
     :arg mode_ensemble: an ensemble of ENMs 
     :type mode_ensemble: :class: `ModeEnsemble`
+
+    :keyword norm: whether to normalize the square fluctuations. Default is **True**
+    :type norm: bool
     """
 
     if not isinstance(mode_ensemble, ModeEnsemble):
@@ -860,10 +864,22 @@ def calcSignatureSqFlucts(mode_ensemble, **kwargs):
         LOGGER.warn('modes in mode_ensemble did not match cross modesets. '
                     'Consider running mode_ensemble.match() prior to using this function')
 
+    ifnorm = kwargs.pop('norm', True)
+    ifscale = kwargs.pop('scale', False)
+
+    norm = importLA().norm
+
     modesets = mode_ensemble
     V = []
-    for modes in modesets:
+    for i, modes in enumerate(modesets):
         sqfs = calcSqFlucts(modes)
+        if ifnorm:
+            sqfs /= norm(sqfs)
+        elif ifscale:
+            if i == 0:
+                norm0 = norm(sqfs)
+            else:
+                sqfs /= norm(sqfs) * norm0
         V.append(sqfs)
     V = np.vstack(V)
 
