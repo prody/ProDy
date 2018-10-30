@@ -64,10 +64,10 @@ def writePQR(filename, atoms):
     if altlocs is None:
         altlocs = np.zeros(n_atoms, s_or_u + '1')
 
-    format = ('{0:6s}{1:5d} {2:4s}{3:1s}' +
-              '{4:4s}{5:1s}{6:4d}{7:1s}   ' +
-              '{8:8.3f}{9:8.3f}{10:8.3f}' +
-              '{11:8.4f}{12:7.4f}\n').format
+    format = ('{0:6s} {1:5d} {2:4s} {3:1s}' +
+              '{4:4s} {5:1s} {6:4d} {7:1s}   ' +
+              '{8:8.3f} {9:8.3f} {10:8.3f}' +
+              '{11:8.4f} {12:7.4f}\n').format
     coords = atoms._getCoords()
     write = stream.write
     for i, xyz in enumerate(coords):
