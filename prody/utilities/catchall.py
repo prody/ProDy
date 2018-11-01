@@ -13,8 +13,8 @@ def calcTree(names, distance_matrix, method='nj'):
     :arg names: an list of names
     :type names: list, :class:`~numpy.ndarray`
 
-    :arg distance_matrix: a square matrix with length of ensemble. If numbers does not mismatch
-        it will raise an error
+    :arg distance_matrix: a square matrix with length of ensemble. If numbers does not match *names*
+                          it will raise an error
     :type distance_matrix: :class:`~numpy.ndarray`
     """
     try: 
@@ -57,25 +57,25 @@ def clusterMatrix(distance_matrix=None, similarity_matrix=None, labels=None, ret
     and linkage matrix (if **return_linkage** is **True**). Set ``similarity=True`` for clustering a similarity matrix
     
     :arg distance_matrix: an N-by-N matrix containing some measure of distance 
-        such as 1. - seqid_matrix, rmsds, or distances in PCA space
+         such as 1. - seqid_matrix, rmsds, or distances in PCA space
     :type similarity_matrix: :class:`~numpy.ndarray`
 
     :arg similarity_matrix: an N-by-N matrix containing some measure of similarity 
-        such as sequence identity, mode-mode overlap, or spectral overlap
+         such as sequence identity, mode-mode overlap, or spectral overlap
     :type similarity_matrix: :class:`~numpy.ndarray`
     
     :arg labels: labels for each matrix row that can be returned sorted
     :type labels: list
 
     :arg no_plot: if **True**, don't plot the dendrogram.
-        default is **True**
+         default is **True**
     :type no_plot: bool
     
     :arg reversed: if set to **True**, then the sorting indices will be reversed.
     :type reversed: bool
 
     Other arguments for :func:`~scipy.hierarchy.linkage` and :func:`~scipy.hierarchy.dendrogram`
-        can also be provided and will be taken as **kwargs**.
+    can also be provided and will be taken as **kwargs**.
     """
 
     import scipy.cluster.hierarchy as sch
@@ -120,25 +120,25 @@ def showLines(*args, **kwargs):
     Show 1-D data using :func:`~matplotlib.axes.Axes.plot`. 
     
     :arg x: (optional) x coordinates. *x* can be an 1-D array or a 2-D matrix of 
-        column vectors.
+            column vectors.
     :type x: `~numpy.ndarray`
 
     :arg y: data array. *y* can be an 1-D array or a 2-D matrix of 
-        column vectors.
+            column vectors.
     :type y: `~numpy.ndarray`
 
     :arg dy: an array of variances of *y* which will be plotted as a 
-        band along *y*. It should have the same shape with *y*.
+             band along *y*. It should have the same shape with *y*.
     :type dy: `~numpy.ndarray`
 
     :arg lower: an array of lower bounds which will be plotted as a 
-        band along *y*. It should have the same shape with *y* and should be 
-        paired with *upper*.
+                band along *y*. It should have the same shape with *y* and should be 
+                paired with *upper*.
     :type lower: `~numpy.ndarray`
 
     :arg upper: an array of upper bounds which will be plotted as a 
-        band along *y*. It should have the same shape with *y* and should be 
-        paired with *lower*.
+                band along *y*. It should have the same shape with *y* and should be 
+                paired with *lower*.
     :type upper: `~numpy.ndarray`
 
     :arg alpha: the transparency of the band(s) for plotting *dy*.
