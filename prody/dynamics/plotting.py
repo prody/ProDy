@@ -1780,16 +1780,19 @@ def showTree(tree, format='ascii', **kwargs):
         Phylo.draw_ascii(tree)
         return
 
-    elif format == 'plt': 
-        try:
-            import pylab
-        except:
-            raise ImportError("Pylab or matplotlib is not installed.")
-        pylab.rcParams["font.size"]=font_size
-        pylab.rcParams["lines.linewidth"]=line_width
-        Phylo.draw(tree, do_show=False, **kwargs)
-        pylab.xlabel('distance')
-        pylab.ylabel('proteins')
+    elif format in ['plt', 'mpl', 'matplotlib']: 
+        from matplotlib.pyplot import rcParams, figure, gca, xlabel, ylabel
+        rcParams["font.size"]=font_size
+        rcParams["lines.linewidth"]=line_width
+
+        if SETTINGS['auto_show']:
+            figure()
+        Phylo.draw(tree, do_show=False, axes=gca(), **kwargs)
+        if SETTINGS['auto_show']:
+            showFigure()
+
+        xlabel('distance')
+        ylabel('proteins')
         return
 
     elif format == 'networkx':
