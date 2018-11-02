@@ -62,7 +62,7 @@ class exANM(ANM):
         :arg R: radius of all membrane in x-y direction. Default is **80**
         :type R: float
 
-        :arg r: radius of each membrane node. Default is **5**
+        :arg r: radius of each membrane node. Default is **3.1**
         :type r: float
         
         :arg lat: lattice type which could be **FCC** (face-centered-cubic, default), 
@@ -73,8 +73,12 @@ class exANM(ANM):
         :type exr: float
 
         :arg hull: whether use convex hull to determine the protein's interior. 
-                          Turn it off if protein is multimer. Default is **True**
+                   Turn it off if protein is multimer. Default is **True**
         :type hull: bool
+
+        :arg center: whether transform the structure to the origin (only x- and y-axis). 
+                     Default is **True**
+        :type center: bool
         """
         
         atoms = coords
@@ -93,16 +97,27 @@ class exANM(ANM):
 
         LOGGER.timeit('_membrane')
 
-        hu = float(kwargs.pop('membrane_hi', 13.0))
-        hl = float(kwargs.pop('membrane_lo', -13.0))
+        h = kwargs.pop('h', None)
+        if h is not None:
+            h = float(h)
+            hu = h
+            hl = -h
+        else:
+            hu = float(kwargs.pop('membrane_hi', 13.0))
+            hl = float(kwargs.pop('membrane_lo', -13.0))
         R = float(kwargs.pop('R', 80.))
-        r = float(kwargs.pop('r', 5.))
+        r = float(kwargs.pop('r', 3.1))
         lat = str(kwargs.pop('lat', 'FCC'))
         exr = float(kwargs.pop('exr', 5.))
         use_hull = kwargs.pop('hull', True)
+        centering = kwargs.pop('center', True)
         
         V = assign_lpvs(lat)
 
+        if centering:
+            c0 = coords.mean(axis=0)
+            c0[-1] = 0.
+            coords -= c0
         # determine transmembrane part
         torf = np.logical_and(coords[:, -1] < hu, coords[:, -1] > hl)
         transmembrane = coords[torf, :]
@@ -222,7 +237,7 @@ class exANM(ANM):
         so = total_hessian[:natoms*3, natoms*3:]
         os = total_hessian[natoms*3:,:natoms*3]
         oo = total_hessian[natoms*3:, natoms*3:]
-        self._hessian = ss - np.dot(so, np.dot(linalg.pinv(oo), os))
+        self._hessian = ss - np.dot(so, np.dot(linalg.inv(oo), os))
         LOGGER.report('Hessian was built in %.2fs.', label='_exanm')
         self._dof = self._hessian.shape[0]
     

@@ -1633,7 +1633,7 @@ def showDomainBar(domains, x=None, loc=0., axis='x', **kwargs):
                either **x** or **y**
     :type axis: str
 
-    :keyword text: whether show the text or not. Default is **True**
+    :keyword text: whether to show the text or not. Default is **True**
     :type text: bool
 
     :keyword text_loc: location of text labels. It can be either 
@@ -1641,7 +1641,11 @@ def showDomainBar(domains, x=None, loc=0., axis='x', **kwargs):
     :type text_loc: str
 
     :keyword text_color: color of the text labels
-    :type text_color: str or tuple or list
+    :type text_color: str, tuple, list
+
+    :keyword relim: whether to rescale the axes' limits after adding 
+                    the bar. Default is **True**
+    :type relim: bool
     """
 
     from matplotlib.pyplot import plot, text, xlim, ylim, gca
@@ -1654,6 +1658,8 @@ def showDomainBar(domains, x=None, loc=0., axis='x', **kwargs):
     barwidth = kwargs.pop('bar_width', barwidth)
 
     is3d = kwargs.pop('is3d', False)
+
+    relim = kwargs.pop('relim', True)
 
     text_loc = kwargs.pop('text_loc', 'above')
     if not isinstance(text_loc, str):
@@ -1738,7 +1744,8 @@ def showDomainBar(domains, x=None, loc=0., axis='x', **kwargs):
         bar = plot(X, F, linewidth=barwidth, solid_capstyle='butt')
 
     bars.extend(bar)
-    lim(L, auto=True)
+    if relim:
+        gca().autoscale_view()
     return bars, texts
 
 def showTree(tree, format='ascii', **kwargs):
