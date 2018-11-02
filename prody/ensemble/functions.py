@@ -34,7 +34,7 @@ def saveEnsemble(ensemble, filename=None, **kwargs):
         raise ValueError('ensemble instance does not contain data')
 
     dict_ = ensemble.__dict__
-    attr_list = ['_title', '_confs', '_weights', '_coords', '_indices', '_data']
+    attr_list = ['_title', '_confs', '_weights', '_coords', '_indices']
     if isinstance(ensemble, PDBEnsemble):
         attr_list.append('_labels')
         attr_list.append('_trans')
@@ -49,6 +49,13 @@ def saveEnsemble(ensemble, filename=None, **kwargs):
     atoms = dict_['_atoms']
     if atoms is not None:
         attr_dict['_atoms'] = np.array([atoms, None])
+
+    data = dict_['_data']
+    if data is not {}:
+        keys = list(data.keys())
+        attr_dict['_data'] = np.array(keys)
+        for key in keys:
+            attr_dict[key] = data[key]
 
     if isinstance(ensemble, PDBEnsemble):
         msa = dict_['_msa']
@@ -107,10 +114,12 @@ def loadEnsemble(filename, **kwargs):
         indices = None
     ensemble._indices = indices
 
+    data = {}
     if '_data' in attr_dict:
-        data = attr_dict['_data']
-    else:
-        data = None
+        keys = attr_dict['_data']
+        for key in keys:
+            data[key] = attr_dict[key]
+
     ensemble._data = data
 
     if isPDBEnsemble:
