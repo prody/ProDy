@@ -14,7 +14,7 @@ from prody.dynamics.modeset import ModeSet
 
 from prody.utilities import openFile, importLA
 
-__all__ = ['HiC', 'parseHiC', 'parseHiCStream', 'saveHiC', 'loadHiC', 'writeMap']
+__all__ = ['HiC', 'parseHiC', 'parseHiCStream', 'parseHiCBinary', 'saveHiC', 'loadHiC', 'writeMap']
 
 class HiC(object):
 
@@ -340,14 +340,20 @@ def parseHiC(filename, **kwargs):
     :type filename: str
     """
 
-    import os
+    import os, struct
     title = kwargs.get('title')
     if title is None:
         title = os.path.basename(filename)
     else:
         title = kwargs.pop('title')
-    with open(filename, 'r') as filestream:
-        hic = parseHiCStream(filestream, title=title, **kwargs)
+
+    with open(filename,'rb') as req:
+        magic_number = struct.unpack('<3s',req.read(3))[0]
+    if magic_number == b"HIC":
+        hic = parseHiCBinary(filename, title=title, **kwargs)
+    else:
+        with open(filename, 'r') as filestream:
+            hic = parseHiCStream(filestream, title=title, **kwargs)
     return hic
 
 def parseHiCStream(stream, **kwargs):
@@ -403,6 +409,26 @@ def parseHiCStream(stream, **kwargs):
         # diag() won't work as intended for Matrix instances.
         M = np.array(coo_matrix((value, (I, J))).todense())
     return HiC(title=title, map=M, bin=bin)
+
+def parseHiCBinary(filename, **kwargs):
+
+    title = kwargs.get('title', 'Unknown')
+    chrloc = kwargs.get('chr', '1')
+    norm = kwargs.get('norm','NONE')
+    unit = kwargs.get('unit','BP')
+    res = kwargs.get('binsize',50000)
+
+    from .straw import straw
+    import sys
+    result = straw(norm,filename,chrloc,chrloc,unit,res)
+    x = np.array(result[0])//res
+    y = np.array(result[1])//res
+    value = np.array(result[0])
+    if sys.version_info[0] == 2:
+        x = x.astype(np.int64,copy=False)
+        y = y.astype(np.int64,copy=False)
+    M = np.array(coo_matrix((value, (x, y))).todense())
+    return HiC(title=title, map=M, bin=res)
 
 def writeMap(filename, map, bin=None, format='%f'):
     """Writes *map* to the file designated by *filename*.
@@ -483,4 +509,3 @@ def loadHiC(filename):
             val = np.asscalar(val)
         setattr(hic, k, val)
     return hic
-
