@@ -311,11 +311,11 @@ def checkClash(node, hull, radius=5.):
         H = hull
         ishull = False
     else:
-        H = hull.points[hull.vertices, :]
+        H = hull.points
         ishull = True
 
-    lb = H.min(axis=0)
-    ub = H.max(axis=0)
+    lb = H.min(axis=0) - radius
+    ub = H.max(axis=0) + radius
     if np.all(node > ub) or np.all(node < lb):
         return True
     
