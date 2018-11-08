@@ -7,6 +7,7 @@ from scipy.stats import mode
 from prody.chromatin.norm import VCnorm, SQRTVCnorm, Filenorm
 from prody.chromatin.functions import div0, showMap, showDomains, _getEigvecs
 
+from prody import PY2K
 from prody.dynamics import GNM, MaskedGNM
 from prody.dynamics.functions import writeArray
 from prody.dynamics.mode import Mode
@@ -396,6 +397,7 @@ def parseHiCStream(stream, **kwargs):
             bins = np.diff(loci)
             bin = mode(bins)[0][0]
         # convert coordinate from basepair to locus index
+        bin = int(bin)
         I = I // bin
         J = J // bin
         # make sure that the matrix is square
@@ -413,20 +415,21 @@ def parseHiCStream(stream, **kwargs):
 def parseHiCBinary(filename, **kwargs):
 
     title = kwargs.get('title', 'Unknown')
-    chrloc = kwargs.get('chr', '1')
+    chrloc = kwargs.get('chr', None)
+    if chrloc is None:
+        raise ValueError('chr needs to be specified when parsing .hic format')
     norm = kwargs.get('norm','NONE')
     unit = kwargs.get('unit','BP')
     res = kwargs.get('binsize',50000)
+    res = kwargs.get('bin',res)
+    res = int(res)
 
     from .straw import straw
-    import sys
     result = straw(norm,filename,chrloc,chrloc,unit,res)
-    x = np.array(result[0])//res
-    y = np.array(result[1])//res
+    x = np.array(result[0], dtype=int)//res
+    y = np.array(result[1], dtype=int)//res
     value = np.array(result[0])
-    if sys.version_info[0] == 2:
-        x = x.astype(np.int64,copy=False)
-        y = y.astype(np.int64,copy=False)
+
     M = np.array(coo_matrix((value, (x, y))).todense())
     return HiC(title=title, map=M, bin=res)
 
