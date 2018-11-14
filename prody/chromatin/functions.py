@@ -5,24 +5,11 @@ from prody.dynamics.mode import Mode
 from prody.dynamics.modeset import ModeSet
 from prody.utilities import importLA
 from prody import LOGGER, SETTINGS
-from prody.utilities import showFigure
+from prody.utilities import showFigure, div0
 
 __all__ = ['showMap', 'showDomains', 'showEmbedding', 'getDomainList']
 
 ## normalization methods ##
-def div0(a, b):
-    """ Performs ``true_divide`` but ignores the error when division by zero 
-    (result is set to zero instead). """
-
-    with np.errstate(divide='ignore', invalid='ignore'):
-        c = np.true_divide(a, b)
-        if np.isscalar(c):
-            if not np.isfinite(c):
-                c = 0
-        else:
-            c[~np.isfinite(c)] = 0.  # -inf inf NaN
-    return c
-
 def showMap(map, spec='', **kwargs):
     """A convenient function that can be used to visualize Hi-C contact map. 
     *kwargs* will be passed to :func:`matplotlib.pyplot.imshow`.

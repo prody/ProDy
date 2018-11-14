@@ -16,7 +16,7 @@ __all__ = ['Everything', 'rangeString', 'alnum', 'importLA', 'dictElement',
            'saxsWater', 'count', 'addEnds', 'copy', 'dictElementLoop', 
            'getDataPath', 'openData', 'chr2', 'toChararray', 'interpY', 'cmp',
            'getValue', 'indentElement', 'isPDB', 'isURL', 'isListLike',
-           'getDistance', 'fastin', 'createStringIO']
+           'getDistance', 'fastin', 'createStringIO', 'div0']
 
 # Note that the chain id can be blank (space). Examples:
 # 3TT1, 3tt1A, 3tt1:A, 3tt1_A, 3tt1-A, 3tt1 A
@@ -381,3 +381,12 @@ def fastin(a, B):
         if a is b:
             return True
     return False
+
+def div0(a, b):
+    a = asarray(a, dtype=float)
+    b = asarray(b, dtype=float)
+    c = divide(a, b, out=zeros_like(a), where=b!=0)
+
+    if not c.ndim:
+        c = float(c)
+    return c
