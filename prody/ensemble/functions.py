@@ -51,11 +51,8 @@ def saveEnsemble(ensemble, filename=None, **kwargs):
         attr_dict['_atoms'] = np.array([atoms, None])
 
     data = dict_['_data']
-    if data is not {}:
-        keys = list(data.keys())
-        attr_dict['_data'] = np.array(keys)
-        for key in keys:
-            attr_dict[key] = data[key]
+    if len(data):
+        attr_dict['_data'] = np.array([data, None])
 
     if isinstance(ensemble, PDBEnsemble):
         msa = dict_['_msa']
@@ -114,13 +111,8 @@ def loadEnsemble(filename, **kwargs):
         indices = None
     ensemble._indices = indices
 
-    data = {}
     if '_data' in attr_dict:
-        keys = attr_dict['_data']
-        for key in keys:
-            data[key] = attr_dict[key]
-
-    ensemble._data = data
+        ensemble._data = attr_dict['_data'][0]
 
     if isPDBEnsemble:
         confs = attr_dict['_confs']
