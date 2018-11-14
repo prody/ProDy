@@ -383,10 +383,16 @@ def fastin(a, B):
     return False
 
 def div0(a, b):
-    a = asarray(a, dtype=float)
-    b = asarray(b, dtype=float)
-    c = divide(a, b, out=zeros_like(a), where=b!=0)
+    """ Performs ``true_divide`` but ignores the error when division by zero 
+    (result is set to zero instead). """
 
-    if not c.ndim:
-        c = float(c)
+    from numpy import errstate, true_divide, isfinite, isscalar
+    
+    with errstate(divide='ignore', invalid='ignore'):
+        c = true_divide(a, b)
+        if isscalar(c):
+            if not isfinite(c):
+                c = 0
+        else:
+            c[~isfinite(c)] = 0.  # -inf inf NaN
     return c
