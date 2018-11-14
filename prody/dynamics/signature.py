@@ -685,6 +685,10 @@ class sdarray(ndarray):
 
         return np.asarray(self)
 
+    def transpose(self, axes=None):
+        a = np.asarray(self)
+        return np.transpose(a, axes=axes)
+
 def calcEnsembleENMs(ensemble, model='gnm', trim='reduce', n_modes=20, **kwargs):
     """Calculates normal modes for each member of *ensemble*.
     
