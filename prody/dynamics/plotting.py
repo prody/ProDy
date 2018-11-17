@@ -1657,6 +1657,8 @@ def showDomainBar(domains, x=None, loc=0., axis='x', **kwargs):
     barwidth = kwargs.pop('barwidth', 5)
     barwidth = kwargs.pop('bar_width', barwidth)
 
+    color_dict = kwargs.pop('color', None)
+
     is3d = kwargs.pop('is3d', False)
 
     relim = kwargs.pop('relim', True)
@@ -1700,9 +1702,13 @@ def showDomainBar(domains, x=None, loc=0., axis='x', **kwargs):
     bars = []
     texts = []
 
+    color_order = []
     for domid in uni_domids:
+        if color_dict is not None:
+            color_order.append(color_dict[domid])
         d = domains == domid
         D.append(d)
+
     if not D:
         return bars, texts
     D = np.vstack(D).T
@@ -1732,7 +1738,10 @@ def showDomainBar(domains, x=None, loc=0., axis='x', **kwargs):
                                                 verticalalignment=valign)
                 texts.append(txt)
     
-    gca().set_prop_cycle(None)
+    if len(color_order):
+        gca().set_prop_cycle('color', color_order)
+    else:
+        gca().set_prop_cycle(None)
 
     if x is None:
         x = np.arange(len(domains))
