@@ -1752,6 +1752,7 @@ def showDomainBar(domains, x=None, loc=0., axis='x', **kwargs):
     else:
         bar = plot(X, F, linewidth=barwidth, solid_capstyle='butt')
 
+    gca().set_prop_cycle(None)
     bars.extend(bar)
     if relim:
         gca().autoscale_view()
