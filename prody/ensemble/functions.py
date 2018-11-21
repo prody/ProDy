@@ -50,6 +50,10 @@ def saveEnsemble(ensemble, filename=None, **kwargs):
     if atoms is not None:
         attr_dict['_atoms'] = np.array([atoms, None])
 
+    data = dict_['_data']
+    if len(data):
+        attr_dict['_data'] = np.array([data, None])
+
     if isinstance(ensemble, PDBEnsemble):
         msa = dict_['_msa']
         if msa is not None:
@@ -71,12 +75,15 @@ def loadEnsemble(filename, **kwargs):
 
     if not 'encoding' in kwargs:
         kwargs['encoding'] = 'latin1'
+
     attr_dict = np.load(filename, **kwargs)
     if '_weights' in attr_dict:
         weights = attr_dict['_weights']
     else:
-        weights = None   
+        weights = None  
+
     isPDBEnsemble = False
+
     try:
         title = attr_dict['_title']
     except KeyError:
@@ -84,22 +91,29 @@ def loadEnsemble(filename, **kwargs):
     if isinstance(title, np.ndarray):
         title = np.asarray(title, dtype=str)
     title = str(title)
+
     if weights is not None and weights.ndim == 3:
         isPDBEnsemble = True
         ensemble = PDBEnsemble(title)
     else:
         ensemble = Ensemble(title)
+
     ensemble.setCoords(attr_dict['_coords'])
     if '_atoms' in attr_dict:
         atoms = attr_dict['_atoms'][0]
     else:
         atoms = None
     ensemble.setAtoms(atoms)
+
     if '_indices' in attr_dict:
         indices = attr_dict['_indices']
     else:
         indices = None
     ensemble._indices = indices
+
+    if '_data' in attr_dict:
+        ensemble._data = attr_dict['_data'][0]
+
     if isPDBEnsemble:
         confs = attr_dict['_confs']
         ensemble.addCoordset(confs, weights)

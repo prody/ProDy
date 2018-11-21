@@ -35,11 +35,6 @@ def checkLabel(label):
     if not label:
         raise ValueError('label cannot be empty string')
 
-    label = str(label)
-
-    if not label:
-        raise ValueError('label cannot be empty string')
-
     if not label[0].isalpha():
         raise ValueError('label must start with a letter')
 

@@ -30,9 +30,9 @@ class PDBEnsemble(Ensemble):
     def __init__(self, title='Unknown'):
 
         self._labels = []
-        Ensemble.__init__(self, title)
         self._trans = None
         self._msa = None
+        Ensemble.__init__(self, title)
 
     def __repr__(self):
 
@@ -70,6 +70,20 @@ class PDBEnsemble(Ensemble):
         else:
             ensemble.setAtoms(other._atoms)
             ensemble._indices = other._indices
+
+        all_keys = list(self._data.keys()) + list(other._data.keys())
+        for key in all_keys:
+            if key in self._data and key in other._data:
+                self_data = self._data[key]
+                other_data = other._data[key]
+            elif key in self._data:
+                self_data = self._data[key]
+                other_data = np.zeros(other.numConfs(), dtype=self_data.dtype)
+            elif key in other._data:
+                other_data = other._data[key]
+                self_data = np.zeros(other.numConfs(), dtype=other_data.dtype)
+            ensemble._data[key] = np.concatenate((self_data, other_data), axis=0)
+
         return ensemble
 
     def __iter__(self):
@@ -104,6 +118,9 @@ class PDBEnsemble(Ensemble):
                 ens._trans = self._trans[index]
             ens.setAtoms(self._atoms)
             ens._indices = self._indices
+
+            for key in self._data.keys():
+                ens._data[key] = self._data[key][index].copy()
             return ens
 
         elif isinstance(index, (list, np.ndarray)):
@@ -125,6 +142,9 @@ class PDBEnsemble(Ensemble):
                 ens._trans = self._trans[index2]
             ens.setAtoms(self._atoms)
             ens._indices = self._indices
+
+            for key in self._data.keys():
+                ens._data[key] = self._data[key][index].copy()
             return ens
         elif isinstance(index, str):
             try:

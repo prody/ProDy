@@ -492,12 +492,23 @@ def showOverlapTable(modes_x, modes_y, **kwargs):
         plt.figure()
     show = (plt.pcolor(overlap, cmap=cmap, norm=norm, **kwargs),
             plt.colorbar())
+
     x_range = np.arange(1, modes_x.numModes() + 1)
-    plt.xticks(x_range-0.5, x_range)
+    if isinstance(modes_x, ModeSet):
+        x_ticklabels = modes_x._indices+1
+    else:
+        x_ticklabels = x_range
+    plt.xticks(x_range-0.5, x_ticklabels)
     plt.xlabel(str(modes_x))
+
     y_range = np.arange(1, modes_y.numModes() + 1)
-    plt.yticks(y_range-0.5, y_range)
+    if isinstance(modes_y, ModeSet):
+        y_ticklabels = modes_y._indices+1
+    else:
+        y_ticklabels = y_range
+    plt.yticks(y_range-0.5, y_ticklabels)
     plt.ylabel(str(modes_y))
+
     plt.axis([0, modes_x.numModes(), 0, modes_y.numModes()])
     if SETTINGS['auto_show']:
         showFigure()
@@ -1091,7 +1102,7 @@ def showPerturbResponse(model, atoms=None, show_matrix=True, select=None, **kwar
             for i, profile in enumerate(profiles):
                 if i == len(profiles)-1:  # last iteration turn the domain/chain bar back on
                     final = True
-                show.append(showAtomicLines(profile, atoms, final=final, **kwargs))
+                show.append(showAtomicLines(profile, atoms=atoms, final=final, **kwargs))
 
             xlabel('Residues')
     
@@ -1622,7 +1633,7 @@ def showDomainBar(domains, x=None, loc=0., axis='x', **kwargs):
                either **x** or **y**
     :type axis: str
 
-    :keyword text: whether show the text or not. Default is **True**
+    :keyword text: whether to show the text or not. Default is **True**
     :type text: bool
 
     :keyword text_loc: location of text labels. It can be either 
@@ -1630,7 +1641,11 @@ def showDomainBar(domains, x=None, loc=0., axis='x', **kwargs):
     :type text_loc: str
 
     :keyword text_color: color of the text labels
-    :type text_color: str or tuple or list
+    :type text_color: str, tuple, list
+
+    :keyword relim: whether to rescale the axes' limits after adding 
+                    the bar. Default is **True**
+    :type relim: bool
     """
 
     from matplotlib.pyplot import plot, text, xlim, ylim, gca
@@ -1642,7 +1657,11 @@ def showDomainBar(domains, x=None, loc=0., axis='x', **kwargs):
     barwidth = kwargs.pop('barwidth', 5)
     barwidth = kwargs.pop('bar_width', barwidth)
 
+    color_dict = kwargs.pop('color', None)
+
     is3d = kwargs.pop('is3d', False)
+
+    relim = kwargs.pop('relim', True)
 
     text_loc = kwargs.pop('text_loc', 'above')
     if not isinstance(text_loc, str):
@@ -1683,9 +1702,13 @@ def showDomainBar(domains, x=None, loc=0., axis='x', **kwargs):
     bars = []
     texts = []
 
+    color_order = []
     for domid in uni_domids:
+        if color_dict is not None:
+            color_order.append(color_dict[domid])
         d = domains == domid
         D.append(d)
+
     if not D:
         return bars, texts
     D = np.vstack(D).T
@@ -1715,7 +1738,10 @@ def showDomainBar(domains, x=None, loc=0., axis='x', **kwargs):
                                                 verticalalignment=valign)
                 texts.append(txt)
     
-    gca().set_prop_cycle(None)
+    if len(color_order):
+        gca().set_prop_cycle('color', color_order)
+    else:
+        gca().set_prop_cycle(None)
 
     if x is None:
         x = np.arange(len(domains))
@@ -1727,7 +1753,8 @@ def showDomainBar(domains, x=None, loc=0., axis='x', **kwargs):
         bar = plot(X, F, linewidth=barwidth, solid_capstyle='butt')
 
     bars.extend(bar)
-    lim(L, auto=True)
+    if relim:
+        gca().autoscale_view()
     return bars, texts
 
 def showTree(tree, format='ascii', **kwargs):
@@ -1762,16 +1789,19 @@ def showTree(tree, format='ascii', **kwargs):
         Phylo.draw_ascii(tree)
         return
 
-    elif format == 'plt': 
-        try:
-            import pylab
-        except:
-            raise ImportError("Pylab or matplotlib is not installed.")
-        pylab.rcParams["font.size"]=font_size
-        pylab.rcParams["lines.linewidth"]=line_width
-        Phylo.draw(tree, do_show=False, **kwargs)
-        pylab.xlabel('distance')
-        pylab.ylabel('proteins')
+    elif format in ['plt', 'mpl', 'matplotlib']: 
+        from matplotlib.pyplot import rcParams, figure, gca, xlabel, ylabel
+        rcParams["font.size"]=font_size
+        rcParams["lines.linewidth"]=line_width
+
+        if SETTINGS['auto_show']:
+            figure()
+        Phylo.draw(tree, do_show=False, axes=gca(), **kwargs)
+        if SETTINGS['auto_show']:
+            showFigure()
+
+        xlabel('distance')
+        ylabel('proteins')
         return
 
     elif format == 'networkx':

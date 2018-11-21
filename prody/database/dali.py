@@ -4,10 +4,11 @@
 import re
 import numpy as np
 from prody.atomic import Atomic, AtomGroup, AtomMap
+from prody.proteins.pdbfile import _getPDBid
 from prody.measure import getRMSD, getTransformation
-from prody.utilities import checkCoords, checkWeights
+from prody.utilities import checkCoords, checkWeights, createStringIO
 from prody import LOGGER, PY3K
-from prody import parsePDB, writePDB
+from prody import parsePDB, writePDBStream
 # if PY3K:
     # import urllib.parse as urllib
     # import urllib.request as urllib2
@@ -20,13 +21,12 @@ import os
 
 __all__ = ['DaliRecord', 'searchDali']
 
-def searchDali(pdb, chainId, isLocal=False, subset='fullPDB', daliURL=None, **kwargs):
+def searchDali(pdb, chain=None, subset='fullPDB', daliURL=None, **kwargs):
     """Search Dali server with input of PDB ID (or local PDB file) and chain ID.
     Dali server: http://ekhidna2.biocenter.helsinki.fi/dali/
     
-    :arg pdb: PDB code or local PDB file for searched protein
-    :arg chainId: chain identifier (only one chain can be assigned for PDB)
-    :arg isLocal: submit a local PDB file instead of a PDB code when **True**
+    :arg pdb: PDB code or local PDB file for the protein to be searched
+    :arg chain: chain identifier (only one chain can be assigned for PDB)
     :arg subset: fullPDB, PDB25, PDB50, PDB90
     :type subset: str
     
@@ -40,35 +40,72 @@ def searchDali(pdb, chainId, isLocal=False, subset='fullPDB', daliURL=None, **kw
     
     if daliURL is None:
         daliURL = "http://ekhidna2.biocenter.helsinki.fi/cgi-bin/sans/dump.cgi"
-    if len(chainId) != 1:
-        raise ValueError('input PDB chain identifier ' + chainId + ' is invalid')
-    if isLocal:
-        if not os.path.isfile(pdb):
-            raise ValueError('input PDB file ' + pdb + ' does not exist ')
-        atom = parsePDB(pdb)
-        chain_set = set(atom.getChids())
-        # pdbId = "s001"
-        pdbId = '.'.join(pdb.split(os.sep)[-1].split('.')[0:-1])
-        if not chainId in chain_set:
-            raise ValueError('input PDB file does not have chain ' + chainId)
-        elif len(chain_set) > 1:
-            atom = atom.select('chain '+chainId)
-            # local_temp_pdb = pdbId+chainId+'.pdb'
-            local_temp_pdb = 's001'+chainId+'.pdb'
-            writePDB(local_temp_pdb, atom)
+    
+    if isinstance(pdb, Atomic):
+        atoms = pdb
+        chain_set = set(atoms.getChids())
+        if chain and not chain in chain_set:
+            raise ValueError('input structure (%s) does not have chain %s'%(atoms.getTitle(), chain))
+        
+        if len(chain_set) > 1:
+            if not chain:
+                raise TypeError('the structure (%s) contains more than one chain, therefore a chain identifier '
+                                'needs to be specified'%pdb.getTitle())
+            atoms = atoms.select('chain '+chain)
         else:
-            local_temp_pdb = pdb
-        files = {"file1" : open(local_temp_pdb, "rb")}
-        # case: multiple chains.             apply getRecord ? multiple times?
+            chain = chain_set.pop()
+            
+        stream = createStringIO()
+        writePDBStream(stream, atoms)
+        data = stream.getvalue()
+        stream.close()
+        files = {"file1" : data}
+
+        pdbId = atoms.getTitle()
         pdb_chain = ''
-        dali_title = 'Title_'+pdbId+chainId
-    else:
-        pdbId = pdb.lower()
-        if len(pdbId) != 4:
-            raise ValueError('input PDB code ' + pdb + ' is invalid')
-        files = ''
-        pdb_chain = pdbId + chainId
-        dali_title = 'Title_'+pdb_chain
+        dali_title = 'Title_'+pdbId+chain
+    elif isinstance(pdb, str):
+        if os.path.isfile(pdb):
+            atoms = parsePDB(pdb)
+            chain_set = set(atoms.getChids())
+            # pdbId = "s001"
+            filename = os.path.basename(pdb)
+            filename, ext = os.path.splitext(filename)
+            if ext.lower() == '.gz':
+                filename2, ext2 = os.path.splitext(filename)
+                if ext2.lower() == '.pdb':
+                    filename = filename2
+            pdbId = filename
+            if chain and not chain in chain_set:
+                raise ValueError('input PDB file does not have chain ' + chain)
+            
+            if len(chain_set) > 1:
+                if not chain:
+                    raise TypeError('PDB file (%s) contains more than one chain, therefore a chain identifier '
+                                    'needs to be specified'%pdb)
+                atoms = atoms.select('chain '+chain)
+                #local_temp_pdb = pdbId+chain+'.pdb'
+                #local_temp_pdb = 's001'+chain+'.pdb'
+                stream = createStringIO()
+                writePDBStream(stream, atoms)
+                data = stream.getvalue()
+                stream.close()
+            else:
+                data = open(pdb, "rb")
+                chain = chain_set.pop()
+            files = {"file1" : data}
+            # case: multiple chains.             apply getRecord ? multiple times?
+            pdb_chain = ''
+            dali_title = 'Title_' + pdbId + chain
+        else:
+            pdbId, ch = _getPDBid(pdb)
+            if not chain:
+                chain = ch
+            if not chain:
+                raise TypeError('a chain identifier is needed for the search')
+            pdb_chain = pdbId + chain
+            dali_title = 'Title_' + pdb_chain
+            files = ''
     parameters = { 'cd1' : pdb_chain, 'method': 'search', 'title': dali_title, 'address': '' }
     # enc_params = urllib.urlencode(parameters).encode('utf-8')
     # request = urllib2.Request(daliURL, enc_params)
@@ -91,10 +128,10 @@ def searchDali(pdb, chainId, isLocal=False, subset='fullPDB', daliURL=None, **kw
     if url.split('.')[-1].lower() in ['html', 'php']:
         # print('test -1: '+url)
         url = url.replace(url.split('/')[-1], '')
-    LOGGER.debug('Submitted Dali search for PDB and chain "{0} and {1}".'.format(pdbId, chainId))
+    LOGGER.debug('Submitted Dali search for PDB "{0}{1}".'.format(pdbId, chain))
     LOGGER.info(url)
     LOGGER.clear()
-    obj = DaliRecord(url, pdbId, chainId, subset=subset, timeout=timeout, **kwargs)
+    obj = DaliRecord(url, pdbId, chain, subset=subset, timeout=timeout, **kwargs)
     #if obj.isSuccess:
         
     return obj
@@ -105,20 +142,19 @@ class DaliRecord(object):
 
     """A class to store results from Dali PDB search."""
 
-    def __init__(self, url, pdbId, chainId, subset='fullPDB', localFile=False, **kwargs):
+    def __init__(self, url, pdbId, chain, subset='fullPDB', localFile=False, **kwargs):
         """Instantiate a daliPDB object instance.
 
         :arg url: url of Dali results page or local dali results file
         :arg pdbId: PDB code for searched protein
-        :arg chainId: chain identifier (only one chain can be assigned for PDB)
+        :arg chain: chain identifier (only one chain can be assigned for PDB)
         :arg subset: fullPDB, PDB25, PDB50, PDB90. Ignored if localFile=True (url is a local file)
         :arg localFile: provided url is a path for local dali results file
         """
 
         self._url = url
         self._pdbId = pdbId
-        # self._chainId = chainId
-        self._chainId = chainId
+        self._chain = chain
         subset = subset.upper()
         if subset == "FULLPDB" or subset not in ["PDB25", "PDB50", "PDB90"]:
             self._subset = ""
@@ -126,7 +162,7 @@ class DaliRecord(object):
             self._subset = "-"+subset[3:]
         timeout = kwargs.pop('timeout', 120)
 
-        self._title = pdbId + '-' + chainId
+        self._title = pdbId + '-' + chain
         self.isSuccess = self.getRecord(self._url, localFile=localFile, timeout=timeout, **kwargs)
 
     def getRecord(self, url=None, localFile=False, **kwargs):
@@ -146,8 +182,6 @@ class DaliRecord(object):
             log_message = ''
             try_error = 3
             while True:
-                LOGGER.sleep(int(sleep), 'to reconnect to Dali '+log_message)
-                LOGGER.clear()
                 LOGGER.write('Connecting to Dali for search results...')
                 LOGGER.clear()
                 try:
@@ -176,11 +210,12 @@ class DaliRecord(object):
                 if LOGGER.timing('_dali') > timeout:
                     LOGGER.warn(': Dali search has timed out. \nThe results can be obtained later using the getRecord() method.')
                     return False
+                LOGGER.sleep(int(sleep), 'to reconnect to Dali '+log_message)
                 LOGGER.clear()
             LOGGER.clear()
-            LOGGER.report('Dali results completed in %.1fs.', '_dali')
+            LOGGER.report('Dali results were fetched in %.1fs.', '_dali')
             lines = html.strip().split('\n')
-            file_name = re.search('=.+-90\.txt', html).group()[1:]
+            file_name = re.search('=.+-90\\.txt', html).group()[1:]
             file_name = file_name[:-7]
             # LOGGER.info(url+file_name+self._subset+'.txt')
             # data = urllib2.urlopen(url+file_name+self._subset+'.txt').read()
@@ -188,7 +223,12 @@ class DaliRecord(object):
             if PY3K:
                 data = data.decode()
             localfolder = kwargs.pop('localfolder', '.')
-            temp_name = file_name+self._subset+'_dali.txt'
+
+            if file_name.lower().startswith('s001'):
+                temp_name = self._pdbId + self._chain
+            else:
+                temp_name = file_name
+            temp_name += self._subset + '_dali.txt'
             if localfolder != '.' and not os.path.exists(localfolder):
                 os.mkdir(localfolder)
             with open(localfolder+os.sep+temp_name, "w") as file_temp: file_temp.write(html + '\n' + url+file_name+self._subset+'.txt' + '\n' + data)
@@ -198,7 +238,6 @@ class DaliRecord(object):
         # Structural equivalences -> data_list[4]
         # Translation-rotation matrices -> data_list[5]
         map_temp_dict = dict()
-        mapping = []
         lines = data_list[4].strip().split('\n')
         self._lines_4 = lines
         mapping_temp = np.genfromtxt(lines[1:], delimiter = (4,1,14,6,2,4,4,5,2,4,4,3,5,4,3,5,6,3,5,4,3,5,28), 
@@ -242,7 +281,7 @@ class DaliRecord(object):
         self._pdbListAll = tuple(pdbListAll)
         self._pdbList = self._pdbListAll
         self._alignPDB = dali_temp_dict
-        LOGGER.info('Obtained ' + str(len(pdbListAll)) + ' PDB chains from Dali for '+self._pdbId+self._chainId+'.')
+        LOGGER.info('Obtained ' + str(len(pdbListAll)) + ' PDB chains from Dali for '+self._pdbId+self._chain+'.')
         return True
         
     def getPDBs(self, filtered=True):
