@@ -155,6 +155,19 @@ class PDBConformation(Conformation):
                     self._ensemble._labels[self._index],
                     self._ensemble.getTitle())
 
+    def getData(self, label):
+        data = self._ensemble.getData(label)
+
+        if data is None:
+            return None
+        return data[self._index]
+    
+    def setData(self, label, value):
+        data = self._ensemble._getData(label)
+
+        if data is not None:
+            data[self._index] = value
+
     def getLabel(self):
         """Returns the label of the conformation."""
 

@@ -11,12 +11,14 @@ from .nma import NMA
 from .modeset import ModeSet
 from .mode import Mode, Vector
 from .gnm import ZERO
+from .analysis import calcFractVariance
 
-__all__ = ['calcOverlap', 'calcCumulOverlap', 'calcSubspaceOverlap',
-           'calcSpectralOverlap', 'calcCovOverlap', 'printOverlapTable', 'writeOverlapTable',
-           'pairModes', 'matchModes']
+__all__ = ['calcOverlap', 'calcCumulOverlap', 'calcSubspaceOverlap', 'calcSpectralOverlap',
+           'calcWeightedSpectralOverlap', 'calcCovOverlap', 'printOverlapTable', 
+           'writeOverlapTable', 'pairModes', 'matchModes']
 
 SO_CACHE = {}
+WO_CACHE = {}
 
 def calcOverlap(rows, cols):
     """Returns overlap (or correlation) between two sets of modes (*rows* and
@@ -226,12 +228,72 @@ def calcSpectralOverlap(modes1, modes2, turbo=False):
         diff = diff ** 0.5
     return 1 - diff / np.sqrt(varA.sum() + varB.sum())
 
-def calcCovOverlap(modes1, modes2):
+def calcWeightedSpectralOverlap(modes1, modes2, turbo=False):
+    """Returns overlap between weighted covariances of *modes1* and *modes2*. Covariances
+    are weighted based on the trace of the covariance matrix.
+    """
+
+    if modes1.is3d() ^ modes2.is3d():
+        raise TypeError('models must be either both 1-dimensional or 3-dimensional')
+    if modes1.numAtoms() != modes2.numAtoms():
+        raise ValueError('modes1 and modes2 must have same number of atoms')
+
+    if isinstance(modes1, Mode):
+        varA = np.array([calcFractVariance(modes1)])
+        I = np.array([modes1.getIndex()])
+    else:
+        varA = calcFractVariance(modes1)
+        I = modes1.getIndices()
+
+    if isinstance(modes2, Mode):
+        varB = np.array([calcFractVariance(modes2)])
+        J = np.array([modes2.getIndex()])
+    else:
+        varB = calcFractVariance(modes2)
+        J = modes2.getIndices()
+
+    if turbo:
+        model1 = modes1.getModel()
+        model2 = modes2.getModel()
+
+        if (model1, model2) in WO_CACHE:
+            weights = WO_CACHE[(model1, model2)]
+        elif (model2, model1) in WO_CACHE:
+            weights = WO_CACHE[(model2, model1)]
+        else:
+            farrayA = model1._getArray()
+            farrayB = model2._getArray()
+
+            fvarA = calcFractVariance(model1)
+            fvarB = calcFractVariance(model2)
+
+            dotAB = np.dot(farrayA.T, farrayB)**2
+            outerAB = np.outer(fvarA**0.5, fvarB**0.5)
+            WO_CACHE[(model1, model2)] = weights = outerAB * dotAB
+        
+        weights = weights[I, :][:, J]
+    else:
+        arrayA = modes1._getArray()
+        arrayB = modes2._getArray()
+
+        dotAB = np.dot(arrayA.T, arrayB)**2
+        outerAB = np.outer(varA**0.5, varB**0.5)
+        weights = outerAB * dotAB
+
+    diff = (np.sum(varA.sum() + varB.sum()) - 2 * np.sum(weights))
+
+    if diff < ZERO:
+        diff = 0
+    else:
+        diff = diff ** 0.5
+    return 1 - diff / np.sqrt(varA.sum() + varB.sum())
+
+def calcCovOverlap(modes1, modes2, turbo=False):
     """Returns overlap between covariances of *modes1* and *modes2*.  Overlap
     between covariances are calculated using normal modes (eigenvectors),
     hence modes in both models must have been calculated.  This function
     implements equation 11 in [BH02]_."""
-    return calcSpectralOverlap(modes1, modes2)
+    return calcSpectralOverlap(modes1, modes2, turbo=turbo)
 
 def pairModes(modes1, modes2, index=False):
     """Returns the optimal matches between *modes1* and *modes2*. *modes1* 
@@ -247,7 +309,7 @@ def pairModes(modes1, modes2, index=False):
 
     if not (isinstance(modes1, (ModeSet, NMA)) \
         and isinstance(modes2, (ModeSet, NMA))):
-        raise TypeError('modes1 and modes2 should be ModeSet instances')
+        raise TypeError('modes1 and modes2 should be ModeSet or NMA instances')
 
     if len(modes1) != len(modes2):
         raise ValueError('the same number of modes should be provided')
@@ -258,6 +320,12 @@ def pairModes(modes1, modes2, index=False):
 
     if index:
         return row_ind, col_ind
+
+    if isinstance(modes1, ModeSet):
+        row_ind = modes1._indices[row_ind]
+
+    if isinstance(modes2, ModeSet):
+        col_ind = modes2._indices[col_ind]
 
     outmodes1 = ModeSet(modes1.getModel(), row_ind)
     outmodes2 = ModeSet(modes2.getModel(), col_ind)

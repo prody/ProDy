@@ -1,6 +1,6 @@
 """ProDy is a package for Protein Dynamics, Sequence, and Structure Analysis"""
 
-__version__ = '1.10.7'
+__version__ = '1.10.8'
 __release__ = __version__ # + '-dev' # comment out '-dev' before a release
 
 import sys
@@ -121,6 +121,11 @@ from . import chromatin
 from .chromatin import *
 __all__.extend(chromatin.__all__)
 __all__.append('chromatin')
+
+from . import domain_decomposition
+from .domain_decomposition import *
+__all__.extend(domain_decomposition.__all__)
+__all__.append('domain_decomposition')
 
 #from . import comd
 #from .comd import *
