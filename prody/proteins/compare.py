@@ -9,7 +9,7 @@ from numpy import arange
 PW2 = None
 
 from prody.atomic import AtomMap as AM
-from prody.atomic import Chain, AtomGroup, Selection
+from prody.atomic import AtomGroup, Chain, AtomSubset
 from prody.atomic import AAMAP
 from prody.atomic import flags
 from prody.measure import calcTransformation, printRMSD, calcDistance
@@ -844,9 +844,8 @@ def mapOntoChain(atoms, chain, **kwargs):
        *Protein engineering* **1998** 11(9):739-47.
     """
 
-    if not isinstance(atoms, (AtomGroup, Chain, Selection)):
-        raise TypeError('atoms must be an AtomGroup, a Chain, or a '
-                        'Selection instance')
+    if not isinstance(atoms, (AtomGroup, AtomSubset)):
+        raise TypeError('atoms must be an AtomGroup or a AtomSubset instance')
     if not isinstance(chain, Chain):
         raise TypeError('chain must be Chain instance')
 
