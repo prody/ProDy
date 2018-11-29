@@ -721,9 +721,7 @@ def matchChains(atoms1, atoms2, **kwargs):
 
         matches[mi] = (match1, match2, _seqid, _cover)
     if len(matches) > 1:
-        def compare(m1, m2):
-            return cmp(m1[2], m2[2])
-        matches.sort(compare, reverse=True)
+        matches.sort(key=lambda m: m[-2:], reverse=True)
     return matches
 
 
