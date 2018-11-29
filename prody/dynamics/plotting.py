@@ -1643,6 +1643,9 @@ def showDomainBar(domains, x=None, loc=0., axis='x', **kwargs):
     :keyword text_color: color of the text labels
     :type text_color: str, tuple, list
 
+    :keyword color: a dictionary of colors where keys are the domain names
+    :type color: dict
+
     :keyword relim: whether to rescale the axes' limits after adding 
                     the bar. Default is **True**
     :type relim: bool
@@ -1658,6 +1661,8 @@ def showDomainBar(domains, x=None, loc=0., axis='x', **kwargs):
     barwidth = kwargs.pop('bar_width', barwidth)
 
     color_dict = kwargs.pop('color', None)
+
+    offset = kwargs.pop('offset', -0.5)
 
     is3d = kwargs.pop('is3d', False)
 
@@ -1744,13 +1749,14 @@ def showDomainBar(domains, x=None, loc=0., axis='x', **kwargs):
         gca().set_prop_cycle(None)
 
     if x is None:
-        x = np.arange(len(domains))
+        x = np.arange(len(domains), dtype=float)
+    x = x + offset
     X = np.tile(x, (len(uni_domids), 1)).T
 
     if axis == 'y':
-        bar = plot(F, X, linewidth=barwidth, solid_capstyle='butt')
+        bar = plot(F, X, linewidth=barwidth, solid_capstyle='butt', drawstyle='steps')
     else:
-        bar = plot(X, F, linewidth=barwidth, solid_capstyle='butt')
+        bar = plot(X, F, linewidth=barwidth, solid_capstyle='butt', drawstyle='steps-post')
 
     gca().set_prop_cycle(None)
     bars.extend(bar)
