@@ -7,14 +7,15 @@ from scipy.stats import mode
 from prody.chromatin.norm import VCnorm, SQRTVCnorm, Filenorm
 from prody.chromatin.functions import div0, showMap, showDomains, _getEigvecs
 
-from prody.dynamics import GNM, TrimmedGNM
+from prody import PY2K
+from prody.dynamics import GNM, MaskedGNM
 from prody.dynamics.functions import writeArray
 from prody.dynamics.mode import Mode
 from prody.dynamics.modeset import ModeSet
 
 from prody.utilities import openFile, importLA
 
-__all__ = ['HiC', 'TrimmedGNM', 'parseHiC', 'parseHiCStream', 'saveHiC', 'loadHiC', 'writeMap']
+__all__ = ['HiC', 'parseHiC', 'parseHiCStream', 'parseHiCBinary', 'saveHiC', 'loadHiC', 'writeMap']
 
 class HiC(object):
 
@@ -27,23 +28,23 @@ class HiC(object):
         self._map = None
         self.mask = False
         self._labels = 0
-        self.useTrimmed = True
+        self.masked = True
         self.bin = bin
-        self.Map = map
+        self.map = map
     
     @property
-    def Map(self):
-        if self.useTrimmed:
+    def map(self):
+        if self.masked:
             return self.getTrimedMap()
         else:
             return self._map
 
-    @Map.setter
-    def Map(self, map):
+    @map.setter
+    def map(self, value):
         if map is None: 
             self._map = None
         else:
-            self._map = np.array(map)
+            self._map = np.array(value)
             self._makeSymmetric()
             self._maskUnmappedRegions()
             self._labels = np.zeros(len(self._map))
@@ -58,16 +59,16 @@ class HiC(object):
 
     def __getitem__(self, index):
         if isinstance(index, Integral):
-            return self.Map.flatten()[index]
+            return self.map.flatten()[index]
         else:
             i, j = index
-            return self.Map[i,j]
+            return self.map[i,j]
 
     def __len__(self):
-        return len(self.Map)
+        return len(self.map)
     
     def numAtoms(self):
-        return len(self.Map)
+        return len(self.map)
 
     def getTitle(self):
         """Returns title of the instance."""
@@ -173,10 +174,10 @@ class HiC(object):
     def getKirchhoff(self):
         """Builds a Kirchhoff matrix based on the contact map."""
 
-        if self.Map is None:
+        if self.map is None:
             return None
         else:
-            M = self.Map
+            M = self.map
             
             I = np.eye(M.shape[0], dtype=bool)
             A = M.copy()
@@ -224,8 +225,8 @@ class HiC(object):
     def calcGNM(self, n_modes=None):
         """Calculates GNM on the current Hi-C map."""
 
-        if self.useTrimmed:
-            gnm = TrimmedGNM(self._title, self.mask)
+        if self.masked:
+            gnm = MaskedGNM(self._title, self.mask)
         else:
             gnm = GNM(self._title)
         gnm.setKirchhoff(self.getKirchhoff())
@@ -237,7 +238,7 @@ class HiC(object):
 
         M = self._map
         N = method(M, **kwargs)
-        self.Map = N
+        self.map = N
         return N
     
     def setDomains(self, labels, **kwargs):
@@ -249,9 +250,9 @@ class HiC(object):
         :arg method: Label assignment algorithm used after Laplacian embedding.
         :type method: func
         """
-        wastrimmed = self.useTrimmed
+        wastrimmed = self.masked
 
-        self.useTrimmed = True
+        self.masked = True
         if len(labels) == self.numAtoms():
             full_length = self.numAtoms()
             if full_length != len(labels):
@@ -269,13 +270,13 @@ class HiC(object):
                         currlbl = l
                 labels = _labels
         else:
-            self.useTrimmed = False
+            self.masked = False
             if len(labels) != self.numAtoms():
                 raise ValueError('The length of the labels should match either the length '
-                                 'of trimmed or untrimmed Hi-C map. Turn off "useTrimmed" if '
+                                 'of masked or complete Hi-C map. Turn off "masked" if '
                                  'you intended to set the labels to the full map.')
         
-        self.useTrimmed = wastrimmed
+        self.masked = wastrimmed
         self._labels = labels
         return self.getDomains()
     
@@ -285,7 +286,7 @@ class HiC(object):
 
         lbl = self._labels
         mask = self.mask
-        if self.useTrimmed:
+        if self.masked:
             lbl = lbl[mask]
         return lbl
 
@@ -315,7 +316,7 @@ class HiC(object):
             elif k.startswith('domain_'):
                 dm_kwargs[k[7:]] = kwargs.pop(k)
 
-        im = showMap(self.Map, spec, **kwargs)
+        im = showMap(self.map, spec, **kwargs)
 
         domains = self.getDomainList()
         if len(domains) > 1:
@@ -340,14 +341,20 @@ def parseHiC(filename, **kwargs):
     :type filename: str
     """
 
-    import os
+    import os, struct
     title = kwargs.get('title')
     if title is None:
         title = os.path.basename(filename)
     else:
         title = kwargs.pop('title')
-    with open(filename, 'rb') as filestream:
-        hic = parseHiCStream(filestream, title=title, **kwargs)
+
+    with open(filename,'rb') as req:
+        magic_number = struct.unpack('<3s',req.read(3))[0]
+    if magic_number == b"HIC":
+        hic = parseHiCBinary(filename, title=title, **kwargs)
+    else:
+        with open(filename, 'r') as filestream:
+            hic = parseHiCStream(filestream, title=title, **kwargs)
     return hic
 
 def parseHiCStream(stream, **kwargs):
@@ -374,30 +381,57 @@ def parseHiCStream(stream, **kwargs):
     bin = kwargs.get('bin', None)
     size = D.shape
     if len(D.shape) <= 1:
-        raise ValueError("Cannot parse the file: input file only contains one column.")
+        raise ValueError("cannot parse the file: input file only contains one column.")
     if size[0] == size[1]:
         M = D
     else:
-        i, j, value = D.T
+        try:
+            I, J, value = D.T[:3]
+            I = I.astype(int)
+            J = J.astype(int)
+        except ValueError:
+            raise ValueError('the sparse matrix format should have three columns')
         # determine the bin size by the most frequent interval
         if bin is None:
-            loci = np.unique(np.sort(i))
+            loci = np.unique(np.sort(I))
             bins = np.diff(loci)
             bin = mode(bins)[0][0]
         # convert coordinate from basepair to locus index
-        i = i//bin
-        j = j//bin
+        bin = int(bin)
+        I = I // bin
+        J = J // bin
         # make sure that the matrix is square
-        if np.max(i) != np.max(j):
-            b = np.max(np.append(i, j))
-            i = np.append(i, b)
-            j = np.append(j, b)
+        if np.max(I) != np.max(J):
+            b = np.max(np.append(I, J))
+            I = np.append(I, b)
+            J = np.append(J, b)
             value = np.append(value, 0.)
         # Convert to sparse matrix format, then full matrix format
         # and finally array type. Matrix format is avoided because
         # diag() won't work as intended for Matrix instances.
-        M = np.array(coo_matrix((value, (i,j))).todense())
+        M = np.array(coo_matrix((value, (I, J))).todense())
     return HiC(title=title, map=M, bin=bin)
+
+def parseHiCBinary(filename, **kwargs):
+
+    title = kwargs.get('title', 'Unknown')
+    chrloc = kwargs.get('chr', None)
+    if chrloc is None:
+        raise ValueError('chr needs to be specified when parsing .hic format')
+    norm = kwargs.get('norm','NONE')
+    unit = kwargs.get('unit','BP')
+    res = kwargs.get('binsize',50000)
+    res = kwargs.get('bin',res)
+    res = int(res)
+
+    from .straw import straw
+    result = straw(norm,filename,chrloc,chrloc,unit,res)
+    x = np.array(result[0], dtype=int)//res
+    y = np.array(result[1], dtype=int)//res
+    value = np.array(result[0])
+
+    M = np.array(coo_matrix((value, (x, y))).todense())
+    return HiC(title=title, map=M, bin=res)
 
 def writeMap(filename, map, bin=None, format='%f'):
     """Writes *map* to the file designated by *filename*.
@@ -478,4 +512,3 @@ def loadHiC(filename):
             val = np.asscalar(val)
         setattr(hic, k, val)
     return hic
-

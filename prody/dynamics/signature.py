@@ -8,7 +8,8 @@ from numpy import ndarray
 import numpy as np
 
 from prody import LOGGER, SETTINGS
-from prody.utilities import showFigure, showMatrix, copy, checkWeights, openFile, getValue
+from prody.utilities import showFigure, showMatrix, copy, checkWeights, openFile
+from prody.utilities import getValue, importLA
 from prody.ensemble import Ensemble, Conformation
 
 from .nma import NMA
@@ -77,21 +78,35 @@ class ModeEnsemble(object):
 
         if isinstance(modeset_index, slice):
             modesets = self._modesets[modeset_index]
+            modeset_indices = modeset_index
             labels = None if self._labels is None else self._labels[modeset_index]
         elif not np.isscalar(modeset_index):
-            modesets = []; labels = []
+            modesets = []; modeset_indices = []; labels = []
             for i in modeset_index:
-                assert isinstance(i, Integral), 'all indices must be integers'
-                modesets.append(self._modesets[i])
+                if isinstance(i, Integral):
+                    j = i
+                elif isinstance(i, str):
+                    try:
+                        j = self._labels.index(i)
+                    except:
+                        raise IndexError('invalid label: %s'%i)
+                else:
+                    raise IndexError('all indices must be integers or strings (labels)')
+                modesets.append(self._modesets[j])
+                modeset_indices.append(j)
                 if self._labels is not None:
-                    labels.append(self._labels[i])
+                    labels.append(self._labels[j])
         else:
-            try:
-                modeset_index = int(modeset_index)
-            except Exception:
-                raise IndexError('indices must be int, slice, or array-like objects')
+            if isinstance(modeset_index, Integral):
+                pass
+            elif isinstance(modeset_index, str):
+                try:
+                    modeset_index = self._labels.index(modeset_index)
+                except:
+                    raise IndexError('invalid label: %s'%modeset_index)
             else:
-                return self._modesets[modeset_index][mode_index]
+                raise IndexError('indices must be int, slice, or array-like objects')
+            return self._modesets[modeset_index][mode_index]
         
         if np.isscalar(mode_index):
             mode_index = [mode_index]
@@ -101,7 +116,7 @@ class ModeEnsemble(object):
         if self._weights is None:
             weights = None
         else:
-            weights = self._weights[modeset_index, :, :]
+            weights = self._weights[modeset_indices, :, :]
 
         ens = ModeEnsemble(title=self.getTitle())
         ens.addModeSet(modesets, weights=weights, label=labels)
@@ -335,14 +350,21 @@ class ModeEnsemble(object):
 
         return self._labels
 
-    def match(self):
-        """Matches the modes across mode sets according the mode overlaps."""
+    def match(self, turbo=False):
+        """Matches the modes across mode sets according the mode overlaps.
+
+        :arg turbo: if **True** then the computation will be performed in parallel. 
+                The number of threads is set to be the same as the number of 
+                CPUs. Assigning a number to specify the number of threads to be 
+                used. Default is **False**
+        :type turbo: bool, int
+        """
 
         if self._modesets:
             #LOGGER.debug('Matching {0} modes across {1} modesets...'
             #                .format(self.numModes(), self.numModeSets()))
             start = time.time()
-            self._modesets = matchModes(*self._modesets)
+            self._modesets = matchModes(*self._modesets, turbo=turbo)
             LOGGER.debug('{0} modes across {1} modesets were matched in {2:.2f}s.'
                             .format(self.numModes(), self.numModeSets(), time.time()-start))
         else:
@@ -384,11 +406,10 @@ class ModeEnsemble(object):
 
         if not self._labels and labels:
             self._labels = ['']*len(self._modesets)
-            self._labels.extend(labels)
 
         if not labels and self._labels:
             labels = ['']*len(modesets)
-            self._labels.extend(labels)
+        self._labels.extend(labels)
 
         for i in range(len(modesets)):
             modeset = modesets[i]
@@ -628,14 +649,24 @@ class sdarray(ndarray):
     def min(self, axis=0, **kwargs):
         """Calculates the minimum values of the sdarray over modesets (`axis=0`)."""
 
-        arr = np.asarray(self)
-        return arr.min(axis=axis)
+        # np.array instead asarray is used to make sure a copy of the original data is created
+        arr = np.array(self)
+        weights = self._weights
+        if weights is not None:
+            weights = weights.astype(bool)
+            arr[~weights] = np.nan
+        return np.nanmin(arr, axis=axis)
 
     def max(self, axis=0, **kwargs):
         """Calculates the maximum values of the sdarray over modesets (`axis=0`)."""
 
-        arr = np.asarray(self)
-        return arr.max(axis=axis)
+        # np.array instead asarray is used to make sure a copy of the original data is created
+        arr = np.array(self)
+        weights = self._weights
+        if weights is not None:
+            weights = weights.astype(bool)
+            arr[~weights] = np.nan
+        return np.nanmax(arr, axis=axis)
 
     def getWeights(self):
         """Returns the weights of the signature."""
@@ -654,10 +685,49 @@ class sdarray(ndarray):
 
         return np.asarray(self)
 
+    def transpose(self, axes=None):
+        a = np.asarray(self)
+        return np.transpose(a, axes=axes)
+
 def calcEnsembleENMs(ensemble, model='gnm', trim='reduce', n_modes=20, **kwargs):
-    """Description"""
+    """Calculates normal modes for each member of *ensemble*.
+    
+    :arg ensemble: normal modes of whose members to be computed
+    :type ensemble: :class:`.PDBEnsemble`
+
+    :arg model: type of ENM that will be performed. It can be either 'anm' 
+                or 'gnm'
+    :type model: str
+
+    :arg trim: type of method that will be used to trim the model. It can 
+               be either 'trim' , 'slice', or 'reduce'. If set to 'trim', the parts 
+               that is not in the selection will simply be removed
+    :type trim: str
+
+    :arg n_modes: number of modes to be computed
+    :type trim: int
+
+    :arg turbo: if **True** then the computation will be performed in parallel. 
+                The number of threads is set to be the same as the number of 
+                CPUs. Assigning a number to specify the number of threads to be 
+                used. Default is **False**
+    :type turbo: bool, int
+
+    :arg match: whether the modes should be matched using :func:`.matchModes`. 
+                Default is **True**
+    :type match: bool
+
+    :arg turbo: whether use :class:`~multiprocessing.Pool` to accelerate the computation. 
+                Note that if writing a script, ``if __name__ == '__main__'`` is necessary 
+                to protect your code when multi-tasking. 
+                See https://docs.python.org/2/library/multiprocessing.html for details.
+                Default is **False**
+    :type turbo: bool
+    """
 
     match = kwargs.pop('match', True)
+    turbo = kwargs.pop('turbo', False)
+
     if isinstance(ensemble, Conformation):
         conformation = ensemble
         ensemble = conformation.getEnsemble()
@@ -672,11 +742,13 @@ def calcEnsembleENMs(ensemble, model='gnm', trim='reduce', n_modes=20, **kwargs)
 
     start = time.time()
 
-    atoms = ensemble.getAtoms()
+    atoms = ensemble.getAtoms() 
     select = None
     if ensemble.isSelected():
         select = atoms
         atoms = ensemble.getAtoms(selected=False)
+
+    ori_coords = atoms.getCoords()
         
     labels = ensemble.getLabels()
 
@@ -725,8 +797,10 @@ def calcEnsembleENMs(ensemble, model='gnm', trim='reduce', n_modes=20, **kwargs)
                              label=ensemble.getLabels())
     modeens.setAtoms(ensemble.getAtoms())
 
+    atoms.setCoords(ori_coords)
+    
     if match:
-        modeens.match()
+        modeens.match(turbo=turbo)
     return modeens
 
 def _getEnsembleENMs(ensemble, **kwargs):
@@ -743,7 +817,7 @@ def _getEnsembleENMs(ensemble, **kwargs):
                             'or a list of NMA, Mode, or ModeSet instances.')
     return enms
 
-def calcEnsembleSpectralOverlaps(ensemble, distance=False, **kwargs):
+def calcEnsembleSpectralOverlaps(ensemble, distance=False, turbo=False, **kwargs):
     """Calculate the spectral overlaps between each pair of conformations in the 
     *ensemble*.
     
@@ -753,15 +827,23 @@ def calcEnsembleSpectralOverlaps(ensemble, distance=False, **kwargs):
     :arg distance: if set to **True**, spectral overlap will be converted to spectral 
                    distance via arccos.
     :type distance: bool
+
+    :arg turbo: if **True**, extra memory will be used to remember previous calculation 
+                results to accelerate the next calculation, so this option is particularly 
+                useful if spectral overlaps of the same ensemble are calculated repeatedly, 
+                e.g. using different number of modes. Note that for single calculation, 
+                *turbo* will compromise the speed.
+                Default is **False**
+    :type turbo: bool
     """
 
     enms = _getEnsembleENMs(ensemble, **kwargs)
     
-    overlaps = np.zeros((len(enms), len(enms)))
-    for i, enmi in enumerate(enms):
-        for j, enmj in enumerate(enms):
-            covlap = calcSpectralOverlap(enmi, enmj)
-            overlaps[i, j] = covlap
+    overlaps = np.ones((len(enms), len(enms)))
+    for i in range(enms.numModeSets()):
+        for j in range(i+1, enms.numModeSets()):
+            covlap = calcSpectralOverlap(enms[i, :], enms[j, :], turbo=turbo)
+            overlaps[i, j] = overlaps[j, i] = covlap
 
     if distance:
         overlaps = np.arccos(overlaps)
@@ -774,6 +856,9 @@ def calcSignatureSqFlucts(mode_ensemble, **kwargs):
     
     :arg mode_ensemble: an ensemble of ENMs 
     :type mode_ensemble: :class: `ModeEnsemble`
+
+    :keyword norm: whether to normalize the square fluctuations. Default is **True**
+    :type norm: bool
     """
 
     if not isinstance(mode_ensemble, ModeEnsemble):
@@ -783,10 +868,22 @@ def calcSignatureSqFlucts(mode_ensemble, **kwargs):
         LOGGER.warn('modes in mode_ensemble did not match cross modesets. '
                     'Consider running mode_ensemble.match() prior to using this function')
 
+    ifnorm = kwargs.pop('norm', True)
+    ifscale = kwargs.pop('scale', False)
+
+    norm = importLA().norm
+
     modesets = mode_ensemble
     V = []
-    for modes in modesets:
+    for i, modes in enumerate(modesets):
         sqfs = calcSqFlucts(modes)
+        if ifnorm:
+            sqfs /= norm(sqfs)
+        elif ifscale:
+            if i == 0:
+                norm0 = norm(sqfs)
+            else:
+                sqfs /= norm(sqfs) * norm0
         V.append(sqfs)
     V = np.vstack(V)
 
@@ -832,37 +929,10 @@ def showSignatureAtomicLines(y, std=None, min=None, max=None, atoms=None, **kwar
     zero_line = kwargs.pop('zero_line', False)
 
     x = range(y.shape[0])
-    lines, _, bars, _ = showAtomicLines(y, atoms=atoms, linespec=linespec, 
-                                       show_zero=zero_line, **kwargs)
-
-    ori_ylim = ylim()
-    ori_height = ori_ylim[1] - ori_ylim[0]
-    line = lines[-1]
-    color = line.get_color()
-    x, _ = line.get_data()
-    polys = []
-
-    if min is not None and max is not None:
-        poly = fill_between(x, min, max,
-                            alpha=0.15, facecolor=color, edgecolor=None,
-                            linewidth=1, antialiased=True)
-        polys.append(poly)
+    lines, polys, bars, texts = showAtomicLines(y, atoms=atoms, dy=std, lower=max, upper=min, 
+                                        linespec=linespec, show_zero=zero_line, **kwargs)
         
-    if std is not None:
-        poly = fill_between(x, y-std, y+std,
-                            alpha=0.35, facecolor=color, edgecolor=None,
-                            linewidth=1, antialiased=True)
-        polys.append(poly)
-
-    # readjust domain/chain bars' locations
-    cur_ylim = ylim()
-    cur_height = cur_ylim[1] - cur_ylim[0]
-    for bar in bars:
-        Y = bar.get_ydata()
-        new_Y = (Y - ori_ylim[0]) / ori_height * cur_height + cur_ylim[0]
-        bar.set_ydata(new_Y)
-        
-    return lines, bars, polys
+    return lines, polys, bars, texts
 
 def showSignature1D(signature, linespec='-', **kwargs):
     """
@@ -898,7 +968,7 @@ def showSignature1D(signature, linespec='-', **kwargs):
     zero_line = kwargs.pop('zero', zero_line)
     show_range = kwargs.pop('range', True)
 
-    bars = []; polys = []; lines = []
+    bars = []; polys = []; lines = []; texts = []
 
     if V.is3d():
         meanV = np.reshape(meanV, (V.numAtoms(), 3)).T
@@ -913,27 +983,29 @@ def showSignature1D(signature, linespec='-', **kwargs):
                 zero_line_ = zero_line
             if not show_range:
                 minV[i] = maxV[i] = None
-            _lines, _bars, _polys = showSignatureAtomicLines(meanV[i], stdV[i], minV[i], maxV[i], 
+            _lines, _polys, _bars, _texts = showSignatureAtomicLines(meanV[i], stdV[i], minV[i], maxV[i], 
                                                    atoms=atoms_, zero_line=zero_line_,
                                                    linespec=linespec, **kwargs)
             lines.extend(_lines)
             bars.extend(_bars)
             polys.extend(_polys)
+            texts.extend(_texts)
 
     else:
         if not show_range:
             minV = maxV = None
-        _lines, _bars, _polys = showSignatureAtomicLines(meanV, stdV, minV, maxV, 
+        _lines, _polys, _bars, _texts = showSignatureAtomicLines(meanV, stdV, minV, maxV, 
                                                atoms=atoms, zero_line=zero_line,
                                                linespec=linespec, **kwargs)
         lines.extend(_lines)
         bars.extend(_bars)
         polys.extend(_polys)
+        texts.extend(_texts)
 
     xlabel('Residues')
     title('Signature profile of ' + V.getTitle())
 
-    return lines, polys, bars
+    return lines, polys, bars, texts
 
 def showSignatureMode(mode_ensemble, **kwargs):
 
@@ -1265,14 +1337,31 @@ def showSignatureCollectivity(mode_ensemble, **kwargs):
     return show
 
 def showVarianceBar(mode_ensemble, highlights=None, **kwargs):
+    """Show the distribution of variances (cumulative if multiple modes) using 
+    :func:`~numpy.histogram`. 
+    
+    :arg mode_ensemble: an ensemble of modes whose variances are displayed
+    :type mode_ensemble: :class: `ModeEnsemble`
 
-    from matplotlib.pyplot import figure, gca, annotate, subplots_adjust, plot
+    :arg highlights: labels of conformations whose locations on the bar 
+                     will be highlighted by arrows and texts
+    :type highlights: list
+
+    :arg fraction: whether the variances should be weighted or not. 
+                   Default is **True**
+    :type fraction: bool
+    """
+
+    from matplotlib.pyplot import figure, gca, annotate, subplots_adjust
+    from matplotlib.pyplot import fill_between, xlabel, yticks, xlim
     from matplotlib.figure import Figure
-    from matplotlib.colorbar import ColorbarBase
     from matplotlib.colors import Normalize, NoNorm
     from matplotlib import cm, colors
     
     fig = kwargs.pop('figure', None)
+    fract = kwargs.pop('fraction', True)
+    bins = kwargs.pop('bins', 50)
+    cmap = kwargs.pop('cmap', 'Reds')
 
     if isinstance(fig, Figure):
         fig_num = fig.number
@@ -1298,8 +1387,6 @@ def showVarianceBar(mode_ensemble, highlights=None, **kwargs):
     #box.y0 += height/7.
     ax.set_position(box)
 
-    fract = kwargs.pop('fraction', True)
-
     #defarrow = {'width':1, 'headwidth':2, 
     #            'facecolor':'black',
     #            'headlength': 4}
@@ -1312,18 +1399,17 @@ def showVarianceBar(mode_ensemble, highlights=None, **kwargs):
         sig = mode_ensemble.getVariances() 
 
     variances = sig.getArray().sum(axis=1)
-    #meanVar = variances.mean()
-    #stdVar = variances.std()
     
-    #variances = (variances - meanVar)/stdVar
+    hist, edges = np.histogram(variances, bins=bins)
+    color_norm  = colors.Normalize(vmin=hist.min(), vmax=hist.max())
+    scalar_map = cm.ScalarMappable(norm=color_norm, cmap=cmap)
+    colors = scalar_map.to_rgba(hist)
 
-    maxVar = variances.max()
-    minVar = variances.min()
-
-    cmap = kwargs.pop('cmap', 'jet')
-    norm = Normalize(vmin=minVar, vmax=maxVar)
-    cb = ColorbarBase(ax, cmap=cmap, norm=norm,
-                      orientation='horizontal')
+    areas = []
+    for i in range(len(hist)):
+        x = [edges[i], edges[i+1]]
+        area = fill_between(x, [0, 0], [1, 1], color=colors[i])
+        areas.append(area)
 
     if not highlights:
         highlights = []
@@ -1335,34 +1421,40 @@ def showVarianceBar(mode_ensemble, highlights=None, **kwargs):
             if not ens_labels:
                 raise TypeError('highlights should be a list of integers because '
                                     'mode_ensemble has no label')
-            indices.append(ens_labels.index(hl))
-            labels.append(hl)
+            index = ens_labels.index(hl)
+            if isinstance(highlights, dict):
+                label = highlights[hl]
+            else:
+                label = hl
         else:
             try:
                 index = int(hl)
             except:
                 raise TypeError('highlights should be a list of integers or strings') 
-            indices.append(index)
-            if ens_labels:
-                labels.append(ens_labels[index])
+            if isinstance(highlights, dict):
+                label = highlights[hl]
             else:
-                labels.append(str(index))
+                label = ens_labels[index] if ens_labels else str(index)
+        indices.append(index)
+        labels.append(label)
 
     annotations = []
     for i, label in zip(indices, labels):
-        x = norm(variances[i])
+        x = variances[i]
         an = annotate(label, xy=(x, 1), xytext=(x, ratio), arrowprops=arrowprops)
         annotations.append(an)
 
-    for i in range(len(variances)):
-        x = norm(variances[i])
-        plot([x, x], [0, 1], 'w')
+    # for i in range(len(variances)):
+    #     x = variances[i]
+    #     plot([x, x], [0, 1], 'w')
 
-    cb.set_label('Variances')
+    xlabel('Variances')
+    yticks([])
+    xlim([variances.min(), variances.max()])
 
     if SETTINGS['auto_show']:
         showFigure()
-    return cb, annotations
+    return areas, annotations
 
 def saveModeEnsemble(mode_ensemble, filename=None, atoms=False, **kwargs):
     """Save *mode_ensemble* as :file:`filename.modeens.npz`.  If *filename* 

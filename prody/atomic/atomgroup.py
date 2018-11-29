@@ -35,11 +35,6 @@ def checkLabel(label):
     if not label:
         raise ValueError('label cannot be empty string')
 
-    label = str(label)
-
-    if not label:
-        raise ValueError('label cannot be empty string')
-
     if not label[0].isalpha():
         raise ValueError('label must start with a letter')
 
@@ -701,11 +696,11 @@ class AtomGroup(Atomic):
         else:
             label = checkLabel(label)
 
-            try:
-                ndim, dtype, shape = data.ndim, data.dtype, data.shape
-            except AttributeError:
-                data = np.array(data)
-                ndim, dtype, shape = data.ndim, data.dtype, data.shape
+            if np.isscalar(data):
+                data = [data] * self._n_atoms
+                
+            data = np.asarray(data)
+            ndim, dtype, shape = data.ndim, data.dtype, data.shape
 
             if ndim == 1 and dtype == bool:
                 raise TypeError('1 dimensional boolean arrays are not '

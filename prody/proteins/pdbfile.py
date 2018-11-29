@@ -10,7 +10,7 @@ from numbers import Integral
 
 import numpy as np
 
-from prody.atomic import AtomGroup
+from prody.atomic import AtomGroup, Atom, Selection
 from prody.atomic import flags
 from prody.atomic import ATOMIC_FIELDS
 from prody.utilities import openFile, isListLike
@@ -20,7 +20,8 @@ from .header import getHeaderDict, buildBiomolecules, assignSecstr, isHelix, isS
 from .localpdb import fetchPDB
 
 __all__ = ['parsePDBStream', 'parsePDB', 'parseChainsList', 'parsePQR',
-           'writePDBStream', 'writePDB', 'writeChainsList']
+           'writePDBStream', 'writePDB', 'writeChainsList', 'writePQR',
+           'writePQRStream']
 
 class PDBParseError(Exception):
     pass
@@ -118,7 +119,8 @@ def parsePDB(*pdb, **kwargs):
             kwargs = {}
             for key in lstkwargs:
                 kwargs[key] = lstkwargs[key][i]
-            LOGGER.update(i, 'Retrieving {0}...'.format(p), 
+            c = kwargs.get('chain','')
+            LOGGER.update(i, 'Retrieving {0}...'.format(p+c), 
                           label='_prody_parsePDB')
             result = _parsePDB(p, **kwargs)
             if not isinstance(result, tuple):
@@ -138,8 +140,15 @@ def parsePDB(*pdb, **kwargs):
             results = results[0]
         results = list(results)
 
+        model = kwargs.get('model')
+        header = kwargs.get('header', False)
+        if model != 0 and header:
+            numPdbs = len(results[0])
+        else:
+            numPdbs = len(results)
+
         LOGGER.info('{0} PDBs were parsed in {1:.2f}s.'
-                     .format(len(results), time.time()-start))
+                     .format(numPdbs, time.time()-start))
 
         return results
 
@@ -266,7 +275,7 @@ def parsePDBStream(stream, **kwargs):
         else:
             ag = None
             LOGGER.warn('Atomic data could not be parsed, please '
-                            'check the input file.')
+                        'check the input file.')
     elif header:
         hd, split = getHeaderDict(stream)
 
@@ -407,6 +416,7 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
     altlocs = np.zeros(asize, dtype=ATOMIC_FIELDS['altloc'].dtype)
     icodes = np.zeros(asize, dtype=ATOMIC_FIELDS['icode'].dtype)
     serials = np.zeros(asize, dtype=ATOMIC_FIELDS['serial'].dtype)
+    charges = np.zeros(asize, dtype=ATOMIC_FIELDS['charge'].dtype)
     if isPDB:
         segnames = np.zeros(asize, dtype=ATOMIC_FIELDS['segment'].dtype)
         elements = np.zeros(asize, dtype=ATOMIC_FIELDS['element'].dtype)
@@ -414,7 +424,6 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
         occupancies = np.zeros(asize, dtype=ATOMIC_FIELDS['occupancy'].dtype)
         anisou = None
         siguij = None
-        charges = np.zeros(asize, dtype=ATOMIC_FIELDS['charge'].dtype)
     else:
         radii = np.zeros(asize, dtype=ATOMIC_FIELDS['radius'].dtype)
 
@@ -453,45 +462,74 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
     END = False
     while i < stop:
         line = lines[i]
-        startswith = line[0:6]
+        if not isPDB:
+            fields = line.split()
+            if len(fields) == 10:
+                fields.insert(4, '')
+            elif len(fields) != 11:
+                LOGGER.warn('wrong number of fields for PQR format at line %d'%i)
+                i += 1
+                continue
 
-        if startswith == 'ATOM  ' or startswith == 'HETATM':
-            if only_subset:
+        if isPDB:
+            startswith = line[0:6].strip()
+        else:
+            startswith = fields[0]
+        
+        if startswith == 'ATOM' or startswith == 'HETATM':
+            if isPDB:
                 atomname = line[12:16].strip()
                 resname = line[17:21].strip()
+            else:
+                atomname= fields[2]
+                resname = fields[3]
+
+            if only_subset:
                 if not (atomname in subset and resname in protein_resnames):
                     i += 1
                     continue
-            else:
-                atomname = line[12:16]
-                resname = line[17:21]
 
-            chid = line[21]
+            if isPDB:
+                chid = line[21]
+            else:
+                chid = fields[4]
+
             if only_chains:
                 if not chid in chain:
                     i += 1
                     continue
-            alt = line[16]
-            if alt not in which_altlocs:
-                altloc[alt].append((line, i))
-                i += 1
-                continue
+            
+            if isPDB:
+                alt = line[16]
+                if alt not in which_altlocs:
+                    altloc[alt].append((line, i))
+                    i += 1
+                    continue
+            else:
+                alt = ' '
             try:
-                coordinates[acount, 0] = line[30:38]
-                coordinates[acount, 1] = line[38:46]
-                coordinates[acount, 2] = line[46:54]
+                if isPDB:
+                    coordinates[acount, 0] = line[30:38]
+                    coordinates[acount, 1] = line[38:46]
+                    coordinates[acount, 2] = line[46:54]
+                else:
+                    coordinates[acount, 0] = fields[6]
+                    coordinates[acount, 1] = fields[7]
+                    coordinates[acount, 2] = fields[8]
             except:
                 if acount >= n_atoms > 0:
-                    if nmodel ==0:
+                    if nmodel == 0:
                         raise ValueError(format + 'file and AtomGroup ag must '
                                          'have same number of atoms')
-                    LOGGER.warn('Discarding model {0}, which contains more '
-                            'atoms than first model does.'.format(nmodel+1))
+                    LOGGER.warn('Discarding model {0}, which contains {1} more '
+                                'atoms than first model does.'
+                                .format(nmodel+1,acount-n_atoms+1))
                     acount = 0
                     nmodel += 1
                     coordinates = np.zeros((n_atoms, 3), dtype=float)
-                    while lines[i][:6] != 'ENDMDL':
-                        i += 1
+                    if isPDB:
+                        while lines[i][:6] != 'ENDMDL':
+                            i += 1
                 else:
                     raise PDBParseError('invalid or missing coordinate(s) at '
                                          'line {0}'.format(i+1))
@@ -501,10 +539,10 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                 continue
 
             try:
-                serials[acount] = line[6:11]
+                serials[acount] = int(line[6:11]) if isPDB else int(fields[1])
             except ValueError:
                 try:
-                    serials[acount] = int(line[6:11], 16)
+                    serials[acount] = int(line[6:11], 16) if isPDB else int(fields[1], 16)
                 except ValueError:
                     LOGGER.warn('failed to parse serial number in line {0}'
                                 .format(i))
@@ -513,8 +551,18 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
             atomnames[acount] = atomname
             resnames[acount] = resname
             chainids[acount] = chid
-            resnums[acount] = line[22:26]#.split()[0])
-            icodes[acount] = line[26]
+            if isPDB:
+                resnums[acount] = line[22:26] 
+                icodes[acount] = line[26] 
+            else:
+                resnum = fields[5]
+                if resnum[-1].isalpha():
+                    icode = resnum[-1]
+                else:
+                    icode = ' '
+                resnums[acount] = resnum
+                icodes[acount] = icode
+
             if isPDB:
                 try:
                     occupancies[acount] = line[54:60]
@@ -535,12 +583,12 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                     charges[acount] = 0
             else:
                 try:
-                    charges[acount] = line[54:62]
+                    charges[acount] = fields[9]
                 except:
                     LOGGER.warn('failed to parse charge at line {0}'
                                 .format(i))
                 try:
-                    radii[acount] = line[62:69]
+                    radii[acount] = fields[10]
                 except:
                     LOGGER.warn('failed to parse radius at line {0}'
                                 .format(i))
@@ -1147,3 +1195,71 @@ def writePDB(filename, atoms, csets=None, autoext=True, **kwargs):
 writePDB.__doc__ += _writePDBdoc + """
     :arg autoext: when not present, append extension :file:`.pdb` to *filename*
 """
+
+def writePQRStream(stream, atoms, **kwargs):
+    if isinstance(atoms, Atom):
+        atoms = Selection(atoms.getAtomGroup(), [atoms.getIndex()],
+                          atoms.getACSIndex(),
+                          'index ' + str(atoms.getIndex()))
+    n_atoms = atoms.numAtoms()
+    atomnames = atoms.getNames()
+    if atomnames is None:
+        raise RuntimeError('atom names are not set')
+    for i, an in enumerate(atomnames):
+        lenan = len(an)
+        if lenan < 4:
+            atomnames[i] = ' ' + an
+        elif lenan > 4:
+            atomnames[i] = an[:4]
+
+    s_or_u = np.array(['a']).dtype.char
+
+    resnames = atoms._getResnames()
+    if resnames is None:
+        resnames = ['UNK'] * n_atoms
+    resnums = atoms._getResnums()
+    if resnums is None:
+        resnums = np.ones(n_atoms, int)
+    chainids = atoms._getChids()
+    if chainids is None:
+        chainids = np.zeros(n_atoms, s_or_u + '1')
+    charges = atoms._getCharges()
+    if charges is None:
+        charges = np.zeros(n_atoms, float)
+    radii = atoms._getRadii()
+    if radii is None:
+        radii = np.zeros(n_atoms, float)
+    icodes = atoms._getIcodes()
+    if icodes is None:
+        icodes = np.zeros(n_atoms, s_or_u + '1')
+    hetero = ['ATOM'] * n_atoms
+    heteroflags = atoms._getFlags('hetatm')
+    if heteroflags is None:
+        heteroflags = atoms._getFlags('hetero')
+    if heteroflags is not None:
+        hetero = np.array(hetero, s_or_u + '6')
+        hetero[heteroflags] = 'HETATM'
+    altlocs = atoms._getAltlocs()
+    if altlocs is None:
+        altlocs = np.zeros(n_atoms, s_or_u + '1')
+
+    format = ('{0:6s} {1:5d} {2:4s} {3:1s}' +
+              '{4:4s} {5:1s} {6:4d} {7:1s}   ' +
+              '{8:8.3f} {9:8.3f} {10:8.3f}' +
+              '{11:8.4f} {12:7.4f}\n').format
+    coords = atoms._getCoords()
+    write = stream.write
+    for i, xyz in enumerate(coords):
+        write(format(hetero[i], i+1, atomnames[i], altlocs[i],
+                     resnames[i], chainids[i], int(resnums[i]),
+                     icodes[i], xyz[0], xyz[1], xyz[2], charges[i], radii[i]))
+
+def writePQR(filename, atoms, **kwargs):
+    """Write *atoms* in PQR format to a file with name *filename*.  Only
+    current coordinate set is written.  Returns *filename* upon success.  If
+    *filename* ends with :file:`.gz`, a compressed file will be written."""
+
+    stream = openFile(filename, 'w')
+    writePQRStream(stream, atoms, **kwargs)
+    stream.close()
+    return filename

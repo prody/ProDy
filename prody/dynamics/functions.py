@@ -12,7 +12,7 @@ from prody.utilities import openFile, isExecutable, which, PLATFORM, addext
 
 from .nma import NMA
 from .anm import ANM
-from .gnm import GNM, GNMBase, ZERO, TrimmedGNM
+from .gnm import GNM, GNMBase, ZERO, MaskedGNM
 from .pca import PCA, EDA
 from .exanm import exANM
 from .mode import Vector, Mode
@@ -39,8 +39,8 @@ def saveModel(nma, filename=None, matrices=False, **kwargs):
 
     if not isinstance(nma, NMA):
         raise TypeError('invalid type for nma, {0}'.format(type(nma)))
-    if len(nma) == 0:
-        raise ValueError('nma instance does not contain data')
+    #if len(nma) == 0:
+    #    raise ValueError('nma instance does not contain data')
 
     dict_ = nma.__dict__
     attr_list = ['_title', '_trace', '_array', '_eigvals', '_vars', '_n_atoms',
@@ -73,10 +73,10 @@ def saveModel(nma, filename=None, matrices=False, **kwargs):
         if value is not None:
             attr_dict[attr] = value
 
-    if isinstance(nma, TrimmedGNM):
-        attr_dict['type'] = 'tGNM'
+    if isinstance(nma, MaskedGNM):
+        attr_dict['type'] = 'mGNM'
         attr_dict['mask'] = nma.mask
-        attr_dict['useTrimmed'] = nma.useTrimmed
+        attr_dict['masked'] = nma.masked
 
     if isinstance(nma, exANM):
         attr_dict['type'] = 'exANM'
@@ -130,8 +130,8 @@ def loadModel(filename, **kwargs):
         nma = EDA(title)
     elif type_ == 'GNM':
         nma = GNM(title)
-    elif type_ == 'tGNM':
-        nma = TrimmedGNM(title)
+    elif type_ == 'mGNM':
+        nma = MaskedGNM(title)
     elif type_ == 'exANM':
         nma = exANM(title)
     elif type_ == 'NMA':
@@ -380,21 +380,21 @@ def calcENM(atoms, select=None, model='anm', trim='trim', gamma=1.0,
     calculationsn. The model can be trimmed, sliced, or reduced based on 
     the selection.
 
-    :arg atoms: Atoms on which ENM is performed. It can be any :class:`Atomic` 
+    :arg atoms: atoms on which the ENM is performed. It can be any :class:`Atomic` 
         class that supports selection.
-    :type atoms: :class:`Atomic`, :class:`AtomGroup`, or :class:`Selection`
+    :type atoms: :class:`Atomic`, :class:`AtomGroup`, :class:`Selection`
 
-    :arg select: Part of the atoms that is considered as the system. 
-        If set to `None`, then all atoms will be considered as the system.
-    :type select: str or :class:`Selection`
+    :arg select: part of the atoms that is considered as the system. 
+        If set to `None`, then all atoms will be considered as the system
+    :type select: str, :class:`Selection`
 
-    :arg model: Type of ENM that will be performed. It can be either 'anm' 
-        or 'gnm'.
+    :arg model: type of ENM that will be performed. It can be either 'anm' 
+        or 'gnm'
     :type model: str
 
-    :arg trim: Type of method that will be used to trim the model. It can 
+    :arg trim: type of method that will be used to trim the model. It can 
         be either 'trim' , 'slice', or 'reduce'. If set to 'trim', the parts 
-        that is not in the selection will simply be removed.
+        that is not in the selection will simply be removed
     :type trim: str
     """
     
