@@ -964,7 +964,8 @@ def assignSecstr(header, atoms, coil=False):
     helix = header.get('helix', {})
     sheet = header.get('sheet', {})
     if len(helix) == 0 and len(sheet) == 0:
-        raise ValueError('header does not contain secondary structure data')
+        LOGGER.warn('header does not contain secondary structure data')
+        return atoms
 
     ssa = atoms.getSecstrs()
     if ssa is None:
