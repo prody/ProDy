@@ -232,6 +232,7 @@ def trimPDBEnsemble(pdb_ensemble, occupancy=None, **kwargs):
 
         trimmed.setAtoms(select)
 
+    trimmed._data = pdb_ensemble._data
     return trimmed
 
 def calcOccupancies(pdb_ensemble, normed=False):
