@@ -504,33 +504,33 @@ def addPDBEnsemble(ensemble, PDBs, refpdb=None, labels=None,
                    mapping_func=mapOntoChain, occupancy=None, unmapped=None, **kwargs):  
     """Adds extra structures to a given PDB ensemble. 
 
-    :arg ensemble: The ensemble to which the PDBs are added.
+    :arg ensemble: the ensemble to which the PDBs are added
     :type ensemble: :class:`.PDBEnsemble`
 
-    :arg refpdb: Reference structure. If set to `None`, it will be set to `ensemble.getAtoms()` automatically.
+    :arg refpdb: reference structure. If set to `None`, it will be set to `ensemble.getAtoms()` automatically
     :type refpdb: :class:`.Chain`, :class:`.Selection`, or :class:`.AtomGroup`
 
     :arg PDBs: A list of PDB structures
     :type PDBs: iterable
 
-    :arg title: The title of the ensemble
+    :arg title: the title of the ensemble
     :type title: str
 
     :arg labels: labels of the conformations
     :type labels: list
 
-    :arg seqid: Minimal sequence identity (percent)
+    :arg seqid: minimal sequence identity (percent)
     :type seqid: int
 
-    :arg coverage: Minimal sequence overlap (percent)
+    :arg coverage: minimal sequence overlap (percent)
     :type coverage: int
 
-    :arg occupancy: Minimal occupancy of columns (range from 0 to 1). Columns whose occupancy 
-                    is below this value will be trimmed.
+    :arg occupancy: minimal occupancy of columns (range from 0 to 1). Columns whose occupancy 
+                    is below this value will be trimmed
     :type occupancy: float
 
-    :arg unmapped: A list of PDB IDs that cannot be included in the ensemble. This is an 
-                   output argument. 
+    :arg unmapped: a list of PDB IDs that cannot be included in the ensemble. This is an 
+                   output argument
     :type unmapped: list
     """
 
@@ -622,11 +622,33 @@ def addPDBEnsemble(ensemble, PDBs, refpdb=None, labels=None,
 def refineEnsemble(ensemble, lower=.5, upper=10., **kwargs):
     """Refine a PDB ensemble based on RMSD criterions.
     
-    :arg ensemble: The ensemble to which the PDBs are added.
-    :type ensemble: :class:`.PDBEnsemble`
+    :arg ensemble: the ensemble to be refined
+    :type ensemble: :class:`.Ensemble`, :class:`.PDBEnsemble`
+
+    :arg lower: the smallest allowed RMSD between two conformations with the exception of **protected** 
+    :type lower: float
+
+    :arg upper: the highest allowed RMSD between two conformations with the exception of **protected** 
+    :type upper: float
+
+    :keyword protected: a list of either the indices or labels of the conformations needed to be kept 
+                        after the refinement
+    :type protected: list
     """ 
 
-    protected = kwargs.pop('protected', None)
+    protected = kwargs.pop('protected', [])
+    P = []
+    if len(protected):
+        labels = ensemble.getLabels()
+        for p in protected:
+            if isinstance(p, Integral):
+                i = p
+            else:
+                if p in labels:
+                    i = P.index(p)
+                else:
+                    raise ValueError('protected should be a list of either indices or labels')
+            P.append(i)
 
     LOGGER.timeit('_prody_refineEnsemble')
     from numpy import argsort
@@ -676,6 +698,10 @@ def refineEnsemble(ensemble, lower=.5, upper=10., **kwargs):
     
     # find common indices from L and U
     I = list(set(L) - (set(L) - set(U)))
+
+    for p in P:
+        if p in I:
+            I.remove(p)
     reens = ensemble[I]
 
     LOGGER.report('Ensemble was refined in %.2fs.', '_prody_refineEnsemble')
