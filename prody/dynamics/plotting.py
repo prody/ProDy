@@ -1517,7 +1517,7 @@ def showAtomicLines(*args, **kwargs):
             if not gap:
                 gap = True
             show_chain = False
-            show_domain = False
+            #show_domain = False
 
         hv = atoms.getHierView()
         if hv.numChains() == 0:
@@ -1605,6 +1605,8 @@ def showAtomicLines(*args, **kwargs):
 
     show_domain, domain_pos, domains = _checkDomainBarParameter(show_domain, 1., atoms, 'domain')
     if show_domain:
+        if overlay:
+            x = x[0]
         b, t = showDomainBar(domains, x=x, loc=domain_pos, axis='x', 
                              text_loc=domain_text_loc,  text=show_domain_text,
                              barwidth=barwidth)
@@ -1662,7 +1664,7 @@ def showDomainBar(domains, x=None, loc=0., axis='x', **kwargs):
 
     color_dict = kwargs.pop('color', None)
 
-    offset = kwargs.pop('offset', -0.5)
+    offset = kwargs.pop('offset', 0)
 
     is3d = kwargs.pop('is3d', False)
 
@@ -1721,6 +1723,10 @@ def showDomainBar(domains, x=None, loc=0., axis='x', **kwargs):
     F[~D] = np.nan
     F[D] = d_loc
 
+    if x is None:
+        x = np.arange(len(domains), dtype=float)
+    x = x + offset
+
     if show_text:
         for i, chid in enumerate(uni_domids):
             d = D[:, i].astype(int)
@@ -1731,7 +1737,8 @@ def showDomainBar(domains, x=None, loc=0., axis='x', **kwargs):
             locs = np.split(d[idx], np.where(np.diff(idx)!=1)[0] + 1)
 
             for loc in locs:
-                pos = np.median(loc)
+                i = int(np.median(loc))
+                pos = x[i]
                 if axis == 'y':
                     txt = text(d_loc, pos, chid, rotation=-90, 
                                                 color=text_color,
@@ -1748,9 +1755,6 @@ def showDomainBar(domains, x=None, loc=0., axis='x', **kwargs):
     else:
         gca().set_prop_cycle(None)
 
-    if x is None:
-        x = np.arange(len(domains), dtype=float)
-    x = x + offset
     X = np.tile(x, (len(uni_domids), 1)).T
 
     if axis == 'y':
