@@ -619,18 +619,24 @@ def addPDBEnsemble(ensemble, PDBs, refpdb=None, labels=None,
 
     return ensemble
 
-def refineEnsemble(ens, lower=.5, upper=10.):
-    """Refine a PDB ensemble based on RMSD criterions.""" 
+def refineEnsemble(ensemble, lower=.5, upper=10., **kwargs):
+    """Refine a PDB ensemble based on RMSD criterions.
+    
+    :arg ensemble: The ensemble to which the PDBs are added.
+    :type ensemble: :class:`.PDBEnsemble`
+    """ 
+
+    protected = kwargs.pop('protected', None)
 
     LOGGER.timeit('_prody_refineEnsemble')
     from numpy import argsort
 
     ### obtain reference index
-    rmsd = ens.getRMSDs()
+    rmsd = ensemble.getRMSDs()
     ref_i = np.argmin(rmsd)
 
     ### calculate pairwise RMSDs ###
-    RMSDs = ens.getRMSDs(pairwise=True)
+    RMSDs = ensemble.getRMSDs(pairwise=True)
 
     def getRefinedIndices(A):
         deg = A.sum(axis=0)
@@ -638,7 +644,7 @@ def refineEnsemble(ens, lower=.5, upper=10.):
         sorted_indices.remove(ref_i)
         sorted_indices.insert(0, ref_i)
 
-        n_confs = ens.numConfs()
+        n_confs = ensemble.numConfs()
         isdel_temp = np.zeros(n_confs)
         for a in range(n_confs):
             i = sorted_indices[a]
@@ -658,8 +664,8 @@ def refineEnsemble(ens, lower=.5, upper=10.):
                 ind_list.append(i)
         return ind_list
 
-    L = list(range(len(ens)))
-    U = list(range(len(ens)))
+    L = list(range(len(ensemble)))
+    U = list(range(len(ensemble)))
     if lower is not None:
         A = RMSDs < lower
         L = getRefinedIndices(A)
@@ -670,9 +676,9 @@ def refineEnsemble(ens, lower=.5, upper=10.):
     
     # find common indices from L and U
     I = list(set(L) - (set(L) - set(U)))
-    reens = ens[I]
+    reens = ensemble[I]
 
     LOGGER.report('Ensemble was refined in %.2fs.', '_prody_refineEnsemble')
-    LOGGER.info('%d conformations were removed from ensemble.'%(len(ens) - len(I)))
+    LOGGER.info('%d conformations were removed from ensemble.'%(len(ensemble) - len(I)))
 
     return reens
