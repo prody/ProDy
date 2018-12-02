@@ -645,7 +645,7 @@ def refineEnsemble(ensemble, lower=.5, upper=10., **kwargs):
                 i = p
             else:
                 if p in labels:
-                    i = P.index(p)
+                    i = labels.index(p)
                 else:
                     raise ValueError('protected should be a list of either indices or labels')
             P.append(i)
