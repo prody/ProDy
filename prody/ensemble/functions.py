@@ -647,7 +647,7 @@ def refineEnsemble(ensemble, lower=.5, upper=10., **kwargs):
                 if p in labels:
                     i = labels.index(p)
                 else:
-                    raise ValueError('protected should be a list of either indices or labels')
+                    LOGGER.warn('cannot found any conformation with the label %s in the ensemble'%str(p))
             P.append(i)
 
     LOGGER.timeit('_prody_refineEnsemble')
