@@ -700,8 +700,9 @@ def refineEnsemble(ensemble, lower=.5, upper=10., **kwargs):
     I = list(set(L) - (set(L) - set(U)))
 
     for p in P:
-        if p in I:
-            I.remove(p)
+        if p not in I:
+            I.append(p)
+    I.sort()
     reens = ensemble[I]
 
     LOGGER.report('Ensemble was refined in %.2fs.', '_prody_refineEnsemble')
