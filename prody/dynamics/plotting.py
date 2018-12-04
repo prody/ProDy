@@ -1758,12 +1758,17 @@ def showDomainBar(domains, x=None, loc=0., axis='x', **kwargs):
     X = np.tile(x, (len(uni_domids), 1)).T
 
     if axis == 'y':
-        bar = plot(F, X, linewidth=barwidth, solid_capstyle='butt', drawstyle='steps')
+        dbars = plot(F, X, linewidth=barwidth, solid_capstyle='butt', drawstyle='steps')
+
+        for bar in dbars:
+            bar.set_clip_on(False)
     else:
-        bar = plot(X, F, linewidth=barwidth, solid_capstyle='butt', drawstyle='steps-post')
+        dbars = plot(X, F, linewidth=barwidth, solid_capstyle='butt', drawstyle='steps-post')
+        for bar in dbars:
+            bar.set_clip_on(False)
 
     gca().set_prop_cycle(None)
-    bars.extend(bar)
+    bars.extend(dbars)
     if relim:
         gca().autoscale_view()
     return bars, texts
