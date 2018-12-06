@@ -11,7 +11,7 @@ from prody.proteins import parsePDB
 from prody.atomic import AtomGroup
 from prody.ensemble import Ensemble, Conformation
 from prody.trajectory import TrajBase
-from prody.utilities import importLA, checkCoords
+from prody.utilities import importLA, checkCoords, div0
 from numpy import sqrt, arange, log, polyfit, array, arccos, dot
 
 from .nma import NMA
@@ -349,7 +349,8 @@ def calcCrossCorr(modes, n_cpu=1, norm=True):
         covariance = calcCovariance(modes)
     if norm:
         diag = np.power(covariance.diagonal(), 0.5)
-        covariance /= np.outer(diag, diag)
+        D = np.outer(diag, diag)
+        covariance = div0(covariance, D)
     return covariance
 
 

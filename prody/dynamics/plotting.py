@@ -516,7 +516,7 @@ def showOverlapTable(modes_x, modes_y, **kwargs):
 
 
 def showCrossCorr(modes, *args, **kwargs):
-    """Show cross-correlations using :func:`~matplotlib.pyplot.imshow`.  By
+    """Show cross-correlations using :func:`showAtomicMatrix`.  By
     default, *origin=lower* and *interpolation=bilinear* keyword  arguments
     are passed to this function, but user can overwrite these parameters.
     See also :func:`.calcCrossCorr`."""
@@ -533,8 +533,8 @@ def showCrossCorr(modes, *args, **kwargs):
         kwargs['interpolation'] = 'bilinear'
     if not 'origin' in kwargs:
         kwargs['origin'] = 'lower'
-    show = plt.imshow(cross_correlations, *args, **kwargs), plt.colorbar()
-    plt.axis([arange[0]+0.5, arange[-1]+1.5, arange[0]+0.5, arange[-1]+1.5])
+    show = showAtomicMatrix(cross_correlations, *args, **kwargs)#, plt.colorbar()
+    #plt.axis([arange[0]+0.5, arange[-1]+1.5, arange[0]+0.5, arange[-1]+1.5])
     plt.title('Cross-correlations for {0}'.format(str(modes)))
     plt.xlabel('Indices')
     plt.ylabel('Indices')
