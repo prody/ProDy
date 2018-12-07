@@ -462,7 +462,7 @@ def writeMap(filename, map, bin=None, format='%f'):
     :type map: :class:`numpy.ndarray`
 
     :arg bin: bin size of the *map*. If bin is `None`, *map* will be 
-    written in full matrix format.
+              written in full matrix format.
     :type bin: int
 
     :arg format: output format for map elements.
@@ -474,15 +474,15 @@ def writeMap(filename, map, bin=None, format='%f'):
     if bin is None:
         return writeArray(filename, map, format=format)
     else:
-        L = int(map.size - np.diag(map).size)/2 + np.diag(map).size
-        spmat = np.zeros((L,3))
+        L = int(map.size - np.diag(map).size)//2 + np.diag(map).size
+        spmat = np.zeros((L, 3))
         m,n = map.shape
         l = 0
         for i in range(m):
             for j in range(i,n):
-                spmat[l,0] = i * bin
-                spmat[l,1] = j * bin
-                spmat[l,2] = map[i,j]
+                spmat[l, 0] = i * bin
+                spmat[l, 1] = j * bin
+                spmat[l, 2] = map[i, j]
                 l += 1
         fmt = ['%d', '%d', format]
         return writeArray(filename, spmat, format=fmt)
