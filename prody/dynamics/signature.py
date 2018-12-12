@@ -80,8 +80,9 @@ class ModeEnsemble(object):
             modesets = self._modesets[modeset_index]
             modeset_indices = modeset_index
             labels = None if self._labels is None else self._labels[modeset_index]
+            matched = self.getMatchingStatus()[modeset_index]
         elif not np.isscalar(modeset_index):
-            modesets = []; modeset_indices = []; labels = []
+            modesets = []; modeset_indices = []; labels = []; matched = []
             for i in modeset_index:
                 if isinstance(i, Integral):
                     j = i
@@ -96,6 +97,9 @@ class ModeEnsemble(object):
                 modeset_indices.append(j)
                 if self._labels is not None:
                     labels.append(self._labels[j])
+                
+                allstatus = self.getMatchingStatus()
+                matched.append(allstatus[j])
         else:
             if isinstance(modeset_index, Integral):
                 pass
@@ -119,9 +123,8 @@ class ModeEnsemble(object):
             weights = self._weights[modeset_indices, :, :]
 
         ens = ModeEnsemble(title=self.getTitle())
-        ens.addModeSet(modesets, weights=weights, label=labels)
+        ens.addModeSet(modesets, weights=weights, label=labels, matched=matched)
         ens.setAtoms(self.getAtoms())
-        ens._matched = self._matched
         return ens
 
     def __getitem__(self, index):
@@ -155,12 +158,12 @@ class ModeEnsemble(object):
 
         ensemble = ModeEnsemble('{0} + {1}'.format(self.getTitle(),
                                                   other.getTitle()))
-        ensemble.addModeSet(self._modesets, self._labels)
+        ensemble.addModeSet(self._modesets, weights=self._weights, label=self._labels,
+                            matched=self.getMatchingStatus())
         ensemble.setAtoms(self.getAtoms())
         
         ensemble.addModeSet(other.getModeSets(), weights=other.getWeights(),
-                            label=other.getLabels())
-        ensemble._matched = self._matched and other._matched
+                            label=other.getLabels(), matched=other.getMatchingStatus())
         return ensemble
 
     def is3d(self):
@@ -350,6 +353,29 @@ class ModeEnsemble(object):
 
         return self._labels
 
+    def setLabels(self, labels):
+        """Returns the labels of the mode ensemble."""
+        if len(labels) != self.numModeSets():
+            raise ValueError('the number of labels and mode sets mismatch')
+        self._labels = labels
+
+    def getMatchingStatus(self):
+        """Returns the matching status of each mode ensemble."""
+
+        if isinstance(self._matched, bool):
+            matched = [self._matched for _ in self]
+        else:
+            matched = self._matched
+        return matched
+
+    def setMatchingStatus(self, status):
+        """Returns the matching status of each mode ensemble."""
+
+        if not isinstance(status, bool):
+            if len(status) != self.numModeSets():
+                raise ValueError('the number of status and mode sets mismatch')
+        self._matched = status
+
     def match(self, turbo=False):
         """Matches the modes across mode sets according the mode overlaps.
 
@@ -364,18 +390,42 @@ class ModeEnsemble(object):
             #LOGGER.debug('Matching {0} modes across {1} modesets...'
             #                .format(self.numModes(), self.numModeSets()))
             start = time.time()
-            self._modesets = matchModes(*self._modesets, turbo=turbo)
+
+            matched = self.getMatchingStatus()
+            if np.any(matched):
+                matched[0] = False
+                indices = [i for i in range(len(matched)) if not matched[i]]
+                modesets = [self._modesets[i] for i in indices]
+
+                modesets = matchModes(*modesets, turbo=turbo)
+
+                for n, i in enumerate(indices):
+                    if n > 0:
+                        self._modesets[i] = modesets[n]
+
+                n_modesets = len(modesets)
+            else: # if all not matched, start from scratch
+                self._modesets = matchModes(*self._modesets, turbo=turbo)
+                n_modesets = len(self._modesets)
+
             LOGGER.debug('{0} modes across {1} modesets were matched in {2:.2f}s.'
-                            .format(self.numModes(), self.numModeSets(), time.time()-start))
+                            .format(self.numModes(), n_modesets, time.time()-start))
         else:
             LOGGER.warn('Mode ensemble has no modesets')
         self._matched = True
         return
 
+    def restore(self):
+        """Restores the original orders of modes"""
+        n_modes = self.numModes()
+        for i, enm in enumerate(self):
+            model = enm._model
+            self._modesets[i] = model[:n_modes]
+
     def reorder(self):
         """Reorders the modes across mode sets according to their collectivity"""
-        if not self._matched:
-            LOGGER.warn('Mode ensemble has not been matched')
+        if not self.isMatched():
+            LOGGER.warn('Mode ensemble has not been all matched')
         else:
             vals = self.getEigvals()
             
@@ -388,7 +438,7 @@ class ModeEnsemble(object):
 
             self._modesets = ret
 
-    def addModeSet(self, modeset, weights=None, label=None):
+    def addModeSet(self, modeset, weights=None, label=None, matched=False):
         """Adds a modeset or modesets to the mode ensemble."""
 
         if isinstance(modeset, (NMA, ModeSet, Mode)):
@@ -396,20 +446,26 @@ class ModeEnsemble(object):
         else:
             modesets = modeset
 
-        if label is not None:
-            if np.isscalar(label):
+        matchingstatus = self.getMatchingStatus()
+        if isinstance(matched, bool):
+            matched = [matched for _ in range(len(modesets))]
+        matchingstatus.extend(matched)
+        self._matched = matchingstatus
+
+        if self._labels is not None or label is not None:
+            if label is None:
+                labels = ['']*len(modesets)
+            elif np.isscalar(label):
                 labels = [label]
             else:
                 labels = label
             if len(labels) != len(modesets):
                 raise ValueError('labels should have the same length as modesets')
 
-        if not self._labels and labels:
-            self._labels = ['']*len(self._modesets)
+            if self._labels is None:
+                self._labels = ['']*len(self._modesets)
 
-        if not labels and self._labels:
-            labels = ['']*len(modesets)
-        self._labels.extend(labels)
+            self._labels.extend(labels)
 
         for i in range(len(modesets)):
             modeset = modesets[i]
@@ -442,6 +498,7 @@ class ModeEnsemble(object):
                 self._weights = np.ones((self.numModeSets()-len(modesets), self.numAtoms(), 1))
             self._weights = np.concatenate((self._weights, weights), axis=0)
 
+
     def delModeSet(self, index):
         """Removes a modeset or modesets from the mode ensemble."""
 
@@ -463,9 +520,9 @@ class ModeEnsemble(object):
             self._weights = self._weights[torf, :, :]
 
     def isMatched(self):
-        """Returns whether the modes are matched across modesets in the mode ensemble"""
+        """Returns whether the modes are matched across ALL modesets in the mode ensemble"""
 
-        return self._matched
+        return np.all(self._matched)
 
 class sdarray(ndarray):
     """
