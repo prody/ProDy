@@ -452,7 +452,7 @@ def parseHiCBinary(filename, **kwargs):
     result = straw(norm, filename, chrloc1, chrloc2, unit, res)
     x = np.array(result[0], dtype=int)//res
     y = np.array(result[1], dtype=int)//res
-    value = np.array(result[0])
+    value = np.array(result[2])
 
     M = np.array(coo_matrix((value, (x, y))).todense())
     return HiC(title=title, map=M, bin=res)
