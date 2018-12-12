@@ -5,7 +5,7 @@ import numpy as np
 from scipy.sparse import coo_matrix
 from scipy.stats import mode
 from prody.chromatin.norm import VCnorm, SQRTVCnorm, Filenorm
-from prody.chromatin.functions import div0, showMap, showDomains, _getEigvecs
+from prody.chromatin.functions import div0, showDomains, _getEigvecs
 
 from prody import PY2K
 from prody.dynamics import GNM, MaskedGNM
@@ -13,7 +13,7 @@ from prody.dynamics.functions import writeArray
 from prody.dynamics.mode import Mode
 from prody.dynamics.modeset import ModeSet
 
-from prody.utilities import openFile, importLA
+from prody.utilities import openFile, importLA, showMatrix, isURL
 
 __all__ = ['HiC', 'parseHiC', 'parseHiCStream', 'parseHiCBinary', 'saveHiC', 'loadHiC', 'writeMap']
 
@@ -306,7 +306,17 @@ class HiC(object):
 
     def view(self, spec='p', **kwargs):
         """Visualization of the Hi-C map and domains (if present). The function makes use 
-        of :func:`.showMap`."""
+        of :func:`.showMatrix`.
+        
+        :arg spec: a string specifies how to preprocess the matrix. Blank for no preprocessing,
+                'p' for showing only data from *p*-th to *100-p*-th percentile. '_' is to suppress 
+                creating a new figure and paint to the current one instead. The letter specifications 
+                can be applied sequentially, e.g. 'p_'.
+        :type spec: str
+
+        :arg p: specifies the percentile threshold.
+        :type p: double
+        """
 
         dm_kwargs = {}
         keys = kwargs.keys()
@@ -316,7 +326,16 @@ class HiC(object):
             elif k.startswith('domain_'):
                 dm_kwargs[k[7:]] = kwargs.pop(k)
 
-        im = showMap(self.map, spec, **kwargs)
+        M = self.map
+        if 'p' in spec:
+            p = kwargs.pop('p', 5)
+            lp = kwargs.pop('lp', p)
+            hp = kwargs.pop('hp', 100-p)
+            vmin = np.percentile(M, lp)
+            vmax = np.percentile(M, hp)
+        else:
+            vmin = vmax = None
+        im = showMatrix(M, vmin=vmin, vmax=vmax, **kwargs)
 
         domains = self.getDomainList()
         if len(domains) > 1:
@@ -348,13 +367,16 @@ def parseHiC(filename, **kwargs):
     else:
         title = kwargs.pop('title')
 
-    with open(filename,'rb') as req:
-        magic_number = struct.unpack('<3s',req.read(3))[0]
-    if magic_number == b"HIC":
+    if isURL(filename):
         hic = parseHiCBinary(filename, title=title, **kwargs)
     else:
-        with open(filename, 'r') as filestream:
-            hic = parseHiCStream(filestream, title=title, **kwargs)
+        with open(filename,'rb') as req:
+            magic_number = struct.unpack('<3s',req.read(3))[0]
+        if magic_number == b"HIC":
+            hic = parseHiCBinary(filename, title=title, **kwargs)
+        else:
+            with open(filename, 'r') as filestream:
+                hic = parseHiCStream(filestream, title=title, **kwargs)
     return hic
 
 def parseHiCStream(stream, **kwargs):
@@ -415,20 +437,22 @@ def parseHiCStream(stream, **kwargs):
 def parseHiCBinary(filename, **kwargs):
 
     title = kwargs.get('title', 'Unknown')
-    chrloc = kwargs.get('chr', None)
+    chrloc = kwargs.get('chrom', None)
     if chrloc is None:
-        raise ValueError('chr needs to be specified when parsing .hic format')
-    norm = kwargs.get('norm','NONE')
-    unit = kwargs.get('unit','BP')
-    res = kwargs.get('binsize',50000)
-    res = kwargs.get('bin',res)
+        raise ValueError('chrom needs to be specified when parsing .hic format')
+    chrloc1 = kwargs.get('chrom1', chrloc)
+    chrloc2 = kwargs.get('chrom2', chrloc)
+    norm = kwargs.get('norm', 'NONE')
+    unit = kwargs.get('unit', 'BP')
+    res = kwargs.get('binsize', 50e3)
+    res = kwargs.get('bin', res)
     res = int(res)
 
     from .straw import straw
-    result = straw(norm,filename,chrloc,chrloc,unit,res)
+    result = straw(norm, filename, chrloc1, chrloc2, unit, res)
     x = np.array(result[0], dtype=int)//res
     y = np.array(result[1], dtype=int)//res
-    value = np.array(result[0])
+    value = np.array(result[2])
 
     M = np.array(coo_matrix((value, (x, y))).todense())
     return HiC(title=title, map=M, bin=res)
@@ -443,7 +467,7 @@ def writeMap(filename, map, bin=None, format='%f'):
     :type map: :class:`numpy.ndarray`
 
     :arg bin: bin size of the *map*. If bin is `None`, *map* will be 
-    written in full matrix format.
+              written in full matrix format.
     :type bin: int
 
     :arg format: output format for map elements.
@@ -455,15 +479,15 @@ def writeMap(filename, map, bin=None, format='%f'):
     if bin is None:
         return writeArray(filename, map, format=format)
     else:
-        L = int(map.size - np.diag(map).size)/2 + np.diag(map).size
-        spmat = np.zeros((L,3))
+        L = int(map.size - np.diag(map).size)//2 + np.diag(map).size
+        spmat = np.zeros((L, 3))
         m,n = map.shape
         l = 0
         for i in range(m):
             for j in range(i,n):
-                spmat[l,0] = i * bin
-                spmat[l,1] = j * bin
-                spmat[l,2] = map[i,j]
+                spmat[l, 0] = i * bin
+                spmat[l, 1] = j * bin
+                spmat[l, 2] = map[i, j]
                 l += 1
         fmt = ['%d', '%d', format]
         return writeArray(filename, spmat, format=fmt)
