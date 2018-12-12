@@ -434,17 +434,19 @@ def parseHiCStream(stream, **kwargs):
 def parseHiCBinary(filename, **kwargs):
 
     title = kwargs.get('title', 'Unknown')
-    chrloc = kwargs.get('chr', None)
+    chrloc = kwargs.get('chrom', None)
     if chrloc is None:
-        raise ValueError('chr needs to be specified when parsing .hic format')
+        raise ValueError('chrom needs to be specified when parsing .hic format')
+    chrloc1 = kwargs.get('chrom1', chrloc)
+    chrloc2 = kwargs.get('chrom2', chrloc)
     norm = kwargs.get('norm','NONE')
     unit = kwargs.get('unit','BP')
-    res = kwargs.get('binsize',50000)
+    res = kwargs.get('binsize',50e3)
     res = kwargs.get('bin',res)
     res = int(res)
 
     from .straw import straw
-    result = straw(norm,filename,chrloc,chrloc,unit,res)
+    result = straw(norm, filename, chrloc1, chrloc2, unit, res)
     x = np.array(result[0], dtype=int)//res
     y = np.array(result[1], dtype=int)//res
     value = np.array(result[0])
