@@ -13,7 +13,7 @@ from prody.dynamics.functions import writeArray
 from prody.dynamics.mode import Mode
 from prody.dynamics.modeset import ModeSet
 
-from prody.utilities import openFile, importLA, showMatrix
+from prody.utilities import openFile, importLA, showMatrix, isURL
 
 __all__ = ['HiC', 'parseHiC', 'parseHiCStream', 'parseHiCBinary', 'saveHiC', 'loadHiC', 'writeMap']
 
@@ -367,13 +367,16 @@ def parseHiC(filename, **kwargs):
     else:
         title = kwargs.pop('title')
 
-    with open(filename,'rb') as req:
-        magic_number = struct.unpack('<3s',req.read(3))[0]
-    if magic_number == b"HIC":
+    if isURL(filename):
         hic = parseHiCBinary(filename, title=title, **kwargs)
     else:
-        with open(filename, 'r') as filestream:
-            hic = parseHiCStream(filestream, title=title, **kwargs)
+        with open(filename,'rb') as req:
+            magic_number = struct.unpack('<3s',req.read(3))[0]
+        if magic_number == b"HIC":
+            hic = parseHiCBinary(filename, title=title, **kwargs)
+        else:
+            with open(filename, 'r') as filestream:
+                hic = parseHiCStream(filestream, title=title, **kwargs)
     return hic
 
 def parseHiCStream(stream, **kwargs):
@@ -439,10 +442,10 @@ def parseHiCBinary(filename, **kwargs):
         raise ValueError('chrom needs to be specified when parsing .hic format')
     chrloc1 = kwargs.get('chrom1', chrloc)
     chrloc2 = kwargs.get('chrom2', chrloc)
-    norm = kwargs.get('norm','NONE')
-    unit = kwargs.get('unit','BP')
-    res = kwargs.get('binsize',50e3)
-    res = kwargs.get('bin',res)
+    norm = kwargs.get('norm', 'NONE')
+    unit = kwargs.get('unit', 'BP')
+    res = kwargs.get('binsize', 50e3)
+    res = kwargs.get('bin', res)
     res = int(res)
 
     from .straw import straw
