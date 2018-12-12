@@ -391,7 +391,11 @@ def calcTempFactors(modes, atoms):
     if model.numAtoms() != atoms.numAtoms():
         raise ValueError('modes and atoms must have same number of nodes')
     sqf = calcSqFlucts(modes)
-    return sqf / ((sqf**2).sum()**0.5) * (atoms.getBetas()**2).sum()**0.5
+    expBetas = atoms.getBetas()
+    # add warning message if experimental B-factors are zeros or meaningless (e.g., having same values)?
+    if expBetas.max() < 0.5 or expBetas.std() < 0.5:
+        LOGGER.warning('Experimental B-factors are quite small or meaningless. The calculated B-factors may be incorrect.')
+    return sqf * (expBetas.sum() / sqf.sum())
 
 
 def calcCovariance(modes):
