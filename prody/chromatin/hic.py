@@ -402,7 +402,7 @@ def _sparse2dense(I, J, values, bin=None):
     # and finally array type. Matrix format is avoided because
     # diag() won't work as intended for Matrix instances.
     M = np.array(coo_matrix((values, (I, J))).todense())
-    return M
+    return M, bin
 
 def parseHiCStream(stream, **kwargs):
     """Returns an :class:`.HiC` from a stream of Hi-C data lines.
@@ -439,7 +439,7 @@ def parseHiCStream(stream, **kwargs):
         except ValueError:
             raise ValueError('the sparse matrix format should have three columns')
         
-        M = _sparse2dense(I, J, values, res)
+        M, res = _sparse2dense(I, J, values, res)
     return HiC(title=title, map=M, bin=res)
 
 def parseHiCBinary(filename, **kwargs):
@@ -461,7 +461,7 @@ def parseHiCBinary(filename, **kwargs):
     from .straw import straw
     result = straw(norm, filename, chrloc1, chrloc2, unit, res)
 
-    M = _sparse2dense(*result, res)
+    M, res = _sparse2dense(*result, res)
     return HiC(title=title, map=M, bin=res)
 
 def writeMap(filename, map, bin=None, format='%f'):
