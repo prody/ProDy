@@ -1587,6 +1587,9 @@ def loadModeEnsemble(filename, **kwargs):
     if labels is not None:
         labels = labels.tolist()
 
+    if isinstance(matched, np.ndarray):
+        matched = matched.tolist()
+
     modeens = ModeEnsemble(title=title)
     modeens._weights = weights
     modeens._labels = labels
