@@ -379,6 +379,31 @@ def parseHiC(filename, **kwargs):
                 hic = parseHiCStream(filestream, title=title, **kwargs)
     return hic
 
+def _sparse2dense(I, J, values, bin=None):
+    I = np.asarray(I, dtype=int)
+    J = np.asarray(J, dtype=int)
+    values = np.asarray(values, dtype=float)
+    # determine the bin size by the most frequent interval
+    if bin is None:
+        loci = np.unique(np.sort(I))
+        bins = np.diff(loci)
+        bin = mode(bins)[0][0]
+    # convert coordinate from basepair to locus index
+    bin = int(bin)
+    I = I // bin
+    J = J // bin
+    # make sure that the matrix is square
+    if np.max(I) != np.max(J):
+        b = np.max(np.append(I, J))
+        I = np.append(I, b)
+        J = np.append(J, b)
+        values = np.append(values, 0.)
+    # Convert to sparse matrix format, then full matrix format
+    # and finally array type. Matrix format is avoided because
+    # diag() won't work as intended for Matrix instances.
+    M = np.array(coo_matrix((values, (I, J))).todense())
+    return M
+
 def parseHiCStream(stream, **kwargs):
     """Returns an :class:`.HiC` from a stream of Hi-C data lines.
 
@@ -408,30 +433,11 @@ def parseHiCStream(stream, **kwargs):
         M = D
     else:
         try:
-            I, J, value = D.T[:3]
-            I = I.astype(int)
-            J = J.astype(int)
+            I, J, values = D.T[:3]
         except ValueError:
             raise ValueError('the sparse matrix format should have three columns')
-        # determine the bin size by the most frequent interval
-        if bin is None:
-            loci = np.unique(np.sort(I))
-            bins = np.diff(loci)
-            bin = mode(bins)[0][0]
-        # convert coordinate from basepair to locus index
-        bin = int(bin)
-        I = I // bin
-        J = J // bin
-        # make sure that the matrix is square
-        if np.max(I) != np.max(J):
-            b = np.max(np.append(I, J))
-            I = np.append(I, b)
-            J = np.append(J, b)
-            value = np.append(value, 0.)
-        # Convert to sparse matrix format, then full matrix format
-        # and finally array type. Matrix format is avoided because
-        # diag() won't work as intended for Matrix instances.
-        M = np.array(coo_matrix((value, (I, J))).todense())
+        
+        M = _sparse2dense(I, J, values, bin)
     return HiC(title=title, map=M, bin=bin)
 
 def parseHiCBinary(filename, **kwargs):
@@ -450,11 +456,8 @@ def parseHiCBinary(filename, **kwargs):
 
     from .straw import straw
     result = straw(norm, filename, chrloc1, chrloc2, unit, res)
-    x = np.array(result[0], dtype=int)//res
-    y = np.array(result[1], dtype=int)//res
-    value = np.array(result[2])
 
-    M = np.array(coo_matrix((value, (x, y))).todense())
+    M = _sparse2dense(*result, bin)
     return HiC(title=title, map=M, bin=res)
 
 def writeMap(filename, map, bin=None, format='%f'):
