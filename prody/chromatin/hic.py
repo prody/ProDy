@@ -425,7 +425,9 @@ def parseHiCStream(stream, **kwargs):
         D.append(d)
     D = np.array(D)
 
-    bin = kwargs.get('bin', None)
+    res = kwargs.get('bin', None)
+    if res is not None:
+        res = int(res)
     size = D.shape
     if len(D.shape) <= 1:
         raise ValueError("cannot parse the file: input file only contains one column.")
@@ -437,8 +439,8 @@ def parseHiCStream(stream, **kwargs):
         except ValueError:
             raise ValueError('the sparse matrix format should have three columns')
         
-        M = _sparse2dense(I, J, values, bin)
-    return HiC(title=title, map=M, bin=bin)
+        M = _sparse2dense(I, J, values, res)
+    return HiC(title=title, map=M, bin=res)
 
 def parseHiCBinary(filename, **kwargs):
 
@@ -450,14 +452,16 @@ def parseHiCBinary(filename, **kwargs):
     chrloc2 = kwargs.get('chrom2', chrloc)
     norm = kwargs.get('norm', 'NONE')
     unit = kwargs.get('unit', 'BP')
-    res = kwargs.get('binsize', 50e3)
+    res = kwargs.get('binsize', None)
     res = kwargs.get('bin', res)
+    if res is None:
+        raise ValueError('bin needs to be specified when parsing .hic format')
     res = int(res)
 
     from .straw import straw
     result = straw(norm, filename, chrloc1, chrloc2, unit, res)
 
-    M = _sparse2dense(*result, bin)
+    M = _sparse2dense(*result, res)
     return HiC(title=title, map=M, bin=res)
 
 def writeMap(filename, map, bin=None, format='%f'):
