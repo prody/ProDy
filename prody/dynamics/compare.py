@@ -295,7 +295,7 @@ def calcCovOverlap(modes1, modes2, turbo=False):
     implements equation 11 in [BH02]_."""
     return calcSpectralOverlap(modes1, modes2, turbo=turbo)
 
-def pairModes(modes1, modes2, index=False):
+def pairModes(modes1, modes2, **kwargs):
     """Returns the optimal matches between *modes1* and *modes2*. *modes1* 
     and *modes2* should have equal number of modes, and the function will 
     return a nested list where each item is a list containing a pair of modes.
@@ -305,7 +305,12 @@ def pairModes(modes1, modes2, index=False):
     :type index: bool
     """
 
-    from scipy.optimize import linear_sum_assignment
+    index = kwargs.pop('index', False)
+    method = kwargs.pop('method', None)
+
+    if method is None:
+        from scipy.optimize import linear_sum_assignment
+        method = linear_sum_assignment
 
     if not (isinstance(modes1, (ModeSet, NMA)) \
         and isinstance(modes2, (ModeSet, NMA))):
@@ -316,7 +321,7 @@ def pairModes(modes1, modes2, index=False):
     overlaps = calcOverlap(modes1, modes2)
 
     costs = 1 - abs(overlaps)
-    row_ind, col_ind = linear_sum_assignment(costs)
+    row_ind, col_ind = method(costs)
 
     if index:
         return row_ind, col_ind
@@ -410,7 +415,7 @@ def matchModes(*modesets, **kwargs):
         for i, modeset in enumerate(modesets):
             LOGGER.update(i, label='_prody_matchModes')
             if i > 0:
-                _, reordered_modeset = pairModes(modeset0, modeset, index=index)
+                _, reordered_modeset = pairModes(modeset0, modeset, index=index, **kwargs)
                 ret.append(reordered_modeset)
         LOGGER.finish()
     
