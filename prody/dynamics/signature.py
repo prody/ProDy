@@ -376,7 +376,7 @@ class ModeEnsemble(object):
                 raise ValueError('the number of status and mode sets mismatch')
         self._matched = status
 
-    def match(self, turbo=False):
+    def match(self, turbo=False, method=None):
         """Matches the modes across mode sets according the mode overlaps.
 
         :arg turbo: if **True** then the computation will be performed in parallel. 
@@ -397,7 +397,7 @@ class ModeEnsemble(object):
                 indices = [i for i in range(len(matched)) if not matched[i]]
                 modesets = [self._modesets[i] for i in indices]
 
-                modesets = matchModes(*modesets, turbo=turbo)
+                modesets = matchModes(*modesets, turbo=turbo, method=method)
 
                 for n, i in enumerate(indices):
                     if n > 0:
@@ -405,7 +405,7 @@ class ModeEnsemble(object):
 
                 n_modesets = len(modesets)
             else: # if all not matched, start from scratch
-                self._modesets = matchModes(*self._modesets, turbo=turbo)
+                self._modesets = matchModes(*self._modesets, turbo=turbo, method=method)
                 n_modesets = len(self._modesets)
 
             LOGGER.debug('{0} modes across {1} modesets were matched in {2:.2f}s.'
@@ -421,6 +421,7 @@ class ModeEnsemble(object):
         for i, enm in enumerate(self):
             model = enm._model
             self._modesets[i] = model[:n_modes]
+        self.setMatchingStatus(False)
 
     def reorder(self):
         """Reorders the modes across mode sets according to their collectivity"""
