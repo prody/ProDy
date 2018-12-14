@@ -252,14 +252,18 @@ def calcSqFlucts(modes):
         try:
             modes2 = []
             for mode in modes:
-                if not isinstance(mode, Mode):
-                    raise TypeError('modes can be a list of Mode instances, '
+                if not isinstance(mode, VectorBase):
+                    raise TypeError('modes can be a list of VectorBase instances, '
                                     'not {0}'.format(type(mode)))
                 modes2.append(mode)
-            mode = list(modes2)
+            modes = list(modes2)
         except TypeError:
             raise TypeError('modes must be a Mode, NMA, ModeSet instance, '
                             'or a list of Mode instances, not {0}'.format(type(modes)))
+    
+    if isinstance(modes, VectorBase):
+        modes = [modes]
+
     if isinstance(modes, list):
         is3d = modes[0].is3d()
         n_atoms = modes[0].numAtoms()
@@ -267,22 +271,20 @@ def calcSqFlucts(modes):
         is3d = modes.is3d()
         n_atoms = modes.numAtoms()
 
-    if isinstance(modes, Vector):
+    sq_flucts = np.zeros(n_atoms)
+    
+    for mode in modes:
         if is3d:
-            return (modes._getArrayNx3()**2).sum(axis=1)
+            v2 = (mode._getArrayNx3()**2).sum(axis=1)
         else:
-            return (modes._getArray() ** 2)
-    else:
-        sq_flucts = np.zeros(n_atoms)
-        if isinstance(modes, VectorBase):
-            modes = [modes]
-        for mode in modes:
-            if is3d:
-                sq_flucts += ((mode._getArrayNx3()**2).sum(axis=1) *
-                              mode.getVariance())
-            else:
-                sq_flucts += (mode._getArray() ** 2) * mode.getVariance()
-        return sq_flucts
+            v2 = (mode._getArray() ** 2)
+        if isinstance(mode, Mode):
+            w = mode.getVariance()
+        else:
+            w = 1.
+
+        sq_flucts += v2 * w
+    return sq_flucts
 
 
 def calcCrossCorr(modes, n_cpu=1, norm=True):

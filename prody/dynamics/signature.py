@@ -917,6 +917,10 @@ def calcSignatureSqFlucts(mode_ensemble, **kwargs):
 
     :keyword norm: whether to normalize the square fluctuations. Default is **True**
     :type norm: bool
+
+    :keyword scale: whether to rescale the square fluctuations based on the reference. 
+                    Default is **False**
+    :type scale: bool
     """
 
     if not isinstance(mode_ensemble, ModeEnsemble):
@@ -928,13 +932,29 @@ def calcSignatureSqFlucts(mode_ensemble, **kwargs):
 
     ifnorm = kwargs.pop('norm', True)
     ifscale = kwargs.pop('scale', False)
+    reweight = kwargs.pop('reweight', False)
 
     norm = importLA().norm
 
     modesets = mode_ensemble
     V = []
     for i, modes in enumerate(modesets):
-        sqfs = calcSqFlucts(modes)
+        if reweight:
+            if i == 0:
+                sqfs = calcSqFlucts(modes)
+                modes0 = modesets[0]
+            else:
+                modes_ = []
+                for j, mode in enumerate(modes):
+                    v = mode.getArray()
+                    w = modes0[j].getVariance()
+
+                    vec = Vector(v * np.sqrt(w), is3d=mode.is3d())
+                    modes_.append(vec)
+                sqfs = calcSqFlucts(modes_)
+        else:
+            sqfs = calcSqFlucts(modes)
+
         if ifnorm:
             sqfs /= norm(sqfs)
         elif ifscale:
