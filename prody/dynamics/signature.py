@@ -29,7 +29,7 @@ __all__ = ['ModeEnsemble', 'sdarray', 'calcEnsembleENMs', 'showSignature1D', 'sh
            'calcSignatureCollectivity', 'calcSignatureFractVariance',
            'calcSignatureCrossCorr', 'showSignatureCrossCorr', 'showVarianceBar',
            'showSignatureVariances', 'calcSignatureOverlaps', 'showSignatureOverlaps',
-           'saveModeEnsemble', 'loadModeEnsemble']
+           'saveModeEnsemble', 'loadModeEnsemble', 'saveSignature', 'loadSignature']
 
 class ModeEnsemble(object):
     """
@@ -1515,7 +1515,7 @@ def showVarianceBar(mode_ensemble, highlights=None, **kwargs):
 
 def saveModeEnsemble(mode_ensemble, filename=None, atoms=False, **kwargs):
     """Save *mode_ensemble* as :file:`filename.modeens.npz`.  If *filename* 
-    is **None**, title of the ModeEnsemble instance will be used as the 
+    is **None**, title of the *mode_ensemble* will be used as the 
     filename, after ``" "`` (white spaces) in the title are replaced with 
     ``"_"`` (underscores).  Upon successful completion of saving, filename 
     is returned. This function makes use of :func:`~numpy.savez_compressed` 
@@ -1587,6 +1587,9 @@ def loadModeEnsemble(filename, **kwargs):
     if labels is not None:
         labels = labels.tolist()
 
+    if isinstance(matched, np.ndarray):
+        matched = matched.tolist()
+
     modeens = ModeEnsemble(title=title)
     modeens._weights = weights
     modeens._labels = labels
@@ -1595,3 +1598,76 @@ def loadModeEnsemble(filename, **kwargs):
     modeens._atoms = atoms
 
     return modeens
+
+def saveSignature(signature, filename=None, **kwargs):
+    """Save *signature* as :file:`filename.sdarray.npz`.  If *filename* 
+    is **None**, title of the *signature* will be used as the 
+    filename, after ``" "`` (white spaces) in the title are replaced with 
+    ``"_"`` (underscores).  Upon successful completion of saving, filename 
+    is returned. This function makes use of :func:`~numpy.savez_compressed` 
+    function."""
+
+    if not isinstance(signature, sdarray):
+        raise TypeError('invalid type for signature, {0}'
+                        .format(type(signature)))
+
+    attr_list = ['_title', '_labels', '_is3d', '_weights', '_oneset', '_array']
+    attr_dict = {}
+    
+    for attr in attr_list:
+        if attr == '_array':
+            value = np.asarray(signature)
+        else:
+            value = getattr(signature, attr)
+        if value is not None:
+            attr_dict[attr] = value
+
+    if filename is None:
+        filename = signature.getTitle().replace(' ', '_')
+    
+    suffix = '.sdarray'
+    if not filename.lower().endswith('.npz'):
+        if not filename.lower().endswith(suffix):
+            filename += suffix + '.npz'
+        else:
+            filename += '.npz'
+            
+    ostream = openFile(filename, 'wb', **kwargs)
+    np.savez_compressed(ostream, **attr_dict)
+    ostream.close()
+
+    return filename
+
+def loadSignature(filename, **kwargs):
+    """Returns :class:`sdarray` instance after loading it from file (*filename*).
+    This function makes use of :func:`numpy.load` function.  See
+    also :func:`saveSignature`."""
+
+    if not 'encoding' in kwargs:
+        kwargs['encoding'] = 'latin1'
+    data = np.load(filename, **kwargs)
+    
+    weights = getValue(data, '_weights', None)
+    labels = getValue(data, '_labels', None)
+    title = getValue(data, '_title', None)
+    is3d = getValue(data, '_is3d', False)
+    oneset = getValue(data, '_oneset', False)
+    array = getValue(data, '_array', None)
+
+    if isinstance(title, np.ndarray):
+        title = np.asarray(title, dtype=str)
+    title = str(title)
+
+    if isinstance(is3d, np.ndarray):
+        is3d = bool(is3d)
+
+    if isinstance(oneset, np.ndarray):
+        oneset = bool(oneset)
+
+    if labels is not None:
+        labels = labels.tolist()
+
+    signature = sdarray(array, weights=weights, labels=labels, title=title, 
+                      is3d=is3d, oneset=oneset)
+
+    return signature
