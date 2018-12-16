@@ -921,6 +921,11 @@ def calcSignatureSqFlucts(mode_ensemble, **kwargs):
     :keyword scale: whether to rescale the square fluctuations based on the reference. 
                     Default is **False**
     :type scale: bool
+
+    :keyword reweight: whether to reweight the modes based on the eigenvalues of the 
+                    reference modeset (the first modeset). 
+                    Default is **False**
+    :type reweight: bool
     """
 
     if not isinstance(mode_ensemble, ModeEnsemble):
@@ -942,14 +947,15 @@ def calcSignatureSqFlucts(mode_ensemble, **kwargs):
         if reweight:
             if i == 0:
                 sqfs = calcSqFlucts(modes)
-                modes0 = modesets[0]
+                weights = modes.getVariances()
             else:
+                arrs = modes._getArray().T
                 modes_ = []
-                for j, mode in enumerate(modes):
-                    v = mode.getArray()
-                    w = modes0[j].getVariance()
+                for j in range(modes.numModes()):
+                    v = arrs[j]
+                    w = weights[j]
 
-                    vec = Vector(v * np.sqrt(w), is3d=mode.is3d())
+                    vec = Vector(v * np.sqrt(w), is3d=modes.is3d())
                     modes_.append(vec)
                 sqfs = calcSqFlucts(modes_)
         else:
@@ -1113,8 +1119,20 @@ def showSignatureSqFlucts(mode_ensemble, **kwargs):
     show_zero = kwargs.pop('show_zero', False)
     return showSignature1D(sqf, atoms=mode_ensemble.getAtoms(), show_zero=show_zero, **kwargs)
 
-def calcSignatureCrossCorr(mode_ensemble, norm=True):
-    """Calculate average cross-correlations for a ModeEnsemble."""
+def calcSignatureCrossCorr(mode_ensemble, norm=True, reweight=False):
+    """Calculate the signature cross-correlations based on a :class:`ModeEnsemble` instance.
+    
+    :arg mode_ensemble: an ensemble of ENMs 
+    :type mode_ensemble: :class: `ModeEnsemble`
+
+    :keyword norm: whether to normalize the cross-correlations. Default is **True**
+    :type norm: bool
+
+    :keyword reweight: whether to reweight the modes based on the eigenvalues of the 
+                    reference modeset (the first modeset). 
+                    Default is **False**
+    :type reweight: bool
+    """
     
     if not isinstance(mode_ensemble, ModeEnsemble):
         raise TypeError('mode_ensemble should be an instance of ModeEnsemble')
@@ -1122,14 +1140,27 @@ def calcSignatureCrossCorr(mode_ensemble, norm=True):
     if not mode_ensemble.isMatched():
         LOGGER.warn('modes in mode_ensemble did not match cross modesets. '
                     'Consider running mode_ensemble.match() prior to using this function')
-    matches = mode_ensemble
-    n_atoms = matches.numAtoms()
-    n_sets = len(matches)
+    modesets = mode_ensemble
+    n_atoms = modesets.numAtoms()
+    n_sets = len(modesets)
 
     C = np.zeros((n_sets, n_atoms, n_atoms))
     for i in range(n_sets):
-        m = matches[i]
-        c = calcCrossCorr(m, norm=norm)
+        modes = modesets[i]
+        if reweight:
+            if i == 0:
+                weights = modes.getVariances()
+            else:
+                arrs = modes._getArray().T
+                modes_ = []
+                for j in range(modes.numModes()):
+                    v = arrs[j]
+                    w = weights[j]
+
+                    vec = Vector(v * np.sqrt(w), is3d=modes.is3d())
+                    modes_.append(vec)
+                modes = modes_
+        c = calcCrossCorr(modes, norm=norm)
         C[i, :, :] = c
 
     title_str = '%d modes'%mode_ensemble.numModes()
