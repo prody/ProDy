@@ -516,7 +516,7 @@ def showOverlapTable(modes_x, modes_y, **kwargs):
 
 
 def showCrossCorr(modes, *args, **kwargs):
-    """Show cross-correlations using :func:`~matplotlib.pyplot.imshow`.  By
+    """Show cross-correlations using :func:`showAtomicMatrix`.  By
     default, *origin=lower* and *interpolation=bilinear* keyword  arguments
     are passed to this function, but user can overwrite these parameters.
     See also :func:`.calcCrossCorr`."""
@@ -533,8 +533,8 @@ def showCrossCorr(modes, *args, **kwargs):
         kwargs['interpolation'] = 'bilinear'
     if not 'origin' in kwargs:
         kwargs['origin'] = 'lower'
-    show = plt.imshow(cross_correlations, *args, **kwargs), plt.colorbar()
-    plt.axis([arange[0]+0.5, arange[-1]+1.5, arange[0]+0.5, arange[-1]+1.5])
+    show = showAtomicMatrix(cross_correlations, *args, **kwargs)#, plt.colorbar()
+    #plt.axis([arange[0]+0.5, arange[-1]+1.5, arange[0]+0.5, arange[-1]+1.5])
     plt.title('Cross-correlations for {0}'.format(str(modes)))
     plt.xlabel('Indices')
     plt.ylabel('Indices')
@@ -1517,7 +1517,7 @@ def showAtomicLines(*args, **kwargs):
             if not gap:
                 gap = True
             show_chain = False
-            show_domain = False
+            #show_domain = False
 
         hv = atoms.getHierView()
         if hv.numChains() == 0:
@@ -1605,6 +1605,8 @@ def showAtomicLines(*args, **kwargs):
 
     show_domain, domain_pos, domains = _checkDomainBarParameter(show_domain, 1., atoms, 'domain')
     if show_domain:
+        if overlay:
+            x = x[0]
         b, t = showDomainBar(domains, x=x, loc=domain_pos, axis='x', 
                              text_loc=domain_text_loc,  text=show_domain_text,
                              barwidth=barwidth)
@@ -1643,6 +1645,9 @@ def showDomainBar(domains, x=None, loc=0., axis='x', **kwargs):
     :keyword text_color: color of the text labels
     :type text_color: str, tuple, list
 
+    :keyword color: a dictionary of colors where keys are the domain names
+    :type color: dict
+
     :keyword relim: whether to rescale the axes' limits after adding 
                     the bar. Default is **True**
     :type relim: bool
@@ -1658,6 +1663,8 @@ def showDomainBar(domains, x=None, loc=0., axis='x', **kwargs):
     barwidth = kwargs.pop('bar_width', barwidth)
 
     color_dict = kwargs.pop('color', None)
+
+    offset = kwargs.pop('offset', 0)
 
     is3d = kwargs.pop('is3d', False)
 
@@ -1716,6 +1723,10 @@ def showDomainBar(domains, x=None, loc=0., axis='x', **kwargs):
     F[~D] = np.nan
     F[D] = d_loc
 
+    if x is None:
+        x = np.arange(len(domains), dtype=float)
+    x = x + offset
+
     if show_text:
         for i, chid in enumerate(uni_domids):
             d = D[:, i].astype(int)
@@ -1726,7 +1737,8 @@ def showDomainBar(domains, x=None, loc=0., axis='x', **kwargs):
             locs = np.split(d[idx], np.where(np.diff(idx)!=1)[0] + 1)
 
             for loc in locs:
-                pos = np.median(loc)
+                i = int(np.median(loc))
+                pos = x[i]
                 if axis == 'y':
                     txt = text(d_loc, pos, chid, rotation=-90, 
                                                 color=text_color,
@@ -1743,16 +1755,20 @@ def showDomainBar(domains, x=None, loc=0., axis='x', **kwargs):
     else:
         gca().set_prop_cycle(None)
 
-    if x is None:
-        x = np.arange(len(domains))
     X = np.tile(x, (len(uni_domids), 1)).T
 
     if axis == 'y':
-        bar = plot(F, X, linewidth=barwidth, solid_capstyle='butt')
-    else:
-        bar = plot(X, F, linewidth=barwidth, solid_capstyle='butt')
+        dbars = plot(F, X, linewidth=barwidth, solid_capstyle='butt', drawstyle='steps')
 
-    bars.extend(bar)
+        for bar in dbars:
+            bar.set_clip_on(False)
+    else:
+        dbars = plot(X, F, linewidth=barwidth, solid_capstyle='butt', drawstyle='steps-post')
+        for bar in dbars:
+            bar.set_clip_on(False)
+
+    gca().set_prop_cycle(None)
+    bars.extend(dbars)
     if relim:
         gca().autoscale_view()
     return bars, texts
