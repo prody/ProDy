@@ -36,9 +36,10 @@ def calcOverlap(rows, cols):
     if rows.numDOF() != cols.numDOF():
         raise ValueError('number of degrees of freedom of rows and '
                          'cols must be the same')
-    rows = rows.getArray()
+    
+    rows = rows._getArray()
     rows *= 1 / (rows ** 2).sum(0) ** 0.5
-    cols = cols.getArray()
+    cols = cols._getArray()
     cols *= 1 / (cols ** 2).sum(0) ** 0.5
     return np.dot(rows.T, cols)
 
