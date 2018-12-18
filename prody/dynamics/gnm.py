@@ -707,4 +707,10 @@ class MaskedGNM(GNM):
 
         self.mask = _fixLength(self.mask, length, False)
         self.masked = trimmed
+        self._n_atoms = np.sum(self.mask, dtype=int)
         return
+
+    def setEigens(self, vectors, values=None):
+        if not self.masked:
+            vectors = vectors[self.mask, :]
+        super(MaskedGNM, self).setEigens(vectors, values)

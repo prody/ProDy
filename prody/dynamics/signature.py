@@ -37,7 +37,7 @@ class ModeEnsemble(object):
     or :class:`PDBEnsemble`. 
     """
 
-    __slots__ = ['_modesets', '_title', '_labels', '_atoms', '_weights', '_matched']
+    __slots__ = ['_modesets', '_title', '_labels', '_atoms', '_weights', '_matched', '_reweighted']
 
     def __init__(self, title=None):
         self._modesets = []
@@ -46,6 +46,7 @@ class ModeEnsemble(object):
         self._atoms = None
         self._weights = None
         self._matched = False
+        self._reweighted = False
 
     def __len__(self):
         """Returns the number of modesets."""
@@ -81,8 +82,9 @@ class ModeEnsemble(object):
             modeset_indices = modeset_index
             labels = None if self._labels is None else self._labels[modeset_index]
             matched = self.getMatchingStatus()[modeset_index]
+            reweighted = self.getReweightingStatus()[modeset_index]
         elif not np.isscalar(modeset_index):
-            modesets = []; modeset_indices = []; labels = []; matched = []
+            modesets = []; modeset_indices = []; labels = []; matched = []; reweighted = []
             for i in modeset_index:
                 if isinstance(i, Integral):
                     j = i
@@ -100,6 +102,9 @@ class ModeEnsemble(object):
                 
                 allstatus = self.getMatchingStatus()
                 matched.append(allstatus[j])
+
+                allstatus = self.getReweightingStatus()
+                reweighted.append(allstatus[j])
         else:
             if isinstance(modeset_index, Integral):
                 pass
@@ -123,7 +128,7 @@ class ModeEnsemble(object):
             weights = self._weights[modeset_indices, :, :]
 
         ens = ModeEnsemble(title=self.getTitle())
-        ens.addModeSet(modesets, weights=weights, label=labels, matched=matched)
+        ens.addModeSet(modesets, weights=weights, label=labels, matched=matched, reweighted=reweighted)
         ens.setAtoms(self.getAtoms())
         return ens
 
@@ -159,11 +164,12 @@ class ModeEnsemble(object):
         ensemble = ModeEnsemble('{0} + {1}'.format(self.getTitle(),
                                                   other.getTitle()))
         ensemble.addModeSet(self._modesets, weights=self._weights, label=self._labels,
-                            matched=self.getMatchingStatus())
+                            matched=self.getMatchingStatus(), reweighted=self.getReweightingStatus())
         ensemble.setAtoms(self.getAtoms())
         
         ensemble.addModeSet(other.getModeSets(), weights=other.getWeights(),
-                            label=other.getLabels(), matched=other.getMatchingStatus())
+                            label=other.getLabels(), matched=other.getMatchingStatus(),
+                            reweighted=other.getReweightingStatus())
         return ensemble
 
     def is3d(self):
@@ -376,6 +382,23 @@ class ModeEnsemble(object):
                 raise ValueError('the number of status and mode sets mismatch')
         self._matched = status
 
+    def getReweightingStatus(self):
+        """Returns the reweighting status of each mode ensemble."""
+
+        if isinstance(self._reweighted, bool):
+            reweighted = [self._reweighted for _ in self]
+        else:
+            reweighted = self._reweighted
+        return reweighted
+
+    def setReweightingStatus(self, status):
+        """Returns the reweighting status of each mode ensemble."""
+
+        if not isinstance(status, bool):
+            if len(status) != self.numModeSets():
+                raise ValueError('the number of status and mode sets mismatch')
+        self._reweighted = status
+
     def match(self, turbo=False, method=None):
         """Matches the modes across mode sets according the mode overlaps.
 
@@ -415,13 +438,52 @@ class ModeEnsemble(object):
         self._matched = True
         return
 
-    def restore(self):
+    def reweight(self):
+        """Reweight the modes based on matched orders"""
+
+        self._reweighted = []
+        for i in range(self.numModeSets()):
+            modes = self._modesets[i]
+            model = modes._model
+
+            I = modes.getIndices()   # matched order for the subset of modes
+            J = np.sort(I) # original order for the subset
+            V = model.getEigvecs()
+
+            W = model.getEigvals()
+            W[I] = W[J]
+            model.setEigens(V, W)
+            self._reweighted.append(True)
+
+    def undoMatching(self):
         """Restores the original orders of modes"""
+
         n_modes = self.numModes()
+        matched = self.getMatchingStatus()
+        for i, enm in enumerate(self):
+            if matched[i]:
+                model = enm._model
+                self._modesets[i] = model[:n_modes]
+
+        self.setMatchingStatus(False)
+
+    def undoReweighting(self):
+        """Restores the original weighting of modes"""
+
+        reweighted = self.getReweightingStatus()
         for i, enm in enumerate(self):
             model = enm._model
-            self._modesets[i] = model[:n_modes]
-        self.setMatchingStatus(False)
+            if reweighted[i]:
+                vars = model.getVariances()
+                I = np.argsort(vars)[::-1]
+
+                V = model.getEigvecs()
+
+                W = model.getEigvals()
+                W = W[I]
+                model.setEigens(V, W)
+
+        self.setReweightingStatus(False)
 
     def reorder(self):
         """Reorders the modes across mode sets according to their collectivity"""
@@ -439,7 +501,7 @@ class ModeEnsemble(object):
 
             self._modesets = ret
 
-    def addModeSet(self, modeset, weights=None, label=None, matched=False):
+    def addModeSet(self, modeset, weights=None, label=None, matched=False, reweighted=False):
         """Adds a modeset or modesets to the mode ensemble."""
 
         if isinstance(modeset, (NMA, ModeSet, Mode)):
@@ -452,6 +514,12 @@ class ModeEnsemble(object):
             matched = [matched for _ in range(len(modesets))]
         matchingstatus.extend(matched)
         self._matched = matchingstatus
+
+        reweightingstatus = self.getReweightingStatus()
+        if isinstance(reweighted, bool):
+            reweighted = [reweighted for _ in range(len(modesets))]
+        reweightingstatus.extend(reweighted)
+        self._reweighted = reweightingstatus
 
         if self._labels is not None or label is not None:
             if label is None:
@@ -515,6 +583,12 @@ class ModeEnsemble(object):
             if self._labels:
                 self._labels.pop(i)
 
+            if isinstance(self._matched, list):
+                self._matched.pop(i)
+
+            if isinstance(self._reweighted, list):
+                self._reweighted.pop(i)
+
         if self._weights is not None:
             torf = np.ones(n_modesets, dtype=bool)
             torf[index] = False
@@ -524,6 +598,11 @@ class ModeEnsemble(object):
         """Returns whether the modes are matched across ALL modesets in the mode ensemble"""
 
         return np.all(self._matched)
+
+    def isReweighted(self):
+        """Returns whether the modes are matched across ALL modesets in the mode ensemble"""
+
+        return np.all(self._reweighted)
 
 class sdarray(ndarray):
     """
@@ -921,11 +1000,6 @@ def calcSignatureSqFlucts(mode_ensemble, **kwargs):
     :keyword scale: whether to rescale the square fluctuations based on the reference. 
                     Default is **False**
     :type scale: bool
-
-    :keyword reweight: whether to reweight the modes based on the eigenvalues of the 
-                    reference modeset (the first modeset). 
-                    Default is **False**
-    :type reweight: bool
     """
 
     if not isinstance(mode_ensemble, ModeEnsemble):
@@ -937,29 +1011,13 @@ def calcSignatureSqFlucts(mode_ensemble, **kwargs):
 
     ifnorm = kwargs.pop('norm', True)
     ifscale = kwargs.pop('scale', False)
-    reweight = kwargs.pop('reweight', False)
 
     norm = importLA().norm
 
     modesets = mode_ensemble
     V = []
     for i, modes in enumerate(modesets):
-        if reweight:
-            if i == 0:
-                sqfs = calcSqFlucts(modes)
-                weights = modes.getVariances()
-            else:
-                arrs = modes._getArray().T
-                modes_ = []
-                for j in range(modes.numModes()):
-                    v = arrs[j]
-                    w = weights[j]
-
-                    vec = Vector(v * np.sqrt(w), is3d=modes.is3d())
-                    modes_.append(vec)
-                sqfs = calcSqFlucts(modes_)
-        else:
-            sqfs = calcSqFlucts(modes)
+        sqfs = calcSqFlucts(modes)
 
         if ifnorm:
             sqfs /= norm(sqfs)
@@ -1119,7 +1177,7 @@ def showSignatureSqFlucts(mode_ensemble, **kwargs):
     show_zero = kwargs.pop('show_zero', False)
     return showSignature1D(sqf, atoms=mode_ensemble.getAtoms(), show_zero=show_zero, **kwargs)
 
-def calcSignatureCrossCorr(mode_ensemble, norm=True, reweight=False):
+def calcSignatureCrossCorr(mode_ensemble, norm=True):
     """Calculate the signature cross-correlations based on a :class:`ModeEnsemble` instance.
     
     :arg mode_ensemble: an ensemble of ENMs 
@@ -1127,11 +1185,6 @@ def calcSignatureCrossCorr(mode_ensemble, norm=True, reweight=False):
 
     :keyword norm: whether to normalize the cross-correlations. Default is **True**
     :type norm: bool
-
-    :keyword reweight: whether to reweight the modes based on the eigenvalues of the 
-                    reference modeset (the first modeset). 
-                    Default is **False**
-    :type reweight: bool
     """
     
     if not isinstance(mode_ensemble, ModeEnsemble):
@@ -1147,19 +1200,6 @@ def calcSignatureCrossCorr(mode_ensemble, norm=True, reweight=False):
     C = np.zeros((n_sets, n_atoms, n_atoms))
     for i in range(n_sets):
         modes = modesets[i]
-        if reweight:
-            if i == 0:
-                weights = modes.getVariances()
-            else:
-                arrs = modes._getArray().T
-                modes_ = []
-                for j in range(modes.numModes()):
-                    v = arrs[j]
-                    w = weights[j]
-
-                    vec = Vector(v * np.sqrt(w), is3d=modes.is3d())
-                    modes_.append(vec)
-                modes = modes_
         c = calcCrossCorr(modes, norm=norm)
         C[i, :, :] = c
 
@@ -1579,7 +1619,7 @@ def saveModeEnsemble(mode_ensemble, filename=None, atoms=False, **kwargs):
     if len(mode_ensemble) == 0:
         raise ValueError('mode_ensemble instance does not contain data')
 
-    attr_list = ['_modesets', '_title', '_labels', '_weights', '_matched']
+    attr_list = ['_modesets', '_title', '_labels', '_weights', '_matched', '_reweighted']
     attr_dict = {}
 
     if atoms:
@@ -1626,6 +1666,7 @@ def loadModeEnsemble(filename, **kwargs):
     title = getValue(data, '_title', None)
     modesets = getValue(data, '_modesets', [])
     atoms = getValue(data, '_atoms', [None])[0]
+    reweighted = getValue(data, '_reweighted', False)
 
     if isinstance(title, np.ndarray):
         title = np.asarray(title, dtype=str)
@@ -1642,10 +1683,14 @@ def loadModeEnsemble(filename, **kwargs):
     if isinstance(matched, np.ndarray):
         matched = matched.tolist()
 
+    if isinstance(reweighted, np.ndarray):
+        reweighted = reweighted.tolist()
+
     modeens = ModeEnsemble(title=title)
     modeens._weights = weights
     modeens._labels = labels
     modeens._matched = matched
+    modeens._reweighted = reweighted
     modeens._modesets = modesets
     modeens._atoms = atoms
 
