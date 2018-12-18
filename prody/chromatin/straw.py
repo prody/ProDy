@@ -580,7 +580,7 @@ def straw(norm, infile, chr1loc, chr2loc, unit, binsize):
 	            counts.append(c)
     return [xActual, yActual, counts]
 
-def printme(norm, infile, chr1loc, chr2loc, unit, binsize,outfile):
+def printme(norm, infile, chr1loc, chr2loc, unit, binsize, outfile):
     """ Reads a .hic file and extracts and prints the given contact matrix
     to a text file
 
@@ -591,11 +591,17 @@ def printme(norm, infile, chr1loc, chr2loc, unit, binsize,outfile):
        chr2loc(str): Chromosome name and (optionally) range, i.e. "1" or "1:10000:25000"
        unit(str): One of BP or FRAG
        binsize(int): Resolution, i.e. 25000 for 25K
-       outfile(str): Name of text file to write to
+       outfile(str): Name or stream of text file to write to
     """
-    f = open(outfile, 'w')
+
+    if isinstance(outfile, str):
+        f = open(outfile, 'w')
+    else:
+        f = outfile
     result = straw(norm, infile, chr1loc, chr2loc, unit, binsize)
     for i in range(len(result[0])):
         f.write("{0}\t{1}\t{2}\n".format(result[0][i], result[1][i], result[2][i]))
         #print("{0}\t{1}\t{2}".format(result[0][i], result[1][i], result[2][i]))
-    f.close()
+    
+    if isinstance(outfile, str):
+        f.close()

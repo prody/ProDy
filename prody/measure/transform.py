@@ -154,7 +154,6 @@ def getTransformation(mob, tar, weights=None):
     rotation = np.dot(Vh.T, np.dot(Id, U.T))
 
     return rotation, tar_com - np.dot(mob_com, rotation.T)
-    return rotation, tar_com - np.dot(mob_com, rotation)
 
 
 def applyTransformation(transformation, atoms):

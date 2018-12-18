@@ -611,17 +611,18 @@ class MaskedGNM(GNM):
             return arr
 
         mask = self.mask.copy()
+        n_true = np.sum(mask)
         N = len(mask)
 
         if arr.ndim == 1:
             whole_array = np.zeros(N)
-            whole_array[mask] = arr
+            whole_array[mask] = arr[:n_true]
         elif arr.ndim == 2:
             n, m = arr.shape
             whole_array = np.zeros((N, m))
-            mask = np.expand_dims(mask, axis=1)
-            mask = mask.repeat(m, axis=1)
-            whole_array[mask] = arr.flatten()
+            #mask = np.expand_dims(mask, axis=1)
+            #mask = mask.repeat(m, axis=1)
+            whole_array[mask] = arr[:n_true, :]
         else: # only developers can trigger this case
             raise ValueError('arr can only be either 1D or 2D')
         return whole_array
@@ -706,4 +707,10 @@ class MaskedGNM(GNM):
 
         self.mask = _fixLength(self.mask, length, False)
         self.masked = trimmed
+        self._n_atoms = np.sum(self.mask, dtype=int)
         return
+
+    def setEigens(self, vectors, values=None):
+        if not self.masked:
+            vectors = vectors[self.mask, :]
+        super(MaskedGNM, self).setEigens(vectors, values)
