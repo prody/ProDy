@@ -7,48 +7,9 @@ from prody.utilities import importLA
 from prody import LOGGER, SETTINGS
 from prody.utilities import showFigure, div0
 
-__all__ = ['showMap', 'showDomains', 'showEmbedding', 'getDomainList']
+__all__ = ['showDomains', 'showEmbedding', 'getDomainList']
 
 ## normalization methods ##
-def showMap(map, spec='', **kwargs):
-    """A convenient function that can be used to visualize Hi-C contact map. 
-    *kwargs* will be passed to :func:`matplotlib.pyplot.imshow`.
-
-    :arg map: a Hi-C contact map.
-    :type map: :class:`numpy.ndarray`
-
-    :arg spec: a string specifies how to preprocess the matrix. Blank for no preprocessing,
-    'p' for showing only data from *p*-th to *100-p*-th percentile. '_' is to suppress 
-    creating a new figure and paint to the current one instead. The letter specifications 
-    can be applied sequentially, e.g. 'p_'.
-    :type spec: str
-
-    :arg p: specifies the percentile threshold.
-    :type p: double
-    """
-
-    assert isinstance(map, np.ndarray), 'map must be a numpy.ndarray.'
-    
-    from matplotlib.pyplot import figure, imshow
-
-    if not '_' in spec:
-        figure()
-    
-    if 'p' in spec:
-        p = kwargs.pop('p', 5)
-        lp = kwargs.pop('lp', p)
-        hp = kwargs.pop('hp', 100-p)
-        vmin = np.percentile(map, lp)
-        vmax = np.percentile(map, hp)
-    else:
-        vmin = vmax = None
-    
-    im = imshow(map, vmin=vmin, vmax=vmax, **kwargs)
-
-    if SETTINGS['auto_show']:
-        showFigure()
-
-    return im
 
 def showDomains(domains, linespec='r-', **kwargs):
     """A convenient function that can be used to visualize Hi-C structural domains. 

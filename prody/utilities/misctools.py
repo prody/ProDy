@@ -347,6 +347,12 @@ def getValue(dict_, attr, default=None):
     value = default
     if attr in dict_:
         value = dict_[attr]
+        if default is not None:
+            try:
+                if value.ndim == 0:
+                    value = type(default)(value)
+            except:
+                pass
     return value
 
 def indentElement(elem, level=0):

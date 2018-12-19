@@ -11,7 +11,7 @@ from prody.proteins import parsePDB
 from prody.atomic import AtomGroup
 from prody.ensemble import Ensemble, Conformation
 from prody.trajectory import TrajBase
-from prody.utilities import importLA, checkCoords
+from prody.utilities import importLA, checkCoords, div0
 from numpy import sqrt, arange, log, polyfit, array, arccos, dot
 
 from .nma import NMA
@@ -238,6 +238,47 @@ def calcCrossProjection(ensemble, mode1, mode2, scale=None, **kwargs):
 
     return xcoords, ycoords
 
+def _getModeProperties(modes):
+    V = []; W = []; is3d = None; n_atoms = 0
+    if isinstance(modes, VectorBase):
+        V = modes._getArray()
+        if isinstance(modes, Mode):
+            W = modes.getVariance()
+        else:
+            W = 1.
+        V = np.asarray([V]).T
+        W = np.asarray([[W]])
+        is3d = modes.is3d()
+        n_atoms = modes.numAtoms()
+    elif isinstance(modes, (NMA, ModeSet)):
+        V = modes._getArray()
+        W = np.diag(modes.getVariances())
+        is3d = modes.is3d()
+        n_atoms = modes.numAtoms()
+    elif isinstance(modes, list):
+        for mode in modes:
+            if not isinstance(mode, VectorBase):
+                raise TypeError('modes can be a list of VectorBase instances, '
+                                'not {0}'.format(type(mode)))
+            V.append(mode._getArray())
+            if isinstance(mode, Mode):
+                W.append(modes.getVariance())
+            else:
+                W.append(1.)
+            if is3d is None:
+                is3d = mode.is3d()
+                n_atoms = mode.numAtoms()
+            else:
+                if is3d != mode.is3d():
+                    raise ValueError('modes must be either all from ANM or GNM')
+                if n_atoms != mode.numAtoms():
+                    raise ValueError('each mode in the list must have the same number of atoms')
+        V = np.array(V).T
+        W = np.diag(W)
+    else:
+        raise TypeError('modes must be a Mode, NMA, ModeSet instance, '
+                        'or a list of Mode instances, not {0}'.format(type(modes)))
+    return V, W, is3d, n_atoms
 
 def calcSqFlucts(modes):
     """Returns sum of square-fluctuations for given set of normal *modes*.
@@ -248,41 +289,15 @@ def calcSqFlucts(modes):
     :class:`.ANM` and :class:`.GNM`, on the other hand, it is arbitrary or
     relative units."""
 
-    if not isinstance(modes, (VectorBase, NMA, ModeSet)):
-        try:
-            modes2 = []
-            for mode in modes:
-                if not isinstance(mode, Mode):
-                    raise TypeError('modes can be a list of Mode instances, '
-                                    'not {0}'.format(type(mode)))
-                modes2.append(mode)
-            mode = list(modes2)
-        except TypeError:
-            raise TypeError('modes must be a Mode, NMA, ModeSet instance, '
-                            'or a list of Mode instances, not {0}'.format(type(modes)))
-    if isinstance(modes, list):
-        is3d = modes[0].is3d()
-        n_atoms = modes[0].numAtoms()
-    else:
-        is3d = modes.is3d()
-        n_atoms = modes.numAtoms()
+    V = []; W = []; is3d = None; n_atoms = 0
+    V, W, is3d, n_atoms = _getModeProperties(modes)
 
-    if isinstance(modes, Vector):
-        if is3d:
-            return (modes._getArrayNx3()**2).sum(axis=1)
-        else:
-            return (modes._getArray() ** 2)
-    else:
-        sq_flucts = np.zeros(n_atoms)
-        if isinstance(modes, VectorBase):
-            modes = [modes]
-        for mode in modes:
-            if is3d:
-                sq_flucts += ((mode._getArrayNx3()**2).sum(axis=1) *
-                              mode.getVariance())
-            else:
-                sq_flucts += (mode._getArray() ** 2) * mode.getVariance()
-        return sq_flucts
+    sq_flucts = np.dot(V * V, W).sum(axis=1)
+
+    if is3d:
+        sq_flucts_Nx3 = np.reshape(sq_flucts, (n_atoms, 3))
+        sq_flucts = sq_flucts_Nx3.sum(axis=1)
+    return sq_flucts
 
 
 def calcCrossCorr(modes, n_cpu=1, norm=True):
@@ -300,10 +315,18 @@ def calcCrossCorr(modes, n_cpu=1, norm=True):
         raise ValueError('n_cpu must be equal to or greater than 1')
 
     if not isinstance(modes, (Mode, NMA, ModeSet)):
-        raise TypeError('modes must be a Mode, NMA, or ModeSet instance, '
-                        'not {0}'.format(type(modes)))
-
-    if modes.is3d():
+        if isinstance(modes, list):
+            try:
+                is3d = modes[0].is3d()
+            except:
+                raise TypeError('modes must be a list of Mode or Vector instances, '
+                            'not {0}'.format(type(modes)))
+        else:
+            raise TypeError('modes must be a Mode, NMA, or ModeSet instance, '
+                            'not {0}'.format(type(modes)))
+    else:
+        is3d = modes.is3d()
+    if is3d:
         model = modes
         if isinstance(modes, (Mode, ModeSet)):
             model = modes._model
@@ -349,7 +372,8 @@ def calcCrossCorr(modes, n_cpu=1, norm=True):
         covariance = calcCovariance(modes)
     if norm:
         diag = np.power(covariance.diagonal(), 0.5)
-        covariance /= np.outer(diag, diag)
+        D = np.outer(diag, diag)
+        covariance = div0(covariance, D)
     return covariance
 
 
@@ -400,16 +424,11 @@ def calcTempFactors(modes, atoms):
 def calcCovariance(modes):
     """Returns covariance matrix calculated for given *modes*."""
 
-    if isinstance(modes, Mode):
-        array = modes._getArray()
-        return np.outer(array, array) * modes.getVariance()
-    elif isinstance(modes, ModeSet):
-        array = modes._getArray()
-        return np.dot(array, np.dot(np.diag(modes.getVariances()), array.T))
-    elif isinstance(modes, NMA):
+    if isinstance(modes, NMA):
         return modes.getCovariance()
     else:
-        raise TypeError('modes must be a Mode, NMA, or ModeSet instance')
+        V, W, _, _ = _getModeProperties(modes)
+        return np.dot(V, np.dot(W, V.T))
 
 
 def calcPairDeformationDist(model, coords, ind1, ind2, kbt=1.):
