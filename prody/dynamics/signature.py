@@ -854,6 +854,10 @@ def calcEnsembleENMs(ensemble, model='gnm', trim='reduce', n_modes=20, **kwargs)
                 Default is **True**
     :type match: bool
 
+    :arg method: the alternative function that is used to match the modes. 
+                Default is **None**
+    :type method: function
+
     :arg turbo: whether use :class:`~multiprocessing.Pool` to accelerate the computation. 
                 Note that if writing a script, ``if __name__ == '__main__'`` is necessary 
                 to protect your code when multi-tasking. 
@@ -863,6 +867,7 @@ def calcEnsembleENMs(ensemble, model='gnm', trim='reduce', n_modes=20, **kwargs)
     """
 
     match = kwargs.pop('match', True)
+    method = kwargs.pop('method', None)
     turbo = kwargs.pop('turbo', False)
 
     if isinstance(ensemble, Conformation):
@@ -937,7 +942,7 @@ def calcEnsembleENMs(ensemble, model='gnm', trim='reduce', n_modes=20, **kwargs)
     atoms.setCoords(ori_coords)
     
     if match:
-        modeens.match(turbo=turbo)
+        modeens.match(turbo=turbo, method=method)
     return modeens
 
 def _getEnsembleENMs(ensemble, **kwargs):
