@@ -101,15 +101,19 @@ class ImageCursor(Cursor):
 
         i, j, v = self.get_cursor_data(event)
 
+        if v > 1e-4 and v < 1e4:
+            template = 'x=%d, y=%d [%f]'
+        else:
+            template = 'x=%d, y=%d [%e]'
         if self.atoms is None:
-            self.txt.set_text('x=%d, y=%d [%f]' % (j, i, v))
+            self.txt.set_text(template % (j, i, v))
         else:
             seq = self.atoms.getSequence()
             resnums = self.atoms.getResnums()
 
             a = seq[j] + str(resnums[j])
             b = seq[i] + str(resnums[i])
-            self.txt.set_text('x=%s, y=%s [%f]' % (a, b, v))
+            self.txt.set_text(template % (a, b, v))
         #self.txt.set_position((x, y))
 
     def get_cursor_data(self, event):
