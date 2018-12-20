@@ -2,8 +2,8 @@
 import re
 
 from numpy import unique, linalg, diag, sqrt, dot, chararray, divide, zeros_like
-from numpy import diff, where, insert, nan, loadtxt, array, round
-from numpy import sign, arange, asarray, ndarray, subtract, power
+from numpy import diff, where, insert, nan, loadtxt, array, round, average
+from numpy import sign, arange, asarray, ndarray, subtract, power, sum
 from collections import Counter
 import numbers
 
@@ -16,7 +16,7 @@ __all__ = ['Everything', 'rangeString', 'alnum', 'importLA', 'dictElement',
            'saxsWater', 'count', 'addEnds', 'copy', 'dictElementLoop', 
            'getDataPath', 'openData', 'chr2', 'toChararray', 'interpY', 'cmp',
            'getValue', 'indentElement', 'isPDB', 'isURL', 'isListLike',
-           'getDistance', 'fastin', 'createStringIO', 'div0']
+           'getDistance', 'fastin', 'createStringIO', 'div0', 'wmean']
 
 # Note that the chain id can be blank (space). Examples:
 # 3TT1, 3tt1A, 3tt1:A, 3tt1_A, 3tt1-A, 3tt1 A
@@ -402,3 +402,14 @@ def div0(a, b):
         else:
             c[~isfinite(c)] = 0.  # -inf inf NaN
     return c
+
+def wmean(array, weights, axis=None):
+    """Calculates the weighted average of *array* given *axis*."""
+
+    try:
+        avg = average(array, axis=axis, weights=weights)
+    except ZeroDivisionError:
+        numer = sum(array*weights, axis=axis)
+        denom = sum(weights, axis=axis)
+        avg = div0(numer, denom)
+    return avg
