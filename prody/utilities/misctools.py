@@ -2,7 +2,7 @@
 import re
 
 from numpy import unique, linalg, diag, sqrt, dot, chararray, divide, zeros_like
-from numpy import diff, where, insert, nan, loadtxt, array, round, average
+from numpy import diff, where, insert, nan, isnan, loadtxt, array, round, average
 from numpy import sign, arange, asarray, ndarray, subtract, power, sum
 from collections import Counter
 import numbers
@@ -11,12 +11,14 @@ from prody import PY3K
 
 from xml.etree.ElementTree import Element
 
-__all__ = ['Everything', 'rangeString', 'alnum', 'importLA', 'dictElement',
+__all__ = ['Everything', 'Cursor', 'ImageCursor', 'rangeString', 'alnum', 'importLA', 'dictElement',
            'intorfloat', 'startswith', 'showFigure', 'countBytes', 'sqrtm',
            'saxsWater', 'count', 'addEnds', 'copy', 'dictElementLoop', 
            'getDataPath', 'openData', 'chr2', 'toChararray', 'interpY', 'cmp',
            'getValue', 'indentElement', 'isPDB', 'isURL', 'isListLike',
            'getDistance', 'fastin', 'createStringIO', 'div0', 'wmean']
+
+CURSORS = []
 
 # Note that the chain id can be blank (space). Examples:
 # 3TT1, 3tt1A, 3tt1:A, 3tt1_A, 3tt1-A, 3tt1 A
@@ -37,6 +39,102 @@ class Everything(object):
     def __contains__(self, what):
 
         return True
+
+class Cursor(object):
+    def __init__(self, ax):
+        self.ax = ax
+        self.lx = ax.axhline(color='k', linestyle='--', linewidth=0.)  # the horiz line
+        self.ly = ax.axvline(color='k', linestyle='--', linewidth=0.)  # the vert line
+
+        # text location in axes coords
+        self.txt = ax.text(0., 1., '', transform=ax.transAxes, verticalalignment='bottom')
+        
+        # preserve the cursor reference
+        global CURSORS
+        CURSORS.append(self)
+
+    def onClick(self, event):
+        from matplotlib.pyplot import draw
+
+        if event.inaxes != self.ax:
+            return
+
+        if event.button == 1:
+            self.show(event)
+        elif event.button == 3:
+            self.clear(event)
+
+        draw()
+
+    def show(self, event):
+        x, y = event.xdata, event.ydata
+        # update the line positions
+        self.lx.set_ydata(y)
+        self.ly.set_xdata(x)
+
+        self.lx.set_linewidth(.75)
+        self.ly.set_linewidth(.75)
+
+        self.txt.set_text('x=%1.2f, y=%1.2f' % (x, y))
+        #self.txt.set_position((x, y))
+
+    def clear(self, event):
+        self.lx.set_linewidth(0.)
+        self.ly.set_linewidth(0.)
+
+        self.txt.set_text('')
+
+class ImageCursor(Cursor):
+    def __init__(self, ax, image, atoms=None):
+        super(ImageCursor, self).__init__(ax)
+        self.image = image
+        self.atoms = atoms
+    
+    def show(self, event):
+        x, y = event.xdata, event.ydata
+        # update the line positions
+        self.lx.set_ydata(y)
+        self.ly.set_xdata(x)
+
+        self.lx.set_linewidth(1.)
+        self.ly.set_linewidth(1.)
+
+        i, j, v = self.get_cursor_data(event)
+
+        if self.atoms is None:
+            self.txt.set_text('x=%d, y=%d [%f]' % (j, i, v))
+        else:
+            seq = self.atoms.getSequence()
+            resnums = self.atoms.getResnums()
+
+            a = seq[j] + str(resnums[j])
+            b = seq[i] + str(resnums[i])
+            self.txt.set_text('x=%s, y=%s [%f]' % (a, b, v))
+        #self.txt.set_position((x, y))
+
+    def get_cursor_data(self, event):
+        """Get the cursor data for a given event"""
+        from matplotlib.transforms import Bbox, BboxTransform
+
+        aximg = self.image
+        xmin, xmax, ymin, ymax = aximg.get_extent()
+        if aximg.origin == 'upper':
+            ymin, ymax = ymax, ymin
+
+        arr = aximg.get_array()
+        data_extent = Bbox([[ymin, xmin], [ymax, xmax]])
+        array_extent = Bbox([[0, 0], arr.shape[:2]])
+        trans = BboxTransform(boxin=data_extent, boxout=array_extent)
+        y, x = event.ydata, event.xdata
+        point = trans.transform_point([y, x])
+        if any(isnan(point)):
+            return None
+        i, j = point.astype(int)
+        # Clip the coordinates at array bounds
+        if not (0 <= i < arr.shape[0]) or not (0 <= j < arr.shape[1]):
+            return None
+        else:
+            return i, j, arr[i, j]
 
 def rangeString(lint, sep=' ', rng=' to ', exc=False, pos=True):
     """Returns a structured string for a given list of integers.

@@ -269,6 +269,9 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
     :arg percentile: a percentile threshold to remove outliers, i.e. only showing data within *p*-th 
                      to *100-p*-th percentile
     :type percentile: float
+
+    :arg interactive: turn on or off the interactive options
+    :type interactive: bool
     """
 
     from matplotlib import ticker
@@ -294,6 +297,7 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
 
     allticks = kwargs.pop('allticks', False) # this argument is temporary and will be replaced by better implementation
     origin = kwargs.pop('origin', 'lower')
+    interactive = kwargs.pop('interactive', True)
 
     tree_mode = False
     if np.isscalar(y_array):
@@ -433,6 +437,13 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
 
     sca(ax3)
     sci(im)
+
+    if interactive:
+        from prody.utilities import ImageCursor
+        from matplotlib.pyplot import connect
+        cursor = ImageCursor(ax3, im)
+        connect('button_press_event', cursor.onClick)
+
     return im, lines, cb
 
 def reorderMatrix(matrix, tree, names=None):
