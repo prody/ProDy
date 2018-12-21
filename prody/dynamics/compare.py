@@ -13,9 +13,8 @@ from .mode import Mode, Vector
 from .gnm import ZERO
 from .analysis import calcFractVariance
 
-__all__ = ['calcOverlap', 'calcCumulOverlap', 'calcSubspaceOverlap', 'calcSpectralOverlap',
-           'calcWeightedSpectralOverlap', 'calcCovOverlap', 'printOverlapTable', 
-           'writeOverlapTable', 'pairModes', 'matchModes']
+__all__ = ['calcOverlap', 'calcCumulOverlap', 'calcSubspaceOverlap', 'calcSpectralOverlap', 
+           'calcCovOverlap', 'printOverlapTable', 'writeOverlapTable', 'pairModes', 'matchModes']
 
 SO_CACHE = {}
 WO_CACHE = {}
@@ -163,7 +162,7 @@ def calcSubspaceOverlap(modes1, modes2):
     rmsip = np.sqrt(np.power(overlap, 2).sum() / length)
     return rmsip
 
-def calcSpectralOverlap(modes1, modes2, turbo=False):
+def calcSpectralOverlap(modes1, modes2, weighted=False, turbo=False):
     """Returns overlap between covariances of *modes1* and *modes2*.  Overlap
     between covariances are calculated using normal modes (eigenvectors),
     hence modes in both models must have been calculated.  This function
@@ -172,6 +171,8 @@ def calcSpectralOverlap(modes1, modes2, turbo=False):
     .. [BH02] Hess B. Convergence of sampling in protein simulations.
         *Phys Rev E* **2002** 65(3):031910.
     
+    :arg weighted: if **True** then covariances are weighted by the trace.
+    :type weighted: bool
     """
 
     if modes1.is3d() ^ modes2.is3d():
@@ -180,27 +181,42 @@ def calcSpectralOverlap(modes1, modes2, turbo=False):
         raise ValueError('modes1 and modes2 must have same number of atoms')
 
     if isinstance(modes1, Mode):
-        varA = np.array([modes1.getVariance()])
+        if weighted:
+            varA = np.array([calcFractVariance(modes1)])
+        else:
+            varA = np.array([modes1.getVariance()])
         I = np.array([modes1.getIndex()])
     else:
-        varA = modes1.getVariances()
+        if weighted:
+            varA = calcFractVariance(modes1)
+        else:
+            varA = modes1.getVariances()
         I = modes1.getIndices()
 
     if isinstance(modes2, Mode):
-        varB = np.array([modes2.getVariance()])
+        if weighted:
+            varB = np.array([calcFractVariance(modes2)])
+        else:
+            varB = np.array([modes2.getVariance()])
         J = np.array([modes2.getIndex()])
     else:
-        varB = modes2.getVariances()
+        if weighted:
+            varB = calcFractVariance(modes2)
+        else:
+            varB = modes2.getVariances()
         J = modes2.getIndices()
 
     if turbo:
         model1 = modes1.getModel()
         model2 = modes2.getModel()
-
-        if (model1, model2) in SO_CACHE:
-            weights = SO_CACHE[(model1, model2)]
-        elif (model2, model1) in SO_CACHE:
-            weights = SO_CACHE[(model2, model1)]
+        if weighted:
+            CACHE = WO_CACHE
+        else:
+            CACHE = SO_CACHE
+        if (model1, model2) in CACHE:
+            weights = CACHE[(model1, model2)]
+        elif (model2, model1) in CACHE:
+            weights = CACHE[(model2, model1)]
         else:
             farrayA = model1._getArray()
             farrayB = model2._getArray()
@@ -210,67 +226,7 @@ def calcSpectralOverlap(modes1, modes2, turbo=False):
 
             dotAB = np.dot(farrayA.T, farrayB)**2
             outerAB = np.outer(fvarA**0.5, fvarB**0.5)
-            SO_CACHE[(model1, model2)] = weights = outerAB * dotAB
-        
-        weights = weights[I, :][:, J]
-    else:
-        arrayA = modes1._getArray()
-        arrayB = modes2._getArray()
-
-        dotAB = np.dot(arrayA.T, arrayB)**2
-        outerAB = np.outer(varA**0.5, varB**0.5)
-        weights = outerAB * dotAB
-
-    diff = (np.sum(varA.sum() + varB.sum()) - 2 * np.sum(weights))
-
-    if diff < ZERO:
-        diff = 0
-    else:
-        diff = diff ** 0.5
-    return 1 - diff / np.sqrt(varA.sum() + varB.sum())
-
-def calcWeightedSpectralOverlap(modes1, modes2, turbo=False):
-    """Returns overlap between weighted covariances of *modes1* and *modes2*. Covariances
-    are weighted based on the trace of the covariance matrix.
-    """
-
-    if modes1.is3d() ^ modes2.is3d():
-        raise TypeError('models must be either both 1-dimensional or 3-dimensional')
-    if modes1.numAtoms() != modes2.numAtoms():
-        raise ValueError('modes1 and modes2 must have same number of atoms')
-
-    if isinstance(modes1, Mode):
-        varA = np.array([calcFractVariance(modes1)])
-        I = np.array([modes1.getIndex()])
-    else:
-        varA = calcFractVariance(modes1)
-        I = modes1.getIndices()
-
-    if isinstance(modes2, Mode):
-        varB = np.array([calcFractVariance(modes2)])
-        J = np.array([modes2.getIndex()])
-    else:
-        varB = calcFractVariance(modes2)
-        J = modes2.getIndices()
-
-    if turbo:
-        model1 = modes1.getModel()
-        model2 = modes2.getModel()
-
-        if (model1, model2) in WO_CACHE:
-            weights = WO_CACHE[(model1, model2)]
-        elif (model2, model1) in WO_CACHE:
-            weights = WO_CACHE[(model2, model1)]
-        else:
-            farrayA = model1._getArray()
-            farrayB = model2._getArray()
-
-            fvarA = calcFractVariance(model1)
-            fvarB = calcFractVariance(model2)
-
-            dotAB = np.dot(farrayA.T, farrayB)**2
-            outerAB = np.outer(fvarA**0.5, fvarB**0.5)
-            WO_CACHE[(model1, model2)] = weights = outerAB * dotAB
+            CACHE[(model1, model2)] = weights = outerAB * dotAB
         
         weights = weights[I, :][:, J]
     else:
@@ -301,7 +257,7 @@ def pairModes(modes1, modes2, **kwargs):
     and *modes2* should have equal number of modes, and the function will 
     return a nested list where each item is a list containing a pair of modes.
 
-    :arg index: if `True` then indices of modes will be returned instead of 
+    :arg index: if **True** then indices of modes will be returned instead of 
         :class:`Mode` instances.
     :type index: bool
     """
