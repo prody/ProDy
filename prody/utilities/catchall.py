@@ -295,6 +295,7 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
     xticklabels = kwargs.pop('xticklabels', ticklabels)
     yticklabels = kwargs.pop('yticklabels', ticklabels)
 
+    show_colorbar = kwargs.pop('colorbar', True)
     allticks = kwargs.pop('allticks', False) # this argument is temporary and will be replaced by better implementation
     origin = kwargs.pop('origin', 'lower')
     interactive = kwargs.pop('interactive', True)
@@ -346,7 +347,6 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
     left_index = (i, j-1)
 
     complex_layout = nrow > 1 or ncol > 1
-    show_colorbar = kwargs.pop('colorbar', True)
 
     ax1 = ax2 = ax3 = None
 
