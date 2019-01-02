@@ -36,39 +36,35 @@ def calcCollectivity(mode, masses=None):
     .. [BR95] Bruschweiler R. Collective protein dynamics and nuclear
        spin relaxation. *J Chem Phys* **1995** 102:3396-3403.
 
-    :arg mode: mode or vector
-    :type mode: :class:`.Mode` or :class:`.Vector`
+    :arg mode: mode(s) or vector(s)
+    :type mode: :class:`.Mode`, :class:`.Vector`, :class:`.ModeSet`
 
     :arg masses: atomic masses
     :type masses: :class:`numpy.ndarray`"""
 
-    if not isinstance(mode, (Mode, ModeSet)):
-        raise TypeError('mode must be a Mode or ModeSet instance')
-    if isinstance(mode, Mode):
-        mode = [mode]
+    V, W, is3d, n_atoms = _getModeProperties(mode)
     
     colls = []
 
     def log0(a):
         return log(a + np.finfo(float).eps)
 
-    for m in mode:
-        is3d = m.is3d()
-        if masses is not None:
-            if len(masses) != m.numAtoms():
-                raise ValueError('length of masses must be equal to number of atoms')
-            if is3d:
-                u2in = (m.getArrayNx3() ** 2).sum(1) / masses
+    for v in V.T:
+        if is3d:
+            u2in = (v ** 2)
+            u2in_Nx3 = np.reshape(u2in, (n_atoms, 3))
+            u2in = u2in_Nx3.sum(axis=1)
         else:
-            if is3d:
-                u2in = (m.getArrayNx3() ** 2).sum(1)
-            else:
-                u2in = (m.getArrayNx3() ** 2)
+            u2in = (v ** 2)
+        if masses is not None:
+            if len(masses) != n_atoms:
+                raise ValueError('length of masses must be equal to number of atoms')
+            u2in = u2in / masses
         u2in = u2in * (1 / u2in.sum() ** 0.5)
-        coll = np.exp(-(u2in * log0(u2in)).sum()) / m.numAtoms()
+        coll = np.exp(-(u2in * log0(u2in)).sum()) / n_atoms
         colls.append(coll)
     
-    if len(mode) == 1:
+    if len(colls) == 1:
         return coll
     else:
         return colls

@@ -9,7 +9,7 @@ import numpy as np
 
 from prody import LOGGER, SETTINGS
 from prody.utilities import showFigure, showMatrix, copy, checkWeights, openFile
-from prody.utilities import getValue, importLA
+from prody.utilities import getValue, importLA, wmean
 from prody.ensemble import Ensemble, Conformation
 
 from .nma import NMA
@@ -767,20 +767,20 @@ class sdarray(ndarray):
         """Returns the labels of the signature."""
 
         return self._labels
-
+    
     def mean(self, axis=0, **kwargs):
         """Calculates the weighted average of the sdarray over modesets (`axis=0`)."""
 
         arr = np.asarray(self)
-        return np.average(arr, axis=axis, weights=self._weights)
+        weights = self._weights
+        return wmean(arr, weights, axis)
     
     def std(self, axis=0, **kwargs):
         """Calculates the weighted standard deviations of the sdarray over modesets (`axis=0`)."""
 
         arr = np.asarray(self)
-        mean = np.average(arr, weights=self._weights, axis=axis)
-        variance = np.average((arr - mean)**2, 
-                              weights=self._weights, axis=axis)
+        mean = wmean(arr, self._weights, axis)
+        variance = wmean((arr - mean)**2, self._weights, axis)
         return np.sqrt(variance)
 
     def min(self, axis=0, **kwargs):
@@ -854,6 +854,10 @@ def calcEnsembleENMs(ensemble, model='gnm', trim='reduce', n_modes=20, **kwargs)
                 Default is **True**
     :type match: bool
 
+    :arg method: the alternative function that is used to match the modes. 
+                Default is **None**
+    :type method: function
+
     :arg turbo: whether use :class:`~multiprocessing.Pool` to accelerate the computation. 
                 Note that if writing a script, ``if __name__ == '__main__'`` is necessary 
                 to protect your code when multi-tasking. 
@@ -863,6 +867,7 @@ def calcEnsembleENMs(ensemble, model='gnm', trim='reduce', n_modes=20, **kwargs)
     """
 
     match = kwargs.pop('match', True)
+    method = kwargs.pop('method', None)
     turbo = kwargs.pop('turbo', False)
 
     if isinstance(ensemble, Conformation):
@@ -937,7 +942,7 @@ def calcEnsembleENMs(ensemble, model='gnm', trim='reduce', n_modes=20, **kwargs)
     atoms.setCoords(ori_coords)
     
     if match:
-        modeens.match(turbo=turbo)
+        modeens.match(turbo=turbo, method=method)
     return modeens
 
 def _getEnsembleENMs(ensemble, **kwargs):
