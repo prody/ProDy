@@ -61,6 +61,10 @@ def buildDistMatrix(atoms1, atoms2=None, unitcell=None, format='mat'):
                 atoms2 = atoms2._getCoords()
             except AttributeError:
                 raise TypeError('atoms2 must be Atomic instance or an array')
+
+        if atoms2.ndim == 1:
+            atoms2 = atoms2.reshape((1,3))
+
     if atoms1.shape[-1] != 3 or atoms2.shape[-1] != 3:
         raise ValueError('one and two must have shape ([M,]N,3)')
 
