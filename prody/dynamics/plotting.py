@@ -516,7 +516,7 @@ def showOverlapTable(modes_x, modes_y, **kwargs):
 
 
 def showCrossCorr(modes, *args, **kwargs):
-    """Show cross-correlations using :func:`~matplotlib.pyplot.imshow`.  By
+    """Show cross-correlations using :func:`showAtomicMatrix`.  By
     default, *origin=lower* and *interpolation=bilinear* keyword  arguments
     are passed to this function, but user can overwrite these parameters.
     See also :func:`.calcCrossCorr`."""
@@ -533,8 +533,8 @@ def showCrossCorr(modes, *args, **kwargs):
         kwargs['interpolation'] = 'bilinear'
     if not 'origin' in kwargs:
         kwargs['origin'] = 'lower'
-    show = plt.imshow(cross_correlations, *args, **kwargs), plt.colorbar()
-    plt.axis([arange[0]+0.5, arange[-1]+1.5, arange[0]+0.5, arange[-1]+1.5])
+    show = showAtomicMatrix(cross_correlations, *args, **kwargs)#, plt.colorbar()
+    #plt.axis([arange[0]+0.5, arange[-1]+1.5, arange[0]+0.5, arange[-1]+1.5])
     plt.title('Cross-correlations for {0}'.format(str(modes)))
     plt.xlabel('Indices')
     plt.ylabel('Indices')
@@ -1102,7 +1102,7 @@ def showPerturbResponse(model, atoms=None, show_matrix=True, select=None, **kwar
             for i, profile in enumerate(profiles):
                 if i == len(profiles)-1:  # last iteration turn the domain/chain bar back on
                     final = True
-                show.append(showAtomicLines(profile, atoms, final=final, **kwargs))
+                show.append(showAtomicLines(profile, atoms=atoms, final=final, **kwargs))
 
             xlabel('Residues')
     
@@ -1186,6 +1186,9 @@ def showAtomicMatrix(matrix, x_array=None, y_array=None, atoms=None, **kwargs):
         no matter what 'auto_show' value is, plots will be drawn on the *figure*.
         Default is **None**.
     :type figure: :class:`~matplotlib.figure.Figure`, int, str
+
+    :arg interactive: turn on or off the interactive options
+    :type interactive: bool
     """ 
 
     from prody.utilities import showMatrix
@@ -1207,6 +1210,8 @@ def showAtomicMatrix(matrix, x_array=None, y_array=None, atoms=None, **kwargs):
     ticklabels = kwargs.pop('ticklabels', None)
     text_color = kwargs.pop('text_color', 'k')
     text_color = kwargs.pop('textcolor', text_color)
+
+    interactive = kwargs.pop('interactive', True)
 
     if isinstance(fig, Figure):
         fig_num = fig.number
@@ -1308,8 +1313,15 @@ def showAtomicMatrix(matrix, x_array=None, y_array=None, atoms=None, **kwargs):
                 yticklabels_.extend([label]*3)
             yticklabels = yticklabels_
 
-    im, lines, colorbar = showMatrix(matrix, x_array, y_array, xticklabels=xticklabels, yticklabels=yticklabels, **kwargs) 
+    im, lines, colorbar = showMatrix(matrix, x_array, y_array, xticklabels=xticklabels, yticklabels=yticklabels, 
+                                     interactive=False, **kwargs) 
     
+    if interactive:
+        from prody.utilities import ImageCursor
+        from matplotlib.pyplot import connect, gca
+        cursor = ImageCursor(gca(), im, atoms=atoms)
+        connect('button_press_event', cursor.onClick)
+
     bars = []
     texts = []
 
@@ -1517,7 +1529,7 @@ def showAtomicLines(*args, **kwargs):
             if not gap:
                 gap = True
             show_chain = False
-            show_domain = False
+            #show_domain = False
 
         hv = atoms.getHierView()
         if hv.numChains() == 0:
@@ -1605,6 +1617,8 @@ def showAtomicLines(*args, **kwargs):
 
     show_domain, domain_pos, domains = _checkDomainBarParameter(show_domain, 1., atoms, 'domain')
     if show_domain:
+        if overlay:
+            x = x[0]
         b, t = showDomainBar(domains, x=x, loc=domain_pos, axis='x', 
                              text_loc=domain_text_loc,  text=show_domain_text,
                              barwidth=barwidth)
@@ -1633,7 +1647,7 @@ def showDomainBar(domains, x=None, loc=0., axis='x', **kwargs):
                either **x** or **y**
     :type axis: str
 
-    :keyword text: whether show the text or not. Default is **True**
+    :keyword text: whether to show the text or not. Default is **True**
     :type text: bool
 
     :keyword text_loc: location of text labels. It can be either 
@@ -1641,7 +1655,14 @@ def showDomainBar(domains, x=None, loc=0., axis='x', **kwargs):
     :type text_loc: str
 
     :keyword text_color: color of the text labels
-    :type text_color: str or tuple or list
+    :type text_color: str, tuple, list
+
+    :keyword color: a dictionary of colors where keys are the domain names
+    :type color: dict
+
+    :keyword relim: whether to rescale the axes' limits after adding 
+                    the bar. Default is **True**
+    :type relim: bool
     """
 
     from matplotlib.pyplot import plot, text, xlim, ylim, gca
@@ -1653,7 +1674,13 @@ def showDomainBar(domains, x=None, loc=0., axis='x', **kwargs):
     barwidth = kwargs.pop('barwidth', 5)
     barwidth = kwargs.pop('bar_width', barwidth)
 
+    color_dict = kwargs.pop('color', None)
+
+    offset = kwargs.pop('offset', 0)
+
     is3d = kwargs.pop('is3d', False)
+
+    relim = kwargs.pop('relim', True)
 
     text_loc = kwargs.pop('text_loc', 'above')
     if not isinstance(text_loc, str):
@@ -1694,15 +1721,23 @@ def showDomainBar(domains, x=None, loc=0., axis='x', **kwargs):
     bars = []
     texts = []
 
+    color_order = []
     for domid in uni_domids:
+        if color_dict is not None:
+            color_order.append(color_dict[domid])
         d = domains == domid
         D.append(d)
+
     if not D:
         return bars, texts
     D = np.vstack(D).T
     F = np.zeros(D.shape)
     F[~D] = np.nan
     F[D] = d_loc
+
+    if x is None:
+        x = np.arange(len(domains), dtype=float)
+    x = x + offset
 
     if show_text:
         for i, chid in enumerate(uni_domids):
@@ -1714,7 +1749,8 @@ def showDomainBar(domains, x=None, loc=0., axis='x', **kwargs):
             locs = np.split(d[idx], np.where(np.diff(idx)!=1)[0] + 1)
 
             for loc in locs:
-                pos = np.median(loc)
+                i = int(np.median(loc))
+                pos = x[i]
                 if axis == 'y':
                     txt = text(d_loc, pos, chid, rotation=-90, 
                                                 color=text_color,
@@ -1726,19 +1762,27 @@ def showDomainBar(domains, x=None, loc=0., axis='x', **kwargs):
                                                 verticalalignment=valign)
                 texts.append(txt)
     
-    gca().set_prop_cycle(None)
+    if len(color_order):
+        gca().set_prop_cycle('color', color_order)
+    else:
+        gca().set_prop_cycle(None)
 
-    if x is None:
-        x = np.arange(len(domains))
     X = np.tile(x, (len(uni_domids), 1)).T
 
     if axis == 'y':
-        bar = plot(F, X, linewidth=barwidth, solid_capstyle='butt')
-    else:
-        bar = plot(X, F, linewidth=barwidth, solid_capstyle='butt')
+        dbars = plot(F, X, linewidth=barwidth, solid_capstyle='butt', drawstyle='steps')
 
-    bars.extend(bar)
-    lim(L, auto=True)
+        for bar in dbars:
+            bar.set_clip_on(False)
+    else:
+        dbars = plot(X, F, linewidth=barwidth, solid_capstyle='butt', drawstyle='steps-post')
+        for bar in dbars:
+            bar.set_clip_on(False)
+
+    gca().set_prop_cycle(None)
+    bars.extend(dbars)
+    if relim:
+        gca().autoscale_view()
     return bars, texts
 
 def showTree(tree, format='ascii', **kwargs):
@@ -1773,16 +1817,19 @@ def showTree(tree, format='ascii', **kwargs):
         Phylo.draw_ascii(tree)
         return
 
-    elif format == 'plt': 
-        try:
-            import pylab
-        except:
-            raise ImportError("Pylab or matplotlib is not installed.")
-        pylab.rcParams["font.size"]=font_size
-        pylab.rcParams["lines.linewidth"]=line_width
-        Phylo.draw(tree, do_show=False, **kwargs)
-        pylab.xlabel('distance')
-        pylab.ylabel('proteins')
+    elif format in ['plt', 'mpl', 'matplotlib']: 
+        from matplotlib.pyplot import rcParams, figure, gca, xlabel, ylabel
+        rcParams["font.size"]=font_size
+        rcParams["lines.linewidth"]=line_width
+
+        if SETTINGS['auto_show']:
+            figure()
+        Phylo.draw(tree, do_show=False, axes=gca(), **kwargs)
+        if SETTINGS['auto_show']:
+            showFigure()
+
+        xlabel('distance')
+        ylabel('proteins')
         return
 
     elif format == 'networkx':

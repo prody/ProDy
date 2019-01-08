@@ -7,76 +7,7 @@ from prody.atomic import Atomic, Atom, AtomGroup, Selection, HierView
 from prody.utilities import openFile, showFigure, createStringIO
 from prody import SETTINGS, PY3K
 
-__all__ = ['view3D', 'showProtein', 'writePQR', ]
-
-
-def writePQR(filename, atoms):
-    """Write *atoms* in PQR format to a file with name *filename*.  Only
-    current coordinate set is written.  Returns *filename* upon success.  If
-    *filename* ends with :file:`.gz`, a compressed file will be written."""
-
-    if not isinstance(atoms, Atomic):
-        raise TypeError('atoms does not have a valid type')
-    if isinstance(atoms, Atom):
-        atoms = Selection(atoms.getAtomGroup(), [atoms.getIndex()],
-                          atoms.getACSIndex(),
-                          'index ' + str(atoms.getIndex()))
-    stream = openFile(filename, 'w')
-    n_atoms = atoms.numAtoms()
-    atomnames = atoms.getNames()
-    if atomnames is None:
-        raise RuntimeError('atom names are not set')
-    for i, an in enumerate(atomnames):
-        lenan = len(an)
-        if lenan < 4:
-            atomnames[i] = ' ' + an
-        elif lenan > 4:
-            atomnames[i] = an[:4]
-
-    s_or_u = np.array(['a']).dtype.char
-
-    resnames = atoms._getResnames()
-    if resnames is None:
-        resnames = ['UNK'] * n_atoms
-    resnums = atoms._getResnums()
-    if resnums is None:
-        resnums = np.ones(n_atoms, int)
-    chainids = atoms._getChids()
-    if chainids is None:
-        chainids = np.zeros(n_atoms, s_or_u + '1')
-    charges = atoms._getCharges()
-    if charges is None:
-        charges = np.zeros(n_atoms, float)
-    radii = atoms._getRadii()
-    if radii is None:
-        radii = np.zeros(n_atoms, float)
-    icodes = atoms._getIcodes()
-    if icodes is None:
-        icodes = np.zeros(n_atoms, s_or_u + '1')
-    hetero = ['ATOM'] * n_atoms
-    heteroflags = atoms._getFlags('hetatm')
-    if heteroflags is None:
-        heteroflags = atoms._getFlags('hetero')
-    if heteroflags is not None:
-        hetero = np.array(hetero, s_or_u + '6')
-        hetero[heteroflags] = 'HETATM'
-    altlocs = atoms._getAltlocs()
-    if altlocs is None:
-        altlocs = np.zeros(n_atoms, s_or_u + '1')
-
-    format = ('{0:6s}{1:5d} {2:4s}{3:1s}' +
-              '{4:4s}{5:1s}{6:4d}{7:1s}   ' +
-              '{8:8.3f}{9:8.3f}{10:8.3f}' +
-              '{11:8.4f}{12:7.4f}\n').format
-    coords = atoms._getCoords()
-    write = stream.write
-    for i, xyz in enumerate(coords):
-        write(format(hetero[i], i+1, atomnames[i], altlocs[i],
-                     resnames[i], chainids[i], int(resnums[i]),
-                     icodes[i], xyz[0], xyz[1], xyz[2], charges[i], radii[i]))
-    write('TER\nEND')
-    stream.close()
-    return filename
+__all__ = ['view3D', 'showProtein']
 
 def wrap_data(data):
     try:

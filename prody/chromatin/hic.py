@@ -5,16 +5,17 @@ import numpy as np
 from scipy.sparse import coo_matrix
 from scipy.stats import mode
 from prody.chromatin.norm import VCnorm, SQRTVCnorm, Filenorm
-from prody.chromatin.functions import div0, showMap, showDomains, _getEigvecs
+from prody.chromatin.functions import div0, showDomains, _getEigvecs
 
+from prody import PY2K
 from prody.dynamics import GNM, MaskedGNM
 from prody.dynamics.functions import writeArray
 from prody.dynamics.mode import Mode
 from prody.dynamics.modeset import ModeSet
 
-from prody.utilities import openFile, importLA
+from prody.utilities import openFile, importLA, showMatrix, isURL
 
-__all__ = ['HiC', 'parseHiC', 'parseHiCStream', 'saveHiC', 'loadHiC', 'writeMap']
+__all__ = ['HiC', 'parseHiC', 'parseHiCStream', 'parseHiCBinary', 'saveHiC', 'loadHiC', 'writeMap']
 
 class HiC(object):
 
@@ -305,7 +306,17 @@ class HiC(object):
 
     def view(self, spec='p', **kwargs):
         """Visualization of the Hi-C map and domains (if present). The function makes use 
-        of :func:`.showMap`."""
+        of :func:`.showMatrix`.
+        
+        :arg spec: a string specifies how to preprocess the matrix. Blank for no preprocessing,
+                'p' for showing only data from *p*-th to *100-p*-th percentile. '_' is to suppress 
+                creating a new figure and paint to the current one instead. The letter specifications 
+                can be applied sequentially, e.g. 'p_'.
+        :type spec: str
+
+        :arg p: specifies the percentile threshold.
+        :type p: double
+        """
 
         dm_kwargs = {}
         keys = kwargs.keys()
@@ -315,7 +326,16 @@ class HiC(object):
             elif k.startswith('domain_'):
                 dm_kwargs[k[7:]] = kwargs.pop(k)
 
-        im = showMap(self.map, spec, **kwargs)
+        M = self.map
+        if 'p' in spec:
+            p = kwargs.pop('p', 5)
+            lp = kwargs.pop('lp', p)
+            hp = kwargs.pop('hp', 100-p)
+            vmin = np.percentile(M, lp)
+            vmax = np.percentile(M, hp)
+        else:
+            vmin = vmax = None
+        im = showMatrix(M, vmin=vmin, vmax=vmax, **kwargs)
 
         domains = self.getDomainList()
         if len(domains) > 1:
@@ -340,15 +360,49 @@ def parseHiC(filename, **kwargs):
     :type filename: str
     """
 
-    import os
+    import os, struct
     title = kwargs.get('title')
     if title is None:
         title = os.path.basename(filename)
     else:
         title = kwargs.pop('title')
-    with open(filename, 'r') as filestream:
-        hic = parseHiCStream(filestream, title=title, **kwargs)
+
+    if isURL(filename):
+        hic = parseHiCBinary(filename, title=title, **kwargs)
+    else:
+        with open(filename,'rb') as req:
+            magic_number = struct.unpack('<3s',req.read(3))[0]
+        if magic_number == b"HIC":
+            hic = parseHiCBinary(filename, title=title, **kwargs)
+        else:
+            with open(filename, 'r') as filestream:
+                hic = parseHiCStream(filestream, title=title, **kwargs)
     return hic
+
+def _sparse2dense(I, J, values, bin=None):
+    I = np.asarray(I, dtype=int)
+    J = np.asarray(J, dtype=int)
+    values = np.asarray(values, dtype=float)
+    # determine the bin size by the most frequent interval
+    if bin is None:
+        loci = np.unique(np.sort(I))
+        bins = np.diff(loci)
+        bin = mode(bins)[0][0]
+    # convert coordinate from basepair to locus index
+    bin = int(bin)
+    I = I // bin
+    J = J // bin
+    # make sure that the matrix is square
+    if np.max(I) != np.max(J):
+        b = np.max(np.append(I, J))
+        I = np.append(I, b)
+        J = np.append(J, b)
+        values = np.append(values, 0.)
+    # Convert to sparse matrix format, then full matrix format
+    # and finally array type. Matrix format is avoided because
+    # diag() won't work as intended for Matrix instances.
+    M = np.array(coo_matrix((values, (I, J))).todense())
+    return M, bin
 
 def parseHiCStream(stream, **kwargs):
     """Returns an :class:`.HiC` from a stream of Hi-C data lines.
@@ -371,7 +425,9 @@ def parseHiCStream(stream, **kwargs):
         D.append(d)
     D = np.array(D)
 
-    bin = kwargs.get('bin', None)
+    res = kwargs.get('bin', None)
+    if res is not None:
+        res = int(res)
     size = D.shape
     if len(D.shape) <= 1:
         raise ValueError("cannot parse the file: input file only contains one column.")
@@ -379,30 +435,34 @@ def parseHiCStream(stream, **kwargs):
         M = D
     else:
         try:
-            I, J, value = D.T[:3]
-            I = I.astype(int)
-            J = J.astype(int)
+            I, J, values = D.T[:3]
         except ValueError:
             raise ValueError('the sparse matrix format should have three columns')
-        # determine the bin size by the most frequent interval
-        if bin is None:
-            loci = np.unique(np.sort(I))
-            bins = np.diff(loci)
-            bin = mode(bins)[0][0]
-        # convert coordinate from basepair to locus index
-        I = I // bin
-        J = J // bin
-        # make sure that the matrix is square
-        if np.max(I) != np.max(J):
-            b = np.max(np.append(I, J))
-            I = np.append(I, b)
-            J = np.append(J, b)
-            value = np.append(value, 0.)
-        # Convert to sparse matrix format, then full matrix format
-        # and finally array type. Matrix format is avoided because
-        # diag() won't work as intended for Matrix instances.
-        M = np.array(coo_matrix((value, (I, J))).todense())
-    return HiC(title=title, map=M, bin=bin)
+        
+        M, res = _sparse2dense(I, J, values, bin=res)
+    return HiC(title=title, map=M, bin=res)
+
+def parseHiCBinary(filename, **kwargs):
+
+    title = kwargs.get('title', 'Unknown')
+    chrloc = kwargs.get('chrom', None)
+    if chrloc is None:
+        raise ValueError('chrom needs to be specified when parsing .hic format')
+    chrloc1 = kwargs.get('chrom1', chrloc)
+    chrloc2 = kwargs.get('chrom2', chrloc)
+    norm = kwargs.get('norm', 'NONE')
+    unit = kwargs.get('unit', 'BP')
+    res = kwargs.get('binsize', None)
+    res = kwargs.get('bin', res)
+    if res is None:
+        raise ValueError('bin needs to be specified when parsing .hic format')
+    res = int(res)
+
+    from .straw import straw
+    result = straw(norm, filename, chrloc1, chrloc2, unit, res)
+
+    M, res = _sparse2dense(*result, bin=res)
+    return HiC(title=title, map=M, bin=res)
 
 def writeMap(filename, map, bin=None, format='%f'):
     """Writes *map* to the file designated by *filename*.
@@ -414,7 +474,7 @@ def writeMap(filename, map, bin=None, format='%f'):
     :type map: :class:`numpy.ndarray`
 
     :arg bin: bin size of the *map*. If bin is `None`, *map* will be 
-    written in full matrix format.
+              written in full matrix format.
     :type bin: int
 
     :arg format: output format for map elements.
@@ -426,15 +486,15 @@ def writeMap(filename, map, bin=None, format='%f'):
     if bin is None:
         return writeArray(filename, map, format=format)
     else:
-        L = int(map.size - np.diag(map).size)/2 + np.diag(map).size
-        spmat = np.zeros((L,3))
+        L = int(map.size - np.diag(map).size)//2 + np.diag(map).size
+        spmat = np.zeros((L, 3))
         m,n = map.shape
         l = 0
         for i in range(m):
             for j in range(i,n):
-                spmat[l,0] = i * bin
-                spmat[l,1] = j * bin
-                spmat[l,2] = map[i,j]
+                spmat[l, 0] = i * bin
+                spmat[l, 1] = j * bin
+                spmat[l, 2] = map[i, j]
                 l += 1
         fmt = ['%d', '%d', format]
         return writeArray(filename, spmat, format=fmt)
@@ -483,4 +543,3 @@ def loadHiC(filename):
             val = np.asscalar(val)
         setattr(hic, k, val)
     return hic
-
