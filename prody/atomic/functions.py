@@ -431,7 +431,7 @@ def sliceAtomicData(data, atoms, select, axis=None):
     """Slice a matrix using indices extracted using :func:`sliceAtoms`.
 
     :arg data: any data array
-    :type data: `~numpy.ndarray`
+    :type data: :class:`~numpy.ndarray`
 
     :arg atoms: atoms to be selected from
     :type atoms: :class:`Atomic`
@@ -488,7 +488,7 @@ def extendAtomicData(data, nodes, atoms, axis=None):
     """Extend a coarse grained data obtained for *nodes* to *atoms*.
 
     :arg data: any data array
-    :type data: `~numpy.ndarray`
+    :type data: :class:`~numpy.ndarray`
 
     :arg nodes: a set of atoms that has been used
         as nodes in data generation
