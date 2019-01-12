@@ -65,13 +65,17 @@ _parsePDBdoc = _parsePQRdoc + """
 
     :arg biomol: if **True**, biomolecules are obtained by transforming the
         coordinates using information from header section will be returned.
-        Default is False
+        Default is **False**
     :type biomol: bool
 
     :arg secondary: if **True**, secondary structure information from header
         section will be assigned to atoms.
-        Default is False
+        Default is **False**
     :type secondary: bool
+
+    :arg max_n_atoms: the maximum number of atoms allowed to have in the PDB 
+        file. Default is **1e5**
+    :type max_n_atoms: int
 
     If ``model=0`` and ``header=True``, return header dictionary only.
 
@@ -213,6 +217,8 @@ def parsePDBStream(stream, **kwargs):
     chain = kwargs.get('chain')
     subset = kwargs.get('subset')
     altloc = kwargs.get('altloc', 'A')
+    max_n_atoms = kwargs.get('max_n_atoms', 1e5)
+
     if model is not None:
         if isinstance(model, Integral):
             if model < 0:
@@ -236,9 +242,8 @@ def parsePDBStream(stream, **kwargs):
         elif len(chain) == 0:
             raise ValueError('chain must not be an empty string')
         title_suffix = chain + title_suffix
-    ag = None
-    if 'ag' in kwargs:
-        ag = kwargs['ag']
+    ag = kwargs.pop('ag', None)
+    if ag is not None:
         if not isinstance(ag, AtomGroup):
             raise TypeError('ag must be an AtomGroup instance')
         n_csets = ag.numCoordsets()
@@ -267,7 +272,8 @@ def parsePDBStream(stream, **kwargs):
             raise ValueError('empty PDB file or stream')
         if header or biomol or secondary:
             hd, split = getHeaderDict(lines)
-        _parsePDBLines(ag, lines, split, model, chain, subset, altloc)
+        _parsePDBLines(ag, lines, split, model, chain, subset, altloc, 
+                       max_n_atoms=max_n_atoms)
         if ag.numAtoms() > 0:
             LOGGER.report('{0} atoms and {1} coordinate set(s) were '
                           'parsed in %.2fs.'.format(ag.numAtoms(),
@@ -321,6 +327,7 @@ def parsePQR(filename, **kwargs):
     chain = kwargs.get('chain')
     subset = kwargs.get('subset')
     altloc = kwargs.get('altloc', 'A')
+    max_n_atoms = kwargs.get('max_n_atoms', 1e5)
     if not os.path.isfile(filename):
         raise IOError('No such file: {0}'.format(repr(filename)))
     if title is None:
@@ -358,7 +365,8 @@ def parsePQR(filename, **kwargs):
     pqr.close()
     LOGGER.timeit()
     ag = _parsePDBLines(ag, lines, split=0, model=1, chain=chain,
-                        subset=subset, altloc_torf=False, format='pqr')
+                        subset=subset, altloc_torf=False, format='pqr', 
+                        max_n_atoms=max_n_atoms)
     if ag.numAtoms() > 0:
         LOGGER.report('{0} atoms and {1} coordinate sets were '
                       'parsed in %.2fs.'.format(ag.numAtoms(),
@@ -370,7 +378,7 @@ def parsePQR(filename, **kwargs):
 parsePQR.__doc__ += _parsePQRdoc
 
 def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
-                   altloc_torf, format='PDB'):
+                   altloc_torf, format='PDB', max_n_atoms=1e5):
     """Returns an AtomGroup. See also :func:`.parsePDBStream()`.
 
     :arg lines: PDB/PQR lines
@@ -401,7 +409,7 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
         asize = n_atoms
     else:
         # most PDB files contain less than 99999 atoms
-        asize = min(len(lines) - split, 99999)
+        asize = min(len(lines) - split, max_n_atoms)
     addcoords = False
     if atomgroup.numCoordsets() > 0:
         addcoords = True
