@@ -153,7 +153,7 @@ def calcAngle(atoms1, atoms2, atoms3, radian=False):
 
 
 def getAngle(coords1, coords2, coords3, radian=False):
-    """Returns bond angle in degrees unless radian=True"""
+    """Returns bond angle in degrees unless ``radian=True``"""
 
     v1 = coords1 - coords2
     v2 = coords3 - coords2
@@ -185,7 +185,7 @@ def calcDihedral(atoms1, atoms2, atoms3, atoms4, radian=False):
 
 
 def getDihedral(coords1, coords2, coords3, coords4, radian=False):
-    """Returns the dihedral angle in degrees unless radian=True."""
+    """Returns the dihedral angle in degrees unless ``radian=True``."""
 
     a1 = coords2 - coords1
     a2 = coords3 - coords2
