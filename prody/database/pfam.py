@@ -377,7 +377,7 @@ def fetchPfamMSA(acc, alignment='full', compressed=False, **kwargs):
     :arg folder: output folder, default is ``'.'``"""
 
     url = prefix + 'family/acc?id=' + acc
-    handle = openURL(url)
+    handle = openURL(url, timeout=int(kwargs.get('timeout', 60)))
     orig_acc = acc
     acc = handle.readline().strip()
     if PY3K:
