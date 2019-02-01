@@ -433,7 +433,7 @@ class GNM(GNMBase):
             LOGGER.warning('Less than 1 zero eigenvalues are calculated.')
             shift = n_zeros - 1
         elif n_zeros > 1:
-            LOGGER.warning('More than 1 zero eigenvalues are calculated.')
+            LOGGER.warning('%d (more than 1) zero eigenvalues are calculated.'%n_zeros)
             shift = n_zeros - 1
         if zeros:
             shift = -1
