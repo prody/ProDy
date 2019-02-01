@@ -187,17 +187,20 @@ def calcGNMDomains(modes, method=Hierarchy, **kwargs):
 
     labels_ = method(V, **kwargs)
 
-    labels = np.empty(len(mask))
-    labels.fill(np.nan)
-    labels[mask] = labels_
+    if np.all(mask):
+        labels = labels_
+    else:
+        labels = np.empty(len(mask))
+        labels.fill(np.nan)
+        labels[mask] = labels_
 
-    currlbl = labels_[np.argmax(~np.isnan(labels_))]
+        currlbl = labels_[np.argmax(~np.isnan(labels_))]
 
-    for i in range(len(labels)):
-        l = labels[i]
-        if np.isnan(l):
-            labels[i] = currlbl
-        elif currlbl != l:
-            currlbl = l
+        for i in range(len(labels)):
+            l = labels[i]
+            if np.isnan(l):
+                labels[i] = currlbl
+            elif currlbl != l:
+                currlbl = l
 
     return labels
