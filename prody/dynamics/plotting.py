@@ -1186,6 +1186,9 @@ def showAtomicMatrix(matrix, x_array=None, y_array=None, atoms=None, **kwargs):
         no matter what 'auto_show' value is, plots will be drawn on the *figure*.
         Default is **None**.
     :type figure: :class:`~matplotlib.figure.Figure`, int, str
+
+    :arg interactive: turn on or off the interactive options
+    :type interactive: bool
     """ 
 
     from prody.utilities import showMatrix
@@ -1207,6 +1210,8 @@ def showAtomicMatrix(matrix, x_array=None, y_array=None, atoms=None, **kwargs):
     ticklabels = kwargs.pop('ticklabels', None)
     text_color = kwargs.pop('text_color', 'k')
     text_color = kwargs.pop('textcolor', text_color)
+
+    interactive = kwargs.pop('interactive', True)
 
     if isinstance(fig, Figure):
         fig_num = fig.number
@@ -1308,8 +1313,15 @@ def showAtomicMatrix(matrix, x_array=None, y_array=None, atoms=None, **kwargs):
                 yticklabels_.extend([label]*3)
             yticklabels = yticklabels_
 
-    im, lines, colorbar = showMatrix(matrix, x_array, y_array, xticklabels=xticklabels, yticklabels=yticklabels, **kwargs) 
+    im, lines, colorbar = showMatrix(matrix, x_array, y_array, xticklabels=xticklabels, yticklabels=yticklabels, 
+                                     interactive=False, **kwargs) 
     
+    if interactive:
+        from prody.utilities import ImageCursor
+        from matplotlib.pyplot import connect, gca
+        cursor = ImageCursor(gca(), im, atoms=atoms)
+        connect('button_press_event', cursor.onClick)
+
     bars = []
     texts = []
 
