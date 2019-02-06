@@ -266,9 +266,10 @@ class DaliRecord(object):
         for temp in self._daliInfo:
             temp_dict = dict()
             pdb_chain = temp[1].strip()[0:6]
-            # U6 and U70 were used as the dtype for np.genfromtext -> string were used in daliInfo 
+            # U6 and U70 were used as the dtype for np.genfromtext -> unicode string were used in daliInfo 
             # if PY3K:
                 # pdb_chain = pdb_chain.decode()
+            pdb_chain = str(pdb_chain)
             temp_dict['pdbId'] = pdbid = pdb_chain[0:4].lower()
             temp_dict['chainId'] = chid = pdb_chain[5:6]
             temp_dict['pdb_chain'] = pdb_chain = pdbid + chid
