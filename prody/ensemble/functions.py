@@ -632,8 +632,12 @@ def refineEnsemble(ensemble, lower=.5, upper=10., **kwargs):
     :type upper: float
 
     :keyword protected: a list of either the indices or labels of the conformations needed to be kept 
-                        after the refinement
+                        in the refined ensemble
     :type protected: list
+    
+    :arg ref: the index or label of the reference conformation which will also be kept.
+        Default is 0
+    :type ref: int or str
     """ 
 
     protected = kwargs.pop('protected', [])
@@ -654,8 +658,18 @@ def refineEnsemble(ensemble, lower=.5, upper=10., **kwargs):
     from numpy import argsort
 
     ### obtain reference index
-    rmsd = ensemble.getRMSDs()
-    ref_i = np.argmin(rmsd)
+    # rmsd = ensemble.getRMSDs()
+    # ref_i = np.argmin(rmsd)
+    ref_i = kwargs.pop('ref', 0)
+    if isinstance(ref_i, Integral):
+        pass
+    elif isinstance(ref_i, str):
+        labels = ensemble.getLabels()
+        ref_i = labels.index(ref_i)
+    else:
+        LOGGER.warn('cannot found any conformation with the label %s in the ensemble'%str(ref_i))
+    if not ref_i in P:
+        P = [ref_i] + P
 
     ### calculate pairwise RMSDs ###
     RMSDs = ensemble.getRMSDs(pairwise=True)
@@ -663,6 +677,7 @@ def refineEnsemble(ensemble, lower=.5, upper=10., **kwargs):
     def getRefinedIndices(A):
         deg = A.sum(axis=0)
         sorted_indices = list(argsort(deg))
+        # sorted_indices = P + [x for x in sorted_indices if x not in P]
         sorted_indices.remove(ref_i)
         sorted_indices.insert(0, ref_i)
 
@@ -678,7 +693,11 @@ def refineEnsemble(ensemble, lower=.5, upper=10., **kwargs):
                     continue
                 else:
                     if A[i,j]:
-                        isdel_temp[j] = 1
+                        # isdel_temp[j] = 1
+                        if not j in P:
+                            isdel_temp[j] = 1
+                        elif not i in P:
+                            isdel_temp[i] = 1
         temp_list = isdel_temp.tolist()
         ind_list = []
         for i in range(n_confs):
@@ -699,9 +718,9 @@ def refineEnsemble(ensemble, lower=.5, upper=10., **kwargs):
     # find common indices from L and U
     I = list(set(L) - (set(L) - set(U)))
 
-    for p in P:
-        if p not in I:
-            I.append(p)
+    # for p in P:
+        # if p not in I:
+            # I.append(p)
     I.sort()
     reens = ensemble[I]
 
