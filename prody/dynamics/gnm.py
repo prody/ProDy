@@ -11,7 +11,7 @@ from prody import LOGGER
 from prody.atomic import Atomic, AtomGroup
 from prody.proteins import parsePDB
 from prody.kdtree import KDTree
-from prody.utilities import importLA, checkCoords
+from prody.utilities import importLA, checkCoords, div0
 
 from .nma import NMA
 from .gamma import Gamma
@@ -439,11 +439,11 @@ class GNM(GNMBase):
             shift = 0
         self._eigvals = values[shift:]
         if zeros:
-            vars = 1 / values
+            vars = div0(1, values)
             vars[:n_zeros] = 0.
             self._vars = vars[shift:]
         else:
-            self._vars = 1 / self._eigvals
+            self._vars = div0(1, self._eigvals)
         self._trace = self._vars.sum()
         self._array = vectors[:, shift:]
         self._n_modes = len(self._eigvals)
