@@ -158,6 +158,8 @@ def rangeString(lint, sep=' ', rng=' to ', exc=False, pos=True):
        rangeString(lint, ',', ':', exc=True)"""
 
     ints = unique(lint)
+    if len(ints) == 0:
+        return ''
     if pos and ints[0] < 0:
         ints = ints[ints > -1]
 
