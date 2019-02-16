@@ -29,7 +29,7 @@ class PCA(NMA):
 
         NMA.__init__(self, name)
 
-    def setCovariance(self, covariance):
+    def setCovariance(self, covariance, is3d=True):
         """Set covariance matrix."""
 
         if not isinstance(covariance, np.ndarray):
@@ -38,9 +38,15 @@ class PCA(NMA):
                   covariance.shape[0] == covariance.shape[1]):
             raise TypeError('covariance must be square matrix')
         self._reset()
+
+        self._is3d = is3d
         self._cov = covariance
         self._dof = covariance.shape[0]
-        self._n_atoms = self._dof / 3
+
+        if is3d:
+            self._n_atoms = self._dof / 3
+        else:
+            self._n_atoms = self._dof
         self._trace = self._cov.trace()
 
     def buildCovariance(self, coordsets, **kwargs):

@@ -198,8 +198,8 @@ class NMA(object):
         """Returns covariance matrix.  If covariance matrix is not set or yet
         calculated, it will be calculated using available modes."""
 
-        array = self.getArray()
         if self._cov is None:
+            array = self.getArray()
             if array is None:
                 return None
             self._cov = np.dot(array, np.dot(np.diag(self._vars), array.T))
