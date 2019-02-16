@@ -222,7 +222,6 @@ def queryGOA(*ids, **kwargs):
 
     gaf_dict = kwargs.pop('gaf_dict', None)
     if gaf_dict is None:
-        LOGGER.info('Parsing GAF ...')
         gaf_dict = parseGAF(database=database, **kwargs)
         LOGGER.info('GAF parsing completed.')
 
@@ -240,7 +239,8 @@ def queryGOA(*ids, **kwargs):
     LOGGER.progress('Querying GOA for {0} ids...'
                     .format(n_ids), n_ids, '_prody_queryGOA')
     for i, id in enumerate(ids):
-        LOGGER.update(i, label='_prody_queryGOA')
+        LOGGER.update(i, 'Querying GOA for id {0} of {1}...'
+                    .format(i, n_ids), label='_prody_queryGOA')
         if not isinstance(id, str):
             raise TypeError('each ID should be a string')
 
@@ -256,14 +256,15 @@ def queryGOA(*ids, **kwargs):
         if id in list(gaf_dict.keys()):
             results.append(gaf_dict[id])
         else:
-            results.append(None)
+            results.append([])
             unmapped.append(id)
 
     rets = []
     LOGGER.progress('Mapping GO terms back to GOA results for {0} ids...'
                     .format(n_ids), n_ids, '_prody_mapGO')
     for i, result in enumerate(results):
-        LOGGER.update(i, label='_prody_mapGO')
+        LOGGER.update(i, 'Mapping GO terms back to GOA results id {0} of {1}...'
+                    .format(i, n_ids), label='_prody_mapGO')
         rets.append(GOADictList(result,title=id))
 
     if n_ids == 1:
@@ -287,7 +288,7 @@ def calcGoOverlap(*go_terms, **kwargs):
                 dist = min_branch_length(go_terms[i], go_terms[j], go)
                 distances[i, j] = distances[j, i] = dist
     else:
-        distances = np.zeros((len(go_terms)))
+        distances = np.zeros((len(go_terms[1:])))
         go_id1 = go_terms[0]
         for i, go_id2 in enumerate(go_terms[1:]):
             distances[i] = min_branch_length(go_id1, go_id2, go)
@@ -321,7 +322,10 @@ def deepest_common_ancestor(terms, go):
         Only returns single most specific - assumes unique exists.
     '''
     # Take the element at maximum depth.
-    return max(common_parent_go_ids(terms, go), key=lambda t: go[t].depth)
+    common_parent = common_parent_go_ids(terms, go)
+    if common_parent == set():
+        return None
+    return max(common_parent, key=lambda t: go[t].depth)
 
 
 def common_parent_go_ids(terms, go):
