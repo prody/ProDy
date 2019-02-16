@@ -7,21 +7,19 @@ This module is based on the tutorial notebook at
 https://nbviewer.jupyter.org/urls/dessimozlab.github.io/go-handbook/GO%20Tutorial%20in%20Python%20-%20Solutions.ipynb"""
 
 from io import BytesIO
-from os.path import join, isfile
+from os.path import isdir, isfile, join, split, splitext, normpath
 import os
 import gzip
 from ftplib import FTP
-import wget
 from goatools import obo_parser
 import Bio.UniProt.GOA as GOA
 
 from collections import defaultdict
 import re
 import numpy as np
-from prody.utilities import makePath, openURL, gunzip
-from prody.utilities import openFile, isListLike
+from prody.utilities import makePath, gunzip, relpath, copyFile, openURL
+from prody.utilities import openFile, isListLike, sympath
 from prody import LOGGER, PY3K
-from prody import parsePDB, writePDBStream
 
 if PY3K:
     import urllib.parse as urllib
@@ -47,7 +45,8 @@ class GOADictList:
 
         self._title = title
         self._list = parsingList
-        self._go_terms = [go[entry['GO_ID']] for entry in parsingList]
+        go_ids = np.unique([entry['GO_ID'] for entry in parsingList])
+        self._go_terms = [go[id] for id in go_ids]
         self.numTerms = len(self._go_terms)
 
     def __getitem__(self, ind):
@@ -109,7 +108,24 @@ def parseOBO(**kwargs):
 
     # Check if the file exists already
     if(not os.path.isfile(data_folder+'/go-basic.obo')):
-        go_obo = wget.download(go_obo_url, data_folder+'/go-basic.obo')
+        try:
+            handle = openURL(go_obo_url)
+        except Exception as err:
+            LOGGER.warn('{0} download failed ({1}).'.format(go_obo_url, str(err)))
+        else:
+            data = handle.read()
+            if len(data):
+                filename = data_folder+'/go-basic.obo'
+
+                with open(filename, 'w+b') as obofile:
+                    obofile.write(data)
+
+                LOGGER.debug('{0} downloaded ({1})'
+                             .format(go_obo_url, sympath(filename)))
+            else:
+                LOGGER.warn('{0} download failed, reason unknown.'
+                            .format(go_obo_url))
+
     else:
         go_obo = data_folder+'/go-basic.obo'
 
