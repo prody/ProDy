@@ -18,7 +18,7 @@ from .localpdb import fetchPDB
 import struct as st
 import numpy as np
 
-__all__ = ['parseEMDStream', 'parseEMD', 'writeEMD', 'TRNET', 'EMDMAP']
+__all__ = ['parseEMDStream', 'parseEMD', 'writeEMD', 'TRNET']
 
 class EMDParseError(Exception):
     pass
@@ -83,7 +83,7 @@ def parseEMD(emd, **kwargs):
     emdStream = openFile(emd, 'rb')
 
     if emd.endswith('.stk'):
-        result = parseSTKStream(emdStream, **kwargs)
+        result = parseSTKStream(emd, **kwargs)
     else:
         result = parseEMDStream(emdStream, **kwargs)
 
@@ -241,180 +241,90 @@ def writeEMD(filename,emd):
 
 class EMDMAP:
     def __init__(self, stream, cutoff):
-        if isinstance(stream, file):
-            # Number of columns, rows, and sections (3 words, 12 bytes, 1-12)
-            self.NC = st.unpack('<L', stream.read(4))[0]
-            self.NR = st.unpack('<L', stream.read(4))[0]
-            self.NS = st.unpack('<L', stream.read(4))[0]
-            self.Ntot = self.NC * self.NR * self.NS
+        # Number of columns, rows, and sections (3 words, 12 bytes, 1-12)
+        self.NC = st.unpack('<L', stream.read(4))[0]
+        self.NR = st.unpack('<L', stream.read(4))[0]
+        self.NS = st.unpack('<L', stream.read(4))[0]
+        self.Ntot = self.NC * self.NR * self.NS
 
-            # Mode (1 word, 4 bytes, 13-16)
-            self.mode = st.unpack('<L', stream.read(4))[0]
+        # Mode (1 word, 4 bytes, 13-16)
+        self.mode = st.unpack('<L', stream.read(4))[0]
 
-            # Number of first column, row, section (3 words, 12 bytes, 17-28)
-            self.ncstart = st.unpack('<l', stream.read(4))[0]
-            self.nrstart = st.unpack('<l', stream.read(4))[0]
-            self.nsstart = st.unpack('<l', stream.read(4))[0]
+        # Number of first column, row, section (3 words, 12 bytes, 17-28)
+        self.ncstart = st.unpack('<l', stream.read(4))[0]
+        self.nrstart = st.unpack('<l', stream.read(4))[0]
+        self.nsstart = st.unpack('<l', stream.read(4))[0
+]
+        # Number of intervals along x, y, z (3 words, 12 bytes, 29-40)
+        self.Nx = st.unpack('<L', stream.read(4))[0]
+        self.Ny = st.unpack('<L', stream.read(4))[0]
+        self.Nz = st.unpack('<L', stream.read(4))[0]
 
-            # Number of intervals along x, y, z (3 words, 12 bytes, 29-40)
-            self.Nx = st.unpack('<L', stream.read(4))[0]
-            self.Ny = st.unpack('<L', stream.read(4))[0]
-            self.Nz = st.unpack('<L', stream.read(4))[0]
+        # Cell dimensions (Angstroms) (3 words, 12 bytes, 41-52)
+        self.Lx = st.unpack('<f', stream.read(4))[0]
+        self.Ly = st.unpack('<f', stream.read(4))[0]
+        self.Lz = st.unpack('<f', stream.read(4))[0]
+    
+        # Cell angles (Degrees) (3 words, 12 bytes, 53-64)
+        self.a = st.unpack('<f', stream.read(4))[0]
+        self.b = st.unpack('<f', stream.read(4))[0]
+        self.c = st.unpack('<f', stream.read(4))[0]
 
-            # Cell dimensions (Angstroms) (3 words, 12 bytes, 41-52)
-            self.Lx = st.unpack('<f', stream.read(4))[0]
-            self.Ly = st.unpack('<f', stream.read(4))[0]
-            self.Lz = st.unpack('<f', stream.read(4))[0]
-        
-            # Cell angles (Degrees) (3 words, 12 bytes, 53-64)
-            self.a = st.unpack('<f', stream.read(4))[0]
-            self.b = st.unpack('<f', stream.read(4))[0]
-            self.c = st.unpack('<f', stream.read(4))[0]
+        # Which axis corresponds to column, row, and sections (1, 2, 3 for x, y ,z)
+        # (3 words, 12 bytes, 65-76)
+        self.mapc = st.unpack('<L', stream.read(4))[0]
+        self.mapr = st.unpack('<L', stream.read(4))[0]
+        self.maps = st.unpack('<L', stream.read(4))[0]
 
-            # Which axis corresponds to column, row, and sections (1, 2, 3 for x, y ,z)
-            # (3 words, 12 bytes, 65-76)
-            self.mapc = st.unpack('<L', stream.read(4))[0]
-            self.mapr = st.unpack('<L', stream.read(4))[0]
-            self.maps = st.unpack('<L', stream.read(4))[0]
+        # Density values (min, max, mean) (3 words, 12 bytes, 77-88)
+        self.dmin = st.unpack('<f', stream.read(4))[0]
+        self.dmax = st.unpack('<f', stream.read(4))[0]
+        self.dmean = st.unpack('<f', stream.read(4))[0]
 
-            # Density values (min, max, mean) (3 words, 12 bytes, 77-88)
-            self.dmin = st.unpack('<f', stream.read(4))[0]
-            self.dmax = st.unpack('<f', stream.read(4))[0]
-            self.dmean = st.unpack('<f', stream.read(4))[0]
+        # Space group number (1 word, 4 bytes, 89-92)
+        # For EM/ET, this encodes the type of data:
+        # 0 for 2D images and image stacks, 1 for 3D volumes, 401 for volume stacks
+        self.ispg = st.unpack('<L', stream.read(4))[0]
 
-            # Space group number (1 word, 4 bytes, 89-92)
-            # For EM/ET, this encodes the type of data:
-            # 0 for 2D images and image stacks, 1 for 3D volumes, 401 for volume stacks
-            self.ispg = st.unpack('<L', stream.read(4))[0]
+        # size of extended header (1 word, 4 bytes, 93-96)
+        # contained symmetry records in original format definition
+        self.nsymbt = st.unpack('<L', stream.read(4))[0]
 
-            # size of extended header (1 word, 4 bytes, 93-96)
-            # contained symmetry records in original format definition
-            self.nsymbt = st.unpack('<L', stream.read(4))[0]
+        # we treat this all as extra stuff like MRC2014 format (25 word, 100 bytes, 97-196)
+        self.extra = st.unpack('<100s', stream.read(100))[0]
 
-            # we treat this all as extra stuff like MRC2014 format (25 word, 100 bytes, 97-196)
-            self.extra = st.unpack('<100s', stream.read(100))[0]
+        # origins for x, y, z (3 words, 12 bytes, 197-208)
+        self.x0 = st.unpack('<f', stream.read(4))[0]
+        self.y0 = st.unpack('<f', stream.read(4))[0]
+        self.z0 = st.unpack('<f', stream.read(4))[0]
 
-            # origins for x, y, z (3 words, 12 bytes, 197-208)
-            self.x0 = st.unpack('<f', stream.read(4))[0]
-            self.y0 = st.unpack('<f', stream.read(4))[0]
-            self.z0 = st.unpack('<f', stream.read(4))[0]
+        # the character string 'MAP' to identify file type (1 word, 4 bytes, 209-212)
+        self.wordMAP = st.unpack('<4s', stream.read(4))[0] 
 
-            # the character string 'MAP' to identify file type (1 word, 4 bytes, 209-212)
-            self.wordMAP = st.unpack('<4s', stream.read(4))[0] 
+        # machine stamp encoding byte ordering of data (1 word, 4 bytes, 213-216)
+        self.machst = st.unpack('<4s', stream.read(4))[0]
 
-            # machine stamp encoding byte ordering of data (1 word, 4 bytes, 213-216)
-            self.machst = st.unpack('<4s', stream.read(4))[0]
+        # rms deviation of map from mean density (1 word, 4 bytes, 217-220)
+        self.rms = st.unpack('<f', stream.read(4))[0]
 
-            # rms deviation of map from mean density (1 word, 4 bytes, 217-220)
-            self.rms = st.unpack('<f', stream.read(4))[0]
+        # number of labels being used (1 word, 4 bytes, 221-224)
+        self.nlabels = st.unpack('<L', stream.read(4))[0]
 
-            # number of labels being used (1 word, 4 bytes, 221-224)
-            self.nlabels = st.unpack('<L', stream.read(4))[0]
+        # 10 80-character text labels, which we leave concatenated (200 words, 800 bytes, 225-1024)
+        self.labels = st.unpack('<800s', stream.read(800))[0]
 
-            # 10 80-character text labels, which we leave concatenated (200 words, 800 bytes, 225-1024)
-            self.labels = st.unpack('<800s', stream.read(800))[0]
+        # Data blocks (1024-end)
+        self.density = np.empty([self.NS, self.NR, self.NC])
+        for s in range(0, self.NS):
+            for r in range(0, self.NR):
+                for c in range(0, self.NC):
+                    d = st.unpack('<f', stream.read(4))[0]
+                    if cutoff is not None and d < cutoff:
+                        d = 0
+                    self.density[s, r, c] = d
 
-            # Data blocks (1024-end)
-            self.density = np.empty([self.NS, self.NR, self.NC])
-            for s in range(self.NS):
-                for r in range(self.NR):
-                    for c in range(self.NC):
-                        self.density[s, r, c] = st.unpack('<f', stream.read(4))[0]
-
-        elif isinstance(stream, EMDMAP):
-            # Number of columns, rows, and sections (3 words, 12 bytes, 1-12)
-            self.NC = stream.NC
-            self.NR = stream.NR
-            self.NS = stream.NS
-            self.Ntot = self.NC * self.NR * self.NS
-
-            # Mode (1 word, 4 bytes, 13-16)
-            self.mode = stream.mode
-
-            # Number of first column, row, section (3 words, 12 bytes, 17-28)
-            self.ncstart = stream.ncstart
-            self.nrstart = stream.nrstart
-            self.nsstart = stream.nsstart
-
-            # Number of intervals along x, y, z (3 words, 12 bytes, 29-40)
-            self.Nx = stream.Nx
-            self.Ny = stream.Ny
-            self.Nz = stream.Nz
-
-            # Cell dimensions (Angstroms) (3 words, 12 bytes, 41-52)
-            self.Lx = stream.Lx
-            self.Ly = stream.Ly
-            self.Lz = stream.Lz
-        
-            # Cell angles (Degrees) (3 words, 12 bytes, 53-64)
-            self.a = stream.a
-            self.b = stream.b
-            self.c = stream.c
-
-            # Which axis corresponds to column, row, and sections (1, 2, 3 for x, y ,z)
-            # (3 words, 12 bytes, 65-76)
-            self.mapc = stream.mapc
-            self.mapr = stream.mapr
-            self.maps = stream.maps
-
-            # Density values (min, max, mean) (3 words, 12 bytes, 77-88)
-            self.dmin = stream.dmin
-            self.dmax = stream.dmax
-            self.dmean = stream.dmean
-
-            # Space group number (1 word, 4 bytes, 89-92)
-            # For EM/ET, this encodes the type of data:
-            # 0 for 2D images and image stacks, 1 for 3D volumes, 401 for volume stacks
-            self.ispg = stream.ispg
-
-            # size of extended header (1 word, 4 bytes, 93-96)
-            # contained symmetry records in original format definition
-            self.nsymbt = stream.nsymbt
-
-            # we treat this all as extra stuff like MRC2014 format (25 word, 100 bytes, 97-196)
-            self.extra = stream.extra
-
-            # origins for x, y, z (3 words, 12 bytes, 197-208)
-            self.x0 = stream.x0
-            self.y0 = stream.y0
-            self.z0 = stream.z0
-
-            # the character string 'MAP' to identify file type (1 word, 4 bytes, 209-212)
-            self.wordMAP = stream.wordMAP 
-
-            # machine stamp encoding byte ordering of data (1 word, 4 bytes, 213-216)
-            self.machst = stream.machst
-
-            # rms deviation of map from mean density (1 word, 4 bytes, 217-220)
-            self.rms = stream.rms
-
-            # number of labels being used (1 word, 4 bytes, 221-224)
-            self.nlabels = stream.nlabels
-
-            # 10 80-character text labels, which we leave concatenated (200 words, 800 bytes, 225-1024)
-            self.labels = stream.labels
-
-            # Data blocks (1024-end)
-            self.density = stream.density
-        
-        if cutoff is not None:
-            self.density = self._applyCutoff(cutoff)
 
         self.sampled = False
-
-    def copy(self, cutoff=None):
-        return EMDMAP(self, cutoff)
-
-    def _applyCutoff(self, cutoff):
-        density = self.density.copy()
-        for s in range(self.NS):
-            for r in range(self.NR):
-                for c in range(self.NC):
-                    d = density[s, r, c]
-                    if d < cutoff:
-                        d = 0.
-                    density[s, r, c] = d
-        return density
 
     def numidx2matidx(self, numidx):
         """ Given index of the position, it will return the numbers of section, row and column. """
