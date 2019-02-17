@@ -20,6 +20,7 @@ import numpy as np
 from prody.utilities import makePath, gunzip, relpath, copyFile, openURL
 from prody.utilities import openFile, isListLike, sympath
 from prody import LOGGER, PY3K
+from prody.ensemble import Ensemble
 
 if PY3K:
     import urllib.parse as urllib
@@ -30,8 +31,9 @@ else:
 
 
 __all__ = ['GOADictList', 'parseOBO', 'parseGAF',
-           'queryGOA', 'calcGoOverlap',
-           'showGoLineage']
+           'queryGOA', 'showGoLineage',
+           'calcGoOverlap', 'calcDeepFunctionOverlaps',
+           'calcEnsembleFunctionOverlaps']
 
 
 class GOADictList:
@@ -258,7 +260,7 @@ def queryGOA(*ids, **kwargs):
                     .format(n_ids), n_ids, '_prody_queryGOA')
     for i, id in enumerate(ids):
         LOGGER.update(i, 'Querying GOA for id {0} of {1}...'
-                      .format(i, n_ids), label='_prody_queryGOA')
+                      .format(i+1, n_ids), label='_prody_queryGOA')
         if not isinstance(id, str):
             raise TypeError('each ID should be a string')
 
@@ -282,7 +284,7 @@ def queryGOA(*ids, **kwargs):
                     .format(n_ids), n_ids, '_prody_mapGO')
     for i, result in enumerate(results):
         LOGGER.update(i, 'Mapping GO terms back to GOA results id {0} of {1}...'
-                      .format(i, n_ids), label='_prody_mapGO')
+                      .format(i+1, n_ids), label='_prody_mapGO')
         rets.append(GOADictList(result, title=id))
 
     if n_ids == 1:
@@ -321,12 +323,15 @@ def calcGoOverlap(*go_terms, **kwargs):
         raise TypeError('please provide a list-like of go terms')
 
     try:
-        namespace = [term.namespace for term in go_terms]
+        go_terms = [go[term] for term in go_terms]
     except:
         try:
-            go_terms = [go[term] for term in go_terms]
+            go_terms = [term.id for term in go_terms]
         except:
             raise TypeError('go_terms should contain go terms or IDs')
+
+    if isinstance(go_terms[0], str):
+        go_terms = [go[term] for term in go_terms]
 
     if pairwise:
         distances = np.zeros((len(go_terms), len(go_terms)))
@@ -337,7 +342,7 @@ def calcGoOverlap(*go_terms, **kwargs):
                 distances[i, j] = distances[j, i] = dist
 
     else:
-        distances = np.zeros((len(go_terms)))
+        distances = np.zeros((len(go_terms)-1))
 
         go_id1 = go_terms[0]
         for i, go_id2 in enumerate(go_terms[1:]):
@@ -388,14 +393,15 @@ def common_parent_go_ids(terms, go):
         tree of the list of terms in the input.
     '''
     # Find candidates from first
-    rec = terms[0]
+    rec = go[terms[0]]
     candidates = rec.get_all_parents()
-    candidates.update({rec})
+    candidates.update({terms[0]})
 
     # Find intersection with second to nth term
-    for rec in terms[1:]:
+    for term in terms[1:]:
+        rec = go[term]
         parents = rec.get_all_parents()
-        parents.update({rec})
+        parents.update({term})
 
         # Find the intersection with the candidates, and update.
         candidates.intersection_update(parents)
@@ -418,14 +424,112 @@ def showGoLineage(go_term, **kwargs):
         default behaviour is to use the GO term ID and append '_lineage.png'
     type filename: str
     """
-    #out_format = kwargs.pop('format','png')
-    filename = kwargs.pop('filename', '_'.join(
-        go_term.id.split(':')) + '_lineage.png')
+    out_format = kwargs.pop('format', 'png')
+
+    if out_format == 'png':
+        filename = kwargs.pop('filename', '_'.join(
+            go_term.id.split(':')) + '_lineage.png')
+
+        go = kwargs.pop('go', None)
+        if go is None:
+            go = parseOBO(**kwargs)
+
+        go.draw_lineage([go_term], lineage_img=filename)
+        from IPython.display import Image
+        Image(filename)
+
+
+def calcDeepFunctionOverlaps(goa1, goa2, **kwargs):
+    """Calculate function overlaps between the deep 
+    (most detailed) molecular functions in particular 
+    from two sets of GO terms.
+
+    :arg goa1: the first set of GO terms
+    :type goa1: tuple, list, :class:`~numpy.ndarray`
+
+    :arg goa2: the second set of GO terms
+    :type goa2: tuple, list, :class:`~numpy.ndarray`
+    """
+    return_funcs = kwargs.pop('return_funcs', False)
+
+    xfuncs = findDeepestFunctions(goa1)
+    yfuncs = findDeepestFunctions(goa2)
+    overlaps = np.zeros((len(xfuncs), len(yfuncs)))
+    for i, function_i in enumerate(xfuncs):
+        for j, function_j in enumerate(yfuncs):
+            overlaps[i, j] = calcGoOverlap(function_i, function_j, **kwargs)
+
+    if return_funcs:
+        return overlaps, xfuncs, yfuncs
+
+    return overlaps
+
+
+def findDeepestFunctions(go_terms, **kwargs):
+    """Find the deepest (most detailed) molecular functions in 
+    a list of GO terms.
+
+    :arg go_terms: a list of GO terms
+    :type go_terms: tuple, list, :class:`~numpy.ndarray`
+    """
+    if not isListLike(go_terms):
+        raise TypeError('go_terms should be list-like')
 
     go = kwargs.pop('go', None)
     if go is None:
         go = parseOBO(**kwargs)
 
-    go.draw_lineage([go_term], lineage_img=filename)
-    from IPython.display import Image
-    Image(filename)
+    try:
+        go_terms = [go[term] for term in go_terms]
+    except:
+        try:
+            go_terms = [term.id for term in go_terms]
+        except:
+            raise TypeError('go_terms should contain go terms or IDs')
+
+    if isinstance(go_terms[0], str):
+        go_terms = [go[term] for term in go_terms]
+
+    deep_functions = []
+    max_depth = 0
+    for function in go_terms.getMolecularFunctions():
+        if function.depth > max_depth:
+            max_depth = function.depth
+
+    for function in go_terms.getMolecularFunctions():
+        if function.depth == max_depth:
+            deep_functions.append(function)
+
+    return deep_functions
+
+
+def calcEnsembleFunctionOverlaps(ens, **kwargs):
+    """Calculate function overlaps for an ensemble as the 
+    mean of the value from :func:`calcDeepFunctionOverlaps`.
+
+    :arg ens: an ensemble with labels
+    :type ens: :class:`Ensemble`
+    """
+    if not isinstance(ens, Ensemble) and not isListLike(ens):
+        raise TypeError('ens should be an ensemble or list-like')
+
+    if isinstance(ens, Ensemble):
+        ids = [label[:5] for label in ens.getLabels()]
+    else:
+        ids = ens
+
+    if not isinstance(ids[0], str):
+        raise TypeError('ens should have labels')
+
+    distance = kwargs.pop('distance', False)
+    pairwise = kwargs.pop('pairwise', False)
+
+    goa_ens = queryGOA(ids[:10], **kwargs)
+
+    overlaps = np.zeros(len(goa_ens), len(goa_ens))
+    for i, funcs_i in enumerate(goa_ens):
+        for j, funcs_j in enumerate(goa_ens[i:]):
+            overlaps[i, j] = np.mean(calcDeepFunctionOverlaps(
+                funcs_i, funcs_j, distance=distance, pairwise=pairwise, **kwargs))
+
+    return overlaps
