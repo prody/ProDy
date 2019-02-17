@@ -51,6 +51,10 @@ class GOADictList:
         self._go_terms = [go[id] for id in go_ids]
         self.numTerms = len(self._go_terms)
 
+        self._molecular = [term for term in self._go_terms if term.namespace == 'molecular_function']
+        self._cellular = [term for term in self._go_terms if term.namespace == 'cellular_component']
+        self._process = [term for term in self._go_terms if term.namespace == 'biological_process']
+
     def __getitem__(self, ind):
         return self._list[ind]
 
@@ -80,6 +84,15 @@ class GOADictList:
 
     def getGoTerms(self):
         return self._go_terms
+
+    def getMolecularFunctions(self):
+        return self._molecular
+
+    def getCellularComponents(self):
+        return self._cellular
+
+    def getBiologicalProcesses(self):
+        return self._process
 
 
 def parseOBO(**kwargs):
@@ -294,7 +307,7 @@ def calcGoOverlap(*go_terms, **kwargs):
                 dist = min_branch_length(go_terms[i], go_terms[j], go)
                 distances[i, j] = distances[j, i] = dist
 
-                if distances[i,j] is not None:
+                if str(distances[i,j]) != 'nan':
                     w = distances.getWeights()
                     w[i,j] = w[j,i] = 1.
                     distances.setWeights(w)
@@ -307,7 +320,7 @@ def calcGoOverlap(*go_terms, **kwargs):
         for i, go_id2 in enumerate(go_terms[1:]):
             distances[i] = min_branch_length(go_id1, go_id2, go)
 
-            if distances[i] is not None:
+            if str(distances[i]) != 'nan':
                 w = distances.getWeights()
                 w[i] = 1.
                 distances.setWeights(w)
