@@ -89,14 +89,10 @@ class Ensemble(object):
             ens = Ensemble('{0} ({1[0]}:{1[1]}:{1[2]})'.format(
                                 self._title, index.indices(len(self))))
             ens.setCoords(copy(self._coords))
-<<<<<<< HEAD
-            ens._data = self._data[index].copy()
-=======
         
             for key in self._data.keys():
                 ens._data[key] = self._data[key][index].copy()
 
->>>>>>> 03b9911455901abc5021a54399214556c5ffb943
             ens.addCoordset(self._confs[index].copy())
             if self._weights is not None:
                 ens.setWeights(self._weights.copy())
@@ -140,17 +136,6 @@ class Ensemble(object):
         if other._confs is not None:
             ensemble.addCoordset(other._confs.copy())
 
-<<<<<<< HEAD
-        ensemble._data = {}
-        all_keys = list(self._data.keys()) + list(other._data.keys())
-        for key in all_keys:
-            if key in list(self._data.keys()) and key in list(other._data.keys()):
-                ensemble._data[key] = concatenate((self._data[key], other._data[key]), axis=0)
-            elif key in list(self._data.keys()):
-                ensemble._data[key] = concatenate((self._data[key], asarray([''] * other.numConfs)),axis=0)
-            elif key in list(other._data.keys()):
-                ensemble._data[key] = concatenate((asarray([''] * self.numConfs), other._data[key]),axis=0)
-=======
         all_keys = list(self._data.keys()) + list(other._data.keys())
         for key in all_keys:
             if key in self._data and key in other._data:
@@ -163,7 +148,6 @@ class Ensemble(object):
                 other_data = other._data[key]
                 self_data = zeros(other.numConfs(), dtype=other_data.dtype)
             ensemble._data[key] = concatenate((self_data, other_data), axis=0)
->>>>>>> 03b9911455901abc5021a54399214556c5ffb943
 
         if self._weights is not None:
             LOGGER.info('Atom weights from {0} are used in {1}.'
