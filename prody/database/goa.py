@@ -50,9 +50,12 @@ class GOADictList:
         self._go_terms = [go[id] for id in go_ids]
         self.numTerms = len(self._go_terms)
 
-        self._molecular = [term for term in self._go_terms if term.namespace == 'molecular_function']
-        self._cellular = [term for term in self._go_terms if term.namespace == 'cellular_component']
-        self._process = [term for term in self._go_terms if term.namespace == 'biological_process']
+        self._molecular = [
+            term for term in self._go_terms if term.namespace == 'molecular_function']
+        self._cellular = [
+            term for term in self._go_terms if term.namespace == 'cellular_component']
+        self._process = [
+            term for term in self._go_terms if term.namespace == 'biological_process']
 
     def __getitem__(self, ind):
         return self._list[ind]
@@ -289,12 +292,41 @@ def queryGOA(*ids, **kwargs):
 
 
 def calcGoOverlap(*go_terms, **kwargs):
+    """Calculate overlap between GO terms based on their distance
+    in the graph. GO terms in different namespaces (molecular function,
+    cellular component, and biological process) have undefined distances.
+
+    :arg go_terms: a list of GO terms or GO IDs
+    :type go_terms: list, tuple, `~numpy.ndarray`
+
+    :arg pairwise: whether to calculate to a matrix of pairwise overlaps
+        default is False
+    :type pairwise: bool
+
+    :arg distance: whether to return distances rather than calculating overlaps
+        default is False
+    :type distance: bool
+
+    :arg go: GO graph. Default behaviour is to parse it with :func:`.parseOBO`.
+    :type go: `~goatools.obo_parser.GODag`
+    """
     pairwise = kwargs.pop('pairwise', False)
     distance = kwargs.pop('distance', False)
 
     go = kwargs.pop('go', None)
     if go is None:
         go = parseOBO(**kwargs)
+
+    if not isListLike(go_terms):
+        raise TypeError('please provide a list-like of go terms')
+
+    try:
+        namespace = [term.namespace for term in go_terms]
+    except:
+        try:
+            go_terms = [go[term] for term in go_terms]
+        except:
+            raise TypeError('go_terms should contain go terms or IDs')
 
     if pairwise:
         distances = np.zeros((len(go_terms), len(go_terms)))
@@ -356,15 +388,14 @@ def common_parent_go_ids(terms, go):
         tree of the list of terms in the input.
     '''
     # Find candidates from first
-    rec = go[terms[0]]
+    rec = terms[0]
     candidates = rec.get_all_parents()
-    candidates.update({terms[0]})
+    candidates.update({rec})
 
     # Find intersection with second to nth term
-    for term in terms[1:]:
-        rec = go[term]
+    for rec in terms[1:]:
         parents = rec.get_all_parents()
-        parents.update({term})
+        parents.update({rec})
 
         # Find the intersection with the candidates, and update.
         candidates.intersection_update(parents)
@@ -377,7 +408,7 @@ def showGoLineage(go_term, **kwargs):
 
     :arg go: object containing a gene ontology (GO) directed acyclic graph (DAG) 
         default is to parse with :func:`.parseOBO`
-    :type go: goatools.obo_parser.GODag
+    :type go: `~goatools.obo_parser.GODag`
 
     arg out_format: format for output. 
         Currently only output to file. This file will be displayed in Jupyter Notebook.
