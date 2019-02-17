@@ -296,13 +296,13 @@ def calcGoOverlap(*go_terms, **kwargs):
 
                 if distances[i,j] is not None:
                     w = distances.getWeights()
-                    w[i,j] = 1.
+                    w[i,j] = w[j,i] = 1.
                     distances.setWeights(w)
     else:
         distances = sdarray(array=np.zeros((len(go_terms))),
                             weights=np.zeros((len(go_terms))),
                             labels=[str(i) for i in np.arange(len(go_terms))])
-                            
+
         go_id1 = go_terms[0]
         for i, go_id2 in enumerate(go_terms[1:]):
             distances[i] = min_branch_length(go_id1, go_id2, go)
