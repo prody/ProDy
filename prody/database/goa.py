@@ -334,8 +334,8 @@ def calcGoOverlap(*go_terms, **kwargs):
         except:
             raise TypeError('go_terms should contain go terms or IDs')
 
-    if isinstance(go_terms[0], str):
-        go_terms = [go[term] for term in go_terms]
+    if not isinstance(go_terms[0], str):
+        go_terms = [term.id for term in go_terms]
 
     if pairwise:
         distances = np.zeros((len(go_terms), len(go_terms)))
@@ -491,25 +491,14 @@ def findDeepestFunctions(go_terms, **kwargs):
     a list of GO terms.
 
     :arg go_terms: a list of GO terms
-    :type go_terms: tuple, list, :class:`~numpy.ndarray`
+    :type go_terms: :class:`.GOADictList`
     """
-    if not isListLike(go_terms):
-        raise TypeError('go_terms should be list-like')
+    if not isinstance(go_terms, GOADictList):
+        raise TypeError('go_terms should be a GOADictList')
 
     go = kwargs.pop('go', None)
     if go is None:
         go = parseOBO(**kwargs)
-
-    try:
-        go_terms = [go[term] for term in go_terms]
-    except:
-        try:
-            go_terms = [term.id for term in go_terms]
-        except:
-            raise TypeError('go_terms should contain go terms or IDs')
-
-    if isinstance(go_terms[0], str):
-        go_terms = [go[term] for term in go_terms]
 
     deep_functions = []
     max_depth = 0
@@ -550,13 +539,7 @@ def calcEnsembleFunctionOverlaps(ens, **kwargs):
     overlaps = np.zeros((len(goa_ens), len(goa_ens)))
     for m, member_m in enumerate(goa_ens):
         for n, member_n in enumerate(goa_ens[m:]):
-            overlaps[m, n] = 0.
-            for i, funcs_i in enumerate(member_m):
-                for j, funcs_j in enumerate(member_n):
-                    overlaps[m, n] += np.mean(calcDeepFunctionOverlaps(
-                        funcs_i, funcs_j, distance=distance, pairwise=pairwise, **kwargs))
-                    
-            overlaps[m, n] /= i*j
-            overlaps[n, m] = overlaps[m, n]
+            overlaps[n, m] = overlaps[m, n] = np.mean(calcDeepFunctionOverlaps(
+                member_m, member_n, distance=distance, pairwise=pairwise, **kwargs))
 
     return overlaps
