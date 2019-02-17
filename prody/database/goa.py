@@ -11,8 +11,6 @@ from os.path import isdir, isfile, join, split, splitext, normpath
 import os
 import gzip
 from ftplib import FTP
-from goatools import obo_parser
-import Bio.UniProt.GOA as GOA
 
 from collections import defaultdict
 import re
@@ -105,6 +103,8 @@ def parseOBO(**kwargs):
 
     .. _OBO: http://owlcollab.github.io/oboformat/doc/obo-syntax.html
     """
+    from goatools import obo_parser
+
     go_obo_url = kwargs.get('go_obo_url', None)
     if go_obo_url is None:
         go_obo_url = 'http://purl.obolibrary.org/obo/go/go-basic.obo'
@@ -171,6 +171,8 @@ def parseGAF(database='PDB', **kwargs):
         and .gaf.gz
     :type filename: str
     """
+    import Bio.UniProt.GOA as GOA
+
     if not isinstance(database, str):
         raise TypeError('database should be a string')
 
@@ -355,8 +357,16 @@ def calcGoOverlap(*go_terms, **kwargs):
 
 
 def min_branch_length(go_id1, go_id2, go):
-    '''
-        Finds the minimum branch length between two terms in the GO DAG.
+    '''Find the minimum branch length between two terms in the GO DAG.
+
+    :arg go_id1: the first GO ID
+    :type go_id1: str
+
+    :arg go_id2: the second GO ID
+    :type go_id2:str
+
+    :arg go: object containing a gene ontology (GO) directed acyclic graph (DAG)
+    :type go: `~goatools.obo_parser.GODag`
     '''
     # First get the deepest common ancestor
     dca = deepest_common_ancestor([go_id1, go_id2], go)
@@ -375,10 +385,14 @@ def min_branch_length(go_id1, go_id2, go):
 
 
 def deepest_common_ancestor(terms, go):
-    '''
-        This function gets the nearest common ancestor 
-        using the above function.
-        Only returns single most specific - assumes unique exists.
+    '''Find the nearest common ancestor. 
+    Only returns single most specific - assumes unique exists.
+
+    :arg terms: a list of GO terms
+    :type terms: tuple, list, :class:`~numpy.ndarray`
+
+    :arg go: object containing a gene ontology (GO) directed acyclic graph (DAG)
+    :type go: `~goatools.obo_parser.GODag`
     '''
     # Take the element at maximum depth.
     common_parent = common_parent_go_ids(terms, go)
@@ -388,9 +402,14 @@ def deepest_common_ancestor(terms, go):
 
 
 def common_parent_go_ids(terms, go):
-    '''
-        This function finds the common ancestors in the GO 
-        tree of the list of terms in the input.
+    '''This function finds the common ancestors in the GO 
+    tree of the list of terms in the input.
+
+    :arg terms: a list of GO terms
+    :type terms: tuple, list, :class:`~numpy.ndarray`
+
+    :arg go: object containing a gene ontology (GO) directed acyclic graph (DAG)
+    :type go: `~goatools.obo_parser.GODag`
     '''
     # Find candidates from first
     rec = go[terms[0]]
@@ -524,9 +543,9 @@ def calcEnsembleFunctionOverlaps(ens, **kwargs):
     distance = kwargs.pop('distance', False)
     pairwise = kwargs.pop('pairwise', False)
 
-    goa_ens = queryGOA(ids[:10], **kwargs)
+    goa_ens = queryGOA(ids, **kwargs)
 
-    overlaps = np.zeros(len(goa_ens), len(goa_ens))
+    overlaps = np.zeros((len(goa_ens), len(goa_ens)))
     for i, funcs_i in enumerate(goa_ens):
         for j, funcs_j in enumerate(goa_ens[i:]):
             overlaps[i, j] = np.mean(calcDeepFunctionOverlaps(

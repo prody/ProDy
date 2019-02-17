@@ -14,7 +14,6 @@ install:
   - conda create --yes -n test python=$TRAVIS_PYTHON_VERSION
   - source activate test
   - conda install --yes numpy scipy pip nose
-  - pip install goatools
   - if [[ $TRAVIS_PYTHON_VERSION == "2.7" ]]; then conda install --yes pyparsing biopython unittest2; fi
   - if [[ $TRAVIS_PYTHON_VERSION == "3.5" ]]; then conda install --yes pyparsing biopython; fi
   - if [[ $TRAVIS_PYTHON_VERSION == "3.6" ]]; then conda install --yes pyparsing biopython; fi
