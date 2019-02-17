@@ -5,19 +5,20 @@ models."""
 import numpy as np
 from numbers import Integral
 from prody import LOGGER, SETTINGS
-from prody.utilities import openFile
+from prody.utilities import openFile, isListLike
 
 from .nma import NMA
 from .modeset import ModeSet
 from .mode import Mode, Vector
 from .gnm import ZERO
-from .analysis import calcFractVariance
+from .analysis import calcFractVariance, calcSqFlucts
 
-__all__ = ['calcOverlap', 'calcCumulOverlap', 'calcSubspaceOverlap', 'calcSpectralOverlap', 
+__all__ = ['calcOverlap', 'calcCumulOverlap', 'calcSubspaceOverlap', 'calcSpectralOverlap',
            'calcCovOverlap', 'printOverlapTable', 'writeOverlapTable', 'pairModes', 'matchModes']
 
 SO_CACHE = {}
 WO_CACHE = {}
+
 
 def calcOverlap(rows, cols):
     """Returns overlap (or correlation) between two sets of modes (*rows* and
@@ -35,7 +36,7 @@ def calcOverlap(rows, cols):
     if rows.numDOF() != cols.numDOF():
         raise ValueError('number of degrees of freedom of rows and '
                          'cols must be the same')
-    
+
     rows = rows._getArray()
     rows *= 1 / (rows ** 2).sum(0) ** 0.5
     cols = cols._getArray()
@@ -144,6 +145,30 @@ def calcCumulOverlap(modes1, modes2, array=False):
         return np.sqrt(np.power(overlap, 2).cumsum(axis=overlap.ndim-1))
 
 
+def calcSquareInnerProduct(modes1, modes2):
+    """Returns the square inner product (SIP) of fluctuations [SK02]_.  
+    This function returns a single number.
+
+    .. [SK02] Kundu S, Melton JS, Sorensen DC, Phillips GN: Dynamics of 
+        proteins in crystals: comparison of experiment with simple models. 
+        Biophys J. 2002, 83: 723-732."""
+    if isinstance(modes1, [NMA, ModeSet]):
+        w1 = calcSqFlucts(modes1)
+    elif isListLike(modes1):
+        w1 = modes1
+    else:
+        raise TypeError('modes1 should be a profile or an NMA or ModeSet object')
+
+    if isinstance(modes2, [NMA, ModeSet]):
+        w2 = calcSqFlucts(modes2)
+    elif isListLike(modes2):
+        w2 = modes2
+    else:
+        raise TypeError('modes2 should be a profile or an NMA or ModeSet object')
+
+    return np.dot(w1, w2)**2 / (np.dot(w1, w1) * np.dot(w2, w2))
+
+
 def calcSubspaceOverlap(modes1, modes2):
     """Returns subspace overlap between two sets of modes (*modes1* and
     *modes2*).  Also known as the root mean square inner product (RMSIP)
@@ -162,6 +187,7 @@ def calcSubspaceOverlap(modes1, modes2):
     rmsip = np.sqrt(np.power(overlap, 2).sum() / length)
     return rmsip
 
+
 def calcSpectralOverlap(modes1, modes2, weighted=False, turbo=False):
     """Returns overlap between covariances of *modes1* and *modes2*.  Overlap
     between covariances are calculated using normal modes (eigenvectors),
@@ -170,13 +196,14 @@ def calcSpectralOverlap(modes1, modes2, weighted=False, turbo=False):
 
     .. [BH02] Hess B. Convergence of sampling in protein simulations.
         *Phys Rev E* **2002** 65(3):031910.
-    
+
     :arg weighted: if **True** then covariances are weighted by the trace.
     :type weighted: bool
     """
 
     if modes1.is3d() ^ modes2.is3d():
-        raise TypeError('models must be either both 1-dimensional or 3-dimensional')
+        raise TypeError(
+            'models must be either both 1-dimensional or 3-dimensional')
     if modes1.numAtoms() != modes2.numAtoms():
         raise ValueError('modes1 and modes2 must have same number of atoms')
 
@@ -227,7 +254,7 @@ def calcSpectralOverlap(modes1, modes2, weighted=False, turbo=False):
             dotAB = np.dot(farrayA.T, farrayB)**2
             outerAB = np.outer(fvarA**0.5, fvarB**0.5)
             CACHE[(model1, model2)] = weights = outerAB * dotAB
-        
+
         weights = weights[I, :][:, J]
     else:
         arrayA = modes1._getArray()
@@ -245,12 +272,14 @@ def calcSpectralOverlap(modes1, modes2, weighted=False, turbo=False):
         diff = diff ** 0.5
     return 1 - diff / np.sqrt(varA.sum() + varB.sum())
 
+
 def calcCovOverlap(modes1, modes2, turbo=False):
     """Returns overlap between covariances of *modes1* and *modes2*.  Overlap
     between covariances are calculated using normal modes (eigenvectors),
     hence modes in both models must have been calculated.  This function
     implements equation 11 in [BH02]_."""
     return calcSpectralOverlap(modes1, modes2, turbo=turbo)
+
 
 def pairModes(modes1, modes2, **kwargs):
     """Returns the optimal matches between *modes1* and *modes2*. *modes1* 
@@ -269,8 +298,8 @@ def pairModes(modes1, modes2, **kwargs):
         from scipy.optimize import linear_sum_assignment
         method = linear_sum_assignment
 
-    if not (isinstance(modes1, (ModeSet, NMA)) \
-        and isinstance(modes2, (ModeSet, NMA))):
+    if not (isinstance(modes1, (ModeSet, NMA))
+            and isinstance(modes2, (ModeSet, NMA))):
         raise TypeError('modes1 and modes2 should be ModeSet or NMA instances')
 
     if len(modes1) != len(modes2):
@@ -294,6 +323,7 @@ def pairModes(modes1, modes2, **kwargs):
 
     return outmodes1, outmodes2
 
+
 def _pairModes_wrapper(args):
     modeset0, modesets, index = args
 
@@ -303,11 +333,12 @@ def _pairModes_wrapper(args):
         ret.append(reordered_modeset)
     return ret
 
+
 def matchModes(*modesets, **kwargs):
     """Returns the matches of modes among *modesets*. Note that the first 
     modeset will be treated as the reference so that only the matching 
     of each modeset to the first modeset is garanteed to be optimal.
-    
+
     :arg index: if **True** then indices of modes will be returned instead of 
                 :class:`Mode` instances
     :type index: bool
@@ -345,12 +376,12 @@ def matchModes(*modesets, **kwargs):
     if turbo:
         from multiprocessing import Pool, cpu_count
         from math import ceil
-        
+
         if not n_worker:
             n_worker = cpu_count()
 
         LOGGER.info('Matching {0} modes across {1} modesets with {2} threads...'
-                        .format(n_modes, n_sets, n_worker))
+                    .format(n_modes, n_sets, n_worker))
 
         pool = Pool(n_worker)
         n_sets_per_worker = ceil((n_sets - 1) / n_worker)
@@ -372,8 +403,9 @@ def matchModes(*modesets, **kwargs):
         for i, modeset in enumerate(modesets):
             LOGGER.update(i, label='_prody_matchModes')
             if i > 0:
-                _, reordered_modeset = pairModes(modeset0, modeset, index=index, **kwargs)
+                _, reordered_modeset = pairModes(
+                    modeset0, modeset, index=index, **kwargs)
                 ret.append(reordered_modeset)
         LOGGER.finish()
-    
+
     return ret
