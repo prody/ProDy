@@ -20,7 +20,6 @@ import numpy as np
 from prody.utilities import makePath, gunzip, relpath, copyFile, openURL
 from prody.utilities import openFile, isListLike, sympath
 from prody import LOGGER, PY3K
-from prody.dynamics.signature import sdarray
 
 if PY3K:
     import urllib.parse as urllib
@@ -298,32 +297,19 @@ def calcGoOverlap(*go_terms, **kwargs):
         go = parseOBO(**kwargs)
 
     if pairwise:
-        distances = sdarray(array=np.zeros((len(go_terms), len(go_terms))),
-                            weights=np.zeros((len(go_terms), len(go_terms))),
-                            labels=[str(i) for i in np.arange(len(go_terms))])
+        distances = np.zeros((len(go_terms), len(go_terms)))
 
         for i in range(len(go_terms)):
             for j in range(i+1, len(go_terms)):
                 dist = min_branch_length(go_terms[i], go_terms[j], go)
                 distances[i, j] = distances[j, i] = dist
 
-                if str(distances[i,j]) != 'nan':
-                    w = distances.getWeights()
-                    w[i,j] = w[j,i] = 1.
-                    distances.setWeights(w)
     else:
-        distances = sdarray(array=np.zeros((len(go_terms))),
-                            weights=np.zeros((len(go_terms))),
-                            labels=[str(i) for i in np.arange(len(go_terms))])
+        distances = np.zeros((len(go_terms)))
 
         go_id1 = go_terms[0]
         for i, go_id2 in enumerate(go_terms[1:]):
             distances[i] = min_branch_length(go_id1, go_id2, go)
-
-            if str(distances[i]) != 'nan':
-                w = distances.getWeights()
-                w[i] = 1.
-                distances.setWeights(w)
 
     if distance:
         return distances
