@@ -20,6 +20,7 @@ import numpy as np
 from prody.utilities import makePath, gunzip, relpath, copyFile, openURL
 from prody.utilities import openFile, isListLike, sympath
 from prody import LOGGER, PY3K
+from prody.dynamics.signature import sdarray
 
 if PY3K:
     import urllib.parse as urllib
@@ -30,7 +31,7 @@ else:
 
 
 __all__ = ['GOADictList', 'parseOBO', 'parseGAF',
-           'queryGOA', 'calcGoOverlap', 
+           'queryGOA', 'calcGoOverlap',
            'showGoLineage']
 
 
@@ -38,6 +39,7 @@ class GOADictList:
     """A class for handling the list of GOA Dictionaries returned 
     by queryGOA
     """
+
     def __init__(self, parsingList, title='unnamed', **kwargs):
         go = kwargs.pop('go', None)
         if go is None:
@@ -111,7 +113,8 @@ def parseOBO(**kwargs):
         try:
             handle = openURL(go_obo_url)
         except Exception as err:
-            LOGGER.warn('{0} download failed ({1}).'.format(go_obo_url, str(err)))
+            LOGGER.warn('{0} download failed ({1}).'.format(
+                go_obo_url, str(err)))
         else:
             data = handle.read()
             if len(data):
@@ -167,7 +170,7 @@ def parseGAF(database='PDB', **kwargs):
     # If the file doesn't already exist, download it
     gaf = os.path.join(data_folder, filename)
     if not(os.path.exists(gaf) and os.path.getsize(gaf) > 0):
-        LOGGER.info('Downloading file {0} to {1}'.format(filename,gaf))
+        LOGGER.info('Downloading file {0} to {1}'.format(filename, gaf))
         data_stream = BytesIO()
         ftp_host = 'ftp.ebi.ac.uk'
         ftp = FTP(ftp_host)
@@ -240,7 +243,7 @@ def queryGOA(*ids, **kwargs):
                     .format(n_ids), n_ids, '_prody_queryGOA')
     for i, id in enumerate(ids):
         LOGGER.update(i, 'Querying GOA for id {0} of {1}...'
-                    .format(i, n_ids), label='_prody_queryGOA')
+                      .format(i, n_ids), label='_prody_queryGOA')
         if not isinstance(id, str):
             raise TypeError('each ID should be a string')
 
@@ -264,8 +267,8 @@ def queryGOA(*ids, **kwargs):
                     .format(n_ids), n_ids, '_prody_mapGO')
     for i, result in enumerate(results):
         LOGGER.update(i, 'Mapping GO terms back to GOA results id {0} of {1}...'
-                    .format(i, n_ids), label='_prody_mapGO')
-        rets.append(GOADictList(result,title=id))
+                      .format(i, n_ids), label='_prody_mapGO')
+        rets.append(GOADictList(result, title=id))
 
     if n_ids == 1:
         rets = rets[0]
@@ -282,16 +285,32 @@ def calcGoOverlap(*go_terms, **kwargs):
         go = parseOBO(**kwargs)
 
     if pairwise:
-        distances = np.zeros((len(go_terms), len(go_terms)))
+        distances = sdarray(array=np.zeros((len(go_terms), len(go_terms))),
+                            weights=np.zeros((len(go_terms), len(go_terms))),
+                            labels=[str(i) for i in np.arange(len(go_terms))])
+
         for i in range(len(go_terms)):
             for j in range(i+1, len(go_terms)):
                 dist = min_branch_length(go_terms[i], go_terms[j], go)
                 distances[i, j] = distances[j, i] = dist
+
+                if distances[i,j] is not None:
+                    w = distances.getWeights()
+                    w[i,j] = 1.
+                    distances.setWeights(w)
     else:
-        distances = np.zeros((len(go_terms[1:])))
+        distances = sdarray(array=np.zeros((len(go_terms))),
+                            weights=np.zeros((len(go_terms))),
+                            labels=[str(i) for i in np.arange(len(go_terms))])
+                            
         go_id1 = go_terms[0]
         for i, go_id2 in enumerate(go_terms[1:]):
             distances[i] = min_branch_length(go_id1, go_id2, go)
+
+            if distances[i] is not None:
+                w = distances.getWeights()
+                w[i] = 1.
+                distances.setWeights(w)
 
     if distance:
         return distances
@@ -305,6 +324,10 @@ def min_branch_length(go_id1, go_id2, go):
     '''
     # First get the deepest common ancestor
     dca = deepest_common_ancestor([go_id1, go_id2], go)
+    if dca is None:
+        LOGGER.warn('There are no common ancestors between {0} and {1} so no meaningful distance can be calculated.'.format(
+            go_id1, go_id2))
+        return None
 
     # Then get the distance from the DCA to each term
     dca_depth = go[dca].depth
@@ -349,13 +372,14 @@ def common_parent_go_ids(terms, go):
 
     return candidates
 
+
 def showGoLineage(go_term, **kwargs):
     """Use pygraphviz and IPython notebook to show the lineage of a GO term
-    
+
     :arg go: object containing a gene ontology (GO) directed acyclic graph (DAG) 
         default is to parse with :func:`.parseOBO`
     :type go: goatools.obo_parser.GODag
-    
+
     arg out_format: format for output. 
         Currently only output to file. This file will be displayed in Jupyter Notebook.
     type out_format: str
@@ -365,7 +389,8 @@ def showGoLineage(go_term, **kwargs):
     type filename: str
     """
     #out_format = kwargs.pop('format','png')
-    filename = kwargs.pop('filename','_'.join(go_term.id.split(':')) + '_lineage.png')
+    filename = kwargs.pop('filename', '_'.join(
+        go_term.id.split(':')) + '_lineage.png')
 
     go = kwargs.pop('go', None)
     if go is None:
