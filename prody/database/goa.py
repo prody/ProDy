@@ -31,7 +31,9 @@ else:
 __all__ = ['GOADictList', 'parseOBO', 'parseGAF',
            'queryGOA', 'showGoLineage',
            'calcGoOverlap', 'calcDeepFunctionOverlaps',
-           'calcEnsembleFunctionOverlaps']
+           'calcEnsembleFunctionOverlaps', 'findDeepestFunctions',
+           'findDeepestCommonAncestor', 'calcMinBranchLength',
+           'findCommonParentGoIds']
 
 
 class GOADictList:
@@ -340,7 +342,7 @@ def calcGoOverlap(*go_terms, **kwargs):
 
         for i in range(len(go_terms)):
             for j in range(i+1, len(go_terms)):
-                dist = min_branch_length(go_terms[i], go_terms[j], go)
+                dist = calcMinBranchLength(go_terms[i], go_terms[j], go)
                 distances[i, j] = distances[j, i] = dist
 
     else:
@@ -348,7 +350,7 @@ def calcGoOverlap(*go_terms, **kwargs):
 
         go_id1 = go_terms[0]
         for i, go_id2 in enumerate(go_terms[1:]):
-            distances[i] = min_branch_length(go_id1, go_id2, go)
+            distances[i] = calcMinBranchLength(go_id1, go_id2, go)
 
     if distance:
         return distances
@@ -356,7 +358,7 @@ def calcGoOverlap(*go_terms, **kwargs):
         return 1. / distances
 
 
-def min_branch_length(go_id1, go_id2, go):
+def calcMinBranchLength(go_id1, go_id2, go):
     '''Find the minimum branch length between two terms in the GO DAG.
 
     :arg go_id1: the first GO ID
@@ -369,7 +371,7 @@ def min_branch_length(go_id1, go_id2, go):
     :type go: `~goatools.obo_parser.GODag`
     '''
     # First get the deepest common ancestor
-    dca = deepest_common_ancestor([go_id1, go_id2], go)
+    dca = findDeepestCommonAncestor([go_id1, go_id2], go)
     if dca is None:
         LOGGER.warn('There are no common ancestors between {0} and {1} so no meaningful distance can be calculated.'.format(
             go_id1, go_id2))
@@ -384,7 +386,7 @@ def min_branch_length(go_id1, go_id2, go):
     return d1 + d2
 
 
-def deepest_common_ancestor(terms, go):
+def findDeepestCommonAncestor(terms, go):
     '''Find the nearest common ancestor. 
     Only returns single most specific - assumes unique exists.
 
@@ -395,13 +397,13 @@ def deepest_common_ancestor(terms, go):
     :type go: `~goatools.obo_parser.GODag`
     '''
     # Take the element at maximum depth.
-    common_parent = common_parent_go_ids(terms, go)
+    common_parent = findCommonParentGoIds(terms, go)
     if common_parent == set():
         return None
     return max(common_parent, key=lambda t: go[t].depth)
 
 
-def common_parent_go_ids(terms, go):
+def findCommonParentGoIds(terms, go):
     '''This function finds the common ancestors in the GO 
     tree of the list of terms in the input.
 
@@ -546,9 +548,15 @@ def calcEnsembleFunctionOverlaps(ens, **kwargs):
     goa_ens = queryGOA(ids, **kwargs)
 
     overlaps = np.zeros((len(goa_ens), len(goa_ens)))
-    for i, funcs_i in enumerate(goa_ens):
-        for j, funcs_j in enumerate(goa_ens[i:]):
-            overlaps[i, j] = np.mean(calcDeepFunctionOverlaps(
-                funcs_i, funcs_j, distance=distance, pairwise=pairwise, **kwargs))
+    for m, member_m in enumerate(goa_ens):
+        for n, member_n in enumerate(goa_ens[m:]):
+            overlaps[m, n] = 0.
+            for i, funcs_i in enumerate(member_m):
+                for j, funcs_j in enumerate(member_n):
+                    overlaps[m, n] += np.mean(calcDeepFunctionOverlaps(
+                        funcs_i, funcs_j, distance=distance, pairwise=pairwise, **kwargs))
+                    
+            overlaps[m, n] /= i*j
+            overlaps[n, m] = overlaps[m, n]
 
     return overlaps
