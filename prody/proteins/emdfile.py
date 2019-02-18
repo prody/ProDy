@@ -146,9 +146,9 @@ def parseEMDStream(stream, **kwargs):
 
     if map is False and make_nodes is False:
         LOGGER.warn('At least one of map and make_nodes should be True. '
-                    'Setting make_nodes to False was an intentional change from the default '
-                    'behaviour so map has been set to True.')
-        map = True
+                    'Setting map to False was an intentional change from the default '
+                    'behaviour so make_nodes has been set to True.')
+        make_nodes = True
 
     title_suffix = kwargs.get('title_suffix','')
     atomgroup = AtomGroup(str(kwargs.get('title', 'Unknown')) + title_suffix)
