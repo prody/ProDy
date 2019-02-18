@@ -48,12 +48,12 @@ def parseEMD(emd, **kwargs):
     method. This parameter is the total number of iterations of this algorithm: 
     :type num_iter: integer
 
-    :arg return_map: Return the density map itself. Default is False in line with previous behaviour.
+    :arg map: Return the density map itself. Default is False in line with previous behaviour.
         This value is reset to True if make_nodes is False as something must be returned.
-    :type return_map: bool
+    :type map: bool
 
     :arg make_nodes: Use the topology representing network algorithm to fit pseudoatom nodes to the map.
-        Default is False and sets return_map to True.
+        Default is False and sets map to True.
     :type make_nodes: bool
     """
 
@@ -163,6 +163,7 @@ def parseEMDStream(stream, **kwargs):
 
     title_suffix = kwargs.get('title_suffix','')
     atomgroup = AtomGroup(str(kwargs.get('title', 'Unknown')) + title_suffix)
+    atomgroup._n_atoms = n_nodes
 
     if make_nodes:
         LOGGER.info('Building coordinates from electron density map. This may take a while.')
