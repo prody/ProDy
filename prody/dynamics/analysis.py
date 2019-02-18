@@ -11,7 +11,7 @@ from prody.proteins import parsePDB
 from prody.atomic import AtomGroup
 from prody.ensemble import Ensemble, Conformation
 from prody.trajectory import TrajBase
-from prody.utilities import importLA, checkCoords
+from prody.utilities import importLA, checkCoords, div0
 from numpy import sqrt, arange, log, polyfit, array, arccos, dot
 
 from .nma import NMA
@@ -36,36 +36,35 @@ def calcCollectivity(mode, masses=None):
     .. [BR95] Bruschweiler R. Collective protein dynamics and nuclear
        spin relaxation. *J Chem Phys* **1995** 102:3396-3403.
 
-    :arg mode: mode or vector
-    :type mode: :class:`.Mode` or :class:`.Vector`
+    :arg mode: mode(s) or vector(s)
+    :type mode: :class:`.Mode`, :class:`.Vector`, :class:`.ModeSet`
 
     :arg masses: atomic masses
     :type masses: :class:`numpy.ndarray`"""
 
-    if not isinstance(mode, (Mode, ModeSet)):
-        raise TypeError('mode must be a Mode or ModeSet instance')
-    if isinstance(mode, Mode):
-        mode = [mode]
+    V, W, is3d, n_atoms = _getModeProperties(mode)
     
     colls = []
 
-    for m in mode:
-        is3d = m.is3d()
-        if masses is not None:
-            if len(masses) != m.numAtoms():
-                raise ValueError('length of masses must be equal to number of atoms')
-            if is3d:
-                u2in = (m.getArrayNx3() ** 2).sum(1) / masses
+    def log0(a):
+        return log(a + np.finfo(float).eps)
+
+    for v in V.T:
+        if is3d:
+            u2in = (v ** 2)
+            u2in_Nx3 = np.reshape(u2in, (n_atoms, 3))
+            u2in = u2in_Nx3.sum(axis=1)
         else:
-            if is3d:
-                u2in = (m.getArrayNx3() ** 2).sum(1)
-            else:
-                u2in = (m.getArrayNx3() ** 2)
+            u2in = (v ** 2)
+        if masses is not None:
+            if len(masses) != n_atoms:
+                raise ValueError('length of masses must be equal to number of atoms')
+            u2in = u2in / masses
         u2in = u2in * (1 / u2in.sum() ** 0.5)
-        coll = np.exp(-(u2in * log(u2in)).sum()) / m.numAtoms()
+        coll = np.exp(-(u2in * log0(u2in)).sum()) / n_atoms
         colls.append(coll)
     
-    if len(mode) == 1:
+    if len(colls) == 1:
         return coll
     else:
         return colls
@@ -235,6 +234,47 @@ def calcCrossProjection(ensemble, mode1, mode2, scale=None, **kwargs):
 
     return xcoords, ycoords
 
+def _getModeProperties(modes):
+    V = []; W = []; is3d = None; n_atoms = 0
+    if isinstance(modes, VectorBase):
+        V = modes._getArray()
+        if isinstance(modes, Mode):
+            W = modes.getVariance()
+        else:
+            W = 1.
+        V = np.asarray([V]).T
+        W = np.asarray([[W]])
+        is3d = modes.is3d()
+        n_atoms = modes.numAtoms()
+    elif isinstance(modes, (NMA, ModeSet)):
+        V = modes._getArray()
+        W = np.diag(modes.getVariances())
+        is3d = modes.is3d()
+        n_atoms = modes.numAtoms()
+    elif isinstance(modes, list):
+        for mode in modes:
+            if not isinstance(mode, VectorBase):
+                raise TypeError('modes can be a list of VectorBase instances, '
+                                'not {0}'.format(type(mode)))
+            V.append(mode._getArray())
+            if isinstance(mode, Mode):
+                W.append(modes.getVariance())
+            else:
+                W.append(1.)
+            if is3d is None:
+                is3d = mode.is3d()
+                n_atoms = mode.numAtoms()
+            else:
+                if is3d != mode.is3d():
+                    raise ValueError('modes must be either all from ANM or GNM')
+                if n_atoms != mode.numAtoms():
+                    raise ValueError('each mode in the list must have the same number of atoms')
+        V = np.array(V).T
+        W = np.diag(W)
+    else:
+        raise TypeError('modes must be a Mode, NMA, ModeSet instance, '
+                        'or a list of Mode instances, not {0}'.format(type(modes)))
+    return V, W, is3d, n_atoms
 
 def calcSqFlucts(modes):
     """Returns sum of square-fluctuations for given set of normal *modes*.
@@ -245,41 +285,15 @@ def calcSqFlucts(modes):
     :class:`.ANM` and :class:`.GNM`, on the other hand, it is arbitrary or
     relative units."""
 
-    if not isinstance(modes, (VectorBase, NMA, ModeSet)):
-        try:
-            modes2 = []
-            for mode in modes:
-                if not isinstance(mode, Mode):
-                    raise TypeError('modes can be a list of Mode instances, '
-                                    'not {0}'.format(type(mode)))
-                modes2.append(mode)
-            mode = list(modes2)
-        except TypeError:
-            raise TypeError('modes must be a Mode, NMA, ModeSet instance, '
-                            'or a list of Mode instances, not {0}'.format(type(modes)))
-    if isinstance(modes, list):
-        is3d = modes[0].is3d()
-        n_atoms = modes[0].numAtoms()
-    else:
-        is3d = modes.is3d()
-        n_atoms = modes.numAtoms()
+    V = []; W = []; is3d = None; n_atoms = 0
+    V, W, is3d, n_atoms = _getModeProperties(modes)
 
-    if isinstance(modes, Vector):
-        if is3d:
-            return (modes._getArrayNx3()**2).sum(axis=1)
-        else:
-            return (modes._getArray() ** 2)
-    else:
-        sq_flucts = np.zeros(n_atoms)
-        if isinstance(modes, VectorBase):
-            modes = [modes]
-        for mode in modes:
-            if is3d:
-                sq_flucts += ((mode._getArrayNx3()**2).sum(axis=1) *
-                              mode.getVariance())
-            else:
-                sq_flucts += (mode._getArray() ** 2) * mode.getVariance()
-        return sq_flucts
+    sq_flucts = np.dot(V * V, W).sum(axis=1)
+
+    if is3d:
+        sq_flucts_Nx3 = np.reshape(sq_flucts, (n_atoms, 3))
+        sq_flucts = sq_flucts_Nx3.sum(axis=1)
+    return sq_flucts
 
 
 def calcCrossCorr(modes, n_cpu=1, norm=True):
@@ -297,10 +311,18 @@ def calcCrossCorr(modes, n_cpu=1, norm=True):
         raise ValueError('n_cpu must be equal to or greater than 1')
 
     if not isinstance(modes, (Mode, NMA, ModeSet)):
-        raise TypeError('modes must be a Mode, NMA, or ModeSet instance, '
-                        'not {0}'.format(type(modes)))
-
-    if modes.is3d():
+        if isinstance(modes, list):
+            try:
+                is3d = modes[0].is3d()
+            except:
+                raise TypeError('modes must be a list of Mode or Vector instances, '
+                            'not {0}'.format(type(modes)))
+        else:
+            raise TypeError('modes must be a Mode, NMA, or ModeSet instance, '
+                            'not {0}'.format(type(modes)))
+    else:
+        is3d = modes.is3d()
+    if is3d:
         model = modes
         if isinstance(modes, (Mode, ModeSet)):
             model = modes._model
@@ -346,7 +368,8 @@ def calcCrossCorr(modes, n_cpu=1, norm=True):
         covariance = calcCovariance(modes)
     if norm:
         diag = np.power(covariance.diagonal(), 0.5)
-        covariance /= np.outer(diag, diag)
+        D = np.outer(diag, diag)
+        covariance = div0(covariance, D)
     return covariance
 
 
@@ -366,7 +389,7 @@ def calcDistFlucts(modes, n_cpu=1, norm=True):
     """Returns the matrix of distance fluctuations (i.e. an NxN matrix
     where N is the number of residues, of MSFs in the inter-residue distances)
     computed from the cross-correlation matrix (see Eq. 12.E.1 in [IB18]_). 
-    The arguments are the same as in :meth:`.calcCrossCorr`
+    The arguments are the same as in :meth:`.calcCrossCorr`.
 
     .. [IB18] Dill K, Jernigan RL, Bahar I. Protein Actions: Principles and
        Modeling. *Garland Science* **2017**. """
@@ -378,8 +401,8 @@ def calcDistFlucts(modes, n_cpu=1, norm=True):
 
 def calcTempFactors(modes, atoms):
     """Returns temperature (β) factors calculated using *modes* from a
-    :class:`.ANM` or :class:`.GNM` instance scaled according to the
-    experimental β-factors from *atoms*."""
+    :class:`.ANM` or :class:`.GNM` instance scaled according to the 
+    experimental B-factors from *atoms*."""
 
     model = modes.getModel()
     if not isinstance(model, GNMBase):
@@ -387,22 +410,21 @@ def calcTempFactors(modes, atoms):
     if model.numAtoms() != atoms.numAtoms():
         raise ValueError('modes and atoms must have same number of nodes')
     sqf = calcSqFlucts(modes)
-    return sqf / ((sqf**2).sum()**0.5) * (atoms.getBetas()**2).sum()**0.5
+    expBetas = atoms.getBetas()
+    # add warning message if experimental B-factors are zeros or meaningless (e.g., having same values)?
+    if expBetas.max() < 0.5 or expBetas.std() < 0.5:
+        LOGGER.warning('Experimental B-factors are quite small or meaningless. The calculated B-factors may be incorrect.')
+    return sqf * (expBetas.sum() / sqf.sum())
 
 
 def calcCovariance(modes):
     """Returns covariance matrix calculated for given *modes*."""
 
-    if isinstance(modes, Mode):
-        array = modes._getArray()
-        return np.outer(array, array) * modes.getVariance()
-    elif isinstance(modes, ModeSet):
-        array = modes._getArray()
-        return np.dot(array, np.dot(np.diag(modes.getVariances()), array.T))
-    elif isinstance(modes, NMA):
+    if isinstance(modes, NMA):
         return modes.getCovariance()
     else:
-        raise TypeError('modes must be a Mode, NMA, or ModeSet instance')
+        V, W, _, _ = _getModeProperties(modes)
+        return np.dot(V, np.dot(W, V.T))
 
 
 def calcPairDeformationDist(model, coords, ind1, ind2, kbt=1.):
@@ -415,14 +437,17 @@ def calcPairDeformationDist(model, coords, ind1, ind2, kbt=1.):
         the Anisotropic Response of Proteins to External Forces:
         Insights from Elastic Network Models. *Biophys J* **2008** 94:3424-34355. 
     
-    :arg model: this is an 3-dimensional NMA instance from a :class:`.ANM
-    calculations.
+    :arg model: this is an 3-dimensional :class:`NMA` instance from a :class:`.ANM`
+        calculations.
     :type model: :class:`.ANM`  
-    :arg coords: a coordinate set or an object with ``getCoords`` method.
-      Recommended: coords = parsePDB('pdbfile').select('protein and name CA').
-    :type coords: :class:`numpy.ndarray`.
+
+    :arg coords: a coordinate set or an object with :meth:`getCoords` method.
+        Recommended: ``coords = parsePDB('pdbfile').select('protein and name CA')``.
+    :type coords: :class:`~numpy.ndarray`.
+
     :arg ind1: first residue number.
     :type ind1: int 
+    
     :arg ind2: secound residue number.
     :type ind2: int 
     """
@@ -445,8 +470,6 @@ def calcPairDeformationDist(model, coords, ind1, ind2, kbt=1.):
         raise TypeError('model must be a 3-dimensional NMA instance')
     elif len(model) == 0:
         raise ValueError('model must have normal modes calculated')
-    elif model.getStiffness() is None:
-        raise ValueError('model must have stiffness matrix calculated')
     
     linalg = importLA()
     n_atoms = model.numAtoms()

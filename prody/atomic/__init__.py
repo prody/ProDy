@@ -205,6 +205,8 @@ chain.HierView = HierView
 
 segment.HierView = HierView
 
+atommap.HierView = HierView
+
 import numpy as np
 
 n_atoms = 10

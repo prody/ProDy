@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """This module defines a pointer class for handling subsets of normal modes."""
 
-from numpy import array, arange, diag, dot
+from numpy import ndarray, array, arange, diag, dot
 
 __all__ = ['ModeSet']
 
@@ -43,9 +43,7 @@ class ModeSet(object):
                 return ModeSet(self._model, self._indices[indices])
             elif len(indices) > 0:
                 return self._model._getMode(self._indices[indices[0]])
-        elif isinstance(index, (list, tuple)):
-            for i in index:
-                assert isinstance(i, int), 'all indices must be integers'
+        elif isinstance(index, (list, tuple, ndarray)):
             if len(index) == 1:
                 return self._model._getMode(self._indices[index[0]])
             return ModeSet(self._model, self._indices[index])
@@ -75,7 +73,7 @@ class ModeSet(object):
     def numDOF(self):
         """Returns number of degrees of freedom."""
 
-        return self._model._dof
+        return self._model.numDOF()
 
     def getTitle(self):
         """Returns title of the mode set."""

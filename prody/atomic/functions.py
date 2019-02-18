@@ -3,22 +3,26 @@
 
 from textwrap import wrap
 
-from numpy import load, savez, zeros, array
+from numpy import load, savez, ones, zeros, array, argmin, where
+from numpy import ndarray, asarray, isscalar, concatenate, arange, ix_
 
-from prody.utilities import openFile, rangeString
+from prody.utilities import openFile, rangeString, getDistance, fastin
 from prody import LOGGER
 
 from . import flags
 from . import select
 
+from .atomic import Atomic
 from .atomgroup import AtomGroup
 from .atommap import AtomMap
 from .bond import trimBonds, evalBonds
 from .fields import ATOMIC_FIELDS
 from .selection import Selection
+from .hierview import HierView
 
 __all__ = ['iterFragments', 'findFragments', 'loadAtoms', 'saveAtoms',
-           'isReserved', 'listReservedWords', 'sortAtoms', 'sliceAtoms']
+           'isReserved', 'listReservedWords', 'sortAtoms', 'sliceAtoms', 
+           'extendAtoms', 'sliceAtomicData', 'extendAtomicData']
 
 
 SAVE_SKIP_ATOMGROUP = set(['numbonds', 'fragindex'])
@@ -282,16 +286,27 @@ def sortAtoms(atoms, label, reverse=False):
 
 
 def sliceAtoms(atoms, select):
+    """Slice *atoms* using the selection defined by *select*.
+
+    :arg atoms: atoms to be selected from
+    :type atoms: :class:`Atomic`
+
+    :arg select: a :class:`Selection` instance or selection string
+    :type select: :class:`Selection`, str
+
+    """
 
     if atoms == select:
         raise ValueError('atoms and select arguments are the same')
-    if select in atoms:
+
+    try:
         indices = select._getIndices()
-    elif isinstance(select, str):
-        select = atoms.select(select)
-        indices = select._getIndices()
-    else:
-        raise TypeError('select must be a string or a Selection instance')
+    except AttributeError:
+        if isinstance(select, str):
+            select = atoms.select(select)
+            indices = select._getIndices()
+        else:
+            raise TypeError('select must be a string or a Selection instance')
 
     if isinstance(atoms, AtomGroup):
         which = indices
@@ -301,3 +316,220 @@ def sliceAtoms(atoms, select):
                           if idx in idxset])
 
     return which, select
+
+def extendAtoms(nodes, atoms, is3d=False):
+    """Returns extended mapping indices and an :class:`.AtomMap`."""
+
+    #LOGGER.timeit('_prody_extendAtoms')
+    try:
+        i_nodes = nodes.iterAtoms()
+        n_nodes = nodes.numAtoms()
+    except AttributeError:
+        raise ValueError('nodes must be an Atomic instance')
+
+    if not nodes in atoms:
+        raise ValueError('nodes must be a subset of atoms')
+
+    atom_indices = []
+    real_indices = []   # indices of atoms that are used as nodes (with real mode data)
+    indices = []
+    get = HierView(atoms).getResidue
+    residues = []
+
+    #LOGGER.progress('Extending atoms...', n_nodes, '_prody_extendAtoms_extend')
+    for i, node in enumerate(i_nodes):
+        #LOGGER.update(i, label='_prody_extendAtoms')
+        res = get(node.getChid() or None, node.getResnum(),
+                  node.getIcode() or None, node.getSegname() or None)
+        if res is None:
+            raise ValueError('atoms must contain a residue for all atoms')
+
+        res_atom_indices = res._getIndices()
+        if not fastin(res, residues):
+            atom_indices.append(res_atom_indices)
+
+            res_real_indices = ones(len(res_atom_indices)) * -1
+            real_indices.append(res_real_indices)
+
+            if is3d:
+                nma_indices = list(range(i*3, (i+1)*3)) * len(res)
+            else:
+                nma_indices = [i] * len(res)
+
+            indices.append(nma_indices)
+            residues.append(res)
+        else:
+            k = where(res_atom_indices==node.getIndex())[0][0]
+            if is3d:
+                nma_indices[k*3:(k+1)*3] = list(range(i*3, (i+1)*3))
+            else:
+                nma_indices[k] = i
+
+            res_real_indices = real_indices[residues.index(res)]
+        
+        # register the real node
+        node_index = node.getIndex()
+        res_real_indices[res_atom_indices == node_index] = i
+    
+    def getClosest(a, B):
+        D = []
+        for b in B:
+            d = getDistance(a._getCoords(), b._getCoords())
+            D.append(d)
+        
+        i = argmin(D)
+        return B[i]
+    #LOGGER.finish()
+    #LOGGER.report('Atoms was extended in %2.fs.', label='_prody_extendAtoms_extend')
+
+    #LOGGER.progress('Removing possible redundant atoms...', len(real_indices), '_prody_extendAtoms_remove')
+    for i, res_real_indices in enumerate(real_indices):
+        #LOGGER.update(i, label='_prody_extendAtoms_remove')
+        arr = array(res_real_indices)
+        # this residue is represented by one node, so no correction is needed
+        if sum(arr >= 0) == 1: 
+            continue
+        # otherwise replace the data of extended atoms by that of 
+        # the nearest real node in the residue
+        else:
+            # get all the atoms in this residue
+            res_atoms = array(residues[i])
+            # get the real and extended atoms
+            real_atoms = res_atoms[arr >= 0]
+            for j in range(len(res_real_indices)):
+                if res_real_indices[j] >= 0:
+                    continue
+                else:
+                    atom = res_atoms[j]
+                    closest_real_atom = getClosest(atom, real_atoms)
+                    k = where(real_atoms == closest_real_atom)[0][0]
+                    
+                    nma_indices = indices[i]
+                    if is3d:
+                        nma_indices[j*3:(j+1)*3] = nma_indices[k*3:(k+1)*3]
+                    else:
+                        nma_indices[j] = nma_indices[k]
+
+    atom_indices = concatenate(atom_indices)
+    indices = concatenate(indices)
+
+    #LOGGER.finish()
+    #LOGGER.report('Redundant atoms was removed in %2.fs.', label='_prody_extendAtoms_remove')
+
+    try:
+        ag = atoms.getAtomGroup()
+    except AttributeError:
+        ag = atoms
+    atommap = AtomMap(ag, atom_indices, atoms.getACSIndex(),
+                      title=str(atoms), intarrays=True)
+    
+    #LOGGER.report('Full atoms was extended in %2.fs.', label='_prody_extendAtoms')
+
+    return indices, atommap
+
+def sliceAtomicData(data, atoms, select, axis=None):
+    """Slice a matrix using indices extracted using :func:`sliceAtoms`.
+
+    :arg data: any data array
+    :type data: :class:`~numpy.ndarray`
+
+    :arg atoms: atoms to be selected from
+    :type atoms: :class:`Atomic`
+
+    :arg select: a :class:`Selection` instance or selection string
+    :type select: :class:`Selection`, str
+
+    :arg axis: the axis along which the data is sliced. See :mod:`~numpy` 
+               for details of this parameter. 
+               Default is **None** (all axes)
+    :type axis: int, list
+
+    """
+
+    if isscalar(data):
+        raise TypeError('The data must be array-like.')
+
+    if not isinstance(data, ndarray):
+        data = asarray(data)
+
+    if not isinstance(atoms, Atomic):
+        raise TypeError('atoms must be an Atomic instance')
+
+    natoms = atoms.numAtoms()
+
+    is3d = False
+    if len(data) != natoms:
+        if data.shape[0] == natoms * 3:
+            is3d = True
+        else:
+            raise ValueError('data and atoms must have the same size')
+
+    indices, _ = sliceAtoms(atoms, select)
+    if is3d:
+        indices = array([[i*3, i*3+1, i*3+2] 
+                        for i in indices]
+                        ).reshape(3*len(indices))
+
+    if axis is not None:
+        I = [arange(s) for s in data.shape] 
+        axes = [axis] if isscalar(axis) else axis
+        for ax in axes:
+            I[ax] = indices
+    else:
+        I = [indices] * data.ndim
+    
+    profiles = data[ix_(*I)]
+        
+    return profiles
+
+sliceData = sliceAtomicData
+
+def extendAtomicData(data, nodes, atoms, axis=None):
+    """Extend a coarse grained data obtained for *nodes* to *atoms*.
+
+    :arg data: any data array
+    :type data: :class:`~numpy.ndarray`
+
+    :arg nodes: a set of atoms that has been used
+        as nodes in data generation
+    :type nodes: :class:`
+
+    :arg atoms: atoms to be selected from
+    :type atoms: :class:`Atomic`
+
+    :arg axis: the axis/direction you want to use to slice data from the matrix.
+        The options are **0** or **1** or **None** like in :mod:`~numpy`. 
+        Default is **None** (all axes)
+    :type axis: int
+
+    """
+    
+    try:
+        data = asarray(data)
+    except:
+        raise TypeError('The data must be array-like.')
+
+    nnodes = nodes.numAtoms()
+
+    is3d = False
+    if data.shape[0] != nnodes:
+        if data.shape[0] == nnodes * 3:
+            is3d = True
+        else:
+            raise ValueError('data and nodes must have the same size')
+
+    indices, atommap = extendAtoms(nodes, atoms, is3d)
+    
+    if axis is not None:
+        I = [arange(s) for s in data.shape] 
+        axes = [axis] if isscalar(axis) else axis
+        for ax in axes:
+            I[ax] = indices
+    else:
+        I = [indices] * data.ndim
+
+    data_ext = data[ix_(*I)]
+        
+    return data_ext, atommap
+
+extendData = extendAtomicData

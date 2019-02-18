@@ -3,11 +3,13 @@
 for conformations in an ensemble."""
 
 import time
+from numbers import Integral
 from numpy import ndarray
 import numpy as np
 
 from prody import LOGGER, SETTINGS
-from prody.utilities import showFigure, showMatrix, copy, checkWeights
+from prody.utilities import showFigure, showMatrix, copy, checkWeights, openFile
+from prody.utilities import getValue, importLA, wmean
 from prody.ensemble import Ensemble, Conformation
 
 from .nma import NMA
@@ -17,16 +19,17 @@ from .functions import calcENM
 from .compare import calcSpectralOverlap, matchModes, calcOverlap
 
 from .analysis import calcSqFlucts, calcCrossCorr, calcFractVariance, calcCollectivity
-from .plotting import showAtomicLine, showAtomicMatrix
+from .plotting import showAtomicLines, showAtomicMatrix
 from .anm import ANM
 from .gnm import GNM
 
-__all__ = ['ModeEnsemble', 'sdarray', 'calcEnsembleENMs', 'showSignatureLine', 'showAtomicLinePlus', 
+__all__ = ['ModeEnsemble', 'sdarray', 'calcEnsembleENMs', 'showSignature1D', 'showSignatureAtomicLines', 
            'showSignatureMode', 'showSignatureDistribution', 'showSignatureCollectivity',
            'showSignatureSqFlucts', 'calcEnsembleSpectralOverlaps', 'calcSignatureSqFlucts', 
-           'calcSignatureCollectivity',
+           'calcSignatureCollectivity', 'calcSignatureFractVariance',
            'calcSignatureCrossCorr', 'showSignatureCrossCorr', 'showVarianceBar',
-           'showSignatureVariances', 'calcSignatureOverlaps', 'showSignatureOverlaps']
+           'showSignatureVariances', 'calcSignatureOverlaps', 'showSignatureOverlaps',
+           'saveModeEnsemble', 'loadModeEnsemble', 'saveSignature', 'loadSignature']
 
 class ModeEnsemble(object):
     """
@@ -34,7 +37,7 @@ class ModeEnsemble(object):
     or :class:`PDBEnsemble`. 
     """
 
-    __slots__ = ['_modesets', '_title', '_labels', '_atoms', '_weights', '_matched']
+    __slots__ = ['_modesets', '_title', '_labels', '_atoms', '_weights', '_matched', '_reweighted']
 
     def __init__(self, title=None):
         self._modesets = []
@@ -43,6 +46,7 @@ class ModeEnsemble(object):
         self._atoms = None
         self._weights = None
         self._matched = False
+        self._reweighted = False
 
     def __len__(self):
         """Returns the number of modesets."""
@@ -75,21 +79,43 @@ class ModeEnsemble(object):
 
         if isinstance(modeset_index, slice):
             modesets = self._modesets[modeset_index]
-            labels = self._labels[modeset_index] if self._labels else None
-        elif isinstance(modeset_index, (list, tuple)):
-            modesets = []; labels = []
+            modeset_indices = modeset_index
+            labels = None if self._labels is None else self._labels[modeset_index]
+            matched = self.getMatchingStatus()[modeset_index]
+            reweighted = self.getReweightingStatus()[modeset_index]
+        elif not np.isscalar(modeset_index):
+            modesets = []; modeset_indices = []; labels = []; matched = []; reweighted = []
             for i in modeset_index:
-                assert isinstance(i, int), 'all indices must be integers'
-                modesets.append(self._modesets[i])
+                if isinstance(i, Integral):
+                    j = i
+                elif isinstance(i, str):
+                    try:
+                        j = self._labels.index(i)
+                    except:
+                        raise IndexError('invalid label: %s'%i)
+                else:
+                    raise IndexError('all indices must be integers or strings (labels)')
+                modesets.append(self._modesets[j])
+                modeset_indices.append(j)
                 if self._labels is not None:
-                    labels.append(self._labels[i])
+                    labels.append(self._labels[j])
+                
+                allstatus = self.getMatchingStatus()
+                matched.append(allstatus[j])
+
+                allstatus = self.getReweightingStatus()
+                reweighted.append(allstatus[j])
         else:
-            try:
-                modeset_index = int(modeset_index)
-            except Exception:
-                raise IndexError('indices must be int, slice, list, or tuple')
+            if isinstance(modeset_index, Integral):
+                pass
+            elif isinstance(modeset_index, str):
+                try:
+                    modeset_index = self._labels.index(modeset_index)
+                except:
+                    raise IndexError('invalid label: %s'%modeset_index)
             else:
-                return self._modesets[modeset_index][mode_index]
+                raise IndexError('indices must be int, slice, or array-like objects')
+            return self._modesets[modeset_index][mode_index]
         
         if np.isscalar(mode_index):
             mode_index = [mode_index]
@@ -99,12 +125,11 @@ class ModeEnsemble(object):
         if self._weights is None:
             weights = None
         else:
-            weights = self._weights[modeset_index, :, :]
+            weights = self._weights[modeset_indices, :, :]
 
         ens = ModeEnsemble(title=self.getTitle())
-        ens.addModeSet(modesets, weights=weights, label=labels)
+        ens.addModeSet(modesets, weights=weights, label=labels, matched=matched, reweighted=reweighted)
         ens.setAtoms(self.getAtoms())
-        ens._matched = self._matched
         return ens
 
     def __getitem__(self, index):
@@ -138,12 +163,13 @@ class ModeEnsemble(object):
 
         ensemble = ModeEnsemble('{0} + {1}'.format(self.getTitle(),
                                                   other.getTitle()))
-        ensemble.addModeSet(self._modesets, self._labels)
+        ensemble.addModeSet(self._modesets, weights=self._weights, label=self._labels,
+                            matched=self.getMatchingStatus(), reweighted=self.getReweightingStatus())
         ensemble.setAtoms(self.getAtoms())
         
         ensemble.addModeSet(other.getModeSets(), weights=other.getWeights(),
-                            label=other.getLabels())
-        ensemble._matched = self._matched and other._matched
+                            label=other.getLabels(), matched=other.getMatchingStatus(),
+                            reweighted=other.getReweightingStatus())
         return ensemble
 
     def is3d(self):
@@ -333,25 +359,136 @@ class ModeEnsemble(object):
 
         return self._labels
 
-    def match(self):
-        """Matches the modes across mode sets according the mode overlaps."""
+    def setLabels(self, labels):
+        """Returns the labels of the mode ensemble."""
+        if len(labels) != self.numModeSets():
+            raise ValueError('the number of labels and mode sets mismatch')
+        self._labels = labels
+
+    def getMatchingStatus(self):
+        """Returns the matching status of each mode ensemble."""
+
+        if isinstance(self._matched, bool):
+            matched = [self._matched for _ in self]
+        else:
+            matched = self._matched
+        return matched
+
+    def setMatchingStatus(self, status):
+        """Returns the matching status of each mode ensemble."""
+
+        if not isinstance(status, bool):
+            if len(status) != self.numModeSets():
+                raise ValueError('the number of status and mode sets mismatch')
+        self._matched = status
+
+    def getReweightingStatus(self):
+        """Returns the reweighting status of each mode ensemble."""
+
+        if isinstance(self._reweighted, bool):
+            reweighted = [self._reweighted for _ in self]
+        else:
+            reweighted = self._reweighted
+        return reweighted
+
+    def setReweightingStatus(self, status):
+        """Returns the reweighting status of each mode ensemble."""
+
+        if not isinstance(status, bool):
+            if len(status) != self.numModeSets():
+                raise ValueError('the number of status and mode sets mismatch')
+        self._reweighted = status
+
+    def match(self, turbo=False, method=None):
+        """Matches the modes across mode sets according the mode overlaps.
+
+        :arg turbo: if **True** then the computation will be performed in parallel. 
+                The number of threads is set to be the same as the number of 
+                CPUs. Assigning a number to specify the number of threads to be 
+                used. Default is **False**
+        :type turbo: bool, int
+        """
 
         if self._modesets:
             #LOGGER.debug('Matching {0} modes across {1} modesets...'
             #                .format(self.numModes(), self.numModeSets()))
             start = time.time()
-            self._modesets = matchModes(*self._modesets)
+
+            matched = self.getMatchingStatus()
+            if np.any(matched):
+                matched[0] = False
+                indices = [i for i in range(len(matched)) if not matched[i]]
+                modesets = [self._modesets[i] for i in indices]
+
+                modesets = matchModes(*modesets, turbo=turbo, method=method)
+
+                for n, i in enumerate(indices):
+                    if n > 0:
+                        self._modesets[i] = modesets[n]
+
+                n_modesets = len(modesets)
+            else: # if all not matched, start from scratch
+                self._modesets = matchModes(*self._modesets, turbo=turbo, method=method)
+                n_modesets = len(self._modesets)
+
             LOGGER.debug('{0} modes across {1} modesets were matched in {2:.2f}s.'
-                            .format(self.numModes(), self.numModeSets(), time.time()-start))
+                            .format(self.numModes(), n_modesets, time.time()-start))
         else:
             LOGGER.warn('Mode ensemble has no modesets')
         self._matched = True
         return
 
+    def reweight(self):
+        """Reweight the modes based on matched orders"""
+
+        self._reweighted = []
+        for i in range(self.numModeSets()):
+            modes = self._modesets[i]
+            model = modes._model
+
+            I = modes.getIndices()   # matched order for the subset of modes
+            J = np.sort(I) # original order for the subset
+            V = model.getEigvecs()
+
+            W = model.getEigvals()
+            W[I] = W[J]
+            model.setEigens(V, W)
+            self._reweighted.append(True)
+
+    def undoMatching(self):
+        """Restores the original orders of modes"""
+
+        n_modes = self.numModes()
+        matched = self.getMatchingStatus()
+        for i, enm in enumerate(self):
+            if matched[i]:
+                model = enm._model
+                self._modesets[i] = model[:n_modes]
+
+        self.setMatchingStatus(False)
+
+    def undoReweighting(self):
+        """Restores the original weighting of modes"""
+
+        reweighted = self.getReweightingStatus()
+        for i, enm in enumerate(self):
+            model = enm._model
+            if reweighted[i]:
+                vars = model.getVariances()
+                I = np.argsort(vars)[::-1]
+
+                V = model.getEigvecs()
+
+                W = model.getEigvals()
+                W = W[I]
+                model.setEigens(V, W)
+
+        self.setReweightingStatus(False)
+
     def reorder(self):
         """Reorders the modes across mode sets according to their collectivity"""
-        if not self._matched:
-            LOGGER.warn('Mode ensemble has not been matched')
+        if not self.isMatched():
+            LOGGER.warn('Mode ensemble has not been all matched')
         else:
             vals = self.getEigvals()
             
@@ -364,7 +501,7 @@ class ModeEnsemble(object):
 
             self._modesets = ret
 
-    def addModeSet(self, modeset, weights=None, label=None):
+    def addModeSet(self, modeset, weights=None, label=None, matched=False, reweighted=False):
         """Adds a modeset or modesets to the mode ensemble."""
 
         if isinstance(modeset, (NMA, ModeSet, Mode)):
@@ -372,20 +509,31 @@ class ModeEnsemble(object):
         else:
             modesets = modeset
 
-        if label is not None:
-            if np.isscalar(label):
+        matchingstatus = self.getMatchingStatus()
+        if isinstance(matched, bool):
+            matched = [matched for _ in range(len(modesets))]
+        matchingstatus.extend(matched)
+        self._matched = matchingstatus
+
+        reweightingstatus = self.getReweightingStatus()
+        if isinstance(reweighted, bool):
+            reweighted = [reweighted for _ in range(len(modesets))]
+        reweightingstatus.extend(reweighted)
+        self._reweighted = reweightingstatus
+
+        if self._labels is not None or label is not None:
+            if label is None:
+                labels = ['']*len(modesets)
+            elif np.isscalar(label):
                 labels = [label]
             else:
                 labels = label
             if len(labels) != len(modesets):
                 raise ValueError('labels should have the same length as modesets')
 
-        if not self._labels and labels:
-            self._labels = ['']*len(self._modesets)
-            self._labels.extend(labels)
+            if self._labels is None:
+                self._labels = ['']*len(self._modesets)
 
-        if not labels and self._labels:
-            labels = ['']*len(modesets)
             self._labels.extend(labels)
 
         for i in range(len(modesets)):
@@ -419,6 +567,7 @@ class ModeEnsemble(object):
                 self._weights = np.ones((self.numModeSets()-len(modesets), self.numAtoms(), 1))
             self._weights = np.concatenate((self._weights, weights), axis=0)
 
+
     def delModeSet(self, index):
         """Removes a modeset or modesets from the mode ensemble."""
 
@@ -434,15 +583,26 @@ class ModeEnsemble(object):
             if self._labels:
                 self._labels.pop(i)
 
+            if isinstance(self._matched, list):
+                self._matched.pop(i)
+
+            if isinstance(self._reweighted, list):
+                self._reweighted.pop(i)
+
         if self._weights is not None:
             torf = np.ones(n_modesets, dtype=bool)
             torf[index] = False
             self._weights = self._weights[torf, :, :]
 
     def isMatched(self):
-        """Returns whether the modes are matched across modesets in the mode ensemble"""
+        """Returns whether the modes are matched across ALL modesets in the mode ensemble"""
 
-        return self._matched
+        return np.all(self._matched)
+
+    def isReweighted(self):
+        """Returns whether the modes are matched across ALL modesets in the mode ensemble"""
+
+        return np.all(self._reweighted)
 
 class sdarray(ndarray):
     """
@@ -451,40 +611,13 @@ class sdarray(ndarray):
     the collection. 
     
     :class:`sdarray` functions exactly the same as :class:`~numpy.ndarray`, 
-    except that :method:`sdarray.mean`, :method:`sdarray.std`, 
-    :method:`sdarray.max`, :method:`sdarray.min` are overriden. 
+    except that :meth:`sdarray.mean`, :meth:`sdarray.std`, 
+    :meth:`sdarray.max`, :meth:`sdarray.min` are overriden. 
     Average, standard deviation, minimum, maximum, etc. are weighted and 
     calculated over the first axis by default. "sdarray" stands for 
     "signature dynamics array".
 
-    Suppose:
-    ```
-    In [1]: from prody import sdarray
-
-    In [2]: from numpy import mean
-
-    In [3]: sdarr = sdarray([[1, 2, 3], [4, 5, 6]], weights=[[0, 1, 1], [1, 1, 1]])
-    Out[3]:
-    sdarray([[1, 2, 3],
-            [4, 5, 6]])
-    weights=
-    array([[0, 1, 1],
-        [1, 1, 1]])
-    ```
-    Then if we use the :method:`sdarray.mean`,
-    ```
-    In [4]: sdarr.mean()
-    Out[4]: array([4., 3.5, 4.5])
-    ```
-    It will compute the **weighted** average over the modesets (first axis), whereas
-    ```
-    In [5]: mean(sdarr)
-    Out[5]: 3.5
-    ```
-    will just perform a usually `numpy.mean` calculation, assuming `axis=None` 
-    and **unweighted**.
-
-    Notes for developper: please read following article about subclassing 
+    Note for developers: please read the following article about subclassing 
     :class:`~numpy.ndarray` before modifying this class:
 
     https://docs.scipy.org/doc/numpy-1.14.0/user/basics.subclassing.html
@@ -634,33 +767,43 @@ class sdarray(ndarray):
         """Returns the labels of the signature."""
 
         return self._labels
-
+    
     def mean(self, axis=0, **kwargs):
         """Calculates the weighted average of the sdarray over modesets (`axis=0`)."""
 
         arr = np.asarray(self)
-        return np.average(arr, axis=axis, weights=self._weights)
+        weights = self._weights
+        return wmean(arr, weights, axis)
     
     def std(self, axis=0, **kwargs):
         """Calculates the weighted standard deviations of the sdarray over modesets (`axis=0`)."""
 
         arr = np.asarray(self)
-        mean = np.average(arr, weights=self._weights, axis=axis)
-        variance = np.average((arr - mean)**2, 
-                              weights=self._weights, axis=axis)
+        mean = wmean(arr, self._weights, axis)
+        variance = wmean((arr - mean)**2, self._weights, axis)
         return np.sqrt(variance)
 
     def min(self, axis=0, **kwargs):
         """Calculates the minimum values of the sdarray over modesets (`axis=0`)."""
 
-        arr = np.asarray(self)
-        return arr.min(axis=axis)
+        # np.array instead asarray is used to make sure a copy of the original data is created
+        arr = np.array(self)
+        weights = self._weights
+        if weights is not None:
+            weights = weights.astype(bool)
+            arr[~weights] = np.nan
+        return np.nanmin(arr, axis=axis)
 
     def max(self, axis=0, **kwargs):
         """Calculates the maximum values of the sdarray over modesets (`axis=0`)."""
 
-        arr = np.asarray(self)
-        return arr.max(axis=axis)
+        # np.array instead asarray is used to make sure a copy of the original data is created
+        arr = np.array(self)
+        weights = self._weights
+        if weights is not None:
+            weights = weights.astype(bool)
+            arr[~weights] = np.nan
+        return np.nanmax(arr, axis=axis)
 
     def getWeights(self):
         """Returns the weights of the signature."""
@@ -679,10 +822,54 @@ class sdarray(ndarray):
 
         return np.asarray(self)
 
+    def transpose(self, axes=None):
+        a = np.asarray(self)
+        return np.transpose(a, axes=axes)
+
 def calcEnsembleENMs(ensemble, model='gnm', trim='reduce', n_modes=20, **kwargs):
-    """Description"""
+    """Calculates normal modes for each member of *ensemble*.
+    
+    :arg ensemble: normal modes of whose members to be computed
+    :type ensemble: :class:`.PDBEnsemble`
+
+    :arg model: type of ENM that will be performed. It can be either 'anm' 
+                or 'gnm'
+    :type model: str
+
+    :arg trim: type of method that will be used to trim the model. It can 
+               be either 'trim' , 'slice', or 'reduce'. If set to 'trim', the parts 
+               that is not in the selection will simply be removed
+    :type trim: str
+
+    :arg n_modes: number of modes to be computed
+    :type trim: int
+
+    :arg turbo: if **True** then the computation will be performed in parallel. 
+                The number of threads is set to be the same as the number of 
+                CPUs. Assigning a number to specify the number of threads to be 
+                used. Default is **False**
+    :type turbo: bool, int
+
+    :arg match: whether the modes should be matched using :func:`.matchModes`. 
+                Default is **True**
+    :type match: bool
+
+    :arg method: the alternative function that is used to match the modes. 
+                Default is **None**
+    :type method: function
+
+    :arg turbo: whether use :class:`~multiprocessing.Pool` to accelerate the computation. 
+                Note that if writing a script, ``if __name__ == '__main__'`` is necessary 
+                to protect your code when multi-tasking. 
+                See https://docs.python.org/2/library/multiprocessing.html for details.
+                Default is **False**
+    :type turbo: bool
+    """
 
     match = kwargs.pop('match', True)
+    method = kwargs.pop('method', None)
+    turbo = kwargs.pop('turbo', False)
+
     if isinstance(ensemble, Conformation):
         conformation = ensemble
         ensemble = conformation.getEnsemble()
@@ -697,11 +884,13 @@ def calcEnsembleENMs(ensemble, model='gnm', trim='reduce', n_modes=20, **kwargs)
 
     start = time.time()
 
-    atoms = ensemble.getAtoms()
+    atoms = ensemble.getAtoms() 
     select = None
     if ensemble.isSelected():
         select = atoms
         atoms = ensemble.getAtoms(selected=False)
+
+    ori_coords = atoms.getCoords()
         
     labels = ensemble.getLabels()
 
@@ -750,8 +939,10 @@ def calcEnsembleENMs(ensemble, model='gnm', trim='reduce', n_modes=20, **kwargs)
                              label=ensemble.getLabels())
     modeens.setAtoms(ensemble.getAtoms())
 
+    atoms.setCoords(ori_coords)
+    
     if match:
-        modeens.match()
+        modeens.match(turbo=turbo, method=method)
     return modeens
 
 def _getEnsembleENMs(ensemble, **kwargs):
@@ -768,16 +959,33 @@ def _getEnsembleENMs(ensemble, **kwargs):
                             'or a list of NMA, Mode, or ModeSet instances.')
     return enms
 
-def calcEnsembleSpectralOverlaps(ensemble, distance=False, **kwargs):
-    """Description"""
+def calcEnsembleSpectralOverlaps(ensemble, distance=False, turbo=False, **kwargs):
+    """Calculate the spectral overlaps between each pair of conformations in the 
+    *ensemble*.
+    
+    :arg ensemble: an ensemble of structures or ENMs 
+    :type ensemble: :class: `Ensemble`, :class: `ModeEnsemble`
+
+    :arg distance: if set to **True**, spectral overlap will be converted to spectral 
+                   distance via arccos.
+    :type distance: bool
+
+    :arg turbo: if **True**, extra memory will be used to remember previous calculation 
+                results to accelerate the next calculation, so this option is particularly 
+                useful if spectral overlaps of the same ensemble are calculated repeatedly, 
+                e.g. using different number of modes. Note that for single calculation, 
+                *turbo* will compromise the speed.
+                Default is **False**
+    :type turbo: bool
+    """
 
     enms = _getEnsembleENMs(ensemble, **kwargs)
     
-    overlaps = np.zeros((len(enms), len(enms)))
-    for i, enmi in enumerate(enms):
-        for j, enmj in enumerate(enms):
-            covlap = calcSpectralOverlap(enmi, enmj)
-            overlaps[i, j] = covlap
+    overlaps = np.ones((len(enms), len(enms)))
+    for i in range(enms.numModeSets()):
+        for j in range(i+1, enms.numModeSets()):
+            covlap = calcSpectralOverlap(enms[i, :], enms[j, :], turbo=turbo)
+            overlaps[i, j] = overlaps[j, i] = covlap
 
     if distance:
         overlaps = np.arccos(overlaps)
@@ -788,8 +996,15 @@ def calcSignatureSqFlucts(mode_ensemble, **kwargs):
     """
     Get the signature square fluctuations of *mode_ensemble*. 
     
-    :arg mode_ensemble: an ensemble of structures or ENMs 
+    :arg mode_ensemble: an ensemble of ENMs 
     :type mode_ensemble: :class: `ModeEnsemble`
+
+    :keyword norm: whether to normalize the square fluctuations. Default is **True**
+    :type norm: bool
+
+    :keyword scale: whether to rescale the square fluctuations based on the reference. 
+                    Default is **False**
+    :type scale: bool
     """
 
     if not isinstance(mode_ensemble, ModeEnsemble):
@@ -799,10 +1014,23 @@ def calcSignatureSqFlucts(mode_ensemble, **kwargs):
         LOGGER.warn('modes in mode_ensemble did not match cross modesets. '
                     'Consider running mode_ensemble.match() prior to using this function')
 
+    ifnorm = kwargs.pop('norm', True)
+    ifscale = kwargs.pop('scale', False)
+
+    norm = importLA().norm
+
     modesets = mode_ensemble
     V = []
-    for modes in modesets:
+    for i, modes in enumerate(modesets):
         sqfs = calcSqFlucts(modes)
+
+        if ifnorm:
+            sqfs /= norm(sqfs)
+        elif ifscale:
+            if i == 0:
+                norm0 = norm(sqfs)
+            else:
+                sqfs /= norm(sqfs) * norm0
         V.append(sqfs)
     V = np.vstack(V)
 
@@ -817,7 +1045,30 @@ def calcSignatureSqFlucts(mode_ensemble, **kwargs):
 
     return sig
 
-def showAtomicLinePlus(y, std=None, min=None, max=None, atoms=None, **kwargs):
+def showSignatureAtomicLines(y, std=None, min=None, max=None, atoms=None, **kwargs):
+    """
+    Show the signature dynamics data using :func:`showAtomicLines`. 
+    
+    :arg y: the mean values of signature dynamics to be plotted 
+    :type y: :class:`~numpy.ndarray`
+
+    :arg std: the standard deviations of signature dynamics to be plotted 
+    :type std: :class:`~numpy.ndarray`
+
+    :arg min: the minimum values of signature dynamics to be plotted 
+    :type min: :class:`~numpy.ndarray`
+
+    :arg max: the maximum values of signature dynamics to be plotted 
+    :type max: :class:`~numpy.ndarray`
+
+    :arg linespec: line specifications that will be passed to :func:`showAtomicLines`
+    :type linespec: str
+
+    :arg atoms: an object with method :meth:`getResnums` for use 
+                on the x-axis.
+    :type atoms: :class:`Atomic` 
+    """
+
     from matplotlib.pyplot import figure, plot, fill_between, \
                                   gca, xlabel, ylabel, title, ylim
 
@@ -825,46 +1076,19 @@ def showAtomicLinePlus(y, std=None, min=None, max=None, atoms=None, **kwargs):
     zero_line = kwargs.pop('zero_line', False)
 
     x = range(y.shape[0])
-    lines, _, bars, _ = showAtomicLine(y, atoms=atoms, linespec=linespec, 
-                                       show_zero=zero_line, **kwargs)
-
-    ori_ylim = ylim()
-    ori_height = ori_ylim[1] - ori_ylim[0]
-    line = lines[-1]
-    color = line.get_color()
-    x, _ = line.get_data()
-    polys = []
-
-    if min is not None and max is not None:
-        poly = fill_between(x, min, max,
-                            alpha=0.15, facecolor=color, edgecolor=None,
-                            linewidth=1, antialiased=True)
-        polys.append(poly)
+    lines, polys, bars, texts = showAtomicLines(y, atoms=atoms, dy=std, lower=max, upper=min, 
+                                        linespec=linespec, show_zero=zero_line, **kwargs)
         
-    if std is not None:
-        poly = fill_between(x, y-std, y+std,
-                            alpha=0.35, facecolor=color, edgecolor=None,
-                            linewidth=1, antialiased=True)
-        polys.append(poly)
+    return lines, polys, bars, texts
 
-    # readjust domain/chain bars' locations
-    cur_ylim = ylim()
-    cur_height = cur_ylim[1] - cur_ylim[0]
-    for bar in bars:
-        Y = bar.get_ydata()
-        new_Y = (Y - ori_ylim[0]) / ori_height * cur_height + cur_ylim[0]
-        bar.set_ydata(new_Y)
-        
-    return lines, bars, polys
-
-def showSignatureLine(signature, linespec='-', **kwargs):
+def showSignature1D(signature, linespec='-', **kwargs):
     """
-    Show the signature dynamics using :func:`showAtomicLine`. 
+    Show *signature* using :func:`showAtomicLines`. 
     
     :arg signature: the signature dynamics to be plotted 
     :type signature: :class:`sdarray`
 
-    :arg linespec: line specifications that will be passed to :func:`showAtomicLine`
+    :arg linespec: line specifications that will be passed to :func:`showAtomicLines`
     :type linespec: str
 
     :arg atoms: an object with method :func:`getResnums` for use 
@@ -873,6 +1097,10 @@ def showSignatureLine(signature, linespec='-', **kwargs):
 
     :arg alpha: the transparency of the band(s).
     :type alpha: float
+
+    :arg range: whether shows the minimum and maximum values. 
+                Default is **True**
+    :type range: bool
     """
 
     from matplotlib.pyplot import figure, plot, fill_between, \
@@ -883,10 +1111,11 @@ def showSignatureLine(signature, linespec='-', **kwargs):
     meanV, stdV, minV, maxV = V.mean(), V.std(), V.min(), V.max()
 
     atoms = kwargs.pop('atoms', None)
-
     zero_line = kwargs.pop('show_zero', False)
+    zero_line = kwargs.pop('zero', zero_line)
+    show_range = kwargs.pop('range', True)
 
-    bars = []; polys = []; lines = []
+    bars = []; polys = []; lines = []; texts = []
 
     if V.is3d():
         meanV = np.reshape(meanV, (V.numAtoms(), 3)).T
@@ -899,25 +1128,31 @@ def showSignatureLine(signature, linespec='-', **kwargs):
             if i == 2:
                 atoms_ = atoms
                 zero_line_ = zero_line
-            _lines, _bars, _polys = showAtomicLinePlus(meanV[i], stdV[i], minV[i], maxV[i], 
+            if not show_range:
+                minV[i] = maxV[i] = None
+            _lines, _polys, _bars, _texts = showSignatureAtomicLines(meanV[i], stdV[i], minV[i], maxV[i], 
                                                    atoms=atoms_, zero_line=zero_line_,
                                                    linespec=linespec, **kwargs)
             lines.extend(_lines)
             bars.extend(_bars)
             polys.extend(_polys)
+            texts.extend(_texts)
 
     else:
-        _lines, _bars, _polys = showAtomicLinePlus(meanV, stdV, minV, maxV, 
+        if not show_range:
+            minV = maxV = None
+        _lines, _polys, _bars, _texts = showSignatureAtomicLines(meanV, stdV, minV, maxV, 
                                                atoms=atoms, zero_line=zero_line,
                                                linespec=linespec, **kwargs)
         lines.extend(_lines)
         bars.extend(_bars)
         polys.extend(_polys)
+        texts.extend(_texts)
 
     xlabel('Residues')
     title('Signature profile of ' + V.getTitle())
 
-    return lines, polys, bars
+    return lines, polys, bars, texts
 
 def showSignatureMode(mode_ensemble, **kwargs):
 
@@ -928,9 +1163,10 @@ def showSignatureMode(mode_ensemble, **kwargs):
         LOGGER.warn('modes in mode_ensemble did not match cross modesets. '
                     'Consider running mode_ensemble.match() prior to using this function')
 
-    mode = mode_ensemble.getEigvec()
+    scale = kwargs.pop('scale', 1.0)
+    mode = mode_ensemble.getEigvec() * scale
     show_zero = kwargs.pop('show_zero', True)
-    return showSignatureLine(mode, atoms=mode_ensemble.getAtoms(), show_zero=show_zero, **kwargs)
+    return showSignature1D(mode, atoms=mode_ensemble.getAtoms(), show_zero=show_zero, **kwargs)
 
 def showSignatureSqFlucts(mode_ensemble, **kwargs):
 
@@ -941,12 +1177,20 @@ def showSignatureSqFlucts(mode_ensemble, **kwargs):
         LOGGER.warn('modes in mode_ensemble did not match cross modesets. '
                     'Consider running mode_ensemble.match() prior to using this function')
 
-    sqf = calcSignatureSqFlucts(mode_ensemble)
+    scale = kwargs.pop('scale', 1.0)
+    sqf = calcSignatureSqFlucts(mode_ensemble) * scale
     show_zero = kwargs.pop('show_zero', False)
-    return showSignatureLine(sqf, atoms=mode_ensemble.getAtoms(), show_zero=show_zero, **kwargs)
+    return showSignature1D(sqf, atoms=mode_ensemble.getAtoms(), show_zero=show_zero, **kwargs)
 
 def calcSignatureCrossCorr(mode_ensemble, norm=True):
-    """Calculate average cross-correlations for a ModeEnsemble."""
+    """Calculate the signature cross-correlations based on a :class:`ModeEnsemble` instance.
+    
+    :arg mode_ensemble: an ensemble of ENMs 
+    :type mode_ensemble: :class: `ModeEnsemble`
+
+    :keyword norm: whether to normalize the cross-correlations. Default is **True**
+    :type norm: bool
+    """
     
     if not isinstance(mode_ensemble, ModeEnsemble):
         raise TypeError('mode_ensemble should be an instance of ModeEnsemble')
@@ -954,14 +1198,14 @@ def calcSignatureCrossCorr(mode_ensemble, norm=True):
     if not mode_ensemble.isMatched():
         LOGGER.warn('modes in mode_ensemble did not match cross modesets. '
                     'Consider running mode_ensemble.match() prior to using this function')
-    matches = mode_ensemble
-    n_atoms = matches.numAtoms()
-    n_sets = len(matches)
+    modesets = mode_ensemble
+    n_atoms = modesets.numAtoms()
+    n_sets = len(modesets)
 
     C = np.zeros((n_sets, n_atoms, n_atoms))
     for i in range(n_sets):
-        m = matches[i]
-        c = calcCrossCorr(m, norm=norm)
+        modes = modesets[i]
+        c = calcCrossCorr(modes, norm=norm)
         C[i, :, :] = c
 
     title_str = '%d modes'%mode_ensemble.numModes()
@@ -1058,7 +1302,7 @@ def showSignatureOverlaps(mode_ensemble):
     meanV = overlap_triu.mean(axis=1)
     stdV = overlap_triu.std(axis=1)
 
-    show = showAtomicLinePlus(meanV, stdV)
+    show = showSignatureAtomicLines(meanV, stdV)
     xlabel('Mode index')
     ylabel('Overlap')
     
@@ -1247,14 +1491,31 @@ def showSignatureCollectivity(mode_ensemble, **kwargs):
     return show
 
 def showVarianceBar(mode_ensemble, highlights=None, **kwargs):
+    """Show the distribution of variances (cumulative if multiple modes) using 
+    :func:`~numpy.histogram`. 
+    
+    :arg mode_ensemble: an ensemble of modes whose variances are displayed
+    :type mode_ensemble: :class: `ModeEnsemble`
 
-    from matplotlib.pyplot import figure, gca, annotate, subplots_adjust, plot
+    :arg highlights: labels of conformations whose locations on the bar 
+                     will be highlighted by arrows and texts
+    :type highlights: list
+
+    :arg fraction: whether the variances should be weighted or not. 
+                   Default is **True**
+    :type fraction: bool
+    """
+
+    from matplotlib.pyplot import figure, gca, annotate, subplots_adjust
+    from matplotlib.pyplot import fill_between, xlabel, yticks, xlim
     from matplotlib.figure import Figure
-    from matplotlib.colorbar import ColorbarBase
     from matplotlib.colors import Normalize, NoNorm
     from matplotlib import cm, colors
     
     fig = kwargs.pop('figure', None)
+    fract = kwargs.pop('fraction', True)
+    bins = kwargs.pop('bins', 50)
+    cmap = kwargs.pop('cmap', 'Reds')
 
     if isinstance(fig, Figure):
         fig_num = fig.number
@@ -1280,8 +1541,6 @@ def showVarianceBar(mode_ensemble, highlights=None, **kwargs):
     #box.y0 += height/7.
     ax.set_position(box)
 
-    fract = kwargs.pop('fraction', True)
-
     #defarrow = {'width':1, 'headwidth':2, 
     #            'facecolor':'black',
     #            'headlength': 4}
@@ -1294,18 +1553,17 @@ def showVarianceBar(mode_ensemble, highlights=None, **kwargs):
         sig = mode_ensemble.getVariances() 
 
     variances = sig.getArray().sum(axis=1)
-    #meanVar = variances.mean()
-    #stdVar = variances.std()
     
-    #variances = (variances - meanVar)/stdVar
+    hist, edges = np.histogram(variances, bins=bins)
+    color_norm  = colors.Normalize(vmin=hist.min(), vmax=hist.max())
+    scalar_map = cm.ScalarMappable(norm=color_norm, cmap=cmap)
+    colors = scalar_map.to_rgba(hist)
 
-    maxVar = variances.max()
-    minVar = variances.min()
-
-    cmap = kwargs.pop('cmap', 'jet')
-    norm = Normalize(vmin=minVar, vmax=maxVar)
-    cb = ColorbarBase(ax, cmap=cmap, norm=norm,
-                      orientation='horizontal')
+    areas = []
+    for i in range(len(hist)):
+        x = [edges[i], edges[i+1]]
+        area = fill_between(x, [0, 0], [1, 1], color=colors[i])
+        areas.append(area)
 
     if not highlights:
         highlights = []
@@ -1317,31 +1575,201 @@ def showVarianceBar(mode_ensemble, highlights=None, **kwargs):
             if not ens_labels:
                 raise TypeError('highlights should be a list of integers because '
                                     'mode_ensemble has no label')
-            indices.append(ens_labels.index(hl))
-            labels.append(hl)
+            index = ens_labels.index(hl)
+            if isinstance(highlights, dict):
+                label = highlights[hl]
+            else:
+                label = hl
         else:
             try:
                 index = int(hl)
             except:
                 raise TypeError('highlights should be a list of integers or strings') 
-            indices.append(index)
-            if ens_labels:
-                labels.append(ens_labels[index])
+            if isinstance(highlights, dict):
+                label = highlights[hl]
             else:
-                labels.append(str(index))
+                label = ens_labels[index] if ens_labels else str(index)
+        indices.append(index)
+        labels.append(label)
 
     annotations = []
     for i, label in zip(indices, labels):
-        x = norm(variances[i])
+        x = variances[i]
         an = annotate(label, xy=(x, 1), xytext=(x, ratio), arrowprops=arrowprops)
         annotations.append(an)
 
-    for i in range(len(variances)):
-        x = norm(variances[i])
-        plot([x, x], [0, 1], 'w')
+    # for i in range(len(variances)):
+    #     x = variances[i]
+    #     plot([x, x], [0, 1], 'w')
 
-    cb.set_label('Variances')
+    xlabel('Variances')
+    yticks([])
+    xlim([variances.min(), variances.max()])
 
     if SETTINGS['auto_show']:
         showFigure()
-    return cb, annotations
+    return areas, annotations
+
+def saveModeEnsemble(mode_ensemble, filename=None, atoms=False, **kwargs):
+    """Save *mode_ensemble* as :file:`filename.modeens.npz`.  If *filename* 
+    is **None**, title of the *mode_ensemble* will be used as the 
+    filename, after ``" "`` (white spaces) in the title are replaced with 
+    ``"_"`` (underscores).  Upon successful completion of saving, filename 
+    is returned. This function makes use of :func:`~numpy.savez_compressed` 
+    function."""
+
+    if not isinstance(mode_ensemble, ModeEnsemble):
+        raise TypeError('invalid type for mode_ensemble, {0}'
+                        .format(type(mode_ensemble)))
+    if len(mode_ensemble) == 0:
+        raise ValueError('mode_ensemble instance does not contain data')
+
+    attr_list = ['_modesets', '_title', '_labels', '_weights', '_matched', '_reweighted']
+    attr_dict = {}
+
+    if atoms:
+        attr_list.append('_atoms')
+    
+    for attr in attr_list:
+        value = getattr(mode_ensemble, attr)
+        if value is not None:
+            if attr == '_atoms':
+                value = [value, None]
+            if attr == '_modesets':
+                value = list(value)
+                value.append(None)
+            attr_dict[attr] = value
+
+    if filename is None:
+        filename = mode_ensemble.getTitle().replace(' ', '_')
+    
+    suffix = '.modeens'
+    if not filename.lower().endswith('.npz'):
+        if not filename.lower().endswith(suffix):
+            filename += suffix + '.npz'
+        else:
+            filename += '.npz'
+            
+    ostream = openFile(filename, 'wb', **kwargs)
+    np.savez_compressed(ostream, **attr_dict)
+    ostream.close()
+
+    return filename
+
+def loadModeEnsemble(filename, **kwargs):
+    """Returns ModeEnsemble instance after loading it from file (*filename*).
+    This function makes use of :func:`numpy.load` function.  See
+    also :func:`saveModeEnsemble`."""
+
+    if not 'encoding' in kwargs:
+        kwargs['encoding'] = 'latin1'
+    data = np.load(filename, **kwargs)
+    
+    weights = getValue(data, '_weights', None)
+    labels = getValue(data, '_labels', None)
+    matched = getValue(data, '_matched', False)
+    title = getValue(data, '_title', None)
+    modesets = getValue(data, '_modesets', [])
+    atoms = getValue(data, '_atoms', [None])[0]
+    reweighted = getValue(data, '_reweighted', False)
+
+    if isinstance(title, np.ndarray):
+        title = np.asarray(title, dtype=str)
+    title = str(title)
+
+    if isinstance(modesets, np.ndarray):
+        modesets = modesets.tolist()
+    while (None in modesets):
+        modesets.remove(None)
+
+    if labels is not None:
+        labels = labels.tolist()
+
+    if isinstance(matched, np.ndarray):
+        matched = matched.tolist()
+
+    if isinstance(reweighted, np.ndarray):
+        reweighted = reweighted.tolist()
+
+    modeens = ModeEnsemble(title=title)
+    modeens._weights = weights
+    modeens._labels = labels
+    modeens._matched = matched
+    modeens._reweighted = reweighted
+    modeens._modesets = modesets
+    modeens._atoms = atoms
+
+    return modeens
+
+def saveSignature(signature, filename=None, **kwargs):
+    """Save *signature* as :file:`filename.sdarray.npz`.  If *filename* 
+    is **None**, title of the *signature* will be used as the 
+    filename, after ``" "`` (white spaces) in the title are replaced with 
+    ``"_"`` (underscores).  Upon successful completion of saving, filename 
+    is returned. This function makes use of :func:`~numpy.savez_compressed` 
+    function."""
+
+    if not isinstance(signature, sdarray):
+        raise TypeError('invalid type for signature, {0}'
+                        .format(type(signature)))
+
+    attr_list = ['_title', '_labels', '_is3d', '_weights', '_oneset', '_array']
+    attr_dict = {}
+    
+    for attr in attr_list:
+        if attr == '_array':
+            value = np.asarray(signature)
+        else:
+            value = getattr(signature, attr)
+        if value is not None:
+            attr_dict[attr] = value
+
+    if filename is None:
+        filename = signature.getTitle().replace(' ', '_')
+    
+    suffix = '.sdarray'
+    if not filename.lower().endswith('.npz'):
+        if not filename.lower().endswith(suffix):
+            filename += suffix + '.npz'
+        else:
+            filename += '.npz'
+            
+    ostream = openFile(filename, 'wb', **kwargs)
+    np.savez_compressed(ostream, **attr_dict)
+    ostream.close()
+
+    return filename
+
+def loadSignature(filename, **kwargs):
+    """Returns :class:`sdarray` instance after loading it from file (*filename*).
+    This function makes use of :func:`numpy.load` function.  See
+    also :func:`saveSignature`."""
+
+    if not 'encoding' in kwargs:
+        kwargs['encoding'] = 'latin1'
+    data = np.load(filename, **kwargs)
+    
+    weights = getValue(data, '_weights', None)
+    labels = getValue(data, '_labels', None)
+    title = getValue(data, '_title', None)
+    is3d = getValue(data, '_is3d', False)
+    oneset = getValue(data, '_oneset', False)
+    array = getValue(data, '_array', None)
+
+    if isinstance(title, np.ndarray):
+        title = np.asarray(title, dtype=str)
+    title = str(title)
+
+    if isinstance(is3d, np.ndarray):
+        is3d = bool(is3d)
+
+    if isinstance(oneset, np.ndarray):
+        oneset = bool(oneset)
+
+    if labels is not None:
+        labels = labels.tolist()
+
+    signature = sdarray(array, weights=weights, labels=labels, title=title, 
+                      is3d=is3d, oneset=oneset)
+
+    return signature

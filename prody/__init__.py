@@ -1,21 +1,27 @@
 """ProDy is a package for Protein Dynamics, Sequence, and Structure Analysis"""
 
-__version__ = '1.9.4'
+__version__ = '1.10.8'
 __release__ = __version__ # + '-dev' # comment out '-dev' before a release
 
 import sys
 import warnings
 
-if sys.version_info[:2] < (2, 6):
-    raise Exception('prody is compatible with Python version less than 2.6')
+if sys.version_info[:2] < (2, 7):
+    sys.stderr.write('Python 2.6 and older is not supported\n')
+    sys.exit()
+
+if sys.version_info[0] == 3:
+    if sys.version_info[1] < 4:
+        sys.stderr.write('Python 3.4 and older is not supported\n')
+        sys.exit()
 
 try:
     import numpy as np
 except ImportError:
     raise ImportError('Numpy is a required package for ProDy')
 else:
-    if tuple(map(int, np.__version__.split('.')[:2])) < (1, 4):
-        raise ImportError('Numpy v1.4 or later is required for ProDy')
+    if tuple(map(int, np.__version__.split('.')[:2])) < (1, 10):
+        raise ImportError('Numpy v1.10 or later is required for ProDy')
 
 DEPRECATION_WARNINGS = False
 
@@ -116,6 +122,11 @@ from .chromatin import *
 __all__.extend(chromatin.__all__)
 __all__.append('chromatin')
 
+from . import domain_decomposition
+from .domain_decomposition import *
+__all__.extend(domain_decomposition.__all__)
+__all__.append('domain_decomposition')
+
 #from . import comd
 #from .comd import *
 #__all__.extend(comd.__all__)
@@ -128,7 +139,7 @@ __all__.append('prody')
 CONFIGURATION = {
     'backup': (False, None, None),
     'backup_ext': ('.BAK', None, None),
-    'auto_show': (True, None, None),
+    'auto_show': (False, None, None),
     'ligand_xml_save': (False, None, None),
     'typo_warnings': (True, None, None),
     'check_updates': (0, None, None),

@@ -45,9 +45,7 @@ class NMA(object):
             indices = np.arange(*index.indices(len(self)))
             if len(indices) > 0:
                 return ModeSet(self, indices)
-        elif isinstance(index, (list, tuple)):
-            for i in index:
-                assert isinstance(i, int), 'all indices must be integers'
+        elif isinstance(index, (list, tuple, np.ndarray)):
             if len(index) == 1:
                 return self._getMode(index[0])
             return ModeSet(self, index)
@@ -86,6 +84,9 @@ class NMA(object):
         self._trace = None
 
         self._is3d = True
+
+    def _clear(self):
+        pass
 
     def _getMode(self, index):
 
@@ -197,8 +198,8 @@ class NMA(object):
         """Returns covariance matrix.  If covariance matrix is not set or yet
         calculated, it will be calculated using available modes."""
 
-        array = self.getArray()
         if self._cov is None:
+            array = self.getArray()
             if array is None:
                 return None
             self._cov = np.dot(array, np.dot(np.diag(self._vars), array.T))
@@ -207,15 +208,10 @@ class NMA(object):
     def calcModes(self):
         """"""
 
-        pass
-
     def addEigenpair(self, vector, value=None):
         """Add eigen *vector* and eigen *value* pair(s) to the instance.
         If eigen *value* is omitted, it will be set to 1.  Inverse
         eigenvalues are set as variances."""
-
-        if self._array is None:
-            self.setEigens()
 
         try:
             ndim, shape = vector.ndim, vector.shape
@@ -228,6 +224,8 @@ class NMA(object):
             raise ValueError('eigenvectors must correspond to vector columns')
         else:
             vector = vector.reshape((shape[0], 1))
+
+        eigval = value
 
         if eigval is None:
             if ndim == 1:
@@ -248,6 +246,9 @@ class NMA(object):
                 elif value.shape[0] != value.shape[0]:
                     raise ValueError('number of eigenvectors and eigenvalues '
                                      'must match')
+
+        if self._array is None:
+            return self.setEigens(vector, value)
 
         if vector.shape[0] != self._array.shape[0]:
             raise ValueError('shape of vector do not match shape of '
@@ -272,7 +273,7 @@ class NMA(object):
         else:
             dof = shape[0]
             if self._is3d:
-                n_atoms = dof / 3
+                n_atoms = dof // 3
             else:
                 n_atoms = dof
             if self._n_atoms > 0 and n_atoms != self._n_atoms:
@@ -297,5 +298,7 @@ class NMA(object):
         self._n_atoms = n_atoms
         self._n_modes = n_modes
         self._vars = 1 / values
+
+        self._clear()
 
 

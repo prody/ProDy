@@ -76,16 +76,22 @@ def parseEMD(emd, **kwargs):
             emd = filename
         else:   
             raise IOError('EMD file {0} is not available in the directory {1}'
-                           .format(emd),os.getcwd())
+                           .format(emd, os.getcwd()))
     if title is None:
         kwargs['title'], ext = os.path.splitext(os.path.split(emd)[1])
 
     emdStream = openFile(emd, 'rb')
-    result = parseEMDStream(emdStream, **kwargs)
+
+    if emd.endswith('.stk'):
+        result = parseSTKStream(emd, **kwargs)
+    else:
+        result = parseEMDStream(emdStream, **kwargs)
+
     emdStream.close()
+
     return result
 
-def _parseEMDLines(atomgroup, stream, cutoff=None, n_nodes=1000, num_iter=20,return_map=False,make_nodes=False):
+def _parseEMDLines(atomgroup, stream, cutoff=None, n_nodes=1000, num_iter=20, map=True, make_nodes=False):
     """ Returns an AtomGroup. see also :func:`.parseEMDStream()`.
 
     :arg stream: stream from parser.
@@ -121,12 +127,17 @@ def _parseEMDLines(atomgroup, stream, cutoff=None, n_nodes=1000, num_iter=20,ret
         atomgroup.setChids(chainids)
  
     if make_nodes:
-        if return_map:
-            return emd, atomgroup
+        if map:
+            return atomgroup, emd
         else:
             return atomgroup
     else:
         return emd
+
+
+def parseSTKStream(stream, **kwargs):
+    LOGGER.warn('ProDy currently cannot parse .stk files correctly')
+    return None
 
 
 def parseEMDStream(stream, **kwargs):
@@ -141,14 +152,14 @@ def parseEMDStream(stream, **kwargs):
 
     n_nodes = int(kwargs.get('n_nodes', 1000))
     num_iter = int(kwargs.get('num_iter', 20))
-    return_map = kwargs.get('return_map',False)
+    map = kwargs.get('map',True)
     make_nodes = kwargs.get('make_nodes',False)
 
-    if return_map is False and make_nodes is False:
-        LOGGER.warn('At least one of return_map and make_nodes should be True. '
+    if map is False and make_nodes is False:
+        LOGGER.warn('At least one of map and make_nodes should be True. '
                     'Setting make_nodes to False was an intentional change from the default '
-                    'so return_map has been set to True.')
-        kwargs['return_map'] = True
+                    'behaviour so map has been set to True.')
+        map = True
 
     title_suffix = kwargs.get('title_suffix','')
     atomgroup = AtomGroup(str(kwargs.get('title', 'Unknown')) + title_suffix)
@@ -157,23 +168,21 @@ def parseEMDStream(stream, **kwargs):
         LOGGER.info('Building coordinates from electron density map. This may take a while.')
         LOGGER.timeit()
 
-        if return_map:
+        if map:
             emd, atomgroup = _parseEMDLines(atomgroup, stream, cutoff=cutoff, n_nodes=n_nodes, \
-                                            num_iter=num_iter, return_map=return_map, \
-                                            make_nodes=make_nodes)
+                                            num_iter=num_iter, map=map, make_nodes=make_nodes)
         else:
             atomgroup = _parseEMDLines(atomgroup, stream, cutoff=cutoff, n_nodes=n_nodes, \
-                                       num_iter=num_iter, return_map=return_map, \
-                                       make_nodes=make_nodes)
+                                       num_iter=num_iter, map=map, make_nodes=make_nodes)
+
         LOGGER.report('{0} atoms and {1} coordinate sets were '
                       'parsed in %.2fs.'.format(atomgroup.numAtoms(), atomgroup.numCoordsets()))
     else: 
         emd = _parseEMDLines(atomgroup, stream, cutoff=cutoff, n_nodes=n_nodes, \
-                             num_iter=num_iter, return_map=return_map, \
-                             make_nodes=make_nodes)
+                             num_iter=num_iter, map=map, make_nodes=make_nodes)
 
     if make_nodes:
-        if return_map:
+        if map:
             return emd, atomgroup
         else:
             return atomgroup

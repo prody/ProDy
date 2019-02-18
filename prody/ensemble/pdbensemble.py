@@ -1,5 +1,6 @@
 """This module defines a class for handling ensembles of PDB conformations."""
 
+from numbers import Integral
 import numpy as np
 
 from prody.sequence import MSA, Sequence
@@ -29,9 +30,9 @@ class PDBEnsemble(Ensemble):
     def __init__(self, title='Unknown'):
 
         self._labels = []
-        Ensemble.__init__(self, title)
         self._trans = None
         self._msa = None
+        Ensemble.__init__(self, title)
 
     def __repr__(self):
 
@@ -69,6 +70,20 @@ class PDBEnsemble(Ensemble):
         else:
             ensemble.setAtoms(other._atoms)
             ensemble._indices = other._indices
+
+        all_keys = list(self._data.keys()) + list(other._data.keys())
+        for key in all_keys:
+            if key in self._data and key in other._data:
+                self_data = self._data[key]
+                other_data = other._data[key]
+            elif key in self._data:
+                self_data = self._data[key]
+                other_data = np.zeros(other.numConfs(), dtype=self_data.dtype)
+            elif key in other._data:
+                other_data = other._data[key]
+                self_data = np.zeros(other.numConfs(), dtype=other_data.dtype)
+            ensemble._data[key] = np.concatenate((self_data, other_data), axis=0)
+
         return ensemble
 
     def __iter__(self):
@@ -84,9 +99,10 @@ class PDBEnsemble(Ensemble):
         """Returns a conformation at given index."""
 
         msa = self._msa
+        labels = self._labels
         if msa:
             msa = self._msa[index]
-        if isinstance(index, int):
+        if isinstance(index, Integral):
             return self.getConformation(index)
 
         elif isinstance(index, slice):
@@ -102,21 +118,40 @@ class PDBEnsemble(Ensemble):
                 ens._trans = self._trans[index]
             ens.setAtoms(self._atoms)
             ens._indices = self._indices
+
+            for key in self._data.keys():
+                ens._data[key] = self._data[key][index].copy()
             return ens
 
         elif isinstance(index, (list, np.ndarray)):
-            ens = PDBEnsemble('Conformations of {0}'.format(self._title))
+            index2 = list(index)
+            for i in range(len(index)):
+                if isinstance(index[i], str):
+                    try:
+                        index2[i] = labels.index(index[i])
+                    except ValueError:
+                        raise IndexError('invalid label: %s'%index[i])
+            ens = PDBEnsemble('{0}'.format(self._title))
             ens.setCoords(copy(self._coords))
-            labels = list(np.array(self._labels)[index])
-            ens.addCoordset(self._confs[index].copy(),
-                            self._weights[index].copy(),
+            labels = list(np.array(self._labels)[index2])
+            ens.addCoordset(self._confs[index2].copy(),
+                            self._weights[index2].copy(),
                             label=labels,
                             sequence=msa)
             if self._trans is not None:
-                ens._trans = self._trans[index]
+                ens._trans = self._trans[index2]
             ens.setAtoms(self._atoms)
             ens._indices = self._indices
+
+            for key in self._data.keys():
+                ens._data[key] = self._data[key][index].copy()
             return ens
+        elif isinstance(index, str):
+            try:
+                i = labels.index(index)
+                return self.getConformation(i)
+            except ValueError:
+                raise IndexError('invalid label: %s'%index)
         else:
             raise IndexError('invalid index')
 
@@ -174,7 +209,7 @@ class PDBEnsemble(Ensemble):
         degeneracy = kwargs.pop('degeneracy', False)
 
         atoms = coords
-        n_atoms = self.numAtoms()
+        n_atoms = self._n_atoms
         n_select = self.numSelected()
         n_confs = self.numCoordsets()
 
@@ -209,9 +244,10 @@ class PDBEnsemble(Ensemble):
             if coords is None:
                 raise ValueError('coordinates are not set')
             elif label is None and isinstance(atoms, Atomic):
-                ag = atoms
                 if not isinstance(atoms, AtomGroup):
                     ag = atoms.getAtomGroup()
+                else:
+                    ag = atoms
                 label = ag.getTitle()
                 if coords.shape[0] < ag.numCoordsets():
                     label += '_m' + str(atoms.getACSIndex())
@@ -286,19 +322,17 @@ class PDBEnsemble(Ensemble):
 
         # assign new values
         # update labels
-        if n_csets > 1:
-            if not degeneracy:
-                if isinstance(label, str):
-                    labels = ['{0}_m{1}'.format(label, i+1) for i in range(n_csets)]
-                else:
-                    if len(label) != n_csets:
-                        raise ValueError('length of label and number of '
-                                         'coordinate sets must be the same')
-                    labels = label
+        if n_csets > 1 and not degeneracy:
+            if isinstance(label, str):
+                labels = ['{0}_m{1}'.format(label, i+1) for i in range(n_csets)]
             else:
-                labels = [label]
+                if len(label) != n_csets:
+                    raise ValueError('length of label and number of '
+                                        'coordinate sets must be the same')
+                labels = label
         else:
-            labels = [label]
+            labels = [label] if np.isscalar(label) else label
+
         self._labels.extend(labels)
 
         # update sequences
@@ -350,8 +384,8 @@ class PDBEnsemble(Ensemble):
 
     def getCoordsets(self, indices=None, selected=True):
         """Returns a copy of coordinate set(s) at given *indices* for selected
-        atoms. *indices* may be an integer, a list of integers or ``None``.
-        ``None`` returns all coordinate sets.
+        atoms. *indices* may be an integer, a list of integers or **None**.
+        **None** returns all coordinate sets.
 
         .. warning:: When there are atoms with weights equal to zero (0),
            their coordinates will be replaced with the coordinates of the
@@ -394,7 +428,7 @@ class PDBEnsemble(Ensemble):
         """Delete a coordinate set from the ensemble."""
 
         Ensemble.delCoordset(self, index)
-        if isinstance(index, int):
+        if isinstance(index, Integral):
             index = [index]
         else:
             index = list(index)
@@ -414,7 +448,7 @@ class PDBEnsemble(Ensemble):
 
         if self._confs is None:
             raise AttributeError('conformations are not set')
-        if not isinstance(index, int):
+        if not isinstance(index, Integral):
             raise TypeError('index must be an integer')
         n_confs = self._n_csets
         if -n_confs <= index < n_confs:
@@ -455,8 +489,8 @@ class PDBEnsemble(Ensemble):
         you might need to align the conformations using :meth:`superpose` or
         :meth:`iterpose` before calculating RMSDs.
 
-        :arg pairwise: if ``True`` then it will return pairwise RMSDs 
-        as an n-by-n matrix. n is the number of conformations.
+        :arg pairwise: if **True** then it will return pairwise RMSDs 
+            as an n-by-n matrix. n is the number of conformations.
         :type pairwise: bool
         """
 

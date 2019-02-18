@@ -3,10 +3,10 @@
 and measuring quantities."""
 
 from numpy import ndarray, power, sqrt, array, zeros, arccos
-from numpy import sign, tile, concatenate, pi, cross, subtract, round, var
+from numpy import sign, tile, concatenate, pi, cross, subtract, var
 
 from prody.atomic import Atomic, Residue, Atom
-from prody.utilities import importLA, checkCoords
+from prody.utilities import importLA, checkCoords, getDistance
 from prody import LOGGER, PY2K
 
 if PY2K:
@@ -61,6 +61,10 @@ def buildDistMatrix(atoms1, atoms2=None, unitcell=None, format='mat'):
                 atoms2 = atoms2._getCoords()
             except AttributeError:
                 raise TypeError('atoms2 must be Atomic instance or an array')
+
+        if atoms2.ndim == 1:
+            atoms2 = atoms2.reshape((1,3))
+
     if atoms1.shape[-1] != 3 or atoms2.shape[-1] != 3:
         raise ValueError('one and two must have shape ([M,]N,3)')
 
@@ -121,7 +125,7 @@ def calcDistance(atoms1, atoms2, unitcell=None):
         except AttributeError:
             raise TypeError('atoms2 must be Atomic instance or an array')
     if atoms1.shape[-1] != 3 or atoms2.shape[-1] != 3:
-        raise ValueError('one and two must have shape ([M,]N,3)')
+        raise ValueError('atoms1 and atoms2 must have shape ([M,]N,3)')
 
     if unitcell is not None:
         if not isinstance(unitcell, ndarray):
@@ -130,14 +134,6 @@ def calcDistance(atoms1, atoms2, unitcell=None):
             raise ValueError('unitcell.shape must be (3,)')
 
     return getDistance(atoms1, atoms2, unitcell)
-
-
-def getDistance(coords1, coords2, unitcell=None):
-
-    diff = coords1 - coords2
-    if unitcell is not None:
-        diff = subtract(diff, round(diff/unitcell)*unitcell, diff)
-    return sqrt(power(diff, 2, diff).sum(axis=-1))
 
 
 def calcAngle(atoms1, atoms2, atoms3, radian=False):
@@ -156,8 +152,8 @@ def calcAngle(atoms1, atoms2, atoms3, radian=False):
                     atoms3._getCoords(), radian)
 
 
-def getAngle(coords1, coords2, coords3, radian):
-    """Returns bond angle in degrees."""
+def getAngle(coords1, coords2, coords3, radian=False):
+    """Returns bond angle in degrees unless ``radian=True``"""
 
     v1 = coords1 - coords2
     v2 = coords3 - coords2
@@ -189,7 +185,7 @@ def calcDihedral(atoms1, atoms2, atoms3, atoms4, radian=False):
 
 
 def getDihedral(coords1, coords2, coords3, coords4, radian=False):
-    """Returns the dihedral angle in degrees."""
+    """Returns the dihedral angle in degrees unless ``radian=True``."""
 
     a1 = coords2 - coords1
     a2 = coords3 - coords2

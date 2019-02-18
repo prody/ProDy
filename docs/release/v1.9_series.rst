@@ -58,8 +58,8 @@ ProDy 1.9 Series
 *Visualization with py3Dmol*
 
   * In jupyter notebook, if you have installed py3Dmol you can use
-  py3Dmol visualization directly instead of simple matplotlib 
-  visualization. 
+    py3Dmol visualization directly instead of simple matplotlib 
+    visualization. 
 
 *mmcif parser*
 
@@ -70,7 +70,7 @@ ProDy 1.9 Series
   * Various indexing issues are fixed. 
 
   * Some of the obsolete pdbs will not be downloaded anymore, instead
-  replaced pdbs will be downloaded. This will change the priority 
-  between ftp and http servers.  
+    replaced pdbs will be downloaded. This will change the priority 
+    between ftp and http servers.  
 
 

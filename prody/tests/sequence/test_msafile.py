@@ -3,10 +3,6 @@ __author__ = 'Ahmet Bakan, Anindita Dutta'
 from prody.tests import TestCase
 import os
 from os.path import join
-try:
-    from StringIO import StringIO
-except ImportError:
-    from io import StringIO
 
 from numpy import array, log, zeros, char
 from numpy.testing import assert_array_equal, dec
@@ -14,6 +10,7 @@ from numpy.testing import assert_array_equal, dec
 from prody.tests.datafiles import *
 from prody.tests import TEMPDIR
 from prody import MSA, MSAFile, parseMSA, LOGGER, writeMSA
+from prody.utilities import createStringIO
 
 LOGGER.verbosity = None
 
@@ -33,7 +30,7 @@ class TestMSAFile(TestCase):
 
     def testWriteFasta(self):
 
-        fasta = StringIO()
+        fasta = createStringIO()
         with MSAFile(fasta, 'w', format='fasta') as out:
             for seq in MSAFile(pathDatafile('msa_Cys_knot.fasta')):
                 out.write(seq)
@@ -43,7 +40,7 @@ class TestMSAFile(TestCase):
 
     def testWriteSelex(self):
 
-        selex = StringIO()
+        selex = createStringIO()
         with MSAFile(selex, 'w', format='selex') as out:
             for seq in MSAFile(pathDatafile('msa_Cys_knot.slx')):
                 out.write(seq)
@@ -53,7 +50,7 @@ class TestMSAFile(TestCase):
 
     def testWriteStockholm(self):
 
-        stock = StringIO()
+        stock = createStringIO()
         with MSAFile(stock, 'w', format='stockholm') as out:
             for seq in MSAFile(pathDatafile('msa_Cys_knot.sth'), split=False):
                 out.write(seq)

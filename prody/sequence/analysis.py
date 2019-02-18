@@ -24,7 +24,7 @@ __all__ = ['calcShannonEntropy', 'buildMutinfoMatrix', 'calcMSAOccupancy',
            'applyMutinfoCorr', 'applyMutinfoNorm', 'calcRankorder', 'filterRankedPairs',
            'buildSeqidMatrix', 'uniqueSequences', 'buildOMESMatrix',
            'buildSCAMatrix', 'buildDirectInfoMatrix', 'calcMeff', 
-           'buildPCMatrix', 'buildMSA', 'showAlignment', 
+           'buildPCMatrix', 'buildMSA', 'showAlignment', 'alignTwoSequencesWithBiopython', 
            'alignSequenceToMSA', 'calcPercentIdentities', 'alignSequencesByChain',]
 
 
@@ -378,7 +378,7 @@ buildSeqidMatrix.__doc__ += doc_turbo
 def uniqueSequences(msa, seqid=0.98, turbo=True):
     """Returns a boolean array marking unique sequences in *msa*.  A sequence
     sharing sequence identity of *seqid* or more with another sequence coming
-    before itself in *msa* will have a ``False`` value in the array."""
+    before itself in *msa* will have a **True** value in the array."""
 
     msa = getMSA(msa)
 
@@ -395,11 +395,11 @@ uniqueSequences.__doc__ += doc_turbo
 
 def calcRankorder(matrix, zscore=False, **kwargs):
     """Returns indices of elements and corresponding values sorted in
-    descending order, if *descend* is ``True`` (default). Can apply a zscore
+    descending order, if *descend* is **True** (default). Can apply a zscore
     normalization; by default along *axis* - 0 such that each column has
     ``mean=0`` and ``std=1``.  If *zcore* analysis is used, return value contains the
     zscores. If matrix is symmetric only lower triangle indices will be
-    returned, with diagonal elements if *diag* is ``True`` (default)."""
+    returned, with diagonal elements if *diag* is **True** (default)."""
 
     try:
         ndim, shape = matrix.ndim, matrix.shape
@@ -640,7 +640,7 @@ def calcMeff(msa, seqid=.8, refine=False, weight=False, **kwargs):
 
 def alignSequencesByChain(PDBs, **kwargs):
     """
-    Runs :method:`buildMSA` for each chain and optionally joins the results.
+    Runs :func:`buildMSA` for each chain and optionally joins the results.
     Returns either a single :class:`MSA` or a dictionary containing an :class:`MSA` for each chain.
 
     :arg PDBs: a list of :class:`AtomGroup` objects
@@ -734,12 +734,17 @@ def buildMSA(sequences, title='Unknown', labels=None, **kwargs):
     :arg labels: a list of labels to go with the sequences
     :type labels: list
 
-    :arg align: whether to do alignment with clustalw(2)
+    :arg align: whether to align the sequences
         default True
     :type align: bool
+
+    :arg method: alignment method, one of either biopython.align.globalms or clustalw(2).
+        default 'clustalw'
+    :type align: str
     """
     
     align = kwargs.get('align', True)
+    method = kwargs.pop('method', 'clustalw')
     # 1. check if sequences are in a fasta file and if not make one
     if isinstance(sequences, str):
         filename = sequences
@@ -792,28 +797,46 @@ def buildMSA(sequences, title='Unknown', labels=None, **kwargs):
         # labels checkers are removed because they will be properly handled in MSA class initialization
         msa = MSA(msa=sequences, title=title, labels=labels)
 
-        if align:
+        if align and 'clustal' in method:
             filename = writeMSA(title + '.fasta', msa)
-
 
     if align:
         # 2. find and run alignment method
-        clustalw = which('clustalw')
-        if clustalw is None:
-            if which('clustalw2') is not None:
-                clustalw = which('clustalw2')
+        if 'biopython' in method:
+            if len(sequences) == 2:
+                msa, _, _ = alignTwoSequencesWithBiopython(sequences[0], sequences[1], **kwargs)
             else:
-                raise EnvironmentError("The executable for clustalw was not found, \
-                                        install clustalw or add it to the path.")
+                raise ValueError("Provide only two sequences or another method. \
+                                  Biopython pairwise alignment can only be used \
+                                  to build an MSA with two sequences.")
+        elif 'clustalw' in method:
+            clustalw = which('clustalw')
+            if clustalw is None:
+                if which('clustalw2') is not None:
+                    clustalw = which('clustalw2')
+                else:
+                    raise EnvironmentError("The executable for clustalw was not found, \
+                                            install clustalw or add it to the path.")
 
-        os.system('"%s" %s -OUTORDER=INPUT'%(clustalw, filename))
+            os.system('"%s" %s -OUTORDER=INPUT'%(clustalw, filename))
 
-        # 3. parse and return the new MSA
-        msa = parseMSA(title + '.aln')
+            # 3. parse and return the new MSA
+            msa = parseMSA(title + '.aln')
+
+        else:
+            alignTool = which(method)
+            if alignTool is None:
+                raise EnvironmentError("The executable for {0} was not found, \
+                                        install it or add it to the path.".format(alignTool))
+
+            os.system('"%s" %s -OUTORDER=INPUT'%(clustalw, filename))
+
+            # 3. parse and return the new MSA
+            msa = parseMSA(title + '.aln')
 
     return msa
 
-def showAlignment(alignment, row_size=60, max_seqs=5, **kwargs):
+def showAlignment(alignment, row_size=60, **kwargs):
     """
     Prints out an alignment as sets of short rows with labels.
 
@@ -823,10 +846,6 @@ def showAlignment(alignment, row_size=60, max_seqs=5, **kwargs):
     :arg row_size: the size of each row
         default 60
     :type row_size: int
-
-    :arg max_seqs: the maximum number of sequences to show
-        default 5
-    :type max_seqs: int
 
     :arg indices: a set of indices for some or all sequences
         that will be shown above the relevant sequences
@@ -853,7 +872,7 @@ def showAlignment(alignment, row_size=60, max_seqs=5, **kwargs):
             if not isinstance(label, str):
                 raise TypeError('each label should be a string')
 
-        if len(labels) < max_seqs:
+        if len(labels) < len(alignment):
             raise ValueError('there should be a label for every sequence shown')
     else:
         labels = []
@@ -882,11 +901,8 @@ def showAlignment(alignment, row_size=60, max_seqs=5, **kwargs):
             locs.append(where(int_index == max(int_index))[0][0])
         index_stop = locs[where(maxes == min(maxes))[0][0]]
 
-    if len(alignment) < max_seqs:
-        max_seqs = len(alignment)
-
     for i in range(int(ceil(len(alignment[0])/float(row_size)))):
-        for j in range(max_seqs):
+        for j in range(len(alignment)):
             if indices is not None:
                 sys.stdout.write('\n' + ' '*15 + '\t')
                 for k in range(row_size*i+10,row_size*(i+1)+10,10):
@@ -1007,6 +1023,32 @@ def alignSequenceToMSA(seq, msa, label, match=5, mismatch=-1, gap_opening=-10, g
     alignment = MSA(msa=array([array(list(alignment[0][0])), \
                                array(list(alignment[0][1]))]), \
                     labels=[ag.getTitle(), label])
+
+    return alignment, seq_indices, msa_indices
+
+def alignTwoSequencesWithBiopython(seq1, seq2, match=5, mismatch=-1, gap_opening=-10, gap_extension=-1):
+    
+    alignment = pairwise2.align.globalms(seq1, seq2, match, mismatch, gap_opening, gap_extension)
+
+    seq_indices = [0]
+    msa_indices = [0]
+
+    for i in range(len(alignment[0][0])):
+        if alignment[0][0][i] != '-':
+            seq_indices.append(seq_indices[i]+1)
+        else:
+            seq_indices.append(seq_indices[i])
+
+        if alignment[0][1][i] != '-':
+            msa_indices.append(msa_indices[i]+1)
+        else:
+            msa_indices.append(msa_indices[i])
+
+    seq_indices = array(seq_indices)
+    msa_indices = array(msa_indices)
+
+    alignment = MSA(msa=array([array(list(alignment[0][0])), \
+                               array(list(alignment[0][1]))]))
 
     return alignment, seq_indices, msa_indices
 

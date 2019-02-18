@@ -1,25 +1,144 @@
 """This module defines miscellaneous utility functions."""
+import re
 
-from numpy import unique, linalg, diag, sqrt, dot, chararray
-from numpy import diff, where, insert, nan, loadtxt, array
-from numpy import sign, arange, asarray
+from numpy import unique, linalg, diag, sqrt, dot, chararray, divide, zeros_like
+from numpy import diff, where, insert, nan, isnan, loadtxt, array, round, average
+from numpy import sign, arange, asarray, ndarray, subtract, power, sum
 from collections import Counter
 import numbers
 
-__all__ = ['Everything', 'rangeString', 'alnum', 'importLA', 'dictElement',
-           'intorfloat', 'startswith', 'showFigure', 'countBytes', 'sqrtm',
-           'saxsWater', 'count', 'addBreaks', 'copy', 'dictElementLoop', 
-           'getDataPath', 'openData', 'chr2', 'toChararray', 'interpY', 'cmp']
+from prody import PY3K
 
+from xml.etree.ElementTree import Element
+
+__all__ = ['Everything', 'Cursor', 'ImageCursor', 'rangeString', 'alnum', 'importLA', 'dictElement',
+           'intorfloat', 'startswith', 'showFigure', 'countBytes', 'sqrtm',
+           'saxsWater', 'count', 'addEnds', 'copy', 'dictElementLoop', 
+           'getDataPath', 'openData', 'chr2', 'toChararray', 'interpY', 'cmp',
+           'getValue', 'indentElement', 'isPDB', 'isURL', 'isListLike',
+           'getDistance', 'fastin', 'createStringIO', 'div0', 'wmean']
+
+CURSORS = []
+
+# Note that the chain id can be blank (space). Examples:
+# 3TT1, 3tt1A, 3tt1:A, 3tt1_A, 3tt1-A, 3tt1 A
+isPDB = re.compile('^[A-Za-z0-9]{4}[ -_:]{,1}[A-Za-z0-9 ]{,1}$').match
+
+# django url validation regex
+isURL = re.compile(
+        r'^(?:http|ftp)s?://' # http:// or https://
+        r'(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+(?:[A-Z]{2,6}\.?|[A-Z0-9-]{2,}\.?)|' #domain...
+        r'localhost|' #localhost...
+        r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})' # ...or ip
+        r'(?::\d+)?' # optional port
+        r'(?:/?|[/?]\S+)$', re.IGNORECASE).match
 
 class Everything(object):
-
     """A place for everything."""
 
     def __contains__(self, what):
 
         return True
 
+class Cursor(object):
+    def __init__(self, ax):
+        self.ax = ax
+        self.lx = ax.axhline(color='k', linestyle='--', linewidth=0.)  # the horiz line
+        self.ly = ax.axvline(color='k', linestyle='--', linewidth=0.)  # the vert line
+
+        # text location in axes coords
+        self.txt = ax.text(0., 1., '', transform=ax.transAxes, verticalalignment='bottom')
+        
+        # preserve the cursor reference
+        global CURSORS
+        CURSORS.append(self)
+
+    def onClick(self, event):
+        from matplotlib.pyplot import draw
+
+        if event.inaxes != self.ax:
+            return
+
+        if event.button == 1:
+            self.show(event)
+        elif event.button == 3:
+            self.clear(event)
+
+        draw()
+
+    def show(self, event):
+        x, y = event.xdata, event.ydata
+        # update the line positions
+        self.lx.set_ydata(y)
+        self.ly.set_xdata(x)
+
+        self.lx.set_linewidth(.75)
+        self.ly.set_linewidth(.75)
+
+        self.txt.set_text('x=%1.2f, y=%1.2f' % (x, y))
+        #self.txt.set_position((x, y))
+
+    def clear(self, event):
+        self.lx.set_linewidth(0.)
+        self.ly.set_linewidth(0.)
+
+        self.txt.set_text('')
+
+class ImageCursor(Cursor):
+    def __init__(self, ax, image, atoms=None):
+        super(ImageCursor, self).__init__(ax)
+        self.image = image
+        self.atoms = atoms
+    
+    def show(self, event):
+        x, y = event.xdata, event.ydata
+        # update the line positions
+        self.lx.set_ydata(y)
+        self.ly.set_xdata(x)
+
+        self.lx.set_linewidth(1.)
+        self.ly.set_linewidth(1.)
+
+        i, j, v = self.get_cursor_data(event)
+
+        if v > 1e-4 and v < 1e4:
+            template = 'x=%d, y=%d [%f]'
+        else:
+            template = 'x=%d, y=%d [%e]'
+        if self.atoms is None:
+            self.txt.set_text(template % (j, i, v))
+        else:
+            seq = self.atoms.getSequence()
+            resnums = self.atoms.getResnums()
+
+            a = seq[j] + str(resnums[j])
+            b = seq[i] + str(resnums[i])
+            self.txt.set_text(template % (a, b, v))
+        #self.txt.set_position((x, y))
+
+    def get_cursor_data(self, event):
+        """Get the cursor data for a given event"""
+        from matplotlib.transforms import Bbox, BboxTransform
+
+        aximg = self.image
+        xmin, xmax, ymin, ymax = aximg.get_extent()
+        if aximg.origin == 'upper':
+            ymin, ymax = ymax, ymin
+
+        arr = aximg.get_array()
+        data_extent = Bbox([[ymin, xmin], [ymax, xmax]])
+        array_extent = Bbox([[0, 0], arr.shape[:2]])
+        trans = BboxTransform(boxin=data_extent, boxout=array_extent)
+        y, x = event.ydata, event.xdata
+        point = trans.transform_point([y, x])
+        if any(isnan(point)):
+            return None
+        i, j = point.astype(int)
+        # Clip the coordinates at array bounds
+        if not (0 <= i < arr.shape[0]) or not (0 <= j < arr.shape[1]):
+            return None
+        else:
+            return i, j, arr[i, j]
 
 def rangeString(lint, sep=' ', rng=' to ', exc=False, pos=True):
     """Returns a structured string for a given list of integers.
@@ -39,6 +158,8 @@ def rangeString(lint, sep=' ', rng=' to ', exc=False, pos=True):
        rangeString(lint, ',', ':', exc=True)"""
 
     ints = unique(lint)
+    if len(ints) == 0:
+        return ''
     if pos and ints[0] < 0:
         ints = ints[ints > -1]
 
@@ -90,18 +211,22 @@ def importLA():
                               'NMA and structure alignment calculations')
     return linalg
 
+def createStringIO():
+    if PY3K:
+        from io import StringIO
+    else:
+        from StringIO import StringIO
+    return StringIO()
 
 def dictElement(element, prefix=None, number_multiples=False):
     """Returns a dictionary built from the children of *element*, which must be
-    a :class:`xml.etree.ElementTree.Element` instance.  Keys of the dictionary
-    are *tag* of children without the *prefix*, or namespace.  Values depend on
-    the content of the child.  If a child does not have any children, its text
-    attribute is the value.  If a child has children, then the child is the
+    a :class:`xml.etree.ElementTree.Element` instance. Keys of the dictionary
+    are *tag* of children without the *prefix*, or namespace. Values depend on
+    the content of the child. If a child does not have any children, its text
+    attribute is the value. If a child has children, then the child is the
     value.
     """
-    if type(element) in [str, list, int]:
-        raise TypeError('element should be an Element not str, list or int')
-
+    
     dict_ = {}
     length = False
     if isinstance(prefix, str):
@@ -133,33 +258,32 @@ def dictElement(element, prefix=None, number_multiples=False):
 
     return dict_
 
-def dictElementLoop(dict_, keys, prefix=None, number_multiples=False):
+def dictElementLoop(dict_, keys=None, prefix=None, number_multiples=False):
+
     if isinstance(keys, str):
         keys = [keys]
 
-    if not isinstance(keys, list) or len(keys) is None:
-        raise TypeError('keys should be a list of keys')
-
-    for key in keys:
-        if not key in dict_.keys():
-            raise ValueError('all keys should be keys of dict_')
+    if not keys:
+        keys = dict_.keys()
 
     for orig_key in keys:
-        dict2 = dictElement(dict_[orig_key], prefix, number_multiples)
-        finished = 0
-        while not finished:
-            dict3 = dict2.copy()
-            try:
-                key = dict2.keys()[0]
-                dict2[key] = dictElement(dict2[key], prefix, number_multiples)
-            except:
-                finished = 1
-            else:
-                dict2 = dict3
-                for key in dict2.keys():
+        item = dict_[orig_key]
+        if isinstance(item, Element):
+            dict2 = dictElement(dict_[orig_key], prefix, number_multiples)
+            finished = False
+            while not finished:
+                dict3 = dict2.copy()
+                try:
+                    key = dict2.keys()[0]
                     dict2[key] = dictElement(dict2[key], prefix, number_multiples)
+                except:
+                    finished = True
+                else:
+                    dict2 = dict3
+                    for key in dict2.keys():
+                        dict2[key] = dictElement(dict2[key], prefix, number_multiples)
 
-        dict_[orig_key] = dict2
+            dict_[orig_key] = dict2
 
     return dict_
 
@@ -231,9 +355,9 @@ def getMasses(elements):
 def count(L, a=None):
     return len([b for b in L if b is a])
 
-def addBreaks(x, y, axis=0):
-    """Finds breaks in x, extends them by one position and adds NaN at the 
-    corresponding position in y. x needs to be an 1-D array, y can be a 
+def addEnds(x, y, axis=0):
+    """Finds breaks in *x*, extends them by one position and adds **nan** at the 
+    corresponding position in *y*. *x* needs to be an 1-D array, *y* can be a 
     matrix of column (or row) vectors"""
 
     d = diff(x)
@@ -322,3 +446,74 @@ def interpY(Y):
 
 def cmp(a, b):
     return (a > b) - (a < b)
+
+def getValue(dict_, attr, default=None):
+    value = default
+    if attr in dict_:
+        value = dict_[attr]
+        if default is not None:
+            try:
+                if value.ndim == 0:
+                    value = type(default)(value)
+            except:
+                pass
+    return value
+
+def indentElement(elem, level=0):
+    i = "\n" + level*"  "
+    j = "\n" + (level-1)*"  "
+    if len(elem):
+        if not elem.text or not elem.text.strip():
+            elem.text = i + "  "
+        if not elem.tail or not elem.tail.strip():
+            elem.tail = i
+        for subelem in elem:
+            indentElement(subelem, level+1)
+        if not elem.tail or not elem.tail.strip():
+            elem.tail = j
+    else:
+        if level and (not elem.tail or not elem.tail.strip()):
+            elem.tail = j
+    return elem 
+
+def isListLike(a):
+    return isinstance(a, (list, tuple, ndarray))
+
+def getDistance(coords1, coords2, unitcell=None):
+
+    diff = coords1 - coords2
+    if unitcell is not None:
+        diff = subtract(diff, round(diff/unitcell)*unitcell, diff)
+    return sqrt(power(diff, 2, diff).sum(axis=-1))
+
+def fastin(a, B):
+    for b in reversed(B):
+        if a is b:
+            return True
+    return False
+
+def div0(a, b):
+    """ Performs ``true_divide`` but ignores the error when division by zero 
+    (result is set to zero instead). """
+
+    from numpy import errstate, true_divide, isfinite, isscalar
+    
+    with errstate(divide='ignore', invalid='ignore'):
+        c = true_divide(a, b)
+        if isscalar(c):
+            if not isfinite(c):
+                c = 0
+        else:
+            c[~isfinite(c)] = 0.  # -inf inf NaN
+    return c
+
+def wmean(array, weights, axis=None):
+    """Calculates the weighted average of *array* given *axis*."""
+
+    try:
+        avg = average(array, axis=axis, weights=weights)
+    except ZeroDivisionError:
+        numer = sum(array*weights, axis=axis)
+        denom = sum(weights, axis=axis)
+        avg = div0(numer, denom)
+    return avg

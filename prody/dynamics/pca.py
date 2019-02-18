@@ -29,7 +29,7 @@ class PCA(NMA):
 
         NMA.__init__(self, name)
 
-    def setCovariance(self, covariance):
+    def setCovariance(self, covariance, is3d=True):
         """Set covariance matrix."""
 
         if not isinstance(covariance, np.ndarray):
@@ -38,9 +38,15 @@ class PCA(NMA):
                   covariance.shape[0] == covariance.shape[1]):
             raise TypeError('covariance must be square matrix')
         self._reset()
+
+        self._is3d = is3d
         self._cov = covariance
         self._dof = covariance.shape[0]
-        self._n_atoms = self._dof / 3
+
+        if is3d:
+            self._n_atoms = self._dof / 3
+        else:
+            self._n_atoms = self._dof
         self._trace = self._cov.trace()
 
     def buildCovariance(self, coordsets, **kwargs):
@@ -177,18 +183,19 @@ class PCA(NMA):
 
         :arg n_modes: number of non-zero eigenvalues/vectors to calculate,
             default is 20,
-            if **None** or 'all' is given, all modes will be calculated
+            if **None** or ``'all'`` is given, all modes will be calculated
         :type n_modes: int
 
         :arg turbo: when available, use a memory intensive but faster way to
             calculate modes, default is **True**
         :type turbo: bool"""
-
+        
         linalg = importLA()
         if self._cov is None:
             raise ValueError('covariance matrix is not built or set')
         start = time.time()
         dof = self._dof
+        self._clear()
         if str(n_modes).lower() == 'all':
             n_modes = None
         if linalg.__package__.startswith('scipy'):
@@ -288,6 +295,7 @@ class PCA(NMA):
         """Set eigen *vectors* and eigen *values*.  If eigen *values* are
         omitted, they will be set to 1.  Eigenvalues are set as variances."""
 
+        self._clear()
         NMA.setEigens(self, vectors, values)
         self._vars = self._eigvals
 

@@ -226,7 +226,7 @@ class AtomMap(AtomPointer):
         return len(self._getSubset(flag)) if flag else self._len
 
     def iterAtoms(self):
-        """Yield atoms, and ``None`` for dummies."""
+        """Yield atoms, and **None** for dummies."""
 
         ag = self._ag
         acsi = self.getACSIndex()
@@ -374,6 +374,11 @@ class AtomMap(AtomPointer):
         """Returns selection string that selects mapped atoms."""
 
         return 'index ' + rangeString(self._indices)
+
+    def getHierView(self, **kwargs):
+        """Returns a hierarchical view of the this chain."""
+
+        return HierView(self, **kwargs)
 
 
 for fname, field in ATOMIC_FIELDS.items():
