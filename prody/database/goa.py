@@ -330,7 +330,7 @@ def calcGoOverlap(*go_terms, **kwargs):
     if pairwise:
         distances = np.zeros((len(go_terms), len(go_terms)))
         for i, go_terms_i in enumerate(go_terms):
-            for j, go_terms_j in enumerate(go_terms[i+1:]):
+            for j, go_terms_j in enumerate(go_terms):
                 distances[i, j] = calcGoOverlap(
                     go_terms_i, go_terms_j, pairwise=False, **kwargs)
 
@@ -508,7 +508,8 @@ def calcDeepFunctionOverlaps(*goa_data, **kwargs):
     for i, entry in enumerate(deepFuncs):
         if len(entry) == 0:
             LOGGER.warn(
-                'ensemble member {0} has no molecular functions and was omitted'.format(goa_data[i]._title))
+                'ensemble member {0} has no deep molecular functions and was omitted'
+                .format(goa_data[i]._title))
 
     deepFuncs = [entry for entry in deepFuncs if len(entry) > 0]
     overlaps = calcGoOverlap(*deepFuncs, **kwargs)
@@ -567,6 +568,6 @@ def calcEnsembleFunctionOverlaps(ens, **kwargs):
 
     goa_ens = [entry for entry in goa_ens if len(entry._molecular) > 0]
 
-    overlaps = np.mean(calcDeepFunctionOverlaps(*goa_ens, **kwargs))
+    overlaps = calcDeepFunctionOverlaps(*goa_ens, **kwargs)
 
     return overlaps
