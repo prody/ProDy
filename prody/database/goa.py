@@ -289,7 +289,7 @@ def queryGOA(*ids, **kwargs):
     for i, result in enumerate(results):
         LOGGER.update(i, 'Mapping GO terms back to GOA results id {0} of {1}...'
                       .format(i+1, n_ids), label='_prody_mapGO')
-        rets.append(GOADictList(result, title=id))
+        rets.append(GOADictList(result, title=ids[i], **kwargs))
 
     if n_ids == 1:
         rets = rets[0]
@@ -317,7 +317,8 @@ def calcGoOverlap(*go_terms, **kwargs):
     :type go: `~goatools.obo_parser.GODag`
     """
     pairwise = kwargs.pop('pairwise', False)
-    distance = kwargs.pop('distance', False)
+    distance = kwargs.get('distance', False)
+    operator = kwargs.get('operator', None)
 
     go = kwargs.pop('go', None)
     if go is None:
@@ -326,31 +327,61 @@ def calcGoOverlap(*go_terms, **kwargs):
     if not isListLike(go_terms):
         raise TypeError('please provide a list-like of go terms')
 
-    try:
-        go_terms = [go[term] for term in go_terms]
-    except:
-        try:
-            go_terms = [term.id for term in go_terms]
-        except:
-            raise TypeError('go_terms should contain go terms or IDs')
-
-    if not isinstance(go_terms[0], str):
-        go_terms = [term.id for term in go_terms]
-
     if pairwise:
         distances = np.zeros((len(go_terms), len(go_terms)))
-
-        for i in range(len(go_terms)):
-            for j in range(i+1, len(go_terms)):
-                dist = calcMinBranchLength(go_terms[i], go_terms[j], go)
-                distances[i, j] = distances[j, i] = dist
+        for i, go_terms_i in enumerate(go_terms):
+            for j, go_terms_j in enumerate(go_terms[i+1:]):
+                distances[i, j] = calcGoOverlap(
+                    go_terms_i, go_terms_j, pairwise=False, **kwargs)
 
     else:
-        distances = np.zeros((len(go_terms)-1))
+        go_terms1 = go_terms[0]
 
-        go_id1 = go_terms[0]
-        for i, go_id2 in enumerate(go_terms[1:]):
-            distances[i] = calcMinBranchLength(go_id1, go_id2, go)
+        flattened_term_list = []
+        for entry in go_terms[1:]:
+            if isListLike(entry):
+                flattened_term_list.extend(entry)
+            else:
+                flattened_term_list.append(entry)
+
+        if not isListLike(go_terms1):
+            go_terms1 = [go_terms1]
+
+        if not isListLike(flattened_term_list):
+            flattened_term_list = [flattened_term_list]
+
+        try:
+            flattened_term_list = [go[term] for term in flattened_term_list]
+            go_terms1 = [go[term] for term in go_terms1]
+        except:
+            try:
+                flattened_term_list = [term.id for term in flattened_term_list]
+                go_terms1 = [term.id for term in go_terms1]
+            except:
+                raise TypeError('go_terms should contain go terms or IDs')
+
+        for term in flattened_term_list:
+            if not isinstance(term, str):
+                term = term.id
+
+        for term in go_terms1:
+            if not isinstance(term, str):
+                term = term.id
+
+        distances = np.zeros((len(go_terms1), len(flattened_term_list)))
+        for i, go_id1 in enumerate(go_terms1):
+            for j, go_id2 in enumerate(flattened_term_list):
+                distances[i, j] = calcMinBranchLength(go_id1, go_id2, go)
+
+        if operator is not None:
+            distances = operator(distances)
+
+    if operator is None:
+        if distances.shape[-1] == 1:
+            distances = distances.flatten()
+
+        if distances.shape == (1,):
+            distances = distances[0]
 
     if distance:
         return distances
@@ -460,7 +491,7 @@ def showGoLineage(go_term, **kwargs):
         Image(filename)
 
 
-def calcDeepFunctionOverlaps(goa1, goa2, **kwargs):
+def calcDeepFunctionOverlaps(goa_data, **kwargs):
     """Calculate function overlaps between the deep 
     (most detailed) molecular functions in particular 
     from two sets of GO terms.
@@ -473,15 +504,11 @@ def calcDeepFunctionOverlaps(goa1, goa2, **kwargs):
     """
     return_funcs = kwargs.pop('return_funcs', False)
 
-    xfuncs = findDeepestFunctions(goa1)
-    yfuncs = findDeepestFunctions(goa2)
-    overlaps = np.zeros((len(xfuncs), len(yfuncs)))
-    for i, function_i in enumerate(xfuncs):
-        for j, function_j in enumerate(yfuncs):
-            overlaps[i, j] = calcGoOverlap(function_i, function_j, **kwargs)
+    deepFuncs = [findDeepestFunctions(entry) for entry in goa_data]
+    overlaps = calcGoOverlap(deepFuncs, **kwargs)
 
     if return_funcs:
-        return overlaps, xfuncs, yfuncs
+        return overlaps, deepFuncs
 
     return overlaps
 
@@ -501,13 +528,8 @@ def findDeepestFunctions(go_terms, **kwargs):
         go = parseOBO(**kwargs)
 
     deep_functions = []
-    max_depth = 0
     for function in go_terms.getMolecularFunctions():
-        if function.depth > max_depth:
-            max_depth = function.depth
-
-    for function in go_terms.getMolecularFunctions():
-        if function.depth == max_depth:
+        if len(function.children) == 0:
             deep_functions.append(function)
 
     return deep_functions
@@ -536,10 +558,7 @@ def calcEnsembleFunctionOverlaps(ens, **kwargs):
 
     goa_ens = queryGOA(ids, **kwargs)
 
-    overlaps = np.zeros((len(goa_ens), len(goa_ens)))
-    for m, member_m in enumerate(goa_ens):
-        for n, member_n in enumerate(goa_ens[m:]):
-            overlaps[n, m] = overlaps[m, n] = np.mean(calcDeepFunctionOverlaps(
-                member_m, member_n, distance=distance, pairwise=pairwise, **kwargs))
+    overlaps = np.mean(calcDeepFunctionOverlaps(
+        goa_ens, distance=distance, pairwise=pairwise, **kwargs))
 
     return overlaps
