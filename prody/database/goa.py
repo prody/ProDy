@@ -320,7 +320,7 @@ def calcGoOverlap(*go_terms, **kwargs):
     distance = kwargs.get('distance', False)
     operator = kwargs.get('operator', None)
 
-    go = kwargs.pop('go', None)
+    go = kwargs.get('go', None)
     if go is None:
         go = parseOBO(**kwargs)
 
@@ -373,7 +373,7 @@ def calcGoOverlap(*go_terms, **kwargs):
             for j, go_id2 in enumerate(flattened_term_list):
                 distances[i, j] = calcMinBranchLength(go_id1, go_id2, go)
 
-        if operator is not None:
+        if operator is not None and isListLike(distances):
             distances = operator(distances)
 
     if operator is None:
@@ -491,7 +491,7 @@ def showGoLineage(go_term, **kwargs):
         Image(filename)
 
 
-def calcDeepFunctionOverlaps(goa_data, **kwargs):
+def calcDeepFunctionOverlaps(*goa_data, **kwargs):
     """Calculate function overlaps between the deep 
     (most detailed) molecular functions in particular 
     from two sets of GO terms.
@@ -504,8 +504,14 @@ def calcDeepFunctionOverlaps(goa_data, **kwargs):
     """
     return_funcs = kwargs.pop('return_funcs', False)
 
-    deepFuncs = [findDeepestFunctions(entry) for entry in goa_data]
-    overlaps = calcGoOverlap(deepFuncs, **kwargs)
+    deepFuncs = [findDeepestFunctions(entry, **kwargs) for entry in goa_data]
+    for i, entry in enumerate(deepFuncs):
+        if len(entry) == 0:
+            LOGGER.warn(
+                'ensemble member {0} has no molecular functions and was omitted'.format(goa_data[i]._title))
+
+    deepFuncs = [entry for entry in deepFuncs if len(entry) > 0]
+    overlaps = calcGoOverlap(*deepFuncs, **kwargs)
 
     if return_funcs:
         return overlaps, deepFuncs
@@ -553,12 +559,14 @@ def calcEnsembleFunctionOverlaps(ens, **kwargs):
     if not isinstance(ids[0], str):
         raise TypeError('ens should have labels')
 
-    distance = kwargs.pop('distance', False)
-    pairwise = kwargs.pop('pairwise', False)
-
     goa_ens = queryGOA(ids, **kwargs)
+    for entry in goa_ens:
+        if len(entry._molecular) == 0:
+            LOGGER.warn(
+                'ensemble member {0} has no molecular functions and was omitted'.format(entry._title))
 
-    overlaps = np.mean(calcDeepFunctionOverlaps(
-        goa_ens, distance=distance, pairwise=pairwise, **kwargs))
+    goa_ens = [entry for entry in goa_ens if len(entry._molecular) > 0]
+
+    overlaps = np.mean(calcDeepFunctionOverlaps(*goa_ens, **kwargs))
 
     return overlaps
