@@ -65,8 +65,8 @@ def Hierarchy(V, **kwargs):
 
     from scipy.cluster.hierarchy import linkage, fcluster, inconsistent
     
-    method = kwargs.pop('method', 'single')
-    metric = kwargs.pop('metric', 'euclidean')
+    method = kwargs.pop('linkage', 'single')
+    metric = kwargs.pop('metric', 'cosine')
     Z = linkage(V, method=method, metric=metric)
     
     criterion = kwargs.pop('criterion', 'inconsistent')
