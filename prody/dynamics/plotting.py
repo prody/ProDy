@@ -1740,7 +1740,7 @@ def showDomainBar(domains, x=None, loc=0., axis='x', **kwargs):
 
     if x is None:
         x = np.arange(len(domains), dtype=float)
-    x = x + offset
+    x = x + offset - 0.5
     X = np.tile(x, (len(uni_domids), 1)).T
 
     # Correct the text for the shifting from adding a domain
@@ -1792,6 +1792,10 @@ def showDomainBar(domains, x=None, loc=0., axis='x', **kwargs):
     bars.extend(dbars)
     if relim:
         gca().autoscale_view()
+
+    start, stop = lim()
+    lim(round(start, 2) + 0.006, stop)
+    
     return bars, texts
 
 def showTree(tree, format='ascii', **kwargs):
