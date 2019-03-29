@@ -252,9 +252,12 @@ class DaliRecord(object):
         self._mapping = map_temp_dict
         self._data = data_list[3]
         lines = data_list[3].strip().split('\n')
+        # daliInfo = np.genfromtxt(lines[1:], delimiter = (4,3,6,5,5,5,6,5,57), usecols = [0,2,3,4,5,6,7,8], 
+                                # dtype=[('id', '<i4'), ('pdb_chain', '|S6'), ('Z', '<f4'), ('rmsd', '<f4'), 
+                                # ('len_align', '<i4'), ('nres', '<i4'), ('identity', '<i4'), ('title', '|S70')])
         daliInfo = np.genfromtxt(lines[1:], delimiter = (4,3,6,5,5,5,6,5,57), usecols = [0,2,3,4,5,6,7,8], 
-                                dtype=[('id', '<i4'), ('pdb_chain', '|S6'), ('Z', '<f4'), ('rmsd', '<f4'), 
-                                ('len_align', '<i4'), ('nres', '<i4'), ('identity', '<i4'), ('title', '|S70')])
+                                dtype=[('id', '<i4'), ('pdb_chain', '|U6'), ('Z', '<f4'), ('rmsd', '<f4'), 
+                                ('len_align', '<i4'), ('nres', '<i4'), ('identity', '<i4'), ('title', '|U70')])
         if daliInfo.ndim == 0:
             daliInfo = np.array([daliInfo])
         pdbListAll = []
@@ -263,8 +266,10 @@ class DaliRecord(object):
         for temp in self._daliInfo:
             temp_dict = dict()
             pdb_chain = temp[1].strip()[0:6]
-            if PY3K:
-                pdb_chain = pdb_chain.decode()
+            # U6 and U70 were used as the dtype for np.genfromtext -> unicode string were used in daliInfo 
+            # if PY3K:
+                # pdb_chain = pdb_chain.decode()
+            pdb_chain = str(pdb_chain)
             temp_dict['pdbId'] = pdbid = pdb_chain[0:4].lower()
             temp_dict['chainId'] = chid = pdb_chain[5:6]
             temp_dict['pdb_chain'] = pdb_chain = pdbid + chid
