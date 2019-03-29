@@ -651,7 +651,7 @@ def refineEnsemble(ensemble, lower=.5, upper=10., **kwargs):
                 if p in labels:
                     i = labels.index(p)
                 else:
-                    LOGGER.warn('cannot found any conformation with the label %s in the ensemble'%str(p))
+                    LOGGER.warn('could not find any conformation with the label %s in the ensemble'%str(p))
             P.append(i)
 
     LOGGER.timeit('_prody_refineEnsemble')
@@ -667,7 +667,7 @@ def refineEnsemble(ensemble, lower=.5, upper=10., **kwargs):
         labels = ensemble.getLabels()
         ref_i = labels.index(ref_i)
     else:
-        LOGGER.warn('cannot found any conformation with the label %s in the ensemble'%str(ref_i))
+        LOGGER.warn('could not find any conformation with the label %s in the ensemble'%str(ref_i))
     if not ref_i in P:
         P = [ref_i] + P
 
