@@ -1041,10 +1041,8 @@ def buildBiomolecules(header, atoms, biomol=None):
 
     biomt = header.get('biomoltrans')
     if not isinstance(biomt, dict) or len(biomt) == 0:
-        if header.get('experiment') != 'X-RAY DIFFRACTION':
-            LOGGER.warn("This is not an X-ray structure so no transformation was applied")
-        else:
-            raise ValueError("header doesn't contain biomolecular transformations")
+        LOGGER.warn("no biomolecular transformations found so original structure was used")
+        return atoms
 
     if not isinstance(atoms, AtomGroup):
         atoms = atoms.copy()
