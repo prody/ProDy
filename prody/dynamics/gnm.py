@@ -586,6 +586,7 @@ class MaskedGNM(GNM):
         super(MaskedGNM, self).__init__(name)
         self.mask = False
         self.masked = masked
+        self._maskedarray = None
 
         if not np.isscalar(mask):
             self.mask = np.array(mask)
@@ -610,7 +611,7 @@ class MaskedGNM(GNM):
         if self.masked or np.isscalar(self.mask):
             return arr
 
-        mask = self.mask.copy()
+        mask = self.mask#.copy()
         n_true = np.sum(mask)
         N = len(mask)
 
@@ -630,9 +631,8 @@ class MaskedGNM(GNM):
     def getArray(self):
         """Returns a copy of eigenvectors array."""
 
-        if self._array is None: return None
-
-        array = self._extend(self._array)
+        array = self._getArray().copy()
+        
         return array
 
     getEigvecs = getArray
@@ -644,9 +644,14 @@ class MaskedGNM(GNM):
         if self._array is None: return None
 
         if self.masked or np.isscalar(self.mask):
-            return self._array
+            array = self._array
         else:
-            return self.getArray()
+            if self._maskedarray is None:
+                array = self._maskedarray = self._extend(self._array)
+            else:
+                array = self._maskedarray
+
+        return array
 
     def getHinges(self, modeIndex=None, flag=False):
         """Gets residue index of hinge sites given mode indices.
@@ -713,4 +718,9 @@ class MaskedGNM(GNM):
     def setEigens(self, vectors, values=None):
         if not self.masked:
             vectors = vectors[self.mask, :]
+        self._maskedarray = None
         super(MaskedGNM, self).setEigens(vectors, values)
+
+    def calcModes(self, n_modes=20, zeros=False, turbo=True, hinges=True):
+        self._maskedarray = None
+        super(MaskedGNM, self).calcModes(n_modes, zeros, turbo, hinges)
