@@ -1810,8 +1810,6 @@ def showTree(tree, format='ascii', **kwargs):
         raise ImportError('Phylo module could not be imported. '
             'Reinstall ProDy or install Biopython '
             'to solve the problem.')
-    font_size = float(kwargs.get('font_size', 8.0))
-    line_width = float(kwargs.get('line_width', 1.5))
 
     if format == 'ascii':
         Phylo.draw_ascii(tree)
@@ -1819,8 +1817,15 @@ def showTree(tree, format='ascii', **kwargs):
 
     elif format in ['plt', 'mpl', 'matplotlib']: 
         from matplotlib.pyplot import rcParams, figure, gca, xlabel, ylabel
-        rcParams["font.size"]=font_size
-        rcParams["lines.linewidth"]=line_width
+
+        font_size = float(kwargs.pop('font_size', 8.0))
+        line_width = float(kwargs.pop('line_width', 1.5))
+
+        old_font_size = rcParams["font.size"]
+        old_line_width = rcParams["lines.linewidth"]
+
+        rcParams["font.size"] = font_size
+        rcParams["lines.linewidth"] = line_width
 
         if SETTINGS['auto_show']:
             figure()
@@ -1830,6 +1835,9 @@ def showTree(tree, format='ascii', **kwargs):
 
         xlabel('distance')
         ylabel('proteins')
+
+        rcParams["font.size"] = old_font_size
+        rcParams["lines.linewidth"] = old_line_width
         return
 
     elif format == 'networkx':
