@@ -11,8 +11,8 @@ from os.path import abspath, join, split, splitext
 import numpy as np
 
 from prody import LOGGER, SETTINGS, PY3K
-from prody.atomic import AtomGroup
-from prody.utilities import openFile, isExecutable, which, PLATFORM, addext
+from prody.atomic import AtomGroup, sliceAtoms
+from prody.utilities import openFile, isExecutable, which, PLATFORM, addext, checkCoords
 from prody.proteins import writePDB
 
 from .nma import NMA
@@ -23,48 +23,63 @@ from .mode import Vector, Mode
 from .modeset import ModeSet
 from .nmdfile import viewNMDinVMD, pathVMD, getVMDpath, setVMDpath
 
-def writeVMDstiffness(model, pdb, indices, k_range, filename='vmd_out', \
-                            selstr='protein and name CA', loadToVMD=True):
+def writeVMDstiffness(stiffness, pdb, indices, k_range, filename='vmd_out', \
+                      select='protein and name CA', loadToVMD=False):
    
-    """Returns three *filename* files: (1) PDB file with coordinates. 
+    """
+    Returns three files starting with the provided filename and having 
+    their own extensions:
+
+    (1) A PDB file that can be used in the TCL script. 
+
     (2) TCL file containing vmd commands for loading PDB file with accurate 	
     vmd representation. Pair of residues with selected *k_range* of 
     effective spring constant are shown in VMD respresentation with 
-    solid line between them.
-    If more than one residue will be selected in *indices*, different pair 
-    for each residue will be colored in the different colors.    
-    (3) TXT file contains pair of residues with effective spring constant in
-    selected range *k_range*.    
+    solid line between them. If more than one residue is selected in 
+    *indices*, different pair for each residue will be colored in the 
+    different colors.
 
-    The effective spring constant calculation using ``buildSM`` method
-    from :class:`.ANM`.
-    
+    (3) TXT file containing pair of residues with effective spring constant 
+    in selected range *k_range*.    
+
     .. note::
+
        #. This function skips modes with zero eigenvalues.
        #. If a :class:`.Vector` instance is given, it will be normalized
           before it is written. It's length before normalization will be
           written as the scaling factor of the vector.
           
 
-    :arg model: this is an 3-dimensional NMA instance from a :class:`.ANM
-        calculations
-    :type model: :class:`.ANM`
+    :arg stiffness: mechanical stiffness profile calculated with 
+        :func:`.calcMechStiff`
+    :type stiffness: :class:`~numpy.ndarray`
+
     :arg pdb: a coordinate set or an object with ``getCoords`` method
-    :type pdb: :class:`numpy.ndarray`. 
-    :arg indices: amino acid number.
-    :type indices: ``[int, int]`` or ``[int]`` for one amino acid    
-    :arg k_range: effective force constant value.
-    :type k_range: int or float, ``[int, int]``
+    :type pdb: :class:`~numpy.ndarray`, :class:`.Atomic` 
+
+    :arg indices: an amino acid number or a pair of amino acid numbers
+    :type indices: list
+
+    :arg k_range: effective force constant value or range of values
+    :type k_range: int, float, list
     
-    By default files are saved as *filename* and loaded to VMD program and 
-    *selstr* is a selection from :class:`.Select`
-     """
+    :arg select: a selection or selection string
+        default is 'protein and name CA'
+    :type select: :class:`.Select`, str
+
+    :arg loadToVMD: whether to load VMD and run the tcl file
+        default is False
+    :type loadToVMD: bool 
+
+    """
+    if not isinstance(filename, str):
+        raise TypeError('filename should be a string')
 
     try:
-        coords_sel = pdb.select(selstr)
-        resnum_list = coords_sel.getResnums()  
+        _, coords_sel = sliceAtoms(pdb, select)
+        resnum_list = coords_sel.getResnums()
         coords = (coords_sel._getCoords() if hasattr(coords_sel, '_getCoords') else
-                coords_sel.getCoords())
+                  coords_sel.getCoords())
     except AttributeError:
         try:
             checkCoords(coords_sel)
@@ -72,23 +87,15 @@ def writeVMDstiffness(model, pdb, indices, k_range, filename='vmd_out', \
             raise TypeError('pdb must be a Numpy array or an object '
                             'with `getCoords` method')
     
-    if not isinstance(model, NMA):
-        raise TypeError('model must be an NMA instance')
-    elif not model.is3d():
-        raise TypeError('model must be a 3-dimensional NMA instance')
-    elif len(model) == 0:
-        raise ValueError('model must have normal modes calculated')
-    elif model.getStiffness() is None:
-        raise ValueError('model must have stiffness matrix calculated')
-    elif len(indices)==0:
+    if len(indices) == 0:
         raise ValueError('indices cannot be an empty array')
 
-    if len(indices)==1:
-        indices0=indices[0]-resnum_list[0]
-        indices1=indices[0]-resnum_list[0]
-    elif len(indices)==2:
-        indices0=indices[0]-resnum_list[0]
-        indices1=indices[1]-resnum_list[0]
+    if len(indices) == 1:
+        indices0 = indices[0] - resnum_list[0]
+        indices1 = indices[0] - resnum_list[0]
+    elif len(indices) == 2:
+        indices0 = indices[0] - resnum_list[0]
+        indices1 = indices[1] - resnum_list[0]
 
     out = openFile(addext(filename, '.tcl'), 'w')
     out_txt = openFile(addext(filename,'.txt'), 'w')
@@ -125,12 +132,12 @@ def writeVMDstiffness(model, pdb, indices, k_range, filename='vmd_out', \
     
     color_nr = 1 # starting from red color in VMD
     ResCounter = []
-    for r in range(indices0, indices1+1):
+    for r in range(indices0, indices1 + 1):
         baza_col = [] # Value of Kij is here for each residue
         nr_baza_col = [] # Resid of aa are here
         out.write("draw color "+str(colors[color_nr])+"\n")
             
-        for nr_i, i in enumerate(model.getStiffness()[r]):
+        for nr_i, i in enumerate(stiffness[r]):
             if k_range[0] < float(i) < k_range[1]:
                 baza_col.append(i)
                 nr_baza_col.append(nr_i+resnum_list[0])
@@ -142,7 +149,7 @@ def writeVMDstiffness(model, pdb, indices, k_range, filename='vmd_out', \
                 else:
                     out.write("draw line "+'{'+str(coords[r])[1:-1]+'} {'+\
                        str(coords[nr_i])[1:-1]+'} width 3 style solid \n')
-                    out_txt.write(str(resid_r)+'\t'+resid_r2+'\t'+str(i)+'\n')
+                    out_txt.write(resid_r + '\t' + resid_r2 + '\t' + str(i) + '\n')
                     ResCounter.append(len(baza_col))
                         
             else: pass
@@ -165,7 +172,7 @@ def writeVMDstiffness(model, pdb, indices, k_range, filename='vmd_out', \
     out.close()
     out_txt.close()
 
-    if (loadToVMD == True):
+    if loadToVMD:
         from prody import pathVMD
         LOGGER.info('File will be loaded to VMD program.')
         os.system(pathVMD()+" -e "+str(filename)+".tcl")
@@ -177,8 +184,9 @@ def writeVMDstiffness(model, pdb, indices, k_range, filename='vmd_out', \
         return 'None'   
 
 
-def writeDeformProfile(model, pdb, filename='dp_out', selstr='protein and name CA',\
-                                            pdb_selstr='protein', loadToVMD=True):
+def writeDeformProfile(stiffness, pdb, filename='dp_out', \
+                       select='protein and name CA', \
+                       pdb_selstr='protein', loadToVMD=False):
 
     """Calculate deformability (plasticity) profile of molecule based on mechanical
     stiffness matrix (see [EB08]_).
@@ -186,26 +194,28 @@ def writeDeformProfile(model, pdb, filename='dp_out', selstr='protein and name C
     :arg model: this is an 3-dimensional NMA instance from a :class:`.ANM
         calculations
     :type model: :class:`.ANM`
+
     :arg pdb: a coordinate set or an object with ``getCoords`` method
     :type pdb: :class:`numpy.ndarray`    
     
-    Note: selection can be done usig ``selstr`` and ``pdb_selstr``. ``selstr`` define
-    ``model`` selection (used for building :class:`.ANM` model) and ``pdb_selstr`` 
-    will be used in VMD program for visualization. 
+    Note: selection can be done using ``select`` and ``pdb_selstr``. 
+    ``select`` defines ``model`` selection (used for building :class:`.ANM` model) 
+    and ``pdb_selstr`` will be used in VMD program for visualization. 
     
     By default files are saved as *filename* and loaded to VMD program. To change 
     it use ``loadToVMD=False``.
      
     Mean value of mechanical stiffness for molecule can be found in occupancy column
     in PDB file.
+
     """
     
-    pdb = pdb.select(pdb_selstr)
-    coords = pdb.select(selstr)
-    meanSiff = np.mean(model.getStiffness(), axis=0)
+    _, pdb = sliceAtoms(pdb, pdb_selstr)
+    _, coords = sliceAtoms(pdb, select)
+    meanStiff = np.mean(stiffness, axis=0)
     
     out_mean = open(filename+'_mean.txt','w')   # mean value of Kij for each residue
-    for nr_i, i in enumerate(meanSiff):
+    for nr_i, i in enumerate(meanStiff):
         out_mean.write("{} {}\n".format(nr_i, i))
     out_mean.close()
     
@@ -214,10 +224,9 @@ def writeDeformProfile(model, pdb, filename='dp_out', selstr='protein and name C
     
     meanStiff_all = []        
     for i in range(coords.numAtoms()):
-         meanStiff_all.extend(aa_counter.values()[i]*[round(meanSiff[i], 2)])
+        meanStiff_all.extend(list(aa_counter.values())[i]*[round(meanStiff[i], 2)])
         
-    kw = {'occupancy': meanStiff_all}
-    writePDB(filename, pdb, **kw)                
+    writePDB(filename, pdb, occupancy=meanStiff_all)                
     LOGGER.info('PDB file with deformability profile has been saved.')
     LOGGER.info('Creating TCL file.')
     out_tcl = open(filename+'.tcl','w')
@@ -231,38 +240,45 @@ def writeDeformProfile(model, pdb, filename='dp_out', selstr='protein and name C
     out_tcl.write('menu colorscalebar on \n')
     out_tcl.close()
 
-    if (loadToVMD == True):
+    if loadToVMD:
         from prody import pathVMD
         LOGGER.info('File will be loaded to VMD program.')
         os.system(pathVMD()+" -e "+str(filename)+".tcl")
 
 
 def calcChainsNormDistFluct(coords, ch1, ch2, cutoff=10., percent=5, rangeAng=5, \
-                                        filename='ch_ndf_out', loadToVMD=True):
+                                        filename='ch_ndf_out', loadToVMD=False):
 
     '''Calculate protein-protein interaction using getNormDistFluct() from 
     :class:`.GNM` model. It is assigned to protein complex.
     
     :arg coords: a coordinate set or an object with ``getCoords`` method. 
     :type coords: :class:`numpy.ndarray`.
+
     :arg ch1: first chain name
     :type ch1: 'A' or other letter as a string
+
     :arg ch2: second chain name 
     :type ch2: string
+
     :arg cutoff: cutoff distance (Å) for pairwise interactions
-              in Kirchhoff matrix, default is 10.0 Å
+        in Kirchhoff matrix, default is 10.0 Å
     :type cutoff: float
+
     :arg percent: percent of the highest and lowest results displayed in _VMD
-               program, default is 5% 
+        program, default is 5% 
     :type percent: int or float
+
     :arg rangeAng: cutoff range of protein-protein interactions, default is 5 Å
     :type rangeAng: int or float
+
     :arg filename: name of tcl file from _VMD program
     :type filename: str
     
     By default files are saved as *filename* and loaded to VMD program. 
     To change it use ``loadToVMD=False``. 
-            UNDER PREPARATION.. problems with not complete structures
+    
+    UNDER PREPARATION.. problems with not complete structures
     '''
     
     sele1 = coords.select('name CA and same residue as exwithin '+str(rangeAng) \
@@ -347,7 +363,7 @@ def calcChainsNormDistFluct(coords, ch1, ch2, cutoff=10., percent=5, rangeAng=5,
     out_tcl.close()
     out_pairs.close()
 
-    if (loadToVMD == True):
+    if loadToVMD:
         from prody import pathVMD
         LOGGER.info('File will be loaded to VMD program.')
         os.system(pathVMD()+" -e "+str(filename)+".tcl")

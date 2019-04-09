@@ -1,6 +1,7 @@
 """This module contains unit tests for :mod:`~prody.proteins`."""
 
 from numpy.testing import *
+import numpy.testing.decorators as dec
 
 from prody import *
 from prody import LOGGER

@@ -11,12 +11,12 @@ from prody import LOGGER
 from prody.atomic import Atomic, AtomGroup
 from prody.proteins import parsePDB
 from prody.kdtree import KDTree
-from prody.utilities import importLA, checkCoords
+from prody.utilities import importLA, checkCoords, div0
 
 from .nma import NMA
 from .gamma import Gamma
 
-__all__ = ['GNM', 'calcGNM', 'TrimmedGNM']
+__all__ = ['GNM', 'calcGNM', 'MaskedGNM']
 
 ZERO = 1e-6
 
@@ -431,16 +431,21 @@ class GNM(GNMBase):
         n_zeros = sum(values < ZERO)
         if n_zeros < 1:
             LOGGER.warning('Less than 1 zero eigenvalues are calculated.')
-            shift = n_zeros - 1
+            shift = n_zeros
         elif n_zeros > 1:
-            LOGGER.warning('More than 1 zero eigenvalues are calculated.')
-            shift = n_zeros - 1
+            LOGGER.warning('%d (more than 1) zero eigenvalues are calculated.'%n_zeros)
+            shift = n_zeros
         if zeros:
-            shift = -1
-        self._eigvals = values[1+shift:]
-        self._vars = 1 / self._eigvals
+            shift = 0
+        self._eigvals = values[shift:]
+        if zeros:
+            vars = div0(1, values)
+            vars[:n_zeros] = 0.
+            self._vars = vars[shift:]
+        else:
+            self._vars = div0(1, self._eigvals)
         self._trace = self._vars.sum()
-        self._array = vectors[:, 1+shift:]
+        self._array = vectors[:, shift:]
         self._n_modes = len(self._eigvals)
         if hinges:
             self.calcHinges()
@@ -455,43 +460,49 @@ class GNM(GNMBase):
         (m, n) = V.shape
         hinges = []
         for i in range(n):
-            v = V[:,i]
+            v = V[:, i]
             # obtain the signs of eigenvector
             s = np.sign(v)
             # obtain the relative magnitude of eigenvector
             mag = np.sign(np.diff(np.abs(v)))
             # obtain the cross-overs
             torf = np.diff(s)!=0
-            indices = np.where(torf)[0]
+            torf = np.append(torf, [False], axis=0)
             # find which side is more close to zero
-            for i in range(len(indices)):
-                idx = indices[i]
-                if mag[idx] < 0:
-                    indices[i] += 1
-            hinges.append(indices)
-        self._hinges = np.array(hinges)
+            for j, m in enumerate(mag):
+                if torf[j] and m < 0:
+                    torf[j+1] = True
+                    torf[j] = False
+            
+            hinges.append(torf)
+
+        self._hinges = np.stack(hinges).T
         return self._hinges
 
-    def getHinges(self, modeIndex=None):
+    def getHinges(self, modeIndex=None, flag=False):
         """Get residue index of hinge sites given mode indices.
 
         :arg modeIndex: indices of modes. This parameter can be a scalar, a list, 
-            or logical indices.
-        :type modeIndex: int or list, default is **None**
+            or logical indices. Default is **None**
+        :type modeIndex: int, list
+
+        :arg flag: whether return flag or index array. Default is **False**
+        :type flag: bool
         """
         if self._hinges is None:
-            LOGGER.info('Warning: hinges are not calculated, thus null is returned. '
+            LOGGER.info('Warning: hinges are not calculated, thus None is returned. '
                         'Please call GNM.calcHinges() to calculate the hinge sites first.')
             return None
         if modeIndex is None:
             hinges = self._hinges
         else:
-            hinges = self._hinges[modeIndex]
-        if hinges.dtype is np.dtype('O'):
-            hingelist = [j for i in hinges for j in i]
+            hinges = self._hinges[:, modeIndex]
+
+        if flag:
+            return hinges
         else:
-            hingelist = [i for i in hinges]
-        return sorted(set(hingelist))
+            hinge_list = np.where(hinges)[0]
+            return sorted(set(hinge_list))
     
     def numHinges(self, modeIndex=None):
         return len(self.getHinges(modeIndex=modeIndex))
@@ -548,7 +559,7 @@ class GNM(GNMBase):
 
     def setEigens(self, vectors, values=None):
         self._clear()
-        super(GNMBase, self).setEigens(vectors, values)
+        super(GNM, self).setEigens(vectors, values)
 
 
 def calcGNM(pdb, selstr='calpha', cutoff=15., gamma=1., n_modes=20,
@@ -575,11 +586,12 @@ def calcGNM(pdb, selstr='calpha', cutoff=15., gamma=1., n_modes=20,
     gnm.calcModes(n_modes, zeros, hinges=hinges)
     return gnm, sel
 
-class TrimmedGNM(GNM):
-    def __init__(self, name='Unknown', mask=False, useTrimmed=True):
-        super(TrimmedGNM, self).__init__(name)
+class MaskedGNM(GNM):
+    def __init__(self, name='Unknown', mask=False, masked=True):
+        super(MaskedGNM, self).__init__(name)
         self.mask = False
-        self.useTrimmed = useTrimmed
+        self.masked = masked
+        self._maskedarray = None
 
         if not np.isscalar(mask):
             self.mask = np.array(mask)
@@ -587,44 +599,95 @@ class TrimmedGNM(GNM):
     def numAtoms(self):
         """Returns number of atoms."""
 
-        if self.useTrimmed or np.isscalar(self.mask):
+        if self.masked or np.isscalar(self.mask):
             return self._n_atoms
         else:
             return len(self.mask)
 
+    def numDOF(self):
+        """Returns number of degrees of freedom."""
+
+        if self.masked or np.isscalar(self.mask):
+            return self._dof
+        else:
+            return len(self.mask)
+
+    def _extend(self, arr):
+        if self.masked or np.isscalar(self.mask):
+            return arr
+
+        mask = self.mask#.copy()
+        n_true = np.sum(mask)
+        N = len(mask)
+
+        if arr.ndim == 1:
+            whole_array = np.zeros(N)
+            whole_array[mask] = arr[:n_true]
+        elif arr.ndim == 2:
+            n, m = arr.shape
+            whole_array = np.zeros((N, m))
+            #mask = np.expand_dims(mask, axis=1)
+            #mask = mask.repeat(m, axis=1)
+            whole_array[mask] = arr[:n_true, :]
+        else: # only developers can trigger this case
+            raise ValueError('arr can only be either 1D or 2D')
+        return whole_array
+
     def getArray(self):
         """Returns a copy of eigenvectors array."""
 
-        if self._array is None: return None
-
-        array = self._array.copy()
-
-        if self.useTrimmed or np.isscalar(self.mask):
-            return array
-
-        mask = self.mask.copy()
-        N = len(mask)
-        n, m = array.shape
-        whole_array = np.zeros((N,m))
-        mask = np.expand_dims(mask, axis=1)
-        mask = mask.repeat(m, axis=1)
-        whole_array[mask] = array.flatten()
-        return whole_array
+        array = self._getArray().copy()
+        
+        return array
 
     getEigvecs = getArray
 
     def _getArray(self):
         """Returns eigenvectors array. The function returns 
-        a copy of the array if useTrimmed is **True**."""
+        a copy of the array if *masked* is **True**."""
 
         if self._array is None: return None
 
-        if self.useTrimmed or np.isscalar(self.mask):
-            return self._array
+        if self.masked or np.isscalar(self.mask):
+            array = self._array
         else:
-            return self.getArray()
+            if self._maskedarray is None:
+                array = self._maskedarray = self._extend(self._array)
+            else:
+                array = self._maskedarray
+
+        return array
+
+    def getHinges(self, modeIndex=None, flag=False):
+        """Gets residue index of hinge sites given mode indices.
+
+        :arg modeIndex: indices of modes. This parameter can be a scalar, a list, 
+            or logical indices. Default is **None**
+        :type modeIndex: int, list
+
+        :arg flag: whether return flag or index array. Default is **False**
+        :type flag: bool
+        """
+
+        hinges = super(MaskedGNM, self).getHinges(modeIndex, True)
+        hinges = self._extend(hinges)
+
+        if flag:
+            return hinges
+        else:
+            hinge_list = np.where(hinges)[0]
+            return sorted(set(hinge_list))
 
     def fixTail(self, length):
+        """Fixes the tail of the model. If *length* is greater than the original size 
+        (number of nodes), then extra hidden nodes will be added to the model, and if 
+        not, the model will be trimmed so that the total number of nodes, including the 
+        hidden ones, will be equal to the *length*. Note that if *masked* is **True**, 
+        the *length* should be the number of *visible* nodes.
+
+        :arg length: length of the model after the fixation
+        :type length: int
+        """
         def _fixLength(vector, length, filled_value=0, axis=0):
             shape = vector.shape
             dim = len(shape)
@@ -642,8 +705,27 @@ class TrimmedGNM(GNM):
                 vector = vector[:length]
             return vector
 
+        trimmed = self.masked
+        if trimmed:
+            trimmed_length = self.numAtoms()
+            self.masked = False
+            extra_length = self.numAtoms() - trimmed_length
+            length += extra_length
+
         if np.isscalar(self.mask):
             self.mask = np.ones(self.numAtoms(), dtype=bool)
 
         self.mask = _fixLength(self.mask, length, False)
+        self.masked = trimmed
+        self._n_atoms = np.sum(self.mask, dtype=int)
         return
+
+    def setEigens(self, vectors, values=None):
+        if not self.masked:
+            vectors = vectors[self.mask, :]
+        self._maskedarray = None
+        super(MaskedGNM, self).setEigens(vectors, values)
+
+    def calcModes(self, n_modes=20, zeros=False, turbo=True, hinges=True):
+        self._maskedarray = None
+        super(MaskedGNM, self).calcModes(n_modes, zeros, turbo, hinges)

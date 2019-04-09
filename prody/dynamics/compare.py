@@ -3,6 +3,7 @@
 models."""
 
 import numpy as np
+from numbers import Integral
 from prody import LOGGER, SETTINGS
 from prody.utilities import openFile
 
@@ -10,11 +11,13 @@ from .nma import NMA
 from .modeset import ModeSet
 from .mode import Mode, Vector
 from .gnm import ZERO
+from .analysis import calcFractVariance
 
-__all__ = ['calcOverlap', 'calcCumulOverlap', 'calcSubspaceOverlap',
-           'calcSpectralOverlap', 'calcCovOverlap', 'printOverlapTable', 'writeOverlapTable',
-           'pairModes', 'matchModes']
+__all__ = ['calcOverlap', 'calcCumulOverlap', 'calcSubspaceOverlap', 'calcSpectralOverlap', 
+           'calcCovOverlap', 'printOverlapTable', 'writeOverlapTable', 'pairModes', 'matchModes']
 
+SO_CACHE = {}
+WO_CACHE = {}
 
 def calcOverlap(rows, cols):
     """Returns overlap (or correlation) between two sets of modes (*rows* and
@@ -32,9 +35,10 @@ def calcOverlap(rows, cols):
     if rows.numDOF() != cols.numDOF():
         raise ValueError('number of degrees of freedom of rows and '
                          'cols must be the same')
-    rows = rows.getArray()
+    
+    rows = rows._getArray()
     rows *= 1 / (rows ** 2).sum(0) ** 0.5
-    cols = cols.getArray()
+    cols = cols._getArray()
     cols *= 1 / (cols ** 2).sum(0) ** 0.5
     return np.dot(rows.T, cols)
 
@@ -126,7 +130,7 @@ def calcCumulOverlap(modes1, modes2, array=False):
     Returns a number of *modes1* contains a single :class:`.Mode` or a
     :class:`.Vector` instance. If *modes1* contains multiple modes, returns an
     array. Elements of the array correspond to cumulative overlaps for modes
-    in *modes1* with those in *modes2*.  If *array* is **True**, Return array
+    in *modes1* with those in *modes2*.  If *array* is **True**, returns an array
     of cumulative overlaps. Returned array has the shape ``(len(modes1),
     len(modes2))``.  Each row corresponds to cumulative overlaps calculated for
     modes in *modes1* with those in *modes2*.  Each value in a row corresponds
@@ -158,7 +162,7 @@ def calcSubspaceOverlap(modes1, modes2):
     rmsip = np.sqrt(np.power(overlap, 2).sum() / length)
     return rmsip
 
-def calcSpectralOverlap(modes1, modes2):
+def calcSpectralOverlap(modes1, modes2, weighted=False, turbo=False):
     """Returns overlap between covariances of *modes1* and *modes2*.  Overlap
     between covariances are calculated using normal modes (eigenvectors),
     hence modes in both models must have been calculated.  This function
@@ -167,92 +171,209 @@ def calcSpectralOverlap(modes1, modes2):
     .. [BH02] Hess B. Convergence of sampling in protein simulations.
         *Phys Rev E* **2002** 65(3):031910.
     
+    :arg weighted: if **True** then covariances are weighted by the trace.
+    :type weighted: bool
     """
 
     if modes1.is3d() ^ modes2.is3d():
         raise TypeError('models must be either both 1-dimensional or 3-dimensional')
     if modes1.numAtoms() != modes2.numAtoms():
         raise ValueError('modes1 and modes2 must have same number of atoms')
-    arrayA = modes1._getArray()
-    varA = modes1.getVariances()
-    arrayB = modes2._getArray()
-    varB = modes2.getVariances()
 
-    dotAB = np.dot(arrayA.T, arrayB)**2
-    outerAB = np.outer(varA**0.5, varB**0.5)
-    diff = (np.sum(varA.sum() + varB.sum()) - 2 * np.sum(outerAB * dotAB))
+    if isinstance(modes1, Mode):
+        if weighted:
+            varA = np.array([calcFractVariance(modes1)])
+        else:
+            varA = np.array([modes1.getVariance()])
+        I = np.array([modes1.getIndex()])
+    else:
+        if weighted:
+            varA = calcFractVariance(modes1)
+        else:
+            varA = modes1.getVariances()
+        I = modes1.getIndices()
+
+    if isinstance(modes2, Mode):
+        if weighted:
+            varB = np.array([calcFractVariance(modes2)])
+        else:
+            varB = np.array([modes2.getVariance()])
+        J = np.array([modes2.getIndex()])
+    else:
+        if weighted:
+            varB = calcFractVariance(modes2)
+        else:
+            varB = modes2.getVariances()
+        J = modes2.getIndices()
+
+    if turbo:
+        model1 = modes1.getModel()
+        model2 = modes2.getModel()
+        if weighted:
+            CACHE = WO_CACHE
+        else:
+            CACHE = SO_CACHE
+        if (model1, model2) in CACHE:
+            weights = CACHE[(model1, model2)]
+        elif (model2, model1) in CACHE:
+            weights = CACHE[(model2, model1)]
+        else:
+            farrayA = model1._getArray()
+            farrayB = model2._getArray()
+
+            fvarA = model1.getVariances()
+            fvarB = model2.getVariances()
+
+            dotAB = np.dot(farrayA.T, farrayB)**2
+            outerAB = np.outer(fvarA**0.5, fvarB**0.5)
+            CACHE[(model1, model2)] = weights = outerAB * dotAB
+        
+        weights = weights[I, :][:, J]
+    else:
+        arrayA = modes1._getArray()
+        arrayB = modes2._getArray()
+
+        dotAB = np.dot(arrayA.T, arrayB)**2
+        outerAB = np.outer(varA**0.5, varB**0.5)
+        weights = outerAB * dotAB
+
+    diff = (np.sum(varA.sum() + varB.sum()) - 2 * np.sum(weights))
+
     if diff < ZERO:
         diff = 0
     else:
         diff = diff ** 0.5
     return 1 - diff / np.sqrt(varA.sum() + varB.sum())
 
-def calcCovOverlap(modes1, modes2):
+def calcCovOverlap(modes1, modes2, turbo=False):
     """Returns overlap between covariances of *modes1* and *modes2*.  Overlap
     between covariances are calculated using normal modes (eigenvectors),
     hence modes in both models must have been calculated.  This function
     implements equation 11 in [BH02]_."""
-    return calcSpectralOverlap(modes1, modes2)
+    return calcSpectralOverlap(modes1, modes2, turbo=turbo)
 
-def pairModes(modes1, modes2, index=False):
+def pairModes(modes1, modes2, **kwargs):
     """Returns the optimal matches between *modes1* and *modes2*. *modes1* 
     and *modes2* should have equal number of modes, and the function will 
     return a nested list where each item is a list containing a pair of modes.
 
-    :arg index: if `True` then indices of modes will be returned instead of 
+    :arg index: if **True** then indices of modes will be returned instead of 
         :class:`Mode` instances.
     :type index: bool
     """
 
-    from scipy.optimize import linear_sum_assignment
+    index = kwargs.pop('index', False)
+    method = kwargs.pop('method', None)
+
+    if method is None:
+        from scipy.optimize import linear_sum_assignment
+        method = linear_sum_assignment
 
     if not (isinstance(modes1, (ModeSet, NMA)) \
         and isinstance(modes2, (ModeSet, NMA))):
-        raise TypeError('modes1 and modes2 should be ModeSet instances')
+        raise TypeError('modes1 and modes2 should be ModeSet or NMA instances')
 
     if len(modes1) != len(modes2):
         raise ValueError('the same number of modes should be provided')
     overlaps = calcOverlap(modes1, modes2)
 
     costs = 1 - abs(overlaps)
-    row_ind, col_ind = linear_sum_assignment(costs)
+    row_ind, col_ind = method(costs)
 
     if index:
         return row_ind, col_ind
+
+    if isinstance(modes1, ModeSet):
+        row_ind = modes1._indices[row_ind]
+
+    if isinstance(modes2, ModeSet):
+        col_ind = modes2._indices[col_ind]
 
     outmodes1 = ModeSet(modes1.getModel(), row_ind)
     outmodes2 = ModeSet(modes2.getModel(), col_ind)
 
     return outmodes1, outmodes2
 
+def _pairModes_wrapper(args):
+    modeset0, modesets, index = args
+
+    ret = []
+    for modeset in modesets:
+        _, reordered_modeset = pairModes(modeset0, modeset, index=index)
+        ret.append(reordered_modeset)
+    return ret
+
 def matchModes(*modesets, **kwargs):
     """Returns the matches of modes among *modesets*. Note that the first 
     modeset will be treated as the reference so that only the matching 
     of each modeset to the first modeset is garanteed to be optimal.
     
-    :arg index: if `True` then indices of modes will be returned instead of 
-                :class:`Mode` instances.
+    :arg index: if **True** then indices of modes will be returned instead of 
+                :class:`Mode` instances
     :type index: bool
+
+    :arg turbo: if **True** then the computation will be performed in parallel. 
+                The number of threads is set to be the same as the number of 
+                CPUs. Assigning a number to specify the number of threads to be 
+                used. Note that if writing a script, ``if __name__ == '__main__'`` 
+                is necessary to protect your code when multi-tasking. 
+                See https://docs.python.org/2/library/multiprocessing.html for details.
+                Default is **False**
+    :type turbo: bool, int
     """
 
     index = kwargs.pop('index', False)
+    turbo = kwargs.pop('turbo', False)
+
+    n_worker = None
+    if not isinstance(turbo, bool):
+        n_worker = int(turbo)
+
     modeset0 = modesets[0]
-    ret = [modeset0]
+    if index:
+        ret = [modeset0.getIndices()]
+    else:
+        ret = [modeset0]
 
     n_modes = len(modeset0)
     n_sets = len(modesets)
     if n_sets == 1:
-        return modesets
+        return ret
     elif n_sets == 0:
         raise ValueError('at least one modeset should be given')
 
-    LOGGER.progress('Matching {0} modes across {1} modesets...'
-                    .format(n_modes, n_sets), n_sets, '_prody_matchModes')
-    for i, modeset in enumerate(modesets):
-        LOGGER.update(i, label='_prody_matchModes')
-        if i > 0:
-            _, reordered_modeset = pairModes(modeset0, modeset, index=index)
-            ret.append(reordered_modeset)
-    LOGGER.finish()
+    if turbo:
+        from multiprocessing import Pool, cpu_count
+        from math import ceil
+        
+        if not n_worker:
+            n_worker = cpu_count()
+
+        LOGGER.info('Matching {0} modes across {1} modesets with {2} threads...'
+                        .format(n_modes, n_sets, n_worker))
+
+        pool = Pool(n_worker)
+        n_sets_per_worker = ceil((n_sets - 1) / n_worker)
+        args = []
+        for i in range(n_worker):
+            start = i*n_sets_per_worker + 1
+            end = (i+1)*n_sets_per_worker + 1
+            subset = modesets[start:end]
+            args.append((modeset0, subset, index))
+        nested_ret = pool.map(_pairModes_wrapper, args)
+        for entry in nested_ret:
+            ret.extend(entry)
+
+        pool.close()
+        pool.join()
+    else:
+        LOGGER.progress('Matching {0} modes across {1} modesets...'
+                        .format(n_modes, n_sets), n_sets, '_prody_matchModes')
+        for i, modeset in enumerate(modesets):
+            LOGGER.update(i, label='_prody_matchModes')
+            if i > 0:
+                _, reordered_modeset = pairModes(modeset0, modeset, index=index, **kwargs)
+                ret.append(reordered_modeset)
+        LOGGER.finish()
     
     return ret

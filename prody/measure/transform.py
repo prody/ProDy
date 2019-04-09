@@ -5,7 +5,7 @@ import numpy as np
 
 from prody import LOGGER
 from prody.atomic import AtomPointer
-from prody.utilities import importLA
+from prody.utilities import importLA, checkWeights
 
 from .measure import calcCenter
 
@@ -90,7 +90,7 @@ class Transformation(object):
 
 
 def calcTransformation(mobile, target, weights=None):
-    """Returnss a :class:`Transformation` instance which, when applied to the
+    """Returns a :class:`Transformation` instance which, when applied to the
     atoms in *mobile*, minimizes the weighted RMSD between *mobile* and
     *target*.  *mobile* and *target* may be NumPy coordinate arrays, or
     :class:`.Atomic` instances, e.g. :class:`.AtomGroup`, :class:`.Chain`,
@@ -121,10 +121,7 @@ def calcTransformation(mobile, target, weights=None):
         raise ValueError('reference and target must be coordinate arrays')
 
     if weights is not None:
-        if not isinstance(weights, np.ndarray):
-            raise TypeError('weights must be an ndarray instance')
-        elif weights.shape != (mob.shape[0], 1):
-            raise ValueError('weights must have shape (n_atoms, 1)')
+        weights = checkWeights(weights, mob.shape[0])
 
     return Transformation(*getTransformation(mob, tar, weights))
 
@@ -154,7 +151,6 @@ def getTransformation(mob, tar, weights=None):
     rotation = np.dot(Vh.T, np.dot(Id, U.T))
 
     return rotation, tar_com - np.dot(mob_com, rotation.T)
-    return rotation, tar_com - np.dot(mob_com, rotation)
 
 
 def applyTransformation(transformation, atoms):
@@ -349,10 +345,10 @@ def moveAtoms(atoms, **kwargs):
 
 
 def calcRMSD(reference, target=None, weights=None):
-    """Returns root-mean-square deviation(s) (RMSD) between reference and target
+    """Returns root-mean-square deviation (RMSD) between reference and target
     coordinates.
 
-    .. ipython:: pyhton
+    .. ipython:: python
 
        ens = loadEnsemble('p38_X-ray.ens.npz')
        ens.getRMSDs()
@@ -396,13 +392,9 @@ def calcRMSD(reference, target=None, weights=None):
                          'number of atoms')
 
     if weights is not None:
-        if not isinstance(weights, np.ndarray):
-            raise TypeError('weights must be an ndarray instance')
-        elif (not ((weights.ndim == 2 and len(weights) == len(ref)) or
-                   (weights.ndim == 3 and
-                    weights.shape[:2] == target.shape[:2])) or
-              weights.shape[-1] != 1):
-            raise ValueError('weights must have shape ([n_confs,] n_atoms, 1)')
+        n_atoms = len(ref)
+        n_csets = 1 if tar.ndim == 2 else len(tar)
+        weights = checkWeights(weights, n_atoms, n_csets)
     return getRMSD(ref, tar, weights)
 
 

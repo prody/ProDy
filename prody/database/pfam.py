@@ -47,8 +47,8 @@ def searchPfam(query, **kwargs):
     """Returns Pfam search results in a dictionary.  Matching Pfam accession
     as keys will map to evalue, alignment start and end residue positions.
 
-    :arg query: UniProt ID, PDB identifier, protein sequence, or a sequence
-        file, sequence queries must not contain without gaps and must be at
+    :arg query: UniProt ID, PDB identifier, a protein sequence, or a sequence
+        file. Sequence queries must not contain without gaps and must be at
         least 16 characters long
     :type query: str
 
@@ -86,46 +86,80 @@ def searchPfam(query, **kwargs):
         enc_params = urllib.urlencode(parameters).encode('utf-8')
         request = urllib2.Request('https://www.ebi.ac.uk/Tools/hmmer/search/hmmscan', enc_params)
 
-        results_url = urllib2.urlopen(request).getheader('location')
+        results_url = urllib2.urlopen(request).geturl()
 
-        res_params = { 'output' : 'xml' }
+        #res_params = { 'output' : 'xml' }
+        res_params = { 'format' : 'tsv' }
         enc_res_params = urllib.urlencode(res_params)
-        modified_res_url = results_url + '?' + enc_res_params
+        #modified_res_url = results_url + '?' + enc_res_params
+        modified_res_url = results_url.replace('results','download') + '?' + enc_res_params
 
         result_request = urllib2.Request(modified_res_url) 
         # url = ( urllib2.urlopen(request).geturl() + '?output=xml') 
         LOGGER.debug('Submitted Pfam search for sequence "{0}...".'
                      .format(seq[:MINSEQLEN]))
 
-        xml = urllib2.urlopen(result_request).read()
+        #xml = urllib2.urlopen(result_request).read()
+        tsv = urllib2.urlopen(result_request).read()
         # openURL(url, timeout=timeout).read()
         
-        try:
-            root = ET.XML(xml)
-        except Exception as err:
-            raise ValueError('failed to parse results XML, check URL: ' + modified_res_url)
+        # try:
+        #     root = ET.XML(xml)
+        # except Exception as err:
+        #     raise ValueError('failed to parse results XML, check URL: ' + modified_res_url)
+
         matches = {}
-        for child in root[0]:
-            if child.tag == 'hits':
-                accession = child.get('acc')
-                pfam_id = accession.split('.')[0]
-                matches[pfam_id]={}
-                matches[pfam_id]['accession']=accession
-                matches[pfam_id]['class']='Domain'
-                matches[pfam_id]['id']=child.get('name')
-                matches[pfam_id]['locations']={}
-                matches[pfam_id]['locations']['ali_end']=child[0].get('alisqto')
-                matches[pfam_id]['locations']['ali_start']=child[0].get('alisqfrom')
-                matches[pfam_id]['locations']['bitscore']=child[0].get('bitscore')
-                matches[pfam_id]['locations']['end']=child[0].get('alisqto')
-                matches[pfam_id]['locations']['evalue']=child.get('evalue')
-                matches[pfam_id]['locations']['evidence']='hmmer v3.0'
-                matches[pfam_id]['locations']['hmm_end']=child[0].get('alihmmto')
-                matches[pfam_id]['locations']['hmm_start']=child[0].get('alihmmfrom')
-                matches[pfam_id]['locations']['significant']=child[0].get('significant')    
-                matches[pfam_id]['locations']['start']=child[0].get('alisqfrom')
-                matches[pfam_id]['type']='Pfam-A'
-                return matches
+        #for child in root[0]:
+            #if child.tag == 'hits':
+                # accession = child.get('acc')
+                # pfam_id = accession.split('.')[0]
+                # matches[pfam_id]={}
+                # matches[pfam_id]['accession']=accession
+                # matches[pfam_id]['class']='Domain'
+                # matches[pfam_id]['id']=child.get('name')
+                # matches[pfam_id]['locations']={}
+                # matches[pfam_id]['locations']['ali_end']=child[0].get('alisqto')
+                # matches[pfam_id]['locations']['ali_start']=child[0].get('alisqfrom')
+                # matches[pfam_id]['locations']['bitscore']=child[0].get('bitscore')
+                # matches[pfam_id]['locations']['end']=child[0].get('alisqto')
+                # matches[pfam_id]['locations']['evalue']=child.get('evalue')
+                # matches[pfam_id]['locations']['evidence']='hmmer v3.0'
+                # matches[pfam_id]['locations']['hmm_end']=child[0].get('alihmmto')
+                # matches[pfam_id]['locations']['hmm_start']=child[0].get('alihmmfrom')
+                # matches[pfam_id]['locations']['significant']=child[0].get('significant')    
+                # matches[pfam_id]['locations']['start']=child[0].get('alisqfrom')
+                # matches[pfam_id]['type']='Pfam-A'
+        # return matches
+
+        lines = tsv.split('\n')
+        keys = lines[0].split('\t')
+        root = {}
+        for i, line in enumerate(lines[1:-1]):
+            root[i] = {}
+            for j, key in enumerate(keys):
+                root[i][key] = line.split('\t')[j]
+
+        for child in root.values():
+            accession = child['Family Accession']
+            pfam_id = accession.split('.')[0]
+            matches[pfam_id]={}
+            matches[pfam_id]['accession'] = accession
+            matches[pfam_id]['class'] = 'Domain'
+            matches[pfam_id]['id'] = child['Family id']
+            matches[pfam_id]['locations'] = {}
+            matches[pfam_id]['locations']['ali_end'] = child['Ali. End']
+            matches[pfam_id]['locations']['ali_start'] = child['Ali. Start']
+            matches[pfam_id]['locations']['bitscore'] = child['Bit Score']
+            matches[pfam_id]['locations']['end'] = child['Env. End']
+            matches[pfam_id]['locations']['cond_evalue'] = child['Cond. E-value']
+            matches[pfam_id]['locations']['ind_evalue'] = child['Ind. E-value']
+            matches[pfam_id]['locations']['evidence'] = 'hmmer v3.0'
+            matches[pfam_id]['locations']['hmm_end'] = child['Model End']
+            matches[pfam_id]['locations']['hmm_start'] = child['Model Start']
+            #matches[pfam_id]['locations']['significant'] = child['significant']   
+            matches[pfam_id]['locations']['start'] = child['Env. Start']
+            matches[pfam_id]['type'] = 'Pfam-A'
+        return matches
 
     else:
         if len(seq) <= 5:
@@ -146,6 +180,7 @@ def searchPfam(query, **kwargs):
                     if dbref.database != 'UniProt':
                         continue
                     idcode = dbref.idcode
+                    accession = dbref.accession
                     LOGGER.info('UniProt ID code {0} for {1} chain '
                                 '{2} will be used.'
                                 .format(idcode, seq[:4], poly.chid))
@@ -182,6 +217,17 @@ def searchPfam(query, **kwargs):
     if xml.find(b'There was a system error on your last request.') > 0:
         LOGGER.warn('No Pfam matches found for: ' + seq)
         return None
+    elif xml.find(b'No valid UniProt accession or ID') > 0:
+        try:
+            url = prefix + 'protein/' + accession + '?output=xml'
+            xml = openURL(url, timeout=timeout).read()
+        except:
+            try:
+                ag = parsePDB(seq, subset='ca')
+                ag_seq = ag.getSequence()
+                return searchPfam(ag_seq)
+            except:
+                raise ValueError('No valid UniProt accession or ID for: ' + seq)
 
     try:
         root = ET.XML(xml)
@@ -331,7 +377,7 @@ def fetchPfamMSA(acc, alignment='full', compressed=False, **kwargs):
     :arg folder: output folder, default is ``'.'``"""
 
     url = prefix + 'family/acc?id=' + acc
-    handle = openURL(url)
+    handle = openURL(url, timeout=int(kwargs.get('timeout', 60)))
     orig_acc = acc
     acc = handle.readline().strip()
     if PY3K:
@@ -523,7 +569,12 @@ def parsePfamPDBs(query, data=[], **kwargs):
         data_dict = data_dicts[i]
         pfamRange = data_dict['UniprotResnumRange'].split('-')
         uniprotAcc = data_dict['UniprotAcc']
-        uniData = queryUniprot(uniprotAcc)
+        try:
+            uniData = queryUniprot(uniprotAcc)
+        except:
+            LOGGER.warn('No Uniprot record found for {0}'.format(data_dict['PBD_ID']))
+            continue
+
         resrange = None
         found = False
         for key, value in uniData.items():
@@ -549,17 +600,23 @@ def parsePfamPDBs(query, data=[], **kwargs):
             if found:
                 break
 
-        multi = False
         if found:
             header = headers[i]
             chain_accessions = [dbref.accession 
                                 for dbref in header[data_dict['chain']].dbrefs]
-            if len(chain_accessions) > 1:
-                multi = True
-            else:
-                multi = False
-            right_part = np.where(np.array(chain_accessions) == 
-                                  data_dict['UniprotAcc'])[0][0]
+            try:
+                if len(chain_accessions) > 0:
+                    right_part = np.where(np.array(chain_accessions) == 
+                                        data_dict['UniprotAcc'])[0][0]
+                else:
+                    raise ValueError('There is no accession for a chain in the Header')
+            except:
+                LOGGER.warn('Could not map domains in {0}'
+                            .format(data_dict['PDB_ID'] 
+                            + data_dict['chain']))
+                no_info.append(i)
+                continue
+
             right_dbref = header[data_dict['chain']].dbrefs[right_part]
             chainStart = ag.select('chain {0}'.format(data_dict['chain'])
                                   ).getResnums()[0]

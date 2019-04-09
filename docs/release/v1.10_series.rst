@@ -4,6 +4,37 @@ ProDy 1.10 Series
 .. contents::
    :local:
 
+1.10.8 (Sept 18, 2018)
+------------------------------------------------------------------------------
+
+**New Features**:
+
+  * Added *turbo* option to :func:`.calcEnsembleSpectralOverlaps` and 
+  :func:`.matchModes`. Both options allow speed-up about 40%.
+
+**Bug Fixes and Improvements**:
+
+  * :func:`.writePDB` now can accept :class:`.Ensemble` as input.
+  
+  * PY3K compatibility fixes.
+
+1.10.7 (May 21, 2018)
+------------------------------------------------------------------------------
+
+**New Features**:
+
+  * Added *overlay* and *gap* option to :func:`.showAtomicLines`.
+
+**Bug Fixes and Improvements**:
+
+  * Reorganized MechStiff functions. Now MechStiff functions are moved out from 
+  the :class:`.ANM` class, and `get...` were renamed to `calc...`
+
+  * Fixed a problem that an error will be raised when searching a sequence 
+  against *Pfam*.
+  
+  * PY3K compatibility fixes.
+
 1.10.4 (May 15, 2018)
 ------------------------------------------------------------------------------
 
@@ -20,7 +51,7 @@ ProDy 1.10 Series
     extend data based on :class:`.Selection` or other types of :class:`.Atomic` 
     objects.
 
-*Bug Fixes and Improvements*
+**Bug Fixes and Improvements**:
 
   * Switched to Python Wheel for distributing on Windows. This will allow 
     Windows users to `pip install prody`.
@@ -91,7 +122,7 @@ Signature Dynamics
   * Added additional functions for *Uniprot* and *Pfam* such as 
     :func:`.queryUniprot` and :func:`.parsePfamPDBs`.
 
-*Bug Fixes and Improvements*
+**Bug Fixes and Improvements**:
 
   * Fixed compatibility problems for Python 2 and 3.
 

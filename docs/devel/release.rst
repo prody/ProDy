@@ -53,7 +53,7 @@ How to Make a Release
      $ python setup.py sdist --formats=gztar,zip
 
 
-#. Prepare and test Python Wheels on Windows (see :ref:`wininst`).
+#. Prepare and test `Python Wheels <https://pythonwheels.com/>`_ on Windows (see :ref:`wininst`).
 
    Wheels should be prepared for the following versions of Python::
 
@@ -78,8 +78,8 @@ How to Make a Release
 #. Put all installation source and executable in dist directory. 
 
 #. Upload the new release files to the PyPI_ using twine (NOTE: this step is 
-irreversible! If there were to be a change to ProDy after this step, then it needs 
-to be prepared as a whole new release)::
+   **irreversible**! If there were to be a change to ProDy after this step, then it needs 
+   to be prepared as a whole new release)::
 
      $ twine upload dist/*
 

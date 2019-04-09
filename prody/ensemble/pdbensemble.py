@@ -30,9 +30,9 @@ class PDBEnsemble(Ensemble):
     def __init__(self, title='Unknown'):
 
         self._labels = []
-        Ensemble.__init__(self, title)
         self._trans = None
         self._msa = None
+        Ensemble.__init__(self, title)
 
     def __repr__(self):
 
@@ -70,6 +70,20 @@ class PDBEnsemble(Ensemble):
         else:
             ensemble.setAtoms(other._atoms)
             ensemble._indices = other._indices
+
+        all_keys = list(self._data.keys()) + list(other._data.keys())
+        for key in all_keys:
+            if key in self._data and key in other._data:
+                self_data = self._data[key]
+                other_data = other._data[key]
+            elif key in self._data:
+                self_data = self._data[key]
+                other_data = np.zeros(other.numConfs(), dtype=self_data.dtype)
+            elif key in other._data:
+                other_data = other._data[key]
+                self_data = np.zeros(other.numConfs(), dtype=other_data.dtype)
+            ensemble._data[key] = np.concatenate((self_data, other_data), axis=0)
+
         return ensemble
 
     def __iter__(self):
@@ -85,6 +99,7 @@ class PDBEnsemble(Ensemble):
         """Returns a conformation at given index."""
 
         msa = self._msa
+        labels = self._labels
         if msa:
             msa = self._msa[index]
         if isinstance(index, Integral):
@@ -103,21 +118,40 @@ class PDBEnsemble(Ensemble):
                 ens._trans = self._trans[index]
             ens.setAtoms(self._atoms)
             ens._indices = self._indices
+
+            for key in self._data.keys():
+                ens._data[key] = self._data[key][index].copy()
             return ens
 
         elif isinstance(index, (list, np.ndarray)):
+            index2 = list(index)
+            for i in range(len(index)):
+                if isinstance(index[i], str):
+                    try:
+                        index2[i] = labels.index(index[i])
+                    except ValueError:
+                        raise IndexError('invalid label: %s'%index[i])
             ens = PDBEnsemble('{0}'.format(self._title))
             ens.setCoords(copy(self._coords))
-            labels = list(np.array(self._labels)[index])
-            ens.addCoordset(self._confs[index].copy(),
-                            self._weights[index].copy(),
+            labels = list(np.array(self._labels)[index2])
+            ens.addCoordset(self._confs[index2].copy(),
+                            self._weights[index2].copy(),
                             label=labels,
                             sequence=msa)
             if self._trans is not None:
-                ens._trans = self._trans[index]
+                ens._trans = self._trans[index2]
             ens.setAtoms(self._atoms)
             ens._indices = self._indices
+
+            for key in self._data.keys():
+                ens._data[key] = self._data[key][index].copy()
             return ens
+        elif isinstance(index, str):
+            try:
+                i = labels.index(index)
+                return self.getConformation(i)
+            except ValueError:
+                raise IndexError('invalid label: %s'%index)
         else:
             raise IndexError('invalid index')
 
@@ -175,7 +209,7 @@ class PDBEnsemble(Ensemble):
         degeneracy = kwargs.pop('degeneracy', False)
 
         atoms = coords
-        n_atoms = self.numAtoms()
+        n_atoms = self._n_atoms
         n_select = self.numSelected()
         n_confs = self.numCoordsets()
 

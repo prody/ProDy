@@ -1,10 +1,10 @@
 Metadata-Version: 1.1
 Name: ProDy
-Version: 1.10.4
+Version: 1.10.8
 Summary: A Python Package for Protein Dynamics Analysis
 Home-page: http://www.csb.pitt.edu/ProDy
-Author: Cihan Kaya-Ahmet Bakan
-Author-email: cihank@pitt.edu
+Author: She Zhang-Cihan Kaya-Ahmet Bakan
+Author-email: shz66@pitt.edu
 License: MIT License
 Description: .. image:: https://secure.travis-ci.org/prody/ProDy.png?branch=master
            :target: http://travis-ci.org/#!/prody/ProDy
@@ -91,4 +91,4 @@ Classifier: Programming Language :: Python :: 3
 Classifier: Topic :: Scientific/Engineering :: Bio-Informatics
 Classifier: Topic :: Scientific/Engineering :: Chemistry
 Requires: NumPy (>=1.10)
-Provides: ProDy (1.10.4)
+Provides: ProDy (1.10.8)
