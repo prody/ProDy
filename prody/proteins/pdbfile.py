@@ -1093,7 +1093,15 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
     if resnums is None:
         resnums = np.ones(n_atoms, int)
 
-    indices = [atom.getIndex() for atom in atoms]
+    try:
+        indices = atoms._getIndices()
+    except:
+        try:
+            indices = [atom.getIndex() for atom in atoms]
+        except:
+            indices = None
+    if indices is None:
+        indices = np.ones(n_atoms, int)
 
     icodes = atoms._getIcodes()
     if icodes is None:
