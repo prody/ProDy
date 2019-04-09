@@ -35,6 +35,7 @@
 
 /* Modified by: She Zhang */
 
+#define _hypot hypot
 #include <Python.h>
 #include <math.h>
 

@@ -9,7 +9,7 @@ from numpy import arange
 PW2 = None
 
 from prody.atomic import AtomMap as AM
-from prody.atomic import Chain, AtomGroup, Selection
+from prody.atomic import AtomGroup, Chain, AtomSubset
 from prody.atomic import AAMAP
 from prody.atomic import flags
 from prody.measure import calcTransformation, printRMSD, calcDistance
@@ -625,7 +625,7 @@ def matchChains(atoms1, atoms2, **kwargs):
             LOGGER.debug('Trying to match chains based on {0} sequence '
                          'alignment:'.format(ALIGNMENT_METHOD))
             for simpch1, simpch2 in unmatched:
-                LOGGER.debug('  Comparing {0} (len={1}) and {2} '
+                LOGGER.debug(' Comparing {0} (len={1}) and {2} '
                              '(len={3}):'
                              .format(simpch1.getTitle(), len(simpch1),
                                      simpch2.getTitle(), len(simpch2)))
@@ -721,9 +721,7 @@ def matchChains(atoms1, atoms2, **kwargs):
 
         matches[mi] = (match1, match2, _seqid, _cover)
     if len(matches) > 1:
-        def compare(m1, m2):
-            return cmp(m1[2], m2[2])
-        matches.sort(compare, reverse=True)
+        matches.sort(key=lambda m: m[-2:], reverse=True)
     return matches
 
 
@@ -813,10 +811,11 @@ def mapOntoChain(atoms, chain, **kwargs):
         ``"heavy"`` (or ``"noh"``), or ``"all"``, default is ``"calpha"``
     :type subset: string
 
-    :keyword seqid: percent sequence identity, default is 90
+    :keyword seqid: percent sequence identity, default is **90** if sequence alignment is 
+        performed, otherwise **0**
     :type seqid: float
 
-    :keyword overlap: percent overlap, default is 90
+    :keyword overlap: percent overlap, default is **70**
     :type overlap: float
 
     :keyword mapping: if ``"ce"`` or ``"cealign"``, then the CE algorithm [IS98]_ will be 
@@ -843,9 +842,8 @@ def mapOntoChain(atoms, chain, **kwargs):
        *Protein engineering* **1998** 11(9):739-47.
     """
 
-    if not isinstance(atoms, (AtomGroup, Chain, Selection)):
-        raise TypeError('atoms must be an AtomGroup, a Chain, or a '
-                        'Selection instance')
+    if not isinstance(atoms, (AtomGroup, AtomSubset)):
+        raise TypeError('atoms must be an AtomGroup or a AtomSubset instance')
     if not isinstance(chain, Chain):
         raise TypeError('chain must be Chain instance')
 
@@ -853,10 +851,9 @@ def mapOntoChain(atoms, chain, **kwargs):
     if subset not in _SUBSETS:
         raise ValueError('{0} is not a valid subset argument'
                          .format(str(subset)))
-    seqid = kwargs.get('seqid', 90.)
-    coverage = kwargs.get('overlap')
-    if coverage is None:
-        coverage = kwargs.get('coverage', 70.)
+    seqid = kwargs.get('seqid', 90.) 
+    coverage = kwargs.get('overlap', 70.)
+    coverage = kwargs.get('coverage', coverage) 
     pwalign = kwargs.get('pwalign', None)
     pwalign = kwargs.get('mapping', pwalign)
     alignment = None
@@ -940,12 +937,17 @@ def mapOntoChain(atoms, chain, **kwargs):
             if pwalign in ['ce', 'cealign']:
                 aln_type = 'structure alignment'
                 method = 'CE'
+                if not 'seqid' in kwargs:
+                    seqid = 0.
             else:
                 aln_type = 'sequence alignment'
                 method = ALIGNMENT_METHOD
         else:
             aln_type = 'alignment'
             method = 'predefined'
+            if not 'seqid' in kwargs:
+                seqid = 0.
+
         LOGGER.debug('Trying to map atoms based on {0} {1}:'
                      .format(method, aln_type))
 
@@ -1019,9 +1021,7 @@ def mapOntoChain(atoms, chain, **kwargs):
 
         mappings[mi] = (atommap, selection, _seqid, _cover)
     if len(mappings) > 1:
-        def compare(m1, m2):
-            return cmp(m1[2], m2[2])
-        mappings.sort(compare, reverse=True)
+        mappings.sort(key=lambda m: m[-2:], reverse=True)
     return mappings
 
 def mapChainByChain(atoms, ref, **kwargs):
@@ -1173,13 +1173,13 @@ def getAlignedMapping(target, chain, alignment=None):
     this = _findAlignment(target.getSequence(), alignment)
     if this is None:
         LOGGER.warn('alignment does not contain the target ({0}) sequence'
-                    .format(this.getTitle()))
+                    .format(target.getTitle()))
         return None
 
     that = _findAlignment(chain.getSequence(), alignment)
     if that is None:
         LOGGER.warn('alignment does not contain the chain ({0}) sequence'
-                    .format(that.getTitle()))
+                    .format(chain.getTitle()))
         return None
 
     amatch = []

@@ -3,7 +3,7 @@
 import numpy as np
 
 from numpy import unique, linalg, diag, sqrt, dot
-from .misctools import addBreaks, interpY
+from .misctools import addEnds, interpY
 
 __all__ = ['calcTree', 'clusterMatrix', 'showLines', 'showMatrix', 'reorderMatrix', 'findSubgroups']
 
@@ -13,8 +13,8 @@ def calcTree(names, distance_matrix, method='nj'):
     :arg names: an list of names
     :type names: list, :class:`~numpy.ndarray`
 
-    :arg distance_matrix: a square matrix with length of ensemble. If numbers does not mismatch
-        it will raise an error
+    :arg distance_matrix: a square matrix with length of ensemble. If numbers does not match *names*
+                          it will raise an error
     :type distance_matrix: :class:`~numpy.ndarray`
     """
     try: 
@@ -33,6 +33,8 @@ def calcTree(names, distance_matrix, method='nj'):
         matrix.append(list(row[:k]))
         k = k + 1
     from Bio.Phylo.TreeConstruction import _DistanceMatrix
+    if isinstance(names, np.ndarray):
+        names = names.tolist()
     dm = _DistanceMatrix(names, matrix)
     constructor = Phylo.TreeConstruction.DistanceTreeConstructor()
 
@@ -55,25 +57,25 @@ def clusterMatrix(distance_matrix=None, similarity_matrix=None, labels=None, ret
     and linkage matrix (if **return_linkage** is **True**). Set ``similarity=True`` for clustering a similarity matrix
     
     :arg distance_matrix: an N-by-N matrix containing some measure of distance 
-        such as 1. - seqid_matrix, rmsds, or distances in PCA space
+         such as 1. - seqid_matrix, rmsds, or distances in PCA space
     :type similarity_matrix: :class:`~numpy.ndarray`
 
     :arg similarity_matrix: an N-by-N matrix containing some measure of similarity 
-        such as sequence identity, mode-mode overlap, or spectral overlap
+         such as sequence identity, mode-mode overlap, or spectral overlap
     :type similarity_matrix: :class:`~numpy.ndarray`
     
     :arg labels: labels for each matrix row that can be returned sorted
     :type labels: list
 
     :arg no_plot: if **True**, don't plot the dendrogram.
-        default is **True**
+         default is **True**
     :type no_plot: bool
     
     :arg reversed: if set to **True**, then the sorting indices will be reversed.
     :type reversed: bool
 
     Other arguments for :func:`~scipy.hierarchy.linkage` and :func:`~scipy.hierarchy.dendrogram`
-        can also be provided and will be taken as **kwargs**.
+    can also be provided and will be taken as **kwargs**.
     """
 
     import scipy.cluster.hierarchy as sch
@@ -118,19 +120,32 @@ def showLines(*args, **kwargs):
     Show 1-D data using :func:`~matplotlib.axes.Axes.plot`. 
     
     :arg x: (optional) x coordinates. *x* can be an 1-D array or a 2-D matrix of 
-        column vectors.
+            column vectors.
     :type x: `~numpy.ndarray`
 
     :arg y: data array. *y* can be an 1-D array or a 2-D matrix of 
-        column vectors.
+            column vectors.
     :type y: `~numpy.ndarray`
 
     :arg dy: an array of variances of *y* which will be plotted as a 
-        band along *y*. It should have the same shape with *y*.
+             band along *y*. It should have the same shape with *y*.
     :type dy: `~numpy.ndarray`
 
-    :arg alpha: the transparency of the band(s).
+    :arg lower: an array of lower bounds which will be plotted as a 
+                band along *y*. It should have the same shape with *y* and should be 
+                paired with *upper*.
+    :type lower: `~numpy.ndarray`
+
+    :arg upper: an array of upper bounds which will be plotted as a 
+                band along *y*. It should have the same shape with *y* and should be 
+                paired with *lower*.
+    :type upper: `~numpy.ndarray`
+
+    :arg alpha: the transparency of the band(s) for plotting *dy*.
     :type alpha: float
+
+    :arg beta: the transparency of the band(s) for plotting *miny* and *maxy*.
+    :type beta: float
 
     :arg ticklabels: user-defined tick labels for x-axis.
     :type ticklabels: list
@@ -143,8 +158,12 @@ def showLines(*args, **kwargs):
 
     ticklabels = kwargs.pop('ticklabels', None)
     dy = kwargs.pop('dy', None)
+    miny = kwargs.pop('lower', None)
+    maxy = kwargs.pop('upper', None)
     alpha = kwargs.pop('alpha', 0.5)
+    beta = kwargs.pop('beta', 0.25)
     gap = kwargs.pop('gap', False)
+    labels = kwargs.pop('label', None)
 
     from matplotlib import cm, ticker
     from matplotlib.pyplot import figure, gca, xlim
@@ -153,41 +172,82 @@ def showLines(*args, **kwargs):
     lines = ax.plot(*args, **kwargs)
 
     polys = []
-    if dy is not None:
-        dy = np.array(dy)
-        if dy.ndim == 1:
-            n, = dy.shape; m = 1
-        elif dy.ndim == 2:
-            n, m = dy.shape
-        else:
-            raise ValueError('dy should be either 1-D or 2-D.')
         
-        for i, line in enumerate(lines):
-            color = line.get_color()
-            x, y = line.get_data()
-            if m != 1 and m != len(lines) or n != len(y):
-                raise ValueError('The shapes of dy and y do not match.')
-
-            if dy.ndim == 1:
-                _dy = dy
+    for i, line in enumerate(lines):
+        color = line.get_color()
+        x, y = line.get_data()
+        
+        if gap:
+            x_new, y_new = addEnds(x, y)
+            line.set_data(x_new, y_new)
+        else:
+            x_new, y_new = x, y
+        
+        if labels is not None:
+            if np.isscalar(labels):
+                line.set_label(labels)
             else:
-                _dy = dy[:, i]
-            
+                try:
+                    line.set_label(labels[i])
+                except IndexError:
+                    raise ValueError('The number of labels ({0}) and that of y ({1}) do not match.'
+                                     .format(len(labels), len(line)))
+        
+        # the following function needs to be here so that line exists
+        def sub_array(a, i, tag='a'):
+            ndim = 0
+            if a is not None:
+                if np.isscalar(a[0]):
+                    ndim = 1   # a plain list (array)
+                else:
+                    ndim = 2   # a nested list (array)
+            else:
+                return None
+
+            if ndim == 1:
+                _a = a
+            else:
+                try:
+                    _a = a[i]
+                except IndexError:
+                    raise ValueError('The number of {2} ({0}) and that of y ({1}) do not match.'
+                                     .format(len(miny), len(line), tag))
+
+            if len(_a) != len(y):
+                raise ValueError('The shapes of {2} ({0}) and y ({1}) do not match.'
+                                 .format(len(_miny), len(y), tag))
+            return _a
+
+        if miny is not None and maxy is not None:
+            _miny = sub_array(miny, i)
+            _maxy = sub_array(maxy, i)
+
             if gap:
-                x_new, y_new = addBreaks(x, y)
-                line.set_data(x_new, y_new)
-                _, _dy = addBreaks(x, _dy)
-            else:
-                x_new, y_new = x, y
+                _, _miny = addEnds(x, _miny)
+                _, _maxy = addEnds(x, _maxy)
+                
+            poly = ax.fill_between(x_new, _miny, _maxy,
+                                    alpha=beta, facecolor=color, edgecolor=None,
+                                    linewidth=1, antialiased=True)
+            polys.append(poly)
 
+        if dy is not None:
+            _dy = sub_array(dy, i)
+
+            if gap:
+                _, _dy = addEnds(x, _dy)
+                
             poly = ax.fill_between(x_new, y_new-_dy, y_new+_dy,
-                                   alpha=alpha, facecolor=color, edgecolor=None,
-                                   linewidth=1, antialiased=True)
+                                    alpha=alpha, facecolor=color, edgecolor=None,
+                                    linewidth=1, antialiased=True)
             polys.append(poly)
 
     ax.margins(x=0)
     if ticklabels is not None:
-        ax.get_xaxis().set_major_formatter(ticker.IndexFormatter(ticklabels))
+        if callable(ticklabels):
+            ax.get_xaxis().set_major_formatter(ticker.FuncFormatter(ticklabels))
+        else:
+            ax.get_xaxis().set_major_formatter(ticker.IndexFormatter(ticklabels))
     
     ax.xaxis.set_major_locator(ticker.AutoLocator())
     ax.xaxis.set_minor_locator(ticker.AutoMinorLocator())
@@ -209,6 +269,9 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
     :arg percentile: a percentile threshold to remove outliers, i.e. only showing data within *p*-th 
                      to *100-p*-th percentile
     :type percentile: float
+
+    :arg interactive: turn on or off the interactive options
+    :type interactive: bool
     """
 
     from matplotlib import ticker
@@ -224,7 +287,7 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
     
     vmin = kwargs.pop('vmin', vmin)
     vmax = kwargs.pop('vmax', vmax)
-    
+    lw   = kwargs.pop('linewidth', 1)
     
     W = H = kwargs.pop('ratio', 6)
 
@@ -232,8 +295,10 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
     xticklabels = kwargs.pop('xticklabels', ticklabels)
     yticklabels = kwargs.pop('yticklabels', ticklabels)
 
+    show_colorbar = kwargs.pop('colorbar', True)
     allticks = kwargs.pop('allticks', False) # this argument is temporary and will be replaced by better implementation
     origin = kwargs.pop('origin', 'lower')
+    interactive = kwargs.pop('interactive', True)
 
     tree_mode = False
     if np.isscalar(y_array):
@@ -282,7 +347,6 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
     left_index = (i, j-1)
 
     complex_layout = nrow > 1 or ncol > 1
-    show_colorbar = kwargs.pop('colorbar', True)
 
     ax1 = ax2 = ax3 = None
 
@@ -301,7 +365,7 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
             xp, yp = interpY(y)
             points = np.array([xp, yp]).T.reshape(-1, 1, 2)
             segments = np.concatenate([points[:-1], points[1:]], axis=1)
-            lcy = LineCollection(segments, array=yp, linewidths=1, cmap='jet')
+            lcy = LineCollection(segments, array=yp, linewidths=lw, cmap='jet')
             lines.append(lcy)
             ax1.add_collection(lcy)
 
@@ -321,7 +385,7 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
             xp, yp = interpY(y)
             points = np.array([yp, xp]).T.reshape(-1, 1, 2)
             segments = np.concatenate([points[:-1], points[1:]], axis=1)
-            lcx = LineCollection(segments, array=yp, linewidths=1, cmap='jet')
+            lcx = LineCollection(segments, array=yp, linewidths=lw, cmap='jet')
             lines.append(lcx)
             ax2.add_collection(lcx)
             ax2.set_xlim(yp.min(), yp.max())
@@ -373,6 +437,13 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
 
     sca(ax3)
     sci(im)
+
+    if interactive:
+        from prody.utilities import ImageCursor
+        from matplotlib.pyplot import connect
+        cursor = ImageCursor(ax3, im)
+        connect('button_press_event', cursor.onClick)
+
     return im, lines, cb
 
 def reorderMatrix(matrix, tree, names=None):

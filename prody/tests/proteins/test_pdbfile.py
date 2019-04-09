@@ -4,6 +4,7 @@ import os
 
 import numpy as np
 from numpy.testing import *
+import numpy.testing.decorators as dec
 
 from prody import *
 from prody import LOGGER
@@ -134,7 +135,7 @@ class TestParsePDB(unittest.TestCase):
             'parsePDB failed to append coordinate sets to given ag')
         assert_equal(coords, ag.getCoordsets(np.arange(ncsets, ncsets*2)))
 
-
+'''
     def testBiomolArgument(self):
 
         self.assertRaises(ValueError, parsePDB, self.one['path'],
@@ -145,6 +146,7 @@ class TestParsePDB(unittest.TestCase):
 
         self.assertRaises(ValueError, parsePDB, self.one['path'],
                           secondary=True)
+'''
 
 class TestWritePDB(unittest.TestCase):
 

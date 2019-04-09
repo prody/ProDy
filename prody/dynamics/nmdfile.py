@@ -264,7 +264,7 @@ def parseNMD(filename, type=NMA):
             LOGGER.warn('Coordinate data in {0} at line {1} is corrupt '
                         'and will be omitted.'.format(repr(filename), line))
         else:
-            n_atoms = dof / 3
+            n_atoms = dof // 3
             coords = coords.reshape((n_atoms, 3))
             ag.setCoords(coords)
 

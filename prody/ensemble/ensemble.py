@@ -4,11 +4,12 @@
 from numbers import Integral
 
 from numpy import dot, add, subtract, array, ndarray, sign, concatenate
-from numpy import zeros, ones, arange, isscalar, max
+from numpy import zeros, ones, arange, isscalar, max, asarray
 from numpy import newaxis, unique, repeat
 
 from prody import LOGGER
 from prody.atomic import Atomic, sliceAtoms
+from prody.atomic.atomgroup import checkLabel
 from prody.measure import getRMSD
 from prody.utilities import importLA, checkCoords, checkWeights, copy
 
@@ -39,9 +40,15 @@ class Ensemble(object):
         self._indices = None  # indices of selected atoms
 
         self._confs = None       # coordinate sets
+        self._data = dict()
+
+        if isinstance(title, Ensemble):
+            self._atoms = title.getAtoms()
+        elif isinstance(title, Atomic):
+            self._atoms = title
 
         if isinstance(title, (Atomic, Ensemble)):
-            self.setCoords(title.getCoords())
+            self.setCoords(title)
             self.addCoordset(title)
 
     def __repr__(self):
@@ -82,6 +89,10 @@ class Ensemble(object):
             ens = Ensemble('{0} ({1[0]}:{1[1]}:{1[2]})'.format(
                                 self._title, index.indices(len(self))))
             ens.setCoords(copy(self._coords))
+        
+            for key in self._data.keys():
+                ens._data[key] = self._data[key][index].copy()
+
             ens.addCoordset(self._confs[index].copy())
             if self._weights is not None:
                 ens.setWeights(self._weights.copy())
@@ -93,6 +104,8 @@ class Ensemble(object):
         elif isinstance(index, (list, ndarray)):
             ens = Ensemble('{0}'.format(self._title))
             ens.setCoords(copy(self._coords))
+            for key in self._data.keys():
+                ens._data[key] = self._data[key][index].copy()
             ens.addCoordset(self._confs[index].copy())
             if self._weights is not None:
                 ens.setWeights(self._weights.copy())
@@ -111,7 +124,7 @@ class Ensemble(object):
         if not isinstance(other, Ensemble):
             raise TypeError('an Ensemble instance cannot be added to an {0} '
                             'instance'.format(type(other)))
-        elif self.numAtoms() != other.numAtoms():
+        elif self._n_atoms != other._n_atoms:
             raise ValueError('Ensembles must have same number of atoms.')
 
         ensemble = Ensemble('{0} + {1}'.format(self.getTitle(),
@@ -123,12 +136,25 @@ class Ensemble(object):
         if other._confs is not None:
             ensemble.addCoordset(other._confs.copy())
 
+        all_keys = list(self._data.keys()) + list(other._data.keys())
+        for key in all_keys:
+            if key in self._data and key in other._data:
+                self_data = self._data[key]
+                other_data = other._data[key]
+            elif key in self._data:
+                self_data = self._data[key]
+                other_data = zeros(other.numConfs(), dtype=self_data.dtype)
+            elif key in other._data:
+                other_data = other._data[key]
+                self_data = zeros(other.numConfs(), dtype=other_data.dtype)
+            ensemble._data[key] = concatenate((self_data, other_data), axis=0)
+
         if self._weights is not None:
             LOGGER.info('Atom weights from {0} are used in {1}.'
                         .format(repr(self._title), repr(ensemble.getTitle())))
-            ensemble.setWeights(self._weights)
+            ensemble.setWeights(self._weights.copy())
         elif other._weights is not None:
-            ensemble.setWeights(other._weights)
+            ensemble.setWeights(other._weights.copy())
         
         if self._atoms is not None:
             ensemble.setAtoms(self._atoms)
@@ -157,9 +183,10 @@ class Ensemble(object):
 
         self._title = str(title)
 
-    def numAtoms(self):
+    def numAtoms(self, selected=True):
         """Returns number of atoms."""
-
+        if selected:
+            return self.numSelected()
         return self._n_atoms
 
     def numConfs(self):
@@ -425,11 +452,11 @@ class Ensemble(object):
         raise IndexError('indices must be an integer, a list/array of '
                          'integers, a slice, or None')
 
-    def _getCoordsets(self, indices=None):
+    def _getCoordsets(self, indices=None, selected=True):
 
         if self._confs is None:
             return None
-        if self._indices is None:
+        if self._indices is None or not selected:
             if indices is None:
                 return self._confs
             try:
@@ -669,9 +696,93 @@ class Ensemble(object):
             n_confs = self.numConfs()
             RMSDs = zeros((n_confs, n_confs))
             for i in range(n_confs):
-                for j in range(n_confs):
-                    RMSDs[i, j] = getRMSD(self._confs[i, indices], self._confs[j, indices], weights)
+                for j in range(i+1, n_confs):
+                    RMSDs[i, j] = RMSDs[j, i] = getRMSD(self._confs[i, indices], self._confs[j, indices], weights)
         else:
             RMSDs = getRMSD(self._coords[indices], self._confs[:, indices], weights)
 
         return RMSDs
+
+    def setData(self, label, data):
+        """Store atomic *data* under *label*, which must:
+
+            * start with a letter
+            * contain only alphanumeric characters and underscore
+            * not be a reserved word (see :func:`.listReservedWords`)
+
+        *data* must be a :func:`list` or a :class:`~numpy.ndarray` and its
+        length must be equal to the number of atoms.  If the dimension of the
+        *data* array is 1, i.e. ``data.ndim==1``, *label* may be used to make
+        atom selections, e.g. ``"label 1 to 10"`` or ``"label C1 C2"``.  Note
+        that, if data with *label* is present, it will be overwritten."""
+
+        label = checkLabel(label)
+
+        if isscalar(data):
+            data = [data] * self._n_csets
+            
+        data = asarray(data)
+        ndim, dtype, shape = data.ndim, data.dtype, data.shape
+
+        if ndim == 1 and dtype == bool:
+            raise TypeError('1 dimensional boolean arrays are not '
+                            'accepted, use `setFlags` instead')
+
+        if len(data) != self._n_csets:
+            raise ValueError('len(data) must match number of coordinate sets')
+
+        self._data[label] = data
+
+    def delData(self, label):
+        """Return data associated with *label* and remove from the instance.
+        If data associated with *label* is not found, return **None**."""
+
+        return self._data.pop(label, None)
+
+    def getData(self, label):
+        """Returns a copy of the data array associated with *label*, or **None**
+        if such data is not present."""
+
+        data = self._getData(label)
+        if data is not None:
+            return data.copy()
+
+    def _getData(self, label):
+        """Returns data array associated with *label*, or **None** if such data
+        is not present."""
+
+        try:
+            return self._data[label]
+        except KeyError:
+            return None
+
+    def isDataLabel(self, label):
+        """Returns **True** if data associated with *label* is present."""
+
+        if label in self._data:
+            return True
+        else:
+            try:
+                return self._getData(label) is not None
+            except:
+                return False
+
+    def getDataLabels(self, which=None):
+        """Returns data labels.  For ``which='user'``, return only labels of
+        user provided data."""
+
+        if str(which).startswith('u'):  # user
+            labels = [key for key in (self._data or {})]
+        else:
+            labels = list(self._data or [])
+        labels.sort()
+        return labels
+
+    def getDataType(self, label):
+        """Returns type of the data (i.e. ``data.dtype``) associated with
+        *label*, or **None** label is not used."""
+
+        try:
+            return self._data[label].dtype
+        except KeyError:
+            return None

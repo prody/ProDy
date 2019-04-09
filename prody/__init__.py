@@ -1,6 +1,6 @@
 """ProDy is a package for Protein Dynamics, Sequence, and Structure Analysis"""
 
-__version__ = '1.10.4'
+__version__ = '1.10.8'
 __release__ = __version__ # + '-dev' # comment out '-dev' before a release
 
 import sys
@@ -122,6 +122,11 @@ from .chromatin import *
 __all__.extend(chromatin.__all__)
 __all__.append('chromatin')
 
+from . import domain_decomposition
+from .domain_decomposition import *
+__all__.extend(domain_decomposition.__all__)
+__all__.append('domain_decomposition')
+
 #from . import comd
 #from .comd import *
 #__all__.extend(comd.__all__)
@@ -134,7 +139,7 @@ __all__.append('prody')
 CONFIGURATION = {
     'backup': (False, None, None),
     'backup_ext': ('.BAK', None, None),
-    'auto_show': (True, None, None),
+    'auto_show': (False, None, None),
     'ligand_xml_save': (False, None, None),
     'typo_warnings': (True, None, None),
     'check_updates': (0, None, None),

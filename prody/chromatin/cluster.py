@@ -1,9 +1,23 @@
 import numpy as np
 from prody import LOGGER, SETTINGS
-from prody.utilities import showFigure
+from prody.utilities import showFigure, bin2dec
 from prody.chromatin.functions import _getEigvecs
 
-__all__ = ['getGNMDomains', 'KMeans', 'Hierarchy', 'Discretize', 'showLinkage']
+__all__ = ['calcGNMDomains', 'Hingeplane', 'KMeans', 'Hierarchy', 'Discretize', 'showLinkage', 'GaussianMixture', 'BayesianGaussianMixture']
+
+def Hingeplane(V, **kwargs):
+    S = np.sign(np.sign(V) + 1)
+    n, m = S.shape
+
+    labels = np.zeros(n)
+    for i, s in enumerate(S):
+        labels[i] = bin2dec(s)
+
+    uniq_labels = np.unique(labels)
+
+    for i, l in enumerate(uniq_labels):
+        labels[labels==l] = i
+    return labels
 
 def KMeans(V, **kwargs):
     """Performs k-means clustering on *V*. The function uses :func:`sklearn.cluster.KMeans`. See sklearn documents 
@@ -51,8 +65,8 @@ def Hierarchy(V, **kwargs):
 
     from scipy.cluster.hierarchy import linkage, fcluster, inconsistent
     
-    method = kwargs.pop('method', 'single')
-    metric = kwargs.pop('metric', 'euclidean')
+    method = kwargs.pop('linkage', 'single')
+    metric = kwargs.pop('metric', 'cosine')
     Z = linkage(V, method=method, metric=metric)
     
     criterion = kwargs.pop('criterion', 'inconsistent')
@@ -81,7 +95,7 @@ def Discretize(V, **kwargs):
         raise ImportError('Use of this function (Discretize) requires the '
                           'installation of sklearn.')
 
-    copy = kwargs.pop('copy', True)
+    copy = kwargs.pop('copy', False)
     max_svd_restarts = kwargs.pop('max_svd_restarts', 30)
     n_iter_max = kwargs.pop('n_iter_max', 20)
     random_state = kwargs.pop('random_state', None)
@@ -89,6 +103,64 @@ def Discretize(V, **kwargs):
     labels = discretize(V, copy=copy, max_svd_restarts=max_svd_restarts, 
                         n_iter_max=n_iter_max, random_state=random_state)
     return labels
+
+def GaussianMixture(V, **kwargs):
+    """Performs clustering on *V* by using Gaussian mixture models. The function uses :func:`sklearn.micture.GaussianMixture`. See sklearn documents 
+    for details.
+
+    :arg V: row-normalized eigenvectors for the purpose of clustering.
+    :type V: :class:`numpy.ndarray`
+
+    :arg n_clusters: specifies the number of clusters. 
+    :type n_clusters: int
+    """
+
+    try:
+        from sklearn.mixture import GaussianMixture
+    except ImportError:
+        raise ImportError('Use of this function (GaussianMixture) requires the '
+                          'installation of sklearn.')
+    
+    n_components = kwargs.pop('n_components', None)
+    if n_components == None:
+        n_components = kwargs.pop('n_clusters',None)
+        if n_components == None:
+            n_components = 1
+    
+    n_init = kwargs.pop('n_init', 1)
+    
+    mixture = GaussianMixture(n_init=n_init, n_components=n_components, **kwargs).fit(V)
+
+    return mixture.fit_predict(V)
+
+def BayesianGaussianMixture(V, **kwargs):
+    """Performs clustering on *V* by using Gaussian mixture models with variational inference. The function uses :func:`sklearn.micture.GaussianMixture`. See sklearn documents 
+    for details.
+
+    :arg V: row-normalized eigenvectors for the purpose of clustering.
+    :type V: :class:`numpy.ndarray`
+
+    :arg n_clusters: specifies the number of clusters. 
+    :type n_clusters: int
+    """
+
+    try:
+        from sklearn.mixture import BayesianGaussianMixture
+    except ImportError:
+        raise ImportError('Use of this function (BayesianGaussianMixture) requires the '
+                          'installation of sklearn.')
+    
+    n_components = kwargs.pop('n_components', None)
+    if n_components == None:
+        n_components = kwargs.pop('n_clusters',None)
+        if n_components == None:
+            n_components = 1
+    
+    n_init = kwargs.pop('n_init', 1)
+    
+    mixture = BayesianGaussianMixture(n_init=n_init, **kwargs).fit(V)
+
+    return mixture.fit_predict(V)
 
 def showLinkage(V, **kwargs):
     """Shows the dendrogram of hierarchical clustering on *V*. See :func:`scipy.cluster.hierarchy.dendrogram` for details.
@@ -115,7 +187,7 @@ def showLinkage(V, **kwargs):
         showFigure()
     return Z
     
-def getGNMDomains(modes, method=Hierarchy, **kwargs):
+def calcGNMDomains(modes, method=Discretize, **kwargs):
     """Uses spectral clustering to separate structural domains in the chromosome.
     
     :arg modes: GNM modes used for segmentation
@@ -125,21 +197,26 @@ def getGNMDomains(modes, method=Hierarchy, **kwargs):
     :type method: func
     """
 
-    V, mask = _getEigvecs(modes, row_norm=True, remove_zero_rows=True)
+    row_norm = kwargs.pop('row_norm', True)
+
+    V, mask = _getEigvecs(modes, row_norm=row_norm, remove_zero_rows=True)
 
     labels_ = method(V, **kwargs)
 
-    labels = np.empty(len(mask))
-    labels.fill(np.nan)
-    labels[mask] = labels_
+    if np.all(mask):
+        labels = labels_
+    else:
+        labels = np.empty(len(mask))
+        labels.fill(np.nan)
+        labels[mask] = labels_
 
-    currlbl = labels_[np.argmax(~np.isnan(labels_))]
+        currlbl = labels_[np.argmax(~np.isnan(labels_))]
 
-    for i in range(len(labels)):
-        l = labels[i]
-        if np.isnan(l):
-            labels[i] = currlbl
-        elif currlbl != l:
-            currlbl = l
+        for i in range(len(labels)):
+            l = labels[i]
+            if np.isnan(l):
+                labels[i] = currlbl
+            elif currlbl != l:
+                currlbl = l
 
     return labels

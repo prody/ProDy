@@ -81,11 +81,17 @@ def parseEMD(emd, **kwargs):
         kwargs['title'], ext = os.path.splitext(os.path.split(emd)[1])
 
     emdStream = openFile(emd, 'rb')
-    result = parseEMDStream(emdStream, **kwargs)
+
+    if emd.endswith('.stk'):
+        result = parseSTKStream(emd, **kwargs)
+    else:
+        result = parseEMDStream(emdStream, **kwargs)
+
     emdStream.close()
+
     return result
 
-def _parseEMDLines(atomgroup, stream, cutoff=None, n_nodes=1000, num_iter=20, map=False, make_nodes=False):
+def _parseEMDLines(atomgroup, stream, cutoff=None, n_nodes=1000, num_iter=20, map=True, make_nodes=False):
     """ Returns an AtomGroup. see also :func:`.parseEMDStream()`.
 
     :arg stream: stream from parser.
@@ -129,6 +135,11 @@ def _parseEMDLines(atomgroup, stream, cutoff=None, n_nodes=1000, num_iter=20, ma
         return emd
 
 
+def parseSTKStream(stream, **kwargs):
+    LOGGER.warn('ProDy currently cannot parse .stk files correctly')
+    return None
+
+
 def parseEMDStream(stream, **kwargs):
     """ Returns an :class:`.AtomGroup` containing EMD data parsed from a stream of EMD file.
 
@@ -141,8 +152,8 @@ def parseEMDStream(stream, **kwargs):
 
     n_nodes = int(kwargs.get('n_nodes', 1000))
     num_iter = int(kwargs.get('num_iter', 20))
-    map = kwargs.get('map',False)
-    make_nodes = kwargs.get('make_nodes',True)
+    map = kwargs.get('map',True)
+    make_nodes = kwargs.get('make_nodes',False)
 
     if map is False and make_nodes is False:
         LOGGER.warn('At least one of map and make_nodes should be True. '

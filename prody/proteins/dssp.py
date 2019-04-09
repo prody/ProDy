@@ -35,7 +35,9 @@ def execDSSP(pdb, outputname=None, outputdir=None, stderr=True):
        pattern recognition of hydrogen-bonded and geometrical features.
        *Biopolymers* **1983** 22:2577-2637."""
 
-    dssp = which('dssp')
+    dssp = which('mkdssp')
+    if dssp is None:
+        dssp = which('dssp')
     if dssp is None:
         raise EnvironmentError('command not found: dssp executable is not '
                                'found in one of system paths')
