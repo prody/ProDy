@@ -11,7 +11,7 @@ from prody import LOGGER
 from prody.atomic import Atomic, AtomGroup
 from prody.proteins import parsePDB
 from prody.kdtree import KDTree
-from prody.utilities import importLA, checkCoords
+from prody.utilities import importLA, checkCoords, div0
 
 from .nma import NMA
 from .gamma import Gamma
@@ -431,16 +431,21 @@ class GNM(GNMBase):
         n_zeros = sum(values < ZERO)
         if n_zeros < 1:
             LOGGER.warning('Less than 1 zero eigenvalues are calculated.')
-            shift = n_zeros - 1
+            shift = n_zeros
         elif n_zeros > 1:
-            LOGGER.warning('More than 1 zero eigenvalues are calculated.')
-            shift = n_zeros - 1
+            LOGGER.warning('%d (more than 1) zero eigenvalues are calculated.'%n_zeros)
+            shift = n_zeros
         if zeros:
-            shift = -1
-        self._eigvals = values[1+shift:]
-        self._vars = 1 / self._eigvals
+            shift = 0
+        self._eigvals = values[shift:]
+        if zeros:
+            vars = div0(1, values)
+            vars[:n_zeros] = 0.
+            self._vars = vars[shift:]
+        else:
+            self._vars = div0(1, self._eigvals)
         self._trace = self._vars.sum()
-        self._array = vectors[:, 1+shift:]
+        self._array = vectors[:, shift:]
         self._n_modes = len(self._eigvals)
         if hinges:
             self.calcHinges()
