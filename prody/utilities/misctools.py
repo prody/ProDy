@@ -16,7 +16,7 @@ __all__ = ['Everything', 'Cursor', 'ImageCursor', 'rangeString', 'alnum', 'impor
            'saxsWater', 'count', 'addEnds', 'copy', 'dictElementLoop', 
            'getDataPath', 'openData', 'chr2', 'toChararray', 'interpY', 'cmp',
            'getValue', 'indentElement', 'isPDB', 'isURL', 'isListLike',
-           'getDistance', 'fastin', 'createStringIO', 'div0', 'wmean']
+           'getDistance', 'fastin', 'createStringIO', 'div0', 'wmean', 'bin2dec']
 
 CURSORS = []
 
@@ -517,3 +517,11 @@ def wmean(array, weights, axis=None):
         denom = sum(weights, axis=axis)
         avg = div0(numer, denom)
     return avg
+
+def bin2dec(x):
+    """Converts the binary array to decimal."""
+
+    y = 0
+    for i,j in enumerate(x):
+        if j: y += 1<<i
+    return y
