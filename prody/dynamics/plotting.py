@@ -148,6 +148,7 @@ def showFractVars(modes, *args, **kwargs):
     plt.axis(axis)
     plt.xlabel('Mode index')
     plt.ylabel('Fraction of variance')
+    plt.xlim(fracts[0,0]-0.5,fracts[-1,0]+1.5)
     if SETTINGS['auto_show']:
         showFigure()
     return show
