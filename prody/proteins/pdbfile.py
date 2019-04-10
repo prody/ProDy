@@ -1093,15 +1093,9 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
     if resnums is None:
         resnums = np.ones(n_atoms, int)
 
-    try:
-        indices = atoms._getIndices()
-    except:
-        try:
-            indices = [atom.getIndex() for atom in atoms]
-        except:
-            indices = None
-    if indices is None:
-        indices = np.ones(n_atoms, int)
+    serials = atoms._getSerials()
+    if serials is None or renumber == True:
+        serials = np.arange(1, n_atoms+1, dtype=int)
 
     icodes = atoms._getIcodes()
     if icodes is None:
@@ -1190,22 +1184,13 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
         for i, xyz in enumerate(coords):
             if i == 99999:
                 pdbline = PDBLINE_GE100K
-            if renumber:
-                write(pdbline % (hetero[i], i+1,
-                            atomnames[i], altlocs[i],
-                            resnames[i], chainids[i], resnums[i],
-                            icodes[i],
-                            xyz[0], xyz[1], xyz[2],
-                            occupancies[i], bfactors[i],
-                            segments[i], elements[i]))
-            else:
-                write(pdbline % (hetero[i], indices[i],
-                            atomnames[i], altlocs[i],
-                            resnames[i], chainids[i], resnums[i],
-                            icodes[i],
-                            xyz[0], xyz[1], xyz[2],
-                            occupancies[i], bfactors[i],
-                            segments[i], elements[i]))
+            write(pdbline % (hetero[i], serials[i],
+                         atomnames[i], altlocs[i],
+                         resnames[i], chainids[i], resnums[i],
+                         icodes[i],
+                         xyz[0], xyz[1], xyz[2],
+                         occupancies[i], bfactors[i],
+                         segments[i], elements[i]))
         if multi:
             write('ENDMDL\n')
             altlocs = np.zeros(n_atoms, s_or_u + '1')
