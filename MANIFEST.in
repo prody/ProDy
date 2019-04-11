@@ -1,5 +1,6 @@
 include *.rst
 include setup.py
+include pyproject.toml
 include prody/*.py
 include prody/*/*.py
 include prody/*/*.c
