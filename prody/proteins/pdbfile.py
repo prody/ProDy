@@ -997,7 +997,14 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
     """Write *atoms* in PDB format to a *stream*.
 
     :arg stream: anything that implements a :meth:`write` method (e.g. file,
-        buffer, stdout)"""
+        buffer, stdout)
+        
+    :arg renumber: whether to renumber atoms with serial indices
+        Default is True
+    :type renumber: bool
+    """
+
+    renumber = kwargs.get('renumber',True)
 
     remark = str(atoms)
     try:
@@ -1086,6 +1093,9 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
     if resnums is None:
         resnums = np.ones(n_atoms, int)
 
+    serials = atoms._getSerials()
+    if serials is None or renumber == True:
+        serials = np.arange(1, n_atoms+1, dtype=int)
 
     icodes = atoms._getIcodes()
     if icodes is None:
@@ -1174,7 +1184,7 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
         for i, xyz in enumerate(coords):
             if i == 99999:
                 pdbline = PDBLINE_GE100K
-            write(pdbline % (hetero[i], i+1,
+            write(pdbline % (hetero[i], serials[i],
                          atomnames[i], altlocs[i],
                          resnames[i], chainids[i], resnums[i],
                          icodes[i],
