@@ -1638,7 +1638,7 @@ def showDomainBar(domains, x=None, loc=0., axis='x', **kwargs):
     on domain separations.
     
     :arg domains: a list of domain labels 
-    :type domains: list, tuple, :class:~numpy.ndarray
+    :type domains: list, tuple, :class:`~numpy.ndarray`
 
     :arg loc: relative position of the domain bar. **0** means at 
               bottom/left and **1** means at top/right

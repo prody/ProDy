@@ -191,7 +191,15 @@ def calcSpectralOverlap(modes1, modes2, weighted=False, turbo=False):
             varA = calcFractVariance(modes1)
         else:
             varA = modes1.getVariances()
-        I = modes1.getIndices()
+
+        try:
+            I = modes1.getIndices()
+        except:
+            try:
+                modes1 = modes1[:]
+                I = modes1.getIndices()
+            except:
+                raise TypeError('modes1 should be ModeSet or an object from which a ModeSet can be obtained')
 
     if isinstance(modes2, Mode):
         if weighted:
@@ -204,7 +212,15 @@ def calcSpectralOverlap(modes1, modes2, weighted=False, turbo=False):
             varB = calcFractVariance(modes2)
         else:
             varB = modes2.getVariances()
-        J = modes2.getIndices()
+
+        try:
+            J = modes2.getIndices()
+        except:
+            try:
+                modes2 = modes2[:]
+                J = modes2.getIndices()
+            except:
+                raise TypeError('modes2 should be ModeSet or an object from which a ModeSet can be obtained')
 
     if turbo:
         model1 = modes1.getModel()
