@@ -9,7 +9,7 @@ import numpy as np
 
 from prody import LOGGER, SETTINGS
 from prody.utilities import showFigure, showMatrix, copy, checkWeights, openFile
-from prody.utilities import getValue, importLA, wmean
+from prody.utilities import getValue, importLA, wmean, div0
 from prody.ensemble import Ensemble, Conformation
 
 from .nma import NMA
@@ -1026,12 +1026,12 @@ def calcSignatureSqFlucts(mode_ensemble, **kwargs):
         sqfs = calcSqFlucts(modes)
 
         if ifnorm:
-            sqfs /= norm(sqfs)
+            sqfs = div0(sqfs, norm(sqfs))
         elif ifscale:
             if i == 0:
                 norm0 = norm(sqfs)
             else:
-                sqfs /= norm(sqfs) * norm0
+                sqfs = div0(sqfs, norm(sqfs) * norm0)
         V.append(sqfs)
     V = np.vstack(V)
 
