@@ -430,11 +430,10 @@ class GNM(GNMBase):
             values, vectors = linalg.eigh(self._kirchhoff)
         n_zeros = sum(values < ZERO)
         if n_zeros < 1:
-            LOGGER.warning('Less than 1 zero eigenvalues are calculated.')
-            shift = n_zeros
+            LOGGER.warning('Fewer than 1 zero eigenvalues are calculated.')
         elif n_zeros > 1:
-            LOGGER.warning('%d (more than 1) zero eigenvalues are calculated.'%n_zeros)
-            shift = n_zeros
+            LOGGER.warning('More than 1 (%d) zero eigenvalues are calculated.'%n_zeros)
+        shift = n_zeros
         if zeros:
             shift = 0
         self._eigvals = values[shift:]
