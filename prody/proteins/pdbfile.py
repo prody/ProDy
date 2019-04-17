@@ -217,7 +217,7 @@ def parsePDBStream(stream, **kwargs):
     chain = kwargs.get('chain')
     subset = kwargs.get('subset')
     altloc = kwargs.get('altloc', 'A')
-    max_n_atoms = kwargs.get('max_n_atoms', 1e5)
+    max_n_atoms = kwargs.get('max_n_atoms', int(1e5))
 
     if model is not None:
         if isinstance(model, Integral):
