@@ -327,7 +327,7 @@ def parsePQR(filename, **kwargs):
     chain = kwargs.get('chain')
     subset = kwargs.get('subset')
     altloc = kwargs.get('altloc', 'A')
-    max_n_atoms = kwargs.get('max_n_atoms', 1e5)
+    max_n_atoms = kwargs.get('max_n_atoms', int(1e5))
     if not os.path.isfile(filename):
         raise IOError('No such file: {0}'.format(repr(filename)))
     if title is None:
@@ -378,7 +378,7 @@ def parsePQR(filename, **kwargs):
 parsePQR.__doc__ += _parsePQRdoc
 
 def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
-                   altloc_torf, format='PDB', max_n_atoms=1e5):
+                   altloc_torf, format='PDB', max_n_atoms=int(1e5)):
     """Returns an AtomGroup. See also :func:`.parsePDBStream()`.
 
     :arg lines: PDB/PQR lines
@@ -409,7 +409,7 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
         asize = n_atoms
     else:
         # most PDB files contain less than 99999 atoms
-        asize = int(min(len(lines) - split, max_n_atoms))
+        asize = min(len(lines) - split, max_n_atoms)
     addcoords = False
     if atomgroup.numCoordsets() > 0:
         addcoords = True
