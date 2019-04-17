@@ -1207,7 +1207,12 @@ writePDBStream.__doc__ += _writePDBdoc
 def writePDB(filename, atoms, csets=None, autoext=True, **kwargs):
     """Write *atoms* in PDB format to a file with name *filename* and return
     *filename*.  If *filename* ends with :file:`.gz`, a compressed file will
-    be written."""
+    be written.        
+
+    :arg renumber: whether to renumber atoms with serial indices
+        Default is True
+    :type renumber: bool
+    """
 
     if not ('.pdb' in filename or '.pdb.gz' in filename or
              '.ent' in filename or '.ent.gz' in filename):
