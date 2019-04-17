@@ -322,11 +322,8 @@ def parsePQR(filename, **kwargs):
     :type filename: str"""
 
     title = kwargs.get('title', kwargs.get('name'))
-    model = 1
-    header = False
     chain = kwargs.get('chain')
     subset = kwargs.get('subset')
-    altloc = kwargs.get('altloc', 'A')
     max_n_atoms = kwargs.get('max_n_atoms', int(1e5))
     if not os.path.isfile(filename):
         raise IOError('No such file: {0}'.format(repr(filename)))
