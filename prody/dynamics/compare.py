@@ -5,16 +5,17 @@ models."""
 import numpy as np
 from numbers import Integral
 from prody import LOGGER, SETTINGS
-from prody.utilities import openFile
+from prody.utilities import openFile, isListLike
 
 from .nma import NMA
 from .modeset import ModeSet
 from .mode import Mode, Vector
 from .gnm import ZERO
-from .analysis import calcFractVariance
+from .analysis import calcFractVariance, calcSqFlucts
 
 __all__ = ['calcOverlap', 'calcCumulOverlap', 'calcSubspaceOverlap', 'calcSpectralOverlap', 
-           'calcCovOverlap', 'printOverlapTable', 'writeOverlapTable', 'pairModes', 'matchModes']
+           'calcCovOverlap', 'printOverlapTable', 'writeOverlapTable', 
+           'calcSquareInnerProduct','pairModes', 'matchModes']
 
 SO_CACHE = {}
 WO_CACHE = {}
@@ -162,6 +163,28 @@ def calcSubspaceOverlap(modes1, modes2):
     rmsip = np.sqrt(np.power(overlap, 2).sum() / length)
     return rmsip
 
+def calcSquareInnerProduct(modes1, modes2):
+    """Returns the square inner product (SIP) of fluctuations [SK02]_.  
+    This function returns a single number.
+    .. [SK02] Kundu S, Melton JS, Sorensen DC, Phillips GN: Dynamics of 
+        proteins in crystals: comparison of experiment with simple models. 
+        Biophys J. 2002, 83: 723-732."""
+    if isinstance(modes1, (NMA, ModeSet)):
+        w1 = calcSqFlucts(modes1)
+    elif isListLike(modes1):
+        w1 = modes1
+    else:
+        raise TypeError('modes1 should be a profile or an NMA or ModeSet object')
+
+    if isinstance(modes2, (NMA, ModeSet)):
+        w2 = calcSqFlucts(modes2)
+    elif isListLike(modes2):
+        w2 = modes2
+    else:
+        raise TypeError('modes2 should be a profile or an NMA or ModeSet object')
+
+    return np.dot(w1, w2)**2 / (np.dot(w1, w1) * np.dot(w2, w2))
+
 def calcSpectralOverlap(modes1, modes2, weighted=False, turbo=False):
     """Returns overlap between covariances of *modes1* and *modes2*.  Overlap
     between covariances are calculated using normal modes (eigenvectors),
@@ -191,7 +214,15 @@ def calcSpectralOverlap(modes1, modes2, weighted=False, turbo=False):
             varA = calcFractVariance(modes1)
         else:
             varA = modes1.getVariances()
-        I = modes1.getIndices()
+
+        try:
+            I = modes1.getIndices()
+        except:
+            try:
+                modes1 = modes1[:]
+                I = modes1.getIndices()
+            except:
+                raise TypeError('modes1 should be ModeSet or an object from which a ModeSet can be obtained')
 
     if isinstance(modes2, Mode):
         if weighted:
@@ -204,7 +235,15 @@ def calcSpectralOverlap(modes1, modes2, weighted=False, turbo=False):
             varB = calcFractVariance(modes2)
         else:
             varB = modes2.getVariances()
-        J = modes2.getIndices()
+
+        try:
+            J = modes2.getIndices()
+        except:
+            try:
+                modes2 = modes2[:]
+                J = modes2.getIndices()
+            except:
+                raise TypeError('modes2 should be ModeSet or an object from which a ModeSet can be obtained')
 
     if turbo:
         model1 = modes1.getModel()
