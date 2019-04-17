@@ -1182,7 +1182,7 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
         if multi:
             write('MODEL{0:9d}\n'.format(m+1))
         for i, xyz in enumerate(coords):
-            if i == 99999:
+            if pdbline != PDBLINE_GE100K and (i == 99999 or serials[i] >= 10000):
                 pdbline = PDBLINE_GE100K
             write(pdbline % (hetero[i], serials[i],
                          atomnames[i], altlocs[i],
