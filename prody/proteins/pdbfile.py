@@ -409,7 +409,7 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
         asize = n_atoms
     else:
         # most PDB files contain less than 99999 atoms
-        asize = min(len(lines) - split, max_n_atoms)
+        asize = int(min(len(lines) - split, max_n_atoms))
     addcoords = False
     if atomgroup.numCoordsets() > 0:
         addcoords = True
