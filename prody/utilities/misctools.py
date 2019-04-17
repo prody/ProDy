@@ -19,7 +19,7 @@ __all__ = ['Everything', 'Cursor', 'ImageCursor', 'rangeString', 'alnum', 'impor
            'getDataPath', 'openData', 'chr2', 'toChararray', 'interpY', 'cmp', 'pystr',
            'getValue', 'indentElement', 'isPDB', 'isURL', 'isListLike', 'isSymmetric', 'makeSymmetric',
            'getDistance', 'fastin', 'createStringIO', 'div0', 'wmean', 'bin2dec', 'wrapModes', 
-           'fixArraySize', 'decToHybrid36']
+           'fixArraySize', 'decToHybrid36', 'hybrid36ToDec']
 
 CURSORS = []
 
@@ -642,7 +642,11 @@ def decToBase36(integer):
         integer, remainder = divmod(integer, 36)
         result = chars[remainder]+result
 
+    if result == '':
+        result = '0'
+
     return sign+result
+
 
 def decToHybrid36(x):
     """Convert a regular decimal number to a string in hybrid36 format"""
@@ -654,3 +658,30 @@ def decToHybrid36(x):
 
     start = 10*36**4 # decToBase36(start) = A0000
     return decToBase36(int(x) + (start - 100000))
+
+
+def base36ToDec(x):
+    chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+    if x[0] == '-':
+        sign = '-'
+        x = x[1:]
+    else:
+        sign = ''
+
+    result = 0
+    for i, entry in enumerate(reversed(x)):
+        result += (chars.find(entry)*36**(i))
+
+    return int(sign + str(result))
+
+
+def hybrid36ToDec(x):
+    """Convert string in hybrid36 format to a regular decimal number"""
+    if not isinstance(x, str):
+        raise TypeError('x should be a string')
+    
+    if x.isnumeric():
+        return int(x)
+
+    start = 10*36**4 # decToBase36(start) = A0000
+    return base36ToDec(x) - start + 100000
