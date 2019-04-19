@@ -1046,6 +1046,9 @@ def mapChainByChain(atoms, ref, **kwargs):
             if target_chain.getChid() == chain.getChid():
                 mappings.append(mapOntoChainByAlignment(target_chain, chain, **kwargs)[0])
 
+    if len(mappings) == 1:
+        mappings = mappings[0]
+        
     return mappings
 
 def mapOntoChainByAlignment(atoms, chain, **kwargs):
