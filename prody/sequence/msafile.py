@@ -764,7 +764,7 @@ def writePIR(filename, msa, **kwargs):
         raise TypeError('chain_sep should be a string or list of strings')
 
     types = kwargs.get('types', 'Sequence')
-    if types is None: 
+    if types is 'Sequence': 
         types = [types] * msa.numSequences()
     elif isinstance(types, list) and isinstance(types[0], str):
         if len(types) != msa.numSequences():
