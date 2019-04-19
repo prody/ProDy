@@ -65,12 +65,12 @@ _parsePDBdoc = _parsePQRdoc + """
 
     :arg biomol: if **True**, biomolecules are obtained by transforming the
         coordinates using information from header section will be returned.
-        Default is False
+        Default is **False**
     :type biomol: bool
 
     :arg secondary: if **True**, secondary structure information from header
         section will be assigned to atoms.
-        Default is False
+        Default is **False**
     :type secondary: bool
 
     If ``model=0`` and ``header=True``, return header dictionary only.
@@ -213,6 +213,7 @@ def parsePDBStream(stream, **kwargs):
     chain = kwargs.get('chain')
     subset = kwargs.get('subset')
     altloc = kwargs.get('altloc', 'A')
+
     if model is not None:
         if isinstance(model, Integral):
             if model < 0:
@@ -236,9 +237,8 @@ def parsePDBStream(stream, **kwargs):
         elif len(chain) == 0:
             raise ValueError('chain must not be an empty string')
         title_suffix = chain + title_suffix
-    ag = None
-    if 'ag' in kwargs:
-        ag = kwargs['ag']
+    ag = kwargs.pop('ag', None)
+    if ag is not None:
         if not isinstance(ag, AtomGroup):
             raise TypeError('ag must be an AtomGroup instance')
         n_csets = ag.numCoordsets()
@@ -316,11 +316,8 @@ def parsePQR(filename, **kwargs):
     :type filename: str"""
 
     title = kwargs.get('title', kwargs.get('name'))
-    model = 1
-    header = False
     chain = kwargs.get('chain')
     subset = kwargs.get('subset')
-    altloc = kwargs.get('altloc', 'A')
     if not os.path.isfile(filename):
         raise IOError('No such file: {0}'.format(repr(filename)))
     if title is None:
@@ -401,7 +398,7 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
         asize = n_atoms
     else:
         # most PDB files contain less than 99999 atoms
-        asize = min(len(lines) - split, 99999)
+        asize = len(lines) - split
     addcoords = False
     if atomgroup.numCoordsets() > 0:
         addcoords = True

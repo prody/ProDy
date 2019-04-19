@@ -470,6 +470,50 @@ class MSAFile(object):
         else:
             write(self._selex_line.format(label, sequence))
 
+def parseMSAHeader(filename, **kwargs):
+
+    try:
+        fileok = isfile(filename)
+    except TypeError:
+        raise TypeError('filename must be a string')
+    else:
+        if not fileok:
+            raise IOError('[Errno 2] No such file or directory: ' +
+                          repr(filename))
+
+    # if MSA is a compressed file or filter/slice is passed, use
+    #   Python parsers
+
+    LOGGER.timeit('_parsemsa')
+
+    title, ext = splitext(filename)
+    title = split(title)[1]
+    aligned = kwargs.get('aligned', True)
+    if (ext.lower() == '.gz' or 'filter' in kwargs or 'slice' in kwargs or
+            not aligned):
+        if ext.lower() == '.gz':
+            title = splitext(title)[0]
+    else:
+        filesize = getsize(filename)
+        format = MSAEXTMAP.get(splitext(filename)[1])
+
+    if format == STOCKHOLM:
+        from collections import defaultdict
+        lines = defaultdict(list)
+
+        stream = open(filename, 'r')
+
+        for loc, line in enumerate(stream):
+            startswith = line.split()[0]
+            if line[0] != '#':
+                break
+            lines[startswith].append((loc, line))
+
+        stream.close()
+    else:
+        raise TypeError('Only STOCKHOLM type MSAs are supported at present.')
+
+    return lines
 
 def parseMSA(filename, **kwargs):
     """Returns an :class:`.MSA` instance that stores multiple sequence alignment

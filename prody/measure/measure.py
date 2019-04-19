@@ -61,6 +61,10 @@ def buildDistMatrix(atoms1, atoms2=None, unitcell=None, format='mat'):
                 atoms2 = atoms2._getCoords()
             except AttributeError:
                 raise TypeError('atoms2 must be Atomic instance or an array')
+
+        if atoms2.ndim == 1:
+            atoms2 = atoms2.reshape((1,3))
+
     if atoms1.shape[-1] != 3 or atoms2.shape[-1] != 3:
         raise ValueError('one and two must have shape ([M,]N,3)')
 
@@ -148,8 +152,8 @@ def calcAngle(atoms1, atoms2, atoms3, radian=False):
                     atoms3._getCoords(), radian)
 
 
-def getAngle(coords1, coords2, coords3, radian):
-    """Returns bond angle in degrees."""
+def getAngle(coords1, coords2, coords3, radian=False):
+    """Returns bond angle in degrees unless ``radian=True``"""
 
     v1 = coords1 - coords2
     v2 = coords3 - coords2
@@ -181,7 +185,7 @@ def calcDihedral(atoms1, atoms2, atoms3, atoms4, radian=False):
 
 
 def getDihedral(coords1, coords2, coords3, coords4, radian=False):
-    """Returns the dihedral angle in degrees."""
+    """Returns the dihedral angle in degrees unless ``radian=True``."""
 
     a1 = coords2 - coords1
     a2 = coords3 - coords2
@@ -484,6 +488,7 @@ def calcGyradius(atoms, weights=None):
             raise ValueError('coords must have shape ([n_csets,]n_atoms,3)')
     if weights is not None:
         weights = weights.flatten()
+        weights = weights.reshape(weights.shape[0], 1)
         if len(weights) != coords.shape[-2]:
             raise ValueError('length of weights must match number of atoms')
         wsum = weights.sum()
@@ -495,9 +500,8 @@ def calcGyradius(atoms, weights=None):
             com = coords.mean(0)
             d2sum = ((coords - com)**2).sum()
         else:
-
-            com = (coords * weights).mean(0) / wsum
-            d2sum = (((coords - com)**2).sum(1) * weights).sum()
+            com = (coords * weights).sum(0) / wsum
+            d2sum = (((coords - com)**2) * weights).sum()
     else:
         rgyr = []
         for coords in coords:
@@ -506,9 +510,8 @@ def calcGyradius(atoms, weights=None):
                 d2sum = ((coords - com)**2).sum()
                 rgyr.append(d2sum)
             else:
-
-                com = (coords * weights).mean(0) / wsum
-                d2sum = (((coords - com)**2).sum(1) * weights).sum()
+                com = (coords * weights).sum(0) / wsum
+                d2sum = (((coords - com)**2) * weights).sum()
                 rgyr.append(d2sum)
         d2sum = array(rgyr)
     return (d2sum / wsum) ** 0.5

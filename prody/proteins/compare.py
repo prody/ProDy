@@ -9,7 +9,7 @@ from numpy import arange
 PW2 = None
 
 from prody.atomic import AtomMap as AM
-from prody.atomic import AtomGroup, Chain, AtomSubset
+from prody.atomic import AtomGroup, Chain, AtomSubset, Selection
 from prody.atomic import AAMAP
 from prody.atomic import flags
 from prody.measure import calcTransformation, printRMSD, calcDistance

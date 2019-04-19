@@ -8,7 +8,7 @@ from numbers import Integral
 from prody import LOGGER
 from prody.atomic import Atomic, AtomGroup
 from prody.proteins import parsePDB
-from prody.utilities import importLA, checkCoords
+from prody.utilities import importLA, checkCoords, div0
 from prody.kdtree import KDTree
 
 from .nma import NMA
@@ -210,7 +210,7 @@ class ANMBase(NMA):
         self._clear()
         linalg = importLA()
         LOGGER.timeit('_anm_calc_modes')
-        shift = 5
+        shift = 6
         if linalg.__package__.startswith('scipy'):
             if n_modes is None:
                 eigvals = None
@@ -250,22 +250,28 @@ class ANMBase(NMA):
         n_zeros = sum(values < ZERO)
 
         if n_zeros < 6:
-            LOGGER.warning('Less than 6 zero eigenvalues are calculated.')
-            shift = n_zeros - 1
+            LOGGER.warning('Fewer than 6 (%d) zero eigenvalues are calculated.'%n_zeros)
         elif n_zeros > 6:
-            LOGGER.warning('More than 6 zero eigenvalues are calculated.')
-            shift = n_zeros - 1
+            LOGGER.warning('More than 6 (%d) zero eigenvalues are calculated.'%n_zeros)
+        shift = n_zeros
         if zeros:
-            shift = -1
+            shift = 0
         if n_zeros > n_modes:
-            self._eigvals = values[1+shift:]
+            self._eigvals = values[shift:]
         else:
-            self._eigvals = values[1+shift:]
-        self._vars = 1 / self._eigvals
+            self._eigvals = values[shift:]
+        
+        if not zeros:
+            self._vars = 1 / self._eigvals
+        else:
+            vars = div0(1, values)
+            vars[:n_zeros] = 0.
+            self._vars = vars[shift:]
+
         self._trace = self._vars.sum()
         
         if shift:
-            self._array = vectors[:, 1+shift:].copy()
+            self._array = vectors[:, shift:].copy()
         else:
             self._array = vectors
         self._n_modes = len(self._eigvals)
