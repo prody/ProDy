@@ -5,7 +5,17 @@ import numpy as np
 from numpy import unique, linalg, diag, sqrt, dot
 from .misctools import addEnds, interpY
 
-__all__ = ['calcTree', 'clusterMatrix', 'showLines', 'showMatrix', 'reorderMatrix', 'findSubgroups']
+__all__ = ['calcTree', 'clusterMatrix', 'showLines', 'showMatrix', 
+           'reorderMatrix', 'findSubgroups','wrap_data']
+
+def wrap_data(data):
+    try:
+        arr = data.getArray()
+        data = [data]
+    except AttributeError:
+        if np.isscalar(data[0]):
+            data = [data]
+    return data
 
 def calcTree(names, distance_matrix, method='nj'):
     """ Given a distance matrix for an ensemble, it creates an returns a tree structure.
