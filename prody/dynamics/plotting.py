@@ -11,7 +11,7 @@ from collections import defaultdict
 import numpy as np
 
 from prody import LOGGER, SETTINGS, PY3K
-from prody.utilities import showFigure, addEnds
+from prody.utilities import showFigure, addEnds, wrap_data
 from prody.atomic import AtomGroup, Selection, Atomic, sliceAtoms, sliceAtomicData
 
 from .nma import NMA
@@ -619,8 +619,42 @@ def showSqFlucts(modes, *args, **kwargs):
             def_label = str(modes)
 
         label = kwargs.pop('label', def_label)
+        mode = kwargs.pop('mode', None)
 
-        show = showAtomicLines(sqf, *args, label=label, **kwargs)
+        if mode is not None:
+            is3d = False
+            try:
+                arr = mode.getArray()
+                is3d = mode.is3d()
+                n_nodes = mode.numAtoms()
+            except AttributeError:
+                arr = mode
+                is3d = len(arr) == len(sqf)*3
+                n_nodes = len(arr)//3 if is3d else len(arr)
+            if n_nodes != len(sqf):
+                raise RuntimeError('size mismatch between the protein ({0} residues) and the mode ({1} nodes).'
+                                    .format(len(sqf), n_nodes))
+
+        if mode:
+            rbody = []
+            first_sign = np.sign(arr[0])
+            rcolor = ['red', 'red', 'blue']
+            n = 1
+            for i, a in enumerate(arr):
+                s = np.sign(a)
+                if s == 0: 
+                    s = first_sign
+                if first_sign != s or i == len(arr)-1:
+                    show = showAtomicLines(rbody, sqf[rbody], label=label,
+                                           color=rcolor[int(first_sign+1)],
+                                           **kwargs)
+                    rbody = []
+                    n += 1
+                    first_sign = s
+                rbody.append(i)
+        else:
+            show = showAtomicLines(sqf, *args, label=label, **kwargs)
+
         if show_hinge and not modes.is3d():
             hinges = modes.getHinges()
             if hinges is not None:
@@ -1702,8 +1736,11 @@ def showDomainBar(domains, x=None, loc=0., axis='x', **kwargs):
         for d in domains:
             domains_.extend([d]*3)
         domains = domains_
-    if PY3K:
-        domains = np.asarray(domains, dtype=str)
+
+    # In order to avoid losing the last domain, we add a dummy entry
+    domains = list(domains)
+    domains.append(domains[-1])
+    domains = np.asarray(domains, dtype=str)
     EMPTY_CHAR = domains[0][:0]
 
     uni_domids = np.unique(domains)
@@ -1738,7 +1775,11 @@ def showDomainBar(domains, x=None, loc=0., axis='x', **kwargs):
 
     if x is None:
         x = np.arange(len(domains), dtype=float)
-    x = x + offset
+    x = x + offset - 0.5
+    X = np.tile(x, (len(uni_domids), 1)).T
+
+    # Correct the text for the shifting from adding a domain
+    x = np.delete(x,-1)
 
     if show_text:
         for i, chid in enumerate(uni_domids):
@@ -1750,8 +1791,12 @@ def showDomainBar(domains, x=None, loc=0., axis='x', **kwargs):
             locs = np.split(d[idx], np.where(np.diff(idx)!=1)[0] + 1)
 
             for loc in locs:
-                i = int(np.median(loc))
-                pos = x[i]
+                if len(loc) == 1:
+                    i = int(loc)
+                    pos = x[i-1] - offset
+                else:
+                    i = int(np.median(loc))
+                    pos = x[i-1] - offset
                 if axis == 'y':
                     txt = text(d_loc, pos, chid, rotation=-90, 
                                                 color=text_color,
@@ -1768,8 +1813,6 @@ def showDomainBar(domains, x=None, loc=0., axis='x', **kwargs):
     else:
         gca().set_prop_cycle(None)
 
-    X = np.tile(x, (len(uni_domids), 1)).T
-
     if axis == 'y':
         dbars = plot(F, X, linewidth=barwidth, solid_capstyle='butt', drawstyle='steps')
 
@@ -1784,6 +1827,10 @@ def showDomainBar(domains, x=None, loc=0., axis='x', **kwargs):
     bars.extend(dbars)
     if relim:
         gca().autoscale_view()
+
+    start, stop = lim()
+    lim(round(start, 2) + 0.006, stop)
+    
     return bars, texts
 
 def showTree(tree, format='ascii', **kwargs):
