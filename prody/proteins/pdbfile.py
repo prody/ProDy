@@ -23,6 +23,8 @@ __all__ = ['parsePDBStream', 'parsePDB', 'parseChainsList', 'parsePQR',
            'writePDBStream', 'writePDB', 'writeChainsList', 'writePQR',
            'writePQRStream']
 
+MAX_N_ATOM = 99999 
+
 class PDBParseError(Exception):
     pass
 
@@ -397,7 +399,7 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
     if n_atoms > 0:
         asize = n_atoms
     else:
-        # most PDB files contain less than 99999 atoms
+        # most PDB files contain less than MAX_N_ATOM (99999) atoms
         asize = len(lines) - split
     addcoords = False
     if atomgroup.numCoordsets() > 0:
@@ -1171,7 +1173,7 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
         if multi:
             write('MODEL{0:9d}\n'.format(m+1))
         for i, xyz in enumerate(coords):
-            if pdbline != PDBLINE_GE100K and (i == 99999 or serials[i] >= 100000):
+            if pdbline != PDBLINE_GE100K and (i == MAX_N_ATOM or serials[i] > MAX_N_ATOM):
                 LOGGER.warn('Indices are exceeding 99999 and hexadecimal format is being used')
                 pdbline = PDBLINE_GE100K
             write(pdbline % (hetero[i], i+1,
