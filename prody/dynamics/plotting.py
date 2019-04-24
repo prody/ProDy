@@ -635,7 +635,9 @@ def showSqFlucts(modes, *args, **kwargs):
                 raise RuntimeError('size mismatch between the protein ({0} residues) and the mode ({1} nodes).'
                                     .format(len(sqf), n_nodes))
 
-        if mode:
+            if is3d:
+                raise ValueError('Cannot color sqFlucts by mode direction for 3D modes')
+
             rbody = []
             first_sign = np.sign(arr[0])
             rcolor = ['red', 'red', 'blue']
