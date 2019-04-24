@@ -4,19 +4,10 @@
 import numpy as np
 
 from prody.atomic import Atomic, Atom, AtomGroup, Selection, HierView
-from prody.utilities import openFile, showFigure, createStringIO
+from prody.utilities import openFile, showFigure, createStringIO, wrap_data
 from prody import SETTINGS, PY3K
 
 __all__ = ['view3D', 'showProtein']
-
-def wrap_data(data):
-    try:
-        arr = data.getArray()
-        data = [data]
-    except AttributeError:
-        if np.isscalar(data[0]):
-            data = [data]
-    return data
 
 def view3D(*alist, **kwargs):
     """Return a py3Dmol view instance for interactive visualization in
@@ -314,9 +305,9 @@ def showProtein(*atoms, **kwargs):
                             if last_chid == ch:
                                 rbody.append(i)
                             show.plot(xyz[rbody, 0], xyz[rbody, 1], xyz[rbody, 2],
-                            label=title + '_regid%d'%n,
-                            color=rcolor[int(last_sign+1)],
-                            lw=kwargs.get('lw', 4))
+                                      label=title + '_regid%d'%n,
+                                      color=rcolor[int(last_sign+1)],
+                                      lw=kwargs.get('lw', 4))
                             rbody = []
                             n += 1
                             last_sign = s

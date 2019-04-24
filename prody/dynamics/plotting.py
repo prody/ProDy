@@ -11,7 +11,7 @@ from collections import defaultdict
 import numpy as np
 
 from prody import LOGGER, SETTINGS, PY3K
-from prody.utilities import showFigure, addEnds
+from prody.utilities import showFigure, addEnds, wrap_data
 from prody.atomic import AtomGroup, Selection, Atomic, sliceAtoms, sliceAtomicData
 
 from .nma import NMA
@@ -619,8 +619,44 @@ def showSqFlucts(modes, *args, **kwargs):
             def_label = str(modes)
 
         label = kwargs.pop('label', def_label)
+        mode = kwargs.pop('mode', None)
 
-        show = showAtomicLines(sqf, *args, label=label, **kwargs)
+        if mode is not None:
+            is3d = False
+            try:
+                arr = mode.getArray()
+                is3d = mode.is3d()
+                n_nodes = mode.numAtoms()
+            except AttributeError:
+                arr = mode
+                is3d = len(arr) == len(sqf)*3
+                n_nodes = len(arr)//3 if is3d else len(arr)
+            if n_nodes != len(sqf):
+                raise RuntimeError('size mismatch between the protein ({0} residues) and the mode ({1} nodes).'
+                                    .format(len(sqf), n_nodes))
+
+            if is3d:
+                raise ValueError('Cannot color sqFlucts by mode direction for 3D modes')
+
+            rbody = []
+            first_sign = np.sign(arr[0])
+            rcolor = ['red', 'red', 'blue']
+            n = 1
+            for i, a in enumerate(arr):
+                s = np.sign(a)
+                if s == 0: 
+                    s = first_sign
+                if first_sign != s or i == len(arr)-1:
+                    show = showAtomicLines(rbody, sqf[rbody], label=label,
+                                           color=rcolor[int(first_sign+1)],
+                                           **kwargs)
+                    rbody = []
+                    n += 1
+                    first_sign = s
+                rbody.append(i)
+        else:
+            show = showAtomicLines(sqf, *args, label=label, **kwargs)
+
         if show_hinge and not modes.is3d():
             hinges = modes.getHinges()
             if hinges is not None:
