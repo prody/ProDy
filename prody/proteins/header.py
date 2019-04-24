@@ -293,7 +293,7 @@ def parsePDBHeader(pdb, *keys):
         else:
             raise IOError('{0} is not a valid filename or a valid PDB '
                           'identifier.'.format(pdb))
-    pdb = openFile(pdb)
+    pdb = openFile(pdb, 'rt')
     header, _ = getHeaderDict(pdb, *keys)
     pdb.close()
     return header
