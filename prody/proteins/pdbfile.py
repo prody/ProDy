@@ -990,7 +990,7 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
         buffer, stdout)
         
     :arg renumber: whether to renumber atoms with serial indices
-        Default is True
+        Default is **True**
     :type renumber: bool
     """
 
@@ -1194,7 +1194,7 @@ def writePDB(filename, atoms, csets=None, autoext=True, **kwargs):
     be written.        
 
     :arg renumber: whether to renumber atoms with serial indices
-        Default is True
+        Default is **True**
     :type renumber: bool
     """
 
