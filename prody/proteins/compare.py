@@ -1044,10 +1044,11 @@ def mapChainByChain(atoms, ref, **kwargs):
     for chain in ref.getHierView().iterChains():
         for target_chain in hv.iterChains():
             if target_chain.getChid() == chain.getChid():
-                mappings.append(mapOntoChainByAlignment(target_chain, chain, **kwargs))
+                mappings.append(mapOntoChainByAlignment(target_chain, chain, **kwargs)[0])
 
     if len(mappings) == 1:
         mappings = mappings[0]
+        
     return mappings
 
 def mapOntoChainByAlignment(atoms, chain, **kwargs):

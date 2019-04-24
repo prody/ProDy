@@ -23,6 +23,8 @@ __all__ = ['parsePDBStream', 'parsePDB', 'parseChainsList', 'parsePQR',
            'writePDBStream', 'writePDB', 'writeChainsList', 'writePQR',
            'writePQRStream']
 
+MAX_N_ATOM = 99999 
+
 class PDBParseError(Exception):
     pass
 
@@ -397,7 +399,6 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
     if n_atoms > 0:
         asize = n_atoms
     else:
-        # most PDB files contain less than 99999 atoms
         asize = len(lines) - split
     addcoords = False
     if atomgroup.numCoordsets() > 0:
@@ -989,7 +990,7 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
         buffer, stdout)
         
     :arg renumber: whether to renumber atoms with serial indices
-        Default is True
+        Default is **True**
     :type renumber: bool
     """
 
@@ -1082,7 +1083,9 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
     if resnums is None:
         resnums = np.ones(n_atoms, int)
 
-    indices = [atom.getIndex() for atom in atoms]
+    serials = atoms._getSerials()
+    if serials is None or renumber:
+        serials = np.arange(n_atoms, dtype=int) + 1
 
     icodes = atoms._getIcodes()
     if icodes is None:
@@ -1169,24 +1172,16 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
         if multi:
             write('MODEL{0:9d}\n'.format(m+1))
         for i, xyz in enumerate(coords):
-            if i == 99999:
+            if pdbline != PDBLINE_GE100K and (i == MAX_N_ATOM or serials[i] > MAX_N_ATOM):
+                LOGGER.warn('Indices are exceeding 99999 and hexadecimal format is being used')
                 pdbline = PDBLINE_GE100K
-            if renumber:
-                write(pdbline % (hetero[i], i+1,
-                            atomnames[i], altlocs[i],
-                            resnames[i], chainids[i], resnums[i],
-                            icodes[i],
-                            xyz[0], xyz[1], xyz[2],
-                            occupancies[i], bfactors[i],
-                            segments[i], elements[i]))
-            else:
-                write(pdbline % (hetero[i], indices[i],
-                            atomnames[i], altlocs[i],
-                            resnames[i], chainids[i], resnums[i],
-                            icodes[i],
-                            xyz[0], xyz[1], xyz[2],
-                            occupancies[i], bfactors[i],
-                            segments[i], elements[i]))
+            write(pdbline % (hetero[i], serials[i],
+                             atomnames[i], altlocs[i],
+                             resnames[i], chainids[i], resnums[i],
+                             icodes[i],
+                             xyz[0], xyz[1], xyz[2],
+                             occupancies[i], bfactors[i],
+                             segments[i], elements[i]))
         if multi:
             write('ENDMDL\n')
             altlocs = np.zeros(n_atoms, s_or_u + '1')
@@ -1196,7 +1191,12 @@ writePDBStream.__doc__ += _writePDBdoc
 def writePDB(filename, atoms, csets=None, autoext=True, **kwargs):
     """Write *atoms* in PDB format to a file with name *filename* and return
     *filename*.  If *filename* ends with :file:`.gz`, a compressed file will
-    be written."""
+    be written.        
+
+    :arg renumber: whether to renumber atoms with serial indices
+        Default is **True**
+    :type renumber: bool
+    """
 
     if not ('.pdb' in filename or '.pdb.gz' in filename or
              '.ent' in filename or '.ent.gz' in filename):
