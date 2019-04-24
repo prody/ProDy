@@ -10,7 +10,7 @@ from numpy import array, fromstring, empty
 
 from .sequence import splitSeqLabel, Sequence
 
-from prody import LOGGER
+from prody import LOGGER, PY3K
 from prody.utilities import openFile, isListLike
 
 __all__ = ['MSAFile', 'splitSeqLabel', 'parseMSA', 'writeMSA']
