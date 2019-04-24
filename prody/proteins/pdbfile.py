@@ -1175,13 +1175,13 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
             if pdbline != PDBLINE_GE100K and (i == MAX_N_ATOM or serials[i] > MAX_N_ATOM):
                 LOGGER.warn('Indices are exceeding 99999 and hexadecimal format is being used')
                 pdbline = PDBLINE_GE100K
-            write(pdbline % (hetero[i], i+1,
-                        atomnames[i], altlocs[i],
-                        resnames[i], chainids[i], resnums[i],
-                        icodes[i],
-                        xyz[0], xyz[1], xyz[2],
-                        occupancies[i], bfactors[i],
-                        segments[i], elements[i]))
+            write(pdbline % (hetero[i], serials[i],
+                             atomnames[i], altlocs[i],
+                             resnames[i], chainids[i], resnums[i],
+                             icodes[i],
+                             xyz[0], xyz[1], xyz[2],
+                             occupancies[i], bfactors[i],
+                             segments[i], elements[i]))
         if multi:
             write('ENDMDL\n')
             altlocs = np.zeros(n_atoms, s_or_u + '1')
