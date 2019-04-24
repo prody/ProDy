@@ -36,7 +36,7 @@ __all__ = ['GOADictList', 'parseOBO', 'parseGAF',
            'findCommonParentGoIds']
 
 
-class GOADictList:
+class GOADictList(object):
     """A class for handling the list of GOA Dictionaries returned 
     by queryGOA
     """
@@ -105,7 +105,10 @@ def parseOBO(**kwargs):
 
     .. _OBO: http://owlcollab.github.io/oboformat/doc/obo-syntax.html
     """
-    from goatools import obo_parser
+    try:
+        from goatools import obo_parser
+    except:
+        raise ImportError('GOATools needs to be installed to use parseOBO')
 
     go_obo_url = kwargs.get('go_obo_url', None)
     if go_obo_url is None:
