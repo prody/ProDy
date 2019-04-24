@@ -1083,7 +1083,7 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
         resnums = np.ones(n_atoms, int)
 
     serials = atoms._getSerials()
-    if serials is None or renumber == True:
+    if serials is None or renumber:
         serials = np.arange(1, n_atoms+1, dtype=int)
 
     icodes = atoms._getIcodes()
