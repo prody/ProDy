@@ -156,6 +156,13 @@ def loadModel(filename, **kwargs):
             dict_[attr] = int(attr_dict[attr])
         elif attr in ('_membrane', '_combined'):
             dict_[attr] = attr_dict[attr][0] 
+        elif attr in ('masked', ):
+            dict_[attr] = bool(attr_dict[attr])
+        elif attr in ('mask', ):
+            if not attr_dict[attr].shape:
+                dict_[attr] = bool(attr_dict[attr])
+            else:
+                dict_[attr] = attr_dict[attr]
         else:
             dict_[attr] = attr_dict[attr]
     return nma
