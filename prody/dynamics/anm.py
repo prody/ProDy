@@ -210,7 +210,7 @@ class ANMBase(NMA):
         self._clear()
         linalg = importLA()
         LOGGER.timeit('_anm_calc_modes')
-        shift = 6
+        shift = 5
         if linalg.__package__.startswith('scipy'):
             if n_modes is None:
                 eigvals = None
