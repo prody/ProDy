@@ -1,9 +1,9 @@
 Metadata-Version: 1.1
 Name: ProDy
-Version: 1.10.8
+Version: 1.10.9
 Summary: A Python Package for Protein Dynamics Analysis
 Home-page: http://www.csb.pitt.edu/ProDy
-Author: She Zhang-Cihan Kaya-Ahmet Bakan
+Author: She Zhang-James Krieger-Cihan Kaya-Ahmet Bakan
 Author-email: shz66@pitt.edu
 License: MIT License
 Description: .. image:: https://secure.travis-ci.org/prody/ProDy.png?branch=master
