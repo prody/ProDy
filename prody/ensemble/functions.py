@@ -75,6 +75,9 @@ def loadEnsemble(filename, **kwargs):
 
     if not 'encoding' in kwargs:
         kwargs['encoding'] = 'latin1'
+    
+    if not 'allow_pickle' in kwargs:
+        kwargs['allow_pickle'] = True
 
     attr_dict = np.load(filename, **kwargs)
     if '_weights' in attr_dict:
