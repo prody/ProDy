@@ -4,7 +4,7 @@
 import numpy as np
 
 from prody.atomic import Atomic, Atom, AtomGroup, Selection, HierView
-from prody.utilities import openFile, showFigure, createStringIO, wrap_data
+from prody.utilities import openFile, showFigure, createStringIO, wrapModes
 from prody import SETTINGS, PY3K
 
 __all__ = ['view3D', 'showProtein']
@@ -61,13 +61,13 @@ def view3D(*alist, **kwargs):
     if modes is None:
         n_modes = 0
     else:
-        modes = wrap_data(modes)
+        modes = wrapModes(modes)
         n_modes = len(modes)
 
     if data_list is None:
         n_data = 0
     else:
-        data_list = wrap_data(data_list)
+        data_list = wrapModes(data_list)
         n_data = len(data_list)
 
     view = py3Dmol.view(width=width, height=height, js=kwargs.get('js','http://3dmol.csb.pitt.edu/build/3Dmol-min.js'))
@@ -215,7 +215,7 @@ def showProtein(*atoms, **kwargs):
     if modes is None:
         n_modes = 0
     else:
-        modes = wrap_data(modes)
+        modes = wrapModes(modes)
         n_modes = len(modes)
 
     if method is None:

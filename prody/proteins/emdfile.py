@@ -38,22 +38,22 @@ def parseEMD(emd, **kwargs):
 
     :arg cutoff: density cutoff to read EMD map. The regions with lower density than given cutoff 
     are discarded.
-    :type cutoff: float or None
+    :type cutoff: float
 
     :arg n_nodes: A bead based network will be constructed over provided density map. n_nodes parameter
     will show the number of beads that will fit to density map. 
-    :type n_nodes: integer  
+    :type n_nodes: int  
 
     :arg num_iter: After reading density map, coordinates are predicted with topological domain reconstruction
     method. This parameter is the total number of iterations of this algorithm: 
-    :type num_iter: integer
+    :type num_iter: int
 
-    :arg return_map: Return the density map itself. Default is False in line with previous behaviour.
-        This value is reset to True if make_nodes is False as something must be returned.
-    :type return_map: bool
+    :arg map: Return the density map itself. Default is **False** in line with previous behaviour.
+        This value is reset to **True** if make_nodes is **False** as something must be returned.
+    :type map: bool
 
     :arg make_nodes: Use the topology representing network algorithm to fit pseudoatom nodes to the map.
-        Default is False and sets return_map to True.
+        Default is **False** and sets map to **True**.
     :type make_nodes: bool
     """
 
@@ -143,7 +143,7 @@ def parseSTKStream(stream, **kwargs):
 def parseEMDStream(stream, **kwargs):
     """ Returns an :class:`.AtomGroup` containing EMD data parsed from a stream of EMD file.
 
-    :arg stream: Anything that implements the method ``readlines``
+    :arg stream: Any object with the method ``readlines``
         (e.g. :class:`file`, buffer, stdin)"""
 
     cutoff = kwargs.get('cutoff', None)
@@ -163,6 +163,7 @@ def parseEMDStream(stream, **kwargs):
 
     title_suffix = kwargs.get('title_suffix','')
     atomgroup = AtomGroup(str(kwargs.get('title', 'Unknown')) + title_suffix)
+    atomgroup._n_atoms = n_nodes
 
     if make_nodes:
         LOGGER.info('Building coordinates from electron density map. This may take a while.')
@@ -189,9 +190,12 @@ def parseEMDStream(stream, **kwargs):
     else:
         return emd
 
-def writeEMD(filename,emd):
+def writeEMD(filename, emd):
     '''
-    Write a map file in MRC2014 format (counting words 25 to 49 as 'extra').
+    Writes a map file in MRC2014 format (counting words 25 to 49 as 'extra').
+
+    :arg filename: name for output file
+    :type filename: str
 
     :arg emd: an EMD object containing data to be written to file
     :type emd: :class:`.EMD`

@@ -16,7 +16,7 @@ __all__ = ['Everything', 'Cursor', 'ImageCursor', 'rangeString', 'alnum', 'impor
            'saxsWater', 'count', 'addEnds', 'copy', 'dictElementLoop', 
            'getDataPath', 'openData', 'chr2', 'toChararray', 'interpY', 'cmp',
            'getValue', 'indentElement', 'isPDB', 'isURL', 'isListLike',
-           'getDistance', 'fastin', 'createStringIO', 'div0', 'wmean', 'bin2dec']
+           'getDistance', 'fastin', 'createStringIO', 'div0', 'wmean', 'bin2dec', 'wrapModes']
 
 CURSORS = []
 
@@ -525,3 +525,13 @@ def bin2dec(x):
     for i,j in enumerate(x):
         if j: y += 1<<i
     return y
+
+
+def wrapModes(modes):
+    try:
+        arr = modes.getArray()
+        modes = [arr]
+    except AttributeError:
+        if np.isscalar(modes[0]):
+            modes = [modes]
+    return modes

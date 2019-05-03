@@ -220,7 +220,7 @@ class ANMBase(NMA):
                     eigvals = None
                     n_modes = self._dof
                 else:
-                    eigvals = (0, n_modes + shift)
+                    eigvals = (0, n_modes + shift - 1)
             if eigvals:
                 turbo = False
             if isinstance(self._hessian, np.ndarray):
@@ -235,12 +235,13 @@ class ANMBase(NMA):
                                       'decomposition')
                 try:
                     values, vectors = (
-                        scipy_sparse_la.eigsh(self._hessian, k=n_modes+6,
+                        scipy_sparse_la.eigsh(self._hessian, 
+                                              k=n_modes + shift,
                                               which='SA'))
                 except:
                     values, vectors = (
                         scipy_sparse_la.eigen_symmetric(self._hessian,
-                                                        k=n_modes+6,
+                                                        k=n_modes + shift,
                                                         which='SA'))
 
         else:
