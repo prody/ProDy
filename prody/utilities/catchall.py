@@ -7,16 +7,7 @@ from .misctools import addEnds, interpY
 from .checkers import checkCoords
 
 __all__ = ['calcTree', 'clusterMatrix', 'showLines', 'showMatrix', 
-           'reorderMatrix', 'findSubgroups','wrapModes', 'getCoords']
-
-def wrapModes(modes):
-    try:
-        arr = modes.getArray()
-        modes = [arr]
-    except AttributeError:
-        if np.isscalar(modes[0]):
-            modes = [modes]
-    return modes
+           'reorderMatrix', 'findSubgroups', 'getCoords']
 
 
 def getCoords(data):
