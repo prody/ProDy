@@ -6,7 +6,7 @@ from numpy import unique, linalg, diag, sqrt, dot
 from .misctools import addEnds, interpY
 
 __all__ = ['calcTree', 'clusterMatrix', 'showLines', 'showMatrix', 
-           'reorderMatrix', 'findSubgroups','wrap_data']
+           'reorderMatrix', 'findSubgroups','wrap_data', 'ensureCoords']
 
 def wrap_data(data):
     try:
@@ -16,6 +16,24 @@ def wrap_data(data):
         if np.isscalar(data[0]):
             data = [data]
     return data
+
+
+def ensureCoords(data):
+    if data is None:
+        raise ValueError('data must be provided')
+
+    try:
+        data = (data._getCoords() if hasattr(data, '_getCoords') else
+                        data.getCoords())
+    except AttributeError:
+        try:
+            checkCoords(data)
+        except TypeError:
+            raise TypeError('data must be a Numpy array or an object '
+                            'with `getCoords` method')
+
+    return data
+
 
 def calcTree(names, distance_matrix, method='nj'):
     """ Given a distance matrix for an ensemble, it creates an returns a tree structure.

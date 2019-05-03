@@ -6,7 +6,7 @@ from numpy import ndarray, power, sqrt, array, zeros, arccos
 from numpy import sign, tile, concatenate, pi, cross, subtract, var
 
 from prody.atomic import Atomic, Residue, Atom
-from prody.utilities import importLA, checkCoords, getDistance
+from prody.utilities import importLA, checkCoords, getDistance, ensureCoords
 from prody import LOGGER, PY2K
 
 if PY2K:
@@ -590,34 +590,8 @@ def calcDeformVector(from_atoms, to_atoms):
     if len(name) > 30:
         name = 'Deformation'
     
-    if from_atoms is not None:
-        try:
-            from_atoms = (from_atoms._getCoords() if hasattr(from_atoms, '_getCoords') else
-                          from_atoms.getCoords())
-        except AttributeError:
-            try:
-                checkCoords(from_atoms)
-            except TypeError:
-                raise TypeError('from_atoms must be a Numpy array or an object '
-                                'with `getCoords` method')            
-        from_coords = from_atoms
-    else:
-        raise ValueError('from_atoms must be provided')
-    
-
-    if to_atoms is not None:
-        try:
-            to_atoms = (to_atoms._getCoords() if hasattr(to_atoms, '_getCoords') else
-                        to_atoms.getCoords())
-        except AttributeError:
-            try:
-                checkCoords(to_atoms)
-            except TypeError:
-                raise TypeError('coordsB must be a Numpy array or an object '
-                                'with `getCoords` method')
-        to_coords = to_atoms
-    else:
-        raise ValueError('to_atoms must be provided')
+    from_coords = ensureCoords(from_atoms)
+    to_coords = ensureCoords(to_atoms)
 
     arr = (to_coords - from_coords).flatten()
     from prody.dynamics import Vector
