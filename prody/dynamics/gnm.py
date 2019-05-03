@@ -436,8 +436,8 @@ class GNM(GNMBase):
             LOGGER.warning('More than 1 (%d) zero eigenvalues are calculated.'%n_zeros)
 
         if not zeros:
-            self._eigvals = values[n_zeros:]
-            self._array = vectors[:, n_zeros:]
+            self._eigvals = values[n_zeros:n_zeros+n_modes]
+            self._array = vectors[:, n_zeros:n_zeros+n_modes]
             self._vars = 1 / self._eigvals
         else:
             self._eigvals = values[:n_modes]
