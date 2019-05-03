@@ -589,7 +589,37 @@ def calcDeformVector(from_atoms, to_atoms):
     name = '{0} => {1}'.format(repr(from_atoms), repr(to_atoms))
     if len(name) > 30:
         name = 'Deformation'
-    arr = (to_atoms.getCoords() - from_atoms.getCoords()).flatten()
+    
+    if from_atoms is not None:
+        try:
+            from_atoms = (from_atoms._getCoords() if hasattr(from_atoms, '_getCoords') else
+                          from_atoms.getCoords())
+        except AttributeError:
+            try:
+                checkCoords(from_atoms)
+            except TypeError:
+                raise TypeError('from_atoms must be a Numpy array or an object '
+                                'with `getCoords` method')            
+        from_coords = from_atoms
+    else:
+        raise ValueError('from_atoms must be provided')
+    
+
+    if to_atoms is not None:
+        try:
+            to_atoms = (to_atoms._getCoords() if hasattr(to_atoms, '_getCoords') else
+                        to_atoms.getCoords())
+        except AttributeError:
+            try:
+                checkCoords(to_atoms)
+            except TypeError:
+                raise TypeError('coordsB must be a Numpy array or an object '
+                                'with `getCoords` method')
+        to_coords = to_atoms
+    else:
+        raise ValueError('to_atoms must be provided')
+
+    arr = (to_coords - from_coords).flatten()
     from prody.dynamics import Vector
     return Vector(arr, name)
 
