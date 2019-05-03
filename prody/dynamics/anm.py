@@ -254,27 +254,20 @@ class ANMBase(NMA):
             LOGGER.warning('Fewer than 6 (%d) zero eigenvalues are calculated.'%n_zeros)
         elif n_zeros > 6:
             LOGGER.warning('More than 6 (%d) zero eigenvalues are calculated.'%n_zeros)
-        shift = n_zeros
-        if zeros:
-            shift = 0
-        if n_zeros > n_modes:
-            self._eigvals = values[shift:]
-        else:
-            self._eigvals = values[shift:]
-        
+
         if not zeros:
+            self._eigvals = values[n_zeros:]
+            self._array = vectors[:, n_zeros:]
             self._vars = 1 / self._eigvals
         else:
+            self._eigvals = values[:n_modes]
+            self._array = vectors[:, :n_modes]
             vars = div0(1, values)
             vars[:n_zeros] = 0.
-            self._vars = vars[shift:]
+            self._vars = vars[:n_modes]
 
         self._trace = self._vars.sum()
-        
-        if shift:
-            self._array = vectors[:, shift:].copy()
-        else:
-            self._array = vectors
+
         self._n_modes = len(self._eigvals)
         LOGGER.report('{0} modes were calculated in %.2fs.'
                      .format(self._n_modes), label='_anm_calc_modes')
