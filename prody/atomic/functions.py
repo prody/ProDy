@@ -492,7 +492,7 @@ def extendAtomicData(data, nodes, atoms, axis=None):
 
     :arg nodes: a set of atoms that has been used
         as nodes in data generation
-    :type nodes: :class:`
+    :type nodes: :class:`Atomic`
 
     :arg atoms: atoms to be selected from
     :type atoms: :class:`Atomic`
