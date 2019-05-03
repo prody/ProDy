@@ -4,18 +4,26 @@ import numpy as np
 
 from numpy import unique, linalg, diag, sqrt, dot
 from .misctools import addEnds, interpY
+from .checkers import checkCoords
 
 __all__ = ['calcTree', 'clusterMatrix', 'showLines', 'showMatrix', 
-           'reorderMatrix', 'findSubgroups','wrap_data']
+           'reorderMatrix', 'findSubgroups', 'getCoords']
 
-def wrap_data(data):
+
+def getCoords(data):
+
     try:
-        arr = data.getArray()
-        data = [data]
+        data = (data._getCoords() if hasattr(data, '_getCoords') else
+                data.getCoords())
     except AttributeError:
-        if np.isscalar(data[0]):
-            data = [data]
+        try:
+            checkCoords(data)
+        except TypeError:
+            raise TypeError('data must be a Numpy array or an object '
+                            'with `getCoords` method')
+
     return data
+
 
 def calcTree(names, distance_matrix, method='nj'):
     """ Given a distance matrix for an ensemble, it creates an returns a tree structure.
