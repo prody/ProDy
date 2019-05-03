@@ -392,7 +392,7 @@ class GNM(GNMBase):
         self._clear()
         linalg = importLA()
         start = time.time()
-        shift = 0
+        shift = 1
         if linalg.__package__.startswith('scipy'):
             if n_modes is None:
                 eigvals = None
@@ -402,7 +402,7 @@ class GNM(GNMBase):
                     eigvals = None
                     n_modes = self._dof
                 else:
-                    eigvals = (0, n_modes + shift)
+                    eigvals = (0, n_modes + shift - 1)
             if eigvals:
                 turbo = False
             if isinstance(self._kirchhoff, np.ndarray):
@@ -418,11 +418,12 @@ class GNM(GNMBase):
                 try:
                     values, vectors = (
                         scipy_sparse_la.eigsh(self._kirchhoff,
-                                              k=n_modes + 1, which='SA'))
+                                              k=n_modes + shift, 
+                                              which='SA'))
                 except:
                     values, vectors = (
                         scipy_sparse_la.eigen_symmetric(self._kirchhoff,
-                                                        k=n_modes + 1,
+                                                        k=n_modes + shift,
                                                         which='SA'))
         else:
             if n_modes is not None:
