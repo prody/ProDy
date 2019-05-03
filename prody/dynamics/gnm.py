@@ -434,18 +434,19 @@ class GNM(GNMBase):
             LOGGER.warning('Fewer than 1 zero eigenvalues are calculated.')
         elif n_zeros > 1:
             LOGGER.warning('More than 1 (%d) zero eigenvalues are calculated.'%n_zeros)
-        shift = n_zeros
-        if zeros:
-            shift = 0
-        self._eigvals = values[shift:]
-        if zeros:
+
+        if not zeros:
+            self._eigvals = values[n_zeros:n_zeros+n_modes]
+            self._array = vectors[:, n_zeros:n_zeros+n_modes]
+            self._vars = 1 / self._eigvals
+        else:
+            self._eigvals = values[:n_modes]
+            self._array = vectors[:, :n_modes]
             vars = div0(1, values)
             vars[:n_zeros] = 0.
-            self._vars = vars[shift:]
-        else:
-            self._vars = div0(1, self._eigvals)
+            self._vars = vars[:n_modes]
+
         self._trace = self._vars.sum()
-        self._array = vectors[:, shift:]
         self._n_modes = len(self._eigvals)
         if hinges:
             self.calcHinges()
