@@ -6,7 +6,7 @@ from numpy import unique, linalg, diag, sqrt, dot
 from .misctools import addEnds, interpY
 
 __all__ = ['calcTree', 'clusterMatrix', 'showLines', 'showMatrix', 
-           'reorderMatrix', 'findSubgroups','wrap_data', 'ensureCoords']
+           'reorderMatrix', 'findSubgroups','wrap_data', 'getCoords']
 
 def wrap_data(data):
     try:
@@ -18,9 +18,7 @@ def wrap_data(data):
     return data
 
 
-def ensureCoords(data):
-    if data is None:
-        raise ValueError('data must be provided')
+def getCoords(data):
 
     try:
         data = (data._getCoords() if hasattr(data, '_getCoords') else

@@ -6,7 +6,7 @@ from numpy import ndarray, power, sqrt, array, zeros, arccos
 from numpy import sign, tile, concatenate, pi, cross, subtract, var
 
 from prody.atomic import Atomic, Residue, Atom
-from prody.utilities import importLA, checkCoords, getDistance, ensureCoords
+from prody.utilities import importLA, checkCoords, getDistance, getCoords
 from prody import LOGGER, PY2K
 
 if PY2K:
@@ -590,8 +590,8 @@ def calcDeformVector(from_atoms, to_atoms):
     if len(name) > 30:
         name = 'Deformation'
     
-    from_coords = ensureCoords(from_atoms)
-    to_coords = ensureCoords(to_atoms)
+    from_coords = getCoords(from_atoms)
+    to_coords = getCoords(to_atoms)
 
     arr = (to_coords - from_coords).flatten()
     from prody.dynamics import Vector
