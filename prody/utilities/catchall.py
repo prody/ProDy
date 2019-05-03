@@ -4,25 +4,26 @@ import numpy as np
 
 from numpy import unique, linalg, diag, sqrt, dot
 from .misctools import addEnds, interpY
+from .checkers import checkCoords
 
 __all__ = ['calcTree', 'clusterMatrix', 'showLines', 'showMatrix', 
-           'reorderMatrix', 'findSubgroups','wrap_data', 'getCoords']
+           'reorderMatrix', 'findSubgroups','wrapModes', 'getCoords']
 
-def wrap_data(data):
+def wrapModes(modes):
     try:
-        arr = data.getArray()
-        data = [data]
+        arr = modes.getArray()
+        modes = [arr]
     except AttributeError:
-        if np.isscalar(data[0]):
-            data = [data]
-    return data
+        if np.isscalar(modes[0]):
+            modes = [modes]
+    return modes
 
 
 def getCoords(data):
 
     try:
         data = (data._getCoords() if hasattr(data, '_getCoords') else
-                        data.getCoords())
+                data.getCoords())
     except AttributeError:
         try:
             checkCoords(data)

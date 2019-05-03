@@ -11,7 +11,7 @@ from collections import defaultdict
 import numpy as np
 
 from prody import LOGGER, SETTINGS, PY3K
-from prody.utilities import showFigure, addEnds, wrap_data
+from prody.utilities import showFigure, addEnds, wrapModes
 from prody.atomic import AtomGroup, Selection, Atomic, sliceAtoms, sliceAtomicData
 
 from .nma import NMA
