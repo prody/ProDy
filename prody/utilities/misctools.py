@@ -3,7 +3,7 @@ import re
 
 from numpy import unique, linalg, diag, sqrt, dot, chararray, divide, zeros_like
 from numpy import diff, where, insert, nan, isnan, loadtxt, array, round, average
-from numpy import sign, arange, asarray, ndarray, subtract, power, sum
+from numpy import sign, arange, asarray, ndarray, subtract, power, sum, isscalar
 from collections import Counter
 import numbers
 
@@ -532,6 +532,6 @@ def wrapModes(modes):
         arr = modes.getArray()
         modes = [arr]
     except AttributeError:
-        if np.isscalar(modes[0]):
+        if isscalar(modes[0]):
             modes = [modes]
     return modes

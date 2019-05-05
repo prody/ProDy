@@ -16,9 +16,71 @@ from prody.utilities import importLA, checkCoords, div0
 from .nma import NMA
 from .gamma import Gamma
 
-__all__ = ['GNM', 'calcGNM', 'MaskedGNM']
+__all__ = ['GNM', 'eigh', 'calcGNM', 'MaskedGNM']
 
 ZERO = 1e-6
+
+
+def eigh(M, n_modes=None, zeros=False, is3d=False):
+    linalg = importLA()
+    dof = M.shape[0]
+
+    expected_n_zeros = 6 if is3d else 1
+
+    if linalg.__package__.startswith('scipy'):
+        if n_modes is None:
+            eigvals = None
+            n_modes = dof
+        else:
+            if n_modes >= dof:
+                eigvals = None
+                n_modes = dof
+            else:
+                eigvals = (0, n_modes + expected_n_zeros - 1)
+        if eigvals:
+            turbo = False
+        if isinstance(M, ndarray):
+            values, vectors = linalg.eigh(M, turbo=turbo,
+                                            eigvals=eigvals)
+        else:
+            try:
+                from scipy.sparse import linalg as scipy_sparse_la
+            except ImportError:
+                raise ImportError('failed to import scipy.sparse.linalg, '
+                                    'which is required for sparse matrix '
+                                    'decomposition')
+            values, vectors = scipy_sparse_la.eigsh(M,
+                                            k=n_modes + expected_n_zeros, 
+                                            which='SA')
+    else:
+        if n_modes is not None:
+            LOGGER.info('Scipy is not found, all modes were calculated.')
+        values, vectors = linalg.eigh(M)
+
+    n_zeros = sum(values < ZERO)
+    if n_zeros < expected_n_zeros:
+        LOGGER.warning('Fewer than %d (%d) zero eigenvalues were calculated.'%(expected_n_zeros, n_zeros))
+    elif n_zeros > expected_n_zeros:
+        LOGGER.warning('More than %d (%d) zero eigenvalues were calculated.'%(expected_n_zeros, n_zeros))
+
+    if not zeros:
+        if n_zeros > expected_n_zeros:
+            if n_zeros == n_modes and n_modes != dof:
+                # find the actual number of zero modes
+                pass
+
+        final_n_modes = n_zeros + n_modes
+        eigvals = values[n_zeros:final_n_modes]
+        eigvecs = vectors[:, n_zeros:final_n_modes]
+        vars = 1 / eigvals
+    else:
+        eigvals = values[:n_modes]
+        eigvecs = vectors[:, :n_modes]
+        vars = div0(1, values)
+        vars[:n_zeros] = 0.
+        vars = vars[:n_modes]
+
+    return eigvals, eigvecs, vars
 
 
 class GNMBase(NMA):
