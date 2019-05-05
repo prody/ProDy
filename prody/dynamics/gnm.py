@@ -100,7 +100,8 @@ def solveEig(M, n_modes=None, zeros=False, turbo=True, is3d=False):
                 n_zeros = _calc_n_zero_modes(M)
                 LOGGER.debug('%d zero eigenvalues detected.'%n_zeros)
             LOGGER.debug('Solving for additional eigenvalues...')
-            values_, vectors_ = _eigh(M, eigvals=(n_modes+expct_n_zeros, n_modes+n_zeros-1))
+            start = min(n_modes+expct_n_zeros, dof-1); end = min(n_modes+n_zeros-1, dof-1)
+            values_, vectors_ = _eigh(M, eigvals=(start, end))
             values = np.concatenate((values, values_))
             vectors = np.hstack((vectors, vectors_))
 
