@@ -16,32 +16,60 @@ from prody.utilities import importLA, checkCoords, div0
 from .nma import NMA
 from .gamma import Gamma
 
-__all__ = ['GNM', 'eigh', 'calcGNM', 'MaskedGNM']
+__all__ = ['GNM', 'solveEig', 'calcGNM', 'MaskedGNM']
 
 ZERO = 1e-6
 
 
-def eigh(M, n_modes=None, zeros=False, is3d=False):
+def solveEig(M, n_modes=None, zeros=False, turbo=True, is3d=False):
     linalg = importLA()
     dof = M.shape[0]
 
-    expected_n_zeros = 6 if is3d else 1
+    expct_n_zeros = 6 if is3d else 1
 
-    if linalg.__package__.startswith('scipy'):
-        if n_modes is None:
+    if n_modes is None:
+        eigvals = None
+        n_modes = dof
+    else:
+        if n_modes >= dof:
             eigvals = None
             n_modes = dof
         else:
-            if n_modes >= dof:
-                eigvals = None
-                n_modes = dof
+            eigvals = (0, n_modes+expct_n_zeros-1)
+
+    def _eigh(M, eigvals=None, turbo=True):
+        if linalg.__package__.startswith('scipy'):
+            from scipy.sparse import issparse
+
+            if eigvals:
+                turbo = False
+            if not issparse(M):
+                values, vectors = linalg.eigh(M, turbo=turbo, eigvals=eigvals)
             else:
-                eigvals = (0, n_modes + expected_n_zeros - 1)
-        if eigvals:
-            turbo = False
-        if isinstance(M, ndarray):
-            values, vectors = linalg.eigh(M, turbo=turbo,
-                                            eigvals=eigvals)
+                try:
+                    from scipy.sparse import linalg as scipy_sparse_la
+                except ImportError:
+                    raise ImportError('failed to import scipy.sparse.linalg, '
+                                      'which is required for sparse matrix '
+                                      'decomposition')
+                if eigvals:
+                    k = eigvals[-1] + 1
+                else:
+                    k = dof
+                values, vectors = scipy_sparse_la.eigsh(M, k=k, which='SA')
+        else:
+            if n_modes is not None:
+                LOGGER.info('Scipy is not found, all modes were calculated.')
+            else:
+                n_modes = dof
+            values, vectors = linalg.eigh(M)
+        return values, vectors
+
+    def _calc_n_zero_modes(M):
+        from scipy.sparse import issparse
+
+        if not issparse(M):
+            w = linalg.eigvalsh(M)
         else:
             try:
                 from scipy.sparse import linalg as scipy_sparse_la
@@ -49,25 +77,32 @@ def eigh(M, n_modes=None, zeros=False, is3d=False):
                 raise ImportError('failed to import scipy.sparse.linalg, '
                                     'which is required for sparse matrix '
                                     'decomposition')
-            values, vectors = scipy_sparse_la.eigsh(M,
-                                            k=n_modes + expected_n_zeros, 
-                                            which='SA')
-    else:
-        if n_modes is not None:
-            LOGGER.info('Scipy is not found, all modes were calculated.')
-        values, vectors = linalg.eigh(M)
+            w, _ = scipy_sparse_la.eigsh(M, k=dof-1, which='SA')
+        n_zeros = sum(w < ZERO)
+        return n_zeros
 
+    values, vectors = _eigh(M, eigvals, turbo)
     n_zeros = sum(values < ZERO)
-    if n_zeros < expected_n_zeros:
-        LOGGER.warning('Fewer than %d (%d) zero eigenvalues were calculated.'%(expected_n_zeros, n_zeros))
-    elif n_zeros > expected_n_zeros:
-        LOGGER.warning('More than %d (%d) zero eigenvalues were calculated.'%(expected_n_zeros, n_zeros))
+
+    if n_zeros < n_modes + expct_n_zeros:
+        if n_zeros < expct_n_zeros:
+            LOGGER.warning('Fewer than %d (%d) zero eigenvalues were calculated.'%(expct_n_zeros, n_zeros))
+        elif n_zeros > expct_n_zeros:
+            LOGGER.warning('More than %d (%d) zero eigenvalues were calculated.'%(expct_n_zeros, n_zeros))
+    else:
+        LOGGER.warning('More than %d zero eigenvalues were detected.'%expct_n_zeros)
 
     if not zeros:
-        if n_zeros > expected_n_zeros:
-            if n_zeros == n_modes and n_modes != dof:
+        if n_zeros > expct_n_zeros:
+            if n_zeros == n_modes + expct_n_zeros and n_modes != dof:
+                LOGGER.debug('Determing the number of zero eigenvalues...')
                 # find the actual number of zero modes
-                pass
+                n_zeros = _calc_n_zero_modes(M)
+                LOGGER.debug('%d zero eigenvalues detected.'%n_zeros)
+            LOGGER.debug('Solving for additional eigenvalues...')
+            values_, vectors_ = _eigh(M, eigvals=(n_modes+expct_n_zeros, n_modes+n_zeros-1))
+            values = np.concatenate((values, values_))
+            vectors = np.hstack((vectors, vectors_))
 
         final_n_modes = n_zeros + n_modes
         eigvals = values[n_zeros:final_n_modes]
@@ -452,68 +487,19 @@ class GNM(GNMBase):
         assert isinstance(zeros, bool), 'zeros must be a boolean'
         assert isinstance(turbo, bool), 'turbo must be a boolean'
         self._clear()
-        linalg = importLA()
-        start = time.time()
-        shift = 1
-        if linalg.__package__.startswith('scipy'):
-            if n_modes is None:
-                eigvals = None
-                n_modes = self._dof
-            else:
-                if n_modes >= self._dof:
-                    eigvals = None
-                    n_modes = self._dof
-                else:
-                    eigvals = (0, n_modes + shift - 1)
-            if eigvals:
-                turbo = False
-            if isinstance(self._kirchhoff, np.ndarray):
-                values, vectors = linalg.eigh(self._kirchhoff, turbo=turbo,
-                                              eigvals=eigvals)
-            else:
-                try:
-                    from scipy.sparse import linalg as scipy_sparse_la
-                except ImportError:
-                    raise ImportError('failed to import scipy.sparse.linalg, '
-                                      'which is required for sparse matrix '
-                                      'decomposition')
-                try:
-                    values, vectors = (
-                        scipy_sparse_la.eigsh(self._kirchhoff,
-                                              k=n_modes + shift, 
-                                              which='SA'))
-                except:
-                    values, vectors = (
-                        scipy_sparse_la.eigen_symmetric(self._kirchhoff,
-                                                        k=n_modes + shift,
-                                                        which='SA'))
-        else:
-            if n_modes is not None:
-                LOGGER.info('Scipy is not found, all modes are calculated.')
-            values, vectors = linalg.eigh(self._kirchhoff)
-        n_zeros = sum(values < ZERO)
-        if n_zeros < 1:
-            LOGGER.warning('Fewer than 1 zero eigenvalues are calculated.')
-        elif n_zeros > 1:
-            LOGGER.warning('More than 1 (%d) zero eigenvalues are calculated.'%n_zeros)
+        LOGGER.timeit('_gnm_calc_modes')
+        values, vectors, vars = solveEig(self._kirchhoff, n_modes=n_modes, zeros=zeros, 
+                                         turbo=turbo, is3d=False)
 
-        if not zeros:
-            self._eigvals = values[n_zeros:n_zeros+n_modes]
-            self._array = vectors[:, n_zeros:n_zeros+n_modes]
-            self._vars = 1 / self._eigvals
-        else:
-            self._eigvals = values[:n_modes]
-            self._array = vectors[:, :n_modes]
-            vars = div0(1, values)
-            vars[:n_zeros] = 0.
-            self._vars = vars[:n_modes]
-
+        self._eigvals = values
+        self._array = vectors
+        self._vars = vars
         self._trace = self._vars.sum()
         self._n_modes = len(self._eigvals)
         if hinges:
             self.calcHinges()
-        LOGGER.debug('{0} modes were calculated in {1:.2f}s.'
-                     .format(self._n_modes, time.time()-start))
+        LOGGER.report('{0} modes were calculated in %.2fs.'
+                     .format(self._n_modes), label='_gnm_calc_modes')
 
     def calcHinges(self):
         if self._array is None:
