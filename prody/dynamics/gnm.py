@@ -105,6 +105,7 @@ def solveEig(M, n_modes=None, zeros=False, turbo=True, is3d=False):
             values = np.concatenate((values, values_))
             vectors = np.hstack((vectors, vectors_))
 
+        # final_n_modes may exceed len(eigvals) - no need to fix for the sake of the simplicity of the code
         final_n_modes = n_zeros + n_modes
         eigvals = values[n_zeros:final_n_modes]
         eigvecs = vectors[:, n_zeros:final_n_modes]
