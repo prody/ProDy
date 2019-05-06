@@ -53,10 +53,20 @@ def solveEig(M, n_modes=None, zeros=False, turbo=True, is3d=False):
                                       'which is required for sparse matrix '
                                       'decomposition')
                 if eigvals:
+                    j = eigvals[0]
                     k = eigvals[-1] + 1
                 else:
+                    j = 0
                     k = dof
+
+                if k >= dof:
+                    k -= 1
+                    LOGGER.warning('Cannot caluclate all eigenvalues for sparse matrices, thus '
+                                   'the last eigenvalue is omitted. See scipy.sparse.linalg.eigsh '
+                                   'for more information')
                 values, vectors = scipy_sparse_la.eigsh(M, k=k, which='SA')
+                values = values[j:k]
+                vectors = vectors[:, j:k]
         else:
             if n_modes is not None:
                 LOGGER.info('Scipy is not found, all modes were calculated.')
