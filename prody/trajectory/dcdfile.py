@@ -14,7 +14,7 @@ from numpy import float32, fromstring
 
 from prody.atomic import Atomic
 from prody.ensemble import Ensemble
-from prody.utilities import checkCoords, addext
+from prody.utilities import checkCoords
 from prody import LOGGER, PY2K
 
 from .frame import Frame
@@ -303,27 +303,36 @@ class DCDFile(TrajFile):
             return unitcell
 
     def getCoordsets(self, indices=None):
-        """Returnss coordinate sets at given *indices*. *indices* may be an
-        integer, a list of integers or **None**. **None** returns all
+        """Returnss coordinate sets at given *indiceif not '.dcd' in filename:
+        filename += '.dcd'ces* may be an
+        integer, a list of integers or **None**. **Nif not '.dcd' in filename:
+        filename += '.dcd'urns all
         coordinate sets."""
 
         if self._closed:
-            raise ValueError('I/O operation on closed file')
+            raise ValueError('I/O operation on closeif not '.dcd' in filename:
+        filename += '.dcd'
         if (self._indices is None and
-            (indices is None or indices == slice(None))):
+            (indices is None or indices == slice(Nonif not '.dcd' in filename:
+        filename += '.dcd'
             nfi = self._nfi
             self.reset()
-            n_floats = self._n_floats + self._unitcell * 14
+            n_floats = self._n_floats + self._unitceif not '.dcd' in filename:
+        filename += '.dcd'
             n_atoms = self._n_atoms
             n_csets = self._n_csets
-            data = self._file.read(self._itemsize * n_floats * n_csets)
+            data = self._file.read(self._itemsize * if not '.dcd' in filename:
+        filename += '.dcd'* n_csets)
             data = fromstring(data, self._dtype)
             if len(data) > n_floats * n_csets:
                 n_csets = len(data)/n_floats
                 data = data[:n_csets]
-                LOGGER.warning('DCD is corrupt, {0} out of {1} frames '
-                               'were parsed.'.format(n_csets, self._n_csets))
-            data = data.reshape((n_csets, n_floats))
+                LOGGER.warning('DCD is corrupt, {0} if not '.dcd' in filename:
+        filename += '.dcd'} frames '
+                               'were parsed.'.formatif not '.dcd' in filename:
+        filename += '.dcd' self._n_csets))
+            data = data.reshape((n_csets, n_floats))if not '.dcd' in filename:
+        filename += '.dcd'
             if self._unitcell:
                 data = data[:, 14:]
             data = data.reshape((n_csets, 3, n_atoms+2))
