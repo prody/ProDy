@@ -8,11 +8,11 @@ from numbers import Integral
 from prody import LOGGER
 from prody.atomic import Atomic, AtomGroup
 from prody.proteins import parsePDB
-from prody.utilities import importLA, checkCoords, div0
+from prody.utilities import checkCoords
 from prody.kdtree import KDTree
 
 from .nma import NMA
-from .gnm import GNMBase, ZERO, checkENMParameters
+from .gnm import GNMBase, solveEig, checkENMParameters
 
 __all__ = ['ANM', 'calcANM']
 
@@ -208,64 +208,12 @@ class ANMBase(NMA):
         assert isinstance(zeros, bool), 'zeros must be a boolean'
         assert isinstance(turbo, bool), 'turbo must be a boolean'
         self._clear()
-        linalg = importLA()
         LOGGER.timeit('_anm_calc_modes')
-        shift = 6
-        if linalg.__package__.startswith('scipy'):
-            if n_modes is None:
-                eigvals = None
-                n_modes = self._dof
-            else:
-                if n_modes >= self._dof:
-                    eigvals = None
-                    n_modes = self._dof
-                else:
-                    eigvals = (0, n_modes + shift - 1)
-            if eigvals:
-                turbo = False
-            if isinstance(self._hessian, np.ndarray):
-                values, vectors = linalg.eigh(self._hessian, turbo=turbo,
-                                              eigvals=eigvals)
-            else:
-                try:
-                    from scipy.sparse import linalg as scipy_sparse_la
-                except ImportError:
-                    raise ImportError('failed to import scipy.sparse.linalg, '
-                                      'which is required for sparse matrix '
-                                      'decomposition')
-                try:
-                    values, vectors = (
-                        scipy_sparse_la.eigsh(self._hessian, 
-                                              k=n_modes + shift,
-                                              which='SA'))
-                except:
-                    values, vectors = (
-                        scipy_sparse_la.eigen_symmetric(self._hessian,
-                                                        k=n_modes + shift,
-                                                        which='SA'))
-
-        else:
-            if n_modes is not None:
-                LOGGER.info('Scipy is not found, all modes are calculated.')
-            values, vectors = np.linalg.eigh(self._hessian)
-        n_zeros = sum(values < ZERO)
-
-        if n_zeros < 6:
-            LOGGER.warning('Fewer than 6 (%d) zero eigenvalues are calculated.'%n_zeros)
-        elif n_zeros > 6:
-            LOGGER.warning('More than 6 (%d) zero eigenvalues are calculated.'%n_zeros)
-
-        if not zeros:
-            self._eigvals = values[n_zeros:n_zeros+n_modes]
-            self._array = vectors[:, n_zeros:n_zeros+n_modes]
-            self._vars = 1 / self._eigvals
-        else:
-            self._eigvals = values[:n_modes]
-            self._array = vectors[:, :n_modes]
-            vars = div0(1, values)
-            vars[:n_zeros] = 0.
-            self._vars = vars[:n_modes]
-
+        values, vectors, vars = solveEig(self._hessian, n_modes=n_modes, zeros=zeros, 
+                                         turbo=turbo, is3d=True)
+        self._eigvals = values
+        self._array = vectors
+        self._vars = vars
         self._trace = self._vars.sum()
 
         self._n_modes = len(self._eigvals)
