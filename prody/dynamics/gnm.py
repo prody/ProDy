@@ -61,7 +61,7 @@ def solveEig(M, n_modes=None, zeros=False, turbo=True, is3d=False):
 
                 if k >= dof:
                     k -= 1
-                    LOGGER.warning('Cannot caluclate all eigenvalues for sparse matrices, thus '
+                    LOGGER.warning('Cannot calculate all eigenvalues for sparse matrices, thus '
                                    'the last eigenvalue is omitted. See scipy.sparse.linalg.eigsh '
                                    'for more information')
                 values, vectors = scipy_sparse_la.eigsh(M, k=k, which='SA')
