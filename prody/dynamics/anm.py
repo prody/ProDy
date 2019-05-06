@@ -116,7 +116,8 @@ class ANMBase(NMA):
         dof = n_atoms * 3
         LOGGER.timeit('_anm_hessian')
 
-        if kwargs.get('sparse', False):
+        sparse = kwargs.get('sparse', False)
+        if sparse:
             try:
                 from scipy import sparse as scipy_sparse
             except ImportError:
@@ -177,6 +178,11 @@ class ANMBase(NMA):
                     kirchhoff[j, i] = -g
                     kirchhoff[i, i] = kirchhoff[i, i] - g
                     kirchhoff[j, j] = kirchhoff[j, j] - g
+
+        if sparse:
+            kirchhoff = kirchhoff.tocsr()
+            hessian = hessian.tocsr()
+
         LOGGER.report('Hessian was built in %.2fs.', label='_anm_hessian')
         self._kirchhoff = kirchhoff
         self._hessian = hessian

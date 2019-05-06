@@ -166,9 +166,12 @@ def calcSubspaceOverlap(modes1, modes2):
 def calcSquareInnerProduct(modes1, modes2):
     """Returns the square inner product (SIP) of fluctuations [SK02]_.  
     This function returns a single number.
+
     .. [SK02] Kundu S, Melton JS, Sorensen DC, Phillips GN: Dynamics of 
         proteins in crystals: comparison of experiment with simple models. 
-        Biophys J. 2002, 83: 723-732."""
+        Biophys J. 2002, 83: 723-732.
+        
+    """
     if isinstance(modes1, (NMA, ModeSet)):
         w1 = calcSqFlucts(modes1)
     elif isListLike(modes1):
