@@ -515,6 +515,11 @@ def writeDCD(filename, trajectory, start=None, stop=None, step=None,
     *trajectory can be an :class:`Trajectory`, :class:`DCDFile`, or
     :class:`Ensemble` instance. *filename* is returned upon successful
     output of file."""
+    if not isinstance(filename, str):
+        raise TypeError('filename should be a string')
+
+    if not '.dcd' in filename:
+        filename += '.dcd'
 
     if not isinstance(trajectory, (TrajBase, Ensemble, Atomic)):
         raise TypeError('{0} is not a valid type for trajectory'
