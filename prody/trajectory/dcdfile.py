@@ -14,7 +14,7 @@ from numpy import float32, fromstring
 
 from prody.atomic import Atomic
 from prody.ensemble import Ensemble
-from prody.utilities import checkCoords
+from prody.utilities import checkCoords, addext
 from prody import LOGGER, PY2K
 
 from .frame import Frame
@@ -515,10 +515,7 @@ def writeDCD(filename, trajectory, start=None, stop=None, step=None,
     *trajectory can be an :class:`Trajectory`, :class:`DCDFile`, or
     :class:`Ensemble` instance. *filename* is returned upon successful
     output of file."""
-    if not isinstance(filename, str):
-        raise TypeError('filename should be a string')
-
-    if not '.dcd' in filename:
+    if not filename.lower().endswith('.dcd'):
         filename += '.dcd'
 
     if not isinstance(trajectory, (TrajBase, Ensemble, Atomic)):
