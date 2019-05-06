@@ -827,12 +827,13 @@ class sdarray(ndarray):
         a = np.asarray(self)
         return np.transpose(a, axes=axes)
 
+
 def calcEnsembleENMs(ensemble, model='gnm', trim='reduce', n_modes=20, **kwargs):
     """Calculates normal modes for each member of *ensemble*.
     
     :arg ensemble: normal modes of whose members to be computed
     :type ensemble: :class:`.PDBEnsemble`
-
+    
     :arg model: type of ENM that will be performed. It can be either 'anm' 
                 or 'gnm'
     :type model: str
