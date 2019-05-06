@@ -306,7 +306,8 @@ class GNM(GNMBase):
 
         n_atoms = coords.shape[0]
         start = time.time()
-        if kwargs.get('sparse', False):
+        sparse = kwargs.get('sparse', False)
+        if sparse:
             try:
                 from scipy import sparse as scipy_sparse
             except ImportError:
@@ -346,6 +347,9 @@ class GNM(GNMBase):
                     kirchhoff[j, i] = -g
                     kirchhoff[i, i] = kirchhoff[i, i] + g
                     kirchhoff[j, j] = kirchhoff[j, j] + g
+
+        if sparse:
+            kirchhoff = kirchhoff.tocsr()
 
         LOGGER.debug('Kirchhoff was built in {0:.2f}s.'
                      .format(time.time()-start))
