@@ -14,7 +14,7 @@ from xml.etree.ElementTree import Element
 __all__ = ['Everything', 'Cursor', 'ImageCursor', 'rangeString', 'alnum', 'importLA', 'dictElement',
            'intorfloat', 'startswith', 'showFigure', 'countBytes', 'sqrtm',
            'saxsWater', 'count', 'addEnds', 'copy', 'dictElementLoop', 
-           'getDataPath', 'openData', 'chr2', 'toChararray', 'interpY', 'cmp',
+           'getDataPath', 'openData', 'chr2', 'toChararray', 'interpY', 'cmp', 'pystr',
            'getValue', 'indentElement', 'isPDB', 'isURL', 'isListLike',
            'getDistance', 'fastin', 'createStringIO', 'div0', 'wmean', 'bin2dec', 'wrapModes']
 
@@ -374,7 +374,26 @@ def addEnds(x, y, axis=0):
 def copy(x):
     if x is None:
         return None
-    return x.copy()
+    elif isinstance(x, list):
+        x = list(x)
+    else:
+        try:
+            x = x.copy()
+        except AttributeError:
+            from copy import copy as shallow_copy
+            
+            x = shallow_copy(x)
+    return x
+
+def pystr(a):
+    b = a
+    if PY3K:
+        if hasattr(a, 'decode'):
+            b = a.decode() 
+    else:
+        if hasattr(a, 'encode'):
+            b = a.encode() 
+    return b
 
 def getDataPath(filename):
     import pkg_resources

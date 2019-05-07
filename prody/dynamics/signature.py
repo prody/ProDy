@@ -11,6 +11,8 @@ from prody import LOGGER, SETTINGS
 from prody.utilities import showFigure, showMatrix, copy, checkWeights, openFile
 from prody.utilities import getValue, importLA, wmean, div0
 from prody.ensemble import Ensemble, Conformation
+from prody.atomic import AtomGroup
+from prody.atomic.fields import DTYPE
 
 from .nma import NMA
 from .modeset import ModeSet
@@ -1665,6 +1667,10 @@ def loadModeEnsemble(filename, **kwargs):
 
     if not 'encoding' in kwargs:
         kwargs['encoding'] = 'latin1'
+
+    if not 'allow_pickle' in kwargs:
+        kwargs['allow_pickle'] = True
+
     data = np.load(filename, **kwargs)
     
     weights = getValue(data, '_weights', None)
@@ -1699,6 +1705,20 @@ def loadModeEnsemble(filename, **kwargs):
     modeens._matched = matched
     modeens._reweighted = reweighted
     modeens._modesets = modesets
+
+    if atoms is not None:
+        if isinstance(atoms, AtomGroup):
+            data = atoms._data
+        else:
+            data = atoms._ag._data
+            
+        for key in data:
+            arr = data[key]
+            char = arr.dtype.char
+            if char in 'SU' and char != DTYPE:
+                arr = arr.astype(str)
+                data[key] = arr
+
     modeens._atoms = atoms
 
     return modeens

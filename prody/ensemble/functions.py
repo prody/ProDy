@@ -7,9 +7,10 @@ from numbers import Integral
 import numpy as np
 
 from prody.proteins import fetchPDB, parsePDB, writePDB, mapOntoChain
-from prody.utilities import openFile, showFigure, copy, isListLike
+from prody.utilities import openFile, showFigure, copy, isListLike, pystr
 from prody import LOGGER, SETTINGS
 from prody.atomic import AtomMap, Chain, AtomGroup, Selection, Segment, Select, AtomSubset
+from prody.atomic.fields import DTYPE
 
 from .ensemble import *
 from .pdbensemble import *
@@ -104,6 +105,19 @@ def loadEnsemble(filename, **kwargs):
     ensemble.setCoords(attr_dict['_coords'])
     if '_atoms' in attr_dict:
         atoms = attr_dict['_atoms'][0]
+
+        if isinstance(atoms, AtomGroup):
+            data = atoms._data
+        else:
+            data = atoms._ag._data
+        
+        for key in data:
+            arr = data[key]
+            char = arr.dtype.char
+            if char in 'SU' and char != DTYPE:
+                arr = arr.astype(str)
+                data[key] = arr
+            
     else:
         atoms = None
     ensemble.setAtoms(atoms)

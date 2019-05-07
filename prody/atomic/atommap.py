@@ -72,7 +72,7 @@ i.e. ``""``.
 
 from numpy import arange, array, ones, zeros, dtype
 
-from prody.utilities import rangeString
+from prody.utilities import rangeString, copy
 
 from .atom import Atom
 from .fields import ATOMIC_FIELDS
@@ -341,7 +341,7 @@ class AtomMap(AtomPointer):
         """Returns a copy of indices of atoms, with maximum integer value
         dummies."""
 
-        return self._idarray.copy()
+        return copy(self._idarray)
 
     def _getIndices(self):
         """Returns indices of atoms, with maximum integer value dummies."""
