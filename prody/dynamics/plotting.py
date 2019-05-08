@@ -550,9 +550,13 @@ def showMode(mode, *args, **kwargs):
     from matplotlib.pyplot import plot, title, xlim
 
     show_hinges = kwargs.pop('show_hinges', False)
-    show_zero = kwargs.pop('show_zero', True)
     show_hinges = kwargs.pop('hinges', show_hinges)
+    show_hinges = kwargs.pop('show_hinge', show_hinges)
+    show_hinges = kwargs.pop('hinge', show_hinges)
+
+    show_zero = kwargs.pop('show_zero', True)
     show_zero = kwargs.pop('zero', show_zero)
+    
     atoms = kwargs.get('atoms', None)
     final = kwargs.pop('final', True)
 
@@ -598,6 +602,9 @@ def showSqFlucts(modes, *args, **kwargs):
 
     def _showSqFlucts(modes, *args, **kwargs):
         show_hinge = kwargs.pop('hinges', False)
+        show_hinge = kwargs.pop('hinges', show_hinge)
+        show_hinge = kwargs.pop('show_hinge', show_hinge)
+        show_hinge = kwargs.pop('hinge', show_hinge)
         norm = kwargs.pop('norm', False)
 
         sqf = calcSqFlucts(modes)
