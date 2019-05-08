@@ -72,7 +72,7 @@ def _getEigvecs(modes, row_norm=False, remove_zero_rows=False):
             else:
                 V = np.array(modes)
         except TypeError:
-            TypeError('Modes should be a list of modes.')
+            raise TypeError('Modes should be a list of modes.')
     if V.ndim == 1:
         V = np.expand_dims(V, axis=1)
 

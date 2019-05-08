@@ -7,9 +7,10 @@ from numbers import Integral
 import numpy as np
 
 from prody.proteins import fetchPDB, parsePDB, writePDB, mapOntoChain
-from prody.utilities import openFile, showFigure, copy, isListLike
+from prody.utilities import openFile, showFigure, copy, isListLike, pystr
 from prody import LOGGER, SETTINGS
 from prody.atomic import AtomMap, Chain, AtomGroup, Selection, Segment, Select, AtomSubset
+from prody.atomic.fields import DTYPE
 
 from .ensemble import *
 from .pdbensemble import *
@@ -75,6 +76,9 @@ def loadEnsemble(filename, **kwargs):
 
     if not 'encoding' in kwargs:
         kwargs['encoding'] = 'latin1'
+    
+    if not 'allow_pickle' in kwargs:
+        kwargs['allow_pickle'] = True
 
     attr_dict = np.load(filename, **kwargs)
     if '_weights' in attr_dict:
@@ -101,6 +105,19 @@ def loadEnsemble(filename, **kwargs):
     ensemble.setCoords(attr_dict['_coords'])
     if '_atoms' in attr_dict:
         atoms = attr_dict['_atoms'][0]
+
+        if isinstance(atoms, AtomGroup):
+            data = atoms._data
+        else:
+            data = atoms._ag._data
+        
+        for key in data:
+            arr = data[key]
+            char = arr.dtype.char
+            if char in 'SU' and char != DTYPE:
+                arr = arr.astype(str)
+                data[key] = arr
+            
     else:
         atoms = None
     ensemble.setAtoms(atoms)
@@ -421,7 +438,7 @@ def buildPDBEnsemble(PDBs, ref=None, title='Unknown', labels=None,
         if refpdb not in PDBs:
             raise ValueError('refpdb should be also in the PDBs')
 
-    # obtain refchains from the hierarhical view of the reference PDB
+    # obtain refchains from the hierarchical view of the reference PDB
     if subset != 'all':
         refpdb = refpdb.select(subset)
         
@@ -436,7 +453,7 @@ def buildPDBEnsemble(PDBs, ref=None, title='Unknown', labels=None,
     for i in range(1, len(refchains)):
         atoms += refchains[i]
     
-    # initialize a PDBEnsemble with referrence atoms and coordinates
+    # initialize a PDBEnsemble with reference atoms and coordinates
     ensemble = PDBEnsemble(title)
     ensemble.setAtoms(atoms)
     ensemble.setCoords(atoms.getCoords())

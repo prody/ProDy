@@ -293,7 +293,7 @@ def parsePDBHeader(pdb, *keys):
         else:
             raise IOError('{0} is not a valid filename or a valid PDB '
                           'identifier.'.format(pdb))
-    pdb = openFile(pdb)
+    pdb = openFile(pdb, 'rt')
     header, _ = getHeaderDict(pdb, *keys)
     pdb.close()
     return header
@@ -1041,7 +1041,8 @@ def buildBiomolecules(header, atoms, biomol=None):
 
     biomt = header.get('biomoltrans')
     if not isinstance(biomt, dict) or len(biomt) == 0:
-        raise ValueError("header doesn't contain biomolecular transformations")
+        LOGGER.warn("no biomolecular transformations found so original structure was used")
+        return atoms
 
     if not isinstance(atoms, AtomGroup):
         atoms = atoms.copy()

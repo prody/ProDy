@@ -9,7 +9,7 @@ from numpy import arange
 PW2 = None
 
 from prody.atomic import AtomMap as AM
-from prody.atomic import AtomGroup, Chain, AtomSubset
+from prody.atomic import AtomGroup, Chain, AtomSubset, Selection
 from prody.atomic import AAMAP
 from prody.atomic import flags
 from prody.measure import calcTransformation, printRMSD, calcDistance
@@ -1026,14 +1026,30 @@ def mapOntoChain(atoms, chain, **kwargs):
 
 def mapChainByChain(atoms, ref, **kwargs):
     """This function is similar to :func:`.mapOntoChain` but correspondence 
-    of chains is found by their chain identifiers. """
+    of chains is found by their chain identifiers. 
+    
+    :arg atoms: atoms to map onto the reference
+    :type atoms: :class:`Atomic`
+    
+    :arg ref: reference structure for mapping
+    :type ref: :class:`Atomic`
+    
+    :arg return_all: whether to return all mappings.
+        If False, only mappings for the first chain will be returned. 
+        Default is True
+    :arg return_all: bool
+    """
+    mappings = []
     hv = atoms.getHierView()
     for chain in ref.getHierView().iterChains():
         for target_chain in hv.iterChains():
             if target_chain.getChid() == chain.getChid():
-                mappings = mapOntoChainByAlignment(target_chain, chain, **kwargs)
-                return mappings
-    return []
+                mappings.append(mapOntoChainByAlignment(target_chain, chain, **kwargs)[0])
+
+    if len(mappings) == 1:
+        mappings = mappings[0]
+        
+    return mappings
 
 def mapOntoChainByAlignment(atoms, chain, **kwargs):
     """This function is similar to :func:`.mapOntoChain` but correspondence 

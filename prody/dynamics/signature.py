@@ -9,8 +9,10 @@ import numpy as np
 
 from prody import LOGGER, SETTINGS
 from prody.utilities import showFigure, showMatrix, copy, checkWeights, openFile
-from prody.utilities import getValue, importLA, wmean
+from prody.utilities import getValue, importLA, wmean, div0
 from prody.ensemble import Ensemble, Conformation
+from prody.atomic import AtomGroup
+from prody.atomic.fields import DTYPE
 
 from .nma import NMA
 from .modeset import ModeSet
@@ -19,7 +21,7 @@ from .functions import calcENM
 from .compare import calcSpectralOverlap, matchModes, calcOverlap
 
 from .analysis import calcSqFlucts, calcCrossCorr, calcFractVariance, calcCollectivity
-from .plotting import showAtomicLines, showAtomicMatrix
+from .plotting import showAtomicLines, showAtomicMatrix, showDomainBar
 from .anm import ANM
 from .gnm import GNM
 
@@ -29,7 +31,8 @@ __all__ = ['ModeEnsemble', 'sdarray', 'calcEnsembleENMs', 'showSignature1D', 'sh
            'calcSignatureCollectivity', 'calcSignatureFractVariance',
            'calcSignatureCrossCorr', 'showSignatureCrossCorr', 'showVarianceBar',
            'showSignatureVariances', 'calcSignatureOverlaps', 'showSignatureOverlaps',
-           'saveModeEnsemble', 'loadModeEnsemble', 'saveSignature', 'loadSignature']
+           'saveModeEnsemble', 'loadModeEnsemble', 'saveSignature', 'loadSignature',
+           'calcSubfamilySpectralOverlaps','showSubfamilySpectralOverlaps']
 
 class ModeEnsemble(object):
     """
@@ -826,12 +829,13 @@ class sdarray(ndarray):
         a = np.asarray(self)
         return np.transpose(a, axes=axes)
 
+
 def calcEnsembleENMs(ensemble, model='gnm', trim='reduce', n_modes=20, **kwargs):
     """Calculates normal modes for each member of *ensemble*.
     
     :arg ensemble: normal modes of whose members to be computed
     :type ensemble: :class:`.PDBEnsemble`
-
+    
     :arg model: type of ENM that will be performed. It can be either 'anm' 
                 or 'gnm'
     :type model: str
@@ -1025,12 +1029,12 @@ def calcSignatureSqFlucts(mode_ensemble, **kwargs):
         sqfs = calcSqFlucts(modes)
 
         if ifnorm:
-            sqfs /= norm(sqfs)
+            sqfs = div0(sqfs, norm(sqfs))
         elif ifscale:
             if i == 0:
                 norm0 = norm(sqfs)
             else:
-                sqfs /= norm(sqfs) * norm0
+                sqfs = div0(sqfs, norm(sqfs) * norm0)
         V.append(sqfs)
     V = np.vstack(V)
 
@@ -1495,7 +1499,7 @@ def showVarianceBar(mode_ensemble, highlights=None, **kwargs):
     :func:`~numpy.histogram`. 
     
     :arg mode_ensemble: an ensemble of modes whose variances are displayed
-    :type mode_ensemble: :class: `ModeEnsemble`
+    :type mode_ensemble: :class:`.ModeEnsemble`
 
     :arg highlights: labels of conformations whose locations on the bar 
                      will be highlighted by arrows and texts
@@ -1663,6 +1667,10 @@ def loadModeEnsemble(filename, **kwargs):
 
     if not 'encoding' in kwargs:
         kwargs['encoding'] = 'latin1'
+
+    if not 'allow_pickle' in kwargs:
+        kwargs['allow_pickle'] = True
+
     data = np.load(filename, **kwargs)
     
     weights = getValue(data, '_weights', None)
@@ -1697,6 +1705,20 @@ def loadModeEnsemble(filename, **kwargs):
     modeens._matched = matched
     modeens._reweighted = reweighted
     modeens._modesets = modesets
+
+    if atoms is not None:
+        if isinstance(atoms, AtomGroup):
+            data = atoms._data
+        else:
+            data = atoms._ag._data
+            
+        for key in data:
+            arr = data[key]
+            char = arr.dtype.char
+            if char in 'SU' and char != DTYPE:
+                arr = arr.astype(str)
+                data[key] = arr
+
     modeens._atoms = atoms
 
     return modeens
@@ -1773,3 +1795,144 @@ def loadSignature(filename, **kwargs):
                       is3d=is3d, oneset=oneset)
 
     return signature
+
+def calcSubfamilySpectralOverlaps(mode_ens, subfamily_dict, **kwargs):
+    """Calculate average spectral overlaps (or distances) within and between 
+    subfamilies in a mode ensemble defined using a dictionary where each key is an 
+    ensemble member and the associate value is a subfamily name.
+
+    To use a range of modes, please index the mode ensemble e.g. 
+    mode_ens=mode_ensemble[:,3:20] to use modes 4 to 20 inclusive. 
+    Alternatively, there is the option to provide first and last 
+    keyword arguments, which would be used as the 3 and 20 above.
+
+    :arg mode_ensemble: an ensemble of modes corresponding to a set of modes 
+        for each family member
+    :type mode_ensemble: :class:`.ModeEnsemble`
+
+    :arg subfamily_dict: a dictionary providing a subfamily label for 
+        each family member
+    :type subfamily_dict: dict
+
+    :keyword first: the first index for a range of modes
+    :type first: int
+
+    :keyword last: the last index for a range of modes
+    :type last: int
+
+    :keyword remove_small: whether to remove small subfamilies with 
+        fewer than 4 members. Default is True
+    :type remove_small: bool
+
+    :keyword return_reordered_subfamilies: whether to return the reordered 
+        subfamilies in addition to the matrix. Default is False
+    type return_reordered_subfamilies: bool 
+    """
+
+    if not isinstance(mode_ens, ModeEnsemble):
+        raise TypeError('mode_ens should be a mode ensemble')
+
+    if not isinstance(subfamily_dict, dict):
+        raise TypeError('subfamily_dict should be a dictionary')
+
+    if any([label not in list(subfamily_dict.keys()) for label in mode_ens.getLabels()]):
+        raise ValueError('The are member labels in mode_ens with no associated entry in subfamily_dict')
+
+    first = kwargs.get('first', 0)
+    if first is not None:
+        if not isinstance(first,int):
+            raise TypeError('first should be an integer')
+
+    last = kwargs.get('last', -1)
+    if last is not None:
+        if not isinstance(last,int):
+            raise TypeError('last should be an integer')
+
+    try:
+        mode_ens = mode_ens[:,first:last]
+    except:
+        try:
+            mode_ens = mode_ens[:,first:]
+        except:
+            raise ValueError('first is not a valid index for indexing mode_ens')
+        
+        try:
+            mode_ens = mode_ens[:,:last]
+        except:
+            raise ValueError('last is not a valid index for indexing mode_ens')
+
+    first_mode_index = mode_ens.getIndices()[0,0]
+    last_mode_index = mode_ens.getIndices()[0,-1]
+    LOGGER.info('The mode range used for this analysis is {0} to {1}'
+                .format(first_mode_index+1,last_mode_index+1))
+
+    tree_labels = mode_ens.getLabels()
+    distance = kwargs.get('distance',True)
+    distm = calcEnsembleSpectralOverlaps(mode_ens, distance=distance)
+
+    subfamilies = np.unique(list(subfamily_dict.values()))
+    reverse_dict = dict()
+    for i in subfamilies:
+        reverse_dict[i] = []
+    for i in range(len(tree_labels)):
+        subfamily_i = subfamily_dict[tree_labels[i]]
+        if subfamily_i in subfamilies:
+            reverse_dict[subfamily_i].append(i)
+
+    remove_small = kwargs.get('remove_small',True)
+    if remove_small:
+        temp_dict = dict()
+        for key, value in reverse_dict.items():
+            if len(value) >= 4:
+                temp_dict[key] = value
+        reverse_dict = temp_dict
+
+    N_group = len(reverse_dict)
+
+    subfamilies = np.array(reverse_dict.keys())
+    subfamily_overlap_matrix = []
+    for subfamily_i in subfamilies:
+        index_i = reverse_dict[subfamily_i]
+        for temp_cath_j in subfamilies:
+            index_j = reverse_dict[temp_cath_j]
+            temp_sub_matrix = distm[np.ix_(index_i, index_j)]
+            if subfamily_i == temp_cath_j:
+                subfamily_overlap_matrix.append(temp_sub_matrix[np.triu_indices(
+                    np.shape(temp_sub_matrix)[0])].mean())
+            else:
+                subfamily_overlap_matrix.append(temp_sub_matrix.mean())
+    subfamily_overlap_matrix = np.asarray(subfamily_overlap_matrix)
+    subfamily_overlap_matrix = subfamily_overlap_matrix.reshape([N_group, N_group])
+
+    return_reordered_subfamilies = kwargs.get('return_reordered_subfamilies',False)
+    if return_reordered_subfamilies:
+        return subfamily_overlap_matrix, subfamilies
+
+    return subfamily_overlap_matrix
+
+def showSubfamilySpectralOverlaps(mode_ens, subfamily_dict, **kwargs):
+    """Calculate and show the matrix of spectral overlaps or distances averaged 
+    over subfamilies. Inputs are the same as calcSubfamilySpectralOverlaps
+    plus the following and those of showDomainBar if you wish.
+
+    :keyword show_subfamily_bar: whether to show the subfamilies as colored bars 
+        using showDomainBar. Default is False
+    :type show_subfamily_bar: bool
+    """
+    kwargs['return_reordered_subfamilies'] = True
+
+    subfamily_overlap_matrix, subfamilies = calcSubfamilySpectralOverlaps(mode_ens, subfamily_dict, **kwargs)
+    show = showMatrix(subfamily_overlap_matrix, origin='lower',
+                      xticklabels=subfamilies, yticklabels=subfamilies,
+                      vmin=0., vmax=1.6)
+
+    show_subfamily_bar = kwargs.get('show_subfamily_bar',False)
+    text = kwargs.pop('text',False)
+    if show_subfamily_bar:
+        showDomainBar(subfamilies, axis='x', text=text, **kwargs)
+        showDomainBar(subfamilies, axis='y', text=text, **kwargs)
+
+    if SETTINGS['auto_show']:
+        showFigure()
+
+    return show

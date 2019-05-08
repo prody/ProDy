@@ -3,7 +3,7 @@ import re
 
 from numpy import unique, linalg, diag, sqrt, dot, chararray, divide, zeros_like
 from numpy import diff, where, insert, nan, isnan, loadtxt, array, round, average
-from numpy import sign, arange, asarray, ndarray, subtract, power, sum
+from numpy import sign, arange, asarray, ndarray, subtract, power, sum, isscalar
 from collections import Counter
 import numbers
 
@@ -14,9 +14,9 @@ from xml.etree.ElementTree import Element
 __all__ = ['Everything', 'Cursor', 'ImageCursor', 'rangeString', 'alnum', 'importLA', 'dictElement',
            'intorfloat', 'startswith', 'showFigure', 'countBytes', 'sqrtm',
            'saxsWater', 'count', 'addEnds', 'copy', 'dictElementLoop', 
-           'getDataPath', 'openData', 'chr2', 'toChararray', 'interpY', 'cmp',
+           'getDataPath', 'openData', 'chr2', 'toChararray', 'interpY', 'cmp', 'pystr',
            'getValue', 'indentElement', 'isPDB', 'isURL', 'isListLike',
-           'getDistance', 'fastin', 'createStringIO', 'div0', 'wmean']
+           'getDistance', 'fastin', 'createStringIO', 'div0', 'wmean', 'bin2dec', 'wrapModes']
 
 CURSORS = []
 
@@ -374,7 +374,26 @@ def addEnds(x, y, axis=0):
 def copy(x):
     if x is None:
         return None
-    return x.copy()
+    elif isinstance(x, list):
+        x = list(x)
+    else:
+        try:
+            x = x.copy()
+        except AttributeError:
+            from copy import copy as shallow_copy
+            
+            x = shallow_copy(x)
+    return x
+
+def pystr(a):
+    b = a
+    if PY3K:
+        if hasattr(a, 'decode'):
+            b = a.decode() 
+    else:
+        if hasattr(a, 'encode'):
+            b = a.encode() 
+    return b
 
 def getDataPath(filename):
     import pkg_resources
@@ -517,3 +536,21 @@ def wmean(array, weights, axis=None):
         denom = sum(weights, axis=axis)
         avg = div0(numer, denom)
     return avg
+
+def bin2dec(x):
+    """Converts the binary array to decimal."""
+
+    y = 0
+    for i,j in enumerate(x):
+        if j: y += 1<<i
+    return y
+
+
+def wrapModes(modes):
+    try:
+        arr = modes.getArray()
+        modes = [arr]
+    except AttributeError:
+        if isscalar(modes[0]):
+            modes = [modes]
+    return modes
