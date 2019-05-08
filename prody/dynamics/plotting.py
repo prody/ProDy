@@ -550,9 +550,13 @@ def showMode(mode, *args, **kwargs):
     from matplotlib.pyplot import plot, title, xlim
 
     show_hinges = kwargs.pop('show_hinges', False)
-    show_zero = kwargs.pop('show_zero', True)
     show_hinges = kwargs.pop('hinges', show_hinges)
+    show_hinges = kwargs.pop('show_hinge', show_hinges)
+    show_hinges = kwargs.pop('hinge', show_hinges)
+
+    show_zero = kwargs.pop('show_zero', True)
     show_zero = kwargs.pop('zero', show_zero)
+    
     atoms = kwargs.get('atoms', None)
     final = kwargs.pop('final', True)
 
