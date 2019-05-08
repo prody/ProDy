@@ -602,6 +602,9 @@ def showSqFlucts(modes, *args, **kwargs):
 
     def _showSqFlucts(modes, *args, **kwargs):
         show_hinge = kwargs.pop('hinges', False)
+        show_hinge = kwargs.pop('hinges', show_hinge)
+        show_hinge = kwargs.pop('show_hinge', show_hinge)
+        show_hinge = kwargs.pop('hinge', show_hinge)
         norm = kwargs.pop('norm', False)
 
         sqf = calcSqFlucts(modes)
