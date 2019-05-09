@@ -993,9 +993,10 @@ void free_d3tensor(double ***t, long nrl, long nrh, long ncl, long nch,
 void dsvdcmp(double **a, int m, int n, double w[], double **v)
 {
 	double dpythag(double a, double b);
-	int flag,i,its,j,jj,k,l,nm;
-	double anorm,c,f,g,h,s,scale,x,y,z,*rv1;
-	static int maxits=100;
+	int flag, i, its, j, jj, k, l;
+  int nm = 0;
+	double anorm, c, f, g, h, s, scale, x, y, z, *rv1;
+	static int maxits = 100;
 
 	rv1=dvector(1,n);
 	g=scale=anorm=0.0;
