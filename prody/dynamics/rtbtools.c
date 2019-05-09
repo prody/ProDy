@@ -112,7 +112,7 @@ static PyObject *buildhessian(PyObject *self, PyObject *args, PyObject *kwargs) 
   hess = (double *) PyArray_DATA(hessian);
   proj = (double *) PyArray_DATA(projection);
 
-  fprintf(stderr,"initializing RTB...\n");
+  printf("cutoff = %f\n", cutoff);
 
   /* First allocate a PDB_File object to hold the coordinates and block
      indices of the atoms.  This wastes a bit of memory, but it prevents
@@ -130,37 +130,37 @@ static PyObject *buildhessian(PyObject *self, PyObject *args, PyObject *kwargs) 
 
   /* Find the projection matrix */
   hsize = 18*bmx*nblx > 12*natm ? 12*natm : 18*bmx*nblx;
-  HH.IDX=imatrix(1,hsize,1,2);
-  HH.X=dvector(1,hsize);
-  elm=dblock_projections2(&HH,&PDB,natm,nblx,bmx);
-  PP.IDX=imatrix(1,elm,1,2);
-  PP.X=dvector(1,elm);
-  for(i=1;i<=elm;i++){
-    PP.IDX[i][1]=HH.IDX[i][1];
-    PP.IDX[i][2]=HH.IDX[i][2];
-    PP.X[i]=HH.X[i];
+  HH.IDX = imatrix(1,hsize,1,2);
+  HH.X = dvector(1,hsize);
+  elm = dblock_projections2(&HH,&PDB,natm,nblx,bmx);
+  PP.IDX = imatrix(1,elm,1,2);
+  PP.X = dvector(1,elm);
+  for (i=1; i<=elm; i++){
+    PP.IDX[i][1] = HH.IDX[i][1];
+    PP.IDX[i][2] = HH.IDX[i][2];
+    PP.X[i] = HH.X[i];
   }
-  free_imatrix(HH.IDX,1,hsize,1,2);
-  free_dvector(HH.X,1,hsize);
-  dsort_PP2(&PP,elm,1);
+  free_imatrix(HH.IDX, 1, hsize, 1, 2);
+  free_dvector(HH.X, 1, hsize);
+  dsort_PP2(&PP, elm, 1);
 
 
   /* Calculate the block Hessian */
-  HB=dmatrix(1,6*nblx,1,6*nblx);
-  bdim=calc_blessian_mem(&PDB,&PP,natm,nblx,elm,HB,cutoff,gamma,scl,mlo,mhi);
+  HB=dmatrix(1, 6*nblx, 1, 6*nblx);
+  bdim=calc_blessian_mem(&PDB, &PP, natm, nblx, elm, HB, cutoff, gamma, scl, mlo, mhi);
 
 
   /* Cast the block Hessian and projection matrix into 1D arrays. */
-  copy_prj_ofst(&PP,proj,elm,bdim);
-  for(i=1;i<=bdim;i++)
-    for(j=1;j<=bdim;j++)
-      hess[bdim*(i-1)+j-1]=HB[i][j];
+  copy_prj_ofst(&PP, proj, elm, bdim);
+  for(i=1; i<=bdim; i++)
+    for(j=1; j<=bdim; j++)
+      hess[bdim*(i-1)+j-1] = HB[i][j];
 
 
   free(PDB.atom);
-  free_imatrix(PP.IDX,1,elm,1,2);
-  free_dvector(PP.X,1,elm);
-  free_dmatrix(HB,1,6*nblx,1,6*nblx);
+  free_imatrix(PP.IDX, 1, elm, 1, 2);
+  free_dvector(PP.X, 1, elm);
+  free_dmatrix(HB, 1, 6*nblx, 1, 6*nblx);
 
 
   Py_RETURN_NONE;
@@ -169,7 +169,7 @@ static PyObject *buildhessian(PyObject *self, PyObject *args, PyObject *kwargs) 
 
 static PyMethodDef rtbtools_methods[] = {
 
-    {"buildhessian",  (PyCFunction)buildhessian,
+    {"buildhessian", (PyCFunction)buildhessian,
      METH_VARARGS | METH_KEYWORDS,
      "Build Hessian matrix and projections."},
 
@@ -207,11 +207,11 @@ PyMODINIT_FUNC initrtbtools(void) {
    from  the tensor HT into the array HB */
 int bless_from_tensor(double **HB,double ***HT,int **CT,int nblx)
 {
-  int *I1,*I2,i,j,p,sb,ii,jj,max,a,b,imx;
+  int *I1, *I2, i, j, p, sb, ii, jj, max, a, b, imx;
 
   max=6*nblx;
-  I1=ivector(1,max);
-  I2=ivector(1,max);
+  I1=ivector(1, max);
+  I2=ivector(1, max);
 
   /* I1[i]==i iff there is a non-zero element in column i
      (removes zeroes that are caused by single-node blocks) */
@@ -257,54 +257,54 @@ int bless_from_tensor(double **HB,double ***HT,int **CT,int nblx)
       }
     }
   }
-  free_ivector(I1,1,max);
-  free_ivector(I2,1,max);
+  free_ivector(I1, 1, max);
+  free_ivector(I2, 1, max);
   return imx;
 }
 
 
 /* "calc_blessian_mem" calculates the block Hessian. */
-int calc_blessian_mem(PDB_File *PDB,dSparse_Matrix *PP1,int nres,int nblx,
-		      int elm,double **HB,double cut,double gam,double scl,
-		      double mlo,double mhi)
+int calc_blessian_mem(PDB_File *PDB, dSparse_Matrix *PP1, int nres, int nblx, 
+		      int elm, double **HB, double cut, double gam, double scl, 
+		      double mlo, double mhi)
 {
   dSparse_Matrix *PP2;
-  double **HR,***HT;
-  int **CT,*BST1,*BST2;
-  int ii,i,j,k,p,q,q1,q2,ti,tj,bi,bj,sb,nc,out;
+  double **HR, ***HT;
+  int **CT, *BST1, *BST2;
+  int ii, i, j, k, p, q, q1, q2, ti, tj, bi, bj, sb, nc, out;
 
 
   /* ------------------- INITIALIZE LOCAL VARIABLES ------------------- */
 
   /* HR holde three rows (corresponding to 1 residue) of the full Hessian */
-  HR=zero_dmatrix(1,3*nres,1,3);
+  HR=zero_dmatrix(1, 3*nres, 1, 3);
 
   /* CT is an array of contacts between blocks */
-  CT=unit_imatrix(0,nblx);
+  CT=unit_imatrix(0, nblx);
 
   /* Copy PP1 to PP2 and sort by second element */
   PP2=(dSparse_Matrix *)malloc((size_t)sizeof(dSparse_Matrix));
-  PP2->IDX=imatrix(1,elm,1,2);
-  PP2->X=dvector(1,elm);
-  copy_dsparse(PP1,PP2,1,elm);
-  dsort_PP2(PP2,elm,2);
+  PP2->IDX=imatrix(1, elm, 1, 2);
+  PP2->X=dvector(1, elm);
+  copy_dsparse(PP1, PP2, 1, elm);
+  dsort_PP2(PP2, elm, 2);
 
   /* BST1: for all j: BST1[i]<=j<BST[i+1], PP1->IDX[j][1]=i */
   /* BST2: for all j: BST2[i]<=j<BST2[i+1], PP2->IDX[j][2]=i */
-  BST1=ivector(1,3*nres+1);
-  BST2=ivector(1,6*nblx+1);
-  init_bst(BST1,PP1,elm,3*nres+1,1);
-  init_bst(BST2,PP2,elm,6*nblx+1,2);
+  BST1=ivector(1, 3*nres+1);
+  BST2=ivector(1, 6*nblx+1);
+  init_bst(BST1, PP1, elm, 3*nres+1, 1);
+  init_bst(BST2, PP2, elm, 6*nblx+1, 2);
   /* ------------------- LOCAL VARIABLES INITIALIZED ------------------ */
 
 
 
   /* ------------- FIND WHICH BLOCKS ARE IN CONTACT --------------- */
-  nc=find_contacts1(CT,PDB,nres,nblx,cut);
+  nc=find_contacts1(CT, PDB, nres, nblx, cut);
 
 
   /* Allocate a tensor for the block Hessian */
-  HT=zero_d3tensor(1,nc,1,6,1,6);
+  HT=zero_d3tensor(1, nc, 1, 6, 1, 6);
 
 
   /* Calculate each super-row of the full Hessian */
@@ -313,7 +313,7 @@ int calc_blessian_mem(PDB_File *PDB,dSparse_Matrix *PP1,int nres,int nblx,
     if(PDB->atom[ii].model!=0){
 
       /* ----------------- FIND SUPER-ROW OF FULL HESSIAN --------------- */
-      hess_superrow_mem(HR,CT,PDB,nres,ii,cut,gam,scl,mlo,mhi);
+      hess_superrow_mem(HR, CT, PDB, nres, ii, cut, gam, scl, mlo, mhi);
 
 
       /* Update elements of block hessian */
@@ -344,16 +344,16 @@ int calc_blessian_mem(PDB_File *PDB,dSparse_Matrix *PP1,int nres,int nblx,
 
 
   /* Print the block Hessian in sparse format */
-  out=bless_from_tensor(HB,HT,CT,nblx);
+  out=bless_from_tensor(HB, HT, CT, nblx);
 
   /* Free up memory */
-  free_dmatrix(HR,1,3*nres,1,3);
-  free_d3tensor(HT,1,nc,1,6,1,6);
-  free_imatrix(CT,0,nblx,0,nblx);
-  free_ivector(BST1,1,3*nres+1);
-  free_ivector(BST2,1,6*nblx+1);
-  free_imatrix(PP2->IDX,1,elm,1,2);
-  free_dvector(PP2->X,1,elm);
+  free_dmatrix(HR, 1, 3*nres, 1, 3);
+  free_d3tensor(HT, 1, nc, 1, 6, 1, 6);
+  free_imatrix(CT, 0, nblx, 0, nblx);
+  free_ivector(BST1, 1, 3*nres+1);
+  free_ivector(BST2, 1, 6*nblx+1);
+  free_imatrix(PP2->IDX, 1, elm, 1, 2);
+  free_dvector(PP2->X, 1, elm);
   return out;
 }
 
@@ -364,15 +364,15 @@ int calc_blessian_mem(PDB_File *PDB,dSparse_Matrix *PP1,int nres,int nblx,
    six degrees of freedom. 
    PP[i].X = proj[6*nblx*(PP[i].IDX[1]-1)+PP[i].IDX[2]-1
 */
-void copy_prj_ofst(dSparse_Matrix *PP,double *proj,int elm,int bdim)
+void copy_prj_ofst(dSparse_Matrix *PP, double *proj, int elm, int bdim)
 {
-  int *I1,*I2,max=0,i,j=0;
+  int *I1, *I2, max=0, i, j=0;
 
   for(i=1;i<=elm;i++)
     if(PP->IDX[i][2]>max)
       max=PP->IDX[i][2];
-  I1=ivector(1,max);
-  I2=ivector(1,max);
+  I1=ivector(1, max);
+  I2=ivector(1, max);
   for(i=1;i<=max;i++) I1[i]=0;
   for(i=1;i<=elm;i++)
     I1[PP->IDX[i][2]]=PP->IDX[i][2];
@@ -383,14 +383,14 @@ void copy_prj_ofst(dSparse_Matrix *PP,double *proj,int elm,int bdim)
   for(i=1;i<=elm;i++)
     if(PP->X[i]!=0.0)
       proj[bdim*(PP->IDX[i][1]-1) + I2[PP->IDX[i][2]] - 1] = PP->X[i];
-  free_ivector(I1,1,max);
-  free_ivector(I2,1,max);
+  free_ivector(I1, 1, max);
+  free_ivector(I2, 1, max);
 }
 
 
 /* "copy_dsparse" COPIES ELEMENTS lo THROUGH hi
    OF SPARSE MATRIX 'A' TO SPARSE MATRIX 'B' */
-void copy_dsparse(dSparse_Matrix *A,dSparse_Matrix *B,int lo,int hi)
+void copy_dsparse(dSparse_Matrix *A, dSparse_Matrix *B, int lo, int hi)
 {
   int i;
 
@@ -413,24 +413,24 @@ void cross(double x[], double y[], double z[])
 
 /* "dblock_projections2" CALCULATES THE PROJECTION
    FROM FULL RESIDUE SPACE TO RIGID BLOCK SPACE */
-int dblock_projections2(dSparse_Matrix *PP,PDB_File *PDB,
-			int nres,int nblx,int bmx)
+int dblock_projections2(dSparse_Matrix *PP, PDB_File *PDB, 
+			int nres, int nblx, int bmx)
 {
-  double **X,**I,**IC,*CM,*W,**A,**ISQT;
-  double x,tr,dd,df;
-  int *IDX,nbp,b,i,j,k,ii,jj,aa,bb,elm;
+  double **X, **I, **IC, *CM, *W, **A, **ISQT;
+  double x, tr, dd, df;
+  int *IDX, nbp, b, i, j, k, ii, jj, aa, bb, elm;
 
 
   /* INITIALIZE BLOCK ARRAYS */
   elm=0;
-  X=dmatrix(1,bmx,1,3);
-  IDX=ivector(1,bmx);
-  CM=dvector(1,3);
-  I=dmatrix(1,3,1,3);
-  IC=dmatrix(1,3,1,3);
-  W=dvector(1,3);
-  A=dmatrix(1,3,1,3);
-  ISQT=dmatrix(1,3,1,3);
+  X=dmatrix(1, bmx, 1, 3);
+  IDX=ivector(1, bmx);
+  CM=dvector(1, 3);
+  I=dmatrix(1, 3, 1, 3);
+  IC=dmatrix(1, 3, 1, 3);
+  W=dvector(1, 3);
+  A=dmatrix(1, 3, 1, 3);
+  ISQT=dmatrix(1, 3, 1, 3);
 
   /* CYCLE THROUGH BLOCKS */
   for(b=1;b<=nblx;b++){
@@ -481,9 +481,9 @@ int dblock_projections2(dSparse_Matrix *PP,PDB_File *PDB,
     for(i=1;i<=3;i++)
       for(j=1;j<=3;j++)
 	IC[i][j]=I[i][j];
-    dsvdcmp(IC,3,3,W,A);
-    deigsrt(W,A,3);
-    righthand2(W,A,3);
+    dsvdcmp(IC, 3, 3, W, A);
+    deigsrt(W, A, 3);
+    righthand2(W, A, 3);
 
     /* FIND ITS SQUARE ROOT */
     for(i=1;i<=3;i++)
@@ -524,14 +524,14 @@ int dblock_projections2(dSparse_Matrix *PP,PDB_File *PDB,
       }
     }
   }
-  free_dmatrix(X,1,bmx,1,3);
-  free_ivector(IDX,1,bmx);
-  free_dvector(CM,1,3);
-  free_dmatrix(I,1,3,1,3);
-  free_dmatrix(IC,1,3,1,3);
-  free_dvector(W,1,3);
-  free_dmatrix(A,1,3,1,3);
-  free_dmatrix(ISQT,1,3,1,3);
+  free_dmatrix(X, 1, bmx, 1, 3);
+  free_ivector(IDX, 1, bmx);
+  free_dvector(CM, 1, 3);
+  free_dmatrix(I, 1, 3, 1, 3);
+  free_dmatrix(IC, 1, 3, 1, 3);
+  free_dvector(W, 1, 3);
+  free_dmatrix(A, 1, 3, 1, 3);
+  free_dmatrix(ISQT, 1, 3, 1, 3);
 
   return elm;
 }
@@ -539,11 +539,11 @@ int dblock_projections2(dSparse_Matrix *PP,PDB_File *PDB,
 
 /* "dsort_PP2" SORTS THE PROJECTION MATRIX IN ASCENDING ORDER OF THE
    INDEX 'idx'.  ADAPTED FROM THE NUMERICAL RECIPES 'HEAPSORT' ROUTINE. */
-void dsort_PP2(dSparse_Matrix *MM,int n,int idx)
+void dsort_PP2(dSparse_Matrix *MM, int n, int idx)
 {
   double x;
-  int i,ir,j,l,hi,i1,i2,ndx;
-  unsigned long rra,*ra;
+  int i, ir, j, l, hi, i1, i2, ndx;
+  unsigned long rra, *ra;
 
   if(n<2) return;
   ndx = idx==1 ? 2 : 1;
@@ -553,7 +553,7 @@ void dsort_PP2(dSparse_Matrix *MM,int n,int idx)
   for(i=1;i<=n;i++)
     if(MM->IDX[i][ndx]>hi)
       hi=MM->IDX[i][ndx];
-  ra=lvector(1,n);
+  ra=lvector(1, n);
   for(i=1;i<=n;i++)
     ra[i]=(long)hi*(MM->IDX[i][idx]-1)+MM->IDX[i][ndx];
 
@@ -603,7 +603,7 @@ void dsort_PP2(dSparse_Matrix *MM,int n,int idx)
     MM->IDX[i][ndx]=i2;
     MM->X[i]=x;
   }
-  free_lvector(ra,1,n);
+  free_lvector(ra, 1, n);
 }
 
 
@@ -611,34 +611,35 @@ void dsort_PP2(dSparse_Matrix *MM,int n,int idx)
 /* "find_contacts1" FINDS WHICH BLOCKS ARE IN CONTACT, AND ASSIGNS EACH
    PAIR OF CONTACTING BLOCKS A UNIQUE INDEX.  IT RETURNS THE TOTAL NUMBER
    OF CONTACTS BETWEEN BLOCKS. */
-int find_contacts1(int **CT,PDB_File *PDB,int nres,int nblx,double cut)
+int find_contacts1(int **CT, PDB_File *PDB, int nres, int nblx, double cut)
 {
-  int nc,i,j,k,ii,jj;
-  double csq=cut*cut,df,dd;
+  int nc, i, j, k, ii, jj;
+  double csq = cut*cut, df, dd;
 
-  for(i=1;i<=nres;i++){
-    ii=PDB->atom[i].model;
-    for(j=i+1;j<=nres;j++){
-      jj=PDB->atom[j].model;
+  for (i=1; i<=nres; i++){
+    ii = PDB->atom[i].model;
+    for (j=i+1; j<=nres; j++){
+      jj = PDB->atom[j].model;
 
-      if(ii!=jj && ii!=0 && jj!=0 && CT[ii][jj]==0){
-	dd=0.0;
-	for(k=0;k<3;k++){
-	  df=(double)PDB->atom[i].X[k]-PDB->atom[j].X[k];
-	  dd+=df*df;
-	}
-	if(dd<csq)
-	  CT[ii][jj]=CT[jj][ii]=1;
+      if (ii!=jj && ii!=0 && jj!=0 && CT[ii][jj]==0){
+	      dd=0.0;
+        for (k=0; k<3; k++){
+          df = (double)PDB->atom[i].X[k]-PDB->atom[j].X[k];
+          dd += df*df;
+        }
+        if (dd < csq)
+          CT[ii][jj] = CT[jj][ii] = 1;
       }
 
     }
   }
-  nc=0;
-  for(i=1;i<=nblx;i++)
-    for(j=i;j<=nblx;j++)
-      if(CT[i][j]!=0){
-	nc++;
-	CT[i][j]=CT[j][i]=nc;
+
+  nc = 0;
+  for (i=1; i<=nblx; i++)
+    for (j=i; j<=nblx; j++)
+      if (CT[i][j] != 0){
+        nc++;
+        CT[i][j] = CT[j][i] = nc;
       }
   return nc;
 }
