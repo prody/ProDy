@@ -550,9 +550,13 @@ def showMode(mode, *args, **kwargs):
     from matplotlib.pyplot import plot, title, xlim
 
     show_hinges = kwargs.pop('show_hinges', False)
-    show_zero = kwargs.pop('show_zero', True)
     show_hinges = kwargs.pop('hinges', show_hinges)
+    show_hinges = kwargs.pop('show_hinge', show_hinges)
+    show_hinges = kwargs.pop('hinge', show_hinges)
+
+    show_zero = kwargs.pop('show_zero', True)
     show_zero = kwargs.pop('zero', show_zero)
+    
     atoms = kwargs.get('atoms', None)
     final = kwargs.pop('final', True)
 
@@ -598,6 +602,9 @@ def showSqFlucts(modes, *args, **kwargs):
 
     def _showSqFlucts(modes, *args, **kwargs):
         show_hinge = kwargs.pop('hinges', False)
+        show_hinge = kwargs.pop('hinges', show_hinge)
+        show_hinge = kwargs.pop('show_hinge', show_hinge)
+        show_hinge = kwargs.pop('hinge', show_hinge)
         norm = kwargs.pop('norm', False)
 
         sqf = calcSqFlucts(modes)
@@ -765,6 +772,7 @@ def showOverlap(mode, modes, *args, **kwargs):
     """
 
     import matplotlib.pyplot as plt
+    from matplotlib.ticker import MaxNLocator
 
     if SETTINGS['auto_show']:
         plt.figure()
@@ -777,13 +785,16 @@ def showOverlap(mode, modes, *args, **kwargs):
                         .format(type(modes)))
     overlap = abs(calcOverlap(mode, modes))
     if isinstance(modes, NMA):
-        arange = np.arange(0.5, len(modes)+0.5)
+        arange = np.arange(len(modes)) + 1
     else:
-        arange = modes.getIndices() + 0.5
+        arange = modes.getIndices() + 1
     show = plt.bar(arange, overlap, *args, **kwargs)
     plt.title('Overlap with {0}'.format(str(mode)))
     plt.xlabel('{0} mode index'.format(modes))
     plt.ylabel('Overlap')
+    ax = plt.gca()
+    loc = MaxNLocator(integer=True)
+    ax.xaxis.set_major_locator(loc)
     if SETTINGS['auto_show']:
         showFigure()
     return show
@@ -798,6 +809,8 @@ def showCumulOverlap(mode, modes, *args, **kwargs):
     """
 
     import matplotlib.pyplot as plt
+    from matplotlib.ticker import MaxNLocator
+    
     if not isinstance(mode, (Mode, Vector)):
         raise TypeError('mode must be NMA, ModeSet, Mode or Vector, not {0}'
                         .format(type(mode)))
@@ -816,7 +829,9 @@ def showCumulOverlap(mode, modes, *args, **kwargs):
     plt.title('Cumulative overlap with {0}'.format(str(mode)))
     plt.xlabel('{0} mode index'.format(modes))
     plt.ylabel('Cumulative overlap')
-    plt.axis((arange[0]-0.5, arange[-1]+0.5, 0, 1))
+    ax = plt.gca()
+    loc = MaxNLocator(integer=True)
+    ax.xaxis.set_major_locator(loc)
     if SETTINGS['auto_show']:
         showFigure()
     return show

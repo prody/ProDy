@@ -1691,6 +1691,9 @@ def loadModeEnsemble(filename, **kwargs):
         modesets.remove(None)
 
     if labels is not None:
+        char = labels.dtype.char
+        if char in 'SU' and char != DTYPE:
+            labels = labels.astype(str)
         labels = labels.tolist()
 
     if isinstance(matched, np.ndarray):
