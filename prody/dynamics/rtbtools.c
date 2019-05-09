@@ -438,108 +438,124 @@ int dblock_projections2(dSparse_Matrix *PP, PDB_File *PDB,
 
 
   /* INITIALIZE BLOCK ARRAYS */
-  elm=0;
-  X=dmatrix(1, bmx, 1, 3);
-  IDX=ivector(1, bmx);
-  CM=dvector(1, 3);
-  I=dmatrix(1, 3, 1, 3);
-  IC=dmatrix(1, 3, 1, 3);
-  W=dvector(1, 3);
-  A=dmatrix(1, 3, 1, 3);
-  ISQT=dmatrix(1, 3, 1, 3);
+  elm = 0;
+  X = dmatrix(1, bmx, 1, 3);
+  IDX = ivector(1, bmx);
+  CM = dvector(1, 3);
+  I = dmatrix(1, 3, 1, 3);
+  IC = dmatrix(1, 3, 1, 3);
+  W = dvector(1, 3);
+  A = dmatrix(1, 3, 1, 3);
+  ISQT = dmatrix(1, 3, 1, 3);
 
   /* CYCLE THROUGH BLOCKS */
-  for(b=1;b<=nblx;b++){
-
+  for(b=1; b<=nblx; b++)
+  {
     /* CLEAR MATRICES */
-    for(j=1;j<=3;j++){
-      CM[j]=0.0;
-      for(i=1;i<=3;i++) I[i][j]=0.0;
-      for(i=1;i<=bmx;i++) X[i][j]=0.0;
+    for(j=1; j<=3; j++)
+    {
+      CM[j] = 0.0;
+      for(i=1; i<=3; i++) I[i][j] = 0.0;
+      for(i=1; i<=bmx; i++) X[i][j] = 0.0;
     }
 
     /* STORE VALUES FOR CURRENT BLOCK */
-    nbp=0;
-    for(i=1;i<=nres;i++){
-      if(PDB->atom[i].model==b){
-	IDX[++nbp]=i;
-	for(j=1;j<=3;j++){
-	  x=(double)PDB->atom[i].X[j-1];
-	  X[nbp][j]=x;
-	  CM[j]+=x;
-	}
+    nbp = 0;
+    for (i=1; i<=nres; i++)
+    {
+      if (PDB->atom[i].model==b)
+      {
+	      IDX[++nbp] = i;
+	      for (j=1; j<=3; j++){
+	        x = (double)PDB->atom[i].X[j-1];
+	        X[nbp][j] = x;
+	        CM[j] += x;
+      	}
       }
     }
 
     /* TRANSLATE BLOCK CENTER OF MASS TO ORIGIN */
-    for(j=1;j<=3;j++) CM[j]/=(double)nbp;
-    for(i=1;i<=nbp;i++)
-      for(j=1;j<=3;j++)
-	X[i][j]-=CM[j];
+    for (j=1; j<=3; j++) CM[j] /= (double)nbp;
+    for (i=1; i<=nbp; i++)
+      for (j=1; j<=3; j++)
+	      X[i][j] -= CM[j];
 
     /* CALCULATE INERTIA TENSOR */
-    for(k=1;k<=nbp;k++){
-      dd=0.0;
-      for(j=1;j<=3;j++){
-	df=X[k][j];
-	dd+=df*df;
+    for(k=1; k<=nbp; k++)
+    {
+      dd = 0.0;
+      for(j=1; j<=3; j++)
+      {
+        df = X[k][j];
+        dd += df*df;
       }
-      for(i=1;i<=3;i++){
-	I[i][i]+=(dd-X[k][i]*X[k][i]);
-	for(j=i+1;j<=3;j++){
-	  I[i][j]-=X[k][i]*X[k][j];
-	  I[j][i]=I[i][j];
-	}
+      for(i=1; i<=3; i++)
+      {
+        I[i][i] += (dd - X[k][i] * X[k][i]);
+        for(j=i+1; j<=3; j++)
+        {
+          I[i][j] -= X[k][i]*X[k][j];
+          I[j][i] = I[i][j];
+	      }
       }
     }
 
     /* DIAGONALIZE INERTIA TENSOR */
-    for(i=1;i<=3;i++)
-      for(j=1;j<=3;j++)
-	IC[i][j]=I[i][j];
+    for (i=1; i<=3; i++)
+      for (j=1; j<=3; j++)
+	      IC[i][j]=I[i][j];
     dsvdcmp(IC, 3, 3, W, A);
     deigsrt(W, A, 3);
     righthand2(W, A, 3);
 
     /* FIND ITS SQUARE ROOT */
-    for(i=1;i<=3;i++)
-      for(j=1;j<=3;j++){
-	dd=0.0;
-	for(k=1;k<=3;k++)
-	  dd+=A[i][k]*A[j][k]/sqrt(W[k]);
-	ISQT[i][j]=dd;
+    for (i=1; i<=3; i++)
+      for (j=1;j<=3; j++)
+      {
+	      dd = 0.0;
+        for(k=1; k<=3; k++)
+          dd += A[i][k]*A[j][k]/sqrt(W[k]);
+        ISQT[i][j] = dd;
       }
 
     /* UPDATE PP WITH THE RIGID MOTIONS OF THE BLOCK */
-    tr=1.0/sqrt((double)nbp);
-    for(i=1;i<=nbp;i++){
+    tr = 1.0 / sqrt((double)nbp);
+    printf("tr = %f\n", tr);
+    printf("nbp = %d\n", nbp);
+    
+    for (i=1; i<=nbp; i++)
+    {
 
       /* TRANSLATIONS: 3*(IDX[i]-1)+1 = x-COORDINATE OF RESIDUE IDX[i];
-	 6*(b-1)+1 = x-COORDINATE OF BLOCK b */
-      for(j=1;j<=3;j++){
-	elm++;
-	PP->IDX[elm][1] = 3*(IDX[i]-1)+j;
-	PP->IDX[elm][2] = 6*(b-1)+j;
-	PP->X[elm] = tr;
+	      6*(b-1)+1 = x-COORDINATE OF BLOCK b */
+      for(j=1; j<=3; j++){
+        elm++;
+        PP->IDX[elm][1] = 3*(IDX[i]-1)+j;
+        PP->IDX[elm][2] = 6*(b-1)+j;
+        PP->X[elm] = tr;
       }
 
       /* ROTATIONS */
-      if(nbp>1){
-	for(ii=1;ii<=3;ii++){
-	  for(jj=1;jj<=3;jj++){
-	    if(jj==1) {aa=2; bb=3;}
-	    else if(jj==2) {aa=3; bb=1;}
-	    else {aa=1; bb=2;}
-	    dd=ISQT[ii][aa]*X[i][bb]-ISQT[ii][bb]*X[i][aa];
-	    elm++;
-	    PP->IDX[elm][1] = 3*(IDX[i]-1)+jj;
-	    PP->IDX[elm][2] = 6*(b-1)+3+ii;
-	    PP->X[elm] = dd;
-	  }
-	}
+      if (nbp > 1)
+      {
+        for (ii=1; ii<=3; ii++)
+        {
+          for (jj=1; jj<=3; jj++)
+          {
+            if (jj==1) {aa=2; bb=3;}
+            else if (jj==2) {aa=3; bb=1;}
+            else {aa=1; bb=2;}
+            dd = ISQT[ii][aa]*X[i][bb]-ISQT[ii][bb]*X[i][aa];
+            elm++;
+            PP->IDX[elm][1] = 3*(IDX[i]-1)+jj;
+            PP->IDX[elm][2] = 6*(b-1)+3+ii;
+            PP->X[elm] = dd;
+	        }
+        }
       }
     }
   }
+
   free_dmatrix(X, 1, bmx, 1, 3);
   free_ivector(IDX, 1, bmx);
   free_dvector(CM, 1, 3);
