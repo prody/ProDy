@@ -77,7 +77,8 @@ void deigsrt(double d[], double **v, int n);
 double dpythag(double a, double b);
 void dsvdcmp(double **a, int m, int n, double w[], double **v);
 
-
+/* ---------- Functions for debugging ---------------- */
+double sum(double *a, int n);
 
 
 /* "buildhessian" constructs a block Hessian and associated projection matrix 
@@ -118,23 +119,23 @@ static PyObject *buildhessian(PyObject *self, PyObject *args, PyObject *kwargs) 
      indices of the atoms.  This wastes a bit of memory, but it prevents
      the need to re-write all of the RTB functions that are used in
      standalone C code. */
-  PDB.atom=malloc((size_t)((natm+2)*sizeof(Atom_Line)));
-  if(!PDB.atom) return PyErr_NoMemory();
-  for(i=1;i<=natm;i++){
-    PDB.atom[i].model=BLK[i-1];
-    for(j=0;j<3;j++)
-      PDB.atom[i].X[j]=XYZ[j*natm+i-1];
+  PDB.atom = malloc((size_t)((natm+2)*sizeof(Atom_Line)));
+  if (!PDB.atom) return PyErr_NoMemory();
+  for (i=1; i<=natm; i++){
+    PDB.atom[i].model = BLK[i-1];
+    for(j=0; j<3; j++)
+      PDB.atom[i].X[j] = XYZ[j*natm+i-1];
   }
 
 
 
   /* Find the projection matrix */
   hsize = 18*bmx*nblx > 12*natm ? 12*natm : 18*bmx*nblx;
-  HH.IDX = imatrix(1,hsize,1,2);
-  HH.X = dvector(1,hsize);
-  elm = dblock_projections2(&HH,&PDB,natm,nblx,bmx);
-  PP.IDX = imatrix(1,elm,1,2);
-  PP.X = dvector(1,elm);
+  HH.IDX = imatrix(1, hsize, 1, 2);
+  HH.X = dvector(1, hsize);
+  elm = dblock_projections2(&HH, &PDB, natm, nblx, bmx);
+  PP.IDX = imatrix(1, elm, 1, 2);
+  PP.X = dvector(1, elm);
   for (i=1; i<=elm; i++){
     PP.IDX[i][1] = HH.IDX[i][1];
     PP.IDX[i][2] = HH.IDX[i][2];
@@ -146,16 +147,19 @@ static PyObject *buildhessian(PyObject *self, PyObject *args, PyObject *kwargs) 
 
 
   /* Calculate the block Hessian */
-  HB=dmatrix(1, 6*nblx, 1, 6*nblx);
-  bdim=calc_blessian_mem(&PDB, &PP, natm, nblx, elm, HB, cutoff, gamma, scl, mlo, mhi);
+  HB = dmatrix(1, 6*nblx, 1, 6*nblx);
+  bdim = calc_blessian_mem(&PDB, &PP, natm, nblx, elm, HB, cutoff, gamma, scl, mlo, mhi);
 
 
   /* Cast the block Hessian and projection matrix into 1D arrays. */
   copy_prj_ofst(&PP, proj, elm, bdim);
-  for(i=1; i<=bdim; i++)
-    for(j=1; j<=bdim; j++)
+  for (i=1; i<=bdim; i++)
+    for (j=1; j<=bdim; j++)
       hess[bdim*(i-1)+j-1] = HB[i][j];
 
+  double s;
+  s = sum(hess, bdim*bdim);
+  printf("hess = %f\n", s);
 
   free(PDB.atom);
   free_imatrix(PP.IDX, 1, elm, 1, 2);
@@ -382,7 +386,7 @@ void copy_prj_ofst(dSparse_Matrix *PP, double *proj, int elm, int bdim)
   }
   for(i=1;i<=elm;i++)
     if(PP->X[i]!=0.0)
-      proj[bdim*(PP->IDX[i][1]-1) + I2[PP->IDX[i][2]] - 1] = PP->X[i];
+      proj[bdim*(PP->IDX[i][1]-1) + I2[PP->IDX[i][2]]-1] = PP->X[i];
   free_ivector(I1, 1, max);
   free_ivector(I2, 1, max);
 }
@@ -1195,7 +1199,15 @@ void deigsrt(double d[], double **v, int n)
 	}
 }
 
+double sum(double *a, int n)
+{
+  int i;
+  double s;
+  for (i=0; i<n; i++)
+    s += a[i];
 
+  return s;
+}
 
 
 
