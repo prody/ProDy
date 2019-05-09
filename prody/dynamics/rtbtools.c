@@ -1202,7 +1202,7 @@ void deigsrt(double d[], double **v, int n)
 double sum(double *a, int n)
 {
   int i;
-  double s;
+  double s = 0;
   for (i=0; i<n; i++)
     s += a[i];
 
