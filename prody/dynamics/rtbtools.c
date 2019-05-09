@@ -448,6 +448,7 @@ int dblock_projections2(dSparse_Matrix *PP, PDB_File *PDB,
   A = dmatrix(1, 3, 1, 3);
   ISQT = dmatrix(1, 3, 1, 3);
 
+  printf('nblx = %d\n', nblx);
   /* CYCLE THROUGH BLOCKS */
   for(b=1; b<=nblx; b++)
   {
@@ -510,7 +511,7 @@ int dblock_projections2(dSparse_Matrix *PP, PDB_File *PDB,
 
     /* FIND ITS SQUARE ROOT */
     for (i=1; i<=3; i++)
-      for (j=1;j<=3; j++)
+      for (j=1; j<=3; j++)
       {
 	      dd = 0.0;
         for(k=1; k<=3; k++)
@@ -520,9 +521,9 @@ int dblock_projections2(dSparse_Matrix *PP, PDB_File *PDB,
 
     /* UPDATE PP WITH THE RIGID MOTIONS OF THE BLOCK */
     tr = 1.0 / sqrt((double)nbp);
-    printf("tr = %f\n", tr);
+    printf("b = %d\n", b);
     printf("nbp = %d\n", nbp);
-    
+
     for (i=1; i<=nbp; i++)
     {
 
