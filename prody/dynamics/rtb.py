@@ -126,7 +126,7 @@ class RTB(ANMBase):
                     .format(nblocks, maxsize, natoms))
         nb6 = nblocks * 6 - nones * 3
 
-        coords = coords.T.astype(float)
+        coords = coords.T.astype(float, order='C')
 
         self._hessian = hessian = np.zeros((nb6, nb6), float)
         self._project = project = np.zeros((natoms * 3, nb6), float)

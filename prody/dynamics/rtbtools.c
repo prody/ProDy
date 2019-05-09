@@ -113,7 +113,7 @@ static PyObject *buildhessian(PyObject *self, PyObject *args, PyObject *kwargs) 
   hess = (double *) PyArray_DATA(hessian);
   proj = (double *) PyArray_DATA(projection);
 
-  printf("cutoff = %f\n", cutoff);
+  // printf("cutoff = %f\n", cutoff);
 
   /* First allocate a PDB_File object to hold the coordinates and block
      indices of the atoms.  This wastes a bit of memory, but it prevents
@@ -123,7 +123,7 @@ static PyObject *buildhessian(PyObject *self, PyObject *args, PyObject *kwargs) 
   if (!PDB.atom) return PyErr_NoMemory();
   for (i=1; i<=natm; i++){
     PDB.atom[i].model = BLK[i-1];
-    printf("%d: %d\n", i, BLK[i-1]);
+    // printf("%d: %d\n", i, BLK[i-1]);
     for(j=0; j<3; j++)
       PDB.atom[i].X[j] = XYZ[j*natm+i-1];
   }
@@ -131,12 +131,12 @@ static PyObject *buildhessian(PyObject *self, PyObject *args, PyObject *kwargs) 
 
   /* Find the projection matrix */
   hsize = 18*bmx*nblx > 12*natm ? 12*natm : 18*bmx*nblx;
-  printf("hsize = %d\n", hsize);
+  // printf("hsize = %d\n", hsize);
 
   HH.IDX = imatrix(1, hsize, 1, 2);
   HH.X = dvector(1, hsize);
   elm = dblock_projections2(&HH, &PDB, natm, nblx, bmx);
-  printf("elm = %d\n", elm);
+  // printf("elm = %d\n", elm);
 
   PP.IDX = imatrix(1, elm, 1, 2);
   PP.X = dvector(1, elm);
@@ -161,9 +161,9 @@ static PyObject *buildhessian(PyObject *self, PyObject *args, PyObject *kwargs) 
     for (j=1; j<=bdim; j++)
       hess[bdim*(i-1)+j-1] = HB[i][j];
 
-  double s;
-  s = sum(hess, bdim*bdim);
-  printf("hess = %f\n", s);
+  // double s;
+  // s = sum(hess, bdim*bdim);
+  // printf("hess = %f\n", s);
 
   free(PDB.atom);
   free_imatrix(PP.IDX, 1, elm, 1, 2);
@@ -390,15 +390,15 @@ void copy_prj_ofst(dSparse_Matrix *PP, double *proj, int elm, int bdim)
     I2[i]=j;
   }
 
-  double s = 0;
+  // double s = 0;
   for(i=1; i<=elm; i++)
     if(PP->X[i] != 0.0)
     {
       proj[bdim*(PP->IDX[i][1]-1) + I2[PP->IDX[i][2]]-1] = PP->X[i];
-      s += PP->X[i];
+      // s += PP->X[i];
     }
 
-  printf("proj = %f\n", s);
+  // printf("proj = %f\n", s);
 
   free_ivector(I1, 1, max);
   free_ivector(I2, 1, max);
