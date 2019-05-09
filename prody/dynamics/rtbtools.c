@@ -380,13 +380,22 @@ void copy_prj_ofst(dSparse_Matrix *PP, double *proj, int elm, int bdim)
   for(i=1;i<=max;i++) I1[i]=0;
   for(i=1;i<=elm;i++)
     I1[PP->IDX[i][2]]=PP->IDX[i][2];
-  for(i=1;i<=max;i++){
+  for(i=1;i<=max;i++)
+  {
     if(I1[i]!=0) j++;
     I2[i]=j;
   }
-  for(i=1;i<=elm;i++)
-    if(PP->X[i]!=0.0)
+
+  double s = 0;
+  for(i=1; i<=elm; i++)
+    if(PP->X[i] != 0.0)
+    {
       proj[bdim*(PP->IDX[i][1]-1) + I2[PP->IDX[i][2]]-1] = PP->X[i];
+      s += PP->X[i];
+    }
+
+  printf("proj = %f\n", s);
+
   free_ivector(I1, 1, max);
   free_ivector(I2, 1, max);
 }
