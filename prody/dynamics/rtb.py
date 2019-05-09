@@ -102,7 +102,7 @@ class RTB(ANMBase):
         from collections import defaultdict
         i = Increment()
         d = defaultdict(i)
-        blocks = np.array([d[b] for b in blocks], np.int64)
+        blocks = np.array([d[b] for b in blocks], dtype='int32')
 
         try:
             from collections import Counter
@@ -126,7 +126,7 @@ class RTB(ANMBase):
                     .format(nblocks, maxsize, natoms))
         nb6 = nblocks * 6 - nones * 3
 
-        coords = coords.T.copy()
+        coords = coords.T.astype(float)
 
         self._hessian = hessian = np.zeros((nb6, nb6), float)
         self._project = project = np.zeros((natoms * 3, nb6), float)

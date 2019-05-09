@@ -92,7 +92,7 @@ static PyObject *buildhessian(PyObject *self, PyObject *args, PyObject *kwargs) 
   dSparse_Matrix PP, HH;
   PyArrayObject *coords, *blocks, *hessian, *projection;
   double *XYZ, *hess, *proj;
-  long *BLK;
+  int *BLK;
   double **HB;
   double cutoff = 15., gamma = 1., scl=1., mlo=1., mhi=-1.;
   int natm, nblx, bmx;
@@ -109,7 +109,7 @@ static PyObject *buildhessian(PyObject *self, PyObject *args, PyObject *kwargs) 
     return NULL;
 
   XYZ = (double *) PyArray_DATA(coords);
-  BLK = (long *) PyArray_DATA(blocks);
+  BLK = (int *) PyArray_DATA(blocks);
   hess = (double *) PyArray_DATA(hessian);
   proj = (double *) PyArray_DATA(projection);
 
@@ -123,7 +123,7 @@ static PyObject *buildhessian(PyObject *self, PyObject *args, PyObject *kwargs) 
   if (!PDB.atom) return PyErr_NoMemory();
   for (i=1; i<=natm; i++){
     PDB.atom[i].model = BLK[i-1];
-    printf("%d: %ld\n", i, BLK[i-1]);
+    printf("%d: %d\n", i, BLK[i-1]);
     for(j=0; j<3; j++)
       PDB.atom[i].X[j] = XYZ[j*natm+i-1];
   }
