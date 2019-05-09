@@ -28,9 +28,9 @@ static int iminarg1,iminarg2;
 
 
 /* Other structures */
-typedef struct {float X[3];int model;} Atom_Line;
+typedef struct {float X[3]; int model;} Atom_Line;
 typedef struct {Atom_Line *atom;} PDB_File;
-typedef struct {int **IDX;double *X;} dSparse_Matrix;
+typedef struct {int **IDX; double *X;} dSparse_Matrix;
 
 
 
@@ -89,14 +89,14 @@ double sum(double *a, int n);
    in 'projection'. */
 static PyObject *buildhessian(PyObject *self, PyObject *args, PyObject *kwargs) {
   PDB_File PDB;
-  dSparse_Matrix PP,HH;
+  dSparse_Matrix PP, HH;
   PyArrayObject *coords, *blocks, *hessian, *projection;
-  double *XYZ,*hess,*proj;
+  double *XYZ, *hess, *proj;
   long *BLK;
   double **HB;
   double cutoff = 15., gamma = 1., scl=1., mlo=1., mhi=-1.;
   int natm, nblx, bmx;
-  int hsize,elm,bdim,i,j;
+  int hsize, elm, bdim, i, j;
 
   static char *kwlist[] = {"coords", "blocks", "hessian", "projection",
 			   "natoms", "nblocks", "maxsize", "cutoff",
@@ -128,12 +128,15 @@ static PyObject *buildhessian(PyObject *self, PyObject *args, PyObject *kwargs) 
   }
 
 
-
   /* Find the projection matrix */
   hsize = 18*bmx*nblx > 12*natm ? 12*natm : 18*bmx*nblx;
+  printf("hsize = %d\n", hsize);
+
   HH.IDX = imatrix(1, hsize, 1, 2);
   HH.X = dvector(1, hsize);
   elm = dblock_projections2(&HH, &PDB, natm, nblx, bmx);
+  printf("elm = %d\n", elm);
+
   PP.IDX = imatrix(1, elm, 1, 2);
   PP.X = dvector(1, elm);
   for (i=1; i<=elm; i++){
@@ -950,7 +953,7 @@ double *dvector(long nl, long nh)
 {
 	double *v;
 
-	v=(double *)malloc((size_t) ((nh-nl+1+NR_END)*sizeof(double)));
+	v = (double *)malloc((size_t) ((nh-nl+1+NR_END)*sizeof(double)));
 	if (!v) nrerror("allocation failure in dvector()");
 	return v-nl+NR_END;
 }
