@@ -123,6 +123,7 @@ static PyObject *buildhessian(PyObject *self, PyObject *args, PyObject *kwargs) 
   if (!PDB.atom) return PyErr_NoMemory();
   for (i=1; i<=natm; i++){
     PDB.atom[i].model = BLK[i-1];
+    printf("%d: %ld\n", i, BLK[i-1]);
     for(j=0; j<3; j++)
       PDB.atom[i].X[j] = XYZ[j*natm+i-1];
   }
@@ -448,7 +449,6 @@ int dblock_projections2(dSparse_Matrix *PP, PDB_File *PDB,
   A = dmatrix(1, 3, 1, 3);
   ISQT = dmatrix(1, 3, 1, 3);
 
-  printf("nblx = %d\n", nblx);
   /* CYCLE THROUGH BLOCKS */
   for(b=1; b<=nblx; b++)
   {
@@ -521,7 +521,8 @@ int dblock_projections2(dSparse_Matrix *PP, PDB_File *PDB,
 
     /* UPDATE PP WITH THE RIGID MOTIONS OF THE BLOCK */
     tr = 1.0 / sqrt((double)nbp);
-    printf("nbp = %d\n", nbp);
+    // printf("nbp = %d\n", nbp);
+
     for (i=1; i<=nbp; i++)
     {
 
