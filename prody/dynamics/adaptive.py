@@ -1,0 +1,334 @@
+# -*- coding: utf-8 -*-
+"""This module defines functions for performing adaptive ANM."""
+
+import time
+from numbers import Integral
+from numpy import ndarray
+import numpy as np
+import matplotlib.pyplot as plt
+
+from prody import LOGGER
+from prody.measure import calcDeformVector, calcRMSD, superpose, applyTransformation
+from prody.atomic import Atomic, AtomGroup
+from prody.utilities import getCoords
+from .compare import calcOverlap, calcCumulOverlap
+from prody.ensemble import PDBEnsemble, Ensemble
+from .mode import Vector
+from .anm import ANM
+from .modeset import ModeSet
+from prody.trajectory import writeDCD
+from prody.proteins import writePDB
+from .anm import ANM
+
+__all__ = ['AdaptiveANM']
+class AdaptiveANM(object):
+    def __init__(self, structA, structB, **kwargs):
+        self.structA = structA.copy()
+        self.structB = structB.copy()
+        self.origA = structA
+        self.origB = structB
+
+        self.alignSel = kwargs.get('alignSel', None)
+        if self.alignSel is None:
+            self.structA, T = superpose(self.structA, self.structB)
+        else:
+            part, T = superpose(self.structA.select(self.alignSel),
+                                self.structB.select(self.alignSel))
+
+        rmsd = calcRMSD(self.structA, self.structB)
+        self.rmsds = [rmsd]
+        self.dList = []
+        self.numSteps = 0
+
+        self.anmA = kwargs.get('anmA', None)
+        if self.anmA is None:
+            self.anmA = ANM(structA)
+        self.anmListA = [self.anmA]
+
+        self.anmB = kwargs.get('anmB', None)
+        if self.anmB is None:
+            self.anmB = ANM(structB)
+        self.anmListB = [self.anmB]
+
+        self.n_modes = 20
+        self.numModesList = []
+        self.whichModesA = []
+        self.whichModesB = []
+
+        self.plotRMSD = kwargs.get('plotRMSD', False)
+        self.plotNumModes = kwargs.get('plotNumModes', False)
+
+        self.maxModes = kwargs.get('maxModes', 0.05)
+        if not isinstance(self.maxModes, (int,float)):
+            raise TypeError('maxModes should be an integer or float')
+        if self.maxModes < 1:
+            self.maxModes = int(self.maxModes * 3*self.structA.numAtoms()-6)
+        if self.maxModes > 3*self.structA.numAtoms()-6:
+            self.maxModes = 3*self.structA.numAtoms()-6
+
+        self.Fmin = kwargs.get('Fmin', None)
+        self.Fmin_max = kwargs.get('Fmin_max', 0.6)
+        self.resetFmin = kwargs.get('resetFmin', False)
+        self.f = kwargs.get('f', 0.2)
+
+        self.ensembleA = Ensemble(structA)
+        self.ensembleB = Ensemble(structB)
+
+        self.outputDCD = kwargs.get('outputDCD', False)
+        self.outputPDB = kwargs.get('outputPDB', False)
+
+        self.filename = kwargs.get('filename', None)
+        if self.filename is None:
+            self.filename = self.structA.getTitle().replace(' ', '_')
+
+        self.rmsd_diff_cutoff = kwargs.get('rmsd_diff_cutoff', 0.05)
+        self.target_rmsd = kwargs.get('target_rmsd', 1.0)
+
+        LOGGER.info('Initialised Adaptive ANM with RMSD {:4.3f}\n'.format(rmsd))
+
+    def runStep(self, structA=None, structB=None, **kwargs):
+
+        if structA is None:
+            structA = self.structA
+
+        if structB is None:
+            structB = self.structB
+
+        coordsA = structA.getCoords()
+        coordsB = structB.getCoords()
+
+        alignSel = kwargs.get('alignSel', self.alignSel)
+
+        Fmin = kwargs.get('Fmin', self.Fmin)
+
+        f = kwargs.get('f', self.f)
+
+        outputDCD = kwargs.get('outputDCD', self.outputDCD)
+        outputPDB = kwargs.get('outputPDB', self.outputPDB)
+        filename = kwargs.get('filename', self.filename)
+
+        plotRMSD = kwargs.get('plotRMSD', self.plotRMSD)
+        plotNumModes = kwargs.get('plotNumModes', self.plotNumModes)
+
+        LOGGER.info('\nStarting cycle {0} with initial structure {1}'.format(self.numSteps+1, structA))
+
+        structA.setCoords(coordsA)
+
+        if alignSel is None:
+            coordsA, T = superpose(coordsA, coordsB)
+        else:
+            part, T = superpose(structA.select(alignSel),
+                                structB.select(alignSel))
+            coordsA = applyTransformation(T, coordsA)
+            structA.setCoords(coordsA)
+
+        anmA = kwargs.get('anmA', self.anmA)
+        anmA.buildHessian(structA, **kwargs)
+        anmA.calcModes(self.n_modes, **kwargs)
+
+        defvec = coordsB - coordsA
+        d = defvec.flatten()
+        self.dList.append(d)
+
+        if Fmin is None:
+            if self.numSteps == 0 or self.resetFmin:
+                Fmin = 0. # Select the first mode only
+            else:
+                Fmin = 1 - np.sqrt(np.linalg.norm(self.dList[self.numSteps])
+                                   / np.linalg.norm(self.dList[0]))
+
+        if Fmin > self.Fmin_max:
+            Fmin = self.Fmin_max
+
+        LOGGER.info('Fmin is {:4.3f}, corresponding to a cumulative overlap of {:4.3f}'.format(
+            Fmin, np.sqrt(Fmin)))
+
+        overlaps = np.dot(d, anmA.getEigvecs())
+        overlap_sorting_indices = list(
+            reversed(list(np.argsort(abs(overlaps)))))
+        modesetA = ModeSet(anmA, overlap_sorting_indices)
+        overlaps = overlaps[overlap_sorting_indices]
+
+        normalised_overlaps = overlaps / np.linalg.norm(d)
+        c_sq = np.cumsum(np.power(normalised_overlaps, 2), axis=0)
+
+        modesCrossingFmin = np.where(c_sq <= Fmin)[0]
+        numModes = len(modesCrossingFmin)
+        if numModes == 0:
+            numModes = 1
+            modesCrossingFmin = [0]
+
+        maxModes = kwargs.get('maxModes', None)
+        if maxModes is None:
+            maxModes = self.maxModes
+        else:
+            if not isinstance(maxModes, (int,float)):
+                raise TypeError('maxModes should be an integer or float')
+            if maxModes < 1:
+                maxModes = int(maxModes * 3*self.structA.numAtoms()-6)
+            if maxModes > 3*self.structA.numAtoms()-6:
+                maxModes = 3*self.structA.numAtoms()-6
+
+        if numModes > maxModes:
+            numModes = maxModes
+
+        self.numModesList.append(numModes)
+
+        if numModes == 1:
+            LOGGER.info('Using 1 mode with overlap {0} (Mode {1})'
+                        .format('{:4.3f}'.format(np.sqrt(c_sq[0])), modesetA.getIndices()[0]+1))
+        elif numModes < 11:
+            LOGGER.info('Using {0} modes with cumulative overlap {1} (Modes {2} and {3})'
+                        .format(numModes, '{:4.3f}'.format(np.sqrt(c_sq[numModes-1])),
+                                ', '.join([str(entry)
+                                           for entry in modesetA.getIndices()[:numModes-1]+1]),
+                                str(modesetA.getIndices()[numModes-1]+1)))
+        else:
+            LOGGER.info('Using {0} modes with cumulative overlap {1} (Modes {2}, ... and {3}) with max mode number {4}'
+                        .format(numModes, '{:4.3f}'.format(np.sqrt(c_sq[numModes-1])),
+                                ', '.join([str(entry)
+                                           for entry in modesetA.getIndices()[:10]+1]),
+                                str(modesetA.getIndices()[numModes-1]+1),
+                                np.max(modesetA.getIndices()[:numModes]+1)))
+
+        if np.max(modesetA.getIndices()[:numModes]) > self.n_modes-5:
+            self.n_modes *= 10
+        
+        if self.n_modes > 3*self.structA.numAtoms()-6:
+            self.n_modes = 3*self.structA.numAtoms()-6
+
+        v = np.sum(np.multiply(overlaps[:numModes], modesetA.getEigvecs()[:, :numModes]),
+                   axis=1).reshape(coordsA.shape)
+
+        s_min = sum(np.multiply(v.flatten(), d))/sum(np.power(v.flatten(), 2))
+
+        new_coordsA = coordsA + f * s_min * v
+        rmsd = calcRMSD(new_coordsA, coordsB)
+
+        LOGGER.info('Current RMSD is {:4.3f}\n'.format(rmsd))
+
+        if plotRMSD:
+            plt.figure(1); plt.plot(self.numSteps, rmsd);
+
+        if plotNumModes:
+            plt.figure(2); plt.bar(self.numSteps, numModes);
+
+        self.numSteps += 1
+
+        if structA == self.structA:
+            self.anmA = anmA
+            self.anmListA.append(anmA)
+            self.structA.setCoords(new_coordsA)
+            self.ensembleA.addCoordset(new_coordsA)
+            self.whichModesA.append(modesetA[modesCrossingFmin])
+        elif structA == self.structB:
+            self.anmB = anmA
+            self.anmListB.append(anmA)
+            self.structB.setCoords(new_coordsA)
+            self.ensembleB.addCoordset(new_coordsA)
+            self.whichModesB.append(modesetA[modesCrossingFmin])
+
+        self.rmsds.append(rmsd)
+
+        if outputPDB:
+            writePDB(filename + '_A', self.ensembleA)
+            LOGGER.clear()
+            writePDB(filename + '_B', self.ensembleB)
+            LOGGER.clear()
+
+        if outputDCD:
+            writeDCD(filename + '_A', self.ensembleA)
+            LOGGER.clear()
+            writeDCD(filename + '_B', self.ensembleB)
+            LOGGER.clear()
+
+        return
+
+
+    def checkConvergence(self, **kwargs):
+        converged = False
+        rmsd_diff_cutoff = kwargs.get('rmsd_diff_cutoff', self.rmsd_diff_cutoff)
+        target_rmsd = kwargs.get('target_rmsd', self.target_rmsd)
+
+        if self.rmsds[-2] - self.rmsds[-1] < rmsd_diff_cutoff:
+            LOGGER.warn('The RMSD decrease fell below {0}'.format(rmsd_diff_cutoff))
+            converged = True
+
+        if self.rmsds[-1] < target_rmsd:
+            LOGGER.warn('The RMSD fell below target RMSD {0}'.format(target_rmsd))
+            converged = True
+
+        return converged
+
+
+    def runManySteps(self, n_steps, **kwargs):
+        n_start = self.numSteps
+        while self.numSteps < n_start + n_steps:
+            self.runStep(self.structA, self.structB, **kwargs)
+            converged = self.checkConvergence()
+            if converged:
+                break
+
+
+    def runManyStepsAlternating(self, n_steps, **kwargs):
+        n_start = self.numSteps
+        while self.numSteps < n_start + n_steps:
+            self.runStep(self.structA, self.structB, **kwargs)
+            self.runStep(self.structB, self.structA, **kwargs)
+
+            converged = self.checkConvergence()
+            if converged:
+                break
+
+        ensemble = Ensemble('combined trajectory')
+        ensemble.setAtoms(self.origA)
+        for coordset in self.ensembleA.getCoordsets():
+            ensemble.addCoordset(coordset)
+        for coordset in reversed(self.ensembleB.getCoordsets()):
+            ensemble.addCoordset(coordset)
+
+        if self.outputPDB:
+            writePDB(self.filename, ensemble)
+
+        if self.outputDCD:
+            writeDCD(self.filename, ensemble)
+
+        return
+
+
+    def runManyStepsFurthestEachWay(self, n_steps, **kwargs):
+        n_start = self.numSteps
+
+        LOGGER.info('\n\nStarting from struct A ({0})'.format(self.structA))
+        while self.numSteps < n_start + n_steps:
+            self.runStep(self.structA, self.structB, **kwargs)
+            converged = self.checkConvergence()
+            if converged:
+                LOGGER.warn('The part starting from structA converged.')
+                break
+
+        LOGGER.info('\n\nStarting from structB ({0})'.format(self.structB))
+        self.resetFmin = True
+        while self.numSteps < n_start + n_steps:
+            self.runStep(self.structB, self.structA, **kwargs)
+            self.resetFmin = False
+            converged = self.checkConvergence()
+            if converged:
+                LOGGER.warn('The part starting from structB converged.')
+                break
+
+        ensemble = Ensemble('combined trajectory')
+        ensemble.setAtoms(self.origA)
+        for coordset in self.ensembleA.getCoordsets():
+            ensemble.addCoordset(coordset)
+        for coordset in reversed(self.ensembleB.getCoordsets()):
+            ensemble.addCoordset(coordset)
+
+        if self.outputPDB:
+            writePDB(self.filename, ensemble)
+
+        if self.outputDCD:
+            writeDCD(self.filename, ensemble)
+
+        return
+        
