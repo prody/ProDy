@@ -121,7 +121,9 @@ CONTRIBUTED = [
               include_dirs=[numpy.get_include()]),
     Extension('prody.proteins.ccealign', 
               [join('prody', 'proteins', 'ccealign', 'ccealignmodule.cpp')], 
-              include_dirs=[tntDir], language='c++' )
+              include_dirs=[tntDir], language='c++',
+              extra_compile_args=["-stdlib=libc++"]
+              )
 ]
 
 for ext in CONTRIBUTED:
