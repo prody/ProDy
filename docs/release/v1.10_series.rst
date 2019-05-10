@@ -4,6 +4,17 @@ ProDy 1.10 Series
 .. contents::
    :local:
 
+1.10.10 (May 9, 2019)
+------------------------------------------------------------------------------
+
+**Bug Fixes and Improvements**:
+  
+  * Compatibility fix for the RTB module on Windows.
+
+  * Fixed compilation error on MacOS.
+
+  * Consistency fixes.
+
 1.10.9 (May 2, 2019)
 ------------------------------------------------------------------------------
 
