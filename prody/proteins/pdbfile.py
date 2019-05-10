@@ -10,7 +10,7 @@ from numbers import Integral
 
 import numpy as np
 
-from prody.atomic import AtomGroup
+from prody.atomic import AtomGroup, Atom, Selection
 from prody.atomic import flags
 from prody.atomic import ATOMIC_FIELDS
 from prody.utilities import openFile, isListLike
@@ -20,7 +20,10 @@ from .header import getHeaderDict, buildBiomolecules, assignSecstr, isHelix, isS
 from .localpdb import fetchPDB
 
 __all__ = ['parsePDBStream', 'parsePDB', 'parseChainsList', 'parsePQR',
-           'writePDBStream', 'writePDB', 'writeChainsList']
+           'writePDBStream', 'writePDB', 'writeChainsList', 'writePQR',
+           'writePQRStream']
+
+MAX_N_ATOM = 99999 
 
 class PDBParseError(Exception):
     pass
@@ -64,12 +67,12 @@ _parsePDBdoc = _parsePQRdoc + """
 
     :arg biomol: if **True**, biomolecules are obtained by transforming the
         coordinates using information from header section will be returned.
-        Default is False
+        Default is **False**
     :type biomol: bool
 
     :arg secondary: if **True**, secondary structure information from header
         section will be assigned to atoms.
-        Default is False
+        Default is **False**
     :type secondary: bool
 
     If ``model=0`` and ``header=True``, return header dictionary only.
@@ -212,6 +215,7 @@ def parsePDBStream(stream, **kwargs):
     chain = kwargs.get('chain')
     subset = kwargs.get('subset')
     altloc = kwargs.get('altloc', 'A')
+
     if model is not None:
         if isinstance(model, Integral):
             if model < 0:
@@ -235,9 +239,8 @@ def parsePDBStream(stream, **kwargs):
         elif len(chain) == 0:
             raise ValueError('chain must not be an empty string')
         title_suffix = chain + title_suffix
-    ag = None
-    if 'ag' in kwargs:
-        ag = kwargs['ag']
+    ag = kwargs.pop('ag', None)
+    if ag is not None:
         if not isinstance(ag, AtomGroup):
             raise TypeError('ag must be an AtomGroup instance')
         n_csets = ag.numCoordsets()
@@ -315,11 +318,8 @@ def parsePQR(filename, **kwargs):
     :type filename: str"""
 
     title = kwargs.get('title', kwargs.get('name'))
-    model = 1
-    header = False
     chain = kwargs.get('chain')
     subset = kwargs.get('subset')
-    altloc = kwargs.get('altloc', 'A')
     if not os.path.isfile(filename):
         raise IOError('No such file: {0}'.format(repr(filename)))
     if title is None:
@@ -399,8 +399,7 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
     if n_atoms > 0:
         asize = n_atoms
     else:
-        # most PDB files contain less than 99999 atoms
-        asize = min(len(lines) - split, 99999)
+        asize = len(lines) - split
     addcoords = False
     if atomgroup.numCoordsets() > 0:
         addcoords = True
@@ -988,7 +987,14 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
     """Write *atoms* in PDB format to a *stream*.
 
     :arg stream: anything that implements a :meth:`write` method (e.g. file,
-        buffer, stdout)"""
+        buffer, stdout)
+        
+    :arg renumber: whether to renumber atoms with serial indices
+        Default is **True**
+    :type renumber: bool
+    """
+
+    renumber = kwargs.get('renumber',True)
 
     remark = str(atoms)
     try:
@@ -1077,6 +1083,9 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
     if resnums is None:
         resnums = np.ones(n_atoms, int)
 
+    serials = atoms._getSerials()
+    if serials is None or renumber:
+        serials = np.arange(n_atoms, dtype=int) + 1
 
     icodes = atoms._getIcodes()
     if icodes is None:
@@ -1163,15 +1172,16 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
         if multi:
             write('MODEL{0:9d}\n'.format(m+1))
         for i, xyz in enumerate(coords):
-            if i == 99999:
+            if pdbline != PDBLINE_GE100K and (i == MAX_N_ATOM or serials[i] > MAX_N_ATOM):
+                LOGGER.warn('Indices are exceeding 99999 and hexadecimal format is being used')
                 pdbline = PDBLINE_GE100K
-            write(pdbline % (hetero[i], i+1,
-                         atomnames[i], altlocs[i],
-                         resnames[i], chainids[i], resnums[i],
-                         icodes[i],
-                         xyz[0], xyz[1], xyz[2],
-                         occupancies[i], bfactors[i],
-                         segments[i], elements[i]))
+            write(pdbline % (hetero[i], serials[i],
+                             atomnames[i], altlocs[i],
+                             resnames[i], chainids[i], resnums[i],
+                             icodes[i],
+                             xyz[0], xyz[1], xyz[2],
+                             occupancies[i], bfactors[i],
+                             segments[i], elements[i]))
         if multi:
             write('ENDMDL\n')
             altlocs = np.zeros(n_atoms, s_or_u + '1')
@@ -1181,7 +1191,12 @@ writePDBStream.__doc__ += _writePDBdoc
 def writePDB(filename, atoms, csets=None, autoext=True, **kwargs):
     """Write *atoms* in PDB format to a file with name *filename* and return
     *filename*.  If *filename* ends with :file:`.gz`, a compressed file will
-    be written."""
+    be written.        
+
+    :arg renumber: whether to renumber atoms with serial indices
+        Default is **True**
+    :type renumber: bool
+    """
 
     if not ('.pdb' in filename or '.pdb.gz' in filename or
              '.ent' in filename or '.ent.gz' in filename):
@@ -1194,3 +1209,71 @@ def writePDB(filename, atoms, csets=None, autoext=True, **kwargs):
 writePDB.__doc__ += _writePDBdoc + """
     :arg autoext: when not present, append extension :file:`.pdb` to *filename*
 """
+
+def writePQRStream(stream, atoms, **kwargs):
+    if isinstance(atoms, Atom):
+        atoms = Selection(atoms.getAtomGroup(), [atoms.getIndex()],
+                          atoms.getACSIndex(),
+                          'index ' + str(atoms.getIndex()))
+    n_atoms = atoms.numAtoms()
+    atomnames = atoms.getNames()
+    if atomnames is None:
+        raise RuntimeError('atom names are not set')
+    for i, an in enumerate(atomnames):
+        lenan = len(an)
+        if lenan < 4:
+            atomnames[i] = ' ' + an
+        elif lenan > 4:
+            atomnames[i] = an[:4]
+
+    s_or_u = np.array(['a']).dtype.char
+
+    resnames = atoms._getResnames()
+    if resnames is None:
+        resnames = ['UNK'] * n_atoms
+    resnums = atoms._getResnums()
+    if resnums is None:
+        resnums = np.ones(n_atoms, int)
+    chainids = atoms._getChids()
+    if chainids is None:
+        chainids = np.zeros(n_atoms, s_or_u + '1')
+    charges = atoms._getCharges()
+    if charges is None:
+        charges = np.zeros(n_atoms, float)
+    radii = atoms._getRadii()
+    if radii is None:
+        radii = np.zeros(n_atoms, float)
+    icodes = atoms._getIcodes()
+    if icodes is None:
+        icodes = np.zeros(n_atoms, s_or_u + '1')
+    hetero = ['ATOM'] * n_atoms
+    heteroflags = atoms._getFlags('hetatm')
+    if heteroflags is None:
+        heteroflags = atoms._getFlags('hetero')
+    if heteroflags is not None:
+        hetero = np.array(hetero, s_or_u + '6')
+        hetero[heteroflags] = 'HETATM'
+    altlocs = atoms._getAltlocs()
+    if altlocs is None:
+        altlocs = np.zeros(n_atoms, s_or_u + '1')
+
+    format = ('{0:6s} {1:5d} {2:4s} {3:1s}' +
+              '{4:4s} {5:1s} {6:4d} {7:1s}   ' +
+              '{8:8.3f} {9:8.3f} {10:8.3f}' +
+              '{11:8.4f} {12:7.4f}\n').format
+    coords = atoms._getCoords()
+    write = stream.write
+    for i, xyz in enumerate(coords):
+        write(format(hetero[i], i+1, atomnames[i], altlocs[i],
+                     resnames[i], chainids[i], int(resnums[i]),
+                     icodes[i], xyz[0], xyz[1], xyz[2], charges[i], radii[i]))
+
+def writePQR(filename, atoms, **kwargs):
+    """Write *atoms* in PQR format to a file with name *filename*.  Only
+    current coordinate set is written.  Returns *filename* upon success.  If
+    *filename* ends with :file:`.gz`, a compressed file will be written."""
+
+    stream = openFile(filename, 'w')
+    writePQRStream(stream, atoms, **kwargs)
+    stream.close()
+    return filename

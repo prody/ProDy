@@ -9,7 +9,7 @@ from numpy import arange
 PW2 = None
 
 from prody.atomic import AtomMap as AM
-from prody.atomic import Chain, AtomGroup, Selection
+from prody.atomic import AtomGroup, Chain, AtomSubset, Selection
 from prody.atomic import AAMAP
 from prody.atomic import flags
 from prody.measure import calcTransformation, printRMSD, calcDistance
@@ -721,9 +721,7 @@ def matchChains(atoms1, atoms2, **kwargs):
 
         matches[mi] = (match1, match2, _seqid, _cover)
     if len(matches) > 1:
-        def compare(m1, m2):
-            return cmp(m1[2], m2[2])
-        matches.sort(compare, reverse=True)
+        matches.sort(key=lambda m: m[-2:], reverse=True)
     return matches
 
 
@@ -844,9 +842,8 @@ def mapOntoChain(atoms, chain, **kwargs):
        *Protein engineering* **1998** 11(9):739-47.
     """
 
-    if not isinstance(atoms, (AtomGroup, Chain, Selection)):
-        raise TypeError('atoms must be an AtomGroup, a Chain, or a '
-                        'Selection instance')
+    if not isinstance(atoms, (AtomGroup, AtomSubset)):
+        raise TypeError('atoms must be an AtomGroup or a AtomSubset instance')
     if not isinstance(chain, Chain):
         raise TypeError('chain must be Chain instance')
 
@@ -1029,14 +1026,30 @@ def mapOntoChain(atoms, chain, **kwargs):
 
 def mapChainByChain(atoms, ref, **kwargs):
     """This function is similar to :func:`.mapOntoChain` but correspondence 
-    of chains is found by their chain identifiers. """
+    of chains is found by their chain identifiers. 
+    
+    :arg atoms: atoms to map onto the reference
+    :type atoms: :class:`Atomic`
+    
+    :arg ref: reference structure for mapping
+    :type ref: :class:`Atomic`
+    
+    :arg return_all: whether to return all mappings.
+        If False, only mappings for the first chain will be returned. 
+        Default is True
+    :arg return_all: bool
+    """
+    mappings = []
     hv = atoms.getHierView()
     for chain in ref.getHierView().iterChains():
         for target_chain in hv.iterChains():
             if target_chain.getChid() == chain.getChid():
-                mappings = mapOntoChainByAlignment(target_chain, chain, **kwargs)
-                return mappings
-    return []
+                mappings.append(mapOntoChainByAlignment(target_chain, chain, **kwargs)[0])
+
+    if len(mappings) == 1:
+        mappings = mappings[0]
+        
+    return mappings
 
 def mapOntoChainByAlignment(atoms, chain, **kwargs):
     """This function is similar to :func:`.mapOntoChain` but correspondence 
@@ -1176,13 +1189,13 @@ def getAlignedMapping(target, chain, alignment=None):
     this = _findAlignment(target.getSequence(), alignment)
     if this is None:
         LOGGER.warn('alignment does not contain the target ({0}) sequence'
-                    .format(this.getTitle()))
+                    .format(target.getTitle()))
         return None
 
     that = _findAlignment(chain.getSequence(), alignment)
     if that is None:
         LOGGER.warn('alignment does not contain the chain ({0}) sequence'
-                    .format(that.getTitle()))
+                    .format(chain.getTitle()))
         return None
 
     amatch = []

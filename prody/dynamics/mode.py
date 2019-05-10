@@ -391,6 +391,6 @@ class Vector(VectorBase):
         of the vector divided by 3."""
 
         if self._is3d:
-            return len(self._array)/3
+            return len(self._array)//3
         else:
             return len(self._array)

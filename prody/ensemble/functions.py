@@ -7,9 +7,10 @@ from numbers import Integral
 import numpy as np
 
 from prody.proteins import fetchPDB, parsePDB, writePDB, mapOntoChain
-from prody.utilities import openFile, showFigure, copy, isListLike
+from prody.utilities import openFile, showFigure, copy, isListLike, pystr
 from prody import LOGGER, SETTINGS
 from prody.atomic import AtomMap, Chain, AtomGroup, Selection, Segment, Select, AtomSubset
+from prody.atomic.fields import DTYPE
 
 from .ensemble import *
 from .pdbensemble import *
@@ -50,6 +51,10 @@ def saveEnsemble(ensemble, filename=None, **kwargs):
     if atoms is not None:
         attr_dict['_atoms'] = np.array([atoms, None])
 
+    data = dict_['_data']
+    if len(data):
+        attr_dict['_data'] = np.array([data, None])
+
     if isinstance(ensemble, PDBEnsemble):
         msa = dict_['_msa']
         if msa is not None:
@@ -71,12 +76,18 @@ def loadEnsemble(filename, **kwargs):
 
     if not 'encoding' in kwargs:
         kwargs['encoding'] = 'latin1'
+    
+    if not 'allow_pickle' in kwargs:
+        kwargs['allow_pickle'] = True
+
     attr_dict = np.load(filename, **kwargs)
     if '_weights' in attr_dict:
         weights = attr_dict['_weights']
     else:
-        weights = None   
+        weights = None  
+
     isPDBEnsemble = False
+
     try:
         title = attr_dict['_title']
     except KeyError:
@@ -84,22 +95,42 @@ def loadEnsemble(filename, **kwargs):
     if isinstance(title, np.ndarray):
         title = np.asarray(title, dtype=str)
     title = str(title)
+
     if weights is not None and weights.ndim == 3:
         isPDBEnsemble = True
         ensemble = PDBEnsemble(title)
     else:
         ensemble = Ensemble(title)
+
     ensemble.setCoords(attr_dict['_coords'])
     if '_atoms' in attr_dict:
         atoms = attr_dict['_atoms'][0]
+
+        if isinstance(atoms, AtomGroup):
+            data = atoms._data
+        else:
+            data = atoms._ag._data
+        
+        for key in data:
+            arr = data[key]
+            char = arr.dtype.char
+            if char in 'SU' and char != DTYPE:
+                arr = arr.astype(str)
+                data[key] = arr
+            
     else:
         atoms = None
     ensemble.setAtoms(atoms)
+
     if '_indices' in attr_dict:
         indices = attr_dict['_indices']
     else:
         indices = None
     ensemble._indices = indices
+
+    if '_data' in attr_dict:
+        ensemble._data = attr_dict['_data'][0]
+
     if isPDBEnsemble:
         confs = attr_dict['_confs']
         ensemble.addCoordset(confs, weights)
@@ -218,6 +249,7 @@ def trimPDBEnsemble(pdb_ensemble, occupancy=None, **kwargs):
 
         trimmed.setAtoms(select)
 
+    trimmed._data = pdb_ensemble._data
     return trimmed
 
 def calcOccupancies(pdb_ensemble, normed=False):
@@ -406,7 +438,7 @@ def buildPDBEnsemble(PDBs, ref=None, title='Unknown', labels=None,
         if refpdb not in PDBs:
             raise ValueError('refpdb should be also in the PDBs')
 
-    # obtain refchains from the hierarhical view of the reference PDB
+    # obtain refchains from the hierarchical view of the reference PDB
     if subset != 'all':
         refpdb = refpdb.select(subset)
         
@@ -421,7 +453,7 @@ def buildPDBEnsemble(PDBs, ref=None, title='Unknown', labels=None,
     for i in range(1, len(refchains)):
         atoms += refchains[i]
     
-    # initialize a PDBEnsemble with referrence atoms and coordinates
+    # initialize a PDBEnsemble with reference atoms and coordinates
     ensemble = PDBEnsemble(title)
     ensemble.setAtoms(atoms)
     ensemble.setCoords(atoms.getCoords())
@@ -489,33 +521,33 @@ def addPDBEnsemble(ensemble, PDBs, refpdb=None, labels=None,
                    mapping_func=mapOntoChain, occupancy=None, unmapped=None, **kwargs):  
     """Adds extra structures to a given PDB ensemble. 
 
-    :arg ensemble: The ensemble to which the PDBs are added.
+    :arg ensemble: the ensemble to which the PDBs are added
     :type ensemble: :class:`.PDBEnsemble`
 
-    :arg refpdb: Reference structure. If set to `None`, it will be set to `ensemble.getAtoms()` automatically.
+    :arg refpdb: reference structure. If set to `None`, it will be set to `ensemble.getAtoms()` automatically
     :type refpdb: :class:`.Chain`, :class:`.Selection`, or :class:`.AtomGroup`
 
     :arg PDBs: A list of PDB structures
     :type PDBs: iterable
 
-    :arg title: The title of the ensemble
+    :arg title: the title of the ensemble
     :type title: str
 
     :arg labels: labels of the conformations
     :type labels: list
 
-    :arg seqid: Minimal sequence identity (percent)
+    :arg seqid: minimal sequence identity (percent)
     :type seqid: int
 
-    :arg coverage: Minimal sequence overlap (percent)
+    :arg coverage: minimal sequence overlap (percent)
     :type coverage: int
 
-    :arg occupancy: Minimal occupancy of columns (range from 0 to 1). Columns whose occupancy 
-                    is below this value will be trimmed.
+    :arg occupancy: minimal occupancy of columns (range from 0 to 1). Columns whose occupancy 
+                    is below this value will be trimmed
     :type occupancy: float
 
-    :arg unmapped: A list of PDB IDs that cannot be included in the ensemble. This is an 
-                   output argument. 
+    :arg unmapped: a list of PDB IDs that cannot be included in the ensemble. This is an 
+                   output argument
     :type unmapped: list
     """
 
@@ -604,26 +636,69 @@ def addPDBEnsemble(ensemble, PDBs, refpdb=None, labels=None,
 
     return ensemble
 
-def refineEnsemble(ens, lower=.5, upper=10.):
-    """Refine a PDB ensemble based on RMSD criterions.""" 
+def refineEnsemble(ensemble, lower=.5, upper=10., **kwargs):
+    """Refine a PDB ensemble based on RMSD criterions.
+    
+    :arg ensemble: the ensemble to be refined
+    :type ensemble: :class:`.Ensemble`, :class:`.PDBEnsemble`
+
+    :arg lower: the smallest allowed RMSD between two conformations with the exception of **protected** 
+    :type lower: float
+
+    :arg upper: the highest allowed RMSD between two conformations with the exception of **protected** 
+    :type upper: float
+
+    :keyword protected: a list of either the indices or labels of the conformations needed to be kept 
+                        in the refined ensemble
+    :type protected: list
+    
+    :arg ref: the index or label of the reference conformation which will also be kept.
+        Default is 0
+    :type ref: int or str
+    """ 
+
+    protected = kwargs.pop('protected', [])
+    P = []
+    if len(protected):
+        labels = ensemble.getLabels()
+        for p in protected:
+            if isinstance(p, Integral):
+                i = p
+            else:
+                if p in labels:
+                    i = labels.index(p)
+                else:
+                    LOGGER.warn('could not find any conformation with the label %s in the ensemble'%str(p))
+            P.append(i)
 
     LOGGER.timeit('_prody_refineEnsemble')
     from numpy import argsort
 
     ### obtain reference index
-    rmsd = ens.getRMSDs()
-    ref_i = np.argmin(rmsd)
+    # rmsd = ensemble.getRMSDs()
+    # ref_i = np.argmin(rmsd)
+    ref_i = kwargs.pop('ref', 0)
+    if isinstance(ref_i, Integral):
+        pass
+    elif isinstance(ref_i, str):
+        labels = ensemble.getLabels()
+        ref_i = labels.index(ref_i)
+    else:
+        LOGGER.warn('could not find any conformation with the label %s in the ensemble'%str(ref_i))
+    if not ref_i in P:
+        P = [ref_i] + P
 
     ### calculate pairwise RMSDs ###
-    RMSDs = ens.getRMSDs(pairwise=True)
+    RMSDs = ensemble.getRMSDs(pairwise=True)
 
     def getRefinedIndices(A):
         deg = A.sum(axis=0)
         sorted_indices = list(argsort(deg))
+        # sorted_indices = P + [x for x in sorted_indices if x not in P]
         sorted_indices.remove(ref_i)
         sorted_indices.insert(0, ref_i)
 
-        n_confs = ens.numConfs()
+        n_confs = ensemble.numConfs()
         isdel_temp = np.zeros(n_confs)
         for a in range(n_confs):
             i = sorted_indices[a]
@@ -635,7 +710,11 @@ def refineEnsemble(ens, lower=.5, upper=10.):
                     continue
                 else:
                     if A[i,j]:
-                        isdel_temp[j] = 1
+                        # isdel_temp[j] = 1
+                        if not j in P:
+                            isdel_temp[j] = 1
+                        elif not i in P:
+                            isdel_temp[i] = 1
         temp_list = isdel_temp.tolist()
         ind_list = []
         for i in range(n_confs):
@@ -643,8 +722,8 @@ def refineEnsemble(ens, lower=.5, upper=10.):
                 ind_list.append(i)
         return ind_list
 
-    L = list(range(len(ens)))
-    U = list(range(len(ens)))
+    L = list(range(len(ensemble)))
+    U = list(range(len(ensemble)))
     if lower is not None:
         A = RMSDs < lower
         L = getRefinedIndices(A)
@@ -655,9 +734,14 @@ def refineEnsemble(ens, lower=.5, upper=10.):
     
     # find common indices from L and U
     I = list(set(L) - (set(L) - set(U)))
-    reens = ens[I]
+
+    # for p in P:
+        # if p not in I:
+            # I.append(p)
+    I.sort()
+    reens = ensemble[I]
 
     LOGGER.report('Ensemble was refined in %.2fs.', '_prody_refineEnsemble')
-    LOGGER.info('%d conformations were removed from ensemble.'%(len(ens) - len(I)))
+    LOGGER.info('%d conformations were removed from ensemble.'%(len(ensemble) - len(I)))
 
     return reens

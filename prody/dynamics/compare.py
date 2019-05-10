@@ -5,18 +5,20 @@ models."""
 import numpy as np
 from numbers import Integral
 from prody import LOGGER, SETTINGS
-from prody.utilities import openFile
+from prody.utilities import openFile, isListLike
 
 from .nma import NMA
 from .modeset import ModeSet
 from .mode import Mode, Vector
 from .gnm import ZERO
+from .analysis import calcFractVariance, calcSqFlucts
 
-__all__ = ['calcOverlap', 'calcCumulOverlap', 'calcSubspaceOverlap',
-           'calcSpectralOverlap', 'calcCovOverlap', 'printOverlapTable', 'writeOverlapTable',
-           'pairModes', 'matchModes']
+__all__ = ['calcOverlap', 'calcCumulOverlap', 'calcSubspaceOverlap', 'calcSpectralOverlap', 
+           'calcCovOverlap', 'printOverlapTable', 'writeOverlapTable', 
+           'calcSquareInnerProduct','pairModes', 'matchModes']
 
 SO_CACHE = {}
+WO_CACHE = {}
 
 def calcOverlap(rows, cols):
     """Returns overlap (or correlation) between two sets of modes (*rows* and
@@ -34,6 +36,7 @@ def calcOverlap(rows, cols):
     if rows.numDOF() != cols.numDOF():
         raise ValueError('number of degrees of freedom of rows and '
                          'cols must be the same')
+    
     rows = rows.getArray()
     rows *= 1 / (rows ** 2).sum(0) ** 0.5
     cols = cols.getArray()
@@ -160,7 +163,32 @@ def calcSubspaceOverlap(modes1, modes2):
     rmsip = np.sqrt(np.power(overlap, 2).sum() / length)
     return rmsip
 
-def calcSpectralOverlap(modes1, modes2, turbo=False):
+def calcSquareInnerProduct(modes1, modes2):
+    """Returns the square inner product (SIP) of fluctuations [SK02]_.  
+    This function returns a single number.
+
+    .. [SK02] Kundu S, Melton JS, Sorensen DC, Phillips GN: Dynamics of 
+        proteins in crystals: comparison of experiment with simple models. 
+        Biophys J. 2002, 83: 723-732.
+        
+    """
+    if isinstance(modes1, (NMA, ModeSet)):
+        w1 = calcSqFlucts(modes1)
+    elif isListLike(modes1):
+        w1 = modes1
+    else:
+        raise TypeError('modes1 should be a profile or an NMA or ModeSet object')
+
+    if isinstance(modes2, (NMA, ModeSet)):
+        w2 = calcSqFlucts(modes2)
+    elif isListLike(modes2):
+        w2 = modes2
+    else:
+        raise TypeError('modes2 should be a profile or an NMA or ModeSet object')
+
+    return np.dot(w1, w2)**2 / (np.dot(w1, w1) * np.dot(w2, w2))
+
+def calcSpectralOverlap(modes1, modes2, weighted=False, turbo=False):
     """Returns overlap between covariances of *modes1* and *modes2*.  Overlap
     between covariances are calculated using normal modes (eigenvectors),
     hence modes in both models must have been calculated.  This function
@@ -169,6 +197,8 @@ def calcSpectralOverlap(modes1, modes2, turbo=False):
     .. [BH02] Hess B. Convergence of sampling in protein simulations.
         *Phys Rev E* **2002** 65(3):031910.
     
+    :arg weighted: if **True** then covariances are weighted by the trace.
+    :type weighted: bool
     """
 
     if modes1.is3d() ^ modes2.is3d():
@@ -177,27 +207,58 @@ def calcSpectralOverlap(modes1, modes2, turbo=False):
         raise ValueError('modes1 and modes2 must have same number of atoms')
 
     if isinstance(modes1, Mode):
-        varA = np.array([modes1.getVariance()])
+        if weighted:
+            varA = np.array([calcFractVariance(modes1)])
+        else:
+            varA = np.array([modes1.getVariance()])
         I = np.array([modes1.getIndex()])
     else:
-        varA = modes1.getVariances()
-        I = modes1.getIndices()
+        if weighted:
+            varA = calcFractVariance(modes1)
+        else:
+            varA = modes1.getVariances()
+
+        try:
+            I = modes1.getIndices()
+        except:
+            try:
+                modes1 = modes1[:]
+                I = modes1.getIndices()
+            except:
+                raise TypeError('modes1 should be ModeSet or an object from which a ModeSet can be obtained')
 
     if isinstance(modes2, Mode):
-        varB = np.array([modes2.getVariance()])
+        if weighted:
+            varB = np.array([calcFractVariance(modes2)])
+        else:
+            varB = np.array([modes2.getVariance()])
         J = np.array([modes2.getIndex()])
     else:
-        varB = modes2.getVariances()
-        J = modes2.getIndices()
+        if weighted:
+            varB = calcFractVariance(modes2)
+        else:
+            varB = modes2.getVariances()
+
+        try:
+            J = modes2.getIndices()
+        except:
+            try:
+                modes2 = modes2[:]
+                J = modes2.getIndices()
+            except:
+                raise TypeError('modes2 should be ModeSet or an object from which a ModeSet can be obtained')
 
     if turbo:
         model1 = modes1.getModel()
         model2 = modes2.getModel()
-
-        if (model1, model2) in SO_CACHE:
-            weights = SO_CACHE[(model1, model2)]
-        elif (model2, model1) in SO_CACHE:
-            weights = SO_CACHE[(model2, model1)]
+        if weighted:
+            CACHE = WO_CACHE
+        else:
+            CACHE = SO_CACHE
+        if (model1, model2) in CACHE:
+            weights = CACHE[(model1, model2)]
+        elif (model2, model1) in CACHE:
+            weights = CACHE[(model2, model1)]
         else:
             farrayA = model1._getArray()
             farrayB = model2._getArray()
@@ -207,7 +268,7 @@ def calcSpectralOverlap(modes1, modes2, turbo=False):
 
             dotAB = np.dot(farrayA.T, farrayB)**2
             outerAB = np.outer(fvarA**0.5, fvarB**0.5)
-            SO_CACHE[(model1, model2)] = weights = outerAB * dotAB
+            CACHE[(model1, model2)] = weights = outerAB * dotAB
         
         weights = weights[I, :][:, J]
     else:
@@ -226,24 +287,29 @@ def calcSpectralOverlap(modes1, modes2, turbo=False):
         diff = diff ** 0.5
     return 1 - diff / np.sqrt(varA.sum() + varB.sum())
 
-def calcCovOverlap(modes1, modes2):
+def calcCovOverlap(modes1, modes2, turbo=False):
     """Returns overlap between covariances of *modes1* and *modes2*.  Overlap
     between covariances are calculated using normal modes (eigenvectors),
     hence modes in both models must have been calculated.  This function
     implements equation 11 in [BH02]_."""
-    return calcSpectralOverlap(modes1, modes2)
+    return calcSpectralOverlap(modes1, modes2, turbo=turbo)
 
-def pairModes(modes1, modes2, index=False):
+def pairModes(modes1, modes2, **kwargs):
     """Returns the optimal matches between *modes1* and *modes2*. *modes1* 
     and *modes2* should have equal number of modes, and the function will 
     return a nested list where each item is a list containing a pair of modes.
 
-    :arg index: if `True` then indices of modes will be returned instead of 
+    :arg index: if **True** then indices of modes will be returned instead of 
         :class:`Mode` instances.
     :type index: bool
     """
 
-    from scipy.optimize import linear_sum_assignment
+    index = kwargs.pop('index', False)
+    method = kwargs.pop('method', None)
+
+    if method is None:
+        from scipy.optimize import linear_sum_assignment
+        method = linear_sum_assignment
 
     if not (isinstance(modes1, (ModeSet, NMA)) \
         and isinstance(modes2, (ModeSet, NMA))):
@@ -254,7 +320,7 @@ def pairModes(modes1, modes2, index=False):
     overlaps = calcOverlap(modes1, modes2)
 
     costs = 1 - abs(overlaps)
-    row_ind, col_ind = linear_sum_assignment(costs)
+    row_ind, col_ind = method(costs)
 
     if index:
         return row_ind, col_ind
@@ -348,7 +414,7 @@ def matchModes(*modesets, **kwargs):
         for i, modeset in enumerate(modesets):
             LOGGER.update(i, label='_prody_matchModes')
             if i > 0:
-                _, reordered_modeset = pairModes(modeset0, modeset, index=index)
+                _, reordered_modeset = pairModes(modeset0, modeset, index=index, **kwargs)
                 ret.append(reordered_modeset)
         LOGGER.finish()
     

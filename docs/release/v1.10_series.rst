@@ -4,6 +4,36 @@ ProDy 1.10 Series
 .. contents::
    :local:
 
+1.10.9 (May 2, 2019)
+------------------------------------------------------------------------------
+
+**New Features**:
+
+  * Added a *method* option to :func:`pairModes` to use other solvers for the 
+  linear assignment problem.
+
+  * Added functions for handling user-defined data for :class:`Ensemble` and 
+  :class:`PDBEnsemble` 
+
+  * Added the *reweight* option to :class:`.ModeEnsemble` to reweight the modes 
+  based on matched eigenvalues.
+
+  * :func:`.showSqFlucts` now plot color-coded square fluctuations using 
+  domain information.
+
+  * Added :func:`.calcSquareInnerProduct` for calculating the square inner 
+  product between two square fluctuations.
+
+  * Allowed :func:`.parseHiC` to automatically identify and read bindary hic files.
+
+**Bug Fixes and Improvements**:
+  
+  * Fixes to :func:`.parsePDB` for compatibility with large PDB files.
+
+  * Fixes and improvements to membrane ANM functions for faster computation.
+
+  * PY3K compatibility fixes.
+
 1.10.8 (Sept 18, 2018)
 ------------------------------------------------------------------------------
 
