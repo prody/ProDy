@@ -2160,11 +2160,11 @@ static PyObject *msapsicov(PyObject *self, PyObject *args, PyObject *kwargs) {
     double lastfnzero=0.0, bestrho=0.0, **pcmat, pc;
  	double maxgapf = 0.9;
 
-     /* Guess at a reasonable starting rho value if undefined */
-     if (rhodefault < 0.0)
- 		trialrho = MAX(0.001, 1.0 / wtsum);
-     else
- 		trialrho = rhodefault;
+    /* Guess at a reasonable starting rho value if undefined */
+    if (rhodefault < 0.0)
+        trialrho = MAX(0.001, 1.0 / wtsum);
+    else
+        trialrho = rhodefault;
 
     rfact = 0.0;
  	int approxflg=0, initflg=0, maxit=10000;
@@ -2193,7 +2193,7 @@ static PyObject *msapsicov(PyObject *self, PyObject *args, PyObject *kwargs) {
  	    	continue;
 		}
  		for (npair=nnzero=i=0; i<ndim; i++)
- 	    	for (j=i+1; j<ndim; j++,npair++)
+ 	    	for (j=i+1; j<ndim; j++, npair++)
  				if (wwi[i][j] != 0.0)
  		    		nnzero++;
 
@@ -2235,20 +2235,20 @@ static PyObject *msapsicov(PyObject *self, PyObject *args, PyObject *kwargs) {
     
     
     for (i=0; i<length; i++)
-	for (j=i+1; j<length; j++)
-	{	
-	    for (pc=k=0; k<20; k++)
-		for (l=0; l<20; l++)
-		    pc += fabs(wwi[i*21+k][j*21+l]);
+        for (j=i+1; j<length; j++)
+        {	
+            for (pc=k=0; k<20; k++)
+                for (l=0; l<20; l++)
+                    pc += fabs(wwi[i*21+k][j*21+l]);
 
-	    pcmat[i][j] = pcmat[j][i] = pc;
-		
-	}
-	for (i=0;i<length; i++){
-		for (j=0; j<length; j++){
+            pcmat[i][j] = pcmat[j][i] = pc;
+            
+        }
+
+	for (i=0;i<length; i++)
+		for (j=0; j<length; j++)
 			wwii[i*length+j]=pcmat[i][j];
-		}
-	}
+
     return Py_BuildValue("O", pcinfo);
 }
 

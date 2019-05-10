@@ -114,6 +114,11 @@ EXTENSIONS = [
               include_dirs=[numpy.get_include()]),
 ]
 
+# extra arguments for compiling C++ extensions on MacOSX
+extra_compile_args = []
+if platform.system() == 'Darwin':
+    extra_compile_args.append('-stdlib=libc++')
+
 CONTRIBUTED = [
     Extension('prody.kdtree._CKDTree',
               [join('prody', 'kdtree', 'KDTree.c'),
@@ -122,7 +127,7 @@ CONTRIBUTED = [
     Extension('prody.proteins.ccealign', 
               [join('prody', 'proteins', 'ccealign', 'ccealignmodule.cpp')], 
               include_dirs=[tntDir], language='c++',
-              extra_compile_args=["-stdlib=libc++"]
+              extra_compile_args=extra_compile_args
               )
 ]
 
