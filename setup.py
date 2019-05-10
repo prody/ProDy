@@ -117,6 +117,7 @@ EXTENSIONS = [
 # extra arguments for compiling C++ extensions on MacOSX
 extra_compile_args = []
 if platform.system() == 'Darwin':
+    os.environ['MACOSX_DEPLOYMENT_TARGET'] = '10.9'
     extra_compile_args.append('-stdlib=libc++')
 
 CONTRIBUTED = [
