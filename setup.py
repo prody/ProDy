@@ -118,6 +118,8 @@ EXTENSIONS = [
 extra_compile_args = []
 if platform.system() == 'Darwin':
     os.environ['MACOSX_DEPLOYMENT_TARGET'] = '10.9'
+    os.environ['CC'] = 'clang'
+    os.environ['CXX'] = 'clang++'
     extra_compile_args.append('-stdlib=libc++')
 
 CONTRIBUTED = [
