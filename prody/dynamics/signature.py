@@ -1691,6 +1691,9 @@ def loadModeEnsemble(filename, **kwargs):
         modesets.remove(None)
 
     if labels is not None:
+        char = labels.dtype.char
+        if char in 'SU' and char != DTYPE:
+            labels = labels.astype(str)
         labels = labels.tolist()
 
     if isinstance(matched, np.ndarray):
@@ -1800,33 +1803,34 @@ def calcSubfamilySpectralOverlaps(mode_ens, subfamily_dict, **kwargs):
     """Calculate average spectral overlaps (or distances) within and between 
     subfamilies in a mode ensemble defined using a dictionary where each key is an 
     ensemble member and the associate value is a subfamily name.
-
+    
     To use a range of modes, please index the mode ensemble e.g. 
     mode_ens=mode_ensemble[:,3:20] to use modes 4 to 20 inclusive. 
     Alternatively, there is the option to provide first and last 
     keyword arguments, which would be used as the 3 and 20 above.
-
+    
     :arg mode_ensemble: an ensemble of modes corresponding to a set of modes 
         for each family member
     :type mode_ensemble: :class:`.ModeEnsemble`
-
+    
     :arg subfamily_dict: a dictionary providing a subfamily label for 
         each family member
     :type subfamily_dict: dict
-
+    
     :keyword first: the first index for a range of modes
     :type first: int
-
+    
     :keyword last: the last index for a range of modes
     :type last: int
-
+    
     :keyword remove_small: whether to remove small subfamilies with 
         fewer than 4 members. Default is True
     :type remove_small: bool
-
+    
     :keyword return_reordered_subfamilies: whether to return the reordered 
         subfamilies in addition to the matrix. Default is False
     type return_reordered_subfamilies: bool 
+    
     """
 
     if not isinstance(mode_ens, ModeEnsemble):
