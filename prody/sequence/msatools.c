@@ -1798,11 +1798,14 @@ static PyObject *msadirectinfo1(PyObject *self, PyObject *args, PyObject *kwargs
     double pro_weight = 1. - pseudocount_weight;
     for (i = 0; i < q*l; i++)
         prob[i] = pse_weight_val;
+    
     #define prob(x,y) prob[(x)*q + (y)]
     #define align(x,y) align[(x)*l + (y)]
+    printf("here\n");
     for (i = 0; i < number; i++)
         for (j = 0; j < l; j++)
             prob(j, align(i,j)) += pro_weight * w[i];
+    printf("here three\n");
 
     /*Calculate C matrix.*/
     double *joint = malloc(q*q*sizeof(double));
@@ -1849,6 +1852,8 @@ static PyObject *msadirectinfo1(PyObject *self, PyObject *args, PyObject *kwargs
     #undef align
     #undef joint
     #undef c
+
+    printf('here too\n');
     return Py_BuildValue("dllOO", meff, number, l, cinfo, pinfo);
 }
 
