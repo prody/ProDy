@@ -179,7 +179,7 @@ setup(
     #scripts=SCRIPTS,
     entry_points = {
         'console_scripts': SCRIPTS,
-    }
-    #install_requires=['NumPy (>=1.10)', ],
+    },
+    install_requires=['numpy>=1.10', 'biopython', 'pyparsing'],
     #provides=['ProDy ({0:s})'.format(__version__)]
 )
