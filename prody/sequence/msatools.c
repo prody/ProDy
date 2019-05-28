@@ -1805,7 +1805,7 @@ static PyObject *msadirectinfo1(PyObject *self, PyObject *args, PyObject *kwargs
     for (i = 0; i < number; i++)
         for (j = 0; j < l; j++)
             prob(j, align(i,j)) += pro_weight * w[i];
-    printf("here three\n");
+    printf("here too\n");
 
     /*Calculate C matrix.*/
     double *joint = malloc(q*q*sizeof(double));
