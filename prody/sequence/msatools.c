@@ -1713,7 +1713,7 @@ static PyObject *msameff(PyObject *self, PyObject *args, PyObject *kwargs) {
             // printf("w[%d] = %f\n", i, w[i]);
         }
             
-        return Py_BuildValue("dlldi", meff, number, l, w, align);
+        return Py_BuildValue("dllii", meff, number, l, w, align);
     }
     else {
         free(align);
@@ -1794,7 +1794,7 @@ static PyObject *msadirectinfo1(PyObject *self, PyObject *args, PyObject *kwargs
     meffinfo = msameff(NULL, Py_BuildValue("(O)", msa),
              Py_BuildValue("{s:d,s:i,s:i}", "theta", theta, "meff_only", 2,
                  "refine", refine));
-    if (!PyArg_ParseTuple(meffinfo, "dlldi", &meff, &number, &l, &w, &align))
+    if (!PyArg_ParseTuple(meffinfo, "dllii", &meff, &number, &l, &w, &align))
         return NULL;
 
     /*Build single probablity. use pseudocount_weight to weight it.*/
@@ -1806,8 +1806,8 @@ static PyObject *msadirectinfo1(PyObject *self, PyObject *args, PyObject *kwargs
     #define prob(x,y) prob[(x)*q + (y)]
     #define align(x,y) align[(x)*l + (y)]
     printf("here\n");
-    int db_idx = 0;
-    printf("align[%d] = %f\n", db_idx, align[db_idx]);
+    printf("w[%d] = %f\n", 0, w[0]);
+    printf("align[%d] = %f\n", 0, align[0]);
     for (i = 0; i < number; i++)
         for (j = 0; j < l; j++)
             prob(j, align(i, j)) += pro_weight * w[i];
