@@ -1713,7 +1713,7 @@ static PyObject *msameff(PyObject *self, PyObject *args, PyObject *kwargs) {
             // printf("w[%d] = %f\n", i, w[i]);
         }
             
-        return Py_BuildValue("dlldd", meff, number, l, w, align);
+        return Py_BuildValue("dllLL", meff, number, l, w, align);
     }
     else {
         free(align);
@@ -1794,7 +1794,7 @@ static PyObject *msadirectinfo1(PyObject *self, PyObject *args, PyObject *kwargs
     meffinfo = msameff(NULL, Py_BuildValue("(O)", msa),
              Py_BuildValue("{s:d,s:i,s:i}", "theta", theta, "meff_only", 2,
                  "refine", refine));
-    if (!PyArg_ParseTuple(meffinfo, "dlldd", &meff, &number, &l, &w, &align))
+    if (!PyArg_ParseTuple(meffinfo, "dllLL", &meff, &number, &l, &w, &align))
         return NULL;
 
     /*Build single probablity. use pseudocount_weight to weight it.*/
