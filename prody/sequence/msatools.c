@@ -2185,15 +2185,15 @@ static PyObject *msapsicov(PyObject *self, PyObject *args, PyObject *kwargs) {
 		}
  		for (i=0; i<ndim; i++)
  	    	for (j=0; j<ndim; j++)
- 			rho[i][j] = trialrho;
+ 			    rho[i][j] = trialrho;
 	
  		for (i=0; i<length; i++)
  	    	for (j=0; j<length; j++)
- 			for (k=0; k<21; k++)
- 		    	for (l=0; l<21; l++)
- 				if ((k != l && i == j) || pa[i][20] > maxgapf || pa[j][20] > maxgapf)
- 			    	rho[(i*21+k)][j*21+l] = 1e9;
-	
+                for (k=0; k<21; k++)
+                    for (l=0; l<21; l++)
+                        if ((k != l && i == j) || pa[i][20] > maxgapf || pa[j][20] > maxgapf)
+                            rho[(i*21+k)][j*21+l] = 1e9;
+        
  	/* All matrices are symmetric so no need to transpose before/after calling Fortran code */
  		glassofast(ndim, cmat, rho, thresh, maxit, approxflg, initflg, wwi, ww);
  		if (targfnzero <= 0.0 || wtsum < length){
@@ -2250,12 +2250,11 @@ static PyObject *msapsicov(PyObject *self, PyObject *args, PyObject *kwargs) {
                     pc += fabs(wwi[i*21+k][j*21+l]);
 
             pcmat[i][j] = pcmat[j][i] = pc;
-            
         }
 
-	for (i=0;i<length; i++)
-		for (j=0; j<length; j++)
-			wwii[i*length+j]=pcmat[i][j];
+    for (i=0; i<length; i++)
+        for (j=0; j<length; j++)
+            wwii[i*length+j] = pcmat[i][j];
 
     return Py_BuildValue("O", pcinfo);
 }
