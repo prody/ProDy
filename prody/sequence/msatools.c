@@ -1711,7 +1711,6 @@ static PyObject *msameff(PyObject *self, PyObject *args, PyObject *kwargs) {
         {
             w[i] /= meff;
         }
-            
         return Py_BuildValue("dllLL", meff, number, l, w, align);
     }
     else {
@@ -1802,8 +1801,8 @@ static PyObject *msadirectinfo1(PyObject *self, PyObject *args, PyObject *kwargs
     for (i = 0; i < q*l; i++)
         prob[i] = pse_weight_val;
     
-    #define prob(x,y) prob[(x)*q + (y)]
-    #define align(x,y) align[(x)*l + (y)]
+    #define prob(x, y) prob[(x)*q + (y)]
+    #define align(x, y) align[(x)*l + (y)]
     for (i = 0; i < number; i++)
         for (j = 0; j < l; j++)
             prob(j, align(i, j)) += pro_weight * w[i];
@@ -1825,7 +1824,7 @@ static PyObject *msadirectinfo1(PyObject *self, PyObject *args, PyObject *kwargs
                     joint[k] = 0.;
                 pse_weight_val = pseudocount_weight / q;
                 for (k = 0; k < q; k++)
-                    joint(k,k) = pse_weight_val;
+                    joint(k, k) = pse_weight_val;
             }
             else{
                 pse_weight_val = pseudocount_weight / q / q;
@@ -1834,7 +1833,7 @@ static PyObject *msadirectinfo1(PyObject *self, PyObject *args, PyObject *kwargs
             }
 
             for (k = 0; k < number; k++){
-                joint(align(k,i), align(k,j)) += pro_weight * w[k];
+                joint(align(k, i), align(k, j)) += pro_weight * w[k];
             }
 
             for (k1 = 0; k1 < q-1; k1++){
@@ -1881,21 +1880,21 @@ static PyObject *msadirectinfo2(PyObject *self, PyObject *args, PyObject *kwargs
         w[i] = 0.0;
     }
 
-    #define w(x,y) w[(x)*q+(y)]
-    #define c(x,y) c[(x)*l*(q-1) + (y)]
-    #define prob(x,y) prob[(x)*q + (y)]
-    #define di(x,y) di[(x)*l + (y)]
+    #define w(x, y) w[(x)*q+(y)]
+    #define c(x, y) c[(x)*l*(q-1) + (y)]
+    #define prob(x, y) prob[(x)*q + (y)]
+    #define di(x, y) di[(x)*l + (y)]
 
     double epsilon = 1e-4, tiny = 1.0e-100;
     double diff = 1.0, sum1 = 0.0, sum2 = 0.0, sumpdir = 0.0, sumdi = 0.0;
     double *mu1 = malloc(q*sizeof(double)), *mu2 = malloc(q*sizeof(double));
     double *scra1 = malloc(q*sizeof(double)), *scra2 = malloc(q*sizeof(double));
     for (i = 0; i < l; i++){
-        di(i,i) = 0.0;
+        di(i, i) = 0.0;
         for (j = i+1; j < l; j++){
             for (k1 = 0; k1 < q-1; k1++){
                 for (k2 = 0; k2 < q-1; k2++){
-                    w(k1,k2) = exp(- c((q-1)*i + k1, (q-1)*j + k2));
+                    w(k1, k2) = exp(-c((q-1)*i + k1, (q-1)*j + k2));
                 }
             }
             for (k1 = 0; k1 < q; k1++){
@@ -1943,8 +1942,8 @@ static PyObject *msadirectinfo2(PyObject *self, PyObject *args, PyObject *kwargs
             sumpdir = 0.0;
             for (k1 = 0; k1 < q; k1++){
                 for (k2 = 0; k2 < q; k2++){
-                    w(k1,k2) = w(k1, k2) * mu1[k1] * mu2[k2];
-                    sumpdir += w(k1,k2);
+                    w(k1, k2) = w(k1, k2) * mu1[k1] * mu2[k2];
+                    sumpdir += w(k1, k2);
                 }
             }
 
@@ -1952,7 +1951,7 @@ static PyObject *msadirectinfo2(PyObject *self, PyObject *args, PyObject *kwargs
             for (k1 = 0; k1 < q; k1++){
                 for (k2 = 0; k2 < q; k2++){
                     w(k1,k2) /= sumpdir;
-                    sumdi += w(k1,k2) * log((w(k1,k2) + tiny) / (prob(i,k1) * prob(j,k2) +tiny));
+                    sumdi += w(k1,k2) * log((w(k1,k2) + tiny) / (prob(i,k1) * prob(j,k2) + tiny));
                 }
             }
 
