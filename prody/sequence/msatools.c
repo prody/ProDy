@@ -1712,7 +1712,7 @@ static PyObject *msameff(PyObject *self, PyObject *args, PyObject *kwargs) {
             w[i] /= meff;
         }
             
-        return Py_BuildValue("dllLL", meff, number, l, w, align);
+        return Py_BuildValue("dllOO", meff, number, l, w, align);
     }
     else {
         free(align);
@@ -1793,7 +1793,7 @@ static PyObject *msadirectinfo1(PyObject *self, PyObject *args, PyObject *kwargs
     meffinfo = msameff(NULL, Py_BuildValue("(O)", msa),
              Py_BuildValue("{s:d,s:i,s:i}", "theta", theta, "meff_only", 2,
                  "refine", refine));
-    if (!PyArg_ParseTuple(meffinfo, "dllLL", &meff, &number, &l, &w, &align))
+    if (!PyArg_ParseTuple(meffinfo, "dllOO", &meff, &number, &l, &w, &align))
         return NULL;
 
     /*Build single probablity. use pseudocount_weight to weight it.*/
@@ -1807,6 +1807,7 @@ static PyObject *msadirectinfo1(PyObject *self, PyObject *args, PyObject *kwargs
     for (i = 0; i < number; i++)
         for (j = 0; j < l; j++)
             prob(j, align(i, j)) += pro_weight * w[i];
+    printf("w[%d] = %f\n", number-1, w[number-1]);
 
     /*Calculate C matrix.*/
     double *joint = malloc(q*q*sizeof(double));
@@ -1854,6 +1855,7 @@ static PyObject *msadirectinfo1(PyObject *self, PyObject *args, PyObject *kwargs
     #undef joint
     #undef c
 
+    printf("here finally\n");
     return Py_BuildValue("dllOO", meff, number, l, cinfo, pinfo);
 }
 
