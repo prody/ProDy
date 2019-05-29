@@ -15,6 +15,7 @@
 
 #define MAXSEQLEN 5000
 #define MINEFSEQS (length)
+#define PTRTYPE sizeof(void *) == 4 ? 'l' : 'L'
 
 const int twenty[20] = {1, 3, 4, 5, 6, 7, 8, 9, 11, 12, 13,
                         14, 16, 17, 18, 19, 20, 22, 23, 25};
@@ -1711,7 +1712,9 @@ static PyObject *msameff(PyObject *self, PyObject *args, PyObject *kwargs) {
         {
             w[i] /= meff;
         }
-        return Py_BuildValue("dllLL", meff, number, l, w, align);
+        char format[6]; 
+        sprintf(format, "dll%c%c", PTRTYPE, PTRTYPE);
+        return Py_BuildValue(format, meff, number, l, w, align);
     }
     else {
         free(align);
@@ -1792,7 +1795,10 @@ static PyObject *msadirectinfo1(PyObject *self, PyObject *args, PyObject *kwargs
     meffinfo = msameff(NULL, Py_BuildValue("(O)", msa),
              Py_BuildValue("{s:d,s:i,s:i}", "theta", theta, "meff_only", 2,
                  "refine", refine));
-    if (!PyArg_ParseTuple(meffinfo, "dllLL", &meff, &number, &l, &w, &align))
+    
+    char format[6]; 
+    sprintf(format, "dll%c%c", PTRTYPE, PTRTYPE);
+    if (!PyArg_ParseTuple(meffinfo, format, &meff, &number, &l, &w, &align))
         return NULL;
 
     /*Build single probablity. use pseudocount_weight to weight it.*/
