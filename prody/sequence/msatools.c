@@ -1862,7 +1862,7 @@ static PyObject *msadirectinfo1(PyObject *self, PyObject *args, PyObject *kwargs
     #undef joint
     #undef c
 
-    printf('here finally\n');
+    printf("here finally\n");
     return Py_BuildValue("dllOO", meff, number, l, cinfo, pinfo);
 }
 
