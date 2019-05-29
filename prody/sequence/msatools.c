@@ -1802,7 +1802,7 @@ static PyObject *msadirectinfo1(PyObject *self, PyObject *args, PyObject *kwargs
     #define prob(x,y) prob[(x)*q + (y)]
     #define align(x,y) align[(x)*l + (y)]
     printf("here\n");
-    printf("w[-1] = %d\n", w[number-1]);
+    printf("w[%d] = %f\n", number-1, w[number-1]);
     for (i = 0; i < number; i++)
         for (j = 0; j < l; j++)
             prob(j, align(i,j)) += pro_weight * w[i];
