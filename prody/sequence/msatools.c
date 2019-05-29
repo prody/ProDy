@@ -1604,7 +1604,7 @@ static PyObject *msasca(PyObject *self, PyObject *args, PyObject *kwargs) {
 
 static PyObject *msameff(PyObject *self, PyObject *args, PyObject *kwargs) {
 
-    PyArrayObject *msa,*pythonw;
+    PyArrayObject *msa, *pythonw;
     double theta = 0.0;
     int meff_only = 1, refine = 0;
     int alignlist[26] = {1, 0, 2, 3, 4, 5, 6, 7, 8, 0, 9, 10, 11, 12,
@@ -1707,19 +1707,24 @@ static PyObject *msameff(PyObject *self, PyObject *args, PyObject *kwargs) {
         return Py_BuildValue("d", meff);
     }
     else if (meff_only == 2){
+        printf("here we go\n");
         for (i = 0; i < number; i++)
+        {
             w[i] /= meff;
-        return Py_BuildValue("dllll", meff, number, l , w, align);
+            printf("w[%d] = %f\n", i, w[i]);
+        }
+            
+        return Py_BuildValue("dllll", meff, number, l, w, align);
     }
     else {
         free(align);
         pythonw = PyArray_GETCONTIGUOUS(pythonw);
         double *pw = (double *) PyArray_DATA(pythonw);
         for (i = 0; i < number; i++){
-            pw[i]=w[i];
+            pw[i] = w[i];
         }
         free(w);
-        return Py_BuildValue("dO",meff,pythonw);
+        return Py_BuildValue("dO", meff, pythonw);
     }
 }
 
@@ -1802,7 +1807,8 @@ static PyObject *msadirectinfo1(PyObject *self, PyObject *args, PyObject *kwargs
     #define prob(x,y) prob[(x)*q + (y)]
     #define align(x,y) align[(x)*l + (y)]
     printf("here\n");
-    printf("w[%d] = %f\n", number-1, w[number-1]);
+    printf("number = %d\n", number);
+    printf("w[%d] = %f\n", 0, w[0]);
     for (i = 0; i < number; i++)
         for (j = 0; j < l; j++)
             prob(j, align(i,j)) += pro_weight * w[i];
