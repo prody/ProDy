@@ -57,7 +57,7 @@ std::istream& operator>>(std::istream &s, Array2D<T> &A)
 
     s >> M >> N;
 
-	Array2D<T> B(M,N);
+    Array2D<T> B(M,N);
 
     for (int i=0; i<M; i++)
         for (int j=0; j<N; j++)
@@ -65,7 +65,7 @@ std::istream& operator>>(std::istream &s, Array2D<T> &A)
             s >>  B[i][j];
         }
 
-	A = B;
+    A = B;
     return s;
 }
 
@@ -73,68 +73,68 @@ std::istream& operator>>(std::istream &s, Array2D<T> &A)
 template <class T>
 Array2D<T> operator+(const Array2D<T> &A, const Array2D<T> &B)
 {
-	int m = A.dim1();
-	int n = A.dim2();
+    int m = A.dim1();
+    int n = A.dim2();
 
-	if (B.dim1() != m ||  B.dim2() != n )
-		return Array2D<T>();
+    if (B.dim1() != m ||  B.dim2() != n )
+        return Array2D<T>();
 
-	else
-	{
-		Array2D<T> C(m,n);
+    else
+    {
+        Array2D<T> C(m,n);
 
-		for (int i=0; i<m; i++)
-		{
-			for (int j=0; j<n; j++)
-				C[i][j] = A[i][j] + B[i][j];
-		}
-		return C;
-	}
+        for (int i=0; i<m; i++)
+        {
+            for (int j=0; j<n; j++)
+                C[i][j] = A[i][j] + B[i][j];
+        }
+        return C;
+    }
 }
 
 template <class T>
 Array2D<T> operator-(const Array2D<T> &A, const Array2D<T> &B)
 {
-	int m = A.dim1();
-	int n = A.dim2();
+    int m = A.dim1();
+    int n = A.dim2();
 
-	if (B.dim1() != m ||  B.dim2() != n )
-		return Array2D<T>();
+    if (B.dim1() != m ||  B.dim2() != n )
+        return Array2D<T>();
 
-	else
-	{
-		Array2D<T> C(m,n);
+    else
+    {
+        Array2D<T> C(m,n);
 
-		for (int i=0; i<m; i++)
-		{
-			for (int j=0; j<n; j++)
-				C[i][j] = A[i][j] - B[i][j];
-		}
-		return C;
-	}
+        for (int i=0; i<m; i++)
+        {
+            for (int j=0; j<n; j++)
+                C[i][j] = A[i][j] - B[i][j];
+        }
+        return C;
+    }
 }
 
 
 template <class T>
 Array2D<T> operator*(const Array2D<T> &A, const Array2D<T> &B)
 {
-	int m = A.dim1();
-	int n = A.dim2();
+    int m = A.dim1();
+    int n = A.dim2();
 
-	if (B.dim1() != m ||  B.dim2() != n )
-		return Array2D<T>();
+    if (B.dim1() != m ||  B.dim2() != n )
+        return Array2D<T>();
 
-	else
-	{
-		Array2D<T> C(m,n);
+    else
+    {
+        Array2D<T> C(m,n);
 
-		for (int i=0; i<m; i++)
-		{
-			for (int j=0; j<n; j++)
-				C[i][j] = A[i][j] * B[i][j];
-		}
-		return C;
-	}
+        for (int i=0; i<m; i++)
+        {
+            for (int j=0; j<n; j++)
+                C[i][j] = A[i][j] * B[i][j];
+        }
+        return C;
+    }
 }
 
 
@@ -143,23 +143,23 @@ Array2D<T> operator*(const Array2D<T> &A, const Array2D<T> &B)
 template <class T>
 Array2D<T> operator/(const Array2D<T> &A, const Array2D<T> &B)
 {
-	int m = A.dim1();
-	int n = A.dim2();
+    int m = A.dim1();
+    int n = A.dim2();
 
-	if (B.dim1() != m ||  B.dim2() != n )
-		return Array2D<T>();
+    if (B.dim1() != m ||  B.dim2() != n )
+        return Array2D<T>();
 
-	else
-	{
-		Array2D<T> C(m,n);
+    else
+    {
+        Array2D<T> C(m,n);
 
-		for (int i=0; i<m; i++)
-		{
-			for (int j=0; j<n; j++)
-				C[i][j] = A[i][j] / B[i][j];
-		}
-		return C;
-	}
+        for (int i=0; i<m; i++)
+        {
+            for (int j=0; j<n; j++)
+                C[i][j] = A[i][j] / B[i][j];
+        }
+        return C;
+    }
 }
 
 
@@ -169,18 +169,18 @@ Array2D<T> operator/(const Array2D<T> &A, const Array2D<T> &B)
 template <class T>
 Array2D<T>&  operator+=(Array2D<T> &A, const Array2D<T> &B)
 {
-	int m = A.dim1();
-	int n = A.dim2();
+    int m = A.dim1();
+    int n = A.dim2();
 
-	if (B.dim1() == m ||  B.dim2() == n )
-	{
-		for (int i=0; i<m; i++)
-		{
-			for (int j=0; j<n; j++)
-				A[i][j] += B[i][j];
-		}
-	}
-	return A;
+    if (B.dim1() == m ||  B.dim2() == n )
+    {
+        for (int i=0; i<m; i++)
+        {
+            for (int j=0; j<n; j++)
+                A[i][j] += B[i][j];
+        }
+    }
+    return A;
 }
 
 
@@ -188,18 +188,18 @@ Array2D<T>&  operator+=(Array2D<T> &A, const Array2D<T> &B)
 template <class T>
 Array2D<T>&  operator-=(Array2D<T> &A, const Array2D<T> &B)
 {
-	int m = A.dim1();
-	int n = A.dim2();
+    int m = A.dim1();
+    int n = A.dim2();
 
-	if (B.dim1() == m ||  B.dim2() == n )
-	{
-		for (int i=0; i<m; i++)
-		{
-			for (int j=0; j<n; j++)
-				A[i][j] -= B[i][j];
-		}
-	}
-	return A;
+    if (B.dim1() == m ||  B.dim2() == n )
+    {
+        for (int i=0; i<m; i++)
+        {
+            for (int j=0; j<n; j++)
+                A[i][j] -= B[i][j];
+        }
+    }
+    return A;
 }
 
 
@@ -207,18 +207,18 @@ Array2D<T>&  operator-=(Array2D<T> &A, const Array2D<T> &B)
 template <class T>
 Array2D<T>&  operator*=(Array2D<T> &A, const Array2D<T> &B)
 {
-	int m = A.dim1();
-	int n = A.dim2();
+    int m = A.dim1();
+    int n = A.dim2();
 
-	if (B.dim1() == m ||  B.dim2() == n )
-	{
-		for (int i=0; i<m; i++)
-		{
-			for (int j=0; j<n; j++)
-				A[i][j] *= B[i][j];
-		}
-	}
-	return A;
+    if (B.dim1() == m ||  B.dim2() == n )
+    {
+        for (int i=0; i<m; i++)
+        {
+            for (int j=0; j<n; j++)
+                A[i][j] *= B[i][j];
+        }
+    }
+    return A;
 }
 
 
@@ -228,18 +228,18 @@ Array2D<T>&  operator*=(Array2D<T> &A, const Array2D<T> &B)
 template <class T>
 Array2D<T>&  operator/=(Array2D<T> &A, const Array2D<T> &B)
 {
-	int m = A.dim1();
-	int n = A.dim2();
+    int m = A.dim1();
+    int n = A.dim2();
 
-	if (B.dim1() == m ||  B.dim2() == n )
-	{
-		for (int i=0; i<m; i++)
-		{
-			for (int j=0; j<n; j++)
-				A[i][j] /= B[i][j];
-		}
-	}
-	return A;
+    if (B.dim1() == m ||  B.dim2() == n )
+    {
+        for (int i=0; i<m; i++)
+        {
+            for (int j=0; j<n; j++)
+                A[i][j] /= B[i][j];
+        }
+    }
+    return A;
 }
 
 /**
