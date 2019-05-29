@@ -1710,7 +1710,6 @@ static PyObject *msameff(PyObject *self, PyObject *args, PyObject *kwargs) {
         for (i = 0; i < number; i++)
         {
             w[i] /= meff;
-            // printf("w[%d] = %f\n", i, w[i]);
         }
             
         return Py_BuildValue("dllLL", meff, number, l, w, align);
@@ -1805,14 +1804,14 @@ static PyObject *msadirectinfo1(PyObject *self, PyObject *args, PyObject *kwargs
     
     #define prob(x,y) prob[(x)*q + (y)]
     #define align(x,y) align[(x)*l + (y)]
-    printf("here\n");
-    printf("l = %d\n", l);
-    printf("w[%d] = %f\n", 0, w[0]);
-    printf("align[%d] = %d\n", 0, align[0]);
+    // printf("here\n");
+    // printf("l = %d\n", l);
+    // printf("w[%d] = %f\n", 0, w[0]);
+    // printf("align[%d] = %d\n", 0, align[0]);
     for (i = 0; i < number; i++)
         for (j = 0; j < l; j++)
             prob(j, align(i, j)) += pro_weight * w[i];
-    printf("here too\n");
+    printf("here\n");
 
     /*Calculate C matrix.*/
     double *joint = malloc(q*q*sizeof(double));
@@ -1851,10 +1850,13 @@ static PyObject *msadirectinfo1(PyObject *self, PyObject *args, PyObject *kwargs
             }
         }
     }
+    printf("here too\n");
 
     free(w);
     free(align);
     free(joint);
+    printf("here three\n");
+
     #undef prob
     #undef align
     #undef joint
