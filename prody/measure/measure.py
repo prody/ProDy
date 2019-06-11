@@ -582,9 +582,11 @@ def calcRMSF(coordsets):
 calcRMSF.__doc__ += _MSF_DOCSTRING
 
 
-def calcDeformVector(from_atoms, to_atoms):
+def calcDeformVector(from_atoms, to_atoms, weights=None):
     """Returns deformation from *from_atoms* to *atoms_to* as a :class:`.Vector`
     instance."""
+
+    from prody.dynamics import Vector
 
     name = '{0} => {1}'.format(repr(from_atoms), repr(to_atoms))
     if len(name) > 30:
@@ -593,8 +595,14 @@ def calcDeformVector(from_atoms, to_atoms):
     from_coords = getCoords(from_atoms)
     to_coords = getCoords(to_atoms)
 
-    arr = (to_coords - from_coords).flatten()
-    from prody.dynamics import Vector
+    arr = to_coords - from_coords
+    if weights is not None:
+        if len(weights) != len(arr):
+            raise ValueError('weights must have the same length as from_atoms and to_atoms')
+        arr = (arr.T * weights).T
+    
+    arr = arr.flatten()
+    
     return Vector(arr, name)
 
 
