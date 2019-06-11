@@ -450,9 +450,7 @@ def buildPDBEnsemble(PDBs, ref=None, title='Unknown', labels=None,
 
     start = time.time()
     # obtain the atommap of all the chains combined.
-    atoms = refchains[0]
-    for i in range(1, len(refchains)):
-        atoms += refchains[i]
+    atoms = refpdb
     
     # initialize a PDBEnsemble with reference atoms and coordinates
     ensemble = PDBEnsemble(title)
