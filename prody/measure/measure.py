@@ -597,6 +597,8 @@ def calcDeformVector(from_atoms, to_atoms, weights=None):
 
     arr = to_coords - from_coords
     if weights is not None:
+        if weights.ndim > 1:
+            weights = weights.flatten()
         if len(weights) != len(arr):
             raise ValueError('weights must have the same length as from_atoms and to_atoms')
         arr = (arr.T * weights).T
