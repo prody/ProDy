@@ -413,6 +413,7 @@ def buildPDBEnsemble(PDBs, ref=None, title='Unknown', labels=None,
     degeneracy = kwargs.pop('degeneracy', True)
     subset = str(kwargs.get('subset', 'calpha')).lower()
     superpose = kwargs.pop('superpose', True)
+    superpose = kwargs.pop('iterpose', superpose)
 
     if len(PDBs) == 1:
         raise ValueError('PDBs should have at least two items')
