@@ -179,7 +179,13 @@ def saveVector(vector, filename, **kwargs):
     attr_dict['title'] = vector.getTitle()
     attr_dict['array'] = vector._getArray()
     attr_dict['is3d'] = vector.is3d()
-    filename += '.vec.npz'
+
+    if not filename.lower().endswith('.npz'):
+        if not filename.lower().endswith('.vec'):
+            filename += '.vec.npz'
+        else:
+            filename += '.npz'
+
     ostream = openFile(filename, 'wb', **kwargs)
     np.savez(ostream, **attr_dict)
     ostream.close()
