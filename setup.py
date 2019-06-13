@@ -114,6 +114,12 @@ EXTENSIONS = [
               include_dirs=[numpy.get_include()]),
 ]
 
+# extra arguments for compiling C++ extensions on MacOSX
+extra_compile_args = []
+if platform.system() == 'Darwin':
+    os.environ['MACOSX_DEPLOYMENT_TARGET'] = '10.9'
+    extra_compile_args.append('-stdlib=libc++')
+
 CONTRIBUTED = [
     Extension('prody.kdtree._CKDTree',
               [join('prody', 'kdtree', 'KDTree.c'),
@@ -121,7 +127,9 @@ CONTRIBUTED = [
               include_dirs=[numpy.get_include()]),
     Extension('prody.proteins.ccealign', 
               [join('prody', 'proteins', 'ccealign', 'ccealignmodule.cpp')], 
-              include_dirs=[tntDir], language='c++' )
+              include_dirs=[tntDir], language='c++',
+              extra_compile_args=extra_compile_args
+              )
 ]
 
 for ext in CONTRIBUTED:
@@ -171,7 +179,7 @@ setup(
     #scripts=SCRIPTS,
     entry_points = {
         'console_scripts': SCRIPTS,
-    }
-    #install_requires=['NumPy (>=1.10)', ],
+    },
+    install_requires=['numpy>=1.10', 'biopython', 'pyparsing'],
     #provides=['ProDy ({0:s})'.format(__version__)]
 )
