@@ -42,12 +42,15 @@ class Everything(object):
 
 class Cursor(object):
     def __init__(self, ax):
+        import matplotlib.patheffects as PathEffects
+
         self.ax = ax
         self.lx = ax.axhline(color='k', linestyle='--', linewidth=0.)  # the horiz line
         self.ly = ax.axvline(color='k', linestyle='--', linewidth=0.)  # the vert line
 
         # text location in axes coords
-        self.txt = ax.text(0., 1., '', color='r', verticalalignment='bottom')
+        self.txt = ax.text(0., 1., '', color='k', verticalalignment='bottom')
+        self.txt.set_path_effects([PathEffects.withStroke(linewidth=3, foreground='w')])
         
         # preserve the cursor reference
         global CURSORS
@@ -106,7 +109,7 @@ class ImageCursor(Cursor):
         else:
             template = ' x=%s, y=%s [%s]'
         if self.atoms is None:
-            self.txt.set_text(template % (j, i, v))
+            self.txt.set_text(template % (j, i, v)) 
         else:
             seq = self.atoms.getSequence()
             resnums = self.atoms.getResnums()
