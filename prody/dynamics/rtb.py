@@ -96,6 +96,13 @@ class RTB(ANMBase):
                                 'with `getCoords` method')
 
         LOGGER.timeit('_rtb')
+        super(RTB, self).buildHessian(coords, cutoff=cutoff, gamma=gamma, **kwargs)
+
+        self.calcProjection(coords, blocks, **kwargs)
+        LOGGER.report('Hessian was built in %.2fs.', label='_rtb')
+
+
+    def calcProjection(self, coords, blocks, **kwargs):
         self._n_atoms = natoms = int(coords.shape[0])
         if natoms != len(blocks):
             raise ValueError('len(blocks) must match number of atoms')
@@ -128,20 +135,21 @@ class RTB(ANMBase):
 
         coords = coords.T.astype(float, order='C')
 
-        self._hessian = hessian = np.zeros((nb6, nb6), float)
+        hessian = self._hessian
+        blessian = np.zeros((nb6, nb6), float)
         self._project = project = np.zeros((natoms * 3, nb6), float)
 
         from .rtbtools import buildhessian
 
-        buildhessian(coords, blocks, hessian, project,
+        buildhessian(coords, blocks, blessian, project,
                      natoms, nblocks, maxsize, 
-                     float(cutoff), float(gamma),
+                     15., 1.,
                      scale=float(kwargs.get('scale', 1.0)),
                      memlo=float(kwargs.get('membrane_low', 1.0)),
                      memhi=float(kwargs.get('membrane_high', 1.0)),)
 
+        self._hessian = blessian
         self._dof = self._hessian.shape[0]
-        LOGGER.report('Hessian was built in %.2fs.', label='_rtb')
 
 
     def getProjection(self):
