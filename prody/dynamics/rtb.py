@@ -103,7 +103,8 @@ class RTB(ANMBase):
 
 
     def calcProjection(self, coords, blocks, **kwargs):
-        self._n_atoms = natoms = int(coords.shape[0])
+        natoms = self._n_atoms
+
         if natoms != len(blocks):
             raise ValueError('len(blocks) must match number of atoms')
         from collections import defaultdict
@@ -136,17 +137,18 @@ class RTB(ANMBase):
         coords = coords.T.astype(float, order='C')
 
         hessian = self._hessian
+        print('hess0 = %f'%hessian[0, 0])
         blessian = np.zeros((nb6, nb6), float)
         self._project = project = np.zeros((natoms * 3, nb6), float)
 
-        from .rtbtools import buildhessian
+        from .rtbtools import build_blessian
 
-        buildhessian(coords, blocks, blessian, project,
-                     natoms, nblocks, maxsize, 
-                     15., 1.,
-                     scale=float(kwargs.get('scale', 1.0)),
-                     memlo=float(kwargs.get('membrane_low', 1.0)),
-                     memhi=float(kwargs.get('membrane_high', 1.0)),)
+        build_blessian(coords, blocks, hessian, blessian, project,
+                       natoms, nblocks, maxsize, 
+                       15., 1.,
+                       scale=float(kwargs.get('scale', 1.0)),
+                       memlo=float(kwargs.get('membrane_low', 1.0)),
+                       memhi=float(kwargs.get('membrane_high', 1.0)),)
 
         self._hessian = blessian
         self._dof = self._hessian.shape[0]

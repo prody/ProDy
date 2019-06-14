@@ -81,29 +81,29 @@ void dsvdcmp(double **a, int m, int n, double w[], double **v);
 double sum(double *a, int n);
 
 
-/* "buildhessian" constructs a block Hessian and associated projection matrix 
+/* "build_blessian" constructs a block Hessian and associated projection matrix 
    by application of the ANM.  Atomic coordinates and block definitions are 
    provided in 'coords' and 'blocks'; ANM parameters are provided in 'cutoff' 
    and 'gamma'.  On successful termination, the block Hessian is stored in 
-   'hessian', and the projection matrix between block and all-atom spaces is 
+   'blessian', and the projection matrix between block and all-atom spaces is 
    in 'projection'. */
-static PyObject *buildhessian(PyObject *self, PyObject *args, PyObject *kwargs) {
+static PyObject *build_blessian(PyObject *self, PyObject *args, PyObject *kwargs) {
   PDB_File PDB;
   dSparse_Matrix PP, HH;
-  PyArrayObject *coords, *blocks, *hessian, *projection;
-  double *XYZ, *hess, *proj;
+  PyArrayObject *coords, *blocks, *blessian, *projection, *hessian;
+  double *XYZ, *bless, *proj, *hess;
   int *BLK;
   double **HB;
   double cutoff = 15., gamma = 1., scl=1., mlo=1., mhi=-1.;
   int natm, nblx, bmx;
   int hsize, elm, bdim, i, j;
 
-  static char *kwlist[] = {"coords", "blocks", "hessian", "projection",
+  static char *kwlist[] = {"coords", "blocks", "hessian", "blessian", "projection",
 			   "natoms", "nblocks", "maxsize", "cutoff",
 			   "gamma", "scale", "memlo", "memhi", NULL};
 
-  if (!PyArg_ParseTupleAndKeywords(args, kwargs, "OOOOiii|ddddd", kwlist,
-				   &coords, &blocks, &hessian, &projection,
+  if (!PyArg_ParseTupleAndKeywords(args, kwargs, "OOOOOiii|ddddd", kwlist,
+				   &coords, &blocks, &hessian, &blessian, &projection,
 				   &natm, &nblx, &bmx, &cutoff, &gamma, &scl,
 				   &mlo, &mhi))
     return NULL;
@@ -111,6 +111,7 @@ static PyObject *buildhessian(PyObject *self, PyObject *args, PyObject *kwargs) 
   XYZ = (double *) PyArray_DATA(coords);
   BLK = (int *) PyArray_DATA(blocks);
   hess = (double *) PyArray_DATA(hessian);
+  bless = (double *) PyArray_DATA(blessian);
   proj = (double *) PyArray_DATA(projection);
 
   // printf("cutoff = %f\n", cutoff);
@@ -152,18 +153,22 @@ static PyObject *buildhessian(PyObject *self, PyObject *args, PyObject *kwargs) 
 
   /* Calculate the block Hessian */
   HB = dmatrix(1, 6*nblx, 1, 6*nblx);
-  bdim = calc_blessian_mem(&PDB, &PP, natm, nblx, elm, HB, cutoff, gamma, scl, mlo, mhi);
+  for (i=1; i<=bdim; i++)
+    for (j=1; j<=bdim; j++)
+      HR[bdim*(i-1)+j-1] = hess[i][j];
+  bdim = calc_blessian_mem(&PDB, &PP, natm, nblx, elm, hess, HB, cutoff, gamma, scl, mlo, mhi);
 
 
   /* Cast the block Hessian and projection matrix into 1D arrays. */
   copy_prj_ofst(&PP, proj, elm, bdim);
   for (i=1; i<=bdim; i++)
     for (j=1; j<=bdim; j++)
-      hess[bdim*(i-1)+j-1] = HB[i][j];
+      bless[bdim*(i-1)+j-1] = HB[i][j];
 
-  // double s;
-  // s = sum(hess, bdim*bdim);
-  // printf("hess = %f\n", s);
+  double s;
+  s = sum(hess, natm*natm);
+  printf("hess = %f\n", s);
+  printf("hess0 = %f\n", hess[0]);
 
   free(PDB.atom);
   free_imatrix(PP.IDX, 1, elm, 1, 2);
@@ -177,7 +182,7 @@ static PyObject *buildhessian(PyObject *self, PyObject *args, PyObject *kwargs) 
 
 static PyMethodDef rtbtools_methods[] = {
 
-    {"buildhessian", (PyCFunction)buildhessian,
+    {"build_blessian", (PyCFunction)build_blessian,
      METH_VARARGS | METH_KEYWORDS,
      "Build Hessian matrix and projections."},
 
@@ -273,7 +278,7 @@ int bless_from_tensor(double **HB,double ***HT,int **CT,int nblx)
 
 /* "calc_blessian_mem" calculates the block Hessian. */
 int calc_blessian_mem(PDB_File *PDB, dSparse_Matrix *PP1, int nres, int nblx, 
-		      int elm, double **HB, double cut, double gam, double scl, 
+		      int elm, double *hess, double **HB, double cut, double gam, double scl, 
 		      double mlo, double mhi)
 {
   dSparse_Matrix *PP2;
@@ -285,22 +290,22 @@ int calc_blessian_mem(PDB_File *PDB, dSparse_Matrix *PP1, int nres, int nblx,
   /* ------------------- INITIALIZE LOCAL VARIABLES ------------------- */
 
   /* HR holde three rows (corresponding to 1 residue) of the full Hessian */
-  HR=zero_dmatrix(1, 3*nres, 1, 3);
+  HR = zero_dmatrix(1, 3*nres, 1, 3);
 
   /* CT is an array of contacts between blocks */
-  CT=unit_imatrix(0, nblx);
+  CT = unit_imatrix(0, nblx);
 
   /* Copy PP1 to PP2 and sort by second element */
-  PP2=(dSparse_Matrix *)malloc((size_t)sizeof(dSparse_Matrix));
-  PP2->IDX=imatrix(1, elm, 1, 2);
-  PP2->X=dvector(1, elm);
+  PP2 = (dSparse_Matrix *) malloc((size_t) sizeof(dSparse_Matrix));
+  PP2->IDX = imatrix(1, elm, 1, 2);
+  PP2->X = dvector(1, elm);
   copy_dsparse(PP1, PP2, 1, elm);
   dsort_PP2(PP2, elm, 2);
 
   /* BST1: for all j: BST1[i]<=j<BST[i+1], PP1->IDX[j][1]=i */
   /* BST2: for all j: BST2[i]<=j<BST2[i+1], PP2->IDX[j][2]=i */
-  BST1=ivector(1, 3*nres+1);
-  BST2=ivector(1, 6*nblx+1);
+  BST1 = ivector(1, 3*nres+1);
+  BST2 = ivector(1, 6*nblx+1);
   init_bst(BST1, PP1, elm, 3*nres+1, 1);
   init_bst(BST2, PP2, elm, 6*nblx+1, 2);
   /* ------------------- LOCAL VARIABLES INITIALIZED ------------------ */
@@ -308,44 +313,44 @@ int calc_blessian_mem(PDB_File *PDB, dSparse_Matrix *PP1, int nres, int nblx,
 
 
   /* ------------- FIND WHICH BLOCKS ARE IN CONTACT --------------- */
-  nc=find_contacts1(CT, PDB, nres, nblx, cut);
+  nc = find_contacts1(CT, PDB, nres, nblx, cut);
 
 
   /* Allocate a tensor for the block Hessian */
-  HT=zero_d3tensor(1, nc, 1, 6, 1, 6);
+  HT = zero_d3tensor(1, nc, 1, 6, 1, 6);
 
 
   /* Calculate each super-row of the full Hessian */
-  for(ii=1;ii<=nres;ii++){
+  for (ii=1; ii<=nres; ii++){
 
-    if(PDB->atom[ii].model!=0){
+    if (PDB->atom[ii].model!=0){
 
       /* ----------------- FIND SUPER-ROW OF FULL HESSIAN --------------- */
       hess_superrow_mem(HR, CT, PDB, nres, ii, cut, gam, scl, mlo, mhi);
 
 
       /* Update elements of block hessian */
-      q1=BST1[3*(ii-1)+2];
-      q2=BST1[3*(ii-1)+3];
+      q1 = BST1[3*(ii-1)+2];
+      q2 = BST1[3*(ii-1)+3];
       /* Sum over elements of projection matrix corresponding to residue ii:
-	 for each k in the following loop, PP1->IDX[k][1]==3*ii + 0,1,2 */
+	    for each k in the following loop, PP1->IDX[k][1]==3*ii + 0,1,2 */
       for(k=BST1[3*ii-2];k<BST1[3*ii+1];k++){
-	if(k<q1) q=1;
-	else if(k<q2) q=2;
-	else q=3;
-	i=PP1->IDX[k][2];
-	bi=(i-1)/6+1;
-	ti=i-6*(bi-1);
-	/* Sum over all elements of projection matrix with column j>=i */
-	for(p=BST2[i];p<=elm;p++){
-	  j=PP2->IDX[p][2];
-	  bj=(j-1)/6+1;
-	  sb=CT[bi][bj];
-	  if(i<=j && sb!=0){  /* the first condition should ALWAYS hold */
-	    tj=j-6*(bj-1);
-	    HT[sb][ti][tj]+=(PP1->X[k]*PP2->X[p]*HR[PP2->IDX[p][1]][q]);
-	  }
-	}
+        if (k<q1) q=1;
+        else if (k<q2) q=2;
+        else q=3;
+        i = PP1->IDX[k][2];
+        bi = (i-1)/6 + 1;
+        ti = i - 6*(bi-1);
+        /* Sum over all elements of projection matrix with column j>=i */
+        for (p=BST2[i]; p<=elm; p++){
+          j = PP2->IDX[p][2];
+          bj = (j-1)/6+1;
+          sb = CT[bi][bj];
+          if (i<=j && sb!=0){  /* the first condition should ALWAYS hold */
+            tj = j-6*(bj-1);
+            HT[sb][ti][tj] += (PP1->X[k] * PP2->X[p] * HR[PP2->IDX[p][1]][q]);
+          }
+        }
       }
     }
   }
@@ -680,76 +685,76 @@ int find_contacts1(int **CT, PDB_File *PDB, int nres, int nblx, double cut)
 /* "hess_superrow_mem" calculates the 'who'-th super-row
    of the Hessian, using 'cut' as the cutoff and 'gam' as the
    spring constant for all interactions. */
-void hess_superrow_mem(double **HR,int **CT,PDB_File *PDB,int nres,
-		       int who,double cut,double gam,double mscl,
-		       double mlo,double mhi)
+void hess_superrow_mem(double **HR, int **CT, PDB_File *PDB, int nres,
+                       int who, double cut, double gam, double mscl,
+                       double mlo, double mhi)
 {
-  int i,j,k,jj;
-  double DX[3],csq=cut*cut,dsq,df;
-  double s0,scl;
+  int i, j, k, jj;
+  double DX[3], csq=cut*cut, dsq, df, sdf;
+  double s0, scl;
 
-  s0=pow(mscl,0.25);
+  s0 = pow(mscl, 0.25);
 
   /* Clear the diagonal super-element */
-  for(i=1;i<=3;i++)
-    for(j=1;j<=3;j++)
-      HR[3*(who-1)+i][j]=0.0;
+  // for(i=1;i<=3;i++)
+  //   for(j=1;j<=3;j++)
+  //     HR[3*(who-1)+i][j]=0.0;
 
   /* Calculate the submatrices */
-  for(jj=1;jj<=nres;jj++){
+  for(jj=1; jj<=nres; jj++){
 
-    if(jj!=who && PDB->atom[jj].model!=0 &&
-       CT[PDB->atom[who].model][PDB->atom[jj].model]!=0){
+    if (jj!=who && PDB->atom[jj].model!=0 &&
+        CT[PDB->atom[who].model][PDB->atom[jj].model]!=0){
 
-      dsq=0.0;
-      for(k=0;k<3;k++){
-	DX[k] = (double)PDB->atom[who].X[k] - PDB->atom[jj].X[k];
-	dsq+=(DX[k]*DX[k]);
+      dsq = 0.0;
+      for (k=0; k<3; k++){
+        DX[k] = (double)PDB->atom[who].X[k] - PDB->atom[jj].X[k];
+        dsq += (DX[k]*DX[k]);
       }
 
 
-      if(dsq<csq){
-
-	/* --------- Membrane scaling -------- */
-	scl=1.0;
-	if(mhi<mlo || (PDB->atom[who].X[2] < mhi && PDB->atom[who].X[2] > mlo)) scl*=s0;
-	if(mhi<mlo || (PDB->atom[jj].X[2] < mhi && PDB->atom[jj].X[2] > mlo)) scl*=s0;
-
-
-	for(i=1;i<=3;i++){
-	  for(j=i;j<=3;j++){
-
-	    df=gam*DX[i-1]*DX[j-1]/dsq;
+      if (dsq < csq){
+        /* --------- Membrane scaling -------- */
+        scl = 1.0;
+        if (mhi<mlo || (PDB->atom[who].X[2] < mhi && PDB->atom[who].X[2] > mlo)) scl*=s0;
+        if (mhi<mlo || (PDB->atom[jj].X[2] < mhi && PDB->atom[jj].X[2] > mlo)) scl*=s0;
 
 
-	    /* Strong backbone bonds:
-	       NOTE:  *Not currently available! May be implemented later 
-	    if((int)fabs(PDB->atom[who].resnum-PDB->atom[jj].resnum)==1 &&
-	       PDB->atom[who].chain==PDB->atom[jj].chain)
-	      df*=100.0;
-	    */
+        for (i=1; i<=3; i++){
+          for (j=i; j<=3; j++){
+
+            //df = gam*DX[i-1]*DX[j-1]/dsq;
+            df = -HR[3*(jj-1)+i][j];
+            sdf = df;
+
+            /* Strong backbone bonds:
+              NOTE:  *Not currently available! May be implemented later 
+            if((int)fabs(PDB->atom[who].resnum-PDB->atom[jj].resnum)==1 &&
+              PDB->atom[who].chain==PDB->atom[jj].chain)
+              df*=100.0;
+            */
 
 
-	    /* -------- MEMBRANE RULES -------- */
-	    /* Scale lateral components */
-	    if(i!=3) df*=scl;
-	    if(j!=3) df*=scl;
+            /* -------- MEMBRANE RULES -------- */
+            /* Scale lateral components */
+            if (i!=3) sdf *= scl;
+            if (j!=3) sdf *= scl;
 
 
-	    /* Off-diagonal super-elements */
-	    HR[3*(jj-1)+i][j]=HR[3*(jj-1)+j][i]=-df;
+            /* Off-diagonal super-elements */
+            HR[3*(jj-1)+i][j] = HR[3*(jj-1)+j][i] = -sdf;
 
-	    /* Diagonal super-elements */
-	    HR[3*(who-1)+i][j]+=df;
-	    if(i!=j)
-	      HR[3*(who-1)+j][i]+=df;
-	  }
-	}
+            /* Diagonal super-elements */
+            HR[3*(who-1)+i][j] += sdf - df;
+            if (i!=j)
+              HR[3*(who-1)+j][i] += sdf - df;
+          }
+        }
       } /* <----- if(dsq<csq) */
-      else
-	for(i=1;i<=3;i++)
-	  for(j=1;j<=3;j++)
-	    HR[3*(jj-1)+i][j]=HR[3*(jj-1)+j][i]=0.0;
+      // else
+      //   for (i=1; i<=3; i++)
+      //     for (j=1; j<=3; j++)
+      //       HR[3*(jj-1)+i][j] = HR[3*(jj-1)+j][i] = 0.0;
     } /* <---- if(jj!=who &&...) */
   }
 }
