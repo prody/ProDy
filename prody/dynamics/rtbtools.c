@@ -284,7 +284,7 @@ int calc_blessian_mem(PDB_File *PDB, dSparse_Matrix *PP1, int nres, int nblx,
   dSparse_Matrix *PP2;
   double **HR, ***HT;
   int **CT, *BST1, *BST2;
-  int ii, i, j, k, p, q, q1, q2, ti, tj, bi, bj, sb, nc, out;
+  int ii, jj, i, j, k, p, q, q1, q2, ti, tj, bi, bj, sb, nc, out;
 
 
   /* ------------------- INITIALIZE LOCAL VARIABLES ------------------- */
@@ -326,6 +326,11 @@ int calc_blessian_mem(PDB_File *PDB, dSparse_Matrix *PP1, int nres, int nblx,
     if (PDB->atom[ii].model!=0){
 
       /* ----------------- FIND SUPER-ROW OF FULL HESSIAN --------------- */
+      for (j=1; j<=3*nres, j++){
+        for (i=1; i<=3; i++){
+          HR[(j-1)+i][(ii-1)+i] = hess[];
+        }
+      }
       hess_superrow_mem(HR, CT, PDB, nres, ii, cut, gam, scl, mlo, mhi);
 
 
