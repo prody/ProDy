@@ -12,7 +12,7 @@ from numpy import sqrt, zeros, linalg, min, max, unique, mean, eye, outer, dot
 from scipy import sparse
 from subprocess import call
 
-from .anm import ANMBase, calcANM, ANM
+from .anm import ANMBase, ANM
 from .gnm import checkENMParameters
 from .editing import reduceModel
 
