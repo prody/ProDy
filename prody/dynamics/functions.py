@@ -11,8 +11,9 @@ from prody.atomic import Atomic, AtomGroup, AtomSubset
 from prody.utilities import openFile, isExecutable, which, PLATFORM, addext
 
 from .nma import NMA
-from .anm import ANM
+from .anm import ANM, ANMBase
 from .gnm import GNM, GNMBase, ZERO, MaskedGNM
+from .rtb import RTB
 from .pca import PCA, EDA
 from .exanm import exANM
 from .mode import Vector, Mode
@@ -59,9 +60,9 @@ def saveModel(nma, filename=None, matrices=False, **kwargs):
         attr_list.append('_gamma')
         if matrices:
             attr_list.append('_kirchhoff')
-            if isinstance(nma, ANM):
+            if isinstance(nma, ANMBase):
                 attr_list.append('_hessian')
-        if isinstance(nma, ANM):
+        if isinstance(nma, ANMBase):
             type_ = 'ANM'
         else:
             type_ = 'GNM'
@@ -89,6 +90,11 @@ def saveModel(nma, filename=None, matrices=False, **kwargs):
         attr_dict['type'] = 'exANM'
         #attr_dict['_membrane'] = np.array([nma._membrane, None])
         #attr_dict['_combined'] = np.array([nma._combined, None])
+
+    if isinstance(nma, RTB):
+        attr_dict['type'] = 'RTB'
+        if matrices:
+            attr_dict['_project'] = nma._project
 
     suffix = '.' + attr_dict['type'].lower()
     if not filename.lower().endswith('.npz'):
@@ -143,6 +149,8 @@ def loadModel(filename, **kwargs):
         nma = exANM(title)
     elif type_ == 'NMA':
         nma = NMA(title)
+    elif type_ == 'RTB':
+        nma = RTB(title)
     else:
         raise IOError('NMA model type is not recognized: {0}'.format(type_))
 
