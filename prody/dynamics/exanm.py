@@ -86,7 +86,10 @@ class exANM(ANM):
 
         LOGGER.timeit('_membrane')
 
-        h = kwargs.pop('h', None)
+        depth = kwargs.pop('depth', None)
+        h = depth / 2 if depth is not None else None
+            
+        h = kwargs.pop('h', h)
         if h is not None:
             h = float(h)
             hu = h
