@@ -5,15 +5,16 @@ import numpy as np
 
 from prody import LOGGER
 from prody.atomic import Atomic, AtomGroup
-from prody.proteins import parsePDB, writePDB
 from prody.utilities import importLA, checkCoords, copy
-from prody.kdtree import KDTree
-from numpy import sqrt, zeros, linalg, min, max, mean, array, ceil, dot
-from numpy.linalg import norm, inv
+from numpy import sqrt, zeros, array, ceil, dot
 
-from .anm import ANMBase, ANM
+from .anm import ANM
 from .gnm import checkENMParameters
 from .editing import reduceModel
+
+LA = importLA()
+inv = LA.inv
+norm = LA.norm
 
 __all__ = ['exANM']
 
@@ -231,7 +232,7 @@ class exANM(ANM):
         so = total_hessian[:natoms*3, natoms*3:]
         os = total_hessian[natoms*3:,:natoms*3]
         oo = total_hessian[natoms*3:, natoms*3:]
-        self._hessian = ss - np.dot(so, np.dot(linalg.inv(oo), os))
+        self._hessian = ss - np.dot(so, np.dot(inv(oo), os))
         LOGGER.report('Hessian was built in %.2fs.', label='_exanm')
         self._dof = self._hessian.shape[0]
     
@@ -321,7 +322,7 @@ def checkClash(node, hull, radius=5.):
             return False
 
     for coord in H:
-        if linalg.norm(node-coord)<radius:
+        if norm(node-coord)<radius:
             return False
     return True
 
