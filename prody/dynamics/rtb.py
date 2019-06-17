@@ -136,8 +136,7 @@ class RTB(ANMBase):
 
         coords = coords.T.astype(float, order='C')
 
-        hessian = self._hessian 
-        self._full_hessian = self._hessian.copy()
+        hessian = self._hessian
         self._project = project = np.zeros((natoms * 3, nb6), float)
 
         from .rtbtools import calc_projection
