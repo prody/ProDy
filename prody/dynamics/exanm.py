@@ -11,23 +11,11 @@ from prody.kdtree import KDTree
 from numpy import sqrt, zeros, linalg, min, max, mean, array, ceil, dot
 from numpy.linalg import norm, inv
 
-from .anm import ANMBase, calcANM, ANM
+from .anm import ANMBase, ANM
 from .gnm import checkENMParameters
 from .editing import reduceModel
 
 __all__ = ['exANM']
-
-class Increment(object):
-
-    def __init__(self, s=0):
-
-        self._i = s
-
-    def __call__(self, i=1):
-
-        self._i += i
-        return self._i
-
 
 class exANM(ANM):
 
