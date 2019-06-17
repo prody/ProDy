@@ -5,16 +5,9 @@
 import numpy as np
 
 from prody import LOGGER
-from prody.atomic import Atomic, AtomGroup
-from prody.proteins import parsePDB
-from prody.utilities import importLA, checkCoords, sqrtm
-from numpy import sqrt, zeros, linalg, min, max, unique, mean, eye, outer, dot
-from scipy import sparse
-from subprocess import call
+from prody.utilities import checkCoords
 
-from .anm import ANMBase, ANM
-from .gnm import checkENMParameters
-from .editing import reduceModel
+from .anm import ANMBase
 
 __all__ = ['RTB']
 
