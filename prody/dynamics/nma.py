@@ -150,6 +150,14 @@ class NMA(object):
 
         return self._dof
 
+    def numEntries(self):
+        """Returns number of entries in one eigenvector."""
+        
+        arr = self._getArray()
+        if arr is None:
+            return 0
+        return arr.shape[0]
+
     def getTitle(self):
         """Returns title of the model."""
 
