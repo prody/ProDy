@@ -222,7 +222,7 @@ class Mode(VectorBase):
 
     def __len__(self):
 
-        return self._model.numDOF()
+        return self.numEntries()
 
     def __repr__(self):
 
@@ -252,10 +252,14 @@ class Mode(VectorBase):
         return self._model.numAtoms()
 
     def numDOF(self):
-        """Returns number of degrees of freedom (three times the number of
-        atoms)."""
+        """Returns number of degrees of freedom."""
 
         return self._model.numDOF()
+
+    def numEntries(self):
+        """Returns number of entries in the eigenvector."""
+
+        return len(self._getArray())
 
     def getTitle(self):
         """A descriptive title for the mode instance."""
@@ -383,6 +387,11 @@ class Vector(VectorBase):
 
     def numDOF(self):
         """Returns number of degrees of freedom."""
+
+        return len(self._array)
+
+    def numEntries(self):
+        """Returns number of entries in the vector."""
 
         return len(self._array)
 

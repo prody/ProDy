@@ -33,8 +33,8 @@ def calcOverlap(rows, cols):
         raise TypeError('cols must be NMA, ModeSet, Mode, or Vector, not {0}'
                         .format(type(cols)))
 
-    if rows.numDOF() != cols.numDOF():
-        raise ValueError('number of degrees of freedom of rows and '
+    if rows.numEntries() != cols.numEntries():
+        raise ValueError('the length of vectors in rows and '
                          'cols must be the same')
     
     rows = rows.getArray()
