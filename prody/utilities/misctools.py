@@ -102,7 +102,11 @@ class ImageCursor(Cursor):
         self.lx.set_linewidth(1.)
         self.ly.set_linewidth(1.)
 
-        i, j, v = self.get_cursor_data(event)
+        data = self.get_cursor_data(event)
+        if data is None:
+            return
+            
+        i, j, v = data
 
         if v > 1e-4 and v < 1e4:
             template = ' x=%s, y=%s [%s]'
