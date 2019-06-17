@@ -136,21 +136,15 @@ class RTB(ANMBase):
 
         coords = coords.T.astype(float, order='C')
 
-        hessian = self._hessian
-        print('hess0 = %f'%hessian[0, 0])
-        blessian = np.zeros((nb6, nb6), float)
+        hessian = self._hessian 
+        self._full_hessian = self._hessian.copy()
         self._project = project = np.zeros((natoms * 3, nb6), float)
 
-        from .rtbtools import build_blessian
+        from .rtbtools import calc_projection
 
-        build_blessian(coords, blocks, hessian, blessian, project,
-                       natoms, nblocks, maxsize, 
-                       15., 1.,
-                       scale=float(kwargs.get('scale', 1.0)),
-                       memlo=float(kwargs.get('membrane_low', 1.0)),
-                       memhi=float(kwargs.get('membrane_high', 1.0)),)
+        calc_projection(coords, blocks, project, natoms, nblocks, nb6, maxsize)
 
-        self._hessian = blessian
+        self._hessian = project.T.dot(hessian).dot(project)
         self._dof = self._hessian.shape[0]
 
 

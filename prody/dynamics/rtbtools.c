@@ -35,25 +35,25 @@ typedef struct {int **IDX; double *X;} dSparse_Matrix;
 
 
 /* --------- These functions are essential --------- */
-int bless_from_tensor(double **HB,double ***HT,int **CT,int nblx);
-int calc_blessian_mem(PDB_File *PDB,dSparse_Matrix *PP1,int nres,int nblx,
-		      int elm,double **HB,double cut,double gam,double scl,
-		      double mlo,double mhi);
-void copy_dsparse(dSparse_Matrix *A,dSparse_Matrix *B,int lo,int hi);
-void copy_prj_ofst(dSparse_Matrix *PP,double *proj,int elm,int bdim);
+int bless_from_tensor(double **HB, double ***HT, int **CT, int nblx);
+int calc_blessian_mem(PDB_File *PDB, dSparse_Matrix *PP1, int nres, int nblx,
+		      int elm, double *hess, double **HB, double cut, double gam, double scl,
+		      double mlo, double mhi);
+void copy_dsparse(dSparse_Matrix *A, dSparse_Matrix *B, int lo, int hi);
+void copy_prj_ofst(dSparse_Matrix *PP, double *proj, int elm, int bdim);
 void cross(double x[], double y[], double z[]);
-int dblock_projections2(dSparse_Matrix *PP,PDB_File *PDB,
-			int nres,int nblx,int bmx);
-void dsort_PP2(dSparse_Matrix *MM,int n,int idx);
-int find_contacts1(int **CT,PDB_File *PDB,int nres,int nblx,double cut);
-void hess_superrow_mem(double **HR,int **CT,PDB_File *PDB,int nres,
-		       int who,double cut,double gam,double mscl,double mlo,
+int dblock_projections2(dSparse_Matrix *PP, PDB_File *PDB, 
+			int nres, int nblx, int bmx);
+void dsort_PP2(dSparse_Matrix *MM, int n, int idx);
+int find_contacts1(int **CT, PDB_File *PDB, int nres, int nblx, double cut);
+void hess_superrow_mem(double **HR, int **CT,PDB_File *PDB, int nres,
+		       int who, double cut, double gam, double mscl, double mlo,
 		       double mhi);
-void init_bst(int *BST,dSparse_Matrix *PP,int elm,int n,int idx);
-void righthand2(double *VAL,double **VEC,int n);
-int **unit_imatrix(long lo,long hi);
-double ***zero_d3tensor(long nrl,long nrh,long ncl,long nch,long ndl,long ndh);
-double **zero_dmatrix(long nrl,long nrh,long ncl,long nch);
+void init_bst(int *BST, dSparse_Matrix *PP, int elm, int n, int idx);
+void righthand2(double *VAL, double **VEC, int n);
+int **unit_imatrix(long lo, long hi);
+double ***zero_d3tensor(long nrl, long nrh, long ncl, long nch, long ndl, long ndh);
+double **zero_dmatrix(long nrl, long nrh, long ncl, long nch);
 
 
 /* ---------- Essential Numerical Recipes routines ------------- */
@@ -81,40 +81,30 @@ void dsvdcmp(double **a, int m, int n, double w[], double **v);
 double sum(double *a, int n);
 
 
-/* "build_blessian" constructs a block Hessian and associated projection matrix 
-   by application of the ANM.  Atomic coordinates and block definitions are 
-   provided in 'coords' and 'blocks'; ANM parameters are provided in 'cutoff' 
-   and 'gamma'.  On successful termination, the block Hessian is stored in 
-   'blessian', and the projection matrix between block and all-atom spaces is 
-   in 'projection'. */
-static PyObject *build_blessian(PyObject *self, PyObject *args, PyObject *kwargs) {
+/* "calc_projection" calculates the projection matrix for the RTB.  
+   Atomic coordinates and block definitions are provided in 'coords' and 'blocks'.  
+   On successful termination, the projection matrix between block and all-atom spaces 
+   is in 'projection'. */
+static PyObject *calc_projection(PyObject *self, PyObject *args, PyObject *kwargs) {
   PDB_File PDB;
   dSparse_Matrix PP, HH;
-  PyArrayObject *coords, *blocks, *blessian, *projection, *hessian;
-  double *XYZ, *bless, *proj, *hess;
+  PyArrayObject *coords, *blocks, *projection;
+  double *XYZ, *proj;
   int *BLK;
-  double **HB;
-  double cutoff = 15., gamma = 1., scl=1., mlo=1., mhi=-1.;
-  int natm, nblx, bmx;
-  int hsize, elm, bdim, i, j;
+  int natm, nblx, bmx, bdim;
+  int hsize, elm, i, j;
 
-  static char *kwlist[] = {"coords", "blocks", "hessian", "blessian", "projection",
-			   "natoms", "nblocks", "maxsize", "cutoff",
-			   "gamma", "scale", "memlo", "memhi", NULL};
+  static char *kwlist[] = {"coords", "blocks", "projection",
+			   "natoms", "nblocks", "nb6", "maxsize", NULL};
 
-  if (!PyArg_ParseTupleAndKeywords(args, kwargs, "OOOOOiii|ddddd", kwlist,
-				   &coords, &blocks, &hessian, &blessian, &projection,
-				   &natm, &nblx, &bmx, &cutoff, &gamma, &scl,
-				   &mlo, &mhi))
+  if (!PyArg_ParseTupleAndKeywords(args, kwargs, "OOOiiii|ddddd", kwlist,
+				   &coords, &blocks, &projection,
+				   &natm, &nblx, &bdim, &bmx))
     return NULL;
 
   XYZ = (double *) PyArray_DATA(coords);
   BLK = (int *) PyArray_DATA(blocks);
-  hess = (double *) PyArray_DATA(hessian);
-  bless = (double *) PyArray_DATA(blessian);
   proj = (double *) PyArray_DATA(projection);
-
-  // printf("cutoff = %f\n", cutoff);
 
   /* First allocate a PDB_File object to hold the coordinates and block
      indices of the atoms.  This wastes a bit of memory, but it prevents
@@ -124,7 +114,6 @@ static PyObject *build_blessian(PyObject *self, PyObject *args, PyObject *kwargs
   if (!PDB.atom) return PyErr_NoMemory();
   for (i=1; i<=natm; i++){
     PDB.atom[i].model = BLK[i-1];
-    // printf("%d: %d\n", i, BLK[i-1]);
     for(j=0; j<3; j++)
       PDB.atom[i].X[j] = XYZ[j*natm+i-1];
   }
@@ -132,12 +121,10 @@ static PyObject *build_blessian(PyObject *self, PyObject *args, PyObject *kwargs
 
   /* Find the projection matrix */
   hsize = 18*bmx*nblx > 12*natm ? 12*natm : 18*bmx*nblx;
-  // printf("hsize = %d\n", hsize);
 
   HH.IDX = imatrix(1, hsize, 1, 2);
   HH.X = dvector(1, hsize);
   elm = dblock_projections2(&HH, &PDB, natm, nblx, bmx);
-  // printf("elm = %d\n", elm);
 
   PP.IDX = imatrix(1, elm, 1, 2);
   PP.X = dvector(1, elm);
@@ -150,30 +137,12 @@ static PyObject *build_blessian(PyObject *self, PyObject *args, PyObject *kwargs
   free_dvector(HH.X, 1, hsize);
   dsort_PP2(&PP, elm, 1);
 
-
-  /* Calculate the block Hessian */
-  HB = dmatrix(1, 6*nblx, 1, 6*nblx);
-  for (i=1; i<=bdim; i++)
-    for (j=1; j<=bdim; j++)
-      HR[bdim*(i-1)+j-1] = hess[i][j];
-  bdim = calc_blessian_mem(&PDB, &PP, natm, nblx, elm, hess, HB, cutoff, gamma, scl, mlo, mhi);
-
-
   /* Cast the block Hessian and projection matrix into 1D arrays. */
   copy_prj_ofst(&PP, proj, elm, bdim);
-  for (i=1; i<=bdim; i++)
-    for (j=1; j<=bdim; j++)
-      bless[bdim*(i-1)+j-1] = HB[i][j];
-
-  double s;
-  s = sum(hess, natm*natm);
-  printf("hess = %f\n", s);
-  printf("hess0 = %f\n", hess[0]);
 
   free(PDB.atom);
   free_imatrix(PP.IDX, 1, elm, 1, 2);
   free_dvector(PP.X, 1, elm);
-  free_dmatrix(HB, 1, 6*nblx, 1, 6*nblx);
 
 
   Py_RETURN_NONE;
@@ -182,9 +151,9 @@ static PyObject *build_blessian(PyObject *self, PyObject *args, PyObject *kwargs
 
 static PyMethodDef rtbtools_methods[] = {
 
-    {"build_blessian", (PyCFunction)build_blessian,
+    {"calc_projection", (PyCFunction) calc_projection,
      METH_VARARGS | METH_KEYWORDS,
-     "Build Hessian matrix and projections."},
+     "Calculate projections."},
 
     {NULL, NULL, 0, NULL}
 };
@@ -284,7 +253,7 @@ int calc_blessian_mem(PDB_File *PDB, dSparse_Matrix *PP1, int nres, int nblx,
   dSparse_Matrix *PP2;
   double **HR, ***HT;
   int **CT, *BST1, *BST2;
-  int ii, jj, i, j, k, p, q, q1, q2, ti, tj, bi, bj, sb, nc, out;
+  int ii, i, j, k, p, q, q1, q2, ti, tj, bi, bj, sb, nc, out;
 
 
   /* ------------------- INITIALIZE LOCAL VARIABLES ------------------- */
@@ -321,25 +290,32 @@ int calc_blessian_mem(PDB_File *PDB, dSparse_Matrix *PP1, int nres, int nblx,
 
 
   /* Calculate each super-row of the full Hessian */
+  #define hess(i, j) hess[3*nres*(i)+(j)]
   for (ii=1; ii<=nres; ii++){
 
     if (PDB->atom[ii].model!=0){
 
       /* ----------------- FIND SUPER-ROW OF FULL HESSIAN --------------- */
-      for (j=1; j<=3*nres, j++){
-        for (i=1; i<=3; i++){
-          HR[(j-1)+i][(ii-1)+i] = hess[];
+      for (i=1; i<=3*nres; i++){
+        for (j=1; j<=3; j++){
+          HR[i][j] = hess(i-1, 3*(ii-1)+j-1);
         }
       }
-      hess_superrow_mem(HR, CT, PDB, nres, ii, cut, gam, scl, mlo, mhi);
+      //hess_superrow_mem(HR, CT, PDB, nres, ii, cut, gam, scl, mlo, mhi);
 
+      // update hess - debug
+      // for (i=1; i<=3*nres; i++){
+      //   for (j=1; j<=3; j++){
+      //     hess(i-1, 3*(ii-1)+j-1) = HR[i][j];
+      //   }
+      // }
 
       /* Update elements of block hessian */
       q1 = BST1[3*(ii-1)+2];
       q2 = BST1[3*(ii-1)+3];
       /* Sum over elements of projection matrix corresponding to residue ii:
 	    for each k in the following loop, PP1->IDX[k][1]==3*ii + 0,1,2 */
-      for(k=BST1[3*ii-2];k<BST1[3*ii+1];k++){
+      for (k=BST1[3*ii-2]; k<BST1[3*ii+1]; k++){
         if (k<q1) q=1;
         else if (k<q2) q=2;
         else q=3;
@@ -706,7 +682,7 @@ void hess_superrow_mem(double **HR, int **CT, PDB_File *PDB, int nres,
   //     HR[3*(who-1)+i][j]=0.0;
 
   /* Calculate the submatrices */
-  for(jj=1; jj<=nres; jj++){
+  for (jj=1; jj<=nres; jj++){
 
     if (jj!=who && PDB->atom[jj].model!=0 &&
         CT[PDB->atom[who].model][PDB->atom[jj].model]!=0){
@@ -728,7 +704,7 @@ void hess_superrow_mem(double **HR, int **CT, PDB_File *PDB, int nres,
         for (i=1; i<=3; i++){
           for (j=i; j<=3; j++){
 
-            //df = gam*DX[i-1]*DX[j-1]/dsq;
+            // df = gam*DX[i-1]*DX[j-1]/dsq;
             df = -HR[3*(jj-1)+i][j];
             sdf = df;
 
@@ -842,15 +818,15 @@ double ***zero_d3tensor(long nrl,long nrh,long ncl,long nch,long ndl,long ndh)
 
 /* "zero_dmatrix" ALLOCATES MEMORY FOR A
    DOUBLE MATRIX AND INITIALIZES IT TO ZERO */
-double **zero_dmatrix(long nrl,long nrh,long ncl,long nch)
+double **zero_dmatrix(long nrl, long nrh, long ncl, long nch)
 {
   static double **M;
-  int i,j;
+  int i, j;
 
-  M=dmatrix(nrl,nrh,ncl,nch);
-  for(i=nrl;i<=nrh;i++)
-    for(j=ncl;j<=nch;j++)
-      M[i][j]=0.0;
+  M = dmatrix(nrl, nrh, ncl, nch);
+  for (i=nrl; i<=nrh; i++)
+    for (j=ncl; j<=nch; j++)
+      M[i][j] = 0.0;
   return M;
 }
 
