@@ -150,8 +150,8 @@ class ANMBase(NMA):
                     hessian[res_j3:res_j33, res_j3:res_j33] - super_element
                 kirchhoff[i, j] = -g
                 kirchhoff[j, i] = -g
-                kirchhoff[i, i] = kirchhoff[i, i] - g
-                kirchhoff[j, j] = kirchhoff[j, j] - g
+                kirchhoff[i, i] = kirchhoff[i, i] + g
+                kirchhoff[j, j] = kirchhoff[j, j] + g
         else:
             cutoff2 = cutoff * cutoff
             for i in range(n_atoms):
@@ -176,8 +176,8 @@ class ANMBase(NMA):
                         hessian[res_j3:res_j33, res_j3:res_j33] - super_element
                     kirchhoff[i, j] = -g
                     kirchhoff[j, i] = -g
-                    kirchhoff[i, i] = kirchhoff[i, i] - g
-                    kirchhoff[j, j] = kirchhoff[j, j] - g
+                    kirchhoff[i, i] = kirchhoff[i, i] + g
+                    kirchhoff[j, j] = kirchhoff[j, j] + g
 
         if sparse:
             kirchhoff = kirchhoff.tocsr()
