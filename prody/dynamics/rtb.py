@@ -95,11 +95,9 @@ class RTB(ANMBase):
                 raise TypeError('coords must be a Numpy array or an object '
                                 'with `getCoords` method')
 
-        LOGGER.timeit('_rtb')
         super(RTB, self).buildHessian(coords, cutoff=cutoff, gamma=gamma, **kwargs)
 
         self.calcProjection(coords, blocks, **kwargs)
-        LOGGER.report('Hessian was built in %.2fs.', label='_rtb')
 
 
     def calcProjection(self, coords, blocks, **kwargs):
@@ -107,6 +105,8 @@ class RTB(ANMBase):
 
         if natoms != len(blocks):
             raise ValueError('len(blocks) must match number of atoms')
+
+        LOGGER.timeit('_rtb')
         from collections import defaultdict
         i = Increment()
         d = defaultdict(i)
@@ -146,6 +146,7 @@ class RTB(ANMBase):
 
         self._hessian = project.T.dot(hessian).dot(project)
         self._dof = self._hessian.shape[0]
+        LOGGER.report('Block Hessian and projection matrix were calculated in %.2fs.', label='_rtb')
 
 
     def getProjection(self):
