@@ -95,11 +95,11 @@ class exANM(ANM):
             hu = h
             hl = -h
         else:
-            hu = kwargs.pop('membrane_hi', 13.0)
+            hu = kwargs.pop('membrane_high', 13.0)
             hu = kwargs.pop('high', hu)
             hu = float(hu)
             
-            hl = kwargs.pop('membrane_lo', -13.0)
+            hl = kwargs.pop('membrane_low', -13.0)
             hl = kwargs.pop('low', hl)
             hl = float(hl)
 
