@@ -75,6 +75,11 @@ class ModeSet(object):
 
         return self._model.numDOF()
 
+    def numEntries(self):
+        """Returns number of entries in one eigenvector."""
+
+        return self._getArray().shape[0]
+
     def getTitle(self):
         """Returns title of the mode set."""
 

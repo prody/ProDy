@@ -15,6 +15,7 @@
 
 #define MAXSEQLEN 5000
 #define MINEFSEQS (length)
+#define PTRTYPE sizeof(void *) == 4 ? 'l' : 'L'
 
 const int twenty[20] = {1, 3, 4, 5, 6, 7, 8, 9, 11, 12, 13,
                         14, 16, 17, 18, 19, 20, 22, 23, 25};
@@ -1604,7 +1605,7 @@ static PyObject *msasca(PyObject *self, PyObject *args, PyObject *kwargs) {
 
 static PyObject *msameff(PyObject *self, PyObject *args, PyObject *kwargs) {
 
-    PyArrayObject *msa,*pythonw;
+    PyArrayObject *msa, *pythonw;
     double theta = 0.0;
     int meff_only = 1, refine = 0;
     int alignlist[26] = {1, 0, 2, 3, 4, 5, 6, 7, 8, 0, 9, 10, 11, 12,
@@ -1708,18 +1709,22 @@ static PyObject *msameff(PyObject *self, PyObject *args, PyObject *kwargs) {
     }
     else if (meff_only == 2){
         for (i = 0; i < number; i++)
+        {
             w[i] /= meff;
-        return Py_BuildValue("dllll", meff, number, l , w, align);
+        }
+        char format[6]; 
+        sprintf(format, "dll%c%c", PTRTYPE, PTRTYPE);
+        return Py_BuildValue(format, meff, number, l, w, align);
     }
     else {
         free(align);
         pythonw = PyArray_GETCONTIGUOUS(pythonw);
         double *pw = (double *) PyArray_DATA(pythonw);
         for (i = 0; i < number; i++){
-            pw[i]=w[i];
+            pw[i] = w[i];
         }
         free(w);
-        return Py_BuildValue("dO",meff,pythonw);
+        return Py_BuildValue("dO", meff, pythonw);
     }
 }
 
@@ -1790,7 +1795,10 @@ static PyObject *msadirectinfo1(PyObject *self, PyObject *args, PyObject *kwargs
     meffinfo = msameff(NULL, Py_BuildValue("(O)", msa),
              Py_BuildValue("{s:d,s:i,s:i}", "theta", theta, "meff_only", 2,
                  "refine", refine));
-    if (!PyArg_ParseTuple(meffinfo, "dllll", &meff, &number, &l, &w, &align))
+    
+    char format[6]; 
+    sprintf(format, "dll%c%c", PTRTYPE, PTRTYPE);
+    if (!PyArg_ParseTuple(meffinfo, format, &meff, &number, &l, &w, &align))
         return NULL;
 
     /*Build single probablity. use pseudocount_weight to weight it.*/
@@ -1798,11 +1806,12 @@ static PyObject *msadirectinfo1(PyObject *self, PyObject *args, PyObject *kwargs
     double pro_weight = 1. - pseudocount_weight;
     for (i = 0; i < q*l; i++)
         prob[i] = pse_weight_val;
-    #define prob(x,y) prob[(x)*q + (y)]
-    #define align(x,y) align[(x)*l + (y)]
+    
+    #define prob(x, y) prob[(x)*q + (y)]
+    #define align(x, y) align[(x)*l + (y)]
     for (i = 0; i < number; i++)
         for (j = 0; j < l; j++)
-            prob(j, align(i,j)) += pro_weight * w[i];
+            prob(j, align(i, j)) += pro_weight * w[i];
 
     /*Calculate C matrix.*/
     double *joint = malloc(q*q*sizeof(double));
@@ -1821,7 +1830,7 @@ static PyObject *msadirectinfo1(PyObject *self, PyObject *args, PyObject *kwargs
                     joint[k] = 0.;
                 pse_weight_val = pseudocount_weight / q;
                 for (k = 0; k < q; k++)
-                    joint(k,k) = pse_weight_val;
+                    joint(k, k) = pse_weight_val;
             }
             else{
                 pse_weight_val = pseudocount_weight / q / q;
@@ -1830,7 +1839,7 @@ static PyObject *msadirectinfo1(PyObject *self, PyObject *args, PyObject *kwargs
             }
 
             for (k = 0; k < number; k++){
-                joint(align(k,i), align(k,j)) += pro_weight * w[k];
+                joint(align(k, i), align(k, j)) += pro_weight * w[k];
             }
 
             for (k1 = 0; k1 < q-1; k1++){
@@ -1849,6 +1858,7 @@ static PyObject *msadirectinfo1(PyObject *self, PyObject *args, PyObject *kwargs
     #undef align
     #undef joint
     #undef c
+
     return Py_BuildValue("dllOO", meff, number, l, cinfo, pinfo);
 }
 
@@ -1876,21 +1886,21 @@ static PyObject *msadirectinfo2(PyObject *self, PyObject *args, PyObject *kwargs
         w[i] = 0.0;
     }
 
-    #define w(x,y) w[(x)*q+(y)]
-    #define c(x,y) c[(x)*l*(q-1) + (y)]
-    #define prob(x,y) prob[(x)*q + (y)]
-    #define di(x,y) di[(x)*l + (y)]
+    #define w(x, y) w[(x)*q+(y)]
+    #define c(x, y) c[(x)*l*(q-1) + (y)]
+    #define prob(x, y) prob[(x)*q + (y)]
+    #define di(x, y) di[(x)*l + (y)]
 
     double epsilon = 1e-4, tiny = 1.0e-100;
     double diff = 1.0, sum1 = 0.0, sum2 = 0.0, sumpdir = 0.0, sumdi = 0.0;
     double *mu1 = malloc(q*sizeof(double)), *mu2 = malloc(q*sizeof(double));
     double *scra1 = malloc(q*sizeof(double)), *scra2 = malloc(q*sizeof(double));
     for (i = 0; i < l; i++){
-        di(i,i) = 0.0;
+        di(i, i) = 0.0;
         for (j = i+1; j < l; j++){
             for (k1 = 0; k1 < q-1; k1++){
                 for (k2 = 0; k2 < q-1; k2++){
-                    w(k1,k2) = exp(- c((q-1)*i + k1, (q-1)*j + k2));
+                    w(k1, k2) = exp(-c((q-1)*i + k1, (q-1)*j + k2));
                 }
             }
             for (k1 = 0; k1 < q; k1++){
@@ -1938,8 +1948,8 @@ static PyObject *msadirectinfo2(PyObject *self, PyObject *args, PyObject *kwargs
             sumpdir = 0.0;
             for (k1 = 0; k1 < q; k1++){
                 for (k2 = 0; k2 < q; k2++){
-                    w(k1,k2) = w(k1, k2) * mu1[k1] * mu2[k2];
-                    sumpdir += w(k1,k2);
+                    w(k1, k2) = w(k1, k2) * mu1[k1] * mu2[k2];
+                    sumpdir += w(k1, k2);
                 }
             }
 
@@ -1947,7 +1957,7 @@ static PyObject *msadirectinfo2(PyObject *self, PyObject *args, PyObject *kwargs
             for (k1 = 0; k1 < q; k1++){
                 for (k2 = 0; k2 < q; k2++){
                     w(k1,k2) /= sumpdir;
-                    sumdi += w(k1,k2) * log((w(k1,k2) + tiny) / (prob(i,k1) * prob(j,k2) +tiny));
+                    sumdi += w(k1,k2) * log((w(k1,k2) + tiny) / (prob(i,k1) * prob(j,k2) + tiny));
                 }
             }
 
@@ -1960,8 +1970,6 @@ static PyObject *msadirectinfo2(PyObject *self, PyObject *args, PyObject *kwargs
     #undef prob
     #undef di
     free(w);
-    free(c);
-    free(prob);
     free(mu1);
     free(mu2);
     free(scra1);
@@ -2177,15 +2185,15 @@ static PyObject *msapsicov(PyObject *self, PyObject *args, PyObject *kwargs) {
 		}
  		for (i=0; i<ndim; i++)
  	    	for (j=0; j<ndim; j++)
- 			rho[i][j] = trialrho;
+ 			    rho[i][j] = trialrho;
 	
  		for (i=0; i<length; i++)
  	    	for (j=0; j<length; j++)
- 			for (k=0; k<21; k++)
- 		    	for (l=0; l<21; l++)
- 				if ((k != l && i == j) || pa[i][20] > maxgapf || pa[j][20] > maxgapf)
- 			    	rho[(i*21+k)][j*21+l] = 1e9;
-	
+                for (k=0; k<21; k++)
+                    for (l=0; l<21; l++)
+                        if ((k != l && i == j) || pa[i][20] > maxgapf || pa[j][20] > maxgapf)
+                            rho[(i*21+k)][j*21+l] = 1e9;
+        
  	/* All matrices are symmetric so no need to transpose before/after calling Fortran code */
  		glassofast(ndim, cmat, rho, thresh, maxit, approxflg, initflg, wwi, ww);
  		if (targfnzero <= 0.0 || wtsum < length){
@@ -2242,12 +2250,11 @@ static PyObject *msapsicov(PyObject *self, PyObject *args, PyObject *kwargs) {
                     pc += fabs(wwi[i*21+k][j*21+l]);
 
             pcmat[i][j] = pcmat[j][i] = pc;
-            
         }
 
-	for (i=0;i<length; i++)
-		for (j=0; j<length; j++)
-			wwii[i*length+j]=pcmat[i][j];
+    for (i=0; i<length; i++)
+        for (j=0; j<length; j++)
+            wwii[i*length+j] = pcmat[i][j];
 
     return Py_BuildValue("O", pcinfo);
 }
