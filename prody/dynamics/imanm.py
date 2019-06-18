@@ -10,11 +10,6 @@ from numpy import sqrt, zeros, ones, array, ceil, dot
 
 from .anm import ANMBase
 from .rtb import RTB
-from .editing import reduceModel
-
-LA = importLA()
-inv = LA.inv
-norm = LA.norm
 
 __all__ = ['imANM']
 
@@ -29,7 +24,6 @@ class imANM(RTB):
     """
 
     def __init__(self, name='Unknown'):
-
         super(imANM, self).__init__(name)
 
     def buildHessian(self, coords, blocks, cutoff=15., gamma=1., **kwargs):
@@ -121,24 +115,6 @@ class imANM(RTB):
                     D33 += H0 - H33
 
         self.calcProjection(coords, blocks, **kwargs)
-    
-    def calcModes(self, n_modes=20, zeros=False, turbo=True):
-        """Calculate normal modes.  This method uses :func:`scipy.linalg.eigh`
-        function to diagonalize the Hessian matrix. When Scipy is not found,
-        :func:`numpy.linalg.eigh` is used.
-
-        :arg n_modes: number of non-zero eigenvalues/vectors to calculate.
-            If **None** is given, all modes will be calculated.
-        :type n_modes: int or None, default is 20
-
-        :arg zeros: If **True**, modes with zero eigenvalues will be kept.
-        :type zeros: bool, default is **True**
-
-        :arg turbo: Use a memory intensive, but faster way to calculate modes.
-        :type turbo: bool, default is **True**
-        """
-
-        super(imANM, self).calcModes(n_modes, zeros, turbo)
 
 
 def test(pdb='2nwl-mem.pdb', blk='2nwl.blk'):

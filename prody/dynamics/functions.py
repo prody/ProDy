@@ -15,6 +15,7 @@ from .anm import ANM, ANMBase
 from .gnm import GNM, GNMBase, ZERO, MaskedGNM
 from .rtb import RTB
 from .pca import PCA, EDA
+from .imanm import imANM
 from .exanm import exANM
 from .mode import Vector, Mode
 from .modeset import ModeSet
@@ -85,16 +86,19 @@ def saveModel(nma, filename=None, matrices=False, **kwargs):
         attr_dict['type'] = 'mGNM'
         attr_dict['mask'] = nma.mask
         attr_dict['masked'] = nma.masked
+    
+    if isinstance(nma, RTB):
+        attr_dict['type'] = 'RTB'
+        if matrices:
+            attr_dict['_project'] = nma._project
+
+    if isinstance(nma, imANM):
+        attr_dict['type'] = 'imANM'
 
     if isinstance(nma, exANM):
         attr_dict['type'] = 'exANM'
         #attr_dict['_membrane'] = np.array([nma._membrane, None])
         #attr_dict['_combined'] = np.array([nma._combined, None])
-
-    if isinstance(nma, RTB):
-        attr_dict['type'] = 'RTB'
-        if matrices:
-            attr_dict['_project'] = nma._project
 
     suffix = '.' + attr_dict['type'].lower()
     if not filename.lower().endswith('.npz'):
@@ -147,6 +151,8 @@ def loadModel(filename, **kwargs):
         nma = MaskedGNM(title)
     elif type_ == 'exANM':
         nma = exANM(title)
+    elif type_ == 'imANM':
+        nma = imANM(title)
     elif type_ == 'NMA':
         nma = NMA(title)
     elif type_ == 'RTB':
