@@ -118,7 +118,7 @@ class imANM(RTB):
                     # update Hji
                     Hji *= S
 
-                    # update diagonal super-element
+                    # update diagonal super-elements
                     Hii = super_element(i, i)
                     Hii += D
 
