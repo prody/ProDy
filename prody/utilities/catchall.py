@@ -495,25 +495,14 @@ def reorderMatrix(matrix, tree, names=None):
     if np.shape(matrix)[0] != np.shape(matrix)[1]:
         raise ValueError('matrix should be a square matrix')
 
-    no_names = False
     if names is None:
-        no_names = True
-        names = [str(i) for i in range(len(matrix))]
+        raise ValueError('names must be provided')
 
     if np.isscalar(names):
         raise TypeError('names should be list-like')
     
     if not isinstance(names[0], str):
         raise TypeError('names should be a list-like of strings')
-
-    try:
-        terminal_names = [terminal.name for terminal in tree.get_terminals()]
-        _ = np.where(np.array(terminal_names) == names[0])[0][0]
-    except:
-        if no_names:
-            raise ValueError("names must be provided as indices don't work with this tree")
-        else:
-            raise ValueError("names contains entries that don't match those in the tree")
 
     if not isinstance(tree, Phylo.BaseTree.Tree):
         raise TypeError('tree should be a BioPython Tree')
