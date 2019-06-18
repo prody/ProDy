@@ -105,14 +105,25 @@ class imANM(RTB):
             for j in range(i+1, natm):
                 Sj = scaler(coords[j])
                 S = Si * Sj
-                H33 = super_element(i, j)
+                Hij = super_element(i, j)
 
-                if np.any(H33 != 0) and np.any(S != 1):
-                    H0 = H33.copy()
-                    H33 *= S
+                if np.any(Hij != 0) and np.any(S != 1):
+                    # update off-diagonal super-element Hij
+                    Hij *= S
 
-                    D33 = super_element(i, i)
-                    D33 += H0 - H33
+                    # use Hij's twin, Hji, which is yet to be changed to obtain the difference
+                    Hji = super_element(j, i)
+                    D = Hji - Hij
+
+                    # update Hji
+                    Hji *= S
+
+                    # update diagonal super-element
+                    Hii = super_element(i, i)
+                    Hii += D
+
+                    Hjj = super_element(j, j)
+                    Hjj += D
 
         self.calcProjection(coords, blocks, **kwargs)
 
