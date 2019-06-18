@@ -42,12 +42,15 @@ class Everything(object):
 
 class Cursor(object):
     def __init__(self, ax):
+        import matplotlib.patheffects as PathEffects
+
         self.ax = ax
         self.lx = ax.axhline(color='k', linestyle='--', linewidth=0.)  # the horiz line
         self.ly = ax.axvline(color='k', linestyle='--', linewidth=0.)  # the vert line
 
         # text location in axes coords
-        self.txt = ax.text(0., 1., '', transform=ax.transAxes, verticalalignment='bottom')
+        self.txt = ax.text(0., 1., '', color='k', verticalalignment='bottom')
+        self.txt.set_path_effects([PathEffects.withStroke(linewidth=3, foreground='w')])
         
         # preserve the cursor reference
         global CURSORS
@@ -75,8 +78,8 @@ class Cursor(object):
         self.lx.set_linewidth(.75)
         self.ly.set_linewidth(.75)
 
-        self.txt.set_text('x=%1.2f, y=%1.2f' % (x, y))
-        #self.txt.set_position((x, y))
+        self.txt.set_text(' x=%1.2f, y=%1.2f' % (x, y))
+        self.txt.set_position((x, y))
 
     def clear(self, event):
         self.lx.set_linewidth(0.)
@@ -99,22 +102,26 @@ class ImageCursor(Cursor):
         self.lx.set_linewidth(1.)
         self.ly.set_linewidth(1.)
 
-        i, j, v = self.get_cursor_data(event)
+        data = self.get_cursor_data(event)
+        if data is None:
+            return
+            
+        i, j, v = data
 
         if v > 1e-4 and v < 1e4:
-            template = 'x=%d, y=%d [%f]'
+            template = ' x=%s, y=%s [%s]'
         else:
-            template = 'x=%d, y=%d [%e]'
+            template = ' x=%s, y=%s [%s]'
         if self.atoms is None:
-            self.txt.set_text(template % (j, i, v))
+            self.txt.set_text(template % (j, i, v)) 
         else:
             seq = self.atoms.getSequence()
             resnums = self.atoms.getResnums()
 
             a = seq[j] + str(resnums[j])
             b = seq[i] + str(resnums[i])
-            self.txt.set_text(template % (a, b, v))
-        #self.txt.set_position((x, y))
+            self.txt.set_text(template % (a, b, str(v)))
+        self.txt.set_position((x, y))
 
     def get_cursor_data(self, event):
         """Get the cursor data for a given event"""

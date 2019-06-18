@@ -150,8 +150,8 @@ class ANMBase(NMA):
                     hessian[res_j3:res_j33, res_j3:res_j33] - super_element
                 kirchhoff[i, j] = -g
                 kirchhoff[j, i] = -g
-                kirchhoff[i, i] = kirchhoff[i, i] - g
-                kirchhoff[j, j] = kirchhoff[j, j] - g
+                kirchhoff[i, i] = kirchhoff[i, i] + g
+                kirchhoff[j, j] = kirchhoff[j, j] + g
         else:
             cutoff2 = cutoff * cutoff
             for i in range(n_atoms):
@@ -176,8 +176,8 @@ class ANMBase(NMA):
                         hessian[res_j3:res_j33, res_j3:res_j33] - super_element
                     kirchhoff[i, j] = -g
                     kirchhoff[j, i] = -g
-                    kirchhoff[i, i] = kirchhoff[i, i] - g
-                    kirchhoff[j, j] = kirchhoff[j, j] - g
+                    kirchhoff[i, i] = kirchhoff[i, i] + g
+                    kirchhoff[j, j] = kirchhoff[j, j] + g
 
         if sparse:
             kirchhoff = kirchhoff.tocsr()
@@ -254,25 +254,41 @@ class ANM(ANMBase, GNMBase):
 
 
 def calcANM(pdb, selstr='calpha', cutoff=15., gamma=1., n_modes=20,
-            zeros=False):
+            zeros=False, title=None):
     """Returns an :class:`ANM` instance and atoms used for the calculations.
     By default only alpha carbons are considered, but selection string helps
-    selecting a subset of it.  *pdb* can be :class:`.Atomic` instance."""
+    selecting a subset of it.  *pdb* can be a PDB code, :class:`.Atomic` 
+    instance, or a Hessian matrix (:class:`~numpy.ndarray`)."""
 
-    if isinstance(pdb, str):
-        ag = parsePDB(pdb)
-        title = ag.getTitle()
-    elif isinstance(pdb, Atomic):
-        ag = pdb
-        if isinstance(pdb, AtomGroup):
-            title = ag.getTitle()
-        else:
-            title = ag.getAtomGroup().getTitle()
+    if isinstance(pdb, np.ndarray):
+        H = pdb
+        if title is None:
+            title = 'Unknown'
+        anm = ANM(title)
+        anm.setHessian(H)
+        anm.calcModes(n_modes, zeros)
+        
+        return anm
+        
     else:
-        raise TypeError('pdb must be an atomic class, not {0}'
-                        .format(type(pdb)))
-    anm = ANM(title)
-    sel = ag.select(selstr)
-    anm.buildHessian(sel, cutoff, gamma)
-    anm.calcModes(n_modes, zeros)
-    return anm, sel
+        if isinstance(pdb, str):
+            ag = parsePDB(pdb)
+            if title is None:
+                title = ag.getTitle()
+        elif isinstance(pdb, Atomic):
+            ag = pdb
+            if title is None:
+                if isinstance(pdb, AtomGroup):
+                    title = ag.getTitle()
+                else:
+                    title = ag.getAtomGroup().getTitle()
+        else:
+            raise TypeError('pdb must be an atomic class, not {0}'
+                            .format(type(pdb)))
+        
+        anm = ANM(title)
+        sel = ag.select(selstr)
+        anm.buildHessian(sel, cutoff, gamma)
+        anm.calcModes(n_modes, zeros)
+    
+        return anm, sel

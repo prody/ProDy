@@ -11,9 +11,11 @@ from prody.atomic import Atomic, AtomGroup, AtomSubset
 from prody.utilities import openFile, isExecutable, which, PLATFORM, addext
 
 from .nma import NMA
-from .anm import ANM
+from .anm import ANM, ANMBase
 from .gnm import GNM, GNMBase, ZERO, MaskedGNM
+from .rtb import RTB
 from .pca import PCA, EDA
+from .imanm import imANM
 from .exanm import exANM
 from .mode import Vector, Mode
 from .modeset import ModeSet
@@ -59,9 +61,9 @@ def saveModel(nma, filename=None, matrices=False, **kwargs):
         attr_list.append('_gamma')
         if matrices:
             attr_list.append('_kirchhoff')
-            if isinstance(nma, ANM):
+            if isinstance(nma, ANMBase):
                 attr_list.append('_hessian')
-        if isinstance(nma, ANM):
+        if isinstance(nma, ANMBase):
             type_ = 'ANM'
         else:
             type_ = 'GNM'
@@ -84,6 +86,14 @@ def saveModel(nma, filename=None, matrices=False, **kwargs):
         attr_dict['type'] = 'mGNM'
         attr_dict['mask'] = nma.mask
         attr_dict['masked'] = nma.masked
+    
+    if isinstance(nma, RTB):
+        attr_dict['type'] = 'RTB'
+        if matrices:
+            attr_dict['_project'] = nma._project
+
+    if isinstance(nma, imANM):
+        attr_dict['type'] = 'imANM'
 
     if isinstance(nma, exANM):
         attr_dict['type'] = 'exANM'
@@ -141,8 +151,12 @@ def loadModel(filename, **kwargs):
         nma = MaskedGNM(title)
     elif type_ == 'exANM':
         nma = exANM(title)
+    elif type_ == 'imANM':
+        nma = imANM(title)
     elif type_ == 'NMA':
         nma = NMA(title)
+    elif type_ == 'RTB':
+        nma = RTB(title)
     else:
         raise IOError('NMA model type is not recognized: {0}'.format(type_))
 
@@ -179,7 +193,13 @@ def saveVector(vector, filename, **kwargs):
     attr_dict['title'] = vector.getTitle()
     attr_dict['array'] = vector._getArray()
     attr_dict['is3d'] = vector.is3d()
-    filename += '.vec.npz'
+
+    if not filename.lower().endswith('.npz'):
+        if not filename.lower().endswith('.vec'):
+            filename += '.vec.npz'
+        else:
+            filename += '.npz'
+
     ostream = openFile(filename, 'wb', **kwargs)
     np.savez(ostream, **attr_dict)
     ostream.close()
