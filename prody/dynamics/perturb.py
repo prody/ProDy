@@ -97,7 +97,8 @@ def calcPerturbResponse(model, atoms=None, **kwargs):
     LOGGER.report('Perturbation response matrix calculated in %.1fs.',
                   '_prody_prs_mat')
 
-    no_diag = kwargs.get('no_diag', False)
+    suppress_diag = kwargs.get('suppress_diag', False)
+    no_diag = kwargs.get('no_diag', suppress_diag)
     #filename = kwargs.get('filename', None)
 
     norm_prs_matrix = np.zeros((n_atoms, n_atoms))
