@@ -464,7 +464,7 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
 
     return im, lines, cb
 
-def reorderMatrix(matrix, tree, names=None):
+def reorderMatrix(matrix, tree, names):
     """
     Reorder a matrix based on a tree and return the reordered matrix 
     and indices for reordering other things.
@@ -494,9 +494,6 @@ def reorderMatrix(matrix, tree, names=None):
 
     if np.shape(matrix)[0] != np.shape(matrix)[1]:
         raise ValueError('matrix should be a square matrix')
-
-    if names is None:
-        raise ValueError('names must be provided')
 
     if np.isscalar(names):
         raise TypeError('names should be list-like')
