@@ -464,7 +464,7 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
 
     return im, lines, cb
 
-def reorderMatrix(matrix, tree, names=None):
+def reorderMatrix(matrix, tree, names):
     """
     Reorder a matrix based on a tree and return the reordered matrix 
     and indices for reordering other things.
@@ -495,8 +495,11 @@ def reorderMatrix(matrix, tree, names=None):
     if np.shape(matrix)[0] != np.shape(matrix)[1]:
         raise ValueError('matrix should be a square matrix')
 
-    if not names:
-        names = [str(i) for i in range(len(matrix))]
+    if np.isscalar(names):
+        raise TypeError('names should be list-like')
+    
+    if not isinstance(names[0], str):
+        raise TypeError('names should be a list-like of strings')
 
     if not isinstance(tree, Phylo.BaseTree.Tree):
         raise TypeError('tree should be a BioPython Tree')
