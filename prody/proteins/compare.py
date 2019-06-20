@@ -1185,13 +1185,13 @@ def getAlignedMapping(target, chain, alignment=None):
                 return seq
         return None
 
-    this = _findAlignment(target.getSequence(), alignment)
+    this = str(_findAlignment(target.getSequence(), alignment))
     if this is None:
         LOGGER.warn('alignment does not contain the target ({0}) sequence'
                     .format(target.getTitle()))
         return None
 
-    that = _findAlignment(chain.getSequence(), alignment)
+    that = str(_findAlignment(chain.getSequence(), alignment))
     if that is None:
         LOGGER.warn('alignment does not contain the chain ({0}) sequence'
                     .format(chain.getTitle()))
