@@ -1182,16 +1182,16 @@ def getAlignedMapping(target, chain, alignment=None):
                 strseq = strseq.replace(gap, '')
 
             if sequence.upper() == strseq:
-                return seq
+                return str(seq)
         return None
 
-    this = str(_findAlignment(target.getSequence(), alignment))
+    this = _findAlignment(target.getSequence(), alignment)
     if this is None:
         LOGGER.warn('alignment does not contain the target ({0}) sequence'
                     .format(target.getTitle()))
         return None
 
-    that = str(_findAlignment(chain.getSequence(), alignment))
+    that = _findAlignment(chain.getSequence(), alignment)
     if that is None:
         LOGGER.warn('alignment does not contain the chain ({0}) sequence'
                     .format(chain.getTitle()))
