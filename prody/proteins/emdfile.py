@@ -18,7 +18,7 @@ from .localpdb import fetchPDB
 import struct as st
 import numpy as np
 
-__all__ = ['parseEMDStream', 'parseEMD', 'writeEMD', 'TRNET']
+__all__ = ['parseEMDStream', 'parseEMD', 'writeEMD', 'TRNET', 'EMDMAP']
 
 class EMDParseError(Exception):
     pass
