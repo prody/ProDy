@@ -59,6 +59,9 @@ def parseEMD(emd, **kwargs):
 
     title = kwargs.get('title', None)
     if not os.path.isfile(emd):
+        if emd.startswith('EMD-') and len(emd[4:]) == 4:
+            emd = emd[4:]
+            
         if len(emd) == 4 and emd.isdigit():
             if title is None:
                 title = emd
@@ -357,7 +360,7 @@ class EMDMAP:
     def center(self):
         return self.NS / 2, self.NR / 2, self.NC / 2
 
-    def coordinate(self, sec, row, col ):
+    def coordinate(self, sec, row, col):
         # calculate resolution
         res = np.empty(3)
         res[self.mapc - 1] = self.NC
@@ -365,11 +368,13 @@ class EMDMAP:
         res[self.maps - 1] = self.NS
         res = np.divide(np.array([self.Lx, self.Ly, self.Lz]), res)
         
+        # find coordinates in voxels relative to start
         ret = np.empty(3)
         ret[self.mapc - 1] = col + self.ncstart
         ret[self.mapr - 1] = row + self.nrstart
         ret[self.maps - 1] = sec + self.nsstart
 
+        # convert to Angstroms
         ret = np.multiply(ret, res)
         return ret
 
