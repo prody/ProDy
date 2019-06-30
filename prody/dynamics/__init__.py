@@ -281,6 +281,10 @@ from . import exanm
 from .exanm import *
 __all__.extend(exanm.__all__)
 
+from . import imanm
+from .imanm import *
+__all__.extend(imanm.__all__)
+
 #from . import saxs
 #from .saxs import *
 #__all__.extend(saxs.__all__)

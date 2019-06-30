@@ -1044,10 +1044,9 @@ def mapChainByChain(atoms, ref, **kwargs):
     for chain in ref.getHierView().iterChains():
         for target_chain in hv.iterChains():
             if target_chain.getChid() == chain.getChid():
-                mappings.append(mapOntoChainByAlignment(target_chain, chain, **kwargs)[0])
-
-    if len(mappings) == 1:
-        mappings = mappings[0]
+                mappings_ = mapOntoChainByAlignment(target_chain, chain, **kwargs)
+                if len(mappings_):
+                    mappings.append(mappings_[0])
         
     return mappings
 
@@ -1183,7 +1182,7 @@ def getAlignedMapping(target, chain, alignment=None):
                 strseq = strseq.replace(gap, '')
 
             if sequence.upper() == strseq:
-                return seq
+                return str(seq)
         return None
 
     this = _findAlignment(target.getSequence(), alignment)

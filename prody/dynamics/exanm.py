@@ -5,29 +5,18 @@ import numpy as np
 
 from prody import LOGGER
 from prody.atomic import Atomic, AtomGroup
-from prody.proteins import parsePDB, writePDB
 from prody.utilities import importLA, checkCoords, copy
-from prody.kdtree import KDTree
-from numpy import sqrt, zeros, linalg, min, max, mean, array, ceil, dot
-from numpy.linalg import norm, inv
+from numpy import sqrt, zeros, array, ceil, dot
 
-from .anm import ANMBase, calcANM, ANM
+from .anm import ANM
 from .gnm import checkENMParameters
 from .editing import reduceModel
 
+LA = importLA()
+inv = LA.inv
+norm = LA.norm
+
 __all__ = ['exANM']
-
-class Increment(object):
-
-    def __init__(self, s=0):
-
-        self._i = s
-
-    def __call__(self, i=1):
-
-        self._i += i
-        return self._i
-
 
 class exANM(ANM):
 
@@ -97,17 +86,20 @@ class exANM(ANM):
 
         LOGGER.timeit('_membrane')
 
-        h = kwargs.pop('h', None)
+        depth = kwargs.pop('depth', None)
+        h = depth / 2 if depth is not None else None
+            
+        h = kwargs.pop('h', h)
         if h is not None:
             h = float(h)
             hu = h
             hl = -h
         else:
-            hu = kwargs.pop('membrane_hi', 13.0)
+            hu = kwargs.pop('membrane_high', 13.0)
             hu = kwargs.pop('high', hu)
             hu = float(hu)
             
-            hl = kwargs.pop('membrane_lo', -13.0)
+            hl = kwargs.pop('membrane_low', -13.0)
             hl = kwargs.pop('low', hl)
             hl = float(hl)
 
@@ -243,7 +235,7 @@ class exANM(ANM):
         so = total_hessian[:natoms*3, natoms*3:]
         os = total_hessian[natoms*3:,:natoms*3]
         oo = total_hessian[natoms*3:, natoms*3:]
-        self._hessian = ss - np.dot(so, np.dot(linalg.inv(oo), os))
+        self._hessian = ss - np.dot(so, np.dot(inv(oo), os))
         LOGGER.report('Hessian was built in %.2fs.', label='_exanm')
         self._dof = self._hessian.shape[0]
     
@@ -333,7 +325,7 @@ def checkClash(node, hull, radius=5.):
             return False
 
     for coord in H:
-        if linalg.norm(node-coord)<radius:
+        if norm(node-coord)<radius:
             return False
     return True
 

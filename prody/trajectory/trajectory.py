@@ -4,6 +4,7 @@
 import os.path
 
 import numpy as np
+from numbers import Integral
 
 from .trajbase import TrajBase
 from .frame import Frame
@@ -219,7 +220,7 @@ class Trajectory(TrajBase):
 
         if self._closed:
             raise ValueError('I/O operation on closed file')
-        if not isinstance(n, int):
+        if not isinstance(n, Integral):
             raise ValueError('n must be an integer')
         n_csets = self._n_csets
         if n == 0:
@@ -247,7 +248,7 @@ class Trajectory(TrajBase):
 
         if self._closed:
             raise ValueError('I/O operation on closed file')
-        if not isinstance(n, int):
+        if not isinstance(n, Integral):
             raise ValueError('n must be an integer')
         left = self._n_csets - self._nfi
         if n > left:
