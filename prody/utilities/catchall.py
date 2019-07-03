@@ -315,8 +315,14 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
 
     show_colorbar = kwargs.pop('colorbar', True)
     allticks = kwargs.pop('allticks', False) # this argument is temporary and will be replaced by better implementation
-    origin = kwargs.pop('origin', 'lower')
     interactive = kwargs.pop('interactive', True)
+
+    if not 'origin' in kwargs:
+        kwargs['origin'] = 'lower'
+    if not 'cmap' in kwargs:
+        kwargs['cmap'] = 'jet'
+
+    cmap = kwargs.get('cmap')
 
     tree_mode = False
     if np.isscalar(y_array):
@@ -383,7 +389,7 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
             xp, yp = interpY(y)
             points = np.array([xp, yp]).T.reshape(-1, 1, 2)
             segments = np.concatenate([points[:-1], points[1:]], axis=1)
-            lcy = LineCollection(segments, array=yp, linewidths=lw, cmap='jet')
+            lcy = LineCollection(segments, array=yp, linewidths=lw, cmap=cmap)
             lines.append(lcy)
             ax1.add_collection(lcy)
 
@@ -403,7 +409,7 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
             xp, yp = interpY(y)
             points = np.array([yp, xp]).T.reshape(-1, 1, 2)
             segments = np.concatenate([points[:-1], points[1:]], axis=1)
-            lcx = LineCollection(segments, array=yp, linewidths=lw, cmap='jet')
+            lcx = LineCollection(segments, array=yp, linewidths=lw, cmap=cmap)
             lines.append(lcx)
             ax2.add_collection(lcx)
             ax2.set_xlim(yp.min(), yp.max())
@@ -417,9 +423,6 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
     else:
         ax3 = gca()
     
-    kwargs['origin'] = origin
-    if not 'cmap' in kwargs:
-        kwargs['cmap'] = 'jet'
     im = ax3.imshow(matrix, aspect=aspect, vmin=vmin, vmax=vmax, **kwargs)
     #ax3.set_xlim([-0.5, matrix.shape[0]+0.5])
     #ax3.set_ylim([-0.5, matrix.shape[1]+0.5])
