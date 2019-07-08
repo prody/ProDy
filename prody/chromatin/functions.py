@@ -11,7 +11,7 @@ __all__ = ['showDomains', 'showEmbedding', 'getDomainList']
 
 ## normalization methods ##
 
-def showDomains(domains, linespec='r-', **kwargs):
+def showDomains(domains, linespec='-', **kwargs):
     """A convenient function that can be used to visualize Hi-C structural domains. 
     *kwargs* will be passed to :func:`matplotlib.pyplot.plot`.
 
@@ -36,6 +36,7 @@ def showDomains(domains, linespec='r-', **kwargs):
 
     x = []; y = []
     lwd = kwargs.pop('linewidth', 1)
+    lwd = kwargs.pop('lw', lwd)
     linewidth = np.abs(lwd)
     for i in range(len(domains)):
         domain = domains[i]
@@ -46,7 +47,7 @@ def showDomains(domains, linespec='r-', **kwargs):
         else:
             x.extend([start, start, end])
             y.extend([start, end, end])
-    
+
     plt = plot(x, y, linespec, linewidth=linewidth, **kwargs)
     if SETTINGS['auto_show']:
         showFigure()
