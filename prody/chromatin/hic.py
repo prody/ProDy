@@ -98,7 +98,7 @@ class HiC(object):
         return ma.compress_rowcols(M)
     
     def align(self, array, axis=None):
-        if not isinstance(map, np.ndarray):
+        if not isinstance(array, np.ndarray):
             array = np.array(array)
 
         ret = array = array.copy()
@@ -112,17 +112,17 @@ class HiC(object):
         l_trim = self.getTrimedMap().shape[0]
         
         if len(array.shape) == 0:
-            raise ValueError('Aligned array cannot be empty.')
+            raise ValueError('array cannot be empty')
         elif len(array.shape) == 1:
             l = array.shape[0]
             if l == l_trim:
                 N = len(mask)
-                ret = np.zeros(N)
+                ret = np.zeros(N, dtype=array.dtype)
                 ret[mask] = array
             elif l == l_full:
                 ret = array[mask]
             else:
-                raise ValueError('The length of the array (%d) does not '
+                raise ValueError('The length of array (%d) does not '
                                 'match that of either the full (%d) '
                                 'or trimed (%d).'
                                 %(l, l_full, l_trim))
@@ -135,7 +135,7 @@ class HiC(object):
                                      'if axis is set to None.')
                 if s[0] == l_trim:
                     N = len(mask)
-                    whole_mat = np.zeros((N,N))
+                    whole_mat = np.zeros((N,N), dtype=array.dtype)
                     mask = np.outer(mask, mask)
                     whole_mat[mask] = array.flatten()
                     ret = whole_mat
@@ -144,7 +144,7 @@ class HiC(object):
                     M.mask = np.diag(mask)
                     ret = ma.compress_rowcols(M)
                 else:
-                    raise ValueError('The size of the array (%d) does not '
+                    raise ValueError('The size of array (%d) does not '
                                     'match that of either the full (%d) '
                                     'or trimed (%d).'
                                     %(s[0], l_full, l_trim))
@@ -164,7 +164,7 @@ class HiC(object):
                     mask = mask.repeat(s[otheraxis])
                     ret = self._map[mask]
                 else:
-                    raise ValueError('The size of the array (%d) does not '
+                    raise ValueError('The size of array (%d) does not '
                                     'match that of either the full (%d) '
                                     'or trimed (%d).'
                                     %(s[0], l_full, l_trim))
