@@ -212,8 +212,7 @@ def calcGNMDomains(modes, method=Discretize, **kwargs):
 
         currlbl = labels_[np.argmax(~np.isnan(labels_))]
 
-        for i in range(len(labels)):
-            l = labels[i]
+        for i, l in enumerate(labels):
             if np.isnan(l):
                 labels[i] = currlbl
             elif currlbl != l:
