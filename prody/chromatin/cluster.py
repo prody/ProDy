@@ -1,7 +1,9 @@
 import numpy as np
 from prody import LOGGER, SETTINGS
+from prody.dynamics import MaskedGNM
 from prody.utilities import showFigure, bin2dec
-from prody.chromatin.functions import _getEigvecs
+
+from .functions import _getEigvecs
 
 __all__ = ['calcGNMDomains', 'Hingeplane', 'KMeans', 'Hierarchy', 'Discretize', 'showLinkage', 'GaussianMixture', 'BayesianGaussianMixture']
 
@@ -170,7 +172,7 @@ def showLinkage(V, **kwargs):
 
     """
 
-    V, _ = _getEigvecs(V, row_norm=True, remove_zero_rows=True)
+    V = _getEigvecs(V, row_norm=True)
     try:
         from scipy.cluster.hierarchy import linkage, dendrogram
     except ImportError:
@@ -199,23 +201,21 @@ def calcGNMDomains(modes, method=Discretize, **kwargs):
 
     row_norm = kwargs.pop('row_norm', True)
 
-    V, mask = _getEigvecs(modes, row_norm=row_norm, remove_zero_rows=True)
+    V = _getEigvecs(modes, row_norm=row_norm)
 
     labels_ = method(V, **kwargs)
 
-    if np.all(mask):
-        labels = labels_
-    else:
-        labels = np.empty(len(mask))
-        labels.fill(np.nan)
-        labels[mask] = labels_
+    if hasattr(modes, '_model'):
+        model = modes._model
+        if isinstance(model, MaskedGNM):
+            labels = model._extend(labels_, np.nan)
+            currlbl = labels_[0]
 
-        currlbl = labels_[np.argmax(~np.isnan(labels_))]
-
-        for i, l in enumerate(labels):
-            if np.isnan(l):
-                labels[i] = currlbl
-            elif currlbl != l:
-                currlbl = l
+            for i, l in enumerate(labels):
+                if np.isnan(l):
+                    labels[i] = currlbl
+                elif currlbl != l:
+                    currlbl = l
 
     return labels
+    

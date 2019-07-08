@@ -1,11 +1,11 @@
 import numpy as np
 
-from prody.dynamics import NMA
+from prody.dynamics import NMA, MaskedGNM
 from prody.dynamics.mode import Mode
 from prody.dynamics.modeset import ModeSet
-from prody.utilities import importLA
+
+from prody.utilities import importLA, copy, showFigure, div0
 from prody import LOGGER, SETTINGS
-from prody.utilities import showFigure, div0
 
 __all__ = ['showDomains', 'showEmbedding', 'getDomainList']
 
@@ -52,11 +52,16 @@ def showDomains(domains, linespec='r-', **kwargs):
         showFigure()
     return plt
 
-def _getEigvecs(modes, row_norm=False, remove_zero_rows=False):
-    if isinstance(modes, (ModeSet, NMA)):
-        V = modes.getEigvecs()
-    elif isinstance(modes, Mode):
-        V = modes.getEigvec()
+def _getEigvecs(modes, row_norm=False):
+    if isinstance(modes, (Mode, ModeSet, NMA)):
+        model = modes._model
+        if isinstance(model, MaskedGNM):
+            masked = model.masked
+            model.masked = True
+            V = modes.getArray()
+            model.masked = masked
+        else:
+            V = modes.getArray()
     elif isinstance(modes, np.ndarray):
         V = modes
     else:
@@ -82,14 +87,8 @@ def _getEigvecs(modes, row_norm=False, remove_zero_rows=False):
         norms = la.norm(V, axis=1)
         N = np.diag(div0(1., norms))
         V = np.dot(N, V)
-    
-    # remove rows with all zeros
-    m, _ = V.shape
-    mask = np.ones(m, dtype=bool)
-    if remove_zero_rows:
-        mask = V.any(axis=1)
-        V = V[mask]
-    return V, mask
+
+    return V
 
 def showEmbedding(modes, labels=None, trace=True, headtail=True, cmap='prism'):
     """Visualizes Laplacian embedding of Hi-C data. 
@@ -111,8 +110,8 @@ def showEmbedding(modes, labels=None, trace=True, headtail=True, cmap='prism'):
     :arg cmap: the color map used to render the *labels*.
     :type cmap: str
     """
-    V, mask = _getEigvecs(modes, True)
-    m,n = V.shape
+    V, _ = _getEigvecs(modes, True)
+    m, n = V.shape
 
     if labels is not None:
         if len(labels) != m:
