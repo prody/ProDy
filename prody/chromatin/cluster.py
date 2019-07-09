@@ -208,11 +208,11 @@ def calcGNMDomains(modes, method=Discretize, **kwargs):
     if hasattr(modes, '_model'):
         model = modes._model
         if isinstance(model, MaskedGNM):
-            labels = model._extend(labels_, np.nan)
+            labels = model._extend(labels_, -1)
             currlbl = labels_[0]
 
             for i, l in enumerate(labels):
-                if np.isnan(l):
+                if l < 0:
                     labels[i] = currlbl
                 elif currlbl != l:
                     currlbl = l
