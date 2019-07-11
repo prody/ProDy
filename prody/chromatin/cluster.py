@@ -200,17 +200,31 @@ def calcGNMDomains(modes, method=Discretize, **kwargs):
     """
 
     row_norm = kwargs.pop('row_norm', True)
+    linear = kwargs.pop('linear', False)
 
     V = _getEigvecs(modes, row_norm=row_norm)
 
     labels_ = method(V, **kwargs)
 
+    if linear:
+        split_labels = lambda l: np.split(l, np.where(np.diff(l) != 0)[0]+1)
+
+        labels = split_labels(labels_)
+        for i in range(len(labels)):
+            l = np.empty_like(labels[i])
+            l.fill(i)
+            labels[i] = l
+
+        labels = np.hstack(labels)
+    else:
+        labels = labels_
+
     if hasattr(modes, '_model'):
         model = modes._model
         if isinstance(model, MaskedGNM):
-            labels = model._extend(labels_, -1)
-            currlbl = labels_[0]
-
+            currlbl = labels[0]
+            labels = model._extend(labels, -1)
+            
             for i, l in enumerate(labels):
                 if l < 0:
                     labels[i] = currlbl
