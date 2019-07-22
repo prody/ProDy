@@ -42,11 +42,11 @@ class exANM(ANM):
         :arg coords: a coordinate set or an object with ``getCoords`` method
         :type coords: :class:`numpy.ndarray`
 
-        :arg membrane_hi: the maximum z coordinate of the membrane. Default is **13.0**
-        :type membrane_hi: float
+        :arg membrane_high: the maximum z coordinate of the membrane. Default is **13.0**
+        :type membrane_high: float
 
-        :arg membrane_lo: the minimum z coordinate of the membrane. Default is **-13.0**
-        :type membrane_lo: float
+        :arg membrane_low: the minimum z coordinate of the membrane. Default is **-13.0**
+        :type membrane_low: float
 
         :arg R: radius of all membrane in x-y direction. Default is **80**
         :type R: float

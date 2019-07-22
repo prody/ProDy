@@ -1182,7 +1182,7 @@ def getAlignedMapping(target, chain, alignment=None):
                 strseq = strseq.replace(gap, '')
 
             if sequence.upper() == strseq:
-                return seq
+                return str(seq)
         return None
 
     this = _findAlignment(target.getSequence(), alignment)
