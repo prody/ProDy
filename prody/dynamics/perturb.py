@@ -8,7 +8,7 @@ import numpy as np
 
 from prody import LOGGER
 from prody.proteins import parsePDB
-from prody.atomic import AtomGroup, Selection
+from prody.atomic import AtomGroup, Selection, Atomic, sliceAtomicData
 from prody.ensemble import Ensemble, Conformation
 from prody.trajectory import TrajBase
 from prody.utilities import importLA
@@ -136,3 +136,36 @@ def calcPerturbResponse(model, atoms=None, **kwargs):
 
     return norm_prs_matrix, effectiveness, sensitivity
 
+
+def calcDynamicFlexibilityIndex(prs_matrix, atoms, selstr):
+    """
+    Calculate the dynamic flexibility index for the selected residue(s).
+    This function implements the dynamic flexibility index (Dfi) method
+    described in [ZNG13]_.
+
+    :arg prs_matrix: a matrix from PRS
+    :type prs_matrix: list, tuple, :class:`~numpy.ndarray`
+
+    :arg atoms: an Atomic object from which residues are selected
+    :type atoms: :class:`.Atomic`
+
+    :arg selstr: a selection string for selecting residues of interest
+    :type selstr: str
+
+    .. [ZNG13] Gerek ZN, Kumar S, Ozkan SB, Structural dynamics flexibility 
+       informs function and evolution at a proteome scale.
+       *Evol Appl.* **2013** 6(3):423-33.
+
+    """
+    if np.isscalar(prs_matrix):
+        raise TypeError('Please provide a PRS matrix as an array-like object')
+
+    if not isinstance(select, str):
+        raise TypeError('Please provide a valid selection string')
+
+    if not isinstance(atoms, Atomic):
+        raise TypeError('Please provide a valid atoms object')
+
+    profiles = sliceAtomicData(prs_matrix, atoms, selstr, axis=0)
+    return np.sum(profiles, axis=1)/np.sum(prs_matrix)
+    
