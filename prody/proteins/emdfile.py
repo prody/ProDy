@@ -61,7 +61,7 @@ def parseEMD(emd, **kwargs):
     if not os.path.isfile(emd):
         if emd.startswith('EMD-') and len(emd[4:]) == 4:
             emd = emd[4:]
-            
+
         if len(emd) == 4 and emd.isdigit():
             if title is None:
                 title = emd
@@ -179,7 +179,7 @@ def parseEMDStream(stream, **kwargs):
             atomgroup = _parseEMDLines(atomgroup, stream, cutoff=cutoff, n_nodes=n_nodes, \
                                        num_iter=num_iter, map=map, make_nodes=make_nodes)
 
-        LOGGER.report('{0} atoms and {1} coordinate sets were parsed in %.2fs.'.format(
+        LOGGER.report('{0} pseudoatoms were fitted in %.2fs.'.format(
             atomgroup.numAtoms(), atomgroup.numCoordsets()))
     else: 
         emd = _parseEMDLines(atomgroup, stream, cutoff=cutoff, n_nodes=n_nodes, \
