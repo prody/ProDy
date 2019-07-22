@@ -120,6 +120,9 @@ class exANM(ANM):
         torf = np.logical_and(coords[:, -1] < hu, coords[:, -1] > hl)
         transmembrane = coords[torf, :]
 
+        if not np.any(torf):
+            raise ValueError('No region was identified as membrane. Please use a structure from opm/ppm.')
+
         if use_hull:
             from scipy.spatial import ConvexHull
             hull = ConvexHull(transmembrane)
