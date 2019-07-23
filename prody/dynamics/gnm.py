@@ -544,7 +544,7 @@ class GNM(GNMBase):
         self._hinges = np.stack(hinges).T
         return self._hinges
 
-    def getHinges(self, modeIndex=None, flag=False):
+    def getHinges(self, modeIndex=None, flag=False, **kwargs):
         """Get residue index of hinge sites given mode indices.
 
         :arg modeIndex: indices of modes. This parameter can be a scalar, a list, 
@@ -558,6 +558,9 @@ class GNM(GNMBase):
             LOGGER.info('Warning: hinges are not calculated, thus None is returned. '
                         'Please call GNM.calcHinges() to calculate the hinge sites first.')
             return None
+
+        atoms = kwargs.get('atoms', None)
+
         if modeIndex is None:
             hinges = self._hinges
         else:
@@ -567,6 +570,8 @@ class GNM(GNMBase):
             return hinges
         else:
             hinge_list = np.where(hinges)[0]
+            if atoms:
+                hinge_list = atoms.getResnums()[hinge_list]
             return sorted(set(hinge_list))
     
     def numHinges(self, modeIndex=None):
@@ -723,7 +728,7 @@ class MaskedGNM(GNM):
 
         return array
 
-    def getHinges(self, modeIndex=None, flag=False):
+    def getHinges(self, modeIndex=None, flag=False, **kwargs):
         """Gets residue index of hinge sites given mode indices.
 
         :arg modeIndex: indices of modes. This parameter can be a scalar, a list, 
@@ -737,10 +742,14 @@ class MaskedGNM(GNM):
         hinges = super(MaskedGNM, self).getHinges(modeIndex, True)
         hinges = self._extend(hinges)
 
+        atoms = kwargs.get('atoms', None)
+
         if flag:
             return hinges
         else:
             hinge_list = np.where(hinges)[0]
+            if atoms:
+                hinge_list = atoms.getResnums()[hinge_list]
             return sorted(set(hinge_list))
 
     def fixTail(self, length):
