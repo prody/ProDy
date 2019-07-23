@@ -117,6 +117,7 @@ def view3D(*alist, **kwargs):
                 is3d = mode.is3d()
             except AttributeError:
                 arr = mode
+                is3d = len(arr) == atoms.calpha.numAtoms()*3
 
             if is3d:
                 if atoms.calpha.numAtoms()*3 != len(arr):
@@ -208,8 +209,8 @@ def showProtein(*atoms, **kwargs):
     from prody.dynamics.mode import Mode
 
     method = kwargs.pop('draw', None)
-    modes = kwargs.pop('mode', None)
-    scale = kwargs.pop('scale', 100)
+    modes = kwargs.get('mode', None)
+    scale = kwargs.get('scale', 100)
 
     # modes need to be specifically a list or a tuple (cannot be an array)
     if modes is None:
@@ -239,6 +240,9 @@ def showProtein(*atoms, **kwargs):
         mol = view3D(*alist, **kwargs)
         return mol
     else:
+        kwargs.pop('mode', None)
+        kwargs.pop('scale', 100)
+
         import matplotlib.pyplot as plt
         from mpl_toolkits.mplot3d import Axes3D
         cf = plt.gcf()
