@@ -306,13 +306,13 @@ class Mode(VectorBase):
 
         return self._model._vars[self._index]
 
-    def getHinges(self):
+    def getHinges(self, **kwargs):
         """Returns residue index of hinge sites."""
 
         if self.is3d():
             return
         else:
-            return self._model.getHinges(self._index)
+            return self._model.getHinges(self._index, **kwargs)
     
     def numHinges(self):
         return len(self.getHinges())
