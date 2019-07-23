@@ -554,10 +554,12 @@ def bin2dec(x):
 
 
 def wrapModes(modes):
-    try:
-        arr = modes.getArray()
-        modes = [arr]
-    except AttributeError:
+    if hasattr(modes, 'getArray'):
+        try:
+            modes = [mode for mode in modes]
+        except TypeError:
+            modes = [modes]
+    else:
         if isscalar(modes[0]):
             modes = [modes]
     return modes
