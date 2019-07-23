@@ -553,6 +553,9 @@ class GNM(GNMBase):
 
         :arg flag: whether return flag or index array. Default is **False**
         :type flag: bool
+
+        :arg atoms: an Atomic object on which to map hinges. The output will then be a selection. 
+        type atoms: :class:`.Atomic`
         """
         if self._hinges is None:
             LOGGER.info('Warning: hinges are not calculated, thus None is returned. '
@@ -571,7 +574,7 @@ class GNM(GNMBase):
         else:
             hinge_list = np.where(hinges)[0]
             if atoms is not None:
-                if not isinstance(atoms, Atomic):
+                if isinstance(atoms, Atomic):
                     return atoms[hinge_list]
                 else:
                     raise TypeError('atoms should be an Atomic object')
@@ -740,6 +743,9 @@ class MaskedGNM(GNM):
 
         :arg flag: whether return flag or index array. Default is **False**
         :type flag: bool
+
+        :arg atoms: an Atomic object on which to map hinges. The output will then be a selection. 
+        type atoms: :class:`.Atomic`
         """
 
         hinges = super(MaskedGNM, self).getHinges(modeIndex, True)
@@ -752,7 +758,7 @@ class MaskedGNM(GNM):
         else:
             hinge_list = np.where(hinges)[0]
             if atoms is not None:
-                if not isinstance(atoms, Atomic):
+                if isinstance(atoms, Atomic):
                     return atoms[hinge_list]
                 else:
                     raise TypeError('atoms should be an Atomic object')
