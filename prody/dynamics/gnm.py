@@ -570,8 +570,11 @@ class GNM(GNMBase):
             return hinges
         else:
             hinge_list = np.where(hinges)[0]
-            if atoms:
-                hinge_list = atoms.getResnums()[hinge_list]
+            if atoms is not None:
+                if not isinstance(atoms, Atomic):
+                    return atoms[hinge_list]
+                else:
+                    raise TypeError('atoms should be an Atomic object')
             return sorted(set(hinge_list))
     
     def numHinges(self, modeIndex=None):
@@ -748,8 +751,11 @@ class MaskedGNM(GNM):
             return hinges
         else:
             hinge_list = np.where(hinges)[0]
-            if atoms:
-                hinge_list = atoms.getResnums()[hinge_list]
+            if atoms is not None:
+                if not isinstance(atoms, Atomic):
+                    return atoms[hinge_list]
+                else:
+                    raise TypeError('atoms should be an Atomic object')
             return sorted(set(hinge_list))
 
     def fixTail(self, length):
