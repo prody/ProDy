@@ -209,7 +209,7 @@ def showProtein(*atoms, **kwargs):
 
     method = kwargs.pop('draw', None)
     modes = kwargs.pop('mode', None)
-    scale = kwargs.get('scale', 100)
+    scale = kwargs.pop('scale', 100)
 
     # modes need to be specifically a list or a tuple (cannot be an array)
     if modes is None:
