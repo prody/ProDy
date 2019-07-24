@@ -199,10 +199,11 @@ def calcGNMDomains(modes, method=Discretize, **kwargs):
     :type method: func
     """
 
+    dummy_mode = kwargs.pop('dummy_mode', True)
     row_norm = kwargs.pop('row_norm', True)
     linear = kwargs.pop('linear', False)
 
-    V = _getEigvecs(modes, row_norm=row_norm)
+    V = _getEigvecs(modes, row_norm=row_norm, dummy_mode=dummy_mode)
 
     labels_ = method(V, **kwargs)
 

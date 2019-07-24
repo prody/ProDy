@@ -53,7 +53,9 @@ def showDomains(domains, linespec='-', **kwargs):
         showFigure()
     return plt
 
-def _getEigvecs(modes, row_norm=False):
+def _getEigvecs(modes, row_norm=False, dummy_mode=False):
+    la = importLA()
+
     if isinstance(modes, (Mode, ModeSet, NMA)):
         model = modes._model
         if isinstance(model, MaskedGNM):
@@ -82,9 +84,22 @@ def _getEigvecs(modes, row_norm=False):
     if V.ndim == 1:
         V = np.expand_dims(V, axis=1)
 
+    # add a dummy zero mode to the modeset
+    if dummy_mode:
+        v0 = V[:, 0]
+        if np.allclose(v0, np.mean(v0)):
+            dummy_mode = False
+            LOGGER.warn('at least one zero mode is detected therefore dummy mode will NOT be added')
+
+    if dummy_mode:
+        n, _ = V.shape
+        v0 = np.ones((n, 1), dtype=V.dtype)
+        v0 /= la.norm(v0)
+        V = np.hstack((v0, V))
+        LOGGER.debug('a dummy zero mode is added')
+
     # normalize the rows so that feature vectors are unit vectors
     if row_norm:
-        la = importLA()
         norms = la.norm(V, axis=1)
         N = np.diag(div0(1., norms))
         V = np.dot(N, V)
