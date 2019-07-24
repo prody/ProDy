@@ -42,11 +42,11 @@ class exANM(ANM):
         :arg coords: a coordinate set or an object with ``getCoords`` method
         :type coords: :class:`numpy.ndarray`
 
-        :arg membrane_hi: the maximum z coordinate of the membrane. Default is **13.0**
-        :type membrane_hi: float
+        :arg membrane_high: the maximum z coordinate of the membrane. Default is **13.0**
+        :type membrane_high: float
 
-        :arg membrane_lo: the minimum z coordinate of the membrane. Default is **-13.0**
-        :type membrane_lo: float
+        :arg membrane_low: the minimum z coordinate of the membrane. Default is **-13.0**
+        :type membrane_low: float
 
         :arg R: radius of all membrane in x-y direction. Default is **80**
         :type R: float
@@ -124,6 +124,9 @@ class exANM(ANM):
         # determine transmembrane part
         torf = np.logical_and(coords[:, -1] < hu, coords[:, -1] > hl)
         transmembrane = coords[torf, :]
+
+        if not np.any(torf):
+            raise ValueError('No region was identified as membrane. Please use a structure from opm/ppm.')
 
         if use_hull:
             from scipy.spatial import ConvexHull

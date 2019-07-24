@@ -295,7 +295,8 @@ class PDBBlastRecord(object):
             filename += '.fasta'
     
         with open(filename,'w') as f_out:
-            for z in self.getHits(**kwargs):
+            hits = self.getHits(**kwargs)
+            for z in hits: # get keys
                 f_out.write(">" + str(z) + "\n")
                 f_out.write(hits[z]['hseq'])
                 f_out.write("\n")
