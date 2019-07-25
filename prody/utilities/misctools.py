@@ -1,9 +1,9 @@
 """This module defines miscellaneous utility functions."""
 import re
 
-from numpy import unique, linalg, diag, sqrt, dot, chararray, divide, zeros_like
-from numpy import diff, where, insert, nan, isnan, loadtxt, array, round, average
-from numpy import sign, arange, asarray, ndarray, subtract, power, sum, isscalar
+from numpy import unique, linalg, diag, sqrt, dot, chararray, divide, zeros_like, zeros, allclose
+from numpy import diff, where, insert, nan, isnan, loadtxt, array, round, average, min, max
+from numpy import sign, arange, asarray, ndarray, subtract, power, sum, isscalar, empty, triu, tril
 from collections import Counter
 import numbers
 
@@ -15,8 +15,8 @@ __all__ = ['Everything', 'Cursor', 'ImageCursor', 'rangeString', 'alnum', 'impor
            'intorfloat', 'startswith', 'showFigure', 'countBytes', 'sqrtm',
            'saxsWater', 'count', 'addEnds', 'copy', 'dictElementLoop', 
            'getDataPath', 'openData', 'chr2', 'toChararray', 'interpY', 'cmp', 'pystr',
-           'getValue', 'indentElement', 'isPDB', 'isURL', 'isListLike',
-           'getDistance', 'fastin', 'createStringIO', 'div0', 'wmean', 'bin2dec', 'wrapModes']
+           'getValue', 'indentElement', 'isPDB', 'isURL', 'isListLike', 'isSymmetric', 'makeSymmetric',
+           'getDistance', 'fastin', 'createStringIO', 'div0', 'wmean', 'bin2dec', 'wrapModes', 'fixArraySize']
 
 CURSORS = []
 
@@ -563,3 +563,53 @@ def wrapModes(modes):
         if isscalar(modes[0]):
             modes = [modes]
     return modes
+
+def fixArraySize(arr, sizes, value=0):
+    """Makes sure that **arr** is of **sizes**. If not, pad with **value**."""
+
+    if not isinstance(arr, ndarray):
+        raise TypeError('arr has to be a numpy ndarray')
+
+    if not isinstance(sizes, tuple):
+        raise TypeError('sizes has to be a tuple')
+
+    shapes = arr.shape
+    if shapes == sizes:
+        return arr
+
+    arr2 = empty(sizes, dtype=arr.dtype)
+    arr2.fill(value)
+
+    common_sizes = [min((a, b)) for a, b in zip(sizes, shapes)]
+    slices = tuple(slice(s) for s in common_sizes)
+    arr2[slices] = arr[slices]
+
+    return arr2
+
+def isSymmetric(M, rtol=1e-05, atol=1e-08):
+    """Checks if the matrix is symmetric."""
+
+    return allclose(M, M.T, rtol=rtol, atol=atol)
+
+def makeSymmetric(M):
+    """Makes sure the matrix is symmetric."""
+    
+    if isSymmetric(M):
+        return M
+
+    # make square 
+    n, m = M.shape
+    l = max((n, m))
+    M = fixArraySize(M, (l, l))
+
+    # determine which part of the matrix has values
+    U = triu(M, k=1)
+    L = tril(M, k=-1)
+
+    if U.sum() == 0:
+        M += L.T
+    elif L.sum() == 0:
+        M += U.T
+    else:
+        M = (M + M.T) / 2.
+    return M

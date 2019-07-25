@@ -13,7 +13,7 @@ from prody.dynamics.functions import writeArray
 from prody.dynamics.mode import Mode
 from prody.dynamics.modeset import ModeSet
 
-from prody.utilities import openFile, importLA, showMatrix, isURL
+from prody.utilities import openFile, importLA, showMatrix, isURL, fixArraySize, makeSymmetric
 
 __all__ = ['HiC', 'parseHiC', 'parseHiCStream', 'parseHiCBinary', 'saveHiC', 'loadHiC', 'writeMap']
 
@@ -45,7 +45,7 @@ class HiC(object):
             self._map = None
         else:
             self._map = np.array(value)
-            self._makeSymmetric()
+            self._map = makeSymmetric(self._map)
             self._maskUnmappedRegions()
             self._labels = np.zeros(len(self._map))
 
@@ -203,24 +203,6 @@ class HiC(object):
         mask = np.logical_or(mask_nan, mask_zero)
         self.mask = ~mask
         return self.mask
-
-    def _makeSymmetric(self):
-        """Ensures the symmetricity of the contact map."""
-
-        M = self._map
-        if M is None: return
-        
-        # determine which part of the matrix has values
-        U = np.triu(M, k=1)
-        L = np.tril(M, k=-1)
-
-        if np.sum(U) == 0:
-            M += L.T
-        elif np.sum(L) == 0:
-            M += U.T
-        else:
-            M = (M + M.T) / 2.
-        return self._map
     
     def calcGNM(self, n_modes=None):
         """Calculates GNM on the current Hi-C map."""
@@ -368,15 +350,18 @@ def parseHiC(filename, **kwargs):
         title = kwargs.pop('title')
 
     if isURL(filename):
-        hic = parseHiCBinary(filename, title=title, **kwargs)
+        M, res = parseHiCBinary(filename, title=title, **kwargs)
     else:
         with open(filename,'rb') as req:
             magic_number = struct.unpack('<3s',req.read(3))[0]
         if magic_number == b"HIC":
-            hic = parseHiCBinary(filename, title=title, **kwargs)
+            M, res = parseHiCBinary(filename, title=title, **kwargs)
         else:
             with open(filename, 'r') as filestream:
-                hic = parseHiCStream(filestream, title=title, **kwargs)
+                M, res = parseHiCStream(filestream, title=title, **kwargs)
+    
+    hic = HiC(title=title, map=M, bin=res)
+
     return hic
 
 def _sparse2dense(I, J, values, bin=None):
@@ -393,11 +378,11 @@ def _sparse2dense(I, J, values, bin=None):
     I = I // bin
     J = J // bin
     # make sure that the matrix is square
-    if np.max(I) != np.max(J):
-        b = np.max(np.append(I, J))
-        I = np.append(I, b)
-        J = np.append(J, b)
-        values = np.append(values, 0.)
+    # if np.max(I) != np.max(J):
+    #     b = np.max(np.append(I, J))
+    #     I = np.append(I, b)
+    #     J = np.append(J, b)
+    #     values = np.append(values, 0.)
     # Convert to sparse matrix format, then full matrix format
     # and finally array type. Matrix format is avoided because
     # diag() won't work as intended for Matrix instances.
@@ -411,7 +396,7 @@ def parseHiCStream(stream, **kwargs):
         (e.g. :class:`file`, buffer, stdin)
     """
 
-    title = kwargs.get('title', 'Unknown')
+    issparse = kwargs.get('sparse', None)
 
     import csv
     dialect = csv.Sniffer().sniff(stream.read(1024))
@@ -431,7 +416,11 @@ def parseHiCStream(stream, **kwargs):
     size = D.shape
     if len(D.shape) <= 1:
         raise ValueError("cannot parse the file: input file only contains one column.")
-    if size[0] == size[1]:
+    
+    if issparse is None:
+        issparse = size[1] == 3
+
+    if not issparse:
         M = D
     else:
         try:
@@ -440,11 +429,10 @@ def parseHiCStream(stream, **kwargs):
             raise ValueError('the sparse matrix format should have three columns')
         
         M, res = _sparse2dense(I, J, values, bin=res)
-    return HiC(title=title, map=M, bin=res)
+    return M, res
 
 def parseHiCBinary(filename, **kwargs):
 
-    title = kwargs.get('title', 'Unknown')
     chrloc = kwargs.get('chrom', None)
     if chrloc is None:
         raise ValueError('chrom needs to be specified when parsing .hic format')
@@ -462,7 +450,7 @@ def parseHiCBinary(filename, **kwargs):
     result = straw(norm, filename, chrloc1, chrloc2, unit, res)
 
     M, res = _sparse2dense(*result, bin=res)
-    return HiC(title=title, map=M, bin=res)
+    return M, res
 
 def writeMap(filename, map, bin=None, format='%f'):
     """Writes *map* to the file designated by *filename*.
