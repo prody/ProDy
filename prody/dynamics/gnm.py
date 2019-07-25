@@ -145,6 +145,7 @@ class GNMBase(NMA):
         self._affinity = None
         self._hitTime = None
         self._commuteTime = None
+        self._coords = None
 
     def __repr__(self):
 
@@ -167,6 +168,7 @@ class GNMBase(NMA):
         self._affinity = None
         self._hitTime = None
         self._commuteTime = None
+        self._coords = None
 
     def _clear(self):
         self._trace = None
@@ -241,6 +243,7 @@ class GNM(GNMBase):
         self._affinity = None
         self._hitTime = None
         self._commuteTime = None
+        self._coords = None
 
     def setKirchhoff(self, kirchhoff):
         """Set Kirchhoff matrix."""
@@ -303,6 +306,7 @@ class GNM(GNMBase):
         self._reset()
         self._cutoff = cutoff
         self._gamma = g
+        self._coords = coords
 
         n_atoms = coords.shape[0]
         start = time.time()

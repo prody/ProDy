@@ -25,6 +25,7 @@ class ANMBase(NMA):
         self._cutoff = None
         self._gamma = None
         self._hessian = None
+        self._coords = None
 
     def _reset(self):
 
@@ -33,6 +34,7 @@ class ANMBase(NMA):
         self._gamma = None
         self._hessian = None
         self._is3d = True
+        self._coords = None
     
     def _clear(self):
         self._trace = None
@@ -111,6 +113,7 @@ class ANMBase(NMA):
         self._reset()
         self._cutoff = cutoff
         self._gamma = g
+        self._coords = coords
         n_atoms = coords.shape[0]
 
         dof = n_atoms * 3
