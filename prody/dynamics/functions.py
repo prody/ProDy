@@ -6,8 +6,9 @@ from os.path import abspath, join, isfile, isdir, split, splitext
 
 import numpy as np
 
-from prody import LOGGER, SETTINGS, PY3K
-from prody.atomic import Atomic, AtomGroup, AtomSubset
+from prody import LOGGER, SETTINGS, PY3K, PY2K
+from prody.atomic import Atomic, AtomGroup, AtomSubset, ATOMIC_FIELDS 
+from prody.atomic.fields import DTYPE
 from prody.utilities import openFile, isExecutable, which, PLATFORM, addext
 
 from .nma import NMA
@@ -164,19 +165,38 @@ def loadModel(filename, **kwargs):
     for attr in attr_dict.files:
         if attr in ('type', '_name', '_title'):
             continue
+
         elif attr in ('_trace', '_cutoff', '_gamma'):
             dict_[attr] = float(attr_dict[attr])
+
         elif attr in ('_dof', '_n_atoms', '_n_modes'):
             dict_[attr] = int(attr_dict[attr])
+
         elif attr in ('_membrane', '_combined'):
-            dict_[attr] = attr_dict[attr][0] 
+            
+            ag = attr_dict[attr][0]
+            for key in ATOMIC_FIELDS:
+                
+                try:
+                    arr = ag.getData(key)
+                    char = arr.dtype.char
+                    if char in 'SU' and char != DTYPE:
+                        arr = arr.astype(str)
+                        ag.setData(key, arr)
+                except:
+                    pass
+                
+            dict_[attr] = ag
+
         elif attr in ('masked', ):
             dict_[attr] = bool(attr_dict[attr])
+
         elif attr in ('mask', ):
             if not attr_dict[attr].shape:
                 dict_[attr] = bool(attr_dict[attr])
             else:
                 dict_[attr] = attr_dict[attr]
+
         else:
             dict_[attr] = attr_dict[attr]
     return nma
