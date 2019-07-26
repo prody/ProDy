@@ -588,7 +588,8 @@ def fixArraySize(arr, sizes, value=0):
 
 def isSymmetric(M, rtol=1e-05, atol=1e-08):
     """Checks if the matrix is symmetric."""
-
+    if M.shape != M.T.shape:
+        return False
     return allclose(M, M.T, rtol=rtol, atol=atol)
 
 def makeSymmetric(M):
