@@ -526,19 +526,13 @@ def showCrossCorr(modes, *args, **kwargs):
     if SETTINGS['auto_show']:
         plt.figure()
 
-    arange = np.arange(modes.numAtoms())
-    cross_correlations = np.zeros((arange[-1]+2, arange[-1]+2))
-    cross_correlations[arange[0]+1:,
-                       arange[0]+1:] = calcCrossCorr(modes)
+    cross_correlations = calcCrossCorr(modes)
     if not 'interpolation' in kwargs:
         kwargs['interpolation'] = 'bilinear'
     if not 'origin' in kwargs:
         kwargs['origin'] = 'lower'
-    show = showAtomicMatrix(cross_correlations, *args, **kwargs)#, plt.colorbar()
-    #plt.axis([arange[0]+0.5, arange[-1]+1.5, arange[0]+0.5, arange[-1]+1.5])
+    show = showAtomicMatrix(cross_correlations, *args, **kwargs)
     plt.title('Cross-correlations for {0}'.format(str(modes)))
-    plt.xlabel('Indices')
-    plt.ylabel('Indices')
     if SETTINGS['auto_show']:
         showFigure()
     return show
