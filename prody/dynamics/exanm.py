@@ -82,7 +82,8 @@ class exANM(ANM):
                 raise TypeError('coords must be a Numpy array or an object '
                                 'with `getCoords` method')
 
-        self._n_atoms = natoms = int(coords.shape[0])
+        self._n_atoms = int(coords.shape[0])
+        self._coords = coords
 
         LOGGER.timeit('_membrane')
 
