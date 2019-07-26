@@ -11,7 +11,7 @@ from collections import defaultdict
 import numpy as np
 
 from prody import LOGGER, SETTINGS, PY3K
-from prody.utilities import showFigure, addEnds
+from prody.utilities import showFigure, addEnds, showMatrix
 from prody.atomic import AtomGroup, Selection, Atomic, sliceAtoms, sliceAtomicData
 
 from .nma import NMA
@@ -1235,8 +1235,6 @@ def showAtomicMatrix(matrix, x_array=None, y_array=None, atoms=None, **kwargs):
     :arg interactive: turn on or off the interactive options
     :type interactive: bool
     """ 
-
-    from prody.utilities import showMatrix
     from matplotlib.pyplot import figure
     from matplotlib.figure import Figure
 
