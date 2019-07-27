@@ -510,7 +510,7 @@ def saveHiC(hic, filename=None, map=True, **kwargs):
         attr_dict.pop('_map')
 
     ostream = openFile(filename, 'wb', **kwargs)
-    np.savez(ostream, **attr_dict)
+    np.savez_compressed(ostream, **attr_dict)
     ostream.close()
 
     return filename
