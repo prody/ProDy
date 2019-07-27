@@ -41,13 +41,13 @@ class HiC(object):
 
     @map.setter
     def map(self, value):
-        if map is None: 
+        if value is None: 
             self._map = None
         else:
             self._map = np.array(value)
             self._map = makeSymmetric(self._map)
             self._maskUnmappedRegions()
-            self._labels = np.zeros(len(self._map))
+            self._labels = np.zeros(len(self._map), dtype=int)
 
     def __repr__(self):
 
@@ -487,7 +487,7 @@ def writeMap(filename, map, bin=None, format='%f'):
         fmt = ['%d', '%d', format]
         return writeArray(filename, spmat, format=fmt)
 
-def saveHiC(hic, filename=None, map=True, **kwargs):
+def saveHiC_npz(hic, filename=None, map=True, **kwargs):
     """Saves *HiC* model data as :file:`filename.hic.npz`. If *map* is **True**, 
     Hi-C contact map will not be saved and it can be loaded from raw data file 
     later. If *filename* is **None**, name of the Hi-C instance will be used as 
@@ -515,7 +515,7 @@ def saveHiC(hic, filename=None, map=True, **kwargs):
 
     return filename
 
-def loadHiC(filename):
+def loadHiC_npz(filename):
     """Returns HiC instance after loading it from file (*filename*).
     This function makes use of :func:`numpy.load` function. See also 
     :func:`saveHiC`."""
@@ -530,4 +530,57 @@ def loadHiC(filename):
         if len(val.shape) == 0:
             val = np.asscalar(val)
         setattr(hic, k, val)
+    return hic
+
+def saveHiC(hic, filename=None, **kwargs):
+    """Saves *HiC* model data as :file:`filename.hic.npz`. If *filename* is 
+    **None**, name of the Hi-C instance will be used as 
+    the filename, after ``" "`` (white spaces) in the name are replaced with 
+    ``"_"`` (underscores). Upon successful completion of saving, filename is 
+    returned. This function makes use of :func:`numpy.savez` function."""
+
+    try:
+        import h5py
+    except:
+        raise ImportError('h5py needs to be installed for using this function')
+
+    assert isinstance(hic, HiC), 'hic must be a HiC instance.'
+    
+    if filename is None:
+        filename = hic.getTitle().replace(' ', '_')
+    
+    if filename.endswith('.hic'):
+        filename += '.hic'
+    elif not filename.endswith('.hic.h5'):
+        filename += '.hic.h5'
+
+    attr_dict = hic.__dict__.copy()
+
+    with h5py.File(filename, 'w') as f:
+        for key in attr_dict:
+            value = attr_dict[key]
+            compression = None if np.isscalar(value) else 'gzip'
+            f.create_dataset(key, data=value, compression=compression)
+
+    return filename
+
+def loadHiC(filename):
+    """Returns HiC instance after loading it from file (*filename*).
+    This function makes use of :func:`numpy.load` function. See also 
+    :func:`saveHiC`."""
+    
+    try:
+        import h5py
+    except:
+        raise ImportError('h5py needs to be installed for using this function')
+
+    hic = HiC()
+    with h5py.File(filename, 'r') as f:
+        for key in f.keys():
+            try:
+                value = f[key][:]
+            except:
+                value = f[key][()]
+            setattr(hic, key, value)
+
     return hic
