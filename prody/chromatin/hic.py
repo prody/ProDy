@@ -487,7 +487,7 @@ def writeMap(filename, map, bin=None, format='%f'):
         fmt = ['%d', '%d', format]
         return writeArray(filename, spmat, format=fmt)
 
-def saveHiC_npz(hic, filename=None, map=True, **kwargs):
+def saveHiC(hic, filename=None, map=True, **kwargs):
     """Saves *HiC* model data as :file:`filename.hic.npz`. If *map* is **True**, 
     Hi-C contact map will not be saved and it can be loaded from raw data file 
     later. If *filename* is **None**, name of the Hi-C instance will be used as 
@@ -515,7 +515,7 @@ def saveHiC_npz(hic, filename=None, map=True, **kwargs):
 
     return filename
 
-def loadHiC_npz(filename):
+def loadHiC(filename):
     """Returns HiC instance after loading it from file (*filename*).
     This function makes use of :func:`numpy.load` function. See also 
     :func:`saveHiC`."""
@@ -532,7 +532,7 @@ def loadHiC_npz(filename):
         setattr(hic, k, val)
     return hic
 
-def saveHiC(hic, filename=None, **kwargs):
+def saveHiC_h5(hic, filename=None, **kwargs):
     """Saves *HiC* model data as :file:`filename.hic.npz`. If *filename* is 
     **None**, name of the Hi-C instance will be used as 
     the filename, after ``" "`` (white spaces) in the name are replaced with 
@@ -564,7 +564,7 @@ def saveHiC(hic, filename=None, **kwargs):
 
     return filename
 
-def loadHiC(filename):
+def loadHiC_h5(filename):
     """Returns HiC instance after loading it from file (*filename*).
     This function makes use of :func:`numpy.load` function. See also 
     :func:`saveHiC`."""
