@@ -123,6 +123,7 @@ if platform.system() == 'Darwin':
     os.environ['CXX'] = 'clang++'
     #extra_compile_args.append('-stdlib=libc++')
 
+
 CONTRIBUTED = [
     Extension('prody.kdtree._CKDTree',
               [join('prody', 'kdtree', 'KDTree.c'),
