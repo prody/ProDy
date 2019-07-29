@@ -544,7 +544,7 @@ class GNM(GNMBase):
         self._hinges = np.stack(hinges).T
         return self._hinges
 
-    def getHinges(self, modeIndex=None, flag=False):
+    def getHinges(self, modeIndex=None, flag=False, **kwargs):
         """Get residue index of hinge sites given mode indices.
 
         :arg modeIndex: indices of modes. This parameter can be a scalar, a list, 
@@ -553,11 +553,17 @@ class GNM(GNMBase):
 
         :arg flag: whether return flag or index array. Default is **False**
         :type flag: bool
+
+        :arg atoms: an Atomic object on which to map hinges. The output will then be a selection. 
+        type atoms: :class:`.Atomic`
         """
         if self._hinges is None:
             LOGGER.info('Warning: hinges are not calculated, thus None is returned. '
                         'Please call GNM.calcHinges() to calculate the hinge sites first.')
             return None
+
+        atoms = kwargs.get('atoms', None)
+
         if modeIndex is None:
             hinges = self._hinges
         else:
@@ -567,6 +573,11 @@ class GNM(GNMBase):
             return hinges
         else:
             hinge_list = np.where(hinges)[0]
+            if atoms is not None:
+                if isinstance(atoms, Atomic):
+                    return atoms[hinge_list]
+                else:
+                    raise TypeError('atoms should be an Atomic object')
             return sorted(set(hinge_list))
     
     def numHinges(self, modeIndex=None):
@@ -677,7 +688,7 @@ class MaskedGNM(GNM):
         else:
             return len(self.mask)
 
-    def _extend(self, arr):
+    def _extend(self, arr, defval=0):
         if self.masked or np.isscalar(self.mask):
             return arr
 
@@ -686,11 +697,13 @@ class MaskedGNM(GNM):
         N = len(mask)
 
         if arr.ndim == 1:
-            whole_array = np.zeros(N)
+            whole_array = np.empty(N, dtype=arr.dtype)
+            whole_array.fill(defval)
             whole_array[mask] = arr[:n_true]
         elif arr.ndim == 2:
             n, m = arr.shape
-            whole_array = np.zeros((N, m))
+            whole_array = np.empty((N, m), dtype=arr.dtype)
+            whole_array.fill(defval)
             #mask = np.expand_dims(mask, axis=1)
             #mask = mask.repeat(m, axis=1)
             whole_array[mask] = arr[:n_true, :]
@@ -723,7 +736,7 @@ class MaskedGNM(GNM):
 
         return array
 
-    def getHinges(self, modeIndex=None, flag=False):
+    def getHinges(self, modeIndex=None, flag=False, **kwargs):
         """Gets residue index of hinge sites given mode indices.
 
         :arg modeIndex: indices of modes. This parameter can be a scalar, a list, 
@@ -732,15 +745,25 @@ class MaskedGNM(GNM):
 
         :arg flag: whether return flag or index array. Default is **False**
         :type flag: bool
+
+        :arg atoms: an Atomic object on which to map hinges. The output will then be a selection. 
+        type atoms: :class:`.Atomic`
         """
 
         hinges = super(MaskedGNM, self).getHinges(modeIndex, True)
         hinges = self._extend(hinges)
 
+        atoms = kwargs.get('atoms', None)
+
         if flag:
             return hinges
         else:
             hinge_list = np.where(hinges)[0]
+            if atoms is not None:
+                if isinstance(atoms, Atomic):
+                    return atoms[hinge_list]
+                else:
+                    raise TypeError('atoms should be an Atomic object')
             return sorted(set(hinge_list))
 
     def fixTail(self, length):

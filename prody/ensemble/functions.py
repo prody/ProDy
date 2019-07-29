@@ -407,12 +407,18 @@ def buildPDBEnsemble(PDBs, ref=None, title='Unknown', labels=None,
     :arg subset: A subset for selecting particular atoms from the input structures.
         Default is calpha
     :type subset: str
+
+    :arg superpose: if set to ``'iter'``, :func:`.PDBEnsemble.iterpose` will be used to 
+        superpose the structures, otherwise conformations will be superposed with respect 
+        to the reference specified by ``ref``. Default is ``'iter'``
+    :type superpose: str
     """
 
     occupancy = kwargs.pop('occupancy', None)
     degeneracy = kwargs.pop('degeneracy', True)
     subset = str(kwargs.get('subset', 'calpha')).lower()
-    superpose = kwargs.pop('superpose', True)
+    superpose = kwargs.pop('superpose', 'iter')
+    superpose = kwargs.pop('iterpose', superpose)
 
     if len(PDBs) == 1:
         raise ValueError('PDBs should have at least two items')
@@ -431,12 +437,15 @@ def buildPDBEnsemble(PDBs, ref=None, title='Unknown', labels=None,
 
     if ref is None:
         refpdb = PDBs[0]
+        refidx = 0
     elif isinstance(ref, Integral):
         refpdb = PDBs[ref]
+        refidx = ref
     else:
         refpdb = ref
         if refpdb not in PDBs:
             raise ValueError('refpdb should be also in the PDBs')
+        refidx = PDBs.index(ref)
 
     # obtain refchains from the hierarchical view of the reference PDB
     if subset != 'all':
@@ -449,9 +458,7 @@ def buildPDBEnsemble(PDBs, ref=None, title='Unknown', labels=None,
 
     start = time.time()
     # obtain the atommap of all the chains combined.
-    atoms = refchains[0]
-    for i in range(1, len(refchains)):
-        atoms += refchains[i]
+    atoms = refpdb
     
     # initialize a PDBEnsemble with reference atoms and coordinates
     ensemble = PDBEnsemble(title)
@@ -507,7 +514,10 @@ def buildPDBEnsemble(PDBs, ref=None, title='Unknown', labels=None,
 
     if occupancy is not None:
         ensemble = trimPDBEnsemble(ensemble, occupancy=occupancy)
-    if superpose:
+
+    if superpose != 'iter':
+        ensemble.superpose(ref=refidx)
+    else:
         ensemble.iterpose()
     
     LOGGER.info('Ensemble ({0} conformations) were built in {1:.2f}s.'

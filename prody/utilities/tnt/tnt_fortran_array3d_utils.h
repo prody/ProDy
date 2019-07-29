@@ -41,9 +41,9 @@ std::ostream& operator<<(std::ostream &s, const Fortran_Array3D<T> &A)
     {
         for (int j=1; j<=N; j++)
         {
-			for (int k=1; k<=K; k++)
-            	s << A(i,j,k) << " ";
-			s << "\n";
+            for (int k=1; k<=K; k++)
+                s << A(i,j,k) << " ";
+            s << "\n";
         }
         s << "\n";
     }
@@ -60,14 +60,14 @@ std::istream& operator>>(std::istream &s, Fortran_Array3D<T> &A)
 
     s >> M >> N >> K;
 
-	Fortran_Array3D<T> B(M,N,K);
+    Fortran_Array3D<T> B(M,N,K);
 
     for (int i=1; i<=M; i++)
         for (int j=1; j<=N; j++)
-			for (int k=1; k<=K; k++)
-            	s >>  B(i,j,k);
+            for (int k=1; k<=K; k++)
+                s >>  B(i,j,k);
 
-	A = B;
+    A = B;
     return s;
 }
 
@@ -75,172 +75,172 @@ std::istream& operator>>(std::istream &s, Fortran_Array3D<T> &A)
 template <class T>
 Fortran_Array3D<T> operator+(const Fortran_Array3D<T> &A, const Fortran_Array3D<T> &B)
 {
-	int m = A.dim1();
-	int n = A.dim2();
-	int p = A.dim3();
+    int m = A.dim1();
+    int n = A.dim2();
+    int p = A.dim3();
 
-	if (B.dim1() != m ||  B.dim2() != n || B.dim3() != p )
-		return Fortran_Array3D<T>();
+    if (B.dim1() != m ||  B.dim2() != n || B.dim3() != p )
+        return Fortran_Array3D<T>();
 
-	else
-	{
-		Fortran_Array3D<T> C(m,n,p);
+    else
+    {
+        Fortran_Array3D<T> C(m,n,p);
 
-		for (int i=1; i<=m; i++)
-			for (int j=1; j<=n; j++)
-				for (int k=1; k<=p; k++)
-				C(i,j,k) = A(i,j,k)+ B(i,j,k);
+        for (int i=1; i<=m; i++)
+            for (int j=1; j<=n; j++)
+                for (int k=1; k<=p; k++)
+                C(i,j,k) = A(i,j,k)+ B(i,j,k);
 
-		return C;
-	}
+        return C;
+    }
 }
 
 
 template <class T>
 Fortran_Array3D<T> operator-(const Fortran_Array3D<T> &A, const Fortran_Array3D<T> &B)
 {
-	int m = A.dim1();
-	int n = A.dim2();
-	int p = A.dim3();
+    int m = A.dim1();
+    int n = A.dim2();
+    int p = A.dim3();
 
-	if (B.dim1() != m ||  B.dim2() != n || B.dim3() != p )
-		return Fortran_Array3D<T>();
+    if (B.dim1() != m ||  B.dim2() != n || B.dim3() != p )
+        return Fortran_Array3D<T>();
 
-	else
-	{
-		Fortran_Array3D<T> C(m,n,p);
+    else
+    {
+        Fortran_Array3D<T> C(m,n,p);
 
-		for (int i=1; i<=m; i++)
-			for (int j=1; j<=n; j++)
-				for (int k=1; k<=p; k++)
-				C(i,j,k) = A(i,j,k)- B(i,j,k);
+        for (int i=1; i<=m; i++)
+            for (int j=1; j<=n; j++)
+                for (int k=1; k<=p; k++)
+                C(i,j,k) = A(i,j,k)- B(i,j,k);
 
-		return C;
-	}
+        return C;
+    }
 }
 
 
 template <class T>
 Fortran_Array3D<T> operator*(const Fortran_Array3D<T> &A, const Fortran_Array3D<T> &B)
 {
-	int m = A.dim1();
-	int n = A.dim2();
-	int p = A.dim3();
+    int m = A.dim1();
+    int n = A.dim2();
+    int p = A.dim3();
 
-	if (B.dim1() != m ||  B.dim2() != n || B.dim3() != p )
-		return Fortran_Array3D<T>();
+    if (B.dim1() != m ||  B.dim2() != n || B.dim3() != p )
+        return Fortran_Array3D<T>();
 
-	else
-	{
-		Fortran_Array3D<T> C(m,n,p);
+    else
+    {
+        Fortran_Array3D<T> C(m,n,p);
 
-		for (int i=1; i<=m; i++)
-			for (int j=1; j<=n; j++)
-				for (int k=1; k<=p; k++)
-				C(i,j,k) = A(i,j,k)* B(i,j,k);
+        for (int i=1; i<=m; i++)
+            for (int j=1; j<=n; j++)
+                for (int k=1; k<=p; k++)
+                C(i,j,k) = A(i,j,k)* B(i,j,k);
 
-		return C;
-	}
+        return C;
+    }
 }
 
 
 template <class T>
 Fortran_Array3D<T> operator/(const Fortran_Array3D<T> &A, const Fortran_Array3D<T> &B)
 {
-	int m = A.dim1();
-	int n = A.dim2();
-	int p = A.dim3();
+    int m = A.dim1();
+    int n = A.dim2();
+    int p = A.dim3();
 
-	if (B.dim1() != m ||  B.dim2() != n || B.dim3() != p )
-		return Fortran_Array3D<T>();
+    if (B.dim1() != m ||  B.dim2() != n || B.dim3() != p )
+        return Fortran_Array3D<T>();
 
-	else
-	{
-		Fortran_Array3D<T> C(m,n,p);
+    else
+    {
+        Fortran_Array3D<T> C(m,n,p);
 
-		for (int i=1; i<=m; i++)
-			for (int j=1; j<=n; j++)
-				for (int k=1; k<=p; k++)
-				C(i,j,k) = A(i,j,k)/ B(i,j,k);
+        for (int i=1; i<=m; i++)
+            for (int j=1; j<=n; j++)
+                for (int k=1; k<=p; k++)
+                C(i,j,k) = A(i,j,k)/ B(i,j,k);
 
-		return C;
-	}
+        return C;
+    }
 }
 
 
 template <class T>
 Fortran_Array3D<T>& operator+=(Fortran_Array3D<T> &A, const Fortran_Array3D<T> &B)
 {
-	int m = A.dim1();
-	int n = A.dim2();
-	int p = A.dim3();
+    int m = A.dim1();
+    int n = A.dim2();
+    int p = A.dim3();
 
-	if (B.dim1() == m &&  B.dim2() == n && B.dim3() == p )
-	{
-		for (int i=1; i<=m; i++)
-			for (int j=1; j<=n; j++)
-				for (int k=1; k<=p; k++)
-					A(i,j,k) += B(i,j,k);
-	}
+    if (B.dim1() == m &&  B.dim2() == n && B.dim3() == p )
+    {
+        for (int i=1; i<=m; i++)
+            for (int j=1; j<=n; j++)
+                for (int k=1; k<=p; k++)
+                    A(i,j,k) += B(i,j,k);
+    }
 
-	return A;
+    return A;
 }
 
 
 template <class T>
 Fortran_Array3D<T>& operator-=(Fortran_Array3D<T> &A, const Fortran_Array3D<T> &B)
 {
-	int m = A.dim1();
-	int n = A.dim2();
-	int p = A.dim3();
+    int m = A.dim1();
+    int n = A.dim2();
+    int p = A.dim3();
 
-	if (B.dim1() == m &&  B.dim2() == n && B.dim3() == p )
-	{
-		for (int i=1; i<=m; i++)
-			for (int j=1; j<=n; j++)
-				for (int k=1; k<=p; k++)
-					A(i,j,k) -= B(i,j,k);
-	}
+    if (B.dim1() == m &&  B.dim2() == n && B.dim3() == p )
+    {
+        for (int i=1; i<=m; i++)
+            for (int j=1; j<=n; j++)
+                for (int k=1; k<=p; k++)
+                    A(i,j,k) -= B(i,j,k);
+    }
 
-	return A;
+    return A;
 }
 
 
 template <class T>
 Fortran_Array3D<T>& operator*=(Fortran_Array3D<T> &A, const Fortran_Array3D<T> &B)
 {
-	int m = A.dim1();
-	int n = A.dim2();
-	int p = A.dim3();
+    int m = A.dim1();
+    int n = A.dim2();
+    int p = A.dim3();
 
-	if (B.dim1() == m &&  B.dim2() == n && B.dim3() == p )
-	{
-		for (int i=1; i<=m; i++)
-			for (int j=1; j<=n; j++)
-				for (int k=1; k<=p; k++)
-					A(i,j,k) *= B(i,j,k);
-	}
+    if (B.dim1() == m &&  B.dim2() == n && B.dim3() == p )
+    {
+        for (int i=1; i<=m; i++)
+            for (int j=1; j<=n; j++)
+                for (int k=1; k<=p; k++)
+                    A(i,j,k) *= B(i,j,k);
+    }
 
-	return A;
+    return A;
 }
 
 
 template <class T>
 Fortran_Array3D<T>& operator/=(Fortran_Array3D<T> &A, const Fortran_Array3D<T> &B)
 {
-	int m = A.dim1();
-	int n = A.dim2();
-	int p = A.dim3();
+    int m = A.dim1();
+    int n = A.dim2();
+    int p = A.dim3();
 
-	if (B.dim1() == m &&  B.dim2() == n && B.dim3() == p )
-	{
-		for (int i=1; i<=m; i++)
-			for (int j=1; j<=n; j++)
-				for (int k=1; k<=p; k++)
-					A(i,j,k) /= B(i,j,k);
-	}
+    if (B.dim1() == m &&  B.dim2() == n && B.dim3() == p )
+    {
+        for (int i=1; i<=m; i++)
+            for (int j=1; j<=n; j++)
+                for (int k=1; k<=p; k++)
+                    A(i,j,k) /= B(i,j,k);
+    }
 
-	return A;
+    return A;
 }
 
 

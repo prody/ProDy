@@ -5,29 +5,18 @@ import numpy as np
 
 from prody import LOGGER
 from prody.atomic import Atomic, AtomGroup
-from prody.proteins import parsePDB, writePDB
 from prody.utilities import importLA, checkCoords, copy
-from prody.kdtree import KDTree
-from numpy import sqrt, zeros, linalg, min, max, mean, array, ceil, dot
-from numpy.linalg import norm, inv
+from numpy import sqrt, zeros, array, ceil, dot
 
-from .anm import ANMBase, calcANM, ANM
+from .anm import ANM
 from .gnm import checkENMParameters
 from .editing import reduceModel
 
+LA = importLA()
+inv = LA.inv
+norm = LA.norm
+
 __all__ = ['exANM']
-
-class Increment(object):
-
-    def __init__(self, s=0):
-
-        self._i = s
-
-    def __call__(self, i=1):
-
-        self._i += i
-        return self._i
-
 
 class exANM(ANM):
 
@@ -53,14 +42,18 @@ class exANM(ANM):
         :arg coords: a coordinate set or an object with ``getCoords`` method
         :type coords: :class:`numpy.ndarray`
 
-        :arg membrane_hi: the maximum z coordinate of the membrane. Default is **13.0**
-        :type membrane_hi: float
+        :arg membrane_high: the maximum z coordinate of the membrane. Default is **13.0**
+        :type membrane_high: float
 
-        :arg membrane_lo: the minimum z coordinate of the membrane. Default is **-13.0**
-        :type membrane_lo: float
+        :arg membrane_low: the minimum z coordinate of the membrane. Default is **-13.0**
+        :type membrane_low: float
 
         :arg R: radius of all membrane in x-y direction. Default is **80**
         :type R: float
+
+        :arg Ri: inner radius of the membrane in x-y direction if it needs to be hollow. 
+                 Default is **0**, which is not hollow
+        :type Ri: float
 
         :arg r: radius of each membrane node. Default is **3.1**
         :type r: float
@@ -97,15 +90,25 @@ class exANM(ANM):
 
         LOGGER.timeit('_membrane')
 
-        h = kwargs.pop('h', None)
+        depth = kwargs.pop('depth', None)
+        h = depth / 2 if depth is not None else None
+            
+        h = kwargs.pop('h', h)
         if h is not None:
             h = float(h)
             hu = h
             hl = -h
         else:
-            hu = float(kwargs.pop('membrane_hi', 13.0))
-            hl = float(kwargs.pop('membrane_lo', -13.0))
+            hu = kwargs.pop('membrane_high', 13.0)
+            hu = kwargs.pop('high', hu)
+            hu = float(hu)
+            
+            hl = kwargs.pop('membrane_low', -13.0)
+            hl = kwargs.pop('low', hl)
+            hl = float(hl)
+
         R = float(kwargs.pop('R', 80.))
+        Ri = float(kwargs.pop('Ri', 0.))
         r = float(kwargs.pop('r', 3.1))
         lat = str(kwargs.pop('lat', 'FCC'))
         exr = float(kwargs.pop('exr', 5.))
@@ -121,6 +124,9 @@ class exANM(ANM):
         # determine transmembrane part
         torf = np.logical_and(coords[:, -1] < hu, coords[:, -1] > hl)
         transmembrane = coords[torf, :]
+
+        if not np.any(torf):
+            raise ValueError('No region was identified as membrane. Please use a structure from opm/ppm.')
 
         if use_hull:
             from scipy.spatial import ConvexHull
@@ -149,7 +155,7 @@ class exANM(ANM):
                        xyz[0]>-R and xyz[0]<R and \
                        xyz[1]>-R and xyz[1]<R:
                         dd = norm(xyz[:2])
-                        if dd<R:
+                        if dd < R and dd > Ri:
                             if checkClash(xyz, hull, radius=exr):
                                 membrane.append(xyz)
                                 atm = atm + 1 
@@ -237,7 +243,7 @@ class exANM(ANM):
         so = total_hessian[:natoms*3, natoms*3:]
         os = total_hessian[natoms*3:,:natoms*3]
         oo = total_hessian[natoms*3:, natoms*3:]
-        self._hessian = ss - np.dot(so, np.dot(linalg.inv(oo), os))
+        self._hessian = ss - np.dot(so, np.dot(inv(oo), os))
         LOGGER.report('Hessian was built in %.2fs.', label='_exanm')
         self._dof = self._hessian.shape[0]
     
@@ -327,7 +333,7 @@ def checkClash(node, hull, radius=5.):
             return False
 
     for coord in H:
-        if linalg.norm(node-coord)<radius:
+        if norm(node-coord)<radius:
             return False
     return True
 

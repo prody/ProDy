@@ -128,6 +128,7 @@ def blastPDB(sequence, filename=None, **kwargs):
         if LOGGER.timing('_prody_blast') > timeout:
             LOGGER.warn('Blast search time out.')
             return None
+    
     LOGGER.clear()
     LOGGER.report('Blast search completed in %.1fs.', '_prody_blast')
 
@@ -139,7 +140,10 @@ def blastPDB(sequence, filename=None, **kwargs):
         if not ext_xml:
             filename += '.xml'
         out = open(filename, 'w')
-        out.write(results)
+        if PY3K:
+            out.write(results.decode())
+        else:
+            out.write(results)
         out.close()
         LOGGER.info('Results are saved as {0}.'.format(repr(filename)))
 
@@ -291,7 +295,8 @@ class PDBBlastRecord(object):
             filename += '.fasta'
     
         with open(filename,'w') as f_out:
-            for z in self.getHits(**kwargs):
+            hits = self.getHits(**kwargs)
+            for z in hits: # get keys
                 f_out.write(">" + str(z) + "\n")
                 f_out.write(hits[z]['hseq'])
                 f_out.write("\n")

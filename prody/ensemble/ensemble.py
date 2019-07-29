@@ -5,7 +5,7 @@ from numbers import Integral
 
 from numpy import dot, add, subtract, array, ndarray, sign, concatenate
 from numpy import zeros, ones, arange, isscalar, max, asarray
-from numpy import newaxis, unique, repeat
+from numpy import newaxis, unique, repeat, sum
 
 from prody import LOGGER
 from prody.atomic import Atomic, sliceAtoms
@@ -520,20 +520,27 @@ class Ensemble(object):
         else:
             raise IndexError('conformation index out of range')
 
-    def superpose(self):
-        """Superpose the ensemble onto the reference coordinates."""
+    def superpose(self, ref=None):
+        """Superpose the ensemble onto the reference coordinates.
+        
+        :arg ref: index of the reference coordinate. If **None**, the average 
+            coordinate will be assumed as the reference. Default is **None**
+        :type ref: int
+        """
 
         if self._coords is None:
             raise ValueError('coordinates are not set, use `setCoords`')
         if self._confs is None or len(self._confs) == 0:
             raise ValueError('conformations are not set, use `addCoordset`')
         LOGGER.timeit('_prody_ensemble')
-        self._superpose(trans=True)  # trans kwarg is used by PDBEnsemble
+        self._superpose(ref=ref, trans=True)  # trans kwarg is used by PDBEnsemble
         LOGGER.report('Superposition completed in %.2f seconds.',
                       '_prody_ensemble')
 
     def _superpose(self, **kwargs):
         """Superpose conformations and update coordinates."""
+
+        ref = kwargs.pop('ref', None)
 
         indices = self._indices
         weights = self._weights
@@ -554,14 +561,21 @@ class Ensemble(object):
         det = linalg.det
 
         if weights is None:
-            tar_com = tar.mean(0)
+            if ref is None:
+                tar_com = tar.mean(0)
+            else:
+                tar_com = tar[ref]
+
             tar_org = (tar - tar_com)
             mob_org = zeros(tar_org.shape, dtype=mobs.dtype)
             tar_org = tar_org.T
         else:
             weights_sum = weights.sum()
             weights_dot = dot(weights.T, weights)
-            tar_com = (tar * weights).sum(axis=0) / weights_sum
+            if ref is None:
+                tar_com = (tar * weights).sum(axis=0) / weights_sum
+            else:
+                tar_com = (tar[ref] * weights[ref]).sum(axis=0) / sum(weights[ref])
             tar_org = (tar - tar_com)
             mob_org = zeros(tar_org.shape, dtype=mobs.dtype)
 
