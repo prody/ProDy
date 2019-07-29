@@ -117,10 +117,11 @@ EXTENSIONS = [
 # extra arguments for compiling C++ extensions on MacOSX
 extra_compile_args = []
 if platform.system() == 'Darwin':
-    os.environ['MACOSX_DEPLOYMENT_TARGET'] = '10.9'
+    os_ver = platform.mac_ver()[0]
+    os.environ['MACOSX_DEPLOYMENT_TARGET'] = os_ver
     os.environ['CC'] = 'clang'
     os.environ['CXX'] = 'clang++'
-    extra_compile_args.append('-stdlib=libc++')
+    #extra_compile_args.append('-stdlib=libc++')
 
 CONTRIBUTED = [
     Extension('prody.kdtree._CKDTree',
