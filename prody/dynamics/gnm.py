@@ -688,7 +688,7 @@ class MaskedGNM(GNM):
         else:
             return len(self.mask)
 
-    def _extend(self, arr):
+    def _extend(self, arr, defval=0):
         if self.masked or np.isscalar(self.mask):
             return arr
 
@@ -697,11 +697,13 @@ class MaskedGNM(GNM):
         N = len(mask)
 
         if arr.ndim == 1:
-            whole_array = np.zeros(N)
+            whole_array = np.empty(N, dtype=arr.dtype)
+            whole_array.fill(defval)
             whole_array[mask] = arr[:n_true]
         elif arr.ndim == 2:
             n, m = arr.shape
-            whole_array = np.zeros((N, m))
+            whole_array = np.empty((N, m), dtype=arr.dtype)
+            whole_array.fill(defval)
             #mask = np.expand_dims(mask, axis=1)
             #mask = mask.repeat(m, axis=1)
             whole_array[mask] = arr[:n_true, :]
