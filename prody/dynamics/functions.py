@@ -6,9 +6,8 @@ from os.path import abspath, join, isfile, isdir, split, splitext
 
 import numpy as np
 
-from prody import LOGGER, SETTINGS, PY3K, PY2K
-from prody.atomic import Atomic, AtomGroup, AtomSubset, ATOMIC_FIELDS 
-from prody.atomic.fields import DTYPE
+from prody import LOGGER, SETTINGS, PY3K
+from prody.atomic import Atomic, AtomGroup, AtomSubset
 from prody.utilities import openFile, isExecutable, which, PLATFORM, addext
 
 from .nma import NMA
@@ -163,22 +162,17 @@ def loadModel(filename, **kwargs):
     for attr in attr_dict.files:
         if attr in ('type', '_name', '_title'):
             continue
-
         elif attr in ('_trace', '_cutoff', '_gamma'):
             dict_[attr] = float(attr_dict[attr])
-
         elif attr in ('_dof', '_n_atoms', '_n_modes'):
             dict_[attr] = int(attr_dict[attr])
-
         elif attr in ('masked', ):
             dict_[attr] = bool(attr_dict[attr])
-
         elif attr in ('mask', ):
             if not attr_dict[attr].shape:
                 dict_[attr] = bool(attr_dict[attr])
             else:
                 dict_[attr] = attr_dict[attr]
-
         else:
             dict_[attr] = attr_dict[attr]
     return nma
