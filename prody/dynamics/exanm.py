@@ -42,14 +42,18 @@ class exANM(ANM):
         :arg coords: a coordinate set or an object with ``getCoords`` method
         :type coords: :class:`numpy.ndarray`
 
-        :arg membrane_hi: the maximum z coordinate of the membrane. Default is **13.0**
-        :type membrane_hi: float
+        :arg membrane_high: the maximum z coordinate of the membrane. Default is **13.0**
+        :type membrane_high: float
 
-        :arg membrane_lo: the minimum z coordinate of the membrane. Default is **-13.0**
-        :type membrane_lo: float
+        :arg membrane_low: the minimum z coordinate of the membrane. Default is **-13.0**
+        :type membrane_low: float
 
         :arg R: radius of all membrane in x-y direction. Default is **80**
         :type R: float
+
+        :arg Ri: inner radius of the membrane in x-y direction if it needs to be hollow. 
+                 Default is **0**, which is not hollow
+        :type Ri: float
 
         :arg r: radius of each membrane node. Default is **3.1**
         :type r: float
@@ -104,6 +108,7 @@ class exANM(ANM):
             hl = float(hl)
 
         R = float(kwargs.pop('R', 80.))
+        Ri = float(kwargs.pop('Ri', 0.))
         r = float(kwargs.pop('r', 3.1))
         lat = str(kwargs.pop('lat', 'FCC'))
         exr = float(kwargs.pop('exr', 5.))
@@ -119,6 +124,9 @@ class exANM(ANM):
         # determine transmembrane part
         torf = np.logical_and(coords[:, -1] < hu, coords[:, -1] > hl)
         transmembrane = coords[torf, :]
+
+        if not np.any(torf):
+            raise ValueError('No region was identified as membrane. Please use a structure from opm/ppm.')
 
         if use_hull:
             from scipy.spatial import ConvexHull
@@ -147,7 +155,7 @@ class exANM(ANM):
                        xyz[0]>-R and xyz[0]<R and \
                        xyz[1]>-R and xyz[1]<R:
                         dd = norm(xyz[:2])
-                        if dd<R:
+                        if dd < R and dd > Ri:
                             if checkClash(xyz, hull, radius=exr):
                                 membrane.append(xyz)
                                 atm = atm + 1 
