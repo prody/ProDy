@@ -1,7 +1,9 @@
 import numpy as np
 from prody import LOGGER, SETTINGS
+from prody.dynamics import MaskedGNM
 from prody.utilities import showFigure, bin2dec
-from prody.chromatin.functions import _getEigvecs
+
+from .functions import _getEigvecs
 
 __all__ = ['calcGNMDomains', 'Hingeplane', 'KMeans', 'Hierarchy', 'Discretize', 'showLinkage', 'GaussianMixture', 'BayesianGaussianMixture']
 
@@ -170,7 +172,7 @@ def showLinkage(V, **kwargs):
 
     """
 
-    V, _ = _getEigvecs(V, row_norm=True, remove_zero_rows=True)
+    V = _getEigvecs(V, row_norm=True)
     try:
         from scipy.cluster.hierarchy import linkage, dendrogram
     except ImportError:
@@ -197,26 +199,38 @@ def calcGNMDomains(modes, method=Discretize, **kwargs):
     :type method: func
     """
 
+    dummy_mode = kwargs.pop('dummy_mode', True)
     row_norm = kwargs.pop('row_norm', True)
+    linear = kwargs.pop('linear', False)
 
-    V, mask = _getEigvecs(modes, row_norm=row_norm, remove_zero_rows=True)
+    V = _getEigvecs(modes, row_norm=row_norm, dummy_mode=dummy_mode)
 
     labels_ = method(V, **kwargs)
 
-    if np.all(mask):
-        labels = labels_
-    else:
-        labels = np.empty(len(mask))
-        labels.fill(np.nan)
-        labels[mask] = labels_
+    if linear:
+        split_labels = lambda l: np.split(l, np.where(np.diff(l) != 0)[0]+1)
 
-        currlbl = labels_[np.argmax(~np.isnan(labels_))]
-
+        labels = split_labels(labels_)
         for i in range(len(labels)):
-            l = labels[i]
-            if np.isnan(l):
-                labels[i] = currlbl
-            elif currlbl != l:
-                currlbl = l
+            l = np.empty_like(labels[i])
+            l.fill(i)
+            labels[i] = l
+
+        labels = np.hstack(labels)
+    else:
+        labels = labels_
+
+    if hasattr(modes, '_model'):
+        model = modes._model
+        if isinstance(model, MaskedGNM):
+            currlbl = labels[0]
+            labels = model._extend(labels, -1)
+            
+            for i, l in enumerate(labels):
+                if l < 0:
+                    labels[i] = currlbl
+                elif currlbl != l:
+                    currlbl = l
 
     return labels
+    
