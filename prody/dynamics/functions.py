@@ -97,8 +97,6 @@ def saveModel(nma, filename=None, matrices=False, **kwargs):
 
     if isinstance(nma, exANM):
         attr_dict['type'] = 'exANM'
-        #attr_dict['_membrane'] = np.array([nma._membrane, None])
-        #attr_dict['_combined'] = np.array([nma._combined, None])
 
     suffix = '.' + attr_dict['type'].lower()
     if not filename.lower().endswith('.npz'):
@@ -168,8 +166,6 @@ def loadModel(filename, **kwargs):
             dict_[attr] = float(attr_dict[attr])
         elif attr in ('_dof', '_n_atoms', '_n_modes'):
             dict_[attr] = int(attr_dict[attr])
-        elif attr in ('_membrane', '_combined'):
-            dict_[attr] = attr_dict[attr][0] 
         elif attr in ('masked', ):
             dict_[attr] = bool(attr_dict[attr])
         elif attr in ('mask', ):
