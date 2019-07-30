@@ -285,7 +285,7 @@ class DevelApp(object):
                 sys.stderr.write('An exception occurred when executing '
                  'your command.  If this is not a user error, please '
                  'report it to ProDy developers at: '
-                 'https://bitbucket.org/abakan/prody/issues\n')
+                 'https://github.com/prody/ProDy/issues\n')
                 sys.stderr.write('Error: ' + str(err) + '\n')
 
         sub.set_defaults(func=callback)
