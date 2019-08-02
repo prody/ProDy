@@ -173,6 +173,8 @@ def loadModel(filename, **kwargs):
                 dict_[attr] = bool(attr_dict[attr])
             else:
                 dict_[attr] = attr_dict[attr]
+        elif attr in ('_combined', '_membrane'):
+            pass # don't load these
         else:
             dict_[attr] = attr_dict[attr]
     return nma
