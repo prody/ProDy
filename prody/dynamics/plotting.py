@@ -513,6 +513,9 @@ def showOverlapTable(modes_x, modes_y, **kwargs):
     show = showMatrix(overlap, cmap=cmap, norm=norm, 
                       xticklabels=x_ticklabels, yticklabels=y_ticklabels, allticks=allticks,
                       **kwargs)
+
+    plt.xlabel(str(modes_x))
+    plt.ylabel(str(modes_y))
     
     if SETTINGS['auto_show']:
         showFigure()
