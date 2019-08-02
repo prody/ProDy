@@ -2,6 +2,7 @@ import numpy as np
 from prody import LOGGER, SETTINGS
 from prody.dynamics import MaskedGNM
 from prody.utilities import showFigure, bin2dec
+from numbers import Integral
 
 from .functions import _getEigvecs
 
@@ -102,62 +103,25 @@ def Discretize(V, **kwargs):
 
 def _discretize(vectors, copy=True, max_svd_restarts=30, n_iter_max=20,
                random_state=None):
-    """Search for a partition matrix (clustering) which is closest to the
-    eigenvector embedding.
-
-    Parameters
-    ----------
-    vectors : array-like, shape: (n_samples, n_clusters)
-        The embedding space of the samples.
-
-    copy : boolean, optional, default: True
-        Whether to copy vectors, or perform in-place normalization.
-
-    max_svd_restarts : int, optional, default: 30
-        Maximum number of attempts to restart SVD if convergence fails
-
-    n_iter_max : int, optional, default: 30
-        Maximum number of iterations to attempt in rotation and partition
-        matrix search if machine precision convergence is not reached
-
-    random_state : int, RandomState instance or None (default)
-        Determines random number generation for rotation matrix initialization.
-        Use an int to make the randomness deterministic.
-        See :term:`Glossary <random_state>`.
-
-    Returns
-    -------
-    labels : array of integers, shape: n_samples
-        The labels of the clusters.
-
-    References
-    ----------
-
-    - Multiclass spectral clustering, 2003
-      Stella X. Yu, Jianbo Shi
-      https://www1.icsi.berkeley.edu/~stellayu/publication/doc/2003kwayICCV.pdf
-
-    Notes
-    -----
-
-    The eigenvector embedding is used to iteratively search for the
-    closest discrete partition.  First, the eigenvector embedding is
-    normalized to the space of partition matrices. An optimal discrete
-    partition matrix closest to this normalized embedding multiplied by
-    an initial rotation is calculated.  Fixing this discrete partition
-    matrix, an optimal rotation matrix is calculated.  These two
-    calculations are performed until convergence.  The discrete partition
-    matrix is returned as the clustering solution.  Used in spectral
-    clustering, this method tends to be faster and more robust to random
-    initialization than k-means.
-
+    """Adapted from :func:`~sklearn.cluster.spectral.discretize`. Copyright please 
+    see LICENSE.rst.
     """
 
-    import numpy as np
     from scipy.sparse import csc_matrix
     from scipy.linalg import LinAlgError
 
-    random_state = np.random.mtrand._rand
+    def check_random_state(seed):
+        """Adapted from :func:`~sklearn.utils.validation.check_random_state`."""
+        if seed is None or seed is np.random:
+            return np.random.mtrand._rand
+        if isinstance(seed, Integral):
+            return np.random.RandomState(seed)
+        if isinstance(seed, np.random.RandomState):
+            return seed
+        raise ValueError('%r cannot be used to seed a numpy.random.RandomState'
+                        ' instance' % seed)
+
+    random_state = check_random_state(random_state)
 
     eps = np.finfo(float).eps
     n_samples, n_components = vectors.shape
