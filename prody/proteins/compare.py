@@ -1041,14 +1041,41 @@ def mapChainByChain(atoms, ref, **kwargs):
 
     :arg correspondence: chain IDs in atoms corresponding to those in ref
         Default is to use the same chain IDs as in ref.
-    :type correspondence: str, list, tuple, `~numpy.ndarray`
+    :type correspondence: str, list, tuple, `~numpy.ndarray`, dict
     """
     mappings = []
+
     correspondence = kwargs.get('correspondence', [chain.getChid() for chain in ref.getHierView().iterChains()])
+    if not isinstance(correspondence, str):
+        try:
+            chid = correspondence[0]
+            if len(chid) < 1:
+                raise ValueError('Each element should be a single character chain ID')
+        except:
+            try:
+                corr_tar = correspondence[atoms.getTitle()]
+                chid = corr_tar[0]
+                if len(chid) < 1:
+                    raise ValueError('Each element in each dictionary entry should be a single character chain ID')
+            except:
+                raise TypeError('correspondence should be a str, list, tuple or numpy ndarray of chain IDs or a dictionary with keys including the atoms object title')
+
+    if isinstance(ref, Chain):
+        try:
+            ref_ag = ref.getAtomGroup()
+            corr_ref = np.array(list(correspondence[ref_ag.getTitle()]))
+            pos_ref = np.where(corr_ref == ref.getChid())[0][0]
+        except:
+            raise ValueError('When using a chain as ref, correspondence should include an entry for ref')
+    else:
+        pos_ref = None
+
     hv = atoms.getHierView()
     for i, chain in enumerate(ref.getHierView().iterChains()):
+        if pos_ref is not None:
+            i = pos_ref
         for target_chain in hv.iterChains():
-            if target_chain.getChid() == correspondence[i]:
+            if target_chain.getChid() == corr_tar[i]:
                 mappings_ = mapOntoChainByAlignment(target_chain, chain, **kwargs)
                 if len(mappings_):
                     mappings.append(mappings_[0])
