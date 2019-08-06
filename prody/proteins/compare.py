@@ -1046,7 +1046,12 @@ def mapChainByChain(atoms, ref, **kwargs):
     mappings = []
 
     corr_input = kwargs.get('correspondence', None)
-    correspondence = kwargs.get('correspondence', [chain.getChid() for chain in ref.getAtomGroup().getHierView().iterChains()])
+    if isinstance(ref, AtomGroup):
+        ref_ag = ref
+    else:
+        ref_ag = ref.getAtomGroup()
+
+    correspondence = kwargs.get('correspondence', [chain.getChid() for chain in ref_ag.getHierView().iterChains()])
 
     if isinstance(correspondence, str) or not np.isscalar(correspondence):
         corr_tar = correspondence
@@ -1067,12 +1072,10 @@ def mapChainByChain(atoms, ref, **kwargs):
 
     if isinstance(ref, Chain):
         try:
-            ref_ag = ref.getAtomGroup()
             corr_ref = np.array(list(correspondence[ref_ag.getTitle()]))
             pos_ref = np.where(corr_ref == ref.getChid())[0][0]
         except:
             if corr_input is None:
-                ref_ag = ref.getAtomGroup()
                 corr_ref = np.array(list(correspondence))
                 pos_ref = np.where(corr_ref == ref.getChid())[0][0]
             else:
