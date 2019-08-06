@@ -1045,8 +1045,11 @@ def mapChainByChain(atoms, ref, **kwargs):
     """
     mappings = []
 
-    correspondence = kwargs.get('correspondence', [chain.getChid() for chain in ref.getHierView().iterChains()])
-    if not isinstance(correspondence, str):
+    corr_input = kwargs.get('correspondence', None)
+    correspondence = kwargs.get('correspondence', [chain.getChid() for chain in ref.getAtomGroup().getHierView().iterChains()])
+
+    if isinstance(correspondence, str) or not np.isscalar(correspondence):
+        corr_tar = correspondence
         try:
             chid = correspondence[0]
             if len(chid) < 1:
@@ -1059,6 +1062,8 @@ def mapChainByChain(atoms, ref, **kwargs):
                     raise ValueError('Each element in each dictionary entry should be a single character chain ID')
             except:
                 raise TypeError('correspondence should be a str, list, tuple or numpy ndarray of chain IDs or a dictionary with keys including the atoms object title')
+    else:
+        raise TypeError('correspondence should be a str, list, tuple or numpy ndarray of chain IDs or a dictionary containing such things')
 
     if isinstance(ref, Chain):
         try:
@@ -1066,7 +1071,12 @@ def mapChainByChain(atoms, ref, **kwargs):
             corr_ref = np.array(list(correspondence[ref_ag.getTitle()]))
             pos_ref = np.where(corr_ref == ref.getChid())[0][0]
         except:
-            raise ValueError('When using a chain as ref, correspondence should include an entry for ref')
+            if corr_input is None:
+                ref_ag = ref.getAtomGroup()
+                corr_ref = np.array(list(correspondence))
+                pos_ref = np.where(corr_ref == ref.getChid())[0][0]
+            else:
+                raise ValueError('When using a chain as ref, correspondence should include an entry for ref')
     else:
         pos_ref = None
 
