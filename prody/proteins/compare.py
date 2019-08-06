@@ -1038,12 +1038,17 @@ def mapChainByChain(atoms, ref, **kwargs):
         If False, only mappings for the first chain will be returned. 
         Default is True
     :arg return_all: bool
+
+    :arg correspondence: chain IDs in atoms corresponding to those in ref
+        Default is to use the same chain IDs as in ref.
+    :type correspondence: str, list, tuple, `~numpy.ndarray`
     """
     mappings = []
+    correspondence = kwargs.get('correspondence', [chain.getChid() for chain in ref.getHierView().iterChains()])
     hv = atoms.getHierView()
-    for chain in ref.getHierView().iterChains():
+    for i, chain in enumerate(ref.getHierView().iterChains()):
         for target_chain in hv.iterChains():
-            if target_chain.getChid() == chain.getChid():
+            if target_chain.getChid() == correspondence[i]:
                 mappings_ = mapOntoChainByAlignment(target_chain, chain, **kwargs)
                 if len(mappings_):
                     mappings.append(mappings_[0])
