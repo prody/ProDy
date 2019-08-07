@@ -28,6 +28,9 @@ class AdaptiveANM(object):
         self.origA = structA
         self.origB = structB
 
+        self.cutoff = 15.0 # default cutoff for ANM.buildHessian
+        self.gamma = 1.0 # default gamma for ANM.buildHessian
+
         self.alignSel = kwargs.get('alignSel', None)
         if self.alignSel is None:
             self.structA, T = superpose(self.structA, self.structB)
@@ -117,13 +120,17 @@ class AdaptiveANM(object):
         if alignSel is None:
             coordsA, T = superpose(coordsA, coordsB)
         else:
-            part, T = superpose(structA.select(alignSel),
+            _, T = superpose(structA.select(alignSel),
                                 structB.select(alignSel))
             coordsA = applyTransformation(T, coordsA)
             structA.setCoords(coordsA)
 
         anmA = kwargs.get('anmA', self.anmA)
-        anmA.buildHessian(structA, **kwargs)
+        
+        self.cutoff = kwargs.pop('cutoff', self.cutoff)
+        self.gamma = kwargs.pop('gamma', self.gamma)
+
+        anmA.buildHessian(structA, cutoff=self.cutoff, gamma=self.gamma, **kwargs)
         anmA.calcModes(self.n_modes, **kwargs)
 
         defvec = coordsB - coordsA
