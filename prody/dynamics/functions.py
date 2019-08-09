@@ -176,7 +176,7 @@ def loadModel(filename, **kwargs):
                     dict_[attr] = attr_dict[attr]
             else:
                 dict_[attr] = attr_dict[attr]
-    
+
     return nma
 
 
