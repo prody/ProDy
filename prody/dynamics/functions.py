@@ -118,6 +118,8 @@ def loadModel(filename, **kwargs):
     if not 'encoding' in kwargs:
         kwargs['encoding'] = 'latin1'
 
+    if not 'allow_pickle' in kwargs:
+        kwargs['allow_pickle'] = True 
 
     with np.load(filename, **kwargs) as attr_dict:
         try:
