@@ -92,23 +92,18 @@ def Hierarchy(V, **kwargs):
     return labels.flatten()
 
 def Discretize(V, **kwargs):
-    copy = kwargs.pop('copy', False)
-    max_svd_restarts = kwargs.pop('max_svd_restarts', 30)
-    n_iter_max = kwargs.pop('n_iter_max', 20)
-    random_state = kwargs.pop('random_state', None)
-
-    labels = _discretize(V, copy=copy, max_svd_restarts=max_svd_restarts, 
-                        n_iter_max=n_iter_max, random_state=random_state)
-    return labels
-
-def _discretize(vectors, copy=True, max_svd_restarts=30, n_iter_max=20,
-               random_state=None):
     """Adapted from :func:`~sklearn.cluster.spectral.discretize`. Copyright please 
     see LICENSE.rst.
     """
 
     from scipy.sparse import csc_matrix
     from scipy.linalg import LinAlgError
+
+    copy = kwargs.pop('copy', False)
+    max_svd_restarts = kwargs.pop('max_svd_restarts', 30)
+    n_iter_max = kwargs.pop('n_iter_max', 20)
+    random_state = kwargs.pop('random_state', None)
+    info = kwargs.pop('info', None)
 
     def check_random_state(seed):
         """Adapted from :func:`~sklearn.utils.validation.check_random_state`."""
@@ -124,6 +119,7 @@ def _discretize(vectors, copy=True, max_svd_restarts=30, n_iter_max=20,
     random_state = check_random_state(random_state)
 
     eps = np.finfo(float).eps
+    vectors = np.array(V, dtype=float, copy=copy)
     n_samples, n_components = vectors.shape
 
     # Normalize the eigenvectors to an equal length of a vector of ones.
@@ -194,6 +190,12 @@ def _discretize(vectors, copy=True, max_svd_restarts=30, n_iter_max=20,
                 # otherwise calculate rotation and continue
                 last_objective_value = ncut_value
                 rotation = np.dot(Vh.T, U.T)
+
+    if info is not None:
+        if not isinstance(info, dict):
+            raise TypeError('info must be a dict')
+        info['indicators'] = t_discrete
+        info['vectors'] = vectors
 
     if not has_converged:
         raise LinAlgError('SVD did not converge')
