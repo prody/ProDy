@@ -204,15 +204,18 @@ class HiC(object):
         self.mask = ~mask
         return self.mask
     
-    def calcGNM(self, n_modes=None):
+    def calcGNM(self, n_modes=None, **kwargs):
         """Calculates GNM on the current Hi-C map."""
-
+        
+        if 'hinges' in kwargs:
+            kwargs['hinges'] = False
+            
         if self.masked:
             gnm = MaskedGNM(self._title, self.mask)
         else:
             gnm = GNM(self._title)
         gnm.setKirchhoff(self.getKirchhoff())
-        gnm.calcModes(n_modes=n_modes)
+        gnm.calcModes(n_modes=n_modes, **kwargs)
         return gnm
     
     def normalize(self, method=VCnorm, **kwargs):

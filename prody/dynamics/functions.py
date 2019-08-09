@@ -119,65 +119,66 @@ def loadModel(filename, **kwargs):
         kwargs['encoding'] = 'latin1'
 
     if not 'allow_pickle' in kwargs:
-        kwargs['allow_pickle'] = True
-        
-    attr_dict = np.load(filename, **kwargs)
-    try:
-        type_ = attr_dict['type']
-    except KeyError:
-        raise IOError('{0} is not a valid NMA model file'.format(filename))
+        kwargs['allow_pickle'] = True 
 
-    if isinstance(type_, np.ndarray):
-        type_ = np.asarray(type_, dtype=str)
+    with np.load(filename, **kwargs) as attr_dict:
+        try:
+            type_ = attr_dict['type']
+        except KeyError:
+            raise IOError('{0} is not a valid NMA model file'.format(filename))
 
-    type_ = str(type_)
+        if isinstance(type_, np.ndarray):
+            type_ = np.asarray(type_, dtype=str)
 
-    try:
-        title = attr_dict['_title']
-    except KeyError:
-        title = attr_dict['_name']
+        type_ = str(type_)
 
-    if isinstance(title, np.ndarray):
-        title = np.asarray(title, dtype=str)
-    title = str(title)
-    if type_ == 'ANM':
-        nma = ANM(title)
-    elif type_ == 'PCA':
-        nma = PCA(title)
-    elif type_ == 'EDA':
-        nma = EDA(title)
-    elif type_ == 'GNM':
-        nma = GNM(title)
-    elif type_ == 'mGNM':
-        nma = MaskedGNM(title)
-    elif type_ == 'exANM':
-        nma = exANM(title)
-    elif type_ == 'imANM':
-        nma = imANM(title)
-    elif type_ == 'NMA':
-        nma = NMA(title)
-    elif type_ == 'RTB':
-        nma = RTB(title)
-    else:
-        raise IOError('NMA model type is not recognized: {0}'.format(type_))
+        try:
+            title = attr_dict['_title']
+        except KeyError:
+            title = attr_dict['_name']
 
-    dict_ = nma.__dict__
-    for attr in attr_dict.files:
-        if attr in ('type', '_name', '_title'):
-            continue
-        elif attr in ('_trace', '_cutoff', '_gamma'):
-            dict_[attr] = float(attr_dict[attr])
-        elif attr in ('_dof', '_n_atoms', '_n_modes'):
-            dict_[attr] = int(attr_dict[attr])
-        elif attr in ('masked', ):
-            dict_[attr] = bool(attr_dict[attr])
-        elif attr in ('mask', ):
-            if not attr_dict[attr].shape:
+        if isinstance(title, np.ndarray):
+            title = np.asarray(title, dtype=str)
+        title = str(title)
+        if type_ == 'ANM':
+            nma = ANM(title)
+        elif type_ == 'PCA':
+            nma = PCA(title)
+        elif type_ == 'EDA':
+            nma = EDA(title)
+        elif type_ == 'GNM':
+            nma = GNM(title)
+        elif type_ == 'mGNM':
+            nma = MaskedGNM(title)
+        elif type_ == 'exANM':
+            nma = exANM(title)
+        elif type_ == 'imANM':
+            nma = imANM(title)
+        elif type_ == 'NMA':
+            nma = NMA(title)
+        elif type_ == 'RTB':
+            nma = RTB(title)
+        else:
+            raise IOError('NMA model type is not recognized: {0}'.format(type_))
+
+        dict_ = nma.__dict__
+        for attr in attr_dict.files:
+            if attr in ('type', '_name', '_title'):
+                continue
+            elif attr in ('_trace', '_cutoff', '_gamma'):
+                dict_[attr] = float(attr_dict[attr])
+            elif attr in ('_dof', '_n_atoms', '_n_modes'):
+                dict_[attr] = int(attr_dict[attr])
+            elif attr in ('masked', ):
                 dict_[attr] = bool(attr_dict[attr])
+            elif attr in ('mask', ):
+                if not attr_dict[attr].shape:
+                    dict_[attr] = bool(attr_dict[attr])
+                else:
+                    dict_[attr] = attr_dict[attr]
             else:
                 dict_[attr] = attr_dict[attr]
-        else:
-            dict_[attr] = attr_dict[attr]
+    
     return nma
 
 

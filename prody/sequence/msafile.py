@@ -582,6 +582,7 @@ def parseMSA(filename, **kwargs):
     else:
         filesize = getsize(filename)
         format = MSAEXTMAP.get(splitext(filename)[1])
+        format = kwargs.get('format', format)
 
         if format == FASTA:
             from .msaio import parseFasta as parser
