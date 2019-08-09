@@ -783,6 +783,18 @@ class sdarray(ndarray):
 
         arr = np.asarray(self)
         mean = wmean(arr, self._weights, axis)
+
+        if axis is not None:
+            reps = list(arr.shape)
+            axes = []
+            if isinstance(axis, tuple):
+                axes.extend(axis)
+            else:
+                axes = [axis]
+            
+            for ax in axes:
+                reps[ax] = 1
+            mean = np.reshape(mean, reps)
         variance = wmean((arr - mean)**2, self._weights, axis)
         return np.sqrt(variance)
 
