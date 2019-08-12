@@ -46,12 +46,16 @@ class AdaptiveANM(object):
         self.anmA = kwargs.get('anmA', None)
         if self.anmA is None:
             self.anmA = ANM(structA)
-        self.anmListA = [self.anmA]
+            self.anmListA = []
+        else:
+            self.anmListA = [self.anmA]
 
         self.anmB = kwargs.get('anmB', None)
         if self.anmB is None:
             self.anmB = ANM(structB)
-        self.anmListB = [self.anmB]
+            self.anmListB = []
+        else:
+            self.anmListB = [self.anmB]
 
         self.n_modes = 20
         self.numModesList = []
@@ -224,13 +228,13 @@ class AdaptiveANM(object):
 
         if structA == self.structA:
             self.anmA = anmA
-            self.anmListA.append(anmA)
+            self.anmListA.append(modesetA)
             self.structA.setCoords(new_coordsA)
             self.ensembleA.addCoordset(new_coordsA)
             self.whichModesA.append(modesetA[modesCrossingFmin])
         elif structA == self.structB:
             self.anmB = anmA
-            self.anmListB.append(anmA)
+            self.anmListB.append(modesetA)
             self.structB.setCoords(new_coordsA)
             self.ensembleB.addCoordset(new_coordsA)
             self.whichModesB.append(modesetA[modesCrossingFmin])
