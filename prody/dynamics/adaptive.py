@@ -15,12 +15,14 @@ from .compare import calcOverlap, calcCumulOverlap
 from prody.ensemble import PDBEnsemble, Ensemble
 from .mode import Vector
 from .anm import ANM
+from .functions import reduceModel
 from .modeset import ModeSet
 from prody.trajectory import writeDCD
-from prody.proteins import writePDB
-from .anm import ANM
+from prody.proteins import writePDB, mapOntoChain, mapChainByChain
 
 __all__ = ['AdaptiveANM']
+
+
 class AdaptiveANM(object):
     def __init__(self, structA, structB, **kwargs):
         self.structA = structA.copy()
@@ -28,17 +30,44 @@ class AdaptiveANM(object):
         self.origA = structA
         self.origB = structB
 
-        self.cutoff = 15.0 # default cutoff for ANM.buildHessian
-        self.gamma = 1.0 # default gamma for ANM.buildHessian
+        self.cutoff = kwargs.pop('cutoff', 15.0) # default cutoff for ANM.buildHessian
+        self.gamma = kwargs.pop('gamma', 1.0) # default gamma for ANM.buildHessian
 
         self.alignSel = kwargs.get('alignSel', None)
-        if self.alignSel is None:
-            self.structA, T = superpose(self.structA, self.structB)
-        else:
-            part, T = superpose(self.structA.select(self.alignSel),
-                                self.structB.select(self.alignSel))
+        self.alignSelA = kwargs.get('alignSelA', self.alignSel)
+        self.alignSelB = kwargs.get('alignSelB', self.alignSel)
 
-        rmsd = calcRMSD(self.structA, self.structB)
+        if self.alignSelA is None:
+            structA_sel = self.structA
+        else:
+            structA_sel = self.structA.select(self.alignSelA)
+
+        if self.alignSelB is None:
+            structB_sel = self.structB
+        else:
+            structB_sel = self.structB.select(self.alignSelB)
+
+        mapping_func = kwargs.pop('mapping_func', mapChainByChain)
+        seqid = kwargs.pop('seqid', 90.) 
+        coverage = kwargs.pop('overlap', 70.)
+        coverage = kwargs.pop('coverage', coverage)
+        pwalign = kwargs.pop('pwalign', None)
+        pwalign = kwargs.pop('mapping', pwalign)
+
+        try:
+            _, T = superpose(structA_sel, structB_sel)
+            structA = applyTransformation(T, structA)
+            structB_amap = structB_sel
+        except:
+            structB_amap = sum(np.array(mapping_func(structB_sel, structA_sel, overlap=coverage, seqid=seqid, pwalign=pwalign))[:,0])
+            _, T = superpose(structA_sel, structB_amap)
+            structA = applyTransformation(T, structA)
+
+        self.reduceSel = kwargs.pop('reduceSel', None)
+        #self.reduceSelA = kwargs.get('reduceSelA', self.reduceSel)
+        #self.reduceSelB = kwargs.get('reduceSelB', self.reduceSel)
+
+        rmsd = calcRMSD(structA_sel, structB_amap)
         self.rmsds = [rmsd]
         self.dList = []
         self.numSteps = 0
@@ -101,10 +130,10 @@ class AdaptiveANM(object):
         if structB is None:
             structB = self.structB
 
-        coordsA = structA.getCoords()
-        coordsB = structB.getCoords()
+        alignSelA = kwargs.pop('alignSel', self.alignSelA)
+        alignSelB = kwargs.pop('alignSel', self.alignSelB)
 
-        alignSel = kwargs.get('alignSel', self.alignSel)
+        reduceSel = kwargs.pop('reduceSel', self.reduceSel)
 
         Fmin = kwargs.get('Fmin', self.Fmin)
 
@@ -119,15 +148,25 @@ class AdaptiveANM(object):
 
         LOGGER.info('\nStarting cycle {0} with initial structure {1}'.format(self.numSteps+1, structA))
 
-        structA.setCoords(coordsA)
+        mapping_func = kwargs.get('mapping_func', mapOntoChain)
 
-        if alignSel is None:
-            coordsA, T = superpose(coordsA, coordsB)
+        if alignSelA is None:
+            structA_sel = structA
         else:
-            _, T = superpose(structA.select(alignSel),
-                                structB.select(alignSel))
-            coordsA = applyTransformation(T, coordsA)
-            structA.setCoords(coordsA)
+            structA_sel = structA.select(alignSelA)
+
+        if alignSelB is None:
+            structB_sel = structB
+        else:
+            structB_sel = structB.select(alignSelB)
+
+        try:
+            _, T = superpose(structA_sel, structB_sel)
+            structA = applyTransformation(T, structA)
+        except:
+            structB_amap = sum(np.array(mapping_func(structB_sel, structA_sel))[:,0], **kwargs)
+            _, T = superpose(structA_sel, structB_amap)
+            structA = applyTransformation(T, structA)
 
         anmA = kwargs.get('anmA', self.anmA)
         
@@ -135,7 +174,14 @@ class AdaptiveANM(object):
         self.gamma = kwargs.pop('gamma', self.gamma)
 
         anmA.buildHessian(structA, cutoff=self.cutoff, gamma=self.gamma, **kwargs)
+
+        if reduceSel:
+            anmA, selA = reduceModel(anmA, structA, reduceSel)
+            
         anmA.calcModes(self.n_modes, **kwargs)
+
+        coordsA = structA.getCoords()
+        coordsB = structB.getCoords()
 
         defvec = coordsB - coordsA
         d = defvec.flatten()
@@ -214,17 +260,6 @@ class AdaptiveANM(object):
         s_min = sum(np.multiply(v.flatten(), d))/sum(np.power(v.flatten(), 2))
 
         new_coordsA = coordsA + f * s_min * v
-        rmsd = calcRMSD(new_coordsA, coordsB)
-
-        LOGGER.info('Current RMSD is {:4.3f}\n'.format(rmsd))
-
-        if plotRMSD:
-            plt.figure(1); plt.plot(self.numSteps, rmsd);
-
-        if plotNumModes:
-            plt.figure(2); plt.bar(self.numSteps, numModes);
-
-        self.numSteps += 1
 
         if structA == self.structA:
             self.anmA = anmA
@@ -238,6 +273,20 @@ class AdaptiveANM(object):
             self.structB.setCoords(new_coordsA)
             self.ensembleB.addCoordset(new_coordsA)
             self.whichModesB.append(modesetA[modesCrossingFmin])
+
+        
+
+        rmsd = calcRMSD(new_coordsA, coordsB)
+
+        LOGGER.info('Current RMSD is {:4.3f}\n'.format(rmsd))
+
+        if plotRMSD:
+            plt.figure(1); plt.plot(self.numSteps, rmsd)
+
+        if plotNumModes:
+            plt.figure(2); plt.bar(self.numSteps, numModes)
+
+        self.numSteps += 1
 
         self.rmsds.append(rmsd)
 
