@@ -13,7 +13,7 @@ from prody.dynamics.functions import writeArray
 from prody.dynamics.mode import Mode
 from prody.dynamics.modeset import ModeSet
 
-from prody.utilities import openFile, importLA, showMatrix, isURL
+from prody.utilities import openFile, importLA, showMatrix, isURL, fixArraySize, makeSymmetric
 
 __all__ = ['HiC', 'parseHiC', 'parseHiCStream', 'parseHiCBinary', 'saveHiC', 'loadHiC', 'writeMap']
 
@@ -41,13 +41,13 @@ class HiC(object):
 
     @map.setter
     def map(self, value):
-        if map is None: 
+        if value is None: 
             self._map = None
         else:
             self._map = np.array(value)
-            self._makeSymmetric()
+            self._map = makeSymmetric(self._map)
             self._maskUnmappedRegions()
-            self._labels = np.zeros(len(self._map))
+            self._labels = np.zeros(len(self._map), dtype=int)
 
     def __repr__(self):
 
@@ -98,7 +98,7 @@ class HiC(object):
         return ma.compress_rowcols(M)
     
     def align(self, array, axis=None):
-        if not isinstance(map, np.ndarray):
+        if not isinstance(array, np.ndarray):
             array = np.array(array)
 
         ret = array = array.copy()
@@ -112,17 +112,17 @@ class HiC(object):
         l_trim = self.getTrimedMap().shape[0]
         
         if len(array.shape) == 0:
-            raise ValueError('Aligned array cannot be empty.')
+            raise ValueError('array cannot be empty')
         elif len(array.shape) == 1:
             l = array.shape[0]
             if l == l_trim:
                 N = len(mask)
-                ret = np.zeros(N)
+                ret = np.zeros(N, dtype=array.dtype)
                 ret[mask] = array
             elif l == l_full:
                 ret = array[mask]
             else:
-                raise ValueError('The length of the array (%d) does not '
+                raise ValueError('The length of array (%d) does not '
                                 'match that of either the full (%d) '
                                 'or trimed (%d).'
                                 %(l, l_full, l_trim))
@@ -135,7 +135,7 @@ class HiC(object):
                                      'if axis is set to None.')
                 if s[0] == l_trim:
                     N = len(mask)
-                    whole_mat = np.zeros((N,N))
+                    whole_mat = np.zeros((N,N), dtype=array.dtype)
                     mask = np.outer(mask, mask)
                     whole_mat[mask] = array.flatten()
                     ret = whole_mat
@@ -144,7 +144,7 @@ class HiC(object):
                     M.mask = np.diag(mask)
                     ret = ma.compress_rowcols(M)
                 else:
-                    raise ValueError('The size of the array (%d) does not '
+                    raise ValueError('The size of array (%d) does not '
                                     'match that of either the full (%d) '
                                     'or trimed (%d).'
                                     %(s[0], l_full, l_trim))
@@ -164,7 +164,7 @@ class HiC(object):
                     mask = mask.repeat(s[otheraxis])
                     ret = self._map[mask]
                 else:
-                    raise ValueError('The size of the array (%d) does not '
+                    raise ValueError('The size of array (%d) does not '
                                     'match that of either the full (%d) '
                                     'or trimed (%d).'
                                     %(s[0], l_full, l_trim))
@@ -203,34 +203,19 @@ class HiC(object):
         mask = np.logical_or(mask_nan, mask_zero)
         self.mask = ~mask
         return self.mask
-
-    def _makeSymmetric(self):
-        """Ensures the symmetricity of the contact map."""
-
-        M = self._map
-        if M is None: return
-        
-        # determine which part of the matrix has values
-        U = np.triu(M, k=1)
-        L = np.tril(M, k=-1)
-
-        if np.sum(U) == 0:
-            M += L.T
-        elif np.sum(L) == 0:
-            M += U.T
-        else:
-            M = (M + M.T) / 2.
-        return self._map
     
-    def calcGNM(self, n_modes=None):
+    def calcGNM(self, n_modes=None, **kwargs):
         """Calculates GNM on the current Hi-C map."""
-
+        
+        if 'hinges' in kwargs:
+            kwargs['hinges'] = False
+            
         if self.masked:
             gnm = MaskedGNM(self._title, self.mask)
         else:
             gnm = GNM(self._title)
         gnm.setKirchhoff(self.getKirchhoff())
-        gnm.calcModes(n_modes=n_modes)
+        gnm.calcModes(n_modes=n_modes, **kwargs)
         return gnm
     
     def normalize(self, method=VCnorm, **kwargs):
@@ -368,15 +353,18 @@ def parseHiC(filename, **kwargs):
         title = kwargs.pop('title')
 
     if isURL(filename):
-        hic = parseHiCBinary(filename, title=title, **kwargs)
+        M, res = parseHiCBinary(filename, title=title, **kwargs)
     else:
         with open(filename,'rb') as req:
             magic_number = struct.unpack('<3s',req.read(3))[0]
         if magic_number == b"HIC":
-            hic = parseHiCBinary(filename, title=title, **kwargs)
+            M, res = parseHiCBinary(filename, title=title, **kwargs)
         else:
             with open(filename, 'r') as filestream:
-                hic = parseHiCStream(filestream, title=title, **kwargs)
+                M, res = parseHiCStream(filestream, title=title, **kwargs)
+    
+    hic = HiC(title=title, map=M, bin=res)
+
     return hic
 
 def _sparse2dense(I, J, values, bin=None):
@@ -393,11 +381,11 @@ def _sparse2dense(I, J, values, bin=None):
     I = I // bin
     J = J // bin
     # make sure that the matrix is square
-    if np.max(I) != np.max(J):
-        b = np.max(np.append(I, J))
-        I = np.append(I, b)
-        J = np.append(J, b)
-        values = np.append(values, 0.)
+    # if np.max(I) != np.max(J):
+    #     b = np.max(np.append(I, J))
+    #     I = np.append(I, b)
+    #     J = np.append(J, b)
+    #     values = np.append(values, 0.)
     # Convert to sparse matrix format, then full matrix format
     # and finally array type. Matrix format is avoided because
     # diag() won't work as intended for Matrix instances.
@@ -411,7 +399,7 @@ def parseHiCStream(stream, **kwargs):
         (e.g. :class:`file`, buffer, stdin)
     """
 
-    title = kwargs.get('title', 'Unknown')
+    issparse = kwargs.get('sparse', None)
 
     import csv
     dialect = csv.Sniffer().sniff(stream.read(1024))
@@ -431,7 +419,11 @@ def parseHiCStream(stream, **kwargs):
     size = D.shape
     if len(D.shape) <= 1:
         raise ValueError("cannot parse the file: input file only contains one column.")
-    if size[0] == size[1]:
+    
+    if issparse is None:
+        issparse = size[1] == 3
+
+    if not issparse:
         M = D
     else:
         try:
@@ -440,11 +432,10 @@ def parseHiCStream(stream, **kwargs):
             raise ValueError('the sparse matrix format should have three columns')
         
         M, res = _sparse2dense(I, J, values, bin=res)
-    return HiC(title=title, map=M, bin=res)
+    return M, res
 
 def parseHiCBinary(filename, **kwargs):
 
-    title = kwargs.get('title', 'Unknown')
     chrloc = kwargs.get('chrom', None)
     if chrloc is None:
         raise ValueError('chrom needs to be specified when parsing .hic format')
@@ -462,7 +453,7 @@ def parseHiCBinary(filename, **kwargs):
     result = straw(norm, filename, chrloc1, chrloc2, unit, res)
 
     M, res = _sparse2dense(*result, bin=res)
-    return HiC(title=title, map=M, bin=res)
+    return M, res
 
 def writeMap(filename, map, bin=None, format='%f'):
     """Writes *map* to the file designated by *filename*.
@@ -522,7 +513,7 @@ def saveHiC(hic, filename=None, map=True, **kwargs):
         attr_dict.pop('_map')
 
     ostream = openFile(filename, 'wb', **kwargs)
-    np.savez(ostream, **attr_dict)
+    np.savez_compressed(ostream, **attr_dict)
     ostream.close()
 
     return filename
@@ -542,4 +533,57 @@ def loadHiC(filename):
         if len(val.shape) == 0:
             val = np.asscalar(val)
         setattr(hic, k, val)
+    return hic
+
+def saveHiC_h5(hic, filename=None, **kwargs):
+    """Saves *HiC* model data as :file:`filename.hic.npz`. If *filename* is 
+    **None**, name of the Hi-C instance will be used as 
+    the filename, after ``" "`` (white spaces) in the name are replaced with 
+    ``"_"`` (underscores). Upon successful completion of saving, filename is 
+    returned. This function makes use of :func:`numpy.savez` function."""
+
+    try:
+        import h5py
+    except:
+        raise ImportError('h5py needs to be installed for using this function')
+
+    assert isinstance(hic, HiC), 'hic must be a HiC instance.'
+    
+    if filename is None:
+        filename = hic.getTitle().replace(' ', '_')
+    
+    if filename.endswith('.hic'):
+        filename += '.hic'
+    elif not filename.endswith('.hic.h5'):
+        filename += '.hic.h5'
+
+    attr_dict = hic.__dict__.copy()
+
+    with h5py.File(filename, 'w') as f:
+        for key in attr_dict:
+            value = attr_dict[key]
+            compression = None if np.isscalar(value) else 'gzip'
+            f.create_dataset(key, data=value, compression=compression)
+
+    return filename
+
+def loadHiC_h5(filename):
+    """Returns HiC instance after loading it from file (*filename*).
+    This function makes use of :func:`numpy.load` function. See also 
+    :func:`saveHiC`."""
+    
+    try:
+        import h5py
+    except:
+        raise ImportError('h5py needs to be installed for using this function')
+
+    hic = HiC()
+    with h5py.File(filename, 'r') as f:
+        for key in f.keys():
+            try:
+                value = f[key][:]
+            except:
+                value = f[key][()]
+            setattr(hic, key, value)
+
     return hic
