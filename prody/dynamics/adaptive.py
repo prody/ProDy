@@ -15,7 +15,7 @@ from .compare import calcOverlap, calcCumulOverlap
 from prody.ensemble import PDBEnsemble, Ensemble
 from .mode import Vector
 from .anm import ANM
-from .functions import reduceModel
+from .functions import reduceModel, calcENM
 from .modeset import ModeSet
 from prody.trajectory import writeDCD
 from prody.proteins import writePDB, mapOntoChain, mapChainByChain
@@ -25,10 +25,8 @@ __all__ = ['AdaptiveANM']
 
 class AdaptiveANM(object):
     def __init__(self, structA, structB, **kwargs):
-        self.structA = structA.copy()
-        self.structB = structB.copy()
-        self.origA = structA
-        self.origB = structB
+        self.structA = structA
+        self.structB = structB
 
         self.cutoff = kwargs.pop('cutoff', 15.0) # default cutoff for ANM.buildHessian
         self.gamma = kwargs.pop('gamma', 1.0) # default gamma for ANM.buildHessian
@@ -36,6 +34,22 @@ class AdaptiveANM(object):
         self.alignSel = kwargs.get('alignSel', None)
         self.alignSelA = kwargs.get('alignSelA', self.alignSel)
         self.alignSelB = kwargs.get('alignSelB', self.alignSel)
+
+        self.reduceSel = kwargs.pop('reduceSel', None)
+        self.reduceSelA = kwargs.get('reduceSelA', self.reduceSel)
+        self.reduceSelB = kwargs.get('reduceSelB', self.reduceSel)
+
+        if self.alignSelA is None:
+            self.alignSelA = self.reduceSelA
+
+        if self.alignSelB is None:
+            self.alignSelB = self.reduceSelB
+
+        if self.reduceSelA is None:
+            self.reduceSelA = self.alignSelA
+
+        if self.reduceSelB is None:
+            self.reduceSelB = self.alignSelB
 
         if self.alignSelA is None:
             structA_sel = self.structA
@@ -63,28 +77,25 @@ class AdaptiveANM(object):
             _, T = superpose(structA_sel, structB_amap)
             structA = applyTransformation(T, structA)
 
-        self.reduceSel = kwargs.pop('reduceSel', None)
-        #self.reduceSelA = kwargs.get('reduceSelA', self.reduceSel)
-        #self.reduceSelB = kwargs.get('reduceSelB', self.reduceSel)
-
         rmsd = calcRMSD(structA_sel, structB_amap)
         self.rmsds = [rmsd]
         self.dList = []
         self.numSteps = 0
 
-        self.anmA = kwargs.get('anmA', None)
-        if self.anmA is None:
-            self.anmA = ANM(structA)
-            self.anmListA = []
-        else:
-            self.anmListA = [self.anmA]
+        self.trim = kwargs.pop('trim', 'slice')
 
-        self.anmB = kwargs.get('anmB', None)
-        if self.anmB is None:
-            self.anmB = ANM(structB)
-            self.anmListB = []
+        self.anmA = kwargs.pop('anmA', None)
+        self.anmB = kwargs.pop('anmB', None)
+
+        if self.anmA is not None:
+            self.anmListA = [self.anmA]
         else:
+            self.anmListA = []
+
+        if self.anmB is not None:
             self.anmListB = [self.anmB]
+        else:
+            self.anmListB = []
 
         self.n_modes = 20
         self.numModesList = []
@@ -134,6 +145,20 @@ class AdaptiveANM(object):
         alignSelB = kwargs.pop('alignSel', self.alignSelB)
 
         reduceSel = kwargs.pop('reduceSel', self.reduceSel)
+        reduceSelA = kwargs.pop('reduceSelA', self.reduceSelA)
+        reduceSelB = kwargs.pop('reduceSelB', self.reduceSelB)
+
+        if reduceSelA is None:
+            reduceSelA = reduceSel
+
+        if reduceSelB is None:
+            reduceSelB = reduceSel
+
+        if alignSelA is None:
+            alignSelA = reduceSelA
+
+        if alignSelB is None:
+            alignSelB = reduceSelB
 
         Fmin = kwargs.get('Fmin', self.Fmin)
 
@@ -168,20 +193,11 @@ class AdaptiveANM(object):
             _, T = superpose(structA_sel, structB_amap)
             structA = applyTransformation(T, structA)
 
-        anmA = kwargs.get('anmA', self.anmA)
-        
-        self.cutoff = kwargs.pop('cutoff', self.cutoff)
-        self.gamma = kwargs.pop('gamma', self.gamma)
+        trim = kwargs.pop('trim', self.trim)
+        anmA, selA = calcENM(structA, reduceSelA, trim=trim, **kwargs)
 
-        anmA.buildHessian(structA, cutoff=self.cutoff, gamma=self.gamma, **kwargs)
-
-        if reduceSel:
-            anmA, selA = reduceModel(anmA, structA, reduceSel)
-            
-        anmA.calcModes(self.n_modes, **kwargs)
-
-        coordsA = structA.getCoords()
-        coordsB = structB.getCoords()
+        coordsA = structA.select(reduceSelA).getCoords()
+        coordsB = structB.select(reduceSelB).getCoords()
 
         defvec = coordsB - coordsA
         d = defvec.flatten()
@@ -274,8 +290,6 @@ class AdaptiveANM(object):
             self.ensembleB.addCoordset(new_coordsA)
             self.whichModesB.append(modesetA[modesCrossingFmin])
 
-        
-
         rmsd = calcRMSD(new_coordsA, coordsB)
 
         LOGGER.info('Current RMSD is {:4.3f}\n'.format(rmsd))
@@ -341,7 +355,7 @@ class AdaptiveANM(object):
                 break
 
         ensemble = Ensemble('combined trajectory')
-        ensemble.setAtoms(self.origA)
+        ensemble.setAtoms(self.structA)
         for coordset in self.ensembleA.getCoordsets():
             ensemble.addCoordset(coordset)
         for coordset in reversed(self.ensembleB.getCoordsets()):
@@ -378,7 +392,7 @@ class AdaptiveANM(object):
                 break
 
         ensemble = Ensemble('combined trajectory')
-        ensemble.setAtoms(self.origA)
+        ensemble.setAtoms(self.structA)
         for coordset in self.ensembleA.getCoordsets():
             ensemble.addCoordset(coordset)
         for coordset in reversed(self.ensembleB.getCoordsets()):
