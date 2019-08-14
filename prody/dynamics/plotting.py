@@ -1840,7 +1840,7 @@ def showDomainBar(domains, x=None, loc=0., axis='x', **kwargs):
         gca().autoscale_view()
 
     start, stop = lim()
-    lim(round(start, 2) + 0.006, stop)
+    lim(start, stop)
     
     return bars, texts
 
