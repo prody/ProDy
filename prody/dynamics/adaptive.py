@@ -9,13 +9,13 @@ import matplotlib.pyplot as plt
 
 from prody import LOGGER
 from prody.measure import calcDeformVector, calcRMSD, superpose, applyTransformation
-from prody.atomic import Atomic, AtomGroup
+from prody.atomic import Atomic, AtomGroup, sliceAtomicData
 from prody.utilities import getCoords
 from .compare import calcOverlap, calcCumulOverlap
 from prody.ensemble import PDBEnsemble, Ensemble
 from .mode import Vector
 from .anm import ANM
-from .functions import reduceModel, calcENM
+from .functions import calcENM, reduceModel, sliceModel
 from .modeset import ModeSet
 from prody.trajectory import writeDCD
 from prody.proteins import writePDB, mapOntoChain, mapChainByChain
@@ -194,12 +194,20 @@ class AdaptiveANM(object):
             structA = applyTransformation(T, structA)
 
         trim = kwargs.pop('trim', self.trim)
-        anmA, selA = calcENM(structA, reduceSelA, trim=trim, **kwargs)
+        anmA, _ = calcENM(structA, n_modes=self.maxModes)
 
-        coordsA = structA.select(reduceSelA).getCoords()
-        coordsB = structB.select(reduceSelB).getCoords()
+        if trim == 'slice':
+            trim_anmA, _ = sliceModel(anmA, structA, reduceSelA)
+        elif trim == 'reduce':
+            trim_anmA, _ = reduceModel(anmA, structA, reduceSelA)
+        else:
+            trim_anmA = anmA
 
-        defvec = coordsB - coordsA
+        coordsA = structA.getCoords()
+        coordsA_sel = structA_sel.getCoords()
+        coordsB_sel = structB_sel.getCoords()
+
+        defvec = coordsB_sel - coordsA_sel
         d = defvec.flatten()
         self.dList.append(d)
 
@@ -216,7 +224,8 @@ class AdaptiveANM(object):
         LOGGER.info('Fmin is {:4.3f}, corresponding to a cumulative overlap of {:4.3f}'.format(
             Fmin, np.sqrt(Fmin)))
 
-        overlaps = np.dot(d, anmA.getEigvecs())
+        trim_d = sliceAtomicData(d, structA_sel, reduceSelA)
+        overlaps = np.dot(trim_d, trim_anmA.getEigvecs())
         overlap_sorting_indices = list(
             reversed(list(np.argsort(abs(overlaps)))))
         modesetA = ModeSet(anmA, overlap_sorting_indices)
@@ -273,7 +282,8 @@ class AdaptiveANM(object):
         v = np.sum(np.multiply(overlaps[:numModes], modesetA.getEigvecs()[:, :numModes]),
                    axis=1).reshape(coordsA.shape)
 
-        s_min = sum(np.multiply(v.flatten(), d))/sum(np.power(v.flatten(), 2))
+        trim_v = sliceAtomicData(v.reshape(-1), structA, reduceSelA).reshape(-1, 3)
+        s_min = sum(np.multiply(trim_v.flatten(), trim_d))/sum(np.power(trim_v.flatten(), 2))
 
         new_coordsA = coordsA + f * s_min * v
 
@@ -290,7 +300,8 @@ class AdaptiveANM(object):
             self.ensembleB.addCoordset(new_coordsA)
             self.whichModesB.append(modesetA[modesCrossingFmin])
 
-        rmsd = calcRMSD(new_coordsA, coordsB)
+        new_coordsA_sel = structA_sel.getCoords()
+        rmsd = calcRMSD(new_coordsA_sel, coordsB_sel)
 
         LOGGER.info('Current RMSD is {:4.3f}\n'.format(rmsd))
 
