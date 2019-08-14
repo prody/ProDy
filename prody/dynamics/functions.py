@@ -411,7 +411,7 @@ def parseSparseMatrix(filename, symmetric=False, delimiter=None, skiprows=0,
 def calcENM(atoms, select=None, model='anm', trim='trim', gamma=1.0, 
             title=None, n_modes=None, **kwargs):
     """Returns an :class:`ANM` or `GNM` instance and atoms used for the 
-    calculationsn. The model can be trimmed, sliced, or reduced based on 
+    calculations. The model can be trimmed, sliced, or reduced based on 
     the selection.
 
     :arg atoms: atoms on which the ENM is performed. It can be any :class:`Atomic` 
