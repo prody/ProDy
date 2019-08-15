@@ -513,6 +513,9 @@ def showOverlapTable(modes_x, modes_y, **kwargs):
     show = showMatrix(overlap, cmap=cmap, norm=norm, 
                       xticklabels=x_ticklabels, yticklabels=y_ticklabels, allticks=allticks,
                       **kwargs)
+
+    plt.xlabel(str(modes_x))
+    plt.ylabel(str(modes_y))
     
     if SETTINGS['auto_show']:
         showFigure()
@@ -1837,7 +1840,7 @@ def showDomainBar(domains, x=None, loc=0., axis='x', **kwargs):
         gca().autoscale_view()
 
     start, stop = lim()
-    lim(round(start, 2) + 0.006, stop)
+    lim(start, stop)
     
     return bars, texts
 
