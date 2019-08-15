@@ -206,7 +206,7 @@ class AdaptiveANM(object):
             trim_anmA, _ = sliceModel(anmA, structA, reduceSelA)
         elif trim == 'reduce':
             trim_anmA, _ = reduceModel(anmA, structA, reduceSelA)
-            trim_anmA.calcModes()
+            trim_anmA.calcModes(n_modes=self.n_modes)
         else:
             trim_anmA = anmA
 
@@ -238,7 +238,8 @@ class AdaptiveANM(object):
 
         if trim == 'reduce':
             sliced_anmA, _ = sliceModel(anmA, structA, reduceSelA)
-            _, overlap_sorting_indices = matchModes(trim_anmA, sliced_anmA, index=True)
+            modesetA = ModeSet(trim_anmA, overlap_sorting_indices)
+            _, overlap_sorting_indices = matchModes(modesetA, sliced_anmA, index=True)
 
         modesetA = ModeSet(anmA, overlap_sorting_indices)
         overlaps = overlaps[overlap_sorting_indices]
