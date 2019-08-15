@@ -126,7 +126,7 @@ class AdaptiveANM(object):
 
         self.ensembleB = Ensemble(structB)
         self.ensembleB.addCoordset(structB)
-        
+
         self.outputDCD = kwargs.get('outputDCD', False)
         self.outputPDB = kwargs.get('outputPDB', False)
 
@@ -206,6 +206,7 @@ class AdaptiveANM(object):
             trim_anmA, _ = sliceModel(anmA, structA, reduceSelA)
         elif trim == 'reduce':
             trim_anmA, _ = reduceModel(anmA, structA, reduceSelA)
+            trim_anmA.calcModes()
         else:
             trim_anmA = anmA
 
@@ -236,12 +237,10 @@ class AdaptiveANM(object):
             reversed(list(np.argsort(abs(overlaps)))))
 
         if trim == 'reduce':
-            sliced_anmA, sliced_atomsA = sliceModel(anmA, structA, reduceSelA)
-            trim_anmA, modesetA = matchModes(trim_anmA, sliced_anmA)
-        else:
-            modesetA = anmA
+            sliced_anmA, _ = sliceModel(anmA, structA, reduceSelA)
+            _, overlap_sorting_indices = matchModes(trim_anmA, sliced_anmA, index=True)
 
-        modesetA = ModeSet(modesetA, overlap_sorting_indices)
+        modesetA = ModeSet(anmA, overlap_sorting_indices)
         overlaps = overlaps[overlap_sorting_indices]
 
         normalised_overlaps = overlaps / np.linalg.norm(d)
