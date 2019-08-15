@@ -195,7 +195,7 @@ class AdaptiveANM(object):
             structA = applyTransformation(T, structA)
 
         trim = kwargs.pop('trim', self.trim)
-        anmA, _ = calcENM(structA, n_modes=self.maxModes)
+        anmA, _ = calcENM(structA, n_modes=self.n_modes)
 
         if trim == 'slice':
             trim_anmA, _ = sliceModel(anmA, structA, reduceSelA)
@@ -248,16 +248,13 @@ class AdaptiveANM(object):
             numModes = 1
             modesCrossingFmin = [0]
 
-        maxModes = kwargs.get('maxModes', None)
-        if maxModes is None:
-            maxModes = self.maxModes
-        else:
-            if not isinstance(maxModes, (int,float)):
-                raise TypeError('maxModes should be an integer or float')
-            if maxModes < 1:
-                maxModes = int(maxModes * 3*self.structA.numAtoms()-6)
-            if maxModes > 3*self.structA.numAtoms()-6:
-                maxModes = 3*self.structA.numAtoms()-6
+        maxModes = kwargs.get('maxModes', self.maxModes)
+        if not isinstance(maxModes, (int,float)):
+            raise TypeError('maxModes should be an integer or float')
+        if maxModes < 1:
+            maxModes = int(maxModes * 3*self.structA.numAtoms()-6)
+        if maxModes > 3*self.structA.numAtoms()-6:
+            maxModes = 3*self.structA.numAtoms()-6
 
         if numModes > maxModes:
             numModes = maxModes
