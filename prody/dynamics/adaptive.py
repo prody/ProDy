@@ -8,7 +8,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from prody import LOGGER
-from prody.measure import calcDeformVector, calcRMSD, superpose, applyTransformation
+from prody.measure import calcDeformVector, calcRMSD, superpose, applyTransformation, calcDistance
 from prody.atomic import Atomic, AtomGroup, sliceAtomicData
 from prody.utilities import getCoords
 from .compare import calcOverlap, calcCumulOverlap
@@ -347,6 +347,14 @@ class AdaptiveANM(object):
 
         if self.rmsds[-1] < target_rmsd:
             LOGGER.warn('The RMSD fell below target RMSD {0}'.format(target_rmsd))
+            converged = True
+
+        all_dists = np.array([calcDistance(self.structA, self.structA[i]) 
+                              for i in range(self.structA.numAtoms())])
+        min_dists = np.array([np.min([np.min(all_dists[i, :i]),np.min(all_dists[i, i+1:])]) 
+                              for i in range(1,self.structA.numAtoms()-1)])
+        if max(min_dists) > self.cutoff:
+            LOGGER.warn('A bead has become disconnected. Adaptive ANM cannot proceed without unrealistic deformations')
             converged = True
 
         return converged
