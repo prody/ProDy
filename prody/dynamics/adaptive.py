@@ -28,6 +28,8 @@ class AdaptiveANM(object):
     def __init__(self, structA, structB, **kwargs):
         self.structA = structA
         self.structB = structB
+        self.coordsA = structA.getCoords()
+        self.coordsB = structB.getCoords()
 
         self.cutoff = kwargs.pop('cutoff', 15.0) # default cutoff for ANM.buildHessian
         self.gamma = kwargs.pop('gamma', 1.0) # default gamma for ANM.buildHessian
@@ -120,8 +122,11 @@ class AdaptiveANM(object):
         self.f = kwargs.get('f', 0.2)
 
         self.ensembleA = Ensemble(structA)
-        self.ensembleB = Ensemble(structB)
+        self.ensembleA.addCoordset(structA)
 
+        self.ensembleB = Ensemble(structB)
+        self.ensembleB.addCoordset(structB)
+        
         self.outputDCD = kwargs.get('outputDCD', False)
         self.outputPDB = kwargs.get('outputPDB', False)
 
@@ -366,6 +371,8 @@ class AdaptiveANM(object):
             self.runStep(self.structA, self.structB, **kwargs)
             converged = self.checkConvergence()
             if converged:
+                self.structA.setCoords(self.coordsA) # That way the original object is back to normal
+                self.structB.setCoords(self.coordsB) # That way the original object is back to normal
                 break
 
 
@@ -377,6 +384,8 @@ class AdaptiveANM(object):
 
             converged = self.checkConvergence()
             if converged:
+                self.structA.setCoords(self.coordsA) # That way the original object is back to normal
+                self.structB.setCoords(self.coordsB) # That way the original object is back to normal
                 break
 
         ensemble = Ensemble('combined trajectory')
@@ -403,6 +412,8 @@ class AdaptiveANM(object):
             self.runStep(self.structA, self.structB, **kwargs)
             converged = self.checkConvergence()
             if converged:
+                self.structA.setCoords(self.coordsA) # That way the original object is back to normal
+                self.structB.setCoords(self.coordsB) # That way the original object is back to normal
                 LOGGER.warn('The part starting from structA converged.')
                 break
 
@@ -413,6 +424,8 @@ class AdaptiveANM(object):
             self.resetFmin = False
             converged = self.checkConvergence()
             if converged:
+                self.structA.setCoords(self.coordsA) # That way the original object is back to normal
+                self.structB.setCoords(self.coordsB) # That way the original object is back to normal
                 LOGGER.warn('The part starting from structB converged.')
                 break
 
