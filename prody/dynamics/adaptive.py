@@ -16,6 +16,7 @@ from prody.ensemble import PDBEnsemble, Ensemble
 from .mode import Vector
 from .anm import ANM
 from .functions import calcENM, reduceModel, sliceModel
+from .compare import matchModes
 from .modeset import ModeSet
 from prody.trajectory import writeDCD
 from prody.proteins import writePDB, mapOntoChain, mapChainByChain
@@ -228,7 +229,14 @@ class AdaptiveANM(object):
         overlaps = np.dot(trim_d, trim_anmA.getEigvecs())
         overlap_sorting_indices = list(
             reversed(list(np.argsort(abs(overlaps)))))
-        modesetA = ModeSet(anmA, overlap_sorting_indices)
+
+        if trim == 'reduce':
+            sliced_anmA, sliced_atomsA = sliceModel(anmA, structA, reduceSelA)
+            trim_anmA, modesetA = matchModes(trim_anmA, sliced_anmA)
+        else:
+            modesetA = anmA
+
+        modesetA = ModeSet(modesetA, overlap_sorting_indices)
         overlaps = overlaps[overlap_sorting_indices]
 
         normalised_overlaps = overlaps / np.linalg.norm(d)
@@ -300,8 +308,9 @@ class AdaptiveANM(object):
             self.ensembleB.addCoordset(new_coordsA)
             self.whichModesB.append(modesetA[modesCrossingFmin])
 
-        new_coordsA_sel = structA_sel.getCoords()
-        rmsd = calcRMSD(new_coordsA_sel, coordsB_sel)
+        new_coordsA_reduceSel = structA.select(reduceSelA).getCoords()
+        coordsB_reduceSel = structB.select(reduceSelB).getCoords()
+        rmsd = calcRMSD(new_coordsA_reduceSel, coordsB_reduceSel)
 
         LOGGER.info('Current RMSD is {:4.3f}\n'.format(rmsd))
 
