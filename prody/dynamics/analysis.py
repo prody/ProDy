@@ -67,7 +67,7 @@ def calcCollectivity(mode, masses=None):
     if len(colls) == 1:
         return coll
     else:
-        return colls
+        return np.array(colls)
 
 def calcSpecDimension(mode):
 
