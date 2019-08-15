@@ -233,8 +233,8 @@ class AdaptiveANM(object):
 
         trim_d = sliceAtomicData(d, structA_sel, reduceSelA)
         overlaps = np.dot(trim_d, trim_anmA.getEigvecs())
-        overlap_sorting_indices = list(
-            reversed(list(np.argsort(abs(overlaps)))))
+        overlap_sorting_indices = list(reversed(list(np.argsort(abs(overlaps)))))
+        overlaps = overlaps[overlap_sorting_indices]
 
         if trim == 'reduce':
             sliced_anmA, _ = sliceModel(anmA, structA, reduceSelA)
@@ -242,7 +242,6 @@ class AdaptiveANM(object):
             _, overlap_sorting_indices = matchModes(modesetA, sliced_anmA, index=True)
 
         modesetA = ModeSet(anmA, overlap_sorting_indices)
-        overlaps = overlaps[overlap_sorting_indices]
 
         normalised_overlaps = overlaps / np.linalg.norm(d)
         c_sq = np.cumsum(np.power(normalised_overlaps, 2), axis=0)
