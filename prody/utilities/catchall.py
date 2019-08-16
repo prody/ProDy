@@ -401,7 +401,7 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
         ax2 = subplot(gs[left_index])
         
         if tree_mode:
-            Phylo.draw(y_array, do_show=False, axes=ax2, **kwargs)
+            Phylo.draw(y_array, do_show=False, axes=ax2)
         else:
             ax2.set_xticklabels([])
             
