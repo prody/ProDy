@@ -232,7 +232,7 @@ class AdaptiveANM(object):
             trim_d = sliceAtomicData(d, structA_sel, reduceSelA)
         else:
             trim_d = d
-            
+
         overlaps = np.dot(trim_d, trim_anmA.getEigvecs())
         overlap_sorting_indices = list(reversed(list(np.argsort(abs(overlaps)))))
         overlaps = overlaps[overlap_sorting_indices]
