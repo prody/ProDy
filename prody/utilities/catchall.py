@@ -325,7 +325,7 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
     cmap = kwargs.get('cmap')
 
     tree_mode = False
-    if np.isscalar(y_array):
+    if np.size(y_array) == 1:
         try: 
             from Bio import Phylo
         except ImportError:
