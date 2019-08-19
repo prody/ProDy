@@ -48,6 +48,14 @@ class AdaptiveANM(object):
         if self.alignSelB is None:
             self.alignSelB = self.reduceSelB
 
+        self.trim = kwargs.pop('trim', 'slice')
+
+        if self.reduceSelA is None:
+            self.reduceSelA = self.alignSelA
+
+        if self.reduceSelB is None:
+            self.reduceSelB = self.alignSelB
+
         if self.alignSelA is None:
             structA_sel = self.structA
         else:
@@ -78,8 +86,6 @@ class AdaptiveANM(object):
         self.rmsds = [rmsd]
         self.dList = []
         self.numSteps = 0
-
-        self.trim = kwargs.pop('trim', 'slice')
 
         self.anmA = kwargs.pop('anmA', None)
         self.anmB = kwargs.pop('anmB', None)
@@ -196,14 +202,11 @@ class AdaptiveANM(object):
         trim = kwargs.pop('trim', self.trim)
         anmA, _ = calcENM(structA, n_modes=self.n_modes)
 
-        if reduceSelA is not None:
-            if trim == 'slice':
-                trim_anmA, _ = sliceModel(anmA, structA, reduceSelA)
-            elif trim == 'reduce':
-                trim_anmA, _ = reduceModel(anmA, structA, reduceSelA)
-                trim_anmA.calcModes(n_modes=self.n_modes)
-            else:
-                trim_anmA = anmA
+        if trim == 'slice':
+            trim_anmA, _ = sliceModel(anmA, structA, reduceSelA)
+        elif trim == 'reduce':
+            trim_anmA, _ = reduceModel(anmA, structA, reduceSelA)
+            trim_anmA.calcModes(n_modes=self.n_modes)
         else:
             trim_anmA = anmA
 
@@ -228,11 +231,7 @@ class AdaptiveANM(object):
         LOGGER.info('Fmin is {:4.3f}, corresponding to a cumulative overlap of {:4.3f}'.format(
             Fmin, np.sqrt(Fmin)))
 
-        if reduceSelA is not None:
-            trim_d = sliceAtomicData(d, structA_sel, reduceSelA)
-        else:
-            trim_d = d
-
+        trim_d = sliceAtomicData(d, structA_sel, reduceSelA)
         overlaps = np.dot(trim_d, trim_anmA.getEigvecs())
         overlap_sorting_indices = list(reversed(list(np.argsort(abs(overlaps)))))
         overlaps = overlaps[overlap_sorting_indices]
