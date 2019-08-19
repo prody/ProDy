@@ -260,8 +260,8 @@ class AdaptiveANM(object):
         if maxModes > 3*self.structA.numAtoms()-6:
             maxModes = 3*self.structA.numAtoms()-6
 
-        if numModes > maxModes:
-            numModes = maxModes
+        if self.n_modes > maxModes:
+            self.n_modes = maxModes
 
         self.numModesList.append(numModes)
 
