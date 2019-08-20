@@ -78,7 +78,9 @@ class AdaptiveANM(object):
             #structA = applyTransformation(T, structA)
             structB_amap = structB_sel
         except:
-            structB_amap = sum(np.array(mapping_func(structB_sel, structA_sel, overlap=coverage, seqid=seqid, pwalign=pwalign))[:,0])
+            structB_amap = sum(np.array(mapping_func(structB_sel, structA_sel, 
+                                                     overlap=coverage, seqid=seqid, 
+                                                     pwalign=pwalign))[:,0])
             _, T = superpose(structA_sel, structB_amap)
             #structA = applyTransformation(T, structA)
 
