@@ -152,8 +152,8 @@ class AdaptiveANM(object):
         if structB is None:
             structB = self.structB
 
-        alignSelA = kwargs.pop('alignSel', self.alignSelA)
-        alignSelB = kwargs.pop('alignSel', self.alignSelB)
+        alignSelA = kwargs.pop('alignSelA', self.alignSelA)
+        alignSelB = kwargs.pop('alignSelB', self.alignSelB)
 
         reduceSel = kwargs.pop('reduceSel', self.reduceSel)
         reduceSelA = kwargs.pop('reduceSelA', self.reduceSelA)
