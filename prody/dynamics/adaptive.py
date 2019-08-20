@@ -100,7 +100,7 @@ class AdaptiveANM(object):
         else:
             self.anmListB = []
 
-        self.n_modes = 20
+        self.n_modes = kwargs.get('n_modes', 20)
         self.numModesList = []
         self.whichModesA = []
         self.whichModesB = []
@@ -108,7 +108,10 @@ class AdaptiveANM(object):
         self.plotRMSD = kwargs.get('plotRMSD', False)
         self.plotNumModes = kwargs.get('plotNumModes', False)
 
-        self.maxModes = kwargs.get('maxModes', 0.05)
+        self.maxModes = kwargs.get('maxModes', None)
+        if self.maxModes is None:
+            self.maxModes = 3*self.structA.numAtoms()-6
+
         if not isinstance(self.maxModes, (int,float)):
             raise TypeError('maxModes should be an integer or float')
         if self.maxModes < 1:
@@ -199,6 +202,17 @@ class AdaptiveANM(object):
             _, T = superpose(structA_sel, structB_amap)
             structA = applyTransformation(T, structA)
 
+        maxModes = kwargs.get('maxModes', self.maxModes)
+        if not isinstance(maxModes, (int,float)):
+            raise TypeError('maxModes should be an integer or float')
+        if maxModes < 1:
+            maxModes = int(maxModes * 3*self.structA.numAtoms()-6)
+        if maxModes > 3*self.structA.numAtoms()-6:
+            maxModes = 3*self.structA.numAtoms()-6
+
+        if self.n_modes > maxModes:
+            self.n_modes = maxModes
+
         trim = kwargs.pop('trim', self.trim)
         anmA, _ = calcENM(structA, n_modes=self.n_modes)
 
@@ -252,17 +266,6 @@ class AdaptiveANM(object):
             numModes = 1
             modesCrossingFmin = [0]
 
-        maxModes = kwargs.get('maxModes', self.maxModes)
-        if not isinstance(maxModes, (int,float)):
-            raise TypeError('maxModes should be an integer or float')
-        if maxModes < 1:
-            maxModes = int(maxModes * 3*self.structA.numAtoms()-6)
-        if maxModes > 3*self.structA.numAtoms()-6:
-            maxModes = 3*self.structA.numAtoms()-6
-
-        if self.n_modes > maxModes:
-            self.n_modes = maxModes
-
         self.numModesList.append(numModes)
 
         if numModes == 1:
@@ -275,12 +278,13 @@ class AdaptiveANM(object):
                                            for entry in modesetA.getIndices()[:numModes-1]+1]),
                                 str(modesetA.getIndices()[numModes-1]+1)))
         else:
-            LOGGER.info('Using {0} modes with cumulative overlap {1} (Modes {2}, ... and {3}) with max mode number {4}'
+            LOGGER.info('Using {0} modes with cumulative overlap {1} (Modes {2}, ... and {3}) with max mode number {4} and min mode number {5}'
                         .format(numModes, '{:4.3f}'.format(np.sqrt(c_sq[numModes-1])),
                                 ', '.join([str(entry)
                                            for entry in modesetA.getIndices()[:10]+1]),
                                 str(modesetA.getIndices()[numModes-1]+1),
-                                np.max(modesetA.getIndices()[:numModes]+1)))
+                                np.max(modesetA.getIndices()[:numModes]+1), 
+                                np.min(modesetA.getIndices()[:numModes]+1)))
 
         if np.max(modesetA.getIndices()[:numModes]) > self.n_modes-5:
             self.n_modes *= 10
