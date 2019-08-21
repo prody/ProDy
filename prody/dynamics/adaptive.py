@@ -448,4 +448,3 @@ class AdaptiveANM(object):
             writeDCD(self.filename, ensemble)
 
         return
-        
