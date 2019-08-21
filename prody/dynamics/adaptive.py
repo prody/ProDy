@@ -184,7 +184,7 @@ class AdaptiveANM(object):
 
         LOGGER.info('\nStarting cycle {0} with initial structure {1}'.format(self.numSteps+1, structA))
 
-        mapping_func = kwargs.get('mapping_func', mapOntoChain)
+        mapping_func = kwargs.get('mapping_func', mapChainByChain)
 
         if alignSelA is None:
             structA_sel = structA
@@ -200,7 +200,7 @@ class AdaptiveANM(object):
             _, T = superpose(structA_sel, structB_sel)
             structA = applyTransformation(T, structA)
         except:
-            structB_amap = sum(np.array(mapping_func(structB_sel, structA_sel))[:,0], **kwargs)
+            structB_amap = sum(np.array(mapping_func(structB_sel, structA_sel)[:,0], **kwargs))
             _, T = superpose(structA_sel, structB_amap)
             structA = applyTransformation(T, structA)
 
@@ -384,8 +384,10 @@ class AdaptiveANM(object):
     def runManyStepsAlternating(self, n_steps, **kwargs):
         n_start = self.numSteps
         while self.numSteps < n_start + n_steps:
-            self.runStep(self.structA, self.structB, **kwargs)
-            self.runStep(self.structB, self.structA, **kwargs)
+            self.runStep(self.structA, self.structB, reduceSelA=self.reduceSelA, reduceSelB=self.reduceSelB, 
+                         alignSelA=self.alignSelA, alignSelB=self.alignSelB, **kwargs)
+            self.runStep(self.structB, self.structA, reduceSelA=self.reduceSelB, reduceSelB=self.reduceSelA, 
+                         alignSelA=self.alignSelB, alignSelB=self.alignSelA, **kwargs)
 
             converged = self.checkConvergence()
             if converged:
@@ -414,7 +416,8 @@ class AdaptiveANM(object):
 
         LOGGER.info('\n\nStarting from struct A ({0})'.format(self.structA))
         while self.numSteps < n_start + n_steps:
-            self.runStep(self.structA, self.structB, **kwargs)
+            self.runStep(self.structA, self.structB, reduceSelA=self.reduceSelA, reduceSelB=self.reduceSelB, 
+                         alignSelA=self.alignSelB, alignSelB=self.alignSelA, **kwargs)
             converged = self.checkConvergence()
             if converged:
                 self.structA.setCoords(self.coordsA) # That way the original object is back to normal
@@ -425,7 +428,8 @@ class AdaptiveANM(object):
         LOGGER.info('\n\nStarting from structB ({0})'.format(self.structB))
         self.resetFmin = True
         while self.numSteps < n_start + n_steps:
-            self.runStep(self.structB, self.structA, **kwargs)
+            self.runStep(self.structB, self.structA, reduceSelA=self.reduceSelB, reduceSelB=self.reduceSelA, 
+                         alignSelA=self.alignSelB, alignSelB=self.alignSelA, **kwargs)
             self.resetFmin = False
             converged = self.checkConvergence()
             if converged:
