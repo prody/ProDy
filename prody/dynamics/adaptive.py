@@ -384,10 +384,11 @@ class AdaptiveANM(object):
     def runManyStepsAlternating(self, n_steps, **kwargs):
         n_start = self.numSteps
         while self.numSteps < n_start + n_steps:
+            n_modes = self.n_modes
             self.runStep(self.structA, self.structB, reduceSelA=self.reduceSelA, reduceSelB=self.reduceSelB, 
-                         alignSelA=self.alignSelA, alignSelB=self.alignSelB, **kwargs)
+                         alignSelA=self.alignSelA, alignSelB=self.alignSelB, n_modes=n_modes, **kwargs)
             self.runStep(self.structB, self.structA, reduceSelA=self.reduceSelB, reduceSelB=self.reduceSelA, 
-                         alignSelA=self.alignSelB, alignSelB=self.alignSelA, **kwargs)
+                         alignSelA=self.alignSelB, alignSelB=self.alignSelA, n_modes=n_modes, **kwargs)
 
             converged = self.checkConvergence()
             if converged:
@@ -413,11 +414,12 @@ class AdaptiveANM(object):
 
     def runManyStepsFurthestEachWay(self, n_steps, **kwargs):
         n_start = self.numSteps
+        n_modes = self.n_modes
 
         LOGGER.info('\n\nStarting from struct A ({0})'.format(self.structA))
         while self.numSteps < n_start + n_steps:
             self.runStep(self.structA, self.structB, reduceSelA=self.reduceSelA, reduceSelB=self.reduceSelB, 
-                         alignSelA=self.alignSelB, alignSelB=self.alignSelA, **kwargs)
+                         alignSelA=self.alignSelB, alignSelB=self.alignSelA, n_modes=n_modes, **kwargs)
             converged = self.checkConvergence()
             if converged:
                 self.structA.setCoords(self.coordsA) # That way the original object is back to normal
@@ -429,7 +431,7 @@ class AdaptiveANM(object):
         self.resetFmin = True
         while self.numSteps < n_start + n_steps:
             self.runStep(self.structB, self.structA, reduceSelA=self.reduceSelB, reduceSelB=self.reduceSelA, 
-                         alignSelA=self.alignSelB, alignSelB=self.alignSelA, **kwargs)
+                         alignSelA=self.alignSelB, alignSelB=self.alignSelA, n_modes=n_modes, **kwargs)
             self.resetFmin = False
             converged = self.checkConvergence()
             if converged:
