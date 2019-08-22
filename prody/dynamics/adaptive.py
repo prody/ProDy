@@ -24,6 +24,58 @@ __all__ = ['AdaptiveANM']
 
 
 class AdaptiveANM(object):
+    """Class for adaptive ANM analysis of proteins ([ZY09]_).
+
+    This implementation differs from the original one in that it sorts the 
+    modes by overlap prior to cumulative overlap calculations for efficiency.
+
+    .. [PD00] Zheng Yang, Peter Májek, Ivet Bahar. Allosteric Transitions of 
+              Supramolecular Systems Explored by Network Models: Application to 
+              Chaperonin GroEL. *PLOS Comp Biol* **2009** 40:512-524.
+
+    arg structA: the starting structure for the transition
+    type structA: :class:`.Atomic`
+
+    arg structB: the target structure for the transition
+    type structB: :class:`.Atomic`
+
+    arg alignSelA: selection string for selecting atoms from structA
+        that can be aligned with those from structB. If not provided,
+        these values will be taken from alignSel or reduceSelA or 
+        worked out with a mapping function. 
+    type alignSelA: str
+
+    arg alignSelB: selection string for selecting atoms from structB
+        that can be aligned with those from structA. If not provided,
+        these values will be taken from alignSel or reduceSelA or 
+        worked out with a mapping function. 
+    type alignSelB: str
+
+    arg alignSel: selection string for selecting from both structA and structB
+        for alignment. This kwarg can be used when the same selection string works 
+        for both. It populates alignSelA and alignSelB when no values are given 
+        for them individually.
+
+    arg reduceSelA: selection string for selecting atoms from structA
+        for slicing or reducing the ANM to only consider part of the structure 
+        for targeting. This is populated by reduceSel or alignSelA if not provided.
+    type reduceSelA: str
+
+    arg reduceSelB: selection string for selecting atoms from structB
+        for slicing or reducing the ANM to only consider part of the structure 
+        for targeting. This is populated by reduceSel or alignSelB if not provided.
+    type reduceSelB: str
+
+    arg reduceSel: selection string for selecting from both structA and structB
+        for reducing the number of atoms used in targeting comparisons.
+        This kwarg can be used when the same selection string works for both.
+        It populates reduceSelA and reduceSelB when no values are given for them.
+
+    Other kwargs can be provided that work for internal functions such as 
+    :func:`.buildHessian`, :func:`.calcModes` and mapping functions, which are 
+    only used if *alignSel* and *reduceSel* are not provided. 
+    """
+
     def __init__(self, structA, structB, **kwargs):
         self.structA = structA
         self.structB = structB
