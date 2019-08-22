@@ -5,7 +5,6 @@ import time
 from numbers import Integral
 from numpy import ndarray
 import numpy as np
-import matplotlib.pyplot as plt
 
 from prody import LOGGER
 from prody.measure import calcDeformVector, calcRMSD, superpose, applyTransformation, calcDistance
@@ -107,9 +106,6 @@ class AdaptiveANM(object):
         self.whichModesA = []
         self.whichModesB = []
 
-        self.plotRMSD = kwargs.get('plotRMSD', False)
-        self.plotNumModes = kwargs.get('plotNumModes', False)
-
         self.maxModes = kwargs.get('maxModes', None)
         if self.maxModes is None:
             self.maxModes = 3*self.structA.numAtoms()-6
@@ -178,9 +174,6 @@ class AdaptiveANM(object):
         outputDCD = kwargs.get('outputDCD', self.outputDCD)
         outputPDB = kwargs.get('outputPDB', self.outputPDB)
         filename = kwargs.get('filename', self.filename)
-
-        plotRMSD = kwargs.get('plotRMSD', self.plotRMSD)
-        plotNumModes = kwargs.get('plotNumModes', self.plotNumModes)
 
         LOGGER.info('\nStarting cycle {0} with initial structure {1}'.format(self.numSteps+1, structA))
 
@@ -320,12 +313,6 @@ class AdaptiveANM(object):
         rmsd = calcRMSD(new_coordsA_reduceSel, coordsB_reduceSel)
 
         LOGGER.info('Current RMSD is {:4.3f}\n'.format(rmsd))
-
-        if plotRMSD:
-            plt.figure(1); plt.plot(self.numSteps, rmsd)
-
-        if plotNumModes:
-            plt.figure(2); plt.bar(self.numSteps, numModes)
 
         self.numSteps += 1
 
