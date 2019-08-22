@@ -140,14 +140,22 @@ class AdaptiveANM(object):
 
         LOGGER.info('Initialised Adaptive ANM with RMSD {:4.3f}\n'.format(rmsd))
 
-    def runStep(self, structA=None, structB=None, **kwargs):
+    def runStep(self, **kwargs):
+        """Run a single step of adaptive ANM. 
+        Modes will be calculated for *structA* and the subset with 
+        a cumulative overlap above a threshold defined by *Fmin* 
+        is used for transitioning towards *structB*.
+        
+        By default this function uses values from initialisation but 
+        they can be over-ridden if desired. For example, in bi-directional 
+        adaptive ANM, we switch *structA* and *structB*, *alignSelA* and *alignSelB*,
+        and *reduceSelA* and *reduceSelB*
+        """
 
-        if structA is None:
-            structA = self.structA
-
-        if structB is None:
-            structB = self.structB
-
+        structA = kwargs.pop('structA', self.structA)
+        structB = kwargs.pop('structA', self.structB)
+        
+        alignSel = kwargs.pop('alignSel', self.alignSel)
         alignSelA = kwargs.pop('alignSelA', self.alignSelA)
         alignSelB = kwargs.pop('alignSelB', self.alignSelB)
 
@@ -162,10 +170,17 @@ class AdaptiveANM(object):
             reduceSelB = reduceSel
 
         if alignSelA is None:
-            alignSelA = reduceSelA
+            if alignSelA is None:
+                alignSelA = reduceSelA
 
-        if alignSelB is None:
-            alignSelB = reduceSelB
+            if alignSelB is None:
+                alignSelB = reduceSelB
+        else:
+            if alignSelA is None:
+                alignSelA = alignSel
+            
+            if alignSelB is None:
+                alignSelB = alignSel
 
         Fmin = kwargs.get('Fmin', self.Fmin)
 
