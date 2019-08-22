@@ -65,12 +65,12 @@ class AdaptiveANM(object):
         else:
             structB_sel = self.structB.select(self.alignSelB)
 
-        mapping_func = kwargs.pop('mapping_func', mapChainByChain)
-        seqid = kwargs.pop('seqid', 90.) 
-        coverage = kwargs.pop('overlap', 70.)
-        coverage = kwargs.pop('coverage', coverage)
-        pwalign = kwargs.pop('pwalign', None)
-        pwalign = kwargs.pop('mapping', pwalign)
+        self.mapping_func = kwargs.pop('mapping_func', mapChainByChain)
+        self.seqid = kwargs.pop('seqid', 90.) 
+        self.coverage = kwargs.pop('overlap', 70.)
+        self.coverage = kwargs.pop('coverage', self.coverage)
+        self.pwalign = kwargs.pop('pwalign', None)
+        self.pwalign = kwargs.pop('mapping', self.pwalign)
 
         try:
             _, T = superpose(structA_sel, structB_sel)
@@ -78,8 +78,8 @@ class AdaptiveANM(object):
             structB_amap = structB_sel
         except:
             structB_amap = sum(np.array(mapping_func(structB_sel, structA_sel, 
-                                                     overlap=coverage, seqid=seqid, 
-                                                     pwalign=pwalign))[:,0])
+                                                     overlap=self.coverage, seqid=self.seqid, 
+                                                     pwalign=self.pwalign))[:,0])
             _, T = superpose(structA_sel, structB_amap)
             #structA = applyTransformation(T, structA)
 
@@ -204,11 +204,20 @@ class AdaptiveANM(object):
         else:
             structB_sel = structB.select(alignSelB)
 
+        mapping_func = kwargs.pop('mapping_func', self.mapping_func)
+        seqid = kwargs.pop('seqid', self.seqid) 
+        coverage = kwargs.pop('overlap', self.coverage)
+        coverage = kwargs.pop('coverage', coverage)
+        pwalign = kwargs.pop('pwalign', self.pwalign)
+        pwalign = kwargs.pop('mapping', pwalign)
+
         try:
             _, T = superpose(structA_sel, structB_sel)
             structA = applyTransformation(T, structA)
         except:
-            structB_amap = sum(np.array(mapping_func(structB_sel, structA_sel)[:,0], **kwargs))
+            structB_amap = sum(np.array(mapping_func(structB_sel, structA_sel, 
+                                                     overlap=coverage, seqid=seqid, 
+                                                     pwalign=pwalign))[:,0])
             _, T = superpose(structA_sel, structB_amap)
             structA = applyTransformation(T, structA)
 
