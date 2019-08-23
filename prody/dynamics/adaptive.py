@@ -434,29 +434,38 @@ class AdaptiveANM(object):
 
 
     def runManySteps(self, n_steps, **kwargs):
+        LOGGER.timeit('_prody_runManySteps')
         n_start = self.numSteps
         while self.numSteps < n_start + n_steps:
             self.runStep(structA=self.structA, structB=self.structB, **kwargs)
+            LOGGER.debug('Total time so far is %.2f minutes' % ((time.time() - LOGGER._times['_prody_runManySteps'])/60))
             converged = self.checkConvergence()
             if converged:
                 self.structA.setCoords(self.coordsA) # That way the original object is back to normal
                 self.structB.setCoords(self.coordsB) # That way the original object is back to normal
+                LOGGER.debug('Process completed in %.2f hours' % ((time.time() - LOGGER._times['_prody_runManySteps'])/3600))
                 break
 
 
     def runManyStepsAlternating(self, n_steps, **kwargs):
+        LOGGER.timeit('_prody_runManySteps')
         n_start = self.numSteps
         while self.numSteps < n_start + n_steps:
             n_modes = self.n_modes
+
             self.runStep(structA=self.structA, structB=self.structB, reduceSelA=self.reduceSelA, reduceSelB=self.reduceSelB, 
                          alignSelA=self.alignSelA, alignSelB=self.alignSelB, n_modes=n_modes, **kwargs)
+            LOGGER.debug('Total time so far is %.2f minutes' % ((time.time() - LOGGER._times['_prody_runManySteps'])/60))
+
             self.runStep(structA=self.structB, structB=self.structA, reduceSelA=self.reduceSelB, reduceSelB=self.reduceSelA, 
                          alignSelA=self.alignSelB, alignSelB=self.alignSelA, n_modes=n_modes, **kwargs)
+            LOGGER.debug('Total time so far is %.2f minutes' % ((time.time() - LOGGER._times['_prody_runManySteps'])/60))
 
             converged = self.checkConvergence()
             if converged:
                 self.structA.setCoords(self.coordsA) # That way the original object is back to normal
                 self.structB.setCoords(self.coordsB) # That way the original object is back to normal
+                LOGGER.debug('Process completed in %.2f hours' % ((time.time() - LOGGER._times['_prody_runManySteps'])/3600))
                 break
 
         ensemble = Ensemble('combined trajectory')
@@ -476,6 +485,7 @@ class AdaptiveANM(object):
 
 
     def runManyStepsFurthestEachWay(self, n_steps, **kwargs):
+        LOGGER.timeit('_prody_runManySteps')
         n_start = self.numSteps
         n_modes = self.n_modes
 
@@ -483,6 +493,7 @@ class AdaptiveANM(object):
         while self.numSteps < n_start + n_steps:
             self.runStep(structA=self.structA, structB=self.structB, reduceSelA=self.reduceSelA, reduceSelB=self.reduceSelB, 
                          alignSelA=self.alignSelB, alignSelB=self.alignSelA, n_modes=n_modes, **kwargs)
+            LOGGER.debug('Total time so far is %.2f minutes' % ((time.time() - LOGGER._times['_prody_runManySteps'])/60))
             converged = self.checkConvergence()
             if converged:
                 self.structA.setCoords(self.coordsA) # That way the original object is back to normal
@@ -495,6 +506,7 @@ class AdaptiveANM(object):
         while self.numSteps < n_start + n_steps:
             self.runStep(structA=self.structB, structB=self.structA, reduceSelA=self.reduceSelB, reduceSelB=self.reduceSelA, 
                          alignSelA=self.alignSelB, alignSelB=self.alignSelA, n_modes=n_modes, **kwargs)
+            LOGGER.debug('Total time so far is %.2f minutes' % ((time.time() - LOGGER._times['_prody_runManySteps'])/60))
             self.resetFmin = False
             converged = self.checkConvergence()
             if converged:
@@ -515,5 +527,7 @@ class AdaptiveANM(object):
 
         if self.outputDCD:
             writeDCD(self.filename, ensemble)
+
+        LOGGER.debug('Process completed in %.2f hours' % ((time.time() - LOGGER._times['_prody_runManySteps'])/3600))
 
         return
