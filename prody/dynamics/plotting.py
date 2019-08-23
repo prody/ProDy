@@ -513,6 +513,9 @@ def showOverlapTable(modes_x, modes_y, **kwargs):
     show = showMatrix(overlap, cmap=cmap, norm=norm, 
                       xticklabels=x_ticklabels, yticklabels=y_ticklabels, allticks=allticks,
                       **kwargs)
+
+    plt.xlabel(str(modes_x))
+    plt.ylabel(str(modes_y))
     
     if SETTINGS['auto_show']:
         showFigure()
@@ -1719,6 +1722,9 @@ def showDomainBar(domains, x=None, loc=0., axis='x', **kwargs):
     show_text = kwargs.pop('show_text', True)
     show_text = kwargs.pop('text', show_text)
     text_color = kwargs.pop('text_color', 'k')
+    text_color = kwargs.pop('textcolor', text_color)
+    font_dict = kwargs.pop('font_dict', None)
+    font_dict = kwargs.pop('fontdict', font_dict)
 
     barwidth = kwargs.pop('barwidth', 5)
     barwidth = kwargs.pop('bar_width', barwidth)
@@ -1809,11 +1815,13 @@ def showDomainBar(domains, x=None, loc=0., axis='x', **kwargs):
                     txt = text(d_loc, pos, chid, rotation=-90, 
                                                 color=text_color,
                                                 horizontalalignment=halign, 
-                                                verticalalignment='center')
+                                                verticalalignment='center',
+                                                fontdict=font_dict)
                 else:
                     txt = text(pos, d_loc, chid, color=text_color,
                                                 horizontalalignment='center', 
-                                                verticalalignment=valign)
+                                                verticalalignment=valign,
+                                                fontdict=font_dict)
                 texts.append(txt)
     
     if len(color_order):
@@ -1837,7 +1845,7 @@ def showDomainBar(domains, x=None, loc=0., axis='x', **kwargs):
         gca().autoscale_view()
 
     start, stop = lim()
-    lim(round(start, 2) + 0.006, stop)
+    lim(start, stop)
     
     return bars, texts
 
