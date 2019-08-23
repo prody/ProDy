@@ -50,8 +50,12 @@ class HiC(object):
             self._labels = np.zeros(len(self._map), dtype=int)
 
     def __repr__(self):
-
-        return '<HiC: {0} ({1} mapped loci; {2} in total)>'.format(self._title, len(self.getTrimedMap()), len(self._map))
+        mask = self.mask
+        
+        if np.isscalar(mask):
+            return '<HiC: {0} ({1} loci)>'.format(self._title, len(self._map))
+        else:
+            return '<HiC: {0} ({1} mapped loci; {2} in total)>'.format(self._title, np.count_nonzero(mask), len(self._map))
 
     def __str__(self):
 
@@ -65,7 +69,12 @@ class HiC(object):
             return self.map[i,j]
 
     def __len__(self):
-        return len(self.map)
+        mask = self.mask 
+        
+        if np.isscalar(mask):
+            return len(self._map)
+        else:
+            return np.count_nonzero(mask)
     
     def numAtoms(self):
         return len(self.map)
@@ -204,15 +213,18 @@ class HiC(object):
         self.mask = ~mask
         return self.mask
     
-    def calcGNM(self, n_modes=None):
+    def calcGNM(self, n_modes=None, **kwargs):
         """Calculates GNM on the current Hi-C map."""
-
+        
+        if 'hinges' in kwargs:
+            kwargs['hinges'] = False
+            
         if self.masked:
             gnm = MaskedGNM(self._title, self.mask)
         else:
             gnm = GNM(self._title)
         gnm.setKirchhoff(self.getKirchhoff())
-        gnm.calcModes(n_modes=n_modes)
+        gnm.calcModes(n_modes=n_modes, **kwargs)
         return gnm
     
     def normalize(self, method=VCnorm, **kwargs):
@@ -301,7 +313,7 @@ class HiC(object):
         """
 
         dm_kwargs = {}
-        keys = kwargs.keys()
+        keys = list(kwargs.keys())
         for k in keys:
             if k.startswith('dm_'):
                 dm_kwargs[k[3:]] = kwargs.pop(k)
