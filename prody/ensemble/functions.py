@@ -586,7 +586,7 @@ def trimCombinePDBEnsembles(ensembles, mapping_func=mapChainByChain, **kwargs):
                     mapping_prev_to_i = np.sum(np.array(mapping_func(atoms_prev, atoms_i, **kwargs))[:,0])
                     mapping_i_to_prev = np.sum(np.array(mapping_func(atoms_i, atoms_prev, **kwargs))[:,0])
                 except:
-                    raise ValueError('kwargs were not set appropriately to produce a mapping for ensembles {0} and the previous ones'.format(i))
+                    raise ValueError('kwargs were not set appropriately to produce a mapping for ensemble {0} to the previous ones'.format(i))
 
                 new_ens.setAtoms(atoms_prev.select(mapping_prev_to_i.getSelstr()))
                 ens_i.setAtoms(atoms_i.select(mapping_i_to_prev.getSelstr()))
