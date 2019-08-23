@@ -436,7 +436,7 @@ class AdaptiveANM(object):
     def runManySteps(self, n_steps, **kwargs):
         n_start = self.numSteps
         while self.numSteps < n_start + n_steps:
-            self.runStep(self.structA, self.structB, **kwargs)
+            self.runStep(structA=self.structA, structB=self.structB, **kwargs)
             converged = self.checkConvergence()
             if converged:
                 self.structA.setCoords(self.coordsA) # That way the original object is back to normal
@@ -448,9 +448,9 @@ class AdaptiveANM(object):
         n_start = self.numSteps
         while self.numSteps < n_start + n_steps:
             n_modes = self.n_modes
-            self.runStep(self.structA, self.structB, reduceSelA=self.reduceSelA, reduceSelB=self.reduceSelB, 
+            self.runStep(structA=self.structA, structB=self.structB, reduceSelA=self.reduceSelA, reduceSelB=self.reduceSelB, 
                          alignSelA=self.alignSelA, alignSelB=self.alignSelB, n_modes=n_modes, **kwargs)
-            self.runStep(self.structB, self.structA, reduceSelA=self.reduceSelB, reduceSelB=self.reduceSelA, 
+            self.runStep(structA=self.structB, structB=self.structA, reduceSelA=self.reduceSelB, reduceSelB=self.reduceSelA, 
                          alignSelA=self.alignSelB, alignSelB=self.alignSelA, n_modes=n_modes, **kwargs)
 
             converged = self.checkConvergence()
@@ -481,7 +481,7 @@ class AdaptiveANM(object):
 
         LOGGER.info('\n\nStarting from struct A ({0})'.format(self.structA))
         while self.numSteps < n_start + n_steps:
-            self.runStep(self.structA, self.structB, reduceSelA=self.reduceSelA, reduceSelB=self.reduceSelB, 
+            self.runStep(structA=self.structA, structB=self.structB, reduceSelA=self.reduceSelA, reduceSelB=self.reduceSelB, 
                          alignSelA=self.alignSelB, alignSelB=self.alignSelA, n_modes=n_modes, **kwargs)
             converged = self.checkConvergence()
             if converged:
@@ -493,7 +493,7 @@ class AdaptiveANM(object):
         LOGGER.info('\n\nStarting from structB ({0})'.format(self.structB))
         self.resetFmin = True
         while self.numSteps < n_start + n_steps:
-            self.runStep(self.structB, self.structA, reduceSelA=self.reduceSelB, reduceSelB=self.reduceSelA, 
+            self.runStep(structA=self.structB, structB=self.structA, reduceSelA=self.reduceSelB, reduceSelB=self.reduceSelA, 
                          alignSelA=self.alignSelB, alignSelB=self.alignSelA, n_modes=n_modes, **kwargs)
             self.resetFmin = False
             converged = self.checkConvergence()
