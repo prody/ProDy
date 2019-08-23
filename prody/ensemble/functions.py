@@ -6,7 +6,7 @@ from numbers import Integral
 
 import numpy as np
 
-from prody.proteins import fetchPDB, parsePDB, writePDB, mapOntoChain
+from prody.proteins import fetchPDB, parsePDB, writePDB, mapOntoChain, mapChainByChain
 from prody.utilities import openFile, showFigure, copy, isListLike, pystr
 from prody import LOGGER, SETTINGS
 from prody.atomic import AtomMap, Chain, AtomGroup, Selection, Segment, Select, AtomSubset
@@ -16,7 +16,7 @@ from .ensemble import *
 from .pdbensemble import *
 from .conformation import *
 
-__all__ = ['saveEnsemble', 'loadEnsemble', 'trimPDBEnsemble',
+__all__ = ['saveEnsemble', 'loadEnsemble', 'trimPDBEnsemble', 'trimCombinePDBEnsembles',
            'calcOccupancies', 'showOccupancies', 'alignPDBEnsemble',
            'buildPDBEnsemble', 'addPDBEnsemble', 'refineEnsemble']
 
@@ -396,13 +396,13 @@ def buildPDBEnsemble(PDBs, ref=None, title='Unknown', labels=None,
     :arg labels: labels of the conformations
     :type labels: list
 
-    :arg occupancy: Minimal occupancy of columns (range from 0 to 1). Columns whose occupancy
-        is below this value will be trimmed.
-    :type occupancy: float
-
     :arg unmapped: A list of PDB IDs that cannot be included in the ensemble. This is an 
         output argument. 
     :type unmapped: list
+
+    :arg occupancy: Minimal occupancy of columns (range from 0 to 1). Columns whose occupancy
+        is below this value will be trimmed.
+    :type occupancy: float
 
     :arg subset: A subset for selecting particular atoms from the input structures.
         Default is calpha
@@ -527,6 +527,74 @@ def buildPDBEnsemble(PDBs, ref=None, title='Unknown', labels=None,
         LOGGER.warn('{0} structures cannot be mapped.'.format(len(unmapped)))
     return ensemble
 
+def trimCombinePDBEnsembles(ensembles, mapping_func=mapChainByChain, **kwargs):
+    """Combines PDB Ensembles using mapping functions and :func:`.trimPDBEnsemble`.
+
+    :arg ensembles: an array-like of ensembles to be combined
+    :type ensemble: str, tuple, list, :class:`~numpy.ndarray`
+
+    Other kwargs can be provided for the mapping_func. 
+    Currently, the same values should be provided for all mappings.
+    """
+    if np.isscalar(ensembles):
+        raise TypeError('ensembles must be array-like.')
+
+    for i, ens in enumerate(ensembles):
+        if not isinstance(ens, PDBEnsemble):
+            raise TypeError('entry {0} is not a PDBEnsemble'.format(i))
+
+    numEnsembles = i+1
+
+    ens0 = ensembles[0]
+    atoms0 = ens0.getAtoms()
+    if atoms0 is None:
+        raise ValueError('Ensemble 0 must have atoms set')
+
+    ens1 = ensembles[1]
+    atoms1 = ens1.getAtoms()
+    if atoms1 is None:
+        raise ValueError('Ensemble 1 must have atoms set')
+
+    if atoms0 == atoms1:
+        new_ens = ens0 + ens1
+    else:
+        try:
+            mapping_0_to_1 = np.sum(np.array(mapping_func(atoms0, atoms1, **kwargs))[:,0])
+            mapping_1_to_0 = np.sum(np.array(mapping_func(atoms1, atoms0, **kwargs))[:,0])
+        except:
+            raise ValueError('kwargs were not set appropriately to produce a mapping for ensembles 0 and 1')
+        
+        ens0.setAtoms(atoms0.select(mapping_0_to_1.getSelstr()))
+        ens1.setAtoms(atoms1.select(mapping_1_to_0.getSelstr()))
+        new_ens = trimPDBEnsemble(ens0) + trimPDBEnsemble(ens1)
+
+    if numEnsembles == 2:
+        return new_ens
+
+    else:
+        for i in range(2,numEnsembles):
+            atoms_prev = new_ens.getAtoms()
+            ens_i = ensembles[i]
+            atoms_i = ens_i.getAtoms()
+            if atoms_i is None:
+                raise ValueError('Ensemble {i} must have atoms set'.format(i))
+
+            if atoms_prev == atoms_i:
+                new_ens = new_ens + ens_i
+            else:
+                try:
+                    mapping_prev_to_i = np.sum(np.array(mapping_func(atoms_prev, atoms_i, **kwargs))[:,0])
+                    mapping_i_to_prev = np.sum(np.array(mapping_func(atoms_i, atoms_prev, **kwargs))[:,0])
+                except:
+                    raise ValueError('kwargs were not set appropriately to produce a mapping for ensembles {0} and the previous ones'.format(i))
+
+                new_ens.setAtoms(atoms_prev.select(mapping_prev_to_i.getSelstr()))
+                ens_i.setAtoms(atoms_i.select(mapping_i_to_prev.getSelstr()))
+                new_ens = trimPDBEnsemble(new_ens) + trimPDBEnsemble(ens_i)
+
+    return new_ens
+
+
 def addPDBEnsemble(ensemble, PDBs, refpdb=None, labels=None, 
                    mapping_func=mapOntoChain, occupancy=None, unmapped=None, **kwargs):  
     """Adds extra structures to a given PDB ensemble. 
@@ -540,17 +608,8 @@ def addPDBEnsemble(ensemble, PDBs, refpdb=None, labels=None,
     :arg PDBs: A list of PDB structures
     :type PDBs: iterable
 
-    :arg title: the title of the ensemble
-    :type title: str
-
     :arg labels: labels of the conformations
     :type labels: list
-
-    :arg seqid: minimal sequence identity (percent)
-    :type seqid: int
-
-    :arg coverage: minimal sequence overlap (percent)
-    :type coverage: int
 
     :arg occupancy: minimal occupancy of columns (range from 0 to 1). Columns whose occupancy 
                     is below this value will be trimmed
@@ -559,6 +618,12 @@ def addPDBEnsemble(ensemble, PDBs, refpdb=None, labels=None,
     :arg unmapped: a list of PDB IDs that cannot be included in the ensemble. This is an 
                    output argument
     :type unmapped: list
+
+    :arg seqid: minimal sequence identity (percent)
+    :type seqid: int
+
+    :arg coverage: minimal sequence overlap (percent)
+    :type coverage: int
     """
 
     degeneracy = kwargs.pop('degeneracy', True)
