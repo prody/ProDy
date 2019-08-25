@@ -543,56 +543,29 @@ def trimCombinePDBEnsembles(ensembles, mapping_func=mapChainByChain, **kwargs):
         if not isinstance(ens, PDBEnsemble):
             raise TypeError('entry {0} is not a PDBEnsemble'.format(i))
 
-    numEnsembles = i+1
+        atoms = ens.getAtoms()
+        if atoms is None:
+            raise ValueError('Ensemble {0} must have atoms set'.format(i))
 
     ens0 = ensembles[0]
     atoms0 = ens0.getAtoms()
-    if atoms0 is None:
-        raise ValueError('Ensemble 0 must have atoms set')
 
     ens1 = ensembles[1]
     atoms1 = ens1.getAtoms()
-    if atoms1 is None:
-        raise ValueError('Ensemble 1 must have atoms set')
+    atoms0_to_others = np.sum(np.array(mapChainByChain(atoms0, atoms1, **kwargs))[:, 0])
+    for ens in ensembles[2:]:
+        atoms = ens.getAtoms()
+        atoms0_to_others = np.sum(np.array(mapChainByChain(atoms0.select(
+            atoms0_to_others.getSelstr()), atoms, **kwargs))[:, 0])
+        ens0.setAtoms(atoms0.select(atoms0_to_others.getSelstr()))
 
-    if atoms0 == atoms1:
-        new_ens = ens0 + ens1
-    else:
-        try:
-            mapping_0_to_1 = np.sum(np.array(mapping_func(atoms0, atoms1, **kwargs))[:,0])
-            mapping_1_to_0 = np.sum(np.array(mapping_func(atoms1, atoms0, **kwargs))[:,0])
-        except:
-            raise ValueError('kwargs were not set appropriately to produce a mapping for ensembles 0 and 1')
-        
-        ens0.setAtoms(atoms0.select(mapping_0_to_1.getSelstr()))
-        ens1.setAtoms(atoms1.select(mapping_1_to_0.getSelstr()))
-        new_ens = trimPDBEnsemble(ens0) + trimPDBEnsemble(ens1)
+    for ens in ensembles[1:]:
+        atoms = ens.getAtoms()
+        atoms_to_atoms0_to_others = np.sum(np.array(mapChainByChain(atoms, atoms0.select(
+            atoms0_to_others.getSelstr()), **kwargs))[:, 0])
+        ens.setAtoms(atoms.select(atoms_to_atoms0_to_others.getSelstr()))
 
-    if numEnsembles == 2:
-        return new_ens
-
-    else:
-        for i in range(2,numEnsembles):
-            atoms_prev = new_ens.getAtoms()
-            ens_i = ensembles[i]
-            atoms_i = ens_i.getAtoms()
-            if atoms_i is None:
-                raise ValueError('Ensemble {i} must have atoms set'.format(i))
-
-            if atoms_prev == atoms_i:
-                new_ens = new_ens + ens_i
-            else:
-                try:
-                    mapping_prev_to_i = np.sum(np.array(mapping_func(atoms_prev, atoms_i, **kwargs))[:,0])
-                    mapping_i_to_prev = np.sum(np.array(mapping_func(atoms_i, atoms_prev, **kwargs))[:,0])
-                except:
-                    raise ValueError('kwargs were not set appropriately to produce a mapping for ensemble {0} to the previous ones'.format(i))
-
-                new_ens.setAtoms(atoms_prev.select(mapping_prev_to_i.getSelstr()))
-                ens_i.setAtoms(atoms_i.select(mapping_i_to_prev.getSelstr()))
-                new_ens = trimPDBEnsemble(new_ens) + trimPDBEnsemble(ens_i)
-
-    return new_ens
+    return np.sum(np.array([trimPDBEnsemble(ens) for ens in ensembles]))
 
 
 def addPDBEnsemble(ensemble, PDBs, refpdb=None, labels=None, 
@@ -625,7 +598,6 @@ def addPDBEnsemble(ensemble, PDBs, refpdb=None, labels=None,
     :arg coverage: minimal sequence overlap (percent)
     :type coverage: int
     """
-
     degeneracy = kwargs.pop('degeneracy', True)
     subset = str(kwargs.get('subset', 'calpha')).lower()
     superpose = kwargs.pop('superpose', True)
