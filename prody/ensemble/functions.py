@@ -527,7 +527,7 @@ def buildPDBEnsemble(PDBs, ref=None, title='Unknown', labels=None,
         LOGGER.warn('{0} structures cannot be mapped.'.format(len(unmapped)))
     return ensemble
 
-def trimCombinePDBEnsembles(ensembles, ref=None, **kwargs):
+def trimCombinePDBEnsembles(ensembles, ref=None, mapping_func=mapChainByChain, **kwargs):
     """Combines PDB Ensembles using mapping functions and :func:`.trimPDBEnsemble`.
 
     :arg ensembles: an array-like of ensembles to be combined
