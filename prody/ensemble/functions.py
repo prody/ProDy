@@ -564,7 +564,7 @@ def trimCombinePDBEnsembles(ensembles, ref=None, mapping_func=mapChainByChain, *
         atoms = ens.getAtoms()
         try:
             ref_atoms_to_others = np.sum(np.array(mapping_func(ref_atoms.select(
-                ref_atoms_to_others.getSelstr()), atoms, ))[:, 0])
+                ref_atoms_to_others.getSelstr()), atoms, **kwargs))[:, 0])
         except:
             raise ValueError('Incorrect mapping parameters for mapping ref to {0}'.format(atoms.getTitle()))
         ref_ens.setAtoms(ref_atoms.select(ref_atoms_to_others.getSelstr()))
