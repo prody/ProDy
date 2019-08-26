@@ -527,7 +527,7 @@ def buildPDBEnsemble(PDBs, ref=None, title='Unknown', labels=None,
         LOGGER.warn('{0} structures cannot be mapped.'.format(len(unmapped)))
     return ensemble
 
-def trimCombinePDBEnsembles(ensembles, mapping_func=mapChainByChain, **kwargs):
+def trimCombinePDBEnsembles(ensembles, ref=None, **kwargs):
     """Combines PDB Ensembles using mapping functions and :func:`.trimPDBEnsemble`.
 
     :arg ensembles: an array-like of ensembles to be combined
@@ -547,23 +547,37 @@ def trimCombinePDBEnsembles(ensembles, mapping_func=mapChainByChain, **kwargs):
         if atoms is None:
             raise ValueError('Ensemble {0} must have atoms set'.format(i))
 
-    ens0 = ensembles[0]
-    atoms0 = ens0.getAtoms()
+    if ref is None:
+        ref_ens = ensembles[0]
+    elif isinstance(ref, Integral):
+        ref_ens = ensembles[ref]
+    else:
+        ref_ens = ref
+        if ref_ens not in ensembles:
+            raise ValueError('ref should be also in the ensembles')
 
-    ens1 = ensembles[1]
-    atoms1 = ens1.getAtoms()
-    atoms0_to_others = np.sum(np.array(mapChainByChain(atoms0, atoms1, **kwargs))[:, 0])
-    for ens in ensembles[2:]:
-        atoms = ens.getAtoms()
-        atoms0_to_others = np.sum(np.array(mapChainByChain(atoms0.select(
-            atoms0_to_others.getSelstr()), atoms, **kwargs))[:, 0])
-        ens0.setAtoms(atoms0.select(atoms0_to_others.getSelstr()))
+    ref_atoms = ref_ens.getAtoms()
 
-    for ens in ensembles[1:]:
+    # Map one way
+    ref_atoms_to_others = ref_atoms.select('all')
+    for ens in ensembles:
         atoms = ens.getAtoms()
-        atoms_to_atoms0_to_others = np.sum(np.array(mapChainByChain(atoms, atoms0.select(
-            atoms0_to_others.getSelstr()), **kwargs))[:, 0])
-        ens.setAtoms(atoms.select(atoms_to_atoms0_to_others.getSelstr()))
+        try:
+            ref_atoms_to_others = np.sum(np.array(mapping_func(ref_atoms.select(
+                ref_atoms_to_others.getSelstr()), atoms, ))[:, 0])
+        except:
+            raise ValueError('Incorrect mapping parameters for mapping ref to {0}'.format(atoms.getTitle()))
+        ref_ens.setAtoms(ref_atoms.select(ref_atoms_to_others.getSelstr()))
+
+    # Map the other way
+    for ens in ensembles:
+        atoms = ens.getAtoms()
+        try:
+            atoms_to_ref_atoms_to_others = np.sum(np.array(mapping_func(atoms, ref_atoms.select(
+                ref_atoms_to_others.getSelstr()), **kwargs))[:, 0])
+        except:
+            raise ValueError('Incorrect mapping parameters for mapping {0} to ref'.format(atoms.getTitle()))
+        ens.setAtoms(atoms.select(atoms_to_ref_atoms_to_others.getSelstr()))
 
     return np.sum(np.array([trimPDBEnsemble(ens) for ens in ensembles]))
 
