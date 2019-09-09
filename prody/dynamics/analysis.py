@@ -57,6 +57,8 @@ def calcCollectivity(mode, masses=None, is3d=None):
 
         if ndim == 0:
             raise ValueError('mode cannot be an empty array')
+        elif ndim == 1:
+            V = V[:, np.newaxis]
 
         n = shape[0]
         if is3d:
