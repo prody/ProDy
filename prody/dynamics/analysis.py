@@ -27,7 +27,7 @@ __all__ = ['calcCollectivity', 'calcCovariance', 'calcCrossCorr',
            'calcDistFlucts']
            #'calcEntropyTransfer', 'calcOverallNetEntropyTransfer']
 
-def calcCollectivity(mode, masses=None):
+def calcCollectivity(mode, masses=None, is3d=None):
     """Returns collectivity of the mode.  This function implements collectivity
     as defined in equation 5 of [BR95]_.  If *masses* are provided, they will
     be incorporated in the calculation.  Otherwise, atoms are assumed to have
@@ -40,9 +40,35 @@ def calcCollectivity(mode, masses=None):
     :type mode: :class:`.Mode`, :class:`.Vector`, :class:`.ModeSet`
 
     :arg masses: atomic masses
-    :type masses: :class:`numpy.ndarray`"""
+    :type masses: :class:`numpy.ndarray`
+    
+    :arg is3d: whether mode is 3d. Default is **None** which means determine 
+        the value based on ``mode.is3d()``.
+    :type is3d: bool
+    """
 
-    V, W, is3d, n_atoms = _getModeProperties(mode)
+    if isinstance(mode, np.ndarray):
+        V = mode
+        ndim = V.ndim
+        shape = V.shape
+
+        if is3d is None:
+            is3d = False
+
+        if ndim == 0:
+            raise ValueError('mode cannot be an empty array')
+        elif ndim == 1:
+            V = V[:, np.newaxis]
+
+        n = shape[0]
+        if is3d:
+            n_atoms = n // 3
+        else:
+            n_atoms = n
+    else:
+        V, W, is3d_, n_atoms = _getModeProperties(mode)
+        if is3d is None:
+            is3d = is3d_
     
     colls = []
 
@@ -67,7 +93,7 @@ def calcCollectivity(mode, masses=None):
     if len(colls) == 1:
         return coll
     else:
-        return colls
+        return np.array(colls)
 
 def calcSpecDimension(mode):
 
