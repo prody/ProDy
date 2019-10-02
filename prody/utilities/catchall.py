@@ -354,13 +354,6 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
         height_ratios = [H]
         aspect = None
 
-    if tree_mode:
-        nrow = 2; ncol = 2
-        i = 1; j = 1
-        width_ratios = [W, W]
-        height_ratios = [H, H]
-        aspect = 'auto'
-
     main_index = (i, j)
     upper_index = (i-1, j)
     left_index = (i, j-1)
