@@ -309,4 +309,10 @@ class NMA(object):
 
         self._clear()
 
+    def getIndices(self):
+      if self._indices is not None:
+        return self._indices
+      else:
+        return np.arange(self.numModes())
+
 
