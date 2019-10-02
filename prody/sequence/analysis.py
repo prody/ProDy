@@ -284,7 +284,7 @@ def filterRankedPairs(pdb, indices, msa_indices, rank_row, rank_col, zscore_sort
                       num_of_pairs=20, seqDistance=5, resi_range=None, \
                       pdbDistance=8, chain1='A', chain2='A'):
     '''
-    indices and msa_indices are lists output from alignSequenceToPDB
+    indices and msa_indices are lists output from alignSequenceToMSA
     
     rank_row, rank_col and zscore_sort are the outputs from calcRankorder
     
@@ -1016,6 +1016,9 @@ def alignSequenceToMSA(seq, msa, label, match=5, mismatch=-1, gap_opening=-10, g
             msa_indices.append(msa_indices[i]+1)
         else:
             msa_indices.append(msa_indices[i])
+
+    seq_indices.pop(0) # The first element was extra for initialisation
+    msa_indices.pop(0) # The first element was extra for initialisation
 
     seq_indices = array(seq_indices)
     msa_indices = array(msa_indices)
