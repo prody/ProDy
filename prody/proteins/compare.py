@@ -1060,23 +1060,19 @@ def mapChainByChain(atoms, ref, **kwargs):
 
     if isinstance(corr_input, dict):
         correspondence = corr_input
-
     elif corr_input is None:
         correspondence = {}
-
     elif isinstance(corr_input, str):
         correspondence = {}
         correspondence[atoms.getTitle()] = corr_input
-
     else:
         correspondence = {}
-
-        for i, ag in enumerate([atoms, ref]):
-            try:
-                correspondence[ag.getTitle()] = corr_input[i]
-            except (IndexError, TypeError):
-                raise TypeError('correspondence should be a dict with keys being titles of atoms and ref, '
-                                'and values are str indicating chID correspondences')
+        try:
+            correspondence[id_atm] = corr_input[0]
+            correspondence[id_ref] = corr_input[1]
+        except (IndexError, TypeError):
+            raise TypeError('correspondence should be a dict with keys being titles of atoms and ref, '
+                            'and values are str indicating chID correspondences')
 
     if not id_atm in correspondence:
         correspondence[id_atm] = ''.join([chain.getChid() for chain in chs_atm])
@@ -1091,7 +1087,8 @@ def mapChainByChain(atoms, ref, **kwargs):
             i = corr_ref.index(chain.getChid())
             chid = corr_tar[i]
         except ValueError:
-            chid = chain.getChid()
+            pass
+            #chid = chain.getChid()
         for target_chain in chs_atm:
             if target_chain.getChid() == chid:
                 mappings_ = mapOntoChainByAlignment(target_chain, chain, **kwargs)
