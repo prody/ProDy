@@ -147,7 +147,7 @@ def getTransformation(mob, tar, weights=None):
     U, s, Vh = linalg.svd(matrix)
     Id = np.array([[1, 0, 0],
                    [0, 1, 0],
-                   [0, 0, np.sign(linalg.det(matrix))]])
+                   [0, 0, np.sign(linalg.det(np.dot(np.transpose(Vh),U)))]])
     rotation = np.dot(Vh.T, np.dot(Id, U.T))
 
     return rotation, tar_com - np.dot(mob_com, rotation.T)
