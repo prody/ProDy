@@ -128,7 +128,6 @@ def calcTransformation(mobile, target, weights=None):
 
 def getTransformation(mob, tar, weights=None):
 
-
     if weights is None:
         mob_com = mob.mean(0)
         tar_com = tar.mean(0)
@@ -144,10 +143,11 @@ def getTransformation(mob, tar, weights=None):
         tar = tar - tar_com
         matrix = np.dot((mob * weights).T, (tar * weights)) / weights_dot
 
-    U, s, Vh = linalg.svd(matrix)
+    U, _, Vh = linalg.svd(matrix)
+    d = np.sign(linalg.det(np.dot(Vh, U)))
     Id = np.array([[1, 0, 0],
                    [0, 1, 0],
-                   [0, 0, np.sign(linalg.det(np.dot(np.transpose(Vh),U)))]])
+                   [0, 0, d]])
     rotation = np.dot(Vh.T, np.dot(Id, U.T))
 
     return rotation, tar_com - np.dot(mob_com, rotation.T)
