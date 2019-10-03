@@ -144,7 +144,7 @@ def getTransformation(mob, tar, weights=None):
         matrix = np.dot((mob * weights).T, (tar * weights)) / weights_dot
 
     U, _, Vh = linalg.svd(matrix)
-    d = np.sign(linalg.det(np.dot(Vh, U)))
+    d = np.sign(linalg.det(np.dot(U, Vh)))
     Id = np.array([[1, 0, 0],
                    [0, 1, 0],
                    [0, 0, d]])
