@@ -457,12 +457,21 @@ def sliceAtomicData(data, atoms, select, axis=None):
 
     natoms = atoms.numAtoms()
 
+    if axis is None:
+        axes = list(range(data.ndim))
+    else:
+        axes = [axis]
+
     is3d = False
-    if len(data) != natoms:
-        if data.shape[0] == natoms * 3:
-            is3d = True
+    for ax in axes:
+        if data.shape[ax] != natoms:
+            if data.shape[ax] == natoms * 3:
+                is3d = True
+                break
+            else:
+                raise ValueError('data and atoms must have the same size along all chosen axes')
         else:
-            raise ValueError('data and atoms must have the same size')
+            break
 
     indices, _ = sliceAtoms(atoms, select)
     if is3d:
