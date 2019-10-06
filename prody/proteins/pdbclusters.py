@@ -5,7 +5,7 @@ import os.path
 
 from numpy import array, abs
 
-from prody import LOGGER, SETTINGS, getPackagePath
+from prody import LOGGER, getPackagePath
 from prody.utilities import openFile, openURL
 
 __all__ = ['fetchPDBClusters', 'loadPDBClusters', 'listPDBCluster']
@@ -16,6 +16,7 @@ PDB_CLUSTERS_UPDATE_WARNING = True
 PDB_CLUSTERS_SQIDS = array(list(PDB_CLUSTERS))
 PDB_CLUSTERS_SQIDS.sort()
 PDB_CLUSTERS_SQID_STR = ', '.join([str(key) for key in PDB_CLUSTERS_SQIDS])
+
 
 def loadPDBClusters(sqid=None):
     """Load previously fetched PDB sequence clusters from disk to memory."""
@@ -69,25 +70,26 @@ def listPDBCluster(pdb, ch, sqid=95):
         'pdb must be 4 char long string'
     assert isinstance(ch, str) and len(ch) == 1, \
         'ch must be a one char long string'
-    try:
-        sqid = int(sqid)
-    except TypeError:
-        raise TypeError('sqid must be an integer')
+    assert isinstance(sqid, int), 'sqid must be an integer'
+
     if not (30 <= sqid <= 100):
         raise ValueError('sqid must be between 30 and 100')
+
     sqid = PDB_CLUSTERS_SQIDS[abs(PDB_CLUSTERS_SQIDS-sqid).argmin()]
-    PDB_CLUSTERS_PATH = os.path.join(getPackagePath(), 'pdbclusters')
+
     clusters = PDB_CLUSTERS[sqid]
     if clusters is None:
-        loadPDBClusters(sqid)
+        loadPDBClusters(int(sqid))
         clusters = PDB_CLUSTERS[sqid]
-    pdb_ch = pdb.upper() + '_' + ch.upper()
-    index = clusters.index(pdb_ch)
-    maxlen = clusters.index('\n')
-    end = clusters.find('\n', index)
-    start = clusters.rfind('\n', index-maxlen, end)+1
+
+    pdb_ch = "{}_{}".format(pdb.upper(), ch.upper())
+    index = clusters.index(str.encode(pdb_ch))
+    maxlen = clusters.index(b'\n')
+    end = clusters.find(b'\n', index)
+    start = clusters.rfind(b'\n', index-maxlen, end)+1
     cluster = clusters[start:end]
-    return [tuple(item.split('_')) for item in cluster.split()]
+    return [tuple(item.split(b'_')) for item in cluster.split()]
+
 
 def fetchPDBClusters(sqid=None):
     """Retrieve PDB sequence clusters.  PDB sequence clusters are results of
