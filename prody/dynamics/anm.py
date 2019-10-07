@@ -8,11 +8,11 @@ from numbers import Integral
 from prody import LOGGER
 from prody.atomic import Atomic, AtomGroup
 from prody.proteins import parsePDB
-from prody.utilities import importLA, checkCoords
+from prody.utilities import checkCoords
 from prody.kdtree import KDTree
 
 from .nma import NMA
-from .gnm import GNMBase, ZERO, checkENMParameters
+from .gnm import GNMBase, solveEig, checkENMParameters
 
 __all__ = ['ANM', 'calcANM']
 
@@ -116,7 +116,8 @@ class ANMBase(NMA):
         dof = n_atoms * 3
         LOGGER.timeit('_anm_hessian')
 
-        if kwargs.get('sparse', False):
+        sparse = kwargs.get('sparse', False)
+        if sparse:
             try:
                 from scipy import sparse as scipy_sparse
             except ImportError:
@@ -149,8 +150,8 @@ class ANMBase(NMA):
                     hessian[res_j3:res_j33, res_j3:res_j33] - super_element
                 kirchhoff[i, j] = -g
                 kirchhoff[j, i] = -g
-                kirchhoff[i, i] = kirchhoff[i, i] - g
-                kirchhoff[j, j] = kirchhoff[j, j] - g
+                kirchhoff[i, i] = kirchhoff[i, i] + g
+                kirchhoff[j, j] = kirchhoff[j, j] + g
         else:
             cutoff2 = cutoff * cutoff
             for i in range(n_atoms):
@@ -175,8 +176,13 @@ class ANMBase(NMA):
                         hessian[res_j3:res_j33, res_j3:res_j33] - super_element
                     kirchhoff[i, j] = -g
                     kirchhoff[j, i] = -g
-                    kirchhoff[i, i] = kirchhoff[i, i] - g
-                    kirchhoff[j, j] = kirchhoff[j, j] - g
+                    kirchhoff[i, i] = kirchhoff[i, i] + g
+                    kirchhoff[j, j] = kirchhoff[j, j] + g
+
+        if sparse:
+            kirchhoff = kirchhoff.tocsr()
+            hessian = hessian.tocsr()
+
         LOGGER.report('Hessian was built in %.2fs.', label='_anm_hessian')
         self._kirchhoff = kirchhoff
         self._hessian = hessian
@@ -208,66 +214,14 @@ class ANMBase(NMA):
         assert isinstance(zeros, bool), 'zeros must be a boolean'
         assert isinstance(turbo, bool), 'turbo must be a boolean'
         self._clear()
-        linalg = importLA()
         LOGGER.timeit('_anm_calc_modes')
-        shift = 5
-        if linalg.__package__.startswith('scipy'):
-            if n_modes is None:
-                eigvals = None
-                n_modes = self._dof
-            else:
-                if n_modes >= self._dof:
-                    eigvals = None
-                    n_modes = self._dof
-                else:
-                    eigvals = (0, n_modes + shift)
-            if eigvals:
-                turbo = False
-            if isinstance(self._hessian, np.ndarray):
-                values, vectors = linalg.eigh(self._hessian, turbo=turbo,
-                                              eigvals=eigvals)
-            else:
-                try:
-                    from scipy.sparse import linalg as scipy_sparse_la
-                except ImportError:
-                    raise ImportError('failed to import scipy.sparse.linalg, '
-                                      'which is required for sparse matrix '
-                                      'decomposition')
-                try:
-                    values, vectors = (
-                        scipy_sparse_la.eigsh(self._hessian, k=n_modes+6,
-                                              which='SA'))
-                except:
-                    values, vectors = (
-                        scipy_sparse_la.eigen_symmetric(self._hessian,
-                                                        k=n_modes+6,
-                                                        which='SA'))
-
-        else:
-            if n_modes is not None:
-                LOGGER.info('Scipy is not found, all modes are calculated.')
-            values, vectors = np.linalg.eigh(self._hessian)
-        n_zeros = sum(values < ZERO)
-
-        if n_zeros < 6:
-            LOGGER.warning('Less than 6 zero eigenvalues are calculated.')
-            shift = n_zeros - 1
-        elif n_zeros > 6:
-            LOGGER.warning('More than 6 zero eigenvalues are calculated.')
-            shift = n_zeros - 1
-        if zeros:
-            shift = -1
-        if n_zeros > n_modes:
-            self._eigvals = values[1+shift:]
-        else:
-            self._eigvals = values[1+shift:]
-        self._vars = 1 / self._eigvals
+        values, vectors, vars = solveEig(self._hessian, n_modes=n_modes, zeros=zeros, 
+                                         turbo=turbo, is3d=True)
+        self._eigvals = values
+        self._array = vectors
+        self._vars = vars
         self._trace = self._vars.sum()
-        
-        if shift:
-            self._array = vectors[:, 1+shift:].copy()
-        else:
-            self._array = vectors
+
         self._n_modes = len(self._eigvals)
         LOGGER.report('{0} modes were calculated in %.2fs.'
                      .format(self._n_modes), label='_anm_calc_modes')
@@ -300,25 +254,41 @@ class ANM(ANMBase, GNMBase):
 
 
 def calcANM(pdb, selstr='calpha', cutoff=15., gamma=1., n_modes=20,
-            zeros=False):
+            zeros=False, title=None):
     """Returns an :class:`ANM` instance and atoms used for the calculations.
     By default only alpha carbons are considered, but selection string helps
-    selecting a subset of it.  *pdb* can be :class:`.Atomic` instance."""
+    selecting a subset of it.  *pdb* can be a PDB code, :class:`.Atomic` 
+    instance, or a Hessian matrix (:class:`~numpy.ndarray`)."""
 
-    if isinstance(pdb, str):
-        ag = parsePDB(pdb)
-        title = ag.getTitle()
-    elif isinstance(pdb, Atomic):
-        ag = pdb
-        if isinstance(pdb, AtomGroup):
-            title = ag.getTitle()
-        else:
-            title = ag.getAtomGroup().getTitle()
+    if isinstance(pdb, np.ndarray):
+        H = pdb
+        if title is None:
+            title = 'Unknown'
+        anm = ANM(title)
+        anm.setHessian(H)
+        anm.calcModes(n_modes, zeros)
+        
+        return anm
+        
     else:
-        raise TypeError('pdb must be an atomic class, not {0}'
-                        .format(type(pdb)))
-    anm = ANM(title)
-    sel = ag.select(selstr)
-    anm.buildHessian(sel, cutoff, gamma)
-    anm.calcModes(n_modes, zeros)
-    return anm, sel
+        if isinstance(pdb, str):
+            ag = parsePDB(pdb)
+            if title is None:
+                title = ag.getTitle()
+        elif isinstance(pdb, Atomic):
+            ag = pdb
+            if title is None:
+                if isinstance(pdb, AtomGroup):
+                    title = ag.getTitle()
+                else:
+                    title = ag.getAtomGroup().getTitle()
+        else:
+            raise TypeError('pdb must be an atomic class, not {0}'
+                            .format(type(pdb)))
+        
+        anm = ANM(title)
+        sel = ag.select(selstr)
+        anm.buildHessian(sel, cutoff, gamma)
+        anm.calcModes(n_modes, zeros)
+    
+        return anm, sel

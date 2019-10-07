@@ -5,16 +5,9 @@
 import numpy as np
 
 from prody import LOGGER
-from prody.atomic import Atomic, AtomGroup
-from prody.proteins import parsePDB
-from prody.utilities import importLA, checkCoords, sqrtm
-from numpy import sqrt, zeros, linalg, min, max, unique, mean, eye, outer, dot
-from scipy import sparse
-from subprocess import call
+from prody.utilities import checkCoords
 
-from .anm import ANMBase, calcANM, ANM
-from .gnm import checkENMParameters
-from .editing import reduceModel
+from .anm import ANMBase
 
 __all__ = ['RTB']
 
@@ -67,21 +60,6 @@ class RTB(ANMBase):
 
         :arg gamma: spring constant, default is 1.0
         :type gamma: float
-
-        :arg scale: scaling factor for force constant along Z-direction,
-            default is 1.0
-        :type scale: float
-
-        :arg membrane_low: minimum z-coordinate at which membrane scaling
-            is applied
-            default is 1.0
-        :type membrane_low: float
-
-        :arg membrane_high: maximum z-coordinate at which membrane scaling
-            is applied.  If membrane_high < membrane_low, scaling will be 
-            applied to the entire structure
-            default is -1.0
-        :type membrane_high: float
         """
 
 
@@ -95,14 +73,22 @@ class RTB(ANMBase):
                 raise TypeError('coords must be a Numpy array or an object '
                                 'with `getCoords` method')
 
-        LOGGER.timeit('_rtb')
-        self._n_atoms = natoms = int(coords.shape[0])
+        super(RTB, self).buildHessian(coords, cutoff=cutoff, gamma=gamma, **kwargs)
+
+        self.calcProjection(coords, blocks, **kwargs)
+
+
+    def calcProjection(self, coords, blocks, **kwargs):
+        natoms = self._n_atoms
+
         if natoms != len(blocks):
             raise ValueError('len(blocks) must match number of atoms')
+
+        LOGGER.timeit('_rtb')
         from collections import defaultdict
         i = Increment()
         d = defaultdict(i)
-        blocks = np.array([d[b] for b in blocks], np.int64)
+        blocks = np.array([d[b] for b in blocks], dtype='int32')
 
         try:
             from collections import Counter
@@ -126,22 +112,18 @@ class RTB(ANMBase):
                     .format(nblocks, maxsize, natoms))
         nb6 = nblocks * 6 - nones * 3
 
-        coords = coords.T.copy()
+        coords = coords.T.astype(float, order='C')
 
-        self._hessian = hessian = np.zeros((nb6, nb6), float)
+        hessian = self._hessian
         self._project = project = np.zeros((natoms * 3, nb6), float)
 
-        from .rtbtools import buildhessian
+        from .rtbtools import calc_projection
 
-        buildhessian(coords, blocks, hessian, project,
-                     natoms, nblocks, maxsize, 
-                     float(cutoff), float(gamma),
-                     scale=float(kwargs.get('scale', 1.0)),
-                     memlo=float(kwargs.get('membrane_low', 1.0)),
-                     memhi=float(kwargs.get('membrane_high', 1.0)),)
+        calc_projection(coords, blocks, project, natoms, nblocks, nb6, maxsize)
 
+        self._hessian = project.T.dot(hessian).dot(project)
         self._dof = self._hessian.shape[0]
-        LOGGER.report('Hessian was built in %.2fs.', label='_rtb')
+        LOGGER.report('Block Hessian and projection matrix were calculated in %.2fs.', label='_rtb')
 
 
     def getProjection(self):
@@ -173,28 +155,3 @@ class RTB(ANMBase):
             n_modes = self._dof
         super(RTB, self).calcModes(n_modes, zeros, turbo)
         self._array = np.dot(self._project, self._array)
-
-def test(pdb='2nwl-mem.pdb', blk='2nwl.blk'):
-
-    from prody import parsePDB
-    from numpy import zeros, linalg
-
-    pdb = parsePDB(pdb, subset='ca')
-    pdb.setData('block', zeros(len(pdb), int))
-    with open(blk) as inp:
-        for line in inp:
-            if line.startswith('BLOCK'):
-                _, b, n1, c1, r1, n2, c2, r2 = line.split()
-                sel = pdb.select('chain {} and resnum {} to {}'
-                                 .format(c1, r1, r2))              
-                if sel:
-                    sel.setData('block', int(b))
-    pdb.setBetas(pdb.getData('block'))
-    coords = pdb.getCoords() 
-    blocks = pdb.getBetas()
-    from prody import writePDB
-    writePDB('pdb2gb1_truncated.pdb', pdb)
-    rtb = RTB('2nwl')
-    rtb.buildHessian(coords, blocks, scale=64)
-    #rtb.calcModes()
-    return rtb

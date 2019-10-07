@@ -303,7 +303,7 @@ class DCDFile(TrajFile):
             return unitcell
 
     def getCoordsets(self, indices=None):
-        """Returnss coordinate sets at given *indices*. *indices* may be an
+        """Returns coordinate sets at given *indices*. *indices* may be an
         integer, a list of integers or **None**. **None** returns all
         coordinate sets."""
 
@@ -515,6 +515,8 @@ def writeDCD(filename, trajectory, start=None, stop=None, step=None,
     *trajectory can be an :class:`Trajectory`, :class:`DCDFile`, or
     :class:`Ensemble` instance. *filename* is returned upon successful
     output of file."""
+    if not filename.lower().endswith('.dcd'):
+        filename += '.dcd'
 
     if not isinstance(trajectory, (TrajBase, Ensemble, Atomic)):
         raise TypeError('{0} is not a valid type for trajectory'

@@ -4,19 +4,10 @@
 import numpy as np
 
 from prody.atomic import Atomic, Atom, AtomGroup, Selection, HierView
-from prody.utilities import openFile, showFigure, createStringIO
+from prody.utilities import openFile, showFigure, createStringIO, wrapModes
 from prody import SETTINGS, PY3K
 
 __all__ = ['view3D', 'showProtein']
-
-def wrap_data(data):
-    try:
-        arr = data.getArray()
-        data = [data]
-    except AttributeError:
-        if np.isscalar(data[0]):
-            data = [data]
-    return data
 
 def view3D(*alist, **kwargs):
     """Return a py3Dmol view instance for interactive visualization in
@@ -70,13 +61,13 @@ def view3D(*alist, **kwargs):
     if modes is None:
         n_modes = 0
     else:
-        modes = wrap_data(modes)
+        modes = wrapModes(modes)
         n_modes = len(modes)
 
     if data_list is None:
         n_data = 0
     else:
-        data_list = wrap_data(data_list)
+        data_list = wrapModes(data_list)
         n_data = len(data_list)
 
     view = py3Dmol.view(width=width, height=height, js=kwargs.get('js','http://3dmol.csb.pitt.edu/build/3Dmol-min.js'))
@@ -126,6 +117,7 @@ def view3D(*alist, **kwargs):
                 is3d = mode.is3d()
             except AttributeError:
                 arr = mode
+                is3d = len(arr) == atoms.calpha.numAtoms()*3
 
             if is3d:
                 if atoms.calpha.numAtoms()*3 != len(arr):
@@ -224,7 +216,7 @@ def showProtein(*atoms, **kwargs):
     if modes is None:
         n_modes = 0
     else:
-        modes = wrap_data(modes)
+        modes = wrapModes(modes)
         n_modes = len(modes)
 
     if method is None:
@@ -248,6 +240,9 @@ def showProtein(*atoms, **kwargs):
         mol = view3D(*alist, **kwargs)
         return mol
     else:
+        kwargs.pop('mode', None)
+        kwargs.pop('scale', 100)
+
         import matplotlib.pyplot as plt
         from mpl_toolkits.mplot3d import Axes3D
         cf = plt.gcf()
@@ -314,9 +309,9 @@ def showProtein(*atoms, **kwargs):
                             if last_chid == ch:
                                 rbody.append(i)
                             show.plot(xyz[rbody, 0], xyz[rbody, 1], xyz[rbody, 2],
-                            label=title + '_regid%d'%n,
-                            color=rcolor[int(last_sign+1)],
-                            lw=kwargs.get('lw', 4))
+                                      label=title + '_regid%d'%n,
+                                      color=rcolor[int(last_sign+1)],
+                                      lw=kwargs.get('lw', 4))
                             rbody = []
                             n += 1
                             last_sign = s

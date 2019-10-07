@@ -11,9 +11,11 @@ from prody.atomic import Atomic, AtomGroup, AtomSubset
 from prody.utilities import openFile, isExecutable, which, PLATFORM, addext
 
 from .nma import NMA
-from .anm import ANM
+from .anm import ANM, ANMBase
 from .gnm import GNM, GNMBase, ZERO, MaskedGNM
+from .rtb import RTB
 from .pca import PCA, EDA
+from .imanm import imANM
 from .exanm import exANM
 from .mode import Vector, Mode
 from .modeset import ModeSet
@@ -42,9 +44,16 @@ def saveModel(nma, filename=None, matrices=False, **kwargs):
     #if len(nma) == 0:
     #    raise ValueError('nma instance does not contain data')
 
+    add_attr = kwargs.pop('attr', [])
+
     dict_ = nma.__dict__
     attr_list = ['_title', '_trace', '_array', '_eigvals', '_vars', '_n_atoms',
                  '_dof', '_n_modes']
+
+    if add_attr:
+        for attr in add_attr:
+            if attr not in attr_list:
+                attr_list.append(attr)
     if filename is None:
         filename = nma.getTitle().replace(' ', '_')
     if isinstance(nma, GNMBase):
@@ -52,9 +61,9 @@ def saveModel(nma, filename=None, matrices=False, **kwargs):
         attr_list.append('_gamma')
         if matrices:
             attr_list.append('_kirchhoff')
-            if isinstance(nma, ANM):
+            if isinstance(nma, ANMBase):
                 attr_list.append('_hessian')
-        if isinstance(nma, ANM):
+        if isinstance(nma, ANMBase):
             type_ = 'ANM'
         else:
             type_ = 'GNM'
@@ -77,11 +86,17 @@ def saveModel(nma, filename=None, matrices=False, **kwargs):
         attr_dict['type'] = 'mGNM'
         attr_dict['mask'] = nma.mask
         attr_dict['masked'] = nma.masked
+    
+    if isinstance(nma, RTB):
+        attr_dict['type'] = 'RTB'
+        if matrices:
+            attr_dict['_project'] = nma._project
+
+    if isinstance(nma, imANM):
+        attr_dict['type'] = 'imANM'
 
     if isinstance(nma, exANM):
         attr_dict['type'] = 'exANM'
-        attr_dict['_membrane'] = np.array([nma._membrane, None])
-        attr_dict['_combined'] = np.array([nma._combined, None])
 
     suffix = '.' + attr_dict['type'].lower()
     if not filename.lower().endswith('.npz'):
@@ -103,54 +118,67 @@ def loadModel(filename, **kwargs):
     if not 'encoding' in kwargs:
         kwargs['encoding'] = 'latin1'
 
-    attr_dict = np.load(filename, **kwargs)
-    try:
-        type_ = attr_dict['type']
-    except KeyError:
-        raise IOError('{0} is not a valid NMA model file'.format(filename))
+    if not 'allow_pickle' in kwargs:
+        kwargs['allow_pickle'] = True 
 
-    if isinstance(type_, np.ndarray):
-        type_ = np.asarray(type_, dtype=str)
+    with np.load(filename, **kwargs) as attr_dict:
+        try:
+            type_ = attr_dict['type']
+        except KeyError:
+            raise IOError('{0} is not a valid NMA model file'.format(filename))
 
-    type_ = str(type_)
+        if isinstance(type_, np.ndarray):
+            type_ = np.asarray(type_, dtype=str)
 
-    try:
-        title = attr_dict['_title']
-    except KeyError:
-        title = attr_dict['_name']
+        type_ = str(type_)
 
-    if isinstance(title, np.ndarray):
-        title = np.asarray(title, dtype=str)
-    title = str(title)
-    if type_ == 'ANM':
-        nma = ANM(title)
-    elif type_ == 'PCA':
-        nma = PCA(title)
-    elif type_ == 'EDA':
-        nma = EDA(title)
-    elif type_ == 'GNM':
-        nma = GNM(title)
-    elif type_ == 'mGNM':
-        nma = MaskedGNM(title)
-    elif type_ == 'exANM':
-        nma = exANM(title)
-    elif type_ == 'NMA':
-        nma = NMA(title)
-    else:
-        raise IOError('NMA model type is not recognized: {0}'.format(type_))
+        try:
+            title = attr_dict['_title']
+        except KeyError:
+            title = attr_dict['_name']
 
-    dict_ = nma.__dict__
-    for attr in attr_dict.files:
-        if attr in ('type', '_name', '_title'):
-            continue
-        elif attr in ('_trace', '_cutoff', '_gamma'):
-            dict_[attr] = float(attr_dict[attr])
-        elif attr in ('_dof', '_n_atoms', '_n_modes'):
-            dict_[attr] = int(attr_dict[attr])
-        elif attr in ('_membrane', '_combined'):
-            dict_[attr] = attr_dict[attr][0] 
+        if isinstance(title, np.ndarray):
+            title = np.asarray(title, dtype=str)
+        title = str(title)
+        if type_ == 'ANM':
+            nma = ANM(title)
+        elif type_ == 'PCA':
+            nma = PCA(title)
+        elif type_ == 'EDA':
+            nma = EDA(title)
+        elif type_ == 'GNM':
+            nma = GNM(title)
+        elif type_ == 'mGNM':
+            nma = MaskedGNM(title)
+        elif type_ == 'exANM':
+            nma = exANM(title)
+        elif type_ == 'imANM':
+            nma = imANM(title)
+        elif type_ == 'NMA':
+            nma = NMA(title)
+        elif type_ == 'RTB':
+            nma = RTB(title)
         else:
-            dict_[attr] = attr_dict[attr]
+            raise IOError('NMA model type is not recognized: {0}'.format(type_))
+
+        dict_ = nma.__dict__
+        for attr in attr_dict.files:
+            if attr in ('type', '_name', '_title'):
+                continue
+            elif attr in ('_trace', '_cutoff', '_gamma'):
+                dict_[attr] = float(attr_dict[attr])
+            elif attr in ('_dof', '_n_atoms', '_n_modes'):
+                dict_[attr] = int(attr_dict[attr])
+            elif attr in ('masked', ):
+                dict_[attr] = bool(attr_dict[attr])
+            elif attr in ('mask', ):
+                if not attr_dict[attr].shape:
+                    dict_[attr] = bool(attr_dict[attr])
+                else:
+                    dict_[attr] = attr_dict[attr]
+            else:
+                dict_[attr] = attr_dict[attr]
+
     return nma
 
 
@@ -165,7 +193,13 @@ def saveVector(vector, filename, **kwargs):
     attr_dict['title'] = vector.getTitle()
     attr_dict['array'] = vector._getArray()
     attr_dict['is3d'] = vector.is3d()
-    filename += '.vec.npz'
+
+    if not filename.lower().endswith('.npz'):
+        if not filename.lower().endswith('.vec'):
+            filename += '.vec.npz'
+        else:
+            filename += '.npz'
+
     ostream = openFile(filename, 'wb', **kwargs)
     np.savez(ostream, **attr_dict)
     ostream.close()
@@ -377,7 +411,7 @@ def parseSparseMatrix(filename, symmetric=False, delimiter=None, skiprows=0,
 def calcENM(atoms, select=None, model='anm', trim='trim', gamma=1.0, 
             title=None, n_modes=None, **kwargs):
     """Returns an :class:`ANM` or `GNM` instance and atoms used for the 
-    calculationsn. The model can be trimmed, sliced, or reduced based on 
+    calculations. The model can be trimmed, sliced, or reduced based on 
     the selection.
 
     :arg atoms: atoms on which the ENM is performed. It can be any :class:`Atomic` 

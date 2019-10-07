@@ -11,7 +11,7 @@ from collections import defaultdict
 import numpy as np
 
 from prody import LOGGER, SETTINGS, PY3K
-from prody.utilities import showFigure, addEnds
+from prody.utilities import showFigure, addEnds, showMatrix
 from prody.atomic import AtomGroup, Selection, Atomic, sliceAtoms, sliceAtomicData
 
 from .nma import NMA
@@ -148,6 +148,7 @@ def showFractVars(modes, *args, **kwargs):
     plt.axis(axis)
     plt.xlabel('Mode index')
     plt.ylabel('Fraction of variance')
+    plt.xlim(fracts[0,0]-0.5,fracts[-1,0]+1.5)
     if SETTINGS['auto_show']:
         showFigure()
     return show
@@ -490,26 +491,32 @@ def showOverlapTable(modes_x, modes_y, **kwargs):
 
     if SETTINGS['auto_show']:
         plt.figure()
-    show = (plt.pcolor(overlap, cmap=cmap, norm=norm, **kwargs),
-            plt.colorbar())
-
-    x_range = np.arange(1, modes_x.numModes() + 1)
+    
+    x_range = np.arange(1, modes_x.numModes()+1)
     if isinstance(modes_x, ModeSet):
         x_ticklabels = modes_x._indices+1
     else:
         x_ticklabels = x_range
-    plt.xticks(x_range-0.5, x_ticklabels)
-    plt.xlabel(str(modes_x))
 
-    y_range = np.arange(1, modes_y.numModes() + 1)
+    x_ticklabels = kwargs.pop('xticklabels', x_ticklabels)
+
+    y_range = np.arange(1, modes_y.numModes()+1)
     if isinstance(modes_y, ModeSet):
         y_ticklabels = modes_y._indices+1
     else:
         y_ticklabels = y_range
-    plt.yticks(y_range-0.5, y_ticklabels)
-    plt.ylabel(str(modes_y))
 
-    plt.axis([0, modes_x.numModes(), 0, modes_y.numModes()])
+    y_ticklabels = kwargs.pop('yticklabels', y_ticklabels)
+
+    allticks = kwargs.pop('allticks', True)
+
+    show = showMatrix(overlap, cmap=cmap, norm=norm, 
+                      xticklabels=x_ticklabels, yticklabels=y_ticklabels, allticks=allticks,
+                      **kwargs)
+
+    plt.xlabel(str(modes_x))
+    plt.ylabel(str(modes_y))
+    
     if SETTINGS['auto_show']:
         showFigure()
     return show
@@ -525,19 +532,13 @@ def showCrossCorr(modes, *args, **kwargs):
     if SETTINGS['auto_show']:
         plt.figure()
 
-    arange = np.arange(modes.numAtoms())
-    cross_correlations = np.zeros((arange[-1]+2, arange[-1]+2))
-    cross_correlations[arange[0]+1:,
-                       arange[0]+1:] = calcCrossCorr(modes)
+    cross_correlations = calcCrossCorr(modes)
     if not 'interpolation' in kwargs:
         kwargs['interpolation'] = 'bilinear'
     if not 'origin' in kwargs:
         kwargs['origin'] = 'lower'
-    show = showAtomicMatrix(cross_correlations, *args, **kwargs)#, plt.colorbar()
-    #plt.axis([arange[0]+0.5, arange[-1]+1.5, arange[0]+0.5, arange[-1]+1.5])
+    show = showAtomicMatrix(cross_correlations, *args, **kwargs)
     plt.title('Cross-correlations for {0}'.format(str(modes)))
-    plt.xlabel('Indices')
-    plt.ylabel('Indices')
     if SETTINGS['auto_show']:
         showFigure()
     return show
@@ -549,9 +550,13 @@ def showMode(mode, *args, **kwargs):
     from matplotlib.pyplot import plot, title, xlim
 
     show_hinges = kwargs.pop('show_hinges', False)
-    show_zero = kwargs.pop('show_zero', True)
     show_hinges = kwargs.pop('hinges', show_hinges)
+    show_hinges = kwargs.pop('show_hinge', show_hinges)
+    show_hinges = kwargs.pop('hinge', show_hinges)
+
+    show_zero = kwargs.pop('show_zero', True)
     show_zero = kwargs.pop('zero', show_zero)
+    
     atoms = kwargs.get('atoms', None)
     final = kwargs.pop('final', True)
 
@@ -597,6 +602,9 @@ def showSqFlucts(modes, *args, **kwargs):
 
     def _showSqFlucts(modes, *args, **kwargs):
         show_hinge = kwargs.pop('hinges', False)
+        show_hinge = kwargs.pop('hinges', show_hinge)
+        show_hinge = kwargs.pop('show_hinge', show_hinge)
+        show_hinge = kwargs.pop('hinge', show_hinge)
         norm = kwargs.pop('norm', False)
 
         sqf = calcSqFlucts(modes)
@@ -618,8 +626,44 @@ def showSqFlucts(modes, *args, **kwargs):
             def_label = str(modes)
 
         label = kwargs.pop('label', def_label)
+        mode = kwargs.pop('mode', None)
 
-        show = showAtomicLines(sqf, *args, label=label, **kwargs)
+        if mode is not None:
+            is3d = False
+            try:
+                arr = mode.getArray()
+                is3d = mode.is3d()
+                n_nodes = mode.numAtoms()
+            except AttributeError:
+                arr = mode
+                is3d = len(arr) == len(sqf)*3
+                n_nodes = len(arr)//3 if is3d else len(arr)
+            if n_nodes != len(sqf):
+                raise RuntimeError('size mismatch between the protein ({0} residues) and the mode ({1} nodes).'
+                                    .format(len(sqf), n_nodes))
+
+            if is3d:
+                raise ValueError('Cannot color sqFlucts by mode direction for 3D modes')
+
+            rbody = []
+            first_sign = np.sign(arr[0])
+            rcolor = ['red', 'red', 'blue']
+            n = 1
+            for i, a in enumerate(arr):
+                s = np.sign(a)
+                if s == 0: 
+                    s = first_sign
+                if first_sign != s or i == len(arr)-1:
+                    show = showAtomicLines(rbody, sqf[rbody], label=label,
+                                           color=rcolor[int(first_sign+1)],
+                                           **kwargs)
+                    rbody = []
+                    n += 1
+                    first_sign = s
+                rbody.append(i)
+        else:
+            show = showAtomicLines(sqf, *args, label=label, **kwargs)
+
         if show_hinge and not modes.is3d():
             hinges = modes.getHinges()
             if hinges is not None:
@@ -728,6 +772,7 @@ def showOverlap(mode, modes, *args, **kwargs):
     """
 
     import matplotlib.pyplot as plt
+    from matplotlib.ticker import MaxNLocator
 
     if SETTINGS['auto_show']:
         plt.figure()
@@ -740,13 +785,16 @@ def showOverlap(mode, modes, *args, **kwargs):
                         .format(type(modes)))
     overlap = abs(calcOverlap(mode, modes))
     if isinstance(modes, NMA):
-        arange = np.arange(0.5, len(modes)+0.5)
+        arange = np.arange(len(modes)) + 1
     else:
-        arange = modes.getIndices() + 0.5
+        arange = modes.getIndices() + 1
     show = plt.bar(arange, overlap, *args, **kwargs)
     plt.title('Overlap with {0}'.format(str(mode)))
     plt.xlabel('{0} mode index'.format(modes))
     plt.ylabel('Overlap')
+    ax = plt.gca()
+    loc = MaxNLocator(integer=True)
+    ax.xaxis.set_major_locator(loc)
     if SETTINGS['auto_show']:
         showFigure()
     return show
@@ -761,6 +809,8 @@ def showCumulOverlap(mode, modes, *args, **kwargs):
     """
 
     import matplotlib.pyplot as plt
+    from matplotlib.ticker import MaxNLocator
+    
     if not isinstance(mode, (Mode, Vector)):
         raise TypeError('mode must be NMA, ModeSet, Mode or Vector, not {0}'
                         .format(type(mode)))
@@ -779,7 +829,9 @@ def showCumulOverlap(mode, modes, *args, **kwargs):
     plt.title('Cumulative overlap with {0}'.format(str(mode)))
     plt.xlabel('{0} mode index'.format(modes))
     plt.ylabel('Cumulative overlap')
-    plt.axis((arange[0]-0.5, arange[-1]+0.5, 0, 1))
+    ax = plt.gca()
+    loc = MaxNLocator(integer=True)
+    ax.xaxis.set_major_locator(loc)
     if SETTINGS['auto_show']:
         showFigure()
     return show
@@ -1190,8 +1242,6 @@ def showAtomicMatrix(matrix, x_array=None, y_array=None, atoms=None, **kwargs):
     :arg interactive: turn on or off the interactive options
     :type interactive: bool
     """ 
-
-    from prody.utilities import showMatrix
     from matplotlib.pyplot import figure
     from matplotlib.figure import Figure
 
@@ -1202,6 +1252,7 @@ def showAtomicMatrix(matrix, x_array=None, y_array=None, atoms=None, **kwargs):
     chain_text_loc = kwargs.pop('chain_text_loc', 'above')
     domain_text_loc = kwargs.pop('domain_text_loc', 'below')
     show_text = kwargs.pop('text', True)
+    show_text = kwargs.pop('show_text', show_text)
     show_domain_text = kwargs.pop('domain_text', show_text)
     show_chain_text = kwargs.pop('chain_text', show_text)
     barwidth = kwargs.pop('barwidth', 5)
@@ -1446,6 +1497,7 @@ def showAtomicLines(*args, **kwargs):
     zero_line = kwargs.pop('show_zero', False)
     zero_line = kwargs.pop('zero', zero_line)
     show_text = kwargs.pop('text', True)
+    show_text = kwargs.pop('show_text', show_text)
     show_domain_text = kwargs.pop('domain_text', show_text)
     show_chain_text = kwargs.pop('chain_text', show_text)
     barwidth = kwargs.pop('barwidth', 5)
@@ -1670,6 +1722,9 @@ def showDomainBar(domains, x=None, loc=0., axis='x', **kwargs):
     show_text = kwargs.pop('show_text', True)
     show_text = kwargs.pop('text', show_text)
     text_color = kwargs.pop('text_color', 'k')
+    text_color = kwargs.pop('textcolor', text_color)
+    font_dict = kwargs.pop('font_dict', None)
+    font_dict = kwargs.pop('fontdict', font_dict)
 
     barwidth = kwargs.pop('barwidth', 5)
     barwidth = kwargs.pop('bar_width', barwidth)
@@ -1766,11 +1821,13 @@ def showDomainBar(domains, x=None, loc=0., axis='x', **kwargs):
                     txt = text(d_loc, pos, chid, rotation=-90, 
                                                 color=text_color,
                                                 horizontalalignment=halign, 
-                                                verticalalignment='center')
+                                                verticalalignment='center',
+                                                fontdict=font_dict)
                 else:
                     txt = text(pos, d_loc, chid, color=text_color,
                                                 horizontalalignment='center', 
-                                                verticalalignment=valign)
+                                                verticalalignment=valign,
+                                                fontdict=font_dict)
                 texts.append(txt)
     
     if len(color_order):
@@ -1804,17 +1861,17 @@ def showTree(tree, format='ascii', **kwargs):
     arg tree: Tree needs to be unrooted and should be generated by tree 
         generator from Phylo in biopython, which is used by :meth:`.calcTree`
     type tree: :class:`~Bio.Phylo.BaseTree.Tree`
-
+    
     arg format: depending on the format, you will see different forms of trees. 
         Acceptable formats are ``"plt"``, ``"ascii"`` and ``"networkx"``
     type format: str
-
+    
     keyword font_size: font size for branch labels
     type font_size: float
-
+    
     keyword line_width: the line width for each branch
     type line_width: float
-
+    
     """
 
     try: 
@@ -1823,8 +1880,6 @@ def showTree(tree, format='ascii', **kwargs):
         raise ImportError('Phylo module could not be imported. '
             'Reinstall ProDy or install Biopython '
             'to solve the problem.')
-    font_size = float(kwargs.get('font_size', 8.0))
-    line_width = float(kwargs.get('line_width', 1.5))
 
     if format == 'ascii':
         Phylo.draw_ascii(tree)
@@ -1832,8 +1887,15 @@ def showTree(tree, format='ascii', **kwargs):
 
     elif format in ['plt', 'mpl', 'matplotlib']: 
         from matplotlib.pyplot import rcParams, figure, gca, xlabel, ylabel
-        rcParams["font.size"]=font_size
-        rcParams["lines.linewidth"]=line_width
+
+        font_size = float(kwargs.pop('font_size', 8.0))
+        line_width = float(kwargs.pop('line_width', 1.5))
+
+        old_font_size = rcParams["font.size"]
+        old_line_width = rcParams["lines.linewidth"]
+
+        rcParams["font.size"] = font_size
+        rcParams["lines.linewidth"] = line_width
 
         if SETTINGS['auto_show']:
             figure()
@@ -1843,6 +1905,9 @@ def showTree(tree, format='ascii', **kwargs):
 
         xlabel('distance')
         ylabel('proteins')
+
+        rcParams["font.size"] = old_font_size
+        rcParams["lines.linewidth"] = old_line_width
         return
 
     elif format == 'networkx':
@@ -1868,7 +1933,7 @@ def showTree_networkx(tree, node_size=20, node_color='red', node_shape='o',
     """ Given a tree, creates visualization using :mod:`~networkx`. See 
     :func:`~networkx.spring_layout` and :func:`~networkx.draw_networkx_nodes` 
     for more details.
-
+    
     arg tree: Tree needs to be unrooted and should be generated by tree 
         generator from Phylo in biopython, which is used by :meth:`.calcTree`
     type tree: :class:`~Bio.Phylo.BaseTree.Tree`

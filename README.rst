@@ -4,10 +4,10 @@
 .. image:: https://img.shields.io/pypi/v/ProDy.svg
    :target: https://pypi.org/project/ProDy/
 
-.. image:: https://img.shields.io/github/commit-activity/y/prody/ProDy.svg
+.. image:: https://img.shields.io/github/commit-activity/m/prody/ProDy.svg
    :target: https://github.com/prody/ProDy/commits/master
 
-.. image:: https://img.shields.io/badge/dynamic/json.svg?label=downloads&colorB=&prefix=&suffix=&query=stat&uri=http%3A%2F%2Fprody.csb.pitt.edu%2Fstatistics%2Fstatistics.json
+.. image:: https://img.shields.io/pypi/dm/ProDy.svg
    :target: http://prody.csb.pitt.edu/downloads/
 
 SYNOPSIS

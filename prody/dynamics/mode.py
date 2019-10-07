@@ -222,7 +222,7 @@ class Mode(VectorBase):
 
     def __len__(self):
 
-        return self._model.numDOF()
+        return self.numEntries()
 
     def __repr__(self):
 
@@ -252,10 +252,14 @@ class Mode(VectorBase):
         return self._model.numAtoms()
 
     def numDOF(self):
-        """Returns number of degrees of freedom (three times the number of
-        atoms)."""
+        """Returns number of degrees of freedom."""
 
         return self._model.numDOF()
+
+    def numEntries(self):
+        """Returns number of entries in the eigenvector."""
+
+        return len(self._getArray())
 
     def getTitle(self):
         """A descriptive title for the mode instance."""
@@ -279,6 +283,7 @@ class Mode(VectorBase):
         return self._model.getArray()[:, self._index].copy()
 
     getEigvec = getArray
+    getEigvecs = getEigvec
 
     def _getArray(self):
         """Returns a copy of the normal mode array (eigenvector)."""
@@ -294,6 +299,8 @@ class Mode(VectorBase):
 
         return self._model._eigvals[self._index]
 
+    getEigvals = getEigval
+
     def getVariance(self):
         """Returns variance along the mode.  For :class:`.PCA` and :class:`.EDA`
         models built using coordinate data in Å, unit of variance is |A2|.  For
@@ -301,14 +308,16 @@ class Mode(VectorBase):
         inverse of the eigenvalue, so it has arbitrary or relative units."""
 
         return self._model._vars[self._index]
+    
+    getVariances = getVariance
 
-    def getHinges(self):
+    def getHinges(self, **kwargs):
         """Returns residue index of hinge sites."""
 
         if self.is3d():
             return
         else:
-            return self._model.getHinges(self._index)
+            return self._model.getHinges(self._index, **kwargs)
     
     def numHinges(self):
         return len(self.getHinges())
@@ -383,6 +392,11 @@ class Vector(VectorBase):
 
     def numDOF(self):
         """Returns number of degrees of freedom."""
+
+        return len(self._array)
+
+    def numEntries(self):
+        """Returns number of entries in the vector."""
 
         return len(self._array)
 

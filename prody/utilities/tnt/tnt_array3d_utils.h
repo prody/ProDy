@@ -23,9 +23,9 @@ std::ostream& operator<<(std::ostream &s, const Array3D<T> &A)
     {
         for (int j=0; j<N; j++)
         {
-			for (int k=0; k<K; k++)
-            	s << A[i][j][k] << " ";
-			s << "\n";
+            for (int k=0; k<K; k++)
+                s << A[i][j][k] << " ";
+            s << "\n";
         }
         s << "\n";
     }
@@ -42,14 +42,14 @@ std::istream& operator>>(std::istream &s, Array3D<T> &A)
 
     s >> M >> N >> K;
 
-	Array3D<T> B(M,N,K);
+    Array3D<T> B(M,N,K);
 
     for (int i=0; i<M; i++)
         for (int j=0; j<N; j++)
-			for (int k=0; k<K; k++)
-            	s >>  B[i][j][k];
+            for (int k=0; k<K; k++)
+                s >>  B[i][j][k];
 
-	A = B;
+    A = B;
     return s;
 }
 
@@ -58,48 +58,48 @@ std::istream& operator>>(std::istream &s, Array3D<T> &A)
 template <class T>
 Array3D<T> operator+(const Array3D<T> &A, const Array3D<T> &B)
 {
-	int m = A.dim1();
-	int n = A.dim2();
-	int p = A.dim3();
+    int m = A.dim1();
+    int n = A.dim2();
+    int p = A.dim3();
 
-	if (B.dim1() != m ||  B.dim2() != n || B.dim3() != p )
-		return Array3D<T>();
+    if (B.dim1() != m ||  B.dim2() != n || B.dim3() != p )
+        return Array3D<T>();
 
-	else
-	{
-		Array3D<T> C(m,n,p);
+    else
+    {
+        Array3D<T> C(m,n,p);
 
-		for (int i=0; i<m; i++)
-			for (int j=0; j<n; j++)
-				for (int k=0; k<p; k++)
-				C[i][j][k] = A[i][j][k] + B[i][j][k];
+        for (int i=0; i<m; i++)
+            for (int j=0; j<n; j++)
+                for (int k=0; k<p; k++)
+                C[i][j][k] = A[i][j][k] + B[i][j][k];
 
-		return C;
-	}
+        return C;
+    }
 }
 
 
 template <class T>
 Array3D<T> operator-(const Array3D<T> &A, const Array3D<T> &B)
 {
-	int m = A.dim1();
-	int n = A.dim2();
-	int p = A.dim3();
+    int m = A.dim1();
+    int n = A.dim2();
+    int p = A.dim3();
 
-	if (B.dim1() != m ||  B.dim2() != n || B.dim3() != p )
-		return Array3D<T>();
+    if (B.dim1() != m ||  B.dim2() != n || B.dim3() != p )
+        return Array3D<T>();
 
-	else
-	{
-		Array3D<T> C(m,n,p);
+    else
+    {
+        Array3D<T> C(m,n,p);
 
-		for (int i=0; i<m; i++)
-			for (int j=0; j<n; j++)
-				for (int k=0; k<p; k++)
-				C[i][j][k] = A[i][j][k] - B[i][j][k];
+        for (int i=0; i<m; i++)
+            for (int j=0; j<n; j++)
+                for (int k=0; k<p; k++)
+                C[i][j][k] = A[i][j][k] - B[i][j][k];
 
-		return C;
-	}
+        return C;
+    }
 }
 
 
@@ -108,48 +108,48 @@ Array3D<T> operator-(const Array3D<T> &A, const Array3D<T> &B)
 template <class T>
 Array3D<T> operator*(const Array3D<T> &A, const Array3D<T> &B)
 {
-	int m = A.dim1();
-	int n = A.dim2();
-	int p = A.dim3();
+    int m = A.dim1();
+    int n = A.dim2();
+    int p = A.dim3();
 
-	if (B.dim1() != m ||  B.dim2() != n || B.dim3() != p )
-		return Array3D<T>();
+    if (B.dim1() != m ||  B.dim2() != n || B.dim3() != p )
+        return Array3D<T>();
 
-	else
-	{
-		Array3D<T> C(m,n,p);
+    else
+    {
+        Array3D<T> C(m,n,p);
 
-		for (int i=0; i<m; i++)
-			for (int j=0; j<n; j++)
-				for (int k=0; k<p; k++)
-				C[i][j][k] = A[i][j][k] * B[i][j][k];
+        for (int i=0; i<m; i++)
+            for (int j=0; j<n; j++)
+                for (int k=0; k<p; k++)
+                C[i][j][k] = A[i][j][k] * B[i][j][k];
 
-		return C;
-	}
+        return C;
+    }
 }
 
 
 template <class T>
 Array3D<T> operator/(const Array3D<T> &A, const Array3D<T> &B)
 {
-	int m = A.dim1();
-	int n = A.dim2();
-	int p = A.dim3();
+    int m = A.dim1();
+    int n = A.dim2();
+    int p = A.dim3();
 
-	if (B.dim1() != m ||  B.dim2() != n || B.dim3() != p )
-		return Array3D<T>();
+    if (B.dim1() != m ||  B.dim2() != n || B.dim3() != p )
+        return Array3D<T>();
 
-	else
-	{
-		Array3D<T> C(m,n,p);
+    else
+    {
+        Array3D<T> C(m,n,p);
 
-		for (int i=0; i<m; i++)
-			for (int j=0; j<n; j++)
-				for (int k=0; k<p; k++)
-				C[i][j][k] = A[i][j][k] / B[i][j][k];
+        for (int i=0; i<m; i++)
+            for (int j=0; j<n; j++)
+                for (int k=0; k<p; k++)
+                C[i][j][k] = A[i][j][k] / B[i][j][k];
 
-		return C;
-	}
+        return C;
+    }
 }
 
 
@@ -157,74 +157,74 @@ Array3D<T> operator/(const Array3D<T> &A, const Array3D<T> &B)
 template <class T>
 Array3D<T>& operator+=(Array3D<T> &A, const Array3D<T> &B)
 {
-	int m = A.dim1();
-	int n = A.dim2();
-	int p = A.dim3();
+    int m = A.dim1();
+    int n = A.dim2();
+    int p = A.dim3();
 
-	if (B.dim1() == m &&  B.dim2() == n && B.dim3() == p )
-	{
-		for (int i=0; i<m; i++)
-			for (int j=0; j<n; j++)
-				for (int k=0; k<p; k++)
-					A[i][j][k] += B[i][j][k];
-	}
+    if (B.dim1() == m &&  B.dim2() == n && B.dim3() == p )
+    {
+        for (int i=0; i<m; i++)
+            for (int j=0; j<n; j++)
+                for (int k=0; k<p; k++)
+                    A[i][j][k] += B[i][j][k];
+    }
 
-	return A;
+    return A;
 }
 
 template <class T>
 Array3D<T>& operator-=(Array3D<T> &A, const Array3D<T> &B)
 {
-	int m = A.dim1();
-	int n = A.dim2();
-	int p = A.dim3();
+    int m = A.dim1();
+    int n = A.dim2();
+    int p = A.dim3();
 
-	if (B.dim1() == m &&  B.dim2() == n && B.dim3() == p )
-	{
-		for (int i=0; i<m; i++)
-			for (int j=0; j<n; j++)
-				for (int k=0; k<p; k++)
-					A[i][j][k] -= B[i][j][k];
-	}
+    if (B.dim1() == m &&  B.dim2() == n && B.dim3() == p )
+    {
+        for (int i=0; i<m; i++)
+            for (int j=0; j<n; j++)
+                for (int k=0; k<p; k++)
+                    A[i][j][k] -= B[i][j][k];
+    }
 
-	return A;
+    return A;
 }
 
 template <class T>
 Array3D<T>& operator*=(Array3D<T> &A, const Array3D<T> &B)
 {
-	int m = A.dim1();
-	int n = A.dim2();
-	int p = A.dim3();
+    int m = A.dim1();
+    int n = A.dim2();
+    int p = A.dim3();
 
-	if (B.dim1() == m &&  B.dim2() == n && B.dim3() == p )
-	{
-		for (int i=0; i<m; i++)
-			for (int j=0; j<n; j++)
-				for (int k=0; k<p; k++)
-					A[i][j][k] *= B[i][j][k];
-	}
+    if (B.dim1() == m &&  B.dim2() == n && B.dim3() == p )
+    {
+        for (int i=0; i<m; i++)
+            for (int j=0; j<n; j++)
+                for (int k=0; k<p; k++)
+                    A[i][j][k] *= B[i][j][k];
+    }
 
-	return A;
+    return A;
 }
 
 
 template <class T>
 Array3D<T>& operator/=(Array3D<T> &A, const Array3D<T> &B)
 {
-	int m = A.dim1();
-	int n = A.dim2();
-	int p = A.dim3();
+    int m = A.dim1();
+    int n = A.dim2();
+    int p = A.dim3();
 
-	if (B.dim1() == m &&  B.dim2() == n && B.dim3() == p )
-	{
-		for (int i=0; i<m; i++)
-			for (int j=0; j<n; j++)
-				for (int k=0; k<p; k++)
-					A[i][j][k] /= B[i][j][k];
-	}
+    if (B.dim1() == m &&  B.dim2() == n && B.dim3() == p )
+    {
+        for (int i=0; i<m; i++)
+            for (int j=0; j<n; j++)
+                for (int k=0; k<p; k++)
+                    A[i][j][k] /= B[i][j][k];
+    }
 
-	return A;
+    return A;
 }
 
 

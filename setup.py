@@ -114,6 +114,16 @@ EXTENSIONS = [
               include_dirs=[numpy.get_include()]),
 ]
 
+# extra arguments for compiling C++ extensions on MacOSX
+extra_compile_args = []
+if platform.system() == 'Darwin':
+    os_ver = platform.mac_ver()[0]
+    os.environ['MACOSX_DEPLOYMENT_TARGET'] = os_ver
+    os.environ['CC'] = 'clang'
+    os.environ['CXX'] = 'clang++'
+    #extra_compile_args.append('-stdlib=libc++')
+
+
 CONTRIBUTED = [
     Extension('prody.kdtree._CKDTree',
               [join('prody', 'kdtree', 'KDTree.c'),
@@ -121,7 +131,9 @@ CONTRIBUTED = [
               include_dirs=[numpy.get_include()]),
     Extension('prody.proteins.ccealign', 
               [join('prody', 'proteins', 'ccealign', 'ccealignmodule.cpp')], 
-              include_dirs=[tntDir], language='c++' )
+              include_dirs=[tntDir], language='c++',
+              extra_compile_args=extra_compile_args
+              )
 ]
 
 for ext in CONTRIBUTED:
@@ -140,8 +152,8 @@ SCRIPTS = ['prody=prody.apps:prody_main', 'evol=prody.apps:evol_main']
 setup(
     name='ProDy',
     version=__version__,
-    author='Cihan Kaya',
-    author_email='cihank@pitt.edu',
+    author='She Zhang',
+    author_email='shz66@pitt.edu',
     description='A Python Package for Protein Dynamics Analysis',
     long_description=long_description,
     url='http://www.csb.pitt.edu/ProDy',
@@ -171,7 +183,7 @@ setup(
     #scripts=SCRIPTS,
     entry_points = {
         'console_scripts': SCRIPTS,
-    }
-    #install_requires=['NumPy (>=1.10)', ],
+    },
+    install_requires=['numpy>=1.10', 'biopython', 'pyparsing'],
     #provides=['ProDy ({0:s})'.format(__version__)]
 )

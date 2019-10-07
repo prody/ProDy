@@ -11,14 +11,123 @@ from prody import LOGGER
 from prody.atomic import Atomic, AtomGroup
 from prody.proteins import parsePDB
 from prody.kdtree import KDTree
-from prody.utilities import importLA, checkCoords
+from prody.utilities import importLA, checkCoords, div0
 
 from .nma import NMA
 from .gamma import Gamma
 
-__all__ = ['GNM', 'calcGNM', 'MaskedGNM']
+__all__ = ['GNM', 'solveEig', 'calcGNM', 'MaskedGNM']
 
 ZERO = 1e-6
+
+
+def solveEig(M, n_modes=None, zeros=False, turbo=True, is3d=False):
+    linalg = importLA()
+    dof = M.shape[0]
+
+    expct_n_zeros = 6 if is3d else 1
+
+    if n_modes is None:
+        eigvals = None
+        n_modes = dof
+    else:
+        if n_modes >= dof:
+            eigvals = None
+            n_modes = dof
+        else:
+            eigvals = (0, n_modes+expct_n_zeros-1)
+
+    def _eigh(M, eigvals=None, turbo=True):
+        if linalg.__package__.startswith('scipy'):
+            from scipy.sparse import issparse
+
+            if eigvals:
+                turbo = False
+            if not issparse(M):
+                values, vectors = linalg.eigh(M, turbo=turbo, eigvals=eigvals)
+            else:
+                try:
+                    from scipy.sparse import linalg as scipy_sparse_la
+                except ImportError:
+                    raise ImportError('failed to import scipy.sparse.linalg, '
+                                      'which is required for sparse matrix '
+                                      'decomposition')
+                if eigvals:
+                    j = eigvals[0]
+                    k = eigvals[-1] + 1
+                else:
+                    j = 0
+                    k = dof
+
+                if k >= dof:
+                    k -= 1
+                    LOGGER.warning('Cannot calculate all eigenvalues for sparse matrices, thus '
+                                   'the last eigenvalue is omitted. See scipy.sparse.linalg.eigsh '
+                                   'for more information')
+                values, vectors = scipy_sparse_la.eigsh(M, k=k, which='SA')
+                values = values[j:k]
+                vectors = vectors[:, j:k]
+        else:
+            if n_modes is not None:
+                LOGGER.info('Scipy is not found, all modes were calculated.')
+            else:
+                n_modes = dof
+            values, vectors = linalg.eigh(M)
+        return values, vectors
+
+    def _calc_n_zero_modes(M):
+        from scipy.sparse import issparse
+
+        if not issparse(M):
+            w = linalg.eigvalsh(M)
+        else:
+            try:
+                from scipy.sparse import linalg as scipy_sparse_la
+            except ImportError:
+                raise ImportError('failed to import scipy.sparse.linalg, '
+                                    'which is required for sparse matrix '
+                                    'decomposition')
+            w, _ = scipy_sparse_la.eigsh(M, k=dof-1, which='SA')
+        n_zeros = sum(w < ZERO)
+        return n_zeros
+
+    values, vectors = _eigh(M, eigvals, turbo)
+    n_zeros = sum(values < ZERO)
+
+    if n_zeros < n_modes + expct_n_zeros:
+        if n_zeros < expct_n_zeros:
+            LOGGER.warning('Fewer than %d (%d) zero eigenvalues were calculated.'%(expct_n_zeros, n_zeros))
+        elif n_zeros > expct_n_zeros:
+            LOGGER.warning('More than %d (%d) zero eigenvalues were calculated.'%(expct_n_zeros, n_zeros))
+    else:
+        LOGGER.warning('More than %d zero eigenvalues were detected.'%expct_n_zeros)
+
+    if not zeros:
+        if n_zeros > expct_n_zeros:
+            if n_zeros == n_modes + expct_n_zeros and n_modes != dof:
+                LOGGER.debug('Determing the number of zero eigenvalues...')
+                # find the actual number of zero modes
+                n_zeros = _calc_n_zero_modes(M)
+                LOGGER.debug('%d zero eigenvalues detected.'%n_zeros)
+            LOGGER.debug('Solving for additional eigenvalues...')
+            start = min(n_modes+expct_n_zeros, dof-1); end = min(n_modes+n_zeros-1, dof-1)
+            values_, vectors_ = _eigh(M, eigvals=(start, end))
+            values = np.concatenate((values, values_))
+            vectors = np.hstack((vectors, vectors_))
+
+        # final_n_modes may exceed len(eigvals) - no need to fix for the sake of the simplicity of the code
+        final_n_modes = n_zeros + n_modes
+        eigvals = values[n_zeros:final_n_modes]
+        eigvecs = vectors[:, n_zeros:final_n_modes]
+        vars = 1 / eigvals
+    else:
+        eigvals = values[:n_modes]
+        eigvecs = vectors[:, :n_modes]
+        vars = div0(1, values)
+        vars[:n_zeros] = 0.
+        vars = vars[:n_modes]
+
+    return eigvals, eigvecs, vars
 
 
 class GNMBase(NMA):
@@ -197,7 +306,8 @@ class GNM(GNMBase):
 
         n_atoms = coords.shape[0]
         start = time.time()
-        if kwargs.get('sparse', False):
+        sparse = kwargs.get('sparse', False)
+        if sparse:
             try:
                 from scipy import sparse as scipy_sparse
             except ImportError:
@@ -237,6 +347,9 @@ class GNM(GNMBase):
                     kirchhoff[j, i] = -g
                     kirchhoff[i, i] = kirchhoff[i, i] + g
                     kirchhoff[j, j] = kirchhoff[j, j] + g
+
+        if sparse:
+            kirchhoff = kirchhoff.tocsr()
 
         LOGGER.debug('Kirchhoff was built in {0:.2f}s.'
                      .format(time.time()-start))
@@ -390,62 +503,19 @@ class GNM(GNMBase):
         assert isinstance(zeros, bool), 'zeros must be a boolean'
         assert isinstance(turbo, bool), 'turbo must be a boolean'
         self._clear()
-        linalg = importLA()
-        start = time.time()
-        shift = 0
-        if linalg.__package__.startswith('scipy'):
-            if n_modes is None:
-                eigvals = None
-                n_modes = self._dof
-            else:
-                if n_modes >= self._dof:
-                    eigvals = None
-                    n_modes = self._dof
-                else:
-                    eigvals = (0, n_modes + shift)
-            if eigvals:
-                turbo = False
-            if isinstance(self._kirchhoff, np.ndarray):
-                values, vectors = linalg.eigh(self._kirchhoff, turbo=turbo,
-                                              eigvals=eigvals)
-            else:
-                try:
-                    from scipy.sparse import linalg as scipy_sparse_la
-                except ImportError:
-                    raise ImportError('failed to import scipy.sparse.linalg, '
-                                      'which is required for sparse matrix '
-                                      'decomposition')
-                try:
-                    values, vectors = (
-                        scipy_sparse_la.eigsh(self._kirchhoff,
-                                              k=n_modes + 1, which='SA'))
-                except:
-                    values, vectors = (
-                        scipy_sparse_la.eigen_symmetric(self._kirchhoff,
-                                                        k=n_modes + 1,
-                                                        which='SA'))
-        else:
-            if n_modes is not None:
-                LOGGER.info('Scipy is not found, all modes are calculated.')
-            values, vectors = linalg.eigh(self._kirchhoff)
-        n_zeros = sum(values < ZERO)
-        if n_zeros < 1:
-            LOGGER.warning('Less than 1 zero eigenvalues are calculated.')
-            shift = n_zeros - 1
-        elif n_zeros > 1:
-            LOGGER.warning('More than 1 zero eigenvalues are calculated.')
-            shift = n_zeros - 1
-        if zeros:
-            shift = -1
-        self._eigvals = values[1+shift:]
-        self._vars = 1 / self._eigvals
+        LOGGER.timeit('_gnm_calc_modes')
+        values, vectors, vars = solveEig(self._kirchhoff, n_modes=n_modes, zeros=zeros, 
+                                         turbo=turbo, is3d=False)
+
+        self._eigvals = values
+        self._array = vectors
+        self._vars = vars
         self._trace = self._vars.sum()
-        self._array = vectors[:, 1+shift:]
         self._n_modes = len(self._eigvals)
         if hinges:
             self.calcHinges()
-        LOGGER.debug('{0} modes were calculated in {1:.2f}s.'
-                     .format(self._n_modes, time.time()-start))
+        LOGGER.report('{0} modes were calculated in %.2fs.'
+                     .format(self._n_modes), label='_gnm_calc_modes')
 
     def calcHinges(self):
         if self._array is None:
@@ -474,7 +544,7 @@ class GNM(GNMBase):
         self._hinges = np.stack(hinges).T
         return self._hinges
 
-    def getHinges(self, modeIndex=None, flag=False):
+    def getHinges(self, modeIndex=None, flag=False, **kwargs):
         """Get residue index of hinge sites given mode indices.
 
         :arg modeIndex: indices of modes. This parameter can be a scalar, a list, 
@@ -483,11 +553,17 @@ class GNM(GNMBase):
 
         :arg flag: whether return flag or index array. Default is **False**
         :type flag: bool
+
+        :arg atoms: an Atomic object on which to map hinges. The output will then be a selection. 
+        type atoms: :class:`.Atomic`
         """
         if self._hinges is None:
             LOGGER.info('Warning: hinges are not calculated, thus None is returned. '
                         'Please call GNM.calcHinges() to calculate the hinge sites first.')
             return None
+
+        atoms = kwargs.get('atoms', None)
+
         if modeIndex is None:
             hinges = self._hinges
         else:
@@ -497,6 +573,11 @@ class GNM(GNMBase):
             return hinges
         else:
             hinge_list = np.where(hinges)[0]
+            if atoms is not None:
+                if isinstance(atoms, Atomic):
+                    return atoms[hinge_list]
+                else:
+                    raise TypeError('atoms should be an Atomic object')
             return sorted(set(hinge_list))
     
     def numHinges(self, modeIndex=None):
@@ -586,6 +667,7 @@ class MaskedGNM(GNM):
         super(MaskedGNM, self).__init__(name)
         self.mask = False
         self.masked = masked
+        self._maskedarray = None
 
         if not np.isscalar(mask):
             self.mask = np.array(mask)
@@ -606,20 +688,22 @@ class MaskedGNM(GNM):
         else:
             return len(self.mask)
 
-    def _extend(self, arr):
+    def _extend(self, arr, defval=0):
         if self.masked or np.isscalar(self.mask):
             return arr
 
-        mask = self.mask.copy()
+        mask = self.mask#.copy()
         n_true = np.sum(mask)
         N = len(mask)
 
         if arr.ndim == 1:
-            whole_array = np.zeros(N)
+            whole_array = np.empty(N, dtype=arr.dtype)
+            whole_array.fill(defval)
             whole_array[mask] = arr[:n_true]
         elif arr.ndim == 2:
             n, m = arr.shape
-            whole_array = np.zeros((N, m))
+            whole_array = np.empty((N, m), dtype=arr.dtype)
+            whole_array.fill(defval)
             #mask = np.expand_dims(mask, axis=1)
             #mask = mask.repeat(m, axis=1)
             whole_array[mask] = arr[:n_true, :]
@@ -630,9 +714,8 @@ class MaskedGNM(GNM):
     def getArray(self):
         """Returns a copy of eigenvectors array."""
 
-        if self._array is None: return None
-
-        array = self._extend(self._array)
+        array = self._getArray().copy()
+        
         return array
 
     getEigvecs = getArray
@@ -644,11 +727,16 @@ class MaskedGNM(GNM):
         if self._array is None: return None
 
         if self.masked or np.isscalar(self.mask):
-            return self._array
+            array = self._array
         else:
-            return self.getArray()
+            if self._maskedarray is None:
+                array = self._maskedarray = self._extend(self._array)
+            else:
+                array = self._maskedarray
 
-    def getHinges(self, modeIndex=None, flag=False):
+        return array
+
+    def getHinges(self, modeIndex=None, flag=False, **kwargs):
         """Gets residue index of hinge sites given mode indices.
 
         :arg modeIndex: indices of modes. This parameter can be a scalar, a list, 
@@ -657,15 +745,25 @@ class MaskedGNM(GNM):
 
         :arg flag: whether return flag or index array. Default is **False**
         :type flag: bool
+
+        :arg atoms: an Atomic object on which to map hinges. The output will then be a selection. 
+        type atoms: :class:`.Atomic`
         """
 
         hinges = super(MaskedGNM, self).getHinges(modeIndex, True)
         hinges = self._extend(hinges)
 
+        atoms = kwargs.get('atoms', None)
+
         if flag:
             return hinges
         else:
             hinge_list = np.where(hinges)[0]
+            if atoms is not None:
+                if isinstance(atoms, Atomic):
+                    return atoms[hinge_list]
+                else:
+                    raise TypeError('atoms should be an Atomic object')
             return sorted(set(hinge_list))
 
     def fixTail(self, length):
@@ -713,4 +811,9 @@ class MaskedGNM(GNM):
     def setEigens(self, vectors, values=None):
         if not self.masked:
             vectors = vectors[self.mask, :]
+        self._maskedarray = None
         super(MaskedGNM, self).setEigens(vectors, values)
+
+    def calcModes(self, n_modes=20, zeros=False, turbo=True, hinges=True):
+        self._maskedarray = None
+        super(MaskedGNM, self).calcModes(n_modes, zeros, turbo, hinges)

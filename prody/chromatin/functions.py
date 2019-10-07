@@ -1,17 +1,17 @@
 import numpy as np
 
-from prody.dynamics import NMA
+from prody.dynamics import NMA, MaskedGNM
 from prody.dynamics.mode import Mode
 from prody.dynamics.modeset import ModeSet
-from prody.utilities import importLA
+
+from prody.utilities import importLA, copy, showFigure, div0
 from prody import LOGGER, SETTINGS
-from prody.utilities import showFigure, div0
 
 __all__ = ['showDomains', 'showEmbedding', 'getDomainList']
 
 ## normalization methods ##
 
-def showDomains(domains, linespec='r-', **kwargs):
+def showDomains(domains, linespec='-', **kwargs):
     """A convenient function that can be used to visualize Hi-C structural domains. 
     *kwargs* will be passed to :func:`matplotlib.pyplot.plot`.
 
@@ -36,6 +36,7 @@ def showDomains(domains, linespec='r-', **kwargs):
 
     x = []; y = []
     lwd = kwargs.pop('linewidth', 1)
+    lwd = kwargs.pop('lw', lwd)
     linewidth = np.abs(lwd)
     for i in range(len(domains)):
         domain = domains[i]
@@ -46,17 +47,24 @@ def showDomains(domains, linespec='r-', **kwargs):
         else:
             x.extend([start, start, end])
             y.extend([start, end, end])
-    
+
     plt = plot(x, y, linespec, linewidth=linewidth, **kwargs)
     if SETTINGS['auto_show']:
         showFigure()
     return plt
 
-def _getEigvecs(modes, row_norm=False, remove_zero_rows=False):
-    if isinstance(modes, (ModeSet, NMA)):
-        V = modes.getEigvecs()
-    elif isinstance(modes, Mode):
-        V = modes.getEigvec()
+def _getEigvecs(modes, row_norm=False, dummy_mode=False):
+    la = importLA()
+
+    if isinstance(modes, (Mode, ModeSet, NMA)):
+        model = modes._model
+        if isinstance(model, MaskedGNM):
+            masked = model.masked
+            model.masked = True
+            V = modes.getArray()
+            model.masked = masked
+        else:
+            V = modes.getArray()
     elif isinstance(modes, np.ndarray):
         V = modes
     else:
@@ -72,24 +80,31 @@ def _getEigvecs(modes, row_norm=False, remove_zero_rows=False):
             else:
                 V = np.array(modes)
         except TypeError:
-            TypeError('Modes should be a list of modes.')
+            raise TypeError('Modes should be a list of modes.')
     if V.ndim == 1:
         V = np.expand_dims(V, axis=1)
 
+    # add a dummy zero mode to the modeset
+    if dummy_mode:
+        v0 = V[:, 0]
+        if np.allclose(v0, np.mean(v0)):
+            dummy_mode = False
+            LOGGER.warn('at least one zero mode is detected therefore dummy mode will NOT be added')
+
+    if dummy_mode:
+        n, _ = V.shape
+        v0 = np.ones((n, 1), dtype=V.dtype)
+        v0 /= la.norm(v0)
+        V = np.hstack((v0, V))
+        LOGGER.debug('a dummy zero mode is added')
+
     # normalize the rows so that feature vectors are unit vectors
     if row_norm:
-        la = importLA()
         norms = la.norm(V, axis=1)
         N = np.diag(div0(1., norms))
         V = np.dot(N, V)
-    
-    # remove rows with all zeros
-    m, _ = V.shape
-    mask = np.ones(m, dtype=bool)
-    if remove_zero_rows:
-        mask = V.any(axis=1)
-        V = V[mask]
-    return V, mask
+
+    return V
 
 def showEmbedding(modes, labels=None, trace=True, headtail=True, cmap='prism'):
     """Visualizes Laplacian embedding of Hi-C data. 
@@ -111,8 +126,8 @@ def showEmbedding(modes, labels=None, trace=True, headtail=True, cmap='prism'):
     :arg cmap: the color map used to render the *labels*.
     :type cmap: str
     """
-    V, mask = _getEigvecs(modes, True)
-    m,n = V.shape
+    V, _ = _getEigvecs(modes, True)
+    m, n = V.shape
 
     if labels is not None:
         if len(labels) != m:

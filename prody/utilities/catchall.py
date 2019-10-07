@@ -4,8 +4,26 @@ import numpy as np
 
 from numpy import unique, linalg, diag, sqrt, dot
 from .misctools import addEnds, interpY
+from .checkers import checkCoords
 
-__all__ = ['calcTree', 'clusterMatrix', 'showLines', 'showMatrix', 'reorderMatrix', 'findSubgroups']
+__all__ = ['calcTree', 'clusterMatrix', 'showLines', 'showMatrix', 
+           'reorderMatrix', 'findSubgroups', 'getCoords']
+
+
+def getCoords(data):
+
+    try:
+        data = (data._getCoords() if hasattr(data, '_getCoords') else
+                data.getCoords())
+    except AttributeError:
+        try:
+            checkCoords(data)
+        except TypeError:
+            raise TypeError('data must be a Numpy array or an object '
+                            'with `getCoords` method')
+
+    return data
+
 
 def calcTree(names, distance_matrix, method='nj'):
     """ Given a distance matrix for an ensemble, it creates an returns a tree structure.
@@ -297,18 +315,19 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
 
     show_colorbar = kwargs.pop('colorbar', True)
     allticks = kwargs.pop('allticks', False) # this argument is temporary and will be replaced by better implementation
-    origin = kwargs.pop('origin', 'lower')
     interactive = kwargs.pop('interactive', True)
 
+    cmap = kwargs.pop('cmap', 'jet')
+    origin = kwargs.pop('origin', 'lower')
+
     tree_mode = False
-    if np.isscalar(y_array):
-        try: 
-            from Bio import Phylo
-        except ImportError:
-            raise ImportError('Phylo module could not be imported. '
-                'Reinstall ProDy or install Biopython '
-                'to solve the problem.')
-        tree_mode = isinstance(y_array, Phylo.BaseTree.Tree)
+    try: 
+        from Bio import Phylo
+    except ImportError:
+        raise ImportError('Phylo module could not be imported. '
+            'Reinstall ProDy or install Biopython '
+            'to solve the problem.')
+    tree_mode = isinstance(y_array, Phylo.BaseTree.Tree)
 
     if x_array is not None and y_array is not None:
         nrow = 2; ncol = 2
@@ -335,13 +354,6 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
         height_ratios = [H]
         aspect = None
 
-    if tree_mode:
-        nrow = 2; ncol = 2
-        i = 1; j = 1
-        width_ratios = [W, W]
-        height_ratios = [H, H]
-        aspect = 'auto'
-
     main_index = (i, j)
     upper_index = (i-1, j)
     left_index = (i, j-1)
@@ -365,7 +377,7 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
             xp, yp = interpY(y)
             points = np.array([xp, yp]).T.reshape(-1, 1, 2)
             segments = np.concatenate([points[:-1], points[1:]], axis=1)
-            lcy = LineCollection(segments, array=yp, linewidths=lw, cmap='jet')
+            lcy = LineCollection(segments, array=yp, linewidths=lw, cmap=cmap)
             lines.append(lcy)
             ax1.add_collection(lcy)
 
@@ -377,7 +389,7 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
         ax2 = subplot(gs[left_index])
         
         if tree_mode:
-            Phylo.draw(y_array, do_show=False, axes=ax2, **kwargs)
+            Phylo.draw(y_array, do_show=False, axes=ax2)
         else:
             ax2.set_xticklabels([])
             
@@ -385,7 +397,7 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
             xp, yp = interpY(y)
             points = np.array([yp, xp]).T.reshape(-1, 1, 2)
             segments = np.concatenate([points[:-1], points[1:]], axis=1)
-            lcx = LineCollection(segments, array=yp, linewidths=lw, cmap='jet')
+            lcx = LineCollection(segments, array=yp, linewidths=lw, cmap=cmap)
             lines.append(lcx)
             ax2.add_collection(lcx)
             ax2.set_xlim(yp.min(), yp.max())
@@ -399,10 +411,7 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
     else:
         ax3 = gca()
     
-    kwargs['origin'] = origin
-    if not 'cmap' in kwargs:
-        kwargs['cmap'] = 'jet'
-    im = ax3.imshow(matrix, aspect=aspect, vmin=vmin, vmax=vmax, **kwargs)
+    im = ax3.imshow(matrix, aspect=aspect, vmin=vmin, vmax=vmax, cmap=cmap, origin=origin, **kwargs)
     #ax3.set_xlim([-0.5, matrix.shape[0]+0.5])
     #ax3.set_ylim([-0.5, matrix.shape[1]+0.5])
 
@@ -446,7 +455,7 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
 
     return im, lines, cb
 
-def reorderMatrix(matrix, tree, names=None):
+def reorderMatrix(matrix, tree, names):
     """
     Reorder a matrix based on a tree and return the reordered matrix 
     and indices for reordering other things.
@@ -477,8 +486,11 @@ def reorderMatrix(matrix, tree, names=None):
     if np.shape(matrix)[0] != np.shape(matrix)[1]:
         raise ValueError('matrix should be a square matrix')
 
-    if not names:
-        names = [str(i) for i in range(len(matrix))]
+    if np.isscalar(names):
+        raise TypeError('names should be list-like')
+    
+    if not isinstance(names[0], str):
+        raise TypeError('names should be a list-like of strings')
 
     if not isinstance(tree, Phylo.BaseTree.Tree):
         raise TypeError('tree should be a BioPython Tree')

@@ -7,9 +7,10 @@ from numbers import Integral
 import numpy as np
 
 from prody.proteins import fetchPDB, parsePDB, writePDB, mapOntoChain
-from prody.utilities import openFile, showFigure, copy, isListLike
+from prody.utilities import openFile, showFigure, copy, isListLike, pystr
 from prody import LOGGER, SETTINGS
 from prody.atomic import AtomMap, Chain, AtomGroup, Selection, Segment, Select, AtomSubset
+from prody.atomic.fields import DTYPE
 
 from .ensemble import *
 from .pdbensemble import *
@@ -75,6 +76,9 @@ def loadEnsemble(filename, **kwargs):
 
     if not 'encoding' in kwargs:
         kwargs['encoding'] = 'latin1'
+    
+    if not 'allow_pickle' in kwargs:
+        kwargs['allow_pickle'] = True
 
     attr_dict = np.load(filename, **kwargs)
     if '_weights' in attr_dict:
@@ -101,6 +105,19 @@ def loadEnsemble(filename, **kwargs):
     ensemble.setCoords(attr_dict['_coords'])
     if '_atoms' in attr_dict:
         atoms = attr_dict['_atoms'][0]
+
+        if isinstance(atoms, AtomGroup):
+            data = atoms._data
+        else:
+            data = atoms._ag._data
+        
+        for key in data:
+            arr = data[key]
+            char = arr.dtype.char
+            if char in 'SU' and char != DTYPE:
+                arr = arr.astype(str)
+                data[key] = arr
+            
     else:
         atoms = None
     ensemble.setAtoms(atoms)
@@ -390,12 +407,18 @@ def buildPDBEnsemble(PDBs, ref=None, title='Unknown', labels=None,
     :arg subset: A subset for selecting particular atoms from the input structures.
         Default is calpha
     :type subset: str
+
+    :arg superpose: if set to ``'iter'``, :func:`.PDBEnsemble.iterpose` will be used to 
+        superpose the structures, otherwise conformations will be superposed with respect 
+        to the reference specified by ``ref``. Default is ``'iter'``
+    :type superpose: str
     """
 
     occupancy = kwargs.pop('occupancy', None)
     degeneracy = kwargs.pop('degeneracy', True)
     subset = str(kwargs.get('subset', 'calpha')).lower()
-    superpose = kwargs.pop('superpose', True)
+    superpose = kwargs.pop('superpose', 'iter')
+    superpose = kwargs.pop('iterpose', superpose)
 
     if len(PDBs) == 1:
         raise ValueError('PDBs should have at least two items')
@@ -414,14 +437,17 @@ def buildPDBEnsemble(PDBs, ref=None, title='Unknown', labels=None,
 
     if ref is None:
         refpdb = PDBs[0]
+        refidx = 0
     elif isinstance(ref, Integral):
         refpdb = PDBs[ref]
+        refidx = ref
     else:
         refpdb = ref
         if refpdb not in PDBs:
             raise ValueError('refpdb should be also in the PDBs')
+        refidx = PDBs.index(ref)
 
-    # obtain refchains from the hierarhical view of the reference PDB
+    # obtain refchains from the hierarchical view of the reference PDB
     if subset != 'all':
         refpdb = refpdb.select(subset)
         
@@ -432,11 +458,9 @@ def buildPDBEnsemble(PDBs, ref=None, title='Unknown', labels=None,
 
     start = time.time()
     # obtain the atommap of all the chains combined.
-    atoms = refchains[0]
-    for i in range(1, len(refchains)):
-        atoms += refchains[i]
+    atoms = refpdb
     
-    # initialize a PDBEnsemble with referrence atoms and coordinates
+    # initialize a PDBEnsemble with reference atoms and coordinates
     ensemble = PDBEnsemble(title)
     ensemble.setAtoms(atoms)
     ensemble.setCoords(atoms.getCoords())
@@ -490,7 +514,10 @@ def buildPDBEnsemble(PDBs, ref=None, title='Unknown', labels=None,
 
     if occupancy is not None:
         ensemble = trimPDBEnsemble(ensemble, occupancy=occupancy)
-    if superpose:
+
+    if superpose != 'iter':
+        ensemble.superpose(ref=refidx)
+    else:
         ensemble.iterpose()
     
     LOGGER.info('Ensemble ({0} conformations) were built in {1:.2f}s.'
@@ -632,8 +659,12 @@ def refineEnsemble(ensemble, lower=.5, upper=10., **kwargs):
     :type upper: float
 
     :keyword protected: a list of either the indices or labels of the conformations needed to be kept 
-                        after the refinement
+                        in the refined ensemble
     :type protected: list
+    
+    :arg ref: the index or label of the reference conformation which will also be kept.
+        Default is 0
+    :type ref: int or str
     """ 
 
     protected = kwargs.pop('protected', [])
@@ -647,15 +678,25 @@ def refineEnsemble(ensemble, lower=.5, upper=10., **kwargs):
                 if p in labels:
                     i = labels.index(p)
                 else:
-                    LOGGER.warn('cannot found any conformation with the label %s in the ensemble'%str(p))
+                    LOGGER.warn('could not find any conformation with the label %s in the ensemble'%str(p))
             P.append(i)
 
     LOGGER.timeit('_prody_refineEnsemble')
     from numpy import argsort
 
     ### obtain reference index
-    rmsd = ensemble.getRMSDs()
-    ref_i = np.argmin(rmsd)
+    # rmsd = ensemble.getRMSDs()
+    # ref_i = np.argmin(rmsd)
+    ref_i = kwargs.pop('ref', 0)
+    if isinstance(ref_i, Integral):
+        pass
+    elif isinstance(ref_i, str):
+        labels = ensemble.getLabels()
+        ref_i = labels.index(ref_i)
+    else:
+        LOGGER.warn('could not find any conformation with the label %s in the ensemble'%str(ref_i))
+    if not ref_i in P:
+        P = [ref_i] + P
 
     ### calculate pairwise RMSDs ###
     RMSDs = ensemble.getRMSDs(pairwise=True)
@@ -663,6 +704,7 @@ def refineEnsemble(ensemble, lower=.5, upper=10., **kwargs):
     def getRefinedIndices(A):
         deg = A.sum(axis=0)
         sorted_indices = list(argsort(deg))
+        # sorted_indices = P + [x for x in sorted_indices if x not in P]
         sorted_indices.remove(ref_i)
         sorted_indices.insert(0, ref_i)
 
@@ -678,7 +720,11 @@ def refineEnsemble(ensemble, lower=.5, upper=10., **kwargs):
                     continue
                 else:
                     if A[i,j]:
-                        isdel_temp[j] = 1
+                        # isdel_temp[j] = 1
+                        if not j in P:
+                            isdel_temp[j] = 1
+                        elif not i in P:
+                            isdel_temp[i] = 1
         temp_list = isdel_temp.tolist()
         ind_list = []
         for i in range(n_confs):
@@ -699,9 +745,9 @@ def refineEnsemble(ensemble, lower=.5, upper=10., **kwargs):
     # find common indices from L and U
     I = list(set(L) - (set(L) - set(U)))
 
-    for p in P:
-        if p not in I:
-            I.append(p)
+    # for p in P:
+        # if p not in I:
+            # I.append(p)
     I.sort()
     reens = ensemble[I]
 

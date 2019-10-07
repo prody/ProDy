@@ -284,7 +284,7 @@ def filterRankedPairs(pdb, indices, msa_indices, rank_row, rank_col, zscore_sort
                       num_of_pairs=20, seqDistance=5, resi_range=None, \
                       pdbDistance=8, chain1='A', chain2='A'):
     '''
-    indices and msa_indices are lists output from alignSequenceToPDB
+    indices and msa_indices are lists output from alignSequenceToMSA
     
     rank_row, rank_col and zscore_sort are the outputs from calcRankorder
     
@@ -1017,6 +1017,9 @@ def alignSequenceToMSA(seq, msa, label, match=5, mismatch=-1, gap_opening=-10, g
         else:
             msa_indices.append(msa_indices[i])
 
+    seq_indices.pop(0) # The first element was extra for initialisation
+    msa_indices.pop(0) # The first element was extra for initialisation
+
     seq_indices = array(seq_indices)
     msa_indices = array(msa_indices)
 
@@ -1027,7 +1030,9 @@ def alignSequenceToMSA(seq, msa, label, match=5, mismatch=-1, gap_opening=-10, g
     return alignment, seq_indices, msa_indices
 
 def alignTwoSequencesWithBiopython(seq1, seq2, match=5, mismatch=-1, gap_opening=-10, gap_extension=-1):
-    
+    """Easily align two sequences with Biopython's globalms.
+    Returns an MSA and indices for use with showAlignment.
+    """
     alignment = pairwise2.align.globalms(seq1, seq2, match, mismatch, gap_opening, gap_extension)
 
     seq_indices = [0]

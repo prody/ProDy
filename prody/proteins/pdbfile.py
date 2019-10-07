@@ -23,6 +23,8 @@ __all__ = ['parsePDBStream', 'parsePDB', 'parseChainsList', 'parsePQR',
            'writePDBStream', 'writePDB', 'writeChainsList', 'writePQR',
            'writePQRStream']
 
+MAX_N_ATOM = 99999 
+
 class PDBParseError(Exception):
     pass
 
@@ -72,10 +74,6 @@ _parsePDBdoc = _parsePQRdoc + """
         section will be assigned to atoms.
         Default is **False**
     :type secondary: bool
-
-    :arg max_n_atoms: the maximum number of atoms allowed to have in the PDB 
-        file. Default is **1e5**
-    :type max_n_atoms: int
 
     If ``model=0`` and ``header=True``, return header dictionary only.
 
@@ -217,7 +215,6 @@ def parsePDBStream(stream, **kwargs):
     chain = kwargs.get('chain')
     subset = kwargs.get('subset')
     altloc = kwargs.get('altloc', 'A')
-    max_n_atoms = kwargs.get('max_n_atoms', 1e5)
 
     if model is not None:
         if isinstance(model, Integral):
@@ -272,8 +269,7 @@ def parsePDBStream(stream, **kwargs):
             raise ValueError('empty PDB file or stream')
         if header or biomol or secondary:
             hd, split = getHeaderDict(lines)
-        _parsePDBLines(ag, lines, split, model, chain, subset, altloc, 
-                       max_n_atoms=max_n_atoms)
+        _parsePDBLines(ag, lines, split, model, chain, subset, altloc)
         if ag.numAtoms() > 0:
             LOGGER.report('{0} atoms and {1} coordinate set(s) were '
                           'parsed in %.2fs.'.format(ag.numAtoms(),
@@ -322,12 +318,8 @@ def parsePQR(filename, **kwargs):
     :type filename: str"""
 
     title = kwargs.get('title', kwargs.get('name'))
-    model = 1
-    header = False
     chain = kwargs.get('chain')
     subset = kwargs.get('subset')
-    altloc = kwargs.get('altloc', 'A')
-    max_n_atoms = kwargs.get('max_n_atoms', 1e5)
     if not os.path.isfile(filename):
         raise IOError('No such file: {0}'.format(repr(filename)))
     if title is None:
@@ -365,8 +357,7 @@ def parsePQR(filename, **kwargs):
     pqr.close()
     LOGGER.timeit()
     ag = _parsePDBLines(ag, lines, split=0, model=1, chain=chain,
-                        subset=subset, altloc_torf=False, format='pqr', 
-                        max_n_atoms=max_n_atoms)
+                        subset=subset, altloc_torf=False, format='pqr')
     if ag.numAtoms() > 0:
         LOGGER.report('{0} atoms and {1} coordinate sets were '
                       'parsed in %.2fs.'.format(ag.numAtoms(),
@@ -378,7 +369,7 @@ def parsePQR(filename, **kwargs):
 parsePQR.__doc__ += _parsePQRdoc
 
 def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
-                   altloc_torf, format='PDB', max_n_atoms=1e5):
+                   altloc_torf, format='PDB'):
     """Returns an AtomGroup. See also :func:`.parsePDBStream()`.
 
     :arg lines: PDB/PQR lines
@@ -408,8 +399,7 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
     if n_atoms > 0:
         asize = n_atoms
     else:
-        # most PDB files contain less than 99999 atoms
-        asize = min(len(lines) - split, max_n_atoms)
+        asize = len(lines) - split
     addcoords = False
     if atomgroup.numCoordsets() > 0:
         addcoords = True
@@ -997,7 +987,14 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
     """Write *atoms* in PDB format to a *stream*.
 
     :arg stream: anything that implements a :meth:`write` method (e.g. file,
-        buffer, stdout)"""
+        buffer, stdout)
+        
+    :arg renumber: whether to renumber atoms with serial indices
+        Default is **True**
+    :type renumber: bool
+    """
+
+    renumber = kwargs.get('renumber',True)
 
     remark = str(atoms)
     try:
@@ -1086,6 +1083,9 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
     if resnums is None:
         resnums = np.ones(n_atoms, int)
 
+    serials = atoms._getSerials()
+    if serials is None or renumber:
+        serials = np.arange(n_atoms, dtype=int) + 1
 
     icodes = atoms._getIcodes()
     if icodes is None:
@@ -1172,15 +1172,16 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
         if multi:
             write('MODEL{0:9d}\n'.format(m+1))
         for i, xyz in enumerate(coords):
-            if i == 99999:
+            if pdbline != PDBLINE_GE100K and (i == MAX_N_ATOM or serials[i] > MAX_N_ATOM):
+                LOGGER.warn('Indices are exceeding 99999 and hexadecimal format is being used')
                 pdbline = PDBLINE_GE100K
-            write(pdbline % (hetero[i], i+1,
-                         atomnames[i], altlocs[i],
-                         resnames[i], chainids[i], resnums[i],
-                         icodes[i],
-                         xyz[0], xyz[1], xyz[2],
-                         occupancies[i], bfactors[i],
-                         segments[i], elements[i]))
+            write(pdbline % (hetero[i], serials[i],
+                             atomnames[i], altlocs[i],
+                             resnames[i], chainids[i], resnums[i],
+                             icodes[i],
+                             xyz[0], xyz[1], xyz[2],
+                             occupancies[i], bfactors[i],
+                             segments[i], elements[i]))
         if multi:
             write('ENDMDL\n')
             altlocs = np.zeros(n_atoms, s_or_u + '1')
@@ -1190,7 +1191,12 @@ writePDBStream.__doc__ += _writePDBdoc
 def writePDB(filename, atoms, csets=None, autoext=True, **kwargs):
     """Write *atoms* in PDB format to a file with name *filename* and return
     *filename*.  If *filename* ends with :file:`.gz`, a compressed file will
-    be written."""
+    be written.        
+
+    :arg renumber: whether to renumber atoms with serial indices
+        Default is **True**
+    :type renumber: bool
+    """
 
     if not ('.pdb' in filename or '.pdb.gz' in filename or
              '.ent' in filename or '.ent.gz' in filename):

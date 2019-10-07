@@ -6,7 +6,7 @@ from numpy import ndarray, power, sqrt, array, zeros, arccos
 from numpy import sign, tile, concatenate, pi, cross, subtract, var
 
 from prody.atomic import Atomic, Residue, Atom
-from prody.utilities import importLA, checkCoords, getDistance
+from prody.utilities import importLA, checkCoords, getDistance, getCoords
 from prody import LOGGER, PY2K
 
 if PY2K:
@@ -488,6 +488,7 @@ def calcGyradius(atoms, weights=None):
             raise ValueError('coords must have shape ([n_csets,]n_atoms,3)')
     if weights is not None:
         weights = weights.flatten()
+        weights = weights.reshape(weights.shape[0], 1)
         if len(weights) != coords.shape[-2]:
             raise ValueError('length of weights must match number of atoms')
         wsum = weights.sum()
@@ -499,9 +500,8 @@ def calcGyradius(atoms, weights=None):
             com = coords.mean(0)
             d2sum = ((coords - com)**2).sum()
         else:
-
-            com = (coords * weights).mean(0) / wsum
-            d2sum = (((coords - com)**2).sum(1) * weights).sum()
+            com = (coords * weights).sum(0) / wsum
+            d2sum = (((coords - com)**2) * weights).sum()
     else:
         rgyr = []
         for coords in coords:
@@ -510,9 +510,8 @@ def calcGyradius(atoms, weights=None):
                 d2sum = ((coords - com)**2).sum()
                 rgyr.append(d2sum)
             else:
-
-                com = (coords * weights).mean(0) / wsum
-                d2sum = (((coords - com)**2).sum(1) * weights).sum()
+                com = (coords * weights).sum(0) / wsum
+                d2sum = (((coords - com)**2) * weights).sum()
                 rgyr.append(d2sum)
         d2sum = array(rgyr)
     return (d2sum / wsum) ** 0.5
@@ -583,15 +582,29 @@ def calcRMSF(coordsets):
 calcRMSF.__doc__ += _MSF_DOCSTRING
 
 
-def calcDeformVector(from_atoms, to_atoms):
+def calcDeformVector(from_atoms, to_atoms, weights=None):
     """Returns deformation from *from_atoms* to *atoms_to* as a :class:`.Vector`
     instance."""
+
+    from prody.dynamics import Vector
 
     name = '{0} => {1}'.format(repr(from_atoms), repr(to_atoms))
     if len(name) > 30:
         name = 'Deformation'
-    arr = (to_atoms.getCoords() - from_atoms.getCoords()).flatten()
-    from prody.dynamics import Vector
+    
+    from_coords = getCoords(from_atoms)
+    to_coords = getCoords(to_atoms)
+
+    arr = to_coords - from_coords
+    if weights is not None:
+        if weights.ndim > 1:
+            weights = weights.flatten()
+        if len(weights) != len(arr):
+            raise ValueError('weights must have the same length as from_atoms and to_atoms')
+        arr = (arr.T * weights).T
+    
+    arr = arr.flatten()
+    
     return Vector(arr, name)
 
 
