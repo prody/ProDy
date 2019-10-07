@@ -1939,7 +1939,7 @@ def showSubfamilySpectralOverlaps(mode_ens, subfamily_dict, **kwargs):
     subfamily_overlap_matrix, subfamilies = calcSubfamilySpectralOverlaps(mode_ens, subfamily_dict, **kwargs)
     show = showMatrix(subfamily_overlap_matrix, origin='lower',
                       xticklabels=subfamilies, yticklabels=subfamilies,
-                      vmin=0., vmax=1.6)
+                      allticks=True, vmin=0., vmax=1.6)
 
     show_subfamily_bar = kwargs.get('show_subfamily_bar',False)
     text = kwargs.pop('text',False)
