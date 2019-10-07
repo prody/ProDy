@@ -1908,10 +1908,10 @@ def calcSubfamilySpectralOverlaps(mode_ens, subfamily_dict, **kwargs):
     subfamily_overlap_matrix = []
     for subfamily_i in subfamilies:
         index_i = reverse_dict[subfamily_i]
-        for temp_cath_j in subfamilies:
-            index_j = reverse_dict[temp_cath_j]
+        for subfamily_j in subfamilies:
+            index_j = reverse_dict[subfamily_j]
             temp_sub_matrix = distm[np.ix_(index_i, index_j)]
-            if subfamily_i == temp_cath_j:
+            if subfamily_i == subfamily_j:
                 subfamily_overlap_matrix.append(temp_sub_matrix[np.triu_indices(
                     np.shape(temp_sub_matrix)[0])].mean())
             else:
