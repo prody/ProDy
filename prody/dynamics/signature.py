@@ -1905,7 +1905,6 @@ def calcSubfamilySpectralOverlaps(mode_ens, subfamily_dict, **kwargs):
 
     N_group = len(reverse_dict)
 
-    subfamilies = np.array(reverse_dict.keys())
     subfamily_overlap_matrix = []
     for subfamily_i in subfamilies:
         index_i = reverse_dict[subfamily_i]
