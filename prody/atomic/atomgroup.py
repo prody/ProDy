@@ -1008,6 +1008,14 @@ class AtomGroup(Atomic):
             return self._bonds.shape[0]
         return 0
 
+    def getBonds(self):
+        """Returns bonds.  Use :meth:`setBonds` for setting bonds."""
+        
+        if self._bonds is not None:
+            acsi = self._acsi
+            return np.array([Bond(self, bond, acsi) for bond in self._bonds])
+        return None
+
     def iterBonds(self):
         """Yield bonds.  Use :meth:`setBonds` for setting bonds."""
 
