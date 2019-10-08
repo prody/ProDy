@@ -925,7 +925,7 @@ def showAlignment(alignment, row_size=60, **kwargs):
         
     return
 
-def alignSequenceToMSA(seq, msa, label, match=5, mismatch=-1, gap_opening=-10, gap_extension=-1):
+def alignSequenceToMSA(seq, msa, label=None, match=5, mismatch=-1, gap_opening=-10, gap_extension=-1):
     """
     Align a sequence from a PDB or Sequence to a sequence from an MSA
     and create two sets of indices. 
