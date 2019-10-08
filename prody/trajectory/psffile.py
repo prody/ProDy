@@ -100,29 +100,7 @@ def parsePSF(filename, title=None, ag=None):
     if n < n_atoms:
         raise IOError('number of lines in PSF is less than the number of '
                       'atoms')
-                      
-#    i = n_atoms
-#    while 1:
-#        line = lines[i].split()
-#        if len(line) >= 2 and line[1] == '!NBOND:':
-#             n_bonds = int(line[0])
-#             break
-#        i += 1
-#    lines = ''.join(lines[i+1:]) + psf.read(n_bonds/4 * 71)
-    lines = []
-    for i, line in enumerate(psf):
-        if line.strip() == b'':
-            continue
-        if b'!' in line:
-            break
-        lines.append(line.decode(encoding='UTF-8'))
-    
-    lines = ''.join(lines)
-    array = fromstring(lines, count=n_bonds*2, dtype=int, sep=' ')
-    if len(array) != n_bonds*2:
-        raise IOError('number of bonds expected and parsed do not match')
 
-    psf.close()
     ag.setSerials(serials)
     ag.setSegnames(segnames)
     ag.setResnums(resnums)
@@ -132,8 +110,80 @@ def parsePSF(filename, title=None, ag=None):
     ag.setCharges(charges)
     ag.setMasses(masses)
 
+    lines = []
+    for i, line in enumerate(psf):
+        if line.strip() == b'':
+            continue
+        if b'!' in line:
+            items = line.split()
+            n_angles = int(items[0])
+            break
+        lines.append(line.decode(encoding='UTF-8'))
+    
+    lines = ''.join(lines)
+    array = fromstring(lines, count=n_bonds*2, dtype=int, sep=' ')
+    if len(array) != n_bonds*2:
+        raise IOError('number of bonds expected and parsed do not match')
+
     array = add(array, -1, array)
     ag.setBonds(array.reshape((n_bonds, 2)))
+
+
+    lines = []
+    for i, line in enumerate(psf):
+        if line.strip() == b'':
+            continue
+        if b'!' in line:
+            items = line.split()
+            n_dihedrals = int(items[0])
+            break
+        lines.append(line.decode(encoding='UTF-8'))
+    
+    lines = ''.join(lines)
+    array = fromstring(lines, count=n_angles*3, dtype=int, sep=' ')
+    if len(array) != n_angles*3:
+        raise IOError('number of angles expected and parsed do not match')
+
+    array = add(array, -1, array)
+    ag.setAngles(array.reshape((n_angles, 3)))
+
+
+    lines = []
+    for i, line in enumerate(psf):
+        if line.strip() == b'':
+            continue
+        if b'!' in line:
+            items = line.split()
+            n_impropers = int(items[0])
+            break
+        lines.append(line.decode(encoding='UTF-8'))
+    
+    lines = ''.join(lines)
+    array = fromstring(lines, count=n_dihedrals*4, dtype=int, sep=' ')
+    if len(array) != n_dihedrals*4:
+        raise IOError('number of dihedrals expected and parsed do not match')
+
+    array = add(array, -1, array)
+    ag.setDihedrals(array.reshape((n_dihedrals, 4)))
+
+
+    lines = []
+    for i, line in enumerate(psf):
+        if line.strip() == b'':
+            continue
+        if b'!' in line:
+            break
+        lines.append(line.decode(encoding='UTF-8'))
+    
+    lines = ''.join(lines)
+    array = fromstring(lines, count=n_impropers*4, dtype=int, sep=' ')
+    if len(array) != n_impropers*4:
+        raise IOError('number of impropers expected and parsed do not match')
+
+    array = add(array, -1, array)
+    ag.setImpropers(array.reshape((n_impropers, 4)))
+
+    psf.close()
 
     return ag
 

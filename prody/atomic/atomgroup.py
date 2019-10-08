@@ -19,6 +19,9 @@ from .flags import ALIASES as FLAG_ALIASES
 from .flags import FIELDS as FLAG_FIELDS
 from .atom import Atom
 from .bond import Bond, evalBonds
+from .angle import Angle, evalAngles
+from .dihedral import Dihedral, evalDihedrals
+from .improper import Improper, evalImpropers
 from .selection import Selection
 
 from . import flags
@@ -115,10 +118,12 @@ class AtomGroup(Atomic):
     which is a copy of of active coordinate sets of *A* and *B*."""
 
     __slots__ = ['_title', '_n_atoms', '_coords', '_hv', '_sn2i',
-                 '_timestamps', '_kdtrees', '_bmap', '_bonds', '_cslabels',
-                 '_acsi', '_n_csets', '_data', '_fragments',
-                 '_flags', '_flagsts', '_subsets', '_msa', 
-                 '_sequenceMap']
+                 '_timestamps', '_kdtrees', 
+                 '_bmap', '_angmap', '_dmap', '_imap',
+                 '_bonds', '_angles', '_dihedrals', '_impropers', 
+                 '_cslabels', '_acsi', '_n_csets', '_data', 
+                 '_fragments', '_flags', '_flagsts', '_subsets', 
+                 '_msa', '_sequenceMap']
 
     def __init__(self, title='Unnamed'):
 
@@ -131,6 +136,9 @@ class AtomGroup(Atomic):
         self._kdtrees = None
         self._bmap = None
         self._bonds = None
+        self._angles = None
+        self._dihedrals = None
+        self._impropers = None
         self._fragments = None
 
         self._cslabels = []
@@ -247,6 +255,30 @@ class AtomGroup(Atomic):
             new.setBonds(self._bonds.copy())
         elif other._bonds is not None:
             new.setBonds(other._bonds + self._n_atoms)
+
+        if self._angles is not None and other._angles is not None:
+            new.setBonds(np.concatenate([self._angles,
+                                         other._angles + self._n_atoms]))
+        elif self._angles is not None:
+            new.setBonds(self._angles.copy())
+        elif other._angles is not None:
+            new.setBonds(other._angles + self._n_atoms)
+
+        if self._dihedrals is not None and other._dihedrals is not None:
+            new.setBonds(np.concatenate([self._dihedrals,
+                                         other._dihedrals + self._n_atoms]))
+        elif self._dihedrals is not None:
+            new.setBonds(self._dihedrals.copy())
+        elif other._dihedrals is not None:
+            new.setBonds(other._dihedrals + self._n_atoms)
+
+        if self._impropers is not None and other._impropers is not None:
+            new.setBonds(np.concatenate([self._impropers,
+                                         other._impropers + self._n_atoms]))
+        elif self._impropers is not None:
+            new.setBonds(self._impropers.copy())
+        elif other._impropers is not None:
+            new.setBonds(other._impropers + self._n_atoms)
 
         return new
 
@@ -577,6 +609,12 @@ class AtomGroup(Atomic):
                       for key, val in self._data.items() if val is not None)
         if self._bonds is not None:
             arrays[id(self._bonds)] = self._bonds
+        if self._angles is not None:
+            arrays[id(self._angles)] = self._angles
+        if self._dihedrals is not None:
+            arrays[id(self._dihedrals)] = self._dihedrals
+        if self._impropers is not None:
+            arrays[id(self._impropers)] = self._impropers
         if self._flags:
             arrays.update(getboth(val)
                   for key, val in self._flags.items() if val is not None)
@@ -1030,6 +1068,188 @@ class AtomGroup(Atomic):
 
         if self._bonds is not None:
             for a, b in self._bonds:
+                yield a, b
+
+    def setAngles(self, angles):
+        """Set covalent angles between atoms.  *angles* must be a list or an
+        array of triplets of indices.  All angles must be set at once.  Angle
+        information can be used to make atom selections, e.g. ``"angle to
+        index 1"``.  See :mod:`.select` module documentation for details.
+        Also, a data array with number of angles will be generated and stored
+        with label *numangles*.  This can be used in atom selections, e.g.
+        ``'numangles 0'`` can be used to select ions in a system."""
+
+        if isinstance(angles, list):
+            angles = np.array(angles, int)
+        if angles.ndim != 2:
+            raise ValueError('angles.ndim must be 2')
+        if angles.shape[1] != 3:
+            raise ValueError('angles.shape must be (n_angles, 3)')
+        if angles.min() < 0:
+            raise ValueError('negative atom indices are not valid')
+        n_atoms = self._n_atoms
+        if angles.max() >= n_atoms:
+            raise ValueError('atom indices are out of range')
+        angles.sort(1)
+        angles = angles[angles[:, 2].argsort(), ]
+        angles = angles[angles[:, 1].argsort(), ]
+        angles = angles[angles[:, 0].argsort(), ]
+
+        self._angmap, self._data['numangles'] = evalAngles(angles, n_atoms)
+        self._angles = angles
+        self._fragments = None
+
+    def numAngles(self):
+        """Returns number of angles.  Use :meth:`setBonds` for setting angles."""
+
+        if self._angles is not None:
+            return self._angles.shape[0]
+        return 0
+
+    def getAngles(self):
+        """Returns angles.  Use :meth:`setAngles` for setting angles."""
+        
+        if self._angles is not None:
+            acsi = self._acsi
+            return np.array([Angle(self, angle, acsi) for angle in self._angles])
+        return None
+
+    def iterAngles(self):
+        """Yield angles.  Use :meth:`setAngles` for setting angles."""
+
+        if self._angles is not None:
+            acsi = self._acsi
+            for angle in self._angles:
+                yield Angle(self, angle, acsi)
+
+    def _iterAngles(self):
+        """Yield triplets of angled atom indices. Use :meth:`setAngles` for setting
+        angles."""
+
+        if self._angles is not None:
+            for a, b in self._angles:
+                yield a, b
+
+    def setDihedrals(self, dihedrals):
+        """Set covalent dihedrals between atoms.  *dihedrals* must be a list or an
+        array of triplets of indices.  All dihedrals must be set at once.  Dihedral
+        information can be used to make atom selections, e.g. ``"dihedral to
+        index 1"``.  See :mod:`.select` module documentation for details.
+        Also, a data array with number of dihedrals will be generated and stored
+        with label *numdihedrals*.  This can be used in atom selections, e.g.
+        ``'numdihedrals 0'`` can be used to select ions in a system."""
+
+        if isinstance(dihedrals, list):
+            dihedrals = np.array(dihedrals, int)
+        if dihedrals.ndim != 2:
+            raise ValueError('dihedrals.ndim must be 2')
+        if dihedrals.shape[1] != 4:
+            raise ValueError('dihedrals.shape must be (n_dihedrals, 4)')
+        if dihedrals.min() < 0:
+            raise ValueError('negative atom indices are not valid')
+        n_atoms = self._n_atoms
+        if dihedrals.max() >= n_atoms:
+            raise ValueError('atom indices are out of range')
+        dihedrals.sort(1)
+        dihedrals = dihedrals[dihedrals[:, 3].argsort(), ]
+        dihedrals = dihedrals[dihedrals[:, 2].argsort(), ]
+        dihedrals = dihedrals[dihedrals[:, 1].argsort(), ]
+        dihedrals = dihedrals[dihedrals[:, 0].argsort(), ]
+
+        self._angmap, self._data['numdihedrals'] = evalDihedrals(dihedrals, n_atoms)
+        self._dihedrals = dihedrals
+        self._fragments = None
+
+    def numDihedrals(self):
+        """Returns number of dihedrals.  Use :meth:`setBonds` for setting dihedrals."""
+
+        if self._dihedrals is not None:
+            return self._dihedrals.shape[0]
+        return 0
+
+    def getDihedrals(self):
+        """Returns dihedrals.  Use :meth:`setDihedrals` for setting dihedrals."""
+        
+        if self._dihedrals is not None:
+            acsi = self._acsi
+            return np.array([Dihedral(self, dihedral, acsi) for dihedral in self._dihedrals])
+        return None
+
+    def iterDihedrals(self):
+        """Yield dihedrals.  Use :meth:`setDihedrals` for setting dihedrals."""
+
+        if self._dihedrals is not None:
+            acsi = self._acsi
+            for dihedral in self._dihedrals:
+                yield Dihedral(self, dihedral, acsi)
+
+    def _iterDihedrals(self):
+        """Yield quadruplets of dihedraled atom indices. Use :meth:`setDihedrals` for setting
+        dihedrals."""
+
+        if self._dihedrals is not None:
+            for a, b in self._dihedrals:
+                yield a, b
+
+    def setImpropers(self, impropers):
+        """Set covalent impropers between atoms.  *impropers* must be a list or an
+        array of triplets of indices.  All impropers must be set at once.  Improper
+        information can be used to make atom selections, e.g. ``"improper to
+        index 1"``.  See :mod:`.select` module documentation for details.
+        Also, a data array with number of impropers will be generated and stored
+        with label *numimpropers*.  This can be used in atom selections, e.g.
+        ``'numimpropers 0'`` can be used to select ions in a system."""
+
+        if isinstance(impropers, list):
+            impropers = np.array(impropers, int)
+        if impropers.ndim != 2:
+            raise ValueError('impropers.ndim must be 2')
+        if impropers.shape[1] != 4:
+            raise ValueError('impropers.shape must be (n_impropers, 4)')
+        if impropers.min() < 0:
+            raise ValueError('negative atom indices are not valid')
+        n_atoms = self._n_atoms
+        if impropers.max() >= n_atoms:
+            raise ValueError('atom indices are out of range')
+        impropers.sort(1)
+        impropers = impropers[impropers[:, 3].argsort(), ]
+        impropers = impropers[impropers[:, 2].argsort(), ]
+        impropers = impropers[impropers[:, 1].argsort(), ]
+        impropers = impropers[impropers[:, 0].argsort(), ]
+
+        self._angmap, self._data['numimpropers'] = evalImpropers(impropers, n_atoms)
+        self._impropers = impropers
+        self._fragments = None
+
+    def numImpropers(self):
+        """Returns number of impropers.  Use :meth:`setBonds` for setting impropers."""
+
+        if self._impropers is not None:
+            return self._impropers.shape[0]
+        return 0
+
+    def getImpropers(self):
+        """Returns impropers.  Use :meth:`setImpropers` for setting impropers."""
+        
+        if self._impropers is not None:
+            acsi = self._acsi
+            return np.array([Improper(self, improper, acsi) for improper in self._impropers])
+        return None
+
+    def iterImpropers(self):
+        """Yield impropers.  Use :meth:`setImpropers` for setting impropers."""
+
+        if self._impropers is not None:
+            acsi = self._acsi
+            for improper in self._impropers:
+                yield Improper(self, improper, acsi)
+
+    def _iterImpropers(self):
+        """Yield quadruplets of impropered atom indices. Use :meth:`setImpropers` for setting
+        impropers."""
+
+        if self._impropers is not None:
+            for a, b in self._impropers:
                 yield a, b
 
     def numFragments(self):
