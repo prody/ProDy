@@ -970,7 +970,7 @@ def alignSequenceToMSA(seq, msa, label=None, match=5, mismatch=-1, gap_opening=-
     """
     if isinstance(seq, Atomic):
         ag = seq
-        sequence = ag.calpha.getSequence()
+        sequence = ag.select('ca').getSequence()
     elif isinstance(seq, Sequence):
          sequence = str(seq)
          ag = None
