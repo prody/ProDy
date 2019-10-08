@@ -6,7 +6,8 @@ from numbers import Integral
 
 import numpy as np
 
-from prody.proteins import fetchPDB, parsePDB, writePDB, mapOntoChain
+from prody.proteins import fetchPDB, parsePDB, writePDB, mapOntoChain, mapChainByChain
+from prody.sequence import alignSequenceToMSA
 from prody.utilities import openFile, showFigure, copy, isListLike, pystr
 from prody import LOGGER, SETTINGS
 from prody.atomic import AtomMap, Chain, AtomGroup, Selection, Segment, Select, AtomSubset
@@ -18,7 +19,8 @@ from .conformation import *
 
 __all__ = ['saveEnsemble', 'loadEnsemble', 'trimPDBEnsemble',
            'calcOccupancies', 'showOccupancies', 'alignPDBEnsemble',
-           'buildPDBEnsemble', 'addPDBEnsemble', 'refineEnsemble']
+           'buildPDBEnsemble', 'addPDBEnsemble', 'refineEnsemble',
+           'trimCombinePDBEnsembles']
 
 
 def saveEnsemble(ensemble, filename=None, **kwargs):
@@ -252,6 +254,7 @@ def trimPDBEnsemble(pdb_ensemble, occupancy=None, **kwargs):
     trimmed._data = pdb_ensemble._data
     return trimmed
 
+
 def calcOccupancies(pdb_ensemble, normed=False):
     """Returns occupancy calculated from weights of a :class:`.PDBEnsemble`.
     Any non-zero weight will be considered equal to one.  Occupancies are
@@ -297,6 +300,7 @@ def showOccupancies(pdbensemble, *args, **kwargs):
     if SETTINGS['auto_show']:
         showFigure()
     return show
+
 
 def alignPDBEnsemble(ensemble, suffix='_aligned', outdir='.', gzip=False):
     """Align PDB files using transformations from *ensemble*, which may be
@@ -755,3 +759,24 @@ def refineEnsemble(ensemble, lower=.5, upper=10., **kwargs):
     LOGGER.info('%d conformations were removed from ensemble.'%(len(ensemble) - len(I)))
 
     return reens
+
+def trimCombinePDBEnsembles(ensembles, **kwargs):
+    mapping_func = kwargs.get('mapping_func', mapChainByChain)
+    refs = [ens.getAtoms() for ens in ensembles]
+
+    num_ens = len(ensembles)
+    occupancy_cutoff = round((num_ens-1)/num_ens, 2)+0.01
+
+    ref_ens = buildPDBEnsemble(refs, mapping_func=mapping_func, coverage=0, seqid=0, pwalign=True)
+    trimmed_ens = trimPDBEnsemble(ref_ens, occupancy=occupancy_cutoff)
+    msa = trimmed_ens.getMSA()
+
+    for i, ref in enumerate(refs):
+        msa_i, _, _ = alignSequenceToMSA(ref, msa, label=ref.getTitle())
+        refs[i] = ref.select('not index '+' '.join([str(j)
+                                                    for j in np.where(np.array(list(str(msa_i[1]))) == '-')[0]]))
+
+    for i, ens in enumerate(ensembles):
+        ens.setAtoms(refs[i])
+
+    return np.sum([trimPDBEnsemble(ens) for ens in ensembles])
