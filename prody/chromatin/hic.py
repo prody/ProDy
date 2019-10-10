@@ -44,7 +44,7 @@ class HiC(object):
         if value is None: 
             self._map = None
         else:
-            self._map = np.array(value)
+            self._map = np.asarray(value)
             self._map = makeSymmetric(self._map)
             self._maskUnmappedRegions()
             self._labels = np.zeros(len(self._map), dtype=int)
