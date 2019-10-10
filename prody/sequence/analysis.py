@@ -884,7 +884,7 @@ def showAlignment(alignment, row_size=60, **kwargs):
 
     indices = kwargs.get('indices',None)
     index_start = kwargs.get('index_start',0)
-    index_stop = kwargs.get('index_start',0)
+    index_stop = kwargs.get('index_stop',0)
 
     if index_stop == 0 and indices is not None:
         locs = []
