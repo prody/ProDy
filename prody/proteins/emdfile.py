@@ -150,12 +150,16 @@ def parseEMDStream(stream, **kwargs):
     if cutoff is not None:
         cutoff = float(cutoff)
 
-    n_nodes = int(kwargs.get('n_nodes', 1000))
+    n_nodes = int(kwargs.get('n_nodes', None))
     num_iter = int(kwargs.get('num_iter', 20))
-    map = kwargs.get('map',True)
+    load_map = kwargs.get('map',True)
     make_nodes = kwargs.get('make_nodes',False)
 
-    if map is False and make_nodes is False:
+    if n_nodes is not None:
+        make_nodes = True
+        load_map = False
+
+    if load_map is False and make_nodes is False:
         LOGGER.warn('At least one of map and make_nodes should be True. '
                     'Setting map to False was an intentional change from the default '
                     'behaviour so make_nodes has been set to True.')
@@ -169,21 +173,21 @@ def parseEMDStream(stream, **kwargs):
         LOGGER.info('Building coordinates from electron density map. This may take a while.')
         LOGGER.timeit()
 
-        if map:
-            emd, atomgroup = _parseEMDLines(atomgroup, stream, cutoff=cutoff, n_nodes=n_nodes, \
-                                            num_iter=num_iter, map=map, make_nodes=make_nodes)
+        if load_map:
+            atomgroup, emd = _parseEMDLines(atomgroup, stream, cutoff=cutoff, n_nodes=n_nodes, \
+                                            num_iter=num_iter, map=load_map, make_nodes=make_nodes)
         else:
             atomgroup = _parseEMDLines(atomgroup, stream, cutoff=cutoff, n_nodes=n_nodes, \
-                                       num_iter=num_iter, map=map, make_nodes=make_nodes)
+                                       num_iter=num_iter, map=load_map, make_nodes=make_nodes)
 
         LOGGER.report('{0} atoms and {1} coordinate sets were '
                       'parsed in %.2fs.'.format(atomgroup.numAtoms(), atomgroup.numCoordsets()))
     else: 
         emd = _parseEMDLines(atomgroup, stream, cutoff=cutoff, n_nodes=n_nodes, \
-                             num_iter=num_iter, map=map, make_nodes=make_nodes)
+                             num_iter=num_iter, map=load_map, make_nodes=make_nodes)
 
     if make_nodes:
-        if map:
+        if load_map:
             return emd, atomgroup
         else:
             return atomgroup
