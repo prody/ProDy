@@ -1757,6 +1757,9 @@ def showDomainBar(domains, x=None, loc=0., axis='x', **kwargs):
             domains_.extend([d]*3)
         domains = domains_
 
+    # In order to avoid losing the last domain, we add a dummy entry
+    domains = list(domains)
+    domains.append(domains[-1])
     domains = np.asarray(domains, dtype=str)
     EMPTY_CHAR = domains[0][:0]
 
@@ -1792,8 +1795,11 @@ def showDomainBar(domains, x=None, loc=0., axis='x', **kwargs):
 
     if x is None:
         x = np.arange(len(domains), dtype=float)
-    x = x + offset #+ 0.5
+    x = x + offset - 0.5
     X = np.tile(x, (len(uni_domids), 1)).T
+
+    # Correct the text for the shifting from adding a domain
+    x = np.delete(x,-1)
 
     if show_text:
         for i, chid in enumerate(uni_domids):
@@ -1845,7 +1851,7 @@ def showDomainBar(domains, x=None, loc=0., axis='x', **kwargs):
         gca().autoscale_view()
 
     start, stop = lim()
-    lim(start, stop)
+    lim(round(start, 2) + 0.006, stop)
     
     return bars, texts
 
