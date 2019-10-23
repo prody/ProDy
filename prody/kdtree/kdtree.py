@@ -155,8 +155,7 @@ class KDTree(object):
                 raise TypeError('unitcell must be a Numpy array')
             if unitcell.shape != (3,):
                 raise ValueError('unitcell.shape must be (3,)')
-            self._kdtree = CKDTree(3, self._bucketsize)
-            self._kdtree.set_data(coords)
+            self._kdtree = CKDTree(coords, self._bucketsize)
             self._coords = coords
             self._unitcell = unitcell
             self._replicate = REPLICATE * unitcell
@@ -233,8 +232,7 @@ class KDTree(object):
                     coords = self._coords
                     coords = concatenate([coords + rep
                                           for rep in self._replicate])
-                    kdtree = CKDTree(3, self._bucketsize)
-                    kdtree.set_data(coords)
+                    kdtree = CKDTree(coords, self._bucketsize)
                     self._kdtree2 = kdtree
                 n_atoms = len(self._coords)
                 _dict = {}
