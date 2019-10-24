@@ -639,14 +639,14 @@ def extendAtomicData(data, nodes, atoms):
     """Extend a coarse grained data obtained for *nodes* to *atoms*.
 
     :arg data: any data array
-    :type data: `~numpy.ndarray`
+    :type data: :class:`~numpy.ndarray`
 
     :arg nodes: a set of atoms that has been used
         as nodes in data generation
-    :type nodes: :class:`
+    :type nodes: :class:`.Atomic`
 
     :arg atoms: atoms to be selected from
-    :type atoms: :class:`Atomic`
+    :type atoms: :class:`.Atomic`
 
     """
     from collections import Counter
