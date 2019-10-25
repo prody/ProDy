@@ -332,7 +332,7 @@ def writePerturbResponsePDB(prs_matrix, pdbIn=None, **kwargs):
             if line.find('ATOM') != 0 and line.find('HETATM') != 0 and line.find('ANISOU') != 0:
                 fo.write(line)
             elif line.find('ATOM') == 0:
-                if direction is 'effect':
+                if direction == 'effect':
                     fo.write(line[:60] + '{:6.2f}'.format(float(structure.getData('prs_matrix') \
                                          [structure.select('chain {0} and resnum {1}' \
                                           .format(c, resnum)).getResindices(), \
