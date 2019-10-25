@@ -7,6 +7,16 @@ ProDy 1.10 Series
 1.10.11 (Oct 25, 2019)
 ------------------------------------------------------------------------------
 
+**New Features**:
+  
+  * Added :func:`.calcDynamicFlexiblityIndex`.
+  
+  * Added "related_entries" to PDB header.
+
+  * Enabled :class:`.RTB` to take a customized Hessian as input.
+
+  * Added numEntries to :class:`.NMA`, :class:`.Mode`, and :class:`.ModeSet` objects.
+
 **Bug Fixes and Improvements**:
 
   * Added a keyword argument to :func:`.mapChainByChain` to allow user-defined 
