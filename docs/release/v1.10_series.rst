@@ -4,6 +4,20 @@ ProDy 1.10 Series
 .. contents::
    :local:
 
+1.10.11 (Oct 25, 2019)
+------------------------------------------------------------------------------
+
+**Bug Fixes and Improvements**:
+
+  * Added a keyword argument to :func:`.mapChainByChain` to allow user-defined 
+  correspondence of chain IDs between the target and the mobile.
+  
+  * Compatibility and bug fixes for various functions.
+
+  * Fixed compilation error on MacOS if a user-installed gcc is present.
+
+  * Consistency fixes.
+
 1.10.10 (May 9, 2019)
 ------------------------------------------------------------------------------
 
@@ -20,7 +34,7 @@ ProDy 1.10 Series
 
 **New Features**:
 
-  * Added a *method* option to :func:`pairModes` to use other solvers for the 
+  * Added a *method* option to :func:`.pairModes` to use other solvers for the 
   linear assignment problem.
 
   * Added functions for handling user-defined data for :class:`Ensemble` and 
