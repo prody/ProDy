@@ -115,6 +115,7 @@ EXTENSIONS = [
 ]
 
 # extra arguments for compiling C++ extensions on MacOSX
+extra_compile_args = []
 if platform.system() == 'Darwin':
     os_ver = platform.mac_ver()[0]
     os.environ['MACOSX_DEPLOYMENT_TARGET'] = os_ver
@@ -131,6 +132,7 @@ CONTRIBUTED = [
     Extension('prody.proteins.ccealign', 
               [join('prody', 'proteins', 'ccealign', 'ccealignmodule.cpp')], 
               include_dirs=[tntDir], language='c++',
+              extra_compile_args=extra_compile_args
               )
 ]
 

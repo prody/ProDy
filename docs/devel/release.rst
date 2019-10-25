@@ -21,7 +21,7 @@ How to Make a Release
    * :file:`prody/__init__.py`
    * :file:`./PKG-INFO`
 
-   Also, comment ``+ '-dev'`` out, so that documentation will build
+   Also, commend ``+ '-dev'`` out, so that documentation will build
    for a stable release.
 
 
