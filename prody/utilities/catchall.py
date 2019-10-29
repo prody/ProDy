@@ -424,11 +424,15 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
         ax3.xaxis.set_major_locator(ticker.IndexLocator(offset=0.5, base=1.))
         ax3.yaxis.set_major_locator(ticker.IndexLocator(offset=0.5, base=1.))
     else:
-        ax3.xaxis.set_major_locator(ticker.AutoLocator())
-        ax3.xaxis.set_minor_locator(ticker.AutoMinorLocator())
+        locator = ticker.AutoLocator()
+        locator.set_params(integer=True)
+        minor_locator = ticker.AutoMinorLocator()
 
-        ax3.yaxis.set_major_locator(ticker.AutoLocator())
-        ax3.yaxis.set_minor_locator(ticker.AutoMinorLocator())
+        ax3.xaxis.set_major_locator(locator)
+        ax3.xaxis.set_minor_locator(minor_locator)
+
+        ax3.yaxis.set_major_locator(locator)
+        ax3.yaxis.set_minor_locator(minor_locator)
 
     if ncol > 1:
         ax3.yaxis.set_major_formatter(ticker.NullFormatter())
