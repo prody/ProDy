@@ -694,7 +694,7 @@ def matchChains(atoms1, atoms2, **kwargs):
                     else:
                         indices1.append(aid)
                         indices2.append(bres._indices[bid])
-            elif subset is None or subset is 'all':
+            elif subset is None or subset == 'all':
                 aans = ares.getNames()
                 bans = bres.getNames().tolist()
 
@@ -1038,12 +1038,59 @@ def mapChainByChain(atoms, ref, **kwargs):
         If False, only mappings for the first chain will be returned. 
         Default is True
     :arg return_all: bool
+
+    :arg correspondence: chain IDs in atoms corresponding to those in ref
+        Default is to use the same chain IDs as in ref.
+    :type correspondence: str, list, tuple, :class:`~numpy.ndarray`, dict
     """
     mappings = []
-    hv = atoms.getHierView()
-    for chain in ref.getHierView().iterChains():
-        for target_chain in hv.iterChains():
-            if target_chain.getChid() == chain.getChid():
+
+    if isinstance(ref, AtomGroup):
+        chs_ref_ag = ref.iterChains()
+    else:
+        chs_ref_ag = ref.getAtomGroup().iterChains()
+
+    id_atm = atoms.getTitle()
+    id_ref = ref.getTitle()
+    
+    chs_atm = [chain for chain in atoms.getHierView().iterChains()]
+    chs_ref = [chain for chain in ref.getHierView().iterChains()]
+
+    corr_input = kwargs.get('correspondence', None)
+
+    if isinstance(corr_input, dict):
+        correspondence = corr_input
+    elif corr_input is None:
+        correspondence = {}
+    elif isinstance(corr_input, str):
+        correspondence = {}
+        correspondence[atoms.getTitle()] = corr_input
+    else:
+        correspondence = {}
+        try:
+            correspondence[id_atm] = corr_input[0]
+            correspondence[id_ref] = corr_input[1]
+        except (IndexError, TypeError):
+            raise TypeError('correspondence should be a dict with keys being titles of atoms and ref, '
+                            'and values are str indicating chID correspondences')
+
+    if not id_atm in correspondence:
+        correspondence[id_atm] = ''.join([chain.getChid() for chain in chs_atm])
+
+    if not id_ref in correspondence:
+        correspondence[id_ref] = ''.join([chain.getChid() for chain in chs_ref_ag])
+
+    corr_tar = correspondence[id_atm]
+    corr_ref = correspondence[id_ref]
+    for chain in chs_ref:
+        try:
+            i = corr_ref.index(chain.getChid())
+            chid = corr_tar[i]
+        except ValueError:
+            pass
+            #chid = chain.getChid()
+        for target_chain in chs_atm:
+            if target_chain.getChid() == chid:
                 mappings_ = mapOntoChainByAlignment(target_chain, chain, **kwargs)
                 if len(mappings_):
                     mappings.append(mappings_[0])

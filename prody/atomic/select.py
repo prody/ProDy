@@ -2164,7 +2164,7 @@ class Select(object):
         label = tokens.pop(0)
         sn2i = self._ag._getSN2I()
         if sn2i is None:
-            return None, SelectionError(sel, loc, 'serial numbers are not set'
+            return None, SelectionError(sel, loc, 'serial numbers are not set',
                                         ['serial'])
         torf = zeros(len(sn2i), bool)
         for token in tokens:
