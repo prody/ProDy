@@ -470,8 +470,6 @@ def sliceAtomicData(data, atoms, select, axis=None):
                 break
             else:
                 raise ValueError('data and atoms must have the same size along all chosen axes')
-        else:
-            break
 
     indices, _ = sliceAtoms(atoms, select)
     if is3d:
