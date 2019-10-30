@@ -841,7 +841,7 @@ def showAlignment(alignment, row_size=60, **kwargs):
     Prints out an alignment as sets of short rows with labels.
 
     :arg alignment: any object with aligned sequences
-    :type alignment: :class: `.MSA`, tuple or list
+    :type alignment: :class: `.MSA`, list
 
     :arg row_size: the size of each row
         default 60
@@ -849,7 +849,7 @@ def showAlignment(alignment, row_size=60, **kwargs):
 
     :arg indices: a set of indices for some or all sequences
         that will be shown above the relevant sequences
-    :type indices: `~numpy.ndarray`, list, tuple
+    :type indices: :class:`~numpy.ndarray`, list
 
     :arg index_start: how far along the alignment to start putting indices
         default 0
@@ -860,7 +860,7 @@ def showAlignment(alignment, row_size=60, **kwargs):
     :type index_stop: int
 
     :arg labels: a list of labels
-    :type labels: list, tuple, `~numpy.ndarray`
+    :type labels: list
     """
 
     labels = kwargs.get('labels', None)
@@ -884,7 +884,7 @@ def showAlignment(alignment, row_size=60, **kwargs):
 
     indices = kwargs.get('indices',None)
     index_start = kwargs.get('index_start',0)
-    index_stop = kwargs.get('index_start',0)
+    index_stop = kwargs.get('index_stop',0)
 
     if index_stop == 0 and indices is not None:
         locs = []
@@ -925,7 +925,7 @@ def showAlignment(alignment, row_size=60, **kwargs):
         
     return
 
-def alignSequenceToMSA(seq, msa, label, match=5, mismatch=-1, gap_opening=-10, gap_extension=-1):
+def alignSequenceToMSA(seq, msa, label=None, match=5, mismatch=-1, gap_opening=-10, gap_extension=-1):
     """
     Align a sequence from a PDB or Sequence to a sequence from an MSA
     and create two sets of indices. 
@@ -970,7 +970,7 @@ def alignSequenceToMSA(seq, msa, label, match=5, mismatch=-1, gap_opening=-10, g
     """
     if isinstance(seq, Atomic):
         ag = seq
-        sequence = ag.calpha.getSequence()
+        sequence = ag.select('ca').getSequence()
     elif isinstance(seq, Sequence):
          sequence = str(seq)
          ag = None
