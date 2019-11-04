@@ -8,6 +8,8 @@ from numpy import array, abs
 from prody import LOGGER, SETTINGS, getPackagePath
 from prody.utilities import openFile, openURL
 
+from numbers import Integral
+
 __all__ = ['fetchPDBClusters', 'loadPDBClusters', 'listPDBCluster']
 
 PDB_CLUSTERS = {30: None, 40: None, 50: None, 70: None,
@@ -25,7 +27,7 @@ def loadPDBClusters(sqid=None):
         sqid_list = list(PDB_CLUSTERS)
         LOGGER.info('Loading all PDB sequence clusters.')
     else:
-        assert isinstance(sqid, int), 'sqid must be an integer'
+        assert isinstance(sqid, Integral), 'sqid must be an integer'
         if sqid not in PDB_CLUSTERS:
             raise ValueError('PDB cluster data is not available for sequence '
                              'identity {0}%, try one of {1}'
@@ -49,7 +51,12 @@ def loadPDBClusters(sqid=None):
                                .format(diff))
                 PDB_CLUSTERS_UPDATE_WARNING = False
         inp = openFile(filename)
-        PDB_CLUSTERS[sqid] = inp.read()
+        clusters = inp.read()
+        try:
+            clusters = clusters.decode()
+        except (UnicodeDecodeError, AttributeError):
+            pass
+        PDB_CLUSTERS[sqid] = clusters
         inp.close()
 
 
@@ -76,7 +83,6 @@ def listPDBCluster(pdb, ch, sqid=95):
     if not (30 <= sqid <= 100):
         raise ValueError('sqid must be between 30 and 100')
     sqid = PDB_CLUSTERS_SQIDS[abs(PDB_CLUSTERS_SQIDS-sqid).argmin()]
-    PDB_CLUSTERS_PATH = os.path.join(getPackagePath(), 'pdbclusters')
     clusters = PDB_CLUSTERS[sqid]
     if clusters is None:
         loadPDBClusters(sqid)

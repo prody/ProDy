@@ -694,7 +694,7 @@ def matchChains(atoms1, atoms2, **kwargs):
                     else:
                         indices1.append(aid)
                         indices2.append(bres._indices[bid])
-            elif subset is None or subset is 'all':
+            elif subset is None or subset == 'all':
                 aans = ares.getNames()
                 bans = bres.getNames().tolist()
 

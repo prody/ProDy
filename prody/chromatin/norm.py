@@ -17,7 +17,7 @@ def VCnorm(M, **kwargs):
     # N = R * M * C
     N = np.dot(np.dot(R,M),C)
 
-    if total_count is 'original':
+    if total_count == 'original':
         total_count = np.sum(M)
 
     if total_count is not None:
@@ -37,7 +37,7 @@ def SQRTVCnorm(M, **kwargs):
     # N = R * M * C
     N = np.dot(np.dot(R,M),C)
 
-    if total_count is 'original':
+    if total_count == 'original':
         total_count = np.sum(M)
 
     if total_count is not None:
@@ -87,7 +87,7 @@ def SCN(M, **kwargs):
                 break
     # guarantee symmetry
     N = (N + N.T) / 2.
-    if total_count is 'original':
+    if total_count == 'original':
         total_count = np.sum(M)
 
     if total_count is not None:
