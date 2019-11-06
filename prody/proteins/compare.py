@@ -1029,19 +1029,19 @@ def mapChainByChain(atoms, ref, **kwargs):
     of chains is found by their chain identifiers. 
     
     :arg atoms: atoms to map onto the reference
-    :type atoms: :class:`Atomic`
+    :type atoms: :class:`.Atomic`
     
     :arg ref: reference structure for mapping
-    :type ref: :class:`Atomic`
+    :type ref: :class:`.Atomic`
     
     :arg return_all: whether to return all mappings.
         If False, only mappings for the first chain will be returned. 
-        Default is True
+        Default is **True**
     :arg return_all: bool
 
     :arg correspondence: chain IDs in atoms corresponding to those in ref
         Default is to use the same chain IDs as in ref.
-    :type correspondence: str, list, tuple, :class:`~numpy.ndarray`, dict
+    :type correspondence: str, list, dict
     """
     mappings = []
 
