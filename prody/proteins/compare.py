@@ -1021,7 +1021,7 @@ def mapOntoChain(atoms, chain, **kwargs):
 
         mappings[mi] = (atommap, selection, _seqid, _cover)
     if len(mappings) > 1:
-        mappings.sort(key=lambda m: m[-2:], reverse=True)
+        mappings.sort(key=lambda m: m[-2]*m[-1], reverse=True)
     return mappings
 
 def mapChainByChain(atoms, ref, **kwargs):
@@ -1043,6 +1043,7 @@ def mapChainByChain(atoms, ref, **kwargs):
         Default is to use the same chain IDs as in ref.
     :type correspondence: str, list, dict
     """
+
     mappings = []
 
     if isinstance(ref, AtomGroup):
@@ -1095,6 +1096,71 @@ def mapChainByChain(atoms, ref, **kwargs):
                 if len(mappings_):
                     mappings.append(mappings_[0])
         
+    return mappings
+
+def userDefined(chain1, chain2, correspondence):
+    id1 = chain1.getTitle()
+    id2 = chain2.getTitle()
+
+    if not isinstance(correspondence, dict):
+        chmap = {}
+        try:
+            chmap[id1] = correspondence[0]
+            chmap[id2] = correspondence[1]
+        except (IndexError, TypeError):
+            raise TypeError('correspondence should be a dict with keys being titles of atoms and ref, '
+                            'and values are str indicating chID correspondences')
+
+    corr1 = correspondence[id1]
+    corr2 = correspondence[id2]
+
+    if len(corr1) != len(corr2):
+        raise ValueError('%s and %s have different number of chain identifiers '
+                         'in the correspondence'%(id1, id2))
+
+    try:
+        i = corr1.index(chain1.getChid())
+        chid = corr2[i]
+    except:
+        return False
+
+    return chain2.getChid() == chid
+
+def sameChid(chain1, chain2):
+    return chain1.getChid() == chain2.getChid()
+
+def bestMatch(chain1, chain2):
+    return True
+
+def mapOntoChains(atoms, ref, match_func=bestMatch, **kwargs):
+    """This function is a generalization and wrapper of :func:`.mapOntoChain` that 
+    manages to map chains onto chains (instead of a single chain). 
+    
+    :arg atoms: atoms to map onto the reference
+    :type atoms: :class:`.Atomic`
+    
+    :arg ref: reference structure for mapping
+    :type ref: :class:`.Atomic`
+
+    :arg match_func: function determines which chains from ``ref`` and ``atoms`` are matched.
+        Default is to use the best match.
+    :type match_func: func
+    """
+    
+    chs_atm = [chain for chain in atoms.getHierView().iterChains()]
+    chs_ref = [chain for chain in ref.getHierView().iterChains()]
+
+    # iterate through chains for both ref and atoms
+    mappings = []
+    for chain in chs_ref:
+        for target_chain in chs_atm:
+            if not match_func(chain, target_chain):
+                continue
+            mappings_ = mapOntoChain(target_chain, chain, **kwargs)
+            if len(mappings_):
+                mappings.append(mappings_[0])
+    
+
     return mappings
 
 def mapOntoChainByAlignment(atoms, chain, **kwargs):
