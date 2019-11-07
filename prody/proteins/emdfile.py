@@ -131,7 +131,7 @@ def _parseEMDLines(atomgroup, stream, cutoff=None, n_nodes=1000, num_iter=20, ma
  
     if make_nodes:
         if map:
-            return atomgroup, emd
+            return emd, atomgroup
         else:
             return atomgroup
     else:

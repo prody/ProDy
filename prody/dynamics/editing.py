@@ -255,16 +255,41 @@ def reduceModel(model, atoms, select):
     system = np.zeros(model.numAtoms(), dtype=bool)
     system[which] = True
 
-    other = np.invert(system)
-
     if model.is3d():
         system = np.repeat(system, 3)
-        other = np.repeat(other, 3)
-    ss = matrix[system, :][:, system]
+
     if isinstance(model, PCA):
+        ss = matrix[system, :][:, system]
         eda = PCA(model.getTitle() + ' reduced')
         eda.setCovariance(ss)
+
         return eda, system
+    else:
+        matrix = _reduceModel(matrix, system)
+
+        if isinstance(model, GNM):
+            gnm = GNM(model.getTitle() + ' reduced')
+            gnm.setKirchhoff(matrix)
+            return gnm, select
+        elif isinstance(model, ANM):
+            anm = ANM(model.getTitle() + ' reduced')
+            anm.setHessian(matrix)
+            return anm, select
+        elif isinstance(model, PCA):
+            eda = PCA(model.getTitle() + ' reduced')
+            eda.setCovariance(matrix)
+            return eda, select
+
+def _reduceModel(matrix, system):
+    """This is the underlying function that reduces models, which shall 
+    remain private. ``system`` is a boolean array where **True** indicates 
+    system nodes."""
+    
+    linalg = importLA()
+
+    other = np.invert(system)
+
+    ss = matrix[system, :][:, system]
     so = matrix[system, :][:, other]
     os = matrix[other, :][:, system]
     oo = matrix[other, :][:, other]
@@ -279,15 +304,4 @@ def reduceModel(model, atoms, select):
     else:
         matrix = ss
 
-    if isinstance(model, GNM):
-        gnm = GNM(model.getTitle() + ' reduced')
-        gnm.setKirchhoff(matrix)
-        return gnm, select
-    elif isinstance(model, ANM):
-        anm = ANM(model.getTitle() + ' reduced')
-        anm.setHessian(matrix)
-        return anm, select
-    elif isinstance(model, PCA):
-        eda = PCA(model.getTitle() + ' reduced')
-        eda.setCovariance(matrix)
-        return eda, select
+    return matrix
