@@ -812,7 +812,8 @@ class MaskedGNM(GNM):
 
     def setEigens(self, vectors, values=None):
         if not self.masked:
-            vectors = vectors[self.mask, :]
+            if not np.isscalar(self.mask):
+                vectors = vectors[self.mask, :]
         self._maskedarray = None
         super(MaskedGNM, self).setEigens(vectors, values)
 

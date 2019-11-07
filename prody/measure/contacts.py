@@ -46,7 +46,7 @@ class Contacts(object):
                         self._indices = self._indices.getIndices()
                 else:
                     self._acsi = None
-                self._kdtree = KDTree(self._atoms._getCoords(),
+                self._kdtree = KDTree(atoms._getCoords(),
                                       unitcell=unitcell)
         else:
             try:
