@@ -852,18 +852,6 @@ def mapOntoChain(atoms, chain, **kwargs):
     if subset not in _SUBSETS:
         raise ValueError('{0} is not a valid subset argument'
                          .format(str(subset)))
-    seqid = kwargs.get('seqid', 90.) 
-    coverage = kwargs.get('overlap', 70.)
-    coverage = kwargs.get('coverage', coverage) 
-    pwalign = kwargs.get('pwalign', None)
-    pwalign = kwargs.get('mapping', pwalign)
-    alignment = None
-    if pwalign is not None:
-        if isinstance(pwalign, basestring):
-            pwalign = str(pwalign).strip().lower()
-        elif not isinstance(pwalign, bool):
-            alignment = pwalign
-            pwalign = True
 
     if subset != 'all':
         chid = chain.getChid()
@@ -878,149 +866,21 @@ def mapOntoChain(atoms, chain, **kwargs):
 
     if isinstance(mobile, Chain):
         chains = [mobile]
-        map_ag = mobile.getAtomGroup()
     else:
-        if isinstance(mobile, AtomGroup):
-            map_ag = mobile
-        else:
-            map_ag = mobile.getAtomGroup()
         chains = list(mobile.getHierView().iterChains())
         LOGGER.debug('Evaluating {0}: {1} chains are identified'
                      .format(str(atoms), len(chains))) 
 
     mappings = []
-    unmapped = []
-    unmapped_chids = []
-    target_ag = target_chain.getAtomGroup()
     simple_target = SimpleChain(target_chain, False)
     LOGGER.debug('Trying to map atoms based on residue numbers and '
                 'identities:')
     for chain in chains:
         simple_chain = SimpleChain(chain, False)
-        if len(simple_chain) == 0:
-            LOGGER.debug('  Skipping {0}, which does not contain any amino '
-                        'acid residues.'.format(simple_chain))
-            continue
-        LOGGER.debug('  Comparing {0} (len={1}) with {2}:'
-                    .format(simple_chain.getTitle(), len(simple_chain),
-                            simple_target.getTitle()))
+        mapping = mapChainOntoChain(simple_chain, simple_target, **kwargs)
+        if mapping is not None:
+            mappings.append(mapping)
 
-        # trivial mapping serves as a first simple trial of alignment the two 
-        # sequences based on residue number, therefore the sequence identity 
-        # (TRIVIAL_SEQID) criterion is strict.
-        _seqid = _cover = -1
-        target_list, chain_list, n_match, n_mapped = getTrivialMapping(
-            simple_target, simple_chain)
-        if n_mapped > 0:
-            _seqid = n_match * 100 / n_mapped
-            _cover = n_mapped * 100 / max(len(simple_target), len(simple_chain))
-
-        trivial_seqid = TRIVIAL_SEQID if pwalign else seqid
-        trivial_cover = TRIVIAL_COVERAGE if pwalign else coverage
-        if _seqid >= trivial_seqid and _cover >= trivial_cover:
-            LOGGER.debug('\tMapped: {0} residues match with {1:.0f}% '
-                    'sequence identity and {2:.0f}% overlap.'
-                    .format(n_mapped, _seqid, _cover))
-            mappings.append((target_list, chain_list, _seqid, _cover))
-        else:
-            if not pwalign:
-                LOGGER.debug('\tFailed to match chains based on residue numbers '
-                        '(seqid={0:.0f}%, overlap={1:.0f}%).'
-                        .format(_seqid, _cover))
-            unmapped.append(simple_chain)
-            unmapped_chids.append(chain.getChid())
-
-    if not mappings and pwalign is None:
-        pwalign = True
-
-    if pwalign and unmapped:
-        if alignment is None:
-            if pwalign in ['ce', 'cealign']:
-                aln_type = 'structure alignment'
-                method = 'CE'
-                if not 'seqid' in kwargs:
-                    seqid = 0.
-            else:
-                aln_type = 'sequence alignment'
-                method = ALIGNMENT_METHOD
-        else:
-            aln_type = 'alignment'
-            method = 'predefined'
-            if not 'seqid' in kwargs:
-                seqid = 0.
-
-        LOGGER.debug('Trying to map atoms based on {0} {1}:'
-                     .format(method, aln_type))
-
-        for chid, simple_chain in zip(unmapped_chids, unmapped):
-            LOGGER.debug('  Comparing {0} (len={1}) with {2}:'
-                        .format(simple_chain.getTitle(), len(simple_chain),
-                                simple_target.getTitle()))
-            if method == 'CE':
-                result = getCEAlignMapping(simple_target, simple_chain)
-            else:
-                if isinstance(alignment, dict):
-                    result = getDictMapping(simple_target, simple_chain, map_dict=alignment)
-                else:
-                    result = getAlignedMapping(simple_target, simple_chain, alignment=alignment)
-
-            if result is not None:
-                target_list, chain_list, n_match, n_mapped = result
-                if n_mapped > 0:
-                    _seqid = n_match * 100 / n_mapped
-                    _cover = n_mapped * 100 / max(len(simple_target),
-                                                  len(simple_chain))
-                else:
-                    _seqid = 0
-                    _cover = 0
-                if _seqid >= seqid and _cover >= coverage:
-                    LOGGER.debug('\tMapped: {0} residues match with {1:.0f}%'
-                                 ' sequence identity and {2:.0f}% overlap.'
-                                 .format(n_mapped, _seqid, _cover))
-                    mappings.append((target_list, chain_list, _seqid, _cover))
-                else:
-                    LOGGER.debug('\tFailed to match chains (seqid={0:.0f}%, '
-                                 'overlap={1:.0f}%).'
-                                 .format(_seqid, _cover))
-
-    for mi, result in enumerate(mappings):
-        residues_target, residues_chain, _seqid, _cover = result
-        indices_target = []
-        indices_chain = []
-        indices_mapping = []
-        indices_dummies = []
-        counter = 0
-        for i in range(len(residues_target)):
-            res_tar = residues_target[i]
-            res_chn = residues_chain[i]
-
-            for atom_tar in res_tar:
-                indices_target.append(atom_tar.getIndex())
-                if res_chn is not None:
-                    atom_chn = res_chn.getAtom(atom_tar.getName())
-                    if atom_chn is not None:
-                        indices_chain.append(atom_chn.getIndex())
-                        indices_mapping.append(counter)
-                    else:
-                        indices_dummies.append(counter)
-                else:
-                    indices_dummies.append(counter)
-                counter += 1
-        #n_atoms = len(indices_target)
-
-        ch_tar = next((r for r in residues_target if r is not None)).getChain()
-        ch_chn = next((r for r in residues_chain if r is not None)).getChain()
-        title_tar = 'Chain {0} from {1}'.format(ch_tar.getChid(), ch_tar.getAtomGroup().getTitle())
-        title_chn = 'Chain {0} from {1}'.format(ch_chn.getChid(), ch_chn.getAtomGroup().getTitle())
-
-        # note that chain here is from atoms
-        atommap = AM(map_ag, indices_chain, chain.getACSIndex(),
-                     mapping=indices_mapping, dummies=indices_dummies,
-                     title=title_chn + ' -> ' + title_tar )
-        selection = AM(target_ag, indices_target, target_chain.getACSIndex(),
-                       title=title_tar + ' -> ' + title_chn, intarrays=True)
-
-        mappings[mi] = (atommap, selection, _seqid, _cover)
     if len(mappings) > 1:
         mappings.sort(key=lambda m: m[-2]*m[-1], reverse=True)
     return mappings
@@ -1077,6 +937,11 @@ def mapChainOntoChain(mobile, target, **kwargs):
         simple_mobile = mobile
         mobile = mobile._chain
 
+    if len(simple_mobile) == 0:
+        LOGGER.debug('\tCannot process {0}, which does not contain any amino '
+                    'acid residues.'.format(simple_mobile))
+        return None
+
     if isinstance(target, Chain):
         simple_target = SimpleChain(target, False)
     elif isinstance(target, SimpleChain):
@@ -1106,39 +971,34 @@ def mapChainOntoChain(mobile, target, **kwargs):
     target_ag = target.getAtomGroup()
 
     mapping = None
-    if len(simple_mobile) == 0:
-        LOGGER.debug('  Skipping {0}, which does not contain any amino '
-                    'acid residues.'.format(simple_mobile))
-        return mapping
+    LOGGER.debug('Trying to map atoms based on residue numbers and '
+            'identities:')
+    LOGGER.debug('  Comparing {0} (len={1}) with {2}:'
+                .format(simple_mobile.getTitle(), len(simple_mobile),
+                        simple_target.getTitle()))
+
+    # trivial mapping serves as a first simple trial of alignment the two 
+    # sequences based on residue number, therefore the sequence identity 
+    # (TRIVIAL_SEQID) criterion is strict.
+    _seqid = _cover = -1
+    target_list, chain_list, n_match, n_mapped = getTrivialMapping(
+        simple_target, simple_mobile)
+    if n_mapped > 0:
+        _seqid = n_match * 100 / n_mapped
+        _cover = n_mapped * 100 / max(len(simple_target), len(simple_mobile))
+
+    trivial_seqid = TRIVIAL_SEQID if pwalign else seqid
+    trivial_cover = TRIVIAL_COVERAGE if pwalign else coverage
+    if _seqid >= trivial_seqid and _cover >= trivial_cover:
+        LOGGER.debug('\tMapped: {0} residues match with {1:.0f}% '
+                'sequence identity and {2:.0f}% overlap.'
+                .format(n_mapped, _seqid, _cover))
+        mapping = (target_list, chain_list, _seqid, _cover)
     else:
-        LOGGER.debug('Trying to map atoms based on residue numbers and '
-                'identities:')
-        LOGGER.debug('  Comparing {0} (len={1}) with {2}:'
-                    .format(simple_mobile.getTitle(), len(simple_mobile),
-                            simple_target.getTitle()))
-
-        # trivial mapping serves as a first simple trial of alignment the two 
-        # sequences based on residue number, therefore the sequence identity 
-        # (TRIVIAL_SEQID) criterion is strict.
-        _seqid = _cover = -1
-        target_list, chain_list, n_match, n_mapped = getTrivialMapping(
-            simple_target, simple_mobile)
-        if n_mapped > 0:
-            _seqid = n_match * 100 / n_mapped
-            _cover = n_mapped * 100 / max(len(simple_target), len(simple_mobile))
-
-        trivial_seqid = TRIVIAL_SEQID if pwalign else seqid
-        trivial_cover = TRIVIAL_COVERAGE if pwalign else coverage
-        if _seqid >= trivial_seqid and _cover >= trivial_cover:
-            LOGGER.debug('\tMapped: {0} residues match with {1:.0f}% '
-                    'sequence identity and {2:.0f}% overlap.'
-                    .format(n_mapped, _seqid, _cover))
-            mapping = (target_list, chain_list, _seqid, _cover)
-        else:
-            if not pwalign:
-                LOGGER.debug('\tFailed to match chains based on residue numbers '
-                        '(seqid={0:.0f}%, overlap={1:.0f}%).'
-                        .format(_seqid, _cover))
+        if not pwalign:
+            LOGGER.debug('\tFailed to match chains based on residue numbers '
+                    '(seqid={0:.0f}%, overlap={1:.0f}%).'
+                    .format(_seqid, _cover))
 
     if pwalign and mapping is None:
         if alignment is None:
