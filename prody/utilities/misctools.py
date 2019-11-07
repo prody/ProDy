@@ -9,6 +9,8 @@ import numbers
 
 from prody import PY3K
 
+from Bio.Data import IUPACData
+
 from xml.etree.ElementTree import Element
 
 __all__ = ['Everything', 'Cursor', 'ImageCursor', 'rangeString', 'alnum', 'importLA', 'dictElement',
@@ -346,15 +348,16 @@ def getMasses(elements):
     """Gets the mass atom. """
     
     import numpy as np
-    mass_dict = {'C':12,'N':14,'S':32,'O':16,'H':1}
+    # mass_dict = {'C':12,'N':14,'S':32,'O':16,'H':1}
+    mass_dict = IUPACData.atom_weights
 
     if isinstance(elements, str):
-        return mass_dict[elements]
+        return mass_dict[elements.capitalize()]
     else:
         masses = np.zeros(len(elements))
         for i,element in enumerate(elements):
-            if element in mass_dict:
-                masses[i] = mass_dict[element]
+            if element.capitalize() in mass_dict:
+                masses[i] = mass_dict[element.capitalize()]
             else:
                 masses[i] = 0.
         return masses

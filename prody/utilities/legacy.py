@@ -332,7 +332,7 @@ def writePerturbResponsePDB(prs_matrix, pdbIn=None, **kwargs):
             if line.find('ATOM') != 0 and line.find('HETATM') != 0 and line.find('ANISOU') != 0:
                 fo.write(line)
             elif line.find('ATOM') == 0:
-                if direction is 'effect':
+                if direction == 'effect':
                     fo.write(line[:60] + '{:6.2f}'.format(float(structure.getData('prs_matrix') \
                                          [structure.select('chain {0} and resnum {1}' \
                                           .format(c, resnum)).getResindices(), \
@@ -639,14 +639,14 @@ def extendAtomicData(data, nodes, atoms):
     """Extend a coarse grained data obtained for *nodes* to *atoms*.
 
     :arg data: any data array
-    :type data: `~numpy.ndarray`
+    :type data: :class:`~numpy.ndarray`
 
     :arg nodes: a set of atoms that has been used
         as nodes in data generation
-    :type nodes: :class:`
+    :type nodes: :class:`.Atomic`
 
     :arg atoms: atoms to be selected from
-    :type atoms: :class:`Atomic`
+    :type atoms: :class:`.Atomic`
 
     """
     from collections import Counter
