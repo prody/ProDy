@@ -809,7 +809,7 @@ def mapOntoChain(atoms, chain, **kwargs):
     :keyword subset: one of the following well-defined subsets of atoms:
         ``"calpha"`` (or ``"ca"``), ``"backbone"`` (or ``"bb"``),
         ``"heavy"`` (or ``"noh"``), or ``"all"``, default is ``"calpha"``
-    :type subset: string
+    :type subset: str
 
     :keyword seqid: percent sequence identity, default is **90** if sequence alignment is 
         performed, otherwise **0**
@@ -1017,6 +1017,209 @@ def mapOntoChain(atoms, chain, **kwargs):
                      mapping=indices_mapping, dummies=indices_dummies,
                      title=title_chn + ' -> ' + title_tar )
         selection = AM(target_ag, indices_target, target_chain.getACSIndex(),
+                       title=title_tar + ' -> ' + title_chn, intarrays=True)
+
+        mappings[mi] = (atommap, selection, _seqid, _cover)
+    if len(mappings) > 1:
+        mappings.sort(key=lambda m: m[-2]*m[-1], reverse=True)
+    return mappings
+
+def mapChainOntoChain(mobile, target, **kwargs):
+    """Map *mobile* chain onto *target* chain.  This function returns a mapping that 
+    contains 4 items:
+
+      * Mapped chain as an :class:`.AtomMap` instance,
+      * *chain* as an :class:`.AtomMap` instance,
+      * Percent sequence identitity,
+      * Percent sequence overlap
+
+    Mappings are returned in decreasing percent sequence identity order.
+    :class:`.AtomMap` that keeps mapped atom indices contains dummy atoms
+    in place of unmapped atoms.
+
+    :arg mobile: mobile that will be mapped to the *target* chain
+    :type mobile: :class:`.Chain`
+
+    :arg target: chain to which atoms will be mapped
+    :type target: :class:`.Chain`
+
+    :keyword seqid: percent sequence identity, default is **90** if sequence alignment is 
+        performed, otherwise **0**
+    :type seqid: float
+
+    :keyword overlap: percent overlap, default is **70**
+    :type overlap: float
+
+    :keyword mapping: if ``"ce"`` or ``"cealign"``, then the CE algorithm [IS98]_ will be 
+        performed. It can also be a list of prealigned sequences, a :class:`.MSA` instance,
+        or a dict of indices such as that derived from a :class:`.DaliRecord`.
+        If set to anything other than the options listed above, including the default value 
+        (**None**), a simple mapping will be first attempted and if that failed 
+        then sequence alignment with a function from :mod:`~Bio.pairwise2` will be used 
+        unless *pwalign* is set to **False**, in which case the mapping will fail.
+    :type mapping: list, str
+
+    :keyword pwalign: if **True**, then pairwise sequence alignment will 
+        be performed. If **False** then a simple mapping will be performed 
+        based on residue numbers (as well as insertion codes). This will be 
+        overridden by the *mapping* keyword's value. 
+    :type pwalign: bool
+
+    This function tries to map *mobile* to *target* based on residue
+    numbers and types. Each individual chain in *mobile* is compared to
+    *target*.
+    
+    .. [IS98] Shindyalov IN, Bourne PE. Protein structure alignment by 
+       incremental combinatorial extension (CE) of the optimal path. 
+       *Protein engineering* **1998** 11(9):739-47.
+    """
+
+    if not isinstance(mobile, Chain):
+        raise TypeError('mobile must be a Chain instance')
+    if not isinstance(target, Chain):
+        raise TypeError('target must be Chain instance')
+
+    seqid = kwargs.get('seqid', 90.) 
+    coverage = kwargs.get('overlap', 70.)
+    coverage = kwargs.get('coverage', coverage) 
+    pwalign = kwargs.get('pwalign', None)
+    pwalign = kwargs.get('mapping', pwalign)
+    alignment = None
+    if pwalign is not None:
+        if isinstance(pwalign, basestring):
+            pwalign = str(pwalign).strip().lower()
+        elif not isinstance(pwalign, bool):
+            alignment = pwalign
+            pwalign = True
+
+    chains = [mobile]
+    map_ag = mobile.getAtomGroup()
+    target_ag = target.getAtomGroup()
+
+    simple_target = SimpleChain(target, False)
+    LOGGER.debug('Trying to map atoms based on residue numbers and '
+                'identities:')
+
+    simple_mobile = SimpleChain(mobile, False)
+    if len(simple_mobile) == 0:
+        LOGGER.debug('  Skipping {0}, which does not contain any amino '
+                    'acid residues.'.format(simple_mobile))
+    else:
+        LOGGER.debug('  Comparing {0} (len={1}) with {2}:'
+                    .format(simple_mobile.getTitle(), len(simple_mobile),
+                            simple_target.getTitle()))
+
+        # trivial mapping serves as a first simple trial of alignment the two 
+        # sequences based on residue number, therefore the sequence identity 
+        # (TRIVIAL_SEQID) criterion is strict.
+        _seqid = _cover = -1
+        target_list, chain_list, n_match, n_mapped = getTrivialMapping(
+            simple_target, simple_mobile)
+        if n_mapped > 0:
+            _seqid = n_match * 100 / n_mapped
+            _cover = n_mapped * 100 / max(len(simple_target), len(simple_mobile))
+
+        trivial_seqid = TRIVIAL_SEQID if pwalign else seqid
+        trivial_cover = TRIVIAL_COVERAGE if pwalign else coverage
+        if _seqid >= trivial_seqid and _cover >= trivial_cover:
+            LOGGER.debug('\tMapped: {0} residues match with {1:.0f}% '
+                    'sequence identity and {2:.0f}% overlap.'
+                    .format(n_mapped, _seqid, _cover))
+            return (target_list, chain_list, _seqid, _cover)
+        else:
+            if not pwalign:
+                LOGGER.debug('\tFailed to match chains based on residue numbers '
+                        '(seqid={0:.0f}%, overlap={1:.0f}%).'
+                        .format(_seqid, _cover))
+
+    if mapping is None and pwalign is None:
+        pwalign = True
+
+    if pwalign and unmapped:
+        if alignment is None:
+            if pwalign in ['ce', 'cealign']:
+                aln_type = 'structure alignment'
+                method = 'CE'
+                if not 'seqid' in kwargs:
+                    seqid = 0.
+            else:
+                aln_type = 'sequence alignment'
+                method = ALIGNMENT_METHOD
+        else:
+            aln_type = 'alignment'
+            method = 'predefined'
+            if not 'seqid' in kwargs:
+                seqid = 0.
+
+        LOGGER.debug('Trying to map atoms based on {0} {1}:'
+                     .format(method, aln_type))
+
+        for simple_mobile in unmapped:
+            LOGGER.debug('  Comparing {0} (len={1}) with {2}:'
+                        .format(simple_mobile.getTitle(), len(simple_mobile),
+                                simple_target.getTitle()))
+            if method == 'CE':
+                result = getCEAlignMapping(simple_target, simple_mobile)
+            else:
+                if isinstance(alignment, dict):
+                    result = getDictMapping(simple_target, simple_mobile, map_dict=alignment)
+                else:
+                    result = getAlignedMapping(simple_target, simple_mobile, alignment=alignment)
+
+            if result is not None:
+                target_list, chain_list, n_match, n_mapped = result
+                if n_mapped > 0:
+                    _seqid = n_match * 100 / n_mapped
+                    _cover = n_mapped * 100 / max(len(simple_target),
+                                                  len(simple_mobile))
+                else:
+                    _seqid = 0
+                    _cover = 0
+                if _seqid >= seqid and _cover >= coverage:
+                    LOGGER.debug('\tMapped: {0} residues match with {1:.0f}%'
+                                 ' sequence identity and {2:.0f}% overlap.'
+                                 .format(n_mapped, _seqid, _cover))
+                    mappings.append((target_list, chain_list, _seqid, _cover))
+                else:
+                    LOGGER.debug('\tFailed to match chains (seqid={0:.0f}%, '
+                                 'overlap={1:.0f}%).'
+                                 .format(_seqid, _cover))
+
+    for mi, result in enumerate(mappings):
+        residues_target, residues_chain, _seqid, _cover = result
+        indices_target = []
+        indices_chain = []
+        indices_mapping = []
+        indices_dummies = []
+        counter = 0
+        for i in range(len(residues_target)):
+            res_tar = residues_target[i]
+            res_chn = residues_chain[i]
+
+            for atom_tar in res_tar:
+                indices_target.append(atom_tar.getIndex())
+                if res_chn is not None:
+                    atom_chn = res_chn.getAtom(atom_tar.getName())
+                    if atom_chn is not None:
+                        indices_chain.append(atom_chn.getIndex())
+                        indices_mapping.append(counter)
+                    else:
+                        indices_dummies.append(counter)
+                else:
+                    indices_dummies.append(counter)
+                counter += 1
+        #n_atoms = len(indices_target)
+
+        ch_tar = next((r for r in residues_target if r is not None)).getChain()
+        ch_chn = next((r for r in residues_chain if r is not None)).getChain()
+        title_tar = 'Chain {0} from {1}'.format(ch_tar.getChid(), ch_tar.getAtomGroup().getTitle())
+        title_chn = 'Chain {0} from {1}'.format(ch_chn.getChid(), ch_chn.getAtomGroup().getTitle())
+
+        # note that chain here is from atoms
+        atommap = AM(map_ag, indices_chain, chain.getACSIndex(),
+                     mapping=indices_mapping, dummies=indices_dummies,
+                     title=title_chn + ' -> ' + title_tar )
+        selection = AM(target_ag, indices_target, target.getACSIndex(),
                        title=title_tar + ' -> ' + title_chn, intarrays=True)
 
         mappings[mi] = (atommap, selection, _seqid, _cover)
