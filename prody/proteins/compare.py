@@ -1071,8 +1071,21 @@ def mapChainOntoChain(mobile, target, **kwargs):
        *Protein engineering* **1998** 11(9):739-47.
     """
 
+    if isinstance(mobile, Chain):
+        simple_mobile = SimpleChain(mobile, False)
+    elif isinstance(mobile, SimpleChain):
+        simple_mobile = mobile
+        mobile = mobile._chain
+
+    if isinstance(target, Chain):
+        simple_target = SimpleChain(target, False)
+    elif isinstance(target, SimpleChain):
+        simple_target = target
+        target = target._chain
+
     if not isinstance(mobile, Chain):
         raise TypeError('mobile must be a Chain instance')
+
     if not isinstance(target, Chain):
         raise TypeError('target must be Chain instance')
 
@@ -1092,16 +1105,14 @@ def mapChainOntoChain(mobile, target, **kwargs):
     map_ag = mobile.getAtomGroup()
     target_ag = target.getAtomGroup()
 
-    simple_target = SimpleChain(target, False)
-    LOGGER.debug('Trying to map atoms based on residue numbers and '
-                'identities:')
-
     mapping = None
-    simple_mobile = SimpleChain(mobile, False)
     if len(simple_mobile) == 0:
         LOGGER.debug('  Skipping {0}, which does not contain any amino '
                     'acid residues.'.format(simple_mobile))
+        return mapping
     else:
+        LOGGER.debug('Trying to map atoms based on residue numbers and '
+                'identities:')
         LOGGER.debug('  Comparing {0} (len={1}) with {2}:'
                     .format(simple_mobile.getTitle(), len(simple_mobile),
                             simple_target.getTitle()))
