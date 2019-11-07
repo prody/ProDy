@@ -694,7 +694,7 @@ def matchChains(atoms1, atoms2, **kwargs):
                     else:
                         indices1.append(aid)
                         indices2.append(bres._indices[bid])
-            elif subset is None or subset is 'all':
+            elif subset is None or subset == 'all':
                 aans = ares.getNames()
                 bans = bres.getNames().tolist()
 
@@ -1087,8 +1087,8 @@ def mapChainByChain(atoms, ref, **kwargs):
             i = corr_ref.index(chain.getChid())
             chid = corr_tar[i]
         except ValueError:
-            pass
-            #chid = chain.getChid()
+            continue
+
         for target_chain in chs_atm:
             if target_chain.getChid() == chid:
                 mappings_ = mapOntoChainByAlignment(target_chain, chain, **kwargs)

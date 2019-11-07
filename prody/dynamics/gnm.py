@@ -104,16 +104,18 @@ def solveEig(M, n_modes=None, zeros=False, turbo=True, is3d=False):
 
     if not zeros:
         if n_zeros > expct_n_zeros:
-            if n_zeros == n_modes + expct_n_zeros and n_modes != dof:
+            if n_zeros == n_modes + expct_n_zeros and n_modes < dof:
                 LOGGER.debug('Determing the number of zero eigenvalues...')
                 # find the actual number of zero modes
                 n_zeros = _calc_n_zero_modes(M)
                 LOGGER.debug('%d zero eigenvalues detected.'%n_zeros)
             LOGGER.debug('Solving for additional eigenvalues...')
-            start = min(n_modes+expct_n_zeros, dof-1); end = min(n_modes+n_zeros-1, dof-1)
-            values_, vectors_ = _eigh(M, eigvals=(start, end))
-            values = np.concatenate((values, values_))
-            vectors = np.hstack((vectors, vectors_))
+
+            if n_modes < dof:
+                start = min(n_modes+expct_n_zeros, dof-1); end = min(n_modes+n_zeros-1, dof-1)
+                values_, vectors_ = _eigh(M, eigvals=(start, end))
+                values = np.concatenate((values, values_))
+                vectors = np.hstack((vectors, vectors_))
 
         # final_n_modes may exceed len(eigvals) - no need to fix for the sake of the simplicity of the code
         final_n_modes = n_zeros + n_modes
@@ -810,7 +812,8 @@ class MaskedGNM(GNM):
 
     def setEigens(self, vectors, values=None):
         if not self.masked:
-            vectors = vectors[self.mask, :]
+            if not np.isscalar(self.mask):
+                vectors = vectors[self.mask, :]
         self._maskedarray = None
         super(MaskedGNM, self).setEigens(vectors, values)
 
