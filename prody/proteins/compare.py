@@ -789,8 +789,10 @@ def getAlignedMatch(ach, bch):
 
 
 def mapOntoChain(atoms, chain, **kwargs):
-    """Map *atoms* onto *chain*.  This function returns a list of mappings.
-    Each mapping is a tuple that contains 4 items:
+    """Map *atoms* onto *chain*. This function is a wrapper of 
+    :func:`.mapChainOntoChain` that manages to map chains onto target *chain*. 
+    The function returns a list of mappings. Each mapping is a tuple that 
+    contains 4 items:
 
       * Mapped chain as an :class:`.AtomMap` instance,
       * *chain* as an :class:`.AtomMap` instance,
@@ -812,28 +814,7 @@ def mapOntoChain(atoms, chain, **kwargs):
         ``"heavy"`` (or ``"noh"``), or ``"all"``, default is ``"calpha"``
     :type subset: str
 
-    :keyword seqid: percent sequence identity, default is **90** if sequence alignment is 
-        performed, otherwise **0**
-    :type seqid: float
-
-    :keyword overlap: percent overlap, default is **70**
-    :type overlap: float
-
-    :keyword mapping: if ``"ce"`` or ``"cealign"``, then the CE algorithm [IS98]_ will be 
-        performed. It can also be a list of prealigned sequences, a :class:`.MSA` instance,
-        or a dict of indices such as that derived from a :class:`.DaliRecord`.
-        If set to anything other than the options listed above, including the default value 
-        (**None**), a simple mapping will be first attempted and if that failed 
-        then sequence alignment with a function from :mod:`~Bio.pairwise2` will be used 
-        unless *pwalign* is set to **False**, in which case the mapping will fail.
-    :type mapping: list, str
-
-    :keyword pwalign: if **True**, then pairwise sequence alignment will 
-        be performed. If **False** then a simple mapping will be performed 
-        based on residue numbers (as well as insertion codes). This will be 
-        overridden by the *mapping* keyword's value. 
-    :type pwalign: bool
-
+    See :func:`.mapChainOntoChain` for other keyword arguments. 
     This function tries to map *atoms* to *chain* based on residue
     numbers and types. Each individual chain in *atoms* is compared to
     target *chain*.
@@ -844,7 +825,8 @@ def mapOntoChain(atoms, chain, **kwargs):
     """
 
     if not isinstance(atoms, (AtomGroup, AtomSubset)):
-        raise TypeError('atoms must be an AtomGroup or a AtomSubset instance')
+        raise TypeError('atoms must be an AtomGroup or a AtomSubset(Chain, '
+                        'Segment, etc.) instance')
     if not isinstance(chain, Chain):
         raise TypeError('chain must be Chain instance')
 
@@ -1212,18 +1194,40 @@ def mapOntoChains(atoms, ref, match_func=bestMatch, **kwargs):
     :type match_func: func
     """
     
-    chs_atm = [chain for chain in atoms.getHierView().iterChains()]
-    chs_ref = [chain for chain in ref.getHierView().iterChains()]
+    if not isinstance(atoms, (AtomGroup, AtomSubset)):
+        raise TypeError('atoms must be an AtomGroup or a AtomSubset(Chain, '
+                        'Segment, etc.) instance')
+    if not isinstance(ref, (AtomGroup, AtomSubset)):
+        raise TypeError('ref must be an AtomGroup or a AtomSubset(Chain, '
+                        'Segment, etc.) instance')
 
-    # iterate through chains for both ref and atoms
+    subset = str(kwargs.get('subset', 'calpha')).lower()
+    if subset not in _SUBSETS:
+        raise ValueError('{0} is not a valid subset argument'
+                         .format(str(subset)))
+
+    if subset != 'all':
+        target = ref.select(subset)
+        mobile = atoms.select(subset)
+    else:
+        target = ref
+        mobile = atoms
+
+    chs_atm = [chain for chain in mobile.getHierView().iterChains()]
+    chs_ref = [chain for chain in target.getHierView().iterChains()]
+
+    # iterate through chains of both target and mobile
     mappings = []
     for chain in chs_ref:
+        simple_chain = SimpleChain(chain, False)
         for target_chain in chs_atm:
             if not match_func(chain, target_chain):
                 continue
-            mappings_ = mapOntoChain(target_chain, chain, **kwargs)
-            if len(mappings_):
-                mappings.append(mappings_[0])
+
+            simple_target = SimpleChain(target_chain, False)
+            mapping = mapChainOntoChain(simple_target, simple_chain, **kwargs)
+            if mapping is not None:
+                mappings.append(mapping)
     
 
     return mappings
