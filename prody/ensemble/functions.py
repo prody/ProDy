@@ -282,9 +282,11 @@ def showOccupancies(pdbensemble, *args, **kwargs):
 
     import matplotlib.pyplot as plt
 
+    normed = kwargs.pop('normed', False)
+
     if not isinstance(pdbensemble, PDBEnsemble):
         raise TypeError('pdbensemble must be a PDBEnsemble instance')
-    weights = calcOccupancies(pdbensemble)
+    weights = calcOccupancies(pdbensemble, normed)
     if weights is None:
         return None
     show = plt.plot(weights, *args, **kwargs)

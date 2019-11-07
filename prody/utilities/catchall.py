@@ -139,25 +139,25 @@ def showLines(*args, **kwargs):
     
     :arg x: (optional) x coordinates. *x* can be an 1-D array or a 2-D matrix of 
             column vectors.
-    :type x: `~numpy.ndarray`
+    :type x: :class:`~numpy.ndarray`
 
     :arg y: data array. *y* can be an 1-D array or a 2-D matrix of 
             column vectors.
-    :type y: `~numpy.ndarray`
+    :type y: :class:`~numpy.ndarray`
 
     :arg dy: an array of variances of *y* which will be plotted as a 
              band along *y*. It should have the same shape with *y*.
-    :type dy: `~numpy.ndarray`
+    :type dy: :class:`~numpy.ndarray`
 
     :arg lower: an array of lower bounds which will be plotted as a 
                 band along *y*. It should have the same shape with *y* and should be 
                 paired with *upper*.
-    :type lower: `~numpy.ndarray`
+    :type lower: :class:`~numpy.ndarray`
 
     :arg upper: an array of upper bounds which will be plotted as a 
                 band along *y*. It should have the same shape with *y* and should be 
                 paired with *lower*.
-    :type upper: `~numpy.ndarray`
+    :type upper: :class:`~numpy.ndarray`
 
     :arg alpha: the transparency of the band(s) for plotting *dy*.
     :type alpha: float
@@ -317,22 +317,17 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
     allticks = kwargs.pop('allticks', False) # this argument is temporary and will be replaced by better implementation
     interactive = kwargs.pop('interactive', True)
 
-    if not 'origin' in kwargs:
-        kwargs['origin'] = 'lower'
-    if not 'cmap' in kwargs:
-        kwargs['cmap'] = 'jet'
-
-    cmap = kwargs.get('cmap')
+    cmap = kwargs.pop('cmap', 'jet')
+    origin = kwargs.pop('origin', 'lower')
 
     tree_mode = False
-    if np.isscalar(y_array):
-        try: 
-            from Bio import Phylo
-        except ImportError:
-            raise ImportError('Phylo module could not be imported. '
-                'Reinstall ProDy or install Biopython '
-                'to solve the problem.')
-        tree_mode = isinstance(y_array, Phylo.BaseTree.Tree)
+    try: 
+        from Bio import Phylo
+    except ImportError:
+        raise ImportError('Phylo module could not be imported. '
+            'Reinstall ProDy or install Biopython '
+            'to solve the problem.')
+    tree_mode = isinstance(y_array, Phylo.BaseTree.Tree)
 
     if x_array is not None and y_array is not None:
         nrow = 2; ncol = 2
@@ -358,13 +353,6 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
         width_ratios = [W]
         height_ratios = [H]
         aspect = None
-
-    if tree_mode:
-        nrow = 2; ncol = 2
-        i = 1; j = 1
-        width_ratios = [W, W]
-        height_ratios = [H, H]
-        aspect = 'auto'
 
     main_index = (i, j)
     upper_index = (i-1, j)
@@ -401,7 +389,7 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
         ax2 = subplot(gs[left_index])
         
         if tree_mode:
-            Phylo.draw(y_array, do_show=False, axes=ax2, **kwargs)
+            Phylo.draw(y_array, do_show=False, axes=ax2)
         else:
             ax2.set_xticklabels([])
             
@@ -423,7 +411,7 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
     else:
         ax3 = gca()
     
-    im = ax3.imshow(matrix, aspect=aspect, vmin=vmin, vmax=vmax, **kwargs)
+    im = ax3.imshow(matrix, aspect=aspect, vmin=vmin, vmax=vmax, cmap=cmap, origin=origin, **kwargs)
     #ax3.set_xlim([-0.5, matrix.shape[0]+0.5])
     #ax3.set_ylim([-0.5, matrix.shape[1]+0.5])
 
@@ -436,11 +424,15 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
         ax3.xaxis.set_major_locator(ticker.IndexLocator(offset=0.5, base=1.))
         ax3.yaxis.set_major_locator(ticker.IndexLocator(offset=0.5, base=1.))
     else:
-        ax3.xaxis.set_major_locator(ticker.AutoLocator())
-        ax3.xaxis.set_minor_locator(ticker.AutoMinorLocator())
+        locator = ticker.AutoLocator()
+        locator.set_params(integer=True)
+        minor_locator = ticker.AutoMinorLocator()
 
-        ax3.yaxis.set_major_locator(ticker.AutoLocator())
-        ax3.yaxis.set_minor_locator(ticker.AutoMinorLocator())
+        ax3.xaxis.set_major_locator(locator)
+        ax3.xaxis.set_minor_locator(minor_locator)
+
+        ax3.yaxis.set_major_locator(locator)
+        ax3.yaxis.set_minor_locator(minor_locator)
 
     if ncol > 1:
         ax3.yaxis.set_major_formatter(ticker.NullFormatter())
