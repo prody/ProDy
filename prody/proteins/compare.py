@@ -1081,9 +1081,9 @@ def mapChainOntoChain(mobile, target, **kwargs):
     coverage = kwargs.get('coverage', coverage) 
     pwalign = kwargs.get('pwalign', True)
     pwalign = kwargs.get('mapping', pwalign)
+    alignment = None
 
     if isinstance(pwalign, basestring):
-        alignment = None
         pwalign = pystr(pwalign).strip().lower()
     elif not isinstance(pwalign, bool):
         alignment = pwalign
