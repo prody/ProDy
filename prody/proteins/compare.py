@@ -15,7 +15,7 @@ from prody.atomic import flags
 from prody.measure import calcTransformation, printRMSD, calcDistance
 from prody import LOGGER, SELECT, PY2K, PY3K
 from prody.sequence import MSA
-from prody.utilities import cmp
+from prody.utilities import cmp, pystr
 
 if PY2K:
     range = xrange
@@ -23,7 +23,8 @@ if PY2K:
 if PY3K:
     basestring = str
 
-__all__ = ['matchChains', 'matchAlign', 'mapOntoChain', 'mapChainByChain', 
+__all__ = ['matchChains', 'matchAlign', 'mapChainOntoChain', 'mapOntoChain', 
+           'mapChainByChain', 
            'mapOntoChainByAlignment', 'getMatchScore', 'setMatchScore',
            'getMismatchScore', 'setMismatchScore', 'getGapPenalty', 
            'setGapPenalty', 'getGapExtPenalty', 'setGapExtPenalty',
@@ -1050,24 +1051,20 @@ def mapChainOntoChain(mobile, target, **kwargs):
     :keyword overlap: percent overlap, default is **70**
     :type overlap: float
 
-    :keyword mapping: if ``"ce"`` or ``"cealign"``, then the CE algorithm [IS98]_ will be 
+    :keyword mapping: what method will be used if the trivial mapping based on residue numbers 
+        fails. If ``"ce"`` or ``"cealign"``, then the CE algorithm [IS98]_ will be 
         performed. It can also be a list of prealigned sequences, a :class:`.MSA` instance,
         or a dict of indices such as that derived from a :class:`.DaliRecord`.
-        If set to anything other than the options listed above, including the default value 
-        (**None**), a simple mapping will be first attempted and if that failed 
-        then sequence alignment with a function from :mod:`~Bio.pairwise2` will be used 
-        unless *pwalign* is set to **False**, in which case the mapping will fail.
-    :type mapping: list, str
+        If set to **True** then the sequence alignment from :mod:`~Bio.pairwise2` 
+        will be used. If set to **False**, only the trivial mapping will be performed. 
+        Default is **True**
+    :type mapping: list, str, bool
 
     :keyword pwalign: if **True**, then pairwise sequence alignment will 
         be performed. If **False** then a simple mapping will be performed 
         based on residue numbers (as well as insertion codes). This will be 
-        overridden by the *mapping* keyword's value. 
+        overridden by the *mapping* keyword's value. Default is **True**
     :type pwalign: bool
-
-    This function tries to map *mobile* to *target* based on residue
-    numbers and types. Each individual chain in *mobile* is compared to
-    *target*.
     
     .. [IS98] Shindyalov IN, Bourne PE. Protein structure alignment by 
        incremental combinatorial extension (CE) of the optimal path. 
@@ -1082,17 +1079,16 @@ def mapChainOntoChain(mobile, target, **kwargs):
     seqid = kwargs.get('seqid', 90.) 
     coverage = kwargs.get('overlap', 70.)
     coverage = kwargs.get('coverage', coverage) 
-    pwalign = kwargs.get('pwalign', None)
+    pwalign = kwargs.get('pwalign', True)
     pwalign = kwargs.get('mapping', pwalign)
-    alignment = None
-    if pwalign is not None:
-        if isinstance(pwalign, basestring):
-            pwalign = str(pwalign).strip().lower()
-        elif not isinstance(pwalign, bool):
-            alignment = pwalign
-            pwalign = True
 
-    chains = [mobile]
+    if isinstance(pwalign, basestring):
+        alignment = None
+        pwalign = pystr(pwalign).strip().lower()
+    elif not isinstance(pwalign, bool):
+        alignment = pwalign
+        pwalign = True
+
     map_ag = mobile.getAtomGroup()
     target_ag = target.getAtomGroup()
 
@@ -1100,6 +1096,7 @@ def mapChainOntoChain(mobile, target, **kwargs):
     LOGGER.debug('Trying to map atoms based on residue numbers and '
                 'identities:')
 
+    mapping = None
     simple_mobile = SimpleChain(mobile, False)
     if len(simple_mobile) == 0:
         LOGGER.debug('  Skipping {0}, which does not contain any amino '
@@ -1125,17 +1122,14 @@ def mapChainOntoChain(mobile, target, **kwargs):
             LOGGER.debug('\tMapped: {0} residues match with {1:.0f}% '
                     'sequence identity and {2:.0f}% overlap.'
                     .format(n_mapped, _seqid, _cover))
-            return (target_list, chain_list, _seqid, _cover)
+            mapping = (target_list, chain_list, _seqid, _cover)
         else:
             if not pwalign:
                 LOGGER.debug('\tFailed to match chains based on residue numbers '
                         '(seqid={0:.0f}%, overlap={1:.0f}%).'
                         .format(_seqid, _cover))
 
-    if mapping is None and pwalign is None:
-        pwalign = True
-
-    if pwalign and unmapped:
+    if pwalign and mapping is None:
         if alignment is None:
             if pwalign in ['ce', 'cealign']:
                 aln_type = 'structure alignment'
@@ -1154,39 +1148,38 @@ def mapChainOntoChain(mobile, target, **kwargs):
         LOGGER.debug('Trying to map atoms based on {0} {1}:'
                      .format(method, aln_type))
 
-        for simple_mobile in unmapped:
-            LOGGER.debug('  Comparing {0} (len={1}) with {2}:'
-                        .format(simple_mobile.getTitle(), len(simple_mobile),
-                                simple_target.getTitle()))
-            if method == 'CE':
-                result = getCEAlignMapping(simple_target, simple_mobile)
+        LOGGER.debug('  Comparing {0} (len={1}) with {2}:'
+                    .format(simple_mobile.getTitle(), len(simple_mobile),
+                            simple_target.getTitle()))
+        if method == 'CE':
+            result = getCEAlignMapping(simple_target, simple_mobile)
+        else:
+            if isinstance(alignment, dict):
+                result = getDictMapping(simple_target, simple_mobile, map_dict=alignment)
             else:
-                if isinstance(alignment, dict):
-                    result = getDictMapping(simple_target, simple_mobile, map_dict=alignment)
-                else:
-                    result = getAlignedMapping(simple_target, simple_mobile, alignment=alignment)
+                result = getAlignedMapping(simple_target, simple_mobile, alignment=alignment)
 
-            if result is not None:
-                target_list, chain_list, n_match, n_mapped = result
-                if n_mapped > 0:
-                    _seqid = n_match * 100 / n_mapped
-                    _cover = n_mapped * 100 / max(len(simple_target),
-                                                  len(simple_mobile))
-                else:
-                    _seqid = 0
-                    _cover = 0
-                if _seqid >= seqid and _cover >= coverage:
-                    LOGGER.debug('\tMapped: {0} residues match with {1:.0f}%'
-                                 ' sequence identity and {2:.0f}% overlap.'
-                                 .format(n_mapped, _seqid, _cover))
-                    mappings.append((target_list, chain_list, _seqid, _cover))
-                else:
-                    LOGGER.debug('\tFailed to match chains (seqid={0:.0f}%, '
-                                 'overlap={1:.0f}%).'
-                                 .format(_seqid, _cover))
+        if result is not None:
+            target_list, chain_list, n_match, n_mapped = result
+            if n_mapped > 0:
+                _seqid = n_match * 100 / n_mapped
+                _cover = n_mapped * 100 / max(len(simple_target),
+                                                len(simple_mobile))
+            else:
+                _seqid = 0
+                _cover = 0
+            if _seqid >= seqid and _cover >= coverage:
+                LOGGER.debug('\tMapped: {0} residues match with {1:.0f}%'
+                                ' sequence identity and {2:.0f}% overlap.'
+                                .format(n_mapped, _seqid, _cover))
+                mapping = (target_list, chain_list, _seqid, _cover)
+            else:
+                LOGGER.debug('\tFailed to match chains (seqid={0:.0f}%, '
+                                'overlap={1:.0f}%).'
+                                .format(_seqid, _cover))
 
-    for mi, result in enumerate(mappings):
-        residues_target, residues_chain, _seqid, _cover = result
+    if mapping is not None:
+        residues_target, residues_chain, _seqid, _cover = mapping
         indices_target = []
         indices_chain = []
         indices_mapping = []
@@ -1216,16 +1209,14 @@ def mapChainOntoChain(mobile, target, **kwargs):
         title_chn = 'Chain {0} from {1}'.format(ch_chn.getChid(), ch_chn.getAtomGroup().getTitle())
 
         # note that chain here is from atoms
-        atommap = AM(map_ag, indices_chain, chain.getACSIndex(),
+        atommap = AM(map_ag, indices_chain, mobile.getACSIndex(),
                      mapping=indices_mapping, dummies=indices_dummies,
                      title=title_chn + ' -> ' + title_tar )
         selection = AM(target_ag, indices_target, target.getACSIndex(),
                        title=title_tar + ' -> ' + title_chn, intarrays=True)
 
-        mappings[mi] = (atommap, selection, _seqid, _cover)
-    if len(mappings) > 1:
-        mappings.sort(key=lambda m: m[-2]*m[-1], reverse=True)
-    return mappings
+        mapping = (atommap, selection, _seqid, _cover)
+    return mapping
 
 def mapChainByChain(atoms, ref, **kwargs):
     """This function is similar to :func:`.mapOntoChain` but correspondence 
