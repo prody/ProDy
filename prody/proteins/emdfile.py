@@ -128,7 +128,7 @@ def _parseEMDLines(atomgroup, stream, cutoff=None, n_nodes=1000, num_iter=20, ma
  
     if make_nodes:
         if map:
-            return atomgroup, emd
+            return emd, atomgroup
         else:
             return atomgroup
     else:
@@ -333,12 +333,12 @@ class EMDMAP:
     def numidx2matidx(self, numidx):
         """ Given index of the position, it will return the numbers of section, row and column. """
         # calculate section idx
-        s = numidx / (self.NC * self.NR)
+        s = int(numidx / (self.NC * self.NR))
         numidx = numidx - s * self.NC * self.NR
         # calculate row idx
-        r = numidx / self.NC
+        r = int(numidx / self.NC)
         # calculate column idx
-        c = numidx - r * self.NC
+        c = int(numidx - r * self.NC)
         return s, r, c
 
     def drawsample(self):
@@ -355,7 +355,7 @@ class EMDMAP:
         return self.numidx2matidx(r)
 
     def center(self):
-        return self.NS / 2, self.NR / 2, self.NC / 2
+        return int(self.NS / 2), int(self.NR / 2), int(self.NC / 2)
 
     def coordinate(self, sec, row, col ):
         # calculate resolution
@@ -381,7 +381,7 @@ class TRNET:
         # test
         self.V = np.array([])
         
-    def inputMap(self, emdmap, sample = 'density'):
+    def inputMap(self, emdmap, sample='density'):
         self.map = emdmap
         # initialize the positions of nodes
         for i in range(self.N):
