@@ -1087,8 +1087,8 @@ def mapChainByChain(atoms, ref, **kwargs):
             i = corr_ref.index(chain.getChid())
             chid = corr_tar[i]
         except ValueError:
-            pass
-            #chid = chain.getChid()
+            continue
+
         for target_chain in chs_atm:
             if target_chain.getChid() == chid:
                 mappings_ = mapOntoChainByAlignment(target_chain, chain, **kwargs)

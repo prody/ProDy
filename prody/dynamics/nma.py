@@ -6,7 +6,7 @@ import numpy as np
 from .mode import Mode
 from .modeset import ModeSet
 
-from prody import PY2K
+from prody import PY2K, LOGGER
 
 if PY2K:
     range = xrange
@@ -285,8 +285,8 @@ class NMA(object):
             else:
                 n_atoms = dof
             if self._n_atoms > 0 and n_atoms != self._n_atoms:
-                    raise ValueError('vectors do not have the right shape, '
-                                 'which is (M,{0})'.format(n_atoms*3))
+                LOGGER.warn('the number of atoms of the model will be changed to {0}'
+                            .format(n_atoms))
             n_modes = vectors.shape[1]
         if values is not None:
             if not isinstance(vectors, np.ndarray):
