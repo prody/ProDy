@@ -498,7 +498,7 @@ def matchChains(atoms1, atoms2, **kwargs):
     """Returns pairs of chains matched based on sequence similarity.  Makes an
     all-to-all comparison of chains in *atoms1* and *atoms2*.  Chains are
     obtained from hierarchical views (:class:`.HierView`) of atom groups.
-    This function returns a list of matching chains in a tuples that contain
+    This function returns a list of matching chains in a tuple that contain
     4 items:
 
       * matching chain from *atoms1* as a :class:`.AtomMap`
@@ -1469,11 +1469,11 @@ def getCEAlignMapping(target, chain):
 
     return amatch, bmatch, n_match, n_mapped
 
-def combineAtomMaps(mappings):
+def combineAtomMaps(mappings, mode='optimal'):
     """ build a grand :class:`.AtomMap` instance based on *mappings* obtained from 
     :func:`.mapOntoChains`. The function also accepts the output :func:`.mapOntoChain` 
     but will trivially return all the :class:`.AtomMap` in *mappings*. 
-    *mappings* should be a list or an array of matching chains in a tuples that contain
+    *mappings* should be a list or an array of matching chains in a tuple that contain
     4 items:
 
       * matching chain from *atoms1* as a :class:`.AtomMap`
@@ -1482,6 +1482,12 @@ def combineAtomMaps(mappings):
         instance,
       * percent sequence identity of the match,
       * percent sequence overlap of the match.
+
+    :arg mappings: a list or an array of matching chains in a tuple, or just the tuple
+    :type mappings: tuple, list, :class:`~numpy.ndarray`
+
+    :arg mode: in what way the :class:`.AtomMap` instances should be combined.
+    :type mode: str
 
     """
 
@@ -1501,7 +1507,13 @@ def combineAtomMaps(mappings):
         mappings = np.array([mappings])
 
     if mappings.ndim == 2:
-        pass
+        m, n = mappings.shape
+        S = zeros((m, n), dtype=float)
+        for i in range(m):
+            for j in range(n):
+                mapping = mappings[i, j]
+                S[i, j] = mapping[3] / 100.
+        
     else:
         raise ValueError('mappings can only be either an 1-D or 2-D array.')
 
