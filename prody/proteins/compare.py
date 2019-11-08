@@ -825,7 +825,7 @@ def mapOntoChain(atoms, chain, **kwargs):
     """
 
     if not isinstance(atoms, (AtomGroup, AtomSubset)):
-        raise TypeError('atoms must be an AtomGroup or a AtomSubset(Chain, '
+        raise TypeError('atoms must be an AtomGroup or a AtomSubset (Chain, '
                         'Segment, etc.) instance')
     if not isinstance(chain, Chain):
         raise TypeError('chain must be Chain instance')
@@ -1195,10 +1195,10 @@ def mapOntoChains(atoms, ref, match_func=bestMatch, **kwargs):
     """
     
     if not isinstance(atoms, (AtomGroup, AtomSubset)):
-        raise TypeError('atoms must be an AtomGroup or a AtomSubset(Chain, '
+        raise TypeError('atoms must be an AtomGroup or a AtomSubset (Chain, '
                         'Segment, etc.) instance')
     if not isinstance(ref, (AtomGroup, AtomSubset)):
-        raise TypeError('ref must be an AtomGroup or a AtomSubset(Chain, '
+        raise TypeError('ref must be an AtomGroup or a AtomSubset (Chain, '
                         'Segment, etc.) instance')
 
     subset = str(kwargs.get('subset', 'calpha')).lower()
@@ -1217,18 +1217,15 @@ def mapOntoChains(atoms, ref, match_func=bestMatch, **kwargs):
     chs_ref = [chain for chain in target.getHierView().iterChains()]
 
     # iterate through chains of both target and mobile
-    mappings = []
-    for chain in chs_ref:
+    mappings = [[None]*len(chs_atm)]*len(chs_ref)
+    for i, chain in enumerate(chs_ref):
         simple_chain = SimpleChain(chain, False)
-        for target_chain in chs_atm:
+        for j, target_chain in enumerate(chs_atm):
             if not match_func(chain, target_chain):
                 continue
 
             simple_target = SimpleChain(target_chain, False)
-            mapping = mapChainOntoChain(simple_target, simple_chain, **kwargs)
-            if mapping is not None:
-                mappings.append(mapping)
-    
+            mappings[i][j] = mapChainOntoChain(simple_target, simple_chain, **kwargs)
 
     return mappings
 
