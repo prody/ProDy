@@ -15,7 +15,7 @@ from prody.atomic import flags
 from prody.measure import calcTransformation, printRMSD, calcDistance
 from prody import LOGGER, SELECT, PY2K, PY3K
 from prody.sequence import MSA
-from prody.utilities import cmp, pystr
+from prody.utilities import cmp, pystr, isListLike
 
 if PY2K:
     range = xrange
@@ -1217,7 +1217,7 @@ def mapOntoChains(atoms, ref, match_func=bestMatch, **kwargs):
     chs_ref = [chain for chain in target.getHierView().iterChains()]
 
     # iterate through chains of both target and mobile
-    mappings = [[None]*len(chs_atm)]*len(chs_ref)
+    mappings = np.empty((len(chs_ref), len(chs_atm)), dtype='O')
     for i, chain in enumerate(chs_ref):
         simple_chain = SimpleChain(chain, False)
         for j, target_chain in enumerate(chs_atm):
@@ -1225,7 +1225,7 @@ def mapOntoChains(atoms, ref, match_func=bestMatch, **kwargs):
                 continue
 
             simple_target = SimpleChain(target_chain, False)
-            mappings[i][j] = mapChainOntoChain(simple_target, simple_chain, **kwargs)
+            mappings[i, j] = mapChainOntoChain(simple_target, simple_chain, **kwargs)
 
     return mappings
 
@@ -1468,6 +1468,44 @@ def getCEAlignMapping(target, chain):
             bmatch.append(None)
 
     return amatch, bmatch, n_match, n_mapped
+
+def combineAtomMaps(mappings):
+    """ build a grand :class:`.AtomMap` instance based on *mappings* obtained from 
+    :func:`.mapOntoChains`. The function also accepts the output :func:`.mapOntoChain` 
+    but will trivially return all the :class:`.AtomMap` in *mappings*. 
+    *mappings* should be a list or an array of matching chains in a tuples that contain
+    4 items:
+
+      * matching chain from *atoms1* as a :class:`.AtomMap`
+        instance,
+      * matching chain from *atoms2* as a :class:`.AtomMap`
+        instance,
+      * percent sequence identity of the match,
+      * percent sequence overlap of the match.
+
+    """
+
+    if not isinstance(mappings, isListLike):
+        raise TypeError('mappings should be a list')
+    
+    if len(mappings) == 0:
+        raise ValueError('mappings cannot be empty')
+
+    if isinstance(mappings, tuple):
+        am, am_r, s, c = mappings
+        return am
+    
+    mappings = np.asarray(mappings)
+    atommaps = []
+    if mappings.ndim == 1:
+        mappings = np.array([mappings])
+
+    if mappings.ndim == 2:
+        pass
+    else:
+        raise ValueError('mappings can only be either an 1-D or 2-D array.')
+
+    return atommaps
 
 if __name__ == '__main__':
 
