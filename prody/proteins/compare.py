@@ -1502,7 +1502,7 @@ def combineAtomMaps(mappings, mode='optimal'):
         return am
     
     mappings = np.asarray(mappings)
-    atommaps = []
+    
     if mappings.ndim == 1:
         mappings = np.array([mappings])
 
@@ -1512,8 +1512,26 @@ def combineAtomMaps(mappings, mode='optimal'):
         for i in range(m):
             for j in range(n):
                 mapping = mappings[i, j]
-                S[i, j] = mapping[3] / 100.
-        
+                if mapping is None:
+                    S[i, j] = 0.
+                else:
+                    S[i, j] = mapping[3] / 100.
+
+        atommaps = []
+        if mode == 'optimal':
+            crrpds = multilap(1. - S)
+            for row_ind, col_ind in crrpds:
+                if len(row_ind) != m:
+                    continue
+                atommap = None
+                for r, c in zip(row_ind, col_ind):
+                    atommap_ = mappings[r, c][0]
+                    if atommap_ is None:
+                        raise ValueError('no valid mappings')
+                    if atommap is None:
+                        atommap += atommap_
+                atommaps.append(atommap)
+
     else:
         raise ValueError('mappings can only be either an 1-D or 2-D array.')
 
