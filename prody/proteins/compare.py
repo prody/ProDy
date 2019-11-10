@@ -24,7 +24,7 @@ if PY3K:
     basestring = str
 
 __all__ = ['matchChains', 'matchAlign', 'mapChainOntoChain', 'mapOntoChain', 
-           'mapChainByChain', 
+           'mapChainByChain', 'mapOntoChains', 'bestMatch', 'sameChid', 'combineAtomMaps',
            'mapOntoChainByAlignment', 'getMatchScore', 'setMatchScore',
            'getMismatchScore', 'setMismatchScore', 'getGapPenalty', 
            'setGapPenalty', 'getGapExtPenalty', 'setGapExtPenalty',

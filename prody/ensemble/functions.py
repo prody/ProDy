@@ -6,7 +6,7 @@ from numbers import Integral
 
 import numpy as np
 
-from prody.proteins import fetchPDB, parsePDB, writePDB, mapOntoChain
+from prody.proteins import fetchPDB, parsePDB, writePDB, mapOntoChains, bestMatch
 from prody.utilities import openFile, showFigure, copy, isListLike, pystr
 from prody import LOGGER, SETTINGS
 from prody.atomic import AtomMap, Chain, AtomGroup, Selection, Segment, Select, AtomSubset
@@ -380,34 +380,34 @@ def alignPDBEnsemble(ensemble, suffix='_aligned', outdir='.', gzip=False):
 
 
 def buildPDBEnsemble(PDBs, ref=None, title='Unknown', labels=None, 
-                     mapping_func=mapOntoChain, unmapped=None, **kwargs):
+                     mapping_func=bestMatch, unmapped=None, **kwargs):
     """Builds a PDB ensemble from a given reference structure and a list of PDB structures. 
     Note that the reference structure should be included in the list as well.
 
-    :arg PDBs: A list of PDB structures
+    :arg PDBs: a list of PDB structures
     :type PDBs: iterable
 
-    :arg ref: Reference structure or the index to the reference in ``PDBs``. If **None**,
+    :arg ref: reference structure or the index to the reference in ``PDBs``. If **None**,
         then the first item in ``PDBs`` will be considered as the reference. 
         Default is **None**
     :type ref: int, :class:`.Chain`, :class:`.Selection`, or :class:`.AtomGroup`
 
-    :arg title: The title of the ensemble
+    :arg title: the title of the ensemble
     :type title: str
 
     :arg labels: labels of the conformations
     :type labels: list
 
-    :arg occupancy: Minimal occupancy of columns (range from 0 to 1). Columns whose occupancy
-        is below this value will be trimmed.
+    :arg occupancy: minimal occupancy of columns (range from 0 to 1). Columns whose occupancy
+        is below this value will be trimmed
     :type occupancy: float
 
-    :arg unmapped: A list of PDB IDs that cannot be included in the ensemble. This is an 
-        output argument. 
+    :arg unmapped: a list of PDB IDs that cannot be included in the ensemble. This is an 
+        output argument
     :type unmapped: list
 
-    :arg subset: A subset for selecting particular atoms from the input structures.
-        Default is calpha
+    :arg subset: a subset for selecting particular atoms from the input structures.
+        Default is ``"calpha"``
     :type subset: str
 
     :arg superpose: if set to ``'iter'``, :func:`.PDBEnsemble.iterpose` will be used to 
