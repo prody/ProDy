@@ -1469,25 +1469,28 @@ def getCEAlignMapping(target, chain):
 
     return amatch, bmatch, n_match, n_mapped
 
-def combineAtomMaps(mappings, mode='optimal'):
+def combineAtomMaps(mappings):
     """ build a grand :class:`.AtomMap` instance based on *mappings* obtained from 
     :func:`.mapOntoChains`. The function also accepts the output :func:`.mapOntoChain` 
     but will trivially return all the :class:`.AtomMap` in *mappings*. 
     *mappings* should be a list or an array of matching chains in a tuple that contain
     4 items:
 
-      * matching chain from *atoms1* as a :class:`.AtomMap`
-        instance,
-      * matching chain from *atoms2* as a :class:`.AtomMap`
-        instance,
+      * matching chain from *atoms1* as a :class:`.AtomMap` instance,
+      * matching chain from *atoms2* as a :class:`.AtomMap` instance,
       * percent sequence identity of the match,
       * percent sequence overlap of the match.
 
     :arg mappings: a list or an array of matching chains in a tuple, or just the tuple
     :type mappings: tuple, list, :class:`~numpy.ndarray`
 
-    :arg mode: in what way the :class:`.AtomMap` instances should be combined.
-    :type mode: str
+    The function returns 3 items:
+
+      * combined chains as an :class:`.AtomMap` instance,
+      * original coverage matrix, rows and columns correspond to the reference and the 
+        mobile, respectively,
+      * matched index groups that obtained by modeling the coverage matrix as a linear 
+        assignment problem.
 
     """
 
@@ -1517,25 +1520,24 @@ def combineAtomMaps(mappings, mode='optimal'):
                 else:
                     S[i, j] = mapping[3] / 100.
 
+        # uses LAP to find the optimal mappings of chains
         atommaps = []
-        if mode == 'optimal':
-            crrpds = multilap(1. - S)
-            for row_ind, col_ind in crrpds:
-                if len(row_ind) != m:
-                    continue
-                atommap = None
-                for r, c in zip(row_ind, col_ind):
-                    atommap_ = mappings[r, c][0]
-                    if atommap_ is None:
-                        raise ValueError('no valid mappings')
-                    if atommap is None:
-                        atommap += atommap_
-                atommaps.append(atommap)
-
+        crrpds = multilap(1. - S)
+        for row_ind, col_ind in crrpds:
+            if len(row_ind) != m:
+                continue
+            atommap = None
+            for r, c in zip(row_ind, col_ind):
+                atommap_ = mappings[r, c][0]
+                if atommap_ is None:
+                    raise ValueError('no valid mappings')
+                if atommap is None:
+                    atommap += atommap_
+            atommaps.append(atommap)
     else:
         raise ValueError('mappings can only be either an 1-D or 2-D array.')
 
-    return atommaps
+    return atommaps, S, crrpds
 
 if __name__ == '__main__':
 
