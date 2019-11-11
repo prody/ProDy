@@ -1504,10 +1504,7 @@ def combineAtomMaps(mappings):
         am, am_r, s, c = mappings
         return am
     
-    mappings = np.asarray(mappings)
-    
-    if mappings.ndim == 1:
-        mappings = np.array([mappings])
+    mappings = np.atleast_2d(mappings)
 
     if mappings.ndim == 2:
         m, n = mappings.shape
