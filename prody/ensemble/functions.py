@@ -398,6 +398,10 @@ def buildPDBEnsemble(atomics, ref=None, title='Unknown', labels=None, unmapped=N
     :arg labels: labels of the conformations
     :type labels: list
 
+    :arg degeneracy: whether only the active coordinate set (**True**) or all the coordinate sets 
+        (**False**) of each structure should be added to the ensemble. Default is **True**
+    :type degeneracy: bool
+
     :arg occupancy: minimal occupancy of columns (range from 0 to 1). Columns whose occupancy
         is below this value will be trimmed
     :type occupancy: float
@@ -478,8 +482,7 @@ def buildPDBEnsemble(atomics, ref=None, title='Unknown', labels=None, unmapped=N
         if subset != 'all':
             atoms = atoms.select(subset)
 
-        atommaps = []
-        # find the mapping of the atoms to each reference chain
+        # find the mapping of chains of atoms to those of target
         atommaps = alignChains(atoms, target, **kwargs)
 
         if len(atommaps) == 0:
