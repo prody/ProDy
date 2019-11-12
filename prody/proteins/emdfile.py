@@ -190,7 +190,7 @@ def parseEMDStream(stream, **kwargs):
 
     if make_nodes:
         if map:
-            return emd, atomgroup
+            return atomgroup, emd
         else:
             return atomgroup
     else:
