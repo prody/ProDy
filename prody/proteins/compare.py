@@ -15,7 +15,7 @@ from prody.atomic import flags
 from prody.measure import calcTransformation, printRMSD, calcDistance
 from prody import LOGGER, SELECT, PY2K, PY3K
 from prody.sequence import MSA
-from prody.utilities import cmp, pystr, isListLike
+from prody.utilities import cmp, pystr, isListLike, multilap
 
 if PY2K:
     range = xrange
@@ -830,7 +830,7 @@ def mapOntoChain(atoms, chain, **kwargs):
     if not isinstance(chain, Chain):
         raise TypeError('chain must be Chain instance')
 
-    subset = str(kwargs.get('subset', 'calpha')).lower()
+    subset = str(kwargs.get('subset', 'all')).lower()
     if subset not in _SUBSETS:
         raise ValueError('{0} is not a valid subset argument'
                          .format(str(subset)))
@@ -1071,15 +1071,15 @@ def mapChainOntoChain(mobile, target, **kwargs):
         mapping = (atommap, selection, _seqid, _cover)
     return mapping
 
-def mapChainByChain(atoms, ref, **kwargs):
+def mapChainByChain(atoms, target, **kwargs):
     """This function is similar to :func:`.mapOntoChain` but correspondence 
     of chains is found by their chain identifiers. 
     
-    :arg atoms: atoms to map onto the reference
+    :arg atoms: atoms to be mapped onto *target*
     :type atoms: :class:`.Atomic`
     
-    :arg ref: reference structure for mapping
-    :type ref: :class:`.Atomic`
+    :arg target: reference structure for mapping
+    :type target: :class:`.Atomic`
     
     :arg return_all: whether to return all mappings.
         If False, only mappings for the first chain will be returned. 
@@ -1093,16 +1093,16 @@ def mapChainByChain(atoms, ref, **kwargs):
 
     mappings = []
 
-    if isinstance(ref, AtomGroup):
-        chs_ref_ag = ref.iterChains()
+    if isinstance(target, AtomGroup):
+        chs_ref_ag = target.iterChains()
     else:
-        chs_ref_ag = ref.getAtomGroup().iterChains()
+        chs_ref_ag = target.getAtomGroup().iterChains()
 
     id_atm = atoms.getTitle()
-    id_ref = ref.getTitle()
+    id_ref = target.getTitle()
     
     chs_atm = [chain for chain in atoms.getHierView().iterChains()]
-    chs_ref = [chain for chain in ref.getHierView().iterChains()]
+    chs_ref = [chain for chain in target.getHierView().iterChains()]
 
     corr_input = kwargs.get('correspondence', None)
 
@@ -1201,7 +1201,7 @@ def mapOntoChains(atoms, ref, match_func=bestMatch, **kwargs):
         raise TypeError('ref must be an AtomGroup or a AtomSubset (Chain, '
                         'Segment, etc.) instance')
 
-    subset = str(kwargs.get('subset', 'calpha')).lower()
+    subset = str(kwargs.get('subset', 'all')).lower()
     if subset not in _SUBSETS:
         raise ValueError('{0} is not a valid subset argument'
                          .format(str(subset)))
@@ -1469,8 +1469,8 @@ def getCEAlignMapping(target, chain):
 
     return amatch, bmatch, n_match, n_mapped
 
-def combineAtomMaps(mappings):
-    """ build a grand :class:`.AtomMap` instance based on *mappings* obtained from 
+def combineAtomMaps(mappings, ret_info=False):
+    """Builds a grand :class:`.AtomMap` instance based on *mappings* obtained from 
     :func:`.mapOntoChains`. The function also accepts the output :func:`.mapOntoChain` 
     but will trivially return all the :class:`.AtomMap` in *mappings*. 
     *mappings* should be a list or an array of matching chains in a tuple that contain
@@ -1484,17 +1484,17 @@ def combineAtomMaps(mappings):
     :arg mappings: a list or an array of matching chains in a tuple, or just the tuple
     :type mappings: tuple, list, :class:`~numpy.ndarray`
 
-    The function returns 3 items:
+    The function returns the following items:
 
       * combined chains as an :class:`.AtomMap` instance,
       * original coverage matrix, rows and columns correspond to the reference and the 
-        mobile, respectively,
+        mobile, respectively, if *ret_info* is set to **True**,
       * matched index groups that obtained by modeling the coverage matrix as a linear 
-        assignment problem.
+        assignment problem, if *ret_info* is set to **True**.
 
     """
 
-    if not isinstance(mappings, isListLike):
+    if not isListLike(mappings):
         raise TypeError('mappings should be a list')
     
     if len(mappings) == 0:
@@ -1508,7 +1508,7 @@ def combineAtomMaps(mappings):
 
     if mappings.ndim == 2:
         m, n = mappings.shape
-        S = zeros((m, n), dtype=float)
+        S = np.zeros((m, n), dtype=float)
         for i in range(m):
             for j in range(n):
                 mapping = mappings[i, j]
@@ -1525,16 +1525,35 @@ def combineAtomMaps(mappings):
                 continue
             atommap = None
             for r, c in zip(row_ind, col_ind):
+                if mappings[r, c] is None: # unlikely to happen
+                    continue
                 atommap_ = mappings[r, c][0]
                 if atommap_ is None:
                     raise ValueError('no valid mappings')
                 if atommap is None:
+                    atommap = atommap_
+                else:
                     atommap += atommap_
-            atommaps.append(atommap)
+            if atommap is not None:
+                atommaps.append(atommap)
     else:
         raise ValueError('mappings can only be either an 1-D or 2-D array.')
 
-    return atommaps, S, crrpds
+    if ret_info:
+        return atommaps, S, crrpds
+    else:
+        atommaps
+
+def alignChains(atoms, target, match_func=bestMatch, **kwargs):
+    """Aligns chains of *atoms* to those of *target* using :func:`.mapOntoChains` 
+    and :func:`.combineAtomMaps`. Please check out those two functions for details 
+    about the parameters.
+    """
+
+    ret_info = kwargs.pop('ret_info', False)
+    mappings = mapOntoChains(atoms, target, match_func, **kwargs)
+    return combineAtomMaps(mappings, ret_info)
+
 
 if __name__ == '__main__':
 

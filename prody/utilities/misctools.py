@@ -626,7 +626,7 @@ def multilap(C):
     from scipy.optimize import linear_sum_assignment
 
     _, n = C.shape
-    D = C.copy()
+    D = C
     N = arange(n)
 
     mappings = []
