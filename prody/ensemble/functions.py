@@ -387,7 +387,8 @@ def buildPDBEnsemble(atomics, ref=None, title='Unknown', labels=None, unmapped=N
     :type atomics: list
 
     :arg ref: reference structure or the index to the reference in *atomics*. If **None**,
-        then the first item in *atomics* will be considered as the reference. 
+        then the first item in *atomics* will be considered as the reference. If it is a 
+        :class:`.PDBEnsemble` instance, then *atomics* will be appended to the existing ensemble.
         Default is **None**
     :type ref: int, :class:`.Chain`, :class:`.Selection`, or :class:`.AtomGroup`
 
@@ -440,17 +441,12 @@ def buildPDBEnsemble(atomics, ref=None, title='Unknown', labels=None, unmapped=N
 
     if ref is None:
         target = atomics[0]
-        refidx = 0
     elif isinstance(ref, Integral):
         target = atomics[ref]
-        refidx = ref
     elif isinstance(ref, PDBEnsemble):
         target = ref._atoms
     else:
         target = ref
-        if target not in atomics:
-            raise ValueError('ref should be also in atomics')
-        refidx = atomics.index(ref)
     
     # initialize a PDBEnsemble with reference atoms and coordinates
     if isinstance(ref, PDBEnsemble):
@@ -504,7 +500,7 @@ def buildPDBEnsemble(atomics, ref=None, title='Unknown', labels=None, unmapped=N
         ensemble = trimPDBEnsemble(ensemble, occupancy=occupancy)
 
     if superpose != 'iter':
-        ensemble.superpose(ref=refidx)
+        ensemble.superpose()
     else:
         ensemble.iterpose()
     

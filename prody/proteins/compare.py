@@ -23,7 +23,7 @@ if PY2K:
 if PY3K:
     basestring = str
 
-__all__ = ['matchChains', 'matchAlign', 'mapChainOntoChain', 'mapOntoChain', 
+__all__ = ['matchChains', 'matchAlign', 'mapChainOntoChain', 'mapOntoChain', 'alignChains',
            'mapChainByChain', 'mapOntoChains', 'bestMatch', 'sameChid', 'combineAtomMaps',
            'mapOntoChainByAlignment', 'getMatchScore', 'setMatchScore',
            'getMismatchScore', 'setMismatchScore', 'getGapPenalty', 
@@ -1525,11 +1525,11 @@ def combineAtomMaps(mappings, ret_info=False):
                 continue
             atommap = None
             for r, c in zip(row_ind, col_ind):
-                if mappings[r, c] is None: # unlikely to happen
-                    continue
+                # if one of the chains failed to match then discard the entire atommap
+                if mappings[r, c] is None: 
+                    atommap = None
+                    break
                 atommap_ = mappings[r, c][0]
-                if atommap_ is None:
-                    raise ValueError('no valid mappings')
                 if atommap is None:
                     atommap = atommap_
                 else:
@@ -1542,7 +1542,7 @@ def combineAtomMaps(mappings, ret_info=False):
     if ret_info:
         return atommaps, S, crrpds
     else:
-        atommaps
+        return atommaps
 
 def alignChains(atoms, target, match_func=bestMatch, **kwargs):
     """Aligns chains of *atoms* to those of *target* using :func:`.mapOntoChains` 
