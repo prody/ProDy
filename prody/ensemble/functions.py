@@ -426,6 +426,9 @@ def buildPDBEnsemble(atomics, ref=None, title='Unknown', labels=None, unmapped=N
     superpose = kwargs.pop('superpose', 'iter')
     superpose = kwargs.pop('iterpose', superpose)
 
+    if 'mapping_func' in kwargs:
+        raise DeprecationWarning('mapping_func is deprecated. Please see release notes for '
+                                 'how to adapt your code: http://prody.csb.pitt.edu/manual/release/v1.11_series.html')
     start = time.time()
 
     if len(atomics) == 1:
