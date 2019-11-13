@@ -47,8 +47,6 @@ ProDy 1.11 Series
     ... GluRChains = lambda chain1, chain2: userDefined(chain1, chain2, chmap)
     ... atommaps = alignChains(mob, ref, mapping='ce', match_func=GluRChains)
 
-  ```
-
 **Bug Fixes and Improvements**:
 
   * Changed :func:`.showProtein` so that it does not display dummy atoms.
