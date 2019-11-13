@@ -24,11 +24,11 @@ if PY3K:
     basestring = str
 
 __all__ = ['matchChains', 'matchAlign', 'mapChainOntoChain', 'mapOntoChain', 'alignChains',
-           'mapChainByChain', 'mapOntoChains', 'bestMatch', 'sameChid', 'combineAtomMaps',
+           'mapChainByChain', 'mapOntoChains', 'bestMatch', 'sameChid', 'userDefined', 
            'mapOntoChainByAlignment', 'getMatchScore', 'setMatchScore',
            'getMismatchScore', 'setMismatchScore', 'getGapPenalty', 
            'setGapPenalty', 'getGapExtPenalty', 'setGapExtPenalty',
-           'getTrivialSeqId', 'setTrivialSeqId', 'getTrivialCoverage', 
+           'getTrivialSeqId', 'setTrivialSeqId', 'getTrivialCoverage', 'combineAtomMaps',
            'setTrivialCoverage', 'getAlignmentMethod', 'setAlignmentMethod']
 
 TRIVIAL_SEQID = 90.
@@ -890,7 +890,7 @@ def mapChainOntoChain(mobile, target, **kwargs):
         performed, otherwise **0**
     :type seqid: float
 
-    :keyword overlap: percent overlap, default is **70**
+    :keyword overlap: percent overlap with *target*, default is **70**
     :type overlap: float
 
     :keyword mapping: what method will be used if the trivial mapping based on residue numbers 
@@ -967,7 +967,7 @@ def mapChainOntoChain(mobile, target, **kwargs):
         simple_target, simple_mobile)
     if n_mapped > 0:
         _seqid = n_match * 100 / n_mapped
-        _cover = n_mapped * 100 / max(len(simple_target), len(simple_mobile))
+        _cover = n_mapped * 100 / len(simple_target) # max(len(simple_target), len(simple_mobile))
 
     trivial_seqid = TRIVIAL_SEQID if pwalign else seqid
     trivial_cover = TRIVIAL_COVERAGE if pwalign else coverage
@@ -1016,8 +1016,7 @@ def mapChainOntoChain(mobile, target, **kwargs):
             target_list, chain_list, n_match, n_mapped = result
             if n_mapped > 0:
                 _seqid = n_match * 100 / n_mapped
-                _cover = n_mapped * 100 / max(len(simple_target),
-                                                len(simple_mobile))
+                _cover = n_mapped * 100 / len(simple_target) # max(len(simple_target), len(simple_mobile))
             else:
                 _seqid = 0
                 _cover = 0
