@@ -1,0 +1,61 @@
+ProDy 1.11 Series
+===============================================================================
+
+.. contents::
+   :local:
+
+1.11 (Nov 30, 2019)
+------------------------------------------------------------------------------
+
+**New Features**:
+
+*Rework of the Structure Mapping Functions*
+
+  * Implemented :func:`mapOntoChains` that calculates mappings of chains between 
+    two structures in a pairwise fashion.
+
+  * Now newly added :func:`mapChainOntoChain` functions as the elementary operation 
+    of :func:`.mapOntoChains` use :func:`.mapChainOntoChain` that maps a :class:`.Chain` 
+    instance onto another.
+  
+  * Implemented :func:`.combineAtomMaps` for optimally combining atommaps obtained 
+    from :class:`mapOntoChains` or :class:`mapOntoChain`, based on mapping coverages.
+
+  * Implemented :func:`.alignChains` for aligning two structures using :func:`.mapOntoChains` 
+    and :func:`.combineAtomMaps`.
+
+  * Now :func:`.buildPDBEnsemble` uses :func:`.alignChains` to perform the alignment. Therefore, 
+    instead of *mapping_func*, a *match_func* argument should be passed to the function for 
+    controlling how chains are (pre)matched. The `match_func` takes **exactly two** parameters, 
+    *chain1* and *chain2*, and determines if these two chains should be tried to be mapped. 
+
+    Built-in options for *match_func* includes: 
+    * :func:`.bestMatch` which allows all pairwise mappings between chains, and it is called 
+      :func:`.bestMatch` because the optimal mapping will be chosen later automatically.
+
+    * :func:`.sameChid` which only maps the ones with the same chain ID, and the later optimization 
+      of mappings would not matter since the same chain IDs usually indicate a unique mapping.
+
+    * :func:`.userDefined`. It takes three parameters, which are two chains and a :class:`dict` 
+      instance indicating correspondence Since it has three parameters, a wrapper is needed. 
+      Its usage is demonstrated by the following example:
+
+    >>> ref = parsePDB('3qel', subset='ca').select('chain A or chain B')
+    ... mob = parsePDB('4pe5', subset='ca')
+    ... 
+    ... chmap = {'3qel_ca': 'AB', '4pe5_ca': 'CD'}
+    ... GluRChains = lambda chain1, chain2: userDefined(chain1, chain2, chmap)
+    ... atommaps = alignChains(mob, ref, mapping='ce', match_func=GluRChains)
+
+  ```
+
+**Bug Fixes and Improvements**:
+
+  * Changed :func:`.showProtein` so that it does not display dummy atoms.
+
+  * Added warnings to :func:`.calcTransform` when either *mobile* or *target* is an :class:`.AtomMap` instance.
+
+  * Fixed a bug related to how the ticks are located in :func:`.showMatrix`.
+
+  * Deprecated `mapChainByChain` and `addPDBEnsemble` whose rules are filled respectively by :func:`.mapOntoChains` 
+    and :func:`.buildPDBEnsemble` when `ref` is an :func:`.PDBEnsemble` instance. 
