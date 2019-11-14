@@ -1456,7 +1456,7 @@ def combineAtomMaps(mappings, ret_info=False):
                     atommap = None
                     break
                 atommap_ = mappings[r, c][0]
-                title_ = '(' + atommap_.getTitle()[13:] + ')' # exclude the starting "AtomMap " in the title
+                title_ = '(' + atommap_.getTitle() + ')' 
                 if atommap is None:
                     atommap = atommap_
                     title = title_
