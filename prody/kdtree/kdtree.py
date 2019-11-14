@@ -6,14 +6,26 @@ from numpy import array, ndarray, concatenate, empty
 
 from prody import LOGGER
 
+def createKDTreeByDim(KDTclass, coords, bucketsize):
+    kdt = KDTclass(3, bucketsize)
+    kdt.set_data(coords)
+    return kdt
+
+def createKDTreeByCoords(KDTclass, coords, bucketsize):
+    kdt = KDTclass(coords, bucketsize)
+    return kdt
+
 try:
-    from ._CKDTree import KDTree as CKDTree
+    from ._CKDTree import KDTree as _KDTree
+    CKDTree = lambda coords, bz : createKDTreeByDim(_KDTree, coords, bz) 
 except ImportError:
     try:
-        from Bio.PDB.kdtrees import KDTree as CKDTree
+        from Bio.PDB.kdtrees import KDTree as _KDTree
+        CKDTree = lambda coords, bz : createKDTreeByCoords(_KDTree, coords, bz) 
     except ImportError:
         try:
-            from Bio.KDTree._CKDTree import KDTree as CKDTree
+            from Bio.KDTree._CKDTree import KDTree as _KDTree
+            CKDTree = lambda coords, bz : createKDTreeByDim(_KDTree, coords, bz) 
         except ImportError:
             raise ImportError('CKDTree module could not be imported. '
                             'Reinstall ProDy or install Biopython '
@@ -137,15 +149,13 @@ class KDTree(object):
         self._unitcell = None
         self._neighbors = None
         if unitcell is None:
-            self._kdtree = CKDTree(3, self._bucketsize)
-            self._kdtree.set_data(coords)
+            self._kdtree = CKDTree(coords, self._bucketsize)
         else:
             if not isinstance(unitcell, ndarray):
                 raise TypeError('unitcell must be a Numpy array')
             if unitcell.shape != (3,):
                 raise ValueError('unitcell.shape must be (3,)')
-            self._kdtree = CKDTree(3, self._bucketsize)
-            self._kdtree.set_data(coords)
+            self._kdtree = CKDTree(coords, self._bucketsize)
             self._coords = coords
             self._unitcell = unitcell
             self._replicate = REPLICATE * unitcell
@@ -222,8 +232,7 @@ class KDTree(object):
                     coords = self._coords
                     coords = concatenate([coords + rep
                                           for rep in self._replicate])
-                    kdtree = CKDTree(3, self._bucketsize)
-                    kdtree.set_data(coords)
+                    kdtree = CKDTree(coords, self._bucketsize)
                     self._kdtree2 = kdtree
                 n_atoms = len(self._coords)
                 _dict = {}

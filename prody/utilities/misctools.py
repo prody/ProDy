@@ -2,12 +2,14 @@
 import re
 
 from numpy import unique, linalg, diag, sqrt, dot, chararray, divide, zeros_like, zeros, allclose
-from numpy import diff, where, insert, nan, isnan, loadtxt, array, round, average, min, max
+from numpy import diff, where, insert, nan, isnan, loadtxt, array, round, average, min, max, delete
 from numpy import sign, arange, asarray, ndarray, subtract, power, sum, isscalar, empty, triu, tril
 from collections import Counter
 import numbers
 
 from prody import PY3K
+
+from Bio.Data import IUPACData
 
 from xml.etree.ElementTree import Element
 
@@ -16,7 +18,8 @@ __all__ = ['Everything', 'Cursor', 'ImageCursor', 'rangeString', 'alnum', 'impor
            'saxsWater', 'count', 'addEnds', 'copy', 'dictElementLoop', 
            'getDataPath', 'openData', 'chr2', 'toChararray', 'interpY', 'cmp', 'pystr',
            'getValue', 'indentElement', 'isPDB', 'isURL', 'isListLike', 'isSymmetric', 'makeSymmetric',
-           'getDistance', 'fastin', 'createStringIO', 'div0', 'wmean', 'bin2dec', 'wrapModes', 'fixArraySize']
+           'getDistance', 'fastin', 'createStringIO', 'div0', 'wmean', 'bin2dec', 'wrapModes', 'fixArraySize',
+           'multilap']
 
 CURSORS = []
 
@@ -346,15 +349,16 @@ def getMasses(elements):
     """Gets the mass atom. """
     
     import numpy as np
-    mass_dict = {'C':12,'N':14,'S':32,'O':16,'H':1}
+    # mass_dict = {'C':12,'N':14,'S':32,'O':16,'H':1}
+    mass_dict = IUPACData.atom_weights
 
     if isinstance(elements, str):
-        return mass_dict[elements]
+        return mass_dict[elements.capitalize()]
     else:
         masses = np.zeros(len(elements))
         for i,element in enumerate(elements):
-            if element in mass_dict:
-                masses[i] = mass_dict[element]
+            if element.capitalize() in mass_dict:
+                masses[i] = mass_dict[element.capitalize()]
             else:
                 masses[i] = 0.
         return masses
@@ -614,3 +618,23 @@ def makeSymmetric(M):
     else:
         M = (M + M.T) / 2.
     return M
+
+def multilap(C):
+    """ Performs LAP (linear assignment problem) multiple times until 
+    each column is assigned to a row. """
+
+    from scipy.optimize import linear_sum_assignment
+
+    _, n = C.shape
+    D = C
+    N = arange(n)
+
+    mappings = []
+    while len(N):
+        I, J = linear_sum_assignment(D)
+        K = N[J]
+        N = delete(N, J)
+        D = C[:, N]
+        mappings.append((I, K))
+
+    return mappings

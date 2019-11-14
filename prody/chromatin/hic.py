@@ -44,7 +44,7 @@ class HiC(object):
         if value is None: 
             self._map = None
         else:
-            self._map = np.array(value)
+            self._map = np.asarray(value)
             self._map = makeSymmetric(self._map)
             self._maskUnmappedRegions()
             self._labels = np.zeros(len(self._map), dtype=int)
@@ -183,10 +183,10 @@ class HiC(object):
     def getKirchhoff(self):
         """Builds a Kirchhoff matrix based on the contact map."""
 
-        if self.map is None:
+        if self._map is None:
             return None
         else:
-            M = self.map
+            M = self.getTrimedMap()
             
             I = np.eye(M.shape[0], dtype=bool)
             A = M.copy()
@@ -195,15 +195,20 @@ class HiC(object):
             K = D - A
             return K
 
-    def _maskUnmappedRegions(self):
+    def _maskUnmappedRegions(self, diag=False):
         """Finds and masks unmapped regions in the contact map."""
 
         M = self._map
         if M is None: return
-        # Obtain the diagonal values, need to make sure d is an array 
-        # instead of a matrix, otherwise diag() later will not work as 
-        # intended.
-        d = np.array(np.diag(M))
+
+        if diag:
+            # Obtain the diagonal values, need to make sure d is an array 
+            # instead of a matrix, otherwise diag() later will not work as 
+            # intended.
+            d = np.array(np.diag(M))
+        else:
+            d = np.array(M.sum(0))
+
         # mask if a diagonal value is zero
         mask_zero = np.array(d==0)
         # mask if a diagonal value is NAN
@@ -211,6 +216,7 @@ class HiC(object):
         # combine two masks
         mask = np.logical_or(mask_nan, mask_zero)
         self.mask = ~mask
+
         return self.mask
     
     def calcGNM(self, n_modes=None, **kwargs):
