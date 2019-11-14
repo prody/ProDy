@@ -1449,17 +1449,22 @@ def combineAtomMaps(mappings, ret_info=False):
             if len(row_ind) != m:
                 continue
             atommap = None
+            title = ''
             for r, c in zip(row_ind, col_ind):
                 # if one of the chains failed to match then discard the entire atommap
                 if mappings[r, c] is None: 
                     atommap = None
                     break
                 atommap_ = mappings[r, c][0]
+                title_ = '(' + atommap_.getTitle()[13:] + ')' # exclude the starting "AtomMap " in the title
                 if atommap is None:
                     atommap = atommap_
+                    title = title_
                 else:
                     atommap += atommap_
+                    title = title_ + ' + ' + title
             if atommap is not None:
+                atommap.setTitle(title)
                 atommaps.append(atommap)
     else:
         raise ValueError('mappings can only be either an 1-D or 2-D array.')
