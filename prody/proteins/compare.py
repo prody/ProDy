@@ -217,7 +217,7 @@ class SimpleChain(object):
     SimpleChain instances can be indexed using residue numbers. If a residue
     with given number is not found in the chain, **None** is returned."""
 
-    __slots__ = ['_list', '_seq', '_title', '_dict', '_gaps', '_coords', '_chain']
+    __slots__ = ['_list', '_seq', '_title', '_dict', '_gaps', '_chain']
 
     def __init__(self, chain=None, allow_gaps=False):
         """Initialize SimpleChain with a chain id and a sequence (available).
@@ -234,7 +234,6 @@ class SimpleChain(object):
         self._seq = ''
         self._title = ''
         self._gaps = allow_gaps
-        self._coords = None
         self._chain = None
         if isinstance(chain, Chain):
             self.buildFromChain(chain)
@@ -265,8 +264,13 @@ class SimpleChain(object):
     def getTitle(self):
         return self._title
 
-    def getCoords(self):
-        return self._coords
+    def getCoords(self, calpha=False):
+        if self._chain is None:
+            return None
+        if calpha:
+            return self._chain.ca._getCoords()
+        else:
+            return self._chain._getCoords()
 
     def buildFromSequence(self, sequence, resnums=None):
         """Build from amino acid sequence.
@@ -323,7 +327,6 @@ class SimpleChain(object):
             self._seq += aa
             self._list.append(simpres)
             self._dict[(resid, incod)] = simpres
-        self._coords = chain._getCoords()
         self._title = 'Chain {0} from {1}'.format(chain.getChid(),
                                                   chain.getAtomGroup()
                                                   .getTitle())
@@ -1328,8 +1331,8 @@ def getAlignedMapping(target, chain, alignment=None):
 def getCEAlignMapping(target, chain):
     from .ccealign import ccealign
 
-    tar_coords = target.getCoords().tolist()
-    mob_coords = chain.getCoords().tolist()
+    tar_coords = target.getCoords(calpha=True).tolist()
+    mob_coords = chain.getCoords(calpha=True).tolist()
     
     def add_tail_dummies(coords, window=8):
         natoms = len(coords)
