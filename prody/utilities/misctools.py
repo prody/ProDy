@@ -1,8 +1,8 @@
 """This module defines miscellaneous utility functions."""
 import re
 
-from numpy import unique, linalg, diag, sqrt, dot, chararray, divide, zeros_like, zeros, allclose
-from numpy import diff, where, insert, nan, isnan, loadtxt, array, round, average, min, max, delete
+from numpy import unique, linalg, diag, sqrt, dot, chararray, divide, zeros_like, zeros, allclose, ceil
+from numpy import diff, where, insert, nan, isnan, loadtxt, array, round, average, min, max, delete, vstack
 from numpy import sign, arange, asarray, ndarray, subtract, power, sum, isscalar, empty, triu, tril
 from collections import Counter
 import numbers
@@ -623,18 +623,37 @@ def multilap(C):
     """ Performs LAP (linear assignment problem) multiple times until 
     each column is assigned to a row. """
 
-    from scipy.optimize import linear_sum_assignment
+    from itertools import product as iproduct
+    from scipy.optimize import linear_sum_assignment as lap
 
-    _, n = C.shape
-    D = C
-    N = arange(n)
+    m, n = C.shape
 
-    mappings = []
-    while len(N):
-        I, J = linear_sum_assignment(D)
-        K = N[J]
-        N = delete(N, J)
-        D = C[:, N]
-        mappings.append((I, K))
+    n_copies = int(ceil(float(n) / m))
+    if n_copies > 1:
+        D = vstack((C,)*n_copies)
+    else:
+        D = C.copy()
+    
+    I, J = lap(D)
 
-    return mappings
+    if n_copies == 1:
+        #mappings = [[(i, j) for i, j in zip(I, J)]]
+        return [(I, J)]
+    else:
+        for idx, i_ in enumerate(I):
+            i = i_ % m
+            I[idx] = i
+
+        pool = [[] for _ in range(m)]
+        for i, j in zip(I, J):
+            pool[i].append((i, j))
+        
+        indices = []
+        for mapping in iproduct(*pool):
+            r = zeros(m, dtype=int); c = zeros(m, dtype=int)
+            for i, pair in enumerate(mapping):
+                r[i] = pair[0]
+                c[i] = pair[1]
+            indices.append((r, c))
+
+    return indices

@@ -1477,15 +1477,60 @@ def combineAtomMaps(mappings, ret_info=False):
     else:
         return atommaps
 
+def rankAtomMaps(atommaps, target):
+    """Ranks :class:`.AtomMap` instances from *atommaps* based on its RMSD 
+    with *target*.
+    """
+    
+    rmsds = zeros(len(atommaps))
+    coords0 = target.getCoords()
+    for i, atommap in enumerate(atommaps):
+        weights = atommap.getFlags('mapped')
+        coords = atommap.getCoords()
+        rcoords, t = superpose(coords, coords0, weights)
+        rmsd = calcRMSD(rcoords, coords0)
+
+        rmsds[i] = rmsd
+    
+    I = np.argsort(rmsds)
+
+    atommaps = [atommaps[i] for i in I]
+        
+    return atommaps, rmsds[I]
+
+
 def alignChains(atoms, target, match_func=bestMatch, **kwargs):
     """Aligns chains of *atoms* to those of *target* using :func:`.mapOntoChains` 
     and :func:`.combineAtomMaps`. Please check out those two functions for details 
     about the parameters.
     """
 
-    ret_info = kwargs.pop('ret_info', False)
+    rmsd_cutoff = kwargs.pop('rmsd', 10.)
+
     mappings = mapOntoChains(atoms, target, match_func, **kwargs)
-    return combineAtomMaps(mappings, ret_info)
+    atommaps = combineAtomMaps(mappings)
+    
+    # extract nonoverlaping mappings
+    if len(atommaps) > 1:
+        atommaps, rmsds = rankAtomMaps(atommaps, target)
+
+        if rmsd_cutoff is not None:
+            atommaps_ = []
+            for atommap, rmsd in zip(atommaps, rmsds):
+                if rmsd < rmsd_cutoff:
+                    atommaps_.append(atommap)
+            atommaps = atommaps_
+
+        atommaps_ = []
+        chids = []
+        while len(atommaps):
+            atommap = atommaps.pop(0)
+            atommaps_.append(atommap)
+            chids.extend([chid for chid in np.unique(atommap.getChids())])
+
+    
+
+    return atommaps
 
 
 if __name__ == '__main__':
