@@ -1397,7 +1397,7 @@ def getCEAlignMapping(target, chain):
 
     return amatch, bmatch, n_match, n_mapped
 
-def combineAtomMaps(mappings, debug={}):
+def combineAtomMaps(mappings, target=None, **kwargs):
     """Builds a grand :class:`.AtomMap` instance based on *mappings* obtained from 
     :func:`.mapOntoChains`. The function also accepts the output :func:`.mapOntoChain` 
     but will trivially return all the :class:`.AtomMap` in *mappings*. 
@@ -1422,29 +1422,20 @@ def combineAtomMaps(mappings, debug={}):
 
     """
 
-    if not isListLike(mappings):
-        raise TypeError('mappings should be a list')
-    
-    if len(mappings) == 0:
-        raise ValueError('mappings cannot be empty')
+    drmsd = kwargs.pop('rmsd_deviation', 3.)
+    debug = kwargs.pop('debug', {})
 
-    if isinstance(mappings, tuple):
-        am, am_r, s, c = mappings
-        return am
-    
-    mappings = np.atleast_2d(mappings)
-
-    if mappings.ndim == 2:
+    def _build(mappings):
         m, n = mappings.shape
         S = np.zeros((m, n), dtype=float)
         for i in range(m):
             for j in range(n):
                 mapping = mappings[i, j]
                 if mapping is None:
-                    S[i, j] = - n - 1  # some big number
+                    S[i, j] = - n*2  # some big number
                 else:
                     S[i, j] = mapping[3] / 100.
-
+    
         # uses LAP to find the optimal mappings of chains
         atommaps = []
         crrpds = multilap(1. - S)
@@ -1469,11 +1460,75 @@ def combineAtomMaps(mappings, debug={}):
             if atommap is not None:
                 atommap.setTitle(title)
                 atommaps.append(atommap)
-    else:
+
+        return atommaps, S
+
+    def _optimize(atommaps):
+        # extract nonoverlaping mappings
+        if len(atommaps) > 1:
+            atommaps, rmsds = rankAtomMaps(atommaps, target)
+            debug['rmsd'] = list(rmsds)
+
+            # if rmsd_cutoff is not None:
+            #     for i in reversed(range(len(atommaps))):
+            #         if rmsds[i] > rmsd_cutoff:
+            #             atommaps.pop(i)
+            #             rmsds.pop(i)
+
+            # pre-store chain IDs of atommaps
+            atommap_chids = []
+            for atommap in atommaps:
+                atommap_chids.append(np.unique(atommap.select('not dummy').getChids()))
+            
+            atommaps_ = []
+            rmsd_standard = rmsds[0]
+            while len(atommaps):
+                atommap = atommaps.pop(0)
+                rmsd = rmsds.pop(0)
+                chids = atommap_chids.pop(0)
+
+                if rmsd > rmsd_standard + drmsd:
+                    break
+
+                atommaps_.append(atommap)
+
+                # remove atommaps that share chains with the popped atommap
+                for i in reversed(range(len(atommap_chids))):
+                    amchids = atommap_chids[i]
+
+                    for chid in amchids:
+                        if chid in chids:
+                            atommaps.pop(i)
+                            atommap_chids.pop(i)
+                            break
+
+            atommaps = atommaps_
+
+        return atommaps
+
+    # checkers
+    if not isListLike(mappings):
+        raise TypeError('mappings should be a list')
+    
+    if len(mappings) == 0:
+        raise ValueError('mappings cannot be empty')
+
+    if isinstance(mappings, tuple):
+        am, am_r, s, c = mappings
+        return am
+    
+    mappings = np.atleast_2d(mappings)
+    
+    if mappings.ndim != 2:
         raise ValueError('mappings can only be either an 1-D or 2-D array.')
     
+    # build atommaps
+    atommaps, S = _build(mappings)
     debug['coverage'] = S
-    debug['assignment'] = crrpds
+
+    # optimize atommaps based on superposition if target is given
+    if target is not None:  
+        atommaps = _optimize(atommaps)
     return atommaps
 
 def rankAtomMaps(atommaps, target):
@@ -1481,21 +1536,22 @@ def rankAtomMaps(atommaps, target):
     with *target*.
     """
     
-    rmsds = np.zeros(len(atommaps))
+    rmsds = []
     coords0 = target.getCoords()
-    for i, atommap in enumerate(atommaps):
+    for atommap in atommaps:
         weights = atommap.getFlags('mapped')
         coords = atommap.getCoords()
         rcoords, t = superpose(coords, coords0, weights)
-        rmsd = calcRMSD(rcoords, coords0)
+        rmsd = calcRMSD(rcoords, coords0, weights)
 
-        rmsds[i] = rmsd
+        rmsds.append(rmsd)
     
     I = np.argsort(rmsds)
 
     atommaps = [atommaps[i] for i in I]
+    rmsds = [rmsds[i] for i in I]
         
-    return atommaps, rmsds[I]
+    return atommaps, rmsds
 
 
 def alignChains(atoms, target, match_func=bestMatch, **kwargs):
@@ -1504,46 +1560,8 @@ def alignChains(atoms, target, match_func=bestMatch, **kwargs):
     about the parameters.
     """
 
-    info = kwargs.pop('debug', {})
-    rmsd_cutoff = kwargs.pop('rmsd', 15.)
-
     mappings = mapOntoChains(atoms, target, match_func, **kwargs)
-    atommaps = combineAtomMaps(mappings, debug=info)
-    
-    # extract nonoverlaping mappings
-    if len(atommaps) > 1:
-        atommaps, rmsds = rankAtomMaps(atommaps, target)
-
-        if rmsd_cutoff is not None:
-            atommaps_ = []
-            for atommap, rmsd in zip(atommaps, rmsds):
-                if rmsd < rmsd_cutoff:
-                    atommaps_.append(atommap)
-            atommaps = atommaps_
-
-        # pre-store chain IDs of atommaps
-        atommap_chids = []
-        for atommap in atommaps:
-            atommap_chids.append(np.unique(atommap.select('not dummy').getChids()))
-
-        atommaps_ = []
-        while len(atommaps):
-            atommap = atommaps.pop(0)
-            chids = atommap_chids.pop(0)
-            atommaps_.append(atommap)
-
-            # remove atommaps that share chains with the popped atommap
-            for i in reversed(range(len(atommap_chids))):
-                amchids = atommap_chids[i]
-
-                for chid in amchids:
-                    if chid in chids:
-                        atommaps.pop(i)
-                        atommap_chids.pop(i)
-                        break
-
-        atommaps = atommaps_
-        info['rmsd'] = rmsds
+    atommaps = combineAtomMaps(mappings, target, **kwargs)
 
     return atommaps
 
