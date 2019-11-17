@@ -12,7 +12,7 @@ from prody.atomic import AtomMap as AM
 from prody.atomic import AtomGroup, Chain, AtomSubset, Selection
 from prody.atomic import AAMAP
 from prody.atomic import flags
-from prody.measure import calcTransformation, printRMSD, calcDistance
+from prody.measure import calcTransformation, printRMSD, calcDistance, calcRMSD, superpose
 from prody import LOGGER, SELECT, PY2K, PY3K
 from prody.sequence import MSA
 from prody.utilities import cmp, pystr, isListLike, multilap
@@ -1397,7 +1397,7 @@ def getCEAlignMapping(target, chain):
 
     return amatch, bmatch, n_match, n_mapped
 
-def combineAtomMaps(mappings, ret_info=False):
+def combineAtomMaps(mappings, debug={}):
     """Builds a grand :class:`.AtomMap` instance based on *mappings* obtained from 
     :func:`.mapOntoChains`. The function also accepts the output :func:`.mapOntoChain` 
     but will trivially return all the :class:`.AtomMap` in *mappings*. 
@@ -1441,7 +1441,7 @@ def combineAtomMaps(mappings, ret_info=False):
             for j in range(n):
                 mapping = mappings[i, j]
                 if mapping is None:
-                    S[i, j] = 0.
+                    S[i, j] = - n - 1  # some big number
                 else:
                     S[i, j] = mapping[3] / 100.
 
@@ -1471,18 +1471,17 @@ def combineAtomMaps(mappings, ret_info=False):
                 atommaps.append(atommap)
     else:
         raise ValueError('mappings can only be either an 1-D or 2-D array.')
-
-    if ret_info:
-        return atommaps, S, crrpds
-    else:
-        return atommaps
+    
+    debug['coverage'] = S
+    debug['assignment'] = crrpds
+    return atommaps
 
 def rankAtomMaps(atommaps, target):
     """Ranks :class:`.AtomMap` instances from *atommaps* based on its RMSD 
     with *target*.
     """
     
-    rmsds = zeros(len(atommaps))
+    rmsds = np.zeros(len(atommaps))
     coords0 = target.getCoords()
     for i, atommap in enumerate(atommaps):
         weights = atommap.getFlags('mapped')
@@ -1505,10 +1504,11 @@ def alignChains(atoms, target, match_func=bestMatch, **kwargs):
     about the parameters.
     """
 
-    rmsd_cutoff = kwargs.pop('rmsd', 10.)
+    info = kwargs.pop('debug', {})
+    rmsd_cutoff = kwargs.pop('rmsd', 15.)
 
     mappings = mapOntoChains(atoms, target, match_func, **kwargs)
-    atommaps = combineAtomMaps(mappings)
+    atommaps = combineAtomMaps(mappings, debug=info)
     
     # extract nonoverlaping mappings
     if len(atommaps) > 1:
@@ -1521,14 +1521,29 @@ def alignChains(atoms, target, match_func=bestMatch, **kwargs):
                     atommaps_.append(atommap)
             atommaps = atommaps_
 
+        # pre-store chain IDs of atommaps
+        atommap_chids = []
+        for atommap in atommaps:
+            atommap_chids.append(np.unique(atommap.getChids()))
+
         atommaps_ = []
-        chids = []
         while len(atommaps):
             atommap = atommaps.pop(0)
+            chids = atommap_chids.pop(0)
             atommaps_.append(atommap)
-            chids.extend([chid for chid in np.unique(atommap.getChids())])
 
-    
+            # remove atommaps that share chains with the popped atommap
+            for i in reversed(range(len(atommap_chids))):
+                amchids = atommap_chids[i]
+
+                for chid in amchids:
+                    if chid in chids:
+                        atommaps.pop(i)
+                        atommap_chids.pop(i)
+                        break
+
+        atommaps = atommaps_
+        info['rmsd'] = rmsds
 
     return atommaps
 
