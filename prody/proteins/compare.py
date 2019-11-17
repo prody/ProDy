@@ -1524,7 +1524,7 @@ def alignChains(atoms, target, match_func=bestMatch, **kwargs):
         # pre-store chain IDs of atommaps
         atommap_chids = []
         for atommap in atommaps:
-            atommap_chids.append(np.unique(atommap.getChids()))
+            atommap_chids.append(np.unique(atommap.select('not dummy').getChids()))
 
         atommaps_ = []
         while len(atommaps):
