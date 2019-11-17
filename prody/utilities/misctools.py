@@ -637,7 +637,6 @@ def multilap(C):
     I, J = lap(D)
 
     if n_copies == 1:
-        #mappings = [[(i, j) for i, j in zip(I, J)]]
         return [(I, J)]
     else:
         for idx, i_ in enumerate(I):
