@@ -18,8 +18,7 @@ __all__ = ['Everything', 'Cursor', 'ImageCursor', 'rangeString', 'alnum', 'impor
            'saxsWater', 'count', 'addEnds', 'copy', 'dictElementLoop', 
            'getDataPath', 'openData', 'chr2', 'toChararray', 'interpY', 'cmp', 'pystr',
            'getValue', 'indentElement', 'isPDB', 'isURL', 'isListLike', 'isSymmetric', 'makeSymmetric',
-           'getDistance', 'fastin', 'createStringIO', 'div0', 'wmean', 'bin2dec', 'wrapModes', 'fixArraySize',
-           'multilap']
+           'getDistance', 'fastin', 'createStringIO', 'div0', 'wmean', 'bin2dec', 'wrapModes', 'fixArraySize']
 
 CURSORS = []
 
@@ -618,41 +617,3 @@ def makeSymmetric(M):
     else:
         M = (M + M.T) / 2.
     return M
-
-def multilap(C):
-    """ Performs LAP (linear assignment problem) multiple times until 
-    each column is assigned to a row. """
-
-    from itertools import product as iproduct
-    from scipy.optimize import linear_sum_assignment as lap
-
-    m, n = C.shape
-
-    n_copies = int(ceil(float(n) / m))
-    if n_copies > 1:
-        D = vstack((C,)*n_copies)
-    else:
-        D = C.copy()
-    
-    I, J = lap(D)
-
-    if n_copies == 1:
-        return [(I, J)]
-    else:
-        for idx, i_ in enumerate(I):
-            i = i_ % m
-            I[idx] = i
-
-        pool = [[] for _ in range(m)]
-        for i, j in zip(I, J):
-            pool[i].append((i, j))
-        
-        indices = []
-        for mapping in iproduct(*pool):
-            r = zeros(m, dtype=int); c = zeros(m, dtype=int)
-            for i, pair in enumerate(mapping):
-                r[i] = pair[0]
-                c[i] = pair[1]
-            indices.append((r, c))
-
-    return indices
