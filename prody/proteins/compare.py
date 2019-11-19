@@ -1544,6 +1544,7 @@ def combineAtomMaps(mappings, target=None, **kwargs):
         LOGGER.debug('Identified that there exists %d atommap(s) potentially.'%least_n_atommaps)
 
     debug['coverage'] = cov_matrix
+    debug['solution'] = [1]
 
     # optimize atommaps based on superposition if target is given
     if target is not None:
@@ -1565,7 +1566,7 @@ def combineAtomMaps(mappings, target=None, **kwargs):
                 if more_atommaps[j] in atommaps:
                     more_atommaps.pop(j)
             if len(more_atommaps):
-                LOGGER.debug('good mapping found')
+                debug['solution'].append(i)
             atommaps.extend(more_atommaps)
 
             i += 1
