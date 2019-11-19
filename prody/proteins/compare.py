@@ -1550,6 +1550,8 @@ def combineAtomMaps(mappings, target=None, **kwargs):
                                 %(len(atommaps), least_n_atommaps))
                 break
             more_atommaps = _optimize(more_atommaps)
+            if len(more_atommaps):
+                LOGGER.debug('good mapping found')
             atommaps.extend(more_atommaps)
 
             i += 1
