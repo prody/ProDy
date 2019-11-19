@@ -15,7 +15,7 @@ from prody.atomic import flags
 from prody.measure import calcTransformation, printRMSD, calcDistance, calcRMSD, superpose
 from prody import LOGGER, SELECT, PY2K, PY3K
 from prody.sequence import MSA
-from prody.utilities import cmp, pystr, isListLike, multilap
+from prody.utilities import cmp, pystr, isListLike, multilap, SolutionDepletionException
 
 if PY2K:
     range = xrange
@@ -1424,21 +1424,26 @@ def combineAtomMaps(mappings, target=None, **kwargs):
 
     drmsd = kwargs.pop('rmsd_deviation', 3.)
     debug = kwargs.pop('debug', {})
-
-    def _build(mappings):
+    reject_rmsd = kwargs.pop('rmsd_rejection', 15.)
+    least_n_atommaps = kwargs.pop('least', 1)
+    
+    def _build(mappings, nodes=[]):
         m, n = mappings.shape
-        S = np.zeros((m, n), dtype=float)
+        cov_matrix = np.zeros((m, n), dtype=float)
+        cost_matrix = np.zeros((m, n), dtype=float) 
         for i in range(m):
             for j in range(n):
                 mapping = mappings[i, j]
                 if mapping is None:
-                    S[i, j] = - n*2  # some big number
+                    cov_matrix[i, j] = 0  
+                    cost_matrix[i, j] = 1e6 # some big number
                 else:
-                    S[i, j] = mapping[3] / 100.
+                    cov_matrix[i, j] = mapping[3] / 100.
+                    cost_matrix[i, j] = 1 - cov_matrix[i, j]
     
         # uses LAP to find the optimal mappings of chains
         atommaps = []
-        crrpds = multilap(1. - S)
+        crrpds = multilap(cost_matrix, nodes)
         for row_ind, col_ind in crrpds:
             if len(row_ind) != m:
                 continue
@@ -1461,11 +1466,11 @@ def combineAtomMaps(mappings, target=None, **kwargs):
                 atommap.setTitle(title)
                 atommaps.append(atommap)
 
-        return atommaps, S
+        return atommaps, cov_matrix
 
     def _optimize(atommaps):
         # extract nonoverlaping mappings
-        if len(atommaps) > 1:
+        if len(atommaps):
             atommaps, rmsds = rankAtomMaps(atommaps, target)
             debug['rmsd'] = list(rmsds)
 
@@ -1487,6 +1492,10 @@ def combineAtomMaps(mappings, target=None, **kwargs):
                 rmsd = rmsds.pop(0)
                 chids = atommap_chids.pop(0)
 
+                if reject_rmsd is not None:
+                    if rmsd > reject_rmsd:
+                        break
+
                 if rmsd > rmsd_standard + drmsd:
                     break
 
@@ -1503,7 +1512,6 @@ def combineAtomMaps(mappings, target=None, **kwargs):
                             break
 
             atommaps = atommaps_
-
         return atommaps
 
     # checkers
@@ -1523,12 +1531,29 @@ def combineAtomMaps(mappings, target=None, **kwargs):
         raise ValueError('mappings can only be either an 1-D or 2-D array.')
     
     # build atommaps
-    atommaps, S = _build(mappings)
-    debug['coverage'] = S
+    nodes = []
+    atommaps, cov_matrix = _build(mappings, nodes)
+
+    debug['coverage'] = cov_matrix
 
     # optimize atommaps based on superposition if target is given
-    if target is not None:  
+    if target is not None:
         atommaps = _optimize(atommaps)
+        i = 2
+        while len(atommaps) < least_n_atommaps:
+            LOGGER.debug('solving for %d-best solution...'%i)
+            try:
+                more_atommaps, _ = _build(mappings, nodes)
+            except SolutionDepletionException:
+                if len(atommaps) < least_n_atommaps:
+                    LOGGER.warn('Only %d atommaps were found. Requested at least %d.'
+                                %(len(atommaps), least_n_atommaps))
+                break
+            more_atommaps = _optimize(more_atommaps)
+            atommaps.extend(more_atommaps)
+
+            i += 1
+
     return atommaps
 
 def rankAtomMaps(atommaps, target):
