@@ -425,6 +425,7 @@ def buildPDBEnsemble(atomics, ref=None, title='Unknown', labels=None, unmapped=N
     subset = str(kwargs.get('subset', 'calpha')).lower()
     superpose = kwargs.pop('superpose', 'iter')
     superpose = kwargs.pop('iterpose', superpose)
+    debug = kwargs.pop('debug', {})
 
     if 'mapping_func' in kwargs:
         raise DeprecationWarning('mapping_func is deprecated. Please see release notes for '
@@ -486,7 +487,8 @@ def buildPDBEnsemble(atomics, ref=None, title='Unknown', labels=None, unmapped=N
             atoms = atoms.select(subset)
 
         # find the mapping of chains of atoms to those of target
-        atommaps = alignChains(atoms, target, **kwargs)
+        debug[labels[i]] = {}
+        atommaps = alignChains(atoms, target, debug=debug[labels[i]], **kwargs)
 
         if len(atommaps) == 0:
             unmapped.append(labels[i])

@@ -1550,27 +1550,31 @@ def combineAtomMaps(mappings, target=None, **kwargs):
     if target is not None:
         atommaps = _optimize(atommaps)
         i = 2
-        while len(atommaps) < least_n_atommaps:
-            if i == 2:
-                LOGGER.debug('At least %d atommaps required. Finding alternative solutions.'%least_n_atommaps)
-            LOGGER.debug('Solving for %d-best solution...'%i)
-            try:
-                more_atommaps, _, _ = _build(mappings, nodes)
-            except SolutionDepletionException:
-                if len(atommaps) < least_n_atommaps:
-                    LOGGER.warn('%d atommaps were found. Requested at least %d.'
-                                %(len(atommaps), least_n_atommaps))
-                break
-            more_atommaps = _optimize(more_atommaps)
-            for j in reversed(range(len(more_atommaps))):
-                if more_atommaps[j] in atommaps:
-                    more_atommaps.pop(j)
-            if len(more_atommaps):
-                debug['solution'].append(i)
-            atommaps.extend(more_atommaps)
 
-            i += 1
+        if len(atommaps) < least_n_atommaps:
+            LOGGER.debug('At least %d atommaps requested. '
+                         'Finding alternative solutions.'%least_n_atommaps)
 
+            LOGGER.progress('Solving for %d-best solution...', None, label='_atommap_lap')
+            while len(atommaps) < least_n_atommaps:
+                LOGGER.update(i, label='_atommap_lap')
+                try:
+                    more_atommaps, _, _ = _build(mappings, nodes)
+                except SolutionDepletionException:
+                    break
+                more_atommaps = _optimize(more_atommaps)
+                for j in reversed(range(len(more_atommaps))):
+                    if more_atommaps[j] in atommaps:
+                        more_atommaps.pop(j)
+                if len(more_atommaps):
+                    debug['solution'].append(i)
+                atommaps.extend(more_atommaps)
+
+                i += 1
+            LOGGER.finish()
+            LOGGER.report('%d atommaps were found in %%.2fs. %d requested'%(len(atommaps), least_n_atommaps), 
+                          label='_atommap_lap')
+        
     return atommaps
 
 def rankAtomMaps(atommaps, target):
