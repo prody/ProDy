@@ -1425,7 +1425,7 @@ def combineAtomMaps(mappings, target=None, **kwargs):
     drmsd = kwargs.pop('rmsd_deviation', 3.)
     debug = kwargs.pop('debug', {})
     reject_rmsd = kwargs.pop('rmsd_rejection', 15.)
-    least_n_atommaps = kwargs.pop('least', 1)
+    least_n_atommaps = kwargs.pop('least', None)
     
     def _build(mappings, nodes=[]):
         m, n = mappings.shape
@@ -1436,14 +1436,15 @@ def combineAtomMaps(mappings, target=None, **kwargs):
                 mapping = mappings[i, j]
                 if mapping is None:
                     cov_matrix[i, j] = 0  
-                    cost_matrix[i, j] = 1e6 # some big number
+                    cost_matrix[i, j] = 1e3 # some big number but smaller than the one used in the lap solver
                 else:
                     cov_matrix[i, j] = mapping[3] / 100.
                     cost_matrix[i, j] = 1 - cov_matrix[i, j]
     
         # uses LAP to find the optimal mappings of chains
         atommaps = []
-        crrpds = multilap(cost_matrix, nodes)
+        (R, C), crrpds = multilap(cost_matrix, nodes)
+
         for row_ind, col_ind in crrpds:
             if len(row_ind) != m:
                 continue
@@ -1466,7 +1467,7 @@ def combineAtomMaps(mappings, target=None, **kwargs):
                 atommap.setTitle(title)
                 atommaps.append(atommap)
 
-        return atommaps, cov_matrix
+        return atommaps, cov_matrix, (R, C)
 
     def _optimize(atommaps):
         # extract nonoverlaping mappings
@@ -1528,11 +1529,19 @@ def combineAtomMaps(mappings, target=None, **kwargs):
     mappings = np.atleast_2d(mappings)
     
     if mappings.ndim != 2:
-        raise ValueError('mappings can only be either an 1-D or 2-D array.')
+        raise ValueError('mappings can only be either an 1-D or 2-D array')
     
     # build atommaps
+    LOGGER.debug('Finding the atommaps based on their coverages...')
     nodes = []
-    atommaps, cov_matrix = _build(mappings, nodes)
+    atommaps, cov_matrix, (R, C) = _build(mappings, nodes)
+    if least_n_atommaps is None:
+        n_mapped = 0
+        for r, c in zip(R, C):
+            if cov_matrix[r, c] > 0:
+                n_mapped += 1
+        least_n_atommaps = int(np.floor(float(n_mapped) / mappings.shape[0]))
+        LOGGER.debug('Identified that there exists %d atommap(s) potentially.'%least_n_atommaps)
 
     debug['coverage'] = cov_matrix
 
@@ -1541,15 +1550,20 @@ def combineAtomMaps(mappings, target=None, **kwargs):
         atommaps = _optimize(atommaps)
         i = 2
         while len(atommaps) < least_n_atommaps:
-            LOGGER.debug('solving for %d-best solution...'%i)
+            if i == 2:
+                LOGGER.debug('At least %d atommaps required. Finding alternative solutions.'%least_n_atommaps)
+            LOGGER.debug('Solving for %d-best solution...'%i)
             try:
-                more_atommaps, _ = _build(mappings, nodes)
+                more_atommaps, _, _ = _build(mappings, nodes)
             except SolutionDepletionException:
                 if len(atommaps) < least_n_atommaps:
-                    LOGGER.warn('Only %d atommaps were found. Requested at least %d.'
+                    LOGGER.warn('%d atommaps were found. Requested at least %d.'
                                 %(len(atommaps), least_n_atommaps))
                 break
             more_atommaps = _optimize(more_atommaps)
+            for j in reversed(range(len(more_atommaps))):
+                if more_atommaps[j] in atommaps:
+                    more_atommaps.pop(j)
             if len(more_atommaps):
                 LOGGER.debug('good mapping found')
             atommaps.extend(more_atommaps)
@@ -1588,6 +1602,11 @@ def alignChains(atoms, target, match_func=bestMatch, **kwargs):
     """
 
     mappings = mapOntoChains(atoms, target, match_func, **kwargs)
+    m, n = mappings.shape
+    if m > n:
+        LOGGER.warn('%s has fewer chains than %s'%(atoms.getTitle(), target.getTitle()))
+        return []
+
     atommaps = combineAtomMaps(mappings, target, **kwargs)
 
     return atommaps

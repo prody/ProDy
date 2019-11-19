@@ -128,7 +128,7 @@ def multilap(cost_matrix, nodes=[], BIG_NUMBER=1e6):
 
     R_ = row_labels[R]
 
-    return gen_mappings((R_, C))
+    return (R_, C), gen_mappings((R_, C))
 
 def gen_mappings(assignments):
     from itertools import product as iproduct
@@ -143,7 +143,7 @@ def gen_mappings(assignments):
         pool = [[] for _ in range(M)]
         for i, j in zip(I, J):
             pool[i].append((i, j))
-        
+
         mappings = []
         for mapping in iproduct(*pool):
             r = zeros(len(mapping), dtype=int)
