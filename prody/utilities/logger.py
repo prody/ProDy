@@ -62,11 +62,10 @@ class PackageLogger(object):
         self._error = kwargs.get('error', 'ERROR ')
 
         self._n = None
-        self._last = None
         self._barlen = None
-        self._prev = None
         self._line = None
         self._times = {}
+        self._info = {}
 
         self._n_progress = 0
 
@@ -240,14 +239,15 @@ class PackageLogger(object):
     def progress(self, msg, steps, label=None, **kwargs):
         """Instantiate a labeled process with message and number of steps."""
 
-        assert isinstance(steps, numbers.Integral) and steps > 0, \
-            'steps must be a positive integer'
-        self._steps = steps
-        self._last = 0
+        if steps is not None:  # if None then no upperlimit
+            assert isinstance(steps, numbers.Integral) and steps > 0, \
+                'steps must be a positive integer'
+        
         self._times[label] = time.time()
-        self._prev = (-1, 0)
-        self._msg = msg
-        self._line = ''
+        self._info[label] = {}
+        self._info[label]['steps'] = steps
+        self._info[label]['msg'] = msg
+        self._info[label]['last'] = 0
 
         if not hasattr(self, '_verb'):
             self._verb = self._getverbosity()
@@ -258,31 +258,33 @@ class PackageLogger(object):
         """Update progress status to current line in the console."""
 
         assert isinstance(step, numbers.Integral), 'step must be a positive integer'
-        if msg is not None:
-            self._msg = msg
-        n = self._steps
+        
+        if msg is None:
+            msg = self._info[label]['msg']
+        else:
+            self._info[label]['msg'] = msg
+        
+        last = self._info[label]['last']
+        n = self._info[label]['steps']
         i = step
-        if self._level < logging.WARNING and n > 0 and i <= n and \
-            i > self._last:
+        if self._level < logging.WARNING:
             start = self._times[label]
-            self._last = i
-            percent = 100 * i / n
-            #if percent > 3:
-            seconds = int(math.ceil((time.time()-start) * (n-i)/i))
-            prev = (percent, seconds)
-            #else:
-                #prev = (percent, 0)
-            #if self._prev == prev:
-            #    return
-            sys.stderr.write('\r' + ' ' * (len(self._line)) + '\r')
-            #if percent > 3:
-            line = self._prefix + self._msg + ' [%3d%%] %ds' % (percent, seconds)
-            #else:
-            #    line = self._prefix + self._msg + ' [%3d%%]' % percent
+            sys.stderr.write('\r' + ' ' * last + '\r')
+            if n is None:  # no upperlimit
+                line = self._prefix + msg % i
+            elif i <= n:
+                percent = 100 * i / n
+                if percent > 3:
+                    seconds = int(math.ceil((time.time()-start) * (n-i)/i))
+                    line = self._prefix + msg + ' [%3d%%] %ds' % (percent, seconds)
+                else:
+                    line = self._prefix + msg + ' [%3d%%]' % percent
+            else:
+                return
             sys.stderr.write(line)
             sys.stderr.flush()
-            self._prev = prev
             self._line = line
+            self._info[label]['last'] = len(line)
 
     def finish(self):
         self._n_progress -= 1
