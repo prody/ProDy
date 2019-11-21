@@ -495,10 +495,12 @@ def buildPDBEnsemble(atomics, ref=None, title='Unknown', labels=None, unmapped=N
             continue
         
         # add the atommaps to the ensemble
-        for j, atommap in enumerate(atommaps):
+        for atommap in atommaps:
             lbl = pystr(labels[i])
-            if j != 0:
-                lbl += '_%d'%j
+            if len(atommaps) > 1:
+                chids = np.unique(atommap.getChids())
+                strchids = ''.join(chids)
+                lbl += '_%s'%strchids
             ensemble.addCoordset(atommap, weights=atommap.getFlags('mapped'), 
                                 label=lbl, degeneracy=degeneracy)
 
