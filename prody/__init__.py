@@ -144,6 +144,7 @@ CONFIGURATION = {
     'typo_warnings': (True, None, None),
     'check_updates': (0, None, None),
     'auto_secondary': (False, None, None),
+    'auto_bonds': (False, None, None),
     'selection_warning': (True, None, None),
     'verbosity': ('debug', list(utilities.LOGGING_LEVELS),
                   LOGGER._setverbosity),
