@@ -980,7 +980,15 @@ class AtomGroup(Atomic):
         index 1"``.  See :mod:`.select` module documentation for details.
         Also, a data array with number of bonds will be generated and stored
         with label *numbonds*.  This can be used in atom selections, e.g.
-        ``'numbonds 0'`` can be used to select ions in a system."""
+        ``'numbonds 0'`` can be used to select ions in a system. If *bonds* 
+        is empty or **None**, then all bonds will be removed for this 
+        :class:`.AtomGroup`. """
+
+        if bonds is None or len(bonds) == 0:
+            self._bmap = None
+            self._bonds = None
+            self._fragments = None
+            return
 
         if isinstance(bonds, list):
             bonds = np.array(bonds, int)
@@ -996,6 +1004,7 @@ class AtomGroup(Atomic):
         bonds.sort(1)
         bonds = bonds[bonds[:, 1].argsort(), ]
         bonds = bonds[bonds[:, 0].argsort(), ]
+        bonds = np.unique(bonds, axis=0)
 
         self._bmap, self._data['numbonds'] = evalBonds(bonds, n_atoms)
         self._bonds = bonds
