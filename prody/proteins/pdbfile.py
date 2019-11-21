@@ -77,8 +77,6 @@ _parsePDBdoc = _parsePQRdoc + """
 
     If ``model=0`` and ``header=True``, return header dictionary only.
 
-    Note that this function does not evaluate ``CONECT`` records.
-
     """
 
 _PDBSubsets = {'ca': 'ca', 'calpha': 'ca', 'bb': 'bb', 'backbone': 'bb'}
