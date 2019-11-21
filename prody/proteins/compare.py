@@ -1482,16 +1482,23 @@ def combineAtomMaps(mappings, target=None, **kwargs):
             #             rmsds.pop(i)
 
             # pre-store chain IDs of atommaps
-            atommap_chids = []
+            atommap_segchids = []
             for atommap in atommaps:
-                atommap_chids.append(np.unique(atommap.select('not dummy').getChids()))
+                nodummies = atommap.select('not dummy')
+                chids = nodummies.getChids()
+                segids = nodummies.getSegnames()
+                segchids = []
+                for segid, chid in zip(segids, chids):
+                    if (segid, chid) not in segchids:
+                        segchids.append((segid, chid))
+                atommap_segchids.append(segchids)
             
             atommaps_ = []
             rmsd_standard = rmsds[0]
             while len(atommaps):
                 atommap = atommaps.pop(0)
                 rmsd = rmsds.pop(0)
-                chids = atommap_chids.pop(0)
+                segchids = atommap_segchids.pop(0)
 
                 if reject_rmsd is not None:
                     if rmsd > reject_rmsd:
@@ -1503,13 +1510,13 @@ def combineAtomMaps(mappings, target=None, **kwargs):
                 atommaps_.append(atommap)
 
                 # remove atommaps that share chains with the popped atommap
-                for i in reversed(range(len(atommap_chids))):
-                    amchids = atommap_chids[i]
+                for i in reversed(range(len(atommap_segchids))):
+                    amsegchids = atommap_segchids[i]
 
-                    for chid in amchids:
-                        if chid in chids:
+                    for segchid in amsegchids:
+                        if segchid in segchids:
                             atommaps.pop(i)
-                            atommap_chids.pop(i)
+                            atommap_segchids.pop(i)
                             break
 
             atommaps = atommaps_
