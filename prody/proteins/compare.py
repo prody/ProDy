@@ -28,11 +28,11 @@ __all__ = ['matchChains', 'matchAlign', 'mapChainOntoChain', 'mapOntoChain', 'al
            'mapOntoChainByAlignment', 'getMatchScore', 'setMatchScore',
            'getMismatchScore', 'setMismatchScore', 'getGapPenalty', 
            'setGapPenalty', 'getGapExtPenalty', 'setGapExtPenalty',
-           'getTrivialSeqId', 'setTrivialSeqId', 'getTrivialCoverage', 'combineAtomMaps',
-           'setTrivialCoverage', 'getAlignmentMethod', 'setAlignmentMethod']
+           'getGoodSeqId', 'setGoodSeqId', 'getGoodCoverage', 'combineAtomMaps',
+           'setGoodCoverage', 'getAlignmentMethod', 'setAlignmentMethod']
 
-TRIVIAL_SEQID = 90.
-TRIVIAL_COVERAGE = 50.
+GOOD_SEQID = 90.
+GOOD_COVERAGE = 90.
 MATCH_SCORE = 1.0
 MISMATCH_SCORE = 0.0
 GAP_PENALTY = -1.
@@ -51,6 +51,13 @@ _a2aaa = {
     'Y': 'TYR', 'V': 'VAL'
 }
 
+def calcScores(n_match, n_mapped, n_total):
+    if n_mapped > 0:
+        seqid = n_match * 100 / n_mapped
+        cover = n_mapped * 100 / n_total
+    else:
+        seqid = cover = 0
+    return seqid, cover
 
 def importBioPairwise2():
 
@@ -69,33 +76,33 @@ def importBioPairwise2():
     return PW2
 
 
-def getTrivialSeqId():
-    """Returns sequence identity used in the trivial mapping."""
+def getGoodSeqId():
+    """Returns good sequence identity."""
 
-    return TRIVIAL_SEQID
+    return GOOD_SEQID
 
 
-def setTrivialSeqId(seqid):
-    """Set sequence identity used in the trivial mapping."""
+def setGoodSeqId(seqid):
+    """Set good sequence identity."""
 
     if isinstance(seqid, (float, int)) and seqid >= 0:
-        global TRIVIAL_SEQID
-        TRIVIAL_SEQID = seqid
+        global GOOD_SEQID
+        GOOD_SEQID = seqid
     else:
         raise TypeError('seqid must be a positive number or zero')
 
-def getTrivialCoverage():
-    """Returns sequence coverage used in the trivial mapping."""
+def getGoodCoverage():
+    """Returns good sequence coverage."""
 
-    return TRIVIAL_COVERAGE
+    return GOOD_COVERAGE
 
 
-def setTrivialCoverage(coverage):
-    """Set sequence coverage used in the trivial mapping."""
+def setGoodCoverage(coverage):
+    """Set good sequence coverage."""
 
     if isinstance(coverage, (float, int)) and coverage >= 0:
-        global TRIVIAL_COVERAGE
-        TRIVIAL_COVERAGE = coverage
+        global GOOD_COVERAGE
+        GOOD_COVERAGE = coverage
     else:
         raise TypeError('coverage must be a positive number or zero')
 
@@ -889,8 +896,8 @@ def mapChainOntoChain(mobile, target, **kwargs):
     :arg target: chain to which atoms will be mapped
     :type target: :class:`.Chain`
 
-    :keyword seqid: percent sequence identity, default is **90** if sequence alignment is 
-        performed, otherwise **0**
+    :keyword seqid: percent sequence identity, default is **90**. Note that This parameter is 
+        only effective for sequence alignment
     :type seqid: float
 
     :keyword overlap: percent overlap with *target*, default is **70**
@@ -902,13 +909,13 @@ def mapChainOntoChain(mobile, target, **kwargs):
         or a dict of indices such as that derived from a :class:`.DaliRecord`.
         If set to **True** then the sequence alignment from :mod:`~Bio.pairwise2` 
         will be used. If set to **False**, only the trivial mapping will be performed. 
-        Default is **True**
+        Default is **"auto"**
     :type mapping: list, str, bool
 
     :keyword pwalign: if **True**, then pairwise sequence alignment will 
         be performed. If **False** then a simple mapping will be performed 
         based on residue numbers (as well as insertion codes). This will be 
-        overridden by the *mapping* keyword's value. Default is **True**
+        overridden by the *mapping* keyword's value.
     :type pwalign: bool
     
     .. [IS98] Shindyalov IN, Bourne PE. Protein structure alignment by 
@@ -942,7 +949,7 @@ def mapChainOntoChain(mobile, target, **kwargs):
     seqid = kwargs.get('seqid', 90.) 
     coverage = kwargs.get('overlap', 70.)
     coverage = kwargs.get('coverage', coverage) 
-    pwalign = kwargs.get('pwalign', True)
+    pwalign = kwargs.get('pwalign', 'auto')
     pwalign = kwargs.get('mapping', pwalign)
     alignment = None
 
@@ -964,19 +971,16 @@ def mapChainOntoChain(mobile, target, **kwargs):
 
     # trivial mapping serves as a first simple trial of alignment the two 
     # sequences based on residue number, therefore the sequence identity 
-    # (TRIVIAL_SEQID) criterion is strict.
-    _seqid = _cover = -1
+    # (GOOD_SEQID) criterion is strict.
     target_list, chain_list, n_match, n_mapped = getTrivialMapping(
         simple_target, simple_mobile)
-    if n_mapped > 0:
-        _seqid = n_match * 100 / n_mapped
-        _cover = n_mapped * 100 / len(simple_target) # max(len(simple_target), len(simple_mobile))
+    _seqid, _cover = calcScores(n_match, n_mapped, len(simple_target))
 
-    trivial_seqid = TRIVIAL_SEQID if pwalign else seqid
-    trivial_cover = TRIVIAL_COVERAGE if pwalign else coverage
+    trivial_seqid = GOOD_SEQID if pwalign else seqid
+    trivial_cover = GOOD_COVERAGE if pwalign else coverage
     if _seqid >= trivial_seqid and _cover >= trivial_cover:
-        LOGGER.debug('\tMapped: {0} residues match with {1:.0f}% '
-                'sequence identity and {2:.0f}% overlap.'
+        LOGGER.debug('\tMapped: {0} residues match with {1:.0f}%% '
+                'sequence identity and {2:.0f}%% overlap.'
                 .format(n_mapped, _seqid, _cover))
         mapping = (target_list, chain_list, _seqid, _cover)
     else:
@@ -986,52 +990,52 @@ def mapChainOntoChain(mobile, target, **kwargs):
                     .format(_seqid, _cover))
 
     if pwalign and mapping is None:
+        SEQ_ALIGNMENT = ('seq', ALIGNMENT_METHOD + ' sequence alignment', seqid, coverage)
+        CE_ALIGNMENT = ('ce', 'CEalign', 0., coverage)
+        PREDEF_ALIGNMENT = ('predef', 'predefined alignment', 0., coverage)
+
         if alignment is None:
             if pwalign in ['ce', 'cealign']:
-                aln_type = 'structure alignment'
-                method = 'CE'
-                if not 'seqid' in kwargs:
-                    seqid = 0.
+                methods = [CE_ALIGNMENT]
+            elif pwalign == 'auto': 
+                methods = [SEQ_ALIGNMENT, 
+                           CE_ALIGNMENT]
             else:
-                aln_type = 'sequence alignment'
-                method = ALIGNMENT_METHOD
+                methods = [SEQ_ALIGNMENT]
         else:
-            aln_type = 'alignment'
-            method = 'predefined'
-            if not 'seqid' in kwargs:
-                seqid = 0.
+            methods = [PREDEF_ALIGNMENT]
 
-        LOGGER.debug('Trying to map atoms based on {0} {1}:'
-                     .format(method, aln_type))
+        for method, desc, seqid, coverage in methods:
+            LOGGER.debug('Trying to map atoms based on {0}:'
+                        .format(desc))
 
-        LOGGER.debug('  Comparing {0} (len={1}) with {2}:'
-                    .format(simple_mobile.getTitle(), len(simple_mobile),
-                            simple_target.getTitle()))
-        if method == 'CE':
-            result = getCEAlignMapping(simple_target, simple_mobile)
-        else:
-            if isinstance(alignment, dict):
-                result = getDictMapping(simple_target, simple_mobile, map_dict=alignment)
+            LOGGER.debug('  Comparing {0} (len={1}) with {2}:'
+                        .format(simple_mobile.getTitle(), len(simple_mobile),
+                                simple_target.getTitle()))
+            if method == 'ce':
+                result = getCEAlignMapping(simple_target, simple_mobile)
+            elif method == 'seq':
+                result = getAlignedMapping(simple_target, simple_mobile)
             else:
-                result = getAlignedMapping(simple_target, simple_mobile, alignment=alignment)
+                if isinstance(alignment, dict):
+                    result = getDictMapping(simple_target, simple_mobile, alignment)
+                else:
+                    result = getAlignedMapping(simple_target, simple_mobile, alignment)
 
-        if result is not None:
-            target_list, chain_list, n_match, n_mapped = result
-            if n_mapped > 0:
-                _seqid = n_match * 100 / n_mapped
-                _cover = n_mapped * 100 / len(simple_target) # max(len(simple_target), len(simple_mobile))
-            else:
-                _seqid = 0
-                _cover = 0
-            if _seqid >= seqid and _cover >= coverage:
-                LOGGER.debug('\tMapped: {0} residues match with {1:.0f}%'
-                                ' sequence identity and {2:.0f}% overlap.'
-                                .format(n_mapped, _seqid, _cover))
-                mapping = (target_list, chain_list, _seqid, _cover)
-            else:
-                LOGGER.debug('\tFailed to match chains (seqid={0:.0f}%, '
-                                'overlap={1:.0f}%).'
-                                .format(_seqid, _cover))
+            if result is not None:
+                target_list, chain_list, n_match, n_mapped = result
+                _seqid, _cover = calcScores(n_match, n_mapped, len(simple_target))
+
+                if _seqid >= seqid and _cover >= coverage:
+                    LOGGER.debug('\tMapped: {0} residues match with {1:.0f}%%'
+                                    ' sequence identity and {2:.0f}%% overlap.'
+                                    .format(n_mapped, _seqid, _cover))
+                    mapping = (target_list, chain_list, _seqid, _cover)
+                    break
+                else:
+                    LOGGER.debug('\tFailed to match chains (seqid={0:.0f}%, '
+                                    'overlap={1:.0f}%).'
+                                    .format(_seqid, _cover))
 
     if mapping is not None:
         residues_target, residues_chain, _seqid, _cover = mapping
@@ -1554,7 +1558,7 @@ def combineAtomMaps(mappings, target=None, **kwargs):
     debug['solution'] = [1]
 
     # optimize atommaps based on superposition if target is given
-    if target is not None:
+    if target is not None and len(nodes):
         atommaps = _optimize(atommaps)
         i = 2
 
