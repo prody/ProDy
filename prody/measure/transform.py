@@ -4,7 +4,7 @@
 import numpy as np
 
 from prody import LOGGER
-from prody.atomic import AtomPointer
+from prody.atomic import AtomPointer, AtomMap
 from prody.utilities import importLA, checkWeights
 
 from .measure import calcCenter
@@ -119,6 +119,15 @@ def calcTransformation(mobile, target, weights=None):
 
     if mob.shape[1] != 3:
         raise ValueError('reference and target must be coordinate arrays')
+    
+    if weights is None:
+        if isinstance(mobile, AtomMap):
+            LOGGER.warn('mobile is an AtomMap instance, consider assign weights=mobile.getFlags("mapped") '
+                        'if there are dummy atoms in mobile')
+
+        if isinstance(target, AtomMap):
+            LOGGER.warn('target is an AtomMap instance, consider assign weights=target.getFlags("mapped") '
+                        'if there are dummy atoms in target')
 
     if weights is not None:
         weights = checkWeights(weights, mob.shape[0])

@@ -6,7 +6,7 @@ import os.path
 from numpy import array, abs
 
 from prody import LOGGER, SETTINGS, getPackagePath
-from prody.utilities import openFile, openURL
+from prody.utilities import openFile, openURL, pystr
 
 from numbers import Integral
 
@@ -51,13 +51,22 @@ def loadPDBClusters(sqid=None):
                                .format(diff))
                 PDB_CLUSTERS_UPDATE_WARNING = False
         inp = openFile(filename)
-        clusters = inp.read()
-        try:
-            clusters = clusters.decode()
-        except (UnicodeDecodeError, AttributeError):
-            pass
+        clusters_str = pystr(inp.read())
+
+        clusters = []
+        for cluster_str in clusters_str.split('\n'):
+            cluster_str = cluster_str.strip()
+            if len(cluster_str):
+                cluster = [tuple(item.split('_')) for item in cluster_str.split()]
+                clusters.append(cluster)
+
         PDB_CLUSTERS[sqid] = clusters
         inp.close()
+
+    if sqid is None:
+        return PDB_CLUSTERS
+    else:
+        return clusters
 
 
 def listPDBCluster(pdb, ch, sqid=95):
@@ -87,13 +96,12 @@ def listPDBCluster(pdb, ch, sqid=95):
     if clusters is None:
         loadPDBClusters(sqid)
         clusters = PDB_CLUSTERS[sqid]
-    pdb_ch = pdb.upper() + '_' + ch.upper()
-    index = clusters.index(pdb_ch)
-    maxlen = clusters.index('\n')
-    end = clusters.find('\n', index)
-    start = clusters.rfind('\n', index-maxlen, end)+1
-    cluster = clusters[start:end]
-    return [tuple(item.split('_')) for item in cluster.split()]
+    pdb_ch = (pdb.upper(), ch)
+
+    for cluster in clusters:
+        if pdb_ch in cluster:
+            return cluster
+    return 
 
 def fetchPDBClusters(sqid=None):
     """Retrieve PDB sequence clusters.  PDB sequence clusters are results of

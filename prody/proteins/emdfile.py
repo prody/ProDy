@@ -91,11 +91,20 @@ def parseEMD(emd, **kwargs):
 
     return result
 
-def _parseEMDLines(atomgroup, stream, cutoff=None, n_nodes=1000, num_iter=20, map=True, make_nodes=False):
+def _parseEMDLines(atomgroup, stream, cutoff=None, n_nodes=0, num_iter=20, map=False, make_nodes=False):
     """ Returns an AtomGroup. see also :func:`.parseEMDStream()`.
 
     :arg stream: stream from parser.
     """
+
+    if not isinstance(n_nodes, int):
+        raise TypeError('n_nodes should be an integer')
+        
+    if n_nodes > 0:
+        make_nodes = True
+    else:
+        map = True
+        LOGGER.info('As n_nodes is less than or equal to 0, no nodes will be made and the raw map will be returned')
 
     emd = EMDMAP(stream, cutoff)
 
@@ -153,14 +162,14 @@ def parseEMDStream(stream, **kwargs):
 
     n_nodes = kwargs.get('n_nodes', None)
     num_iter = int(kwargs.get('num_iter', 20))
-    load_map = kwargs.get('map', False)
+    map = kwargs.get('map', False)
     make_nodes = kwargs.get('make_nodes', False)
 
     if n_nodes is not None:
         make_nodes = True
         n_nodes = int(n_nodes)
 
-    if load_map is False and make_nodes is False:
+    if map is False and make_nodes is False:
         LOGGER.warn('At least one of map and make_nodes should be True. '
                     'Setting map to False was an intentional change from the default '
                     'behaviour so make_nodes has been set to True.')
@@ -174,22 +183,22 @@ def parseEMDStream(stream, **kwargs):
         LOGGER.info('Building coordinates from electron density map. This may take a while.')
         LOGGER.timeit()
 
-        if load_map:
+        if map:
             atomgroup, emd = _parseEMDLines(atomgroup, stream, cutoff=cutoff, n_nodes=n_nodes, \
-                                            num_iter=num_iter, map=load_map, make_nodes=make_nodes)
+                                            num_iter=num_iter, map=map, make_nodes=make_nodes)
         else:
             atomgroup = _parseEMDLines(atomgroup, stream, cutoff=cutoff, n_nodes=n_nodes, \
-                                       num_iter=num_iter, map=load_map, make_nodes=make_nodes)
+                                       num_iter=num_iter, map=map, make_nodes=make_nodes)
 
         LOGGER.report('{0} atoms and {1} coordinate sets were '
                       'parsed in %.2fs.'.format(atomgroup.numAtoms(), atomgroup.numCoordsets()))
     else: 
         emd = _parseEMDLines(atomgroup, stream, cutoff=cutoff, n_nodes=n_nodes, \
-                             num_iter=num_iter, map=load_map, make_nodes=make_nodes)
+                             num_iter=num_iter, map=map, make_nodes=make_nodes)
 
     if make_nodes:
-        if load_map:
-            return emd, atomgroup
+        if map:
+            return atomgroup, emd
         else:
             return atomgroup
     else:
