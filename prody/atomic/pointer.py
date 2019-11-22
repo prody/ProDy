@@ -286,3 +286,13 @@ class AtomPointer(Atomic):
                     if b > -1 and b in iset:
                         yield a, b
                 iset.remove(a)
+
+    def iterBonds(self):
+        """Yield bonds formed by the atom.  Use :meth:`setBonds` for setting
+        bonds."""
+
+        ag = self._ag
+        acsi = self.getACSIndex()
+        for bond in self._iterBonds():
+            yield Bond(ag, bond, acsi)
+            

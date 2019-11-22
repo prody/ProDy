@@ -373,10 +373,7 @@ def matchModes(*modesets, **kwargs):
 
     modeset0 = modesets[0]
     if index:
-        try:
-            ret = [modeset0.getIndices()]
-        except AttributeError:
-            ret = [list(range(modeset0.numModes()))] # If modeset0 is not a modeset
+        ret = [modeset0.getIndices()]
     else:
         ret = [modeset0]
 

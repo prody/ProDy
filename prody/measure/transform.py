@@ -4,7 +4,7 @@
 import numpy as np
 
 from prody import LOGGER
-from prody.atomic import AtomPointer
+from prody.atomic import AtomPointer, AtomMap
 from prody.utilities import importLA, checkWeights
 
 from .measure import calcCenter
@@ -119,6 +119,15 @@ def calcTransformation(mobile, target, weights=None):
 
     if mob.shape[1] != 3:
         raise ValueError('reference and target must be coordinate arrays')
+    
+    if weights is None:
+        if isinstance(mobile, AtomMap):
+            LOGGER.warn('mobile is an AtomMap instance, consider assign weights=mobile.getFlags("mapped") '
+                        'if there are dummy atoms in mobile')
+
+        if isinstance(target, AtomMap):
+            LOGGER.warn('target is an AtomMap instance, consider assign weights=target.getFlags("mapped") '
+                        'if there are dummy atoms in target')
 
     if weights is not None:
         weights = checkWeights(weights, mob.shape[0])
@@ -127,7 +136,6 @@ def calcTransformation(mobile, target, weights=None):
 
 
 def getTransformation(mob, tar, weights=None):
-
 
     if weights is None:
         mob_com = mob.mean(0)
@@ -144,10 +152,11 @@ def getTransformation(mob, tar, weights=None):
         tar = tar - tar_com
         matrix = np.dot((mob * weights).T, (tar * weights)) / weights_dot
 
-    U, s, Vh = linalg.svd(matrix)
+    U, _, Vh = linalg.svd(matrix)
+    d = np.sign(linalg.det(np.dot(U, Vh)))
     Id = np.array([[1, 0, 0],
                    [0, 1, 0],
-                   [0, 0, np.sign(linalg.det(matrix))]])
+                   [0, 0, d]])
     rotation = np.dot(Vh.T, np.dot(Id, U.T))
 
     return rotation, tar_com - np.dot(mob_com, rotation.T)
