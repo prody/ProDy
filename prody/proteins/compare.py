@@ -1338,33 +1338,33 @@ def getCEAlignMapping(target, chain):
     tar_coords = target.getCoords(calpha=True).tolist()
     mob_coords = chain.getCoords(calpha=True).tolist()
     
-    def add_tail_dummies(coords, window=8):
-        natoms = len(coords)
-        if natoms < window:
-            return None
-        rest = natoms % window
+    # def add_tail_dummies(coords, window=8):
+    #     natoms = len(coords)
+    #     if natoms < window:
+    #         return None
+    #     rest = natoms % window
 
-        tail_indices = []
-        for i in range(rest):
-            tail_indices.append(len(coords))
-            coords.append(coords[-(i+1)])
+    #     tail_indices = []
+    #     for i in range(rest):
+    #         tail_indices.append(len(coords))
+    #         coords.append(coords[-(i+1)])
         
-        return tail_indices
+    #     return tail_indices
 
-    window = 8
-    tar_dummies = add_tail_dummies(tar_coords, window)
-    if tar_dummies is None:
-        LOGGER.warn('target ({1}) is too small to be aligned '
-                    'by CE algorithm (at least {0} residues)'
-                    .format(window, repr(target)))
-        return None
+    # window = 8
+    # tar_dummies = add_tail_dummies(tar_coords, window)
+    # if tar_dummies is None:
+    #     LOGGER.warn('target ({1}) is too small to be aligned '
+    #                 'by CE algorithm (at least {0} residues)'
+    #                 .format(window, repr(target)))
+    #     return None
 
-    mob_dummies = add_tail_dummies(mob_coords, window)
-    if mob_dummies is None:
-        LOGGER.warn('chain ({1}) is too small to be aligned '
-                    'by CE algorithm (at least {0} residues)'
-                    .format(window, repr(chain)))
-        return None
+    # mob_dummies = add_tail_dummies(mob_coords, window)
+    # if mob_dummies is None:
+    #     LOGGER.warn('chain ({1}) is too small to be aligned '
+    #                 'by CE algorithm (at least {0} residues)'
+    #                 .format(window, repr(chain)))
+    #     return None
 
     aln_info = ccealign((tar_coords, mob_coords))
 
@@ -1374,10 +1374,10 @@ def getCEAlignMapping(target, chain):
     tar_indices = []
     chn_indices = []
     for i, j in path:
-        if i not in tar_dummies:
-            if j not in mob_dummies:
-                tar_indices.append(i)
-                chn_indices.append(j)
+        # if i not in tar_dummies:
+        #     if j not in mob_dummies:
+        tar_indices.append(i)
+        chn_indices.append(j)
 
     chain_res_list = [res for res in chain]
 
