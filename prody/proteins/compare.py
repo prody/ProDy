@@ -38,9 +38,6 @@ MISMATCH_SCORE = 0.0
 GAP_PENALTY = -1.
 GAP_EXT_PENALTY = -0.1
 ALIGNMENT_METHOD = 'local'
-GAP = '-'
-
-
 GAPCHARS = ['-', '.']
 NONE_A = '_'
 
@@ -786,11 +783,11 @@ def getAlignedMatch(ach, bch):
     for i in range(len(this)):
         a = this[i]
         b = that[i]
-        if a != GAP:
+        if a not in GAPCHARS:
             ares = next(aiter)
-        if b != GAP:
+        if b not in GAPCHARS:
             bres = next(biter)
-            if a != GAP:
+            if a not in GAPCHARS:
                 amatch.append(ares.getResidue())
                 bmatch.append(bres.getResidue())
                 if a == b:
@@ -1314,13 +1311,15 @@ def getAlignedMapping(target, chain, alignment=None):
     biter = chain.__iter__()
     n_match = 0
     n_mapped = 0
+    gap_chars = list(GAPCHARS)
+    gap_chars.append(NONE_A)
     for i in range(len(this)):
         a = this[i]
         b = that[i]
-        if a not in (GAP, NONE_A):
+        if a not in gap_chars:
             ares = next(aiter)
             amatch.append(ares.getResidue())
-            if b not in (GAP, NONE_A):
+            if b not in gap_chars:
                 bres = next(biter)
                 bmatch.append(bres.getResidue())
                 if a == b:
@@ -1328,7 +1327,7 @@ def getAlignedMapping(target, chain, alignment=None):
                 n_mapped += 1
             else:
                 bmatch.append(None)
-        elif b not in (GAP, NONE_A):
+        elif b not in gap_chars:
             bres = next(biter)
     return amatch, bmatch, n_match, n_mapped
 
