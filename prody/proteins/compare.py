@@ -1282,28 +1282,29 @@ def getAlignedMapping(target, chain, alignment=None):
                                                 GAP_PENALTY, GAP_EXT_PENALTY,
                                                 one_alignment_only=1)
         alignment = alignments[0]
+        this, that = alignment[:2]
+    else:
+        def _findAlignment(sequence, alignment):
+            for seq in alignment:
+                strseq = str(seq).upper()
+                for gap in GAPCHARS:
+                    strseq = strseq.replace(gap, '')
 
-    def _findAlignment(sequence, alignment):
-        for seq in alignment:
-            strseq = str(seq).upper()
-            for gap in GAPCHARS:
-                strseq = strseq.replace(gap, '')
+                if sequence.upper() == strseq:
+                    return str(seq)
+            return None
 
-            if sequence.upper() == strseq:
-                return str(seq)
-        return None
+        this = _findAlignment(target.getSequence(), alignment)
+        if this is None:
+            LOGGER.warn('alignment does not contain the target ({0}) sequence'
+                        .format(target.getTitle()))
+            return None
 
-    this = _findAlignment(target.getSequence(), alignment)
-    if this is None:
-        LOGGER.warn('alignment does not contain the target ({0}) sequence'
-                    .format(target.getTitle()))
-        return None
-
-    that = _findAlignment(chain.getSequence(), alignment)
-    if that is None:
-        LOGGER.warn('alignment does not contain the chain ({0}) sequence'
-                    .format(chain.getTitle()))
-        return None
+        that = _findAlignment(chain.getSequence(), alignment)
+        if that is None:
+            LOGGER.warn('alignment does not contain the chain ({0}) sequence'
+                        .format(chain.getTitle()))
+            return None
 
     amatch = []
     bmatch = []
