@@ -18,7 +18,7 @@ from .functions import calcENM, reduceModel, sliceModel
 from .compare import matchModes
 from .modeset import ModeSet
 from prody.trajectory import writeDCD
-from prody.proteins import writePDB, mapOntoChain, mapChainByChain
+from prody.proteins import writePDB, mapOntoChain, mapOntoChains
 
 __all__ = ['AdaptiveANM']
 
@@ -117,7 +117,7 @@ class AdaptiveANM(object):
         else:
             structB_sel = self.structB.select(self.alignSelB)
 
-        self.mapping_func = kwargs.pop('mapping_func', mapChainByChain)
+        self.mapping_func = kwargs.pop('mapping_func', mapOntoChains)
         self.seqid = kwargs.pop('seqid', 90.) 
         self.coverage = kwargs.pop('overlap', 70.)
         self.coverage = kwargs.pop('coverage', self.coverage)
@@ -244,7 +244,7 @@ class AdaptiveANM(object):
 
         LOGGER.info('\nStarting cycle {0} with initial structure {1}'.format(self.numSteps+1, structA))
 
-        mapping_func = kwargs.get('mapping_func', mapChainByChain)
+        mapping_func = kwargs.get('mapping_func', mapOntoChains)
 
         if alignSelA is None:
             structA_sel = structA
