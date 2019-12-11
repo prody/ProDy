@@ -1426,6 +1426,7 @@ def combineAtomMaps(mappings, target=None, **kwargs):
 
     """
 
+    BIG_NUMBER = 1e6
     drmsd = kwargs.pop('rmsd_deviation', 3.)
     debug = kwargs.pop('debug', {})
     reject_rmsd = kwargs.pop('rmsd_rejection', 15.)
@@ -1440,14 +1441,14 @@ def combineAtomMaps(mappings, target=None, **kwargs):
                 mapping = mappings[i, j]
                 if mapping is None:
                     cov_matrix[i, j] = 0  
-                    cost_matrix[i, j] = 1e3 # some big number but smaller than the one used in the lap solver
+                    cost_matrix[i, j] = BIG_NUMBER
                 else:
                     cov_matrix[i, j] = mapping[3] / 100.
                     cost_matrix[i, j] = 1 - cov_matrix[i, j]
     
         # uses LAP to find the optimal mappings of chains
         atommaps = []
-        (R, C), crrpds = multilap(cost_matrix, nodes)
+        (R, C), crrpds = multilap(cost_matrix, nodes, BIG_NUMBER)
 
         for row_ind, col_ind in crrpds:
             if len(row_ind) != m:
