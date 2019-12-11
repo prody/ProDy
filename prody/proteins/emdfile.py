@@ -91,14 +91,20 @@ def parseEMD(emd, **kwargs):
 
     return result
 
-def _parseEMDLines(atomgroup, stream, cutoff=None, n_nodes=1000, num_iter=20, map=True, make_nodes=False):
+def _parseEMDLines(atomgroup, stream, cutoff=None, n_nodes=0, num_iter=20, map=False, make_nodes=False):
     """ Returns an AtomGroup. see also :func:`.parseEMDStream()`.
 
     :arg stream: stream from parser.
     """
 
-    if not n_nodes > 0:
-        raise ValueError('n_nodes should be larger than 0')
+    if not isinstance(n_nodes, int):
+        raise TypeError('n_nodes should be an integer')
+        
+    if n_nodes > 0:
+        make_nodes = True
+    else:
+        map = True
+        LOGGER.info('As n_nodes is less than or equal to 0, no nodes will be made and the raw map will be returned')
 
     emd = EMDMAP(stream, cutoff)
 
@@ -184,7 +190,7 @@ def parseEMDStream(stream, **kwargs):
 
     if make_nodes:
         if map:
-            return emd, atomgroup
+            return atomgroup, emd
         else:
             return atomgroup
     else:
@@ -333,12 +339,12 @@ class EMDMAP:
     def numidx2matidx(self, numidx):
         """ Given index of the position, it will return the numbers of section, row and column. """
         # calculate section idx
-        s = numidx / (self.NC * self.NR)
+        s = int(numidx / (self.NC * self.NR))
         numidx = numidx - s * self.NC * self.NR
         # calculate row idx
-        r = numidx / self.NC
+        r = int(numidx / self.NC)
         # calculate column idx
-        c = numidx - r * self.NC
+        c = int(numidx - r * self.NC)
         return s, r, c
 
     def drawsample(self):
@@ -355,7 +361,7 @@ class EMDMAP:
         return self.numidx2matidx(r)
 
     def center(self):
-        return self.NS / 2, self.NR / 2, self.NC / 2
+        return int(self.NS / 2), int(self.NR / 2), int(self.NC / 2)
 
     def coordinate(self, sec, row, col ):
         # calculate resolution
@@ -381,7 +387,7 @@ class TRNET:
         # test
         self.V = np.array([])
         
-    def inputMap(self, emdmap, sample = 'density'):
+    def inputMap(self, emdmap, sample='density'):
         self.map = emdmap
         # initialize the positions of nodes
         for i in range(self.N):
