@@ -1416,20 +1416,36 @@ def combineAtomMaps(mappings, target=None, **kwargs):
     :arg mappings: a list or an array of matching chains in a tuple, or just the tuple
     :type mappings: tuple, list, :class:`~numpy.ndarray`
 
-    The function returns the following items:
+    :arg target: reference structure for superposition and checking RMSD
+    :type target: :class:`.Atomic`
 
-      * combined chains as an :class:`.AtomMap` instance,
-      * original coverage matrix, rows and columns correspond to the reference and the 
-        mobile, respectively, if *ret_info* is set to **True**,
-      * matched index groups that obtained by modeling the coverage matrix as a linear 
-        assignment problem, if *ret_info* is set to **True**.
+    :arg drmsd: amount deviation of the RMSD with respect to the top ranking atommap. 
+        This is to allow multiple matches when *mobile* has more chains than *target*. 
+        Default is 3.0
+    :type drmsd: float
+
+    :arg rmsd_reject: upper RMSD cutoff that rejects an atommap. Default is 15.0
+    :type rmsd_reject: float
+
+    :arg least: the least number of atommaps requested. If **None**, it will be automatically 
+        determined by the number of chains present in *target* and *mobile*. 
+        Default is **None**
+    :type least: int
+
+    :arg debug: a container (dict) that saves the following information for debugging purposes:
+        * coverage: original coverage matrix, rows and columns correspond to the reference and the 
+        mobile, respectively,
+        * solutions: matched index groups that obtained by modeling the coverage matrix as a linear 
+        assignment problem,
+        * rmsd: a list of ranked RMSDs of identified atommaps.
+    :type debug: dict
 
     """
 
     BIG_NUMBER = 1e6
-    drmsd = kwargs.pop('rmsd_deviation', 3.)
+    drmsd = kwargs.pop('drmsd', 3.)
     debug = kwargs.pop('debug', {})
-    reject_rmsd = kwargs.pop('rmsd_rejection', 15.)
+    reject_rmsd = kwargs.pop('rmsd_reject', 15.)
     least_n_atommaps = kwargs.pop('least', None)
     
     def _build(mappings, nodes=[]):
@@ -1586,7 +1602,9 @@ def combineAtomMaps(mappings, target=None, **kwargs):
             LOGGER.finish()
             LOGGER.report('%d atommaps were found in %%.2fs. %d requested'%(len(atommaps), least_n_atommaps), 
                           label='_atommap_lap')
-        
+    
+    if len(atommaps) == 0:
+        LOGGER.warn('no atommaps were found. Consider inceasing rmsd_reject or drmsd')
     return atommaps
 
 def rankAtomMaps(atommaps, target):
