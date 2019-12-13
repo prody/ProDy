@@ -57,7 +57,10 @@ def _getEigvecs(modes, row_norm=False, dummy_mode=False):
     la = importLA()
 
     if isinstance(modes, (Mode, ModeSet, NMA)):
-        model = modes._model
+        if hasattr(modes, '_model'):
+            model = modes._model
+        else:
+            model = modes
         if isinstance(model, MaskedGNM):
             masked = model.masked
             model.masked = True
