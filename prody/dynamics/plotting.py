@@ -1261,7 +1261,7 @@ def showAtomicMatrix(matrix, x_array=None, y_array=None, atoms=None, **kwargs):
     ticklabels = kwargs.pop('ticklabels', None)
     text_color = kwargs.pop('text_color', 'k')
     text_color = kwargs.pop('textcolor', text_color)
-
+    cluster = kwargs.pop('cluster', False)
     interactive = kwargs.pop('interactive', True)
 
     if isinstance(fig, Figure):

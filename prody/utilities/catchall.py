@@ -272,6 +272,7 @@ def showLines(*args, **kwargs):
 
     return lines, polys
 
+
 def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
     """Show a matrix using :meth:`~matplotlib.axes.Axes.imshow`. Curves on x- and y-axis can be added.
 
@@ -289,6 +290,9 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
     :type percentile: float
 
     :arg interactive: turn on or off the interactive options
+    :type interactive: bool
+
+    :arg cluster_row/cluster_col: turn on or off the row/col dendrogram and reorder the matrix by that. only works when x_array AND y_array is given
     :type interactive: bool
     """
 
@@ -319,7 +323,8 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
 
     cmap = kwargs.pop('cmap', 'jet')
     origin = kwargs.pop('origin', 'lower')
-
+    cluster_row = kwargs.pop('cluster_row',False)
+    cluster_col = kwargs.pop('cluster_col', False)
     tree_mode = False
     try: 
         from Bio import Phylo
@@ -329,12 +334,37 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
             'to solve the problem.')
     tree_mode = isinstance(y_array, Phylo.BaseTree.Tree)
 
-    if x_array is not None and y_array is not None:
+    #if both x and y arrays are given and row and column clustering is asked
+    if x_array is not None and y_array is not None and cluster_row == True and cluster_col == True:
+        nrow = 3; ncol = 3
+        i = 1; j = 1
+        width_ratios = [1, W, 1]
+        height_ratios = [1, H, 1]
+        aspect = 'auto'
+    #if both x and y arrays are given but no clustering is asked
+    elif x_array is not None and y_array is not None and cluster_row == False and cluster_col == False:
         nrow = 2; ncol = 2
         i = 1; j = 1
         width_ratios = [1, W]
         height_ratios = [1, H]
         aspect = 'auto'
+    
+    #if both x and y arrays are given and only row clustering is asked
+    elif x_array is not None and y_array is not None and cluster_row == True and cluster_col == False:
+        nrow = 2; ncol = 3
+        i = 1; j = 1
+        width_ratios = [2, W, 1]
+        height_ratios = [1, H]
+        aspect = 'auto'
+    #if both x and y arrays are given and only row clustering is asked
+    elif x_array is not None and y_array is not None and cluster_row == False and cluster_col == True:
+        nrow = 3; ncol = 2
+        i = 1; j = 1
+        width_ratios = [1, W]
+        height_ratios = [2, H, 1]
+        aspect = 'auto'  
+        
+        
     elif x_array is not None and y_array is None:
         nrow = 2; ncol = 1
         i = 1; j = 0
@@ -353,22 +383,40 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
         width_ratios = [W]
         height_ratios = [H]
         aspect = None
-
-    main_index = (i, j)
-    upper_index = (i-1, j)
-    left_index = (i, j-1)
+    
+    if cluster_row==False and cluster_col==False:
+        main_index = (i, j)
+        upper_index = (i-1, j)
+        left_index = (i, j-1)
+    else:
+        if cluster_row == True and cluster_col==True:
+            main_index = (i, j)
+            upper_index = (i-1, j)
+            right_index = (i, j+1)
+            lower_index = (i+1, j)
+            left_index = (i, j-1) 
+        elif cluster_row == False and cluster_col==True:
+            main_index = (i, j)
+            upper_index = (i-1, j)
+            left_index = (i, j-1) 
+            lower_index = (i+1, j)
+        elif cluster_row == True and cluster_col==False:
+            main_index = (i, j)
+            upper_index = (i-1, j)
+            left_index = (i, j-1) 
+            right_index = (i,j+1)
 
     complex_layout = nrow > 1 or ncol > 1
 
-    ax1 = ax2 = ax3 = None
+    ax1 = ax2 = ax3 = ax4 = ax5 = None
 
     if complex_layout:
         gs = GridSpec(nrow, ncol, width_ratios=width_ratios, 
                       height_ratios=height_ratios, hspace=0., wspace=0.)
 
     lines = []
-    if nrow > 1:
-        ax1 = subplot(gs[upper_index])
+    if x_array is not None:
+        ax1 = subplot(gs[upper_index]) if cluster_col is False else subplot(gs[lower_index]) 
 
         if not tree_mode:
             ax1.set_xticklabels([])
@@ -385,8 +433,8 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
             ax1.set_ylim(yp.min(), yp.max())
         ax1.axis('off')
 
-    if ncol > 1:
-        ax2 = subplot(gs[left_index])
+    if y_array is not None:
+        ax2 = subplot(gs[left_index]) if cluster_row is False else subplot(gs[right_index])
         
         if tree_mode:
             Phylo.draw(y_array, do_show=False, axes=ax2)
@@ -406,6 +454,32 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
 
         ax2.axis('off')
 
+    if cluster_row:
+        ax4 = subplot(gs[left_index])
+        from scipy.cluster import hierarchy
+        from scipy.spatial import distance
+
+        row_linkage = hierarchy.linkage(distance.pdist(matrix), method='ward')  # , optimal_ordering=True)
+        Z1 = hierarchy.dendrogram(row_linkage, orientation='left',link_color_func=lambda k: 'black')
+        idx1 = Z1['leaves']
+        matrix = matrix[idx1, :]
+        ax4.set_xticks([])
+        ax4.set_yticks([])
+        ax4.axis('off')
+    if cluster_col:
+        ax5 = subplot(gs[upper_index])
+
+        from scipy.cluster import hierarchy
+        from scipy.spatial import distance
+
+        col_linkage = hierarchy.linkage(distance.pdist(matrix.T), method='ward')  # , optimal_ordering=True)
+        Z2 = hierarchy.dendrogram(col_linkage,link_color_func=lambda k: 'black')
+        idx2 = Z2['leaves']
+        matrix = matrix[:, idx2]
+        ax5.set_xticks([])
+        ax5.set_yticks([])
+        ax5.axis('off')
+        
     if complex_layout:
         ax3 = subplot(gs[main_index])
     else:
@@ -440,11 +514,17 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
 
     if ncol > 1:
         ax3.yaxis.set_major_formatter(ticker.NullFormatter())
+    if cluster_row==True:
+        ax3.set_yticks([])
         
+    if cluster_col==True:
+        #ax3.set_yticks([])
+        ax3.set_xticks([])
+
     cb = None
     if show_colorbar:
         if nrow > 1:
-            axes = [ax1, ax2, ax3]
+            axes = [ax1, ax2, ax3, ax4, ax5]
             while None in axes:
                 axes.remove(None)
             s = H / (H + 1.)
