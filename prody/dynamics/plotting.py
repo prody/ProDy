@@ -1119,7 +1119,9 @@ def showPerturbResponse(model, atoms=None, show_matrix=True, select=None, **kwar
         show = showAtomicMatrix(prs_matrix, x_array=sensitivity, 
                                 y_array=effectiveness, atoms=atoms, 
                                 **kwargs)
-        xlabel('Residues')
+        cluster_col = kwargs.pop('cluster_col',False)
+        if cluster_col == False:
+            xlabel('Residues')
 
     else:
         if select is None:

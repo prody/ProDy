@@ -364,26 +364,31 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
         height_ratios = [2, H, 1]
         aspect = 'auto'  
         
-        
+    
+    #if either x_array or y_array is not given there won't be any clustering
     elif x_array is not None and y_array is None:
         nrow = 2; ncol = 1
         i = 1; j = 0
         width_ratios = [W]
         height_ratios = [1, H]
         aspect = 'auto'
+        cluster_col = cluster_row = False
     elif x_array is None and y_array is not None:
         nrow = 1; ncol = 2
         i = 0; j = 1
         width_ratios = [1, W]
         height_ratios = [H]
         aspect = 'auto'
+        cluster_col = cluster_row = False
+
     else:
         nrow = 1; ncol = 1
         i = 0; j = 0
         width_ratios = [W]
         height_ratios = [H]
         aspect = None
-    
+        cluster_col = cluster_row = False
+
     if cluster_row==False and cluster_col==False:
         main_index = (i, j)
         upper_index = (i-1, j)
@@ -407,7 +412,6 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
             right_index = (i,j+1)
 
     complex_layout = nrow > 1 or ncol > 1
-
     ax1 = ax2 = ax3 = ax4 = ax5 = None
 
     if complex_layout:
@@ -415,13 +419,40 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
                       height_ratios=height_ratios, hspace=0., wspace=0.)
 
     lines = []
+    if cluster_row:
+        ax4 = subplot(gs[left_index])
+        from scipy.cluster import hierarchy
+        from scipy.spatial import distance
+
+        row_linkage = hierarchy.linkage(distance.pdist(matrix), method='ward')  # , optimal_ordering=True)
+        Z1 = hierarchy.dendrogram(row_linkage, orientation='left',link_color_func=lambda k: 'black')
+        idx1 = Z1['leaves']
+        matrix = matrix[idx1, :]
+        ax4.set_xticks([])
+        ax4.set_yticks([])
+        ax4.axis('off')
+    if cluster_col:
+        ax5 = subplot(gs[upper_index])
+
+        from scipy.cluster import hierarchy
+        from scipy.spatial import distance
+
+        col_linkage = hierarchy.linkage(distance.pdist(matrix.T), method='ward')  # , optimal_ordering=True)
+        Z2 = hierarchy.dendrogram(col_linkage,link_color_func=lambda k: 'black')
+        idx2 = Z2['leaves']
+        matrix = matrix[:, idx2]
+        ax5.set_xticks([])
+        ax5.set_yticks([])
+        ax5.axis('off')
+        
+
+
     if x_array is not None:
         ax1 = subplot(gs[upper_index]) if cluster_col is False else subplot(gs[lower_index]) 
 
         if not tree_mode:
             ax1.set_xticklabels([])
-            
-            y = x_array
+            y = x_array if cluster_row is False else x_array[idx1]
             xp, yp = interpY(y)
             points = np.array([xp, yp]).T.reshape(-1, 1, 2)
             segments = np.concatenate([points[:-1], points[1:]], axis=1)
@@ -450,36 +481,12 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
             ax2.add_collection(lcx)
             ax2.set_xlim(yp.min(), yp.max())
             ax2.set_ylim(xp.min(), xp.max())
-            ax2.invert_xaxis()
+            if cluster_row is False:
+                ax2.invert_xaxis()
 
         ax2.axis('off')
 
-    if cluster_row:
-        ax4 = subplot(gs[left_index])
-        from scipy.cluster import hierarchy
-        from scipy.spatial import distance
-
-        row_linkage = hierarchy.linkage(distance.pdist(matrix), method='ward')  # , optimal_ordering=True)
-        Z1 = hierarchy.dendrogram(row_linkage, orientation='left',link_color_func=lambda k: 'black')
-        idx1 = Z1['leaves']
-        matrix = matrix[idx1, :]
-        ax4.set_xticks([])
-        ax4.set_yticks([])
-        ax4.axis('off')
-    if cluster_col:
-        ax5 = subplot(gs[upper_index])
-
-        from scipy.cluster import hierarchy
-        from scipy.spatial import distance
-
-        col_linkage = hierarchy.linkage(distance.pdist(matrix.T), method='ward')  # , optimal_ordering=True)
-        Z2 = hierarchy.dendrogram(col_linkage,link_color_func=lambda k: 'black')
-        idx2 = Z2['leaves']
-        matrix = matrix[:, idx2]
-        ax5.set_xticks([])
-        ax5.set_yticks([])
-        ax5.axis('off')
-        
+    
     if complex_layout:
         ax3 = subplot(gs[main_index])
     else:
