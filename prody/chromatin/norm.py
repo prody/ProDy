@@ -118,19 +118,19 @@ def bnewt(A, mask=[], tol = 1e-6, delta_lower = 0.1, delta_upper = 3, fl = 0, ch
     # see details in Knight and Ruiz (2012)
     (n,m) = A.shape
     #np.seterr(divide='ignore')
-    print 'Verifying Matrix\n'
+    print('Verifying Matrix')
     if (n != m):
-        print 'Matrix must be symmetric to converge\n'
+        print('Matrix must be symmetric to converge')
         return 'NaN'
     if (check):
         for i in range(0,n):
             for j in range(i,n):
                 if (A[i][j] != A[j][i])or(A[i][j] < 0):
-                    print 'Matrix must be symmetric and nonnegative to converge\n'
+                    print('Matrix must be symmetric and nonnegative to converge')
                     return 'NaN'
-        print 'Check OK\n'
+        print('Check OK\n')
     else:
-        print 'Check escaped\n'
+        print('Check escaped\n')
   
     e        = np.ones((n,1))
     e[mask]  = 0
@@ -230,27 +230,27 @@ def bnewt(A, mask=[], tol = 1e-6, delta_lower = 0.1, delta_upper = 3, fl = 0, ch
         eta = max(min(eta,etamax),stop_tol/res_norm)
     
         if fl == 1:
-            print '%3d %6d %.3f \n' % (i,k,r_norm)
+            print('%3d %6d %.3f \n' % (i,k,r_norm))
       
         if MVP > 50000:
             break
     #end outer
   
-    print 'Matrix vector products = %6d\n' % MVP
+    print('Matrix vector products = %6d' % MVP)
     #x = np.array(x)
     #x[mask] = 0
     return x
 
-def KRnorm(self, mask=None, **kwargs):
-        """
-        Uses Knight-Ruiz normalization to balance the matrix.
-        """
+def KRnorm(M, mask=None, **kwargs):
+    """
+    Uses Knight-Ruiz normalization to balance the matrix.
+    """
 
-        from norm import bnewt
-        self._getMask(mask)
-        x = bnewt(self.matrix,mask=self.mask,check=0,**kwargs)*100
-        self.matrix *= x 
-        self.matrix *= x.T
+    x = bnewt(M, mask=mask, check=0, **kwargs)*100
+    M *= X 
+    M *= X.T
+
+    return M
 
 def Filenorm(M, **kwargs):
     """ Performs normalization on matrix *M* given a file. *filename* specifies 
