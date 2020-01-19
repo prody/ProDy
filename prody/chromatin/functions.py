@@ -19,14 +19,20 @@ def showDomains(domains, linespec='-', **kwargs):
     :type domains: :class:`numpy.ndarray`
     """
 
+    fill_ends = kwargs.pop('fill_ends', 'close')
     domains = np.array(domains)
     shape = domains.shape
 
     if len(shape) < 2:
         # convert to domain list if labels are provided
         indicators = np.diff(domains)
-        indicators = np.append(1., indicators)
-        indicators[-1] = 1
+        if fill_ends in ['open', 'close']:
+            indicators = np.append(1., indicators)
+            indicators[-1] = 1
+        elif fill_ends == 'skip':
+            indicators = np.append(0., indicators)
+        else:
+            raise ValueError('invalid fill_ends mode: %s'%str(fill_ends))
         sites = np.where(indicators != 0)[0]
         starts = sites[:-1]
         ends = sites[1:]
@@ -34,19 +40,30 @@ def showDomains(domains, linespec='-', **kwargs):
 
     from matplotlib.pyplot import figure, plot
 
-    x = []; y = []
+    a = []; b = []
     lwd = kwargs.pop('linewidth', 1)
     lwd = kwargs.pop('lw', lwd)
     linewidth = np.abs(lwd)
+    if fill_ends == 'open' and len(domains) == 1:
+        domains = []
+
     for i in range(len(domains)):
         domain = domains[i]
         start = domain[0]; end = domain[1]
-        if lwd > 0:
-            x.extend([start, end, end])
-            y.extend([start, start, end])
+        if fill_ends == 'open' and i == 0:
+            a.extend([end, end])
+            b.extend([start, end])
+        elif fill_ends == 'open' and i == len(domains)-1:
+            a.extend([start, end])
+            b.extend([start, start])
         else:
-            x.extend([start, start, end])
-            y.extend([start, end, end])
+            a.extend([start, end, end])
+            b.extend([start, start, end])
+
+    if lwd > 0:
+        x = a; y = b
+    else:
+        x = b; y = a
 
     plt = plot(x, y, linespec, linewidth=linewidth, **kwargs)
     if SETTINGS['auto_show']:
