@@ -23,9 +23,10 @@ def showDomains(domains, linespec='-', **kwargs):
     domains = np.array(domains)
     shape = domains.shape
 
-    if len(shape) < 2:
+    if len(shape) == 1:
         # convert to domain list if labels are provided
         indicators = np.diff(domains)
+        length = len(domains)
         if fill_ends in ['open', 'close']:
             indicators = np.append(1., indicators)
             indicators[-1] = 1
@@ -37,6 +38,29 @@ def showDomains(domains, linespec='-', **kwargs):
         starts = sites[:-1]
         ends = sites[1:]
         domains = np.array([starts, ends]).T
+        consecutive = True
+    elif len(shape) == 2:
+        if domains.dtype == bool:
+            length = domains.shape[1]
+            domains_ = []
+            for h in domains:
+                start = None
+                for i, b in enumerate(h):
+                    if b:
+                        if start is None:  # start
+                            start = i
+                    else:
+                        if start is not None: # end
+                            domains_.append([start, i-1])
+                            start = None
+                if start is not None:
+                    domains_.append([start, i])
+            domains = np.array(domains_)
+        else:
+            length = domains.max()
+        consecutive = False
+    else:
+        raise ValueError('domains must be either one or two dimensions')
 
     from matplotlib.pyplot import figure, plot
 
@@ -50,15 +74,19 @@ def showDomains(domains, linespec='-', **kwargs):
     for i in range(len(domains)):
         domain = domains[i]
         start = domain[0]; end = domain[1]
-        if fill_ends == 'open' and i == 0:
+        if fill_ends == 'open' and start == 0:
             a.extend([end, end])
             b.extend([start, end])
-        elif fill_ends == 'open' and i == len(domains)-1:
+        elif fill_ends == 'open' and end == length-1:
             a.extend([start, end])
             b.extend([start, start])
         else:
             a.extend([start, end, end])
             b.extend([start, start, end])
+
+        if not consecutive:
+            a.append(np.nan)
+            b.append(np.nan)
 
     if lwd > 0:
         x = a; y = b
