@@ -352,7 +352,7 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
         i = 0; j = 0
         width_ratios = [W]
         height_ratios = [H]
-        aspect = None
+        aspect = kwargs.pop('aspect', None)
 
     main_index = (i, j)
     upper_index = (i-1, j)
