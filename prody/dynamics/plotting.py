@@ -11,7 +11,7 @@ from collections import defaultdict
 import numpy as np
 
 from prody import LOGGER, SETTINGS, PY3K
-from prody.utilities import showFigure, addEnds, showMatrix
+from prody.utilities import showFigure, addEnds
 from prody.atomic import AtomGroup, Selection, Atomic, sliceAtoms, sliceAtomicData
 
 from .nma import NMA
@@ -491,32 +491,26 @@ def showOverlapTable(modes_x, modes_y, **kwargs):
 
     if SETTINGS['auto_show']:
         plt.figure()
-    
-    x_range = np.arange(1, modes_x.numModes()+1)
+    show = (plt.pcolor(overlap, cmap=cmap, norm=norm, **kwargs),
+            plt.colorbar())
+
+    x_range = np.arange(1, modes_x.numModes() + 1)
     if isinstance(modes_x, ModeSet):
         x_ticklabels = modes_x._indices+1
     else:
         x_ticklabels = x_range
+    plt.xticks(x_range-0.5, x_ticklabels)
+    plt.xlabel(str(modes_x))
 
-    x_ticklabels = kwargs.pop('xticklabels', x_ticklabels)
-
-    y_range = np.arange(1, modes_y.numModes()+1)
+    y_range = np.arange(1, modes_y.numModes() + 1)
     if isinstance(modes_y, ModeSet):
         y_ticklabels = modes_y._indices+1
     else:
         y_ticklabels = y_range
-
-    y_ticklabels = kwargs.pop('yticklabels', y_ticklabels)
-
-    allticks = kwargs.pop('allticks', True)
-
-    show = showMatrix(overlap, cmap=cmap, norm=norm, 
-                      xticklabels=x_ticklabels, yticklabels=y_ticklabels, allticks=allticks,
-                      **kwargs)
-
-    plt.xlabel(str(modes_x))
+    plt.yticks(y_range-0.5, y_ticklabels)
     plt.ylabel(str(modes_y))
-    
+
+    plt.axis([0, modes_x.numModes(), 0, modes_y.numModes()])
     if SETTINGS['auto_show']:
         showFigure()
     return show
@@ -532,13 +526,19 @@ def showCrossCorr(modes, *args, **kwargs):
     if SETTINGS['auto_show']:
         plt.figure()
 
-    cross_correlations = calcCrossCorr(modes)
+    arange = np.arange(modes.numAtoms())
+    cross_correlations = np.zeros((arange[-1]+2, arange[-1]+2))
+    cross_correlations[arange[0]+1:,
+                       arange[0]+1:] = calcCrossCorr(modes)
     if not 'interpolation' in kwargs:
         kwargs['interpolation'] = 'bilinear'
     if not 'origin' in kwargs:
         kwargs['origin'] = 'lower'
-    show = showAtomicMatrix(cross_correlations, *args, **kwargs)
+    show = showAtomicMatrix(cross_correlations, *args, **kwargs)#, plt.colorbar()
+    #plt.axis([arange[0]+0.5, arange[-1]+1.5, arange[0]+0.5, arange[-1]+1.5])
     plt.title('Cross-correlations for {0}'.format(str(modes)))
+    plt.xlabel('Indices')
+    plt.ylabel('Indices')
     if SETTINGS['auto_show']:
         showFigure()
     return show
@@ -1242,6 +1242,8 @@ def showAtomicMatrix(matrix, x_array=None, y_array=None, atoms=None, **kwargs):
     :arg interactive: turn on or off the interactive options
     :type interactive: bool
     """ 
+
+    from prody.utilities import showMatrix
     from matplotlib.pyplot import figure
     from matplotlib.figure import Figure
 
@@ -1722,9 +1724,6 @@ def showDomainBar(domains, x=None, loc=0., axis='x', **kwargs):
     show_text = kwargs.pop('show_text', True)
     show_text = kwargs.pop('text', show_text)
     text_color = kwargs.pop('text_color', 'k')
-    text_color = kwargs.pop('textcolor', text_color)
-    font_dict = kwargs.pop('font_dict', None)
-    font_dict = kwargs.pop('fontdict', font_dict)
 
     barwidth = kwargs.pop('barwidth', 5)
     barwidth = kwargs.pop('bar_width', barwidth)
@@ -1815,13 +1814,11 @@ def showDomainBar(domains, x=None, loc=0., axis='x', **kwargs):
                     txt = text(d_loc, pos, chid, rotation=-90, 
                                                 color=text_color,
                                                 horizontalalignment=halign, 
-                                                verticalalignment='center',
-                                                fontdict=font_dict)
+                                                verticalalignment='center')
                 else:
                     txt = text(pos, d_loc, chid, color=text_color,
                                                 horizontalalignment='center', 
-                                                verticalalignment=valign,
-                                                fontdict=font_dict)
+                                                verticalalignment=valign)
                 texts.append(txt)
     
     if len(color_order):
@@ -1845,7 +1842,7 @@ def showDomainBar(domains, x=None, loc=0., axis='x', **kwargs):
         gca().autoscale_view()
 
     start, stop = lim()
-    lim(start, stop)
+    lim(round(start, 2) + 0.006, stop)
     
     return bars, texts
 

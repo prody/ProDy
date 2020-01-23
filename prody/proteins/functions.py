@@ -22,19 +22,21 @@ def view3D(*alist, **kwargs):
     
     GNM/ANM Coloring
     
-    An array of fluctuation values (flucts) can be provided with the flucts kwarg
+    An array of fluctuation values (data) can be provided with the flucts kwarg
     for visualization of GNM/ANM calculations.  The array is assumed to 
     correpond to a calpha selection of the provided protein.
     The default color will be set to a RWB color scheme on a per-residue
     basis.  If the fluctuation vector contains negative values, the
     midpoint (white) will be at zero.  Otherwise the midpoint is the mean.
     
-    An array of displacement vectors (vecs) can be provided with the vecs kwarg.
+    An array of displacement vectors (mode) can be provided with the vecs kwarg.
     The animation of these motions can be controlled with frames (number
     of frames to animate over), amplitude (scaling factor), and animate
-    (3Dmol.js animate options).
+    (3Dmol.js animate options).  If animation isn't enabled, by default
+    arrows are drawn.  Drawing of arrows is controlled by the boolean arrows
+    option and the arrowcolor option.
     
-    If multiple structures are provided with the flucts or vecs arguments, these
+    If multiple structures are provided with the data or mode arguments, these
     arguments must be provided as lists of arrays of the appropriate dimension.
     """
 
@@ -57,6 +59,9 @@ def view3D(*alist, **kwargs):
     interval = kwargs.pop('interval', 1)
     anim = kwargs.pop('anim', False)
     scale = kwargs.pop('scale', 100)
+    arrows = kwargs.pop('arrows',True)
+    arrowcolor = kwargs.pop('arrowcolor', 'darkgrey')
+    arrowcolor = kwargs.pop('arrowColor', arrowcolor)
 
     if modes is None:
         n_modes = 0
@@ -133,14 +138,14 @@ def view3D(*alist, **kwargs):
                     # set the atom property 
                     # TODO: implement something more efficient on the 3Dmol.js side (this is O(n*m)!)
                     view.mapAtomProperties(propmap)
-                else:
+                elif arrows:
                     for j, a in enumerate(atoms.calpha):
                         start = a._getCoords()
                         dcoords = arr[3*j:3*j+3]
                         end = start + dcoords * scale
                         view.addArrow({'start': {'x':start[0], 'y':start[1], 'z':start[2]},
                                        'end': {'x':end[0], 'y':end[1], 'z':end[2]},
-                                       'radius': 0.3})
+                                       'radius': 0.3, 'color': arrowcolor})
             else:
                 if atoms.calpha.numAtoms() != len(arr):
                     raise RuntimeError("Atom count mismatch: {} vs {}. mode styling assumes a calpha selection."
