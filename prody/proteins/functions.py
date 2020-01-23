@@ -49,6 +49,7 @@ def view3D(*alist, **kwargs):
     height = kwargs.get('height', 400)
     data_list = kwargs.pop('data', None)
     modes = kwargs.pop('mode', None)
+    arrow_color = kwargs.pop('arrowcolor', 'grey')
     style = kwargs.pop('style', [])
     zoomto = kwargs.pop('zoomto', {})
     bgcolor = kwargs.pop('backgroundcolor', 'white')
@@ -87,7 +88,7 @@ def view3D(*alist, **kwargs):
         lo = -extreme if np.min(data) < 0 else 0
         mid = np.mean(data) if np.min(data) >= 0 else 0
         view.setColorByProperty({'model': -1}, 'data', 'rwb', [extreme,lo,mid])
-        view.setStyle({'model': -1},{'cartoon':{'style':'trace'}})    
+        view.setStyle({'model': -1},{'cartoon':{'style':'oval'}})    
 
 
     for i, atoms in enumerate(alist):
@@ -140,7 +141,7 @@ def view3D(*alist, **kwargs):
                         end = start + dcoords * scale
                         view.addArrow({'start': {'x':start[0], 'y':start[1], 'z':start[2]},
                                        'end': {'x':end[0], 'y':end[1], 'z':end[2]},
-                                       'radius': 0.3})
+                                       'radius': 0.3, 'color':arrow_color})
             else:
                 if atoms.calpha.numAtoms() != len(arr):
                     raise RuntimeError("Atom count mismatch: {} vs {}. mode styling assumes a calpha selection."
