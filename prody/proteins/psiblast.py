@@ -209,11 +209,11 @@ def psiBlastCycle(sequence=None, filename=None, **kwargs):
     query.append(('title', 'ProDy psiBlastPDB request'))
 
     previousjobid = kwargs.get('previousjobid','')
-    if previousjobid is not '':
+    if previousjobid != '':
         query.append(('previousjobid',previousjobid))
 
     selectedHits = kwargs.get('selectedHits','')
-    if selectedHits is not '':
+    if selectedHits != '':
         query.append(('selectedHits',selectedHits))
 
     database = kwargs.get('database','pdb')
@@ -262,7 +262,7 @@ def psiBlastCycle(sequence=None, filename=None, **kwargs):
     checkPsiBlastParameter('filter', filter)
     query.append(('filter',filter))
     
-    if previousjobid is '' and selectedHits is '':
+    if previousjobid == '' and selectedHits == '':
         seqrange = kwargs.get('seqrange', None)
         if seqrange is None:
             seqrange = '0-' + str(len(sequence))

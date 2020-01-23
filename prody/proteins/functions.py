@@ -92,7 +92,7 @@ def view3D(*alist, **kwargs):
         lo = -extreme if np.min(data) < 0 else 0
         mid = np.mean(data) if np.min(data) >= 0 else 0
         view.setColorByProperty({'model': -1}, 'data', 'rwb', [extreme,lo,mid])
-        view.setStyle({'model': -1},{'cartoon':{'style':'trace'}})    
+        view.setStyle({'model': -1},{'cartoon':{'style':'oval'}})    
 
 
     for i, atoms in enumerate(alist):
@@ -350,7 +350,7 @@ def showProtein(*atoms, **kwargs):
                           color=wcolor,
                           ls='None', marker=kwargs.get('wmarker', '.'),
                           ms=kwargs.get('wsize', 6))
-            hetero = atoms.select('not protein and not nucleic and not water')
+            hetero = atoms.select('not protein and not nucleic and not water and not dummy')
             if hetero:
                 for res in HierView(hetero).iterResidues():
                     xyz = res._getCoords()
