@@ -67,10 +67,6 @@ Pyparsing (http://pyparsing.wikispaces.com/) module is distributed with ProDy.
 Pyparsing is developed by Paul T. McGuire and is available under the MIT
 license (http://www.opensource.org/licenses/mit-license.php).
 
-Argparse module (http://code.google.com/p/argparse/) is distributed with ProDy.
-Argparse is developed by Steven J. Bethard and is available under the Python
-Software Foundation License.
-
 CEalign module (https://pymolwiki.org/index.php/Cealign_plugin) is distributed 
 with ProDy. The original CE method was developed by Ilya Shindyalov and Philip 
 Bourne. The Python version which is used by ProDy is developed by Jason Vertrees 
