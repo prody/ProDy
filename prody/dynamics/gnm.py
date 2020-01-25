@@ -674,6 +674,16 @@ class MaskedGNM(GNM):
         if not np.isscalar(mask):
             self.mask = np.array(mask)
 
+    def __repr__(self):
+        if self.masked or np.isscalar(self.mask):
+            n_dummies = 0
+        else:
+            n_dummies = len(self.mask) - self._n_atoms
+
+        return ('<{0}: {1} ({2} modes; {3} nodes + {4} dummies)>'
+                .format(self.__class__.__name__, self._title, self.__len__(), 
+                        self._n_atoms, n_dummies))
+
     def numAtoms(self):
         """Returns number of atoms."""
 
