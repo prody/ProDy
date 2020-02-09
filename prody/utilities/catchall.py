@@ -314,6 +314,7 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
     yticklabels = kwargs.pop('yticklabels', ticklabels)
 
     show_colorbar = kwargs.pop('colorbar', True)
+    cb_extend = kwargs.pop('cb_extend', 'neither')
     allticks = kwargs.pop('allticks', False) # this argument is temporary and will be replaced by better implementation
     interactive = kwargs.pop('interactive', True)
 
@@ -448,9 +449,9 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
             while None in axes:
                 axes.remove(None)
             s = H / (H + 1.)
-            cb = colorbar(mappable=im, ax=axes, anchor=(0, 0), shrink=s)
+            cb = colorbar(mappable=im, ax=axes, anchor=(0, 0), shrink=s, extend=cb_extend)
         else:
-            cb = colorbar(mappable=im)
+            cb = colorbar(mappable=im, extend=cb_extend)
 
     sca(ax3)
     sci(im)
