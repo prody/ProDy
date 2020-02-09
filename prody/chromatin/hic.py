@@ -186,7 +186,7 @@ class HiC(object):
         if self._map is None:
             return None
         else:
-            M = self.getTrimedMap()
+            M = self.map
             
             I = np.eye(M.shape[0], dtype=bool)
             A = M.copy()
