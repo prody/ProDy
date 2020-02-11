@@ -296,6 +296,7 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
     from matplotlib.gridspec import GridSpec
     from matplotlib.collections import LineCollection
     from matplotlib.pyplot import gca, sca, sci, colorbar, subplot
+    from matplotlib.colors import DivergingNorm
 
     p = kwargs.pop('percentile', None)
     vmin = vmax = None
@@ -305,6 +306,12 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
     
     vmin = kwargs.pop('vmin', vmin)
     vmax = kwargs.pop('vmax', vmax)
+    vcenter = kwargs.pop('vcenter', None)
+    norm = kwargs.pop('norm', None)
+
+    if vcenter is not None and norm is None:
+        norm = DivergingNorm(vmin=vmin, vcenter=0., vmax=vmax)
+
     lw   = kwargs.pop('linewidth', 1)
     
     W = H = kwargs.pop('ratio', 6)
@@ -412,7 +419,9 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
     else:
         ax3 = gca()
     
-    im = ax3.imshow(matrix, aspect=aspect, vmin=vmin, vmax=vmax, cmap=cmap, origin=origin, **kwargs)
+    im = ax3.imshow(matrix, aspect=aspect, vmin=vmin, vmax=vmax, 
+                    norm=norm, cmap=cmap, origin=origin, **kwargs)
+                    
     #ax3.set_xlim([-0.5, matrix.shape[0]+0.5])
     #ax3.set_ylim([-0.5, matrix.shape[1]+0.5])
 
