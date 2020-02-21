@@ -275,10 +275,7 @@ def reduceModel(model, atoms, select):
             anm = ANM(model.getTitle() + ' reduced')
             anm.setHessian(matrix)
             return anm, select
-        elif isinstance(model, PCA):
-            eda = PCA(model.getTitle() + ' reduced')
-            eda.setCovariance(matrix)
-            return eda, select
+
 
 def _reduceModel(matrix, system):
     """This is the underlying function that reduces models, which shall 
