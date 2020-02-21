@@ -187,7 +187,6 @@ def _parseCIFLines(atomgroup, lines, model, chain, subset,
     nModels = 0
     fields = {}
     fieldCounter = -1
-    foundModelNumFieldID = False
     foundAtomBlock = False
     doneAtomBlock = False
     while not doneAtomBlock:
@@ -247,6 +246,10 @@ def _parseCIFLines(atomgroup, lines, model, chain, subset,
     altlocs = np.zeros(asize, dtype=ATOMIC_FIELDS['altloc'].dtype)
     icodes = np.zeros(asize, dtype=ATOMIC_FIELDS['icode'].dtype)
     serials = np.zeros(asize, dtype=ATOMIC_FIELDS['serial'].dtype)
+    elements = np.zeros(asize, dtype=ATOMIC_FIELDS['element'].dtype)
+    bfactors = np.zeros(asize, dtype=ATOMIC_FIELDS['beta'].dtype)
+    occupancies = np.zeros(asize, dtype=ATOMIC_FIELDS['occupancy'].dtype)
+    segnames = np.zeros(asize, dtype=ATOMIC_FIELDS['segment'].dtype)
     elements = np.zeros(asize, dtype=ATOMIC_FIELDS['element'].dtype)
     bfactors = np.zeros(asize, dtype=ATOMIC_FIELDS['beta'].dtype)
     occupancies = np.zeros(asize, dtype=ATOMIC_FIELDS['occupancy'].dtype)
