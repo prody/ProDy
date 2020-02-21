@@ -352,7 +352,7 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
         i = 0; j = 0
         width_ratios = [W]
         height_ratios = [H]
-        aspect = None
+        aspect = kwargs.pop('aspect', None)
 
     main_index = (i, j)
     upper_index = (i-1, j)
@@ -431,6 +431,10 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
         ax3.xaxis.set_major_locator(locator)
         ax3.xaxis.set_minor_locator(minor_locator)
 
+        locator = ticker.AutoLocator()
+        locator.set_params(integer=True)
+        minor_locator = ticker.AutoMinorLocator()
+        
         ax3.yaxis.set_major_locator(locator)
         ax3.yaxis.set_minor_locator(minor_locator)
 

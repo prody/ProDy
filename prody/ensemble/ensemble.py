@@ -520,7 +520,7 @@ class Ensemble(object):
         else:
             raise IndexError('conformation index out of range')
 
-    def superpose(self, ref=None):
+    def superpose(self, **kwargs):
         """Superpose the ensemble onto the reference coordinates.
         
         :arg ref: index of the reference coordinate. If **None**, the average 
@@ -528,12 +528,13 @@ class Ensemble(object):
         :type ref: int
         """
 
+        ref = kwargs.pop('ref', None)
         if self._coords is None:
             raise ValueError('coordinates are not set, use `setCoords`')
         if self._confs is None or len(self._confs) == 0:
             raise ValueError('conformations are not set, use `addCoordset`')
         LOGGER.timeit('_prody_ensemble')
-        self._superpose(ref=ref, trans=True)  # trans kwarg is used by PDBEnsemble
+        self._superpose(ref=ref)  # trans kwarg is used by PDBEnsemble
         LOGGER.report('Superposition completed in %.2f seconds.',
                       '_prody_ensemble')
 

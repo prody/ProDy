@@ -1,8 +1,8 @@
 """This module defines miscellaneous utility functions."""
 import re
 
-from numpy import unique, linalg, diag, sqrt, dot, chararray, divide, zeros_like, zeros, allclose
-from numpy import diff, where, insert, nan, isnan, loadtxt, array, round, average, min, max
+from numpy import unique, linalg, diag, sqrt, dot, chararray, divide, zeros_like, zeros, allclose, ceil
+from numpy import diff, where, insert, nan, isnan, loadtxt, array, round, average, min, max, delete, vstack
 from numpy import sign, arange, asarray, ndarray, subtract, power, sum, isscalar, empty, triu, tril
 from collections import Counter
 import numbers

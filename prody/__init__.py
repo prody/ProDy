@@ -1,6 +1,6 @@
 """ProDy is a package for Protein Dynamics, Sequence, and Structure Analysis"""
 
-__version__ = '1.10.11'
+__version__ = '1.11'
 __release__ = __version__ # + '-dev' # comment out '-dev' before a release
 
 import sys
@@ -144,6 +144,7 @@ CONFIGURATION = {
     'typo_warnings': (True, None, None),
     'check_updates': (0, None, None),
     'auto_secondary': (False, None, None),
+    'auto_bonds': (False, None, None),
     'selection_warning': (True, None, None),
     'verbosity': ('debug', list(utilities.LOGGING_LEVELS),
                   LOGGER._setverbosity),
