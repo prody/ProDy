@@ -196,7 +196,10 @@ def traverseMode(mode, atoms, n_steps=10, rmsd=1.5):
     step = rmsd / n_steps
     LOGGER.info('Step size is {0:.2f} A RMSD'.format(step))
     arr = mode.getArrayNx3()
-    var = mode.getVariance()
+    try:
+        var = mode.getVariance()
+    except AttributeError:
+        var = 1.
     scale = ((n_atoms * step**2) / var) ** 0.5
     LOGGER.info('Mode is scaled by {0}.'.format(scale))
 
