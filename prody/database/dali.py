@@ -149,7 +149,7 @@ class DaliRecord(object):
         :arg pdbId: PDB code for searched protein
         :arg chain: chain identifier (only one chain can be assigned for PDB)
         :arg subset: fullPDB, PDB25, PDB50, PDB90. Ignored if localFile=True (url is a local file)
-        :arg localFile: provided url is a path for local dali results file
+        :arg localFile: whether provided url is a path for a local dali results file
         """
 
         self._url = url
@@ -166,6 +166,25 @@ class DaliRecord(object):
         self.isSuccess = self.getRecord(self._url, localFile=localFile, timeout=timeout, **kwargs)
 
     def getRecord(self, url=None, localFile=False, **kwargs):
+        """Get Dali record from url or file.
+
+        :arg url: url of Dali results page or local dali results file
+            If None then the url already associated with the DaliRecord object is used.
+        :type url: str
+
+        :arg localFile: whether provided url is a path for a local dali results file
+        :type localFile: bool
+
+        :arg timeout: amount of time until the query times out in seconds
+            default value is 120
+        :type timeout: int
+
+        :arg localfolder: folder in which to find the local file
+            default is the current folder
+        :type localfolder: str
+
+
+        """
         if localFile:
             dali_file = open(url, 'r')
             data = dali_file.read()
@@ -296,15 +315,24 @@ class DaliRecord(object):
         return self._pdbListAll
         
     def getHits(self):
+        """Returns the dictionary associated with the DaliRecord"""
         return self._alignPDB
         
     def getFilterList(self):
-        filterDict = self._filterDict
-        temp_str = ', '.join([str(len(filterDict['len'])), str(len(filterDict['rmsd'])), str(len(filterDict['Z'])), str(len(filterDict['identity']))])
-        LOGGER.info('Filter out [' + temp_str + '] for [length, RMSD, Z, identity]')
+        """Returns a list of PDB IDs and chains for the entries that were filtered out"""
+        try:
+            filterDict = self._filterDict
+        except:
+            raise ValueError('You cannot obtain the list of filtered out entries before doing any filtering.')
+
+        temp_str = ', '.join([str(len(filterDict['len'])), str(len(filterDict['rmsd'])), 
+                            str(len(filterDict['Z'])), str(len(filterDict['identity']))])
+        LOGGER.info('Filtered out [' + temp_str + '] for [length, RMSD, Z, identity]')
         return self._filterList
+
     
     def getMapping(self, key):
+        """Get mapping for a particular entry in the DaliRecord"""
         try:
             info = self._alignPDB[key]
             mapping = [info['map_ref'], info['map_sel']]
@@ -313,6 +341,7 @@ class DaliRecord(object):
         return mapping
 
     def getMappings(self):
+        """Get all mappings in the DaliRecord"""
         map_dict = {}
         for key in self._alignPDB:
             info = self._alignPDB[key]
