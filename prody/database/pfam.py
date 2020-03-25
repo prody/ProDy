@@ -99,9 +99,12 @@ def searchPfam(query, **kwargs):
         LOGGER.debug('Submitted Pfam search for sequence "{0}...".'
                      .format(seq[:MINSEQLEN]))
 
-        #xml = urllib2.urlopen(result_request).read()
-        tsv = urllib2.urlopen(result_request).read()
-        # openURL(url, timeout=timeout).read()
+        try:
+            #xml = urllib2.urlopen(result_request).read()
+            tsv = urllib2.urlopen(result_request).read()
+            # openURL(url, timeout=timeout).read()
+        except:
+            raise ValueError('No matching Pfam domains were found.')
         
         # try:
         #     root = ET.XML(xml)
