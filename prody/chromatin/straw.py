@@ -68,13 +68,11 @@ def readHeader(req, chr1, chr2, posilist):
     magic_string = struct.unpack('<3s', req.read(3))[0]
     req.read(1)
     if (magic_string != b"HIC"):
-        print('This does not appear to be a HiC file magic string is incorrect')
-        return -1
+        raise ValueError('This does not appear to be a HiC file magic string is incorrect')
     global version
     version = struct.unpack('<i',req.read(4))[0]
     if (version < 6):
-        print("Version {0} no longer supported".format(str(version)))
-        return -1
+        raise ValueError("Version {0} no longer supported".format(str(version)))
     print('HiC version:' + '  {0}'.format(str(version)))
     master = struct.unpack('<q',req.read(8))[0]
     genome = b""
@@ -107,8 +105,7 @@ def readHeader(req, chr1, chr2, posilist):
               posilist[2]=0
               posilist[3]=length
     if ((not found1) or (not found2)):
-      print("One of the chromosomes wasn't found in the file. Check that the chromosome name matches the genome.\n")
-      return -1
+      raise ValueError("One of the chromosomes wasn't found in the file. Check that the chromosome name matches the genome.")
     return [master, chr1ind, chr2ind, posilist[0], posilist[1], posilist[2], posilist[3]]
 
 def readFooter(req, c1, c2, norm, unit, resolution):
@@ -186,8 +183,7 @@ def readFooter(req, c1, c2, norm, unit, resolution):
             c2NormEntry['size']=sizeInBytes
             found2=True
     if ((not found1) or (not found2)):
-        print("File did not contain {0} normalization vectors for one or both chromosomes at {1} {2}\n".format(norm, resolution, unit))
-        return -1
+        raise ValueError("File did not contain {0} normalization vectors for one or both chromosomes at {1} {2}".format(norm, resolution, unit))
     return [myFilePos, c1NormEntry, c2NormEntry]
 
 
@@ -263,8 +259,7 @@ def readMatrix(req, unit, binsize):
             blockColumnCount = list1[2]
         i=i+1
     if (not found):
-        print("Error finding block data\n")
-        return -1
+        raise ValueError("Error finding block data")
     return [blockBinCount, blockColumnCount]
 
 def getBlockNumbersForRegionFromBinPosition(regionIndices, blockBinCount, blockColumnCount, intra):
@@ -426,7 +421,6 @@ def straw(norm, infile, chr1loc, chr2loc, unit, binsize):
     for blockNum in list(blockMap.keys()):
         blockMap.pop(blockNum)
 
-    magic_string = ""
     if (infile.startswith("http")):
         # try URL first. 100K should be sufficient for header
         headers={'range' : 'bytes=0-100000', 'x-amz-meta-requester' : 'straw'}
@@ -434,8 +428,7 @@ def straw(norm, infile, chr1loc, chr2loc, unit, binsize):
         r=s.get(infile, headers=headers)
         if (r.status_code >=400):
             print("Error accessing " + infile)
-            print("HTTP status code " + str(r.status_code))
-            return -1
+            raise ValueError("HTTP status code " + str(r.status_code))
         req=io.BytesIO(r.content)
         myrange=r.headers['content-range'].split('/')
         totalbytes=myrange[1]
@@ -443,11 +436,9 @@ def straw(norm, infile, chr1loc, chr2loc, unit, binsize):
         req=open(infile, 'rb')
 
     if (not (norm=="NONE" or norm=="VC" or norm=="VC_SQRT" or norm=="KR")):
-        print("Norm specified incorrectly, must be one of <NONE/VC/VC_SQRT/KR>\nUsage: straw <NONE/VC/VC_SQRT/KR> <hicFile(s)> <chr1>[:x1:x2] <chr2>[:y1:y2] <BP/FRAG> <binsize>\n")
-        return -1
+        raise ValueError("Norm specified incorrectly, must be one of <NONE/VC/VC_SQRT/KR>.")
     if (not (unit=="BP" or unit=="FRAG")):
-        print("Unit specified incorrectly, must be one of <BP/FRAG>\nUsage: straw <NONE/VC/VC_SQRT/KR> <hicFile(s)> <chr1>[:x1:x2] <chr2>[:y1:y2] <BP/FRAG> <binsize>\n")
-        return -1
+        raise ValueError("Unit specified incorrectly, must be one of <BP/FRAG>.")
     c1pos1=-100
     c1pos2=-100
     c2pos1=-100

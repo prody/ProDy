@@ -386,8 +386,9 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
         i = 0; j = 0
         width_ratios = [W]
         height_ratios = [H]
-        aspect = None
+
         cluster_col = cluster_row = False
+        aspect = kwargs.pop('aspect', None)
 
     if cluster_row==False and cluster_col==False:
         main_index = (i, j)

@@ -318,15 +318,18 @@ def calcGNMDomains(modes, method=Discretize, **kwargs):
 
     if hasattr(modes, '_model'):
         model = modes._model
-        if isinstance(model, MaskedGNM):
-            currlbl = labels[0]
-            labels = model._extend(labels, -1)
-            
-            for i, l in enumerate(labels):
-                if l < 0:
-                    labels[i] = currlbl
-                elif currlbl != l:
-                    currlbl = l
+    else:
+        model = modes
+        
+    if isinstance(model, MaskedGNM):
+        currlbl = labels[0]
+        labels = model._extend(labels, -1)
+        
+        for i, l in enumerate(labels):
+            if l < 0:
+                labels[i] = currlbl
+            elif currlbl != l:
+                currlbl = l
 
     return labels
     
