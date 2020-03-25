@@ -134,6 +134,9 @@ def searchPfam(query, **kwargs):
                 # matches[pfam_id]['type']='Pfam-A'
         # return matches
 
+        if PY3K:
+            tsv = tsv.decode()
+
         lines = tsv.split('\n')
         keys = lines[0].split('\t')
         root = {}
