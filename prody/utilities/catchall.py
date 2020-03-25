@@ -68,6 +68,39 @@ def calcTree(names, distance_matrix, method='nj'):
         node.name = None
     return tree
 
+
+def writeTree(filename, tree, format_str='newick'):
+    """ Write a tree to file using Biopython.
+
+    :arg filename: name for output file
+    :type filename: str
+
+    :arg tree: a square matrix with length of ensemble. If numbers does not match *names*
+                          it will raise an error
+    :type tree: :class:`~Bio.Phylo.BaseTree.Tree`
+
+    :arg format_str: a string specifying the format for the tree
+    :type format_str: str
+    """
+    try: 
+        from Bio import Phylo
+    except ImportError:
+        raise ImportError('Phylo module could not be imported. '
+            'Reinstall ProDy or install Biopython '
+            'to solve the problem.')
+
+    if not isinstance(filename, str):
+        raise TypeError('filename should be a string')
+
+    if not isinstance(tree, Phylo.BaseTree.Tree):
+        raise TypeError('tree should be a Biopython.Phylo Tree object')
+
+    if not isinstance(format_str, str):
+        raise TypeError('format_str should be a string')
+
+    Phylo.write(tree, filename, format_str)
+
+
 def clusterMatrix(distance_matrix=None, similarity_matrix=None, labels=None, return_linkage=None, **kwargs):
     """
     Cluster a distance matrix using scipy.cluster.hierarchy and 
