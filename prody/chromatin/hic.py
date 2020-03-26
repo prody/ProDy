@@ -186,7 +186,7 @@ class HiC(object):
         if self._map is None:
             return None
         else:
-            M = self.getTrimedMap()
+            M = self.map
             
             I = np.eye(M.shape[0], dtype=bool)
             A = M.copy()
@@ -339,7 +339,13 @@ class HiC(object):
             vmax = np.percentile(M, hp)
         else:
             vmin = vmax = None
-        im = showMatrix(M, vmin=vmin, vmax=vmax, **kwargs)
+
+        if not 'vmin' in kwargs:
+            kwargs['vmin'] = vmin
+        if not 'vmax' in kwargs:
+            kwargs['vmax'] = vmax
+
+        im = showMatrix(M, **kwargs)
 
         domains = self.getDomainList()
         if len(domains) > 1:
