@@ -348,7 +348,7 @@ def _pairModes_wrapper(args):
 def matchModes(*modesets, **kwargs):
     """Returns the matches of modes among *modesets*. Note that the first 
     modeset will be treated as the reference so that only the matching 
-    of each modeset to the first modeset is garanteed to be optimal.
+    of each modeset to the first modeset is guaranteed to be optimal.
     
     :arg index: if **True** then indices of modes will be returned instead of 
                 :class:`Mode` instances

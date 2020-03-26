@@ -1018,7 +1018,7 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
     :type renumber: bool
     """
 
-    renumber = kwargs.get('renumber',True)
+    renumber = kwargs.get('renumber', True)
 
     remark = str(atoms)
     try:
