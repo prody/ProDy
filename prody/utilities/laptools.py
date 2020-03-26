@@ -41,7 +41,7 @@ def multilap(cost_matrix, nodes=[], BIG_NUMBER=1e6):
     The function can handle the cases where each row can be assigned to multiple 
     columns. 
 
-    .. [KM68] Murty KG. Letter to the editor—An algorithm for ranking 
+    .. [KM68] Murty KG. Letter to the editor-An algorithm for ranking 
        all the assignments in order of increasing cost.
        *Operations research* **1968** 16(3):682-687.
     """

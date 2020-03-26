@@ -68,6 +68,39 @@ def calcTree(names, distance_matrix, method='nj'):
         node.name = None
     return tree
 
+
+def writeTree(filename, tree, format_str='newick'):
+    """ Write a tree to file using Biopython.
+
+    :arg filename: name for output file
+    :type filename: str
+
+    :arg tree: a square matrix with length of ensemble. If numbers does not match *names*
+                          it will raise an error
+    :type tree: :class:`~Bio.Phylo.BaseTree.Tree`
+
+    :arg format_str: a string specifying the format for the tree
+    :type format_str: str
+    """
+    try: 
+        from Bio import Phylo
+    except ImportError:
+        raise ImportError('Phylo module could not be imported. '
+            'Reinstall ProDy or install Biopython '
+            'to solve the problem.')
+
+    if not isinstance(filename, str):
+        raise TypeError('filename should be a string')
+
+    if not isinstance(tree, Phylo.BaseTree.Tree):
+        raise TypeError('tree should be a Biopython.Phylo Tree object')
+
+    if not isinstance(format_str, str):
+        raise TypeError('format_str should be a string')
+
+    Phylo.write(tree, filename, format_str)
+
+
 def clusterMatrix(distance_matrix=None, similarity_matrix=None, labels=None, return_linkage=None, **kwargs):
     """
     Cluster a distance matrix using scipy.cluster.hierarchy and 
@@ -272,6 +305,7 @@ def showLines(*args, **kwargs):
 
     return lines, polys
 
+
 def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
     """Show a matrix using :meth:`~matplotlib.axes.Axes.imshow`. Curves on x- and y-axis can be added.
 
@@ -290,12 +324,16 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
 
     :arg interactive: turn on or off the interactive options
     :type interactive: bool
+
+    :arg cluster_row/cluster_col: turn on or off the row/col dendrogram and reorder the matrix by that. only works when x_array AND y_array is given
+    :type interactive: bool
     """
 
     from matplotlib import ticker
     from matplotlib.gridspec import GridSpec
     from matplotlib.collections import LineCollection
     from matplotlib.pyplot import gca, sca, sci, colorbar, subplot
+    from matplotlib.colors import DivergingNorm
 
     p = kwargs.pop('percentile', None)
     vmin = vmax = None
@@ -305,6 +343,12 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
     
     vmin = kwargs.pop('vmin', vmin)
     vmax = kwargs.pop('vmax', vmax)
+    vcenter = kwargs.pop('vcenter', None)
+    norm = kwargs.pop('norm', None)
+
+    if vcenter is not None and norm is None:
+        norm = DivergingNorm(vmin=vmin, vcenter=0., vmax=vmax)
+
     lw   = kwargs.pop('linewidth', 1)
     
     W = H = kwargs.pop('ratio', 6)
@@ -314,12 +358,14 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
     yticklabels = kwargs.pop('yticklabels', ticklabels)
 
     show_colorbar = kwargs.pop('colorbar', True)
+    cb_extend = kwargs.pop('cb_extend', 'neither')
     allticks = kwargs.pop('allticks', False) # this argument is temporary and will be replaced by better implementation
     interactive = kwargs.pop('interactive', True)
 
     cmap = kwargs.pop('cmap', 'jet')
     origin = kwargs.pop('origin', 'lower')
-
+    cluster_row = kwargs.pop('cluster_row',False)
+    cluster_col = kwargs.pop('cluster_col', False)
     tree_mode = False
     try: 
         from Bio import Phylo
@@ -329,51 +375,126 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
             'to solve the problem.')
     tree_mode = isinstance(y_array, Phylo.BaseTree.Tree)
 
-    if x_array is not None and y_array is not None:
+    #if both x and y arrays are given and row and column clustering is asked
+    if x_array is not None and y_array is not None and cluster_row == True and cluster_col == True:
+        nrow = 3; ncol = 3
+        i = 1; j = 1
+        width_ratios = [1, W, 1]
+        height_ratios = [1, H, 1]
+        aspect = 'auto'
+    #if both x and y arrays are given but no clustering is asked
+    elif x_array is not None and y_array is not None and cluster_row == False and cluster_col == False:
         nrow = 2; ncol = 2
         i = 1; j = 1
         width_ratios = [1, W]
         height_ratios = [1, H]
         aspect = 'auto'
+    
+    #if both x and y arrays are given and only row clustering is asked
+    elif x_array is not None and y_array is not None and cluster_row == True and cluster_col == False:
+        nrow = 2; ncol = 3
+        i = 1; j = 1
+        width_ratios = [2, W, 1]
+        height_ratios = [1, H]
+        aspect = 'auto'
+    #if both x and y arrays are given and only row clustering is asked
+    elif x_array is not None and y_array is not None and cluster_row == False and cluster_col == True:
+        nrow = 3; ncol = 2
+        i = 1; j = 1
+        width_ratios = [1, W]
+        height_ratios = [2, H, 1]
+        aspect = 'auto'  
+        
+    
+    #if either x_array or y_array is not given there won't be any clustering
     elif x_array is not None and y_array is None:
         nrow = 2; ncol = 1
         i = 1; j = 0
         width_ratios = [W]
         height_ratios = [1, H]
         aspect = 'auto'
+        cluster_col = cluster_row = False
     elif x_array is None and y_array is not None:
         nrow = 1; ncol = 2
         i = 0; j = 1
         width_ratios = [1, W]
         height_ratios = [H]
         aspect = 'auto'
+        cluster_col = cluster_row = False
+
     else:
         nrow = 1; ncol = 1
         i = 0; j = 0
         width_ratios = [W]
         height_ratios = [H]
+
+        cluster_col = cluster_row = False
         aspect = kwargs.pop('aspect', None)
 
-    main_index = (i, j)
-    upper_index = (i-1, j)
-    left_index = (i, j-1)
+    if cluster_row==False and cluster_col==False:
+        main_index = (i, j)
+        upper_index = (i-1, j)
+        left_index = (i, j-1)
+    else:
+        if cluster_row == True and cluster_col==True:
+            main_index = (i, j)
+            upper_index = (i-1, j)
+            right_index = (i, j+1)
+            lower_index = (i+1, j)
+            left_index = (i, j-1) 
+        elif cluster_row == False and cluster_col==True:
+            main_index = (i, j)
+            upper_index = (i-1, j)
+            left_index = (i, j-1) 
+            lower_index = (i+1, j)
+        elif cluster_row == True and cluster_col==False:
+            main_index = (i, j)
+            upper_index = (i-1, j)
+            left_index = (i, j-1) 
+            right_index = (i,j+1)
 
     complex_layout = nrow > 1 or ncol > 1
-
-    ax1 = ax2 = ax3 = None
+    ax1 = ax2 = ax3 = ax4 = ax5 = None
 
     if complex_layout:
         gs = GridSpec(nrow, ncol, width_ratios=width_ratios, 
                       height_ratios=height_ratios, hspace=0., wspace=0.)
 
     lines = []
-    if nrow > 1:
-        ax1 = subplot(gs[upper_index])
+    if cluster_row:
+        ax4 = subplot(gs[left_index])
+        from scipy.cluster import hierarchy
+        from scipy.spatial import distance
+
+        row_linkage = hierarchy.linkage(distance.pdist(matrix), method='ward')  # , optimal_ordering=True)
+        Z1 = hierarchy.dendrogram(row_linkage, orientation='left',link_color_func=lambda k: 'black')
+        idx1 = Z1['leaves']
+        matrix = matrix[idx1, :]
+        ax4.set_xticks([])
+        ax4.set_yticks([])
+        ax4.axis('off')
+    if cluster_col:
+        ax5 = subplot(gs[upper_index])
+
+        from scipy.cluster import hierarchy
+        from scipy.spatial import distance
+
+        col_linkage = hierarchy.linkage(distance.pdist(matrix.T), method='ward')  # , optimal_ordering=True)
+        Z2 = hierarchy.dendrogram(col_linkage,link_color_func=lambda k: 'black')
+        idx2 = Z2['leaves']
+        matrix = matrix[:, idx2]
+        ax5.set_xticks([])
+        ax5.set_yticks([])
+        ax5.axis('off')
+        
+
+
+    if x_array is not None:
+        ax1 = subplot(gs[upper_index]) if cluster_col is False else subplot(gs[lower_index]) 
 
         if not tree_mode:
             ax1.set_xticklabels([])
-            
-            y = x_array
+            y = x_array if cluster_row is False else x_array[idx1]
             xp, yp = interpY(y)
             points = np.array([xp, yp]).T.reshape(-1, 1, 2)
             segments = np.concatenate([points[:-1], points[1:]], axis=1)
@@ -385,8 +506,8 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
             ax1.set_ylim(yp.min(), yp.max())
         ax1.axis('off')
 
-    if ncol > 1:
-        ax2 = subplot(gs[left_index])
+    if y_array is not None:
+        ax2 = subplot(gs[left_index]) if cluster_row is False else subplot(gs[right_index])
         
         if tree_mode:
             Phylo.draw(y_array, do_show=False, axes=ax2)
@@ -402,16 +523,20 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
             ax2.add_collection(lcx)
             ax2.set_xlim(yp.min(), yp.max())
             ax2.set_ylim(xp.min(), xp.max())
-            ax2.invert_xaxis()
+            if cluster_row is False:
+                ax2.invert_xaxis()
 
         ax2.axis('off')
 
+    
     if complex_layout:
         ax3 = subplot(gs[main_index])
     else:
         ax3 = gca()
     
-    im = ax3.imshow(matrix, aspect=aspect, vmin=vmin, vmax=vmax, cmap=cmap, origin=origin, **kwargs)
+    im = ax3.imshow(matrix, aspect=aspect, vmin=vmin, vmax=vmax, 
+                    norm=norm, cmap=cmap, origin=origin, **kwargs)
+                    
     #ax3.set_xlim([-0.5, matrix.shape[0]+0.5])
     #ax3.set_ylim([-0.5, matrix.shape[1]+0.5])
 
@@ -440,17 +565,23 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
 
     if ncol > 1:
         ax3.yaxis.set_major_formatter(ticker.NullFormatter())
+    if cluster_row==True:
+        ax3.set_yticks([])
         
+    if cluster_col==True:
+        #ax3.set_yticks([])
+        ax3.set_xticks([])
+
     cb = None
     if show_colorbar:
         if nrow > 1:
-            axes = [ax1, ax2, ax3]
+            axes = [ax1, ax2, ax3, ax4, ax5]
             while None in axes:
                 axes.remove(None)
             s = H / (H + 1.)
-            cb = colorbar(mappable=im, ax=axes, anchor=(0, 0), shrink=s)
+            cb = colorbar(mappable=im, ax=axes, anchor=(0, 0), shrink=s, extend=cb_extend)
         else:
-            cb = colorbar(mappable=im)
+            cb = colorbar(mappable=im, extend=cb_extend)
 
     sca(ax3)
     sci(im)

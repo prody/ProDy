@@ -292,3 +292,7 @@ __all__.extend(imanm.__all__)
 from . import signature
 from .signature import *
 __all__.extend(signature.__all__)
+
+from . import adaptive
+from .adaptive import *
+__all__.extend(adaptive.__all__)
