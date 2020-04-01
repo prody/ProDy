@@ -258,7 +258,7 @@ def psiBlastCycle(sequence=None, filename=None, **kwargs):
     checkPsiBlastParameter('finaldropoff', finaldropoff)
     query.append(('finaldropoff',finaldropoff))
         
-    filter = kwargs.get('filter','F')
+    filter = kwargs.get('filter','no')
     checkPsiBlastParameter('filter', filter)
     query.append(('filter',filter))
     
@@ -303,12 +303,16 @@ def psiBlastCycle(sequence=None, filename=None, **kwargs):
 
     handle = openURL(url, data=data, headers=headers)
     job_id = handle.read()
+    if PY3K:
+        job_id = job_id.decode()
     handle.close()
 
     # check the status
     url = base_url + 'status/' + job_id
     handle = openURL(url)
     status = handle.read()
+    if PY3K:
+        status = status.decode()
     handle.close()
                     
     # keep checking the status until it's no longer running
@@ -317,6 +321,8 @@ def psiBlastCycle(sequence=None, filename=None, **kwargs):
         LOGGER.write('Connecting to EBI for status...')
         handle = openURL(url)
         status = handle.read()
+        if PY3K:
+            status = status.decode()
         LOGGER.clear()
         sleep = int(sleep * 1.5)
         if LOGGER.timing('_prody_psi-blast') > timeout:
