@@ -42,6 +42,8 @@ class NMA(object):
             raise ValueError('{0} modes are not calculated, use '
                              'calcModes() method'.format(str(self)))
         if isinstance(index, slice):
+            if (index.stop is not None and index.stop > self.numModes()) or (index.start is not None and index.start > self.numModes()):
+                LOGGER.warn('The selection index contains a higher number than the total mode number ({0})'.format(self.numModes()))
             indices = np.arange(*index.indices(len(self)))
             if len(indices) > 0:
                 return ModeSet(self, indices)
