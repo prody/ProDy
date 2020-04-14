@@ -504,14 +504,12 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
     
     ## draw x_ and y_array
     lines = []
-    def nolabels(label):
-        return None
 
     if nrow > 1:
         ax1 = subplot(gs[upper_index])
 
         if tree_mode_x:
-            Y, X = drawTree(x_array, label_func=nolabels, orientation='vertical', 
+            Y, X = drawTree(x_array, label_func=None, orientation='vertical', 
                             inverted=True)
             miny = min(Y.values())
             maxy = max(Y.values())
@@ -544,7 +542,7 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
         ax2 = subplot(gs[left_index])
         
         if tree_mode_y:
-            X, Y = drawTree(y_array, label_func=nolabels, inverted=True)
+            X, Y = drawTree(y_array, label_func=None, inverted=True)
             miny = min(Y.values())
             maxy = max(Y.values())
 

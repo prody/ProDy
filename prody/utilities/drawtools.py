@@ -52,7 +52,7 @@ def drawArrow3D(*xyz, **kwargs):
 def drawTree(
     tree,
     label_func=str,
-    show_confidence=True,
+    show_confidence=False,
     # For power users
     orientation='horizontal',
     inverted=False,
@@ -61,55 +61,8 @@ def drawTree(
     *args,
     **kwargs
 ):
-    """Plot the given tree using matplotlib (or pylab).
-
-    The graphic is a rooted tree, drawn with roughly the same algorithm as
-    draw_ascii.
-
-    Additional keyword arguments passed into this function are used as pyplot
-    options. The input format should be in the form of:
-    pyplot_option_name=(tuple), pyplot_option_name=(tuple, dict), or
-    pyplot_option_name=(dict).
-
-    Example using the pyplot options 'axhspan' and 'axvline'::
-
-        from Bio import Phylo, AlignIO
-        from Bio.Phylo.TreeConstruction import DistanceCalculator, DistanceTreeConstructor
-        constructor = DistanceTreeConstructor()
-        aln = AlignIO.read(open('TreeConstruction/msa.phy'), 'phylip')
-        calculator = DistanceCalculator('identity')
-        dm = calculator.get_distance(aln)
-        tree = constructor.upgma(dm)
-        Phylo.draw(tree, axhspan=((0.25, 7.75), {'facecolor':'0.5'}),
-        ... axvline={'x':0, 'ymin':0, 'ymax':1})
-
-    Visual aspects of the plot can also be modified using pyplot's own functions
-    and objects (via pylab or matplotlib). In particular, the pyplot.rcParams
-    object can be used to scale the font size (rcParams["font.size"]) and line
-    width (rcParams["lines.linewidth"]).
-
-    :Parameters:
-        label_func : callable
-            A function to extract a label from a node. By default this is str(),
-            but you can use a different function to select another string
-            associated with each node. If this function returns None for a node,
-            no label will be shown for that node.
-        show_confidence : bool
-            Whether to display confidence values, if present on the tree.
-        branch_labels : dict or callable
-            A mapping of each clade to the label that will be shown along the
-            branch leading to it. By default this is the confidence value(s) of
-            the clade, taken from the ``confidence`` attribute, and can be
-            easily toggled off with this function's ``show_confidence`` option.
-            But if you would like to alter the formatting of confidence values,
-            or label the branches with something other than confidence, then use
-            this option.
-        label_colors : dict or callable
-            A function or a dictionary specifying the color of the tip label.
-            If the tip label can't be found in the dict or label_colors is
-            None, the label will be shown in black.
-
-    This function is adapted from Biopython for uses in ProDy.
+    """Plot the given tree using matplotlib. This function is adapted 
+    from :func:`~Bio.Phylo._utils.draw` for more versatile usages.
     """
     import matplotlib.pyplot as plt
     import matplotlib.collections as mpcollections
@@ -277,24 +230,25 @@ def drawTree(
             lw=lw,
         )
         # Add node/taxon labels
-        label = label_func(clade)
-        if label not in (None, clade.__class__.__name__):
-            if orientation == 'horizontal':
-                x = x_here
-                y = y_here
-                va = 'center'
-                ha = 'right' if inverted else 'left'
-            else:
-                x = y_here
-                y = x_here
-                ha = 'center'
-                va = 'top' if inverted else 'bottom'
+        if label_func is not None:
+            label = label_func(clade)
+            if label not in (None, clade.__class__.__name__):
+                if orientation == 'horizontal':
+                    x = x_here
+                    y = y_here
+                    va = 'center'
+                    ha = 'right' if inverted else 'left'
+                else:
+                    x = y_here
+                    y = x_here
+                    ha = 'center'
+                    va = 'top' if inverted else 'bottom'
 
-            axes.text(x, y,
-                " %s" % label,
-                verticalalignment=va,
-                horizontalalignment=ha,
-                color=get_label_color(label))
+                axes.text(x, y,
+                    " %s" % label,
+                    verticalalignment=va,
+                    horizontalalignment=ha,
+                    color=get_label_color(label))
 
         # Add label above the branch (optional)
         conf_label = format_branch_label(clade)
