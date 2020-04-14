@@ -11,6 +11,8 @@ __all__ = ['calcTree', 'clusterMatrix', 'showLines', 'showMatrix',
            'reorderMatrix', 'findSubgroups', 'getCoords',  
            'getLinkage', 'getTreeFromLinkage']
 
+class LinkageError(Exception):
+    pass
 
 def getCoords(data):
 
@@ -42,7 +44,7 @@ def getLinkage(names, tree):
     n = len(terminals)
     nonterminals = [str(c) for c in reversed(tree.get_nonterminals())]
     if len(nonterminals) != n-1:
-        raise ValueError('wrong number of terminal clades')
+        raise LinkageError('wrong number of terminal clades')
 
     Z = np.zeros((n-1, 4))
 
@@ -113,14 +115,14 @@ def getTreeFromLinkage(names, linkage):
         raise TypeError('linkage must be a numpy.ndarray instance')
 
     if linkage.ndim != 2:
-        raise ValueError('linkage must be a 2-dimensional matrix')
+        raise LinkageError('linkage must be a 2-dimensional matrix')
 
     if linkage.shape[1] != 4:
-        raise ValueError('linkage must have exactly 4 columns')
+        raise LinkageError('linkage must have exactly 4 columns')
 
     n_terms = len(names)
     if linkage.shape[0] != n_terms-1:
-        raise ValueError('linkage must have exactly len(names)-1 rows')
+        raise LinkageError('linkage must have exactly len(names)-1 rows')
     
     clades = []
     heights = []
