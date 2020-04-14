@@ -753,13 +753,13 @@ def reorderMatrix(names, matrix, tree, axis=None):
     indices = []
     for terminal in terminals:
         name = terminal.name
-        I = np.where(names == name)[0]
-        if not len(I):
+        locs = np.where(names == name)[0]
+        if not len(locs):
             raise ValueError('inconsistent names and tree: %s not in names'%name)
 
-        if len(I) > 1:
+        if len(locs) > 1:
             raise ValueError('inconsistent names and tree: duplicate name %s in names'%name)
-        indices.append(I[0])
+        indices.append(locs[0])
 
     # rmatrix = matrix[:, indices]
     # rmatrix = rmatrix[indices, :]
