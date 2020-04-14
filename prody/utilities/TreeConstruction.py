@@ -17,6 +17,8 @@ import numbers
 from Bio.Phylo import BaseTree
 from Bio.Phylo.TreeConstruction import _DistanceMatrix as DistanceMatrix
 
+__all__ = ['_Matrix', 'DistanceMatrix', 'TreeConstructor', 'DistanceTreeConstructor']
+
 class _Matrix:
     """Base class for distance matrix or scoring matrix.
 
