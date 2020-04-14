@@ -35,7 +35,7 @@ ProDy is available under the `MIT License`_::
 Biopython
 -------------------------------------------------------------------------------
 
-Biopython_ KDTree package and pairwise2 module are distributed with the ProDy
+`Biopython<https://biopython.org/>`_ KDTree package and TreeConstruction module are distributed with the ProDy
 package.  Biopython is developed by The Biopython Consortium and is available
 under the `Biopython license`_::
 
