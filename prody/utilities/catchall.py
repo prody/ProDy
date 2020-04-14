@@ -699,7 +699,7 @@ def reorderMatrix(names, matrix, tree, axis=None):
     and indices for reordering other things.
 
     :arg names: a list of names associated with the rows of the matrix
-        These names must match the ones used to generate the tree.
+        These names must match the ones used to generate the tree
     :type names: list
 
     :arg matrix: any square matrix
@@ -709,7 +709,7 @@ def reorderMatrix(names, matrix, tree, axis=None):
     :type tree: :class:`~Bio.Phylo.BaseTree.Tree`
 
     :arg axis: along which axis the matrix should be reordered. 
-               Default is **None** which reorder along all the axes.
+               Default is **None** which reorder along all the axes
     :type axis: int
     """
 
