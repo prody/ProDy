@@ -36,11 +36,13 @@ def calcTree(names, distance_matrix, method='nj'):
     :type distance_matrix: :class:`~numpy.ndarray`
     """
     try: 
-        from Bio import Phylo
+        import Bio 
     except ImportError:
         raise ImportError('Phylo module could not be imported. '
             'Reinstall ProDy or install Biopython '
             'to solve the problem.')
+            
+    from .TreeConstruction import DistanceMatrix, DistanceTreeConstructor
     
     if len(names) != distance_matrix.shape[0] or len(names) != distance_matrix.shape[1]:
         raise ValueError("Mismatch between the sizes of matrix and names.")
@@ -50,11 +52,11 @@ def calcTree(names, distance_matrix, method='nj'):
     for row in distance_matrix:
         matrix.append(list(row[:k]))
         k = k + 1
-    from Bio.Phylo.TreeConstruction import _DistanceMatrix
+    
     if isinstance(names, np.ndarray):
         names = names.tolist()
-    dm = _DistanceMatrix(names, matrix)
-    constructor = Phylo.TreeConstruction.DistanceTreeConstructor()
+    dm = DistanceMatrix(names, matrix)
+    constructor = DistanceTreeConstructor()
 
     method = method.strip().lower()
     if method == 'nj':
@@ -447,11 +449,14 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
     
     ## draw x_ and y_array
     lines = []
+    def nolabels(label):
+        return None
+
     if nrow > 1:
         ax1 = subplot(gs[upper_index])
 
         if tree_mode_x:
-            Phylo.draw(y_array, do_show=False, axes=ax2)
+            Phylo.draw(x_array, label_func=nolabels, do_show=False, axes=ax1)
         else:
             ax1.set_xticklabels([])
             
@@ -475,7 +480,7 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
         ax2 = subplot(gs[left_index])
         
         if tree_mode_y:
-            Phylo.draw(y_array, do_show=False, axes=ax2)
+            Phylo.draw(y_array, label_func=nolabels, do_show=False, axes=ax2)
         else:
             ax2.set_xticklabels([])
             
@@ -496,6 +501,7 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
         ax2.axis('off')
 
     ## draw colorbar
+    sca(ax3)
     cb = None
     if show_colorbar:
         if nrow > 1:
@@ -588,7 +594,7 @@ def findSubgroups(tree, cutoff=0.8):
         for j, target_j in enumerate(tree.get_terminals()):
             if i == j+1:
                 subgroups[-1].append(str(target_j))
-                neighbour_distance = tree.distance(target_i,target_j)
+                neighbour_distance = tree.distance(target_i, target_j)
                 if neighbour_distance > cutoff:
                     subgroups.append([])
 
