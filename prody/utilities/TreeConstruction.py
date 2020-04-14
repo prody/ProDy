@@ -427,11 +427,8 @@ class DistanceTreeConstructor(TreeConstructor):
             inner_clade.clades.append(clade1)
             inner_clade.clades.append(clade2)
             # assign branch length
-            clade1.branch_length = min_dist * \
-                    1.0 / 2 - self._height_of(clade1)
-
-            clade2.branch_length = min_dist * \
-                    1.0 / 2 - self._height_of(clade2)
+            clade1.branch_length = min_dist * 1.0 / 2 - self._height_of(clade1)
+            clade2.branch_length = min_dist * 1.0 / 2 - self._height_of(clade2)
 
             # update node list
             clades[min_j] = inner_clade
@@ -558,5 +555,6 @@ class DistanceTreeConstructor(TreeConstructor):
             height = 0 
         else:
             height = max(self._height_of(c) + c.branch_length for c in clade.clades)
+
         return height
 
