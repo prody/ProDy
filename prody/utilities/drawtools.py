@@ -77,6 +77,9 @@ def drawTree(
     elif orientation == 'h':
         orientation = 'horizontal'
 
+    linewidth = kwargs.pop('linewidth', 1.)
+    linewidth = kwargs.pop('lw', linewidth)
+
     # Options for displaying branch labels / confidence
     def conf2str(conf):
         if int(conf) == conf:
@@ -288,7 +291,7 @@ def drawTree(
                 draw_clade(child, x_here, color, lw)
 
     start = max(x_posns.values()) if inverted else 0.
-    draw_clade(tree.root, start, "k", plt.rcParams["lines.linewidth"])
+    draw_clade(tree.root, start, "k", linewidth)
 
     # If line collections were used to create clade lines, here they are added
     # to the pyplot plot.
