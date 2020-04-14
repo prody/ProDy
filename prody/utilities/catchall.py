@@ -1,13 +1,14 @@
-"""This module defines miscellaneous utility functions."""
+"""This module defines miscellaneous utility functions that is public to users."""
 
 import numpy as np
 
 from numpy import unique, linalg, diag, sqrt, dot
-from .misctools import addEnds, interpY
+from .misctools import addEnds, interpY, index
 from .checkers import checkCoords
+from Bio.Phylo.BaseTree import Tree, Clade
 
 __all__ = ['calcTree', 'clusterMatrix', 'showLines', 'showMatrix', 
-           'reorderMatrix', 'findSubgroups', 'getCoords']
+           'reorderMatrix', 'findSubgroups', 'getCoords', 'phylo2linkage']
 
 
 def getCoords(data):
@@ -23,6 +24,58 @@ def getCoords(data):
                             'with `getCoords` method')
 
     return data
+
+def phylo2linkage(tree, terminals):
+    n = len(terminals)
+    nonterminals = [str(c) for c in reversed(tree.get_nonterminals())]
+    if len(nonterminals) != n-1:
+        raise ValueError('wrong number of terminal clades')
+
+    Z = np.zeros((n-1, 4))
+
+    root = tree.root
+
+    def _indexOfClade(clade):
+        name = clade.name
+        if clade.is_terminal():
+            i = index(terminals, name)
+        else:
+            i = index(nonterminals, name) + n
+        return i
+
+    def _height_of(clade):
+        if clade.is_terminal():
+            height = 0 
+        else:
+            height = max(_height_of(c) + c.branch_length for c in clade.clades)
+
+        return height
+
+    def _dfs(clade):
+        if clade.is_terminal():
+            return
+
+        i = _indexOfClade(clade)
+        clade_a = clade.clades[0]
+        clade_b = clade.clades[1]
+
+        a = _indexOfClade(clade_a)
+        b = _indexOfClade(clade_b) 
+
+        l = min(a, b)
+        r = max(a, b)
+
+        Z[i-n, 0] = l
+        Z[i-n, 1] = r
+        Z[i-n, 2] = _height_of(clade) * 2.
+        Z[i-n, 3] = clade.count_terminals()
+
+        _dfs(clade_a)
+        _dfs(clade_b)
+    
+    _dfs(root)
+
+    return Z
 
 
 def calcTree(names, distance_matrix, method='nj'):
@@ -333,6 +386,8 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
     from matplotlib.pyplot import gca, sca, sci, colorbar, subplot
     from matplotlib.colors import DivergingNorm
 
+    from .drawtools import drawTree
+
     p = kwargs.pop('percentile', None)
     vmin = vmax = None
     if p is not None:
@@ -347,7 +402,7 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
     if vcenter is not None and norm is None:
         norm = DivergingNorm(vmin=vmin, vcenter=0., vmax=vmax)
 
-    lw   = kwargs.pop('linewidth', 1)
+    lw = kwargs.pop('linewidth', 1)
     
     W = H = kwargs.pop('ratio', 6)
 
@@ -456,7 +511,16 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
         ax1 = subplot(gs[upper_index])
 
         if tree_mode_x:
-            Phylo.draw(x_array, label_func=nolabels, do_show=False, axes=ax1)
+            Y, X = drawTree(x_array, label_func=nolabels, orientation='vertical', 
+                            inverted=True)
+            miny = min(Y.values())
+            maxy = max(Y.values())
+
+            minx = min(X.values())
+            maxx = max(X.values())
+
+            ax1.set_xlim(minx-.5, maxx+.5)
+            ax1.set_ylim(miny, 1.05*maxy)
         else:
             ax1.set_xticklabels([])
             
@@ -468,7 +532,7 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
             lines.append(lcy)
             ax1.add_collection(lcy)
 
-            ax1.set_xlim(xp.min(), xp.max())
+            ax1.set_xlim(xp.min()-.5, xp.max()+.5)
             ax1.set_ylim(yp.min(), yp.max())
 
         if ax3.xaxis_inverted():
@@ -480,7 +544,15 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
         ax2 = subplot(gs[left_index])
         
         if tree_mode_y:
-            Phylo.draw(y_array, label_func=nolabels, do_show=False, axes=ax2)
+            X, Y = drawTree(y_array, label_func=nolabels, inverted=True)
+            miny = min(Y.values())
+            maxy = max(Y.values())
+
+            minx = min(X.values())
+            maxx = max(X.values())
+
+            ax2.set_ylim(miny-.5, maxy+.5)
+            ax2.set_xlim(minx, 1.05*maxx)
         else:
             ax2.set_xticklabels([])
             
@@ -492,8 +564,9 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
             lines.append(lcx)
             ax2.add_collection(lcx)
             ax2.set_xlim(yp.min(), yp.max())
-            ax2.set_ylim(xp.min(), xp.max())
-            ax2.invert_xaxis()
+            ax2.set_ylim(xp.min()-.5, xp.max()+.5)
+        
+        ax2.invert_xaxis()
 
         if ax3.yaxis_inverted():
             ax2.invert_yaxis()
