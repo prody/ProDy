@@ -8,7 +8,8 @@ from .checkers import checkCoords
 from Bio.Phylo.BaseTree import Tree, Clade
 
 __all__ = ['calcTree', 'clusterMatrix', 'showLines', 'showMatrix', 
-           'reorderMatrix', 'findSubgroups', 'getCoords', 'phylo2linkage']
+           'reorderMatrix', 'findSubgroups', 'getCoords',  
+           'getLinkage', 'getTreeFromLinkage']
 
 
 def getCoords(data):
@@ -25,7 +26,19 @@ def getCoords(data):
 
     return data
 
-def phylo2linkage(tree, terminals):
+def getLinkage(names, tree):
+    """ Obtain the :func:`~scipy.cluster.hierarchy.linkage` matrix encoding 
+    ``tree``. 
+    
+    :arg names: a list of names, the order determines the values in the 
+                linkage matrix
+    :type names: list, :class:`~numpy.ndarray`
+
+    :arg tree: tree to be converted
+    :type tree: :class:`~Bio.Phylo.BaseTree.Tree`
+    """
+
+    terminals = names
     n = len(terminals)
     nonterminals = [str(c) for c in reversed(tree.get_nonterminals())]
     if len(nonterminals) != n-1:
@@ -77,16 +90,85 @@ def phylo2linkage(tree, terminals):
 
     return Z
 
+def getTreeFromLinkage(names, linkage):
+    """ Obtain the tree encoded by ``linkage``. 
+    
+    :arg names: a list of names, the order should correspond to the values in  
+                linkage
+    :type names: list, :class:`~numpy.ndarray`
 
-def calcTree(names, distance_matrix, method='nj'):
-    """ Given a distance matrix for an ensemble, it creates an returns a tree structure.
+    :arg linkage: linkage matrix
+    :type linkage: :class:`~numpy.ndarray`
+    """
+    try: 
+        import Bio 
+    except ImportError:
+        raise ImportError('Phylo module could not be imported. '
+            'Reinstall ProDy or install Biopython '
+            'to solve the problem.')
 
-    :arg names: an list of names
+    from Bio.Phylo.BaseTree import Tree, Clade
+    
+    if not isinstance(linkage, np.ndarray):
+        raise TypeError('linkage must be a numpy.ndarray instance')
+
+    if linkage.ndim != 2:
+        raise ValueError('linkage must be a 2-dimensional matrix')
+
+    if linkage.shape[1] != 4:
+        raise ValueError('linkage must have exactly 4 columns')
+
+    n_terms = len(names)
+    if linkage.shape[0] != n_terms-1:
+        raise ValueError('linkage must have exactly len(names)-1 rows')
+    
+    clades = []
+    heights = []
+    for name in names:
+        clade = Clade(None, name)
+        clades.append(clade)
+        heights.append(0.)
+
+    for link in linkage:
+        l = int(link[0])
+        r = int(link[1])
+        height = link[2]
+
+        left = clades[l]
+        right = clades[r]
+
+        lh = heights[l]
+        rh = heights[r]
+
+        left.branch_length = height - lh
+        right.branch_length = height - rh
+
+        clade = Clade(None, None)
+        clade.clades.append(left)
+        clade.clades.append(right)
+
+        clades.append(clade)
+        heights.append(height)
+
+    return Tree(clade)
+
+def calcTree(names, distance_matrix, method='upgma', linkage=False):
+    """ Given a distance matrix, it creates an returns a tree structure.
+
+    :arg names: a list of names
     :type names: list, :class:`~numpy.ndarray`
 
     :arg distance_matrix: a square matrix with length of ensemble. If numbers does not match *names*
                           it will raise an error
     :type distance_matrix: :class:`~numpy.ndarray`
+
+    :arg method: method used for constructing the tree. Acceptable options are ``"upgma"``, ``"nj"``, 
+                 or methods supported by :func:`~scipy.cluster.hierarchy.linkage` such as "single", 
+                 "average", "ward", etc.
+    :type method: str
+
+    :arg linkage: whether the linkage matrix is returned. Note that NJ trees do not support linkage
+    :type linkage: bool
     """
     try: 
         import Bio 
@@ -99,30 +181,46 @@ def calcTree(names, distance_matrix, method='nj'):
     
     if len(names) != distance_matrix.shape[0] or len(names) != distance_matrix.shape[1]:
         raise ValueError("Mismatch between the sizes of matrix and names.")
-
-    matrix = []
-    k = 1
-    for row in distance_matrix:
-        matrix.append(list(row[:k]))
-        k = k + 1
     
-    if isinstance(names, np.ndarray):
-        names = names.tolist()
-    dm = DistanceMatrix(names, matrix)
-    constructor = DistanceTreeConstructor()
+    method = method.lower().strip()
 
-    method = method.strip().lower()
-    if method == 'nj':
-        tree = constructor.nj(dm)
-    elif method == 'upgma':
-        tree = constructor.upgma(dm)
+    if method in ['ward', 'single', 'average', 'weighted', 'centroid', 'median']:
+        from scipy.cluster.hierarchy import linkage as hlinkage
+        from scipy.spatial.distance import pdist
+        
+        Z = hlinkage(pdist(distance_matrix), method=method)
+        tree = getTreeFromLinkage(names, Z)
     else:
-        raise ValueError('Method can be only either "nj" or "upgma".')
+        matrix = []
+        k = 1
+        Z = None
+        for row in distance_matrix:
+            matrix.append(list(row[:k]))
+            k = k + 1
+        
+        if isinstance(names, np.ndarray):
+            names = names.tolist()
+        dm = DistanceMatrix(names, matrix)
+        constructor = DistanceTreeConstructor()
 
-    for node in tree.get_nonterminals():
-        node.name = None
-    return tree
+        method = method.strip().lower()
+        if method == 'nj':
+            tree = constructor.nj(dm)
+        elif method == 'upgma':
+            tree = constructor.upgma(dm)
+            if linkage:
+                Z = getLinkage(names, tree)
+        else:
+            raise ValueError('Method can be only either "nj", "upgma" or '
+                             'hierarchical clustering such as "single", "average", etc.')
 
+        for node in tree.get_nonterminals():
+            node.name = None
+
+    if linkage:
+        return tree, Z
+    else:
+        return tree
 
 def writeTree(filename, tree, format_str='newick'):
     """ Write a tree to file using Biopython.
@@ -595,10 +693,14 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
 
     return im, lines, cb
 
-def reorderMatrix(matrix, tree, names):
+def reorderMatrix(names, matrix, tree, axis=None):
     """
     Reorder a matrix based on a tree and return the reordered matrix 
     and indices for reordering other things.
+
+    :arg names: a list of names associated with the rows of the matrix
+        These names must match the ones used to generate the tree.
+    :type names: list
 
     :arg matrix: any square matrix
     :type matrix: :class:`~numpy.ndarray`
@@ -606,10 +708,11 @@ def reorderMatrix(matrix, tree, names):
     :arg tree: any tree from :func:`calcTree`
     :type tree: :class:`~Bio.Phylo.BaseTree.Tree`
 
-    :arg names: a list of names associated with the rows of the matrix
-        These names must match the ones used to generate the tree.
-    :type names: list
+    :arg axis: along which axis the matrix should be reordered. 
+               Default is **None** which reorder along all the axes.
+    :type axis: int
     """
+
     try:
         from Bio import Phylo
     except ImportError:
@@ -625,33 +728,53 @@ def reorderMatrix(matrix, tree, names):
 
     if np.shape(matrix)[0] != np.shape(matrix)[1]:
         raise ValueError('matrix should be a square matrix')
+    
+    names = np.asarray(names)
 
     if np.isscalar(names):
         raise TypeError('names should be list-like')
     
-    if not isinstance(names[0], str):
-        raise TypeError('names should be a list-like of strings')
+    if not len(names):
+        raise TypeError('names is empty')
 
     if not isinstance(tree, Phylo.BaseTree.Tree):
         raise TypeError('tree should be a BioPython Tree')
 
     if len(names) != len(matrix):
         raise ValueError('names should have entries for each matrix row/column')
-
-    if len(names) != len(tree.get_terminals()):
+    
+    terminals = tree.get_terminals()
+    if len(names) != len(terminals):
         raise ValueError('names should have entries for each tree terminal')
 
-    if len(tree.get_terminals()) != len(matrix):
+    if len(terminals) != len(matrix):
         raise ValueError('matrix should have a row for each tree terminal')
 
     indices = []
-    for terminal in tree.get_terminals():
-        indices.append(np.where(np.array(names) == str(terminal.name))[0][0])
+    for terminal in terminals:
+        name = terminal.name
+        locs = np.where(names == name)[0]
+        if not len(locs):
+            raise ValueError('inconsistent names and tree: %s not in names'%name)
 
-    reordered_matrix = matrix[:,indices]
-    reordered_matrix = reordered_matrix[indices,:]
+        if len(locs) > 1:
+            raise ValueError('inconsistent names and tree: duplicate name %s in names'%name)
+        indices.append(locs[0])
+
+    # rmatrix = matrix[:, indices]
+    # rmatrix = rmatrix[indices, :]
+
+    if axis is not None:
+        I = [np.arange(s) for s in matrix.shape] 
+        axes = [axis] if np.isscalar(axis) else axis
+        for ax in axes:
+            I[ax] = indices
+    else:
+        I = [indices] * matrix.ndim
     
-    return reordered_matrix, indices
+    rmatrix = matrix[np.ix_(*I)]
+    
+    return rmatrix, indices
 
 def findSubgroups(tree, cutoff=0.8):
     """

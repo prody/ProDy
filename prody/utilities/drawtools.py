@@ -80,6 +80,8 @@ def drawTree(
     linewidth = kwargs.pop('linewidth', 1.)
     linewidth = kwargs.pop('lw', linewidth)
 
+    fontsize = kwargs.pop('fontsize', 10)
+
     # Options for displaying branch labels / confidence
     def conf2str(conf):
         if int(conf) == conf:
@@ -222,7 +224,7 @@ def drawTree(
         if hasattr(clade, "color") and clade.color is not None:
             color = clade.color.to_hex()
         if hasattr(clade, "width") and clade.width is not None:
-            lw = clade.width * plt.rcParams["lines.linewidth"]
+            lw = clade.width * lw
         # Draw a horizontal line from start to here
         orit = orientation
         draw_clade_lines(
@@ -251,6 +253,7 @@ def drawTree(
                     " %s" % label,
                     verticalalignment=va,
                     horizontalalignment=ha,
+                    fontsize=fontsize,
                     color=get_label_color(label))
 
         # Add label above the branch (optional)
