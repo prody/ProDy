@@ -42,7 +42,7 @@ def getLinkage(names, tree):
 
     terminals = names
     n = len(terminals)
-    nonterminals = [str(c) for c in reversed(tree.get_nonterminals())]
+    nonterminals = [c for c in reversed(tree.get_nonterminals())]
     if len(nonterminals) != n-1:
         raise LinkageError('wrong number of terminal clades')
 
@@ -51,11 +51,11 @@ def getLinkage(names, tree):
     root = tree.root
 
     def _indexOfClade(clade):
-        name = clade.name
         if clade.is_terminal():
+            name = clade.name
             i = index(terminals, name)
         else:
-            i = index(nonterminals, name) + n
+            i = index(nonterminals, clade) + n
         return i
 
     def _height_of(clade):
@@ -813,6 +813,6 @@ def findSubgroups(tree, c, method='naive', **kwargs):
         subgroups = [[] for _ in range(len(labels))]
 
         for i, t in enumerate(T):
-            subgroups[t].append(names[i])
+            subgroups[t-1].append(names[i])
 
     return subgroups
