@@ -7,6 +7,8 @@ from .misctools import addEnds, interpY, index
 from .checkers import checkCoords
 from Bio.Phylo.BaseTree import Tree, Clade
 
+from prody import LOGGER
+
 __all__ = ['calcTree', 'clusterMatrix', 'showLines', 'showMatrix', 
            'reorderMatrix', 'findSubgroups', 'getCoords',  
            'getLinkage', 'getTreeFromLinkage']
@@ -778,22 +780,41 @@ def reorderMatrix(names, matrix, tree, axis=None):
     
     return rmatrix, indices
 
-def findSubgroups(tree, cutoff=0.8):
+def findSubgroups(tree, c, method='naive', **kwargs):
     """
-    Divide a tree into subgroups using a distance cutoff.
+    Divide a tree into subgroups using a criterion and a cutoff.
     Returns a list of lists with labels divided into subgroups.
     """
 
-    subgroups = [[]]
+    method = method.lower().strip()
+    terminals = tree.get_terminals()
+    names = [clade.name for clade in terminals]
+    Z = None
 
-    for i, target_i in enumerate(tree.get_terminals()):
-        for j, target_j in enumerate(tree.get_terminals()):
-            if i == j+1:
-                subgroups[-1].append(str(target_j))
-                neighbour_distance = tree.distance(target_i, target_j)
-                if neighbour_distance > cutoff:
-                    subgroups.append([])
+    if method != 'naive':
+        try:
+            Z = getLinkage(names, tree)
+        except LinkageError:
+            LOGGER.warn('Failed to build linkage; fall back to naive criterion')
+            method = 'naive'
+    
+    if method == 'naive':
+        subgroups = [[names[0]]]
+        for i in range(len(terminals)-1):
+            curr_clade = terminals[i]
+            next_clade = terminals[i + 1]
+            d = tree.distance(curr_clade, next_clade)
+            if d > c:
+                subgroups.append([])
+            subgroups[-1].append(next_clade.name)
+    else:
+        from scipy.cluster.hierarchy import fcluster
+        
+        T = fcluster(Z, c, criterion=method, **kwargs)
+        labels = np.unique(T)
+        subgroups = [[] for _ in range(len(labels))]
 
-    subgroups[-1].append(str(target_j))
+        for i, t in enumerate(T):
+            subgroups[t].append(names[i])
 
     return subgroups
