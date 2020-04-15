@@ -40,7 +40,16 @@ def getLinkage(names, tree):
     :type tree: :class:`~Bio.Phylo.BaseTree.Tree`
     """
 
-    terminals = names
+    tree_terminals = tree.get_terminals()
+
+    if len(tree_terminals) != len(names):
+        raise ValueError('inconsistent number of terminals in tree and names')
+    
+    terminals = [None] * len(names)
+    for clade in tree_terminals:
+        i = index(names, clade.name)
+        terminals[i] = clade
+
     n = len(terminals)
     nonterminals = [c for c in reversed(tree.get_nonterminals())]
     if len(nonterminals) != n-1:
@@ -52,8 +61,7 @@ def getLinkage(names, tree):
 
     def _indexOfClade(clade):
         if clade.is_terminal():
-            name = clade.name
-            i = index(terminals, name)
+            i = index(terminals, clade)
         else:
             i = index(nonterminals, clade) + n
         return i
