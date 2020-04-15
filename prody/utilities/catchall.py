@@ -7,8 +7,6 @@ from .misctools import addEnds, interpY, index
 from .checkers import checkCoords
 from Bio.Phylo.BaseTree import Tree, Clade
 
-from prody import LOGGER
-
 __all__ = ['calcTree', 'clusterMatrix', 'showLines', 'showMatrix', 
            'reorderMatrix', 'findSubgroups', 'getCoords',  
            'getLinkage', 'getTreeFromLinkage']
@@ -795,7 +793,7 @@ def findSubgroups(tree, c, method='naive', **kwargs):
         try:
             Z = getLinkage(names, tree)
         except LinkageError:
-            LOGGER.warn('Failed to build linkage; fall back to naive criterion')
+            print('Failed to build linkage; fall back to naive criterion')
             method = 'naive'
     
     if method == 'naive':
