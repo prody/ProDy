@@ -512,7 +512,7 @@ def parseDCD(filename, start=None, stop=None, step=None, astype=None):
 def writeDCD(filename, trajectory, start=None, stop=None, step=None,
              align=False):
     """Write 32-bit CHARMM format DCD file (also NAMD 2.1 and later).
-    *trajectory can be an :class:`Trajectory`, :class:`DCDFile`, or
+    *trajectory* can be an :class:`Trajectory`, :class:`DCDFile`, or
     :class:`Ensemble` instance. *filename* is returned upon successful
     output of file."""
     if not filename.lower().endswith('.dcd'):
