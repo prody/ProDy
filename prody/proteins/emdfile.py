@@ -179,7 +179,7 @@ def parseEMDStream(stream, **kwargs):
         LOGGER.timeit()
 
         if map:
-            atomgroup, emd = _parseEMDLines(atomgroup, stream, cutoff=cutoff, n_nodes=n_nodes, \
+            emd, atomgroup = _parseEMDLines(atomgroup, stream, cutoff=cutoff, n_nodes=n_nodes, \
                                             num_iter=num_iter, map=map, make_nodes=make_nodes)
         else:
             atomgroup = _parseEMDLines(atomgroup, stream, cutoff=cutoff, n_nodes=n_nodes, \
@@ -193,7 +193,7 @@ def parseEMDStream(stream, **kwargs):
 
     if make_nodes:
         if map:
-            return atomgroup, emd
+            return emd, atomgroup
         else:
             return atomgroup
     else:
