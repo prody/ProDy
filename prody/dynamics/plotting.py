@@ -257,7 +257,8 @@ def showProjection(ensemble, modes, *args, **kwargs):
     else:
         raise TypeError('marker must be a string or a list')
 
-    colors = kwargs.pop('color', 'blue')
+    c = kwargs.pop('c', 'blue')
+    colors = kwargs.pop('color', c)
     if isinstance(colors, str) or colors is None:
         colors = [colors] * num
     elif isinstance(colors, list):
