@@ -259,7 +259,9 @@ def showProjection(ensemble, modes, *args, **kwargs):
 
     c = kwargs.pop('c', 'blue')
     colors = kwargs.pop('color', c)
-    if isinstance(colors, str) or colors is None:
+    if isinstance(colors, np.ndarray):
+        colors = tuple(colors)
+    if isinstance(colors, (str, tuple)) or colors is None:
         colors = [colors] * num
     elif isinstance(colors, list):
         if len(colors) != num:
