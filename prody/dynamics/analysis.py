@@ -141,7 +141,7 @@ def calcFractVariance(mode):
     return var / trace
 
 
-def calcProjection(ensemble, modes, rmsd=True, norm=True):
+def calcProjection(ensemble, modes, rmsd=True, norm=False):
     """Returns projection of conformational deviations onto given modes.
     *ensemble* coordinates are used to calculate the deviations that are
     projected onto *modes*.  For K conformations and M modes, a (K,M)
