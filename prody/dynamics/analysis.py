@@ -157,6 +157,9 @@ def calcProjection(ensemble, modes, rmsd=True, norm=False):
     By default, root-mean-square deviation (RMSD) along the normal mode is
     calculated. To calculate the raw projection pass ``rmsd=False``.
 
+    By default, the projection is not normalized. If you would like it to be,
+    pass ``norm=True``.
+
     :class:`.Vector` instances are accepted as *ensemble* argument to allow
     for projecting a deformation vector onto normal modes."""
 
