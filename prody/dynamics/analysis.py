@@ -154,8 +154,9 @@ def calcProjection(ensemble, modes, rmsd=True, norm=False):
     :arg modes: up to three normal modes
     :type modes: :class:`.Mode`, :class:`.ModeSet`, :class:`.NMA`
 
-    By default root-mean-square deviation (RMSD) along the normal mode is
-    calculated. To calculate the projection pass ``rmsd=True``.
+    By default, root-mean-square deviation (RMSD) along the normal mode is
+    calculated. To calculate the raw projection pass ``rmsd=False``.
+
     :class:`.Vector` instances are accepted as *ensemble* argument to allow
     for projecting a deformation vector onto normal modes."""
 
