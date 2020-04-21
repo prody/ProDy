@@ -19,7 +19,8 @@ from prody.ensemble import Ensemble
 from prody.ensemble import PDBEnsemble
 import os
 
-__all__ = ['DaliRecord', 'searchDali']
+__all__ = ['DaliRecord', 'searchDali', 
+           'daliFilterMultimer', 'daliFilterMultimers']
 
 def searchDali(pdb, chain=None, subset='fullPDB', daliURL=None, **kwargs):
     """Search Dali server with input of PDB ID (or local PDB file) and chain ID.
@@ -452,3 +453,48 @@ class DaliRecord(object):
 
         return self._title
 
+def daliFilterMultimer(atoms, dali_rec, n_chains=None):
+    """
+    Filters multimers to only include chains with Dali mappings.
+
+    :arg atoms: the multimer to be filtered
+    :type atoms: :class:`.Atomic`
+
+    :arg dali_rec: the DaliRecord object with which to filter chains
+    :type dali_rec: :class:`.DaliRecord`
+    """
+    if not isinstance(atoms, Atomic):
+        raise TypeError("atoms should be an Atomic object")
+
+    if not isinstance(dali_rec, DaliRecord):
+        raise TypeError("dali_rec should be a DaliRecord")
+    try:
+        keys = dali_rec._alignPDB
+    except:
+        raise AttributeError("Dali Record does not have any data yet. Please run getRecord.")
+
+    numChains = 0
+    atommap = None
+    for i, chain in enumerate(atoms.iterChains()):
+        m = dali_rec.getMapping(chain.getTitle()[:4] + chain.getChid())
+        if m is not None:
+            numChains += 1
+            if atommap is None:
+                atommap = chain
+            else:
+                atommap += chain
+
+    if n_chains is None or numChains == n_chains:
+        return atommap
+    else:
+        return None
+
+def daliFilterMultimers(structures, dali_rec, n_chains=None):
+    """A wrapper for daliFilterMultimer to apply to multiple structures.
+    """
+    dali_ags = []
+    for entry in structures:
+        result = daliFilterMultimer(entry, dali_rec, n_chains)
+        if result is not None:
+            dali_ags.append(result)
+    return dali_ags
