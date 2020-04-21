@@ -26,7 +26,10 @@ def searchDali(pdb, chain=None, subset='fullPDB', daliURL=None, **kwargs):
     Dali server: http://ekhidna2.biocenter.helsinki.fi/dali/
     
     :arg pdb: PDB code or local PDB file for the protein to be searched
+
     :arg chain: chain identifier (only one chain can be assigned for PDB)
+    :type chain: str
+
     :arg subset: fullPDB, PDB25, PDB50, PDB90
     :type subset: str
     
@@ -310,12 +313,22 @@ class DaliRecord(object):
         
     def getPDBs(self, filtered=True):
         """Returns PDB list (filters may be applied)"""
+        try:
+            keys = self._alignPDB
+        except:
+            raise AttributeError("Dali Record does not have any data yet. Please run getRecord.")
+        
         if filtered:
             return self._pdbList
         return self._pdbListAll
         
     def getHits(self):
         """Returns the dictionary associated with the DaliRecord"""
+        try:
+            keys = self._alignPDB
+        except:
+            raise AttributeError("Dali Record does not have any data yet. Please run getRecord.")
+
         return self._alignPDB
         
     def getFilterList(self):
@@ -334,6 +347,11 @@ class DaliRecord(object):
     def getMapping(self, key):
         """Get mapping for a particular entry in the DaliRecord"""
         try:
+            keys = self._alignPDB
+        except:
+            raise AttributeError("Dali Record does not have any data yet. Please run getRecord.")
+        
+        try:
             info = self._alignPDB[key]
             mapping = [info['map_ref'], info['map_sel']]
         except KeyError:
@@ -342,6 +360,11 @@ class DaliRecord(object):
 
     def getMappings(self):
         """Get all mappings in the DaliRecord"""
+        try:
+            keys = self._alignPDB
+        except:
+            raise AttributeError("Dali Record does not have any data yet. Please run getRecord.")
+
         map_dict = {}
         for key in self._alignPDB:
             info = self._alignPDB[key]
@@ -403,7 +426,11 @@ class DaliRecord(object):
         # debug:
         # print('cutoff_len: ' + str(cutoff_len) + ', ' + 'cutoff_rmsd: ' + str(cutoff_rmsd) + ', ' + 'cutoff_Z: ' + str(cutoff_Z) + ', ' + 'cutoff_identity: ' + str(cutoff_identity))
         
-        daliInfo = self._alignPDB
+        try:
+            daliInfo = self._alignPDB
+        except:
+            raise AttributeError("Dali Record does not have any data yet. Please run getRecord.")
+
         pdbListAll = self._pdbListAll
         missing_ind_dict = dict()
         ref_indices_set = set(range(self._max_index))
