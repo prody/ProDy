@@ -136,8 +136,11 @@ class AtomGroup(Atomic):
         self._kdtrees = None
         self._bmap = None
         self._bonds = None
+        self._angmap = None
         self._angles = None
+        self._dmap = None
         self._dihedrals = None
+        self._imap = None
         self._impropers = None
         self._fragments = None
 
