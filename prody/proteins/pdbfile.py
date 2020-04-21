@@ -270,7 +270,10 @@ def parsePDBStream(stream, **kwargs):
         bonds = [] if get_bonds else None
         _parsePDBLines(ag, lines, split, model, chain, subset, altloc, bonds=bonds)
         if bonds:
-            ag.setBonds(bonds)
+            try:
+                ag.setBonds(bonds)
+            except:
+                LOGGER.warn('Bonds read from CONECT records do not apply to subset so were not added')
         if ag.numAtoms() > 0:
             LOGGER.report('{0} atoms and {1} coordinate set(s) were '
                           'parsed in %.2fs.'.format(ag.numAtoms(),
