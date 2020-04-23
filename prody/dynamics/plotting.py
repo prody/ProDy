@@ -257,8 +257,11 @@ def showProjection(ensemble, modes, *args, **kwargs):
     else:
         raise TypeError('marker must be a string or a list')
 
-    colors = kwargs.pop('color', 'blue')
-    if isinstance(colors, str) or colors is None:
+    c = kwargs.pop('c', 'blue')
+    colors = kwargs.pop('color', c)
+    if isinstance(colors, np.ndarray):
+        colors = tuple(colors)
+    if isinstance(colors, (str, tuple)) or colors is None:
         colors = [colors] * num
     elif isinstance(colors, list):
         if len(colors) != num:

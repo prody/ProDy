@@ -492,7 +492,10 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
     from matplotlib.gridspec import GridSpec
     from matplotlib.collections import LineCollection
     from matplotlib.pyplot import gca, sca, sci, colorbar, subplot
-    from matplotlib.colors import DivergingNorm
+    try:
+        from matplotlib.colors import DivergingNorm
+    except ImportError:
+        from matplotlib.colors import TwoSlopeNorm
 
     from .drawtools import drawTree
 

@@ -318,6 +318,10 @@ class Ensemble(object):
         self._coords = coords
         self._n_atoms = coords.shape[0]
 
+        if isinstance(atoms, Ensemble):
+            self._indices = atoms._indices
+            self._atoms = atoms._atoms
+
     def getWeights(self, selected=True):
         """Returns a copy of weights of selected atoms."""
 
