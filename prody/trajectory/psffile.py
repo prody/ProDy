@@ -37,14 +37,12 @@ def parsePSF(filename, title=None, ag=None):
 
     psf = openFile(filename, 'rb')
     line = psf.readline()
-    i_line = 1
     while line:
         line = line.strip()
         if line.endswith(b'!NATOM'):
             n_atoms = int(line.split(b'!')[0])
             break
         line = psf.readline()
-        i_line += 1
     if title is None:
         title = os.path.splitext(os.path.split(filename)[1])[0]
     else:
@@ -279,5 +277,6 @@ def writePSF(filename, atoms):
         if i % 2 != 1:
             write('\n')
 
+    write('\n')
     out.close()
     return filename
