@@ -1139,8 +1139,8 @@ class AtomGroup(Atomic):
         angles."""
 
         if self._angles is not None:
-            for a, b in self._angles:
-                yield a, b
+            for a, b, c in self._angles:
+                yield a, b, c
 
     def setDihedrals(self, dihedrals):
         """Set covalent dihedrals between atoms.  *dihedrals* must be a list or an
@@ -1200,8 +1200,8 @@ class AtomGroup(Atomic):
         dihedrals."""
 
         if self._dihedrals is not None:
-            for a, b in self._dihedrals:
-                yield a, b
+            for a, b, c, d in self._dihedrals:
+                yield a, b, c, d
 
     def setImpropers(self, impropers):
         """Set covalent impropers between atoms.  *impropers* must be a list or an
@@ -1261,8 +1261,8 @@ class AtomGroup(Atomic):
         impropers."""
 
         if self._impropers is not None:
-            for a, b in self._impropers:
-                yield a, b
+            for a, b, c, d in self._impropers:
+                yield a, b, c, d
 
     def numFragments(self):
         """Returns number of connected atom subsets."""
