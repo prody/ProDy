@@ -27,8 +27,9 @@ def parsePSF(filename, title=None, ag=None):
     provided as *ag* argument.  When provided, *ag* must have the same number
     of atoms in the same order as the file.  Data from PSF file will be added
     to the *ag*.  This may overwrite present data if it overlaps with PSF file
-    content.  Note that this function does not evaluate angles, dihedrals, and
-    impropers sections."""
+    content.  
+    
+    This function now includes the angles, dihedrals, and impropers sections!"""
 
     if ag is not None:
         if not isinstance(ag, AtomGroup):
@@ -63,7 +64,6 @@ def parsePSF(filename, title=None, ag=None):
     charges = zeros(n_atoms, ATOMIC_FIELDS['charge'].dtype)
     masses = zeros(n_atoms, ATOMIC_FIELDS['mass'].dtype)
     
-    #lines = psf.readlines(71 * (n_atoms + 5))
     n = 0
     n_bonds = 0
     for i, line in enumerate(psf):
@@ -98,9 +98,68 @@ def parsePSF(filename, title=None, ag=None):
         n += 1
     
     if n < n_atoms:
-        raise IOError('number of lines in PSF is less than the number of '
+        raise IOError('number of lines in PSF atoms block is less than the number of '
                       'atoms')
 
+    lines = []
+    for i, line in enumerate(psf):
+        if line.strip() == b'':
+            continue
+        if b'!NTHETA' in line:
+            items = line.split()
+            n_angles = int(items[0])
+            break
+        lines.append(line.decode(encoding='UTF-8'))
+    
+    lines = ''.join(lines)
+    b_array = fromstring(lines, count=n_bonds*2, dtype=int, sep=' ')
+    if len(b_array) != n_bonds*2:
+        raise IOError('number of bonds expected and parsed do not match')
+
+    lines = []
+    for i, line in enumerate(psf):
+        if line.strip() == b'':
+            continue
+        if b'!NPHI' in line:
+            items = line.split()
+            n_dihedrals = int(items[0])
+            break
+        lines.append(line.decode(encoding='UTF-8'))
+    
+    lines = ''.join(lines)
+    a_array = fromstring(lines, count=n_angles*3, dtype=int, sep=' ')
+    if len(a_array) != n_angles*3:
+        raise IOError('number of angles expected and parsed do not match')
+
+    lines = []
+    for i, line in enumerate(psf):
+        if line.strip() == b'':
+            continue
+        if b'!NIMPHI' in line:
+            items = line.split()
+            n_impropers = int(items[0])
+            break
+        lines.append(line.decode(encoding='UTF-8'))
+    
+    lines = ''.join(lines)
+    d_array = fromstring(lines, count=n_dihedrals*4, dtype=int, sep=' ')
+    if len(d_array) != n_dihedrals*4:
+        raise IOError('number of dihedrals expected and parsed do not match')
+
+    lines = []
+    for i, line in enumerate(psf):
+        if line.strip() == b'':
+            continue
+        if b'!' in line:
+            break
+        lines.append(line.decode(encoding='UTF-8'))
+    
+    lines = ''.join(lines)
+    i_array = fromstring(lines, count=n_impropers*4, dtype=int, sep=' ')
+    if len(i_array) != n_impropers*4:
+        raise IOError('number of impropers expected and parsed do not match')
+
+    psf.close()
     ag.setSerials(serials)
     ag.setSegnames(segnames)
     ag.setResnums(resnums)
@@ -110,82 +169,20 @@ def parsePSF(filename, title=None, ag=None):
     ag.setCharges(charges)
     ag.setMasses(masses)
 
-    lines = []
-    for i, line in enumerate(psf):
-        if line.strip() == b'':
-            continue
-        if b'!' in line:
-            items = line.split()
-            n_angles = int(items[0])
-            break
-        lines.append(line.decode(encoding='UTF-8'))
-    
-    lines = ''.join(lines)
-    array = fromstring(lines, count=n_bonds*2, dtype=int, sep=' ')
-    if len(array) != n_bonds*2:
-        raise IOError('number of bonds expected and parsed do not match')
+    b_array = add(b_array, -1, b_array)
+    ag.setBonds(b_array.reshape((n_bonds, 2)))
 
-    array = add(array, -1, array)
-    ag.setBonds(array.reshape((n_bonds, 2)))
+    a_array = add(a_array, -1, a_array)
+    ag.setAngles(a_array.reshape((n_angles, 3)))
 
+    d_array = add(d_array, -1, d_array)
+    ag.setDihedrals(d_array.reshape((n_dihedrals, 4)))
 
-    lines = []
-    for i, line in enumerate(psf):
-        if line.strip() == b'':
-            continue
-        if b'!' in line:
-            items = line.split()
-            n_dihedrals = int(items[0])
-            break
-        lines.append(line.decode(encoding='UTF-8'))
-    
-    lines = ''.join(lines)
-    array = fromstring(lines, count=n_angles*3, dtype=int, sep=' ')
-    if len(array) != n_angles*3:
-        raise IOError('number of angles expected and parsed do not match')
-
-    array = add(array, -1, array)
-    ag.setAngles(array.reshape((n_angles, 3)))
-
-
-    lines = []
-    for i, line in enumerate(psf):
-        if line.strip() == b'':
-            continue
-        if b'!' in line:
-            items = line.split()
-            n_impropers = int(items[0])
-            break
-        lines.append(line.decode(encoding='UTF-8'))
-    
-    lines = ''.join(lines)
-    array = fromstring(lines, count=n_dihedrals*4, dtype=int, sep=' ')
-    if len(array) != n_dihedrals*4:
-        raise IOError('number of dihedrals expected and parsed do not match')
-
-    array = add(array, -1, array)
-    ag.setDihedrals(array.reshape((n_dihedrals, 4)))
-
-
-    lines = []
-    for i, line in enumerate(psf):
-        if line.strip() == b'':
-            continue
-        if b'!' in line:
-            break
-        lines.append(line.decode(encoding='UTF-8'))
-    
-    lines = ''.join(lines)
-    array = fromstring(lines, count=n_impropers*4, dtype=int, sep=' ')
-    if len(array) != n_impropers*4:
-        raise IOError('number of impropers expected and parsed do not match')
-
-    array = add(array, -1, array)
-    ag.setImpropers(array.reshape((n_impropers, 4)))
-
-    psf.close()
+    i_array = add(i_array, -1, i_array)
+    ag.setImpropers(i_array.reshape((n_impropers, 4)))
 
     return ag
+
 
 PSFLINE = ('%8d %-4s %-4d %-4s %-4s %-4s %10.6f %13.4f %11d\n')
 
@@ -245,5 +242,42 @@ def writePSF(filename, atoms):
                 write('\n')
         if i % 4 != 3:
             write('\n')
+
+    angles = list(atoms._iterAngles())
+    if angles:
+        angles = array(angles, int) + 1
+        write('\n')
+        write('{0:8d} !NTHETA: angles\n'.format(len(angles)))
+        for i, angle in enumerate(angles):
+            write('%8s%8s%8s' % (angle[0], angle[1], angle[2]))
+            if i % 3 == 2:
+                write('\n')
+        if i % 3 != 2:
+            write('\n')
+
+    dihedrals = list(atoms._iterDihedrals())
+    if dihedrals:
+        dihedrals = array(dihedrals, int) + 1
+        write('\n')
+        write('{0:8d} !NPHI: dihedrals\n'.format(len(dihedrals)))
+        for i, dihedral in enumerate(dihedrals):
+            write('%8s%8s%8s%8s' % (dihedral[0], dihedral[1], dihedral[2], dihedral[3]))
+            if i % 4 == 3:
+                write('\n')
+        if i % 4 != 3:
+            write('\n')
+
+    impropers = list(atoms._iterImpropers())
+    if impropers:
+        impropers = array(impropers, int) + 1
+        write('\n')
+        write('{0:8d} !NIMPHI: impropers\n'.format(len(impropers)))
+        for i, improper in enumerate(impropers):
+            write('%8s%8s%8s%8s' % (improper[0], improper[1], improper[2], improper[3]))
+            if i % 2 == 1:
+                write('\n')
+        if i % 2 != 1:
+            write('\n')
+
     out.close()
     return filename
