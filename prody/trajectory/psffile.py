@@ -157,6 +157,25 @@ def parsePSF(filename, title=None, ag=None):
     if len(i_array) != n_impropers*4:
         raise IOError('number of impropers expected and parsed do not match')
 
+    for i, line in enumerate(psf):
+        if b'!NCRTERM' in line:
+            items = line.split()
+            n_crossterms = int(items[0])
+            break
+
+    lines = []
+    for i, line in enumerate(psf):
+        if line.strip() == b'':
+            continue
+        if b'!' in line:
+            break
+        lines.append(line.decode(encoding='UTF-8'))
+    
+    lines = ''.join(lines)
+    c_array = fromstring(lines, count=n_crossterms*4, dtype=int, sep=' ')
+    if len(c_array) != n_crossterms*4:
+        raise IOError('number of crossterms expected and parsed do not match')
+
     psf.close()
     ag.setSerials(serials)
     ag.setSegnames(segnames)
@@ -178,6 +197,9 @@ def parsePSF(filename, title=None, ag=None):
 
     i_array = add(i_array, -1, i_array)
     ag.setImpropers(i_array.reshape((n_impropers, 4)))
+
+    c_array = add(c_array, -1, c_array)
+    ag.setCrossterms(c_array.reshape((n_crossterms, 4)))
 
     return ag
 
@@ -272,6 +294,18 @@ def writePSF(filename, atoms):
         write('{0:8d} !NIMPHI: impropers\n'.format(len(impropers)))
         for i, improper in enumerate(impropers):
             write('%8s%8s%8s%8s' % (improper[0], improper[1], improper[2], improper[3]))
+            if i % 2 == 1:
+                write('\n')
+        if i % 2 != 1:
+            write('\n')
+
+    crossterms = list(atoms._iterCrossterms())
+    if crossterms:
+        crossterms = array(crossterms, int) + 1
+        write('\n')
+        write('{0:8d} !NCRTERM: crossterms\n'.format(len(crossterms)))
+        for i, crossterm in enumerate(crossterms):
+            write('%8s%8s%8s%8s' % (crossterm[0], crossterm[1], crossterm[2], crossterm[3]))
             if i % 2 == 1:
                 write('\n')
         if i % 2 != 1:

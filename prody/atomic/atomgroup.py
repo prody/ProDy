@@ -21,6 +21,7 @@ from .atom import Atom
 from .bond import Bond, evalBonds
 from .angle import Angle, evalAngles
 from .dihedral import Dihedral, evalDihedrals
+from .crossterm import Crossterm, evalCrossterms
 from .improper import Improper, evalImpropers
 from .selection import Selection
 
@@ -119,8 +120,8 @@ class AtomGroup(Atomic):
 
     __slots__ = ['_title', '_n_atoms', '_coords', '_hv', '_sn2i',
                  '_timestamps', '_kdtrees', 
-                 '_bmap', '_angmap', '_dmap', '_imap',
-                 '_bonds', '_angles', '_dihedrals', '_impropers', 
+                 '_bmap', '_angmap', '_dmap', '_imap', '_cmap',
+                 '_bonds', '_angles', '_dihedrals', '_impropers', '_crossterms',
                  '_cslabels', '_acsi', '_n_csets', '_data', 
                  '_fragments', '_flags', '_flagsts', '_subsets', 
                  '_msa', '_sequenceMap']
@@ -142,6 +143,8 @@ class AtomGroup(Atomic):
         self._dihedrals = None
         self._imap = None
         self._impropers = None
+        self._cmap = None
+        self._crossterms = None
         self._fragments = None
 
         self._cslabels = []
@@ -260,28 +263,36 @@ class AtomGroup(Atomic):
             new.setBonds(other._bonds + self._n_atoms)
 
         if self._angles is not None and other._angles is not None:
-            new.setBonds(np.concatenate([self._angles,
+            new.setAngles(np.concatenate([self._angles,
                                          other._angles + self._n_atoms]))
         elif self._angles is not None:
-            new.setBonds(self._angles.copy())
+            new.setAngles(self._angles.copy())
         elif other._angles is not None:
-            new.setBonds(other._angles + self._n_atoms)
+            new.setAngles(other._angles + self._n_atoms)
 
         if self._dihedrals is not None and other._dihedrals is not None:
-            new.setBonds(np.concatenate([self._dihedrals,
+            new.setDihedrals(np.concatenate([self._dihedrals,
                                          other._dihedrals + self._n_atoms]))
         elif self._dihedrals is not None:
-            new.setBonds(self._dihedrals.copy())
+            new.setDihedrals(self._dihedrals.copy())
         elif other._dihedrals is not None:
-            new.setBonds(other._dihedrals + self._n_atoms)
+            new.setDihedrals(other._dihedrals + self._n_atoms)
 
         if self._impropers is not None and other._impropers is not None:
-            new.setBonds(np.concatenate([self._impropers,
+            new.setImpropers(np.concatenate([self._impropers,
                                          other._impropers + self._n_atoms]))
         elif self._impropers is not None:
-            new.setBonds(self._impropers.copy())
+            new.setImpropers(self._impropers.copy())
         elif other._impropers is not None:
-            new.setBonds(other._impropers + self._n_atoms)
+            new.setImpropers(other._impropers + self._n_atoms)
+
+        if self._crossterms is not None and other._crossterms is not None:
+            new.setCrossterms(np.concatenate([self._crossterms,
+                                         other._crossterms + self._n_atoms]))
+        elif self._crossterms is not None:
+            new.setCrossterms(self._crossterms.copy())
+        elif other._crossterms is not None:
+            new.setCrossterms(other._crossterms + self._n_atoms)
 
         return new
 
@@ -1112,7 +1123,7 @@ class AtomGroup(Atomic):
         self._fragments = None
 
     def numAngles(self):
-        """Returns number of angles.  Use :meth:`setBonds` for setting angles."""
+        """Returns number of angles.  Use :meth:`setAngles` for setting angles."""
 
         if self._angles is not None:
             return self._angles.shape[0]
@@ -1168,12 +1179,12 @@ class AtomGroup(Atomic):
         dihedrals = dihedrals[dihedrals[:, 1].argsort(), ]
         dihedrals = dihedrals[dihedrals[:, 0].argsort(), ]
 
-        self._angmap, self._data['numdihedrals'] = evalDihedrals(dihedrals, n_atoms)
+        self._dmap, self._data['numdihedrals'] = evalDihedrals(dihedrals, n_atoms)
         self._dihedrals = dihedrals
         self._fragments = None
 
     def numDihedrals(self):
-        """Returns number of dihedrals.  Use :meth:`setBonds` for setting dihedrals."""
+        """Returns number of dihedrals.  Use :meth:`setDihedrals` for setting dihedrals."""
 
         if self._dihedrals is not None:
             return self._dihedrals.shape[0]
@@ -1229,12 +1240,12 @@ class AtomGroup(Atomic):
         impropers = impropers[impropers[:, 1].argsort(), ]
         impropers = impropers[impropers[:, 0].argsort(), ]
 
-        self._angmap, self._data['numimpropers'] = evalImpropers(impropers, n_atoms)
+        self._imap, self._data['numimpropers'] = evalImpropers(impropers, n_atoms)
         self._impropers = impropers
         self._fragments = None
 
     def numImpropers(self):
-        """Returns number of impropers.  Use :meth:`setBonds` for setting impropers."""
+        """Returns number of impropers.  Use :meth:`setImpropers` for setting impropers."""
 
         if self._impropers is not None:
             return self._impropers.shape[0]
@@ -1263,6 +1274,68 @@ class AtomGroup(Atomic):
         if self._impropers is not None:
             for a, b, c, d in self._impropers:
                 yield a, b, c, d
+
+    def setCrossterms(self, crossterms):
+        """Set covalent crossterms between atoms.  *crossterms* must be a list or an
+        array of triplets of indices.  All crossterms must be set at once.  Crossterm
+        information can be used to make atom selections, e.g. ``"crossterm to
+        index 1"``.  See :mod:`.select` module documentation for details.
+        Also, a data array with number of crossterms will be generated and stored
+        with label *numcrossterms*.  This can be used in atom selections, e.g.
+        ``'numcrossterms 0'`` can be used to select ions in a system."""
+
+        if isinstance(crossterms, list):
+            crossterms = np.array(crossterms, int)
+        if crossterms.ndim != 2:
+            raise ValueError('crossterms.ndim must be 2')
+        if crossterms.shape[1] != 4:
+            raise ValueError('crossterms.shape must be (n_crossterms, 4)')
+        if crossterms.min() < 0:
+            raise ValueError('negative atom indices are not valid')
+        n_atoms = self._n_atoms
+        if crossterms.max() >= n_atoms:
+            raise ValueError('atom indices are out of range')
+        crossterms.sort(1)
+        crossterms = crossterms[crossterms[:, 3].argsort(), ]
+        crossterms = crossterms[crossterms[:, 2].argsort(), ]
+        crossterms = crossterms[crossterms[:, 1].argsort(), ]
+        crossterms = crossterms[crossterms[:, 0].argsort(), ]
+
+        self._cmap, self._data['numcrossterms'] = evalCrossterms(crossterms, n_atoms)
+        self._crossterms = crossterms
+        self._fragments = None
+
+    def numCrossterms(self):
+        """Returns number of crossterms.  Use :meth:`setCrossterms` for setting crossterms."""
+
+        if self._crossterms is not None:
+            return self._crossterms.shape[0]
+        return 0
+
+    def getCrossterms(self):
+        """Returns crossterms.  Use :meth:`setCrossterms` for setting crossterms."""
+        
+        if self._crossterms is not None:
+            acsi = self._acsi
+            return np.array([Crossterm(self, crossterm, acsi) for crossterm in self._crossterms])
+        return None
+
+    def iterCrossterms(self):
+        """Yield crossterms.  Use :meth:`setCrossterms` for setting crossterms."""
+
+        if self._crossterms is not None:
+            acsi = self._acsi
+            for crossterm in self._crossterms:
+                yield Crossterm(self, crossterm, acsi)
+
+    def _iterCrossterms(self):
+        """Yield quadruplets of crosstermed atom indices. Use :meth:`setCrossterms` for setting
+        crossterms."""
+
+        if self._crossterms is not None:
+            for a, b, c, d in self._crossterms:
+                yield a, b, c, d
+
 
     def numFragments(self):
         """Returns number of connected atom subsets."""
