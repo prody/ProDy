@@ -116,13 +116,22 @@ class Donor(object):
 
 
 def evalDonors(donors, n_atoms):
-    """Returns an array mapping atoms to their donored neighbors and an array
-    that stores number of donors made by each atom."""
+    """Returns an array mapping atoms to their common donor neighbors and an array
+    that stores number of donors made by each atom.
+    
+    This excludes entries corresponding to missing hydrogens (with 0 in them that became -1)."""
 
-    numdonors = np.bincount(donors.reshape((donors.shape[0] * 2)))
+    if donors.min() < 0:
+        # remove entries corresponding to missing hydrogens (with 0 in them that became -1)
+        donors = donors[np.argwhere(donors == -1)[-1][0]+1:]
+
+    numdonors = np.bincount(donors.reshape((donors.shape[0] * 2)))        
+
     domap = np.zeros((n_atoms, numdonors.max()), int)
-    domap.fill(-1)
     index = np.zeros(n_atoms, int)
+
+    domap.fill(-1)
+    
     for donor in donors:
         a, b = donor
         domap[a, index[a]] = b

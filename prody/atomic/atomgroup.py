@@ -1322,7 +1322,6 @@ class AtomGroup(Atomic):
         if donors is None or len(donors) == 0:
             self._domap = None
             self._donors = None
-
             return
 
         if isinstance(donors, list):
@@ -1455,7 +1454,6 @@ class AtomGroup(Atomic):
         if nbexclusions is None or len(nbexclusions) == 0:
             self._nbemap = None
             self._nbexclusions = None
-
             return
 
         if isinstance(nbexclusions, list):

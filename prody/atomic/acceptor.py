@@ -116,13 +116,22 @@ class Acceptor(object):
 
 
 def evalAcceptors(acceptors, n_atoms):
-    """Returns an array mapping atoms to their acceptored neighbors and an array
-    that stores number of acceptors made by each atom."""
+    """Returns an array mapping atoms to their common acceptor neighbors and an array
+    that stores number of acceptors made by each atom.
+    
+    This excludes entries corresponding to missing hydrogens (with 0 in them that became -1)."""
+
+    if acceptors.min() < 0:
+        # remove entries corresponding to missing hydrogens (with 0 in them that became -1)
+        acceptors = acceptors[np.argwhere(acceptors == -1)[-1][0]+1:]
 
     numacceptors = np.bincount(acceptors.reshape((acceptors.shape[0] * 2)))
+
     acmap = np.zeros((n_atoms, numacceptors.max()), int)
-    acmap.fill(-1)
     index = np.zeros(n_atoms, int)
+    
+    acmap.fill(-1)
+    
     for acceptor in acceptors:
         a, b = acceptor
         acmap[a, index[a]] = b
