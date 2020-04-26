@@ -29,7 +29,8 @@ def parsePSF(filename, title=None, ag=None):
     to the *ag*.  This may overwrite present data if it overlaps with PSF file
     content.  
     
-    This function now includes the angles, dihedrals, and impropers sections!"""
+    This function now includes the angles, dihedrals, and impropers sections
+    as well as donors, acceptors and crossterms!"""
 
     if ag is not None:
         if not isinstance(ag, AtomGroup):
@@ -148,7 +149,9 @@ def parsePSF(filename, title=None, ag=None):
     for i, line in enumerate(psf):
         if line.strip() == b'':
             continue
-        if b'!' in line:
+        if b'!NDON' in line:
+            items = line.split()
+            n_donors = int(items[0])
             break
         lines.append(line.decode(encoding='UTF-8'))
     
@@ -156,6 +159,34 @@ def parsePSF(filename, title=None, ag=None):
     i_array = fromstring(lines, count=n_impropers*4, dtype=int, sep=' ')
     if len(i_array) != n_impropers*4:
         raise IOError('number of impropers expected and parsed do not match')
+
+    lines = []
+    for i, line in enumerate(psf):
+        if line.strip() == b'':
+            continue
+        if b'!NACC' in line:
+            items = line.split()
+            n_acceptors = int(items[0])
+            break
+        lines.append(line.decode(encoding='UTF-8'))
+    
+    lines = ''.join(lines)
+    do_array = fromstring(lines, count=n_donors*2, dtype=int, sep=' ')
+    if len(do_array) != n_donors*2:
+        raise IOError('number of donors expected and parsed do not match')
+
+    lines = []
+    for i, line in enumerate(psf):
+        if line.strip() == b'':
+            continue
+        if b'!' in line:
+            break
+        lines.append(line.decode(encoding='UTF-8'))
+    
+    lines = ''.join(lines)
+    ac_array = fromstring(lines, count=n_acceptors*2, dtype=int, sep=' ')
+    if len(ac_array) != n_acceptors*2:
+        raise IOError('number of acceptors expected and parsed do not match')
 
     for i, line in enumerate(psf):
         if b'!NCRTERM' in line:
@@ -165,10 +196,6 @@ def parsePSF(filename, title=None, ag=None):
 
     lines = []
     for i, line in enumerate(psf):
-        if line.strip() == b'':
-            continue
-        if b'!' in line:
-            break
         lines.append(line.decode(encoding='UTF-8'))
     
     lines = ''.join(lines)
@@ -197,6 +224,12 @@ def parsePSF(filename, title=None, ag=None):
 
     i_array = add(i_array, -1, i_array)
     ag.setImpropers(i_array.reshape((n_impropers, 4)))
+
+    do_array = add(do_array, -1, do_array)
+    ag.setDonors(do_array.reshape((n_donors, 2)))
+
+    ac_array = add(ac_array, -1, ac_array)
+    ag.setAcceptors(ac_array.reshape((n_acceptors, 2)))
 
     c_array = add(c_array, -1, c_array)
     ag.setCrossterms(c_array.reshape((n_crossterms, 4)))
@@ -251,6 +284,7 @@ def writePSF(filename, atoms):
     for i in range(n_atoms):
         write(PSFLINE % (i + 1, segments[i], rnums[i], rnames[i], names[i],
                         types[i], charges[i], masses[i], 0))
+
     bonds = list(atoms._iterBonds())
     if bonds:
         bonds = array(bonds, int) + 1
@@ -297,6 +331,30 @@ def writePSF(filename, atoms):
             if i % 2 == 1:
                 write('\n')
         if i % 2 != 1:
+            write('\n')
+
+    donors = list(atoms._iterDonors())
+    if donors:
+        donors = array(donors, int) + 1
+        write('\n')
+        write('{0:8d} !NDON: donors\n'.format(len(donors)))
+        for i, donor in enumerate(donors):
+            write('%8s%8s' % (donor[0], donor[1]))
+            if i % 4 == 3:
+                write('\n')
+        if i % 4 != 3:
+            write('\n')
+
+    acceptors = list(atoms._iterAcceptors())
+    if acceptors:
+        acceptors = array(acceptors, int) + 1
+        write('\n')
+        write('{0:8d} !NACC: acceptors\n'.format(len(acceptors)))
+        for i, acceptor in enumerate(acceptors):
+            write('%8s%8s' % (acceptor[0], acceptor[1]))
+            if i % 4 == 3:
+                write('\n')
+        if i % 4 != 3:
             write('\n')
 
     crossterms = list(atoms._iterCrossterms())
