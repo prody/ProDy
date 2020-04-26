@@ -179,7 +179,9 @@ def parsePSF(filename, title=None, ag=None):
     for i, line in enumerate(psf):
         if line.strip() == b'':
             continue
-        if b'!' in line:
+        if b'!NNB' in line:
+            items = line.split()
+            n_exclusions = int(items[0])
             break
         lines.append(line.decode(encoding='UTF-8'))
     
@@ -187,6 +189,19 @@ def parsePSF(filename, title=None, ag=None):
     ac_array = fromstring(lines, count=n_acceptors*2, dtype=int, sep=' ')
     if len(ac_array) != n_acceptors*2:
         raise IOError('number of acceptors expected and parsed do not match')
+
+    lines = []
+    for i, line in enumerate(psf):
+        if line.strip() == b'':
+            continue
+        if b'!' in line:
+            break
+        lines.append(line.decode(encoding='UTF-8'))
+    
+    lines = ''.join(lines)
+    nbe_array = fromstring(lines, count=n_exclusions*2, dtype=int, sep=' ')
+    if len(nbe_array) != n_exclusions*2:
+        raise IOError('number of nonbonded exclusions expected and parsed do not match')
 
     for i, line in enumerate(psf):
         if b'!NCRTERM' in line:
@@ -230,6 +245,9 @@ def parsePSF(filename, title=None, ag=None):
 
     ac_array = add(ac_array, -1, ac_array)
     ag.setAcceptors(ac_array.reshape((n_acceptors, 2)))
+
+    nbe_array = add(nbe_array, -1, nbe_array)
+    ag.setNBExclusions(nbe_array.reshape((n_exclusions, 2)))
 
     c_array = add(c_array, -1, c_array)
     ag.setCrossterms(c_array.reshape((n_crossterms, 4)))
@@ -333,6 +351,8 @@ def writePSF(filename, atoms):
         if i % 2 != 1:
             write('\n')
 
+    write('\n')
+
     donors = list(atoms._iterDonors())
     if donors:
         donors = array(donors, int) + 1
@@ -344,6 +364,11 @@ def writePSF(filename, atoms):
                 write('\n')
         if i % 4 != 3:
             write('\n')
+    else:
+        write('{0:8d} !NDON: donors\n'.format(0))
+        write('\n')
+    
+    write('\n')
 
     acceptors = list(atoms._iterAcceptors())
     if acceptors:
@@ -356,6 +381,24 @@ def writePSF(filename, atoms):
                 write('\n')
         if i % 4 != 3:
             write('\n')
+    else:
+        write('{0:8d} !NACC: acceptors\n'.format(0))
+        write('\n')
+
+    nbexclusions = list(atoms._iterNBExclusions())
+    if nbexclusions:
+        nbexclusions = array(nbexclusions, int) + 1
+        write('\n')
+        write('{0:8d} !NNB\n'.format(len(nbexclusions)))
+        for i, nbexclusion in enumerate(nbexclusions):
+            write('%8s%8s' % (nbexclusion[0], nbexclusion[1]))
+            if i % 4 == 3:
+                write('\n')
+        if i % 4 != 3:
+            write('\n')
+    else:
+        write('{0:8d} !NNB\n'.format(0))
+        write('\n')
 
     crossterms = list(atoms._iterCrossterms())
     if crossterms:
