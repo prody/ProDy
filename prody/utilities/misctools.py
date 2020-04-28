@@ -1,8 +1,8 @@
 """This module defines miscellaneous utility functions."""
 import re
 
-from numpy import unique, linalg, diag, sqrt, dot, chararray, divide, zeros_like, zeros, allclose
-from numpy import diff, where, insert, nan, isnan, loadtxt, array, round, average, min, max, delete
+from numpy import unique, linalg, diag, sqrt, dot, chararray, divide, zeros_like, zeros, allclose, ceil
+from numpy import diff, where, insert, nan, isnan, loadtxt, array, round, average, min, max, delete, vstack
 from numpy import sign, arange, asarray, ndarray, subtract, power, sum, isscalar, empty, triu, tril
 from collections import Counter
 import numbers
@@ -15,11 +15,10 @@ from xml.etree.ElementTree import Element
 
 __all__ = ['Everything', 'Cursor', 'ImageCursor', 'rangeString', 'alnum', 'importLA', 'dictElement',
            'intorfloat', 'startswith', 'showFigure', 'countBytes', 'sqrtm',
-           'saxsWater', 'count', 'addEnds', 'copy', 'dictElementLoop', 
+           'saxsWater', 'count', 'addEnds', 'copy', 'dictElementLoop', 'index',
            'getDataPath', 'openData', 'chr2', 'toChararray', 'interpY', 'cmp', 'pystr',
            'getValue', 'indentElement', 'isPDB', 'isURL', 'isListLike', 'isSymmetric', 'makeSymmetric',
-           'getDistance', 'fastin', 'createStringIO', 'div0', 'wmean', 'bin2dec', 'wrapModes', 'fixArraySize',
-           'multilap']
+           'getDistance', 'fastin', 'createStringIO', 'div0', 'wmean', 'bin2dec', 'wrapModes', 'fixArraySize']
 
 CURSORS = []
 
@@ -619,22 +618,9 @@ def makeSymmetric(M):
         M = (M + M.T) / 2.
     return M
 
-def multilap(C):
-    """ Performs LAP (linear assignment problem) multiple times until 
-    each column is assigned to a row. """
-
-    from scipy.optimize import linear_sum_assignment
-
-    _, n = C.shape
-    D = C
-    N = arange(n)
-
-    mappings = []
-    while len(N):
-        I, J = linear_sum_assignment(D)
-        K = N[J]
-        N = delete(N, J)
-        D = C[:, N]
-        mappings.append((I, K))
-
-    return mappings
+def index(A, a):
+    if isinstance(A, list):
+        return A.index(a)
+    else:
+        A = asarray(A)
+        return where(A==a)[0][0]

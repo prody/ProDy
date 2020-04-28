@@ -77,8 +77,6 @@ _parsePDBdoc = _parsePQRdoc + """
 
     If ``model=0`` and ``header=True``, return header dictionary only.
 
-    Note that this function does not evaluate ``CONECT`` records.
-
     """
 
 _PDBSubsets = {'ca': 'ca', 'calpha': 'ca', 'bb': 'bb', 'backbone': 'bb'}
@@ -216,6 +214,9 @@ def parsePDBStream(stream, **kwargs):
     subset = kwargs.get('subset')
     altloc = kwargs.get('altloc', 'A')
 
+    auto_bonds = SETTINGS.get('auto_bonds')
+    get_bonds = kwargs.get('bonds', auto_bonds)
+
     if model is not None:
         if isinstance(model, Integral):
             if model < 0:
@@ -249,11 +250,8 @@ def parsePDBStream(stream, **kwargs):
         n_csets = 0
 
     biomol = kwargs.get('biomol', False)
-    auto_secondary = None
-    secondary = kwargs.get('secondary')
-    if not secondary:
-        auto_secondary = SETTINGS.get('auto_secondary')
-        secondary = auto_secondary
+    auto_secondary = SETTINGS.get('auto_secondary')
+    secondary = kwargs.get('secondary', auto_secondary)
     split = 0
     hd = None
     if model != 0:
@@ -269,7 +267,10 @@ def parsePDBStream(stream, **kwargs):
             raise ValueError('empty PDB file or stream')
         if header or biomol or secondary:
             hd, split = getHeaderDict(lines)
-        _parsePDBLines(ag, lines, split, model, chain, subset, altloc)
+        bonds = [] if get_bonds else None
+        _parsePDBLines(ag, lines, split, model, chain, subset, altloc, bonds=bonds)
+        if bonds:
+            ag.setBonds(bonds)
         if ag.numAtoms() > 0:
             LOGGER.report('{0} atoms and {1} coordinate set(s) were '
                           'parsed in %.2fs.'.format(ag.numAtoms(),
@@ -369,7 +370,7 @@ def parsePQR(filename, **kwargs):
 parsePQR.__doc__ += _parsePQRdoc
 
 def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
-                   altloc_torf, format='PDB'):
+                   altloc_torf, format='PDB', bonds=None):
     """Returns an AtomGroup. See also :func:`.parsePDBStream()`.
 
     :arg lines: PDB/PQR lines
@@ -632,9 +633,24 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                         np.zeros(asize, ATOMIC_FIELDS['charge'].dtype)))
                     radii = np.concatenate((radii,
                         np.zeros(asize, ATOMIC_FIELDS['radius'].dtype)))
-        #elif startswith == 'END   ' or startswith == 'CONECT':
-        #    i += 1
-        #    break
+        elif startswith == 'CONECT':
+            if bonds is not None:
+                atom_serial = line[6:11]
+                bonded1_serial = line[11:16]
+                bonds.append([int(atom_serial), int(bonded1_serial)])
+                
+                bonded2_serial = line[16:21]
+                if len(bonded2_serial.strip()):
+                    bonds.append([int(atom_serial), int(bonded2_serial)])
+
+                bonded3_serial = line[21:26]
+                if len(bonded3_serial.strip()):
+                    bonds.append([int(atom_serial), int(bonded3_serial)])
+                    
+                bonded4_serial = line[27:31]
+                if len(bonded4_serial.strip()):
+                    bonds.append([int(atom_serial), int(bonded4_serial)])
+
         elif not onlycoords and (startswith == 'TER   ' or
             startswith.strip() == 'TER'):
             termini[acount - 1] = True
@@ -644,8 +660,16 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                 i += 1
                 continue
             if model is not None:
-                i += 1
-                break
+                if bonds is None:
+                    i += 1
+                    break
+                else:
+                    i += 1
+                    for j in range(i, stop):
+                        if lines[j].startswith('CONECT'):
+                            i = j
+                            break
+                    continue
             diff = stop - i - 1
             END = diff < acount
             if coordsets is not None:
@@ -994,7 +1018,7 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
     :type renumber: bool
     """
 
-    renumber = kwargs.get('renumber',True)
+    renumber = kwargs.get('renumber', True)
 
     remark = str(atoms)
     try:
