@@ -259,7 +259,9 @@ def showProjection(ensemble, modes, *args, **kwargs):
 
     c = kwargs.pop('c', 'blue')
     colors = kwargs.pop('color', c)
-    if isinstance(colors, str) or colors is None:
+    if isinstance(colors, np.ndarray):
+        colors = tuple(colors)
+    if isinstance(colors, (str, tuple)) or colors is None:
         colors = [colors] * num
     elif isinstance(colors, list):
         if len(colors) != num:
@@ -388,10 +390,15 @@ def showCrossProjection(ensemble, mode_x, mode_y, scale=None, *args, **kwargs):
     :keyword fontsize: font size for text labels
     :type fontsize: int
 
+    This function uses calcProjection and its arguments can be 
+    passed to it as keyword arguments.
 
     The projected values are by default converted to RMSD.  Pass ``rmsd=False``
-    to calculate raw projection values.  See :ref:`pca-xray-plotting` for a
-    more elaborate example."""
+    to calculate raw projection values. See :ref:`pca-xray-plotting` for a
+    more elaborate example.
+    
+    Likewise, normalisation is applied by default and can be turned off with 
+    ``norm=False``."""
 
     import matplotlib.pyplot as plt
 
