@@ -40,7 +40,9 @@ def view3D(*alist, **kwargs):
     arguments must be provided as lists of arrays of the appropriate dimension.
 
     If a 3Dmol.js viewer as specified as the view argument, that viewer will be
-    modified and returned.
+    modified and returned.  After modification, update instead of show should
+    be called on the viewer object if it is desired to update in-place
+    instead of instantiating a new viewer.
     """
 
     try:
