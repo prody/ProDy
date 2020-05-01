@@ -38,6 +38,9 @@ def view3D(*alist, **kwargs):
     
     If multiple structures are provided with the data or mode arguments, these
     arguments must be provided as lists of arrays of the appropriate dimension.
+
+    If a 3Dmol.js viewer as specified as the view argument, that viewer will be
+    modified and returned.
     """
 
     try:
@@ -75,7 +78,7 @@ def view3D(*alist, **kwargs):
         data_list = wrapModes(data_list)
         n_data = len(data_list)
 
-    view = py3Dmol.view(width=width, height=height, js=kwargs.get('js','http://3dmol.csb.pitt.edu/build/3Dmol-min.js'))
+    view = kwargs.get('view',py3Dmol.view(width=width, height=height, js=kwargs.get('js','http://3dmol.csb.pitt.edu/build/3Dmol-min.js')))
 
     def _mapData(atoms, data):
         # construct map from residue to data property
