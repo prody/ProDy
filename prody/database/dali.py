@@ -316,6 +316,9 @@ class DaliRecord(object):
         
     def getPDBs(self, filtered=True):
         """Returns PDB list (filters may be applied)"""
+
+        if self._alignPDB is None:
+            LOGGER.warn('Dali Record does not have any data yet. Please run getRecord.')
         
         if filtered:
             return self._pdbList
@@ -323,6 +326,9 @@ class DaliRecord(object):
         
     def getHits(self):
         """Returns the dictionary associated with the DaliRecord"""
+
+        if self._alignPDB is None:
+            LOGGER.warn('Dali Record does not have any data yet. Please run getRecord.')
 
         return self._alignPDB
         
@@ -341,8 +347,10 @@ class DaliRecord(object):
     
     def getMapping(self, key):
         """Get mapping for a particular entry in the DaliRecord"""
+
         if self._alignPDB is None:
-            raise ValueError("Dali Record does not have any data yet. Please run getRecord.")
+            LOGGER.warn('Dali Record does not have any data yet. Please run getRecord.')
+            return None
         
         try:
             info = self._alignPDB[key]
@@ -353,8 +361,10 @@ class DaliRecord(object):
 
     def getMappings(self):
         """Get all mappings in the DaliRecord"""
+
         if self._alignPDB is None:
-            raise ValueError("Dali Record does not have any data yet. Please run getRecord.")
+            LOGGER.warn('Dali Record does not have any data yet. Please run getRecord.')
+            return None
 
         map_dict = {}
         for key in self._alignPDB:
