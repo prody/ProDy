@@ -94,14 +94,14 @@ def parsePDB(*pdb, **kwargs):
     
     You can also provide arguments that you would like passed on to fetchPDB().
 
-    :arg extend_bool: whether to extend the list of results with a list
+    :arg extend_biomol: whether to extend the list of results with a list
         rather than appending, which can create a mixed list, 
         especially when biomol=True.
         Default value is False to reproduce previous behaviour.
         This value is ignored when result is not a list (header=True or model=0).
-    :type extend_bool: bool 
+    :type extend_biomol: bool 
     """
-    extend_bool = kwargs.pop('extend_bool', False)
+    extend_biomol = kwargs.pop('extend_biomol', False)
 
     n_pdb = len(pdb)
     if n_pdb == 1:
@@ -155,7 +155,7 @@ def parsePDB(*pdb, **kwargs):
         else:
             numPdbs = len(results)
 
-            if extend_bool:
+            if extend_biomol:
                 results_old = results
                 results = []
                 for entry in results_old:
