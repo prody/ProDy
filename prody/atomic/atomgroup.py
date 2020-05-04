@@ -649,9 +649,9 @@ class AtomGroup(Atomic):
         change in the future."""
 
         arrays = {}
-        def getbase(arr): return arr if arr.base is None else getbase(arr.base)
-        def getpair(arr): return (id(arr), arr)
-        def getboth(arr): return getpair(getbase(arr))
+        getbase = lambda arr: arr if arr.base is None else getbase(arr.base)
+        getpair = lambda arr: (id(arr), arr)
+        getboth = lambda arr: getpair(getbase(arr))
 
         if self._coords is not None:
             arrays[id(self._coords)] = self._coords
