@@ -187,7 +187,6 @@ def _parseCIFLines(atomgroup, lines, model, chain, subset,
     nModels = 0
     fields = {}
     fieldCounter = -1
-    foundModelNumFieldID = False
     foundAtomBlock = False
     doneAtomBlock = False
     while not doneAtomBlock:
@@ -242,6 +241,7 @@ def _parseCIFLines(atomgroup, lines, model, chain, subset,
     resnames = np.zeros(asize, dtype=ATOMIC_FIELDS['resname'].dtype)
     resnums = np.zeros(asize, dtype=ATOMIC_FIELDS['resnum'].dtype)
     chainids = np.zeros(asize, dtype=ATOMIC_FIELDS['chain_2'].dtype)
+    segnames = np.zeros(asize, dtype=ATOMIC_FIELDS['segment'].dtype)
     hetero = np.zeros(asize, dtype=bool)
     termini = np.zeros(asize, dtype=bool)
     altlocs = np.zeros(asize, dtype=ATOMIC_FIELDS['altloc'].dtype)
@@ -313,6 +313,7 @@ def _parseCIFLines(atomgroup, lines, model, chain, subset,
     atomgroup.setNames(atomnames[:modelSize])
     atomgroup.setResnames(resnames[:modelSize])
     atomgroup.setResnums(resnums[:modelSize])
+    atomgroup.setSegnames(segnames[:modelSize])
     atomgroup.setChids(chainids[:modelSize])
     atomgroup.setFlags('hetatm', hetero[:modelSize])
     atomgroup.setFlags('pdbter', termini[:modelSize])
