@@ -141,7 +141,7 @@ def calcFractVariance(mode):
     return var / trace
 
 
-def calcProjection(ensemble, modes, rmsd=True, norm=True):
+def calcProjection(ensemble, modes, rmsd=True, norm=False):
     """Returns projection of conformational deviations onto given modes.
     *ensemble* coordinates are used to calculate the deviations that are
     projected onto *modes*.  For K conformations and M modes, a (K,M)
@@ -154,8 +154,12 @@ def calcProjection(ensemble, modes, rmsd=True, norm=True):
     :arg modes: up to three normal modes
     :type modes: :class:`.Mode`, :class:`.ModeSet`, :class:`.NMA`
 
-    By default root-mean-square deviation (RMSD) along the normal mode is
-    calculated. To calculate the projection pass ``rmsd=True``.
+    By default, root-mean-square deviation (RMSD) along the normal mode is
+    calculated. To calculate the raw projection pass ``rmsd=False``.
+
+    By default, the projection is not normalized. If you would like it to be,
+    pass ``norm=True``.
+
     :class:`.Vector` instances are accepted as *ensemble* argument to allow
     for projecting a deformation vector onto normal modes."""
 
@@ -208,13 +212,21 @@ def calcCrossProjection(ensemble, mode1, mode2, scale=None, **kwargs):
 
     :arg ensemble: ensemble for which deviations will be projected
     :type ensemble: :class:`.Ensemble`
+
     :arg mode1: normal mode to project conformations onto
     :type mode1: :class:`.Mode`, :class:`.Vector`
+
     :arg mode2: normal mode to project conformations onto
     :type mode2: :class:`.Mode`, :class:`.Vector`
+
     :arg scale: scale width of the projection onto mode1 (``x``) or mode2(``y``),
         an optimized scaling factor (scalar) will be calculated by default 
-        or a value of scalar can be passed."""
+        or a value of scalar can be passed.
+        
+    This function uses calcProjection and its arguments can be 
+    passed to it as keyword arguments.
+    By default, this function applies RMSD scaling and normalisation. 
+    These can be turned off with ``rmsd=False`` and ``norm=False``."""
 
     if not isinstance(ensemble, (Ensemble, Conformation, Vector, TrajBase)):
         raise TypeError('ensemble must be Ensemble, Conformation, Vector, '
