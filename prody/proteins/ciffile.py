@@ -187,7 +187,6 @@ def _parseCIFLines(atomgroup, lines, model, chain, subset,
     nModels = 0
     fields = {}
     fieldCounter = -1
-    foundModelNumFieldID = False
     foundAtomBlock = False
     doneAtomBlock = False
     while not doneAtomBlock:
@@ -242,6 +241,7 @@ def _parseCIFLines(atomgroup, lines, model, chain, subset,
     resnames = np.zeros(asize, dtype=ATOMIC_FIELDS['resname'].dtype)
     resnums = np.zeros(asize, dtype=ATOMIC_FIELDS['resnum'].dtype)
     chainids = np.zeros(asize, dtype=ATOMIC_FIELDS['chain'].dtype)
+    segnames = np.zeros(asize, dtype=ATOMIC_FIELDS['segment'].dtype)
     hetero = np.zeros(asize, dtype=bool)
     termini = np.zeros(asize, dtype=bool)
     altlocs = np.zeros(asize, dtype=ATOMIC_FIELDS['altloc'].dtype)
@@ -271,6 +271,8 @@ def _parseCIFLines(atomgroup, lines, model, chain, subset,
             if not chID in chain:
                 continue
 
+        segID = line.split()[fields['label_asym_id']]
+
         alt = line.split()[fields['label_alt_id']]
         if alt not in which_altlocs:
             continue
@@ -288,6 +290,7 @@ def _parseCIFLines(atomgroup, lines, model, chain, subset,
         resnames[acount] = resname
         resnums[acount] = line.split()[fields['auth_seq_id']]
         chainids[acount] = chID
+        segnames[acount] = segID
         hetero[acount] = startswith == 'HETATM' # True or False
         if chainids[acount] != chainids[acount-1]: termini[acount] = True
         altlocs[acount] = alt
@@ -313,6 +316,7 @@ def _parseCIFLines(atomgroup, lines, model, chain, subset,
     atomgroup.setNames(atomnames[:modelSize])
     atomgroup.setResnames(resnames[:modelSize])
     atomgroup.setResnums(resnums[:modelSize])
+    atomgroup.setSegnames(segnames[:modelSize])
     atomgroup.setChids(chainids[:modelSize])
     atomgroup.setFlags('hetatm', hetero[:modelSize])
     atomgroup.setFlags('pdbter', termini[:modelSize])
