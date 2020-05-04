@@ -26,7 +26,10 @@ def searchDali(pdb, chain=None, subset='fullPDB', daliURL=None, **kwargs):
     Dali server: http://ekhidna2.biocenter.helsinki.fi/dali/
     
     :arg pdb: PDB code or local PDB file for the protein to be searched
+
     :arg chain: chain identifier (only one chain can be assigned for PDB)
+    :type chain: str
+
     :arg subset: fullPDB, PDB25, PDB50, PDB90
     :type subset: str
     
@@ -163,6 +166,8 @@ class DaliRecord(object):
         timeout = kwargs.pop('timeout', 120)
 
         self._title = pdbId + '-' + chain
+        self._alignPDB = None
+        self._filterDict = None
         self.isSuccess = self.getRecord(self._url, localFile=localFile, timeout=timeout, **kwargs)
 
     def getRecord(self, url=None, localFile=False, **kwargs):
@@ -310,19 +315,21 @@ class DaliRecord(object):
         
     def getPDBs(self, filtered=True):
         """Returns PDB list (filters may be applied)"""
+        
         if filtered:
             return self._pdbList
         return self._pdbListAll
         
     def getHits(self):
         """Returns the dictionary associated with the DaliRecord"""
+
         return self._alignPDB
         
     def getFilterList(self):
         """Returns a list of PDB IDs and chains for the entries that were filtered out"""
-        try:
-            filterDict = self._filterDict
-        except:
+        
+        filterDict = self._filterDict
+        if filterDict is None:
             raise ValueError('You cannot obtain the list of filtered out entries before doing any filtering.')
 
         temp_str = ', '.join([str(len(filterDict['len'])), str(len(filterDict['rmsd'])), 
@@ -333,6 +340,9 @@ class DaliRecord(object):
     
     def getMapping(self, key):
         """Get mapping for a particular entry in the DaliRecord"""
+        if self._alignPDB is None:
+            raise ValueError("Dali Record does not have any data yet. Please run getRecord.")
+        
         try:
             info = self._alignPDB[key]
             mapping = [info['map_ref'], info['map_sel']]
@@ -342,6 +352,9 @@ class DaliRecord(object):
 
     def getMappings(self):
         """Get all mappings in the DaliRecord"""
+        if self._alignPDB is None:
+            raise ValueError("Dali Record does not have any data yet. Please run getRecord.")
+
         map_dict = {}
         for key in self._alignPDB:
             info = self._alignPDB[key]
@@ -404,6 +417,9 @@ class DaliRecord(object):
         # print('cutoff_len: ' + str(cutoff_len) + ', ' + 'cutoff_rmsd: ' + str(cutoff_rmsd) + ', ' + 'cutoff_Z: ' + str(cutoff_Z) + ', ' + 'cutoff_identity: ' + str(cutoff_identity))
         
         daliInfo = self._alignPDB
+        if daliInfo is None:
+            raise ValueError("Dali Record does not have any data yet. Please run getRecord.")
+
         pdbListAll = self._pdbListAll
         missing_ind_dict = dict()
         ref_indices_set = set(range(self._max_index))
