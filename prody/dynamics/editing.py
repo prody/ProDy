@@ -262,7 +262,6 @@ def reduceModel(model, atoms, select):
         ss = matrix[system, :][:, system]
         eda = PCA(model.getTitle() + ' reduced')
         eda.setCovariance(ss)
-
         return eda, system
     else:
         matrix = _reduceModel(matrix, system)
