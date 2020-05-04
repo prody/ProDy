@@ -240,7 +240,7 @@ def _parseCIFLines(atomgroup, lines, model, chain, subset,
     atomnames = np.zeros(asize, dtype=ATOMIC_FIELDS['name'].dtype)
     resnames = np.zeros(asize, dtype=ATOMIC_FIELDS['resname'].dtype)
     resnums = np.zeros(asize, dtype=ATOMIC_FIELDS['resnum'].dtype)
-    chainids = np.zeros(asize, dtype=ATOMIC_FIELDS['chain_2'].dtype)
+    chainids = np.zeros(asize, dtype=ATOMIC_FIELDS['chain'].dtype)
     segnames = np.zeros(asize, dtype=ATOMIC_FIELDS['segment'].dtype)
     hetero = np.zeros(asize, dtype=bool)
     termini = np.zeros(asize, dtype=bool)
