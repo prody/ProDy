@@ -266,6 +266,8 @@ class AtomGroup(Atomic):
                     that = np.zeros(shape, this.dtype)
                 new._data[key] = np.concatenate((this, that))
 
+        new._n_atoms = self._n_atoms + other._n_atoms
+
         if self._bonds is not None and other._bonds is not None:
             new.setBonds(np.concatenate([self._bonds,
                                          other._bonds + self._n_atoms]))
