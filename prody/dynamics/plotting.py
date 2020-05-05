@@ -526,17 +526,26 @@ def showOverlapTable(modes_x, modes_y, **kwargs):
 
     y_ticklabels = kwargs.pop('yticklabels', y_ticklabels)
 
+    if not isinstance(modes_x, np.ndarray):
+        xlabel = str(modes_x)
+    else:
+        xlabel = ''
+    xlabel = kwargs.pop('xlabel', xlabel)
+
+    if not isinstance(modes_y, np.ndarray):
+        ylabel = str(modes_y)
+    else:
+        ylabel = ''
+    ylabel = kwargs.pop('ylabel', ylabel)
+
     allticks = kwargs.pop('allticks', True)
 
     show = showMatrix(overlap, cmap=cmap, norm=norm, 
                       xticklabels=x_ticklabels, yticklabels=y_ticklabels, allticks=allticks,
                       **kwargs)
 
-    if not isinstance(modes_x, np.ndarray):
-        plt.xlabel(str(modes_x))
-
-    if not isinstance(modes_y, np.ndarray):
-        plt.ylabel(str(modes_y))
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
     
     if SETTINGS['auto_show']:
         showFigure()
