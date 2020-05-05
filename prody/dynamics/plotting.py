@@ -326,11 +326,19 @@ def showProjection(ensemble, modes, *args, **kwargs):
         plot(*(list(projection[indices].T) + args), **kwargs)
 
     if texts:
+        ts = []
         kwargs = {}
         if size:
             kwargs['size'] = size
         for args in zip(*(list(projection.T) + [texts])):
-            text(*args, **kwargs)
+            ts.append(text(*args, **kwargs))
+
+        try: 
+            from adjustText import adjust_text
+        except ImportError:
+            pass
+        else:
+            adjust_text(ts)
 
     if len(modes) == 2:
         plt.xlabel('{0} coordinate'.format(int(modes[0])+1))
@@ -461,12 +469,22 @@ def showCrossProjection(ensemble, mode_x, mode_y, scale=None, *args, **kwargs):
         else:
             kwargs.pop('label', None)
         show = plt.plot(xcoords[indices], ycoords[indices], *args, **kwargs)
+
     if texts:
+        ts = []
         kwargs = {}
         if size:
             kwargs['size'] = size
         for x, y, t in zip(xcoords, ycoords, texts):
-            plt.text(x, y, t, **kwargs)
+            ts.append(plt.text(x, y, t, **kwargs))
+
+        try: 
+            from adjustText import adjust_text
+        except ImportError:
+            pass
+        else:
+            adjust_text(ts)
+
     plt.xlabel('{0} coordinate'.format(mode_x))
     plt.ylabel('{0} coordinate'.format(mode_y))
     if SETTINGS['auto_show']:
