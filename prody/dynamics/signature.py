@@ -1170,6 +1170,19 @@ def showSignature1D(signature, linespec='-', **kwargs):
     return lines, polys, bars, texts
 
 def showSignatureMode(mode_ensemble, **kwargs):
+    """Show signature mode profile.
+
+    :arg mode_ensemble: mode ensemble from which to extract an eigenvector
+                        If this is not indexed already then index 0 is used by default
+    :type mode_ensemble: :class:`ModeEnsemble`    
+
+    :arg atoms: atoms for showing residues along the x-axis
+                Default option is to use mode_ensemble.getAtoms()
+    :type atoms: :class:`Atomic`
+
+    :arg scale: scaling factor. Default is 1.0
+    :type scale: float    
+    """
 
     if not isinstance(mode_ensemble, ModeEnsemble):
         raise TypeError('mode_ensemble should be an instance of ModeEnsemble')
@@ -1185,6 +1198,22 @@ def showSignatureMode(mode_ensemble, **kwargs):
     return showSignature1D(mode, atoms=atoms, show_zero=show_zero, **kwargs)
 
 def showSignatureSqFlucts(mode_ensemble, **kwargs):
+    """Show signature profile of square fluctations.
+
+    :arg mode_ensemble: mode ensemble from which to calculate square fluctutations
+    :type mode_ensemble: :class:`ModeEnsemble`    
+
+    :arg atoms: atoms for showing residues along the x-axis
+                Default option is to use mode_ensemble.getAtoms()
+    :type atoms: :class:`Atomic`
+
+    :arg scale: scaling factor. Default is 1.0
+    :type scale: float  
+
+    :arg show_zero: where to show a grey line at y=0
+                    Default is False
+    :type show_zero: bool      
+    """
 
     if not isinstance(mode_ensemble, ModeEnsemble):
         raise TypeError('mode_ensemble should be an instance of ModeEnsemble')
@@ -1302,6 +1331,9 @@ def calcSignatureOverlaps(mode_ensemble, diag=True):
     return overlaps
 
 def showSignatureOverlaps(mode_ensemble):
+    """Show a curve of mode-mode overlaps against mode number
+    with shades for standard deviation and range
+    """
 
     from matplotlib.pyplot import xlabel, ylabel
 
