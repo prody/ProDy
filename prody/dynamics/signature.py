@@ -228,6 +228,8 @@ class ModeEnsemble(object):
 
         if index is None:
             return self._modesets
+        elif isinstance(index, int):
+            return self[index]
         return self[index]._modesets
 
     def getArray(self, mode_index=0):
