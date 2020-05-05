@@ -749,7 +749,7 @@ class sdarray(ndarray):
                 n_atoms = self.shape[1]
             if self.is3d():
                 n_atoms /= 3
-            return n_atoms
+            return int(n_atoms)
         except IndexError:
             LOGGER.warn('{0} is not related to the number of atoms'.format(self.getTitle()))
             return 0
