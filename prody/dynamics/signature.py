@@ -1035,9 +1035,8 @@ def calcSignatureSqFlucts(mode_ensemble, **kwargs):
 
     norm = importLA().norm
 
-    modesets = mode_ensemble
     V = []
-    for i, modes in enumerate(modesets):
+    for i, modes in enumerate(mode_ensemble):
         sqfs = calcSqFlucts(modes)
 
         if ifnorm:
