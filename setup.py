@@ -36,7 +36,12 @@ if [int(dgt) for dgt in numpy.__version__.split('.')[:2]] < [1, 10]:
                      'http://www.numpy.org/\n')
     sys.exit()
 
-import pybind11
+try:
+    import pybind11
+except ImportError:
+    sys.stderr.write('pybind11 is not installed, you can install it with pip: '
+                     'pip install pybind11\n')
+    sys.exit()
 
 __version__ = ''
 with open('prody/__init__.py') as inp:
