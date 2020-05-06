@@ -15,7 +15,7 @@ from prody.atomic import flags
 from prody.measure import calcTransformation, printRMSD, calcDistance, calcRMSD, superpose
 from prody import LOGGER, SELECT, PY2K, PY3K
 from prody.sequence import MSA
-from prody.utilities import cmp, pystr, isListLike, multilap, SolutionDepletionException
+from prody.utilities import cmp, pystr, isListLike, multilap, SolutionDepletionException, index
 
 if PY2K:
     range = xrange
@@ -1219,9 +1219,9 @@ def getTrivialMapping(target, chain):
 def getDictMapping(target, chain, map_dict):
     """Returns lists of matching residues (based on *map_dict*)."""
 
-    pdbid = chain._chain.getTitle()[:4].lower()
-    chid = chain._chain.getChid().upper()
-    key = pdbid + chid
+    pdbid = chain._chain.getTitle()
+    chid = chain._chain.getChid()
+    key = pdbid + '_' + chid
 
     mapping = map_dict.get(key)
     if mapping is None:
@@ -1242,7 +1242,7 @@ def getDictMapping(target, chain, map_dict):
         amatch.append(ares)
         if i in tar_indices:
             try:
-                n = tar_indices.index(i)
+                n = index(tar_indices, i)
             except IndexError:
                 LOGGER.warn('\nthe number of residues in the map_dict ({0} residues) is inconsistent with {2} ({1} residues)'
                             .format(max(tar_indices)+1, len(chain_res_list), target.getTitle()))
