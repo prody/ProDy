@@ -1,12 +1,20 @@
 """This module defines functions for solving linear assignment problems."""
 
-from numpy import arange, insert, delete, zeros, unique, vstack, ceil, argmin, tile
+from numpy import arange, insert, delete, zeros, unique, vstack, ceil, argmin, tile, asarray, float32
 from scipy.optimize import linear_sum_assignment as lap
 
-__all__ = ['multilap', 'SolutionDepletionException']
+__all__ = ['multilap', 'SolutionDepletionException', 'lapsolver']
 
 class SolutionDepletionException(Exception):
     pass
+
+def lapsolver(cost_matrix):
+    from .lapsolverc import solve_dense
+
+    cost_matrix = asarray(cost_matrix)
+    I, J = solve_dense(cost_matrix)
+
+    return I, J
 
 def expand_nodes(node):
     includes0, excludes0, solution = node
