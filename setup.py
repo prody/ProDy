@@ -135,7 +135,7 @@ CONTRIBUTED = [
               ),
     Extension('prody.utilities.lapsolverc', 
               [join('prody', 'utilities', 'lapsolverc', 'lapsolverc.cpp')], 
-              include_dirs=[pybind11.get_include()], language='c++',
+              include_dirs=[pybind11.get_include()], language='c++', extra_compile_args=['-std=c++11']
               ),
 ]
 
