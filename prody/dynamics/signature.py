@@ -28,7 +28,7 @@ from .gnm import GNM
 __all__ = ['ModeEnsemble', 'sdarray', 'calcEnsembleENMs', 'showSignature1D', 'showSignatureAtomicLines', 
            'showSignatureMode', 'showSignatureDistribution', 'showSignatureCollectivity',
            'showSignatureSqFlucts', 'calcEnsembleSpectralOverlaps', 'calcSignatureSqFlucts', 
-           'calcSignatureCollectivity', 'calcSignatureFractVariance',
+           'calcSignatureCollectivity', 'calcSignatureFractVariance', 'calcSignatureModes', 
            'calcSignatureCrossCorr', 'showSignatureCrossCorr', 'showVarianceBar',
            'showSignatureVariances', 'calcSignatureOverlaps', 'showSignatureOverlaps',
            'saveModeEnsemble', 'loadModeEnsemble', 'saveSignature', 'loadSignature',
@@ -1300,6 +1300,29 @@ def calcSignatureOverlaps(mode_ensemble, diag=True):
                     overlaps[:,:,i,j] = overlaps[:,:,j,i] = abs(calcOverlap(modeset_i, modeset_j))
 
     return overlaps
+
+
+def calcSignatureModes(mode_ensemble):
+    """Calculate mean eigenvalues and eigenvectors
+    and return a new GNM or ANM object containing them."""
+
+    if not isinstance(mode_ensemble, ModeEnsemble):
+        raise TypeError('mode_ensemble should be an instance of ModeEnsemble')
+
+    if not mode_ensemble.isMatched():
+        LOGGER.warn('modes in mode_ensemble did not match cross modesets. '
+                    'Consider running mode_ensemble.match() prior to using this function')
+
+    eigvecs = mode_ensemble.getEigvecs().mean()
+    eigvals = mode_ensemble.getEigvals().mean()
+
+    if isinstance(mode_ensemble[0].getModel(), GNM):
+        ret = GNM('mean of ' + mode_ensemble.getTitle())
+    elif isinstance(mode_ensemble[0].getModel(), ANM):
+        ret = ANM('mean of ' + mode_ensemble.getTitle())
+
+    ret.setEigens(eigvecs, eigvals)
+    return ret
 
 def showSignatureOverlaps(mode_ensemble):
 
