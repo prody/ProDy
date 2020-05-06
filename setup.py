@@ -36,6 +36,7 @@ if [int(dgt) for dgt in numpy.__version__.split('.')[:2]] < [1, 10]:
                      'http://www.numpy.org/\n')
     sys.exit()
 
+import pybind11
 
 __version__ = ''
 with open('prody/__init__.py') as inp:
@@ -131,7 +132,11 @@ CONTRIBUTED = [
     Extension('prody.proteins.ccealign', 
               [join('prody', 'proteins', 'ccealign', 'ccealignmodule.cpp')], 
               include_dirs=[tntDir], language='c++',
-              )
+              ),
+    Extension('prody.utilities.lapsolverc', 
+              [join('prody', 'utilities', 'lapsolverc', 'lapsolverc.cpp')], 
+              include_dirs=[pybind11.get_include()], language='c++',
+              ),
 ]
 
 for ext in CONTRIBUTED:
@@ -182,6 +187,6 @@ setup(
     entry_points = {
         'console_scripts': SCRIPTS,
     },
-    install_requires=['numpy>=1.10', 'biopython', 'pyparsing'],
+    install_requires=['numpy>=1.10', 'biopython', 'pyparsing', 'pybind11'],
     #provides=['ProDy ({0:s})'.format(__version__)]
 )

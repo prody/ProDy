@@ -94,4 +94,5 @@ Classifier: Topic :: Scientific/Engineering :: Chemistry
 Requires: numpy (>=1.10)
 Requires: pyparsing
 Requires: biopython
+Requires: pybind11
 Provides: prody (1.11)
