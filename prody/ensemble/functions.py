@@ -642,7 +642,7 @@ def combineEnsembles(target, mobile, **kwargs):
 
     def findIndices(A, B):
         """Finds indices of values of A in B."""
-        B = asarray(B)
+        B = np.asarray(B)
         ret = np.zeros_like(A)
         for i, a in enumerate(A):
             indices = np.where(B==a)[0]
@@ -667,8 +667,15 @@ def combineEnsembles(target, mobile, **kwargs):
     coords0 = ens0.getCoordsets()
     coords1 = ens1.getCoordsets()
 
-    labels0 = ens0.getLabels()
-    labels1 = ens1.getLabels()
+    if isinstance(ens0, PDBEnsemble):
+        labels0 = ens0.getLabels()
+    else:
+        labels0 = None
+
+    if isinstance(ens1, PDBEnsemble):
+        labels1 = ens1.getLabels()
+    else:
+        labels1 = None
 
     # obtain atommaps: atoms1 -> atoms0
     atommaps = alignChains(atoms1, atoms0, **kwargs)
@@ -679,12 +686,13 @@ def combineEnsembles(target, mobile, **kwargs):
 
     # combine the atommaps
     atommap = atommaps[0]
+    weights = atommap.getFlags('mapped')
 
     # extract mappings from atommap
     if hasattr(atoms1, 'getIndices'):
         all_indices = atoms1.getIndices()
     else:
-        all_indices = arange(atoms1.numAtoms())
+        all_indices = np.arange(atoms1.numAtoms())
     I = findIndices(atommap._indices, all_indices)
     J = atommap.getMapping()
 
@@ -701,13 +709,19 @@ def combineEnsembles(target, mobile, **kwargs):
     else:
         w2 = None
 
+    if w2 is None:
+        w2 = weights
+    else:
+        w2 *= weights
+
     # build the new ensemble
     if title is None:
         title = '%s + %s'%(target.getTitle(), mobile.getTitle())
+
     ens = PDBEnsemble(title)
+
     ens.setAtoms(atoms0)
     ens.setCoords(atoms0.getCoords())
-
     ens.addCoordset(coords0, weights=w0, label=labels0)
     ens.addCoordset(coords2, weights=w2, label=labels1)
 

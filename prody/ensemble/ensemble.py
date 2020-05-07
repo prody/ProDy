@@ -634,9 +634,13 @@ class Ensemble(object):
         rmsdif = 1
         step = 0
         weights = self._weights
-        if weights is not None and weights.ndim == 3:
-            weightsum = weights.sum(axis=0)
         length = len(self)
+        if weights is not None:
+            if weights.ndim == 3:
+                weightsum = weights.sum(axis=0)
+            else:
+                weightsum = length
+
         while rmsdif > rmsd:
             self._superpose()
             if weights is None:
