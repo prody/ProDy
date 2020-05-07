@@ -4,10 +4,6 @@ import platform
 from os import sep as dirsep
 from os.path import isfile, join
 
-#from distutils.core import setup
-#from distutils.extension import Extension
-#from distutils.command.install import install
-
 from setuptools import setup
 from setuptools import Extension
 
