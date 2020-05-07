@@ -63,7 +63,6 @@ void solve_dense(const std::vector< std::vector<T> > &cost, std::vector<int> &Lm
 	//////////////////////////////////////////////////////////////////////
 
 	typedef std::vector<T> VD;
-	typedef std::vector<VD> VVD;
 	typedef std::vector<int> VI;
 
 	// assumes square matrices
