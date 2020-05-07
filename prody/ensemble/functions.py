@@ -18,7 +18,7 @@ from .conformation import *
 
 __all__ = ['saveEnsemble', 'loadEnsemble', 'trimPDBEnsemble',
            'calcOccupancies', 'showOccupancies', 'alignPDBEnsemble',
-           'buildPDBEnsemble', 'refineEnsemble', 'combinePDBEnsembles']
+           'buildPDBEnsemble', 'refineEnsemble', 'combineEnsembles']
 
 
 def saveEnsemble(ensemble, filename=None, **kwargs):
