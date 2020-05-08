@@ -488,7 +488,7 @@ class AtomPointer(Atomic):
 
         if self._ag._nbexclusions is None:
             LOGGER.warning('nbexclusions are not set, use `AtomGroup.setNBExclusions`')
-            return None
+            yield None
 
         indices = self._getIndices()
         iset = set(indices)
