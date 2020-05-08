@@ -428,7 +428,7 @@ class AtomPointer(Atomic):
 
         if self._ag._donors is None:
             LOGGER.warning('donors are not set, use `AtomGroup.setDonors`')
-            return None
+            yield None
 
         indices = self._getIndices()
         iset = set(indices)
@@ -458,7 +458,7 @@ class AtomPointer(Atomic):
 
         if self._ag._acceptors is None:
             LOGGER.warning('acceptors are not set, use `AtomGroup.setAcceptors`')
-            return None
+            yield None
 
         indices = self._getIndices()
         iset = set(indices)
