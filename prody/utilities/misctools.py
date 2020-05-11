@@ -15,7 +15,7 @@ from xml.etree.ElementTree import Element
 
 __all__ = ['Everything', 'Cursor', 'ImageCursor', 'rangeString', 'alnum', 'importLA', 'dictElement',
            'intorfloat', 'startswith', 'showFigure', 'countBytes', 'sqrtm',
-           'saxsWater', 'count', 'addEnds', 'copy', 'dictElementLoop', 
+           'saxsWater', 'count', 'addEnds', 'copy', 'dictElementLoop', 'index',
            'getDataPath', 'openData', 'chr2', 'toChararray', 'interpY', 'cmp', 'pystr',
            'getValue', 'indentElement', 'isPDB', 'isURL', 'isListLike', 'isSymmetric', 'makeSymmetric',
            'getDistance', 'fastin', 'createStringIO', 'div0', 'wmean', 'bin2dec', 'wrapModes', 'fixArraySize']
@@ -617,3 +617,10 @@ def makeSymmetric(M):
     else:
         M = (M + M.T) / 2.
     return M
+
+def index(A, a):
+    if isinstance(A, list):
+        return A.index(a)
+    else:
+        A = asarray(A)
+        return where(A==a)[0][0]

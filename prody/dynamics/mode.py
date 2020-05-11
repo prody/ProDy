@@ -315,7 +315,7 @@ class Mode(VectorBase):
         """Returns residue index of hinge sites."""
 
         if self.is3d():
-            return
+            raise ValueError('mode is 3D and therefore hinges are poorly defined')
         else:
             return self._model.getHinges(self._index, **kwargs)
     

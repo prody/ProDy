@@ -41,7 +41,7 @@ def multilap(cost_matrix, nodes=[], BIG_NUMBER=1e6):
     The function can handle the cases where each row can be assigned to multiple 
     columns. 
 
-    .. [KM68] Murty KG. Letter to the editor—An algorithm for ranking 
+    .. [KM68] Murty KG. Letter to the editor-An algorithm for ranking 
        all the assignments in order of increasing cost.
        *Operations research* **1968** 16(3):682-687.
     """
@@ -90,7 +90,7 @@ def multilap(cost_matrix, nodes=[], BIG_NUMBER=1e6):
                 # solve lap
                 I, J = lap(D)
                 cost = D[I, J].sum()
-                # check for existance of excludes. -0.01 is to avoid precision problem
+                
                 if includes:
                     cost += cost_matrix[delR, delC].sum()
                 row_ind = R[I]; col_ind = C[J]
@@ -106,7 +106,7 @@ def multilap(cost_matrix, nodes=[], BIG_NUMBER=1e6):
             
             costs.append(cost)
         
-        # remove assignments with violations
+        # remove assignments with violations. -0.01 is to avoid precision problem
         for i in reversed(range(len(costs))):
             if costs[i] - BIG_NUMBER >= -0.01:
                 costs.pop(i)

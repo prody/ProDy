@@ -18,7 +18,7 @@ from .localpdb import fetchPDB
 import struct as st
 import numpy as np
 
-__all__ = ['parseEMD', 'writeEMD', 'EMDMAP', 'TRNET']
+__all__ = ['parseEMDStream', 'parseEMD', 'writeEMD', 'TRNET', 'EMDMAP']
 
 class EMDParseError(Exception):
     pass
@@ -59,6 +59,9 @@ def parseEMD(emd, **kwargs):
 
     title = kwargs.get('title', None)
     if not os.path.isfile(emd):
+        if emd.startswith('EMD-') and len(emd[4:]) == 4:
+            emd = emd[4:]
+
         if len(emd) == 4 and emd.isdigit():
             if title is None:
                 title = emd
@@ -190,15 +193,15 @@ def parseEMDStream(stream, **kwargs):
             atomgroup = _parseEMDLines(atomgroup, stream, cutoff=cutoff, n_nodes=n_nodes, \
                                        num_iter=num_iter, map=map, make_nodes=make_nodes)
 
-        LOGGER.report('{0} atoms and {1} coordinate sets were '
-                      'parsed in %.2fs.'.format(atomgroup.numAtoms(), atomgroup.numCoordsets()))
+        LOGGER.report('{0} pseudoatoms were fitted in %.2fs.'.format(
+            atomgroup.numAtoms(), atomgroup.numCoordsets()))
     else: 
         emd = _parseEMDLines(atomgroup, stream, cutoff=cutoff, n_nodes=n_nodes, \
                              num_iter=num_iter, map=map, make_nodes=make_nodes)
 
     if make_nodes:
         if map:
-            return atomgroup, emd
+            return emd, atomgroup
         else:
             return atomgroup
     else:
@@ -371,7 +374,7 @@ class EMDMAP(object):
     def center(self):
         return int(self.NS / 2), int(self.NR / 2), int(self.NC / 2)
 
-    def coordinate(self, sec, row, col ):
+    def coordinate(self, sec, row, col):
         # calculate resolution
         res = np.empty(3)
         res[self.mapc - 1] = self.NC
@@ -379,11 +382,13 @@ class EMDMAP(object):
         res[self.maps - 1] = self.NS
         res = np.divide(np.array([self.Lx, self.Ly, self.Lz]), res)
         
+        # find coordinates in voxels relative to start
         ret = np.empty(3)
         ret[self.mapc - 1] = col + self.ncstart
         ret[self.mapr - 1] = row + self.nrstart
         ret[self.maps - 1] = sec + self.nsstart
 
+        # convert to Angstroms
         ret = np.multiply(ret, res)
         return ret
 

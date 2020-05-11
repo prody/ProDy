@@ -318,7 +318,7 @@ class PDBEnsemble(Ensemble):
         else:
             if sequence is None:
                 try:
-                    sequence = self.getAtoms().getSequence()
+                    sequence = self._atoms.getSequence()
                 except AttributeError:
                     if self._msa:
                         sequence = ''.join('X' for _ in range(n_atoms))

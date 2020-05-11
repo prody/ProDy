@@ -5,12 +5,12 @@ from numbers import Integral
 
 from numpy import dot, add, subtract, array, ndarray, sign, concatenate
 from numpy import zeros, ones, arange, isscalar, max, asarray
-from numpy import newaxis, unique, repeat, sum
+from numpy import newaxis, unique, repeat, sum, empty
 
 from prody import LOGGER
 from prody.atomic import Atomic, sliceAtoms
 from prody.atomic.atomgroup import checkLabel
-from prody.measure import getRMSD
+from prody.measure import getRMSD, calcDeformVector
 from prody.utilities import importLA, checkCoords, checkWeights, copy
 
 from .conformation import *
@@ -317,6 +317,10 @@ class Ensemble(object):
 
         self._coords = coords
         self._n_atoms = coords.shape[0]
+
+        if isinstance(atoms, Ensemble):
+            self._indices = atoms._indices
+            self._atoms = atoms._atoms
 
     def getWeights(self, selected=True):
         """Returns a copy of weights of selected atoms."""
@@ -717,6 +721,42 @@ class Ensemble(object):
             RMSDs = getRMSD(self._coords[indices], self._confs[:, indices], weights)
 
         return RMSDs
+
+    def getDefvecs(self, pairwise=False):
+        """Calculate and return deformation vectors (defvecs). Note that
+        you might need to align the conformations using :meth:`superpose` or
+        :meth:`iterpose` before calculating defvecs.
+
+        :arg pairwise: if **True** then it will return pairwise defvecs 
+            as an n-by-n matrix. n is the number of conformations.
+        :type pairwise: bool
+        """
+
+        if self._confs is None or self._coords is None:
+            return None
+
+        indices = self._indices
+        if indices is None:
+            indices = arange(self._confs.shape[1])
+
+        weights = self._weights[:, indices] if self._weights is not None else None
+        if pairwise:
+            n_confs = self.numConfs()
+            defvecs = empty((n_confs, n_confs), dtype=ndarray)
+            for i in range(n_confs):
+                for j in range(i, n_confs):
+                    if weights is None:
+                        w = None
+                    else:
+                        wi = weights[i]; wj = weights[j]
+                        w = wi * wj
+                    defvecs[i, j] = defvecs[j, i] = calcDeformVector(self._confs[i, indices], 
+                                                                     self._confs[j, indices], w)
+        else:
+            defvecs = [calcDeformVector(self._coords[indices], conf[indices], weights[i]) 
+                       for i, conf in enumerate(self._confs)]
+
+        return defvecs
 
     def setData(self, label, data):
         """Store atomic *data* under *label*, which must:

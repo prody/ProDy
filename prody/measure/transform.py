@@ -173,6 +173,7 @@ def applyTransformation(transformation, atoms):
     coords = None
     ag = None
     if isinstance(atoms, np.ndarray):
+        atoms = np.atleast_2d(atoms)
         if atoms.shape[1] != 3:
             raise ValueError('atoms must be a 3-d coordinate array')
         coords = atoms

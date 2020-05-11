@@ -31,6 +31,10 @@ from . import dali
 from .dali import *
 __all__.extend(dali.__all__)
 
+from . import emsurfer
+from .emsurfer import *
+__all__.extend(emsurfer.__all__)
+
 from . import goa
 from .goa import *
 __all__.extend(goa.__all__)

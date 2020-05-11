@@ -186,7 +186,7 @@ class HiC(object):
         if self._map is None:
             return None
         else:
-            M = self.getTrimedMap()
+            M = self.map
             
             I = np.eye(M.shape[0], dtype=bool)
             A = M.copy()
@@ -220,10 +220,14 @@ class HiC(object):
         return self.mask
     
     def calcGNM(self, n_modes=None, **kwargs):
-        """Calculates GNM on the current Hi-C map."""
+        """Calculates GNM on the current Hi-C map. By default, ``n_modes`` is 
+        set to **None** and ``zeros`` to **True**."""
         
-        if 'hinges' in kwargs:
+        if 'hinges' not in kwargs:
             kwargs['hinges'] = False
+
+        if 'zeros' not in kwargs:
+            kwargs['zeros'] = True
             
         if self.masked:
             gnm = MaskedGNM(self._title, self.mask)
@@ -335,7 +339,13 @@ class HiC(object):
             vmax = np.percentile(M, hp)
         else:
             vmin = vmax = None
-        im = showMatrix(M, vmin=vmin, vmax=vmax, **kwargs)
+
+        if not 'vmin' in kwargs:
+            kwargs['vmin'] = vmin
+        if not 'vmax' in kwargs:
+            kwargs['vmax'] = vmax
+
+        im = showMatrix(M, **kwargs)
 
         domains = self.getDomainList()
         if len(domains) > 1:

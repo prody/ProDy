@@ -749,7 +749,7 @@ class sdarray(ndarray):
                 n_atoms = self.shape[1]
             if self.is3d():
                 n_atoms /= 3
-            return n_atoms
+            return int(n_atoms)
         except IndexError:
             LOGGER.warn('{0} is not related to the number of atoms'.format(self.getTitle()))
             return 0
@@ -1035,9 +1035,8 @@ def calcSignatureSqFlucts(mode_ensemble, **kwargs):
 
     norm = importLA().norm
 
-    modesets = mode_ensemble
     V = []
-    for i, modes in enumerate(modesets):
+    for i, modes in enumerate(mode_ensemble):
         sqfs = calcSqFlucts(modes)
 
         if ifnorm:
@@ -1091,7 +1090,6 @@ def showSignatureAtomicLines(y, std=None, min=None, max=None, atoms=None, **kwar
     linespec = kwargs.pop('linespec', '-')
     zero_line = kwargs.pop('zero_line', False)
 
-    x = range(y.shape[0])
     lines, polys, bars, texts = showAtomicLines(y, atoms=atoms, dy=std, lower=max, upper=min, 
                                         linespec=linespec, show_zero=zero_line, **kwargs)
         
@@ -1171,6 +1169,19 @@ def showSignature1D(signature, linespec='-', **kwargs):
     return lines, polys, bars, texts
 
 def showSignatureMode(mode_ensemble, **kwargs):
+    """Show signature mode profile.
+
+    :arg mode_ensemble: mode ensemble from which to extract an eigenvector
+                        If this is not indexed already then index 0 is used by default
+    :type mode_ensemble: :class:`ModeEnsemble`    
+
+    :arg atoms: atoms for showing residues along the x-axis
+                Default option is to use mode_ensemble.getAtoms()
+    :type atoms: :class:`Atomic`
+
+    :arg scale: scaling factor. Default is 1.0
+    :type scale: float    
+    """
 
     if not isinstance(mode_ensemble, ModeEnsemble):
         raise TypeError('mode_ensemble should be an instance of ModeEnsemble')
@@ -1179,12 +1190,29 @@ def showSignatureMode(mode_ensemble, **kwargs):
         LOGGER.warn('modes in mode_ensemble did not match cross modesets. '
                     'Consider running mode_ensemble.match() prior to using this function')
 
+    atoms = kwargs.pop('atoms', mode_ensemble.getAtoms())
     scale = kwargs.pop('scale', 1.0)
     mode = mode_ensemble.getEigvec() * scale
     show_zero = kwargs.pop('show_zero', True)
-    return showSignature1D(mode, atoms=mode_ensemble.getAtoms(), show_zero=show_zero, **kwargs)
+    return showSignature1D(mode, atoms=atoms, show_zero=show_zero, **kwargs)
 
 def showSignatureSqFlucts(mode_ensemble, **kwargs):
+    """Show signature profile of square fluctations.
+
+    :arg mode_ensemble: mode ensemble from which to calculate square fluctutations
+    :type mode_ensemble: :class:`ModeEnsemble`    
+
+    :arg atoms: atoms for showing residues along the x-axis
+                Default option is to use mode_ensemble.getAtoms()
+    :type atoms: :class:`Atomic`
+
+    :arg scale: scaling factor. Default is 1.0
+    :type scale: float  
+
+    :arg show_zero: where to show a grey line at y=0
+                    Default is False
+    :type show_zero: bool      
+    """
 
     if not isinstance(mode_ensemble, ModeEnsemble):
         raise TypeError('mode_ensemble should be an instance of ModeEnsemble')
@@ -1193,10 +1221,11 @@ def showSignatureSqFlucts(mode_ensemble, **kwargs):
         LOGGER.warn('modes in mode_ensemble did not match cross modesets. '
                     'Consider running mode_ensemble.match() prior to using this function')
 
+    atoms = kwargs.pop('atoms', mode_ensemble.getAtoms())
     scale = kwargs.pop('scale', 1.0)
     sqf = calcSignatureSqFlucts(mode_ensemble) * scale
     show_zero = kwargs.pop('show_zero', False)
-    return showSignature1D(sqf, atoms=mode_ensemble.getAtoms(), show_zero=show_zero, **kwargs)
+    return showSignature1D(sqf, atoms=atoms, show_zero=show_zero, **kwargs)
 
 def calcSignatureCrossCorr(mode_ensemble, norm=True):
     """Calculate the signature cross-correlations based on a :class:`ModeEnsemble` instance.
@@ -1301,6 +1330,9 @@ def calcSignatureOverlaps(mode_ensemble, diag=True):
     return overlaps
 
 def showSignatureOverlaps(mode_ensemble):
+    """Show a curve of mode-mode overlaps against mode number
+    with shades for standard deviation and range
+    """
 
     from matplotlib.pyplot import xlabel, ylabel
 
@@ -1334,12 +1366,11 @@ def calcSignatureFractVariance(mode_ensemble):
         LOGGER.warn('modes in mode_ensemble did not match cross modesets. '
                     'Consider running mode_ensemble.match() prior to using this function')
 
-    matches = mode_ensemble
-    n_sets = len(matches)
+    n_sets = len(mode_ensemble)
 
     W = []; is3d = None
     for i in range(n_sets):
-        m = matches[i]
+        m = mode_ensemble[i]
         var = calcFractVariance(m)
         W.append(var)
         if is3d is None:

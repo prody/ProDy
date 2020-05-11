@@ -18,6 +18,7 @@ from prody import LOGGER, SETTINGS
 
 from .header import getHeaderDict, buildBiomolecules, assignSecstr, isHelix, isSheet
 from .localpdb import fetchPDB
+from .ciffile import parseCIF
 
 __all__ = ['parsePDBStream', 'parsePDB', 'parseChainsList', 'parsePQR',
            'writePDBStream', 'writePDB', 'writeChainsList', 'writePQR',
@@ -93,7 +94,15 @@ def parsePDB(*pdb, **kwargs):
         If needed, PDB files are downloaded using :func:`.fetchPDB()` function.
     
     You can also provide arguments that you would like passed on to fetchPDB().
+
+    :arg extend_biomol: whether to extend the list of results with a list
+        rather than appending, which can create a mixed list, 
+        especially when biomol=True.
+        Default value is False to reproduce previous behaviour.
+        This value is ignored when result is not a list (header=True or model=0).
+    :type extend_biomol: bool 
     """
+    extend_biomol = kwargs.pop('extend_biomol', False)
 
     n_pdb = len(pdb)
     if n_pdb == 1:
@@ -147,6 +156,15 @@ def parsePDB(*pdb, **kwargs):
         else:
             numPdbs = len(results)
 
+            if extend_biomol:
+                results_old = results
+                results = []
+                for entry in results_old:
+                    if isinstance(entry, AtomGroup):
+                        results.append(entry)
+                    else:
+                        results.extend(entry)
+
         LOGGER.info('{0} PDBs were parsed in {1:.2f}s.'
                      .format(numPdbs, time.time()-start))
 
@@ -181,8 +199,12 @@ def _parsePDB(pdb, **kwargs):
             kwargs['title'] = title
         filename = fetchPDB(pdb, **kwargs)
         if filename is None:
-            raise IOError('PDB file for {0} could not be downloaded.'
-                          .format(pdb))
+            try:
+                LOGGER.info("Trying to use mmCIF file instead")
+                return parseCIF(pdb, **kwargs)
+            except:
+                raise IOError('PDB file for {0} could not be downloaded.'
+                              .format(pdb))
         pdb = filename
     if title is None:
         title, ext = os.path.splitext(os.path.split(pdb)[1])
@@ -270,7 +292,10 @@ def parsePDBStream(stream, **kwargs):
         bonds = [] if get_bonds else None
         _parsePDBLines(ag, lines, split, model, chain, subset, altloc, bonds=bonds)
         if bonds:
-            ag.setBonds(bonds)
+            try:
+                ag.setBonds(bonds)
+            except ValueError:
+                LOGGER.warn('Bonds read from CONECT records do not apply to subset so were not added')
         if ag.numAtoms() > 0:
             LOGGER.report('{0} atoms and {1} coordinate set(s) were '
                           'parsed in %.2fs.'.format(ag.numAtoms(),
@@ -1018,7 +1043,7 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
     :type renumber: bool
     """
 
-    renumber = kwargs.get('renumber',True)
+    renumber = kwargs.get('renumber', True)
 
     remark = str(atoms)
     try:

@@ -19,14 +19,18 @@ from prody.ensemble import Ensemble
 from prody.ensemble import PDBEnsemble
 import os
 
-__all__ = ['DaliRecord', 'searchDali']
+__all__ = ['DaliRecord', 'searchDali', 
+           'daliFilterMultimer', 'daliFilterMultimers']
 
 def searchDali(pdb, chain=None, subset='fullPDB', daliURL=None, **kwargs):
     """Search Dali server with input of PDB ID (or local PDB file) and chain ID.
     Dali server: http://ekhidna2.biocenter.helsinki.fi/dali/
     
     :arg pdb: PDB code or local PDB file for the protein to be searched
+
     :arg chain: chain identifier (only one chain can be assigned for PDB)
+    :type chain: str
+
     :arg subset: fullPDB, PDB25, PDB50, PDB90
     :type subset: str
     
@@ -149,7 +153,7 @@ class DaliRecord(object):
         :arg pdbId: PDB code for searched protein
         :arg chain: chain identifier (only one chain can be assigned for PDB)
         :arg subset: fullPDB, PDB25, PDB50, PDB90. Ignored if localFile=True (url is a local file)
-        :arg localFile: provided url is a path for local dali results file
+        :arg localFile: whether provided url is a path for a local dali results file
         """
 
         self._url = url
@@ -163,9 +167,30 @@ class DaliRecord(object):
         timeout = kwargs.pop('timeout', 120)
 
         self._title = pdbId + '-' + chain
+        self._alignPDB = None
+        self._filterDict = None
         self.isSuccess = self.getRecord(self._url, localFile=localFile, timeout=timeout, **kwargs)
 
     def getRecord(self, url=None, localFile=False, **kwargs):
+        """Get Dali record from url or file.
+
+        :arg url: url of Dali results page or local dali results file
+            If None then the url already associated with the DaliRecord object is used.
+        :type url: str
+
+        :arg localFile: whether provided url is a path for a local dali results file
+        :type localFile: bool
+
+        :arg timeout: amount of time until the query times out in seconds
+            default value is 120
+        :type timeout: int
+
+        :arg localfolder: folder in which to find the local file
+            default is the current folder
+        :type localfolder: str
+
+
+        """
         if localFile:
             dali_file = open(url, 'r')
             data = dali_file.read()
@@ -291,20 +316,42 @@ class DaliRecord(object):
         
     def getPDBs(self, filtered=True):
         """Returns PDB list (filters may be applied)"""
+
+        if self._alignPDB is None:
+            LOGGER.warn('Dali Record does not have any data yet. Please run getRecord.')
+        
         if filtered:
             return self._pdbList
         return self._pdbListAll
         
     def getHits(self):
+        """Returns the dictionary associated with the DaliRecord"""
+
+        if self._alignPDB is None:
+            LOGGER.warn('Dali Record does not have any data yet. Please run getRecord.')
+
         return self._alignPDB
         
     def getFilterList(self):
+        """Returns a list of PDB IDs and chains for the entries that were filtered out"""
+        
         filterDict = self._filterDict
-        temp_str = ', '.join([str(len(filterDict['len'])), str(len(filterDict['rmsd'])), str(len(filterDict['Z'])), str(len(filterDict['identity']))])
-        LOGGER.info('Filter out [' + temp_str + '] for [length, RMSD, Z, identity]')
+        if filterDict is None:
+            raise ValueError('You cannot obtain the list of filtered out entries before doing any filtering.')
+
+        temp_str = ', '.join([str(len(filterDict['len'])), str(len(filterDict['rmsd'])), 
+                            str(len(filterDict['Z'])), str(len(filterDict['identity']))])
+        LOGGER.info('Filtered out [' + temp_str + '] for [length, RMSD, Z, identity]')
         return self._filterList
+
     
     def getMapping(self, key):
+        """Get mapping for a particular entry in the DaliRecord"""
+
+        if self._alignPDB is None:
+            LOGGER.warn('Dali Record does not have any data yet. Please run getRecord.')
+            return None
+        
         try:
             info = self._alignPDB[key]
             mapping = [info['map_ref'], info['map_sel']]
@@ -313,6 +360,12 @@ class DaliRecord(object):
         return mapping
 
     def getMappings(self):
+        """Get all mappings in the DaliRecord"""
+
+        if self._alignPDB is None:
+            LOGGER.warn('Dali Record does not have any data yet. Please run getRecord.')
+            return None
+
         map_dict = {}
         for key in self._alignPDB:
             info = self._alignPDB[key]
@@ -375,6 +428,9 @@ class DaliRecord(object):
         # print('cutoff_len: ' + str(cutoff_len) + ', ' + 'cutoff_rmsd: ' + str(cutoff_rmsd) + ', ' + 'cutoff_Z: ' + str(cutoff_Z) + ', ' + 'cutoff_identity: ' + str(cutoff_identity))
         
         daliInfo = self._alignPDB
+        if daliInfo is None:
+            raise ValueError("Dali Record does not have any data yet. Please run getRecord.")
+
         pdbListAll = self._pdbListAll
         missing_ind_dict = dict()
         ref_indices_set = set(range(self._max_index))
@@ -423,3 +479,48 @@ class DaliRecord(object):
 
         return self._title
 
+def daliFilterMultimer(atoms, dali_rec, n_chains=None):
+    """
+    Filters multimers to only include chains with Dali mappings.
+
+    :arg atoms: the multimer to be filtered
+    :type atoms: :class:`.Atomic`
+
+    :arg dali_rec: the DaliRecord object with which to filter chains
+    :type dali_rec: :class:`.DaliRecord`
+    """
+    if not isinstance(atoms, Atomic):
+        raise TypeError("atoms should be an Atomic object")
+
+    if not isinstance(dali_rec, DaliRecord):
+        raise TypeError("dali_rec should be a DaliRecord")
+    try:
+        keys = dali_rec._alignPDB
+    except:
+        raise AttributeError("Dali Record does not have any data yet. Please run getRecord.")
+
+    numChains = 0
+    atommap = None
+    for i, chain in enumerate(atoms.iterChains()):
+        m = dali_rec.getMapping(chain.getTitle()[:4] + chain.getChid())
+        if m is not None:
+            numChains += 1
+            if atommap is None:
+                atommap = chain
+            else:
+                atommap += chain
+
+    if n_chains is None or numChains == n_chains:
+        return atommap
+    else:
+        return None
+
+def daliFilterMultimers(structures, dali_rec, n_chains=None):
+    """A wrapper for daliFilterMultimer to apply to multiple structures.
+    """
+    dali_ags = []
+    for entry in structures:
+        result = daliFilterMultimer(entry, dali_rec, n_chains)
+        if result is not None:
+            dali_ags.append(result)
+    return dali_ags
