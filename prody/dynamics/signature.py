@@ -751,7 +751,7 @@ class sdarray(ndarray):
                 n_atoms = self.shape[1]
             if self.is3d():
                 n_atoms /= 3
-            return n_atoms
+            return int(n_atoms)
         except IndexError:
             LOGGER.warn('{0} is not related to the number of atoms'.format(self.getTitle()))
             return 0
@@ -1037,9 +1037,8 @@ def calcSignatureSqFlucts(mode_ensemble, **kwargs):
 
     norm = importLA().norm
 
-    modesets = mode_ensemble
     V = []
-    for i, modes in enumerate(modesets):
+    for i, modes in enumerate(mode_ensemble):
         sqfs = calcSqFlucts(modes)
 
         if ifnorm:
@@ -1369,12 +1368,11 @@ def calcSignatureFractVariance(mode_ensemble):
         LOGGER.warn('modes in mode_ensemble did not match cross modesets. '
                     'Consider running mode_ensemble.match() prior to using this function')
 
-    matches = mode_ensemble
-    n_sets = len(matches)
+    n_sets = len(mode_ensemble)
 
     W = []; is3d = None
     for i in range(n_sets):
-        m = matches[i]
+        m = mode_ensemble[i]
         var = calcFractVariance(m)
         W.append(var)
         if is3d is None:

@@ -488,11 +488,21 @@ def showOverlapTable(modes_x, modes_y, **kwargs):
     import matplotlib.pyplot as plt
     import matplotlib
 
+    if isinstance(modes_x, np.ndarray):
+        num_modes_x = modes_x.shape[1]
+    else:
+        num_modes_x = modes_x.numModes()
+
+    if isinstance(modes_y, np.ndarray):
+        num_modes_y = modes_y.shape[1]
+    else:
+        num_modes_y = modes_y.numModes()
+
     overlap = abs(calcOverlap(modes_y, modes_x))
     if overlap.ndim == 0:
         overlap = np.array([[overlap]])
     elif overlap.ndim == 1:
-        overlap = overlap.reshape((modes_y.numModes(), modes_x.numModes()))
+        overlap = overlap.reshape((num_modes_y, num_modes_x))
 
     cmap = kwargs.pop('cmap', 'jet')
     norm = kwargs.pop('norm', matplotlib.colors.Normalize(0, 1))
@@ -500,7 +510,7 @@ def showOverlapTable(modes_x, modes_y, **kwargs):
     if SETTINGS['auto_show']:
         plt.figure()
     
-    x_range = np.arange(1, modes_x.numModes()+1)
+    x_range = np.arange(1, num_modes_x+1)
     if isinstance(modes_x, ModeSet):
         x_ticklabels = modes_x._indices+1
     else:
@@ -508,7 +518,7 @@ def showOverlapTable(modes_x, modes_y, **kwargs):
 
     x_ticklabels = kwargs.pop('xticklabels', x_ticklabels)
 
-    y_range = np.arange(1, modes_y.numModes()+1)
+    y_range = np.arange(1, num_modes_y+1)
     if isinstance(modes_y, ModeSet):
         y_ticklabels = modes_y._indices+1
     else:
@@ -516,14 +526,26 @@ def showOverlapTable(modes_x, modes_y, **kwargs):
 
     y_ticklabels = kwargs.pop('yticklabels', y_ticklabels)
 
+    if not isinstance(modes_x, np.ndarray):
+        xlabel = str(modes_x)
+    else:
+        xlabel = ''
+    xlabel = kwargs.pop('xlabel', xlabel)
+
+    if not isinstance(modes_y, np.ndarray):
+        ylabel = str(modes_y)
+    else:
+        ylabel = ''
+    ylabel = kwargs.pop('ylabel', ylabel)
+
     allticks = kwargs.pop('allticks', True)
 
     show = showMatrix(overlap, cmap=cmap, norm=norm, 
                       xticklabels=x_ticklabels, yticklabels=y_ticklabels, allticks=allticks,
                       **kwargs)
 
-    plt.xlabel(str(modes_x))
-    plt.ylabel(str(modes_y))
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
     
     if SETTINGS['auto_show']:
         showFigure()
