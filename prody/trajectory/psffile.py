@@ -310,7 +310,7 @@ def writePSF(filename, atoms):
                         types[i], charges[i], masses[i], 0))
 
     bonds = list(atoms._iterBonds())
-    if bonds:
+    if bonds != [None]:
         bonds = array(bonds, int) + 1
         write('\n')
         write('{0:8d} !NBOND: bonds\n'.format(len(bonds)))
@@ -322,7 +322,7 @@ def writePSF(filename, atoms):
             write('\n')
 
     angles = list(atoms._iterAngles())
-    if angles:
+    if angles != [None]:
         angles = array(angles, int) + 1
         write('\n')
         write('{0:8d} !NTHETA: angles\n'.format(len(angles)))
@@ -334,7 +334,7 @@ def writePSF(filename, atoms):
             write('\n')
 
     dihedrals = list(atoms._iterDihedrals())
-    if dihedrals:
+    if dihedrals != [None]:
         dihedrals = array(dihedrals, int) + 1
         write('\n')
         write('{0:8d} !NPHI: dihedrals\n'.format(len(dihedrals)))
@@ -346,7 +346,7 @@ def writePSF(filename, atoms):
             write('\n')
 
     impropers = list(atoms._iterImpropers())
-    if impropers:
+    if impropers != [None]:
         impropers = array(impropers, int) + 1
         write('\n')
         write('{0:8d} !NIMPHI: impropers\n'.format(len(impropers)))
@@ -360,7 +360,7 @@ def writePSF(filename, atoms):
     write('\n')
 
     donors = list(atoms._iterDonors())
-    if donors:
+    if donors != [None]:
         donors = array(donors, int) + 1
         write('\n')
         write('{0:8d} !NDON: donors\n'.format(len(donors)))
@@ -377,7 +377,7 @@ def writePSF(filename, atoms):
     write('\n')
 
     acceptors = list(atoms._iterAcceptors())
-    if acceptors:
+    if acceptors != [None]:
         acceptors = array(acceptors, int) + 1
         write('\n')
         write('{0:8d} !NACC: acceptors\n'.format(len(acceptors)))
@@ -392,7 +392,7 @@ def writePSF(filename, atoms):
         write('\n')
 
     nbexclusions = list(atoms._iterNBExclusions())
-    if nbexclusions:
+    if nbexclusions != [None]:
         nbexclusions = array(nbexclusions, int) + 1
         write('\n')
         write('{0:8d} !NNB\n'.format(len(nbexclusions)))
@@ -407,7 +407,7 @@ def writePSF(filename, atoms):
         write('\n')
 
     crossterms = list(atoms._iterCrossterms())
-    if crossterms:
+    if crossterms != [None]:
         crossterms = array(crossterms, int) + 1
         write('\n')
         write('{0:8d} !NCRTERM: crossterms\n'.format(len(crossterms)))
