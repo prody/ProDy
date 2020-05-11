@@ -228,7 +228,7 @@ class ModeEnsemble(object):
 
         if index is None:
             return self._modesets
-        elif isinstance(index, int):
+        elif isinstance(index, Integral):
             return self[index]
         return self[index]._modesets
 
