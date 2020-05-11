@@ -344,7 +344,7 @@ class AtomPointer(Atomic):
         if len(self._ag) / 4 >= len(self):
             for a, b, c, d in self._ag._iterDihedrals():
                 if a in iset and b in iset and c in iset and d in iset:
-                    yield a, b, c
+                    yield a, b, c, d
         else:
             for a, dmap in zip(indices, self._ag._dmap[indices]):
                 for b, c, d in dmap:
