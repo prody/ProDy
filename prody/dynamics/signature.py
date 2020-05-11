@@ -228,7 +228,12 @@ class ModeEnsemble(object):
 
         if index is None:
             return self._modesets
-        return self[index]._modesets
+
+        subset = self[index]
+        if isinstance(subset, ModeSet):
+            return subset
+        else:
+            return subset._modesets
 
     def getArray(self, mode_index=0):
         """Returns a sdarray of row arrays."""
