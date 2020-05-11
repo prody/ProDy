@@ -262,6 +262,9 @@ def writePSF(filename, atoms):
     *filename*.  This function will write available atom and bond information
     only."""
 
+    if not filename.endswith('.psf'):
+        filename = filename + '.psf'
+
     try:
         n_atoms, segments, rnums, rnames, names, types, charges, masses = (
         atoms.numAtoms(), atoms._getSegnames(), atoms._getResnums(),
@@ -286,7 +289,10 @@ def writePSF(filename, atoms):
         raise ValueError('atom names are not set')
 
     if types is None:
-        atomtypes = zeros(n_atoms, array(['a']).dtype.char + '1')
+        types = zeros(n_atoms, ATOMIC_FIELDS['type'].dtype)
+
+    if charges is None:
+        charges = zeros(n_atoms, ATOMIC_FIELDS['charge'].dtype)
 
     long_fields = array([len(tp) for tp in types]).max() > 4
 
