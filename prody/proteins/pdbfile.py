@@ -18,6 +18,7 @@ from prody import LOGGER, SETTINGS
 
 from .header import getHeaderDict, buildBiomolecules, assignSecstr, isHelix, isSheet
 from .localpdb import fetchPDB
+from .ciffile import parseCIF
 
 __all__ = ['parsePDBStream', 'parsePDB', 'parseChainsList', 'parsePQR',
            'writePDBStream', 'writePDB', 'writeChainsList', 'writePQR',
@@ -198,8 +199,12 @@ def _parsePDB(pdb, **kwargs):
             kwargs['title'] = title
         filename = fetchPDB(pdb, **kwargs)
         if filename is None:
-            raise IOError('PDB file for {0} could not be downloaded.'
-                          .format(pdb))
+            try:
+                LOGGER.info("Trying to use mmCIF file instead")
+                return parseCIF(pdb, **kwargs)
+            except:
+                raise IOError('PDB file for {0} could not be downloaded.'
+                              .format(pdb))
         pdb = filename
     if title is None:
         title, ext = os.path.splitext(os.path.split(pdb)[1])
@@ -287,7 +292,10 @@ def parsePDBStream(stream, **kwargs):
         bonds = [] if get_bonds else None
         _parsePDBLines(ag, lines, split, model, chain, subset, altloc, bonds=bonds)
         if bonds:
-            ag.setBonds(bonds)
+            try:
+                ag.setBonds(bonds)
+            except ValueError:
+                LOGGER.warn('Bonds read from CONECT records do not apply to subset so were not added')
         if ag.numAtoms() > 0:
             LOGGER.report('{0} atoms and {1} coordinate set(s) were '
                           'parsed in %.2fs.'.format(ag.numAtoms(),
