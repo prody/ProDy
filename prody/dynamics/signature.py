@@ -1334,11 +1334,21 @@ def calcSignatureOverlaps(mode_ensemble, diag=True):
 
     return overlaps
 
-def showSignatureOverlaps(mode_ensemble):
+def showSignatureOverlaps(mode_ensemble, **kwargs):
     """Show a curve of mode-mode overlaps against mode number
     with shades for standard deviation and range
-    """
 
+    :arg diag: Whether to calculate the diagonal values only.
+               Default is **True** and :func:`showSignatureAtomicLines` is used.
+               If set to **False**, :func:`showMatrix` is used.
+    :type diag: bool
+
+    :arg std: Whether to show the standard deviation matrix
+              when **diag** is **False** (and whole matrix is shown).
+              Default is **False**, meaning the mean matrix is shown.
+    """
+    diag = kwargs.get('diag', True)
+    std = kwargs.get('std', False)
     from matplotlib.pyplot import xlabel, ylabel
 
     if not isinstance(mode_ensemble, ModeEnsemble):
@@ -1348,16 +1358,25 @@ def showSignatureOverlaps(mode_ensemble):
         LOGGER.warn('modes in mode_ensemble did not match cross modesets. '
                     'Consider running mode_ensemble.match() prior to using this function')
 
-    overlaps = calcSignatureOverlaps(mode_ensemble, diag=True)
-    r, c = np.triu_indices(overlaps.shape[1], k=1)
-    overlap_triu = overlaps[:, r, c]
+    overlaps = calcSignatureOverlaps(mode_ensemble, diag=diag)
 
-    meanV = overlap_triu.mean(axis=1)
-    stdV = overlap_triu.std(axis=1)
+    if diag:
+        r, c = np.triu_indices(overlaps.shape[1], k=1)
+        overlap_triu = overlaps[:, r, c]
 
-    show = showSignatureAtomicLines(meanV, stdV)
-    xlabel('Mode index')
-    ylabel('Overlap')
+        meanV = overlap_triu.mean(axis=1)
+        stdV = overlap_triu.std(axis=1)
+
+        show = showSignatureAtomicLines(meanV, stdV)
+        xlabel('Mode index')
+        ylabel('Overlap')
+    else:
+        if std:
+            stdV = overlaps.std(axis=-1).std(axis=-1)
+            show = showMatrix(stdV)
+        else:
+            meanV = overlaps.mean(axis=-1).mean(axis=-1)
+            show = showMatrix(meanV)
     
     return show
 
