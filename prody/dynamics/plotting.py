@@ -7,7 +7,7 @@ and are prefixed with ``show``.  Function documentations refers to the
 and keyword arguments are passed to the Matplotlib functions."""
 
 from collections import defaultdict
-
+from numbers import Integral
 import numpy as np
 
 from prody import LOGGER, SETTINGS, PY3K
@@ -269,6 +269,9 @@ def showProjection(ensemble, modes, *args, **kwargs):
     else:
         raise TypeError('color must be a string or a list')
 
+    if cmap is not None and isinstance(colors[0], Integral):
+        cmap.N = num
+
     labels = kwargs.pop('label', None)
     if isinstance(labels, str) or labels is None:
         labels = [labels] * num
@@ -315,7 +318,10 @@ def showProjection(ensemble, modes, *args, **kwargs):
         marker, color, label = opts
         kwargs['marker'] = marker
         if cmap is not None:
-            color = cmap.colors[int(float(color))]
+            try:
+                cmap.colors[int(float(color))]
+            except:
+                color = cmap(int(float(color)))
         kwargs['c'] = color
 
         if label:
