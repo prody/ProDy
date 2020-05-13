@@ -1338,15 +1338,15 @@ def showSignatureOverlaps(mode_ensemble, **kwargs):
     with shades for standard deviation and range
 
     :arg diag: Whether to calculate the diagonal values only.
-               Default is **True** and :func:`showSignatureAtomicLines` is used.
-               If set to **False**, :func:`showMatrix` is used.
+               Default is **False** and :func:`showMatrix` is used.
+               If set to **True**, :func:`showSignatureAtomicLines` is used.
     :type diag: bool
 
     :arg std: Whether to show the standard deviation matrix
               when **diag** is **False** (and whole matrix is shown).
               Default is **False**, meaning the mean matrix is shown.
     """
-    diag = kwargs.get('diag', True)
+    diag = kwargs.get('diag', False)
     std = kwargs.get('std', False)
     from matplotlib.pyplot import xlabel, ylabel
 
