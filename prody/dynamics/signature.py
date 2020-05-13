@@ -1370,11 +1370,14 @@ def showSignatureOverlaps(mode_ensemble, **kwargs):
         xlabel('Mode index')
         ylabel('Overlap')
     else:
+        r, c = np.triu_indices(overlaps.shape[2], k=1)
+        overlap_triu = overlaps[:, :, r, c]
+
         if std:
-            stdV = overlaps.std(axis=-1).std(axis=-1)
+            stdV = overlap_triu.std(axis=-1).std(axis=-1)
             show = showMatrix(stdV)
         else:
-            meanV = overlaps.mean(axis=-1).mean(axis=-1)
+            meanV = overlap_triu.mean(axis=-1).mean(axis=-1)
             show = showMatrix(meanV)
     
     return show
