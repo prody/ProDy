@@ -58,12 +58,12 @@ def calcOverlap(rows, cols, diag=False):
         cols = cols.getArray()
     cols *= 1 / (cols ** 2).sum(0) ** 0.5
 
-    overlap_matrix = np.dot(rows.T, cols)
-
     if diag:
-        return np.diag(overlap_matrix)
+        overlaps = np.einsum('ij,ji->i', rows.T, cols)
+    else:
+        overlaps = np.dot(rows.T, cols)
     
-    return overlap_matrix
+    return overlaps
 
 
 def printOverlapTable(rows, cols):
