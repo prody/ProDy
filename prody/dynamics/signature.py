@@ -1316,21 +1316,20 @@ def calcSignatureOverlaps(mode_ensemble, diag=True):
 
     if diag:
         overlaps = np.zeros((n_modes, n_sets, n_sets))
-        for m in range(mode_ensemble.numModes()):
-            for i, modeset_i in enumerate(mode_ensemble):
-                mode_i = modeset_i[m]
-                for j, modeset_j in enumerate(mode_ensemble):
-                    mode_j = modeset_j[m]
-                    if j >= i:
-                        overlaps[m, i, j] = overlaps[m, j, i] = abs(calcOverlap(mode_i, mode_j))
-                    
     else:
         overlaps = np.zeros((n_modes, n_modes, n_sets, n_sets))
 
-        for i, modeset_i in enumerate(mode_ensemble):
-            for j, modeset_j in enumerate(mode_ensemble):
-                if j >= i:                
-                    overlaps[:,:,i,j] = overlaps[:,:,j,i] = abs(calcOverlap(modeset_i, modeset_j))
+    for i, modeset_i in enumerate(mode_ensemble):
+        for j, modeset_j in enumerate(mode_ensemble):
+            if j >= i:
+                if diag:
+                    overlaps[:,i,j] = overlaps[:,j,i] = abs(calcOverlap(modeset_i, 
+                                                                        modeset_j, 
+                                                                        diag=True))
+                else:
+                    overlaps[:,:,i,j] = overlaps[:,:,j,i] = abs(calcOverlap(modeset_i, 
+                                                                            modeset_j, 
+                                                                            diag=False))
 
     return overlaps
 
