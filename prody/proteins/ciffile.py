@@ -65,6 +65,9 @@ def parseCIF(pdb, **kwargs):
     :arg pdb: a PDB identifier or a filename
         If needed, mmCIF files are downloaded using :func:`.fetchPDB()` function.
     :type pdb: str
+
+    :arg chain: comma separated string or list-like of chain IDs
+    :type chain: str, tuple, list, :class:`~numpy.ndarray`
     """
     title = kwargs.get('title', None)
     if not os.path.isfile(pdb):
@@ -268,6 +271,8 @@ def _parseCIFLines(atomgroup, lines, model, chain, subset,
 
         chID = line.split()[fields['auth_asym_id']]
         if chain is not None:
+            if isinstance(chain, str):
+                chain = chain.split(',')
             if not chID in chain:
                 continue
 
