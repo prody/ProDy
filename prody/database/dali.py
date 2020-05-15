@@ -33,7 +33,6 @@ def searchDali(pdb, chain=None, subset='fullPDB', daliURL=None, **kwargs):
 
     :arg subset: fullPDB, PDB25, PDB50, PDB90
     :type subset: str
-    
     """
     
     import requests
@@ -135,12 +134,9 @@ def searchDali(pdb, chain=None, subset='fullPDB', daliURL=None, **kwargs):
     LOGGER.debug('Submitted Dali search for PDB "{0}{1}".'.format(pdbId, chain))
     LOGGER.info(url)
     LOGGER.clear()
-    obj = DaliRecord(url, pdbId, chain, subset=subset, timeout=timeout, **kwargs)
-    #if obj.isSuccess:
-        
-    return obj
     
-    #return None
+    return DaliRecord(url, pdbId, chain, subset=subset, timeout=timeout, **kwargs)
+    
 
 class DaliRecord(object):
 
@@ -188,8 +184,6 @@ class DaliRecord(object):
         :arg localfolder: folder in which to find the local file
             default is the current folder
         :type localfolder: str
-
-
         """
         if localFile:
             dali_file = open(url, 'r')
