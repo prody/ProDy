@@ -175,8 +175,9 @@ def parseEMDStream(stream, **kwargs):
     if map is False and make_nodes is False:
         LOGGER.warn('At least one of map and make_nodes should be True. '
                     'Setting map to False was an intentional change from the default '
-                    'behaviour so make_nodes has been set to True.')
+                    'behaviour so make_nodes has been set to True with n_nodes=1000.')
         make_nodes = True
+        n_nodes = 1000
 
     title_suffix = kwargs.get('title_suffix','')
     atomgroup = AtomGroup(str(kwargs.get('title', 'Unknown')) + title_suffix)
@@ -275,7 +276,7 @@ class EMDMAP(object):
         self.ncstart = st.unpack('<l', stream.read(4))[0]
         self.nrstart = st.unpack('<l', stream.read(4))[0]
         self.nsstart = st.unpack('<l', stream.read(4))[0]
-        
+
         # Number of intervals along x, y, z (3 words, 12 bytes, 29-40)
         self.Nx = st.unpack('<L', stream.read(4))[0]
         self.Ny = st.unpack('<L', stream.read(4))[0]
