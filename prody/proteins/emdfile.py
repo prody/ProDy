@@ -163,12 +163,12 @@ def parseEMDStream(stream, **kwargs):
     if cutoff is not None:
         cutoff = float(cutoff)
 
-    n_nodes = kwargs.get('n_nodes', None)
+    n_nodes = kwargs.get('n_nodes', 0)
     num_iter = int(kwargs.get('num_iter', 20))
     map = kwargs.get('map', False)
     make_nodes = kwargs.get('make_nodes', False)
 
-    if n_nodes is not None:
+    if n_nodes > 0:
         make_nodes = True
         n_nodes = int(n_nodes)
 
@@ -187,7 +187,7 @@ def parseEMDStream(stream, **kwargs):
         LOGGER.timeit()
 
         if map:
-            atomgroup, emd = _parseEMDLines(atomgroup, stream, cutoff=cutoff, n_nodes=n_nodes, \
+            emd, atomgroup = _parseEMDLines(atomgroup, stream, cutoff=cutoff, n_nodes=n_nodes, \
                                             num_iter=num_iter, map=map, make_nodes=make_nodes)
         else:
             atomgroup = _parseEMDLines(atomgroup, stream, cutoff=cutoff, n_nodes=n_nodes, \
@@ -274,8 +274,8 @@ class EMDMAP(object):
         # Number of first column, row, section (3 words, 12 bytes, 17-28)
         self.ncstart = st.unpack('<l', stream.read(4))[0]
         self.nrstart = st.unpack('<l', stream.read(4))[0]
-        self.nsstart = st.unpack('<l', stream.read(4))[0
-]
+        self.nsstart = st.unpack('<l', stream.read(4))[0]
+        
         # Number of intervals along x, y, z (3 words, 12 bytes, 29-40)
         self.Nx = st.unpack('<L', stream.read(4))[0]
         self.Ny = st.unpack('<L', stream.read(4))[0]
