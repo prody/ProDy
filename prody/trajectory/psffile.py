@@ -235,29 +235,37 @@ def parsePSF(filename, title=None, ag=None):
     ag.setCharges(charges)
     ag.setMasses(masses)
 
-    b_array = add(b_array, -1, b_array)
-    ag.setBonds(b_array.reshape((n_bonds, 2)))
+    if n_bonds > 0:
+        b_array = add(b_array, -1, b_array)
+        ag.setBonds(b_array.reshape((n_bonds, 2)))
 
-    a_array = add(a_array, -1, a_array)
-    ag.setAngles(a_array.reshape((n_angles, 3)))
+    if n_angles > 0:
+        a_array = add(a_array, -1, a_array)
+        ag.setAngles(a_array.reshape((n_angles, 3)))
 
-    d_array = add(d_array, -1, d_array)
-    ag.setDihedrals(d_array.reshape((n_dihedrals, 4)))
+    if n_dihedrals > 0:
+        d_array = add(d_array, -1, d_array)
+        ag.setDihedrals(d_array.reshape((n_dihedrals, 4)))
 
-    i_array = add(i_array, -1, i_array)
-    ag.setImpropers(i_array.reshape((n_impropers, 4)))
+    if n_impropers > 0:
+        i_array = add(i_array, -1, i_array)
+        ag.setImpropers(i_array.reshape((n_impropers, 4)))
 
-    do_array = add(do_array, -1, do_array)
-    ag.setDonors(do_array.reshape((n_donors, 2)))
+    if n_donors > 0:
+        do_array = add(do_array, -1, do_array)
+        ag.setDonors(do_array.reshape((n_donors, 2)))
 
-    ac_array = add(ac_array, -1, ac_array)
-    ag.setAcceptors(ac_array.reshape((n_acceptors, 2)))
+    if n_acceptors > 0:
+        ac_array = add(ac_array, -1, ac_array)
+        ag.setAcceptors(ac_array.reshape((n_acceptors, 2)))
 
-    nbe_array = add(nbe_array, -1, nbe_array)
-    ag.setNBExclusions(nbe_array.reshape((n_exclusions, 2)))
+    if n_exclusions > 0:
+        nbe_array = add(nbe_array, -1, nbe_array)
+        ag.setNBExclusions(nbe_array.reshape((n_exclusions, 2)))
 
-    c_array = add(c_array, -1, c_array)
-    ag.setCrossterms(c_array.reshape((n_crossterms, 4)))
+    if n_crossterms > 0:
+        c_array = add(c_array, -1, c_array)
+        ag.setCrossterms(c_array.reshape((n_crossterms, 4)))
 
     return ag
 
