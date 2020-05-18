@@ -65,7 +65,7 @@ def parsePSF(filename, title=None, ag=None):
     
     n = 0
     n_bonds = 0
-    for i, line in enumerate(psf):
+    for line in psf:
         if line.strip() == b'':
             continue
         if b'!NBOND:' in line.upper():
@@ -100,6 +100,7 @@ def parsePSF(filename, title=None, ag=None):
         raise IOError('number of lines in PSF atoms block is less than the number of '
                       'atoms')
 
+    n_angles = 0
     lines = []
     for i, line in enumerate(psf):
         if line.strip() == b'':
@@ -115,6 +116,7 @@ def parsePSF(filename, title=None, ag=None):
     if len(b_array) != n_bonds*2:
         raise IOError('number of bonds expected and parsed do not match')
 
+    n_dihedrals = 0
     lines = []
     for i, line in enumerate(psf):
         if line.strip() == b'':
@@ -130,6 +132,7 @@ def parsePSF(filename, title=None, ag=None):
     if len(a_array) != n_angles*3:
         raise IOError('number of angles expected and parsed do not match')
 
+    n_impropers = 0
     lines = []
     for i, line in enumerate(psf):
         if line.strip() == b'':
@@ -145,6 +148,7 @@ def parsePSF(filename, title=None, ag=None):
     if len(d_array) != n_dihedrals*4:
         raise IOError('number of dihedrals expected and parsed do not match')
 
+    n_donors = 0
     lines = []
     for i, line in enumerate(psf):
         if line.strip() == b'':
@@ -160,6 +164,7 @@ def parsePSF(filename, title=None, ag=None):
     if len(i_array) != n_impropers*4:
         raise IOError('number of impropers expected and parsed do not match')
 
+    n_acceptors = 0
     lines = []
     for i, line in enumerate(psf):
         if line.strip() == b'':
@@ -175,6 +180,7 @@ def parsePSF(filename, title=None, ag=None):
     if len(do_array) != n_donors*2:
         raise IOError('number of donors expected and parsed do not match')
 
+    n_exclusions = 0
     lines = []
     for i, line in enumerate(psf):
         if line.strip() == b'':
@@ -203,6 +209,7 @@ def parsePSF(filename, title=None, ag=None):
     if len(nbe_array) != n_exclusions*2:
         raise IOError('number of nonbonded exclusions expected and parsed do not match')
 
+    n_crossterms = 0
     for i, line in enumerate(psf):
         if b'!NCRTERM' in line:
             items = line.split()
