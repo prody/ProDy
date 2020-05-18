@@ -30,8 +30,15 @@ def calcPerturbResponse(model, atoms=None, **kwargs):
     described in [CA09]_.  Rows of the matrix are the average magnitude of the
     responses obtained by perturbing the atom/node position at that row index,
     i.e. ``prs_profile[i,j]`` will give the response of residue/node *j* to
-    perturbations in residue/node *i*.  PRS is performed using the covariance
-    matrix from *model*, e.g. :class:`.ANM` instance.
+    perturbations in residue/node *i*.  
+    
+    PRS is performed using the covariance matrix from *model*, e.g. a 
+    :class:`.ANM` instance. It can also be applied to a covariance matrix directly.
+    In this case, please use the *is3d* keyword argument.
+
+    :arg is3d: whether the data comes from a 3D model such as EDA or ANM, 
+               or a 1D model such as GNM. Default is **True**.
+    :type is3d: bool
 
     When an *atoms* instance is given, the PRS matrix will be added as data, 
     which can be retrieved with ``atoms.getData('prs_matrix')``.  
@@ -44,35 +51,48 @@ def calcPerturbResponse(model, atoms=None, **kwargs):
        *PLoS Comput Biol* **2009** 5(10):e1000544.
 
     """
-
-    if not isinstance(model, (NMA, ModeSet, Mode)):
-        raise TypeError('model must be an NMA, ModeSet, or Mode instance')
-
-    if isinstance(model, NMA) and len(model) == 0:
-        raise ValueError('model must have normal modes calculated')
-
-    atoms = kwargs.get('atoms',None)
-    if atoms is not None:
-        if isinstance(atoms, Selection):
-            atoms = atoms.copy()
-        if not isinstance(atoms, AtomGroup):
-            raise TypeError('atoms must be an AtomGroup instance')
-        elif atoms.numAtoms() != model.numAtoms():
-            raise ValueError('model and atoms must have the same number atoms')
-
-    n_atoms = model.numAtoms()
     LOGGER.timeit('_prody_prs_all')
-    LOGGER.info('Calculating covariance matrix')
-    LOGGER.timeit('_prody_cov')
+    
+    if not isinstance(model, (NMA, ModeSet, Mode, np.ndarray)):
+        raise TypeError('input model must be an NMA, ModeSet, Mode, or array')
 
-    cov = model.getCovariance()
+    if isinstance(model, np.ndarray):
+        if model.ndim != 2 or model.shape[0] != model.shape[1]:
+            raise ValueError('input array must be a square matrix')
+        cov = model
 
-    LOGGER.clear()
-    LOGGER.report('Covariance matrix calculated in %.1fs.', '_prody_cov')
+        is3d = kwargs.get('is3d', True)
+        if is3d:
+            n_atoms = int(len(cov)/3)
+        else:
+            n_atoms = len(cov)
+    else:
+        if isinstance(model, NMA) and len(model) == 0:
+            raise ValueError('model must have normal modes calculated')
+
+        atoms = kwargs.get('atoms',None)
+        if atoms is not None:
+            if isinstance(atoms, Selection):
+                atoms = atoms.copy()
+            if not isinstance(atoms, AtomGroup):
+                raise TypeError('atoms must be an AtomGroup instance')
+            elif atoms.numAtoms() != model.numAtoms():
+                raise ValueError('model and atoms must have the same number atoms')
+        
+        n_atoms = model.numAtoms()
+        LOGGER.info('Calculating covariance matrix')
+        LOGGER.timeit('_prody_cov')
+
+        cov = model.getCovariance()
+
+        LOGGER.clear()
+        LOGGER.report('Covariance matrix calculated in %.1fs.', '_prody_cov')
+
+        is3d = model.is3d()
 
     LOGGER.info('Calculating perturbation response')
     LOGGER.timeit('_prody_prs_mat')
-    if not model.is3d():
+    if not is3d:
         prs_matrix = cov**2
 
     else:
