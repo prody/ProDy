@@ -252,7 +252,7 @@ def calcChainsNormDistFluct(coords, ch1, ch2, cutoff=10., percent=5, rangeAng=5,
     :class:`.GNM` model. It is assigned to protein complex.
     
     :arg coords: a coordinate set or an object with ``getCoords`` method. 
-    :type coords: :class:`numpy.ndarray`.
+    :type coords: :class:`~numpy.ndarray`.
 
     :arg ch1: first chain name
     :type ch1: 'A' or other letter as a string
