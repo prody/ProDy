@@ -69,6 +69,8 @@ from .settings import *
 from .misctools import *
 from .pathtools import *
 from .doctools import *
+from .laptools import *
+from .TreeConstruction import *
 
 from . import catchall
 from .catchall import *

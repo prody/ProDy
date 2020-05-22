@@ -228,7 +228,12 @@ class ModeEnsemble(object):
 
         if index is None:
             return self._modesets
-        return self[index]._modesets
+
+        subset = self[index]
+        if isinstance(subset, ModeSet):
+            return subset
+        else:
+            return subset._modesets
 
     def getArray(self, mode_index=0):
         """Returns a sdarray of row arrays."""
@@ -749,7 +754,7 @@ class sdarray(ndarray):
                 n_atoms = self.shape[1]
             if self.is3d():
                 n_atoms /= 3
-            return n_atoms
+            return int(n_atoms)
         except IndexError:
             LOGGER.warn('{0} is not related to the number of atoms'.format(self.getTitle()))
             return 0
@@ -783,6 +788,18 @@ class sdarray(ndarray):
 
         arr = np.asarray(self)
         mean = wmean(arr, self._weights, axis)
+
+        if axis is not None:
+            reps = list(arr.shape)
+            axes = []
+            if isinstance(axis, tuple):
+                axes.extend(axis)
+            else:
+                axes = [axis]
+            
+            for ax in axes:
+                reps[ax] = 1
+            mean = np.reshape(mean, reps)
         variance = wmean((arr - mean)**2, self._weights, axis)
         return np.sqrt(variance)
 
@@ -1023,9 +1040,8 @@ def calcSignatureSqFlucts(mode_ensemble, **kwargs):
 
     norm = importLA().norm
 
-    modesets = mode_ensemble
     V = []
-    for i, modes in enumerate(modesets):
+    for i, modes in enumerate(mode_ensemble):
         sqfs = calcSqFlucts(modes)
 
         if ifnorm:
@@ -1079,7 +1095,6 @@ def showSignatureAtomicLines(y, std=None, min=None, max=None, atoms=None, **kwar
     linespec = kwargs.pop('linespec', '-')
     zero_line = kwargs.pop('zero_line', False)
 
-    x = range(y.shape[0])
     lines, polys, bars, texts = showAtomicLines(y, atoms=atoms, dy=std, lower=max, upper=min, 
                                         linespec=linespec, show_zero=zero_line, **kwargs)
         
@@ -1159,6 +1174,19 @@ def showSignature1D(signature, linespec='-', **kwargs):
     return lines, polys, bars, texts
 
 def showSignatureMode(mode_ensemble, **kwargs):
+    """Show signature mode profile.
+
+    :arg mode_ensemble: mode ensemble from which to extract an eigenvector
+                        If this is not indexed already then index 0 is used by default
+    :type mode_ensemble: :class:`ModeEnsemble`    
+
+    :arg atoms: atoms for showing residues along the x-axis
+                Default option is to use mode_ensemble.getAtoms()
+    :type atoms: :class:`Atomic`
+
+    :arg scale: scaling factor. Default is 1.0
+    :type scale: float    
+    """
 
     if not isinstance(mode_ensemble, ModeEnsemble):
         raise TypeError('mode_ensemble should be an instance of ModeEnsemble')
@@ -1167,12 +1195,29 @@ def showSignatureMode(mode_ensemble, **kwargs):
         LOGGER.warn('modes in mode_ensemble did not match cross modesets. '
                     'Consider running mode_ensemble.match() prior to using this function')
 
+    atoms = kwargs.pop('atoms', mode_ensemble.getAtoms())
     scale = kwargs.pop('scale', 1.0)
     mode = mode_ensemble.getEigvec() * scale
     show_zero = kwargs.pop('show_zero', True)
-    return showSignature1D(mode, atoms=mode_ensemble.getAtoms(), show_zero=show_zero, **kwargs)
+    return showSignature1D(mode, atoms=atoms, show_zero=show_zero, **kwargs)
 
 def showSignatureSqFlucts(mode_ensemble, **kwargs):
+    """Show signature profile of square fluctations.
+
+    :arg mode_ensemble: mode ensemble from which to calculate square fluctutations
+    :type mode_ensemble: :class:`ModeEnsemble`    
+
+    :arg atoms: atoms for showing residues along the x-axis
+                Default option is to use mode_ensemble.getAtoms()
+    :type atoms: :class:`Atomic`
+
+    :arg scale: scaling factor. Default is 1.0
+    :type scale: float  
+
+    :arg show_zero: where to show a grey line at y=0
+                    Default is False
+    :type show_zero: bool      
+    """
 
     if not isinstance(mode_ensemble, ModeEnsemble):
         raise TypeError('mode_ensemble should be an instance of ModeEnsemble')
@@ -1181,10 +1226,11 @@ def showSignatureSqFlucts(mode_ensemble, **kwargs):
         LOGGER.warn('modes in mode_ensemble did not match cross modesets. '
                     'Consider running mode_ensemble.match() prior to using this function')
 
+    atoms = kwargs.pop('atoms', mode_ensemble.getAtoms())
     scale = kwargs.pop('scale', 1.0)
     sqf = calcSignatureSqFlucts(mode_ensemble) * scale
     show_zero = kwargs.pop('show_zero', False)
-    return showSignature1D(sqf, atoms=mode_ensemble.getAtoms(), show_zero=show_zero, **kwargs)
+    return showSignature1D(sqf, atoms=atoms, show_zero=show_zero, **kwargs)
 
 def calcSignatureCrossCorr(mode_ensemble, norm=True):
     """Calculate the signature cross-correlations based on a :class:`ModeEnsemble` instance.
@@ -1289,6 +1335,9 @@ def calcSignatureOverlaps(mode_ensemble, diag=True):
     return overlaps
 
 def showSignatureOverlaps(mode_ensemble):
+    """Show a curve of mode-mode overlaps against mode number
+    with shades for standard deviation and range
+    """
 
     from matplotlib.pyplot import xlabel, ylabel
 
@@ -1322,12 +1371,11 @@ def calcSignatureFractVariance(mode_ensemble):
         LOGGER.warn('modes in mode_ensemble did not match cross modesets. '
                     'Consider running mode_ensemble.match() prior to using this function')
 
-    matches = mode_ensemble
-    n_sets = len(matches)
+    n_sets = len(mode_ensemble)
 
     W = []; is3d = None
     for i in range(n_sets):
-        m = matches[i]
+        m = mode_ensemble[i]
         var = calcFractVariance(m)
         W.append(var)
         if is3d is None:
@@ -1893,14 +1941,13 @@ def calcSubfamilySpectralOverlaps(mode_ens, subfamily_dict, **kwargs):
 
     N_group = len(reverse_dict)
 
-    subfamilies = np.array(reverse_dict.keys())
     subfamily_overlap_matrix = []
     for subfamily_i in subfamilies:
         index_i = reverse_dict[subfamily_i]
-        for temp_cath_j in subfamilies:
-            index_j = reverse_dict[temp_cath_j]
+        for subfamily_j in subfamilies:
+            index_j = reverse_dict[subfamily_j]
             temp_sub_matrix = distm[np.ix_(index_i, index_j)]
-            if subfamily_i == temp_cath_j:
+            if subfamily_i == subfamily_j:
                 subfamily_overlap_matrix.append(temp_sub_matrix[np.triu_indices(
                     np.shape(temp_sub_matrix)[0])].mean())
             else:
@@ -1928,7 +1975,7 @@ def showSubfamilySpectralOverlaps(mode_ens, subfamily_dict, **kwargs):
     subfamily_overlap_matrix, subfamilies = calcSubfamilySpectralOverlaps(mode_ens, subfamily_dict, **kwargs)
     show = showMatrix(subfamily_overlap_matrix, origin='lower',
                       xticklabels=subfamilies, yticklabels=subfamilies,
-                      vmin=0., vmax=1.6)
+                      allticks=True, vmin=0., vmax=1.6)
 
     show_subfamily_bar = kwargs.get('show_subfamily_bar',False)
     text = kwargs.pop('text',False)

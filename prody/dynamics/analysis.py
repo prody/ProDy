@@ -27,7 +27,7 @@ __all__ = ['calcCollectivity', 'calcCovariance', 'calcCrossCorr',
            'calcDistFlucts']
            #'calcEntropyTransfer', 'calcOverallNetEntropyTransfer']
 
-def calcCollectivity(mode, masses=None):
+def calcCollectivity(mode, masses=None, is3d=None):
     """Returns collectivity of the mode.  This function implements collectivity
     as defined in equation 5 of [BR95]_.  If *masses* are provided, they will
     be incorporated in the calculation.  Otherwise, atoms are assumed to have
@@ -40,9 +40,35 @@ def calcCollectivity(mode, masses=None):
     :type mode: :class:`.Mode`, :class:`.Vector`, :class:`.ModeSet`
 
     :arg masses: atomic masses
-    :type masses: :class:`numpy.ndarray`"""
+    :type masses: :class:`numpy.ndarray`
+    
+    :arg is3d: whether mode is 3d. Default is **None** which means determine 
+        the value based on ``mode.is3d()``.
+    :type is3d: bool
+    """
 
-    V, W, is3d, n_atoms = _getModeProperties(mode)
+    if isinstance(mode, np.ndarray):
+        V = mode
+        ndim = V.ndim
+        shape = V.shape
+
+        if is3d is None:
+            is3d = False
+
+        if ndim == 0:
+            raise ValueError('mode cannot be an empty array')
+        elif ndim == 1:
+            V = V[:, np.newaxis]
+
+        n = shape[0]
+        if is3d:
+            n_atoms = n // 3
+        else:
+            n_atoms = n
+    else:
+        V, W, is3d_, n_atoms = _getModeProperties(mode)
+        if is3d is None:
+            is3d = is3d_
     
     colls = []
 
@@ -67,7 +93,7 @@ def calcCollectivity(mode, masses=None):
     if len(colls) == 1:
         return coll
     else:
-        return colls
+        return np.array(colls)
 
 def calcSpecDimension(mode):
 
@@ -115,7 +141,7 @@ def calcFractVariance(mode):
     return var / trace
 
 
-def calcProjection(ensemble, modes, rmsd=True, norm=True):
+def calcProjection(ensemble, modes, rmsd=True, norm=False):
     """Returns projection of conformational deviations onto given modes.
     *ensemble* coordinates are used to calculate the deviations that are
     projected onto *modes*.  For K conformations and M modes, a (K,M)
@@ -128,8 +154,12 @@ def calcProjection(ensemble, modes, rmsd=True, norm=True):
     :arg modes: up to three normal modes
     :type modes: :class:`.Mode`, :class:`.ModeSet`, :class:`.NMA`
 
-    By default root-mean-square deviation (RMSD) along the normal mode is
-    calculated. To calculate the projection pass ``rmsd=True``.
+    By default, root-mean-square deviation (RMSD) along the normal mode is
+    calculated. To calculate the raw projection pass ``rmsd=False``.
+
+    By default, the projection is not normalized. If you would like it to be,
+    pass ``norm=True``.
+
     :class:`.Vector` instances are accepted as *ensemble* argument to allow
     for projecting a deformation vector onto normal modes."""
 
@@ -182,13 +212,21 @@ def calcCrossProjection(ensemble, mode1, mode2, scale=None, **kwargs):
 
     :arg ensemble: ensemble for which deviations will be projected
     :type ensemble: :class:`.Ensemble`
+
     :arg mode1: normal mode to project conformations onto
     :type mode1: :class:`.Mode`, :class:`.Vector`
+
     :arg mode2: normal mode to project conformations onto
     :type mode2: :class:`.Mode`, :class:`.Vector`
+
     :arg scale: scale width of the projection onto mode1 (``x``) or mode2(``y``),
         an optimized scaling factor (scalar) will be calculated by default 
-        or a value of scalar can be passed."""
+        or a value of scalar can be passed.
+        
+    This function uses calcProjection and its arguments can be 
+    passed to it as keyword arguments.
+    By default, this function applies RMSD scaling and normalisation. 
+    These can be turned off with ``rmsd=False`` and ``norm=False``."""
 
     if not isinstance(ensemble, (Ensemble, Conformation, Vector, TrajBase)):
         raise TypeError('ensemble must be Ensemble, Conformation, Vector, '

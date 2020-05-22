@@ -115,10 +115,13 @@ EXTENSIONS = [
 ]
 
 # extra arguments for compiling C++ extensions on MacOSX
-extra_compile_args = []
 if platform.system() == 'Darwin':
-    os.environ['MACOSX_DEPLOYMENT_TARGET'] = '10.9'
-    extra_compile_args.append('-stdlib=libc++')
+    os_ver = platform.mac_ver()[0]
+    os.environ['MACOSX_DEPLOYMENT_TARGET'] = os_ver
+    os.environ['CC'] = 'clang'
+    os.environ['CXX'] = 'clang++'
+    #extra_compile_args.append('-stdlib=libc++')
+
 
 CONTRIBUTED = [
     Extension('prody.kdtree._CKDTree',
@@ -128,7 +131,6 @@ CONTRIBUTED = [
     Extension('prody.proteins.ccealign', 
               [join('prody', 'proteins', 'ccealign', 'ccealignmodule.cpp')], 
               include_dirs=[tntDir], language='c++',
-              extra_compile_args=extra_compile_args
               )
 ]
 

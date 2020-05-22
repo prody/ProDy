@@ -1,14 +1,18 @@
-"""This module defines miscellaneous utility functions."""
+"""This module defines miscellaneous utility functions that is public to users."""
 
 import numpy as np
 
 from numpy import unique, linalg, diag, sqrt, dot
-from .misctools import addEnds, interpY
+from .misctools import addEnds, interpY, index
 from .checkers import checkCoords
+from Bio.Phylo.BaseTree import Tree, Clade
 
 __all__ = ['calcTree', 'clusterMatrix', 'showLines', 'showMatrix', 
-           'reorderMatrix', 'findSubgroups', 'getCoords']
+           'reorderMatrix', 'findSubgroups', 'getCoords',  
+           'getLinkage', 'getTreeFromLinkage']
 
+class LinkageError(Exception):
+    pass
 
 def getCoords(data):
 
@@ -24,16 +28,222 @@ def getCoords(data):
 
     return data
 
+def getLinkage(names, tree):
+    """ Obtain the :func:`~scipy.cluster.hierarchy.linkage` matrix encoding 
+    ``tree``. 
+    
+    :arg names: a list of names, the order determines the values in the 
+                linkage matrix
+    :type names: list, :class:`~numpy.ndarray`
 
-def calcTree(names, distance_matrix, method='nj'):
-    """ Given a distance matrix for an ensemble, it creates an returns a tree structure.
+    :arg tree: tree to be converted
+    :type tree: :class:`~Bio.Phylo.BaseTree.Tree`
+    """
 
-    :arg names: an list of names
+    tree_terminals = tree.get_terminals()
+
+    if len(tree_terminals) != len(names):
+        raise ValueError('inconsistent number of terminals in tree and names')
+    
+    terminals = [None] * len(names)
+    for clade in tree_terminals:
+        i = index(names, clade.name)
+        terminals[i] = clade
+
+    n = len(terminals)
+    nonterminals = [c for c in reversed(tree.get_nonterminals())]
+    if len(nonterminals) != n-1:
+        raise LinkageError('wrong number of terminal clades')
+
+    Z = np.zeros((n-1, 4))
+
+    root = tree.root
+
+    def _indexOfClade(clade):
+        if clade.is_terminal():
+            i = index(terminals, clade)
+        else:
+            i = index(nonterminals, clade) + n
+        return i
+
+    def _height_of(clade):
+        if clade.is_terminal():
+            height = 0 
+        else:
+            height = max(_height_of(c) + c.branch_length for c in clade.clades)
+
+        return height
+
+    def _dfs(clade):
+        if clade.is_terminal():
+            return
+
+        i = _indexOfClade(clade)
+        clade_a = clade.clades[0]
+        clade_b = clade.clades[1]
+
+        a = _indexOfClade(clade_a)
+        b = _indexOfClade(clade_b) 
+
+        l = min(a, b)
+        r = max(a, b)
+
+        Z[i-n, 0] = l
+        Z[i-n, 1] = r
+        Z[i-n, 2] = _height_of(clade) * 2.
+        Z[i-n, 3] = clade.count_terminals()
+
+        _dfs(clade_a)
+        _dfs(clade_b)
+    
+    _dfs(root)
+
+    return Z
+
+def getTreeFromLinkage(names, linkage):
+    """ Obtain the tree encoded by ``linkage``. 
+    
+    :arg names: a list of names, the order should correspond to the values in  
+                linkage
+    :type names: list, :class:`~numpy.ndarray`
+
+    :arg linkage: linkage matrix
+    :type linkage: :class:`~numpy.ndarray`
+    """
+    try: 
+        import Bio 
+    except ImportError:
+        raise ImportError('Phylo module could not be imported. '
+            'Reinstall ProDy or install Biopython '
+            'to solve the problem.')
+
+    from Bio.Phylo.BaseTree import Tree, Clade
+    
+    if not isinstance(linkage, np.ndarray):
+        raise TypeError('linkage must be a numpy.ndarray instance')
+
+    if linkage.ndim != 2:
+        raise LinkageError('linkage must be a 2-dimensional matrix')
+
+    if linkage.shape[1] != 4:
+        raise LinkageError('linkage must have exactly 4 columns')
+
+    n_terms = len(names)
+    if linkage.shape[0] != n_terms-1:
+        raise LinkageError('linkage must have exactly len(names)-1 rows')
+    
+    clades = []
+    heights = []
+    for name in names:
+        clade = Clade(None, name)
+        clades.append(clade)
+        heights.append(0.)
+
+    for link in linkage:
+        l = int(link[0])
+        r = int(link[1])
+        height = link[2]
+
+        left = clades[l]
+        right = clades[r]
+
+        lh = heights[l]
+        rh = heights[r]
+
+        left.branch_length = height - lh
+        right.branch_length = height - rh
+
+        clade = Clade(None, None)
+        clade.clades.append(left)
+        clade.clades.append(right)
+
+        clades.append(clade)
+        heights.append(height)
+
+    return Tree(clade)
+
+def calcTree(names, distance_matrix, method='upgma', linkage=False):
+    """ Given a distance matrix, it creates an returns a tree structure.
+
+    :arg names: a list of names
     :type names: list, :class:`~numpy.ndarray`
 
     :arg distance_matrix: a square matrix with length of ensemble. If numbers does not match *names*
                           it will raise an error
     :type distance_matrix: :class:`~numpy.ndarray`
+
+    :arg method: method used for constructing the tree. Acceptable options are ``"upgma"``, ``"nj"``, 
+                 or methods supported by :func:`~scipy.cluster.hierarchy.linkage` such as "single", 
+                 "average", "ward", etc.
+    :type method: str
+
+    :arg linkage: whether the linkage matrix is returned. Note that NJ trees do not support linkage
+    :type linkage: bool
+    """
+    try: 
+        import Bio 
+    except ImportError:
+        raise ImportError('Phylo module could not be imported. '
+            'Reinstall ProDy or install Biopython '
+            'to solve the problem.')
+            
+    from .TreeConstruction import DistanceMatrix, DistanceTreeConstructor
+    
+    if len(names) != distance_matrix.shape[0] or len(names) != distance_matrix.shape[1]:
+        raise ValueError("Mismatch between the sizes of matrix and names.")
+    
+    method = method.lower().strip()
+
+    if method in ['ward', 'single', 'average', 'weighted', 'centroid', 'median']:
+        from scipy.cluster.hierarchy import linkage as hlinkage
+        from scipy.spatial.distance import pdist
+        
+        Z = hlinkage(pdist(distance_matrix), method=method)
+        tree = getTreeFromLinkage(names, Z)
+    else:
+        matrix = []
+        k = 1
+        Z = None
+        for row in distance_matrix:
+            matrix.append(list(row[:k]))
+            k = k + 1
+        
+        if isinstance(names, np.ndarray):
+            names = names.tolist()
+        dm = DistanceMatrix(names, matrix)
+        constructor = DistanceTreeConstructor()
+
+        method = method.strip().lower()
+        if method == 'nj':
+            tree = constructor.nj(dm)
+        elif method == 'upgma':
+            tree = constructor.upgma(dm)
+            if linkage:
+                Z = getLinkage(names, tree)
+        else:
+            raise ValueError('Method can be only either "nj", "upgma" or '
+                             'hierarchical clustering such as "single", "average", etc.')
+
+        for node in tree.get_nonterminals():
+            node.name = None
+
+    if linkage:
+        return tree, Z
+    else:
+        return tree
+
+def writeTree(filename, tree, format_str='newick'):
+    """ Write a tree to file using Biopython.
+
+    :arg filename: name for output file
+    :type filename: str
+
+    :arg tree: a square matrix with length of ensemble. If numbers does not match *names*
+                          it will raise an error
+    :type tree: :class:`~Bio.Phylo.BaseTree.Tree`
+
+    :arg format_str: a string specifying the format for the tree
+    :type format_str: str
     """
     try: 
         from Bio import Phylo
@@ -41,32 +251,18 @@ def calcTree(names, distance_matrix, method='nj'):
         raise ImportError('Phylo module could not be imported. '
             'Reinstall ProDy or install Biopython '
             'to solve the problem.')
-    
-    if len(names) != distance_matrix.shape[0] or len(names) != distance_matrix.shape[1]:
-        raise ValueError("Mismatch between the sizes of matrix and names.")
 
-    matrix = []
-    k = 1
-    for row in distance_matrix:
-        matrix.append(list(row[:k]))
-        k = k + 1
-    from Bio.Phylo.TreeConstruction import _DistanceMatrix
-    if isinstance(names, np.ndarray):
-        names = names.tolist()
-    dm = _DistanceMatrix(names, matrix)
-    constructor = Phylo.TreeConstruction.DistanceTreeConstructor()
+    if not isinstance(filename, str):
+        raise TypeError('filename should be a string')
 
-    method = method.strip().lower()
-    if method == 'nj':
-        tree = constructor.nj(dm)
-    elif method == 'upgma':
-        tree = constructor.upgma(dm)
-    else:
-        raise ValueError('Method can be only either "nj" or "upgma".')
+    if not isinstance(tree, Phylo.BaseTree.Tree):
+        raise TypeError('tree should be a Biopython.Phylo Tree object')
 
-    for node in tree.get_nonterminals():
-        node.name = None
-    return tree
+    if not isinstance(format_str, str):
+        raise TypeError('format_str should be a string')
+
+    Phylo.write(tree, filename, format_str)
+
 
 def clusterMatrix(distance_matrix=None, similarity_matrix=None, labels=None, return_linkage=None, **kwargs):
     """
@@ -139,25 +335,25 @@ def showLines(*args, **kwargs):
     
     :arg x: (optional) x coordinates. *x* can be an 1-D array or a 2-D matrix of 
             column vectors.
-    :type x: `~numpy.ndarray`
+    :type x: :class:`~numpy.ndarray`
 
     :arg y: data array. *y* can be an 1-D array or a 2-D matrix of 
             column vectors.
-    :type y: `~numpy.ndarray`
+    :type y: :class:`~numpy.ndarray`
 
     :arg dy: an array of variances of *y* which will be plotted as a 
              band along *y*. It should have the same shape with *y*.
-    :type dy: `~numpy.ndarray`
+    :type dy: :class:`~numpy.ndarray`
 
     :arg lower: an array of lower bounds which will be plotted as a 
                 band along *y*. It should have the same shape with *y* and should be 
                 paired with *upper*.
-    :type lower: `~numpy.ndarray`
+    :type lower: :class:`~numpy.ndarray`
 
     :arg upper: an array of upper bounds which will be plotted as a 
                 band along *y*. It should have the same shape with *y* and should be 
                 paired with *lower*.
-    :type upper: `~numpy.ndarray`
+    :type upper: :class:`~numpy.ndarray`
 
     :arg alpha: the transparency of the band(s) for plotting *dy*.
     :type alpha: float
@@ -290,12 +486,22 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
 
     :arg interactive: turn on or off the interactive options
     :type interactive: bool
+
+    :arg xtickrotation: turn on or off rotation of the xticklabels
+                        default is False
+    :type xtickrotation: bool
     """
 
     from matplotlib import ticker
     from matplotlib.gridspec import GridSpec
     from matplotlib.collections import LineCollection
     from matplotlib.pyplot import gca, sca, sci, colorbar, subplot
+    try:
+        from matplotlib.colors import DivergingNorm
+    except ImportError:
+        from matplotlib.colors import TwoSlopeNorm
+
+    from .drawtools import drawTree
 
     p = kwargs.pop('percentile', None)
     vmin = vmax = None
@@ -305,7 +511,13 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
     
     vmin = kwargs.pop('vmin', vmin)
     vmax = kwargs.pop('vmax', vmax)
-    lw   = kwargs.pop('linewidth', 1)
+    vcenter = kwargs.pop('vcenter', None)
+    norm = kwargs.pop('norm', None)
+
+    if vcenter is not None and norm is None:
+        norm = DivergingNorm(vmin=vmin, vcenter=0., vmax=vmax)
+
+    lw = kwargs.pop('linewidth', 1)
     
     W = H = kwargs.pop('ratio', 6)
 
@@ -313,20 +525,24 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
     xticklabels = kwargs.pop('xticklabels', ticklabels)
     yticklabels = kwargs.pop('yticklabels', ticklabels)
 
+    xtickrotation = kwargs.pop('xtickrotation', False)
+
     show_colorbar = kwargs.pop('colorbar', True)
+    cb_extend = kwargs.pop('cb_extend', 'neither')
     allticks = kwargs.pop('allticks', False) # this argument is temporary and will be replaced by better implementation
-    origin = kwargs.pop('origin', 'lower')
     interactive = kwargs.pop('interactive', True)
 
-    tree_mode = False
-    if np.isscalar(y_array):
-        try: 
-            from Bio import Phylo
-        except ImportError:
-            raise ImportError('Phylo module could not be imported. '
-                'Reinstall ProDy or install Biopython '
-                'to solve the problem.')
-        tree_mode = isinstance(y_array, Phylo.BaseTree.Tree)
+    cmap = kwargs.pop('cmap', 'jet')
+    origin = kwargs.pop('origin', 'lower')
+
+    try: 
+        from Bio import Phylo
+    except ImportError:
+        raise ImportError('Phylo module could not be imported. '
+            'Reinstall ProDy or install Biopython '
+            'to solve the problem.')
+    tree_mode_y = isinstance(y_array, Phylo.BaseTree.Tree)
+    tree_mode_x = isinstance(x_array, Phylo.BaseTree.Tree)
 
     if x_array is not None and y_array is not None:
         nrow = 2; ncol = 2
@@ -351,14 +567,7 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
         i = 0; j = 0
         width_ratios = [W]
         height_ratios = [H]
-        aspect = None
-
-    if tree_mode:
-        nrow = 2; ncol = 2
-        i = 1; j = 1
-        width_ratios = [W, W]
-        height_ratios = [H, H]
-        aspect = 'auto'
+        aspect = kwargs.pop('aspect', None)
 
     main_index = (i, j)
     upper_index = (i-1, j)
@@ -372,55 +581,15 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
         gs = GridSpec(nrow, ncol, width_ratios=width_ratios, 
                       height_ratios=height_ratios, hspace=0., wspace=0.)
 
-    lines = []
-    if nrow > 1:
-        ax1 = subplot(gs[upper_index])
-
-        if not tree_mode:
-            ax1.set_xticklabels([])
-            
-            y = x_array
-            xp, yp = interpY(y)
-            points = np.array([xp, yp]).T.reshape(-1, 1, 2)
-            segments = np.concatenate([points[:-1], points[1:]], axis=1)
-            lcy = LineCollection(segments, array=yp, linewidths=lw, cmap='jet')
-            lines.append(lcy)
-            ax1.add_collection(lcy)
-
-            ax1.set_xlim(xp.min(), xp.max())
-            ax1.set_ylim(yp.min(), yp.max())
-        ax1.axis('off')
-
-    if ncol > 1:
-        ax2 = subplot(gs[left_index])
-        
-        if tree_mode:
-            Phylo.draw(y_array, do_show=False, axes=ax2, **kwargs)
-        else:
-            ax2.set_xticklabels([])
-            
-            y = y_array
-            xp, yp = interpY(y)
-            points = np.array([yp, xp]).T.reshape(-1, 1, 2)
-            segments = np.concatenate([points[:-1], points[1:]], axis=1)
-            lcx = LineCollection(segments, array=yp, linewidths=lw, cmap='jet')
-            lines.append(lcx)
-            ax2.add_collection(lcx)
-            ax2.set_xlim(yp.min(), yp.max())
-            ax2.set_ylim(xp.min(), xp.max())
-            ax2.invert_xaxis()
-
-        ax2.axis('off')
-
+    ## draw matrix
     if complex_layout:
         ax3 = subplot(gs[main_index])
     else:
         ax3 = gca()
     
-    kwargs['origin'] = origin
-    if not 'cmap' in kwargs:
-        kwargs['cmap'] = 'jet'
-    im = ax3.imshow(matrix, aspect=aspect, vmin=vmin, vmax=vmax, **kwargs)
+    im = ax3.imshow(matrix, aspect=aspect, vmin=vmin, vmax=vmax, 
+                    norm=norm, cmap=cmap, origin=origin, **kwargs)
+                    
     #ax3.set_xlim([-0.5, matrix.shape[0]+0.5])
     #ax3.set_ylim([-0.5, matrix.shape[1]+0.5])
 
@@ -433,15 +602,94 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
         ax3.xaxis.set_major_locator(ticker.IndexLocator(offset=0.5, base=1.))
         ax3.yaxis.set_major_locator(ticker.IndexLocator(offset=0.5, base=1.))
     else:
-        ax3.xaxis.set_major_locator(ticker.AutoLocator())
-        ax3.xaxis.set_minor_locator(ticker.AutoMinorLocator())
+        locator = ticker.AutoLocator()
+        locator.set_params(integer=True)
+        minor_locator = ticker.AutoMinorLocator()
 
-        ax3.yaxis.set_major_locator(ticker.AutoLocator())
-        ax3.yaxis.set_minor_locator(ticker.AutoMinorLocator())
+        ax3.xaxis.set_major_locator(locator)
+        ax3.xaxis.set_minor_locator(minor_locator)
+
+        locator = ticker.AutoLocator()
+        locator.set_params(integer=True)
+        minor_locator = ticker.AutoMinorLocator()
+        
+        ax3.yaxis.set_major_locator(locator)
+        ax3.yaxis.set_minor_locator(minor_locator)
 
     if ncol > 1:
         ax3.yaxis.set_major_formatter(ticker.NullFormatter())
+    
+    ## draw x_ and y_array
+    lines = []
+
+    if nrow > 1:
+        ax1 = subplot(gs[upper_index])
+
+        if tree_mode_x:
+            Y, X = drawTree(x_array, label_func=None, orientation='vertical', 
+                            inverted=True)
+            miny = min(Y.values())
+            maxy = max(Y.values())
+
+            minx = min(X.values())
+            maxx = max(X.values())
+
+            ax1.set_xlim(minx-.5, maxx+.5)
+            ax1.set_ylim(miny, 1.05*maxy)
+        else:
+            ax1.set_xticklabels([])
+            
+            y = x_array
+            xp, yp = interpY(y)
+            points = np.array([xp, yp]).T.reshape(-1, 1, 2)
+            segments = np.concatenate([points[:-1], points[1:]], axis=1)
+            lcy = LineCollection(segments, array=yp, linewidths=lw, cmap=cmap)
+            lines.append(lcy)
+            ax1.add_collection(lcy)
+
+            ax1.set_xlim(xp.min()-.5, xp.max()+.5)
+            ax1.set_ylim(yp.min(), yp.max())
+
+        if ax3.xaxis_inverted():
+            ax2.invert_xaxis()
+
+        ax1.axis('off')
+
+    if ncol > 1:
+        ax2 = subplot(gs[left_index])
         
+        if tree_mode_y:
+            X, Y = drawTree(y_array, label_func=None, inverted=True)
+            miny = min(Y.values())
+            maxy = max(Y.values())
+
+            minx = min(X.values())
+            maxx = max(X.values())
+
+            ax2.set_ylim(miny-.5, maxy+.5)
+            ax2.set_xlim(minx, 1.05*maxx)
+        else:
+            ax2.set_xticklabels([])
+            
+            y = y_array
+            xp, yp = interpY(y)
+            points = np.array([yp, xp]).T.reshape(-1, 1, 2)
+            segments = np.concatenate([points[:-1], points[1:]], axis=1)
+            lcx = LineCollection(segments, array=yp, linewidths=lw, cmap=cmap)
+            lines.append(lcx)
+            ax2.add_collection(lcx)
+            ax2.set_xlim(yp.min(), yp.max())
+            ax2.set_ylim(xp.min()-.5, xp.max()+.5)
+        
+        ax2.invert_xaxis()
+
+        if ax3.yaxis_inverted():
+            ax2.invert_yaxis()
+
+        ax2.axis('off')
+
+    ## draw colorbar
+    sca(ax3)
     cb = None
     if show_colorbar:
         if nrow > 1:
@@ -449,9 +697,9 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
             while None in axes:
                 axes.remove(None)
             s = H / (H + 1.)
-            cb = colorbar(mappable=im, ax=axes, anchor=(0, 0), shrink=s)
+            cb = colorbar(mappable=im, ax=axes, anchor=(0, 0), shrink=s, extend=cb_extend)
         else:
-            cb = colorbar(mappable=im)
+            cb = colorbar(mappable=im, extend=cb_extend)
 
     sca(ax3)
     sci(im)
@@ -462,12 +710,19 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
         cursor = ImageCursor(ax3, im)
         connect('button_press_event', cursor.onClick)
 
+    if xtickrotation:
+        ax3.tick_params(axis='x', rotation=90)
+
     return im, lines, cb
 
-def reorderMatrix(matrix, tree, names):
+def reorderMatrix(names, matrix, tree, axis=None):
     """
     Reorder a matrix based on a tree and return the reordered matrix 
     and indices for reordering other things.
+
+    :arg names: a list of names associated with the rows of the matrix
+        These names must match the ones used to generate the tree
+    :type names: list
 
     :arg matrix: any square matrix
     :type matrix: :class:`~numpy.ndarray`
@@ -475,10 +730,11 @@ def reorderMatrix(matrix, tree, names):
     :arg tree: any tree from :func:`calcTree`
     :type tree: :class:`~Bio.Phylo.BaseTree.Tree`
 
-    :arg names: a list of names associated with the rows of the matrix
-        These names must match the ones used to generate the tree.
-    :type names: list
+    :arg axis: along which axis the matrix should be reordered. 
+               Default is **None** which reorder along all the axes
+    :type axis: int
     """
+
     try:
         from Bio import Phylo
     except ImportError:
@@ -494,50 +750,89 @@ def reorderMatrix(matrix, tree, names):
 
     if np.shape(matrix)[0] != np.shape(matrix)[1]:
         raise ValueError('matrix should be a square matrix')
+    
+    names = np.asarray(names)
 
     if np.isscalar(names):
         raise TypeError('names should be list-like')
     
-    if not isinstance(names[0], str):
-        raise TypeError('names should be a list-like of strings')
+    if not len(names):
+        raise TypeError('names is empty')
 
     if not isinstance(tree, Phylo.BaseTree.Tree):
         raise TypeError('tree should be a BioPython Tree')
 
     if len(names) != len(matrix):
         raise ValueError('names should have entries for each matrix row/column')
-
-    if len(names) != len(tree.get_terminals()):
+    
+    terminals = tree.get_terminals()
+    if len(names) != len(terminals):
         raise ValueError('names should have entries for each tree terminal')
 
-    if len(tree.get_terminals()) != len(matrix):
+    if len(terminals) != len(matrix):
         raise ValueError('matrix should have a row for each tree terminal')
 
     indices = []
-    for terminal in tree.get_terminals():
-        indices.append(np.where(np.array(names) == str(terminal.name))[0][0])
+    for terminal in terminals:
+        name = terminal.name
+        locs = np.where(names == name)[0]
+        if not len(locs):
+            raise ValueError('inconsistent names and tree: %s not in names'%name)
 
-    reordered_matrix = matrix[:,indices]
-    reordered_matrix = reordered_matrix[indices,:]
+        if len(locs) > 1:
+            raise ValueError('inconsistent names and tree: duplicate name %s in names'%name)
+        indices.append(locs[0])
+
+    # rmatrix = matrix[:, indices]
+    # rmatrix = rmatrix[indices, :]
+
+    if axis is not None:
+        I = [np.arange(s) for s in matrix.shape] 
+        axes = [axis] if np.isscalar(axis) else axis
+        for ax in axes:
+            I[ax] = indices
+    else:
+        I = [indices] * matrix.ndim
     
-    return reordered_matrix, indices
+    rmatrix = matrix[np.ix_(*I)]
+    
+    return rmatrix, indices
 
-def findSubgroups(tree, cutoff=0.8):
+def findSubgroups(tree, c, method='naive', **kwargs):
     """
-    Divide a tree into subgroups using a distance cutoff.
+    Divide a tree into subgroups using a criterion and a cutoff.
     Returns a list of lists with labels divided into subgroups.
     """
 
-    subgroups = [[]]
+    method = method.lower().strip()
+    terminals = tree.get_terminals()
+    names = [clade.name for clade in terminals]
+    Z = None
 
-    for i, target_i in enumerate(tree.get_terminals()):
-        for j, target_j in enumerate(tree.get_terminals()):
-            if i == j+1:
-                subgroups[-1].append(str(target_j))
-                neighbour_distance = tree.distance(target_i,target_j)
-                if neighbour_distance > cutoff:
-                    subgroups.append([])
+    if method != 'naive':
+        try:
+            Z = getLinkage(names, tree)
+        except LinkageError:
+            print('Failed to build linkage; fall back to naive criterion')
+            method = 'naive'
+    
+    if method == 'naive':
+        subgroups = [[names[0]]]
+        for i in range(len(terminals)-1):
+            curr_clade = terminals[i]
+            next_clade = terminals[i + 1]
+            d = tree.distance(curr_clade, next_clade)
+            if d > c:
+                subgroups.append([])
+            subgroups[-1].append(next_clade.name)
+    else:
+        from scipy.cluster.hierarchy import fcluster
+        
+        T = fcluster(Z, c, criterion=method, **kwargs)
+        labels = np.unique(T)
+        subgroups = [[] for _ in range(len(labels))]
 
-    subgroups[-1].append(str(target_j))
+        for i, t in enumerate(T):
+            subgroups[t-1].append(names[i])
 
     return subgroups

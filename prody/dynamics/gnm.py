@@ -104,16 +104,18 @@ def solveEig(M, n_modes=None, zeros=False, turbo=True, is3d=False):
 
     if not zeros:
         if n_zeros > expct_n_zeros:
-            if n_zeros == n_modes + expct_n_zeros and n_modes != dof:
+            if n_zeros == n_modes + expct_n_zeros and n_modes < dof:
                 LOGGER.debug('Determing the number of zero eigenvalues...')
                 # find the actual number of zero modes
                 n_zeros = _calc_n_zero_modes(M)
                 LOGGER.debug('%d zero eigenvalues detected.'%n_zeros)
             LOGGER.debug('Solving for additional eigenvalues...')
-            start = min(n_modes+expct_n_zeros, dof-1); end = min(n_modes+n_zeros-1, dof-1)
-            values_, vectors_ = _eigh(M, eigvals=(start, end))
-            values = np.concatenate((values, values_))
-            vectors = np.hstack((vectors, vectors_))
+
+            if n_modes < dof:
+                start = min(n_modes+expct_n_zeros, dof-1); end = min(n_modes+n_zeros-1, dof-1)
+                values_, vectors_ = _eigh(M, eigvals=(start, end))
+                values = np.concatenate((values, values_))
+                vectors = np.hstack((vectors, vectors_))
 
         # final_n_modes may exceed len(eigvals) - no need to fix for the sake of the simplicity of the code
         final_n_modes = n_zeros + n_modes
@@ -672,6 +674,16 @@ class MaskedGNM(GNM):
         if not np.isscalar(mask):
             self.mask = np.array(mask)
 
+    def __repr__(self):
+        if self.masked or np.isscalar(self.mask):
+            n_dummies = 0
+        else:
+            n_dummies = len(self.mask) - self._n_atoms
+
+        return ('<{0}: {1} ({2} modes; {3} nodes + {4} dummies)>'
+                .format(self.__class__.__name__, self._title, self.__len__(), 
+                        self._n_atoms, n_dummies))
+
     def numAtoms(self):
         """Returns number of atoms."""
 
@@ -688,7 +700,7 @@ class MaskedGNM(GNM):
         else:
             return len(self.mask)
 
-    def _extend(self, arr):
+    def _extend(self, arr, defval=0):
         if self.masked or np.isscalar(self.mask):
             return arr
 
@@ -697,11 +709,13 @@ class MaskedGNM(GNM):
         N = len(mask)
 
         if arr.ndim == 1:
-            whole_array = np.zeros(N)
+            whole_array = np.empty(N, dtype=arr.dtype)
+            whole_array.fill(defval)
             whole_array[mask] = arr[:n_true]
         elif arr.ndim == 2:
             n, m = arr.shape
-            whole_array = np.zeros((N, m))
+            whole_array = np.empty((N, m), dtype=arr.dtype)
+            whole_array.fill(defval)
             #mask = np.expand_dims(mask, axis=1)
             #mask = mask.repeat(m, axis=1)
             whole_array[mask] = arr[:n_true, :]
@@ -808,7 +822,8 @@ class MaskedGNM(GNM):
 
     def setEigens(self, vectors, values=None):
         if not self.masked:
-            vectors = vectors[self.mask, :]
+            if not np.isscalar(self.mask):
+                vectors = vectors[self.mask, :]
         self._maskedarray = None
         super(MaskedGNM, self).setEigens(vectors, values)
 

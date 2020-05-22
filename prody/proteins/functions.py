@@ -22,20 +22,27 @@ def view3D(*alist, **kwargs):
     
     GNM/ANM Coloring
     
-    An array of fluctuation values (flucts) can be provided with the flucts kwarg
+    An array of fluctuation values (data) can be provided with the flucts kwarg
     for visualization of GNM/ANM calculations.  The array is assumed to 
     correpond to a calpha selection of the provided protein.
     The default color will be set to a RWB color scheme on a per-residue
     basis.  If the fluctuation vector contains negative values, the
     midpoint (white) will be at zero.  Otherwise the midpoint is the mean.
     
-    An array of displacement vectors (vecs) can be provided with the vecs kwarg.
+    An array of displacement vectors (mode) can be provided with the vecs kwarg.
     The animation of these motions can be controlled with frames (number
     of frames to animate over), amplitude (scaling factor), and animate
-    (3Dmol.js animate options).
+    (3Dmol.js animate options).  If animation isn't enabled, by default
+    arrows are drawn.  Drawing of arrows is controlled by the boolean arrows
+    option and the arrowcolor option.
     
-    If multiple structures are provided with the flucts or vecs arguments, these
+    If multiple structures are provided with the data or mode arguments, these
     arguments must be provided as lists of arrays of the appropriate dimension.
+
+    If a 3Dmol.js viewer as specified as the view argument, that viewer will be
+    modified and returned.  After modification, update instead of show should
+    be called on the viewer object if it is desired to update in-place
+    instead of instantiating a new viewer.
     """
 
     try:
@@ -57,6 +64,9 @@ def view3D(*alist, **kwargs):
     interval = kwargs.pop('interval', 1)
     anim = kwargs.pop('anim', False)
     scale = kwargs.pop('scale', 100)
+    arrows = kwargs.pop('arrows',True)
+    arrowcolor = kwargs.pop('arrowcolor', 'darkgrey')
+    arrowcolor = kwargs.pop('arrowColor', arrowcolor)
 
     if modes is None:
         n_modes = 0
@@ -70,7 +80,7 @@ def view3D(*alist, **kwargs):
         data_list = wrapModes(data_list)
         n_data = len(data_list)
 
-    view = py3Dmol.view(width=width, height=height, js=kwargs.get('js','http://3dmol.csb.pitt.edu/build/3Dmol-min.js'))
+    view = kwargs.get('view',py3Dmol.view(width=width, height=height, js=kwargs.get('js','http://3dmol.csb.pitt.edu/build/3Dmol-min.js')))
 
     def _mapData(atoms, data):
         # construct map from residue to data property
@@ -87,7 +97,7 @@ def view3D(*alist, **kwargs):
         lo = -extreme if np.min(data) < 0 else 0
         mid = np.mean(data) if np.min(data) >= 0 else 0
         view.setColorByProperty({'model': -1}, 'data', 'rwb', [extreme,lo,mid])
-        view.setStyle({'model': -1},{'cartoon':{'style':'trace'}})    
+        view.setStyle({'model': -1},{'cartoon':{'style':'oval'}})    
 
 
     for i, atoms in enumerate(alist):
@@ -133,14 +143,14 @@ def view3D(*alist, **kwargs):
                     # set the atom property 
                     # TODO: implement something more efficient on the 3Dmol.js side (this is O(n*m)!)
                     view.mapAtomProperties(propmap)
-                else:
+                elif arrows:
                     for j, a in enumerate(atoms.calpha):
                         start = a._getCoords()
                         dcoords = arr[3*j:3*j+3]
                         end = start + dcoords * scale
                         view.addArrow({'start': {'x':start[0], 'y':start[1], 'z':start[2]},
                                        'end': {'x':end[0], 'y':end[1], 'z':end[2]},
-                                       'radius': 0.3})
+                                       'radius': 0.3, 'color': arrowcolor})
             else:
                 if atoms.calpha.numAtoms() != len(arr):
                     raise RuntimeError("Atom count mismatch: {} vs {}. mode styling assumes a calpha selection."
@@ -345,7 +355,7 @@ def showProtein(*atoms, **kwargs):
                           color=wcolor,
                           ls='None', marker=kwargs.get('wmarker', '.'),
                           ms=kwargs.get('wsize', 6))
-            hetero = atoms.select('not protein and not nucleic and not water')
+            hetero = atoms.select('not protein and not nucleic and not water and not dummy')
             if hetero:
                 for res in HierView(hetero).iterResidues():
                     xyz = res._getCoords()

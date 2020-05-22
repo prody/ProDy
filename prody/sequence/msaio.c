@@ -2,7 +2,7 @@
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 #include "numpy/arrayobject.h"
 #define LENLABEL 100
-#define FASTALINELEN 1000
+#define FASTALINELEN 10000
 #define SELEXLINELEN 10000
 
 static char *intcat(char *msg, int line) {

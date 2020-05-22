@@ -27,8 +27,10 @@ def parsePSF(filename, title=None, ag=None):
     provided as *ag* argument.  When provided, *ag* must have the same number
     of atoms in the same order as the file.  Data from PSF file will be added
     to the *ag*.  This may overwrite present data if it overlaps with PSF file
-    content.  Note that this function does not evaluate angles, dihedrals, and
-    impropers sections."""
+    content.  
+    
+    This function now includes the angles, dihedrals, and impropers sections
+    as well as donors, acceptors and crossterms!"""
 
     if ag is not None:
         if not isinstance(ag, AtomGroup):
@@ -36,14 +38,12 @@ def parsePSF(filename, title=None, ag=None):
 
     psf = openFile(filename, 'rb')
     line = psf.readline()
-    i_line = 1
     while line:
         line = line.strip()
         if line.endswith(b'!NATOM'):
             n_atoms = int(line.split(b'!')[0])
             break
         line = psf.readline()
-        i_line += 1
     if title is None:
         title = os.path.splitext(os.path.split(filename)[1])[0]
     else:
@@ -63,7 +63,6 @@ def parsePSF(filename, title=None, ag=None):
     charges = zeros(n_atoms, ATOMIC_FIELDS['charge'].dtype)
     masses = zeros(n_atoms, ATOMIC_FIELDS['mass'].dtype)
     
-    #lines = psf.readlines(71 * (n_atoms + 5))
     n = 0
     n_bonds = 0
     for i, line in enumerate(psf):
@@ -98,17 +97,99 @@ def parsePSF(filename, title=None, ag=None):
         n += 1
     
     if n < n_atoms:
-        raise IOError('number of lines in PSF is less than the number of '
+        raise IOError('number of lines in PSF atoms block is less than the number of '
                       'atoms')
-                      
-#    i = n_atoms
-#    while 1:
-#        line = lines[i].split()
-#        if len(line) >= 2 and line[1] == '!NBOND:':
-#             n_bonds = int(line[0])
-#             break
-#        i += 1
-#    lines = ''.join(lines[i+1:]) + psf.read(n_bonds/4 * 71)
+
+    lines = []
+    for i, line in enumerate(psf):
+        if line.strip() == b'':
+            continue
+        if b'!NTHETA' in line:
+            items = line.split()
+            n_angles = int(items[0])
+            break
+        lines.append(line.decode(encoding='UTF-8'))
+    
+    lines = ''.join(lines)
+    b_array = fromstring(lines, count=n_bonds*2, dtype=int, sep=' ')
+    if len(b_array) != n_bonds*2:
+        raise IOError('number of bonds expected and parsed do not match')
+
+    lines = []
+    for i, line in enumerate(psf):
+        if line.strip() == b'':
+            continue
+        if b'!NPHI' in line:
+            items = line.split()
+            n_dihedrals = int(items[0])
+            break
+        lines.append(line.decode(encoding='UTF-8'))
+    
+    lines = ''.join(lines)
+    a_array = fromstring(lines, count=n_angles*3, dtype=int, sep=' ')
+    if len(a_array) != n_angles*3:
+        raise IOError('number of angles expected and parsed do not match')
+
+    lines = []
+    for i, line in enumerate(psf):
+        if line.strip() == b'':
+            continue
+        if b'!NIMPHI' in line:
+            items = line.split()
+            n_impropers = int(items[0])
+            break
+        lines.append(line.decode(encoding='UTF-8'))
+    
+    lines = ''.join(lines)
+    d_array = fromstring(lines, count=n_dihedrals*4, dtype=int, sep=' ')
+    if len(d_array) != n_dihedrals*4:
+        raise IOError('number of dihedrals expected and parsed do not match')
+
+    lines = []
+    for i, line in enumerate(psf):
+        if line.strip() == b'':
+            continue
+        if b'!NDON' in line:
+            items = line.split()
+            n_donors = int(items[0])
+            break
+        lines.append(line.decode(encoding='UTF-8'))
+    
+    lines = ''.join(lines)
+    i_array = fromstring(lines, count=n_impropers*4, dtype=int, sep=' ')
+    if len(i_array) != n_impropers*4:
+        raise IOError('number of impropers expected and parsed do not match')
+
+    lines = []
+    for i, line in enumerate(psf):
+        if line.strip() == b'':
+            continue
+        if b'!NACC' in line:
+            items = line.split()
+            n_acceptors = int(items[0])
+            break
+        lines.append(line.decode(encoding='UTF-8'))
+    
+    lines = ''.join(lines)
+    do_array = fromstring(lines, count=n_donors*2, dtype=int, sep=' ')
+    if len(do_array) != n_donors*2:
+        raise IOError('number of donors expected and parsed do not match')
+
+    lines = []
+    for i, line in enumerate(psf):
+        if line.strip() == b'':
+            continue
+        if b'!NNB' in line:
+            items = line.split()
+            n_exclusions = int(items[0])
+            break
+        lines.append(line.decode(encoding='UTF-8'))
+    
+    lines = ''.join(lines)
+    ac_array = fromstring(lines, count=n_acceptors*2, dtype=int, sep=' ')
+    if len(ac_array) != n_acceptors*2:
+        raise IOError('number of acceptors expected and parsed do not match')
+
     lines = []
     for i, line in enumerate(psf):
         if line.strip() == b'':
@@ -118,9 +199,24 @@ def parsePSF(filename, title=None, ag=None):
         lines.append(line.decode(encoding='UTF-8'))
     
     lines = ''.join(lines)
-    array = fromstring(lines, count=n_bonds*2, dtype=int, sep=' ')
-    if len(array) != n_bonds*2:
-        raise IOError('number of bonds expected and parsed do not match')
+    nbe_array = fromstring(lines, count=n_exclusions*2, dtype=int, sep=' ')
+    if len(nbe_array) != n_exclusions*2:
+        raise IOError('number of nonbonded exclusions expected and parsed do not match')
+
+    for i, line in enumerate(psf):
+        if b'!NCRTERM' in line:
+            items = line.split()
+            n_crossterms = int(items[0])
+            break
+
+    lines = []
+    for i, line in enumerate(psf):
+        lines.append(line.decode(encoding='UTF-8'))
+    
+    lines = ''.join(lines)
+    c_array = fromstring(lines, count=n_crossterms*4, dtype=int, sep=' ')
+    if len(c_array) != n_crossterms*4:
+        raise IOError('number of crossterms expected and parsed do not match')
 
     psf.close()
     ag.setSerials(serials)
@@ -132,10 +228,32 @@ def parsePSF(filename, title=None, ag=None):
     ag.setCharges(charges)
     ag.setMasses(masses)
 
-    array = add(array, -1, array)
-    ag.setBonds(array.reshape((n_bonds, 2)))
+    b_array = add(b_array, -1, b_array)
+    ag.setBonds(b_array.reshape((n_bonds, 2)))
+
+    a_array = add(a_array, -1, a_array)
+    ag.setAngles(a_array.reshape((n_angles, 3)))
+
+    d_array = add(d_array, -1, d_array)
+    ag.setDihedrals(d_array.reshape((n_dihedrals, 4)))
+
+    i_array = add(i_array, -1, i_array)
+    ag.setImpropers(i_array.reshape((n_impropers, 4)))
+
+    do_array = add(do_array, -1, do_array)
+    ag.setDonors(do_array.reshape((n_donors, 2)))
+
+    ac_array = add(ac_array, -1, ac_array)
+    ag.setAcceptors(ac_array.reshape((n_acceptors, 2)))
+
+    nbe_array = add(nbe_array, -1, nbe_array)
+    ag.setNBExclusions(nbe_array.reshape((n_exclusions, 2)))
+
+    c_array = add(c_array, -1, c_array)
+    ag.setCrossterms(c_array.reshape((n_crossterms, 4)))
 
     return ag
+
 
 PSFLINE = ('%8d %-4s %-4d %-4s %-4s %-4s %10.6f %13.4f %11d\n')
 
@@ -143,6 +261,9 @@ def writePSF(filename, atoms):
     """Write atoms in X-PLOR format PSF file with name *filename* and return
     *filename*.  This function will write available atom and bond information
     only."""
+
+    if not filename.endswith('.psf'):
+        filename = filename + '.psf'
 
     try:
         n_atoms, segments, rnums, rnames, names, types, charges, masses = (
@@ -168,7 +289,10 @@ def writePSF(filename, atoms):
         raise ValueError('atom names are not set')
 
     if types is None:
-        atomtypes = zeros(n_atoms, array(['a']).dtype.char + '1')
+        types = zeros(n_atoms, ATOMIC_FIELDS['type'].dtype)
+
+    if charges is None:
+        charges = zeros(n_atoms, ATOMIC_FIELDS['charge'].dtype)
 
     long_fields = array([len(tp) for tp in types]).max() > 4
 
@@ -184,6 +308,7 @@ def writePSF(filename, atoms):
     for i in range(n_atoms):
         write(PSFLINE % (i + 1, segments[i], rnums[i], rnames[i], names[i],
                         types[i], charges[i], masses[i], 0))
+
     bonds = list(atoms._iterBonds())
     if bonds:
         bonds = array(bonds, int) + 1
@@ -195,5 +320,104 @@ def writePSF(filename, atoms):
                 write('\n')
         if i % 4 != 3:
             write('\n')
+
+    angles = list(atoms._iterAngles())
+    if angles:
+        angles = array(angles, int) + 1
+        write('\n')
+        write('{0:8d} !NTHETA: angles\n'.format(len(angles)))
+        for i, angle in enumerate(angles):
+            write('%8s%8s%8s' % (angle[0], angle[1], angle[2]))
+            if i % 3 == 2:
+                write('\n')
+        if i % 3 != 2:
+            write('\n')
+
+    dihedrals = list(atoms._iterDihedrals())
+    if dihedrals:
+        dihedrals = array(dihedrals, int) + 1
+        write('\n')
+        write('{0:8d} !NPHI: dihedrals\n'.format(len(dihedrals)))
+        for i, dihedral in enumerate(dihedrals):
+            write('%8s%8s%8s%8s' % (dihedral[0], dihedral[1], dihedral[2], dihedral[3]))
+            if i % 4 == 3:
+                write('\n')
+        if i % 4 != 3:
+            write('\n')
+
+    impropers = list(atoms._iterImpropers())
+    if impropers:
+        impropers = array(impropers, int) + 1
+        write('\n')
+        write('{0:8d} !NIMPHI: impropers\n'.format(len(impropers)))
+        for i, improper in enumerate(impropers):
+            write('%8s%8s%8s%8s' % (improper[0], improper[1], improper[2], improper[3]))
+            if i % 2 == 1:
+                write('\n')
+        if i % 2 != 1:
+            write('\n')
+
+    write('\n')
+
+    donors = list(atoms._iterDonors())
+    if donors:
+        donors = array(donors, int) + 1
+        write('\n')
+        write('{0:8d} !NDON: donors\n'.format(len(donors)))
+        for i, donor in enumerate(donors):
+            write('%8s%8s' % (donor[0], donor[1]))
+            if i % 4 == 3:
+                write('\n')
+        if i % 4 != 3:
+            write('\n')
+    else:
+        write('{0:8d} !NDON: donors\n'.format(0))
+        write('\n')
+    
+    write('\n')
+
+    acceptors = list(atoms._iterAcceptors())
+    if acceptors:
+        acceptors = array(acceptors, int) + 1
+        write('\n')
+        write('{0:8d} !NACC: acceptors\n'.format(len(acceptors)))
+        for i, acceptor in enumerate(acceptors):
+            write('%8s%8s' % (acceptor[0], acceptor[1]))
+            if i % 4 == 3:
+                write('\n')
+        if i % 4 != 3:
+            write('\n')
+    else:
+        write('{0:8d} !NACC: acceptors\n'.format(0))
+        write('\n')
+
+    nbexclusions = list(atoms._iterNBExclusions())
+    if nbexclusions:
+        nbexclusions = array(nbexclusions, int) + 1
+        write('\n')
+        write('{0:8d} !NNB\n'.format(len(nbexclusions)))
+        for i, nbexclusion in enumerate(nbexclusions):
+            write('%8s%8s' % (nbexclusion[0], nbexclusion[1]))
+            if i % 4 == 3:
+                write('\n')
+        if i % 4 != 3:
+            write('\n')
+    else:
+        write('{0:8d} !NNB\n'.format(0))
+        write('\n')
+
+    crossterms = list(atoms._iterCrossterms())
+    if crossterms:
+        crossterms = array(crossterms, int) + 1
+        write('\n')
+        write('{0:8d} !NCRTERM: crossterms\n'.format(len(crossterms)))
+        for i, crossterm in enumerate(crossterms):
+            write('%8s%8s%8s%8s' % (crossterm[0], crossterm[1], crossterm[2], crossterm[3]))
+            if i % 2 == 1:
+                write('\n')
+        if i % 2 != 1:
+            write('\n')
+
+    write('\n')
     out.close()
     return filename

@@ -1,22 +1,24 @@
 """This module defines miscellaneous utility functions."""
 import re
 
-from numpy import unique, linalg, diag, sqrt, dot, chararray, divide, zeros_like
-from numpy import diff, where, insert, nan, isnan, loadtxt, array, round, average
-from numpy import sign, arange, asarray, ndarray, subtract, power, sum, isscalar
+from numpy import unique, linalg, diag, sqrt, dot, chararray, divide, zeros_like, zeros, allclose, ceil
+from numpy import diff, where, insert, nan, isnan, loadtxt, array, round, average, min, max, delete, vstack
+from numpy import sign, arange, asarray, ndarray, subtract, power, sum, isscalar, empty, triu, tril
 from collections import Counter
 import numbers
 
 from prody import PY3K
 
+from Bio.Data import IUPACData
+
 from xml.etree.ElementTree import Element
 
 __all__ = ['Everything', 'Cursor', 'ImageCursor', 'rangeString', 'alnum', 'importLA', 'dictElement',
            'intorfloat', 'startswith', 'showFigure', 'countBytes', 'sqrtm',
-           'saxsWater', 'count', 'addEnds', 'copy', 'dictElementLoop', 
+           'saxsWater', 'count', 'addEnds', 'copy', 'dictElementLoop', 'index',
            'getDataPath', 'openData', 'chr2', 'toChararray', 'interpY', 'cmp', 'pystr',
-           'getValue', 'indentElement', 'isPDB', 'isURL', 'isListLike',
-           'getDistance', 'fastin', 'createStringIO', 'div0', 'wmean', 'bin2dec', 'wrapModes']
+           'getValue', 'indentElement', 'isPDB', 'isURL', 'isListLike', 'isSymmetric', 'makeSymmetric',
+           'getDistance', 'fastin', 'createStringIO', 'div0', 'wmean', 'bin2dec', 'wrapModes', 'fixArraySize']
 
 CURSORS = []
 
@@ -346,15 +348,16 @@ def getMasses(elements):
     """Gets the mass atom. """
     
     import numpy as np
-    mass_dict = {'C':12,'N':14,'S':32,'O':16,'H':1}
+    # mass_dict = {'C':12,'N':14,'S':32,'O':16,'H':1}
+    mass_dict = IUPACData.atom_weights
 
     if isinstance(elements, str):
-        return mass_dict[elements]
+        return mass_dict[elements.capitalize()]
     else:
         masses = np.zeros(len(elements))
         for i,element in enumerate(elements):
-            if element in mass_dict:
-                masses[i] = mass_dict[element]
+            if element.capitalize() in mass_dict:
+                masses[i] = mass_dict[element.capitalize()]
             else:
                 masses[i] = 0.
         return masses
@@ -563,3 +566,61 @@ def wrapModes(modes):
         if isscalar(modes[0]):
             modes = [modes]
     return modes
+
+def fixArraySize(arr, sizes, value=0):
+    """Makes sure that **arr** is of **sizes**. If not, pad with **value**."""
+
+    if not isinstance(arr, ndarray):
+        raise TypeError('arr has to be a numpy ndarray')
+
+    if not isinstance(sizes, tuple):
+        raise TypeError('sizes has to be a tuple')
+
+    shapes = arr.shape
+    if shapes == sizes:
+        return arr
+
+    arr2 = empty(sizes, dtype=arr.dtype)
+    arr2.fill(value)
+
+    common_sizes = [min((a, b)) for a, b in zip(sizes, shapes)]
+    slices = tuple(slice(s) for s in common_sizes)
+    arr2[slices] = arr[slices]
+
+    return arr2
+
+def isSymmetric(M, rtol=1e-05, atol=1e-08):
+    """Checks if the matrix is symmetric."""
+    if M.shape != M.T.shape:
+        return False
+    return allclose(M, M.T, rtol=rtol, atol=atol)
+
+def makeSymmetric(M):
+    """Makes sure the matrix is symmetric."""
+    
+    if isSymmetric(M):
+        return M
+
+    # make square 
+    n, m = M.shape
+    l = max((n, m))
+    M = fixArraySize(M, (l, l))
+
+    # determine which part of the matrix has values
+    U = triu(M, k=1)
+    L = tril(M, k=-1)
+
+    if U.sum() == 0:
+        M += L.T
+    elif L.sum() == 0:
+        M += U.T
+    else:
+        M = (M + M.T) / 2.
+    return M
+
+def index(A, a):
+    if isinstance(A, list):
+        return A.index(a)
+    else:
+        A = asarray(A)
+        return where(A==a)[0][0]

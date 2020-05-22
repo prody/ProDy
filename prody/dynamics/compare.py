@@ -26,21 +26,35 @@ def calcOverlap(rows, cols):
     argument, and columns correspond to those passed as *cols* argument.
     Both rows and columns are normalized prior to calculating overlap."""
 
-    if not isinstance(rows, (NMA, ModeSet, Mode, Vector)):
-        raise TypeError('rows must be NMA, ModeSet, Mode, or Vector, not {0}'
+    if not isinstance(rows, (NMA, ModeSet, Mode, Vector, np.ndarray)):
+        raise TypeError('rows must be NMA, ModeSet, Mode, Vector, or array, not {0}'
                         .format(type(rows)))
-    if not isinstance(cols, (NMA, ModeSet, Mode, Vector)):
-        raise TypeError('cols must be NMA, ModeSet, Mode, or Vector, not {0}'
+    if not isinstance(cols, (NMA, ModeSet, Mode, Vector, np.ndarray)):
+        raise TypeError('cols must be NMA, ModeSet, Mode, or Vector, or array, not {0}'
                         .format(type(cols)))
 
-    if rows.numEntries() != cols.numEntries():
+    if isinstance(rows, np.ndarray):
+        num_rows = rows.shape[0]
+    else:
+        num_rows = rows.numEntries()
+
+    if isinstance(cols, np.ndarray):
+        num_cols = cols.shape[0]
+    else:
+        num_cols = cols.numEntries()
+
+    if num_rows != num_cols:
         raise ValueError('the length of vectors in rows and '
                          'cols must be the same')
     
-    rows = rows.getArray()
+    if not isinstance(rows, np.ndarray):
+        rows = rows.getArray()
     rows *= 1 / (rows ** 2).sum(0) ** 0.5
-    cols = cols.getArray()
+
+    if not isinstance(cols, np.ndarray):
+        cols = cols.getArray()
     cols *= 1 / (cols ** 2).sum(0) ** 0.5
+
     return np.dot(rows.T, cols)
 
 
@@ -348,7 +362,7 @@ def _pairModes_wrapper(args):
 def matchModes(*modesets, **kwargs):
     """Returns the matches of modes among *modesets*. Note that the first 
     modeset will be treated as the reference so that only the matching 
-    of each modeset to the first modeset is garanteed to be optimal.
+    of each modeset to the first modeset is guaranteed to be optimal.
     
     :arg index: if **True** then indices of modes will be returned instead of 
                 :class:`Mode` instances

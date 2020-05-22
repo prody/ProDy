@@ -6,7 +6,7 @@ from numbers import Integral
 
 import numpy as np
 
-from prody.proteins import fetchPDB, parsePDB, writePDB, mapOntoChain
+from prody.proteins import fetchPDB, parsePDB, writePDB, alignChains
 from prody.utilities import openFile, showFigure, copy, isListLike, pystr
 from prody import LOGGER, SETTINGS
 from prody.atomic import AtomMap, Chain, AtomGroup, Selection, Segment, Select, AtomSubset
@@ -18,7 +18,7 @@ from .conformation import *
 
 __all__ = ['saveEnsemble', 'loadEnsemble', 'trimPDBEnsemble',
            'calcOccupancies', 'showOccupancies', 'alignPDBEnsemble',
-           'buildPDBEnsemble', 'addPDBEnsemble', 'refineEnsemble']
+           'buildPDBEnsemble', 'refineEnsemble']
 
 
 def saveEnsemble(ensemble, filename=None, **kwargs):
@@ -282,9 +282,11 @@ def showOccupancies(pdbensemble, *args, **kwargs):
 
     import matplotlib.pyplot as plt
 
+    normed = kwargs.pop('normed', False)
+
     if not isinstance(pdbensemble, PDBEnsemble):
         raise TypeError('pdbensemble must be a PDBEnsemble instance')
-    weights = calcOccupancies(pdbensemble)
+    weights = calcOccupancies(pdbensemble, normed)
     if weights is None:
         return None
     show = plt.plot(weights, *args, **kwargs)
@@ -377,136 +379,139 @@ def alignPDBEnsemble(ensemble, suffix='_aligned', outdir='.', gzip=False):
         return output
 
 
-def buildPDBEnsemble(PDBs, ref=None, title='Unknown', labels=None, 
-                     mapping_func=mapOntoChain, unmapped=None, **kwargs):
-    """Builds a PDB ensemble from a given reference structure and a list of PDB structures. 
-    Note that the reference structure should be included in the list as well.
+def buildPDBEnsemble(atomics, ref=None, title='Unknown', labels=None, unmapped=None, **kwargs):
+    """Builds a :class:`.PDBEnsemble` from a given reference structure and a list of structures 
+    (:class:`.Atomic` instances). Note that the reference should be included in the list as well.
 
-    :arg PDBs: A list of PDB structures
-    :type PDBs: iterable
+    :arg atomics: a list of :class:`.Atomic` instances
+    :type atomics: list
 
-    :arg ref: Reference structure or the index to the reference in ``PDBs``. If **None**,
-        then the first item in ``PDBs`` will be considered as the reference. 
+    :arg ref: reference structure or the index to the reference in *atomics*. If **None**,
+        then the first item in *atomics* will be considered as the reference. If it is a 
+        :class:`.PDBEnsemble` instance, then *atomics* will be appended to the existing ensemble.
         Default is **None**
     :type ref: int, :class:`.Chain`, :class:`.Selection`, or :class:`.AtomGroup`
 
-    :arg title: The title of the ensemble
+    :arg title: the title of the ensemble
     :type title: str
 
     :arg labels: labels of the conformations
     :type labels: list
 
-    :arg occupancy: Minimal occupancy of columns (range from 0 to 1). Columns whose occupancy
-        is below this value will be trimmed.
+    :arg degeneracy: whether only the active coordinate set (**True**) or all the coordinate sets 
+        (**False**) of each structure should be added to the ensemble. Default is **True**
+    :type degeneracy: bool
+
+    :arg occupancy: minimal occupancy of columns (range from 0 to 1). Columns whose occupancy
+        is below this value will be trimmed
     :type occupancy: float
 
-    :arg unmapped: A list of PDB IDs that cannot be included in the ensemble. This is an 
-        output argument. 
+    :arg unmapped: labels of *atomics* that cannot be included in the ensemble. This is an 
+        output argument
     :type unmapped: list
 
-    :arg subset: A subset for selecting particular atoms from the input structures.
-        Default is calpha
+    :arg subset: a subset for selecting particular atoms from the input structures.
+        Default is ``"calpha"``
     :type subset: str
+
+    :arg superpose: if set to ``'iter'``, :func:`.PDBEnsemble.iterpose` will be used to 
+        superpose the structures, otherwise conformations will be superposed with respect 
+        to the reference specified by *ref*. Default is ``'iter'``
+    :type superpose: str
     """
 
     occupancy = kwargs.pop('occupancy', None)
     degeneracy = kwargs.pop('degeneracy', True)
     subset = str(kwargs.get('subset', 'calpha')).lower()
-    superpose = kwargs.pop('superpose', True)
+    superpose = kwargs.pop('superpose', 'iter')
     superpose = kwargs.pop('iterpose', superpose)
+    debug = kwargs.pop('debug', {})
 
-    if len(PDBs) == 1:
-        raise ValueError('PDBs should have at least two items')
+    if 'mapping_func' in kwargs:
+        raise DeprecationWarning('mapping_func is deprecated. Please see release notes for '
+                                 'more details: http://prody.csb.pitt.edu/manual/release/v1.11_series.html')
+    start = time.time()
+
+    if len(atomics) == 1:
+        raise ValueError('atomics should have at least two items')
 
     if labels is not None:
-        if len(labels) != len(PDBs):
-            raise TypeError('Labels and PDBs must have the same lengths.')
+        if len(labels) != len(atomics):
+            raise TypeError('Labels and atomics must have the same lengths.')
     else:
         labels = []
         
-        for pdb in PDBs:
-            if pdb is None:
+        for atoms in atomics:
+            if atoms is None:
                 labels.append(None)
             else:
-                labels.append(pdb.getTitle())
+                labels.append(atoms.getTitle())
 
     if ref is None:
-        refpdb = PDBs[0]
+        target = atomics[0]
     elif isinstance(ref, Integral):
-        refpdb = PDBs[ref]
+        target = atomics[ref]
+    elif isinstance(ref, PDBEnsemble):
+        target = ref._atoms
     else:
-        refpdb = ref
-        if refpdb not in PDBs:
-            raise ValueError('refpdb should be also in the PDBs')
-
-    # obtain refchains from the hierarchical view of the reference PDB
-    if subset != 'all':
-        refpdb = refpdb.select(subset)
-        
-    try:
-        refchains = list(refpdb.getHierView())
-    except AttributeError:
-        raise TypeError('refpdb must have getHierView')
-
-    start = time.time()
-    # obtain the atommap of all the chains combined.
-    atoms = refpdb
+        target = ref
     
     # initialize a PDBEnsemble with reference atoms and coordinates
-    ensemble = PDBEnsemble(title)
-    ensemble.setAtoms(atoms)
-    ensemble.setCoords(atoms.getCoords())
+    if isinstance(ref, PDBEnsemble):
+        ensemble = ref
+    else:
+        # select the subset of reference beforehand for the sake of efficiency
+        if subset != 'all':
+            target = target.select(subset)
+        ensemble = PDBEnsemble(title)
+        ensemble.setAtoms(target)
+        ensemble.setCoords(target.getCoords())
     
     # build the ensemble
     if unmapped is None: unmapped = []
 
-    LOGGER.progress('Building the ensemble...', len(PDBs), '_prody_buildPDBEnsemble')
-    for i, pdb in enumerate(PDBs):
-        if pdb is None:
+    LOGGER.progress('Building the ensemble...', len(atomics), '_prody_buildPDBEnsemble')
+    for i, atoms in enumerate(atomics):
+        if atoms is None:
             unmapped.append(labels[i])
             continue
 
-        LOGGER.update(i, 'Mapping %s to the reference...'%pdb.getTitle(), 
+        LOGGER.update(i, 'Mapping %s to the reference...'%atoms.getTitle(), 
                       label='_prody_buildPDBEnsemble')
         try:
-            pdb.getHierView()
+            atoms.getHierView()
         except AttributeError:
-            raise TypeError('PDBs must be a list of instances having the access to getHierView')
-            
-        if labels is None:
-            lbl = pdb.getTitle()
-        else:
-            lbl = labels[i]
+            raise TypeError('atomics must be a list of instances having the access to getHierView')
+        
+        if subset != 'all':
+            atoms = atoms.select(subset)
 
-        atommaps = []
-        # find the mapping of the pdb to each reference chain
-        for chain in refchains:
-            mappings = mapping_func(pdb, chain,
-                                    index=i,
-                                    **kwargs)
-            if len(mappings) > 0:
-                atommaps.append(mappings[0][0])
-            else:
-                break
+        # find the mapping of chains of atoms to those of target
+        debug[labels[i]] = {}
+        atommaps = alignChains(atoms, target, debug=debug[labels[i]], **kwargs)
 
-        if len(atommaps) != len(refchains):
-            unmapped.append(lbl)
+        if len(atommaps) == 0:
+            unmapped.append(labels[i])
             continue
         
-        # combine the mappings of pdb to reference chains
-        atommap = atommaps[0]
-        for j in range(1, len(atommaps)):
-            atommap += atommaps[j]
-        
-        # add the mappings to the ensemble
-        ensemble.addCoordset(atommap, weights=atommap.getFlags('mapped'), 
-                             label = lbl, degeneracy=degeneracy)
+        # add the atommaps to the ensemble
+        for atommap in atommaps:
+            lbl = pystr(labels[i])
+            if len(atommaps) > 1:
+                chids = np.unique(atommap.getChids())
+                strchids = ''.join(chids)
+                lbl += '_%s'%strchids
+            ensemble.addCoordset(atommap, weights=atommap.getFlags('mapped'), 
+                                label=lbl, degeneracy=degeneracy)
 
     LOGGER.finish()
 
     if occupancy is not None:
         ensemble = trimPDBEnsemble(ensemble, occupancy=occupancy)
-    if superpose:
+
+    if superpose != 'iter':
+        ensemble.superpose()
+    else:
         ensemble.iterpose()
     
     LOGGER.info('Ensemble ({0} conformations) were built in {1:.2f}s.'
@@ -516,127 +521,8 @@ def buildPDBEnsemble(PDBs, ref=None, title='Unknown', labels=None,
         LOGGER.warn('{0} structures cannot be mapped.'.format(len(unmapped)))
     return ensemble
 
-def addPDBEnsemble(ensemble, PDBs, refpdb=None, labels=None, 
-                   mapping_func=mapOntoChain, occupancy=None, unmapped=None, **kwargs):  
-    """Adds extra structures to a given PDB ensemble. 
-
-    :arg ensemble: the ensemble to which the PDBs are added
-    :type ensemble: :class:`.PDBEnsemble`
-
-    :arg refpdb: reference structure. If set to `None`, it will be set to `ensemble.getAtoms()` automatically
-    :type refpdb: :class:`.Chain`, :class:`.Selection`, or :class:`.AtomGroup`
-
-    :arg PDBs: A list of PDB structures
-    :type PDBs: iterable
-
-    :arg title: the title of the ensemble
-    :type title: str
-
-    :arg labels: labels of the conformations
-    :type labels: list
-
-    :arg seqid: minimal sequence identity (percent)
-    :type seqid: int
-
-    :arg coverage: minimal sequence overlap (percent)
-    :type coverage: int
-
-    :arg occupancy: minimal occupancy of columns (range from 0 to 1). Columns whose occupancy 
-                    is below this value will be trimmed
-    :type occupancy: float
-
-    :arg unmapped: a list of PDB IDs that cannot be included in the ensemble. This is an 
-                   output argument
-    :type unmapped: list
-    """
-
-    degeneracy = kwargs.pop('degeneracy', True)
-    subset = str(kwargs.get('subset', 'calpha')).lower()
-    superpose = kwargs.pop('superpose', True)
-
-    if labels is not None:
-        if len(labels) != len(PDBs):
-            raise TypeError('Labels and PDBs must have the same lengths.')
-    else:
-        labels = []
-        
-        for pdb in PDBs:
-            if pdb is None:
-                labels.append(None)
-            else:
-                labels.append(pdb.getTitle())
-
-    # obtain refchains from the hierarhical view of the reference PDB
-    if refpdb is None:
-        refpdb = ensemble._atoms
-    else:
-        if subset != 'all':
-            refpdb = refpdb.select(subset)
-
-    refchains = list(refpdb.getHierView())
-
-    start = time.time()
-
-    # obtain the atommap of all the chains combined.
-    atoms = refchains[0]
-    for i in range(1, len(refchains)):
-        atoms += refchains[i]
-    
-    # add the PDBs to the ensemble
-    if unmapped is None: unmapped = []
-
-    LOGGER.progress('Appending the ensemble...', len(PDBs), '_prody_addPDBEnsemble')
-    for i, pdb in enumerate(PDBs):
-        lbl = labels[i]
-        if pdb is None:
-            unmapped.append(labels[i])
-            continue
-
-        LOGGER.update(i, 'Mapping %s to the reference...'%pdb.getTitle(), 
-                      label='_prody_addPDBEnsemble')
-        if not isinstance(pdb, (Chain, Selection, AtomGroup)):
-            raise TypeError('PDBs must be a list of Chain, Selection, or AtomGroup.')
-
-        atommaps = []
-        # find the mapping of the pdb to each reference chain
-        for chain in refchains:
-            mappings = mapping_func(pdb, chain,
-                                    index=i,
-                                    **kwargs)
-            if len(mappings) > 0:
-                atommaps.append(mappings[0][0])
-            else:
-                break
-
-        if len(atommaps) != len(refchains):
-            unmapped.append(lbl)
-            continue
-        
-        # combine the mappings of pdb to reference chains
-        atommap = atommaps[0]
-        for i in range(1, len(atommaps)):
-            atommap += atommaps[i]
-        
-        # add the mappings to the ensemble
-        ensemble.addCoordset(atommap, weights=atommap.getFlags('mapped'), 
-                             label=lbl, degeneracy=degeneracy)
-    LOGGER.finish()
-
-    if occupancy is not None:
-        ensemble = trimPDBEnsemble(ensemble, occupancy=occupancy)
-    if superpose:
-        ensemble.iterpose()
-
-    LOGGER.info('{0} PDBs were added to the ensemble in {1:.2f}s.'
-                     .format(len(PDBs) - len(unmapped), time.time()-start))
-
-    if unmapped:
-        LOGGER.warn('{0} structures cannot be mapped.'.format(len(unmapped)))
-
-    return ensemble
-
 def refineEnsemble(ensemble, lower=.5, upper=10., **kwargs):
-    """Refine a PDB ensemble based on RMSD criterions.
+    """Refine a :class:`.PDBEnsemble` based on RMSD criterions.
     
     :arg ensemble: the ensemble to be refined
     :type ensemble: :class:`.Ensemble`, :class:`.PDBEnsemble`

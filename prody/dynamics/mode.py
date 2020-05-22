@@ -283,6 +283,7 @@ class Mode(VectorBase):
         return self._model.getArray()[:, self._index].copy()
 
     getEigvec = getArray
+    getEigvecs = getEigvec
 
     def _getArray(self):
         """Returns a copy of the normal mode array (eigenvector)."""
@@ -298,6 +299,8 @@ class Mode(VectorBase):
 
         return self._model._eigvals[self._index]
 
+    getEigvals = getEigval
+
     def getVariance(self):
         """Returns variance along the mode.  For :class:`.PCA` and :class:`.EDA`
         models built using coordinate data in Å, unit of variance is |A2|.  For
@@ -305,12 +308,14 @@ class Mode(VectorBase):
         inverse of the eigenvalue, so it has arbitrary or relative units."""
 
         return self._model._vars[self._index]
+    
+    getVariances = getVariance
 
     def getHinges(self, **kwargs):
         """Returns residue index of hinge sites."""
 
         if self.is3d():
-            return
+            raise ValueError('mode is 3D and therefore hinges are poorly defined')
         else:
             return self._model.getHinges(self._index, **kwargs)
     

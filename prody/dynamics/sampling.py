@@ -89,12 +89,15 @@ def sampleModes(modes, atoms=None, n_confs=1000, rmsd=1.0):
     n_atoms = modes.numAtoms()
     initial = None
     if atoms is not None:
-        if not isinstance(atoms, (Atomic)):
+        if isinstance(atoms, Atomic):
+            if atoms.numAtoms() != n_atoms:
+                raise ValueError('number of atoms do not match')
+            initial = atoms.getCoords()
+        elif isinstance(atoms, np.ndarray):
+            initial = atoms
+        else:
             raise TypeError('{0} is not correct type for atoms'
                             .format(type(atoms)))
-        if atoms.numAtoms() != n_atoms:
-            raise ValueError('number of atoms do not match')
-        initial = atoms.getCoords()
 
     rmsd = float(rmsd)
     LOGGER.info('Parameter: rmsd = {0:.2f} A'.format(rmsd))
@@ -196,7 +199,10 @@ def traverseMode(mode, atoms, n_steps=10, rmsd=1.5):
     step = rmsd / n_steps
     LOGGER.info('Step size is {0:.2f} A RMSD'.format(step))
     arr = mode.getArrayNx3()
-    var = mode.getVariance()
+    try:
+        var = mode.getVariance()
+    except AttributeError:
+        var = 1.
     scale = ((n_atoms * step**2) / var) ** 0.5
     LOGGER.info('Mode is scaled by {0}.'.format(scale))
 

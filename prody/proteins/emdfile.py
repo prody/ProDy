@@ -18,7 +18,7 @@ from .localpdb import fetchPDB
 import struct as st
 import numpy as np
 
-__all__ = ['parseEMDStream', 'parseEMD', 'writeEMD', 'TRNET']
+__all__ = ['parseEMDStream', 'parseEMD', 'writeEMD', 'TRNET', 'EMDMAP']
 
 class EMDParseError(Exception):
     pass
@@ -94,18 +94,28 @@ def parseEMD(emd, **kwargs):
 
     return result
 
-def _parseEMDLines(atomgroup, stream, cutoff=None, n_nodes=1000, num_iter=20, map=True, make_nodes=False):
+def _parseEMDLines(atomgroup, stream, cutoff=None, n_nodes=0, num_iter=20, map=False, make_nodes=False):
     """ Returns an AtomGroup. see also :func:`.parseEMDStream()`.
 
     :arg stream: stream from parser.
     """
 
-    if not n_nodes > 0:
-        raise ValueError('n_nodes should be larger than 0')
+    if not isinstance(n_nodes, int):
+        raise TypeError('n_nodes should be an integer')
+        
+    if n_nodes > 0:
+        make_nodes = True
+    else:
+        map = True
+        LOGGER.info('As n_nodes is less than or equal to 0, no nodes will be made and the raw map will be returned')
 
     emd = EMDMAP(stream, cutoff)
 
     if make_nodes:
+
+        if not n_nodes > 0:
+            raise ValueError('n_nodes should be larger than 0')
+
         coordinates = np.zeros((n_nodes, 3), dtype=float)
         atomnames = np.zeros(n_nodes, dtype=ATOMIC_FIELDS['name'].dtype)
         resnames = np.zeros(n_nodes, dtype=ATOMIC_FIELDS['resname'].dtype)
@@ -131,7 +141,7 @@ def _parseEMDLines(atomgroup, stream, cutoff=None, n_nodes=1000, num_iter=20, ma
  
     if make_nodes:
         if map:
-            return atomgroup, emd
+            return emd, atomgroup
         else:
             return atomgroup
     else:
@@ -153,16 +163,21 @@ def parseEMDStream(stream, **kwargs):
     if cutoff is not None:
         cutoff = float(cutoff)
 
-    n_nodes = int(kwargs.get('n_nodes', 1000))
+    n_nodes = kwargs.get('n_nodes', 0)
     num_iter = int(kwargs.get('num_iter', 20))
-    map = kwargs.get('map',True)
-    make_nodes = kwargs.get('make_nodes',False)
+    map = kwargs.get('map', False)
+    make_nodes = kwargs.get('make_nodes', False)
+
+    if n_nodes > 0:
+        make_nodes = True
+        n_nodes = int(n_nodes)
 
     if map is False and make_nodes is False:
         LOGGER.warn('At least one of map and make_nodes should be True. '
                     'Setting map to False was an intentional change from the default '
-                    'behaviour so make_nodes has been set to True.')
+                    'behaviour so make_nodes has been set to True with n_nodes=1000.')
         make_nodes = True
+        n_nodes = 1000
 
     title_suffix = kwargs.get('title_suffix','')
     atomgroup = AtomGroup(str(kwargs.get('title', 'Unknown')) + title_suffix)
@@ -246,7 +261,7 @@ def writeEMD(filename, emd):
 
     f.close()
 
-class EMDMAP:
+class EMDMAP(object):
     def __init__(self, stream, cutoff):
         # Number of columns, rows, and sections (3 words, 12 bytes, 1-12)
         self.NC = st.unpack('<L', stream.read(4))[0]
@@ -260,8 +275,8 @@ class EMDMAP:
         # Number of first column, row, section (3 words, 12 bytes, 17-28)
         self.ncstart = st.unpack('<l', stream.read(4))[0]
         self.nrstart = st.unpack('<l', stream.read(4))[0]
-        self.nsstart = st.unpack('<l', stream.read(4))[0
-]
+        self.nsstart = st.unpack('<l', stream.read(4))[0]
+
         # Number of intervals along x, y, z (3 words, 12 bytes, 29-40)
         self.Nx = st.unpack('<L', stream.read(4))[0]
         self.Ny = st.unpack('<L', stream.read(4))[0]
@@ -330,18 +345,18 @@ class EMDMAP:
                         d = 0
                     self.density[s, r, c] = d
 
-
         self.sampled = False
+
 
     def numidx2matidx(self, numidx):
         """ Given index of the position, it will return the numbers of section, row and column. """
         # calculate section idx
-        s = numidx / (self.NC * self.NR)
+        s = int(numidx / (self.NC * self.NR))
         numidx = numidx - s * self.NC * self.NR
         # calculate row idx
-        r = numidx / self.NC
+        r = int(numidx / self.NC)
         # calculate column idx
-        c = numidx - r * self.NC
+        c = int(numidx - r * self.NC)
         return s, r, c
 
     def drawsample(self):
@@ -358,9 +373,9 @@ class EMDMAP:
         return self.numidx2matidx(r)
 
     def center(self):
-        return self.NS / 2, self.NR / 2, self.NC / 2
+        return int(self.NS / 2), int(self.NR / 2), int(self.NC / 2)
 
-    def coordinate(self, sec, row, col ):
+    def coordinate(self, sec, row, col):
         # calculate resolution
         res = np.empty(3)
         res[self.mapc - 1] = self.NC
@@ -368,15 +383,17 @@ class EMDMAP:
         res[self.maps - 1] = self.NS
         res = np.divide(np.array([self.Lx, self.Ly, self.Lz]), res)
         
+        # find coordinates in voxels relative to start
         ret = np.empty(3)
         ret[self.mapc - 1] = col + self.ncstart
         ret[self.mapr - 1] = row + self.nrstart
         ret[self.maps - 1] = sec + self.nsstart
 
+        # convert to Angstroms
         ret = np.multiply(ret, res)
         return ret
 
-class TRNET:
+class TRNET(object):
     def __init__(self, n_nodes):
         self.N = n_nodes
         self.W = np.empty([n_nodes, 3])
@@ -384,7 +401,7 @@ class TRNET:
         # test
         self.V = np.array([])
         
-    def inputMap(self, emdmap, sample = 'density'):
+    def inputMap(self, emdmap, sample='density'):
         self.map = emdmap
         # initialize the positions of nodes
         for i in range(self.N):

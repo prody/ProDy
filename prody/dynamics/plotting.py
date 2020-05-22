@@ -11,7 +11,7 @@ from collections import defaultdict
 import numpy as np
 
 from prody import LOGGER, SETTINGS, PY3K
-from prody.utilities import showFigure, addEnds
+from prody.utilities import showFigure, addEnds, showMatrix
 from prody.atomic import AtomGroup, Selection, Atomic, sliceAtoms, sliceAtomicData
 
 from .nma import NMA
@@ -257,8 +257,11 @@ def showProjection(ensemble, modes, *args, **kwargs):
     else:
         raise TypeError('marker must be a string or a list')
 
-    colors = kwargs.pop('color', 'blue')
-    if isinstance(colors, str) or colors is None:
+    c = kwargs.pop('c', 'blue')
+    colors = kwargs.pop('color', c)
+    if isinstance(colors, np.ndarray):
+        colors = tuple(colors)
+    if isinstance(colors, (str, tuple)) or colors is None:
         colors = [colors] * num
     elif isinstance(colors, list):
         if len(colors) != num:
@@ -323,11 +326,19 @@ def showProjection(ensemble, modes, *args, **kwargs):
         plot(*(list(projection[indices].T) + args), **kwargs)
 
     if texts:
+        ts = []
         kwargs = {}
         if size:
             kwargs['size'] = size
         for args in zip(*(list(projection.T) + [texts])):
-            text(*args, **kwargs)
+            ts.append(text(*args, **kwargs))
+
+        try: 
+            from adjustText import adjust_text
+        except ImportError:
+            pass
+        else:
+            adjust_text(ts)
 
     if len(modes) == 2:
         plt.xlabel('{0} coordinate'.format(int(modes[0])+1))
@@ -387,10 +398,15 @@ def showCrossProjection(ensemble, mode_x, mode_y, scale=None, *args, **kwargs):
     :keyword fontsize: font size for text labels
     :type fontsize: int
 
+    This function uses calcProjection and its arguments can be 
+    passed to it as keyword arguments.
 
     The projected values are by default converted to RMSD.  Pass ``rmsd=False``
-    to calculate raw projection values.  See :ref:`pca-xray-plotting` for a
-    more elaborate example."""
+    to calculate raw projection values. See :ref:`pca-xray-plotting` for a
+    more elaborate example.
+    
+    Likewise, normalisation is applied by default and can be turned off with 
+    ``norm=False``."""
 
     import matplotlib.pyplot as plt
 
@@ -453,12 +469,22 @@ def showCrossProjection(ensemble, mode_x, mode_y, scale=None, *args, **kwargs):
         else:
             kwargs.pop('label', None)
         show = plt.plot(xcoords[indices], ycoords[indices], *args, **kwargs)
+
     if texts:
+        ts = []
         kwargs = {}
         if size:
             kwargs['size'] = size
         for x, y, t in zip(xcoords, ycoords, texts):
-            plt.text(x, y, t, **kwargs)
+            ts.append(plt.text(x, y, t, **kwargs))
+
+        try: 
+            from adjustText import adjust_text
+        except ImportError:
+            pass
+        else:
+            adjust_text(ts)
+
     plt.xlabel('{0} coordinate'.format(mode_x))
     plt.ylabel('{0} coordinate'.format(mode_y))
     if SETTINGS['auto_show']:
@@ -480,37 +506,65 @@ def showOverlapTable(modes_x, modes_y, **kwargs):
     import matplotlib.pyplot as plt
     import matplotlib
 
+    if isinstance(modes_x, np.ndarray):
+        num_modes_x = modes_x.shape[1]
+    else:
+        num_modes_x = modes_x.numModes()
+
+    if isinstance(modes_y, np.ndarray):
+        num_modes_y = modes_y.shape[1]
+    else:
+        num_modes_y = modes_y.numModes()
+
     overlap = abs(calcOverlap(modes_y, modes_x))
     if overlap.ndim == 0:
         overlap = np.array([[overlap]])
     elif overlap.ndim == 1:
-        overlap = overlap.reshape((modes_y.numModes(), modes_x.numModes()))
+        overlap = overlap.reshape((num_modes_y, num_modes_x))
 
     cmap = kwargs.pop('cmap', 'jet')
     norm = kwargs.pop('norm', matplotlib.colors.Normalize(0, 1))
 
     if SETTINGS['auto_show']:
         plt.figure()
-    show = (plt.pcolor(overlap, cmap=cmap, norm=norm, **kwargs),
-            plt.colorbar())
-
-    x_range = np.arange(1, modes_x.numModes() + 1)
+    
+    x_range = np.arange(1, num_modes_x+1)
     if isinstance(modes_x, ModeSet):
         x_ticklabels = modes_x._indices+1
     else:
         x_ticklabels = x_range
-    plt.xticks(x_range-0.5, x_ticklabels)
-    plt.xlabel(str(modes_x))
 
-    y_range = np.arange(1, modes_y.numModes() + 1)
+    x_ticklabels = kwargs.pop('xticklabels', x_ticklabels)
+
+    y_range = np.arange(1, num_modes_y+1)
     if isinstance(modes_y, ModeSet):
         y_ticklabels = modes_y._indices+1
     else:
         y_ticklabels = y_range
-    plt.yticks(y_range-0.5, y_ticklabels)
-    plt.ylabel(str(modes_y))
 
-    plt.axis([0, modes_x.numModes(), 0, modes_y.numModes()])
+    y_ticklabels = kwargs.pop('yticklabels', y_ticklabels)
+
+    if not isinstance(modes_x, np.ndarray):
+        xlabel = str(modes_x)
+    else:
+        xlabel = ''
+    xlabel = kwargs.pop('xlabel', xlabel)
+
+    if not isinstance(modes_y, np.ndarray):
+        ylabel = str(modes_y)
+    else:
+        ylabel = ''
+    ylabel = kwargs.pop('ylabel', ylabel)
+
+    allticks = kwargs.pop('allticks', True)
+
+    show = showMatrix(overlap, cmap=cmap, norm=norm, 
+                      xticklabels=x_ticklabels, yticklabels=y_ticklabels, allticks=allticks,
+                      **kwargs)
+
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+    
     if SETTINGS['auto_show']:
         showFigure()
     return show
@@ -526,19 +580,13 @@ def showCrossCorr(modes, *args, **kwargs):
     if SETTINGS['auto_show']:
         plt.figure()
 
-    arange = np.arange(modes.numAtoms())
-    cross_correlations = np.zeros((arange[-1]+2, arange[-1]+2))
-    cross_correlations[arange[0]+1:,
-                       arange[0]+1:] = calcCrossCorr(modes)
+    cross_correlations = calcCrossCorr(modes)
     if not 'interpolation' in kwargs:
         kwargs['interpolation'] = 'bilinear'
     if not 'origin' in kwargs:
         kwargs['origin'] = 'lower'
-    show = showAtomicMatrix(cross_correlations, *args, **kwargs)#, plt.colorbar()
-    #plt.axis([arange[0]+0.5, arange[-1]+1.5, arange[0]+0.5, arange[-1]+1.5])
+    show = showAtomicMatrix(cross_correlations, *args, **kwargs)
     plt.title('Cross-correlations for {0}'.format(str(modes)))
-    plt.xlabel('Indices')
-    plt.ylabel('Indices')
     if SETTINGS['auto_show']:
         showFigure()
     return show
@@ -1119,7 +1167,9 @@ def showPerturbResponse(model, atoms=None, show_matrix=True, select=None, **kwar
         show = showAtomicMatrix(prs_matrix, x_array=sensitivity, 
                                 y_array=effectiveness, atoms=atoms, 
                                 **kwargs)
-        xlabel('Residues')
+        cluster_col = kwargs.pop('cluster_col',False)
+        if cluster_col == False:
+            xlabel('Residues')
 
     else:
         if select is None:
@@ -1242,8 +1292,6 @@ def showAtomicMatrix(matrix, x_array=None, y_array=None, atoms=None, **kwargs):
     :arg interactive: turn on or off the interactive options
     :type interactive: bool
     """ 
-
-    from prody.utilities import showMatrix
     from matplotlib.pyplot import figure
     from matplotlib.figure import Figure
 
@@ -1263,7 +1311,7 @@ def showAtomicMatrix(matrix, x_array=None, y_array=None, atoms=None, **kwargs):
     ticklabels = kwargs.pop('ticklabels', None)
     text_color = kwargs.pop('text_color', 'k')
     text_color = kwargs.pop('textcolor', text_color)
-
+    cluster = kwargs.pop('cluster', False)
     interactive = kwargs.pop('interactive', True)
 
     if isinstance(fig, Figure):
@@ -1724,6 +1772,9 @@ def showDomainBar(domains, x=None, loc=0., axis='x', **kwargs):
     show_text = kwargs.pop('show_text', True)
     show_text = kwargs.pop('text', show_text)
     text_color = kwargs.pop('text_color', 'k')
+    text_color = kwargs.pop('textcolor', text_color)
+    font_dict = kwargs.pop('font_dict', None)
+    font_dict = kwargs.pop('fontdict', font_dict)
 
     barwidth = kwargs.pop('barwidth', 5)
     barwidth = kwargs.pop('bar_width', barwidth)
@@ -1814,11 +1865,13 @@ def showDomainBar(domains, x=None, loc=0., axis='x', **kwargs):
                     txt = text(d_loc, pos, chid, rotation=-90, 
                                                 color=text_color,
                                                 horizontalalignment=halign, 
-                                                verticalalignment='center')
+                                                verticalalignment='center',
+                                                fontdict=font_dict)
                 else:
                     txt = text(pos, d_loc, chid, color=text_color,
                                                 horizontalalignment='center', 
-                                                verticalalignment=valign)
+                                                verticalalignment=valign,
+                                                fontdict=font_dict)
                 texts.append(txt)
     
     if len(color_order):
@@ -1842,11 +1895,11 @@ def showDomainBar(domains, x=None, loc=0., axis='x', **kwargs):
         gca().autoscale_view()
 
     start, stop = lim()
-    lim(round(start, 2) + 0.006, stop)
+    lim(start, stop)
     
     return bars, texts
 
-def showTree(tree, format='ascii', **kwargs):
+def showTree(tree, format='matplotlib', **kwargs):
     """ Given a tree, creates visualization in different formats. 
     
     arg tree: Tree needs to be unrooted and should be generated by tree 
@@ -1877,28 +1930,17 @@ def showTree(tree, format='ascii', **kwargs):
         return
 
     elif format in ['plt', 'mpl', 'matplotlib']: 
-        from matplotlib.pyplot import rcParams, figure, gca, xlabel, ylabel
-
-        font_size = float(kwargs.pop('font_size', 8.0))
-        line_width = float(kwargs.pop('line_width', 1.5))
-
-        old_font_size = rcParams["font.size"]
-        old_line_width = rcParams["lines.linewidth"]
-
-        rcParams["font.size"] = font_size
-        rcParams["lines.linewidth"] = line_width
+        from matplotlib.pyplot import figure, xlabel, ylabel
+        from prody.utilities.drawtools import drawTree
 
         if SETTINGS['auto_show']:
             figure()
-        Phylo.draw(tree, do_show=False, axes=gca(), **kwargs)
+        drawTree(tree, **kwargs)
         if SETTINGS['auto_show']:
             showFigure()
 
         xlabel('distance')
-        ylabel('proteins')
-
-        rcParams["font.size"] = old_font_size
-        rcParams["lines.linewidth"] = old_line_width
+        ylabel('')
         return
 
     elif format == 'networkx':

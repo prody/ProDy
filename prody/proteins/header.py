@@ -184,7 +184,8 @@ _PDB_DBREF = {
     'PDB': 'PDB',
     'UNP': 'UniProt',
     'NORINE': 'Norine',
-    'UNIMES': 'UNIMES'
+    'UNIMES': 'UNIMES',
+    'EMDB': 'EMDB'
 }
 
 
@@ -273,10 +274,11 @@ def parsePDBHeader(pdb, *keys):
     HETNAM       chemicals         see :class:`Chemical`
     HETSYN       chemicals         see :class:`Chemical`
     FORMUL       chemicals         see :class:`Chemical`
-    REMARK 2     resolution        resolution of structures, when applicable
-    REMARK 4     version           PDB file version
+    REMARK   2   resolution        resolution of structures, when applicable
+    REMARK   4   version           PDB file version
     REMARK 350   biomoltrans       biomolecular transformation lines
                                    (unprocessed)
+    REMARK 900	 related_entries   related entries in the PDB or EMDB
     ============ ================= ============================================
 
     Header records that are not parsed are: OBSLTE, CAVEAT, SOURCE, KEYWDS,
@@ -381,6 +383,22 @@ def _getResolution(lines):
                 return float(line[23:30])
             except:
                 return None
+
+
+def _getRelatedEntries(lines):
+
+    dbrefs = []
+    for i, line in lines['REMARK 900']:
+        if 'RELATED ID' in line:
+            dbref = DBRef()
+            end_of_id = line.find('RELATED DB')
+            dbref.accession = line[23:end_of_id].strip()
+            dbref.dbabbr = line[end_of_id+12:end_of_id+16].strip()
+            dbref.database = _PDB_DBREF.get(dbref.dbabbr, 'Unknown')
+            
+            dbrefs.append(dbref)
+
+    return dbrefs
 
 
 def _getSpaceGroup(lines):
@@ -891,6 +909,7 @@ _PDB_HEADER_MAP = {
                    ) if lines['MDLTYP'] else None,
     'n_models': _getNumModels,
     'space_group': _getSpaceGroup,
+    'related_entries': _getRelatedEntries,
 }
 
 mapHelix = {
@@ -1086,7 +1105,7 @@ def buildBiomolecules(header, atoms, biomol=None):
             translation[2] = line2[3]
             t = Transformation(rotation, translation)
 
-            newag = atoms.select('chain ' + ' '.join(mt[0])).copy()
+            newag = atoms.select('chain ' + ' '.join(mt[times*4+0])).copy()
             if newag is None:
                 continue
             newag.all.setSegnames(segnm.pop(0))

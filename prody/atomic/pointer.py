@@ -6,6 +6,13 @@ from numpy import all, array, concatenate, ones, unique
 
 from .atomic import Atomic
 from .bond import Bond
+from .angle import Angle
+from .dihedral import Dihedral
+from .improper import Improper
+from .donor import Donor
+from .acceptor import Acceptor
+from .crossterm import Crossterm
+from .nbexclusion import NBExclusion
 
 from prody import LOGGER
 
@@ -276,7 +283,7 @@ class AtomPointer(Atomic):
 
         indices = self._getIndices()
         iset = set(indices)
-        if len(self._ag) * 0.5 >= len(self):
+        if len(self._ag) / 2 >= len(self):
             for a, b in self._ag._iterBonds():
                 if a in iset and b in iset:
                     yield a, b
@@ -286,3 +293,221 @@ class AtomPointer(Atomic):
                     if b > -1 and b in iset:
                         yield a, b
                 iset.remove(a)
+
+    def iterBonds(self):
+        """Yield bonds formed by the atom.  Use :meth:`setBonds` for setting
+        bonds."""
+
+        ag = self._ag
+        acsi = self.getACSIndex()
+        for bond in self._iterBonds():
+            yield Bond(ag, bond, acsi)
+
+    def _iterAngles(self):
+        """Yield triplets of indices for angled atoms that are within the pointer.
+        Use :meth:`setAngles` for setting angles."""
+
+        if self._ag._angles is None:
+            raise ValueError('angles are not set, use `AtomGroup.setAngles`')
+
+        indices = self._getIndices()
+        iset = set(indices)
+        if len(self._ag) / 3 >= len(self):
+            for a, b, c in self._ag._iterAngles():
+                if a in iset and b in iset and c in iset:
+                    yield a, b, c
+        else:
+            for a, amap in zip(indices, self._ag._angmap[indices]):
+                for b, c in amap:
+                    if b > -1 and b in iset and c > -1 and c in iset:
+                        yield a, b, c
+                iset.remove(a)
+
+    def iterAngles(self):
+        """Yield angles formed by the atom.  Use :meth:`setAngles` for setting
+        angles."""
+
+        ag = self._ag
+        acsi = self.getACSIndex()
+        for angle in self._iterAngles():
+            yield Angle(ag, angle, acsi)
+
+    def _iterDihedrals(self):
+        """Yield quadruples of indices for dihedraled atoms that are within the pointer.
+        Use :meth:`setDihedrals` for setting dihedrals."""
+
+        if self._ag._dihedrals is None:
+            raise ValueError('dihedrals are not set, use `AtomGroup.setDihedrals`')
+
+        indices = self._getIndices()
+        iset = set(indices)
+        if len(self._ag) / 4 >= len(self):
+            for a, b, c, d in self._ag._iterDihedrals():
+                if a in iset and b in iset and c in iset and d in iset:
+                    yield a, b, c
+        else:
+            for a, dmap in zip(indices, self._ag._dmap[indices]):
+                for b, c, d in dmap:
+                    if b > -1 and b in iset and c > -1 and c in iset \
+                    and d > -1 and d in iset:
+                        yield a, b, c, d
+                iset.remove(a)
+
+    def iterDihedrals(self):
+        """Yield dihedrals formed by the atom.  Use :meth:`setDihedrals` for setting
+        dihedrals."""
+
+        ag = self._ag
+        acsi = self.getACSIndex()
+        for dihedral in self._iterDihedrals():
+            yield Dihedral(ag, dihedral, acsi) 
+
+    def _iterImpropers(self):
+        """Yield quadruplet of indices for impropered atoms that are within the pointer.
+        Use :meth:`setImpropers` for setting impropers."""
+
+        if self._ag._impropers is None:
+            raise ValueError('impropers are not set, use `AtomGroup.setImpropers`')
+
+        indices = self._getIndices()
+        iset = set(indices)
+        if len(self._ag) / 4 >= len(self):
+            for a, b, c, d in self._ag._iterImpropers():
+                if a in iset and b in iset and c in iset and d in iset:
+                    yield a, b, c
+        else:
+            for a, imap in zip(indices, self._ag._imap[indices]):
+                for b, c, d in imap:
+                    if b > -1 and b in iset and c > -1 and c in iset \
+                    and d > -1 and d in iset:
+                        yield a, b, c, d
+                iset.remove(a)
+
+    def iterImpropers(self):
+        """Yield impropers formed by the atom.  Use :meth:`setImpropers` for setting
+        impropers."""
+
+        ag = self._ag
+        acsi = self.getACSIndex()
+        for improper in self._iterImpropers():
+            yield Improper(ag, improper, acsi) 
+
+    def _iterCrossterms(self):
+        """Yield quadruplet of indices for crosstermed atoms that are within the pointer.
+        Use :meth:`setCrossterms` for setting crossterms."""
+
+        if self._ag._crossterms is None:
+            raise ValueError('crossterms are not set, use `AtomGroup.setCrossterms`')
+
+        indices = self._getIndices()
+        iset = set(indices)
+        if len(self._ag) / 4 >= len(self):
+            for a, b, c, d in self._ag._iterCrossterms():
+                if a in iset and b in iset and c in iset and d in iset:
+                    yield a, b, c
+        else:
+            for a, cmap in zip(indices, self._ag._cmap[indices]):
+                for b, c, d in cmap:
+                    if b > -1 and b in iset and c > -1 and c in iset \
+                    and d > -1 and d in iset:
+                        yield a, b, c, d
+                iset.remove(a)
+
+    def iterCrossterms(self):
+        """Yield crossterms formed by the atom.  Use :meth:`setCrossterms` for setting
+        crossterms."""
+
+        ag = self._ag
+        acsi = self.getACSIndex()
+        for crossterm in self._iterCrossterms():
+            yield Crossterm(ag, crossterm, acsi) 
+
+    def _iterDonors(self):
+        """Yield pairs of indices for donored atoms that are within the pointer.
+        Use :meth:`setDonors` for setting donors."""
+
+        if self._ag._donors is None:
+            LOGGER.warning('donors are not set, use `AtomGroup.setDonors`')
+            yield None
+
+        indices = self._getIndices()
+        iset = set(indices)
+        if len(self._ag) / 2 >= len(self):
+            for a, b in self._ag._iterDonors():
+                if a in iset and b in iset:
+                    yield a, b
+        else:
+            for a, dmap in zip(indices, self._ag._domap[indices]):
+                for b in dmap:
+                    if b > -1 and b in iset:
+                        yield a, b
+                iset.remove(a)
+
+    def iterDonors(self):
+        """Yield donors formed by the atom.  Use :meth:`setDonors` for setting
+        donors."""
+
+        ag = self._ag
+        acsi = self.getACSIndex()
+        for donor in self._iterDonors():
+            yield Donor(ag, donor, acsi)
+
+    def _iterAcceptors(self):
+        """Yield pairs of indices for acceptored atoms that are within the pointer.
+        Use :meth:`setAcceptors` for setting acceptors."""
+
+        if self._ag._acceptors is None:
+            LOGGER.warning('acceptors are not set, use `AtomGroup.setAcceptors`')
+            yield None
+
+        indices = self._getIndices()
+        iset = set(indices)
+        if len(self._ag) / 2 >= len(self):
+            for a, b in self._ag._iterAcceptors():
+                if a in iset and b in iset:
+                    yield a, b
+        else:
+            for a, amap in zip(indices, self._ag._acmap[indices]):
+                for b in amap:
+                    if b > -1 and b in iset:
+                        yield a, b
+                iset.remove(a)
+
+    def iterAcceptors(self):
+        """Yield acceptors formed by the atom.  Use :meth:`setAcceptors` for setting
+        acceptors."""
+
+        ag = self._ag
+        acsi = self.getACSIndex()
+        for acceptor in self._iterAcceptors():
+            yield Acceptor(ag, acceptor, acsi)
+
+    def _iterNBExclusions(self):
+        """Yield pairs of indices for nbexclusioned atoms that are within the pointer.
+        Use :meth:`setNBExclusions` for setting nbexclusions."""
+
+        if self._ag._nbexclusions is None:
+            LOGGER.warning('nbexclusions are not set, use `AtomGroup.setNBExclusions`')
+            yield None
+
+        indices = self._getIndices()
+        iset = set(indices)
+        if len(self._ag) / 2 >= len(self):
+            for a, b in self._ag._iterNBExclusions():
+                if a in iset and b in iset:
+                    yield a, b
+        else:
+            for a, nbemap in zip(indices, self._ag._nbemap[indices]):
+                for b in nbemap:
+                    if b > -1 and b in iset:
+                        yield a, b
+                iset.remove(a)
+
+    def iterNBExclusions(self):
+        """Yield nbexclusions formed by the atom.  Use :meth:`setNBExclusions` for setting
+        nbexclusions."""
+
+        ag = self._ag
+        acsi = self.getACSIndex()
+        for nbexclusion in self._iterNBExclusions():
+            yield NBExclusion(ag, nbexclusion, acsi)

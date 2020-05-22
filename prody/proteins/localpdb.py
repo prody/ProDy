@@ -206,7 +206,7 @@ def fetchPDB(*pdb, **kwargs):
     is set **True**, files will be copied into *folder*.  If *compressed* is
     **False**, all files will be decompressed.  See :func:`pathPDBFolder` and
     :func:`pathPDBMirror` for managing local resources, :func:`.fetchPDBviaFTP`
-    and :func:`.fetchPDBviaFTP` for downloading files from PDB servers."""
+    and :func:`.fetchPDBviaHTTP` for downloading files from PDB servers."""
 
     if len(pdb) == 1 and isinstance(pdb[0], list):
         pdb = pdb[0]

@@ -18,6 +18,7 @@ from prody import LOGGER, SETTINGS
 
 from .header import getHeaderDict, buildBiomolecules, assignSecstr, isHelix, isSheet
 from .localpdb import fetchPDB
+from .ciffile import parseCIF
 
 __all__ = ['parsePDBStream', 'parsePDB', 'parseChainsList', 'parsePQR',
            'writePDBStream', 'writePDB', 'writeChainsList', 'writePQR',
@@ -77,8 +78,6 @@ _parsePDBdoc = _parsePQRdoc + """
 
     If ``model=0`` and ``header=True``, return header dictionary only.
 
-    Note that this function does not evaluate ``CONECT`` records.
-
     """
 
 _PDBSubsets = {'ca': 'ca', 'calpha': 'ca', 'bb': 'bb', 'backbone': 'bb'}
@@ -95,7 +94,15 @@ def parsePDB(*pdb, **kwargs):
         If needed, PDB files are downloaded using :func:`.fetchPDB()` function.
     
     You can also provide arguments that you would like passed on to fetchPDB().
+
+    :arg extend_biomol: whether to extend the list of results with a list
+        rather than appending, which can create a mixed list, 
+        especially when biomol=True.
+        Default value is False to reproduce previous behaviour.
+        This value is ignored when result is not a list (header=True or model=0).
+    :type extend_biomol: bool 
     """
+    extend_biomol = kwargs.pop('extend_biomol', False)
 
     n_pdb = len(pdb)
     if n_pdb == 1:
@@ -149,6 +156,15 @@ def parsePDB(*pdb, **kwargs):
         else:
             numPdbs = len(results)
 
+            if extend_biomol:
+                results_old = results
+                results = []
+                for entry in results_old:
+                    if isinstance(entry, AtomGroup):
+                        results.append(entry)
+                    else:
+                        results.extend(entry)
+
         LOGGER.info('{0} PDBs were parsed in {1:.2f}s.'
                      .format(numPdbs, time.time()-start))
 
@@ -183,8 +199,12 @@ def _parsePDB(pdb, **kwargs):
             kwargs['title'] = title
         filename = fetchPDB(pdb, **kwargs)
         if filename is None:
-            raise IOError('PDB file for {0} could not be downloaded.'
-                          .format(pdb))
+            try:
+                LOGGER.info("Trying to use mmCIF file instead")
+                return parseCIF(pdb, **kwargs)
+            except:
+                raise IOError('PDB file for {0} could not be downloaded.'
+                              .format(pdb))
         pdb = filename
     if title is None:
         title, ext = os.path.splitext(os.path.split(pdb)[1])
@@ -215,6 +235,9 @@ def parsePDBStream(stream, **kwargs):
     chain = kwargs.get('chain')
     subset = kwargs.get('subset')
     altloc = kwargs.get('altloc', 'A')
+
+    auto_bonds = SETTINGS.get('auto_bonds')
+    get_bonds = kwargs.get('bonds', auto_bonds)
 
     if model is not None:
         if isinstance(model, Integral):
@@ -249,11 +272,8 @@ def parsePDBStream(stream, **kwargs):
         n_csets = 0
 
     biomol = kwargs.get('biomol', False)
-    auto_secondary = None
-    secondary = kwargs.get('secondary')
-    if not secondary:
-        auto_secondary = SETTINGS.get('auto_secondary')
-        secondary = auto_secondary
+    auto_secondary = SETTINGS.get('auto_secondary')
+    secondary = kwargs.get('secondary', auto_secondary)
     split = 0
     hd = None
     if model != 0:
@@ -269,7 +289,13 @@ def parsePDBStream(stream, **kwargs):
             raise ValueError('empty PDB file or stream')
         if header or biomol or secondary:
             hd, split = getHeaderDict(lines)
-        _parsePDBLines(ag, lines, split, model, chain, subset, altloc)
+        bonds = [] if get_bonds else None
+        _parsePDBLines(ag, lines, split, model, chain, subset, altloc, bonds=bonds)
+        if bonds:
+            try:
+                ag.setBonds(bonds)
+            except ValueError:
+                LOGGER.warn('Bonds read from CONECT records do not apply to subset so were not added')
         if ag.numAtoms() > 0:
             LOGGER.report('{0} atoms and {1} coordinate set(s) were '
                           'parsed in %.2fs.'.format(ag.numAtoms(),
@@ -369,7 +395,7 @@ def parsePQR(filename, **kwargs):
 parsePQR.__doc__ += _parsePQRdoc
 
 def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
-                   altloc_torf, format='PDB'):
+                   altloc_torf, format='PDB', bonds=None):
     """Returns an AtomGroup. See also :func:`.parsePDBStream()`.
 
     :arg lines: PDB/PQR lines
@@ -632,9 +658,24 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                         np.zeros(asize, ATOMIC_FIELDS['charge'].dtype)))
                     radii = np.concatenate((radii,
                         np.zeros(asize, ATOMIC_FIELDS['radius'].dtype)))
-        #elif startswith == 'END   ' or startswith == 'CONECT':
-        #    i += 1
-        #    break
+        elif startswith == 'CONECT':
+            if bonds is not None:
+                atom_serial = line[6:11]
+                bonded1_serial = line[11:16]
+                bonds.append([int(atom_serial), int(bonded1_serial)])
+                
+                bonded2_serial = line[16:21]
+                if len(bonded2_serial.strip()):
+                    bonds.append([int(atom_serial), int(bonded2_serial)])
+
+                bonded3_serial = line[21:26]
+                if len(bonded3_serial.strip()):
+                    bonds.append([int(atom_serial), int(bonded3_serial)])
+                    
+                bonded4_serial = line[27:31]
+                if len(bonded4_serial.strip()):
+                    bonds.append([int(atom_serial), int(bonded4_serial)])
+
         elif not onlycoords and (startswith == 'TER   ' or
             startswith.strip() == 'TER'):
             termini[acount - 1] = True
@@ -644,8 +685,16 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                 i += 1
                 continue
             if model is not None:
-                i += 1
-                break
+                if bonds is None:
+                    i += 1
+                    break
+                else:
+                    i += 1
+                    for j in range(i, stop):
+                        if lines[j].startswith('CONECT'):
+                            i = j
+                            break
+                    continue
             diff = stop - i - 1
             END = diff < acount
             if coordsets is not None:
@@ -994,7 +1043,7 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
     :type renumber: bool
     """
 
-    renumber = kwargs.get('renumber',True)
+    renumber = kwargs.get('renumber', True)
 
     remark = str(atoms)
     try:

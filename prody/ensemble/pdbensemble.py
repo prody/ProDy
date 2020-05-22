@@ -154,6 +154,21 @@ class PDBEnsemble(Ensemble):
                 raise IndexError('invalid label: %s'%index)
         else:
             raise IndexError('invalid index')
+    
+    def superpose(self, **kwargs):
+        """Superpose the ensemble onto the reference coordinates obtained by 
+        :meth:`getCoords`.
+        """
+
+        trans = kwargs.pop('trans', True)
+        if self._coords is None:
+            raise ValueError('coordinates are not set, use `setCoords`')
+        if self._confs is None or len(self._confs) == 0:
+            raise ValueError('conformations are not set, use `addCoordset`')
+        LOGGER.timeit('_prody_ensemble')
+        self._superpose(trans=trans)  # trans kwarg is used by PDBEnsemble
+        LOGGER.report('Superposition completed in %.2f seconds.',
+                      '_prody_ensemble')
 
     def _superpose(self, **kwargs):
         """Superpose conformations and update coordinates."""
@@ -303,7 +318,7 @@ class PDBEnsemble(Ensemble):
         else:
             if sequence is None:
                 try:
-                    sequence = self.getAtoms().getSequence()
+                    sequence = self._atoms.getSequence()
                 except AttributeError:
                     if self._msa:
                         sequence = ''.join('X' for _ in range(n_atoms))
