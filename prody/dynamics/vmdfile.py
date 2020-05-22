@@ -191,12 +191,11 @@ def writeDeformProfile(stiffness, pdb, filename='dp_out', \
     """Calculate deformability (plasticity) profile of molecule based on mechanical
     stiffness matrix (see [EB08]_).
 
-    :arg model: this is an 3-dimensional NMA instance from a :class:`.ANM
-        calculations
-    :type model: :class:`.ANM`
+    :arg stiffness: mechanical stiffness matrix
+    :type stiffness: :class:`~numpy.ndarray
 
     :arg pdb: a coordinate set or an object with ``getCoords`` method
-    :type pdb: :class:`numpy.ndarray`    
+    :type pdb: :class:`~numpy.ndarray`    
     
     Note: selection can be done using ``select`` and ``pdb_selstr``. 
     ``select`` defines ``model`` selection (used for building :class:`.ANM` model) 
