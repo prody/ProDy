@@ -7,8 +7,9 @@ and are prefixed with ``show``.  Function documentations refers to the
 and keyword arguments are passed to the Matplotlib functions."""
 
 from collections import defaultdict
-from numbers import Integral
+from numbers import Number
 import numpy as np
+import matplotlib
 
 from prody import LOGGER, SETTINGS, PY3K
 from prody.utilities import showFigure, addEnds, showMatrix
@@ -230,7 +231,7 @@ def showProjection(ensemble, modes, *args, **kwargs):
 
     import matplotlib.pyplot as plt
 
-    cmap = kwargs.pop('cmap', None)
+    cmap = kwargs.pop('cmap', plt.cm.jet)
 
     if SETTINGS['auto_show']:
         fig = plt.figure()
@@ -269,8 +270,9 @@ def showProjection(ensemble, modes, *args, **kwargs):
     else:
         raise TypeError('color must be a string or a list')
 
-    if cmap is not None and isinstance(colors[0], Integral):
-        cmap.N = num
+    color_norm = None
+    if isinstance(colors[0], Number):
+        color_norm = matplotlib.colors.Normalize(vmin=min(colors), vmax=max(colors))
 
     labels = kwargs.pop('label', None)
     if isinstance(labels, str) or labels is None:
@@ -317,11 +319,11 @@ def showProjection(ensemble, modes, *args, **kwargs):
     for opts, indices in indict.items():  # PY3K: OK
         marker, color, label = opts
         kwargs['marker'] = marker
-        if cmap is not None:
+        if color_norm is not None:
             try:
-                cmap.colors[int(float(color))]
+                color = cmap.colors[color_norm(color)]
             except:
-                color = cmap(int(float(color)))
+                color = cmap(color_norm(color))
         kwargs['c'] = color
 
         if label:
