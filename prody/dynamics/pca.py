@@ -44,7 +44,7 @@ class PCA(NMA):
         self._dof = covariance.shape[0]
 
         if is3d:
-            self._n_atoms = self._dof / 3
+            self._n_atoms = self._dof // 3
         else:
             self._n_atoms = self._dof
         self._trace = self._cov.trace()
