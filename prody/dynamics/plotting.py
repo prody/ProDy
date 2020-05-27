@@ -259,7 +259,9 @@ def showProjection(ensemble, modes, *args, **kwargs):
 
     c = kwargs.pop('c', 'blue')
     colors = kwargs.pop('color', c)
-    if isinstance(colors, str) or colors is None:
+    if isinstance(colors, np.ndarray):
+        colors = tuple(colors)
+    if isinstance(colors, (str, tuple)) or colors is None:
         colors = [colors] * num
     elif isinstance(colors, list):
         if len(colors) != num:
@@ -324,11 +326,19 @@ def showProjection(ensemble, modes, *args, **kwargs):
         plot(*(list(projection[indices].T) + args), **kwargs)
 
     if texts:
+        ts = []
         kwargs = {}
         if size:
             kwargs['size'] = size
         for args in zip(*(list(projection.T) + [texts])):
-            text(*args, **kwargs)
+            ts.append(text(*args, **kwargs))
+
+        try: 
+            from adjustText import adjust_text
+        except ImportError:
+            pass
+        else:
+            adjust_text(ts)
 
     if len(modes) == 2:
         plt.xlabel('{0} coordinate'.format(int(modes[0])+1))
@@ -388,10 +398,15 @@ def showCrossProjection(ensemble, mode_x, mode_y, scale=None, *args, **kwargs):
     :keyword fontsize: font size for text labels
     :type fontsize: int
 
+    This function uses calcProjection and its arguments can be 
+    passed to it as keyword arguments.
 
     The projected values are by default converted to RMSD.  Pass ``rmsd=False``
-    to calculate raw projection values.  See :ref:`pca-xray-plotting` for a
-    more elaborate example."""
+    to calculate raw projection values. See :ref:`pca-xray-plotting` for a
+    more elaborate example.
+    
+    Likewise, normalisation is applied by default and can be turned off with 
+    ``norm=False``."""
 
     import matplotlib.pyplot as plt
 
@@ -454,12 +469,22 @@ def showCrossProjection(ensemble, mode_x, mode_y, scale=None, *args, **kwargs):
         else:
             kwargs.pop('label', None)
         show = plt.plot(xcoords[indices], ycoords[indices], *args, **kwargs)
+
     if texts:
+        ts = []
         kwargs = {}
         if size:
             kwargs['size'] = size
         for x, y, t in zip(xcoords, ycoords, texts):
-            plt.text(x, y, t, **kwargs)
+            ts.append(plt.text(x, y, t, **kwargs))
+
+        try: 
+            from adjustText import adjust_text
+        except ImportError:
+            pass
+        else:
+            adjust_text(ts)
+
     plt.xlabel('{0} coordinate'.format(mode_x))
     plt.ylabel('{0} coordinate'.format(mode_y))
     if SETTINGS['auto_show']:
@@ -481,11 +506,21 @@ def showOverlapTable(modes_x, modes_y, **kwargs):
     import matplotlib.pyplot as plt
     import matplotlib
 
+    if isinstance(modes_x, np.ndarray):
+        num_modes_x = modes_x.shape[1]
+    else:
+        num_modes_x = modes_x.numModes()
+
+    if isinstance(modes_y, np.ndarray):
+        num_modes_y = modes_y.shape[1]
+    else:
+        num_modes_y = modes_y.numModes()
+
     overlap = abs(calcOverlap(modes_y, modes_x))
     if overlap.ndim == 0:
         overlap = np.array([[overlap]])
     elif overlap.ndim == 1:
-        overlap = overlap.reshape((modes_y.numModes(), modes_x.numModes()))
+        overlap = overlap.reshape((num_modes_y, num_modes_x))
 
     cmap = kwargs.pop('cmap', 'jet')
     norm = kwargs.pop('norm', matplotlib.colors.Normalize(0, 1))
@@ -493,7 +528,7 @@ def showOverlapTable(modes_x, modes_y, **kwargs):
     if SETTINGS['auto_show']:
         plt.figure()
     
-    x_range = np.arange(1, modes_x.numModes()+1)
+    x_range = np.arange(1, num_modes_x+1)
     if isinstance(modes_x, ModeSet):
         x_ticklabels = modes_x._indices+1
     else:
@@ -501,7 +536,7 @@ def showOverlapTable(modes_x, modes_y, **kwargs):
 
     x_ticklabels = kwargs.pop('xticklabels', x_ticklabels)
 
-    y_range = np.arange(1, modes_y.numModes()+1)
+    y_range = np.arange(1, num_modes_y+1)
     if isinstance(modes_y, ModeSet):
         y_ticklabels = modes_y._indices+1
     else:
@@ -509,14 +544,26 @@ def showOverlapTable(modes_x, modes_y, **kwargs):
 
     y_ticklabels = kwargs.pop('yticklabels', y_ticklabels)
 
+    if not isinstance(modes_x, np.ndarray):
+        xlabel = str(modes_x)
+    else:
+        xlabel = ''
+    xlabel = kwargs.pop('xlabel', xlabel)
+
+    if not isinstance(modes_y, np.ndarray):
+        ylabel = str(modes_y)
+    else:
+        ylabel = ''
+    ylabel = kwargs.pop('ylabel', ylabel)
+
     allticks = kwargs.pop('allticks', True)
 
     show = showMatrix(overlap, cmap=cmap, norm=norm, 
                       xticklabels=x_ticklabels, yticklabels=y_ticklabels, allticks=allticks,
                       **kwargs)
 
-    plt.xlabel(str(modes_x))
-    plt.ylabel(str(modes_y))
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
     
     if SETTINGS['auto_show']:
         showFigure()

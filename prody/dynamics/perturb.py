@@ -24,14 +24,17 @@ __all__ = ['calcPerturbResponse']
 
 def calcPerturbResponse(model, atoms=None, **kwargs):
 
-    """Returns a matrix of profiles from scanning the response of the
-    structure to random perturbations at specific atom (or node) positions.
-    The function implements the perturbation response scanning (PRS) method
-    described in [CA09]_.  Rows of the matrix are the average magnitude of the
-    responses obtained by perturbing the atom/node position at that row index,
-    i.e. ``prs_profile[i,j]`` will give the response of residue/node *j* to
-    perturbations in residue/node *i*.  PRS is performed using the covariance
-    matrix from *model*, e.g. :class:`.ANM` instance.
+    """This function implements the perturbation response scanning (PRS) method
+    described in [CA09]_ and [IG14]_. It returns a PRS matrix, and effectiveness 
+    and sensitivity profiles.
+    
+    Rows of the matrix are the average magnitude of the responses obtained by 
+    perturbing the atom/node position at that row index, i.e. ``prs_matrix[i,j]`` 
+    will give the response of residue/node *j* to perturbations in residue/node *i*. 
+    
+    PRS is performed using the covariance matrix from a *model*, e.g. 
+    a :class:`.ANM` instance. To use an external matrix, please provide it to 
+    a :class:`.PCA` instance using the :meth:`.PCA.setCovariance`.
 
     When an *atoms* instance is given, the PRS matrix will be added as data, 
     which can be retrieved with ``atoms.getData('prs_matrix')``.  
@@ -43,6 +46,9 @@ def calcPerturbResponse(model, atoms=None, **kwargs):
        Reveals Ligand Entry-Exit Mechanisms of Ferric Binding Protein.
        *PLoS Comput Biol* **2009** 5(10):e1000544.
 
+    .. [IG14] General IJ, Liu Y, Blackburn ME, Mao W, Gierasch LM, Bahar I.
+        ATPase subdomain IA is a mediator of interdomain allostery in Hsp70
+        molecular chaperones. *PLoS Comput. Biol.* **2014** 10:e1003624.
     """
 
     if not isinstance(model, (NMA, ModeSet, Mode)):

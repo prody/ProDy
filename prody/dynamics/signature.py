@@ -228,7 +228,12 @@ class ModeEnsemble(object):
 
         if index is None:
             return self._modesets
-        return self[index]._modesets
+
+        subset = self[index]
+        if isinstance(subset, ModeSet):
+            return subset
+        else:
+            return subset._modesets
 
     def getArray(self, mode_index=0):
         """Returns a sdarray of row arrays."""
@@ -749,7 +754,7 @@ class sdarray(ndarray):
                 n_atoms = self.shape[1]
             if self.is3d():
                 n_atoms /= 3
-            return n_atoms
+            return int(n_atoms)
         except IndexError:
             LOGGER.warn('{0} is not related to the number of atoms'.format(self.getTitle()))
             return 0
@@ -1035,9 +1040,8 @@ def calcSignatureSqFlucts(mode_ensemble, **kwargs):
 
     norm = importLA().norm
 
-    modesets = mode_ensemble
     V = []
-    for i, modes in enumerate(modesets):
+    for i, modes in enumerate(mode_ensemble):
         sqfs = calcSqFlucts(modes)
 
         if ifnorm:
@@ -1170,6 +1174,19 @@ def showSignature1D(signature, linespec='-', **kwargs):
     return lines, polys, bars, texts
 
 def showSignatureMode(mode_ensemble, **kwargs):
+    """Show signature mode profile.
+
+    :arg mode_ensemble: mode ensemble from which to extract an eigenvector
+                        If this is not indexed already then index 0 is used by default
+    :type mode_ensemble: :class:`ModeEnsemble`    
+
+    :arg atoms: atoms for showing residues along the x-axis
+                Default option is to use mode_ensemble.getAtoms()
+    :type atoms: :class:`Atomic`
+
+    :arg scale: scaling factor. Default is 1.0
+    :type scale: float    
+    """
 
     if not isinstance(mode_ensemble, ModeEnsemble):
         raise TypeError('mode_ensemble should be an instance of ModeEnsemble')
@@ -1185,6 +1202,22 @@ def showSignatureMode(mode_ensemble, **kwargs):
     return showSignature1D(mode, atoms=atoms, show_zero=show_zero, **kwargs)
 
 def showSignatureSqFlucts(mode_ensemble, **kwargs):
+    """Show signature profile of square fluctations.
+
+    :arg mode_ensemble: mode ensemble from which to calculate square fluctutations
+    :type mode_ensemble: :class:`ModeEnsemble`    
+
+    :arg atoms: atoms for showing residues along the x-axis
+                Default option is to use mode_ensemble.getAtoms()
+    :type atoms: :class:`Atomic`
+
+    :arg scale: scaling factor. Default is 1.0
+    :type scale: float  
+
+    :arg show_zero: where to show a grey line at y=0
+                    Default is False
+    :type show_zero: bool      
+    """
 
     if not isinstance(mode_ensemble, ModeEnsemble):
         raise TypeError('mode_ensemble should be an instance of ModeEnsemble')
@@ -1283,21 +1316,20 @@ def calcSignatureOverlaps(mode_ensemble, diag=True):
 
     if diag:
         overlaps = np.zeros((n_modes, n_sets, n_sets))
-        for m in range(mode_ensemble.numModes()):
-            for i, modeset_i in enumerate(mode_ensemble):
-                mode_i = modeset_i[m]
-                for j, modeset_j in enumerate(mode_ensemble):
-                    mode_j = modeset_j[m]
-                    if j >= i:
-                        overlaps[m, i, j] = overlaps[m, j, i] = abs(calcOverlap(mode_i, mode_j))
-                    
     else:
         overlaps = np.zeros((n_modes, n_modes, n_sets, n_sets))
 
-        for i, modeset_i in enumerate(mode_ensemble):
-            for j, modeset_j in enumerate(mode_ensemble):
-                if j >= i:                
-                    overlaps[:,:,i,j] = overlaps[:,:,j,i] = abs(calcOverlap(modeset_i, modeset_j))
+    for i, modeset_i in enumerate(mode_ensemble):
+        for j, modeset_j in enumerate(mode_ensemble):
+            if j >= i:
+                if diag:
+                    overlaps[:,i,j] = overlaps[:,j,i] = abs(calcOverlap(modeset_i, 
+                                                                        modeset_j, 
+                                                                        diag=True))
+                else:
+                    overlaps[:,:,i,j] = overlaps[:,:,j,i] = abs(calcOverlap(modeset_i, 
+                                                                            modeset_j, 
+                                                                            diag=False))
 
     return overlaps
 
@@ -1324,8 +1356,22 @@ def calcSignatureModes(mode_ensemble):
     ret.setEigens(eigvecs, eigvals)
     return ret
 
-def showSignatureOverlaps(mode_ensemble):
 
+def showSignatureOverlaps(mode_ensemble, **kwargs):
+    """Show a curve of mode-mode overlaps against mode number
+    with shades for standard deviation and range
+
+    :arg diag: Whether to calculate the diagonal values only.
+               Default is **False** and :func:`showMatrix` is used.
+               If set to **True**, :func:`showSignatureAtomicLines` is used.
+    :type diag: bool
+
+    :arg std: Whether to show the standard deviation matrix
+              when **diag** is **False** (and whole matrix is shown).
+              Default is **False**, meaning the mean matrix is shown.
+    """
+    diag = kwargs.get('diag', False)
+    std = kwargs.get('std', False)
     from matplotlib.pyplot import xlabel, ylabel
 
     if not isinstance(mode_ensemble, ModeEnsemble):
@@ -1335,16 +1381,28 @@ def showSignatureOverlaps(mode_ensemble):
         LOGGER.warn('modes in mode_ensemble did not match cross modesets. '
                     'Consider running mode_ensemble.match() prior to using this function')
 
-    overlaps = calcSignatureOverlaps(mode_ensemble, diag=True)
-    r, c = np.triu_indices(overlaps.shape[1], k=1)
-    overlap_triu = overlaps[:, r, c]
+    overlaps = calcSignatureOverlaps(mode_ensemble, diag=diag)
 
-    meanV = overlap_triu.mean(axis=1)
-    stdV = overlap_triu.std(axis=1)
+    if diag:
+        r, c = np.triu_indices(overlaps.shape[1], k=1)
+        overlap_triu = overlaps[:, r, c]
 
-    show = showSignatureAtomicLines(meanV, stdV)
-    xlabel('Mode index')
-    ylabel('Overlap')
+        meanV = overlap_triu.mean(axis=1)
+        stdV = overlap_triu.std(axis=1)
+
+        show = showSignatureAtomicLines(meanV, stdV)
+        xlabel('Mode index')
+        ylabel('Overlap')
+    else:
+        r, c = np.triu_indices(overlaps.shape[2], k=1)
+        overlap_triu = overlaps[:, :, r, c]
+
+        if std:
+            stdV = overlap_triu.std(axis=-1).std(axis=-1)
+            show = showMatrix(stdV)
+        else:
+            meanV = overlap_triu.mean(axis=-1).mean(axis=-1)
+            show = showMatrix(meanV)
     
     return show
 
@@ -1358,12 +1416,11 @@ def calcSignatureFractVariance(mode_ensemble):
         LOGGER.warn('modes in mode_ensemble did not match cross modesets. '
                     'Consider running mode_ensemble.match() prior to using this function')
 
-    matches = mode_ensemble
-    n_sets = len(matches)
+    n_sets = len(mode_ensemble)
 
     W = []; is3d = None
     for i in range(n_sets):
-        m = matches[i]
+        m = mode_ensemble[i]
         var = calcFractVariance(m)
         W.append(var)
         if is3d is None:

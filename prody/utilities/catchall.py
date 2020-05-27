@@ -486,13 +486,20 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
 
     :arg interactive: turn on or off the interactive options
     :type interactive: bool
+
+    :arg xtickrotation: turn on or off rotation of the xticklabels
+                        default is False
+    :type xtickrotation: bool
     """
 
     from matplotlib import ticker
     from matplotlib.gridspec import GridSpec
     from matplotlib.collections import LineCollection
     from matplotlib.pyplot import gca, sca, sci, colorbar, subplot
-    from matplotlib.colors import DivergingNorm
+    try:
+        from matplotlib.colors import DivergingNorm
+    except ImportError:
+        from matplotlib.colors import TwoSlopeNorm
 
     from .drawtools import drawTree
 
@@ -517,6 +524,8 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
     ticklabels = kwargs.pop('ticklabels', None)
     xticklabels = kwargs.pop('xticklabels', ticklabels)
     yticklabels = kwargs.pop('yticklabels', ticklabels)
+
+    xtickrotation = kwargs.pop('xtickrotation', False)
 
     show_colorbar = kwargs.pop('colorbar', True)
     cb_extend = kwargs.pop('cb_extend', 'neither')
@@ -700,6 +709,9 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
         from matplotlib.pyplot import connect
         cursor = ImageCursor(ax3, im)
         connect('button_press_event', cursor.onClick)
+
+    if xtickrotation:
+        ax3.tick_params(axis='x', rotation=90)
 
     return im, lines, cb
 
