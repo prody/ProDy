@@ -344,7 +344,7 @@ class AtomPointer(Atomic):
         if len(self._ag) / 4 >= len(self):
             for a, b, c, d in self._ag._iterDihedrals():
                 if a in iset and b in iset and c in iset and d in iset:
-                    yield a, b, c
+                    yield a, b, c, d
         else:
             for a, dmap in zip(indices, self._ag._dmap[indices]):
                 for b, c, d in dmap:
@@ -374,7 +374,7 @@ class AtomPointer(Atomic):
         if len(self._ag) / 4 >= len(self):
             for a, b, c, d in self._ag._iterImpropers():
                 if a in iset and b in iset and c in iset and d in iset:
-                    yield a, b, c
+                    yield a, b, c, d
         else:
             for a, imap in zip(indices, self._ag._imap[indices]):
                 for b, c, d in imap:
@@ -404,7 +404,7 @@ class AtomPointer(Atomic):
         if len(self._ag) / 4 >= len(self):
             for a, b, c, d in self._ag._iterCrossterms():
                 if a in iset and b in iset and c in iset and d in iset:
-                    yield a, b, c
+                    yield a, b, c, d
         else:
             for a, cmap in zip(indices, self._ag._cmap[indices]):
                 for b, c, d in cmap:
@@ -428,7 +428,6 @@ class AtomPointer(Atomic):
 
         if self._ag._donors is None:
             LOGGER.warning('donors are not set, use `AtomGroup.setDonors`')
-            yield None
 
         indices = self._getIndices()
         iset = set(indices)
@@ -458,7 +457,6 @@ class AtomPointer(Atomic):
 
         if self._ag._acceptors is None:
             LOGGER.warning('acceptors are not set, use `AtomGroup.setAcceptors`')
-            yield None
 
         indices = self._getIndices()
         iset = set(indices)
@@ -488,7 +486,6 @@ class AtomPointer(Atomic):
 
         if self._ag._nbexclusions is None:
             LOGGER.warning('nbexclusions are not set, use `AtomGroup.setNBExclusions`')
-            yield None
 
         indices = self._getIndices()
         iset = set(indices)

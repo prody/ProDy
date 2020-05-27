@@ -114,9 +114,9 @@ def writeVMDstiffness(stiffness, pdb, indices, k_range, filename='vmd_out', \
     out.write('light 1 on\n')
     out.write('light 2 off\n')
     out.write('light 3 on\n')
-    out.write('mol addrep 0\n')
     out.write('display resetview\n')
     out.write('mol new {./'+str(filename)+'.pdb} type {pdb} first 0 last -1 step 1 waitfor 1\n')
+    out.write('mol addrep 0\n')
     out.write('mol modselect 0 0 protein\n')
     out.write('mol modstyle 0 0 NewCartoon 0.300000 10.000000 4.100000 0\n')
     out.write('mol modcolor 0 0 Structure\n')
@@ -191,12 +191,11 @@ def writeDeformProfile(stiffness, pdb, filename='dp_out', \
     """Calculate deformability (plasticity) profile of molecule based on mechanical
     stiffness matrix (see [EB08]_).
 
-    :arg model: this is an 3-dimensional NMA instance from a :class:`.ANM
-        calculations
-    :type model: :class:`.ANM`
+    :arg stiffness: mechanical stiffness matrix
+    :type stiffness: :class:`~numpy.ndarray
 
     :arg pdb: a coordinate set or an object with ``getCoords`` method
-    :type pdb: :class:`numpy.ndarray`    
+    :type pdb: :class:`~numpy.ndarray`    
     
     Note: selection can be done using ``select`` and ``pdb_selstr``. 
     ``select`` defines ``model`` selection (used for building :class:`.ANM` model) 
@@ -253,7 +252,7 @@ def calcChainsNormDistFluct(coords, ch1, ch2, cutoff=10., percent=5, rangeAng=5,
     :class:`.GNM` model. It is assigned to protein complex.
     
     :arg coords: a coordinate set or an object with ``getCoords`` method. 
-    :type coords: :class:`numpy.ndarray`.
+    :type coords: :class:`~numpy.ndarray`.
 
     :arg ch1: first chain name
     :type ch1: 'A' or other letter as a string
