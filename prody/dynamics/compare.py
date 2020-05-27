@@ -20,11 +20,14 @@ __all__ = ['calcOverlap', 'calcCumulOverlap', 'calcSubspaceOverlap', 'calcSpectr
 SO_CACHE = {}
 WO_CACHE = {}
 
-def calcOverlap(rows, cols):
+def calcOverlap(rows, cols, diag=False):
     """Returns overlap (or correlation) between two sets of modes (*rows* and
     *cols*).  Returns a matrix whose rows correspond to modes passed as *rows*
     argument, and columns correspond to those passed as *cols* argument.
-    Both rows and columns are normalized prior to calculating overlap."""
+    Both rows and columns are normalized prior to calculating overlap.
+    
+    This function can now return the diagonal of the overlap matrix if *diag*
+    is set to **True**."""
 
     if not isinstance(rows, (NMA, ModeSet, Mode, Vector, np.ndarray)):
         raise TypeError('rows must be NMA, ModeSet, Mode, Vector, or array, not {0}'
@@ -55,7 +58,12 @@ def calcOverlap(rows, cols):
         cols = cols.getArray()
     cols *= 1 / (cols ** 2).sum(0) ** 0.5
 
-    return np.dot(rows.T, cols)
+    if diag:
+        overlaps = np.einsum('ij,ji->i', rows.T, cols)
+    else:
+        overlaps = np.dot(rows.T, cols)
+    
+    return overlaps
 
 
 def printOverlapTable(rows, cols):
