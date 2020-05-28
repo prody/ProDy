@@ -72,6 +72,3 @@ with ProDy. The original CE method was developed by Ilya Shindyalov and Philip
 Bourne. The Python version which is used by ProDy is developed by Jason Vertrees 
 and available under the New BSD license. 
 
-py-lapsolver (https://github.com/cheind/py-lapsolver) is distributed with ProDy. 
-py-lapsolver is developed by Christoph Heindl and Jack Valmadre and is available 
-under the MIT license (http://www.opensource.org/licenses/mit-license.php).
