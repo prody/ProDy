@@ -25,7 +25,8 @@ from .plotting import showAtomicLines, showAtomicMatrix, showDomainBar
 from .anm import ANM
 from .gnm import GNM
 
-__all__ = ['ModeEnsemble', 'sdarray', 'calcEnsembleENMs', 'showSignature1D', 'showSignatureAtomicLines', 
+__all__ = ['ModeEnsemble', 'sdarray', 'calcEnsembleENMs', 
+           'showSignature1D', 'showSignatureAtomicLines', 
            'showSignatureMode', 'showSignatureDistribution', 'showSignatureCollectivity',
            'showSignatureSqFlucts', 'calcEnsembleSpectralOverlaps', 'calcSignatureSqFlucts', 
            'calcSignatureCollectivity', 'calcSignatureFractVariance', 'calcSignatureModes', 
