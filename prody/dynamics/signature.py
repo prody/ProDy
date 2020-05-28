@@ -1534,11 +1534,15 @@ def showSignatureDistribution(signature, **kwargs):
 
     colors = []
     for patch_i in patches:
-        colors.append(patch_i[0].get_facecolor())
+        if isinstance(patch_i, list):
+            colors.append(patch_i[0].get_facecolor())
+        else:
+            colors.append(patch_i.get_facecolor())
 
     for i, patch_i in enumerate(patches):
-        for j, patch_j in enumerate(patch_i):
-            patch_j.set_color(colors[-(i+1)])
+        if isinstance(patch_i, list):
+            for j, patch_j in enumerate(patch_i):
+                patch_j.set_color(colors[-(i+1)])
 
     if show_legend:
         legend()
