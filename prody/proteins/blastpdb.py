@@ -92,9 +92,9 @@ class PDBBlastRecord(object):
         self._xml = xml
         self.isSuccess = False
         self._timeout = kwargs.get('timeout', 120)
-        self.isSuccess = self.getRecord(**kwargs)
+        self.isSuccess = self.fetch(**kwargs)
 
-    def getRecord(self, xml=None, sequence=None, **kwargs):
+    def fetch(self, xml=None, sequence=None, **kwargs):
         """Get Blast record from url or file.
 
         :arg sequence: an object with an associated sequence string 

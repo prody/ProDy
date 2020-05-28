@@ -97,7 +97,7 @@ def searchDali(pdb, chain=None, subset='fullPDB', daliURL=None, **kwargs):
                 data = open(pdb, "rb")
                 chain = chain_set.pop()
             files = {"file1" : data}
-            # case: multiple chains.             apply getRecord ? multiple times?
+            # case: multiple chains.             apply fetch ? multiple times?
             pdb_chain = ''
             dali_title = 'Title_' + pdbId + chain
         else:
@@ -165,9 +165,9 @@ class DaliRecord(object):
         self._title = pdbId + '-' + chain
         self._alignPDB = None
         self._filterDict = None
-        self.isSuccess = self.getRecord(self._url, localFile=localFile, timeout=timeout, **kwargs)
+        self.isSuccess = self.fetch(self._url, localFile=localFile, timeout=timeout, **kwargs)
 
-    def getRecord(self, url=None, localFile=False, **kwargs):
+    def fetch(self, url=None, localFile=False, **kwargs):
         """Get Dali record from url or file.
 
         :arg url: url of Dali results page or local dali results file
@@ -227,7 +227,7 @@ class DaliRecord(object):
                     return False
                 sleep = 20 if int(sleep * 1.5) >= 20 else int(sleep * 1.5)
                 if LOGGER.timing('_dali') > timeout:
-                    LOGGER.warn(': Dali search has timed out. \nThe results can be obtained later using the getRecord() method.')
+                    LOGGER.warn(': Dali search has timed out. \nThe results can be obtained later using the fetch() method.')
                     return False
                 LOGGER.sleep(int(sleep), 'to reconnect to Dali '+log_message)
                 LOGGER.clear()
@@ -312,7 +312,7 @@ class DaliRecord(object):
         """Returns PDB list (filters may be applied)"""
 
         if self._alignPDB is None:
-            LOGGER.warn('Dali Record does not have any data yet. Please run getRecord.')
+            LOGGER.warn('Dali Record does not have any data yet. Please run fetch.')
         
         if filtered:
             return self._pdbList
@@ -322,7 +322,7 @@ class DaliRecord(object):
         """Returns the dictionary associated with the DaliRecord"""
 
         if self._alignPDB is None:
-            LOGGER.warn('Dali Record does not have any data yet. Please run getRecord.')
+            LOGGER.warn('Dali Record does not have any data yet. Please run fetch.')
 
         return self._alignPDB
         
@@ -343,7 +343,7 @@ class DaliRecord(object):
         """Get mapping for a particular entry in the DaliRecord"""
 
         if self._alignPDB is None:
-            LOGGER.warn('Dali Record does not have any data yet. Please run getRecord.')
+            LOGGER.warn('Dali Record does not have any data yet. Please run fetch.')
             return None
         
         try:
@@ -357,7 +357,7 @@ class DaliRecord(object):
         """Get all mappings in the DaliRecord"""
 
         if self._alignPDB is None:
-            LOGGER.warn('Dali Record does not have any data yet. Please run getRecord.')
+            LOGGER.warn('Dali Record does not have any data yet. Please run fetch.')
             return None
 
         map_dict = {}
@@ -423,7 +423,7 @@ class DaliRecord(object):
         
         daliInfo = self._alignPDB
         if daliInfo is None:
-            raise ValueError("Dali Record does not have any data yet. Please run getRecord.")
+            raise ValueError("Dali Record does not have any data yet. Please run fetch.")
 
         pdbListAll = self._pdbListAll
         missing_ind_dict = dict()
@@ -491,7 +491,7 @@ def daliFilterMultimer(atoms, dali_rec, n_chains=None):
     try:
         keys = dali_rec._alignPDB
     except:
-        raise AttributeError("Dali Record does not have any data yet. Please run getRecord.")
+        raise AttributeError("Dali Record does not have any data yet. Please run fetch.")
 
     numChains = 0
     atommap = None
