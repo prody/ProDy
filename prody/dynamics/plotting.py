@@ -7,7 +7,7 @@ and are prefixed with ``show``.  Function documentations refers to the
 and keyword arguments are passed to the Matplotlib functions."""
 
 from collections import defaultdict
-
+from numbers import Number
 import numpy as np
 
 from prody import LOGGER, SETTINGS, PY3K
@@ -229,8 +229,9 @@ def showProjection(ensemble, modes, *args, **kwargs):
       * 3 modes: :meth:`~mpl_toolkits.mplot3d.Axes3D.scatter`"""
 
     import matplotlib.pyplot as plt
+    import matplotlib
 
-    cmap = kwargs.pop('cmap', None)
+    cmap = kwargs.pop('cmap', plt.cm.jet)
 
     if SETTINGS['auto_show']:
         fig = plt.figure()
@@ -268,6 +269,10 @@ def showProjection(ensemble, modes, *args, **kwargs):
             raise ValueError('length of color must be {0}'.format(num))
     else:
         raise TypeError('color must be a string or a list')
+
+    color_norm = None
+    if isinstance(colors[0], Number):
+        color_norm = matplotlib.colors.Normalize(vmin=min(colors), vmax=max(colors))
 
     labels = kwargs.pop('label', None)
     if isinstance(labels, str) or labels is None:
@@ -314,8 +319,11 @@ def showProjection(ensemble, modes, *args, **kwargs):
     for opts, indices in indict.items():  # PY3K: OK
         marker, color, label = opts
         kwargs['marker'] = marker
-        if cmap is not None:
-            color = cmap.colors[int(float(color))]
+        if color_norm is not None:
+            try:
+                color = cmap.colors[color_norm(color)]
+            except:
+                color = cmap(color_norm(color))
         kwargs['c'] = color
 
         if label:
@@ -326,11 +334,19 @@ def showProjection(ensemble, modes, *args, **kwargs):
         plot(*(list(projection[indices].T) + args), **kwargs)
 
     if texts:
+        ts = []
         kwargs = {}
         if size:
             kwargs['size'] = size
         for args in zip(*(list(projection.T) + [texts])):
-            text(*args, **kwargs)
+            ts.append(text(*args, **kwargs))
+
+        try: 
+            from adjustText import adjust_text
+        except ImportError:
+            pass
+        else:
+            adjust_text(ts)
 
     if len(modes) == 2:
         plt.xlabel('{0} coordinate'.format(int(modes[0])+1))
@@ -461,12 +477,22 @@ def showCrossProjection(ensemble, mode_x, mode_y, scale=None, *args, **kwargs):
         else:
             kwargs.pop('label', None)
         show = plt.plot(xcoords[indices], ycoords[indices], *args, **kwargs)
+
     if texts:
+        ts = []
         kwargs = {}
         if size:
             kwargs['size'] = size
         for x, y, t in zip(xcoords, ycoords, texts):
-            plt.text(x, y, t, **kwargs)
+            ts.append(plt.text(x, y, t, **kwargs))
+
+        try: 
+            from adjustText import adjust_text
+        except ImportError:
+            pass
+        else:
+            adjust_text(ts)
+
     plt.xlabel('{0} coordinate'.format(mode_x))
     plt.ylabel('{0} coordinate'.format(mode_y))
     if SETTINGS['auto_show']:

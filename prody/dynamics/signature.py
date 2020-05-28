@@ -1316,29 +1316,38 @@ def calcSignatureOverlaps(mode_ensemble, diag=True):
 
     if diag:
         overlaps = np.zeros((n_modes, n_sets, n_sets))
-        for m in range(mode_ensemble.numModes()):
-            for i, modeset_i in enumerate(mode_ensemble):
-                mode_i = modeset_i[m]
-                for j, modeset_j in enumerate(mode_ensemble):
-                    mode_j = modeset_j[m]
-                    if j >= i:
-                        overlaps[m, i, j] = overlaps[m, j, i] = abs(calcOverlap(mode_i, mode_j))
-                    
     else:
         overlaps = np.zeros((n_modes, n_modes, n_sets, n_sets))
 
-        for i, modeset_i in enumerate(mode_ensemble):
-            for j, modeset_j in enumerate(mode_ensemble):
-                if j >= i:                
-                    overlaps[:,:,i,j] = overlaps[:,:,j,i] = abs(calcOverlap(modeset_i, modeset_j))
+    for i, modeset_i in enumerate(mode_ensemble):
+        for j, modeset_j in enumerate(mode_ensemble):
+            if j >= i:
+                if diag:
+                    overlaps[:,i,j] = overlaps[:,j,i] = abs(calcOverlap(modeset_i, 
+                                                                        modeset_j, 
+                                                                        diag=True))
+                else:
+                    overlaps[:,:,i,j] = overlaps[:,:,j,i] = abs(calcOverlap(modeset_i, 
+                                                                            modeset_j, 
+                                                                            diag=False))
 
     return overlaps
 
-def showSignatureOverlaps(mode_ensemble):
+def showSignatureOverlaps(mode_ensemble, **kwargs):
     """Show a curve of mode-mode overlaps against mode number
     with shades for standard deviation and range
-    """
 
+    :arg diag: Whether to calculate the diagonal values only.
+               Default is **False** and :func:`showMatrix` is used.
+               If set to **True**, :func:`showSignatureAtomicLines` is used.
+    :type diag: bool
+
+    :arg std: Whether to show the standard deviation matrix
+              when **diag** is **False** (and whole matrix is shown).
+              Default is **False**, meaning the mean matrix is shown.
+    """
+    diag = kwargs.get('diag', False)
+    std = kwargs.get('std', False)
     from matplotlib.pyplot import xlabel, ylabel
 
     if not isinstance(mode_ensemble, ModeEnsemble):
@@ -1348,16 +1357,28 @@ def showSignatureOverlaps(mode_ensemble):
         LOGGER.warn('modes in mode_ensemble did not match cross modesets. '
                     'Consider running mode_ensemble.match() prior to using this function')
 
-    overlaps = calcSignatureOverlaps(mode_ensemble, diag=True)
-    r, c = np.triu_indices(overlaps.shape[1], k=1)
-    overlap_triu = overlaps[:, r, c]
+    overlaps = calcSignatureOverlaps(mode_ensemble, diag=diag)
 
-    meanV = overlap_triu.mean(axis=1)
-    stdV = overlap_triu.std(axis=1)
+    if diag:
+        r, c = np.triu_indices(overlaps.shape[1], k=1)
+        overlap_triu = overlaps[:, r, c]
 
-    show = showSignatureAtomicLines(meanV, stdV)
-    xlabel('Mode index')
-    ylabel('Overlap')
+        meanV = overlap_triu.mean(axis=1)
+        stdV = overlap_triu.std(axis=1)
+
+        show = showSignatureAtomicLines(meanV, stdV)
+        xlabel('Mode index')
+        ylabel('Overlap')
+    else:
+        r, c = np.triu_indices(overlaps.shape[2], k=1)
+        overlap_triu = overlaps[:, :, r, c]
+
+        if std:
+            stdV = overlap_triu.std(axis=-1).std(axis=-1)
+            show = showMatrix(stdV)
+        else:
+            meanV = overlap_triu.mean(axis=-1).mean(axis=-1)
+            show = showMatrix(meanV)
     
     return show
 
@@ -1371,12 +1392,16 @@ def calcSignatureFractVariance(mode_ensemble):
         LOGGER.warn('modes in mode_ensemble did not match cross modesets. '
                     'Consider running mode_ensemble.match() prior to using this function')
 
-    n_sets = len(mode_ensemble)
+    n_sets = mode_ensemble.numModeSets()
+    n_modes = mode_ensemble.numModes()
 
     W = []; is3d = None
     for i in range(n_sets):
         m = mode_ensemble[i]
-        var = calcFractVariance(m)
+        if n_modes == 1:
+            var = np.array([calcFractVariance(m)])
+        else:
+            var = calcFractVariance(m)
         W.append(var)
         if is3d is None:
             is3d = m.is3d()
