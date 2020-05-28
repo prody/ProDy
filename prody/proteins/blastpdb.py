@@ -60,7 +60,7 @@ def blastPDB(sequence, filename=None, **kwargs):
         raise TypeError('sequence must be Atomic, Sequence, or str not {0}'
                         .format(type(sequence)))
 
-    return PDBBlastRecord(sequence, filename, **kwargs)
+    return PDBBlastRecord(filename, sequence, **kwargs)
 
 
 class PDBBlastRecord(object):
@@ -68,7 +68,7 @@ class PDBBlastRecord(object):
     """A class to store results from blast searches."""
 
 
-    def __init__(self, sequence=None, xml=None, **kwargs):
+    def __init__(self, xml=None, sequence=None, **kwargs):
         """Instantiate a PDBBlastRecord object instance.
 
         :arg xml: blast search results in XML format or an XML file that
@@ -94,7 +94,7 @@ class PDBBlastRecord(object):
         self._timeout = kwargs.get('timeout', 120)
         self.isSuccess = self.getRecord(**kwargs)
 
-    def getRecord(self, sequence=None, xml=None, **kwargs):
+    def getRecord(self, xml=None, sequence=None, **kwargs):
         """Get Blast record from url or file.
 
         :arg sequence: an object with an associated sequence string 
