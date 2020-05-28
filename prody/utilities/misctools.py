@@ -18,7 +18,8 @@ __all__ = ['Everything', 'Cursor', 'ImageCursor', 'rangeString', 'alnum', 'impor
            'saxsWater', 'count', 'addEnds', 'copy', 'dictElementLoop', 'index',
            'getDataPath', 'openData', 'chr2', 'toChararray', 'interpY', 'cmp', 'pystr',
            'getValue', 'indentElement', 'isPDB', 'isURL', 'isListLike', 'isSymmetric', 'makeSymmetric',
-           'getDistance', 'fastin', 'createStringIO', 'div0', 'wmean', 'bin2dec', 'wrapModes', 'fixArraySize']
+           'getDistance', 'fastin', 'createStringIO', 'div0', 'wmean', 'bin2dec', 'wrapModes', 
+           'fixArraySize', 'decToHybrid36']
 
 CURSORS = []
 
@@ -624,3 +625,32 @@ def index(A, a):
     else:
         A = asarray(A)
         return where(A==a)[0][0]
+
+
+def decToBase36(integer):
+    """Converts a decimal number to base 36.
+    Based on https://wikivisually.com/wiki/Base36
+    """
+
+    chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+    
+    sign = '-' if integer < 0 else ''
+    integer = abs(integer)
+    result = ''
+    
+    while integer > 0:
+        integer, remainder = divmod(integer, 36)
+        result = chars[remainder]+result
+
+    return sign+result
+
+def decToHybrid36(x):
+    """Convert a regular decimal number to a string in hybrid36 format"""
+    if not isinstance(x, numbers.Integral):
+        raise TypeError('x should be an integer')
+
+    if x < 100000:
+        return str(x)
+
+    start = 10*36**4 # decToBase36(start) = A0000
+    return decToBase36(int(x) + (start - 100000))
