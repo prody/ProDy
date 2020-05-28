@@ -1339,7 +1339,7 @@ def calcSignatureModes(mode_ensemble):
     and return a new GNM or ANM object containing them."""
 
     if not isinstance(mode_ensemble, ModeEnsemble):
-        raise TypeError('mode_ensemble should be an instance of ModeEnsemble')
+        raise TypeError('mode_ensemble should be a ModeEnsemble')
 
     if not mode_ensemble.isMatched():
         LOGGER.warn('modes in mode_ensemble did not match cross modesets. '
