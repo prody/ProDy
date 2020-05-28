@@ -185,7 +185,6 @@ class PDBBlastRecord(object):
                     break
                 last = results.index(b'\n', index)
                 status = results[index+len('Status='):last].strip()
-                LOGGER.debug("status is {0}".format(status.upper()))
                 if status.upper() == b'READY':
                     break
                 sleep = int(sleep * 1.5)
