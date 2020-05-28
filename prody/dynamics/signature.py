@@ -1392,12 +1392,16 @@ def calcSignatureFractVariance(mode_ensemble):
         LOGGER.warn('modes in mode_ensemble did not match cross modesets. '
                     'Consider running mode_ensemble.match() prior to using this function')
 
-    n_sets = len(mode_ensemble)
+    n_sets = mode_ensemble.numModeSets()
+    n_modes = mode_ensemble.numModes()
 
     W = []; is3d = None
     for i in range(n_sets):
         m = mode_ensemble[i]
-        var = calcFractVariance(m)
+        if n_modes == 1:
+            var = np.array([calcFractVariance(m)])
+        else:
+            var = calcFractVariance(m)
         W.append(var)
         if is3d is None:
             is3d = m.is3d()
