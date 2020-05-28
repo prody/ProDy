@@ -125,7 +125,7 @@ class CATHElement(ET.Element):
         
         return pdbs
     
-    def getSelStrs(self):
+    def getSelstrs(self):
         leaves = self.getDomains()
         data = []
 
@@ -160,7 +160,7 @@ class CATHElement(ET.Element):
         perform selection based on residue ranges given by CATH."""
         
         pdbs = self.getPDBs(True)
-        selstrs = self.getSelStrs()
+        selstrs = self.getSelstrs()
         header = kwargs.get('header', False)
         model = kwargs.get('model', None)
 
