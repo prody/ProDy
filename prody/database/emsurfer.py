@@ -118,9 +118,9 @@ class EmsurferRecord(object):
         timeout = kwargs.pop('timeout', 120)
 
         self._title = emdId
-        self.isSuccess = self.getRecord(self._url, localFile=localFile, timeout=timeout, **kwargs)
+        self.isSuccess = self.fetch(self._url, localFile=localFile, timeout=timeout, **kwargs)
 
-    def getRecord(self, url=None, localFile=False, **kwargs):
+    def fetch(self, url=None, localFile=False, **kwargs):
         if localFile:
             emsurfer_file = open(url, 'r')
             data = emsurfer_file.read()
