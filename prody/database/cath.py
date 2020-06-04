@@ -125,7 +125,7 @@ class CATHElement(ET.Element):
         
         return pdbs
     
-    def getSelStrs(self):
+    def getSelstrs(self):
         leaves = self.getDomains()
         data = []
 
@@ -160,7 +160,7 @@ class CATHElement(ET.Element):
         perform selection based on residue ranges given by CATH."""
         
         pdbs = self.getPDBs(True)
-        selstrs = self.getSelStrs()
+        selstrs = self.getSelstrs()
         header = kwargs.get('header', False)
         model = kwargs.get('model', None)
 
@@ -169,11 +169,21 @@ class CATHElement(ET.Element):
         ret = parsePDB(*pdbs, **kwargs)
 
         if model != 0:
+            headers = None
             if header:
-                prots, _ = ret
+                prots, headers = ret
             else:
                 prots = ret
 
+            if not isinstance(prots, list):
+                prots = [prots]
+
+                if header:
+                    headers = [headers]
+                    ret = (prots, headers)
+                else:
+                    ret = prots
+                    
             LOGGER.info('Extracting domains...')
             for i in range(len(prots)):
                 sel = prots[i].select(selstrs[i])
@@ -674,7 +684,7 @@ def range2selstr(rangestr):
         except ValueError:
             print('error occurred when parsing "%s"'%rangestr)
             continue
-        sels.append('resnum %s to %s'%(fro, to))
+        sels.append('resindex %s to %s'%(fro, to))
     selstr = ' or '.join(sels)
     return selstr
 

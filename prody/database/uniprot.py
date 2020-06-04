@@ -1,6 +1,7 @@
 import os.path
 import numpy as np
 from prody import LOGGER, PY3K
+from prody.proteins import parsePDB
 from prody.utilities import dictElement, dictElementLoop, openURL, which
 
 import platform, os, re, sys, time, urllib
@@ -14,10 +15,105 @@ else:
 
 from xml.etree.cElementTree import XML
 
-__all__ = ['queryUniprot', ]
+__all__ = ['UniprotRecord', 'searchUniprot', 'queryUniprot']
+
+comma_splitter = re.compile(r'\s*,\s*').split
+
+class UniprotRecord(object):
+    def __init__(self, data):
+        self._rawdata = data
+        self._pdbids = []
+        self._selstrs = []
+
+        self._parse()
+
+    def setData(self, value):
+        self._rawdata = value
+        self._parse()
+
+    def getData(self):
+        return self._rawdata
+
+    def getPDBs(self):
+        return self._pdbids
+
+    def getSelstrs(self):
+        return self._selstrs
+
+    def _parse(self):
+        data = self._rawdata
+        PDBIDs = []
+        SELSTRs = []
+        for key, value in data.items():
+            if not key.startswith('dbReference'):
+                continue
+            try:
+                pdbid = value['PDB']
+            except (KeyError, TypeError) as e:
+                continue
+            pdbchains = value['chains']
+            
+            # example chain strings: "A=27-139, B=140-150" or "A/B=27-150"
+            chains = []
+            ranges = []
+            pdbchains = comma_splitter(pdbchains)
+            for chain in pdbchains:
+                chids, resrange = chain.split('=')
+                chids = [chid.strip() for chid in chids.split('/')]
+                resrange = resrange.split('-')
+
+                for chid in chids:
+                    chains.append(chid)
+                    ranges.append(resrange)
+            
+            for chid, rng in zip(chains, ranges):
+                pdbchid = pdbid + chid if chid != '@' else pdbid
+                PDBIDs.append(pdbchid)
+                SELSTRs.append('resnum %s to %s'%tuple(rng))
+        
+        self._pdbids = PDBIDs
+        self._selstrs = SELSTRs
+
+    def parsePDBs(self, **kwargs):
+        """Load PDB into memory as :class:`.AtomGroup` instances using :func:`.parsePDB` and 
+        perform selection based on residue ranges given by CATH."""
+        
+        pdbs = self.getPDBs()
+        selstrs = self.getSelstrs()
+        header = kwargs.get('header', False)
+        model = kwargs.get('model', None)
+
+        LOGGER.timeit('_cath_parsePDB')
+        LOGGER.info('Parsing {0} PDB files...'.format(len(pdbs)))
+        ret = parsePDB(*pdbs, **kwargs)
+
+        if model != 0:
+            headers = None
+            if header:
+                prots, headers = ret
+            else:
+                prots = ret
+
+            if not isinstance(prots, list):
+                prots = [prots]
+
+                if header:
+                    headers = [headers]
+                    ret = (prots, headers)
+                else:
+                    ret = prots
+                    
+            LOGGER.info('Extracting domains...')
+            for i in range(len(prots)):
+                sel = prots[i].select(selstrs[i])
+                prots[i] = sel
+        LOGGER.report('Uniprot domains are parsed and extracted in %.2fs', '_cath_parsePDB')
+
+        return ret
 
 def queryUniprot(id, expand=[], regex=True):
-    """Query Uniprot with *id* and return a `dictionary` containing the results
+    """Query Uniprot with *id* and return a `dict` containing the raw results. 
+    Regular users should use :func:`searchUniprot` instead.
     
     :arg expand: entries through which you want to loop dictElements
         until there aren't any elements left
@@ -70,3 +166,11 @@ def queryUniprot(id, expand=[], regex=True):
         data = dictElementLoop(data, keys, '{http://uniprot.org/uniprot}')
     
     return data
+
+def searchUniprot(id):
+    """Search Uniprot with *id* and return a :class:`UniprotRecord` containing the results. 
+    """
+
+    data = queryUniprot(id)
+    
+    return UniprotRecord(data)
