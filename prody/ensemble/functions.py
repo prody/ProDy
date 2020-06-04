@@ -416,7 +416,7 @@ def buildPDBEnsemble(atomics, ref=None, title='Unknown', labels=None, unmapped=N
 
     :arg superpose: if set to ``'iter'``, :func:`.PDBEnsemble.iterpose` will be used to 
         superpose the structures, otherwise conformations will be superposed with respect 
-        to the reference specified by *ref*. Default is ``'iter'``
+        to the reference specified by *ref* unless set to ``False``. Default is ``'iter'``
     :type superpose: str
     """
 
@@ -509,10 +509,10 @@ def buildPDBEnsemble(atomics, ref=None, title='Unknown', labels=None, unmapped=N
     if occupancy is not None:
         ensemble = trimPDBEnsemble(ensemble, occupancy=occupancy)
 
-    if superpose != 'iter':
-        ensemble.superpose()
-    else:
+    if superpose == 'iter':
         ensemble.iterpose()
+    elif superpose is not False:
+        ensemble.superpose()
     
     LOGGER.info('Ensemble ({0} conformations) were built in {1:.2f}s.'
                      .format(ensemble.numConfs(), time.time()-start))
