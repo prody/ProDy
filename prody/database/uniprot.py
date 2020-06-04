@@ -67,7 +67,8 @@ class UniprotRecord(object):
                     ranges.append(resrange)
             
             for chid, rng in zip(chains, ranges):
-                PDBIDs.append(pdbid + chid)
+                pdbchid = pdbid + chid if chid != '@' else pdbid
+                PDBIDs.append(pdbchid)
                 SELSTRs.append('resnum %s to %s'%tuple(rng))
         
         self._pdbids = PDBIDs
