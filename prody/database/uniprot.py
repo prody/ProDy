@@ -83,7 +83,7 @@ class UniprotRecord(object):
         header = kwargs.get('header', False)
         model = kwargs.get('model', None)
 
-        LOGGER.timeit('_cath_parsePDB')
+        LOGGER.timeit('_uniprot_parsePDB')
         LOGGER.info('Parsing {0} PDB files...'.format(len(pdbs)))
         ret = parsePDB(*pdbs, **kwargs)
 
@@ -107,7 +107,7 @@ class UniprotRecord(object):
             for i in range(len(prots)):
                 sel = prots[i].select(selstrs[i])
                 prots[i] = sel
-        LOGGER.report('Uniprot domains are parsed and extracted in %.2fs', '_cath_parsePDB')
+        LOGGER.report('Uniprot domains are parsed and extracted in %.2fs', '_uniprot_parsePDB')
 
         return ret
 
