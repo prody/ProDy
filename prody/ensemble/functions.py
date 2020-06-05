@@ -417,7 +417,7 @@ def buildPDBEnsemble(atomics, ref=None, title='Unknown', labels=None, unmapped=N
     :arg superpose: if set to ``'iter'``, :func:`.PDBEnsemble.iterpose` will be used to 
         superpose the structures, otherwise conformations will be superposed with respect 
         to the reference specified by *ref* unless set to ``False``. Default is ``'iter'``
-    :type superpose: str
+    :type superpose: str, bool
     """
 
     occupancy = kwargs.pop('occupancy', None)
