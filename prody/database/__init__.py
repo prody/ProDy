@@ -38,3 +38,7 @@ __all__.extend(emsurfer.__all__)
 from . import goa
 from .goa import *
 __all__.extend(goa.__all__)
+
+from . import charmmgui
+from .charmmgui import *
+__all__.extend(charmmgui.__all__)
