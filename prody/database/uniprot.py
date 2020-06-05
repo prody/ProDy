@@ -67,7 +67,8 @@ class UniprotRecord(object):
                     ranges.append(resrange)
             
             for chid, rng in zip(chains, ranges):
-                PDBIDs.append(pdbid + chid)
+                pdbchid = pdbid + chid if chid != '@' else pdbid
+                PDBIDs.append(pdbchid)
                 SELSTRs.append('resnum %s to %s'%tuple(rng))
         
         self._pdbids = PDBIDs
@@ -82,7 +83,7 @@ class UniprotRecord(object):
         header = kwargs.get('header', False)
         model = kwargs.get('model', None)
 
-        LOGGER.timeit('_cath_parsePDB')
+        LOGGER.timeit('_uniprot_parsePDB')
         LOGGER.info('Parsing {0} PDB files...'.format(len(pdbs)))
         ret = parsePDB(*pdbs, **kwargs)
 
@@ -106,7 +107,7 @@ class UniprotRecord(object):
             for i in range(len(prots)):
                 sel = prots[i].select(selstrs[i])
                 prots[i] = sel
-        LOGGER.report('CATH domains are parsed and extracted in %.2fs', '_cath_parsePDB')
+        LOGGER.report('Uniprot domains are parsed and extracted in %.2fs', '_uniprot_parsePDB')
 
         return ret
 
