@@ -43,9 +43,24 @@ class CharmmGUIBrowser(object):
             segids = ['PROA']
         self.segids = segids
 
-        self.run()
+        self.browser = None
+        self.link = None
+        self.status = False
 
-    def download(self, browser, link, saveas):
+        self.saveas = 'charmm-gui'
+
+        #self.run()
+
+    def download(self, browser=None, link=None, saveas=None):
+        if browser is None:
+            browser = self.browser
+
+        if link is None:
+            link = self.link
+
+        if saveas is None:
+            saveas = self.saveas
+
         LOGGER.info("downloading %s to %s" % (link, saveas))
         url = "http://www.charmm-gui.org/?doc=input/download"
         user_agent = 'Mozilla/4.0 (compatible; MSIE 5.5; Windows NT)'
@@ -65,7 +80,10 @@ class CharmmGUIBrowser(object):
         fsize = float(os.stat(saveas).st_size)/(1024.0*1024.0)
         LOGGER.info("download complete, file size is %5.2f MB"%fsize)
 
-    def get_download_link(self, browser):
+    def get_download_link(self, browser=None):
+        if browser is None:
+            browser = self.browser
+            
         while True:
             try:
                 downlink = browser.find_link_by_partial_href("archive=tgz")[-1]
@@ -79,7 +97,10 @@ class CharmmGUIBrowser(object):
                 LOGGER.info("waiting for download link, sleep for 2 s")
                 time.sleep(2)
 
-    def check_error(self, browser):
+    def check_error(self, browser=None):
+        if browser is None:
+            browser = self.browser
+            
         while True:
             try:
                 res = browser.is_text_present("CHARMM was terminated abnormally")
@@ -92,7 +113,13 @@ class CharmmGUIBrowser(object):
                 LOGGER.info("check_error sleep for 1 second")
                 time.sleep(1)
 
-    def wait_for_text(self, browser, text):
+    def wait_for_text(self, browser=None, text=None):
+        if browser is None:
+            browser = self.browser
+
+        if text is None:
+            text = self.text
+            
         LOGGER.info("    waiting for %s" % text)
         while True:
             try:
@@ -103,7 +130,13 @@ class CharmmGUIBrowser(object):
                 LOGGER.info("    sleep for 2 seconds")
                 time.sleep(2)
 
-    def next_step(self, browser, text):
+    def next_step(self, browser=None, text=None):
+        if browser is None:
+            browser = self.browser
+
+        if text is None:
+            text = self.text
+            
         browser.execute_script("proceed()")
         LOGGER.info("    Goto next step")
         self.wait_for_text(browser, text)
@@ -165,7 +198,11 @@ class CharmmGUIBrowser(object):
         link = self.get_download_link(browser)
         LOGGER.info("Build success")
         status = "Success"
-        return browser, link, status
+
+        self.browser = browser
+        self.link = link
+        self.status = status
+        return
 
 
 if __name__ == "__main__":
@@ -193,14 +230,15 @@ if __name__ == "__main__":
                     flag = False
 
         cwd = os.getcwd()
-
-        browser, link, status = run(cwd, ndir, fname, segid)
+        segids = [segid]
+        cgb = CharmmGUIBrowser(cwd, ndir, fname, segids)
+        browser, link, status = cgb.run(cwd, ndir, fname, segids)
 
         if status == "Failed":
-            download(browser, link, "failed.%s.quickmd.tar.gz"%ndir)
+            cgb.download(browser, link, "failed.%s.quickmd.tar.gz"%ndir)
             LOGGER.info("###########Failed####################")
         else:
-            download(browser, link, "%s.quickmd.tar.gz"%ndir)
+            cgb.download(browser, link, "%s.quickmd.tar.gz"%ndir)
         LOGGER.info("============================")
 
         browser.quit()
