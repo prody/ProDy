@@ -74,6 +74,11 @@ def loadEnsemble(filename, **kwargs):
     """Returns ensemble instance loaded from *filename*.  This function makes
     use of :func:`~numpy.load` function.  See also :func:`saveEnsemble`"""
 
+    if filename.endswith('.ens'):
+        filename += '.npz'
+    if not filename.endswith('.npz'):
+        filename += '.ens.npz'
+
     if not 'encoding' in kwargs:
         kwargs['encoding'] = 'latin1'
     
