@@ -11,7 +11,7 @@ from prody import LOGGER
 from prody.atomic import Atomic, sliceAtoms
 from prody.atomic.atomgroup import checkLabel
 from prody.measure import getRMSD, calcDeformVector
-from prody.utilities import importLA, checkCoords, checkWeights, copy
+from prody.utilities import importLA, checkCoords, checkWeights, copy, isListLike
 
 from .conformation import *
 
@@ -281,6 +281,22 @@ class Ensemble(object):
         if self._indices is None or not selected:
             return self._coords.copy()
         return self._coords[self._indices].copy()
+
+    def getIndices(self):
+        """Returns a copy of indices of selected columns"""
+
+        return copy(self._indices)
+
+    def setIndices(self, value):
+        if not isListLike(value):
+            raise TypeError('value must be a list or numpy.ndarray instance')
+
+        array = asarray(value)
+
+        if len(array) != self._n_atoms:
+            raise ValueError('length mismatch between this ensemble '
+                             '(%d) and indices (%d)'%(self._n_atoms, len(array)))
+        self._indices = value
 
     def _getCoords(self, selected=True):
         """Returns a view of reference coordinates for selected atoms."""

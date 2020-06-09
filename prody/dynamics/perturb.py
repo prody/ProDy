@@ -70,17 +70,17 @@ def calcPerturbResponse(model, **kwargs):
             raise ValueError('model and atoms must have the same number atoms')
 
     n_atoms = model.numAtoms()
-    LOGGER.timeit('_prody_prs_all')
-    LOGGER.info('Calculating covariance matrix')
-    LOGGER.timeit('_prody_cov')
+    # LOGGER.timeit('_prody_prs_all')
+    # LOGGER.info('Calculating covariance matrix')
+    # LOGGER.timeit('_prody_cov')
 
     cov = model.getCovariance()
 
-    LOGGER.clear()
-    LOGGER.report('Covariance matrix calculated in %.1fs.', '_prody_cov')
+    # LOGGER.clear()
+    # LOGGER.report('Covariance matrix calculated in %.1fs.', '_prody_cov')
 
-    LOGGER.info('Calculating perturbation response')
-    LOGGER.timeit('_prody_prs_mat')
+    # LOGGER.info('Calculating perturbation response')
+    # LOGGER.timeit('_prody_prs_mat')
     if not model.is3d():
         prs_matrix = cov**2
 
@@ -102,9 +102,9 @@ def calcPerturbResponse(model, **kwargs):
             j3p3 += 3                
             prs_matrix[:,j] = (n_by_3n_cov_squared[:,j3:j3p3]).sum(1)
 
-    LOGGER.clear()
-    LOGGER.report('Perturbation response matrix calculated in %.1fs.',
-                  '_prody_prs_mat')
+    # LOGGER.clear()
+    # LOGGER.report('Perturbation response matrix calculated in %.1fs.',
+    #               '_prody_prs_mat')
 
     norm_prs_matrix = np.zeros((n_atoms, n_atoms))
     self_dp = np.diag(prs_matrix)  
@@ -120,8 +120,8 @@ def calcPerturbResponse(model, **kwargs):
     effectiveness = np.average(norm_prs_matrix, weights=W, axis=1)
     sensitivity = np.average(norm_prs_matrix, weights=W, axis=0)
 
-    LOGGER.report('Perturbation response scanning completed in %.1fs.',
-                  '_prody_prs_all')
+    # LOGGER.report('Perturbation response scanning completed in %.1fs.',
+    #               '_prody_prs_all')
 
     if atoms is not None:
         try:
