@@ -36,7 +36,7 @@ class PDBEnsemble(Ensemble):
 
     def __repr__(self):
 
-        return '<PDB' + Ensemble.__repr__(self)[1:]
+        return '<PDB' + Ensemble.__repr__(self)[1:] + '>'
 
     def __str__(self):
 
