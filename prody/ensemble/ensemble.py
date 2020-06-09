@@ -638,6 +638,7 @@ class Ensemble(object):
         if weights is not None:
             if weights.ndim == 3:
                 weightsum = weights.sum(axis=0)
+                weightsum[weightsum==0.] = 1. # add pseudocount to avoid nan
             else:
                 weightsum = length
 
