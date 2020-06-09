@@ -432,7 +432,10 @@ def buildPDBEnsemble(atomics, ref=None, title='Unknown', labels=None, unmapped=N
                                  'more details: http://prody.csb.pitt.edu/manual/release/v1.11_series.html')
     start = time.time()
 
-    if len(atomics) == 1:
+    if not isListLike(atomics):
+        raise TypeError('atomics should be list-like')
+
+    if len(atomics) == 1 and degeneracy is True:
         raise ValueError('atomics should have at least two items')
 
     if labels is not None:
