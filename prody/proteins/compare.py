@@ -1522,7 +1522,7 @@ def combineAtomMaps(mappings, target=None, **kwargs):
                 else:
                     cov_matrix[i, j] = mapping[3] / 100.
                     cost_matrix[i, j] = 1 - cov_matrix[i, j]
-    
+
         # uses LAP to find the optimal mappings of chains
         atommaps = []
         (R, C), crrpds = multilap(cost_matrix, nodes, BIG_NUMBER)
@@ -1665,7 +1665,10 @@ def combineAtomMaps(mappings, target=None, **kwargs):
                           label='_atommap_lap')
     
     if len(atommaps) == 0:
-        LOGGER.warn('no atommaps were found. Consider inceasing rmsd_reject or drmsd')
+        if np.count_nonzero(cov_matrix) == 0:
+            LOGGER.warn('no atommaps were available. Consider adjusting accepting criteria')
+        else:
+            LOGGER.warn('no atommaps were found. Consider inceasing rmsd_reject or drmsd')
     return atommaps
 
 def rankAtomMaps(atommaps, target):
