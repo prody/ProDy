@@ -173,8 +173,8 @@ def calcTree(names, distance_matrix, method='upgma', linkage=False):
     :type distance_matrix: :class:`~numpy.ndarray`
 
     :arg method: method used for constructing the tree. Acceptable options are ``"upgma"``, ``"nj"``, 
-                 or methods supported by :func:`~scipy.cluster.hierarchy.linkage` such as "single", 
-                 "average", "ward", etc.
+                 or methods supported by :func:`~scipy.cluster.hierarchy.linkage` such as ``"single"``, 
+                 ``"average"``, ``"ward"``, etc. Default is ``"upgma"``
     :type method: str
 
     :arg linkage: whether the linkage matrix is returned. Note that NJ trees do not support linkage

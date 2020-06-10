@@ -19,7 +19,8 @@ from .imanm import imANM
 from .exanm import exANM
 from .mode import Vector, Mode
 from .modeset import ModeSet
-from .editing import sliceModel, reduceModel
+from .editing import sliceModel, reduceModel, trimModel
+from .editing import sliceModelByMask, reduceModelByMask, trimModelByMask
 
 __all__ = ['parseArray', 'parseModes', 'parseSparseMatrix',
            'writeArray', 'writeModes',
@@ -410,31 +411,31 @@ def parseSparseMatrix(filename, symmetric=False, delimiter=None, skiprows=0,
 
 def calcENM(atoms, select=None, model='anm', trim='trim', gamma=1.0, 
             title=None, n_modes=None, **kwargs):
-    """Returns an :class:`ANM` or `GNM` instance and atoms used for the 
+    """Returns an :class:`.ANM` or :class:`.GNM` instance and *atoms* used for the 
     calculations. The model can be trimmed, sliced, or reduced based on 
     the selection.
 
     :arg atoms: atoms on which the ENM is performed. It can be any :class:`Atomic` 
-        class that supports selection.
-    :type atoms: :class:`Atomic`, :class:`AtomGroup`, :class:`Selection`
+        class that supports selection or a :class:`~numpy.ndarray`.
+    :type atoms: :class:`.Atomic`, :class:`.AtomGroup`, :class:`.Selection`, :class:`~numpy.ndarray`
 
     :arg select: part of the atoms that is considered as the system. 
-        If set to `None`, then all atoms will be considered as the system
-    :type select: str, :class:`Selection`
+        If set to **None**, then all atoms will be considered as the system
+    :type select: str, :class:`.Selection`, :class:`~numpy.ndarray`
 
-    :arg model: type of ENM that will be performed. It can be either 'anm' 
-        or 'gnm'
+    :arg model: type of ENM that will be performed. It can be either ``"anm"`` 
+        or ``"gnm"``
     :type model: str
 
     :arg trim: type of method that will be used to trim the model. It can 
-        be either 'trim' , 'slice', or 'reduce'. If set to 'trim', the parts 
-        that is not in the selection will simply be removed
+        be either ``"trim"`` , ``"slice"``, or ``"reduce"``. If set to ``"trim"``, 
+        the parts that is not in the selection will simply be removed
     :type trim: str
     """
     
-    if not isinstance(atoms, Atomic):
-        if select is not None:
-            raise TypeError('atoms should be Atomic if it needs to be selected')
+    if isinstance(select, (str, AtomSubset)):
+        if not isinstance(atoms, Atomic):
+            raise TypeError('atoms must be a Atomic instance in order to be selected')
     try:
         if title is None:
             title = atoms.getTitle()
@@ -459,12 +460,6 @@ def calcENM(atoms, select=None, model='anm', trim='trim', gamma=1.0,
         trim = 'trim'
     else:
         trim = str(trim).lower().strip()
-
-    if trim == 'trim' and select is not None:
-        if isinstance(select, AtomSubset):
-            atoms = select
-        else:
-            atoms = atoms.select(str(select))
     
     enm = None
     if model == 'anm':
@@ -483,13 +478,26 @@ def calcENM(atoms, select=None, model='anm', trim='trim', gamma=1.0,
     else:
         if trim == 'slice':
             enm.calcModes(n_modes=n_modes, zeros=zeros, turbo=turbo)
-            enm, atoms = sliceModel(enm, atoms, select)  
-            if model == 'gnm':
-                enm.calcHinges()
+            if isinstance(select, np.ndarray):
+                enm = sliceModelByMask(enm, select)
+                atoms = select
+            else:
+                enm, atoms = sliceModel(enm, atoms, select)
         elif trim == 'reduce':
-            enm, atoms = reduceModel(enm, atoms, select)
+            if isinstance(select, np.ndarray):
+                enm = reduceModelByMask(enm, select)
+                atoms = select
+            else:
+                enm, atoms = reduceModel(enm, atoms, select)
+            enm.calcModes(n_modes=n_modes, zeros=zeros, turbo=turbo)
+        elif trim == 'trim':
+            if isinstance(select, np.ndarray):
+                enm = trimModelByMask(enm, select)
+                atoms = select
+            else:
+                enm, atoms = trimModel(enm, atoms, select)
             enm.calcModes(n_modes=n_modes, zeros=zeros, turbo=turbo)
         else:
-            enm.calcModes(n_modes=n_modes, zeros=zeros, turbo=turbo)
+            raise ValueError('trim can only be "trim", "reduce", or "slice"')
     
     return enm, atoms

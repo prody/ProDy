@@ -22,18 +22,19 @@ from .compare import calcSpectralOverlap, matchModes, calcOverlap
 
 from .analysis import calcSqFlucts, calcCrossCorr, calcFractVariance, calcCollectivity
 from .plotting import showAtomicLines, showAtomicMatrix, showDomainBar
+from .perturb import calcPerturbResponse
 from .anm import ANM
 from .gnm import GNM
 
 __all__ = ['ModeEnsemble', 'sdarray', 'calcEnsembleENMs', 
-           'showSignature1D', 'showSignatureAtomicLines', 
+           'showSignature1D', 'psplot', 'showSignatureAtomicLines', 
            'showSignatureMode', 'showSignatureDistribution', 'showSignatureCollectivity',
            'showSignatureSqFlucts', 'calcEnsembleSpectralOverlaps', 'calcSignatureSqFlucts', 
            'calcSignatureCollectivity', 'calcSignatureFractVariance', 'calcSignatureModes', 
            'calcSignatureCrossCorr', 'showSignatureCrossCorr', 'showVarianceBar',
            'showSignatureVariances', 'calcSignatureOverlaps', 'showSignatureOverlaps',
            'saveModeEnsemble', 'loadModeEnsemble', 'saveSignature', 'loadSignature',
-           'calcSubfamilySpectralOverlaps','showSubfamilySpectralOverlaps']
+           'calcSubfamilySpectralOverlaps','showSubfamilySpectralOverlaps', 'calcSignaturePerturbResponse']
 
 class ModeEnsemble(object):
     """
@@ -886,6 +887,8 @@ def calcEnsembleENMs(ensemble, model='gnm', trim='reduce', n_modes=20, **kwargs)
                 See https://docs.python.org/2/library/multiprocessing.html for details.
                 Default is **False**
     :type turbo: bool
+
+    :returns: :class:`.ModeEnsemble`
     """
 
     match = kwargs.pop('match', True)
@@ -909,10 +912,14 @@ def calcEnsembleENMs(ensemble, model='gnm', trim='reduce', n_modes=20, **kwargs)
     atoms = ensemble.getAtoms() 
     select = None
     if ensemble.isSelected():
-        select = atoms
-        atoms = ensemble.getAtoms(selected=False)
+        if atoms is None:
+            select = ensemble._indices
+        else:
+            select = atoms
+            atoms = ensemble.getAtoms(selected=False)
 
-    ori_coords = atoms.getCoords()
+    if atoms is not None:
+        ori_coords = atoms.getCoords()
         
     labels = ensemble.getLabels()
 
@@ -933,7 +940,7 @@ def calcEnsembleENMs(ensemble, model='gnm', trim='reduce', n_modes=20, **kwargs)
             atoms.setCoords(nodes)
             nodes = atoms
         enm, _ = calcENM(nodes, select, model=model, trim=trim, 
-                            n_modes=n_modes, title=labels[i], **kwargs)
+                         n_modes=n_modes, title=labels[i], **kwargs)
         enms.append(enm)
 
         #lbl = labels[i] if labels[i] != '' else '%d-th conformation'%(i+1)
@@ -961,7 +968,8 @@ def calcEnsembleENMs(ensemble, model='gnm', trim='reduce', n_modes=20, **kwargs)
                              label=ensemble.getLabels())
     modeens.setAtoms(ensemble.getAtoms())
 
-    atoms.setCoords(ori_coords)
+    if atoms is not None:
+        atoms.setCoords(ori_coords)
     
     if match:
         modeens.match(turbo=turbo, method=method)
@@ -1174,6 +1182,8 @@ def showSignature1D(signature, linespec='-', **kwargs):
 
     return lines, polys, bars, texts
 
+psplot = showSignature1D
+
 def showSignatureMode(mode_ensemble, **kwargs):
     """Show signature mode profile.
 
@@ -1249,13 +1259,12 @@ def calcSignatureCrossCorr(mode_ensemble, norm=True):
     if not mode_ensemble.isMatched():
         LOGGER.warn('modes in mode_ensemble did not match cross modesets. '
                     'Consider running mode_ensemble.match() prior to using this function')
-    modesets = mode_ensemble
-    n_atoms = modesets.numAtoms()
-    n_sets = len(modesets)
+    n_atoms = mode_ensemble.numAtoms()
+    n_sets = len(mode_ensemble)
 
     C = np.zeros((n_sets, n_atoms, n_atoms))
     for i in range(n_sets):
-        modes = modesets[i]
+        modes = mode_ensemble[i]
         c = calcCrossCorr(modes, norm=norm)
         C[i, :, :] = c
 
@@ -1274,6 +1283,53 @@ def calcSignatureCrossCorr(mode_ensemble, norm=True):
     sig = sdarray(C, title=title_str, weights=W, labels=labels, is3d=False)
         
     return sig
+
+def calcSignaturePerturbResponse(mode_ensemble, **kwargs):
+    """Calculate the signature perturbation response scanning based on a :class:`ModeEnsemble` instance.
+    
+    :arg mode_ensemble: an ensemble of ENMs 
+    :type mode_ensemble: :class: `ModeEnsemble`
+
+    """
+    
+    if not isinstance(mode_ensemble, ModeEnsemble):
+        raise TypeError('mode_ensemble should be an instance of ModeEnsemble')
+
+    if not mode_ensemble.isMatched():
+        LOGGER.warn('modes in mode_ensemble did not match cross modesets. '
+                    'Consider running mode_ensemble.match() prior to using this function')
+    n_atoms = mode_ensemble.numAtoms()
+    n_sets = len(mode_ensemble)
+
+    P = np.zeros((n_sets, n_atoms, n_atoms))
+    E = np.zeros((n_sets, n_atoms))
+    S = np.zeros((n_sets, n_atoms))
+    for i in range(n_sets):
+        modes = mode_ensemble[i]
+        prs_mat, eff, sen = calcPerturbResponse(modes, **kwargs)
+        P[i, :, :] = prs_mat
+        E[i, :] = eff
+        S[i, :] = sen
+
+    title_str = '%d modes'%mode_ensemble.numModes()
+    weights = mode_ensemble.getWeights()
+    if weights is not None:
+        W2 = np.zeros((mode_ensemble.numModeSets(), 
+                       mode_ensemble.numAtoms(), 
+                       mode_ensemble.numAtoms()))
+        for i, w in enumerate(weights):
+            w2 = np.outer(w, w)
+            W2[i, :, :] = w2
+
+        W = weights[:, :, 0]
+    labels = mode_ensemble.getLabels()
+
+    # even the original model is 3d, cross-correlations are still 1d
+    sig_prs_mat = sdarray(P, title=title_str, weights=W2, labels=labels, is3d=False)
+    sig_eff = sdarray(E, title=title_str, weights=W, labels=labels, is3d=False)
+    sig_sen = sdarray(S, title=title_str, weights=W, labels=labels, is3d=False)
+        
+    return sig_prs_mat, sig_eff, sig_sen
 
 def calcSignatureCollectivity(mode_ensemble, masses=None):
     """Calculate average collectivities for a ModeEnsemble."""

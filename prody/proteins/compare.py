@@ -185,22 +185,45 @@ def setAlignmentMethod(method):
 
 class SimpleResidue(object):
 
-    __slots__ = ['_res', '_name', '_num', '_inc']
+    __slots__ = ['_chain', '_index', '_res', '_name', '_num', '_inc']
 
-    def __init__(self, number, name, insertioncode='', residue=None):
+    def __init__(self, chain, index, number, name, insertioncode='', residue=None):
         self._num = number
         self._name = name
         self._inc = insertioncode
         self._res = residue
+        self._chain = chain
+        self._index = index
 
     def __repr__(self):
         return '<SimpleResidue: {0}{1}>'.format(self._name, self._num)
 
+    def __iter__(self):
+        res = self.getResidue()
+
+        if res is self:
+            # iterate the residue itself as atoms in it, assuming the 
+            # residue contains a single alpha carbon
+            for atom in [self]:
+                yield atom
+        else:
+            for atom in res:
+                yield atom
+
     def getResidue(self):
-        return self._res
+        if self._res is not None:
+            return self._res
+        else:
+            return self
+
+    def getChain(self):
+        return self._chain
 
     def getResnum(self):
         return self._num
+
+    def getIndex(self):
+        return self._index
 
     def getIcode(self):
         return self._inc
@@ -212,6 +235,11 @@ class SimpleResidue(object):
         if self._res:
             return self._res._getCoords()
         return None
+
+    def getName(self):
+        "A dummy method that returns the atom name of alpha carbon of this residue."
+
+        return 'CA'
 
 class SimpleChain(object):
 
@@ -298,14 +326,18 @@ class SimpleChain(object):
         resid = 0
         gaps = self._gaps
         for i, aa in enumerate(sequence):
+            resid = resnums[i]
             if gaps and aa in GAPCHARS:
-                self._seq += NONE_A
+                aa = NONE_A
+                simpres = None 
             else:
-                resid = resnums[i]
-                simpres = SimpleResidue(resid, aa)
-                self._list.append(simpres)
-                self._dict[resid] = simpres
-                self._seq += aa
+                simpres = SimpleResidue(self, i, resid, aa)
+
+            self._list.append(simpres)
+            self._dict[resid] = simpres
+            self._seq += aa
+        
+        self._title = 'built from sequence %s...'%sequence[:5]
 
     def buildFromChain(self, chain):
         """Build from a :class:`.Chain`."""
@@ -316,13 +348,13 @@ class SimpleChain(object):
         residues = list(chain.iterResidues())
         temp = residues[0].getResnum()-1
         protein_resnames = flags.AMINOACIDS
-        for res in chain:
+        for i, res in enumerate(chain):
             if not res.getResname() in protein_resnames:
                 continue
             resid = res.getResnum()
             incod = res.getIcode()
             aa = AAMAP.get(res.getResname(), 'X')
-            simpres = SimpleResidue(resid, aa, incod, res)
+            simpres = SimpleResidue(self, i, resid, aa, incod, res)
             if gaps:
                 diff = resid - temp - 1
                 if diff > 0:
@@ -925,6 +957,8 @@ def mapChainOntoChain(mobile, target, **kwargs):
     elif isinstance(mobile, SimpleChain):
         simple_mobile = mobile
         mobile = mobile._chain
+    else:
+        raise TypeError('mobile must be a Chain instance') 
 
     if len(simple_mobile) == 0:
         LOGGER.debug('\tCannot process {0}, which does not contain any amino '
@@ -936,12 +970,8 @@ def mapChainOntoChain(mobile, target, **kwargs):
     elif isinstance(target, SimpleChain):
         simple_target = target
         target = target._chain
-
-    if not isinstance(mobile, Chain):
-        raise TypeError('mobile must be a Chain instance')
-
-    if not isinstance(target, Chain):
-        raise TypeError('target must be Chain instance')
+    else:
+        raise TypeError('target must be a Chain instance') 
 
     seqid = kwargs.get('seqid', 90.) 
     coverage = kwargs.get('overlap', 70.)
@@ -955,9 +985,13 @@ def mapChainOntoChain(mobile, target, **kwargs):
     elif not isinstance(pwalign, bool):
         alignment = pwalign
         pwalign = True
+    
+    map_ag = mobile.getAtomGroup() if mobile is not None else None
+    target_ag = target.getAtomGroup() if target is not None else None
 
-    map_ag = mobile.getAtomGroup()
-    target_ag = target.getAtomGroup()
+    if map_ag is None and target_ag is None:
+        raise ValueError('At least one of mobile and target should be a Chain object '
+                         'or a SimpleChain object associated with a Chain object.')
 
     mapping = None
     LOGGER.debug('Trying to map atoms based on residue numbers and '
@@ -1057,19 +1091,33 @@ def mapChainOntoChain(mobile, target, **kwargs):
                 else:
                     indices_dummies.append(counter)
                 counter += 1
-        #n_atoms = len(indices_target)
 
         ch_tar = next((r for r in residues_target if r is not None)).getChain()
         ch_chn = next((r for r in residues_chain if r is not None)).getChain()
-        title_tar = 'Chain {0} from {1}'.format(ch_tar.getChid(), ch_tar.getAtomGroup().getTitle())
-        title_chn = 'Chain {0} from {1}'.format(ch_chn.getChid(), ch_chn.getAtomGroup().getTitle())
+
+        if isinstance(ch_tar, Chain):
+            title_tar = 'Chain {0} from {1}'.format(ch_tar.getChid(), ch_tar.getAtomGroup().getTitle())
+        else:
+            title_tar = 'SimpleChain {0}'.format(ch_tar.getTitle())
+
+        if isinstance(ch_chn, Chain):
+            title_chn = 'Chain {0} from {1}'.format(ch_chn.getChid(), ch_chn.getAtomGroup().getTitle())
+        else:
+            title_chn = 'SimpleChain {0}'.format(ch_tar.getTitle())
 
         # note that chain here is from atoms
-        atommap = AM(map_ag, indices_chain, mobile.getACSIndex(),
-                     mapping=indices_mapping, dummies=indices_dummies,
-                     title=title_chn + ' -> ' + title_tar )
-        selection = AM(target_ag, indices_target, target.getACSIndex(),
-                       title=title_tar + ' -> ' + title_chn, intarrays=True)
+        if map_ag is not None:
+            atommap = AM(map_ag, indices_chain, mobile.getACSIndex(),
+                         mapping=indices_mapping, dummies=indices_dummies,
+                         title=title_chn + ' -> ' + title_tar)
+        else:
+            atommap = None
+
+        if target_ag is not None:
+            selection = AM(target_ag, indices_target, target.getACSIndex(),
+                           title=title_tar + ' -> ' + title_chn, intarrays=True)
+        else:
+            selection = None
 
         mapping = (atommap, selection, _seqid, _cover)
     return mapping
@@ -1123,10 +1171,10 @@ def mapOntoChains(atoms, ref, match_func=bestMatch, **kwargs):
     :type match_func: func
     """
     
-    if not isinstance(atoms, (AtomGroup, AtomSubset)):
+    if not isinstance(atoms, (SimpleChain, AtomGroup, AtomSubset)):
         raise TypeError('atoms must be an AtomGroup or a AtomSubset (Chain, '
                         'Segment, etc.) instance')
-    if not isinstance(ref, (AtomGroup, AtomSubset)):
+    if not isinstance(ref, (SimpleChain, AtomGroup, AtomSubset)):
         raise TypeError('ref must be an AtomGroup or a AtomSubset (Chain, '
                         'Segment, etc.) instance')
 
@@ -1136,24 +1184,37 @@ def mapOntoChains(atoms, ref, match_func=bestMatch, **kwargs):
                          .format(str(subset)))
 
     if subset != 'all':
-        target = ref.select(subset)
-        mobile = atoms.select(subset)
+        if not isinstance(ref, SimpleChain):
+            target = ref.select(subset)
+        else:
+            target = ref
+        if not isinstance(atoms, SimpleChain):
+            mobile = atoms.select(subset)
+        else:
+            mobile = atoms
     else:
         target = ref
         mobile = atoms
 
-    chs_atm = [chain for chain in mobile.getHierView().iterChains()]
-    chs_ref = [chain for chain in target.getHierView().iterChains()]
+    if isinstance(mobile, (SimpleChain, Chain)):
+        chs_atm = [mobile]
+    else:
+        chs_atm = [chain for chain in mobile.getHierView().iterChains()]
+    
+    if isinstance(target, (SimpleChain, Chain)):
+        chs_ref = [target]
+    else:
+        chs_ref = [chain for chain in target.getHierView().iterChains()]
 
     # iterate through chains of both target and mobile
     mappings = np.empty((len(chs_ref), len(chs_atm)), dtype='O')
     for i, chain in enumerate(chs_ref):
-        simple_chain = SimpleChain(chain, False)
+        simple_chain = chain if isinstance(chain, SimpleChain) else SimpleChain(chain, False) 
         for j, target_chain in enumerate(chs_atm):
             if not match_func(chain, target_chain):
                 continue
 
-            simple_target = SimpleChain(target_chain, False)
+            simple_target = target_chain if isinstance(target_chain, SimpleChain) else SimpleChain(target_chain, False)
             mappings[i, j] = mapChainOntoChain(simple_target, simple_chain, **kwargs)
 
     return mappings

@@ -27,6 +27,14 @@ class UniprotRecord(object):
 
         self._parse()
 
+    def __repr__(self):
+        return '<UniprotRecord: %s>'%self.__str__()
+
+    def __str__(self):
+        uid = self.getAccession()
+        name = self.getName()
+        return '%s (%s)'%(uid, name)
+
     def setData(self, value):
         self._rawdata = value
         self._parse()
@@ -39,6 +47,22 @@ class UniprotRecord(object):
 
     def getSelstrs(self):
         return self._selstrs
+
+    def getSequence(self, index=0):
+        return self.getEntry('sequence', index)
+    
+    def getAccession(self, index=0):
+        return self.getEntry('accession', index)
+    
+    def getName(self, index=0):
+        return self.getEntry('name', index)
+
+    def getEntry(self, item, index=0):
+        key = '%s%4d'%(item, index)
+        if key in self._rawdata:
+            return self._rawdata[key]
+        else:
+            raise KeyError('%s does not exist in the Uniprot record'%key)
 
     def _parse(self):
         data = self._rawdata
