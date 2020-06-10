@@ -20,7 +20,7 @@ from .mode import Mode, VectorBase, Vector
 from .modeset import ModeSet
 from .analysis import calcSqFlucts, calcProjection
 from .analysis import calcCrossCorr, calcPairDeformationDist
-from .analysis import calcFractVariance, calcCrossProjection 
+from .analysis import calcFractVariance, calcCrossProjection, calcHinges
 from .perturb import calcPerturbResponse
 from .compare import calcOverlap
 
@@ -629,7 +629,7 @@ def showMode(mode, *args, **kwargs):
         a1d = mode._getArray()
         show = showAtomicLines(a1d, *args, **kwargs)
         if show_hinges and isinstance(mode, Mode):
-            hinges = mode.getHinges()
+            hinges = calcHinges(mode)
             if hinges is not None:
                 showAtomicLines(hinges, a1d[hinges], 'r*', atoms=atoms, final=False)
 
@@ -721,7 +721,7 @@ def showSqFlucts(modes, *args, **kwargs):
             show = showAtomicLines(sqf, *args, label=label, **kwargs)
 
         if show_hinge and not modes.is3d():
-            hinges = modes.getHinges()
+            hinges = calcHinges(modes)
             if hinges is not None:
                 kwargs.pop('final', False)
                 showAtomicLines(hinges, sqf[hinges], 'r*', final=False, **kwargs)

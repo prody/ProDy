@@ -8,7 +8,7 @@ import numpy as np
 
 from prody import LOGGER
 from prody.proteins import parsePDB
-from prody.atomic import AtomGroup
+from prody.atomic import AtomGroup, Atomic
 from prody.ensemble import Ensemble, Conformation
 from prody.trajectory import TrajBase
 from prody.utilities import importLA, checkCoords, div0
@@ -24,7 +24,7 @@ __all__ = ['calcCollectivity', 'calcCovariance', 'calcCrossCorr',
            'calcFractVariance', 'calcSqFlucts', 'calcTempFactors',
            'calcProjection', 'calcCrossProjection',
            'calcSpecDimension', 'calcPairDeformationDist',
-           'calcDistFlucts']
+           'calcDistFlucts', 'calcHinges']
            #'calcEntropyTransfer', 'calcOverallNetEntropyTransfer']
 
 def calcCollectivity(mode, masses=None, is3d=None):
@@ -542,3 +542,63 @@ def calcPairDeformationDist(model, coords, ind1, ind2, kbt=1.):
     LOGGER.report('Deformation was calculated in %.2lfs.', label='_pairdef')
     
     return mode_nr, D_pair_k
+
+def calcHinges(modes, atoms=None, flag=False):
+    """Returns the hinge sites identified using normal modes.     
+
+    :arg modes: normal modes of which will be used to identify hinge sites
+    :type modes: :class:`.GNM`  
+    
+    :arg atoms: an Atomic object on which to map hinges. The output will then be a selection. 
+    :type atoms: :class:`.Atomic`
+
+    :arg flag: whether return flag or index array. Default is **False**
+    :type flag: bool
+
+    """
+
+    def identify(v):
+        # obtain the signs of eigenvector
+        s = np.sign(v)
+        # obtain the relative magnitude of eigenvector
+        mag = np.sign(np.diff(np.abs(v)))
+        # obtain the cross-overs
+        torf = np.diff(s)!=0
+        torf = np.append(torf, [False], axis=0)
+        # find which side is more close to zero
+        for j, m in enumerate(mag):
+            if torf[j] and m < 0:
+                torf[j+1] = True
+                torf[j] = False
+
+        return torf
+
+    if modes.is3d():
+        raise ValueError('3D models are not supported.')
+
+    # obtain the eigenvectors
+    V = modes.getArray()
+    if V.ndim == 1:
+        hinges = identify(V)
+    elif V.ndim == 2:
+        _, n = V.shape
+        hinges = []
+        for i in range(n):
+            v = V[:, i]
+            torf = identify(v)
+            hinges.append(torf)
+
+        hinges = np.stack(hinges).T
+    else:
+        raise TypeError('wrong dimension of the array: %d'%V.ndim)
+    
+    if not flag:
+        hinge_list = np.where(hinges)[0]
+        if atoms is not None:
+            if isinstance(atoms, Atomic):
+                return atoms[hinge_list]
+            else:
+                raise TypeError('atoms should be an Atomic object')
+        return sorted(set(hinge_list))
+    return hinges
+    
