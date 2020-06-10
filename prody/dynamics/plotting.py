@@ -11,7 +11,7 @@ from numbers import Number
 import numpy as np
 
 from prody import LOGGER, SETTINGS, PY3K
-from prody.utilities import showFigure, addEnds, showMatrix
+from prody.utilities import showFigure, addEnds, showMatrix, isListLike
 from prody.atomic import AtomGroup, Selection, Atomic, sliceAtoms, sliceAtomicData
 
 from .nma import NMA
@@ -260,15 +260,16 @@ def showProjection(ensemble, modes, *args, **kwargs):
 
     c = kwargs.pop('c', 'blue')
     colors = kwargs.pop('color', c)
-    if isinstance(colors, np.ndarray):
-        colors = tuple(colors)
-    if isinstance(colors, (str, tuple)) or colors is None:
+
+    if isListLike(colors) and not len(colors) in [3, 4]:
+        colors = list(colors)
+    elif isinstance(colors, str) or colors is None or isListLike(colors):
         colors = [colors] * num
-    elif isinstance(colors, list):
-        if len(colors) != num:
-            raise ValueError('length of color must be {0}'.format(num))
     else:
-        raise TypeError('color must be a string or a list')
+        raise TypeError('color must be string or list-like or None')
+
+    if len(colors) != num:
+        raise ValueError('length of color must be {0}'.format(num))
 
     color_norm = None
     if isinstance(colors[0], Number):
