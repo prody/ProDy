@@ -143,9 +143,6 @@ class GNMBase(NMA):
         self._cutoff = None
         self._kirchhoff = None
         self._gamma = None
-        self._affinity = None
-        self._hitTime = None
-        self._commuteTime = None
 
     def __repr__(self):
 
@@ -164,16 +161,10 @@ class GNMBase(NMA):
         self._gamma = None
         self._kirchhoff = None
         self._is3d = False
-        self._affinity = None
-        self._hitTime = None
-        self._commuteTime = None
 
     def _clear(self):
         self._trace = None
         self._cov = None
-        self._affinity = None
-        self._hitTime = None
-        self._commuteTime = None
         
     def getCutoff(self):
         """Returns cutoff distance."""
@@ -237,9 +228,6 @@ class GNM(GNMBase):
 
     def __init__(self, name='Unknown'):
         super(GNM, self).__init__(name)
-        self._affinity = None
-        self._hitTime = None
-        self._commuteTime = None
 
     def setKirchhoff(self, kirchhoff):
         """Set Kirchhoff matrix."""
@@ -355,126 +343,6 @@ class GNM(GNMBase):
         self._kirchhoff = kirchhoff
         self._n_atoms = n_atoms
         self._dof = n_atoms
-
-    def _buildAffinity(self):
-
-        if self._kirchhoff is None:
-            raise TypeError('Kirchhoff needs to be built before affinities can be computed')
-
-        if not isinstance(self._kirchhoff, np.ndarray):
-            raise TypeError('kirchhoff must be a Numpy array')
-        elif (not self._kirchhoff.ndim == 2 or
-              self._kirchhoff.shape[0] != self._kirchhoff.shape[1]):
-            raise ValueError('kirchhoff must be a square matrix')
-        elif self._kirchhoff.dtype != float:
-            try:
-                self.kirchhoff = self.kirchhoff.astype(float)
-            except:
-                raise ValueError('kirchhoff.dtype must be float')
-
-        from scipy import sparse
-
-        self._diagonal = np.diag(self._kirchhoff)
-        
-        self._affinity = sparse.spdiags(self._diagonal, 0, len(self._diagonal), 
-            len(self._diagonal)).toarray() - self._kirchhoff
-
-    def calcHitTime(self, method='Z'):
-
-        if self._affinity is None:
-            self._buildAffinity()
-
-        start = time.time()
-        linalg = importLA()
-        if method == 'Z':
-
-            D = self._diagonal
-            A = self._affinity
-
-            st = D / sum(D)
-
-            P = np.dot(np.diag(D**(-1)), A)
-
-            W = np.ones((len(st),1)) * st.T
-
-            Z = linalg.pinv(np.eye(P.shape[0], P.shape[1]) - P + W)
-
-            H = np.ones((len(st),1)) * np.diag(Z).T - Z
-            H = H / W
-            H = H.T
-
-        elif method == 'K':
-
-            K = self._kirchhoff
-            D = self._diagonal
-
-            K_inv = linalg.pinv(K)
-            sum_D = sum(D)
-
-            T1 = (sum_D * np.ones((len(D),1)) * np.diag(K_inv)).T
-
-            T2 = sum_D * K_inv
-            T3_i = np.dot((np.ones((len(D),1)) * D), K_inv)
-
-            H = T1 - T2 + T3_i - T3_i.T
-
-        self._hitTime = H
-        self._commuteTime = H + H.T
-
-
-        LOGGER.debug('Hitting and commute time are calculated in  {0:.2f}s.'
-                     .format(time.time()-start))    
-
-    def getAffinity(self):
-        """Returns a copy of the Kirchhoff matrix."""
-
-        return self._getAffinity().copy()
-
-    def _getAffinity(self):
-        """Returns the Kirchhoff matrix."""
-
-        if self._kirchhoff is None:
-            return None
-        if self._affinity is None:
-            self._buildAffinity()
-        return self._affinity
-
-    def getDiagonal(self):
-        """Returns a copy of the Kirchhoff matrix."""
-
-        if self._diagonal is None:
-            return None
-        return self._getDiagonal().copy()
-
-    def _getDiagonal(self):
-        """Returns the Kirchhoff matrix."""
-
-        return self._diagonal
-
-    def getHitTime(self):
-        """Returns a copy of the hit time matrix."""
-
-        if self._hitTime is None:
-            self.calcHitTime()
-        return self._getHitTime().copy()
-
-    def _getHitTime(self):
-        """Returns the hit time matrix."""
-
-        return self._hitTime
-
-    def getCommuteTime(self):
-        """Returns a copy of the Kirchhoff matrix."""
-
-        if self._commuteTime is None:
-            self.calcHitTime()
-        return self._getCommuteTime().copy()
-
-    def _getCommuteTime(self):
-        """Returns the Kirchhoff matrix."""
-
-        return self._commuteTime    
-
 
     def calcModes(self, n_modes=20, zeros=False, turbo=True):
         """Calculate normal modes.  This method uses :func:`scipy.linalg.eigh`
@@ -620,17 +488,6 @@ class MaskedGNM(GNM, MaskedNMA):
 
         return kirchhoff
 
-    def _getDiagonal(self):
-        """Returns the Kirchhoff matrix."""
-
-        diagonal = self._diagonal
-
-        if diagonal is None: return None
-
-        if not self._isOriginal():
-            diagonal = self._extend(diagonal, axis=0)
-
-        return diagonal
 
 def calcGNM(pdb, selstr='calpha', cutoff=15., gamma=1., n_modes=20,
             zeros=False):
