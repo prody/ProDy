@@ -258,7 +258,8 @@ def showProjection(ensemble, modes, *args, **kwargs):
     else:
         raise TypeError('marker must be a string or a list')
 
-    markersizes = kwargs.pop('markersizes', None)
+    markersize = kwargs.pop('markersize', None)
+    markersizes = kwargs.pop('markersizes', markersize)
     if isinstance(markersizes, int) or markersizes is None:
         markersizes = [markersizes] * num
     elif isListLike(markersizes):
