@@ -201,8 +201,7 @@ class PDBEnsemble(Ensemble):
         self._trans = trans
 
     def iterpose(self, rmsd=0.0001):
-
-        confs = self._confs.copy()
+        confs = copy(self._confs)
         Ensemble.iterpose(self, rmsd)
         self._confs = confs
         LOGGER.info('Final superposition to calculate transformations.')
