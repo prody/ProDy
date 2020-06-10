@@ -143,7 +143,6 @@ class GNMBase(NMA):
         self._cutoff = None
         self._kirchhoff = None
         self._gamma = None
-        self._hinges = None
         self._affinity = None
         self._hitTime = None
         self._commuteTime = None
@@ -165,7 +164,6 @@ class GNMBase(NMA):
         self._gamma = None
         self._kirchhoff = None
         self._is3d = False
-        self._hinges = None
         self._affinity = None
         self._hitTime = None
         self._commuteTime = None
@@ -173,7 +171,6 @@ class GNMBase(NMA):
     def _clear(self):
         self._trace = None
         self._cov = None
-        self._hinges = None
         self._affinity = None
         self._hitTime = None
         self._commuteTime = None
@@ -477,7 +474,7 @@ class GNM(GNMBase):
         return self._commuteTime    
 
 
-    def calcModes(self, n_modes=20, zeros=False, turbo=True, hinges=True):
+    def calcModes(self, n_modes=20, zeros=False, turbo=True):
         """Calculate normal modes.  This method uses :func:`scipy.linalg.eigh`
         function to diagonalize the Kirchhoff matrix. When Scipy is not found,
         :func:`numpy.linalg.eigh` is used.
@@ -492,8 +489,6 @@ class GNM(GNMBase):
         :arg turbo: Use a memory intensive, but faster way to calculate modes.
         :type turbo: bool, default is **True**
 
-        :arg hinges: Identify hinge sites after modes are computed.
-        :type hinges: bool, default is **True**
         """
 
         if self._kirchhoff is None:
@@ -514,76 +509,8 @@ class GNM(GNMBase):
         self._vars = vars
         self._trace = self._vars.sum()
         self._n_modes = len(self._eigvals)
-        if hinges:
-            self.calcHinges()
         LOGGER.report('{0} modes were calculated in %.2fs.'
                      .format(self._n_modes), label='_gnm_calc_modes')
-
-    def calcHinges(self):
-        if self._array is None:
-            raise ValueError('Modes are not calculated.')
-        # obtain the eigenvectors
-        V = self._array
-        (m, n) = V.shape
-        hinges = []
-        for i in range(n):
-            v = V[:, i]
-            # obtain the signs of eigenvector
-            s = np.sign(v)
-            # obtain the relative magnitude of eigenvector
-            mag = np.sign(np.diff(np.abs(v)))
-            # obtain the cross-overs
-            torf = np.diff(s)!=0
-            torf = np.append(torf, [False], axis=0)
-            # find which side is more close to zero
-            for j, m in enumerate(mag):
-                if torf[j] and m < 0:
-                    torf[j+1] = True
-                    torf[j] = False
-            
-            hinges.append(torf)
-
-        self._hinges = np.stack(hinges).T
-        return self._hinges
-
-    def getHinges(self, modeIndex=None, flag=False, **kwargs):
-        """Get residue index of hinge sites given mode indices.
-
-        :arg modeIndex: indices of modes. This parameter can be a scalar, a list, 
-            or logical indices. Default is **None**
-        :type modeIndex: int, list
-
-        :arg flag: whether return flag or index array. Default is **False**
-        :type flag: bool
-
-        :arg atoms: an Atomic object on which to map hinges. The output will then be a selection. 
-        type atoms: :class:`.Atomic`
-        """
-        if self._hinges is None:
-            LOGGER.info('Warning: hinges are not calculated, thus None is returned. '
-                        'Please call GNM.calcHinges() to calculate the hinge sites first.')
-            return None
-
-        atoms = kwargs.get('atoms', None)
-
-        if modeIndex is None:
-            hinges = self._hinges
-        else:
-            hinges = self._hinges[:, modeIndex]
-
-        if flag:
-            return hinges
-        else:
-            hinge_list = np.where(hinges)[0]
-            if atoms is not None:
-                if isinstance(atoms, Atomic):
-                    return atoms[hinge_list]
-                else:
-                    raise TypeError('atoms should be an Atomic object')
-            return sorted(set(hinge_list))
-    
-    def numHinges(self, modeIndex=None):
-        return len(self.getHinges(modeIndex=modeIndex))
 
     def getNormDistFluct(self, coords):
         """Normalized distance fluctuation
@@ -641,7 +568,7 @@ class GNM(GNMBase):
 
 
 def calcGNM(pdb, selstr='calpha', cutoff=15., gamma=1., n_modes=20,
-            zeros=False, hinges=True):
+            zeros=False):
     """Returns a :class:`GNM` instance and atoms used for the calculations.
     By default only alpha carbons are considered, but selection string helps
     selecting a subset of it.  *pdb* can be :class:`.Atomic` instance."""
@@ -661,7 +588,7 @@ def calcGNM(pdb, selstr='calpha', cutoff=15., gamma=1., n_modes=20,
     gnm = GNM(title)
     sel = ag.select(selstr)
     gnm.buildKirchhoff(sel, cutoff, gamma)
-    gnm.calcModes(n_modes, zeros, hinges=hinges)
+    gnm.calcModes(n_modes, zeros)
     return gnm, sel
 
 class MaskedGNM(GNM):
@@ -748,36 +675,6 @@ class MaskedGNM(GNM):
 
         return array
 
-    def getHinges(self, modeIndex=None, flag=False, **kwargs):
-        """Gets residue index of hinge sites given mode indices.
-
-        :arg modeIndex: indices of modes. This parameter can be a scalar, a list, 
-            or logical indices. Default is **None**
-        :type modeIndex: int, list
-
-        :arg flag: whether return flag or index array. Default is **False**
-        :type flag: bool
-
-        :arg atoms: an Atomic object on which to map hinges. The output will then be a selection. 
-        type atoms: :class:`.Atomic`
-        """
-
-        hinges = super(MaskedGNM, self).getHinges(modeIndex, True)
-        hinges = self._extend(hinges)
-
-        atoms = kwargs.get('atoms', None)
-
-        if flag:
-            return hinges
-        else:
-            hinge_list = np.where(hinges)[0]
-            if atoms is not None:
-                if isinstance(atoms, Atomic):
-                    return atoms[hinge_list]
-                else:
-                    raise TypeError('atoms should be an Atomic object')
-            return sorted(set(hinge_list))
-
     def fixTail(self, length):
         """Fixes the tail of the model. If *length* is greater than the original size 
         (number of nodes), then extra hidden nodes will be added to the model, and if 
@@ -827,6 +724,6 @@ class MaskedGNM(GNM):
         self._maskedarray = None
         super(MaskedGNM, self).setEigens(vectors, values)
 
-    def calcModes(self, n_modes=20, zeros=False, turbo=True, hinges=True):
+    def calcModes(self, n_modes=20, zeros=False, turbo=True):
         self._maskedarray = None
-        super(MaskedGNM, self).calcModes(n_modes, zeros, turbo, hinges)
+        super(MaskedGNM, self).calcModes(n_modes, zeros, turbo)
