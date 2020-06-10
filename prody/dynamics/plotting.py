@@ -261,7 +261,9 @@ def showProjection(ensemble, modes, *args, **kwargs):
     c = kwargs.pop('c', 'blue')
     colors = kwargs.pop('color', c)
 
-    if isListLike(colors) and not len(colors) in [3, 4]:
+    if isListLike(colors) and len(colors) == 2:
+        raise ValueError('each entry of color should have 1, 3 or 4 values not 2')
+    elif isListLike(colors) and not len(colors) in [3, 4]:
         colors = list(colors)
     elif isinstance(colors, str) or colors is None or isListLike(colors):
         colors = [colors] * num
@@ -269,7 +271,7 @@ def showProjection(ensemble, modes, *args, **kwargs):
         raise TypeError('color must be string or list-like or None')
 
     if len(colors) != num:
-        raise ValueError('length of color must be {0}'.format(num))
+        raise ValueError('final length of color must be {0}'.format(num))
 
     color_norm = None
     if isinstance(colors[0], Number):
