@@ -1915,7 +1915,8 @@ def showTree(tree, format='matplotlib', **kwargs):
     type tree: :class:`~Bio.Phylo.BaseTree.Tree`
     
     arg format: depending on the format, you will see different forms of trees. 
-        Acceptable formats are ``"plt"``, ``"ascii"`` and ``"networkx"``
+        Acceptable formats are ``"plt"`` (or ``"mpl"`` or ``"matplotlib"``), 
+        ``"ascii"`` and ``"networkx"``. Default is ``"matplotlib"``.
     type format: str
     
     keyword font_size: font size for branch labels
