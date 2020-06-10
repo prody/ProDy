@@ -185,12 +185,7 @@ class TestGNMResults(testGNMBase):
                      'slow method does not reproduce same Kirchhoff')
 
     def testCommuteTime(self):
-        gnm = GNM()
-        gnm.buildKirchhoff(ATOMS)
-        gnm.calcHitTime()
-
-        hitTime = gnm.getHitTime()
-        commuteTime = gnm.getCommuteTime()
+        hitTime, commuteTime = calcHitTime(gnm)
 
 class TestGNM(unittest.TestCase):
 
@@ -295,7 +290,7 @@ class TestANM(TestGNM):
 
 class TestGNMCalcModes(unittest.TestCase):
 
-    def setUp():
+    def setUp(self):
         pass
 
 class TestRTB(unittest.TestCase):
