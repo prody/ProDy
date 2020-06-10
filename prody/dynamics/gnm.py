@@ -13,7 +13,7 @@ from prody.proteins import parsePDB
 from prody.kdtree import KDTree
 from prody.utilities import importLA, checkCoords, div0
 
-from .nma import NMA
+from .nma import NMA, MaskedNMA
 from .gamma import Gamma
 
 __all__ = ['GNM', 'solveEig', 'calcGNM', 'MaskedGNM']
@@ -191,7 +191,7 @@ class GNMBase(NMA):
 
         if self._kirchhoff is None:
             return None
-        return self._kirchhoff.copy()
+        return self._getKirchhoff().copy()
 
     def _getKirchhoff(self):
         """Returns the Kirchhoff matrix."""
@@ -591,138 +591,10 @@ def calcGNM(pdb, selstr='calpha', cutoff=15., gamma=1., n_modes=20,
     gnm.calcModes(n_modes, zeros)
     return gnm, sel
 
-class MaskedGNM(GNM):
+class MaskedGNM(GNM, MaskedNMA):
     def __init__(self, name='Unknown', mask=False, masked=True):
-        super(MaskedGNM, self).__init__(name)
-        self.mask = False
-        self.masked = masked
-        self._maskedarray = None
-
-        if not np.isscalar(mask):
-            self.mask = np.array(mask)
-
-    def __repr__(self):
-        if self.masked or np.isscalar(self.mask):
-            n_dummies = 0
-        else:
-            n_dummies = len(self.mask) - self._n_atoms
-
-        return ('<{0}: {1} ({2} modes; {3} nodes + {4} dummies)>'
-                .format(self.__class__.__name__, self._title, self.__len__(), 
-                        self._n_atoms, n_dummies))
-
-    def numAtoms(self):
-        """Returns number of atoms."""
-
-        if self.masked or np.isscalar(self.mask):
-            return self._n_atoms
-        else:
-            return len(self.mask)
-
-    def numDOF(self):
-        """Returns number of degrees of freedom."""
-
-        if self.masked or np.isscalar(self.mask):
-            return self._dof
-        else:
-            return len(self.mask)
-
-    def _extend(self, arr, defval=0):
-        if self.masked or np.isscalar(self.mask):
-            return arr
-
-        mask = self.mask#.copy()
-        n_true = np.sum(mask)
-        N = len(mask)
-
-        if arr.ndim == 1:
-            whole_array = np.empty(N, dtype=arr.dtype)
-            whole_array.fill(defval)
-            whole_array[mask] = arr[:n_true]
-        elif arr.ndim == 2:
-            n, m = arr.shape
-            whole_array = np.empty((N, m), dtype=arr.dtype)
-            whole_array.fill(defval)
-            #mask = np.expand_dims(mask, axis=1)
-            #mask = mask.repeat(m, axis=1)
-            whole_array[mask] = arr[:n_true, :]
-        else: # only developers can trigger this case
-            raise ValueError('arr can only be either 1D or 2D')
-        return whole_array
-
-    def getArray(self):
-        """Returns a copy of eigenvectors array."""
-
-        array = self._getArray().copy()
-        
-        return array
-
-    getEigvecs = getArray
-
-    def _getArray(self):
-        """Returns eigenvectors array. The function returns 
-        a copy of the array if *masked* is **True**."""
-
-        if self._array is None: return None
-
-        if self.masked or np.isscalar(self.mask):
-            array = self._array
-        else:
-            if self._maskedarray is None:
-                array = self._maskedarray = self._extend(self._array)
-            else:
-                array = self._maskedarray
-
-        return array
-
-    def fixTail(self, length):
-        """Fixes the tail of the model. If *length* is greater than the original size 
-        (number of nodes), then extra hidden nodes will be added to the model, and if 
-        not, the model will be trimmed so that the total number of nodes, including the 
-        hidden ones, will be equal to the *length*. Note that if *masked* is **True**, 
-        the *length* should be the number of *visible* nodes.
-
-        :arg length: length of the model after the fixation
-        :type length: int
-        """
-        def _fixLength(vector, length, filled_value=0, axis=0):
-            shape = vector.shape
-            dim = len(shape)
-
-            if shape[axis] < length:
-                dl = length - shape[0]
-                pad_width = []
-                for i in range(dim):
-                    if i == axis:
-                        pad_width.append((0, dl))
-                    else:
-                        pad_width.append((0, 0))
-                vector = np.pad(vector, pad_width, 'constant', constant_values=(filled_value,))
-            elif shape[axis] > length:
-                vector = vector[:length]
-            return vector
-
-        trimmed = self.masked
-        if trimmed:
-            trimmed_length = self.numAtoms()
-            self.masked = False
-            extra_length = self.numAtoms() - trimmed_length
-            length += extra_length
-
-        if np.isscalar(self.mask):
-            self.mask = np.ones(self.numAtoms(), dtype=bool)
-
-        self.mask = _fixLength(self.mask, length, False)
-        self.masked = trimmed
-        self._n_atoms = np.sum(self.mask, dtype=int)
-        return
-
-    def setEigens(self, vectors, values=None):
-        if not self.masked:
-            if not np.isscalar(self.mask):
-                vectors = vectors[self.mask, :]
-        self._maskedarray = None
-        super(MaskedGNM, self).setEigens(vectors, values)
+        GNM.__init__(self, name)
+        MaskedNMA.__init__(self, name, mask, masked)
 
     def calcModes(self, n_modes=20, zeros=False, turbo=True):
         self._maskedarray = None
