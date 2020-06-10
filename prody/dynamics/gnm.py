@@ -16,7 +16,7 @@ from prody.utilities import importLA, checkCoords, div0
 from .nma import NMA, MaskedNMA
 from .gamma import Gamma
 
-__all__ = ['GNM', 'solveEig', 'calcGNM', 'MaskedGNM']
+__all__ = ['GNM', 'MaskedGNM', 'solveEig', 'calcGNM']
 
 ZERO = 1e-6
 
@@ -428,13 +428,15 @@ class GNM(GNMBase):
     def getAffinity(self):
         """Returns a copy of the Kirchhoff matrix."""
 
-        if self._affinity is None:
-            self._buildAffinity()
-        return self._affinity.copy()
+        return self._getAffinity().copy()
 
     def _getAffinity(self):
         """Returns the Kirchhoff matrix."""
 
+        if self._kirchhoff is None:
+            return None
+        if self._affinity is None:
+            self._buildAffinity()
         return self._affinity
 
     def getDiagonal(self):
@@ -442,7 +444,7 @@ class GNM(GNMBase):
 
         if self._diagonal is None:
             return None
-        return self._diagonal.copy()
+        return self._getDiagonal().copy()
 
     def _getDiagonal(self):
         """Returns the Kirchhoff matrix."""
@@ -454,19 +456,19 @@ class GNM(GNMBase):
 
         if self._hitTime is None:
             self.calcHitTime()
-        return self._hitTime.copy()
+        return self._getHitTime().copy()
 
     def _getHitTime(self):
         """Returns the hit time matrix."""
 
-        return self._getHitTime
+        return self._hitTime
 
     def getCommuteTime(self):
         """Returns a copy of the Kirchhoff matrix."""
 
         if self._commuteTime is None:
             self.calcHitTime()
-        return self._commuteTime.copy()
+        return self._getCommuteTime().copy()
 
     def _getCommuteTime(self):
         """Returns the Kirchhoff matrix."""
@@ -566,6 +568,69 @@ class GNM(GNMBase):
         self._clear()
         super(GNM, self).setEigens(vectors, values)
 
+class MaskedGNM(GNM, MaskedNMA):
+    def __init__(self, name='Unknown', mask=False, masked=True):
+        GNM.__init__(self, name)
+        MaskedNMA.__init__(self, name, mask, masked)
+
+    def calcModes(self, n_modes=20, zeros=False, turbo=True):
+        self._maskedarray = None
+        super(MaskedGNM, self).calcModes(n_modes, zeros, turbo)
+
+    def _reset(self):
+        super(MaskedGNM, self)._reset()
+        self._maskedarray = None
+
+    def setKirchhoff(self, kirchhoff):
+        """Set Kirchhoff matrix."""
+
+        if not isinstance(kirchhoff, np.ndarray):
+            raise TypeError('kirchhoff must be a Numpy array')
+        elif (not kirchhoff.ndim == 2 or
+              kirchhoff.shape[0] != kirchhoff.shape[1]):
+            raise ValueError('kirchhoff must be a square matrix')
+        elif kirchhoff.dtype != float:
+            try:
+                kirchhoff = kirchhoff.astype(float)
+            except:
+                raise ValueError('kirchhoff.dtype must be float')
+        
+        mask = self.mask
+        if not self.masked:
+            if not np.isscalar(mask):
+                if self.is3d():
+                    mask = np.repeat(mask, 3)
+                try:
+                    kirchhoff = kirchhoff[mask, :][:, mask]
+                except IndexError:
+                    raise IndexError('size mismatch between Kirchhoff (%d) and mask (%d).'
+                                     'Try set masked to False or reset mask'%(len(kirchhoff), len(mask)))
+
+        super(MaskedGNM, self).setKirchhoff(kirchhoff)
+
+    def _getKirchhoff(self):
+        """Returns the Kirchhoff matrix."""
+
+        kirchhoff = self._kirchhoff
+
+        if kirchhoff is None: return None
+
+        if not self._isOriginal():
+            kirchhoff = self._extend(kirchhoff, axis=None)
+
+        return kirchhoff
+
+    def _getDiagonal(self):
+        """Returns the Kirchhoff matrix."""
+
+        diagonal = self._diagonal
+
+        if diagonal is None: return None
+
+        if not self._isOriginal():
+            diagonal = self._extend(diagonal, axis=0)
+
+        return diagonal
 
 def calcGNM(pdb, selstr='calpha', cutoff=15., gamma=1., n_modes=20,
             zeros=False):
@@ -590,12 +655,3 @@ def calcGNM(pdb, selstr='calpha', cutoff=15., gamma=1., n_modes=20,
     gnm.buildKirchhoff(sel, cutoff, gamma)
     gnm.calcModes(n_modes, zeros)
     return gnm, sel
-
-class MaskedGNM(GNM, MaskedNMA):
-    def __init__(self, name='Unknown', mask=False, masked=True):
-        GNM.__init__(self, name)
-        MaskedNMA.__init__(self, name, mask, masked)
-
-    def calcModes(self, n_modes=20, zeros=False, turbo=True):
-        self._maskedarray = None
-        super(MaskedGNM, self).calcModes(n_modes, zeros, turbo)

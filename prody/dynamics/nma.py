@@ -195,7 +195,7 @@ class NMA(object):
         """Returns a copy of eigenvectors array."""
 
         if self._array is None: return None
-        return self._array.copy()
+        return self._getArray().copy()
 
     getEigvecs = getArray
 
@@ -381,15 +381,6 @@ class MaskedNMA(NMA):
 
         return whole_array
 
-    def getArray(self):
-        """Returns a copy of eigenvectors array."""
-
-        array = self._getArray().copy()
-        
-        return array
-
-    getEigvecs = getArray
-
     def _getArray(self):
         """Returns eigenvectors array. The function returns 
         a copy of the array if *masked* is **True**."""
@@ -454,7 +445,11 @@ class MaskedNMA(NMA):
             if not np.isscalar(mask):
                 if self.is3d():
                     mask = np.repeat(mask, 3)
-                vectors = vectors[mask, :]
+                try:
+                    vectors = vectors[mask, :]
+                except IndexError:
+                    raise IndexError('size mismatch between vectors (%d) and mask (%d).'
+                                     'Try set masked to False or reset mask'%(vectors.shape[0], len(mask)))
         self._maskedarray = None
         super(MaskedNMA, self).setEigens(vectors, values)
 
@@ -462,3 +457,6 @@ class MaskedNMA(NMA):
         self._maskedarray = None
         super(MaskedNMA, self).calcModes()
 
+    def _reset(self):
+        super(MaskedNMA, self)._reset()
+        self._maskedarray = None
