@@ -11,7 +11,7 @@ from numbers import Number
 import numpy as np
 
 from prody import LOGGER, SETTINGS, PY3K
-from prody.utilities import showFigure, addEnds, showMatrix
+from prody.utilities import showFigure, addEnds, showMatrix, isListLike
 from prody.atomic import AtomGroup, Selection, Atomic, sliceAtoms, sliceAtomicData
 
 from .nma import NMA
@@ -258,6 +258,15 @@ def showProjection(ensemble, modes, *args, **kwargs):
     else:
         raise TypeError('marker must be a string or a list')
 
+    markersizes = kwargs.pop('markersizes', None)
+    if isinstance(markersizes, int) or markersizes is None:
+        markersizes = [markersizes] * num
+    elif isListLike(markersizes):
+        if len(markersizes) != num:
+            raise ValueError('length of markersize must be {0}'.format(num))
+    else:
+        raise TypeError('markersize must be a int or list-like')
+
     c = kwargs.pop('c', 'blue')
     colors = kwargs.pop('color', c)
     if isinstance(colors, np.ndarray):
@@ -294,7 +303,7 @@ def showProjection(ensemble, modes, *args, **kwargs):
         size = kwargs.pop('fontsize', None) or kwargs.pop('size', None)
 
     indict = defaultdict(list)
-    for i, opts in enumerate(zip(markers, colors, labels)):  # PY3K: OK
+    for i, opts in enumerate(zip(markers, markersizes, colors, labels)):  # PY3K: OK
         indict[opts].append(i)
 
     modes = [m for m in modes]
@@ -317,7 +326,7 @@ def showProjection(ensemble, modes, *args, **kwargs):
 
     args = list(args)
     for opts, indices in indict.items():  # PY3K: OK
-        marker, color, label = opts
+        marker, markersize, color, label = opts
         kwargs['marker'] = marker
         if color_norm is not None:
             try:
@@ -330,6 +339,11 @@ def showProjection(ensemble, modes, *args, **kwargs):
             kwargs['label'] = label
         else:
             kwargs.pop('label', None)
+
+        if markersize:
+            kwargs['markersize'] = markersize
+        else:
+            kwargs.pop('markersize', None)
 
         plot(*(list(projection[indices].T) + args), **kwargs)
 
