@@ -190,9 +190,9 @@ class TestGNMResults(testGNMBase):
     def testCommuteTime(self):
         hitTime, commuteTime = calcHitTime(gnm)
 
-        assert_equal(hitTime, HITTIME,
+        assert_allclose(hitTime, HITTIME,
                      'failed to get correct hit times')
-        assert_equal(commuteTime, COMMUTETIME,
+        assert_allclose(commuteTime, COMMUTETIME,
                      'failed to get correct commute times')             
 
 class TestGNM(unittest.TestCase):
