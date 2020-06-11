@@ -46,6 +46,9 @@ rtb.buildHessian(ATOMS2, ATOMS2.getBetas().astype(int))
 RTB_HESSIAN = parseDatafile('rtb2gb1_hessian', symmetric=True)
 RTB_PROJECT = parseDatafile('rtb2gb1_project')
 
+HITTIME = parseDatafile('hit1ubi')
+COMMUTETIME = parseDatafile('commute1ubi')
+
 class testGNMBase(unittest.TestCase):
 
     def setUp(self):
@@ -186,6 +189,11 @@ class TestGNMResults(testGNMBase):
 
     def testCommuteTime(self):
         hitTime, commuteTime = calcHitTime(gnm)
+
+        assert_equal(hitTime, HITTIME,
+                     'failed to get correct hit times')
+        assert_equal(commuteTime, COMMUTETIME,
+                     'failed to get correct commute times')             
 
 class TestGNM(unittest.TestCase):
 
