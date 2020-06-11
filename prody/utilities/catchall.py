@@ -196,9 +196,9 @@ def calcTree(names, distance_matrix, method='upgma', linkage=False):
 
     if method in ['ward', 'single', 'average', 'weighted', 'centroid', 'median']:
         from scipy.cluster.hierarchy import linkage as hlinkage
-        from scipy.spatial.distance import pdist
+        from scipy.spatial.distance import squareform
         
-        Z = hlinkage(pdist(distance_matrix), method=method)
+        Z = hlinkage(squareform(distance_matrix), method=method)
         tree = getTreeFromLinkage(names, Z)
     else:
         matrix = []
