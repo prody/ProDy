@@ -320,7 +320,14 @@ class NMA(object):
 
 class MaskedNMA(NMA):
     def __init__(self, name='Unknown', mask=False, masked=True):
-        super(MaskedNMA, self).__init__(name)
+        if isinstance(name, str):
+            super(MaskedNMA, self).__init__(name)
+        else:
+            model = name
+            name = model.getTitle()
+            super(MaskedNMA, self).__init__(name)
+            self.__dict__.update(model.__dict__)
+            
         self.mask = False
         self.masked = masked
         self._maskedarray = None
