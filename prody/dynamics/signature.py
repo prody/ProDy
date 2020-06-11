@@ -6,6 +6,7 @@ import time
 from numbers import Integral
 from numpy import ndarray
 import numpy as np
+import warnings
 
 from prody import LOGGER, SETTINGS
 from prody.utilities import showFigure, showMatrix, copy, checkWeights, openFile
@@ -813,8 +814,12 @@ class sdarray(ndarray):
         weights = self._weights
         if weights is not None:
             weights = weights.astype(bool)
-            arr[~weights] = np.nan
-        return np.nanmin(arr, axis=axis)
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            rmin = np.nanmin(arr, axis=axis)
+
+        return rmin
 
     def max(self, axis=0, **kwargs):
         """Calculates the maximum values of the sdarray over modesets (`axis=0`)."""
@@ -825,7 +830,12 @@ class sdarray(ndarray):
         if weights is not None:
             weights = weights.astype(bool)
             arr[~weights] = np.nan
-        return np.nanmax(arr, axis=axis)
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            rmax = np.nanmax(arr, axis=axis)
+
+        return rmax
 
     def getWeights(self):
         """Returns the weights of the signature."""
@@ -908,20 +918,15 @@ def calcEnsembleENMs(ensemble, model='gnm', trim='reduce', n_modes=20, **kwargs)
         model_type = str(model).strip().upper()
 
     start = time.time()
-
-    atoms = ensemble.getAtoms() 
-    select = None
-    if ensemble.isSelected():
-        if atoms is None:
-            select = ensemble._indices
-        else:
-            select = atoms
-            atoms = ensemble.getAtoms(selected=False)
-
-    if atoms is not None:
-        ori_coords = atoms.getCoords()
-        
+    select = ensemble.getIndices()
     labels = ensemble.getLabels()
+    n_atoms = ensemble.numAtoms(selected=False)
+
+    if select is None:
+        torf_selected = np.ones(n_atoms, dtype=bool)
+    else:
+        torf_selected = np.zeros(n_atoms, dtype=bool)
+        torf_selected[select] = True
 
     ### ENMs ###
     ## ENM for every conf
@@ -932,15 +937,25 @@ def calcEnsembleENMs(ensemble, model='gnm', trim='reduce', n_modes=20, **kwargs)
     LOGGER.progress('Calculating {0} {1} modes for {2} conformations...'
                     .format(str_modes, model_type, n_confs), n_confs, '_prody_calcEnsembleENMs')
 
+    coordset = ensemble.getCoordsets(selected=False)
+    weights = ensemble.getWeights(selected=False)
     for i in range(n_confs):
         LOGGER.update(i, label='_prody_calcEnsembleENMs')
-        coords = ensemble.getCoordsets(i, selected=False)
-        nodes = coords[0, :, :]
-        if atoms is not None:
-            atoms.setCoords(nodes)
-            nodes = atoms
-        enm, _ = calcENM(nodes, select, model=model, trim=trim, 
+        coords = coordset[i]
+
+        if weights.ndim == 3:
+            weight = weights[i].flatten()
+        else:
+            weight = weights.flatten()
+        torf_mapped = weight != 0
+
+        coords = coords[torf_mapped, :]
+        system = torf_selected[torf_mapped]
+        mask = torf_mapped[torf_selected]
+
+        enm, _ = calcENM(coords, system, model=model, mask=mask, trim=trim, 
                          n_modes=n_modes, title=labels[i], **kwargs)
+        enm.masked = False
         enms.append(enm)
 
         #lbl = labels[i] if labels[i] != '' else '%d-th conformation'%(i+1)
@@ -967,9 +982,6 @@ def calcEnsembleENMs(ensemble, model='gnm', trim='reduce', n_modes=20, **kwargs)
     modeens.addModeSet(enms, weights=ensemble.getWeights(), 
                              label=ensemble.getLabels())
     modeens.setAtoms(ensemble.getAtoms())
-
-    if atoms is not None:
-        atoms.setCoords(ori_coords)
     
     if match:
         modeens.match(turbo=turbo, method=method)

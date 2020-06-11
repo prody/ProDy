@@ -11,7 +11,7 @@ from prody.proteins import parsePDB
 from prody.atomic import AtomGroup, Selection, Atomic, sliceAtomicData
 from prody.ensemble import Ensemble, Conformation
 from prody.trajectory import TrajBase
-from prody.utilities import importLA
+from prody.utilities import importLA, div0
 from numpy import sqrt, arange, log, polyfit, array
 
 from .nma import NMA
@@ -109,7 +109,8 @@ def calcPerturbResponse(model, **kwargs):
     norm_prs_matrix = np.zeros((n_atoms, n_atoms))
     self_dp = np.diag(prs_matrix)  
     self_dp = self_dp.reshape(n_atoms, 1)
-    norm_prs_matrix = prs_matrix / np.repeat(self_dp, n_atoms, axis=1)
+    re_self_dp = np.repeat(self_dp, n_atoms, axis=1)
+    norm_prs_matrix = div0(prs_matrix, re_self_dp)
 
     if no_diag:
        # suppress the diagonal (self displacement) to facilitate

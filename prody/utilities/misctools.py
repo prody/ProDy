@@ -521,7 +521,7 @@ def fastin(a, B):
             return True
     return False
 
-def div0(a, b):
+def div0(a, b, defval=0.):
     """ Performs ``true_divide`` but ignores the error when division by zero 
     (result is set to zero instead). """
 
@@ -531,9 +531,9 @@ def div0(a, b):
         c = true_divide(a, b)
         if isscalar(c):
             if not isfinite(c):
-                c = 0
+                c = defval
         else:
-            c[~isfinite(c)] = 0.  # -inf inf NaN
+            c[~isfinite(c)] = defval  # -inf inf NaN
     return c
 
 def wmean(array, weights, axis=None):
@@ -544,7 +544,7 @@ def wmean(array, weights, axis=None):
     except ZeroDivisionError:
         numer = sum(array*weights, axis=axis)
         denom = sum(weights, axis=axis)
-        avg = div0(numer, denom)
+        avg = div0(numer, denom, nan)
     return avg
 
 def bin2dec(x):
