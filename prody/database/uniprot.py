@@ -28,12 +28,10 @@ class UniprotRecord(object):
         self._parse()
 
     def __repr__(self):
-        return '<UniprotRecord: %s>'%self.__str__()
+        return '<UniprotRecord: %s>'%self.getTitle()
 
     def __str__(self):
-        uid = self.getAccession()
-        name = self.getName()
-        return '%s (%s)'%(uid, name)
+        return self.getTitle()
 
     def setData(self, value):
         self._rawdata = value
@@ -56,6 +54,11 @@ class UniprotRecord(object):
     
     def getName(self, index=0):
         return self.getEntry('name', index)
+
+    def getTitle(self):
+        uid = self.getAccession()
+        name = self.getName()
+        return '%s (%s)'%(uid, name)
 
     def getEntry(self, item, index=0):
         key = '%s%4d'%(item, index)
