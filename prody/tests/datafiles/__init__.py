@@ -94,6 +94,12 @@ DATA_FILES = {
     'rtb2gb1_project': {
         'file': 'rtb2gb1_project.coo'
     },
+    'commute1ubi': {
+        'file': 'commute1ubi.dat'
+    },
+    'hit1ubi': {
+        'file': 'hit1ubi.dat'
+    },
     'sti': {
         'file': 'xmlSTI.xml'
     },
