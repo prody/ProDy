@@ -1001,7 +1001,9 @@ def assignSecstr(header, atoms, coil=False):
         ag.setSecindices(np.zeros(ag.numAtoms(),
                       ATOMIC_FIELDS['secindex'].dtype))  
 
-    atoms.select('protein').setSecstrs('C')
+    prot = atoms.select('protein')
+    if prot is not None:
+        prot.setSecstrs('C')
     hierview = atoms.getHierView()
     count = 0
     getResidue = hierview.getResidue
