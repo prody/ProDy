@@ -191,9 +191,11 @@ class TestGNMResults(testGNMBase):
         hitTime, commuteTime = calcHitTime(gnm)
 
         assert_allclose(hitTime, HITTIME,
-                     'failed to get correct hit times')
+                        rtol=0, atol=ATOL,
+                        err_msg='failed to get correct hit times')
         assert_allclose(commuteTime, COMMUTETIME,
-                     'failed to get correct commute times')             
+                        rtol=0, atol=ATOL,
+                        err_msg='failed to get correct commute times')             
 
 class TestGNM(unittest.TestCase):
 
