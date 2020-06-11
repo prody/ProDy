@@ -10,8 +10,8 @@ from prody import LOGGER, SETTINGS, PY3K
 from prody.atomic import Atomic, AtomGroup, AtomSubset
 from prody.utilities import openFile, isExecutable, which, PLATFORM, addext
 
-from .nma import NMA
-from .anm import ANM, ANMBase
+from .nma import NMA, MaskedNMA
+from .anm import ANM, ANMBase, MaskedANM
 from .gnm import GNM, GNMBase, ZERO, MaskedGNM
 from .rtb import RTB
 from .pca import PCA, EDA
@@ -83,8 +83,14 @@ def saveModel(nma, filename=None, matrices=False, **kwargs):
         if value is not None:
             attr_dict[attr] = value
 
-    if isinstance(nma, MaskedGNM):
-        attr_dict['type'] = 'mGNM'
+    if isinstance(nma, MaskedNMA):
+        if isinstance(nma, MaskedGNM):
+            attr_dict['type'] = 'mGNM'
+        elif isinstance(nma, MaskedANM):
+            attr_dict['type'] = 'mANM'
+        else:
+            raise TypeError('invalid MaskedNMA type: %s'%(str(type(nma))))
+
         attr_dict['mask'] = nma.mask
         attr_dict['masked'] = nma.masked
     
@@ -151,6 +157,8 @@ def loadModel(filename, **kwargs):
             nma = GNM(title)
         elif type_ == 'mGNM':
             nma = MaskedGNM(title)
+        elif type_ == 'mANM':
+            nma = MaskedANM(title)
         elif type_ == 'exANM':
             nma = exANM(title)
         elif type_ == 'imANM':
@@ -442,6 +450,7 @@ def calcENM(atoms, select=None, model='anm', trim='trim', gamma=1.0,
     except AttributeError:
         title = 'Unknown'
 
+    mask = kwargs.pop('mask', None)
     zeros = kwargs.pop('zeros', False)
     turbo = kwargs.pop('turbo', True)
 
@@ -462,14 +471,17 @@ def calcENM(atoms, select=None, model='anm', trim='trim', gamma=1.0,
         trim = str(trim).lower().strip()
     
     enm = None
+    MaskedModel = None
     if model == 'anm':
         anm = ANM(title)
         anm.buildHessian(atoms, gamma=gamma, **kwargs)
         enm = anm
+        MaskedModel = MaskedANM
     elif model == 'gnm':
         gnm = GNM(title)
         gnm.buildKirchhoff(atoms, gamma=gamma, **kwargs)
         enm = gnm
+        MaskedModel = MaskedGNM
     else:
         raise TypeError('model should be either ANM or GNM instead of {0}'.format(model))
     
@@ -500,4 +512,6 @@ def calcENM(atoms, select=None, model='anm', trim='trim', gamma=1.0,
         else:
             raise ValueError('trim can only be "trim", "reduce", or "slice"')
     
+    if mask is not None:
+        enm = MaskedModel(enm, mask)
     return enm, atoms
