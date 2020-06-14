@@ -458,7 +458,6 @@ def buildPDBEnsemble(atomics, ref=None, title='Unknown', labels=None, unmapped=N
         target = ref._atoms
     else:
         target = ref
-    
     # initialize a PDBEnsemble with reference atoms and coordinates
     isrefset = False
     if isinstance(ref, PDBEnsemble):

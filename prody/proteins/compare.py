@@ -1699,6 +1699,13 @@ def alignChains(atoms, target, match_func=bestMatch, **kwargs):
     and :func:`.combineAtomMaps`. Please check out those two functions for details 
     about the parameters.
     """
+    if len(atoms.protein) != len(atoms):
+        raise ValueError('Please provide only protein atoms in {0}'.format(
+            atoms.getTitle()))
+
+    if len(target.protein) != len(target):
+        raise ValueError('Please provide only protein atoms in {0}'.format(
+            target.getTitle()))
 
     mappings = mapOntoChains(atoms, target, match_func, **kwargs)
     m, n = mappings.shape
