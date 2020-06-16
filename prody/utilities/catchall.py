@@ -1,15 +1,16 @@
 """This module defines miscellaneous utility functions that is public to users."""
 
 import numpy as np
+import sys
 
 from numpy import unique, linalg, diag, sqrt, dot
-from .misctools import addEnds, interpY, index
+from .misctools import addEnds, interpY, index, isListLike
 from .checkers import checkCoords
 from Bio.Phylo.BaseTree import Tree, Clade
 
 __all__ = ['calcTree', 'clusterMatrix', 'showLines', 'showMatrix', 
            'reorderMatrix', 'findSubgroups', 'getCoords',  
-           'getLinkage', 'getTreeFromLinkage']
+           'getLinkage', 'getTreeFromLinkage', 'printAtomicMatrix']
 
 class LinkageError(Exception):
     pass
@@ -836,3 +837,43 @@ def findSubgroups(tree, c, method='naive', **kwargs):
             subgroups[t-1].append(names[i])
 
     return subgroups
+
+
+def printAtomicMatrix(matrix, atoms=None):
+    """Prints a new table for a matrix with
+    atom labels along the top and at the 
+    beginning of each line.
+
+    :arg matrix: any square 2D data with a size matching atoms
+    :type matrix: tuple, list, :class:`~numpy.ndarray`
+
+    :arg atoms: any :class:`.Atomic` object to label the data
+    :type atoms: :class:`.Atomic`
+    """
+    if not isListLike(matrix):
+        raise TypeError('matrix should be list-like')
+
+    matrix = np.array(matrix)
+    if matrix.ndim != 2:
+        raise ValueError('matrix should be 2-dimensional')
+
+    if matrix.shape[0] != matrix.shape[1]:
+        raise ValueError('matrix should be ')
+
+    if atoms is not None:
+        for i, row in enumerate(matrix):
+            sys.stdout.write('\t{}{:4d}'
+                             .format(atoms[i].getResname(),
+                                     atoms[i].getResnum()))
+        sys.stdout.write('\n')
+
+    for i, row in enumerate(matrix):
+        if atoms is not None:
+            sys.stdout.write('{}{:4d}\t'
+                             .format(atoms[i].getResname(),
+                                     atoms[i].getResnum()))
+        for element in row:
+            sys.stdout.write('{:7.3f}\t'.format(element))
+        sys.stdout.write('\n')
+
+    return
