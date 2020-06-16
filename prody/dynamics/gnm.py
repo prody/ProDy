@@ -489,7 +489,7 @@ class MaskedGNM(GNM, MaskedNMA):
         return kirchhoff
 
 
-def calcGNM(pdb, selstr='calpha', cutoff=15., gamma=1., n_modes=20,
+def calcGNM(pdb, selstr='calpha', cutoff=10, gamma=1., n_modes=20,
             zeros=False):
     """Returns a :class:`GNM` instance and atoms used for the calculations.
     By default only alpha carbons are considered, but selection string helps
