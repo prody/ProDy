@@ -883,7 +883,7 @@ def getAtomicTable(matrix, atoms_i=None, atoms_j=None):
     return table
 
 
-def printAtomicMatrix(matrix, atoms=None):
+def printAtomicMatrix(matrix, atoms=None, step=10):
     """Prints a new table for a matrix with
     atom labels along the top and at the 
     beginning of each line.
@@ -894,10 +894,10 @@ def printAtomicMatrix(matrix, atoms=None):
     :arg atoms: any :class:`.Atomic` object to label the data
     :type atoms: :class:`.Atomic`
     """
-    attempts = len(matrix)//10 + 1
+    attempts = len(matrix)//step + 1
     for i in range(attempts):
-        start = 10 * i
-        stop = 10 * (i+1)
+        start = step * i
+        stop = step * (i+1)
         submatrix = matrix[:,start:stop,]
         atoms_i = atoms
         atoms_j = atoms[start:stop]
