@@ -10,7 +10,8 @@ from Bio.Phylo.BaseTree import Tree, Clade
 
 __all__ = ['calcTree', 'clusterMatrix', 'showLines', 'showMatrix', 
            'reorderMatrix', 'findSubgroups', 'getCoords',  
-           'getLinkage', 'getTreeFromLinkage', 'printAtomicMatrix']
+           'getLinkage', 'getTreeFromLinkage', 
+            'getAtomicTable', 'printAtomicMatrix']
 
 class LinkageError(Exception):
     pass
@@ -839,10 +840,10 @@ def findSubgroups(tree, c, method='naive', **kwargs):
     return subgroups
 
 
-def printAtomicMatrix(matrix, atoms=None):
-    """Prints a new table for a matrix with
+def getAtomicTable(matrix, atoms_i=None, atoms_j=None):
+    """Generates a new table for a matrix with
     atom labels along the top and at the 
-    beginning of each line.
+    beginning of each line for :func:`.printAtomicTable`.
 
     :arg matrix: any square 2D data with a size matching atoms
     :type matrix: tuple, list, :class:`~numpy.ndarray`
@@ -857,23 +858,49 @@ def printAtomicMatrix(matrix, atoms=None):
     if matrix.ndim != 2:
         raise ValueError('matrix should be 2-dimensional')
 
-    if matrix.shape[0] != matrix.shape[1]:
-        raise ValueError('matrix should be ')
+    if atoms_j is None:
+        atoms_j = atoms_i
 
-    if atoms is not None:
-        for i, row in enumerate(matrix):
-            sys.stdout.write('\t{}{:4d}'
-                             .format(atoms[i].getResname(),
-                                     atoms[i].getResnum()))
-        sys.stdout.write('\n')
+    table = ''
+    if atoms_j is not None:
+        table += ' '*10
+        row = matrix[0]
+        for j, element in enumerate(row):
+            table += '\t{} {}{:3d}'.format(atoms_j[j].getChid(),
+                                           atoms_j[j].getResname(),
+                                           atoms_j[j].getResnum())
+        table += '\n'
 
     for i, row in enumerate(matrix):
-        if atoms is not None:
-            sys.stdout.write('{}{:4d}\t'
-                             .format(atoms[i].getResname(),
-                                     atoms[i].getResnum()))
+        if atoms_i is not None:
+            table += '{} {}{:3d}\t'.format(atoms_i[i].getChid(),
+                                           atoms_i[i].getResname(),
+                                           atoms_i[i].getResnum())
         for element in row:
-            sys.stdout.write('{:7.3f}\t'.format(element))
-        sys.stdout.write('\n')
+            table += '{:8.3f}\t'.format(element)
+        table += '\n'
+
+    return table
+
+
+def printAtomicMatrix(matrix, atoms=None):
+    """Prints a new table for a matrix with
+    atom labels along the top and at the 
+    beginning of each line.
+
+    :arg matrix: any square 2D data with a size matching atoms
+    :type matrix: tuple, list, :class:`~numpy.ndarray`
+
+    :arg atoms: any :class:`.Atomic` object to label the data
+    :type atoms: :class:`.Atomic`
+    """
+    attempts = len(matrix)//10 + 1
+    for i in range(attempts):
+        start = 10 * i
+        stop = 10 * (i+1)
+        submatrix = matrix[:,start:stop,]
+        atoms_i = atoms
+        atoms_j = atoms[start:stop]
+        print(getAtomicTable(submatrix, atoms_i, atoms_j))
 
     return
