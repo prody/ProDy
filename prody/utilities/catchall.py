@@ -894,7 +894,9 @@ def printAtomicMatrix(matrix, atoms=None, step=10):
     :arg atoms: any :class:`.Atomic` object to label the data
     :type atoms: :class:`.Atomic`
     """
-    attempts = len(matrix)//step + 1
+    attempts = len(matrix)//step
+    if len(matrix) > step * attempts:
+        attempts += 1
     for i in range(attempts):
         start = step * i
         stop = step * (i+1)
