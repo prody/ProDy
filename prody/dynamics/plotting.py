@@ -820,8 +820,8 @@ def showContactMap(enm, **kwargs):
 def showOverlap(mode, modes, *args, **kwargs):
     """Show overlap :func:`~matplotlib.pyplot.bar`.
 
-    :arg mode: a single mode/vector
-    :type mode: :class:`.Mode`, :class:`.Vector`
+    :arg mode: a single mode/vector or multiple modes if **diag** is set to True
+    :type mode: :class:`.Mode`, :class:`.Vector`, :class:`.ModeSet`, :class:`.ANM`, :class:`.GNM`, :class:`.PCA`
 
     :arg modes: multiple modes
     :type modes: :class:`.ModeSet`, :class:`.ANM`, :class:`.GNM`, :class:`.PCA`
@@ -833,13 +833,22 @@ def showOverlap(mode, modes, *args, **kwargs):
     if SETTINGS['auto_show']:
         plt.figure()
 
-    if not isinstance(mode, (Mode, Vector)):
-        raise TypeError('mode must be Mode or Vector, not {0}'
-                        .format(type(mode)))
+    diag = kwargs.pop('diag', False)
+
+    if diag is False:
+        if not isinstance(mode, (Mode, Vector)):
+            raise TypeError('mode must be Mode or Vector, not {0}'
+                                .format(type(mode)))
+    else:
+        if not isinstance(mode, (NMA, ModeSet)):
+            raise TypeError('mode must be NMA or ModeSet, not {0}, when diag=True'
+                            .format(type(modes)))
+
     if not isinstance(modes, (NMA, ModeSet)):
         raise TypeError('modes must be NMA or ModeSet, not {0}'
                         .format(type(modes)))
-    overlap = abs(calcOverlap(mode, modes))
+
+    overlap = abs(calcOverlap(mode, modes, diag=diag))
     if isinstance(modes, NMA):
         arange = np.arange(len(modes)) + 1
     else:
