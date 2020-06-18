@@ -25,9 +25,6 @@ class EMDParseError(Exception):
     pass
 
 
-""" For  documentation"""
-
-
 def parseEMD(emd, **kwargs):
     """Parses an EM density map in EMD/MRC2015 format and 
     optionally returns an :class:`.AtomGroup` containing  
@@ -57,12 +54,8 @@ def parseEMD(emd, **kwargs):
     :type num_iter: int
 
     :arg map: Return the density map itself. Default is **False** in line with previous behaviour.
-        This value is reset to **True** if make_nodes is **False** as something must be returned.
+        This value is reset to **True** if n_nodes is 0 or less.
     :type map: bool
-
-    :arg make_nodes: Use the topology representing network algorithm to fit pseudoatom 
-                     nodes to the map. Default is **False** and sets map to **True**.
-    :type make_nodes: bool
     """
 
     title = kwargs.get('title', None)
@@ -98,13 +91,22 @@ def parseEMD(emd, **kwargs):
 
     return result
 
-def _parseEMDLines(atomgroup, stream, cutoff=None, n_nodes=0, num_iter=20, map=False, make_nodes=False):
+
+def parseEMDStream(stream, **kwargs):
     """Parse lines of data stream from an EMD/MRC2014 file and 
     optionally return an :class:`.AtomGroup` containing TRN 
     nodes based on it.
 
-    :arg stream: stream from parser.
+    :arg stream: Any object with the method ``readlines``
+                (e.g. :class:`file`, buffer, stdin)
     """
+    cutoff = kwargs.get('cutoff', None)
+    if cutoff is not None:
+        cutoff = float(cutoff)
+
+    n_nodes = kwargs.get('n_nodes', 0)
+    num_iter = int(kwargs.get('num_iter', 20))
+    map = kwargs.get('map', False)
 
     if not isinstance(n_nodes, int):
         raise TypeError('n_nodes should be an integer')
@@ -120,8 +122,9 @@ def _parseEMDLines(atomgroup, stream, cutoff=None, n_nodes=0, num_iter=20, map=F
     emd = EMDMAP(stream, cutoff)
 
     if make_nodes:
-        if not n_nodes > 0:
-            raise ValueError('n_nodes should be larger than 0')
+        title_suffix = kwargs.get('title_suffix', '')
+        atomgroup = AtomGroup(str(kwargs.get('title', 'Unknown')) + title_suffix)
+        atomgroup._n_atoms = n_nodes
 
         coordinates = np.zeros((n_nodes, 3), dtype=float)
         atomnames = np.zeros(n_nodes, dtype=ATOMIC_FIELDS['name'].dtype)
@@ -148,66 +151,7 @@ def _parseEMDLines(atomgroup, stream, cutoff=None, n_nodes=0, num_iter=20, map=F
 
     if make_nodes:
         if map:
-            return emd, atomgroup
-        else:
-            return atomgroup
-    else:
-        return emd
-
-
-def parseEMDStream(stream, **kwargs):
-    """Parse a stream of data from an EMD/MRC2014 file and 
-    optionally return an :class:`.AtomGroup` containing TRN 
-    nodes based on it.
-
-    :arg stream: Any object with the method ``readlines``
-        (e.g. :class:`file`, buffer, stdin)"""
-
-    cutoff = kwargs.get('cutoff', None)
-    if cutoff is not None:
-        cutoff = float(cutoff)
-
-    n_nodes = kwargs.get('n_nodes', 0)
-    num_iter = int(kwargs.get('num_iter', 20))
-    map = kwargs.get('map', False)
-    make_nodes = kwargs.get('make_nodes', False)
-
-    if n_nodes > 0:
-        make_nodes = True
-        n_nodes = int(n_nodes)
-
-    if map is False and make_nodes is False:
-        LOGGER.warn('At least one of map and make_nodes should be True. '
-                    'Setting map to False was an intentional change from the default '
-                    'behaviour so make_nodes has been set to True with n_nodes=1000.')
-        make_nodes = True
-        n_nodes = 1000
-
-    title_suffix = kwargs.get('title_suffix', '')
-    atomgroup = AtomGroup(str(kwargs.get('title', 'Unknown')) + title_suffix)
-    atomgroup._n_atoms = n_nodes
-
-    if make_nodes:
-        LOGGER.info(
-            'Building coordinates from electron density map. This may take a while.')
-        LOGGER.timeit()
-
-        if map:
-            emd, atomgroup = _parseEMDLines(atomgroup, stream, cutoff=cutoff, n_nodes=n_nodes,
-                                            num_iter=num_iter, map=map, make_nodes=make_nodes)
-        else:
-            atomgroup = _parseEMDLines(atomgroup, stream, cutoff=cutoff, n_nodes=n_nodes,
-                                       num_iter=num_iter, map=map, make_nodes=make_nodes)
-
-        LOGGER.report('{0} pseudoatoms were fitted in %.2fs.'.format(
-            atomgroup.numAtoms(), atomgroup.numCoordsets()))
-    else:
-        emd = _parseEMDLines(atomgroup, stream, cutoff=cutoff, n_nodes=n_nodes,
-                             num_iter=num_iter, map=map, make_nodes=make_nodes)
-
-    if make_nodes:
-        if map:
-            return emd, atomgroup
+            return atomgroup, emd
         else:
             return atomgroup
     else:
@@ -477,6 +421,8 @@ class TRNET(object):
 
     def run(self, tmax=200, li=0.2, lf=0.01, ei=0.3,
             ef=0.05, Ti=0.1, Tf=2, c=0, calcC=False):
+        LOGGER.info('Building coordinates from electron density map. This may take a while.')
+        LOGGER.timeit('_prody_make_nodes')
         tmax = int(tmax * self.N)
         li = li * self.N
         if calcC:
@@ -491,11 +437,10 @@ class TRNET(object):
                 T = Ti * np.power(Tf / Ti, tt)
             else:
                 T = -1
-            # run once
             self.runOnce(t, l, ep, T, c)
-
-            # if t % 1000 == 0:
-            #    print str(t) + " steps have been run"
+        LOGGER.report('{0} pseudoatoms were fitted in %.2fs.'.format(
+            self.N), '_prody_make_nodes')
+        return
 
     def run_n_pause(self, k0, k, tmax=200, li=0.2, lf=0.01, ei=0.3,
                     ef=0.05, Ti=0.1, Tf=2):
@@ -511,9 +456,7 @@ class TRNET(object):
             T = Ti * np.power(Tf / Ti, tt)
             # run once
             self.runOnce(t, l, ep, T)
-
-            # if t % 1000 == 0:
-            #    print str(t) + " steps have been run"
+        return
 
     def outputEdges(self):
         return self.C > 0
