@@ -20,40 +20,48 @@ import numpy as np
 
 __all__ = ['parseEMDStream', 'parseEMD', 'writeEMD', 'TRNET', 'EMDMAP']
 
+
 class EMDParseError(Exception):
     pass
 
+
 """ For  documentation"""
 
+
 def parseEMD(emd, **kwargs):
-    """Returns an :class:`.AtomGroup` containing the information parsed from EMD file. 
+    """Parses an EM density map in EMD/MRC2015 format and 
+    optionally returns an :class:`.AtomGroup` containing  
+    beads built in the density using the TRN algorithm [_]. 
 
     This function extends :func:`.parseEMDStream`.
 
     See :ref:`parseEMD` for a detailed usage example. 
 
-    :arg emd: an EMD identifier or a file name. A 4-digit EMDataBank identifier can be provided
-    to download it via FTP.
+    :arg emd: an EMD identifier or a file name. A 4-digit 
+              EMDataBank identifier can be provided to download 
+              it via FTP.
     :type emd: str
 
-    :arg cutoff: density cutoff to read EMD map. The regions with lower density than given cutoff 
-    are discarded.
+    :arg cutoff: density cutoff to read EMD map. The regions with 
+                 lower density than given cutoff are discarded.
     :type cutoff: float
 
-    :arg n_nodes: A bead based network will be constructed over provided density map. n_nodes parameter
-    will show the number of beads that will fit to density map. 
+    :arg n_nodes: A bead based network will be constructed into the provided density map. 
+                  This parameter will set the number of beads to fit to density map. 
+                  Default is 0. Please change it to some number to run the TRN algorithm.
     :type n_nodes: int  
 
-    :arg num_iter: After reading density map, coordinates are predicted with topological domain reconstruction
-    method. This parameter is the total number of iterations of this algorithm: 
+    :arg num_iter: After reading density map, coordinates are predicted with the 
+                   topology representing network method. This parameter is the total 
+                   number of iterations of this algorithm.
     :type num_iter: int
 
     :arg map: Return the density map itself. Default is **False** in line with previous behaviour.
         This value is reset to **True** if make_nodes is **False** as something must be returned.
     :type map: bool
 
-    :arg make_nodes: Use the topology representing network algorithm to fit pseudoatom nodes to the map.
-        Default is **False** and sets map to **True**.
+    :arg make_nodes: Use the topology representing network algorithm to fit pseudoatom 
+                     nodes to the map. Default is **False** and sets map to **True**.
     :type make_nodes: bool
     """
 
@@ -72,47 +80,46 @@ def parseEMD(emd, **kwargs):
             elif os.path.isfile(emd + '.map.gz'):
                 filename = emd + '.map.gz'
             else:
-                filename = fetchPDB(emd, report=True, format='emd',compressed=False)
+                filename = fetchPDB(emd, report=True,
+                                    format='emd', compressed=False)
                 if filename is None:
                     raise IOError('EMD map file for {0} could not be downloaded.'
                                   .format(emd))
             emd = filename
-        else:   
+        else:
             raise IOError('EMD file {0} is not available in the directory {1}'
-                           .format(emd, os.getcwd()))
+                          .format(emd, os.getcwd()))
     if title is None:
         kwargs['title'], ext = os.path.splitext(os.path.split(emd)[1])
 
     emdStream = openFile(emd, 'rb')
-
-    if emd.endswith('.stk'):
-        result = parseSTKStream(emd, **kwargs)
-    else:
-        result = parseEMDStream(emdStream, **kwargs)
-
+    result = parseEMDStream(emdStream, **kwargs)
     emdStream.close()
 
     return result
 
 def _parseEMDLines(atomgroup, stream, cutoff=None, n_nodes=0, num_iter=20, map=False, make_nodes=False):
-    """ Returns an AtomGroup. see also :func:`.parseEMDStream()`.
+    """Parse lines of data stream from an EMD/MRC2014 file and 
+    optionally return an :class:`.AtomGroup` containing TRN 
+    nodes based on it.
 
     :arg stream: stream from parser.
     """
 
     if not isinstance(n_nodes, int):
         raise TypeError('n_nodes should be an integer')
-        
+
     if n_nodes > 0:
         make_nodes = True
     else:
+        make_nodes = False
         map = True
-        LOGGER.info('As n_nodes is less than or equal to 0, no nodes will be made and the raw map will be returned')
+        LOGGER.info('As n_nodes is less than or equal to 0, no nodes will be'
+                    ' made and the raw map will be returned')
 
     emd = EMDMAP(stream, cutoff)
 
     if make_nodes:
-
         if not n_nodes > 0:
             raise ValueError('n_nodes should be larger than 0')
 
@@ -122,12 +129,12 @@ def _parseEMDLines(atomgroup, stream, cutoff=None, n_nodes=0, num_iter=20, map=F
         resnums = np.zeros(n_nodes, dtype=ATOMIC_FIELDS['resnum'].dtype)
         chainids = np.zeros(n_nodes, dtype=ATOMIC_FIELDS['chain'].dtype)
 
-        trn = TRNET(n_nodes = n_nodes)
+        trn = TRNET(n_nodes=n_nodes)
         trn.inputMap(emd, sample='density')
 
-        trn.run(tmax = num_iter)
+        trn.run(tmax=num_iter)
         for i in range(n_nodes):
-            coordinates[i,:] = trn.W[i,:]
+            coordinates[i, :] = trn.W[i, :]
             atomnames[i] = 'B'
             resnames[i] = 'CGB'
             resnums[i] = i+1
@@ -138,7 +145,7 @@ def _parseEMDLines(atomgroup, stream, cutoff=None, n_nodes=0, num_iter=20, map=F
         atomgroup.setResnames(resnames)
         atomgroup.setResnums(resnums)
         atomgroup.setChids(chainids)
- 
+
     if make_nodes:
         if map:
             return emd, atomgroup
@@ -148,13 +155,10 @@ def _parseEMDLines(atomgroup, stream, cutoff=None, n_nodes=0, num_iter=20, map=F
         return emd
 
 
-def parseSTKStream(stream, **kwargs):
-    LOGGER.warn('ProDy currently cannot parse .stk files correctly')
-    return None
-
-
 def parseEMDStream(stream, **kwargs):
-    """ Returns an :class:`.AtomGroup` containing EMD data parsed from a stream of EMD file.
+    """Parse a stream of data from an EMD/MRC2014 file and 
+    optionally return an :class:`.AtomGroup` containing TRN 
+    nodes based on it.
 
     :arg stream: Any object with the method ``readlines``
         (e.g. :class:`file`, buffer, stdin)"""
@@ -179,25 +183,26 @@ def parseEMDStream(stream, **kwargs):
         make_nodes = True
         n_nodes = 1000
 
-    title_suffix = kwargs.get('title_suffix','')
+    title_suffix = kwargs.get('title_suffix', '')
     atomgroup = AtomGroup(str(kwargs.get('title', 'Unknown')) + title_suffix)
     atomgroup._n_atoms = n_nodes
 
     if make_nodes:
-        LOGGER.info('Building coordinates from electron density map. This may take a while.')
+        LOGGER.info(
+            'Building coordinates from electron density map. This may take a while.')
         LOGGER.timeit()
 
         if map:
-            emd, atomgroup = _parseEMDLines(atomgroup, stream, cutoff=cutoff, n_nodes=n_nodes, \
+            emd, atomgroup = _parseEMDLines(atomgroup, stream, cutoff=cutoff, n_nodes=n_nodes,
                                             num_iter=num_iter, map=map, make_nodes=make_nodes)
         else:
-            atomgroup = _parseEMDLines(atomgroup, stream, cutoff=cutoff, n_nodes=n_nodes, \
+            atomgroup = _parseEMDLines(atomgroup, stream, cutoff=cutoff, n_nodes=n_nodes,
                                        num_iter=num_iter, map=map, make_nodes=make_nodes)
 
         LOGGER.report('{0} pseudoatoms were fitted in %.2fs.'.format(
             atomgroup.numAtoms(), atomgroup.numCoordsets()))
-    else: 
-        emd = _parseEMDLines(atomgroup, stream, cutoff=cutoff, n_nodes=n_nodes, \
+    else:
+        emd = _parseEMDLines(atomgroup, stream, cutoff=cutoff, n_nodes=n_nodes,
                              num_iter=num_iter, map=map, make_nodes=make_nodes)
 
     if make_nodes:
@@ -207,6 +212,7 @@ def parseEMDStream(stream, **kwargs):
             return atomgroup
     else:
         return emd
+
 
 def writeEMD(filename, emd):
     '''
@@ -220,46 +226,47 @@ def writeEMD(filename, emd):
     '''
 
     f = open(filename, "wb")
-    f.write(st.pack('<L',emd.NC))
-    f.write(st.pack('<L',emd.NR))
-    f.write(st.pack('<L',emd.NS))
-    f.write(st.pack('<L',emd.mode))
-    f.write(st.pack('<L',emd.ncstart))
-    f.write(st.pack('<L',emd.nrstart))
-    f.write(st.pack('<L',emd.nsstart))
-    f.write(st.pack('<L',emd.Nx))
-    f.write(st.pack('<L',emd.Ny))
-    f.write(st.pack('<L',emd.Nz))
-    f.write(st.pack('<f',emd.Lx))
-    f.write(st.pack('<f',emd.Ly))
-    f.write(st.pack('<f',emd.Lz))
-    f.write(st.pack('<f',emd.a))
-    f.write(st.pack('<f',emd.b))
-    f.write(st.pack('<f',emd.c))
-    f.write(st.pack('<L',emd.mapc))
-    f.write(st.pack('<L',emd.mapr))
-    f.write(st.pack('<L',emd.maps))
-    f.write(st.pack('<f',emd.dmin))
-    f.write(st.pack('<f',emd.dmax))
-    f.write(st.pack('<f',emd.dmean))
-    f.write(st.pack('<L',emd.ispg))
-    f.write(st.pack('<L',emd.nsymbt))
-    f.write(st.pack('<100s',emd.extra))
-    f.write(st.pack('<f',emd.x0))
-    f.write(st.pack('<f',emd.y0))
-    f.write(st.pack('<f',emd.z0))
-    f.write(st.pack('<4s',emd.wordMAP))
-    f.write(st.pack('<4s',emd.machst))
-    f.write(st.pack('<f',emd.rms))
-    f.write(st.pack('<L',emd.nlabels))
-    f.write(st.pack('<800s',emd.labels))
+    f.write(st.pack('<L', emd.NC))
+    f.write(st.pack('<L', emd.NR))
+    f.write(st.pack('<L', emd.NS))
+    f.write(st.pack('<L', emd.mode))
+    f.write(st.pack('<L', emd.ncstart))
+    f.write(st.pack('<L', emd.nrstart))
+    f.write(st.pack('<L', emd.nsstart))
+    f.write(st.pack('<L', emd.Nx))
+    f.write(st.pack('<L', emd.Ny))
+    f.write(st.pack('<L', emd.Nz))
+    f.write(st.pack('<f', emd.Lx))
+    f.write(st.pack('<f', emd.Ly))
+    f.write(st.pack('<f', emd.Lz))
+    f.write(st.pack('<f', emd.a))
+    f.write(st.pack('<f', emd.b))
+    f.write(st.pack('<f', emd.c))
+    f.write(st.pack('<L', emd.mapc))
+    f.write(st.pack('<L', emd.mapr))
+    f.write(st.pack('<L', emd.maps))
+    f.write(st.pack('<f', emd.dmin))
+    f.write(st.pack('<f', emd.dmax))
+    f.write(st.pack('<f', emd.dmean))
+    f.write(st.pack('<L', emd.ispg))
+    f.write(st.pack('<L', emd.nsymbt))
+    f.write(st.pack('<100s', emd.extra))
+    f.write(st.pack('<f', emd.x0))
+    f.write(st.pack('<f', emd.y0))
+    f.write(st.pack('<f', emd.z0))
+    f.write(st.pack('<4s', emd.wordMAP))
+    f.write(st.pack('<4s', emd.machst))
+    f.write(st.pack('<f', emd.rms))
+    f.write(st.pack('<L', emd.nlabels))
+    f.write(st.pack('<800s', emd.labels))
 
     for s in range(0, emd.NS):
         for r in range(0, emd.NR):
             for c in range(0, emd.NC):
-                f.write(st.pack('<f',emd.density[s,r,c]))
+                f.write(st.pack('<f', emd.density[s, r, c]))
 
     f.close()
+
 
 class EMDMAP(object):
     def __init__(self, stream, cutoff):
@@ -286,7 +293,7 @@ class EMDMAP(object):
         self.Lx = st.unpack('<f', stream.read(4))[0]
         self.Ly = st.unpack('<f', stream.read(4))[0]
         self.Lz = st.unpack('<f', stream.read(4))[0]
-    
+
         # Cell angles (Degrees) (3 words, 12 bytes, 53-64)
         self.a = st.unpack('<f', stream.read(4))[0]
         self.b = st.unpack('<f', stream.read(4))[0]
@@ -321,7 +328,7 @@ class EMDMAP(object):
         self.z0 = st.unpack('<f', stream.read(4))[0]
 
         # the character string 'MAP' to identify file type (1 word, 4 bytes, 209-212)
-        self.wordMAP = st.unpack('<4s', stream.read(4))[0] 
+        self.wordMAP = st.unpack('<4s', stream.read(4))[0]
 
         # machine stamp encoding byte ordering of data (1 word, 4 bytes, 213-216)
         self.machst = st.unpack('<4s', stream.read(4))[0]
@@ -347,7 +354,6 @@ class EMDMAP(object):
 
         self.sampled = False
 
-
     def numidx2matidx(self, numidx):
         """ Given index of the position, it will return the numbers of section, row and column. """
         # calculate section idx
@@ -365,7 +371,7 @@ class EMDMAP(object):
             self.sampled = True
         summ = self.cumsumdens[-1]
         r = np.random.rand() * summ
-        j = np.searchsorted(self.cumsumdens,r)
+        j = np.searchsorted(self.cumsumdens, r)
         return self.numidx2matidx(j)
 
     def drawsample_uniform(self):
@@ -382,7 +388,7 @@ class EMDMAP(object):
         res[self.mapr - 1] = self.NR
         res[self.maps - 1] = self.NS
         res = np.divide(np.array([self.Lx, self.Ly, self.Lz]), res)
-        
+
         # find coordinates in voxels relative to start
         ret = np.empty(3)
         ret[self.mapc - 1] = col + self.ncstart
@@ -393,14 +399,21 @@ class EMDMAP(object):
         ret = np.multiply(ret, res)
         return ret
 
+
 class TRNET(object):
+    """Class for building topology representing networks using 
+    EM density maps. It uses the algorithm described in [TM94]_.
+
+    .. [TM94] Martinetz T, Schulten K, Topology Representing Networks.
+       *Neural Networks* **1994** 7(3):507-552."""
+
     def __init__(self, n_nodes):
         self.N = n_nodes
         self.W = np.empty([n_nodes, 3])
         self.C = np.eye(n_nodes, n_nodes)
         # test
         self.V = np.array([])
-        
+
     def inputMap(self, emdmap, sample='density'):
         self.map = emdmap
         # initialize the positions of nodes
@@ -414,7 +427,7 @@ class TRNET(object):
             else:
                 p = (0, 0, 0)
             self.W[i, :] = self.map.coordinate(p[0], p[1], p[2])
-        
+
     def runOnce(self, t, l, ep, T, c=0):
         # draw a point from the map
         p = self.map.drawsample()
@@ -423,19 +436,19 @@ class TRNET(object):
             self.V = v
         else:
             self.V = np.vstack((self.V, v))
-        
+
         # calc the squared distances \\ws - v\\^2
         D = v - self.W
         sD = np.empty(self.N)
         for i in range(self.N):
             d = D[i, :]
-            sD[i] = np.dot(d,d)
-        
+            sD[i] = np.dot(d, d)
+
         # calc the closeness rank k's
         I = np.argsort(sD)
         K = np.empty(I.shape)
-        K[I] = range(len(I))       
-        
+        K[I] = range(len(I))
+
         # move the nodes
         if c == 0:
             K = K[:, np.newaxis]
@@ -445,31 +458,30 @@ class TRNET(object):
             idx = K < kc
             K = K[:, np.newaxis]
             self.W[idx, :] += ep * np.exp(-K[idx]/l) * D[idx, :]
-            
-        
-        if T>=0:
+
+        if T >= 0:
             # search for i0 and i1
             i0 = I[0]
             i1 = I[1]
-            
+
             # refresh connections
             for i in range(self.N):
                 if i == i1:
                     self.C[i0, i] = 1
                     self.C[i, i0] = 1
-                elif i!=i0 and self.C[i0, i] > 0:
+                elif i != i0 and self.C[i0, i] > 0:
                     self.C[i0, i] = self.C[i0, i] + 1
                     if self.C[i0, i] > T:
                         self.C[i0, i] = 0
                     self.C[i, i0] = self.C[i0, i]
-                
-    def run(self, tmax = 200, li = 0.2, lf = 0.01, ei = 0.3,
-            ef = 0.05, Ti = 0.1, Tf = 2, c = 0, calcC = False):
+
+    def run(self, tmax=200, li=0.2, lf=0.01, ei=0.3,
+            ef=0.05, Ti=0.1, Tf=2, c=0, calcC=False):
         tmax = int(tmax * self.N)
         li = li * self.N
         if calcC:
             Ti = Ti * self.N
-            Tf = Tf * self.N        
+            Tf = Tf * self.N
         for t in range(1, tmax + 1):
             # calc the parameters
             tt = float(t) / tmax
@@ -481,27 +493,27 @@ class TRNET(object):
                 T = -1
             # run once
             self.runOnce(t, l, ep, T, c)
-            
-            #if t % 1000 == 0:
+
+            # if t % 1000 == 0:
             #    print str(t) + " steps have been run"
-    
-    def run_n_pause(self, k0, k, tmax = 200, li = 0.2, lf = 0.01, ei = 0.3,
-            ef = 0.05, Ti = 0.1, Tf = 2):
+
+    def run_n_pause(self, k0, k, tmax=200, li=0.2, lf=0.01, ei=0.3,
+                    ef=0.05, Ti=0.1, Tf=2):
         tmax = int(tmax * self.N)
         li = li * self.N
         Ti = Ti * self.N
-        Tf = Tf * self.N        
+        Tf = Tf * self.N
         for t in range(k0, k + 1):
             # calc the parameters
             tt = float(t) / tmax
             l = li * np.power(lf / li, tt)
             ep = ei * np.power(ef / ei, tt)
-            T = Ti * np.power(Tf / Ti, tt)            
+            T = Ti * np.power(Tf / Ti, tt)
             # run once
             self.runOnce(t, l, ep, T)
-            
-            #if t % 1000 == 0:
+
+            # if t % 1000 == 0:
             #    print str(t) + " steps have been run"
-        
+
     def outputEdges(self):
         return self.C > 0
