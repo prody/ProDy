@@ -47,7 +47,6 @@ from prody.measure import calcTransformation, applyTransformation
 from prody.ensemble import Ensemble, saveEnsemble
 from prody.proteins import writePDB, parsePDB
 
-from pdbfixer import PDBFixer
 from simtk.openmm.app import *   # don't import all openmm modules
 from simtk.openmm import *
 from simtk.unit import *
@@ -60,8 +59,12 @@ class ClustENM(object):
     This ANM-based hybrid algorithm requires PDBFixer and OpenMM for performing energy minimization and MD simulations in implicit solvent.
     It is Python 3.7 compatible and has been only tested on Linux machines.
 
-    .. [KZ16] Kurkcuoglu, Bahar and Doruker, "ClustENM: ENM-based sampling of essential conformational space at full atomic resolution", JCTC 2016.
-    Maybe reference for OpenMM. John can you add this ?
+    .. [KZ16] Kurkcuoglu Z, Bahar I, Doruker P. ClustENM: ENM-based sampling of essential conformational space at full atomic resolution. 
+       *J Chem* **2016** 12(9):4549-4562.
+    
+    .. [PE17] Eastman P, Swails J, Chodera JD, McGibbon RT, Zhao Y, Beauchamp KA, Wang LP, Simmonett AC, Harrigan MP, Stern CD, Wiewiora RP, 
+       Brooks BR, Pande VS. OpenMM 7: Rapid Development of High Performance Algorithms for Molecular Dynamics. *PLoS Comput Biol* **2017** 
+       13:e1005659.
 
     Instantiate a ClustENM object.
 
@@ -189,6 +192,11 @@ class ClustENM(object):
         self._clustenm()
 
     def _fix(self):
+
+        try:
+            from pdbfixer import PDBFixer
+        except ImportError:
+            raise ImportError('Please install PDBFixer and OpenMM in order to use ClustENM.')
 
         fixed = PDBFixer(filename=self._filename, pdbid=self._pdbid)
         fixed.removeHeterogens(False)
