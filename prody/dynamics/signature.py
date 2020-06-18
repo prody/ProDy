@@ -937,11 +937,11 @@ def calcEnsembleENMs(ensemble, model='gnm', trim='reduce', n_modes=20, **kwargs)
     LOGGER.progress('Calculating {0} {1} modes for {2} conformations...'
                     .format(str_modes, model_type, n_confs), n_confs, '_prody_calcEnsembleENMs')
 
-    coordset = ensemble.getCoordsets(selected=False)
+    coordsets = ensemble.getCoordsets(selected=False)
     weights = ensemble.getWeights(selected=False)
     for i in range(n_confs):
         LOGGER.update(i, label='_prody_calcEnsembleENMs')
-        coords = coordset[i]
+        coords = coordsets[i]
 
         if weights.ndim == 3:
             weight = weights[i].flatten()
