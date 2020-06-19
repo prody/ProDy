@@ -6,7 +6,7 @@ from numpy import ndarray, power, sqrt, array, zeros, arccos, dot
 from numpy import sign, tile, concatenate, pi, cross, subtract, var
 
 from prody.atomic import Atomic, Residue, Atom
-from prody.utilities import importLA, checkCoords, getDistance, getCoords
+from prody.utilities import importLA, _solveEig, checkCoords, getDistance, getCoords
 from prody import LOGGER, PY2K
 
 if PY2K:
@@ -812,20 +812,6 @@ def calcInertiaTensor(coords):
 
 def calcPrincAxes(coords, turbo=True):
     """Calculate principal axes from coords"""
-    cov = calcInertiaTensor(coords)
-
-    linalg = importLA()
-    if linalg.__package__.startswith('scipy'):
-        eigvals = None
-        values, vectors = linalg.eigh(cov, turbo=turbo,
-                                      eigvals=eigvals)
-    else:
-        LOGGER.info('Scipy is not found, all modes are calculated.')
-        values, vectors = linalg.eigh(cov)
-
-    # Order by descending SV
-    revert = list(range(len(values)-1, -1, -1))
-    values = values[revert]
-    vectors = vectors[:, revert]
-
+    M = calcInertiaTensor(coords)
+    _, vectors = _solveEig(M, 3)
     return vectors
