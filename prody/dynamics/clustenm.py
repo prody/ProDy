@@ -575,7 +575,7 @@ class ClustENM(object):
         else:
             direc = title
             if isdir(direc):
-                LOGGER.warn('%s is not empty'%direc)
+                LOGGER.warn('%s is not empty; will be flooded'%direc)
             else:
                 mkdir(direc)
 
@@ -596,7 +596,7 @@ class ClustENM(object):
 
         LOGGER.info('Generation 0 ...')
 
-        LOGGER.info('Fixing pdb ...')
+        LOGGER.info('Fixing the structure ...')
         LOGGER.timeit('t1')
         self._fix()
         LOGGER.report(label='t1')
@@ -675,15 +675,15 @@ class ClustENM(object):
         t10 = round(t1 - t0, 2)
         LOGGER.info(f'All completed in {t10}s')
 
-        LOGGER.info(f'Saving to disc:\n   {self._pdb}_clustenm.ens.npz'
-                       f'\n   {self._pdb}_potentials.pkl'
-                       f'\n   {self._pdb}_weights.pkl')
+        title = self.getTitle()
+        LOGGER.info(f'Saving to disc:\n   {title}_clustenm.ens.npz'
+                       f'\n   {title}_potentials.pkl'
+                       f'\n   {title}_weights.pkl')
 
         LOGGER.timeit('t5')
 
         saveEnsemble(self._ens)
 
-        title = self.getTitle()
         with open(f'{title}_parameters.txt', 'w') as f:
             f.write(f'pdb = {title}\n')
             f.write(f'chain = {self._chain}\n')
