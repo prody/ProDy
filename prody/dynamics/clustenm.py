@@ -539,7 +539,7 @@ class ClustENM(object):
         self._ens = Ensemble('%s_clustenm'%self.getTitle())
         self._ens.setAtoms(self._atoms)
         self._ens.setCoords(self._conformers[0][0])
-        self._ens.addCoordset(self.conformers())
+        self._ens.addCoordset(self.getConformers())
         self._ens.setData('labels', self._labels)
 
     def getEnsemble(self):
@@ -668,7 +668,7 @@ class ClustENM(object):
             filename = '%s_parameters.txt'%title
 
         with open(filename, 'w') as f:
-            f.write(f'PDB = {title}\n')
+            f.write(f'title = {title}\n')
             f.write(f'pH = {self._ph}\n')
             f.write(f'cutoff = {self._cutoff}\n')
             f.write(f'n_modes = {self._n_modes}\n')
