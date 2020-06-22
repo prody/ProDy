@@ -32,7 +32,7 @@ from os.path import isdir
 import pickle
 from shutil import rmtree
 from sys import stdout
-from time import perf_counter
+#from time import perf_counter
 
 import numpy as np
 from scipy.spatial.distance import pdist, squareform
@@ -434,8 +434,8 @@ class ClustENM(object):
 
         # arg: previous generation no
 
-        LOGGER.info(f'Sampling conformers in generation {self._cycle} ...')
-        LOGGER.timeit('t0')
+        LOGGER.info('Sampling conformers in generation %d ...'%self._cycle)
+        LOGGER.timeit('_clustenm_gen')
         tmp = []
         for conf in range(self._conformers[arg].shape[0]):
             if not self._v1:
@@ -453,15 +453,13 @@ class ClustENM(object):
                     LOGGER.info('more than 6 zero eigenvalues!')
 
         confs_ex = np.concatenate(tmp)
-        LOGGER.report(label='t0')
 
         confs_ca = confs_ex[:, self._idx_ca]
 
-        LOGGER.info(f'Clustering in generation {self._cycle} ...')
-        LOGGER.timeit('t1')
+        LOGGER.info('Clustering in generation %d ...'%self._cycle)
         label_ca = self._hc(confs_ca)
-        LOGGER.report(label='t1')
         centers, wei = self._centers(confs_ca, label_ca)
+        LOGGER.report('Conformers were generated in %.2fs.', label='_clustenm_gen')
 
         return confs_ex[centers], wei
 
@@ -535,6 +533,7 @@ class ClustENM(object):
         ens = None
         if self._ens is not None:
             ens = self._ens[:]
+            ens.setTitle(self._ens.getTitle())
         return ens
 
     def _getEnsemble(self):
@@ -610,7 +609,7 @@ class ClustENM(object):
 
         self._cycle = 0
 
-        t0 = perf_counter()
+        # t0 = perf_counter()
         # prody.logger.timeit doesn't give the correct overal time,
         # that's why, perf_counter is being used!
         # but prody.logger.timeit is still here to see
@@ -685,9 +684,9 @@ class ClustENM(object):
         LOGGER.report('Ensemble was created in %.2fs.', label='_clustenm_ens')
 
         LOGGER.report('All completed in %.2fs.', label='_clustenm_overall')
-        t1 = perf_counter()
-        t10 = round(t1 - t0, 2)
-        LOGGER.info(f'Diff: {t10}s')
+        # t1 = perf_counter()
+        # t10 = round(t1 - t0, 2)
+        # LOGGER.info('All completed in %.2fs.'%t10)
 
     def writeParameters(self, filename=None):
 
