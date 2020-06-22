@@ -38,19 +38,15 @@ from scipy.spatial.distance import pdist, squareform
 from scipy.cluster.hierarchy import fcluster, linkage
 from scipy.stats import median_absolute_deviation
 
-import prody as pr
 from prody import LOGGER
 from .anm import ANM
 from .editing import extendModel
 from .sampling import sampleModes
+from prody.atomic import AtomGroup
 from prody.measure import calcTransformation, applyTransformation
 from prody.ensemble import Ensemble, saveEnsemble
 from prody.proteins import writePDB, parsePDB, writePDBStream, parsePDBStream
 from prody.utilities import createStringIO
-
-from simtk.openmm.app import *   # don't import all openmm modules
-from simtk.openmm import *
-from simtk.unit import *
 
 __all__ = ['ClustENM']
 
@@ -172,7 +168,7 @@ class ClustENM(object):
         self._outlier = outlier
         self._mzscore = mzscore
         self._v1 = v1
-        self._platform = platform if platform is None else Platform.getPlatformByName(f'{platform}')
+        self._platform = platform 
 
         self._topology = None
         self._positions = None
@@ -209,6 +205,7 @@ class ClustENM(object):
 
         try:
             from pdbfixer import PDBFixer
+            from simtk.openmm.app import PDBFile
         except ImportError:
             raise ImportError('Please install PDBFixer and OpenMM in order to use ClustENM.')
 
@@ -259,6 +256,16 @@ class ClustENM(object):
 
         # we are not using self._positions!
         # arg will be set as positions
+
+        try:
+            from simtk.openmm import Platform
+            from simtk.openmm.app import Modeller, ForceField, CutoffNonPeriodic, Simulation, \
+                                         LangevinIntegrator, HBonds, StateDataReporter
+            from simtk.unit import nanometers, picosecond, kelvin, angstrom, kilojoule_per_mole, \
+                                   MOLAR_GAS_CONSTANT_R
+        except ImportError:
+            raise ImportError('Please install PDBFixer and OpenMM in order to use ClustENM.')
+
         modeller = Modeller(self._topology,
                             self._positions)
         forcefield = ForceField('amber99sbildn.xml',
@@ -274,15 +281,16 @@ class ClustENM(object):
                                         0.002*picosecond)
 
         # precision could be mixed, but single is okay.
+        platform = self._platform if self._platform is None else Platform.getPlatformByName(f'{self._platform}')
         if self._platform is None:
             simulation = Simulation(modeller.topology, system, integrator,
                                     platformProperties={'Precision': 'single'})
-        elif self._platform.getName() == 'CUDA' or self._platform.getName() == 'OpenCL':
+        elif self._platform == 'CUDA' or self._platform == 'OpenCL':
             simulation = Simulation(modeller.topology, system, integrator,
                                     self._platform, platformProperties={'Precision': 'single'})
-        elif self._platform.getName() == 'CPU':
+        elif self._platform == 'CPU':
             simulation = Simulation(modeller.topology, system, integrator,
-                                    self._platform)
+                                    platform)
 
         # automatic conversion into nanometer will be carried out.
 
@@ -538,9 +546,9 @@ class ClustENM(object):
 
         return np.array(tmp1)
 
-    def _build_ensemble(self, ):
+    def _build_ensemble(self):
 
-        self._ens = Ensemble(f'{self.getTitle()}_clustenm')
+        self._ens = Ensemble('%s_clustenm'%self.getTitle())
         self._ens.setAtoms(self._atoms)
         self._ens.setCoords(self._conformers[0][0])
         self._ens.addCoordset(self.conformers())
@@ -551,42 +559,30 @@ class ClustENM(object):
             self._build_ensemble()
         return self._ens
 
-    @property
-    def ensemble_ca(self):
-
-        tmp = Ensemble(f'{self._pdb}_clustenm_ca')
-        tmp.setAtoms(self._atoms.ca)
-        tmp.setCoords(self._conformers[0][0, self._idx_ca])
-        tmp.addCoordset(self.conformers()[:, self._idx_ca])
-        tmp.setData('labels', self._labels)
-
-        return tmp
-
-    def save_as_pdb(self, single=True):
+    def writePDB(self, single=True, **kwargs):
 
         # single -> True, save as a single pdb file with each conformer as a model
         # otherwise, each conformer is saved as a separate pdb file
         # in the directory pdbs_pdbname
 
+        title = self.getTitle()
+        ens = self.getEnsemble()
+
         LOGGER.timeit('t0')
         if single:
-            LOGGER.info(f'Saving {self._pdb}_clustenm.pdb ...')
-            writePDB(f'{self._pdb}_clustenm', self._ens)
+            LOGGER.info('Saving %s_clustenm.pdb ...'%title)
+            writePDB('%s_clustenm'%title, ens)
         else:
-
-            direc = f'{self._pdb}_pdbs'
+            direc = title
             if isdir(direc):
-                rmtree(direc)
-                mkdir(direc)
-                chdir(direc)
+                LOGGER.warn('%s is not empty'%direc)
             else:
                 mkdir(direc)
-                chdir(direc)
 
-            LOGGER.info(f'Saving in {direc} ...')
+            LOGGER.info('Saving in %s ...'%direc)
             for i, lab in enumerate(self._labels):
-                writePDB(lab, self._ens, csets=i)
-            chdir('..')
+                filename = '%s/%s'%(direc, lab)
+                writePDB(filename, ens, csets=i)
         LOGGER.report(label='t0')
 
     def _clustenm(self):
@@ -605,10 +601,9 @@ class ClustENM(object):
         self._fix()
         LOGGER.report(label='t1')
 
-        self._fixed = parsePDB(f'{self._pdb}_fixed.pdb')
-
-        self._idx_ca = self._fixed.getNames() == 'CA'
-        self._n_ca = self._fixed.ca.numAtoms()
+        # self._atoms must be an AtomGroup instance because of self._fix().
+        self._idx_ca = self._atoms.ca.getIndices()
+        self._n_ca = self._atoms.ca.numAtoms()
 
         self._weights[0] = np.array([1])
 
@@ -617,7 +612,7 @@ class ClustENM(object):
         else:
             LOGGER.info('Minimization in generation 0 ...')
         LOGGER.timeit('t2')
-        potential, conformer = self._min_sim(self._fixed.getCoords())
+        potential, conformer = self._min_sim(self._atoms.getCoords())
         if np.isnan(potential):
             LOGGER.info('Initial structure could not be minimized. Try again and/or check your structure.')
             return None
@@ -672,7 +667,7 @@ class ClustENM(object):
         LOGGER.timeit('t4')
         LOGGER.info('Creating an ensemble of conformers ...')
 
-        self._ensemble()
+        self._build_ensemble()
         LOGGER.report(label='t4')
 
         LOGGER.report('ProDy: %.2fs', 't0')
