@@ -543,6 +543,12 @@ class ClustENM(object):
         self._ens.setData('labels', self._labels)
 
     def getEnsemble(self):
+        ens = None
+        if self._ens is not None:
+            ens = self._ens[:]
+        return ens
+
+    def _getEnsemble(self):
         return self._ens
 
     def writePDB(self, folder='.', single=True, **kwargs):
