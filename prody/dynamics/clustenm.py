@@ -26,6 +26,7 @@ __email__ = ['burak.kaynak@pitt.edu', 'doruker@pitt.edu', 'shz66@pitt.edu']
 
 from itertools import product
 from multiprocessing import cpu_count, Pool
+from collections import OrderedDict
 from os import chdir, mkdir
 from os.path import isdir
 import pickle
@@ -175,9 +176,9 @@ class ClustENM(object):
         self._idx_ca = None
         self._n_ca = None
         self._cycle = 0
-        self._weights = {}   # possibly deprecated
-        self._potentials = {}
-        self._conformers = {}
+        self._weights = OrderedDict()   # possibly deprecated
+        self._potentials = OrderedDict()
+        self._conformers = OrderedDict()
         self._ens = None
 
         self._clustenm()
@@ -235,18 +236,6 @@ class ClustENM(object):
         self._atoms = parsePDBStream(stream)
         stream.close()
 
-        fixed.removeHeterogens(False)
-
-        fixed.missingResidues = {}
-        fixed.findNonstandardResidues()
-        if fixed.nonstandardResidues:
-            LOGGER.info(f'Replacing nonstandard residues: {fixed.nonstandardResidues}')
-        fixed.replaceNonstandardResidues()
-
-        fixed.findMissingAtoms()
-        fixed.addMissingAtoms()
-        fixed.addMissingHydrogens(self._ph)
-
         self._topology = fixed.topology
         self._positions = fixed.positions
 
@@ -281,16 +270,16 @@ class ClustENM(object):
                                         0.002*picosecond)
 
         # precision could be mixed, but single is okay.
-        platform = self._platform if self._platform is None else Platform.getPlatformByName(f'{self._platform}')
+        platform = self._platform if self._platform is None else Platform.getPlatformByName(self._platform)
+        properties = None
+
         if self._platform is None:
-            simulation = Simulation(modeller.topology, system, integrator,
-                                    platformProperties={'Precision': 'single'})
-        elif self._platform == 'CUDA' or self._platform == 'OpenCL':
-            simulation = Simulation(modeller.topology, system, integrator,
-                                    self._platform, platformProperties={'Precision': 'single'})
-        elif self._platform == 'CPU':
-            simulation = Simulation(modeller.topology, system, integrator,
-                                    platform)
+            properties = {'Precision': 'single'}
+        elif self._platform in ['CUDA', 'OpenCL']:
+            properties = {'Precision': 'single'}
+            
+        simulation = Simulation(modeller.topology, system, integrator,
+                                platform, properties)
 
         # automatic conversion into nanometer will be carried out.
 
@@ -497,33 +486,33 @@ class ClustENM(object):
 
         return tmp > 3.5
 
-    def conformers(self, arg=None):
+    def getConformers(self, index=None):
 
-        # arg: None -> whole as a numpy array, or int for the generation no
+        # index: None -> whole as a numpy array, or int for the generation no
         # Dictionary order is guaranteed to be insertion order by Python 3.7!
 
-        if arg is None:
+        if index is None:
             return np.concatenate([v for v in self._conformers.values()])
         else:
-            return self._conformers[arg]
+            return self._conformers[index]
 
-    def potentials(self, arg=None):
+    def getPotentials(self, index=None):
 
-        # arg: None -> whole as a numpy array, or int for the generation no
+        # index: None -> whole as a numpy array, or int for the generation no
 
-        if arg is None:
+        if index is None:
             return np.concatenate([v for v in self._potentials.values()])
         else:
-            return self._potentials[arg]
+            return self._potentials[index]
 
-    def weights(self, arg=None):
+    def getWeights(self, index=None):
 
-        # arg: None -> whole as a numpy array, or int for the generation no
+        # index: None -> whole as a numpy array, or int for the generation no
 
-        if arg is None:
+        if index is None:
             return np.concatenate([v for v in self._weights.values()])
         else:
-            return self._weights[arg]
+            return self._weights[index]
 
     @property
     def _labels(self):
@@ -547,7 +536,6 @@ class ClustENM(object):
         return np.array(tmp1)
 
     def _build_ensemble(self):
-
         self._ens = Ensemble('%s_clustenm'%self.getTitle())
         self._ens.setAtoms(self._atoms)
         self._ens.setCoords(self._conformers[0][0])
@@ -555,11 +543,9 @@ class ClustENM(object):
         self._ens.setData('labels', self._labels)
 
     def getEnsemble(self):
-        if self._ens is None:
-            self._build_ensemble()
         return self._ens
 
-    def writePDB(self, single=True, **kwargs):
+    def writePDB(self, folder='.', single=True, **kwargs):
 
         # single -> True, save as a single pdb file with each conformer as a model
         # otherwise, each conformer is saved as a separate pdb file
@@ -571,9 +557,9 @@ class ClustENM(object):
         LOGGER.timeit('t0')
         if single:
             LOGGER.info('Saving %s_clustenm.pdb ...'%title)
-            writePDB('%s_clustenm'%title, ens)
+            writePDB(folder + '/' + title, ens)
         else:
-            direc = title
+            direc = folder + '/' + title
             if isdir(direc):
                 LOGGER.warn('%s is not empty; will be flooded'%direc)
             else:
@@ -684,9 +670,14 @@ class ClustENM(object):
 
         saveEnsemble(self._ens)
 
-        with open(f'{title}_parameters.txt', 'w') as f:
-            f.write(f'pdb = {title}\n')
-            f.write(f'chain = {self._chain}\n')
+    def writeParameters(self, filename=None):
+
+        title = self.getTitle()
+        if filename is None:
+            filename = '%s_parameters.txt'%title
+
+        with open(filename, 'w') as f:
+            f.write(f'PDB = {title}\n')
             f.write(f'pH = {self._ph}\n')
             f.write(f'cutoff = {self._cutoff}\n')
             f.write(f'n_modes = {self._n_modes}\n')
@@ -707,10 +698,12 @@ class ClustENM(object):
             if self._v1:
                 f.write(f'v1 = {self._v1}\n')
             if self._platform is not None:
-                f.write(f'platform = {self._platform.getName()}\n')
-            f.write(f'Completed in {t10}s\n')
-        with open(f'{self._pdb}_potentials.pkl', 'wb') as f:
+                f.write(f'platform = %s\n'%self._platform)
+            else:
+                f.write(f'platform = Default\n')
+
+        with open(f'{title}_potentials.pkl', 'wb') as f:
             pickle.dump(self._potentials, f, pickle.HIGHEST_PROTOCOL)
-        with open(f'{self._pdb}_weights.pkl', 'wb') as f:
+        with open(f'{title}_weights.pkl', 'wb') as f:
             pickle.dump(self._weights, f, pickle.HIGHEST_PROTOCOL)
         LOGGER.report(label='t5')
