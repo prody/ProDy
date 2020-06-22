@@ -124,52 +124,30 @@ class ClustENM(object):
         whether fixes missing residues. Default is **True**.
     '''
 
-    def __init__(self, atoms, cutoff=15., pH=7.0,
-                 n_modes=3, n_confs=50, rmsd=1.0,
-                 n_gens=5, maxclust=None, threshold=None,
-                 sim=True, temp=300, t_steps_i=1000, t_steps_g=7500,
-                 outlier=True, mzscore=3.5,
-                 v1=False, platform=None, missing_residues=True):
+    def __init__(self, title=None):
+        
+        self._title = title
+        self._atoms = None
+        
+        self._ph = 7.0
 
-        self._atoms = atoms
-        self._title = None
-        self._cutoff = cutoff
-        self._ph = pH
-        self._fix_mis_res = missing_residues
-        self._n_modes = n_modes
-        self._n_confs = n_confs
-        self._rmsd = (0.,) + rmsd if isinstance(rmsd, tuple) else (0.,) + (rmsd,) * n_gens
-        self._n_gens = n_gens
+        self._cutoff = 15.
+        self._n_modes = 3
+        self._n_confs = 50
+        self._rmsd = (0.,) 
+        self._n_gens = 5
 
-        if maxclust is None:
-            self._maxclust = None
-        else:
-            if isinstance(maxclust, tuple):
-                self._maxclust = (0,) + maxclust
-            else:
-                self._maxclust = (0,) + (maxclust,) * n_gens
+        self._maxclust = None
+        self._threshold = None
 
-        if threshold is None:
-            self._threshold = None
-        else:
-            if isinstance(threshold, tuple):
-                self._threshold = (0,) + threshold
-            else:
-                self._threshold = (0,) + (threshold,) * n_gens
+        self._sim = True
+        self._temp = 300
+        self._t_steps = None
 
-        self._sim = sim
-        self._temp = temp
-
-        if self._sim:
-            if isinstance(t_steps_g, tuple):
-                self._t_steps = (t_steps_i,) + t_steps_g
-            else:
-                self._t_steps = (t_steps_i,) + (t_steps_g,) * n_gens
-
-        self._outlier = outlier
-        self._mzscore = mzscore
-        self._v1 = v1
-        self._platform = platform 
+        self._outlier = True
+        self._mzscore = 3.5
+        self._v1 = False
+        self._platform = None 
 
         self._topology = None
         self._positions = None
@@ -181,13 +159,22 @@ class ClustENM(object):
         self._conformers = OrderedDict()
         self._ens = None
 
-        self._clustenm()
-
     def getAtoms(self):
         return self._atoms
 
+    def setAtoms(self, atoms, pH=7.0, fix_missing_residues=True):
+        LOGGER.info('Fixing the structure ...')
+        LOGGER.timeit('_clustenm_fix')
+        self._ph = pH
+        self._fix(atoms, fix_missing_residues)
+        LOGGER.report('The structure was fixed in %.2fs.', label='_clustenm_fix')
+
+        # self._atoms must be an AtomGroup instance because of self._fix().
+        self._idx_ca = self._atoms.ca.getIndices()
+        self._n_ca = self._atoms.ca.numAtoms()
+
     def getTitle(self):
-        title = ''
+        title = 'Unknown'
         if self._title is None:
             atoms = self.getAtoms()
             if atoms is not None:
@@ -202,7 +189,7 @@ class ClustENM(object):
             raise TypeError('title must be str')
         self._title = value
 
-    def _fix(self):
+    def _fix(self, atoms, fix_missing_residues=True):
 
         try:
             from pdbfixer import PDBFixer
@@ -211,12 +198,13 @@ class ClustENM(object):
             raise ImportError('Please install PDBFixer and OpenMM in order to use ClustENM.')
 
         stream = createStringIO()
-        writePDBStream(stream, self._atoms)
+        title = atoms.getTitle()
+        writePDBStream(stream, atoms)
         stream.seek(0)
         fixed = PDBFixer(pdbfile=stream)
         stream.close()
 
-        if self._fix_mis_res:
+        if fix_missing_residues:
             fixed.findMissingResidues()
         else:
             # skipping modeling of missing residues neither at the chain ends
@@ -234,6 +222,7 @@ class ClustENM(object):
         PDBFile.writeFile(fixed.topology, fixed.positions, stream, keepIds=True)
         stream.seek(0)
         self._atoms = parsePDBStream(stream)
+        self._atoms.setTitle(title)
         stream.close()
 
         self._topology = fixed.topology
@@ -247,9 +236,9 @@ class ClustENM(object):
         # arg will be set as positions
 
         try:
-            from simtk.openmm import Platform
+            from simtk.openmm import Platform, LangevinIntegrator
             from simtk.openmm.app import Modeller, ForceField, CutoffNonPeriodic, Simulation, \
-                                         LangevinIntegrator, HBonds, StateDataReporter
+                                         HBonds, StateDataReporter
             from simtk.unit import nanometers, picosecond, kelvin, angstrom, kilojoule_per_mole, \
                                    MOLAR_GAS_CONSTANT_R
         except ImportError:
@@ -577,7 +566,49 @@ class ClustENM(object):
                 writePDB(filename, ens, csets=i)
         LOGGER.report(label='t0')
 
-    def _clustenm(self):
+    def run(self, cutoff=15., n_modes=3, n_confs=50, rmsd=1.0,
+            n_gens=5, maxclust=None, threshold=None,
+            sim=True, temp=300, t_steps_i=1000, t_steps_g=7500,
+            outlier=True, mzscore=3.5, **kwargs):
+
+        # set up parameters
+        self._cutoff = cutoff
+        self._n_modes = n_modes
+        self._n_confs = n_confs
+        self._rmsd = (0.,) + rmsd if isinstance(rmsd, tuple) else (0.,) + (rmsd,) * n_gens
+        self._n_gens = n_gens
+
+        if maxclust is None:
+            self._maxclust = None
+        else:
+            if isinstance(maxclust, tuple):
+                self._maxclust = (0,) + maxclust
+            else:
+                self._maxclust = (0,) + (maxclust,) * n_gens
+
+        if threshold is None:
+            self._threshold = None
+        else:
+            if isinstance(threshold, tuple):
+                self._threshold = (0,) + threshold
+            else:
+                self._threshold = (0,) + (threshold,) * n_gens
+
+        self._sim = sim
+        self._temp = temp
+
+        if self._sim:
+            if isinstance(t_steps_g, tuple):
+                self._t_steps = (t_steps_i,) + t_steps_g
+            else:
+                self._t_steps = (t_steps_i,) + (t_steps_g,) * n_gens
+
+        self._outlier = outlier
+        self._mzscore = mzscore
+        self._v1 = kwargs.pop('v1', False) 
+        self._platform = kwargs.pop('platform', None) 
+
+        self._cycle = 0
 
         t0 = perf_counter()
         # prody.logger.timeit doesn't give the correct overal time,
@@ -587,15 +618,6 @@ class ClustENM(object):
         LOGGER.timeit('_clustenm_overall')
 
         LOGGER.info('Generation 0 ...')
-
-        LOGGER.info('Fixing the structure ...')
-        LOGGER.timeit('_clustenm_fix')
-        self._fix()
-        LOGGER.report('The structure was fixed in %.2fs.', label='_clustenm_fix')
-
-        # self._atoms must be an AtomGroup instance because of self._fix().
-        self._idx_ca = self._atoms.ca.getIndices()
-        self._n_ca = self._atoms.ca.numAtoms()
 
         self._weights[0] = np.array([1])
 
@@ -613,14 +635,14 @@ class ClustENM(object):
         self._potentials[0] = np.array([potential])
         self._conformers[0] = conformer.reshape(1, *conformer.shape)
 
-        for i in range(self._n_gens):
+        for i in range(1, self._n_gens+1):
             self._cycle += 1
-            LOGGER.info('Generation %d ...'%(i + 1))
-            confs, weights = self._generate(i)
+            LOGGER.info('Generation %d ...'%i)
+            confs, weights = self._generate(i-1)
             if self._sim:
-                LOGGER.info('Minimization, heating-up & simulation in generation %d ...'%(i + 1))
+                LOGGER.info('Minimization, heating-up & simulation in generation %d ...'%i)
             else:
-                LOGGER.info('Minimization in generation %d ...'%(i + 1))
+                LOGGER.info('Minimization in generation %d ...'%i)
             LOGGER.timeit('_clustenm_threading')
 
             # <simtk.openmm.openmm.Platform;
