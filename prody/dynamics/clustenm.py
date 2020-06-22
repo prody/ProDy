@@ -578,14 +578,14 @@ class ClustENM(object):
         # that's why, perf_counter is being used!
         # but prody.logger.timeit is still here to see
         # how much it differs
-        LOGGER.timeit('t0')
+        LOGGER.timeit('_clustenm_overall')
 
         LOGGER.info('Generation 0 ...')
 
         LOGGER.info('Fixing the structure ...')
-        LOGGER.timeit('t1')
+        LOGGER.timeit('_clustenm_fix')
         self._fix()
-        LOGGER.report(label='t1')
+        LOGGER.report('The structure was fixed in %.2fs.', label='_clustenm_fix')
 
         # self._atoms must be an AtomGroup instance because of self._fix().
         self._idx_ca = self._atoms.ca.getIndices()
@@ -597,25 +597,25 @@ class ClustENM(object):
             LOGGER.info('Minimization, heating-up & simulation in generation 0 ...')
         else:
             LOGGER.info('Minimization in generation 0 ...')
-        LOGGER.timeit('t2')
+        LOGGER.timeit('_clustenm_min')
         potential, conformer = self._min_sim(self._atoms.getCoords())
         if np.isnan(potential):
-            LOGGER.info('Initial structure could not be minimized. Try again and/or check your structure.')
-            return None
-        LOGGER.report(label='t2')
+            raise ValueError('Initial structure could not be minimized. Try again and/or check your structure.')
+
+        LOGGER.report('Structure was energetically minizied in %.2fs.', label='_clustenm_min')
         LOGGER.info('#' + '-' * 19 + '/*\\' + '-' * 19 + '#')
         self._potentials[0] = np.array([potential])
         self._conformers[0] = conformer.reshape(1, *conformer.shape)
 
-        for i in range(1, self._n_gens + 1):
+        for i in range(self._n_gens):
             self._cycle += 1
-            LOGGER.info(f'Generation {i} ...')
-            confs, weights = self._generate(i - 1)
+            LOGGER.info('Generation %d ...'%(i + 1))
+            confs, weights = self._generate(i)
             if self._sim:
-                LOGGER.info(f'Minimization, heating-up & simulation in generation {i} ...')
+                LOGGER.info('Minimization, heating-up & simulation in generation %d ...'%(i + 1))
             else:
-                LOGGER.info(f'Minimization in generation {i} ...')
-            LOGGER.timeit('t3')
+                LOGGER.info('Minimization in generation %d ...'%(i + 1))
+            LOGGER.timeit('_clustenm_threading')
 
             # <simtk.openmm.openmm.Platform;
             # proxy of a <Swig Object of type 'OpenMM::Platform'>>
@@ -632,7 +632,7 @@ class ClustENM(object):
             else:
                 pot_conf = [self._min_sim(conf) for conf in confs]
 
-            LOGGER.report(label='t3')
+            LOGGER.report('Threading was completed in %.2fs.', label='_clustenm_threading')
             LOGGER.info('#' + '-' * 19 + '/*\\' + '-' * 19 + '#')
 
             potentials, conformers = list(zip(*pot_conf))
@@ -650,16 +650,16 @@ class ClustENM(object):
             self._potentials[i] = potentials[idx]
             self._conformers[i] = self._superpose_ca(conformers[idx])
 
-        LOGGER.timeit('t4')
+        LOGGER.timeit('_clustenm_ens')
         LOGGER.info('Creating an ensemble of conformers ...')
 
         self._build_ensemble()
-        LOGGER.report(label='t4')
+        LOGGER.report('Ensemble was created in %.2fs.', label='_clustenm_ens')
 
-        LOGGER.report('ProDy: %.2fs', 't0')
+        LOGGER.report('All completed in %.2fs.', label='_clustenm_overall')
         t1 = perf_counter()
         t10 = round(t1 - t0, 2)
-        LOGGER.info(f'All completed in {t10}s')
+        LOGGER.info(f'Diff: {t10}s')
 
     def writeParameters(self, filename=None):
 
@@ -697,4 +697,3 @@ class ClustENM(object):
             pickle.dump(self._potentials, f, pickle.HIGHEST_PROTOCOL)
         with open(f'{title}_weights.pkl', 'wb') as f:
             pickle.dump(self._weights, f, pickle.HIGHEST_PROTOCOL)
-        LOGGER.report(label='t5')
