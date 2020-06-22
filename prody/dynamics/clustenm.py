@@ -45,7 +45,8 @@ from .editing import extendModel
 from .sampling import sampleModes
 from prody.measure import calcTransformation, applyTransformation
 from prody.ensemble import Ensemble, saveEnsemble
-from prody.proteins import writePDB, parsePDB
+from prody.proteins import writePDB, parsePDB, writePDBStream, parsePDBStream
+from prody.utilities import createStringIO
 
 from simtk.openmm.app import *   # don't import all openmm modules
 from simtk.openmm import *
@@ -122,27 +123,22 @@ class ClustENM(object):
     platform: str
             The architecture on which the OpenMM part runs, default is None. It can be chosen as 'OpenCL' or 'CPU'.
             For efficiency, 'CUDA' or 'OpenCL' is recommended.
+    missing_residues : bool
+        whether fixes missing residues. Default is **True**.
     '''
 
-    def __init__(self, pdb, chain=None, cutoff=15., pH=7.0,
+    def __init__(self, atoms, cutoff=15., pH=7.0,
                  n_modes=3, n_confs=50, rmsd=1.0,
                  n_gens=5, maxclust=None, threshold=None,
                  sim=True, temp=300, t_steps_i=1000, t_steps_g=7500,
                  outlier=True, mzscore=3.5,
-                 v1=False, platform=None):
+                 v1=False, platform=None, missing_residues=True):
 
-        if pdb.endswith('.pdb'):
-            self._pdb = pdb.split('.')[0]
-            self._filename = pdb
-            self._pdbid = None
-        else:
-            self._pdb = pdb
-            self._pdbid = pdb
-            self._filename = None
-
-        self._chain = chain
+        self._atoms = atoms
+        self._title = None
         self._cutoff = cutoff
         self._ph = pH
+        self._fix_mis_res = missing_residues
         self._n_modes = n_modes
         self._n_confs = n_confs
         self._rmsd = (0.,) + rmsd if isinstance(rmsd, tuple) else (0.,) + (rmsd,) * n_gens
@@ -178,7 +174,6 @@ class ClustENM(object):
         self._v1 = v1
         self._platform = platform if platform is None else Platform.getPlatformByName(f'{platform}')
 
-        self._fixed = None
         self._topology = None
         self._positions = None
         self._idx_ca = None
@@ -191,6 +186,25 @@ class ClustENM(object):
 
         self._clustenm()
 
+    def getAtoms(self):
+        return self._atoms
+
+    def getTitle(self):
+        title = ''
+        if self._title is None:
+            atoms = self.getAtoms()
+            if atoms is not None:
+                title = atoms.getTitle()
+        else:
+            title = self._title
+
+        return title
+
+    def setTitle(self, value):
+        if not isinstance(value, str):
+            raise TypeError('title must be str')
+        self._title = value
+
     def _fix(self):
 
         try:
@@ -198,18 +212,33 @@ class ClustENM(object):
         except ImportError:
             raise ImportError('Please install PDBFixer and OpenMM in order to use ClustENM.')
 
-        fixed = PDBFixer(filename=self._filename, pdbid=self._pdbid)
-        fixed.removeHeterogens(False)
-        cl = [c.id for c in fixed.topology.chains()]
-        if self._chain is None:
-            self._chain = ''.join(cl)
-        else:
-            cr = set(cl) - set(self._chain)
-            fixed.removeChains(chainIds=cr)
+        stream = createStringIO()
+        writePDBStream(stream, self._atoms)
+        stream.seek(0)
+        fixed = PDBFixer(pdbfile=stream)
+        stream.close()
 
-        # no modeling of missing residues neither at the chain ends
-        # nor in the middle! it models unnaturally
-        # fixed.findMissingResidues()
+        if self._fix_mis_res:
+            fixed.findMissingResidues()
+        else:
+            # skipping modeling of missing residues neither at the chain ends
+            # nor in the middle, since sometimes it models unnaturally
+            fixed.missingResidues = {}
+
+        fixed.findNonstandardResidues()
+        fixed.replaceNonstandardResidues()
+        fixed.removeHeterogens(False)
+        fixed.findMissingAtoms()
+        fixed.addMissingAtoms()
+        fixed.addMissingHydrogens(self._ph)
+
+        stream = createStringIO()
+        PDBFile.writeFile(fixed.topology, fixed.positions, stream, keepIds=True)
+        stream.seek(0)
+        self._atoms = parsePDBStream(stream)
+        stream.close()
+
+        fixed.removeHeterogens(False)
 
         fixed.missingResidues = {}
         fixed.findNonstandardResidues()
@@ -220,12 +249,6 @@ class ClustENM(object):
         fixed.findMissingAtoms()
         fixed.addMissingAtoms()
         fixed.addMissingHydrogens(self._ph)
-
-        # keepIds=True to keep original residue ids
-        PDBFile.writeFile(fixed.topology,
-                          fixed.positions,
-                          open(f'{self._pdb}_fixed.pdb', 'w'),
-                          keepIds=True)
 
         self._topology = fixed.topology
         self._positions = fixed.positions
@@ -299,7 +322,7 @@ class ClustENM(object):
 
         # arg: conf idx
 
-        tmp = self._fixed.copy()
+        tmp = self._atoms.copy()
         tmp.setCoords(self._conformers[self._cycle - 1][arg])
         ca = tmp.ca
 
@@ -336,7 +359,7 @@ class ClustENM(object):
 
         # arg: conf idx
 
-        tmp = self._fixed.copy()
+        tmp = self._atoms.copy()
         tmp.setCoords(self._conformers[self._cycle - 1][arg])
         ca = tmp.ca
 
@@ -497,7 +520,7 @@ class ClustENM(object):
     @property
     def _labels(self):
 
-        return [self._pdb + '_' + str(k) + str(i).zfill(4)
+        return [self.getTitle() + '_' + str(k) + str(i).zfill(4)
                 for k, v in self._conformers.items()
                 for i in range(v.shape[0])]
 
@@ -515,24 +538,24 @@ class ClustENM(object):
 
         return np.array(tmp1)
 
-    def _ensemble(self):
+    def _build_ensemble(self, ):
 
-        self._ens = Ensemble(f'{self._pdb}_clustenm')
-        self._ens.setAtoms(self._fixed)
+        self._ens = Ensemble(f'{self.getTitle()}_clustenm')
+        self._ens.setAtoms(self._atoms)
         self._ens.setCoords(self._conformers[0][0])
         self._ens.addCoordset(self.conformers())
         self._ens.setData('labels', self._labels)
 
-    @property
-    def ensemble(self):
-
+    def getEnsemble(self):
+        if self._ens is None:
+            self._build_ensemble()
         return self._ens
 
     @property
     def ensemble_ca(self):
 
         tmp = Ensemble(f'{self._pdb}_clustenm_ca')
-        tmp.setAtoms(self._fixed.ca)
+        tmp.setAtoms(self._atoms.ca)
         tmp.setCoords(self._conformers[0][0, self._idx_ca])
         tmp.addCoordset(self.conformers()[:, self._idx_ca])
         tmp.setData('labels', self._labels)
@@ -665,8 +688,9 @@ class ClustENM(object):
 
         saveEnsemble(self._ens)
 
-        with open(f'{self._pdb}_parameters.txt', 'w') as f:
-            f.write(f'pdb = {self._pdb}\n')
+        title = self.getTitle()
+        with open(f'{title}_parameters.txt', 'w') as f:
+            f.write(f'pdb = {title}\n')
             f.write(f'chain = {self._chain}\n')
             f.write(f'pH = {self._ph}\n')
             f.write(f'cutoff = {self._cutoff}\n')
