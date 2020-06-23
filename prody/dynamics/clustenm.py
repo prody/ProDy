@@ -178,7 +178,7 @@ class ClustENM(object):
         if self._title is None:
             atoms = self.getAtoms()
             if atoms is not None:
-                title = atoms.getTitle()
+                title = atoms.getTitle() + '_clustenm'
         else:
             title = self._title
 
@@ -503,8 +503,7 @@ class ClustENM(object):
 
     @property
     def _labels(self):
-
-        return [self.getTitle() + '_' + str(k) + str(i).zfill(4)
+        return [self.getTitle() + '_%d%04d'%(k, i)
                 for k, v in self._conformers.items()
                 for i in range(v.shape[0])]
 
@@ -523,17 +522,23 @@ class ClustENM(object):
         return np.array(tmp1)
 
     def _build_ensemble(self):
-        self._ens = Ensemble('%s_clustenm'%self.getTitle())
+        self._ens = Ensemble(self.getTitle())
         self._ens.setAtoms(self._atoms)
         self._ens.setCoords(self._conformers[0][0])
         self._ens.addCoordset(self.getConformers())
         self._ens.setData('labels', self._labels)
 
-    def getEnsemble(self):
+    def getEnsemble(self, subset='all'):
         ens = None
+        subset = subset.lower()
         if self._ens is not None:
             ens = self._ens[:]
             ens.setTitle(self._ens.getTitle())
+            
+            if subset != 'all':
+                atoms = ens.getAtoms()
+                sel = atoms.select(subset)
+                ens.setAtoms(sel)
         return ens
 
     def _getEnsemble(self):
@@ -545,12 +550,13 @@ class ClustENM(object):
         # otherwise, each conformer is saved as a separate pdb file
         # in the directory pdbs_pdbname
 
+        subset = kwargs.pop('subset', 'all')
         title = self.getTitle()
-        ens = self.getEnsemble()
+        ens = self.getEnsemble(subset)
 
         LOGGER.timeit('t0')
         if single:
-            LOGGER.info('Saving %s_clustenm.pdb ...'%title)
+            LOGGER.info('Saving %s.pdb ...'%title)
             writePDB(folder + '/' + title, ens)
         else:
             direc = folder + '/' + title
