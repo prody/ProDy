@@ -11,7 +11,7 @@ from prody.proteins import parsePDB
 from prody.atomic import AtomGroup, Selection, Atomic, sliceAtomicData
 from prody.ensemble import Ensemble, Conformation
 from prody.trajectory import TrajBase
-from prody.utilities import importLA
+from prody.utilities import importLA, div0
 from numpy import sqrt, arange, log, polyfit, array
 
 from .nma import NMA
@@ -22,7 +22,7 @@ from .analysis import calcCovariance
 
 __all__ = ['calcPerturbResponse']
 
-def calcPerturbResponse(model, atoms=None, **kwargs):
+def calcPerturbResponse(model, **kwargs):
 
     """This function implements the perturbation response scanning (PRS) method
     described in [CA09]_ and [IG14]_. It returns a PRS matrix, and effectiveness 
@@ -57,7 +57,10 @@ def calcPerturbResponse(model, atoms=None, **kwargs):
     if isinstance(model, NMA) and len(model) == 0:
         raise ValueError('model must have normal modes calculated')
 
-    atoms = kwargs.get('atoms',None)
+    atoms = kwargs.get('atoms', None)
+    suppress_diag = kwargs.get('suppress_diag', False)
+    no_diag = kwargs.get('no_diag', suppress_diag)
+
     if atoms is not None:
         if isinstance(atoms, Selection):
             atoms = atoms.copy()
@@ -67,17 +70,17 @@ def calcPerturbResponse(model, atoms=None, **kwargs):
             raise ValueError('model and atoms must have the same number atoms')
 
     n_atoms = model.numAtoms()
-    LOGGER.timeit('_prody_prs_all')
-    LOGGER.info('Calculating covariance matrix')
-    LOGGER.timeit('_prody_cov')
+    # LOGGER.timeit('_prody_prs_all')
+    # LOGGER.info('Calculating covariance matrix')
+    # LOGGER.timeit('_prody_cov')
 
     cov = model.getCovariance()
 
-    LOGGER.clear()
-    LOGGER.report('Covariance matrix calculated in %.1fs.', '_prody_cov')
+    # LOGGER.clear()
+    # LOGGER.report('Covariance matrix calculated in %.1fs.', '_prody_cov')
 
-    LOGGER.info('Calculating perturbation response')
-    LOGGER.timeit('_prody_prs_mat')
+    # LOGGER.info('Calculating perturbation response')
+    # LOGGER.timeit('_prody_prs_mat')
     if not model.is3d():
         prs_matrix = cov**2
 
@@ -99,18 +102,15 @@ def calcPerturbResponse(model, atoms=None, **kwargs):
             j3p3 += 3                
             prs_matrix[:,j] = (n_by_3n_cov_squared[:,j3:j3p3]).sum(1)
 
-    LOGGER.clear()
-    LOGGER.report('Perturbation response matrix calculated in %.1fs.',
-                  '_prody_prs_mat')
-
-    suppress_diag = kwargs.get('suppress_diag', False)
-    no_diag = kwargs.get('no_diag', suppress_diag)
-    #filename = kwargs.get('filename', None)
+    # LOGGER.clear()
+    # LOGGER.report('Perturbation response matrix calculated in %.1fs.',
+    #               '_prody_prs_mat')
 
     norm_prs_matrix = np.zeros((n_atoms, n_atoms))
     self_dp = np.diag(prs_matrix)  
     self_dp = self_dp.reshape(n_atoms, 1)
-    norm_prs_matrix = prs_matrix / np.repeat(self_dp, n_atoms, axis=1)
+    re_self_dp = np.repeat(self_dp, n_atoms, axis=1)
+    norm_prs_matrix = div0(prs_matrix, re_self_dp)
 
     if no_diag:
        # suppress the diagonal (self displacement) to facilitate
@@ -121,11 +121,8 @@ def calcPerturbResponse(model, atoms=None, **kwargs):
     effectiveness = np.average(norm_prs_matrix, weights=W, axis=1)
     sensitivity = np.average(norm_prs_matrix, weights=W, axis=0)
 
-    #if filename:
-    #    np.savetxt(filename, norm_prs_matrix, delimiter='\t', fmt='%8.6f')
-
-    LOGGER.report('Perturbation response scanning completed in %.1fs.',
-                  '_prody_prs_all')
+    # LOGGER.report('Perturbation response scanning completed in %.1fs.',
+    #               '_prody_prs_all')
 
     if atoms is not None:
         try:

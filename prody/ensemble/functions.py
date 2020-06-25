@@ -9,7 +9,7 @@ import numpy as np
 from prody.proteins import fetchPDB, parsePDB, writePDB, alignChains
 from prody.utilities import openFile, showFigure, copy, isListLike, pystr
 from prody import LOGGER, SETTINGS
-from prody.atomic import AtomMap, Chain, AtomGroup, Selection, Segment, Select, AtomSubset
+from prody.atomic import Atomic, AtomMap, Chain, AtomGroup, Selection, Segment, Select, AtomSubset
 from prody.atomic.fields import DTYPE
 
 from .ensemble import *
@@ -411,18 +411,18 @@ def buildPDBEnsemble(atomics, ref=None, title='Unknown', labels=None, unmapped=N
     :type unmapped: list
 
     :arg subset: a subset for selecting particular atoms from the input structures.
-        Default is ``"calpha"``
+        Default is ``"all"``
     :type subset: str
 
     :arg superpose: if set to ``'iter'``, :func:`.PDBEnsemble.iterpose` will be used to 
         superpose the structures, otherwise conformations will be superposed with respect 
-        to the reference specified by *ref*. Default is ``'iter'``
-    :type superpose: str
+        to the reference specified by *ref* unless set to ``False``. Default is ``'iter'``
+    :type superpose: str, bool
     """
 
     occupancy = kwargs.pop('occupancy', None)
     degeneracy = kwargs.pop('degeneracy', True)
-    subset = str(kwargs.get('subset', 'calpha')).lower()
+    subset = str(kwargs.get('subset', 'all')).lower()
     superpose = kwargs.pop('superpose', 'iter')
     superpose = kwargs.pop('iterpose', superpose)
     debug = kwargs.pop('debug', {})
@@ -432,7 +432,10 @@ def buildPDBEnsemble(atomics, ref=None, title='Unknown', labels=None, unmapped=N
                                  'more details: http://prody.csb.pitt.edu/manual/release/v1.11_series.html')
     start = time.time()
 
-    if len(atomics) == 1:
+    if not isListLike(atomics):
+        raise TypeError('atomics should be list-like')
+
+    if len(atomics) == 1 and degeneracy is True:
         raise ValueError('atomics should have at least two items')
 
     if labels is not None:
@@ -457,6 +460,7 @@ def buildPDBEnsemble(atomics, ref=None, title='Unknown', labels=None, unmapped=N
         target = ref
     
     # initialize a PDBEnsemble with reference atoms and coordinates
+    isrefset = False
     if isinstance(ref, PDBEnsemble):
         ensemble = ref
     else:
@@ -464,8 +468,13 @@ def buildPDBEnsemble(atomics, ref=None, title='Unknown', labels=None, unmapped=N
         if subset != 'all':
             target = target.select(subset)
         ensemble = PDBEnsemble(title)
-        ensemble.setAtoms(target)
-        ensemble.setCoords(target.getCoords())
+        if isinstance(target, Atomic):
+            ensemble.setAtoms(target)
+            ensemble.setCoords(target.getCoords())
+            isrefset = True
+        else:
+            ensemble._n_atoms = len(target)
+            isrefset = False
     
     # build the ensemble
     if unmapped is None: unmapped = []
@@ -503,16 +512,20 @@ def buildPDBEnsemble(atomics, ref=None, title='Unknown', labels=None, unmapped=N
                 lbl += '_%s'%strchids
             ensemble.addCoordset(atommap, weights=atommap.getFlags('mapped'), 
                                 label=lbl, degeneracy=degeneracy)
+            
+            if not isrefset:
+                ensemble.setCoords(atommap.getCoords())
+                isrefset = True
 
     LOGGER.finish()
 
     if occupancy is not None:
         ensemble = trimPDBEnsemble(ensemble, occupancy=occupancy)
-
-    if superpose != 'iter':
-        ensemble.superpose()
-    else:
+    
+    if superpose == 'iter':
         ensemble.iterpose()
+    elif superpose is not False:
+        ensemble.superpose()
     
     LOGGER.info('Ensemble ({0} conformations) were built in {1:.2f}s.'
                      .format(ensemble.numConfs(), time.time()-start))

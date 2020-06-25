@@ -1,195 +1,229 @@
-__author__ = 'Burak Kaynak'
-__license__ = 'GPLv3'
-__version__ = '2.0'
-__credits__ = ['Pemra Doruker', 'She Zhang']
-__email__ = ['burak.kaynak@pitt.edu', 'doruker@pitt.edu', '?']
-__status__ = 'Development'
+"""
+Copyright (c) 2020 Burak Kaynak, Pemra Doruker.
 
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+"""
+
+__author__ = 'Burak Kaynak'
+__credits__ = ['Pemra Doruker', 'She Zhang']
+__email__ = ['burak.kaynak@pitt.edu', 'doruker@pitt.edu', 'shz66@pitt.edu']
 
 from itertools import product
 from multiprocessing import cpu_count, Pool
+from collections import OrderedDict
 from os import chdir, mkdir
 from os.path import isdir
 import pickle
 from shutil import rmtree
 from sys import stdout
-from time import perf_counter
+#from time import perf_counter
+
 import numpy as np
 from scipy.spatial.distance import pdist, squareform
 from scipy.cluster.hierarchy import fcluster, linkage
 from scipy.stats import median_absolute_deviation
-import prody as pr
-from pdbfixer import PDBFixer
-from simtk.openmm.app import *   # don't import all openmm modules
-from simtk.openmm import *
-from simtk.unit import *
 
+from prody import LOGGER
+from .anm import ANM
+from .editing import extendModel
+from .sampling import sampleModes
+from prody.atomic import AtomGroup
+from prody.measure import calcTransformation, applyTransformation
+from prody.ensemble import Ensemble, saveEnsemble
+from prody.proteins import writePDB, parsePDB, writePDBStream, parsePDBStream
+from prody.utilities import createStringIO
 
-class ClustENM():
+__all__ = ['ClustENM']
 
+class ClustENM(object):
     '''
-ClustENMv2 is the new version of ClustENM(v1) conformation sampling algorithm [KZ16].
-This ANM-based hybrid algorithm requires PDBFixer and OpenMM for performing energy minimization and MD simulations in implicit solvent.
-It is Python 3.7 compatible and has been only tested on Linux machines.
+    ClustENMv2 is the new version of ClustENM(v1) conformation sampling algorithm [KZ16]_.
+    This ANM-based hybrid algorithm requires PDBFixer and OpenMM for performing energy minimization and MD simulations in implicit solvent.
+    It is Python 3.7 compatible and has been only tested on Linux machines.
 
-[KZ16] Kurkcuoglu, Bahar and Doruker, "ClustENM: ENM-based sampling of essential conformational space at full atomic resolution", JCTC 2016.
-Maybe reference for OpenMM. John can you add this ?
+    .. [KZ16] Kurkcuoglu Z, Bahar I, Doruker P. ClustENM: ENM-based sampling of essential conformational space at full atomic resolution. 
+       *J Chem* **2016** 12(9):4549-4562.
+    
+    .. [PE17] Eastman P, Swails J, Chodera JD, McGibbon RT, Zhao Y, Beauchamp KA, Wang LP, Simmonett AC, Harrigan MP, Stern CD, Wiewiora RP, 
+       Brooks BR, Pande VS. OpenMM 7: Rapid Development of High Performance Algorithms for Molecular Dynamics. *PLoS Comput Biol* **2017** 
+       13:e1005659.
 
-Instantiate a ClustENM object.
+    Instantiate a ClustENM object.
 
-Parameters
-----------
-pdb : str
-      pdb name without .pdb to download the structure or with .pdb to read it from disk.
-      This will be used for the initial conformer.
-chain : str (optional)
-        Chain Ids. If None, all chains in the PDB file are parsed.
-        Otherwise, a set of chains is parsed, e. g. 'AC'.
-pH : float
-     the pH based on which to select protonation states, default is 7.0.
-cutoff : float
-         Cutoff distance (A) for pairwise interactions used in ANM computations, default is 15.0 A.
-n_modes : int
-          Number of non-zero eigenvalues/vectors to calculate.
-n_confs : int
-          Number of new conformations to be generated based on each conformer coming from the previous generation, default is 50.
-rmsd : float, tuple of floats
-       Average RMSD of the new conformers with respect to the original conformation, default is 1.0 A.
-       A tuple of floats can be given, e.g. (1.0, 1.5, 1.5) for subsequent generations.
-       Note: In the case of ClustENMv1, this value is the maximum rmsd, not the average.
-n_gens : int
-         Number of generations.
-maxclust : int or a tuple of int's.
-           The maximum number of clusters for each generation. Default in None.
-           A tuple of int's can be given, e.g. (10, 30 ,50) for subsequent generations.
-           Warning: Either threshold or maxclust should be given! For large number of generations and/or structures,
-           specifying maxclust is more efficient.
-threshold : float or tuple of floats.
-            If it is true, a short MD simulation will be performed after energy minimization. Default is True.
-            Note: There is a heating-up phase until the desired temperature is reached before MD simulation starts.
-sim : bool
-      If it is true, a short MD simulation will be performed after energy minimization. Default is True.
-      Note: There is a heating-up phase until the desired temperature is reached before MD simulation starts.
-temp : float.
-       Temperature at which the simulations are conducted. Default is 300.0 K.
-t_steps_i : int
-            Duration of MD simulation (number of time steps) for the initial conformer, default is 1000.
-            Note: Each time step is 2.0 fs.
-t_steps_g : int or tuple of int's
-            Duration of MD simulations (number of time steps) to run for each conformer, default is 7500.
-            A tuple of int's for subsequent generations, e.g. (3000, 5000, 7000).
-            Note: Each time step is 2.0 fs.
-outlier : bool
-          Exclusion of conformers detected as outliers in each generation,
-          based on their potential energy using their modified z-scores over the potentials in that generation,         
-          default is True.
-mzscore : float
-          Modified z-score threshold to label conformers as outliers. Default is 3.5.
-v1 : bool
-     The sampling method used in the original article is utilized, a complete enumeration of desired ANM Modes.
-     Note: Maximum number of modes should not exceed 5 for efficiency.
-platform: str
-          The architecture on which the OpenMM part runs, default is None. It can be chosen as 'OpenCL' or 'CPU'.
-          For efficiency, 'CUDA' or 'OpenCL' is recommended.
+    Parameters
+    ----------
+    pdb : str
+        pdb name without .pdb to download the structure or with .pdb to read it from disk.
+        This will be used for the initial conformer.
+    chain : str (optional)
+            Chain Ids. If None, all chains in the PDB file are parsed.
+            Otherwise, a set of chains is parsed, e. g. 'AC'.
+    pH : float
+        the pH based on which to select protonation states, default is 7.0.
+    cutoff : float
+            Cutoff distance (A) for pairwise interactions used in ANM computations, default is 15.0 A.
+    n_modes : int
+            Number of non-zero eigenvalues/vectors to calculate.
+    n_confs : int
+            Number of new conformations to be generated based on each conformer coming from the previous generation, default is 50.
+    rmsd : float, tuple of floats
+        Average RMSD of the new conformers with respect to the original conformation, default is 1.0 A.
+        A tuple of floats can be given, e.g. (1.0, 1.5, 1.5) for subsequent generations.
+        Note: In the case of ClustENMv1, this value is the maximum rmsd, not the average.
+    n_gens : int
+            Number of generations.
+    maxclust : int or a tuple of int's.
+            The maximum number of clusters for each generation. Default in None.
+            A tuple of int's can be given, e.g. (10, 30 ,50) for subsequent generations.
+            Warning: Either threshold or maxclust should be given! For large number of generations and/or structures,
+            specifying maxclust is more efficient.
+    threshold : float or tuple of floats.
+                If it is true, a short MD simulation will be performed after energy minimization. Default is True.
+                Note: There is a heating-up phase until the desired temperature is reached before MD simulation starts.
+    sim : bool
+        If it is true, a short MD simulation will be performed after energy minimization. Default is True.
+        Note: There is a heating-up phase until the desired temperature is reached before MD simulation starts.
+    temp : float.
+        Temperature at which the simulations are conducted. Default is 300.0 K.
+    t_steps_i : int
+                Duration of MD simulation (number of time steps) for the initial conformer, default is 1000.
+                Note: Each time step is 2.0 fs.
+    t_steps_g : int or tuple of int's
+                Duration of MD simulations (number of time steps) to run for each conformer, default is 7500.
+                A tuple of int's for subsequent generations, e.g. (3000, 5000, 7000).
+                Note: Each time step is 2.0 fs.
+    outlier : bool
+            Exclusion of conformers detected as outliers in each generation,
+            based on their potential energy using their modified z-scores over the potentials in that generation,         
+            default is True.
+    mzscore : float
+            Modified z-score threshold to label conformers as outliers. Default is 3.5.
+    v1 : bool
+        The sampling method used in the original article is utilized, a complete enumeration of desired ANM Modes.
+        Note: Maximum number of modes should not exceed 5 for efficiency.
+    platform: str
+            The architecture on which the OpenMM part runs, default is None. It can be chosen as 'OpenCL' or 'CPU'.
+            For efficiency, 'CUDA' or 'OpenCL' is recommended.
+    missing_residues : bool
+        whether fixes missing residues. Default is **True**.
     '''
 
-    def __init__(self, pdb, chain=None, cutoff=15., pH=7.0,
-                 n_modes=3, n_confs=50, rmsd=1.0,
-                 n_gens=5, maxclust=None, threshold=None,
-                 sim=True, temp=300, t_steps_i=1000, t_steps_g=7500,
-                 outlier=True, mzscore=3.5,
-                 v1=False, platform=None):
+    def __init__(self, title=None):
+        
+        self._title = title
+        self._atoms = None
+        
+        self._ph = 7.0
 
-        if pdb.endswith('.pdb'):
-            self._pdb = pdb.split('.')[0]
-            self._filename = pdb
-            self._pdbid = None
-        else:
-            self._pdb = pdb
-            self._pdbid = pdb
-            self._filename = None
+        self._cutoff = 15.
+        self._n_modes = 3
+        self._n_confs = 50
+        self._rmsd = (0.,) 
+        self._n_gens = 5
 
-        self._chain = chain
-        self._cutoff = cutoff
-        self._ph = pH
-        self._n_modes = n_modes
-        self._n_confs = n_confs
-        self._rmsd = (0.,) + rmsd if isinstance(rmsd, tuple) else (0.,) + (rmsd,) * n_gens
-        self._n_gens = n_gens
+        self._maxclust = None
+        self._threshold = None
 
-        if maxclust is None:
-            self._maxclust = None
-        else:
-            if isinstance(maxclust, tuple):
-                self._maxclust = (0,) + maxclust
-            else:
-                self._maxclust = (0,) + (maxclust,) * n_gens
+        self._sim = True
+        self._temp = 300
+        self._t_steps = None
 
-        if threshold is None:
-            self._threshold = None
-        else:
-            if isinstance(threshold, tuple):
-                self._threshold = (0,) + threshold
-            else:
-                self._threshold = (0,) + (threshold,) * n_gens
+        self._outlier = True
+        self._mzscore = 3.5
+        self._v1 = False
+        self._platform = None 
 
-        self._sim = sim
-        self._temp = temp
-
-        if self._sim:
-            if isinstance(t_steps_g, tuple):
-                self._t_steps = (t_steps_i,) + t_steps_g
-            else:
-                self._t_steps = (t_steps_i,) + (t_steps_g,) * n_gens
-
-        self._outlier = outlier
-        self._mzscore = mzscore
-        self._v1 = v1
-        self._platform = platform if platform is None else Platform.getPlatformByName(f'{platform}')
-
-        self._fixed = None
         self._topology = None
         self._positions = None
         self._idx_ca = None
         self._n_ca = None
         self._cycle = 0
-        self._weights = {}   # possibly deprecated
-        self._potentials = {}
-        self._conformers = {}
+        self._weights = OrderedDict()   # possibly deprecated
+        self._potentials = OrderedDict()
+        self._conformers = OrderedDict()
         self._ens = None
 
-        self._clustenm()
+    def getAtoms(self):
+        return self._atoms
 
-    def _fix(self):
+    def setAtoms(self, atoms, pH=7.0, fix_missing_residues=True):
+        LOGGER.info('Fixing the structure ...')
+        LOGGER.timeit('_clustenm_fix')
+        self._ph = pH
+        self._fix(atoms, fix_missing_residues)
+        LOGGER.report('The structure was fixed in %.2fs.', label='_clustenm_fix')
 
-        fixed = PDBFixer(filename=self._filename, pdbid=self._pdbid)
-        fixed.removeHeterogens(False)
-        cl = [c.id for c in fixed.topology.chains()]
-        if self._chain is None:
-            self._chain = ''.join(cl)
+        # self._atoms must be an AtomGroup instance because of self._fix().
+        self._idx_ca = self._atoms.ca.getIndices()
+        self._n_ca = self._atoms.ca.numAtoms()
+
+    def getTitle(self):
+        title = 'Unknown'
+        if self._title is None:
+            atoms = self.getAtoms()
+            if atoms is not None:
+                title = atoms.getTitle() + '_clustenm'
         else:
-            cr = set(cl) - set(self._chain)
-            fixed.removeChains(chainIds=cr)
+            title = self._title
 
-        # no modeling of missing residues neither at the chain ends
-        # nor in the middle! it models unnaturally
-        # fixed.findMissingResidues()
+        return title
 
-        fixed.missingResidues = {}
+    def setTitle(self, value):
+        if not isinstance(value, str):
+            raise TypeError('title must be str')
+        self._title = value
+
+    def _fix(self, atoms, fix_missing_residues=True):
+
+        try:
+            from pdbfixer import PDBFixer
+            from simtk.openmm.app import PDBFile
+        except ImportError:
+            raise ImportError('Please install PDBFixer and OpenMM in order to use ClustENM.')
+
+        stream = createStringIO()
+        title = atoms.getTitle()
+        writePDBStream(stream, atoms)
+        stream.seek(0)
+        fixed = PDBFixer(pdbfile=stream)
+        stream.close()
+
+        if fix_missing_residues:
+            fixed.findMissingResidues()
+        else:
+            # skipping modeling of missing residues neither at the chain ends
+            # nor in the middle, since sometimes it models unnaturally
+            fixed.missingResidues = {}
+
         fixed.findNonstandardResidues()
-        if fixed.nonstandardResidues:
-            pr.LOGGER.info(f'Replacing nonstandard residues: {fixed.nonstandardResidues}')
         fixed.replaceNonstandardResidues()
-
+        fixed.removeHeterogens(False)
         fixed.findMissingAtoms()
         fixed.addMissingAtoms()
         fixed.addMissingHydrogens(self._ph)
 
-        # keepIds=True to keep original residue ids
-        PDBFile.writeFile(fixed.topology,
-                          fixed.positions,
-                          open(f'{self._pdb}_fixed.pdb', 'w'),
-                          keepIds=True)
+        stream = createStringIO()
+        PDBFile.writeFile(fixed.topology, fixed.positions, stream, keepIds=True)
+        stream.seek(0)
+        self._atoms = parsePDBStream(stream)
+        self._atoms.setTitle(title)
+        stream.close()
 
         self._topology = fixed.topology
         self._positions = fixed.positions
@@ -200,6 +234,16 @@ platform: str
 
         # we are not using self._positions!
         # arg will be set as positions
+
+        try:
+            from simtk.openmm import Platform, LangevinIntegrator
+            from simtk.openmm.app import Modeller, ForceField, CutoffNonPeriodic, Simulation, \
+                                         HBonds, StateDataReporter
+            from simtk.unit import nanometers, picosecond, kelvin, angstrom, kilojoule_per_mole, \
+                                   MOLAR_GAS_CONSTANT_R
+        except ImportError:
+            raise ImportError('Please install PDBFixer and OpenMM in order to use ClustENM.')
+
         modeller = Modeller(self._topology,
                             self._positions)
         forcefield = ForceField('amber99sbildn.xml',
@@ -215,15 +259,16 @@ platform: str
                                         0.002*picosecond)
 
         # precision could be mixed, but single is okay.
+        platform = self._platform if self._platform is None else Platform.getPlatformByName(self._platform)
+        properties = None
+
         if self._platform is None:
-            simulation = Simulation(modeller.topology, system, integrator,
-                                    platformProperties={'Precision': 'single'})
-        elif self._platform.getName() == 'CUDA' or self._platform.getName() == 'OpenCL':
-            simulation = Simulation(modeller.topology, system, integrator,
-                                    self._platform, platformProperties={'Precision': 'single'})
-        elif self._platform.getName() == 'CPU':
-            simulation = Simulation(modeller.topology, system, integrator,
-                                    self._platform)
+            properties = {'Precision': 'single'}
+        elif self._platform in ['CUDA', 'OpenCL']:
+            properties = {'Precision': 'single'}
+            
+        simulation = Simulation(modeller.topology, system, integrator,
+                                platform, properties)
 
         # automatic conversion into nanometer will be carried out.
 
@@ -255,7 +300,7 @@ platform: str
             return pot, pos
 
         except BaseException as be:
-            pr.LOGGER.warning('OpenMM exception: ' + be.__str__() + ' so the corresponding conformer will be discarded!')
+            LOGGER.warning('OpenMM exception: ' + be.__str__() + ' so the corresponding conformer will be discarded!')
 
             return np.nan, np.full_like(arg, np.nan)
 
@@ -263,11 +308,11 @@ platform: str
 
         # arg: conf idx
 
-        tmp = self._fixed.copy()
+        tmp = self._atoms.copy()
         tmp.setCoords(self._conformers[self._cycle - 1][arg])
         ca = tmp.ca
 
-        anm_ca = pr.ANM()
+        anm_ca = ANM()
         anm_ca.buildHessian(ca, cutoff=self._cutoff)
 
         # 1e-6 is the same value of prody's ZERO parameter
@@ -281,7 +326,7 @@ platform: str
 
         anm_ca.calcModes(self._n_modes)
 
-        anm_ex, _ = pr.extendModel(anm_ca, ca, tmp, norm=True)
+        anm_ex, _ = extendModel(anm_ca, ca, tmp, norm=True)
         a = np.array(list(product([-1, 0, 1], repeat=self._n_modes)))
 
         nv = (anm_ex.getEigvecs() / np.sqrt(anm_ex.getEigvals())) @ a.T
@@ -300,11 +345,11 @@ platform: str
 
         # arg: conf idx
 
-        tmp = self._fixed.copy()
+        tmp = self._atoms.copy()
         tmp.setCoords(self._conformers[self._cycle - 1][arg])
         ca = tmp.ca
 
-        anm_ca = pr.ANM()
+        anm_ca = ANM()
         anm_ca.buildHessian(ca, cutoff=self._cutoff)
 
         # 1e-6 is the same value of prody's ZERO parameter
@@ -318,8 +363,8 @@ platform: str
 
         anm_ca.calcModes(self._n_modes)
 
-        anm_ex, _ = pr.extendModel(anm_ca, ca, tmp, norm=True)
-        ens_ex = pr.sampleModes(anm_ex, atoms=tmp,
+        anm_ex, _ = extendModel(anm_ca, ca, tmp, norm=True)
+        ens_ex = sampleModes(anm_ex, atoms=tmp,
                                 n_confs=self._n_confs,
                                 rmsd=self._rmsd[self._cycle])
 
@@ -389,8 +434,8 @@ platform: str
 
         # arg: previous generation no
 
-        pr.LOGGER.info(f'Sampling conformers in generation {self._cycle} ...')
-        pr.LOGGER.timeit('t0')
+        LOGGER.info('Sampling conformers in generation %d ...'%self._cycle)
+        LOGGER.timeit('_clustenm_gen')
         tmp = []
         for conf in range(self._conformers[arg].shape[0]):
             if not self._v1:
@@ -399,24 +444,22 @@ platform: str
                     tmp.append(ret)
                 else:
                     # we may raise an exception in debug mode
-                    pr.LOGGER.info('more than 6 zero eigenvalues!')
+                    LOGGER.info('more than 6 zero eigenvalues!')
             else:
                 ret = self._sample_v1(conf)
                 if ret is not None:
                     tmp.append(ret)
                 else:
-                    pr.LOGGER.info('more than 6 zero eigenvalues!')
+                    LOGGER.info('more than 6 zero eigenvalues!')
 
         confs_ex = np.concatenate(tmp)
-        pr.LOGGER.report(label='t0')
 
         confs_ca = confs_ex[:, self._idx_ca]
 
-        pr.LOGGER.info(f'Clustering in generation {self._cycle} ...')
-        pr.LOGGER.timeit('t1')
+        LOGGER.info('Clustering in generation %d ...'%self._cycle)
         label_ca = self._hc(confs_ca)
-        pr.LOGGER.report(label='t1')
         centers, wei = self._centers(confs_ca, label_ca)
+        LOGGER.report('Conformers were generated in %.2fs.', label='_clustenm_gen')
 
         return confs_ex[centers], wei
 
@@ -430,38 +473,37 @@ platform: str
 
         return tmp > 3.5
 
-    def conformers(self, arg=None):
+    def getConformers(self, index=None):
 
-        # arg: None -> whole as a numpy array, or int for the generation no
+        # index: None -> whole as a numpy array, or int for the generation no
         # Dictionary order is guaranteed to be insertion order by Python 3.7!
 
-        if arg is None:
+        if index is None:
             return np.concatenate([v for v in self._conformers.values()])
         else:
-            return self._conformers[arg]
+            return self._conformers[index]
 
-    def potentials(self, arg=None):
+    def getPotentials(self, index=None):
 
-        # arg: None -> whole as a numpy array, or int for the generation no
+        # index: None -> whole as a numpy array, or int for the generation no
 
-        if arg is None:
+        if index is None:
             return np.concatenate([v for v in self._potentials.values()])
         else:
-            return self._potentials[arg]
+            return self._potentials[index]
 
-    def weights(self, arg=None):
+    def getWeights(self, index=None):
 
-        # arg: None -> whole as a numpy array, or int for the generation no
+        # index: None -> whole as a numpy array, or int for the generation no
 
-        if arg is None:
+        if index is None:
             return np.concatenate([v for v in self._weights.values()])
         else:
-            return self._weights[arg]
+            return self._weights[index]
 
     @property
     def _labels(self):
-
-        return [self._pdb + '_' + str(k) + str(i).zfill(4)
+        return [self.getTitle() + '_%d%04d'%(k, i)
                 for k, v in self._conformers.items()
                 for i in range(v.shape[0])]
 
@@ -473,109 +515,140 @@ platform: str
         n = arg.shape[0]
         tmp1 = []
         for i in range(n):
-            tmp2 = pr.calcTransformation(arg[i, self._idx_ca],
+            tmp2 = calcTransformation(arg[i, self._idx_ca],
                                          tmp0[self._idx_ca])
-            tmp1.append(pr.applyTransformation(tmp2, arg[i]))
+            tmp1.append(applyTransformation(tmp2, arg[i]))
 
         return np.array(tmp1)
 
-    def _ensemble(self):
-
-        self._ens = pr.Ensemble(f'{self._pdb}_clustenm')
-        self._ens.setAtoms(self._fixed)
+    def _build_ensemble(self):
+        self._ens = Ensemble(self.getTitle())
+        self._ens.setAtoms(self._atoms)
         self._ens.setCoords(self._conformers[0][0])
-        self._ens.addCoordset(self.conformers())
+        self._ens.addCoordset(self.getConformers())
         self._ens.setData('labels', self._labels)
 
-    @property
-    def ensemble(self):
+    def getEnsemble(self, subset='all'):
+        ens = None
+        subset = subset.lower()
+        if self._ens is not None:
+            ens = self._ens[:]
+            ens.setTitle(self._ens.getTitle())
+            
+            if subset != 'all':
+                atoms = ens.getAtoms()
+                sel = atoms.select(subset)
+                ens.setAtoms(sel)
+        return ens
 
+    def _getEnsemble(self):
         return self._ens
 
-    @property
-    def ensemble_ca(self):
-
-        tmp = pr.Ensemble(f'{self._pdb}_clustenm_ca')
-        tmp.setAtoms(self._fixed.ca)
-        tmp.setCoords(self._conformers[0][0, self._idx_ca])
-        tmp.addCoordset(self.conformers()[:, self._idx_ca])
-        tmp.setData('labels', self._labels)
-
-        return tmp
-
-    def save_as_pdb(self, single=True):
+    def writePDB(self, folder='.', single=True, **kwargs):
 
         # single -> True, save as a single pdb file with each conformer as a model
         # otherwise, each conformer is saved as a separate pdb file
         # in the directory pdbs_pdbname
 
-        pr.LOGGER.timeit('t0')
-        if single:
-            pr.LOGGER.info(f'Saving {self._pdb}_clustenm.pdb ...')
-            pr.writePDB(f'{self._pdb}_clustenm', self._ens)
-        else:
+        subset = kwargs.pop('subset', 'all')
+        title = self.getTitle()
+        ens = self.getEnsemble(subset)
 
-            direc = f'{self._pdb}_pdbs'
+        LOGGER.timeit('t0')
+        if single:
+            LOGGER.info('Saving %s.pdb ...'%title)
+            writePDB(folder + '/' + title, ens)
+        else:
+            direc = folder + '/' + title
             if isdir(direc):
-                rmtree(direc)
-                mkdir(direc)
-                chdir(direc)
+                LOGGER.warn('%s is not empty; will be flooded'%direc)
             else:
                 mkdir(direc)
-                chdir(direc)
 
-            pr.LOGGER.info(f'Saving in {direc} ...')
+            LOGGER.info('Saving in %s ...'%direc)
             for i, lab in enumerate(self._labels):
-                pr.writePDB(lab, self._ens, csets=i)
-            chdir('..')
-        pr.LOGGER.report(label='t0')
+                filename = '%s/%s'%(direc, lab)
+                writePDB(filename, ens, csets=i)
+        LOGGER.report(label='t0')
 
-    def _clustenm(self):
+    def run(self, cutoff=15., n_modes=3, n_confs=50, rmsd=1.0,
+            n_gens=5, maxclust=None, threshold=None,
+            sim=True, temp=300, t_steps_i=1000, t_steps_g=7500,
+            outlier=True, mzscore=3.5, **kwargs):
 
-        t0 = perf_counter()
+        # set up parameters
+        self._cutoff = cutoff
+        self._n_modes = n_modes
+        self._n_confs = n_confs
+        self._rmsd = (0.,) + rmsd if isinstance(rmsd, tuple) else (0.,) + (rmsd,) * n_gens
+        self._n_gens = n_gens
+
+        if maxclust is None:
+            self._maxclust = None
+        else:
+            if isinstance(maxclust, tuple):
+                self._maxclust = (0,) + maxclust
+            else:
+                self._maxclust = (0,) + (maxclust,) * n_gens
+
+        if threshold is None:
+            self._threshold = None
+        else:
+            if isinstance(threshold, tuple):
+                self._threshold = (0,) + threshold
+            else:
+                self._threshold = (0,) + (threshold,) * n_gens
+
+        self._sim = sim
+        self._temp = temp
+
+        if self._sim:
+            if isinstance(t_steps_g, tuple):
+                self._t_steps = (t_steps_i,) + t_steps_g
+            else:
+                self._t_steps = (t_steps_i,) + (t_steps_g,) * n_gens
+
+        self._outlier = outlier
+        self._mzscore = mzscore
+        self._v1 = kwargs.pop('v1', False) 
+        self._platform = kwargs.pop('platform', None) 
+
+        self._cycle = 0
+
+        # t0 = perf_counter()
         # prody.logger.timeit doesn't give the correct overal time,
         # that's why, perf_counter is being used!
         # but prody.logger.timeit is still here to see
         # how much it differs
-        pr.LOGGER.timeit('t0')
+        LOGGER.timeit('_clustenm_overall')
 
-        pr.LOGGER.info('Generation 0 ...')
-
-        pr.LOGGER.info('Fixing pdb ...')
-        pr.LOGGER.timeit('t1')
-        self._fix()
-        pr.LOGGER.report(label='t1')
-
-        self._fixed = pr.parsePDB(f'{self._pdb}_fixed.pdb')
-
-        self._idx_ca = self._fixed.getNames() == 'CA'
-        self._n_ca = self._fixed.ca.numAtoms()
+        LOGGER.info('Generation 0 ...')
 
         self._weights[0] = np.array([1])
 
         if self._sim:
-            pr.LOGGER.info('Minimization, heating-up & simulation in generation 0 ...')
+            LOGGER.info('Minimization, heating-up & simulation in generation 0 ...')
         else:
-            pr.LOGGER.info('Minimization in generation 0 ...')
-        pr.LOGGER.timeit('t2')
-        potential, conformer = self._min_sim(self._fixed.getCoords())
+            LOGGER.info('Minimization in generation 0 ...')
+        LOGGER.timeit('_clustenm_min')
+        potential, conformer = self._min_sim(self._atoms.getCoords())
         if np.isnan(potential):
-            pr.LOGGER.info('Initial structure could not be minimized. Try again and/or check your structure.')
-            return None
-        pr.LOGGER.report(label='t2')
-        pr.LOGGER.info('#' + '-' * 19 + '/*\\' + '-' * 19 + '#')
+            raise ValueError('Initial structure could not be minimized. Try again and/or check your structure.')
+
+        LOGGER.report('Structure was energetically minizied in %.2fs.', label='_clustenm_min')
+        LOGGER.info('#' + '-' * 19 + '/*\\' + '-' * 19 + '#')
         self._potentials[0] = np.array([potential])
         self._conformers[0] = conformer.reshape(1, *conformer.shape)
 
-        for i in range(1, self._n_gens + 1):
+        for i in range(1, self._n_gens+1):
             self._cycle += 1
-            pr.LOGGER.info(f'Generation {i} ...')
-            confs, weights = self._generate(i - 1)
+            LOGGER.info('Generation %d ...'%i)
+            confs, weights = self._generate(i-1)
             if self._sim:
-                pr.LOGGER.info(f'Minimization, heating-up & simulation in generation {i} ...')
+                LOGGER.info('Minimization, heating-up & simulation in generation %d ...'%i)
             else:
-                pr.LOGGER.info(f'Minimization in generation {i} ...')
-            pr.LOGGER.timeit('t3')
+                LOGGER.info('Minimization in generation %d ...'%i)
+            LOGGER.timeit('_clustenm_threading')
 
             # <simtk.openmm.openmm.Platform;
             # proxy of a <Swig Object of type 'OpenMM::Platform'>>
@@ -592,8 +665,8 @@ platform: str
             else:
                 pot_conf = [self._min_sim(conf) for conf in confs]
 
-            pr.LOGGER.report(label='t3')
-            pr.LOGGER.info('#' + '-' * 19 + '/*\\' + '-' * 19 + '#')
+            LOGGER.report('Threading was completed in %.2fs.', label='_clustenm_threading')
+            LOGGER.info('#' + '-' * 19 + '/*\\' + '-' * 19 + '#')
 
             potentials, conformers = list(zip(*pot_conf))
             idx = np.logical_not(np.isnan(potentials))
@@ -610,28 +683,25 @@ platform: str
             self._potentials[i] = potentials[idx]
             self._conformers[i] = self._superpose_ca(conformers[idx])
 
-        pr.LOGGER.timeit('t4')
-        pr.LOGGER.info('Creating an ensemble of conformers ...')
+        LOGGER.timeit('_clustenm_ens')
+        LOGGER.info('Creating an ensemble of conformers ...')
 
-        self._ensemble()
-        pr.LOGGER.report(label='t4')
+        self._build_ensemble()
+        LOGGER.report('Ensemble was created in %.2fs.', label='_clustenm_ens')
 
-        pr.LOGGER.report('ProDy: %.2fs', 't0')
-        t1 = perf_counter()
-        t10 = round(t1 - t0, 2)
-        pr.LOGGER.info(f'All completed in {t10}s')
+        LOGGER.report('All completed in %.2fs.', label='_clustenm_overall')
+        # t1 = perf_counter()
+        # t10 = round(t1 - t0, 2)
+        # LOGGER.info('All completed in %.2fs.'%t10)
 
-        pr.LOGGER.info(f'Saving to disc:\n   {self._pdb}_clustenm.ens.npz'
-                       f'\n   {self._pdb}_potentials.pkl'
-                       f'\n   {self._pdb}_weights.pkl')
+    def writeParameters(self, filename=None):
 
-        pr.LOGGER.timeit('t5')
+        title = self.getTitle()
+        if filename is None:
+            filename = '%s_parameters.txt'%title
 
-        pr.saveEnsemble(self._ens)
-
-        with open(f'{self._pdb}_parameters.txt', 'w') as f:
-            f.write(f'pdb = {self._pdb}\n')
-            f.write(f'chain = {self._chain}\n')
+        with open(filename, 'w') as f:
+            f.write(f'title = {title}\n')
             f.write(f'pH = {self._ph}\n')
             f.write(f'cutoff = {self._cutoff}\n')
             f.write(f'n_modes = {self._n_modes}\n')
@@ -652,10 +722,11 @@ platform: str
             if self._v1:
                 f.write(f'v1 = {self._v1}\n')
             if self._platform is not None:
-                f.write(f'platform = {self._platform.getName()}\n')
-            f.write(f'Completed in {t10}s\n')
-        with open(f'{self._pdb}_potentials.pkl', 'wb') as f:
+                f.write(f'platform = %s\n'%self._platform)
+            else:
+                f.write(f'platform = Default\n')
+
+        with open(f'{title}_potentials.pkl', 'wb') as f:
             pickle.dump(self._potentials, f, pickle.HIGHEST_PROTOCOL)
-        with open(f'{self._pdb}_weights.pkl', 'wb') as f:
+        with open(f'{title}_weights.pkl', 'wb') as f:
             pickle.dump(self._weights, f, pickle.HIGHEST_PROTOCOL)
-        pr.LOGGER.report(label='t5')

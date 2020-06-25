@@ -105,6 +105,9 @@ def parsePDB(*pdb, **kwargs):
     extend_biomol = kwargs.pop('extend_biomol', False)
 
     n_pdb = len(pdb)
+    if n_pdb == 0:
+        raise ValueError('Please provide a PDB ID or filename')
+
     if n_pdb == 1:
         if isListLike(pdb[0]):
             pdb = pdb[0]
