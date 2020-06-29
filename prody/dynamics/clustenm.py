@@ -320,6 +320,7 @@ class ClustENM(object):
                      - np.linalg.matrix_rank(anm_ca.getHessian(),
                                              tol=1e-6, hermitian=True))
         if rank_diff != 0:
+            LOGGER.warn('Abnormal number of zeros modes detected (%d detected, 6 expected).'%3 * self._n_ca)
             # taking care cases with more than 6 zeros
             # maybe an exception can be raised in debug mode
             return None
@@ -459,7 +460,7 @@ class ClustENM(object):
         LOGGER.info('Clustering in generation %d ...'%self._cycle)
         label_ca = self._hc(confs_ca)
         centers, wei = self._centers(confs_ca, label_ca)
-        LOGGER.report('Conformers were generated in %.2fs.', label='_clustenm_gen')
+        LOGGER.report('Centroids were generated in %.2fs.', label='_clustenm_gen')
 
         return confs_ex[centers], wei
 
