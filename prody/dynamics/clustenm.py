@@ -533,7 +533,7 @@ class ClustENM(object):
         subset = subset.lower()
         if self._ens is not None:
             ens = self._ens[:]
-            ens.setTitle(self._ens.getTitle())
+            ens.setTitle('%s_%s'%(self._ens.getTitle(), subset))
             
             if subset != 'all':
                 atoms = ens.getAtoms()
@@ -648,7 +648,7 @@ class ClustENM(object):
                 LOGGER.info('Minimization, heating-up & simulation in generation %d ...'%i)
             else:
                 LOGGER.info('Minimization in generation %d ...'%i)
-            LOGGER.timeit('_clustenm_threading')
+            LOGGER.timeit('_clustenm_min_sim')
 
             # <simtk.openmm.openmm.Platform;
             # proxy of a <Swig Object of type 'OpenMM::Platform'>>
@@ -665,7 +665,7 @@ class ClustENM(object):
             else:
                 pot_conf = [self._min_sim(conf) for conf in confs]
 
-            LOGGER.report('Threading was completed in %.2fs.', label='_clustenm_threading')
+            LOGGER.report('Structures were sampled in %.2fs.', label='_clustenm_min_sim')
             LOGGER.info('#' + '-' * 19 + '/*\\' + '-' * 19 + '#')
 
             potentials, conformers = list(zip(*pot_conf))
