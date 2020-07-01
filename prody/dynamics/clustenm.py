@@ -46,7 +46,7 @@ from .editing import extendModel
 from .sampling import sampleModes
 from prody.atomic import AtomGroup
 from prody.measure import calcTransformation, applyTransformation
-from prody.ensemble import Ensemble, saveEnsemble
+from prody.ensemble import PDBEnsemble, saveEnsemble
 from prody.proteins import writePDB, parsePDB, writePDBStream, parsePDBStream
 from prody.utilities import createStringIO
 
@@ -534,11 +534,11 @@ class ClustENM(object):
         return np.array(tmp1)
 
     def _build_ensemble(self):
-        self._ens = Ensemble(self.getTitle())
+        self._ens = PDBEnsemble(self.getTitle())
         self._ens.setAtoms(self._atoms)
         self._ens.setCoords(self._conformers[0][0])
         self._ens.addCoordset(self.getConformers())
-        self._ens.setData('labels', self._labels)
+        self._ens.setLabels(self._labels)
 
     def getEnsemble(self, subset='all'):
         ens = None
