@@ -41,6 +41,7 @@ from scipy.stats import median_absolute_deviation
 
 from prody import LOGGER
 from .anm import ANM
+from .gnm import GNM, ZERO
 from .editing import extendModel
 from .sampling import sampleModes
 from prody.atomic import AtomGroup
@@ -172,6 +173,15 @@ class ClustENM(object):
         # self._atoms must be an AtomGroup instance because of self._fix().
         self._idx_ca = self._atoms.ca.getIndices()
         self._n_ca = self._atoms.ca.numAtoms()
+
+        # check for discontinuity in the structure
+        gnm = GNM()
+        gnm.buildKirchhoff(self._atoms.ca)
+        K = gnm.getKirchhoff()
+        rank_diff = (len(K) - 1
+                     - np.linalg.matrix_rank(K, tol=ZERO, hermitian=True))
+        if rank_diff != 0:
+            raise ValueError('atoms has disconnected parts; please check the structure')
 
     def getTitle(self):
         title = 'Unknown'
@@ -318,11 +328,11 @@ class ClustENM(object):
         # 1e-6 is the same value of prody's ZERO parameter
         rank_diff = (3 * self._n_ca - 6
                      - np.linalg.matrix_rank(anm_ca.getHessian(),
-                                             tol=1e-6, hermitian=True))
+                                             tol=ZERO, hermitian=True))
         if rank_diff != 0:
-            LOGGER.warn('Abnormal number of zeros modes detected (%d detected, 6 expected).'%3 * self._n_ca)
             # taking care cases with more than 6 zeros
             # maybe an exception can be raised in debug mode
+            LOGGER.warn('Abnormal number of zeros modes detected (%d detected, 6 expected).'%(6 + rank_diff))
             return None
 
         anm_ca.calcModes(self._n_modes)
@@ -353,13 +363,14 @@ class ClustENM(object):
         anm_ca = ANM()
         anm_ca.buildHessian(ca, cutoff=self._cutoff)
 
-        # 1e-6 is the same value of prody's ZERO parameter
+        # use prody's ZERO parameter
         rank_diff = (3 * self._n_ca - 6
                      - np.linalg.matrix_rank(anm_ca.getHessian(),
-                                             tol=1e-6, hermitian=True))
+                                             tol=ZERO, hermitian=True))
         if rank_diff != 0:
             # taking care cases with more than 6 zeros
             # maybe an exception can be raised in debug mode
+            LOGGER.warn('Abnormal number of zeros modes detected (%d detected, 6 expected).'%(6 + rank_diff))
             return None
 
         anm_ca.calcModes(self._n_modes)
