@@ -273,6 +273,21 @@ class Ensemble(object):
             self._atoms = atoms
             self._indices = None
 
+    def select(self, selection):
+        """Selects columns corresponding to a part of the atoms."""
+
+        atoms = self.getAtoms()
+        if atoms is None:
+            raise ValueError('to use select, atoms must be set for the ensemble')
+
+        sel = atoms.select(selection)
+        self.setAtoms(sel)
+
+    def deselect(self):
+        """Undoes the selection."""
+
+        self._indices = None
+
     def getCoords(self, selected=True):
         """Returns a copy of reference coordinates for selected atoms."""
 

@@ -41,6 +41,7 @@ from scipy.stats import median_absolute_deviation
 
 from prody import LOGGER
 from .anm import ANM
+from .gnm import GNM, ZERO
 from .editing import extendModel
 from .sampling import sampleModes
 from prody.atomic import AtomGroup
@@ -51,7 +52,7 @@ from prody.utilities import createStringIO
 
 __all__ = ['ClustENM']
 
-class ClustENM(object):
+class ClustENM(Ensemble):
     '''
     ClustENMv2 is the new version of ClustENM(v1) conformation sampling algorithm [KZ16]_.
     This ANM-based hybrid algorithm requires PDBFixer and OpenMM for performing energy minimization and MD simulations in implicit solvent.
@@ -172,6 +173,15 @@ class ClustENM(object):
         # self._atoms must be an AtomGroup instance because of self._fix().
         self._idx_ca = self._atoms.ca.getIndices()
         self._n_ca = self._atoms.ca.numAtoms()
+
+        # check for discontinuity in the structure
+        gnm = GNM()
+        gnm.buildKirchhoff(self._atoms.ca)
+        K = gnm.getKirchhoff()
+        rank_diff = (len(K) - 1
+                     - np.linalg.matrix_rank(K, tol=ZERO, hermitian=True))
+        if rank_diff != 0:
+            raise ValueError('atoms has disconnected parts; please check the structure')
 
     def getTitle(self):
         title = 'Unknown'
@@ -318,10 +328,11 @@ class ClustENM(object):
         # 1e-6 is the same value of prody's ZERO parameter
         rank_diff = (3 * self._n_ca - 6
                      - np.linalg.matrix_rank(anm_ca.getHessian(),
-                                             tol=1e-6, hermitian=True))
+                                             tol=ZERO, hermitian=True))
         if rank_diff != 0:
             # taking care cases with more than 6 zeros
             # maybe an exception can be raised in debug mode
+            LOGGER.warn('Abnormal number of zeros modes detected (%d detected, 6 expected).'%(6 + rank_diff))
             return None
 
         anm_ca.calcModes(self._n_modes)
@@ -352,13 +363,14 @@ class ClustENM(object):
         anm_ca = ANM()
         anm_ca.buildHessian(ca, cutoff=self._cutoff)
 
-        # 1e-6 is the same value of prody's ZERO parameter
+        # use prody's ZERO parameter
         rank_diff = (3 * self._n_ca - 6
                      - np.linalg.matrix_rank(anm_ca.getHessian(),
-                                             tol=1e-6, hermitian=True))
+                                             tol=ZERO, hermitian=True))
         if rank_diff != 0:
             # taking care cases with more than 6 zeros
             # maybe an exception can be raised in debug mode
+            LOGGER.warn('Abnormal number of zeros modes detected (%d detected, 6 expected).'%(6 + rank_diff))
             return None
 
         anm_ca.calcModes(self._n_modes)
@@ -459,7 +471,7 @@ class ClustENM(object):
         LOGGER.info('Clustering in generation %d ...'%self._cycle)
         label_ca = self._hc(confs_ca)
         centers, wei = self._centers(confs_ca, label_ca)
-        LOGGER.report('Conformers were generated in %.2fs.', label='_clustenm_gen')
+        LOGGER.report('Centroids were generated in %.2fs.', label='_clustenm_gen')
 
         return confs_ex[centers], wei
 
@@ -533,7 +545,7 @@ class ClustENM(object):
         subset = subset.lower()
         if self._ens is not None:
             ens = self._ens[:]
-            ens.setTitle(self._ens.getTitle())
+            ens.setTitle('%s_%s'%(self._ens.getTitle(), subset))
             
             if subset != 'all':
                 atoms = ens.getAtoms()
@@ -648,7 +660,7 @@ class ClustENM(object):
                 LOGGER.info('Minimization, heating-up & simulation in generation %d ...'%i)
             else:
                 LOGGER.info('Minimization in generation %d ...'%i)
-            LOGGER.timeit('_clustenm_threading')
+            LOGGER.timeit('_clustenm_min_sim')
 
             # <simtk.openmm.openmm.Platform;
             # proxy of a <Swig Object of type 'OpenMM::Platform'>>
@@ -665,7 +677,7 @@ class ClustENM(object):
             else:
                 pot_conf = [self._min_sim(conf) for conf in confs]
 
-            LOGGER.report('Threading was completed in %.2fs.', label='_clustenm_threading')
+            LOGGER.report('Structures were sampled in %.2fs.', label='_clustenm_min_sim')
             LOGGER.info('#' + '-' * 19 + '/*\\' + '-' * 19 + '#')
 
             potentials, conformers = list(zip(*pot_conf))
