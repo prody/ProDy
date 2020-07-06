@@ -568,7 +568,7 @@ class ClustENM(Ensemble):
         
         keys = self._getData('key')
         n_confs = 0
-        for g, i in keys:
+        for g, _ in keys:
             if g == gen:
                 n_confs += 1
         return n_confs
@@ -580,7 +580,7 @@ class ClustENM(Ensemble):
         if self._indexer is None:
             keys = self._getData('key')
             entries = [[] for _ in range(self.numGenerations())]
-            for i, (gen, idx) in enumerate(keys):
+            for i, (gen, _) in enumerate(keys):
                 entries[gen].append(i)
             
             n_conf_per_gen = np.max([len(entry) for entry in entries])
@@ -750,9 +750,9 @@ class ClustENM(Ensemble):
             conformers = np.array(conformers)[idx]
 
             if self._outlier:
-                idx = np.logical_not(self._outliers(potentials))
+                idx = np.logical_not(self._outliers(pots))
             else:
-                idx = np.full(potentials.size, True, dtype=bool)
+                idx = np.full(pots.size, True, dtype=bool)
 
             sizes.append(weights[idx])
             potentials.append(pots[idx])
