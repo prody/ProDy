@@ -126,8 +126,7 @@ class ClustENM(Ensemble):
     '''
 
     def __init__(self, title=None):
-        
-        self._title = title
+
         self._atoms = None
         
         self._ph = 7.0
@@ -155,33 +154,51 @@ class ClustENM(Ensemble):
         self._idx_ca = None
         self._n_ca = None
         self._cycle = 0
-        self._weights = OrderedDict()   # possibly deprecated
-        self._potentials = OrderedDict()
-        self._conformers = OrderedDict()
-        self._ens = None
+        # self._counts = OrderedDict()   # possibly deprecated
+        # self._potentials = OrderedDict()
+        # self._conformers = OrderedDict()
+        self._built = False
+        self._indexer = None
+
+        super(ClustENM, self).__init__('Unknown') # dummy title; will be replaced in next line
+        self._title = title
+
+    def __getitem__(self, index):
+        if isinstance(index, tuple):
+            index = self._slice(index)
+        
+        return super(ClustENM, self).__getitem__(index)
 
     def getAtoms(self):
         return self._atoms
 
+    def isBuilt(self):
+        return self._built
+
     def setAtoms(self, atoms, pH=7.0, fix_missing_residues=True):
-        LOGGER.info('Fixing the structure ...')
-        LOGGER.timeit('_clustenm_fix')
-        self._ph = pH
-        self._fix(atoms, fix_missing_residues)
-        LOGGER.report('The structure was fixed in %.2fs.', label='_clustenm_fix')
+        if self.isBuilt():
+            super(ClustENM, self).setAtoms(atoms)
+        else:
+            LOGGER.info('Fixing the structure ...')
+            LOGGER.timeit('_clustenm_fix')
+            self._ph = pH
+            self._fix(atoms, fix_missing_residues)
+            LOGGER.report('The structure was fixed in %.2fs.', label='_clustenm_fix')
 
-        # self._atoms must be an AtomGroup instance because of self._fix().
-        self._idx_ca = self._atoms.ca.getIndices()
-        self._n_ca = self._atoms.ca.numAtoms()
+            # self._atoms must be an AtomGroup instance because of self._fix().
+            self._idx_ca = self._atoms.ca.getIndices()
+            self._n_ca = self._atoms.ca.numAtoms()
+            self._n_atoms = atoms.numAtoms()
+            self._indices = None
 
-        # check for discontinuity in the structure
-        gnm = GNM()
-        gnm.buildKirchhoff(self._atoms.ca)
-        K = gnm.getKirchhoff()
-        rank_diff = (len(K) - 1
-                     - np.linalg.matrix_rank(K, tol=ZERO, hermitian=True))
-        if rank_diff != 0:
-            raise ValueError('atoms has disconnected parts; please check the structure')
+            # check for discontinuity in the structure
+            gnm = GNM()
+            gnm.buildKirchhoff(self._atoms.ca)
+            K = gnm.getKirchhoff()
+            rank_diff = (len(K) - 1
+                        - np.linalg.matrix_rank(K, tol=ZERO, hermitian=True))
+            if rank_diff != 0:
+                raise ValueError('atoms has disconnected parts; please check the structure')
 
     def getTitle(self):
         title = 'Unknown'
@@ -195,8 +212,8 @@ class ClustENM(Ensemble):
         return title
 
     def setTitle(self, value):
-        if not isinstance(value, str):
-            raise TypeError('title must be str')
+        if not isinstance(value, str) and value is not None:
+            raise TypeError('title must be either str or None')
         self._title = value
 
     def _fix(self, atoms, fix_missing_residues=True):
@@ -432,7 +449,10 @@ class ClustENM(Ensemble):
         # args[1]: labels
 
         nl = np.unique(args[1])
-        idx = {i: np.where(args[1] == i)[0] for i in nl}
+        idx = OrderedDict()
+        for i in nl:
+            idx[i] = np.where(args[1] == i)[0]
+
         # Dictionary order is guaranteed to be insertion order by Python 3.7!
         wei = [idx[k].size for k in idx.keys()]
         centers = np.empty(nl.size, dtype=int)
@@ -442,14 +462,14 @@ class ClustENM(Ensemble):
 
         return centers, wei
 
-    def _generate(self, arg):
+    def _generate(self, confs):
 
         # arg: previous generation no
 
         LOGGER.info('Sampling conformers in generation %d ...'%self._cycle)
         LOGGER.timeit('_clustenm_gen')
         tmp = []
-        for conf in range(self._conformers[arg].shape[0]):
+        for conf in range(confs.shape[0]):
             if not self._v1:
                 ret = self._sample(conf)
                 if ret is not None:
@@ -485,40 +505,6 @@ class ClustENM(Ensemble):
 
         return tmp > 3.5
 
-    def getConformers(self, index=None):
-
-        # index: None -> whole as a numpy array, or int for the generation no
-        # Dictionary order is guaranteed to be insertion order by Python 3.7!
-
-        if index is None:
-            return np.concatenate([v for v in self._conformers.values()])
-        else:
-            return self._conformers[index]
-
-    def getPotentials(self, index=None):
-
-        # index: None -> whole as a numpy array, or int for the generation no
-
-        if index is None:
-            return np.concatenate([v for v in self._potentials.values()])
-        else:
-            return self._potentials[index]
-
-    def getWeights(self, index=None):
-
-        # index: None -> whole as a numpy array, or int for the generation no
-
-        if index is None:
-            return np.concatenate([v for v in self._weights.values()])
-        else:
-            return self._weights[index]
-
-    @property
-    def _labels(self):
-        return [self.getTitle() + '_%d%04d'%(k, i)
-                for k, v in self._conformers.items()
-                for i in range(v.shape[0])]
-
     def _superpose_ca(self, arg):
 
         # arg : temporary conformers
@@ -533,28 +519,98 @@ class ClustENM(Ensemble):
 
         return np.array(tmp1)
 
-    def _build_ensemble(self):
-        self._ens = Ensemble(self.getTitle())
-        self._ens.setAtoms(self._atoms)
-        self._ens.setCoords(self._conformers[0][0])
-        self._ens.addCoordset(self.getConformers())
-        self._ens.setData('labels', self._labels)
+    def _build(self, conformers, keys, potentials, counts):
 
-    def getEnsemble(self, subset='all'):
-        ens = None
-        subset = subset.lower()
-        if self._ens is not None:
-            ens = self._ens[:]
-            ens.setTitle('%s_%s'%(self._ens.getTitle(), subset))
+        coords = conformers[0][0]
+        self.setCoords(coords)
+        self.addCoordset(conformers)
+        self.setData('count', counts)
+        self.setData('key', keys)
+        self.setData('potential', potentials)
+
+    def addCoordset(self, coords):
+        self._indexer = None
+        super(ClustENM, self).addCoordset(coords)
+
+    def getData(self, key, gen=None):
+        keys = super(ClustENM, self)._getData('key')
+        data = super(ClustENM, self).getData(key)
+
+        if gen is not None:
+            data_ = []
+            for k, d in zip(keys, data):
+                g, _ = k
+                if g == gen:
+                    data_.append(d)
+            data = np.array(data_)
+        return data
+
+    def getKeys(self, gen=None):
+        return self.getData('key', gen)
+
+    def getLabels(self, gen=None):
+        keys = self.Keys(gen)
+        labels = ['%d_%d'%k for k in keys]
+        return labels
+
+    def getPotentials(self, gen=None):
+        return self.getData('potential', gen)
+
+    def getSizes(self, gen=None):
+        return self.getData('size', gen)
+
+    def numGenerations(self):
+        return self._n_gens
+
+    def numConfs(self, gen=None):
+        if gen is None:
+            return super(ClustENM, self).numConfs()
+        
+        keys = self._getData('key')
+        n_confs = 0
+        for g, i in keys:
+            if g == gen:
+                n_confs += 1
+        return n_confs
+
+    def _slice(self, indices):
+        if len(indices) == 0:
+            raise ValueError('indices (tuple) cannot be empty')
+        
+        if self._indexer is None:
+            keys = self._getData('key')
+            entries = [[] for _ in range(self.numGenerations())]
+            for i, (gen, idx) in enumerate(keys):
+                entries[gen].append(i)
             
-            if subset != 'all':
-                atoms = ens.getAtoms()
-                sel = atoms.select(subset)
-                ens.setAtoms(sel)
-        return ens
+            n_conf_per_gen = np.max([len(entry) for entry in entries])
+            for entry in entries:
+                for i in range(len(entry), n_conf_per_gen):
+                    entry.append(-1)
 
-    def _getEnsemble(self):
-        return self._ens
+            indexer = self._indexer = np.array(entries)
+        else:
+            indexer = self._indexer
+        full_serials = indexer[indices].flatten()
+        
+        serials = []
+        for s in full_serials:
+            if s != -1:
+                serials.append(s)
+
+        return np.array(serials)
+
+    def _getCoordsets(self, indices=None, selected=True):
+        """Returns the coordinate set(s) at given *indices*, which may be
+        an integer, a list of integers, a tuple of (generation, index), or **None**. 
+        **None** returns all coordinate sets. For reference coordinates, use :meth:`getCoords`
+        method."""
+
+        if isinstance(indices, tuple):
+            I = self._slice(indices)
+            return super(ClustENM, self)._getCoordsets(I, selected)
+        else:
+            return super(ClustENM, self)._getCoordsets(indices, selected)
 
     def writePDB(self, folder='.', single=True, **kwargs):
 
@@ -578,7 +634,7 @@ class ClustENM(Ensemble):
                 mkdir(direc)
 
             LOGGER.info('Saving in %s ...'%direc)
-            for i, lab in enumerate(self._labels):
+            for i, lab in enumerate(self.getLabels()):
                 filename = '%s/%s'%(direc, lab)
                 writePDB(filename, ens, csets=i)
         LOGGER.report(label='t0')
@@ -587,6 +643,9 @@ class ClustENM(Ensemble):
             n_gens=5, maxclust=None, threshold=None,
             sim=True, temp=300, t_steps_i=1000, t_steps_g=7500,
             outlier=True, mzscore=3.5, **kwargs):
+
+        if self._built:
+            raise ValueError('ClustENM ensemble has been built; please start a new instance')
 
         # set up parameters
         self._cutoff = cutoff
@@ -636,8 +695,6 @@ class ClustENM(Ensemble):
 
         LOGGER.info('Generation 0 ...')
 
-        self._weights[0] = np.array([1])
-
         if self._sim:
             LOGGER.info('Minimization, heating-up & simulation in generation 0 ...')
         else:
@@ -649,13 +706,19 @@ class ClustENM(Ensemble):
 
         LOGGER.report('Structure was energetically minizied in %.2fs.', label='_clustenm_min')
         LOGGER.info('#' + '-' * 19 + '/*\\' + '-' * 19 + '#')
-        self._potentials[0] = np.array([potential])
-        self._conformers[0] = conformer.reshape(1, *conformer.shape)
+        # self._potentials[0] = np.array([potential])
+        # self._conformers[0] = conformer.reshape(1, *conformer.shape)
+
+        potentials = [np.array([potential])]
+        sizes = [np.array([1])]
+        conf = conformer.reshape(1, *conformer.shape)
+        conformers = start_confs = conf
+        keys = [(0, 0)]
 
         for i in range(1, self._n_gens+1):
             self._cycle += 1
             LOGGER.info('Generation %d ...'%i)
-            confs, weights = self._generate(i-1)
+            confs, weights = self._generate(start_confs)
             if self._sim:
                 LOGGER.info('Minimization, heating-up & simulation in generation %d ...'%i)
             else:
@@ -680,10 +743,10 @@ class ClustENM(Ensemble):
             LOGGER.report('Structures were sampled in %.2fs.', label='_clustenm_min_sim')
             LOGGER.info('#' + '-' * 19 + '/*\\' + '-' * 19 + '#')
 
-            potentials, conformers = list(zip(*pot_conf))
-            idx = np.logical_not(np.isnan(potentials))
+            pots, conformers = list(zip(*pot_conf))
+            idx = np.logical_not(np.isnan(pots))
             weights = np.array(weights)[idx]
-            potentials = np.array(potentials)[idx]
+            pots = np.array(pots)[idx]
             conformers = np.array(conformers)[idx]
 
             if self._outlier:
@@ -691,20 +754,25 @@ class ClustENM(Ensemble):
             else:
                 idx = np.full(potentials.size, True, dtype=bool)
 
-            self._weights[i] = weights[idx]
-            self._potentials[i] = potentials[idx]
-            self._conformers[i] = self._superpose_ca(conformers[idx])
+            sizes.append(weights[idx])
+            potentials.append(pots[idx])
+            start_confs = self._superpose_ca(conformers[idx])
+            #conformers[i] = self._superpose_ca(conformers[idx])
+            for j in range(start_confs.shape[0]):
+                keys.append((i, j))
+            conformers = np.vstack((conformers, start_confs))
 
         LOGGER.timeit('_clustenm_ens')
         LOGGER.info('Creating an ensemble of conformers ...')
 
-        self._build_ensemble()
+        self._build(conformers, keys, potentials, sizes)
         LOGGER.report('Ensemble was created in %.2fs.', label='_clustenm_ens')
 
         LOGGER.report('All completed in %.2fs.', label='_clustenm_overall')
         # t1 = perf_counter()
         # t10 = round(t1 - t0, 2)
         # LOGGER.info('All completed in %.2fs.'%t10)
+        self._built = True
 
     def writeParameters(self, filename=None):
 
@@ -739,6 +807,6 @@ class ClustENM(Ensemble):
                 f.write(f'platform = Default\n')
 
         with open(f'{title}_potentials.pkl', 'wb') as f:
-            pickle.dump(self._potentials, f, pickle.HIGHEST_PROTOCOL)
-        with open(f'{title}_weights.pkl', 'wb') as f:
-            pickle.dump(self._weights, f, pickle.HIGHEST_PROTOCOL)
+            pickle.dump(self.getPotentials(), f, pickle.HIGHEST_PROTOCOL)
+        with open(f'{title}_sizes.pkl', 'wb') as f:
+            pickle.dump(self.getSizes(), f, pickle.HIGHEST_PROTOCOL)

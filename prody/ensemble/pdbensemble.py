@@ -379,6 +379,11 @@ class PDBEnsemble(Ensemble):
             raise RuntimeError('_confs and _weights must be set or None at '
                                'the same time')
 
+        for key in self._data:
+            data = self._data[key]
+            def_data = zeros(n_repeats, dtype=data.dtype)
+            self._data[key] = concatenate((data, def_data), axis=0)
+
     def getMSA(self, indices=None, selected=True):
         """Returns an MSA of selected atoms."""
 

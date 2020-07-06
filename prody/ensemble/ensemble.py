@@ -127,7 +127,7 @@ class Ensemble(object):
         elif self._n_atoms != other._n_atoms:
             raise ValueError('Ensembles must have same number of atoms.')
 
-        ensemble = Ensemble('{0} + {1}'.format(self.getTitle(),
+        ensemble = type(self)('{0} + {1}'.format(self.getTitle(),
                                                other.getTitle()))
         if self._coords is not None:
             ensemble.setCoords(self._coords.copy())
@@ -379,6 +379,9 @@ class Ensemble(object):
     def setWeights(self, weights):
         """Set atomic weights."""
 
+        if weights is None:
+            self._weights = None
+
         if self._n_atoms == 0:
             raise AttributeError('first set reference coordinates')
         try:
@@ -450,42 +453,19 @@ class Ensemble(object):
             self._confs = concatenate((self._confs, coords), axis=0)
         self._n_csets += n_confs
 
+        for key in self._data:
+            data = self._data[key]
+            def_data = zeros(n_confs, dtype=data.dtype)
+            self._data[key] = concatenate((data, def_data), axis=0)
+
     def getCoordsets(self, indices=None, selected=True):
         """Returns a copy of coordinate set(s) at given *indices*, which may be
         an integer, a list of integers or **None**. **None** returns all
-        coordinate sets.  For reference coordinates, use :meth:`getCoordinates`
+        coordinate sets.  For reference coordinates, use :meth:`getCoords`
         method."""
 
-        if self._confs is None:
-            return None
-        if self._indices is None or not selected:
-            if indices is None:
-                return self._confs.copy()
-            else:
-                try:
-                    coords = self._confs[indices]
-                except IndexError:
-                    pass
-                if coords.base is None:
-                    return coords
-                else:
-                    return coords.copy()
-        else:
-            selids = self._indices
-            if indices is None:
-                return self._confs.take(selids, 1)
-            else:
-                try:
-                    coords = self._confs[indices, selids]
-                except IndexError:
-                    pass
-                if coords.base is None:
-                    return coords
-                else:
-                    return coords.copy()
-
-        raise IndexError('indices must be an integer, a list/array of '
-                         'integers, a slice, or None')
+        coords = self._getCoordsets(indices, selected)
+        return copy(coords)
 
     def _getCoordsets(self, indices=None, selected=True):
 
