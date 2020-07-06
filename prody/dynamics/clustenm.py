@@ -331,12 +331,12 @@ class ClustENM(Ensemble):
 
             return np.nan, np.full_like(arg, np.nan)
 
-    def _sample_v1(self, arg):
+    def _sample_v1(self, conf):
 
         # arg: conf idx
 
         tmp = self._atoms.copy()
-        tmp.setCoords(self._conformers[self._cycle - 1][arg])
+        tmp.setCoords(conf)
         ca = tmp.ca
 
         anm_ca = ANM()
@@ -369,12 +369,9 @@ class ClustENM(Ensemble):
 
         return r
 
-    def _sample(self, arg):
-
-        # arg: conf idx
-
+    def _sample(self, conf):
         tmp = self._atoms.copy()
-        tmp.setCoords(self._conformers[self._cycle - 1][arg])
+        tmp.setCoords(conf)
         ca = tmp.ca
 
         anm_ca = ANM()
