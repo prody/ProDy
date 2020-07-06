@@ -34,14 +34,6 @@ class PDBEnsemble(Ensemble):
         self._msa = None
         Ensemble.__init__(self, title)
 
-    def __repr__(self):
-
-        return '<PDB' + Ensemble.__repr__(self)[1:] + '>'
-
-    def __str__(self):
-
-        return 'PDB' + Ensemble.__str__(self)
-
     def __add__(self, other):
         """Concatenate two ensembles. The reference coordinates of *self* is
         used in the result."""
@@ -54,7 +46,8 @@ class PDBEnsemble(Ensemble):
 
         ensemble = PDBEnsemble('{0} + {1}'.format(self.getTitle(),
                                                   other.getTitle()))
-        ensemble.setCoords(copy(self._coords))
+        if self._coords is not None:
+            ensemble.setCoords(self._coords.copy())
         weights = copy(self._weights)
         if self._confs is not None:
             ensemble.addCoordset(copy(self._confs), weights=weights, 
@@ -71,7 +64,7 @@ class PDBEnsemble(Ensemble):
             ensemble.setAtoms(other._atoms)
             ensemble._indices = other._indices
 
-        all_keys = list(self._data.keys()) + list(other._data.keys())
+        all_keys = set(list(self._data.keys()) + list(other._data.keys()))
         for key in all_keys:
             if key in self._data and key in other._data:
                 self_data = self._data[key]
@@ -108,7 +101,8 @@ class PDBEnsemble(Ensemble):
         elif isinstance(index, slice):
             ens = PDBEnsemble('{0} ({1[0]}:{1[1]}:{1[2]})'.format(
                               self._title, index.indices(len(self))))
-            ens.setCoords(copy(self._coords))
+            if self._coords is not None:
+                ens.setCoords(self._coords.copy())
             
             ens.addCoordset(self._confs[index].copy(),
                             self._weights[index].copy(),
@@ -132,7 +126,8 @@ class PDBEnsemble(Ensemble):
                     except ValueError:
                         raise IndexError('invalid label: %s'%index[i])
             ens = PDBEnsemble('{0}'.format(self._title))
-            ens.setCoords(copy(self._coords))
+            if self._coords is not None:
+                ens.setCoords(self._coords.copy())
             labels = list(np.array(self._labels)[index2])
             ens.addCoordset(self._confs[index2].copy(),
                             self._weights[index2].copy(),
@@ -221,6 +216,7 @@ class PDBEnsemble(Ensemble):
         list of identifiers, is used to label conformations."""
 
         degeneracy = kwargs.pop('degeneracy', False)
+        adddata = kwargs.pop('data', None)
 
         atoms = coords
         n_atoms = self._n_atoms
@@ -369,20 +365,35 @@ class PDBEnsemble(Ensemble):
         if self._confs is None and self._weights is None:
             self._confs = coords
             self._weights = weights
-            self._n_csets = n_repeats
             
         elif self._confs is not None and self._weights is not None:
             self._confs = np.concatenate((self._confs, coords), axis=0)
             self._weights = np.concatenate((self._weights, weights), axis=0)
-            self._n_csets += n_repeats
         else:
             raise RuntimeError('_confs and _weights must be set or None at '
                                'the same time')
 
-        for key in self._data:
-            data = self._data[key]
-            def_data = zeros(n_repeats, dtype=data.dtype)
-            self._data[key] = concatenate((data, def_data), axis=0)
+        # appending new data
+        all_keys = set(list(self._data.keys()) + list(adddata.keys()))
+
+        for key in all_keys:
+            if key in self._data:
+                data = self._data[key]
+                if key not in adddata:
+                    shape = (n_repeats, *data.shape[1:])
+                    newdata = np.zeros(shape, dtype=data.dtype)
+                else:
+                    newdata = np.asarray(adddata[key])
+                    if newdata.shape[0] != n_repeats:
+                        raise ValueError('the length of data["%s"] does not match that of coords'%key)
+            else:
+                newdata = np.asarray(adddata[key])
+                shape = (self._n_csets, *newdata.shape[1:])
+                data = np.zeros(shape, dtype=newdata.dtype)
+            self._data[key] = np.concatenate((data, newdata), axis=0)
+        
+        # update the number of coordinate sets
+        self._n_csets += n_repeats
 
     def getMSA(self, indices=None, selected=True):
         """Returns an MSA of selected atoms."""

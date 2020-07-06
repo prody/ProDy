@@ -46,7 +46,7 @@ from .editing import extendModel
 from .sampling import sampleModes
 from prody.atomic import AtomGroup
 from prody.measure import calcTransformation, applyTransformation
-from prody.ensemble import Ensemble, saveEnsemble
+from prody.ensemble import Ensemble
 from prody.proteins import writePDB, parsePDB, writePDBStream, parsePDBStream
 from prody.utilities import createStringIO
 
@@ -157,7 +157,6 @@ class ClustENM(Ensemble):
         # self._counts = OrderedDict()   # possibly deprecated
         # self._potentials = OrderedDict()
         # self._conformers = OrderedDict()
-        self._built = False
         self._indexer = None
 
         super(ClustENM, self).__init__('Unknown') # dummy title; will be replaced in next line
@@ -165,7 +164,10 @@ class ClustENM(Ensemble):
 
     def __getitem__(self, index):
         if isinstance(index, tuple):
-            index = self._slice(index)
+            I = self._slice(index)
+            if len(I) == 0:
+                raise IndexError('index out of range (%d, %d)'%index)
+            index = I
         
         return super(ClustENM, self).__getitem__(index)
 
@@ -173,7 +175,7 @@ class ClustENM(Ensemble):
         return self._atoms
 
     def isBuilt(self):
-        return self._built
+        return self._confs is not None
 
     def setAtoms(self, atoms, pH=7.0, fix_missing_residues=True):
         if self.isBuilt():
@@ -188,7 +190,7 @@ class ClustENM(Ensemble):
             # self._atoms must be an AtomGroup instance because of self._fix().
             self._idx_ca = self._atoms.ca.getIndices()
             self._n_ca = self._atoms.ca.numAtoms()
-            self._n_atoms = atoms.numAtoms()
+            self._n_atoms = self._atoms.numAtoms()
             self._indices = None
 
             # check for discontinuity in the structure
@@ -466,7 +468,7 @@ class ClustENM(Ensemble):
         LOGGER.info('Sampling conformers in generation %d ...'%self._cycle)
         LOGGER.timeit('_clustenm_gen')
         tmp = []
-        for conf in range(confs.shape[0]):
+        for conf in confs:
             if not self._v1:
                 ret = self._sample(conf)
                 if ret is not None:
@@ -502,24 +504,21 @@ class ClustENM(Ensemble):
 
         return tmp > 3.5
 
-    def _superpose_ca(self, arg):
-
-        # arg : temporary conformers
-
-        tmp0 = self._conformers[0][0]
-        n = arg.shape[0]
+    def _superpose_ca(self, confs):
+        tmp0 = self._getCoords()
+        n = confs.shape[0]
         tmp1 = []
         for i in range(n):
-            tmp2 = calcTransformation(arg[i, self._idx_ca],
+            tmp2 = calcTransformation(confs[i, self._idx_ca],
                                          tmp0[self._idx_ca])
-            tmp1.append(applyTransformation(tmp2, arg[i]))
+            tmp1.append(applyTransformation(tmp2, confs[i]))
 
         return np.array(tmp1)
 
     def _build(self, conformers, keys, potentials, counts):
 
-        coords = conformers[0][0]
-        self.setCoords(coords)
+        #coords = conformers[0][0]
+        #self.setCoords(coords)
         self.addCoordset(conformers)
         self.setData('count', counts)
         self.setData('key', keys)
@@ -546,8 +545,8 @@ class ClustENM(Ensemble):
         return self.getData('key', gen)
 
     def getLabels(self, gen=None):
-        keys = self.Keys(gen)
-        labels = ['%d_%d'%k for k in keys]
+        keys = self.getKeys(gen)
+        labels = ['%d_%d'%tuple(k) for k in keys]
         return labels
 
     def getPotentials(self, gen=None):
@@ -576,7 +575,7 @@ class ClustENM(Ensemble):
         
         if self._indexer is None:
             keys = self._getData('key')
-            entries = [[] for _ in range(self.numGenerations())]
+            entries = [[] for _ in range(self.numGenerations() + 1)]
             for i, (gen, _) in enumerate(keys):
                 entries[gen].append(i)
             
@@ -605,6 +604,8 @@ class ClustENM(Ensemble):
 
         if isinstance(indices, tuple):
             I = self._slice(indices)
+            if len(I) == 0:
+                raise IndexError('index out of range (%d, %d)'%indices)
             return super(ClustENM, self)._getCoordsets(I, selected)
         else:
             return super(ClustENM, self)._getCoordsets(indices, selected)
@@ -615,14 +616,12 @@ class ClustENM(Ensemble):
         # otherwise, each conformer is saved as a separate pdb file
         # in the directory pdbs_pdbname
 
-        subset = kwargs.pop('subset', 'all')
         title = self.getTitle()
-        ens = self.getEnsemble(subset)
 
         LOGGER.timeit('t0')
         if single:
             LOGGER.info('Saving %s.pdb ...'%title)
-            writePDB(folder + '/' + title, ens)
+            writePDB(folder + '/' + title, self)
         else:
             direc = folder + '/' + title
             if isdir(direc):
@@ -633,7 +632,7 @@ class ClustENM(Ensemble):
             LOGGER.info('Saving in %s ...'%direc)
             for i, lab in enumerate(self.getLabels()):
                 filename = '%s/%s'%(direc, lab)
-                writePDB(filename, ens, csets=i)
+                writePDB(filename, self, csets=i)
         LOGGER.report(label='t0')
 
     def run(self, cutoff=15., n_modes=3, n_confs=50, rmsd=1.0,
@@ -641,7 +640,7 @@ class ClustENM(Ensemble):
             sim=True, temp=300, t_steps_i=1000, t_steps_g=7500,
             outlier=True, mzscore=3.5, **kwargs):
 
-        if self._built:
+        if self.isBuilt():
             raise ValueError('ClustENM ensemble has been built; please start a new instance')
 
         # set up parameters
@@ -650,6 +649,8 @@ class ClustENM(Ensemble):
         self._n_confs = n_confs
         self._rmsd = (0.,) + rmsd if isinstance(rmsd, tuple) else (0.,) + (rmsd,) * n_gens
         self._n_gens = n_gens
+        self._v1 = kwargs.pop('v1', False) 
+        self._platform = kwargs.pop('platform', None) 
 
         if maxclust is None:
             self._maxclust = None
@@ -678,8 +679,6 @@ class ClustENM(Ensemble):
 
         self._outlier = outlier
         self._mzscore = mzscore
-        self._v1 = kwargs.pop('v1', False) 
-        self._platform = kwargs.pop('platform', None) 
 
         self._cycle = 0
 
@@ -705,10 +704,11 @@ class ClustENM(Ensemble):
         LOGGER.info('#' + '-' * 19 + '/*\\' + '-' * 19 + '#')
         # self._potentials[0] = np.array([potential])
         # self._conformers[0] = conformer.reshape(1, *conformer.shape)
+        self.setCoords(conformer)
 
-        potentials = [np.array([potential])]
-        sizes = [np.array([1])]
-        conf = conformer.reshape(1, *conformer.shape)
+        potentials = [potential]
+        sizes = [1]
+        conf = conformer.reshape((1, *conformer.shape))
         conformers = start_confs = conf
         keys = [(0, 0)]
 
@@ -740,20 +740,20 @@ class ClustENM(Ensemble):
             LOGGER.report('Structures were sampled in %.2fs.', label='_clustenm_min_sim')
             LOGGER.info('#' + '-' * 19 + '/*\\' + '-' * 19 + '#')
 
-            pots, conformers = list(zip(*pot_conf))
+            pots, confs = list(zip(*pot_conf))
             idx = np.logical_not(np.isnan(pots))
             weights = np.array(weights)[idx]
             pots = np.array(pots)[idx]
-            conformers = np.array(conformers)[idx]
+            confs = np.array(confs)[idx]
 
             if self._outlier:
                 idx = np.logical_not(self._outliers(pots))
             else:
                 idx = np.full(pots.size, True, dtype=bool)
 
-            sizes.append(weights[idx])
-            potentials.append(pots[idx])
-            start_confs = self._superpose_ca(conformers[idx])
+            sizes.extend(weights[idx])
+            potentials.extend(pots[idx])
+            start_confs = self._superpose_ca(confs[idx])
             #conformers[i] = self._superpose_ca(conformers[idx])
             for j in range(start_confs.shape[0]):
                 keys.append((i, j))
@@ -762,6 +762,9 @@ class ClustENM(Ensemble):
         LOGGER.timeit('_clustenm_ens')
         LOGGER.info('Creating an ensemble of conformers ...')
 
+        self.potentials = potentials
+        self.keys = keys
+        self.sizes = sizes
         self._build(conformers, keys, potentials, sizes)
         LOGGER.report('Ensemble was created in %.2fs.', label='_clustenm_ens')
 
@@ -769,7 +772,6 @@ class ClustENM(Ensemble):
         # t1 = perf_counter()
         # t10 = round(t1 - t0, 2)
         # LOGGER.info('All completed in %.2fs.'%t10)
-        self._built = True
 
     def writeParameters(self, filename=None):
 
