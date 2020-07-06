@@ -762,9 +762,6 @@ class ClustENM(Ensemble):
         LOGGER.timeit('_clustenm_ens')
         LOGGER.info('Creating an ensemble of conformers ...')
 
-        self.potentials = potentials
-        self.keys = keys
-        self.sizes = sizes
         self._build(conformers, keys, potentials, sizes)
         LOGGER.report('Ensemble was created in %.2fs.', label='_clustenm_ens')
 
@@ -804,8 +801,3 @@ class ClustENM(Ensemble):
                 f.write(f'platform = %s\n'%self._platform)
             else:
                 f.write(f'platform = Default\n')
-
-        with open(f'{title}_potentials.pkl', 'wb') as f:
-            pickle.dump(self.getPotentials(), f, pickle.HIGHEST_PROTOCOL)
-        with open(f'{title}_sizes.pkl', 'wb') as f:
-            pickle.dump(self.getSizes(), f, pickle.HIGHEST_PROTOCOL)
