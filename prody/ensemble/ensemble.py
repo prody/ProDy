@@ -54,16 +54,16 @@ class Ensemble(object):
     def __repr__(self):
 
         if self._indices is None:
-            return ('<Ensemble: {0} ({1} conformations; {2} atoms)>'
-                    ).format(self._title, len(self), self._n_atoms)
+            return ('<{0}: {1} ({2} conformations; {3} atoms)>'
+                    ).format(self.__class__.__name__, self.getTitle(), len(self), self._n_atoms)
         else:
-            return ('<Ensemble: {0} ({1} conformations; selected {2} of '
-                    '{3} atoms)>').format(self._title, len(self),
+            return ('<{0}: {1} ({2} conformations; selected {3} of '
+                    '{4} atoms)>').format(self.__class__.__name__, self.getTitle(), len(self),
                                           self.numSelected(), self._n_atoms)
 
     def __str__(self):
 
-        return 'Ensemble {0}'.format(self._title)
+        return 'Ensemble {0}'.format(self.getTitle())
 
     def __len__(self):
 
@@ -86,14 +86,15 @@ class Ensemble(object):
             return self.getConformation(index)
 
         elif isinstance(index, slice):
-            ens = Ensemble('{0} ({1[0]}:{1[1]}:{1[2]})'.format(
-                                self._title, index.indices(len(self))))
-            ens.setCoords(copy(self._coords))
+            ens = type(self)('{0} ({1[0]}:{1[1]}:{1[2]})'.format(
+                                self.getTitle(), index.indices(len(self))))
+            if self._coords is not None:
+                ens.setCoords(self._coords.copy())
         
+            ens.addCoordset(self._confs[index].copy())
+
             for key in self._data.keys():
                 ens._data[key] = self._data[key][index].copy()
-
-            ens.addCoordset(self._confs[index].copy())
             if self._weights is not None:
                 ens.setWeights(self._weights.copy())
             
@@ -102,11 +103,12 @@ class Ensemble(object):
             return ens
 
         elif isinstance(index, (list, ndarray)):
-            ens = Ensemble('{0}'.format(self._title))
-            ens.setCoords(copy(self._coords))
+            ens = type(self)('{0}'.format(self.getTitle()))
+            if self._coords is not None:
+                ens.setCoords(self._coords.copy())
+            ens.addCoordset(self._confs[index].copy())
             for key in self._data.keys():
                 ens._data[key] = self._data[key][index].copy()
-            ens.addCoordset(self._confs[index].copy())
             if self._weights is not None:
                 ens.setWeights(self._weights.copy())
 
@@ -127,7 +129,7 @@ class Ensemble(object):
         elif self._n_atoms != other._n_atoms:
             raise ValueError('Ensembles must have same number of atoms.')
 
-        ensemble = Ensemble('{0} + {1}'.format(self.getTitle(),
+        ensemble = type(self)('{0} + {1}'.format(self.getTitle(),
                                                other.getTitle()))
         if self._coords is not None:
             ensemble.setCoords(self._coords.copy())
@@ -136,7 +138,7 @@ class Ensemble(object):
         if other._confs is not None:
             ensemble.addCoordset(other._confs.copy())
 
-        all_keys = list(self._data.keys()) + list(other._data.keys())
+        all_keys = set(list(self._data.keys()) + list(other._data.keys()))
         for key in all_keys:
             if key in self._data and key in other._data:
                 self_data = self._data[key]
@@ -379,6 +381,9 @@ class Ensemble(object):
     def setWeights(self, weights):
         """Set atomic weights."""
 
+        if weights is None:
+            self._weights = None
+
         if self._n_atoms == 0:
             raise AttributeError('first set reference coordinates')
         try:
@@ -389,13 +394,21 @@ class Ensemble(object):
                 self._weights = ones((self._n_atoms, 1), dtype=float)
             self._weights[self._indices, :] = weights    
 
-    def addCoordset(self, coords):
-        """Add coordinate set(s) to the ensemble.  *coords* must be a Numpy
-        array with suitable data type, shape and dimensionality, or an object
-        with :meth:`getCoordsets` method."""
+    def addCoordset(self, coords, **kwargs):
+        """Add coordinate set(s) to the ensemble.  
+        
+        :arg coords: must be a :class:`~numpy.ndarray` with suitable data type, 
+                     shape and dimensionality, or an object with :meth:`getCoordsets` method. 
+                     
+        :kwarg data: associated data to be added along with *coords*.
+        :type data: dict   
+        """
 
         n_atoms = self._n_atoms
         n_select = self.numSelected()
+
+        adddata = kwargs.pop('data', {})
+
         try:
             if self._coords is not None:
                 if isinstance(coords, Ensemble):
@@ -429,6 +442,7 @@ class Ensemble(object):
                 raise TypeError('coords must be a numpy array or an object '
                                 'with `getCoords` method')
 
+        # update coordinates
         if coords.ndim == 2:
             n_nodes, _ = coords.shape
             coords = coords.reshape((1, n_nodes, 3))
@@ -448,44 +462,37 @@ class Ensemble(object):
             self._confs = coords
         else:
             self._confs = concatenate((self._confs, coords), axis=0)
+        
+        # appending new data
+        all_keys = set(list(self._data.keys()) + list(adddata.keys()))
+
+        for key in all_keys:
+            if key in self._data:
+                data = self._data[key]
+                if key not in adddata:
+                    shape = (n_confs, *data.shape[1:])
+                    newdata = zeros(shape, dtype=data.dtype)
+                else:
+                    newdata = asarray(adddata[key])
+                    if newdata.shape[0] != n_confs:
+                        raise ValueError('the length of data["%s"] does not match that of coords'%key)
+            else:
+                newdata = asarray(adddata[key])
+                shape = (self._n_csets, *newdata.shape[1:])
+                data = zeros(shape, dtype=newdata.dtype)
+            self._data[key] = concatenate((data, newdata), axis=0)
+
+        # update the number of coordinate sets
         self._n_csets += n_confs
 
     def getCoordsets(self, indices=None, selected=True):
         """Returns a copy of coordinate set(s) at given *indices*, which may be
         an integer, a list of integers or **None**. **None** returns all
-        coordinate sets.  For reference coordinates, use :meth:`getCoordinates`
+        coordinate sets.  For reference coordinates, use :meth:`getCoords`
         method."""
 
-        if self._confs is None:
-            return None
-        if self._indices is None or not selected:
-            if indices is None:
-                return self._confs.copy()
-            else:
-                try:
-                    coords = self._confs[indices]
-                except IndexError:
-                    pass
-                if coords.base is None:
-                    return coords
-                else:
-                    return coords.copy()
-        else:
-            selids = self._indices
-            if indices is None:
-                return self._confs.take(selids, 1)
-            else:
-                try:
-                    coords = self._confs[indices, selids]
-                except IndexError:
-                    pass
-                if coords.base is None:
-                    return coords
-                else:
-                    return coords.copy()
-
-        raise IndexError('indices must be an integer, a list/array of '
-                         'integers, a slice, or None')
+        coords = self._getCoordsets(indices, selected)
+        return copy(coords)
 
     def _getCoordsets(self, indices=None, selected=True):
 
