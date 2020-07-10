@@ -515,12 +515,12 @@ class ClustENM(Ensemble):
 
         return np.array(tmp1)
 
-    def _build(self, conformers, keys, potentials, counts):
+    def _build(self, conformers, keys, potentials, sizes):
 
         #coords = conformers[0][0]
         #self.setCoords(coords)
         self.addCoordset(conformers)
-        self.setData('count', counts)
+        self.setData('size', sizes)
         self.setData('key', keys)
         self.setData('potential', potentials)
 
