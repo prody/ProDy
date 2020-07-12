@@ -604,7 +604,6 @@ class ClustENM(Ensemble):
             return super(ClustENM, self)._getCoordsets(indices, selected)
 
     def writePDB(self, filename=None, single=True, **kwargs):
-
         # single -> True, save as a single pdb file with each conformer as a model
         # otherwise, each conformer is saved as a separate pdb file
         # in the directory pdbs_pdbname
