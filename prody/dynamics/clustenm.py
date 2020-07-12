@@ -250,12 +250,12 @@ class ClustENM(Ensemble):
         self._topology = fixed.topology
         self._positions = fixed.positions
 
-    def _min_sim(self, arg):
+    def _min_sim(self, coords):
 
-        # arg: coordset   (numAtoms, 3) in Angstrom, which should be converted into nanometer
+        # coords: coordset   (numAtoms, 3) in Angstrom, which should be converted into nanometer
 
         # we are not using self._positions!
-        # arg will be set as positions
+        # coords will be set as positions
 
         try:
             from simtk.openmm import Platform, LangevinIntegrator
@@ -294,11 +294,11 @@ class ClustENM(Ensemble):
 
         # automatic conversion into nanometer will be carried out.
 
-        simulation.context.setPositions(arg * angstrom)
+        simulation.context.setPositions(coords * angstrom)
 
         try:
+            simulation.minimizeEnergy()
             if self._sim:
-                simulation.minimizeEnergy()
                 # heating-up the system incrementally
                 sdr = StateDataReporter(stdout, 1, step=True, temperature=True)
                 sdr._initializeConstants(simulation)
@@ -314,8 +314,7 @@ class ClustENM(Ensemble):
                     temp = (2 * ke / (sdr._dof * MOLAR_GAS_CONSTANT_R)).value_in_unit(kelvin)
 
                 simulation.step(self._t_steps[self._cycle])
-            else:
-                simulation.minimizeEnergy()
+                
             pos = simulation.context.getState(getPositions=True).getPositions(asNumpy=True).value_in_unit(angstrom)
             pot = simulation.context.getState(getEnergy=True).getPotentialEnergy().value_in_unit(kilojoule_per_mole)
 
@@ -324,7 +323,7 @@ class ClustENM(Ensemble):
         except BaseException as be:
             LOGGER.warning('OpenMM exception: ' + be.__str__() + ' so the corresponding conformer will be discarded!')
 
-            return np.nan, np.full_like(arg, np.nan)
+            return np.nan, np.full_like(coords, np.nan)
 
     def _sample_v1(self, conf):
 
