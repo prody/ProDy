@@ -250,19 +250,13 @@ class ClustENM(Ensemble):
         self._topology = fixed.topology
         self._positions = fixed.positions
 
-    def _min_sim(self, coords):
-
-        # coords: coordset   (numAtoms, 3) in Angstrom, which should be converted into nanometer
-
-        # we are not using self._positions!
-        # coords will be set as positions
+    def _prep_sim(self, external_forces=[]):
 
         try:
             from simtk.openmm import Platform, LangevinIntegrator
             from simtk.openmm.app import Modeller, ForceField, CutoffNonPeriodic, Simulation, \
-                                         HBonds, StateDataReporter
-            from simtk.unit import nanometers, picosecond, kelvin, angstrom, kilojoule_per_mole, \
-                                   MOLAR_GAS_CONSTANT_R
+                                         HBonds
+            from simtk.unit import nanometers, picosecond, kelvin
         except ImportError:
             raise ImportError('Please install PDBFixer and OpenMM in order to use ClustENM.')
 
@@ -275,6 +269,9 @@ class ClustENM(Ensemble):
                                          nonbondedMethod=CutoffNonPeriodic,
                                          nonbondedCutoff=1.0*nanometers,
                                          constraints=HBonds)
+
+        for force in forces:
+            system.addForce(force)
 
         integrator = LangevinIntegrator(self._temp*kelvin,
                                         1/picosecond,
@@ -291,6 +288,23 @@ class ClustENM(Ensemble):
             
         simulation = Simulation(modeller.topology, system, integrator,
                                 platform, properties)
+
+        return simulation
+
+    def _min_sim(self, coords):
+
+        # coords: coordset   (numAtoms, 3) in Angstrom, which should be converted into nanometer
+
+        # we are not using self._positions!
+        # coords will be set as positions
+
+        try:
+            from simtk.openmm.app import StateDataReporter
+            from simtk.unit import kelvin, angstrom, kilojoule_per_mole, MOLAR_GAS_CONSTANT_R
+        except ImportError:
+            raise ImportError('Please install PDBFixer and OpenMM in order to use ClustENM.')
+
+        simulation = self._prep_sim()
 
         # automatic conversion into nanometer will be carried out.
 
