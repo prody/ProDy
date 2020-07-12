@@ -1467,10 +1467,10 @@ def showSignatureOverlaps(mode_ensemble, **kwargs):
         overlap_triu = overlaps[:, :, r, c]
 
         if std:
-            stdV = overlap_triu.std(axis=-1).std(axis=-1)
+            stdV = overlap_triu.std(axis=-1)
             show = showMatrix(stdV)
         else:
-            meanV = overlap_triu.mean(axis=-1).mean(axis=-1)
+            meanV = overlap_triu.mean(axis=-1)
             show = showMatrix(meanV)
     
     return show
