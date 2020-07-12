@@ -603,30 +603,29 @@ class ClustENM(Ensemble):
         else:
             return super(ClustENM, self)._getCoordsets(indices, selected)
 
-    def writePDB(self, folder='.', single=True, **kwargs):
-
+    def writePDB(self, filename=None, single=True, **kwargs):
         # single -> True, save as a single pdb file with each conformer as a model
         # otherwise, each conformer is saved as a separate pdb file
         # in the directory pdbs_pdbname
 
-        title = self.getTitle()
+        if filename is None:
+            filename = self.getTitle()
 
-        LOGGER.timeit('t0')
         if single:
-            LOGGER.info('Saving %s.pdb ...'%title)
-            writePDB(folder + '/' + title, self)
+            filename = writePDB(filename, self)
+            LOGGER.info('PDB file saved as %s'%filename)
         else:
-            direc = folder + '/' + title
+            direc = filename
             if isdir(direc):
                 LOGGER.warn('%s is not empty; will be flooded'%direc)
             else:
                 mkdir(direc)
 
-            LOGGER.info('Saving in %s ...'%direc)
+            LOGGER.info('Saving files ...')
             for i, lab in enumerate(self.getLabels()):
                 filename = '%s/%s'%(direc, lab)
                 writePDB(filename, self, csets=i)
-        LOGGER.report(label='t0')
+            LOGGER.info('PDB files saved in %s ...'%direc)
 
     def run(self, cutoff=15., n_modes=3, n_confs=50, rmsd=1.0,
             n_gens=5, maxclust=None, threshold=None,
