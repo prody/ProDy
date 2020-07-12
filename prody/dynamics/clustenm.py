@@ -159,6 +159,7 @@ class ClustENM(Ensemble):
         # self._potentials = OrderedDict()
         # self._conformers = OrderedDict()
         self._indexer = None
+        self._parallel = False
 
         super(ClustENM, self).__init__('Unknown') # dummy title; will be replaced in next line
         self._title = title
@@ -643,6 +644,7 @@ class ClustENM(Ensemble):
         self._n_gens = n_gens
         self._v1 = kwargs.pop('v1', False) 
         self._platform = kwargs.pop('platform', None) 
+        self._parallel = kwargs.pop('parallel', False)
 
         if maxclust is None:
             self._maxclust = None
@@ -733,7 +735,8 @@ class ClustENM(Ensemble):
             # since calculations here are CPU-bound.
             # we may totally discard Pool and just use serial version!
 
-            if self._platform is None:
+            # if self._platform is None:
+            if self._parallel:
                 with Pool(cpu_count()) as p:
                     pot_conf = p.map(self._min_sim, confs)
             else:

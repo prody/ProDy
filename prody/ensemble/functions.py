@@ -42,7 +42,7 @@ def saveEnsemble(ensemble, filename=None, **kwargs):
     if isinstance(ensemble, ClustENM):
         attr_list.extend(['_ph', '_cutoff', '_n_modes', '_n_confs', '_rmsd', '_n_gens', 
                           '_sim', '_threshold', '_maxclust', '_temp', '_t_steps', '_outlier', 
-                          '_mzscore', '_v1', '_platform', '_n_ca'])
+                          '_mzscore', '_v1', '_platform', '_n_ca', '_time', '_parallel'])
 
     if filename is None:
         filename = ensemble.getTitle().replace(' ', '_')
@@ -149,7 +149,7 @@ def loadEnsemble(filename, **kwargs):
         if type_ == 'ClustENM':
             attrs = ['_ph', '_cutoff', '_n_modes', '_n_confs', '_rmsd', '_n_gens', 
                     '_sim', '_threshold', '_maxclust', '_temp', '_t_steps', '_outlier', 
-                    '_mzscore', '_v1', '_platform', '_n_ca']
+                    '_mzscore', '_v1', '_platform', '_n_ca', '_time', '_parallel']
             for attr in attrs:
                 if attr in attr_dict:
                     val = attr_dict[attr]
