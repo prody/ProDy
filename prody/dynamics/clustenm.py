@@ -733,11 +733,11 @@ class ClustENM(Ensemble):
             # since calculations here are CPU-bound.
             # we may totally discard Pool and just use serial version!
 
-            # if self._platform is None:
-            with Pool(cpu_count()) as p:
-                pot_conf = p.map(self._min_sim, confs)
-            # else:
-            #     pot_conf = [self._min_sim(conf) for conf in confs]
+            if self._platform is None:
+                with Pool(cpu_count()) as p:
+                    pot_conf = p.map(self._min_sim, confs)
+            else:
+                pot_conf = [self._min_sim(conf) for conf in confs]
 
             LOGGER.report('Structures were sampled in %.2fs.', label='_clustenm_min_sim')
             LOGGER.info('#' + '-' * 19 + '/*\\' + '-' * 19 + '#')
