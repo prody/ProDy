@@ -39,6 +39,11 @@ def saveEnsemble(ensemble, filename=None, **kwargs):
     if isinstance(ensemble, PDBEnsemble):
         attr_list.append('_labels')
         attr_list.append('_trans')
+    if isinstance(ensemble, ClustENM):
+        attr_list.extend(['_ph', '_cutoff', '_n_modes', '_n_confs', '_rmsd', '_n_gens', 
+                          '_sim', '_threshold', '_maxclust', '_temp', '_t_steps', '_outlier', 
+                          '_mzscore', '_v1', '_platform', '_n_ca'])
+
     if filename is None:
         filename = ensemble.getTitle().replace(' ', '_')
     attr_dict = {}
@@ -59,6 +64,8 @@ def saveEnsemble(ensemble, filename=None, **kwargs):
         msa = dict_['_msa']
         if msa is not None:
             attr_dict['_msa'] = np.array([msa, None])
+
+    attr_dict['_type'] = ensemble.__class__.__name__
 
     if filename.endswith('.ens'):
         filename += '.npz'
@@ -86,53 +93,42 @@ def loadEnsemble(filename, **kwargs):
     else:
         weights = None  
 
-    isPDBEnsemble = False
+    # backward compatibility
+    try:
+        type_ = attr_dict['_type']
+    except KeyError:
+        if weights is not None and weights.ndim == 3:
+            type_ = 'PDBEnsemble'
+        else:
+            type_ = 'Ensemble'
 
     try:
         title = attr_dict['_title']
     except KeyError:
-        title = attr_dict['_name']
+        if type_ == 'ClustENM':
+            title = None
+        else:
+            title = attr_dict['_name']
+            
     if isinstance(title, np.ndarray):
-        title = np.asarray(title, dtype=str)
-    title = str(title)
+        title = title.item()
 
-    if weights is not None and weights.ndim == 3:
-        isPDBEnsemble = True
+    if not isinstance(title, str) and title is not None:
+        try:
+            title = title.decode()
+        except AttributeError:
+            title = str(title)
+
+    if type_ == 'PDBEnsemble':
         ensemble = PDBEnsemble(title)
+    elif type_ == 'ClustENM':
+        ensemble = ClustENM(title)
     else:
         ensemble = Ensemble(title)
 
     ensemble.setCoords(attr_dict['_coords'])
-    if '_atoms' in attr_dict:
-        atoms = attr_dict['_atoms'][0]
-
-        if isinstance(atoms, AtomGroup):
-            data = atoms._data
-        else:
-            data = atoms._ag._data
-        
-        for key in data:
-            arr = data[key]
-            char = arr.dtype.char
-            if char in 'SU' and char != DTYPE:
-                arr = arr.astype(str)
-                data[key] = arr
-            
-    else:
-        atoms = None
-    ensemble.setAtoms(atoms)
-
-    if '_indices' in attr_dict:
-        indices = attr_dict['_indices']
-    else:
-        indices = None
-    ensemble._indices = indices
-
-    if '_data' in attr_dict:
-        ensemble._data = attr_dict['_data'][0]
-
-    if isPDBEnsemble:
-        confs = attr_dict['_confs']
+    confs = attr_dict['_confs']
+    if type_ == 'PDBEnsemble':
         ensemble.addCoordset(confs, weights)
         if '_identifiers' in attr_dict.files:
             ensemble._labels = list(attr_dict['_identifiers'])
@@ -150,9 +146,47 @@ def loadEnsemble(filename, **kwargs):
         if '_msa' in attr_dict.files:
             ensemble._msa = attr_dict['_msa'][0]
     else:
-        ensemble.addCoordset(attr_dict['_confs'])
+        if type_ == 'ClustENM':
+            attrs = ['_ph', '_cutoff', '_n_modes', '_n_confs', '_rmsd', '_n_gens', 
+                    '_sim', '_threshold', '_maxclust', '_temp', '_t_steps', '_outlier', 
+                    '_mzscore', '_v1', '_platform', '_n_ca']
+            for attr in attrs:
+                if attr in attr_dict:
+                    val = attr_dict[attr]
+                    if len(val.shape) == 0:
+                        val = val.item()
+                    ensemble.__dict__[attr] = val
+        ensemble.addCoordset(confs)
         if weights is not None:
             ensemble.setWeights(weights)
+
+    if '_atoms' in attr_dict:
+        atoms = attr_dict['_atoms'][0]
+
+        if isinstance(atoms, AtomGroup):
+            data = atoms._data
+        else:
+            data = atoms._ag._data
+        
+        for key in data:
+            arr = data[key]
+            char = arr.dtype.char
+            if char in 'SU' and char != DTYPE:
+                arr = arr.astype(str)
+                data[key] = arr
+    else:
+        atoms = None
+    ensemble.setAtoms(atoms)
+
+    if '_indices' in attr_dict:
+        indices = attr_dict['_indices']
+    else:
+        indices = None
+    ensemble._indices = indices
+
+    if '_data' in attr_dict:
+        ensemble._data = attr_dict['_data'][0]
+
     return ensemble
 
 
@@ -379,7 +413,7 @@ def alignPDBEnsemble(ensemble, suffix='_aligned', outdir='.', gzip=False):
         return output
 
 
-def buildPDBEnsemble(atomics, ref=None, title='Unknown', labels=None, unmapped=None, **kwargs):
+def buildPDBEnsemble(atomics, ref=None, title='Unknown', labels=None, atommaps=None, unmapped=None, **kwargs):
     """Builds a :class:`.PDBEnsemble` from a given reference structure and a list of structures 
     (:class:`.Atomic` instances). Note that the reference should be included in the list as well.
 
@@ -405,6 +439,10 @@ def buildPDBEnsemble(atomics, ref=None, title='Unknown', labels=None, unmapped=N
     :arg occupancy: minimal occupancy of columns (range from 0 to 1). Columns whose occupancy
         is below this value will be trimmed
     :type occupancy: float
+
+    :arg atommaps: labels of *atomics* that were mapped and added into the ensemble. This is an 
+        output argument
+    :type atommaps: list
 
     :arg unmapped: labels of *atomics* that cannot be included in the ensemble. This is an 
         output argument
@@ -478,6 +516,7 @@ def buildPDBEnsemble(atomics, ref=None, title='Unknown', labels=None, unmapped=N
     
     # build the ensemble
     if unmapped is None: unmapped = []
+    if atommaps is None: atommaps = []
 
     LOGGER.progress('Building the ensemble...', len(atomics), '_prody_buildPDBEnsemble')
     for i, atoms in enumerate(atomics):
@@ -497,16 +536,18 @@ def buildPDBEnsemble(atomics, ref=None, title='Unknown', labels=None, unmapped=N
 
         # find the mapping of chains of atoms to those of target
         debug[labels[i]] = {}
-        atommaps = alignChains(atoms, target, debug=debug[labels[i]], **kwargs)
+        atommaps_ = alignChains(atoms, target, debug=debug[labels[i]], **kwargs)
 
-        if len(atommaps) == 0:
+        if len(atommaps_) == 0:
             unmapped.append(labels[i])
             continue
+        else:
+            atommaps.extend(atommaps_)
         
         # add the atommaps to the ensemble
-        for atommap in atommaps:
+        for atommap in atommaps_:
             lbl = pystr(labels[i])
-            if len(atommaps) > 1:
+            if len(atommaps_) > 1:
                 chids = np.unique(atommap.getChids())
                 strchids = ''.join(chids)
                 lbl += '_%s'%strchids
