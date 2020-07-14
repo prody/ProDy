@@ -163,13 +163,13 @@ def traverseMode(mode, atoms, n_steps=10, rmsd=1.5, **kwargs):
         respect to the initial conformation, default is 1.5 Å
     :type rmsd: float
 
-    :arg pos_dir: whether to include steps in the positive mode
+    :arg pos: whether to include steps in the positive mode
         direction, default is **True**
-    :type pos_dir: bool
+    :type pos: bool
 
-    :arg neg_dir: whether to include steps in the negative mode
+    :arg neg: whether to include steps in the negative mode
         direction, default is **True**
-    :type pos_dir: bool
+    :type pos: bool
 
     :arg reverse: whether to reverse the direction
         default is **False**
@@ -187,20 +187,20 @@ def traverseMode(mode, atoms, n_steps=10, rmsd=1.5, **kwargs):
     :math:`s = ((N (\\frac{RMSD}{n})^2) / \\lambda_i^{-1}) ^{0.5}`, where
     :math:`N` is the number of atoms."""
 
-    pos_dir = kwargs.get('pos_dir', True)
-    if not isinstance(pos_dir, bool):
-        raise TypeError('pos_dir should be a Boolean')
+    pos = kwargs.get('pos', True)
+    if not isinstance(pos, bool):
+        raise TypeError('pos should be a Boolean')
 
-    neg_dir = kwargs.get('neg_dir', True)
-    if not isinstance(neg_dir, bool):
-        raise TypeError('neg_dir should be a Boolean')
+    neg = kwargs.get('neg', True)
+    if not isinstance(neg, bool):
+        raise TypeError('neg should be a Boolean')
 
-    if pos_dir is False and neg_dir is False:
-        raise ValueError('pos_dir and neg_dir cannot both be False')
+    if pos is False and neg is False:
+        raise ValueError('pos and neg cannot both be False')
 
     reverse = kwargs.get('reverse', False)
-    if not isinstance(pos_dir, bool):
-        raise TypeError('pos_dir should be a Boolean')
+    if not isinstance(pos, bool):
+        raise TypeError('pos should be a Boolean')
 
     if not isinstance(mode, VectorBase):
         raise TypeError('mode must be a Mode or Vector instance, '
@@ -246,9 +246,9 @@ def traverseMode(mode, atoms, n_steps=10, rmsd=1.5, **kwargs):
     ensemble.setCoords(initial)
 
     conf_list = [initial]
-    if pos_dir:
+    if pos:
         conf_list = conf_list + confs_add
-    if  neg_dir:
+    if  neg:
         conf_list = confs_sub + conf_list
     conf_array = np.array(conf_list)
 
