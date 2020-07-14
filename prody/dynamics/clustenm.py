@@ -466,9 +466,9 @@ class ClustENM(Ensemble):
         coords = args[1]
         return self._targeted_sim(conf, coords, tmdk=self._tmdk)
 
-    def buildANM(self, coords):
+    def buildANM(self, ca):
         anm = ANM()
-        anm.buildHessian(coords, cutoff=self._cutoff, gamma=self._gamma)
+        anm.buildHessian(ca, cutoff=self._cutoff, gamma=self._gamma)
 
         return anm
 
