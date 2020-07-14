@@ -431,8 +431,7 @@ class ClustENM(Ensemble):
         tmp.setCoords(conf)
         ca = tmp.ca
 
-        anm_ca = ANM()
-        anm_ca.buildHessian(ca, cutoff=self._cutoff)
+        anm_ca = self.buildANM(ca)
 
         # 1e-6 is the same value of prody's ZERO parameter
         rank_diff = (3 * self._n_ca - 6
@@ -581,21 +580,23 @@ class ClustENM(Ensemble):
 
         LOGGER.info('Sampling conformers in generation %d ...'%self._cycle)
         LOGGER.timeit('_clustenm_gen')
-        tmp = []
-        for conf in confs:
-            if not self._v1:
-                ret = self._sample(conf)
-                if ret is not None:
-                    tmp.append(ret)
-                else:
-                    # we may raise an exception in debug mode
-                    LOGGER.info('more than 6 zero eigenvalues!')
-            else:
-                ret = self._sample_v1(conf)
-                if ret is not None:
-                    tmp.append(ret)
-                else:
-                    LOGGER.info('more than 6 zero eigenvalues!')
+        
+        sample_method = self._sample_v1 if self._v1 else self._sample
+
+        if self._parallel:
+            with Pool(cpu_count()) as p:
+                tmp = p.map(sample_method, [conf for conf in confs])
+        else:
+            tmp = [sample_method(conf) for conf in confs]
+            # for conf in confs:
+            #     ret = sample_method(conf)
+            #     if ret is not None:
+            #         tmp.append(ret)
+            #     else:
+            #         # we may raise an exception in debug mode
+            #         LOGGER.info('more than 6 zero eigenvalues!')
+
+        tmp = [r for r in tmp if r is not None]
 
         confs_ex = np.concatenate(tmp)
 
@@ -776,6 +777,10 @@ class ClustENM(Ensemble):
             else:
                 self._maxclust = (0,) + (maxclust,) * n_gens
 
+            if len(self._maxclust) != self._n_gens + 1:
+                raise ValueError('size mismatch: %d generations were set; '
+                                 '%d maxclusts were given'%(self._n_gens + 1, self._maxclust))
+
         if threshold is None:
             self._threshold = None
         else:
@@ -783,6 +788,11 @@ class ClustENM(Ensemble):
                 self._threshold = (0,) + threshold
             else:
                 self._threshold = (0,) + (threshold,) * n_gens
+
+            if len(self._threshold) != self._n_gens + 1:
+                raise ValueError('size mismatch: %d generations were set; '
+                                 '%d thresholds were given'%(self._n_gens + 1, self._threshold))
+
 
         self._sim = sim
         self._temp = temp
