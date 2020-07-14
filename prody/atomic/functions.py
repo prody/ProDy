@@ -21,8 +21,8 @@ from .selection import Selection
 from .hierview import HierView
 
 __all__ = ['iterFragments', 'findFragments', 'loadAtoms', 'saveAtoms',
-           'isReserved', 'listReservedWords', 'sortAtoms', 'sliceAtoms', 
-           'extendAtoms', 'sliceAtomicData', 'extendAtomicData']
+           'isReserved', 'listReservedWords', 'sortAtoms', 
+           'sliceAtoms', 'extendAtoms', 'sliceAtomicData', 'extendAtomicData']
 
 
 SAVE_SKIP_ATOMGROUP = set(['numbonds', 'fragindex'])
