@@ -135,6 +135,7 @@ class ClustENM(Ensemble):
         self._ph = 7.0
 
         self._cutoff = 15.
+        self._gamma = 1.
         self._n_modes = 3
         self._n_confs = 50
         self._rmsd = (0.,) 
@@ -467,7 +468,7 @@ class ClustENM(Ensemble):
 
     def buildANM(self, coords):
         anm = ANM()
-        anm.buildHessian(coords, cutoff=self._cutoff)
+        anm.buildHessian(coords, cutoff=self._cutoff, gamma=self._gamma)
 
         return anm
 
@@ -749,7 +750,7 @@ class ClustENM(Ensemble):
                 writePDB(filename, self, csets=i)
             LOGGER.info('PDB files saved in %s ...'%direc)
 
-    def run(self, cutoff=15., n_modes=3, n_confs=50, rmsd=1.0,
+    def run(self, cutoff=15., n_modes=3, gamma=1., n_confs=50, rmsd=1.0,
             n_gens=5, maxclust=None, threshold=None,
             sim=True, temp=300, t_steps_i=1000, t_steps_g=7500,
             outlier=True, mzscore=3.5, **kwargs):
@@ -760,6 +761,7 @@ class ClustENM(Ensemble):
         # set up parameters
         self._cutoff = cutoff
         self._n_modes = n_modes
+        self._gamma = gamma
         self._n_confs = n_confs
         self._rmsd = (0.,) + rmsd if isinstance(rmsd, tuple) else (0.,) + (rmsd,) * n_gens
         self._n_gens = n_gens
