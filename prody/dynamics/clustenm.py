@@ -483,11 +483,11 @@ class ClustENM(Ensemble):
         rank_diff = (3 * self._n_ca - 6
                      - np.linalg.matrix_rank(anm_ca.getHessian(),
                                              tol=ZERO, hermitian=True))
-        if rank_diff != 0:
-            # taking care cases with more than 6 zeros
-            # maybe an exception can be raised in debug mode
-            LOGGER.warn('Abnormal number of zeros modes detected (%d detected, 6 expected).'%(6 + rank_diff))
-            return None
+        # if rank_diff != 0:
+        #     # taking care cases with more than 6 zeros
+        #     # maybe an exception can be raised in debug mode
+        #     LOGGER.warn('Abnormal number of zeros modes detected (%d detected, 6 expected).'%(6 + rank_diff))
+        #     return None
 
         anm_ca.calcModes(self._n_modes)
 
