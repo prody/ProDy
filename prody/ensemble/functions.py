@@ -18,7 +18,8 @@ from .conformation import *
 
 __all__ = ['saveEnsemble', 'loadEnsemble', 'trimPDBEnsemble',
            'calcOccupancies', 'showOccupancies', 'alignPDBEnsemble',
-           'buildPDBEnsemble', 'refineEnsemble', 'combineEnsembles']
+           'buildPDBEnsemble', 'refineEnsemble', 'combineEnsembles',
+           'alignAtomicsUsingEnsemble']
 
 
 def saveEnsemble(ensemble, filename=None, **kwargs):
@@ -741,3 +742,51 @@ def combineEnsembles(target, mobile, **kwargs):
     if iterpose:
         ens.iterpose()
     return ens
+
+
+def alignAtomicsUsingEnsemble(atomics, ensemble):
+    """Align a set of :class:`.Atomic` objects using transformations from *ensemble*, 
+    which may be a :class:`.PDBEnsemble` or a :class:`.PDBConformation` instance. 
+    
+    Transformations will be applied based on indices so *atomics* and *ensemble* must 
+    have the same number of members.
+
+    :arg atomics: a set of :class:`.Atomic` objects to be aligned
+    :type atomics: tuple, list, :class:`~numpy.ndarray`
+
+    :arg ensemble: a :class:`.PDBEnsemble` or a :class:`.PDBConformation` from which 
+                   transformations can be extracted
+    :type ensemble: :class:`.PDBEnsemble`, :class:`.PDBConformation`
+    """
+
+    if not isListLike(atomics):
+        raise TypeError('atomics must be list-like')
+
+    if not isinstance(ensemble, (PDBEnsemble, PDBConformation)):
+        raise TypeError('ensemble must be a PDBEnsemble or PDBConformation')
+    if isinstance(ensemble, PDBConformation):
+        ensemble = [ensemble]
+
+    if len(atomics) != len(ensemble):
+        raise ValueError('atomics and ensemble must have the same length')
+
+    output = []
+    for i, conf in enumerate(ensemble):
+        trans = conf.getTransformation()
+        if trans is None:
+            raise ValueError('transformations are not calculated, call '
+                             '`superpose` or `iterpose`')
+
+        ag = atomics[i]
+        if not isinstance(ag, Atomic):
+            LOGGER.warning('No atomic object found for conformation {0}.'
+                           .format(i))
+            output.append(None)
+            continue
+
+        output.append(trans.apply(ag))
+
+    if len(output) == 1:
+        return output[0]
+    else:
+        return output
