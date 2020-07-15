@@ -273,12 +273,14 @@ def fetchPDB(*pdb, **kwargs):
             if isfile(fn):
                 if copy or not compressed and compressed is not None:
                     if compressed:
-                        fn = copyFile(fn, join(folder, pdb + 'pdb.gz'))
+                        fn = copyFile(fn, join(local_folder, pdb + 'pdb.gz'))
                     else:
-                        fn = gunzip(fn, join(folder, pdb + '.pdb'))
+                        fn = gunzip(fn, join(local_folder, pdb + '.pdb'))
                 filenames[i] = normpath(fn)
             else:
                 not_found.append((i, pdb))
+    else:
+        local_folder = folder
 
     if not not_found:
         if len(identifiers) == 1:
@@ -295,7 +297,7 @@ def fetchPDB(*pdb, **kwargs):
             return filenames
 
     if kwargs['copy'] or (compressed is not None and not compressed):
-        kwargs['folder'] = folder
+        kwargs['folder'] = local_folder
 
     downloads = [pdb for i, pdb in not_found]
     fns = None
