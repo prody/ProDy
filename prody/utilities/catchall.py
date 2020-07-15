@@ -7,12 +7,124 @@ from .misctools import addEnds, interpY, index
 from .checkers import checkCoords
 from Bio.Phylo.BaseTree import Tree, Clade
 
+
 __all__ = ['calcTree', 'clusterMatrix', 'showLines', 'showMatrix', 
            'reorderMatrix', 'findSubgroups', 'getCoords',  
-           'getLinkage', 'getTreeFromLinkage']
+           'getLinkage', 'getTreeFromLinkage', 'calcModeClusters']
 
 class LinkageError(Exception):
     pass
+
+def calcModeClusters(similarities, n_clusters=0, linkage='all', method='tsne', cutoff=0.0, **kwargs):
+    """Perform clustering based on members of the *ensemble* projected into lower a reduced
+    dimension.
+    
+    :arg similarities: a matrix of similarities for each structure in the ensemble, such as
+                        RMSD-matrix, dynamics-based spectral overlap, sequence similarity
+    :type similarities: :class:`~numpy.ndarray`
+
+    :arg n_clusters: the number of clusters to generate. If **0**, will scan a range of 
+                        number of clusters and return the best one based on highest
+                        silhouette score. Default is **0**.
+    :type n_clusters: int
+
+    :arg linkage: if **all**, will test all linkage types (ward, average, complete,
+                    single). Otherwise will use only the one given as input. Default is
+                    **all**.
+    :type linkage: str
+
+    :arg method: if set to **spectral**, will generate a Kirchoff matrix based on the 
+                    cutoff value given and use that as input as clustering instead of
+                    the values themselves. Default is **tsne**.
+    :type method: str
+
+    :arg cutoff: only used if *method* is set to **spectral**. This value is used for 
+                    generating the Kirchoff matrix to use for generating clusters when
+                    doing spectral clustering. Default is **0.0**.
+    :type cutoff: float
+    """
+    
+    # Import necessary packages
+    try:
+        from sklearn.manifold import SpectralEmbedding
+        from sklearn.cluster import AgglomerativeClustering
+        from sklearn.metrics import silhouette_score
+        from sklearn.manifold import TSNE
+    except ImportError:
+        raise ImportError('need sklearn module')
+
+    # Check inputs to make sure are of valid types/values
+    if not isinstance(similarities, np.ndarray):
+        try:
+            import pandas as pd
+            if not isinstance(similarities, np.ndarray):
+                raise TypeError('similarities should be an instance of ndarray or DataFrame')
+        except:
+            raise TypeError('similarities should be an instance of ndarray or DataFrame')
+
+    dim = similarities.shape
+    if dim[0] != dim[1]:
+        raise ValueError('similarities must be a square matrix')
+
+    if n_clusters != 0:
+        if not isinstance(n_clusters, int):
+            raise TypeError('clusters must be an instance of int')
+        if n_clusters < 1:
+            raise ValueError('clusters must be a positive integer')
+        elif n_clusters > similarities.shape[0]:
+            raise ValueError('clusters can\'t be longer than similarities matrix')
+        nclusts = range(n_clusters,n_clusters+1)
+    else:
+        nclusts = range(2,10,1)
+
+    if linkage != 'all':
+        if not isinstance(method, str):
+            raise TypeError('linkage must be an instance of str')
+        if method not in ['ward', 'average', 'complete', 'single']:
+            raise ValueError('linkage must be either \'ward\', \'average\', \'complete\', or \'single\'')
+        linkages = [linkage]
+    else:
+        linkages = ['ward', 'average', 'complete', 'single']
+
+    if method != 'tsne':
+        if not isinstance(method, str):
+            raise TypeError('method must be an instance of str')
+        if method != 'spectral':
+            raise ValueError('method must be either \'tsne\' or \'spectral\'')
+
+        if not isinstance(cutoff, float):
+            raise TypeError('cutoff must be an instance of float')
+
+    best_score = -1
+    best_nclust = 0
+    best_link = ''
+    best_labels = []
+
+    # Scan over range of clusters
+    for x in nclusts:
+        if method == 'tsne':
+            embedding = TSNE(n_components=2)
+            transform = embedding.fit_transform(similarities)
+
+        else:
+            kirchhoff = np.where(similarities > cutoff, 0, -1)
+            embedding = SpectralEmbedding(n_components=2)
+            transform = embedding.fit_transform(kirchhoff)
+
+        for link in linkages:
+            clustering = AgglomerativeClustering(linkage=link, n_clusters=x)
+            clustering.fit(transform)
+
+            silhouette_avg = silhouette_score(transform, clustering.labels_)
+            
+            if silhouette_avg > best_score:
+                best_score = silhouette_avg
+                best_nclust = x
+                best_link = link
+                best_labels = clustering.labels_
+
+
+    return best_labels
 
 def getCoords(data):
 

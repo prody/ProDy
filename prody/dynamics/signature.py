@@ -15,12 +15,6 @@ from prody.ensemble import Ensemble, Conformation
 from prody.atomic import AtomGroup
 from prody.atomic.fields import DTYPE
 
-from sklearn.manifold import SpectralEmbedding
-from sklearn.cluster import AgglomerativeClustering
-from sklearn.metrics import silhouette_score, pairwise_distances, calinski_harabasz_score
-from sklearn.manifold import TSNE
-import pandas as pd
-
 from .nma import NMA
 from .modeset import ModeSet
 from .mode import Mode, Vector
@@ -1006,106 +1000,6 @@ def _getEnsembleENMs(ensemble, **kwargs):
             raise TypeError('ensemble must be an Ensemble or a ModeEnsemble instance,'
                             'or a list of NMA, Mode, or ModeSet instances.')
     return enms
-
-def calcModeClusters(similarities, clusters=0, linkage='all', method='tsne', cutoff=0.0, **kwargs):
-    """Perform clustering based on members of the *ensemble* projected into lower a reduced
-    dimension.
-    
-    :arg similarities: a matrix of similarities for each structure in the ensemble. such as
-                        RMSD-matrix, dynamics-based spectral overlap, sequence similarity
-    :type similarities: :class: `np.array`, :class: 'np.ndarray', :class: `pd.DataFrame`
-
-    :arg clusters: number of clusters to generate. if **0**, will scan a range based on
-                    size of the ensemble and return the best one based on highest
-                    silhouette score.
-    :type clusters: int
-
-    :arg linkage: if **all**, will test all linkage types (ward, average, complete,
-                    single). otherwise will use only the one given as input.
-    :type linkage: str
-
-    :arg method: if set to **spectral**, will generate a Kirchoff matrix based on the 
-                    cutoff value given and use that as input as clustering instead of
-                    the values themselves.
-    :type method: str
-
-    :arg cutoff: only used if *method* is set to **spectral**. is the value used for 
-                    generating the Kirchoff matrix to use for generating clusters.
-    :type cutoff: float
-    """
-
-    # Check inputs to make sure are of valid types/values
-    if not isinstance(similarities, (np.array, np.ndarray, pd.DataFrame)):
-        raise TypeError('similarities should be an instance of ndarray or DataFrame')
-
-    if clusters != 0:
-        if not isinstance(clusters, int):
-            raise TypeError('clusters must be an instance of int')
-        if clusters < 1:
-            raise ValueError('clusters must be a positive integer')
-        elif clusters > similarities.shape[0]:
-            raise ValueError('clusters can\'t be longer than similarities matrix')
-        nclusts = range(clusters,clusters+1)
-    else:
-        nclusts = range(2,10,1)
-        #nclusts = range(1,similarities.shape[0])
-
-    if linkage != 'all':
-        if not isinstance(method, str):
-            raise TypeError('linkage must be an instance of str')
-        if method not in ['ward', 'average', 'complete', 'single']:
-            raise ValueError('linkage must be either \'ward\', \'average\', \'complete\', or \'single\'')
-        linkages = [linkage]
-    else:
-        linkages = ['ward', 'average', 'complete', 'single']
-
-    if method != 'tsne':
-        if not isinstance(method, str):
-            raise TypeError('method must be an instance of str')
-        if method != 'spectral':
-            raise ValueError('method must be either \'tsne\' or \'spectral\'')
-
-        if not isinstance(cutoff, float):
-            raise TypeError('cutoff must be an instance of float')
-
-
-    silhouette_scores = []
-    chs_scores = []
-
-    # Generate DataFrames of silhouette scores and C-H scores
-    # Scan over range of clusters
-    strucs = similarities.shape[0]
-    for x in nclusts:
-        if method == 'tsne':
-            embedding = TSNE(n_components=2)
-            transform = embedding.fit_transform(similarities)
-
-        else:
-            kirchhoff = np.where(similarities > cutoff, 0, -1)
-            gnm_emb = GNM()
-            gnm_emb.setKirchhoff(kirchhoff)
-            gnm_emb.calcModes()
-
-            embedding = SpectralEmbedding(n_components=2)
-            transform = embedding.fit_transform(kirchhoff)
-
-        for link in linkages:
-            clustering = AgglomerativeClustering(linkage=link, n_clusters=x)
-            clustering.fit(transform)
-
-            silhouette_avg = silhouette_score(transform, clustering.labels_)
-            silhouette_scores.append([x, link, silhouette_avg, clustering.labels_])
-            chs_avg = calinski_harabasz_score(transform, clustering.labels_)
-            chs_scores.append([x, link, chs_avg, clustering.labels_])
-
-    sil_df = pd.DataFrame(silhouette_scores, columns=['nclusts','linkage','score', 'labels'])
-    chs_df = pd.DataFrame(chs_scores, columns=['nclusts','linkage','score', 'labels'])
-
-    best_sil = sil_df.iloc[sil_df.score.idxmax()]
-    best_chs = chs_df.iloc[chs_df.score.idxmax()]
-
-    # Using best parameters based on silhouette score, return the cluster labels
-    return best_sil.labels
 
 def calcEnsembleSpectralOverlaps(ensemble, distance=False, turbo=False, **kwargs):
     """Calculate the spectral overlaps between each pair of conformations in the 
