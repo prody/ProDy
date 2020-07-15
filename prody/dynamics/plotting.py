@@ -622,16 +622,16 @@ def showMode(mode, *args, **kwargs):
     if mode.is3d():
         a3d = mode.getArrayNx3()
         show = []
-        show.append(showAtomicLines(a3d[:, 0], atoms=atoms, label='x-component', final=False, **kwargs))
-        show.append(showAtomicLines(a3d[:, 1], atoms=atoms, label='y-component', final=False, **kwargs))
-        show.append(showAtomicLines(a3d[:, 2], atoms=atoms, label='z-component', final=final, **kwargs))
+        show.append(showAtomicLines(a3d[:, 0], label='x-component', final=False, **kwargs))
+        show.append(showAtomicLines(a3d[:, 1], label='y-component', final=False, **kwargs))
+        show.append(showAtomicLines(a3d[:, 2], label='z-component', final=final, **kwargs))
     else:
         a1d = mode._getArray()
         show = showAtomicLines(a1d, *args, **kwargs)
         if show_hinges and isinstance(mode, Mode):
             hinges = calcHinges(mode)
             if hinges is not None:
-                showAtomicLines(hinges, a1d[hinges], 'r*', atoms=atoms, final=False)
+                showAtomicLines(hinges, a1d[hinges], 'r*', final=False)
 
     if atoms is not None:
         title(str(atoms))
