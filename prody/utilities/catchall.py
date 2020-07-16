@@ -29,9 +29,9 @@ def calcModeClusters(similarities, n_clusters=0, linkage='all', method='tsne', c
     :type n_clusters: int
 
     :arg linkage: if **all**, will test all linkage types (ward, average, complete,
-                    single). Otherwise will use only the one given as input. Default is
+                    single). Otherwise will use only the one(s) given as input. Default is
                     **all**.
-    :type linkage: str
+    :type linkage: str, list
 
     :arg method: if set to **spectral**, will generate a Kirchoff matrix based on the 
                     cutoff value given and use that as input as clustering instead of
@@ -43,7 +43,7 @@ def calcModeClusters(similarities, n_clusters=0, linkage='all', method='tsne', c
                     doing spectral clustering. Default is **0.0**.
     :type cutoff: float
     """
-    
+
     # Import necessary packages
     try:
         from sklearn.manifold import SpectralEmbedding
@@ -52,12 +52,21 @@ def calcModeClusters(similarities, n_clusters=0, linkage='all', method='tsne', c
         from sklearn.manifold import TSNE
     except ImportError:
         raise ImportError('need sklearn module')
+        '''
+        try: 
+            import Bio 
+        except ImportError:
+            raise ImportError('Phylo module could not be imported. '
+                'Reinstall ProDy or install Biopython '
+                'to solve the problem.')
+        '''
+        
 
     # Check inputs to make sure are of valid types/values
     if not isinstance(similarities, np.ndarray):
         try:
             import pandas as pd
-            if not isinstance(similarities, np.ndarray):
+            if not isinstance(similarities, pd.DataFrame):
                 raise TypeError('similarities should be an instance of ndarray or DataFrame')
         except:
             raise TypeError('similarities should be an instance of ndarray or DataFrame')
@@ -78,10 +87,18 @@ def calcModeClusters(similarities, n_clusters=0, linkage='all', method='tsne', c
         nclusts = range(2,10,1)
 
     if linkage != 'all':
-        if not isinstance(method, str):
-            raise TypeError('linkage must be an instance of str')
-        if method not in ['ward', 'average', 'complete', 'single']:
-            raise ValueError('linkage must be either \'ward\', \'average\', \'complete\', or \'single\'')
+        if isinstance(linkage, list):
+            if len(linkage) > 4:
+                raise ValueError('linkage must be one or more of: \'ward\', \'average\', \'complete\', or \'single\'')
+            for val in method:
+                if val.lower() not in ['ward', 'average', 'complete', 'single']:
+                    raise ValueError('linkage must be one or more of: \'ward\', \'average\', \'complete\', or \'single\'')
+                linkages = [ x.lower() for x in linkage ]
+        elif not isinstance(linkage, str):
+            raise TypeError('linkage must be an instance of str or list of strs')
+
+        if linkage not in ['ward', 'average', 'complete', 'single']:
+            raise ValueError('linkage must one or more of: \'ward\', \'average\', \'complete\', or \'single\'')
         linkages = [linkage]
     else:
         linkages = ['ward', 'average', 'complete', 'single']
