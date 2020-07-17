@@ -31,7 +31,7 @@ def calcModeClusters(similarities, n_clusters=0, linkage='all', method='tsne', c
     :arg linkage: if **all**, will test all linkage types (ward, average, complete,
                     single). Otherwise will use only the one(s) given as input. Default is
                     **all**.
-    :type linkage: str, list
+    :type linkage: str, list, tuple, :class:`~numpy.ndarray`
 
     :arg method: if set to **spectral**, will generate a Kirchoff matrix based on the 
                     cutoff value given and use that as input as clustering instead of
@@ -63,6 +63,8 @@ def calcModeClusters(similarities, n_clusters=0, linkage='all', method='tsne', c
         
 
     # Check inputs to make sure are of valid types/values
+    from prody.utilities import isListLike
+
     if not isinstance(similarities, np.ndarray):
         try:
             import pandas as pd
@@ -87,15 +89,15 @@ def calcModeClusters(similarities, n_clusters=0, linkage='all', method='tsne', c
         nclusts = range(2,10,1)
 
     if linkage != 'all':
-        if isinstance(linkage, list):
-            if len(linkage) > 4:
-                raise ValueError('linkage must be one or more of: \'ward\', \'average\', \'complete\', or \'single\'')
-            for val in method:
+        if isListLike(linkage):
+            for val in linkage:
                 if val.lower() not in ['ward', 'average', 'complete', 'single']:
                     raise ValueError('linkage must be one or more of: \'ward\', \'average\', \'complete\', or \'single\'')
-                linkages = [ x.lower() for x in linkage ]
+            if len(linkage) > 4:
+                raise ValueError('linkage must be one or more of: \'ward\', \'average\', \'complete\', or \'single\'')
+            linkages = [ x.lower() for x in linkage ]
         elif not isinstance(linkage, str):
-            raise TypeError('linkage must be an instance of str or list of strs')
+            raise TypeError('linkage must be an instance of str or list-like of strs')
 
         if linkage not in ['ward', 'average', 'complete', 'single']:
             raise ValueError('linkage must one or more of: \'ward\', \'average\', \'complete\', or \'single\'')
