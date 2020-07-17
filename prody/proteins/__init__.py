@@ -66,8 +66,8 @@ Parse mmCIF files
 
 Following ProDy functions are for parsing :file:`.cif` files:
 
-  * :func:`.parseCIF` - parse :file:`.cif` formated file
-  * :func:`.parseCIFStream` - parse :file:`.cif` formated stream
+  * :func:`.parseMMCIF` - parse :file:`.cif` formated file
+  * :func:`.parseMMCIFStream` - parse :file:`.cif` formated stream
 
 .. seealso::
 
