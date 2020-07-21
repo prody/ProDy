@@ -87,6 +87,7 @@ def clusterSubfamilies(similarities, n_clusters=0, linkage='all', method='tsne',
         nclusts = range(2,10,1)
 
     if linkage != 'all':
+        # Check if given input for linkage is list-like
         if isListLike(linkage):
             for val in linkage:
                 if val.lower() not in ['ward', 'average', 'complete', 'single']:
@@ -94,13 +95,16 @@ def clusterSubfamilies(similarities, n_clusters=0, linkage='all', method='tsne',
             if len(linkage) > 4:
                 raise ValueError('linkage must be one or more of: \'ward\', \'average\', \'complete\', or \'single\'')
             linkages = [ x.lower() for x in linkage ]
-        elif not isinstance(linkage, str):
-            raise TypeError('linkage must be an instance of str or list-like of strs')
 
-        elif linkage not in ['ward', 'average', 'complete', 'single']:
-            raise ValueError('linkage must one or more of: \'ward\', \'average\', \'complete\', or \'single\'')
-        
-        linkages = [linkage]
+        # If not, check if it is a valid string and method name
+        else:
+            if not isinstance(linkage, str):
+                raise TypeError('linkage must be an instance of str or list-like of strs')
+
+            if linkage not in ['ward', 'average', 'complete', 'single']:
+                raise ValueError('linkage must one or more of: \'ward\', \'average\', \'complete\', or \'single\'')
+
+            linkages = [linkage]
     else:
         linkages = ['ward', 'average', 'complete', 'single']
 
