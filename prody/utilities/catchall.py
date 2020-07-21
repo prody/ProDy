@@ -3,7 +3,7 @@
 import numpy as np
 
 from numpy import unique, linalg, diag, sqrt, dot
-from .misctools import addEnds, interpY, index
+from .misctools import addEnds, interpY, index, isListLike
 from .checkers import checkCoords
 from Bio.Phylo.BaseTree import Tree, Clade
 
@@ -15,7 +15,7 @@ __all__ = ['calcTree', 'clusterMatrix', 'showLines', 'showMatrix',
 class LinkageError(Exception):
     pass
 
-def calcModeClusters(similarities, n_clusters=0, linkage='all', method='tsne', cutoff=0.0, **kwargs):
+def clusterSubfamilies(similarities, n_clusters=0, linkage='all', method='tsne', cutoff=0.0, **kwargs):
     """Perform clustering based on members of the *ensemble* projected into lower a reduced
     dimension.
     
@@ -63,14 +63,12 @@ def calcModeClusters(similarities, n_clusters=0, linkage='all', method='tsne', c
         
 
     # Check inputs to make sure are of valid types/values
-    from prody.utilities import isListLike
-
     if not isinstance(similarities, np.ndarray):
         try:
             import pandas as pd
             if not isinstance(similarities, pd.DataFrame):
                 raise TypeError('similarities should be an instance of ndarray or DataFrame')
-        except:
+        except ImportError:
             raise TypeError('similarities should be an instance of ndarray or DataFrame')
 
     dim = similarities.shape
@@ -99,8 +97,9 @@ def calcModeClusters(similarities, n_clusters=0, linkage='all', method='tsne', c
         elif not isinstance(linkage, str):
             raise TypeError('linkage must be an instance of str or list-like of strs')
 
-        if linkage not in ['ward', 'average', 'complete', 'single']:
+        elif linkage not in ['ward', 'average', 'complete', 'single']:
             raise ValueError('linkage must one or more of: \'ward\', \'average\', \'complete\', or \'single\'')
+        
         linkages = [linkage]
     else:
         linkages = ['ward', 'average', 'complete', 'single']
