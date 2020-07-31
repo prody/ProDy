@@ -154,10 +154,12 @@ class ClustENM(Ensemble):
         self._idx_ca = None
         self._n_ca = None
         self._cycle = 0
+        self._time = 0
         # self._counts = OrderedDict()   # possibly deprecated
         # self._potentials = OrderedDict()
         # self._conformers = OrderedDict()
         self._indexer = None
+        self._parallel = False
 
         super(ClustENM, self).__init__('Unknown') # dummy title; will be replaced in next line
         self._title = title
@@ -192,15 +194,6 @@ class ClustENM(Ensemble):
             self._n_ca = self._atoms.ca.numAtoms()
             self._n_atoms = self._atoms.numAtoms()
             self._indices = None
-
-            # check for discontinuity in the structure
-            gnm = GNM()
-            gnm.buildKirchhoff(self._atoms.ca)
-            K = gnm.getKirchhoff()
-            rank_diff = (len(K) - 1
-                        - np.linalg.matrix_rank(K, tol=ZERO, hermitian=True))
-            if rank_diff != 0:
-                raise ValueError('atoms has disconnected parts; please check the structure')
 
     def getTitle(self):
         title = 'Unknown'
@@ -257,12 +250,12 @@ class ClustENM(Ensemble):
         self._topology = fixed.topology
         self._positions = fixed.positions
 
-    def _min_sim(self, arg):
+    def _min_sim(self, coords):
 
-        # arg: coordset   (numAtoms, 3) in Angstrom, which should be converted into nanometer
+        # coords: coordset   (numAtoms, 3) in Angstrom, which should be converted into nanometer
 
         # we are not using self._positions!
-        # arg will be set as positions
+        # coords will be set as positions
 
         try:
             from simtk.openmm import Platform, LangevinIntegrator
@@ -301,11 +294,11 @@ class ClustENM(Ensemble):
 
         # automatic conversion into nanometer will be carried out.
 
-        simulation.context.setPositions(arg * angstrom)
+        simulation.context.setPositions(coords * angstrom)
 
         try:
+            simulation.minimizeEnergy()
             if self._sim:
-                simulation.minimizeEnergy()
                 # heating-up the system incrementally
                 sdr = StateDataReporter(stdout, 1, step=True, temperature=True)
                 sdr._initializeConstants(simulation)
@@ -321,8 +314,7 @@ class ClustENM(Ensemble):
                     temp = (2 * ke / (sdr._dof * MOLAR_GAS_CONSTANT_R)).value_in_unit(kelvin)
 
                 simulation.step(self._t_steps[self._cycle])
-            else:
-                simulation.minimizeEnergy()
+                
             pos = simulation.context.getState(getPositions=True).getPositions(asNumpy=True).value_in_unit(angstrom)
             pot = simulation.context.getState(getEnergy=True).getPotentialEnergy().value_in_unit(kilojoule_per_mole)
 
@@ -331,7 +323,7 @@ class ClustENM(Ensemble):
         except BaseException as be:
             LOGGER.warning('OpenMM exception: ' + be.__str__() + ' so the corresponding conformer will be discarded!')
 
-            return np.nan, np.full_like(arg, np.nan)
+            return np.nan, np.full_like(coords, np.nan)
 
     def _sample_v1(self, conf):
 
@@ -515,12 +507,12 @@ class ClustENM(Ensemble):
 
         return np.array(tmp1)
 
-    def _build(self, conformers, keys, potentials, counts):
+    def _build(self, conformers, keys, potentials, sizes):
 
         #coords = conformers[0][0]
         #self.setCoords(coords)
         self.addCoordset(conformers)
-        self.setData('count', counts)
+        self.setData('size', sizes)
         self.setData('key', keys)
         self.setData('potential', potentials)
 
@@ -610,30 +602,29 @@ class ClustENM(Ensemble):
         else:
             return super(ClustENM, self)._getCoordsets(indices, selected)
 
-    def writePDB(self, folder='.', single=True, **kwargs):
-
+    def writePDB(self, filename=None, single=True, **kwargs):
         # single -> True, save as a single pdb file with each conformer as a model
         # otherwise, each conformer is saved as a separate pdb file
         # in the directory pdbs_pdbname
 
-        title = self.getTitle()
+        if filename is None:
+            filename = self.getTitle()
 
-        LOGGER.timeit('t0')
         if single:
-            LOGGER.info('Saving %s.pdb ...'%title)
-            writePDB(folder + '/' + title, self)
+            filename = writePDB(filename, self)
+            LOGGER.info('PDB file saved as %s'%filename)
         else:
-            direc = folder + '/' + title
+            direc = filename
             if isdir(direc):
                 LOGGER.warn('%s is not empty; will be flooded'%direc)
             else:
                 mkdir(direc)
 
-            LOGGER.info('Saving in %s ...'%direc)
+            LOGGER.info('Saving files ...')
             for i, lab in enumerate(self.getLabels()):
                 filename = '%s/%s'%(direc, lab)
                 writePDB(filename, self, csets=i)
-        LOGGER.report(label='t0')
+            LOGGER.info('PDB files saved in %s ...'%direc)
 
     def run(self, cutoff=15., n_modes=3, n_confs=50, rmsd=1.0,
             n_gens=5, maxclust=None, threshold=None,
@@ -651,6 +642,7 @@ class ClustENM(Ensemble):
         self._n_gens = n_gens
         self._v1 = kwargs.pop('v1', False) 
         self._platform = kwargs.pop('platform', None) 
+        self._parallel = kwargs.pop('parallel', False)
 
         if maxclust is None:
             self._maxclust = None
@@ -682,6 +674,15 @@ class ClustENM(Ensemble):
 
         self._cycle = 0
 
+        # check for discontinuity in the structure
+        gnm = GNM()
+        gnm.buildKirchhoff(self._atoms.ca, cutoff=self._cutoff)
+        K = gnm.getKirchhoff()
+        rank_diff = (len(K) - 1
+                    - np.linalg.matrix_rank(K, tol=ZERO, hermitian=True))
+        if rank_diff != 0:
+            raise ValueError('atoms has disconnected parts; please check the structure')
+
         # t0 = perf_counter()
         # prody.logger.timeit doesn't give the correct overal time,
         # that's why, perf_counter is being used!
@@ -699,8 +700,9 @@ class ClustENM(Ensemble):
         potential, conformer = self._min_sim(self._atoms.getCoords())
         if np.isnan(potential):
             raise ValueError('Initial structure could not be minimized. Try again and/or check your structure.')
-
-        LOGGER.report('Structure was energetically minizied in %.2fs.', label='_clustenm_min')
+        
+        LOGGER.report(label='_clustenm_min')
+        
         LOGGER.info('#' + '-' * 19 + '/*\\' + '-' * 19 + '#')
         # self._potentials[0] = np.array([potential])
         # self._conformers[0] = conformer.reshape(1, *conformer.shape)
@@ -731,7 +733,8 @@ class ClustENM(Ensemble):
             # since calculations here are CPU-bound.
             # we may totally discard Pool and just use serial version!
 
-            if self._platform is None:
+            # if self._platform is None:
+            if self._parallel:
                 with Pool(cpu_count()) as p:
                     pot_conf = p.map(self._min_sim, confs)
             else:
@@ -765,6 +768,7 @@ class ClustENM(Ensemble):
         self._build(conformers, keys, potentials, sizes)
         LOGGER.report('Ensemble was created in %.2fs.', label='_clustenm_ens')
 
+        self._time = LOGGER.timing(label='_clustenm_overall')
         LOGGER.report('All completed in %.2fs.', label='_clustenm_overall')
         # t1 = perf_counter()
         # t10 = round(t1 - t0, 2)
@@ -777,27 +781,29 @@ class ClustENM(Ensemble):
             filename = '%s_parameters.txt'%title
 
         with open(filename, 'w') as f:
-            f.write(f'title = {title}\n')
-            f.write(f'pH = {self._ph}\n')
-            f.write(f'cutoff = {self._cutoff}\n')
-            f.write(f'n_modes = {self._n_modes}\n')
+            f.write('title = %s\n'%title)
+            f.write('pH = %4.2f\n'%self._ph)
+            f.write('cutoff = %4.2f\n'%self._cutoff)
+            f.write('n_modes = %d\n'%self._n_modes)
             if not self._v1:
-                f.write(f'n_confs = {self._n_confs}\n')
-            f.write(f'rmsd = {self._rmsd[1:]}\n')
-            f.write(f'n_gens = {self._n_gens}\n')
+                f.write('n_confs = %d\n'%self._n_confs)
+            f.write('rmsd = %s\n'%str(self._rmsd[1:]))
+            f.write('n_gens = %d\n'%self._n_gens)
             if self._threshold is not None:
-                f.write(f'threshold = {self._threshold[1:]}\n')
+                f.write('threshold = %s\n'%str(self._threshold[1:]))
             if self._maxclust is not None:
-                f.write(f'maxclust = {self._maxclust[1:]}\n')
+                f.write('maxclust = %s\n'%str(self._maxclust[1:]))
             if self._sim:
-                f.write(f'temp = {self._temp}\n')
-                f.write(f't_steps = {self._t_steps}\n')
+                f.write('temp = %4.2f\n'%self._temp)
+                f.write('t_steps = %s\n'%str(self._t_steps))
             if self._outlier:
-                f.write(f'outlier = {self._outlier}\n')
-                f.write(f'mzscore = {self._mzscore}\n')
+                f.write('outlier = %s\n'%self._outlier)
+                f.write('mzscore = %4.2f\n'%self._mzscore)
             if self._v1:
-                f.write(f'v1 = {self._v1}\n')
+                f.write('v1 = %s\n'%self._v1)
             if self._platform is not None:
-                f.write(f'platform = %s\n'%self._platform)
+                f.write('platform = %s\n'%self._platform)
             else:
-                f.write(f'platform = Default\n')
+                f.write('platform = Default\n')
+
+            f.write('total time = %4.2f'%self._time)
