@@ -42,6 +42,9 @@ from scipy.stats import median_absolute_deviation
 from prody import LOGGER
 from .anm import ANM
 from .gnm import GNM, ZERO
+from .rtb import RTB
+from .imanm import imANM
+from .exanm import exANM
 from .editing import extendModel
 from .sampling import sampleModes
 from prody.atomic import AtomGroup
@@ -53,7 +56,7 @@ from prody.utilities import createStringIO, importLA
 la = importLA()
 norm = la.norm
 
-__all__ = ['ClustENM']
+__all__ = ['ClustENM', 'ClustRTB', 'ClustImANM', 'ClustExANM']
 
 class ClustENM(Ensemble):
     '''
@@ -185,7 +188,7 @@ class ClustENM(Ensemble):
     def isBuilt(self):
         return self._confs is not None
 
-    def setAtoms(self, atoms, pH=7.0, fix_missing_residues=True):
+    def setAtoms(self, atoms, pH=7.0, fix_missing_residues=False):
         if self.isBuilt():
             super(ClustENM, self).setAtoms(atoms)
         else:
@@ -434,14 +437,8 @@ class ClustENM(Ensemble):
 
         anm_ca = self.buildANM(ca)
 
-        # 1e-6 is the same value of prody's ZERO parameter
-        rank_diff = (3 * self._n_ca - 6
-                     - np.linalg.matrix_rank(anm_ca.getHessian(),
-                                             tol=ZERO, hermitian=True))
-        if rank_diff != 0:
-            # taking care cases with more than 6 zeros
-            # maybe an exception can be raised in debug mode
-            LOGGER.warn('Abnormal number of zeros modes detected (%d detected, 6 expected).'%(6 + rank_diff))
+        # use prody's ZERO parameter
+        if not self.checkANM(anm_ca):
             return None
 
         anm_ca.calcModes(self._n_modes)
@@ -472,6 +469,19 @@ class ClustENM(Ensemble):
 
         return anm
 
+    def checkANM(self, anm):
+        H = anm.getHessian()
+        rank = np.linalg.matrix_rank(anm.getHessian(), tol=ZERO, hermitian=True)
+        rank_diff = H.shape[0] - 6 - rank
+        
+        good = rank_diff <= 0
+
+        if not good:
+            # taking care cases with more than 6 zeros
+            # maybe an exception can be raised in debug mode
+            LOGGER.warn('Abnormal number of zeros modes detected (%d detected, 6 expected).'%(6 + rank_diff))
+        return good
+
     def _sample(self, conf):
         tmp = self._atoms.copy()
         tmp.setCoords(conf)
@@ -480,14 +490,8 @@ class ClustENM(Ensemble):
         anm_ca = self.buildANM(ca)
 
         # use prody's ZERO parameter
-        # rank_diff = (3 * self._n_ca - 6
-        #              - np.linalg.matrix_rank(anm_ca.getHessian(),
-        #                                      tol=ZERO, hermitian=True))
-        # if rank_diff != 0:
-        #     # taking care cases with more than 6 zeros
-        #     # maybe an exception can be raised in debug mode
-        #     LOGGER.warn('Abnormal number of zeros modes detected (%d detected, 6 expected).'%(6 + rank_diff))
-        #     return None
+        if not self.checkANM(anm_ca):
+            return None
 
         anm_ca.calcModes(self._n_modes)
 
@@ -941,3 +945,80 @@ class ClustENM(Ensemble):
                 f.write('platform = Default\n')
 
             f.write('total time = %4.2f'%self._time)
+
+
+class ClustRTB(ClustENM):
+    def __init__(self, title=None):
+        super(ClustRTB, self).__init__(title)
+        self._blocks = None
+        self._scale = 64.
+        self._h = 100.
+
+    def buildANM(self, ca):
+        blocks = self._blocks
+        anm = RTB()
+        anm.buildHessian(ca, blocks, cutoff=self._cutoff, gamma=self._gamma)
+
+        return anm
+
+    def setBlocks(self, blocks):
+        self._blocks = blocks
+
+    def run(self, **kwargs):
+        if self._blocks is None:
+            raise ValueError('blocks are not set')
+        
+        super(ClustRTB, self).run(**kwargs)
+
+class ClustImANM(ClustENM):
+    def __init__(self, title=None):
+        super(ClustImANM, self).__init__(title)
+        self._blocks = None
+        self._scale = 64.
+        self._h = 100.
+
+    def buildANM(self, ca):
+        blocks = self._blocks
+        anm = imANM()
+        anm.buildHessian(ca, blocks, cutoff=self._cutoff, 
+                         gamma=self._gamma, scale=self._scale,
+                         h=self._h)
+
+        return anm
+
+    def setBlocks(self, blocks):
+        self._blocks = blocks
+
+    def run(self, **kwargs):
+        self._scale = kwargs.pop('scale', 64.)
+        self._h = kwargs.pop('h', 100.)
+        if self._blocks is None:
+            raise ValueError('blocks are not set')
+        
+        super(ClustImANM, self).run(**kwargs)
+
+class ClustExANM(ClustENM):
+    def buildANM(self, ca):
+        anm = exANM()
+        anm.buildHessian(ca, cutoff=self._cutoff, gamma=self._gamma, R=self._R, 
+                         Ri=self._Ri, r=self._r, h=self._h, exr=self._exr, 
+                         gamma_memb=self._gamma_memb, hull=self._hull, lat=self._lat, 
+                         center=self._centering)
+
+        return anm
+
+    def run(self, **kwargs):
+        depth = kwargs.pop('depth', None)
+        h = depth / 2 if depth is not None else None
+        self._h = kwargs.pop('h', h)
+        self._R = float(kwargs.pop('R', 80.))
+        self._Ri = float(kwargs.pop('Ri', 0.))
+        self._r = float(kwargs.pop('r', 3.1))
+        self._lat = str(kwargs.pop('lat', 'FCC'))
+        self._exr = float(kwargs.pop('exr', 5.))
+        self._hull = kwargs.pop('hull', True)
+        self._centering = kwargs.pop('center', True)
+        self._turbo = kwargs.pop('turbo', True)
+        self._gamma_memb = kwargs.pop('gamma_memb', 1.)
+        
+        super(ClustExANM, self).run(**kwargs)
