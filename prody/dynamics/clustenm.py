@@ -42,15 +42,21 @@ from scipy.stats import median_absolute_deviation
 from prody import LOGGER
 from .anm import ANM
 from .gnm import GNM, ZERO
+from .rtb import RTB
+from .imanm import imANM
+from .exanm import exANM
 from .editing import extendModel
 from .sampling import sampleModes
 from prody.atomic import AtomGroup
-from prody.measure import calcTransformation, applyTransformation
+from prody.measure import calcTransformation, applyTransformation, calcRMSD
 from prody.ensemble import Ensemble
 from prody.proteins import writePDB, parsePDB, writePDBStream, parsePDBStream
-from prody.utilities import createStringIO
+from prody.utilities import createStringIO, importLA
 
-__all__ = ['ClustENM']
+la = importLA()
+norm = la.norm
+
+__all__ = ['ClustENM', 'ClustRTB', 'ClustImANM', 'ClustExANM']
 
 class ClustENM(Ensemble):
     '''
@@ -132,6 +138,7 @@ class ClustENM(Ensemble):
         self._ph = 7.0
 
         self._cutoff = 15.
+        self._gamma = 1.
         self._n_modes = 3
         self._n_confs = 50
         self._rmsd = (0.,) 
@@ -160,6 +167,8 @@ class ClustENM(Ensemble):
         # self._conformers = OrderedDict()
         self._indexer = None
         self._parallel = False
+        self._targeted = False
+        self._tmdk = 10.
 
         super(ClustENM, self).__init__('Unknown') # dummy title; will be replaced in next line
         self._title = title
@@ -179,7 +188,7 @@ class ClustENM(Ensemble):
     def isBuilt(self):
         return self._confs is not None
 
-    def setAtoms(self, atoms, pH=7.0, fix_missing_residues=True):
+    def setAtoms(self, atoms, pH=7.0, fix_missing_residues=False):
         if self.isBuilt():
             super(ClustENM, self).setAtoms(atoms)
         else:
@@ -250,19 +259,13 @@ class ClustENM(Ensemble):
         self._topology = fixed.topology
         self._positions = fixed.positions
 
-    def _min_sim(self, coords):
-
-        # coords: coordset   (numAtoms, 3) in Angstrom, which should be converted into nanometer
-
-        # we are not using self._positions!
-        # coords will be set as positions
+    def _prep_sim(self, external_forces=[]):
 
         try:
             from simtk.openmm import Platform, LangevinIntegrator
             from simtk.openmm.app import Modeller, ForceField, CutoffNonPeriodic, Simulation, \
-                                         HBonds, StateDataReporter
-            from simtk.unit import nanometers, picosecond, kelvin, angstrom, kilojoule_per_mole, \
-                                   MOLAR_GAS_CONSTANT_R
+                                         HBonds
+            from simtk.unit import nanometers, picosecond, kelvin
         except ImportError:
             raise ImportError('Please install PDBFixer and OpenMM in order to use ClustENM.')
 
@@ -275,6 +278,9 @@ class ClustENM(Ensemble):
                                          nonbondedMethod=CutoffNonPeriodic,
                                          nonbondedCutoff=1.0*nanometers,
                                          constraints=HBonds)
+
+        for force in external_forces:
+            system.addForce(force)
 
         integrator = LangevinIntegrator(self._temp*kelvin,
                                         1/picosecond,
@@ -292,8 +298,24 @@ class ClustENM(Ensemble):
         simulation = Simulation(modeller.topology, system, integrator,
                                 platform, properties)
 
-        # automatic conversion into nanometer will be carried out.
+        return simulation
 
+    def _min_sim(self, coords):
+
+        # coords: coordset   (numAtoms, 3) in Angstrom, which should be converted into nanometer
+
+        # we are not using self._positions!
+        # coords will be set as positions
+
+        try:
+            from simtk.openmm.app import StateDataReporter
+            from simtk.unit import kelvin, angstrom, kilojoule_per_mole, MOLAR_GAS_CONSTANT_R
+        except ImportError:
+            raise ImportError('Please install PDBFixer and OpenMM in order to use ClustENM.')
+
+        simulation = self._prep_sim()
+
+        # automatic conversion into nanometer will be carried out.
         simulation.context.setPositions(coords * angstrom)
 
         try:
@@ -314,6 +336,7 @@ class ClustENM(Ensemble):
                     temp = (2 * ke / (sdr._dof * MOLAR_GAS_CONSTANT_R)).value_in_unit(kelvin)
 
                 simulation.step(self._t_steps[self._cycle])
+                simulation.minimizeEnergy()
                 
             pos = simulation.context.getState(getPositions=True).getPositions(asNumpy=True).value_in_unit(angstrom)
             pot = simulation.context.getState(getEnergy=True).getPotentialEnergy().value_in_unit(kilojoule_per_mole)
@@ -325,6 +348,85 @@ class ClustENM(Ensemble):
 
             return np.nan, np.full_like(coords, np.nan)
 
+    def _targeted_sim(self, coords0, coords1, tmdk=15., d_steps=100, n_max_steps=10000, ddtol=1e-3, n_conv=5):
+
+        try:
+            from simtk.openmm import CustomExternalForce
+            from simtk.openmm.app import StateDataReporter
+            from simtk.unit import nanometer, kelvin, angstrom, kilojoule_per_mole, MOLAR_GAS_CONSTANT_R
+        except ImportError:
+            raise ImportError('Please install PDBFixer and OpenMM in order to use ClustENM.')
+        
+        tmdk *= kilojoule_per_mole/angstrom**2
+        tmdk = tmdk.value_in_unit(kilojoule_per_mole/nanometer**2)
+
+        # coords1_ca = coords1[self._idx_ca, :]
+        pos1 = coords1 * angstrom
+        # pos1_ca = pos1[self._idx_ca, :]
+
+        force = CustomExternalForce('tmdk*((x-x0)^2+(y-y0)^2+(z-z0)^2)')
+        force.addGlobalParameter('tmdk', 0.) 
+        force.addPerParticleParameter('x0')
+        force.addPerParticleParameter('y0')
+        force.addPerParticleParameter('z0')
+        force.setForceGroup(1)
+        # for i, atm_idx in enumerate(self._idx_ca):
+        #     pars = pos1_ca[i, :].value_in_unit(nanometer)
+        #     force.addParticle(int(atm_idx), pars)
+
+        n_atoms = coords0.shape[0]
+        atom_indices = np.arange(n_atoms)
+        for i, atm_idx in enumerate(atom_indices):
+            pars = pos1[i, :].value_in_unit(nanometer)
+            force.addParticle(int(atm_idx), pars)
+
+        simulation = self._prep_sim([force])
+        
+        # automatic conversion into nanometer will be carried out.
+        simulation.context.setPositions(coords0 * angstrom)
+
+        dist = dist0 = calcRMSD(coords0, coords1)
+        m_conv = 0
+        n_steps = 0
+        try:
+            simulation.minimizeEnergy()
+
+            # update parameters
+            while n_steps < n_max_steps:
+                simulation.context.setParameter('tmdk', tmdk)
+                force.updateParametersInContext(simulation.context)
+
+                simulation.step(d_steps)
+                n_steps += d_steps
+
+                # evaluate distance to destination
+                pos = simulation.context.getState(getPositions=True).getPositions(asNumpy=True).value_in_unit(angstrom)
+                d = calcRMSD(pos, coords1)
+                dd = np.abs(dist - d)
+
+                if dd < ddtol:
+                    m_conv += 1
+
+                if m_conv >= n_conv:
+                    break
+
+                dist = d
+
+            LOGGER.debug('RMSD: %4.2f -> %4.2f'%(dist0, dist))
+
+            simulation.context.setParameter('tmdk', 0.0)
+            simulation.minimizeEnergy()
+                
+            pos = simulation.context.getState(getPositions=True).getPositions(asNumpy=True).value_in_unit(angstrom)
+            pot = simulation.context.getState(getEnergy=True).getPotentialEnergy().value_in_unit(kilojoule_per_mole)
+
+            return pot, pos
+
+        except BaseException as be:
+            LOGGER.warning('OpenMM exception: ' + be.__str__() + ' so the corresponding conformer will be discarded!')
+
+            return np.nan, np.full_like(coords0, np.nan)
+
     def _sample_v1(self, conf):
 
         # arg: conf idx
@@ -333,17 +435,10 @@ class ClustENM(Ensemble):
         tmp.setCoords(conf)
         ca = tmp.ca
 
-        anm_ca = ANM()
-        anm_ca.buildHessian(ca, cutoff=self._cutoff)
+        anm_ca = self.buildANM(ca)
 
-        # 1e-6 is the same value of prody's ZERO parameter
-        rank_diff = (3 * self._n_ca - 6
-                     - np.linalg.matrix_rank(anm_ca.getHessian(),
-                                             tol=ZERO, hermitian=True))
-        if rank_diff != 0:
-            # taking care cases with more than 6 zeros
-            # maybe an exception can be raised in debug mode
-            LOGGER.warn('Abnormal number of zeros modes detected (%d detected, 6 expected).'%(6 + rank_diff))
+        # use prody's ZERO parameter
+        if not self.checkANM(anm_ca):
             return None
 
         anm_ca.calcModes(self._n_modes)
@@ -353,7 +448,7 @@ class ClustENM(Ensemble):
 
         nv = (anm_ex.getEigvecs() / np.sqrt(anm_ex.getEigvals())) @ a.T
 
-        nvn = nv / np.linalg.norm(nv, axis=0).max()
+        nvn = nv / norm(nv, axis=0).max()
 
         d = (self._rmsd[self._cycle] * np.sqrt(tmp.numAtoms()) * nvn).T
         d = d.reshape(d.shape[0], -1, 3)
@@ -363,22 +458,39 @@ class ClustENM(Ensemble):
 
         return r
 
+    def _multi_targeted_sim(self, args): 
+        conf = args[0]
+        coords = args[1]
+        return self._targeted_sim(conf, coords, tmdk=self._tmdk)
+
+    def buildANM(self, ca):
+        anm = ANM()
+        anm.buildHessian(ca, cutoff=self._cutoff, gamma=self._gamma)
+
+        return anm
+
+    def checkANM(self, anm):
+        H = anm.getHessian()
+        rank = np.linalg.matrix_rank(anm.getHessian(), tol=ZERO, hermitian=True)
+        rank_diff = H.shape[0] - 6 - rank
+        
+        good = rank_diff <= 0
+
+        if not good:
+            # taking care cases with more than 6 zeros
+            # maybe an exception can be raised in debug mode
+            LOGGER.warn('Abnormal number of zeros modes detected (%d detected, 6 expected).'%(6 + rank_diff))
+        return good
+
     def _sample(self, conf):
         tmp = self._atoms.copy()
         tmp.setCoords(conf)
         ca = tmp.ca
 
-        anm_ca = ANM()
-        anm_ca.buildHessian(ca, cutoff=self._cutoff)
+        anm_ca = self.buildANM(ca)
 
         # use prody's ZERO parameter
-        rank_diff = (3 * self._n_ca - 6
-                     - np.linalg.matrix_rank(anm_ca.getHessian(),
-                                             tol=ZERO, hermitian=True))
-        if rank_diff != 0:
-            # taking care cases with more than 6 zeros
-            # maybe an exception can be raised in debug mode
-            LOGGER.warn('Abnormal number of zeros modes detected (%d detected, 6 expected).'%(6 + rank_diff))
+        if not self.checkANM(anm_ca):
             return None
 
         anm_ca.calcModes(self._n_modes)
@@ -387,18 +499,32 @@ class ClustENM(Ensemble):
         ens_ex = sampleModes(anm_ex, atoms=tmp,
                                 n_confs=self._n_confs,
                                 rmsd=self._rmsd[self._cycle])
+        coordsets = ens_ex.getCoordsets()
 
-        return ens_ex.getCoordsets()
+        if self._targeted:
+            if self._parallel:
+                with Pool(cpu_count()) as p:
+                    pot_conf = p.map(self._multi_targeted_sim, [(conf, coords) for coords in coordsets])
+            else:
+                pot_conf = [self._multi_targeted_sim((conf, coords)) for coords in coordsets]
 
-    def _rmsds(self, arg):
+            pots, poses = list(zip(*pot_conf))
+                
+            idx = np.logical_not(np.isnan(pots))
+            coordsets = np.array(poses)[idx]
+
+            LOGGER.debug('%d/%d sets of coordinates were moved to the target'%(len(poses), len(coordsets)))
+        return coordsets
+
+    def _rmsds(self, coords):
 
         # as long as there is no need for superposing conformations
         # only anm modes are used for perturbation
         # so no translation or rotation would involve
 
-        # arg: coords (n_conf, n_ca, 3)
+        # coords: (n_conf, n_ca, 3)
 
-        tmp = arg.reshape(-1, 3 * self._n_ca)
+        tmp = coords.reshape(-1, 3 * self._n_ca)
 
         return pdist(tmp) / np.sqrt(self._n_ca)
 
@@ -459,21 +585,23 @@ class ClustENM(Ensemble):
 
         LOGGER.info('Sampling conformers in generation %d ...'%self._cycle)
         LOGGER.timeit('_clustenm_gen')
-        tmp = []
-        for conf in confs:
-            if not self._v1:
-                ret = self._sample(conf)
-                if ret is not None:
-                    tmp.append(ret)
-                else:
-                    # we may raise an exception in debug mode
-                    LOGGER.info('more than 6 zero eigenvalues!')
-            else:
-                ret = self._sample_v1(conf)
-                if ret is not None:
-                    tmp.append(ret)
-                else:
-                    LOGGER.info('more than 6 zero eigenvalues!')
+        
+        sample_method = self._sample_v1 if self._v1 else self._sample
+
+        if self._parallel:
+            with Pool(cpu_count()) as p:
+                tmp = p.map(sample_method, [conf for conf in confs])
+        else:
+            tmp = [sample_method(conf) for conf in confs]
+            # for conf in confs:
+            #     ret = sample_method(conf)
+            #     if ret is not None:
+            #         tmp.append(ret)
+            #     else:
+            #         # we may raise an exception in debug mode
+            #         LOGGER.info('more than 6 zero eigenvalues!')
+
+        tmp = [r for r in tmp if r is not None]
 
         confs_ex = np.concatenate(tmp)
 
@@ -626,7 +754,7 @@ class ClustENM(Ensemble):
                 writePDB(filename, self, csets=i)
             LOGGER.info('PDB files saved in %s ...'%direc)
 
-    def run(self, cutoff=15., n_modes=3, n_confs=50, rmsd=1.0,
+    def run(self, cutoff=15., n_modes=3, gamma=1., n_confs=50, rmsd=1.0,
             n_gens=5, maxclust=None, threshold=None,
             sim=True, temp=300, t_steps_i=1000, t_steps_g=7500,
             outlier=True, mzscore=3.5, **kwargs):
@@ -637,12 +765,15 @@ class ClustENM(Ensemble):
         # set up parameters
         self._cutoff = cutoff
         self._n_modes = n_modes
+        self._gamma = gamma
         self._n_confs = n_confs
         self._rmsd = (0.,) + rmsd if isinstance(rmsd, tuple) else (0.,) + (rmsd,) * n_gens
         self._n_gens = n_gens
         self._v1 = kwargs.pop('v1', False) 
         self._platform = kwargs.pop('platform', None) 
         self._parallel = kwargs.pop('parallel', False)
+        self._targeted = kwargs.pop('targeted', False)
+        self._tmdk = kwargs.pop('tmdk', 15.)
 
         if maxclust is None:
             self._maxclust = None
@@ -652,6 +783,9 @@ class ClustENM(Ensemble):
             else:
                 self._maxclust = (0,) + (maxclust,) * n_gens
 
+            if len(self._maxclust) != self._n_gens + 1:
+                raise ValueError('size mismatch: %d generations were set; %d maxclusts were given'%(self._n_gens + 1, self._maxclust))
+
         if threshold is None:
             self._threshold = None
         else:
@@ -659,6 +793,10 @@ class ClustENM(Ensemble):
                 self._threshold = (0,) + threshold
             else:
                 self._threshold = (0,) + (threshold,) * n_gens
+
+            if len(self._threshold) != self._n_gens + 1:
+                raise ValueError('size mismatch: %d generations were set; %d thresholds were given'%(self._n_gens + 1, self._threshold))
+
 
         self._sim = sim
         self._temp = temp
@@ -807,3 +945,80 @@ class ClustENM(Ensemble):
                 f.write('platform = Default\n')
 
             f.write('total time = %4.2f'%self._time)
+
+
+class ClustRTB(ClustENM):
+    def __init__(self, title=None):
+        super(ClustRTB, self).__init__(title)
+        self._blocks = None
+        self._scale = 64.
+        self._h = 100.
+
+    def buildANM(self, ca):
+        blocks = self._blocks
+        anm = RTB()
+        anm.buildHessian(ca, blocks, cutoff=self._cutoff, gamma=self._gamma)
+
+        return anm
+
+    def setBlocks(self, blocks):
+        self._blocks = blocks
+
+    def run(self, **kwargs):
+        if self._blocks is None:
+            raise ValueError('blocks are not set')
+        
+        super(ClustRTB, self).run(**kwargs)
+
+class ClustImANM(ClustENM):
+    def __init__(self, title=None):
+        super(ClustImANM, self).__init__(title)
+        self._blocks = None
+        self._scale = 64.
+        self._h = 100.
+
+    def buildANM(self, ca):
+        blocks = self._blocks
+        anm = imANM()
+        anm.buildHessian(ca, blocks, cutoff=self._cutoff, 
+                         gamma=self._gamma, scale=self._scale,
+                         h=self._h)
+
+        return anm
+
+    def setBlocks(self, blocks):
+        self._blocks = blocks
+
+    def run(self, **kwargs):
+        self._scale = kwargs.pop('scale', 64.)
+        self._h = kwargs.pop('h', 100.)
+        if self._blocks is None:
+            raise ValueError('blocks are not set')
+        
+        super(ClustImANM, self).run(**kwargs)
+
+class ClustExANM(ClustENM):
+    def buildANM(self, ca):
+        anm = exANM()
+        anm.buildHessian(ca, cutoff=self._cutoff, gamma=self._gamma, R=self._R, 
+                         Ri=self._Ri, r=self._r, h=self._h, exr=self._exr, 
+                         gamma_memb=self._gamma_memb, hull=self._hull, lat=self._lat, 
+                         center=self._centering)
+
+        return anm
+
+    def run(self, **kwargs):
+        depth = kwargs.pop('depth', None)
+        h = depth / 2 if depth is not None else None
+        self._h = kwargs.pop('h', h)
+        self._R = float(kwargs.pop('R', 80.))
+        self._Ri = float(kwargs.pop('Ri', 0.))
+        self._r = float(kwargs.pop('r', 3.1))
+        self._lat = str(kwargs.pop('lat', 'FCC'))
+        self._exr = float(kwargs.pop('exr', 5.))
+        self._hull = kwargs.pop('hull', True)
+        self._centering = kwargs.pop('center', True)
+        self._turbo = kwargs.pop('turbo', True)
+        self._gamma_memb = kwargs.pop('gamma_memb', 1.)
+        
+        super(ClustExANM, self).run(**kwargs)
