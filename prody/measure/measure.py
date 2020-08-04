@@ -2,11 +2,11 @@
 """This module defines a class and methods and for comparing coordinate data
 and measuring quantities."""
 
-from numpy import ndarray, power, sqrt, array, zeros, arccos
+from numpy import ndarray, power, sqrt, array, zeros, arccos, dot
 from numpy import sign, tile, concatenate, pi, cross, subtract, var
 
 from prody.atomic import Atomic, Residue, Atom
-from prody.utilities import importLA, checkCoords, getDistance, getCoords
+from prody.utilities import importLA, _solveEig, checkCoords, getDistance, getCoords
 from prody import LOGGER, PY2K
 
 if PY2K:
@@ -18,7 +18,8 @@ __all__ = ['buildDistMatrix', 'calcDistance',
            'calcMSF', 'calcRMSF',
            'calcDeformVector',
            'buildADPMatrix', 'calcADPAxes', 'calcADPs',
-           'pickCentral', 'pickCentralAtom', 'pickCentralConf', 'getWeights']
+           'pickCentral', 'pickCentralAtom', 'pickCentralConf', 'getWeights',
+           'calcInertiaTensor', 'calcPrincAxes']
 
 RAD2DEG = 180 / pi
 
@@ -798,3 +799,19 @@ def buildADPMatrix(atoms):
         element[1, 2] = element[2, 1] = anisou[5]
         adp[i*3:(i+1)*3, i*3:(i+1)*3] = element
     return adp
+
+
+def calcInertiaTensor(coords):
+    """"Calculate inertia tensor from coords"""
+    coords = getCoords(coords)
+
+    center = calcCenter(coords)
+    coords = coords - center
+    return dot(coords.transpose(), coords)
+
+
+def calcPrincAxes(coords, turbo=True):
+    """Calculate principal axes from coords"""
+    M = calcInertiaTensor(coords)
+    _, vectors = _solveEig(M, 3)
+    return vectors
