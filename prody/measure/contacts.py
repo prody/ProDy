@@ -20,7 +20,7 @@ class Contacts(object):
         
         :arg unitcell: orthorhombic unitcell dimension array with shape 
                         ``(3,)`` for KDTree. Default is **None**.
-        :type unitcell: :class:`numpy.ndarray`"""
+        :type unitcell: :class:`~numpy.ndarray`"""
 
         try:
             self._acsi = atoms.getACSIndex()
