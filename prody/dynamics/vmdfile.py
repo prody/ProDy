@@ -6,26 +6,18 @@ Questions/Problems: karolami@pitt.edu
 __all__ = ['writeVMDstiffness', 'writeDeformProfile', 'calcChainsNormDistFluct']
 
 import os
-from os.path import abspath, join, split, splitext
 
 import numpy as np
 
-from prody import LOGGER, SETTINGS, PY3K
-from prody.atomic import AtomGroup, sliceAtoms
-from prody.utilities import openFile, isExecutable, which, PLATFORM, addext, checkCoords
+from prody import LOGGER
+from prody.atomic import sliceAtoms
+from prody.utilities import openFile, addext, checkCoords
 from prody.proteins import writePDB
 
-from .nma import NMA
-from .anm import ANM
-from .gnm import GNM, ZERO
-from .pca import PCA
-from .mode import Vector, Mode
-from .modeset import ModeSet
 from .nmdfile import viewNMDinVMD, pathVMD, getVMDpath, setVMDpath
 
 def writeVMDstiffness(stiffness, pdb, indices, k_range, filename='vmd_out', \
                       select='protein and name CA', loadToVMD=False):
-   
     """
     Returns three files starting with the provided filename and having 
     their own extensions:

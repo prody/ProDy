@@ -7,7 +7,7 @@ from os.path import abspath, join, isfile, isdir, split, splitext
 import numpy as np
 
 from prody import LOGGER, SETTINGS, PY3K
-from prody.atomic import Atomic, AtomGroup, AtomSubset
+from prody.atomic import Atomic, AtomSubset
 from prody.utilities import openFile, isExecutable, which, PLATFORM, addext
 
 from .nma import NMA, MaskedNMA

@@ -7,10 +7,9 @@ from numbers import Integral
 import numpy as np
 
 from prody.proteins import alignChains
-from prody.utilities import openFile, showFigure, copy, isListLike, pystr
+from prody.utilities import openFile, showFigure, copy, isListLike, pystr, DTYPE
 from prody import LOGGER, SETTINGS
 from prody.atomic import Atomic, AtomMap, Chain, AtomGroup, Selection, Segment, Select, AtomSubset
-from prody.atomic.fields import DTYPE
 
 from .ensemble import *
 from .pdbensemble import *

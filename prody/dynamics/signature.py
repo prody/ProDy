@@ -9,11 +9,10 @@ import numpy as np
 import warnings
 
 from prody import LOGGER, SETTINGS
-from prody.utilities import showFigure, showMatrix, copy, checkWeights, openFile
+from prody.utilities import showFigure, showMatrix, copy, checkWeights, openFile, DTYPE
 from prody.utilities import getValue, importLA, wmean, div0
 from prody.ensemble import Ensemble, Conformation
 from prody.atomic import AtomGroup
-from prody.atomic.fields import DTYPE
 
 from .nma import NMA
 from .modeset import ModeSet

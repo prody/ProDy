@@ -21,8 +21,8 @@ from .selection import Selection
 from .hierview import HierView
 
 __all__ = ['iterFragments', 'findFragments', 'loadAtoms', 'saveAtoms',
-           'isReserved', 'listReservedWords', 'sortAtoms', 'sliceAtoms', 
-           'extendAtoms', 'sliceAtomicData', 'extendAtomicData']
+           'isReserved', 'listReservedWords', 'sortAtoms', 
+           'sliceAtoms', 'extendAtoms', 'sliceAtomicData', 'extendAtomicData']
 
 
 SAVE_SKIP_ATOMGROUP = set(['numbonds', 'fragindex'])
@@ -339,6 +339,8 @@ def extendAtoms(nodes, atoms, is3d=False):
     #LOGGER.progress('Extending atoms...', n_nodes, '_prody_extendAtoms_extend')
     for i, node in enumerate(i_nodes):
         #LOGGER.update(i, label='_prody_extendAtoms')
+        if node is None:
+            continue
         res = get(node.getChid() or None, node.getResnum(),
                   node.getIcode() or None, node.getSegname() or None)
         if res is None:
