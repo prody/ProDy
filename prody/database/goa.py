@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """This module defines functions for interfacing with the EBI's
-GO association (goa) databases for analysing gene/protein functions 
+Gene Ontology Annotation (GOA) database for analysing gene/protein functions 
 through the Gene Ontology (GO).
 
 This module is based on the tutorial notebook at 
