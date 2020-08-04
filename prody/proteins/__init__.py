@@ -150,10 +150,11 @@ and/or parse results:
 Execute EMD
 ===========
 
-Following functions can be used to execute EMDMAP structural analysis program
-and/or parse results:
+Use the following to parse and access header data in EMD files:
 
-  * :func:`.parseSTRIDE` - parse structural data from :program:`EMDMAP` output
+  * :func:`.parseEMD` - parse structural data from :file:`.emd` files
+  * :class:`.EMDMAP` - access structural data from :file:`.emd` files
+  * :class:`.TRNET` - fit pseudoatoms to EM density maps using the TRN algorithm
 
 """
 
@@ -183,9 +184,9 @@ from . import psiblast
 from .psiblast import *
 __all__.extend(psiblast.__all__)
 
-from . import blastpdbUniProtKB
-from .blastpdbUniProtKB import *
-__all__.extend(blastpdbUniProtKB.__all__)
+from . import blastUniProtKB
+from .blastUniProtKB import *
+__all__.extend(blastUniProtKB.__all__)
 
 from . import pdbligands
 from .pdbligands import *
