@@ -19,12 +19,12 @@ from prody import LOGGER, SETTINGS
 from .header import getHeaderDict, buildBiomolecules, assignSecstr
 from .localpdb import fetchPDB
 
-__all__ = ['parseCIFStream', 'parseCIF',]
+__all__ = ['parseMMCIFStream', 'parseMMCIF',]
 
 class CIFParseError(Exception):
     pass
 
-_parseCIFdoc = """
+_parseMMCIFdoc = """
     :arg title: title of the :class:`.AtomGroup` instance, default is the
         PDB filename or PDB identifier
     :type title: str
@@ -52,13 +52,13 @@ _parseCIFdoc = """
 
 _PDBSubsets = {'ca': 'ca', 'calpha': 'ca', 'bb': 'bb', 'backbone': 'bb'}
 
-def parseCIF(pdb, **kwargs):
+def parseMMCIF(pdb, **kwargs):
     """Returns an :class:`.AtomGroup` and/or dictionary containing header data
     parsed from an mmCIF file. If not found, the mmCIF file will be downloaded
     from the PDB. It will be downloaded in uncompressed format regardless of
     the compressed keyword.
 
-    This function extends :func:`.parseCIFStream`.
+    This function extends :func:`.parseMMCIFStream`.
 
     See :ref:`parsecif` for a detailed usage example.
 
@@ -97,11 +97,11 @@ def parseCIF(pdb, **kwargs):
             title = title[3:]
         kwargs['title'] = title
     cif = openFile(pdb, 'rt')
-    result = parseCIFStream(cif, **kwargs)
+    result = parseMMCIFStream(cif, **kwargs)
     cif.close()
     return result
 
-def parseCIFStream(stream, **kwargs):
+def parseMMCIFStream(stream, **kwargs):
     """Returns an :class:`.AtomGroup` and/or dictionary containing header data
     parsed from a stream of CIF lines.
     :arg stream: Anything that implements the method ``readlines``
@@ -157,7 +157,7 @@ def parseCIFStream(stream, **kwargs):
                 raise err
         if not len(lines):
             raise ValueError('empty PDB file or stream')
-        ag = _parseCIFLines(ag, lines, model, chain, subset, altloc)
+        ag = _parseMMCIFLines(ag, lines, model, chain, subset, altloc)
         if ag.numAtoms() > 0:
             LOGGER.report('{0} atoms and {1} coordinate set(s) were '
                           'parsed in %.2fs.'.format(ag.numAtoms(),
@@ -168,9 +168,9 @@ def parseCIFStream(stream, **kwargs):
             'check the input file.')
         return ag
 
-parseCIFStream.__doc__ += _parseCIFdoc
+parseMMCIFStream.__doc__ += _parseMMCIFdoc
 
-def _parseCIFLines(atomgroup, lines, model, chain, subset,
+def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
                    altloc_torf):
     """Returns an AtomGroup. See also :func:`.parsePDBStream()`.
 
