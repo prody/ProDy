@@ -5,7 +5,7 @@ import numpy as np
 
 from prody.sequence import MSA, Sequence
 from prody.atomic import Atomic, AtomGroup
-from prody.measure import getRMSD, getTransformation
+from prody.measure import getRMSD, getTransformation, Transformation
 from prody.utilities import checkCoords, checkWeights, copy
 from prody import LOGGER
 
@@ -562,3 +562,12 @@ class PDBEnsemble(Ensemble):
                 self._weights = np.ones((self._n_csets, self._n_atoms, 1), dtype=float)
             self._weights[self._indices, :] = weights    
 
+
+    def getTransformations(self):
+        """Returns the :class:`~.Transformation` used to superpose this
+        conformation onto reference coordinates.  The transformation can
+        be used to superpose original PDB file onto the reference PDB file."""
+
+        if self._trans is not None:
+            return [Transformation(trans) for trans in self._trans]
+        return

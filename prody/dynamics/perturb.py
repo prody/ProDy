@@ -7,12 +7,8 @@ import time
 import numpy as np
 
 from prody import LOGGER
-from prody.proteins import parsePDB
 from prody.atomic import AtomGroup, Selection, Atomic, sliceAtomicData
-from prody.ensemble import Ensemble, Conformation
-from prody.trajectory import TrajBase
-from prody.utilities import importLA, div0
-from numpy import sqrt, arange, log, polyfit, array
+from prody.utilities import div0
 
 from .nma import NMA
 from .modeset import ModeSet

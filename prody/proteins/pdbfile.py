@@ -18,7 +18,7 @@ from prody import LOGGER, SETTINGS
 
 from .header import getHeaderDict, buildBiomolecules, assignSecstr, isHelix, isSheet
 from .localpdb import fetchPDB
-from .ciffile import parseCIF
+from .ciffile import parseMMCIF
 
 __all__ = ['parsePDBStream', 'parsePDB', 'parseChainsList', 'parsePQR',
            'writePDBStream', 'writePDB', 'writeChainsList', 'writePQR',
@@ -204,7 +204,7 @@ def _parsePDB(pdb, **kwargs):
         if filename is None:
             try:
                 LOGGER.info("Trying to use mmCIF file instead")
-                return parseCIF(pdb, **kwargs)
+                return parseMMCIF(pdb, **kwargs)
             except:
                 raise IOError('PDB file for {0} could not be downloaded.'
                               .format(pdb))
