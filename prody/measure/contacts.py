@@ -16,8 +16,11 @@ class Contacts(object):
     of instantiation."""
 
     def __init__(self, atoms, unitcell=None):
-        """*atoms* must be an :class:`.Atomic` instance.  When an orthorhombic
-        *unitcell* array is given"""
+        """*atoms* must be an :class:`.Atomic` instance.  
+        
+        :arg unitcell: orthorhombic unitcell dimension array with shape 
+                        ``(3,)`` for KDTree. Default is **None**.
+        :type unitcell: :class:`~numpy.ndarray`"""
 
         try:
             self._acsi = atoms.getACSIndex()
