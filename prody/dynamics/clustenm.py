@@ -32,7 +32,6 @@ from os.path import isdir
 import pickle
 from shutil import rmtree
 from sys import stdout
-#from time import perf_counter
 
 import numpy as np
 from scipy.spatial.distance import pdist, squareform
@@ -134,7 +133,7 @@ class ClustENM(Ensemble):
     def __init__(self, title=None):
 
         self._atoms = None
-        
+
         self._ph = 7.0
 
         self._cutoff = 15.
@@ -162,33 +161,34 @@ class ClustENM(Ensemble):
         self._n_ca = None
         self._cycle = 0
         self._time = 0
-        # self._counts = OrderedDict()   # possibly deprecated
-        # self._potentials = OrderedDict()
-        # self._conformers = OrderedDict()
         self._indexer = None
         self._parallel = False
         self._targeted = False
         self._tmdk = 10.
 
-        super(ClustENM, self).__init__('Unknown') # dummy title; will be replaced in next line
+        super(ClustENM, self).__init__('Unknown')   # dummy title; will be replaced in next line
         self._title = title
 
     def __getitem__(self, index):
+
         if isinstance(index, tuple):
             I = self._slice(index)
             if len(I) == 0:
-                raise IndexError('index out of range (%d, %d)'%index)
+                raise IndexError('index out of range (%d, %d)' % index)
             index = I
-        
+
         return super(ClustENM, self).__getitem__(index)
 
     def getAtoms(self):
+
         return self._atoms
 
     def isBuilt(self):
+
         return self._confs is not None
 
     def setAtoms(self, atoms, pH=7.0, fix_missing_residues=False):
+
         if self.isBuilt():
             super(ClustENM, self).setAtoms(atoms)
         else:
@@ -196,15 +196,16 @@ class ClustENM(Ensemble):
             LOGGER.timeit('_clustenm_fix')
             self._ph = pH
             self._fix(atoms, fix_missing_residues)
-            LOGGER.report('The structure was fixed in %.2fs.', label='_clustenm_fix')
+            LOGGER.report('The structure was fixed in %.2fs.',
+                          label='_clustenm_fix')
 
-            # self._atoms must be an AtomGroup instance because of self._fix().
             self._idx_ca = self._atoms.ca.getIndices()
             self._n_ca = self._atoms.ca.numAtoms()
             self._n_atoms = self._atoms.numAtoms()
             self._indices = None
 
     def getTitle(self):
+
         title = 'Unknown'
         if self._title is None:
             atoms = self.getAtoms()
@@ -216,11 +217,12 @@ class ClustENM(Ensemble):
         return title
 
     def setTitle(self, value):
+
         if not isinstance(value, str) and value is not None:
             raise TypeError('title must be either str or None')
         self._title = value
 
-    def _fix(self, atoms, fix_missing_residues=True):
+    def _fix(self, atoms, fix_missing_residues=False):
 
         try:
             from pdbfixer import PDBFixer
@@ -235,6 +237,7 @@ class ClustENM(Ensemble):
         fixed = PDBFixer(pdbfile=stream)
         stream.close()
 
+        # for the time being we are note modeling any residue
         if fix_missing_residues:
             fixed.findMissingResidues()
         else:
@@ -250,7 +253,8 @@ class ClustENM(Ensemble):
         fixed.addMissingHydrogens(self._ph)
 
         stream = createStringIO()
-        PDBFile.writeFile(fixed.topology, fixed.positions, stream, keepIds=True)
+        PDBFile.writeFile(fixed.topology, fixed.positions,
+                          stream, keepIds=True)
         stream.seek(0)
         self._atoms = parsePDBStream(stream)
         self._atoms.setTitle(title)
@@ -263,8 +267,8 @@ class ClustENM(Ensemble):
 
         try:
             from simtk.openmm import Platform, LangevinIntegrator
-            from simtk.openmm.app import Modeller, ForceField, CutoffNonPeriodic, Simulation, \
-                                         HBonds
+            from simtk.openmm.app import Modeller, ForceField, \
+                CutoffNonPeriodic, Simulation, HBonds
             from simtk.unit import nanometers, picosecond, kelvin
         except ImportError:
             raise ImportError('Please install PDBFixer and OpenMM in order to use ClustENM.')
@@ -294,7 +298,7 @@ class ClustENM(Ensemble):
             properties = {'Precision': 'single'}
         elif self._platform in ['CUDA', 'OpenCL']:
             properties = {'Precision': 'single'}
-            
+
         simulation = Simulation(modeller.topology, system, integrator,
                                 platform, properties)
 
@@ -336,8 +340,7 @@ class ClustENM(Ensemble):
                     temp = (2 * ke / (sdr._dof * MOLAR_GAS_CONSTANT_R)).value_in_unit(kelvin)
 
                 simulation.step(self._t_steps[self._cycle])
-                simulation.minimizeEnergy()
-                
+
             pos = simulation.context.getState(getPositions=True).getPositions(asNumpy=True).value_in_unit(angstrom)
             pot = simulation.context.getState(getEnergy=True).getPotentialEnergy().value_in_unit(kilojoule_per_mole)
 
@@ -356,7 +359,7 @@ class ClustENM(Ensemble):
             from simtk.unit import nanometer, kelvin, angstrom, kilojoule_per_mole, MOLAR_GAS_CONSTANT_R
         except ImportError:
             raise ImportError('Please install PDBFixer and OpenMM in order to use ClustENM.')
-        
+
         tmdk *= kilojoule_per_mole/angstrom**2
         tmdk = tmdk.value_in_unit(kilojoule_per_mole/nanometer**2)
 
@@ -381,7 +384,7 @@ class ClustENM(Ensemble):
             force.addParticle(int(atm_idx), pars)
 
         simulation = self._prep_sim([force])
-        
+
         # automatic conversion into nanometer will be carried out.
         simulation.context.setPositions(coords0 * angstrom)
 
@@ -412,11 +415,11 @@ class ClustENM(Ensemble):
 
                 dist = d
 
-            LOGGER.debug('RMSD: %4.2f -> %4.2f'%(dist0, dist))
+            LOGGER.debug('RMSD: %4.2f -> %4.2f' % (dist0, dist))
 
             simulation.context.setParameter('tmdk', 0.0)
             simulation.minimizeEnergy()
-                
+
             pos = simulation.context.getState(getPositions=True).getPositions(asNumpy=True).value_in_unit(angstrom)
             pot = simulation.context.getState(getEnergy=True).getPotentialEnergy().value_in_unit(kilojoule_per_mole)
 
@@ -426,6 +429,20 @@ class ClustENM(Ensemble):
             LOGGER.warning('OpenMM exception: ' + be.__str__() + ' so the corresponding conformer will be discarded!')
 
             return np.nan, np.full_like(coords0, np.nan)
+
+    def checkANM(self, anm):
+
+        H = anm.getHessian()
+        rank = np.linalg.matrix_rank(anm.getHessian(), tol=ZERO, hermitian=True)
+        rank_diff = H.shape[0] - 6 - rank
+
+        good = rank_diff <= 0   # '<' maybe needed due to RTB?
+
+        if not good:
+            # taking care cases with more than 6 zeros
+            LOGGER.warn('Abnormal number of zero modes detected (%d detected, 6 expected).' % (6 + rank_diff))
+
+        return good
 
     def _sample_v1(self, conf):
 
@@ -458,31 +475,22 @@ class ClustENM(Ensemble):
 
         return r
 
-    def _multi_targeted_sim(self, args): 
+    def _multi_targeted_sim(self, args):
+
         conf = args[0]
         coords = args[1]
+
         return self._targeted_sim(conf, coords, tmdk=self._tmdk)
 
     def buildANM(self, ca):
+
         anm = ANM()
         anm.buildHessian(ca, cutoff=self._cutoff, gamma=self._gamma)
 
         return anm
 
-    def checkANM(self, anm):
-        H = anm.getHessian()
-        rank = np.linalg.matrix_rank(anm.getHessian(), tol=ZERO, hermitian=True)
-        rank_diff = H.shape[0] - 6 - rank
-        
-        good = rank_diff <= 0
-
-        if not good:
-            # taking care cases with more than 6 zeros
-            # maybe an exception can be raised in debug mode
-            LOGGER.warn('Abnormal number of zeros modes detected (%d detected, 6 expected).'%(6 + rank_diff))
-        return good
-
     def _sample(self, conf):
+
         tmp = self._atoms.copy()
         tmp.setCoords(conf)
         ca = tmp.ca
@@ -497,23 +505,25 @@ class ClustENM(Ensemble):
 
         anm_ex, _ = extendModel(anm_ca, ca, tmp, norm=True)
         ens_ex = sampleModes(anm_ex, atoms=tmp,
-                                n_confs=self._n_confs,
-                                rmsd=self._rmsd[self._cycle])
+                             n_confs=self._n_confs,
+                             rmsd=self._rmsd[self._cycle])
         coordsets = ens_ex.getCoordsets()
 
         if self._targeted:
             if self._parallel:
                 with Pool(cpu_count()) as p:
-                    pot_conf = p.map(self._multi_targeted_sim, [(conf, coords) for coords in coordsets])
+                    pot_conf = p.map(self._multi_targeted_sim,
+                                     [(conf, coords) for coords in coordsets])   # may use confs directly
             else:
                 pot_conf = [self._multi_targeted_sim((conf, coords)) for coords in coordsets]
 
             pots, poses = list(zip(*pot_conf))
-                
+
             idx = np.logical_not(np.isnan(pots))
             coordsets = np.array(poses)[idx]
 
-            LOGGER.debug('%d/%d sets of coordinates were moved to the target'%(len(poses), len(coordsets)))
+            LOGGER.debug('%d/%d sets of coordinates were moved to the target' % (len(poses), len(coordsets)))
+
         return coordsets
 
     def _rmsds(self, coords):
@@ -581,11 +591,10 @@ class ClustENM(Ensemble):
 
     def _generate(self, confs):
 
-        # arg: previous generation no
-
-        LOGGER.info('Sampling conformers in generation %d ...'%self._cycle)
+        # confs = confs.copy()   # let's check whether it is needed
+        LOGGER.info('Sampling conformers in generation %d ...' % self._cycle)
         LOGGER.timeit('_clustenm_gen')
-        
+
         sample_method = self._sample_v1 if self._v1 else self._sample
 
         if self._parallel:
@@ -593,13 +602,6 @@ class ClustENM(Ensemble):
                 tmp = p.map(sample_method, [conf for conf in confs])
         else:
             tmp = [sample_method(conf) for conf in confs]
-            # for conf in confs:
-            #     ret = sample_method(conf)
-            #     if ret is not None:
-            #         tmp.append(ret)
-            #     else:
-            #         # we may raise an exception in debug mode
-            #         LOGGER.info('more than 6 zero eigenvalues!')
 
         tmp = [r for r in tmp if r is not None]
 
@@ -607,10 +609,11 @@ class ClustENM(Ensemble):
 
         confs_ca = confs_ex[:, self._idx_ca]
 
-        LOGGER.info('Clustering in generation %d ...'%self._cycle)
+        LOGGER.info('Clustering in generation %d ...' % self._cycle)
         label_ca = self._hc(confs_ca)
         centers, wei = self._centers(confs_ca, label_ca)
-        LOGGER.report('Centroids were generated in %.2fs.', label='_clustenm_gen')
+        LOGGER.report('Centroids were generated in %.2fs.',
+                      label='_clustenm_gen')
 
         return confs_ex[centers], wei
 
@@ -630,25 +633,25 @@ class ClustENM(Ensemble):
         tmp1 = []
         for i in range(n):
             tmp2 = calcTransformation(confs[i, self._idx_ca],
-                                         tmp0[self._idx_ca])
+                                      tmp0[self._idx_ca])
             tmp1.append(applyTransformation(tmp2, confs[i]))
 
         return np.array(tmp1)
 
     def _build(self, conformers, keys, potentials, sizes):
 
-        #coords = conformers[0][0]
-        #self.setCoords(coords)
         self.addCoordset(conformers)
         self.setData('size', sizes)
         self.setData('key', keys)
         self.setData('potential', potentials)
 
     def addCoordset(self, coords):
+
         self._indexer = None
         super(ClustENM, self).addCoordset(coords)
 
     def getData(self, key, gen=None):
+
         keys = super(ClustENM, self)._getData('key')
         data = super(ClustENM, self).getData(key)
 
@@ -662,43 +665,52 @@ class ClustENM(Ensemble):
         return data
 
     def getKeys(self, gen=None):
+
         return self.getData('key', gen)
 
     def getLabels(self, gen=None):
+
         keys = self.getKeys(gen)
-        labels = ['%d_%d'%tuple(k) for k in keys]
+        labels = ['%d_%d' % tuple(k) for k in keys]
+
         return labels
 
     def getPotentials(self, gen=None):
+
         return self.getData('potential', gen)
 
     def getSizes(self, gen=None):
+
         return self.getData('size', gen)
 
     def numGenerations(self):
+
         return self._n_gens
 
     def numConfs(self, gen=None):
+
         if gen is None:
             return super(ClustENM, self).numConfs()
-        
+
         keys = self._getData('key')
         n_confs = 0
         for g, _ in keys:
             if g == gen:
                 n_confs += 1
-        return n_confs
+
+                return n_confs
 
     def _slice(self, indices):
+
         if len(indices) == 0:
             raise ValueError('indices (tuple) cannot be empty')
-        
+
         if self._indexer is None:
             keys = self._getData('key')
             entries = [[] for _ in range(self.numGenerations() + 1)]
             for i, (gen, _) in enumerate(keys):
                 entries[gen].append(i)
-            
+
             n_conf_per_gen = np.max([len(entry) for entry in entries])
             for entry in entries:
                 for i in range(len(entry), n_conf_per_gen):
@@ -708,7 +720,7 @@ class ClustENM(Ensemble):
         else:
             indexer = self._indexer
         full_serials = indexer[indices].flatten()
-        
+
         serials = []
         for s in full_serials:
             if s != -1:
@@ -717,6 +729,7 @@ class ClustENM(Ensemble):
         return np.array(serials)
 
     def _getCoordsets(self, indices=None, selected=True):
+
         """Returns the coordinate set(s) at given *indices*, which may be
         an integer, a list of integers, a tuple of (generation, index), or **None**. 
         **None** returns all coordinate sets. For reference coordinates, use :meth:`getCoords`
@@ -725,12 +738,13 @@ class ClustENM(Ensemble):
         if isinstance(indices, tuple):
             I = self._slice(indices)
             if len(I) == 0:
-                raise IndexError('index out of range (%d, %d)'%indices)
+                raise IndexError('index out of range (%d, %d)' % indices)
             return super(ClustENM, self)._getCoordsets(I, selected)
         else:
             return super(ClustENM, self)._getCoordsets(indices, selected)
 
     def writePDB(self, filename=None, single=True, **kwargs):
+
         # single -> True, save as a single pdb file with each conformer as a model
         # otherwise, each conformer is saved as a separate pdb file
         # in the directory pdbs_pdbname
@@ -740,11 +754,11 @@ class ClustENM(Ensemble):
 
         if single:
             filename = writePDB(filename, self)
-            LOGGER.info('PDB file saved as %s'%filename)
+            LOGGER.info('PDB file saved as %s' % filename)
         else:
             direc = filename
             if isdir(direc):
-                LOGGER.warn('%s is not empty; will be flooded'%direc)
+                LOGGER.warn('%s is not empty; will be flooded' % direc)
             else:
                 mkdir(direc)
 
@@ -784,7 +798,7 @@ class ClustENM(Ensemble):
                 self._maxclust = (0,) + (maxclust,) * n_gens
 
             if len(self._maxclust) != self._n_gens + 1:
-                raise ValueError('size mismatch: %d generations were set; %d maxclusts were given'%(self._n_gens + 1, self._maxclust))
+                raise ValueError('size mismatch: %d generations were set; %d maxclusts were given' % (self._n_gens + 1, self._maxclust))
 
         if threshold is None:
             self._threshold = None
@@ -795,8 +809,7 @@ class ClustENM(Ensemble):
                 self._threshold = (0,) + (threshold,) * n_gens
 
             if len(self._threshold) != self._n_gens + 1:
-                raise ValueError('size mismatch: %d generations were set; %d thresholds were given'%(self._n_gens + 1, self._threshold))
-
+                raise ValueError('size mismatch: %d generations were set; %d thresholds were given' % (self._n_gens + 1, self._threshold))
 
         self._sim = sim
         self._temp = temp
@@ -817,15 +830,10 @@ class ClustENM(Ensemble):
         gnm.buildKirchhoff(self._atoms.ca, cutoff=self._cutoff)
         K = gnm.getKirchhoff()
         rank_diff = (len(K) - 1
-                    - np.linalg.matrix_rank(K, tol=ZERO, hermitian=True))
+                     - np.linalg.matrix_rank(K, tol=ZERO, hermitian=True))
         if rank_diff != 0:
             raise ValueError('atoms has disconnected parts; please check the structure')
 
-        # t0 = perf_counter()
-        # prody.logger.timeit doesn't give the correct overal time,
-        # that's why, perf_counter is being used!
-        # but prody.logger.timeit is still here to see
-        # how much it differs
         LOGGER.timeit('_clustenm_overall')
 
         LOGGER.info('Generation 0 ...')
@@ -842,8 +850,7 @@ class ClustENM(Ensemble):
         LOGGER.report(label='_clustenm_min')
         
         LOGGER.info('#' + '-' * 19 + '/*\\' + '-' * 19 + '#')
-        # self._potentials[0] = np.array([potential])
-        # self._conformers[0] = conformer.reshape(1, *conformer.shape)
+
         self.setCoords(conformer)
 
         potentials = [potential]
@@ -854,12 +861,12 @@ class ClustENM(Ensemble):
 
         for i in range(1, self._n_gens+1):
             self._cycle += 1
-            LOGGER.info('Generation %d ...'%i)
+            LOGGER.info('Generation %d ...' % i)
             confs, weights = self._generate(start_confs)
             if self._sim:
-                LOGGER.info('Minimization, heating-up & simulation in generation %d ...'%i)
+                LOGGER.info('Minimization, heating-up & simulation in generation %d ...' % i)
             else:
-                LOGGER.info('Minimization in generation %d ...'%i)
+                LOGGER.info('Minimization in generation %d ...' % i)
             LOGGER.timeit('_clustenm_min_sim')
 
             # <simtk.openmm.openmm.Platform;
@@ -878,7 +885,8 @@ class ClustENM(Ensemble):
             else:
                 pot_conf = [self._min_sim(conf) for conf in confs]
 
-            LOGGER.report('Structures were sampled in %.2fs.', label='_clustenm_min_sim')
+            LOGGER.report('Structures were sampled in %.2fs.',
+                          label='_clustenm_min_sim')
             LOGGER.info('#' + '-' * 19 + '/*\\' + '-' * 19 + '#')
 
             pots, confs = list(zip(*pot_conf))
@@ -895,7 +903,7 @@ class ClustENM(Ensemble):
             sizes.extend(weights[idx])
             potentials.extend(pots[idx])
             start_confs = self._superpose_ca(confs[idx])
-            #conformers[i] = self._superpose_ca(conformers[idx])
+
             for j in range(start_confs.shape[0]):
                 keys.append((i, j))
             conformers = np.vstack((conformers, start_confs))
@@ -908,46 +916,44 @@ class ClustENM(Ensemble):
 
         self._time = LOGGER.timing(label='_clustenm_overall')
         LOGGER.report('All completed in %.2fs.', label='_clustenm_overall')
-        # t1 = perf_counter()
-        # t10 = round(t1 - t0, 2)
-        # LOGGER.info('All completed in %.2fs.'%t10)
 
     def writeParameters(self, filename=None):
 
         title = self.getTitle()
         if filename is None:
-            filename = '%s_parameters.txt'%title
+            filename = '%s_parameters.txt' % title
 
         with open(filename, 'w') as f:
-            f.write('title = %s\n'%title)
-            f.write('pH = %4.2f\n'%self._ph)
-            f.write('cutoff = %4.2f\n'%self._cutoff)
-            f.write('n_modes = %d\n'%self._n_modes)
+            f.write('title = %s\n' % title)
+            f.write('pH = %4.2f\n' % self._ph)
+            f.write('cutoff = %4.2f\n' % self._cutoff)
+            f.write('n_modes = %d\n' % self._n_modes)
             if not self._v1:
-                f.write('n_confs = %d\n'%self._n_confs)
-            f.write('rmsd = %s\n'%str(self._rmsd[1:]))
-            f.write('n_gens = %d\n'%self._n_gens)
+                f.write('n_confs = %d\n' % self._n_confs)
+            f.write('rmsd = %s\n' % str(self._rmsd[1:]))
+            f.write('n_gens = %d\n' % self._n_gens)
             if self._threshold is not None:
-                f.write('threshold = %s\n'%str(self._threshold[1:]))
+                f.write('threshold = %s\n' % str(self._threshold[1:]))
             if self._maxclust is not None:
-                f.write('maxclust = %s\n'%str(self._maxclust[1:]))
+                f.write('maxclust = %s\n' % str(self._maxclust[1:]))
             if self._sim:
-                f.write('temp = %4.2f\n'%self._temp)
-                f.write('t_steps = %s\n'%str(self._t_steps))
+                f.write('temp = %4.2f\n' % self._temp)
+                f.write('t_steps = %s\n' % str(self._t_steps))
             if self._outlier:
-                f.write('outlier = %s\n'%self._outlier)
-                f.write('mzscore = %4.2f\n'%self._mzscore)
+                f.write('outlier = %s\n' % self._outlier)
+                f.write('mzscore = %4.2f\n' % self._mzscore)
             if self._v1:
-                f.write('v1 = %s\n'%self._v1)
+                f.write('v1 = %s\n' % self._v1)
             if self._platform is not None:
-                f.write('platform = %s\n'%self._platform)
+                f.write('platform = %s\n' % self._platform)
             else:
                 f.write('platform = Default\n')
 
-            f.write('total time = %4.2f'%self._time)
+            f.write('total time = %4.2f' % self._time)
 
 
 class ClustRTB(ClustENM):
+
     def __init__(self, title=None):
         super(ClustRTB, self).__init__(title)
         self._blocks = None
@@ -970,7 +976,9 @@ class ClustRTB(ClustENM):
         
         super(ClustRTB, self).run(**kwargs)
 
+
 class ClustImANM(ClustENM):
+
     def __init__(self, title=None):
         super(ClustImANM, self).__init__(title)
         self._blocks = None
@@ -996,6 +1004,7 @@ class ClustImANM(ClustENM):
             raise ValueError('blocks are not set')
         
         super(ClustImANM, self).run(**kwargs)
+
 
 class ClustExANM(ClustENM):
     def buildANM(self, ca):
