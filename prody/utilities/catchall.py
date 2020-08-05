@@ -173,8 +173,8 @@ def calcTree(names, distance_matrix, method='upgma', linkage=False):
     :type distance_matrix: :class:`~numpy.ndarray`
 
     :arg method: method used for constructing the tree. Acceptable options are ``"upgma"``, ``"nj"``, 
-                 or methods supported by :func:`~scipy.cluster.hierarchy.linkage` such as "single", 
-                 "average", "ward", etc.
+                 or methods supported by :func:`~scipy.cluster.hierarchy.linkage` such as ``"single"``, 
+                 ``"average"``, ``"ward"``, etc. Default is ``"upgma"``
     :type method: str
 
     :arg linkage: whether the linkage matrix is returned. Note that NJ trees do not support linkage
@@ -196,9 +196,9 @@ def calcTree(names, distance_matrix, method='upgma', linkage=False):
 
     if method in ['ward', 'single', 'average', 'weighted', 'centroid', 'median']:
         from scipy.cluster.hierarchy import linkage as hlinkage
-        from scipy.spatial.distance import pdist
+        from scipy.spatial.distance import squareform
         
-        Z = hlinkage(pdist(distance_matrix), method=method)
+        Z = hlinkage(squareform(distance_matrix), method=method)
         tree = getTreeFromLinkage(names, Z)
     else:
         matrix = []
@@ -487,9 +487,9 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
     :arg interactive: turn on or off the interactive options
     :type interactive: bool
 
-    :arg xtickrotation: turn on or off rotation of the xticklabels
-                        default is False
-    :type xtickrotation: bool
+    :arg xtickrotation: how much to rotate the xticklabels in degrees
+                        default is 0
+    :type xtickrotation: float
     """
 
     from matplotlib import ticker
@@ -525,7 +525,7 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
     xticklabels = kwargs.pop('xticklabels', ticklabels)
     yticklabels = kwargs.pop('yticklabels', ticklabels)
 
-    xtickrotation = kwargs.pop('xtickrotation', False)
+    xtickrotation = kwargs.pop('xtickrotation', 0.)
 
     show_colorbar = kwargs.pop('colorbar', True)
     cb_extend = kwargs.pop('cb_extend', 'neither')
@@ -710,8 +710,7 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
         cursor = ImageCursor(ax3, im)
         connect('button_press_event', cursor.onClick)
 
-    if xtickrotation:
-        ax3.tick_params(axis='x', rotation=90)
+    ax3.tick_params(axis='x', rotation=xtickrotation)
 
     return im, lines, cb
 

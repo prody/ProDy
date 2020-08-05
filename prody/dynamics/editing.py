@@ -5,7 +5,7 @@ import numpy as np
 
 from prody.atomic import Atomic, AtomGroup, AtomMap, AtomSubset
 from prody.atomic import Selection, SELECT, sliceAtoms, extendAtoms
-from prody.utilities import importLA
+from prody.utilities import importLA, isListLike
 from prody import _PY3K
 
 from .nma import NMA
@@ -18,8 +18,8 @@ if not _PY3K:
     range = xrange
 
 __all__ = ['extendModel', 'extendMode', 'extendVector',
-           'sliceMode', 'sliceModel', 'sliceVector',
-           'reduceModel']
+           'sliceMode', 'sliceModel', 'sliceModelByMask', 'sliceVector',
+           'reduceModel', 'reduceModelByMask', 'trimModel', 'trimModelByMask']
 
 
 def extendModel(model, nodes, atoms, norm=False):
@@ -128,6 +128,103 @@ def sliceVector(vector, atoms, select):
                  vector.is3d())
     return (vec, sel)
 
+def trimModel(model, atoms, select):
+    """Returns a part of the *model* for *atoms* matching *select*. This method removes 
+    columns and rows in the connectivity matrix and fix the diagonal sums. Normal modes 
+    need to be calculated again after the trim.
+
+    :arg mode: NMA model instance to be sliced
+    :type mode: :class:`.NMA`
+
+    :arg atoms: atoms for which the *model* was built
+    :type atoms: :class:`.Atomic`
+
+    :arg select: an atom selection or a selection string
+    :type select: :class:`.Selection`, str
+
+    :returns: (:class:`.NMA`, :class:`.Selection`)"""
+
+    if not isinstance(model, NMA):
+        raise TypeError('mode must be a NMA instance, not {0}'
+                        .format(type(model)))
+    if not isinstance(atoms, Atomic):
+        raise TypeError('atoms must be an Atomic instance, not {0}'
+                        .format(type(atoms)))
+    if atoms.numAtoms() != model.numAtoms():
+        raise ValueError('number of atoms in model and atoms must be equal')
+
+    which, sel = sliceAtoms(atoms, select)
+    nma = trimModelByMask(model, which)
+
+    return (nma, sel)
+
+def trimModelByMask(model, mask):
+    """Returns a part of the *model* indicated by *mask*. This method removes 
+    columns and rows in the connectivity matrix indicated by *mask* and fix the diagonal sums.
+    Normal modes need to be calculated again after the trim.
+
+    :arg mode: NMA model instance to be sliced
+    :type mode: :class:`.NMA`
+
+    :arg mask: an Integer array or a Boolean array where ``"True"`` indicates 
+        the parts being selected 
+    :type mask: list, :class:`~numpy.ndarray`
+
+    :returns: :class:`.NMA`"""
+
+    if not isListLike(mask):
+        raise TypeError('mask must be either a list or a numpy.ndarray, not {0}'
+                        .format(type(model)))
+    
+    is_bool = mask.dtype is np.dtype('bool')
+
+    if is_bool:
+        if len(mask) != model.numAtoms():
+            raise ValueError('number of atoms in model and mask must be equal')
+        which = mask
+    else:
+        if mask.min() < 0 or mask.max() >= model.numAtoms():
+            raise ValueError('index in mask exceeds range')
+        which = np.zeros(model.numAtoms(), dtype=bool)
+        which[mask] = True
+
+    if model.is3d():
+        which = np.repeat(which, 3)
+
+    if isinstance(model, GNM):
+        matrix = model._kirchhoff
+    elif isinstance(model, ANM):
+        matrix = model._hessian
+    elif isinstance(model, PCA):
+        matrix = model._cov
+    
+    if isinstance(model, PCA):
+        ss = matrix[which, :][:, which]
+        eda = PCA(model.getTitle() + ' reduced')
+        eda.setCovariance(ss)
+        return eda
+    else:
+        matrix = matrix[which, :][:, which]
+
+        if isinstance(model, GNM):
+            gnm = GNM(model.getTitle() + ' reduced')
+            I = np.eye(len(matrix), dtype=bool)
+            matrix[I] = - (matrix.sum(axis=0) - np.diag(matrix))
+            gnm.setKirchhoff(matrix)
+            return gnm
+        elif isinstance(model, ANM):
+            anm = ANM(model.getTitle() + ' reduced')
+            
+            n = len(matrix) // 3
+            for i in range(n):
+                S = np.zeros((3, 3))
+                for j in range(n):
+                    if i == j:
+                        continue
+                    S -= matrix[i*3:i*3+3, j*3:j*3+3]
+                matrix[i*3:i*3+3, i*3:i*3+3] = S
+            anm.setHessian(matrix)
+            return anm
 
 def sliceMode(mode, atoms, select):
     """Returns part of the *mode* for *atoms* matching *select*.  This works
@@ -166,8 +263,9 @@ def sliceMode(mode, atoms, select):
 
 
 def sliceModel(model, atoms, select):
-    """Returns a part of the *model* for *atoms* matching *select*.  Note that
-    normal modes (eigenvectors) are not normalized.
+    """Returns a part of the *model* (modes calculated) for *atoms* matching *select*. 
+    Note that normal modes are sliced instead the connectivity matrix. Sliced normal 
+    modes (eigenvectors) are not normalized.
 
     :arg mode: NMA model instance to be sliced
     :type mode: :class:`.NMA`
@@ -189,20 +287,48 @@ def sliceModel(model, atoms, select):
     if atoms.numAtoms() != model.numAtoms():
         raise ValueError('number of atoms in model and atoms must be equal')
 
-    array = model._getArray()
-
     which, sel = sliceAtoms(atoms, select)
+    nma = sliceModelByMask(model, which)
 
-    nma = type(model)('{0} slice {1}'
-                      .format(model.getTitle(), select))
-    if model.is3d():
-        which = [which.reshape((len(which), 1))*3]
-        which.append(which[0]+1)
-        which.append(which[0]+2)
-        which = np.concatenate(which, 1).flatten()
-    nma.setEigens(array[which, :], model.getEigvals())
     return (nma, sel)
 
+def sliceModelByMask(model, mask):
+    """Returns a part of the *model* indicated by *mask*.  Note that
+    normal modes (eigenvectors) are not normalized.
+
+    :arg mode: NMA model instance to be sliced
+    :type mode: :class:`.NMA`
+
+    :arg mask: an Integer array or a Boolean array where ``"True"`` indicates 
+        the parts being selected 
+    :type mask: list, :class:`~numpy.ndarray`
+
+    :returns: :class:`.NMA`"""
+
+    if not isListLike(mask):
+        raise TypeError('mask must be either a list or a numpy.ndarray, not {0}'
+                        .format(type(model)))
+    
+    is_bool = mask.dtype is np.dtype('bool')
+
+    if is_bool:
+        if len(mask) != model.numAtoms():
+            raise ValueError('number of atoms in model and mask must be equal')
+        which = mask
+    else:
+        if mask.min() < 0 or mask.max() >= model.numAtoms():
+            raise ValueError('index in mask exceeds range')
+        which = np.zeros(model.numAtoms(), dtype=bool)
+        which[mask] = True
+
+    array = model._getArray()
+    
+    nma = type(model)('{0} sliced'
+                    .format(model.getTitle()))
+    if model.is3d():
+        which = np.repeat(which, 3)
+    nma.setEigens(array[which, :], model.getEigvals())
+    return nma
 
 def reduceModel(model, atoms, select):
     """Returns reduced NMA model.  Reduces a :class:`.NMA` model to a subset of
@@ -229,8 +355,6 @@ def reduceModel(model, atoms, select):
 
     :returns: (:class:`.NMA`, :class:`.Selection`)"""
 
-    linalg = importLA()
-
     if not isinstance(model, NMA):
         raise TypeError('model must be an NMA instance, not {0}'
                         .format(type(model)))
@@ -252,8 +376,53 @@ def reduceModel(model, atoms, select):
                          'built')
 
     which, select = sliceAtoms(atoms, select)
-    system = np.zeros(model.numAtoms(), dtype=bool)
-    system[which] = True
+    nma = reduceModelByMask(model, which)
+
+    return nma, select
+
+def reduceModelByMask(model, mask):
+    """Returns NMA model reduced based on *mask*. 
+
+    :arg model: dynamics model
+    :type model: :class:`.ANM`, :class:`.GNM`, or :class:`.PCA`
+
+    :arg mask: an Integer array or a Boolean array where ``"True"`` indicates 
+        the parts being selected 
+    :type mask: list, :class:`~numpy.ndarray`
+
+    :returns: :class:`.NMA`"""
+
+    if not isinstance(model, NMA):
+        raise TypeError('model must be an NMA instance, not {0}'
+                        .format(type(model)))
+    
+    if not isListLike(mask):
+        raise TypeError('mask must be either a list or a numpy.ndarray, not {0}'
+                        .format(type(model)))
+    
+    is_bool = mask.dtype is np.dtype('bool')
+
+    if is_bool:
+        if len(mask) != model.numAtoms():
+            raise ValueError('number of atoms in model and mask must be equal')
+        system = mask
+    else:
+        if mask.min() < 0 or mask.max() >= model.numAtoms():
+            raise ValueError('index in mask exceeds range')
+        system = np.zeros(model.numAtoms(), dtype=bool)
+        system[mask] = True
+
+    if isinstance(model, GNM):
+        matrix = model._kirchhoff
+    elif isinstance(model, ANM):
+        matrix = model._hessian
+    elif isinstance(model, PCA):
+        matrix = model._cov
+    else:
+        raise TypeError('model does not have a valid type derived from NMA')
+    if matrix is None:
+        raise ValueError('model matrix (Hessian/Kirchhoff/Covariance) is not '
+                         'built')
 
     if model.is3d():
         system = np.repeat(system, 3)
@@ -262,23 +431,22 @@ def reduceModel(model, atoms, select):
         ss = matrix[system, :][:, system]
         eda = PCA(model.getTitle() + ' reduced')
         eda.setCovariance(ss)
-        return eda, system
+        return eda
     else:
         matrix = _reduceModel(matrix, system)
 
         if isinstance(model, GNM):
             gnm = GNM(model.getTitle() + ' reduced')
             gnm.setKirchhoff(matrix)
-            return gnm, select
+            return gnm
         elif isinstance(model, ANM):
             anm = ANM(model.getTitle() + ' reduced')
             anm.setHessian(matrix)
-            return anm, select
-
+            return anm
 
 def _reduceModel(matrix, system):
     """This is the underlying function that reduces models, which shall 
-    remain private. ``system`` is a boolean array where **True** indicates 
+    remain private. *system* is a Boolean array where **True** indicates 
     system nodes."""
     
     linalg = importLA()

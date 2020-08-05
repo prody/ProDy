@@ -311,17 +311,6 @@ class Mode(VectorBase):
     
     getVariances = getVariance
 
-    def getHinges(self, **kwargs):
-        """Returns residue index of hinge sites."""
-
-        if self.is3d():
-            raise ValueError('mode is 3D and therefore hinges are poorly defined')
-        else:
-            return self._model.getHinges(self._index, **kwargs)
-    
-    def numHinges(self):
-        return len(self.getHinges())
-
 class Vector(VectorBase):
 
     """A class to provide operations on a modified mode array.  This class

@@ -4,7 +4,6 @@
 import numpy as np
 
 from prody import LOGGER
-from prody.atomic import Atomic, AtomGroup
 from prody.utilities import importLA, checkCoords, copy
 from numpy import sqrt, zeros, ones, array, ceil, dot
 

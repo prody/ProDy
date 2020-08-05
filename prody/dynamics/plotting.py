@@ -20,7 +20,7 @@ from .mode import Mode, VectorBase, Vector
 from .modeset import ModeSet
 from .analysis import calcSqFlucts, calcProjection
 from .analysis import calcCrossCorr, calcPairDeformationDist
-from .analysis import calcFractVariance, calcCrossProjection 
+from .analysis import calcFractVariance, calcCrossProjection, calcHinges
 from .perturb import calcPerturbResponse
 from .compare import calcOverlap
 
@@ -622,16 +622,16 @@ def showMode(mode, *args, **kwargs):
     if mode.is3d():
         a3d = mode.getArrayNx3()
         show = []
-        show.append(showAtomicLines(a3d[:, 0], atoms=atoms, label='x-component', final=False, **kwargs))
-        show.append(showAtomicLines(a3d[:, 1], atoms=atoms, label='y-component', final=False, **kwargs))
-        show.append(showAtomicLines(a3d[:, 2], atoms=atoms, label='z-component', final=final, **kwargs))
+        show.append(showAtomicLines(a3d[:, 0], label='x-component', final=False, **kwargs))
+        show.append(showAtomicLines(a3d[:, 1], label='y-component', final=False, **kwargs))
+        show.append(showAtomicLines(a3d[:, 2], label='z-component', final=final, **kwargs))
     else:
         a1d = mode._getArray()
         show = showAtomicLines(a1d, *args, **kwargs)
         if show_hinges and isinstance(mode, Mode):
-            hinges = mode.getHinges()
+            hinges = calcHinges(mode)
             if hinges is not None:
-                showAtomicLines(hinges, a1d[hinges], 'r*', atoms=atoms, final=False)
+                showAtomicLines(hinges, a1d[hinges], 'r*', final=False)
 
     if atoms is not None:
         title(str(atoms))
@@ -721,7 +721,7 @@ def showSqFlucts(modes, *args, **kwargs):
             show = showAtomicLines(sqf, *args, label=label, **kwargs)
 
         if show_hinge and not modes.is3d():
-            hinges = modes.getHinges()
+            hinges = calcHinges(modes)
             if hinges is not None:
                 kwargs.pop('final', False)
                 showAtomicLines(hinges, sqf[hinges], 'r*', final=False, **kwargs)
@@ -1915,7 +1915,8 @@ def showTree(tree, format='matplotlib', **kwargs):
     type tree: :class:`~Bio.Phylo.BaseTree.Tree`
     
     arg format: depending on the format, you will see different forms of trees. 
-        Acceptable formats are ``"plt"``, ``"ascii"`` and ``"networkx"``
+        Acceptable formats are ``"plt"`` (or ``"mpl"`` or ``"matplotlib"``), 
+        ``"ascii"`` and ``"networkx"``. Default is ``"matplotlib"``.
     type format: str
     
     keyword font_size: font size for branch labels

@@ -11,7 +11,7 @@ below.  :class:`Atomic` classes, such as :class:`.Selection`, offer ``get`` and
 
 from numpy import array
 
-from prody.utilities import wrapText
+from prody.utilities import wrapText, DTYPE
 
 from .flags import FIELDS as FLAG_FIELDS
 
@@ -117,8 +117,6 @@ class Field(object):
             return wrapText(docstr)
 
 HVNONE = ['_hv', 'segindex', 'chindex', 'resindex']
-
-DTYPE = array(['a']).dtype.char  # 'S' for PY2K and 'U' for PY3K
 
 ATOMIC_FIELDS = {
     'name':      Field('name', DTYPE + '6', selstr=('name CA CB',)),

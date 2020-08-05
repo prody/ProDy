@@ -13,13 +13,15 @@ from Bio.Data import IUPACData
 
 from xml.etree.ElementTree import Element
 
+DTYPE = array(['a']).dtype.char  # 'S' for PY2K and 'U' for PY3K
+
 __all__ = ['Everything', 'Cursor', 'ImageCursor', 'rangeString', 'alnum', 'importLA', 'dictElement',
            'intorfloat', 'startswith', 'showFigure', 'countBytes', 'sqrtm',
            'saxsWater', 'count', 'addEnds', 'copy', 'dictElementLoop', 'index',
            'getDataPath', 'openData', 'chr2', 'toChararray', 'interpY', 'cmp', 'pystr',
            'getValue', 'indentElement', 'isPDB', 'isURL', 'isListLike', 'isSymmetric', 'makeSymmetric',
            'getDistance', 'fastin', 'createStringIO', 'div0', 'wmean', 'bin2dec', 'wrapModes', 
-           'fixArraySize', 'decToHybrid36', 'hybrid36ToDec']
+           'fixArraySize', 'decToHybrid36', 'hybrid36ToDec', 'DTYPE']
 
 CURSORS = []
 
@@ -522,7 +524,7 @@ def fastin(a, B):
             return True
     return False
 
-def div0(a, b):
+def div0(a, b, defval=0.):
     """ Performs ``true_divide`` but ignores the error when division by zero 
     (result is set to zero instead). """
 
@@ -532,9 +534,9 @@ def div0(a, b):
         c = true_divide(a, b)
         if isscalar(c):
             if not isfinite(c):
-                c = 0
+                c = defval
         else:
-            c[~isfinite(c)] = 0.  # -inf inf NaN
+            c[~isfinite(c)] = defval  # -inf inf NaN
     return c
 
 def wmean(array, weights, axis=None):
@@ -545,7 +547,7 @@ def wmean(array, weights, axis=None):
     except ZeroDivisionError:
         numer = sum(array*weights, axis=axis)
         denom = sum(weights, axis=axis)
-        avg = div0(numer, denom)
+        avg = div0(numer, denom, nan)
     return avg
 
 def bin2dec(x):
