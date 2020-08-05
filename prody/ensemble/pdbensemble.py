@@ -554,3 +554,4 @@ class PDBEnsemble(Ensemble):
 
         if self._trans is not None:
             return [Transformation(trans) for trans in self._trans]
+        return
