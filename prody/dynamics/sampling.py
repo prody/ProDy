@@ -188,19 +188,11 @@ def traverseMode(mode, atoms, n_steps=10, rmsd=1.5, **kwargs):
     :math:`N` is the number of atoms."""
 
     pos = kwargs.get('pos', True)
-    if not isinstance(pos, bool):
-        raise TypeError('pos should be a Boolean')
-
     neg = kwargs.get('neg', True)
-    if not isinstance(neg, bool):
-        raise TypeError('neg should be a Boolean')
+    reverse = kwargs.get('reverse', False)
 
     if pos is False and neg is False:
         raise ValueError('pos and neg cannot both be False')
-
-    reverse = kwargs.get('reverse', False)
-    if not isinstance(pos, bool):
-        raise TypeError('pos should be a Boolean')
 
     if not isinstance(mode, VectorBase):
         raise TypeError('mode must be a Mode or Vector instance, '
