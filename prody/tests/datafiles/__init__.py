@@ -100,6 +100,15 @@ DATA_FILES = {
     'rtb2gb1_project': {
         'file': 'rtb2gb1_project.coo'
     },
+    'pca2k39_cov': {
+        'file': 'pca2k39_cov.coo',
+    },
+    'pca2k39_evalues': {
+        'file': 'pca2k39_evalues.dat',
+    },
+    'pca2k39_vectors': {
+        'file': 'pca2k39_vectors.dat'
+    },
     'commute1ubi': {
         'file': 'commute1ubi.dat'
     },
@@ -130,9 +139,9 @@ DATA_FILES = {
     'RTER': {
         'file': 'pdbRTER.pdb'
     },
-    '2k39_pca': {
-        'file': 'pca2k39.pca'
-    },
+    # '2k39_pca': {
+    #     'file': 'pca2k39.pca'
+    # },
 }
 
 
