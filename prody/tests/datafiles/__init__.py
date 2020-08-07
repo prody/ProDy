@@ -130,6 +130,9 @@ DATA_FILES = {
     'RTER': {
         'file': 'pdbRTER.pdb'
     },
+    '2k39_pca': {
+        'file': 'pca2k39.pca'
+    },
 }
 
 
