@@ -10,7 +10,7 @@ from prody.tests import TestCase
 from numpy import array
 import numpy as np
 
-from prody import parsePDB, parseDCD, parseSparseMatrix, parseArray
+from prody import parsePDB, parseDCD, parseSparseMatrix, parseArray, loadModel
 from prody.tests import TEMPDIR, TESTDIR
 
 
@@ -131,7 +131,8 @@ PARSERS = {
     '.dcd': parseDCD, '.pdb': parsePDB,
     '.coo': parseSparseMatrix, '.dat': parseArray,
     '.txt': np.loadtxt,
-    '.gz': lambda fn, **kwargs: PARSERS[splitext(fn)[1]](fn, **kwargs)
+    '.gz': lambda fn, **kwargs: PARSERS[splitext(fn)[1]](fn, **kwargs),
+    '.pca.npz': loadModel
 }
 
 
