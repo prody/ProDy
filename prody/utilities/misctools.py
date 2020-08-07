@@ -224,7 +224,7 @@ def importLA():
     return linalg
 
 
-def _solveEig(M, n_modes, turbo=True):
+def solveEig(M, n_modes, turbo=True):
     """Simple eigensolver based on PCA eigensolver"""
     dof = M.shape[0]
 

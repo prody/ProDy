@@ -6,7 +6,7 @@ from numpy import ndarray, power, sqrt, array, zeros, arccos, dot
 from numpy import sign, tile, concatenate, pi, cross, subtract, var
 
 from prody.atomic import Atomic, Residue, Atom
-from prody.utilities import importLA, _solveEig, checkCoords, getDistance, getCoords
+from prody.utilities import importLA, solveEig, checkCoords, getDistance, getCoords
 from prody import LOGGER, PY2K
 
 if PY2K:
@@ -813,5 +813,5 @@ def calcInertiaTensor(coords):
 def calcPrincAxes(coords, turbo=True):
     """Calculate principal axes from coords"""
     M = calcInertiaTensor(coords)
-    _, vectors = _solveEig(M, 3)
+    _, vectors = solveEig(M, 3)
     return vectors
