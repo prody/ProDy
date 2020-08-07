@@ -131,7 +131,7 @@ DATA_FILES = {
         'file': 'pdbRTER.pdb'
     },
     '2k39_pca': {
-        'file': '2k39.pca.npz'
+        'file': 'pca2k39.pca.npz'
     },
 }
 
