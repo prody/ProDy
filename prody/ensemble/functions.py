@@ -18,7 +18,7 @@ from .conformation import *
 __all__ = ['saveEnsemble', 'loadEnsemble', 'trimPDBEnsemble',
            'calcOccupancies', 'showOccupancies',
            'buildPDBEnsemble', 'refineEnsemble', 'combineEnsembles',
-           'alignAtomicsUsingEnsemble']
+           'alignByEnsemble']
 
 
 def saveEnsemble(ensemble, filename=None, **kwargs):
@@ -666,7 +666,7 @@ def combineEnsembles(target, mobile, **kwargs):
     return ens
 
 
-def alignAtomicsUsingEnsemble(atomics, ensemble):
+def alignByEnsemble(atomics, ensemble):
     """Align a set of :class:`.Atomic` objects using transformations from *ensemble*, 
     which may be a :class:`.PDBEnsemble` or a :class:`.PDBConformation` instance. 
     
