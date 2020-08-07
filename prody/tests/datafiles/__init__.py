@@ -53,6 +53,12 @@ DATA_FILES = {
         'n_atoms': 683,
         'models': 1
     },
+    '2k39_ca': {
+        'pdb': '2k39',
+        'file': 'pdb2k39_ca.pdb',
+        'n_atoms': 76,
+        'models': 116
+    },
     '1ubi_ca': {
         'pdb': '1ubi',
         'file': 'pdb1ubi_ca.pdb',
@@ -123,6 +129,9 @@ DATA_FILES = {
     },
     'RTER': {
         'file': 'pdbRTER.pdb'
+    },
+    '2k39_pca': {
+        'file': '2k39.pca.npz'
     },
 }
 
