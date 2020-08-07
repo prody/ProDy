@@ -131,7 +131,7 @@ DATA_FILES = {
         'file': 'pdbRTER.pdb'
     },
     '2k39_pca': {
-        'file': 'pca2k39.pca.npz'
+        'file': 'pca2k39.pca'
     },
 }
 
@@ -141,7 +141,7 @@ PARSERS = {
     '.coo': parseSparseMatrix, '.dat': parseArray,
     '.txt': np.loadtxt,
     '.gz': lambda fn, **kwargs: PARSERS[splitext(fn)[1]](fn, **kwargs),
-    '.pca.npz': loadModel
+    '.pca': loadModel
 }
 
 
