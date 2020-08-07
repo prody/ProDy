@@ -2,18 +2,16 @@
 import re
 
 from numpy import unique, linalg, diag, sqrt, dot, chararray, divide, zeros_like, zeros, allclose, ceil
-from numpy import diff, where, insert, nan, isnan, loadtxt, array, round, average, min, max, delete, vstack
-from numpy import sign, arange, asarray, ndarray, subtract, power, sum, isscalar, empty, triu, tril
+from numpy import diff, where, insert, nan, isnan, loadtxt, array, round, average, min, max, delete, vstack, hstack
+from numpy import sign, arange, asarray, ndarray, subtract, power, sum, isscalar, empty, triu, tril, concatenate
 from collections import Counter
 import numbers
 
-from prody import PY3K
+from prody import PY3K, LOGGER
 
 from Bio.Data import IUPACData
 
 from xml.etree.ElementTree import Element
-
-DTYPE = array(['a']).dtype.char  # 'S' for PY2K and 'U' for PY3K
 
 __all__ = ['Everything', 'Cursor', 'ImageCursor', 'rangeString', 'alnum', 'importLA', 'dictElement',
            'intorfloat', 'startswith', 'showFigure', 'countBytes', 'sqrtm',
@@ -21,8 +19,10 @@ __all__ = ['Everything', 'Cursor', 'ImageCursor', 'rangeString', 'alnum', 'impor
            'getDataPath', 'openData', 'chr2', 'toChararray', 'interpY', 'cmp', 'pystr',
            'getValue', 'indentElement', 'isPDB', 'isURL', 'isListLike', 'isSymmetric', 'makeSymmetric',
            'getDistance', 'fastin', 'createStringIO', 'div0', 'wmean', 'bin2dec', 'wrapModes', 
-           'fixArraySize', 'DTYPE', '_solveEig']
+           'fixArraySize', 'DTYPE', 'solveEig', 'ZERO']
 
+ZERO = 1e-6
+DTYPE = array(['a']).dtype.char  # 'S' for PY2K and 'U' for PY3K
 CURSORS = []
 
 # Note that the chain id can be blank (space). Examples:
@@ -223,37 +223,121 @@ def importLA():
                               'NMA and structure alignment calculations')
     return linalg
 
-
-def solveEig(M, n_modes, turbo=True):
-    """Simple eigensolver based on PCA eigensolver"""
+def solveEig(M, n_modes=None, zeros=False, turbo=True, is3d=False, warn_zeros=True, reverse=False):
+    linalg = importLA()
     dof = M.shape[0]
 
-    linalg = importLA()
-    if str(n_modes).lower() == 'all':
-        n_modes = None
-    if linalg.__package__.startswith('scipy'):
-        if n_modes is None:
+    expct_n_zeros = 6 if is3d else 1
+
+    if n_modes is None:
+        eigvals = None
+        n_modes = dof
+    else:
+        if n_modes >= dof:
             eigvals = None
             n_modes = dof
         else:
-            n_modes = int(n_modes)
-            if n_modes >= dof:
-                eigvals = None
-                n_modes = dof
+            eigvals = (0, n_modes+expct_n_zeros-1)
+
+    def _eigh(M, eigvals=None, turbo=True):
+        if linalg.__package__.startswith('scipy'):
+            from scipy.sparse import issparse
+
+            if eigvals:
+                turbo = False
+            if not issparse(M):
+                values, vectors = linalg.eigh(M, turbo=turbo, eigvals=eigvals)
             else:
-                eigvals = (dof - n_modes, dof - 1)
-        values, vectors = linalg.eigh(M, turbo=turbo,
-                                      eigvals=eigvals)
+                try:
+                    from scipy.sparse import linalg as scipy_sparse_la
+                except ImportError:
+                    raise ImportError('failed to import scipy.sparse.linalg, '
+                                      'which is required for sparse matrix '
+                                      'decomposition')
+                if eigvals:
+                    j = eigvals[0]
+                    k = eigvals[-1] + 1
+                else:
+                    j = 0
+                    k = dof
+
+                if k >= dof:
+                    k -= 1
+                    LOGGER.warning('Cannot calculate all eigenvalues for sparse matrices, thus '
+                                   'the last eigenvalue is omitted. See scipy.sparse.linalg.eigsh '
+                                   'for more information')
+                values, vectors = scipy_sparse_la.eigsh(M, k=k, which='SA')
+                values = values[j:k]
+                vectors = vectors[:, j:k]
+        else:
+            if n_modes is not None:
+                LOGGER.info('Scipy is not found, all modes were calculated.')
+            else:
+                n_modes = dof
+            values, vectors = linalg.eigh(M)
+        return values, vectors
+
+    def _calc_n_zero_modes(M):
+        from scipy.sparse import issparse
+
+        if not issparse(M):
+            w = linalg.eigvalsh(M)
+        else:
+            try:
+                from scipy.sparse import linalg as scipy_sparse_la
+            except ImportError:
+                raise ImportError('failed to import scipy.sparse.linalg, '
+                                    'which is required for sparse matrix '
+                                    'decomposition')
+            w, _ = scipy_sparse_la.eigsh(M, k=dof-1, which='SA')
+        n_zeros = sum(w < ZERO)
+        return n_zeros
+
+    values, vectors = _eigh(M, eigvals, turbo)
+    n_zeros = sum(values < ZERO)
+
+    if warn_zeros:
+        if n_zeros < n_modes + expct_n_zeros:
+            if n_zeros < expct_n_zeros:
+                LOGGER.warning('Fewer than %d (%d) zero eigenvalues were calculated.'%(expct_n_zeros, n_zeros))
+            elif n_zeros > expct_n_zeros:
+                LOGGER.warning('More than %d (%d) zero eigenvalues were calculated.'%(expct_n_zeros, n_zeros))
+        else:
+            LOGGER.warning('More than %d zero eigenvalues were detected.'%expct_n_zeros)
+
+    if not zeros:
+        if n_zeros > expct_n_zeros:
+            if n_zeros == n_modes + expct_n_zeros and n_modes < dof:
+                LOGGER.debug('Determing the number of zero eigenvalues...')
+                # find the actual number of zero modes
+                n_zeros = _calc_n_zero_modes(M)
+                LOGGER.debug('%d zero eigenvalues detected.'%n_zeros)
+            LOGGER.debug('Solving for additional eigenvalues...')
+
+            if n_modes < dof:
+                start = min(n_modes+expct_n_zeros, dof-1); end = min(n_modes+n_zeros-1, dof-1)
+                values_, vectors_ = _eigh(M, eigvals=(start, end))
+                values = concatenate((values, values_))
+                vectors = hstack((vectors, vectors_))
+
+        # final_n_modes may exceed len(eigvals) - no need to fix for the sake of the simplicity of the code
+        final_n_modes = n_zeros + n_modes
+        eigvals = values[n_zeros:final_n_modes]
+        eigvecs = vectors[:, n_zeros:final_n_modes]
+        invvals = 1 / eigvals
     else:
-        LOGGER.info('Scipy is not found, all modes are calculated.')
-        values, vectors = linalg.eigh(M)
+        eigvals = values[:n_modes]
+        eigvecs = vectors[:, :n_modes]
+        invvals = div0(1, values)
+        invvals[:n_zeros] = 0.
+        invvals = invvals[:n_modes]
 
-    # Order by descending SV
-    revert = list(range(len(values)-1, -1, -1))
-    values = values[revert]
-    vectors = vectors[:, revert]
+    if reverse:
+        invvals = invvals[::-1]
+        eigvals = eigvals[:, ::-1]
+        eigvecs = eigvecs[:, ::-1]
 
-    return values, vectors
+    return eigvals, eigvecs, invvals
 
 
 def createStringIO():
@@ -383,14 +467,13 @@ def sqrtm(matrix):
 def getMasses(elements):
     """Gets the mass atom. """
     
-    import numpy as np
     # mass_dict = {'C':12,'N':14,'S':32,'O':16,'H':1}
     mass_dict = IUPACData.atom_weights
 
     if isinstance(elements, str):
         return mass_dict[elements.capitalize()]
     else:
-        masses = np.zeros(len(elements))
+        masses = zeros(len(elements))
         for i,element in enumerate(elements):
             if element.capitalize() in mass_dict:
                 masses[i] = mass_dict[element.capitalize()]
