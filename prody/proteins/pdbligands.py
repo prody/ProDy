@@ -5,11 +5,21 @@ from os.path import isdir, isfile, join, split, splitext
 
 import numpy as np
 
-from prody import LOGGER, SETTINGS, getPackagePath
+from prody import LOGGER, SETTINGS, getPackagePath, PY3K
 from prody.atomic import AtomGroup, ATOMIC_FIELDS
 from prody.utilities import openFile, makePath, openURL
 
-__all__ = ['fetchPDBLigand']
+__all__ = ['PDBLigandRecord', 'fetchPDBLigand', 'parsePDBLigand',
+           'calc2DSimilarity']
+
+
+class PDBLigandRecord(object):
+    """Class for handling the output of fetchPDBLigand"""
+    def __init__(self, data):
+        self._rawdata = data
+
+    def getCanonicalSMILES(self):
+        return self._rawdata['CACTVS_SMILES_CANONICAL']
 
 
 def fetchPDBLigand(cci, filename=None):
@@ -52,6 +62,7 @@ def fetchPDBLigand(cci, filename=None):
 
     if not isinstance(cci, str):
         raise TypeError('cci must be a string')
+
     if isfile(cci):
         inp = openFile(cci)
         xml = inp.read()
@@ -74,12 +85,12 @@ def fetchPDBLigand(cci, filename=None):
                 with openFile(xmlgz) as inp:
                     xml = inp.read()
         else:
+            folder = None
             path = None
-        #url = ('http://ligand-expo.rcsb.org/reports/{0[0]}/{0}/{0}'
-        #       '.xml'.format(cci.upper()))
-        url = 'http://files.rcsb.org/ligands/download/{0}.xml'.format(cci.upper())
+
+        url = ('http://files.rcsb.org/ligands/download/{0}'
+               '.xml'.format(cci.upper()))
         if not xml:
-            #'http://www.pdb.org/pdb/files/ligand/{0}.xml'
             try:
                 inp = openURL(url)
             except IOError:
@@ -87,7 +98,10 @@ def fetchPDBLigand(cci, filename=None):
                               .format(cci))
             else:
                 xml = inp.read()
+                if PY3K:
+                    xml = xml.decode()
                 inp.close()
+
             if filename:
                 out = openFile(filename, mode='w', folder=folder)
                 out.write(xml)
@@ -218,3 +232,48 @@ def fetchPDBLigand(cci, filename=None):
         model.setBonds(bonds)
         ideal.setBonds(bonds)
     return dict_
+
+
+def parsePDBLigand(cci, filename=None):
+    """See :func:`.fetchPDBLigand`"""
+    lig_dict = fetchPDBLigand(cci, filename)
+    return PDBLigandRecord(lig_dict)
+
+
+def calc2DSimilarity(smiles1, smiles2):
+    """Calculate 2D similarity using Morgan Fingerprints
+    
+    :arg smiles1: first SMILES string or PDBLigandRecord containing one
+    :type smiles1: str, :class:`.PDBLigandRecord`
+
+    :arg smiles2: second SMILES string or PDBLigandRecord containing one
+    :type smiles2: str, :class:`.PDBLigandRecord`
+    """
+    try:
+        from rdkit import Chem
+        from rdkit import DataStructs
+        from rdkit.Chem.Fingerprints import FingerprintMols
+        from rdkit.Chem import AllChem
+    except ImportError:
+        raise ImportError('rdkit is a required package for calc2DSimilarity')
+
+    if not isinstance(smiles1, str):
+        try:
+            smiles1 = smiles1.getCanonicalSMILES()
+        except:
+            raise TypeError('smiles1 should be a string or PDBLigandRecord')
+
+    if not isinstance(smiles2, str):
+        try:
+            smiles2 = smiles2.getCanonicalSMILES()
+        except:
+            raise TypeError('smiles2 should be a string or PDBLigandRecord')
+
+    m1 = Chem.MolFromSmiles(smiles1)
+    m2 = Chem.MolFromSmiles(smiles2)
+    if m1 is not None and m2 is not None:
+        fp1 = AllChem.GetMorganFingerprint(m1, 2, useFeatures=True)
+        fp2 = AllChem.GetMorganFingerprint(m2, 2, useFeatures=True)
+        simi_score = DataStructs.TanimotoSimilarity(fp1, fp2)
+
+    return simi_score
