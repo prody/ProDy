@@ -301,6 +301,10 @@ from . import clustenm
 from .clustenm import *
 __all__.extend(clustenm.__all__)
 
+from . import essa
+from .essa import *
+__all__.extend(essa.__all__)
+
 # workaround for circular dependency to accommodate original design style 
 from prody.ensemble import functions
 functions.ClustENM = ClustENM
