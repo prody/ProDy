@@ -21,7 +21,7 @@ __all__ = ['Everything', 'Cursor', 'ImageCursor', 'rangeString', 'alnum', 'impor
            'getDataPath', 'openData', 'chr2', 'toChararray', 'interpY', 'cmp', 'pystr',
            'getValue', 'indentElement', 'isPDB', 'isURL', 'isListLike', 'isSymmetric', 'makeSymmetric',
            'getDistance', 'fastin', 'createStringIO', 'div0', 'wmean', 'bin2dec', 'wrapModes', 
-           'fixArraySize', 'DTYPE', '_solveEig']
+           'fixArraySize', 'DTYPE', 'solveEig']
 
 CURSORS = []
 
