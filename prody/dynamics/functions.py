@@ -175,7 +175,7 @@ def loadModel(filename, **kwargs):
             if attr in ('type', '_name', '_title'):
                 continue
             elif attr in ('_trace', '_cutoff', '_gamma'):
-                dict_[attr] = float(attr_dict[attr])
+                dict_[attr] = attr_dict[attr][()]
             elif attr in ('_dof', '_n_atoms', '_n_modes'):
                 dict_[attr] = int(attr_dict[attr])
             elif attr in ('masked', ):

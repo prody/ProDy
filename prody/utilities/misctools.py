@@ -21,7 +21,7 @@ __all__ = ['Everything', 'Cursor', 'ImageCursor', 'rangeString', 'alnum', 'impor
            'getDataPath', 'openData', 'chr2', 'toChararray', 'interpY', 'cmp', 'pystr',
            'getValue', 'indentElement', 'isPDB', 'isURL', 'isListLike', 'isSymmetric', 'makeSymmetric',
            'getDistance', 'fastin', 'createStringIO', 'div0', 'wmean', 'bin2dec', 'wrapModes', 
-           'fixArraySize', 'decToHybrid36', 'hybrid36ToDec', 'DTYPE']
+           'fixArraySize', 'decToHybrid36', 'hybrid36ToDec', 'DTYPE', 'solveEig']
 
 CURSORS = []
 
@@ -222,6 +222,39 @@ def importLA():
             raise ImportError('scipy.linalg or numpy.linalg is required for '
                               'NMA and structure alignment calculations')
     return linalg
+
+
+def solveEig(M, n_modes, turbo=True):
+    """Simple eigensolver based on PCA eigensolver"""
+    dof = M.shape[0]
+
+    linalg = importLA()
+    if str(n_modes).lower() == 'all':
+        n_modes = None
+    if linalg.__package__.startswith('scipy'):
+        if n_modes is None:
+            eigvals = None
+            n_modes = dof
+        else:
+            n_modes = int(n_modes)
+            if n_modes >= dof:
+                eigvals = None
+                n_modes = dof
+            else:
+                eigvals = (dof - n_modes, dof - 1)
+        values, vectors = linalg.eigh(M, turbo=turbo,
+                                      eigvals=eigvals)
+    else:
+        LOGGER.info('Scipy is not found, all modes are calculated.')
+        values, vectors = linalg.eigh(M)
+
+    # Order by descending SV
+    revert = list(range(len(values)-1, -1, -1))
+    values = values[revert]
+    vectors = vectors[:, revert]
+
+    return values, vectors
+
 
 def createStringIO():
     if PY3K:
