@@ -13,12 +13,15 @@ from Bio.Data import IUPACData
 
 from xml.etree.ElementTree import Element
 
+DTYPE = array(['a']).dtype.char  # 'S' for PY2K and 'U' for PY3K
+
 __all__ = ['Everything', 'Cursor', 'ImageCursor', 'rangeString', 'alnum', 'importLA', 'dictElement',
            'intorfloat', 'startswith', 'showFigure', 'countBytes', 'sqrtm',
            'saxsWater', 'count', 'addEnds', 'copy', 'dictElementLoop', 'index',
            'getDataPath', 'openData', 'chr2', 'toChararray', 'interpY', 'cmp', 'pystr',
            'getValue', 'indentElement', 'isPDB', 'isURL', 'isListLike', 'isSymmetric', 'makeSymmetric',
-           'getDistance', 'fastin', 'createStringIO', 'div0', 'wmean', 'bin2dec', 'wrapModes', 'fixArraySize']
+           'getDistance', 'fastin', 'createStringIO', 'div0', 'wmean', 'bin2dec', 'wrapModes', 
+           'fixArraySize', 'DTYPE', '_solveEig']
 
 CURSORS = []
 
@@ -219,6 +222,39 @@ def importLA():
             raise ImportError('scipy.linalg or numpy.linalg is required for '
                               'NMA and structure alignment calculations')
     return linalg
+
+
+def solveEig(M, n_modes, turbo=True):
+    """Simple eigensolver based on PCA eigensolver"""
+    dof = M.shape[0]
+
+    linalg = importLA()
+    if str(n_modes).lower() == 'all':
+        n_modes = None
+    if linalg.__package__.startswith('scipy'):
+        if n_modes is None:
+            eigvals = None
+            n_modes = dof
+        else:
+            n_modes = int(n_modes)
+            if n_modes >= dof:
+                eigvals = None
+                n_modes = dof
+            else:
+                eigvals = (dof - n_modes, dof - 1)
+        values, vectors = linalg.eigh(M, turbo=turbo,
+                                      eigvals=eigvals)
+    else:
+        LOGGER.info('Scipy is not found, all modes are calculated.')
+        values, vectors = linalg.eigh(M)
+
+    # Order by descending SV
+    revert = list(range(len(values)-1, -1, -1))
+    values = values[revert]
+    vectors = vectors[:, revert]
+
+    return values, vectors
+
 
 def createStringIO():
     if PY3K:
@@ -521,7 +557,7 @@ def fastin(a, B):
             return True
     return False
 
-def div0(a, b):
+def div0(a, b, defval=0.):
     """ Performs ``true_divide`` but ignores the error when division by zero 
     (result is set to zero instead). """
 
@@ -531,9 +567,9 @@ def div0(a, b):
         c = true_divide(a, b)
         if isscalar(c):
             if not isfinite(c):
-                c = 0
+                c = defval
         else:
-            c[~isfinite(c)] = 0.  # -inf inf NaN
+            c[~isfinite(c)] = defval  # -inf inf NaN
     return c
 
 def wmean(array, weights, axis=None):
@@ -544,7 +580,7 @@ def wmean(array, weights, axis=None):
     except ZeroDivisionError:
         numer = sum(array*weights, axis=axis)
         denom = sum(weights, axis=axis)
-        avg = div0(numer, denom)
+        avg = div0(numer, denom, nan)
     return avg
 
 def bin2dec(x):

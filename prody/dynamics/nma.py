@@ -7,11 +7,12 @@ from .mode import Mode
 from .modeset import ModeSet
 
 from prody import PY2K, LOGGER
+from prody.utilities import isListLike
 
 if PY2K:
     range = xrange
 
-__all__ = ['NMA']
+__all__ = ['NMA', 'MaskedNMA']
 
 class NMA(object):
 
@@ -194,7 +195,7 @@ class NMA(object):
         """Returns a copy of eigenvectors array."""
 
         if self._array is None: return None
-        return self._array.copy()
+        return self._getArray().copy()
 
     getEigvecs = getArray
 
@@ -317,4 +318,152 @@ class NMA(object):
       else:
         return np.arange(self.numModes())
 
+class MaskedNMA(NMA):
+    def __init__(self, name='Unknown', mask=False, masked=True):
+        if isinstance(name, str):
+            super(MaskedNMA, self).__init__(name)
+        else:
+            model = name
+            name = model.getTitle()
+            super(MaskedNMA, self).__init__(name)
+            self.__dict__.update(model.__dict__)
+            
+        self.mask = False
+        self.masked = masked
+        self._maskedarray = None
 
+        if not np.isscalar(mask):
+            self.mask = np.array(mask)
+
+    def _isOriginal(self):
+        return self.masked or np.isscalar(self.mask)
+
+    def __repr__(self):
+        if self._isOriginal():
+            n_dummies = 0
+        else:
+            n_dummies = len(self.mask) - self._n_atoms
+
+        return ('<{0}: {1} ({2} modes; {3} nodes + {4} dummies)>'
+                .format(self.__class__.__name__, self._title, self.__len__(), 
+                        self._n_atoms, n_dummies))
+
+    def numAtoms(self):
+        """Returns number of atoms."""
+
+        if self._isOriginal():
+            return self._n_atoms
+        else:
+            return len(self.mask)
+
+    def _extend(self, arr, axis=None, defval=0):
+        mask = self.mask#.copy()
+        if self.is3d():
+            mask = np.repeat(mask, 3)
+
+        n_true = np.sum(mask)
+        N = len(mask)
+
+        if axis is None:
+            axes = [i for i in range(arr.ndim)]
+        elif not isListLike(axis):
+            axes = [axis]
+        else:
+            axes = axis
+
+        shape = np.array(arr.shape)
+        shape[axes] = N
+
+        whole_array = np.empty(shape, dtype=arr.dtype)
+        whole_array.fill(defval)
+
+        I = [np.arange(s) for s in shape]
+        J = [np.arange(s) for s in arr.shape]
+
+        for ax in axes:
+            I[ax] = mask
+            J[ax] = np.arange(n_true)
+
+        whole_array[np.ix_(*I)] = arr[np.ix_(*J)]
+
+        return whole_array
+
+    def _getArray(self):
+        """Returns eigenvectors array. The function returns 
+        a copy of the array if *masked* is **True**."""
+
+        if self._array is None: return None
+
+        if self._isOriginal():
+            array = self._array
+        else:
+            if self._maskedarray is None:
+                array = self._maskedarray = self._extend(self._array, axis=0)
+            else:
+                array = self._maskedarray
+
+        return array
+
+    def setNumAtoms(self, n_atoms):
+        """Fixes the tail of the model. If *n_atoms* is greater than the original size 
+        (number of nodes), then extra hidden nodes will be added to the model, and if 
+        not, the model will be trimmed so that the total number of nodes, including the 
+        hidden ones, will be equal to the *n_atoms*. Note that if *masked* is **True**, 
+        the *n_atoms* should be the number of *visible* nodes.
+
+        :arg n_atoms: number of atoms of the model 
+        :type n_atoms: int
+        """
+        def _fixLength(vector, length, filled_value=0, axis=0):
+            shape = vector.shape
+            dim = len(shape)
+
+            if shape[axis] < length:
+                dl = length - shape[0]
+                pad_width = []
+                for i in range(dim):
+                    if i == axis:
+                        pad_width.append((0, dl))
+                    else:
+                        pad_width.append((0, 0))
+                vector = np.pad(vector, pad_width, 'constant', constant_values=(filled_value,))
+            elif shape[axis] > length:
+                vector = vector[:length]
+            return vector
+
+        trimmed = self.masked
+        if trimmed:
+            trimmed_length = self.numAtoms()
+            self.masked = False
+            extra_length = self.numAtoms() - trimmed_length
+            n_atoms += extra_length
+
+        if np.isscalar(self.mask):
+            self.mask = np.ones(self.numAtoms(), dtype=bool)
+
+        self.mask = _fixLength(self.mask, n_atoms, False)
+        self.masked = trimmed
+        self._n_atoms = np.sum(self.mask, dtype=int)
+        return
+
+    def setEigens(self, vectors, values=None):
+        mask = self.mask
+        if not self.masked:
+            if not np.isscalar(mask):
+                if self.is3d():
+                    mask = np.repeat(mask, 3)
+                try:
+                    vectors = vectors[mask, :]
+                except IndexError:
+                    raise IndexError('size mismatch between vectors (%d) and mask (%d).'
+                                     'Try set masked to False or reset mask'%(vectors.shape[0], len(mask)))
+        self._maskedarray = None
+        super(MaskedNMA, self).setEigens(vectors, values)
+
+    def calcModes(self):
+        self._maskedarray = None
+        super(MaskedNMA, self).calcModes()
+
+    def _reset(self):
+        super(MaskedNMA, self)._reset()
+        self._maskedarray = None

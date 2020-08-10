@@ -201,11 +201,11 @@ def fetchPDBfromMirror(*pdb, **kwargs):
 
 def fetchPDB(*pdb, **kwargs):
     """Returns path(s) to PDB file(s) for specified *pdb* identifier(s).  Files
-    will be sought in user specified *folder* or current working director, and
+    will be sought in user specified *folder* or current working directory, and
     then in local PDB folder and mirror, if they are available.  If *copy*
     is set **True**, files will be copied into *folder*.  If *compressed* is
-    **False**, all files will be decompressed.  See :func:`pathPDBFolder` and
-    :func:`pathPDBMirror` for managing local resources, :func:`.fetchPDBviaFTP`
+    **False**, all files will be decompressed into *folder*.  See :func:`pathPDBFolder` 
+    and :func:`pathPDBMirror` for managing local resources, :func:`.fetchPDBviaFTP`
     and :func:`.fetchPDBviaHTTP` for downloading files from PDB servers."""
 
     if len(pdb) == 1 and isinstance(pdb[0], list):

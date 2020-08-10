@@ -20,7 +20,7 @@ from .mode import Mode, VectorBase, Vector
 from .modeset import ModeSet
 from .analysis import calcSqFlucts, calcProjection
 from .analysis import calcCrossCorr, calcPairDeformationDist
-from .analysis import calcFractVariance, calcCrossProjection 
+from .analysis import calcFractVariance, calcCrossProjection, calcHinges
 from .perturb import calcPerturbResponse
 from .compare import calcOverlap
 
@@ -622,16 +622,16 @@ def showMode(mode, *args, **kwargs):
     if mode.is3d():
         a3d = mode.getArrayNx3()
         show = []
-        show.append(showAtomicLines(a3d[:, 0], atoms=atoms, label='x-component', final=False, **kwargs))
-        show.append(showAtomicLines(a3d[:, 1], atoms=atoms, label='y-component', final=False, **kwargs))
-        show.append(showAtomicLines(a3d[:, 2], atoms=atoms, label='z-component', final=final, **kwargs))
+        show.append(showAtomicLines(a3d[:, 0], label='x-component', final=False, **kwargs))
+        show.append(showAtomicLines(a3d[:, 1], label='y-component', final=False, **kwargs))
+        show.append(showAtomicLines(a3d[:, 2], label='z-component', final=final, **kwargs))
     else:
         a1d = mode._getArray()
         show = showAtomicLines(a1d, *args, **kwargs)
         if show_hinges and isinstance(mode, Mode):
-            hinges = mode.getHinges()
+            hinges = calcHinges(mode)
             if hinges is not None:
-                showAtomicLines(hinges, a1d[hinges], 'r*', atoms=atoms, final=False)
+                showAtomicLines(hinges, a1d[hinges], 'r*', final=False)
 
     if atoms is not None:
         title(str(atoms))
@@ -721,7 +721,7 @@ def showSqFlucts(modes, *args, **kwargs):
             show = showAtomicLines(sqf, *args, label=label, **kwargs)
 
         if show_hinge and not modes.is3d():
-            hinges = modes.getHinges()
+            hinges = calcHinges(modes)
             if hinges is not None:
                 kwargs.pop('final', False)
                 showAtomicLines(hinges, sqf[hinges], 'r*', final=False, **kwargs)
@@ -820,8 +820,12 @@ def showContactMap(enm, **kwargs):
 def showOverlap(mode, modes, *args, **kwargs):
     """Show overlap :func:`~matplotlib.pyplot.bar`.
 
-    :arg mode: a single mode/vector
-    :type mode: :class:`.Mode`, :class:`.Vector`
+    :arg mode: a single mode/vector or multiple modes.
+        If multiple modes are provided, then the overlaps are calculated 
+        by going through them one by one, i.e. mode i from this set is 
+        compared with mode i from the other set.
+    :type mode: :class:`.Mode`, :class:`.Vector`, :class:`.ModeSet`, 
+        :class:`.ANM`, :class:`.GNM`, :class:`.PCA`
 
     :arg modes: multiple modes
     :type modes: :class:`.ModeSet`, :class:`.ANM`, :class:`.GNM`, :class:`.PCA`
@@ -833,13 +837,15 @@ def showOverlap(mode, modes, *args, **kwargs):
     if SETTINGS['auto_show']:
         plt.figure()
 
-    if not isinstance(mode, (Mode, Vector)):
-        raise TypeError('mode must be Mode or Vector, not {0}'
+    if not isinstance(mode, (Mode, Vector, NMA, ModeSet)):
+        raise TypeError('mode must be Mode, Vector, NMA or ModeSet, not {0}'
                         .format(type(mode)))
+
     if not isinstance(modes, (NMA, ModeSet)):
         raise TypeError('modes must be NMA or ModeSet, not {0}'
                         .format(type(modes)))
-    overlap = abs(calcOverlap(mode, modes))
+
+    overlap = abs(calcOverlap(mode, modes, diag=True))
     if isinstance(modes, NMA):
         arange = np.arange(len(modes)) + 1
     else:
@@ -1915,7 +1921,8 @@ def showTree(tree, format='matplotlib', **kwargs):
     type tree: :class:`~Bio.Phylo.BaseTree.Tree`
     
     arg format: depending on the format, you will see different forms of trees. 
-        Acceptable formats are ``"plt"``, ``"ascii"`` and ``"networkx"``
+        Acceptable formats are ``"plt"`` (or ``"mpl"`` or ``"matplotlib"``), 
+        ``"ascii"`` and ``"networkx"``. Default is ``"matplotlib"``.
     type format: str
     
     keyword font_size: font size for branch labels

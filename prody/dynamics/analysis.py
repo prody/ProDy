@@ -8,7 +8,7 @@ import numpy as np
 
 from prody import LOGGER
 from prody.proteins import parsePDB
-from prody.atomic import AtomGroup
+from prody.atomic import AtomGroup, Atomic
 from prody.ensemble import Ensemble, Conformation
 from prody.trajectory import TrajBase
 from prody.utilities import importLA, checkCoords, div0
@@ -18,13 +18,12 @@ from .nma import NMA
 from .modeset import ModeSet
 from .mode import VectorBase, Mode, Vector
 from .gnm import GNMBase
-from .functions import calcENM
 
 __all__ = ['calcCollectivity', 'calcCovariance', 'calcCrossCorr',
            'calcFractVariance', 'calcSqFlucts', 'calcTempFactors',
            'calcProjection', 'calcCrossProjection',
            'calcSpecDimension', 'calcPairDeformationDist',
-           'calcDistFlucts']
+           'calcDistFlucts', 'calcHinges', 'calcHitTime', 'calcHitTime']
            #'calcEntropyTransfer', 'calcOverallNetEntropyTransfer']
 
 def calcCollectivity(mode, masses=None, is3d=None):
@@ -465,8 +464,7 @@ def calcCovariance(modes):
         return np.dot(V, np.dot(W, V.T))
 
 
-def calcPairDeformationDist(model, coords, ind1, ind2, kbt=1.):
-                                                
+def calcPairDeformationDist(model, coords, ind1, ind2, kbt=1.):                                       
     """Returns distribution of the deformations in the distance contributed by each mode 
     for selected pair of residues *ind1* *ind2* using *model* from a :class:`.ANM`.
     Method described in [EB08]_ equation (10) and figure (2).     
@@ -542,3 +540,122 @@ def calcPairDeformationDist(model, coords, ind1, ind2, kbt=1.):
     LOGGER.report('Deformation was calculated in %.2lfs.', label='_pairdef')
     
     return mode_nr, D_pair_k
+
+def calcHinges(modes, atoms=None, flag=False):
+    """Returns the hinge sites identified using normal modes.     
+
+    :arg modes: normal modes of which will be used to identify hinge sites
+    :type modes: :class:`.GNM`  
+    
+    :arg atoms: an Atomic object on which to map hinges. The output will then be a selection. 
+    :type atoms: :class:`.Atomic`
+
+    :arg flag: whether return flag or index array. Default is **False**
+    :type flag: bool
+
+    """
+
+    def identify(v):
+        # obtain the signs of eigenvector
+        s = np.sign(v)
+        # obtain the relative magnitude of eigenvector
+        mag = np.sign(np.diff(np.abs(v)))
+        # obtain the cross-overs
+        torf = np.diff(s)!=0
+        torf = np.append(torf, [False], axis=0)
+        # find which side is more close to zero
+        for j, m in enumerate(mag):
+            if torf[j] and m < 0:
+                torf[j+1] = True
+                torf[j] = False
+
+        return torf
+
+    if modes.is3d():
+        raise ValueError('3D models are not supported.')
+
+    # obtain the eigenvectors
+    V = modes.getArray()
+    if V.ndim == 1:
+        hinges = identify(V)
+    elif V.ndim == 2:
+        _, n = V.shape
+        hinges = []
+        for i in range(n):
+            v = V[:, i]
+            torf = identify(v)
+            hinges.append(torf)
+
+        hinges = np.stack(hinges).T
+    else:
+        raise TypeError('wrong dimension of the array: %d'%V.ndim)
+    
+    if not flag:
+        hinge_list = np.where(hinges)[0]
+        if atoms is not None:
+            if isinstance(atoms, Atomic):
+                return atoms[hinge_list]
+            else:
+                raise TypeError('atoms should be an Atomic object')
+        return sorted(set(hinge_list))
+    return hinges
+
+def calcHitTime(model, method='standard'):
+    """Returns the hit and commute times between pairs of nodes calculated 
+    based on a :class:`.NMA` object. 
+
+    .. [CB95] Chennubhotla C., Bahar I. Signal Propagation in Proteins and Relation
+    to Equilibrium Fluctuations. *PLoS Comput Biol* **2007** 3(9).
+
+    :arg model: model to be used to calculate hit times
+    :type model: :class:`.NMA`  
+
+    :arg method: method to be used to calculate hit times. Available options are 
+        ``"standard"`` or ``"kirchhoff"``. Default is ``"standard"``
+    :type method: str
+
+    :returns: (:class:`~numpy.ndarray`, :class:`~numpy.ndarray`)
+    """
+
+    try:
+        K = model.getKirchhoff()
+    except AttributeError:
+        raise TypeError('model must be an NMA instance')
+
+    if K is None:
+        raise ValueError('model not built')
+    
+    method = method.lower()
+
+    D = np.diag(K)
+    A = np.diag(D) - K
+
+    start = time.time()
+    linalg = importLA()
+    if method == 'standard':
+        st = D / sum(D)
+
+        P = np.dot(np.diag(D**(-1)), A)
+        W = np.ones((len(st), 1)) * st.T
+        Z = linalg.pinv(np.eye(P.shape[0], P.shape[1]) - P + W)
+
+        H = np.ones((len(st), 1)) * np.diag(Z).T - Z
+        H = H / W
+        H = H.T
+
+    elif method == 'kirchhoff':
+        K_inv = linalg.pinv(K)
+        sum_D = sum(D)
+
+        T1 = (sum_D * np.ones((len(D),1)) * np.diag(K_inv)).T
+
+        T2 = sum_D * K_inv
+        T3_i = np.dot((np.ones((len(D),1)) * D), K_inv)
+
+        H = T1 - T2 + T3_i - T3_i.T
+
+    C = H + H.T
+
+    LOGGER.debug('Hit and commute times are calculated in  {0:.2f}s.'
+                 .format(time.time()-start)) 
+    return H, C
