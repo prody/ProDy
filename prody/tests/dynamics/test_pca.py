@@ -22,7 +22,7 @@ ATOMS = parseDatafile('2k39_ca')
 COORDSETS = ATOMS.getCoordsets()
 
 PCA_COV = parseDatafile('pca2k39_cov', symmetric=True)
-PCA_EVALUES = parseDatafile('pca2k39_evalues').flatten()
+PCA_EVALUES = parseDatafile('pca2k39_evalues')
 PCA_EVECTORS = parseDatafile('pca2k39_vectors')
 
 pca = PCA()
@@ -95,7 +95,7 @@ class TestPCAResults(TestPCA):
 
     def testEigenvectors(self):
         _temp = np.abs(np.dot(pca.getEigvecs().T, PCA_EVECTORS))
-        assert_allclose(_temp, np.eye(20), rtol=RTOL, atol=ATOL*10,
+        assert_allclose(_temp, np.eyes_like(_temp), rtol=RTOL, atol=ATOL*10,
                        err_msg='failed to get correct eigenvectors')
 
     def testCovariance(self):
