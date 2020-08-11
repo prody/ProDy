@@ -20,7 +20,10 @@ RTOL = 0
 
 ATOMS = parseDatafile('2k39_ca')
 COORDSETS = ATOMS.getCoordsets()
-PCA0 = parseDatafile('2k39_pca')
+
+PCA_COV = parseDatafile('pca2k39_cov', symmetric=True)
+PCA_EVALUES = parseDatafile('pca2k39_evalues').flatten()
+PCA_EVECTORS = parseDatafile('pca2k39_vectors')
 
 pca = PCA()
 pca.buildCovariance(ATOMS)
@@ -49,7 +52,7 @@ class TestPCA(unittest.TestCase):
         self.assertRaises(ValueError, self.buildMatrix, array)
 
     def testBuildMatrixCoordsArray(self):
-        """Test output when  *coords* is an array."""
+        """Test output when *coords* is an array."""
 
         self.buildMatrix(COORDSETS)
         assert_equal(self.getMatrix(), self.getExpected(),
@@ -86,17 +89,17 @@ class TestPCA(unittest.TestCase):
 class TestPCAResults(TestPCA):
 
     def testEigenvalues(self):
-        assert_allclose(pca.getEigvals(), PCA0.getEigvals(),
+        assert_allclose(pca.getEigvals(), PCA_EVALUES,
                         rtol=RTOL, atol=ATOL*100,
                         err_msg='failed to get correct eigenvalues')
 
     def testEigenvectors(self):
-        _temp = np.abs(np.dot(pca.getEigvecs().T, PCA0.getEigvecs()))
+        _temp = np.abs(np.dot(pca.getEigvecs().T, PCA_EVECTORS))
         assert_allclose(_temp, np.eye(20), rtol=RTOL, atol=ATOL*10,
                        err_msg='failed to get correct eigenvectors')
 
     def testCovariance(self):
-        assert_allclose(pca.getCovariance(), PCA0.getCovariance(),
+        assert_allclose(pca.getCovariance(), PCA_COV,
                         rtol=0, atol=ATOL,
                         err_msg='failed to get correct Covariance matrix')
 

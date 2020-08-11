@@ -138,10 +138,7 @@ DATA_FILES = {
     },
     'RTER': {
         'file': 'pdbRTER.pdb'
-    },
-    # '2k39_pca': {
-    #     'file': 'pca2k39.pca'
-    # },
+    }
 }
 
 
@@ -149,8 +146,7 @@ PARSERS = {
     '.dcd': parseDCD, '.pdb': parsePDB,
     '.coo': parseSparseMatrix, '.dat': parseArray,
     '.txt': np.loadtxt,
-    '.gz': lambda fn, **kwargs: PARSERS[splitext(fn)[1]](fn, **kwargs),
-    '.pca': loadModel
+    '.gz': lambda fn, **kwargs: PARSERS[splitext(fn)[1]](fn, **kwargs)
 }
 
 
