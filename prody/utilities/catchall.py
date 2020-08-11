@@ -268,7 +268,9 @@ def clusterMatrix(distance_matrix=None, similarity_matrix=None, labels=None, ret
     """
     Cluster a distance matrix using scipy.cluster.hierarchy and 
     return the sorted matrix, indices used for sorting, sorted labels (if **labels** are passed),  
-    and linkage matrix (if **return_linkage** is **True**). Set ``similarity=True`` for clustering a similarity matrix
+    and linkage matrix (if **return_linkage** is **True**). 
+    
+    Set ``similarity=True`` for clustering a similarity matrix
     
     :arg distance_matrix: an N-by-N matrix containing some measure of distance 
          such as 1. - seqid_matrix, rmsds, or distances in PCA space
