@@ -37,6 +37,12 @@ class PCA(NMA):
         elif not (covariance.ndim == 2 and
                   covariance.shape[0] == covariance.shape[1]):
             raise ValueError('covariance must be square matrix')
+        elif covariance.dtype != float:
+            try:
+                covariance = covariance.astype(float)
+            except:
+                raise ValueError('covariance.dtype must be float')
+
         self._reset()
 
         self._is3d = is3d
