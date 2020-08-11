@@ -23,16 +23,16 @@ def calc2DSimilarity(smiles1, smiles2):
         raise ImportError('rdkit is a required package for calc2DSimilarity')
 
     if not isinstance(smiles1, str):
-        try:
+        if hasattr(smiles1, 'getCanonicalSMILES'):
             smiles1 = smiles1.getCanonicalSMILES()
-        except:
-            raise TypeError('smiles1 should be a string or PDBLigandRecord')
+        else:
+            raise TypeError('smiles1 should be a string or an object with method getCanonicalSMILES')
 
     if not isinstance(smiles2, str):
-        try:
+        if hasattr(smiles2, 'getCanonicalSMILES'):
             smiles2 = smiles2.getCanonicalSMILES()
-        except:
-            raise TypeError('smiles2 should be a string or PDBLigandRecord')
+        else:
+            raise TypeError('smiles2 should be a string or an object with method getCanonicalSMILES')
 
     m1 = Chem.MolFromSmiles(smiles1)
     m2 = Chem.MolFromSmiles(smiles2)
