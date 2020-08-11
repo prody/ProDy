@@ -1,5 +1,7 @@
 """This module defines functions for using compounds from the PDB and elsewhere."""
 
+from .pdbligands import PDBLigandRecord
+
 __all__ = ['calc2DSimilarity']
 
 
