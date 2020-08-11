@@ -95,7 +95,7 @@ class TestPCAResults(TestPCA):
 
     def testEigenvectors(self):
         _temp = np.abs(np.dot(pca.getEigvecs().T, PCA_EVECTORS))
-        assert_allclose(_temp, np.eyes_like(_temp), rtol=RTOL, atol=ATOL*10,
+        assert_allclose(_temp, np.eye(_temp.shape[0]), rtol=RTOL, atol=ATOL*10,
                        err_msg='failed to get correct eigenvectors')
 
     def testCovariance(self):

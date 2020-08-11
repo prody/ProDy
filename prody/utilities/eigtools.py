@@ -119,7 +119,7 @@ def solveEig(M, n_modes=None, zeros=False, turbo=True, is3d=False, warn_zeros=Tr
 
     if reverse:
         invvals = invvals[::-1]
-        eigvals = eigvals[:, ::-1]
+        eigvals = eigvals[::-1]
         eigvecs = eigvecs[:, ::-1]
 
     return eigvals, eigvecs, invvals
