@@ -38,7 +38,7 @@ class TestPCA(unittest.TestCase):
         self.buildMatrix = self.model.buildCovariance
         self.setMatrix = self.model.setCovariance
         self.getMatrix = self.model.getCovariance
-        self.getExpected = PCA0.getCovariance
+        self.getExpected = pca.getCovariance
 
     def testBuildMatrixCoordsWrongType(self):
         """Test response to wrong type *coords* argument."""
