@@ -801,7 +801,7 @@ def reorderMatrix(names, matrix, tree, axis=None):
 
 def findSubgroups(tree, c, method='naive', **kwargs):
     """
-    Divide a tree into subgroups using a criterion and a cutoff.
+    Divide **tree** into subgroups using a criterion **method** and a cutoff **c**.
     Returns a list of lists with labels divided into subgroups.
     """
 
