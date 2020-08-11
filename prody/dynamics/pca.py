@@ -36,7 +36,7 @@ class PCA(NMA):
             raise TypeError('covariance must be an ndarray')
         elif not (covariance.ndim == 2 and
                   covariance.shape[0] == covariance.shape[1]):
-            raise TypeError('covariance must be square matrix')
+            raise ValueError('covariance must be square matrix')
         self._reset()
 
         self._is3d = is3d
