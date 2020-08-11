@@ -13,16 +13,15 @@ from Bio.Data import IUPACData
 
 from xml.etree.ElementTree import Element
 
-DTYPE = array(['a']).dtype.char  # 'S' for PY2K and 'U' for PY3K
-
 __all__ = ['Everything', 'Cursor', 'ImageCursor', 'rangeString', 'alnum', 'importLA', 'dictElement',
            'intorfloat', 'startswith', 'showFigure', 'countBytes', 'sqrtm',
            'saxsWater', 'count', 'addEnds', 'copy', 'dictElementLoop', 'index',
            'getDataPath', 'openData', 'chr2', 'toChararray', 'interpY', 'cmp', 'pystr',
            'getValue', 'indentElement', 'isPDB', 'isURL', 'isListLike', 'isSymmetric', 'makeSymmetric',
            'getDistance', 'fastin', 'createStringIO', 'div0', 'wmean', 'bin2dec', 'wrapModes', 
-           'fixArraySize', 'DTYPE', 'solveEig']
+           'fixArraySize', 'DTYPE']
 
+DTYPE = array(['a']).dtype.char  # 'S' for PY2K and 'U' for PY3K
 CURSORS = []
 
 # Note that the chain id can be blank (space). Examples:
@@ -223,39 +222,6 @@ def importLA():
                               'NMA and structure alignment calculations')
     return linalg
 
-
-def solveEig(M, n_modes, turbo=True):
-    """Simple eigensolver based on PCA eigensolver"""
-    dof = M.shape[0]
-
-    linalg = importLA()
-    if str(n_modes).lower() == 'all':
-        n_modes = None
-    if linalg.__package__.startswith('scipy'):
-        if n_modes is None:
-            eigvals = None
-            n_modes = dof
-        else:
-            n_modes = int(n_modes)
-            if n_modes >= dof:
-                eigvals = None
-                n_modes = dof
-            else:
-                eigvals = (dof - n_modes, dof - 1)
-        values, vectors = linalg.eigh(M, turbo=turbo,
-                                      eigvals=eigvals)
-    else:
-        LOGGER.info('Scipy is not found, all modes are calculated.')
-        values, vectors = linalg.eigh(M)
-
-    # Order by descending SV
-    revert = list(range(len(values)-1, -1, -1))
-    values = values[revert]
-    vectors = vectors[:, revert]
-
-    return values, vectors
-
-
 def createStringIO():
     if PY3K:
         from io import StringIO
@@ -383,14 +349,13 @@ def sqrtm(matrix):
 def getMasses(elements):
     """Gets the mass atom. """
     
-    import numpy as np
     # mass_dict = {'C':12,'N':14,'S':32,'O':16,'H':1}
     mass_dict = IUPACData.atom_weights
 
     if isinstance(elements, str):
         return mass_dict[elements.capitalize()]
     else:
-        masses = np.zeros(len(elements))
+        masses = zeros(len(elements))
         for i,element in enumerate(elements):
             if element.capitalize() in mass_dict:
                 masses[i] = mass_dict[element.capitalize()]
