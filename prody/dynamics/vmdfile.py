@@ -343,7 +343,7 @@ def calcChainsNormDistFluct(coords, ch1, ch2, cutoff=10., percent=5, rangeAng=5,
             out_tcl.write('mol material Opaque \n')
             #out_tcl.write('mol addrep 0\n')
         
-        LOGGER.info('Finded residues in {0}: {1}'.format(mmRange.keys()[nr_j],\
+        LOGGER.info('Found residues in {0}: {1}'.format(mmRange.keys()[nr_j],\
                     len(list(set(vmd_ch_list[1])))+len(list(set(vmd_ch_list[0])))))
         LOGGER.info('chain {0} and resid {1}'.format(ch[0], \
                        str(list(set(vmd_ch_list[0]))).replace(',','')[1:-1]))
