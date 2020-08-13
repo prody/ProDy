@@ -448,13 +448,8 @@ from numpy import array, ndarray, ones, zeros, arange
 from numpy import invert, unique, concatenate, all, any
 from numpy import logical_and, logical_or, floor, ceil, where
 
-try:
-    from . import pyparsing as pp
-    from .pyparsing import ParseException
-except ImportError:
-    import pyparsing as pp
-    from pyparsing import ParseException
-
+import pyparsing as pp
+from pyparsing import ParseException
 
 from prody import LOGGER, SETTINGS, PY2K
 
@@ -678,7 +673,7 @@ FUNCTIONS = {
 
 OPERATORS = {
     '+'  : np.add,
-    '-'  : np.subtract,
+    #'-'  : np.subtract,
     '*'  : np.multiply,
     '/'  : np.divide,
     '%'  : np.remainder,
