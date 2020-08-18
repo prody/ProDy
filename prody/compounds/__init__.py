@@ -18,6 +18,10 @@ from . import pdbligands
 from .pdbligands import *
 __all__.extend(pdbligands.__all__)
 
+from . import bird
+from .bird import *
+__all__.extend(bird.__all__)
+
 from . import functions
 from .functions import *
 __all__.extend(functions.__all__)
