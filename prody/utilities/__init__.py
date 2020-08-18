@@ -71,6 +71,7 @@ from .pathtools import *
 from .doctools import *
 from .laptools import *
 from .TreeConstruction import *
+from .eigtools import *
 
 from . import catchall
 from .catchall import *

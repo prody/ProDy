@@ -26,7 +26,7 @@ Following functions are for creating or editing PDB ensembles, e.g. finding and
 removing residues that are missing in too many structures:
   
   * :func:`.buildPDBEnsemble`
-  * :func:`.alignPDBEnsemble`
+  * :func:`.alignByEnsemble`
   * :func:`.calcOccupancies`
   * :func:`.showOccupancies`
   * :func:`.trimPDBEnsemble`

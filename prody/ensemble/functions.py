@@ -18,7 +18,7 @@ from .conformation import *
 __all__ = ['saveEnsemble', 'loadEnsemble', 'trimPDBEnsemble',
            'calcOccupancies', 'showOccupancies',
            'buildPDBEnsemble', 'refineEnsemble', 'combineEnsembles',
-           'alignAtomicsUsingEnsemble']
+           'alignByEnsemble']
 
 
 def saveEnsemble(ensemble, filename=None, **kwargs):
@@ -434,7 +434,7 @@ def buildPDBEnsemble(atomics, ref=None, title='Unknown', labels=None, unmapped=N
                 strchids = ''.join(chids)
                 lbl += '_%s'%strchids
             ensemble.addCoordset(atommap, weights=atommap.getFlags('mapped'), 
-                                label=lbl, degeneracy=degeneracy)
+                                 label=lbl, degeneracy=degeneracy)
             
             if not isrefset:
                 ensemble.setCoords(atommap.getCoords())
@@ -666,7 +666,7 @@ def combineEnsembles(target, mobile, **kwargs):
     return ens
 
 
-def alignAtomicsUsingEnsemble(atomics, ensemble):
+def alignByEnsemble(atomics, ensemble):
     """Align a set of :class:`.Atomic` objects using transformations from *ensemble*, 
     which may be a :class:`.PDBEnsemble` or a :class:`.PDBConformation` instance. 
     
