@@ -8,11 +8,11 @@ from numbers import Integral
 from prody import LOGGER
 from prody.atomic import Atomic, AtomGroup
 from prody.proteins import parsePDB
-from prody.utilities import checkCoords
+from prody.utilities import checkCoords, solveEig
 from prody.kdtree import KDTree
 
 from .nma import NMA, MaskedNMA
-from .gnm import GNMBase, solveEig, checkENMParameters
+from .gnm import GNMBase, checkENMParameters
 
 __all__ = ['ANM', 'MaskedANM', 'calcANM']
 
