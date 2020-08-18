@@ -134,7 +134,7 @@ def fetchPDBClusters(sqid=None):
             inp = openURL(url)
         except IOError:
             LOGGER.warning('Clusters at {0}% sequence identity level could '
-                           'not be downloaded.')
+                           'not be downloaded.'.format(x))
             continue
         else:
             out = openFile(filename+'.gz', 'w', folder=PDB_CLUSTERS_PATH)
