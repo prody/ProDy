@@ -16,11 +16,11 @@ from prody import LOGGER, SETTINGS, getPackagePath
 from prody.utilities import openFile, openURL, pystr, isListLike
 from prody.proteins import wwPDBServer, WWPDB_FTP_SERVERS, parseSTAR
 
-__all__ = ['fetchBIRDviaHTTP', 'parseBIRD']
+__all__ = ['fetchBIRDviaFTP', 'parseBIRD']
 
 BIRD_PATH = os.path.join(getPackagePath(), 'bird')
 
-def fetchBIRDviaHTTP(**kwargs):
+def fetchBIRDviaFTP(**kwargs):
     """Retrieve the whole Biologically Interesting Molecule Reference 
     Dictionary (BIRD) resource, which is updated every week. This includes 
     2 kinds of keys, which can be selected with the **keys** keyword argument.
@@ -134,9 +134,9 @@ def parseBIRD(*ids, **kwargs):
     This data will be downloaded and extracted to :file:`.prody/bird-family`.
 
     Individual compounds can be selected using **ids**. 
-    If needed, BIRD files are downloaded using :func:`.fetchBIRDviaHTTP` function.
+    If needed, BIRD files are downloaded using :func:`.fetchBIRDviaFTP` function.
     
-    You can also provide arguments that you would like passed on to fetchBIRDviaHTTP.
+    You can also provide arguments that you would like passed on to fetchBIRDviaFTP.
 
     :arg ids: one BIRD identifier or a list of them.
         If **None** is provided then all of them are returned.
@@ -170,7 +170,7 @@ def parseBIRD(*ids, **kwargs):
 
     filename = BIRD_PATH + '/{0}-all.cif.gz'.format(key)
     if not os.path.isfile(filename):
-        fetchBIRDviaHTTP(keys=key, **kwargs)
+        fetchBIRDviaFTP(keys=key, **kwargs)
 
     data = parseSTAR(filename, shlex=True)
     ret = []
