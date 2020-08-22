@@ -20,7 +20,7 @@ __all__ = ['Everything', 'Cursor', 'ImageCursor', 'rangeString', 'alnum', 'impor
            'getDataPath', 'openData', 'chr2', 'toChararray', 'interpY', 'cmp', 'pystr',
            'getValue', 'indentElement', 'isPDB', 'isURL', 'isListLike', 'isSymmetric', 'makeSymmetric',
            'getDistance', 'fastin', 'createStringIO', 'div0', 'wmean', 'bin2dec', 'wrapModes', 
-           'fixArraySize', 'DTYPE', 'checkIdentifiers']
+           'fixArraySize', 'DTYPE', 'checkIdentifiers', 'split']
 
 DTYPE = array(['a']).dtype.char  # 'S' for PY2K and 'U' for PY3K
 CURSORS = []
@@ -648,3 +648,15 @@ def checkIdentifiers(*pdb):
             else:
                 append(pid)
     return identifiers
+
+def split(string, shlex=False):
+    if shlex:
+        try:
+            import shlex
+        except ImportError:
+            raise ImportError('Use of the shlex option requires the '
+                              'installation of the shlex package.')
+        else:
+            return shlex.split(string)
+    else:
+        return string.split()
