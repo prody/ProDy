@@ -12,7 +12,7 @@ import os.path
 from numbers import Integral
 import numpy as np
 
-from prody.utilities import openFile, split
+from prody.utilities import openFile, split, pystr
 from prody import LOGGER, SETTINGS, PY3K
 
 from .emdfile import parseEMD
@@ -262,9 +262,7 @@ def parseSTAR(filename, **kwargs):
         raise TypeError('shlex should be a boolean')
 
     starfile = openFile(filename, 'r')
-    lines = starfile.readlines()
-    if PY3K:
-        lines = [line.decode() for line in lines]
+    lines = [pystr(line) for line in starfile.readlines()]
     starfile.close()
 
     parsingDict, prog = parseSTARStream(lines, **kwargs)
