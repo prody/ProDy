@@ -349,8 +349,8 @@ def showProjection(ensemble, modes, *args, **kwargs):
             adjust_text(ts)
 
     if len(modes) == 2:
-        plt.xlabel('{0} coordinate'.format(int(modes[0])+1))
-        plt.ylabel('{0} coordinate'.format(int(modes[1])+1))
+        plt.xlabel('Mode {0} coordinate'.format(int(modes[0])+1))
+        plt.ylabel('Mode {0} coordinate'.format(int(modes[1])+1))
     elif len(modes) == 3:
         show.set_xlabel('Mode {0} coordinate'.format(int(modes[0])+1))
         show.set_ylabel('Mode {0} coordinate'.format(int(modes[1])+1))
