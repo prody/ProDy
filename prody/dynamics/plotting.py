@@ -242,7 +242,7 @@ def showProjection(ensemble, modes, *args, **kwargs):
 
     if projection.ndim == 1 or projection.shape[1] == 1:
         show = plt.hist(projection.flatten(), *args, **kwargs)
-        plt.xlabel('{0} coordinate'.format(str(modes)))
+        plt.xlabel('Mode {0} coordinate'.format(str(modes)))
         plt.ylabel('Number of conformations')
         return show
     elif projection.shape[1] > 3:
