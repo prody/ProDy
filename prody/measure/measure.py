@@ -813,6 +813,5 @@ def calcInertiaTensor(coords):
 def calcPrincAxes(coords, turbo=True):
     """Calculate principal axes from coords"""
     M = calcInertiaTensor(coords)
-    _, vectors = solveEig(M, 3, zeros=True, turbo=turbo, 
-                          warn_zeros=False, reverse=True)
+    _, vectors = solveEig(M, 3, zeros=True, turbo=turbo, reverse=True)
     return vectors
