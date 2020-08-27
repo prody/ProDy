@@ -204,7 +204,7 @@ class PCA(NMA):
             n_modes = None
         
         values, vectors, _ = solveEig(self._cov, n_modes=n_modes, zeros=True, 
-                                      turbo=turbo, warn_zeros=False, reverse=True)
+                                      turbo=turbo, reverse=True)
         which = values > ZERO
         self._eigvals = values[which]
         self._array = vectors[:, which]

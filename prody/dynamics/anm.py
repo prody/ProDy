@@ -216,7 +216,7 @@ class ANMBase(NMA):
         self._clear()
         LOGGER.timeit('_anm_calc_modes')
         values, vectors, vars = solveEig(self._hessian, n_modes=n_modes, zeros=zeros, 
-                                         turbo=turbo, is3d=True)
+                                         turbo=turbo, expct_n_zeros=6)
         self._eigvals = values
         self._array = vectors
         self._vars = vars
