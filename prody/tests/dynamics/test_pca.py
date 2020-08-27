@@ -29,6 +29,10 @@ pca = PCA()
 pca.buildCovariance(ATOMS)
 pca.calcModes(n_modes=None)
 
+n_modes = 20
+pca_n_modes = PCA()
+pca_n_modes.buildCovariance(ATOMS)
+pca_n_modes.calcModes(n_modes=n_modes)
 
 class TestPCA(unittest.TestCase):
 
@@ -97,6 +101,12 @@ class TestPCAResults(TestPCA):
         _temp = np.abs(np.dot(pca.getEigvecs().T, PCA_EVECTORS))
         assert_allclose(_temp, np.eye(_temp.shape[0]), rtol=RTOL, atol=ATOL*10,
                        err_msg='failed to get correct eigenvectors')
+
+    def testNumModesAll(self):
+        assert_equal(pca._n_modes, len(PCA_EVALUES))
+
+    def testNumModesSet(self):
+        assert_equal(pca_n_modes._n_modes, n_modes)
 
     def testCovariance(self):
         assert_allclose(pca.getCovariance(), PCA_COV,
