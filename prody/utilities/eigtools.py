@@ -8,7 +8,7 @@ __all__ = ['solveEig', 'ZERO']
 
 ZERO = 1e-6
 
-def solveEig(M, n_modes=None, zeros=False, turbo=True, is3d=False, warn_zeros=True, reverse=False):
+def solveEig(M, n_modes=None, zeros=False, turbo=True, is3d=False, warn_zeros=True, reverse=False, pca=False):
     linalg = importLA()
     dof = M.shape[0]
 
@@ -22,7 +22,10 @@ def solveEig(M, n_modes=None, zeros=False, turbo=True, is3d=False, warn_zeros=Tr
             eigvals = None
             n_modes = dof
         else:
-            eigvals = (0, n_modes+expct_n_zeros-1)
+            if pca:
+                eigvals = (dof - n_modes, dof - 1)
+            else:
+                eigvals = (0, n_modes+expct_n_zeros-1)
 
     def _eigh(M, eigvals=None, turbo=True):
         if linalg.__package__.startswith('scipy'):

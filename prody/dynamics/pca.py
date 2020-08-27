@@ -203,8 +203,9 @@ class PCA(NMA):
         if str(n_modes).lower() == 'all':
             n_modes = None
         
-        values, vectors, _ = solveEig(self._cov, n_modes=n_modes, zeros=True, 
-                                      turbo=turbo, warn_zeros=False, reverse=True)
+        values, vectors, _ = solveEig(self._cov, n_modes=n_modes, zeros=True,
+                                      turbo=turbo, warn_zeros=False, reverse=True,
+                                      pca=True)
         which = values > ZERO
         self._eigvals = values[which]
         self._array = vectors[:, which]
