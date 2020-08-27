@@ -925,7 +925,7 @@ def showAlignment(alignment, row_size=60, **kwargs):
         
     return
 
-def alignSequenceToMSA(seq, msa, label=None, match=5, mismatch=-1, gap_opening=-10, gap_extension=-1):
+def alignSequenceToMSA(seq, msa, **kwargs):
     """
     Align a sequence from a PDB or Sequence to a sequence from an MSA
     and create two sets of indices. 
@@ -949,7 +949,8 @@ def alignSequenceToMSA(seq, msa, label=None, match=5, mismatch=-1, gap_opening=-
         ``msa.getIndex(label)`` must return a sequence index
     :type label: str
     
-    :arg chain: which chain from pdb to use for alignment
+    :arg chain: which chain from pdb to use for alignment, default is `'A'`
+        This value will be ignored if seq is not an :class:`Atomic` object.
     :type chain: str
     
     :arg match: a positive integer, used to reward finding a match
@@ -968,8 +969,21 @@ def alignSequenceToMSA(seq, msa, label=None, match=5, mismatch=-1, gap_opening=-
         The default is -1, which we found to work in a test case
     :type gap_extension: int
     """
+    label = kwargs.get('label', None)
+    chain = kwargs.get('chain', 'A')
+    match = kwargs.get('match', 5)
+    mismatch = kwargs.get('mismatch', -1)
+    gap_opening = kwargs.get('gap_opening', -10)
+    gap_extension = kwargs.get('gap_extension', -1)
+
     if isinstance(seq, Atomic):
-        ag = seq
+        if isinstance(chain, str):
+            ag = seq.select('chain {0}'.format(chain))
+        elif chain is None:
+            ag = seq
+        else:
+            raise TypeError('chain should be a string or **None**')
+
         sequence = ag.select('ca').getSequence()
     elif isinstance(seq, Sequence):
          sequence = str(seq)

@@ -434,7 +434,7 @@ def buildPDBEnsemble(atomics, ref=None, title='Unknown', labels=None, unmapped=N
                 strchids = ''.join(chids)
                 lbl += '_%s'%strchids
             ensemble.addCoordset(atommap, weights=atommap.getFlags('mapped'), 
-                                label=lbl, degeneracy=degeneracy)
+                                 label=lbl, degeneracy=degeneracy)
             
             if not isrefset:
                 ensemble.setCoords(atommap.getCoords())
