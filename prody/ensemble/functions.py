@@ -49,16 +49,19 @@ def saveEnsemble(ensemble, filename=None, **kwargs):
 
     atoms = dict_['_atoms']
     if atoms is not None:
-        attr_dict['_atoms'] = np.array([atoms, None])
+        attr_dict['_atoms'] = np.array([atoms, None], 
+                                        dtype=object)
 
     data = dict_['_data']
     if len(data):
-        attr_dict['_data'] = np.array([data, None])
+        attr_dict['_data'] = np.array([data, None], 
+                                       dtype=object)
 
     if isinstance(ensemble, PDBEnsemble):
         msa = dict_['_msa']
         if msa is not None:
-            attr_dict['_msa'] = np.array([msa, None])
+            attr_dict['_msa'] = np.array([msa, None], 
+                                          dtype=object)
 
     if filename.endswith('.ens'):
         filename += '.npz'
