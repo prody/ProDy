@@ -258,7 +258,7 @@ class GNM(GNMBase):
         self._clear()
         LOGGER.timeit('_gnm_calc_modes')
         values, vectors, vars = solveEig(self._kirchhoff, n_modes=n_modes, zeros=zeros, 
-                                         turbo=turbo, is3d=False)
+                                         turbo=turbo, expct_n_zeros=1)
 
         self._eigvals = values
         self._array = vectors
