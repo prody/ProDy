@@ -914,7 +914,7 @@ def writeMSA(filename, msa, **kwargs):
         try:
             msa.getFormat(), msa.getFilename(), msa.getFilter()
         except AttributeError:
-            raise ValueError('msa must be an MSA or MSAFile instance, not '
+            raise ValueError('msa must be an MSA or MSAFile instance, not {0}'
                              .format(type(msa).__name__))
         else:
             seqiter = msa
