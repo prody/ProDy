@@ -8,11 +8,10 @@ from numpy import where, sort, concatenate, vstack, isscalar, chararray
 
 from Bio import AlignIO
 from Bio import pairwise2
-from Bio.SubsMat import MatrixInfo as matlist
 
 from prody import LOGGER, PY3K
 from prody.atomic import Atomic
-from prody.utilities import toChararray
+from prody.utilities import toChararray, pystr
 from .sequence import Sequence, splitSeqLabel
 
 import sys
@@ -549,7 +548,7 @@ def refineMSA(msa, index=None, label=None, rowocc=None, seqid=None, colocc=None,
                 from prody.proteins.compare import GAP_PENALTY, GAP_EXT_PENALTY
                 pw2 = importBioPairwise2()
                 chseq = chain.getSequence()
-                algn = pw2.align.localms(arr[index].tostring().upper(), chseq,
+                algn = pw2.align.localms(pystr(arr[index].tostring().upper()), pystr(chseq),
                                          MATCH_SCORE, MISMATCH_SCORE,
                                          GAP_PENALTY, GAP_EXT_PENALTY,
                                          one_alignment_only=1)
