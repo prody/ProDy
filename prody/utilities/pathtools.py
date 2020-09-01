@@ -12,6 +12,8 @@ from os.path import isfile, isdir, join, split, splitext
 from os.path import getsize, isabs, exists, abspath
 from shutil import copy, Error as shError
 
+from prody import PY3K
+
 PLATFORM = platform.system()
 USERHOME = os.getenv('USERPROFILE') or os.getenv('HOME')
 
@@ -22,8 +24,7 @@ __all__ = ['gunzip', 'backupFile', 'openFile',
            'pickle', 'unpickle', 'glob', 'addext',
            'PLATFORM', 'USERHOME']
 
-major, minor = sys.version_info[:2]
-if major > 2:
+if PY3K:
     import gzip
     from gzip import GzipFile
     import io
@@ -116,7 +117,7 @@ else:
         else:
             return gzip.GzipFile(filename, *args, **kwargs)
 
-if (major, minor) >= (3, 2):
+if PY3K:
     from gzip import compress as gzip_compress
     from gzip import decompress as gzip_decompress
 
