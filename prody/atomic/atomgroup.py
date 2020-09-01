@@ -266,6 +266,20 @@ class AtomGroup(Atomic):
                     that = np.zeros(shape, this.dtype)
                 new._data[key] = np.concatenate((this, that))
 
+        for key in set(list(self._flags) + list(other._flags)):
+            this = self._flags.get(key)
+            that = other._flags.get(key)
+            if this is not None or that is not None:
+                if this is None:
+                    shape = list(that.shape)
+                    shape[0] = len(self)
+                    this = np.zeros(shape, that.dtype)
+                if that is None:
+                    shape = list(this.shape)
+                    shape[0] = len(other)
+                    that = np.zeros(shape, this.dtype)
+                new._setFlags(key, np.concatenate((this, that)))
+
         new._n_atoms = self._n_atoms + other._n_atoms
 
         if self._bonds is not None and other._bonds is not None:
