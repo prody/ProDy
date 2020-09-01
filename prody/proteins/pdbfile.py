@@ -68,6 +68,10 @@ _parsePDBdoc = _parsePQRdoc + """
 
     :arg biomol: if **True**, biomolecules are obtained by transforming the
         coordinates using information from header section will be returned.
+        This option uses :func:`.buildBiomolecules` and as noted there, 
+        atoms in biomolecules are ordered according to the original chain 
+        IDs. Chains may have the same chain ID, in which case they are given 
+        different segment names.
         Default is **False**
     :type biomol: bool
 
