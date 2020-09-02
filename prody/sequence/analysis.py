@@ -1003,14 +1003,52 @@ def alignSequenceToMSA(seq, msa, **kwargs):
         else:
             raise ValueError('A label cannot be extracted from seq so please provide one.')
 
+    index = msa.getIndex(label)
+
+    if index is None and (len(label) == 4 or len(label) == 5):
+        from prody import parsePDB
+        try:
+            structure, header = parsePDB(label[:4], header=True)
+        except Exception as err:
+            raise IOError('failed to parse header for {0} ({1})'
+                            .format(label[:4], str(err)))
+
+        chid = chain
+        for poly in header['polymers']:
+            if chid and poly.chid != chid:
+                continue
+            for dbref in poly.dbrefs:
+                if index is None:
+                    index = msa.getIndex(dbref.idcode)
+                    if index is not None:
+                        LOGGER.info('{0} idcode {1} for {2}{3} '
+                                    'is found in chain {4}.'.format(
+                                    dbref.database, dbref.idcode,
+                                    label[:4], poly.chid, str(msa)))
+                        break
+                if index is None:
+                    index = msa.getIndex(dbref.accession)
+                    if index is not None:
+                        LOGGER.info('{0} accession {1} for {2}{3} '
+                                    'is found in chain {4}.'.format(
+                                    dbref.database, dbref.accession,
+                                    label[:4], poly.chid, str(msa)))
+                        break
+        if index is not None:
+            chain = structure[poly.chid]
+
+    if index is None:
+        raise ValueError('label is not in msa, or msa is not indexed')
     try:
-        seqIndex = msa.getIndex(label)
-    except:
-        raise ValueError('Please provide a label that can be found in msa.')
+        len(index)
+    except TypeError:
+        pass
+    else:
+        raise ValueError('label {0} maps onto multiple sequences, '
+                            'so cannot be used for refinement'.format(label))
 
-    if isinstance(seqIndex, int):
-        refMsaSeq = str(msa[seqIndex]).upper().replace('-','.')
-
+    if isinstance(index, int):
+        refMsaSeq = str(msa[index]).upper().replace('-','.')
     else:
         raise TypeError('The output from querying that label against msa is not a single sequence.')
 

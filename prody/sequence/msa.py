@@ -487,9 +487,9 @@ def refineMSA(msa, index=None, label=None, rowocc=None, seqid=None, colocc=None,
 
             index = msa.getIndex(label)
             if index is None:
-                    index = msa.getIndex(upper)
+                index = msa.getIndex(upper)
             if index is None:
-                    index = msa.getIndex(lower)
+                index = msa.getIndex(lower)
 
             chain = None
             if index is None and (len(label) == 4 or len(label) == 5):
