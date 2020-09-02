@@ -69,7 +69,7 @@ Coevolution analysis:
 Rank order analysis (you can use a PDB file if you write it first):
 
   $ evol rankorder RnaseA_full_refined_mutinfo_corr_apc.txt -p \
-2W5IB_1-121.pdb --seq-sep 3 """, test_examples=[(0,1,2)])
+2W5IB_3-121.pdb --seq-sep 3 """, test_examples=[(0,1,2)])
 
 evol_commands = evol_parser.add_subparsers(
     title='subcommands')
