@@ -124,7 +124,7 @@ def calcAllDist(coordset):
     return distance
 
 def evol_rankorder(mutinfo, **kwargs):
-    from prody import parseMSA, LOGGER, parsePDB, calcMSAOccupancy
+    from prody import parseMSA, LOGGER, parsePDB, calcMSAOccupancy, PY3K
     from prody.utilities import openFile
     from os.path import splitext
 
@@ -233,7 +233,12 @@ def evol_rankorder(mutinfo, **kwargs):
     count = 1
     i = 0
 
-    f = openFile(outname, 'wb')
+    if PY3K:
+        mode = 'w'
+    else:
+        mode = 'wb'
+    f = openFile(outname, mode)
+    
     if label is None:
         label = 'Serial Index'
 
