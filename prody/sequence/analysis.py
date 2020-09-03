@@ -836,7 +836,7 @@ def buildMSA(sequences, title='Unknown', labels=None, **kwargs):
 
     return msa
 
-def showAlignment(alignment, row_size=60, **kwargs):
+def showAlignment(alignment, **kwargs):
     """
     Prints out an alignment as sets of short rows with labels.
 
@@ -862,6 +862,7 @@ def showAlignment(alignment, row_size=60, **kwargs):
     :arg labels: a list of labels
     :type labels: list
     """
+    row_size = kwargs.get('row_size', 60)
 
     labels = kwargs.get('labels', None)
     if labels is not None:
@@ -882,9 +883,9 @@ def showAlignment(alignment, row_size=60, **kwargs):
             else:
                 labels.append(str(i+1))
 
-    indices = kwargs.get('indices',None)
-    index_start = kwargs.get('index_start',0)
-    index_stop = kwargs.get('index_stop',0)
+    indices = kwargs.get('indices', None)
+    index_start = kwargs.get('index_start', 0)
+    index_stop = kwargs.get('index_stop', 0)
 
     if index_stop == 0 and indices is not None:
         locs = []
@@ -909,7 +910,7 @@ def showAlignment(alignment, row_size=60, **kwargs):
                     try:
                         if k > index_start + 10 and k < index_stop + 10:
                             sys.stdout.write('{:10d}'.format(int(indices[j][k-1])))
-                        elif k > index_start:
+                        elif k < index_stop:
                             sys.stdout.write(' '*(k-index_start))
                         else:
                             sys.stdout.write(' '*10)
