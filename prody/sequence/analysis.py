@@ -7,7 +7,7 @@ from numbers import Integral
 import os
 
 from numpy import dtype, zeros, empty, ones, where, ceil, shape, eye
-from numpy import indices, tril_indices, array, ndarray, isscalar
+from numpy import indices, tril_indices, array, ndarray, isscalar, unique
 
 from prody import LOGGER
 from prody.utilities import which
@@ -25,7 +25,8 @@ __all__ = ['calcShannonEntropy', 'buildMutinfoMatrix', 'calcMSAOccupancy',
            'buildSeqidMatrix', 'uniqueSequences', 'buildOMESMatrix',
            'buildSCAMatrix', 'buildDirectInfoMatrix', 'calcMeff', 
            'buildPCMatrix', 'buildMSA', 'showAlignment', 'alignTwoSequencesWithBiopython', 
-           'alignSequenceToMSA', 'calcPercentIdentities', 'alignSequencesByChain',]
+           'alignSequenceToMSA', 'calcPercentIdentities', 'alignSequencesByChain',
+           'trimAtomsUsingMSA']
 
 
 doc_turbo = """
@@ -1116,3 +1117,21 @@ def alignTwoSequencesWithBiopython(seq1, seq2, match=5, mismatch=-1, gap_opening
 
     return alignment, seq_indices, msa_indices
 
+
+def trimAtomsUsingMSA(atoms, msa, **kwargs):
+    """This function uses :func:`.alignSequenceToMSA` and has the same kwargs.
+
+    :arg atoms: an atomic structure for trimming
+    :type atoms: :class:`.Atomic`
+
+    :arg msa: a multiple sequence alignment
+    :type msa: :class:`.MSA`
+    """
+    aln, idx_1, idx_2 = alignSequenceToMSA(atoms, msa, **kwargs)
+
+    u, i = unique(idx_2, return_index=True)
+
+    resnums_str = ' '.join([str(x) for x in idx_1[i]])
+    chain = kwargs.get('chain', 'A')
+
+    return atoms.select('chain {0} and resnum {1}'.format(chain, resnums_str))
