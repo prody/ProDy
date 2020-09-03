@@ -63,11 +63,11 @@ class ClustENM(Ensemble):
     This ANM-based hybrid algorithm requires PDBFixer and OpenMM for performing energy minimization and MD simulations in implicit solvent.
     It is Python 3.7 compatible and has been only tested on Linux machines.
 
-    .. [KZ16] Kurkcuoglu Z, Bahar I, Doruker P. ClustENM: ENM-based sampling of essential conformational space at full atomic resolution. 
+    .. [KZ16] Kurkcuoglu Z, Bahar I, Doruker P. ClustENM: ENM-based sampling of essential conformational space at full atomic resolution.
        *J Chem* **2016** 12(9):4549-4562.
-    
-    .. [PE17] Eastman P, Swails J, Chodera JD, McGibbon RT, Zhao Y, Beauchamp KA, Wang LP, Simmonett AC, Harrigan MP, Stern CD, Wiewiora RP, 
-       Brooks BR, Pande VS. OpenMM 7: Rapid Development of High Performance Algorithms for Molecular Dynamics. *PLoS Comput Biol* **2017** 
+
+    .. [PE17] Eastman P, Swails J, Chodera JD, McGibbon RT, Zhao Y, Beauchamp KA, Wang LP, Simmonett AC, Harrigan MP, Stern CD, Wiewiora RP,
+       Brooks BR, Pande VS. OpenMM 7: Rapid Development of High Performance Algorithms for Molecular Dynamics. *PLoS Comput Biol* **2017**
        13:e1005659.
 
     Instantiate a ClustENM object.
@@ -102,6 +102,9 @@ class ClustENM(Ensemble):
     threshold : float or tuple of floats.
                 If it is true, a short MD simulation will be performed after energy minimization. Default is True.
                 Note: There is a heating-up phase until the desired temperature is reached before MD simulation starts.
+    solvent: str
+             Solvent model to be used. 'imp' stands form implicit solvent model (default)
+             whereas 'exp' stands for explicit solvent model.
     sim : bool
         If it is true, a short MD simulation will be performed after energy minimization. Default is True.
         Note: There is a heating-up phase until the desired temperature is reached before MD simulation starts.
@@ -116,8 +119,8 @@ class ClustENM(Ensemble):
                 Note: Each time step is 2.0 fs.
     outlier : bool
             Exclusion of conformers detected as outliers in each generation,
-            based on their potential energy using their modified z-scores over the potentials in that generation,         
-            default is True.
+            based on their potential energy using their modified z-scores over the potentials in that generation,
+            default is True. It is automatically set to False when explicit solvent model is being used.
     mzscore : float
             Modified z-score threshold to label conformers as outliers. Default is 3.5.
     v1 : bool
@@ -146,6 +149,7 @@ class ClustENM(Ensemble):
         self._maxclust = None
         self._threshold = None
 
+        self._sol = 'imp'
         self._sim = True
         self._temp = 300
         self._t_steps = None
@@ -263,25 +267,39 @@ class ClustENM(Ensemble):
         self._topology = fixed.topology
         self._positions = fixed.positions
 
-    def _prep_sim(self, external_forces=[]):
+    def _prep_sim(self, coords, external_forces=[]):
 
         try:
-            from simtk.openmm import Platform, LangevinIntegrator
+            from simtk.openmm import Platform, LangevinIntegrator, Vec3
             from simtk.openmm.app import Modeller, ForceField, \
-                CutoffNonPeriodic, Simulation, HBonds
-            from simtk.unit import nanometers, picosecond, kelvin
+                CutoffNonPeriodic, PME, Simulation, HBonds
+            from simtk.unit import angstrom, nanometers, picosecond, \
+                kelvin, Quantity
         except ImportError:
             raise ImportError('Please install PDBFixer and OpenMM in order to use ClustENM.')
 
-        modeller = Modeller(self._topology,
-                            self._positions)
-        forcefield = ForceField('amber99sbildn.xml',
-                                'amber99_obc.xml')
+        positions = Quantity([Vec3(*xyz) for xyz in coords], angstrom)
+        modeller = Modeller(self._topology, positions)   # self._positions
 
-        system = forcefield.createSystem(modeller.topology,
-                                         nonbondedMethod=CutoffNonPeriodic,
-                                         nonbondedCutoff=1.0*nanometers,
-                                         constraints=HBonds)
+        if self._sol == 'imp':
+            forcefield = ForceField('amber99sbildn.xml',
+                                    'amber99_obc.xml')
+
+            system = forcefield.createSystem(modeller.topology,
+                                             nonbondedMethod=CutoffNonPeriodic,
+                                             nonbondedCutoff=1.0*nanometers,
+                                             constraints=HBonds)
+
+        if self._sol == 'exp':
+            forcefield = ForceField('amber14-all.xml',
+                                    'amber14/tip3pfb.xml')
+
+            modeller.addSolvent(forcefield, padding=1.0*nanometers)
+
+            system = forcefield.createSystem(modeller.topology,
+                                             nonbondedMethod=PME,
+                                             nonbondedCutoff=1.0*nanometers,
+                                             constraints=HBonds)
 
         for force in external_forces:
             system.addForce(force)
@@ -302,14 +320,16 @@ class ClustENM(Ensemble):
         simulation = Simulation(modeller.topology, system, integrator,
                                 platform, properties)
 
+        simulation.context.setPositions(modeller.positions)
+
         return simulation
 
     def _min_sim(self, coords):
 
         # coords: coordset   (numAtoms, 3) in Angstrom, which should be converted into nanometer
 
-        # we are not using self._positions!
-        # coords will be set as positions
+        # we are not using self._positions! - deprecated
+        # coords will be set as positions - deprecated
 
         try:
             from simtk.openmm.app import StateDataReporter
@@ -317,10 +337,10 @@ class ClustENM(Ensemble):
         except ImportError:
             raise ImportError('Please install PDBFixer and OpenMM in order to use ClustENM.')
 
-        simulation = self._prep_sim()
+        simulation = self._prep_sim(coords=coords)
 
         # automatic conversion into nanometer will be carried out.
-        simulation.context.setPositions(coords * angstrom)
+        # simulation.context.setPositions(coords * angstrom)
 
         try:
             simulation.minimizeEnergy()
@@ -341,7 +361,7 @@ class ClustENM(Ensemble):
 
                 simulation.step(self._t_steps[self._cycle])
 
-            pos = simulation.context.getState(getPositions=True).getPositions(asNumpy=True).value_in_unit(angstrom)
+            pos = simulation.context.getState(getPositions=True).getPositions(asNumpy=True).value_in_unit(angstrom)[:self._topology.getNumAtoms()]
             pot = simulation.context.getState(getEnergy=True).getPotentialEnergy().value_in_unit(kilojoule_per_mole)
 
             return pot, pos
@@ -698,7 +718,7 @@ class ClustENM(Ensemble):
             if g == gen:
                 n_confs += 1
 
-                return n_confs
+        return n_confs
 
     def _slice(self, indices):
 
@@ -770,7 +790,8 @@ class ClustENM(Ensemble):
 
     def run(self, cutoff=15., n_modes=3, gamma=1., n_confs=50, rmsd=1.0,
             n_gens=5, maxclust=None, threshold=None,
-            sim=True, temp=300, t_steps_i=1000, t_steps_g=7500,
+            solvent='imp', sim=True, temp=300,
+            t_steps_i=1000, t_steps_g=7500,
             outlier=True, mzscore=3.5, **kwargs):
 
         if self.isBuilt():
@@ -783,8 +804,8 @@ class ClustENM(Ensemble):
         self._n_confs = n_confs
         self._rmsd = (0.,) + rmsd if isinstance(rmsd, tuple) else (0.,) + (rmsd,) * n_gens
         self._n_gens = n_gens
-        self._v1 = kwargs.pop('v1', False) 
-        self._platform = kwargs.pop('platform', None) 
+        self._v1 = kwargs.pop('v1', False)
+        self._platform = kwargs.pop('platform', None)
         self._parallel = kwargs.pop('parallel', False)
         self._targeted = kwargs.pop('targeted', False)
         self._tmdk = kwargs.pop('tmdk', 15.)
@@ -811,6 +832,7 @@ class ClustENM(Ensemble):
             if len(self._threshold) != self._n_gens + 1:
                 raise ValueError('size mismatch: %d generations were set; %d thresholds were given' % (self._n_gens + 1, self._threshold))
 
+        self._sol = solvent
         self._sim = sim
         self._temp = temp
 
@@ -820,7 +842,7 @@ class ClustENM(Ensemble):
             else:
                 self._t_steps = (t_steps_i,) + (t_steps_g,) * n_gens
 
-        self._outlier = outlier
+        self._outlier = False if self._sol == 'exp' else outlier
         self._mzscore = mzscore
 
         self._cycle = 0
@@ -846,9 +868,9 @@ class ClustENM(Ensemble):
         potential, conformer = self._min_sim(self._atoms.getCoords())
         if np.isnan(potential):
             raise ValueError('Initial structure could not be minimized. Try again and/or check your structure.')
-        
+
         LOGGER.report(label='_clustenm_min')
-        
+
         LOGGER.info('#' + '-' * 19 + '/*\\' + '-' * 19 + '#')
 
         self.setCoords(conformer)
@@ -936,6 +958,7 @@ class ClustENM(Ensemble):
                 f.write('threshold = %s\n' % str(self._threshold[1:]))
             if self._maxclust is not None:
                 f.write('maxclust = %s\n' % str(self._maxclust[1:]))
+            f.write('solvent = %slicit\n' % self._sol)
             if self._sim:
                 f.write('temp = %4.2f\n' % self._temp)
                 f.write('t_steps = %s\n' % str(self._t_steps))
@@ -973,7 +996,7 @@ class ClustRTB(ClustENM):
     def run(self, **kwargs):
         if self._blocks is None:
             raise ValueError('blocks are not set')
-        
+
         super(ClustRTB, self).run(**kwargs)
 
 
@@ -1002,16 +1025,16 @@ class ClustImANM(ClustENM):
         self._h = kwargs.pop('h', 100.)
         if self._blocks is None:
             raise ValueError('blocks are not set')
-        
+
         super(ClustImANM, self).run(**kwargs)
 
 
 class ClustExANM(ClustENM):
     def buildANM(self, ca):
         anm = exANM()
-        anm.buildHessian(ca, cutoff=self._cutoff, gamma=self._gamma, R=self._R, 
-                         Ri=self._Ri, r=self._r, h=self._h, exr=self._exr, 
-                         gamma_memb=self._gamma_memb, hull=self._hull, lat=self._lat, 
+        anm.buildHessian(ca, cutoff=self._cutoff, gamma=self._gamma, R=self._R,
+                         Ri=self._Ri, r=self._r, h=self._h, exr=self._exr,
+                         gamma_memb=self._gamma_memb, hull=self._hull, lat=self._lat,
                          center=self._centering)
 
         return anm
@@ -1029,5 +1052,5 @@ class ClustExANM(ClustENM):
         self._centering = kwargs.pop('center', True)
         self._turbo = kwargs.pop('turbo', True)
         self._gamma_memb = kwargs.pop('gamma_memb', 1.)
-        
+
         super(ClustExANM, self).run(**kwargs)
