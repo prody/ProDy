@@ -943,7 +943,7 @@ def alignSequenceToMSA(seq, msa, **kwargs):
          or a sequence string itself
     :type seq: :class:`Atomic`, :class:`Sequence`
     
-    :arg msa: MSA object
+    :arg msa: a multiple sequence alignment
     :type msa: :class:`.MSA`
     
     :arg label: a label for a sequence in msa or a PDB ID
@@ -986,6 +986,7 @@ def alignSequenceToMSA(seq, msa, **kwargs):
             raise TypeError('chain should be a string or **None**')
 
         sequence = ag.select('ca').getSequence()
+
     elif isinstance(seq, Sequence):
          sequence = str(seq)
          ag = None
@@ -1023,17 +1024,19 @@ def alignSequenceToMSA(seq, msa, **kwargs):
                     index = msa.getIndex(dbref.idcode)
                     if index is not None:
                         LOGGER.info('{0} idcode {1} for {2}{3} '
-                                    'is found in chain {4}.'.format(
+                                    'is found in {4}.'.format(
                                     dbref.database, dbref.idcode,
                                     label[:4], poly.chid, str(msa)))
+                        label = dbref.idcode
                         break
                 if index is None:
                     index = msa.getIndex(dbref.accession)
                     if index is not None:
                         LOGGER.info('{0} accession {1} for {2}{3} '
-                                    'is found in chain {4}.'.format(
+                                    'is found in {4}.'.format(
                                     dbref.database, dbref.accession,
                                     label[:4], poly.chid, str(msa)))
+                        label = dbref.accession
                         break
         if index is not None:
             chain = structure[poly.chid]
@@ -1076,6 +1079,9 @@ def alignSequenceToMSA(seq, msa, **kwargs):
     seq_indices = array(seq_indices)
     msa_indices = array(msa_indices)
 
+    if ag:
+        seq_indices += ag.getResnums()[0] - 1
+
     alignment = MSA(msa=array([array(list(alignment[0][0])), \
                                array(list(alignment[0][1]))]), \
                     labels=[ag.getTitle(), label])
@@ -1084,7 +1090,7 @@ def alignSequenceToMSA(seq, msa, **kwargs):
 
 def alignTwoSequencesWithBiopython(seq1, seq2, match=5, mismatch=-1, gap_opening=-10, gap_extension=-1):
     """Easily align two sequences with Biopython's globalms.
-    Returns an MSA and indices for use with showAlignment.
+    Returns an MSA and indices for use with :func:`.showAlignment`.
     """
     alignment = pairwise2.align.globalms(seq1, seq2, match, mismatch, gap_opening, gap_extension)
 
