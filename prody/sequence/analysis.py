@@ -17,7 +17,10 @@ from prody.sequence.sequence import Sequence
 from prody.atomic import Atomic
 from prody.measure import calcDistance
 
-from Bio import pairwise2
+from prody.proteins.compare import importBioPairwise2
+from prody.proteins.compare import MATCH_SCORE, MISMATCH_SCORE
+from prody.proteins.compare import GAP_PENALTY, GAP_EXT_PENALTY, ALIGNMENT_METHOD
+pw2 = importBioPairwise2()
 import sys
 
 __all__ = ['calcShannonEntropy', 'buildMutinfoMatrix', 'calcMSAOccupancy',
@@ -739,8 +742,9 @@ def buildMSA(sequences, title='Unknown', labels=None, **kwargs):
         default True
     :type align: bool
 
-    :arg method: alignment method, one of either biopython.align.globalms or clustalw(2).
-        default 'clustalw'
+    :arg method: alignment method, one of either 'global' (biopython.pairwise2.align.globalms),
+        'local' (biopython.pairwise2.align.localms), clustalw(2), or another software in your path.
+        Default is 'clustalw'
     :type align: str
     """
     
@@ -803,7 +807,7 @@ def buildMSA(sequences, title='Unknown', labels=None, **kwargs):
 
     if align:
         # 2. find and run alignment method
-        if 'biopython' in method:
+        if method in ['biopython', 'local', 'global']:
             if len(sequences) == 2:
                 msa, _, _ = alignTwoSequencesWithBiopython(sequences[0], sequences[1], **kwargs)
             else:
@@ -955,28 +959,33 @@ def alignSequenceToMSA(seq, msa, **kwargs):
         This value will be ignored if seq is not an :class:`Atomic` object.
     :type chain: str
     
+    Parameters for Biopython pairwise2 alignments can be provided as 
+    keyword arguments. Default values are from proteins.compare module.
+
     :arg match: a positive integer, used to reward finding a match
-        The default is 5, which we found to work in a test case.
     :type match: int
     
     :arg mismatch: a negative integer, used to penalise finding a mismatch
-        The default is -1, which we found to work in a test case
     :type mismatch: int
     
     :arg gap_opening: a negative integer, used to penalise opening a gap
-        The default is -10, which we found to work in a test case
     :type gap_opening: int
     
     :arg gap_extension: a negative integer, used to penalise extending a gap
-        The default is -1, which we found to work in a test case
     :type gap_extension: int
+
+    :arg method: method for pairwise2 alignment. 
+        Possible values are 'local' and 'global'
+    :type method: str
     """
     label = kwargs.get('label', None)
     chain = kwargs.get('chain', 'A')
-    match = kwargs.get('match', 5)
-    mismatch = kwargs.get('mismatch', -1)
-    gap_opening = kwargs.get('gap_opening', -10)
-    gap_extension = kwargs.get('gap_extension', -1)
+
+    match = kwargs.get('match', MATCH_SCORE)
+    mismatch = kwargs.get('mismatch', MISMATCH_SCORE)
+    gap_opening = kwargs.get('gap_opening', GAP_PENALTY)
+    gap_extension = kwargs.get('gap_extension', GAP_EXT_PENALTY)
+    method = kwargs.get('method', ALIGNMENT_METHOD)
 
     if isinstance(seq, Atomic):
         if isinstance(chain, str):
@@ -1056,9 +1065,17 @@ def alignSequenceToMSA(seq, msa, **kwargs):
         refMsaSeq = str(msa[index]).upper().replace('-','.')
     else:
         raise TypeError('The output from querying that label against msa is not a single sequence.')
-
-    alignment = pairwise2.align.globalms(sequence, str(refMsaSeq), \
-                                         match, mismatch, gap_opening, gap_extension)
+    
+    if method == 'local':
+        alignment = pw2.align.localms(sequence, str(refMsaSeq),
+                                            match, mismatch, gap_opening, gap_extension,
+                                            one_alignment_only=1)
+    elif method == 'global':
+        alignment = pw2.align.globalms(sequence, str(refMsaSeq),
+                                       match, mismatch, gap_opening, gap_extension,
+                                       one_alignment_only=1)
+    else:
+        raise ValueError('method should be local or global')
 
     seq_indices = [0]
     msa_indices = [0]
@@ -1089,11 +1106,42 @@ def alignSequenceToMSA(seq, msa, **kwargs):
 
     return alignment, seq_indices, msa_indices
 
-def alignTwoSequencesWithBiopython(seq1, seq2, match=5, mismatch=-1, gap_opening=-10, gap_extension=-1):
-    """Easily align two sequences with Biopython's globalms.
+def alignTwoSequencesWithBiopython(seq1, seq2, **kwargs):
+    """Easily align two sequences with Biopython's globalms or localms.
     Returns an MSA and indices for use with :func:`.showAlignment`.
+
+    Alignment parameters can be provided as keyword arguments. 
+    Default values are as set in the proteins.compare module.
+
+    :arg match: a positive integer, used to reward finding a match
+    :type match: int
+    
+    :arg mismatch: a negative integer, used to penalise finding a mismatch
+    :type mismatch: int
+    
+    :arg gap_opening: a negative integer, used to penalise opening a gap
+    :type gap_opening: int
+    
+    :arg gap_extension: a negative integer, used to penalise extending a gap
+    :type gap_extension: int
+
+    :arg method: method for pairwise2 alignment. 
+        Possible values are 'local' and 'global'
+    :type method: str
     """
-    alignment = pairwise2.align.globalms(seq1, seq2, match, mismatch, gap_opening, gap_extension)
+
+    match = kwargs.get('match', MATCH_SCORE)
+    mismatch = kwargs.get('mismatch', MISMATCH_SCORE)
+    gap_opening = kwargs.get('gap_opening', GAP_PENALTY)
+    gap_extension = kwargs.get('gap_extension', GAP_EXT_PENALTY)
+    method = kwargs.get('method', ALIGNMENT_METHOD)
+    
+    if method == 'local':
+        alignment = pw2.align.localms(seq1, seq2, match, mismatch, gap_opening, gap_extension)
+    elif method == 'global':
+        alignment = pw2.align.globalms(seq1, seq2, match, mismatch, gap_opening, gap_extension)
+    else:
+        raise ValueError('method should be local or global')
 
     seq_indices = [0]
     msa_indices = [0]

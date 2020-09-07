@@ -29,7 +29,8 @@ __all__ = ['matchChains', 'matchAlign', 'mapChainOntoChain', 'mapOntoChain', 'al
            'getMismatchScore', 'setMismatchScore', 'getGapPenalty', 
            'setGapPenalty', 'getGapExtPenalty', 'setGapExtPenalty',
            'getGoodSeqId', 'setGoodSeqId', 'getGoodCoverage', 'combineAtomMaps',
-           'setGoodCoverage', 'getAlignmentMethod', 'setAlignmentMethod']
+           'setGoodCoverage', 'getAlignmentMethod', 'setAlignmentMethod', 
+           'importBioPairwise2']
 
 GOOD_SEQID = 90.
 GOOD_COVERAGE = 90.
