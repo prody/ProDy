@@ -15,6 +15,7 @@ from prody.measure import calcTransformation, printRMSD, calcDistance, calcRMSD,
 from prody import LOGGER, SELECT, PY2K, PY3K
 from prody.sequence import MSA
 from prody.utilities import cmp, pystr, isListLike, multilap, SolutionDepletionException, index
+from prody.utilities import MATCH_SCORE, MISMATCH_SCORE, GAP_PENALTY, GAP_EXT_PENALTY, ALIGNMENT_METHOD
 
 from Bio import pairwise2
 
