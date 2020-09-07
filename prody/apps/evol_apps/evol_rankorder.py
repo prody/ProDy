@@ -124,7 +124,8 @@ def calcAllDist(coordset):
     return distance
 
 def evol_rankorder(mutinfo, **kwargs):
-    from prody import parseMSA, LOGGER, parsePDB, calcMSAOccupancy, PY3K
+    from prody import parseMSA, LOGGER, PY3K
+    from prody import parsePDB, calcMSAOccupancy, trimAtomsUsingMSA
     from prody.utilities import openFile
     from os.path import splitext
 
@@ -161,8 +162,11 @@ def evol_rankorder(mutinfo, **kwargs):
                                 '{0}'.format(pdb.getTitle()))
                     break
                 else:
-                    LOGGER.info('Number of residues in PDB does not match '
-                                'mutinfo matrix, ignoring PDB input')
+                    try:
+                        sel = trimAtomsUsingMSA(sel, msa, chain.getChid())
+                    except:
+                        LOGGER.info('Number of residues in PDB does not match '
+                                    'mutinfo matrix, ignoring PDB input')
 
     if not pdbflag:
         if msa is not None:
