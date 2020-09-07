@@ -11,8 +11,8 @@ from Bio import pairwise2
 
 from prody import LOGGER, PY3K
 from prody.atomic import Atomic
-from prody.utilities import toChararray, pystr
-from .sequence import Sequence, splitSeqLabel
+from prody.utilities import toChararray, pystr, splitSeqLabel
+from .sequence import Sequence
 
 import sys
 
@@ -543,12 +543,13 @@ def refineMSA(msa, index=None, label=None, rowocc=None, seqid=None, colocc=None,
             if chain is not None and not kwargs.get('keep', False):
                 before = arr.shape[1]
                 LOGGER.timeit('_refine')
-                from prody.proteins.compare import importBioPairwise2
-                from prody.proteins.compare import MATCH_SCORE, MISMATCH_SCORE
-                from prody.proteins.compare import GAP_PENALTY, GAP_EXT_PENALTY
-                pw2 = importBioPairwise2()
+                
+                from Bio import pairwise2
+                from prody.utilities import MATCH_SCORE, MISMATCH_SCORE
+                from prody.utilities import GAP_PENALTY, GAP_EXT_PENALTY, ALIGNMENT_METHOD
+
                 chseq = chain.getSequence()
-                algn = pw2.align.localms(pystr(arr[index].tostring().upper()), pystr(chseq),
+                algn = pairwise2.align.localms(pystr(arr[index].tostring().upper()), pystr(chseq),
                                          MATCH_SCORE, MISMATCH_SCORE,
                                          GAP_PENALTY, GAP_EXT_PENALTY,
                                          one_alignment_only=1)

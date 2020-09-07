@@ -126,7 +126,7 @@ def calcAllDist(coordset):
 def evol_rankorder(mutinfo, **kwargs):
     from prody import parseMSA, LOGGER, PY3K
     from prody import parsePDB, calcMSAOccupancy, trimAtomsUsingMSA
-    from prody.utilities import openFile
+    from prody.utilities import openFile, splitSeqLabel
     from os.path import splitext
 
     delimiter = kwargs.get('delimiter')

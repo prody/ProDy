@@ -10,17 +10,16 @@ from numpy import dtype, zeros, empty, ones, where, ceil, shape, eye
 from numpy import indices, tril_indices, array, ndarray, isscalar, unique
 
 from prody import LOGGER
-from prody.utilities import which
+from prody.utilities import which, MATCH_SCORE, MISMATCH_SCORE
+from prody.utilities import GAP_PENALTY, GAP_EXT_PENALTY, ALIGNMENT_METHOD
+
 from prody.sequence.msa import MSA, refineMSA
 from prody.sequence.msafile import parseMSA, writeMSA
 from prody.sequence.sequence import Sequence
 from prody.atomic import Atomic
 from prody.measure import calcDistance
 
-from prody.proteins.compare import importBioPairwise2
-from prody.proteins.compare import MATCH_SCORE, MISMATCH_SCORE
-from prody.proteins.compare import GAP_PENALTY, GAP_EXT_PENALTY, ALIGNMENT_METHOD
-pw2 = importBioPairwise2()
+from Bio import pairwise2
 import sys
 
 __all__ = ['calcShannonEntropy', 'buildMutinfoMatrix', 'calcMSAOccupancy',
@@ -960,7 +959,8 @@ def alignSequenceToMSA(seq, msa, **kwargs):
     :type chain: str
     
     Parameters for Biopython pairwise2 alignments can be provided as 
-    keyword arguments. Default values are from proteins.compare module.
+    keyword arguments. Default values are originally from proteins.compare 
+    module, but now found in utilities.seqtools.
 
     :arg match: a positive integer, used to reward finding a match
     :type match: int
@@ -1067,11 +1067,11 @@ def alignSequenceToMSA(seq, msa, **kwargs):
         raise TypeError('The output from querying that label against msa is not a single sequence.')
     
     if method == 'local':
-        alignment = pw2.align.localms(sequence, str(refMsaSeq),
+        alignment = pairwise2.align.localms(sequence, str(refMsaSeq),
                                             match, mismatch, gap_opening, gap_extension,
                                             one_alignment_only=1)
     elif method == 'global':
-        alignment = pw2.align.globalms(sequence, str(refMsaSeq),
+        alignment = pairwise2.align.globalms(sequence, str(refMsaSeq),
                                        match, mismatch, gap_opening, gap_extension,
                                        one_alignment_only=1)
     else:
@@ -1111,7 +1111,8 @@ def alignTwoSequencesWithBiopython(seq1, seq2, **kwargs):
     Returns an MSA and indices for use with :func:`.showAlignment`.
 
     Alignment parameters can be provided as keyword arguments. 
-    Default values are as set in the proteins.compare module.
+    Default values are as originally set in the proteins.compare 
+    module, but now found in utilities.seqtools.
 
     :arg match: a positive integer, used to reward finding a match
     :type match: int
@@ -1137,9 +1138,9 @@ def alignTwoSequencesWithBiopython(seq1, seq2, **kwargs):
     method = kwargs.get('method', ALIGNMENT_METHOD)
     
     if method == 'local':
-        alignment = pw2.align.localms(seq1, seq2, match, mismatch, gap_opening, gap_extension)
+        alignment = pairwise2.align.localms(seq1, seq2, match, mismatch, gap_opening, gap_extension)
     elif method == 'global':
-        alignment = pw2.align.globalms(seq1, seq2, match, mismatch, gap_opening, gap_extension)
+        alignment = pairwise2.align.globalms(seq1, seq2, match, mismatch, gap_opening, gap_extension)
     else:
         raise ValueError('method should be local or global')
 

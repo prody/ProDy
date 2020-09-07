@@ -1,34 +1,14 @@
 # -*- coding: utf-8 -*-
 """This module handles individual sequences."""
 
-import re
-
 from numpy import char, fromstring
 
 from prody import LOGGER, PY3K
 from prody.atomic import Atomic
 
-SPLITLABEL = re.compile(r'[/-]+').split
+from prody.utilities import splitSeqLabel
 
 __all__ = ['Sequence']
-
-
-def splitSeqLabel(label):
-    """Returns label, starting residue number, and ending residue number parsed
-    from sequence label."""
-
-    try:
-        if label.strip() == '':
-            raise Exception
-        idcode, start, end = SPLITLABEL(label)
-    except Exception:
-        return label, None, None
-    else:
-        try:
-            return idcode, int(start), int(end)
-        except Exception:
-            return label, None, None
-
 
 class Sequence(object):
 
