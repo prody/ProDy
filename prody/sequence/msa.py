@@ -66,7 +66,7 @@ class MSA(object):
             for key, value in mapping.items():
                 values = [value] if isscalar(value) else value
                 for i in values:
-                    if labels[i] != key:
+                    if not key in labels[i]:
                         labels[i] = key
         
         self._mapping = mapping = {}

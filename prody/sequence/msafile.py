@@ -548,7 +548,7 @@ def parseMSA(filename, **kwargs):
             not aligned):
         if ext.lower() == '.gz':
             title = splitext(title)[0]
-        msa = MSAFile(filename, split=False, **kwargs)
+        msa = MSAFile(filename, **kwargs)
         seqlist = []
         sappend = seqlist.append
         labels = []

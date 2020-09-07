@@ -1180,7 +1180,7 @@ def trimAtomsUsingMSA(atoms, msa, **kwargs):
 
     u, i = unique(idx_2, return_index=True)
 
-    resnums_str = ' '.join([str(x) for x in idx_1[i]])
+    resnums_str = ' '.join([str(x) for x in idx_1[i[1:]]])
     chain = kwargs.get('chain', 'A')
 
     return atoms.select('chain {0} and resnum {1}'.format(chain, resnums_str))
