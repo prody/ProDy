@@ -3,7 +3,7 @@ Name: ProDy
 Version: 1.11
 Summary: A Python Package for Protein Dynamics Analysis
 Home-page: http://www.csb.pitt.edu/ProDy
-Author: James Krieger, She Zhang, Hongchun Li, Cihan Kaya, Ahmet Bakan
+Author: James Krieger, She Zhang, Hongchun Li, Cihan Kaya, Ahmet Bakan, and others
 Author-email: kriegerj@pitt.edu
 License: MIT License
 Description: .. image:: https://secure.travis-ci.org/prody/ProDy.png?branch=master
