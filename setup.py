@@ -146,8 +146,8 @@ SCRIPTS = ['prody=prody.apps:prody_main', 'evol=prody.apps:evol_main']
 setup(
     name='ProDy',
     version=__version__,
-    author='She Zhang',
-    author_email='shz66@pitt.edu',
+    author='James Krieger, She Zhang, Hongchun Li, Cihan Kaya, Ahmet Bakan',
+    author_email='kriegerj@pitt.edu',
     description='A Python Package for Protein Dynamics Analysis',
     long_description=long_description,
     url='http://www.csb.pitt.edu/ProDy',
