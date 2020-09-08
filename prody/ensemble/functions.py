@@ -488,12 +488,13 @@ def refineEnsemble(ensemble, lower=.5, upper=10., **kwargs):
         for p in protected:
             if isinstance(p, Integral):
                 i = p
+                P.append(i)
             else:
                 if p in labels:
                     i = labels.index(p)
+                    P.append(i)
                 else:
                     LOGGER.warn('could not find any conformation with the label %s in the ensemble'%str(p))
-            P.append(i)
 
     LOGGER.timeit('_prody_refineEnsemble')
     from numpy import argsort
