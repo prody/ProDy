@@ -49,16 +49,19 @@ def saveEnsemble(ensemble, filename=None, **kwargs):
 
     atoms = dict_['_atoms']
     if atoms is not None:
-        attr_dict['_atoms'] = np.array([atoms, None])
+        attr_dict['_atoms'] = np.array([atoms, None], 
+                                        dtype=object)
 
     data = dict_['_data']
     if len(data):
-        attr_dict['_data'] = np.array([data, None])
+        attr_dict['_data'] = np.array([data, None], 
+                                       dtype=object)
 
     if isinstance(ensemble, PDBEnsemble):
         msa = dict_['_msa']
         if msa is not None:
-            attr_dict['_msa'] = np.array([msa, None])
+            attr_dict['_msa'] = np.array([msa, None], 
+                                          dtype=object)
 
     if filename.endswith('.ens'):
         filename += '.npz'
@@ -485,12 +488,13 @@ def refineEnsemble(ensemble, lower=.5, upper=10., **kwargs):
         for p in protected:
             if isinstance(p, Integral):
                 i = p
+                P.append(i)
             else:
                 if p in labels:
                     i = labels.index(p)
+                    P.append(i)
                 else:
                     LOGGER.warn('could not find any conformation with the label %s in the ensemble'%str(p))
-            P.append(i)
 
     LOGGER.timeit('_prody_refineEnsemble')
     from numpy import argsort

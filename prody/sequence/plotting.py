@@ -3,9 +3,10 @@
 
 __author__ = 'Ahmet Bakan, Chakra Chennubhotla'
 
-from numpy import arange
+from numpy import arange, array, nonzero
 
 from .analysis import *
+from .msa import refineMSA
 from prody import LOGGER
 
 __all__ = ['showMSAOccupancy', 'showShannonEntropy', 'showMutinfoMatrix', 
@@ -75,19 +76,26 @@ def showMSAOccupancy(msa, occ='res', indices=None, count=False, **kwargs):
         label = kwargs.pop('label', None)
         if label is not None:
             try:
-                indices = msa[label].getResnums()
+                indices = array(msa[label].getResnums(gaps=True))
             except:
                 LOGGER.info('Specified label not in msa.')
+
         xlabel = kwargs.pop('xlabel', None) or label or 'MSA column index'
         if xlabel is None and indices is None:
             indices, xlabel = pickSequence(msa)
+
     if indices is None:
         indices = arange(1, length + 1)
 
     ylabel = kwargs.pop('ylabel', 'Count' if count else 'Occupancy')
     title = kwargs.pop('title', None)
     format = kwargs.pop('format', True)
+
     import matplotlib.pyplot as plt
+    if len(nonzero(indices)[0]) < len(indices):
+        occ = occ[nonzero(indices)[0]]
+        indices = indices[nonzero(indices)[0]]
+
     show = plt.bar(indices, occ, **kwargs)
     if format:
         plt.xlabel(xlabel)

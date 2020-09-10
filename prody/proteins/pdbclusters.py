@@ -6,7 +6,7 @@ import os.path
 from numpy import array, abs
 
 from prody import LOGGER, SETTINGS, getPackagePath
-from prody.utilities import openFile, openURL, pystr
+from prody.utilities import openFile, openURL, pystr, isListLike
 
 from numbers import Integral
 
@@ -115,9 +115,15 @@ def fetchPDBClusters(sqid=None):
     using :func:`listPDBCluster`."""
 
     if sqid is not None:
-        if sqid not in PDB_CLUSTERS:
-            raise ValueError('sqid must be one of ' + PDB_CLUSTERS_SQID_STR)
-        keys = [sqid]
+        if isListLike(sqid):
+            for s in sqid:
+                if s not in PDB_CLUSTERS:
+                    raise ValueError('sqid must be one or more of ' + PDB_CLUSTERS_SQID_STR)
+            keys = list(sqid)
+        else:
+            if sqid not in PDB_CLUSTERS:
+                raise ValueError('sqid must be one or more of ' + PDB_CLUSTERS_SQID_STR)
+            keys = [sqid]
     else:
         keys = list(PDB_CLUSTERS)
 
@@ -144,7 +150,7 @@ def fetchPDBClusters(sqid=None):
             count += 1
         LOGGER.update(i, label='_prody_fetchPDBClusters')
     LOGGER.finish()
-    if len(PDB_CLUSTERS) == count:
-        LOGGER.info('All PDB clusters were downloaded successfully.')
+    if len(keys) == count:
+        LOGGER.info('All selected PDB clusters were downloaded successfully.')
     elif count == 0:
         LOGGER.warn('PDB clusters could not be downloaded.')

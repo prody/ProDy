@@ -6,7 +6,6 @@ from numbers import Integral
 
 import numpy as np
 from numpy import arange
-PW2 = None
 
 from prody.atomic import AtomMap as AM
 from prody.atomic import AtomGroup, Chain, AtomSubset, Selection
@@ -16,6 +15,9 @@ from prody.measure import calcTransformation, printRMSD, calcDistance, calcRMSD,
 from prody import LOGGER, SELECT, PY2K, PY3K
 from prody.sequence import MSA
 from prody.utilities import cmp, pystr, isListLike, multilap, SolutionDepletionException, index
+from prody.utilities import MATCH_SCORE, MISMATCH_SCORE, GAP_PENALTY, GAP_EXT_PENALTY, ALIGNMENT_METHOD
+
+from Bio import pairwise2
 
 if PY2K:
     range = xrange
@@ -33,11 +35,7 @@ __all__ = ['matchChains', 'matchAlign', 'mapChainOntoChain', 'mapOntoChain', 'al
 
 GOOD_SEQID = 90.
 GOOD_COVERAGE = 90.
-MATCH_SCORE = 1.0
-MISMATCH_SCORE = 0.0
-GAP_PENALTY = -1.
-GAP_EXT_PENALTY = -0.1
-ALIGNMENT_METHOD = 'local'
+
 GAPCHARS = ['-', '.']
 NONE_A = '_'
 
@@ -55,22 +53,6 @@ def calcScores(n_match, n_mapped, n_total):
     else:
         seqid = cover = 0
     return seqid, cover
-
-def importBioPairwise2():
-
-    global PW2
-    if PW2 is None:
-        try:
-            from . import pairwise2
-        except ImportError:
-            try:
-                from Bio import pairwise2
-            except ImportError:
-                raise ImportError('pairwise2 module could not be imported. '
-                                  'Reinstall ProDy or install Biopython '
-                                  'to solve the problem.')
-        PW2 = pairwise2
-    return PW2
 
 
 def getGoodSeqId():
@@ -660,7 +642,6 @@ def matchChains(atoms1, atoms2, **kwargs):
                 unmatched.append((simpch1, simpch2))
 
     if pwalign or (not matches and (pwalign is None or pwalign)):
-        pairwise2 = importBioPairwise2()
         if pairwise2:
             LOGGER.debug('Trying to match chains based on {0} sequence '
                          'alignment:'.format(ALIGNMENT_METHOD))
@@ -791,7 +772,6 @@ def getAlignedMatch(ach, bch):
     """Returns list of matching residues (match is based on sequence alignment).
     """
 
-    pairwise2 = importBioPairwise2()
     if ALIGNMENT_METHOD == 'local':
         alignment = pairwise2.align.localms(ach.getSequence(),
                                             bch.getSequence(),
@@ -1329,7 +1309,6 @@ def getAlignedMapping(target, chain, alignment=None):
     alignment or predefined alignment)."""
 
     if alignment is None:
-        pairwise2 = importBioPairwise2()
         if ALIGNMENT_METHOD == 'local':
             alignments = pairwise2.align.localms(target.getSequence(),
                                                 chain.getSequence(),
