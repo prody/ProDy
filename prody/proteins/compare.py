@@ -1555,53 +1555,58 @@ def combineAtomMaps(mappings, target=None, **kwargs):
         # extract nonoverlaping mappings
         if len(atommaps):
             atommaps, rmsds = rankAtomMaps(atommaps, target)
-            debug['rmsd'] = list(rmsds)
 
-            # if rmsd_cutoff is not None:
-            #     for i in reversed(range(len(atommaps))):
-            #         if rmsds[i] > rmsd_cutoff:
-            #             atommaps.pop(i)
-            #             rmsds.pop(i)
+            if rmsds is not None:
+                debug['rmsd'] = list(rmsds)
 
-            # pre-store chain IDs of atommaps
-            atommap_segchids = []
-            for atommap in atommaps:
-                nodummies = atommap.select('not dummy')
-                chids = nodummies.getChids()
-                segids = nodummies.getSegnames()
-                segchids = []
-                for segid, chid in zip(segids, chids):
-                    if (segid, chid) not in segchids:
-                        segchids.append((segid, chid))
-                atommap_segchids.append(segchids)
-            
-            atommaps_ = []
-            rmsd_standard = rmsds[0]
-            while len(atommaps):
-                atommap = atommaps.pop(0)
-                rmsd = rmsds.pop(0)
-                segchids = atommap_segchids.pop(0)
+                # if rmsd_cutoff is not None:
+                #     for i in reversed(range(len(atommaps))):
+                #         if rmsds[i] > rmsd_cutoff:
+                #             atommaps.pop(i)
+                #             rmsds.pop(i)
 
-                if reject_rmsd is not None:
-                    if rmsd > reject_rmsd:
-                        break
+                # pre-store chain IDs of atommaps
+                atommap_segchids = []
+                for atommap in atommaps:
+                    nodummies = atommap.select('not dummy')
+                    chids = nodummies.getChids()
+                    segids = nodummies.getSegnames()
+                    segchids = []
+                    for segid, chid in zip(segids, chids):
+                        if (segid, chid) not in segchids:
+                            segchids.append((segid, chid))
+                    atommap_segchids.append(segchids)
+                
+                atommaps_ = []
+                rmsd_standard = rmsds[0]
+                while len(atommaps):
+                    atommap = atommaps.pop(0)
+                    rmsd = rmsds.pop(0)
+                    segchids = atommap_segchids.pop(0)
 
-                if rmsd > rmsd_standard + drmsd:
-                    break
-
-                atommaps_.append(atommap)
-
-                # remove atommaps that share chains with the popped atommap
-                for i in reversed(range(len(atommap_segchids))):
-                    amsegchids = atommap_segchids[i]
-
-                    for segchid in amsegchids:
-                        if segchid in segchids:
-                            atommaps.pop(i)
-                            atommap_segchids.pop(i)
+                    if reject_rmsd is not None:
+                        if rmsd > reject_rmsd:
                             break
 
-            atommaps = atommaps_
+                    if rmsd > rmsd_standard + drmsd:
+                        break
+
+                    atommaps_.append(atommap)
+
+                    # remove atommaps that share chains with the popped atommap
+                    for i in reversed(range(len(atommap_segchids))):
+                        amsegchids = atommap_segchids[i]
+
+                        for segchid in amsegchids:
+                            if segchid in segchids:
+                                atommaps.pop(i)
+                                atommap_segchids.pop(i)
+                                break
+
+                atommaps = atommaps_
+            else:
+                debug['rmsd'] = None
+
         return atommaps
 
     # checkers
@@ -1678,18 +1683,21 @@ def rankAtomMaps(atommaps, target):
     
     rmsds = []
     coords0 = target.getCoords()
-    for atommap in atommaps:
-        weights = atommap.getFlags('mapped')
-        coords = atommap.getCoords()
-        rcoords, t = superpose(coords, coords0, weights)
-        rmsd = calcRMSD(rcoords, coords0, weights)
+    if coords0 is None:
+        rmsds = None
+    else:
+        for atommap in atommaps:
+            weights = atommap.getFlags('mapped')
+            coords = atommap.getCoords()
+            rcoords, t = superpose(coords, coords0, weights)
+            rmsd = calcRMSD(rcoords, coords0, weights)
 
-        rmsds.append(rmsd)
-    
-    I = np.argsort(rmsds)
+            rmsds.append(rmsd)
+        
+        I = np.argsort(rmsds)
 
-    atommaps = [atommaps[i] for i in I]
-    rmsds = [rmsds[i] for i in I]
+        atommaps = [atommaps[i] for i in I]
+        rmsds = [rmsds[i] for i in I]
         
     return atommaps, rmsds
 
