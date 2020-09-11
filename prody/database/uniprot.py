@@ -20,6 +20,8 @@ __all__ = ['UniprotRecord', 'searchUniprot', 'queryUniprot']
 comma_splitter = re.compile(r'\s*,\s*').split
 
 class UniprotRecord(object):
+    """This class provides a wrapper for UniProt data.
+    """
     def __init__(self, data):
         self._rawdata = data
         self._pdbids = []

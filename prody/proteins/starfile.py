@@ -227,8 +227,7 @@ class StarLoop:
 
 
 def parseSTAR(filename, **kwargs):
-    """Returns a dictionary containing data
-    parsed from a Relion STAR file.
+    """Returns a dictionary containing data parsed from a STAR file.
 
     :arg filename: a filename
         The .star extension can be omitted.
