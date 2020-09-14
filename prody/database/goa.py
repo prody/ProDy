@@ -241,7 +241,7 @@ def queryGOA(*ids, **kwargs):
     :type ids: str, tuple, list, :class:`~numpy.ndarray`
 
     :arg database: name of the database of interest
-        default is PDB. Others include UNIPROT and 
+        default is **"PDB"**. Others include **"UNIPROT"** and 
         common names of many organisms.
     :type database: str
     """
