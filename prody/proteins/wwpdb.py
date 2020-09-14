@@ -10,7 +10,7 @@ from prody import LOGGER, SETTINGS
 from prody.utilities import makePath, gunzip, relpath, copyFile, openURL
 from prody.utilities import sympath
 
-__all__ = ['wwPDBServer', 'fetchPDBviaFTP', 'fetchPDBviaHTTP']
+__all__ = ['wwPDBServer', 'fetchPDBviaFTP', 'fetchPDBviaHTTP', 'WWPDB_FTP_SERVERS']
 
 
 _WWPDB_RCSB = ('RCSB PDB (USA)', 'ftp.wwpdb.org', '/pub/')
