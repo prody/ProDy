@@ -9,7 +9,7 @@ import numpy as np
 
 from prody import LOGGER, PY2K
 from prody.kdtree import KDTree
-from prody.utilities import checkCoords, rangeString
+from prody.utilities import checkCoords, rangeString, getDistance
 
 from .atomic import Atomic
 from .fields import ATOMIC_FIELDS, READONLY
@@ -265,6 +265,20 @@ class AtomGroup(Atomic):
                     shape[0] = len(other)
                     that = np.zeros(shape, this.dtype)
                 new._data[key] = np.concatenate((this, that))
+
+        for key in set(list(self._flags) + list(other._flags)):
+            this = self._flags.get(key)
+            that = other._flags.get(key)
+            if this is not None or that is not None:
+                if this is None:
+                    shape = list(that.shape)
+                    shape[0] = len(self)
+                    this = np.zeros(shape, that.dtype)
+                if that is None:
+                    shape = list(this.shape)
+                    shape[0] = len(other)
+                    that = np.zeros(shape, this.dtype)
+                new._setFlags(key, np.concatenate((this, that)))
 
         new._n_atoms = self._n_atoms + other._n_atoms
 
@@ -1112,6 +1126,22 @@ class AtomGroup(Atomic):
             acsi = self._acsi
             return np.array([Bond(self, bond, acsi) for bond in self._bonds])
         return None
+
+    def inferBonds(self, max_bond=1.6, min_bond=0, set_bonds=False):
+        """Returns bonds based on distances **max_bond** and **min_bond**."""
+
+        bonds = []
+        for i, atom_i in enumerate(self[:-1]):
+            for _, atom_j in enumerate(self[i+1:]):
+                distance = getDistance(atom_i.getCoords(), atom_j.getCoords())
+                if distance > min_bond and distance < max_bond:
+                    bonds.append([atom_i._index, atom_j._index])
+        
+        if set_bonds:
+            self.setBonds(bonds)
+
+        acsi = self._acsi
+        return np.array([Bond(self, bond, acsi) for bond in bonds])
 
     def iterBonds(self):
         """Yield bonds.  Use :meth:`setBonds` for setting bonds."""

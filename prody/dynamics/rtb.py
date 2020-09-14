@@ -102,7 +102,7 @@ class RTB(ANMBase):
                 nones += 1
             if size > maxsize:
                 maxsize = size
-        LOGGER.info('System has {0} blocks largest with {1} of {2} units.'
+        LOGGER.info('System has {0} blocks, the largest with {1} of {2} units.'
                     .format(nblocks, maxsize, natoms))
         nb6 = nblocks * 6 - nones * 3
 

@@ -18,7 +18,7 @@ from .conformation import *
 __all__ = ['saveEnsemble', 'loadEnsemble', 'trimPDBEnsemble',
            'calcOccupancies', 'showOccupancies',
            'buildPDBEnsemble', 'refineEnsemble', 'combineEnsembles',
-           'alignAtomicsUsingEnsemble']
+           'alignByEnsemble']
 
 
 def saveEnsemble(ensemble, filename=None, **kwargs):
@@ -49,16 +49,19 @@ def saveEnsemble(ensemble, filename=None, **kwargs):
 
     atoms = dict_['_atoms']
     if atoms is not None:
-        attr_dict['_atoms'] = np.array([atoms, None])
+        attr_dict['_atoms'] = np.array([atoms, None], 
+                                        dtype=object)
 
     data = dict_['_data']
     if len(data):
-        attr_dict['_data'] = np.array([data, None])
+        attr_dict['_data'] = np.array([data, None], 
+                                       dtype=object)
 
     if isinstance(ensemble, PDBEnsemble):
         msa = dict_['_msa']
         if msa is not None:
-            attr_dict['_msa'] = np.array([msa, None])
+            attr_dict['_msa'] = np.array([msa, None], 
+                                          dtype=object)
 
     if filename.endswith('.ens'):
         filename += '.npz'
@@ -434,7 +437,7 @@ def buildPDBEnsemble(atomics, ref=None, title='Unknown', labels=None, unmapped=N
                 strchids = ''.join(chids)
                 lbl += '_%s'%strchids
             ensemble.addCoordset(atommap, weights=atommap.getFlags('mapped'), 
-                                label=lbl, degeneracy=degeneracy)
+                                 label=lbl, degeneracy=degeneracy)
             
             if not isrefset:
                 ensemble.setCoords(atommap.getCoords())
@@ -485,12 +488,13 @@ def refineEnsemble(ensemble, lower=.5, upper=10., **kwargs):
         for p in protected:
             if isinstance(p, Integral):
                 i = p
+                P.append(i)
             else:
                 if p in labels:
                     i = labels.index(p)
+                    P.append(i)
                 else:
                     LOGGER.warn('could not find any conformation with the label %s in the ensemble'%str(p))
-            P.append(i)
 
     LOGGER.timeit('_prody_refineEnsemble')
     from numpy import argsort
@@ -666,7 +670,7 @@ def combineEnsembles(target, mobile, **kwargs):
     return ens
 
 
-def alignAtomicsUsingEnsemble(atomics, ensemble):
+def alignByEnsemble(atomics, ensemble):
     """Align a set of :class:`.Atomic` objects using transformations from *ensemble*, 
     which may be a :class:`.PDBEnsemble` or a :class:`.PDBConformation` instance. 
     

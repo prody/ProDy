@@ -1,33 +1,14 @@
 # -*- coding: utf-8 -*-
 """This module handles individual sequences."""
 
-import re
-
 from numpy import char, fromstring
 
 from prody import LOGGER, PY3K
+from prody.atomic import Atomic
 
-SPLITLABEL = re.compile(r'[/-]+').split
+from prody.utilities import splitSeqLabel
 
 __all__ = ['Sequence']
-
-
-def splitSeqLabel(label):
-    """Returns label, starting residue number, and ending residue number parsed
-    from sequence label."""
-
-    try:
-        if label.strip() == '':
-            raise Exception
-        idcode, start, end = SPLITLABEL(label)
-    except Exception:
-        return label, None, None
-    else:
-        try:
-            return idcode, int(start), int(end)
-        except Exception:
-            return label, None, None
-
 
 class Sequence(object):
 
@@ -135,20 +116,22 @@ class Sequence(object):
     def getResnums(self, gaps=False):
         """Returns list of residue numbers associated with non-gapped *seq*.
         When *gaps* is **True**, return a list containing the residue numbers
-        with gaps appearing as **None**.  Residue numbers are inferred from the
-        full label.  When label does not contain residue number information,
-        indices a range of numbers starting from 1 is returned."""
+        with gaps appearing as **None**.  
+        
+        Residue numbers are inferred from the full label if possible. 
+        When the label does not contain residue number information, 
+        a range of numbers starting from 1 is returned."""
 
         title, start, end = splitSeqLabel(self.getLabel(True))
         try:
             start, end = int(start), int(end)
         except:
-            LOGGER.info('Cannot parse label start, end values, Setting '
+            LOGGER.info('Cannot parse start and end values from sequence label. Setting '
                         'resnums 1 to {0:d}'.format(self.numResidues()))
             start, end = 1, self.numResidues()
         else:
             if (end - start + 1) != self.numResidues():
-                LOGGER.info('Label start-end position does not match '
+                LOGGER.info('Label start-end entry does not match '
                             'length of ungapped sequence. Setting '
                             'resnums 1 to {0:d}'.format(self.numResidues()))
                 start, end = 1, self.numResidues()
