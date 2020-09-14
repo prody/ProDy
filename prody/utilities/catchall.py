@@ -489,9 +489,9 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
     :arg interactive: turn on or off the interactive options
     :type interactive: bool
 
-    :arg xtickrotation: turn on or off rotation of the xticklabels
-                        default is False
-    :type xtickrotation: bool
+    :arg xtickrotation: how much to rotate the xticklabels in degrees
+                        default is 0
+    :type xtickrotation: float
     """
 
     from matplotlib import ticker
@@ -527,7 +527,7 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
     xticklabels = kwargs.pop('xticklabels', ticklabels)
     yticklabels = kwargs.pop('yticklabels', ticklabels)
 
-    xtickrotation = kwargs.pop('xtickrotation', False)
+    xtickrotation = kwargs.pop('xtickrotation', 0.)
 
     show_colorbar = kwargs.pop('colorbar', True)
     cb_extend = kwargs.pop('cb_extend', 'neither')
@@ -712,8 +712,7 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
         cursor = ImageCursor(ax3, im)
         connect('button_press_event', cursor.onClick)
 
-    if xtickrotation:
-        ax3.tick_params(axis='x', rotation=90)
+    ax3.tick_params(axis='x', rotation=xtickrotation)
 
     return im, lines, cb
 

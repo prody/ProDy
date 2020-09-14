@@ -448,13 +448,7 @@ from numpy import array, ndarray, ones, zeros, arange
 from numpy import invert, unique, concatenate, all, any
 from numpy import logical_and, logical_or, floor, ceil, where
 
-try:
-    from . import pyparsing as pp
-    from .pyparsing import ParseException
-except ImportError:
-    import pyparsing as pp
-    from pyparsing import ParseException
-
+import pyparsing as pp
 
 from prody import LOGGER, SETTINGS, PY2K
 
@@ -725,7 +719,7 @@ def specialCharsParseAction(sel, loc, token):
     if ':' in token or 'to' in token:
         try:
             token = PP_NRANGE.parseString(token)[0]
-        except ParseException:
+        except pp.ParseException:
             pass
     return token
 

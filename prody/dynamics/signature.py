@@ -9,11 +9,10 @@ import numpy as np
 import warnings
 
 from prody import LOGGER, SETTINGS
-from prody.utilities import showFigure, showMatrix, copy, checkWeights, openFile
+from prody.utilities import showFigure, showMatrix, copy, checkWeights, openFile, DTYPE
 from prody.utilities import getValue, importLA, wmean, div0
 from prody.ensemble import Ensemble, Conformation
 from prody.atomic import AtomGroup
-from prody.atomic.fields import DTYPE
 
 from .nma import NMA
 from .modeset import ModeSet
@@ -1467,10 +1466,10 @@ def showSignatureOverlaps(mode_ensemble, **kwargs):
         overlap_triu = overlaps[:, :, r, c]
 
         if std:
-            stdV = overlap_triu.std(axis=-1).std(axis=-1)
+            stdV = overlap_triu.std(axis=-1)
             show = showMatrix(stdV)
         else:
-            meanV = overlap_triu.mean(axis=-1).mean(axis=-1)
+            meanV = overlap_triu.mean(axis=-1)
             show = showMatrix(meanV)
     
     return show

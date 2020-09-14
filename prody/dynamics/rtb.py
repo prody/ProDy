@@ -26,16 +26,10 @@ class Increment(object):
 class RTB(ANMBase):
 
     """Class for Rotations and Translations of Blocks (RTB) method ([FT00]_).
-    Optional arguments permit imposing constraints along Z-direction as in
-    *imANM* method described in [TL12]_.
 
     .. [FT00] Tama F, Gadea FJ, Marques O, Sanejouand YH. Building-block
        approach for determining low-frequency normal modes of macromolecules.
        *Proteins* **2000** 41:1-7.
-
-    .. [TL12] Lezon TR, Bahar I, Constraints Imposed by the Membrane
-       Selectively Guide the Alternating Access Dynamics of the Glutamate
-       Transporter GltPh
 
     """
 
@@ -108,7 +102,7 @@ class RTB(ANMBase):
                 nones += 1
             if size > maxsize:
                 maxsize = size
-        LOGGER.info('System has {0} blocks largest with {1} of {2} units.'
+        LOGGER.info('System has {0} blocks, the largest with {1} of {2} units.'
                     .format(nblocks, maxsize, natoms))
         nb6 = nblocks * 6 - nones * 3
 

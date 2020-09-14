@@ -236,11 +236,13 @@ def showProjection(ensemble, modes, *args, **kwargs):
     if SETTINGS['auto_show']:
         fig = plt.figure()
  
-    projection = calcProjection(ensemble, modes, kwargs.pop('rmsd', True), kwargs.pop('norm', False))
+    projection = calcProjection(ensemble, modes, 
+                                kwargs.pop('rmsd', True), 
+                                kwargs.pop('norm', False))
 
     if projection.ndim == 1 or projection.shape[1] == 1:
         show = plt.hist(projection.flatten(), *args, **kwargs)
-        plt.xlabel('{0} coordinate'.format(str(modes)))
+        plt.xlabel('Mode {0} coordinate'.format(str(modes)))
         plt.ylabel('Number of conformations')
         return show
     elif projection.shape[1] > 3:
@@ -349,8 +351,8 @@ def showProjection(ensemble, modes, *args, **kwargs):
             adjust_text(ts)
 
     if len(modes) == 2:
-        plt.xlabel('{0} coordinate'.format(int(modes[0])+1))
-        plt.ylabel('{0} coordinate'.format(int(modes[1])+1))
+        plt.xlabel('Mode {0} coordinate'.format(int(modes[0])+1))
+        plt.ylabel('Mode {0} coordinate'.format(int(modes[1])+1))
     elif len(modes) == 3:
         show.set_xlabel('Mode {0} coordinate'.format(int(modes[0])+1))
         show.set_ylabel('Mode {0} coordinate'.format(int(modes[1])+1))
@@ -622,16 +624,16 @@ def showMode(mode, *args, **kwargs):
     if mode.is3d():
         a3d = mode.getArrayNx3()
         show = []
-        show.append(showAtomicLines(a3d[:, 0], atoms=atoms, label='x-component', final=False, **kwargs))
-        show.append(showAtomicLines(a3d[:, 1], atoms=atoms, label='y-component', final=False, **kwargs))
-        show.append(showAtomicLines(a3d[:, 2], atoms=atoms, label='z-component', final=final, **kwargs))
+        show.append(showAtomicLines(a3d[:, 0], label='x-component', final=False, **kwargs))
+        show.append(showAtomicLines(a3d[:, 1], label='y-component', final=False, **kwargs))
+        show.append(showAtomicLines(a3d[:, 2], label='z-component', final=final, **kwargs))
     else:
         a1d = mode._getArray()
         show = showAtomicLines(a1d, *args, **kwargs)
         if show_hinges and isinstance(mode, Mode):
             hinges = calcHinges(mode)
             if hinges is not None:
-                showAtomicLines(hinges, a1d[hinges], 'r*', atoms=atoms, final=False)
+                showAtomicLines(hinges, a1d[hinges], 'r*', final=False)
 
     if atoms is not None:
         title(str(atoms))
@@ -820,8 +822,12 @@ def showContactMap(enm, **kwargs):
 def showOverlap(mode, modes, *args, **kwargs):
     """Show overlap :func:`~matplotlib.pyplot.bar`.
 
-    :arg mode: a single mode/vector
-    :type mode: :class:`.Mode`, :class:`.Vector`
+    :arg mode: a single mode/vector or multiple modes.
+        If multiple modes are provided, then the overlaps are calculated 
+        by going through them one by one, i.e. mode i from this set is 
+        compared with mode i from the other set.
+    :type mode: :class:`.Mode`, :class:`.Vector`, :class:`.ModeSet`, 
+        :class:`.ANM`, :class:`.GNM`, :class:`.PCA`
 
     :arg modes: multiple modes
     :type modes: :class:`.ModeSet`, :class:`.ANM`, :class:`.GNM`, :class:`.PCA`
@@ -833,13 +839,15 @@ def showOverlap(mode, modes, *args, **kwargs):
     if SETTINGS['auto_show']:
         plt.figure()
 
-    if not isinstance(mode, (Mode, Vector)):
-        raise TypeError('mode must be Mode or Vector, not {0}'
+    if not isinstance(mode, (Mode, Vector, NMA, ModeSet)):
+        raise TypeError('mode must be Mode, Vector, NMA or ModeSet, not {0}'
                         .format(type(mode)))
+
     if not isinstance(modes, (NMA, ModeSet)):
         raise TypeError('modes must be NMA or ModeSet, not {0}'
                         .format(type(modes)))
-    overlap = abs(calcOverlap(mode, modes))
+
+    overlap = abs(calcOverlap(mode, modes, diag=True))
     if isinstance(modes, NMA):
         arange = np.arange(len(modes)) + 1
     else:

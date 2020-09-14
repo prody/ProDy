@@ -3,7 +3,6 @@
 __author__ = 'Ahmet Bakan, Anindita Dutta'
 
 from ..apptools import DevelApp
-import prody
 import numpy as np
 
 __all__ = ['evol_rankorder']
@@ -124,8 +123,9 @@ def calcAllDist(coordset):
     return distance
 
 def evol_rankorder(mutinfo, **kwargs):
-    from prody import parseMSA, LOGGER, parsePDB, calcMSAOccupancy
-    from prody.utilities import openFile
+    from prody import parseMSA, LOGGER, PY3K
+    from prody import parsePDB, calcMSAOccupancy, trimAtomsUsingMSA
+    from prody.utilities import openFile, splitSeqLabel
     from os.path import splitext
 
     delimiter = kwargs.get('delimiter')
@@ -135,11 +135,33 @@ def evol_rankorder(mutinfo, **kwargs):
     if ndim != 2 or shape[0] != shape[1]:
         raise ValueError('mutinfo must contain a square matrix')
 
-    msa, label = kwargs.get('msa'), kwargs.get('label')
+    msa, label, msaflag = kwargs.get('msa'), kwargs.get('label'), False
 
     pdb, pdbflag = kwargs.get('pdb'), False
 
     resnum = None
+
+    if msa is not None:
+        msa = parseMSA(msa)
+        if msa.numResidues() != shape[0]:
+            LOGGER.info('Input MSA and mutinfo do not have similar no '
+                        'of residues, ignoring MSA')
+        else:
+            index = msa.getIndex(label)
+            try:
+                if index is None:
+                    if label is not None:
+                        LOGGER.info('Could not find given label in MSA, '
+                                    'using complete sequence from MSA')
+                    occ = calcMSAOccupancy(msa._msa, 'row')
+                    index = np.where(occ == occ.max())[0][0]
+                    label, start, end = splitSeqLabel(msa[index].getLabel(True))
+                else:
+                    label, start, end = splitSeqLabel(msa[index].getLabel(True))
+            except:
+                LOGGER.info('Could not extract resnums from MSA')
+            else:
+                msaflag = True 
 
     if pdb is not None:
         from prody import parsePDB
@@ -161,42 +183,40 @@ def evol_rankorder(mutinfo, **kwargs):
                                 '{0}'.format(pdb.getTitle()))
                     break
                 else:
-                    LOGGER.info('Number of residues in PDB does not match '
-                                'mutinfo matrix, ignoring PDB input')
+                    try:
+                        sel = trimAtomsUsingMSA(sel, msa, chain=chain.getChid())
+                        if sel.numAtoms() == shape[0]:
+                            resnum = sel.getResnums()
+                            coordset = sel.getCoordsets()
+                            distance = calcAllDist(coordset)
+                            pdbflag = True
+                            label = pdb.getTitle()
+                            LOGGER.info('Residue numbers will be based on pdb: '
+                                        '{0}'.format(pdb.getTitle()))
+                            break
+                    except:
+                        LOGGER.info('Number of residues in PDB does not match '
+                                    'mutinfo matrix and no MSA was provided to '
+                                    'align the PDB against, so ignoring PDB input')
 
     if not pdbflag:
-        if msa is not None:
-            msa = parseMSA(msa)
-            if msa.numResidues() != shape[0]:
-                LOGGER.info('Input MSA and mutinfo do not have similar no '
-                            'of residues, ignoring MSA')
-            else:
-                index = msa.getIndex(label)
-                if index is None:
-                    if label is not None:
-                        LOGGER.info('Could not find given label in MSA, '
-                                    'using complete sequence from MSA')
-                    occ = calcMSAOccupancy(msa._msa, 'row')
-                    index = np.where(occ == occ.max())[0][0]
-                    label, seq, start, end = msa[index]
-                else:
-                    label, seq, start, end = msa[index]
-                if (start and end is not None) and (start < end):
-                    resnum = np.arange(start, end+1)
-                    if len(resnum) != shape[0]:
-                        LOGGER.info('Label: {0}/{1}-{2} and mutinfo do '
-                                    'not have similar no of residues, using '
-                                    'serial indexing'.format(label, start, end))
-                        label = 'Serial Index'
-                        resnum = np.arange(1, shape[0]+1)
-                    else:
-                        LOGGER.info('Residue numbers will be based on label: '
-                                    '{0}'.format(label))
-                else:
-                    LOGGER.info('Could not identify residue indexes from MSA'
-                                    ' using serial indexing')
+        if msaflag:
+            if (start and end is not None) and (start < end):
+                resnum = np.arange(start, end+1)
+                if len(resnum) != shape[0]:
+                    LOGGER.info('Label: {0}/{1}-{2} and mutinfo do '
+                                'not have similar no of residues, using '
+                                'serial indexing'.format(label, start, end))
                     label = 'Serial Index'
                     resnum = np.arange(1, shape[0]+1)
+                else:
+                    LOGGER.info('Residue numbers will be based on MSA and label: '
+                                '{0}'.format(label))
+            else:
+                LOGGER.info('Could not identify residue indexes from MSA'
+                                ' using serial indexing')
+                label = 'Serial Index'
+                resnum = np.arange(1, shape[0]+1)
         else:
             LOGGER.info('MSA or PDB not given or does not match mutinfo, '
                         'using serial indexing')
@@ -233,7 +253,12 @@ def evol_rankorder(mutinfo, **kwargs):
     count = 1
     i = 0
 
-    f = openFile(outname, 'wb')
+    if PY3K:
+        mode = 'w'
+    else:
+        mode = 'wb'
+    f = openFile(outname, mode)
+    
     if label is None:
         label = 'Serial Index'
 

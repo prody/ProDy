@@ -18,8 +18,10 @@ __all__ = ['Everything', 'Cursor', 'ImageCursor', 'rangeString', 'alnum', 'impor
            'saxsWater', 'count', 'addEnds', 'copy', 'dictElementLoop', 'index',
            'getDataPath', 'openData', 'chr2', 'toChararray', 'interpY', 'cmp', 'pystr',
            'getValue', 'indentElement', 'isPDB', 'isURL', 'isListLike', 'isSymmetric', 'makeSymmetric',
-           'getDistance', 'fastin', 'createStringIO', 'div0', 'wmean', 'bin2dec', 'wrapModes', 'fixArraySize']
+           'getDistance', 'fastin', 'createStringIO', 'div0', 'wmean', 'bin2dec', 'wrapModes', 
+           'fixArraySize', 'decToHybrid36', 'hybrid36ToDec', 'DTYPE']
 
+DTYPE = array(['a']).dtype.char  # 'S' for PY2K and 'U' for PY3K
 CURSORS = []
 
 # Note that the chain id can be blank (space). Examples:
@@ -347,14 +349,13 @@ def sqrtm(matrix):
 def getMasses(elements):
     """Gets the mass atom. """
     
-    import numpy as np
     # mass_dict = {'C':12,'N':14,'S':32,'O':16,'H':1}
     mass_dict = IUPACData.atom_weights
 
     if isinstance(elements, str):
         return mass_dict[elements.capitalize()]
     else:
-        masses = np.zeros(len(elements))
+        masses = zeros(len(elements))
         for i,element in enumerate(elements):
             if element.capitalize() in mass_dict:
                 masses[i] = mass_dict[element.capitalize()]
@@ -624,3 +625,63 @@ def index(A, a):
     else:
         A = asarray(A)
         return where(A==a)[0][0]
+
+
+def decToBase36(integer):
+    """Converts a decimal number to base 36.
+    Based on https://wikivisually.com/wiki/Base36
+    """
+
+    chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+    
+    sign = '-' if integer < 0 else ''
+    integer = abs(integer)
+    result = ''
+    
+    while integer > 0:
+        integer, remainder = divmod(integer, 36)
+        result = chars[remainder]+result
+
+    if result == '':
+        result = '0'
+
+    return sign+result
+
+
+def decToHybrid36(x):
+    """Convert a regular decimal number to a string in hybrid36 format"""
+    if not isinstance(x, numbers.Integral):
+        raise TypeError('x should be an integer')
+
+    if x < 100000:
+        return str(x)
+
+    start = 10*36**4 # decToBase36(start) = A0000
+    return decToBase36(int(x) + (start - 100000))
+
+
+def base36ToDec(x):
+    chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+    if x[0] == '-':
+        sign = '-'
+        x = x[1:]
+    else:
+        sign = ''
+
+    result = 0
+    for i, entry in enumerate(reversed(x)):
+        result += (chars.find(entry)*36**(i))
+
+    return int(sign + str(result))
+
+
+def hybrid36ToDec(x):
+    """Convert string in hybrid36 format to a regular decimal number"""
+    if not isinstance(x, str):
+        raise TypeError('x should be a string')
+    
+    if x.isnumeric():
+        return int(x)
+
+    start = 10*36**4 # decToBase36(start) = A0000
+    return base36ToDec(x) - start + 100000
