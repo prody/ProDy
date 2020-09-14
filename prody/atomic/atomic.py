@@ -13,8 +13,6 @@ from .fields import READONLY
 
 __all__ = ['Atomic', 'AAMAP']
 
-SELECT = None
-isSelectionMacro = None
 NOTALLNONE = set(['not', 'all', 'none', 'index', 'sequence', 'x', 'y', 'z'])
 
 MODMAP = {}
