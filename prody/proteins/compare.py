@@ -6,7 +6,6 @@ from numbers import Integral
 
 import numpy as np
 from numpy import arange
-PW2 = None
 
 from prody.atomic import AtomMap as AM
 from prody.atomic import AtomGroup, Chain, AtomSubset, Selection
@@ -16,6 +15,9 @@ from prody.measure import calcTransformation, printRMSD, calcDistance, calcRMSD,
 from prody import LOGGER, SELECT, PY2K, PY3K
 from prody.sequence import MSA
 from prody.utilities import cmp, pystr, isListLike, multilap, SolutionDepletionException, index
+from prody.utilities import MATCH_SCORE, MISMATCH_SCORE, GAP_PENALTY, GAP_EXT_PENALTY, ALIGNMENT_METHOD
+
+from Bio import pairwise2
 
 if PY2K:
     range = xrange
@@ -33,11 +35,7 @@ __all__ = ['matchChains', 'matchAlign', 'mapChainOntoChain', 'mapOntoChain', 'al
 
 GOOD_SEQID = 90.
 GOOD_COVERAGE = 90.
-MATCH_SCORE = 1.0
-MISMATCH_SCORE = 0.0
-GAP_PENALTY = -1.
-GAP_EXT_PENALTY = -0.1
-ALIGNMENT_METHOD = 'local'
+
 GAPCHARS = ['-', '.']
 NONE_A = '_'
 
@@ -55,22 +53,6 @@ def calcScores(n_match, n_mapped, n_total):
     else:
         seqid = cover = 0
     return seqid, cover
-
-def importBioPairwise2():
-
-    global PW2
-    if PW2 is None:
-        try:
-            from . import pairwise2
-        except ImportError:
-            try:
-                from Bio import pairwise2
-            except ImportError:
-                raise ImportError('pairwise2 module could not be imported. '
-                                  'Reinstall ProDy or install Biopython '
-                                  'to solve the problem.')
-        PW2 = pairwise2
-    return PW2
 
 
 def getGoodSeqId():
@@ -660,7 +642,6 @@ def matchChains(atoms1, atoms2, **kwargs):
                 unmatched.append((simpch1, simpch2))
 
     if pwalign or (not matches and (pwalign is None or pwalign)):
-        pairwise2 = importBioPairwise2()
         if pairwise2:
             LOGGER.debug('Trying to match chains based on {0} sequence '
                          'alignment:'.format(ALIGNMENT_METHOD))
@@ -791,7 +772,6 @@ def getAlignedMatch(ach, bch):
     """Returns list of matching residues (match is based on sequence alignment).
     """
 
-    pairwise2 = importBioPairwise2()
     if ALIGNMENT_METHOD == 'local':
         alignment = pairwise2.align.localms(ach.getSequence(),
                                             bch.getSequence(),
@@ -1329,7 +1309,6 @@ def getAlignedMapping(target, chain, alignment=None):
     alignment or predefined alignment)."""
 
     if alignment is None:
-        pairwise2 = importBioPairwise2()
         if ALIGNMENT_METHOD == 'local':
             alignments = pairwise2.align.localms(target.getSequence(),
                                                 chain.getSequence(),
@@ -1555,53 +1534,58 @@ def combineAtomMaps(mappings, target=None, **kwargs):
         # extract nonoverlaping mappings
         if len(atommaps):
             atommaps, rmsds = rankAtomMaps(atommaps, target)
-            debug['rmsd'] = list(rmsds)
 
-            # if rmsd_cutoff is not None:
-            #     for i in reversed(range(len(atommaps))):
-            #         if rmsds[i] > rmsd_cutoff:
-            #             atommaps.pop(i)
-            #             rmsds.pop(i)
+            if rmsds is not None:
+                debug['rmsd'] = list(rmsds)
 
-            # pre-store chain IDs of atommaps
-            atommap_segchids = []
-            for atommap in atommaps:
-                nodummies = atommap.select('not dummy')
-                chids = nodummies.getChids()
-                segids = nodummies.getSegnames()
-                segchids = []
-                for segid, chid in zip(segids, chids):
-                    if (segid, chid) not in segchids:
-                        segchids.append((segid, chid))
-                atommap_segchids.append(segchids)
-            
-            atommaps_ = []
-            rmsd_standard = rmsds[0]
-            while len(atommaps):
-                atommap = atommaps.pop(0)
-                rmsd = rmsds.pop(0)
-                segchids = atommap_segchids.pop(0)
+                # if rmsd_cutoff is not None:
+                #     for i in reversed(range(len(atommaps))):
+                #         if rmsds[i] > rmsd_cutoff:
+                #             atommaps.pop(i)
+                #             rmsds.pop(i)
 
-                if reject_rmsd is not None:
-                    if rmsd > reject_rmsd:
-                        break
+                # pre-store chain IDs of atommaps
+                atommap_segchids = []
+                for atommap in atommaps:
+                    nodummies = atommap.select('not dummy')
+                    chids = nodummies.getChids()
+                    segids = nodummies.getSegnames()
+                    segchids = []
+                    for segid, chid in zip(segids, chids):
+                        if (segid, chid) not in segchids:
+                            segchids.append((segid, chid))
+                    atommap_segchids.append(segchids)
+                
+                atommaps_ = []
+                rmsd_standard = rmsds[0]
+                while len(atommaps):
+                    atommap = atommaps.pop(0)
+                    rmsd = rmsds.pop(0)
+                    segchids = atommap_segchids.pop(0)
 
-                if rmsd > rmsd_standard + drmsd:
-                    break
-
-                atommaps_.append(atommap)
-
-                # remove atommaps that share chains with the popped atommap
-                for i in reversed(range(len(atommap_segchids))):
-                    amsegchids = atommap_segchids[i]
-
-                    for segchid in amsegchids:
-                        if segchid in segchids:
-                            atommaps.pop(i)
-                            atommap_segchids.pop(i)
+                    if reject_rmsd is not None:
+                        if rmsd > reject_rmsd:
                             break
 
-            atommaps = atommaps_
+                    if rmsd > rmsd_standard + drmsd:
+                        break
+
+                    atommaps_.append(atommap)
+
+                    # remove atommaps that share chains with the popped atommap
+                    for i in reversed(range(len(atommap_segchids))):
+                        amsegchids = atommap_segchids[i]
+
+                        for segchid in amsegchids:
+                            if segchid in segchids:
+                                atommaps.pop(i)
+                                atommap_segchids.pop(i)
+                                break
+
+                atommaps = atommaps_
+            else:
+                debug['rmsd'] = None
+
         return atommaps
 
     # checkers
@@ -1678,18 +1662,21 @@ def rankAtomMaps(atommaps, target):
     
     rmsds = []
     coords0 = target.getCoords()
-    for atommap in atommaps:
-        weights = atommap.getFlags('mapped')
-        coords = atommap.getCoords()
-        rcoords, t = superpose(coords, coords0, weights)
-        rmsd = calcRMSD(rcoords, coords0, weights)
+    if coords0 is None:
+        rmsds = None
+    else:
+        for atommap in atommaps:
+            weights = atommap.getFlags('mapped')
+            coords = atommap.getCoords()
+            rcoords, t = superpose(coords, coords0, weights)
+            rmsd = calcRMSD(rcoords, coords0, weights)
 
-        rmsds.append(rmsd)
-    
-    I = np.argsort(rmsds)
+            rmsds.append(rmsd)
+        
+        I = np.argsort(rmsds)
 
-    atommaps = [atommaps[i] for i in I]
-    rmsds = [rmsds[i] for i in I]
+        atommaps = [atommaps[i] for i in I]
+        rmsds = [rmsds[i] for i in I]
         
     return atommaps, rmsds
 

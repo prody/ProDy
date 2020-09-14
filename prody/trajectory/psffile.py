@@ -309,6 +309,9 @@ def writePSF(filename, atoms):
     if charges is None:
         charges = zeros(n_atoms, ATOMIC_FIELDS['charge'].dtype)
 
+    if masses is None:
+        masses = zeros(n_atoms, ATOMIC_FIELDS['mass'].dtype)
+
     long_fields = array([len(tp) for tp in types]).max() > 4
 
     out = openFile(filename, 'w')

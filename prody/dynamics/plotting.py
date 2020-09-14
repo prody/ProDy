@@ -236,11 +236,13 @@ def showProjection(ensemble, modes, *args, **kwargs):
     if SETTINGS['auto_show']:
         fig = plt.figure()
  
-    projection = calcProjection(ensemble, modes, kwargs.pop('rmsd', True), kwargs.pop('norm', False))
+    projection = calcProjection(ensemble, modes, 
+                                kwargs.pop('rmsd', True), 
+                                kwargs.pop('norm', False))
 
     if projection.ndim == 1 or projection.shape[1] == 1:
         show = plt.hist(projection.flatten(), *args, **kwargs)
-        plt.xlabel('{0} coordinate'.format(str(modes)))
+        plt.xlabel('Mode {0} coordinate'.format(str(modes)))
         plt.ylabel('Number of conformations')
         return show
     elif projection.shape[1] > 3:
@@ -349,8 +351,8 @@ def showProjection(ensemble, modes, *args, **kwargs):
             adjust_text(ts)
 
     if len(modes) == 2:
-        plt.xlabel('{0} coordinate'.format(int(modes[0])+1))
-        plt.ylabel('{0} coordinate'.format(int(modes[1])+1))
+        plt.xlabel('Mode {0} coordinate'.format(int(modes[0])+1))
+        plt.ylabel('Mode {0} coordinate'.format(int(modes[1])+1))
     elif len(modes) == 3:
         show.set_xlabel('Mode {0} coordinate'.format(int(modes[0])+1))
         show.set_ylabel('Mode {0} coordinate'.format(int(modes[1])+1))

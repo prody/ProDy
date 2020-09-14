@@ -7,10 +7,12 @@ from numbers import Integral
 import os
 
 from numpy import dtype, zeros, empty, ones, where, ceil, shape, eye
-from numpy import indices, tril_indices, array, ndarray, isscalar
+from numpy import indices, tril_indices, array, ndarray, isscalar, unique
 
 from prody import LOGGER
-from prody.utilities import which
+from prody.utilities import which, MATCH_SCORE, MISMATCH_SCORE
+from prody.utilities import GAP_PENALTY, GAP_EXT_PENALTY, ALIGNMENT_METHOD
+
 from prody.sequence.msa import MSA, refineMSA
 from prody.sequence.msafile import parseMSA, writeMSA
 from prody.sequence.sequence import Sequence
@@ -25,7 +27,8 @@ __all__ = ['calcShannonEntropy', 'buildMutinfoMatrix', 'calcMSAOccupancy',
            'buildSeqidMatrix', 'uniqueSequences', 'buildOMESMatrix',
            'buildSCAMatrix', 'buildDirectInfoMatrix', 'calcMeff', 
            'buildPCMatrix', 'buildMSA', 'showAlignment', 'alignTwoSequencesWithBiopython', 
-           'alignSequenceToMSA', 'calcPercentIdentities', 'alignSequencesByChain',]
+           'alignSequenceToMSA', 'calcPercentIdentities', 'alignSequencesByChain',
+           'trimAtomsUsingMSA']
 
 
 doc_turbo = """
@@ -738,8 +741,9 @@ def buildMSA(sequences, title='Unknown', labels=None, **kwargs):
         default True
     :type align: bool
 
-    :arg method: alignment method, one of either biopython.align.globalms or clustalw(2).
-        default 'clustalw'
+    :arg method: alignment method, one of either 'global' (biopython.pairwise2.align.globalms),
+        'local' (biopython.pairwise2.align.localms), clustalw(2), or another software in your path.
+        Default is 'clustalw'
     :type align: str
     """
     
@@ -802,7 +806,7 @@ def buildMSA(sequences, title='Unknown', labels=None, **kwargs):
 
     if align:
         # 2. find and run alignment method
-        if 'biopython' in method:
+        if method in ['biopython', 'local', 'global']:
             if len(sequences) == 2:
                 msa, _, _ = alignTwoSequencesWithBiopython(sequences[0], sequences[1], **kwargs)
             else:
@@ -836,7 +840,7 @@ def buildMSA(sequences, title='Unknown', labels=None, **kwargs):
 
     return msa
 
-def showAlignment(alignment, row_size=60, **kwargs):
+def showAlignment(alignment, **kwargs):
     """
     Prints out an alignment as sets of short rows with labels.
 
@@ -862,6 +866,7 @@ def showAlignment(alignment, row_size=60, **kwargs):
     :arg labels: a list of labels
     :type labels: list
     """
+    row_size = kwargs.get('row_size', 60)
 
     labels = kwargs.get('labels', None)
     if labels is not None:
@@ -882,9 +887,9 @@ def showAlignment(alignment, row_size=60, **kwargs):
             else:
                 labels.append(str(i+1))
 
-    indices = kwargs.get('indices',None)
-    index_start = kwargs.get('index_start',0)
-    index_stop = kwargs.get('index_stop',0)
+    indices = kwargs.get('indices', None)
+    index_start = kwargs.get('index_start', 0)
+    index_stop = kwargs.get('index_stop', 0)
 
     if index_stop == 0 and indices is not None:
         locs = []
@@ -909,7 +914,7 @@ def showAlignment(alignment, row_size=60, **kwargs):
                     try:
                         if k > index_start + 10 and k < index_stop + 10:
                             sys.stdout.write('{:10d}'.format(int(indices[j][k-1])))
-                        elif k > index_start:
+                        elif k < index_stop:
                             sys.stdout.write(' '*(k-index_start))
                         else:
                             sys.stdout.write(' '*10)
@@ -925,7 +930,7 @@ def showAlignment(alignment, row_size=60, **kwargs):
         
     return
 
-def alignSequenceToMSA(seq, msa, label=None, match=5, mismatch=-1, gap_opening=-10, gap_extension=-1):
+def alignSequenceToMSA(seq, msa, **kwargs):
     """
     Align a sequence from a PDB or Sequence to a sequence from an MSA
     and create two sets of indices. 
@@ -942,35 +947,56 @@ def alignSequenceToMSA(seq, msa, label=None, match=5, mismatch=-1, gap_opening=-
          or a sequence string itself
     :type seq: :class:`Atomic`, :class:`Sequence`
     
-    :arg msa: MSA object
+    :arg msa: a multiple sequence alignment
     :type msa: :class:`.MSA`
     
     :arg label: a label for a sequence in msa or a PDB ID
         ``msa.getIndex(label)`` must return a sequence index
     :type label: str
     
-    :arg chain: which chain from pdb to use for alignment
+    :arg chain: which chain from pdb to use for alignment, default is `'A'`
+        This value will be ignored if seq is not an :class:`Atomic` object.
     :type chain: str
     
+    Parameters for Biopython pairwise2 alignments can be provided as 
+    keyword arguments. Default values are originally from proteins.compare 
+    module, but now found in utilities.seqtools.
+
     :arg match: a positive integer, used to reward finding a match
-        The default is 5, which we found to work in a test case.
     :type match: int
     
     :arg mismatch: a negative integer, used to penalise finding a mismatch
-        The default is -1, which we found to work in a test case
     :type mismatch: int
     
     :arg gap_opening: a negative integer, used to penalise opening a gap
-        The default is -10, which we found to work in a test case
     :type gap_opening: int
     
     :arg gap_extension: a negative integer, used to penalise extending a gap
-        The default is -1, which we found to work in a test case
     :type gap_extension: int
+
+    :arg method: method for pairwise2 alignment. 
+        Possible values are 'local' and 'global'
+    :type method: str
     """
+    label = kwargs.get('label', None)
+    chain = kwargs.get('chain', 'A')
+
+    match = kwargs.get('match', MATCH_SCORE)
+    mismatch = kwargs.get('mismatch', MISMATCH_SCORE)
+    gap_opening = kwargs.get('gap_opening', GAP_PENALTY)
+    gap_extension = kwargs.get('gap_extension', GAP_EXT_PENALTY)
+    method = kwargs.get('method', ALIGNMENT_METHOD)
+
     if isinstance(seq, Atomic):
-        ag = seq
+        if isinstance(chain, str):
+            ag = seq.select('chain {0}'.format(chain))
+        elif chain is None:
+            ag = seq
+        else:
+            raise TypeError('chain should be a string or **None**')
+
         sequence = ag.select('ca').getSequence()
+
     elif isinstance(seq, Sequence):
          sequence = str(seq)
          ag = None
@@ -989,19 +1015,67 @@ def alignSequenceToMSA(seq, msa, label=None, match=5, mismatch=-1, gap_opening=-
         else:
             raise ValueError('A label cannot be extracted from seq so please provide one.')
 
+    index = msa.getIndex(label)
+
+    if index is None and (len(label) == 4 or len(label) == 5):
+        from prody import parsePDB
+        try:
+            structure, header = parsePDB(label[:4], header=True)
+        except Exception as err:
+            raise IOError('failed to parse header for {0} ({1})'
+                            .format(label[:4], str(err)))
+
+        chid = chain
+        for poly in header['polymers']:
+            if chid and poly.chid != chid:
+                continue
+            for dbref in poly.dbrefs:
+                if index is None:
+                    index = msa.getIndex(dbref.idcode)
+                    if index is not None:
+                        LOGGER.info('{0} idcode {1} for {2}{3} '
+                                    'is found in {4}.'.format(
+                                    dbref.database, dbref.idcode,
+                                    label[:4], poly.chid, str(msa)))
+                        label = dbref.idcode
+                        break
+                if index is None:
+                    index = msa.getIndex(dbref.accession)
+                    if index is not None:
+                        LOGGER.info('{0} accession {1} for {2}{3} '
+                                    'is found in {4}.'.format(
+                                    dbref.database, dbref.accession,
+                                    label[:4], poly.chid, str(msa)))
+                        label = dbref.accession
+                        break
+        if index is not None:
+            chain = structure[poly.chid]
+
+    if index is None:
+        raise ValueError('label is not in msa, or msa is not indexed')
     try:
-        seqIndex = msa.getIndex(label)
-    except:
-        raise ValueError('Please provide a label that can be found in msa.')
+        len(index)
+    except TypeError:
+        pass
+    else:
+        raise ValueError('label {0} maps onto multiple sequences, '
+                            'so cannot be used for refinement'.format(label))
 
-    if isinstance(seqIndex, int):
-        refMsaSeq = str(msa[seqIndex]).upper().replace('-','.')
-
+    if isinstance(index, int):
+        refMsaSeq = str(msa[index]).upper().replace('-','.')
     else:
         raise TypeError('The output from querying that label against msa is not a single sequence.')
-
-    alignment = pairwise2.align.globalms(sequence, str(refMsaSeq), \
-                                         match, mismatch, gap_opening, gap_extension)
+    
+    if method == 'local':
+        alignment = pairwise2.align.localms(sequence, str(refMsaSeq),
+                                            match, mismatch, gap_opening, gap_extension,
+                                            one_alignment_only=1)
+    elif method == 'global':
+        alignment = pairwise2.align.globalms(sequence, str(refMsaSeq),
+                                       match, mismatch, gap_opening, gap_extension,
+                                       one_alignment_only=1)
+    else:
+        raise ValueError('method should be local or global')
 
     seq_indices = [0]
     msa_indices = [0]
@@ -1023,17 +1097,52 @@ def alignSequenceToMSA(seq, msa, label=None, match=5, mismatch=-1, gap_opening=-
     seq_indices = array(seq_indices)
     msa_indices = array(msa_indices)
 
+    if ag:
+        seq_indices += ag.getResnums()[0] - 1
+
     alignment = MSA(msa=array([array(list(alignment[0][0])), \
                                array(list(alignment[0][1]))]), \
                     labels=[ag.getTitle(), label])
 
     return alignment, seq_indices, msa_indices
 
-def alignTwoSequencesWithBiopython(seq1, seq2, match=5, mismatch=-1, gap_opening=-10, gap_extension=-1):
-    """Easily align two sequences with Biopython's globalms.
-    Returns an MSA and indices for use with showAlignment.
+def alignTwoSequencesWithBiopython(seq1, seq2, **kwargs):
+    """Easily align two sequences with Biopython's globalms or localms.
+    Returns an MSA and indices for use with :func:`.showAlignment`.
+
+    Alignment parameters can be provided as keyword arguments. 
+    Default values are as originally set in the proteins.compare 
+    module, but now found in utilities.seqtools.
+
+    :arg match: a positive integer, used to reward finding a match
+    :type match: int
+    
+    :arg mismatch: a negative integer, used to penalise finding a mismatch
+    :type mismatch: int
+    
+    :arg gap_opening: a negative integer, used to penalise opening a gap
+    :type gap_opening: int
+    
+    :arg gap_extension: a negative integer, used to penalise extending a gap
+    :type gap_extension: int
+
+    :arg method: method for pairwise2 alignment. 
+        Possible values are 'local' and 'global'
+    :type method: str
     """
-    alignment = pairwise2.align.globalms(seq1, seq2, match, mismatch, gap_opening, gap_extension)
+
+    match = kwargs.get('match', MATCH_SCORE)
+    mismatch = kwargs.get('mismatch', MISMATCH_SCORE)
+    gap_opening = kwargs.get('gap_opening', GAP_PENALTY)
+    gap_extension = kwargs.get('gap_extension', GAP_EXT_PENALTY)
+    method = kwargs.get('method', ALIGNMENT_METHOD)
+    
+    if method == 'local':
+        alignment = pairwise2.align.localms(seq1, seq2, match, mismatch, gap_opening, gap_extension)
+    elif method == 'global':
+        alignment = pairwise2.align.globalms(seq1, seq2, match, mismatch, gap_opening, gap_extension)
+    else:
+        raise ValueError('method should be local or global')
 
     seq_indices = [0]
     msa_indices = [0]
@@ -1057,3 +1166,21 @@ def alignTwoSequencesWithBiopython(seq1, seq2, match=5, mismatch=-1, gap_opening
 
     return alignment, seq_indices, msa_indices
 
+
+def trimAtomsUsingMSA(atoms, msa, **kwargs):
+    """This function uses :func:`.alignSequenceToMSA` and has the same kwargs.
+
+    :arg atoms: an atomic structure for trimming
+    :type atoms: :class:`.Atomic`
+
+    :arg msa: a multiple sequence alignment
+    :type msa: :class:`.MSA`
+    """
+    aln, idx_1, idx_2 = alignSequenceToMSA(atoms, msa, **kwargs)
+
+    u, i = unique(idx_2, return_index=True)
+
+    resnums_str = ' '.join([str(x) for x in idx_1[i[1:]]])
+    chain = kwargs.get('chain', 'A')
+
+    return atoms.select('chain {0} and resnum {1}'.format(chain, resnums_str))
