@@ -201,7 +201,7 @@ def prody_gnm(pdb, **kwargs):
                         if len(item) == 1:
                             indices.append(int(item[0])-1)
                         elif len(item) == 2:
-                            indices.extend(range(int(item[0])-1, int(item[1])))
+                            indices.extend(list(range(int(item[0])-1, int(item[1]))))
                     except:
                         pass
                 for index in indices:

@@ -70,6 +70,7 @@ from .misctools import *
 from .pathtools import *
 from .doctools import *
 from .laptools import *
+from .seqtools import *
 from .TreeConstruction import *
 from .eigtools import *
 
