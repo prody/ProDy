@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
-"""This module defines functions for supporting VMD plugin `Heat Mapper`_
+"""This module defines functions for supporting VMD plugin `Heatmapper`_
 format files.
 
-.. _Heat Mapper: http://www.ks.uiuc.edu/Research/vmd/plugins/heatmapper/"""
+.. _Heatmapper: http://www.ks.uiuc.edu/Research/vmd/plugins/heatmapper/"""
 
 __author__ = 'Ahmet Bakan, Anindita Dutta'
 
