@@ -10,11 +10,10 @@ whereas the biological function is documented in a separate family file."""
 import os
 
 from prody import LOGGER, getPackagePath
+from prody.utilities import isListLike
 from prody.proteins import wwPDBServer, WWPDB_FTP_SERVERS
 
 __all__ = ['fetchBIRDviaHTTP']
-
-BIRD_PATH = os.path.join(getPackagePath(), 'bird')
 
 def fetchBIRDviaHTTP(**kwargs):
     """Retrieve the whole Biologically Interesting Molecule Reference 
@@ -37,6 +36,8 @@ def fetchBIRDviaHTTP(**kwargs):
 
     The underlying data can be accessed using :func:`parseBIRD`."""
 
+    BIRD_PATH = os.path.join(getPackagePath(), 'bird')
+    
     keys = kwargs.get('keys', 'both')
     if isinstance(keys, str):
         if keys == 'both':
