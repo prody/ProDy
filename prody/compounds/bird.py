@@ -12,13 +12,11 @@ from os import getcwd
 from os.path import join
 from numpy import isscalar
 
-from prody import LOGGER, SETTINGS, getPackagePath
+from prody import LOGGER, getPackagePath
 from prody.utilities import openFile, openURL, pystr, isListLike
 from prody.proteins import wwPDBServer, WWPDB_FTP_SERVERS, parseSTAR
 
 __all__ = ['fetchBIRDviaFTP', 'parseBIRD']
-
-BIRD_PATH = os.path.join(getPackagePath(), 'bird')
 
 def fetchBIRDviaFTP(**kwargs):
     """Retrieve the whole Biologically Interesting Molecule Reference 
@@ -40,6 +38,8 @@ def fetchBIRDviaFTP(**kwargs):
     :type keys: str, tuple, list, :class:`~numpy.ndarray`
 
     The underlying data can be accessed using :func:`parseBIRD`."""
+
+    BIRD_PATH = os.path.join(getPackagePath(), 'bird')
 
     keys = kwargs.get('keys', 'both')
     if isinstance(keys, str):
@@ -168,6 +168,7 @@ def parseBIRD(*ids, **kwargs):
     if n_ids == 1:
         ids = list(ids)
 
+    BIRD_PATH = os.path.join(getPackagePath(), 'bird')
     filename = BIRD_PATH + '/{0}-all.cif.gz'.format(key)
     if not os.path.isfile(filename):
         fetchBIRDviaFTP(keys=key, **kwargs)
