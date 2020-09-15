@@ -13,14 +13,14 @@ from prody.proteins import parseSTAR
 
 __all__ = ['fetchCCDviaHTTP', 'parseCCD']
 
-CCD_PATH = os.path.join(getPackagePath(), 'ccd')
-
 url = 'http://ligand-expo.rcsb.org/dictionaries/Components-pub.cif'
 #ftp = 'ftp://ftp.wwpdb.org/pub/pdb/data/monomers/components.cif.gz'
 
 def fetchCCDviaHTTP(**kwargs):
     """
     """
+    CCD_PATH = os.path.join(getPackagePath(), 'ccd')
+
     success = 0
     failure = 0
     try:
@@ -47,6 +47,8 @@ def fetchCCDviaHTTP(**kwargs):
 def parseCCD(*ids, **kwargs):
     """
     """
+    CCD_PATH = os.path.join(getPackagePath(), 'ccd')
+    
     n_ids = len(ids)
     if n_ids == 1:
         if isListLike(ids[0]):
