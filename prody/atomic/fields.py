@@ -221,8 +221,8 @@ ATOMIC_FIELDS = {
                        readonly=True, call=['_fragment'], synonym='fragment',
                        desc='Fragment indices are assigned to connected '
                             'subsets of atoms.  Bonds needs to be set using '
-                            ':meth:`.AtomGroup.setBonds` method.  Fragment '
-                            'indices start from zero, are incremented by '
+                            ':meth:`.AtomGroup.setBonds` or :meth:`.AtomGroup.inferBonds`. '
+                            'Fragment indices start from zero, are incremented by '
                             'one, and are assigned in the order of appearance '
                             'in :class:`.AtomGroup` instance.'),
     'numbonds':  Field('numbonds', int, meth_pl='Numbonds',

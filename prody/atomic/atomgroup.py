@@ -1113,14 +1113,16 @@ class AtomGroup(Atomic):
         self._fragments = None
 
     def numBonds(self):
-        """Returns number of bonds.  Use :meth:`setBonds` for setting bonds."""
+        """Returns number of bonds.  Use :meth:`setBonds` or 
+        :meth:`inferBonds` for setting bonds."""
 
         if self._bonds is not None:
             return self._bonds.shape[0]
         return 0
 
     def getBonds(self):
-        """Returns bonds.  Use :meth:`setBonds` for setting bonds."""
+        """Returns bonds.  Use :meth:`setBonds` or 
+        :meth:`inferBonds` for setting bonds."""
 
         if self._bonds is not None:
             acsi = self._acsi
@@ -1144,7 +1146,7 @@ class AtomGroup(Atomic):
         return np.array([Bond(self, bond, acsi) for bond in bonds])
 
     def iterBonds(self):
-        """Yield bonds.  Use :meth:`setBonds` for setting bonds."""
+        """Yield bonds.  Use :meth:`setBonds` or `inferBonds` for setting bonds."""
 
         if self._bonds is not None:
             acsi = self._acsi
@@ -1152,8 +1154,8 @@ class AtomGroup(Atomic):
                 yield Bond(self, bond, acsi)
 
     def _iterBonds(self):
-        """Yield pairs of bonded atom indices. Use :meth:`setBonds` for setting
-        bonds."""
+        """Yield pairs of bonded atom indices. Use :meth:`setBonds` 
+        or `inferBonds` for setting bonds."""
 
         if self._bonds is not None:
             for a, b in self._bonds:
@@ -1630,7 +1632,7 @@ class AtomGroup(Atomic):
 
         if self._bmap is None:
             raise ValueError('bonds must be set for fragment determination, '
-                             'use `setBonds`')
+                             'use `setBonds` or `inferBonds` to set them')
 
         fids = np.zeros(self._n_atoms, int)
         fdict = {}
