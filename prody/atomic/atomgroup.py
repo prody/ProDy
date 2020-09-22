@@ -1129,16 +1129,20 @@ class AtomGroup(Atomic):
             return np.array([Bond(self, bond, acsi) for bond in self._bonds])
         return None
 
-    def inferBonds(self, max_bond=1.6, min_bond=0, set_bonds=False):
+    def inferBonds(self, max_bond=1.6, min_bond=0, set_bonds=True):
         """Returns bonds based on distances **max_bond** and **min_bond**."""
 
         bonds = []
-        for i, atom_i in enumerate(self[:-1]):
-            for _, atom_j in enumerate(self[i+1:]):
-                distance = getDistance(atom_i.getCoords(), atom_j.getCoords())
-                if distance > min_bond and distance < max_bond:
-                    bonds.append([atom_i._index, atom_j._index])
-        
+        for atom_i in self.iterAtoms():
+            sele = self.select('index > {0} and exwithin {1} of index {0}'
+                               .format(atom_i.getIndex(), max_bond))
+            if sele is not None:
+                for atom_j in sele.iterAtoms():
+                    distance = getDistance(atom_i.getCoords(),
+                                           atom_j.getCoords())
+                    if distance > min_bond:
+                        bonds.append([atom_i._index, atom_j._index])
+
         if set_bonds:
             self.setBonds(bonds)
 
