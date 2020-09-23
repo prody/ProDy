@@ -312,13 +312,17 @@ def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
         resnums[acount] = line.split()[fields['auth_seq_id']]
         chainids[acount] = chID
         segnames[acount] = segID
-        hetero[acount] = startswith == 'HETATM'  # True or False
-        if chainids[acount] != chainids[acount-1]:
-            termini[acount] = True
+        hetero[acount] = startswith == 'HETATM' # True or False
+
+        if chainids[acount] != chainids[acount-1]: 
+            termini[acount-1] = True
+
         altlocs[acount] = alt
         icodes[acount] = line.split()[fields['pdbx_PDB_ins_code']]
-        if icodes[acount] == '?':
+
+        if icodes[acount] == '?': 
             icodes[acount] = ''
+
         serials[acount] = line.split()[fields['id']]
         elements[acount] = line.split()[fields['type_symbol']]
         bfactors[acount] = line.split()[fields['B_iso_or_equiv']]
