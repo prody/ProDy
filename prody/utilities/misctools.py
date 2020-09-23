@@ -721,3 +721,16 @@ def hybrid36ToDec(x):
 
     start = 10*36**4 # decToBase36(start) = A0000
     return base36ToDec(x) - start + 100000
+
+
+def split(string, shlex=False):
+    if shlex:
+        try:
+            import shlex
+        except ImportError:
+            raise ImportError('Use of the shlex option requires the '
+                              'installation of the shlex package.')
+        else:
+            return shlex.split(string)
+    else:
+        return string.split()
