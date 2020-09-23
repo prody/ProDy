@@ -184,7 +184,7 @@ class StarLoop:
 
     def __repr__(self):
         if self.numFields == 1 and self.numRows != 1:
-            return '<StarLoop: {0} (1 column and {2} rows)>'.format(self._title, self.numRows)
+            return '<StarLoop: {0} (1 column and {1} rows)>'.format(self._title, self.numRows)
         elif self.numFields != 1 and self.numRows == 1:
             return '<StarLoop: {0} ({1} columns and 1 row)>'.format(self._title, self.numFields)
         elif self.numFields == 1 and self.numRows == 1:
@@ -208,19 +208,29 @@ def parseSTAR(filename):
     lines = starfile.readlines()
     starfile.close()
 
-    parsingDict, prog = parseSTARStream(lines)
+    parsingDict, prog = parseSTARLines(lines, **kwargs)
 
     return StarDict(parsingDict, prog, filename)
 
 
-def parseSTARStream(stream):
-    prog = 'RELION'
+def parseSTARLines(lines, **kwargs):
+    start = kwargs.get('start', None)
+    if start is None:
+        start = 0
+
+    stop = kwargs.get('stop', None)
+    if stop is None:
+        stop = len(lines)
+
+    prog = kwargs.get('prog', None)
+    shlex = kwargs.get('shlex', False)
+
     finalDictionary = {}
     currentLoop = -1
     fieldCounter = 0
     dataItemsCounter = 0
     lineNumber = 0
-    for line in stream:
+    for line in lines[start:stop]:
         if line.startswith('data_'):
             currentDataBlock = line[5:].strip()
             finalDictionary[currentDataBlock] = {}
