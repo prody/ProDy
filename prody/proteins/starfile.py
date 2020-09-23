@@ -119,17 +119,16 @@ class StarDataBlock:
                 try:
                     return np.array(self.data)[key]
                 except:
-                    raise ValueError(
-                        'The key for getting items should be the data entry number')
+                    raise ValueError('The key for getting items '
+                                     'should be the data entry number')
 
         else:
             try:
                 return np.array(self.loops)[key]
             except:
                 try:
-                    key = np.where(
-                        np.array(list(self._dict.keys())) == key)[0][0]
                     if len(list(self._dict.keys())) == self.numLoops:
+                        key = np.where(np.array(list(self._dict.keys())) == key)[0][0]
                         return self.loops[key]
                     else:
                         return self._dict[key]
@@ -402,7 +401,7 @@ def parseSTARLines(lines, **kwargs):
                         if line.startswith(';'):
                             inSplitField = True
                             currentField = finalDictionary[currentDataBlock][currentLoop]['fields'][active_fieldCounter]
-                            finalDictionary[currentDataBlock][currentLoop]['data'][dataItemsCounter][currentField] = line.strip()  + ' '
+                            finalDictionary[currentDataBlock][currentLoop]['data'][dataItemsCounter][currentField] = line.strip() + ' '
                         else:
                             # continue as normal
                             for fieldEntry in split(line.strip(), shlex=shlex):
