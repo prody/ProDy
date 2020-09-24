@@ -12,7 +12,7 @@ import os.path
 from numbers import Integral
 import numpy as np
 
-from prody.utilities import openFile, split
+from prody.utilities import openFile, split, pystr
 from prody import LOGGER, SETTINGS, PY3K
 
 from .emdfile import parseEMD
@@ -204,8 +204,11 @@ class StarLoop:
             return np.array(self.data)[key]
         except:
             try:
-                key = np.where(np.array(list(self._dict.keys())) == key)[0][0]
-                return self.data[key]
+                try:
+                    return self._dict[key]
+                except KeyError:
+                    key = np.where(np.array(list(self._dict.keys())) == key)[0][0]
+                    return self.data[key]
             except:
                 try:
                     return self.getData(key)
@@ -262,8 +265,7 @@ def parseSTAR(filename, **kwargs):
 
     starfile = openFile(filename, 'r')
     lines = starfile.readlines()
-    if PY3K:
-        lines = [line.decode() for line in lines]
+    lines = [pystr(line) for line in lines]
     starfile.close()
 
     parsingDict, prog = parseSTARLines(lines, **kwargs)
@@ -363,7 +365,7 @@ def parseSTARLines(lines, **kwargs):
                 block_fieldCounter += 1
 
         elif line.strip() == '' or line.strip() == '#':
-            pass
+            inLoop = False
 
         elif inLoop:
             # Here we handle the data part of the loop.
