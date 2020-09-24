@@ -224,8 +224,8 @@ def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
         else:
             if foundAtomBlock:
                 doneAtomBlock = True
+                stop = i
         i += 1
-    stop = i-1
     if nModels == 0:
         nModels = 1
 
@@ -361,7 +361,8 @@ def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
         atomgroup.addCoordset(coordinates[n*modelSize:(n+1)*modelSize])
 
     if header:
-        header = parseSTARLines(lines, stop=start, shlex=True)
+        header = parseSTARLines(lines[:start-fieldCounter-2] + lines[stop:],
+                                shlex=True)
         return atomgroup, header
 
     return atomgroup
