@@ -464,6 +464,8 @@ class Ensemble(object):
             self._confs = concatenate((self._confs, coords), axis=0)
         
         # appending new data
+        if self._data is None:
+            self._data = {}
         all_keys = set(list(self._data.keys()) + list(adddata.keys()))
 
         for key in all_keys:

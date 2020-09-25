@@ -64,18 +64,18 @@ class PDBEnsemble(Ensemble):
             ensemble.setAtoms(other._atoms)
             ensemble._indices = other._indices
 
-        selfkeys = self._data.keys() if self._data is not None else []
-        otherkeys = other._data.keys() if other._data is not None else []
-        all_keys = set(list(selfkeys) + list(otherkeys))
+        selfdata = self._data if self._data is not None else {}
+        otherdata = other._data if other._data is not None else {}
+        all_keys = set(list(selfdata.keys()) + list(otherdata.keys()))
         for key in all_keys:
-            if key in self._data and key in other._data:
-                self_data = self._data[key]
-                other_data = other._data[key]
-            elif key in self._data:
-                self_data = self._data[key]
+            if key in selfdata and key in otherdata:
+                self_data = selfdata[key]
+                other_data = otherdata[key]
+            elif key in selfdata:
+                self_data = selfdata[key]
                 other_data = np.zeros(other.numConfs(), dtype=self_data.dtype)
-            elif key in other._data:
-                other_data = other._data[key]
+            elif key in otherdata:
+                other_data = otherdata[key]
                 self_data = np.zeros(other.numConfs(), dtype=other_data.dtype)
             ensemble._data[key] = np.concatenate((self_data, other_data), axis=0)
 
@@ -382,7 +382,9 @@ class PDBEnsemble(Ensemble):
             if key in self._data:
                 data = self._data[key]
                 if key not in adddata:
-                    shape = (n_repeats, *data.shape[1:])
+                    shape = [n_repeats] 
+                    for s in data.shape[1:]:
+                        shape.append(s)
                     newdata = np.zeros(shape, dtype=data.dtype)
                 else:
                     newdata = np.asarray(adddata[key])
@@ -390,7 +392,9 @@ class PDBEnsemble(Ensemble):
                         raise ValueError('the length of data["%s"] does not match that of coords'%key)
             else:
                 newdata = np.asarray(adddata[key])
-                shape = (self._n_csets, *newdata.shape[1:])
+                shape = [self._n_csets] 
+                for s in newdata.shape[1:]:
+                    shape.append(s)
                 data = np.zeros(shape, dtype=newdata.dtype)
             self._data[key] = np.concatenate((data, newdata), axis=0)
         
