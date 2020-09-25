@@ -470,7 +470,9 @@ class Ensemble(object):
             if key in self._data:
                 data = self._data[key]
                 if key not in adddata:
-                    shape = (n_confs, *data.shape[1:])
+                    shape = [n_confs] 
+                    for s in data.shape[1:]:
+                        shape.append(s)
                     newdata = zeros(shape, dtype=data.dtype)
                 else:
                     newdata = asarray(adddata[key])
@@ -478,7 +480,9 @@ class Ensemble(object):
                         raise ValueError('the length of data["%s"] does not match that of coords'%key)
             else:
                 newdata = asarray(adddata[key])
-                shape = (self._n_csets, *newdata.shape[1:])
+                shape = [self._n_csets]
+                for s in newdata.shape[1:]:
+                    shape.append(s)
                 data = zeros(shape, dtype=newdata.dtype)
             self._data[key] = concatenate((data, newdata), axis=0)
 

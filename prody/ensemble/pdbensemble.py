@@ -64,7 +64,9 @@ class PDBEnsemble(Ensemble):
             ensemble.setAtoms(other._atoms)
             ensemble._indices = other._indices
 
-        all_keys = set(list(self._data.keys()) + list(other._data.keys()))
+        selfkeys = self._data.keys() if self._data is not None else []
+        otherkeys = other._data.keys() if other._data is not None else []
+        all_keys = set(list(selfkeys) + list(otherkeys))
         for key in all_keys:
             if key in self._data and key in other._data:
                 self_data = self._data[key]
