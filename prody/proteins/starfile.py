@@ -65,6 +65,14 @@ class StarDict:
         self.dataBlocks.pop(index)
         self.numDataBlocks -= 1
 
+    def search(self, substr):
+        results = []
+        for data_block in self:
+            if data_block.search(substr) != []:
+                results.append((data_block, data_block.search(substr)))
+
+        return results
+
 
 class StarDataBlock:
     def __init__(self, starDict, key):
@@ -173,6 +181,21 @@ class StarDataBlock:
         self.loops.pop(index)
         self.numLoops -= 1
 
+    def search(self, substr):
+        results = []
+        for key, value in self._dict.items():
+            if key == 'fields':
+                pass
+            elif key == 'data':
+                for field, val in value.items():
+                    if field.find(substr) != -1 or val.find(substr) != -1:
+                        results.append((key, [field, val]))
+            else:
+                if self[key].search(substr) != []:
+                    results.append((self[key], self[key].search(substr)))
+
+        return results
+
 
 class StarLoop:
     def __init__(self, dataBlock, key):
@@ -226,6 +249,15 @@ class StarLoop:
             return '<StarLoop: {0} (1 column and 1 row)>'.format(self._title)
         else:
             return '<StarLoop: {0} ({1} columns and {2} rows)>'.format(self._title, self.numFields, self.numRows)
+
+    def search(self, substr):
+        results = []
+        for j, row in enumerate(self.data):
+            for entry in row.items():
+                field, value = entry
+                if field.find(substr) != -1 or value.find(substr) != -1:
+                    results.append((j, field, row))
+        return results
 
 
 def parseSTAR(filename, **kwargs):
