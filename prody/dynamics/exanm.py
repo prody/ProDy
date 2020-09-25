@@ -10,10 +10,11 @@ from numpy import sqrt, zeros, array, ceil, dot
 
 from .anm import ANM
 from .gnm import checkENMParameters
-from .editing import reduceModel
+from .editing import _reduceModel
 
 LA = importLA()
 inv = LA.inv
+pinv = LA.pinv
 norm = LA.norm
 
 __all__ = ['exANM']
@@ -86,7 +87,7 @@ class exANM(ANM):
                 raise TypeError('coords must be a Numpy array or an object '
                                 'with `getCoords` method')
 
-        self._n_atoms = natoms = int(coords.shape[0])
+        self._n_atoms = int(coords.shape[0])
 
         LOGGER.timeit('_membrane')
 
@@ -195,6 +196,7 @@ class exANM(ANM):
         """
 
         atoms = coords
+        turbo = kwargs.pop('turbo', True)
 
         try:
             coords = (coords._getCoords() if hasattr(coords, '_getCoords') else
@@ -206,46 +208,28 @@ class exANM(ANM):
                 raise TypeError('coords must be a Numpy array or an object '
                                 'with `getCoords` method')
 
-        self._n_atoms = natoms = int(coords.shape[0])
+        n_atoms = int(coords.shape[0])
 
         if self._membrane is None:
             coords = self.buildMembrane(atoms, **kwargs)
         else:
             coords = self._combined.getCoords()
 
+        system = zeros(coords.shape[0], dtype=bool)
+        system[:n_atoms] = True
+
         LOGGER.timeit('_exanm')
 
-        total_natoms = int(coords.shape[0])
-        self._hessian = np.zeros((natoms*3, natoms*3), float)
-        total_hessian = np.zeros((total_natoms*3, total_natoms*3), float)
-        cutoff, g, gamma = checkENMParameters(cutoff, gamma)
-        cutoff2 = cutoff * cutoff
-        for i in range(total_natoms):
-            res_i3 = i*3
-            res_i33 = res_i3+3
-            i_p1 = i+1
-            i2j_all = coords[i_p1:, :] - coords[i]
-            for j, dist2 in enumerate((i2j_all ** 2).sum(1)):
-                if dist2 > cutoff2:
-                    continue
-                i2j = i2j_all[j]
-                j += i_p1
-                g = gamma(dist2, i, j)
-                res_j3 = j*3
-                res_j33 = res_j3+3
-                super_element = np.outer(i2j, i2j) * (- g / dist2)
-                total_hessian[res_i3:res_i33, res_j3:res_j33] = super_element
-                total_hessian[res_j3:res_j33, res_i3:res_i33] = super_element
-                total_hessian[res_i3:res_i33, res_i3:res_i33] = total_hessian[res_i3:res_i33, res_i3:res_i33] - super_element
-                total_hessian[res_j3:res_j33, res_j3:res_j33] = total_hessian[res_j3:res_j33, res_j3:res_j33] - super_element
+        if turbo:
+            self._hessian = buildReducedHessian(coords, system, cutoff, gamma, **kwargs)
+        else:
+            super(exANM, self).buildHessian(coords, cutoff, gamma, **kwargs)
+            system = np.repeat(system, 3)
+            self._hessian = _reduceModel(self._hessian, system)
 
-        ss = total_hessian[:natoms*3, :natoms*3]
-        so = total_hessian[:natoms*3, natoms*3:]
-        os = total_hessian[natoms*3:,:natoms*3]
-        oo = total_hessian[natoms*3:, natoms*3:]
-        self._hessian = ss - np.dot(so, np.dot(inv(oo), os))
         LOGGER.report('Hessian was built in %.2fs.', label='_exanm')
         self._dof = self._hessian.shape[0]
+        self._n_atoms = n_atoms
     
     def calcModes(self, n_modes=20, zeros=False, turbo=True):
         """Calculate normal modes.  This method uses :func:`scipy.linalg.eigh`
@@ -337,12 +321,144 @@ def checkClash(node, hull, radius=5.):
             return False
     return True
 
+def peelr(coords, system, r0=20., dr=20.):
+    n_sys_atoms = int(system.sum())
+    n_atoms = len(system)
+    labels = np.zeros(n_atoms, dtype=int)
 
+    # identify system beads
+    sys_coords = coords[system, :2]
+    sys_norms = norm(sys_coords, axis=1)
+    sys_r = max(sys_norms)
+    r0 += sys_r
 
-def test2(pdb='2nwl-mem.pdb'):
-    from prody import parsePDB
-    structure = parsePDB(pdb, subset='ca')
-    exanm = exANM('2nwl')
-    exanm.buildHessian(structure)
-    exanm.calcModes()
-    return exanm
+    # label environment beads
+    env_coords = coords[~system, :2]
+    env_norms = norm(env_coords, axis=1)
+    L = (env_norms - r0) // dr + 1
+    L = np.clip(L, 0, None) + 1
+    labels[n_sys_atoms:] = L
+    
+    uniq_labels = np.unique(labels)
+    if len(uniq_labels) >= 3:
+        uniq_labels.sort()
+        lbl_last = uniq_labels[-1]
+        lbl_2nd_last = uniq_labels[-2]
+
+        n_last = sum(labels == lbl_last)
+        n_2nd_last = sum(labels == lbl_2nd_last)
+
+        if n_last < 0.2 * n_2nd_last:
+            LOGGER.debug('edge nodes detected (%d/%d)'%(n_2nd_last, n_last))
+            labels[labels == lbl_last] = lbl_2nd_last
+
+    if len(uniq_labels) >= 3:
+        uniq_labels.sort()
+        lbl_first = uniq_labels[1]
+        lbl_2nd = uniq_labels[2]
+
+        n_first = sum(labels == lbl_first)
+        n_2nd = sum(labels == lbl_2nd)
+
+        if n_first < 0.2 * n_2nd:
+            LOGGER.debug('inner nodes detected (%d/%d)'%(n_2nd, n_first))
+            labels[labels == lbl_first] = lbl_2nd
+    if not any(uniq_labels == 1):
+        LOGGER.debug('no layer inside the system')
+        for i in range(len(labels)):
+            if labels[i] > 1:
+                labels[i] -= 1
+
+    uniq_labels = np.unique(labels)
+    for i, label in enumerate(uniq_labels):
+        labels[labels==label] = i
+
+    return labels
+
+def buildReducedHessian(coords, system, cutoff=15., gamma=1.0, **kwargs):
+    
+    r0 = kwargs.pop('r0', 20.)
+    dr = kwargs.pop('dr', 20.)
+    labels = peelr(coords, system, r0, dr)
+    LOGGER.debug('layers: ' + str(np.unique(labels)))
+
+    H = calcHessianRecursion(coords, labels, 0, cutoff=cutoff, gamma=gamma, **kwargs)
+    return H
+
+def calcHessianRecursion(coords, layers, layer, cutoff=15., gamma=1.0, **kwargs):
+    if layer == 0:
+        LOGGER.debug('max layer: %d'%max(layers))
+    LOGGER.debug('layer: %d'%layer)
+    Hss, Hse = buildLayerHessian(coords, layers, layer, cutoff=cutoff, gamma=gamma, **kwargs)
+
+    if Hse is None: # last layer, Hee=Hss
+        H = Hss
+    else:
+        Hee = calcHessianRecursion(coords, layers, layer+1, cutoff=cutoff, gamma=gamma, **kwargs)
+        Cee = inv(Hee)
+        H = Hss - Hse.dot(Cee.dot(Hse.T))
+    LOGGER.debug('layer: %d finished'%layer)
+    return H
+
+def buildLayerHessian(coords, layers, layer, cutoff=15., gamma=1.0, **kwargs):
+    gmem = kwargs.pop('gamma_memb', gamma)
+
+    torf_inner = layers == (layer-1)
+    torf_sys = layers == layer
+    torf_env = layers == (layer+1)
+    
+    coords_inner = coords[torf_inner, :] # inner layer coords
+    coords_sys = coords[torf_sys, :] # sys coords
+    coords_env = coords[torf_env, :] # env coords
+    
+    n_sys_atoms = len(coords_sys)
+    n_env_atoms = len(coords_env)
+    n_inner_atoms = len(coords_inner)
+    
+    Hss = np.zeros((n_sys_atoms*3, n_sys_atoms*3))
+    Hse = np.zeros((n_sys_atoms*3, n_env_atoms*3)) if n_env_atoms else None
+    
+    cutoff2 = cutoff * cutoff
+    for i in range(n_sys_atoms):
+        coordi = coords_sys[i, :]
+        I = slice(i*3, (i+1)*3)
+
+        # sys-sys
+        for j in range(i+1, n_sys_atoms):
+            coordj = coords_sys[j, :]
+            J = slice(j*3, (j+1)*3)
+
+            v = coordi - coordj
+            dist2 = np.inner(v, v)
+            if dist2 < cutoff2:
+                g = gamma if layer == 0 else gmem
+                superelement = np.outer(v, v)*g/dist2
+                Hss[I, J] = Hss[J, I] = -superelement
+                Hss[I, I] += superelement
+                Hss[J, J] += superelement
+
+        # sys-env
+        for k in range(n_env_atoms):
+            coordk = coords_env[k, :]
+            K = slice(k*3, (k+1)*3)
+
+            v = coordi - coordk
+            dist2 = np.inner(v, v)
+            if dist2 < cutoff2:
+                g = gmem 
+                superelement = np.outer(v, v)*g/dist2
+                Hse[I, K] = -superelement
+                Hss[I, I] += superelement
+
+        # sys-inner
+        for k in range(n_inner_atoms):
+            coordk = coords_inner[k, :]
+            K = slice(k*3, (k+1)*3)
+
+            v = coordi - coordk
+            dist2 = np.inner(v, v)
+            if dist2 < cutoff2:
+                g = gmem
+                superelement = np.outer(v, v)*g/dist2
+                Hss[I, I] += superelement
+    return Hss, Hse
