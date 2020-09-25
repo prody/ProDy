@@ -204,8 +204,11 @@ class StarLoop:
             return np.array(self.data)[key]
         except:
             try:
-                key = np.where(np.array(list(self._dict.keys())) == key)[0][0]
-                return self.data[key]
+                try:
+                    return self._dict[key]
+                except KeyError:
+                    key = np.where(np.array(list(self._dict.keys())) == key)[0][0]
+                    return self.data[key]
             except:
                 try:
                     return self.getData(key)
@@ -325,10 +328,7 @@ def parseSTARLines(lines, **kwargs):
 
                     # We populate fields and data together, continuing the regular data block
                     finalDictionary[currentDataBlock]['fields'][block_fieldCounter] = currentField
-                    finalDictionary[currentDataBlock]['data'][dataItemsCounter] = {}
-
-                    finalDictionary[currentDataBlock]['data'][dataItemsCounter][currentField] = split(line.strip(),
-                                                                                                      shlex=shlex)[1]
+                    finalDictionary[currentDataBlock]['data'][currentField] = split(line.strip(), shlex=shlex)[1]
                     block_fieldCounter += 1
 
             else:
@@ -338,29 +338,26 @@ def parseSTARLines(lines, **kwargs):
                     finalDictionary[currentDataBlock]['fields'] = {}
                     finalDictionary[currentDataBlock]['data'] = {}
                     startingBlock = False
-                    dataItemsCounter = 0
+                    block_fieldCounter = 0
 
                 finalDictionary[currentDataBlock]['fields'][block_fieldCounter] = currentField
-                finalDictionary[currentDataBlock]['data'][dataItemsCounter] = {}
 
                 if len(split(line.strip(), shlex=shlex)) > 1:
                     # This is the usual behaviour so we can fill in the data from the rest of the line
-                    finalDictionary[currentDataBlock]['data'][dataItemsCounter][currentField] = split(line.strip(),
-                                                                                                      shlex=shlex)[1]
+                    finalDictionary[currentDataBlock]['data'][currentField] = split(line.strip(), shlex=shlex)[1]
                 else:
                     # In this case, we will look for the data in a short block over the following line(s).
                     # If a single field takes multiple lines, these lines start and end with a semi-colon. 
                     # We'll handle that in the data section.
-                    finalDictionary[currentDataBlock]['data'][dataItemsCounter][currentField] = ''
+                    finalDictionary[currentDataBlock]['data'][currentField] = ''
                     inShortBlock = True
                     startingShortBlock = True
-                    dataItemsCounter -= 1
 
-                dataItemsCounter += 1
                 block_fieldCounter += 1
 
         elif line.strip() == '' or line.strip() == '#':
-            pass
+            inLoop = False
+            inShortBlock = False
 
         elif inLoop:
             # Here we handle the data part of the loop.
@@ -421,24 +418,22 @@ def parseSTARLines(lines, **kwargs):
 
         elif inShortBlock:
             # We can now append the data in the lines here.
-            finalDictionary[currentDataBlock]['data'][dataItemsCounter][currentField] += line.strip()
+            finalDictionary[currentDataBlock]['data'][currentField] += line.strip()
             if startingShortBlock:
                 startingShortBlock = False
                 if not line.startswith(';'):
                     # We only expect one line if there's no semi-colon
                     inShortBlock = False
-                    dataItemsCounter += 1
                 else:
                     # Prepare for the next line
-                    finalDictionary[currentDataBlock]['data'][dataItemsCounter][currentField] += ' '
+                    finalDictionary[currentDataBlock]['data'][currentField] += ' '
             else:
                 if line.strip() == ';':
                     # This marks the end of the field so we've filled it
                     inShortBlock = False
-                    dataItemsCounter += 1
                 else:
                     # Prepare for the next line
-                    finalDictionary[currentDataBlock]['data'][dataItemsCounter][currentField] += ' '
+                    finalDictionary[currentDataBlock]['data'][currentField] += ' '
 
         elif line.startswith('#'):
             if line.startswith('# XMIPP'):
