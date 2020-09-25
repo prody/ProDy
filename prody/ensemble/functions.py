@@ -38,10 +38,6 @@ def saveEnsemble(ensemble, filename=None, **kwargs):
     if isinstance(ensemble, PDBEnsemble):
         attr_list.append('_labels')
         attr_list.append('_trans')
-    if isinstance(ensemble, ClustENM):
-        attr_list.extend(['_ph', '_cutoff', '_n_modes', '_n_confs', '_rmsd', '_n_gens', 
-                          '_sim', '_threshold', '_maxclust', '_temp', '_t_steps', '_outlier', 
-                          '_mzscore', '_v1', '_platform', '_n_ca', '_time', '_parallel'])
 
     if filename is None:
         filename = ensemble.getTitle().replace(' ', '_')
@@ -104,10 +100,7 @@ def loadEnsemble(filename, **kwargs):
     try:
         title = attr_dict['_title']
     except KeyError:
-        if type_ == 'ClustENM':
-            title = None
-        else:
-            title = attr_dict['_name']
+        title = attr_dict['_name']
             
     if isinstance(title, np.ndarray):
         title = title.item()
@@ -120,8 +113,6 @@ def loadEnsemble(filename, **kwargs):
 
     if type_ == 'PDBEnsemble':
         ensemble = PDBEnsemble(title)
-    elif type_ == 'ClustENM':
-        ensemble = ClustENM(title)
     else:
         ensemble = Ensemble(title)
 
@@ -145,16 +136,6 @@ def loadEnsemble(filename, **kwargs):
         if '_msa' in attr_dict.files:
             ensemble._msa = attr_dict['_msa'][0]
     else:
-        if type_ == 'ClustENM':
-            attrs = ['_ph', '_cutoff', '_n_modes', '_n_confs', '_rmsd', '_n_gens', 
-                    '_sim', '_threshold', '_maxclust', '_temp', '_t_steps', '_outlier', 
-                    '_mzscore', '_v1', '_platform', '_n_ca', '_time', '_parallel']
-            for attr in attrs:
-                if attr in attr_dict:
-                    val = attr_dict[attr]
-                    if len(val.shape) == 0:
-                        val = val.item()
-                    ensemble.__dict__[attr] = val
         ensemble.addCoordset(confs)
         if weights is not None:
             ensemble.setWeights(weights)
