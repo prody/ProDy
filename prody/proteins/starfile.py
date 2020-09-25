@@ -397,9 +397,12 @@ def parseSTARLines(lines, **kwargs):
 
                 block_fieldCounter += 1
 
-        elif line.strip() == '' or line.strip() == '#':
+        elif line.strip() == '#':
             inLoop = False
             inShortBlock = False
+
+        elif line.strip() == '':
+            pass
 
         elif inLoop:
             # Here we handle the data part of the loop.
