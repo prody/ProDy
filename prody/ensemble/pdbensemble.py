@@ -376,29 +376,32 @@ class PDBEnsemble(Ensemble):
                                'the same time')
 
         # appending new data
-        if self._data is None:
-            self._data = {}
-        all_keys = set(list(self._data.keys()) + list(adddata.keys()))
+        if self._data is not None and adddata is not None:
+            if self._data is None:
+                self._data = {}
+            if adddata is None:
+                adddata = {}
+            all_keys = set(list(self._data.keys()) + list(adddata.keys()))
 
-        for key in all_keys:
-            if key in self._data:
-                data = self._data[key]
-                if key not in adddata:
-                    shape = [n_repeats] 
-                    for s in data.shape[1:]:
-                        shape.append(s)
-                    newdata = np.zeros(shape, dtype=data.dtype)
+            for key in all_keys:
+                if key in self._data:
+                    data = self._data[key]
+                    if key not in adddata:
+                        shape = [n_repeats] 
+                        for s in data.shape[1:]:
+                            shape.append(s)
+                        newdata = np.zeros(shape, dtype=data.dtype)
+                    else:
+                        newdata = np.asarray(adddata[key])
+                        if newdata.shape[0] != n_repeats:
+                            raise ValueError('the length of data["%s"] does not match that of coords'%key)
                 else:
                     newdata = np.asarray(adddata[key])
-                    if newdata.shape[0] != n_repeats:
-                        raise ValueError('the length of data["%s"] does not match that of coords'%key)
-            else:
-                newdata = np.asarray(adddata[key])
-                shape = [self._n_csets] 
-                for s in newdata.shape[1:]:
-                    shape.append(s)
-                data = np.zeros(shape, dtype=newdata.dtype)
-            self._data[key] = np.concatenate((data, newdata), axis=0)
+                    shape = [self._n_csets] 
+                    for s in newdata.shape[1:]:
+                        shape.append(s)
+                    data = np.zeros(shape, dtype=newdata.dtype)
+                self._data[key] = np.concatenate((data, newdata), axis=0)
         
         # update the number of coordinate sets
         self._n_csets += n_repeats
