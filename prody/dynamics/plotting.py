@@ -847,7 +847,11 @@ def showOverlap(mode, modes, *args, **kwargs):
         raise TypeError('modes must be NMA or ModeSet, not {0}'
                         .format(type(modes)))
 
-    overlap = abs(calcOverlap(mode, modes, diag=True))
+    if mode.numModes() > 1:
+        overlap = abs(calcOverlap(mode, modes, diag=True))
+    else:
+        overlap = abs(calcOverlap(mode, modes, diag=False))
+
     if isinstance(modes, NMA):
         arange = np.arange(len(modes)) + 1
     else:
@@ -875,13 +879,20 @@ def showCumulOverlap(mode, modes, *args, **kwargs):
     import matplotlib.pyplot as plt
     from matplotlib.ticker import MaxNLocator
     
-    if not isinstance(mode, (Mode, Vector)):
+    if not isinstance(mode, (Mode, Vector, NMA, ModeSet)):
         raise TypeError('mode must be NMA, ModeSet, Mode or Vector, not {0}'
                         .format(type(mode)))
     if not isinstance(modes, (NMA, ModeSet)):
         raise TypeError('modes must be NMA, ModeSet, or Mode, not {0}'
                         .format(type(modes)))
-    cumov = (calcOverlap(mode, modes) ** 2).cumsum() ** 0.5
+
+    if mode.numModes() > 1:
+        overlap = abs(calcOverlap(mode, modes, diag=True))
+    else:
+        overlap = abs(calcOverlap(mode, modes, diag=False))
+
+    cumov = (overlap ** 2).cumsum() ** 0.5
+
     if isinstance(modes, NMA):
         arange = np.arange(0.5, len(modes)+0.5)
     else:

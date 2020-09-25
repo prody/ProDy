@@ -74,8 +74,23 @@ class ModeEnsemble(object):
             yield ens
 
     def __repr__(self):
-        return '<ModeEnsemble: {0} modesets ({1} modes, {2} atoms)>'\
-                .format(len(self), self.numModes(), self.numAtoms())
+        if self.numModeSets() == 1:
+            modesets_str = '1 modeset'
+        else:
+            modesets_str = '{0} modesets'.format(self.numModeSets())
+
+        if self.numModes() == 1:
+            modes_str = '1 mode'
+        else:
+            modes_str = '{0} modes'.format(self.numModes())
+
+        if self.numAtoms() == 1:
+            atoms_str = '1 atom'
+        else:
+            atoms_str = '{0} atoms'.format(self.numAtoms())
+
+        return '<ModeEnsemble: {0} ({1}, {2})>'\
+                .format(modesets_str, modes_str, atoms_str)
 
     def __str__(self):
         return self.getTitle()

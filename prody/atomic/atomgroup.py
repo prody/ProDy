@@ -1113,30 +1113,36 @@ class AtomGroup(Atomic):
         self._fragments = None
 
     def numBonds(self):
-        """Returns number of bonds.  Use :meth:`setBonds` for setting bonds."""
+        """Returns number of bonds.  Use :meth:`setBonds` or 
+        :meth:`inferBonds` for setting bonds."""
 
         if self._bonds is not None:
             return self._bonds.shape[0]
         return 0
 
     def getBonds(self):
-        """Returns bonds.  Use :meth:`setBonds` for setting bonds."""
+        """Returns bonds.  Use :meth:`setBonds` or 
+        :meth:`inferBonds` for setting bonds."""
 
         if self._bonds is not None:
             acsi = self._acsi
             return np.array([Bond(self, bond, acsi) for bond in self._bonds])
         return None
 
-    def inferBonds(self, max_bond=1.6, min_bond=0, set_bonds=False):
+    def inferBonds(self, max_bond=1.6, min_bond=0, set_bonds=True):
         """Returns bonds based on distances **max_bond** and **min_bond**."""
 
         bonds = []
-        for i, atom_i in enumerate(self[:-1]):
-            for _, atom_j in enumerate(self[i+1:]):
-                distance = getDistance(atom_i.getCoords(), atom_j.getCoords())
-                if distance > min_bond and distance < max_bond:
-                    bonds.append([atom_i._index, atom_j._index])
-        
+        for atom_i in self.iterAtoms():
+            sele = self.select('index > {0} and exwithin {1} of index {0}'
+                               .format(atom_i.getIndex(), max_bond))
+            if sele is not None:
+                for atom_j in sele.iterAtoms():
+                    distance = getDistance(atom_i.getCoords(),
+                                           atom_j.getCoords())
+                    if distance > min_bond:
+                        bonds.append([atom_i._index, atom_j._index])
+
         if set_bonds:
             self.setBonds(bonds)
 
@@ -1144,7 +1150,7 @@ class AtomGroup(Atomic):
         return np.array([Bond(self, bond, acsi) for bond in bonds])
 
     def iterBonds(self):
-        """Yield bonds.  Use :meth:`setBonds` for setting bonds."""
+        """Yield bonds.  Use :meth:`setBonds` or `inferBonds` for setting bonds."""
 
         if self._bonds is not None:
             acsi = self._acsi
@@ -1152,8 +1158,8 @@ class AtomGroup(Atomic):
                 yield Bond(self, bond, acsi)
 
     def _iterBonds(self):
-        """Yield pairs of bonded atom indices. Use :meth:`setBonds` for setting
-        bonds."""
+        """Yield pairs of bonded atom indices. Use :meth:`setBonds` 
+        or `inferBonds` for setting bonds."""
 
         if self._bonds is not None:
             for a, b in self._bonds:
@@ -1630,7 +1636,7 @@ class AtomGroup(Atomic):
 
         if self._bmap is None:
             raise ValueError('bonds must be set for fragment determination, '
-                             'use `setBonds`')
+                             'use `setBonds` or `inferBonds` to set them')
 
         fids = np.zeros(self._n_atoms, int)
         fdict = {}
