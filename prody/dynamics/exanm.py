@@ -396,7 +396,7 @@ def calcHessianRecursion(coords, layers, layer, cutoff=15., gamma=1.0, **kwargs)
     else:
         Hee = calcHessianRecursion(coords, layers, layer+1, cutoff=cutoff, gamma=gamma, **kwargs)
         Cee = inv(Hee)
-        H = Hss - Hse @ Cee @ Hse.T
+        H = Hss - Hse.dot(Cee.dot(Hse.T))
     LOGGER.debug('layer: %d finished'%layer)
     return H
 

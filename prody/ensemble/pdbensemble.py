@@ -376,6 +376,8 @@ class PDBEnsemble(Ensemble):
                                'the same time')
 
         # appending new data
+        if self._data is None:
+            self._data = {}
         all_keys = set(list(self._data.keys()) + list(adddata.keys()))
 
         for key in all_keys:
