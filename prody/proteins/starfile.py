@@ -71,6 +71,9 @@ class StarDict:
             if data_block.search(substr) != []:
                 results.append((data_block, data_block.search(substr)))
 
+        if len(results) == 1:
+            results = results[0]
+            
         return results
 
 
@@ -194,6 +197,9 @@ class StarDataBlock:
                 if self[key].search(substr) != []:
                     results.append((self[key], self[key].search(substr)))
 
+        if len(results) == 1:
+            results = results[0]
+
         return results
 
 
@@ -257,6 +263,10 @@ class StarLoop:
                 field, value = entry
                 if field.find(substr) != -1 or value.find(substr) != -1:
                     results.append((j, field, row))
+
+        if len(results) == 1:
+            results = results[0]
+            
         return results
 
 
@@ -298,7 +308,7 @@ def parseSTAR(filename, **kwargs):
     lines = [pystr(line) for line in starfile.readlines()]
     starfile.close()
 
-    parsingDict, prog = parseSTARStream(lines, **kwargs)
+    parsingDict, prog = parseSTARLines(lines, **kwargs)
 
     return StarDict(parsingDict, prog, filename)
 
