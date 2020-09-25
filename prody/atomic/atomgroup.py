@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """This module defines :class:`AtomGroup` class that stores atomic data and
-multiple coordinate sets in :class:`numpy.ndarray` instances."""
+multiple coordinate sets in :class:`~numpy.ndarray` instances."""
 
 from time import time
 from numbers import Integral
@@ -68,7 +68,7 @@ class AtomGroup(Atomic):
 
     **Atomic data**
 
-    All atomic data is stored in :class:`numpy.ndarray` instances.
+    All atomic data is stored in :class:`~numpy.ndarray` instances.
 
     **Get and set methods**
 
@@ -519,7 +519,7 @@ class AtomGroup(Atomic):
     def _setCoords(self, coords, label='', overwrite=False):
         """Set coordinates without data type checking.  *coords* must
         be a :class:`~numpy.ndarray`, but may have data type other than
-        :class:`numpy.float64`, e.g. :class:`numpy.float32`.  *label*
+        :class:`~numpy.float64`, e.g. :class:`~numpy.float32`.  *label*
         argument may be used to label coordinate sets.  *label* may be
         a string or a list of strings length equal to the number of
         coordinate sets."""
