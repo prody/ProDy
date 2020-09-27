@@ -522,7 +522,10 @@ def parseImagesFromSTAR(particlesSTAR, **kwargs):
         provided psi and origin data, default is True
     type rotateImages: bool 
     '''
-    from skimage.transform import rotate
+    try:
+        from skimage.transform import rotate
+    except ImportError:
+        raise ImportError('This function requires scikit-image.')
 
     block_indices = kwargs.get('block_indices', None)
     # No loop_indices because data blocks about particle images contain 1 loop
