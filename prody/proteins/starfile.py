@@ -11,6 +11,7 @@ from collections import defaultdict
 import os.path
 from numbers import Integral
 import numpy as np
+import sys
 
 from prody.utilities import openFile, split, pystr
 from prody import LOGGER, SETTINGS, PY3K
@@ -76,6 +77,11 @@ class StarDict:
             
         return results
 
+    def print(self):
+        for data_block in self:
+            sys.stdout.write('data_' + data_block._title + '\n')
+            data_block.print()
+            sys.stdout.write('\n')
 
 class StarDataBlock:
     def __init__(self, starDict, key):
@@ -202,6 +208,23 @@ class StarDataBlock:
 
         return results
 
+    def print(self):
+        for key, value in self._dict.items():
+            if key == 'fields':
+                longest_len = 0
+                for field in self[key].values():
+                    if len(field) > longest_len:
+                        longest_len = len(field)
+            elif key == 'data':
+                for field, val in value.items():
+                    sys.stdout.write(field + ' '*(longest_len - len(field)))
+                    sys.stdout.write('\t' + val + '\n')
+                sys.stdout.write('\n')
+            else:
+                sys.stdout.write('_loop\n')
+                self[key].print()
+                sys.stdout.write('\n')     
+
 
 class StarLoop:
     def __init__(self, dataBlock, key):
@@ -268,6 +291,14 @@ class StarLoop:
             results = results[0]
             
         return results
+
+    def print(self):
+        for field in self.fields:
+            sys.stdout.write(field + '\n')
+        for row in self.data:
+            for entry in row.values():
+                sys.stdout.write(entry + '\t')
+            sys.stdout.write('\n')
 
 
 def parseSTAR(filename, **kwargs):
