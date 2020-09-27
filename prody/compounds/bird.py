@@ -177,11 +177,14 @@ def parseBIRD(*ids, **kwargs):
     ret = []
     for id in ids:
         try:
-            ret.append(data[id])
+            ret.append(data.search(id)[0])
         except ValueError:
-            LOGGER.warn('id {0} not found in {1} data '
-                        'so appending None'.format(id, key))
-            ret.append(None)
+            try:
+                ret.append(data[id])
+            except ValueError:
+                LOGGER.warn('id {0} not found in {1} data '
+                            'so appending None'.format(id, key))
+                ret.append(None)
 
     if n_ids == 1:
         return ret[0]
