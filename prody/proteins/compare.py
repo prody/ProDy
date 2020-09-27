@@ -1377,36 +1377,24 @@ def getCEAlignMapping(target, chain):
 
     tar_coords = target.getCoords(calpha=True).tolist()
     mob_coords = chain.getCoords(calpha=True).tolist()
-    
-    # def add_tail_dummies(coords, window=8):
-    #     natoms = len(coords)
-    #     if natoms < window:
-    #         return None
-    #     rest = natoms % window
 
-    #     tail_indices = []
-    #     for i in range(rest):
-    #         tail_indices.append(len(coords))
-    #         coords.append(coords[-(i+1)])
-        
-    #     return tail_indices
+    if len(tar_coords) < 8:
+        LOGGER.warn('target ({1}) is too small to be aligned '
+                    'by CE algorithm (at least {0} residues)'
+                    .format(8, repr(target)))
+        return None
 
-    # window = 8
-    # tar_dummies = add_tail_dummies(tar_coords, window)
-    # if tar_dummies is None:
-    #     LOGGER.warn('target ({1}) is too small to be aligned '
-    #                 'by CE algorithm (at least {0} residues)'
-    #                 .format(window, repr(target)))
-    #     return None
+    if len(mob_coords) < 8:
+        LOGGER.warn('chain ({1}) is too small to be aligned '
+                    'by CE algorithm (at least {0} residues)'
+                    .format(8, repr(chain)))
+        return None
 
-    # mob_dummies = add_tail_dummies(mob_coords, window)
-    # if mob_dummies is None:
-    #     LOGGER.warn('chain ({1}) is too small to be aligned '
-    #                 'by CE algorithm (at least {0} residues)'
-    #                 .format(window, repr(chain)))
-    #     return None
-
-    aln_info = ccealign((tar_coords, mob_coords))
+    try:
+        aln_info = ccealign((tar_coords, mob_coords))
+    except:
+        LOGGER.warn('cealign could not align {0} and {1}'.format(repr(target), repr(chain)))
+        return None
 
     paths, bestIdx, nres, rmsd = aln_info[:4]
     path = paths[bestIdx]

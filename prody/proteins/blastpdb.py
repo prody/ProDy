@@ -122,6 +122,7 @@ class PDBBlastRecord(object):
 
         import xml.etree.cElementTree as ET
         have_xml = False
+        filename = None
         if xml is not None:
             if len(xml) < 100:
                 # xml likely contains a filename
