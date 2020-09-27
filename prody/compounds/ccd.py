@@ -17,7 +17,7 @@ url = 'http://ligand-expo.rcsb.org/dictionaries/Components-pub.cif'
 #ftp = 'ftp://ftp.wwpdb.org/pub/pdb/data/monomers/components.cif.gz'
 
 def fetchCCDviaHTTP(**kwargs):
-    """
+    """Retrieve the whole Chemical Component Dictionary (CCD) resource.
     """
     CCD_PATH = os.path.join(getPackagePath(), 'ccd')
 
@@ -45,7 +45,13 @@ def fetchCCDviaHTTP(**kwargs):
                  '{1} failed).'.format(success, failure))
 
 def parseCCD(*ids, **kwargs):
-    """
+    """"Parse data from the Chemical Component Dictionary (CCD) resource
+
+    :arg ids: one CCD identifier or a list of them.
+        If **None** is provided then all of them are returned.
+    :type ids: str, tuple, list, :class:`~numpy.ndarray`, **None**
+
+    Returns :class:`.StarDataBlock` object or list of them.
     """
     CCD_PATH = os.path.join(getPackagePath(), 'ccd')
     
