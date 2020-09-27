@@ -138,7 +138,7 @@ def parseBIRD(*ids, **kwargs):
     
     You can also provide arguments that you would like passed on to fetchBIRDviaFTP.
 
-    :arg ids: one BIRD identifier or a list of them.
+    :arg ids: one BIRD identifier (starting with PRD or FAM) or a list of them.
         If **None** is provided then all of them are returned.
     :type ids: str, tuple, list, :class:`~numpy.ndarray`, **None**
 
