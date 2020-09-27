@@ -77,10 +77,10 @@ class StarDict:
             
         return results
 
-    def print(self):
+    def printData(self):
         for data_block in self:
             sys.stdout.write('data_' + data_block._title + '\n')
-            data_block.print()
+            data_block.printData()
             sys.stdout.write('\n')
 
 class StarDataBlock:
@@ -208,7 +208,7 @@ class StarDataBlock:
 
         return results
 
-    def print(self):
+    def printData(self):
         for key, value in self._dict.items():
             if key == 'fields':
                 longest_len = 0
@@ -222,7 +222,7 @@ class StarDataBlock:
                 sys.stdout.write('\n')
             else:
                 sys.stdout.write('_loop\n')
-                self[key].print()
+                self[key].printData()
                 sys.stdout.write('\n')     
 
 
@@ -282,17 +282,21 @@ class StarLoop:
     def search(self, substr):
         results = []
         for j, row in enumerate(self.data):
+            found_it = False
             for entry in row.items():
                 field, value = entry
                 if field.find(substr) != -1 or value.find(substr) != -1:
-                    results.append((j, field, row))
+                    found_it = True
+                    break
+            if found_it:
+                results.append((j, field, row))
 
         if len(results) == 1:
             results = results[0]
             
         return results
 
-    def print(self):
+    def printData(self):
         for field in self.fields:
             sys.stdout.write(field + '\n')
         for row in self.data:
@@ -363,6 +367,8 @@ def parseSTARLines(lines, **kwargs):
     active_fieldCounter = 0
     dataItemsCounter = 0
     lineNumber = 0
+    inLoop = False
+    inShortBlock = False
     for line in lines[start:stop]:
         if line.startswith('data_'):
             currentDataBlock = line[5:].strip()
@@ -596,7 +602,10 @@ def parseImagesFromSTAR(particlesSTAR, **kwargs):
         provided psi and origin data, default is True
     type rotateImages: bool 
     '''
-    from skimage.transform import rotate
+    try:
+        from skimage.transform import rotate
+    except ImportError:
+        raise ImportError('This function requires scikit-image.')
 
     block_indices = kwargs.get('block_indices', None)
     # No loop_indices because data blocks about particle images contain 1 loop
