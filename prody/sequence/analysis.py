@@ -993,6 +993,10 @@ def alignSequenceToMSA(seq, msa, **kwargs):
             ag = seq.select('chain {0}'.format(chain))
         elif chain is None:
             ag = seq
+
+            chids = ag.getChids()
+            if len(unique(chids)) > 1:
+                LOGGER.warn('%s consists of multiple chains. Please consider selecting one chain'%(seq.getTitle()))
         else:
             raise TypeError('chain should be a string or None')
         
