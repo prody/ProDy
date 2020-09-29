@@ -945,7 +945,7 @@ def alignSequenceToMSA(seq, msa, **kwargs):
 
     :arg seq: an object with an associated sequence string 
          or a sequence string itself
-    :type seq: :class:`.Atomic`, :class:`.Sequence`
+    :type seq: :class:`.Atomic`, :class:`.Sequence`, str
     
     :arg msa: a multiple sequence alignment
     :type msa: :class:`.MSA`
@@ -1001,12 +1001,15 @@ def alignSequenceToMSA(seq, msa, **kwargs):
             raise TypeError('chain should be a string or None')
         
         if ag is None:
-            raise ValueError('seq may be None or invalid chain ID')
+            raise ValueError('seq may be None or chain ID may be invalid')
         sequence = ag.select('ca').getSequence()
 
     elif isinstance(seq, Sequence):
          sequence = str(seq)
          ag = None
+    elif isinstance(seq, str):
+        sequence = seq
+        ag = None
     else:
         raise TypeError('seq must be an atomic class, sequence class, or str not {0}'
                         .format(type(seq)))
