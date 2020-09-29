@@ -105,6 +105,10 @@ class ClustENM(Ensemble):
     solvent: str
              Solvent model to be used. 'imp' stands form implicit solvent model (default)
              whereas 'exp' stands for explicit solvent model.
+    force_field: a tuple of str
+                 If solvent model is implicit, then the default force_field = ('amber99sbildn.xml', 'amber99_obc.xml').
+                 If solvent model is explicit, then the default force_field = ('amber14-all.xml', 'amber14/tip3pfb.xml').
+                 Experimental feature: Already implemented force fields in OpenMM can be used. 
     sim : bool
         If it is true, a short MD simulation will be performed after energy minimization. Default is True.
         Note: There is a heating-up phase until the desired temperature is reached before MD simulation starts.
@@ -150,6 +154,7 @@ class ClustENM(Ensemble):
         self._threshold = None
 
         self._sol = 'imp'
+        self._force_field = None
         self._sim = True
         self._temp = 300
         self._t_steps = None
@@ -282,8 +287,7 @@ class ClustENM(Ensemble):
         modeller = Modeller(self._topology, positions)   # self._positions
 
         if self._sol == 'imp':
-            forcefield = ForceField('amber99sbildn.xml',
-                                    'amber99_obc.xml')
+            forcefield = ForceField(*self._force_field)
 
             system = forcefield.createSystem(modeller.topology,
                                              nonbondedMethod=CutoffNonPeriodic,
@@ -291,8 +295,7 @@ class ClustENM(Ensemble):
                                              constraints=HBonds)
 
         if self._sol == 'exp':
-            forcefield = ForceField('amber14-all.xml',
-                                    'amber14/tip3pfb.xml')
+            forcefield = ForceField(*self._force_field)
 
             modeller.addSolvent(forcefield, padding=1.0*nanometers)
 
@@ -763,6 +766,15 @@ class ClustENM(Ensemble):
         else:
             return super(ClustENM, self)._getCoordsets(indices, selected)
 
+    def writeFixed(self):
+
+        from simtk.openmm.app import PDBFile
+
+        PDBFile.writeFile(self._topology,
+                          self._positions,
+                          open(self.getTitle()[:-8] + 'fixed.pdb', 'w'),
+                          keepIds=True)
+
     def writePDB(self, filename=None, single=True, **kwargs):
 
         # single -> True, save as a single pdb file with each conformer as a model
@@ -790,7 +802,7 @@ class ClustENM(Ensemble):
 
     def run(self, cutoff=15., n_modes=3, gamma=1., n_confs=50, rmsd=1.0,
             n_gens=5, maxclust=None, threshold=None,
-            solvent='imp', sim=True, temp=300,
+            solvent='imp', sim=True, force_field=None, temp=300,
             t_steps_i=1000, t_steps_g=7500,
             outlier=True, mzscore=3.5, **kwargs):
 
@@ -833,6 +845,10 @@ class ClustENM(Ensemble):
                 raise ValueError('size mismatch: %d generations were set; %d thresholds were given' % (self._n_gens + 1, self._threshold))
 
         self._sol = solvent
+        if self._sol == 'imp':
+            self._force_field = ('amber99sbildn.xml', 'amber99_obc.xml') if force_field is None else force_field
+        if self._sol == 'exp':
+            self._force_field = ('amber14-all.xml', 'amber14/tip3pfb.xml') if force_field is None else force_field
         self._sim = sim
         self._temp = temp
 
@@ -959,6 +975,7 @@ class ClustENM(Ensemble):
             if self._maxclust is not None:
                 f.write('maxclust = %s\n' % str(self._maxclust[1:]))
             f.write('solvent = %slicit\n' % self._sol)
+            f.write('force_field = (%s, %s)\n' % self._force_field)
             if self._sim:
                 f.write('temp = %4.2f\n' % self._temp)
                 f.write('t_steps = %s\n' % str(self._t_steps))
