@@ -23,12 +23,19 @@ __all__ = ['parseSTAR', 'writeSTAR', 'parseImagesFromSTAR',
 
 
 class StarDict:
-    def __init__(self, parsingDict, prog, title='unnamed'):
+    def __init__(self, parsingDict, prog, title='unnamed', indices=None):
         self._title = title
         self._dict = parsingDict
         self._prog = prog
+        self._indices = indices
+        
+        if indices is None:
+            keys = self._dict.keys()
+        else:
+            keys = np.array(list(self._dict.keys()))[indices]
+
         self.dataBlocks = [StarDataBlock(self, key)
-                           for key in list(self._dict.keys())]
+                           for key in keys]
         self.numDataBlocks = len(self.dataBlocks)
 
     def __getitem__(self, key):
@@ -66,16 +73,19 @@ class StarDict:
         self.dataBlocks.pop(index)
         self.numDataBlocks -= 1
 
-    def search(self, substr):
-        results = []
-        for data_block in self:
+    def search(self, substr, return_indices=False):
+        indices = []
+        for i, data_block in enumerate(self):
             if data_block.search(substr) != []:
-                results.append((data_block, data_block.search(substr)))
+                indices.append((i, data_block.search(substr, return_indices=True)[0]))
 
-        if len(results) == 1:
-            results = results[0]
-            
-        return results
+        if len(indices) == 1:
+            indices = indices[0]
+        
+        if return_indices:
+            return indices, StarDict(self._dict, self._prog, indices=indices)
+
+        return StarDict(self._dict, self._prog, indices=indices)
 
     def printData(self):
         for data_block in self:
@@ -83,31 +93,40 @@ class StarDict:
             data_block.printData()
             sys.stdout.write('\n')
 
+
 class StarDataBlock:
-    def __init__(self, starDict, key):
+    def __init__(self, starDict, key, indices=None):
         self._title = key
         self._dict = starDict._dict[key]
         self._prog = starDict._prog
+        self._starDict = starDict
 
-        if list(self._dict.keys()) == ['fields', 'data']:
+        if indices is None:
+            keys = list(self._dict.keys())
+        else:
+            keys = np.array(list(self._dict.keys()))[indices]
+
+        if list(keys) == ['fields', 'data']:
             self.loops = []
             self.numLoops = 0
-            self.data = list(self._dict['data'].values())
-            self.fields = list(self._dict['fields'].values())
+            self.data = np.array(list(self._dict['data'].values()))[indices[:,1]]
+            self.fields = np.array(list(self._dict['fields'].values()))[indices[:,1]]
             self.numEntries = len(self.data)
             self.numFields = len(self.fields)
-        elif list(self._dict.keys())[:2] == ['fields', 'data']:
+
+        elif list(keys)[:2] == ['fields', 'data']:
             self.data = list(self._dict['data'].values())
             self.fields = list(self._dict['fields'].values())
             self.numEntries = len(self.data)
             self.numFields = len(self.fields)
 
-            self.loops = [StarLoop(self, index)
-                          for index in list(self._dict.keys())[2:]]
+            self.loops = [StarLoop(self, key, indices)
+                          for (key, indices) in keys[2:]]
             self.numLoops = len(self.loops)
+
         else:
-            self.loops = [StarLoop(self, index)
-                          for index in list(self._dict.keys())]
+            self.loops = [StarLoop(self, key, indices)
+                          for (key, indices) in keys]
             self.numLoops = len(self.loops)
             self.numEntries = 0
             self.numFields = 0
@@ -190,23 +209,27 @@ class StarDataBlock:
         self.loops.pop(index)
         self.numLoops -= 1
 
-    def search(self, substr):
-        results = []
+    def search(self, substr, return_indices=False):
+        indices = []
         for key, value in self._dict.items():
             if key == 'fields':
                 pass
             elif key == 'data':
-                for field, val in value.items():
+                for idx, (field, val) in enumerate(value.items()):
                     if field.find(substr) != -1 or val.find(substr) != -1:
-                        results.append((key, [field, val]))
+                        indices.append((idx, field, val))
             else:
-                if self[key].search(substr) != []:
-                    results.append((self[key], self[key].search(substr)))
+                loop = self[key].search(substr)
+                if loop.numRows != 0:
+                    indices.append(loop)
 
-        if len(results) == 1:
-            results = results[0]
+        if len(indices) == 1:
+            indices = indices[0]
 
-        return results
+        if return_indices:
+            return indices, StarDataBlock(self._starDict, self._title, indices)
+
+        return StarDataBlock(self._starDict, self._title, indices)
 
     def printData(self):
         for key, value in self._dict.items():
@@ -223,12 +246,23 @@ class StarDataBlock:
             else:
                 sys.stdout.write('_loop\n')
                 self[key].printData()
-                sys.stdout.write('\n')     
+                sys.stdout.write('\n')  
 
 
 class StarLoop:
-    def __init__(self, dataBlock, key):
-        self._dict = dataBlock._dict[key]
+    def __init__(self, dataBlock, key, indices=None):
+        self._key = key
+        self._dataBlock = dataBlock
+
+        if indices is None:
+            self._dict = dataBlock._dict[self._key]
+        else:
+            self._dict = {}
+            self._dict['fields'] = dataBlock._dict[self._key]['fields']
+            self._dict['data'] = {}
+            for index in indices:
+                self._dict['data'][index] = dataBlock._dict[self._key]['data'][index]
+
         self._prog = dataBlock._prog
         self.fields = list(self._dict['fields'].values())
         self.data = list(self._dict['data'].values())
@@ -279,8 +313,8 @@ class StarLoop:
         else:
             return '<StarLoop: {0} ({1} columns and {2} rows)>'.format(self._title, self.numFields, self.numRows)
 
-    def search(self, substr):
-        results = []
+    def search(self, substr, return_indices=False):
+        indices = []
         for j, row in enumerate(self.data):
             found_it = False
             for entry in row.items():
@@ -289,12 +323,12 @@ class StarLoop:
                     found_it = True
                     break
             if found_it:
-                results.append((j, field, row))
+                indices.append(j)
 
-        if len(results) == 1:
-            results = results[0]
-            
-        return results
+        if return_indices:
+            return indices, StarLoop(self._dataBlock, self._key, indices)
+
+        return StarLoop(self._dataBlock, self._key, indices)
 
     def printData(self):
         for field in self.fields:
