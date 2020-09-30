@@ -1148,9 +1148,9 @@ def showPerturbResponse(model, atoms=None, show_matrix=True, select=None, **kwar
     *model* and *atoms* must have the same number of atoms. *atoms* must 
     be an :class:`.Atomic` instance.
 
-    :arg model: any object with a calcCovariance method
-        e.g. :class:`.ANM` instance
-    :type model: :class:`.NMA`
+    :arg model: any object with a calcCovariance method from which to calculate
+         a PRS matrix (e.g. :class:`.ANM` instance) or a PRS matrix itself
+    :type model: :class:`.NMA`, :class:`~numpy.ndarray`
 
     :arg atoms: a :class: `AtomGroup` instance for matching residue numbers and chain 
         identifiers

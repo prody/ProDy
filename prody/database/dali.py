@@ -165,6 +165,7 @@ class DaliRecord(object):
         self._title = pdbId + '-' + chain
         self._alignPDB = None
         self._filterDict = None
+        self._max_index = None
         self.isSuccess = self.fetch(self._url, localFile=localFile, timeout=timeout, **kwargs)
 
     def fetch(self, url=None, localFile=False, **kwargs):
@@ -377,6 +378,10 @@ class DaliRecord(object):
         (3) Z score < cutoff_Z (must be a positive number);
         (4) Identity > cutoff_identity (must be an integer or a float between 0 and 1).
         """
+        if self._max_index is None:
+            LOGGER.warn('DaliRecord has no data. Please use the fetch() method.')
+            return None
+
         if cutoff_len == None:
             # cutoff_len = int(0.8*self._max_index)
             cutoff_len = 0
