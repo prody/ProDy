@@ -1040,7 +1040,8 @@ def mapChainOntoChain(mobile, target, **kwargs):
 
             if result is not None:
                 target_list, chain_list, n_match, n_mapped = result
-                _seqid, _cover = calcScores(n_match, n_mapped, len(simple_target))
+                _seqid, _cover = calcScores(n_match, n_mapped, max(len(simple_target),
+                                                                   len(simple_mobile)))
 
                 if _seqid >= seqid and _cover >= coverage:
                     LOGGER.debug('\tMapped: {0} residues match with {1:.0f}%'
