@@ -1003,7 +1003,12 @@ def mapChainOntoChain(mobile, target, **kwargs):
     if pwalign and mapping is None:
         SEQ_ALIGNMENT = ('seq', ALIGNMENT_METHOD + ' sequence alignment', seqid, coverage)
         CE_ALIGNMENT = ('ce', 'CEalign', 0., coverage)
-        PREDEF_ALIGNMENT = ('predef', 'predefined alignment', 0., coverage)
+
+        if not 'seqid' in kwargs:
+            tar_seqid = 0.
+        else:
+            tar_seqid = seqid
+        PREDEF_ALIGNMENT = ('predef', 'predefined alignment', tar_seqid, coverage)
 
         if alignment is None:
             if pwalign in ['ce', 'cealign']:
