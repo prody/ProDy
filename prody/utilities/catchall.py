@@ -10,10 +10,38 @@ from .misctools import addEnds, interpY, index, isListLike
 from .checkers import checkCoords
 from .logger import LOGGER
 
+from matplotlib import ticker
 
 __all__ = ['calcTree', 'clusterMatrix', 'showLines', 'showMatrix', 
            'reorderMatrix', 'findSubgroups', 'getCoords',  
            'getLinkage', 'getTreeFromLinkage', 'clusterSubfamilies']
+
+class IndexFormatter(ticker.Formatter):
+    """
+    Format the position x to the nearest i-th label where ``i = int(x + 0.5)``.
+    Positions where ``i < 0`` or ``i > len(list)`` have no tick labels.
+
+    Parameters
+    ----------
+    labels : list
+        List of labels.
+    """
+    def __init__(self, labels):
+        self.labels = labels
+        self.n = len(labels)
+
+    def __call__(self, x, pos=None):
+        """
+        Return the format for tick value *x* at position pos.
+
+        The position is ignored and the value is rounded to the nearest
+        integer, which is used to look up the label.
+        """
+        i = int(x + 0.5)
+        if i < 0 or i >= self.n:
+            return ''
+        else:
+            return self.labels[i]
 
 class LinkageError(Exception):
     pass
@@ -595,7 +623,7 @@ def showLines(*args, **kwargs):
         if callable(ticklabels):
             ax.get_xaxis().set_major_formatter(ticker.FuncFormatter(ticklabels))
         else:
-            ax.get_xaxis().set_major_formatter(ticker.IndexFormatter(ticklabels))
+            ax.get_xaxis().set_major_formatter(IndexFormatter(ticklabels))
     
     ax.xaxis.set_major_locator(ticker.AutoLocator())
     ax.xaxis.set_minor_locator(ticker.AutoMinorLocator())
@@ -732,9 +760,9 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
     #ax3.set_ylim([-0.5, matrix.shape[1]+0.5])
 
     if xticklabels is not None:
-        ax3.xaxis.set_major_formatter(ticker.IndexFormatter(xticklabels))
+        ax3.xaxis.set_major_formatter(IndexFormatter(xticklabels))
     if yticklabels is not None and ncol == 1:
-        ax3.yaxis.set_major_formatter(ticker.IndexFormatter(yticklabels))
+        ax3.yaxis.set_major_formatter(IndexFormatter(yticklabels))
 
     if allticks:
         ax3.xaxis.set_major_locator(ticker.IndexLocator(offset=0.5, base=1.))
