@@ -1265,9 +1265,9 @@ def getTrivialMapping(target, chain):
 def getDictMapping(target, chain, map_dict):
     """Returns lists of matching residues (based on *map_dict*)."""
 
-    pdbid = chain._chain.getTitle()
-    chid = chain._chain.getChid()
-    key = pdbid + '_' + chid
+    pdbid = chain._chain.getTitle()[:4].lower()
+    chid = chain._chain.getChid().upper()
+    key = pdbid + chid
 
     mapping = map_dict.get(key)
     if mapping is None:
