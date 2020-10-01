@@ -1,11 +1,13 @@
 """This module defines miscellaneous utility functions that is public to users."""
 
 import numpy as np
-
 from numpy import unique, linalg, diag, sqrt, dot
+from Bio.Phylo.BaseTree import Tree, Clade
+
+from prody import PY3K
 from .misctools import addEnds, interpY, index
 from .checkers import checkCoords
-from Bio.Phylo.BaseTree import Tree, Clade
+from .logger import LOGGER
 
 __all__ = ['calcTree', 'clusterMatrix', 'showLines', 'showMatrix', 
            'reorderMatrix', 'findSubgroups', 'getCoords',  
@@ -496,10 +498,6 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
     from matplotlib.gridspec import GridSpec
     from matplotlib.collections import LineCollection
     from matplotlib.pyplot import gca, sca, sci, colorbar, subplot
-    try:
-        from matplotlib.colors import DivergingNorm
-    except ImportError:
-        from matplotlib.colors import TwoSlopeNorm
 
     from .drawtools import drawTree
 
@@ -515,7 +513,15 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
     norm = kwargs.pop('norm', None)
 
     if vcenter is not None and norm is None:
-        norm = DivergingNorm(vmin=vmin, vcenter=0., vmax=vmax)
+        if PY3K:
+            try:
+                from matplotlib.colors import DivergingNorm
+            except ImportError:
+                from matplotlib.colors import TwoSlopeNorm as DivergingNorm
+
+            norm = DivergingNorm(vmin=vmin, vcenter=0., vmax=vmax)
+        else:
+            LOGGER.warn('vcenter cannot be used in Python 2 so norm remains None')
 
     lw = kwargs.pop('linewidth', 1)
     
