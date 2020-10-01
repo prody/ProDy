@@ -11,11 +11,12 @@ from .anm import ANM
 from .gnm import GNM
 # from prody.proteins import parsePDB
 from prody.proteins import writePDB
-from .compare import matchModes
+# from .compare import matchModes
 from .editing import reduceModel, extendVector
-from .functions import loadModel, saveModel
+# from .functions import loadModel, saveModel
 from .mode import Vector
 from .plotting import showDomainBar
+from .signature import ModeEnsemble, loadModeEnsemble, saveModeEnsemble 
 
 __all__ = ['ESSA', 'showESSAprofile']
 
@@ -40,17 +41,6 @@ def ESSA(pdb, n_modes=20, s_modes=10, lig=None,
 
     writePDB(f'{pdb.getTitle()}_pro', heavy)
 
-    # --- creating a directory to store models --- #
-
-    direc = f'{pdb.getTitle()}_{enm}_data'
-    if isdir(direc):
-        rmtree(direc)
-        mkdir(direc)
-        chdir(direc)
-    else:
-        mkdir(direc)
-        chdir(direc)
-
     # --- reference model --- #
 
     if enm == 'gnm':
@@ -68,14 +58,18 @@ def ESSA(pdb, n_modes=20, s_modes=10, lig=None,
             ca_enm.buildHessian(ca)
 
     ca_enm.calcModes(n_modes=n_modes)
-    saveModel(ca_enm, matrices=False, filename=pdb.getTitle() + '_ca_20')
+
+    ens = ModeEnsemble(f'{pdb.getTitle()}')
+    ens.setAtoms(ca)
+    ens.addModeSet(ca_enm[:])
+    labels = ['ref']
 
     # --- perturbed models --- #
 
     LOGGER.progress(msg='', steps=(ca.numAtoms()))
     for i in ca.getResindices():
         LOGGER.update(step=i+1, msg=f'scanning residue {i+1}')
-        sel = f'resindex {i} or (calpha and resindex != {i})'
+        sel = f'calpha or resindex {i}'
         tmp = heavy.select(sel)
 
         if enm == 'gnm':
@@ -94,11 +88,12 @@ def ESSA(pdb, n_modes=20, s_modes=10, lig=None,
 
         tmp_enm_red, _ = reduceModel(tmp_enm, tmp, ca)
         tmp_enm_red.calcModes(n_modes=n_modes)
-        saveModel(tmp_enm_red, matrices=False,
-                  filename=pdb.getTitle() + f'_red_20_{i}')
 
-    chdir('..')
-    print('\n')
+        ens.addModeSet(tmp_enm_red[:])
+        labels.append(tmp_enm.getTitle())
+
+    ens.setLabels(labels)
+    ens.match()
 
     # --- ESSA computation part --- #
 
@@ -113,51 +108,15 @@ def ESSA(pdb, n_modes=20, s_modes=10, lig=None,
 
         return tmp1.getArray()
 
-    def modified_zscore(arg):
+    denom = ens[0].getEigvals()
+    num = ens[1:].getEigvals() - denom
 
-        # possbily be deprecated
-
-        return 0.6745 * (arg - median(arg)) / median_absolute_deviation(arg)
-
-    #-----------#
-
-    chdir(f'{pdb.getTitle()}_{enm}_data')
-
-    ml = [x for x in listdir('.') if x.endswith(f'.{enm}.npz')]
-    ml.sort()
-
-    ref = loadModel(ml[0])
-
-    redm = ml[1:]
-    redm.sort(key=lambda x: int(x.partition('.')[0].rpartition('_')[-1]))
-
-    red = [loadModel(x) for x in redm]
-
-    chdir('..')
+    eig_diff = num / denom * 100
+    eig_diff_mean = mean(eig_diff, axis=1)
 
     #-----------#
 
-    mn = len(red)
-    red_mm = []
-    for i in range(mn):
-        tmp = matchModes(ref[:s_modes], red[i][:s_modes])
-        red_mm.append(tmp)
-
-    #-----------#
-
-    def num(i):
-
-        return red_mm[i][1].getEigvals() - red_mm[0][0].getEigvals()
-
-    denom = red_mm[0][0].getEigvals()
-
-    diff_red_ca_mm = array([num(i) / denom * 100 for i in range(mn)])
-
-    diff_red_ca_mm_m = mean(diff_red_ca_mm, axis=1)
-
-    #-----------#
-
-    zs = zscore(diff_red_ca_mm_m)
+    zs = zscore(eig_diff_mean)
 
     # automatically save zscores both as a numpy array and as a pdb
     # the numpy array of zscores will be used by pocket function later
@@ -165,10 +124,6 @@ def ESSA(pdb, n_modes=20, s_modes=10, lig=None,
     save(f'{pdb.getTitle()}_{enm}_zs', zs)
     writePDB(f'{pdb.getTitle()}_{enm}_zs', heavy,
              beta=beta_heavy(zs, ca, heavy))
-
-    # possibly be deprecated
-    zsm = modified_zscore(diff_red_ca_mm_m)
-    save(f'{pdb.getTitle()}_{enm}_mzs', zsm)
 
     # --- residue indices of protein residues that are within dist (4.5 A) of ligands --- #
 
