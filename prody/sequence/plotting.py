@@ -188,7 +188,9 @@ def showMutinfoMatrix(mutinfo, *args, **kwargs):
     kwargs.setdefault('origin', 'lower')
 
     if msa is not None:
-        indices, msalabel = pickSequence(msa)
+        indices, msalabel = pickSequence(msa, require_match=True)
+        if indices is None:
+            indices, msalabel = pickSequence(msa)
         if indices is not None:
             start = indices[0] + 0.5
             end = start + x
