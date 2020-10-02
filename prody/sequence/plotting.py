@@ -13,7 +13,7 @@ __all__ = ['showMSAOccupancy', 'showShannonEntropy', 'showMutinfoMatrix',
            'showDirectInfoMatrix', 'showSCAMatrix']
 
 
-def pickSequence(msa):
+def pickSequence(msa, require_match=False):
     """Pick a sequence without gaps and deletions and return its residue
     numbers and labels to be used as indices and X-axis label, or a pair
     of **None** at failure."""
@@ -28,10 +28,12 @@ def pickSequence(msa):
         rows = (counts == length).nonzero()[0]
         for row in rows:
             try:
-                label, indices = msa[row].getLabel(), msa[row].getResnums()
+                label, (match, indices) = msa[row].getLabel(), msa[row].getResnums(report_match=True)
             except:
                 break
             else:
+                if require_match and not match:
+                    continue
                 return (indices, 'Residue number ({0})'.format(label))
         return None, None
 
@@ -132,6 +134,8 @@ def showShannonEntropy(entropy, indices=None, **kwargs):
     if indices is None:
         length = len(entropy)
         if msa is not None:
+            indices, xlabel = pickSequence(msa, require_match=True)
+        if indices is None:
             indices, xlabel = pickSequence(msa)
         if indices is None:
             indices = arange(1, length + 1)
