@@ -766,7 +766,7 @@ class ClustENM(Ensemble):
         else:
             return super(ClustENM, self)._getCoordsets(indices, selected)
 
-    def writeFixed(self):
+    def writePDBFixed(self):
 
         from simtk.openmm.app import PDBFile
 
