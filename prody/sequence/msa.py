@@ -523,6 +523,7 @@ def refineMSA(msa, index=None, label=None, rowocc=None, seqid=None, colocc=None,
                                 break
                 if index is not None:
                     chain = structure[poly.chid]
+                    resnums = chain.ca.getResnums()
     
             if index is None:
                 raise ValueError('label is not in msa, or msa is not indexed')
@@ -566,12 +567,16 @@ def refineMSA(msa, index=None, label=None, rowocc=None, seqid=None, colocc=None,
                 assert tsum <= before, 'problem in mapping sequence to structure'
                 if tsum < before:
                     arr = arr.take(torf.nonzero()[0], 1)
+                    resnums = resnums.take(torf.nonzero()[0]-torf.nonzero()[0][0]+1)
                     LOGGER.report('Structure refinement reduced number of '
                                   'columns from {0} to {1} in %.2fs.'
                                   .format(before, arr.shape[1]), '_refine')
                 else:
                     LOGGER.debug('All residues in the sequence are contained in '
                                  'PDB structure {0}.'.format(label))
+
+                labels = msa._labels
+                labels[index] = splitSeqLabel(labels[index])[0] + '/' + str(resnums[0]) + '-' + str(resnums[-1])
 
     from .analysis import calcMSAOccupancy, uniqueSequences
 
