@@ -3,7 +3,7 @@
 
 import numpy as np
 
-from prody import LOGGER
+from prody import LOGGER, PY3K
 from prody.atomic import Atomic, AtomGroup
 from prody.utilities import importLA, checkCoords, copy
 from numpy import sqrt, zeros, array, ceil, dot
@@ -398,7 +398,10 @@ def calcHessianRecursion(coords, layers, layer, cutoff=15., gamma=1.0, **kwargs)
         Cee = inv(Hee)
         #H = Hss - Hse.dot(Cee.dot(Hse.T))
         #H = Hss - Hse @ Cee @ Hse.T
-        H = Hss - Hse.__matmul__(Cee).__matmul__(Hse.T)
+        if PY3K:
+            H = Hss - Hse.__matmul__(Cee).__matmul__(Hse.T)
+        else:
+            H = Hss - Hse.dot(Cee.dot(Hse.T))
     LOGGER.debug('layer: %d finished'%layer)
     return H
 
