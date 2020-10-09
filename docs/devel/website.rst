@@ -50,10 +50,14 @@ on making tutorials.
 
 Any changes should be made on your local computer and added to the 
 ProDy-Website GitHub repository via pull requests. These can then be 
-pulled onto the ProDy webserver in your working directory using `git pull`. 
+pulled onto the ProDy webserver in your working directory::
+
+  $ git pull
 
 This directory also contains a ProDy directory, which is based on its 
-own GitHub repository and also needs to be updated with `git pull`.
+own GitHub repository and also needs to be updated::
+
+  $ git pull
 
 Publishing Changes
 -------------------
@@ -75,4 +79,5 @@ tutorial file achieves::
 ProDy online documentation will contain these files as well as tutorial pages
 in HTML format.
 
-You can then copy files over to the 
+You can then copy files over to the main ProDy-Website directory to have them 
+incorporated into the main prody website.
