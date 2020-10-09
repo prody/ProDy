@@ -27,11 +27,15 @@ Next change directory to the website root dir::
 
 In this directory, you will find a number of directories, one of which will be 
 attached to a symbolic link to ProDy-website. That directory will contain the 
-current website and should not be changed.
+current website and should not be changed!
 
 Instead navigate to one of the others and build the website in there, such as 
 ProDy-website-workdir. You can then copy files back over afterwards or move 
-the symbolic link.
+the symbolic link. 
+
+It's recommended to have the symbolic link called test_prody pointing to 
+your build directory instead and then you can monitor changes by going to 
+http://prody.csb.pitt.edu/test_prody/_build/html/ in your web browser.
 
 
 Updating from GitHub
