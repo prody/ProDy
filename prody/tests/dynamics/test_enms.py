@@ -50,7 +50,7 @@ HITTIME = parseDatafile('hit1ubi')
 COMMUTETIME = parseDatafile('commute1ubi')
 
 
-ATOMS3 = parseDatafile('2NWL-opm.pdb')
+ATOMS3 = parseDatafile('2nwl')
 COORDS3 = ATOMS3.ca.getCoords()
 
 EXANM_HESSIAN = parseDatafile('exanm2nwl_hessian.coo', symmetric=True)
