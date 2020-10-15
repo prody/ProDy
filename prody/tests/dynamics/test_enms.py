@@ -147,7 +147,7 @@ class TestEXANMResults(testGNMBase):
 
         _temp = np.abs(np.dot(exanm[6:6+EXANM_EVECTORS.shape[1]].getEigvecs().T,
                               EXANM_EVECTORS))
-        assert_allclose(_temp, np.eye(20), rtol=RTOL, atol=ATOL,
+        assert_allclose(_temp, np.eye(100), rtol=RTOL, atol=ATOL,
                         err_msg='failed to get correct eigenvectors')
 
     def testHessian(self):
