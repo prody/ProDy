@@ -200,12 +200,10 @@ def setVMDpath(path):
 NMD_LABEL_MAP = {
     'atomnames': 'name',
     'resnames': 'resname',
-    'resnums': 'resnum',
     'resids': 'resnum',
     'chainids': 'chain',
     'bfactors': 'beta',
     'segnames': 'segment',
-    'segments': 'segment',
 }
 
 
@@ -240,7 +238,15 @@ def parseNMD(filename, type=NMA):
             try:
                 label, data = line.split(None, 1)
             except ValueError:
-                pass
+                try:
+                    label = line.strip()
+                    data = line[len(label):-1]
+                    LOGGER.warn('Blank data associated with label {0}'
+                                '.'.format(repr(label)))
+                except ValueError:
+                    LOGGER.warn('Could not process data associated with label {0}'
+                                '.'.format(repr(label)))
+                    pass
 
             if label == 'mode':
                 modes.append((i + 1, data))
@@ -250,6 +256,12 @@ def parseNMD(filename, type=NMA):
                 else:
                     LOGGER.warn('Data label {0} is found more than once in '
                                 '{1}.'.format(repr(label), repr(filename)))
+
+    for i, label in enumerate(NMD_LABEL_MAP.keys()):
+        if atomic[label] is None:
+            atomic[label] = (i + 1, None)
+            LOGGER.warn('The data label {0} was not found in '
+                        '{1}.'.format(repr(label), repr(filename)))
 
     name = atomic.pop('name', '')[1].strip() or splitext(split(filename)[1])[0]
     ag = AtomGroup(name)
@@ -271,18 +283,21 @@ def parseNMD(filename, type=NMA):
     from prody.atomic import ATOMIC_FIELDS
 
     for label, data in atomic.items():  # PY3K: OK
-        if data is None:
-            continue
         line, data = data
-        data = data.split()
+        if len(data) == n_atoms:
+            data = ['']*n_atoms
+        else:
+            data = data.split()
+
         if n_atoms is None:
             n_atoms = len(data)
             dof = n_atoms * 3
         elif len(data) != n_atoms:
             LOGGER.warn('Data with label {0} in {1} at line {2} is '
-                        'corrupt, expected {2} values, parsed {3}.'.format(
+                        'corrupt, expected {3} values, parsed {4}.'.format(
                         repr(label), repr(filename), line, n_atoms, len(data)))
             continue
+
         label = NMD_LABEL_MAP[label]
         data = np.array(data, dtype=ATOMIC_FIELDS[label].dtype)
         ag.setData(label, data)
