@@ -30,8 +30,7 @@ attached to a symbolic link to ProDy-website. That directory will contain the
 current website and should not be changed!
 
 Instead navigate to one of the others and build the website in there, such as 
-ProDy-website-workdir. You can then copy files back over afterwards or move 
-the symbolic link. 
+ProDy-website-workdir. You can then copy files back over afterwards. 
 
 It's recommended to have the symbolic link called test_prody pointing to 
 your build directory instead and then you can monitor changes by going to 
@@ -61,7 +60,12 @@ pulled onto the ProDy webserver in your working directory::
 This directory also contains a ProDy directory, which is based on its 
 own GitHub repository and also needs to be updated::
 
+  $ cd ProDy
   $ git pull
+  $ cd ..
+
+You may also need to pip install the ProDy in that directory again to 
+make it get used during the building of the website.
 
 Publishing Changes
 -------------------
