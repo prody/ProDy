@@ -55,7 +55,7 @@ DATA_FILES = {
     },
     '2nwl': {
         'pdb': '2nwl',
-        'file': '2NWL-opm.pdb',
+        'file': 'pdb2nwl-opm.pdb',
         'n_atoms': 5227,
         'models': 1
     },
