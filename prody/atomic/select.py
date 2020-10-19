@@ -373,10 +373,10 @@ at least an atom within 4 A of any water molecule.
 Additionally, a selection may be expanded to the immediately bonded atoms using
 ``bonded [n] to ...`` setting, e.f. ``bonded 1 to calpha`` will select atoms
 bonded to Cα atoms.  For this setting to work, bonds must be set by the user
-using the :meth:`.AtomGroup.setBonds` method.  It is also possible to select
-bonded atoms by excluding the originating atoms using ``exbonded [n] to ...``
-setting.  Number ``'[n]'`` indicates number of bonds to consider from the
-originating selection and defaults to 1.
+using the :meth:`.AtomGroup.setBonds` or :meth:`.AtomGroup.inferBonds` method.  
+It is also possible to select bonded atoms by excluding the originating atoms 
+using ``exbonded [n] to ...`` setting.  Number ``'[n]'`` indicates number of 
+bonds to consider from the originating selection and defaults to 1.
 
 
 Selection macros
@@ -449,7 +449,6 @@ from numpy import invert, unique, concatenate, all, any
 from numpy import logical_and, logical_or, floor, ceil, where
 
 import pyparsing as pp
-from pyparsing import ParseException
 
 from prody import LOGGER, SETTINGS, PY2K
 
@@ -720,7 +719,7 @@ def specialCharsParseAction(sel, loc, token):
     if ':' in token or 'to' in token:
         try:
             token = PP_NRANGE.parseString(token)[0]
-        except ParseException:
+        except pp.ParseException:
             pass
     return token
 

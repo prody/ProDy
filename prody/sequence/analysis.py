@@ -935,17 +935,17 @@ def alignSequenceToMSA(seq, msa, **kwargs):
     Align a sequence from a PDB or Sequence to a sequence from an MSA
     and create two sets of indices. 
 
-    The sequence from the MSA (refSeq), the alignment and 
+    The sequence from the MSA (*seq*), the alignment and 
     the two sets of indices are returned. 
     
-    The first set (indices) maps the residue numbers in the PDB to 
-    the reference sequence. The second set (msa_indices) indexes the 
+    The first set (*indices*) maps the residue numbers in the PDB to 
+    the reference sequence. The second set (*msa_indices*) indexes the 
     reference sequence in the msa and is used for retrieving values 
     from the first indices.
 
     :arg seq: an object with an associated sequence string 
          or a sequence string itself
-    :type seq: :class:`Atomic`, :class:`Sequence`
+    :type seq: :class:`.Atomic`, :class:`.Sequence`, str
     
     :arg msa: a multiple sequence alignment
     :type msa: :class:`.MSA`
@@ -954,13 +954,14 @@ def alignSequenceToMSA(seq, msa, **kwargs):
         ``msa.getIndex(label)`` must return a sequence index
     :type label: str
     
-    :arg chain: which chain from pdb to use for alignment, default is `'A'`
-        This value will be ignored if seq is not an :class:`Atomic` object.
+    :arg chain: which chain from pdb to use for alignment, default is **None**, 
+        which does no selection on *seq*. This value will be ignored if seq is 
+        not an :class:`.Atomic` object.
     :type chain: str
     
-    Parameters for Biopython pairwise2 alignments can be provided as 
-    keyword arguments. Default values are originally from proteins.compare 
-    module, but now found in utilities.seqtools.
+    Parameters for Biopython ``pairwise2`` alignments can be provided as 
+    keyword arguments. Default values are originally from ``proteins.compare`` 
+    module, but now found in ``utilities.seqtools``.
 
     :arg match: a positive integer, used to reward finding a match
     :type match: int
@@ -975,11 +976,11 @@ def alignSequenceToMSA(seq, msa, **kwargs):
     :type gap_extension: int
 
     :arg method: method for pairwise2 alignment. 
-        Possible values are 'local' and 'global'
+        Possible values are ``"local"`` and ``"global"``
     :type method: str
     """
     label = kwargs.get('label', None)
-    chain = kwargs.get('chain', 'A')
+    chain = kwargs.get('chain', None)
 
     match = kwargs.get('match', MATCH_SCORE)
     mismatch = kwargs.get('mismatch', MISMATCH_SCORE)
@@ -992,14 +993,23 @@ def alignSequenceToMSA(seq, msa, **kwargs):
             ag = seq.select('chain {0}'.format(chain))
         elif chain is None:
             ag = seq
-        else:
-            raise TypeError('chain should be a string or **None**')
 
+            chids = ag.getChids()
+            if len(unique(chids)) > 1:
+                LOGGER.warn('%s consists of multiple chains. Please consider selecting one chain'%(seq.getTitle()))
+        else:
+            raise TypeError('chain should be a string or None')
+        
+        if ag is None:
+            raise ValueError('seq may be None or chain ID may be invalid')
         sequence = ag.select('ca').getSequence()
 
     elif isinstance(seq, Sequence):
          sequence = str(seq)
          ag = None
+    elif isinstance(seq, str):
+        sequence = seq
+        ag = None
     else:
         raise TypeError('seq must be an atomic class, sequence class, or str not {0}'
                         .format(type(seq)))

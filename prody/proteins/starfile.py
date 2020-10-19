@@ -1,23 +1,24 @@
 # -*- coding: utf-8 -*-
 """
-This module defines functions for parsing `STAR files`_.
+This module defines functions for parsing `STAR`_ (Self-defining Text Archiving and Retrieval) files.
+This includes metadata files from cryo-EM image analysis programs including RELION and XMIPP as well as
+the Crystallographic Information File (CIF) format used for much of the PDB.
 
-.. _STAR files: https://www2.mrc-lmb.cam.ac.uk/relion/index.php/Conventions_%26_File_formats#The_STAR_format
+.. _STAR: https://www2.mrc-lmb.cam.ac.uk/relion/index.php/Conventions_%26_File_formats#The_STAR_format
 """
-
 
 from collections import defaultdict
 import os.path
-
+from numbers import Integral
 import numpy as np
 
-from prody.utilities import openFile
-from prody import LOGGER, SETTINGS
+from prody.utilities import openFile, split, pystr
+from prody import LOGGER, SETTINGS, PY3K
 
 from .emdfile import parseEMD
 
-__all__ = ['parseSTAR', 'writeSTAR', 'parseImagesFromSTAR', 
-           'StarDict', 'StarDataBlock', 'StarLoop',]
+__all__ = ['parseSTAR', 'writeSTAR', 'parseImagesFromSTAR',
+           'StarDict', 'StarDataBlock', 'StarLoop', ]
 
 
 class StarDict:
@@ -64,23 +65,35 @@ class StarDict:
         self.dataBlocks.pop(index)
         self.numDataBlocks -= 1
 
+
 class StarDataBlock:
     def __init__(self, starDict, key):
         self._title = key
         self._dict = starDict._dict[key]
         self._prog = starDict._prog
 
-        if list(self._dict.keys()) == ['fields','data']:
+        if list(self._dict.keys()) == ['fields', 'data']:
             self.loops = []
             self.numLoops = 0
             self.data = list(self._dict['data'].values())
             self.fields = list(self._dict['fields'].values())
             self.numEntries = len(self.data)
             self.numFields = len(self.fields)
+        elif list(self._dict.keys())[:2] == ['fields', 'data']:
+            self.data = list(self._dict['data'].values())
+            self.fields = list(self._dict['fields'].values())
+            self.numEntries = len(self.data)
+            self.numFields = len(self.fields)
+
+            self.loops = [StarLoop(self, index)
+                          for index in list(self._dict.keys())[2:]]
+            self.numLoops = len(self.loops)
         else:
             self.loops = [StarLoop(self, index)
                           for index in list(self._dict.keys())]
             self.numLoops = len(self.loops)
+            self.numEntries = 0
+            self.numFields = 0
 
     def getLoop(self, index):
         try:
@@ -106,30 +119,49 @@ class StarDataBlock:
                 try:
                     return np.array(self.data)[key]
                 except:
-                    raise ValueError('The key for getting items should be the data entry number')
+                    raise ValueError('The key for getting items '
+                                     'should be the data entry number')
 
         else:
             try:
                 return np.array(self.loops)[key]
             except:
                 try:
-                    key = np.where(np.array(list(self._dict.keys())) == key)[0][0]
-                    return self.loops[key]
+                    if len(list(self._dict.keys())) == self.numLoops:
+                        key = np.where(np.array(list(self._dict.keys())) == key)[0][0]
+                        return self.loops[key]
+                    else:
+                        return self._dict[key]
                 except:
                     raise ValueError(
                         'The key for getting items should be the name or number of a loop')
 
     def __repr__(self):
         if self.numLoops == 0:
+            if self.numEntries == 0:
+                return '<StarDataBlock: {0} (no entries)>'.format(self._title)
             if self.numEntries == 1:
-                return '<StarDataBlock: {0} ({1} entry)>'.format(self._title, self.numEntries)
+                return '<StarDataBlock: {0} (1 entry)>'.format(self._title)
             else:
                 return '<StarDataBlock: {0} ({1} entries)>'.format(self._title, self.numEntries)
-        elif self.numLoops == 1:
-            return '<StarDataBlock: {0} ({1} loop containing ' \
-                    '{2} columns and {3} rows)>'.format(self._title, self.numLoops, \
+        elif self.numEntries == 0:
+            if self.numLoops == 1:
+                return '<StarDataBlock: {0} (1 loop containing ' \
+                    '{2} columns and {3} rows)>'.format(self._title,
                                                         self.loops[0].numFields, self.loops[0].numRows)
-        return '<StarDataBlock: {0} ({1} loops)>'.format(self._title, self.numLoops)
+            return '<StarDataBlock: {0} ({1} loops)>'.format(self._title, self.numLoops)
+        else:
+            if self.numLoops == 1:
+                if self.numEntries == 1:
+                    return '<StarDataBlock: {0} (1 entry and 1 loop)>'.format(self._title)
+                else:
+                    return '<StarDataBlock: {0} ({1} entries and 1 loop)>'.format(self._title, self.numEntries)
+            else:
+                if self.numEntries == 1:
+                    return '<StarDataBlock: {0} (1 entry and {1} loops)>'.format(self._title, self.numLoops)
+                else:
+                    return '<StarDataBlock: {0} ({1} entries and {2} loops)>'.format(self._title, self.numEntries,
+                                                                                     self.numLoops)
 
     def __iter__(self):
         """Yield StarLoop instances."""
@@ -172,8 +204,11 @@ class StarLoop:
             return np.array(self.data)[key]
         except:
             try:
-                key = np.where(np.array(list(self._dict.keys())) == key)[0][0]
-                return self.data[key]
+                try:
+                    return self._dict[key]
+                except KeyError:
+                    key = np.where(np.array(list(self._dict.keys())) == key)[0][0]
+                    return self.data[key]
             except:
                 try:
                     return self.getData(key)
@@ -184,7 +219,7 @@ class StarLoop:
 
     def __repr__(self):
         if self.numFields == 1 and self.numRows != 1:
-            return '<StarLoop: {0} (1 column and {2} rows)>'.format(self._title, self.numRows)
+            return '<StarLoop: {0} (1 column and {1} rows)>'.format(self._title, self.numRows)
         elif self.numFields != 1 and self.numRows == 1:
             return '<StarLoop: {0} ({1} columns and 1 row)>'.format(self._title, self.numFields)
         elif self.numFields == 1 and self.numRows == 1:
@@ -193,80 +228,214 @@ class StarLoop:
             return '<StarLoop: {0} ({1} columns and {2} rows)>'.format(self._title, self.numFields, self.numRows)
 
 
-def parseSTAR(filename):
+def parseSTAR(filename, **kwargs):
     """Returns a dictionary containing data
     parsed from a Relion STAR file.
 
     :arg filename: a filename
         The .star extension can be omitted.
+    :type filename: str
+
+    :arg start: line number for starting
+        Default is **None**, meaning start at the beginning
+    :type start: int, None
+
+    :arg stop: line number for stopping
+        Default is **None**, meaning don't stop.
+    :type stop: int, None
+
+    :arg shlex: whether to use shlex for splitting lines so as to preserve quoted substrings
+        Default is **False**
+    :type shlex: bool
     """
-
     if not os.path.isfile(filename) and not os.path.isfile(filename + '.star'):
-        raise IOError('There is no file with that name.')
+        raise IOError('There is no file called {0}.'.format(filename))
 
-    starfile = open(filename, 'r')
+    start = kwargs.get('start', None)
+    if start is not None and not isinstance(start, Integral):
+        raise TypeError('start should be an integer or None')
+
+    stop = kwargs.get('stop', None)
+    if stop is not None and not isinstance(stop, Integral):
+        raise TypeError('stop should be an integer or None')
+
+    shlex = kwargs.get('shlex', False)
+    if not isinstance(shlex, bool):
+        raise TypeError('shlex should be a boolean')
+
+    starfile = openFile(filename, 'r')
     lines = starfile.readlines()
+    lines = [pystr(line) for line in lines]
     starfile.close()
 
-    parsingDict, prog = parseSTARStream(lines)
+    parsingDict, prog = parseSTARLines(lines, **kwargs)
 
     return StarDict(parsingDict, prog, filename)
 
 
-def parseSTARStream(stream):
-    prog = 'RELION'
+def parseSTARLines(lines, **kwargs):
+    start = kwargs.get('start', None)
+    if start is None:
+        start = 0
+
+    stop = kwargs.get('stop', None)
+    if stop is None:
+        stop = len(lines)
+
+    prog = kwargs.get('prog', None)
+    shlex = kwargs.get('shlex', False)
+
     finalDictionary = {}
     currentLoop = -1
-    fieldCounter = 0
+    block_fieldCounter = 0
+    loop_fieldCounter = 0
+    active_fieldCounter = 0
     dataItemsCounter = 0
     lineNumber = 0
-    for line in stream:
+    for line in lines[start:stop]:
         if line.startswith('data_'):
             currentDataBlock = line[5:].strip()
             finalDictionary[currentDataBlock] = {}
             currentLoop = -1
             inLoop = False
+            inShortBlock = False
             startingBlock = True
-            fieldCounter = 0
+            block_fieldCounter = 0
 
         elif line.startswith('loop_'):
             currentLoop += 1
             inLoop = True
+            inShortBlock = False
             finalDictionary[currentDataBlock][currentLoop] = {}
             finalDictionary[currentDataBlock][currentLoop]['fields'] = {}
             finalDictionary[currentDataBlock][currentLoop]['data'] = {}
-            fieldCounter = 0
+            loop_fieldCounter = 0
 
         elif line.startswith('_') or line.startswith(' _'):
-            currentField = line.strip().split()[0]
+            # This marks a field identifier
+            currentField = split(line.strip(), shlex=shlex)[0]
 
             if inLoop:
-                finalDictionary[currentDataBlock][currentLoop]['fields'][fieldCounter + 1] = currentField
-                dataItemsCounter = 0
+                # We expect to only have the field identifier and no data until after
+
+                if len(split(line.strip(), shlex=shlex)) == 1:
+                    # This is what we expect for a data loop
+                    finalDictionary[currentDataBlock][currentLoop]['fields'][loop_fieldCounter] = currentField
+                    dataItemsCounter = 0
+                    loop_fieldCounter += 1
+
+                else:
+                    # This is contrary to that so we leave the loop
+                    inLoop = False
+
+                    # We populate fields and data together, continuing the regular data block
+                    finalDictionary[currentDataBlock]['fields'][block_fieldCounter] = currentField
+                    finalDictionary[currentDataBlock]['data'][currentField] = split(line.strip(), shlex=shlex)[1]
+                    block_fieldCounter += 1
+
             else:
+                # Outside a loop, populate fields and data together in a regular data block
                 if startingBlock:
+                    # Initialise the data block first
                     finalDictionary[currentDataBlock]['fields'] = {}
                     finalDictionary[currentDataBlock]['data'] = {}
                     startingBlock = False
-                    dataItemsCounter = 0
-                finalDictionary[currentDataBlock]['fields'][fieldCounter + 1] = currentField
-                finalDictionary[currentDataBlock]['data'][dataItemsCounter] = {}
-                finalDictionary[currentDataBlock]['data'][dataItemsCounter][currentField] = line.strip().split()[1]
-                dataItemsCounter += 1
+                    block_fieldCounter = 0
 
-            fieldCounter += 1
+                finalDictionary[currentDataBlock]['fields'][block_fieldCounter] = currentField
 
-        elif line.strip() == '':
+                if len(split(line.strip(), shlex=shlex)) > 1:
+                    # This is the usual behaviour so we can fill in the data from the rest of the line
+                    finalDictionary[currentDataBlock]['data'][currentField] = split(line.strip(), shlex=shlex)[1]
+                else:
+                    # In this case, we will look for the data in a short block over the following line(s).
+                    # If a single field takes multiple lines, these lines start and end with a semi-colon. 
+                    # We'll handle that in the data section.
+                    finalDictionary[currentDataBlock]['data'][currentField] = ''
+                    inShortBlock = True
+                    startingShortBlock = True
+
+                block_fieldCounter += 1
+
+        elif line.strip() == '' or line.strip() == '#':
             inLoop = False
+            inShortBlock = False
 
-        elif len(line.split()) == fieldCounter:
-            finalDictionary[currentDataBlock][currentLoop]['data'][dataItemsCounter] = {}
-            fieldCounter = 0
-            for fieldEntry in line.strip().split():
-                currentField = finalDictionary[currentDataBlock][currentLoop]['fields'][fieldCounter + 1]
-                finalDictionary[currentDataBlock][currentLoop]['data'][dataItemsCounter][currentField] = fieldEntry
-                fieldCounter += 1
-            dataItemsCounter += 1
+        elif inLoop:
+            # Here we handle the data part of the loop.
+            # Data outside a loop is handled in line with the fields above or in shortDataBlocks below.
+            if not inShortBlock and len(split(line, shlex=shlex)) == loop_fieldCounter:
+                # This is the usual case where each entry in the line corresponds to a field
+                finalDictionary[currentDataBlock][currentLoop]['data'][dataItemsCounter] = {}
+                active_fieldCounter = 0
+                for fieldEntry in split(line.strip(), shlex=shlex):
+                    currentField = finalDictionary[currentDataBlock][currentLoop]['fields'][active_fieldCounter]
+                    finalDictionary[currentDataBlock][currentLoop]['data'][dataItemsCounter][currentField] = fieldEntry
+                    active_fieldCounter += 1
+                dataItemsCounter += 1
+            else:
+                # The data is now being broken across lines. 
+                if not inShortBlock:
+                    inShortBlock = True
+                    finalDictionary[currentDataBlock][currentLoop]['data'][dataItemsCounter] = {}
+                    active_fieldCounter = 0
+                    if not line.startswith(';'):
+                        # Then we haven't got a split field and can treat fields as normal
+                        inSplitField = False
+                        for fieldEntry in split(line.strip(), shlex=shlex):
+                            currentField = finalDictionary[currentDataBlock][currentLoop]['fields'][active_fieldCounter]
+                            finalDictionary[currentDataBlock][currentLoop]['data'][dataItemsCounter][currentField] = fieldEntry
+                            active_fieldCounter += 1
+                    else:
+                        # We have a single field split over many lines
+                        inSplitField = True
+                        currentField = finalDictionary[currentDataBlock][currentLoop]['fields'][active_fieldCounter]
+                        finalDictionary[currentDataBlock][currentLoop]['data'][dataItemsCounter][currentField] = line.strip() + ' '
+                else:
+                    if not inSplitField:
+                        # check if we are entering one
+                        if line.startswith(';'):
+                            inSplitField = True
+                            currentField = finalDictionary[currentDataBlock][currentLoop]['fields'][active_fieldCounter]
+                            finalDictionary[currentDataBlock][currentLoop]['data'][dataItemsCounter][currentField] = line.strip() + ' '
+                        else:
+                            # continue as normal
+                            for fieldEntry in split(line.strip(), shlex=shlex):
+                                currentField = finalDictionary[currentDataBlock][currentLoop]['fields'][active_fieldCounter]
+                                finalDictionary[currentDataBlock][currentLoop]['data'][dataItemsCounter][currentField] = fieldEntry
+                                active_fieldCounter += 1
+                    else:
+                        finalDictionary[currentDataBlock][currentLoop]['data'][dataItemsCounter][currentField] += line.strip()
+                        if line.strip() == ';':
+                            # This marks the end of the split field
+                            inSplitField = False
+                            active_fieldCounter += 1
+                        else:
+                            # Prepare for the next line
+                            finalDictionary[currentDataBlock][currentLoop]['data'][dataItemsCounter][currentField] += ' '
+
+                    if active_fieldCounter == loop_fieldCounter:
+                        inShortBlock = False
+                        dataItemsCounter += 1
+
+        elif inShortBlock:
+            # We can now append the data in the lines here.
+            finalDictionary[currentDataBlock]['data'][currentField] += line.strip()
+            if startingShortBlock:
+                startingShortBlock = False
+                if not line.startswith(';'):
+                    # We only expect one line if there's no semi-colon
+                    inShortBlock = False
+                else:
+                    # Prepare for the next line
+                    finalDictionary[currentDataBlock]['data'][currentField] += ' '
+            else:
+                if line.strip() == ';':
+                    # This marks the end of the field so we've filled it
+                    inShortBlock = False
+                else:
+                    # Prepare for the next line
+                    finalDictionary[currentDataBlock]['data'][currentField] += ' '
 
         elif line.startswith('#'):
             if line.startswith('# XMIPP'):
@@ -353,12 +522,15 @@ def parseImagesFromSTAR(particlesSTAR, **kwargs):
         provided psi and origin data, default is True
     type rotateImages: bool 
     '''
-    from skimage.transform import rotate
+    try:
+        from skimage.transform import rotate
+    except ImportError:
+        raise ImportError('This function requires scikit-image.')
 
     block_indices = kwargs.get('block_indices', None)
-    # No loop_indices because data blocks about particle images contain 1 loop 
+    # No loop_indices because data blocks about particle images contain 1 loop
     row_indices = kwargs.get('row_indices', None)
-    particle_indices = kwargs.get('particle_indices',None)
+    particle_indices = kwargs.get('particle_indices', None)
 
     saveImageArrays = kwargs.get('saveImageArrays', False)
     saveDirectory = kwargs.get('saveDirectory', None)
@@ -396,7 +568,7 @@ def parseImagesFromSTAR(particlesSTAR, **kwargs):
         else:
             dataBlock_goodness.append(False)
 
-    indices = np.zeros((len(dataBlocks),maxLoops,maxRows,3),dtype=int)
+    indices = np.zeros((len(dataBlocks), maxLoops, maxRows, 3), dtype=int)
     i = -1
     for n, dataBlock in enumerate(particlesSTAR):
         if dataBlock_goodness[n]:
@@ -404,9 +576,9 @@ def parseImagesFromSTAR(particlesSTAR, **kwargs):
             for j, loop in enumerate(dataBlock):
                 for k in range(maxRows):
                     if k < loop.numRows:
-                        indices[i,j,k] = np.array([n,j,k])
+                        indices[i, j, k] = np.array([n, j, k])
                     else:
-                        indices[i,j,k] = np.array([0,0,0])
+                        indices[i, j, k] = np.array([0, 0, 0])
 
     dataBlocks = np.array(dataBlocks)
     loops = np.array(loops)
@@ -414,7 +586,8 @@ def parseImagesFromSTAR(particlesSTAR, **kwargs):
     # Convert keyword indices to valid indices if possible
     if block_indices is not None:
         if np.array_equal(dataBlocks, np.array([])):
-            raise TypeError('particlesSTAR must have data blocks to use block_indices')
+            raise TypeError(
+                'particlesSTAR must have data blocks to use block_indices')
 
         try:
             block_indices = np.array(block_indices)
@@ -422,7 +595,8 @@ def parseImagesFromSTAR(particlesSTAR, **kwargs):
             raise TypeError('block_indices should be array-like')
 
         if block_indices.ndim != 1:
-            raise ValueError('block_indices should be a 1-dimensional array-like')
+            raise ValueError(
+                'block_indices should be a 1-dimensional array-like')
 
         for i, index in enumerate(list(reversed(block_indices))):
             try:
@@ -437,8 +611,8 @@ def parseImagesFromSTAR(particlesSTAR, **kwargs):
                 block_indices = np.delete(block_indices, i, 0)
 
         if not np.array_equal(block_indices, np.array([])):
-            indices = np.concatenate(([indices[np.where(indices[:,0,0,0] == item)] 
-                                       for item in block_indices]),axis=0)
+            indices = np.concatenate(([indices[np.where(indices[:, 0, 0, 0] == item)]
+                                       for item in block_indices]), axis=0)
         else:
             LOGGER.warn('None of the block_indices corresponded to dataBlocks. '
                         'Default block indices corresponding to all dataBlocks '
@@ -454,19 +628,20 @@ def parseImagesFromSTAR(particlesSTAR, **kwargs):
 
         if row_indices.ndim == 1:
             if isinstance(row_indices[0], int):
-                # row_indices provided was truly 1D so 
-                # we will use same row indices for all data blocks 
+                # row_indices provided was truly 1D so
+                # we will use same row indices for all data blocks
                 # and warn the user we are doing so
                 if len(dataBlocks) != 1:
                     LOGGER.warn('row_indices is 1D but there are multiple data blocks '
                                 'so the same row indices will be used for each')
-                
-                row_indices = np.array([row_indices for i in range(len(dataBlocks))])
+
+                row_indices = np.array(
+                    [row_indices for i in range(len(dataBlocks))])
                 # This also works if len(dataBlocks) == 1
 
             elif isinstance(row_indices[0], (list, tuple)):
                 # A list-like of list-likes of different sizes was provided
-                # We turn it into a proper 2D array by filling the short 
+                # We turn it into a proper 2D array by filling the short
                 # list likes with zeros
 
                 if len(row_indices) != len(dataBlocks):
@@ -478,7 +653,7 @@ def parseImagesFromSTAR(particlesSTAR, **kwargs):
                     if not np.isscalar(entry):
                         if len(entry) > max_len:
                             max_len = len(entry)
-                            
+
                 row_indices_list_entries = []
                 for entry in row_indices:
                     if isinstance(entry, int):
@@ -497,20 +672,22 @@ def parseImagesFromSTAR(particlesSTAR, **kwargs):
             # A list-like of list-likes of the same size was provided
             if row_indices.shape[0] != len(dataBlocks):
                 if len(row_indices) == 1:
-                    # we will use same row indices for all data blocks 
+                    # we will use same row indices for all data blocks
                     # and warn the user we are doing so
                     if len(dataBlocks) != 1:
                         LOGGER.warn('row_indices has one entry but there are multiple data blocks '
                                     'so the same row indices will be used for each')
-                    
-                    row_indices = np.array([row_indices[0] for i in range(len(dataBlocks))])
+
+                    row_indices = np.array([row_indices[0]
+                                            for i in range(len(dataBlocks))])
                     # This also works if len(dataBlocks) == 1
                 else:
                     raise ValueError('There should be an entry in row indices for '
-                                    'each data block')
-        
+                                     'each data block')
+
         else:
-            raise ValueError('row_indices should be 1D or 2D array-like objects')
+            raise ValueError(
+                'row_indices should be 1D or 2D array-like objects')
 
         # indices need updating
         good_indices_list = []
@@ -524,13 +701,14 @@ def parseImagesFromSTAR(particlesSTAR, **kwargs):
                             if not (r != 0 and index_r == 0):
                                 good_indices_list[i][j].append(index_k)
                             else:
-                                good_indices_list[i][j].append(np.array([0,0,0]))
-
+                                good_indices_list[i][j].append(
+                                    np.array([0, 0, 0]))
 
         indices = np.array(good_indices_list)
 
     if indices is np.array([]):
-        raise ValueError('selection does not contain any rows with image fields')
+        raise ValueError(
+            'selection does not contain any rows with image fields')
 
     # Use indices to collect particle data dictionaries
     particles = []
@@ -538,9 +716,10 @@ def parseImagesFromSTAR(particlesSTAR, **kwargs):
     for i, index_i in enumerate(indices):
         for j, index_j in enumerate(index_i):
             for k, index_k in enumerate(index_j):
-                if not (np.array_equal(index_k, np.array([0,0,0])) 
-                and not (i == 0 and j == 0 and k == 0)):
-                    particles.append(particlesSTAR[index_k[0]][index_k[1]][index_k[2]])
+                if not (np.array_equal(index_k, np.array([0, 0, 0]))
+                        and not (i == 0 and j == 0 and k == 0)):
+                    particles.append(
+                        particlesSTAR[index_k[0]][index_k[1]][index_k[2]])
 
     if particle_indices is None:
         particle_indices = list(range(len(particles)))
@@ -550,11 +729,11 @@ def parseImagesFromSTAR(particlesSTAR, **kwargs):
     images = []
     parsed_images_data = []
     stk_images = []
-    if particlesSTAR._prog == 'RELION':
-        imageFieldKey = '_rlnImageName'
-    else:
+    if particlesSTAR._prog == 'XMIPP':
         imageFieldKey = '_image'
-        
+    else:
+        imageFieldKey = '_rlnImageName'
+
     for i in particle_indices:
         particle = particles[i]
 
@@ -600,6 +779,6 @@ def parseImagesFromSTAR(particlesSTAR, **kwargs):
     if len(stk_images) > 0:
         LOGGER.warn('ProDy currently cannot parse images from XMIPP .stk files. '
                     'Please be aware that images {0} and {1} will be missing '
-                    'from the final array.'.format(', '.join(stk_images[:-1]),stk_images[-1]))
+                    'from the final array.'.format(', '.join(stk_images[:-1]), stk_images[-1]))
 
     return np.array(images), parsed_images_data
