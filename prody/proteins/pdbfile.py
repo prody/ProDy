@@ -748,6 +748,23 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                 atomgroup.setNames(atomnames)
                 atomgroup.setResnames(resnames)
                 atomgroup.setResnums(resnums)
+
+                normal_chids = True
+                for j, chid in enumerate(chainids[2:]):
+                    chid_m1 = chainids[j+1]
+                    chid_m2 = chainids[j]
+                    if chid != chid_m1 and chid == chid_m2:
+                        if normal_chids:
+                            new_chid = chid_m2 + chid_m1
+                            normal_chids = False
+                        chainids[j] = new_chid
+                    else:
+                        if not normal_chids:
+                            chainids[j] = chainids[j+1] = new_chid
+                        normal_chids = True
+                if not normal_chids:
+                    chainids[j+1] = chainids[j+2] = new_chid
+
                 atomgroup.setChids(chainids)
                 atomgroup.setFlags('hetatm', hetero)
                 atomgroup.setFlags('pdbter', termini)
@@ -853,6 +870,23 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
         atomgroup.setNames(atomnames)
         atomgroup.setResnames(resnames)
         atomgroup.setResnums(resnums)
+
+        normal_chids = True
+        for j, chid in enumerate(chainids[2:]):
+            chid_m1 = chainids[j+1]
+            chid_m2 = chainids[j]
+            if chid != chid_m1 and chid == chid_m2:
+                if normal_chids:
+                    new_chid = chid_m2 + chid_m1
+                    normal_chids = False
+                chainids[j] = new_chid
+            else:
+                if not normal_chids:
+                    chainids[j] = chainids[j+1] = new_chid
+                normal_chids = True
+        if not normal_chids:
+            chainids[j+1] = chainids[j+2] = new_chid
+
         atomgroup.setChids(chainids)
         atomgroup.setFlags('hetatm', hetero)
         atomgroup.setFlags('pdbter', termini)
