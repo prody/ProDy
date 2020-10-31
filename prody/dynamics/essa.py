@@ -1,199 +1,386 @@
-import pickle
-from os import chdir, listdir, mkdir
+from os import chdir, listdir, mkdir, system
 from os.path import isdir
-from shutil import rmtree
-from numpy import array, mean, median, quantile, save
+from pickle import dump
+from re import findall
+from numpy import argsort, array, c_, count_nonzero, hstack, mean, median, quantile, save
 from scipy.stats import zscore, median_absolute_deviation
-from matplotlib import rc_context, pyplot
-
+import matplotlib.pyplot as plt
+from pandas import Index, DataFrame
 from prody import LOGGER
+from prody.atomic.functions import extendAtomicData
 from .anm import ANM
 from .gnm import GNM
-# from prody.proteins import parsePDB
-from prody.proteins import writePDB
-# from .compare import matchModes
-from .editing import reduceModel, extendVector
-# from .functions import loadModel, saveModel
-from .mode import Vector
-from .plotting import showDomainBar
-from .signature import ModeEnsemble, loadModeEnsemble, saveModeEnsemble 
-
-__all__ = ['ESSA', 'showESSAprofile']
+from prody.proteins import parsePDB, writePDB
+from .editing import reduceModel
+from .plotting import showAtomicLines
+from .signature import ModeEnsemble, loadModeEnsemble, saveModeEnsemble
+from prody.utilities import which
 
 
-def ESSA(pdb, n_modes=20, s_modes=10, lig=None,
-         dist=4.5, enm='gnm', cutoff=None):
-
-    # pdb : a pdb parsed by ProDy
-    # n_modes : n_modes of GNM object
-    # s_modes : the number of modes to calculate the eigenvalue difference, s_modes <= n_modes
-    # lig : string of ligands' chainIDs and resSeqs (resnum) separated by a whitespace, e.g., 'A 300 B 301'
-    # dist : the protein residues within a distance of ligands
-    # enm: the type of enm
-    # cutoff: enm cutoff
-
-    # --- ESSA scanning part --- #
-
-    heavy = pdb.select('protein and heavy and not hetatm')
-    ca = heavy.ca
-
-    # saving pdb with a new name for Fpocket
-
-    writePDB(f'{pdb.getTitle()}_pro', heavy)
-
-    # --- reference model --- #
-
-    if enm == 'gnm':
-        ca_enm = GNM('ca')
-        if cutoff is not None:
-            ca_enm.buildKirchhoff(ca, cutoff=cutoff)
-        else:
-            ca_enm.buildKirchhoff(ca)
-
-    if enm == 'anm':
-        ca_enm = ANM('ca')
-        if cutoff is not None:
-            ca_enm.buildHessian(ca, cutoff=cutoff)
-        else:
-            ca_enm.buildHessian(ca)
-
-    ca_enm.calcModes(n_modes=n_modes)
-
-    ens = ModeEnsemble(f'{pdb.getTitle()}')
-    ens.setAtoms(ca)
-    ens.addModeSet(ca_enm[:])
-    labels = ['ref']
-
-    # --- perturbed models --- #
-
-    LOGGER.progress(msg='', steps=(ca.numAtoms()))
-    for i in ca.getResindices():
-        LOGGER.update(step=i+1, msg=f'scanning residue {i+1}')
-        sel = f'calpha or resindex {i}'
-        tmp = heavy.select(sel)
-
-        if enm == 'gnm':
-            tmp_enm = GNM(f'res_{i}')
-            if cutoff is not None:
-                tmp_enm.buildKirchhoff(tmp, cutoff=cutoff)
-            else:
-                tmp_enm.buildKirchhoff(tmp)
-
-        if enm == 'anm':
-            tmp_enm = ANM(f'res_{i}')
-            if cutoff is not None:
-                tmp_enm.buildHessian(tmp, cutoff=cutoff)
-            else:
-                tmp_enm.buildHessian(tmp)
-
-        tmp_enm_red, _ = reduceModel(tmp_enm, tmp, ca)
-        tmp_enm_red.calcModes(n_modes=n_modes)
-
-        ens.addModeSet(tmp_enm_red[:])
-        labels.append(tmp_enm.getTitle())
-
-    ens.setLabels(labels)
-    ens.match()
-
-    # --- ESSA computation part --- #
-
-    def beta_heavy(*args):
-
-        # args[0] : vector
-        # args[1] : nodes
-        # args[2] : atoms
-
-        tmp0 = Vector(args[0], is3d=False)
-        tmp1, _ = extendVector(tmp0, args[1], args[2])
-
-        return tmp1.getArray()
-
-    denom = ens[0].getEigvals()
-    num = ens[1:].getEigvals() - denom
-
-    eig_diff = num / denom * 100
-    eig_diff_mean = mean(eig_diff, axis=1)
-
-    #-----------#
-
-    zs = zscore(eig_diff_mean)
-
-    # automatically save zscores both as a numpy array and as a pdb
-    # the numpy array of zscores will be used by pocket function later
-
-    save(f'{pdb.getTitle()}_{enm}_zs', zs)
-    writePDB(f'{pdb.getTitle()}_{enm}_zs', heavy,
-             beta=beta_heavy(zs, ca, heavy))
-
-    # --- residue indices of protein residues that are within dist (4.5 A) of ligands --- #
-
-    if lig is not None:
-        ligs = lig.split()
-        ligs = list(zip(ligs[::2], ligs[1::2]))
-        idx_lig = {}
-        for chid, resnum in ligs:
-            key = ''.join(chid + str(resnum))
-            sel_lig = 'calpha and not hetatm and (same residue as ' \
-                      f'exwithin {dist} of (chain {chid} and resnum {resnum}))'
-            idx_lig[key] = pdb.select(sel_lig).getResindices()
-
-        pickle.dump(idx_lig,
-                    open(f'{pdb.getTitle()}_resindices_ligs.pkl', 'wb'))
-
-    #-----------#
-
-    if lig:
-        return zs, idx_lig
-    else:
-        return zs
+__all__ = ['ESSA']
 
 
-def showESSAprofile(pdb, zscore, lig=None, quant=.75, enm='gnm', save=False):
+class ESSA:
+    '''docstring'''
 
-    # pdb : pdb parsed by ProDy, it should be the same as the one used in ESSA
-    # zscore: zscore as a numpy array
-    # lig: dictionary containing resindices of protein residues within 4.5 A of ligands, e.g.
-    #      {('A', 300): np.array([0, 15, 78, 79, 83]), ('B', 201): np.array([135, 137, 139])}
-    # quantile: drawing quantule hlines at that specified value
+    def __init__(self, pdb, lig=None):
 
-    ca = pdb.select('calpha and not hetatm')
-    can = ca.numAtoms()
-
-    # plotting confs can also be parameters
-    # let's not change rcParams globaly
-    with rc_context({'axes.labelsize': 'xx-large',
-                     'xtick.labelsize': 'x-large',
-                     'ytick.labelsize': 'x-large',
-                     'legend.fontsize': 'large',
-                     'figure.figsize': (15, 7),
-                     'figure.dpi': 600}):
-
-        pyplot.figure()
-        pyplot.plot(zscore, 'k', linewidth=1.)
-
+        self._atoms = pdb
+        self._title = pdb.getTitle()
+        self._lig = lig
+        self._heavy = pdb.select('protein and heavy and not hetatm')
+        self._ca = self._heavy.ca
+        self._n_modes = None
+        self._enm = None
+        self._cutoff = None
+        self._lig = lig
+        self._dist = None
+        self._ensemble = None
+        self._labels = None
+        self._zscore = None
         if lig:
-            zs_lig = {k: zscore[v] for k, v in lig.items()}
-            for k in lig.keys():
-                pyplot.scatter(lig[k], zs_lig[k], s=100, label=k)
-            pyplot.legend(fontsize='large')
+            self._lig_idx = {}
 
-        pyplot.hlines(quantile(zscore, q=quant),
-                      xmin=0., xmax=can,
-                      linewidth=3., linestyle='--', color='c')
+    def scanResidues(self, n_modes=10, enm='gnm', cutoff=None, dist=4.5):
 
-        # if there is more than one chain, then let's put a domainbar
-        if len(set(ca.getChids())) > 1:
-            showDomainBar(ca.getChids(), fontdict={'size': 'x-large'})
+        # pdb : a pdb parsed by ProDy
+        # n_modes : n_modes of GNM object
+        # lig : string of ligands' chainIDs and resSeqs (resnum) separated by a whitespace, e.g., 'A 300 B 301'
+        # dist : the protein residues within a distance of ligands
+        # enm: the type of enm
+        # cutoff: enm cutoff
 
-        # resindices as labels, not (chanID, resSeq),
-        # but we have a domainbar if the number of chains > 1
-        pyplot.xlabel('Residue')
-        pyplot.ylabel('Z-Score')
+        self._n_modes = n_modes
+        self._enm = enm
+        if self._lig is not None:
+            self._dist = dist
 
-        pyplot.tight_layout()
+        self._ensemble = ModeEnsemble(f'{self._title}')
+        self._ensemble.setAtoms(self._ca)
+        self._labels = ['ref']
 
-        if save:
-            pyplot.savefig(f'{pdb.getTitle()}_{enm}_zs')
-            pyplot.close()
+        # --- reference model --- #
+
+        if self._enm == 'gnm':
+            ca_enm = GNM('ca')
+            if cutoff is not None:
+                self._cutoff = cutoff
+                ca_enm.buildKirchhoff(self._ca, cutoff=self._cutoff)
+            else:
+                ca_enm.buildKirchhoff(self._ca)
+                self._cutoff = ca_enm.getCutoff()
+
+        if self._enm == 'anm':
+            ca_enm = ANM('ca')
+            if cutoff is not None:
+                self._cutoff = cutoff
+                ca_enm.buildHessian(self._ca, cutoff=self._cutoff)
+            else:
+                ca_enm.buildHessian(self._ca)
+                self._cutoff = ca_enm.getCutoff()
+
+        ca_enm.calcModes(n_modes=n_modes)
+        self._ensemble.addModeSet(ca_enm[:])
+
+        # --- perturbed models --- #
+
+        LOGGER.progress(msg='', steps=(self._ca.numAtoms()))
+        for i in self._ca.getResindices():
+            LOGGER.update(step=i+1, msg=f'scanning residue {i+1}')
+            sel = f'calpha or resindex {i}'
+            tmp = self._heavy.select(sel)
+
+            if self._enm == 'gnm':
+                tmp_enm = GNM(f'res_{i}')
+                tmp_enm.buildKirchhoff(tmp, cutoff=self._cutoff)
+
+            if self._enm == 'anm':
+                tmp_enm = ANM(f'res_{i}')
+                tmp_enm.buildHessian(tmp, cutoff=self._cutoff)
+
+            tmp_enm_red, _ = reduceModel(tmp_enm, tmp, self._ca)
+            tmp_enm_red.calcModes(n_modes=self._n_modes)
+
+            self._ensemble.addModeSet(tmp_enm_red[:])
+            self._labels.append(tmp_enm.getTitle())
+
+        self._ensemble.setLabels(self._labels)
+        self._ensemble.match()
+
+        # --- ESSA computation part --- #
+
+        denom = self._ensemble[0].getEigvals()
+        num = self._ensemble[1:].getEigvals() - denom
+
+        eig_diff = num / denom * 100
+        eig_diff_mean = mean(eig_diff, axis=1)
+
+        self._zscore = zscore(eig_diff_mean)
+
+        # --- residue indices of protein residues that are within dist (4.5 A) of ligands --- #
+
+        if self._lig:
+            ligs = self._lig.split()
+            ligs = list(zip(ligs[::2], ligs[1::2]))
+            for chid, resnum in ligs:
+                key = ''.join(chid + str(resnum))
+                sel_lig = 'calpha and not hetatm and (same residue as ' \
+                          f'exwithin {self._dist} of (chain {chid} and resnum {resnum}))'
+                self._lig_idx[key] = self._atoms.select(sel_lig).getResindices()
+
+    def getESSAEnsemble(self):
+
+        return self._ensemble[:]
+    
+    def saveESSAEnsemble(self):
+
+        saveModeEnsemble(self._ensemble, filename=f'{self._title}_{self._enm}')
+
+    def saveESSAZscores(self):
+
+        save(f'{self._title}_{self._enm}_zs', self._zscore)
+
+    def writeESSAZscoresToPDB(self):
+
+        writePDB(f'{self._title}_{self._enm}_zs', self._heavy,
+                 beta=extendAtomicData(self._zscore, self._ca, self._heavy)[0])
+
+    def saveLigandIndices(self):
+
+        if self._lig:
+            dump(self._lig_idx, open(f'{self._title}_ligand_resindices.pkl', 'wb'))
         else:
-            pyplot.show()
+            LOGGER.warning('No ligand provided.')
+
+    def showESSAProfile(self, quant=.75):
+
+        with plt.rc_context({'axes.labelsize': 'xx-large',
+                             'xtick.labelsize': 'x-large',
+                             'ytick.labelsize': 'x-large',
+                             'legend.fontsize': 'large',
+                             'figure.figsize': (15, 7),
+                             'figure.dpi': 600}):
+
+            fig = plt.figure()
+            showAtomicLines(self._zscore, atoms=self._ca, c='k', linewidth=1.)
+
+            if self._lig:
+                zs_lig = {k: self._zscore[v] for k, v in self._lig_idx.items()}
+                for k in self._lig_idx.keys():
+                    plt.scatter(self._lig_idx[k], zs_lig[k], s=100, label=k)
+                plt.legend()
+
+            plt.hlines(quantile(self._zscore, q=quant),
+                        xmin=0., xmax=self._ca.numAtoms(),
+                        linewidth=3., linestyle='--', color='c')
+
+            plt.xlabel('Residue')
+            plt.ylabel('Z-Score')
+
+            plt.tight_layout()
+
+        return fig
+
+    def scanPockets(self):
+
+        fpocket = which('fpocket')
+
+        if fpocket is None:
+            LOGGER.info('Fpocket was not found, please install it.')
+            return None
+
+        try:
+            import pandas
+        except ImportError as ie:
+            LOGGER.info(ie.__str__() + ' was found, please install it.')
+            return None
+
+        rcr = {(i, j): k for i, j, k in zip(self._ca.getChids(),
+                                            self._ca.getResnums(),
+                                            self._ca.getResindices())}
+
+        writePDB(f'{self._title}_pro', self._heavy)
+
+        direc = f'{self._title}_pro_out'
+        if not isdir(direc):
+            system(f'fpocket -f {self._title}_pro.pdb')
+
+        chdir(direc + '/pockets')
+        l = [x for x in listdir('.') if x.endswith('.pdb')]
+        l.sort(key=lambda x:int(x.partition('_')[0][6:]))
+
+        ps = []
+        for x in l:
+            with open(x, 'r') as f:
+                tmp0 = f.read()
+                tmp1 = [float(x[1]) for x in findall(r'(.+:\s+)(-*[\d.]+)(\n)', tmp0)]
+            ps.append(tmp1)
+        pdbs = parsePDB(l)
+        chdir('../..')
+
+        # ----- # ----- #
+
+        ps = array(ps)
+
+        pcn = {int(pdb.getTitle().partition('_')[0][6:]):
+               set(zip(pdb.getChids().tolist(),
+                       pdb.getResnums().tolist())) for pdb in pdbs}
+        pi = {p: [rcr[x] for x in crn] for p, crn in pcn.items()}
+
+        pzs_max = {k: max(self._zscore[v]) for k, v in pi.items()}
+        pzs_med = {k: median(self._zscore[v]) for k, v in pi.items()}
+
+        # ----- # ----- #
+
+        indices = Index(range(1, ps.shape[0] + 1), name='Pocket')
+
+        columns = Index(['Pocket Score',
+                         'Drug Score',
+                         'Number of alpha spheres',
+                         'Mean alpha-sphere radius',
+                         'Mean alpha-sphere Solvent Acc.',
+                         'Mean B-factor of pocket residues',
+                         'Hydrophobicity Score',
+                         'Polarity Score',
+                         'Amino Acid based volume Score',
+                         'Pocket volume (Monte Carlo)',
+                         'Pocket volume (convex hull)',
+                         'Charge Score',
+                         'Local hydrophobic density Score',
+                         'Number of apolar alpha sphere',
+                         'Proportion of apolar alpha sphere'],
+                        name='Feature')
+
+        self._df = DataFrame(index=indices, columns=columns, data=ps)
+
+        # ----- # ----- #
+
+        columns_zs = Index(['Pocket Z-score',
+                            'Drug Z-score',
+                            'Number of alpha spheres',
+                            'Mean alpha-sphere radius',
+                            'Mean alpha-sphere Solvent Acc.',
+                            'Mean B-factor of pocket residues',
+                            'Hydrophobicity Z-score',
+                            'Polarity Z-score',
+                            'Amino Acid based volume Z-score',
+                            'Pocket volume (Monte Carlo)',
+                            'Pocket volume (convex hull)',
+                            'Charge Z-score',
+                            'Local hydrophobic density Z-score',
+                            'Number of apolar alpha sphere',
+                            'Proportion of apolar alpha sphere',
+                            'Maximum ESSA Z-score of pocket residues',
+                            'Median ESSA Z-score of pocket residues'],
+                           name='Feature')
+
+        zps = zscore(ps, axis=0)
+        zps = hstack((zps, c_[list(pzs_max.values())]))
+        zps = hstack((zps, c_[list(pzs_med.values())]))
+
+        self._df_zs = DataFrame(index=indices, columns=columns_zs, data=zps)
+
+    def rankPockets(self):
+
+        pzs_max = self._df_zs['Maximum ESSA Z-score of pocket residues']
+        pzs_med = self._df_zs['Median ESSA Z-score of pocket residues']
+        self._idx_pzs_max = argsort(list(pzs_max))[::-1] + 1
+        self._idx_pzs_med = argsort(list(pzs_med))[::-1] + 1
+
+        lhd = self._df_zs.loc[:, 'Local hydrophobic density Z-score']
+        n = count_nonzero(lhd >= 0.)
+        q = quantile(lhd, q=.85)
+
+        # ----- # ------ #
+
+        s_max = ['Maximum ESSA Z-score of pocket residues',
+                 'Local hydrophobic density Z-score']
+
+        zf_max = self._df_zs[s_max].copy()
+
+        if n >= lhd.size // 4:
+            f_max = zf_max.iloc[:, 1] >= 0.
+        else:
+            f_max = zf_max.iloc[:, 1] >= q
+
+        zf_max = zf_max[f_max]
+
+        zf_max.iloc[:, 0] = zf_max.iloc[:, 0].round(1)
+        zf_max.iloc[:, 1] = zf_max.iloc[:, 1].round(2)
+
+        self._idx_max = zf_max.sort_values(s_max, ascending=False).index
+
+        # ----- # ----- #
+
+        s_med = ['Median ESSA Z-score of pocket residues',
+                 'Local hydrophobic density Z-score']
+
+        zf_med = self._df_zs[s_med].copy()
+
+        if n >= lhd.size // 4:
+            f_med = zf_med.iloc[:, 1] >= 0.
+        else:
+            f_med = zf_med.iloc[:, 1] >= q
+
+        zf_med = zf_med[f_med]
+
+        zf_med.iloc[:, 0] = zf_med.iloc[:, 0].round(1)
+        zf_med.iloc[:, 1] = zf_med.iloc[:, 1].round(2)
+
+        self._idx_med = zf_med.sort_values(s_med, ascending=False).index
+
+        self._pocket_ranks = DataFrame(columns=['ESSA_max', 'ESSA_med',
+                                                'ESSA_max_loc_hydro',
+                                                'ESSA_med_loc_hydro'])
+
+        self._pocket_ranks.iloc[:, 0] = self._idx_pzs_max
+        self._pocket_ranks.iloc[:, 1] = self._idx_pzs_med
+        self._pocket_ranks.iloc[:self._idx_max.size, 2] = self._idx_max
+        self._pocket_ranks.iloc[:self._idx_med.size, 3] = self._idx_med
+
+    def getPocketRanks(self):
+
+        return self._pocket_ranks
+
+    def getPocketFeatures(self):
+
+        return self._df
+
+    def getPocketZscores(self):
+
+        return self._df_zs
+
+    def showPocketZscores(self):
+
+        fig = plt.figure(dpi=600)
+        self._df_zs[['Maximum ESSA Z-score of pocket residues',
+                     'Median ESSA Z-score of pocket residues',
+                     'Local hydrophobic density Z-score']].plot.bar(figsize=(25, 10))
+        plt.xticks(rotation=0)
+        plt.ylabel('Z-score')
+        plt.tight_layout()
+
+        return fig
+
+    def savePocketFeatures(self):
+
+        self._df.to_pickle(f'{self._title}_pocket_features.pkl')
+
+    def savePocketZscores(self):
+
+        self._df_zs.to_pickle(f'{self._title}_pocket_zscores.pkl')
+
+    def savePocketRanks(self):
+
+        save(f'{self._title}_{self._enm}_pocket_ranks_wrt_ESSA_max',
+             self._idx_pzs_max)
+        save(f'{self._title}_{self._enm}_pocket_ranks_wrt_ESSA_med',
+             self._idx_pzs_med)
+        save(f'{self._title}_{self._enm}_pocket_ranks_wrt_ESSA_max_loc_hydro',
+             self._idx_max)
+        save(f'{self._title}_{self._enm}_pocket_ranks_wrt_ESSA_med_loc_hydro',
+             self._idx_med)
+        
+    def writePocketRanksToCSV(self):
+
+        self._pocket_ranks.to_csv(f'{self._title}_{self._enm}_pocket_ranks.csv', index=False)
