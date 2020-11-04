@@ -1003,7 +1003,12 @@ def mapChainOntoChain(mobile, target, **kwargs):
     if pwalign and mapping is None:
         SEQ_ALIGNMENT = ('seq', ALIGNMENT_METHOD + ' sequence alignment', seqid, coverage)
         CE_ALIGNMENT = ('ce', 'CEalign', 0., coverage)
-        PREDEF_ALIGNMENT = ('predef', 'predefined alignment', 0., coverage)
+
+        if not 'seqid' in kwargs:
+            tar_seqid = 0.
+        else:
+            tar_seqid = seqid
+        PREDEF_ALIGNMENT = ('predef', 'predefined alignment', tar_seqid, coverage)
 
         if alignment is None:
             if pwalign in ['ce', 'cealign']:
@@ -1035,7 +1040,8 @@ def mapChainOntoChain(mobile, target, **kwargs):
 
             if result is not None:
                 target_list, chain_list, n_match, n_mapped = result
-                _seqid, _cover = calcScores(n_match, n_mapped, len(simple_target))
+                _seqid, _cover = calcScores(n_match, n_mapped, max(len(simple_target),
+                                                                   len(simple_mobile)))
 
                 if _seqid >= seqid and _cover >= coverage:
                     LOGGER.debug('\tMapped: {0} residues match with {1:.0f}%'
@@ -1260,9 +1266,9 @@ def getTrivialMapping(target, chain):
 def getDictMapping(target, chain, map_dict):
     """Returns lists of matching residues (based on *map_dict*)."""
 
-    pdbid = chain._chain.getTitle()
-    chid = chain._chain.getChid()
-    key = pdbid + '_' + chid
+    pdbid = chain._chain.getTitle()[:4].lower()
+    chid = chain._chain.getChid().upper()
+    key = pdbid + chid
 
     mapping = map_dict.get(key)
     if mapping is None:
@@ -1377,36 +1383,24 @@ def getCEAlignMapping(target, chain):
 
     tar_coords = target.getCoords(calpha=True).tolist()
     mob_coords = chain.getCoords(calpha=True).tolist()
-    
-    # def add_tail_dummies(coords, window=8):
-    #     natoms = len(coords)
-    #     if natoms < window:
-    #         return None
-    #     rest = natoms % window
 
-    #     tail_indices = []
-    #     for i in range(rest):
-    #         tail_indices.append(len(coords))
-    #         coords.append(coords[-(i+1)])
-        
-    #     return tail_indices
+    if len(tar_coords) < 8:
+        LOGGER.warn('target ({1}) is too small to be aligned '
+                    'by CE algorithm (at least {0} residues)'
+                    .format(8, repr(target)))
+        return None
 
-    # window = 8
-    # tar_dummies = add_tail_dummies(tar_coords, window)
-    # if tar_dummies is None:
-    #     LOGGER.warn('target ({1}) is too small to be aligned '
-    #                 'by CE algorithm (at least {0} residues)'
-    #                 .format(window, repr(target)))
-    #     return None
+    if len(mob_coords) < 8:
+        LOGGER.warn('chain ({1}) is too small to be aligned '
+                    'by CE algorithm (at least {0} residues)'
+                    .format(8, repr(chain)))
+        return None
 
-    # mob_dummies = add_tail_dummies(mob_coords, window)
-    # if mob_dummies is None:
-    #     LOGGER.warn('chain ({1}) is too small to be aligned '
-    #                 'by CE algorithm (at least {0} residues)'
-    #                 .format(window, repr(chain)))
-    #     return None
-
-    aln_info = ccealign((tar_coords, mob_coords))
+    try:
+        aln_info = ccealign((tar_coords, mob_coords))
+    except:
+        LOGGER.warn('cealign could not align {0} and {1}'.format(repr(target), repr(chain)))
+        return None
 
     paths, bestIdx, nres, rmsd = aln_info[:4]
     path = paths[bestIdx]

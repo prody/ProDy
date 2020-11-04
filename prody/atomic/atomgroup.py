@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """This module defines :class:`AtomGroup` class that stores atomic data and
-multiple coordinate sets in :class:`numpy.ndarray` instances."""
+multiple coordinate sets in :class:`~numpy.ndarray` instances."""
 
 from time import time
 from numbers import Integral
@@ -68,7 +68,7 @@ class AtomGroup(Atomic):
 
     **Atomic data**
 
-    All atomic data is stored in :class:`numpy.ndarray` instances.
+    All atomic data is stored in :class:`~numpy.ndarray` instances.
 
     **Get and set methods**
 
@@ -266,9 +266,22 @@ class AtomGroup(Atomic):
                     that = np.zeros(shape, this.dtype)
                 new._data[key] = np.concatenate((this, that))
 
-        for key in set(list(self._flags) + list(other._flags)):
-            this = self._flags.get(key)
-            that = other._flags.get(key)
+        keys = []
+        if self._flags:
+            for flag in self._flags:
+                if flag not in keys: keys.append(flag)
+
+        if other._flags:
+            for flag in other._flags:
+                if flag not in keys: keys.append(flag)
+
+        for key in keys:
+            this = None
+            that = None
+            if self._flags:
+                this = self._flags.get(key)
+            if other._flags:
+                that = other._flags.get(key)
             if this is not None or that is not None:
                 if this is None:
                     shape = list(that.shape)
@@ -506,7 +519,7 @@ class AtomGroup(Atomic):
     def _setCoords(self, coords, label='', overwrite=False):
         """Set coordinates without data type checking.  *coords* must
         be a :class:`~numpy.ndarray`, but may have data type other than
-        :class:`numpy.float64`, e.g. :class:`numpy.float32`.  *label*
+        :class:`~numpy.float64`, e.g. :class:`~numpy.float32`.  *label*
         argument may be used to label coordinate sets.  *label* may be
         a string or a list of strings length equal to the number of
         coordinate sets."""
