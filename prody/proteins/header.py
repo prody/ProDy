@@ -1052,6 +1052,8 @@ def buildBiomolecules(header, atoms, biomol=None):
     :class:`.AtomGroup` instances will be returned in a tuple.
 
     Note that atoms in biomolecules are ordered according to chain identifiers.
+    When multiple chains in a biomolecule have the same chain identifier, they 
+    are given different segment names to distinguish them.
     """
 
     if not isinstance(header, dict):

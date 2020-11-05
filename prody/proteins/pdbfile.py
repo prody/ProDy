@@ -14,11 +14,12 @@ from prody.atomic import AtomGroup, Atom, Selection
 from prody.atomic import flags
 from prody.atomic import ATOMIC_FIELDS
 from prody.utilities import openFile, isListLike
+from prody.utilities.misctools import decToHybrid36
 from prody import LOGGER, SETTINGS
 
 from .header import getHeaderDict, buildBiomolecules, assignSecstr, isHelix, isSheet
 from .localpdb import fetchPDB
-from .ciffile import parseCIF
+from .ciffile import parseMMCIF
 
 __all__ = ['parsePDBStream', 'parsePDB', 'parseChainsList', 'parsePQR',
            'writePDBStream', 'writePDB', 'writeChainsList', 'writePQR',
@@ -68,6 +69,10 @@ _parsePDBdoc = _parsePQRdoc + """
 
     :arg biomol: if **True**, biomolecules are obtained by transforming the
         coordinates using information from header section will be returned.
+        This option uses :func:`.buildBiomolecules` and as noted there, 
+        atoms in biomolecules are ordered according to the original chain 
+        IDs. Chains may have the same chain ID, in which case they are given 
+        different segment names.
         Default is **False**
     :type biomol: bool
 
@@ -204,7 +209,7 @@ def _parsePDB(pdb, **kwargs):
         if filename is None:
             try:
                 LOGGER.info("Trying to use mmCIF file instead")
-                return parseCIF(pdb, **kwargs)
+                return parseMMCIF(pdb, **kwargs)
             except:
                 raise IOError('PDB file for {0} could not be downloaded.'
                               .format(pdb))
@@ -743,6 +748,23 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                 atomgroup.setNames(atomnames)
                 atomgroup.setResnames(resnames)
                 atomgroup.setResnums(resnums)
+
+                normal_chids = True
+                for j, chid in enumerate(chainids[2:]):
+                    chid_m1 = chainids[j+1]
+                    chid_m2 = chainids[j]
+                    if chid != chid_m1 and chid == chid_m2:
+                        if normal_chids:
+                            new_chid = chid_m2 + chid_m1
+                            normal_chids = False
+                        chainids[j] = new_chid
+                    else:
+                        if not normal_chids:
+                            chainids[j] = chainids[j+1] = new_chid
+                        normal_chids = True
+                if not normal_chids:
+                    chainids[j+1] = chainids[j+2] = new_chid
+
                 atomgroup.setChids(chainids)
                 atomgroup.setFlags('hetatm', hetero)
                 atomgroup.setFlags('pdbter', termini)
@@ -848,6 +870,23 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
         atomgroup.setNames(atomnames)
         atomgroup.setResnames(resnames)
         atomgroup.setResnums(resnums)
+
+        normal_chids = True
+        for j, chid in enumerate(chainids[2:]):
+            chid_m1 = chainids[j+1]
+            chid_m2 = chainids[j]
+            if chid != chid_m1 and chid == chid_m2:
+                if normal_chids:
+                    new_chid = chid_m2 + chid_m1
+                    normal_chids = False
+                chainids[j] = new_chid
+            else:
+                if not normal_chids:
+                    chainids[j] = chainids[j+1] = new_chid
+                normal_chids = True
+        if not normal_chids:
+            chainids[j+1] = chainids[j+2] = new_chid
+
         atomgroup.setChids(chainids)
         atomgroup.setFlags('hetatm', hetero)
         atomgroup.setFlags('pdbter', termini)
@@ -964,6 +1003,9 @@ PDBLINE_GE100K = ('%-6s%5x %-4s%1s%-4s%1s%4d%1s   '
                   '%8.3f%8.3f%8.3f%6.2f%6.2f      '
                   '%4s%2s\n')
 
+PDBLINE_GE100K_H36 = ('%-6s%5s %-4s%1s%-4s%1s%4d%1s   '
+                      '%8.3f%8.3f%8.3f%6.2f%6.2f      '
+                      '%4s%2s\n')
 
 _writePDBdoc = """
 
@@ -975,6 +1017,11 @@ _writePDBdoc = """
 
     :arg occupancy: a list or array of number to be outputted in occupancy
         column
+
+    :arg hybrid36: whether to use hybrid36 format for atoms with serial
+        greater than or equal to 99999. Hexadecimal is used otherwise.
+        Default is False
+    :type hybrid36: bool 
     """
 
 def writeChainsList(chains, filename):
@@ -1089,6 +1136,8 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
         atoms = atoms.select('all')
 
     n_atoms = atoms.numAtoms()
+
+    hybrid36 = kwargs.get('hybrid36',False)
 
     occupancy = kwargs.get('occupancy')
     if occupancy is None:
@@ -1220,14 +1269,28 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
     multi = len(coordsets) > 1
     write = stream.write
     for m, coords in enumerate(coordsets):
+        using_hybrid36 = False
+        reached_max_n_atom = False
         pdbline = PDBLINE_LT100K
         if multi:
             write('MODEL{0:9d}\n'.format(m+1))
         for i, xyz in enumerate(coords):
-            if pdbline != PDBLINE_GE100K and (i == MAX_N_ATOM or serials[i] > MAX_N_ATOM):
-                LOGGER.warn('Indices are exceeding 99999 and hexadecimal format is being used')
-                pdbline = PDBLINE_GE100K
-            write(pdbline % (hetero[i], serials[i],
+            if not reached_max_n_atom and (i == MAX_N_ATOM or serials[i] > MAX_N_ATOM):
+                reached_max_n_atom = True
+                if not hybrid36:
+                    pdbline = PDBLINE_GE100K
+                    LOGGER.warn('Indices are exceeding 99999 and hexadecimal format is being used')
+                else:
+                    pdbline = PDBLINE_GE100K_H36
+                    LOGGER.warn('Indices are exceeding 99999 and hybrid36 format is being used')
+                    using_hybrid36 = True
+
+            if using_hybrid36:
+                serial = decToHybrid36(serials[i])
+            else:
+                serial = serials[i]
+
+            write(pdbline % (hetero[i], serial,
                              atomnames[i], altlocs[i],
                              resnames[i], chainids[i], resnums[i],
                              icodes[i],

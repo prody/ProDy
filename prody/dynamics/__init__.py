@@ -248,7 +248,6 @@ from . import rtb
 from .rtb import *
 __all__.extend(rtb.__all__)
 
-
 from . import gnm
 from .gnm import *
 __all__.extend(gnm.__all__)
@@ -308,3 +307,4 @@ __all__.extend(essa.__all__)
 # workaround for circular dependency to accommodate original design style 
 from prody.ensemble import functions
 functions.ClustENM = ClustENM
+

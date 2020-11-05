@@ -49,6 +49,18 @@ RTB_PROJECT = parseDatafile('rtb2gb1_project')
 HITTIME = parseDatafile('hit1ubi')
 COMMUTETIME = parseDatafile('commute1ubi')
 
+
+ATOMS3 = parseDatafile('2nwl')
+COORDS3 = ATOMS3.ca.getCoords()
+
+EXANM_HESSIAN = parseDatafile('exanm2nwl_hessian.coo', symmetric=True)
+EXANM_EVALUES = parseDatafile('exanm2nwl_evalues.dat')[:,1].flatten()
+EXANM_EVECTORS = parseDatafile('exanm2nwl_vectors.dat')[:,1:]
+
+exanm = ANM()
+exanm.buildHessian(COORDS3)
+exanm.calcModes(n_modes=None, zeros=True)
+
 class testGNMBase(unittest.TestCase):
 
     def setUp(self):
@@ -112,6 +124,57 @@ class TestANMResults(testGNMBase):
 
     def testHessianSums(self):
         hessian = anm._getHessian()
+        zeros = np.zeros(hessian.shape[0])
+        assert_allclose(hessian.sum(0), zeros,
+                        rtol=0, atol=ATOL,
+                        err_msg='hessian columns do not add up to zero')
+        assert_allclose(hessian.sum(1), zeros,
+                        rtol=0, atol=ATOL,
+                        err_msg='hessian rows do not add up to zero')
+
+class TestEXANMResults(testGNMBase):
+
+    def testEigenvalues(self):
+        """Test eigenvalues."""
+
+        assert_allclose(exanm[:len(EXANM_EVALUES)].getEigvals(), EXANM_EVALUES,
+                        rtol=RTOL, atol=ATOL*10,
+                        err_msg='failed to get correct eigenvalues')
+
+
+    def testEigenvectors(self):
+        """Test eigenvectors."""
+
+        _temp = np.abs(np.dot(exanm[6:6+EXANM_EVECTORS.shape[1]].getEigvecs().T,
+                              EXANM_EVECTORS))
+        assert_allclose(_temp, np.eye(20), rtol=RTOL, atol=ATOL,
+                        err_msg='failed to get correct eigenvectors')
+
+    def testHessian(self):
+        """Test Hessian matrix."""
+
+        assert_allclose(exanm.getHessian(), EXANM_HESSIAN, rtol=0, atol=ATOL,
+                        err_msg='failed to get correct Hessian matrix')
+
+
+    def testVariances(self):
+        """Test variances."""
+
+        assert_allclose(exanm[6:len(EXANM_EVALUES)].getVariances(),
+                        1/EXANM_EVALUES[6:],
+                        rtol=0, atol=ATOL*100,
+                        err_msg='failed to get correct variances')
+
+    def testGetHessian(self):
+        assert_equal(exanm.getHessian(), exanm._getHessian(),
+                     err_msg='failed to _get correct Hessian matrix')
+
+    def testHessianSymmetry(self):
+        hessian = exanm._getHessian()
+        assert_equal(hessian, hessian.T, 'hessian is not symmetric')
+
+    def testHessianSums(self):
+        hessian = exanm._getHessian()
         zeros = np.zeros(hessian.shape[0])
         assert_allclose(hessian.sum(0), zeros,
                         rtol=0, atol=ATOL,

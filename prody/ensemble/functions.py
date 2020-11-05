@@ -6,19 +6,19 @@ from numbers import Integral
 
 import numpy as np
 
-from prody.proteins import fetchPDB, parsePDB, writePDB, alignChains
-from prody.utilities import openFile, showFigure, copy, isListLike, pystr
+from prody.proteins import alignChains
+from prody.utilities import openFile, showFigure, copy, isListLike, pystr, DTYPE
 from prody import LOGGER, SETTINGS
 from prody.atomic import Atomic, AtomMap, Chain, AtomGroup, Selection, Segment, Select, AtomSubset
-from prody.atomic.fields import DTYPE
 
 from .ensemble import *
 from .pdbensemble import *
 from .conformation import *
 
 __all__ = ['saveEnsemble', 'loadEnsemble', 'trimPDBEnsemble',
-           'calcOccupancies', 'showOccupancies', 'alignPDBEnsemble',
-           'buildPDBEnsemble', 'refineEnsemble', 'combineEnsembles']
+           'calcOccupancies', 'showOccupancies',
+           'buildPDBEnsemble', 'refineEnsemble', 'combineEnsembles',
+           'alignByEnsemble']
 
 
 def saveEnsemble(ensemble, filename=None, **kwargs):
@@ -39,10 +39,6 @@ def saveEnsemble(ensemble, filename=None, **kwargs):
     if isinstance(ensemble, PDBEnsemble):
         attr_list.append('_labels')
         attr_list.append('_trans')
-    if isinstance(ensemble, ClustENM):
-        attr_list.extend(['_ph', '_cutoff', '_n_modes', '_n_confs', '_rmsd', '_n_gens', 
-                          '_sim', '_threshold', '_maxclust', '_temp', '_t_steps', '_outlier', 
-                          '_mzscore', '_v1', '_platform', '_n_ca', '_time', '_parallel'])
 
     if filename is None:
         filename = ensemble.getTitle().replace(' ', '_')
@@ -54,16 +50,19 @@ def saveEnsemble(ensemble, filename=None, **kwargs):
 
     atoms = dict_['_atoms']
     if atoms is not None:
-        attr_dict['_atoms'] = np.array([atoms, None])
+        attr_dict['_atoms'] = np.array([atoms, None], 
+                                        dtype=object)
 
     data = dict_['_data']
     if len(data):
-        attr_dict['_data'] = np.array([data, None])
+        attr_dict['_data'] = np.array([data, None], 
+                                       dtype=object)
 
     if isinstance(ensemble, PDBEnsemble):
         msa = dict_['_msa']
         if msa is not None:
-            attr_dict['_msa'] = np.array([msa, None])
+            attr_dict['_msa'] = np.array([msa, None], 
+                                          dtype=object)
 
     attr_dict['_type'] = ensemble.__class__.__name__
 
@@ -105,10 +104,7 @@ def loadEnsemble(filename, **kwargs):
     try:
         title = attr_dict['_title']
     except KeyError:
-        if type_ == 'ClustENM':
-            title = None
-        else:
-            title = attr_dict['_name']
+        title = attr_dict['_name']
             
     if isinstance(title, np.ndarray):
         title = title.item()
@@ -121,8 +117,6 @@ def loadEnsemble(filename, **kwargs):
 
     if type_ == 'PDBEnsemble':
         ensemble = PDBEnsemble(title)
-    elif type_ == 'ClustENM':
-        ensemble = ClustENM(title)
     else:
         ensemble = Ensemble(title)
 
@@ -146,16 +140,6 @@ def loadEnsemble(filename, **kwargs):
         if '_msa' in attr_dict.files:
             ensemble._msa = attr_dict['_msa'][0]
     else:
-        if type_ == 'ClustENM':
-            attrs = ['_ph', '_cutoff', '_n_modes', '_n_confs', '_rmsd', '_n_gens', 
-                    '_sim', '_threshold', '_maxclust', '_temp', '_t_steps', '_outlier', 
-                    '_mzscore', '_v1', '_platform', '_n_ca', '_time', '_parallel']
-            for attr in attrs:
-                if attr in attr_dict:
-                    val = attr_dict[attr]
-                    if len(val.shape) == 0:
-                        val = val.item()
-                    ensemble.__dict__[attr] = val
         ensemble.addCoordset(confs)
         if weights is not None:
             ensemble.setWeights(weights)
@@ -334,83 +318,6 @@ def showOccupancies(pdbensemble, *args, **kwargs):
         showFigure()
     return show
 
-def alignPDBEnsemble(ensemble, suffix='_aligned', outdir='.', gzip=False):
-    """Align PDB files using transformations from *ensemble*, which may be
-    a :class:`.PDBEnsemble` or a :class:`.PDBConformation` instance. Label of
-    the conformation (see :meth:`~.PDBConformation.getLabel`) will be used to
-    determine the PDB structure and model number.  First four characters of
-    the label is expected to be the PDB identifier and ending numbers to be the
-    model number.  For example, the :class:`.Transformation` from conformation
-    with label *2k39_ca_selection_'resnum_<_71'_m116* will be applied to 116th
-    model of structure **2k39**.  After applicable transformations are made,
-    structure will be written into *outputdir* as :file:`2k39_aligned.pdb`.
-    If ``gzip=True``, output files will be compressed.  Return value is
-    the output filename or list of filenames, in the order files are processed.
-    Note that if multiple models from a file are aligned, that filename will
-    appear in the list multiple times."""
-
-    if not isinstance(ensemble, (PDBEnsemble, PDBConformation)):
-        raise TypeError('ensemble must be a PDBEnsemble or PDBConformation')
-    if isinstance(ensemble, PDBConformation):
-        ensemble = [ensemble]
-    if gzip:
-        gzip = '.gz'
-    else:
-        gzip = ''
-    output = []
-    pdbdict = {}
-    for conf in ensemble:
-        trans = conf.getTransformation()
-        if trans is None:
-            raise ValueError('transformations are not calculated, call '
-                             '`superpose` or `iterpose`')
-        label = conf.getLabel()
-
-        pdb = label[:4]
-        filename = pdbdict.get(pdb, fetchPDB(pdb))
-        if filename is None:
-            LOGGER.warning('PDB file for conformation {0} is not found.'
-                           .format(label))
-            output.append(None)
-            continue
-        LOGGER.info('Parsing PDB file {0} for conformation {1}.'
-                    .format(pdb, label))
-
-        acsi = None
-        model = label.rfind('m')
-        if model > 3:
-            model = label[model+1:]
-            if model.isdigit():
-                acsi = int(model) - 1
-            LOGGER.info('Applying transformation to model {0}.'
-                        .format(model))
-
-        if isinstance(filename, str):
-            ag = parsePDB(filename)
-        else:
-            ag = filename
-
-        if acsi is not None:
-            if acsi >= ag.numCoordsets():
-                LOGGER.warn('Model number {0} for {1} is out of range.'
-                            .format(model, pdb))
-                output.append(None)
-                continue
-            ag.setACSIndex(acsi)
-        trans.apply(ag)
-        outfn = os.path.join(outdir, pdb + suffix + '.pdb' + gzip)
-        if ag.numCoordsets() > 1:
-            pdbdict[pdb] = ag
-        else:
-            writePDB(outfn, ag)
-        output.append(os.path.normpath(outfn))
-
-    for pdb, ag in pdbdict.items():  # PY3K: OK
-        writePDB(os.path.join(outdir, pdb + suffix + '.pdb' + gzip), ag)
-    if len(output) == 1:
-        return output[0]
-    else:
-        return output
 
 
 def buildPDBEnsemble(atomics, ref=None, title='Unknown', labels=None, atommaps=None, unmapped=None, **kwargs):
@@ -552,7 +459,7 @@ def buildPDBEnsemble(atomics, ref=None, title='Unknown', labels=None, atommaps=N
                 strchids = ''.join(chids)
                 lbl += '_%s'%strchids
             ensemble.addCoordset(atommap, weights=atommap.getFlags('mapped'), 
-                                label=lbl, degeneracy=degeneracy)
+                                 label=lbl, degeneracy=degeneracy)
             
             if not isrefset:
                 ensemble.setCoords(atommap.getCoords())
@@ -603,12 +510,13 @@ def refineEnsemble(ensemble, lower=.5, upper=10., **kwargs):
         for p in protected:
             if isinstance(p, Integral):
                 i = p
+                P.append(i)
             else:
                 if p in labels:
                     i = labels.index(p)
+                    P.append(i)
                 else:
                     LOGGER.warn('could not find any conformation with the label %s in the ensemble'%str(p))
-            P.append(i)
 
     LOGGER.timeit('_prody_refineEnsemble')
     from numpy import argsort
@@ -782,3 +690,51 @@ def combineEnsembles(target, mobile, **kwargs):
     if iterpose:
         ens.iterpose()
     return ens
+
+
+def alignByEnsemble(atomics, ensemble):
+    """Align a set of :class:`.Atomic` objects using transformations from *ensemble*, 
+    which may be a :class:`.PDBEnsemble` or a :class:`.PDBConformation` instance. 
+    
+    Transformations will be applied based on indices so *atomics* and *ensemble* must 
+    have the same number of members.
+
+    :arg atomics: a set of :class:`.Atomic` objects to be aligned
+    :type atomics: tuple, list, :class:`~numpy.ndarray`
+
+    :arg ensemble: a :class:`.PDBEnsemble` or a :class:`.PDBConformation` from which 
+                   transformations can be extracted
+    :type ensemble: :class:`.PDBEnsemble`, :class:`.PDBConformation`
+    """
+
+    if not isListLike(atomics):
+        raise TypeError('atomics must be list-like')
+
+    if not isinstance(ensemble, (PDBEnsemble, PDBConformation)):
+        raise TypeError('ensemble must be a PDBEnsemble or PDBConformation')
+    if isinstance(ensemble, PDBConformation):
+        ensemble = [ensemble]
+
+    if len(atomics) != len(ensemble):
+        raise ValueError('atomics and ensemble must have the same length')
+
+    output = []
+    for i, conf in enumerate(ensemble):
+        trans = conf.getTransformation()
+        if trans is None:
+            raise ValueError('transformations are not calculated, call '
+                             '`superpose` or `iterpose`')
+
+        ag = atomics[i]
+        if not isinstance(ag, Atomic):
+            LOGGER.warning('No atomic object found for conformation {0}.'
+                           .format(i))
+            output.append(None)
+            continue
+
+        output.append(trans.apply(ag))
+
+    if len(output) == 1:
+        return output[0]
+    else:
+        return output

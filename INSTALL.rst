@@ -6,9 +6,19 @@ Installation
 Required Software
 -----------------
 
-* `Python`_ 2.7, 3.5 or later
+* `Python`_ 2.7, 3.5 or later. We recommend using `Anaconda`_, which provides the conda package and environment manager as well as many useful packages. 
+
+.. _Anaconda: https://www.anaconda.com/products/individual
 
 * `NumPy`_ 1.10 or later
+
+* `SciPy` - we recommend that you use the latest version, but all versions should be supported.
+
+.. _SciPy: https://sourceforge.net/projects/scipy/
+
+* `Biopython` - we recommend that you use the latest version, but all versions should be supported.
+
+.. _Biopython: http://biopython.org/wiki/Download/
 
 When compiling from source, on Linux for example, you will need a C compiler
 (e.g. :program:`gcc`) and Python developer libraries (i.e. :file:`python.h`).
@@ -28,6 +38,10 @@ If you have pip_ installed, type the following::
 
 If you don't have pip_, please download an installation file and
 follow the instructions.
+
+If you have conda installed, you can also type the following instead::
+
+  conda install ProDy
 
 
 Download & Install

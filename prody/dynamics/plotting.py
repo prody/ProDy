@@ -236,11 +236,13 @@ def showProjection(ensemble, modes, *args, **kwargs):
     if SETTINGS['auto_show']:
         fig = plt.figure()
  
-    projection = calcProjection(ensemble, modes, kwargs.pop('rmsd', True), kwargs.pop('norm', False))
+    projection = calcProjection(ensemble, modes, 
+                                kwargs.pop('rmsd', True), 
+                                kwargs.pop('norm', False))
 
     if projection.ndim == 1 or projection.shape[1] == 1:
         show = plt.hist(projection.flatten(), *args, **kwargs)
-        plt.xlabel('{0} coordinate'.format(str(modes)))
+        plt.xlabel('Mode {0} coordinate'.format(str(modes)))
         plt.ylabel('Number of conformations')
         return show
     elif projection.shape[1] > 3:
@@ -349,8 +351,8 @@ def showProjection(ensemble, modes, *args, **kwargs):
             adjust_text(ts)
 
     if len(modes) == 2:
-        plt.xlabel('{0} coordinate'.format(int(modes[0])+1))
-        plt.ylabel('{0} coordinate'.format(int(modes[1])+1))
+        plt.xlabel('Mode {0} coordinate'.format(int(modes[0])+1))
+        plt.ylabel('Mode {0} coordinate'.format(int(modes[1])+1))
     elif len(modes) == 3:
         show.set_xlabel('Mode {0} coordinate'.format(int(modes[0])+1))
         show.set_ylabel('Mode {0} coordinate'.format(int(modes[1])+1))
@@ -820,8 +822,12 @@ def showContactMap(enm, **kwargs):
 def showOverlap(mode, modes, *args, **kwargs):
     """Show overlap :func:`~matplotlib.pyplot.bar`.
 
-    :arg mode: a single mode/vector
-    :type mode: :class:`.Mode`, :class:`.Vector`
+    :arg mode: a single mode/vector or multiple modes.
+        If multiple modes are provided, then the overlaps are calculated 
+        by going through them one by one, i.e. mode i from this set is 
+        compared with mode i from the other set.
+    :type mode: :class:`.Mode`, :class:`.Vector`, :class:`.ModeSet`, 
+        :class:`.ANM`, :class:`.GNM`, :class:`.PCA`
 
     :arg modes: multiple modes
     :type modes: :class:`.ModeSet`, :class:`.ANM`, :class:`.GNM`, :class:`.PCA`
@@ -833,13 +839,19 @@ def showOverlap(mode, modes, *args, **kwargs):
     if SETTINGS['auto_show']:
         plt.figure()
 
-    if not isinstance(mode, (Mode, Vector)):
-        raise TypeError('mode must be Mode or Vector, not {0}'
+    if not isinstance(mode, (Mode, Vector, NMA, ModeSet)):
+        raise TypeError('mode must be Mode, Vector, NMA or ModeSet, not {0}'
                         .format(type(mode)))
+
     if not isinstance(modes, (NMA, ModeSet)):
         raise TypeError('modes must be NMA or ModeSet, not {0}'
                         .format(type(modes)))
-    overlap = abs(calcOverlap(mode, modes))
+
+    if mode.numModes() > 1:
+        overlap = abs(calcOverlap(mode, modes, diag=True))
+    else:
+        overlap = abs(calcOverlap(mode, modes, diag=False))
+
     if isinstance(modes, NMA):
         arange = np.arange(len(modes)) + 1
     else:
@@ -867,13 +879,20 @@ def showCumulOverlap(mode, modes, *args, **kwargs):
     import matplotlib.pyplot as plt
     from matplotlib.ticker import MaxNLocator
     
-    if not isinstance(mode, (Mode, Vector)):
+    if not isinstance(mode, (Mode, Vector, NMA, ModeSet)):
         raise TypeError('mode must be NMA, ModeSet, Mode or Vector, not {0}'
                         .format(type(mode)))
     if not isinstance(modes, (NMA, ModeSet)):
         raise TypeError('modes must be NMA, ModeSet, or Mode, not {0}'
                         .format(type(modes)))
-    cumov = (calcOverlap(mode, modes) ** 2).cumsum() ** 0.5
+
+    if mode.numModes() > 1:
+        overlap = abs(calcOverlap(mode, modes, diag=True))
+    else:
+        overlap = abs(calcOverlap(mode, modes, diag=False))
+
+    cumov = (overlap ** 2).cumsum() ** 0.5
+
     if isinstance(modes, NMA):
         arange = np.arange(0.5, len(modes)+0.5)
     else:
@@ -1129,9 +1148,9 @@ def showPerturbResponse(model, atoms=None, show_matrix=True, select=None, **kwar
     *model* and *atoms* must have the same number of atoms. *atoms* must 
     be an :class:`.Atomic` instance.
 
-    :arg model: any object with a calcCovariance method
-        e.g. :class:`.ANM` instance
-    :type model: :class:`.NMA`
+    :arg model: any object with a calcCovariance method from which to calculate
+         a PRS matrix (e.g. :class:`.ANM` instance) or a PRS matrix itself
+    :type model: :class:`.NMA`, :class:`~numpy.ndarray`
 
     :arg atoms: a :class: `AtomGroup` instance for matching residue numbers and chain 
         identifiers

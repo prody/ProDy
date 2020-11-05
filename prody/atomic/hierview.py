@@ -440,7 +440,18 @@ class HierView(object):
             index = self._dict[(segname or self._getSegname() or None,
                                 chid or None)]
         except KeyError:
-            pass
+            try:
+                index = None
+                for key in self._dict.keys():
+                    if isinstance(key, tuple) and len(key) == 2:
+                        if key[1] == 'BU':
+                            index = self._dict[key]
+                if index is None:
+                    raise ValueError('invalid chain ID')
+            except ValueError:
+                pass
+            else:
+                return self._getChain(index)
         else:
             return self._getChain(index)
 

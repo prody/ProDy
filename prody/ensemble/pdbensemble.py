@@ -5,7 +5,7 @@ import numpy as np
 
 from prody.sequence import MSA, Sequence
 from prody.atomic import Atomic, AtomGroup
-from prody.measure import getRMSD, getTransformation
+from prody.measure import getRMSD, getTransformation, Transformation
 from prody.utilities import checkCoords, checkWeights, copy
 from prody import LOGGER
 
@@ -30,6 +30,7 @@ class PDBEnsemble(Ensemble):
     def __init__(self, title='Unknown'):
 
         self._labels = []
+        self._selstrs = []
         self._trans = None
         self._msa = None
         Ensemble.__init__(self, title)
@@ -64,16 +65,18 @@ class PDBEnsemble(Ensemble):
             ensemble.setAtoms(other._atoms)
             ensemble._indices = other._indices
 
-        all_keys = set(list(self._data.keys()) + list(other._data.keys()))
+        selfdata = self._data if self._data is not None else {}
+        otherdata = other._data if other._data is not None else {}
+        all_keys = set(list(selfdata.keys()) + list(otherdata.keys()))
         for key in all_keys:
-            if key in self._data and key in other._data:
-                self_data = self._data[key]
-                other_data = other._data[key]
-            elif key in self._data:
-                self_data = self._data[key]
+            if key in selfdata and key in otherdata:
+                self_data = selfdata[key]
+                other_data = otherdata[key]
+            elif key in selfdata:
+                self_data = selfdata[key]
                 other_data = np.zeros(other.numConfs(), dtype=self_data.dtype)
-            elif key in other._data:
-                other_data = other._data[key]
+            elif key in otherdata:
+                other_data = otherdata[key]
                 self_data = np.zeros(other.numConfs(), dtype=other_data.dtype)
             ensemble._data[key] = np.concatenate((self_data, other_data), axis=0)
 
@@ -264,6 +267,8 @@ class PDBEnsemble(Ensemble):
             else:
                 label = label or 'Unknown'
 
+        selstr = atoms.getSelstr() if hasattr(atoms, 'getSelstr') else 'all'
+
         # check coordinates
         try:
             checkCoords(coords, csets=True, natoms=n_atoms)
@@ -345,6 +350,15 @@ class PDBEnsemble(Ensemble):
 
         self._labels.extend(labels)
 
+        # update selstrs
+        if n_csets > 1 and not degeneracy:
+            if isinstance(selstr, str):
+                selstrs = ['{0}_m{1}'.format(label, i+1) for i in range(n_csets)]
+        else:
+            selstrs = [selstr] if np.isscalar(selstr) else selstr
+
+        self._selstrs.extend(selstrs)
+
         # update sequences
         if seqs:
             msa = MSA(seqs, title=self.getTitle(), labels=labels)
@@ -374,23 +388,32 @@ class PDBEnsemble(Ensemble):
                                'the same time')
 
         # appending new data
-        all_keys = set(list(self._data.keys()) + list(adddata.keys()))
+        if self._data is not None and adddata is not None:
+            if self._data is None:
+                self._data = {}
+            if adddata is None:
+                adddata = {}
+            all_keys = set(list(self._data.keys()) + list(adddata.keys()))
 
-        for key in all_keys:
-            if key in self._data:
-                data = self._data[key]
-                if key not in adddata:
-                    shape = (n_repeats, *data.shape[1:])
-                    newdata = np.zeros(shape, dtype=data.dtype)
+            for key in all_keys:
+                if key in self._data:
+                    data = self._data[key]
+                    if key not in adddata:
+                        shape = [n_repeats] 
+                        for s in data.shape[1:]:
+                            shape.append(s)
+                        newdata = np.zeros(shape, dtype=data.dtype)
+                    else:
+                        newdata = np.asarray(adddata[key])
+                        if newdata.shape[0] != n_repeats:
+                            raise ValueError('the length of data["%s"] does not match that of coords'%key)
                 else:
                     newdata = np.asarray(adddata[key])
-                    if newdata.shape[0] != n_repeats:
-                        raise ValueError('the length of data["%s"] does not match that of coords'%key)
-            else:
-                newdata = np.asarray(adddata[key])
-                shape = (self._n_csets, *newdata.shape[1:])
-                data = np.zeros(shape, dtype=newdata.dtype)
-            self._data[key] = np.concatenate((data, newdata), axis=0)
+                    shape = [self._n_csets] 
+                    for s in newdata.shape[1:]:
+                        shape.append(s)
+                    data = np.zeros(shape, dtype=newdata.dtype)
+                self._data[key] = np.concatenate((data, newdata), axis=0)
         
         # update the number of coordinate sets
         self._n_csets += n_repeats
@@ -411,6 +434,11 @@ class PDBEnsemble(Ensemble):
         """Returns identifiers of the conformations in the ensemble."""
 
         return list(self._labels)
+
+    def getSelstrs(self):
+        """Returns identifiers of the conformations in the ensemble."""
+
+        return list(self._selstrs)
 
     def getCoordsets(self, indices=None, selected=True):
         """Returns a copy of coordinate set(s) at given *indices* for selected
@@ -562,3 +590,12 @@ class PDBEnsemble(Ensemble):
                 self._weights = np.ones((self._n_csets, self._n_atoms, 1), dtype=float)
             self._weights[self._indices, :] = weights    
 
+
+    def getTransformations(self):
+        """Returns the :class:`~.Transformation` used to superpose this
+        conformation onto reference coordinates.  The transformation can
+        be used to superpose original PDB file onto the reference PDB file."""
+
+        if self._trans is not None:
+            return [Transformation(trans) for trans in self._trans]
+        return
