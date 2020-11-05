@@ -750,20 +750,22 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                 atomgroup.setResnums(resnums)
 
                 normal_chids = True
-                for j, chid in enumerate(chainids[2:]):
-                    chid_m1 = chainids[j+1]
-                    chid_m2 = chainids[j]
-                    if chid != chid_m1 and chid == chid_m2:
-                        if normal_chids:
-                            new_chid = chid_m2 + chid_m1
-                            normal_chids = False
-                        chainids[j] = new_chid
+                new_chainids = np.zeros(chainids.shape[0], dtype=ATOMIC_FIELDS['chain'].dtype)
+                new_chainids[:] = "0"
+                chid_mem = []
+                chid_alt = 0
+                for j, chid in enumerate(chainids):
+                    if j == 0:
+                        chid_mem.append(chid)
                     else:
-                        if not normal_chids:
-                            chainids[j] = chainids[j+1] = new_chid
-                        normal_chids = True
+                        if chid != chainids[j-1]:
+                            chid_alt += 1
+                            if chid_alt > 1 and chid == chid_mem[-2]:
+                                normal_chids = False
+                            chid_mem.append(chid)
+                        new_chainids[j] = "{}".format(chid_alt)                                
                 if not normal_chids:
-                    chainids[j+1] = chainids[j+2] = new_chid
+                    chainids[:] = new_chainids[:]
 
                 atomgroup.setChids(chainids)
                 atomgroup.setFlags('hetatm', hetero)
@@ -872,20 +874,22 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
         atomgroup.setResnums(resnums)
 
         normal_chids = True
-        for j, chid in enumerate(chainids[2:]):
-            chid_m1 = chainids[j+1]
-            chid_m2 = chainids[j]
-            if chid != chid_m1 and chid == chid_m2:
-                if normal_chids:
-                    new_chid = chid_m2 + chid_m1
-                    normal_chids = False
-                chainids[j] = new_chid
+        new_chainids = np.zeros(chainids.shape[0], dtype=ATOMIC_FIELDS['chain'].dtype)
+        new_chainids[:] = "0"
+        chid_mem = []
+        chid_alt = 0
+        for j, chid in enumerate(chainids):
+            if j == 0:
+                chid_mem.append(chid)
             else:
-                if not normal_chids:
-                    chainids[j] = chainids[j+1] = new_chid
-                normal_chids = True
+                if chid != chainids[j-1]:
+                    chid_alt += 1
+                    if chid_alt > 1 and chid == chid_mem[-2]:
+                        normal_chids = False
+                    chid_mem.append(chid)
+                new_chainids[j] = "{}".format(chid_alt)                                
         if not normal_chids:
-            chainids[j+1] = chainids[j+2] = new_chid
+            chainids[:] = new_chainids[:]
 
         atomgroup.setChids(chainids)
         atomgroup.setFlags('hetatm', hetero)
