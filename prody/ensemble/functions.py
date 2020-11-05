@@ -120,6 +120,8 @@ def loadEnsemble(filename, **kwargs):
 
     if type_ == 'PDBEnsemble':
         ensemble = PDBEnsemble(title)
+    elif type_ == 'ClustENM':
+        ensemble = ClustENM(title)
     else:
         ensemble = Ensemble(title)
 
