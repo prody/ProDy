@@ -104,7 +104,10 @@ def loadEnsemble(filename, **kwargs):
     try:
         title = attr_dict['_title']
     except KeyError:
-        title = attr_dict['_name']
+        try:
+            title = attr_dict['_name']
+        except KeyError:
+            title = None
             
     if isinstance(title, np.ndarray):
         title = title.item()
