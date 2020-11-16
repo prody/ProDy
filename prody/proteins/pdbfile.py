@@ -14,7 +14,7 @@ from prody.atomic import AtomGroup, Atom, Selection
 from prody.atomic import flags
 from prody.atomic import ATOMIC_FIELDS
 from prody.utilities import openFile, isListLike
-from prody.utilities.misctools import decToHybrid36
+from prody.utilities.misctools import decToHybrid36, packmolRenumChains
 from prody import LOGGER, SETTINGS
 
 from .header import getHeaderDict, buildBiomolecules, assignSecstr, isHelix, isSheet
@@ -243,6 +243,7 @@ def parsePDBStream(stream, **kwargs):
     chain = kwargs.get('chain')
     subset = kwargs.get('subset')
     altloc = kwargs.get('altloc', 'A')
+    packmol = kwargs.get('packmol', False)
 
     auto_bonds = SETTINGS.get('auto_bonds')
     get_bonds = kwargs.get('bonds', auto_bonds)
@@ -333,6 +334,9 @@ def parsePDBStream(stream, **kwargs):
             else:
                 LOGGER.info('Biomolecular transformations were applied to the '
                             'coordinate data.')
+
+    if packmol:
+        ag = packmolRenumChains(ag)
 
     if model != 0:
         if header:
