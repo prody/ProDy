@@ -779,7 +779,7 @@ class AtomGroup(Atomic):
         return self.getHierView().numResidues()
 
     def iterSegments(self):
-        """Iterate over chains."""
+        """Iterate over segments."""
 
         return self.getHierView().iterSegments()
 
