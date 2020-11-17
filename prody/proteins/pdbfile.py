@@ -1263,6 +1263,10 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
                              xyz[0], xyz[1], xyz[2],
                              occupancies[i], bfactors[i],
                              segments[i], elements[i]))
+
+            if atoms.getFlags('pdbter')[i]:
+                write('TER\n')
+
         if multi:
             write('ENDMDL\n')
             altlocs = np.zeros(n_atoms, s_or_u + '1')
