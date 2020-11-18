@@ -284,6 +284,10 @@ from . import imanm
 from .imanm import *
 __all__.extend(imanm.__all__)
 
+from . import exgnm
+from .exgnm import *
+__all__.extend(exgnm.__all__)
+
 #from . import saxs
 #from .saxs import *
 #__all__.extend(saxs.__all__)
@@ -295,3 +299,4 @@ __all__.extend(signature.__all__)
 from . import adaptive
 from .adaptive import *
 __all__.extend(adaptive.__all__)
+

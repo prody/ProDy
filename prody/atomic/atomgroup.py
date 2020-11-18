@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """This module defines :class:`AtomGroup` class that stores atomic data and
-multiple coordinate sets in :class:`numpy.ndarray` instances."""
+multiple coordinate sets in :class:`~numpy.ndarray` instances."""
 
 from time import time
 from numbers import Integral
@@ -68,7 +68,7 @@ class AtomGroup(Atomic):
 
     **Atomic data**
 
-    All atomic data is stored in :class:`numpy.ndarray` instances.
+    All atomic data is stored in :class:`~numpy.ndarray` instances.
 
     **Get and set methods**
 
@@ -266,9 +266,22 @@ class AtomGroup(Atomic):
                     that = np.zeros(shape, this.dtype)
                 new._data[key] = np.concatenate((this, that))
 
-        for key in set(list(self._flags) + list(other._flags)):
-            this = self._flags.get(key)
-            that = other._flags.get(key)
+        keys = []
+        if self._flags:
+            for flag in self._flags:
+                if flag not in keys: keys.append(flag)
+
+        if other._flags:
+            for flag in other._flags:
+                if flag not in keys: keys.append(flag)
+
+        for key in keys:
+            this = None
+            that = None
+            if self._flags:
+                this = self._flags.get(key)
+            if other._flags:
+                that = other._flags.get(key)
             if this is not None or that is not None:
                 if this is None:
                     shape = list(that.shape)
@@ -506,7 +519,7 @@ class AtomGroup(Atomic):
     def _setCoords(self, coords, label='', overwrite=False):
         """Set coordinates without data type checking.  *coords* must
         be a :class:`~numpy.ndarray`, but may have data type other than
-        :class:`numpy.float64`, e.g. :class:`numpy.float32`.  *label*
+        :class:`~numpy.float64`, e.g. :class:`~numpy.float32`.  *label*
         argument may be used to label coordinate sets.  *label* may be
         a string or a list of strings length equal to the number of
         coordinate sets."""
@@ -766,7 +779,7 @@ class AtomGroup(Atomic):
         return self.getHierView().numResidues()
 
     def iterSegments(self):
-        """Iterate over chains."""
+        """Iterate over segments."""
 
         return self.getHierView().iterSegments()
 
@@ -1113,30 +1126,36 @@ class AtomGroup(Atomic):
         self._fragments = None
 
     def numBonds(self):
-        """Returns number of bonds.  Use :meth:`setBonds` for setting bonds."""
+        """Returns number of bonds.  Use :meth:`setBonds` or 
+        :meth:`inferBonds` for setting bonds."""
 
         if self._bonds is not None:
             return self._bonds.shape[0]
         return 0
 
     def getBonds(self):
-        """Returns bonds.  Use :meth:`setBonds` for setting bonds."""
+        """Returns bonds.  Use :meth:`setBonds` or 
+        :meth:`inferBonds` for setting bonds."""
 
         if self._bonds is not None:
             acsi = self._acsi
             return np.array([Bond(self, bond, acsi) for bond in self._bonds])
         return None
 
-    def inferBonds(self, max_bond=1.6, min_bond=0, set_bonds=False):
+    def inferBonds(self, max_bond=1.6, min_bond=0, set_bonds=True):
         """Returns bonds based on distances **max_bond** and **min_bond**."""
 
         bonds = []
-        for i, atom_i in enumerate(self[:-1]):
-            for _, atom_j in enumerate(self[i+1:]):
-                distance = getDistance(atom_i.getCoords(), atom_j.getCoords())
-                if distance > min_bond and distance < max_bond:
-                    bonds.append([atom_i._index, atom_j._index])
-        
+        for atom_i in self.iterAtoms():
+            sele = self.select('index > {0} and exwithin {1} of index {0}'
+                               .format(atom_i.getIndex(), max_bond))
+            if sele is not None:
+                for atom_j in sele.iterAtoms():
+                    distance = getDistance(atom_i.getCoords(),
+                                           atom_j.getCoords())
+                    if distance > min_bond:
+                        bonds.append([atom_i._index, atom_j._index])
+
         if set_bonds:
             self.setBonds(bonds)
 
@@ -1144,7 +1163,7 @@ class AtomGroup(Atomic):
         return np.array([Bond(self, bond, acsi) for bond in bonds])
 
     def iterBonds(self):
-        """Yield bonds.  Use :meth:`setBonds` for setting bonds."""
+        """Yield bonds.  Use :meth:`setBonds` or `inferBonds` for setting bonds."""
 
         if self._bonds is not None:
             acsi = self._acsi
@@ -1152,8 +1171,8 @@ class AtomGroup(Atomic):
                 yield Bond(self, bond, acsi)
 
     def _iterBonds(self):
-        """Yield pairs of bonded atom indices. Use :meth:`setBonds` for setting
-        bonds."""
+        """Yield pairs of bonded atom indices. Use :meth:`setBonds` 
+        or `inferBonds` for setting bonds."""
 
         if self._bonds is not None:
             for a, b in self._bonds:
@@ -1630,7 +1649,7 @@ class AtomGroup(Atomic):
 
         if self._bmap is None:
             raise ValueError('bonds must be set for fragment determination, '
-                             'use `setBonds`')
+                             'use `setBonds` or `inferBonds` to set them')
 
         fids = np.zeros(self._n_atoms, int)
         fdict = {}

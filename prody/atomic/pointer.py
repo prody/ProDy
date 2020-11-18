@@ -279,7 +279,7 @@ class AtomPointer(Atomic):
         Use :meth:`setBonds` for setting bonds."""
 
         if self._ag._bonds is None:
-            raise ValueError('bonds are not set, use `AtomGroup.setBonds`')
+            raise ValueError('bonds are not set, use `setBonds` or `inferBonds`')
 
         indices = self._getIndices()
         iset = set(indices)
@@ -295,8 +295,8 @@ class AtomPointer(Atomic):
                 iset.remove(a)
 
     def iterBonds(self):
-        """Yield bonds formed by the atom.  Use :meth:`setBonds` for setting
-        bonds."""
+        """Yield bonds formed by the atom.  Use :meth:`setBonds` or 
+        :meth:`inferBonds` for setting bonds."""
 
         ag = self._ag
         acsi = self.getACSIndex()

@@ -23,6 +23,11 @@ else:
     if tuple(map(int, np.__version__.split('.')[:2])) < (1, 10):
         raise ImportError('Numpy v1.10 or later is required for ProDy')
 
+try:
+    import scipy
+except ImportError:
+    raise ImportError('Scipy is a required package for ProDy')
+
 DEPRECATION_WARNINGS = False
 
 
