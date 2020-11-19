@@ -1,8 +1,9 @@
 """This module defines functions for using compounds from the PDB and elsewhere."""
 
 from .pdbligands import PDBLigandRecord
+import numpy as np
 
-__all__ = ['calc2DSimilarity']
+__all__ = ['calc2DSimilarity', 'calc2DSimilarityMatrix']
 
 
 def calc2DSimilarity(smiles1, smiles2):
@@ -42,3 +43,15 @@ def calc2DSimilarity(smiles1, smiles2):
         simi_score = DataStructs.TanimotoSimilarity(fp1, fp2)
 
     return simi_score
+
+
+def calc2DSimilarityMatrix(smiles_set):
+    num_smiles = len(smiles_set)
+    sim_mat = np.ones((num_smiles, num_smiles))
+
+    for i in range(num_smiles):
+        for j in range(i+1, num_smiles):
+            sim_mat[i, j] = sim_mat[j, i] = calc2DSimilarity(smiles_set[i], smiles_set[j])
+
+    return sim_mat
+    
