@@ -25,11 +25,11 @@ else:
 
 import requests
 
-__all__ = ['QuartataWebBrowser']
+__all__ = ['QuartataWebBrowser', 'QuartataChemicalRecord', 'searchQuartataWeb']
 
 
 class QuartataWebBrowser(object):
-    """A class to browse the QuartataWeb website."""
+    """Class to browse the QuartataWeb website."""
 
     def __init__(self, data_source=None, drug_group=None, input_type=None, query_type=None, 
                  data=None, num_predictions=None, browser_type=None, job_id=None):
@@ -205,11 +205,11 @@ class QuartataWebBrowser(object):
                 group = 'Approved'
             else:
                 raise ValueError('group should be approved, all or None')
-        else:
-            LOGGER.warn('there are no groups when using STITCH')
 
-        self.drug_group = group
-        self.updateHomePage()
+            self.drug_group = group
+            self.updateHomePage()
+        elif group is not None:
+            LOGGER.warn('there are no groups when using STITCH')
 
     def setInputType(self, input_type):
         """Set input_type and update home page
@@ -431,51 +431,241 @@ class QuartataWebBrowser(object):
     def parseChemicals(self):
         """Go to working directory and parse chemicals for query protein.
         Updates self.chemical_data"""
-        self.goToWorkDir()
-        
-        if self.data_source == 'DrugBank':
-            filename = 'known_drugs_for_query_protein.txt'
-        else:
-            filename = 'known_chemicals_for_query_protein.txt'
-
-        self.browser.find_by_text(filename)[0].click()
-        
-        html = requests.get(self.browser.url).content
-        if PY3K:
-            html = html.decode()
-
-        lines = html.split('\n')
-
-        self.fields = lines[0].split('\t')
-        self.num_fields = len(self.fields)
-
-        self.num_rows = len(lines[1:])
-        if lines[-1].strip() == '':
-            self.num_rows -= 1
-
-        dtypes = []
-        for i, item in enumerate(lines[1].split('\t')):
-            if item.isnumeric():
-                dtypes.append((self.fields[i], int))
-            elif item.find('.') != -1 and item.replace('.','0').isnumeric():
-                dtypes.append((self.fields[i], float))
+        try:
+            self.goToWorkDir()
+            
+            if self.data_source == 'DrugBank':
+                filename = 'known_drugs_for_query_protein.txt'
             else:
-                dtypes.append((self.fields[i], object))
+                filename = 'known_chemicals_for_query_protein.txt'
 
-        self.chemical_data = np.empty(self.num_rows, dtype=dtypes)
+            self.browser.find_by_text(filename)[0].click()
+            
+            html = requests.get(self.browser.url).content
+            if PY3K:
+                html = html.decode()
 
-        for i, line in enumerate(lines[1:self.num_rows]):
-            items = line.split('\t')
-            if len(items) != self.num_fields:
-                raise ValueError('line {0} has the wrong number of fields'.format(i+1))
+            lines = html.split('\n')
 
-            for j, item in enumerate(items):
-                self.chemical_data[i][j] = item
+            self.fields = lines[0].split('\t')
+            self.num_fields = len(self.fields)
+
+            self.num_rows = len(lines[1:])
+            if lines[-1].strip() == '':
+                self.num_rows -= 1
+
+            dtypes = []
+            for i, item in enumerate(lines[1].split('\t')):
+                if item.isnumeric():
+                    dtypes.append((self.fields[i], int))
+                elif item.find('.') != -1 and item.replace('.','0').isnumeric():
+                    dtypes.append((self.fields[i], float))
+                else:
+                    dtypes.append((self.fields[i], object))
+
+            self.chemical_data = np.empty(self.num_rows, dtype=dtypes)
+
+            for i, line in enumerate(lines[1:self.num_rows+1]):
+                items = line.split('\t')
+                if len(items) != self.num_fields:
+                    raise ValueError('line {0} has the wrong number of fields'.format(i+1))
+
+                for j, item in enumerate(items):
+                    self.chemical_data[i][j] = item
+        except:
+            success = False
+        else:
+            success = True
+        return success
 
 
     def quit(self):
         self.browser.quit()
 
 
-class QuartataWebRecord(object):
-    pass
+class QuartataChemicalRecord(object):
+    """Class for handling chemical data from QuartataWebBrowser"""
+
+    def __init__(self, data_source=None, drug_group=None, input_type=None, query_type=None, 
+                 data=None, num_predictions=None, browser_type=None, job_id=None):
+        """Instantiate a QuartataChemicalRecord object instance.
+        Inputs are the same as QuartataWebBrowser.
+        """
+        self._chem_data = None
+        self._filterDict = None
+        self.data_source = data_source 
+        self.drug_group = drug_group
+        self.input_type = input_type
+        self.query_type = query_type
+        self.data = data
+        self.num_predictions = num_predictions
+        self.browser_type = browser_type
+        self.job_id = job_id
+
+        self.isSuccess = self.fetch(data_source, drug_group, input_type, query_type,
+                                    data, num_predictions, browser_type, job_id)
+
+
+    def fetch(self, data_source=None, drug_group=None, input_type=None, query_type=None, 
+              data=None, num_predictions=None, browser_type=None, job_id=None):
+        """Fetch data"""
+        if data_source is None:
+            data_source = self.data_source
+        if drug_group is None:
+            drug_group = self.drug_group
+        if input_type is None:
+            input_type = self.input_type
+        if query_type is None:
+            query_type = self.query_type
+        if data is None:
+            data = self.data
+        if num_predictions is None:
+            num_predictions = self.num_predictions
+        if browser_type is None:
+            browser_type = self.browser_type
+        if job_id is None:
+            job_id = self.job_id
+
+        self.qwb = QuartataWebBrowser(data_source, drug_group, input_type, query_type,
+                                      data, num_predictions, browser_type, job_id)
+        
+        isSuccess = self.qwb.parseChemicals()
+        self.qwb.quit()
+
+        self._chem_data = self.qwb.chemical_data
+        chem_temp_dict = dict()
+        listAll = []
+        for temp in self._chem_data:
+            temp_dict = dict()
+            chem_name = temp[1]
+
+            temp_dict['DB_ID'] = temp[0]
+            temp_dict['chemical_name'] = chem_name
+            temp_dict['mol_weight'] = temp[2]
+            temp_dict['SMILES'] = temp[3]
+            temp_dict['conf_score'] = temp[4]
+
+            chem_temp_dict[chem_name] = temp_dict
+            listAll.append(chem_name)
+
+        self._listAll = tuple(listAll)
+        self._list = self._listAll
+        self._chemDict = chem_temp_dict
+        
+        return isSuccess
+
+
+    def getChemicalList(self, filtered=True):
+        """Returns chemical list (filters may be applied)"""
+        if not self.isSuccess:
+            LOGGER.warn('Quartata Chemical Record does not have any data yet.'
+                        'Please run fetch again, possibly with different parameters.')
+        
+        if filtered:
+            return self._list
+        return self._listAll
+        
+
+    def getFilterList(self):
+        """Returns a list of chemicals for the entries that were filtered out"""
+        
+        filterDict = self._filterDict
+        if filterDict is None:
+            raise ValueError('You cannot obtain the list of filtered out entries before doing any filtering.')
+
+        temp_str = ', '.join([str(len(filterDict['lower_MW'])), str(len(filterDict['upper_MW'])), 
+                              str(len(filterDict['conf_score']))])
+        LOGGER.info('Filtered out [' + temp_str + '] for [lower weight, upper weight, confidence score]')
+        return self._filterList
+
+
+    def filter(self, lower_weight=None, upper_weight=None, cutoff_score=None):
+        """Filters out chemicals from the list and returns the updated list.
+        Chemicals that satisfy any of the following criterion will be filtered out.
+        (1) Molecular weight < lower_weight (must be a positive number);
+        (2) Molecular weight > upper_weight (must be a positive number);
+        (3) Confidence score < cutoff_score (must be a positive number);
+
+        Please note that every time this function is run, this overrides any previous runs.
+        Therefore, please provide all filters at once.
+        """
+        if not self.isSuccess:
+            LOGGER.warn('Quartata Chemical Record does not have any data yet.'
+                        'Please run fetch again, possibly with different parameters.')
+            return None
+
+        if lower_weight == None:
+            lower_weight = 0
+        elif not isinstance(lower_weight, (float, int)):
+            raise TypeError('lower_weight must be a float or an integer')
+        if lower_weight >= 0:
+            lower_weight = float(lower_weight)
+        else:
+            raise ValueError('lower_weight must be a number not less than 0')
+            
+        if upper_weight == None:
+            upper_weight = 0
+        elif not isinstance(upper_weight, (float, int)):
+            raise TypeError('upper_weight must be a float or an integer')
+        if upper_weight >= 0:
+            upper_weight = float(upper_weight)
+        else:
+            raise ValueError('upper_weight must be a number not less than 0')
+            
+        if cutoff_score == None:
+            cutoff_score = 0
+        elif not isinstance(cutoff_score, (float, int)):
+            raise TypeError('cutoff_score must be a float or an integer')
+        elif cutoff_score >= 0:
+            cutoff_score = float(cutoff_score)
+        else:
+            raise ValueError('cutoff_score must be a number not less than 0')
+
+        quartataInfo = self._chemDict
+        if quartataInfo is None:
+            raise ValueError("Quartata Chemical Record does not have any data yet. Please run fetch.")
+
+        listAll = self._listAll
+        ref_indices_set = set(range(self.qwb.num_rows))
+        filterListLowerMW = []
+        filterListUpperMW = []
+        filterListConf = []
+        
+        for chem in listAll:
+            temp_dict = quartataInfo[chem]
+
+            if temp_dict['mol_weight'] < lower_weight:
+                filterListLowerMW.append(chem)
+                continue
+
+            if upper_weight > 0 and temp_dict['mol_weight'] > upper_weight:
+                filterListUpperMW.append(chem)
+                continue
+
+            if temp_dict['conf_score'] < cutoff_score:
+                filterListConf.append(chem)
+                continue
+
+        filterList = filterListLowerMW + filterListUpperMW + filterListConf
+        filterDict = {'lower_MW': filterListLowerMW, 'upper_MW': filterListUpperMW, 'conf_score': filterListConf}
+        self._filterList = filterList
+        self._filterDict = filterDict
+        self._list = list(set(self._listAll) - set(filterList))
+        LOGGER.info(str(len(self._listAll)-len(self._list)) + ' chemicals have been filtered out from '+str(len(self._listAll))+' QuartataWeb hits (remaining: '+str(len(self._list))+').')
+        return self._list
+    
+
+QuartataChemicalRecord.__init__.__doc__ += QuartataWebBrowser.__init__.__doc__
+
+
+def searchQuartataWeb(data_source=None, drug_group=None, input_type=None, query_type=None, 
+                   data=None, num_predictions=None, browser_type=None, job_id=None, result_type='Chemical'):
+    """Wrapper function for searching QuartataWeb"""
+    if result_type == 'Chemical':
+        return QuartataChemicalRecord(data_source, drug_group, input_type, query_type,
+                                    data, num_predictions, browser_type, job_id)
+    else:
+        LOGGER.warn('No other result types are supported yet')
+        return None
+
+searchQuartataWeb.__doc__ += QuartataChemicalRecord.__init__.__doc__
