@@ -491,7 +491,7 @@ class QuartataChemicalRecord(object):
         """Instantiate a QuartataChemicalRecord object instance.
         Inputs are the same as QuartataWebBrowser.
         """
-        self._chem_data = None
+        self._chemData = None
         self._filterDict = None
         self.data_source = data_source 
         self.drug_group = drug_group
@@ -532,10 +532,10 @@ class QuartataChemicalRecord(object):
         isSuccess = self.qwb.parseChemicals()
         self.qwb.quit()
 
-        self._chem_data = self.qwb.chemical_data
+        self._chemData = self.qwb.chemical_data
         chem_temp_dict = dict()
         listAll = []
-        for temp in self._chem_data:
+        for temp in self._chemData:
             temp_dict = dict()
             chem_name = temp[1]
 
@@ -565,6 +565,26 @@ class QuartataChemicalRecord(object):
             return self._list
         return self._listAll
         
+
+    def getSMILESList(self, filtered=True):
+        """Returns SMILES list (filters may be applied)"""
+        if not self.isSuccess:
+            LOGGER.warn('Quartata Chemical Record does not have any data yet.'
+                        'Please run fetch again, possibly with different parameters.')
+        
+        if filtered:
+            return [self._chemDict[key]['SMILES'] for key in self._list]
+        return self._chemData['SMILES']
+        
+
+    def getParticularSMILES(self, key):
+        """Returns SMILES for a particular chemical"""
+        if not self.isSuccess:
+            LOGGER.warn('Quartata Chemical Record does not have any data yet.'
+                        'Please run fetch again, possibly with different parameters.')
+
+        return self._chemDict[key]['SMILES']
+
 
     def getFilterList(self):
         """Returns a list of chemicals for the entries that were filtered out"""
