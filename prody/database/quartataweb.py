@@ -15,14 +15,6 @@ c) the corresponding driver such as chromedriver (https://sites.google.com/a/chr
 from prody import PY3K, LOGGER
 import numpy as np
 
-try:
-    from splinter import Browser
-except ImportError:
-    raise ImportError('Browser module could not be imported. '
-                      'install splinter package to solve the problem.')
-else:
-    from selenium.webdriver.common.service import WebDriverException
-
 import requests
 
 __all__ = ['QuartataWebBrowser', 'QuartataChemicalRecord', 'searchQuartataWeb']
@@ -341,23 +333,32 @@ class QuartataWebBrowser(object):
             Default is ``"Chrome"``
         :type browser_type: str
         """
-        if browser_type is None:
+        if self.no_data:
             try:
-                browser = Browser('chrome')
-                url = "http://quartata.csb.pitt.edu"
-                browser.visit(url)
-            except WebDriverException:
+                from splinter import Browser
+            except ImportError:
+                raise ImportError('Browser module could not be imported. '
+                                'install splinter package to solve the problem.')
+            else:
+                from selenium.webdriver.common.service import WebDriverException
+                
+            if browser_type is None:
                 try:
-                    browser = Browser('firefox')
+                    browser = Browser('chrome')
                     url = "http://quartata.csb.pitt.edu"
                     browser.visit(url)
                 except WebDriverException:
-                    raise ValueError(
-                        'No web driver found for Chrome or Firefox. Please specify a browser type or download an appropriate driver.')
+                    try:
+                        browser = Browser('firefox')
+                        url = "http://quartata.csb.pitt.edu"
+                        browser.visit(url)
+                    except WebDriverException:
+                        raise ValueError(
+                            'No web driver found for Chrome or Firefox. Please specify a browser type or download an appropriate driver.')
+                    else:
+                        self.browser_type = 'firefox'
                 else:
-                    self.browser_type = 'firefox'
-            else:
-                self.browser_type = 'chrome'
+                    self.browser_type = 'chrome'
 
         elif not isinstance(browser_type, str):
             raise TypeError('browser_type should be a string or None')
