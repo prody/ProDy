@@ -670,7 +670,7 @@ class QuartataChemicalRecord(object):
         filterDict = {'lower_MW': filterListLowerMW, 'upper_MW': filterListUpperMW, 'conf_score': filterListConf}
         self._filterList = filterList
         self._filterDict = filterDict
-        self._list = list(set(self._listAll) - set(filterList))
+        self._list = [item for item in self._listAll if not item in filterList]
         LOGGER.info(str(len(self._listAll)-len(self._list)) + ' chemicals have been filtered out from '+str(len(self._listAll))+' QuartataWeb hits (remaining: '+str(len(self._list))+').')
         return self._list
     
