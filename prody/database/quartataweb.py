@@ -18,14 +18,6 @@ from prody.utilities import openFile
 import numpy as np
 import os
 
-try:
-    from splinter import Browser
-except ImportError:
-    raise ImportError('Browser module could not be imported. '
-                      'install splinter package to solve the problem.')
-else:
-    from selenium.webdriver.common.service import WebDriverException
-
 import requests
 
 __all__ = ['QuartataWebBrowser', 'QuartataChemicalRecord', 'searchQuartataWeb']
@@ -363,7 +355,15 @@ class QuartataWebBrowser(object):
             Default is ``"Chrome"``
         :type browser_type: str
         """
-        if self.no_data:   
+        if self.no_data:
+            try:
+                from splinter import Browser
+            except ImportError:
+                raise ImportError('Browser module could not be imported. '
+                                'install splinter package to solve the problem.')
+            else:
+                from selenium.webdriver.common.service import WebDriverException
+                
             if browser_type is None:
                 try:
                     browser = Browser('chrome')
