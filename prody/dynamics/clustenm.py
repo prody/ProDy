@@ -1,4 +1,4 @@
-"""
+'''
 Copyright (c) 2020 Burak Kaynak, Pemra Doruker.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -18,7 +18,7 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-"""
+'''
 
 __author__ = 'Burak Kaynak'
 __credits__ = ['Pemra Doruker', 'She Zhang']
@@ -58,10 +58,11 @@ norm = la.norm
 __all__ = ['ClustENM', 'ClustRTB', 'ClustImANM', 'ClustExANM']
 
 class ClustENM(Ensemble):
+
     '''
     ClustENMv2 is the new version of ClustENM(v1) conformation sampling algorithm [KZ16]_.
     This ANM-based hybrid algorithm requires PDBFixer and OpenMM for performing energy minimization and MD simulations in implicit solvent.
-    It is Python 3.7 compatible and has been only tested on Linux machines.
+    It is Python 3.6 compatible and has been only tested on Linux machines.
 
     .. [KZ16] Kurkcuoglu Z, Bahar I, Doruker P. ClustENM: ENM-based sampling of essential conformational space at full atomic resolution.
        *J Chem* **2016** 12(9):4549-4562.
@@ -71,76 +72,11 @@ class ClustENM(Ensemble):
        13:e1005659.
 
     Instantiate a ClustENM object.
-
-    Parameters
-    ----------
-    pdb : str
-        pdb name without .pdb to download the structure or with .pdb to read it from disk.
-        This will be used for the initial conformer.
-    chain : str (optional)
-            Chain Ids. If None, all chains in the PDB file are parsed.
-            Otherwise, a set of chains is parsed, e. g. 'AC'.
-    pH : float
-        the pH based on which to select protonation states, default is 7.0.
-    cutoff : float
-            Cutoff distance (A) for pairwise interactions used in ANM computations, default is 15.0 A.
-    n_modes : int
-            Number of non-zero eigenvalues/vectors to calculate.
-    n_confs : int
-            Number of new conformations to be generated based on each conformer coming from the previous generation, default is 50.
-    rmsd : float, tuple of floats
-        Average RMSD of the new conformers with respect to the original conformation, default is 1.0 A.
-        A tuple of floats can be given, e.g. (1.0, 1.5, 1.5) for subsequent generations.
-        Note: In the case of ClustENMv1, this value is the maximum rmsd, not the average.
-    n_gens : int
-            Number of generations.
-    maxclust : int or a tuple of int's.
-            The maximum number of clusters for each generation. Default in None.
-            A tuple of int's can be given, e.g. (10, 30 ,50) for subsequent generations.
-            Warning: Either threshold or maxclust should be given! For large number of generations and/or structures,
-            specifying maxclust is more efficient.
-    threshold : float or tuple of floats.
-                If it is true, a short MD simulation will be performed after energy minimization. Default is True.
-                Note: There is a heating-up phase until the desired temperature is reached before MD simulation starts.
-    solvent: str
-             Solvent model to be used. 'imp' stands form implicit solvent model (default)
-             whereas 'exp' stands for explicit solvent model.
-    force_field: a tuple of str
-                 If solvent model is implicit, then the default force_field = ('amber99sbildn.xml', 'amber99_obc.xml').
-                 If solvent model is explicit, then the default force_field = ('amber14-all.xml', 'amber14/tip3pfb.xml').
-                 Experimental feature: Already implemented force fields in OpenMM can be used. 
-    sim : bool
-        If it is true, a short MD simulation will be performed after energy minimization. Default is True.
-        Note: There is a heating-up phase until the desired temperature is reached before MD simulation starts.
-    temp : float.
-        Temperature at which the simulations are conducted. Default is 300.0 K.
-    t_steps_i : int
-                Duration of MD simulation (number of time steps) for the initial conformer, default is 1000.
-                Note: Each time step is 2.0 fs.
-    t_steps_g : int or tuple of int's
-                Duration of MD simulations (number of time steps) to run for each conformer, default is 7500.
-                A tuple of int's for subsequent generations, e.g. (3000, 5000, 7000).
-                Note: Each time step is 2.0 fs.
-    outlier : bool
-            Exclusion of conformers detected as outliers in each generation,
-            based on their potential energy using their modified z-scores over the potentials in that generation,
-            default is True. It is automatically set to False when explicit solvent model is being used.
-    mzscore : float
-            Modified z-score threshold to label conformers as outliers. Default is 3.5.
-    v1 : bool
-        The sampling method used in the original article is utilized, a complete enumeration of desired ANM Modes.
-        Note: Maximum number of modes should not exceed 5 for efficiency.
-    platform: str
-            The architecture on which the OpenMM part runs, default is None. It can be chosen as 'OpenCL' or 'CPU'.
-            For efficiency, 'CUDA' or 'OpenCL' is recommended.
-    missing_residues : bool
-        whether fixes missing residues. Default is **True**.
     '''
 
     def __init__(self, title=None):
 
         self._atoms = None
-
         self._ph = 7.0
 
         self._cutoff = 15.
@@ -156,13 +92,14 @@ class ClustENM(Ensemble):
         self._sol = 'imp'
         self._force_field = None
         self._sim = True
-        self._temp = 300
+        self._temp = 303.15
         self._t_steps = None
 
         self._outlier = True
         self._mzscore = 3.5
         self._v1 = False
         self._platform = None 
+        self._parallel = False
 
         self._topology = None
         self._positions = None
@@ -171,11 +108,10 @@ class ClustENM(Ensemble):
         self._cycle = 0
         self._time = 0
         self._indexer = None
-        self._parallel = False
         self._targeted = False
         self._tmdk = 10.
 
-        super(ClustENM, self).__init__('Unknown')   # dummy title; will be replaced in next line
+        super(ClustENM, self).__init__('Unknown')   # dummy title; will be replaced in the next line
         self._title = title
 
     def __getitem__(self, index):
@@ -190,21 +126,35 @@ class ClustENM(Ensemble):
 
     def getAtoms(self):
 
+        'Returns atoms.'
+
         return self._atoms
 
-    def isBuilt(self):
+    def _isBuilt(self):
 
         return self._confs is not None
 
-    def setAtoms(self, atoms, pH=7.0, fix_missing_residues=False):
+    def setAtoms(self, atoms, pH=7.0):
 
-        if self.isBuilt():
+        '''
+        Set atoms.
+
+        Parameters
+        ----------
+        atoms : *atoms* parsed by parsePDB.
+        pH : float
+            pH based on which to select protonation states for adding missing hydrogens, default is 7.0.
+        add_missing_residues : bool
+            If it s True, then missing residues in the middle of a chain are added. 
+        '''
+
+        if self._isBuilt():
             super(ClustENM, self).setAtoms(atoms)
         else:
             LOGGER.info('Fixing the structure ...')
             LOGGER.timeit('_clustenm_fix')
             self._ph = pH
-            self._fix(atoms, fix_missing_residues)
+            self._fix(atoms)
             LOGGER.report('The structure was fixed in %.2fs.',
                           label='_clustenm_fix')
 
@@ -214,6 +164,8 @@ class ClustENM(Ensemble):
             self._indices = None
 
     def getTitle(self):
+
+        'Returns the title.'
 
         title = 'Unknown'
         if self._title is None:
@@ -225,13 +177,23 @@ class ClustENM(Ensemble):
 
         return title
 
-    def setTitle(self, value):
+    def setTitle(self, arg):
 
-        if not isinstance(value, str) and value is not None:
+        '''
+        Set title.
+
+        Parameter
+        ---------
+        arg : str
+            Title to be set.
+
+        '''
+
+        if not isinstance(arg, str) and arg is not None:
             raise TypeError('title must be either str or None')
-        self._title = value
+        self._title = arg
 
-    def _fix(self, atoms, fix_missing_residues=False):
+    def _fix(self, atoms):
 
         try:
             from pdbfixer import PDBFixer
@@ -246,14 +208,7 @@ class ClustENM(Ensemble):
         fixed = PDBFixer(pdbfile=stream)
         stream.close()
 
-        # for the time being we are note modeling any residue
-        if fix_missing_residues:
-            fixed.findMissingResidues()
-        else:
-            # skipping modeling of missing residues neither at the chain ends
-            # nor in the middle, since sometimes it models unnaturally
-            fixed.missingResidues = {}
-
+        fixed.missingResidues = {}
         fixed.findNonstandardResidues()
         fixed.replaceNonstandardResidues()
         fixed.removeHeterogens(False)
@@ -284,7 +239,7 @@ class ClustENM(Ensemble):
             raise ImportError('Please install PDBFixer and OpenMM in order to use ClustENM.')
 
         positions = Quantity([Vec3(*xyz) for xyz in coords], angstrom)
-        modeller = Modeller(self._topology, positions)   # self._positions
+        modeller = Modeller(self._topology, positions)
 
         if self._sol == 'imp':
             forcefield = ForceField(*self._force_field)
@@ -331,9 +286,6 @@ class ClustENM(Ensemble):
 
         # coords: coordset   (numAtoms, 3) in Angstrom, which should be converted into nanometer
 
-        # we are not using self._positions! - deprecated
-        # coords will be set as positions - deprecated
-
         try:
             from simtk.openmm.app import StateDataReporter
             from simtk.unit import kelvin, angstrom, kilojoule_per_mole, MOLAR_GAS_CONSTANT_R
@@ -354,8 +306,8 @@ class ClustENM(Ensemble):
                 temp = 0.0
 
                 # instantaneous temperature could be obtained by openmmtools module
-                # but its installation using conda may have problem due to repository freezing,
-                # therefore, we are evaluating by hand.
+                # but its installation using conda may lead to problem due to repository freezing,
+                # therefore, we are here evaluating it by hand.
 
                 while temp < self._temp:
                     simulation.step(1)
@@ -453,13 +405,15 @@ class ClustENM(Ensemble):
 
             return np.nan, np.full_like(coords0, np.nan)
 
-    def checkANM(self, anm):
+    def _checkANM(self, anm):
 
+        # use prody's ZERO parameter
+        
         H = anm.getHessian()
         rank = np.linalg.matrix_rank(anm.getHessian(), tol=ZERO, hermitian=True)
         rank_diff = H.shape[0] - 6 - rank
 
-        good = rank_diff <= 0   # '<' maybe needed due to RTB?
+        good = rank_diff <= 0   # '<' needed due to RTB
 
         if not good:
             # taking care cases with more than 6 zeros
@@ -469,16 +423,13 @@ class ClustENM(Ensemble):
 
     def _sample_v1(self, conf):
 
-        # arg: conf idx
-
         tmp = self._atoms.copy()
         tmp.setCoords(conf)
         ca = tmp.ca
 
-        anm_ca = self.buildANM(ca)
+        anm_ca = self._buildANM(ca)
 
-        # use prody's ZERO parameter
-        if not self.checkANM(anm_ca):
+        if not self._checkANM(anm_ca):
             return None
 
         anm_ca.calcModes(self._n_modes)
@@ -505,7 +456,7 @@ class ClustENM(Ensemble):
 
         return self._targeted_sim(conf, coords, tmdk=self._tmdk)
 
-    def buildANM(self, ca):
+    def _buildANM(self, ca):
 
         anm = ANM()
         anm.buildHessian(ca, cutoff=self._cutoff, gamma=self._gamma)
@@ -514,14 +465,16 @@ class ClustENM(Ensemble):
 
     def _sample(self, conf):
 
+        if self._parallel:
+            print('par')
+
         tmp = self._atoms.copy()
         tmp.setCoords(conf)
         ca = tmp.ca
 
-        anm_ca = self.buildANM(ca)
+        anm_ca = self._buildANM(ca)
 
-        # use prody's ZERO parameter
-        if not self.checkANM(anm_ca):
+        if not self._checkANM(anm_ca):
             return None
 
         anm_ca.calcModes(self._n_modes)
@@ -536,7 +489,7 @@ class ClustENM(Ensemble):
             if self._parallel:
                 with Pool(cpu_count()) as p:
                     pot_conf = p.map(self._multi_targeted_sim,
-                                     [(conf, coords) for coords in coordsets])   # may use confs directly
+                                     [(conf, coords) for coords in coordsets])
             else:
                 pot_conf = [self._multi_targeted_sim((conf, coords)) for coords in coordsets]
 
@@ -552,8 +505,7 @@ class ClustENM(Ensemble):
     def _rmsds(self, coords):
 
         # as long as there is no need for superposing conformations
-        # only anm modes are used for perturbation
-        # so no translation or rotation would involve
+        # only anm modes are used for perturbation so no translation or rotation would involve
 
         # coords: (n_conf, n_ca, 3)
 
@@ -614,7 +566,6 @@ class ClustENM(Ensemble):
 
     def _generate(self, confs):
 
-        # confs = confs.copy()   # let's check whether it is needed
         LOGGER.info('Sampling conformers in generation %d ...' % self._cycle)
         LOGGER.timeit('_clustenm_gen')
 
@@ -646,7 +597,7 @@ class ClustENM(Ensemble):
         # outliers are detected by modified z_score.
 
         tmp = 0.6745 * (arg - np.median(arg)) / median_absolute_deviation(arg)
-        # here the assumption is that there is not just one conformer
+        # here the assumption is that there is not just one conformer.
 
         return tmp > 3.5
 
@@ -669,6 +620,8 @@ class ClustENM(Ensemble):
         self.setData('potential', potentials)
 
     def addCoordset(self, coords):
+
+        'Add coordinate set(s).'
 
         self._indexer = None
         super(ClustENM, self).addCoordset(coords)
@@ -700,17 +653,25 @@ class ClustENM(Ensemble):
 
     def getPotentials(self, gen=None):
 
+        'Returns potentials.'
+
         return self.getData('potential', gen)
 
     def getSizes(self, gen=None):
+
+        'Returns the number of unminimized conformers represented by a cluster centroid.'
 
         return self.getData('size', gen)
 
     def numGenerations(self):
 
+        'Returns the number of generations.'
+
         return self._n_gens
 
     def numConfs(self, gen=None):
+
+        'Returns the number of conformers.'
 
         if gen is None:
             return super(ClustENM, self).numConfs()
@@ -753,10 +714,12 @@ class ClustENM(Ensemble):
 
     def _getCoordsets(self, indices=None, selected=True):
 
-        """Returns the coordinate set(s) at given *indices*, which may be
+        '''
+        Returns the coordinate set(s) at given *indices*, which may be
         an integer, a list of integers, a tuple of (generation, index), or **None**. 
         **None** returns all coordinate sets. For reference coordinates, use :meth:`getCoords`
-        method."""
+        method.
+        '''
 
         if isinstance(indices, tuple):
             I = self._slice(indices)
@@ -768,6 +731,8 @@ class ClustENM(Ensemble):
 
     def writePDBFixed(self):
 
+        'Write the fixed structure to a pdb file.'
+
         from simtk.openmm.app import PDBFile
 
         PDBFile.writeFile(self._topology,
@@ -777,9 +742,18 @@ class ClustENM(Ensemble):
 
     def writePDB(self, filename=None, single=True, **kwargs):
 
-        # single -> True, save as a single pdb file with each conformer as a model
-        # otherwise, each conformer is saved as a separate pdb file
-        # in the directory pdbs_pdbname
+        '''
+        Write conformers in PDB format to a file.
+        
+        Parameters
+        ----------
+        filename : str
+            The name of the file. If it is None (default), the title of the ClustENM will be used.
+        single : bool
+            If it is True (default), then the conformers will be saved into a single PDB file with
+            each conformer as a model. Otherwise, a directory will be created with the filename,
+            and each conformer will be saved as a separate PDB fle. 
+        '''
 
         if filename is None:
             filename = self.getTitle()
@@ -802,11 +776,71 @@ class ClustENM(Ensemble):
 
     def run(self, cutoff=15., n_modes=3, gamma=1., n_confs=50, rmsd=1.0,
             n_gens=5, maxclust=None, threshold=None,
-            solvent='imp', sim=True, force_field=None, temp=300,
+            solvent='imp', sim=True, force_field=None, temp=303.15,
             t_steps_i=1000, t_steps_g=7500,
             outlier=True, mzscore=3.5, **kwargs):
 
-        if self.isBuilt():
+        '''
+        Perform a ClustENM run. 
+
+        Parameters
+        ----------
+        cutoff : float
+            Cutoff distance (A) for pairwise interactions used in ANM computations, default is 15.0 A.
+        n_modes : int
+            Number of non-zero eigenvalues/vectors to calculate.
+        n_confs : int
+            Number of new conformations to be generated based on each conformer coming from the previous generation, default is 50.
+        rmsd : float, tuple of floats
+            Average RMSD of the new conformers with respect to the original conformation, default is 1.0 A.
+            A tuple of floats can be given, e.g. (1.0, 1.5, 1.5) for subsequent generations.
+            Note: In the case of ClustENMv1, this value is the maximum rmsd, not the average.
+        n_gens : int
+            Number of generations.
+        maxclust : int or a tuple of int's.
+            The maximum number of clusters for each generation. Default in None.
+            A tuple of int's can be given, e.g. (10, 30 ,50) for subsequent generations.
+            Warning: Either threshold or maxclust should be given! For large number of generations and/or structures,
+            specifying maxclust is more efficient.
+        threshold : float or tuple of floats.
+            If it is true, a short MD simulation will be performed after energy minimization. Default is True.
+            Note: There is a heating-up phase until the desired temperature is reached before MD simulation starts.
+        solvent: str
+            Solvent model to be used. 'imp' stands form implicit solvent model (default)
+            whereas 'exp' stands for explicit solvent model.
+        force_field: a tuple of str
+            If solvent model is implicit, then the default force_field = ('amber99sbildn.xml', 'amber99_obc.xml').
+            If solvent model is explicit, then the default force_field = ('amber14-all.xml', 'amber14/tip3pfb.xml').
+            Experimental feature: Already implemented force fields in OpenMM can be used. 
+        sim : bool
+            If it is true, a short MD simulation will be performed after energy minimization. Default is True.
+            Note: There is a heating-up phase until the desired temperature is reached before MD simulation starts.
+        temp : float.
+            Temperature at which the simulations are conducted. Default is 303.15 K.
+        t_steps_i : int
+            Duration of MD simulation (number of time steps) for the initial conformer, default is 1000.
+            Note: Each time step is 2.0 fs.
+        t_steps_g : int or tuple of int's
+            Duration of MD simulations (number of time steps) to run for each conformer, default is 7500.
+            A tuple of int's for subsequent generations, e.g. (3000, 5000, 7000).
+            Note: Each time step is 2.0 fs.
+        outlier : bool
+            Exclusion of conformers detected as outliers in each generation,
+            based on their potential energy using their modified z-scores over the potentials in that generation,
+            default is True. It is automatically set to False when explicit solvent model is being used.
+        mzscore : float
+            Modified z-score threshold to label conformers as outliers. Default is 3.5.
+        v1 : bool
+            The sampling method used in the original article is utilized, a complete enumeration of desired ANM Modes.
+            Note: Maximum number of modes should not exceed 5 for efficiency.
+        platform: str
+            The architecture on which the OpenMM part runs, default is None. It can be chosen as 'OpenCL' or 'CPU'.
+            For efficiency, 'CUDA' or 'OpenCL' is recommended.
+        parallel : bool
+            If it is True (default: False), then sampling over conformers will be parallelized.
+        '''
+
+        if self._isBuilt():
             raise ValueError('ClustENM ensemble has been built; please start a new instance')
 
         # set up parameters
@@ -816,7 +850,6 @@ class ClustENM(Ensemble):
         self._n_confs = n_confs
         self._rmsd = (0.,) + rmsd if isinstance(rmsd, tuple) else (0.,) + (rmsd,) * n_gens
         self._n_gens = n_gens
-        self._v1 = kwargs.pop('v1', False)
         self._platform = kwargs.pop('platform', None)
         self._parallel = kwargs.pop('parallel', False)
         self._targeted = kwargs.pop('targeted', False)
@@ -860,6 +893,7 @@ class ClustENM(Ensemble):
 
         self._outlier = False if self._sol == 'exp' else outlier
         self._mzscore = mzscore
+        self._v1 = kwargs.pop('v1', False)
 
         self._cycle = 0
 
@@ -907,21 +941,7 @@ class ClustENM(Ensemble):
                 LOGGER.info('Minimization in generation %d ...' % i)
             LOGGER.timeit('_clustenm_min_sim')
 
-            # <simtk.openmm.openmm.Platform;
-            # proxy of a <Swig Object of type 'OpenMM::Platform'>>
-            # which isn't picklable because it is a SwigPyObject
-            # that's why, the loop is serial when a platform is specified.
-            # ThreadPool can overcome this issue, however,
-            # threading can slow calculations down
-            # since calculations here are CPU-bound.
-            # we may totally discard Pool and just use serial version!
-
-            # if self._platform is None:
-            if self._parallel:
-                with Pool(cpu_count()) as p:
-                    pot_conf = p.map(self._min_sim, confs)
-            else:
-                pot_conf = [self._min_sim(conf) for conf in confs]
+            pot_conf = [self._min_sim(conf) for conf in confs]
 
             LOGGER.report('Structures were sampled in %.2fs.',
                           label='_clustenm_min_sim')
@@ -957,6 +977,15 @@ class ClustENM(Ensemble):
 
     def writeParameters(self, filename=None):
 
+        '''
+        Write the parameters defined to a text file.
+
+        Parameter
+        ---------
+        filename : str
+            The name of the file. If it is None (default), the title of the ClustENM will be used.
+        '''
+
         title = self.getTitle()
         if filename is None:
             filename = '%s_parameters.txt' % title
@@ -988,6 +1017,8 @@ class ClustENM(Ensemble):
                 f.write('platform = %s\n' % self._platform)
             else:
                 f.write('platform = Default\n')
+            if self._parallel:
+                f.write('parallel = %s\n' % self._parallel)
 
             f.write('total time = %4.2f' % self._time)
 
@@ -1000,7 +1031,7 @@ class ClustRTB(ClustENM):
         self._scale = 64.
         self._h = 100.
 
-    def buildANM(self, ca):
+    def _buildANM(self, ca):
         blocks = self._blocks
         anm = RTB()
         anm.buildHessian(ca, blocks, cutoff=self._cutoff, gamma=self._gamma)
@@ -1025,7 +1056,7 @@ class ClustImANM(ClustENM):
         self._scale = 64.
         self._h = 100.
 
-    def buildANM(self, ca):
+    def _buildANM(self, ca):
         blocks = self._blocks
         anm = imANM()
         anm.buildHessian(ca, blocks, cutoff=self._cutoff, 
@@ -1047,7 +1078,7 @@ class ClustImANM(ClustENM):
 
 
 class ClustExANM(ClustENM):
-    def buildANM(self, ca):
+    def _buildANM(self, ca):
         anm = exANM()
         anm.buildHessian(ca, cutoff=self._cutoff, gamma=self._gamma, R=self._R,
                          Ri=self._Ri, r=self._r, h=self._h, exr=self._exr,
