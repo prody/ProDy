@@ -458,13 +458,12 @@ from .flags import PLANTERS as FLAG_PLANTERS
 
 from .atomgroup import AtomGroup
 from .chain import Chain, getSequence
-from .atomic import AAMAP
 from .pointer import AtomPointer
 from .selection import Selection
 from .segment import Segment
 from .atommap import AtomMap
 
-from prody.utilities import rangeString
+from prody.utilities import rangeString, AAMAP
 from prody.kdtree import KDTree
 
 if PY2K:

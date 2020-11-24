@@ -4,7 +4,7 @@
 from numpy import arange, unique
 
 from .subset import AtomSubset
-from .atomic import AAMAP
+from prody.utilities import AAMAP
 
 __all__ = ['Chain']
 

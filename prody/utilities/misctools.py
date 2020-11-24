@@ -19,7 +19,7 @@ __all__ = ['Everything', 'Cursor', 'ImageCursor', 'rangeString', 'alnum', 'impor
            'getDataPath', 'openData', 'chr2', 'toChararray', 'interpY', 'cmp', 'pystr',
            'getValue', 'indentElement', 'isPDB', 'isURL', 'isListLike', 'isSymmetric', 'makeSymmetric',
            'getDistance', 'fastin', 'createStringIO', 'div0', 'wmean', 'bin2dec', 'wrapModes', 
-           'fixArraySize', 'decToHybrid36', 'hybrid36ToDec', 'DTYPE', 'split']
+           'fixArraySize', 'decToHybrid36', 'hybrid36ToDec', 'DTYPE', 'split', 'AAMAP']
 
 DTYPE = array(['a']).dtype.char  # 'S' for PY2K and 'U' for PY3K
 CURSORS = []
@@ -36,6 +36,40 @@ isURL = re.compile(
         r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})' # ...or ip
         r'(?::\d+)?' # optional port
         r'(?:/?|[/?]\S+)$', re.IGNORECASE).match
+
+AAMAP = {
+    'ALA': 'A', 'ARG': 'R', 'ASN': 'N', 'ASP': 'D', 'CYS': 'C', 'GLN': 'Q',
+    'GLU': 'E', 'GLY': 'G', 'HIS': 'H', 'ILE': 'I', 'LEU': 'L', 'LYS': 'K',
+    'MET': 'M', 'PHE': 'F', 'PRO': 'P', 'SER': 'S', 'THR': 'T', 'TRP': 'W',
+    'TYR': 'Y', 'VAL': 'V',
+    'ASX': 'B', 'GLX': 'Z', 'SEC': 'U', 'PYL': 'O', 'XLE': 'J', '': '-'
+}
+
+# add bases
+AAMAP.update({'ADE': 'a', 'THY': 't', 'CYT': 'c',
+              'GUA': 'g', 'URA': 'u'})
+
+# add reversed mapping
+_ = {}
+for aaa, a in AAMAP.items():
+    _[a] = aaa
+AAMAP.update(_)
+
+MODMAP = {}
+with openData('mod_res_map.dat') as f:
+    for line in f:
+        try:
+            mod, aa = line.strip().split(' ')
+            MODMAP[mod] = aa
+        except:
+            continue
+
+# add modified AAs
+MODAAMAP = {}
+for mod, aa in MODMAP.items():
+    if aa in AAMAP:
+        MODAAMAP[mod] = AAMAP[aa]
+AAMAP.update(MODAAMAP)
 
 class Everything(object):
     """A place for everything."""
