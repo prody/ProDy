@@ -147,8 +147,6 @@ class ClustENM(Ensemble):
         atoms : *atoms* parsed by parsePDB.
         pH : float
             pH based on which to select protonation states for adding missing hydrogens, default is 7.0.
-        add_missing_residues : bool
-            If it s True, then missing residues in the middle of a chain are added. 
         '''
 
         if self._isBuilt():
@@ -732,7 +730,7 @@ class ClustENM(Ensemble):
                 indices = I[0]
             else:
                 indices = I
-                
+
         return super(ClustENM, self)._getCoordsets(indices, selected)
 
     def writePDBFixed(self):
