@@ -18,8 +18,6 @@ from prody.utilities import openFile
 import numpy as np
 import os
 
-import requests
-
 __all__ = ['QuartataWebBrowser', 'QuartataChemicalRecord', 'searchQuartataWeb']
 
 
@@ -490,6 +488,7 @@ class QuartataWebBrowser(object):
 
                 self.browser.find_by_text(data_filename)[0].click()
                 
+                import requests
                 html = requests.get(self.browser.url).content
                 if PY3K:
                     html = html.decode()
