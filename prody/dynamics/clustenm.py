@@ -120,7 +120,10 @@ class ClustENM(Ensemble):
             I = self._slice(index)
             if len(I) == 0:
                 raise IndexError('index out of range (%d, %d)' % index)
-            index = I
+            elif len(I) == 1:
+                index = I[0]
+            else:
+                index = I
 
         return super(ClustENM, self).__getitem__(index)
 
@@ -725,9 +728,12 @@ class ClustENM(Ensemble):
             I = self._slice(indices)
             if len(I) == 0:
                 raise IndexError('index out of range (%d, %d)' % indices)
-            return super(ClustENM, self)._getCoordsets(I, selected)
-        else:
-            return super(ClustENM, self)._getCoordsets(indices, selected)
+            elif len(I) == 1:
+                indices = I[0]
+            else:
+                indices = I
+                
+        return super(ClustENM, self)._getCoordsets(indices, selected)
 
     def writePDBFixed(self):
 
