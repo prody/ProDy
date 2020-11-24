@@ -118,12 +118,9 @@ class ClustENM(Ensemble):
 
         if isinstance(index, tuple):
             I = self._slice(index)
-            if len(I) == 0:
-                raise IndexError('index out of range (%d, %d)' % index)
-            elif len(I) == 1:
-                index = I[0]
-            else:
-                index = I
+            if I is None:
+                raise IndexError('index out of range %s' % str(index))
+            index = I
 
         return super(ClustENM, self).__getitem__(index)
 
@@ -704,14 +701,21 @@ class ClustENM(Ensemble):
             indexer = self._indexer = np.array(entries)
         else:
             indexer = self._indexer
-        full_serials = indexer[indices].flatten()
+        
+        full_serials = indexer[indices]
 
-        serials = []
-        for s in full_serials:
-            if s != -1:
-                serials.append(s)
+        if np.isscalar(full_serials):
+            index = full_serials
+            indices = None if index == -1 else index
+        else:
+            full_serials = full_serials.flatten()
+            indices = []
+            for s in full_serials:
+                if s != -1:
+                    indices.append(s)
+            indices = np.array(indices) if indices else None
 
-        return np.array(serials)
+        return indices
 
     def _getCoordsets(self, indices=None, selected=True):
 
@@ -724,14 +728,12 @@ class ClustENM(Ensemble):
 
         if isinstance(indices, tuple):
             I = self._slice(indices)
-            if len(I) == 0:
-                raise IndexError('index out of range (%d, %d)' % indices)
-            elif len(I) == 1:
-                indices = I[0]
-            else:
-                indices = I
+            if I is None:
+                raise IndexError('index out of range %s' % str(indices))
+        else:
+            I = indices
 
-        return super(ClustENM, self)._getCoordsets(indices, selected)
+        return super(ClustENM, self)._getCoordsets(I, selected)
 
     def writePDBFixed(self):
 
