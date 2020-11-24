@@ -154,39 +154,28 @@ class ESSA:
 
     def showESSAProfile(self, quant=.75):
 
-        with plt.rc_context({'axes.labelsize': 'xx-large',
-                             'xtick.labelsize': 'x-large',
-                             'ytick.labelsize': 'x-large',
-                             'legend.fontsize': 'large',
-                             'figure.figsize': (15, 7),
-                             'figure.dpi': 600}):
+        showAtomicLines(self._zscore, atoms=self._ca, c='k', linewidth=1.)
 
-            fig = plt.figure()
-            showAtomicLines(self._zscore, atoms=self._ca, c='k', linewidth=1.)
+        if self._lig:
+            zs_lig = {k: self._zscore[v] for k, v in self._lig_idx.items()}
+            for k in self._lig_idx.keys():
+                plt.scatter(self._lig_idx[k], zs_lig[k], label=k)
+            plt.legend()
+        plt.hlines(quantile(self._zscore, q=quant),
+                   xmin=0., xmax=self._ca.numAtoms(),
+                   linestyle='--', color='c')
 
-            if self._lig:
-                zs_lig = {k: self._zscore[v] for k, v in self._lig_idx.items()}
-                for k in self._lig_idx.keys():
-                    plt.scatter(self._lig_idx[k], zs_lig[k], s=100, label=k)
-                plt.legend()
+        plt.xlabel('Residue')
+        plt.ylabel('Z-Score')
 
-            plt.hlines(quantile(self._zscore, q=quant),
-                        xmin=0., xmax=self._ca.numAtoms(),
-                        linewidth=3., linestyle='--', color='c')
-
-            plt.xlabel('Residue')
-            plt.ylabel('Z-Score')
-
-            plt.tight_layout()
-
-        return fig
+        plt.tight_layout()
 
     def scanPockets(self):
 
         fpocket = which('fpocket')
 
         if fpocket is None:
-            LOGGER.info('Fpocket was not found, please install it.')
+            LOGGER.info('Fpocket 3.0 was not found, please install it.')
             return None
 
         try:
@@ -352,15 +341,12 @@ class ESSA:
 
     def showPocketZscores(self):
 
-        fig = plt.figure(dpi=600)
         self._df_zs[['Maximum ESSA Z-score of pocket residues',
                      'Median ESSA Z-score of pocket residues',
                      'Local hydrophobic density Z-score']].plot.bar(figsize=(25, 10))
         plt.xticks(rotation=0)
         plt.ylabel('Z-score')
         plt.tight_layout()
-
-        return fig
 
     def savePocketFeatures(self):
 
