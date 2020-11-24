@@ -844,16 +844,23 @@ def findSubgroups(tree, c, method='naive', **kwargs):
     return subgroups
 
 
-def getAtomicTable(matrix, atoms_i=None, atoms_j=None):
-    """Generates a new table for a matrix with
-    atom labels along the top and at the 
-    beginning of each line for :func:`.printAtomicTable`.
+def getAtomicTable(matrix, atoms_i=None, atoms_j=None, 
+                   fmt='%5d', sep='\t'):
+    """Generates a new table for a matrix with atom labels along 
+    the top and at the beginning of each line for :func:`.printAtomicTable`.
 
     :arg matrix: any square 2D data with a size matching atoms
     :type matrix: tuple, list, :class:`~numpy.ndarray`
 
-    :arg atoms: any :class:`.Atomic` object to label the data
-    :type atoms: :class:`.Atomic`
+    :arg atoms_i: any :class:`.Atomic` object to label the rows
+    :type atoms_i: :class:`.Atomic`
+
+    :arg atoms_j: any :class:`.Atomic` object to label the columns
+        uses atoms_i by default
+    :type atoms_j: :class:`.Atomic`
+
+    :arg fmt: format string for formatting numbers
+    :type fmt: str
     """
     if not isListLike(matrix):
         raise TypeError('matrix should be list-like')
@@ -865,23 +872,61 @@ def getAtomicTable(matrix, atoms_i=None, atoms_j=None):
     if atoms_j is None:
         atoms_j = atoms_i
 
+    if matrix.shape[0] != atoms_i.numAtoms():
+        raise ValueError('number of rows should be number of atoms_i')
+
+    if matrix.shape[1] != atoms_j.numAtoms():
+        raise ValueError('number of cols should be number of atoms_j')
+
+    if not isinstance(fmt, str):
+        raise TypeError('fmt should be a string')
+
+    chars = [list(item) for item in fmt.split('.')]
+    nums = []
+    for item in chars:
+        num_str = ''
+        for char in item:
+            if char.isnumeric():
+                num_str += char
+        nums.append(int(num_str))
+
+    if len(nums) == 1:
+        length = nums[0]
+    else:
+        if nums[0] >= nums[1] + 2:
+            length = nums[0]
+        else:
+            length = nums[1] + 2
+
     table = ''
-    if atoms_j is not None:
-        table += ' '*10
-        row = matrix[0]
-        for j, element in enumerate(row):
-            table += '\t{} {}{:3d}'.format(atoms_j[j].getChid(),
-                                           atoms_j[j].getResname(),
-                                           atoms_j[j].getResnum())
-        table += '\n'
+    table += ' '*length
+
+    resnum_length = max(len(str(max(atoms_i.getResnums()))),
+                        len(str(max(atoms_j.getResnums()))))
+    chid_length = max(max([len(chid) for chid in atoms_i.getChids()]),
+                      max([len(chid) for chid in atoms_j.getChids()]))
+    
+    for j in range(matrix.shape[1]):
+        table += sep
+        if length >= resnum_length + chid_length:
+            chid = atoms_j[j].getChid()
+            table += ' '*(chid_length - len(chid)) + chid
+        if length >= resnum_length + chid_length + 1:
+            table += ' '
+        
+        if length >= resnum_length + chid_length + 2:
+            table += AAMAP.get(atoms_j[j].getResname(), 'X')
+
+        table += '%{0}d'.format(resnum_length) % atoms_j[j].getResnum()
+    table += '\n'
 
     for i, row in enumerate(matrix):
         if atoms_i is not None:
-            table += '{} {}{:3d}\t'.format(atoms_i[i].getChid(),
-                                           atoms_i[i].getResname(),
-                                           atoms_i[i].getResnum())
+            table += '\t{} {}'.format(atoms_i[i].getChid(),
+                                      atoms_i[i].getResname())
+            table += fmt % atoms_i[i].getResnum()
         for element in row:
-            table += '{:8.3f}\t'.format(element)
+            table += fmt % element
         table += '\n'
 
     return table
