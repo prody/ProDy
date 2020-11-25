@@ -5,7 +5,6 @@ from re import findall
 from numpy import argsort, array, c_, count_nonzero, hstack, mean, median, quantile, save
 from scipy.stats import zscore, median_absolute_deviation
 import matplotlib.pyplot as plt
-from pandas import Index, DataFrame
 from prody import LOGGER
 from prody.atomic.functions import extendAtomicData
 from .anm import ANM
@@ -13,7 +12,7 @@ from .gnm import GNM
 from prody.proteins import parsePDB, writePDB
 from .editing import reduceModel
 from .plotting import showAtomicLines
-from .signature import ModeEnsemble, loadModeEnsemble, saveModeEnsemble
+from .signature import ModeEnsemble, saveModeEnsemble
 from prody.utilities import which
 
 
@@ -128,6 +127,10 @@ class ESSA:
                           f'exwithin {self._dist} of (chain {chid} and resnum {resnum}))'
                 self._lig_idx[key] = self._atoms.select(sel_lig).getResindices()
 
+    def getESSAZscores(self):
+
+        return self._zscore
+
     def getESSAEnsemble(self):
 
         return self._ensemble[:]
@@ -179,7 +182,7 @@ class ESSA:
             return None
 
         try:
-            import pandas
+            from pandas import Index, DataFrame
         except ImportError as ie:
             LOGGER.info(ie.__str__() + ' was found, please install it.')
             return None
@@ -270,6 +273,8 @@ class ESSA:
         self._df_zs = DataFrame(index=indices, columns=columns_zs, data=zps)
 
     def rankPockets(self):
+
+        from pandas import DataFrame
 
         pzs_max = self._df_zs['Maximum ESSA Z-score of pocket residues']
         pzs_med = self._df_zs['Median ESSA Z-score of pocket residues']
