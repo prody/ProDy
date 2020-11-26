@@ -375,7 +375,7 @@ def writeNMD(filename, modes, atoms):
     if not isinstance(modes, (NMA, ModeSet, Mode, Vector)):
         raise TypeError('modes must be NMA, ModeSet, Mode, or Vector, '
                         'not {0}'.format(type(modes)))
-    if modes.numAtoms() != atoms.numAtoms():
+    if modes._n_atoms != atoms.numAtoms():
         raise Exception('number of atoms do not match')
     out = openFile(addext(filename, '.nmd'), 'w')
 
