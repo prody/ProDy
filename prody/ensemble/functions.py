@@ -161,8 +161,7 @@ def loadEnsemble(filename, **kwargs):
             for attr in attrs:
                 if attr in attr_dict.files:
                     setattr(ensemble, attr, attr_dict[attr])
-
-            
+ 
         ensemble.addCoordset(confs)
         if weights is not None:
             ensemble.setWeights(weights)
