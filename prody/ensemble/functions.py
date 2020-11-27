@@ -39,6 +39,12 @@ def saveEnsemble(ensemble, filename=None, **kwargs):
     if isinstance(ensemble, PDBEnsemble):
         attr_list.append('_labels')
         attr_list.append('_trans')
+    elif isinstance(ensemble, ClustENM):
+        attr_list.extend(['_ph', '_cutoff', '_gamma', '_n_modes', '_n_confs',
+                          '_rmsd', '_n_gens', '_maxclust', '_threshold', '_sol',
+                          '_sim', '_temp', '_t_steps', '_outlier', '_mzscore', '_v1',
+                          '_parallel', '_idx_ca', '_n_ca', '_cycle', '_time', '_targeted',
+                          '_tmdk'])
 
     if filename is None:
         filename = ensemble.getTitle().replace(' ', '_')
@@ -145,6 +151,17 @@ def loadEnsemble(filename, **kwargs):
         if '_msa' in attr_dict.files:
             ensemble._msa = attr_dict['_msa'][0]
     else:
+        if type_ == 'ClustENM':
+            attrs = ['_ph', '_cutoff', '_gamma', '_n_modes', '_n_confs',
+                    '_rmsd', '_n_gens', '_maxclust', '_threshold', '_sol',
+                    '_sim', '_temp', '_t_steps', '_outlier', '_mzscore', '_v1',
+                    '_parallel', '_idx_ca', '_n_ca', '_cycle', '_time', '_targeted',
+                    '_tmdk']
+            
+            for attr in attrs:
+                if attr in attr_dict.files:
+                    setattr(ensemble, attr, attr_dict[attr])
+ 
         ensemble.addCoordset(confs)
         if weights is not None:
             ensemble.setWeights(weights)
