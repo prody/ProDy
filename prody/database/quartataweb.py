@@ -675,7 +675,7 @@ class QuartataChemicalRecord(object):
         return self._list
     
 
-QuartataChemicalRecord.__init__.__doc__ += QuartataWebBrowser.__init__.__doc__
+QuartataChemicalRecord.__doc__ += QuartataWebBrowser.__doc__
 
 
 def searchQuartataWeb(data_source=None, drug_group=None, input_type=None, query_type=None, 
