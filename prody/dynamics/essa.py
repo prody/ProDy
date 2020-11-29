@@ -20,15 +20,22 @@ __all__ = ['ESSA']
 
 
 class ESSA:
-    '''docstring'''
 
-    def __init__(self, pdb, lig=None):
+    '''
+    docstring
 
-        self._atoms = pdb
-        self._title = pdb.getTitle()
-        self._lig = lig
-        self._heavy = pdb.select('protein and heavy and not hetatm')
-        self._ca = self._heavy.ca
+    .. [KB20] Kaynak B.T., Bahar I., Doruker P., Essential site scanning analysis: A new approach for detecting sites that modulate the dispersion of protein global motions, *Comput. Struct. Biotechnol. J.* **2020** 18:1577-1586.
+
+    Instantiate an ESSA object.
+    '''
+
+    def __init__(self):
+
+        self._atoms = None
+        self._title = None
+        self._lig = None
+        self._heavy = None
+        self._ca = None
         self._n_modes = None
         self._enm = None
         self._cutoff = None
@@ -40,14 +47,41 @@ class ESSA:
         if lig:
             self._lig_idx = {}
 
+    def setAtoms(self, atoms, lig=None):
+
+        '''
+        Sets atoms and ligands.
+
+        :arg atoms: *atoms* parsed by parsePDB
+
+        :arg lig: string of ligands' chainIDs and resSeqs (resnum) separated by a whitespace,
+            e.g., 'A 300 B 301'.
+        :type lig: str
+        '''
+
+        self._atoms = atoms
+        self._title = atoms.getTitle()
+        self._lig = lig
+        self._heavy = atoms.select('protein and heavy and not hetatm')
+        self._ca = self._heavy.ca
+
     def scanResidues(self, n_modes=10, enm='gnm', cutoff=None, dist=4.5):
 
-        # pdb : a pdb parsed by ProDy
-        # n_modes : n_modes of GNM object
-        # lig : string of ligands' chainIDs and resSeqs (resnum) separated by a whitespace, e.g., 'A 300 B 301'
-        # dist : the protein residues within a distance of ligands
-        # enm: the type of enm
-        # cutoff: enm cutoff
+        '''
+        Scanning residues.
+
+        :arg n_modes: 
+        :type n_modes: int
+
+        :arg enm: Type of the ENM, default is 'gnm'.
+        "type enm: str
+
+        :arg cutoff: cutoff distance (A) for pairwise interactions
+        :type cutoff: float
+
+        :arg dist: Distance (A) to obtain the protein residues within its value of ligands
+        :type dist: float
+        '''
 
         self._n_modes = n_modes
         self._enm = enm
@@ -129,26 +163,38 @@ class ESSA:
 
     def getESSAZscores(self):
 
+        'Returns ESSA z-scores.'
+
         return self._zscore
 
     def getESSAEnsemble(self):
+
+        'Returns ESSA ensemble.'
 
         return self._ensemble[:]
     
     def saveESSAEnsemble(self):
 
+        'Saves ESSA ensemble.'
+
         saveModeEnsemble(self._ensemble, filename=f'{self._title}_{self._enm}')
 
     def saveESSAZscores(self):
+
+        'Saves ESSA z-scores to a binary file in Numpy `.npy` format.'
 
         save(f'{self._title}_{self._enm}_zs', self._zscore)
 
     def writeESSAZscoresToPDB(self):
 
+        'Writes ESSA z-scores to a pdb file.'
+
         writePDB(f'{self._title}_{self._enm}_zs', self._heavy,
                  beta=extendAtomicData(self._zscore, self._ca, self._heavy)[0])
 
     def saveLigandIndices(self):
+
+        'Saves ligand indices to a pickle file.'
 
         if self._lig:
             dump(self._lig_idx, open(f'{self._title}_ligand_resindices.pkl', 'wb'))
@@ -156,6 +202,13 @@ class ESSA:
             LOGGER.warning('No ligand provided.')
 
     def showESSAProfile(self, quant=.75):
+
+        '''
+        Shows ESSA profile.
+
+        :arg quant: Quantile value to plot a baseline.
+        :type quant: float
+        '''
 
         showAtomicLines(self._zscore, atoms=self._ca, c='k', linewidth=1.)
 
@@ -174,6 +227,8 @@ class ESSA:
         plt.tight_layout()
 
     def scanPockets(self):
+
+        'Scans pockets. It needs both Fpocket 3.0 and Pandas being installed in your system.'
 
         fpocket = which('fpocket')
 
@@ -274,6 +329,8 @@ class ESSA:
 
     def rankPockets(self):
 
+        'Ranks pockets.'
+
         from pandas import DataFrame
 
         pzs_max = self._df_zs['Maximum ESSA Z-score of pocket residues']
@@ -334,17 +391,25 @@ class ESSA:
 
     def getPocketRanks(self):
 
+        'Returns pocket ranks.'
+
         return self._pocket_ranks
 
     def getPocketFeatures(self):
+
+        'Returns pocket features as a Pandas dataframe.'
 
         return self._df
 
     def getPocketZscores(self):
 
+        'Returns pocket zscores of all features as a Pandas dataframe.'
+
         return self._df_zs
 
     def showPocketZscores(self):
+
+        'Plots maximum/median ESSA and local hydrophobic density z-scores.'
 
         self._df_zs[['Maximum ESSA Z-score of pocket residues',
                      'Median ESSA Z-score of pocket residues',
@@ -355,13 +420,19 @@ class ESSA:
 
     def savePocketFeatures(self):
 
+        'Saves pocket features to a pickle `.pkl` file.'
+
         self._df.to_pickle(f'{self._title}_pocket_features.pkl')
 
     def savePocketZscores(self):
 
+        'Saves pocket zscores of all features to a pickle `.pkl` file.'
+
         self._df_zs.to_pickle(f'{self._title}_pocket_zscores.pkl')
 
     def savePocketRanks(self):
+
+        'Saves pocket ranks to a binary file in Numpy `.npy` format.'
 
         save(f'{self._title}_{self._enm}_pocket_ranks_wrt_ESSA_max',
              self._idx_pzs_max)
@@ -373,5 +444,7 @@ class ESSA:
              self._idx_med)
         
     def writePocketRanksToCSV(self):
+
+        'Writes pocket ranks to a `.csv` file.'
 
         self._pocket_ranks.to_csv(f'{self._title}_{self._enm}_pocket_ranks.csv', index=False)

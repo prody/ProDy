@@ -64,12 +64,9 @@ class ClustENM(Ensemble):
     This ANM-based hybrid algorithm requires PDBFixer and OpenMM for performing energy minimization and MD simulations in implicit solvent.
     It is Python 3.6 compatible and has been only tested on Linux machines.
 
-    .. [KZ16] Kurkcuoglu Z, Bahar I, Doruker P. ClustENM: ENM-based sampling of essential conformational space at full atomic resolution.
-       *J Chem* **2016** 12(9):4549-4562.
+    .. [KZ16] Kurkcuoglu Z., Bahar I., Doruker P., ClustENM: ENM-based sampling of essential conformational space at full atomic resolution. *J Chem* **2016** 12(9):4549-4562.
 
-    .. [PE17] Eastman P, Swails J, Chodera JD, McGibbon RT, Zhao Y, Beauchamp KA, Wang LP, Simmonett AC, Harrigan MP, Stern CD, Wiewiora RP,
-       Brooks BR, Pande VS. OpenMM 7: Rapid Development of High Performance Algorithms for Molecular Dynamics. *PLoS Comput Biol* **2017**
-       13:e1005659.
+    .. [PE17] Eastman P., Swails J., Chodera J.D., McGibbon R.T., Zhao Y., Beauchamp K.A., Wang L.P., Simmonett A.C., Harrigan M.P., Stern C.D., Wiewiora R.P., Brooks B.R., Pande V.S., OpenMM 7: Rapid Development of High Performance Algorithms for Molecular Dynamics. *PLoS Comput Biol* **2017** 13:e1005659.
 
     Instantiate a ClustENM object.
     '''
@@ -137,13 +134,12 @@ class ClustENM(Ensemble):
     def setAtoms(self, atoms, pH=7.0):
 
         '''
-        Set atoms.
+        Sets atoms.
+        
+        :arg atoms: *atoms* parsed by parsePDB
 
-        Parameters
-        ----------
-        atoms : *atoms* parsed by parsePDB.
-        pH : float
-            pH based on which to select protonation states for adding missing hydrogens, default is 7.0.
+        :arg pH: pH based on which to select protonation states for adding missing hydrogens, default is 7.0.
+        :type pH: float
         '''
 
         if self._isBuilt():
@@ -175,21 +171,18 @@ class ClustENM(Ensemble):
 
         return title
 
-    def setTitle(self, arg):
+    def setTitle(self, title):
 
         '''
         Set title.
 
-        Parameter
-        ---------
-        arg : str
-            Title to be set.
-
+        :arg title: title of the ClustENM object.
+        :type title: str 
         '''
 
-        if not isinstance(arg, str) and arg is not None:
+        if not isinstance(title, str) and title is not None:
             raise TypeError('title must be either str or None')
-        self._title = arg
+        self._title = title
 
     def _fix(self, atoms):
 
@@ -619,12 +612,27 @@ class ClustENM(Ensemble):
 
     def addCoordset(self, coords):
 
-        'Add coordinate set(s).'
+        '''
+        Add coordinate set(s) to the ensemble.
+
+        :arg coords: coordinate  set(s)
+        :type coords: :class:`~numpy.ndarray`
+        '''
 
         self._indexer = None
         super(ClustENM, self).addCoordset(coords)
 
     def getData(self, key, gen=None):
+
+        '''
+        Returns data.
+
+        :arg key: Key
+        :type key: str
+
+        :arg gen: Generation
+        :type gen: int
+        '''
 
         keys = super(ClustENM, self)._getData('key')
         data = super(ClustENM, self).getData(key)
@@ -640,9 +648,23 @@ class ClustENM(Ensemble):
 
     def getKeys(self, gen=None):
 
+        '''
+        Returns keys.
+
+        :arg gen: Generation
+        :type gen: int
+        '''
+
         return self.getData('key', gen)
 
     def getLabels(self, gen=None):
+
+        '''
+        Returns labels.
+
+        :arg gen: Generation
+        :type gen: int
+        '''
 
         keys = self.getKeys(gen)
         labels = ['%d_%d' % tuple(k) for k in keys]
@@ -651,13 +673,23 @@ class ClustENM(Ensemble):
 
     def getPotentials(self, gen=None):
 
-        'Returns potentials.'
+        '''
+        Returns potentials.
+
+        :arg gen: Generation
+        :type gen: int
+        '''
 
         return self.getData('potential', gen)
 
     def getSizes(self, gen=None):
 
-        'Returns the number of unminimized conformers represented by a cluster centroid.'
+        '''
+        Returns the number of unminimized conformers represented by a cluster centroid.
+
+        :arg gen: Generation
+        :type gen: int
+        '''
 
         return self.getData('size', gen)
 
@@ -669,7 +701,12 @@ class ClustENM(Ensemble):
 
     def numConfs(self, gen=None):
 
-        'Returns the number of conformers.'
+        '''
+        Returns the number of conformers.
+
+        :arg gen: Generation number.
+        :type gen: int
+        '''
 
         if gen is None:
             return super(ClustENM, self).numConfs()
@@ -751,14 +788,13 @@ class ClustENM(Ensemble):
         '''
         Write conformers in PDB format to a file.
         
-        Parameters
-        ----------
-        filename : str
-            The name of the file. If it is None (default), the title of the ClustENM will be used.
-        single : bool
-            If it is True (default), then the conformers will be saved into a single PDB file with
+        :arg filename: The name of the file. If it is None (default), the title of the ClustENM will be used.
+        :type filename: str
+
+        :arg single: If it is True (default), then the conformers will be saved into a single PDB file with
             each conformer as a model. Otherwise, a directory will be created with the filename,
-            and each conformer will be saved as a separate PDB fle. 
+            and each conformer will be saved as a separate PDB fle.
+        :type single: bool
         '''
 
         if filename is None:
@@ -787,63 +823,78 @@ class ClustENM(Ensemble):
             outlier=True, mzscore=3.5, **kwargs):
 
         '''
-        Perform a ClustENM run. 
+        Performs a ClustENM run.
 
-        Parameters
-        ----------
-        cutoff : float
-            Cutoff distance (A) for pairwise interactions used in ANM computations, default is 15.0 A.
-        n_modes : int
-            Number of non-zero eigenvalues/vectors to calculate.
-        n_confs : int
-            Number of new conformations to be generated based on each conformer coming from the previous generation, default is 50.
-        rmsd : float, tuple of floats
-            Average RMSD of the new conformers with respect to the original conformation, default is 1.0 A.
+        :arg cutoff: Cutoff distance (A) for pairwise interactions used in ANM computations, default is 15.0 A.
+        :type cutoff: float
+
+        :arg n_modes: Number of non-zero eigenvalues/vectors to calculate.
+        :type n_modes: int
+
+        :arg n_confs: Number of new conformations to be generated based on each conformer coming from the previous generation, default is 50.
+        :type n_confs: int
+            
+        :arg rmsd: Average RMSD of the new conformers with respect to the original conformation, default is 1.0 A.
             A tuple of floats can be given, e.g. (1.0, 1.5, 1.5) for subsequent generations.
             Note: In the case of ClustENMv1, this value is the maximum rmsd, not the average.
-        n_gens : int
-            Number of generations.
-        maxclust : int or a tuple of int's.
-            The maximum number of clusters for each generation. Default in None.
+        :type rmsd: float, tuple of floats
+
+        :arg n_gens: Number of generations.
+        :type n_gens: int
+
+        :arg maxclust:  The maximum number of clusters for each generation. Default in None.
             A tuple of int's can be given, e.g. (10, 30 ,50) for subsequent generations.
             Warning: Either threshold or maxclust should be given! For large number of generations and/or structures,
             specifying maxclust is more efficient.
-        threshold : float or tuple of floats.
-            If it is true, a short MD simulation will be performed after energy minimization. Default is True.
+        :type maxclust: int or a tuple of int's
+
+        :arg threshold: If it is true, a short MD simulation will be performed after energy minimization. Default is True.
             Note: There is a heating-up phase until the desired temperature is reached before MD simulation starts.
-        solvent: str
-            Solvent model to be used. 'imp' stands form implicit solvent model (default)
+        :type threshold: float or tuple of floats.
+
+        :arg solvent: Solvent model to be used. 'imp' stands form implicit solvent model (default)
             whereas 'exp' stands for explicit solvent model.
-        force_field: a tuple of str
-            If solvent model is implicit, then the default force_field = ('amber99sbildn.xml', 'amber99_obc.xml').
+        :type solvent: str
+
+        :arg force_field: If solvent model is implicit, then the default force_field = ('amber99sbildn.xml', 'amber99_obc.xml').
             If solvent model is explicit, then the default force_field = ('amber14-all.xml', 'amber14/tip3pfb.xml').
             Experimental feature: Already implemented force fields in OpenMM can be used. 
-        sim : bool
-            If it is true, a short MD simulation will be performed after energy minimization. Default is True.
+        :type force_field: a tuple of str
+
+        :arg sim: If it is true, a short MD simulation will be performed after energy minimization. Default is True.
             Note: There is a heating-up phase until the desired temperature is reached before MD simulation starts.
-        temp : float.
-            Temperature at which the simulations are conducted. Default is 303.15 K.
-        t_steps_i : int
-            Duration of MD simulation (number of time steps) for the initial conformer, default is 1000.
+        :type sim: bool
+
+        :arg temp: Temperature at which the simulations are conducted. Default is 303.15 K.
+        :type temp: float
+
+        :arg t_steps_i: Duration of MD simulation (number of time steps) for the initial conformer, default is 1000.
             Note: Each time step is 2.0 fs.
-        t_steps_g : int or tuple of int's
-            Duration of MD simulations (number of time steps) to run for each conformer, default is 7500.
+        :type t_steps_i : int
+
+        :arg t_steps_g: Duration of MD simulations (number of time steps) to run for each conformer, default is 7500.
             A tuple of int's for subsequent generations, e.g. (3000, 5000, 7000).
             Note: Each time step is 2.0 fs.
-        outlier : bool
-            Exclusion of conformers detected as outliers in each generation,
+        :type t_steps_g: int or tuple of int's
+
+        :arg outlier: Exclusion of conformers detected as outliers in each generation,
             based on their potential energy using their modified z-scores over the potentials in that generation,
             default is True. It is automatically set to False when explicit solvent model is being used.
-        mzscore : float
-            Modified z-score threshold to label conformers as outliers. Default is 3.5.
-        v1 : bool
-            The sampling method used in the original article is utilized, a complete enumeration of desired ANM Modes.
+        :type outlier: bool
+
+        :arg mzscore: Modified z-score threshold to label conformers as outliers. Default is 3.5.
+        :type mzscore: float
+
+        :arg v1: The sampling method used in the original article is utilized, a complete enumeration of desired ANM Modes.
             Note: Maximum number of modes should not exceed 5 for efficiency.
-        platform: str
-            The architecture on which the OpenMM part runs, default is None. It can be chosen as 'OpenCL' or 'CPU'.
+        :type v1: bool
+
+        :arg platform: The architecture on which the OpenMM part runs, default is None. It can be chosen as 'OpenCL' or 'CPU'.
             For efficiency, 'CUDA' or 'OpenCL' is recommended.
-        parallel : bool
-            If it is True (default: False), then sampling over conformers will be parallelized.
+        :type platform: str
+
+        :arg parallel: If it is True (default: False), then sampling over conformers will be parallelized.
+        :type parallel: bool
         '''
 
         if self._isBuilt():
@@ -917,7 +968,10 @@ class ClustENM(Ensemble):
         LOGGER.info('Generation 0 ...')
 
         if self._sim:
-            LOGGER.info('Minimization, heating-up & simulation in generation 0 ...')
+            if self._t_steps[0] != 0:
+                LOGGER.info('Minimization, heating-up & simulation in generation 0 ...')
+            else:
+                LOGGER.info('Minimization & heating-up in generation 0 ...')
         else:
             LOGGER.info('Minimization in generation 0 ...')
         LOGGER.timeit('_clustenm_min')
@@ -942,7 +996,10 @@ class ClustENM(Ensemble):
             LOGGER.info('Generation %d ...' % i)
             confs, weights = self._generate(start_confs)
             if self._sim:
-                LOGGER.info('Minimization, heating-up & simulation in generation %d ...' % i)
+                if self._t_steps[i] != 0:
+                    LOGGER.info('Minimization, heating-up & simulation in generation %d ...' % i)
+                else:
+                    LOGGER.info('Minimization & heating-up in generation %d ...' % i)
             else:
                 LOGGER.info('Minimization in generation %d ...' % i)
             LOGGER.timeit('_clustenm_min_sim')
@@ -986,10 +1043,8 @@ class ClustENM(Ensemble):
         '''
         Write the parameters defined to a text file.
 
-        Parameter
-        ---------
-        filename : str
-            The name of the file. If it is None (default), the title of the ClustENM will be used.
+        :arg filename: The name of the file. If it is None (default), the title of the ClustENM will be used.
+        :type filename: str
         '''
 
         title = self.getTitle()
