@@ -55,6 +55,12 @@ from prody.utilities import createStringIO, importLA
 la = importLA()
 norm = la.norm
 
+lig = 'hetatm and (resname ' \
+      'ALA ARG ASN ASP CYS ' \
+      'GLN GLU GLY HIS ILE ' \
+      'LEU LYS MET PHE PRO ' \
+      'SER THR TRP TYR VAL)'
+
 __all__ = ['ClustENM', 'ClustRTB', 'ClustImANM', 'ClustExANM']
 
 class ClustENM(Ensemble):
@@ -141,6 +147,13 @@ class ClustENM(Ensemble):
         :arg pH: pH based on which to select protonation states for adding missing hydrogens, default is 7.0.
         :type pH: float
         '''
+
+        sel_0 = atoms.select(lig)
+        if sel_0 is not None:
+            sel_1 = 'not resindex '
+            sel_2 = ' '.join([str(i) for i in sel_0.getResindices()])
+            sel = sel_1 + sel_2
+            atoms = atoms.select(sel)
 
         if self._isBuilt():
             super(ClustENM, self).setAtoms(atoms)
