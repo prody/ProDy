@@ -80,6 +80,7 @@ class ClustENM(Ensemble):
     def __init__(self, title=None):
 
         self._atoms = None
+        self._nuc = None
         self._ph = 7.0
 
         self._cutoff = 15.
@@ -106,8 +107,8 @@ class ClustENM(Ensemble):
 
         self._topology = None
         self._positions = None
-        self._idx_ca = None
-        self._n_ca = None
+        self._idx_cg = None
+        self._n_cg = None
         self._cycle = 0
         self._time = 0
         self._indexer = None
@@ -155,6 +156,8 @@ class ClustENM(Ensemble):
             sel = sel_1 + sel_2
             atoms = atoms.select(sel)
 
+        self._nuc = atoms.select('nucleotide')
+
         if self._isBuilt():
             super(ClustENM, self).setAtoms(atoms)
         else:
@@ -165,8 +168,13 @@ class ClustENM(Ensemble):
             LOGGER.report('The structure was fixed in %.2fs.',
                           label='_clustenm_fix')
 
-            self._idx_ca = self._atoms.ca.getIndices()
-            self._n_ca = self._atoms.ca.numAtoms()
+            if self._nuc is None:
+                self._idx_cg = self._atoms.ca.getIndices()
+                self._n_cg = self._atoms.ca.numAtoms()
+            else:
+                self._idx_cg = self._atoms.select("name CA C2 C4' P").getIndices()
+                self._n_cg = self._idx_cg.size
+
             self._n_atoms = self._atoms.numAtoms()
             self._indices = None
 
@@ -342,9 +350,9 @@ class ClustENM(Ensemble):
         tmdk *= kilojoule_per_mole/angstrom**2
         tmdk = tmdk.value_in_unit(kilojoule_per_mole/nanometer**2)
 
-        # coords1_ca = coords1[self._idx_ca, :]
+        # coords1_ca = coords1[self._idx_cg, :]
         pos1 = coords1 * angstrom
-        # pos1_ca = pos1[self._idx_ca, :]
+        # pos1_ca = pos1[self._idx_cg, :]
 
         force = CustomExternalForce('tmdk*((x-x0)^2+(y-y0)^2+(z-z0)^2)')
         force.addGlobalParameter('tmdk', 0.) 
@@ -352,7 +360,7 @@ class ClustENM(Ensemble):
         force.addPerParticleParameter('y0')
         force.addPerParticleParameter('z0')
         force.setForceGroup(1)
-        # for i, atm_idx in enumerate(self._idx_ca):
+        # for i, atm_idx in enumerate(self._idx_cg):
         #     pars = pos1_ca[i, :].value_in_unit(nanometer)
         #     force.addParticle(int(atm_idx), pars)
 
@@ -429,16 +437,16 @@ class ClustENM(Ensemble):
 
         tmp = self._atoms.copy()
         tmp.setCoords(conf)
-        ca = tmp.ca
+        cg = tmp[self._idx_cg]
 
-        anm_ca = self._buildANM(ca)
+        anm_cg = self._buildANM(cg)
 
-        if not self._checkANM(anm_ca):
+        if not self._checkANM(anm_cg):
             return None
 
-        anm_ca.calcModes(self._n_modes)
+        anm_cg.calcModes(self._n_modes)
 
-        anm_ex, _ = extendModel(anm_ca, ca, tmp, norm=True)
+        anm_ex, _ = extendModel(anm_cg, cg, tmp, norm=True)
         a = np.array(list(product([-1, 0, 1], repeat=self._n_modes)))
 
         nv = (anm_ex.getEigvecs() / np.sqrt(anm_ex.getEigvals())) @ a.T
@@ -460,30 +468,27 @@ class ClustENM(Ensemble):
 
         return self._targeted_sim(conf, coords, tmdk=self._tmdk)
 
-    def _buildANM(self, ca):
+    def _buildANM(self, cg):
 
         anm = ANM()
-        anm.buildHessian(ca, cutoff=self._cutoff, gamma=self._gamma)
+        anm.buildHessian(cg, cutoff=self._cutoff, gamma=self._gamma)
 
         return anm
 
     def _sample(self, conf):
 
-        if self._parallel:
-            print('par')
-
         tmp = self._atoms.copy()
         tmp.setCoords(conf)
-        ca = tmp.ca
+        cg = tmp[self._idx_cg]
 
-        anm_ca = self._buildANM(ca)
+        anm_cg = self._buildANM(cg)
 
-        if not self._checkANM(anm_ca):
+        if not self._checkANM(anm_cg):
             return None
 
-        anm_ca.calcModes(self._n_modes)
+        anm_cg.calcModes(self._n_modes)
 
-        anm_ex, _ = extendModel(anm_ca, ca, tmp, norm=True)
+        anm_ex, _ = extendModel(anm_cg, cg, tmp, norm=True)
         ens_ex = sampleModes(anm_ex, atoms=tmp,
                              n_confs=self._n_confs,
                              rmsd=self._rmsd[self._cycle])
@@ -511,15 +516,15 @@ class ClustENM(Ensemble):
         # as long as there is no need for superposing conformations
         # only anm modes are used for perturbation so no translation or rotation would involve
 
-        # coords: (n_conf, n_ca, 3)
+        # coords: (n_conf, n_cg, 3)
 
-        tmp = coords.reshape(-1, 3 * self._n_ca)
+        tmp = coords.reshape(-1, 3 * self._n_cg)
 
-        return pdist(tmp) / np.sqrt(self._n_ca)
+        return pdist(tmp) / np.sqrt(self._n_cg)
 
     def _hc(self, arg):
 
-        # arg: coords   (n_conf, n_ca, 3)
+        # arg: coords   (n_conf, n_cg, 3)
 
         rmsds = self._rmsds(arg)
         # optimal_ordering=True can be slow, particularly on large datasets.
@@ -539,7 +544,7 @@ class ClustENM(Ensemble):
 
     def _centroid(self, arg):
 
-        # arg: coords   (n_conf_clust, n_ca, 3)
+        # arg: coords   (n_conf_clust, n_cg, 3)
 
         if arg.shape[0] > 2:
             rmsds = self._rmsds(arg)
@@ -551,7 +556,7 @@ class ClustENM(Ensemble):
 
     def _centers(self, *args):
 
-        # args[0]: coords   (n_conf, n_ca, 3)
+        # args[0]: coords   (n_conf, n_cg, 3)
         # args[1]: labels
 
         nl = np.unique(args[1])
@@ -585,11 +590,11 @@ class ClustENM(Ensemble):
 
         confs_ex = np.concatenate(tmp)
 
-        confs_ca = confs_ex[:, self._idx_ca]
+        confs_cg = confs_ex[:, self._idx_cg]
 
         LOGGER.info('Clustering in generation %d ...' % self._cycle)
-        label_ca = self._hc(confs_ca)
-        centers, wei = self._centers(confs_ca, label_ca)
+        label_cg = self._hc(confs_cg)
+        centers, wei = self._centers(confs_cg, label_cg)
         LOGGER.report('Centroids were generated in %.2fs.',
                       label='_clustenm_gen')
 
@@ -610,8 +615,8 @@ class ClustENM(Ensemble):
         n = confs.shape[0]
         tmp1 = []
         for i in range(n):
-            tmp2 = calcTransformation(confs[i, self._idx_ca],
-                                      tmp0[self._idx_ca])
+            tmp2 = calcTransformation(confs[i, self._idx_cg],
+                                      tmp0[self._idx_cg])
             tmp1.append(applyTransformation(tmp2, confs[i]))
 
         return np.array(tmp1)
@@ -947,7 +952,7 @@ class ClustENM(Ensemble):
             if len(self._threshold) != self._n_gens + 1:
                 raise ValueError('size mismatch: %d generations were set; %d thresholds were given' % (self._n_gens + 1, self._threshold))
 
-        self._sol = solvent
+        self._sol = solvent if self._nuc is None else 'exp'
         if self._sol == 'imp':
             self._force_field = ('amber99sbildn.xml', 'amber99_obc.xml') if force_field is None else force_field
         if self._sol == 'exp':
