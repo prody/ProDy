@@ -973,7 +973,7 @@ class ClustENM(Ensemble):
 
         # check for discontinuity in the structure
         gnm = GNM()
-        gnm.buildKirchhoff(self._atoms.ca, cutoff=self._cutoff)
+        gnm.buildKirchhoff(self._atoms[self._idx_cg], cutoff=self._cutoff)
         K = gnm.getKirchhoff()
         rank_diff = (len(K) - 1
                      - np.linalg.matrix_rank(K, tol=ZERO, hermitian=True))
