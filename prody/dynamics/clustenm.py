@@ -173,7 +173,7 @@ class ClustENM(Ensemble):
                 self._n_cg = self._atoms.ca.numAtoms()
             else:
                 self._idx_cg = self._atoms.select("name CA C2 C4' P").getIndices()
-                self._n_cg = self._idx_cg.size
+                self._n_cg = self._atoms.select("name CA C2 C4' P").numAtoms()
 
             self._n_atoms = self._atoms.numAtoms()
             self._indices = None
@@ -514,7 +514,6 @@ class ClustENM(Ensemble):
     def _rmsds(self, coords):
 
         # as long as there is no need for superposing conformations
-        # only anm modes are used for perturbation so no translation or rotation would involve
 
         # coords: (n_conf, n_cg, 3)
 
@@ -610,7 +609,7 @@ class ClustENM(Ensemble):
 
         return tmp > 3.5
 
-    def _superpose_ca(self, confs):
+    def _superpose_cg(self, confs):
         tmp0 = self._getCoords()
         n = confs.shape[0]
         tmp1 = []
@@ -1041,7 +1040,7 @@ class ClustENM(Ensemble):
 
             sizes.extend(weights[idx])
             potentials.extend(pots[idx])
-            start_confs = self._superpose_ca(confs[idx])
+            start_confs = self._superpose_cg(confs[idx])
 
             for j in range(start_confs.shape[0]):
                 keys.append((i, j))
