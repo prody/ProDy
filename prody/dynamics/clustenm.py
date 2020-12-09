@@ -29,7 +29,6 @@ from multiprocessing import cpu_count, Pool
 from collections import OrderedDict
 from os import chdir, mkdir
 from os.path import isdir
-import pickle
 from shutil import rmtree
 from sys import stdout
 
@@ -60,6 +59,8 @@ lig = 'hetatm and (resname ' \
       'GLN GLU GLY HIS ILE ' \
       'LEU LYS MET PHE PRO ' \
       'SER THR TRP TYR VAL)'
+
+pho = ['P', 'OP1', 'OP2', 'OP3']
 
 __all__ = ['ClustENM', 'ClustRTB', 'ClustImANM', 'ClustExANM']
 
@@ -157,6 +158,19 @@ class ClustENM(Ensemble):
             atoms = atoms.select(sel)
 
         self._nuc = atoms.select('nucleotide')
+
+        if self._nuc is not None:
+
+            idx_p = []
+            for c in self._nuc.getChids():
+                tmp = self._nuc[c].iterAtoms()
+                for a in tmp:
+                    if a.getName() in pho:
+                        idx_p.append(a.getIndex())
+
+            if idx_p:
+                nsel = 'not index ' + ' '.join([str(i) for i in idx_p])
+                atoms = atoms.select(nsel)
 
         if self._isBuilt():
             super(ClustENM, self).setAtoms(atoms)
@@ -446,7 +460,7 @@ class ClustENM(Ensemble):
 
         anm_cg.calcModes(self._n_modes)
 
-        anm_ex, _ = extendModel(anm_cg, cg, tmp, norm=True)
+        anm_ex = self._extendModel(anm_cg, cg, tmp)
         a = np.array(list(product([-1, 0, 1], repeat=self._n_modes)))
 
         nv = (anm_ex.getEigvecs() / np.sqrt(anm_ex.getEigvals())) @ a.T
@@ -475,6 +489,26 @@ class ClustENM(Ensemble):
 
         return anm
 
+    def _extendModel(self, model, nodes, atoms):
+
+        if self._nuc is None:
+            pass
+        else:
+            _, idx_n3, cnt = np.unique(nodes.nucleotide.getResindices(),
+                                       return_index=True, return_counts=True)
+            idx_c4p = np.where(nodes.getNames() == "C4'")[0]
+
+            vpn3 = model.getEigvecs()
+
+            for i, n, j in zip(idx_n3, cnt, idx_c4p):
+                vpn3[3*i:3*(i+n)] = np.tile(vpn3[3*j:3*(j + 1), :], (n, 1))
+
+            model.setEigens(vpn3, model.getEigvals())
+
+        ext, _ = extendModel(model, nodes, atoms, norm=True)
+
+        return ext
+
     def _sample(self, conf):
 
         tmp = self._atoms.copy()
@@ -488,7 +522,7 @@ class ClustENM(Ensemble):
 
         anm_cg.calcModes(self._n_modes)
 
-        anm_ex, _ = extendModel(anm_cg, cg, tmp, norm=True)
+        anm_ex = self._extendModel(anm_cg, cg, tmp)
         ens_ex = sampleModes(anm_ex, atoms=tmp,
                              n_confs=self._n_confs,
                              rmsd=self._rmsd[self._cycle])
@@ -875,7 +909,7 @@ class ClustENM(Ensemble):
 
         :arg force_field: If solvent model is implicit, then the default force_field = ('amber99sbildn.xml', 'amber99_obc.xml').
             If solvent model is explicit, then the default force_field = ('amber14-all.xml', 'amber14/tip3pfb.xml').
-            Experimental feature: Already implemented force fields in OpenMM can be used. 
+            Experimental feature: Force fields already implemented in OpenMM can be used. 
         :type force_field: a tuple of str
 
         :arg sim: If it is true, a short MD simulation will be performed after energy minimization. Default is True.
