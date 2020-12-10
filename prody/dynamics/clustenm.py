@@ -95,7 +95,11 @@ class ClustENM(Ensemble):
         self._threshold = None
 
         self._sol = 'imp'
+        self._padding = None
+        self._ionicStrength = 0.0
         self._force_field = None
+        self._tolerance = 10.0
+        self._maxIterations = 0
         self._sim = True
         self._temp = 303.15
         self._t_steps = None
@@ -260,7 +264,7 @@ class ClustENM(Ensemble):
             from simtk.openmm.app import Modeller, ForceField, \
                 CutoffNonPeriodic, PME, Simulation, HBonds
             from simtk.unit import angstrom, nanometers, picosecond, \
-                kelvin, Quantity
+                kelvin, Quantity, molar
         except ImportError:
             raise ImportError('Please install PDBFixer and OpenMM in order to use ClustENM.')
 
@@ -278,7 +282,9 @@ class ClustENM(Ensemble):
         if self._sol == 'exp':
             forcefield = ForceField(*self._force_field)
 
-            modeller.addSolvent(forcefield, padding=1.0*nanometers)
+            modeller.addSolvent(forcefield,
+                                padding=self._padding*nanometers,
+                                ionicStrength=self._ionicStrength*molar)
 
             system = forcefield.createSystem(modeller.topology,
                                              nonbondedMethod=PME,
@@ -324,7 +330,7 @@ class ClustENM(Ensemble):
         # simulation.context.setPositions(coords * angstrom)
 
         try:
-            simulation.minimizeEnergy()
+            simulation.minimizeEnergy(tolerance=self._tolerance*kilojoule_per_mole, maxIterations=self._maxIterations)
             if self._sim:
                 # heating-up the system incrementally
                 sdr = StateDataReporter(stdout, 1, step=True, temperature=True)
@@ -393,7 +399,8 @@ class ClustENM(Ensemble):
         m_conv = 0
         n_steps = 0
         try:
-            simulation.minimizeEnergy()
+            simulation.minimizeEnergy(tolerance=self._tolerance*kilojoule_per_mole,
+                                      maxIterations=self._maxIterations)
 
             # update parameters
             while n_steps < n_max_steps:
@@ -419,7 +426,8 @@ class ClustENM(Ensemble):
             LOGGER.debug('RMSD: %4.2f -> %4.2f' % (dist0, dist))
 
             simulation.context.setParameter('tmdk', 0.0)
-            simulation.minimizeEnergy()
+            simulation.minimizeEnergy(tolerance=self._tolerance*kilojoule_per_mole,
+                                      maxIterations=self._maxIterations)
 
             pos = simulation.context.getState(getPositions=True).getPositions(asNumpy=True).value_in_unit(angstrom)
             pot = simulation.context.getState(getEnergy=True).getPotentialEnergy().value_in_unit(kilojoule_per_mole)
@@ -879,6 +887,9 @@ class ClustENM(Ensemble):
         :arg cutoff: Cutoff distance (A) for pairwise interactions used in ANM computations, default is 15.0 A.
         :type cutoff: float
 
+        :arg gamma: Spring constant, default is 1 A.
+        :type gamma: float
+
         :arg n_modes: Number of non-zero eigenvalues/vectors to calculate.
         :type n_modes: int
 
@@ -907,10 +918,24 @@ class ClustENM(Ensemble):
             whereas 'exp' stands for explicit solvent model.
         :type solvent: str
 
+        :arg padding: Padding distance to use. Default is 1.0 nm.
+        :type padding: float
+
+        :arg ionicStrength: The total concentration of ions (both positive and negative) to add.  This
+            does not include ions that are added to neutralize the system. Default concentration is 0.0 molar.
+        :type ionicStrength: float
+
         :arg force_field: If solvent model is implicit, then the default force_field = ('amber99sbildn.xml', 'amber99_obc.xml').
             If solvent model is explicit, then the default force_field = ('amber14-all.xml', 'amber14/tip3pfb.xml').
             Experimental feature: Force fields already implemented in OpenMM can be used. 
         :type force_field: a tuple of str
+        
+        :arg tolerance: The energy tolerance to which the system should be minimized. Default energy=10.0 kJ/mole.
+        :type tolerance: float
+        
+        :arg maxIteration: The maximum number of iterations to perform.  If this is 0 (default),
+            minimization is continued until the results converge without regard to how many iterations it takes.
+        :type maxIteration: int
 
         :arg sim: If it is true, a short MD simulation will be performed after energy minimization. Default is True.
             Note: There is a heating-up phase until the desired temperature is reached before MD simulation starts.
@@ -986,10 +1011,14 @@ class ClustENM(Ensemble):
                 raise ValueError('size mismatch: %d generations were set; %d thresholds were given' % (self._n_gens + 1, self._threshold))
 
         self._sol = solvent if self._nuc is None else 'exp'
+        self._padding = kwargs.pop('padding', 1.0)
+        self._ionicStrength = kwargs.pop('ionicStrength', 0.0)
         if self._sol == 'imp':
             self._force_field = ('amber99sbildn.xml', 'amber99_obc.xml') if force_field is None else force_field
         if self._sol == 'exp':
             self._force_field = ('amber14-all.xml', 'amber14/tip3pfb.xml') if force_field is None else force_field
+        self._tolerance = kwargs.pop('tolerance', 10.0)
+        self._maxIterations = kwargs.pop('maxIterations', 0)
         self._sim = sim
         self._temp = temp
 
@@ -1105,20 +1134,27 @@ class ClustENM(Ensemble):
         with open(filename, 'w') as f:
             f.write('title = %s\n' % title)
             f.write('pH = %4.2f\n' % self._ph)
-            f.write('cutoff = %4.2f\n' % self._cutoff)
+            f.write('cutoff = %4.2f A\n' % self._cutoff)
             f.write('n_modes = %d\n' % self._n_modes)
             if not self._v1:
                 f.write('n_confs = %d\n' % self._n_confs)
-            f.write('rmsd = %s\n' % str(self._rmsd[1:]))
+            f.write('rmsd = (%s)\n' % ', '.join([str(i) + ' A' for i in self._rmsd[1:]]))
             f.write('n_gens = %d\n' % self._n_gens)
             if self._threshold is not None:
                 f.write('threshold = %s\n' % str(self._threshold[1:]))
             if self._maxclust is not None:
                 f.write('maxclust = %s\n' % str(self._maxclust[1:]))
             f.write('solvent = %slicit\n' % self._sol)
+            if self._sol == 'exp':
+                f.write('padding = %4.2f nm\n' % self._padding)
+                if self._ionicStrength != 0.0:
+                    f.write('ionicStrength = %4.2f molar\n' % self._ionicStrength)
             f.write('force_field = (%s, %s)\n' % self._force_field)
+            f.write('tolerance = %4.2f kJ/mole\n' % self._tolerance)
+            if self._maxIterations != 0:
+                f.write('maxIteration = %d\n' % self._maxIterations)
             if self._sim:
-                f.write('temp = %4.2f\n' % self._temp)
+                f.write('temp = %4.2f K\n' % self._temp)
                 f.write('t_steps = %s\n' % str(self._t_steps))
             if self._outlier:
                 f.write('outlier = %s\n' % self._outlier)
@@ -1132,7 +1168,7 @@ class ClustENM(Ensemble):
             if self._parallel:
                 f.write('parallel = %s\n' % self._parallel)
 
-            f.write('total time = %4.2f' % self._time)
+            f.write('total time = %4.2f s' % self._time)
 
 
 class ClustRTB(ClustENM):

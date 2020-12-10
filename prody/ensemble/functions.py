@@ -42,9 +42,10 @@ def saveEnsemble(ensemble, filename=None, **kwargs):
     elif isinstance(ensemble, ClustENM):
         attr_list.extend(['_ph', '_cutoff', '_gamma', '_n_modes', '_n_confs',
                           '_rmsd', '_n_gens', '_maxclust', '_threshold', '_sol',
-                          '_sim', '_temp', '_t_steps', '_outlier', '_mzscore', '_v1',
-                          '_parallel', '_idx_cg', '_n_cg', '_cycle', '_time', '_targeted',
-                          '_tmdk'])
+                          '_padding', '_ionicStrength', '_force_field', '_tolerance',
+                          '_maxIterations', '_sim', '_temp', '_t_steps', '_outlier',
+                          '_mzscore', '_v1', '_parallel', '_idx_cg', '_n_cg', '_cycle',
+                          '_time', '_targeted', '_tmdk'])
 
     if filename is None:
         filename = ensemble.getTitle().replace(' ', '_')
