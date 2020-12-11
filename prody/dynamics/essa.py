@@ -39,33 +39,50 @@ class ESSA:
         self._n_modes = None
         self._enm = None
         self._cutoff = None
-        self._lig = lig
+        self._lig = None
+        self._lig_idx = None
         self._dist = None
         self._ensemble = None
         self._labels = None
         self._zscore = None
-        if lig:
-            self._lig_idx = {}
 
-    def setAtoms(self, atoms, lig=None):
+    def setAtoms(self, atoms, **kwargs):
 
         '''
         Sets atoms and ligands.
 
         :arg atoms: *atoms* parsed by parsePDB
 
-        :arg lig: string of ligands' chainIDs and resSeqs (resnum) separated by a whitespace,
-            e.g., 'A 300 B 301'.
+        :arg lig: String of ligands' chainIDs and resSeqs (resnum) separated by a whitespace,
+            e.g., 'A 300 B 301'. Default is None.
         :type lig: str
+
+        :arg dist: Distance (A) to obtain the protein residues within its value of ligands, default is 4.5 A.
+        :type dist: float
         '''
 
         self._atoms = atoms
         self._title = atoms.getTitle()
-        self._lig = lig
+        self._lig = kwargs.pop('lig', None)
+        if self._lig:
+            self._lig_idx = {}
+            self._dist = kwargs.pop('dist', 4.5)
+
         self._heavy = atoms.select('protein and heavy and not hetatm')
         self._ca = self._heavy.ca
 
-    def scanResidues(self, n_modes=10, enm='gnm', cutoff=None, dist=4.5):
+        # --- residue indices of protein residues that are within dist (4.5 A) of ligands --- #
+
+        if self._lig:
+            ligs = self._lig.split()
+            ligs = list(zip(ligs[::2], ligs[1::2]))
+            for chid, resnum in ligs:
+                key = ''.join(chid + str(resnum))
+                sel_lig = 'calpha and not hetatm and (same residue as ' \
+                          f'exwithin {self._dist} of (chain {chid} and resnum {resnum}))'
+                self._lig_idx[key] = self._atoms.select(sel_lig).getResindices()
+
+    def scanResidues(self, n_modes=10, enm='gnm', cutoff=None):
 
         '''
         Scanning residues.
@@ -73,20 +90,15 @@ class ESSA:
         :arg n_modes: 
         :type n_modes: int
 
-        :arg enm: Type of the ENM, default is 'gnm'.
+        :arg enm: Type of the elastic network model, default is 'gnm'.
         "type enm: str
 
-        :arg cutoff: cutoff distance (A) for pairwise interactions
+        :arg cutoff: cutoff distance (A) for pairwise interactions, default is 10 A for GNM and 15 A for ANM.
         :type cutoff: float
-
-        :arg dist: Distance (A) to obtain the protein residues within its value of ligands
-        :type dist: float
         '''
 
         self._n_modes = n_modes
         self._enm = enm
-        if self._lig is not None:
-            self._dist = dist
 
         self._ensemble = ModeEnsemble(f'{self._title}')
         self._ensemble.setAtoms(self._ca)
@@ -150,17 +162,6 @@ class ESSA:
 
         self._zscore = zscore(eig_diff_mean)
 
-        # --- residue indices of protein residues that are within dist (4.5 A) of ligands --- #
-
-        if self._lig:
-            ligs = self._lig.split()
-            ligs = list(zip(ligs[::2], ligs[1::2]))
-            for chid, resnum in ligs:
-                key = ''.join(chid + str(resnum))
-                sel_lig = 'calpha and not hetatm and (same residue as ' \
-                          f'exwithin {self._dist} of (chain {chid} and resnum {resnum}))'
-                self._lig_idx[key] = self._atoms.select(sel_lig).getResindices()
-
     def getESSAZscores(self):
 
         'Returns ESSA z-scores.'
@@ -191,6 +192,15 @@ class ESSA:
 
         writePDB(f'{self._title}_{self._enm}_zs', self._heavy,
                  beta=extendAtomicData(self._zscore, self._ca, self._heavy)[0])
+
+    def getLigandIndices(self):
+
+        'Returns ligand indices.'
+
+        if self._lig:
+            return self._lig_idx
+        else:
+            LOGGER.warning('No ligand provided.')
 
     def saveLigandIndices(self):
 
@@ -260,8 +270,9 @@ class ESSA:
         for x in l:
             with open(x, 'r') as f:
                 tmp0 = f.read()
-                tmp1 = [float(x[1]) for x in findall(r'(.+:\s+)(-*[\d.]+)(\n)', tmp0)]
-            ps.append(tmp1)
+                tmp1 = [(x[1].strip(), float(x[2])) for x in findall(r'(\w+\s\w+\s*-\s*)(.+):\s*([\d.-]+)(\n)', tmp0)]
+            fea, sco = list(zip(*tmp1))
+            ps.append(sco)
         pdbs = parsePDB(l)
         chdir('../..')
 
@@ -281,49 +292,21 @@ class ESSA:
 
         indices = Index(range(1, ps.shape[0] + 1), name='Pocket')
 
-        columns = Index(['Pocket Score',
-                         'Drug Score',
-                         'Number of alpha spheres',
-                         'Mean alpha-sphere radius',
-                         'Mean alpha-sphere Solvent Acc.',
-                         'Mean B-factor of pocket residues',
-                         'Hydrophobicity Score',
-                         'Polarity Score',
-                         'Amino Acid based volume Score',
-                         'Pocket volume (Monte Carlo)',
-                         'Pocket volume (convex hull)',
-                         'Charge Score',
-                         'Local hydrophobic density Score',
-                         'Number of apolar alpha sphere',
-                         'Proportion of apolar alpha sphere'],
-                        name='Feature')
+        columns = Index(fea, name='Feature')
 
         self._df = DataFrame(index=indices, columns=columns, data=ps)
 
         # ----- # ----- #
 
-        columns_zs = Index(['Pocket Z-score',
-                            'Drug Z-score',
-                            'Number of alpha spheres',
-                            'Mean alpha-sphere radius',
-                            'Mean alpha-sphere Solvent Acc.',
-                            'Mean B-factor of pocket residues',
-                            'Hydrophobicity Z-score',
-                            'Polarity Z-score',
-                            'Amino Acid based volume Z-score',
-                            'Pocket volume (Monte Carlo)',
-                            'Pocket volume (convex hull)',
-                            'Charge Z-score',
-                            'Local hydrophobic density Z-score',
-                            'Number of apolar alpha sphere',
-                            'Proportion of apolar alpha sphere',
-                            'Maximum ESSA Z-score of pocket residues',
-                            'Median ESSA Z-score of pocket residues'],
+        columns_zs = Index(['Maximum ESSA Z-score of pocket residues',
+                            'Median ESSA Z-score of pocket residues',
+                            'Local hydrophobic density Z-score'],
                            name='Feature')
 
-        zps = zscore(ps, axis=0)
-        zps = hstack((zps, c_[list(pzs_max.values())]))
+        zps = c_[list(pzs_max.values())]
         zps = hstack((zps, c_[list(pzs_med.values())]))
+        zps = hstack((zps, zscore(self._df[['Local hydrophobic density Score']])))
+
 
         self._df_zs = DataFrame(index=indices, columns=columns_zs, data=zps)
 
