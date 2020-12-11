@@ -68,7 +68,7 @@ class ClustENM(Ensemble):
 
     '''
     ClustENMv2 is the new version of ClustENM(v1) conformation sampling algorithm [KZ16]_.
-    This ANM-based hybrid algorithm requires PDBFixer and OpenMM for performing energy minimization and MD simulations in implicit solvent.
+    This ANM-based hybrid algorithm requires PDBFixer and OpenMM for performing energy minimization and MD simulations in implicit/explicit solvent.
     It is Python 3.6 compatible and has been only tested on Linux machines.
 
     .. [KZ16] Kurkcuoglu Z., Bahar I., Doruker P., ClustENM: ENM-based sampling of essential conformational space at full atomic resolution. *J Chem* **2016** 12(9):4549-4562.
@@ -215,7 +215,7 @@ class ClustENM(Ensemble):
         '''
         Set title.
 
-        :arg title: title of the ClustENM object.
+        :arg title: Title of the ClustENM object.
         :type title: str 
         '''
 
@@ -451,7 +451,7 @@ class ClustENM(Ensemble):
 
         if not good:
             # taking care cases with more than 6 zeros
-            LOGGER.warn('Abnormal number of zero modes detected (%d detected, 6 expected).' % (6 + rank_diff))
+            LOGGER.warn('Abnormal number of zero modes detected (%d detected, 6 expected), so this conformer is discarded!' % (6 + rank_diff))
 
         return good
 
@@ -710,7 +710,7 @@ class ClustENM(Ensemble):
         '''
         Returns keys.
 
-        :arg gen: Generation
+        :arg gen: Generation number.
         :type gen: int
         '''
 
@@ -721,7 +721,7 @@ class ClustENM(Ensemble):
         '''
         Returns labels.
 
-        :arg gen: Generation
+        :arg gen: Generation number.
         :type gen: int
         '''
 
@@ -735,7 +735,7 @@ class ClustENM(Ensemble):
         '''
         Returns potentials.
 
-        :arg gen: Generation
+        :arg gen: Generation number.
         :type gen: int
         '''
 
@@ -746,7 +746,7 @@ class ClustENM(Ensemble):
         '''
         Returns the number of unminimized conformers represented by a cluster centroid.
 
-        :arg gen: Generation
+        :arg gen: Generation number.
         :type gen: int
         '''
 
@@ -833,7 +833,7 @@ class ClustENM(Ensemble):
 
     def writePDBFixed(self):
 
-        'Write the fixed structure to a pdb file.'
+        'Write the fixed (initial) structure to a pdb file.'
 
         from simtk.openmm.app import PDBFile
 
@@ -884,19 +884,22 @@ class ClustENM(Ensemble):
         '''
         Performs a ClustENM run.
 
-        :arg cutoff: Cutoff distance (A) for pairwise interactions used in ANM computations, default is 15.0 A.
+        :arg cutoff: Cutoff distance (A) for pairwise interactions used in ANM
+            computations, default is 15.0 A.
         :type cutoff: float
 
-        :arg gamma: Spring constant, default is 1 A.
+        :arg gamma: Spring constant of ANM, default is 1.0.
         :type gamma: float
 
         :arg n_modes: Number of non-zero eigenvalues/vectors to calculate.
         :type n_modes: int
 
-        :arg n_confs: Number of new conformations to be generated based on each conformer coming from the previous generation, default is 50.
+        :arg n_confs: Number of new conformers to be generated based on any conformer
+            from the previous generation, default is 50.
         :type n_confs: int
             
-        :arg rmsd: Average RMSD of the new conformers with respect to the original conformation, default is 1.0 A.
+        :arg rmsd: Average RMSD of the new conformers with respect to the conformer
+            from which they are generated, default is 1.0 A.
             A tuple of floats can be given, e.g. (1.0, 1.5, 1.5) for subsequent generations.
             Note: In the case of ClustENMv1, this value is the maximum rmsd, not the average.
         :type rmsd: float, tuple of floats
@@ -904,72 +907,81 @@ class ClustENM(Ensemble):
         :arg n_gens: Number of generations.
         :type n_gens: int
 
-        :arg maxclust:  The maximum number of clusters for each generation. Default in None.
-            A tuple of int's can be given, e.g. (10, 30 ,50) for subsequent generations.
-            Warning: Either threshold or maxclust should be given! For large number of generations and/or structures,
-            specifying maxclust is more efficient.
+        :arg maxclust: Maximum number of clusters for each generation, default in None.
+            A tuple of int's can be given, e.g. (10, 30, 50) for subsequent generations.
+            Warning: Either maxclust or RMSD threshold should be given! For large number of
+            generations and/or structures, specifying maxclust is more efficient.
         :type maxclust: int or a tuple of int's
 
-        :arg threshold: If it is true, a short MD simulation will be performed after energy minimization. Default is True.
-            Note: There is a heating-up phase until the desired temperature is reached before MD simulation starts.
+        :arg threshold: RMSD threshold to apply when forming clusters, default is None.
+            This parameter has been used in ClustENMv1, setting it to 75% of the maximum RMSD
+            value used for sampling. A tuple of floats can be given, e.g. (1.5, 2.0, 2.5)
+            for subsequent generations.
+            Warning: This threshold should be chosen carefully in ClustENMv2 for efficiency.
         :type threshold: float or tuple of floats.
 
-        :arg solvent: Solvent model to be used. 'imp' stands form implicit solvent model (default)
-            whereas 'exp' stands for explicit solvent model.
+        :arg solvent: Solvent model to be used. If it is set to 'imp' (default),
+            implicit solvent model will be used, whereas 'exp' stands for explicit solvent model.
+            Warning: In the case of nucleotide chains, explicit solvent model is automatically set.
         :type solvent: str
 
-        :arg padding: Padding distance to use. Default is 1.0 nm.
+        :arg padding: Padding distance to use for solvation. Default is 1.0 nm.
         :type padding: float
 
-        :arg ionicStrength: The total concentration of ions (both positive and negative) to add.  This
-            does not include ions that are added to neutralize the system. Default concentration is 0.0 molar.
+        :arg ionicStrength: Total concentration of ions (both positive and negative) to add.
+            This does not include ions that are added to neutralize the system.
+            Default concentration is 0.0 molar.
         :type ionicStrength: float
 
-        :arg force_field: If solvent model is implicit, then the default force_field = ('amber99sbildn.xml', 'amber99_obc.xml').
-            If solvent model is explicit, then the default force_field = ('amber14-all.xml', 'amber14/tip3pfb.xml').
-            Experimental feature: Force fields already implemented in OpenMM can be used. 
+        :arg force_field: Implicit solvent force field is ('amber99sbildn.xml', 'amber99_obc.xml'). 
+            Explicit solvent force field is ('amber14-all.xml', 'amber14/tip3pfb.xml').
+            Experimental feature: Forcefields already implemented in OpenMM can be used. 
         :type force_field: a tuple of str
         
-        :arg tolerance: The energy tolerance to which the system should be minimized. Default energy=10.0 kJ/mole.
+        :arg tolerance: Energy tolerance to which the system should be minimized, default is 10.0 kJ/mole.
         :type tolerance: float
         
-        :arg maxIteration: The maximum number of iterations to perform.  If this is 0 (default),
-            minimization is continued until the results converge without regard to how many iterations it takes.
-        :type maxIteration: int
+        :arg maxIterations: Maximum number of iterations to perform during energy minimization.
+            If this is 0 (default), minimization is continued until the results converge without
+            regard to how many iterations it takes.
+        :type maxIterations: int
 
-        :arg sim: If it is true, a short MD simulation will be performed after energy minimization. Default is True.
-            Note: There is a heating-up phase until the desired temperature is reached before MD simulation starts.
+        :arg sim: If it is True (default), a short MD simulation is performed after energy minimization.
+            Note: There is also a heating-up phase until the desired temperature is reached.
         :type sim: bool
 
-        :arg temp: Temperature at which the simulations are conducted. Default is 303.15 K.
+        :arg temp: Temperature at which the simulations are conducted, default is 303.15 K.
         :type temp: float
 
-        :arg t_steps_i: Duration of MD simulation (number of time steps) for the initial conformer, default is 1000.
-            Note: Each time step is 2.0 fs.
+        :arg t_steps_i: Duration of MD simulation (number of time steps) for the starting structure
+            following the heating-up phase, default is 1000. Each time step is 2.0 fs.
+            Note: Default value reduces possible drift from the starting structure. 
         :type t_steps_i : int
 
-        :arg t_steps_g: Duration of MD simulations (number of time steps) to run for each conformer, default is 7500.
-            A tuple of int's for subsequent generations, e.g. (3000, 5000, 7000).
-            Note: Each time step is 2.0 fs.
+        :arg t_steps_g: Duration of MD simulations (number of time steps) to run for each conformer
+            following the heating-up phase, default is 7500. Each time step is 2.0 fs.
+            A tuple of int's can be given, e.g. (3000, 5000, 7000) for subsequent generations.
         :type t_steps_g: int or tuple of int's
 
-        :arg outlier: Exclusion of conformers detected as outliers in each generation,
-            based on their potential energy using their modified z-scores over the potentials in that generation,
-            default is True. It is automatically set to False when explicit solvent model is being used.
+        :arg outlier: Exclusion of conformers detected as outliers in each generation.
+            Default is True for implicit solvent. Outliers, if any, are detected by
+            the modified z-scores of the conformers' potential energies over a generation.
+            Note: It is automatically set to False when explicit solvent model is being used.
         :type outlier: bool
 
         :arg mzscore: Modified z-score threshold to label conformers as outliers. Default is 3.5.
         :type mzscore: float
 
-        :arg v1: The sampling method used in the original article is utilized, a complete enumeration of desired ANM Modes.
-            Note: Maximum number of modes should not exceed 5 for efficiency.
+        :arg v1: Original sampling method with complete enumeration of desired ANM modes is used.
+            Default is False. Maximum number of modes should not exceed 5 for efficiency.
         :type v1: bool
 
-        :arg platform: The architecture on which the OpenMM part runs, default is None. It can be chosen as 'OpenCL' or 'CPU'.
+        :arg platform: Architecture on which the OpenMM part runs, default is None.
+            It can be chosen as 'CUDA', 'OpenCL' or 'CPU'.
             For efficiency, 'CUDA' or 'OpenCL' is recommended.
         :type platform: str
 
-        :arg parallel: If it is True (default: False), then sampling over conformers will be parallelized.
+        :arg parallel: If it is True (default is False), conformer generation will be parallelized.
         :type parallel: bool
         '''
 
@@ -1173,6 +1185,8 @@ class ClustENM(Ensemble):
 
 class ClustRTB(ClustENM):
 
+    'Experimental.'
+
     def __init__(self, title=None):
         super(ClustRTB, self).__init__(title)
         self._blocks = None
@@ -1197,6 +1211,8 @@ class ClustRTB(ClustENM):
 
 
 class ClustImANM(ClustENM):
+
+    'Experimental.'
 
     def __init__(self, title=None):
         super(ClustImANM, self).__init__(title)
@@ -1226,6 +1242,9 @@ class ClustImANM(ClustENM):
 
 
 class ClustExANM(ClustENM):
+
+    'Experimental.'
+
     def _buildANM(self, ca):
         anm = exANM()
         anm.buildHessian(ca, cutoff=self._cutoff, gamma=self._gamma, R=self._R,

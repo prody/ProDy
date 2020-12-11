@@ -243,13 +243,13 @@ class ESSA:
         fpocket = which('fpocket')
 
         if fpocket is None:
-            LOGGER.info('Fpocket 3.0 was not found, please install it.')
+            LOGGER.warning('Fpocket 3.0 was not found, please install it.')
             return None
 
         try:
             from pandas import Index, DataFrame
         except ImportError as ie:
-            LOGGER.info(ie.__str__() + ' was found, please install it.')
+            LOGGER.warning(ie.__str__() + ' was found, please install it.')
             return None
 
         rcr = {(i, j): k for i, j, k in zip(self._ca.getChids(),
