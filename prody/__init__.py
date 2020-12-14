@@ -90,6 +90,11 @@ from .proteins import *
 __all__.extend(proteins.__all__)
 __all__.append('proteins')
 
+from . import compounds
+from .compounds import *
+__all__.extend(compounds.__all__)
+__all__.append('compounds')
+
 from . import measure
 from .measure import *
 __all__.extend(measure.__all__)

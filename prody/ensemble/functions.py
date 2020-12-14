@@ -53,6 +53,11 @@ def saveEnsemble(ensemble, filename=None, **kwargs):
         attr_dict['_atoms'] = np.array([atoms, None], 
                                         dtype=object)
 
+    selstrs = dict_['_selstrs']
+    if selstrs is not None:
+        attr_dict['_selstrs'] = np.array([selstrs, None], 
+                                          dtype=object)
+
     data = dict_['_data']
     if len(data):
         attr_dict['_data'] = np.array([data, None], 
@@ -139,6 +144,8 @@ def loadEnsemble(filename, **kwargs):
             ensemble._trans = attr_dict['_trans']
         if '_msa' in attr_dict.files:
             ensemble._msa = attr_dict['_msa'][0]
+        if '_selstrs' in attr_dict.files:
+            ensemble._selstrs = attr_dict['_selstrs'][0]
     else:
         ensemble.addCoordset(confs)
         if weights is not None:

@@ -1761,6 +1761,15 @@ for fname, field in ATOMIC_FIELDS.items():
                                      'of atoms')
 
                 if not np.isscalar(array):
+                    if var == 'chain':
+                        max_len = 0
+                        for val in array:
+                            if len(val) > max_len:
+                                max_len = len(val)
+
+                        if max_len > int(dtype[1:]):
+                            dtype = dtype[0] + str(max_len)
+
                     array = np.asarray(array, dtype)
                 else:
                     raise TypeError('array must be an ndarray or a list')
