@@ -386,8 +386,8 @@ def parseSparseMatrix(filename, symmetric=False, delimiter=None, skiprows=0,
         default is ``0``.
     :type irow: int
 
-    :arg icol: Index of the column in data file corresponding to row indices,
-        default is ``0``.
+    :arg icol: Index of the column in data file corresponding to column indices,
+        default is ``1``.
     :type icol: int
 
     :arg first: First index in the data file (0 or 1), default is ``1``.

@@ -353,7 +353,7 @@ class PDBEnsemble(Ensemble):
         # update selstrs
         if n_csets > 1 and not degeneracy:
             if isinstance(selstr, str):
-                selstrs = ['{0}_m{1}'.format(label, i+1) for i in range(n_csets)]
+                selstrs = ['{0}'.format(selstr) for i in range(n_csets)]
         else:
             selstrs = [selstr] if np.isscalar(selstr) else selstr
 
