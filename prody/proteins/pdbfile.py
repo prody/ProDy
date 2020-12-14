@@ -1268,7 +1268,7 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
                              occupancies[i], bfactors[i],
                              segments[i], elements[i]))
 
-            if atoms.getFlags('pdbter')[i]:
+            if atoms.getFlags('pdbter') is not None and atoms.getFlags('pdbter')[i]:
                 write('TER\n')
 
         if multi:
