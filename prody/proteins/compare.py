@@ -1584,7 +1584,7 @@ def combineAtomMaps(mappings, target=None, **kwargs):
 
     # checkers
     if not isListLike(mappings):
-        raise TypeError('mappings should be a list')
+        raise TypeError('mappings should be list-like')
     
     if len(mappings) == 0:
         raise ValueError('mappings cannot be empty')
