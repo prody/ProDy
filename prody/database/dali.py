@@ -143,7 +143,7 @@ class DaliRecord(object):
     """A class to store results from Dali PDB search."""
 
     def __init__(self, url, pdbId, chain, subset='fullPDB', localFile=False, **kwargs):
-        """Instantiate a daliPDB object instance.
+        """Instantiate a DaliRecord object instance.
 
         :arg url: url of Dali results page or local dali results file
         :arg pdbId: PDB code for searched protein
