@@ -15,7 +15,6 @@ c) the corresponding driver such as chromedriver (https://sites.google.com/a/chr
 from prody import PY3K, LOGGER
 import numpy as np
 
-import requests
 
 __all__ = ['QuartataWebBrowser', 'QuartataChemicalRecord', 'searchQuartataWeb']
 
@@ -442,6 +441,7 @@ class QuartataWebBrowser(object):
 
             self.browser.find_by_text(filename)[0].click()
             
+            import requests            
             html = requests.get(self.browser.url).content
             if PY3K:
                 html = html.decode()
