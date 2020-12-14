@@ -3,7 +3,7 @@
 
 import numpy as np
 
-from prody import LOGGER
+from prody import LOGGER, PY3K
 from prody.atomic import Atomic, AtomGroup
 from prody.utilities import importLA, checkCoords, copy
 from numpy import sqrt, zeros, array, ceil, dot
@@ -345,8 +345,8 @@ def peelr(coords, system, r0=20., dr=20.):
         lbl_last = uniq_labels[-1]
         lbl_2nd_last = uniq_labels[-2]
 
-        n_last = sum(labels == lbl_last)
-        n_2nd_last = sum(labels == lbl_2nd_last)
+        n_last = np.sum(labels == lbl_last)
+        n_2nd_last = np.sum(labels == lbl_2nd_last)
 
         if n_last < 0.2 * n_2nd_last:
             LOGGER.debug('edge nodes detected (%d/%d)'%(n_2nd_last, n_last))
@@ -357,8 +357,8 @@ def peelr(coords, system, r0=20., dr=20.):
         lbl_first = uniq_labels[1]
         lbl_2nd = uniq_labels[2]
 
-        n_first = sum(labels == lbl_first)
-        n_2nd = sum(labels == lbl_2nd)
+        n_first = np.sum(labels == lbl_first)
+        n_2nd = np.sum(labels == lbl_2nd)
 
         if n_first < 0.2 * n_2nd:
             LOGGER.debug('inner nodes detected (%d/%d)'%(n_2nd, n_first))
@@ -396,7 +396,12 @@ def calcHessianRecursion(coords, layers, layer, cutoff=15., gamma=1.0, **kwargs)
     else:
         Hee = calcHessianRecursion(coords, layers, layer+1, cutoff=cutoff, gamma=gamma, **kwargs)
         Cee = inv(Hee)
-        H = Hss - Hse.dot(Cee.dot(Hse.T))
+        #H = Hss - Hse.dot(Cee.dot(Hse.T))
+        #H = Hss - Hse @ Cee @ Hse.T
+        if PY3K:
+            H = Hss - Hse.__matmul__(Cee).__matmul__(Hse.T)
+        else:
+            H = Hss - Hse.dot(Cee.dot(Hse.T))
     LOGGER.debug('layer: %d finished'%layer)
     return H
 

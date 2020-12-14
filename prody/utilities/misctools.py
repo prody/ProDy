@@ -734,3 +734,30 @@ def split(string, shlex=False):
             return shlex.split(string)
     else:
         return string.split()
+
+
+def packmolRenumChains(ag):
+    chainids = ag.getChids()
+    new_chainids = zeros(chainids.shape[0], dtype=DTYPE + '2')
+    chid_mem = []
+    chid_alt = 0
+
+    num_chars = int(chainids.dtype.str[2:])
+    for j, chid in enumerate(chainids):
+        if j == 0:
+            chid_mem.append(chid)
+        else:
+            if chid != chainids[j-1]:
+                chid_alt += 1
+
+                if chid_alt >= 10**num_chars:
+                    num_chars += 1
+                    new_chainids = array(new_chainids, dtype=new_chainids.dtype.str[:2]+str(num_chars))
+
+                if chid_alt > 1 and len(chid_mem) > 1 and chid == chid_mem[-2]:
+                    chid_mem.append(chid)
+
+        new_chainids[j] = "{}".format(chid_alt)
+
+    ag.setChids(new_chainids)
+    return ag
