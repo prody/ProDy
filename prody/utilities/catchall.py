@@ -67,7 +67,7 @@ def clusterSubfamilies(similarities, n_clusters=0, linkage='all', method='tsne',
 
     # Check inputs to make sure are of valid types/values
     if not isinstance(similarities, np.ndarray):
-        raise TypeError('similarities should be a a numpy ndarray')
+        raise TypeError('similarities should be a numpy ndarray')
 
     dim = similarities.shape
     if dim[0] != dim[1]:
