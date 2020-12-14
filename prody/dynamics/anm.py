@@ -8,11 +8,11 @@ from numbers import Integral
 from prody import LOGGER
 from prody.atomic import Atomic, AtomGroup
 from prody.proteins import parsePDB
-from prody.utilities import checkCoords
+from prody.utilities import checkCoords, solveEig
 from prody.kdtree import KDTree
 
 from .nma import NMA, MaskedNMA
-from .gnm import GNMBase, solveEig, checkENMParameters
+from .gnm import GNMBase, checkENMParameters
 
 __all__ = ['ANM', 'MaskedANM', 'calcANM']
 
@@ -216,7 +216,7 @@ class ANMBase(NMA):
         self._clear()
         LOGGER.timeit('_anm_calc_modes')
         values, vectors, vars = solveEig(self._hessian, n_modes=n_modes, zeros=zeros, 
-                                         turbo=turbo, is3d=True)
+                                         turbo=turbo, expct_n_zeros=6)
         self._eigvals = values
         self._array = vectors
         self._vars = vars

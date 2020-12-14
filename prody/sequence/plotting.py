@@ -3,16 +3,17 @@
 
 __author__ = 'Ahmet Bakan, Chakra Chennubhotla'
 
-from numpy import arange
+from numpy import arange, array, nonzero
 
 from .analysis import *
+from .msa import refineMSA
 from prody import LOGGER
 
 __all__ = ['showMSAOccupancy', 'showShannonEntropy', 'showMutinfoMatrix', 
            'showDirectInfoMatrix', 'showSCAMatrix']
 
 
-def pickSequence(msa):
+def pickSequence(msa, require_match=False):
     """Pick a sequence without gaps and deletions and return its residue
     numbers and labels to be used as indices and X-axis label, or a pair
     of **None** at failure."""
@@ -27,10 +28,12 @@ def pickSequence(msa):
         rows = (counts == length).nonzero()[0]
         for row in rows:
             try:
-                label, indices = msa[row].getLabel(), msa[row].getResnums()
+                label, (match, indices) = msa[row].getLabel(), msa[row].getResnums(report_match=True)
             except:
                 break
             else:
+                if require_match and not match:
+                    continue
                 return (indices, 'Residue number ({0})'.format(label))
         return None, None
 
@@ -75,19 +78,26 @@ def showMSAOccupancy(msa, occ='res', indices=None, count=False, **kwargs):
         label = kwargs.pop('label', None)
         if label is not None:
             try:
-                indices = msa[label].getResnums()
+                indices = array(msa[label].getResnums(gaps=True))
             except:
                 LOGGER.info('Specified label not in msa.')
+
         xlabel = kwargs.pop('xlabel', None) or label or 'MSA column index'
         if xlabel is None and indices is None:
             indices, xlabel = pickSequence(msa)
+
     if indices is None:
         indices = arange(1, length + 1)
 
     ylabel = kwargs.pop('ylabel', 'Count' if count else 'Occupancy')
     title = kwargs.pop('title', None)
     format = kwargs.pop('format', True)
+
     import matplotlib.pyplot as plt
+    if len(nonzero(indices)[0]) < len(indices):
+        occ = occ[nonzero(indices)[0]]
+        indices = indices[nonzero(indices)[0]]
+
     show = plt.bar(indices, occ, **kwargs)
     if format:
         plt.xlabel(xlabel)
@@ -124,6 +134,8 @@ def showShannonEntropy(entropy, indices=None, **kwargs):
     if indices is None:
         length = len(entropy)
         if msa is not None:
+            indices, xlabel = pickSequence(msa, require_match=True)
+        if indices is None:
             indices, xlabel = pickSequence(msa)
         if indices is None:
             indices = arange(1, length + 1)
@@ -176,7 +188,9 @@ def showMutinfoMatrix(mutinfo, *args, **kwargs):
     kwargs.setdefault('origin', 'lower')
 
     if msa is not None:
-        indices, msalabel = pickSequence(msa)
+        indices, msalabel = pickSequence(msa, require_match=True)
+        if indices is None:
+            indices, msalabel = pickSequence(msa)
         if indices is not None:
             start = indices[0] + 0.5
             end = start + x

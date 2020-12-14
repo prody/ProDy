@@ -11,7 +11,7 @@ below.  :class:`Atomic` classes, such as :class:`.Selection`, offer ``get`` and
 
 from numpy import array
 
-from prody.utilities import wrapText
+from prody.utilities import wrapText, DTYPE
 
 from .flags import FIELDS as FLAG_FIELDS
 
@@ -118,8 +118,6 @@ class Field(object):
 
 HVNONE = ['_hv', 'segindex', 'chindex', 'resindex']
 
-DTYPE = array(['a']).dtype.char  # 'S' for PY2K and 'U' for PY3K
-
 ATOMIC_FIELDS = {
     'name':      Field('name', DTYPE + '6', selstr=('name CA CB',)),
     'altloc':    Field('altloc', DTYPE + '1',
@@ -223,8 +221,8 @@ ATOMIC_FIELDS = {
                        readonly=True, call=['_fragment'], synonym='fragment',
                        desc='Fragment indices are assigned to connected '
                             'subsets of atoms.  Bonds needs to be set using '
-                            ':meth:`.AtomGroup.setBonds` method.  Fragment '
-                            'indices start from zero, are incremented by '
+                            ':meth:`.AtomGroup.setBonds` or :meth:`.AtomGroup.inferBonds`. '
+                            'Fragment indices start from zero, are incremented by '
                             'one, and are assigned in the order of appearance '
                             'in :class:`.AtomGroup` instance.'),
     'numbonds':  Field('numbonds', int, meth_pl='Numbonds',

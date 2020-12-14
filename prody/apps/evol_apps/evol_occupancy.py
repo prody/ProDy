@@ -130,7 +130,7 @@ def evol_occupancy(msa, **kwargs):
                 figure = plt.figure(figsize=(width, height))
                 label = kwargs.get('label')
                 show = showMSAOccupancy(msa=msa, occ=occ, label=label,
-                                         xlabel=xlabel, title=title)
+                                        xlabel=xlabel, title=title)
                 format = kwargs.get('figformat', 'pdf')
                 figure.savefig(prefix + suffix[i] + '.' + format, format=format,
                             dpi=kwargs.get('figdpi', 300))

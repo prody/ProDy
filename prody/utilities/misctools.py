@@ -8,6 +8,7 @@ from collections import Counter
 import numbers
 
 from prody import PY3K
+from .logger import LOGGER
 
 from Bio.Data import IUPACData
 
@@ -18,8 +19,10 @@ __all__ = ['Everything', 'Cursor', 'ImageCursor', 'rangeString', 'alnum', 'impor
            'saxsWater', 'count', 'addEnds', 'copy', 'dictElementLoop', 'index',
            'getDataPath', 'openData', 'chr2', 'toChararray', 'interpY', 'cmp', 'pystr',
            'getValue', 'indentElement', 'isPDB', 'isURL', 'isListLike', 'isSymmetric', 'makeSymmetric',
-           'getDistance', 'fastin', 'createStringIO', 'div0', 'wmean', 'bin2dec', 'wrapModes', 'fixArraySize']
+           'getDistance', 'fastin', 'createStringIO', 'div0', 'wmean', 'bin2dec', 'wrapModes', 
+           'fixArraySize', 'decToHybrid36', 'hybrid36ToDec', 'DTYPE', 'checkIdentifiers', 'split']
 
+DTYPE = array(['a']).dtype.char  # 'S' for PY2K and 'U' for PY3K
 CURSORS = []
 
 # Note that the chain id can be blank (space). Examples:
@@ -347,14 +350,13 @@ def sqrtm(matrix):
 def getMasses(elements):
     """Gets the mass atom. """
     
-    import numpy as np
     # mass_dict = {'C':12,'N':14,'S':32,'O':16,'H':1}
     mass_dict = IUPACData.atom_weights
 
     if isinstance(elements, str):
         return mass_dict[elements.capitalize()]
     else:
-        masses = np.zeros(len(elements))
+        masses = zeros(len(elements))
         for i,element in enumerate(elements):
             if element.capitalize() in mass_dict:
                 masses[i] = mass_dict[element.capitalize()]
@@ -624,3 +626,138 @@ def index(A, a):
     else:
         A = asarray(A)
         return where(A==a)[0][0]
+
+
+def checkIdentifiers(*pdb):
+    """Check whether *pdb* identifiers are valid, and replace invalid ones
+    with **None** in place."""
+
+    identifiers = []
+    append = identifiers.append
+    for pid in pdb:
+        try:
+            pid = pid.strip().lower()
+        except AttributeError:
+            LOGGER.warn('{0} is not a valid identifier.'.format(repr(pid)))
+            append(None)
+        else:
+            if not (len(pid) == 4 and pid.isalnum()):
+                LOGGER.warn('{0} is not a valid identifier.'
+                            .format(repr(pid)))
+                append(None)
+            else:
+                append(pid)
+    return identifiers
+
+
+def split(string, shlex=False):
+    if shlex:
+        try:
+            import shlex
+        except ImportError:
+            raise ImportError('Use of the shlex option requires the '
+                              'installation of the shlex package.')
+        else:
+            return shlex.split(string)
+    else:
+        return string.split()
+
+
+def decToBase36(integer):
+    """Converts a decimal number to base 36.
+    Based on https://wikivisually.com/wiki/Base36
+    """
+
+    chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+    
+    sign = '-' if integer < 0 else ''
+    integer = abs(integer)
+    result = ''
+    
+    while integer > 0:
+        integer, remainder = divmod(integer, 36)
+        result = chars[remainder]+result
+
+    if result == '':
+        result = '0'
+
+    return sign+result
+
+
+def decToHybrid36(x):
+    """Convert a regular decimal number to a string in hybrid36 format"""
+    if not isinstance(x, numbers.Integral):
+        raise TypeError('x should be an integer')
+
+    if x < 100000:
+        return str(x)
+
+    start = 10*36**4 # decToBase36(start) = A0000
+    return decToBase36(int(x) + (start - 100000))
+
+
+def base36ToDec(x):
+    chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+    if x[0] == '-':
+        sign = '-'
+        x = x[1:]
+    else:
+        sign = ''
+
+    result = 0
+    for i, entry in enumerate(reversed(x)):
+        result += (chars.find(entry)*36**(i))
+
+    return int(sign + str(result))
+
+
+def hybrid36ToDec(x):
+    """Convert string in hybrid36 format to a regular decimal number"""
+    if not isinstance(x, str):
+        raise TypeError('x should be a string')
+    
+    if x.isnumeric():
+        return int(x)
+
+    start = 10*36**4 # decToBase36(start) = A0000
+    return base36ToDec(x) - start + 100000
+
+
+def split(string, shlex=False):
+    if shlex:
+        try:
+            import shlex
+        except ImportError:
+            raise ImportError('Use of the shlex option requires the '
+                              'installation of the shlex package.')
+        else:
+            return shlex.split(string)
+    else:
+        return string.split()
+
+
+def packmolRenumChains(ag):
+    chainids = ag.getChids()
+    new_chainids = zeros(chainids.shape[0], dtype=DTYPE + '2')
+    chid_mem = []
+    chid_alt = 0
+
+    num_chars = int(chainids.dtype.str[2:])
+    for j, chid in enumerate(chainids):
+        if j == 0:
+            chid_mem.append(chid)
+        else:
+            if chid != chainids[j-1]:
+                chid_alt += 1
+
+                if chid_alt >= 10**num_chars:
+                    num_chars += 1
+                    new_chainids = array(new_chainids, dtype=new_chainids.dtype.str[:2]+str(num_chars))
+
+                if chid_alt > 1 and len(chid_mem) > 1 and chid == chid_mem[-2]:
+                    chid_mem.append(chid)
+
+        new_chainids[j] = "{}".format(chid_alt)
+
+    ag.setChids(new_chainids)
+    return ag

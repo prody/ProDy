@@ -88,7 +88,7 @@ def prody_blast(sequence, **kwargs):
                                    hitlist_size=hitlist_size, expect=expect,
                                    sleep=sleep, timeout=timeout)
 
-    if blast_results is None:
+    if not blast_results.isSuccess:
         raise IOError('blast search timed out, please try again')
 
     hits = blast_results.getHits(percent_identity=identity,
@@ -119,7 +119,7 @@ def prody_blast(sequence, **kwargs):
                                title))
 
 
-    # download hits if --output-dir is given
+    # download hits if --outdir is given
     if outdir:
         LOGGER.info('Downloading hits to ' + outdir)
         pdblist = [ pdb for identity, pdb in hits2 ]

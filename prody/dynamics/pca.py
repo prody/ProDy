@@ -10,7 +10,7 @@ from prody import LOGGER, PY2K
 from prody.atomic import Atomic
 from prody.ensemble import Ensemble, PDBEnsemble
 from prody.trajectory import TrajBase
-from prody.utilities import importLA
+from prody.utilities import importLA, solveEig, ZERO
 
 from .nma import NMA
 
@@ -36,7 +36,13 @@ class PCA(NMA):
             raise TypeError('covariance must be an ndarray')
         elif not (covariance.ndim == 2 and
                   covariance.shape[0] == covariance.shape[1]):
-            raise TypeError('covariance must be square matrix')
+            raise ValueError('covariance must be square matrix')
+        elif covariance.dtype != float:
+            try:
+                covariance = covariance.astype(float)
+            except:
+                raise ValueError('covariance.dtype must be float')
+
         self._reset()
 
         self._is3d = is3d
@@ -190,39 +196,19 @@ class PCA(NMA):
             calculate modes, default is **True**
         :type turbo: bool"""
         
-        linalg = importLA()
         if self._cov is None:
             raise ValueError('covariance matrix is not built or set')
         start = time.time()
-        dof = self._dof
         self._clear()
         if str(n_modes).lower() == 'all':
             n_modes = None
-        if linalg.__package__.startswith('scipy'):
-            if n_modes is None:
-                eigvals = None
-                n_modes = dof
-            else:
-                n_modes = int(n_modes)
-                if n_modes >= self._dof:
-                    eigvals = None
-                    n_modes = dof
-                else:
-                    eigvals = (dof - n_modes, dof - 1)
-            values, vectors = linalg.eigh(self._cov, turbo=turbo,
-                                          eigvals=eigvals)
-        else:
-            if n_modes is not None:
-                LOGGER.info('Scipy is not found, all modes are calculated.')
-            values, vectors = linalg.eigh(self._cov)
-        # Order by descending SV
-        revert = list(range(len(values)-1, -1, -1))
-        values = values[revert]
-        vectors = vectors[:, revert]
-        which = values > 1e-8
+        
+        values, vectors, _ = solveEig(self._cov, n_modes=n_modes, zeros=True, 
+                                      turbo=turbo, reverse=True)
+        which = values > ZERO
         self._eigvals = values[which]
         self._array = vectors[:, which]
-        self._vars = self._eigvals
+        self._vars = values
         self._n_modes = len(self._eigvals)
         LOGGER.debug('{0} modes were calculated in {1:.2f}s.'
                      .format(self._n_modes, time.time()-start))

@@ -10,7 +10,7 @@ from prody.tests import TestCase
 from numpy import array
 import numpy as np
 
-from prody import parsePDB, parseDCD, parseSparseMatrix, parseArray
+from prody import parsePDB, parseDCD, parseSparseMatrix, parseArray, loadModel
 from prody.tests import TEMPDIR, TESTDIR
 
 
@@ -53,6 +53,18 @@ DATA_FILES = {
         'n_atoms': 683,
         'models': 1
     },
+    '2nwl': {
+        'pdb': '2nwl',
+        'file': 'pdb2nwl-opm.pdb',
+        'n_atoms': 5227,
+        'models': 1
+    },
+    '2k39_ca': {
+        'pdb': '2k39',
+        'file': 'pdb2k39_ca.pdb',
+        'n_atoms': 76,
+        'models': 116
+    },
     '1ubi_ca': {
         'pdb': '1ubi',
         'file': 'pdb1ubi_ca.pdb',
@@ -94,6 +106,15 @@ DATA_FILES = {
     'rtb2gb1_project': {
         'file': 'rtb2gb1_project.coo'
     },
+    'pca2k39_cov': {
+        'file': 'pca2k39_cov.coo',
+    },
+    'pca2k39_evalues': {
+        'file': 'pca2k39_evalues.dat',
+    },
+    'pca2k39_vectors': {
+        'file': 'pca2k39_vectors.dat'
+    },
     'commute1ubi': {
         'file': 'commute1ubi.dat'
     },
@@ -123,7 +144,7 @@ DATA_FILES = {
     },
     'RTER': {
         'file': 'pdbRTER.pdb'
-    },
+    }
 }
 
 

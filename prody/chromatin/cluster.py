@@ -27,7 +27,7 @@ def KMeans(V, **kwargs):
     for details.
 
     :arg V: row-normalized eigenvectors for the purpose of clustering.
-    :type V: :class:`numpy.ndarray`
+    :type V: :class:`~numpy.ndarray`
 
     :arg n_clusters: specifies the number of clusters. 
     :type n_clusters: int
@@ -54,7 +54,7 @@ def Hierarchy(V, **kwargs):
     explaination of the arguments. Here lists arguments that are different from those of scipy.
 
     :arg V: row-normalized eigenvectors for the purpose of clustering.
-    :type V: :class:`numpy.ndarray`
+    :type V: :class:`~numpy.ndarray`
 
     :arg inconsistent_percentile: if the clustering *criterion* for :func:`scipy.cluster.hierarchy.fcluster`
     is ``inconsistent`` and threshold *t* is not given (default), then the function will use the percentile specified 
@@ -207,7 +207,7 @@ def GaussianMixture(V, **kwargs):
     for details.
 
     :arg V: row-normalized eigenvectors for the purpose of clustering.
-    :type V: :class:`numpy.ndarray`
+    :type V: :class:`~numpy.ndarray`
 
     :arg n_clusters: specifies the number of clusters. 
     :type n_clusters: int
@@ -236,7 +236,7 @@ def BayesianGaussianMixture(V, **kwargs):
     for details.
 
     :arg V: row-normalized eigenvectors for the purpose of clustering.
-    :type V: :class:`numpy.ndarray`
+    :type V: :class:`~numpy.ndarray`
 
     :arg n_clusters: specifies the number of clusters. 
     :type n_clusters: int
@@ -264,7 +264,7 @@ def showLinkage(V, **kwargs):
     """Shows the dendrogram of hierarchical clustering on *V*. See :func:`scipy.cluster.hierarchy.dendrogram` for details.
 
     :arg V: row-normalized eigenvectors for the purpose of clustering.
-    :type V: :class:`numpy.ndarray`
+    :type V: :class:`~numpy.ndarray`
 
     """
 

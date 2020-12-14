@@ -6,8 +6,6 @@
 
 from collections import defaultdict
 import os.path
-
-
 import numpy as np
 
 from prody.atomic import AtomGroup
@@ -16,15 +14,17 @@ from prody.atomic import ATOMIC_FIELDS
 from prody.utilities import openFile
 from prody import LOGGER, SETTINGS
 
-from .header import getHeaderDict, buildBiomolecules, assignSecstr
 from .localpdb import fetchPDB
+from .starfile import parseSTARLines, StarDict
 
-__all__ = ['parseCIFStream', 'parseCIF',]
+__all__ = ['parseMMCIFStream', 'parseMMCIF', ]
 
-class CIFParseError(Exception):
+
+class mmCIFParseError(Exception):
     pass
 
-_parseCIFdoc = """
+
+_parseMMCIFdoc = """
     :arg title: title of the :class:`.AtomGroup` instance, default is the
         PDB filename or PDB identifier
     :type title: str
@@ -52,13 +52,14 @@ _parseCIFdoc = """
 
 _PDBSubsets = {'ca': 'ca', 'calpha': 'ca', 'bb': 'bb', 'backbone': 'bb'}
 
-def parseCIF(pdb, **kwargs):
-    """Returns an :class:`.AtomGroup` and/or dictionary containing header data
+
+def parseMMCIF(pdb, **kwargs):
+    """Returns an :class:`.AtomGroup` and/or a :class:`.StarDict` containing header data
     parsed from an mmCIF file. If not found, the mmCIF file will be downloaded
     from the PDB. It will be downloaded in uncompressed format regardless of
     the compressed keyword.
 
-    This function extends :func:`.parseCIFStream`.
+    This function extends :func:`.parseMMCIFStream`.
 
     See :ref:`parsecif` for a detailed usage example.
 
@@ -81,7 +82,8 @@ def parseCIF(pdb, **kwargs):
             elif os.path.isfile(pdb + '.cif.gz'):
                 filename = pdb + '.cif.gz'
             else:
-                filename = fetchPDB(pdb, report=True, format='cif',compressed=False)
+                filename = fetchPDB(pdb, report=True,
+                                    format='cif', compressed=False)
                 if filename is None:
                     raise IOError('mmCIF file for {0} could not be downloaded.'
                                   .format(pdb))
@@ -97,13 +99,14 @@ def parseCIF(pdb, **kwargs):
             title = title[3:]
         kwargs['title'] = title
     cif = openFile(pdb, 'rt')
-    result = parseCIFStream(cif, **kwargs)
+    result = parseMMCIFStream(cif, **kwargs)
     cif.close()
     return result
 
-def parseCIFStream(stream, **kwargs):
-    """Returns an :class:`.AtomGroup` and/or dictionary containing header data
-    parsed from a stream of CIF lines.
+
+def parseMMCIFStream(stream, **kwargs):
+    """Returns an :class:`.AtomGroup` and/or a class:`.StarDict` 
+    containing header data parsed from a stream of CIF lines.
     :arg stream: Anything that implements the method ``readlines``
         (e.g. :class:`file`, buffer, stdin)"""
 
@@ -111,6 +114,7 @@ def parseCIFStream(stream, **kwargs):
     subset = kwargs.get('subset')
     chain = kwargs.get('chain')
     altloc = kwargs.get('altloc', 'A')
+    header = kwargs.get('header', False)
 
     if model is not None:
         if isinstance(model, int):
@@ -157,24 +161,35 @@ def parseCIFStream(stream, **kwargs):
                 raise err
         if not len(lines):
             raise ValueError('empty PDB file or stream')
-        ag = _parseCIFLines(ag, lines, model, chain, subset, altloc)
+
+        if header:
+            ag, header = _parseMMCIFLines(ag, lines, model, chain, subset,
+                                          altloc, header)
+        else:
+            ag = _parseMMCIFLines(ag, lines, model, chain, subset,
+                                  altloc, header)
+
         if ag.numAtoms() > 0:
             LOGGER.report('{0} atoms and {1} coordinate set(s) were '
                           'parsed in %.2fs.'.format(ag.numAtoms(),
-                           ag.numCoordsets() - n_csets))
+                                                    ag.numCoordsets() - n_csets))
         else:
             ag = None
             LOGGER.warn('Atomic data could not be parsed, please '
-            'check the input file.')
+                        'check the input file.')
+        if header:
+            return ag, StarDict(*header, title=str(kwargs.get('title', 'Unknown')))
         return ag
 
-parseCIFStream.__doc__ += _parseCIFdoc
 
-def _parseCIFLines(atomgroup, lines, model, chain, subset,
-                   altloc_torf):
+parseMMCIFStream.__doc__ += _parseMMCIFdoc
+
+
+def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
+                     altloc_torf, header):
     """Returns an AtomGroup. See also :func:`.parsePDBStream()`.
 
-    :arg lines: CIF lines
+    :arg lines: mmCIF lines
     """
 
     if subset is not None:
@@ -209,9 +224,10 @@ def _parseCIFLines(atomgroup, lines, model, chain, subset,
         else:
             if foundAtomBlock:
                 doneAtomBlock = True
+                stop = i
         i += 1
-    stop = i-1
-    if nModels == 0: nModels = 1
+    if nModels == 0:
+        nModels = 1
 
     if model is not None and model != 1:
         for i in range(start, stop):
@@ -221,12 +237,12 @@ def _parseCIFLines(atomgroup, lines, model, chain, subset,
                 stop = i+1
                 break
         if not str(model) in models:
-            raise CIFParseError('model {0} is not found'.format(model))
+            raise mmCIFParseError('model {0} is not found'.format(model))
 
     addcoords = False
     if atomgroup.numCoordsets() > 0:
         addcoords = True
- 
+
     if isinstance(altloc_torf, str):
         if altloc_torf.strip() != 'A':
             LOGGER.info('Parsing alternate locations {0}.'
@@ -288,24 +304,30 @@ def _parseCIFLines(atomgroup, lines, model, chain, subset,
             elif int(models[acount]) > model:
                 break
 
-        coordinates[acount] = [line.split()[fields['Cartn_x']], \
-                              line.split()[fields['Cartn_y']], \
-                              line.split()[fields['Cartn_z']]]
+        coordinates[acount] = [line.split()[fields['Cartn_x']],
+                               line.split()[fields['Cartn_y']],
+                               line.split()[fields['Cartn_z']]]
         atomnames[acount] = atomname
         resnames[acount] = resname
         resnums[acount] = line.split()[fields['auth_seq_id']]
         chainids[acount] = chID
         segnames[acount] = segID
         hetero[acount] = startswith == 'HETATM' # True or False
-        if chainids[acount] != chainids[acount-1]: termini[acount] = True
+
+        if chainids[acount] != chainids[acount-1]: 
+            termini[acount-1] = True
+
         altlocs[acount] = alt
         icodes[acount] = line.split()[fields['pdbx_PDB_ins_code']]
-        if icodes[acount] == '?': icodes[acount] = ''
+
+        if icodes[acount] == '?': 
+            icodes[acount] = ''
+
         serials[acount] = line.split()[fields['id']]
         elements[acount] = line.split()[fields['type_symbol']]
         bfactors[acount] = line.split()[fields['B_iso_or_equiv']]
         occupancies[acount] = line.split()[fields['occupancy']]
-        
+
         acount += 1
 
     if model is not None:
@@ -335,9 +357,12 @@ def _parseCIFLines(atomgroup, lines, model, chain, subset,
     atomgroup.setBetas(bfactors[:modelSize])
     atomgroup.setOccupancies(occupancies[:modelSize])
 
-    for n in range(1,nModels):
+    for n in range(1, nModels):
         atomgroup.addCoordset(coordinates[n*modelSize:(n+1)*modelSize])
 
+    if header:
+        header = parseSTARLines(lines[:start-fieldCounter-2] + lines[stop:],
+                                shlex=True)
+        return atomgroup, header
+
     return atomgroup
-
-

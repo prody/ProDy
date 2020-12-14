@@ -9,7 +9,7 @@ import datetime
 import logging.handlers
 import numbers
 
-__all__ = ['PackageLogger', 'LOGGING_LEVELS']
+__all__ = ['PackageLogger', 'LOGGING_LEVELS', 'LOGGER']
 
 LOGGING_PROGRESS = logging.INFO + 5
 
@@ -322,3 +322,5 @@ class PackageLogger(object):
         at *debug* logging level."""
 
         self.debug(msg % (time.time() - self._times[label]))
+
+LOGGER = PackageLogger('.prody')

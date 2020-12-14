@@ -4,11 +4,8 @@ python:
   - 2.7
   - 3.5
   - 3.6
-matrix:
-  include:
-    - python: 3.7
-      dist: xenial
-      sudo: true
+  - 3.7
+  - 3.8
 
 before_install:
   - travis_retry wget http://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O miniconda.sh
@@ -24,6 +21,7 @@ install:
   - if [[ $TRAVIS_PYTHON_VERSION == "3.5" ]]; then conda install --yes pyparsing biopython; fi
   - if [[ $TRAVIS_PYTHON_VERSION == "3.6" ]]; then conda install --yes pyparsing biopython; fi
   - if [[ $TRAVIS_PYTHON_VERSION == "3.7" ]]; then conda install --yes pyparsing biopython; fi
+  - if [[ $TRAVIS_PYTHON_VERSION == "3.8" ]]; then conda install --yes pyparsing biopython; fi
   - python setup.py build install
 script:
   - cd docs; nosetests prody -a '!slow'
