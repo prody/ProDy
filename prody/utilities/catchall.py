@@ -2,10 +2,11 @@
 
 import numpy as np
 from numpy import unique, linalg, diag, sqrt, dot
+
 from Bio.Phylo.BaseTree import Tree, Clade
 
 from prody import PY3K
-from .misctools import addEnds, interpY, index
+from .misctools import addEnds, interpY, index, isListLike
 from .checkers import checkCoords
 from .logger import LOGGER
 
