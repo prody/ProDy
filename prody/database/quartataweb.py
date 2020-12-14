@@ -103,6 +103,7 @@ class QuartataWebBrowser(object):
         self.query_type = None
         self.data = None
         self.num_predictions = None
+        self.chemical_data = None
 
         self.job_id = job_id
 
@@ -576,6 +577,10 @@ class QuartataChemicalRecord(object):
             query_type = self.query_type
         if data is None:
             data = self.data
+
+        if data is None:
+            raise ValueError('data cannot be None')
+
         if num_predictions is None:
             num_predictions = self.num_predictions
         if browser_type is None:
@@ -592,6 +597,8 @@ class QuartataChemicalRecord(object):
         self.qwb.quit()
 
         self._chemData = self.qwb.chemical_data
+        if self._chemData is None:
+            raise ValueError('')
         chem_temp_dict = dict()
         listAll = []
         for temp in self._chemData:
@@ -752,4 +759,4 @@ def searchQuartataWeb(data_source=None, drug_group=None, input_type=None, query_
         LOGGER.warn('No other result types are supported yet')
         return None
 
-searchQuartataWeb.__doc__ += QuartataWebBrowser.__doc__
+searchQuartataWeb.__doc__ += "\n" + QuartataWebBrowser.__init__.__doc__
