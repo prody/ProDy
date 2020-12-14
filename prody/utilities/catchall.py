@@ -10,7 +10,7 @@ from Bio.Phylo.BaseTree import Tree, Clade
 
 __all__ = ['calcTree', 'clusterMatrix', 'showLines', 'showMatrix', 
            'reorderMatrix', 'findSubgroups', 'getCoords',  
-           'getLinkage', 'getTreeFromLinkage', 'calcModeClusters']
+           'getLinkage', 'getTreeFromLinkage', 'clusterSubfamilies']
 
 class LinkageError(Exception):
     pass
