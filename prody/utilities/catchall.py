@@ -67,7 +67,7 @@ def clusterSubfamilies(similarities, n_clusters=0, linkage='all', method='tsne',
 
     # Check inputs to make sure are of valid types/values
     if not isinstance(similarities, np.ndarray):
-           raise TypeError('similarities should be a numpy ndarray')
+        raise TypeError('similarities should be a numpy ndarray')
 
     dim = similarities.shape
     if dim[0] != dim[1]:
@@ -400,14 +400,16 @@ def clusterMatrix(distance_matrix=None, similarity_matrix=None, labels=None, ret
     """
     Cluster a distance matrix using scipy.cluster.hierarchy and 
     return the sorted matrix, indices used for sorting, sorted labels (if **labels** are passed),  
-    and linkage matrix (if **return_linkage** is **True**). Set ``similarity=True`` for clustering a similarity matrix
+    and linkage matrix (if **return_linkage** is **True**). 
     
     :arg distance_matrix: an N-by-N matrix containing some measure of distance 
-         such as 1. - seqid_matrix, rmsds, or distances in PCA space
-    :type similarity_matrix: :class:`~numpy.ndarray`
+         such as 1. - seqid_matrix (Hamming distance), rmsds, or distances in PCA space
+    :type distance_matrix: :class:`~numpy.ndarray`
 
     :arg similarity_matrix: an N-by-N matrix containing some measure of similarity 
-         such as sequence identity, mode-mode overlap, or spectral overlap
+         such as sequence identity, mode-mode overlap, or spectral overlap.
+         Each element will be subtracted from 1. to get distance, so make sure this 
+         is reasonable.
     :type similarity_matrix: :class:`~numpy.ndarray`
     
     :arg labels: labels for each matrix row that can be returned sorted
@@ -918,9 +920,6 @@ def reorderMatrix(names, matrix, tree, axis=None):
             raise ValueError('inconsistent names and tree: duplicate name %s in names'%name)
         indices.append(locs[0])
 
-    # rmatrix = matrix[:, indices]
-    # rmatrix = rmatrix[indices, :]
-
     if axis is not None:
         I = [np.arange(s) for s in matrix.shape] 
         axes = [axis] if np.isscalar(axis) else axis
@@ -935,7 +934,7 @@ def reorderMatrix(names, matrix, tree, axis=None):
 
 def findSubgroups(tree, c, method='naive', **kwargs):
     """
-    Divide a tree into subgroups using a criterion and a cutoff.
+    Divide **tree** into subgroups using a criterion **method** and a cutoff **c**.
     Returns a list of lists with labels divided into subgroups.
     """
 

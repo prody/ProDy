@@ -1194,10 +1194,6 @@ def showPerturbResponse(model, atoms=None, show_matrix=True, select=None, **kwar
         show = showAtomicMatrix(prs_matrix, x_array=sensitivity, 
                                 y_array=effectiveness, atoms=atoms, 
                                 **kwargs)
-        cluster_col = kwargs.pop('cluster_col',False)
-        if cluster_col == False:
-            xlabel('Residues')
-
     else:
         if select is None:
             fig = fig_ = kwargs.pop('figure', None) # this line needs to be in this block
@@ -1338,7 +1334,6 @@ def showAtomicMatrix(matrix, x_array=None, y_array=None, atoms=None, **kwargs):
     ticklabels = kwargs.pop('ticklabels', None)
     text_color = kwargs.pop('text_color', 'k')
     text_color = kwargs.pop('textcolor', text_color)
-    cluster = kwargs.pop('cluster', False)
     interactive = kwargs.pop('interactive', True)
 
     if isinstance(fig, Figure):
