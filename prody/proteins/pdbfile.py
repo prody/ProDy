@@ -989,7 +989,7 @@ _writePDBdoc = """
         column
 
     :arg hybrid36: whether to use hybrid36 format for atoms with serial
-        greater than or equal to 99999. Hexadecimal is used otherwise.
+        greater than 99999. Hexadecimal is used otherwise.
         Default is False
     :type hybrid36: bool 
     """
@@ -1107,7 +1107,7 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
 
     n_atoms = atoms.numAtoms()
 
-    hybrid36 = kwargs.get('hybrid36',False)
+    hybrid36 = kwargs.get('hybrid36', False)
 
     occupancy = kwargs.get('occupancy')
     if occupancy is None:
