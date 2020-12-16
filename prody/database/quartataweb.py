@@ -13,8 +13,10 @@ c) the corresponding driver such as chromedriver (https://sites.google.com/a/chr
 """
 
 from prody import PY3K, LOGGER
-import numpy as np
+from prody.utilities import openFile
 
+import numpy as np
+import os
 
 __all__ = ['QuartataWebBrowser', 'QuartataChemicalRecord', 'searchQuartataWeb']
 
@@ -23,7 +25,7 @@ class QuartataWebBrowser(object):
     """Class to browse the QuartataWeb website."""
 
     def __init__(self, data_source=None, drug_group=None, input_type=None, query_type=None, 
-                 data=None, num_predictions=None, browser_type=None, job_id=None):
+                 data=None, num_predictions=None, browser_type=None, job_id=None, tsv=None):
         """Instantiate a QuartataWebBrowser object instance.
 
         :arg data_source: source database for QuartataWeb analysis
@@ -86,6 +88,10 @@ class QuartataWebBrowser(object):
         :arg job_id: job ID for accessing previous jobs
             Default is ``None``
         :type browser_type: int        
+
+        :arg tsv: a filename for a file that contains the results 
+            or a file to save the results in tsv format
+        :type tsv: str
         """
 
         self.browser_type = None
@@ -97,8 +103,17 @@ class QuartataWebBrowser(object):
         self.query_type = None
         self.data = None
         self.num_predictions = None
+        self.chemical_data = None
 
         self.job_id = job_id
+
+        self.filename = None
+        self.no_data = True
+        if tsv is not None:
+            try:
+                self.parseChemicals(tsv)
+            except:
+                raise ValueError('please provide a valid filename')
 
         self.setBrowserType(browser_type)
         self.setDataSource(data_source)
@@ -176,7 +191,8 @@ class QuartataWebBrowser(object):
             raise ValueError('data_source should be DrugBank, STITCH or None')
 
         self.data_source = data_source
-        self.updateHomePage()
+        if self.no_data:
+            self.updateHomePage()
 
     def setDrugGroup(self, group):
         """Set drug_group and update home page
@@ -198,7 +214,9 @@ class QuartataWebBrowser(object):
                 raise ValueError('group should be approved, all or None')
 
             self.drug_group = group
-            self.updateHomePage()
+            if self.no_data:
+                self.updateHomePage()
+
         elif group is not None:
             LOGGER.warn('there are no groups when using STITCH')
 
@@ -219,7 +237,8 @@ class QuartataWebBrowser(object):
             raise ValueError('input_type should be 1, 2 or None')
 
         self.input_type = input_type
-        self.updateHomePage()
+        if self.no_data:
+            self.updateHomePage()
 
     def setQueryType(self, query_type):
         """Set query_type and update home page
@@ -249,7 +268,8 @@ class QuartataWebBrowser(object):
             raise ValueError('query_type should be 1, 2, 3 or None')
 
         self.query_type = query_type
-        self.updateHomePage()
+        if self.no_data:
+            self.updateHomePage()
 
     def setData(self, data):
         """Set data and update home page
@@ -295,7 +315,8 @@ class QuartataWebBrowser(object):
                             'each item in data must be a pair with ; as delimiter')
 
         self.data = data
-        self.updateHomePage()
+        if self.no_data:
+            self.updateHomePage()
 
     def setNumPredictions(self, num_predictions):
         """Set num_predictions and update home page
@@ -323,7 +344,8 @@ class QuartataWebBrowser(object):
             raise ValueError('2nd num_predictions must be <= 20')
 
         self.num_predictions = num_predictions
-        self.updateHomePage()
+        if self.no_data:
+            self.updateHomePage()
 
     def setBrowserType(self, browser_type):
         """Set browser_type and update home page
@@ -352,28 +374,28 @@ class QuartataWebBrowser(object):
                         url = "http://quartata.csb.pitt.edu"
                         browser.visit(url)
                     except WebDriverException:
-                        raise ValueError(
-                            'No web driver found for Chrome or Firefox. Please specify a browser type or download an appropriate driver.')
+                        raise ValueError('No web driver found for Chrome or Firefox. '
+                                         'Please specify a different browser type or download an appropriate driver.')
                     else:
                         self.browser_type = 'firefox'
                 else:
                     self.browser_type = 'chrome'
 
-        elif not isinstance(browser_type, str):
-            raise TypeError('browser_type should be a string or None')
-        else:
-            try:
-                browser = Browser(browser_type)
-                url = "http://quartata.csb.pitt.edu"
-                browser.visit(url)
-            except WebDriverException:
-                raise ValueError(
-                    'No web driver found for browser_type. Please specify a different browser type or download an appropriate driver.')
+            elif not isinstance(browser_type, str):
+                raise TypeError('browser_type should be a string or None')
             else:
-                self.browser_type = browser_type
+                try:
+                    browser = Browser(browser_type)
+                    url = "http://quartata.csb.pitt.edu"
+                    browser.visit(url)
+                except WebDriverException:
+                    raise ValueError('No web driver found for browser_type. '
+                                     'Please specify a different browser type or download an appropriate driver.')
+                else:
+                    self.browser_type = browser_type
 
-        self.browser = browser
-        self.updateHomePage()
+            self.browser = browser
+            self.updateHomePage()
 
 
     def setJObID(self, job_id):
@@ -384,7 +406,8 @@ class QuartataWebBrowser(object):
         :type browser_type: int
         """
         self.job_id = job_id
-        self.viewResults()
+        if self.no_data:
+            self.viewResults()
 
 
     def viewResults(self):
@@ -428,25 +451,56 @@ class QuartataWebBrowser(object):
         self.browser.visit(url)
 
 
-    def parseChemicals(self):
+    def parseChemicals(self, filename=None):
         """Go to working directory and parse chemicals for query protein.
         Updates self.chemical_data"""
+        
+        if filename is None:
+            filename = self.filename
+
         try:
-            self.goToWorkDir()
-            
-            if self.data_source == 'DrugBank':
-                filename = 'known_drugs_for_query_protein.txt'
-            else:
-                filename = 'known_chemicals_for_query_protein.txt'
+            if filename is not None:
+                if not self.no_data:
+                    return True
 
-            self.browser.find_by_text(filename)[0].click()
-            
-            import requests            
-            html = requests.get(self.browser.url).content
-            if PY3K:
-                html = html.decode()
+                if not isinstance(filename, str):
+                    raise TypeError('filename should be a string')
 
-            lines = html.split('\n')
+                if os.path.isfile(filename):
+                    # read the contents
+                    LOGGER.info('reading chemicals from {0}'.format(filename))
+                    stream = openFile(filename, 'rt')
+                    lines = stream.readlines()
+                    stream.close()
+                    self.no_data = False
+                else:
+                    # filename contains a filename for writing
+                    self.no_data = True
+
+                self.filename = filename
+
+            if self.no_data:
+                self.goToWorkDir()
+                
+                if self.data_source == 'DrugBank':
+                    data_filename = 'known_drugs_for_query_protein.txt'
+                else:
+                    data_filename = 'known_chemicals_for_query_protein.txt'
+
+                self.browser.find_by_text(data_filename)[0].click()
+                
+                import requests
+                html = requests.get(self.browser.url).content
+                if PY3K:
+                    html = html.decode()
+
+                if filename is not None:
+                    LOGGER.info('writing chemicals to {0}'.format(filename))
+                    out = open(filename, 'w')
+                    out.write(html)
+                    out.close()
+
+                lines = html.split('\n')
 
             self.fields = lines[0].split('\t')
             self.num_fields = len(self.fields)
@@ -467,28 +521,30 @@ class QuartataWebBrowser(object):
             self.chemical_data = np.empty(self.num_rows, dtype=dtypes)
 
             for i, line in enumerate(lines[1:self.num_rows+1]):
-                items = line.split('\t')
+                items = line.strip().split('\t')
                 if len(items) != self.num_fields:
                     raise ValueError('line {0} has the wrong number of fields'.format(i+1))
 
                 for j, item in enumerate(items):
                     self.chemical_data[i][j] = item
         except:
-            success = False
+            self.no_data = True
         else:
-            success = True
-        return success
+            self.no_data = False
+        return not self.no_data
 
 
     def quit(self):
-        self.browser.quit()
+        if self.browser is not None:
+            self.browser.quit()
 
 
 class QuartataChemicalRecord(object):
     """Class for handling chemical data from QuartataWebBrowser"""
 
     def __init__(self, data_source=None, drug_group=None, input_type=None, query_type=None, 
-                 data=None, num_predictions=None, browser_type=None, job_id=None):
+                 data=None, num_predictions=None, browser_type=None, job_id=None, 
+                 filename=None):
         """Instantiate a QuartataChemicalRecord object instance.
         Inputs are the same as QuartataWebBrowser.
         """
@@ -502,13 +558,14 @@ class QuartataChemicalRecord(object):
         self.num_predictions = num_predictions
         self.browser_type = browser_type
         self.job_id = job_id
+        self.filename = filename
 
         self.isSuccess = self.fetch(data_source, drug_group, input_type, query_type,
-                                    data, num_predictions, browser_type, job_id)
+                                    data, num_predictions, browser_type, job_id, filename)
 
 
     def fetch(self, data_source=None, drug_group=None, input_type=None, query_type=None, 
-              data=None, num_predictions=None, browser_type=None, job_id=None):
+              data=None, num_predictions=None, browser_type=None, job_id=None, filename=None):
         """Fetch data"""
         if data_source is None:
             data_source = self.data_source
@@ -520,20 +577,28 @@ class QuartataChemicalRecord(object):
             query_type = self.query_type
         if data is None:
             data = self.data
+
+        if data is None:
+            raise ValueError('data cannot be None')
+
         if num_predictions is None:
             num_predictions = self.num_predictions
         if browser_type is None:
             browser_type = self.browser_type
         if job_id is None:
             job_id = self.job_id
+        if filename is None:
+            filename = self.filename
 
         self.qwb = QuartataWebBrowser(data_source, drug_group, input_type, query_type,
-                                      data, num_predictions, browser_type, job_id)
+                                      data, num_predictions, browser_type, job_id, filename)
         
         isSuccess = self.qwb.parseChemicals()
         self.qwb.quit()
 
         self._chemData = self.qwb.chemical_data
+        if self._chemData is None:
+            raise ValueError('')
         chem_temp_dict = dict()
         listAll = []
         for temp in self._chemData:
@@ -671,20 +736,27 @@ class QuartataChemicalRecord(object):
         filterDict = {'lower_MW': filterListLowerMW, 'upper_MW': filterListUpperMW, 'conf_score': filterListConf}
         self._filterList = filterList
         self._filterDict = filterDict
-        self._list = list(set(self._listAll) - set(filterList))
+        self._list = [item for item in self._listAll if not item in filterList]
         LOGGER.info(str(len(self._listAll)-len(self._list)) + ' chemicals have been filtered out from '+str(len(self._listAll))+' QuartataWeb hits (remaining: '+str(len(self._list))+').')
         return self._list
     
 
 
 def searchQuartataWeb(data_source=None, drug_group=None, input_type=None, query_type=None, 
-                   data=None, num_predictions=None, browser_type=None, job_id=None, result_type='Chemical'):
-    """Wrapper function for searching QuartataWeb"""
+                      data=None, num_predictions=None, browser_type=None, job_id=None, 
+                      filename=None, result_type='Chemical'):
+    """Wrapper function for searching QuartataWeb.
+
+    :arg result_type: type of results to get from QuartataWeb.
+        So far only ``'Chemical'`` is supported.
+    :type result_type: str
+    """
     if result_type == 'Chemical':
         return QuartataChemicalRecord(data_source, drug_group, input_type, query_type,
-                                    data, num_predictions, browser_type, job_id)
+                                      data, num_predictions, browser_type, job_id,
+                                      filename)
     else:
         LOGGER.warn('No other result types are supported yet')
         return None
 
-searchQuartataWeb.__doc__ += QuartataWebBrowser.__doc__
+searchQuartataWeb.__doc__ += "\n" + QuartataWebBrowser.__init__.__doc__
