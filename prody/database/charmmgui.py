@@ -1,13 +1,14 @@
 #!/usr/bin/env python
-#----------------------------------------------------------------------------------------
+# ----------------------------------------------------------------------------------------
 # Written by CHARMM-GUI team (www.charmm-gui.org) and modified by James Krieger
 # This suite uses the following softwares:
 # a) google chrome browser
 # b) python Splinter package (https://splinter.readthedocs.org/en/latest/)
-# c) chromedriver (https://sites.google.com/a/chromium.org/chromedriver/downloads). 
+# c) chromedriver (https://sites.google.com/a/chromium.org/chromedriver/downloads).
 #    chromedriver is required by Splinter. Make sure it is installed in your PATH
-#----------------------------------------------------------------------------------------
+# ----------------------------------------------------------------------------------------
 
+from prody.proteins.pdbfile import parsePDB
 import time
 import os
 import sys
@@ -25,12 +26,13 @@ import subprocess
 
 __all__ = ['CharmmGUIBrowser']
 
+
 class CharmmGUIBrowser(object):
     def __init__(self, cwd=None, ndir=None, fname=None, segids=None):
         if cwd is None:
             cwd = os.getcwd()
         self.cwd = cwd
-        
+
         if ndir is None:
             ndir = ''
         self.ndir = ndir
@@ -39,8 +41,11 @@ class CharmmGUIBrowser(object):
             raise TypeError('please provide a filename')
         self.fname = fname
 
+        ag = parsePDB("%s/%s/%s" % (cwd, ndir, fname),
+                      subset='ca')
+
         if segids is None:
-            segids = ['PROA']
+            segids = ['PRO'+ch.getChid() for ch in ag.iterChains()]
         self.segids = segids
 
         self.browser = None
@@ -49,7 +54,7 @@ class CharmmGUIBrowser(object):
 
         self.saveas = 'charmm-gui'
 
-        #self.run()
+        # self.run()
 
     def download(self, browser=None, link=None, saveas=None):
         if browser is None:
@@ -64,26 +69,26 @@ class CharmmGUIBrowser(object):
         LOGGER.info("downloading %s to %s" % (link, saveas))
         url = "http://www.charmm-gui.org/?doc=input/download"
         user_agent = 'Mozilla/4.0 (compatible; MSIE 5.5; Windows NT)'
-        headers = { 'User-Agent' : user_agent }
+        headers = {'User-Agent': user_agent}
         link1 = link.split("&")
-        tag=link1[1].split("=")[1]
-        step=link1[2].split("=")[1]
-        values = {'time'    : tag,
-                'step'    : step,
-                'archive' : 'tgz' }
+        tag = link1[1].split("=")[1]
+        step = link1[2].split("=")[1]
+        values = {'time': tag,
+                  'step': step,
+                  'archive': 'tgz'}
         data = urllib.urlencode(values)
         req = urllib2.Request(url, data, headers)
         response = urllib2.urlopen(req)
         the_page = response.read()
         with open(saveas, "wb") as code:
-            code.write(the_page) 
+            code.write(the_page)
         fsize = float(os.stat(saveas).st_size)/(1024.0*1024.0)
-        LOGGER.info("download complete, file size is %5.2f MB"%fsize)
+        LOGGER.info("download complete, file size is %5.2f MB" % fsize)
 
     def get_download_link(self, browser=None):
         if browser is None:
             browser = self.browser
-            
+
         while True:
             try:
                 downlink = browser.find_link_by_partial_href("archive=tgz")[-1]
@@ -94,16 +99,17 @@ class CharmmGUIBrowser(object):
                 else:
                     return d
             except:
-                LOGGER.info("waiting for download link, sleep for 2 s")
+                LOGGER.info("Waiting for download link, sleep for 2 s")
                 time.sleep(2)
 
     def check_error(self, browser=None):
         if browser is None:
             browser = self.browser
-            
+
         while True:
             try:
-                res = browser.is_text_present("CHARMM was terminated abnormally")
+                res = browser.is_text_present(
+                    "CHARMM was terminated abnormally")
                 if res == True:
                     LOGGER.info("Build Failed")
                     return False
@@ -119,13 +125,14 @@ class CharmmGUIBrowser(object):
 
         if text is None:
             text = self.text
-            
-        LOGGER.info("    waiting for %s" % text)
+
+        LOGGER.info("    Waiting for %s button" % text)
         while True:
             try:
                 res = browser.is_text_present(text)
                 if res == True:
                     break
+                #err = browser.
             except:
                 LOGGER.info("    sleep for 2 seconds")
                 time.sleep(2)
@@ -136,9 +143,12 @@ class CharmmGUIBrowser(object):
 
         if text is None:
             text = self.text
-            
+
         browser.execute_script("proceed()")
-        LOGGER.info("    Goto next step")
+        if len(browser.find_by_id("error_msg")[:]) > 0:
+            raise Exception(browser.find_by_id("error_msg")[0].text)
+
+        LOGGER.info("    Going to next step")
         self.wait_for_text(browser, text)
 
     def run(self, cwd=None, ndir=None, fname=None, segids=None):
@@ -154,46 +164,48 @@ class CharmmGUIBrowser(object):
         if segids is None:
             segids = self.segids
 
-        LOGGER.info("Running CHARMM-GUI Solution Builder in %s directory" % ndir)
+        LOGGER.info(
+            "Running CHARMM-GUI Solution Builder in %s directory" % ndir)
 
-        try: 
-            from splinter import Browser 
+        try:
+            from splinter import Browser
         except ImportError:
             raise ImportError('Browser module could not be imported. '
-                'install splinter package to solve the problem.')
+                              'install splinter package to solve the problem.')
 
-        browser = Browser('chrome')
+        self.browser = browser = Browser('chrome')
         url = "http://www.charmm-gui.org/input/solution"
         browser.visit(url)
 
-        browser.attach_file('file',"%s/%s/%s" % (cwd,ndir,fname))
+        browser.attach_file('file', "%s/%s/%s" % (cwd, ndir, fname))
         browser.find_by_value("PDB").click()
 
         self.next_step(browser, "Manipulate PDB")
+
+        for item in browser.find_by_value("1"):
+            item.uncheck()
+
         for segid in segids:
             browser.find_by_name("chains[%s][checked]" % segid.upper()).check()
 
         self.next_step(browser, "Generate PDB")
-        #browser.find_by_value("charmm").click()
-        #browser.attach_file("top[LIG]","%s/%s/lig_g.rtf" % (cwd, ndir))
-        #browser.attach_file("par[LIG]","%s/%s/lig.prm" % (cwd, ndir))
 
         self.next_step(browser, "Solvate Molecule")
         if self.check_error(browser) == False:
-            return browser, self.get_download_link(browser)#, status
+            return browser, self.get_download_link(browser)  # , status
         browser.find_option_by_text('NaCl').first.click()
         browser.find_option_by_text('Monte-Carlo').first.click()
 
         self.next_step(browser, "Setup Periodic Boundary Condition")
         if self.check_error(browser) == False:
-            return browser, self.get_download_link(browser)#, status
+            return browser, self.get_download_link(browser)  # , status
 
         self.next_step(browser, "Generate Equilibration and Dynamics Inputs")
         if self.check_error(browser) == False:
-            return browser, self.get_download_link(browser)#, status
-        
+            return browser, self.get_download_link(browser)  # , status
+
         self.next_step(browser, "step5_production.inp")
-        
+
         self.check_error(browser)
         link = self.get_download_link(browser)
         LOGGER.info("Build success")
@@ -207,42 +219,15 @@ class CharmmGUIBrowser(object):
 
 if __name__ == "__main__":
 
-    dircnt = int(1)
-    ndir = "ld%s" % dircnt
-    while (os.path.exists(ndir)):
-        flist = os.listdir(ndir)
-        for i in flist:
-            if "modified.pdb" in i:
-                fname = i
-        lpdb = open("ld%s/lig.pdb" % dircnt,'r')
-        flag = True
-        for line in lpdb:
-            if flag and line.startswith("ATOM"):
-                tempx = float(line[30:38])
-                flag = False
-        
-        tpdb = open("ld%s/" % dircnt + fname,'r')
-        flag = True
-        for line in tpdb:
-            if flag and line.startswith("ATOM"):
-                if line[17:20] == "LIG" and float(line[30:38]) == tempx:
-                    segid = line[72:76]
-                    flag = False
+    from prody import fetchPDB
+    fname = fetchPDB('1ake')
+    cgb = CharmmGUIBrowser(fname=fname)
+    browser, link, status = cgb.run()
 
-        cwd = os.getcwd()
-        segids = [segid]
-        cgb = CharmmGUIBrowser(cwd, ndir, fname, segids)
-        browser, link, status = cgb.run(cwd, ndir, fname, segids)
+    if status == "Failed":
+        LOGGER.info("Failed")
+    else:
+        LOGGER.info("Success")
+        cgb.download
 
-        if status == "Failed":
-            cgb.download(browser, link, "failed.%s.quickmd.tar.gz"%ndir)
-            LOGGER.info("###########Failed####################")
-        else:
-            cgb.download(browser, link, "%s.quickmd.tar.gz"%ndir)
-        LOGGER.info("============================")
-
-        browser.quit()
-
-        dircnt += 1
-        ndir = "ld%s" % dircnt
-
+    browser.quit()
