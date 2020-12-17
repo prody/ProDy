@@ -103,7 +103,11 @@ class QuartataWebBrowser(object):
         self.query_type = None
         self.data = None
         self.num_predictions = None
-        self.chemical_data = None
+
+        self.chemical_data = {}
+        self.fields = {}
+        self.num_fields = {}
+        self.num_rows = {}
 
         self.job_id = job_id
 
@@ -451,7 +455,7 @@ class QuartataWebBrowser(object):
         self.browser.visit(url)
 
 
-    def parseChemicals(self, filename=None):
+    def parseChemicals(self, filename=None, chem_type='known'):
         """Go to working directory and parse chemicals for query protein.
         Updates self.chemical_data"""
         
@@ -483,9 +487,9 @@ class QuartataWebBrowser(object):
                 self.goToWorkDir()
                 
                 if self.data_source == 'DrugBank':
-                    data_filename = 'known_drugs_for_query_protein.txt'
+                    data_filename = '%s_drugs_for_query_protein.txt' % chem_type
                 else:
-                    data_filename = 'known_chemicals_for_query_protein.txt'
+                    data_filename = '%s_chemicals_for_query_protein.txt' % chem_type
 
                 self.browser.find_by_text(data_filename)[0].click()
                 
@@ -502,31 +506,31 @@ class QuartataWebBrowser(object):
 
                 lines = html.split('\n')
 
-            self.fields = lines[0].split('\t')
-            self.num_fields = len(self.fields)
+            self.fields[chem_type] = lines[0].split('\t')
+            self.num_fields[chem_type] = len(self.fields[chem_type])
 
-            self.num_rows = len(lines[1:])
+            self.num_rows[chem_type] = len(lines[1:])
             if lines[-1].strip() == '':
-                self.num_rows -= 1
+                self.num_rows[chem_type] -= 1
 
             dtypes = []
             for i, item in enumerate(lines[1].split('\t')):
                 if item.isnumeric():
-                    dtypes.append((self.fields[i], int))
+                    dtypes.append((self.fields[chem_type][i], int))
                 elif item.find('.') != -1 and item.replace('.','0').isnumeric():
-                    dtypes.append((self.fields[i], float))
+                    dtypes.append((self.fields[chem_type][i], float))
                 else:
-                    dtypes.append((self.fields[i], object))
+                    dtypes.append((self.fields[chem_type][i], object))
 
-            self.chemical_data = np.empty(self.num_rows, dtype=dtypes)
+            self.chemical_data[chem_type] = np.empty(self.num_rows[chem_type], dtype=dtypes)
 
-            for i, line in enumerate(lines[1:self.num_rows+1]):
+            for i, line in enumerate(lines[1:self.num_rows[chem_type]+1]):
                 items = line.strip().split('\t')
-                if len(items) != self.num_fields:
+                if len(items) != self.num_fields[chem_type]:
                     raise ValueError('line {0} has the wrong number of fields'.format(i+1))
 
                 for j, item in enumerate(items):
-                    self.chemical_data[i][j] = item
+                    self.chemical_data[chem_type][i][j] = item
         except:
             self.no_data = True
         else:
@@ -594,6 +598,9 @@ class QuartataChemicalRecord(object):
                                       data, num_predictions, browser_type, job_id, filename)
         
         isSuccess = self.qwb.parseChemicals()
+        if num_predictions[0] > 0:
+            isSuccess = self.qwb.parseChemicals(chem_type='predicted')
+
         self.qwb.quit()
 
         self._chemData = self.qwb.chemical_data
