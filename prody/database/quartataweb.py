@@ -25,7 +25,8 @@ class QuartataWebBrowser(object):
     """Class to browse the QuartataWeb website."""
 
     def __init__(self, data_source=None, drug_group=None, input_type=None, query_type=None, 
-                 data=None, num_predictions=None, browser_type=None, job_id=None, tsv=None):
+                 data=None, num_predictions=None, browser_type=None, job_id=None, 
+                 tsv=None, chem_type='known'):
         """Instantiate a QuartataWebBrowser object instance.
 
         :arg data_source: source database for QuartataWeb analysis
@@ -112,10 +113,10 @@ class QuartataWebBrowser(object):
         self.job_id = job_id
 
         self.filename = None
-        self.no_data = True
+        self.no_data = {'known': True, 'predicted': True}
         if tsv is not None:
             try:
-                self.parseChemicals(tsv)
+                self.parseChemicals(tsv, chem_type)
             except:
                 raise ValueError('please provide a valid filename')
 
@@ -464,7 +465,7 @@ class QuartataWebBrowser(object):
 
         try:
             if filename is not None:
-                if not self.no_data:
+                if not self.no_data[chem_type]:
                     return True
 
                 if not isinstance(filename, str):
@@ -476,14 +477,14 @@ class QuartataWebBrowser(object):
                     stream = openFile(filename, 'rt')
                     lines = stream.readlines()
                     stream.close()
-                    self.no_data = False
+                    self.no_data[chem_type] = False
                 else:
                     # filename contains a filename for writing
-                    self.no_data = True
+                    self.no_data[chem_type] = True
 
                 self.filename = filename
 
-            if self.no_data:
+            if self.no_data[chem_type]:
                 self.goToWorkDir()
                 
                 if self.data_source == 'DrugBank':
@@ -532,10 +533,11 @@ class QuartataWebBrowser(object):
                 for j, item in enumerate(items):
                     self.chemical_data[chem_type][i][j] = item
         except:
-            self.no_data = True
+            self.no_data[chem_type] = True
         else:
-            self.no_data = False
-        return not self.no_data
+            self.no_data[chem_type] = False
+
+        return not self.no_data[chem_type]
 
 
     def quit(self):
@@ -598,7 +600,7 @@ class QuartataChemicalRecord(object):
                                       data, num_predictions, browser_type, job_id, filename)
         
         isSuccess = self.qwb.parseChemicals()
-        if num_predictions[0] > 0:
+        if self.qwb.num_predictions[0] > 0:
             isSuccess = self.qwb.parseChemicals(chem_type='predicted')
 
         self.qwb.quit()
@@ -608,22 +610,23 @@ class QuartataChemicalRecord(object):
             raise ValueError('')
         chem_temp_dict = dict()
         listAll = []
-        for temp in self._chemData:
-            temp_dict = dict()
-            chem_name = temp[1]
+        for key in self._chemData:
+            for temp in self._chemData[key]:
+                temp_dict = dict()
+                chem_name = temp[1]
 
-            temp_dict['DB_ID'] = temp[0]
-            temp_dict['chemical_name'] = chem_name
-            temp_dict['mol_weight'] = temp[2]
-            temp_dict['SMILES'] = temp[3]
-            temp_dict['conf_score'] = temp[4]
+                temp_dict['DB_ID'] = temp[0]
+                temp_dict['chemical_name'] = chem_name
+                temp_dict['mol_weight'] = temp[2]
+                temp_dict['SMILES'] = temp[3]
+                temp_dict['conf_score'] = temp[4]
 
-            chem_temp_dict[chem_name] = temp_dict
-            listAll.append(chem_name)
+                chem_temp_dict[chem_name] = temp_dict
+                listAll.append(chem_name)
 
-        self._listAll = tuple(listAll)
-        self._list = self._listAll
-        self._chemDict = chem_temp_dict
+            self._listAll = tuple(listAll)
+            self._list = self._listAll
+            self._chemDict = chem_temp_dict
         
         return isSuccess
 
@@ -631,7 +634,7 @@ class QuartataChemicalRecord(object):
     def getChemicalList(self, filtered=True):
         """Returns chemical list (filters may be applied)"""
         if not self.isSuccess:
-            LOGGER.warn('Quartata Chemical Record does not have any data yet.'
+            LOGGER.warn('Quartata Chemical Record does not have any data yet. '
                         'Please run fetch again, possibly with different parameters.')
         
         if filtered:
