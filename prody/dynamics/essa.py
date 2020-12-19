@@ -22,9 +22,11 @@ __all__ = ['ESSA']
 class ESSA:
 
     '''
-    docstring
+    ESSA determines the essentiality score of each residue based on the extent to which it can alter the global dynamics ([KB20]_). It can also rank potentially allosteric pockets by calculating their ESSA and local hydrophibic density z-scores using Fpocket algorithm ([LGV09]_). 
 
     .. [KB20] Kaynak B.T., Bahar I., Doruker P., Essential site scanning analysis: A new approach for detecting sites that modulate the dispersion of protein global motions, *Comput. Struct. Biotechnol. J.* **2020** 18:1577-1586.
+
+    .. [LGV09] Le Guilloux, V., Schmidtke P., Tuffery P., Fpocket: An open source platform for ligand pocket detection, *BMC Bioinformatics* **2009** 10:168.
 
     Instantiate an ESSA object.
     '''
@@ -46,10 +48,10 @@ class ESSA:
         self._labels = None
         self._zscore = None
 
-    def setAtoms(self, atoms, **kwargs):
+    def setSystem(self, atoms, **kwargs):
 
         '''
-        Sets atoms and ligands.
+        Sets atoms, ligands and a cutoff distance for protein-ligand interactions.
 
         :arg atoms: *atoms* parsed by parsePDB
 
@@ -57,7 +59,7 @@ class ESSA:
             e.g., 'A 300 B 301'. Default is None.
         :type lig: str
 
-        :arg dist: Distance (A) to obtain the protein residues within its value of ligands, default is 4.5 A.
+        :arg dist: Atom-atom distance (A) to select the protein residues that are in contact with a ligand, default is 4.5 A.
         :type dist: float
         '''
 
@@ -85,15 +87,15 @@ class ESSA:
     def scanResidues(self, n_modes=10, enm='gnm', cutoff=None):
 
         '''
-        Scanning residues.
+        Scans residues to generate ESSA z-scores.
 
-        :arg n_modes: 
+        :arg n_modes: Number of global modes.
         :type n_modes: int
 
-        :arg enm: Type of the elastic network model, default is 'gnm'.
-        "type enm: str
+        :arg enm: Type of elastic network model, 'gnm' or 'anm', default is 'gnm'.
+        :type enm: str
 
-        :arg cutoff: cutoff distance (A) for pairwise interactions, default is 10 A for GNM and 15 A for ANM.
+        :arg cutoff: Cutoff distance (A) for pairwise interactions, default is 10 A for GNM and 15 A for ANM.
         :type cutoff: float
         '''
 
@@ -170,13 +172,13 @@ class ESSA:
 
     def getESSAEnsemble(self):
 
-        'Returns ESSA ensemble.'
+        'Returns ESSA mode ensemble, comprised of ENMS calculated for each scanned/perturbed residue.'
 
         return self._ensemble[:]
     
     def saveESSAEnsemble(self):
 
-        'Saves ESSA ensemble.'
+        'Saves ESSA mode ensemble, comprised of ENMS calculated for each scanned/perturbed residue.'
 
         saveModeEnsemble(self._ensemble, filename=f'{self._title}_{self._enm}')
 
@@ -188,23 +190,23 @@ class ESSA:
 
     def writeESSAZscoresToPDB(self):
 
-        'Writes ESSA z-scores to a pdb file.'
+        'Writes a pdb file with ESSA z-scores placed in the B-factor column.'
 
         writePDB(f'{self._title}_{self._enm}_zs', self._heavy,
                  beta=extendAtomicData(self._zscore, self._ca, self._heavy)[0])
 
-    def getLigandIndices(self):
+    def getLigandResidueIndices(self):
 
-        'Returns ligand indices.'
+        'Returns indices of the residues interacting with ligands.'
 
         if self._lig:
             return self._lig_idx
         else:
             LOGGER.warning('No ligand provided.')
 
-    def saveLigandIndices(self):
+    def saveLigandResidueIndices(self):
 
-        'Saves ligand indices to a pickle file.'
+        'Saves indices of the residues interacting with ligands.'
 
         if self._lig:
             dump(self._lig_idx, open(f'{self._title}_ligand_resindices.pkl', 'wb'))
@@ -216,7 +218,7 @@ class ESSA:
         '''
         Shows ESSA profile.
 
-        :arg quant: Quantile value to plot a baseline.
+        :arg quant: Quantile value to plot a baseline for z-scores, default is 0.75.
         :type quant: float
         '''
 
@@ -238,7 +240,7 @@ class ESSA:
 
     def scanPockets(self):
 
-        'Scans pockets. It needs both Fpocket 3.0 and Pandas being installed in your system.'
+        'Generates ESSA z-scores for pockets and parses pocket features. It requires both Fpocket 3.0 and Pandas being installed in your system.'
 
         fpocket = which('fpocket')
 
@@ -312,7 +314,7 @@ class ESSA:
 
     def rankPockets(self):
 
-        'Ranks pockets.'
+        'Ranks pockets in terms of their allosteric potential based on pocket z-scores.'
 
         from pandas import DataFrame
 
@@ -374,7 +376,7 @@ class ESSA:
 
     def getPocketRanks(self):
 
-        'Returns pocket ranks.'
+        'Returns pocket ranks (allosteric potential), based on only ESSA pocket z-scores (max/median) or in combination with local hydrophobic density z-scores.'
 
         return self._pocket_ranks
 
@@ -386,13 +388,13 @@ class ESSA:
 
     def getPocketZscores(self):
 
-        'Returns pocket zscores of all features as a Pandas dataframe.'
+        'Returns ESSA and local hydrophobic density z-scores for pockets as a Pandas dataframe.'
 
         return self._df_zs
 
     def showPocketZscores(self):
 
-        'Plots maximum/median ESSA and local hydrophobic density z-scores.'
+        'Plots maximum/median ESSA and local hydrophobic density z-scores for pockets.'
 
         self._df_zs[['Maximum ESSA Z-score of pocket residues',
                      'Median ESSA Z-score of pocket residues',
@@ -409,7 +411,7 @@ class ESSA:
 
     def savePocketZscores(self):
 
-        'Saves pocket zscores of all features to a pickle `.pkl` file.'
+        'Saves ESSA and local hydrophobic density z-scores of pockets to a pickle `.pkl` file.'
 
         self._df_zs.to_pickle(f'{self._title}_pocket_zscores.pkl')
 
