@@ -292,7 +292,7 @@ class ESSA:
 
         # ----- # ----- #
 
-        indices = Index(range(1, ps.shape[0] + 1), name='Pocket')
+        indices = Index(range(1, ps.shape[0] + 1), name='Pocket #')
 
         columns = Index(fea, name='Feature')
 
@@ -300,10 +300,10 @@ class ESSA:
 
         # ----- # ----- #
 
-        columns_zs = Index(['Maximum ESSA Z-score of pocket residues',
-                            'Median ESSA Z-score of pocket residues',
-                            'Local hydrophobic density Z-score'],
-                           name='Feature')
+        columns_zs = Index(['ESSA_max',
+                            'ESSA_med',
+                            'LHD'],
+                           name='Z-score')
 
         zps = c_[list(pzs_max.values())]
         zps = hstack((zps, c_[list(pzs_med.values())]))
@@ -314,23 +314,17 @@ class ESSA:
 
     def rankPockets(self):
 
-        'Ranks pockets in terms of their allosteric potential based on pocket z-scores.'
+        'Ranks pockets in terms of their allosteric potential, based on their ESSA z-scores (max/median) with local hydrophobic density (LHD) screening.'
 
-        from pandas import DataFrame
+        from pandas import DataFrame, Index
 
-        pzs_max = self._df_zs['Maximum ESSA Z-score of pocket residues']
-        pzs_med = self._df_zs['Median ESSA Z-score of pocket residues']
-        self._idx_pzs_max = argsort(list(pzs_max))[::-1] + 1
-        self._idx_pzs_med = argsort(list(pzs_med))[::-1] + 1
-
-        lhd = self._df_zs.loc[:, 'Local hydrophobic density Z-score']
+        lhd = self._df_zs.loc[:, 'LHD']
         n = count_nonzero(lhd >= 0.)
         q = quantile(lhd, q=.85)
 
         # ----- # ------ #
 
-        s_max = ['Maximum ESSA Z-score of pocket residues',
-                 'Local hydrophobic density Z-score']
+        s_max = ['ESSA_max', 'LHD']
 
         zf_max = self._df_zs[s_max].copy()
 
@@ -348,8 +342,8 @@ class ESSA:
 
         # ----- # ----- #
 
-        s_med = ['Median ESSA Z-score of pocket residues',
-                 'Local hydrophobic density Z-score']
+        s_med = ['ESSA_med',
+                 'LHD']
 
         zf_med = self._df_zs[s_med].copy()
 
@@ -365,20 +359,13 @@ class ESSA:
 
         self._idx_med = zf_med.sort_values(s_med, ascending=False).index
 
-        self._pocket_ranks = DataFrame(columns=['ESSA_max', 'ESSA_med',
-                                                'ESSA_max_loc_hydro',
-                                                'ESSA_med_loc_hydro'])
+        ranks = Index(range(1, zf_max.shape[0] + 1), name='Allosteric potential / Rank')
 
-        self._pocket_ranks.iloc[:, 0] = self._idx_pzs_max
-        self._pocket_ranks.iloc[:, 1] = self._idx_pzs_med
-        self._pocket_ranks.iloc[:self._idx_max.size, 2] = self._idx_max
-        self._pocket_ranks.iloc[:self._idx_med.size, 3] = self._idx_med
+        self._pocket_ranks = DataFrame(index=ranks, columns=['Pocket # (ESSA_max & LHD)',
+                                                             'Pocket # (ESSA_med & LHD)'])
 
-    def getPocketRanks(self):
-
-        'Returns pocket ranks (allosteric potential), based on only ESSA pocket z-scores (max/median) or in combination with local hydrophobic density z-scores.'
-
-        return self._pocket_ranks
+        self._pocket_ranks.iloc[:, 0] = self._idx_max
+        self._pocket_ranks.iloc[:, 1] = self._idx_med
 
     def getPocketFeatures(self):
 
@@ -388,20 +375,31 @@ class ESSA:
 
     def getPocketZscores(self):
 
-        'Returns ESSA and local hydrophobic density z-scores for pockets as a Pandas dataframe.'
+        'Returns ESSA and local hydrophobic density (LHD) z-scores for pockets as a Pandas dataframe.'
 
         return self._df_zs
 
+    def getPocketRanks(self):
+
+        'Returns pocket ranks (allosteric potential).'
+
+        return self._pocket_ranks
+    
     def showPocketZscores(self):
 
-        'Plots maximum/median ESSA and local hydrophobic density z-scores for pockets.'
+        'Plots maximum/median ESSA and local hydrophobic density (LHD) z-scores for pockets.'
 
-        self._df_zs[['Maximum ESSA Z-score of pocket residues',
-                     'Median ESSA Z-score of pocket residues',
-                     'Local hydrophobic density Z-score']].plot.bar(figsize=(25, 10))
-        plt.xticks(rotation=0)
-        plt.ylabel('Z-score')
-        plt.tight_layout()
+        with plt.style.context({'xtick.major.size': 10, 'xtick.labelsize': 30,
+                                'ytick.major.size': 10, 'ytick.labelsize': 30,
+                                'axes.labelsize': 35, 'legend.fontsize': 25,
+                                'legend.title_fontsize': 0}):
+            self._df_zs[['ESSA_max',
+                         'ESSA_med',
+                         'LHD']].plot.bar(figsize=(25, 10))
+            plt.xticks(rotation=0)
+            plt.xlabel('Pocket')
+            plt.ylabel('Z-score')
+            plt.tight_layout()
 
     def savePocketFeatures(self):
 
@@ -411,7 +409,7 @@ class ESSA:
 
     def savePocketZscores(self):
 
-        'Saves ESSA and local hydrophobic density z-scores of pockets to a pickle `.pkl` file.'
+        'Saves ESSA and local hydrophobic density (LHD) z-scores of pockets to a pickle `.pkl` file.'
 
         self._df_zs.to_pickle(f'{self._title}_pocket_zscores.pkl')
 
@@ -419,13 +417,9 @@ class ESSA:
 
         'Saves pocket ranks to a binary file in Numpy `.npy` format.'
 
-        save(f'{self._title}_{self._enm}_pocket_ranks_wrt_ESSA_max',
-             self._idx_pzs_max)
-        save(f'{self._title}_{self._enm}_pocket_ranks_wrt_ESSA_med',
-             self._idx_pzs_med)
-        save(f'{self._title}_{self._enm}_pocket_ranks_wrt_ESSA_max_loc_hydro',
+        save(f'{self._title}_{self._enm}_pocket_ranks_wrt_ESSAmax_LHD',
              self._idx_max)
-        save(f'{self._title}_{self._enm}_pocket_ranks_wrt_ESSA_med_loc_hydro',
+        save(f'{self._title}_{self._enm}_pocket_ranks_wrt_ESSAmed_LHD',
              self._idx_med)
         
     def writePocketRanksToCSV(self):
