@@ -8,12 +8,9 @@ The chemical information is stored in Peptide Reference Dictionary (PRD) files,
 whereas the biological function is documented in a separate family file."""
 
 import os.path
-from os import getcwd
-from os.path import join
-from numpy import isscalar
 
 from prody import LOGGER, getPackagePath
-from prody.utilities import openFile, openURL, pystr, isListLike
+from prody.utilities import isListLike
 from prody.proteins import wwPDBServer, WWPDB_FTP_SERVERS, parseSTAR
 
 __all__ = ['fetchBIRDviaFTP', 'parseBIRD']
@@ -177,7 +174,7 @@ def parseBIRD(*ids, **kwargs):
     ret = []
     for id in ids:
         try:
-            ret.append(data.search(id)[0])
+            ret.append(data[list(data.search(id)._dict.keys())[0]])
         except ValueError:
             try:
                 ret.append(data[id])
