@@ -39,6 +39,10 @@ from . import goa
 from .goa import *
 __all__.extend(goa.__all__)
 
+from . import charmmgui
+from .charmmgui import *
+__all__.extend(charmmgui.__all__)
+
 from . import quartataweb
 from .quartataweb import *
 __all__.extend(quartataweb.__all__)
