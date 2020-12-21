@@ -71,6 +71,24 @@ class Conformation(object):
         else:
             return ensemble._getWeights()[indices]
 
+    def getData(self, label):
+        """Returns a copy of the data array associated with *label*, or **None**
+        if such data is not present."""
+
+        data = self._ensemble.getData(label)
+        if data is not None:
+            data = data[self._index]
+        return data
+
+    def _getData(self, label):
+        """Returns data array associated with *label*, or **None** if such data
+        is not present."""
+
+        data = self._ensemble._getData(label)
+        if data is not None:
+            data = data[self._index]
+        return data
+
     def getEnsemble(self):
         """Returns the ensemble that this conformation belongs to."""
 

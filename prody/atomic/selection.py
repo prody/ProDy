@@ -6,8 +6,6 @@ from .subset import AtomSubset
 
 __all__ = ['Selection']
 
-SELECT = None
-
 ellipsis = lambda s: s[:15] + '...' + s[-15:] if len(s) > 33 else s
 
 

@@ -522,7 +522,7 @@ def writeDCD(filename, trajectory, start=None, stop=None, step=None,
         raise TypeError('{0} is not a valid type for trajectory'
                         .format(type(trajectory)))
 
-    irange = list(range(*slice(start, stop,step)
+    irange = list(range(*slice(start, stop, step)
                     .indices(trajectory.numCoordsets())))
     n_csets = len(irange)
     if n_csets == 0:
@@ -575,10 +575,10 @@ def writeDCD(filename, trajectory, start=None, stop=None, step=None,
     time_ = time()
     for j, i in enumerate(irange):
         diff = i - prev
-        if diff > 1:
-            trajectory.skip(diff-1)
         prev = i
         if isTrajectory:
+            if diff > 1:
+                trajectory.skip(diff-1)
             frame = next(trajectory)
             if frame is None:
                 break

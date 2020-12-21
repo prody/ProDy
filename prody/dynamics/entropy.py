@@ -2,17 +2,12 @@
 """This module defines functions for calculating entropy transfer from normal
 modes."""
 
-import time
-
 import numpy as np
 
 from prody import LOGGER
 from prody.proteins import parsePDB
-from prody.atomic import AtomGroup, Selection
-from prody.ensemble import Ensemble, Conformation
-from prody.trajectory import TrajBase
 from prody.utilities import importLA
-from numpy import sqrt, arange, log, polyfit, array
+from numpy import arange, log
 
 from .nma import NMA
 

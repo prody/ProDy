@@ -7,11 +7,11 @@ from os.path import abspath, join, isfile, isdir, split, splitext
 import numpy as np
 
 from prody import LOGGER, SETTINGS, PY3K
-from prody.atomic import Atomic, AtomGroup, AtomSubset
+from prody.atomic import Atomic, AtomSubset
 from prody.utilities import openFile, isExecutable, which, PLATFORM, addext
 
-from .nma import NMA
-from .anm import ANM, ANMBase
+from .nma import NMA, MaskedNMA
+from .anm import ANM, ANMBase, MaskedANM
 from .gnm import GNM, GNMBase, ZERO, MaskedGNM
 from .rtb import RTB
 from .pca import PCA, EDA
@@ -19,7 +19,8 @@ from .imanm import imANM
 from .exanm import exANM
 from .mode import Vector, Mode
 from .modeset import ModeSet
-from .editing import sliceModel, reduceModel
+from .editing import sliceModel, reduceModel, trimModel
+from .editing import sliceModelByMask, reduceModelByMask, trimModelByMask
 
 __all__ = ['parseArray', 'parseModes', 'parseSparseMatrix',
            'writeArray', 'writeModes',
@@ -82,8 +83,14 @@ def saveModel(nma, filename=None, matrices=False, **kwargs):
         if value is not None:
             attr_dict[attr] = value
 
-    if isinstance(nma, MaskedGNM):
-        attr_dict['type'] = 'mGNM'
+    if isinstance(nma, MaskedNMA):
+        if isinstance(nma, MaskedGNM):
+            attr_dict['type'] = 'mGNM'
+        elif isinstance(nma, MaskedANM):
+            attr_dict['type'] = 'mANM'
+        else:
+            raise TypeError('invalid MaskedNMA type: %s'%(str(type(nma))))
+
         attr_dict['mask'] = nma.mask
         attr_dict['masked'] = nma.masked
     
@@ -150,6 +157,8 @@ def loadModel(filename, **kwargs):
             nma = GNM(title)
         elif type_ == 'mGNM':
             nma = MaskedGNM(title)
+        elif type_ == 'mANM':
+            nma = MaskedANM(title)
         elif type_ == 'exANM':
             nma = exANM(title)
         elif type_ == 'imANM':
@@ -166,7 +175,7 @@ def loadModel(filename, **kwargs):
             if attr in ('type', '_name', '_title'):
                 continue
             elif attr in ('_trace', '_cutoff', '_gamma'):
-                dict_[attr] = float(attr_dict[attr])
+                dict_[attr] = attr_dict[attr][()]
             elif attr in ('_dof', '_n_atoms', '_n_modes'):
                 dict_[attr] = int(attr_dict[attr])
             elif attr in ('masked', ):
@@ -377,8 +386,8 @@ def parseSparseMatrix(filename, symmetric=False, delimiter=None, skiprows=0,
         default is ``0``.
     :type irow: int
 
-    :arg icol: Index of the column in data file corresponding to row indices,
-        default is ``0``.
+    :arg icol: Index of the column in data file corresponding to column indices,
+        default is ``1``.
     :type icol: int
 
     :arg first: First index in the data file (0 or 1), default is ``1``.
@@ -410,37 +419,38 @@ def parseSparseMatrix(filename, symmetric=False, delimiter=None, skiprows=0,
 
 def calcENM(atoms, select=None, model='anm', trim='trim', gamma=1.0, 
             title=None, n_modes=None, **kwargs):
-    """Returns an :class:`ANM` or `GNM` instance and atoms used for the 
+    """Returns an :class:`.ANM` or :class:`.GNM` instance and *atoms* used for the 
     calculations. The model can be trimmed, sliced, or reduced based on 
     the selection.
 
     :arg atoms: atoms on which the ENM is performed. It can be any :class:`Atomic` 
-        class that supports selection.
-    :type atoms: :class:`Atomic`, :class:`AtomGroup`, :class:`Selection`
+        class that supports selection or a :class:`~numpy.ndarray`.
+    :type atoms: :class:`.Atomic`, :class:`.AtomGroup`, :class:`.Selection`, :class:`~numpy.ndarray`
 
     :arg select: part of the atoms that is considered as the system. 
-        If set to `None`, then all atoms will be considered as the system
-    :type select: str, :class:`Selection`
+        If set to **None**, then all atoms will be considered as the system
+    :type select: str, :class:`.Selection`, :class:`~numpy.ndarray`
 
-    :arg model: type of ENM that will be performed. It can be either 'anm' 
-        or 'gnm'
+    :arg model: type of ENM that will be performed. It can be either ``"anm"`` 
+        or ``"gnm"``
     :type model: str
 
     :arg trim: type of method that will be used to trim the model. It can 
-        be either 'trim' , 'slice', or 'reduce'. If set to 'trim', the parts 
-        that is not in the selection will simply be removed
+        be either ``"trim"`` , ``"slice"``, or ``"reduce"``. If set to ``"trim"``, 
+        the parts that is not in the selection will simply be removed
     :type trim: str
     """
     
-    if not isinstance(atoms, Atomic):
-        if select is not None:
-            raise TypeError('atoms should be Atomic if it needs to be selected')
+    if isinstance(select, (str, AtomSubset)):
+        if not isinstance(atoms, Atomic):
+            raise TypeError('atoms must be a Atomic instance in order to be selected')
     try:
         if title is None:
             title = atoms.getTitle()
     except AttributeError:
         title = 'Unknown'
 
+    mask = kwargs.pop('mask', None)
     zeros = kwargs.pop('zeros', False)
     turbo = kwargs.pop('turbo', True)
 
@@ -459,22 +469,19 @@ def calcENM(atoms, select=None, model='anm', trim='trim', gamma=1.0,
         trim = 'trim'
     else:
         trim = str(trim).lower().strip()
-
-    if trim == 'trim' and select is not None:
-        if isinstance(select, AtomSubset):
-            atoms = select
-        else:
-            atoms = atoms.select(str(select))
     
     enm = None
+    MaskedModel = None
     if model == 'anm':
         anm = ANM(title)
         anm.buildHessian(atoms, gamma=gamma, **kwargs)
         enm = anm
+        MaskedModel = MaskedANM
     elif model == 'gnm':
         gnm = GNM(title)
         gnm.buildKirchhoff(atoms, gamma=gamma, **kwargs)
         enm = gnm
+        MaskedModel = MaskedGNM
     else:
         raise TypeError('model should be either ANM or GNM instead of {0}'.format(model))
     
@@ -483,13 +490,28 @@ def calcENM(atoms, select=None, model='anm', trim='trim', gamma=1.0,
     else:
         if trim == 'slice':
             enm.calcModes(n_modes=n_modes, zeros=zeros, turbo=turbo)
-            enm, atoms = sliceModel(enm, atoms, select)  
-            if model == 'gnm':
-                enm.calcHinges()
+            if isinstance(select, np.ndarray):
+                enm = sliceModelByMask(enm, select)
+                atoms = select
+            else:
+                enm, atoms = sliceModel(enm, atoms, select)
         elif trim == 'reduce':
-            enm, atoms = reduceModel(enm, atoms, select)
+            if isinstance(select, np.ndarray):
+                enm = reduceModelByMask(enm, select)
+                atoms = select
+            else:
+                enm, atoms = reduceModel(enm, atoms, select)
+            enm.calcModes(n_modes=n_modes, zeros=zeros, turbo=turbo)
+        elif trim == 'trim':
+            if isinstance(select, np.ndarray):
+                enm = trimModelByMask(enm, select)
+                atoms = select
+            else:
+                enm, atoms = trimModel(enm, atoms, select)
             enm.calcModes(n_modes=n_modes, zeros=zeros, turbo=turbo)
         else:
-            enm.calcModes(n_modes=n_modes, zeros=zeros, turbo=turbo)
+            raise ValueError('trim can only be "trim", "reduce", or "slice"')
     
+    if mask is not None:
+        enm = MaskedModel(enm, mask)
     return enm, atoms

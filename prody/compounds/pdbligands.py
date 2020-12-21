@@ -5,11 +5,20 @@ from os.path import isdir, isfile, join, split, splitext
 
 import numpy as np
 
-from prody import LOGGER, SETTINGS, getPackagePath
+from prody import LOGGER, SETTINGS, getPackagePath, PY3K
 from prody.atomic import AtomGroup, ATOMIC_FIELDS
 from prody.utilities import openFile, makePath, openURL
 
-__all__ = ['fetchPDBLigand']
+__all__ = ['PDBLigandRecord', 'fetchPDBLigand', 'parsePDBLigand']
+
+
+class PDBLigandRecord(object):
+    """Class for handling the output of fetchPDBLigand"""
+    def __init__(self, data):
+        self._rawdata = data
+
+    def getCanonicalSMILES(self):
+        return self._rawdata['CACTVS_SMILES_CANONICAL']
 
 
 def fetchPDBLigand(cci, filename=None):
@@ -52,6 +61,7 @@ def fetchPDBLigand(cci, filename=None):
 
     if not isinstance(cci, str):
         raise TypeError('cci must be a string')
+
     if isfile(cci):
         inp = openFile(cci)
         xml = inp.read()
@@ -74,12 +84,12 @@ def fetchPDBLigand(cci, filename=None):
                 with openFile(xmlgz) as inp:
                     xml = inp.read()
         else:
+            folder = None
             path = None
-        #url = ('http://ligand-expo.rcsb.org/reports/{0[0]}/{0}/{0}'
-        #       '.xml'.format(cci.upper()))
-        url = 'http://files.rcsb.org/ligands/download/{0}.xml'.format(cci.upper())
+
+        url = ('http://files.rcsb.org/ligands/download/{0}'
+               '.xml'.format(cci.upper()))
         if not xml:
-            #'http://www.pdb.org/pdb/files/ligand/{0}.xml'
             try:
                 inp = openURL(url)
             except IOError:
@@ -87,7 +97,10 @@ def fetchPDBLigand(cci, filename=None):
                               .format(cci))
             else:
                 xml = inp.read()
+                if PY3K:
+                    xml = xml.decode()
                 inp.close()
+
             if filename:
                 out = openFile(filename, mode='w', folder=folder)
                 out.write(xml)
@@ -218,3 +231,10 @@ def fetchPDBLigand(cci, filename=None):
         model.setBonds(bonds)
         ideal.setBonds(bonds)
     return dict_
+
+
+def parsePDBLigand(cci, filename=None):
+    """See :func:`.fetchPDBLigand`"""
+    lig_dict = fetchPDBLigand(cci, filename)
+    return PDBLigandRecord(lig_dict)
+

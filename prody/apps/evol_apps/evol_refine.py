@@ -82,7 +82,6 @@ APP.addArgument('-z', '--compressed',
 
 def evol_refine(msa, **kwargs):
 
-    import prody
     from prody import parseMSA, refineMSA, writeMSA, LOGGER
     from os.path import splitext
 

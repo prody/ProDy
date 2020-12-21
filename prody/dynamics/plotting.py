@@ -20,7 +20,7 @@ from .mode import Mode, VectorBase, Vector
 from .modeset import ModeSet
 from .analysis import calcSqFlucts, calcProjection
 from .analysis import calcCrossCorr, calcPairDeformationDist
-from .analysis import calcFractVariance, calcCrossProjection 
+from .analysis import calcFractVariance, calcCrossProjection, calcHinges
 from .perturb import calcPerturbResponse
 from .compare import calcOverlap
 
@@ -236,11 +236,13 @@ def showProjection(ensemble, modes, *args, **kwargs):
     if SETTINGS['auto_show']:
         fig = plt.figure()
  
-    projection = calcProjection(ensemble, modes, kwargs.pop('rmsd', True), kwargs.pop('norm', False))
+    projection = calcProjection(ensemble, modes, 
+                                kwargs.pop('rmsd', True), 
+                                kwargs.pop('norm', False))
 
     if projection.ndim == 1 or projection.shape[1] == 1:
         show = plt.hist(projection.flatten(), *args, **kwargs)
-        plt.xlabel('{0} coordinate'.format(str(modes)))
+        plt.xlabel('Mode {0} coordinate'.format(str(modes)))
         plt.ylabel('Number of conformations')
         return show
     elif projection.shape[1] > 3:
@@ -364,8 +366,8 @@ def showProjection(ensemble, modes, *args, **kwargs):
             adjust_text(ts)
 
     if len(modes) == 2:
-        plt.xlabel('{0} coordinate'.format(int(modes[0])+1))
-        plt.ylabel('{0} coordinate'.format(int(modes[1])+1))
+        plt.xlabel('Mode {0} coordinate'.format(int(modes[0])+1))
+        plt.ylabel('Mode {0} coordinate'.format(int(modes[1])+1))
     elif len(modes) == 3:
         show.set_xlabel('Mode {0} coordinate'.format(int(modes[0])+1))
         show.set_ylabel('Mode {0} coordinate'.format(int(modes[1])+1))
@@ -637,16 +639,16 @@ def showMode(mode, *args, **kwargs):
     if mode.is3d():
         a3d = mode.getArrayNx3()
         show = []
-        show.append(showAtomicLines(a3d[:, 0], atoms=atoms, label='x-component', final=False, **kwargs))
-        show.append(showAtomicLines(a3d[:, 1], atoms=atoms, label='y-component', final=False, **kwargs))
-        show.append(showAtomicLines(a3d[:, 2], atoms=atoms, label='z-component', final=final, **kwargs))
+        show.append(showAtomicLines(a3d[:, 0], label='x-component', final=False, **kwargs))
+        show.append(showAtomicLines(a3d[:, 1], label='y-component', final=False, **kwargs))
+        show.append(showAtomicLines(a3d[:, 2], label='z-component', final=final, **kwargs))
     else:
         a1d = mode._getArray()
         show = showAtomicLines(a1d, *args, **kwargs)
         if show_hinges and isinstance(mode, Mode):
-            hinges = mode.getHinges()
+            hinges = calcHinges(mode)
             if hinges is not None:
-                showAtomicLines(hinges, a1d[hinges], 'r*', atoms=atoms, final=False)
+                showAtomicLines(hinges, a1d[hinges], 'r*', final=False)
 
     if atoms is not None:
         title(str(atoms))
@@ -736,7 +738,7 @@ def showSqFlucts(modes, *args, **kwargs):
             show = showAtomicLines(sqf, *args, label=label, **kwargs)
 
         if show_hinge and not modes.is3d():
-            hinges = modes.getHinges()
+            hinges = calcHinges(modes)
             if hinges is not None:
                 kwargs.pop('final', False)
                 showAtomicLines(hinges, sqf[hinges], 'r*', final=False, **kwargs)
@@ -835,8 +837,12 @@ def showContactMap(enm, **kwargs):
 def showOverlap(mode, modes, *args, **kwargs):
     """Show overlap :func:`~matplotlib.pyplot.bar`.
 
-    :arg mode: a single mode/vector
-    :type mode: :class:`.Mode`, :class:`.Vector`
+    :arg mode: a single mode/vector or multiple modes.
+        If multiple modes are provided, then the overlaps are calculated 
+        by going through them one by one, i.e. mode i from this set is 
+        compared with mode i from the other set.
+    :type mode: :class:`.Mode`, :class:`.Vector`, :class:`.ModeSet`, 
+        :class:`.ANM`, :class:`.GNM`, :class:`.PCA`
 
     :arg modes: multiple modes
     :type modes: :class:`.ModeSet`, :class:`.ANM`, :class:`.GNM`, :class:`.PCA`
@@ -848,13 +854,19 @@ def showOverlap(mode, modes, *args, **kwargs):
     if SETTINGS['auto_show']:
         plt.figure()
 
-    if not isinstance(mode, (Mode, Vector)):
-        raise TypeError('mode must be Mode or Vector, not {0}'
+    if not isinstance(mode, (Mode, Vector, NMA, ModeSet)):
+        raise TypeError('mode must be Mode, Vector, NMA or ModeSet, not {0}'
                         .format(type(mode)))
+
     if not isinstance(modes, (NMA, ModeSet)):
         raise TypeError('modes must be NMA or ModeSet, not {0}'
                         .format(type(modes)))
-    overlap = abs(calcOverlap(mode, modes))
+
+    if mode.numModes() > 1:
+        overlap = abs(calcOverlap(mode, modes, diag=True))
+    else:
+        overlap = abs(calcOverlap(mode, modes, diag=False))
+
     if isinstance(modes, NMA):
         arange = np.arange(len(modes)) + 1
     else:
@@ -882,13 +894,20 @@ def showCumulOverlap(mode, modes, *args, **kwargs):
     import matplotlib.pyplot as plt
     from matplotlib.ticker import MaxNLocator
     
-    if not isinstance(mode, (Mode, Vector)):
+    if not isinstance(mode, (Mode, Vector, NMA, ModeSet)):
         raise TypeError('mode must be NMA, ModeSet, Mode or Vector, not {0}'
                         .format(type(mode)))
     if not isinstance(modes, (NMA, ModeSet)):
         raise TypeError('modes must be NMA, ModeSet, or Mode, not {0}'
                         .format(type(modes)))
-    cumov = (calcOverlap(mode, modes) ** 2).cumsum() ** 0.5
+
+    if mode.numModes() > 1:
+        overlap = abs(calcOverlap(mode, modes, diag=True))
+    else:
+        overlap = abs(calcOverlap(mode, modes, diag=False))
+
+    cumov = (overlap ** 2).cumsum() ** 0.5
+
     if isinstance(modes, NMA):
         arange = np.arange(0.5, len(modes)+0.5)
     else:
@@ -1144,9 +1163,9 @@ def showPerturbResponse(model, atoms=None, show_matrix=True, select=None, **kwar
     *model* and *atoms* must have the same number of atoms. *atoms* must 
     be an :class:`.Atomic` instance.
 
-    :arg model: any object with a calcCovariance method
-        e.g. :class:`.ANM` instance
-    :type model: :class:`.NMA`
+    :arg model: any object with a calcCovariance method from which to calculate
+         a PRS matrix (e.g. :class:`.ANM` instance) or a PRS matrix itself
+    :type model: :class:`.NMA`, :class:`~numpy.ndarray`
 
     :arg atoms: a :class: `AtomGroup` instance for matching residue numbers and chain 
         identifiers
@@ -1190,10 +1209,6 @@ def showPerturbResponse(model, atoms=None, show_matrix=True, select=None, **kwar
         show = showAtomicMatrix(prs_matrix, x_array=sensitivity, 
                                 y_array=effectiveness, atoms=atoms, 
                                 **kwargs)
-        cluster_col = kwargs.pop('cluster_col',False)
-        if cluster_col == False:
-            xlabel('Residues')
-
     else:
         if select is None:
             fig = fig_ = kwargs.pop('figure', None) # this line needs to be in this block
@@ -1334,7 +1349,6 @@ def showAtomicMatrix(matrix, x_array=None, y_array=None, atoms=None, **kwargs):
     ticklabels = kwargs.pop('ticklabels', None)
     text_color = kwargs.pop('text_color', 'k')
     text_color = kwargs.pop('textcolor', text_color)
-    cluster = kwargs.pop('cluster', False)
     interactive = kwargs.pop('interactive', True)
 
     if isinstance(fig, Figure):
@@ -1930,7 +1944,8 @@ def showTree(tree, format='matplotlib', **kwargs):
     type tree: :class:`~Bio.Phylo.BaseTree.Tree`
     
     arg format: depending on the format, you will see different forms of trees. 
-        Acceptable formats are ``"plt"``, ``"ascii"`` and ``"networkx"``
+        Acceptable formats are ``"plt"`` (or ``"mpl"`` or ``"matplotlib"``), 
+        ``"ascii"`` and ``"networkx"``. Default is ``"matplotlib"``.
     type format: str
     
     keyword font_size: font size for branch labels

@@ -1,33 +1,14 @@
 # -*- coding: utf-8 -*-
 """This module handles individual sequences."""
 
-import re
-
 from numpy import char, fromstring
 
 from prody import LOGGER, PY3K
+from prody.atomic import Atomic
 
-SPLITLABEL = re.compile(r'[/-]+').split
+from prody.utilities import splitSeqLabel
 
 __all__ = ['Sequence']
-
-
-def splitSeqLabel(label):
-    """Returns label, starting residue number, and ending residue number parsed
-    from sequence label."""
-
-    try:
-        if label.strip() == '':
-            raise Exception
-        idcode, start, end = SPLITLABEL(label)
-    except Exception:
-        return label, None, None
-    else:
-        try:
-            return idcode, int(start), int(end)
-        except Exception:
-            return label, None, None
-
 
 class Sequence(object):
 
@@ -132,33 +113,45 @@ class Sequence(object):
 
         return sum(char.isalpha(self._array))
 
-    def getResnums(self, gaps=False):
+    def getResnums(self, gaps=False, report_match=False):
         """Returns list of residue numbers associated with non-gapped *seq*.
         When *gaps* is **True**, return a list containing the residue numbers
-        with gaps appearing as **None**.  Residue numbers are inferred from the
-        full label.  When label does not contain residue number information,
-        indices a range of numbers starting from 1 is returned."""
+        with gaps appearing as **None**.  
+        
+        Residue numbers are inferred from the full label if possible. 
+        When the label does not contain residue number information, 
+        a range of numbers starting from 1 is returned."""
 
         title, start, end = splitSeqLabel(self.getLabel(True))
+        match = False
         try:
             start, end = int(start), int(end)
         except:
-            LOGGER.info('Cannot parse label start, end values, Setting '
-                        'resnums 1 to {0:d}'.format(self.numResidues()))
+            LOGGER.info('Cannot parse start and end values from sequence label {0}. Setting '
+                        'resnums 1 to {1:d}'.format(title, self.numResidues()))
             start, end = 1, self.numResidues()
         else:
             if (end - start + 1) != self.numResidues():
-                LOGGER.info('Label start-end position does not match '
+                LOGGER.info('Label {0} start-end entry does not match '
                             'length of ungapped sequence. Setting '
-                            'resnums 1 to {0:d}'.format(self.numResidues()))
+                            'resnums 1 to {1:d}'.format(title, self.numResidues()))
                 start, end = 1, self.numResidues()
+            else:
+                LOGGER.info('Label {0} start-end entry matches '
+                            'length of ungapped sequence. Setting '
+                            'resnums {1:d} to {2:d}'.format(title, start, end))             
+                match = True
 
         resnums = iter(range(start, end + 1))
         if gaps:
-            return [next(resnums) if torf else None
-                    for torf in char.isalpha(self._array)]
+            result = [next(resnums) if torf else None
+                      for torf in char.isalpha(self._array)]
         else:
-            return list(resnums)
+            result = list(resnums)
+
+        if report_match:
+            return match, result
+        return result
 
     def copy(self):
         """Returns a copy of the instance that owns its sequence data."""

@@ -468,8 +468,8 @@ def fetchPfamMSA(acc, alignment='full', compressed=False, **kwargs):
     return filepath
 
 def parsePfamPDBs(query, data=[], **kwargs):
-    """Returns a list of AtomGroups containing sections of chains that 
-    correspond to a particular PFAM domain family. These are defined by 
+    """Returns a list of :class:`.AtomGroup` objects containing sections of chains 
+    that correspond to a particular PFAM domain family. These are defined by 
     alignment start and end residue numbers.
 
     :arg query: UniProt ID or PDB ID
@@ -563,8 +563,6 @@ def parsePfamPDBs(query, data=[], **kwargs):
     if header:
         results = (ags, headers)
     else:
-#        ags = results
-#        ags = list(ags)
         results = ags
 
     LOGGER.progress('Extracting Pfam domains...', len(ags))

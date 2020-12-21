@@ -8,13 +8,13 @@ from numbers import Integral
 from prody import LOGGER
 from prody.atomic import Atomic, AtomGroup
 from prody.proteins import parsePDB
-from prody.utilities import checkCoords
+from prody.utilities import checkCoords, solveEig
 from prody.kdtree import KDTree
 
-from .nma import NMA
-from .gnm import GNMBase, solveEig, checkENMParameters
+from .nma import NMA, MaskedNMA
+from .gnm import GNMBase, checkENMParameters
 
-__all__ = ['ANM', 'calcANM']
+__all__ = ['ANM', 'MaskedANM', 'calcANM']
 
 class ANMBase(NMA):
 
@@ -43,7 +43,7 @@ class ANMBase(NMA):
 
         if self._hessian is None:
             return None
-        return self._hessian.copy()
+        return self._getHessian().copy()
 
     def _getHessian(self):
         """Returns the Hessian matrix."""
@@ -216,7 +216,7 @@ class ANMBase(NMA):
         self._clear()
         LOGGER.timeit('_anm_calc_modes')
         values, vectors, vars = solveEig(self._hessian, n_modes=n_modes, zeros=zeros, 
-                                         turbo=turbo, is3d=True)
+                                         turbo=turbo, expct_n_zeros=6)
         self._eigvals = values
         self._array = vectors
         self._vars = vars
@@ -251,6 +251,60 @@ class ANM(ANMBase, GNMBase):
     def __init__(self, name='Unknown'):
 
         super(ANM, self).__init__(name)
+
+class MaskedANM(ANM, MaskedNMA):
+    def __init__(self, name='Unknown', mask=False, masked=True):
+        ANM.__init__(self, name)
+        MaskedNMA.__init__(self, name, mask, masked)
+
+    def calcModes(self, n_modes=20, zeros=False, turbo=True):
+        self._maskedarray = None
+        super(MaskedANM, self).calcModes(n_modes, zeros, turbo)
+
+    def _reset(self):
+        super(MaskedANM, self)._reset()
+        self._maskedarray = None
+
+    def setHessian(self, hessian):
+        """Set Hessian matrix.  A symmetric matrix is expected, i.e. not a
+        lower- or upper-triangular matrix."""
+
+        if not isinstance(hessian, np.ndarray):
+            raise TypeError('hessian must be a Numpy array')
+        elif hessian.ndim != 2 or hessian.shape[0] != hessian.shape[1]:
+            raise ValueError('hessian must be square matrix')
+        elif hessian.shape[0] % 3:
+            raise ValueError('hessian.shape must be (3*n_atoms,3*n_atoms)')
+        elif hessian.dtype != float:
+            try:
+                hessian = hessian.astype(float)
+            except:
+                raise ValueError('hessian.dtype must be float')
+        
+        mask = self.mask
+        if not self.masked:
+            if not np.isscalar(mask):
+                if self.is3d():
+                    mask = np.repeat(mask, 3)
+                try:
+                    hessian = hessian[mask, :][:, mask]
+                except IndexError:
+                    raise IndexError('size mismatch between Hessian (%d) and mask (%d).'
+                                     'Try set masked to False or reset mask'%(len(hessian), len(mask)))
+
+        super(MaskedANM, self).setHessian(hessian)
+
+    def _getHessian(self):
+        """Returns the Hessian matrix."""
+
+        hessian = self._hessian
+
+        if hessian is None: return None
+
+        if not self._isOriginal():
+            hessian = self._extend(hessian, axis=None)
+
+        return hessian
 
 
 def calcANM(pdb, selstr='calpha', cutoff=15., gamma=1., n_modes=20,

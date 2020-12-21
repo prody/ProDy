@@ -6,26 +6,18 @@ Questions/Problems: karolami@pitt.edu
 __all__ = ['writeVMDstiffness', 'writeDeformProfile', 'calcChainsNormDistFluct']
 
 import os
-from os.path import abspath, join, split, splitext
 
 import numpy as np
 
-from prody import LOGGER, SETTINGS, PY3K
-from prody.atomic import AtomGroup, sliceAtoms
-from prody.utilities import openFile, isExecutable, which, PLATFORM, addext, checkCoords
+from prody import LOGGER
+from prody.atomic import sliceAtoms
+from prody.utilities import openFile, addext, checkCoords
 from prody.proteins import writePDB
 
-from .nma import NMA
-from .anm import ANM
-from .gnm import GNM, ZERO
-from .pca import PCA
-from .mode import Vector, Mode
-from .modeset import ModeSet
 from .nmdfile import viewNMDinVMD, pathVMD, getVMDpath, setVMDpath
 
 def writeVMDstiffness(stiffness, pdb, indices, k_range, filename='vmd_out', \
                       select='protein and name CA', loadToVMD=False):
-   
     """
     Returns three files starting with the provided filename and having 
     their own extensions:
@@ -351,7 +343,7 @@ def calcChainsNormDistFluct(coords, ch1, ch2, cutoff=10., percent=5, rangeAng=5,
             out_tcl.write('mol material Opaque \n')
             #out_tcl.write('mol addrep 0\n')
         
-        LOGGER.info('Finded residues in {0}: {1}'.format(mmRange.keys()[nr_j],\
+        LOGGER.info('Found residues in {0}: {1}'.format(mmRange.keys()[nr_j],\
                     len(list(set(vmd_ch_list[1])))+len(list(set(vmd_ch_list[0])))))
         LOGGER.info('chain {0} and resid {1}'.format(ch[0], \
                        str(list(set(vmd_ch_list[0]))).replace(',','')[1:-1]))

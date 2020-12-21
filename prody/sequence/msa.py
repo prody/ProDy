@@ -8,12 +8,11 @@ from numpy import where, sort, concatenate, vstack, isscalar, chararray
 
 from Bio import AlignIO
 from Bio import pairwise2
-from Bio.SubsMat import MatrixInfo as matlist
 
 from prody import LOGGER, PY3K
 from prody.atomic import Atomic
-from prody.utilities import toChararray
-from .sequence import Sequence, splitSeqLabel
+from prody.utilities import toChararray, pystr, splitSeqLabel
+from .sequence import Sequence
 
 import sys
 
@@ -67,7 +66,7 @@ class MSA(object):
             for key, value in mapping.items():
                 values = [value] if isscalar(value) else value
                 for i in values:
-                    if labels[i] != key:
+                    if not key in labels[i]:
                         labels[i] = key
         
         self._mapping = mapping = {}
@@ -488,9 +487,9 @@ def refineMSA(msa, index=None, label=None, rowocc=None, seqid=None, colocc=None,
 
             index = msa.getIndex(label)
             if index is None:
-                    index = msa.getIndex(upper)
+                index = msa.getIndex(upper)
             if index is None:
-                    index = msa.getIndex(lower)
+                index = msa.getIndex(lower)
 
             chain = None
             if index is None and (len(label) == 4 or len(label) == 5):
@@ -524,6 +523,7 @@ def refineMSA(msa, index=None, label=None, rowocc=None, seqid=None, colocc=None,
                                 break
                 if index is not None:
                     chain = structure[poly.chid]
+                    resnums = chain.ca.getResnums()
     
             if index is None:
                 raise ValueError('label is not in msa, or msa is not indexed')
@@ -544,12 +544,13 @@ def refineMSA(msa, index=None, label=None, rowocc=None, seqid=None, colocc=None,
             if chain is not None and not kwargs.get('keep', False):
                 before = arr.shape[1]
                 LOGGER.timeit('_refine')
-                from prody.proteins.compare import importBioPairwise2
-                from prody.proteins.compare import MATCH_SCORE, MISMATCH_SCORE
-                from prody.proteins.compare import GAP_PENALTY, GAP_EXT_PENALTY
-                pw2 = importBioPairwise2()
+                
+                from Bio import pairwise2
+                from prody.utilities import MATCH_SCORE, MISMATCH_SCORE
+                from prody.utilities import GAP_PENALTY, GAP_EXT_PENALTY, ALIGNMENT_METHOD
+
                 chseq = chain.getSequence()
-                algn = pw2.align.localms(arr[index].tostring().upper(), chseq,
+                algn = pairwise2.align.localms(pystr(arr[index].tostring().upper()), pystr(chseq),
                                          MATCH_SCORE, MISMATCH_SCORE,
                                          GAP_PENALTY, GAP_EXT_PENALTY,
                                          one_alignment_only=1)
@@ -566,12 +567,16 @@ def refineMSA(msa, index=None, label=None, rowocc=None, seqid=None, colocc=None,
                 assert tsum <= before, 'problem in mapping sequence to structure'
                 if tsum < before:
                     arr = arr.take(torf.nonzero()[0], 1)
+                    resnums = resnums.take(torf.nonzero()[0]-torf.nonzero()[0][0]+1)
                     LOGGER.report('Structure refinement reduced number of '
                                   'columns from {0} to {1} in %.2fs.'
                                   .format(before, arr.shape[1]), '_refine')
                 else:
                     LOGGER.debug('All residues in the sequence are contained in '
                                  'PDB structure {0}.'.format(label))
+
+                labels = msa._labels
+                labels[index] = splitSeqLabel(labels[index])[0] + '/' + str(resnums[0]) + '-' + str(resnums[-1])
 
     from .analysis import calcMSAOccupancy, uniqueSequences
 

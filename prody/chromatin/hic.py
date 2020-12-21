@@ -222,9 +222,6 @@ class HiC(object):
     def calcGNM(self, n_modes=None, **kwargs):
         """Calculates GNM on the current Hi-C map. By default, ``n_modes`` is 
         set to **None** and ``zeros`` to **True**."""
-        
-        if 'hinges' not in kwargs:
-            kwargs['hinges'] = False
 
         if 'zeros' not in kwargs:
             kwargs['zeros'] = True
