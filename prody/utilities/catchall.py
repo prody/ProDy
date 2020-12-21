@@ -14,7 +14,8 @@ from matplotlib import ticker
 
 __all__ = ['calcTree', 'clusterMatrix', 'showLines', 'showMatrix', 
            'reorderMatrix', 'findSubgroups', 'getCoords',  
-           'getLinkage', 'getTreeFromLinkage', 'clusterSubfamilies']
+           'getLinkage', 'getTreeFromLinkage', 'clusterSubfamilies', 
+           'IndexFormatter']
 
 class IndexFormatter(ticker.Formatter):
     """
