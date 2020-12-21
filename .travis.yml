@@ -17,11 +17,11 @@ install:
   - conda create --yes -n test python=$TRAVIS_PYTHON_VERSION
   - source activate test
   - conda install --yes numpy scipy pip nose
-  - if [[ $TRAVIS_PYTHON_VERSION == "2.7" ]]; then conda install --yes pyparsing biopython unittest2; fi
-  - if [[ $TRAVIS_PYTHON_VERSION == "3.5" ]]; then conda install --yes pyparsing biopython; fi
-  - if [[ $TRAVIS_PYTHON_VERSION == "3.6" ]]; then conda install --yes pyparsing biopython; fi
-  - if [[ $TRAVIS_PYTHON_VERSION == "3.7" ]]; then conda install --yes pyparsing biopython; fi
-  - if [[ $TRAVIS_PYTHON_VERSION == "3.8" ]]; then conda install --yes pyparsing biopython; fi
+  - if [[ $TRAVIS_PYTHON_VERSION == "2.7" ]]; then conda install --yes pyparsing biopython unittest2 matplotlib; fi
+  - if [[ $TRAVIS_PYTHON_VERSION == "3.5" ]]; then conda install --yes pyparsing biopython matplotlib; fi
+  - if [[ $TRAVIS_PYTHON_VERSION == "3.6" ]]; then conda install --yes pyparsing biopython matplotlib; fi
+  - if [[ $TRAVIS_PYTHON_VERSION == "3.7" ]]; then conda install --yes pyparsing biopython matplotlib; fi
+  - if [[ $TRAVIS_PYTHON_VERSION == "3.8" ]]; then conda install --yes pyparsing biopython matplotlib; fi
   - python setup.py build install
 script:
   - cd docs; nosetests prody -a '!slow'

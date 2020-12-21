@@ -179,6 +179,6 @@ setup(
     entry_points = {
         'console_scripts': SCRIPTS,
     },
-    install_requires=['numpy>=1.10', 'biopython', 'pyparsing', 'scipy'],
+    install_requires=['numpy>=1.10', 'biopython', 'pyparsing', 'scipy', 'matplotlib'],
     #provides=['ProDy ({0:s})'.format(__version__)]
 )
