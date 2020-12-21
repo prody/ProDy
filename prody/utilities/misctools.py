@@ -8,6 +8,7 @@ from collections import Counter
 import numbers
 
 from prody import PY3K
+from .logger import LOGGER
 
 from Bio.Data import IUPACData
 
@@ -19,7 +20,7 @@ __all__ = ['Everything', 'Cursor', 'ImageCursor', 'rangeString', 'alnum', 'impor
            'getDataPath', 'openData', 'chr2', 'toChararray', 'interpY', 'cmp', 'pystr',
            'getValue', 'indentElement', 'isPDB', 'isURL', 'isListLike', 'isSymmetric', 'makeSymmetric',
            'getDistance', 'fastin', 'createStringIO', 'div0', 'wmean', 'bin2dec', 'wrapModes', 
-           'fixArraySize', 'decToHybrid36', 'hybrid36ToDec', 'DTYPE', 'split', 'AAMAP']
+           'fixArraySize', 'decToHybrid36', 'hybrid36ToDec', 'DTYPE', 'checkIdentifiers', 'split', 'AAMAP']
 
 DTYPE = array(['a']).dtype.char  # 'S' for PY2K and 'U' for PY3K
 CURSORS = []
@@ -659,6 +660,41 @@ def index(A, a):
     else:
         A = asarray(A)
         return where(A==a)[0][0]
+
+
+def checkIdentifiers(*pdb):
+    """Check whether *pdb* identifiers are valid, and replace invalid ones
+    with **None** in place."""
+
+    identifiers = []
+    append = identifiers.append
+    for pid in pdb:
+        try:
+            pid = pid.strip().lower()
+        except AttributeError:
+            LOGGER.warn('{0} is not a valid identifier.'.format(repr(pid)))
+            append(None)
+        else:
+            if not (len(pid) == 4 and pid.isalnum()):
+                LOGGER.warn('{0} is not a valid identifier.'
+                            .format(repr(pid)))
+                append(None)
+            else:
+                append(pid)
+    return identifiers
+
+
+def split(string, shlex=False):
+    if shlex:
+        try:
+            import shlex
+        except ImportError:
+            raise ImportError('Use of the shlex option requires the '
+                              'installation of the shlex package.')
+        else:
+            return shlex.split(string)
+    else:
+        return string.split()
 
 
 def decToBase36(integer):
