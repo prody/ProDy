@@ -34,6 +34,9 @@ isCATH = re.compile('^[0-9.]+$').match
 isDomain = re.compile('^[A-Za-z0-9]{5}[0-9]{2}$').match
 
 class CATHElement(ET.Element):
+    """This class handles individual elements from the cath tree 
+    including tree navigation and the getting of associated CATH domains, 
+    PDB IDs and selection strings."""
     def __init__(self, tag, attrib={}, parent=None, **extra):
         super(CATHElement, self).__init__(tag, attrib, **extra)
         self._parent = parent
@@ -136,7 +139,14 @@ class CATHElement(ET.Element):
         return data
 
     def getCATH(self):
-        return self.attrib['cath']
+        try:
+            cath = self.attrib['cath']
+        except KeyError:
+            if self.parent is not None:
+                cath = self.parent.cath
+            else:
+                cath = None # this is the case for the root
+        return cath
 
     cath = property(getCATH)
 
@@ -149,7 +159,7 @@ class CATHElement(ET.Element):
             if self.parent is not None:
                 name = self.parent.name
             else:
-                name = None # which shouldn't occur
+                name = None # this is the case for the root
         return name
 
     name = property(getName)
@@ -194,6 +204,8 @@ class CATHElement(ET.Element):
 
 
 class CATHCollection(CATHElement):
+    """"This class handles collections of elements from the CATH tree 
+    including the listing of names and IDs."""
     def __init__(self, items, element=None):
         if element is not None:
             tag = element.tag
@@ -258,7 +270,13 @@ class CATHCollection(CATHElement):
 
 
 class CATHDB(ET.ElementTree):
+    """This class is for handing the data in the CATH database. 
+    It facilitates tree navigation and ID-based searching."""
+
     def __init__(self, source=CATH_URL):
+        """The class is initialised using data from *source*, which 
+        is downloaded from the CATH website by default, but can 
+        also be parsed from an XML file."""
         self.root = CATHElement('root')
         super(CATHDB, self).__init__(self.root)
         self._source = source

@@ -23,6 +23,11 @@ else:
     if tuple(map(int, np.__version__.split('.')[:2])) < (1, 10):
         raise ImportError('Numpy v1.10 or later is required for ProDy')
 
+try:
+    import scipy
+except ImportError:
+    raise ImportError('Scipy is a required package for ProDy')
+
 DEPRECATION_WARNINGS = False
 
 
@@ -60,12 +65,10 @@ __all__ = ['checkUpdates', 'confProDy', 'startLogfile', 'closeLogfile', 'plog']
 
 from . import utilities
 from .utilities import *
-from .utilities import PackageLogger, PackageSettings
+from .utilities import LOGGER, PackageSettings
 from .utilities import getPackagePath, joinRepr, tabulate
 __all__.extend(utilities.__all__)
 __all__.append('utilities')
-
-LOGGER = PackageLogger('.prody')
 
 SETTINGS = PackageSettings('prody', logger=LOGGER)
 SETTINGS.load()
@@ -86,6 +89,11 @@ from . import proteins
 from .proteins import *
 __all__.extend(proteins.__all__)
 __all__.append('proteins')
+
+from . import compounds
+from .compounds import *
+__all__.extend(compounds.__all__)
+__all__.append('compounds')
 
 from . import measure
 from .measure import *

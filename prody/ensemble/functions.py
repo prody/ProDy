@@ -16,8 +16,9 @@ from .pdbensemble import *
 from .conformation import *
 
 __all__ = ['saveEnsemble', 'loadEnsemble', 'trimPDBEnsemble',
-           'calcOccupancies', 'showOccupancies', 'alignPDBEnsemble',
-           'buildPDBEnsemble', 'refineEnsemble', 'combineEnsembles']
+           'calcOccupancies', 'showOccupancies',
+           'buildPDBEnsemble', 'refineEnsemble', 'combineEnsembles',
+           'alignByEnsemble']
 
 
 def saveEnsemble(ensemble, filename=None, **kwargs):
@@ -38,6 +39,7 @@ def saveEnsemble(ensemble, filename=None, **kwargs):
     if isinstance(ensemble, PDBEnsemble):
         attr_list.append('_labels')
         attr_list.append('_trans')
+
     if filename is None:
         filename = ensemble.getTitle().replace(' ', '_')
     attr_dict = {}
@@ -48,16 +50,26 @@ def saveEnsemble(ensemble, filename=None, **kwargs):
 
     atoms = dict_['_atoms']
     if atoms is not None:
-        attr_dict['_atoms'] = np.array([atoms, None])
+        attr_dict['_atoms'] = np.array([atoms, None], 
+                                        dtype=object)
+
+    selstrs = dict_['_selstrs']
+    if selstrs is not None:
+        attr_dict['_selstrs'] = np.array([selstrs, None], 
+                                          dtype=object)
 
     data = dict_['_data']
     if len(data):
-        attr_dict['_data'] = np.array([data, None])
+        attr_dict['_data'] = np.array([data, None], 
+                                       dtype=object)
 
     if isinstance(ensemble, PDBEnsemble):
         msa = dict_['_msa']
         if msa is not None:
-            attr_dict['_msa'] = np.array([msa, None])
+            attr_dict['_msa'] = np.array([msa, None], 
+                                          dtype=object)
+
+    attr_dict['_type'] = ensemble.__class__.__name__
 
     if filename.endswith('.ens'):
         filename += '.npz'
@@ -85,53 +97,37 @@ def loadEnsemble(filename, **kwargs):
     else:
         weights = None  
 
-    isPDBEnsemble = False
+    # backward compatibility
+    try:
+        type_ = attr_dict['_type']
+    except KeyError:
+        if weights is not None and weights.ndim == 3:
+            type_ = 'PDBEnsemble'
+        else:
+            type_ = 'Ensemble'
 
     try:
         title = attr_dict['_title']
     except KeyError:
         title = attr_dict['_name']
+            
     if isinstance(title, np.ndarray):
-        title = np.asarray(title, dtype=str)
-    title = str(title)
+        title = title.item()
 
-    if weights is not None and weights.ndim == 3:
-        isPDBEnsemble = True
+    if not isinstance(title, str) and title is not None:
+        try:
+            title = title.decode()
+        except AttributeError:
+            title = str(title)
+
+    if type_ == 'PDBEnsemble':
         ensemble = PDBEnsemble(title)
     else:
         ensemble = Ensemble(title)
 
     ensemble.setCoords(attr_dict['_coords'])
-    if '_atoms' in attr_dict:
-        atoms = attr_dict['_atoms'][0]
-
-        if isinstance(atoms, AtomGroup):
-            data = atoms._data
-        else:
-            data = atoms._ag._data
-        
-        for key in data:
-            arr = data[key]
-            char = arr.dtype.char
-            if char in 'SU' and char != DTYPE:
-                arr = arr.astype(str)
-                data[key] = arr
-            
-    else:
-        atoms = None
-    ensemble.setAtoms(atoms)
-
-    if '_indices' in attr_dict:
-        indices = attr_dict['_indices']
-    else:
-        indices = None
-    ensemble._indices = indices
-
-    if '_data' in attr_dict:
-        ensemble._data = attr_dict['_data'][0]
-
-    if isPDBEnsemble:
-        confs = attr_dict['_confs']
+    confs = attr_dict['_confs']
+    if type_ == 'PDBEnsemble':
         ensemble.addCoordset(confs, weights)
         if '_identifiers' in attr_dict.files:
             ensemble._labels = list(attr_dict['_identifiers'])
@@ -148,10 +144,40 @@ def loadEnsemble(filename, **kwargs):
             ensemble._trans = attr_dict['_trans']
         if '_msa' in attr_dict.files:
             ensemble._msa = attr_dict['_msa'][0]
+        if '_selstrs' in attr_dict.files:
+            ensemble._selstrs = attr_dict['_selstrs'][0]
     else:
-        ensemble.addCoordset(attr_dict['_confs'])
+        ensemble.addCoordset(confs)
         if weights is not None:
             ensemble.setWeights(weights)
+
+    if '_atoms' in attr_dict:
+        atoms = attr_dict['_atoms'][0]
+
+        if isinstance(atoms, AtomGroup):
+            data = atoms._data
+        else:
+            data = atoms._ag._data
+        
+        for key in data:
+            arr = data[key]
+            char = arr.dtype.char
+            if char in 'SU' and char != DTYPE:
+                arr = arr.astype(str)
+                data[key] = arr
+    else:
+        atoms = None
+    ensemble.setAtoms(atoms)
+
+    if '_indices' in attr_dict:
+        indices = attr_dict['_indices']
+    else:
+        indices = None
+    ensemble._indices = indices
+
+    if '_data' in attr_dict:
+        ensemble._data = attr_dict['_data'][0]
+
     return ensemble
 
 
@@ -299,86 +325,9 @@ def showOccupancies(pdbensemble, *args, **kwargs):
         showFigure()
     return show
 
-def alignPDBEnsemble(ensemble, suffix='_aligned', outdir='.', gzip=False):
-    """Align PDB files using transformations from *ensemble*, which may be
-    a :class:`.PDBEnsemble` or a :class:`.PDBConformation` instance. Label of
-    the conformation (see :meth:`~.PDBConformation.getLabel`) will be used to
-    determine the PDB structure and model number.  First four characters of
-    the label is expected to be the PDB identifier and ending numbers to be the
-    model number.  For example, the :class:`.Transformation` from conformation
-    with label *2k39_ca_selection_'resnum_<_71'_m116* will be applied to 116th
-    model of structure **2k39**.  After applicable transformations are made,
-    structure will be written into *outputdir* as :file:`2k39_aligned.pdb`.
-    If ``gzip=True``, output files will be compressed.  Return value is
-    the output filename or list of filenames, in the order files are processed.
-    Note that if multiple models from a file are aligned, that filename will
-    appear in the list multiple times."""
-
-    if not isinstance(ensemble, (PDBEnsemble, PDBConformation)):
-        raise TypeError('ensemble must be a PDBEnsemble or PDBConformation')
-    if isinstance(ensemble, PDBConformation):
-        ensemble = [ensemble]
-    if gzip:
-        gzip = '.gz'
-    else:
-        gzip = ''
-    output = []
-    pdbdict = {}
-    for conf in ensemble:
-        trans = conf.getTransformation()
-        if trans is None:
-            raise ValueError('transformations are not calculated, call '
-                             '`superpose` or `iterpose`')
-        label = conf.getLabel()
-
-        pdb = label[:4]
-        filename = pdbdict.get(pdb, fetchPDB(pdb))
-        if filename is None:
-            LOGGER.warning('PDB file for conformation {0} is not found.'
-                           .format(label))
-            output.append(None)
-            continue
-        LOGGER.info('Parsing PDB file {0} for conformation {1}.'
-                    .format(pdb, label))
-
-        acsi = None
-        model = label.rfind('m')
-        if model > 3:
-            model = label[model+1:]
-            if model.isdigit():
-                acsi = int(model) - 1
-            LOGGER.info('Applying transformation to model {0}.'
-                        .format(model))
-
-        if isinstance(filename, str):
-            ag = parsePDB(filename)
-        else:
-            ag = filename
-
-        if acsi is not None:
-            if acsi >= ag.numCoordsets():
-                LOGGER.warn('Model number {0} for {1} is out of range.'
-                            .format(model, pdb))
-                output.append(None)
-                continue
-            ag.setACSIndex(acsi)
-        trans.apply(ag)
-        outfn = os.path.join(outdir, pdb + suffix + '.pdb' + gzip)
-        if ag.numCoordsets() > 1:
-            pdbdict[pdb] = ag
-        else:
-            writePDB(outfn, ag)
-        output.append(os.path.normpath(outfn))
-
-    for pdb, ag in pdbdict.items():  # PY3K: OK
-        writePDB(os.path.join(outdir, pdb + suffix + '.pdb' + gzip), ag)
-    if len(output) == 1:
-        return output[0]
-    else:
-        return output
 
 
-def buildPDBEnsemble(atomics, ref=None, title='Unknown', labels=None, unmapped=None, **kwargs):
+def buildPDBEnsemble(atomics, ref=None, title='Unknown', labels=None, atommaps=None, unmapped=None, **kwargs):
     """Builds a :class:`.PDBEnsemble` from a given reference structure and a list of structures 
     (:class:`.Atomic` instances). Note that the reference should be included in the list as well.
 
@@ -404,6 +353,10 @@ def buildPDBEnsemble(atomics, ref=None, title='Unknown', labels=None, unmapped=N
     :arg occupancy: minimal occupancy of columns (range from 0 to 1). Columns whose occupancy
         is below this value will be trimmed
     :type occupancy: float
+
+    :arg atommaps: labels of *atomics* that were mapped and added into the ensemble. This is an 
+        output argument
+    :type atommaps: list
 
     :arg unmapped: labels of *atomics* that cannot be included in the ensemble. This is an 
         output argument
@@ -477,6 +430,7 @@ def buildPDBEnsemble(atomics, ref=None, title='Unknown', labels=None, unmapped=N
     
     # build the ensemble
     if unmapped is None: unmapped = []
+    if atommaps is None: atommaps = []
 
     LOGGER.progress('Building the ensemble...', len(atomics), '_prody_buildPDBEnsemble')
     for i, atoms in enumerate(atomics):
@@ -496,21 +450,23 @@ def buildPDBEnsemble(atomics, ref=None, title='Unknown', labels=None, unmapped=N
 
         # find the mapping of chains of atoms to those of target
         debug[labels[i]] = {}
-        atommaps = alignChains(atoms, target, debug=debug[labels[i]], **kwargs)
+        atommaps_ = alignChains(atoms, target, debug=debug[labels[i]], **kwargs)
 
-        if len(atommaps) == 0:
+        if len(atommaps_) == 0:
             unmapped.append(labels[i])
             continue
+        else:
+            atommaps.extend(atommaps_)
         
         # add the atommaps to the ensemble
-        for atommap in atommaps:
+        for atommap in atommaps_:
             lbl = pystr(labels[i])
-            if len(atommaps) > 1:
+            if len(atommaps_) > 1:
                 chids = np.unique(atommap.getChids())
                 strchids = ''.join(chids)
                 lbl += '_%s'%strchids
             ensemble.addCoordset(atommap, weights=atommap.getFlags('mapped'), 
-                                label=lbl, degeneracy=degeneracy)
+                                 label=lbl, degeneracy=degeneracy)
             
             if not isrefset:
                 ensemble.setCoords(atommap.getCoords())
@@ -561,12 +517,13 @@ def refineEnsemble(ensemble, lower=.5, upper=10., **kwargs):
         for p in protected:
             if isinstance(p, Integral):
                 i = p
+                P.append(i)
             else:
                 if p in labels:
                     i = labels.index(p)
+                    P.append(i)
                 else:
                     LOGGER.warn('could not find any conformation with the label %s in the ensemble'%str(p))
-            P.append(i)
 
     LOGGER.timeit('_prody_refineEnsemble')
     from numpy import argsort
@@ -740,3 +697,51 @@ def combineEnsembles(target, mobile, **kwargs):
     if iterpose:
         ens.iterpose()
     return ens
+
+
+def alignByEnsemble(atomics, ensemble):
+    """Align a set of :class:`.Atomic` objects using transformations from *ensemble*, 
+    which may be a :class:`.PDBEnsemble` or a :class:`.PDBConformation` instance. 
+    
+    Transformations will be applied based on indices so *atomics* and *ensemble* must 
+    have the same number of members.
+
+    :arg atomics: a set of :class:`.Atomic` objects to be aligned
+    :type atomics: tuple, list, :class:`~numpy.ndarray`
+
+    :arg ensemble: a :class:`.PDBEnsemble` or a :class:`.PDBConformation` from which 
+                   transformations can be extracted
+    :type ensemble: :class:`.PDBEnsemble`, :class:`.PDBConformation`
+    """
+
+    if not isListLike(atomics):
+        raise TypeError('atomics must be list-like')
+
+    if not isinstance(ensemble, (PDBEnsemble, PDBConformation)):
+        raise TypeError('ensemble must be a PDBEnsemble or PDBConformation')
+    if isinstance(ensemble, PDBConformation):
+        ensemble = [ensemble]
+
+    if len(atomics) != len(ensemble):
+        raise ValueError('atomics and ensemble must have the same length')
+
+    output = []
+    for i, conf in enumerate(ensemble):
+        trans = conf.getTransformation()
+        if trans is None:
+            raise ValueError('transformations are not calculated, call '
+                             '`superpose` or `iterpose`')
+
+        ag = atomics[i]
+        if not isinstance(ag, Atomic):
+            LOGGER.warning('No atomic object found for conformation {0}.'
+                           .format(i))
+            output.append(None)
+            continue
+
+        output.append(trans.apply(ag))
+
+    if len(output) == 1:
+        return output[0]
+    else:
+        return output

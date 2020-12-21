@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-"""This module defines a class and a function for rotating translating blocks
-(RTB) calculations."""
+"""This module defines a class and a function for using the tensorial network model, 
+which includes bond-bending and twist elasticities."""
 
 import numpy as np
 

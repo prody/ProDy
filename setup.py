@@ -55,6 +55,7 @@ PACKAGES = ['prody',
             'prody.sequence',
             'prody.trajectory',
             'prody.chromatin',
+            'prody.compounds',
             'prody.domain_decomposition',
             'prody.utilities',
             'prody.apps',
@@ -146,8 +147,8 @@ SCRIPTS = ['prody=prody.apps:prody_main', 'evol=prody.apps:evol_main']
 setup(
     name='ProDy',
     version=__version__,
-    author='She Zhang',
-    author_email='shz66@pitt.edu',
+    author='James Krieger, She Zhang, Hongchun Li, Cihan Kaya, Ahmet Bakan, and others',
+    author_email='kriegerj@pitt.edu',
     description='A Python Package for Protein Dynamics Analysis',
     long_description=long_description,
     url='http://www.csb.pitt.edu/ProDy',
@@ -178,6 +179,6 @@ setup(
     entry_points = {
         'console_scripts': SCRIPTS,
     },
-    install_requires=['numpy>=1.10', 'biopython', 'pyparsing'],
+    install_requires=['numpy>=1.10', 'biopython', 'pyparsing', 'scipy'],
     #provides=['ProDy ({0:s})'.format(__version__)]
 )

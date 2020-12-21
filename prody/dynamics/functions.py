@@ -175,7 +175,7 @@ def loadModel(filename, **kwargs):
             if attr in ('type', '_name', '_title'):
                 continue
             elif attr in ('_trace', '_cutoff', '_gamma'):
-                dict_[attr] = float(attr_dict[attr])
+                dict_[attr] = attr_dict[attr][()]
             elif attr in ('_dof', '_n_atoms', '_n_modes'):
                 dict_[attr] = int(attr_dict[attr])
             elif attr in ('masked', ):
@@ -386,8 +386,8 @@ def parseSparseMatrix(filename, symmetric=False, delimiter=None, skiprows=0,
         default is ``0``.
     :type irow: int
 
-    :arg icol: Index of the column in data file corresponding to row indices,
-        default is ``0``.
+    :arg icol: Index of the column in data file corresponding to column indices,
+        default is ``1``.
     :type icol: int
 
     :arg first: First index in the data file (0 or 1), default is ``1``.

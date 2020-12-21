@@ -66,8 +66,8 @@ Parse mmCIF files
 
 Following ProDy functions are for parsing :file:`.cif` files:
 
-  * :func:`.parseCIF` - parse :file:`.cif` formated file
-  * :func:`.parseCIFStream` - parse :file:`.cif` formated stream
+  * :func:`.parseMMCIF` - parse :file:`.cif` formated file
+  * :func:`.parseMMCIFStream` - parse :file:`.cif` formated stream
 
 .. seealso::
 
@@ -101,12 +101,6 @@ Use the following to parse and access header data in PDB files:
   * :class:`.Polymer` - store PDB polymer (macromolecule) component data
   * :class:`.DBRef` - store polymer sequence database reference records
 
-Ligand data
-===========
-
-Following function can be used to fetch meta data on PDB ligands:
-
-  * :func:`.fetchPDBLigand` - retrieve ligand from Ligand-Expo
 
 Compare/align chains
 ====================
@@ -147,13 +141,14 @@ and/or parse results:
   * :func:`.performSTRIDE` - execute :program:`stride` and parse results
   * :func:`.parseSTRIDE` - parse structural data from :program:`stride` output
 
-Execute EMD
+Handle EMD Map Files and Build Pseudoatoms into them
 ===========
 
-Following functions can be used to execute EMDMAP structural analysis program
-and/or parse results:
+Use the following to parse and access header data in EMD files:
 
-  * :func:`.parseSTRIDE` - parse structural data from :program:`EMDMAP` output
+  * :func:`.parseEMD` - parse structural data from :file:`.emd` files
+  * :class:`.EMDMAP` - access structural data from :file:`.emd` files
+  * :class:`.TRNET` - fit pseudoatoms to EM density maps using the TRN algorithm
 
 """
 
@@ -183,13 +178,9 @@ from . import psiblast
 from .psiblast import *
 __all__.extend(psiblast.__all__)
 
-from . import blastpdbUniProtKB
-from .blastpdbUniProtKB import *
-__all__.extend(blastpdbUniProtKB.__all__)
-
-from . import pdbligands
-from .pdbligands import *
-__all__.extend(pdbligands.__all__)
+from . import blastUniProtKB
+from .blastUniProtKB import *
+__all__.extend(blastUniProtKB.__all__)
 
 from . import functions
 from .functions import *

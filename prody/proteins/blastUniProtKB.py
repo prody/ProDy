@@ -1,16 +1,16 @@
 # -*- coding: utf-8 -*-
-"""This module defines functions for blast searching Protein Data Bank."""
+"""This module defines functions for blast searching UniProtKB."""
 
 import os.path
 
 from prody import LOGGER
 from prody.utilities import dictElement, openURL
 
-__all__ = ['SwissProtBlastRecord', 'blastPDBUniProtKB']
+__all__ = ['UniProtBlastRecord', 'blastPDBUniProtKB']
 
 def blastPDBUniProtKB(sequence, filename=None, **kwargs):
     """Returns a :class:`PDBBlastRecord` instance that contains results from
-    blast searching of ProteinDataBank database *sequence* using NCBI blastp.
+    blast searching of UniProt knowledge base *sequence* using NCBI blastp.
 
     :arg sequence: single-letter code amino acid sequence of the protein
         without any gap characters, all white spaces will be removed
@@ -132,11 +132,11 @@ def blastPDBUniProtKB(sequence, filename=None, **kwargs):
         out.write(results)
         out.close()
         LOGGER.info('Results are saved as {0}.'.format(repr(filename)))
-    return SwissProtBlastRecord(results, sequence)
+    return UniProtBlastRecord(results, sequence)
 
-class SwissProtBlastRecord(object):
+class UniProtBlastRecord(object):
 
-    """A class to store results from ProteinDataBank blast search."""
+    """A class to store results from a UniProt blast search."""
 
 
     def __init__(self, xml, sequence=None):

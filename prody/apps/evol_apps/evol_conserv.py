@@ -1,6 +1,7 @@
 """Calculate conservation in an MSA using Shannon entropy."""
 
 from ..apptools import DevelApp
+from prody import LOGGER
 
 __all__ = ['evol_conserv']
 

@@ -1,4 +1,4 @@
-"""This module define tools for application development."""
+"""This module defines tools for application development."""
 
 from copy import copy
 try:
@@ -264,7 +264,7 @@ class DevelApp(object):
             for arg in self._figargs:
                 group.add_argument(*arg, **self._getKwargs(arg))
 
-            for arg in FIGARGS.keys():
+            for arg in list(FIGARGS.keys()):
                 group.add_argument(*arg, **self._getKwargs(arg))
 
         positional = [(arg[0], self._args[arg].get('nargs', None))

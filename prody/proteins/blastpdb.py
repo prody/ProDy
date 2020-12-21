@@ -4,7 +4,7 @@
 import os.path
 import numpy as np
 from prody import LOGGER, PY3K
-from prody.utilities import dictElement, openURL, which
+from prody.utilities import dictElement, openURL, which, pystr
 from prody.sequence import parseMSA, MSA, Sequence
 
 import platform, os, re, sys, time, urllib
@@ -82,14 +82,15 @@ class PDBBlastRecord(object):
         if sequence:
             try:
                 sequence = ''.join(sequence.split())
-                _ = sequence.isalpha()
+                isalpha = sequence.isalpha()
             except AttributeError:
                 raise TypeError('sequence must be a string')
             else:
-                if not _:
+                if not isalpha:
                     raise ValueError('not a valid protein sequence')
         self._sequence = sequence
         self._xml = xml
+        self._hits = None
         self.isSuccess = False
         self._timeout = kwargs.get('timeout', 120)
         self.isSuccess = self.fetch(**kwargs)
@@ -113,22 +114,43 @@ class PDBBlastRecord(object):
             LOGGER.warn("The record already exists so not further search is performed")
             return True
             
-        if sequence == None:
+        if sequence is None:
             sequence = self._sequence
 
-        if xml == None:
+        if xml is None:
             xml = self._xml
 
         import xml.etree.cElementTree as ET
-        if xml is not None and len(xml) < 100:
-            if os.path.isfile(xml):
-                xml = ET.parse(xml)
-                root = xml.getroot()
+        have_xml = False
+        filename = None
+        if xml is not None:
+            if len(xml) < 100:
+                # xml likely contains a filename
+                if os.path.isfile(xml):
+                    # read the contents
+                    try:
+                        xml = ET.parse(xml)
+                        root = xml.getroot()
+                        have_xml = True
+                    except:
+                        raise ValueError('could not parse xml from xml file')
+                else:
+                    # xml contains a filename for writing
+                    filename = xml
             else:
-                raise ValueError('xml is not a filename and does not look like'
-                                 ' a valid XML string')
-        else:
+                try:
+                    if isinstance(xml, list):
+                        root = ET.fromstringlist(xml)
+                    elif isinstance(xml, str):
+                        root = ET.fromstring(xml)
+                except:
+                    raise ValueError('xml is not a filename and does not look like'
+                                    ' a valid XML string')
+                else:
+                    have_xml = True
 
+        if have_xml is False:
+            # we still need to run a blast
             headers = {'User-agent': 'ProDy'}
             query = [('DATABASE', 'pdb'), ('ENTREZ_QUERY', '(none)'),
                     ('PROGRAM', 'blastp'),]
@@ -195,7 +217,6 @@ class PDBBlastRecord(object):
             LOGGER.clear()
             LOGGER.report('Blast search completed in %.1fs.', '_prody_blast')
 
-            filename = xml
             root = ET.XML(results)
             try:
                 ext_xml = filename.lower().endswith('.xml')
@@ -212,49 +233,50 @@ class PDBBlastRecord(object):
                 out.close()
                 LOGGER.info('Results are saved as {0}.'.format(repr(filename)))
 
-            root = dictElement(root, 'BlastOutput_')
-            if root['db'] != 'pdb':
-                raise ValueError('blast search database in xml must be "pdb"')
-            if root['program'] != 'blastp':
-                raise ValueError('blast search program in xml must be "blastp"')
-            self._param = dictElement(root['param'][0], 'Parameters_')
+        root = dictElement(root, 'BlastOutput_')
 
-            query_len = int(root['query-len'])
-            if sequence and len(sequence) != query_len:
-                raise ValueError('query-len and the length of the sequence do not '
-                                'match, xml data may not be for given sequence')
-            hits = []
-            for iteration in root['iterations']:
-                for hit in dictElement(iteration, 'Iteration_')['hits']:
-                    hit = dictElement(hit, 'Hit_')
-                    data = dictElement(hit['hsps'][0], 'Hsp_')
-                    for key in ['align-len', 'gaps', 'hit-frame', 'hit-from',
-                                'hit-to', 'identity', 'positive', 'query-frame',
-                                'query-from', 'query-to']:
-                        data[key] = int(data[key])
-                    data['query-len'] = query_len
-                    for key in ['evalue', 'bit-score', 'score']:
-                        data[key] = float(data[key])
-                    p_identity = 100.0 * data['identity'] / (data['query-to'] -
-                                                        data['query-from'] + 1)
-                    data['percent_identity'] = p_identity
-                    p_overlap = (100.0 * (data['align-len'] - data['gaps']) /
-                                query_len)
-                    data['percent_coverage'] = p_overlap
-                    
-                    for item in (hit['id'] + hit['def']).split('>gi'):
-                        head, title = item.split(None, 1)
-                        head = head.split('|')
-                        pdb_id = head[-2].lower()
-                        chain_id = head[-1][:1]
-                        pdbch = dict(data)
-                        pdbch['pdb_id'] = pdb_id
-                        pdbch['chain_id'] = chain_id
-                        pdbch['title'] = (head[-1][1:] + title).strip()
-                        hits.append((p_identity, p_overlap, pdbch))
-            hits.sort(key=lambda hit: hit[0], reverse=True)
-            self._hits = hits
+        if root['db'] != 'pdb':
+            raise ValueError('blast search database in xml must be "pdb"')
+        if root['program'] != 'blastp':
+            raise ValueError('blast search program in xml must be "blastp"')
+        self._param = dictElement(root['param'][0], 'Parameters_')
 
+        query_len = int(root['query-len'])
+        if sequence and len(sequence) != query_len:
+            raise ValueError('query-len and the length of the sequence do not '
+                            'match, xml data may not be for given sequence')
+        hits = []
+        for iteration in root['iterations']:
+            for hit in dictElement(iteration, 'Iteration_')['hits']:
+                hit = dictElement(hit, 'Hit_')
+                data = dictElement(hit['hsps'][0], 'Hsp_')
+                for key in ['align-len', 'gaps', 'hit-frame', 'hit-from',
+                            'hit-to', 'identity', 'positive', 'query-frame',
+                            'query-from', 'query-to']:
+                    data[key] = int(data[key])
+                data['query-len'] = query_len
+                for key in ['evalue', 'bit-score', 'score']:
+                    data[key] = float(data[key])
+                p_identity = 100.0 * data['identity'] / (data['query-to'] -
+                                                    data['query-from'] + 1)
+                data['percent_identity'] = p_identity
+                p_overlap = (100.0 * (data['align-len'] - data['gaps']) /
+                            query_len)
+                data['percent_coverage'] = p_overlap
+                
+                for item in (hit['id'] + hit['def']).split('>gi'):
+                    head, title = item.split(None, 1)
+                    head = head.split('|')
+                    pdb_id = head[-2].lower()
+                    chain_id = head[-1][:1]
+                    pdbch = dict(data)
+                    pdbch['pdb_id'] = pdb_id
+                    pdbch['chain_id'] = chain_id
+                    pdbch['title'] = (head[-1][1:] + title).strip()
+                    hits.append((p_identity, p_overlap, pdbch))
+        hits.sort(key=lambda hit: hit[0], reverse=True)
+        self._hits = hits
+        
         return True
 
     def getSequence(self):
@@ -288,6 +310,9 @@ class PDBBlastRecord(object):
         assert isinstance(chain, bool), 'chain must be a boolean'
 
         hits = {}
+        if self._hits is None:
+            raise ValueError('There are no hits yet. Please fetch again.')
+
         for p_identity, p_overlap, hit in self._hits:
             if p_identity < percent_identity:
                 break
