@@ -5,10 +5,8 @@ for the Chemical Compound Dictionary (CCD_).
 .. _CCD: https://www.wwpdb.org/data/ccd
 """
 
-import os.path
-
-from prody import LOGGER, SETTINGS, getPackagePath, PY3K
-from prody.utilities import openFile, openURL, pystr, isListLike
+from prody import LOGGER, PY3K
+from prody.utilities import openURL, isListLike
 from prody.proteins.starfile import parseSTARLines, StarDict
 
 __all__ = ['parseCCD']
@@ -30,7 +28,6 @@ def parseCCD(ids):
             handle = openURL(id_url)
         except Exception as err:
             LOGGER.warn('download failed ({1}).'.format(str(err)))
-            failure += 1
         else:
             data = handle.read()
             if len(data):
