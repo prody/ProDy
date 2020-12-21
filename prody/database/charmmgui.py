@@ -1,76 +1,129 @@
-#!/usr/bin/env python
-# ----------------------------------------------------------------------------------------
-# Written by CHARMM-GUI team (www.charmm-gui.org) and modified by James Krieger
-# This suite uses the following softwares:
-# a) google chrome browser
-# b) python Splinter package (https://splinter.readthedocs.org/en/latest/)
-# c) chromedriver (https://sites.google.com/a/chromium.org/chromedriver/downloads).
-#    chromedriver is required by Splinter. Make sure it is installed in your PATH
-# ----------------------------------------------------------------------------------------
+# -*- coding: utf-8 -*-
+"""This module defines classes and functions for using CHARMM-GUI.
+
+Written by CHARMM-GUI team (www.charmm-gui.org) and modified by James Krieger
+
+This suite uses the following softwares:
+a) python Splinter package (https://splinter.readthedocs.org/en/latest/)
+b) a web browser, such as Google Chrome or Mozilla Firefox
+c) the corresponding driver such as chromedriver (https://sites.google.com/a/chromium.org/chromedriver/downloads)
+   for Chrome or geckodriver (https://github.com/mozilla/geckodriver/releases) for Firefox
+"""
 
 from prody.proteins.pdbfile import parsePDB, fetchPDB
-import time
+from prody import LOGGER
+from .quartataweb import initializeBrowser
+
 import os
 import numpy as np
-from prody import LOGGER
-
+from numbers import Integral
+import time
 
 
 __all__ = ['CharmmGUIBrowser']
 
 
 class CharmmGUIBrowser(object):
-    def __init__(self, cwd=None, ndir=None, fname=None, segids=None, job_type=None, timeout=None, saveas=None):
-        if cwd is None:
-            cwd = os.getcwd()
-        self.cwd = cwd
+    """Class for running CHARMM-GUI in a browser"""
 
-        if ndir is None:
-            ndir = ''
-        self.ndir = ndir
+    def __init__(self, fname, **kwargs):
+        """Initialization of a CharmmGUIBrowser object will open a browser and run through the system setup steps.
 
-        self.job_id = ''
+        :arg fname: filename for starting PDB file. A PDB ID can be provided and ProDy will fetch the PDB file first.
+        :type fname: str
 
-        if job_type is None:
-            job_type = 'solution'
-        self.job_type = job_type
+        :arg cwd: current working directory for CHARMM-GUI. Default is the current working directory where Python is running.
+        :type cwd: str
 
-        if timeout is None:
-            timeout = 15
-        self.timeout = timeout
+        :arg ndir: relative path for next directory for accessing and saving files. Default is an empty string meaning use cwd.
+        :type ndir: str
 
+        :arg segids: segment IDs for selection in CHARMM-GUI. Default is to select all protein chains.
+        :type segids: list
+
+        :arg job_type: type of job for CHARMM-GUI. Currently `'solution'` and `'membrane.bilayer'` are supported.
+            Default is `'solution'`.
+        :type job_type: str
+
+        :arg job_id: job ID for retrieving previous runs. Default is empty string.
+        :type job_id: str
+
+        :arg timeout: number of seconds before timing out when waiting for each step.
+            Default is 12000, corresponding to 3 hours and 20 minutes, which seems high enough to not time out.
+        :type timeout: int
+
+        :arg saveas: tgz folder name for saving the CHARMM-GUI outputs
+        :type saveas: str
+
+        :arg browser_type: type of browser for running CHARMM-GUI. 
+            Default is to find one that has compatible drivers.
+        :type browser_type: str
+
+        :arg max_warn: maximum number of warnings before raising an error.
+            Default is 0.
+        :type max_warn: int 
+        """
+        if fname is None:
+            raise ValueError('Please enter a starting PDB filename.')
         if not isinstance(fname, str):
-            raise TypeError('please provide a filename')
+            raise TypeError('fname should be a string')
 
         if not fname.endswith('.pdb'):
             fname += '.pdb'
 
         self.fname = fname
 
-        if not os.path.isfile("%s/%s/%s" % (cwd, ndir, fname)):
+        self.cwd = kwargs.get('cwd', os.getcwd())
+        if not isinstance(self.cwd, str):
+            raise TypeError('cwd should be a string')
+
+        self.ndir = kwargs.get('ndir', '')
+        if not isinstance(self.ndir, str):
+            raise TypeError('ndir should be a string')
+
+        if not os.path.isfile("%s/%s/%s" % (self.cwd, self.ndir, fname)):
             fpath = fetchPDB(fname[:-4], compressed=False)
-            if not os.path.isdir("%s/%s" % (cwd, ndir)):
-                os.mkdir("%s/%s" % (cwd, ndir))
-            os.rename(fpath, "%s/%s/%s" % (cwd, ndir, fname))
+            if not os.path.isdir("%s/%s" % (self.cwd, self.ndir)):
+                os.mkdir("%s/%s" % (self.cwd, self.ndir))
+            os.rename(fpath, "%s/%s/%s" % (self.cwd, self.ndir, fname))
 
-        self.ag = parsePDB("%s/%s/%s" % (cwd, ndir, fname),
-                        subset='ca')
+        self.ag = parsePDB("%s/%s/%s" % (self.cwd, self.ndir, fname),
+                           subset='ca')
 
-        if segids is None:
-            segids = ['PRO'+ch.getChid() for ch in self.ag.iterChains()]
-        self.segids = segids
+        self.segids = kwargs.get(
+            'segids', ['PRO'+ch.getChid() for ch in self.ag.iterChains()])
+        if not isinstance(self.segids, list):
+            raise TypeError('segids should be a list')
+
+        self.job_id = kwargs.get('job_id', '')
+
+        self.job_type = kwargs.get('job_type', 'solution')
+        if not isinstance(self.job_type, str):
+            raise TypeError('job_type should be a string')
+        if not self.job_type in ['solution', 'membrane.bilayer']:
+            raise ValueError(
+                "job_type should be `'solution'` or `'membrane.bilayer'`. No other types are supported yet.")
+
+        self.timeout = kwargs.get('timeout', 12000)
+        if not isinstance(self.timeout, Integral):
+            raise TypeError('timeout should be an integer')
 
         self.browser = None
+        self.browser_type = kwargs.get('browser_type', None)
+
         self.link = None
         self.status = False
 
-        if saveas is None:
-            saveas = 'charmm-gui'
-        self.saveas = saveas
+        self.saveas = kwargs.get('saveas', 'charmm-gui.tgz')
+        if not isinstance(self.saveas, str):
+            raise TypeError('saveas should be a string')
 
-        self.run()
+        self.run(**kwargs)
 
     def download(self, browser=None, link=None, saveas=None):
+        """Download CHARMM-GUI files from *link* to *saveas* using *browser*. 
+        If not set, these taken from the CharmmGUIBrowser object."""
+
         if browser is None:
             browser = self.browser
 
@@ -93,6 +146,8 @@ class CharmmGUIBrowser(object):
         LOGGER.info("download complete, file size is %5.2f MB" % fsize)
 
     def get_download_link(self, browser=None):
+        """Get download link for CHARMM-GUI files using *browser*. 
+        If not set, *browser* is taken from the CharmmGUIBrowser object."""
         if browser is None:
             browser = self.browser
 
@@ -106,14 +161,24 @@ class CharmmGUIBrowser(object):
                 else:
                     return d
             except:
-                LOGGER.info("Waiting for download link, sleep for %s s" % sleep)
+                LOGGER.info(
+                    "Waiting for download link, sleep for %s s" % sleep)
                 LOGGER.sleep(int(sleep), 'to check for download link.')
                 sleep = int(sleep * 1.5)
 
+    def check_error(self, browser=None, **kwargs):
+        """Check errors on current *browser* page. If not set, this is taken from the CharmmGUIBrowser object.
 
-    def check_error(self, browser=None, max_warn=0):
+        :arg max_warn: number of warnings to allow
+            Default is 0
+        :type max_warn: int
+        """
         if browser is None:
             browser = self.browser
+
+        max_warn = kwargs.get('max_warn', 0)
+        if not isinstance(max_warn, Integral):
+            raise TypeError('max_warn should be an integer')
 
         sleep = 2
         while True:
@@ -129,7 +194,8 @@ class CharmmGUIBrowser(object):
                 LOGGER.sleep(int(sleep), 'to check for error.')
                 sleep = int(sleep * 1.5)
 
-    def wait_for_text(self, browser=None, text=None, timeout=None, max_warn=0):
+    def wait_for_text(self, browser=None, text=None, timeout=None, **kwargs):
+        """Wait for text (using the content of a button) when going to the next page."""
         if browser is None:
             browser = self.browser
 
@@ -164,9 +230,9 @@ class CharmmGUIBrowser(object):
                     browser.links.find_by_text("Go")[-1].click()
                 else:
                     browser.reload()
-                    status, err = self.check_error(browser, max_warn)
+                    status, _ = self.check_error(browser, **kwargs)
                     if status == True:
-                        browser.execute_script("proceed()")                    
+                        browser.execute_script("proceed()")
 
             if sleep > 180:
                 sleep = 180
@@ -174,7 +240,8 @@ class CharmmGUIBrowser(object):
         if sleep_time >= timeout:
             raise TimeoutError('wait for %s step timed out' % text)
 
-    def next_step(self, browser=None, text=None, timeout=None, max_warn=0):
+    def next_step(self, browser=None, text=None, timeout=None, **kwargs):
+        """Go to next step including waiting for text and checking for errors."""
         if browser is None:
             browser = self.browser
 
@@ -187,11 +254,12 @@ class CharmmGUIBrowser(object):
         LOGGER.info("    Going to next step")
         self.wait_for_text(browser, text, timeout)
 
-        status, err = self.check_error(browser, max_warn)
+        status, err = self.check_error(browser, **kwargs)
         if status == False:
             raise Exception(err)
 
-    def run(self, cwd=None, ndir=None, fname=None, segids=None, job_type=None, saveas=None, timeout=None):
+    def run(self, cwd=None, ndir=None, fname=None, segids=None, job_type=None, saveas=None, timeout=None, browser_type=None, **kwargs):
+        """Main running function that runs all the other steps. Arguments are as in initialization and can overwrite them."""
         if cwd is None:
             cwd = self.cwd
 
@@ -207,6 +275,12 @@ class CharmmGUIBrowser(object):
         if job_type is None:
             job_type = self.job_type
 
+        if not job_type in ['solution', 'membrane.bilayer']:
+            raise ValueError('job_type must be solution or membrane.bilayer')
+
+        LOGGER.info("Running CHARMM-GUI in %s directory"
+                    % ndir)
+
         if saveas is None:
             saveas = self.saveas
 
@@ -215,26 +289,19 @@ class CharmmGUIBrowser(object):
         else:
             self.timeout = timeout
 
-        if not job_type in ['solution', 'membrane.bilayer']:
-            raise ValueError('job_type must be solution or membrane.bilayer')
+        if browser_type is None:
+            browser_type = self.browser_type
 
-        LOGGER.info("Running CHARMM-GUI Solution Builder in %s directory"
-                    % ndir)
+        self.browser_type, self.browser = initializeBrowser(browser_type)
+        browser = self.browser
 
-        try:
-            from splinter import Browser
-        except ImportError:
-            raise ImportError('Browser module could not be imported. '
-                              'install splinter package to solve the problem.')
-
-        self.browser = browser = Browser('chrome')
         url = "http://www.charmm-gui.org/input/%s" % job_type
         browser.visit(url)
 
         browser.attach_file('file', "%s/%s/%s" % (cwd, ndir, fname))
         browser.find_by_value("PDB").click()
 
-        self.next_step(browser, "Manipulate PDB")
+        self.next_step(browser, "Manipulate PDB", **kwargs)
 
         for item in browser.find_by_value("1"):
             item.uncheck()
@@ -242,13 +309,13 @@ class CharmmGUIBrowser(object):
         for segid in segids:
             browser.find_by_name("chains[%s][checked]" % segid.upper()).check()
 
-        self.next_step(browser, "Generate PDB")
+        self.next_step(browser, "Generate PDB", **kwargs)
 
         if job_type == 'membrane.bilayer':
-            self.next_step(browser, "Calculate Cross-Sectional Area")
+            self.next_step(browser, "Calculate Cross-Sectional Area", **kwargs)
 
             browser.find_by_name("align_option").first.click()
-            self.next_step(browser, "Determine the System Size")
+            self.next_step(browser, "Determine the System Size", **kwargs)
 
             maxes = np.max(self.ag.getCoords(), axis=0)
             minis = np.min(self.ag.getCoords(), axis=0)
@@ -260,7 +327,8 @@ class CharmmGUIBrowser(object):
             browser.find_by_id("lipid_ratio[upper][chl1]").first.fill("1")
             browser.find_by_id("lipid_ratio[lower][chl1]").first.fill("1")
 
-            [y for y in browser.find_by_css("img") if y.outer_html.find("liptype_ratio_pc") != -1][0].click()
+            [y for y in browser.find_by_css("img") if y.outer_html.find(
+                "liptype_ratio_pc") != -1][0].click()
             time.sleep(5)
             browser.find_by_id("lipid_ratio[upper][popc]").first.fill("3")
             browser.find_by_id("lipid_ratio[lower][popc]").first.fill("3")
@@ -271,15 +339,16 @@ class CharmmGUIBrowser(object):
                 if browser.find_by_id("error_msg")[0].text.find("more lipids") != -1:
                     browser.find_by_name("hetero_xy_option")[1].click()
                     time.sleep(5)
-                    [y for y in browser.find_by_css("img") if y.outer_html.find("liptype_number_pc") != -1][0].click()
+                    [y for y in browser.find_by_css("img")
+                     if y.outer_html.find("liptype_number_pc") != -1][0].click()
                     time.sleep(5)
 
                 if browser.find_by_id("error_msg")[0].text.find("lower") != -1:
-                    lower_chl1_num = browser.find_by_id("lipid_number[lower][popc]").first
-                    lower_chl1_num.fill(str(int(lower_chl1_num.value)+1))
+                    lnum_popc = browser.find_by_id("lipid_number[lower][popc]").first
+                    lnum_popc.fill(str(int(lnum_popc.value)+1))
                 elif browser.find_by_id("error_msg")[0].text.find("upper") != -1:
-                    lower_chl1_num = browser.find_by_id("lipid_number[upper][popc]").first
-                    lower_chl1_num.fill(str(int(lower_chl1_num.value)+1))
+                    unum_popc = browser.find_by_id("lipid_number[upper][popc]").first
+                    unum_popc.fill(str(int(unum_popc.value)+1))
                 else:
                     raise Exception(browser.find_by_id("error_msg")[0].text)
 
@@ -287,22 +356,22 @@ class CharmmGUIBrowser(object):
 
             self.next_step(browser, "Build Components", max_warn=1)
         else:
-            self.next_step(browser, "Solvate Molecule")
+            self.next_step(browser, "Solvate Molecule", **kwargs)
 
         browser.find_option_by_text('NaCl').first.click()
         browser.find_option_by_text('Monte-Carlo').first.click()
 
         if job_type == 'membrane.bilayer':
             self.job_id = browser.find_by_name("jobid")[0].value
-            self.next_step(browser, "Assemble Components")
+            self.next_step(browser, "Assemble Components", **kwargs)
         else:
-            self.next_step(browser, "Setup Periodic Boundary Condition")
+            self.next_step(browser, "Setup Periodic Boundary Condition", **kwargs)
 
-        self.next_step(browser, "Generate Equilibration and Dynamics", timeout=12000)
+        self.next_step(browser, "Generate Equilibration and Dynamics", **kwargs)
 
         browser.find_by_name("namd_checked").check()
 
-        self.next_step(browser, "production.inp")
+        self.next_step(browser, "production.inp", **kwargs)
 
         link = self.get_download_link(browser)
         LOGGER.info("Build success")
@@ -311,7 +380,7 @@ class CharmmGUIBrowser(object):
         self.browser = browser
         self.link = link
         self.status = status
-        
+
         self.download(saveas=saveas)
         self.browser.quit()
         return
@@ -319,4 +388,6 @@ class CharmmGUIBrowser(object):
 
 if __name__ == "__main__":
 
-    cgb = CharmmGUIBrowser(fname='1ake', saveas='1ake-charmm-gui.tgz', ndir='test')
+    cgb = CharmmGUIBrowser(fname='1ake',
+                           saveas='1ake-charmm-gui.tgz',
+                           ndir='test')

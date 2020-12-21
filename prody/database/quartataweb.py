@@ -18,7 +18,8 @@ from prody.utilities import openFile
 import numpy as np
 import os
 
-__all__ = ['QuartataWebBrowser', 'QuartataChemicalRecord', 'searchQuartataWeb']
+__all__ = ['QuartataWebBrowser', 'QuartataChemicalRecord', 'searchQuartataWeb',
+           'initializeBrowser']
 
 
 class QuartataWebBrowser(object):
@@ -88,7 +89,7 @@ class QuartataWebBrowser(object):
 
         :arg job_id: job ID for accessing previous jobs
             Default is ``None``
-        :type browser_type: int        
+        :type job_id: int        
 
         :arg tsv: a filename for a file that contains the results 
             or a file to save the results in tsv format
@@ -360,46 +361,7 @@ class QuartataWebBrowser(object):
         :type browser_type: str
         """
         if self.no_data:
-            try:
-                from splinter import Browser
-            except ImportError:
-                raise ImportError('Browser module could not be imported. '
-                                'install splinter package to solve the problem.')
-            else:
-                from selenium.webdriver.common.service import WebDriverException
-                
-            if browser_type is None:
-                try:
-                    browser = Browser('chrome')
-                    url = "http://quartata.csb.pitt.edu"
-                    browser.visit(url)
-                except WebDriverException:
-                    try:
-                        browser = Browser('firefox')
-                        url = "http://quartata.csb.pitt.edu"
-                        browser.visit(url)
-                    except WebDriverException:
-                        raise ValueError('No web driver found for Chrome or Firefox. '
-                                         'Please specify a different browser type or download an appropriate driver.')
-                    else:
-                        self.browser_type = 'firefox'
-                else:
-                    self.browser_type = 'chrome'
-
-            elif not isinstance(browser_type, str):
-                raise TypeError('browser_type should be a string or None')
-            else:
-                try:
-                    browser = Browser(browser_type)
-                    url = "http://quartata.csb.pitt.edu"
-                    browser.visit(url)
-                except WebDriverException:
-                    raise ValueError('No web driver found for browser_type. '
-                                     'Please specify a different browser type or download an appropriate driver.')
-                else:
-                    self.browser_type = browser_type
-
-            self.browser = browser
+            self.browser_type, self.browser = initializeBrowser(browser_type)
             self.updateHomePage()
 
 
@@ -408,7 +370,7 @@ class QuartataWebBrowser(object):
         
         :arg job_id: job ID for accessing previous jobs
             Default is ``None``
-        :type browser_type: int
+        :type job_id: int
         """
         self.job_id = job_id
         if self.no_data:
@@ -562,7 +524,6 @@ class QuartataChemicalRecord(object):
         self.query_type = query_type
         self.data = data
         self.num_predictions = num_predictions
-        self.browser_type = browser_type
         self.job_id = job_id
         self.filename = filename
 
@@ -589,8 +550,6 @@ class QuartataChemicalRecord(object):
 
         if num_predictions is None:
             num_predictions = self.num_predictions
-        if browser_type is None:
-            browser_type = self.browser_type
         if job_id is None:
             job_id = self.job_id
         if filename is None:
@@ -751,7 +710,6 @@ class QuartataChemicalRecord(object):
         return self._list
     
 
-
 def searchQuartataWeb(data_source=None, drug_group=None, input_type=None, query_type=None, 
                       data=None, num_predictions=None, browser_type=None, job_id=None, 
                       filename=None, result_type='Chemical'):
@@ -770,3 +728,46 @@ def searchQuartataWeb(data_source=None, drug_group=None, input_type=None, query_
         return None
 
 searchQuartataWeb.__doc__ += "\n" + QuartataWebBrowser.__init__.__doc__
+
+
+def initializeBrowser(browser_type):
+    try:
+        from splinter import Browser
+    except ImportError:
+        raise ImportError('Browser module could not be imported. '
+                            'install splinter package to solve the problem.')
+    else:
+        from selenium.webdriver.common.service import WebDriverException
+        
+    if browser_type is None:
+        try:
+            browser = Browser('chrome')
+            url = "http://quartata.csb.pitt.edu"
+            browser.visit(url)
+        except WebDriverException:
+            try:
+                browser = Browser('firefox')
+                url = "http://quartata.csb.pitt.edu"
+                browser.visit(url)
+            except WebDriverException:
+                raise ValueError('No web driver found for Chrome or Firefox. '
+                                    'Please specify a different browser type or download an appropriate driver.')
+            else:
+                browser_type = 'firefox'
+        else:
+            browser_type = 'chrome'
+
+    elif not isinstance(browser_type, str):
+        raise TypeError('browser_type should be a string or None')
+    else:
+        try:
+            browser = Browser(browser_type)
+            url = "http://quartata.csb.pitt.edu"
+            browser.visit(url)
+        except WebDriverException:
+            raise ValueError('No web driver found for browser_type. '
+                                'Please specify a different browser type or download an appropriate driver.')
+        else:
+            browser_type = browser_type
+
+    return browser_type, browser
