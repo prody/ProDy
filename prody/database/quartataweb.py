@@ -730,7 +730,7 @@ def searchQuartataWeb(data_source=None, drug_group=None, input_type=None, query_
 searchQuartataWeb.__doc__ += "\n" + QuartataWebBrowser.__init__.__doc__
 
 
-def initializeBrowser(browser_type):
+def initializeBrowser(browser_type, url):
     try:
         from splinter import Browser
     except ImportError:
@@ -738,16 +738,17 @@ def initializeBrowser(browser_type):
                             'install splinter package to solve the problem.')
     else:
         from selenium.webdriver.common.service import WebDriverException
-        
+    
+    if url is None:
+        url = "http://quartata.csb.pitt.edu"
+
     if browser_type is None:
         try:
             browser = Browser('chrome')
-            url = "http://quartata.csb.pitt.edu"
             browser.visit(url)
         except WebDriverException:
             try:
                 browser = Browser('firefox')
-                url = "http://quartata.csb.pitt.edu"
                 browser.visit(url)
             except WebDriverException:
                 raise ValueError('No web driver found for Chrome or Firefox. '
@@ -762,7 +763,6 @@ def initializeBrowser(browser_type):
     else:
         try:
             browser = Browser(browser_type)
-            url = "http://quartata.csb.pitt.edu"
             browser.visit(url)
         except WebDriverException:
             raise ValueError('No web driver found for browser_type. '

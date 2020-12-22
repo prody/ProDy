@@ -290,10 +290,9 @@ class CharmmGUIBrowser(object):
         if browser_type is None:
             browser_type = self.browser_type
 
-        self.browser_type, self.browser = initializeBrowser(browser_type)
-        browser = self.browser
-
         url = "http://www.charmm-gui.org/input/%s" % job_type
+        self.browser_type, self.browser = initializeBrowser(browser_type, url=url)
+        browser = self.browser
         browser.visit(url)
 
         browser.attach_file('file', "%s/%s/%s" % (cwd, ndir, fname))
