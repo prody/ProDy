@@ -210,7 +210,9 @@ class CharmmGUIBrowser(object):
             try:
                 res = browser.is_text_present(text)
                 if res == True:
-                    break
+                    status, err = self.check_error(browser, **kwargs)
+                    if status == True or err != 'The CHARMM-GUI process is still running. Please reload this page again a few minutes later.':
+                        break
                 else:
                     LOGGER.sleep(int(sleep), 'for %s.' % text)
                     sleep = int(sleep * 1.5)
@@ -358,8 +360,8 @@ class CharmmGUIBrowser(object):
         browser.find_option_by_text('NaCl').first.click()
         browser.find_option_by_text('Monte-Carlo').first.click()
 
+        self.job_id = browser.find_by_name("jobid")[0].value
         if job_type == 'membrane.bilayer':
-            self.job_id = browser.find_by_name("jobid")[0].value
             self.next_step(browser, "Assemble Components", **kwargs)
         else:
             self.next_step(browser, "Setup Periodic Boundary Condition", **kwargs)
