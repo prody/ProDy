@@ -110,13 +110,12 @@ class CharmmGUIBrowser(object):
         self.browser_type = kwargs.get('browser_type', None)
 
         self.link = None
-        self.status = False
 
         self.saveas = kwargs.get('saveas', 'charmm-gui.tgz')
         if not isinstance(self.saveas, str):
             raise TypeError('saveas should be a string')
 
-        self.run(**kwargs)
+        self.isSuccess = self.run(**kwargs)
 
     def download(self, browser=None, link=None, saveas=None):
         """Download CHARMM-GUI files from *link* to *saveas* using *browser*. 
@@ -238,7 +237,10 @@ class CharmmGUIBrowser(object):
                 sleep = 180
 
         if sleep_time >= timeout:
-            raise TimeoutError('wait for %s step timed out' % text)
+            LOGGER.warn('wait for %s step timed out' % text)
+            return False
+        
+        return True
 
     def next_step(self, browser=None, text=None, timeout=None, **kwargs):
         """Go to next step including waiting for text and checking for errors."""
@@ -252,11 +254,16 @@ class CharmmGUIBrowser(object):
         status = True
 
         LOGGER.info("    Going to next step")
-        self.wait_for_text(browser, text, timeout)
+        status = self.wait_for_text(browser, text, timeout)
+        if status == False:
+            return False
 
         status, err = self.check_error(browser, **kwargs)
         if status == False:
-            raise Exception(err)
+            LOGGER.warn(err)
+            return False
+
+        return True
 
     def run(self, cwd=None, ndir=None, fname=None, segids=None, job_type=None, saveas=None, timeout=None, browser_type=None, **kwargs):
         """Main running function that runs all the other steps. Arguments are as in initialization and can overwrite them."""
@@ -300,7 +307,9 @@ class CharmmGUIBrowser(object):
         browser.attach_file('file', "%s/%s/%s" % (cwd, ndir, fname))
         browser.find_by_value("PDB").click()
 
-        self.next_step(browser, "Manipulate PDB", **kwargs)
+        status = self.next_step(browser, "Manipulate PDB", **kwargs)
+        if status == False:
+            return False
 
         for item in browser.find_by_value("1"):
             item.uncheck()
@@ -308,13 +317,19 @@ class CharmmGUIBrowser(object):
         for segid in segids:
             browser.find_by_name("chains[%s][checked]" % segid.upper()).check()
 
-        self.next_step(browser, "Generate PDB", **kwargs)
+        status = self.next_step(browser, "Generate PDB", **kwargs)
+        if status == False:
+            return False
 
         if job_type == 'membrane.bilayer':
-            self.next_step(browser, "Calculate Cross-Sectional Area", **kwargs)
+            status = self.next_step(browser, "Calculate Cross-Sectional Area", **kwargs)
+            if status == False:
+                return False
 
             browser.find_by_name("align_option").first.click()
-            self.next_step(browser, "Determine the System Size", **kwargs)
+            status = self.next_step(browser, "Determine the System Size", **kwargs)
+            if status == False:
+                return False
 
             maxes = np.max(self.ag.getCoords(), axis=0)
             minis = np.min(self.ag.getCoords(), axis=0)
@@ -349,40 +364,52 @@ class CharmmGUIBrowser(object):
                     unum_popc = browser.find_by_id("lipid_number[upper][popc]").first
                     unum_popc.fill(str(int(unum_popc.value)+1))
                 else:
-                    raise Exception(browser.find_by_id("error_msg")[0].text)
+                    LOGGER.warn(browser.find_by_id("error_msg")[0].text)
+                    return False
 
                 browser.find_by_value("Show the system info")[1].click()
 
-            self.next_step(browser, "Build Components", max_warn=1)
+            status = self.next_step(browser, "Build Components", max_warn=1)
+            if status == False:
+                return False
         else:
-            self.next_step(browser, "Solvate Molecule", **kwargs)
+            status = self.next_step(browser, "Solvate Molecule", **kwargs)
+            if status == False:
+                return False
 
         browser.find_option_by_text('NaCl').first.click()
         browser.find_option_by_text('Monte-Carlo').first.click()
 
         self.job_id = browser.find_by_name("jobid")[0].value
         if job_type == 'membrane.bilayer':
-            self.next_step(browser, "Assemble Components", **kwargs)
+            status = self.next_step(browser, "Assemble Components", **kwargs)
+            if status == False:
+                return False
         else:
-            self.next_step(browser, "Setup Periodic Boundary Condition", **kwargs)
+            status = self.next_step(browser, "Setup Periodic Boundary Condition", **kwargs)
+            if status == False:
+                return False
 
-        self.next_step(browser, "Generate Equilibration and Dynamics", **kwargs)
+        status = self.next_step(browser, "Generate Equilibration and Dynamics", **kwargs)
+        if status == False:
+            return False
 
         browser.find_by_name("namd_checked").check()
 
-        self.next_step(browser, "production.inp", **kwargs)
+        status = self.next_step(browser, "production.inp", **kwargs)
+        if status == False:
+            return False
 
         link = self.get_download_link(browser)
         LOGGER.info("Build success")
-        status = "Success"
+        status = True
 
         self.browser = browser
         self.link = link
-        self.status = status
 
         self.download(saveas=saveas)
         self.browser.quit()
-        return
+        return status
 
 
 if __name__ == "__main__":
