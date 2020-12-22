@@ -24,45 +24,43 @@ __all__ = ['CharmmGUIBrowser']
 
 
 class CharmmGUIBrowser(object):
-    """Class for running CHARMM-GUI in a browser"""
+    """Class for running CHARMM-GUI in a browser
 
+    :arg fname: filename for starting PDB file. A PDB ID can be provided and ProDy will fetch the PDB file first.
+    :type fname: str
+
+    :arg cwd: current working directory for CHARMM-GUI. Default is the current working directory where Python is running.
+    :type cwd: str
+
+    :arg ndir: relative path for next directory for accessing and saving files. Default is an empty string meaning use cwd.
+    :type ndir: str
+
+    :arg segids: segment IDs for selection in CHARMM-GUI. Default is to select all protein chains.
+    :type segids: list
+
+    :arg job_type: type of job for CHARMM-GUI. Currently `'solution'` and `'membrane.bilayer'` are supported.
+        Default is `'solution'`.
+    :type job_type: str
+
+    :arg job_id: job ID for retrieving previous runs. Default is empty string.
+    :type job_id: str
+
+    :arg timeout: number of seconds before timing out when waiting for each step.
+        Default is 12000, corresponding to 3 hours and 20 minutes, which seems high enough to not time out.
+    :type timeout: int
+
+    :arg saveas: tgz folder name for saving the CHARMM-GUI outputs
+    :type saveas: str
+
+    :arg browser_type: type of browser for running CHARMM-GUI. 
+        Default is to find one that has compatible drivers.
+    :type browser_type: str
+
+    :arg max_warn: maximum number of warnings before raising an error.
+        Default is 0.
+    :type max_warn: int 
+    """
     def __init__(self, fname, **kwargs):
-        """Initialization of a CharmmGUIBrowser object will open a browser and run through the system setup steps.
-
-        :arg fname: filename for starting PDB file. A PDB ID can be provided and ProDy will fetch the PDB file first.
-        :type fname: str
-
-        :arg cwd: current working directory for CHARMM-GUI. Default is the current working directory where Python is running.
-        :type cwd: str
-
-        :arg ndir: relative path for next directory for accessing and saving files. Default is an empty string meaning use cwd.
-        :type ndir: str
-
-        :arg segids: segment IDs for selection in CHARMM-GUI. Default is to select all protein chains.
-        :type segids: list
-
-        :arg job_type: type of job for CHARMM-GUI. Currently `'solution'` and `'membrane.bilayer'` are supported.
-            Default is `'solution'`.
-        :type job_type: str
-
-        :arg job_id: job ID for retrieving previous runs. Default is empty string.
-        :type job_id: str
-
-        :arg timeout: number of seconds before timing out when waiting for each step.
-            Default is 12000, corresponding to 3 hours and 20 minutes, which seems high enough to not time out.
-        :type timeout: int
-
-        :arg saveas: tgz folder name for saving the CHARMM-GUI outputs
-        :type saveas: str
-
-        :arg browser_type: type of browser for running CHARMM-GUI. 
-            Default is to find one that has compatible drivers.
-        :type browser_type: str
-
-        :arg max_warn: maximum number of warnings before raising an error.
-            Default is 0.
-        :type max_warn: int 
-        """
         if fname is None:
             raise ValueError('Please enter a starting PDB filename.')
         if not isinstance(fname, str):
