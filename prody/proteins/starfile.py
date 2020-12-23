@@ -147,12 +147,14 @@ class StarDataBlock:
             self.numEntries = len(self.data)
             self.numFields = len(self.fields)
 
-        elif set(list(keys)[:2]) == set(['data', 'fields']):
+        elif 'data' in keys and 'fields' in keys:
             if indices is not None:
                 self.loops = [StarLoop(self, key, idx)
-                              for (key, idx) in indices[2:]]
+                              for (key, idx) in indices
+                              if key not in ['data', 'fields']]
             else:
-                self.loops = [StarLoop(self, key) for key in keys[2:]]
+                self.loops = [StarLoop(self, key) for key in keys
+                              if key not in ['data', 'fields']]
 
             self.data = np.array(list(self._dict['data'].values()))
             self.fields = np.array(list(self._dict['fields'].values()))
@@ -170,10 +172,12 @@ class StarDataBlock:
         elif 'data' in keys:
             if indices is not None:
                 self.loops = [StarLoop(self, key, idx)
-                              for (key, idx) in indices[np.where(np.array(keys) == 'data')[0][-1]+1:]]
+                              for (key, idx) in indices
+                              if key is not 'data']
             else:
                 self.loops = [StarLoop(self, key)
-                              for key in keys[np.where(np.array(keys) == 'data')[0][-1]+1:]]
+                              for key in keys
+                              if key is not 'data']
 
             self.data = np.array(list(self._dict['data'].values()))
             self.fields = np.array(list(self._dict['fields'].values()))
@@ -191,10 +195,12 @@ class StarDataBlock:
         elif 'fields' in keys:
             if indices is not None:
                 self.loops = [StarLoop(self, key, idx)
-                              for (key, idx) in indices[1:]]
+                              for (key, idx) in indices
+                              if key is not 'fields']
             else:
                 self.loops = [StarLoop(self, key)
-                              for key in keys[np.where(np.array(keys) == 'fields')[0][-1]+1:]]
+                              for key in keys
+                              if key is not 'fields']
 
             self.data = np.array(list(self._dict['data'].values()))
             self.fields = np.array(list(self._dict['fields'].values()))
