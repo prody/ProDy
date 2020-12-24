@@ -14,7 +14,7 @@ from .editing import reduceModel
 from .plotting import showAtomicLines
 from .signature import ModeEnsemble, saveModeEnsemble
 from prody.utilities import which
-
+from . import matchModes
 
 __all__ = ['ESSA']
 
@@ -47,6 +47,9 @@ class ESSA:
         self._ensemble = None
         self._labels = None
         self._zscore = None
+        self._ref = None
+        self._eigvals = None
+        self._eigvecs = None
 
     def setSystem(self, atoms, **kwargs):
 
@@ -61,6 +64,9 @@ class ESSA:
 
         :arg dist: Atom-atom distance (A) to select the protein residues that are in contact with a ligand, default is 4.5 A.
         :type dist: float
+
+        :arg lowmem: If True, a ModeEnsemble is not generated due to the lack of memory resources, and eigenvalue/eigenvectors are only stored, default it False.
+        :type lowmem: bool
         '''
 
         self._atoms = atoms
@@ -72,6 +78,10 @@ class ESSA:
 
         self._heavy = atoms.select('protein and heavy and not hetatm')
         self._ca = self._heavy.ca
+        self._lowmem = kwargs.pop('lowmem', False)
+        if self._lowmem:
+            self._eigvals = []
+            self._eigvecs = []
 
         # --- residue indices of protein residues that are within dist (4.5 A) of ligands --- #
 
@@ -101,6 +111,7 @@ class ESSA:
 
         self._n_modes = n_modes
         self._enm = enm
+        self._cutoff = cutoff
 
         self._ensemble = ModeEnsemble(f'{self._title}')
         self._ensemble.setAtoms(self._ca)
@@ -108,10 +119,41 @@ class ESSA:
 
         # --- reference model --- #
 
+        self._reference()
+
+        # --- perturbed models --- #
+
+        LOGGER.progress(msg='', steps=(self._ca.numAtoms()))
+        for i in self._ca.getResindices():
+            LOGGER.update(step=i+1, msg=f'scanning residue {i+1}')
+            self._perturbed(i)
+
+        if self._lowmem:
+            self._eigvals = array(self._eigvals)
+            self._eigvecs = array(self._eigvecs)
+
+        # --- ESSA computation part --- #
+
+        if self._lowmem:
+            denom = self._eigvals[0]
+            num = self._eigvals[1:] - denom
+        else:
+            self._ensemble.setLabels(self._labels)
+            self._ensemble.match()
+
+            denom = self._ensemble[0].getEigvals()
+            num = self._ensemble[1:].getEigvals() - denom
+
+        eig_diff = num / denom * 100
+        eig_diff_mean = mean(eig_diff, axis=1)
+
+        self._zscore = zscore(eig_diff_mean)
+
+    def _reference(self):
+
         if self._enm == 'gnm':
             ca_enm = GNM('ca')
-            if cutoff is not None:
-                self._cutoff = cutoff
+            if self._cutoff is not None:
                 ca_enm.buildKirchhoff(self._ca, cutoff=self._cutoff)
             else:
                 ca_enm.buildKirchhoff(self._ca)
@@ -119,50 +161,46 @@ class ESSA:
 
         if self._enm == 'anm':
             ca_enm = ANM('ca')
-            if cutoff is not None:
-                self._cutoff = cutoff
+            if self._cutoff is not None:
                 ca_enm.buildHessian(self._ca, cutoff=self._cutoff)
             else:
                 ca_enm.buildHessian(self._ca)
                 self._cutoff = ca_enm.getCutoff()
 
-        ca_enm.calcModes(n_modes=n_modes)
-        self._ensemble.addModeSet(ca_enm[:])
+        ca_enm.calcModes(n_modes=self._n_modes)
 
-        # --- perturbed models --- #
+        if self._lowmem:
+            self._ref = ca_enm
+            self._eigvals.append(ca_enm.getEigvals())
+            self._eigvecs.append(ca_enm.getEigvecs())
+        else:
+            self._ensemble.addModeSet(ca_enm[:])
 
-        LOGGER.progress(msg='', steps=(self._ca.numAtoms()))
-        for i in self._ca.getResindices():
-            LOGGER.update(step=i+1, msg=f'scanning residue {i+1}')
-            sel = f'calpha or resindex {i}'
-            tmp = self._heavy.select(sel)
+    def _perturbed(self, arg):
 
-            if self._enm == 'gnm':
-                tmp_enm = GNM(f'res_{i}')
-                tmp_enm.buildKirchhoff(tmp, cutoff=self._cutoff)
+        sel = f'calpha or resindex {arg}'
+        tmp = self._heavy.select(sel)
 
-            if self._enm == 'anm':
-                tmp_enm = ANM(f'res_{i}')
-                tmp_enm.buildHessian(tmp, cutoff=self._cutoff)
+        if self._enm == 'gnm':
+            tmp_enm = GNM(f'res_{arg}')
+            tmp_enm.buildKirchhoff(tmp, cutoff=self._cutoff)
 
-            tmp_enm_red, _ = reduceModel(tmp_enm, tmp, self._ca)
-            tmp_enm_red.calcModes(n_modes=self._n_modes)
+        if self._enm == 'anm':
+            tmp_enm = ANM(f'res_{arg}')
+            tmp_enm.buildHessian(tmp, cutoff=self._cutoff)
 
+        tmp_enm_red, _ = reduceModel(tmp_enm, tmp, self._ca)
+        tmp_enm_red.calcModes(n_modes=self._n_modes)
+        tmp_enm_red.setTitle(tmp_enm_red.getTitle().split()[0])
+
+        if self._lowmem:
+            _, matched = matchModes(self._ref, tmp_enm_red)
+            self._eigvals.append(matched.getEigvals())
+            self._eigvecs.append(matched.getEigvecs())
+        else:
             self._ensemble.addModeSet(tmp_enm_red[:])
-            self._labels.append(tmp_enm.getTitle())
 
-        self._ensemble.setLabels(self._labels)
-        self._ensemble.match()
-
-        # --- ESSA computation part --- #
-
-        denom = self._ensemble[0].getEigvals()
-        num = self._ensemble[1:].getEigvals() - denom
-
-        eig_diff = num / denom * 100
-        eig_diff_mean = mean(eig_diff, axis=1)
-
-        self._zscore = zscore(eig_diff_mean)
+        self._labels.append(tmp_enm_red.getTitle())
 
     def getESSAZscores(self):
 
@@ -174,13 +212,19 @@ class ESSA:
 
         'Returns ESSA mode ensemble, comprised of ENMS calculated for each scanned/perturbed residue.'
 
-        return self._ensemble[:]
+        if self._lowmem:
+            LOGGER.warn('ModeEnsemble was not generated due to lowmem=True')
+        else:
+            return self._ensemble[:]
     
     def saveESSAEnsemble(self):
 
         'Saves ESSA mode ensemble, comprised of ENMS calculated for each scanned/perturbed residue.'
 
-        saveModeEnsemble(self._ensemble, filename=f'{self._title}_{self._enm}')
+        if self._lowmem:
+            LOGGER.warn('ModeEnsemble was not generated due to lowmem=True')
+        else:
+            saveModeEnsemble(self._ensemble, filename=f'{self._title}_{self._enm}')
 
     def saveESSAZscores(self):
 
@@ -195,6 +239,42 @@ class ESSA:
         writePDB(f'{self._title}_{self._enm}_zs', self._heavy,
                  beta=extendAtomicData(self._zscore, self._ca, self._heavy)[0])
 
+    def getEigvals(self):
+
+        'Returns eigenvalues of the matched modes.'
+
+        if self._lowmem:
+            return self._eigvals
+        else:
+            return self._ensemble.getEigvals()
+
+    def getEigvecs(self):
+
+        'Returns eigenvectors of the matched modes.'
+
+        if self._lowmem:
+            return self._eigvecs
+        else:
+            return self._ensemble.getEigvecs()
+
+    def saveEigvals(self):
+
+        'Saves eigenvalues of the matched modes in Numpy `.npy` format.'
+
+        if self._lowmem:
+            save(f'{self._title}_{self._enm}_eigvals', self._eigvals)
+        else:
+            save(f'{self._title}_{self._enm}_eigvals', self._ensemble.getEigvals())
+
+    def saveEigvecs(self):
+
+        'Saves eigenvectors of the matched modes in Numpy `.npy` format.'
+
+        if self._lowmem:
+            save(f'{self._title}_{self._enm}_eigvecs', self._eigvecs)
+        else:
+            save(f'{self._title}_{self._enm}_eigvecs', self._ensemble.getEigvecs())
+        
     def getLigandResidueIndices(self):
 
         'Returns indices of the residues interacting with ligands.'

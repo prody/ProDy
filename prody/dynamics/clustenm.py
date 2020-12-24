@@ -54,14 +54,6 @@ from prody.utilities import createStringIO, importLA
 la = importLA()
 norm = la.norm
 
-lig = 'hetatm and (resname ' \
-      'ALA ARG ASN ASP CYS ' \
-      'GLN GLU GLY HIS ILE ' \
-      'LEU LYS MET PHE PRO ' \
-      'SER THR TRP TYR VAL)'
-
-pho = ['P', 'OP1', 'OP2', 'OP3']
-
 __all__ = ['ClustENM', 'ClustRTB', 'ClustImANM', 'ClustExANM']
 
 class ClustENM(Ensemble):
@@ -154,12 +146,7 @@ class ClustENM(Ensemble):
         :type pH: float
         '''
 
-        sel_0 = atoms.select(lig)
-        if sel_0 is not None:
-            sel_1 = 'not resindex '
-            sel_2 = ' '.join([str(i) for i in sel_0.getResindices()])
-            sel = sel_1 + sel_2
-            atoms = atoms.select(sel)
+        atoms = atoms.select('not hetatm')
 
         self._nuc = atoms.select('nucleotide')
 
@@ -169,7 +156,7 @@ class ClustENM(Ensemble):
             for c in self._nuc.getChids():
                 tmp = self._nuc[c].iterAtoms()
                 for a in tmp:
-                    if a.getName() in pho:
+                    if a.getName() in ['P', 'OP1', 'OP2', 'OP3']:
                         idx_p.append(a.getIndex())
 
             if idx_p:
