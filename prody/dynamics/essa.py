@@ -1,8 +1,9 @@
+from collections import defaultdict
 from os import chdir, listdir, mkdir, system
 from os.path import isdir
 from pickle import dump
 from re import findall
-from numpy import argsort, array, c_, count_nonzero, hstack, mean, median, quantile, save
+from numpy import argsort, arange, array, c_, count_nonzero, hstack, mean, median, quantile, save, where
 from scipy.stats import zscore, median_absolute_deviation
 import matplotlib.pyplot as plt
 from prody import LOGGER
@@ -31,6 +32,12 @@ class ESSA:
     Instantiate an ESSA object.
     '''
 
+    _single = {'GLY': 'G', 'ALA': 'A', 'LEU': 'L', 'MET': 'M',
+               'PHE': 'F', 'TRP': 'W', 'LYS': 'K', 'GLN': 'Q',
+               'GLU': 'E', 'SER': 'S', 'PRO': 'P', 'VAL': 'V',
+               'ILE': 'I', 'CYS': 'C', 'TYR': 'Y', 'HIS': 'H',
+               'ARG': 'R', 'ASN': 'N', 'ASP': 'D', 'THR': 'T'}
+    
     def __init__(self):
 
         self._atoms = None
@@ -42,7 +49,11 @@ class ESSA:
         self._enm = None
         self._cutoff = None
         self._lig = None
-        self._lig_idx = None
+        self._ligres_idx = None
+        self._ligres_code = None
+        self._rib = None
+        self._ri = None
+        self._chrn = None
         self._dist = None
         self._ensemble = None
         self._labels = None
@@ -73,17 +84,27 @@ class ESSA:
         self._title = atoms.getTitle()
         self._lig = kwargs.pop('lig', None)
         if self._lig:
-            self._lig_idx = {}
+            self._ligres_idx = {}
+            self._ligres_code = {}
             self._dist = kwargs.pop('dist', 4.5)
 
         self._heavy = atoms.select('protein and heavy and not hetatm')
         self._ca = self._heavy.ca
+
         self._lowmem = kwargs.pop('lowmem', False)
         if self._lowmem:
             self._eigvals = []
             self._eigvecs = []
 
-        # --- residue indices of protein residues that are within dist (4.5 A) of ligands --- #
+        self._chrn = array([ch + str(rn)
+                            for ch, rn in zip(self._ca.getChids(),
+                                              self._ca.getResnums())])
+
+        self._rib = all(self._ca.getResindices() == arange(self._ca.numAtoms()))
+        if not self._rib:
+            self._ri = {v: k for k, v in enumerate(self._ca.getResindices())}
+
+        # --- resindices of protein residues that are within dist A of ligands --- #
 
         if self._lig:
             ligs = self._lig.split()
@@ -92,7 +113,15 @@ class ESSA:
                 key = ''.join(chid + str(resnum))
                 sel_lig = 'calpha and not hetatm and (same residue as ' \
                           f'exwithin {self._dist} of (chain {chid} and resnum {resnum}))'
-                self._lig_idx[key] = self._atoms.select(sel_lig).getResindices()
+                self._ligres_idx[key] = self._atoms.select(sel_lig).getResindices()
+
+            for k, v in self._ligres_idx.items():
+                atoms = self._ca.select('resindex ' + ' '.join([str(i) for i in v]))
+                tmp0 = defaultdict(list)
+                for ch, rn in zip(atoms.getChids(), atoms.getResnums()):
+                    tmp0[ch].append(str(rn))
+                tmp1 = {ch: ' '.join(rn) for ch, rn in tmp0.items()}
+                self._ligres_code[k] = [f'chain {ch} and resnum {rn}' for ch, rn in tmp1.items()]
 
     def scanResidues(self, n_modes=10, enm='gnm', cutoff=None):
 
@@ -148,6 +177,15 @@ class ESSA:
         eig_diff_mean = mean(eig_diff, axis=1)
 
         self._zscore = zscore(eig_diff_mean)
+
+        if self._lig:
+            self._zs_lig = {}
+            for k, v in self._ligres_idx.items():
+                if self._rib:
+                    self._zs_lig[k] = [array(v), self._zscore[v]]
+                else:
+                    vv = [self._ri[i] for i in v]
+                    self._zs_lig[k] = [array(vv), self._zscore[vv]]
 
     def _reference(self):
 
@@ -274,44 +312,110 @@ class ESSA:
             save(f'{self._title}_{self._enm}_eigvecs', self._eigvecs)
         else:
             save(f'{self._title}_{self._enm}_eigvecs', self._ensemble.getEigvecs())
+
+    def getLigandResidueESSAZscores(self):
+
+        'Returns ESSA Z-scores and their indices (0-based) of the residues interacting with ligands as dictionary. The keys of which are their chan ids and residue numbers.'
+        
+        if self._lig:
+            return self._zs_lig
+        else:
+            LOGGER.warning('No ligand provided.')
         
     def getLigandResidueIndices(self):
 
-        'Returns indices of the residues interacting with ligands.'
+        'Returns residue indices of the residues interacting with ligands.'
 
         if self._lig:
-            return self._lig_idx
+            return self._ligres_idx
         else:
             LOGGER.warning('No ligand provided.')
 
-    def saveLigandResidueIndices(self):
+    def getLigandResidueCodes(self):
 
-        'Saves indices of the residues interacting with ligands.'
+        'Returns chain ids and residue numbers of the residues interacting with ligands.'
 
         if self._lig:
-            dump(self._lig_idx, open(f'{self._title}_ligand_resindices.pkl', 'wb'))
+            return self._ligres_code
         else:
             LOGGER.warning('No ligand provided.')
 
-    def showESSAProfile(self, quant=.75):
+    def saveLigandResidueCodes(self):
+
+        'Saves chain ids and residue numbers of the residues interacting with ligands.'
+
+        if self._lig:
+            with open(f'{self._title}_ligand_rescodes.txt', 'w') as f:
+                for k, v in self._ligres_code.items():
+                    f.write(k + '\n')
+                    for x in v:
+                        f.write(x + '\n')
+        else:
+            LOGGER.warning('No ligand provided.')
+
+    def _codes(self, arg):
+
+        sel = self._ca.select(f'resindex {arg}')
+        try:
+            return self._single[sel.getResnames()[0]] + str(sel.getResnums()[0])
+        except KeyError:
+            return sel.getResnames()[0] + str(sel.getResnums()[0])
+
+    def showESSAProfile(self, q=.75, rescode=False, sel=None):
 
         '''
         Shows ESSA profile.
 
-        :arg quant: Quantile value to plot a baseline for z-scores, default is 0.75.
-        :type quant: float
+        :arg q: Quantile value to plot a baseline for z-scores, default is 0.75. If it is set to 0.0, then the baseline is not drawn.
+        :type q: float
+
+        :arg rescode: If it is True, the ligand interacting residues with ESSA scores larger than the baseline are denoted by their single letter codes and chain ids on the profile. If quantile vaue is 0.0, then all ligand-interacting residues denoted by their codes.
+        :type rescode: bool
+
+        :arg sel: It is a selection string, default is None. If it is provided, then selected residues are shown with their single letter codes and residue numbers on the profile. For example, 'chain A and resnum 33 47'.
+        :type sel: str
         '''
 
         showAtomicLines(self._zscore, atoms=self._ca, c='k', linewidth=1.)
 
         if self._lig:
-            zs_lig = {k: self._zscore[v] for k, v in self._lig_idx.items()}
-            for k in self._lig_idx.keys():
-                plt.scatter(self._lig_idx[k], zs_lig[k], label=k)
+            for k in self._zs_lig.keys():
+                plt.scatter(*self._zs_lig[k], label=k)
+                if rescode:
+                    if q != 0.0:
+                        idx = where(self._zs_lig[k][1] >= quantile(self._zscore, q=q))[0]
+                        if idx.size > 0:
+                            _x = self._zs_lig[k][0][idx]
+                            _y = self._zs_lig[k][1][idx]
+                            _i = self._ligres_idx[k][idx]
+                        else:
+                            break
+                    else:
+                        _x = self._zs_lig[k][0]
+                        _y = self._zs_lig[k][1]
+                        _i = self._ligres_idx[k]
+                    for x, y, i in zip(_x, _y, _i):
+                        plt.text(x, y, self._codes(i), color='r')
             plt.legend()
-        plt.hlines(quantile(self._zscore, q=quant),
-                   xmin=0., xmax=self._ca.numAtoms(),
-                   linestyle='--', color='c')
+
+        if q != 0.0:
+            plt.hlines(quantile(self._zscore, q=q),
+                       xmin=0., xmax=self._ca.numAtoms(),
+                       linestyle='--', color='c')
+
+        if sel:
+            idx = self._ca.select(sel).getResindices()
+            if self._rib:
+                _x = idx
+                zs_sel = self._zscore[_x]
+            else:
+                _x = [self._ri[i] for i in idx]
+                zs_sel = self._zscore[_x]
+
+            plt.scatter(_x, zs_sel)
+            for x, y, i in zip(_x, zs_sel, idx):
+                plt.text(x, y, self._codes(i), color='r')
+            
 
         plt.xlabel('Residue')
         plt.ylabel('Z-Score')
@@ -334,9 +438,10 @@ class ESSA:
             LOGGER.warning(ie.__str__() + ' was found, please install it.')
             return None
 
-        rcr = {(i, j): k for i, j, k in zip(self._ca.getChids(),
-                                            self._ca.getResnums(),
-                                            self._ca.getResindices())}
+        rcr = {(i, j): k if self._rib else self._ri[k]
+               for i, j, k in zip(self._ca.getChids(),
+                                  self._ca.getResnums(),
+                                  self._ca.getResindices())}
 
         writePDB(f'{self._title}_pro', self._heavy)
 
