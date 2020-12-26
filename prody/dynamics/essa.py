@@ -1,3 +1,29 @@
+'''
+Copyright (c) 2020 Burak Kaynak, Pemra Doruker.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+'''
+
+__author__ = 'Burak Kaynak'
+__credits__ = 'Pemra Doruker'
+__email__ = ['burak.kaynak@pitt.edu', 'doruker@pitt.edu']
+
 from collections import defaultdict
 from os import chdir, listdir, mkdir, system
 from os.path import isdir
@@ -95,10 +121,6 @@ class ESSA:
         if self._lowmem:
             self._eigvals = []
             self._eigvecs = []
-
-        self._chrn = array([ch + str(rn)
-                            for ch, rn in zip(self._ca.getChids(),
-                                              self._ca.getResnums())])
 
         self._rib = all(self._ca.getResindices() == arange(self._ca.numAtoms()))
         if not self._rib:
@@ -315,10 +337,19 @@ class ESSA:
 
     def getLigandResidueESSAZscores(self):
 
-        'Returns ESSA Z-scores and their indices (0-based) of the residues interacting with ligands as dictionary. The keys of which are their chan ids and residue numbers.'
+        'Returns ESSA z-scores of the residues interacting with ligands as a dictionary. The keys of which are the corresponding chain ids and residue numbers of the ligands. Each value comprises the indices of the residue ESSA z-scores in the profile and the corresponding scores as separate arrays.'
         
         if self._lig:
             return self._zs_lig
+        else:
+            LOGGER.warning('No ligand provided.')
+
+    def saveLigandResidueESSAZscores(self):
+
+        'Saves the dictionary of ESSA z-scores of the residues interacting with ligands to a pickle `.pkl` file. The keys of the dictionary are the corresponding chain ids and residue numbers of the ligands. Each value comprises the indices of the residue ESSA z-scores in the profile and the corresponding scores as separate arrays.'
+
+        if self._lig:
+            dump(self._zs_lig, open(f'{self._title}_ligres_gnm_zs.pkl', 'wb'))
         else:
             LOGGER.warning('No ligand provided.')
         
@@ -429,7 +460,7 @@ class ESSA:
         fpocket = which('fpocket')
 
         if fpocket is None:
-            LOGGER.warning('Fpocket 3.0 was not found, please install it.')
+            LOGGER.warning('Fpocket (version >= 3.0 was not found, please install it.')
             return None
 
         try:
