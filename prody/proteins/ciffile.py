@@ -4,7 +4,7 @@
 .. _mmCIF files: http://mmcif.wwpdb.org/docs/tutorials/mechanics/pdbx-mmcif-syntax.html"""
 
 
-from collections import defaultdict
+from collections import OrderedDict
 import os.path
 import numpy as np
 
@@ -201,10 +201,12 @@ def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
     i = 0
     models = []
     nModels = 0
-    fields = {}
+    fields = OrderedDict()
     fieldCounter = -1
     foundAtomBlock = False
     doneAtomBlock = False
+    start = 0
+    stop = 0
     while not doneAtomBlock:
         line = lines[i]
         if line[:11] == '_atom_site.':
