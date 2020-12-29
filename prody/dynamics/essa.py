@@ -134,7 +134,7 @@ class ESSA:
             for chid, resnum in ligs:
                 key = ''.join(chid + str(resnum))
                 sel_lig = 'calpha and not hetatm and (same residue as ' \
-                          f'exwithin {self._dist} of (chain {chid} and resnum {resnum}))'
+                          'exwithin {} of (chain {} and resnum {}))'.format(self._dist, chid, resnum)
                 self._ligres_idx[key] = self._atoms.select(sel_lig).getResindices()
 
             for k, v in self._ligres_idx.items():
@@ -143,7 +143,7 @@ class ESSA:
                 for ch, rn in zip(atoms.getChids(), atoms.getResnums()):
                     tmp0[ch].append(str(rn))
                 tmp1 = {ch: ' '.join(rn) for ch, rn in tmp0.items()}
-                self._ligres_code[k] = [f'chain {ch} and resnum {rn}' for ch, rn in tmp1.items()]
+                self._ligres_code[k] = ['chain {} and resnum {}'.format(ch, rn) for ch, rn in tmp1.items()]
 
     def scanResidues(self, n_modes=10, enm='gnm', cutoff=None):
 
@@ -164,7 +164,7 @@ class ESSA:
         self._enm = enm
         self._cutoff = cutoff
 
-        self._ensemble = ModeEnsemble(f'{self._title}')
+        self._ensemble = ModeEnsemble('{}'.format(self._title))
         self._ensemble.setAtoms(self._ca)
         self._labels = ['ref']
 
@@ -175,9 +175,9 @@ class ESSA:
         # --- perturbed models --- #
 
         LOGGER.progress(msg='', steps=(self._ca.numAtoms()))
-        for i in self._ca.getResindices():
-            LOGGER.update(step=i+1, msg=f'scanning residue {i+1}')
-            self._perturbed(i)
+        for i, j in enumerate(self._ca.getResindices()):
+            LOGGER.update(step=i+1, msg='scanning residue {}'.format(i+1))
+            self._perturbed(j)
 
         if self._lowmem:
             self._eigvals = array(self._eigvals)
@@ -238,15 +238,15 @@ class ESSA:
 
     def _perturbed(self, arg):
 
-        sel = f'calpha or resindex {arg}'
+        sel = 'calpha or resindex {}'.format(arg)
         tmp = self._heavy.select(sel)
 
         if self._enm == 'gnm':
-            tmp_enm = GNM(f'res_{arg}')
+            tmp_enm = GNM('res_{}'.format(arg))
             tmp_enm.buildKirchhoff(tmp, cutoff=self._cutoff)
 
         if self._enm == 'anm':
-            tmp_enm = ANM(f'res_{arg}')
+            tmp_enm = ANM('res_{}'.format(arg))
             tmp_enm.buildHessian(tmp, cutoff=self._cutoff)
 
         tmp_enm_red, _ = reduceModel(tmp_enm, tmp, self._ca)
@@ -284,19 +284,19 @@ class ESSA:
         if self._lowmem:
             LOGGER.warn('ModeEnsemble was not generated due to lowmem=True')
         else:
-            saveModeEnsemble(self._ensemble, filename=f'{self._title}_{self._enm}')
+            saveModeEnsemble(self._ensemble, filename='{}_{}'.format(self._title, self._enm))
 
     def saveESSAZscores(self):
 
         'Saves ESSA z-scores to a binary file in Numpy `.npy` format.'
 
-        save(f'{self._title}_{self._enm}_zs', self._zscore)
+        save('{}_{}_zs'.format(self._title, self._enm), self._zscore)
 
     def writeESSAZscoresToPDB(self):
 
         'Writes a pdb file with ESSA z-scores placed in the B-factor column.'
 
-        writePDB(f'{self._title}_{self._enm}_zs', self._heavy,
+        writePDB('{}_{}_zs.format(self._title, self._enm)', self._heavy,
                  beta=extendAtomicData(self._zscore, self._ca, self._heavy)[0])
 
     def getEigvals(self):
@@ -315,25 +315,25 @@ class ESSA:
         if self._lowmem:
             return self._eigvecs
         else:
-            return self._ensemble.getEigvecs()
+            return self._ensemble.getEigvecs().getArray()
 
     def saveEigvals(self):
 
         'Saves eigenvalues of the matched modes in Numpy `.npy` format.'
 
         if self._lowmem:
-            save(f'{self._title}_{self._enm}_eigvals', self._eigvals)
+            save('{}_{}_eigvals'.format(self._title, self_enm), self._eigvals)
         else:
-            save(f'{self._title}_{self._enm}_eigvals', self._ensemble.getEigvals())
+            save('{}_{}_eigvals'.format(self._title, self._enm), self._ensemble.getEigvals())
 
     def saveEigvecs(self):
 
         'Saves eigenvectors of the matched modes in Numpy `.npy` format.'
 
         if self._lowmem:
-            save(f'{self._title}_{self._enm}_eigvecs', self._eigvecs)
+            save('{}_{}_eigvecs'.format(self._title, self._enm), self._eigvecs)
         else:
-            save(f'{self._title}_{self._enm}_eigvecs', self._ensemble.getEigvecs())
+            save('{}_{}_eigvecs'.format(self._title, self._enm), self._ensemble.getEigvecs().getArray())
 
     def getLigandResidueESSAZscores(self):
 
@@ -349,7 +349,7 @@ class ESSA:
         'Saves the dictionary of ESSA z-scores of the residues interacting with ligands to a pickle `.pkl` file. The keys of the dictionary are the corresponding chain ids and residue numbers of the ligands. Each value comprises the indices of the residue ESSA z-scores in the profile and the corresponding scores as separate arrays.'
 
         if self._lig:
-            dump(self._zs_lig, open(f'{self._title}_ligres_gnm_zs.pkl', 'wb'))
+            dump(self._zs_lig, open('{}_ligres_gnm_zs.pkl'.format(self._title), 'wb'))
         else:
             LOGGER.warning('No ligand provided.')
         
@@ -376,7 +376,7 @@ class ESSA:
         'Saves chain ids and residue numbers of the residues interacting with ligands.'
 
         if self._lig:
-            with open(f'{self._title}_ligand_rescodes.txt', 'w') as f:
+            with open('{}_ligand_rescodes.txt'.format(self._title), 'w') as f:
                 for k, v in self._ligres_code.items():
                     f.write(k + '\n')
                     for x in v:
@@ -386,7 +386,7 @@ class ESSA:
 
     def _codes(self, arg):
 
-        sel = self._ca.select(f'resindex {arg}')
+        sel = self._ca.select('resindex {}'.format(arg))
         try:
             return self._single[sel.getResnames()[0]] + str(sel.getResnums()[0])
         except KeyError:
@@ -474,11 +474,11 @@ class ESSA:
                                   self._ca.getResnums(),
                                   self._ca.getResindices())}
 
-        writePDB(f'{self._title}_pro', self._heavy)
+        writePDB('{}_pro'.format(self._title), self._heavy)
 
-        direc = f'{self._title}_pro_out'
+        direc = '{}_pro_out'.format(self._title)
         if not isdir(direc):
-            system(f'fpocket -f {self._title}_pro.pdb')
+            system('fpocket -f {}_pro.pdb'.format(self._title))
 
         chdir(direc + '/pockets')
         l = [x for x in listdir('.') if x.endswith('.pdb')]
@@ -621,25 +621,25 @@ class ESSA:
 
         'Saves pocket features to a pickle `.pkl` file.'
 
-        self._df.to_pickle(f'{self._title}_pocket_features.pkl')
+        self._df.to_pickle('{}_pocket_features.pkl'.format(self._title))
 
     def savePocketZscores(self):
 
         'Saves ESSA and local hydrophobic density (LHD) z-scores of pockets to a pickle `.pkl` file.'
 
-        self._df_zs.to_pickle(f'{self._title}_pocket_zscores.pkl')
+        self._df_zs.to_pickle('{}_pocket_zscores.pkl'.format(self._title))
 
     def savePocketRanks(self):
 
         'Saves pocket ranks to a binary file in Numpy `.npy` format.'
 
-        save(f'{self._title}_{self._enm}_pocket_ranks_wrt_ESSAmax_LHD',
+        save('{}_{}_pocket_ranks_wrt_ESSAmax_LHD'.format(self._title, self._enm),
              self._idx_max)
-        save(f'{self._title}_{self._enm}_pocket_ranks_wrt_ESSAmed_LHD',
+        save('{}_{}_pocket_ranks_wrt_ESSAmed_LHD'.format(self._title, self._enm),
              self._idx_med)
         
     def writePocketRanksToCSV(self):
 
         'Writes pocket ranks to a `.csv` file.'
 
-        self._pocket_ranks.to_csv(f'{self._title}_{self._enm}_pocket_ranks.csv', index=False)
+        self._pocket_ranks.to_csv('{}_{}_pocket_ranks.csv'.format(self._title, self._enm), index=False)
