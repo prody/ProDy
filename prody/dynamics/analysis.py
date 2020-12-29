@@ -150,6 +150,7 @@ def calcProjection(ensemble, modes, rmsd=True, norm=False):
         deviation(s) will be projected, or a deformation vector
     :type ensemble: :class:`.Ensemble`, :class:`.Conformation`,
         :class:`.Vector`, :class:`.Trajectory`
+        
     :arg modes: up to three normal modes
     :type modes: :class:`.Mode`, :class:`.ModeSet`, :class:`.NMA`
 

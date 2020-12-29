@@ -14,7 +14,7 @@ from prody.atomic import AtomGroup, Atom, Selection
 from prody.atomic import flags
 from prody.atomic import ATOMIC_FIELDS
 from prody.utilities import openFile, isListLike
-from prody.utilities.misctools import decToHybrid36
+from prody.utilities.misctools import decToHybrid36, packmolRenumChains
 from prody import LOGGER, SETTINGS
 
 from .header import getHeaderDict, buildBiomolecules, assignSecstr, isHelix, isSheet
@@ -243,6 +243,7 @@ def parsePDBStream(stream, **kwargs):
     chain = kwargs.get('chain')
     subset = kwargs.get('subset')
     altloc = kwargs.get('altloc', 'A')
+    packmol = kwargs.get('packmol', False)
 
     auto_bonds = SETTINGS.get('auto_bonds')
     get_bonds = kwargs.get('bonds', auto_bonds)
@@ -333,6 +334,9 @@ def parsePDBStream(stream, **kwargs):
             else:
                 LOGGER.info('Biomolecular transformations were applied to the '
                             'coordinate data.')
+
+    if packmol:
+        ag = packmolRenumChains(ag)
 
     if model != 0:
         if header:
@@ -985,7 +989,7 @@ _writePDBdoc = """
         column
 
     :arg hybrid36: whether to use hybrid36 format for atoms with serial
-        greater than or equal to 99999. Hexadecimal is used otherwise.
+        greater than 99999. Hexadecimal is used otherwise.
         Default is False
     :type hybrid36: bool 
     """
@@ -1103,7 +1107,7 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
 
     n_atoms = atoms.numAtoms()
 
-    hybrid36 = kwargs.get('hybrid36',False)
+    hybrid36 = kwargs.get('hybrid36', False)
 
     occupancy = kwargs.get('occupancy')
     if occupancy is None:
@@ -1263,6 +1267,10 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
                              xyz[0], xyz[1], xyz[2],
                              occupancies[i], bfactors[i],
                              segments[i], elements[i]))
+
+            if atoms.getFlags('pdbter') is not None and atoms.getFlags('pdbter')[i]:
+                write('TER\n')
+
         if multi:
             write('ENDMDL\n')
             altlocs = np.zeros(n_atoms, s_or_u + '1')
