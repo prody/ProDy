@@ -1508,16 +1508,16 @@ def showAtomicLines(*args, **kwargs):
         Default is **None**.
     :type chain: bool
 
-    :keyword domain: the same with *chains* but show domain separations instead. 
+    :keyword domain: the same as *chain* but show domain separations instead. 
         *atoms* needs to have *domain* data associated to it.
         Default is **None**.
     :type domain: bool
 
-    :keyword gap: whether show the gaps in the *atoms* or not.
+    :keyword gap: whether to show the gaps in the *atoms* or not.
         Default is **False**.
     :type gap: bool
 
-    :keyword overlay: whether overlay the curves based on the chain separations 
+    :keyword overlay: whether to overlay the curves based on the chain separations 
         in *atoms* or not.
         Default is **False**.
     :type overlay: bool

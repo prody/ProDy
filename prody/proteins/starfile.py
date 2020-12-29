@@ -7,6 +7,7 @@ the Crystallographic Information File (CIF) format used for much of the PDB.
 .. _STAR: https://www2.mrc-lmb.cam.ac.uk/relion/index.php/Conventions_%26_File_formats#The_STAR_format
 """
 
+from collections import OrderedDict
 import os.path
 from numbers import Integral
 import numpy as np
@@ -39,7 +40,7 @@ class StarDict:
                 else:
                     self.dataBlocks.append(StarDataBlock(self, idx))
 
-            self._dict = {}
+            self._dict = OrderedDict()
             for i, idx in enumerate(indices):
                 self._dict[idx[0]] = self.dataBlocks[i]._dict
 
@@ -114,9 +115,9 @@ class StarDataBlock:
             keys = list(self._dict.keys())
         else:
             keys = [idx[0] for idx in indices]
-            self._dict = {}
-            self._dict['data'] = {}
-            self._dict['fields'] = {}
+            self._dict = OrderedDict()
+            self._dict['data'] = OrderedDict()
+            self._dict['fields'] = OrderedDict()
             for idx in indices:
                 if idx[0] == 'data':
                     self._dict[idx[0]][idx[1]] = starDict._dict[self._title][idx[0]][idx[1]]
@@ -125,9 +126,9 @@ class StarDataBlock:
                             if v == idx[1]:
                                 self._dict['fields'][k] = v
                 else:
-                    self._dict[idx[0]] = {}
+                    self._dict[idx[0]] = OrderedDict()
                     self._dict[idx[0]]['fields'] = starDict._dict[self._title][idx[0]]['fields']
-                    self._dict[idx[0]]['data'] = {}
+                    self._dict[idx[0]]['data'] = OrderedDict()
                     for id1 in idx[1]:
                         self._dict[idx[0]]['data'][id1] = starDict._dict[self._title][idx[0]]['data'][id1]
 
@@ -346,9 +347,9 @@ class StarLoop:
         if indices is None:
             self._dict = dataBlock._dict[self._key]
         else:
-            self._dict = {}
+            self._dict = OrderedDict()
             self._dict['fields'] = dataBlock._dict[self._key]['fields']
-            self._dict['data'] = {}
+            self._dict['data'] = OrderedDict()
 
             indices_are_keys = True
             for index in indices:
@@ -359,7 +360,7 @@ class StarLoop:
                     break
 
             if not indices_are_keys:
-                self._dict['data'] = {}
+                self._dict['data'] = OrderedDict()
                 for index in indices:
                     self._dict['data'][index] = list(self._dataBlock._dict[self._key]['data'].values())[index]
 
@@ -494,7 +495,7 @@ def parseSTARLines(lines, **kwargs):
     prog = kwargs.get('prog', None)
     shlex = kwargs.get('shlex', False)
 
-    finalDictionary = {}
+    finalDictionary = OrderedDict()
     currentLoop = -1
     block_fieldCounter = 0
     loop_fieldCounter = 0
@@ -506,7 +507,7 @@ def parseSTARLines(lines, **kwargs):
     for line in lines[start:stop]:
         if line.startswith('data_'):
             currentDataBlock = line[5:].strip()
-            finalDictionary[currentDataBlock] = {}
+            finalDictionary[currentDataBlock] = OrderedDict()
             currentLoop = -1
             inLoop = False
             inShortBlock = False
@@ -517,9 +518,9 @@ def parseSTARLines(lines, **kwargs):
             currentLoop += 1
             inLoop = True
             inShortBlock = False
-            finalDictionary[currentDataBlock][currentLoop] = {}
-            finalDictionary[currentDataBlock][currentLoop]['fields'] = {}
-            finalDictionary[currentDataBlock][currentLoop]['data'] = {}
+            finalDictionary[currentDataBlock][currentLoop] = OrderedDict()
+            finalDictionary[currentDataBlock][currentLoop]['fields'] = OrderedDict()
+            finalDictionary[currentDataBlock][currentLoop]['data'] = OrderedDict()
             loop_fieldCounter = 0
 
         elif line.startswith('_') or line.startswith(' _'):
@@ -549,8 +550,8 @@ def parseSTARLines(lines, **kwargs):
                 # Outside a loop, populate fields and data together in a regular data block
                 if startingBlock:
                     # Initialise the data block first
-                    finalDictionary[currentDataBlock]['fields'] = {}
-                    finalDictionary[currentDataBlock]['data'] = {}
+                    finalDictionary[currentDataBlock]['fields'] = OrderedDict()
+                    finalDictionary[currentDataBlock]['data'] = OrderedDict()
                     startingBlock = False
                     block_fieldCounter = 0
 
@@ -582,7 +583,7 @@ def parseSTARLines(lines, **kwargs):
             # Data outside a loop is handled in line with the fields above or in shortDataBlocks below.
             if not inShortBlock and len(split(line, shlex=shlex)) == loop_fieldCounter:
                 # This is the usual case where each entry in the line corresponds to a field
-                finalDictionary[currentDataBlock][currentLoop]['data'][dataItemsCounter] = {}
+                finalDictionary[currentDataBlock][currentLoop]['data'][dataItemsCounter] = OrderedDict()
                 active_fieldCounter = 0
                 for fieldEntry in split(line.strip(), shlex=shlex):
                     currentField = finalDictionary[currentDataBlock][currentLoop]['fields'][active_fieldCounter]
@@ -593,7 +594,7 @@ def parseSTARLines(lines, **kwargs):
                 # The data is now being broken across lines.
                 if not inShortBlock:
                     inShortBlock = True
-                    finalDictionary[currentDataBlock][currentLoop]['data'][dataItemsCounter] = {}
+                    finalDictionary[currentDataBlock][currentLoop]['data'][dataItemsCounter] = OrderedDict()
                     active_fieldCounter = 0
                     if not line.startswith(';'):
                         # Then we haven't got a split field and can treat fields as normal
@@ -941,7 +942,7 @@ def parseImagesFromSTAR(particlesSTAR, **kwargs):
         particle_indices = list(range(len(particles)))
 
     # Parse images using particle dictionaries
-    image_stacks = {}
+    image_stacks = OrderedDict()
     images = []
     parsed_images_data = []
     stk_images = []

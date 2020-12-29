@@ -32,7 +32,7 @@ def parseEMD(emd, **kwargs):
 
     This function extends :func:`.parseEMDStream`.
 
-    See :ref:`parseEMD` for a detailed usage example. 
+    See :ref:`_cryoem_analysis` for a usage example. 
 
     :arg emd: an EMD identifier or a file name. A 4-digit 
               EMDataBank identifier can be provided to download 

@@ -119,8 +119,6 @@ Following functions can be used to adjust alignment parameters:
   * :func:`.getGapPenalty`, :func:`.setGapPenalty`
   * :func:`.getGapExtPenalty`, :func:`.setGapExtPenalty`
 
-
-
 Execute DSSP
 ============
 
@@ -138,8 +136,8 @@ Following functions can be used to execute STRIDE structural analysis program
 and/or parse results:
 
   * :func:`.execSTRIDE` - execute :program:`stride`
-  * :func:`.performSTRIDE` - execute :program:`stride` and parse results
   * :func:`.parseSTRIDE` - parse structural data from :program:`stride` output
+  * :func:`.performSTRIDE` - execute :program:`stride` and parse results
 
 Handle EMD Map Files and Build Pseudoatoms into them
 ===========
