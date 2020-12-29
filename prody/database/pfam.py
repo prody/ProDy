@@ -7,17 +7,13 @@ import re
 from numbers import Integral
 
 import numpy as np
-import os
 from os.path import join, isfile
 from io import BytesIO
-import zlib
 
 from prody import LOGGER, PY3K
 from prody.utilities import makePath, openURL, gunzip, openFile, dictElement
 from prody.utilities import relpath
 from prody.proteins import parsePDB
-from prody.sequence import parseMSA, refineMSA, MSA
-from .uniprot import queryUniprot
 
 if PY3K:
     import urllib.parse as urllib
