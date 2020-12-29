@@ -61,8 +61,6 @@ def parseMMCIF(pdb, **kwargs):
 
     This function extends :func:`.parseMMCIFStream`.
 
-    See :ref:`parsecif` for a detailed usage example.
-
     :arg pdb: a PDB identifier or a filename
         If needed, mmCIF files are downloaded using :func:`.fetchPDB()` function.
     :type pdb: str
