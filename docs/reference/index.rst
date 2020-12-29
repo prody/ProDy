@@ -9,6 +9,7 @@ Reference Manual
 
    atomic/index
    database/index
+   domain_decomposition/index
    dynamics/index
    ensemble/index
    kdtree/index
