@@ -56,8 +56,9 @@ ProDy-Website GitHub repository via pull requests. These can then be
 pulled onto the ProDy webserver in your working directory::
 
   $ make pull
+  $ git pull
 
-This also pulls changes into the ProDy directory below, which is based on its 
+The former pulls changes into the ProDy directory below, which is based on its 
 own GitHub repository.
 
 You may also need to install the ProDy in that directory again to 
