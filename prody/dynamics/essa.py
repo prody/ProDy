@@ -27,11 +27,13 @@ __email__ = ['burak.kaynak@pitt.edu', 'doruker@pitt.edu']
 from collections import defaultdict
 from os import chdir, listdir, mkdir, system
 from os.path import isdir
-from pickle import dump
-from re import findall
 from numpy import argsort, arange, array, c_, count_nonzero, hstack, mean, median, quantile, save, where
-from scipy.stats import zscore, median_absolute_deviation
-import matplotlib.pyplot as plt
+from scipy.stats import zscore
+try:
+    from scipy.stats import median_absolute_deviation
+except ImportError:
+    from scipy.stats import median_abs_deviation as median_absolute_deviation
+
 from prody import LOGGER
 from prody.atomic.functions import extendAtomicData
 from .anm import ANM
@@ -349,6 +351,8 @@ class ESSA:
         'Saves the dictionary of ESSA z-scores of the residues interacting with ligands to a pickle `.pkl` file. The keys of the dictionary are the corresponding chain ids and residue numbers of the ligands. Each value comprises the indices of the residue ESSA z-scores in the profile and the corresponding scores as separate arrays.'
 
         if self._lig:
+            from pickle import dump
+
             dump(self._zs_lig, open('{}_ligres_gnm_zs.pkl'.format(self._title), 'wb'))
         else:
             LOGGER.warning('No ligand provided.')
@@ -407,11 +411,13 @@ class ESSA:
         :type sel: str
         '''
 
+        from matplotlib.pyplot import text, legend, hlines, scatter, xlabel, ylabel, tight_layout
+
         showAtomicLines(self._zscore, atoms=self._ca, c='k', linewidth=1.)
 
         if self._lig:
             for k in self._zs_lig.keys():
-                plt.scatter(*self._zs_lig[k], label=k)
+                scatter(*self._zs_lig[k], label=k)
                 if rescode:
                     if q != 0.0:
                         idx = where(self._zs_lig[k][1] >= quantile(self._zscore, q=q))[0]
@@ -426,11 +432,11 @@ class ESSA:
                         _y = self._zs_lig[k][1]
                         _i = self._ligres_idx[k]
                     for x, y, i in zip(_x, _y, _i):
-                        plt.text(x, y, self._codes(i), color='r')
-            plt.legend()
+                        text(x, y, self._codes(i), color='r')
+            legend()
 
         if q != 0.0:
-            plt.hlines(quantile(self._zscore, q=q),
+            hlines(quantile(self._zscore, q=q),
                        xmin=0., xmax=self._ca.numAtoms(),
                        linestyle='--', color='c')
 
@@ -443,19 +449,21 @@ class ESSA:
                 _x = [self._ri[i] for i in idx]
                 zs_sel = self._zscore[_x]
 
-            plt.scatter(_x, zs_sel)
+            scatter(_x, zs_sel)
             for x, y, i in zip(_x, zs_sel, idx):
-                plt.text(x, y, self._codes(i), color='r')
+                text(x, y, self._codes(i), color='r')
             
 
-        plt.xlabel('Residue')
-        plt.ylabel('Z-Score')
+        xlabel('Residue')
+        ylabel('Z-Score')
 
-        plt.tight_layout()
+        tight_layout()
 
     def scanPockets(self):
 
         'Generates ESSA z-scores for pockets and parses pocket features. It requires both Fpocket 3.0 and Pandas being installed in your system.'
+        
+        from re import findall
 
         fpocket = which('fpocket')
 
@@ -605,17 +613,19 @@ class ESSA:
 
         'Plots maximum/median ESSA and local hydrophobic density (LHD) z-scores for pockets.'
 
-        with plt.style.context({'xtick.major.size': 10, 'xtick.labelsize': 30,
+        from matplotlib.pyplot import style, xticks, xlabel, ylabel, tight_layout
+
+        with style.context({'xtick.major.size': 10, 'xtick.labelsize': 30,
                                 'ytick.major.size': 10, 'ytick.labelsize': 30,
                                 'axes.labelsize': 35, 'legend.fontsize': 25,
                                 'legend.title_fontsize': 0}):
             self._df_zs[['ESSA_max',
                          'ESSA_med',
                          'LHD']].plot.bar(figsize=(25, 10))
-            plt.xticks(rotation=0)
-            plt.xlabel('Pocket')
-            plt.ylabel('Z-score')
-            plt.tight_layout()
+            xticks(rotation=0)
+            xlabel('Pocket')
+            ylabel('Z-score')
+            tight_layout()
 
     def savePocketFeatures(self):
 
