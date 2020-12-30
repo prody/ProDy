@@ -35,7 +35,10 @@ from sys import stdout
 import numpy as np
 from scipy.spatial.distance import pdist, squareform
 from scipy.cluster.hierarchy import fcluster, linkage
-from scipy.stats import median_absolute_deviation
+try:
+    from scipy.stats import median_absolute_deviation
+except ImportError:
+    from scipy.stats import median_abs_deviation as median_absolute_deviation
 
 from prody import LOGGER
 from .anm import ANM
