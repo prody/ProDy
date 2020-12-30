@@ -172,14 +172,6 @@ from . import blastpdb
 from .blastpdb import *
 __all__.extend(blastpdb.__all__)
 
-from . import psiblast
-from .psiblast import *
-__all__.extend(psiblast.__all__)
-
-from . import blastUniProtKB
-from .blastUniProtKB import *
-__all__.extend(blastUniProtKB.__all__)
-
 from . import functions
 from .functions import *
 __all__.extend(functions.__all__)
