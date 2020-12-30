@@ -101,12 +101,6 @@ Use the following to parse and access header data in PDB files:
   * :class:`.Polymer` - store PDB polymer (macromolecule) component data
   * :class:`.DBRef` - store polymer sequence database reference records
 
-Ligand data
-===========
-
-Following function can be used to fetch meta data on PDB ligands:
-
-  * :func:`.fetchPDBLigand` - retrieve ligand from Ligand-Expo
 
 Compare/align chains
 ====================
@@ -125,8 +119,6 @@ Following functions can be used to adjust alignment parameters:
   * :func:`.getGapPenalty`, :func:`.setGapPenalty`
   * :func:`.getGapExtPenalty`, :func:`.setGapExtPenalty`
 
-
-
 Execute DSSP
 ============
 
@@ -144,10 +136,10 @@ Following functions can be used to execute STRIDE structural analysis program
 and/or parse results:
 
   * :func:`.execSTRIDE` - execute :program:`stride`
-  * :func:`.performSTRIDE` - execute :program:`stride` and parse results
   * :func:`.parseSTRIDE` - parse structural data from :program:`stride` output
+  * :func:`.performSTRIDE` - execute :program:`stride` and parse results
 
-Execute EMD
+Handle EMD Map Files and Build Pseudoatoms into them
 ===========
 
 Use the following to parse and access header data in EMD files:
@@ -187,10 +179,6 @@ __all__.extend(psiblast.__all__)
 from . import blastUniProtKB
 from .blastUniProtKB import *
 __all__.extend(blastUniProtKB.__all__)
-
-from . import pdbligands
-from .pdbligands import *
-__all__.extend(pdbligands.__all__)
 
 from . import functions
 from .functions import *

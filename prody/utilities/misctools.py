@@ -8,6 +8,7 @@ from collections import Counter
 import numbers
 
 from prody import PY3K
+from .logger import LOGGER
 
 from Bio.Data import IUPACData
 
@@ -19,7 +20,7 @@ __all__ = ['Everything', 'Cursor', 'ImageCursor', 'rangeString', 'alnum', 'impor
            'getDataPath', 'openData', 'chr2', 'toChararray', 'interpY', 'cmp', 'pystr',
            'getValue', 'indentElement', 'isPDB', 'isURL', 'isListLike', 'isSymmetric', 'makeSymmetric',
            'getDistance', 'fastin', 'createStringIO', 'div0', 'wmean', 'bin2dec', 'wrapModes', 
-           'fixArraySize', 'decToHybrid36', 'hybrid36ToDec', 'DTYPE', 'split']
+           'fixArraySize', 'decToHybrid36', 'hybrid36ToDec', 'DTYPE', 'checkIdentifiers', 'split']
 
 DTYPE = array(['a']).dtype.char  # 'S' for PY2K and 'U' for PY3K
 CURSORS = []
@@ -627,6 +628,41 @@ def index(A, a):
         return where(A==a)[0][0]
 
 
+def checkIdentifiers(*pdb):
+    """Check whether *pdb* identifiers are valid, and replace invalid ones
+    with **None** in place."""
+
+    identifiers = []
+    append = identifiers.append
+    for pid in pdb:
+        try:
+            pid = pid.strip().lower()
+        except AttributeError:
+            LOGGER.warn('{0} is not a valid identifier.'.format(repr(pid)))
+            append(None)
+        else:
+            if not (len(pid) == 4 and pid.isalnum()):
+                LOGGER.warn('{0} is not a valid identifier.'
+                            .format(repr(pid)))
+                append(None)
+            else:
+                append(pid)
+    return identifiers
+
+
+def split(string, shlex=False):
+    if shlex:
+        try:
+            import shlex
+        except ImportError:
+            raise ImportError('Use of the shlex option requires the '
+                              'installation of the shlex package.')
+        else:
+            return shlex.split(string)
+    else:
+        return string.split()
+
+
 def decToBase36(integer):
     """Converts a decimal number to base 36.
     Based on https://wikivisually.com/wiki/Base36
@@ -698,3 +734,30 @@ def split(string, shlex=False):
             return shlex.split(string)
     else:
         return string.split()
+
+
+def packmolRenumChains(ag):
+    chainids = ag.getChids()
+    new_chainids = zeros(chainids.shape[0], dtype=DTYPE + '2')
+    chid_mem = []
+    chid_alt = 0
+
+    num_chars = int(chainids.dtype.str[2:])
+    for j, chid in enumerate(chainids):
+        if j == 0:
+            chid_mem.append(chid)
+        else:
+            if chid != chainids[j-1]:
+                chid_alt += 1
+
+                if chid_alt >= 10**num_chars:
+                    num_chars += 1
+                    new_chainids = array(new_chainids, dtype=new_chainids.dtype.str[:2]+str(num_chars))
+
+                if chid_alt > 1 and len(chid_mem) > 1 and chid == chid_mem[-2]:
+                    chid_mem.append(chid)
+
+        new_chainids[j] = "{}".format(chid_alt)
+
+    ag.setChids(new_chainids)
+    return ag

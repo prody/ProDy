@@ -4,7 +4,7 @@
 Dynamics Models
 ===============
 
-Following classes are designed for modeling and analysis of protein dynamics:
+The following classes are designed for modeling and analysis of protein dynamics:
 
   * :class:`.ANM` - Anisotropic network model, for coarse-grained NMA
   * :class:`.GNM` - Gaussian network model, for coarse-grained dynamics
@@ -27,7 +27,7 @@ Following classes are for analysis of individual modes or subsets of modes:
 Customize ENMs
 ==============
 
-Following classes allow for using structure or distance based, or other custom
+The following classes allow for using structure or distance based, or other custom
 force constants and cutoff distances in :class:`~.ANM` and :class:`~.GNM`
 calculations:
 
@@ -36,10 +36,37 @@ calculations:
   * :class:`.GammaStructureBased` - secondary structure based force constants
   * :class:`.GammaVariableCutoff` - atom type based variable cutoff function
 
+Membrane Models
+===============
+
+The following classes are designed for modeling and analysis of protein dynamics in membranes:
+
+  * :class:`.exANM` - perform explicit membrane ANM, creating an explicit membrane lattice
+  * :class:`.exGNM` - perform explicit membrane GNM, creating an explicit membrane lattice
+  * :func:`.imANM` - perform implicit membrane GNM, creating anisotropic constraints in the membrane domain using RTB
+
+Usage of these classes are shown in :ref:`exanm` and :ref:`imanm` examples.
+
+SignDy
+===============
+
+The following classes are designed for signature dynamics analysis of protein/domain families, 
+together with those in the database module:
+
+  * :func:`.calcEnsembleENMs` - perform NMA on a protein family ensemble using ENMs
+  * :class:`.ModeEnsemble` - handle outputs of ensemble NMA, an ensemble of normal modes
+  * :class:`.sdarray` - handle signature dynamics data in an array based on a numpy array
+
+There are many other functions starting `showSignature` or `calcSignature` for plotting and analysis.
+There are also load and save functions for mode ensembles and signature arrays.
+
+Usage of these classes are shown in :ref:`overview`, :ref:`core`, and :ref:`classifications` examples.
+
+
 Function library
 ================
 
-Dynamics of the functions described below accept a *modes* argument (may also
+Dynamics of the functions in this library accept a *modes* argument (may also
 appear in different names), which may refer to one or more of the following:
 
   * a dynamics model, :class:`.ANM`, :class:`SM`, :class:`.GNM`, :class:`.NMA`,
@@ -283,6 +310,10 @@ __all__.extend(exanm.__all__)
 from . import imanm
 from .imanm import *
 __all__.extend(imanm.__all__)
+
+from . import exgnm
+from .exgnm import *
+__all__.extend(exgnm.__all__)
 
 #from . import saxs
 #from .saxs import *

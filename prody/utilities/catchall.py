@@ -1,20 +1,147 @@
 """This module defines miscellaneous utility functions that is public to users."""
 
 import numpy as np
-from numpy import unique, linalg, diag, sqrt, dot
-from Bio.Phylo.BaseTree import Tree, Clade
 
 from prody import PY3K
-from .misctools import addEnds, interpY, index
+from .misctools import addEnds, interpY, index, isListLike
 from .checkers import checkCoords
 from .logger import LOGGER
 
+
 __all__ = ['calcTree', 'clusterMatrix', 'showLines', 'showMatrix', 
            'reorderMatrix', 'findSubgroups', 'getCoords',  
-           'getLinkage', 'getTreeFromLinkage']
+           'getLinkage', 'getTreeFromLinkage', 'clusterSubfamilies']
 
 class LinkageError(Exception):
     pass
+
+def clusterSubfamilies(similarities, n_clusters=0, linkage='all', method='tsne', cutoff=0.0, **kwargs):
+    """Perform clustering based on members of the *ensemble* projected into lower a reduced
+    dimension.
+    
+    :arg similarities: a matrix of similarities for each structure in the ensemble, such as
+                        RMSD-matrix, dynamics-based spectral overlap, sequence similarity
+    :type similarities: :class:`~numpy.ndarray`
+
+    :arg n_clusters: the number of clusters to generate. If **0**, will scan a range of 
+                        number of clusters and return the best one based on highest
+                        silhouette score. Default is **0**.
+    :type n_clusters: int
+
+    :arg linkage: if **all**, will test all linkage types (ward, average, complete,
+                    single). Otherwise will use only the one(s) given as input. Default is
+                    **all**.
+    :type linkage: str, list, tuple, :class:`~numpy.ndarray`
+
+    :arg method: if set to **spectral**, will generate a Kirchoff matrix based on the 
+                    cutoff value given and use that as input as clustering instead of
+                    the values themselves. Default is **tsne**.
+    :type method: str
+
+    :arg cutoff: only used if *method* is set to **spectral**. This value is used for 
+                    generating the Kirchoff matrix to use for generating clusters when
+                    doing spectral clustering. Default is **0.0**.
+    :type cutoff: float
+    """
+
+    # Import necessary packages
+    try:
+        from sklearn.manifold import SpectralEmbedding
+        from sklearn.cluster import AgglomerativeClustering
+        from sklearn.metrics import silhouette_score
+        from sklearn.manifold import TSNE
+    except ImportError:
+        raise ImportError('need sklearn module')
+        '''
+        try: 
+            import Bio 
+        except ImportError:
+            raise ImportError('Phylo module could not be imported. '
+                'Reinstall ProDy or install Biopython '
+                'to solve the problem.')
+        '''
+        
+
+    # Check inputs to make sure are of valid types/values
+    if not isinstance(similarities, np.ndarray):
+        raise TypeError('similarities should be a numpy ndarray')
+
+    dim = similarities.shape
+    if dim[0] != dim[1]:
+        raise ValueError('similarities must be a square matrix')
+
+    if n_clusters != 0:
+        if not isinstance(n_clusters, int):
+            raise TypeError('clusters must be an instance of int')
+        if n_clusters < 1:
+            raise ValueError('clusters must be a positive integer')
+        elif n_clusters > similarities.shape[0]:
+            raise ValueError('clusters can\'t be longer than similarities matrix')
+        nclusts = range(n_clusters,n_clusters+1)
+    else:
+        nclusts = range(2,10,1)
+
+    if linkage != 'all':
+        # Check if given input for linkage is list-like
+        if isListLike(linkage):
+            for val in linkage:
+                if val.lower() not in ['ward', 'average', 'complete', 'single']:
+                    raise ValueError('linkage must be one or more of: \'ward\', \'average\', \'complete\', or \'single\'')
+            if len(linkage) > 4:
+                raise ValueError('linkage must be one or more of: \'ward\', \'average\', \'complete\', or \'single\'')
+            linkages = [ x.lower() for x in linkage ]
+
+        # If not, check if it is a valid string and method name
+        else:
+            if not isinstance(linkage, str):
+                raise TypeError('linkage must be an instance of str or list-like of strs')
+
+            if linkage not in ['ward', 'average', 'complete', 'single']:
+                raise ValueError('linkage must one or more of: \'ward\', \'average\', \'complete\', or \'single\'')
+
+            linkages = [linkage]
+    else:
+        linkages = ['ward', 'average', 'complete', 'single']
+
+    if method != 'tsne':
+        if not isinstance(method, str):
+            raise TypeError('method must be an instance of str')
+        if method != 'spectral':
+            raise ValueError('method must be either \'tsne\' or \'spectral\'')
+
+        if not isinstance(cutoff, float):
+            raise TypeError('cutoff must be an instance of float')
+
+    best_score = -1
+    best_nclust = 0
+    best_link = ''
+    best_labels = []
+
+    # Scan over range of clusters
+    for x in nclusts:
+        if method == 'tsne':
+            embedding = TSNE(n_components=2)
+            transform = embedding.fit_transform(similarities)
+
+        else:
+            kirchhoff = np.where(similarities > cutoff, 0, -1)
+            embedding = SpectralEmbedding(n_components=2)
+            transform = embedding.fit_transform(kirchhoff)
+
+        for link in linkages:
+            clustering = AgglomerativeClustering(linkage=link, n_clusters=x)
+            clustering.fit(transform)
+
+            silhouette_avg = silhouette_score(transform, clustering.labels_)
+            
+            if silhouette_avg > best_score:
+                best_score = silhouette_avg
+                best_nclust = x
+                best_link = link
+                best_labels = clustering.labels_
+
+
+    return best_labels
 
 def getCoords(data):
 
@@ -270,14 +397,16 @@ def clusterMatrix(distance_matrix=None, similarity_matrix=None, labels=None, ret
     """
     Cluster a distance matrix using scipy.cluster.hierarchy and 
     return the sorted matrix, indices used for sorting, sorted labels (if **labels** are passed),  
-    and linkage matrix (if **return_linkage** is **True**). Set ``similarity=True`` for clustering a similarity matrix
+    and linkage matrix (if **return_linkage** is **True**). 
     
     :arg distance_matrix: an N-by-N matrix containing some measure of distance 
-         such as 1. - seqid_matrix, rmsds, or distances in PCA space
-    :type similarity_matrix: :class:`~numpy.ndarray`
+         such as 1. - seqid_matrix (Hamming distance), rmsds, or distances in PCA space
+    :type distance_matrix: :class:`~numpy.ndarray`
 
     :arg similarity_matrix: an N-by-N matrix containing some measure of similarity 
-         such as sequence identity, mode-mode overlap, or spectral overlap
+         such as sequence identity, mode-mode overlap, or spectral overlap.
+         Each element will be subtracted from 1. to get distance, so make sure this 
+         is reasonable.
     :type similarity_matrix: :class:`~numpy.ndarray`
     
     :arg labels: labels for each matrix row that can be returned sorted
@@ -383,6 +512,7 @@ def showLines(*args, **kwargs):
 
     from matplotlib import cm, ticker
     from matplotlib.pyplot import figure, gca, xlim
+    from .drawtools import IndexFormatter
 
     ax = gca()
     lines = ax.plot(*args, **kwargs)
@@ -463,7 +593,7 @@ def showLines(*args, **kwargs):
         if callable(ticklabels):
             ax.get_xaxis().set_major_formatter(ticker.FuncFormatter(ticklabels))
         else:
-            ax.get_xaxis().set_major_formatter(ticker.IndexFormatter(ticklabels))
+            ax.get_xaxis().set_major_formatter(IndexFormatter(ticklabels))
     
     ax.xaxis.set_major_locator(ticker.AutoLocator())
     ax.xaxis.set_minor_locator(ticker.AutoMinorLocator())
@@ -499,7 +629,7 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
     from matplotlib.collections import LineCollection
     from matplotlib.pyplot import gca, sca, sci, colorbar, subplot
 
-    from .drawtools import drawTree
+    from .drawtools import drawTree, IndexFormatter
 
     p = kwargs.pop('percentile', None)
     vmin = vmax = None
@@ -600,9 +730,9 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
     #ax3.set_ylim([-0.5, matrix.shape[1]+0.5])
 
     if xticklabels is not None:
-        ax3.xaxis.set_major_formatter(ticker.IndexFormatter(xticklabels))
+        ax3.xaxis.set_major_formatter(IndexFormatter(xticklabels))
     if yticklabels is not None and ncol == 1:
-        ax3.yaxis.set_major_formatter(ticker.IndexFormatter(yticklabels))
+        ax3.yaxis.set_major_formatter(IndexFormatter(yticklabels))
 
     if allticks:
         ax3.xaxis.set_major_locator(ticker.IndexLocator(offset=0.5, base=1.))
@@ -788,9 +918,6 @@ def reorderMatrix(names, matrix, tree, axis=None):
             raise ValueError('inconsistent names and tree: duplicate name %s in names'%name)
         indices.append(locs[0])
 
-    # rmatrix = matrix[:, indices]
-    # rmatrix = rmatrix[indices, :]
-
     if axis is not None:
         I = [np.arange(s) for s in matrix.shape] 
         axes = [axis] if np.isscalar(axis) else axis
@@ -805,7 +932,7 @@ def reorderMatrix(names, matrix, tree, axis=None):
 
 def findSubgroups(tree, c, method='naive', **kwargs):
     """
-    Divide a tree into subgroups using a criterion and a cutoff.
+    Divide **tree** into subgroups using a criterion **method** and a cutoff **c**.
     Returns a list of lists with labels divided into subgroups.
     """
 
