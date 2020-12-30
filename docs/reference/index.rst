@@ -8,6 +8,8 @@ Reference Manual
    :glob:
 
    atomic/index
+   chromatin/index
+   compounds/index
    database/index
    domain_decomposition/index
    dynamics/index
