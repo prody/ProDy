@@ -55,16 +55,12 @@ Any changes should be made on your local computer and added to the
 ProDy-Website GitHub repository via pull requests. These can then be 
 pulled onto the ProDy webserver in your working directory::
 
-  $ git pull
+  $ make pull
 
-This directory also contains a ProDy directory, which is based on its 
-own GitHub repository and also needs to be updated::
+This also pulls changes into the ProDy directory below, which is based on its 
+own GitHub repository.
 
-  $ cd ProDy
-  $ git pull
-  $ cd ..
-
-You may also need to pip install the ProDy in that directory again to 
+You may also need to install the ProDy in that directory again to 
 make it get used during the building of the website.
 
 Publishing Changes

@@ -18,7 +18,7 @@ The following classes are designed for modeling and analysis of protein dynamics
 Usage of these classes are shown in :ref:`anm`, :ref:`gnm`, :ref:`pca`, and
 :ref:`eda` examples.
 
-Following classes are for analysis of individual modes or subsets of modes:
+The following classes are for analysis of individual modes or subsets of modes:
 
   * :class:`.Mode` - analyze individual normal/principal/essential modes
   * :class:`.ModeSet` - analyze subset of modes from a dynamics model
@@ -81,7 +81,7 @@ argument.  These are noted in function documentations.
 Analyze models
 ==============
 
-Following functions are for calculating atomic properties from normal modes:
+The following functions are for calculating atomic properties from normal modes:
 
   * :func:`.calcCollectivity` - degree of collectivity of a mode
   * :func:`.calcCovariance` - covariance matrix for given modes
@@ -95,7 +95,7 @@ Following functions are for calculating atomic properties from normal modes:
 Compare models
 ==============
 
-Following functions are for comparing normal modes or dynamics models:
+The following functions are for comparing normal modes or dynamics models:
 
   * :func:`.calcOverlap` - overlap (correlation) between modes
   * :func:`.calcCumulOverlap` - cumulative overlap between modes
@@ -106,16 +106,23 @@ Following functions are for comparing normal modes or dynamics models:
 Generate conformers
 ===================
 
-Following functions can be used to generate conformers along normal modes:
+The following functions can be used to generate conformers along normal modes:
 
   * :func:`.deformAtoms` - deform atoms along a mode
   * :func:`.sampleModes` - deform along random combination of a set of modes
   * :func:`.traverseMode` - traverse a mode along both directions
 
+Adaptive ANM
+===================
+
+The following class and its functions can be used to generate conformers using adaptive ANM:
+
+  * :class:`.AdaptiveANM` - generate transitions between two conformers using best overlapping modes 
+
 Editing models
 ==============
 
-Following functions can be used to reduce, slice, or extrapolate models:
+The following functions can be used to reduce, slice, or extrapolate models:
 
   * :func:`.sliceMode` - take a slice of the normal mode
   * :func:`.extendMode` - extend a coarse-grained mode to all-atoms
@@ -128,7 +135,7 @@ Following functions can be used to reduce, slice, or extrapolate models:
 Parse/write data
 ================
 
-Following functions are parsing or writing normal mode data:
+The following functions are parsing or writing normal mode data:
 
   * :func:`.parseArray` - numeric arrays, e.g. coordinates, eigenvectors
   * :func:`.parseModes` - normal modes
@@ -192,7 +199,7 @@ Arguments and keyword arguments are passed to the Matplotlib functions.
 Heat Mapper support
 ===================
 
-Following functions can be used to read, write, and plot VMD plugin
+The following functions can be used to read, write, and plot VMD plugin
 `Heat Mapper`_ files.
 
   * :func:`.showHeatmap`
@@ -206,7 +213,7 @@ Visualize modes
 ===============
 
 Finally, normal modes can be visualized and animated using VMD plugin
-:ref:`nmwiz`. Following functions allow for running NMWiz from within Python:
+:ref:`nmwiz`. The following functions allow for running NMWiz from within Python:
 
   * :func:`.viewNMDinVMD` - run VMD and load normal mode data
   * :func:`.pathVMD` - get/set path to VMD executable"""
