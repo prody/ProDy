@@ -34,10 +34,6 @@ from sys import stdout
 import numpy as np
 from scipy.spatial.distance import pdist, squareform
 from scipy.cluster.hierarchy import fcluster, linkage
-try:
-    from scipy.stats import median_absolute_deviation
-except ImportError:
-    from scipy.stats import median_abs_deviation as median_absolute_deviation
 
 from prody import LOGGER
 from .anm import ANM
@@ -51,7 +47,7 @@ from prody.atomic import AtomGroup
 from prody.measure import calcTransformation, applyTransformation, calcRMSD
 from prody.ensemble import Ensemble
 from prody.proteins import writePDB, parsePDB, writePDBStream, parsePDBStream
-from prody.utilities import createStringIO, importLA
+from prody.utilities import createStringIO, importLA, mad
 
 la = importLA()
 norm = la.norm
@@ -635,7 +631,7 @@ class ClustENM(Ensemble):
         # arg : potential energies
         # outliers are detected by modified z_score.
 
-        tmp = 0.6745 * (arg - np.median(arg)) / median_absolute_deviation(arg)
+        tmp = 0.6745 * (arg - np.median(arg)) / mad(arg)
         # here the assumption is that there is not just one conformer.
 
         return tmp > 3.5
@@ -1068,7 +1064,10 @@ class ClustENM(Ensemble):
 
         potentials = [potential]
         sizes = [1]
-        conf = conformer.reshape((1, *conformer.shape))
+        new_shape = [1]
+        for s in conformer.shape:
+            new_shape.append(s)
+        conf = conformer.reshape(new_shape)
         conformers = start_confs = conf
         keys = [(0, 0)]
 

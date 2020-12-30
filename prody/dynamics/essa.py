@@ -29,10 +29,6 @@ from os import chdir, listdir, mkdir, system
 from os.path import isdir
 from numpy import argsort, arange, array, c_, count_nonzero, hstack, mean, median, quantile, save, where
 from scipy.stats import zscore
-try:
-    from scipy.stats import median_absolute_deviation
-except ImportError:
-    from scipy.stats import median_abs_deviation as median_absolute_deviation
 
 from prody import LOGGER
 from prody.atomic.functions import extendAtomicData
