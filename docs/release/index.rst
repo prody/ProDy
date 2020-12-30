@@ -10,6 +10,7 @@ Release Notes
    :maxdepth: 2
    :glob:
    
+   v2.0_series
    v1.11_series
    v1.10_series
    v1.9_series

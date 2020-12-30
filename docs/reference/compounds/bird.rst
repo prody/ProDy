@@ -1,5 +1,5 @@
 BIRD Classes and Functions
-====================
+==============================
 
 .. automodule:: prody.compounds.bird
    :members:
