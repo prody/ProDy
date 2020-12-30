@@ -460,7 +460,7 @@ class ClustENM(Ensemble):
         anm_ex = self._extendModel(anm_cg, cg, tmp)
         a = np.array(list(product([-1, 0, 1], repeat=self._n_modes)))
 
-        nv = (anm_ex.getEigvecs() / np.sqrt(anm_ex.getEigvals())) @ a.T
+        nv = (anm_ex.getEigvecs() / np.sqrt(anm_ex.getEigvals())).__matmul__(a.T)
 
         nvn = nv / norm(nv, axis=0).max()
 
