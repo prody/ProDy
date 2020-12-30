@@ -296,7 +296,7 @@ class ESSA:
 
         'Writes a pdb file with ESSA z-scores placed in the B-factor column.'
 
-        writePDB('{}_{}_zs.format(self._title, self._enm)', self._heavy,
+        writePDB('{}_{}_zs'.format(self._title, self._enm), self._heavy,
                  beta=extendAtomicData(self._zscore, self._ca, self._heavy)[0])
 
     def getEigvals(self):
