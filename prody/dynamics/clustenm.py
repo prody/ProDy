@@ -29,7 +29,6 @@ from multiprocessing import cpu_count, Pool
 from collections import OrderedDict
 from os import chdir, mkdir
 from os.path import isdir
-from shutil import rmtree
 from sys import stdout
 
 import numpy as np
