@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """This module defines functions for parsing and writing `EMD map files`_.
 
-.. _EMD maps: http://emdatabank.org/mapformat.html"""
+.. _EMD map files: http://emdatabank.org/mapformat.html"""
 
 from collections import defaultdict
 import os.path

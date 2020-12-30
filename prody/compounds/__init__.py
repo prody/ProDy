@@ -6,7 +6,7 @@ structural databases, e.g. `ProteinDataBank <http://wwpdb.org>`_.
 Ligand data
 ===========
 
-Following function can be used to fetch meta data on PDB ligands:
+The following function can be used to fetch meta data on PDB ligands:
 
   * :func:`.fetchPDBLigand` - retrieve ligand from Ligand-Expo
 
