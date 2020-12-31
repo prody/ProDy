@@ -174,11 +174,11 @@ class StarDataBlock:
             if indices is not None:
                 self.loops = [StarLoop(self, key, idx)
                               for (key, idx) in indices
-                              if key is not 'data']
+                              if key != 'data']
             else:
                 self.loops = [StarLoop(self, key)
                               for key in keys
-                              if key is not 'data']
+                              if key != 'data']
 
             self.data = np.array(list(self._dict['data'].values()))
             self.fields = np.array(list(self._dict['fields'].values()))
@@ -197,11 +197,11 @@ class StarDataBlock:
             if indices is not None:
                 self.loops = [StarLoop(self, key, idx)
                               for (key, idx) in indices
-                              if key is not 'fields']
+                              if key != 'fields']
             else:
                 self.loops = [StarLoop(self, key)
                               for key in keys
-                              if key is not 'fields']
+                              if key != 'fields']
 
             self.data = np.array(list(self._dict['data'].values()))
             self.fields = np.array(list(self._dict['fields'].values()))
