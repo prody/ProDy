@@ -715,6 +715,8 @@ def searchQuartataWeb(data_source=None, drug_group=None, input_type=None, query_
     :arg result_type: type of results to get from QuartataWeb.
         So far only ``'Chemical'`` is supported.
     :type result_type: str
+
+    All other arguments are the same as :class:`.QuartataWebBrowser`.
     """
     if result_type == 'Chemical':
         return QuartataChemicalRecord(data_source, drug_group, input_type, query_type,
@@ -723,8 +725,6 @@ def searchQuartataWeb(data_source=None, drug_group=None, input_type=None, query_
     else:
         LOGGER.warn('No other result types are supported yet')
         return None
-
-searchQuartataWeb.__doc__ += "\n" + QuartataWebBrowser.__init__.__doc__
 
 
 def initializeBrowser(browser_type, url):
