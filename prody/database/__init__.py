@@ -14,7 +14,7 @@ The following functions can be used to search and retrieve Pfam_ data:
 .. _Pfam: http://pfam.sanger.ac.uk/
 
 UniProt
-====
+========
 
 The following functions and class can be used to search and retrieve UniProt_ data:
 
@@ -46,7 +46,7 @@ The following class and functions can be used to search and retrieve data using 
 .. _DALI: http://ekhidna2.biocenter.helsinki.fi/dali/
 
 QuartataWeb
-====
+============
 
 The following classes and functions can be used to search and retrieve data using the QuartataWeb_ structure alignment server:
 
@@ -57,7 +57,7 @@ The following classes and functions can be used to search and retrieve data usin
 .. _QuartataWeb: http://quartata.csb.pitt.edu
 
 Gene Ontology Annotation (GOA)
-====
+================================
 
 The following classes and functions can be used to search and retrieve data from the EBI GOA_ database:
 
