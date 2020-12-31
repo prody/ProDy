@@ -1,6 +1,6 @@
 QuartataWeb Server Functions
 ===============================
 
-.. automodule:: prody.database.quartata
+.. automodule:: prody.database.quartataweb
    :members:
    :inherited-members:
