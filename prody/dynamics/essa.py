@@ -579,9 +579,9 @@ class ESSA:
 
         self._idx_med = zf_med.sort_values(s_med, ascending=False).index
 
-        ranks = Index(range(1, zf_max.shape[0] + 1), name='Allosteric potential / Rank')
+        ranks = Index(range(1, zf_max.shape[0] + 1), name='Rank')
 
-        columns_ranks = Index(['ESSA_max & LHD', 'ESSA_med & LHD'], name='Pocket # ')
+        columns_ranks = Index(['Pocket # (ESSA_max & LHD)', 'Pocket # (ESSA_med & LHD)'])
 
         self._pocket_ranks = DataFrame(index=ranks, columns=columns_ranks)
 
