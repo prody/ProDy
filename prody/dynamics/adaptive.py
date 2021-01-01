@@ -224,7 +224,7 @@ def _runStep(structureA, structureB, **kwargs):
 
     LOGGER.info('Current RMSD is {:4.3f}\n'.format(rmsd))
 
-    return rmsd, new_coordsA, modesetA, modesCrossingFmin, dList, n_modes, Fmin
+    return rmsd, new_coordsA, modesetA, modesCrossingFmin, dList, n_modes
 
 def _checkConvergence(rmsds, coordsA, coordsB, **kwargs):
     """Check convergence of adaptive ANM. 
@@ -317,15 +317,18 @@ def runOneWayAdaptiveANM(structureA, structureB, n_steps, **kwargs):
 
     LOGGER.timeit('_prody_runManySteps')
     n_start = self.numSteps
+    resetFmin = True
     while self.numSteps < n_start + n_steps:
         LOGGER.info('\nStarting cycle {0} with initial structure {1}'.format(self.numSteps+1,
-                                                                                self.titleA))
-        rmsd, new_coordsA, modesetA, modesCrossingFmin, self.dList, self.n_modes, self.Fmin = _runStep(self.coordsA,
+                                                                                self.titleA))                                                                   
+        rmsd, new_coordsA, modesetA, modesCrossingFmin, self.dList, self.n_modes = _runStep(self.coordsA,
                                                                                                        self.coordsB,
                                                                                                        n_modes=self.n_modes,
-                                                                                                       Fmin=self.Fmin,
+                                                                                                       resetFmin=resetFmin,
+                                                                                                       dList=self.dList,
                                                                                                        **kwargs)
         self.numSteps += 1
+        resetFmin = False
         self.anmListA.append(modesetA)
         self.coordsA = new_coordsA
         self.ensembleA.addCoordset(new_coordsA)
@@ -374,11 +377,11 @@ def runAlternatingAdaptiveANM(structureA, structureB, n_steps, **kwargs):
     while self.numSteps < n_start + n_steps:
         LOGGER.info('\nStarting cycle {0} with initial structure {1}'.format(self.numSteps+1,
                                                                                 self.titleA))
-        rmsd, new_coordsA, modesetA, modesCrossingFmin, self.dList, self.n_modes, self.Fmin = _runStep(self.coordsA,
+        rmsd, new_coordsA, modesetA, modesCrossingFmin, self.dList, self.n_modes = _runStep(self.coordsA,
                                                                                                        self.coordsB,
                                                                                                        n_modes=self.n_modes,
-                                                                                                       Fmin=self.Fmin,
                                                                                                        resetFmin=resetFmin,
+                                                                                                       dList=self.dList,
                                                                                                        **kwargs)
         self.numSteps += 1
         resetFmin = False
@@ -393,11 +396,11 @@ def runAlternatingAdaptiveANM(structureA, structureB, n_steps, **kwargs):
 
         LOGGER.info('\nStarting cycle {0} with initial structure {1}'.format(self.numSteps+1,
                                                                                 self.titleA))
-        rmsd, new_coordsA, modesetA, modesCrossingFmin, self.dList, self.n_modes, self.Fmin = _runStep(self.coordsB,
+        rmsd, new_coordsA, modesetA, modesCrossingFmin, self.dList, self.n_modes = _runStep(self.coordsB,
                                                                                                        self.coordsA,
                                                                                                        n_modes=self.n_modes,
-                                                                                                       Fmin=self.Fmin,
                                                                                                        resetFmin=resetFmin,
+                                                                                                       dList=self.dList,
                                                                                                        **kwargs)
         self.numSteps += 1
         self.anmListB.append(modesetA)
@@ -458,11 +461,11 @@ def runBothWaysAdaptiveANM(structureA, structureB, n_steps, **kwargs):
     while self.numSteps < n_start + n_steps:
         LOGGER.info('\nStarting cycle {0} with initial structure {1}'.format(self.numSteps+1,
                                                                                 self.titleA))
-        rmsd, new_coordsA, modesetA, modesCrossingFmin, self.dList, self.n_modes, self.Fmin = _runStep(self.coordsA,
+        rmsd, new_coordsA, modesetA, modesCrossingFmin, self.dList, self.n_modes = _runStep(self.coordsA,
                                                                                                        self.coordsB,
                                                                                                        n_modes=self.n_modes,
-                                                                                                       Fmin=self.Fmin,
                                                                                                        resetFmin=resetFmin,
+                                                                                                       dList=self.dList,
                                                                                                        **kwargs)
         self.numSteps += 1
         resetFmin = False
@@ -489,11 +492,11 @@ def runBothWaysAdaptiveANM(structureA, structureB, n_steps, **kwargs):
     while self.numSteps < n_start + n_steps:
         LOGGER.info('\nStarting cycle {0} with initial structure {1}'.format(self.numSteps+1,
                                                                                 self.titleB))
-        rmsd, new_coordsA, modesetA, modesCrossingFmin, self.dList, self.n_modes, self.Fmin = _runStep(self.coordsB,
+        rmsd, new_coordsA, modesetA, modesCrossingFmin, self.dList, self.n_modes = _runStep(self.coordsB,
                                                                                                        self.coordsA,
                                                                                                        n_modes=self.n_modes,
                                                                                                        resetFmin=resetFmin,
-                                                                                                       Fmin=self.Fmin,
+                                                                                                       dList=self.dList,
                                                                                                        **kwargs)
         self.numSteps += 1
         resetFmin = False
