@@ -119,6 +119,13 @@ The following class and its functions can be used to generate conformers using a
 
   * :class:`.AdaptiveANM` - generate transitions between two conformers using best overlapping modes 
 
+Essential Site Scanning Analysis (ESSA)
+========================================
+
+The following class and its functions can be used to perform Essential Site Scanning Analysis:
+
+  * :class:`.ESSA`
+
 Editing models
 ==============
 
@@ -216,7 +223,9 @@ Finally, normal modes can be visualized and animated using VMD plugin
 :ref:`nmwiz`. The following functions allow for running NMWiz from within Python:
 
   * :func:`.viewNMDinVMD` - run VMD and load normal mode data
-  * :func:`.pathVMD` - get/set path to VMD executable"""
+  * :func:`.pathVMD` - get/set path to VMD executable
+  
+"""
 
 __all__ = []
 
