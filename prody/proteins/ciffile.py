@@ -105,8 +105,11 @@ def parseMMCIF(pdb, **kwargs):
 def parseMMCIFStream(stream, **kwargs):
     """Returns an :class:`.AtomGroup` and/or a class:`.StarDict` 
     containing header data parsed from a stream of CIF lines.
+
     :arg stream: Anything that implements the method ``readlines``
-        (e.g. :class:`file`, buffer, stdin)"""
+        (e.g. :class:`file`, buffer, stdin)
+        
+    """
 
     model = kwargs.get('model')
     subset = kwargs.get('subset')
