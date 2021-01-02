@@ -63,6 +63,7 @@ done as follows::
 
   $ cd ProDy
   $ pip install -U . --user
+  $ cd ..
 
 Publishing Changes
 -------------------
