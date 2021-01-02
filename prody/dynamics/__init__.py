@@ -60,7 +60,7 @@ together with those in the database module:
 There are many other functions starting `showSignature` or `calcSignature` for plotting and analysis.
 There are also load and save functions for mode ensembles and signature arrays.
 
-Usage of these classes are shown in :ref:`overview`, :ref:`core`, and :ref:`classifications` examples.
+Usage of these classes are shown in :ref:`signdy-overview`, :ref:`signdy-core`, and :ref:`signdy-class` examples.
 
 
 Function library
