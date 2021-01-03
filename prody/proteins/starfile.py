@@ -673,10 +673,12 @@ def writeSTAR(filename, starDict):
 
     :arg filename: a filename
         The .star extension can be omitted.
+    :type filename: str
 
-    :arg dictionary: a dictionary in STAR format
+    :arg starDict: a dictionary in STAR format
         This should have nested entries starting with data blocks then loops/tables then
         field names and finally data.
+    :type starDict: dict
     """
 
     star = open(filename, 'w')
@@ -686,13 +688,11 @@ def writeSTAR(filename, starDict):
         for loopNumber in starDict[dataBlockKey]:
             star.write('\nloop_\n')
             for fieldNumber in starDict[dataBlockKey][loopNumber]['fields']:
-                star.write('_' + starDict[dataBlockKey]
-                           [loopNumber]['fields'][fieldNumber] + '\n')
+                star.write('_' + starDict[dataBlockKey][loopNumber]['fields'][fieldNumber] + '\n')
             for dataItemNumber in starDict[dataBlockKey][loopNumber]['data']:
                 for fieldNumber in starDict[dataBlockKey][loopNumber]['fields']:
                     currentField = starDict[dataBlockKey][loopNumber]['fields'][fieldNumber]
-                    star.write(starDict[dataBlockKey][loopNumber]
-                               ['data'][dataItemNumber][currentField] + ' ')
+                    star.write(starDict[dataBlockKey][loopNumber]['data'][dataItemNumber][currentField] + ' ')
                 star.write('\n')
 
     star.close()
@@ -700,45 +700,47 @@ def writeSTAR(filename, starDict):
 
 
 def parseImagesFromSTAR(particlesSTAR, **kwargs):
-    '''
+    """
     Parses particle images using data from a STAR file 
     containing information about them.
 
-    arg particlesSTAR: a filename for a STAR file.
-    type particlesSTAR: str
+    :arg particlesSTAR: a filename for a STAR file.
+    :type particlesSTAR: str
 
-    arg block_indices: indices for data blocks containing rows 
+    :arg block_indices: indices for data blocks containing rows 
         corresponding to images of interest
         The indexing scheme is similar to that for numpy arrays.
         Default behavior is use all data blocks about images
-    type block_indices: list, :class:`~numpy.ndarray`
+    :type block_indices: list, :class:`~numpy.ndarray`
 
-    arg row_indices: indices for rows corresponding to images of interest
+    :arg row_indices: indices for rows corresponding to images of interest
         The indexing scheme is similar to that for numpy arrays. 
         row_indices should be a 1D or 2D array-like.
         2D row_indices should contain an entry for each relevant loop. 
         If a 1D array-like is given the same row indices 
         will be applied to all loops.
         Default behavior is to use all rows about images
-    type row_indices: list, :class:`~numpy.ndarray`
+    :type row_indices: list, :class:`~numpy.ndarray`
 
-    arg particle_indices: indices for particles regardless of STAR structure
+    :arg particle_indices: indices for particles regardless of STAR structure
         default is take all particles
         Please note: this acts after block_indices and row_indices
-    type particle_indices: list, :class"`~numpy.ndarray`
+    :type particle_indices: list, :class"`~numpy.ndarray`
 
-    arg saveImageArrays: whether to save the numpy array for each image to file
+    :arg saveImageArrays: whether to save the numpy array for each image to file
         default is False
-    type saveImageArrays: bool
+    :type saveImageArrays: bool
 
-    arg saveDirectory: directory where numpy image arrays are saved
+    :arg saveDirectory: directory where numpy image arrays are saved
         default is None, which means save to the current working directory
-    type saveDirectory: str, None
+    :type saveDirectory: str, None
 
-    arg rotateImages: whether to apply in plane translations and rotations using 
+    :arg rotateImages: whether to apply in plane translations and rotations using 
         provided psi and origin data, default is True
-    type rotateImages: bool 
-    '''
+    :type rotateImages: bool 
+    
+    """
+
     try:
         from skimage.transform import rotate
     except ImportError:

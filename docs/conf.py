@@ -184,6 +184,7 @@ rst_epilog = u"""
 .. _NumPy: http://www.numpy.org
 .. _Scipy: http://www.scipy.org
 .. _nose: http://nose.readthedocs.org
+.. _Pandas: https://pandas.pydata.org/
 
 
 .. |A2| replace:: Å\ :sup:`2`

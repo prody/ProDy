@@ -56,13 +56,14 @@ ProDy-Website GitHub repository via pull requests. These can then be
 pulled onto the ProDy webserver in your working directory::
 
   $ make pull
-  $ git pull
-
-The former pulls changes into the ProDy directory below, which is based on its 
-own GitHub repository.
 
 You may also need to install the ProDy in that directory again to 
-make it get used during the building of the website.
+make it get used during the building of the website. This can be 
+done as follows::
+
+  $ cd ProDy
+  $ pip install -U . --user
+  $ cd ..
 
 Publishing Changes
 -------------------
@@ -73,6 +74,10 @@ command::
   $ make html
 
 You will find HTML files in :file:`_build/html` folder.
+
+It may also help to run the following first::
+
+  $ make clean
 
 For tutorials, once a tutorial is complete and looks good in HTML (no code execution
 problems), the following commands can be used to generate a PDF file and

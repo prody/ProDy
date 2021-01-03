@@ -1,15 +1,13 @@
 # -*- coding: utf-8 -*-
 """This module defines classes and functions for browsing QuartataWeb.
 
-----------------------------------------------------------------------------------------
 Based on code written by the CHARMM-GUI team (http://charmm-gui.org) and modified by James Krieger
 
 This suite uses the following softwares:
-a) python Splinter package (https://splinter.readthedocs.org/en/latest/)
-b) a web browser, such as Google Chrome or Mozilla Firefox
-c) the corresponding driver such as chromedriver (https://sites.google.com/a/chromium.org/chromedriver/downloads)
+- python Splinter package (https://splinter.readthedocs.org/en/latest/)
+- a web browser, such as Google Chrome or Mozilla Firefox
+- the corresponding driver such as chromedriver (https://sites.google.com/a/chromium.org/chromedriver/downloads)
    for Chrome or geckodriver (https://github.com/mozilla/geckodriver/releases) for Firefox
-----------------------------------------------------------------------------------------
 """
 
 from prody import PY3K, LOGGER
@@ -23,78 +21,77 @@ __all__ = ['QuartataWebBrowser', 'QuartataChemicalRecord', 'searchQuartataWeb',
 
 
 class QuartataWebBrowser(object):
-    """Class to browse the QuartataWeb website."""
+    """Class to browse the QuartataWeb website.
+
+    :arg data_source: source database for QuartataWeb analysis
+        options are ``"DrugBank"`` or ``"STITCH"``. Default is ``"DrugBank"``
+    :type data_source: str
+
+    :arg drug_group: group of drugs if using DrugBank
+        options are ``"Approved"`` or ``"All"``. Default is ``"All"``
+    :type drug_group: str
+
+    :arg input_type: number corresponding to the input type, options are 
+        ``1`` (Chemical and/or target) or 
+        ``2`` (A list of chemicals, targets or chemical combinations). 
+        Default is ``1``
+    :type input_type: int
+
+    :arg query_type: number corresponding to the query type. Options are 
+        dependent on input_type. 
+        
+        With input_type 1, they are:
+        * ``1`` (chemical-target interaction)
+        * ``2`` (chemical-chemical similarity)
+        * ``3`` (target-target similarity)
+
+        With input_type 2, they are:
+        * ``1`` (chemicals)
+        * ``2`` (targets)
+        * ``3`` (chemical combinations)
+
+        Default is ``1``
+    :type query_type: int
+
+    :arg data: data to enter into the box or boxes. This varies depending on input type 
+        and query type, but will always be a list of strings.
+        
+        For input_type 1, a list with two items is expected. These will be one of the 
+        following depending on query_type:
+        * With query_type 1, the first would be a chemical and the second a target. 
+            One of these can also be left blank.
+        * With query_type 2, the first would be a chemical and the second a chemical.
+        * With query_type 3, the first would be a target and the second a target.
+
+        For input_type 2, a list with any length is expected. These will be one of the 
+        following depending on query_type:
+        * With query_type 1, these would be chemicals. 
+        * With query_type 2, these would be targets.
+        * With query_type 3, these would be pairs of chemicals, separated by semicolons.
+    :type data: list
+
+    :arg num_predictions: number of predictions to show or consider in addition to 
+        known interactions. Default is ``0``. 
+        With DrugBank and input_type 1, a second number can be provided in a list 
+        for secondary interactions.
+    :type num_predictions: int, list
+
+    :arg browser_type: browser type for navigation
+        Default is ``"Chrome"``
+    :type browser_type: str
+
+    :arg job_id: job ID for accessing previous jobs
+        Default is ``None``
+    :type job_id: int        
+
+    :arg tsv: a filename for a file that contains the results 
+        or a file to save the results in tsv format
+    :type tsv: str
+    """
 
     def __init__(self, data_source=None, drug_group=None, input_type=None, query_type=None, 
                  data=None, num_predictions=None, browser_type=None, job_id=None, 
                  tsv=None, chem_type='known'):
-        """Instantiate a QuartataWebBrowser object instance.
-
-        :arg data_source: source database for QuartataWeb analysis
-            options are ``"DrugBank"`` or ``"STITCH"``. Default is ``"DrugBank"``
-        :type data_source: str
-
-        :arg drug_group: group of drugs if using DrugBank
-            options are ``"Approved"`` or ``"All"``. Default is ``"All"``
-        :type drug_group: str
-
-        :arg input_type: number corresponding to the input type, options are 
-            ``1`` (Chemical and/or target) or 
-            ``2`` (A list of chemicals, targets or chemical combinations). 
-            Default is ``1``
-        :type input_type: int
-
-        :arg query_type: number corresponding to the query type. Options are 
-            dependent on input_type. 
-            
-            With input_type 1, they are:
-            * ``1`` (chemical-target interaction)
-            * ``2`` (chemical-chemical similarity)
-            * ``3`` (target-target similarity)
-
-            With input_type 2, they are:
-            * ``1`` (chemicals)
-            * ``2`` (targets)
-            * ``3`` (chemical combinations)
-
-            Default is ``1``
-        :type query_type: int
-
-        :arg data: data to enter into the box or boxes. This varies depending on input type 
-            and query type, but will always be a list of strings.
-            
-            For input_type 1, a list with two items is expected. These will be one of the 
-            following depending on query_type:
-            * With query_type 1, the first would be a chemical and the second a target. 
-                One of these can also be left blank.
-            * With query_type 2, the first would be a chemical and the second a chemical.
-            * With query_type 3, the first would be a target and the second a target.
-
-            For input_type 2, a list with any length is expected. These will be one of the 
-            following depending on query_type:
-            * With query_type 1, these would be chemicals. 
-            * With query_type 2, these would be targets.
-            * With query_type 3, these would be pairs of chemicals, separated by semicolons.
-        :type data: list
-
-        :arg num_predictions: number of predictions to show or consider in addition to 
-            known interactions. Default is ``0``. 
-            With DrugBank and input_type 1, a second number can be provided in a list 
-            for secondary interactions.
-        :type num_predictions: int, list
-
-        :arg browser_type: browser type for navigation
-            Default is ``"Chrome"``
-        :type browser_type: str
-
-        :arg job_id: job ID for accessing previous jobs
-            Default is ``None``
-        :type job_id: int        
-
-        :arg tsv: a filename for a file that contains the results 
-            or a file to save the results in tsv format
-        :type tsv: str
-        """
 
         self.browser_type = None
         self.browser = None
@@ -718,6 +715,8 @@ def searchQuartataWeb(data_source=None, drug_group=None, input_type=None, query_
     :arg result_type: type of results to get from QuartataWeb.
         So far only ``'Chemical'`` is supported.
     :type result_type: str
+
+    All other arguments are the same as :class:`.QuartataWebBrowser`.
     """
     if result_type == 'Chemical':
         return QuartataChemicalRecord(data_source, drug_group, input_type, query_type,
@@ -726,8 +725,6 @@ def searchQuartataWeb(data_source=None, drug_group=None, input_type=None, query_
     else:
         LOGGER.warn('No other result types are supported yet')
         return None
-
-searchQuartataWeb.__doc__ += "\n" + QuartataWebBrowser.__init__.__doc__
 
 
 def initializeBrowser(browser_type, url):
