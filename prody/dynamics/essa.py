@@ -320,7 +320,7 @@ class ESSA:
         'Saves eigenvalues of the matched modes in Numpy `.npy` format.'
 
         if self._lowmem:
-            save('{}_{}_eigvals'.format(self._title, self_enm), self._eigvals)
+            save('{}_{}_eigvals'.format(self._title, self._enm), self._eigvals)
         else:
             save('{}_{}_eigvals'.format(self._title, self._enm), self._ensemble.getEigvals())
 
