@@ -1381,8 +1381,8 @@ def getAlignedMapping(target, chain, alignment=None):
 def getCEAlignMapping(target, chain):
     from .ccealign import ccealign
 
-    tar_coords = target.getCoords(calpha=True).tolist()
-    mob_coords = chain.getCoords(calpha=True).tolist()
+    tar_coords = target.getCoords().tolist()
+    mob_coords = chain.getCoords().tolist()
 
     if len(tar_coords) < 8:
         LOGGER.warn('target ({1}) is too small to be aligned '

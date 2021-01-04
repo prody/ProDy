@@ -1,18 +1,8 @@
-import os.path
-import numpy as np
-from prody import LOGGER, PY3K
+from prody import LOGGER
 from prody.proteins import parsePDB
-from prody.utilities import dictElement, dictElementLoop, openURL, which
+from prody.utilities import dictElement, dictElementLoop, openURL
 
-import platform, os, re, sys, time, urllib
-
-if PY3K:
-    import urllib.parse as urllib
-    import urllib.request as urllib2
-else:
-    import urllib
-    import urllib2
-
+import re
 from xml.etree.cElementTree import XML
 
 __all__ = ['UniprotRecord', 'searchUniprot', 'queryUniprot']

@@ -55,17 +55,20 @@ Any changes should be made on your local computer and added to the
 ProDy-Website GitHub repository via pull requests. These can then be 
 pulled onto the ProDy webserver in your working directory::
 
-  $ git pull
+  $ make pull
 
-This directory also contains a ProDy directory, which is based on its 
-own GitHub repository and also needs to be updated::
+You may also need to install the ProDy in that directory again to 
+make it get used during the building of the website. This can be 
+done as follows::
 
   $ cd ProDy
-  $ git pull
+  $ pip install -U . --user
   $ cd ..
 
-You may also need to pip install the ProDy in that directory again to 
-make it get used during the building of the website.
+DruGUI and its tutorial are handled by their own GitHub repo. The 
+following command can be used to update them::
+
+  $ make drugui
 
 Publishing Changes
 -------------------
@@ -76,6 +79,10 @@ command::
   $ make html
 
 You will find HTML files in :file:`_build/html` folder.
+
+It may also help to run the following first::
+
+  $ make clean
 
 For tutorials, once a tutorial is complete and looks good in HTML (no code execution
 problems), the following commands can be used to generate a PDF file and

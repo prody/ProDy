@@ -347,7 +347,7 @@ def drawTree(
                 'Keyword argument "%s=%s" is not in the format '
                 "pyplot_option_name=(tuple), pyplot_option_name=(tuple, dict),"
                 " or pyplot_option_name=(dict) " % (key, value)
-            ) from None
+            )
         if isinstance(value, dict):
             getattr(plt, str(key))(**dict(value))
         elif not (isinstance(value[0], tuple)):

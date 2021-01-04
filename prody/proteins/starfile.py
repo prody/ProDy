@@ -7,6 +7,7 @@ the Crystallographic Information File (CIF) format used for much of the PDB.
 .. _STAR: https://www2.mrc-lmb.cam.ac.uk/relion/index.php/Conventions_%26_File_formats#The_STAR_format
 """
 
+from collections import OrderedDict
 import os.path
 from numbers import Integral
 import numpy as np
@@ -39,7 +40,7 @@ class StarDict:
                 else:
                     self.dataBlocks.append(StarDataBlock(self, idx))
 
-            self._dict = {}
+            self._dict = OrderedDict()
             for i, idx in enumerate(indices):
                 self._dict[idx[0]] = self.dataBlocks[i]._dict
 
@@ -114,9 +115,9 @@ class StarDataBlock:
             keys = list(self._dict.keys())
         else:
             keys = [idx[0] for idx in indices]
-            self._dict = {}
-            self._dict['data'] = {}
-            self._dict['fields'] = {}
+            self._dict = OrderedDict()
+            self._dict['data'] = OrderedDict()
+            self._dict['fields'] = OrderedDict()
             for idx in indices:
                 if idx[0] == 'data':
                     self._dict[idx[0]][idx[1]] = starDict._dict[self._title][idx[0]][idx[1]]
@@ -125,9 +126,9 @@ class StarDataBlock:
                             if v == idx[1]:
                                 self._dict['fields'][k] = v
                 else:
-                    self._dict[idx[0]] = {}
+                    self._dict[idx[0]] = OrderedDict()
                     self._dict[idx[0]]['fields'] = starDict._dict[self._title][idx[0]]['fields']
-                    self._dict[idx[0]]['data'] = {}
+                    self._dict[idx[0]]['data'] = OrderedDict()
                     for id1 in idx[1]:
                         self._dict[idx[0]]['data'][id1] = starDict._dict[self._title][idx[0]]['data'][id1]
 
@@ -147,12 +148,14 @@ class StarDataBlock:
             self.numEntries = len(self.data)
             self.numFields = len(self.fields)
 
-        elif set(list(keys)[:2]) == set(['data', 'fields']):
+        elif 'data' in keys and 'fields' in keys:
             if indices is not None:
                 self.loops = [StarLoop(self, key, idx)
-                              for (key, idx) in indices[2:]]
+                              for (key, idx) in indices
+                              if key not in ['data', 'fields']]
             else:
-                self.loops = [StarLoop(self, key) for key in keys[2:]]
+                self.loops = [StarLoop(self, key) for key in keys
+                              if key not in ['data', 'fields']]
 
             self.data = np.array(list(self._dict['data'].values()))
             self.fields = np.array(list(self._dict['fields'].values()))
@@ -170,10 +173,12 @@ class StarDataBlock:
         elif 'data' in keys:
             if indices is not None:
                 self.loops = [StarLoop(self, key, idx)
-                              for (key, idx) in indices[np.where(np.array(keys) == 'data')[0][-1]+1:]]
+                              for (key, idx) in indices
+                              if key != 'data']
             else:
                 self.loops = [StarLoop(self, key)
-                              for key in keys[np.where(np.array(keys) == 'data')[0][-1]+1:]]
+                              for key in keys
+                              if key != 'data']
 
             self.data = np.array(list(self._dict['data'].values()))
             self.fields = np.array(list(self._dict['fields'].values()))
@@ -191,10 +196,12 @@ class StarDataBlock:
         elif 'fields' in keys:
             if indices is not None:
                 self.loops = [StarLoop(self, key, idx)
-                              for (key, idx) in indices[1:]]
+                              for (key, idx) in indices
+                              if key != 'fields']
             else:
                 self.loops = [StarLoop(self, key)
-                              for key in keys[np.where(np.array(keys) == 'fields')[0][-1]+1:]]
+                              for key in keys
+                              if key != 'fields']
 
             self.data = np.array(list(self._dict['data'].values()))
             self.fields = np.array(list(self._dict['fields'].values()))
@@ -340,9 +347,9 @@ class StarLoop:
         if indices is None:
             self._dict = dataBlock._dict[self._key]
         else:
-            self._dict = {}
+            self._dict = OrderedDict()
             self._dict['fields'] = dataBlock._dict[self._key]['fields']
-            self._dict['data'] = {}
+            self._dict['data'] = OrderedDict()
 
             indices_are_keys = True
             for index in indices:
@@ -353,7 +360,7 @@ class StarLoop:
                     break
 
             if not indices_are_keys:
-                self._dict['data'] = {}
+                self._dict['data'] = OrderedDict()
                 for index in indices:
                     self._dict['data'][index] = list(self._dataBlock._dict[self._key]['data'].values())[index]
 
@@ -488,7 +495,7 @@ def parseSTARLines(lines, **kwargs):
     prog = kwargs.get('prog', None)
     shlex = kwargs.get('shlex', False)
 
-    finalDictionary = {}
+    finalDictionary = OrderedDict()
     currentLoop = -1
     block_fieldCounter = 0
     loop_fieldCounter = 0
@@ -500,7 +507,7 @@ def parseSTARLines(lines, **kwargs):
     for line in lines[start:stop]:
         if line.startswith('data_'):
             currentDataBlock = line[5:].strip()
-            finalDictionary[currentDataBlock] = {}
+            finalDictionary[currentDataBlock] = OrderedDict()
             currentLoop = -1
             inLoop = False
             inShortBlock = False
@@ -511,9 +518,9 @@ def parseSTARLines(lines, **kwargs):
             currentLoop += 1
             inLoop = True
             inShortBlock = False
-            finalDictionary[currentDataBlock][currentLoop] = {}
-            finalDictionary[currentDataBlock][currentLoop]['fields'] = {}
-            finalDictionary[currentDataBlock][currentLoop]['data'] = {}
+            finalDictionary[currentDataBlock][currentLoop] = OrderedDict()
+            finalDictionary[currentDataBlock][currentLoop]['fields'] = OrderedDict()
+            finalDictionary[currentDataBlock][currentLoop]['data'] = OrderedDict()
             loop_fieldCounter = 0
 
         elif line.startswith('_') or line.startswith(' _'):
@@ -543,8 +550,8 @@ def parseSTARLines(lines, **kwargs):
                 # Outside a loop, populate fields and data together in a regular data block
                 if startingBlock:
                     # Initialise the data block first
-                    finalDictionary[currentDataBlock]['fields'] = {}
-                    finalDictionary[currentDataBlock]['data'] = {}
+                    finalDictionary[currentDataBlock]['fields'] = OrderedDict()
+                    finalDictionary[currentDataBlock]['data'] = OrderedDict()
                     startingBlock = False
                     block_fieldCounter = 0
 
@@ -576,7 +583,7 @@ def parseSTARLines(lines, **kwargs):
             # Data outside a loop is handled in line with the fields above or in shortDataBlocks below.
             if not inShortBlock and len(split(line, shlex=shlex)) == loop_fieldCounter:
                 # This is the usual case where each entry in the line corresponds to a field
-                finalDictionary[currentDataBlock][currentLoop]['data'][dataItemsCounter] = {}
+                finalDictionary[currentDataBlock][currentLoop]['data'][dataItemsCounter] = OrderedDict()
                 active_fieldCounter = 0
                 for fieldEntry in split(line.strip(), shlex=shlex):
                     currentField = finalDictionary[currentDataBlock][currentLoop]['fields'][active_fieldCounter]
@@ -587,7 +594,7 @@ def parseSTARLines(lines, **kwargs):
                 # The data is now being broken across lines.
                 if not inShortBlock:
                     inShortBlock = True
-                    finalDictionary[currentDataBlock][currentLoop]['data'][dataItemsCounter] = {}
+                    finalDictionary[currentDataBlock][currentLoop]['data'][dataItemsCounter] = OrderedDict()
                     active_fieldCounter = 0
                     if not line.startswith(';'):
                         # Then we haven't got a split field and can treat fields as normal
@@ -666,10 +673,12 @@ def writeSTAR(filename, starDict):
 
     :arg filename: a filename
         The .star extension can be omitted.
+    :type filename: str
 
-    :arg dictionary: a dictionary in STAR format
+    :arg starDict: a dictionary in STAR format
         This should have nested entries starting with data blocks then loops/tables then
         field names and finally data.
+    :type starDict: dict
     """
 
     star = open(filename, 'w')
@@ -679,13 +688,11 @@ def writeSTAR(filename, starDict):
         for loopNumber in starDict[dataBlockKey]:
             star.write('\nloop_\n')
             for fieldNumber in starDict[dataBlockKey][loopNumber]['fields']:
-                star.write('_' + starDict[dataBlockKey]
-                           [loopNumber]['fields'][fieldNumber] + '\n')
+                star.write('_' + starDict[dataBlockKey][loopNumber]['fields'][fieldNumber] + '\n')
             for dataItemNumber in starDict[dataBlockKey][loopNumber]['data']:
                 for fieldNumber in starDict[dataBlockKey][loopNumber]['fields']:
                     currentField = starDict[dataBlockKey][loopNumber]['fields'][fieldNumber]
-                    star.write(starDict[dataBlockKey][loopNumber]
-                               ['data'][dataItemNumber][currentField] + ' ')
+                    star.write(starDict[dataBlockKey][loopNumber]['data'][dataItemNumber][currentField] + ' ')
                 star.write('\n')
 
     star.close()
@@ -693,45 +700,47 @@ def writeSTAR(filename, starDict):
 
 
 def parseImagesFromSTAR(particlesSTAR, **kwargs):
-    '''
+    """
     Parses particle images using data from a STAR file 
     containing information about them.
 
-    arg particlesSTAR: a filename for a STAR file.
-    type particlesSTAR: str
+    :arg particlesSTAR: a filename for a STAR file.
+    :type particlesSTAR: str
 
-    arg block_indices: indices for data blocks containing rows 
+    :arg block_indices: indices for data blocks containing rows 
         corresponding to images of interest
         The indexing scheme is similar to that for numpy arrays.
         Default behavior is use all data blocks about images
-    type block_indices: list, :class:`~numpy.ndarray`
+    :type block_indices: list, :class:`~numpy.ndarray`
 
-    arg row_indices: indices for rows corresponding to images of interest
+    :arg row_indices: indices for rows corresponding to images of interest
         The indexing scheme is similar to that for numpy arrays. 
         row_indices should be a 1D or 2D array-like.
         2D row_indices should contain an entry for each relevant loop. 
         If a 1D array-like is given the same row indices 
         will be applied to all loops.
         Default behavior is to use all rows about images
-    type row_indices: list, :class:`~numpy.ndarray`
+    :type row_indices: list, :class:`~numpy.ndarray`
 
-    arg particle_indices: indices for particles regardless of STAR structure
+    :arg particle_indices: indices for particles regardless of STAR structure
         default is take all particles
         Please note: this acts after block_indices and row_indices
-    type particle_indices: list, :class"`~numpy.ndarray`
+    :type particle_indices: list, :class"`~numpy.ndarray`
 
-    arg saveImageArrays: whether to save the numpy array for each image to file
+    :arg saveImageArrays: whether to save the numpy array for each image to file
         default is False
-    type saveImageArrays: bool
+    :type saveImageArrays: bool
 
-    arg saveDirectory: directory where numpy image arrays are saved
+    :arg saveDirectory: directory where numpy image arrays are saved
         default is None, which means save to the current working directory
-    type saveDirectory: str, None
+    :type saveDirectory: str, None
 
-    arg rotateImages: whether to apply in plane translations and rotations using 
+    :arg rotateImages: whether to apply in plane translations and rotations using 
         provided psi and origin data, default is True
-    type rotateImages: bool 
-    '''
+    :type rotateImages: bool 
+    
+    """
+
     try:
         from skimage.transform import rotate
     except ImportError:
@@ -935,7 +944,7 @@ def parseImagesFromSTAR(particlesSTAR, **kwargs):
         particle_indices = list(range(len(particles)))
 
     # Parse images using particle dictionaries
-    image_stacks = {}
+    image_stacks = OrderedDict()
     images = []
     parsed_images_data = []
     stk_images = []

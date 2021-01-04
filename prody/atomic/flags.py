@@ -662,7 +662,7 @@ Others
 Functions
 ===============================================================================
 
-Following functions can be used to customize flag definitions:
+The following functions can be used to customize flag definitions:
 
     * :func:`.flagDefinition`
     * :func:`.addNonstdAminoacid`
