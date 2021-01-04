@@ -65,6 +65,11 @@ done as follows::
   $ pip install -U . --user
   $ cd ..
 
+DruGUI and its tutorial are handled by their own GitHub repo. The 
+following command can be used to update them::
+
+  $ make drugui
+
 Publishing Changes
 -------------------
 
