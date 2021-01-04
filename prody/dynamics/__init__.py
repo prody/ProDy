@@ -60,7 +60,7 @@ together with those in the database module:
 There are many other functions starting `showSignature` or `calcSignature` for plotting and analysis.
 There are also load and save functions for mode ensembles and signature arrays.
 
-Usage of these classes are shown in :ref:`overview`, :ref:`core`, and :ref:`classifications` examples.
+Usage of these classes are shown in :ref:`signdy-overview`, :ref:`signdy-core`, and :ref:`signdy-class` examples.
 
 
 Function library
@@ -118,6 +118,13 @@ Adaptive ANM
 The following class and its functions can be used to generate conformers using adaptive ANM:
 
   * :class:`.AdaptiveANM` - generate transitions between two conformers using best overlapping modes 
+
+Essential Site Scanning Analysis (ESSA)
+========================================
+
+The following class and its functions can be used to perform Essential Site Scanning Analysis:
+
+  * :class:`.ESSA`
 
 Editing models
 ==============
@@ -216,7 +223,9 @@ Finally, normal modes can be visualized and animated using VMD plugin
 :ref:`nmwiz`. The following functions allow for running NMWiz from within Python:
 
   * :func:`.viewNMDinVMD` - run VMD and load normal mode data
-  * :func:`.pathVMD` - get/set path to VMD executable"""
+  * :func:`.pathVMD` - get/set path to VMD executable
+  
+"""
 
 __all__ = []
 
