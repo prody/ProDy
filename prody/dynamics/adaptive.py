@@ -25,8 +25,6 @@ AANM_DEFAULT = AANM_ONEWAY
 norm = importLA().norm
 
 def checkInput(structureA, structureB, **kwargs):
-    weights = kwargs.pop('weights', 1.)
-
     coordsA = getCoords(structureA)
     if isinstance(structureA, Atomic):
         title = structureA.getTitle()
@@ -45,18 +43,24 @@ def checkInput(structureA, structureB, **kwargs):
             title = 'Unknown'
             atoms = None
 
-    weightsA = structureA.getFlags("mapped") if isinstance(structureA, AtomMap) else 1.
-    weightsB = structureB.getFlags("mapped") if isinstance(structureB, AtomMap) else 1.
-    weights = weights * weightsA * weightsB
+    maskA = structureA.getFlags("mapped") if isinstance(structureA, AtomMap) else 1.
+    maskB = structureB.getFlags("mapped") if isinstance(structureB, AtomMap) else 1.
+    weights = maskA * maskB
 
     if np.isscalar(weights):
         weights = None
+    
+    if np.isscalar(maskA):
+        maskA = None
+
+    if np.isscalar(maskB):
+        maskB = None
 
     coordsA, _ = superpose(coordsA, coordsB, weights)
     rmsd = calcRMSD(coordsA, coordsB, weights)
     LOGGER.info('Initialized Adaptive ANM with RMSD {:4.3f}\n'.format(rmsd))
 
-    return coordsA, coordsB, title, atoms, weights, rmsd
+    return coordsA, coordsB, title, atoms, weights, maskA, maskB, rmsd
 
 def getTitle(structure, def_title='structure'):
     if isinstance(structure, Atomic):
@@ -66,10 +70,10 @@ def getTitle(structure, def_title='structure'):
 
     return title
 
-def calcStep(initial, target, n_modes, ensemble, defvecs, rmsds, callback_func=None, **kwargs):
+def calcStep(initial, target, n_modes, ensemble, defvecs, rmsds, mask=None, callback_func=None, **kwargs):
     """Run a single step of adaptive ANM. 
     Modes will be calculated for *initial* and the subset with 
-    a cumulative overlap above a threshold defined by *Fmin* 
+    a square cumulative overlap above a threshold defined by *Fmin* 
     is used for transitioning towards *target*.
 
     By default this function uses values from initialisation but 
@@ -105,7 +109,6 @@ def calcStep(initial, target, n_modes, ensemble, defvecs, rmsds, callback_func=N
     if n_modes > maxModes:
         n_modes = maxModes
 
-    mask = None if weights is None else weights != 0
     anm, _ = calcENM(coords_init, select=mask, mask=mask, 
                      model='anm', trim='trim', n_modes=n_modes, 
                      **kwargs)
@@ -115,6 +118,8 @@ def calcStep(initial, target, n_modes, ensemble, defvecs, rmsds, callback_func=N
 
     defvec = coords_tar - coords_init
     d = defvec.flatten()
+    if weights is not None:
+        d *= weights.repeat(3)
     defvecs.append(d)
 
     if Fmin is None:
@@ -169,8 +174,8 @@ def calcStep(initial, target, n_modes, ensemble, defvecs, rmsds, callback_func=N
     rmsds.append(rmsd)
 
     if callback_func is not None:
-        cbkwargs = {'coords_init': coords_init, 
-                    'coords_tar': coords_tar, 
+        cbkwargs = {'init': coords_init, 
+                    'tar': coords_tar, 
                     'modes': modes, 
                     'defvec': d}
         callback_func(**cbkwargs)
@@ -197,8 +202,8 @@ def checkConvergence(rmsds, coords, **kwargs):
     :arg rmsds: a list of RMSDs from Adaptive ANM
     :type rmsds: list
 
-    :arg coordsA: coordinate set A for checking disconnections
-    :type coordsA: :class:`~numpy.ndarray`
+    :arg coords: coordinates for checking disconnections
+    :type coords: :class:`~numpy.ndarray`
 
     :arg min_rmsd_diff: cutoff for rmsds converging. Default 0.01 A
     :type min_rmsd_diff: float
@@ -281,7 +286,7 @@ def calcOneWayAdaptiveANM(structureA, structureB, n_steps, **kwargs):
 
     n_modes = kwargs.pop('n_modes', 20)
 
-    coordsA, coordsB, title, atoms, weights, rmsd = checkInput(structureA, structureB, **kwargs)
+    coordsA, coordsB, title, atoms, weights, maskA, maskB, rmsd = checkInput(structureA, structureB, **kwargs)
     coordsA = coordsA.copy()
 
     LOGGER.timeit('_prody_calcAdaptiveANM')
@@ -296,7 +301,7 @@ def calcOneWayAdaptiveANM(structureA, structureB, n_steps, **kwargs):
     ensemble.addCoordset(coordsA.copy())
     while n < n_steps:
         LOGGER.info('\nStarting cycle {0} with initial structure {1}'.format(n+1, title))                                                            
-        n_modes = calcStep(coordsA, coordsB, n_modes, ensemble, defvecs, rmsds,
+        n_modes = calcStep(coordsA, coordsB, n_modes, ensemble, defvecs, rmsds, mask=maskA,
                            resetFmin=resetFmin, **kwargs)
         n += 1
         resetFmin = False
@@ -328,7 +333,7 @@ def calcAlternatingAdaptiveANM(structureA, structureB, n_steps, **kwargs):
 
     n_modes = kwargs.pop('n_modes', 20)
 
-    coordsA, coordsB, title, atoms, weights, rmsd = checkInput(structureA, structureB, **kwargs)
+    coordsA, coordsB, title, atoms, weights, maskA, maskB, rmsd = checkInput(structureA, structureB, **kwargs)
     coordsA = coordsA.copy()
     coordsB = coordsB.copy()
 
@@ -349,7 +354,7 @@ def calcAlternatingAdaptiveANM(structureA, structureB, n_steps, **kwargs):
 
     while n < n_steps:
         LOGGER.info('\nStarting cycle {0} with {1}'.format(n + 1, getTitle(structureA, 'structure A')))
-        n_modes = calcStep(coordsA, coordsB, n_modes, ensA, defvecs, rmsds,
+        n_modes = calcStep(coordsA, coordsB, n_modes, ensA, defvecs, rmsds, mask=maskA,
                            resetFmin=resetFmin, **kwargs)
         n += 1
         resetFmin = False
@@ -359,7 +364,7 @@ def calcAlternatingAdaptiveANM(structureA, structureB, n_steps, **kwargs):
             break
 
         LOGGER.info('\nStarting cycle {0} with structure {1}'.format(n+1, getTitle(structureB, 'structure B')))
-        n_modes = calcStep(coordsB, coordsA, n_modes, ensB, defvecs, rmsds,
+        n_modes = calcStep(coordsB, coordsA, n_modes, ensB, defvecs, rmsds, mask=maskB,
                            resetFmin=resetFmin, **kwargs)
         n += 1
 
@@ -396,7 +401,7 @@ def calcBothWaysAdaptiveANM(structureA, structureB, n_steps, **kwargs):
 
     n_modes0 = n_modes = kwargs.pop('n_modes', 20)
 
-    coordsA, coordsB, title, atoms, weights, rmsd = checkInput(structureA, structureB, **kwargs)
+    coordsA, coordsB, title, atoms, weights, maskA, maskB, rmsd = checkInput(structureA, structureB, **kwargs)
     coordsA = coordsA.copy()
     coordsB = coordsB.copy()
 
@@ -417,13 +422,12 @@ def calcBothWaysAdaptiveANM(structureA, structureB, n_steps, **kwargs):
     
     while n < n_steps:
         LOGGER.info('\nStarting cycle {0} with {1}'.format(n + 1, getTitle(structureA, 'structure A')))
-        n_modes = calcStep(coordsA, coordsB, n_modes, ensA, defvecs, rmsds,
+        n_modes = calcStep(coordsA, coordsB, n_modes, ensA, defvecs, rmsds, mask=maskA,
                            resetFmin=resetFmin, **kwargs)
         n += 1
         resetFmin = False
 
         if n_modes == 0:
-            LOGGER.report('Alternating Adaptive ANM converged in %.2fs.', '_prody_calcAdaptiveANM')
             break
     
     n = 0
@@ -431,7 +435,7 @@ def calcBothWaysAdaptiveANM(structureA, structureB, n_steps, **kwargs):
     resetFmin = True
     while n < n_steps:
         LOGGER.info('\nStarting cycle {0} with structure {1}'.format(n+1, getTitle(structureB, 'structure B')))
-        n_modes = calcStep(coordsB, coordsA, n_modes, ensB, defvecs, rmsds,
+        n_modes = calcStep(coordsB, coordsA, n_modes, ensB, defvecs, rmsds, mask=maskB,
                            resetFmin=resetFmin, **kwargs)
         n += 1
         resetFmin = False
