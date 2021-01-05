@@ -90,19 +90,17 @@ def calcStep(initial, target, n_modes, ensemble, defvecs, rmsds, mask=None, call
     coords_tar = target
 
     dof = coords_init.shape[0] - 6
-    maxModes = kwargs.get('maxModes', None)
-    if maxModes is None:
-        maxModes = dof
+    n_max_modes = kwargs.get('n_max_modes', None)
+    if n_max_modes is None:
+        n_max_modes = dof
 
-    if not isinstance(maxModes, (int, float)):
-        raise TypeError('maxModes should be an integer or float')
-    if maxModes < 1:
-        maxModes = int(maxModes * dof)
-    if maxModes > dof:
-        maxModes = dof
+    if n_max_modes < 1:
+        n_max_modes = int(n_max_modes * dof)
+    if n_max_modes > dof:
+        n_max_modes = dof
 
-    if n_modes > maxModes:
-        n_modes = maxModes
+    if n_modes > n_max_modes:
+        n_modes = n_max_modes
 
     anm, _ = calcENM(coords_init, select=mask, mask=mask, 
                      model='anm', trim='trim', n_modes=n_modes, 
@@ -154,7 +152,7 @@ def calcStep(initial, target, n_modes, ensemble, defvecs, rmsds, mask=None, call
                     .format(n_sel_modes, '%4.3f'%c_sq[torf_Fmin].max(), np.max(mode_ids)+1))
 
     if np.max(mode_ids) > n_modes-5:
-        n_modes *= 10
+        n_modes += 10
 
     if n_modes > dof:
         n_modes = dof
@@ -269,13 +267,13 @@ def calcAdaptiveANM(a, b, n_steps, mode=AANM_DEFAULT, **kwargs):
     :kwarg f: step size. Default is 0.2
     :type f: float
 
-    :kwarg F_min: cutoff for selecting modes based on square cumulative overlaps. 
-        Default is **None**, which automatically determines and adapts *F_min* on the fly.
-    :type F_min: float
+    :kwarg Fmin: cutoff for selecting modes based on square cumulative overlaps
+        Default is **None**, which automatically determines and adapts *Fmin* on the fly.
+    :type Fmin: float
 
-    :kwarg F_min_max: maximum value for *F_min* when it is automatically determined. 
+    :kwarg Fmin_max: maximum value for *Fmin* when it is automatically determined
         Default is 0.6
-    :type F_min_max: float
+    :type Fmin_max: float
 
     :arg min_rmsd_diff: cutoff for rmsds converging. Default is **None**, which skips 
         checking for this condition
@@ -287,6 +285,10 @@ def calcAdaptiveANM(a, b, n_steps, mode=AANM_DEFAULT, **kwargs):
     :kwarg n_modes: the number of modes to be calculated for the first run. *n_modes* 
         will be dynamically adjusted later as the calculation progresses. Default is 20
     :type n_modes: int
+
+    :kwarg n_max_modes: the maximum number of modes to be calculated in each run. 
+        Default is **None**, which allows as many as degree of freedom
+    :type n_max_modes: int
 
     Please see keyword arguments for calculating the modes in :func:`.calcENM`.
     """
