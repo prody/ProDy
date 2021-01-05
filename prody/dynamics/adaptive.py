@@ -71,14 +71,9 @@ def getTitle(structure, def_title='structure'):
     return title
 
 def calcStep(initial, target, n_modes, ensemble, defvecs, rmsds, mask=None, callback_func=None, **kwargs):
-    """Run a single step of adaptive ANM. 
-    Modes will be calculated for *initial* and the subset with 
-    a square cumulative overlap above a threshold defined by *Fmin* 
-    is used for transitioning towards *target*.
-
-    By default this function uses values from initialisation but 
-    they can be over-ridden if desired. For example, in bi-directional 
-    adaptive ANM, we switch *initial* and *target*
+    """Runs a single step of adaptive ANM. 
+    Modes will be calculated for *initial* with a square cumulative overlap above a threshold defined by 
+    *Fmin* and used for transitioning towards *target*.
     """
 
     Fmin = kwargs.get('Fmin', None)
@@ -195,7 +190,7 @@ def checkConvergence(rmsds, coords, **kwargs):
     """Check convergence of adaptive ANM. 
 
     Convergence is reached if one of three conditions is met:
-    1. difference between *rmsds* from previous step to current < *min_rmsd_diff*
+    1. Difference between *rmsds* from previous step to current < *min_rmsd_diff*
     2. Current rmsd < *target_rmsd*
     3. A node in *coords* gets disconnected from another by > *cutoff*
 
@@ -205,13 +200,13 @@ def checkConvergence(rmsds, coords, **kwargs):
     :arg coords: coordinates for checking disconnections
     :type coords: :class:`~numpy.ndarray`
 
-    :arg min_rmsd_diff: cutoff for rmsds converging. Default 0.01 A
+    :arg min_rmsd_diff: cutoff for rmsds converging. Default 0.01
     :type min_rmsd_diff: float
 
-    :arg target_rmsd: target rmsd for stopping. Default 1.0 A
+    :arg target_rmsd: target rmsd for stopping. Default 1.0
     :type target_rmsd: float
 
-    :arg cutoff: cutoff for building ANM. Default 15 A
+    :arg cutoff: cutoff for building ANM. Default 15
     :type cutoff: float    
     """
     min_rmsd_diff = kwargs.get('min_rmsd_diff', 0.01)
