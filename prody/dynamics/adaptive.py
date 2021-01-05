@@ -1,140 +1,100 @@
 # -*- coding: utf-8 -*-
 """This module defines functions for performing adaptive ANM."""
 
-from prody.atomic.atomic import Atomic
+from prody.atomic import Atomic, AtomMap
 import time
 from numbers import Integral, Number
 import numpy as np
 
 from prody import LOGGER
-from prody.utilities import getCoords
+from prody.utilities import getCoords, importLA
 from prody.measure import calcRMSD, calcDistance, superpose
 from prody.ensemble import Ensemble
 
 from .functions import calcENM
 from .modeset import ModeSet
 
+__all__ = ['calcAdaptiveANM', 'AANM_ONEWAY', 'AANM_ALTERNATING', 'AANM_BOTHWAYS', 'AANM_DEFAULT']
 
-__all__ = ['AdaptiveANM', 'runAdaptiveANM', 'runOneWayAdaptiveANM', 'runBothWaysAdaptiveANM']
+AANM_ONEWAY = 0
+AANM_ALTERNATING = 1
+AANM_BOTHWAYS = 2
 
+AANM_DEFAULT = AANM_ONEWAY
 
-class AdaptiveANM(object):
-    """Class for initialising adaptive ANM analysis of proteins ([ZY09]_).
+norm = importLA().norm
 
-    This implementation differs from the original one in that it sorts the 
-    modes by overlap prior to cumulative overlap calculations for efficiency.
+def checkInput(structureA, structureB, **kwargs):
+    coordsA = getCoords(structureA)
+    if isinstance(structureA, Atomic):
+        title = structureA.getTitle()
+        atoms = structureA
+    else:
+        title = None
+        atoms = None
 
-    .. [ZY09] Zheng Yang, Peter Májek, Ivet Bahar. Allosteric Transitions of 
-              Supramolecular Systems Explored by Network Models: Application to 
-              Chaperonin GroEL. *PLOS Comp Biol* **2009** 40:512-524.
-
-    :arg structureA: starting structure for the transition
-    :type structureA: :class:`.Atomic`, :class:`~numpy.ndarray`
-
-    :arg structureB: starting structure for the transition
-    :type structureB: :class:`.Atomic`, :class:`~numpy.ndarray`
-    """
-
-    def __init__(self, structureA, structureB, **kwargs):
-
-        self.coordsA = getCoords(structureA)
-        self.coordsA_0 = self.coordsA
-        if isinstance(structureA, Atomic):
-            self.titleA = structureA.getTitle()
-        else:
-            self.titleA = 'structure A'
-
-        self.coordsB = getCoords(structureB)
-        self.coordsB, _ = superpose(self.coordsB, self.coordsA)
-        self.coordsB_0 = self.coordsB
+    coordsB = getCoords(structureB)
+    
+    if title is None:
         if isinstance(structureB, Atomic):
-            self.titleB = structureB.getTitle()
+            title = structureB.getTitle()
+            atoms = structureB
         else:
-            self.titleB = 'structure B'
+            title = 'Unknown'
+            atoms = None
 
-        if self.coordsA.shape != self.coordsB.shape:
-            raise ValueError('structures should have the same number of atoms')
+    maskA = structureA.getFlags("mapped") if isinstance(structureA, AtomMap) else 1.
+    maskB = structureB.getFlags("mapped") if isinstance(structureB, AtomMap) else 1.
+    weights = maskA * maskB
 
-        self.n_atoms = self.coordsA.shape[0]
+    if np.isscalar(weights):
+        weights = None
+    
+    if np.isscalar(maskA):
+        maskA = None
 
-        rmsd = calcRMSD(self.coordsA, self.coordsB)
-        self.rmsds = [rmsd]
-        self.dList = []
-        self.numSteps = 0
+    if np.isscalar(maskB):
+        maskB = None
 
-        self.n_modes = kwargs.get('n_modes', 20)
-        if not isinstance(self.n_modes, Integral):
-            raise TypeError('n_modes should be an integer')
+    coordsA, _ = superpose(coordsA, coordsB, weights)
+    rmsd = calcRMSD(coordsA, coordsB, weights)
+    LOGGER.info('Initialized Adaptive ANM with RMSD {:4.3f}\n'.format(rmsd))
 
-        self.cutoff = kwargs.get('cutoff', 15)
-        if not isinstance(self.cutoff, Number):
-            raise TypeError('cutoff should be a number')
+    return coordsA, coordsB, title, atoms, weights, maskA, maskB, rmsd
 
-        self.anmListA = []
-        self.anmListB = []
-        self.numModesList = []
-        self.whichModesA = []
-        self.whichModesB = []
+def getTitle(structure, def_title='structure'):
+    if isinstance(structure, Atomic):
+        title = structure.getTitle()
+    else:
+        title = def_title
 
-        self.maxModes = kwargs.get('maxModes', None)
-        dof = 3*self.n_atoms-6
-        if self.maxModes is None:
-            self.maxModes = dof
+    return title
 
-        if not isinstance(self.maxModes, (Integral, float)):
-            raise TypeError('maxModes should be an integer or float')
-        if self.maxModes < 1:
-            self.maxModes = int(self.maxModes * dof)
-        if self.maxModes > dof:
-            self.maxModes = dof
-
-        self.Fmin = kwargs.get('Fmin', None)
-        self.Fmin_max = kwargs.get('Fmin_max', 0.6)
-
-        self.ensembleA = Ensemble(self.titleA)
-        self.ensembleA.addCoordset(self.coordsA)
-
-        self.ensembleB = Ensemble(self.titleB)
-        self.ensembleB.addCoordset(self.coordsB)
-
-        self.ensemble = Ensemble('combined trajectory')
-        self.ensemble.setCoords(self.coordsA)
-
-        self.rmsd_diff_cutoff = kwargs.get('rmsd_diff_cutoff', 0.05)
-        self.target_rmsd = kwargs.get('target_rmsd', 1.0)
-
-        LOGGER.info(
-            'Initialised Adaptive ANM with RMSD {:4.3f}\n'.format(rmsd))
-
-
-def _runStep(structureA, structureB, **kwargs):
+def calcStep(initial, target, n_modes, ensemble, defvecs, rmsds, mask=None, callback_func=None, **kwargs):
     """Run a single step of adaptive ANM. 
-    Modes will be calculated for *structureA* and the subset with 
-    a cumulative overlap above a threshold defined by *Fmin* 
-    is used for transitioning towards *structureB*.
+    Modes will be calculated for *initial* and the subset with 
+    a square cumulative overlap above a threshold defined by *Fmin* 
+    is used for transitioning towards *target*.
 
     By default this function uses values from initialisation but 
     they can be over-ridden if desired. For example, in bi-directional 
-    adaptive ANM, we switch *structureA* and *structureB*
+    adaptive ANM, we switch *initial* and *target*
     """
+
     Fmin = kwargs.get('Fmin', None)
     f = kwargs.get('f', 0.2)
 
     Fmin_max = kwargs.get('Fmin_max', 0.6)
     resetFmin = kwargs.get('resetFmin', False)
 
-    dList = kwargs.get('dList', [])
-    numModesList = kwargs.get('numModesList', [])
+    weights = ensemble.getWeights()
+    if weights is not None:
+        weights = weights.flatten()
+    # coords_init, _ = superpose(initial, target, weights) # we should keep this off otherwise RMSD calculations are off
+    coords_init = initial
+    coords_tar = target
 
-    cutoff = kwargs.get('cutoff', 15)
-    if not isinstance(cutoff, Number):
-        raise TypeError('cutoff should be a number')
-
-    coordsA = getCoords(structureA)
-    coordsB = getCoords(structureB)
-    coordsB, _ = superpose(coordsB, coordsA)
-
-    dof = coordsA.shape[0] - 6
+    dof = coords_init.shape[0] - 6
     maxModes = kwargs.get('maxModes', None)
     if maxModes is None:
         maxModes = dof
@@ -146,105 +106,107 @@ def _runStep(structureA, structureB, **kwargs):
     if maxModes > dof:
         maxModes = dof
 
-    n_modes = kwargs.pop('n_modes', 20)
-    if not isinstance(n_modes, Integral):
-        raise TypeError('n_modes should be an integer')
-
     if n_modes > maxModes:
         n_modes = maxModes
 
-    anmA, _ = calcENM(coordsA, n_modes=n_modes, **kwargs)
+    anm, _ = calcENM(coords_init, select=mask, mask=mask, 
+                     model='anm', trim='trim', n_modes=n_modes, 
+                     **kwargs)
 
-    defvec = coordsB - coordsA
+    if mask is not None:
+        anm.masked = False
+
+    defvec = coords_tar - coords_init
     d = defvec.flatten()
-    dList.append(d)
+    if weights is not None:
+        d *= weights.repeat(3)
+    defvecs.append(d)
 
     if Fmin is None:
         if resetFmin:
             Fmin = 0.  # Select the first mode only
         else:
-            Fmin = 1 - np.sqrt(np.linalg.norm(dList[-1])
-                               / np.linalg.norm(dList[0]))
+            Fmin = 1 - np.sqrt(norm(defvecs[-1])/norm(defvecs[0]))
 
     if Fmin > Fmin_max:
         Fmin = Fmin_max
 
-    LOGGER.info('Fmin is {:4.3f}, corresponding to a cumulative overlap of {:4.3f}'.format(
-        Fmin, np.sqrt(Fmin)))
+    overlaps = np.abs(np.dot(d, anm.getEigvecs())) 
+    sorted_indices = overlaps.argsort()[::-1]
+    overlaps = overlaps[sorted_indices]
 
-    overlaps = np.dot(d, anmA.getEigvecs())
-    overlap_sorting_indices = list(reversed(list(np.argsort(abs(overlaps)))))
-    overlaps = overlaps[overlap_sorting_indices]
+    sorted_mode_indices = np.arange(anm.numModes())[sorted_indices]
 
-    modesetA = ModeSet(anmA, overlap_sorting_indices)
-
-    normalised_overlaps = overlaps / np.linalg.norm(d)
+    normalised_overlaps = overlaps / norm(d)
     c_sq = np.cumsum(np.power(normalised_overlaps, 2), axis=0)
 
-    modesCrossingFmin = np.where(c_sq <= Fmin)[0]
-    numModes = len(modesCrossingFmin)
-    if numModes == 0:
-        numModes = 1
-        modesCrossingFmin = [0]
+    torf_Fmin = c_sq <= Fmin
+    if not np.any(torf_Fmin):
+        torf_Fmin[0] = True
 
-    numModesList.append(numModes)
+    selected_mode_indices = sorted_mode_indices[torf_Fmin]
 
-    if numModes == 1:
-        LOGGER.info('Using 1 mode with overlap {0} (Mode {1})'
-                    .format('{:4.3f}'.format(np.sqrt(c_sq[0])), modesetA.getIndices()[0]+1))
-    elif numModes < 11:
-        LOGGER.info('Using {0} modes with cumulative overlap {1} (Modes {2} and {3})'
-                    .format(numModes, '{:4.3f}'.format(np.sqrt(c_sq[numModes-1])),
-                            ', '.join([str(entry)
-                                       for entry in modesetA.getIndices()[:numModes-1]+1]),
-                            str(modesetA.getIndices()[numModes-1]+1)))
+    n_sel_modes = len(selected_mode_indices)
+
+    modes = ModeSet(anm, selected_mode_indices)
+    mode_ids = modes.getIndices()
+
+    if n_sel_modes == 1:
+        LOGGER.info('Using 1 mode with square overlap {0} (Mode {1})'
+                    .format('%4.3f'%c_sq[0], mode_ids[0]+1))
     else:
-        LOGGER.info('Using {0} modes with cumulative overlap {1} (Modes {2}, ... and {3}) with max mode number {4} and min mode number {5}'
-                    .format(numModes, '{:4.3f}'.format(np.sqrt(c_sq[numModes-1])),
-                            ', '.join([str(entry)
-                                       for entry in modesetA.getIndices()[:10]+1]),
-                            str(modesetA.getIndices()[numModes-1]+1),
-                            np.max(modesetA.getIndices()[:numModes]+1),
-                            np.min(modesetA.getIndices()[:numModes]+1)))
+        LOGGER.info('Using {0} modes with square cumulative overlap {1} (Max mode number {2})'
+                    .format(n_sel_modes, '%4.3f'%c_sq[torf_Fmin].max(), np.max(mode_ids)+1))
 
-    if np.max(modesetA.getIndices()[:numModes]) > n_modes-5:
+    if np.max(mode_ids) > n_modes-5:
         n_modes *= 10
 
     if n_modes > dof:
         n_modes = dof
 
-    v = np.sum(np.multiply(overlaps[:numModes], modesetA.getEigvecs()[:, :numModes]),
-               axis=1).reshape(coordsA.shape)
+    v = modes.getEigvecs().dot(overlaps[torf_Fmin])
+    s = f * v.dot(d) / v.dot(v)
 
-    s_min = sum(np.multiply(v.flatten(), d)) / sum(np.power(v.flatten(), 2))
+    # update coords_init
+    coords_init += s * v.reshape(coords_init.shape)
+    #initial[:] = coords_init[:] # turn this on in case coords_init is not initial in the future
+    rmsd = calcRMSD(coords_init, coords_tar, weights)
+    rmsds.append(rmsd)
 
-    new_coordsA = coordsA + f * s_min * v
+    if callback_func is not None:
+        cbkwargs = {'init': coords_init, 
+                    'tar': coords_tar, 
+                    'modes': modes, 
+                    'defvec': d}
+        callback_func(**cbkwargs)
 
-    rmsd = calcRMSD(new_coordsA, coordsB)
+    # deposit 
+    ensemble.addCoordset(coords_init.copy())
+    converged = checkConvergence(rmsds, coords_init, **kwargs)
+
+    if converged:
+        n_modes = 0
 
     LOGGER.info('Current RMSD is {:4.3f}\n'.format(rmsd))
 
-    return rmsd, new_coordsA, modesetA, modesCrossingFmin, dList, n_modes
+    return n_modes
 
-def _checkConvergence(rmsds, coordsA, coordsB, **kwargs):
+def checkConvergence(rmsds, coords, **kwargs):
     """Check convergence of adaptive ANM. 
 
     Convergence is reached if one of three conditions is met:
-    1. difference between *rmsds* from previous step to current < *rmsd_diff_cutoff*
+    1. difference between *rmsds* from previous step to current < *min_rmsd_diff*
     2. Current rmsd < *target_rmsd*
-    3. A node in *coordsA* or *coordsB* gets disconnected from another by > *cutoff*
+    3. A node in *coords* gets disconnected from another by > *cutoff*
 
     :arg rmsds: a list of RMSDs from Adaptive ANM
     :type rmsds: list
 
-    :arg coordsA: coordinate set A for checking disconnections
-    :type coordsA: :class:`~numpy.ndarray`
+    :arg coords: coordinates for checking disconnections
+    :type coords: :class:`~numpy.ndarray`
 
-    :arg coordsA: coordinate set B for checking disconnections
-    :type coordsA: :class:`~numpy.ndarray`
-
-    :arg rmsd_diff_cutoff: cutoff for rmsds converging. Default 0.05 A
-    :type rmsd_diff_cutoff: float
+    :arg min_rmsd_diff: cutoff for rmsds converging. Default 0.01 A
+    :type min_rmsd_diff: float
 
     :arg target_rmsd: target rmsd for stopping. Default 1.0 A
     :type target_rmsd: float
@@ -252,29 +214,28 @@ def _checkConvergence(rmsds, coordsA, coordsB, **kwargs):
     :arg cutoff: cutoff for building ANM. Default 15 A
     :type cutoff: float    
     """
-    rmsd_diff_cutoff = kwargs.get('rmsd_diff_cutoff', 0.05)
+    min_rmsd_diff = kwargs.get('min_rmsd_diff', 0.01)
     target_rmsd = kwargs.get('target_rmsd', 1.0)
     cutoff = kwargs.get('cutoff', 15)
 
-    if rmsds[-2] - rmsds[-1] < rmsd_diff_cutoff:
-        LOGGER.warn(
-            'The RMSD decrease fell below {0}'.format(rmsd_diff_cutoff))
-        return True
+    if min_rmsd_diff is not None:
+        if rmsds[-2] - rmsds[-1] < min_rmsd_diff:
+            LOGGER.warn(
+                'The RMSD decrease fell below {0}'.format(min_rmsd_diff))
+            return True
 
     if rmsds[-1] < target_rmsd:
         LOGGER.warn('The RMSD fell below target RMSD {0}'.format(target_rmsd))
         return True
 
-    disconA = _checkDisconnection(coordsA, cutoff)
-    disconB = _checkDisconnection(coordsB, cutoff)
-
-    if disconA or disconB:
+    if checkDisconnection(coords, cutoff):
+        LOGGER.warn('Disconnections were found in one of the structures {0}')
         return True
 
     return False
 
 
-def _checkDisconnection(coords, cutoff):
+def checkDisconnection(coords, cutoff):
     """Check disconnection of ANM, i.e. a node in *coords* gets 
     disconnected from another by > *cutoff*. This is one of the 
     stopping criteria for adaptive ANM.
@@ -295,8 +256,17 @@ def _checkDisconnection(coords, cutoff):
 
     return False
 
+def calcAdaptiveANM(structureA, structureB, n_steps, mode=AANM_DEFAULT, **kwargs):
+    if mode == AANM_ONEWAY:
+        return calcOneWayAdaptiveANM(structureA, structureB, n_steps, **kwargs)
+    elif mode == AANM_ALTERNATING:
+        return calcAlternatingAdaptiveANM(structureA, structureB, n_steps, **kwargs)
+    elif mode == AANM_BOTHWAYS:
+        return calcBothWaysAdaptiveANM(structureA, structureB, n_steps, **kwargs)
+    else:
+        raise ValueError('unknown aANM mode: %d'%mode)
 
-def runOneWayAdaptiveANM(structureA, structureB, n_steps, **kwargs):
+def calcOneWayAdaptiveANM(structureA, structureB, n_steps, **kwargs):
     """Run a modified version of adaptive ANM analysis of proteins ([ZY09]_) 
     where all steps are run in one direction: from *structureA* to *structureB*.
 
@@ -313,45 +283,36 @@ def runOneWayAdaptiveANM(structureA, structureB, n_steps, **kwargs):
     :arg structureB: starting structure for the transition
     :type structureB: :class:`.Atomic`, :class:`~numpy.ndarray`
     """
-    self = AdaptiveANM(structureA, structureB, **kwargs)
 
-    LOGGER.timeit('_prody_runManySteps')
-    n_start = self.numSteps
+    n_modes = kwargs.pop('n_modes', 20)
+
+    coordsA, coordsB, title, atoms, weights, maskA, maskB, rmsd = checkInput(structureA, structureB, **kwargs)
+    coordsA = coordsA.copy()
+
+    LOGGER.timeit('_prody_calcAdaptiveANM')
+    n = 0
     resetFmin = True
-    while self.numSteps < n_start + n_steps:
-        LOGGER.info('\nStarting cycle {0} with initial structure {1}'.format(self.numSteps+1,
-                                                                                self.titleA))                                                                   
-        rmsd, new_coordsA, modesetA, modesCrossingFmin, self.dList, self.n_modes = _runStep(self.coordsA,
-                                                                                                       self.coordsB,
-                                                                                                       n_modes=self.n_modes,
-                                                                                                       resetFmin=resetFmin,
-                                                                                                       dList=self.dList,
-                                                                                                       **kwargs)
-        self.numSteps += 1
+    defvecs = []
+    rmsds = [rmsd]
+    ensemble = Ensemble(title + '_aANM')
+    ensemble.setAtoms(atoms)
+    ensemble.setCoords(coordsB)
+    ensemble.setWeights(weights)
+    ensemble.addCoordset(coordsA.copy())
+    while n < n_steps:
+        LOGGER.info('\nStarting cycle {0} with initial structure {1}'.format(n+1, title))                                                            
+        n_modes = calcStep(coordsA, coordsB, n_modes, ensemble, defvecs, rmsds, mask=maskA,
+                           resetFmin=resetFmin, **kwargs)
+        n += 1
         resetFmin = False
-        self.anmListA.append(modesetA)
-        self.coordsA = new_coordsA
-        self.ensembleA.addCoordset(new_coordsA)
-        self.whichModesA.append(modesetA[modesCrossingFmin])
-        self.rmsds.append(rmsd)
-
-        LOGGER.debug('Total time so far is %.2f minutes' % (
-            (time.time() - LOGGER._times['_prody_runManySteps'])/60))
-        converged = _checkConvergence(
-            self.rmsds, self.coordsA, self.coordsB)
-        if converged:
-            # That way the original object is back to normal
-            self.coordsA = self.coordsA_0
-            # That way the original object is back to normal
-            self.coordsB = self.coordsB_0
-            LOGGER.debug('Process completed in %.2f hours' % (
-                (time.time() - LOGGER._times['_prody_runManySteps'])/3600))
+        if n_modes == 0:
+            LOGGER.report('One-way Adaptive ANM converged in %.2fs.', '_prody_calcAdaptiveANM')
             break
 
-    return self
+    return ensemble
 
 
-def runAlternatingAdaptiveANM(structureA, structureB, n_steps, **kwargs):
+def calcAlternatingAdaptiveANM(structureA, structureB, n_steps, **kwargs):
     """Run the traditional version of adaptive ANM analysis of proteins ([ZY09]_) 
     where steps are run in alternating directions: from *structureA* to *structureB*, 
     then *structureB* to *structureA*, then back again, and so on.
@@ -369,71 +330,57 @@ def runAlternatingAdaptiveANM(structureA, structureB, n_steps, **kwargs):
     :arg structureB: starting structure for the transition
     :type structureB: :class:`.Atomic`, :class:`~numpy.ndarray`
     """
-    self = AdaptiveANM(structureA, structureB, **kwargs)
 
-    LOGGER.timeit('_prody_runManySteps')
-    n_start = self.numSteps
+    n_modes = kwargs.pop('n_modes', 20)
+
+    coordsA, coordsB, title, atoms, weights, maskA, maskB, rmsd = checkInput(structureA, structureB, **kwargs)
+    coordsA = coordsA.copy()
+    coordsB = coordsB.copy()
+
+    LOGGER.timeit('_prody_calcAdaptiveANM')
+    n = 0
     resetFmin = True
-    while self.numSteps < n_start + n_steps:
-        LOGGER.info('\nStarting cycle {0} with initial structure {1}'.format(self.numSteps+1,
-                                                                                self.titleA))
-        rmsd, new_coordsA, modesetA, modesCrossingFmin, self.dList, self.n_modes = _runStep(self.coordsA,
-                                                                                                       self.coordsB,
-                                                                                                       n_modes=self.n_modes,
-                                                                                                       resetFmin=resetFmin,
-                                                                                                       dList=self.dList,
-                                                                                                       **kwargs)
-        self.numSteps += 1
+    defvecs = []
+    rmsds = [rmsd]
+    ensA = Ensemble('A')
+    ensA.setCoords(coordsA)
+    ensA.setWeights(weights)
+    ensA.addCoordset(coordsA.copy())
+
+    ensB = Ensemble('B')
+    ensB.setCoords(coordsB.copy())
+    ensB.setWeights(weights)
+    ensB.addCoordset(coordsB.copy())
+
+    while n < n_steps:
+        LOGGER.info('\nStarting cycle {0} with {1}'.format(n + 1, getTitle(structureA, 'structure A')))
+        n_modes = calcStep(coordsA, coordsB, n_modes, ensA, defvecs, rmsds, mask=maskA,
+                           resetFmin=resetFmin, **kwargs)
+        n += 1
         resetFmin = False
-        self.anmListA.append(modesetA)
-        self.coordsA = new_coordsA
-        self.ensembleA.addCoordset(new_coordsA)
-        self.whichModesA.append(modesetA[modesCrossingFmin])
-        self.rmsds.append(rmsd)
 
-        LOGGER.debug('Total time so far is %.2f minutes' % (
-            (time.time() - LOGGER._times['_prody_runManySteps'])/60))
-
-        LOGGER.info('\nStarting cycle {0} with initial structure {1}'.format(self.numSteps+1,
-                                                                                self.titleA))
-        rmsd, new_coordsA, modesetA, modesCrossingFmin, self.dList, self.n_modes = _runStep(self.coordsB,
-                                                                                                       self.coordsA,
-                                                                                                       n_modes=self.n_modes,
-                                                                                                       resetFmin=resetFmin,
-                                                                                                       dList=self.dList,
-                                                                                                       **kwargs)
-        self.numSteps += 1
-        self.anmListB.append(modesetA)
-        self.coordsB = new_coordsA
-        self.ensembleB.addCoordset(new_coordsA)
-        self.whichModesB.append(modesetA[modesCrossingFmin])
-        self.rmsds.append(rmsd)
-
-        LOGGER.debug('Total time so far is %.2f minutes' % (
-            (time.time() - LOGGER._times['_prody_runManySteps'])/60))
-
-        converged = _checkConvergence(
-            self.rmsds, self.coordsA, self.coordsB)
-        if converged:
-            # That way the original object is back to normal
-            self.coordsA = self.coordsA_0
-            # That way the original object is back to normal
-            self.coordsB = self.coordsB_0
-            LOGGER.debug('Process completed in %.2f hours' % (
-                (time.time() - LOGGER._times['_prody_runManySteps'])/3600))
+        if n_modes == 0:
+            LOGGER.report('Alternating Adaptive ANM converged in %.2fs.', '_prody_calcAdaptiveANM')
             break
 
-    for coordset in self.ensembleA.getCoordsets():
-        self.ensemble.addCoordset(coordset)
-    for coordset in reversed(self.ensembleB.getCoordsets()):
-        self.ensemble.addCoordset(coordset)
+        LOGGER.info('\nStarting cycle {0} with structure {1}'.format(n+1, getTitle(structureB, 'structure B')))
+        n_modes = calcStep(coordsB, coordsA, n_modes, ensB, defvecs, rmsds, mask=maskB,
+                           resetFmin=resetFmin, **kwargs)
+        n += 1
 
-    return self
+        if n_modes == 0:
+            LOGGER.report('Alternating Adaptive ANM converged in %.2fs.', '_prody_calcAdaptiveANM')
+            break
+    
+    ensemble = ensA + ensB[::-1]
+    ensemble.setTitle(title + '_aANM')
+    ensemble.setAtoms(atoms)
+    ensemble.setCoords(ensB.getCoords())
 
-runAdaptiveANM = runAlternatingAdaptiveANM
+    return ensemble
 
 
-def runBothWaysAdaptiveANM(structureA, structureB, n_steps, **kwargs):
+def calcBothWaysAdaptiveANM(structureA, structureB, n_steps, **kwargs):
     """Run a modified version of adaptive ANM analysis of proteins ([ZY09]_) 
     where all steps are run in one direction (from *structureA* to *structureB*) 
     until convergence is reached and then the other way.
@@ -451,80 +398,58 @@ def runBothWaysAdaptiveANM(structureA, structureB, n_steps, **kwargs):
     :arg structureB: starting structure for the transition
     :type structureB: :class:`.Atomic`, :class:`~numpy.ndarray`
     """
-    self = AdaptiveANM(structureA, structureB, **kwargs)
 
-    LOGGER.timeit('_prody_runManySteps')
-    n_start = self.numSteps
+    n_modes0 = n_modes = kwargs.pop('n_modes', 20)
 
-    LOGGER.info('\n\nStarting from structure A ({0})'.format(self.titleA))
+    coordsA, coordsB, title, atoms, weights, maskA, maskB, rmsd = checkInput(structureA, structureB, **kwargs)
+    coordsA = coordsA.copy()
+    coordsB = coordsB.copy()
+
+    LOGGER.timeit('_prody_calcAdaptiveANM')
+    n = 0
     resetFmin = True
-    while self.numSteps < n_start + n_steps:
-        LOGGER.info('\nStarting cycle {0} with initial structure {1}'.format(self.numSteps+1,
-                                                                                self.titleA))
-        rmsd, new_coordsA, modesetA, modesCrossingFmin, self.dList, self.n_modes = _runStep(self.coordsA,
-                                                                                                       self.coordsB,
-                                                                                                       n_modes=self.n_modes,
-                                                                                                       resetFmin=resetFmin,
-                                                                                                       dList=self.dList,
-                                                                                                       **kwargs)
-        self.numSteps += 1
-        resetFmin = False
-        self.anmListA.append(modesetA)
-        self.coordsA = new_coordsA
-        self.ensembleA.addCoordset(new_coordsA)
-        self.whichModesA.append(modesetA[modesCrossingFmin])
-        self.rmsds.append(rmsd)
+    defvecs = []
+    rmsds = [rmsd]
+    ensA = Ensemble('A')
+    ensA.setCoords(coordsA)
+    ensA.setWeights(weights)
+    ensA.addCoordset(coordsA.copy())
 
-        LOGGER.debug('Total time so far is %.2f minutes' % (
-            (time.time() - LOGGER._times['_prody_runManySteps'])/60))
-        converged = _checkConvergence(
-            self.rmsds, self.coordsA, self.coordsB)
-        if converged:
-            # That way the original object is back to normal
-            #self.coordsA = self.coordsA_0
-            # That way the original object is back to normal
-            #self.coordsB = self.coordsB_0
-            LOGGER.warn('The part starting from structure A converged.')
+    ensB = Ensemble('B')
+    ensB.setCoords(coordsB.copy())
+    ensB.setWeights(weights)
+    ensB.addCoordset(coordsB.copy())
+    
+    while n < n_steps:
+        LOGGER.info('\nStarting cycle {0} with {1}'.format(n + 1, getTitle(structureA, 'structure A')))
+        n_modes = calcStep(coordsA, coordsB, n_modes, ensA, defvecs, rmsds, mask=maskA,
+                           resetFmin=resetFmin, **kwargs)
+        n += 1
+        resetFmin = False
+
+        if n_modes == 0:
+            break
+    
+    n = 0
+    n_modes = n_modes0
+    resetFmin = True
+    while n < n_steps:
+        LOGGER.info('\nStarting cycle {0} with structure {1}'.format(n+1, getTitle(structureB, 'structure B')))
+        n_modes = calcStep(coordsB, coordsA, n_modes, ensB, defvecs, rmsds, mask=maskB,
+                           resetFmin=resetFmin, **kwargs)
+        n += 1
+        resetFmin = False
+
+        if n_modes == 0:
+            LOGGER.report('Alternating Adaptive ANM converged in %.2fs.', '_prody_calcAdaptiveANM')
             break
 
-    LOGGER.info('\n\nStarting from structure B ({0})'.format(self.titleB))
-    resetFmin = True
-    while self.numSteps < n_start + n_steps:
-        LOGGER.info('\nStarting cycle {0} with initial structure {1}'.format(self.numSteps+1,
-                                                                                self.titleB))
-        rmsd, new_coordsA, modesetA, modesCrossingFmin, self.dList, self.n_modes = _runStep(self.coordsB,
-                                                                                                       self.coordsA,
-                                                                                                       n_modes=self.n_modes,
-                                                                                                       resetFmin=resetFmin,
-                                                                                                       dList=self.dList,
-                                                                                                       **kwargs)
-        self.numSteps += 1
-        resetFmin = False
-        self.anmListB.append(modesetA)
-        self.coordsB = new_coordsA
-        self.ensembleB.addCoordset(new_coordsA)
-        self.whichModesB.append(modesetA[modesCrossingFmin])
-        self.rmsds.append(rmsd)
+    ensemble = ensA + ensB[::-1]
+    ensemble.setTitle(title + '_aANM')
+    ensemble.setAtoms(atoms)
+    ensemble.setCoords(ensB.getCoords())
 
-        LOGGER.debug('Total time so far is %.2f minutes' % (
-            (time.time() - LOGGER._times['_prody_runManySteps'])/60))
-        converged = _checkConvergence(
-            self.rmsds, self.coordsA, self.coordsB)
-        if converged:
-            # That way the original object is back to normal
-            self.coordsA = self.coordsA_0
-            # That way the original object is back to normal
-            self.coordsB = self.coordsB_0
-            LOGGER.warn('The part starting from structure B converged.')
-            break
+    LOGGER.report('Both-way Adaptive ANM converged in %.2fs.', '_prody_calcAdaptiveANM')
 
-    for coordset in self.ensembleA.getCoordsets():
-        self.ensemble.addCoordset(coordset)
-    for coordset in reversed(self.ensembleB.getCoordsets()):
-        self.ensemble.addCoordset(coordset)
-
-    LOGGER.debug('Process completed in %.2f hours' %
-                    ((time.time() - LOGGER._times['_prody_runManySteps'])/3600))
-
-    return self
+    return ensemble
 
