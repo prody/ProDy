@@ -16,11 +16,11 @@ from .modeset import ModeSet
 
 __all__ = ['calcAdaptiveANM', 'AANM_ONEWAY', 'AANM_ALTERNATING', 'AANM_BOTHWAYS', 'AANM_DEFAULT']
 
-AANM_ONEWAY = 0
-AANM_ALTERNATING = 1
+AANM_ALTERNATING = 0
+AANM_ONEWAY = 1
 AANM_BOTHWAYS = 2
 
-AANM_DEFAULT = AANM_ONEWAY
+AANM_DEFAULT = AANM_ALTERNATING
 
 norm = importLA().norm
 
@@ -261,7 +261,7 @@ def calcAdaptiveANM(a, b, n_steps, mode=AANM_DEFAULT, **kwargs):
     :type n_steps: int
 
     :arg mode: the way of the calculation to be performed, which can be either *AANM_ONEWAY*, 
-        *AANM_ALTERNATING*, or *AANM_BOTHWAYS*. Default is *AANM_ONEWAY*
+        *AANM_ALTERNATING*, or *AANM_BOTHWAYS*. Default is *AANM_ALTERNATING*
     :type mode: int
 
     :kwarg f: step size. Default is 0.2
