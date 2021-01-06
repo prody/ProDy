@@ -5,7 +5,7 @@ from numbers import Integral
 
 from numpy import dot, add, subtract, array, ndarray, sign, concatenate
 from numpy import zeros, ones, arange, isscalar, max, asarray
-from numpy import newaxis, unique, repeat, sum, empty
+from numpy import newaxis, unique, repeat, sum, empty, tile
 
 from prody import LOGGER
 from prody.atomic import Atomic, sliceAtoms
@@ -788,7 +788,15 @@ class Ensemble(object):
         if indices is None:
             indices = arange(self._confs.shape[1])
 
-        weights = self._weights[:, indices] if self._weights is not None else None
+        if self._weights is not None:
+            if self._weights.ndim == 2:
+                # Ensemble but not PDBEnsemble
+                weights = tile(self._weights, (self.numConfs(), 1, 1))
+
+            weights = self._weights[:, indices]
+        else:
+            weights = None
+
         if pairwise:
             n_confs = self.numConfs()
             defvecs = empty((n_confs, n_confs), dtype=ndarray)
