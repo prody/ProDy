@@ -85,7 +85,7 @@ def calcStep(initial, target, n_modes, ensemble, defvecs, rmsds, mask=None, call
     weights = ensemble.getWeights()
     if weights is not None:
         weights = weights.flatten()
-    # coords_init, _ = superpose(initial, target, weights) # we should keep this off otherwise RMSD calculations are off
+    #coords_init, _ = superpose(initial, target, weights) # we should keep this off otherwise RMSD calculations are off
     coords_init = initial
     coords_tar = target
 
@@ -124,11 +124,7 @@ def calcStep(initial, target, n_modes, ensemble, defvecs, rmsds, mask=None, call
     if Fmin > Fmin_max:
         Fmin = Fmin_max
 
-    overlaps = np.abs(np.dot(d, anm.getEigvecs())) 
-    sorted_indices = overlaps.argsort()[::-1]
-    overlaps = overlaps[sorted_indices]
-
-    sorted_mode_indices = np.arange(anm.numModes())[sorted_indices]
+    overlaps = np.dot(d, anm.getEigvecs())
 
     normalised_overlaps = overlaps / norm(d)
     c_sq = np.cumsum(np.power(normalised_overlaps, 2), axis=0)
@@ -136,23 +132,27 @@ def calcStep(initial, target, n_modes, ensemble, defvecs, rmsds, mask=None, call
     torf_Fmin = c_sq <= Fmin
     if not np.any(torf_Fmin):
         torf_Fmin[0] = True
+    
+    if not np.all(torf_Fmin):
+        i = np.where(torf_Fmin)[0].max()
+        torf_Fmin[i+1] = True
 
-    selected_mode_indices = sorted_mode_indices[torf_Fmin]
+    selected_mode_indices = np.arange(anm.numModes())[torf_Fmin]
 
     n_sel_modes = len(selected_mode_indices)
 
     modes = ModeSet(anm, selected_mode_indices)
-    mode_ids = modes.getIndices()
+    c_sq_crit = c_sq[torf_Fmin].max()
 
     if n_sel_modes == 1:
-        LOGGER.info('Using 1 mode with square overlap {0} (Mode {1})'
-                    .format('%4.3f'%c_sq[0], mode_ids[0]+1))
+        LOGGER.info('Using 1 mode with square overlap {0}'
+                    .format('%4.3f'%c_sq_crit))
     else:
-        LOGGER.info('Using {0} modes with square cumulative overlap {1} (Max mode number {2})'
-                    .format(n_sel_modes, '%4.3f'%c_sq[torf_Fmin].max(), np.max(mode_ids)+1))
+        LOGGER.info('Using {0} modes with square cumulative overlap {1}'
+                    .format(n_sel_modes, '%4.3f'%c_sq_crit))
 
-    if np.max(mode_ids) > n_modes-5:
-        n_modes += 10
+    if n_sel_modes > n_modes-5:
+        n_modes *= 2
 
     if n_modes > dof:
         n_modes = dof
@@ -162,7 +162,7 @@ def calcStep(initial, target, n_modes, ensemble, defvecs, rmsds, mask=None, call
 
     # update coords_init
     coords_init += s * v.reshape(coords_init.shape)
-    #initial[:] = coords_init[:] # turn this on in case coords_init is not initial in the future
+    # initial[:] = coords_init[:] # turn this on in case coords_init is not initial in the future
     rmsd = calcRMSD(coords_init, coords_tar, weights)
     rmsds.append(rmsd)
 
@@ -170,7 +170,8 @@ def calcStep(initial, target, n_modes, ensemble, defvecs, rmsds, mask=None, call
         cbkwargs = {'init': coords_init, 
                     'tar': coords_tar, 
                     'modes': modes, 
-                    'defvec': d}
+                    'defvec': d,
+                    'c_sq': c_sq_crit}
         callback_func(**cbkwargs)
 
     # deposit 
@@ -189,15 +190,17 @@ def checkConvergence(rmsds, coords, **kwargs):
 
     Convergence is reached if one of three conditions is met:
     1. Difference between *rmsds* from previous step to current < *min_rmsd_diff*
-    2. Current rmsd < *target_rmsd*
+    2. Current rmsd < *target_rmsd* for the last five runs
     3. A node in *coords* gets disconnected from another by > *cutoff*
     """
-    min_rmsd_diff = kwargs.get('min_rmsd_diff', 0.01)
+    min_rmsd_diff = kwargs.get('min_rmsd_diff', 0.05)
     target_rmsd = kwargs.get('target_rmsd', 1.0)
     cutoff = kwargs.get('cutoff', 15)
 
-    if min_rmsd_diff is not None:
-        if rmsds[-2] - rmsds[-1] < min_rmsd_diff:
+    if len(rmsds) > 4:
+        drmsd = np.abs(np.diff(rmsds))
+
+        if np.all(drmsd[-4:] < min_rmsd_diff):
             LOGGER.warn(
                 'The RMSD decrease fell below {0}'.format(min_rmsd_diff))
             return True
@@ -275,8 +278,7 @@ def calcAdaptiveANM(a, b, n_steps, mode=AANM_DEFAULT, **kwargs):
         Default is 0.6
     :type Fmin_max: float
 
-    :arg min_rmsd_diff: cutoff for rmsds converging. Default is **None**, which skips 
-        checking for this condition
+    :arg min_rmsd_diff: cutoff for rmsds converging. Default is 0.05
     :type min_rmsd_diff: float
 
     :kwarg target_rmsd: target rmsd for stopping. Default is 1.0
@@ -361,14 +363,13 @@ def calcAlternatingAdaptiveANM(a, b, n_steps, **kwargs):
         LOGGER.info('\nStarting cycle {0} with {1}'.format(n + 1, getTitle(a, 'structure A')))
         n_modes = calcStep(coordsA, coordsB, n_modes, ensA, defvecs, rmsds, mask=maskA,
                            resetFmin=resetFmin, **kwargs)
-        n += 1
         resetFmin = False
 
         if n_modes == 0:
             LOGGER.report('Alternating Adaptive ANM converged in %.2fs.', '_prody_calcAdaptiveANM')
             break
 
-        LOGGER.info('\nStarting cycle {0} with structure {1}'.format(n+1, getTitle(b, 'structure B')))
+        LOGGER.info('\nContinuing cycle {0} with structure {1}'.format(n+1, getTitle(b, 'structure B')))
         n_modes = calcStep(coordsB, coordsA, n_modes, ensB, defvecs, rmsds, mask=maskB,
                            resetFmin=resetFmin, **kwargs)
         n += 1
