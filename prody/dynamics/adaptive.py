@@ -171,7 +171,8 @@ def calcStep(initial, target, n_modes, ensemble, defvecs, rmsds, mask=None, call
                     'tar': coords_tar, 
                     'modes': modes, 
                     'defvec': d,
-                    'c_sq': c_sq_crit}
+                    'c_sq': c_sq_crit,
+                    'rmsd': rmsd}
         callback_func(**cbkwargs)
 
     # deposit 
@@ -291,6 +292,17 @@ def calcAdaptiveANM(a, b, n_steps, mode=AANM_DEFAULT, **kwargs):
     :kwarg n_max_modes: the maximum number of modes to be calculated in each run. 
         Default is **None**, which allows as many as degree of freedom
     :type n_max_modes: int
+
+    :kwarg callback_func: a callback function that can be used to collect quantities 
+        from each iteration. The function must accept `**kwargs` as its only input. 
+        Keywords in `kwargs` are:
+        'init': the initial coordinate; 
+        'tar': the target coordinate; 
+        'modes': a :class:`.ModeSet` of selected modes; 
+        'defvec': the deformation vector; 
+        'c_sq': the critical square cumulative overlap; 
+        'rmsd': the RMSD between the two structures after the deformation.
+    :type callback_func: func
 
     Please see keyword arguments for calculating the modes in :func:`.calcENM`.
     """
