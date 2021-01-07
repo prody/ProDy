@@ -166,7 +166,7 @@ class DaliRecord(object):
         self._alignPDB = None
         self._filterDict = None
         self._max_index = None
-        self.isSuccess = self.fetch(self._url, localFile=localFile, timeout=timeout, **kwargs)
+        self.fetch(self._url, localFile=localFile, timeout=timeout, **kwargs)
 
     def fetch(self, url=None, localFile=False, **kwargs):
         """Get Dali record from url or file.
@@ -225,10 +225,12 @@ class DaliRecord(object):
                     break
                 elif html.find('ERROR:') > -1:
                     LOGGER.warn(': Dali search reported an ERROR!')
+                    self.isSuccess = False
                     return False
                 sleep = 20 if int(sleep * 1.5) >= 20 else int(sleep * 1.5)
                 if LOGGER.timing('_dali') > timeout:
                     LOGGER.warn(': Dali search has timed out. \nThe results can be obtained later using the fetch() method.')
+                    self.isSuccess = False
                     return False
                 LOGGER.sleep(int(sleep), 'to reconnect to Dali '+log_message)
                 LOGGER.clear()
@@ -307,6 +309,7 @@ class DaliRecord(object):
         self._pdbList = self._pdbListAll
         self._alignPDB = dali_temp_dict
         LOGGER.info('Obtained ' + str(len(pdbListAll)) + ' PDB chains from Dali for '+self._pdbId+self._chain+'.')
+        self.isSuccess = True
         return True
         
     def getPDBs(self, filtered=True):
