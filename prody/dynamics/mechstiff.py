@@ -14,7 +14,7 @@ __all__ = ['calcMechStiff', 'calcStiffnessRange', 'calcMechStiffStatistic',
 
 def calcMechStiff(modes, coords, kbt=1.):
     """Calculate stiffness matrix calculated using :class:`.ANM` instance. 
-    Method described in [EB08]_. 
+    Method described in [EB08]_ and [KMR17]_. 
 
     :arg coords: a coordinate set or an object with ``getCoords`` method
     :type coords: :class:`numpy.ndarray`.
@@ -23,7 +23,7 @@ def calcMechStiff(modes, coords, kbt=1.):
         If **None** is given, all modes will be calculated (3x number of atoms).
     :type n_modes: int or **None**, default is 20.
     
-    Author: Mustafa Tekpinar & Karolina Mikulska-Ruminska & Cihan Kaya
+    Authors: Mustafa Tekpinar & Karolina Mikulska-Ruminska & Cihan Kaya
     """
 
     try:

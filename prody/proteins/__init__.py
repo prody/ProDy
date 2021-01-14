@@ -16,7 +16,7 @@ You can use following functions to manage PDB file resources:
   * :func:`.pathPDBMirror` - local PDB mirror path
   * :func:`.wwPDBServer` - set wwPDB FTP/HTTP server for downloads
 
-Following functions can be used to handle local PDB files:
+The following functions can be used to handle local PDB files:
 
   * :func:`.findPDBFiles` - return a dictionary containing files in a path
   * :func:`.iterPDBFilenames` - yield file names in a path or local PDB mirror
@@ -84,7 +84,7 @@ structures.
 Edit structures
 ===============
 
-Following functions allow editing structures using structural data from PDB
+The following functions allow editing structures using structural data from PDB
 header records:
 
   * :func:`.assignSecstr` - add secondary structure data from header to atoms
@@ -101,23 +101,17 @@ Use the following to parse and access header data in PDB files:
   * :class:`.Polymer` - store PDB polymer (macromolecule) component data
   * :class:`.DBRef` - store polymer sequence database reference records
 
-Ligand data
-===========
-
-Following function can be used to fetch meta data on PDB ligands:
-
-  * :func:`.fetchPDBLigand` - retrieve ligand from Ligand-Expo
 
 Compare/align chains
 ====================
 
-Following functions can be used to match, align, and map polypeptide chains:
+The following functions can be used to match, align, and map polypeptide chains:
 
   * :func:`.matchChains` - finds matching chains in two protein structures
   * :func:`.matchAlign` - finds best matching chains and aligns structures
   * :func:`.mapOntoChain` - maps chains in a structure onto a reference chain
 
-Following functions can be used to adjust alignment parameters:
+The following functions can be used to adjust alignment parameters:
 
   * :func:`.getAlignmentMethod`, :func:`.setAlignmentMethod`
   * :func:`.getMatchScore`, :func:`.setMatchScore`
@@ -125,12 +119,10 @@ Following functions can be used to adjust alignment parameters:
   * :func:`.getGapPenalty`, :func:`.setGapPenalty`
   * :func:`.getGapExtPenalty`, :func:`.setGapExtPenalty`
 
-
-
 Execute DSSP
 ============
 
-Following functions can be used to execute DSSP structural analysis program
+The following functions can be used to execute DSSP structural analysis program
 and/or parse results:
 
   * :func:`.execDSSP` - execute :program:`dssp`
@@ -140,14 +132,14 @@ and/or parse results:
 Execute STRIDE
 ==============
 
-Following functions can be used to execute STRIDE structural analysis program
+The following functions can be used to execute STRIDE structural analysis program
 and/or parse results:
 
   * :func:`.execSTRIDE` - execute :program:`stride`
-  * :func:`.performSTRIDE` - execute :program:`stride` and parse results
   * :func:`.parseSTRIDE` - parse structural data from :program:`stride` output
+  * :func:`.performSTRIDE` - execute :program:`stride` and parse results
 
-Execute EMD
+Handle EMD Map Files and Build Pseudoatoms into them
 ===========
 
 Use the following to parse and access header data in EMD files:
@@ -179,18 +171,6 @@ __all__.extend(pdbclusters.__all__)
 from . import blastpdb
 from .blastpdb import *
 __all__.extend(blastpdb.__all__)
-
-from . import psiblast
-from .psiblast import *
-__all__.extend(psiblast.__all__)
-
-from . import blastUniProtKB
-from .blastUniProtKB import *
-__all__.extend(blastUniProtKB.__all__)
-
-from . import pdbligands
-from .pdbligands import *
-__all__.extend(pdbligands.__all__)
 
 from . import functions
 from .functions import *

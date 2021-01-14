@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """This module defines functions for parsing and writing `EMD map files`_.
 
-.. _EMD maps: http://emdatabank.org/mapformat.html"""
+.. _EMD map files: http://emdatabank.org/mapformat.html"""
 
 from collections import defaultdict
 import os.path
@@ -28,11 +28,11 @@ class EMDParseError(Exception):
 def parseEMD(emd, **kwargs):
     """Parses an EM density map in EMD/MRC2015 format and 
     optionally returns an :class:`.AtomGroup` containing  
-    beads built in the density using the TRN algorithm [_]. 
+    beads built in the density using the TRN algorithm [_TM94]. 
 
     This function extends :func:`.parseEMDStream`.
 
-    See :ref:`parseEMD` for a detailed usage example. 
+    See :ref:`cryoem_analysis` for a usage example. 
 
     :arg emd: an EMD identifier or a file name. A 4-digit 
               EMDataBank identifier can be provided to download 
