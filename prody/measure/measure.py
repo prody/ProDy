@@ -638,7 +638,7 @@ def calcADPAxes(atoms, **kwargs):
     :type ratio: float
 
 
-    Keyword arguments *fract*, *ratio3*, or *ratio3* can be used to set
+    Keyword arguments *fract*, *ratio2*, or *ratio3* can be used to set
     principal axes to 0 for atoms showing relatively lower degree of
     anisotropy.
 
