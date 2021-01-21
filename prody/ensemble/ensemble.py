@@ -590,6 +590,7 @@ class Ensemble(object):
         """Superpose conformations and update coordinates."""
 
         ref = kwargs.pop('ref', None)
+        quiet = kwargs.pop('quiet', False)
 
         indices = self._indices
         weights = self._weights
@@ -628,7 +629,8 @@ class Ensemble(object):
             tar_org = (tar - tar_com)
             mob_org = zeros(tar_org.shape, dtype=mobs.dtype)
 
-        LOGGER.progress('Superposing ', len(mobs), '_prody_ensemble')
+        if not quiet:
+            LOGGER.progress('Superposing ', len(mobs), '_prody_ensemble')
         for i, mob in enumerate(mobs):
             if idx:
                 mob = mob[indices]
@@ -651,10 +653,11 @@ class Ensemble(object):
             else:
                 add(dot(movs[i], rotation),
                     (tar_com - dot(mob_com, rotation)), movs[i])
-            LOGGER.update(i + 1, label='_prody_ensemble')
+            if not quiet:
+                LOGGER.update(i + 1, label='_prody_ensemble')
         LOGGER.finish()
 
-    def iterpose(self, rmsd=0.0001):
+    def iterpose(self, rmsd=0.0001, quiet=False):
         """Iteratively superpose the ensemble until convergence.  Initially,
         all conformations are aligned with the reference coordinates.  Then
         mean coordinates are calculated, and are set as the new reference
@@ -687,7 +690,7 @@ class Ensemble(object):
                 weightsum = length
 
         while rmsdif > rmsd:
-            self._superpose()
+            self._superpose(quiet=quiet)
             if weights is None:
                 newxyz = self._confs.sum(0) / length
             else:
