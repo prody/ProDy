@@ -20,6 +20,7 @@ from prody import LOGGER, SETTINGS
 from .header import getHeaderDict, buildBiomolecules, assignSecstr, isHelix, isSheet
 from .localpdb import fetchPDB
 from .ciffile import parseMMCIF
+from .emdfile import parseEMD
 
 __all__ = ['parsePDBStream', 'parsePDB', 'parseChainsList', 'parsePQR',
            'writePDBStream', 'writePDB', 'writeChainsList', 'writePQR',
@@ -208,11 +209,15 @@ def _parsePDB(pdb, **kwargs):
         filename = fetchPDB(pdb, **kwargs)
         if filename is None:
             try:
-                LOGGER.info("Trying to use mmCIF file instead")
+                LOGGER.info("Trying to parse mmCIF file instead")
                 return parseMMCIF(pdb, **kwargs)
             except:
-                raise IOError('PDB file for {0} could not be downloaded.'
-                              .format(pdb))
+                try:
+                    LOGGER.info("Trying to parse EMD file instead")
+                    return parseEMD(pdb, **kwargs)
+                except:                
+                    raise IOError('PDB file for {0} could not be downloaded.'
+                                .format(pdb))
         pdb = filename
     if title is None:
         title, ext = os.path.splitext(os.path.split(pdb)[1])
