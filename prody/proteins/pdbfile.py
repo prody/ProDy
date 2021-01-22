@@ -977,6 +977,18 @@ PDBLINE_GE100K_H36 = ('%-6s%5s %-4s%1s%-4s%1s%4d%1s   '
                       '%8.3f%8.3f%8.3f%6.2f%6.2f      '
                       '%4s%2s\n')
 
+ANISOULINE_LT100K = ('%-6s%5d %-4s%1s%-4s%1s%4d%1s '
+                 '%7d%7d%7d%7d%7d%7d  '
+                 '%4s%2s\n')
+
+ANISOULINE_GE100K = ('%-6s%5x %-4s%1s%-4s%1s%4d%1s '
+                 '%7d%7d%7d%7d%7d%7d  '
+                 '%4s%2s\n')
+
+ANISOULINE_GE100K_H36 = ('%-6s%5s %-4s%1s%-4s%1s%4d%1s '
+                     '%7d%7d%7d%7d%7d%7d  '
+                     '%4s%2s\n')
+
 _writePDBdoc = """
 
     :arg atoms: an object with atom and coordinate data
@@ -1180,6 +1192,8 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
     if segments is None:
         segments = np.zeros(n_atoms, s_or_u + '6')
 
+    anisous = np.array(atoms._getAnisous() * 10000, dtype=int)
+
     # write remarks
     stream.write('REMARK {0}\n'.format(remark))
 
@@ -1242,6 +1256,7 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
         using_hybrid36 = False
         reached_max_n_atom = False
         pdbline = PDBLINE_LT100K
+        anisouline = ANISOULINE_LT100K
         if multi:
             write('MODEL{0:9d}\n'.format(m+1))
         for i, xyz in enumerate(coords):
@@ -1249,9 +1264,11 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
                 reached_max_n_atom = True
                 if not hybrid36:
                     pdbline = PDBLINE_GE100K
+                    anisouline = ANISOULINE_GE100K
                     LOGGER.warn('Indices are exceeding 99999 and hexadecimal format is being used')
                 else:
                     pdbline = PDBLINE_GE100K_H36
+                    anisouline = ANISOULINE_GE100K_H36
                     LOGGER.warn('Indices are exceeding 99999 and hybrid36 format is being used')
                     using_hybrid36 = True
 
@@ -1267,6 +1284,17 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
                              xyz[0], xyz[1], xyz[2],
                              occupancies[i], bfactors[i],
                              segments[i], elements[i]))
+
+            if anisous is not None:
+                anisou = anisous[i]
+
+                write(anisouline % ("ANISOU", serial,
+                                    atomnames[i], altlocs[i],
+                                    resnames[i], chainids[i], resnums[i],
+                                    icodes[i],
+                                    anisou[0], anisou[1], anisou[2],
+                                    anisou[3], anisou[4], anisou[5],
+                                    segments[i], elements[i]))
 
             if atoms.getFlags('pdbter') is not None and atoms.getFlags('pdbter')[i]:
                 write('TER\n')
