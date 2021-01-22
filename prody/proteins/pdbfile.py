@@ -776,10 +776,10 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                         siguij.resize((acount, 6), refcheck=False)
                         atomgroup.setAnistds(siguij / 10000)
                 else:
-                    charges.resize(acount, refcheck=False)
                     radii.resize(acount, refcheck=False)
-                    atomgroup.setCharges(charges)
                     atomgroup.setRadii(radii)
+                charges.resize(acount, refcheck=False)
+                atomgroup.setCharges(charges)
 
                 nmodel += 1
                 n_atoms = acount
@@ -881,10 +881,10 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
             atomgroup.setBetas(bfactors)
             atomgroup.setOccupancies(occupancies)
         else:
-            charges.resize(acount, refcheck=False)
             radii.resize(acount, refcheck=False)
-            atomgroup.setCharges(charges)
             atomgroup.setRadii(radii)
+        charges.resize(acount, refcheck=False)
+        atomgroup.setCharges(charges)
 
     if altloc and altloc_torf:
         _evalAltlocs(atomgroup, altloc, chainids, resnums, resnames, atomnames)
