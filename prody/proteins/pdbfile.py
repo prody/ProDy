@@ -972,27 +972,27 @@ SHEETLINE = ('SHEET  {strand:3d} {sheetID:>3s}{numStrands:2d} '
 
 PDBLINE_LT100K = ('%-6s%5d %-4s%1s%-4s%1s%4d%1s   '
                   '%8.3f%8.3f%8.3f%6.2f%6.2f      '
-                  '%4s%2s\n')
+                  '%4s%2s%2s\n')
 
 PDBLINE_GE100K = ('%-6s%5x %-4s%1s%-4s%1s%4d%1s   '
                   '%8.3f%8.3f%8.3f%6.2f%6.2f      '
-                  '%4s%2s\n')
+                  '%4s%2s%2s\n')
 
 PDBLINE_GE100K_H36 = ('%-6s%5s %-4s%1s%-4s%1s%4d%1s   '
                       '%8.3f%8.3f%8.3f%6.2f%6.2f      '
-                      '%4s%2s\n')
+                      '%4s%2s%2s\n')
 
 ANISOULINE_LT100K = ('%-6s%5d %-4s%1s%-4s%1s%4d%1s '
                  '%7d%7d%7d%7d%7d%7d  '
-                 '%4s%2s\n')
+                 '%4s%2s%2s\n')
 
 ANISOULINE_GE100K = ('%-6s%5x %-4s%1s%-4s%1s%4d%1s '
                  '%7d%7d%7d%7d%7d%7d  '
-                 '%4s%2s\n')
+                 '%4s%2s%2s\n')
 
 ANISOULINE_GE100K_H36 = ('%-6s%5s %-4s%1s%-4s%1s%4d%1s '
                      '%7d%7d%7d%7d%7d%7d  '
-                     '%4s%2s\n')
+                     '%4s%2s%2s\n')
 
 _writePDBdoc = """
 
@@ -1197,7 +1197,23 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
     if segments is None:
         segments = np.zeros(n_atoms, s_or_u + '6')
 
-    anisous = np.array(atoms._getAnisous() * 10000, dtype=int)
+    charges = atoms._getCharges()
+    charges2 = np.empty(n_atoms, s_or_u + '2')
+    if charges is not None:
+        for i, charge in enumerate(charges):
+            charges2[i] = str(abs(int(charge)))
+
+            if np.sign(charge) == -1:
+                charges2[i] += '-'
+            else:
+                charges2[i] += '+'
+
+            if charges2[i] == '0+':
+                charges2[i] = '  '
+
+    anisous = atoms._getAnisous()
+    if anisous is not None:
+        anisous = np.array(anisous * 10000, dtype=int)
 
     # write remarks
     stream.write('REMARK {0}\n'.format(remark))
@@ -1288,7 +1304,7 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
                              icodes[i],
                              xyz[0], xyz[1], xyz[2],
                              occupancies[i], bfactors[i],
-                             segments[i], elements[i]))
+                             segments[i], elements[i], charges2[i]))
 
             if anisous is not None:
                 anisou = anisous[i]
@@ -1299,7 +1315,7 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
                                     icodes[i],
                                     anisou[0], anisou[1], anisou[2],
                                     anisou[3], anisou[4], anisou[5],
-                                    segments[i], elements[i]))
+                                    segments[i], elements[i], charges2[i]))
 
             if atoms.getFlags('pdbter') is not None and atoms.getFlags('pdbter')[i]:
                 write('TER\n')
