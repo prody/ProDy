@@ -1641,7 +1641,7 @@ class Select(object):
                 torf[which] = False
 
         else:
-            n_atoms = self._ag.numAtoms()
+            n_atoms = self._atoms.numAtoms()
             torf = ones(n_atoms, bool)
             torf[which] = False
             check = torf.nonzero()[0]
