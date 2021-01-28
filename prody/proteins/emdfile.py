@@ -66,10 +66,10 @@ def parseEMD(emd, **kwargs):
 
     title = kwargs.get('title', None)
     if not os.path.isfile(emd):
-        if emd.startswith('EMD-') and len(emd[4:]) == 4:
+        if emd.startswith('EMD-') and len(emd[4:]) in [4, 5]:
             emd = emd[4:]
 
-        if len(emd) == 4 and emd.isdigit():
+        if len(emd) in [4, 5] and emd.isdigit():
             if title is None:
                 title = emd
                 kwargs['title'] = title

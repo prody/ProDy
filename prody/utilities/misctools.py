@@ -628,7 +628,7 @@ def index(A, a):
         return where(A==a)[0][0]
 
 
-def checkIdentifiers(*pdb):
+def checkIdentifiers(*pdb, format='pdb'):
     """Check whether *pdb* identifiers are valid, and replace invalid ones
     with **None** in place."""
 
@@ -641,7 +641,11 @@ def checkIdentifiers(*pdb):
             LOGGER.warn('{0} is not a valid identifier.'.format(repr(pid)))
             append(None)
         else:
-            if not (len(pid) == 4 and pid.isalnum()):
+            if format != 'emd' and not (len(pid) == 4 and pid.isalnum()):
+                LOGGER.warn('{0} is not a valid identifier.'
+                            .format(repr(pid)))
+                append(None)
+            elif format == 'emd' and not (len(pid) in [4, 5] and pid.isalnum()):
                 LOGGER.warn('{0} is not a valid identifier.'
                             .format(repr(pid)))
                 append(None)
