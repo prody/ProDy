@@ -628,10 +628,10 @@ def index(A, a):
         return where(A==a)[0][0]
 
 
-def checkIdentifiers(*pdb, format='pdb'):
+def checkIdentifiers(*pdb, **kwargs):
     """Check whether *pdb* identifiers are valid, and replace invalid ones
     with **None** in place."""
-
+    format = kwargs.get('format', 'pdb')
     identifiers = []
     append = identifiers.append
     for pid in pdb:
