@@ -16,7 +16,8 @@ from .mode import VectorBase, Mode, Vector
 from .gnm import GNMBase
 from .analysis import calcCovariance
 
-__all__ = ['calcPerturbResponse']
+__all__ = ['calcPerturbResponse', 'calcDynamicFlexibilityIndex',
+           'calcDynamicCouplingIndex']
 
 def calcPerturbResponse(model, **kwargs):
 
@@ -158,3 +159,36 @@ def calcDynamicFlexibilityIndex(prs_matrix, atoms, select):
     """
     profiles = sliceAtomicData(prs_matrix, atoms, select, axis=0)
     return np.sum(profiles, axis=1)/np.sum(prs_matrix)
+
+
+def calcDynamicCouplingIndex(prs_matrix, atoms, select, func_sel):
+    """
+    Calculate the dynamic coupling index for the selected residue(s).
+    This function implements the dynamic coupling index (DCI) 
+    or functional DFI method described in [AK15]_.
+
+    :arg prs_matrix: a matrix from PRS
+    :type prs_matrix: list, tuple, :class:`~numpy.ndarray`
+
+    :arg atoms: an Atomic object from which residues are selected
+    :type atoms: :class:`.Atomic`
+
+    :arg select: a selection string or selection for residues of interest
+    :type select: str, :class:`.Selection`
+
+    :arg func_sel: a selection string or selection for functional residues
+    :type func_sel: str, :class:`.Selection`
+
+    .. [AK15] Kumar A, Glembo TJ, Ozkan SB. The Role of Conformational Dynamics and Allostery 
+        in the Disease Development of Human Ferritin.
+       *Biophys J.* **2015** 109(6):1273-81.
+
+    """
+    profiles = sliceAtomicData(prs_matrix, atoms, select, axis=0)
+    func_profiles = sliceAtomicData(profiles, atoms, func_sel, axis=1)
+    N_functional = func_sel.numAtoms()
+
+    numerator = np.sum(func_profiles) / N_functional
+    denominator = np.sum(prs_matrix) / atoms.numAtoms()
+    return numerator/denominator
+    
