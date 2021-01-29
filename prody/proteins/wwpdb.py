@@ -102,14 +102,14 @@ def fetchPDBviaFTP(*pdb, **kwargs):
     and ``format='xml'`` will fetch a PDBML file. 
     If PDBML header file is desired, ``noatom=True`` argument will do the job."""
 
+    format = str(kwargs.pop('format', 'pdb')).lower()
     if kwargs.get('check', True):
-        identifiers = checkIdentifiers(*pdb)
+        identifiers = checkIdentifiers(*pdb, format=format)
     else:
         identifiers = list(pdb)
 
     output_folder = kwargs.pop('folder', None)
     compressed = bool(kwargs.pop('compressed', True))
-    format = str(kwargs.pop('format', 'pdb')).lower()
     noatom = bool(kwargs.pop('noatom', False))
 
     if format == 'pdb':
