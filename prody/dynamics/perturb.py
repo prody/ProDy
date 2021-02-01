@@ -215,7 +215,7 @@ def calcDynamicCouplingIndex(prs_matrix, atoms, select, func_sel):
     func_profiles = sliceAtomicData(profiles, atoms, func_sel, axis=1)
     N_functional = func_sel.numAtoms()
 
-    numerator = np.sum(func_profiles) / N_functional
-    denominator = np.sum(prs_matrix) / atoms.numAtoms()
+    numerator = np.sum(func_profiles, axis=1) / N_functional
+    denominator = np.sum(profiles, axis=1) / atoms.numAtoms()
     return numerator/denominator
     
