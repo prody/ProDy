@@ -2,19 +2,16 @@
 """This module defines functions for performing perturbation response scanning
 from PCA and normal modes."""
 
-import time
 
 import numpy as np
+from numpy.lib.arraysetops import isin
 
-from prody import LOGGER
 from prody.atomic import AtomGroup, Selection, Atomic, sliceAtomicData
 from prody.utilities import div0
 
 from .nma import NMA
 from .modeset import ModeSet
-from .mode import VectorBase, Mode, Vector
-from .gnm import GNMBase
-from .analysis import calcCovariance
+from .mode import Mode
 
 __all__ = ['calcPerturbResponse', 'calcDynamicFlexibilityIndex',
            'calcDynamicCouplingIndex']
@@ -157,6 +154,18 @@ def calcDynamicFlexibilityIndex(prs_matrix, atoms, select):
        *Evol Appl.* **2013** 6(3):423-33.
 
     """
+    if not isinstance(prs_matrix, np.ndarray):
+        raise TypeError('prs_matrix should be a numpy array')
+
+    if prs_matrix.ndim != 2:
+        raise ValueError('prs_matrix should be 2-dimensional')
+
+    if not isinstance(atoms, Atomic):
+        raise TypeError('atoms should be an Atomic object')
+
+    if not isinstance(select, (str, Selection)):
+        raise TypeError('select should be a Selection or selection string')
+
     profiles = sliceAtomicData(prs_matrix, atoms, select, axis=0)
     return np.sum(profiles, axis=1)/np.sum(prs_matrix)
 
@@ -184,6 +193,24 @@ def calcDynamicCouplingIndex(prs_matrix, atoms, select, func_sel):
        *Biophys J.* **2015** 109(6):1273-81.
 
     """
+    if not isinstance(prs_matrix, np.ndarray):
+        raise TypeError('prs_matrix should be a numpy array')
+
+    if prs_matrix.ndim != 2:
+        raise ValueError('prs_matrix should be 2-dimensional')
+
+    if not isinstance(atoms, Atomic):
+        raise TypeError('atoms should be an Atomic object')
+
+    if not isinstance(select, (str, Selection)):
+        raise TypeError('select should be a Selection or selection string')
+                
+    if isinstance(func_sel, str):
+        func_sel = atoms.select(func_sel)
+    
+    if not isinstance(func_sel, Selection):
+        raise TypeError('func_sel should be a Selection or selection string')
+
     profiles = sliceAtomicData(prs_matrix, atoms, select, axis=0)
     func_profiles = sliceAtomicData(profiles, atoms, func_sel, axis=1)
     N_functional = func_sel.numAtoms()
