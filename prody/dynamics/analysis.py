@@ -676,8 +676,8 @@ def calcAnisousFromModel(model, ):
        anm, calphas = calcANM(protein)
        adp_matrix = calcAnisousFromModel(anm)"""
 
-    if not isinstance(model, NMA) or not model.is3d():
-        raise TypeError('model must be of type ANM or PCA, not {0}'
+    if not isinstance(model, (NMA, Mode)) or not model.is3d():
+        raise TypeError('model must be of type ANM, PCA or Mode, not {0}'
                         .format(type(model)))
 
     cov = calcCovariance(model)
