@@ -135,20 +135,20 @@ def parseOBO(**kwargs):
         try:
             handle = openURL(go_obo_url)
         except Exception as err:
-            LOGGER.warn('{0} download failed ({1}).'.format(
+            raise Exception('{0} download failed ({1}).'.format(
                 go_obo_url, str(err)))
         else:
             data = handle.read()
             if len(data):
-                filename = data_folder+'/go-basic.obo'
+                go_obo = data_folder+'/go-basic.obo'
 
-                with open(filename, 'w+b') as obofile:
+                with open(go_obo, 'w+b') as obofile:
                     obofile.write(data)
 
                 LOGGER.debug('{0} downloaded ({1})'
-                             .format(go_obo_url, sympath(filename)))
+                             .format(go_obo_url, sympath(go_obo)))
             else:
-                LOGGER.warn('{0} download failed, reason unknown.'
+                raise Exception('{0} download failed, reason unknown.'
                             .format(go_obo_url))
 
     else:
@@ -164,7 +164,7 @@ def parseGAF(database='PDB', **kwargs):
 
     See `GAF`_ for more information on the file format
 
-    .. _GAF: http://geneontology.org/docs/go-annotation-file-gaf-format-20/
+    .. _GAF: http://geneontology.org/docs/go-annotation-file-gaf-format-2.1/
 
     :arg database: name of the database of interest
         default is PDB. Others include UNIPROT and 

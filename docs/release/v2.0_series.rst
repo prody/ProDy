@@ -1,0 +1,45 @@
+ProDy 2.0 Series
+===============================================================================
+
+.. contents::
+   :local:
+
+2.0 (Dec 30, 2020)
+------------------------------------------------------------------------------
+
+**New Features**:
+
+*ESSA*
+
+  * New classes and functions for Essential Site Scanning Analysis (ESSA)
+
+*Updates for CryoDy*
+
+  * Finalised the :class:`.AdaptiveANM`. (initially added in v1.10.11) for exploring transitions between conformations.
+
+  * Improved domain decomposition 
+
+*Expanded database module*
+
+  * New interfaces including for QuartataWeb
+
+*New compounds module*
+
+  * New modules for fetching and parsing compound data from 
+  the PDB including Biologically Interesting Reference Dictionary (BIRD) 
+  and Chemical Component Dictionary (CCD) CIF files
+
+  * New functions module including 2D chemical similarity calculations 
+  using Morgan Fingerprint Similarity.
+
+*Improved membrane ENMs*
+
+  * New implementation of exANM based on iterative Schur complements and 
+  block-wise inversion
+
+  * New exGNM based on improved exANM
+
+**Bug Fixes and Improvements**:
+
+  * New function :func:`.inferBonds` in :class:`.AtomGroup` for inferring bonds 
+  based on distances without information from :file:`PSF` files.

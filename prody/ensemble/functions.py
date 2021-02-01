@@ -39,6 +39,13 @@ def saveEnsemble(ensemble, filename=None, **kwargs):
     if isinstance(ensemble, PDBEnsemble):
         attr_list.append('_labels')
         attr_list.append('_trans')
+    elif isinstance(ensemble, ClustENM):
+        attr_list.extend(['_ph', '_cutoff', '_gamma', '_n_modes', '_n_confs',
+                          '_rmsd', '_n_gens', '_maxclust', '_threshold', '_sol',
+                          '_padding', '_ionicStrength', '_force_field', '_tolerance',
+                          '_maxIterations', '_sim', '_temp', '_t_steps', '_outlier',
+                          '_mzscore', '_v1', '_parallel', '_idx_cg', '_n_cg', '_cycle',
+                          '_time', '_targeted', '_tmdk'])
 
     if filename is None:
         filename = ensemble.getTitle().replace(' ', '_')
@@ -52,11 +59,6 @@ def saveEnsemble(ensemble, filename=None, **kwargs):
     if atoms is not None:
         attr_dict['_atoms'] = np.array([atoms, None], 
                                         dtype=object)
-
-    selstrs = dict_['_selstrs']
-    if selstrs is not None:
-        attr_dict['_selstrs'] = np.array([selstrs, None], 
-                                          dtype=object)
 
     data = dict_['_data']
     if len(data):
@@ -109,7 +111,10 @@ def loadEnsemble(filename, **kwargs):
     try:
         title = attr_dict['_title']
     except KeyError:
-        title = attr_dict['_name']
+        try:
+            title = attr_dict['_name']
+        except KeyError:
+            title = None
             
     if isinstance(title, np.ndarray):
         title = title.item()
@@ -122,6 +127,8 @@ def loadEnsemble(filename, **kwargs):
 
     if type_ == 'PDBEnsemble':
         ensemble = PDBEnsemble(title)
+    elif type_ == 'ClustENM':
+        ensemble = ClustENM(title)
     else:
         ensemble = Ensemble(title)
 
@@ -144,9 +151,18 @@ def loadEnsemble(filename, **kwargs):
             ensemble._trans = attr_dict['_trans']
         if '_msa' in attr_dict.files:
             ensemble._msa = attr_dict['_msa'][0]
-        if '_selstrs' in attr_dict.files:
-            ensemble._selstrs = attr_dict['_selstrs'][0]
     else:
+        if type_ == 'ClustENM':
+            attrs = ['_ph', '_cutoff', '_gamma', '_n_modes', '_n_confs',
+                    '_rmsd', '_n_gens', '_maxclust', '_threshold', '_sol',
+                    '_sim', '_temp', '_t_steps', '_outlier', '_mzscore', '_v1',
+                    '_parallel', '_idx_ca', '_n_ca', '_cycle', '_time', '_targeted',
+                    '_tmdk']
+            
+            for attr in attrs:
+                if attr in attr_dict.files:
+                    setattr(ensemble, attr, attr_dict[attr])
+ 
         ensemble.addCoordset(confs)
         if weights is not None:
             ensemble.setWeights(weights)

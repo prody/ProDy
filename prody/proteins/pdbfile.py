@@ -20,6 +20,7 @@ from prody import LOGGER, SETTINGS
 from .header import getHeaderDict, buildBiomolecules, assignSecstr, isHelix, isSheet
 from .localpdb import fetchPDB
 from .ciffile import parseMMCIF
+from .emdfile import parseEMD
 
 __all__ = ['parsePDBStream', 'parsePDB', 'parseChainsList', 'parsePQR',
            'writePDBStream', 'writePDB', 'writeChainsList', 'writePQR',
@@ -208,11 +209,15 @@ def _parsePDB(pdb, **kwargs):
         filename = fetchPDB(pdb, **kwargs)
         if filename is None:
             try:
-                LOGGER.info("Trying to use mmCIF file instead")
-                return parseMMCIF(pdb, **kwargs)
+                LOGGER.info("Trying to parse mmCIF file instead")
+                return parseMMCIF(pdb+chain, **kwargs)
             except:
-                raise IOError('PDB file for {0} could not be downloaded.'
-                              .format(pdb))
+                try:
+                    LOGGER.info("Trying to parse EMD file instead")
+                    return parseEMD(pdb+chain, **kwargs)
+                except:                
+                    raise IOError('PDB file for {0} could not be downloaded.'
+                                .format(pdb))
         pdb = filename
     if title is None:
         title, ext = os.path.splitext(os.path.split(pdb)[1])
@@ -776,10 +781,10 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                         siguij.resize((acount, 6), refcheck=False)
                         atomgroup.setAnistds(siguij / 10000)
                 else:
-                    charges.resize(acount, refcheck=False)
                     radii.resize(acount, refcheck=False)
-                    atomgroup.setCharges(charges)
                     atomgroup.setRadii(radii)
+                charges.resize(acount, refcheck=False)
+                atomgroup.setCharges(charges)
 
                 nmodel += 1
                 n_atoms = acount
@@ -881,10 +886,10 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
             atomgroup.setBetas(bfactors)
             atomgroup.setOccupancies(occupancies)
         else:
-            charges.resize(acount, refcheck=False)
             radii.resize(acount, refcheck=False)
-            atomgroup.setCharges(charges)
             atomgroup.setRadii(radii)
+        charges.resize(acount, refcheck=False)
+        atomgroup.setCharges(charges)
 
     if altloc and altloc_torf:
         _evalAltlocs(atomgroup, altloc, chainids, resnums, resnames, atomnames)
@@ -967,15 +972,27 @@ SHEETLINE = ('SHEET  {strand:3d} {sheetID:>3s}{numStrands:2d} '
 
 PDBLINE_LT100K = ('%-6s%5d %-4s%1s%-4s%1s%4d%1s   '
                   '%8.3f%8.3f%8.3f%6.2f%6.2f      '
-                  '%4s%2s\n')
+                  '%4s%2s%2s\n')
 
 PDBLINE_GE100K = ('%-6s%5x %-4s%1s%-4s%1s%4d%1s   '
                   '%8.3f%8.3f%8.3f%6.2f%6.2f      '
-                  '%4s%2s\n')
+                  '%4s%2s%2s\n')
 
 PDBLINE_GE100K_H36 = ('%-6s%5s %-4s%1s%-4s%1s%4d%1s   '
                       '%8.3f%8.3f%8.3f%6.2f%6.2f      '
-                      '%4s%2s\n')
+                      '%4s%2s%2s\n')
+
+ANISOULINE_LT100K = ('%-6s%5d %-4s%1s%-4s%1s%4d%1s '
+                 '%7d%7d%7d%7d%7d%7d  '
+                 '%4s%2s%2s\n')
+
+ANISOULINE_GE100K = ('%-6s%5x %-4s%1s%-4s%1s%4d%1s '
+                 '%7d%7d%7d%7d%7d%7d  '
+                 '%4s%2s%2s\n')
+
+ANISOULINE_GE100K_H36 = ('%-6s%5s %-4s%1s%-4s%1s%4d%1s '
+                     '%7d%7d%7d%7d%7d%7d  '
+                     '%4s%2s%2s\n')
 
 _writePDBdoc = """
 
@@ -1180,6 +1197,24 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
     if segments is None:
         segments = np.zeros(n_atoms, s_or_u + '6')
 
+    charges = atoms._getCharges()
+    charges2 = np.empty(n_atoms, s_or_u + '2')
+    if charges is not None:
+        for i, charge in enumerate(charges):
+            charges2[i] = str(abs(int(charge)))
+
+            if np.sign(charge) == -1:
+                charges2[i] += '-'
+            else:
+                charges2[i] += '+'
+
+            if charges2[i] == '0+':
+                charges2[i] = '  '
+
+    anisous = atoms._getAnisous()
+    if anisous is not None:
+        anisous = np.array(anisous * 10000, dtype=int)
+
     # write remarks
     stream.write('REMARK {0}\n'.format(remark))
 
@@ -1242,6 +1277,7 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
         using_hybrid36 = False
         reached_max_n_atom = False
         pdbline = PDBLINE_LT100K
+        anisouline = ANISOULINE_LT100K
         if multi:
             write('MODEL{0:9d}\n'.format(m+1))
         for i, xyz in enumerate(coords):
@@ -1249,9 +1285,11 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
                 reached_max_n_atom = True
                 if not hybrid36:
                     pdbline = PDBLINE_GE100K
+                    anisouline = ANISOULINE_GE100K
                     LOGGER.warn('Indices are exceeding 99999 and hexadecimal format is being used')
                 else:
                     pdbline = PDBLINE_GE100K_H36
+                    anisouline = ANISOULINE_GE100K_H36
                     LOGGER.warn('Indices are exceeding 99999 and hybrid36 format is being used')
                     using_hybrid36 = True
 
@@ -1266,7 +1304,18 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
                              icodes[i],
                              xyz[0], xyz[1], xyz[2],
                              occupancies[i], bfactors[i],
-                             segments[i], elements[i]))
+                             segments[i], elements[i], charges2[i]))
+
+            if anisous is not None:
+                anisou = anisous[i]
+
+                write(anisouline % ("ANISOU", serial,
+                                    atomnames[i], altlocs[i],
+                                    resnames[i], chainids[i], resnums[i],
+                                    icodes[i],
+                                    anisou[0], anisou[1], anisou[2],
+                                    anisou[3], anisou[4], anisou[5],
+                                    segments[i], elements[i], charges2[i]))
 
             if atoms.getFlags('pdbter') is not None and atoms.getFlags('pdbter')[i]:
                 write('TER\n')
