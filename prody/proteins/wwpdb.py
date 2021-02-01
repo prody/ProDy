@@ -8,9 +8,9 @@ from os.path import isdir, isfile, join, split, splitext, normpath
 
 from prody import LOGGER, SETTINGS
 from prody.utilities import makePath, gunzip, relpath, copyFile, openURL
-from prody.utilities import sympath
+from prody.utilities import sympath, checkIdentifiers
 
-__all__ = ['wwPDBServer', 'fetchPDBviaFTP', 'fetchPDBviaHTTP']
+__all__ = ['wwPDBServer', 'fetchPDBviaFTP', 'fetchPDBviaHTTP', 'WWPDB_FTP_SERVERS']
 
 
 _WWPDB_RCSB = ('RCSB PDB (USA)', 'ftp.wwpdb.org', '/pub/')
@@ -87,27 +87,6 @@ def wwPDBServer(*key):
                         .format(len(key)))
 
 
-def checkIdentifiers(*pdb):
-    """Check whether *pdb* identifiers are valid, and replace invalid ones
-    with **None** in place."""
-
-    identifiers = []
-    append = identifiers.append
-    for pid in pdb:
-        try:
-            pid = pid.strip().lower()
-        except AttributeError:
-            LOGGER.warn('{0} is not a valid identifier.'.format(repr(pid)))
-            append(None)
-        else:
-            if not (len(pid) == 4 and pid.isalnum()):
-                LOGGER.warn('{0} is not a valid identifier.'
-                            .format(repr(pid)))
-                append(None)
-            else:
-                append(pid)
-    return identifiers
-
 
 def fetchPDBviaFTP(*pdb, **kwargs):
     """Retrieve PDB (default), PDBML, mmCIF, or EMD file(s) for specified *pdb*
@@ -123,14 +102,14 @@ def fetchPDBviaFTP(*pdb, **kwargs):
     and ``format='xml'`` will fetch a PDBML file. 
     If PDBML header file is desired, ``noatom=True`` argument will do the job."""
 
+    format = str(kwargs.pop('format', 'pdb')).lower()
     if kwargs.get('check', True):
-        identifiers = checkIdentifiers(*pdb)
+        identifiers = checkIdentifiers(*pdb, format=format)
     else:
         identifiers = list(pdb)
 
     output_folder = kwargs.pop('folder', None)
     compressed = bool(kwargs.pop('compressed', True))
-    format = str(kwargs.pop('format', 'pdb')).lower()
     noatom = bool(kwargs.pop('noatom', False))
 
     if format == 'pdb':

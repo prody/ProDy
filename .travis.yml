@@ -3,8 +3,6 @@ language: python
 python:
   - 2.7
   - 3.5
-  - 3.6
-  - 3.7
   - 3.8
 
 before_install:
@@ -19,8 +17,6 @@ install:
   - conda install --yes numpy scipy pip nose
   - if [[ $TRAVIS_PYTHON_VERSION == "2.7" ]]; then conda install --yes pyparsing biopython unittest2; fi
   - if [[ $TRAVIS_PYTHON_VERSION == "3.5" ]]; then conda install --yes pyparsing biopython; fi
-  - if [[ $TRAVIS_PYTHON_VERSION == "3.6" ]]; then conda install --yes pyparsing biopython; fi
-  - if [[ $TRAVIS_PYTHON_VERSION == "3.7" ]]; then conda install --yes pyparsing biopython; fi
   - if [[ $TRAVIS_PYTHON_VERSION == "3.8" ]]; then conda install --yes pyparsing biopython; fi
   - python setup.py build install
 script:

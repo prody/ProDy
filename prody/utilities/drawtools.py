@@ -6,8 +6,9 @@ import numpy as np
 
 from matplotlib.patches import FancyArrowPatch
 from mpl_toolkits.mplot3d import proj3d
+from matplotlib import ticker
 
-__all__ = ['Arrow3D', 'drawArrow3D', 'drawTree']
+__all__ = ['Arrow3D', 'drawArrow3D', 'drawTree', 'IndexFormatter']
 
 class Arrow3D(FancyArrowPatch):
     """This function is implemented by tacaswell on stackoverflow: 
@@ -346,7 +347,7 @@ def drawTree(
                 'Keyword argument "%s=%s" is not in the format '
                 "pyplot_option_name=(tuple), pyplot_option_name=(tuple, dict),"
                 " or pyplot_option_name=(dict) " % (key, value)
-            ) from None
+            )
         if isinstance(value, dict):
             getattr(plt, str(key))(**dict(value))
         elif not (isinstance(value[0], tuple)):
@@ -355,3 +356,28 @@ def drawTree(
             getattr(plt, str(key))(*value[0], **dict(value[1]))
 
     return x_posns, y_posns
+
+class IndexFormatter(ticker.Formatter):
+    """Function taken from Matplotlib version 3.3.1 as soon to be deprecated.
+
+    Format the position x to the nearest i-th label where ``i = int(x + 0.5)``.
+    Positions where ``i < 0`` or ``i > len(list)`` have no tick labels.
+
+    :arg labels: List of labels.
+    type labels: list
+    """
+    def __init__(self, labels):
+        self.labels = labels
+        self.n = len(labels)
+
+    def __call__(self, x, pos=None):
+        """Return the format for tick value *x* at position pos.
+
+        The position is ignored and the value is rounded to the nearest
+        integer, which is used to look up the label.
+        """
+        i = int(x + 0.5)
+        if i < 0 or i >= self.n:
+            return ''
+        else:
+            return self.labels[i]

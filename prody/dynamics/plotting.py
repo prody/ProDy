@@ -1194,10 +1194,6 @@ def showPerturbResponse(model, atoms=None, show_matrix=True, select=None, **kwar
         show = showAtomicMatrix(prs_matrix, x_array=sensitivity, 
                                 y_array=effectiveness, atoms=atoms, 
                                 **kwargs)
-        cluster_col = kwargs.pop('cluster_col',False)
-        if cluster_col == False:
-            xlabel('Residues')
-
     else:
         if select is None:
             fig = fig_ = kwargs.pop('figure', None) # this line needs to be in this block
@@ -1338,7 +1334,6 @@ def showAtomicMatrix(matrix, x_array=None, y_array=None, atoms=None, **kwargs):
     ticklabels = kwargs.pop('ticklabels', None)
     text_color = kwargs.pop('text_color', 'k')
     text_color = kwargs.pop('textcolor', text_color)
-    cluster = kwargs.pop('cluster', False)
     interactive = kwargs.pop('interactive', True)
 
     if isinstance(fig, Figure):
@@ -1513,16 +1508,16 @@ def showAtomicLines(*args, **kwargs):
         Default is **None**.
     :type chain: bool
 
-    :keyword domain: the same with *chains* but show domain separations instead. 
+    :keyword domain: the same as *chain* but show domain separations instead. 
         *atoms* needs to have *domain* data associated to it.
         Default is **None**.
     :type domain: bool
 
-    :keyword gap: whether show the gaps in the *atoms* or not.
+    :keyword gap: whether to show the gaps in the *atoms* or not.
         Default is **False**.
     :type gap: bool
 
-    :keyword overlay: whether overlay the curves based on the chain separations 
+    :keyword overlay: whether to overlay the curves based on the chain separations 
         in *atoms* or not.
         Default is **False**.
     :type overlay: bool

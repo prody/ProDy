@@ -53,6 +53,12 @@ DATA_FILES = {
         'n_atoms': 683,
         'models': 1
     },
+    '2nwl': {
+        'pdb': '2nwl',
+        'file': 'pdb2nwl-opm.pdb',
+        'n_atoms': 5227,
+        'models': 1
+    },
     '2k39_ca': {
         'pdb': '2k39',
         'file': 'pdb2k39_ca.pdb',

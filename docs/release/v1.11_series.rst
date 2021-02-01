@@ -4,7 +4,7 @@ ProDy 1.11 Series
 .. contents::
    :local:
 
-1.11 (Nov 30, 2019)
+1.11 (Oct 1, 2020)
 ------------------------------------------------------------------------------
 
 **New Features**:
@@ -56,4 +56,4 @@ ProDy 1.11 Series
   * Fixed a bug related to how the ticks are located in :func:`.showMatrix`.
 
   * Deprecated `mapChainByChain` and `addPDBEnsemble` whose rules are filled respectively by :func:`.mapOntoChains` 
-    and :func:`.buildPDBEnsemble` when `ref` is an :func:`.PDBEnsemble` instance. 
+    and :func:`.buildPDBEnsemble` when `ref` is an :class:`.PDBEnsemble` instance. 

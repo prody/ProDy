@@ -4,7 +4,7 @@
 Dynamics Models
 ===============
 
-Following classes are designed for modeling and analysis of protein dynamics:
+The following classes are designed for modeling and analysis of protein dynamics:
 
   * :class:`.ANM` - Anisotropic network model, for coarse-grained NMA
   * :class:`.GNM` - Gaussian network model, for coarse-grained dynamics
@@ -18,7 +18,7 @@ Following classes are designed for modeling and analysis of protein dynamics:
 Usage of these classes are shown in :ref:`anm`, :ref:`gnm`, :ref:`pca`, and
 :ref:`eda` examples.
 
-Following classes are for analysis of individual modes or subsets of modes:
+The following classes are for analysis of individual modes or subsets of modes:
 
   * :class:`.Mode` - analyze individual normal/principal/essential modes
   * :class:`.ModeSet` - analyze subset of modes from a dynamics model
@@ -27,7 +27,7 @@ Following classes are for analysis of individual modes or subsets of modes:
 Customize ENMs
 ==============
 
-Following classes allow for using structure or distance based, or other custom
+The following classes allow for using structure or distance based, or other custom
 force constants and cutoff distances in :class:`~.ANM` and :class:`~.GNM`
 calculations:
 
@@ -36,10 +36,37 @@ calculations:
   * :class:`.GammaStructureBased` - secondary structure based force constants
   * :class:`.GammaVariableCutoff` - atom type based variable cutoff function
 
+Membrane Models
+===============
+
+The following classes are designed for modeling and analysis of protein dynamics in membranes:
+
+  * :class:`.exANM` - perform explicit membrane ANM, creating an explicit membrane lattice
+  * :class:`.exGNM` - perform explicit membrane GNM, creating an explicit membrane lattice
+  * :func:`.imANM` - perform implicit membrane GNM, creating anisotropic constraints in the membrane domain using RTB
+
+Usage of these classes are shown in :ref:`exanm` and :ref:`imanm` examples.
+
+SignDy
+===============
+
+The following classes are designed for signature dynamics analysis of protein/domain families, 
+together with those in the database module:
+
+  * :func:`.calcEnsembleENMs` - perform NMA on a protein family ensemble using ENMs
+  * :class:`.ModeEnsemble` - handle outputs of ensemble NMA, an ensemble of normal modes
+  * :class:`.sdarray` - handle signature dynamics data in an array based on a numpy array
+
+There are many other functions starting `showSignature` or `calcSignature` for plotting and analysis.
+There are also load and save functions for mode ensembles and signature arrays.
+
+Usage of these classes are shown in :ref:`signdy-overview`, :ref:`signdy-core`, and :ref:`signdy-class` examples.
+
+
 Function library
 ================
 
-Dynamics of the functions described below accept a *modes* argument (may also
+Dynamics of the functions in this library accept a *modes* argument (may also
 appear in different names), which may refer to one or more of the following:
 
   * a dynamics model, :class:`.ANM`, :class:`SM`, :class:`.GNM`, :class:`.NMA`,
@@ -54,7 +81,7 @@ argument.  These are noted in function documentations.
 Analyze models
 ==============
 
-Following functions are for calculating atomic properties from normal modes:
+The following functions are for calculating atomic properties from normal modes:
 
   * :func:`.calcCollectivity` - degree of collectivity of a mode
   * :func:`.calcCovariance` - covariance matrix for given modes
@@ -68,7 +95,7 @@ Following functions are for calculating atomic properties from normal modes:
 Compare models
 ==============
 
-Following functions are for comparing normal modes or dynamics models:
+The following functions are for comparing normal modes or dynamics models:
 
   * :func:`.calcOverlap` - overlap (correlation) between modes
   * :func:`.calcCumulOverlap` - cumulative overlap between modes
@@ -79,16 +106,30 @@ Following functions are for comparing normal modes or dynamics models:
 Generate conformers
 ===================
 
-Following functions can be used to generate conformers along normal modes:
+The following functions can be used to generate conformers along normal modes:
 
   * :func:`.deformAtoms` - deform atoms along a mode
   * :func:`.sampleModes` - deform along random combination of a set of modes
   * :func:`.traverseMode` - traverse a mode along both directions
 
+Adaptive ANM
+===================
+
+The following class and its functions can be used to generate conformers using adaptive ANM:
+
+  * :class:`.AdaptiveANM` - generate transitions between two conformers using best overlapping modes 
+
+Essential Site Scanning Analysis (ESSA)
+========================================
+
+The following class and its functions can be used to perform Essential Site Scanning Analysis:
+
+  * :class:`.ESSA`
+
 Editing models
 ==============
 
-Following functions can be used to reduce, slice, or extrapolate models:
+The following functions can be used to reduce, slice, or extrapolate models:
 
   * :func:`.sliceMode` - take a slice of the normal mode
   * :func:`.extendMode` - extend a coarse-grained mode to all-atoms
@@ -101,7 +142,7 @@ Following functions can be used to reduce, slice, or extrapolate models:
 Parse/write data
 ================
 
-Following functions are parsing or writing normal mode data:
+The following functions are parsing or writing normal mode data:
 
   * :func:`.parseArray` - numeric arrays, e.g. coordinates, eigenvectors
   * :func:`.parseModes` - normal modes
@@ -165,7 +206,7 @@ Arguments and keyword arguments are passed to the Matplotlib functions.
 Heat Mapper support
 ===================
 
-Following functions can be used to read, write, and plot VMD plugin
+The following functions can be used to read, write, and plot VMD plugin
 `Heat Mapper`_ files.
 
   * :func:`.showHeatmap`
@@ -179,10 +220,12 @@ Visualize modes
 ===============
 
 Finally, normal modes can be visualized and animated using VMD plugin
-:ref:`nmwiz`. Following functions allow for running NMWiz from within Python:
+:ref:`nmwiz`. The following functions allow for running NMWiz from within Python:
 
   * :func:`.viewNMDinVMD` - run VMD and load normal mode data
-  * :func:`.pathVMD` - get/set path to VMD executable"""
+  * :func:`.pathVMD` - get/set path to VMD executable
+  
+"""
 
 __all__ = []
 
@@ -284,6 +327,10 @@ from . import imanm
 from .imanm import *
 __all__.extend(imanm.__all__)
 
+from . import exgnm
+from .exgnm import *
+__all__.extend(exgnm.__all__)
+
 #from . import saxs
 #from .saxs import *
 #__all__.extend(saxs.__all__)
@@ -295,4 +342,16 @@ __all__.extend(signature.__all__)
 from . import adaptive
 from .adaptive import *
 __all__.extend(adaptive.__all__)
+
+from . import clustenm
+from .clustenm import *
+__all__.extend(clustenm.__all__)
+
+from . import essa
+from .essa import *
+__all__.extend(essa.__all__)
+
+# workaround for circular dependency to accommodate original design style 
+from prody.ensemble import functions
+functions.ClustENM = ClustENM
 
