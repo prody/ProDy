@@ -134,14 +134,14 @@ def calcPerturbResponse(model, **kwargs):
     return norm_prs_matrix, effectiveness, sensitivity
 
 
-def calcDynamicFlexibilityIndex(prs_matrix, atoms, select):
+def calcDynamicFlexibilityIndex(model, atoms, select, **kwargs):
     """
     Calculate the dynamic flexibility index for the selected residue(s).
     This function implements the dynamic flexibility index (Dfi) method
     described in [ZNG13]_.
 
-    :arg prs_matrix: a matrix from PRS
-    :type prs_matrix: list, tuple, :class:`~numpy.ndarray`
+    :arg model: 3D model from which to calculate covariance matrix
+    :type model: :class:`.ANM`, :class:`.PCA`
 
     :arg atoms: an Atomic object from which residues are selected
     :type atoms: :class:`.Atomic`
@@ -149,19 +149,26 @@ def calcDynamicFlexibilityIndex(prs_matrix, atoms, select):
     :arg select: a selection string or selection for residues of interest
     :type select: str, :class:`.Selection`
 
+    :arg norm: whether to normalise the covariance, default False
+    :type norm: bool
+
     .. [ZNG13] Gerek ZN, Kumar S, Ozkan SB, Structural dynamics flexibility 
        informs function and evolution at a proteome scale.
        *Evol Appl.* **2013** 6(3):423-33.
 
     """
-    if not isinstance(prs_matrix, np.ndarray):
-        raise TypeError('prs_matrix should be a numpy array')
-
-    if prs_matrix.ndim != 2:
-        raise ValueError('prs_matrix should be 2-dimensional')
+    if not isinstance(model, NMA) or not model.is3d():
+        raise TypeError('model must be of type ANM or PCA, not {0}'
+                        .format(type(model)))
 
     if not isinstance(atoms, Atomic):
         raise TypeError('atoms should be an Atomic object')
+
+    norm = kwargs.get('norm', False)
+    if norm:
+        prs_matrix, _, _ = calcPerturbResponse(model, atoms=atoms, **kwargs)
+    else:
+        prs_matrix = model.getCovariance()
 
     if not isinstance(select, (str, Selection)):
         raise TypeError('select should be a Selection or selection string')
@@ -170,14 +177,14 @@ def calcDynamicFlexibilityIndex(prs_matrix, atoms, select):
     return np.sum(profiles, axis=1)/np.sum(prs_matrix)
 
 
-def calcDynamicCouplingIndex(prs_matrix, atoms, select, func_sel):
+def calcDynamicCouplingIndex(model, atoms, select, func_sel, **kwargs):
     """
     Calculate the dynamic coupling index for the selected residue(s).
     This function implements the dynamic coupling index (DCI) 
     or functional DFI method described in [AK15]_.
 
-    :arg prs_matrix: a matrix from PRS
-    :type prs_matrix: list, tuple, :class:`~numpy.ndarray`
+    :arg model: 3D model from which to calculate covariance matrix
+    :type model: :class:`.ANM`, :class:`.PCA`
 
     :arg atoms: an Atomic object from which residues are selected
     :type atoms: :class:`.Atomic`
@@ -188,19 +195,26 @@ def calcDynamicCouplingIndex(prs_matrix, atoms, select, func_sel):
     :arg func_sel: a selection string or selection for functional residues
     :type func_sel: str, :class:`.Selection`
 
+    :arg norm: whether to normalise the covariance, default False
+    :type norm: bool
+
     .. [AK15] Kumar A, Glembo TJ, Ozkan SB. The Role of Conformational Dynamics and Allostery 
         in the Disease Development of Human Ferritin.
        *Biophys J.* **2015** 109(6):1273-81.
 
     """
-    if not isinstance(prs_matrix, np.ndarray):
-        raise TypeError('prs_matrix should be a numpy array')
-
-    if prs_matrix.ndim != 2:
-        raise ValueError('prs_matrix should be 2-dimensional')
+    if not isinstance(model, NMA) or not model.is3d():
+        raise TypeError('model must be of type ANM or PCA, not {0}'
+                        .format(type(model)))
 
     if not isinstance(atoms, Atomic):
         raise TypeError('atoms should be an Atomic object')
+
+    norm = kwargs.get('norm', False)
+    if norm:
+        prs_matrix, _, _ = calcPerturbResponse(model, atoms=atoms, **kwargs)
+    else:
+        prs_matrix = model.getCovariance()
 
     if not isinstance(select, (str, Selection)):
         raise TypeError('select should be a Selection or selection string')
