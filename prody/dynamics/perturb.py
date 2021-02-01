@@ -204,15 +204,16 @@ def calcDynamicCouplingIndex(prs_matrix, atoms, select, func_sel):
 
     if not isinstance(select, (str, Selection)):
         raise TypeError('select should be a Selection or selection string')
-                
-    if isinstance(func_sel, str):
-        func_sel = atoms.select(func_sel)
     
-    if not isinstance(func_sel, Selection):
+    if not isinstance(func_sel, (str, Selection)):
         raise TypeError('func_sel should be a Selection or selection string')
 
     profiles = sliceAtomicData(prs_matrix, atoms, select, axis=0)
     func_profiles = sliceAtomicData(profiles, atoms, func_sel, axis=1)
+
+    if isinstance(func_sel, str):
+        func_sel = atoms.select(func_sel)
+
     N_functional = func_sel.numAtoms()
 
     numerator = np.sum(func_profiles, axis=1) / N_functional
