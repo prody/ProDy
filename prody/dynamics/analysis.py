@@ -7,12 +7,11 @@ import time
 import numpy as np
 
 from prody import LOGGER
-from prody.proteins import parsePDB
-from prody.atomic import AtomGroup, Atomic
+from prody.atomic import Atomic
 from prody.ensemble import Ensemble, Conformation
 from prody.trajectory import TrajBase
 from prody.utilities import importLA, checkCoords, div0
-from numpy import sqrt, arange, log, polyfit, array, arccos, dot
+from numpy import sqrt, arange, log, polyfit, array
 
 from .nma import NMA
 from .modeset import ModeSet
@@ -23,7 +22,8 @@ __all__ = ['calcCollectivity', 'calcCovariance', 'calcCrossCorr',
            'calcFractVariance', 'calcSqFlucts', 'calcTempFactors',
            'calcProjection', 'calcCrossProjection',
            'calcSpecDimension', 'calcPairDeformationDist',
-           'calcDistFlucts', 'calcHinges', 'calcHitTime', 'calcHitTime']
+           'calcDistFlucts', 'calcHinges', 'calcHitTime', 'calcHitTime',
+           'calcAnisousFromModel']
            #'calcEntropyTransfer', 'calcOverallNetEntropyTransfer']
 
 def calcCollectivity(mode, masses=None, is3d=None):
@@ -660,3 +660,37 @@ def calcHitTime(model, method='standard'):
     LOGGER.debug('Hit and commute times are calculated in  {0:.2f}s.'
                  .format(time.time()-start)) 
     return H, C
+
+
+def calcAnisousFromModel(model, ):
+    """Returns a 3Nx6 matrix containing anisotropic B factors (ANISOU lines)
+    from a covariance matrix calculated from **model**.
+
+    :arg model: 3D model from which to calculate covariance matrix
+    :type model: :class:`.ANM`, :class:`.PCA`
+
+    .. ipython:: python
+
+       from prody import *
+       protein = parsePDB('1ejg')
+       anm, calphas = calcANM(protein)
+       adp_matrix = calcAnisousFromModel(anm)"""
+
+    if not isinstance(model, (NMA, Mode)) or not model.is3d():
+        raise TypeError('model must be of type ANM, PCA or Mode, not {0}'
+                        .format(type(model)))
+
+    cov = calcCovariance(model)
+    n_atoms = model.numAtoms()
+    
+    submatrices = [cov[i*3:(i+1)*3, i*3:(i+1)*3] for i in range(n_atoms)]
+
+    anisou = np.zeros((n_atoms, 6))
+    for index, submatrix in enumerate(submatrices):
+        anisou[index, 0] = submatrix[0, 0]
+        anisou[index, 1] = submatrix[1, 1]
+        anisou[index, 2] = submatrix[2, 2]
+        anisou[index, 3] = submatrix[0, 1]
+        anisou[index, 4] = submatrix[0, 2]
+        anisou[index, 5] = submatrix[1, 2]
+    return anisou

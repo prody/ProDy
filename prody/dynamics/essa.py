@@ -464,7 +464,7 @@ class ESSA:
         fpocket = which('fpocket')
 
         if fpocket is None:
-            LOGGER.warning('Fpocket (version >= 3.0 was not found, please install it.')
+            LOGGER.warning('Fpocket (version >= 3.0) was not found, please install it.')
             return None
 
         try:
