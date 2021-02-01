@@ -1,9 +1,6 @@
 """This module defines miscellaneous utility functions that is public to users."""
 
 import numpy as np
-from numpy import unique, linalg, diag, sqrt, dot
-
-from Bio.Phylo.BaseTree import Tree, Clade
 
 from prody import PY3K
 from .misctools import addEnds, interpY, index, isListLike
@@ -515,6 +512,7 @@ def showLines(*args, **kwargs):
 
     from matplotlib import cm, ticker
     from matplotlib.pyplot import figure, gca, xlim
+    from .drawtools import IndexFormatter
 
     ax = gca()
     lines = ax.plot(*args, **kwargs)
@@ -595,7 +593,7 @@ def showLines(*args, **kwargs):
         if callable(ticklabels):
             ax.get_xaxis().set_major_formatter(ticker.FuncFormatter(ticklabels))
         else:
-            ax.get_xaxis().set_major_formatter(ticker.IndexFormatter(ticklabels))
+            ax.get_xaxis().set_major_formatter(IndexFormatter(ticklabels))
     
     ax.xaxis.set_major_locator(ticker.AutoLocator())
     ax.xaxis.set_minor_locator(ticker.AutoMinorLocator())
@@ -631,7 +629,7 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
     from matplotlib.collections import LineCollection
     from matplotlib.pyplot import gca, sca, sci, colorbar, subplot
 
-    from .drawtools import drawTree
+    from .drawtools import drawTree, IndexFormatter
 
     p = kwargs.pop('percentile', None)
     vmin = vmax = None
@@ -732,9 +730,9 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
     #ax3.set_ylim([-0.5, matrix.shape[1]+0.5])
 
     if xticklabels is not None:
-        ax3.xaxis.set_major_formatter(ticker.IndexFormatter(xticklabels))
+        ax3.xaxis.set_major_formatter(IndexFormatter(xticklabels))
     if yticklabels is not None and ncol == 1:
-        ax3.yaxis.set_major_formatter(ticker.IndexFormatter(yticklabels))
+        ax3.yaxis.set_major_formatter(IndexFormatter(yticklabels))
 
     if allticks:
         ax3.xaxis.set_major_locator(ticker.IndexLocator(offset=0.5, base=1.))

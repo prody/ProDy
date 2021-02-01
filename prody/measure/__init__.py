@@ -6,7 +6,7 @@ and identifying contacts.
 Identify contacts
 =================
 
-Following class and functions are for contact identifications:
+The following class and functions are for contact identifications:
 
   * :class:`.Contacts` - identify intermolecular contacts
   * :func:`.findNeighbors` - identify interacting atom pairs
@@ -15,7 +15,7 @@ Following class and functions are for contact identifications:
 Measure quantities
 ==================
 
-Following functions are for measuring simple quantities:
+The following functions are for measuring simple quantities:
 
   * :func:`.calcDistance` - calculate distance(s)
   * :func:`.calcAngle` - calculate bond angle
@@ -31,7 +31,7 @@ Following functions are for measuring simple quantities:
 Anisotropic factors
 ===================
 
-Following functions handle anisotropic displacement parameter (ADP) present
+The following functions handle anisotropic displacement parameter (ADP) present
 in some X-ray structures.
 
   * :func:`.buildADPMatrix` - build ADP matrix
@@ -41,7 +41,7 @@ in some X-ray structures.
 Transformations
 ===============
 
-Following class and functions are for handling coordinate transformations:
+The following class and functions are for handling coordinate transformations:
 
   * :class:`.Transformation` - store transformation matrix
   * :func:`.alignCoordsets` - align multiple coordinate sets

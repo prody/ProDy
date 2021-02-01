@@ -1,6 +1,6 @@
 PDB Ligands
 ===========
 
-.. automodule:: prody.proteins.pdbligands
+.. automodule:: prody.compounds.pdbligands
    :members:
    :undoc-members:

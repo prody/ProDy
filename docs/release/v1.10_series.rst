@@ -28,6 +28,10 @@ ProDy 1.10 Series
 
   * Consistency fixes.
 
+  * Added new modules and functions for handling angles, dihedrals, impropers, 
+  cross-terms, non-bonded exclusions, hydrogen bond donor and acceptor information 
+  from :file:`PSF` files and including them in :class:`.AtomGroup`.
+
 1.10.10 (May 9, 2019)
 ------------------------------------------------------------------------------
 
