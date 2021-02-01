@@ -99,7 +99,7 @@ def prody_gnm(pdb, **kwargs):
 
     if outall or kwargs.get('outbeta'):
         from prody.utilities import openFile
-        fout = openFile(prefix + '_beta.txt', 'w', folder=outdir)
+        fout = openFile(prefix + '_beta'+ext, 'w', folder=outdir)
         fout.write('{0[0]:1s} {0[1]:4s} {0[2]:4s} {0[3]:5s} {0[4]:5s}\n'
                        .format(['C', 'RES', '####', 'Exp.', 'The.']))
         for data in zip(select.getChids(), select.getResnames(),

@@ -29,8 +29,8 @@ including *SignDy* and Adaptive ANM.
 the *cryo-EM* module, :mod:`.protein.emdmap`.
 
 `Burak Kaynak`_ contributed significantly to the development of 
-:mod:`.domain_decomposition` and is in the process of adding other 
-modules too.
+:mod:`.domain_decomposition` and :mod:`.dynamics.essa`, 
+and is in the process of adding other modules too.
 
 `Anindita Dutta`_ contributed to the development of *Evol*,
 :mod:`.database` and :mod:`.sequence` modules.

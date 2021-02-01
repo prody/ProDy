@@ -91,8 +91,9 @@ def prody_pca(coords, **kwargs):
         else:
             ensemble = dcd[:]
             if not kwargs.get('aligned'):
-                ensemble.iterpose()
+                ensemble.iterpose(quiet=True)
             pca.performSVD(ensemble)
+        nmodes = pca.numModes()
 
     else:
         pdb = prody.parsePDB(coords)
