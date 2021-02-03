@@ -230,6 +230,9 @@ def searchPfam(query, **kwargs):
                 return searchPfam(ag_seq)
             except:
                 raise ValueError('No valid UniProt accession or ID for: ' + seq)
+        
+        if xml.find(b'No valid UniProt accession or ID') > 0:
+            raise ValueError('No valid UniProt accession or ID for: ' + seq)
 
     try:
         root = ET.XML(xml)
