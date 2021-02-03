@@ -3,6 +3,7 @@
 
 __author__ = 'Anindita Dutta, Ahmet Bakan, Cihan Kaya'
 
+from prody.dynamics.analysis import calcFracDimension
 import re
 from numbers import Integral
 
@@ -222,6 +223,7 @@ def searchPfam(query, **kwargs):
     elif xml.find(b'No valid UniProt accession or ID') > 0:
         try:
             url = prefix + 'protein/' + accession + '?output=xml'
+            LOGGER.debug('Retrieving Pfam search results: ' + url)
             xml = openURL(url, timeout=timeout).read()
         except:
             try:
@@ -232,7 +234,17 @@ def searchPfam(query, **kwargs):
                 raise ValueError('No valid UniProt accession or ID for: ' + seq)
         
         if xml.find(b'No valid UniProt accession or ID') > 0:
-            raise ValueError('No valid UniProt accession or ID for: ' + seq)
+            try:
+                url = 'https://uniprot.org/uniprot/' + accession + '.xml'
+                xml = openURL(url, timeout=timeout).read()
+                root = ET.XML(xml)
+                accession = root[0][0].text
+
+                url = prefix + 'protein/' + accession + '?output=xml'
+                LOGGER.debug('Retrieving Pfam search results: ' + url)
+                xml = openURL(url, timeout=timeout).read()                
+            except:
+                raise ValueError('No valid UniProt accession or ID for: ' + seq)
 
     try:
         root = ET.XML(xml)
