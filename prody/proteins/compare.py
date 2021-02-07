@@ -1381,7 +1381,7 @@ def getAlignedMapping(target, chain, alignment=None):
 def getCEAlignMapping(target, chain):
     try:
         from .ccealign import ccealign
-    except:
+    except ImportError:
         LOGGER.warn('Could not import ccealign C/C++ extension.'
                     'It may not be installed properly.')
         return None
