@@ -1379,7 +1379,12 @@ def getAlignedMapping(target, chain, alignment=None):
     return amatch, bmatch, n_match, n_mapped
 
 def getCEAlignMapping(target, chain):
-    from .ccealign import ccealign
+    try:
+        from .ccealign import ccealign
+    except ImportError:
+        LOGGER.warn('Could not import ccealign C/C++ extension.'
+                    'It may not be installed properly.')
+        return None
 
     tar_coords = target.getCoords().tolist()
     mob_coords = chain.getCoords().tolist()
