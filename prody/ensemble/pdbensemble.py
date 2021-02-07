@@ -30,7 +30,6 @@ class PDBEnsemble(Ensemble):
     def __init__(self, title='Unknown'):
 
         self._labels = []
-        self._selstrs = []
         self._trans = None
         self._msa = None
         Ensemble.__init__(self, title)
@@ -267,8 +266,6 @@ class PDBEnsemble(Ensemble):
             else:
                 label = label or 'Unknown'
 
-        selstr = atoms.getSelstr() if hasattr(atoms, 'getSelstr') else 'all'
-
         # check coordinates
         try:
             checkCoords(coords, csets=True, natoms=n_atoms)
@@ -350,15 +347,6 @@ class PDBEnsemble(Ensemble):
 
         self._labels.extend(labels)
 
-        # update selstrs
-        if n_csets > 1 and not degeneracy:
-            if isinstance(selstr, str):
-                selstrs = ['{0}_m{1}'.format(label, i+1) for i in range(n_csets)]
-        else:
-            selstrs = [selstr] if np.isscalar(selstr) else selstr
-
-        self._selstrs.extend(selstrs)
-
         # update sequences
         if seqs:
             msa = MSA(seqs, title=self.getTitle(), labels=labels)
@@ -434,11 +422,6 @@ class PDBEnsemble(Ensemble):
         """Returns identifiers of the conformations in the ensemble."""
 
         return list(self._labels)
-
-    def getSelstrs(self):
-        """Returns identifiers of the conformations in the ensemble."""
-
-        return list(self._selstrs)
 
     def getCoordsets(self, indices=None, selected=True):
         """Returns a copy of coordinate set(s) at given *indices* for selected

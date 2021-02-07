@@ -1,13 +1,14 @@
 """This module defines miscellaneous utility functions."""
 import re
 
-from numpy import unique, linalg, diag, sqrt, dot, chararray, divide, zeros_like, zeros, allclose, ceil
+from numpy import unique, linalg, diag, sqrt, dot, chararray, divide, zeros_like, zeros, allclose, ceil, abs
 from numpy import diff, where, insert, nan, isnan, loadtxt, array, round, average, min, max, delete, vstack
-from numpy import sign, arange, asarray, ndarray, subtract, power, sum, isscalar, empty, triu, tril
+from numpy import sign, arange, asarray, ndarray, subtract, power, sum, isscalar, empty, triu, tril, median
 from collections import Counter
 import numbers
 
 from prody import PY3K
+from .logger import LOGGER
 
 from Bio.Data import IUPACData
 
@@ -19,7 +20,7 @@ __all__ = ['Everything', 'Cursor', 'ImageCursor', 'rangeString', 'alnum', 'impor
            'getDataPath', 'openData', 'chr2', 'toChararray', 'interpY', 'cmp', 'pystr',
            'getValue', 'indentElement', 'isPDB', 'isURL', 'isListLike', 'isSymmetric', 'makeSymmetric',
            'getDistance', 'fastin', 'createStringIO', 'div0', 'wmean', 'bin2dec', 'wrapModes', 
-           'fixArraySize', 'decToHybrid36', 'hybrid36ToDec', 'DTYPE', 'split']
+           'fixArraySize', 'decToHybrid36', 'hybrid36ToDec', 'DTYPE', 'checkIdentifiers', 'split', 'mad']
 
 DTYPE = array(['a']).dtype.char  # 'S' for PY2K and 'U' for PY3K
 CURSORS = []
@@ -627,6 +628,31 @@ def index(A, a):
         return where(A==a)[0][0]
 
 
+def checkIdentifiers(*pdb, **kwargs):
+    """Check whether *pdb* identifiers are valid, and replace invalid ones
+    with **None** in place."""
+    format = kwargs.get('format', 'pdb')
+    identifiers = []
+    append = identifiers.append
+    for pid in pdb:
+        try:
+            pid = pid.strip().lower()
+        except AttributeError:
+            LOGGER.warn('{0} is not a valid identifier.'.format(repr(pid)))
+            append(None)
+        else:
+            if format != 'emd' and not (len(pid) == 4 and pid.isalnum()):
+                LOGGER.warn('{0} is not a valid identifier.'
+                            .format(repr(pid)))
+                append(None)
+            elif format == 'emd' and not (len(pid) in [4, 5] and pid.isalnum()):
+                LOGGER.warn('{0} is not a valid identifier.'
+                            .format(repr(pid)))
+                append(None)
+            else:
+                append(pid)
+    return identifiers
+
 def decToBase36(integer):
     """Converts a decimal number to base 36.
     Based on https://wikivisually.com/wiki/Base36
@@ -698,3 +724,43 @@ def split(string, shlex=False):
             return shlex.split(string)
     else:
         return string.split()
+
+
+def packmolRenumChains(ag):
+    chainids = ag.getChids()
+    new_chainids = zeros(chainids.shape[0], dtype=DTYPE + '2')
+    chid_mem = []
+    chid_alt = 0
+
+    num_chars = int(chainids.dtype.str[2:])
+    for j, chid in enumerate(chainids):
+        if j == 0:
+            chid_mem.append(chid)
+        else:
+            if chid != chainids[j-1]:
+                chid_alt += 1
+
+                if chid_alt >= 10**num_chars:
+                    num_chars += 1
+                    new_chainids = array(new_chainids, dtype=new_chainids.dtype.str[:2]+str(num_chars))
+
+                if chid_alt > 1 and len(chid_mem) > 1 and chid == chid_mem[-2]:
+                    chid_mem.append(chid)
+
+        new_chainids[j] = "{}".format(chid_alt)
+
+    ag.setChids(new_chainids)
+    return ag
+
+def mad(x):
+    try:
+        from scipy.stats import median_absolute_deviation as _mad
+    except ImportError:
+        try:
+            from scipy.stats import median_abs_deviation as _mad
+        except ImportError:
+            def _mad(x):
+                med = median(x)
+                return median(abs(x - med))
+    
+    return _mad(x)

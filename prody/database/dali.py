@@ -143,7 +143,7 @@ class DaliRecord(object):
     """A class to store results from Dali PDB search."""
 
     def __init__(self, url, pdbId, chain, subset='fullPDB', localFile=False, **kwargs):
-        """Instantiate a daliPDB object instance.
+        """Instantiate a DaliRecord object instance.
 
         :arg url: url of Dali results page or local dali results file
         :arg pdbId: PDB code for searched protein
@@ -166,7 +166,7 @@ class DaliRecord(object):
         self._alignPDB = None
         self._filterDict = None
         self._max_index = None
-        self.isSuccess = self.fetch(self._url, localFile=localFile, timeout=timeout, **kwargs)
+        self.fetch(self._url, localFile=localFile, timeout=timeout, **kwargs)
 
     def fetch(self, url=None, localFile=False, **kwargs):
         """Get Dali record from url or file.
@@ -225,10 +225,12 @@ class DaliRecord(object):
                     break
                 elif html.find('ERROR:') > -1:
                     LOGGER.warn(': Dali search reported an ERROR!')
+                    self.isSuccess = False
                     return False
                 sleep = 20 if int(sleep * 1.5) >= 20 else int(sleep * 1.5)
                 if LOGGER.timing('_dali') > timeout:
                     LOGGER.warn(': Dali search has timed out. \nThe results can be obtained later using the fetch() method.')
+                    self.isSuccess = False
                     return False
                 LOGGER.sleep(int(sleep), 'to reconnect to Dali '+log_message)
                 LOGGER.clear()
@@ -307,6 +309,7 @@ class DaliRecord(object):
         self._pdbList = self._pdbListAll
         self._alignPDB = dali_temp_dict
         LOGGER.info('Obtained ' + str(len(pdbListAll)) + ' PDB chains from Dali for '+self._pdbId+self._chain+'.')
+        self.isSuccess = True
         return True
         
     def getPDBs(self, filtered=True):
@@ -372,7 +375,7 @@ class DaliRecord(object):
 
     def filter(self, cutoff_len=None, cutoff_rmsd=None, cutoff_Z=None, cutoff_identity=None):
         """Filters out PDBs from the PDBList and returns the PDB list.
-        PDBs satisfy any of following criterion will be filtered out.
+        PDBs that satisfy any of the following criterion will be filtered out.
         (1) Length of aligned residues < cutoff_len (must be an integer or a float between 0 and 1);
         (2) RMSD < cutoff_rmsd (must be a positive number);
         (3) Z score < cutoff_Z (must be a positive number);
@@ -436,7 +439,7 @@ class DaliRecord(object):
         filterListLen = []
         filterListRMSD = []
         filterListZ = []
-        filterListIdentiry = []
+        filterListIdentity = []
         
         # keep the first PDB (query PDB)
         for pdb_chain in pdbListAll[1:]:
@@ -456,7 +459,7 @@ class DaliRecord(object):
                 continue
             if temp_dict['identity'] > cutoff_identity:
                 # print('Filter out ' + pdb_chain + ', identity: ' + str(temp_dict['identity']))
-                filterListIdentiry.append(pdb_chain)
+                filterListIdentity.append(pdb_chain)
                 continue
             temp_diff = list(ref_indices_set - set(temp_dict['map_ref']))
             for diff_i in temp_diff:
@@ -465,11 +468,11 @@ class DaliRecord(object):
                 else:
                     missing_ind_dict[diff_i] += 1
         self._missing_ind_dict = missing_ind_dict
-        filterList = filterListLen + filterListRMSD + filterListZ + filterListIdentiry
-        filterDict = {'len': filterListLen, 'rmsd': filterListRMSD, 'Z': filterListZ, 'identity': filterListIdentiry}
+        filterList = filterListLen + filterListRMSD + filterListZ + filterListIdentity
+        filterDict = {'len': filterListLen, 'rmsd': filterListRMSD, 'Z': filterListZ, 'identity': filterListIdentity}
         self._filterList = filterList
         self._filterDict = filterDict
-        self._pdbList = [self._pdbListAll[0]] + list(set(list(self._pdbListAll[1:])) - set(filterList))
+        self._pdbList = [self._pdbListAll[0]] + [item for item in self._pdbListAll[1:] if not item in filterList]
         LOGGER.info(str(len(filterList)) + ' PDBs have been filtered out from '+str(len(pdbListAll))+' Dali hits (remaining: '+str(len(pdbListAll)-len(filterList))+').')
         return self._pdbList
     

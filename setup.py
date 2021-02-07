@@ -11,6 +11,11 @@ if sys.version_info[:2] < (2, 7):
     sys.stderr.write('Python 2.6 and older is not supported\n')
     sys.exit()
 
+if sys.version_info[:2] == (2, 7):
+    INSTALL_REQUIRES=['numpy>=1.10', 'biopython<=1.76', 'pyparsing', 'scipy']
+else:
+    INSTALL_REQUIRES=['numpy>=1.10', 'biopython', 'pyparsing', 'scipy']
+
 if sys.version_info[0] == 3:
     if sys.version_info[1] < 5:
         sys.stderr.write('Python 3.4 and older is not supported\n')
@@ -55,6 +60,7 @@ PACKAGES = ['prody',
             'prody.sequence',
             'prody.trajectory',
             'prody.chromatin',
+            'prody.compounds',
             'prody.domain_decomposition',
             'prody.utilities',
             'prody.apps',
@@ -178,6 +184,6 @@ setup(
     entry_points = {
         'console_scripts': SCRIPTS,
     },
-    install_requires=['numpy>=1.10', 'biopython', 'pyparsing', 'scipy'],
+    install_requires=INSTALL_REQUIRES,
     #provides=['ProDy ({0:s})'.format(__version__)]
 )
