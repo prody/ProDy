@@ -38,7 +38,7 @@ class exANM(ANM):
         self._combined = None
 
     def buildMembrane(self, coords, **kwargs):
-        """Build Hessian matrix for given coordinate set.
+        """Build membrane lattice around **coords**.
 
         :arg coords: a coordinate set or an object with ``getCoords`` method
         :type coords: :class:`numpy.ndarray`
