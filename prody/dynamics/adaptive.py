@@ -129,12 +129,12 @@ def calcStep(initial, target, n_modes, ensemble, defvecs, rmsds, mask=None, call
     normalised_overlaps = overlaps / norm(d)
     c_sq = np.cumsum(np.power(normalised_overlaps, 2), axis=0)
 
-    torf_Fmin = c_sq <= Fmin
-
     if Fmin == 0 and resetFmin:
+        torf_Fmin = np.zeros(c_sq.shape, dtype=bool)
         argmax_overlap = np.argmax(abs(normalised_overlaps))
         torf_Fmin[argmax_overlap] = True
     else:
+        torf_Fmin = c_sq <= Fmin
         if np.any(torf_Fmin) and not np.all(torf_Fmin):
             i = np.where(torf_Fmin)[0].max()
             torf_Fmin[i+1] = True
@@ -380,6 +380,7 @@ def calcAlternatingAdaptiveANM(a, b, n_steps, **kwargs):
         LOGGER.info('\nStarting cycle {0} with {1}'.format(n + 1, getTitle(a, 'structure A')))
         n_modes = calcStep(coordsA, coordsB, n_modes, ensA, defvecs, rmsds, mask=maskA,
                            resetFmin=resetFmin, **kwargs)
+        resetFmin = False
 
         if n_modes == 0:
             LOGGER.report('Alternating Adaptive ANM converged in %.2fs.', '_prody_calcAdaptiveANM')
@@ -389,7 +390,6 @@ def calcAlternatingAdaptiveANM(a, b, n_steps, **kwargs):
         n_modes = calcStep(coordsB, coordsA, n_modes, ensB, defvecs, rmsds, mask=maskB,
                            resetFmin=resetFmin, **kwargs)
         n += 1
-        resetFmin = False
 
         if n_modes == 0:
             LOGGER.report('Alternating Adaptive ANM converged in %.2fs.', '_prody_calcAdaptiveANM')
