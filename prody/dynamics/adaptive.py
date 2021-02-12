@@ -56,7 +56,10 @@ def checkInput(a, b, **kwargs):
     if np.isscalar(maskB):
         maskB = None
 
-    coordsA, _ = superpose(coordsA, coordsB, weights)
+    aligned = kwargs.get('aligned', False)
+    if not aligned:
+        coordsA, _ = superpose(coordsA, coordsB, weights)
+        
     rmsd = calcRMSD(coordsA, coordsB, weights)
     LOGGER.info('Initialized Adaptive ANM with RMSD {:4.3f}\n'.format(rmsd))
 
