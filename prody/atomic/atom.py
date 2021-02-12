@@ -240,6 +240,23 @@ class Atom(AtomPointer):
                 break
             yield Atom(ag, other, acsi)
 
+    def toTEMPyAtom(self):
+        """Returns a TEMPy BioPyAtom or Structure object as appropriate"""  
+        try:
+            from TEMPy.protein.prot_rep_biopy import Atom as TEMPyAtom
+        except ImportError:
+            raise ImportError('TEMPy is needed for this functionality')
+
+        return TEMPyAtom(
+            self.getName(), self.getCoords(),
+            'HETATM' if self.getFlag('hetatm') else 'ATOM',
+            self.getSerial(), self.getBeta(),
+            self.getAltloc(), self.getIcode(),
+            self.getCharge(), self.getElement(),
+            self.getOccupancy(), self.getResname(),
+            None, self.getACSIndex(), self.getChid(),
+            self.getResnum())
+
 
 for fname, field in ATOMIC_FIELDS.items():
 
