@@ -136,7 +136,7 @@ class AtomMap(AtomPointer):
 
             if dummies:
                 dummies = (indices == DUMMY).nonzero()[0]
-                if len(dummies):
+                if dummies:
                     self._dummies = dummies
                     self._mapping = (indices > DUMMY).nonzero()[0]
                     self._indices = indices[self._mapping]
