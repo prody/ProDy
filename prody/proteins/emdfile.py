@@ -11,7 +11,7 @@ from prody.atomic import AtomGroup
 from prody.atomic import flags
 from prody.atomic import ATOMIC_FIELDS
 
-from prody.utilities import openFile, isListLike
+from prody.utilities import openFile, isListLike, copy
 from prody import LOGGER, SETTINGS
 
 from .localpdb import fetchPDB
@@ -355,7 +355,7 @@ class EMDMAP(object):
         else:
             newMap1 = newMap1 * (newMap1 > min_cutoff)
 
-        newMap = self.copy()
+        newMap = self.copyMap()
         newMap.density = newMap1
         return newMap
 
@@ -455,6 +455,12 @@ class EMDMAP(object):
         header = MapParser.readMRCHeader(self.filename)
         newOrigin = np.array((self.ncstart, self.nrstart, self.nsstart)) * self.apix
         return Map(self.density, newOrigin, self.apix, self.filename, header)
+
+    def copyMap(self):
+        """
+        Copy to a new object.
+        """
+        return copy(self)
 
 
 
