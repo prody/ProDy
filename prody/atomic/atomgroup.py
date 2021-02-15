@@ -197,7 +197,7 @@ class AtomGroup(Atomic):
             start, stop, step = index.indices(self._n_atoms)
             start = start or 0
             index = np.arange(start, stop, step)
-            if index:
+            if len(index):
                 if start > stop:
                     index = index[::-1]
                 selstr = 'index {0}:{1}:{2}'.format(start, stop, step)

@@ -493,7 +493,7 @@ def getValue(dict_, attr, default=None):
 def indentElement(elem, level=0):
     i = "\n" + level*"  "
     j = "\n" + (level-1)*"  "
-    if elem:
+    if len(elem):
         if not elem.text or not elem.text.strip():
             elem.text = i + "  "
         if not elem.tail or not elem.tail.strip():
