@@ -56,7 +56,10 @@ def checkInput(a, b, **kwargs):
     if np.isscalar(maskB):
         maskB = None
 
-    coordsA, _ = superpose(coordsA, coordsB, weights)
+    aligned = kwargs.get('aligned', False)
+    if not aligned:
+        coordsA, _ = superpose(coordsA, coordsB, weights)
+
     rmsd = calcRMSD(coordsA, coordsB, weights)
     LOGGER.info('Initialized Adaptive ANM with RMSD {:4.3f}\n'.format(rmsd))
 
@@ -102,8 +105,9 @@ def calcStep(initial, target, n_modes, ensemble, defvecs, rmsds, mask=None, call
     if n_modes > n_max_modes:
         n_modes = n_max_modes
 
+    model = kwargs.pop('model', 'anm')
     anm, _ = calcENM(coords_init, select=mask, mask=mask, 
-                     model='anm', trim='trim', n_modes=n_modes, 
+                     model=model, trim='trim', n_modes=n_modes, 
                      **kwargs)
 
     if mask is not None:
