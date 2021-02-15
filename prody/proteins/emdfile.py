@@ -3,7 +3,6 @@
 
 .. _EMD map files: http://emdatabank.org/mapformat.html"""
 
-from collections import defaultdict
 from numbers import Number
 import os.path
 
@@ -12,7 +11,7 @@ from prody.atomic import flags
 from prody.atomic import ATOMIC_FIELDS
 
 from prody.utilities import openFile, isListLike, copy
-from prody import LOGGER, SETTINGS
+from prody import LOGGER
 
 from .localpdb import fetchPDB
 
@@ -337,26 +336,26 @@ class EMDMAP(object):
 
     def thresholdMap(self, min_cutoff=None, max_cutoff=None):
         """Thresholds a map and returns a new map like the equivalent function in TEMPy"""
-        newMap1 = self.density.copy()
+        newDensity = self.density.copy()
 
-        if min_cutoff is not None:
-            if isinstance(min_cutoff, Number):
-                min_cutoff = float(min_cutoff)
+        if max_cutoff is not None:
+            if isinstance(max_cutoff, Number):
+                min_cutoff = float(max_cutoff)
             else:
-                raise TypeError('min_cutoff should be a number or None')
-        else:
-            newMap1 = newMap1 * (newMap1 < max_cutoff) 
+                raise TypeError('max_cutoff should be a number or None')
+
+            newDensity = newDensity * (newDensity < max_cutoff)
             
         if min_cutoff is not None:
             if isinstance(min_cutoff, Number):
                 min_cutoff = float(min_cutoff)
             else:
                 raise TypeError('min_cutoff should be a number or None')
-        else:
-            newMap1 = newMap1 * (newMap1 > min_cutoff)
+
+            newDensity = newDensity * (newDensity > min_cutoff)
 
         newMap = self.copyMap()
-        newMap.density = newMap1
+        newMap.density = newDensity
         return newMap
 
     def numidx2matidx(self, numidx):
