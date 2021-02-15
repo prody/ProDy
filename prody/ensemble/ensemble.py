@@ -247,9 +247,7 @@ class Ensemble(object):
             except AttributeError:
                 pass
             else:
-                if dummies:
-                    raise ValueError('atoms must not have any dummies')
-                else:
+                if not dummies:
                     indices = atoms._getIndices()
                     if any(indices != unique(indices)):
                         raise ValueError('atoms must be ordered by indices')
