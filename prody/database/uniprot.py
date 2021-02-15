@@ -177,7 +177,7 @@ def queryUniprot(id, expand=[], regex=True):
         if regex:
             for lt in expand:
                 lt_re = re.compile(lt)
-                for key in data.keys():
+                for key in data:
                     if lt_re.match(key):
                         keys.append(key)
         else:
