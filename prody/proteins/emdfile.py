@@ -11,7 +11,7 @@ from prody.atomic import AtomGroup
 from prody.atomic import flags
 from prody.atomic import ATOMIC_FIELDS
 
-from prody.utilities import openFile
+from prody.utilities import openFile, isListLike
 from prody import LOGGER, SETTINGS
 
 from .localpdb import fetchPDB
@@ -246,7 +246,9 @@ class EMDMAP(object):
 
         if max_cutoff is not None and not isinstance(max_cutoff, Number):
             raise TypeError('max_cutoff should be a number or None')
-            
+        
+        self._filename = stream.name
+
         # Number of columns, rows, and sections (3 words, 12 bytes, 1-12)
         self.NC = st.unpack('<L', stream.read(4))[0]
         self.NR = st.unpack('<L', stream.read(4))[0]
@@ -384,7 +386,47 @@ class EMDMAP(object):
     def center(self):
         return int(self.NS / 2), int(self.NR / 2), int(self.NC / 2)
 
+    def getOrigin(self):
+        return self.x0, self.y0, self.z0
+
+    def setOrigin(self, x0, y0, z0):
+        self.x0, self.y0, self.z0 = x0, y0, z0
+
+    origin = property(getOrigin, setOrigin)
+
+    def getTitle(self):
+        return self._filename
+
+    def setTitle(self, title):
+        self._filename = title
+
+    filename = property(getTitle, setTitle)
+
+    def getApix(self):
+        return np.array((self.Lx / self.NS,
+                         self.Ly / self.NR,
+                         self.Lz / self.NC))
+
+    def setApix(self, apix):
+        if not isListLike(apix):
+            try:
+                apix = [apix, apix, apix]
+            except:
+                raise TypeError('apix must be a single value or list-like')
+
+        if len(apix) != 3:
+            raise ValueError('apix must be a single value or 3 values')
+        
+        self._apix = apix
+        self.Lx = apix[0] * self.NS
+        self.Ly = apix[1] * self.NR
+        self.Lz = apix[2] * self.NC
+
+    apix = property(getApix, setApix)
+
     def coordinate(self, sec, row, col):
+        """Given a position as *sec*, *row* and *col*, 
+        it will return its coordinate in Angstroms. """
         # calculate resolution
         res = np.empty(3)
         res[self.mapc - 1] = self.NC
@@ -401,6 +443,19 @@ class EMDMAP(object):
         # convert to Angstroms
         ret = np.multiply(ret, res)
         return ret
+
+    def toTEMPyMap(self):
+        """Convert to a TEMPy Map."""
+        try:
+            from TEMPy.maps.em_map import Map
+            from TEMPy.maps.map_parser import MapParser
+        except ImportError:
+            raise ImportError('TEMPy needs to be installed for this functionality')
+        
+        header = MapParser.readMRCHeader(self.filename)
+        newOrigin = np.array((self.ncstart, self.nrstart, self.nsstart)) * self.apix
+        return Map(self.density, newOrigin, self.apix, self.filename, header)
+
 
 
 class TRNET(object):

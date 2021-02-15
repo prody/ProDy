@@ -253,3 +253,24 @@ class Atomic(object):
             seq = get(res, 'X')
         
         return seq
+
+    def toTEMPyAtoms(self):
+        """Returns a BioPy.PDB Atom or Structure object as appropriate"""
+        try:
+            from TEMPy.protein.prot_rep_biopy import Atom as TEMPyAtom
+        except ImportError:
+            raise ImportError('TEMPy is needed for this functionality')
+
+        if hasattr(self, 'getResnums'):
+            return [atom.toTEMPyAtom() for atom in self]
+        else:
+            return [self.toTEMPyAtom()]
+
+    def toTEMPyStructure(self):
+        """Returns a BioPy.PDB Atom or Structure object as appropriate""" 
+        try:
+            from TEMPy.protein.prot_rep_biopy import BioPy_Structure
+        except ImportError:
+            raise ImportError('TEMPy is needed for this functionality')
+
+        return BioPy_Structure(self.toTEMPyAtoms())
