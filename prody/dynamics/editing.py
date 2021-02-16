@@ -213,7 +213,8 @@ def trimModelByMask(model, mask):
             gnm.setKirchhoff(matrix)
             return gnm
         elif isinstance(model, ANM):
-            anm = ANM(model.getTitle() + ' reduced')
+            model_type = type(model)
+            anm = model_type(model.getTitle() + ' reduced')
             
             n = len(matrix) // 3
             for i in range(n):
@@ -224,6 +225,9 @@ def trimModelByMask(model, mask):
                     S -= matrix[i*3:i*3+3, j*3:j*3+3]
                 matrix[i*3:i*3+3, i*3:i*3+3] = S
             anm.setHessian(matrix)
+            if hasattr(anm, 'getMembrane'):
+                anm._membrane = model.getMembrane()
+                anm._combined = model.getCombined()
             return anm
 
 def sliceMode(mode, atoms, select):
