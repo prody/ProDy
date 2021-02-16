@@ -17,3 +17,6 @@ __all__.extend(clustenm.__all__)
 from prody.ensemble import functions
 functions.ClustENM = ClustENM
 
+from . import adaptive
+from .adaptive import *
+__all__.extend(adaptive.__all__)

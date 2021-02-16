@@ -1,20 +1,39 @@
 # -*- coding: utf-8 -*-
 """This module defines functions for performing adaptive ANM."""
 
-from prody.atomic import Atomic, AtomMap
+__author__ = 'James Krieger'
+__credits__ = ['Hongchun Li', 'She Zhang', 'Burak Kaynak']
+__email__ = ['jamesmkrieger@gmail.com', 'hongchun28@gmail.com', 'shz66@pitt.edu', 'burak.kaynak@pitt.edu']
+
+from itertools import product
+from multiprocessing import cpu_count, Pool
+from collections import OrderedDict
+from os import chdir, mkdir
+from os.path import isdir
+from prody.measure.transform import calcTransformation
+from prody.measure.measure import calcDeformVector
+from sys import stdout
+
 import time
 from numbers import Integral, Number
 import numpy as np
 
 from prody import LOGGER
-from prody.utilities import getCoords, importLA
-from prody.measure import calcRMSD, calcDistance, superpose
+from prody.atomic import Atomic, AtomMap
+from prody.utilities import getCoords, createStringIO, importLA, mad
+
+from prody.measure import calcRMSD, calcDistance, superpose, applyTransformation
+from prody.proteins import writePDB, parsePDB, writePDBStream, parsePDBStream
 from prody.ensemble import Ensemble
 
-from .functions import calcENM
-from .modeset import ModeSet
+from prody.dynamics.functions import calcENM
+from prody.dynamics.modeset import ModeSet
+from prody.dynamics.nma import NMA
 
-__all__ = ['calcAdaptiveANM', 'AANM_ONEWAY', 'AANM_ALTERNATING', 'AANM_BOTHWAYS', 'AANM_DEFAULT']
+from .hybrid import Hybrid
+
+__all__ = ['calcAdaptiveANM', 'AANM_ONEWAY', 'AANM_ALTERNATING', 'AANM_BOTHWAYS', 'AANM_DEFAULT',
+           'AdaptiveHybrid']
 
 AANM_ALTERNATING = 0
 AANM_ONEWAY = 1
@@ -88,7 +107,7 @@ def calcStep(initial, target, n_modes, ensemble, defvecs, rmsds, mask=None, call
     weights = ensemble.getWeights()
     if weights is not None:
         weights = weights.flatten()
-    #coords_init, _ = superpose(initial, target, weights) # we should keep this off otherwise RMSD calculations are off
+
     coords_init = initial
     coords_tar = target
 
@@ -464,3 +483,190 @@ def calcBothWaysAdaptiveANM(a, b, n_steps, **kwargs):
 
     return ensemble
 
+class AdaptiveHybrid(Hybrid):
+    '''
+    This is a new version of the Adaptive ANM transition sampling algorithm [ZY09]_, 
+    that is an ANM-based hybrid algorithm. It requires PDBFixer and OpenMM for performing 
+    energy minimization and MD simulations in implicit/explicit solvent.
+
+    Instantiate a ClustENM object.
+    '''
+    def __init__(self, title):
+        super().__init__(title=title)
+        self._atomsB = None
+        self._defvecs = []
+        self._resetFmin = True
+        self._rmsds = []
+        self._cg_ens = Ensemble(title=title)
+
+    def _sample(self, conf, **kwargs):
+
+        tmp = self._atoms.copy()
+        tmp.setCoords(conf)
+        cg = tmp[self._idx_cg]
+
+        anm_cg = self._buildANM(cg)
+
+        if not self._checkANM(anm_cg):
+            return None
+
+        tmpB = self._atomsB.copy()
+        cgB = tmpB[self._idx_cg]
+
+        coordsA, coordsB, title, atoms, weights, maskA, maskB, rmsd = checkInput(cg, cgB, **kwargs)
+        coordsA = coordsA.copy()
+
+        anm_cg = []
+        self._n_modes = calcStep(coordsA, coordsB, self._n_modes, self._cg_ens, self._defvecs, self._rmsds, mask=maskA,
+                                 resetFmin=self._resetFmin, **kwargs)
+        self._resetFmin = False
+        
+        defvec = calcDeformVector(cg, self._cg_ens.getCoordsets()[-1])
+        model = NMA()
+        model.setEigens(defvec.getArray().reshape((defvec.getArray().shape[0], 1)))
+        model_ex = self._extendModel(model, cg, tmp)
+        coordsets = [tmp.getCoords() + model_ex.getEigvecs()[0]]
+
+        if self._targeted:
+            if self._parallel:
+                with Pool(cpu_count()) as p:
+                    pot_conf = p.map(self._multi_targeted_sim,
+                                     [(conf, coords) for coords in coordsets])
+            else:
+                pot_conf = [self._multi_targeted_sim((conf, coords)) for coords in coordsets]
+
+            pots, poses = list(zip(*pot_conf))
+
+            idx = np.logical_not(np.isnan(pots))
+            coordsets = np.array(poses)[idx]
+
+            LOGGER.debug('%d/%d sets of coordinates were moved to the target' % (len(poses), len(coordsets)))
+
+        return coordsets
+
+    def setAtoms(self, atomsA, atomsB, pH=7.0, **kwargs):
+        aligned = kwargs.get('aligned', False)
+        if not aligned:
+            T = calcTransformation(atomsA.ca, atomsB.ca, weights=atomsA.ca.getFlags("mapped"))
+            _ = applyTransformation(T, atomsA)
+
+        if self._isBuilt():
+            super(Hybrid, self).setAtoms(atomsA)
+            self._atomsB = atomsB
+        else:
+            for i, atoms in enumerate([atomsA, atomsB]):
+                atoms = atoms.select('not hetatm')
+
+                self._nuc = atoms.select('nucleotide')
+
+                if self._nuc is not None:
+
+                    idx_p = []
+                    for c in self._nuc.getChids():
+                        tmp = self._nuc[c].iterAtoms()
+                        for a in tmp:
+                            if a.getName() in ['P', 'OP1', 'OP2', 'OP3']:
+                                idx_p.append(a.getIndex())
+
+                    if idx_p:
+                        nsel = 'not index ' + ' '.join([str(i) for i in idx_p])
+                        atoms = atoms.select(nsel)
+
+                LOGGER.info('Fixing structure {0}...'.format(i))
+                LOGGER.timeit('_clustenm_fix')
+                self._ph = pH
+                self._fix(atoms, i)
+                LOGGER.report('The structure was fixed in %.2fs.',
+                            label='_clustenm_fix')
+
+                if self._nuc is None:
+                    self._idx_cg = self._atoms.ca.getIndices()
+                    self._n_cg = self._atoms.ca.numAtoms()
+                else:
+                    self._idx_cg = self._atoms.select("name CA C2 C4' P").getIndices()
+                    self._n_cg = self._atoms.select("name CA C2 C4' P").numAtoms()
+
+                self._n_atoms = self._atoms.numAtoms()
+                self._indices = None
+
+            self._cg_ens.setAtoms(self._atoms[self._idx_cg])
+
+    def _fix(self, atoms, i):
+        try:
+            from pdbfixer import PDBFixer
+            from simtk.openmm.app import PDBFile
+        except ImportError:
+            raise ImportError('Please install PDBFixer and OpenMM in order to use ClustENM.')
+
+        stream = createStringIO()
+        title = atoms.getTitle()
+        writePDBStream(stream, atoms)
+        stream.seek(0)
+        fixed = PDBFixer(pdbfile=stream)
+        stream.close()
+
+        fixed.missingResidues = {}
+        fixed.findNonstandardResidues()
+        fixed.replaceNonstandardResidues()
+        fixed.removeHeterogens(False)
+        fixed.findMissingAtoms()
+        fixed.addMissingAtoms()
+        fixed.addMissingHydrogens(self._ph)
+
+        stream = createStringIO()
+        PDBFile.writeFile(fixed.topology, fixed.positions,
+                          stream, keepIds=True)
+        stream.seek(0)
+        if i == 0:
+            self._atoms = parsePDBStream(stream)
+            self._atoms.setTitle(title)
+        else:
+            self._atomsB = parsePDBStream(stream)
+            self._atomsB.setTitle(title)            
+        stream.close()
+
+        self._topology = fixed.topology
+        self._positions = fixed.positions
+
+    def getAtomsA(self):
+
+        'Returns atoms for structure A (main atoms).'
+
+        return self._atoms
+
+    def getAtomsB(self):
+
+        'Returns atoms for structure B.'
+
+        return self._atomsB
+
+    def getRMSDsB(self):
+        if self._confs is None or self._coords is None:
+            return None
+
+        indices = self._indices
+        if indices is None:
+            indices = np.arange(self._confs.shape[1])
+        
+        weights = self._weights[indices] if self._weights is not None else None
+
+        return calcRMSD(self._atomsB, self._confs[:, indices], weights)
+
+    def _generate(self, confs):
+
+        LOGGER.info('Sampling conformers in generation %d ...' % self._cycle)
+        LOGGER.timeit('_clustenm_gen')
+
+        sample_method = self._sample
+
+        if self._parallel:
+            with Pool(cpu_count()) as p:
+                tmp = p.map(sample_method, [conf for conf in confs])
+        else:
+            tmp = [sample_method(conf) for conf in confs]
+
+        tmp = [r for r in tmp if r is not None]
+
+        confs_ex = np.concatenate(tmp)
+
+        return confs_ex, [1]

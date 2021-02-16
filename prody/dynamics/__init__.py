@@ -339,10 +339,6 @@ from . import signature
 from .signature import *
 __all__.extend(signature.__all__)
 
-from . import adaptive
-from .adaptive import *
-__all__.extend(adaptive.__all__)
-
 from . import essa
 from .essa import *
 __all__.extend(essa.__all__)
