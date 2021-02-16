@@ -130,6 +130,11 @@ from .chromatin import *
 __all__.extend(chromatin.__all__)
 __all__.append('chromatin')
 
+from . import hybrid
+from .hybrid import *
+__all__.extend(hybrid.__all__)
+__all__.append('hybrid')
+
 from . import domain_decomposition
 from .domain_decomposition import *
 __all__.extend(domain_decomposition.__all__)
