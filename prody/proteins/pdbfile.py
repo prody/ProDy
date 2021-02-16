@@ -419,10 +419,7 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
     :arg split: starting index for coordinate data lines"""
 
     format = format.upper()
-    if format == 'PDB':
-        isPDB = True
-    else:
-        isPDB = False
+    isPDB = format == 'PDB'
 
     if subset:
         if subset == 'ca':

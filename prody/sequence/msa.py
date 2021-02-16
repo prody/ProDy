@@ -347,7 +347,7 @@ class MSA(object):
             index = self._mapping[label]
         except KeyError:
             try:
-                return list(v for k, v in self._mapping.items() if label in k)[0]
+                return [v for k, v in self._mapping.items() if label in k][0]
             except:
                 return None
         except TypeError:

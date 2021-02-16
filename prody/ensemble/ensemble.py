@@ -93,7 +93,7 @@ class Ensemble(object):
         
             ens.addCoordset(self._confs[index].copy())
 
-            for key in self._data.keys():
+            for key in self._data:
                 ens._data[key] = self._data[key][index].copy()
             if self._weights is not None:
                 ens.setWeights(self._weights.copy())
@@ -107,7 +107,7 @@ class Ensemble(object):
             if self._coords is not None:
                 ens.setCoords(self._coords.copy())
             ens.addCoordset(self._confs[index].copy())
-            for key in self._data.keys():
+            for key in self._data:
                 ens._data[key] = self._data[key][index].copy()
             if self._weights is not None:
                 ens.setWeights(self._weights.copy())
