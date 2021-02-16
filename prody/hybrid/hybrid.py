@@ -707,15 +707,18 @@ class Hybrid(Ensemble):
 
         return super(Hybrid, self)._getCoordsets(I, selected)
 
-    def writePDBFixed(self):
+    def writePDBFixed(self, filename=None):
 
         'Write the fixed (initial) structure to a pdb file.'
 
         from simtk.openmm.app import PDBFile
 
+        if filename is None:
+            filename = self.getTitle()[:-8] + 'fixed.pdb'
+
         PDBFile.writeFile(self._topology,
                           self._positions,
-                          open(self.getTitle()[:-8] + 'fixed.pdb', 'w'),
+                          open(filename, 'w'),
                           keepIds=True)
 
     def writePDB(self, filename=None, single=True, **kwargs):
