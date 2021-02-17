@@ -39,17 +39,13 @@ from prody import LOGGER
 
 from prody.dynamics.anm import ANM
 from prody.dynamics.gnm import GNM, ZERO
-from prody.dynamics.rtb import RTB
-from prody.dynamics.imanm import imANM
-from prody.dynamics.exanm import exANM
 from prody.dynamics.editing import extendModel
-from prody.dynamics.sampling import sampleModes
 
-from prody.atomic import AtomGroup, Atomic
-from prody.measure import calcTransformation, applyTransformation, calcRMSD
-from prody.ensemble import Ensemble
-from prody.proteins import writePDB, writePDBStream, parsePDBStream, EMDMAP
-from prody.utilities import createStringIO, importLA, mad, getCoords
+from prody.measure.transform import calcTransformation, applyTransformation, calcRMSD
+from prody.ensemble.ensemble import Ensemble
+from prody.proteins.pdbfile import writePDB, writePDBStream, parsePDBStream
+
+from prody.utilities import createStringIO, importLA, mad
 
 la = importLA()
 norm = la.norm

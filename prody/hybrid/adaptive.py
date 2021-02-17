@@ -20,11 +20,11 @@ import numpy as np
 
 from prody import LOGGER
 from prody.atomic import Atomic, AtomMap
-from prody.utilities import getCoords, createStringIO, importLA, mad
+from prody.utilities import getCoords, createStringIO, importLA
 
-from prody.measure import calcRMSD, calcDistance, superpose, applyTransformation
-from prody.proteins import writePDB, parsePDB, writePDBStream, parsePDBStream
-from prody.ensemble import Ensemble
+from prody.measure.transform import calcTransformation, applyTransformation, calcRMSD
+from prody.ensemble.ensemble import Ensemble
+from prody.proteins.pdbfile import writePDBStream, parsePDBStream
 
 from prody.dynamics.functions import calcENM
 from prody.dynamics.modeset import ModeSet

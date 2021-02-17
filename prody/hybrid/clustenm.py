@@ -43,11 +43,9 @@ from prody.dynamics.imanm import imANM
 from prody.dynamics.exanm import exANM
 from prody.dynamics.editing import extendModel
 from prody.dynamics.sampling import sampleModes
-from prody.atomic import AtomGroup
-from prody.measure import calcTransformation, applyTransformation, calcRMSD
-from prody.ensemble import Ensemble
-from prody.proteins import writePDB, parsePDB, writePDBStream, parsePDBStream
-from prody.utilities import createStringIO, importLA, mad
+
+from prody.measure.transform import calcTransformation, applyTransformation, calcRMSD
+from prody.proteins.pdbfile import writePDB, writePDBStream, parsePDBStream
 
 from .hybrid import Hybrid
 
