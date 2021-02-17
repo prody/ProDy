@@ -36,6 +36,7 @@ from scipy.spatial.distance import pdist, squareform
 from scipy.cluster.hierarchy import fcluster, linkage
 
 from prody import LOGGER
+
 from prody.dynamics.anm import ANM
 from prody.dynamics.gnm import GNM, ZERO
 from prody.dynamics.rtb import RTB
@@ -43,11 +44,12 @@ from prody.dynamics.imanm import imANM
 from prody.dynamics.exanm import exANM
 from prody.dynamics.editing import extendModel
 from prody.dynamics.sampling import sampleModes
-from prody.atomic import AtomGroup
+
+from prody.atomic import AtomGroup, Atomic
 from prody.measure import calcTransformation, applyTransformation, calcRMSD
 from prody.ensemble import Ensemble
-from prody.proteins import writePDB, parsePDB, writePDBStream, parsePDBStream
-from prody.utilities import createStringIO, importLA, mad
+from prody.proteins import writePDB, writePDBStream, parsePDBStream, EMDMAP
+from prody.utilities import createStringIO, importLA, mad, getCoords
 
 la = importLA()
 norm = la.norm
@@ -115,17 +117,15 @@ class Hybrid(Ensemble):
 
         return super(Hybrid, self).__getitem__(index)
 
-    def getAtoms(self):
-
+    def getAtoms(self, selected=True):
         'Returns atoms.'
-
-        return self._atoms
+        return super(Hybrid, self).getAtoms(selected)
 
     def _isBuilt(self):
 
         return self._confs is not None
 
-    def setAtoms(self, atoms, pH=7.0):
+    def setAtoms(self, atoms):
 
         '''
         Sets atoms.
@@ -135,6 +135,7 @@ class Hybrid(Ensemble):
         :arg pH: pH based on which to select protonation states for adding missing hydrogens, default is 7.0.
         :type pH: float
         '''
+        super(Hybrid, self).setAtoms(atoms)
 
     def getTitle(self):
 
@@ -164,7 +165,38 @@ class Hybrid(Ensemble):
         self._title = title
 
     def _fix(self, atoms):
-        ''''''
+
+        try:
+            from pdbfixer import PDBFixer
+            from simtk.openmm.app import PDBFile
+        except ImportError:
+            raise ImportError('Please install PDBFixer and OpenMM in order to use ClustENM.')
+
+        stream = createStringIO()
+        title = atoms.getTitle()
+        writePDBStream(stream, atoms)
+        stream.seek(0)
+        fixed = PDBFixer(pdbfile=stream)
+        stream.close()
+
+        fixed.missingResidues = {}
+        fixed.findNonstandardResidues()
+        fixed.replaceNonstandardResidues()
+        fixed.removeHeterogens(False)
+        fixed.findMissingAtoms()
+        fixed.addMissingAtoms()
+        fixed.addMissingHydrogens(self._ph)
+
+        stream = createStringIO()
+        PDBFile.writeFile(fixed.topology, fixed.positions,
+                          stream, keepIds=True)
+        stream.seek(0)
+        self._atoms = parsePDBStream(stream)
+        self._atoms.setTitle(title)
+        stream.close()
+
+        self._topology = fixed.topology
+        self._positions = fixed.positions
         
     def _prep_sim(self, coords, external_forces=[]):
 

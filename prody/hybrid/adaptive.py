@@ -544,9 +544,9 @@ class AdaptiveHybrid(Hybrid):
 
         return coordsets
 
-    def setAtoms(self, atomsA, atomsB, pH=7.0, **kwargs):
+    def setAtoms(self, atomsA, atomsB=None, pH=7.0, **kwargs):
         aligned = kwargs.get('aligned', False)
-        if not aligned:
+        if not aligned and atomsB is not None:
             T = calcTransformation(atomsA.ca, atomsB.ca, weights=atomsA.ca.getFlags("mapped"))
             _ = applyTransformation(T, atomsA)
 
@@ -555,6 +555,9 @@ class AdaptiveHybrid(Hybrid):
             self._atomsB = atomsB
         else:
             for i, atoms in enumerate([atomsA, atomsB]):
+                if i == 1 and atomsB is None:
+                    break
+
                 atoms = atoms.select('not hetatm')
 
                 self._nuc = atoms.select('nucleotide')
@@ -628,17 +631,17 @@ class AdaptiveHybrid(Hybrid):
         self._topology = fixed.topology
         self._positions = fixed.positions
 
-    def getAtomsA(self):
-
+    def getAtomsA(self, selected=True):
         'Returns atoms for structure A (main atoms).'
+        return super(AdaptiveHybrid, self).getAtoms(selected)
 
-        return self._atoms
-
-    def getAtomsB(self):
-
+    def getAtomsB(self, selected=True):
         'Returns atoms for structure B.'
-
-        return self._atomsB
+        if self._atomsB is None:
+            return None
+        if self._indices is None or not selected:
+            return self._atomsB
+        return self._atomsB[self._indices]
 
     def getRMSDsB(self):
         if self._confs is None or self._coords is None:
