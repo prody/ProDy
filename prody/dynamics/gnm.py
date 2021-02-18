@@ -265,8 +265,12 @@ class GNM(GNMBase):
         self._vars = vars
         self._trace = self._vars.sum()
         self._n_modes = len(self._eigvals)
-        LOGGER.report('{0} modes were calculated in %.2fs.'
-                     .format(self._n_modes), label='_gnm_calc_modes')
+        if self._n_modes > 1:
+            LOGGER.report('{0} modes were calculated in %.2fs.'
+                        .format(self._n_modes), label='_anm_calc_modes')
+        else:
+            LOGGER.report('{0} mode was calculated in %.2fs.'
+                        .format(self._n_modes), label='_anm_calc_modes')
 
     def getNormDistFluct(self, coords):
         """Normalized distance fluctuation
