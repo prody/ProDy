@@ -37,9 +37,9 @@ from scipy.cluster.hierarchy import fcluster, linkage
 
 from prody import LOGGER
 
-from prody.dynamics.anm import ANM
-from prody.dynamics.gnm import GNM, ZERO
-from prody.dynamics.editing import extendModel
+from .anm import ANM
+from .gnm import GNM, ZERO
+from .editing import extendModel
 
 from prody.measure.transform import calcTransformation, applyTransformation, calcRMSD
 from prody.ensemble.ensemble import Ensemble

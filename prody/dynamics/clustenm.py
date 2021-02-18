@@ -36,13 +36,13 @@ from scipy.spatial.distance import pdist, squareform
 from scipy.cluster.hierarchy import fcluster, linkage
 
 from prody import LOGGER
-from prody.dynamics.anm import ANM
-from prody.dynamics.gnm import GNM, ZERO
-from prody.dynamics.rtb import RTB
-from prody.dynamics.imanm import imANM
-from prody.dynamics.exanm import exANM
-from prody.dynamics.editing import extendModel
-from prody.dynamics.sampling import sampleModes
+from .anm import ANM
+from .gnm import GNM, ZERO
+from .rtb import RTB
+from .imanm import imANM
+from .exanm import exANM
+from .editing import extendModel
+from .sampling import sampleModes
 
 from prody.measure.transform import calcTransformation, applyTransformation, calcRMSD
 from prody.proteins.pdbfile import writePDB, writePDBStream, parsePDBStream

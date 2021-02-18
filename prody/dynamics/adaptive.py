@@ -26,9 +26,9 @@ from prody.measure.measure import calcDeformVector, calcDistance
 from prody.ensemble.ensemble import Ensemble
 from prody.proteins.pdbfile import writePDBStream, parsePDBStream
 
-from prody.dynamics.functions import calcENM
-from prody.dynamics.modeset import ModeSet
-from prody.dynamics.nma import NMA
+from .functions import calcENM
+from .modeset import ModeSet
+from .nma import NMA
 
 from .hybrid import Hybrid
 
