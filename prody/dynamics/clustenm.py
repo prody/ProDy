@@ -123,11 +123,9 @@ class ClustENM(Ensemble):
 
         return super(ClustENM, self).__getitem__(index)
 
-    def getAtoms(self):
-
+    def getAtoms(self, selected=True):
         'Returns atoms.'
-
-        return self._atoms
+        return super(ClustENM, self).getAtoms(selected)
 
     def _isBuilt(self):
 
