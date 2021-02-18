@@ -17,6 +17,10 @@ from . import adaptive
 from .adaptive import *
 __all__.extend(adaptive.__all__)
 
+from . import comd
+from .comd import *
+__all__.extend(comd.__all__)
+
 # workaround for circular dependency to accommodate original design style 
 from prody.ensemble import functions
 functions.Hybrid = Hybrid

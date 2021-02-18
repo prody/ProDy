@@ -518,7 +518,7 @@ class Hybrid(Ensemble):
 
         return centers, wei
 
-    def _generate(self, confs):
+    def _generate(self, confs, **kwargs):
 
         LOGGER.info('Sampling conformers in generation %d ...' % self._cycle)
         LOGGER.timeit('_clustenm_gen')
@@ -529,7 +529,7 @@ class Hybrid(Ensemble):
             with Pool(cpu_count()) as p:
                 tmp = p.map(sample_method, [conf for conf in confs])
         else:
-            tmp = [sample_method(conf) for conf in confs]
+            tmp = [sample_method(conf, **kwargs) for conf in confs]
 
         tmp = [r for r in tmp if r is not None]
 
@@ -567,11 +567,18 @@ class Hybrid(Ensemble):
         return np.array(tmp1)
 
     def _build(self, conformers, keys, potentials, sizes):
-
-        self.addCoordset(conformers)
-        self.setData('size', sizes)
-        self.setData('key', keys)
-        self.setData('potential', potentials)
+        if self._direction_mode == 0:
+            # Split alternating values and use forwards As then backwards Bs
+            self.addCoordset(conformers[::2])
+            self.addCoordset(conformers[-1::-2])
+            self.setData('size', sizes[::2] + sizes[-1::-2])
+            self.setData('key', keys[::2] + keys[-1::-2])
+            self.setData('potential', potentials[::2] + potentials[-1::-2])
+        else:
+            self.addCoordset(conformers)
+            self.setData('size', sizes)
+            self.setData('key', keys)
+            self.setData('potential', potentials)
 
     def addCoordset(self, coords):
 
@@ -883,7 +890,7 @@ class Hybrid(Ensemble):
 
         # set up parameters
         self._cutoff = cutoff
-        self._n_modes = n_modes
+        self._n_modes0 = self._n_modes = n_modes
         self._gamma = gamma
         self._n_confs = n_confs
         self._rmsd = (0.,) + rmsd if isinstance(rmsd, tuple) else (0.,) + (rmsd,) * n_gens
@@ -892,6 +899,10 @@ class Hybrid(Ensemble):
         self._parallel = kwargs.pop('parallel', False)
         self._targeted = kwargs.pop('targeted', False)
         self._tmdk = kwargs.pop('tmdk', 15.)
+
+        self._direction_mode = kwargs.get('mode', None)
+        self._direction = 1
+        self._resetFmin = True
 
         self._sol = solvent if self._nuc is None else 'exp'
         self._padding = kwargs.pop('padding', 1.0)
@@ -926,7 +937,7 @@ class Hybrid(Ensemble):
         if rank_diff != 0:
             raise ValueError('atoms has disconnected parts; please check the structure')
 
-        LOGGER.timeit('_clustenm_overall')
+        LOGGER.timeit('_hybrid_overall')
 
         LOGGER.info('Generation 0 ...')
 
@@ -960,7 +971,7 @@ class Hybrid(Ensemble):
         for i in range(1, self._n_gens+1):
             self._cycle += 1
             LOGGER.info('Generation %d ...' % i)
-            confs, weights = self._generate(start_confs)
+            confs, weights = self._generate(start_confs, **kwargs)
             if self._sim:
                 if self._t_steps[i] != 0:
                     LOGGER.info('Minimization, heating-up & simulation in generation %d ...' % i)
@@ -995,14 +1006,23 @@ class Hybrid(Ensemble):
                 keys.append((i, j))
             conformers = np.vstack((conformers, start_confs))
 
-        LOGGER.timeit('_clustenm_ens')
+            if self._n_modes == 0 and self._direction_mode is not None:
+                if self._direction_mode == 2 and self._direction == 1:
+                    self._direction = 2
+                    self._n_modes = self._n_modes0
+                    self._resetFmin = True
+                else:
+                    LOGGER.report('Transition converged in %.2fs.', '_hybrid_overall')
+                    break
+
+        LOGGER.timeit('_hybrid_ens')
         LOGGER.info('Creating an ensemble of conformers ...')
 
         self._build(conformers, keys, potentials, sizes)
-        LOGGER.report('Ensemble was created in %.2fs.', label='_clustenm_ens')
+        LOGGER.report('Ensemble was created in %.2fs.', label='_hybrid_ens')
 
-        self._time = LOGGER.timing(label='_clustenm_overall')
-        LOGGER.report('All completed in %.2fs.', label='_clustenm_overall')
+        self._time = LOGGER.timing(label='_hybrid_overall')
+        LOGGER.report('All completed in %.2fs.', label='_hybrid_overall')
 
     def writeParameters(self, filename=None):
 

@@ -47,6 +47,8 @@ from prody.dynamics.sampling import sampleModes
 from prody.measure.transform import calcTransformation, applyTransformation, calcRMSD
 from prody.proteins.pdbfile import writePDB, writePDBStream, parsePDBStream
 
+from prody.utilities import createStringIO, importLA, mad
+
 from .hybrid import Hybrid
 
 la = importLA()

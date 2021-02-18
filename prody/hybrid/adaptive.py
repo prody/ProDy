@@ -10,8 +10,6 @@ from multiprocessing import cpu_count, Pool
 from collections import OrderedDict
 from os import chdir, mkdir
 from os.path import isdir
-from prody.measure.transform import calcTransformation
-from prody.measure.measure import calcDeformVector
 from sys import stdout
 
 import time
@@ -22,7 +20,9 @@ from prody import LOGGER
 from prody.atomic import Atomic, AtomMap
 from prody.utilities import getCoords, createStringIO, importLA
 
-from prody.measure.transform import calcTransformation, applyTransformation, calcRMSD
+from prody.measure.transform import calcTransformation, superpose, applyTransformation, calcRMSD
+from prody.measure.measure import calcDeformVector, calcDistance
+
 from prody.ensemble.ensemble import Ensemble
 from prody.proteins.pdbfile import writePDBStream, parsePDBStream
 
@@ -32,14 +32,14 @@ from prody.dynamics.nma import NMA
 
 from .hybrid import Hybrid
 
-__all__ = ['calcAdaptiveANM', 'AANM_ONEWAY', 'AANM_ALTERNATING', 'AANM_BOTHWAYS', 'AANM_DEFAULT',
+__all__ = ['calcAdaptiveANM', 'ONEWAY', 'ALTERNATING', 'SERIAL', 'DEFAULT',
            'AdaptiveHybrid']
 
-AANM_ALTERNATING = 0
-AANM_ONEWAY = 1
-AANM_BOTHWAYS = 2
+ALTERNATING = 0
+ONEWAY = 1
+SERIAL = 2
 
-AANM_DEFAULT = AANM_ALTERNATING
+DEFAULT = ALTERNATING
 
 norm = importLA().norm
 
@@ -261,18 +261,18 @@ def checkDisconnection(coords, cutoff):
 
     return False
 
-def calcAdaptiveANM(a, b, n_steps, mode=AANM_DEFAULT, **kwargs):
+def calcAdaptiveANM(a, b, n_steps, mode=DEFAULT, **kwargs):
     """Runs adaptive ANM analysis of proteins ([ZY09]_) that creates a path that 
     connects two conformations using normal modes.
 
     This function can be run in three modes:
     
-    1. *AANM_ONEWAY*: all steps are run in one direction: from *a* to *b*.
+    1. *ONEWAY*: all steps are run in one direction: from *a* to *b*.
 
-    2. *AANM_ALTERNATING*: steps are run in alternating directions: from *a* to *b*, 
+    2. *ALTERNATING*: steps are run in alternating directions: from *a* to *b*, 
         then *b* to *a*, then back again, and so on.
 
-    3. *AANM_BOTHWAYS*: steps are run in one direction (from *a* to 
+    3. *SERIAL*: steps are run in one direction (from *a* to 
         *b*) until convergence is reached and then the other way.
 
     This also implementation differs from the original one in that it sorts the 
@@ -288,12 +288,12 @@ def calcAdaptiveANM(a, b, n_steps, mode=AANM_DEFAULT, **kwargs):
     :arg b: structure B for the transition
     :type b: :class:`.Atomic`, :class:`~numpy.ndarray`
 
-    :arg n_steps: the maximum number of steps to be calculated. For *AANM_BOTHWAYS*, 
+    :arg n_steps: the maximum number of steps to be calculated. For *SERIAL*, 
         this means the maximum number of steps from each direction
     :type n_steps: int
 
-    :arg mode: the way of the calculation to be performed, which can be either *AANM_ONEWAY*, 
-        *AANM_ALTERNATING*, or *AANM_BOTHWAYS*. Default is *AANM_ALTERNATING*
+    :arg mode: the way of the calculation to be performed, which can be either *ONEWAY*, 
+        *ALTERNATING*, or *SERIAL*. Default is *ALTERNATING*
     :type mode: int
 
     :kwarg f: step size. Default is 0.2
@@ -335,11 +335,11 @@ def calcAdaptiveANM(a, b, n_steps, mode=AANM_DEFAULT, **kwargs):
     Please see keyword arguments for calculating the modes in :func:`.calcENM`.
     """
 
-    if mode == AANM_ONEWAY:
+    if mode == ONEWAY:
         return calcOneWayAdaptiveANM(a, b, n_steps, **kwargs)
-    elif mode == AANM_ALTERNATING:
+    elif mode == ALTERNATING:
         return calcAlternatingAdaptiveANM(a, b, n_steps, **kwargs)
-    elif mode == AANM_BOTHWAYS:
+    elif mode == SERIAL:
         return calcBothWaysAdaptiveANM(a, b, n_steps, **kwargs)
     else:
         raise ValueError('unknown aANM mode: %d'%mode)
@@ -491,13 +491,14 @@ class AdaptiveHybrid(Hybrid):
 
     Instantiate a ClustENM object.
     '''
-    def __init__(self, title):
+    def __init__(self, title, **kwargs):
         super().__init__(title=title)
         self._atomsB = None
         self._defvecs = []
-        self._resetFmin = True
         self._rmsds = []
-        self._cg_ens = Ensemble(title=title)
+        self._cg_ensA = Ensemble(title=title)
+        self._cg_ensB = Ensemble(title=title)
+        self._n_modes0 = self._n_modes = kwargs.pop('n_modes', 20)
 
     def _sample(self, conf, **kwargs):
 
@@ -516,12 +517,55 @@ class AdaptiveHybrid(Hybrid):
         coordsA, coordsB, title, atoms, weights, maskA, maskB, rmsd = checkInput(cg, cgB, **kwargs)
         coordsA = coordsA.copy()
 
-        anm_cg = []
-        self._n_modes = calcStep(coordsA, coordsB, self._n_modes, self._cg_ens, self._defvecs, self._rmsds, mask=maskA,
-                                 resetFmin=self._resetFmin, **kwargs)
-        self._resetFmin = False
+        self._direction_mode = kwargs.get('mode', DEFAULT)
+
+        if self._direction_mode == ONEWAY:
+            LOGGER.info('\nStarting cycle with structure A')
+            self._n_modes = calcStep(coordsA, coordsB, self._n_modes, self._cg_ensA,
+                                     self._defvecs, self._rmsds, mask=maskA,
+                                     resetFmin=self._resetFmin, **kwargs)
+            self._resetFmin = False
+            cg_ens = self._cg_ensA
+
+        elif self._direction_mode == ALTERNATING:
+            if self._direction == 1:
+                LOGGER.info('\nStarting cycle with structure A')
+                self._n_modes = calcStep(coordsA, coordsB, self._n_modes, self._cg_ensA,
+                                         self._defvecs, self._rmsds, mask=maskA,
+                                         resetFmin=self._resetFmin, **kwargs)
+                self._resetFmin = False
+                cg_ens = self._cg_ensA
+                self._direction = 2
+
+            else:
+                LOGGER.info('\nStarting cycle with structure B')
+                self._n_modes = calcStep(coordsB, coordsA, self._n_modes, self._cg_ensB,
+                                         self._defvecs, self._rmsds, mask=maskB,
+                                         resetFmin=self._resetFmin, **kwargs)
+                cg_ens = self._cg_ensB
+                self._direction = 1
+
+        elif self._direction_mode == SERIAL:
+            if self._direction == 1:
+                LOGGER.info('\nStarting cycle with structure A')
+                self._n_modes = calcStep(coordsA, coordsB, self._n_modes, self._cg_ensA,
+                                         self._defvecs, self._rmsds, mask=maskA,
+                                         resetFmin=self._resetFmin, **kwargs)
+                self._resetFmin = False
+                cg_ens = self._cg_ensA
+
+            else:
+                LOGGER.info('\nStarting cycle with structure B')
+                self._n_modes = calcStep(coordsB, coordsA, self._n_modes, self._cg_ensB,
+                                         self._defvecs, self._rmsds, mask=maskB,
+                                         resetFmin=self._resetFmin, **kwargs)
+                self._resetFmin = False
+                cg_ens = self._cg_ensB
+
+        else:
+            raise ValueError('unknown aANM mode: %d' % self._direction_mode)
         
-        defvec = calcDeformVector(cg, self._cg_ens.getCoordsets()[-1])
+        defvec = calcDeformVector(cg, cg_ens.getCoordsets()[-1])
         model = NMA()
         model.setEigens(defvec.getArray().reshape((defvec.getArray().shape[0], 1)))
         model_ex = self._extendModel(model, cg, tmp)
@@ -554,6 +598,7 @@ class AdaptiveHybrid(Hybrid):
             super(Hybrid, self).setAtoms(atomsA)
             self._atomsB = atomsB
         else:
+            A_B_dict = {0: 'A', 1: 'B'}
             for i, atoms in enumerate([atomsA, atomsB]):
                 if i == 1 and atomsB is None:
                     break
@@ -575,7 +620,7 @@ class AdaptiveHybrid(Hybrid):
                         nsel = 'not index ' + ' '.join([str(i) for i in idx_p])
                         atoms = atoms.select(nsel)
 
-                LOGGER.info('Fixing structure {0}...'.format(i))
+                LOGGER.info('Fixing structure {0}...'.format(A_B_dict[i]))
                 LOGGER.timeit('_clustenm_fix')
                 self._ph = pH
                 self._fix(atoms, i)
@@ -592,7 +637,10 @@ class AdaptiveHybrid(Hybrid):
                 self._n_atoms = self._atoms.numAtoms()
                 self._indices = None
 
-            self._cg_ens.setAtoms(self._atoms[self._idx_cg])
+            if i == 1:
+                self._cg_ensA.setAtoms(self._atoms[self._idx_cg])
+            else:
+                self._cg_ensB.setAtoms(self._atomsB[self._idx_cg])
 
     def _fix(self, atoms, i):
         try:
@@ -655,7 +703,7 @@ class AdaptiveHybrid(Hybrid):
 
         return calcRMSD(self._atomsB, self._confs[:, indices], weights)
 
-    def _generate(self, confs):
+    def _generate(self, confs, **kwargs):
 
         LOGGER.info('Sampling conformers in generation %d ...' % self._cycle)
         LOGGER.timeit('_clustenm_gen')
@@ -666,7 +714,7 @@ class AdaptiveHybrid(Hybrid):
             with Pool(cpu_count()) as p:
                 tmp = p.map(sample_method, [conf for conf in confs])
         else:
-            tmp = [sample_method(conf) for conf in confs]
+            tmp = [sample_method(conf, **kwargs) for conf in confs]
 
         tmp = [r for r in tmp if r is not None]
 
