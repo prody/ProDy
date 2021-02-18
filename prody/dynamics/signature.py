@@ -989,8 +989,12 @@ def calcEnsembleENMs(ensemble, model='gnm', trim='reduce', n_modes=20, **kwargs)
                         'conformation has only {2} modes'.format(n_modes-min_n_modes, 
                         enms[i].getTitle(), min_n_modes))
 
-    LOGGER.info('{0} {1} modes were calculated for each of the {2} conformations in {3:.2f}s.'
-                        .format(str_modes, model_type, n_confs, time.time()-start))
+    if n_modes > 1:
+        LOGGER.info('{0} {1} modes were calculated for each of the {2} conformations in {3:.2f}s.'
+                            .format(str_modes, model_type, n_confs, time.time()-start))
+    else:
+        LOGGER.info('{0} {1} mode was calculated for each of the {2} conformations in {3:.2f}s.'
+                            .format(str_modes, model_type, n_confs, time.time()-start))
 
     modeens = ModeEnsemble(title=ensemble.getTitle())
     modeens.addModeSet(enms, weights=ensemble.getWeights(), 
