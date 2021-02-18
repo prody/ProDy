@@ -219,7 +219,8 @@ def checkConvergence(rmsds, coords, **kwargs):
 
     Convergence is reached if one of three conditions is met:
     1. Difference between *rmsds* from previous step to current < *min_rmsd_diff*
-    2. Current rmsd < *target_rmsd* for the last five runs
+       for the last five runs
+    2. Current rmsd < *target_rmsd*
     3. A node in *coords* gets disconnected from another by > *cutoff*
     """
     min_rmsd_diff = kwargs.get('min_rmsd_diff', 0.05)
@@ -231,7 +232,7 @@ def checkConvergence(rmsds, coords, **kwargs):
 
         if np.all(drmsd[-4:] < min_rmsd_diff):
             LOGGER.warn(
-                'The RMSD decrease fell below {0}'.format(min_rmsd_diff))
+                'The RMSD decrease stayed below {0} for five cycles'.format(min_rmsd_diff))
             return True
 
     if rmsds[-1] < target_rmsd:
