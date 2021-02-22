@@ -30,6 +30,7 @@ ProDy 1.11 Series
     *chain1* and *chain2*, and determines if these two chains should be tried to be mapped. 
 
     Built-in options for *match_func* includes: 
+    
     * :func:`.bestMatch` which allows all pairwise mappings between chains, and it is called 
       :func:`.bestMatch` because the optimal mapping will be chosen later automatically.
 
