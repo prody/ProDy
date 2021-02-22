@@ -648,7 +648,7 @@ class AdaptiveHybrid(Hybrid):
             from pdbfixer import PDBFixer
             from simtk.openmm.app import PDBFile
         except ImportError:
-            raise ImportError('Please install PDBFixer and OpenMM in order to use ClustENM.')
+            raise ImportError('Please install PDBFixer and OpenMM in order to use ClustENM and related hybrid methods.')
 
         stream = createStringIO()
         title = atoms.getTitle()
