@@ -490,7 +490,7 @@ class AdaptiveHybrid(Hybrid):
     that is an ANM-based hybrid algorithm. It requires PDBFixer and OpenMM for performing 
     energy minimization and MD simulations in implicit/explicit solvent.
 
-    Instantiate a ClustENM object.
+    Instantiate a ClustENM-like hybrid method object for AdaptiveANM.
     '''
     def __init__(self, title, **kwargs):
         super().__init__(title=title)
