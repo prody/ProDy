@@ -47,7 +47,7 @@ def sampleModes(modes, atoms=None, n_confs=1000, rmsd=1.0):
 
     :math:`R_0` is the active coordinate set of *atoms*.
     :math:`[r_1^k r_2^k ... r_m^k]` are normally distributed random numbers
-    generated for conformation :math:`k` using :func:`numpy.random.randn`.
+    generated for conformation :math:`k` using :func:`~numpy.random.randn`.
 
     RMSD of the new conformation from :math:`R_0` can be calculated as
 
