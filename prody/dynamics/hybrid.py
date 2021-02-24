@@ -295,7 +295,8 @@ class Hybrid(Ensemble):
 
             return np.nan, np.full_like(coords, np.nan)
 
-    def _targeted_sim(self, coords0, coords1, tmdk=15., d_steps=100, n_max_steps=10000, ddtol=1e-3, n_conv=5):
+    def _targeted_sim(self, coords0, coords1, tmdk=15.,
+                      d_steps=100, n_max_steps=10000, ddtol=1e-3, n_conv=5):
 
         try:
             from simtk.openmm import CustomExternalForce
@@ -311,7 +312,7 @@ class Hybrid(Ensemble):
         pos1 = coords1 * angstrom
         # pos1_ca = pos1[self._idx_cg, :]
 
-        force = CustomExternalForce('tmdk*((x-x0)^2+(y-y0)^2+(z-z0)^2)')
+        force = CustomExternalForce("tmdk*periodicdistance(x, y, z, x0, y0, z0)^2")
         force.addGlobalParameter('tmdk', 0.) 
         force.addPerParticleParameter('x0')
         force.addPerParticleParameter('y0')
@@ -327,7 +328,7 @@ class Hybrid(Ensemble):
             pars = pos1[i, :].value_in_unit(nanometer)
             force.addParticle(int(atm_idx), pars)
 
-        simulation = self._prep_sim([force])
+        simulation = self._prep_sim(coords0, external_forces=[force])
 
         # automatic conversion into nanometer will be carried out.
         simulation.context.setPositions(coords0 * angstrom)
@@ -897,8 +898,8 @@ class Hybrid(Ensemble):
         self._n_gens = n_gens
         self._platform = kwargs.pop('platform', None)
         self._parallel = kwargs.pop('parallel', False)
-        self._targeted = kwargs.pop('targeted', False)
-        self._tmdk = kwargs.pop('tmdk', 15.)
+        self._targeted = kwargs.pop('targeted', self._targeted)
+        self._tmdk = kwargs.pop('tmdk', self._tmdk)
 
         self._direction_mode = kwargs.get('mode', None)
         self._direction = 1
