@@ -189,15 +189,33 @@ if __name__ == '__main__':
     for arg in sys.argv:
         ar.append(arg)
 
-    initial_pdbn=ar[1]
-    final_pdbn=ar[2]
+    if len(ar) > 1:
+        initial_pdbn=ar[1]
+    else:
+        raise ValueError('Please provide at least 1 argument (a PDB filename)')
+
+    if len(ar) > 2:
+        final_pdbn=ar[2]
+    else:
+        final_pdbn = initial_pdbn
+        
     initial_pdb_id = initial_pdbn[:initial_pdbn.rfind('.')]
     final_pdb_id = final_pdbn[:final_pdbn.rfind('.')]
 
-    original_initial_pdb = ar[3]
-    original_final_pdb = ar[4]
+    if len(ar) > 3 and ar[3].strip() != '0':
+        original_initial_pdb = ar[3]
+    else:
+        original_initial_pdb = initial_pdb_id
 
-    comd_cycle_number = ar[5]
+    if len(ar) > 4 and ar[4].strip() != '0':
+        original_final_pdb = ar[4]
+    else:
+        original_final_pdb = final_pdb_id
+
+    if len(ar) > 5 and ar[5].strip() != '0':
+        comd_cycle_number = ar[5]
+    else:
+        comd_cycle_number = 1
 
     if len(ar) > 6 and ar[6].strip() != '0':
         devi = float(ar[6])
