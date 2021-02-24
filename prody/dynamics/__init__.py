@@ -347,6 +347,10 @@ from . import hybrid
 from .hybrid import *
 __all__.extend(hybrid.__all__)
 
+from . import comd
+from .comd import *
+__all__.extend(comd.__all__)
+
 from . import clustenm
 from .clustenm import *
 __all__.extend(clustenm.__all__)
