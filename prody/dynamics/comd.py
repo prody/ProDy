@@ -49,10 +49,11 @@ def calcANMMC(initial, final, **kwargs):
         initial_ca = initial.select('name CA or name BB')
         final_ca = final.select('name CA or name BB')
 
+    n_modes = kwargs.pop('n_modes', 20)
     # ANM calculation based on current
     pdb_anm = ANM('pdb ca')
     pdb_anm.buildHessian(initial_ca, cutoff=anm_cut, **kwargs)
-    pdb_anm.calcModes(**kwargs)
+    pdb_anm.calcModes(n_modes=n_modes, **kwargs)
 
     # Cumulative sum vector preparation for metropolis sampling
     eigs = 1/sqrt(pdb_anm.getEigvals())
@@ -261,6 +262,7 @@ class CoMD(Hybrid):
                 LOGGER.info('\nStarting cycle with structure A')
                 self._cg_ensA, _, _, _, _, _, rmsd = calcANMMC(cg, cgB,
                                                                stepcutoff=rmsd,
+                                                               n_modes=self._n_modes,
                                                                **kwargs)
                 cg_ens = self._cg_ensA
 
@@ -268,6 +270,7 @@ class CoMD(Hybrid):
                 LOGGER.info('\nStarting cycle with structure B')
                 self._cg_ensB, _, _, _, _, _, rmsd = calcANMMC(cgB, cg,
                                                                stepcutoff=rmsd,
+                                                               n_modes=self._n_modes,
                                                                **kwargs)
                 cg_ens = self._cg_ensB
 
@@ -276,6 +279,7 @@ class CoMD(Hybrid):
                 LOGGER.info('\nStarting cycle with structure A')
                 self._cg_ensA, _, _, _, _, _, rmsd = calcANMMC(cg, cgB,
                                                                stepcutoff=rmsd,
+                                                               n_modes=self._n_modes,
                                                                **kwargs)
                 cg_ens = self._cg_ensA
 
@@ -283,6 +287,7 @@ class CoMD(Hybrid):
                 LOGGER.info('\nStarting cycle with structure B')
                 self._cg_ensB, _, _, _, _, _, rmsd = calcANMMC(cgB, cg,
                                                                stepcutoff=rmsd,
+                                                               n_modes=self._n_modes,
                                                                **kwargs)
                 cg_ens = self._cg_ensB
 
