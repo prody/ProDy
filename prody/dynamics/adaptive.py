@@ -18,7 +18,7 @@ import numpy as np
 
 from prody import LOGGER
 from prody.atomic import Atomic, AtomMap
-from prody.utilities import getCoords, createStringIO, importLA
+from prody.utilities import getCoords, createStringIO, importLA, checkCoords, copy
 
 from prody.measure.transform import calcTransformation, superpose, applyTransformation, calcRMSD
 from prody.measure.measure import calcDeformVector, calcDistance
@@ -29,7 +29,7 @@ from prody.proteins.pdbfile import writePDBStream, parsePDBStream
 from .functions import calcENM
 from .modeset import ModeSet
 from .nma import NMA
-
+from .sampling import traverseMode
 from .hybrid import Hybrid
 
 __all__ = ['calcAdaptiveANM', 'ONEWAY', 'ALTERNATING', 'SERIAL', 'DEFAULT',
@@ -536,7 +536,6 @@ class AdaptiveHybrid(Hybrid):
                                          resetFmin=self._resetFmin, **kwargs)
                 self._resetFmin = False
                 cg_ens = self._cg_ensA
-                self._direction = 2
 
             else:
                 LOGGER.info('\nStarting cycle with structure B')
@@ -544,7 +543,6 @@ class AdaptiveHybrid(Hybrid):
                                          self._defvecs, self._rmsds, mask=maskB,
                                          resetFmin=self._resetFmin, **kwargs)
                 cg_ens = self._cg_ensB
-                self._direction = 1
 
         elif self._direction_mode == SERIAL:
             if self._direction == 1:
@@ -566,11 +564,26 @@ class AdaptiveHybrid(Hybrid):
         else:
             raise ValueError('unknown aANM mode: %d' % self._direction_mode)
         
-        defvec = calcDeformVector(cg, cg_ens.getCoordsets()[-1])
-        model = NMA()
-        model.setEigens(defvec.getArray().reshape((defvec.getArray().shape[0], 1)))
-        model_ex = self._extendModel(model, cg, tmp)
-        coordsets = [tmp.getCoords() + model_ex.getEigvecs()[0]]
+        if self._direction == 1:
+            defvec = calcDeformVector(cg, cg_ens.getCoordsets()[-1])
+            model = NMA()
+            model.setEigens(defvec.getArray().reshape((defvec.getArray().shape[0], 1)))
+            model_ex = self._extendModel(model, cg, tmp)
+            def_ens = traverseMode(model_ex[0], tmp, 1, rmsd)
+            coordsets = [def_ens.getCoordsets()[-1]]
+
+            if self._direction_mode == ALTERNATING:
+                self._direction = 2
+        else:
+            defvec = calcDeformVector(cgB, cg_ens.getCoordsets()[-1])
+            model = NMA()
+            model.setEigens(defvec.getArray().reshape((defvec.getArray().shape[0], 1)))
+            model_ex = self._extendModel(model, cgB, tmpB)
+            def_ens = traverseMode(model_ex[0], tmpB, 1, rmsd)
+            coordsets = [def_ens.getCoordsets()[-1]]
+
+            if self._direction_mode == ALTERNATING:
+                self._direction = 1
 
         if self._targeted:
             if self._parallel:
@@ -722,3 +735,37 @@ class AdaptiveHybrid(Hybrid):
         confs_ex = np.concatenate(tmp)
 
         return confs_ex, [1]
+
+    def setCoordsB(self, coords):
+        """Set *coords* as the ensemble reference coordinate set.  *coords*
+        may be an array with suitable data type, shape, and dimensionality, or
+        an object with :meth:`getCoords` method."""
+
+        atoms = coords
+        try:
+            if isinstance(coords, Ensemble):
+                coords = copy(coords._coords)
+            else:
+                coords = coords.getCoords()
+        except AttributeError:
+            pass
+        finally:
+            if coords is None:
+                raise ValueError('coordinates of {0} are not set'
+                                 .format(str(atoms)))
+
+        try:
+            checkCoords(coords, natoms=self._n_atoms)
+        except TypeError:
+            raise TypeError('coords must be a numpy array or an object '
+                            'with `getCoords` method')
+
+        if coords.shape == self._coords.shape:
+            self._coordsB = coords
+            self._n_atomsB = coords.shape[0]
+
+            if isinstance(atoms, Ensemble):
+                self._indicesB = atoms._indices
+                self._atomsB = atoms._atoms
+        else:
+            raise ValueError('coordsB must have the same shape as main coords')
