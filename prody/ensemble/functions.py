@@ -40,7 +40,7 @@ def saveEnsemble(ensemble, filename=None, **kwargs):
     if isinstance(ensemble, PDBEnsemble):
         attr_list.append('_labels')
         attr_list.append('_trans')
-    elif isinstance(ensemble, Hybrid):
+    elif isinstance(ensemble, (Hybrid, ClustENM)):
         attr_list.extend(['_ph', '_cutoff', '_gamma', '_n_modes', '_n_confs',
                           '_rmsd', '_n_gens', '_maxclust', '_threshold', '_sol',
                           '_padding', '_ionicStrength', '_force_field', '_tolerance',
@@ -50,6 +50,9 @@ def saveEnsemble(ensemble, filename=None, **kwargs):
     if isinstance(ensemble, AdaptiveHybrid):
         attr_list.extend(['_atomsB', '_defvecs', '_resetFmin', '_rmsds'])
         atomsB = dict_['_atomsB']
+    if isinstance(ensemble, CoMD):
+        attr_list.extend(['_atomsB', '_target_rmsd', '_min_rmsd_diff', '_traj_rmsds'])
+        atomsB = dict_['_atomsB']        
 
     if filename is None:
         filename = ensemble.getTitle().replace(' ', '_')

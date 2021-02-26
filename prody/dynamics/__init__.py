@@ -365,3 +365,4 @@ from prody.ensemble import functions
 functions.Hybrid = Hybrid
 functions.ClustENM = ClustENM
 functions.AdaptiveHybrid = AdaptiveHybrid
+functions.CoMD = CoMD
