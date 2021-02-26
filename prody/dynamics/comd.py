@@ -33,6 +33,7 @@ def calcANMMC(initial, final, **kwargs):
 
     cutoff = kwargs.pop('cutoff', 15.)
     anm_cut = kwargs.pop('anm_cut', cutoff)
+    log = kwargs.pop('log', True)
 
     N = kwargs.pop('N', 10000)
     usePseudoatoms = kwargs.pop('usePseudoatoms', False)
@@ -113,8 +114,9 @@ def calcANMMC(initial, final, **kwargs):
     step_count = 0
     check_step_counts = [0]
 
-    sys.stdout.write(' '*2 + 'rmsd' + ' '*2 + 'rand' + ' '*2 + 'ID' + ' '*3 + 'step' \
-                    + ' '*2 + 'accept_para' +  ' '*5 + 'f' + '\n')
+    if log:
+        sys.stdout.write(' '*2 + 'rmsd' + ' '*2 + 'rand' + ' '*2 + 'ID' + ' '*3 + 'step'
+                         + ' '*2 + 'accept_para' + ' '*5 + 'f' + '\n')
 
     # MC Loop 
     for k in range(N):
@@ -178,9 +180,11 @@ def calcANMMC(initial, final, **kwargs):
             f = 1.
 
         rmsd = calcRMSD(pdb_ca.getCoords(), initial_ca.getCoords())
-        sys.stdout.write('{:6.2f}'.format(rmsd) + ' ' + '{:5.2f}'.format(rand) + \
-                        '{:4d}'.format(ID) + '{:7d}'.format(k) + ' '*2 + str(accepted) + ' '*2 + \
-                        '{:5.4f}'.format(accept_para) + ' '*2 + '{:5.4f}'.format(f) + '\n')
+
+        if log:
+            sys.stdout.write('{:6.2f}'.format(rmsd) + ' ' + '{:5.2f}'.format(rand) +
+                             '{:4d}'.format(ID) + '{:7d}'.format(k) + ' '*2 + str(accepted) + ' '*2 +
+                             '{:5.4e}'.format(accept_para) + ' '*2 + '{:5.4f}'.format(f) + '\n')
 
         if rmsd > stepcutoff:
             break
@@ -222,6 +226,7 @@ class CoMD(Hybrid):
         # 200 (like NAMD website) is too weak for such small conformational changes
 
     def _sample(self, **kwargs):
+        log = kwargs.pop('log', False)
 
         conf, conf2 = self._conformers[-2], self._conformers[-1]
         
@@ -251,7 +256,7 @@ class CoMD(Hybrid):
 
         if self._direction_mode == ONEWAY:
             LOGGER.info('\nStarting cycle with structure A')
-            self._cg_ensA, _, _, _, _, _, rmsd = calcANMMC(cg, cgB,
+            self._cg_ensA, _, _, _, _, _, rmsd = calcANMMC(cg, cgB, log=log,
                                                            stepcutoff=rmsd,
                                                            n_modes=self._n_modes,
                                                            **kwargs)
@@ -260,7 +265,7 @@ class CoMD(Hybrid):
         elif self._direction_mode == ALTERNATING:
             if self._direction == 1:
                 LOGGER.info('\nStarting cycle with structure A')
-                self._cg_ensA, _, _, _, _, _, rmsd = calcANMMC(cg, cgB,
+                self._cg_ensA, _, _, _, _, _, rmsd = calcANMMC(cg, cgB, log=log,
                                                                stepcutoff=rmsd,
                                                                n_modes=self._n_modes,
                                                                **kwargs)
@@ -268,7 +273,7 @@ class CoMD(Hybrid):
 
             else:
                 LOGGER.info('\nStarting cycle with structure B')
-                self._cg_ensB, _, _, _, _, _, rmsd = calcANMMC(cgB, cg,
+                self._cg_ensB, _, _, _, _, _, rmsd = calcANMMC(cgB, cg, log=log,
                                                                stepcutoff=rmsd,
                                                                n_modes=self._n_modes,
                                                                **kwargs)
@@ -277,7 +282,7 @@ class CoMD(Hybrid):
         elif self._direction_mode == SERIAL:
             if self._direction == 1:
                 LOGGER.info('\nStarting cycle with structure A')
-                self._cg_ensA, _, _, _, _, _, rmsd = calcANMMC(cg, cgB,
+                self._cg_ensA, _, _, _, _, _, rmsd = calcANMMC(cg, cgB, log=log,
                                                                stepcutoff=rmsd,
                                                                n_modes=self._n_modes,
                                                                **kwargs)
@@ -285,7 +290,7 @@ class CoMD(Hybrid):
 
             else:
                 LOGGER.info('\nStarting cycle with structure B')
-                self._cg_ensB, _, _, _, _, _, rmsd = calcANMMC(cgB, cg,
+                self._cg_ensB, _, _, _, _, _, rmsd = calcANMMC(cgB, cg, log=log,
                                                                stepcutoff=rmsd,
                                                                n_modes=self._n_modes,
                                                                **kwargs)
