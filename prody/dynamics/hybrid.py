@@ -570,11 +570,18 @@ class Hybrid(Ensemble):
     def _build(self, conformers, keys, potentials, sizes):
         if self._direction_mode == 0:
             # Split alternating values and use forwards As then backwards Bs
-            self.addCoordset(conformers[::2])
-            self.addCoordset(conformers[-1::-2])
-            self.setData('size', sizes[::2] + sizes[-1::-2])
-            self.setData('key', keys[::2] + keys[-1::-2])
-            self.setData('potential', potentials[::2] + potentials[-1::-2])
+            if self._cycle % 2:
+                self.addCoordset(conformers[::2])
+                self.addCoordset(conformers[-2::-2])
+                self.setData('size', sizes[::2] + sizes[-2::-2])
+                self.setData('key', keys[::2] + keys[-2::-2])
+                self.setData('potential', potentials[::2] + potentials[-2::-2])
+            else:
+                self.addCoordset(conformers[::2])
+                self.addCoordset(conformers[-1::-2])
+                self.setData('size', sizes[::2] + sizes[-1::-2])
+                self.setData('key', keys[::2] + keys[-1::-2])
+                self.setData('potential', potentials[::2] + potentials[-1::-2])
         else:
             self.addCoordset(conformers)
             self.setData('size', sizes)
