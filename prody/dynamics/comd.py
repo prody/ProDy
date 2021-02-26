@@ -215,6 +215,9 @@ class CoMD(Hybrid):
     def __init__(self, title, **kwargs):
         super().__init__(title=title)
         self._atomsB = None
+        self._coordsB = None
+        self._indicesB = None
+        
         self._defvecs = []
         self._rmsds = []
         self._traj_rmsds = []
@@ -522,15 +525,15 @@ class CoMD(Hybrid):
         'Returns atoms for structure B.'
         if self._atomsB is None:
             return None
-        if self._indices is None or not selected:
+        if self._indicesB is None or not selected:
             return self._atomsB
-        return self._atomsB[self._indices]
+        return self._atomsB[self._indicesB]
 
     def getRMSDsB(self):
         if self._confs is None or self._coords is None:
             return None
 
-        indices = self._indices
+        indices = self._indicesB
         if indices is None:
             indices = np.arange(self._confs.shape[1])
         
@@ -917,9 +920,9 @@ class CoMD(Hybrid):
 
         if self._coordsB is None:
             return None
-        if self._indicesB is None or not selected:
+        if self._indices is None or not selected:
             return self._coordsB.copy()
-        return self._coordsB[self._indicesB].copy()
+        return self._coordsB[self._indices].copy()
 
 
 if __name__ == '__main__':

@@ -496,6 +496,9 @@ class AdaptiveHybrid(Hybrid):
     def __init__(self, title, **kwargs):
         super().__init__(title=title)
         self._atomsB = None
+        self._coordsB = None
+        self._indicesB = None
+        
         self._defvecs = []
         self._rmsds = []
         self._cg_ensA = Ensemble(title=title)
