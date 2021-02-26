@@ -769,3 +769,12 @@ class AdaptiveHybrid(Hybrid):
                 self._atomsB = atoms._atoms
         else:
             raise ValueError('coordsB must have the same shape as main coords')
+
+    def getCoordsB(self, selected=True):
+        """Returns a copy of reference coordinates for selected atoms."""
+
+        if self._coordsB is None:
+            return None
+        if self._indicesB is None or not selected:
+            return self._coordsB.copy()
+        return self._coordsB[self._indicesB].copy()
