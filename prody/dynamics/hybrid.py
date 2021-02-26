@@ -894,7 +894,7 @@ class Hybrid(Ensemble):
         '''
 
         if self._isBuilt():
-            raise ValueError('ClustENM ensemble has been built; please start a new instance')
+            raise ValueError('ClustENM-like ensemble has been built; please start a new instance')
 
         # set up parameters
         self._cutoff = cutoff

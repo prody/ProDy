@@ -642,7 +642,7 @@ class CoMD(Hybrid):
         '''
 
         if self._isBuilt():
-            raise ValueError('ClustENM ensemble has been built; please start a new instance')
+            raise ValueError('CoMD ensemble has been built; please start a new instance')
 
         # set up parameters
         self._cutoff = cutoff
