@@ -14,13 +14,14 @@ from sys import stdout
 
 import time
 from numbers import Integral, Number
+from decimal import Decimal, ROUND_HALF_UP
 import numpy as np
 
 from prody import LOGGER
 from prody.atomic import Atomic, AtomMap
 from prody.utilities import getCoords, createStringIO, importLA, checkCoords, copy
 
-from prody.measure.transform import calcTransformation, superpose, applyTransformation, calcRMSD
+from prody.measure.transform import calcTransformation, superpose, applyTransformation, calcRMSD, getRMSD
 from prody.measure.measure import calcDeformVector, calcDistance
 
 from prody.ensemble.ensemble import Ensemble
@@ -716,6 +717,36 @@ class AdaptiveHybrid(Hybrid):
         weights = self._weights[indices] if self._weights is not None else None
 
         return calcRMSD(self._atomsB, self._confs[:, indices], weights)
+
+    def getConvergenceRMSDs(self):
+        if self._confs is None or self._coords is None:
+            return None
+
+        indices = self._indices
+        if indices is None:
+            indices = np.arange(self._confs.shape[1])
+        
+        weights = self._weights[indices] if self._weights is not None else None
+
+        n_confs = self.numConfs()
+        n_confsA = int(Decimal(n_confs/2).to_integral(rounding=ROUND_HALF_UP))
+
+        confsA = self._confs[:n_confsA]
+        if n_confs % 2:
+            confsB = self._confs[n_confsA:]
+        else:
+            confsB = self._confs[n_confsA:]
+
+        RMSDs = np.zeros((n_confs-9))
+        n = 0
+        for i in range(n_confsA):
+            for j in range(2):
+                RMSDs[n] = getRMSD(confsA[i+j], confsB[n_confsA-(i+1)])
+                n += 1
+                if i == n_confsA - 1:
+                    break
+
+        return RMSDs
 
     def _generate(self, confs, **kwargs):
 

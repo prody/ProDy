@@ -1,6 +1,6 @@
 from prody.proteins.pdbfile import parsePDB, writePDBStream, parsePDBStream
-from prody.measure.transform import calcRMSD, calcTransformation, superpose, applyTransformation
-from prody.measure.measure import buildDistMatrix, calcDeformVector, calcDistance
+from prody.measure.transform import calcRMSD, calcTransformation, getRMSD, applyTransformation
+from prody.measure.measure import buildDistMatrix, calcDeformVector
 from prody.ensemble.ensemble import Ensemble
 from prody.utilities import createStringIO, importLA, checkCoords, copy
 
@@ -14,6 +14,7 @@ from multiprocessing import cpu_count, Pool
 from random import random
 import os.path
 import sys
+from decimal import Decimal, ROUND_HALF_UP
 
 from .adaptive import ONEWAY, ALTERNATING, SERIAL, DEFAULT
 from .hybrid import Hybrid
@@ -536,6 +537,36 @@ class CoMD(Hybrid):
         weights = self._weights[indices] if self._weights is not None else None
 
         return calcRMSD(self._atomsB, self._confs[:, indices], weights)
+
+    def getConvergenceRMSDs(self):
+        if self._confs is None or self._coords is None:
+            return None
+
+        indices = self._indices
+        if indices is None:
+            indices = np.arange(self._confs.shape[1])
+        
+        weights = self._weights[indices] if self._weights is not None else None
+
+        n_confs = self.numConfs()
+        n_confsA = int(Decimal(n_confs/2).to_integral(rounding=ROUND_HALF_UP))
+
+        confsA = self._confs[:n_confsA]
+        if n_confs % 2:
+            confsB = self._confs[n_confsA:]
+        else:
+            confsB = self._confs[n_confsA:]
+
+        RMSDs = np.zeros((n_confs-9))
+        n = 0
+        for i in range(n_confsA):
+            for j in range(2):
+                RMSDs[n] = getRMSD(confsA[i+j], confsB[n_confsA-(i+1)])
+                n += 1
+                if i == n_confsA - 1:
+                    break
+
+        return RMSDs
 
     def run(self, cutoff=15., n_modes=20, gamma=1., n_confs=50, rmsd=1.0,
             n_gens=5, solvent='imp', sim=False, force_field=None, temp=303.15,
