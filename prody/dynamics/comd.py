@@ -626,6 +626,14 @@ class CoMD(Hybrid):
 
         :arg parallel: If it is True (default is False), conformer generation will be parallelized.
         :type parallel: bool
+
+        :arg min_rmsd_diff: Difference between *rmsds* from previous step to current for checking 
+            convergence. Default is 0.6 A
+        :type min_rmsd_diff: float
+
+        :arg target_rmsd: Target RMSD for stopping.
+            Default is 0.125 A
+        :type target_rmsd: float
         '''
 
         if self._isBuilt():
@@ -642,6 +650,9 @@ class CoMD(Hybrid):
         self._parallel = kwargs.pop('parallel', False)
         self._targeted = kwargs.pop('targeted', self._targeted)
         self._tmdk = kwargs.pop('tmdk', self._tmdk)
+
+        self._target_rmsd = kwargs.pop('target_rmsd', 0.6)
+        self._min_rmsd_diff = kwargs.pop('min_rmsd_diff', 0.125)
 
         self._direction_mode = kwargs.get('mode', DEFAULT)
         if self._direction_mode == ALTERNATING and self._n_gens % 2:
@@ -794,14 +805,20 @@ class CoMD(Hybrid):
 
             diff_rmsds = self._traj_rmsds[-2] - self._traj_rmsds[-1]
 
-            if curr_rmsd < 0.6 or diff_rmsds < 0.125:
+            if self._cycle == 1:
+                g = "generation"
+            else:
+                g = "generations"
+
+            LOGGER.info('\nRan {:d} {:s}, RMSD {:5.2f}, change in RMSD {:5.2f}\n'.format(self._cycle, g,
+                                                                                         curr_rmsd,
+                                                                                         diff_rmsds))
+
+            if curr_rmsd < self._target_rmsd or diff_rmsds < self._min_rmsd_diff:
                 if self._direction_mode == 2 and self._direction == 1:
                     self._direction = 2
                 else:
                     LOGGER.report('Transition converged in %.2fs.', '_hybrid_overall')
-                    LOGGER.info('\nRan {:d} generations, RMSD {:5.2f}, change in RMSD {:5.2f}'.format(self._cycle,
-                                                                                                      curr_rmsd,
-                                                                                                      diff_rmsds))
                     break
 
         LOGGER.timeit('_hybrid_ens')
