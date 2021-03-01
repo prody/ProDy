@@ -15,7 +15,8 @@ from .wwpdb import checkIdentifiers, fetchPDBviaFTP, fetchPDBviaHTTP
 
 __all__ = ['pathPDBFolder', 'pathPDBMirror',
            'fetchPDB', 'fetchPDBfromMirror',
-           'iterPDBFilenames', 'findPDBFiles']
+           'iterPDBFilenames', 'findPDBFiles',
+           'fetchPDBs']
 
 def pathPDBFolder(folder=None, divided=False):
     """Returns or specify local PDB folder for storing PDB files downloaded from
@@ -367,6 +368,25 @@ def fetchPDB(*pdb, **kwargs):
 
     return filenames[0] if len(identifiers) == 1 else filenames
 
+def fetchPDBs(pdb, **kwargs):
+    """"Wrapper function to fetch multiple files from the PDB. 
+    If no format is given, it tries PDB then mmCIF then EMD."""
+
+    format = kwargs.pop('format', None)
+    
+    if format is not None:
+        filename = fetchPDB(pdb, format=format, **kwargs)
+
+    else:
+        filename = fetchPDB(pdb, **kwargs)
+
+        if filename is None:
+            filename = fetchPDB("4u6f", format='cif', **kwargs)
+
+        if filename is None:
+            filename = fetchPDB(pdb, format='emd', **kwargs)
+
+    return filename
 
 def iterPDBFilenames(path=None, sort=False, unique=True, **kwargs):
     """Yield PDB filenames in *path* specified by the user or in local PDB
