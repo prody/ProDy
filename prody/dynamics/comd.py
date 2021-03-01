@@ -560,16 +560,14 @@ class CoMD(Hybrid):
         else:
             confsB = self._confs[n_confsA:]
 
-        RMSDs = np.zeros((n_confs-9))
-        n = 0
+        RMSDs = []
         for i in range(n_confsA):
             for j in range(2):
-                RMSDs[n] = getRMSD(confsA[i+j], confsB[n_confsA-(i+1)])
-                n += 1
-                if i == n_confsA - 1:
+                if i + j > n_confsA - 1:
                     break
+                RMSDs.append(getRMSD(confsA[i+j], confsB[n_confsA-(i+1)], weights=weights))
 
-        return RMSDs
+        return np.array(RMSDs)
 
     def run(self, cutoff=15., n_modes=20, gamma=1., n_confs=50, rmsd=1.0,
             n_gens=5, solvent='imp', sim=False, force_field=None, temp=303.15,
