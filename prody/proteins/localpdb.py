@@ -381,7 +381,7 @@ def fetchPDBs(pdb, **kwargs):
         filename = fetchPDB(pdb, **kwargs)
 
         if filename is None:
-            filename = fetchPDB("4u6f", format='cif', **kwargs)
+            filename = fetchPDB(pdb, format='cif', **kwargs)
 
         if filename is None:
             filename = fetchPDB(pdb, format='emd', **kwargs)
