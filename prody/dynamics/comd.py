@@ -30,7 +30,7 @@ def calcANMMC(initial, final, **kwargs):
     """
     devi = kwargs.pop('devi', 0.5)
     stepcutoff = kwargs.pop('stepcutoff', 2.)
-    acceptance_ratio = kwargs.pop('acceptance_ratio', 0.9)
+    acceptance_ratio = kwargs.pop('acceptance_ratio', 0.9) # f in the paper
 
     cutoff = kwargs.pop('cutoff', 15.)
     anm_cut = kwargs.pop('anm_cut', cutoff)
