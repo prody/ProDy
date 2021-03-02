@@ -9,6 +9,7 @@ from prody.utilities import importLA, checkCoords, copy
 from numpy import sqrt, zeros, array, ceil, dot
 
 from .anm import ANM
+from .nma import MaskedNMA
 from .gnm import checkENMParameters
 from .editing import _reduceModel
 
@@ -38,7 +39,7 @@ class exANM(ANM):
         self._combined = None
 
     def buildMembrane(self, coords, **kwargs):
-        """Build Hessian matrix for given coordinate set.
+        """Build membrane lattice around **coords**.
 
         :arg coords: a coordinate set or an object with ``getCoords`` method
         :type coords: :class:`numpy.ndarray`
@@ -467,3 +468,58 @@ def buildLayerHessian(coords, layers, layer, cutoff=15., gamma=1.0, **kwargs):
                 superelement = np.outer(v, v)*g/dist2
                 Hss[I, I] += superelement
     return Hss, Hse
+
+
+class MaskedExANM(exANM, MaskedNMA):
+    def __init__(self, name='Unknown', mask=False, masked=True):
+        exANM.__init__(self, name)
+        MaskedNMA.__init__(self, name, mask, masked)
+
+    def calcModes(self, n_modes=20, zeros=False, turbo=True):
+        self._maskedarray = None
+        super(MaskedExANM, self).calcModes(n_modes, zeros, turbo)
+
+    def _reset(self):
+        super(MaskedExANM, self)._reset()
+        self._maskedarray = None
+
+    def setHessian(self, hessian):
+        """Set Hessian matrix.  A symmetric matrix is expected, i.e. not a
+        lower- or upper-triangular matrix."""
+
+        if not isinstance(hessian, np.ndarray):
+            raise TypeError('hessian must be a Numpy array')
+        elif hessian.ndim != 2 or hessian.shape[0] != hessian.shape[1]:
+            raise ValueError('hessian must be square matrix')
+        elif hessian.shape[0] % 3:
+            raise ValueError('hessian.shape must be (3*n_atoms,3*n_atoms)')
+        elif hessian.dtype != float:
+            try:
+                hessian = hessian.astype(float)
+            except:
+                raise ValueError('hessian.dtype must be float')
+        
+        mask = self.mask
+        if not self.masked:
+            if not np.isscalar(mask):
+                if self.is3d():
+                    mask = np.repeat(mask, 3)
+                try:
+                    hessian = hessian[mask, :][:, mask]
+                except IndexError:
+                    raise IndexError('size mismatch between Hessian (%d) and mask (%d).'
+                                     'Try set masked to False or reset mask'%(len(hessian), len(mask)))
+
+        super(MaskedExANM, self).setHessian(hessian)
+
+    def _getHessian(self):
+        """Returns the Hessian matrix."""
+
+        hessian = self._hessian
+
+        if hessian is None: return None
+
+        if not self._isOriginal():
+            hessian = self._extend(hessian, axis=None)
+
+        return hessian

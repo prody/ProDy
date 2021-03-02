@@ -419,10 +419,7 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
     :arg split: starting index for coordinate data lines"""
 
     format = format.upper()
-    if format == 'PDB':
-        isPDB = True
-    else:
-        isPDB = False
+    isPDB = format == 'PDB'
 
     if subset:
         if subset == 'ca':
@@ -593,7 +590,15 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
             resnames[acount] = resname
             chainids[acount] = chid
             if isPDB:
-                resnums[acount] = line[22:26] 
+                try:
+                    resnums[acount] = int(line[22:26])
+                except ValueError:
+                    try:
+                        resnums[acount] = int(line[22:26], 16)
+                    except ValueError:
+                        LOGGER.warn('failed to parse residue number in line {0}. Assigning it by incrementing.'
+                                    .format(i))
+                        resnums[acount] = resnums[acount-1]+1
                 icodes[acount] = line[26] 
             else:
                 resnum = fields[5]
@@ -601,7 +606,15 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                     icode = resnum[-1]
                 else:
                     icode = ' '
-                resnums[acount] = resnum
+                try:
+                    resnums[acount] = int(resnum)
+                except ValueError:
+                    try:
+                        resnums[acount] = int(resnum, 16)
+                    except ValueError:
+                        LOGGER.warn('failed to parse residue number in line {0}. Assigning it by incrementing.'
+                                    .format(i))
+                        resnums[acount] = resnums[acount-1]+1
                 icodes[acount] = icode
 
             if isPDB:
