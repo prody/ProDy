@@ -7,7 +7,7 @@ from os.path import abspath, isdir, isfile, join, split, splitext, normpath
 
 from prody import LOGGER, SETTINGS
 from prody.utilities import makePath, gunzip, relpath, copyFile, isWritable
-from prody.utilities import sympath
+from prody.utilities import sympath, isListLike
 
 from . import wwpdb
 from .wwpdb import checkIdentifiers, fetchPDBviaFTP, fetchPDBviaHTTP
@@ -368,25 +368,42 @@ def fetchPDB(*pdb, **kwargs):
 
     return filenames[0] if len(identifiers) == 1 else filenames
 
-def fetchPDBs(pdb, **kwargs):
+def fetchPDBs(*pdb, **kwargs):
     """"Wrapper function to fetch multiple files from the PDB. 
-    If no format is given, it tries PDB then mmCIF then EMD."""
-
-    format = kwargs.pop('format', None)
+    If no format is given, it tries PDB then mmCIF then EMD.
     
-    if format is not None:
-        filename = fetchPDB(pdb, format=format, **kwargs)
+    :arg pdb: one PDB identifier or filename, or a list of them.
+        If needed, PDB files are downloaded using :func:`.fetchPDB()` function.
+    """
 
-    else:
-        filename = fetchPDB(pdb, **kwargs)
+    n_pdb = len(pdb)
+    if n_pdb == 0:
+        raise ValueError('Please provide a PDB ID or filename')
 
-        if filename is None:
-            filename = fetchPDB(pdb, format='cif', **kwargs)
+    if n_pdb == 1:
+        if isListLike(pdb[0]):
+            pdb = pdb[0]
+            n_pdb = len(pdb)
 
-        if filename is None:
-            filename = fetchPDB(pdb, format='emd', **kwargs)
+    fnames = []
+    for p in pdb:
+        format = kwargs.pop('format', None)
+        
+        if format is not None:
+            filename = fetchPDB(p, format=format, **kwargs)
 
-    return filename
+        else:
+            filename = fetchPDB(p, **kwargs)
+
+            if filename is None:
+                filename = fetchPDB(p, format='cif', **kwargs)
+
+            if filename is None:
+                filename = fetchPDB(p, format='emd', **kwargs)
+
+        fnames.append(filename)
+
+    return fnames
 
 def iterPDBFilenames(path=None, sort=False, unique=True, **kwargs):
     """Yield PDB filenames in *path* specified by the user or in local PDB
