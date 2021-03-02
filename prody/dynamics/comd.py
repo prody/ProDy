@@ -97,10 +97,10 @@ def calcANMMC(initial, final, **kwargs):
     else:
         accept_para = 0.1
 
-    # MC parameter 1 is the acceptance ratio, which should converge on
+    # MC parameter 1 is the acceptance ratio, f, which should converge on
     # the selected value with a tolerance of 0.05 either side
-    # and accept_para is adjusted to help bring it within these limits.
-    # This also happens every 5 steps during the run (lines 150 to 156).
+    # and accept_para, gamma, is adjusted to help bring it within these limits.
+    # This also happens every 5 steps during the run.
 
     if original_initial_pdb != original_final_pdb:
         # difference from the target structure is defined as the energy and the minimum is zero. 
@@ -164,7 +164,7 @@ def calcANMMC(initial, final, **kwargs):
 
             if (mod(k,5)==0 and not(k==0)):
                 # Update of the accept_para to keep the MC para reasonable
-                # See comment lines 86 to 89. 
+                # See comment lines above. 
                 if f > acceptance_ratio + 0.05:
                     accept_para /= 1.5
                 elif f < acceptance_ratio - 0.05:
