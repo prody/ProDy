@@ -200,10 +200,12 @@ def setVMDpath(path):
 NMD_LABEL_MAP = {
     'atomnames': 'name',
     'resnames': 'resname',
+    'resnums': 'resnum',
     'resids': 'resnum',
     'chainids': 'chain',
     'bfactors': 'beta',
     'segnames': 'segment',
+    'segments': 'segment',
 }
 
 
@@ -283,6 +285,8 @@ def parseNMD(filename, type=NMA):
     from prody.atomic import ATOMIC_FIELDS
 
     for label, data in atomic.items():  # PY3K: OK
+        if data is None:
+            continue
         line, data = data
         if len(data) == n_atoms:
             data = ['']*n_atoms
