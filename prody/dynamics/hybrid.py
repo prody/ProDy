@@ -166,7 +166,7 @@ class Hybrid(Ensemble):
             from pdbfixer import PDBFixer
             from simtk.openmm.app import PDBFile
         except ImportError:
-            raise ImportError('Please install PDBFixer and OpenMM in order to use ClustENM.')
+            raise ImportError('Please install PDBFixer and OpenMM in order to use hybrid methods.')
 
         stream = createStringIO()
         title = atoms.getTitle()
@@ -203,7 +203,7 @@ class Hybrid(Ensemble):
             from simtk.unit import angstrom, nanometers, picosecond, \
                 kelvin, Quantity, molar
         except ImportError:
-            raise ImportError('Please install PDBFixer and OpenMM in order to use ClustENM.')
+            raise ImportError('Please install PDBFixer and OpenMM in order to use hybrid methods.')
 
         positions = Quantity([Vec3(*xyz) for xyz in coords], angstrom)
         modeller = Modeller(self._topology, positions)
@@ -259,7 +259,7 @@ class Hybrid(Ensemble):
             from simtk.openmm.app import StateDataReporter
             from simtk.unit import kelvin, angstrom, kilojoule_per_mole, MOLAR_GAS_CONSTANT_R
         except ImportError:
-            raise ImportError('Please install PDBFixer and OpenMM in order to use Hybrid.')
+            raise ImportError('Please install PDBFixer and OpenMM in order to use hybrid methods.')
 
         simulation = self._prep_sim(coords=coords)
 
@@ -303,7 +303,7 @@ class Hybrid(Ensemble):
             from simtk.openmm.app import StateDataReporter
             from simtk.unit import nanometer, kelvin, angstrom, kilojoule_per_mole, MOLAR_GAS_CONSTANT_R
         except ImportError:
-            raise ImportError('Please install PDBFixer and OpenMM in order to use Hybrid.')
+            raise ImportError('Please install PDBFixer and OpenMM in order to use hybrid methods.')
 
         tmdk *= kilojoule_per_mole/angstrom**2
         tmdk = tmdk.value_in_unit(kilojoule_per_mole/nanometer**2)
