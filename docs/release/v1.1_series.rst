@@ -41,7 +41,7 @@ ProDy 1.1 Series
 
   * Color scale used by :func:`.showOverlapTable` is normalized by default.
 
-  * :mod:`.tools` module is depracated for removal, use :mod:`.utilities`
+  * :mod:`.tools` module is deprecated for removal, use :mod:`.utilities`
     instead.
 
   * *array* argument in :func:`.moveAtoms` is replaced with *by* keyword
