@@ -287,7 +287,11 @@ def parseNMD(filename, type=NMA):
     for label, data in atomic.items():  # PY3K: OK
         if data is None:
             continue
+        
         line, data = data
+        if data is None:
+            continue
+
         if len(data) == n_atoms:
             data = ['']*n_atoms
         else:
