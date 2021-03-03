@@ -143,6 +143,8 @@ def loadEnsemble(filename, **kwargs):
         ensemble = AdaptiveHybrid(title)
     elif type_ == 'Hybrid':
         ensemble = Hybrid(title)
+    elif type_ == 'CoMD':
+        ensemble = CoMD(title)
     else:
         ensemble = Ensemble(title)
 
