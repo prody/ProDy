@@ -115,7 +115,7 @@ def parsePDB(*pdb, **kwargs):
         raise ValueError('Please provide a PDB ID or filename')
 
     if n_pdb == 1:
-        if isListLike(pdb[0]):
+        if isListLike(pdb[0]) or isinstance(pdb[0], dict):
             pdb = pdb[0]
             n_pdb = len(pdb)
             
