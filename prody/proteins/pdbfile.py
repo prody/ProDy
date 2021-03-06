@@ -590,16 +590,24 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
             resnames[acount] = resname
             chainids[acount] = chid
             if isPDB:
+                dec = False
                 try:
-                    resnums[acount] = int(line[22:26])
+                    resnum = int(line[22:26])
+                    dec = True
                 except ValueError:
                     try:
-                        resnums[acount] = int(line[22:26], 16)
+                        resnum = int(line[22:26], 16)
                     except ValueError:
                         LOGGER.warn('failed to parse residue number in line {0}. Assigning it by incrementing.'
                                     .format(i))
-                        resnums[acount] = resnums[acount-1]+1
-                icodes[acount] = line[26] 
+                        resnum = resnums[acount-1]+1
+                icode = line[26] 
+                icodes[acount] = icode
+
+                if icode.isnumeric() and dec:
+                    resnum = int(str(resnum) + icode)
+
+                resnums[acount] = resnum
             else:
                 resnum = fields[5]
                 if resnum[-1].isalpha():
