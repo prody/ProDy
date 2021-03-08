@@ -600,10 +600,20 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                     except ValueError:
                         dec = False
 
-                if dec and acount > 2 and resnums[acount-2] < resnum and resnums[acount-2] >= MAX_N_RES:
+                icode = line[26] 
+                if icode.isnumeric() and dec:
+                    if not warned_5_digit:
+                        LOGGER.warn('parsed 5 digit residue number including numeric insertion code')
+                        warned_5_digit = True
+                    resnum = int(str(resnum) + icode)
+                else:
+                    icodes[acount] = icode
+
+                if dec and acount > 2 and resnums[acount-2] > resnum and resnums[acount-2] >= MAX_N_RES:
                     dec = False
 
                 if not dec:
+                    resnum = resnum_str
                     try:
                         if not resnum.isnumeric() and resnum == resnum.upper():
                             resnum = hybrid36ToDec(resnum_str, resnum=True)
@@ -616,15 +626,7 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                                     .format(i))
                         resnum = resnums[acount-1]+1
 
-                icode = line[26] 
-
-                if icode.isnumeric() and dec:
-                    if not warned_5_digit:
-                        LOGGER.warn('parsed 5 digit residue number including numeric insertion code')
-                        warned_5_digit = True
-                    resnum = int(str(resnum) + icode)
-                else:
-                    icodes[acount] = icode
+                
 
                 resnums[acount] = resnum
             else:
