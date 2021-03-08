@@ -498,6 +498,7 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
     altloc = defaultdict(list)
     i = start
     END = False
+    warned_5_digit = False
     while i < stop:
         line = lines[i]
         if not isPDB:
@@ -592,7 +593,7 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
             if isPDB:
                 dec = False
                 try:
-                    resnum = int(line[22:26])
+                    resnum = line[22:26]
                     dec = True
                 except ValueError:
                     try:
@@ -605,7 +606,10 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                 icodes[acount] = icode
 
                 if icode.isnumeric() and dec:
-                    resnum = int(str(resnum) + icode)
+                    if not warned_5_digit:
+                        LOGGER.warn('parsed 5 digit residue number including numeric insertion code')
+                        warned_5_digit = True
+                    resnum = int(resnum + icode)
 
                 resnums[acount] = resnum
             else:
