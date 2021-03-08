@@ -14,7 +14,7 @@ from prody.atomic import AtomGroup, Atom, Selection
 from prody.atomic import flags
 from prody.atomic import ATOMIC_FIELDS
 from prody.utilities import openFile, isListLike
-from prody.utilities.misctools import decToHybrid36, packmolRenumChains
+from prody.utilities.misctools import decToHybrid36, hybrid36ToDec, packmolRenumChains
 from prody import LOGGER, SETTINGS
 
 from .header import getHeaderDict, buildBiomolecules, assignSecstr, isHelix, isSheet
@@ -501,6 +501,7 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
     END = False
     warned_5_digit = False
     dec = True
+    h36 = False
     while i < stop:
         line = lines[i]
         if not isPDB:
@@ -599,11 +600,17 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                     except ValueError:
                         dec = False
 
-                    if resnums[acount-2] >= MAX_N_RES:
-                        dec = False
-                else:
+                if dec and acount > 2 and resnums[acount-2] != resnum and resnums[acount-2] >= MAX_N_RES:
+                    dec = False
+
+                if not dec:
+                    resnum = line[22:26]
                     try:
-                        resnum = int(line[22:26], 16)
+                        if not resnum.isnumeric() and resnum == resnum.upper():
+                            resnum = hybrid36ToDec(line[22:26], resnum=True)
+                        else:
+                            # lower case is found in hexadecimal PDB files
+                            resnum = int(line[22:26], 16)
                         
                     except ValueError:
                         LOGGER.warn('failed to parse residue number in line {0}. Assigning it by incrementing.'
