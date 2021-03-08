@@ -501,7 +501,6 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
     END = False
     warned_5_digit = False
     dec = True
-    h36 = False
     while i < stop:
         line = lines[i]
         if not isPDB:
@@ -594,23 +593,23 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
             resnames[acount] = resname
             chainids[acount] = chid
             if isPDB:
+                resnum_str = line[22:26]
                 if dec:
                     try:
-                        resnum = int(line[22:26])
+                        resnum = int(resnum_str)
                     except ValueError:
                         dec = False
 
-                if dec and acount > 2 and resnums[acount-2] != resnum and resnums[acount-2] >= MAX_N_RES:
+                if dec and acount > 2 and resnums[acount-2] < resnum and resnums[acount-2] >= MAX_N_RES:
                     dec = False
 
                 if not dec:
-                    resnum = line[22:26]
                     try:
                         if not resnum.isnumeric() and resnum == resnum.upper():
-                            resnum = hybrid36ToDec(line[22:26], resnum=True)
+                            resnum = hybrid36ToDec(resnum_str, resnum=True)
                         else:
                             # lower case is found in hexadecimal PDB files
-                            resnum = int(line[22:26], 16)
+                            resnum = int(resnum_str, 16)
                         
                     except ValueError:
                         LOGGER.warn('failed to parse residue number in line {0}. Assigning it by incrementing.'
@@ -623,7 +622,7 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                     if not warned_5_digit:
                         LOGGER.warn('parsed 5 digit residue number including numeric insertion code')
                         warned_5_digit = True
-                    resnum = int(resnum + icode)
+                    resnum = int(str(resnum) + icode)
                 else:
                     icodes[acount] = icode
 
