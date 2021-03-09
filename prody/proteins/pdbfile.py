@@ -584,7 +584,8 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                 serials[acount] = int(serial_str)
             except ValueError:
                 try:
-                    if not serial_str.isnumeric() and serial_str == serial_str.upper():
+                    isnumeric = np.alltrue([x.isdigit() for x in serial_str])
+                    if not isnumeric and serial_str == serial_str.upper():
                         serials[acount] = hybrid36ToDec(serial_str)
                     else:
                         # lower case is found in hexadecimal PDB files
@@ -612,7 +613,7 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                         dec = False
 
                 icode = line[26] 
-                if icode.isnumeric() and dec:
+                if icode.isdigit() and dec:
                     if not warned_5_digit:
                         LOGGER.warn('parsed 5 digit residue number including numeric insertion code')
                         warned_5_digit = True
@@ -626,7 +627,8 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                 if not dec:
                     resnum = resnum_str
                     try:
-                        if not resnum.isnumeric() and resnum == resnum.upper():
+                        isnumeric = np.alltrue([x.isdigit() for x in resnum_str])
+                        if not isnumeric and resnum_str == resnum_str.upper():
                             resnum = hybrid36ToDec(resnum_str, resnum=True)
                         else:
                             # lower case is found in hexadecimal PDB files
