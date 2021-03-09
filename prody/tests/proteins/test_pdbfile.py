@@ -76,8 +76,8 @@ class TestParsePDB(unittest.TestCase):
              title, 'parsePDB failed to set user given title')
 
         name = 1999
-        self.assertEqual(parsePDB(path, title=title).getTitle(),
-             str(title), 'parsePDB failed to set user given non-string name')
+        self.assertEqual(parsePDB(path, title=name).getTitle(),
+             str(name), 'parsePDB failed to set user given non-string name')
 
     def testChainArgument(self):
         """Test outcome of valid and invalid *chain* arguments."""
