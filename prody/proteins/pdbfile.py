@@ -622,11 +622,14 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                             resnum = int(resnum_str, 16)
                         
                     except ValueError:
-                        LOGGER.warn('failed to parse residue number in line {0}. Assigning it by incrementing.'
-                                    .format(i))
-                        resnum = resnums[acount-1]+1
-
-                
+                        if acount > 0:
+                            LOGGER.warn('failed to parse residue number in line {0}. Assigning it by incrementing.'
+                                        .format(i))
+                            resnum = resnums[acount-1]+1
+                        else:
+                            LOGGER.warn('failed to parse residue number in line {0}. Assigning it as 1.'
+                                        .format(i))
+                            resnum = 1
 
                 resnums[acount] = resnum
             else:
