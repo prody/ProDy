@@ -579,15 +579,26 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                 i += 1
                 continue
 
+            serial_str = line[6:11] if isPDB else fields[1]
             try:
-                serials[acount] = int(line[6:11]) if isPDB else int(fields[1])
+                serials[acount] = int(serial_str)
             except ValueError:
                 try:
-                    serials[acount] = int(line[6:11], 16) if isPDB else int(fields[1], 16)
+                    if not serial_str.isnumeric() and serial_str == serial_str.upper():
+                        serials[acount] = hybrid36ToDec(serial_str)
+                    else:
+                        # lower case is found in hexadecimal PDB files
+                        serials[acount] = int(serial_str, 16)
                 except ValueError:
-                    LOGGER.warn('failed to parse serial number in line {0}'
-                                .format(i))
-                    serials[acount] = serials[acount-1]+1
+                    if acount > 0:
+                        LOGGER.warn('failed to parse serial number in line {0}. Assigning it by incrementing.'
+                                    .format(i))
+                        serials[acount] = serials[acount-1]+1
+                    else:
+                        LOGGER.warn('failed to parse serial number in line {0}. Assigning it as 1.'
+                                    .format(i))
+                        serials[acount] = 1
+                    
             altlocs[acount] = alt
             atomnames[acount] = atomname
             resnames[acount] = resname
