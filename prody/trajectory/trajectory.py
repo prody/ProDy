@@ -311,3 +311,4 @@ class Trajectory(TrajBase):
         """Returns a list of fixed atom numbers, one from each file."""
 
         return [traj.numFixed() for traj in self._trajectories]
+
