@@ -51,12 +51,8 @@ def parseEMD(emd, **kwargs):
     :arg n_nodes: A bead based network will be constructed into the provided density map. 
                   This parameter will set the number of beads to fit to density map. 
                   Default is 0. Please change it to some number to run the TRN algorithm.
-    :type n_nodes: int  
-
-    :arg num_iter: After reading density map, coordinates are predicted with the 
-                   topology representing network method. This parameter is the total 
-                   number of iterations of this algorithm.
-    :type num_iter: int
+                  Other parameters are passed through as kwargs to :meth:`.TRNET.run`.
+    :type n_nodes: int
 
     :arg map: Return the density map itself. Default is **False** in line with previous behaviour.
         This value is reset to **True** if n_nodes is 0 or less.
@@ -121,7 +117,6 @@ def parseEMDStream(stream, **kwargs):
             raise TypeError('max_cutoff should be a number or None')
 
     n_nodes = kwargs.get('n_nodes', 0)
-    num_iter = int(kwargs.get('num_iter', 20))
     map = kwargs.get('map', False)
 
     if not isinstance(n_nodes, int):
@@ -151,7 +146,7 @@ def parseEMDStream(stream, **kwargs):
         trn = TRNET(n_nodes=n_nodes)
         trn.inputMap(emd, sample='density')
 
-        trn.run(tmax=num_iter)
+        trn.run(**kwargs)
         for i in range(n_nodes):
             coordinates[i, :] = trn.W[i, :]
             atomnames[i] = 'B'
@@ -538,8 +533,55 @@ class TRNET(object):
                         self.C[i0, i] = 0
                     self.C[i, i0] = self.C[i0, i]
 
-    def run(self, tmax=200, li=0.2, lf=0.01, ei=0.3,
-            ef=0.05, Ti=0.1, Tf=2, c=0, calcC=False):
+    def run(self, **kwargs):
+        """
+        :arg tmax: maximum total number of iterations
+            default 200
+        :type tmax: int
+
+        :arg li: initial lambda
+            default 0.2
+        :type li: float
+
+        :arg lf: final lambda
+            default 0.01
+        :type lf: float
+
+        :arg ei: initial epsilon
+            default 0.3
+        :type ei: float
+
+        :arg ef: final epsilon
+            default 0.05
+        :type ef: float
+
+        :arg Ti: initial ?
+            default 0.1
+        :type Ti: float
+
+        :arg Tf: final ?
+            default 2
+        :type Tf: float
+
+        :arg c: ?
+            default 0
+        :type c: float
+
+        :arg calcC: where to calculate ?
+            default **False**
+        :type calcC: bool
+        """
+
+        tmax = kwargs.get('tmax', 200)
+        li = kwargs.get('li', 0.2)
+        lf = kwargs.get('lf', 0.01)
+        ei = kwargs.get('ei', 0.3)
+        ef = kwargs.get('ef', 0.05)
+        Ti = kwargs.get('Ti', 0.1)
+        Tf = kwargs.get('Tf', 2)
+        c = kwargs.get('c', 0)
+        calcC = kwargs.get('calcC', False)
+
         LOGGER.info('Building coordinates from electron density map. This may take a while.')
         LOGGER.timeit('_prody_make_nodes')
         tmax = int(tmax * self.N)
