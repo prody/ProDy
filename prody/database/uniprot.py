@@ -151,7 +151,7 @@ def queryUniprot(id, expand=[], regex=True):
     record_file.close()
     data = XML(data)
 
-    data = dictElement(data.getchildren()[0], '{http://uniprot.org/uniprot}', number_multiples=True)
+    data = dictElement(data[0], '{http://uniprot.org/uniprot}', number_multiples=True)
 
     for key in data:
         value = data[key]
