@@ -292,7 +292,8 @@ class PDBEnsemble(Ensemble):
             n_atoms = self._n_atoms
 
         if n_nodes == n_select and self.isSelected():
-            full_coords = np.repeat(self._coords[np.newaxis, :, :], n_csets, axis=0)
+            full_coords = np.repeat(self._coords[np.newaxis, :, :],
+                                    n_csets, axis=0)
             full_coords[:, self._indices, :] = coords
             coords = full_coords
         
