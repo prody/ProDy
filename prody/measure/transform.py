@@ -68,7 +68,7 @@ class Transformation(object):
         self._matrix[:3, 3] = translation
 
     def getMatrix(self):
-        """Returnss a copy of the 4x4 transformation matrix whose top left is
+        """Returns a copy of the 4x4 transformation matrix whose top left is
         rotation matrix and last column is translation vector."""
 
         if self._matrix is not None:
