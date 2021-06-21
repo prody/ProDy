@@ -44,6 +44,10 @@ def calcPerturbResponse(model, **kwargs):
     .. [IG14] General IJ, Liu Y, Blackburn ME, Mao W, Gierasch LM, Bahar I.
         ATPase subdomain IA is a mediator of interdomain allostery in Hsp70
         molecular chaperones. *PLoS Comput. Biol.* **2014** 10:e1003624.
+
+    If *turbo* is **True** (default), then PRS is approximated by the limit of 
+    large numbers of forces and no perturbation forces are explicitly applied. 
+    If set to **False**, then a number of *repeats* (default 100) of forces are applied. 
     """
 
     if not isinstance(model, (NMA, ModeSet, Mode)):
@@ -94,7 +98,8 @@ def calcPerturbResponse(model, **kwargs):
                 j3p3 += 3                
                 prs_matrix[:,j] = (n_by_3n_cov_squared[:,j3:j3p3]).sum(1)
     else:
-        LOGGER.info('Calculating perturbation response')
+        repeats = kwargs.pop('repeats', 100)
+        LOGGER.info('Calculating perturbation response with {0} repeats'.format(repeats))
         LOGGER.timeit('_prody_prs_mat')
 
         response_matrix = np.zeros((n_atoms, n_atoms))
