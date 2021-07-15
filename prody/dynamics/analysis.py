@@ -338,7 +338,7 @@ def calcCrossCorr(modes, n_cpu=1, norm=True):
     """Returns cross-correlations matrix.  For a 3-d model, cross-correlations
     matrix is an NxN matrix, where N is the number of atoms.  Each element of
     this matrix is the trace of the submatrix corresponding to a pair of atoms.
-    Covariance matrix may be calculated using all modes or a subset of modes
+    Cross-correlations matrix may be calculated using all modes or a subset of modes
     of an NMA instance.  For large systems, calculation of cross-correlations
     matrix may be time consuming.  Optionally, multiple processors may be
     employed to perform calculations by passing ``n_cpu=2`` or more."""
@@ -467,7 +467,9 @@ def calcTempFactors(modes, atoms):
 
 
 def calcCovariance(modes):
-    """Returns covariance matrix calculated for given *modes*."""
+    """Returns covariance matrix calculated for given *modes*.
+    This is 3Nx3N for 3-d models and NxN (equivalent to cross-correlations) 
+    for 1-d models such as GNM."""
 
     if isinstance(modes, NMA):
         return modes.getCovariance()
