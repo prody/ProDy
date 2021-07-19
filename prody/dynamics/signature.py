@@ -1405,8 +1405,8 @@ def calcSignatureOverlaps(mode_ensemble, diag=True, collapse=False):
             LOGGER.warn('modes in mode_ensemble did not match cross modesets. '
                         'Consider running mode_ensemble.match() prior to using this function')
 
-            n_sets = mode_ensemble.numModeSets()
-            n_modes = mode_ensemble.numModes()
+        n_sets = mode_ensemble.numModeSets()
+        n_modes = mode_ensemble.numModes()
     else:
         if not isListLike(mode_ensemble):
             raise TypeError('mode_ensemble should be list-like or an instance of ModeEnsemble')
