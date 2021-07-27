@@ -615,7 +615,7 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                 icode = line[26] 
                 if icode.isdigit() and dec:
                     if not warned_5_digit:
-                        LOGGER.warn('parsed 5 digit residue number including numeric insertion code')
+                        LOGGER.warn('Parsing 5-digit residue number including numeric insertion code')
                         warned_5_digit = True
                     resnum = int(str(resnum) + icode)
                 else:
@@ -1425,7 +1425,11 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
                 resnum = int(str(resnum)[:4])
             
             elif len(str(resnum)) > 5:
-                LOGGER.warn('Truncating resnum as too long to be supported by insertion code.')
+                if not warned_5_digit:
+                    LOGGER.warn('Truncating {0}-digit resnum as too long to be '
+                                'supported by insertion code.'.format(len(str(resnum))))
+                    warned_5_digit = True
+                    
                 resnum = int(str(resnum)[:4])
 
             write(pdbline % (hetero[i], serial,
