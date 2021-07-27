@@ -1368,6 +1368,8 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
             anisouline = ANISOULINE_LT100K
         else:
             warned_hybrid36 = False
+
+        warned_5_digit = False
             
         for i, xyz in enumerate(coords):
             if hybrid36:
@@ -1409,6 +1411,18 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
             else:
                 serial = serials[i]
                 resnum = resnums[i]
+
+            if len(str(resnum)) == 5:
+                if icodes[i] == '':
+                    icodes[i] = str(resnum)[4]
+                    
+                    if not warned_5_digit:
+                        LOGGER.warn('Storing 5-digit resnums using insertion codes')
+                        warned_5_digit = True
+                else:
+                    LOGGER.warn('Truncating 5-digit resnum as insertion code is busy.')
+
+                resnum = int(str(resnum)[:4])
 
             write(pdbline % (hetero[i], serial,
                              atomnames[i], altlocs[i],
