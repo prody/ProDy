@@ -1423,6 +1423,10 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
                     LOGGER.warn('Truncating 5-digit resnum as insertion code is busy.')
 
                 resnum = int(str(resnum)[:4])
+            
+            elif len(str(resnum)) > 5:
+                LOGGER.warn('Truncating resnum as too long to be supported by insertion code.')
+                resnum = int(str(resnum)[:4])
 
             write(pdbline % (hetero[i], serial,
                              atomnames[i], altlocs[i],
