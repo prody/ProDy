@@ -1,6 +1,10 @@
 """This module defines some sequence evolution applications."""
 
-import imp
+try:
+    import imp
+except:
+    import importlib as imp
+    
 import sys
 
 try:

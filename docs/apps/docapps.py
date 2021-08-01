@@ -1,7 +1,11 @@
 #!/usr/bin/python
 
 import os
-import imp
+try:
+    import imp
+except:
+    import importlib as imp
+    
 from subprocess import Popen, PIPE
 
 path = [imp.find_module('prody')[1]]

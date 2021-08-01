@@ -441,7 +441,10 @@ all alphanumeric characters."""
 
 import sys
 from re import compile as re_compile
-from collections import Iterable
+try:
+    from collections import Iterable
+except:
+    from collections.abc import Iterable
 
 import numpy as np
 from numpy import array, ndarray, ones, zeros, arange

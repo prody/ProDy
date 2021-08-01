@@ -1,6 +1,10 @@
 #!/usr/bin/env python
 
-import imp
+try:
+    import imp
+except:
+    import importlib as imp
+    
 path = imp.find_module('prody')[1]
 apps = imp.find_module('apps', [path])
 apps = imp.load_module('prody.apps', *apps)
