@@ -4,7 +4,9 @@ name: CI
 
 # Controls when the action will run. 
 on:
-  # Triggers the workflow on pull request events
+  # Triggers the workflow on push and pull request events
+  push:
+    branches: [ $default-branch ]
   pull_request:
     branches: [ $default-branch ]
 
