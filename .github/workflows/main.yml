@@ -4,9 +4,7 @@ name: CI
 
 # Controls when the action will run. 
 on:
-  # Triggers the workflow on push and pull request events
-  push:
-    branches: [ $default-branch ]
+  # Triggers the workflow on pull request events
   pull_request:
     branches: [ $default-branch ]
 
@@ -39,7 +37,7 @@ jobs:
     - name: Install dependencies
       run: |
         conda create --yes -n test python=${{ matrix.python-version }}
-        conda activate test
+        source activate test
         conda install --yes numpy scipy nose pyparsing biopython
         if [[ ${{ matrix.python-version }} == "2.7" ]]; then conda install --yes unittest2; fi
         python setup.py build install
