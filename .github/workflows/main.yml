@@ -6,6 +6,7 @@ name: CI
 on:
   # Triggers the workflow on pull request events
   pull_request:
+    branches: [ $default-branch ]
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
@@ -14,20 +15,33 @@ on:
 jobs:
   # This workflow contains a single job called "build"
   build:
-    # The type of runner that the job will run on
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: [2.7, 3.5, 3.9]
 
-    # Steps represent a sequence of tasks that will be executed as part of the job
-    # Disabling shallow clone is recommended for improving relevancy of reporting
     steps:
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v2
-        with:
-          fetch-depth: 0
-          
-      # This will try to fetch cache for current commit
-      # Since no such cache exists, it will try to bring newest restore-key one
-      # i.e. the one from latest build. See https://docs.github.com/en/actions/guides/caching-dependencies-to-speed-up-workflows#matching-a-cache-key
-      - name: Fetch cache
-        uses: actions/cache@v2.1.5
+    - uses: actions/checkout@v2
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Add conda to system path
+      run: |
+        wget http://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O miniconda.sh
+        chmod +x miniconda.sh
+        ./miniconda.sh -b -p $HOME/miniconda
+        export PATH=$HOME/miniconda/bin:$PATH
+        conda update --yes conda
+    - name: Install dependencies
+      run: |
+        conda create --yes -n test python=${{ matrix.python-version }}
+        source activate test
+        conda install --yes numpy scipy nose pyparsing biopython
+        if [[ ${{ matrix.python-version }} == "2.7" ]]; then conda install --yes unittest2; fi
+        python setup.py build install
+    - name: Test with pytest
+      run: |
+        pytest
         
