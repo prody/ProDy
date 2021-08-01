@@ -1,6 +1,9 @@
 """This module defines structure and dynamics analysis applications."""
 
-import imp
+try:
+    import imp
+except:
+    import importlib
 import sys
 
 try:
