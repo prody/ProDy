@@ -31,19 +31,17 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Add conda to system path
       run: |
-        wget http://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O miniconda.sh
-        chmod +x miniconda.sh
-        ./miniconda.sh -b -p $HOME/miniconda
-        export PATH=$HOME/miniconda/bin:$PATH
-        conda update --yes conda
+        echo $CONDA/bin >> $GITHUB_PATH
     - name: Install dependencies
       run: |
         conda create --yes -n test python=${{ matrix.python-version }}
-        conda activate test
+        source activate test
         conda install --yes numpy scipy nose pyparsing biopython
         if [[ ${{ matrix.python-version }} == "2.7" ]]; then conda install --yes unittest2; fi
-        python setup.py build install
+        python setup.py build_ext --inplace --force
     - name: Test with pytest
       run: |
+        source activate test
+        conda install --yes pytest
         pytest
         
