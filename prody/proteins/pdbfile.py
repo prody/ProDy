@@ -422,6 +422,8 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
     format = format.upper()
     isPDB = format == 'PDB'
 
+    num_ters = 0
+
     if subset:
         if subset == 'ca':
             subset = set(('CA',))
@@ -737,24 +739,24 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
             if bonds is not None:
                 atom_serial = line[6:11]
                 bonded1_serial = line[11:16]
-                bonds.append([int(atom_serial)-1, int(bonded1_serial)-1])
+                bonds.append([int(atom_serial)-1-num_ters, int(bonded1_serial)-1-num_ters])
                 
                 bonded2_serial = line[16:21]
                 if len(bonded2_serial.strip()):
-                    bonds.append([int(atom_serial)-1, int(bonded2_serial)-1])
+                    bonds.append([int(atom_serial)-1-num_ters, int(bonded2_serial)-1-num_ters])
 
                 bonded3_serial = line[21:26]
                 if len(bonded3_serial.strip()):
-                    bonds.append([int(atom_serial)-1, int(bonded3_serial)-1])
+                    bonds.append([int(atom_serial)-1-num_ters, int(bonded3_serial)-1-num_ters])
                     
                 bonded4_serial = line[27:31]
                 if len(bonded4_serial.strip()):
-                    bonds.append([int(atom_serial)-1, int(bonded4_serial)-1])
+                    bonds.append([int(atom_serial)-1-num_ters, int(bonded4_serial)-1-num_ters])
 
         elif not onlycoords and (startswith == 'TER   ' or
             startswith.strip() == 'TER'):
             termini[acount - 1] = True
-            acount += 1   # This line is necessary
+            num_ters += 1
         elif startswith == 'ENDMDL' or startswith[:3] == 'END':
             if acount == 0:
                 # If there is no atom record between ENDMDL & END skip to next
