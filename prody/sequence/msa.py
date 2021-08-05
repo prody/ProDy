@@ -161,7 +161,7 @@ class MSA(object):
                 return Sequence(self._msa[rows, cols].tostring(),
                                 self._labels[rows])
             except:
-                return Sequence(self._msa[rows, cols].tobytes().,
+                return Sequence(self._msa[rows, cols].tobytes(),
                                 self._labels[rows])
         elif isinstance(rows, str):
             try:
