@@ -227,12 +227,26 @@ def _parsePDB(pdb, **kwargs):
         if len(title) == 7 and title.startswith('pdb'):
             title = title[3:]
         kwargs['title'] = title
-    pdb = openFile(pdb, 'rt')
+
+    stream = openFile(pdb, 'rt')
     if chain != '':
         kwargs['chain'] = chain
-    result = parsePDBStream(pdb, **kwargs)
-    pdb.close()
-    return result
+    result = parsePDBStream(stream, **kwargs)
+    stream.close()
+
+    if result is not None:
+        return result
+    else:
+        try:
+            LOGGER.warn("Trying to parse mmCIF file instead")
+            return parseMMCIF(pdb, **kwargs)
+        except:
+            try:
+                LOGGER.warn("Trying to parse EMD file instead")
+                return parseEMD(pdb, **kwargs)
+            except:                
+                raise IOError('PDB file for {0} could not be downloaded.'
+                              .format(pdb))
 
 parsePDB.__doc__ += _parsePDBdoc
 
