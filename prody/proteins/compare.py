@@ -1429,7 +1429,11 @@ def getCEAlignMapping(target, chain):
         amatch.append(ares)
         if i in tar_indices:
             n = tar_indices.index(i)
-            b = chain_res_list[chn_indices[n]]
+            try:
+                b = chain_res_list[chn_indices[n]]
+            except IndexError:
+                bmatch.append(None)
+                continue
             bres = b.getResidue()
             bmatch.append(bres)
             if a.getResname() == b.getResname():

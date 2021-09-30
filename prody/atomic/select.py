@@ -954,7 +954,7 @@ class Select(object):
 
         self._reset()
 
-        for key in kwargs.keys():
+        for key in kwargs:
             if not key.isalnum():
                 raise TypeError('{0} is not a valid keyword argument, '
                                   'keywords must be all alpha numeric '
