@@ -309,6 +309,9 @@ def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
         if alt not in which_altlocs:
             continue
 
+        if alt == '.':
+            alt = ''
+
         if model is not None:
             if int(models[acount]) < model:
                 continue
