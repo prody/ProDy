@@ -3,7 +3,7 @@
 import os
 try:
     import imp
-except:
+except ImportError:
     import importlib as imp
     
 from subprocess import Popen, PIPE

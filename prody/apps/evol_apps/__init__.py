@@ -2,7 +2,7 @@
 
 try:
     import imp
-except:
+except ImportError:
     import importlib as imp
     
 import sys

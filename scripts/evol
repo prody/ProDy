@@ -2,7 +2,7 @@
 
 try:
     import imp
-except:
+except ImportError:
     import importlib as imp
     
 path = imp.find_module('prody')[1]
