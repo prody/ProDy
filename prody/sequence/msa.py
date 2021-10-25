@@ -157,11 +157,15 @@ class MSA(object):
         if isinstance(rows, list):
             rows = self.getIndex(rows) or rows
         elif isinstance(rows, int):
-            try:
+            if PY3K:
+                try:
+                    return Sequence(self._msa[rows, cols].tostring().decode(),
+                                    self._labels[rows])
+                except:
+                    return Sequence(self._msa[rows, cols].tobytes().decode(),
+                                    self._labels[rows])
+            else:
                 return Sequence(self._msa[rows, cols].tostring(),
-                                self._labels[rows])
-            except:
-                return Sequence(self._msa[rows, cols].tobytes(),
                                 self._labels[rows])
         elif isinstance(rows, str):
             try:
@@ -558,16 +562,20 @@ def refineMSA(msa, index=None, label=None, rowocc=None, seqid=None, colocc=None,
                 from prody.utilities import GAP_PENALTY, GAP_EXT_PENALTY, ALIGNMENT_METHOD
 
                 chseq = chain.getSequence()
-                try:
-                    algn = pairwise2.align.localms(pystr(arr[index].tostring().upper()), pystr(chseq),
-                                            MATCH_SCORE, MISMATCH_SCORE,
-                                            GAP_PENALTY, GAP_EXT_PENALTY,
-                                            one_alignment_only=1)
-                except:
-                    algn = pairwise2.align.localms(pystr(arr[index].tobytes().upper()), pystr(chseq),
-                                            MATCH_SCORE, MISMATCH_SCORE,
-                                            GAP_PENALTY, GAP_EXT_PENALTY,
-                                            one_alignment_only=1)
+
+                if PY3K:
+                    try:
+                        arr2 = arr[index].tostring().decode()
+                    except:
+                        arr2 = arr[index].tobytes().decode()
+                else:
+                    arr2 = arr[index].tostring()
+
+                algn = pairwise2.align.localms(pystr(arr2.upper()), pystr(chseq),
+                                               MATCH_SCORE, MISMATCH_SCORE,
+                                               GAP_PENALTY, GAP_EXT_PENALTY,
+                                               one_alignment_only=1)
+
                 torf = []
                 for s, c in zip(*algn[0][:2]):
                     if s == '-':
