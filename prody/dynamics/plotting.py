@@ -526,14 +526,22 @@ def showOverlapTable(modes_x, modes_y, **kwargs):
     else:
         num_modes_y = modes_y.numModes()
 
-    overlap = abs(calcOverlap(modes_y, modes_x))
+    overlap = calcOverlap(modes_y, modes_x)
+    take_abs = kwargs.pop('abs', True)
+    if take_abs:
+        overlap = abs(overlap)
+        
     if overlap.ndim == 0:
         overlap = np.array([[overlap]])
     elif overlap.ndim == 1:
         overlap = overlap.reshape((num_modes_y, num_modes_x))
 
     cmap = kwargs.pop('cmap', 'jet')
-    norm = kwargs.pop('norm', matplotlib.colors.Normalize(0, 1))
+
+    if take_abs:
+        norm = kwargs.pop('norm', matplotlib.colors.Normalize(0, 1))
+    else:
+        norm = kwargs.pop('norm', matplotlib.colors.Normalize(-1, 1))
 
     if SETTINGS['auto_show']:
         plt.figure()
