@@ -238,12 +238,15 @@ def _parsePDB(pdb, **kwargs):
         return result
     else:
         try:
-            LOGGER.warn("Trying to parse mmCIF file instead")
+            LOGGER.warn("Trying to parse as mmCIF file instead")
             return parseMMCIF(pdb, **kwargs)
-        except:
+        except KeyError:
             try:
-                LOGGER.warn("Trying to parse EMD file instead")
+                LOGGER.warn("Trying to parse as EMD file instead")
                 return parseEMD(pdb, **kwargs)
+            except ValueError:
+                LOGGER.warn("Could not parse anything so returning None")
+                return None
             except:                
                 raise IOError('PDB file for {0} could not be downloaded.'
                               .format(pdb))
