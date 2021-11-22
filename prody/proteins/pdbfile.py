@@ -228,15 +228,14 @@ def _parsePDB(pdb, **kwargs):
             title = title[3:]
         kwargs['title'] = title
 
-    stream = openFile(pdb, 'rt')
-    if chain != '':
-        kwargs['chain'] = chain
-    result = parsePDBStream(stream, **kwargs)
-    stream.close()
-
-    if result is not None:
+    try:
+        stream = openFile(pdb, 'rt')
+        if chain != '':
+            kwargs['chain'] = chain
+        result = parsePDBStream(stream, **kwargs)
+        stream.close()
         return result
-    else:
+    except PDBParseError:
         try:
             LOGGER.warn("Trying to parse as mmCIF file instead")
             return parseMMCIF(pdb, **kwargs)
