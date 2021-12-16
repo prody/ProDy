@@ -15,7 +15,8 @@ from .analysis import calcFractVariance, calcSqFlucts
 
 __all__ = ['calcOverlap', 'calcCumulOverlap', 'calcSubspaceOverlap', 'calcSpectralOverlap', 
            'calcCovOverlap', 'printOverlapTable', 'writeOverlapTable', 
-           'calcSquareInnerProduct','pairModes', 'matchModes']
+           'calcSquareInnerProduct','pairModes', 'matchModes', 
+           'calcRMSIP', 'calcSIP', 'calcRWSIP']
 
 SO_CACHE = {}
 WO_CACHE = {}
@@ -185,13 +186,49 @@ def calcSubspaceOverlap(modes1, modes2):
     rmsip = np.sqrt(np.power(overlap, 2).sum() / length)
     return rmsip
 
+calcRMSIP = calcSubspaceOverlap
+
+
+def calcRWSIP(modes1, modes2):
+    """Returns root weighted square inner product (RWSIP)
+    of essential subspaces [VC07]_.  This function returns a single number.
+
+    .. [VC07] Carnevale V, Pontiggia F, Micheletti C. Structural and dynamical 
+       alignment of enzymes with partial structural similarity.
+       *J Phys Condens Matter.* **2007** 19:285206."""
+
+    overlap = calcOverlap(modes1, modes2)
+    
+    if isinstance(modes1, Mode):
+        length1 = 1
+    else:
+        length1 = len(modes1)
+
+    if isinstance(modes2, Mode):
+        length2 = 1
+    else:
+        length2 = len(modes2)
+
+    vars1 = modes1.getVariances()
+    vars2 = modes2.getVariances()
+
+    numerator = np.sum([vars1[l] * vars2[m] * overlap[l, m]**2
+                        for l in range(length1)
+                        for m in range(length2)])
+    
+    denominator = np.dot(vars1[:length1], vars2[:length1])
+    
+    rwsip = np.sqrt(numerator/denominator)
+    return rwsip
+
+
 def calcSquareInnerProduct(modes1, modes2):
     """Returns the square inner product (SIP) of fluctuations [SK02]_.  
     This function returns a single number.
 
     .. [SK02] Kundu S, Melton JS, Sorensen DC, Phillips GN: Dynamics of 
         proteins in crystals: comparison of experiment with simple models. 
-        Biophys J. 2002, 83: 723-732.
+        *Biophys J.* **2002**, 83:723-732.
         
     """
     if isinstance(modes1, (NMA, ModeSet)):
@@ -209,6 +246,9 @@ def calcSquareInnerProduct(modes1, modes2):
         raise TypeError('modes2 should be a profile or an NMA or ModeSet object')
 
     return np.dot(w1, w2)**2 / (np.dot(w1, w1) * np.dot(w2, w2))
+
+calcSIP = calcSquareInnerProduct
+
 
 def calcSpectralOverlap(modes1, modes2, weighted=False, turbo=False):
     """Returns overlap between covariances of *modes1* and *modes2*.  Overlap
