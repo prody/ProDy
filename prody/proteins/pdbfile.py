@@ -501,8 +501,11 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                     break
         if nmodel != model:
             raise PDBParseError('model {0} is not found'.format(model))
+
     if isinstance(altloc_torf, str):
-        if altloc_torf.strip() != 'A':
+        if altloc_torf == 'all':
+            which_altlocs = 'all'
+        elif altloc_torf.strip() != 'A':
             LOGGER.info('Parsing alternate locations {0}.'
                         .format(altloc_torf))
             which_altlocs = ' ' + ''.join(altloc_torf.split())
@@ -561,7 +564,7 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
             
             if isPDB:
                 alt = line[16]
-                if alt not in which_altlocs:
+                if alt not in which_altlocs and which_altlocs != 'all':
                     altloc[alt].append((line, i))
                     i += 1
                     continue
