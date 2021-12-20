@@ -567,7 +567,7 @@ class TRNET(object):
             default 0
         :type c: float
 
-        :arg calcC: where to calculate ?
+        :arg calcC: whether to calculate ?
             default **False**
         :type calcC: bool
         """
