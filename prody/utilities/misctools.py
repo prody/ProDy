@@ -4,6 +4,7 @@ import re
 from numpy import unique, linalg, diag, sqrt, dot, chararray, divide, zeros_like, zeros, allclose, ceil, abs
 from numpy import diff, where, insert, nan, isnan, loadtxt, array, round, average, min, max, delete, vstack
 from numpy import sign, arange, asarray, ndarray, subtract, power, sum, isscalar, empty, triu, tril, median
+from numpy import alltrue
 from collections import Counter
 import numbers
 
@@ -120,11 +121,23 @@ class ImageCursor(Cursor):
         if self.atoms is None:
             self.txt.set_text(template % (j, i, v)) 
         else:
-            seq = self.atoms.getSequence()
-            resnums = self.atoms.getResnums()
+            if not isListLike(self.atoms):
+                seq = self.atoms.getSequence()
+                resnums = self.atoms.getResnums()
 
-            a = seq[j] + str(resnums[j])
-            b = seq[i] + str(resnums[i])
+                a = seq[j] + str(resnums[j])
+                b = seq[i] + str(resnums[i])
+                
+            else:
+                xseq = self.atoms[0].getSequence()
+                xresnums = self.atoms[0].getResnums()
+
+                yseq = self.atoms[1].getSequence()
+                yresnums = self.atoms[1].getResnums()
+
+                a = xseq[j] + str(xresnums[j])
+                b = yseq[i] + str(yresnums[i])
+
             self.txt.set_text(template % (a, b, str(v)))
         self.txt.set_position((x, y))
 
@@ -628,10 +641,10 @@ def index(A, a):
         return where(A==a)[0][0]
 
 
-def checkIdentifiers(*pdb):
+def checkIdentifiers(*pdb, **kwargs):
     """Check whether *pdb* identifiers are valid, and replace invalid ones
     with **None** in place."""
-
+    format = kwargs.get('format', 'pdb')
     identifiers = []
     append = identifiers.append
     for pid in pdb:
@@ -641,7 +654,11 @@ def checkIdentifiers(*pdb):
             LOGGER.warn('{0} is not a valid identifier.'.format(repr(pid)))
             append(None)
         else:
-            if not (len(pid) == 4 and pid.isalnum()):
+            if format != 'emd' and not (len(pid) == 4 and pid.isalnum()):
+                LOGGER.warn('{0} is not a valid identifier.'
+                            .format(repr(pid)))
+                append(None)
+            elif format == 'emd' and not (len(pid) in [4, 5] and pid.isalnum()):
                 LOGGER.warn('{0} is not a valid identifier.'
                             .format(repr(pid)))
                 append(None)
@@ -670,16 +687,23 @@ def decToBase36(integer):
     return sign+result
 
 
-def decToHybrid36(x):
+def decToHybrid36(x, resnum=False):
     """Convert a regular decimal number to a string in hybrid36 format"""
     if not isinstance(x, numbers.Integral):
         raise TypeError('x should be an integer')
 
-    if x < 100000:
-        return str(x)
+    if not resnum:
+        if x < 100000:
+            return str(x)
 
-    start = 10*36**4 # decToBase36(start) = A0000
-    return decToBase36(int(x) + (start - 100000))
+        start = 10*36**4 # decToBase36(start) = A0000
+        return decToBase36(int(x) + (start - 100000))
+    else:
+        if x < 10000:
+            return str(x)
+
+        start = 10*36**3 # decToBase36(start) = A000
+        return decToBase36(int(x) + (start - 10000))        
 
 
 def base36ToDec(x):
@@ -697,16 +721,21 @@ def base36ToDec(x):
     return int(sign + str(result))
 
 
-def hybrid36ToDec(x):
+def hybrid36ToDec(x, resnum=False):
     """Convert string in hybrid36 format to a regular decimal number"""
     if not isinstance(x, str):
         raise TypeError('x should be a string')
     
-    if x.isnumeric():
+    isnumeric = alltrue([y.isdigit() for y in x])
+    if isnumeric:
         return int(x)
 
-    start = 10*36**4 # decToBase36(start) = A0000
-    return base36ToDec(x) - start + 100000
+    if not resnum:
+        start = 10*36**4 # decToBase36(start) = A0000
+        return base36ToDec(x) - start + 100000
+    else:
+        start = 10*36**3 # decToBase36(start) = A000
+        return base36ToDec(x) - start + 10000        
 
 
 def split(string, shlex=False):

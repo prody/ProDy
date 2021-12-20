@@ -7,12 +7,11 @@ import time
 import numpy as np
 
 from prody import LOGGER
-from prody.proteins import parsePDB
-from prody.atomic import AtomGroup, Atomic
+from prody.atomic import Atomic
 from prody.ensemble import Ensemble, Conformation
 from prody.trajectory import TrajBase
 from prody.utilities import importLA, checkCoords, div0
-from numpy import sqrt, arange, log, polyfit, array, arccos, dot
+from numpy import sqrt, arange, log, polyfit, array
 
 from .nma import NMA
 from .modeset import ModeSet
@@ -23,7 +22,8 @@ __all__ = ['calcCollectivity', 'calcCovariance', 'calcCrossCorr',
            'calcFractVariance', 'calcSqFlucts', 'calcTempFactors',
            'calcProjection', 'calcCrossProjection',
            'calcSpecDimension', 'calcPairDeformationDist',
-           'calcDistFlucts', 'calcHinges', 'calcHitTime', 'calcHitTime']
+           'calcDistFlucts', 'calcHinges', 'calcHitTime', 'calcHitTime',
+           'calcAnisousFromModel']
            #'calcEntropyTransfer', 'calcOverallNetEntropyTransfer']
 
 def calcCollectivity(mode, masses=None, is3d=None):
@@ -338,7 +338,7 @@ def calcCrossCorr(modes, n_cpu=1, norm=True):
     """Returns cross-correlations matrix.  For a 3-d model, cross-correlations
     matrix is an NxN matrix, where N is the number of atoms.  Each element of
     this matrix is the trace of the submatrix corresponding to a pair of atoms.
-    Covariance matrix may be calculated using all modes or a subset of modes
+    Cross-correlations matrix may be calculated using all modes or a subset of modes
     of an NMA instance.  For large systems, calculation of cross-correlations
     matrix may be time consuming.  Optionally, multiple processors may be
     employed to perform calculations by passing ``n_cpu=2`` or more."""
@@ -348,7 +348,7 @@ def calcCrossCorr(modes, n_cpu=1, norm=True):
     elif n_cpu < 1:
         raise ValueError('n_cpu must be equal to or greater than 1')
 
-    if not isinstance(modes, (Mode, NMA, ModeSet)):
+    if not isinstance(modes, (Mode, Vector, NMA, ModeSet)):
         if isinstance(modes, list):
             try:
                 is3d = modes[0].is3d()
@@ -356,10 +356,11 @@ def calcCrossCorr(modes, n_cpu=1, norm=True):
                 raise TypeError('modes must be a list of Mode or Vector instances, '
                             'not {0}'.format(type(modes)))
         else:
-            raise TypeError('modes must be a Mode, NMA, or ModeSet instance, '
+            raise TypeError('modes must be a Mode, Vector, NMA, or ModeSet instance, '
                             'not {0}'.format(type(modes)))
     else:
         is3d = modes.is3d()
+
     if is3d:
         model = modes
         if isinstance(modes, (Mode, ModeSet)):
@@ -370,12 +371,22 @@ def calcCrossCorr(modes, n_cpu=1, norm=True):
             else:
                 indices = modes.getIndices()
                 n_modes = len(modes)
+        elif isinstance(modes, Vector):
+                indices = [0]
+                n_modes = 1
         else:
             n_modes = len(modes)
             indices = np.arange(n_modes)
+            
         array = model._getArray()
         n_atoms = model._n_atoms
-        variances = model._vars
+
+        if not isinstance(modes, Vector):
+            variances = model._vars
+        else:
+            array = array.reshape(-1, 1)
+            variances = np.ones(1)
+
         if n_cpu == 1:
             s = (n_modes, n_atoms, 3)
             arvar = (array[:, indices]*variances[indices]).T.reshape(s)
@@ -456,7 +467,9 @@ def calcTempFactors(modes, atoms):
 
 
 def calcCovariance(modes):
-    """Returns covariance matrix calculated for given *modes*."""
+    """Returns covariance matrix calculated for given *modes*.
+    This is 3Nx3N for 3-d models and NxN (equivalent to cross-correlations) 
+    for 1-d models such as GNM."""
 
     if isinstance(modes, NMA):
         return modes.getCovariance()
@@ -660,3 +673,37 @@ def calcHitTime(model, method='standard'):
     LOGGER.debug('Hit and commute times are calculated in  {0:.2f}s.'
                  .format(time.time()-start)) 
     return H, C
+
+
+def calcAnisousFromModel(model, ):
+    """Returns a 3Nx6 matrix containing anisotropic B factors (ANISOU lines)
+    from a covariance matrix calculated from **model**.
+
+    :arg model: 3D model from which to calculate covariance matrix
+    :type model: :class:`.ANM`, :class:`.PCA`
+
+    .. ipython:: python
+
+       from prody import *
+       protein = parsePDB('1ejg')
+       anm, calphas = calcANM(protein)
+       adp_matrix = calcAnisousFromModel(anm)"""
+
+    if not isinstance(model, (NMA, Mode)) or not model.is3d():
+        raise TypeError('model must be of type ANM, PCA or Mode, not {0}'
+                        .format(type(model)))
+
+    cov = calcCovariance(model)
+    n_atoms = model.numAtoms()
+    
+    submatrices = [cov[i*3:(i+1)*3, i*3:(i+1)*3] for i in range(n_atoms)]
+
+    anisou = np.zeros((n_atoms, 6))
+    for index, submatrix in enumerate(submatrices):
+        anisou[index, 0] = submatrix[0, 0]
+        anisou[index, 1] = submatrix[1, 1]
+        anisou[index, 2] = submatrix[2, 2]
+        anisou[index, 3] = submatrix[0, 1]
+        anisou[index, 4] = submatrix[0, 2]
+        anisou[index, 5] = submatrix[1, 2]
+    return anisou

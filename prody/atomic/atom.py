@@ -3,7 +3,7 @@
 
 import numpy as np
 
-from . import flags
+from .flags import PLANTERS
 from .fields import ATOMIC_FIELDS, READONLY
 from .fields import wrapGetMethod, wrapSetMethod
 from .pointer import AtomPointer
@@ -182,7 +182,7 @@ class Atom(AtomPointer):
 
          :raise AttributeError: when *label* is not in use or read-only"""
 
-        if label in flags.PLANTERS:
+        if label in PLANTERS:
             raise AttributeError('flag {0} cannot be changed by user'
                                     .format(repr(label)))
         flags = self._ag._getFlags(label)
@@ -239,6 +239,23 @@ class Atom(AtomPointer):
             if other == -1:
                 break
             yield Atom(ag, other, acsi)
+
+    def toTEMPyAtom(self):
+        """Returns a TEMPy BioPyAtom or Structure object as appropriate"""  
+        try:
+            from TEMPy.protein.prot_rep_biopy import Atom as TEMPyAtom
+        except ImportError:
+            raise ImportError('TEMPy is needed for this functionality')
+
+        return TEMPyAtom(
+            self.getName(), self.getCoords(),
+            'HETATM' if self.getFlag('hetatm') else 'ATOM',
+            self.getSerial(), self.getBeta(),
+            self.getAltloc(), self.getIcode(),
+            self.getCharge(), self.getElement(),
+            self.getOccupancy(), self.getResname(),
+            None, self.getACSIndex(), self.getChid(),
+            self.getResnum())
 
 
 for fname, field in ATOMIC_FIELDS.items():

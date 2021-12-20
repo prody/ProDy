@@ -26,6 +26,10 @@ class TestParsePDB(unittest.TestCase):
         self.one = DATA_FILES['oneatom']
         self.ca = DATA_FILES['1ubi_ca']
 
+        self.five_dig = DATA_FILES['five_digits']
+        self.hex = DATA_FILES['hex']
+        self.h36 = DATA_FILES['h36']
+
     def testUsualCase(self):
         """Test the outcome of a simple parsing scenario."""
 
@@ -76,8 +80,8 @@ class TestParsePDB(unittest.TestCase):
              title, 'parsePDB failed to set user given title')
 
         name = 1999
-        self.assertEqual(parsePDB(path, title=title).getTitle(),
-             str(title), 'parsePDB failed to set user given non-string name')
+        self.assertEqual(parsePDB(path, title=name).getTitle(),
+             str(name), 'parsePDB failed to set user given non-string name')
 
     def testChainArgument(self):
         """Test outcome of valid and invalid *chain* arguments."""
@@ -138,6 +142,50 @@ class TestParsePDB(unittest.TestCase):
             'parsePDB failed to append coordinate sets to given ag')
         assert_equal(coords, ag.getCoordsets(np.arange(ncsets, ncsets*2)))
 
+    def testFiveDigitResnum(self):
+        """Test parsing PDB files with five digit resnums
+        (using integer insertion code)."""
+
+        path = pathDatafile(self.five_dig['file'])
+        resnum = '10000'
+        self.assertEqual(str(parsePDB(path).getResnums()[33107]),
+             resnum, 'parsePDB failed to parse five digit resnum')
+
+    def testHexResnum(self):
+        """Test parsing PDB files with hexadecimal resnums
+        ('2710' is 10000)."""
+
+        path = pathDatafile(self.hex['file'])
+        resnum = '10000'
+        self.assertEqual(str(parsePDB(path).getResnums()[33107]),
+             resnum, 'parsePDB failed to parse hexadecimal resnum')
+
+    def testHybrid36Resnum(self):
+        """Test parsing PDB files with Hybrid36 resnums
+        ('A000' is 10000)."""
+
+        path = pathDatafile(self.h36['file'])
+        resnum = '10000'
+        self.assertEqual(str(parsePDB(path).getResnums()[33107]),
+             resnum, 'parsePDB failed to parse Hybrid36 resnum')
+
+    def testHexSerial(self):
+        """Test parsing PDB files with hexadecimal serial numbers
+        ('2710' is 10000)."""
+
+        path = pathDatafile(self.hex['file'])
+        serial = '100000'
+        self.assertEqual(str(parsePDB(path).getSerials()[100000-1]),
+             serial, 'parsePDB failed to hexadecimal serial number')
+
+    def testHybrid36Serial(self):
+        """Test parsing PDB files with Hybrid36 serial numbers
+        ('A0000' is 100000)."""
+
+        path = pathDatafile(self.h36['file'])
+        serial = '100000'
+        self.assertEqual(str(parsePDB(path).getSerials()[100000-1]),
+             serial, 'parsePDB failed to parse Hybrid36 serial number')
 '''
     def testBiomolArgument(self):
 
@@ -161,6 +209,9 @@ class TestWritePDB(unittest.TestCase):
         self.ag = parsePDB(self.pdb['path'])
         self.tmp = os.path.join(TEMPDIR, 'test.pdb')
 
+        self.hex = parsePDB(DATA_FILES['hex']['path'])
+        self.h36 = parsePDB(DATA_FILES['h36']['path'])
+
     msg = 'user does not have write access to temp dir {0:s}'.format(TEMPDIR)
 
     @dec.slow
@@ -178,6 +229,58 @@ class TestWritePDB(unittest.TestCase):
             'writePDB failed to write correct number of atoms')
         self.assertEqual(self.ag.numCoordsets(), out.numCoordsets(),
             'writePDB failed to write correct number of atoms')
+
+    @dec.slow
+    @unittest.skipUnless(os.access(TEMPDIR, os.W_OK), msg)
+    def testWritingHex(self):
+        """Test if output from writing hexadecimal is as expected."""
+
+        out = writePDB(self.tmp, self.hex)
+        fi = open(out, 'r')
+        lines = fi.readlines()
+        fi.close()
+
+        resnum_9999_line = lines[33107]
+        self.assertEqual(resnum_9999_line[22:26], '9999',
+            'writePDB failed to write correct pre-hex resnum')
+
+        resnum_2710_line = lines[33108]
+        self.assertEqual(resnum_2710_line[22:26], '2710',
+            'writePDB failed to write correct hex resnum')
+
+        serial_99999_line = lines[100000]
+        self.assertEqual(serial_99999_line[6:11], '99999',
+            'writePDB failed to write correct pre-hex serial')        
+
+        serial_186a0_line = lines[100001]
+        self.assertEqual(serial_186a0_line[6:11], '186a0',
+            'writePDB failed to write correct hex serial')  
+
+    @dec.slow
+    @unittest.skipUnless(os.access(TEMPDIR, os.W_OK), msg)
+    def testWritingHybrid36(self):
+        """Test if output from writing Hybrid36 is as expected."""
+
+        out = writePDB(self.tmp, self.h36, hybrid36=True)
+        fi = open(out, 'r')
+        lines = fi.readlines()
+        fi.close()
+
+        resnum_9999_line = lines[33107]
+        self.assertEqual(resnum_9999_line[22:26], '9999',
+            'writePDB failed to write correct pre-h36 resnum')
+
+        resnum_A000_line = lines[33108]
+        self.assertEqual(resnum_A000_line[22:26], 'A000',
+            'writePDB failed to write correct h36 resnum')
+
+        serial_99999_line = lines[100000]
+        self.assertEqual(serial_99999_line[6:11], '99999',
+            'writePDB failed to write correct pre-h36 serial')        
+
+        serial_A0000_line = lines[100001]
+        self.assertEqual(serial_A0000_line[6:11], 'A0000',
+            'writePDB failed to write correct h36 serial') 
 
     @dec.slow
     @unittest.skipUnless(os.access(TEMPDIR, os.W_OK), msg)

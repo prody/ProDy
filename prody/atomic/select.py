@@ -371,12 +371,12 @@ at least an atom within 4 A of any water molecule.
    p.select('same residue as exwithin 4 of water')
 
 Additionally, a selection may be expanded to the immediately bonded atoms using
-``bonded [n] to ...`` setting, e.f. ``bonded 1 to calpha`` will select atoms
+``bonded [n] to ...`` setting, e.g. ``bonded 1 to calpha`` will select atoms
 bonded to Cα atoms.  For this setting to work, bonds must be set by the user
 using the :meth:`.AtomGroup.setBonds` or :meth:`.AtomGroup.inferBonds` method.  
 It is also possible to select bonded atoms by excluding the originating atoms 
 using ``exbonded [n] to ...`` setting.  Number ``'[n]'`` indicates number of 
-bonds to consider from the originating selection and defaults to 1.
+bonds to consider from the originating selection.
 
 
 Selection macros
@@ -449,6 +449,10 @@ from numpy import invert, unique, concatenate, all, any
 from numpy import logical_and, logical_or, floor, ceil, where
 
 import pyparsing as pp
+try:
+    from pyparsing import operatorPrecedence as operatorPrecedence
+except ImportError:
+    from pyparsing import infixNotation as operatorPrecedence
 
 from prody import LOGGER, SETTINGS, PY2K
 
@@ -954,7 +958,7 @@ class Select(object):
 
         self._reset()
 
-        for key in kwargs.keys():
+        for key in kwargs:
             if not key.isalnum():
                 raise TypeError('{0} is not a valid keyword argument, '
                                   'keywords must be all alpha numeric '
@@ -1087,7 +1091,7 @@ class Select(object):
         if regexp: expr = PP_REGEXP | expr
         if nrange: expr = PP_NRANGE | expr
 
-        parser = pp.operatorPrecedence(expr, oplist)
+        parser = operatorPrecedence(expr, oplist)
         parser.setParseAction(self._default)
         parser.leaveWhitespace()
         parser.enablePackrat()
@@ -1641,7 +1645,7 @@ class Select(object):
                 torf[which] = False
 
         else:
-            n_atoms = self._ag.numAtoms()
+            n_atoms = self._atoms.numAtoms()
             torf = ones(n_atoms, bool)
             torf[which] = False
             check = torf.nonzero()[0]

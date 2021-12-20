@@ -38,7 +38,7 @@ from prody.proteins import parsePDB, writePDB
 from .editing import reduceModel
 from .plotting import showAtomicLines
 from .signature import ModeEnsemble, saveModeEnsemble
-from prody.utilities import which
+from prody.utilities import which, isListLike
 from . import matchModes
 
 __all__ = ['ESSA']
@@ -464,7 +464,7 @@ class ESSA:
         fpocket = which('fpocket')
 
         if fpocket is None:
-            LOGGER.warning('Fpocket (version >= 3.0 was not found, please install it.')
+            LOGGER.warning('Fpocket (version >= 3.0) was not found, please install it.')
             return None
 
         try:
@@ -496,6 +496,8 @@ class ESSA:
             fea, sco = list(zip(*tmp1))
             ps.append(sco)
         pdbs = parsePDB(l)
+        if not isListLike(pdbs):
+            pdbs = [pdbs]
         chdir('../..')
 
         # ----- # ----- #

@@ -3,15 +3,15 @@
 
 .. _EMD map files: http://emdatabank.org/mapformat.html"""
 
-from collections import defaultdict
+from numbers import Number
 import os.path
 
 from prody.atomic import AtomGroup
 from prody.atomic import flags
 from prody.atomic import ATOMIC_FIELDS
 
-from prody.utilities import openFile
-from prody import LOGGER, SETTINGS
+from prody.utilities import openFile, isListLike, copy
+from prody import LOGGER
 
 from .localpdb import fetchPDB
 
@@ -39,9 +39,14 @@ def parseEMD(emd, **kwargs):
               it via FTP.
     :type emd: str
 
-    :arg cutoff: density cutoff to read EMD map. The regions with 
-                 lower density than given cutoff are discarded.
-    :type cutoff: float
+    :arg min_cutoff: minimum density cutoff to read EMD map. The regions with 
+                 lower density than this cutoff are discarded.
+                 This corresponds to the previous cutoff and take values from it.
+    :type min_cutoff: float
+
+    :arg max_cutoff: maximum density cutoff to read EMD map. The regions with 
+                 higher density than this cutoff are discarded.
+    :type max_cutoff: float
 
     :arg n_nodes: A bead based network will be constructed into the provided density map. 
                   This parameter will set the number of beads to fit to density map. 
@@ -60,10 +65,10 @@ def parseEMD(emd, **kwargs):
 
     title = kwargs.get('title', None)
     if not os.path.isfile(emd):
-        if emd.startswith('EMD-') and len(emd[4:]) == 4:
+        if emd.startswith('EMD-') and len(emd[4:]) in [4, 5]:
             emd = emd[4:]
 
-        if len(emd) == 4 and emd.isdigit():
+        if len(emd) in [4, 5] and emd.isdigit():
             if title is None:
                 title = emd
                 kwargs['title'] = title
@@ -101,8 +106,19 @@ def parseEMDStream(stream, **kwargs):
                 (e.g. :class:`file`, buffer, stdin)
     """
     cutoff = kwargs.get('cutoff', None)
-    if cutoff is not None:
-        cutoff = float(cutoff)
+    min_cutoff = kwargs.get('min_cutoff', cutoff)
+    if min_cutoff is not None:
+        if isinstance(min_cutoff, Number):
+            min_cutoff = float(min_cutoff)
+        else:
+            raise TypeError('min_cutoff should be a number or None')
+
+    max_cutoff = kwargs.get('max_cutoff', None)
+    if max_cutoff is not None:
+        if isinstance(max_cutoff, Number):
+            max_cutoff = float(max_cutoff)
+        else:
+            raise TypeError('max_cutoff should be a number or None')
 
     n_nodes = kwargs.get('n_nodes', 0)
     num_iter = int(kwargs.get('num_iter', 20))
@@ -119,7 +135,7 @@ def parseEMDStream(stream, **kwargs):
         LOGGER.info('As n_nodes is less than or equal to 0, no nodes will be'
                     ' made and the raw map will be returned')
 
-    emd = EMDMAP(stream, cutoff)
+    emd = EMDMAP(stream, min_cutoff, max_cutoff)
 
     if make_nodes:
         title_suffix = kwargs.get('title_suffix', '')
@@ -174,9 +190,9 @@ def writeEMD(filename, emd):
     f.write(st.pack('<L', emd.NR))
     f.write(st.pack('<L', emd.NS))
     f.write(st.pack('<L', emd.mode))
-    f.write(st.pack('<L', emd.ncstart))
-    f.write(st.pack('<L', emd.nrstart))
-    f.write(st.pack('<L', emd.nsstart))
+    f.write(st.pack('<l', emd.ncstart))
+    f.write(st.pack('<l', emd.nrstart))
+    f.write(st.pack('<l', emd.nsstart))
     f.write(st.pack('<L', emd.Nx))
     f.write(st.pack('<L', emd.Ny))
     f.write(st.pack('<L', emd.Nz))
@@ -213,7 +229,25 @@ def writeEMD(filename, emd):
 
 
 class EMDMAP(object):
-    def __init__(self, stream, cutoff):
+    """Class for handling EM density maps in EMD/MRC2014 format.
+    
+    :arg stream: a file stream containing data from an EMD/MRC file.
+    
+    :arg min_cutoff: minimum cutoff for thresholding
+    :type min_cutoff: None, float
+
+    :arg max_cutoff: maximum cutoff for thresholding
+    :type max_cutoff: None, float
+    """
+    def __init__(self, stream, min_cutoff, max_cutoff):
+        if min_cutoff is not None and not isinstance(min_cutoff, Number):
+            raise TypeError('min_cutoff should be a number or None')
+
+        if max_cutoff is not None and not isinstance(max_cutoff, Number):
+            raise TypeError('max_cutoff should be a number or None')
+        
+        self._filename = stream.name
+
         # Number of columns, rows, and sections (3 words, 12 bytes, 1-12)
         self.NC = st.unpack('<L', stream.read(4))[0]
         self.NR = st.unpack('<L', stream.read(4))[0]
@@ -292,11 +326,37 @@ class EMDMAP(object):
             for r in range(0, self.NR):
                 for c in range(0, self.NC):
                     d = st.unpack('<f', stream.read(4))[0]
-                    if cutoff is not None and d < cutoff:
+                    if min_cutoff is not None and d < min_cutoff:
+                        d = 0
+                    if max_cutoff is not None and d > min_cutoff:
                         d = 0
                     self.density[s, r, c] = d
 
         self.sampled = False
+
+    def thresholdMap(self, min_cutoff=None, max_cutoff=None):
+        """Thresholds a map and returns a new map like the equivalent function in TEMPy"""
+        newDensity = self.density.copy()
+
+        if max_cutoff is not None:
+            if isinstance(max_cutoff, Number):
+                min_cutoff = float(max_cutoff)
+            else:
+                raise TypeError('max_cutoff should be a number or None')
+
+            newDensity = newDensity * (newDensity < max_cutoff)
+            
+        if min_cutoff is not None:
+            if isinstance(min_cutoff, Number):
+                min_cutoff = float(min_cutoff)
+            else:
+                raise TypeError('min_cutoff should be a number or None')
+
+            newDensity = newDensity * (newDensity > min_cutoff)
+
+        newMap = self.copyMap()
+        newMap.density = newDensity
+        return newMap
 
     def numidx2matidx(self, numidx):
         """ Given index of the position, it will return the numbers of section, row and column. """
@@ -325,7 +385,47 @@ class EMDMAP(object):
     def center(self):
         return int(self.NS / 2), int(self.NR / 2), int(self.NC / 2)
 
+    def getOrigin(self):
+        return self.x0, self.y0, self.z0
+
+    def setOrigin(self, x0, y0, z0):
+        self.x0, self.y0, self.z0 = x0, y0, z0
+
+    origin = property(getOrigin, setOrigin)
+
+    def getTitle(self):
+        return self._filename
+
+    def setTitle(self, title):
+        self._filename = title
+
+    filename = property(getTitle, setTitle)
+
+    def getApix(self):
+        return np.array((self.Lx / self.NS,
+                         self.Ly / self.NR,
+                         self.Lz / self.NC))
+
+    def setApix(self, apix):
+        if not isListLike(apix):
+            try:
+                apix = [apix, apix, apix]
+            except:
+                raise TypeError('apix must be a single value or list-like')
+
+        if len(apix) != 3:
+            raise ValueError('apix must be a single value or 3 values')
+        
+        self._apix = apix
+        self.Lx = apix[0] * self.NS
+        self.Ly = apix[1] * self.NR
+        self.Lz = apix[2] * self.NC
+
+    apix = property(getApix, setApix)
+
     def coordinate(self, sec, row, col):
+        """Given a position as *sec*, *row* and *col*, 
+        it will return its coordinate in Angstroms. """
         # calculate resolution
         res = np.empty(3)
         res[self.mapc - 1] = self.NC
@@ -342,6 +442,25 @@ class EMDMAP(object):
         # convert to Angstroms
         ret = np.multiply(ret, res)
         return ret
+
+    def toTEMPyMap(self):
+        """Convert to a TEMPy Map."""
+        try:
+            from TEMPy.maps.em_map import Map
+            from TEMPy.maps.map_parser import MapParser
+        except ImportError:
+            raise ImportError('TEMPy needs to be installed for this functionality')
+        
+        header = MapParser.readMRCHeader(self.filename)
+        newOrigin = np.array((self.ncstart, self.nrstart, self.nsstart)) * self.apix
+        return Map(self.density, newOrigin, self.apix, self.filename, header)
+
+    def copyMap(self):
+        """
+        Copy to a new object.
+        """
+        return copy(self)
+
 
 
 class TRNET(object):

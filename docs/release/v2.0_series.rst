@@ -15,7 +15,7 @@ ProDy 2.0 Series
 
 *Updates for CryoDy*
 
-  * Finalised the :class:`.AdaptiveANM`. (initially added in v1.10.11) for exploring transitions between conformations.
+  * Finalised the :class:`.AdaptiveANM` (initially added in v1.10.11) for exploring transitions between conformations.
 
   * Improved domain decomposition 
 
@@ -26,20 +26,20 @@ ProDy 2.0 Series
 *New compounds module*
 
   * New modules for fetching and parsing compound data from 
-  the PDB including Biologically Interesting Reference Dictionary (BIRD) 
-  and Chemical Component Dictionary (CCD) CIF files
+    the PDB including Biologically Interesting Reference Dictionary (BIRD) 
+    and Chemical Component Dictionary (CCD) CIF files
 
   * New functions module including 2D chemical similarity calculations 
-  using Morgan Fingerprint Similarity.
+    using Morgan Fingerprint Similarity.
 
 *Improved membrane ENMs*
 
   * New implementation of exANM based on iterative Schur complements and 
-  block-wise inversion
+    block-wise inversion
 
   * New exGNM based on improved exANM
 
 **Bug Fixes and Improvements**:
 
   * New function :func:`.inferBonds` in :class:`.AtomGroup` for inferring bonds 
-  based on distances without information from :file:`PSF` files.
+    based on distances without information from :file:`PSF` files.

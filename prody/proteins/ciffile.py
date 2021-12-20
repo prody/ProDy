@@ -68,8 +68,18 @@ def parseMMCIF(pdb, **kwargs):
     :arg chain: comma separated string or list-like of chain IDs
     :type chain: str, tuple, list, :class:`~numpy.ndarray`
     """
+    chain = kwargs.pop('chain', None)
     title = kwargs.get('title', None)
     if not os.path.isfile(pdb):
+        if len(pdb) == 5 and pdb.isalnum():
+            if chain is None:
+                chain = pdb[-1]
+                pdb = pdb[:4]
+            else:
+                raise ValueError('Please provide chain as a keyword argument or part of the PDB ID, not both')
+        else:
+            chain = chain
+
         if len(pdb) == 4 and pdb.isalnum():
             if title is None:
                 title = pdb
@@ -97,7 +107,7 @@ def parseMMCIF(pdb, **kwargs):
             title = title[3:]
         kwargs['title'] = title
     cif = openFile(pdb, 'rt')
-    result = parseMMCIFStream(cif, **kwargs)
+    result = parseMMCIFStream(cif, chain=chain, **kwargs)
     cif.close()
     return result
 
@@ -216,12 +226,12 @@ def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
             fieldCounter += 1
             fields[line.split('.')[1].strip()] = fieldCounter
 
-        if line.startswith('ATOM') or line.startswith('HETATM'):
+        if line.startswith('ATOM ') or line.startswith('HETATM'):
             if not foundAtomBlock:
                 foundAtomBlock = True
                 start = i
             models.append(line.split()[fields['pdbx_PDB_model_num']])
-            if models[asize] != models[asize-1]:
+            if len(models) == 1 or (models[asize] != models[asize-1]):
                 nModels += 1
             asize += 1
         else:
@@ -229,8 +239,6 @@ def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
                 doneAtomBlock = True
                 stop = i
         i += 1
-    if nModels == 0:
-        nModels = 1
 
     if model is not None and model != 1:
         for i in range(start, stop):
@@ -300,6 +308,9 @@ def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
         alt = line.split()[fields['label_alt_id']]
         if alt not in which_altlocs:
             continue
+
+        if alt == '.':
+            alt = ''
 
         if model is not None:
             if int(models[acount]) < model:
