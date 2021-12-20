@@ -1,5 +1,5 @@
 '''
-Copyright (c) 2020 Burak Kaynak, Pemra Doruker.
+Copyright (c) 2021 Burak Kaynak, Pemra Doruker.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -985,6 +985,9 @@ class ClustENM(Ensemble):
         self._targeted = kwargs.pop('targeted', False)
         self._tmdk = kwargs.pop('tmdk', 15.)
 
+        if maxclust is None and threshold is None:
+            raise ValueError('Either maxclust or threshold should be set!')
+        
         if maxclust is None:
             self._maxclust = None
         else:

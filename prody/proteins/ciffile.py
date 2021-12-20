@@ -226,12 +226,12 @@ def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
             fieldCounter += 1
             fields[line.split('.')[1].strip()] = fieldCounter
 
-        if line.startswith('ATOM') or line.startswith('HETATM'):
+        if line.startswith('ATOM ') or line.startswith('HETATM'):
             if not foundAtomBlock:
                 foundAtomBlock = True
                 start = i
             models.append(line.split()[fields['pdbx_PDB_model_num']])
-            if models[asize] != models[asize-1]:
+            if len(models) == 1 or (models[asize] != models[asize-1]):
                 nModels += 1
             asize += 1
         else:
@@ -239,8 +239,6 @@ def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
                 doneAtomBlock = True
                 stop = i
         i += 1
-    if nModels == 0:
-        nModels = 1
 
     if model is not None and model != 1:
         for i in range(start, stop):
@@ -310,6 +308,9 @@ def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
         alt = line.split()[fields['label_alt_id']]
         if alt not in which_altlocs:
             continue
+
+        if alt == '.':
+            alt = ''
 
         if model is not None:
             if int(models[acount]) < model:
