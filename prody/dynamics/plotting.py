@@ -19,12 +19,12 @@ from .gnm import GNMBase, GNM
 from .mode import Mode, VectorBase, Vector
 from .modeset import ModeSet
 from .analysis import calcSqFlucts, calcProjection
-from .analysis import calcCrossCorr, calcPairDeformationDist
+from .analysis import calcCrossCorr, calcCovariance, calcPairDeformationDist
 from .analysis import calcFractVariance, calcCrossProjection, calcHinges
 from .perturb import calcPerturbResponse
 from .compare import calcOverlap
 
-__all__ = ['showContactMap', 'showCrossCorr',
+__all__ = ['showContactMap', 'showCrossCorr', 'showCovarianceMatrix',
            'showCumulOverlap', 'showFractVars',
            'showCumulFractVars', 'showMode',
            'showOverlap', 'showOverlaps', 'showOverlapTable', 
@@ -526,14 +526,22 @@ def showOverlapTable(modes_x, modes_y, **kwargs):
     else:
         num_modes_y = modes_y.numModes()
 
-    overlap = abs(calcOverlap(modes_y, modes_x))
+    overlap = calcOverlap(modes_y, modes_x)
+    take_abs = kwargs.pop('abs', True)
+    if take_abs:
+        overlap = abs(overlap)
+        
     if overlap.ndim == 0:
         overlap = np.array([[overlap]])
     elif overlap.ndim == 1:
         overlap = overlap.reshape((num_modes_y, num_modes_x))
 
     cmap = kwargs.pop('cmap', 'jet')
-    norm = kwargs.pop('norm', matplotlib.colors.Normalize(0, 1))
+
+    if take_abs:
+        norm = kwargs.pop('norm', matplotlib.colors.Normalize(0, 1))
+    else:
+        norm = kwargs.pop('norm', matplotlib.colors.Normalize(-1, 1))
 
     if SETTINGS['auto_show']:
         plt.figure()
@@ -597,6 +605,28 @@ def showCrossCorr(modes, *args, **kwargs):
         kwargs['origin'] = 'lower'
     show = showAtomicMatrix(cross_correlations, *args, **kwargs)
     plt.title('Cross-correlations for {0}'.format(str(modes)))
+    if SETTINGS['auto_show']:
+        showFigure()
+    return show
+
+
+def showCovarianceMatrix(modes, *args, **kwargs):
+    """Show 3Nx3N covariance matrix (or NxN matrix for GNM) using :func:`showAtomicMatrix`.  
+    By default, *origin=lower* and *interpolation=bilinear* keyword arguments
+    are passed to this function, but user can overwrite these parameters.
+    See also :func:`.calcCovariance`."""
+
+    import matplotlib.pyplot as plt
+    if SETTINGS['auto_show']:
+        plt.figure()
+
+    covar = calcCovariance(modes)
+    if not 'interpolation' in kwargs:
+        kwargs['interpolation'] = 'bilinear'
+    if not 'origin' in kwargs:
+        kwargs['origin'] = 'lower'
+    show = showAtomicMatrix(covar, *args, **kwargs)
+    plt.title('Covariance matrix for {0}'.format(str(modes)))
     if SETTINGS['auto_show']:
         showFigure()
     return show
@@ -1148,7 +1178,7 @@ def showPerturbResponse(model, atoms=None, show_matrix=True, select=None, **kwar
     *model* and *atoms* must have the same number of atoms. *atoms* must 
     be an :class:`.Atomic` instance.
 
-    :arg model: any object with a calcCovariance method from which to calculate
+    :arg model: any object with a :meth:`calcCovariance` method from which to calculate
          a PRS matrix (e.g. :class:`.ANM` instance) or a PRS matrix itself
     :type model: :class:`.NMA`, :class:`~numpy.ndarray`
 
@@ -1359,10 +1389,12 @@ def showAtomicMatrix(matrix, x_array=None, y_array=None, atoms=None, **kwargs):
                 xatoms_, yatoms_ = atoms
             except ValueError:
                 raise ValueError('atoms must be either one or two Atomic objects')
+
             try:
                 n_xatoms, n_yatoms = xatoms_.numAtoms(), yatoms_.numAtoms()
             except:
                 raise TypeError('atoms must be an Atomic object or a list of Atomic objects')
+                
             if n_xatoms != n_col and 3*n_xatoms != n_col:
                 if n_yatoms == n_col or 3*n_yatoms == n_col:
                     xatoms = yatoms_  # swap xatoms and yatoms
@@ -1384,6 +1416,8 @@ def showAtomicMatrix(matrix, x_array=None, y_array=None, atoms=None, **kwargs):
                                 '({4} atoms)'.format(n_row, xatoms_, n_xatoms, yatoms_, n_yatoms))
             else:
                 yatoms = yatoms_
+                
+        atoms = (xatoms, yatoms)
     else:
         xatoms = yatoms = atoms
 

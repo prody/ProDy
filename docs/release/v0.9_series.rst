@@ -260,7 +260,7 @@ ProDy 0.9 Series
 
   .. note::  When modifying code using ProDy to adjust the name changes,
      turning on deprecation warnings may help locating all use cases of the
-     deprecated names.  See :meth:`.turnonDepracationWarnings` for this
+     deprecated names.  See :meth:`.turnonDeprecationWarnings` for this
      purpose.
 
   **Functions**:
