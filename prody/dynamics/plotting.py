@@ -1392,6 +1392,8 @@ def showAtomicMatrix(matrix, x_array=None, y_array=None, atoms=None, **kwargs):
                                 '({4} atoms)'.format(n_row, xatoms_, n_xatoms, yatoms_, n_yatoms))
             else:
                 yatoms = yatoms_
+                
+        atoms = (xatoms, yatoms)
     else:
         xatoms = yatoms = atoms
 
