@@ -331,11 +331,13 @@ class SimpleChain(object):
         temp = residues[0].getResnum()-1
         protein_resnames = flags.AMINOACIDS
         for i, res in enumerate(chain):
-            if not res.getResname() in protein_resnames:
-                continue
             resid = res.getResnum()
             incod = res.getIcode()
             aa = AAMAP.get(res.getResname(), 'X')
+            if aa == '-':
+                aa = 'X'
+            if aa == 'X':
+                LOGGER.warn("no one-letter mapping found for %s " % repr(res))
             simpres = SimpleResidue(self, i, resid, aa, incod, res)
             if gaps:
                 diff = resid - temp - 1
