@@ -307,7 +307,8 @@ def trimPDBEnsemble(pdb_ensemble, occupancy=None, **kwargs):
             msa = pdb_ensemble.getMSA()
             if msa:
                 msa = msa[:, torf]
-            trimmed.addCoordset(confs[:, torf], weights[:, torf], labels, sequence=msa)
+            trans = pdb_ensemble._trans
+            trimmed.addCoordset(confs[:, torf], weights[:, torf], labels, sequence=msa, transformation=trans)
     else:
         indices = np.where(torf)[0]
         selids = pdb_ensemble._indices
@@ -327,7 +328,8 @@ def trimPDBEnsemble(pdb_ensemble, occupancy=None, **kwargs):
             weights = copy(pdb_ensemble._weights)
             labels = pdb_ensemble.getLabels()
             msa = pdb_ensemble._msa
-            trimmed.addCoordset(confs, weights, labels, sequence=msa)
+            trans = pdb_ensemble._trans
+            trimmed.addCoordset(confs, weights, labels, sequence=msa, transformation=trans)
 
         trimmed.setAtoms(select)
 
