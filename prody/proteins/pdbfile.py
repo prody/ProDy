@@ -1432,7 +1432,7 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
                 serial = serials[i]
                 resnum = resnums[i]
 
-            if pdbline == PDBLINE_LT100K:
+            if pdbline == PDBLINE_LT100K or hybrid36:
                 if len(str(resnum)) == 5:
                     if icodes[i] == '':
                         icodes[i] = str(resnum)[4]
