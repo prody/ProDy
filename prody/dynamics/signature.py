@@ -10,7 +10,7 @@ import warnings
 
 from prody import LOGGER, SETTINGS
 from prody.utilities import showFigure, showMatrix, copy, checkWeights, openFile, DTYPE
-from prody.utilities import getValue, importLA, wmean, div0
+from prody.utilities import getValue, importLA, wmean, div0, isListLike
 from prody.ensemble import Ensemble, Conformation
 from prody.atomic import AtomGroup
 
@@ -989,8 +989,12 @@ def calcEnsembleENMs(ensemble, model='gnm', trim='reduce', n_modes=20, **kwargs)
                         'conformation has only {2} modes'.format(n_modes-min_n_modes, 
                         enms[i].getTitle(), min_n_modes))
 
-    LOGGER.info('{0} {1} modes were calculated for each of the {2} conformations in {3:.2f}s.'
-                        .format(str_modes, model_type, n_confs, time.time()-start))
+    if n_modes > 1:
+        LOGGER.info('{0} {1} modes were calculated for each of the {2} conformations in {3:.2f}s.'
+                            .format(str_modes, model_type, n_confs, time.time()-start))
+    else:
+        LOGGER.info('{0} {1} mode was calculated for each of the {2} conformations in {3:.2f}s.'
+                            .format(str_modes, model_type, n_confs, time.time()-start))
 
     modeens = ModeEnsemble(title=ensemble.getTitle())
     modeens.addModeSet(enms, weights=ensemble.getWeights(), 
@@ -1384,23 +1388,46 @@ def calcSignatureCollectivity(mode_ensemble, masses=None):
         
     return sig
 
-def calcSignatureOverlaps(mode_ensemble, diag=True):
-    """Calculate average mode-mode overlaps for a ModeEnsemble."""
+def calcSignatureOverlaps(mode_ensemble, diag=True, collapse=False):
+    """Calculate average mode-mode overlaps for a ModeEnsemble.
     
-    if not isinstance(mode_ensemble, ModeEnsemble):
-        raise TypeError('mode_ensemble should be an instance of ModeEnsemble')
+    If *diag* is **True** (default) then only diagonal values will be calculated. 
+    Otherwise, the whole overlap matrices will be calculated.
+    
+    By default (*collapse* is **False**), the whole overlap matrices are returned as 
+    a 4-dimensional sdarray that is a matrix of overlap matrices. 
+    
+    If *collapse* is **True** then these will be collapsed together, giving a 2-dimensional 
+    array for full matrices. This operation is not defined for diagonal values."""
+    
+    if isinstance(mode_ensemble, ModeEnsemble):
+        if not mode_ensemble.isMatched():
+            LOGGER.warn('modes in mode_ensemble did not match cross modesets. '
+                        'Consider running mode_ensemble.match() prior to using this function')
 
-    if not mode_ensemble.isMatched():
-        LOGGER.warn('modes in mode_ensemble did not match cross modesets. '
-                    'Consider running mode_ensemble.match() prior to using this function')
+        n_sets = mode_ensemble.numModeSets()
+        n_modes = mode_ensemble.numModes()
+    else:
+        if not isListLike(mode_ensemble):
+            raise TypeError('mode_ensemble should be list-like or an instance of ModeEnsemble')
 
-    n_sets = mode_ensemble.numModeSets()
-    n_modes = mode_ensemble.numModes()
+        n_sets = len(mode_ensemble)
+
+        n_modes = np.array([len(modeset) for modeset in mode_ensemble])
+        if np.all(n_modes == n_modes[0]):
+            n_modes = n_modes[0]
+        else:
+            raise ValueError('all mode sets in mode_ensemble should have the same number of modes')
 
     if diag:
+        if collapse:
+            LOGGER.warn('cannot collapse diagonal values')
         overlaps = np.zeros((n_modes, n_sets, n_sets))
     else:
-        overlaps = np.zeros((n_modes, n_modes, n_sets, n_sets))
+        if collapse:
+            overlaps = np.zeros((n_modes*n_sets, n_modes*n_sets))
+        else:
+            overlaps = np.zeros((n_modes, n_modes, n_sets, n_sets))
 
     for i, modeset_i in enumerate(mode_ensemble):
         for j, modeset_j in enumerate(mode_ensemble):
@@ -1410,9 +1437,20 @@ def calcSignatureOverlaps(mode_ensemble, diag=True):
                                                                         modeset_j, 
                                                                         diag=True))
                 else:
-                    overlaps[:,:,i,j] = overlaps[:,:,j,i] = abs(calcOverlap(modeset_i, 
-                                                                            modeset_j, 
-                                                                            diag=False))
+                    if collapse:
+                        overlaps[i*n_modes:(i+1)*n_modes,
+                                 j*n_modes:(j+1)*n_modes] = np.abs(calcOverlap(modeset_i,
+                                                                               modeset_j))
+                        overlaps[j*n_modes:(j+1)*n_modes,
+                                 i*n_modes:(i+1)*n_modes] = np.abs(calcOverlap(modeset_j,
+                                                                               modeset_i))
+                    else:
+                        overlaps[:, :, i, j] = abs(calcOverlap(modeset_i,
+                                                               modeset_j,
+                                                               diag=False))
+                        overlaps[:, :, j, i] = abs(calcOverlap(modeset_j,
+                                                               modeset_i,
+                                                               diag=False))
 
     return overlaps
 

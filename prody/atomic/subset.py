@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 
-from . import flags
+from .flags import PLANTERS
 from .atom import Atom
 from .fields import ATOMIC_FIELDS, READONLY
 from .fields import wrapGetMethod, wrapSetMethod
@@ -159,7 +159,7 @@ class AtomSubset(AtomPointer):
 
          :raise AttributeError: when *label* is not in use or read-only"""
 
-        if label in flags.PLANTERS:
+        if label in PLANTERS:
             raise AttributeError('flag {0} cannot be changed by user'
                                     .format(repr(label)))
         flags = self._ag._getFlags(label)
