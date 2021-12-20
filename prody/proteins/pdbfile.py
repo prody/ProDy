@@ -625,20 +625,20 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
             chainids[acount] = chid
             if isPDB:
                 resnum_str = line[22:26]
+                icode = line[26] 
                 if dec:
                     try:
                         resnum = int(resnum_str)
                     except ValueError:
                         dec = False
 
-                icode = line[26] 
-                if icode.isdigit() and dec:
-                    if not warned_5_digit:
-                        LOGGER.warn('Parsing 5-digit residue number including numeric insertion code')
-                        warned_5_digit = True
-                    resnum = int(str(resnum) + icode)
-                else:
-                    icodes[acount] = icode
+                    if icode.isdigit():
+                        if not warned_5_digit:
+                            LOGGER.warn('parsed 5 digit residue number including numeric insertion code')
+                            warned_5_digit = True
+                        resnum = int(str(resnum) + icode)          
+                    else:
+                        icodes[acount] = icode
 
                 if dec and acount > 2 and resnums[acount-2] > resnum and resnums[acount-2] >= MAX_N_RES:
                     dec = False
@@ -1452,6 +1452,30 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
                         warned_5_digit = True
                         
                     resnum = int(str(resnum)[:4])
+            else:
+                final_resnum = '%4x' % resnum
+                
+                if len(str(final_resnum)) == 5:
+                    if icodes[i] == '':
+                        icodes[i] = str(final_resnum)[4]
+                        
+                        if not warned_5_digit:
+                            LOGGER.warn('Storing 5-digit hex resnums using insertion codes')
+                            warned_5_digit = True
+                    else:
+                        LOGGER.warn('Truncating 5-digit hex resnum as insertion code is busy.')
+
+                    resnum = int(str(final_resnum)[:4], 16)
+                
+                elif len(str(final_resnum)) > 5:
+                    if not warned_5_digit:
+                        LOGGER.warn('Truncating {0}-digit hex resnum ({1}) as too long to be '
+                                    'supported by insertion code.'.format(len(str(final_resnum)), 
+                                                                          final_resnum))
+                        warned_5_digit = True
+                        
+                    resnum = int(str(final_resnum)[:4], 16)
+              
 
             write(pdbline % (hetero[i], serial,
                              atomnames[i], altlocs[i],
