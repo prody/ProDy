@@ -1453,7 +1453,7 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
                         
                     resnum = int(str(resnum)[:4])
             else:
-                final_resnum = '%4x' % resnum
+                final_resnum = '%4x' % int(resnum)
                 
                 if len(str(final_resnum)) == 5:
                     if icodes[i] == '':
