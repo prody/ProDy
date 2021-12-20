@@ -646,7 +646,7 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                 if not dec:
                     resnum = resnum_str
                     try:
-                        isnumeric = np.alltrue([x.isdigit() for x in resnum_str])
+                        isnumeric = np.alltrue([x.isdigit() or x==' ' for x in resnum_str])
                         if not isnumeric and resnum_str == resnum_str.upper():
                             resnum = hybrid36ToDec(resnum_str, resnum=True)
                         else:
