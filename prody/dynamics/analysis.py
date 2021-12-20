@@ -338,7 +338,7 @@ def calcCrossCorr(modes, n_cpu=1, norm=True):
     """Returns cross-correlations matrix.  For a 3-d model, cross-correlations
     matrix is an NxN matrix, where N is the number of atoms.  Each element of
     this matrix is the trace of the submatrix corresponding to a pair of atoms.
-    Covariance matrix may be calculated using all modes or a subset of modes
+    Cross-correlations matrix may be calculated using all modes or a subset of modes
     of an NMA instance.  For large systems, calculation of cross-correlations
     matrix may be time consuming.  Optionally, multiple processors may be
     employed to perform calculations by passing ``n_cpu=2`` or more."""
@@ -348,7 +348,7 @@ def calcCrossCorr(modes, n_cpu=1, norm=True):
     elif n_cpu < 1:
         raise ValueError('n_cpu must be equal to or greater than 1')
 
-    if not isinstance(modes, (Mode, NMA, ModeSet)):
+    if not isinstance(modes, (Mode, Vector, NMA, ModeSet)):
         if isinstance(modes, list):
             try:
                 is3d = modes[0].is3d()
@@ -356,10 +356,11 @@ def calcCrossCorr(modes, n_cpu=1, norm=True):
                 raise TypeError('modes must be a list of Mode or Vector instances, '
                             'not {0}'.format(type(modes)))
         else:
-            raise TypeError('modes must be a Mode, NMA, or ModeSet instance, '
+            raise TypeError('modes must be a Mode, Vector, NMA, or ModeSet instance, '
                             'not {0}'.format(type(modes)))
     else:
         is3d = modes.is3d()
+
     if is3d:
         model = modes
         if isinstance(modes, (Mode, ModeSet)):
@@ -370,12 +371,22 @@ def calcCrossCorr(modes, n_cpu=1, norm=True):
             else:
                 indices = modes.getIndices()
                 n_modes = len(modes)
+        elif isinstance(modes, Vector):
+                indices = [0]
+                n_modes = 1
         else:
             n_modes = len(modes)
             indices = np.arange(n_modes)
+            
         array = model._getArray()
         n_atoms = model._n_atoms
-        variances = model._vars
+
+        if not isinstance(modes, Vector):
+            variances = model._vars
+        else:
+            array = array.reshape(-1, 1)
+            variances = np.ones(1)
+
         if n_cpu == 1:
             s = (n_modes, n_atoms, 3)
             arvar = (array[:, indices]*variances[indices]).T.reshape(s)
@@ -456,7 +467,9 @@ def calcTempFactors(modes, atoms):
 
 
 def calcCovariance(modes):
-    """Returns covariance matrix calculated for given *modes*."""
+    """Returns covariance matrix calculated for given *modes*.
+    This is 3Nx3N for 3-d models and NxN (equivalent to cross-correlations) 
+    for 1-d models such as GNM."""
 
     if isinstance(modes, NMA):
         return modes.getCovariance()

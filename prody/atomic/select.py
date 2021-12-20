@@ -452,6 +452,10 @@ from numpy import invert, unique, concatenate, all, any
 from numpy import logical_and, logical_or, floor, ceil, where
 
 import pyparsing as pp
+try:
+    from pyparsing import operatorPrecedence as operatorPrecedence
+except ImportError:
+    from pyparsing import infixNotation as operatorPrecedence
 
 from prody import LOGGER, SETTINGS, PY2K
 
@@ -1090,7 +1094,7 @@ class Select(object):
         if regexp: expr = PP_REGEXP | expr
         if nrange: expr = PP_NRANGE | expr
 
-        parser = pp.operatorPrecedence(expr, oplist)
+        parser = operatorPrecedence(expr, oplist)
         parser.setParseAction(self._default)
         parser.leaveWhitespace()
         parser.enablePackrat()
