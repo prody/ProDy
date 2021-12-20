@@ -1432,25 +1432,26 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
                 serial = serials[i]
                 resnum = resnums[i]
 
-            if len(str(resnum)) == 5:
-                if icodes[i] == '':
-                    icodes[i] = str(resnum)[4]
-                    
-                    if not warned_5_digit:
-                        LOGGER.warn('Storing 5-digit resnums using insertion codes')
-                        warned_5_digit = True
-                else:
-                    LOGGER.warn('Truncating 5-digit resnum as insertion code is busy.')
+            if pdbline == PDBLINE_LT100K:
+                if len(str(resnum)) == 5:
+                    if icodes[i] == '':
+                        icodes[i] = str(resnum)[4]
+                        
+                        if not warned_5_digit:
+                            LOGGER.warn('Storing 5-digit resnums using insertion codes')
+                            warned_5_digit = True
+                    else:
+                        LOGGER.warn('Truncating 5-digit resnum as insertion code is busy.')
 
-                resnum = int(str(resnum)[:4])
-            
-            elif len(str(resnum)) > 5:
-                if not warned_5_digit:
-                    LOGGER.warn('Truncating {0}-digit resnum as too long to be '
-                                'supported by insertion code.'.format(len(str(resnum))))
-                    warned_5_digit = True
-                    
-                resnum = int(str(resnum)[:4])
+                    resnum = int(str(resnum)[:4])
+                
+                elif len(str(resnum)) > 5:
+                    if not warned_5_digit:
+                        LOGGER.warn('Truncating {0}-digit resnum as too long to be '
+                                    'supported by insertion code.'.format(len(str(resnum))))
+                        warned_5_digit = True
+                        
+                    resnum = int(str(resnum)[:4])
 
             write(pdbline % (hetero[i], serial,
                              atomnames[i], altlocs[i],
