@@ -83,6 +83,8 @@ NONSTANDARD = {
     'PHD': set(['acyclic', 'acidic', 'surface', 'polar', 'large']),
     'XLE': set(['aliphatic', 'acyclic', 'buried', 'hydrophobic', 'large']),
     'XAA': set(),
+    'MEN': set(),
+    'CSB': set()
 }
 
 DEFAULTS = {

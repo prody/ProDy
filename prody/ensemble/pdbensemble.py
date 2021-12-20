@@ -289,9 +289,11 @@ class PDBEnsemble(Ensemble):
        
         if not n_atoms:
             self._n_atoms = n_nodes
+            n_atoms = self._n_atoms
 
         if n_nodes == n_select and self.isSelected():
-            full_coords = np.repeat(self._coords[np.newaxis, :, :], n_csets, axis=0)
+            full_coords = np.repeat(self._coords[np.newaxis, :, :],
+                                    n_csets, axis=0)
             full_coords[:, self._indices, :] = coords
             coords = full_coords
         
@@ -309,7 +311,7 @@ class PDBEnsemble(Ensemble):
         sequence = kwargs.pop('sequence', None)
         if hasattr(atoms, 'getSequence'):
             if sequence is not None:
-                LOGGER.warn('sequence is supplied though coords has getSequence')
+                LOGGER.warn('sequence is supplied though coords, which has getSequence')
             sequence = atoms.getSequence()
             seqs = [sequence for _ in range(n_repeats)]
         else:
@@ -319,7 +321,7 @@ class PDBEnsemble(Ensemble):
                 except AttributeError:
                     if self._msa:
                         sequence = ''.join('X' for _ in range(n_atoms))
-                    # sequence and seqs remains to be None if MSA has not been created
+                    # sequence and seqs remain as None if _msa has not been created
             if isinstance(sequence, Sequence):
                 seqs = [str(sequence)]
             elif isinstance(sequence, MSA):
@@ -330,7 +332,35 @@ class PDBEnsemble(Ensemble):
         if seqs:
             if len(seqs) != n_repeats:
                 raise ValueError('the number of sequences should be either one or '
-                                'that of coordsets')
+                                 'that of coordsets')
+
+        # check transformations
+        transformations = None
+        transformation = kwargs.pop('transformation', None)
+        if hasattr(atoms, 'getTransformation'):
+            if transformation is not None:
+                LOGGER.warn('transformation is supplied though coords, which has getTransformation')
+            transformation = atoms.getTransformation()
+            transformations = [transformation for _ in range(n_repeats)]
+        else:
+            if transformation is None:
+                if self._trans:
+                    transformation = np.zeros((4, 4))
+                # transformation and transformations remain as None if _trans has not been set
+            if isinstance(transformation, np.ndarray):
+                if transformation.shape == (4, 4):
+                    transformations = [transformation for _ in range(n_repeats)]
+                elif transformation[0].shape == (4, 4):
+                    transformations = [trans for trans in transformation]
+                elif transformation is not None:
+                    raise ValueError('transformation should be one or more transformation matrices')
+            elif transformation is not None:
+                raise TypeError('transformation should be a numpy array')
+        
+        if transformations:
+            if len(transformations) != n_repeats:
+                raise ValueError('the number of transformations should be either one or '
+                                 'that of coordsets')
 
         # assign new values
         # update labels
@@ -362,6 +392,20 @@ class PDBEnsemble(Ensemble):
                     self._msa = msa
             else:
                 self._msa.extend(msa)
+
+        # update transformations
+        if transformations:
+            trans = transformations
+            if self._trans is None:
+                if n_confs > 0:
+                    def_trans = np.zeros((4, 4))
+                    self._trans = list(def_trans)
+                    self._trans.extend(trans)
+                else:
+                    self._trans = trans
+            else:
+                self._trans.extend(trans)
+            self._trans = np.array(self._trans)
 
         # update coordinates
         if self._confs is None and self._weights is None:
