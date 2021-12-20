@@ -319,7 +319,7 @@ class Vector(VectorBase):
     or addition of two :class:`Mode` instances results in a :class:`Vector`
     instance."""
 
-    __slots__ = ['_title', '_array', '_is3d']
+    __slots__ = ['_title', '_array', '_is3d', '_n_atoms']
 
     def __init__(self, array, title='Unknown', is3d=True):
         """Instantiate with a name, an array, and a 3d flag."""
@@ -337,6 +337,11 @@ class Vector(VectorBase):
         self._title = str(title)
         self._array = array
         self._is3d = is3d
+
+        if self._is3d:
+            self._n_atoms = len(self._array)//3
+        else:
+            self._n_atoms = len(self._array)
 
     def __len__(self):
         return len(self._array)
@@ -393,7 +398,4 @@ class Vector(VectorBase):
         """Returns number of atoms.  For a 3-dimensional vector, returns length
         of the vector divided by 3."""
 
-        if self._is3d:
-            return len(self._array)//3
-        else:
-            return len(self._array)
+        return self._n_atoms

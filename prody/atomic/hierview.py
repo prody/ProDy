@@ -23,7 +23,7 @@ class HierView(object):
 
     Some :class:`object` methods are customized as follows:
 
-    * :func:`len` returns the number of atoms, i.e. :meth:`numChains`
+    * :func:`len` returns the number of chains, i.e. :meth:`numChains`
     * :func:`iter` yields :class:`.Chain` instances
     * indexing by:
          - *segment name* (:func:`str`), e.g. ``"PROT"``, returns

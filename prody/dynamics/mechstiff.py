@@ -16,6 +16,10 @@ def calcMechStiff(modes, coords, kbt=1.):
     """Calculate stiffness matrix calculated using :class:`.ANM` instance. 
     Method described in [EB08]_ and [KMR17]_. 
 
+    .. [KMR] Mikulska-Ruminska K., Kulik A.J., Benadiba C., Bahar I., Dietler G., Nowak W.
+        Nanomechanics of multidomain neuronal cell adhesion protein contactin revealed by 
+        single molecule AFM and SMD. *Sci Rep* **2017** 7:8852. 
+
     :arg coords: a coordinate set or an object with ``getCoords`` method
     :type coords: :class:`numpy.ndarray`.
 

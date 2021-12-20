@@ -8,7 +8,7 @@ from prody.atomic import Atomic, AtomGroup
 from prody.utilities import importLA, checkCoords, copy
 from numpy import sqrt, zeros, array, ceil, dot
 
-from .anm import ANM
+from .anm import ANM, MaskedANM
 from .nma import MaskedNMA
 from .gnm import checkENMParameters
 from .editing import _reduceModel
@@ -470,7 +470,7 @@ def buildLayerHessian(coords, layers, layer, cutoff=15., gamma=1.0, **kwargs):
     return Hss, Hse
 
 
-class MaskedExANM(exANM, MaskedNMA):
+class MaskedExANM(exANM, MaskedANM):
     def __init__(self, name='Unknown', mask=False, masked=True):
         exANM.__init__(self, name)
         MaskedNMA.__init__(self, name, mask, masked)
