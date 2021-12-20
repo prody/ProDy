@@ -208,14 +208,14 @@ class PCA(NMA):
         which = values > ZERO
         self._eigvals = values[which]
         self._array = vectors[:, which]
-        self._vars = values
+        self._vars = values[which]
         self._n_modes = len(self._eigvals)
         if self._n_modes > 1:
-            LOGGER.report('{0} modes were calculated in %.2fs.'
-                        .format(self._n_modes), label='_anm_calc_modes')
+            LOGGER.debug('{0} modes were calculated in {1:.2f}s.'
+                     .format(self._n_modes, time.time()-start))
         else:
-            LOGGER.report('{0} mode was calculated in %.2fs.'
-                        .format(self._n_modes), label='_anm_calc_modes')
+            LOGGER.debug('{0} mode was calculated in {1:.2f}s.'
+                     .format(self._n_modes, time.time()-start))
 
     def performSVD(self, coordsets):
         """Calculate principal modes using singular value decomposition (SVD).

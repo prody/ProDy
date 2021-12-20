@@ -262,7 +262,7 @@ class Atomic(object):
             raise ImportError('TEMPy is needed for this functionality')
 
         if hasattr(self, 'getResnums'):
-            return [atom.toTEMPyAtom() for atom in self]
+            return [atom.toTEMPyAtom() for atom in self if atom is not None]
         else:
             return [self.toTEMPyAtom()]
 

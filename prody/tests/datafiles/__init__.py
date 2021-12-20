@@ -144,6 +144,15 @@ DATA_FILES = {
     },
     'RTER': {
         'file': 'pdbRTER.pdb'
+    },
+    'five_digits': {
+        'file': 'pdb1tw7_step3_charmm2namd.pdb'
+    },
+    'hex': {
+        'file': 'pdb1tw7_step3_charmm2namd_doubled_hex.pdb'
+    },
+    'h36': {
+        'file': 'pdb1tw7_step3_charmm2namd_doubled_h36.pdb'
     }
 }
 
