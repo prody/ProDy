@@ -48,7 +48,7 @@ def calcPerturbResponse(model, **kwargs):
     If *turbo* is **True** (default), then PRS is approximated by the limit of 
     large numbers of forces and no perturbation forces are explicitly applied. 
     If set to **False**, then each residue/node is perturbed *repeats* times (default 100) 
-    with a random unit force vector.a number of *repeats* of forces as in ProDy v1.8 and earlier.
+    with a random unit force vector as in ProDy v1.8 and earlier.
     """
 
     if not isinstance(model, (NMA, ModeSet, Mode)):
