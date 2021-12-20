@@ -6,6 +6,7 @@ from numpy import ndarray, power, sqrt, array, zeros, arccos, dot
 from numpy import sign, tile, concatenate, pi, cross, subtract, var
 
 from prody.atomic import Atomic, Residue, Atom
+from prody.kdtree import KDTree
 from prody.utilities import importLA, solveEig, checkCoords, getDistance, getCoords
 from prody import LOGGER, PY2K
 
@@ -19,7 +20,7 @@ __all__ = ['buildDistMatrix', 'calcDistance',
            'calcDeformVector',
            'buildADPMatrix', 'calcADPAxes', 'calcADPs',
            'pickCentral', 'pickCentralAtom', 'pickCentralConf', 'getWeights',
-           'calcInertiaTensor', 'calcPrincAxes']
+           'calcInertiaTensor', 'calcPrincAxes', 'calcDistanceMatrix']
 
 RAD2DEG = 180 / pi
 
@@ -813,5 +814,51 @@ def calcInertiaTensor(coords):
 def calcPrincAxes(coords, turbo=True):
     """Calculate principal axes from coords"""
     M = calcInertiaTensor(coords)
-    _, vectors = solveEig(M, 3, zeros=True, turbo=turbo, reverse=True)
+    _, vectors, _ = solveEig(M, 3, zeros=True, turbo=turbo, reverse=True)
     return vectors
+
+
+def calcDistanceMatrix(coords, cutoff=None):
+    """Calculate matrix of distances between coordinates within *cutoff*.
+    Other matrix entries are set to maximum of calculated distances.
+
+    :arg coords: a coordinate set or an object with :meth:`getCoords` method.
+    :type coords: :class:`~numpy.ndarray`, :class:`.Atomic`
+
+    :arg cutoff: cutoff distance for searching the KDTree.
+        Default (**None**) is to use the length of the longest coordinate axis.
+    :type cutoff: None, float
+    """
+    try:
+        coords = (coords._getCoords() if hasattr(coords, '_getCoords') else
+                coords.getCoords())
+    except AttributeError:
+        try:
+            checkCoords(coords)
+        except TypeError:
+            raise TypeError('coords must be a Numpy array or an object '
+                            'with `getCoords` method')
+
+    n_atoms = coords.shape[0]
+    dist_mat = zeros((n_atoms, n_atoms))
+
+    if cutoff is None:
+        cutoff = max(coords.max(axis=0) - coords.min(axis=0))
+
+    kdtree = KDTree(coords)
+    kdtree.search(cutoff)
+
+    dists = kdtree.getDistances()
+
+    r = 0
+    for i, j in kdtree.getIndices():
+        dist_mat[i, j] = dist_mat[j, i] = dists[r]
+        r += 1
+
+    for i in range(n_atoms):
+        for j in range(i+1, n_atoms):
+            if dist_mat[i, j] == 0.:
+                dist_mat[i, j] = dist_mat[j, i] = max(dists)
+
+    return dist_mat
+

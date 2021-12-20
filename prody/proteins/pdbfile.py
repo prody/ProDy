@@ -14,7 +14,7 @@ from prody.atomic import AtomGroup, Atom, Selection
 from prody.atomic import flags
 from prody.atomic import ATOMIC_FIELDS
 from prody.utilities import openFile, isListLike
-from prody.utilities.misctools import decToHybrid36, packmolRenumChains
+from prody.utilities.misctools import decToHybrid36, hybrid36ToDec, packmolRenumChains
 from prody import LOGGER, SETTINGS
 
 from .header import getHeaderDict, buildBiomolecules, assignSecstr, isHelix, isSheet
@@ -27,6 +27,7 @@ __all__ = ['parsePDBStream', 'parsePDB', 'parseChainsList', 'parsePQR',
            'writePQRStream']
 
 MAX_N_ATOM = 99999 
+MAX_N_RES = 9999
 
 class PDBParseError(Exception):
     pass
@@ -115,7 +116,7 @@ def parsePDB(*pdb, **kwargs):
         raise ValueError('Please provide a PDB ID or filename')
 
     if n_pdb == 1:
-        if isListLike(pdb[0]):
+        if isListLike(pdb[0]) or isinstance(pdb[0], dict):
             pdb = pdb[0]
             n_pdb = len(pdb)
             
@@ -226,12 +227,29 @@ def _parsePDB(pdb, **kwargs):
         if len(title) == 7 and title.startswith('pdb'):
             title = title[3:]
         kwargs['title'] = title
-    pdb = openFile(pdb, 'rt')
+
+    stream = openFile(pdb, 'rt')
     if chain != '':
         kwargs['chain'] = chain
-    result = parsePDBStream(pdb, **kwargs)
-    pdb.close()
-    return result
+    result = parsePDBStream(stream, **kwargs)
+    stream.close()
+
+    if result is not None:
+        return result
+    else:
+        try:
+            LOGGER.warn("Trying to parse as mmCIF file instead")
+            return parseMMCIF(pdb, **kwargs)
+        except KeyError:
+            try:
+                LOGGER.warn("Trying to parse as EMD file instead")
+                return parseEMD(pdb, **kwargs)
+            except ValueError:
+                LOGGER.warn("Could not parse anything so returning None")
+                return None
+            except:                
+                raise IOError('PDB file for {0} could not be downloaded.'
+                              .format(pdb))
 
 parsePDB.__doc__ += _parsePDBdoc
 
@@ -419,10 +437,9 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
     :arg split: starting index for coordinate data lines"""
 
     format = format.upper()
-    if format == 'PDB':
-        isPDB = True
-    else:
-        isPDB = False
+    isPDB = format == 'PDB'
+
+    num_ters = 0
 
     if subset:
         if subset == 'ca':
@@ -501,6 +518,8 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
     altloc = defaultdict(list)
     i = start
     END = False
+    warned_5_digit = False
+    dec = True
     while i < stop:
         line = lines[i]
         if not isPDB:
@@ -579,29 +598,87 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                 i += 1
                 continue
 
+            serial_str = line[6:11] if isPDB else fields[1]
             try:
-                serials[acount] = int(line[6:11]) if isPDB else int(fields[1])
+                serials[acount] = int(serial_str)
             except ValueError:
                 try:
-                    serials[acount] = int(line[6:11], 16) if isPDB else int(fields[1], 16)
+                    isnumeric = np.alltrue([x.isdigit() for x in serial_str])
+                    if not isnumeric and serial_str == serial_str.upper():
+                        serials[acount] = hybrid36ToDec(serial_str)
+                    else:
+                        # lower case is found in hexadecimal PDB files
+                        serials[acount] = int(serial_str, 16)
                 except ValueError:
-                    LOGGER.warn('failed to parse serial number in line {0}'
-                                .format(i))
-                    serials[acount] = serials[acount-1]+1
+                    if acount > 0:
+                        LOGGER.warn('failed to parse serial number in line {0}. Assigning it by incrementing.'
+                                    .format(i))
+                        serials[acount] = serials[acount-1]+1
+                    else:
+                        LOGGER.warn('failed to parse serial number in line {0}. Assigning it as 1.'
+                                    .format(i))
+                        serials[acount] = 1
+                    
             altlocs[acount] = alt
             atomnames[acount] = atomname
             resnames[acount] = resname
             chainids[acount] = chid
             if isPDB:
-                resnums[acount] = line[22:26] 
-                icodes[acount] = line[26] 
+                resnum_str = line[22:26]
+                if dec:
+                    try:
+                        resnum = int(resnum_str)
+                    except ValueError:
+                        dec = False
+
+                icode = line[26] 
+                if icode.isdigit() and dec:
+                    if not warned_5_digit:
+                        LOGGER.warn('parsed 5 digit residue number including numeric insertion code')
+                        warned_5_digit = True
+                    resnum = int(str(resnum) + icode)
+                else:
+                    icodes[acount] = icode
+
+                if dec and acount > 2 and resnums[acount-2] > resnum and resnums[acount-2] >= MAX_N_RES:
+                    dec = False
+
+                if not dec:
+                    resnum = resnum_str
+                    try:
+                        isnumeric = np.alltrue([x.isdigit() for x in resnum_str])
+                        if not isnumeric and resnum_str == resnum_str.upper():
+                            resnum = hybrid36ToDec(resnum_str, resnum=True)
+                        else:
+                            # lower case is found in hexadecimal PDB files
+                            resnum = int(resnum_str, 16)
+                        
+                    except ValueError:
+                        if acount > 0:
+                            LOGGER.warn('failed to parse residue number in line {0}. Assigning it by incrementing.'
+                                        .format(i))
+                            resnum = resnums[acount-1]+1
+                        else:
+                            LOGGER.warn('failed to parse residue number in line {0}. Assigning it as 1.'
+                                        .format(i))
+                            resnum = 1
+
+                resnums[acount] = resnum
             else:
                 resnum = fields[5]
                 if resnum[-1].isalpha():
                     icode = resnum[-1]
                 else:
                     icode = ' '
-                resnums[acount] = resnum
+                try:
+                    resnums[acount] = int(resnum)
+                except ValueError:
+                    try:
+                        resnums[acount] = int(resnum, 16)
+                    except ValueError:
+                        LOGGER.warn('failed to parse residue number in line {0}. Assigning it by incrementing.'
+                                    .format(i))
+                        resnums[acount] = resnums[acount-1]+1
                 icodes[acount] = icode
 
             if isPDB:
@@ -679,23 +756,24 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
             if bonds is not None:
                 atom_serial = line[6:11]
                 bonded1_serial = line[11:16]
-                bonds.append([int(atom_serial), int(bonded1_serial)])
+                bonds.append([int(atom_serial)-1-num_ters, int(bonded1_serial)-1-num_ters])
                 
                 bonded2_serial = line[16:21]
                 if len(bonded2_serial.strip()):
-                    bonds.append([int(atom_serial), int(bonded2_serial)])
+                    bonds.append([int(atom_serial)-1-num_ters, int(bonded2_serial)-1-num_ters])
 
                 bonded3_serial = line[21:26]
                 if len(bonded3_serial.strip()):
-                    bonds.append([int(atom_serial), int(bonded3_serial)])
+                    bonds.append([int(atom_serial)-1-num_ters, int(bonded3_serial)-1-num_ters])
                     
                 bonded4_serial = line[27:31]
                 if len(bonded4_serial.strip()):
-                    bonds.append([int(atom_serial), int(bonded4_serial)])
+                    bonds.append([int(atom_serial)-1-num_ters, int(bonded4_serial)-1-num_ters])
 
         elif not onlycoords and (startswith == 'TER   ' or
             startswith.strip() == 'TER'):
             termini[acount - 1] = True
+            num_ters += 1
         elif startswith == 'ENDMDL' or startswith[:3] == 'END':
             if acount == 0:
                 # If there is no atom record between ENDMDL & END skip to next
@@ -974,25 +1052,49 @@ PDBLINE_LT100K = ('%-6s%5d %-4s%1s%-4s%1s%4d%1s   '
                   '%8.3f%8.3f%8.3f%6.2f%6.2f      '
                   '%4s%2s%2s\n')
 
+# Residue number
+PDBLINE_GE10K = ('%-6s%5d %-4s%1s%-4s%1s%4x%1s   '
+                 '%8.3f%8.3f%8.3f%6.2f%6.2f      '
+                 '%4s%2s%2s\n')
+
+# Serial number
 PDBLINE_GE100K = ('%-6s%5x %-4s%1s%-4s%1s%4d%1s   '
                   '%8.3f%8.3f%8.3f%6.2f%6.2f      '
                   '%4s%2s%2s\n')
 
-PDBLINE_GE100K_H36 = ('%-6s%5s %-4s%1s%-4s%1s%4d%1s   '
-                      '%8.3f%8.3f%8.3f%6.2f%6.2f      '
-                      '%4s%2s%2s\n')
+# Both
+PDBLINE_GE100K_GE10K = ('%-6s%5x %-4s%1s%-4s%1s%4x%1s   '
+                        '%8.3f%8.3f%8.3f%6.2f%6.2f      '
+                        '%4s%2s%2s\n')
+
+# All cases
+PDBLINE_H36 = ('%-6s%5s %-4s%1s%-4s%1s%4s%1s   '
+               '%8.3f%8.3f%8.3f%6.2f%6.2f      '
+               '%4s%2s%2s\n')
 
 ANISOULINE_LT100K = ('%-6s%5d %-4s%1s%-4s%1s%4d%1s '
-                 '%7d%7d%7d%7d%7d%7d  '
-                 '%4s%2s%2s\n')
-
-ANISOULINE_GE100K = ('%-6s%5x %-4s%1s%-4s%1s%4d%1s '
-                 '%7d%7d%7d%7d%7d%7d  '
-                 '%4s%2s%2s\n')
-
-ANISOULINE_GE100K_H36 = ('%-6s%5s %-4s%1s%-4s%1s%4d%1s '
                      '%7d%7d%7d%7d%7d%7d  '
                      '%4s%2s%2s\n')
+
+# Residue number
+ANISOULINE_GE10K = ('%-6s%5d %-4s%1s%-4s%1s%4x%1s '
+                    '%7d%7d%7d%7d%7d%7d  '
+                    '%4s%2s%2s\n')
+
+# Serial number
+ANISOULINE_GE100K = ('%-6s%5x %-4s%1s%-4s%1s%4d%1s '
+                     '%7d%7d%7d%7d%7d%7d  '
+                     '%4s%2s%2s\n')
+
+# Both
+ANISOULINE_GE100K_GE10K = ('%-6s%5x %-4s%1s%-4s%1s%4x%1s '
+                           '%7d%7d%7d%7d%7d%7d  '
+                           '%4s%2s%2s\n')
+
+# All cases
+ANISOULINE_H36 = ('%-6s%5s %-4s%1s%-4s%1s%4s%1s '
+                  '%7d%7d%7d%7d%7d%7d  '
+                  '%4s%2s%2s\n')
 
 _writePDBdoc = """
 
@@ -1274,33 +1376,63 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
     multi = len(coordsets) > 1
     write = stream.write
     for m, coords in enumerate(coordsets):
-        using_hybrid36 = False
-        reached_max_n_atom = False
-        pdbline = PDBLINE_LT100K
-        anisouline = ANISOULINE_LT100K
         if multi:
             write('MODEL{0:9d}\n'.format(m+1))
+
+        if not hybrid36:
+            # We need to check whether serial and residue numbers become hexadecimal
+            reached_max_n_atom = False
+            reached_max_n_res = False
+
+            pdbline = PDBLINE_LT100K
+            anisouline = ANISOULINE_LT100K
+        else:
+            warned_hybrid36 = False
+            
         for i, xyz in enumerate(coords):
-            if not reached_max_n_atom and (i == MAX_N_ATOM or serials[i] > MAX_N_ATOM):
-                reached_max_n_atom = True
-                if not hybrid36:
+            if hybrid36:
+                pdbline = PDBLINE_H36
+                anisouline = ANISOULINE_H36
+
+                if not warned_hybrid36:
+                    LOGGER.warn('hybrid36 format is being used')
+                    warned_hybrid36 = True
+
+            else:
+                if not (reached_max_n_atom or reached_max_n_res) and (i == MAX_N_ATOM or serials[i] > MAX_N_ATOM):
+                    reached_max_n_atom = True
                     pdbline = PDBLINE_GE100K
                     anisouline = ANISOULINE_GE100K
-                    LOGGER.warn('Indices are exceeding 99999 and hexadecimal format is being used')
-                else:
-                    pdbline = PDBLINE_GE100K_H36
-                    anisouline = ANISOULINE_GE100K_H36
-                    LOGGER.warn('Indices are exceeding 99999 and hybrid36 format is being used')
-                    using_hybrid36 = True
+                    LOGGER.warn('Indices are exceeding 99999 and hexadecimal format is being used for indices')
 
-            if using_hybrid36:
+                elif not (reached_max_n_atom or reached_max_n_res) and resnums[i] > MAX_N_RES:
+                    reached_max_n_res = True
+                    pdbline = PDBLINE_GE10K
+                    anisouline = ANISOULINE_GE10K
+                    LOGGER.warn('Resnums are exceeding 9999 and hexadecimal format is being used for resnums')
+
+                elif reached_max_n_atom and not reached_max_n_res and resnums[i] > MAX_N_RES:
+                    reached_max_n_res = True
+                    pdbline = PDBLINE_GE100K_GE10K
+                    anisouline = ANISOULINE_GE100K_GE10K
+                    LOGGER.warn('Resnums are exceeding 9999 and hexadecimal format is being used for indices and resnums')
+                
+                elif reached_max_n_res and not reached_max_n_atom and (i == MAX_N_ATOM or serials[i] > MAX_N_ATOM):
+                    reached_max_n_atom = True
+                    pdbline = PDBLINE_GE100K_GE10K
+                    anisouline = ANISOULINE_GE100K_GE10K
+                    LOGGER.warn('Indices are exceeding 99999 and hexadecimal format is being used for indices and resnums')
+
+            if hybrid36:
                 serial = decToHybrid36(serials[i])
+                resnum = decToHybrid36(resnums[i], resnum=True)
             else:
                 serial = serials[i]
+                resnum = resnums[i]
 
             write(pdbline % (hetero[i], serial,
                              atomnames[i], altlocs[i],
-                             resnames[i], chainids[i], resnums[i],
+                             resnames[i], chainids[i], resnum,
                              icodes[i],
                              xyz[0], xyz[1], xyz[2],
                              occupancies[i], bfactors[i],
@@ -1311,7 +1443,7 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
 
                 write(anisouline % ("ANISOU", serial,
                                     atomnames[i], altlocs[i],
-                                    resnames[i], chainids[i], resnums[i],
+                                    resnames[i], chainids[i], resnum,
                                     icodes[i],
                                     anisou[0], anisou[1], anisou[2],
                                     anisou[3], anisou[4], anisou[5],

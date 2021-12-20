@@ -1,6 +1,6 @@
 """ProDy is a package for Protein Dynamics, Sequence, and Structure Analysis"""
 
-__version__ = '1.11'
+__version__ = '2.0'
 __release__ = __version__ # + '-dev' # comment out '-dev' before a release
 
 import sys
@@ -43,7 +43,7 @@ def deprecate(dep, alt, ver=None, sl=3):
                   .format(dep, ver, alt), DeprecationWarning, stacklevel=sl)
 
 
-def turnonDepracationWarnings(action='always'):
+def turnonDeprecationWarnings(action='always'):
     """Turn on deprecation warnings for the current session.  By default
      (``action='always'``), deprecation warnings will be printed every time
      a function is called to help identification of multiple occurrence
@@ -51,7 +51,7 @@ def turnonDepracationWarnings(action='always'):
      is passed, warning will be issued at the first call of a function.
      The latter behavior will automatically kick in when v0.9 is released.
      Until v0.9 is released, restarting the session will turn of warnings.
-     This function must be called as ``prody.turnonDepracationWarnings``."""
+     This function must be called as ``prody.turnonDeprecationWarnings``."""
 
     global DEPRECATION_WARNINGS
     DEPRECATION_WARNINGS = True

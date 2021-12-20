@@ -200,10 +200,12 @@ def setVMDpath(path):
 NMD_LABEL_MAP = {
     'atomnames': 'name',
     'resnames': 'resname',
+    'resnums': 'resnum',
     'resids': 'resnum',
     'chainids': 'chain',
     'bfactors': 'beta',
     'segnames': 'segment',
+    'segments': 'segment',
 }
 
 
@@ -283,7 +285,13 @@ def parseNMD(filename, type=NMA):
     from prody.atomic import ATOMIC_FIELDS
 
     for label, data in atomic.items():  # PY3K: OK
+        if data is None:
+            continue
+        
         line, data = data
+        if data is None:
+            continue
+
         if len(data) == n_atoms:
             data = ['']*n_atoms
         else:
@@ -371,6 +379,9 @@ def writeNMD(filename, modes, atoms):
        #. If a :class:`.Vector` instance is given, it will be normalized
           before it is written. It's length before normalization will be
           written as the scaling factor of the vector."""
+
+    if not '.nmd' in filename:
+        filename += '.nmd'
 
     if not isinstance(modes, (NMA, ModeSet, Mode, Vector)):
         raise TypeError('modes must be NMA, ModeSet, Mode, or Vector, '

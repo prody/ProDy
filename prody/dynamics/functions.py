@@ -13,6 +13,7 @@ from prody.utilities import openFile, isExecutable, which, PLATFORM, addext
 from .nma import NMA, MaskedNMA
 from .anm import ANM, ANMBase, MaskedANM
 from .gnm import GNM, GNMBase, ZERO, MaskedGNM
+from .exanm import exANM, MaskedExANM
 from .rtb import RTB
 from .pca import PCA, EDA
 from .imanm import imANM
@@ -482,6 +483,11 @@ def calcENM(atoms, select=None, model='anm', trim='trim', gamma=1.0,
         gnm.buildKirchhoff(atoms, gamma=gamma, **kwargs)
         enm = gnm
         MaskedModel = MaskedGNM
+    elif model == 'exanm':
+        exanm = exANM(title)
+        exanm.buildHessian(atoms, gamma=gamma, **kwargs)
+        enm = exanm
+        MaskedModel = MaskedExANM
     else:
         raise TypeError('model should be either ANM or GNM instead of {0}'.format(model))
     
