@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """This module defines :class:`Bond` for dealing with bond information provided
-by using the :meth:`.AtomGroup.setBonds`or :meth:`.AtomGroup.inferBonds` method."""
+by using the :meth:`.AtomGroup.setBonds` or :meth:`.AtomGroup.inferBonds` method."""
 
 from numbers import Integral
 import numpy as np
