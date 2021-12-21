@@ -983,7 +983,7 @@ class ClustENM(Ensemble):
         self._targeted = kwargs.pop('targeted', False)
         self._tmdk = kwargs.pop('tmdk', 15.)
 
-        if maxclust is None and threshold is None:
+        if maxclust is None and threshold is None and n_gens > 0:
             raise ValueError('Either maxclust or threshold should be set!')
         
         if maxclust is None:
