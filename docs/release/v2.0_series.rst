@@ -4,6 +4,41 @@ ProDy 2.0 Series
 .. contents::
    :local:
 
+2.0.1 (Dec 20, 2021)
+------------------------------------------------------------------------------
+
+**New Features**:
+  
+  * Added :function:`.calcRWSIP` for comparing sets of modes
+
+  * New methods to convert :class:`.Atom`, :class:`.Atomic` and :class:`.EMDMAP` 
+  to TEMPy objects, allowing calculations such as cross-correlation coefficient (CCC) 
+  to EM maps.
+
+  * Added :func:`.calcDynamicFlexibilityIndex` and :func:`.calcDynamicCouplingIndex`
+  for further interpretation of PRS results.
+
+  * Reinstated the option of using forces in PRS as in ProDy v1.8 (`turbo=**False**`)
+
+  * Added GitHub Actions Continuous Integration in place of Travis. 
+
+**Bug Fixes and Improvements**:
+  
+  * Compatibility and bug fixes for various functions, including pyparsing for selections.
+
+  * Extended :class:`.AdaptiveANM` to work with other models including explicit membrane 
+  ANM, :class:`.exANM`.
+
+  * Improved capabilities for fetching and parsing mmCIF and EMD files.
+
+  * Improved handling of residue and serial numbers including hexadecimal and hybrid36 formats.
+
+  * Consistency fixes.
+
+  * More non-standard amino acids (MEN, CSB, CME).
+
+**Full Changelog**: https://github.com/prody/ProDy/compare/v2.0...v2.0.1
+
 2.0 (Dec 30, 2020)
 ------------------------------------------------------------------------------
 
