@@ -4,7 +4,7 @@
 Written by CHARMM-GUI team (www.charmm-gui.org) and modified by James Krieger
 
 This suite uses the following softwares:
-a) python Splinter package (https://splinter.readthedocs.org/en/latest/)
+a) python splinter (https://splinter.readthedocs.org/en/latest/) and selenium (https://selenium-python.readthedocs.io/) packages
 b) a web browser, such as Google Chrome or Mozilla Firefox
 c) the corresponding driver such as chromedriver (https://sites.google.com/a/chromium.org/chromedriver/downloads)
    for Chrome or geckodriver (https://github.com/mozilla/geckodriver/releases) for Firefox

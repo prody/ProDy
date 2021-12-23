@@ -4,7 +4,7 @@
 Based on code written by the CHARMM-GUI team (http://charmm-gui.org) and modified by James Krieger
 
 This suite uses the following softwares:
-- python Splinter package (https://splinter.readthedocs.org/en/latest/)
+- python splinter (https://splinter.readthedocs.org/en/latest/) and selenium (https://selenium-python.readthedocs.io/) packages
 - a web browser, such as Google Chrome or Mozilla Firefox
 - the corresponding driver such as chromedriver (https://sites.google.com/a/chromium.org/chromedriver/downloads)
    for Chrome or geckodriver (https://github.com/mozilla/geckodriver/releases) for Firefox
@@ -732,7 +732,7 @@ def initializeBrowser(browser_type, url):
         from splinter import Browser
     except ImportError:
         raise ImportError('Browser module could not be imported. '
-                            'install splinter package to solve the problem.')
+                          'install splinter and selenium packages')
     else:
         from selenium.webdriver.common.service import WebDriverException
     
