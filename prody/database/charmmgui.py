@@ -303,7 +303,12 @@ class CharmmGUIBrowser(object):
         self.browser_type, self.browser = initializeBrowser(browser_type, url=url)
         browser = self.browser
         browser.visit(url)
-
+        
+        browser.find_by_id('email').first.fill('kriegerj@pitt.edu') # we will have to change this
+        browser.find_by_id('password').first.fill('ProDy123')
+        browser.find_by_value("Submit").click()
+        
+        browser.visit(url)
         browser.attach_file('file', "%s/%s/%s" % (cwd, ndir, fname))
         browser.find_by_value("PDB").click()
 
