@@ -60,7 +60,7 @@ class CharmmGUIBrowser(object):
         Default is 0.
     :type max_warn: int 
     """
-    def __init__(self, fname, **kwargs):
+    def __init__(self, fname=None, **kwargs):
         if fname is None:
             raise ValueError('Please enter a starting PDB filename.')
         if not isinstance(fname, str):
