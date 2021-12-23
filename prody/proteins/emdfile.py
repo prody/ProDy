@@ -51,7 +51,8 @@ def parseEMD(emd, **kwargs):
     :arg n_nodes: A bead based network will be constructed into the provided density map. 
                   This parameter will set the number of beads to fit to density map. 
                   Default is 0. Please change it to some number to run the TRN algorithm.
-                  Other parameters are passed through as kwargs to :meth:`.TRNET.run`.
+                  Other parameters are passed through as kwargs to :meth:`.TRNET.run`
+                  as described in its docs.
     :type n_nodes: int
 
     :arg map: Return the density map itself. Default is **False** in line with previous behaviour.
@@ -535,41 +536,48 @@ class TRNET(object):
 
     def run(self, **kwargs):
         """
-        :arg tmax: maximum total number of iterations
+        :arg tmax: multiplicative factor such that the maximum total number of 
+            iterations is tmax times the number of beads
             default 200
         :type tmax: int
 
-        :arg li: initial lambda
+        :arg li: initial Gaussian bandwidth for determining how much each node is moved
+            As the iterations progress, the bandwidth increases from li to lf.
             default 0.2
         :type li: float
 
-        :arg lf: final lambda
+        :arg lf: final Gaussian bandwidth for determining how much each node is moved
+            As the iterations progress, the bandwidth increases from li to lf.
             default 0.01
         :type lf: float
 
-        :arg ei: initial epsilon
+        :arg ei: initial value of the adaptive step size
+            As the iterations progress, the step size increases from ei to ef.
             default 0.3
         :type ei: float
 
-        :arg ef: final epsilon
+        :arg ef: final value of the adaptive step size
+            As the iterations progress, the step size increases from ei to ef.
             default 0.05
         :type ef: float
 
-        :arg Ti: initial ?
-            default 0.1
-        :type Ti: float
-
-        :arg Tf: final ?
-            default 2
-        :type Tf: float
-
-        :arg c: ?
+        :arg c: cutoff for moving the nodes. When c=0, all nodes are moved in each iteration. 
+            When c>0, only the nearest c/#nodes nodes are moved. This parameter is used for optimization.
             default 0
         :type c: float
 
-        :arg calcC: whether to calculate ?
+        :arg calcC: whether to calculate the connectivity matrix from TRN. This is **False** by default 
+            because the connectivity is usually built by ANM or GNM.
             default **False**
         :type calcC: bool
+
+        :arg Ti: initial value of the adaptive threshold for building the connectivity. Not used if calcC is False.
+            default 0.1
+        :type Ti: float
+
+        :arg Tf: final value of the adaptive threshold for building the connectivity. Not used if calcC is False.
+            default 2
+        :type Tf: float
         """
 
         tmax = kwargs.get('tmax', 200)
