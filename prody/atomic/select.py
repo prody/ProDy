@@ -443,9 +443,11 @@ import sys
 from re import compile as re_compile
 
 try:
-    from collections import Iterable
+   # for upto python 3.9
+   from collections import Iterable
 except ImportError:
-    from collections.abc import Iterable
+   # for python 3.10
+   from collections.abc import Iterable
 
 import numpy as np
 from numpy import array, ndarray, ones, zeros, arange
