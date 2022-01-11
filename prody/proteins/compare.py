@@ -544,7 +544,7 @@ def matchChains(atoms1, atoms2, **kwargs):
     :keyword subset: one of the following well-defined subsets of atoms:
         ``"calpha"`` (or ``"ca"``), ``"backbone"`` (or ``"bb"``),
         ``"heavy"`` (or ``"noh"``), or ``"all"``, default is ``"calpha"``
-    :type subset: string
+    :type subset: str
 
     :keyword seqid: percent sequence identity, default is 90
     :type seqid: float

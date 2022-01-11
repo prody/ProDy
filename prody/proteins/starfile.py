@@ -748,7 +748,7 @@ def parseImagesFromSTAR(particlesSTAR, **kwargs):
 
     :arg saveDirectory: directory where numpy image arrays are saved
         default is None, which means save to the current working directory
-    :type saveDirectory: str, None
+    :type saveDirectory: str
 
     :arg rotateImages: whether to apply in plane translations and rotations using 
         provided psi and origin data, default is True

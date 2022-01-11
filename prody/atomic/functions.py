@@ -289,10 +289,10 @@ def sliceAtoms(atoms, select):
     """Slice *atoms* using the selection defined by *select*.
 
     :arg atoms: atoms to be selected from
-    :type atoms: :class:`Atomic`
+    :type atoms: :class:`.Atomic`
 
-    :arg select: a :class:`Selection` instance or selection string
-    :type select: :class:`Selection`, str
+    :arg select: a :class:`.Selection` instance or selection string
+    :type select: :class:`.Selection`, str
 
     """
 
@@ -436,10 +436,10 @@ def sliceAtomicData(data, atoms, select, axis=None):
     :type data: :class:`~numpy.ndarray`
 
     :arg atoms: atoms to be selected from
-    :type atoms: :class:`Atomic`
+    :type atoms: :class:`.Atomic`
 
-    :arg select: a :class:`Selection` instance or selection string
-    :type select: :class:`Selection`, str
+    :arg select: a :class:`.Selection` instance or selection string
+    :type select: :class:`.Selection`, str
 
     :arg axis: the axis along which the data is sliced. See :mod:`~numpy` 
                for details of this parameter. 
@@ -501,10 +501,10 @@ def extendAtomicData(data, nodes, atoms, axis=None):
 
     :arg nodes: a set of atoms that has been used
         as nodes in data generation
-    :type nodes: :class:`Atomic`
+    :type nodes: :class:`.Atomic`
 
     :arg atoms: atoms to be selected from
-    :type atoms: :class:`Atomic`
+    :type atoms: :class:`.Atomic`
 
     :arg axis: the axis/direction you want to use to slice data from the matrix.
         The options are **0** or **1** or **None** like in :mod:`~numpy`. 
