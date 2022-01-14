@@ -85,7 +85,7 @@ def prody_pca(coords, **kwargs):
             select.setCoords(dcd.getCoords())
         pca = prody.PCA(dcd.getTitle())
         if len(dcd) > 1000:
-            pca.buildCovariance(dcd, aligned=kwargs.get('aligned'))
+            pca.buildCovariance(dcd, aligned=kwargs.get('aligned'), quiet=True)
             pca.calcModes(nmodes)
             ensemble = dcd
         else:
