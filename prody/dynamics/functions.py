@@ -426,8 +426,13 @@ def writeCFlexModes(output_path, modes, write_star=False, scores=None, only_sqli
     modefiles = []
     for mode in modes:
         mode_num = mode.getIndex() + 1
-        modefiles.append(writeArray(modes_dir + 'vec.{0}'.format(mode_num),
-                                     mode.getArrayNx3(), '%12.4e', ''))
+        if mode.is3d():
+            modefiles.append(writeArray(modes_dir + 'vec.{0}'.format(mode_num),
+                                        mode.getArrayNx3(), '%12.4e', ''))
+        else:
+            modefiles.append(writeArray(modes_dir + 'vec.{0}'.format(mode_num),
+                                        mode.getArray(), '%12.4e', ''))            
+
 
     if hasattr(modes, 'getIndices'):
         order = modes.getIndices()

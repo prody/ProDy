@@ -14,6 +14,7 @@ for key, txt, val in [
     ('model', 'index of model that will be used in the calculations', 1),
     ('cutoff', 'cutoff distance (A)', 15.),
     ('gamma', 'spring constant', 1.),
+    ('zeros', 'calculate zero modes', False),
 
     ('outbeta', 'write beta-factors calculated from GNM modes', False),
     ('hessian', 'write Hessian matrix', False),
@@ -57,6 +58,7 @@ def prody_anm(pdb, **kwargs):
     nmodes = kwargs.get('nmodes')
     selstr = kwargs.get('select')
     model = kwargs.get('model')
+    zeros = kwargs.get('zeros')
 
     pdb = prody.parsePDB(pdb, model=model)
     if prefix == '_anm':
@@ -72,10 +74,15 @@ def prody_anm(pdb, **kwargs):
 
     anm = prody.ANM(pdb.getTitle())
     anm.buildHessian(select, cutoff, gamma)
-    anm.calcModes(nmodes)
+    anm.calcModes(nmodes, zeros=zeros)
     LOGGER.info('Writing numerical output.')
+
     if kwargs.get('outnpz'):
         prody.saveModel(anm, join(outdir, prefix))
+
+    if kwargs.get('outcflex'):
+        prody.writeCFlexModes(outdir, anm)
+
     prody.writeNMD(join(outdir, prefix + '.nmd'), anm, select)
 
     extend = kwargs.get('extend')
@@ -247,6 +254,8 @@ graphical output files:
     group.add_argument('-m', '--model', dest='model', type=int,
         metavar='INT', default=DEFAULTS['model'], help=HELPTEXT['model'])
 
+    group.add_argument('-w', '--zero-modes', dest='zeros', action='store_true',
+        default=DEFAULTS['zeros'], help=HELPTEXT['zeros'])
 
     group = addNMAOutput(subparser)
 
