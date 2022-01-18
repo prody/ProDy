@@ -646,7 +646,7 @@ def calcENM(atoms, select=None, model='anm', trim='trim', gamma=1.0,
     :type select: str, :class:`.Selection`, :class:`~numpy.ndarray`
 
     :arg model: type of ENM that will be performed. It can be either ``"anm"`` 
-        or ``"gnm"``
+        or ``"gnm"`` or ``"exanm"``
     :type model: str
 
     :arg trim: type of method that will be used to trim the model. It can 
