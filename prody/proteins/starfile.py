@@ -44,8 +44,11 @@ class StarDict:
             for i, idx in enumerate(indices):
                 self._dict[idx[0]] = self.dataBlocks[i]._dict
 
-        self.numDataBlocks = len(self.dataBlocks)
+        self._n_data_blocks = len(self.dataBlocks)
 
+    def numDataBlocks(self):
+        return self._n_data_blocks
+    
     def __getitem__(self, key):
         try:
             return np.array(self.dataBlocks)[key]
@@ -67,9 +70,9 @@ class StarDict:
         return self._dict
 
     def __repr__(self):
-        if self.numDataBlocks == 1:
+        if self._n_data_blocks == 1:
             return '<StarDict: {0} (1 data block)>'.format(self._title)
-        return '<StarDict: {0} ({1} data blocks)>'.format(self._title, self.numDataBlocks)
+        return '<StarDict: {0} ({1} data blocks)>'.format(self._title, self.numDataBlocks())
 
     def __iter__(self):
         """Yield StarDataBlock instances."""
@@ -79,12 +82,12 @@ class StarDict:
     def pop(self, index):
         """Pop dataBlock with the given index from the list of dataBlocks in StarDict"""
         self.dataBlocks.pop(index)
-        self.numDataBlocks -= 1
+        self._n_data_blocks -= 1
 
     def search(self, substr, return_indices=False):
         indices = []
         for data_block in self:
-            if data_block.search(substr).numEntries != 0 or data_block.search(substr).numLoops != 0:
+            if data_block.search(substr).numEntries() != 0 or data_block.search(substr).numLoops() != 0:
                 indices.append((data_block._title,
                                 data_block.search(substr, return_indices=True)[0]))
 
@@ -134,7 +137,7 @@ class StarDataBlock:
 
         if set(keys) == set(['data', 'fields']):
             self.loops = []
-            self.numLoops = 0
+            self._n_loops = 0
 
             self.data = np.array(list(self._dict['data'].values()))
             self.fields = np.array(list(self._dict['fields'].values()))
@@ -145,8 +148,8 @@ class StarDataBlock:
             if not isListLike(self.fields):
                 self.fields = [self.fields]
 
-            self.numEntries = len(self.data)
-            self.numFields = len(self.fields)
+            self._n_entries = len(self.data)
+            self._n_fields = len(self.fields)
 
         elif 'data' in keys and 'fields' in keys:
             if indices is not None:
@@ -166,9 +169,9 @@ class StarDataBlock:
             if not isListLike(self.fields):
                 self.fields = [self.fields]
 
-            self.numEntries = len(self.data)
-            self.numFields = len(self.fields)
-            self.numLoops = len(self.loops)
+            self._n_entries = len(self.data)
+            self._n_fields = len(self.fields)
+            self._n_loops = len(self.loops)
 
         elif 'data' in keys:
             if indices is not None:
@@ -189,9 +192,9 @@ class StarDataBlock:
             if not isListLike(self.fields):
                 self.fields = [self.fields]
 
-            self.numLoops = len(self.loops)
-            self.numEntries = len(self.data)
-            self.numFields = 0
+            self._n_loops = len(self.loops)
+            self._n_entries = len(self.data)
+            self._n_fields = 0
 
         elif 'fields' in keys:
             if indices is not None:
@@ -212,9 +215,9 @@ class StarDataBlock:
             if not isListLike(self.fields):
                 self.fields = [self.fields]
 
-            self.numLoops = len(self.loops)
-            self.numEntries = len(self.data)
-            self.numFields = 0
+            self._n_loops = len(self.loops)
+            self._n_entries = len(self.data)
+            self._n_fields = 0
 
         else:
             if indices is not None:
@@ -223,10 +226,16 @@ class StarDataBlock:
             else:
                 self.loops = [StarLoop(self, key) for key in keys]
 
-            self.numLoops = len(self.loops)
-            self.numEntries = 0
-            self.numFields = 0
+            self._n_loops = len(self.loops)
+            self._n_entries = 0
+            self._n_fields = 0
 
+    def numLoops(self):
+        return self._n_loops
+    
+    def numEntries(self):
+        return self._n_entries
+    
     def getLoop(self, index):
         try:
             return self.loops[index]
@@ -265,31 +274,31 @@ class StarDataBlock:
                                      'or the name or number of a loop')
 
     def __repr__(self):
-        if self.numLoops == 0:
-            if self.numEntries == 0:
+        if self.numLoops() == 0:
+            if self.numEntries() == 0:
                 return '<StarDataBlock: {0} (no entries)>'.format(self._title)
-            if self.numEntries == 1:
+            if self.numEntries() == 1:
                 return '<StarDataBlock: {0} (1 entry)>'.format(self._title)
             else:
-                return '<StarDataBlock: {0} ({1} entries)>'.format(self._title, self.numEntries)
-        elif self.numEntries == 0:
-            if self.numLoops == 1:
+                return '<StarDataBlock: {0} ({1} entries)>'.format(self._title, self.numEntries())
+        elif self.numEntries() == 0:
+            if self.numLoops() == 1:
                 return '<StarDataBlock: {0} (1 loop containing ' \
                     '{1} columns and {2} rows)>'.format(self._title,
-                                                        self.loops[0].numFields, self.loops[0].numRows)
-            return '<StarDataBlock: {0} ({1} loops)>'.format(self._title, self.numLoops)
+                                                        self.loops[0].numFields(), self.loops[0].numRows())
+            return '<StarDataBlock: {0} ({1} loops)>'.format(self._title, self.numLoops())
         else:
-            if self.numLoops == 1:
-                if self.numEntries == 1:
+            if self.numLoops() == 1:
+                if self.numEntries() == 1:
                     return '<StarDataBlock: {0} (1 entry and 1 loop)>'.format(self._title)
                 else:
-                    return '<StarDataBlock: {0} ({1} entries and 1 loop)>'.format(self._title, self.numEntries)
+                    return '<StarDataBlock: {0} ({1} entries and 1 loop)>'.format(self._title, self.numEntries())
             else:
-                if self.numEntries == 1:
-                    return '<StarDataBlock: {0} (1 entry and {1} loops)>'.format(self._title, self.numLoops)
+                if self.numEntries() == 1:
+                    return '<StarDataBlock: {0} (1 entry and {1} loops)>'.format(self._title, self.numLoops())
                 else:
-                    return '<StarDataBlock: {0} ({1} entries and {2} loops)>'.format(self._title, self.numEntries,
-                                                                                     self.numLoops)
+                    return '<StarDataBlock: {0} ({1} entries and {2} loops)>'.format(self._title, self.numEntries(),
+                                                                                     self.numLoops())
 
     def __iter__(self):
         """Yield StarLoop instances."""
@@ -299,7 +308,7 @@ class StarDataBlock:
     def pop(self, index):
         """Pop loop with the given index from the list of loops in dataBlock"""
         self.loops.pop(index)
-        self.numLoops -= 1
+        self._n_loops -= 1
 
     def search(self, substr, return_indices=False):
         indices = []
@@ -312,7 +321,7 @@ class StarDataBlock:
                         indices.append(('data', field))
             else:
                 idx, loop = self[key].search(substr, return_indices=True)
-                if loop.numRows != 0:
+                if loop.numRows() != 0:
                     indices.append((key, idx))
 
         if return_indices:
@@ -367,10 +376,16 @@ class StarLoop:
         self._prog = dataBlock._prog
         self.fields = list(self._dict['fields'].values())
         self.data = list(self._dict['data'].values())
-        self.numFields = len(self.fields)
-        self.numRows = len(self.data)
+        self._n_fields = len(self.fields)
+        self._n_rows = len(self.data)
         self._title = dataBlock._title + ' loop ' + str(key)
 
+    def numRows(self):
+        return self._n_rows
+    
+    def numFields(self):
+        return self._n_fields
+    
     def getData(self, key):
         if key in self.fields:
             return [row[key] for row in self.data]
@@ -405,14 +420,14 @@ class StarLoop:
                                      'row or column of data')
 
     def __repr__(self):
-        if self.numFields == 1 and self.numRows != 1:
-            return '<StarLoop: {0} (1 column and {1} rows)>'.format(self._title, self.numRows)
-        elif self.numFields != 1 and self.numRows == 1:
-            return '<StarLoop: {0} ({1} columns and 1 row)>'.format(self._title, self.numFields)
-        elif self.numFields == 1 and self.numRows == 1:
+        if self.numFields() == 1 and self.numRows() != 1:
+            return '<StarLoop: {0} (1 column and {1} rows)>'.format(self._title, self.numRows())
+        elif self.numFields() != 1 and self.numRows() == 1:
+            return '<StarLoop: {0} ({1} columns and 1 row)>'.format(self._title, self.numFields())
+        elif self.numFields() == 1 and self.numRows() == 1:
             return '<StarLoop: {0} (1 column and 1 row)>'.format(self._title)
         else:
-            return '<StarLoop: {0} ({1} columns and {2} rows)>'.format(self._title, self.numFields, self.numRows)
+            return '<StarLoop: {0} ({1} columns and {2} rows)>'.format(self._title, self.numFields(), self.numRows())
 
     def search(self, substr, return_indices=False):
         indices = []
@@ -773,13 +788,13 @@ def parseImagesFromSTAR(particlesSTAR, **kwargs):
             if ('_image' in loop.fields) or ('_rlnImageName' in loop.fields):
                 foundImageField = True
                 loops.append(loop)
-                if loop.numRows > maxRows:
-                    maxRows = loop.numRows
+                if loop.numRows() > maxRows:
+                    maxRows = loop.numRows()
             else:
                 dataBlock.pop(int(loop.getTitle().split(' ')[-1]))
 
-        if dataBlock.numLoops > maxLoops:
-            maxLoops = dataBlock.numLoops
+        if dataBlock.numLoops() > maxLoops:
+            maxLoops = dataBlock.numLoops()
 
         if foundImageField:
             dataBlocks.append(dataBlock)
@@ -794,7 +809,7 @@ def parseImagesFromSTAR(particlesSTAR, **kwargs):
             i += 1
             for j, loop in enumerate(dataBlock):
                 for k in range(maxRows):
-                    if k < loop.numRows:
+                    if k < loop.n_rows:
                         indices[i, j, k] = np.array([n, j, k])
                     else:
                         indices[i, j, k] = np.array([0, 0, 0])
