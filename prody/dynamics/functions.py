@@ -28,9 +28,9 @@ from .modeset import ModeSet
 from .editing import sliceModel, reduceModel, trimModel
 from .editing import sliceModelByMask, reduceModelByMask, trimModelByMask
 
-__all__ = ['parseArray', 'parseModes', 'parseCFlexModes',
+__all__ = ['parseArray', 'parseModes', 'parseScipionModes',
            'parseSparseMatrix',
-           'writeArray', 'writeModes', 'writeCFlexModes',
+           'writeArray', 'writeModes', 'writeScipionModes',
            'saveModel', 'loadModel', 'saveVector', 'loadVector',
            'calcENM']
 
@@ -312,7 +312,7 @@ def parseModes(normalmodes, eigenvalues=None, nm_delimiter=None,
     return nma
 
 
-def parseCFlexModes(run_path, title=None):
+def parseScipionModes(run_path, title=None):
     """Returns :class:`.NMA` containing eigenvectors and eigenvalues 
     parsed from a ContinuousFlex FlexProtNMA Run directory.
 
@@ -359,7 +359,7 @@ def parseCFlexModes(run_path, title=None):
     nma.setEigens(vectors, eigvals)
     return nma
 
-def writeCFlexModes(output_path, modes, write_star=False, scores=None, only_sqlite=False, collectivityThreshold=0.):
+def writeScipionModes(output_path, modes, write_star=False, scores=None, only_sqlite=False, collectivityThreshold=0.):
     """Writes *modes* to a set of files that can be recognised by Scipion.
     A directory called **"modes"** will be created if it doesn't already exist. 
     Filenames inside will start with **"vec"** and have the mode number as the extension.
