@@ -346,14 +346,21 @@ def parseScipionModes(run_path, title=None):
     lines = fi.readlines()
     fi.close()
     
+    found_eigvals = False
     for line in lines:
         if line.find('Eigenvector number') != -1:
             j = int(line.strip().split()[-1]) - 1
         if line.find('Corresponding eigenvalue') != -1:
             eigvals[j] = float(line.strip().split()[-1])
+            if not found_eigvals:
+                found_eigvals = True
         
     if title is None:
         title = run_name
+
+    if not found_eigvals:
+        LOGGER.warn('No eigenvalues found in {0}/logs/run.stdout'.format())
+        eigvals=None
 
     nma = NMA(title)
     nma.setEigens(vectors, eigvals)
