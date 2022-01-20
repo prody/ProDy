@@ -101,6 +101,7 @@ class PCA(NMA):
             coordsets = coordsets._getCoordsets()
 
         update_coords = bool(kwargs.get('update_coords', False))
+        quiet = kwargs.pop('quiet', False)
 
         if isinstance(coordsets, TrajBase):
             nfi = coordsets.nextIndex()
@@ -111,10 +112,12 @@ class PCA(NMA):
             #mean = coordsets._getCoords().flatten()
             n_confs = 0
             n_frames = len(coordsets)
-            LOGGER.info('Covariance will be calculated using {0} frames.'
-                        .format(n_frames))
+            if not quiet:
+                LOGGER.info('Covariance will be calculated using {0} frames.'
+                            .format(n_frames))
             coordsum = np.zeros(dof)
-            LOGGER.progress('Building covariance', n_frames, '_prody_pca')
+            if not quiet:
+                LOGGER.progress('Building covariance', n_frames, '_prody_pca')
             align = not kwargs.get('aligned', False)
             for frame in coordsets:
                 if align:
@@ -123,8 +126,10 @@ class PCA(NMA):
                 coordsum += coords
                 cov += np.outer(coords, coords)
                 n_confs += 1
-                LOGGER.update(n_confs, label='_prody_pca')
-            LOGGER.finish()
+                if not quiet:
+                    LOGGER.update(n_confs, label='_prody_pca')
+            if not quiet:
+                LOGGER.finish()
             cov /= n_confs
             coordsum /= n_confs
             mean = coordsum
