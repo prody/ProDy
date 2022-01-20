@@ -8,6 +8,7 @@ import numpy as np
 
 from prody import LOGGER, SETTINGS, PY3K
 from prody.atomic import Atomic, AtomSubset
+from prody.proteins import alignChains
 from prody.utilities import openFile, isExecutable, which, PLATFORM, addext
 
 from prody.ensemble import PDBEnsemble
