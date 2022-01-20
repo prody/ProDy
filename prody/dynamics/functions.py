@@ -10,8 +10,11 @@ from prody import LOGGER, SETTINGS, PY3K
 from prody.atomic import Atomic, AtomSubset
 from prody.utilities import openFile, isExecutable, which, PLATFORM, addext
 
+from prody.ensemble import PDBEnsemble
+
 from .nma import NMA, MaskedNMA
 from .anm import ANM, ANMBase, MaskedANM
+from .analysis import calcProjection
 from .gnm import GNM, GNMBase, ZERO, MaskedGNM
 from .exanm import exANM, MaskedExANM
 from .rtb import RTB
@@ -26,7 +29,7 @@ from .editing import sliceModelByMask, reduceModelByMask, trimModelByMask
 __all__ = ['parseArray', 'parseModes', 'parseSparseMatrix',
            'writeArray', 'writeModes',
            'saveModel', 'loadModel', 'saveVector', 'loadVector',
-           'calcENM']
+           'calcENM', 'realignModes']
 
 
 def saveModel(nma, filename=None, matrices=False, **kwargs):
@@ -521,3 +524,65 @@ def calcENM(atoms, select=None, model='anm', trim='trim', gamma=1.0,
     if mask is not None:
         enm = MaskedModel(enm, mask)
     return enm, atoms
+
+def realignModes(modes, atoms, ref):
+    """Align *modes* in the original frame based on *atoms*
+    onto another frame based on *ref* using the transformation 
+    from alignment of *atoms* to *ref*
+    
+    :arg modes: multiple 3D modes
+    :type modes: :class:`.ModeSet`, :class:`.ANM`, :class:`.PCA`
+
+    :arg atoms: central structure related to *modes* to map onto *ref*
+        Inserting *atoms* into an ensemble and projecting onto *modes*
+        should give all zeros
+    :type atoms: :class:`.Atomic`
+    
+    :arg ref: reference structure for mapping
+    :type ref: :class:`.Atomic`
+    """
+    if not isinstance(modes, (ModeSet, NMA)):
+        raise TypeError('modes should be a ModeSet of NMA instance')
+
+    if not modes.is3d():
+        raise ValueError('modes should be 3D for this function to work')
+
+    if not isinstance(atoms, Atomic):
+        raise TypeError('atoms should be an Atomic instance')
+
+    if not isinstance(ref, Atomic):
+        raise TypeError('ref should be an Atomic instance')
+
+    n_atoms = modes.numAtoms()
+
+    if atoms.numAtoms() != n_atoms:
+        raise ValueError('atoms and modes should have the same number of atoms')
+
+    def_coords = np.array([atoms.getCoords() + mode.getArrayNx3()
+                           for mode in modes])
+
+    def_ens = PDBEnsemble('applied eigvecs')
+    def_ens.setCoords(atoms)
+    def_ens.setAtoms(atoms)
+    def_ens.addCoordset(atoms)
+    def_ens.addCoordset(def_coords)
+
+    if not np.allclose(calcProjection(def_ens[0], modes),
+                       np.zeros(modes.numModes())):
+        raise ValueError('projection of atoms onto modes (via an ensemble) '
+                         'is not all zeros so atoms is not appropriate')
+
+    if ref.numAtoms() != n_atoms:
+        ref = alignChains(ref, atoms)[0]
+    
+    def_ens.setCoords(ref)
+    def_ens.superpose()
+
+    new_vectors = np.array([np.array(coords - def_ens.getCoordsets()[0]).flatten()
+                            for coords in def_ens.getCoordsets()[1:]]).T
+
+    # initialise a new modes object with the same type
+    result = type(modes)()
+
+    result.setEigens(new_vectors, modes.getEigvals())
+    return result
