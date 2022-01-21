@@ -200,6 +200,11 @@ def showProjection(ensemble, modes, *args, **kwargs):
     :arg modes: up to three normal modes
     :type modes: :class:`.Mode`, :class:`.ModeSet`, :class:`.NMA`
 
+    :keyword by_time: whether to show a 1D projection by time (number of steps) 
+        on the x-axis, rather than making a population histogram. 
+        Default is **False** to maintain old behaviour.
+    :type by_time: bool
+
     :keyword color: a color name or a list of color names or values, 
         default is ``'blue'``
     :type color: str, list
@@ -241,9 +246,15 @@ def showProjection(ensemble, modes, *args, **kwargs):
                                 kwargs.pop('norm', False))
 
     if projection.ndim == 1 or projection.shape[1] == 1:
-        show = plt.hist(projection.flatten(), *args, **kwargs)
-        plt.xlabel('Mode {0} coordinate'.format(str(modes)))
-        plt.ylabel('Number of conformations')
+        by_time = kwargs.pop('by_time', False)
+        if by_time:
+            show = plt.plot(range(len(projection)), projection.flatten(), *args, **kwargs)
+            plt.ylabel('Mode {0} coordinate'.format(str(modes)))
+            plt.xlabel('Conformation number')  
+        else:          
+            show = plt.hist(projection.flatten(), *args, **kwargs)
+            plt.xlabel('Mode {0} coordinate'.format(str(modes)))
+            plt.ylabel('Number of conformations')
         return show
     elif projection.shape[1] > 3:
         raise ValueError('Projection onto up to 3 modes can be shown. '
