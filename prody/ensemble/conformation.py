@@ -56,20 +56,11 @@ class Conformation(object):
         """Returns coordinate weights for (selected) atoms."""
 
         ensemble = self._ensemble
-        indices = ensemble._indices
-        if indices is None:
-            return ensemble.getWeights()
-        else:
-            return ensemble.getWeights()[indices]
+        return ensemble.getWeights()
 
     def _getWeights(self):
-
         ensemble = self._ensemble
-        indices = ensemble._indices
-        if indices is None:
-            return ensemble._getWeights()
-        else:
-            return ensemble._getWeights()[indices]
+        return ensemble._getWeights()
 
     def getData(self, label):
         """Returns a copy of the data array associated with *label*, or **None**
