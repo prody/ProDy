@@ -69,6 +69,8 @@ class Conformation(object):
         if indices is None:
             return ensemble._getWeights()
         else:
+            if ensemble._getWeights() is None:
+                return None
             return ensemble._getWeights()[indices]
 
     def getData(self, label):
