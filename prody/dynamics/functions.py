@@ -28,6 +28,7 @@ from .editing import sliceModel, reduceModel, trimModel
 from .editing import sliceModelByMask, reduceModelByMask, trimModelByMask
 
 __all__ = ['parseArray', 'parseModes', 'parseSparseMatrix',
+           'parseGromacsModes',
            'writeArray', 'writeModes',
            'saveModel', 'loadModel', 'saveVector', 'loadVector',
            'calcENM', 'realignModes']
@@ -525,6 +526,80 @@ def calcENM(atoms, select=None, model='anm', trim='trim', gamma=1.0,
     if mask is not None:
         enm = MaskedModel(enm, mask)
     return enm, atoms
+
+
+def parseGromacsModes(run_path, title="", model='nma', **kwargs):
+    """Returns :class:`.NMA` containing eigenvectors and eigenvalues parsed from a run directory 
+    containing results from gmx covar or gmx nmeig followed by gmx anaeig 
+    including eigenvalues in an xvg file and eigenvectors in pdb files
+    (see http://www.strodel.info/index_files/lecture/html/analysis-9.html).
+
+    :arg run_path: path to the run directory
+    :type run_path: str
+    
+    :arg title: title for resulting object
+        Default is ``""``
+    :type title: str
+
+    :arg model: type of calculated that was performed. It can be either ``"nma"`` 
+        or ``"pca"``. If it is not changed to ``"pca"`` then ``"nma"`` will be assumed.
+    :type model: str
+
+    :arg eigval_fname: filename for xvg file containing eigenvalues
+        Default is ``"eigenval.xvg"`` as this is the default from Gromacs
+    :type eigval_fname: str
+
+    :arg eigvec_fname: filename for trr file containing eigenvectors
+        Default is ``"eigenvec.trr"`` as this is the default from Gromacs
+    :type eigvec_fname: str
+    """ 
+    try:
+        from MDAnalysis.coordinates import TRR
+    except ImportError:
+        raise ImportError('Please install MDAnalysis in order to use parseGromacsModes.')
+
+    if not isinstance(run_path, str):
+        raise TypeError('run_path should be a string')
+
+    if not isinstance(title, str):
+        raise TypeError('title should be a string')
+
+    if model == 'pca':
+        result = PCA(title)
+    else:
+        if model != 'nma':
+            LOGGER.warn('model not recognised so using NMA')
+        result = NMA(title)
+
+    eigval_fname = kwargs.get('eigval_fname', 'eigenval.xvg')
+    if not isinstance(eigval_fname, str):
+        raise TypeError('eigval_fname should be a string')
+
+    eigvec_fname = kwargs.get('eigvec_fname', 'eigenvec.trr')
+    if not isinstance(eigvec_fname, str):
+        raise TypeError('eigvec_fname should be a string')
+    
+    vals_fname = run_path + eigval_fname
+    fi = open(vals_fname, 'r')
+    lines = fi.readlines()
+    fi.close()
+    
+    eigvals = []
+    for line in lines:
+        if not (line.startswith('@') or line.startswith('#')):
+            eigvals.append(float(line.strip().split()[-1])*100) # convert to A**2 from nm**2
+
+    eigvals = np.array(eigvals)
+
+    # Parse eigenvectors trr with MDAnalysis, which assumes trajectory and multiplies by 10
+    # to get A even though actually they are unit vectors
+    vecs_traj = TRR.TRRReader(run_path + eigvec_fname)
+
+    # format vectors appropriately, reversing *10 and skipping initial and average structures
+    vectors = np.array([frame.positions.flatten()/10 for frame in vecs_traj[2:]]).T
+
+    result.setEigens(vectors, eigvals)
+    return result
 
 def realignModes(modes, atoms, ref):
     """Align *modes* in the original frame based on *atoms*
