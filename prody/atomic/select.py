@@ -442,11 +442,11 @@ all alphanumeric characters."""
 import sys
 from re import compile as re_compile
 try:
-   # for upto python 3.9
-   from collections import Iterable
-except ImportError:
-   # for python 3.10
+   # for python>=3.3
    from collections.abc import Iterable
+except ImportError:
+   # for python<3.3
+   from collections import Iterable
 
 import numpy as np
 from numpy import array, ndarray, ones, zeros, arange
