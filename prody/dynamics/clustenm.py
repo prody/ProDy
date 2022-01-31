@@ -1,5 +1,5 @@
 '''
-Copyright (c) 2021 Burak Kaynak, Pemra Doruker.
+Copyright (c) 2020-2022 Burak Kaynak, Pemra Doruker.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -124,7 +124,9 @@ class ClustENM(Ensemble):
         return super(ClustENM, self).__getitem__(index)
 
     def getAtoms(self, selected=True):
+
         'Returns atoms.'
+
         return super(ClustENM, self).getAtoms(selected)
 
     def _isBuilt(self):
@@ -210,7 +212,7 @@ class ClustENM(Ensemble):
 
         try:
             from pdbfixer import PDBFixer
-            from simtk.openmm.app import PDBFile
+            from openmm.app import PDBFile
         except ImportError:
             raise ImportError('Please install PDBFixer and OpenMM in order to use ClustENM.')
 
@@ -243,10 +245,10 @@ class ClustENM(Ensemble):
     def _prep_sim(self, coords, external_forces=[]):
 
         try:
-            from simtk.openmm import Platform, LangevinIntegrator, Vec3
-            from simtk.openmm.app import Modeller, ForceField, \
+            from openmm import Platform, LangevinIntegrator, Vec3
+            from openmm.app import Modeller, ForceField, \
                 CutoffNonPeriodic, PME, Simulation, HBonds
-            from simtk.unit import angstrom, nanometers, picosecond, \
+            from openmm.unit import angstrom, nanometers, picosecond, \
                 kelvin, Quantity, molar
         except ImportError:
             raise ImportError('Please install PDBFixer and OpenMM in order to use ClustENM.')
@@ -302,8 +304,8 @@ class ClustENM(Ensemble):
         # coords: coordset   (numAtoms, 3) in Angstrom, which should be converted into nanometer
 
         try:
-            from simtk.openmm.app import StateDataReporter
-            from simtk.unit import kelvin, angstrom, kilojoule_per_mole, MOLAR_GAS_CONSTANT_R
+            from openmm.app import StateDataReporter
+            from openmm.unit import kelvin, angstrom, kilojoule_per_mole, MOLAR_GAS_CONSTANT_R
         except ImportError:
             raise ImportError('Please install PDBFixer and OpenMM in order to use ClustENM.')
 
@@ -344,9 +346,9 @@ class ClustENM(Ensemble):
     def _targeted_sim(self, coords0, coords1, tmdk=15., d_steps=100, n_max_steps=10000, ddtol=1e-3, n_conv=5):
 
         try:
-            from simtk.openmm import CustomExternalForce
-            from simtk.openmm.app import StateDataReporter
-            from simtk.unit import nanometer, kelvin, angstrom, kilojoule_per_mole, MOLAR_GAS_CONSTANT_R
+            from openmm import CustomExternalForce
+            from openmm.app import StateDataReporter
+            from openmm.unit import nanometer, kelvin, angstrom, kilojoule_per_mole, MOLAR_GAS_CONSTANT_R
         except ImportError:
             raise ImportError('Please install PDBFixer and OpenMM in order to use ClustENM.')
 
@@ -818,7 +820,7 @@ class ClustENM(Ensemble):
 
         'Write the fixed (initial) structure to a pdb file.'
 
-        from simtk.openmm.app import PDBFile
+        from openmm.app import PDBFile
 
         PDBFile.writeFile(self._topology,
                           self._positions,
@@ -891,17 +893,17 @@ class ClustENM(Ensemble):
         :type n_gens: int
 
         :arg maxclust: Maximum number of clusters for each generation, default in None.
-            A tuple of ints can be given, e.g. (10, 30, 50) for subsequent generations.
+            A tuple of integers can be given, e.g. (10, 30, 50) for subsequent generations.
             Warning: Either maxclust or RMSD threshold should be given! For large number of
             generations and/or structures, specifying maxclust is more efficient.
-        :type maxclust: int, tuple
+        :type maxclust: int or tuple of integers
 
         :arg threshold: RMSD threshold to apply when forming clusters, default is None.
             This parameter has been used in ClustENMv1, setting it to 75% of the maximum RMSD
             value used for sampling. A tuple of floats can be given, e.g. (1.5, 2.0, 2.5)
             for subsequent generations.
             Warning: This threshold should be chosen carefully in ClustENMv2 for efficiency.
-        :type threshold: float, tuple
+        :type threshold: float or tuple of floats
 
         :arg solvent: Solvent model to be used. If it is set to 'imp' (default),
             implicit solvent model will be used, whereas 'exp' stands for explicit solvent model.
@@ -919,7 +921,7 @@ class ClustENM(Ensemble):
         :arg force_field: Implicit solvent force field is ('amber99sbildn.xml', 'amber99_obc.xml'). 
             Explicit solvent force field is ('amber14-all.xml', 'amber14/tip3pfb.xml').
             Experimental feature: Forcefields already implemented in OpenMM can be used. 
-        :type force_field: tuple
+        :type force_field: tuple of strings
         
         :arg tolerance: Energy tolerance to which the system should be minimized, default is 10.0 kJ/mole.
         :type tolerance: float
@@ -939,12 +941,12 @@ class ClustENM(Ensemble):
         :arg t_steps_i: Duration of MD simulation (number of time steps) for the starting structure
             following the heating-up phase, default is 1000. Each time step is 2.0 fs.
             Note: Default value reduces possible drift from the starting structure. 
-        :type t_steps_i: int
+        :type t_steps_i : int
 
         :arg t_steps_g: Duration of MD simulations (number of time steps) to run for each conformer
             following the heating-up phase, default is 7500. Each time step is 2.0 fs.
-            A tuple of ints can be given, e.g. (3000, 5000, 7000) for subsequent generations.
-        :type t_steps_g: int, tuple
+            A tuple of integers can be given, e.g. (3000, 5000, 7000) for subsequent generations.
+        :type t_steps_g: int or tuple of integers
 
         :arg outlier: Exclusion of conformers detected as outliers in each generation.
             Default is True for implicit solvent. Outliers, if any, are detected by
