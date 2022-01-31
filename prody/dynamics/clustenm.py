@@ -214,7 +214,7 @@ class ClustENM(Ensemble):
             from pdbfixer import PDBFixer
             from openmm.app import PDBFile
         except ImportError:
-            raise ImportError('Please install PDBFixer and OpenMM in order to use ClustENM.')
+            raise ImportError('Please install PDBFixer and OpenMM 7.6 in order to use ClustENM.')
 
         stream = createStringIO()
         title = atoms.getTitle()
@@ -251,7 +251,7 @@ class ClustENM(Ensemble):
             from openmm.unit import angstrom, nanometers, picosecond, \
                 kelvin, Quantity, molar
         except ImportError:
-            raise ImportError('Please install PDBFixer and OpenMM in order to use ClustENM.')
+            raise ImportError('Please install PDBFixer and OpenMM 7.6 in order to use ClustENM.')
 
         positions = Quantity([Vec3(*xyz) for xyz in coords], angstrom)
         modeller = Modeller(self._topology, positions)
@@ -307,7 +307,7 @@ class ClustENM(Ensemble):
             from openmm.app import StateDataReporter
             from openmm.unit import kelvin, angstrom, kilojoule_per_mole, MOLAR_GAS_CONSTANT_R
         except ImportError:
-            raise ImportError('Please install PDBFixer and OpenMM in order to use ClustENM.')
+            raise ImportError('Please install PDBFixer and OpenMM 7.6 in order to use ClustENM.')
 
         simulation = self._prep_sim(coords=coords)
 
@@ -350,7 +350,7 @@ class ClustENM(Ensemble):
             from openmm.app import StateDataReporter
             from openmm.unit import nanometer, kelvin, angstrom, kilojoule_per_mole, MOLAR_GAS_CONSTANT_R
         except ImportError:
-            raise ImportError('Please install PDBFixer and OpenMM in order to use ClustENM.')
+            raise ImportError('Please install PDBFixer and OpenMM 7.6 in order to use ClustENM.')
 
         tmdk *= kilojoule_per_mole/angstrom**2
         tmdk = tmdk.value_in_unit(kilojoule_per_mole/nanometer**2)
@@ -820,7 +820,10 @@ class ClustENM(Ensemble):
 
         'Write the fixed (initial) structure to a pdb file.'
 
-        from openmm.app import PDBFile
+        try:
+            from openmm.app import PDBFile
+        except ImportError:
+            raise ImportError('Please install PDBFixer and OpenMM 7.6 in order to use ClustENM.')
 
         PDBFile.writeFile(self._topology,
                           self._positions,
