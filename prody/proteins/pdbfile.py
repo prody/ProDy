@@ -228,13 +228,12 @@ def _parsePDB(pdb, **kwargs):
             title = title[3:]
         kwargs['title'] = title
 
-    stream = openFile(pdb, 'rt')
-    if chain != '':
-        kwargs['chain'] = chain
-    result = parsePDBStream(stream, **kwargs)
-    stream.close()
-
-    if result is not None:
+    if pdb.endswith('.pdb') or pdb.endswith('.pdb.gz'):
+        stream = openFile(pdb, 'rt')
+        if chain != '':
+            kwargs['chain'] = chain
+        result = parsePDBStream(stream, **kwargs)
+        stream.close()
         return result
     else:
         try:
