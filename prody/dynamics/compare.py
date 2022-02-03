@@ -151,14 +151,14 @@ def getOverlapTable(rows, cols):
 
 def calcCumulOverlap(modes1, modes2, array=False):
     """Returns cumulative overlap of modes in *modes2* with those in *modes1*.
-    Returns a number of *modes1* contains a single :class:`.Mode` or a
+    Returns a number if *modes1* contains a single :class:`.Mode` or a
     :class:`.Vector` instance. If *modes1* contains multiple modes, returns an
     array. Elements of the array correspond to cumulative overlaps for modes
     in *modes1* with those in *modes2*.  If *array* is **True**, returns an array
     of cumulative overlaps. Returned array has the shape ``(len(modes1),
     len(modes2))``.  Each row corresponds to cumulative overlaps calculated for
     modes in *modes1* with those in *modes2*.  Each value in a row corresponds
-    to cumulative overlap calculated using upto that many number of modes from
+    to cumulative overlap calculated using up to that many number of modes from
     *modes2*."""
 
     overlap = calcOverlap(modes1, modes2)
@@ -198,6 +198,8 @@ def calcRWSIP(modes1, modes2):
        *J Phys Condens Matter.* **2007** 19:285206."""
 
     overlap = calcOverlap(modes1, modes2)
+    if not isinstance(overlap, np.ndarray):
+        overlap = np.array(overlap)
     
     if isinstance(modes1, Mode):
         length1 = 1
@@ -210,7 +212,14 @@ def calcRWSIP(modes1, modes2):
         length2 = len(modes2)
 
     vars1 = modes1.getVariances()
+    if length1 == 1:
+        vars1 = [vars1]
+        overlap = overlap.reshape(-1, 1)
+
     vars2 = modes2.getVariances()
+    if length2 == 1:
+        vars2 = [vars2]
+        overlap = overlap.reshape(1, -1)
 
     numerator = np.sum([vars1[l] * vars2[m] * overlap[l, m]**2
                         for l in range(length1)
