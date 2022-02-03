@@ -341,30 +341,38 @@ def parseScipionModes(run_path, title=None):
     vectors = np.zeros((dof, n_modes))
     vectors[:, 0] = mode1
 
+    eigvals = np.zeros(n_modes)
+
+    try:
+        eigvals[0] = float(row1['_nmaEigenval'])
+        found_eigvals = True
+    except:
+        found_eigvals = False
+
     for i, row in enumerate(star_loop[1:]):
         vectors[:, i+1] = parseArray(row['_nmaModefile']).reshape(-1)
-        
-    eigvals = np.zeros(n_modes)
+        if found_eigvals:
+            eigvals[i+1] = float(row['_nmaEigenval'])
     
     log_fname = run_path + '/logs/run.stdout'
     fi = open(log_fname, 'r')
     lines = fi.readlines()
     fi.close()
     
-    found_eigvals = False
-    for line in lines:
-        if line.find('Eigenvector number') != -1:
-            j = int(line.strip().split()[-1]) - 1
-        if line.find('Corresponding eigenvalue') != -1:
-            eigvals[j] = float(line.strip().split()[-1])
-            if not found_eigvals:
-                found_eigvals = True
+    if not found_eigvals:
+        for line in lines:
+            if line.find('Eigenvector number') != -1:
+                j = int(line.strip().split()[-1]) - 1
+            if line.find('Corresponding eigenvalue') != -1:
+                eigvals[j] = float(line.strip().split()[-1])
+                if not found_eigvals:
+                    found_eigvals = True
         
     if title is None:
         title = run_name
 
     if not found_eigvals:
-        LOGGER.warn('No eigenvalues found in {0}/logs/run.stdout'.format())
+        LOGGER.warn('No eigenvalues found')
         eigvals=None
 
     nma = NMA(title)
@@ -445,16 +453,17 @@ def writeScipionModes(output_path, modes, write_star=False, scores=None, only_sq
             modefiles.append(writeArray(modes_dir + 'vec.{0}'.format(mode_num),
                                         mode.getArray(), '%12.4e', ''))            
 
-
     if hasattr(modes, 'getIndices'):
         order = modes.getIndices()
         collectivities = list(calcCollectivity(modes))
+        eigvals = modes.getEigvals()
         enabled = [1 if eigval > ZERO and collectivities[i] > collectivityThreshold else -1
-                   for i, eigval in enumerate(modes.getEigvals())]
+                   for i, eigval in enumerate(eigvals)]
         if scores is None:
             scores = [0. for eigval in modes.getEigvals()]
     else:
         mode = modes[0]
+        eigvals = np.array([mode.getEigval()])
         collectivities = [calcCollectivity(mode)]
         order = [mode.getIndex()]
         enabled = [1 if mode.getEigval() > ZERO and collectivities[0] > collectivityThreshold else -1]
@@ -487,8 +496,8 @@ def writeScipionModes(output_path, modes, write_star=False, scores=None, only_sq
     loop_dict = star_dict['noname'][0] = OrderedDict() # Loop 0
 
     loop_dict['fields'] = OrderedDict()
-    fields = ['_enabled', '_nmaCollectivity', '_nmaModefile', #'_nmaScore',
-              '_order_']
+    fields = ['_enabled', '_nmaCollectivity', '_nmaModefile', '_nmaScore',
+              '_nmaEigenval', '_order_']
     for j, field in enumerate(fields):
         loop_dict['fields'][j] = field
 
@@ -518,6 +527,12 @@ def writeScipionModes(output_path, modes, write_star=False, scores=None, only_sq
         
         c03 = scores[i]
         loop_dict['data'][i]['_nmaScore'] = '%8.6f' % c03
+
+        eigval = eigvals[i]
+        if float('%9.6f' % eigval) > 0:
+            loop_dict['data'][i]['_nmaEigenval'] = '%9.6f' % eigval
+        else:
+            loop_dict['data'][i]['_nmaEigenval'] = '%9.6e' % eigval
         
         cursor.execute('''INSERT INTO Objects VALUES(?,?,?,?,?,?,?,?)''',
                        (id, enab, label, comment, creation, c01, c02, c03))
