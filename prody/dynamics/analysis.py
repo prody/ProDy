@@ -23,7 +23,7 @@ __all__ = ['calcCollectivity', 'calcCovariance', 'calcCrossCorr',
            'calcProjection', 'calcCrossProjection',
            'calcSpecDimension', 'calcPairDeformationDist',
            'calcDistFlucts', 'calcHinges', 'calcHitTime', 'calcHitTime',
-           'calcAnisousFromModel']
+           'calcAnisousFromModel', 'calcScipionScore']
            #'calcEntropyTransfer', 'calcOverallNetEntropyTransfer']
 
 def calcCollectivity(mode, masses=None, is3d=None):
@@ -36,7 +36,7 @@ def calcCollectivity(mode, masses=None, is3d=None):
        spin relaxation. *J Chem Phys* **1995** 102:3396-3403.
 
     :arg mode: mode(s) or vector(s)
-    :type mode: :class:`.Mode`, :class:`.Vector`, :class:`.ModeSet`
+    :type mode: :class:`.Mode`, :class:`.Vector`, :class:`.ModeSet`, :class:`.NMA`
 
     :arg masses: atomic masses
     :type masses: :class:`numpy.ndarray`
@@ -707,3 +707,32 @@ def calcAnisousFromModel(model, ):
         anisou[index, 4] = submatrix[0, 2]
         anisou[index, 5] = submatrix[1, 2]
     return anisou
+
+
+def calcScipionScore(modes):
+    """Calculate Scipion continuousflex score, 
+    which is a function of mode number and collectivity order.
+
+    :arg modes: mode(s) or vector(s)
+    :type modes: :class:`.Mode`, :class:`.Vector`, :class:`.ModeSet`, :class:`.NMA`
+    """
+    n_modes = modes.numModes()
+    
+    if n_modes > 1:
+        collectivityList = list(calcCollectivity(modes))
+    else:
+        collectivityList = [calcCollectivity(modes)]
+
+    idxSorted = [i[0] for i in sorted(enumerate(collectivityList),
+                                      key=lambda x: x[1],
+                                      reverse=True)]
+
+    score = np.zeros(n_modes)
+    modeNum = list(range(n_modes))
+
+    for i in range(n_modes):
+        score[idxSorted[i]] = idxSorted[i] + modeNum[i] + 2  
+
+    score = score / (2.0 * n_modes) 
+
+    return score
