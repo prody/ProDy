@@ -18,6 +18,7 @@ from prody.ensemble import PDBEnsemble
 
 from .nma import NMA, MaskedNMA
 from .anm import ANM, ANMBase, MaskedANM
+from .analysis import calcCollectivity, calcScipionScore
 from .analysis import calcProjection
 from .analysis import calcCollectivity
 from .gnm import GNM, GNMBase, ZERO, MaskedGNM
@@ -377,7 +378,9 @@ def parseScipionModes(run_path, title=None):
     nma.setEigens(vectors, eigvals)
     return nma
 
-def writeScipionModes(output_path, modes, write_star=False, scores=None, only_sqlite=False, collectivityThreshold=0.):
+
+def writeScipionModes(output_path, modes, write_star=False, scores=None,
+                      only_sqlite=False, collectivityThreshold=0.):
     """Writes *modes* to a set of files that can be recognised by Scipion.
     A directory called **"modes"** will be created if it doesn't already exist. 
     Filenames inside will start with **"vec"** and have the mode number as the extension.
@@ -393,7 +396,7 @@ def writeScipionModes(output_path, modes, write_star=False, scores=None, only_sq
     :type write_star: bool
 
     :arg scores: scores from qualifyModesStep for re-writing sqlite
-        Default is **None** and then it writes 0 for each.
+        Default is **None** and then it uses :func:`.calcScipionScore`
     :type scores: list
 
     :arg only_sqlite: whether to write only the sqlite file instead of everything.
@@ -460,7 +463,7 @@ def writeScipionModes(output_path, modes, write_star=False, scores=None, only_sq
         enabled = [1 if eigval > ZERO and collectivities[i] > collectivityThreshold else -1
                    for i, eigval in enumerate(eigvals)]
         if scores is None:
-            scores = [0. for eigval in modes.getEigvals()]
+            scores = list(calcScipionScore(modes))
     else:
         mode = modes[0]
         eigvals = np.array([mode.getEigval()])
@@ -468,7 +471,7 @@ def writeScipionModes(output_path, modes, write_star=False, scores=None, only_sq
         order = [mode.getIndex()]
         enabled = [1 if mode.getEigval() > ZERO and collectivities[0] > collectivityThreshold else -1]
         if scores is None:
-            scores = [0.]
+            scores = [calcScipionScore(mode)[0]]
 
     modes_sqlite_fn = output_path + '/modes.sqlite'
     sql_con = openSQLite(modes_sqlite_fn, 'n')
