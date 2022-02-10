@@ -266,10 +266,10 @@ def sliceMode(mode, atoms, select):
     return (vec, sel)
 
 
-def sliceModel(model, atoms, select):
+def sliceModel(model, atoms, select, norm=False):
     """Returns a part of the *model* (modes calculated) for *atoms* matching *select*. 
     Note that normal modes are sliced instead the connectivity matrix. Sliced normal 
-    modes (eigenvectors) are not normalized.
+    modes (eigenvectors) are not normalized unless *norm* is **True**.
 
     :arg mode: NMA model instance to be sliced
     :type mode: :class:`.NMA`
@@ -279,6 +279,9 @@ def sliceModel(model, atoms, select):
 
     :arg select: an atom selection or a selection string
     :type select: :class:`.Selection`, str
+
+    :arg norm: whether to normalize eigenvectors, default **False**
+    :type norm: bool
 
     :returns: (:class:`.NMA`, :class:`.Selection`)"""
 
@@ -292,13 +295,13 @@ def sliceModel(model, atoms, select):
         raise ValueError('number of atoms in model and atoms must be equal')
 
     which, sel = sliceAtoms(atoms, select)
-    nma = sliceModelByMask(model, which)
+    nma = sliceModelByMask(model, which, norm=norm)
 
     return (nma, sel)
 
-def sliceModelByMask(model, mask):
+def sliceModelByMask(model, mask, norm=False):
     """Returns a part of the *model* indicated by *mask*.  Note that
-    normal modes (eigenvectors) are not normalized.
+    normal modes (eigenvectors) are not normalized unless *norm* is **True**.
 
     :arg mode: NMA model instance to be sliced
     :type mode: :class:`.NMA`
@@ -306,6 +309,9 @@ def sliceModelByMask(model, mask):
     :arg mask: an Integer array or a Boolean array where ``"True"`` indicates 
         the parts being selected 
     :type mask: list, :class:`~numpy.ndarray`
+
+    :arg norm: whether to normalize eigenvectors, default **False**
+    :type norm: bool
 
     :returns: :class:`.NMA`"""
 
@@ -331,7 +337,13 @@ def sliceModelByMask(model, mask):
                     .format(model.getTitle()))
     if model.is3d():
         which = np.repeat(which, 3)
-    nma.setEigens(array[which, :], model.getEigvals())
+
+    evecs = array[which, :]
+    if norm:
+        evecs /= np.array([((evecs[:, i]) ** 2).sum() ** 0.5
+                           for i in range(evecs.shape[1])])
+
+    nma.setEigens(evecs, model.getEigvals())
     return nma
 
 def reduceModel(model, atoms, select):
