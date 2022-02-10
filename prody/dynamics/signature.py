@@ -1015,7 +1015,7 @@ def _getEnsembleENMs(ensemble, **kwargs):
             enms = ModeEnsemble()
             enms.addModeSet(ensemble)
         except TypeError:
-            raise TypeError('ensemble must be an Ensemble or a ModeEnsemble instance,'
+            raise TypeError('ensemble must be an Ensemble or a ModeEnsemble instance, '
                             'or a list of NMA, Mode, or ModeSet instances.')
     return enms
 
