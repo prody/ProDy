@@ -23,7 +23,7 @@ __all__ = ['calcCollectivity', 'calcCovariance', 'calcCrossCorr',
            'calcProjection', 'calcCrossProjection',
            'calcSpecDimension', 'calcPairDeformationDist',
            'calcDistFlucts', 'calcHinges', 'calcHitTime', 'calcHitTime',
-           'calcAnisousFromModel']
+           'calcAnisousFromModel', 'calcScipionScore', 'calcHemnmaScore']
            #'calcEntropyTransfer', 'calcOverallNetEntropyTransfer']
 
 def calcCollectivity(mode, masses=None, is3d=None):
@@ -36,7 +36,7 @@ def calcCollectivity(mode, masses=None, is3d=None):
        spin relaxation. *J Chem Phys* **1995** 102:3396-3403.
 
     :arg mode: mode(s) or vector(s)
-    :type mode: :class:`.Mode`, :class:`.Vector`, :class:`.ModeSet`
+    :type mode: :class:`.Mode`, :class:`.Vector`, :class:`.ModeSet`, :class:`.NMA`
 
     :arg masses: atomic masses
     :type masses: :class:`numpy.ndarray`
@@ -707,3 +707,43 @@ def calcAnisousFromModel(model, ):
         anisou[index, 4] = submatrix[0, 2]
         anisou[index, 5] = submatrix[1, 2]
     return anisou
+
+
+def calcScipionScore(modes):
+    """Calculate the score from hybrid electron microscopy normal mode analysis (HEMNMA) 
+    [CS14]_ as implemented in the Scipion continuousflex plugin [MH20]_. This score 
+    prioritises modes as a function of mode number and collectivity order.
+
+    .. [CS14] Sorzano COS, de la Rosa-Trevín JM, Tama F, Jonić S.
+       Hybrid Electron Microscopy Normal Mode Analysis graphical interface and protocol.
+       *J Struct Biol* **2014** 188:134-41.
+
+    .. [MH20] Harastani M, Sorzano COS, Jonić S. 
+       Hybrid Electron Microscopy Normal Mode Analysis with Scipion.
+       *Protein Sci* **2020** 29:223-236.
+
+    :arg modes: mode(s) or vector(s)
+    :type modes: :class:`.Mode`, :class:`.Vector`, :class:`.ModeSet`, :class:`.NMA`
+    """
+    n_modes = modes.numModes()
+    
+    if n_modes > 1:
+        collectivityList = list(calcCollectivity(modes))
+    else:
+        collectivityList = [calcCollectivity(modes)]
+
+    idxSorted = [i[0] for i in sorted(enumerate(collectivityList),
+                                      key=lambda x: x[1],
+                                      reverse=True)]
+
+    score = np.zeros(n_modes)
+    modeNum = list(range(n_modes))
+
+    for i in range(n_modes):
+        score[idxSorted[i]] = idxSorted[i] + modeNum[i] + 2  
+
+    score = score / (2.0 * n_modes) 
+
+    return score
+
+calcHemnmaScore = calcScipionScore
