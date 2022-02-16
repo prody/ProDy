@@ -1015,7 +1015,7 @@ def _getEnsembleENMs(ensemble, **kwargs):
             enms = ModeEnsemble()
             enms.addModeSet(ensemble)
         except TypeError:
-            raise TypeError('ensemble must be an Ensemble or a ModeEnsemble instance,'
+            raise TypeError('ensemble must be an Ensemble or a ModeEnsemble instance, '
                             'or a list of NMA, Mode, or ModeSet instances.')
     return enms
 
@@ -1490,10 +1490,11 @@ def showSignatureOverlaps(mode_ensemble, **kwargs):
     :arg std: Whether to show the standard deviation matrix
               when **diag** is **False** (and whole matrix is shown).
               Default is **False**, meaning the mean matrix is shown.
+    type: std: bool
     """
-    diag = kwargs.get('diag', False)
-    std = kwargs.get('std', False)
-    from matplotlib.pyplot import xlabel, ylabel
+    diag = kwargs.pop('diag', False)
+    std = kwargs.pop('std', False)
+    from matplotlib.pyplot import xlabel, ylabel, Normalize
 
     if not isinstance(mode_ensemble, ModeEnsemble):
         raise TypeError('mode_ensemble should be an instance of ModeEnsemble')
@@ -1511,8 +1512,8 @@ def showSignatureOverlaps(mode_ensemble, **kwargs):
         meanV = overlap_triu.mean(axis=1)
         stdV = overlap_triu.std(axis=1)
 
-        show = showSignatureAtomicLines(meanV, stdV)
-        xlabel('Mode index')
+        show = showSignatureAtomicLines(meanV, stdV, **kwargs)
+        xlabel('Mode index (ref)')
         ylabel('Overlap')
     else:
         r, c = np.triu_indices(overlaps.shape[2], k=1)
@@ -1520,10 +1521,14 @@ def showSignatureOverlaps(mode_ensemble, **kwargs):
 
         if std:
             stdV = overlap_triu.std(axis=-1)
-            show = showMatrix(stdV)
+            show = showMatrix(stdV, **kwargs)
         else:
             meanV = overlap_triu.mean(axis=-1)
-            show = showMatrix(meanV)
+            norm = kwargs.pop('norm', Normalize(0, 1))
+            show = showMatrix(meanV, norm=norm, **kwargs)
+
+        xlabel('Mode index (ref)')
+        ylabel('Mode index (ref)')
     
     return show
 

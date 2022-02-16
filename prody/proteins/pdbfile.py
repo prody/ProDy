@@ -228,13 +228,12 @@ def _parsePDB(pdb, **kwargs):
             title = title[3:]
         kwargs['title'] = title
 
-    stream = openFile(pdb, 'rt')
-    if chain != '':
-        kwargs['chain'] = chain
-    result = parsePDBStream(stream, **kwargs)
-    stream.close()
-
-    if result is not None:
+    if pdb.endswith('.pdb') or pdb.endswith('.pdb.gz'):
+        stream = openFile(pdb, 'rt')
+        if chain != '':
+            kwargs['chain'] = chain
+        result = parsePDBStream(stream, **kwargs)
+        stream.close()
         return result
     else:
         try:
@@ -501,8 +500,11 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                     break
         if nmodel != model:
             raise PDBParseError('model {0} is not found'.format(model))
+
     if isinstance(altloc_torf, str):
-        if altloc_torf.strip() != 'A':
+        if altloc_torf == 'all':
+            which_altlocs = 'all'
+        elif altloc_torf.strip() != 'A':
             LOGGER.info('Parsing alternate locations {0}.'
                         .format(altloc_torf))
             which_altlocs = ' ' + ''.join(altloc_torf.split())
@@ -561,7 +563,7 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
             
             if isPDB:
                 alt = line[16]
-                if alt not in which_altlocs:
+                if alt not in which_altlocs and which_altlocs != 'all':
                     altloc[alt].append((line, i))
                     i += 1
                     continue
@@ -625,20 +627,20 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
             chainids[acount] = chid
             if isPDB:
                 resnum_str = line[22:26]
+                icode = line[26] 
                 if dec:
                     try:
                         resnum = int(resnum_str)
                     except ValueError:
                         dec = False
 
-                icode = line[26] 
-                if icode.isdigit() and dec:
-                    if not warned_5_digit:
-                        LOGGER.warn('parsed 5 digit residue number including numeric insertion code')
-                        warned_5_digit = True
-                    resnum = int(str(resnum) + icode)
-                else:
-                    icodes[acount] = icode
+                    if icode.isdigit():
+                        if not warned_5_digit:
+                            LOGGER.warn('parsed 5 digit residue number including numeric insertion code')
+                            warned_5_digit = True
+                        resnum = int(str(resnum) + icode)          
+                    else:
+                        icodes[acount] = icode
 
                 if dec and acount > 2 and resnums[acount-2] > resnum and resnums[acount-2] >= MAX_N_RES:
                     dec = False
@@ -646,7 +648,7 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                 if not dec:
                     resnum = resnum_str
                     try:
-                        isnumeric = np.alltrue([x.isdigit() for x in resnum_str])
+                        isnumeric = np.alltrue([x.isdigit() or x==' ' for x in resnum_str])
                         if not isnumeric and resnum_str == resnum_str.upper():
                             resnum = hybrid36ToDec(resnum_str, resnum=True)
                         else:
@@ -1388,6 +1390,8 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
             anisouline = ANISOULINE_LT100K
         else:
             warned_hybrid36 = False
+
+        warned_5_digit = False
             
         for i, xyz in enumerate(coords):
             if hybrid36:
@@ -1429,6 +1433,51 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
             else:
                 serial = serials[i]
                 resnum = resnums[i]
+
+            if pdbline == PDBLINE_LT100K or hybrid36:
+                if len(str(resnum)) == 5:
+                    if icodes[i] == '':
+                        icodes[i] = str(resnum)[4]
+                        
+                        if not warned_5_digit:
+                            LOGGER.warn('Storing 5-digit resnums using insertion codes')
+                            warned_5_digit = True
+                    else:
+                        LOGGER.warn('Truncating 5-digit resnum as insertion code is busy.')
+
+                    resnum = int(str(resnum)[:4])
+                
+                elif len(str(resnum)) > 5:
+                    if not warned_5_digit:
+                        LOGGER.warn('Truncating {0}-digit resnum as too long to be '
+                                    'supported by insertion code.'.format(len(str(resnum))))
+                        warned_5_digit = True
+                        
+                    resnum = int(str(resnum)[:4])
+            else:
+                final_resnum = '%4x' % int(resnum)
+                
+                if len(str(final_resnum)) == 5:
+                    if icodes[i] == '':
+                        icodes[i] = str(final_resnum)[4]
+                        
+                        if not warned_5_digit:
+                            LOGGER.warn('Storing 5-digit hex resnums using insertion codes')
+                            warned_5_digit = True
+                    else:
+                        LOGGER.warn('Truncating 5-digit hex resnum as insertion code is busy.')
+
+                    resnum = int(str(final_resnum)[:4], 16)
+                
+                elif len(str(final_resnum)) > 5:
+                    if not warned_5_digit:
+                        LOGGER.warn('Truncating {0}-digit hex resnum ({1}) as too long to be '
+                                    'supported by insertion code.'.format(len(str(final_resnum)), 
+                                                                          final_resnum))
+                        warned_5_digit = True
+                        
+                    resnum = int(str(final_resnum)[:4], 16)
+              
 
             write(pdbline % (hetero[i], serial,
                              atomnames[i], altlocs[i],
