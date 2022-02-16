@@ -290,6 +290,8 @@ def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
         startswith = line.split()[fields['group_PDB']]
 
         atomname = line.split()[fields['auth_atom_id']]
+        if atomname.find('"') != -1:
+            atomname = atomname[1:4]
         resname = line.split()[fields['auth_comp_id']]
 
         if subset is not None:
