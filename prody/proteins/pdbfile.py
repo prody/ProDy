@@ -552,7 +552,7 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                     continue
 
             if isPDB:
-                chid = line[20:22]
+                chid = line[20:22].strip()
             else:
                 chid = fields[4]
 
