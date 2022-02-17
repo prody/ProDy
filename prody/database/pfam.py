@@ -58,6 +58,8 @@ def searchPfam(query, **kwargs):
     chain identifier.  UniProt ID of the specified chain, or the first
     protein chain will be used for searching the Pfam database."""
 
+    import requests
+
     if isfile(query):
         from prody.sequence import MSAFile
         try:
@@ -203,14 +205,19 @@ def searchPfam(query, **kwargs):
 
     LOGGER.debug('Retrieving Pfam search results: ' + url)
     xml = None
+    sleep = 2
     while LOGGER.timing('_pfam') < timeout:
         try:
-            xml = openURL(url, timeout=timeout).read()
+            # xml = openURL(url, timeout=timeout).read()
+            xml = requests.get(url, verify=False).content
         except Exception:
             pass
         else:
             if xml not in ['PEND','RUN']:
                 break
+        
+        sleep = 20 if int(sleep * 1.5) >= 20 else int(sleep * 1.5)
+        LOGGER.sleep(int(sleep), '. Trying to reconnect...')
 
     if not xml:
         raise IOError('Pfam search timed out or failed to parse results '
