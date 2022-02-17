@@ -622,7 +622,11 @@ def matchChains(atoms1, atoms2, **kwargs):
 
     matches = []
     unmatched = []
-    if not pwalign:
+    if pwalign:
+        for simpch1 in chains1:
+            for simpch2 in chains2:
+                unmatched.append((simpch1, simpch2))
+    else:
         LOGGER.debug('Trying to match chains based on residue numbers and names:')
         for simpch1 in chains1:
             for simpch2 in chains2:
