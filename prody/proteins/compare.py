@@ -622,26 +622,27 @@ def matchChains(atoms1, atoms2, **kwargs):
 
     matches = []
     unmatched = []
-    LOGGER.debug('Trying to match chains based on residue numbers and names:')
-    for simpch1 in chains1:
-        for simpch2 in chains2:
-            LOGGER.debug('  Comparing {0} (len={1}) and {2} (len={3}):'
-                         .format(simpch1.getTitle(), len(simpch1),
-                                 simpch2.getTitle(), len(simpch2)))
+    if not pwalign:
+        LOGGER.debug('Trying to match chains based on residue numbers and names:')
+        for simpch1 in chains1:
+            for simpch2 in chains2:
+                LOGGER.debug('  Comparing {0} (len={1}) and {2} (len={3}):'
+                            .format(simpch1.getTitle(), len(simpch1),
+                                    simpch2.getTitle(), len(simpch2)))
 
-            match1, match2, nmatches = getTrivialMatch(simpch1, simpch2)
-            _seqid = nmatches * 100 / min(len(simpch1), len(simpch2))
-            _cover = len(match2) * 100 / max(len(simpch1), len(simpch2))
+                match1, match2, nmatches = getTrivialMatch(simpch1, simpch2)
+                _seqid = nmatches * 100 / min(len(simpch1), len(simpch2))
+                _cover = len(match2) * 100 / max(len(simpch1), len(simpch2))
 
-            if _seqid >= seqid and _cover >= coverage:
-                LOGGER.debug('\tMatch: {0} residues match with {1:.0f}% '
-                             'sequence identity and {2:.0f}% overlap.'
-                             .format(len(match1), _seqid, _cover))
-                matches.append((match1, match2, _seqid, _cover, simpch1, simpch2))
-            else:
-                LOGGER.debug('\tFailed to match chains (seqid={0:.0f}%, '
-                             'overlap={1:.0f}%).'.format(_seqid, _cover))
-                unmatched.append((simpch1, simpch2))
+                if _seqid >= seqid and _cover >= coverage:
+                    LOGGER.debug('\tMatch: {0} residues match with {1:.0f}% '
+                                'sequence identity and {2:.0f}% overlap.'
+                                .format(len(match1), _seqid, _cover))
+                    matches.append((match1, match2, _seqid, _cover, simpch1, simpch2))
+                else:
+                    LOGGER.debug('\tFailed to match chains (seqid={0:.0f}%, '
+                                'overlap={1:.0f}%).'.format(_seqid, _cover))
+                    unmatched.append((simpch1, simpch2))
 
     if pwalign or (not matches and (pwalign is None or pwalign)):
         if pairwise2:
