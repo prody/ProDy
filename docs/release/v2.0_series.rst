@@ -4,6 +4,35 @@ ProDy 2.0 Series
 .. contents::
    :local:
 
+2.0.2 (February 17, 2022)
+------------------------------------------------------------------------------
+
+**New Features**:
+  
+  * Added :function:`.realignModes` for comparing sets of modes calculated on unaligned 
+  structures
+
+  * New option *by_time* in :function:`.showProjection`, allowing projections onto 1 PC 
+  and the frames sampled over the time course of a simulation or the conformers in an ensemble.
+
+  * Updates to ClustENM(D) to use latest and more efficient OpenMM version, 7.6
+
+  * New :function:`.parseGromacsModes` for parsing NMA and PCA modes calculated in Gromacs, 
+  allowing the use of all-atom force fields and more efficient handling of large trajectories
+
+**Bug Fixes and Improvements**:
+  
+  * Bug fixes to searchPfam and fetchPfamMSA, which no longer worked due to some security change.
+
+  * Bug fix to Ensembles and Conformations for weights being indexed twice
+
+  * Bug fix to --quiet option of apps that fixes the VMD ProDy interface
+
+  * General documentation and error improvements
+
+**Full Changelog**: https://github.com/prody/ProDy/compare/v2.0.1...v2.0.2
+
+
 2.0.1 (Dec 20, 2021)
 ------------------------------------------------------------------------------
 
