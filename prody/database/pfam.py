@@ -23,7 +23,6 @@ else:
     import urllib
     import urllib2
 
-import requests
 
 __all__ = ['searchPfam', 'fetchPfamMSA', 'parsePfamPDBs']
 
@@ -329,6 +328,8 @@ def fetchPfamMSA(acc, alignment='full', compressed=False, **kwargs):
     :arg outname: out filename, default is input ``'acc_alignment.format'``
 
     :arg folder: output folder, default is ``'.'``"""
+    
+    import requests
 
     # url = prefix + 'family/acc?id=' + acc
     # handle = openURL(url, timeout=int(kwargs.get('timeout', 60)))
