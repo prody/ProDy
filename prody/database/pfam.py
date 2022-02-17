@@ -23,6 +23,8 @@ else:
     import urllib
     import urllib2
 
+import requests
+
 __all__ = ['searchPfam', 'fetchPfamMSA', 'parsePfamPDBs']
 
 FASTA = 'fasta'
@@ -328,12 +330,12 @@ def fetchPfamMSA(acc, alignment='full', compressed=False, **kwargs):
 
     :arg folder: output folder, default is ``'.'``"""
 
-    url = prefix + 'family/acc?id=' + acc
-    handle = openURL(url, timeout=int(kwargs.get('timeout', 60)))
+    # url = prefix + 'family/acc?id=' + acc
+    # handle = openURL(url, timeout=int(kwargs.get('timeout', 60)))
     orig_acc = acc
-    acc = handle.readline().strip()
-    if PY3K:
-        acc = acc.decode()
+    # acc = handle.readline().strip()
+    # if PY3K:
+    #     acc = acc.decode()
     url_flag = False
 
     if not re.search('(?<=PF)[0-9]{5}$', acc):
@@ -386,7 +388,23 @@ def fetchPfamMSA(acc, alignment='full', compressed=False, **kwargs):
                    '&alnType=' + alignment + '&order=' + order[0] +
                    '&case=' + inserts[0] + '&gaps=' + gaps + '&download=1')
 
-    response = openURL(url, timeout=int(kwargs.get('timeout', 60)))
+    LOGGER.timeit('_pfam')
+    timeout = kwargs.get('timeout', 60)
+    response = None
+    sleep = 2
+    try_error = 3
+    while LOGGER.timing('_pfam') < timeout:
+        try:
+            response = requests.get(url, verify=False).content
+        except Exception:
+            pass
+        else:
+            break
+        
+        sleep = 20 if int(sleep * 1.5) >= 20 else int(sleep * 1.5)
+        LOGGER.sleep(int(sleep), '. Trying to reconnect...')
+
+    # response = openURL(url, timeout=int(kwargs.get('timeout', 60)))
     outname = kwargs.get('outname', None)
     if not outname:
         outname = orig_acc
@@ -398,14 +416,16 @@ def fetchPfamMSA(acc, alignment='full', compressed=False, **kwargs):
             f_out = open(filepath, 'wb')
         else:
             f_out = openFile(filepath, 'wb')
-        f_out.write(response.read())
+        # f_out.write(response.read())
+        f_out.write(response)
         f_out.close()
     else:
         if url_flag:
             gunzip(response.read(), filepath)
         else:
             with open(filepath, 'wb') as f_out:
-                f_out.write(response.read())
+                # f_out.write(response.read())
+                f_out.write(response)
 
     filepath = relpath(filepath)
     LOGGER.info('Pfam MSA for {0} is written as {1}.'
