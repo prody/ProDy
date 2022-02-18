@@ -438,8 +438,10 @@ def writeScipionModes(output_path, modes, write_star=False, scores=None,
         raise TypeError('collectivityThreshold should be float, not {0}'
                         .format(type(collectivityThreshold)))
 
-    if modes.numModes() == 1:
-        modes = wrapModes(modes)
+    if modes.numModes() == 1 and not isinstance(modes, NMA):
+        old_modes = modes
+        modes = NMA(old_modes)
+        modes.setEigens(old_modes.getArray().reshape(-1, 1))
 
     modes_dir = output_path + '/modes/'
     if not isdir(modes_dir):
@@ -455,7 +457,7 @@ def writeScipionModes(output_path, modes, write_star=False, scores=None,
             modefiles.append(writeArray(modes_dir + 'vec.{0}'.format(mode_num),
                                         mode.getArray(), '%12.4e', ''))            
 
-    if hasattr(modes, 'getIndices'):
+    if modes.numModes() > 1:
         order = modes.getIndices()
         collectivities = list(calcCollectivity(modes))
         eigvals = modes.getEigvals()
