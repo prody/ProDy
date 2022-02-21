@@ -504,6 +504,30 @@ def interpolateModel(model, nodes, atoms, norm=False, **kwargs):
 
     .. [JS09] Stember JN, Wriggers W. Bend-twist-stretch model for coarse 
     elastic network simulation of biomolecular motion. *J Chem Phys* **2009** 131:074112.
+
+    # Legal notice:
+    # 
+    # This software is copyrighted, (c) 2009-10, by Joseph N. Stember and Willy Wriggers
+    # under the following terms:
+    #
+    # The authors hereby grant permission to use, copy, modify, and re-distribute this
+    # software and its documentation for any purpose, provided that existing copyright
+    # notices are retained in all copies and that this notice is included verbatim in
+    # any distributions. No written agreement, license, or royalty fee is required for
+    # any of the authorized uses.
+    #
+    # IN NO EVENT SHALL THE AUTHORS OR DISTRIBUTORS BE LIABLE TO ANY PARTY FOR DIRECT,
+    # INDIRECT, SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES ARISING OUT OF THE USE
+    # OF THIS SOFTWARE, ITS DOCUMENTATION, OR ANY DERIVATIVES THEREOF, EVEN IF THE
+    # AUTHORS HAVE BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+    #
+    # THE AUTHORS AND DISTRIBUTORS SPECIFICALLY DISCLAIM ANY WARRANTIES, INCLUDING,
+    # BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+    # PARTICULAR PURPOSE, AND NON-INFRINGEMENT.  THIS SOFTWARE IS PROVIDED ON AN "AS
+    # IS" BASIS, AND THE AUTHORS AND DISTRIBUTORS HAVE NO OBLIGATION TO PROVIDE
+    # MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
+    #
+    # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     """
 
     quiet = kwargs.pop('quiet', False)
