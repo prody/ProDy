@@ -440,7 +440,10 @@ def matchModes(*modesets, **kwargs):
 
     n_worker = None
     if not isinstance(turbo, bool):
-        n_worker = int(turbo)
+        try:
+            n_worker = int(turbo)
+        except TypeError:
+            raise TypeError('turbo should be Boolean or a number')
 
     modeset0 = modesets[0]
     if index:
