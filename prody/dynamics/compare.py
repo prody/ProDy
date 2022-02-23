@@ -427,7 +427,7 @@ def matchModes(*modesets, **kwargs):
 
     :arg turbo: if **True** then the computation will be performed in parallel. 
                 The number of threads is set to be the same as the number of 
-                CPUs. Assigning a number to specify the number of threads to be 
+                CPUs. Assigning a number will specify the number of threads to be 
                 used. Note that if writing a script, ``if __name__ == '__main__'`` 
                 is necessary to protect your code when multi-tasking. 
                 See https://docs.python.org/2/library/multiprocessing.html for details.
