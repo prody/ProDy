@@ -791,11 +791,15 @@ def parseGromacsModes(run_path, title="", model='nma', **kwargs):
     :arg eigvec_fname: filename for trr file containing eigenvectors
         Default is ``"eigenvec.trr"`` as this is the default from Gromacs
     :type eigvec_fname: str
+
+    :arg average_pdb: filename for pdb file containing average structure
+        Default is ``"average.pdb"``
+    :type average_pdb: str
     """ 
     try:
-        from MDAnalysis.coordinates import TRR
+        from mdtraj import load_trr
     except ImportError:
-        raise ImportError('Please install MDAnalysis in order to use parseGromacsModes.')
+        raise ImportError('Please install mdtraj in order to use parseGromacsModes.')
 
     if not isinstance(run_path, str):
         raise TypeError('run_path should be a string')
@@ -817,6 +821,10 @@ def parseGromacsModes(run_path, title="", model='nma', **kwargs):
     eigvec_fname = kwargs.get('eigvec_fname', 'eigenvec.trr')
     if not isinstance(eigvec_fname, str):
         raise TypeError('eigvec_fname should be a string')
+
+    average_pdb = kwargs.get('average_pdb', 'average.pdb')
+    if not isinstance(average_pdb, str):
+        raise TypeError('average_pdb should be a string')
     
     vals_fname = run_path + eigval_fname
     fi = open(vals_fname, 'r')
@@ -832,10 +840,10 @@ def parseGromacsModes(run_path, title="", model='nma', **kwargs):
 
     # Parse eigenvectors trr with MDAnalysis, which assumes trajectory and multiplies by 10
     # to get A even though actually they are unit vectors
-    vecs_traj = TRR.TRRReader(run_path + eigvec_fname)
+    vecs_traj = load_trr(run_path+eigvec_fname, top=run_path+average_pdb)
 
     # format vectors appropriately, reversing *10 and skipping initial and average structures
-    vectors = np.array([frame.positions.flatten()/10 for frame in vecs_traj[2:]]).T
+    vectors = np.array([frame.xyz.flatten()/10 for frame in vecs_traj[2:]]).T
 
     result.setEigens(vectors, eigvals)
     return result
