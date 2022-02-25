@@ -429,7 +429,7 @@ class ModeEnsemble(object):
 
         :arg turbo: if **True** then the computation will be performed in parallel. 
                 The number of threads is set to be the same as the number of 
-                CPUs. Assigning a number to specify the number of threads to be 
+                CPUs. Assigning a number will specify the number of threads to be 
                 used. Default is **False**
         :type turbo: bool, int
         """
@@ -1015,7 +1015,7 @@ def _getEnsembleENMs(ensemble, **kwargs):
             enms = ModeEnsemble()
             enms.addModeSet(ensemble)
         except TypeError:
-            raise TypeError('ensemble must be an Ensemble or a ModeEnsemble instance,'
+            raise TypeError('ensemble must be an Ensemble or a ModeEnsemble instance, '
                             'or a list of NMA, Mode, or ModeSet instances.')
     return enms
 

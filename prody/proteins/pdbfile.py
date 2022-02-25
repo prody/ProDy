@@ -541,7 +541,7 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
         if startswith == 'ATOM' or startswith == 'HETATM':
             if isPDB:
                 atomname = line[12:16].strip()
-                resname = line[17:21].strip()
+                resname = line[17:20].strip()
             else:
                 atomname= fields[2]
                 resname = fields[3]
@@ -552,7 +552,7 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                     continue
 
             if isPDB:
-                chid = line[21]
+                chid = line[20:22].strip()
             else:
                 chid = fields[4]
 
@@ -1032,11 +1032,6 @@ def _evalAltlocs(atomgroup, altloc, chainids, resnums, resnames, atomnames):
                         'atomgroup {1}.'.format(repr(key), atomgroup.getTitle()))
             atomgroup.addCoordset(xyz, label='altloc ' + key)
 
-PDBLINE = ('{0:6s}{1:5d} {2:4s}{3:1s}'
-           '{4:4s}{5:1s}{6:4d}{7:1s}   '
-           '{8:8.3f}{9:8.3f}{10:8.3f}'
-           '{11:6.2f}{12:6.2f}      '
-           '{13:4s}{14:2s}\n')
 
 #HELIXLINE = ('HELIX  %3d %3s %-3s %1s %4d%1s %-3s %1s %4d%1s%2d'
 #             '                               %5d\n')
@@ -1050,51 +1045,51 @@ SHEETLINE = ('SHEET  {strand:3d} {sheetID:>3s}{numStrands:2d} '
              '{initResName:3s} {initChainID:1s}{initSeqNum:4d}{initICode:1s} '
              '{endResName:3s} {endChainID:1s}{endSeqNum:4d}{endICode:1s}{sense:2d} \n')
 
-PDBLINE_LT100K = ('%-6s%5d %-4s%1s%-4s%1s%4d%1s   '
+PDBLINE_LT100K = ('%-6s%5d %-4s%1s%-3s%2s%4d%1s   '
                   '%8.3f%8.3f%8.3f%6.2f%6.2f      '
                   '%4s%2s%2s\n')
 
 # Residue number
-PDBLINE_GE10K = ('%-6s%5d %-4s%1s%-4s%1s%4x%1s   '
+PDBLINE_GE10K = ('%-6s%5d %-4s%1s%-3s%2s%4x%1s   '
                  '%8.3f%8.3f%8.3f%6.2f%6.2f      '
                  '%4s%2s%2s\n')
 
 # Serial number
-PDBLINE_GE100K = ('%-6s%5x %-4s%1s%-4s%1s%4d%1s   '
+PDBLINE_GE100K = ('%-6s%5x %-4s%1s%-3s%2s%4d%1s   '
                   '%8.3f%8.3f%8.3f%6.2f%6.2f      '
                   '%4s%2s%2s\n')
 
 # Both
-PDBLINE_GE100K_GE10K = ('%-6s%5x %-4s%1s%-4s%1s%4x%1s   '
+PDBLINE_GE100K_GE10K = ('%-6s%5x %-4s%1s%-3s%2s%4x%1s   '
                         '%8.3f%8.3f%8.3f%6.2f%6.2f      '
                         '%4s%2s%2s\n')
 
 # All cases
-PDBLINE_H36 = ('%-6s%5s %-4s%1s%-4s%1s%4s%1s   '
+PDBLINE_H36 = ('%-6s%5s %-4s%1s%-3s%2s%4s%1s   '
                '%8.3f%8.3f%8.3f%6.2f%6.2f      '
                '%4s%2s%2s\n')
 
-ANISOULINE_LT100K = ('%-6s%5d %-4s%1s%-4s%1s%4d%1s '
+ANISOULINE_LT100K = ('%-6s%5d %-4s%1s%-3s%2s%4d%1s '
                      '%7d%7d%7d%7d%7d%7d  '
                      '%4s%2s%2s\n')
 
 # Residue number
-ANISOULINE_GE10K = ('%-6s%5d %-4s%1s%-4s%1s%4x%1s '
+ANISOULINE_GE10K = ('%-6s%5d %-4s%1s%-3s%2s%4x%1s '
                     '%7d%7d%7d%7d%7d%7d  '
                     '%4s%2s%2s\n')
 
 # Serial number
-ANISOULINE_GE100K = ('%-6s%5x %-4s%1s%-4s%1s%4d%1s '
+ANISOULINE_GE100K = ('%-6s%5x %-4s%1s%-3s%2s%4d%1s '
                      '%7d%7d%7d%7d%7d%7d  '
                      '%4s%2s%2s\n')
 
 # Both
-ANISOULINE_GE100K_GE10K = ('%-6s%5x %-4s%1s%-4s%1s%4x%1s '
+ANISOULINE_GE100K_GE10K = ('%-6s%5x %-4s%1s%-3s%2s%4x%1s '
                            '%7d%7d%7d%7d%7d%7d  '
                            '%4s%2s%2s\n')
 
 # All cases
-ANISOULINE_H36 = ('%-6s%5s %-4s%1s%-4s%1s%4s%1s '
+ANISOULINE_H36 = ('%-6s%5s %-4s%1s%-3s%2s%4s%1s '
                   '%7d%7d%7d%7d%7d%7d  '
                   '%4s%2s%2s\n')
 

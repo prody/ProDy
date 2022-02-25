@@ -345,6 +345,8 @@ def extendAtoms(nodes, atoms, is3d=False):
                   node.getIcode() or None, node.getSegname() or None)
         if res is None:
             raise ValueError('atoms must contain a residue for all atoms')
+        if isinstance(res, list):
+            raise ValueError('not enough data to get a single residue for all atoms')
 
         res_atom_indices = res._getIndices()
         if not fastin(res, residues):
