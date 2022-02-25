@@ -545,21 +545,28 @@ def parseGromacsModes(run_path, title="", model='nma', **kwargs):
         or ``"pca"``. If it is not changed to ``"pca"`` then ``"nma"`` will be assumed.
     :type model: str
 
-    :arg eigval_fname: filename for xvg file containing eigenvalues
+    :arg eigval_fname: filename or path for xvg file containing eigenvalues
         Default is ``"eigenval.xvg"`` as this is the default from Gromacs
     :type eigval_fname: str
 
-    :arg eigvec_fname: filename for trr file containing eigenvectors
+    :arg eigvec_fname: filename or path for trr file containing eigenvectors
         Default is ``"eigenvec.trr"`` as this is the default from Gromacs
     :type eigvec_fname: str
+
+    :arg pdb_fname: filename or path for pdb file containing the reference structure
+        Default is ``"average.pdb"`` although this is probably suboptimal
+    :type pdb_fname: str
     """ 
     try:
-        from MDAnalysis.coordinates import TRR
+        from mdtraj import load_trr
     except ImportError:
-        raise ImportError('Please install MDAnalysis in order to use parseGromacsModes.')
+        raise ImportError('Please install mdtraj in order to use parseGromacsModes.')
 
     if not isinstance(run_path, str):
         raise TypeError('run_path should be a string')
+
+    if not run_path.endswith('/'):
+        run_path += '/'
 
     if not isinstance(title, str):
         raise TypeError('title should be a string')
@@ -571,15 +578,46 @@ def parseGromacsModes(run_path, title="", model='nma', **kwargs):
             LOGGER.warn('model not recognised so using NMA')
         result = NMA(title)
 
+
     eigval_fname = kwargs.get('eigval_fname', 'eigenval.xvg')
     if not isinstance(eigval_fname, str):
         raise TypeError('eigval_fname should be a string')
 
+    if isfile(eigval_fname):
+        vals_fname = eigval_fname
+    elif isfile(run_path + eigval_fname):
+        vals_fname = run_path + eigval_fname
+    else:
+        raise ValueError('eigval_fname should point be a path to a file '
+                         'either relative to run_path or an absolute one')
+
+
     eigvec_fname = kwargs.get('eigvec_fname', 'eigenvec.trr')
     if not isinstance(eigvec_fname, str):
         raise TypeError('eigvec_fname should be a string')
+
+    if isfile(eigvec_fname):
+        vecs_fname = eigval_fname
+    elif isfile(run_path + eigvec_fname):
+        vecs_fname = run_path + eigvec_fname
+    else:
+        raise ValueError('eigvec_fname should point be a path to a file '
+                         'either relative to run_path or an absolute one')
+
+
+    pdb_fname = kwargs.get('pdb_fname', 'average.pdb')
+    if not isinstance(pdb_fname, str):
+        raise TypeError('pdb_fname should be a string')
+
+    if isfile(pdb_fname):
+        pdb = eigval_fname
+    elif isfile(run_path + pdb_fname):
+        pdb = run_path + pdb_fname
+    else:
+        raise ValueError('pdb_fname should point be a path to a file '
+                         'either relative to run_path or an absolute one')
     
-    vals_fname = run_path + eigval_fname
+    
     fi = open(vals_fname, 'r')
     lines = fi.readlines()
     fi.close()
@@ -591,12 +629,11 @@ def parseGromacsModes(run_path, title="", model='nma', **kwargs):
 
     eigvals = np.array(eigvals)
 
-    # Parse eigenvectors trr with MDAnalysis, which assumes trajectory and multiplies by 10
-    # to get A even though actually they are unit vectors
-    vecs_traj = TRR.TRRReader(run_path + eigvec_fname)
+    # Parse eigenvectors trr with mdtraj, which uses nm so doesn't rescale
+    vecs_traj = load_trr(vecs_fname, top=pdb)
 
-    # format vectors appropriately, reversing *10 and skipping initial and average structures
-    vectors = np.array([frame.positions.flatten()/10 for frame in vecs_traj[2:]]).T
+    # format vectors appropriately, skipping initial and average structures
+    vectors = np.array([frame.xyz.flatten() for frame in vecs_traj[2:]]).T
 
     result.setEigens(vectors, eigvals)
     return result
