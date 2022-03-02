@@ -614,7 +614,7 @@ def assignBlocks(atoms, res_per_block=None, secstr=False, shortest_block=2):
         secstrs = sel_ca.getSecstrs()
         if secstrs is None:
             raise OSError("Please parse secstr information "
-                          "from PDB header or make sure DSSP or STRIDE "
+                          "from PDB header or use DSSP or STRIDE "
                           "to use secstr for assigning blocks")
         
         blocks.append(0)
