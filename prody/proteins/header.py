@@ -113,9 +113,9 @@ class Polymer(object):
     sequence    str     polymer chain sequence (SEQRES)
     dbrefs      list    sequence database records (DBREF[1|2] and SEQADV),
                         see :class:`DBRef`
-    modified    list    | modified residues (SEQMOD)
+    modified    list    | modified residues (MODRES)
                         | when modified residues are present, each will be
-                          represented as: ``(resname, resnum, icode, stdname,
+                          represented as: ``(resname, chid, resnum, icode, stdname,
                           comment)``
     pdbentry    str     PDB entry that polymer data is extracted from
     ==========  ======  ======================================================
@@ -185,7 +185,8 @@ _PDB_DBREF = {
     'UNP': 'UniProt',
     'NORINE': 'Norine',
     'UNIMES': 'UNIMES',
-    'EMDB': 'EMDB'
+    'EMDB': 'EMDB',
+    'BMRB': 'BMRB'
 }
 
 
@@ -707,8 +708,9 @@ def _getPolymers(lines):
         polymers[ch] = poly
         if poly.modified is None:
             poly.modified = []
-        poly.modified.append((line[12:15].strip(), line[18:22].strip() +
-                              line[22].strip(), line[24:27].strip(),
+        poly.modified.append((line[12:15].strip(), line[16],
+                              line[18:22].strip() + line[22].strip(), 
+                              line[24:27].strip(),
                               line[29:70].strip()))
 
     for i, line in lines['SEQADV']:
@@ -716,7 +718,7 @@ def _getPolymers(lines):
         ch = line[16]
         if ch == ' ':
             if not len(polymers) == 1:
-                LOGGER.warn('MODRES chain identifier is not specified '
+                LOGGER.warn('SEQADV chain identifier is not specified '
                             '({0}:{1})'.format(pdbid, i))
                 continue
             else:
@@ -825,7 +827,7 @@ def _getChemicals(lines):
         chem_names[chem] += line[15:70].rstrip()
     for i, line in lines['HETSYN']:
         chem = line[11:14].strip()
-        chem_synonyms[chem] += line[15:70].rstrip()
+        chem_synonyms[chem] += line[15:70].strip()
     for i, line in lines['FORMUL']:
         chem = line[12:15].strip()
         chem_formulas[chem] += line[18:70].rstrip()
@@ -833,7 +835,7 @@ def _getChemicals(lines):
     for chem, name in chem_names.items():  # PY3K: OK
         name = cleanString(name)
         for chem in chemicals[chem]:
-            chem.name = name
+            chem.name = cleanString(name, nows=True)
     for chem, formula in chem_formulas.items():  # PY3K: OK
         formula = cleanString(formula)
         for chem in chemicals[chem]:
@@ -842,7 +844,7 @@ def _getChemicals(lines):
         synonyms = cleanString(synonyms)
         synonyms = synonyms.split(';')
         for chem in chemicals[chem]:
-            chem.synonyms = synonyms
+            chem.synonyms = [syn.strip() for syn in synonyms]
 
     alist = []
     for chem in chemicals.values():  # PY3K: OK
