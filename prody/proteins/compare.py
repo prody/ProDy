@@ -336,8 +336,10 @@ class SimpleChain(object):
             aa = AAMAP.get(res.getResname(), 'X')
             if aa == '-':
                 aa = 'X'
-            if aa == 'X':
+            if aa == 'X' and res.getResname() != 'HOH':
                 LOGGER.warn("no one-letter mapping found for %s " % repr(res))
+            if not res.getResname() in protein_resnames:
+                continue
             simpres = SimpleResidue(self, i, resid, aa, incod, res)
             if gaps:
                 diff = resid - temp - 1
