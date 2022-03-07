@@ -6,6 +6,7 @@ from numbers import Integral
 
 from numpy import load, savez, ones, zeros, array, argmin, where
 from numpy import ndarray, asarray, isscalar, concatenate, arange, ix_
+from numpy import append, unique
 
 from prody.utilities import openFile, rangeString, getDistance, fastin
 from prody import LOGGER
@@ -547,7 +548,7 @@ def extendAtomicData(data, nodes, atoms, axis=None):
 extendData = extendAtomicData
 
 
-def assignBlocks(atoms, res_per_block=None, secstr=False, shortest_block=2):
+def assignBlocks(atoms, res_per_block=None, secstr=False, **kwargs):
     """Assigns blocks to protein from *atoms*
     using a block size of *res_per_block* or 
     secondary structure information if *secstr* is **True**.
@@ -573,6 +574,11 @@ def assignBlocks(atoms, res_per_block=None, secstr=False, shortest_block=2):
         in a block before merging with the previous block
         Default is **2**
     :type shortest_block: int
+
+    :arg longest_block: largest number of residues to be included 
+        in a block before splitting it in half.
+        Default is the length of the protein so it isn't triggered.
+    :type longest_block: int
     """
 
     if not isinstance(atoms, Atomic):
@@ -592,11 +598,18 @@ def assignBlocks(atoms, res_per_block=None, secstr=False, shortest_block=2):
     if not isinstance(secstr, bool):
         raise TypeError('secstr should be a Boolean')
 
+    shortest_block = kwargs.get('shortest_block', 2)
+    shortest_block = kwargs.get('min_size', shortest_block)
     if not isinstance(shortest_block, Integral):
         raise TypeError("shortest_block should be an integer")
 
     sel_ca = atoms.ca
     n_res = sel_ca.numAtoms()
+
+    longest_block = kwargs.get('max_size', n_res)
+    longest_block = kwargs.get('longest_block', longest_block)
+    if not isinstance(longest_block, Integral):
+        raise TypeError("longest_block should be an integer")
 
     blocks = []
 
@@ -624,11 +637,28 @@ def assignBlocks(atoms, res_per_block=None, secstr=False, shortest_block=2):
             if secstr != secstr_prev:
                 secstr_prev = secstr
                 if len(where(array(blocks) == i)[0]) >= shortest_block:
+                    # long enough so next sec str is a new block
                     i += 1
             blocks.append(i)
         
         # include last residue in previous block
         blocks.append(i)
+
+    blocks = array(blocks)
+
+    unique_blocks, lengths = unique(blocks, return_counts=True)
+    max_length = max(lengths)
+
+    while max_length > longest_block:
+        for i in unique_blocks:
+            len_block = len(where(blocks == i)[0])
+
+            if len_block > longest_block:
+                new_block = max(unique_blocks)+1
+                blocks[where(blocks == i)[0][len_block // 2 :]] = new_block
+
+                unique_blocks, lengths = unique(blocks, return_counts=True)
+                max_length = max(lengths)
 
     blocks, amap = extendAtomicData(blocks, sel_ca, atoms)
 
