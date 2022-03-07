@@ -938,7 +938,7 @@ def isSheet(secstrs):
     torf = secstrs == 'E'
     return torf
 
-def assignSecstr(header, atoms, coil=False):
+def assignSecstr(header, atoms, coil=True):
     """Assign secondary structure from *header* dictionary to *atoms*.
     *header* must be a dictionary parsed using the :func:`.parsePDB`.
     *atoms* may be an instance of :class:`.AtomGroup`, :class:`.Selection`,
@@ -1004,7 +1004,7 @@ def assignSecstr(header, atoms, coil=False):
                       ATOMIC_FIELDS['secindex'].dtype))  
 
     prot = atoms.select('protein')
-    if prot is not None:
+    if prot is not None and coil:
         prot.setSecstrs('C')
     hierview = atoms.getHierView()
     count = 0
