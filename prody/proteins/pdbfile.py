@@ -1542,6 +1542,75 @@ def writePQRStream(stream, atoms, **kwargs):
 
     s_or_u = np.array(['a']).dtype.char
 
+
+    write = stream.write
+
+    calphas = atoms.ca
+    ssa = calphas.getSecstrs()
+    helix = []
+    sheet = []
+    if ssa is not None:
+        ss_prev = ssa[0]
+        ss_start = 0
+        ss_end = 1
+        for i, ss in enumerate(ssa):
+            if ss != ss_prev:
+                # store prev secstr and prepare for next
+                ss_end = i-1
+                init = calphas[ss_start]
+                end = calphas[ss_end]
+                length = ss_end - ss_start + 1
+
+                entries = [init.getSecindex(), init.getSecid(),
+                           init.getResname(), init.getChid(), 
+                           init.getResnum(), init.getIcode(),
+                           end.getResname(), end.getChid(),
+                           end.getResnum(), end.getIcode(),
+                           init.getSecclass()]
+                
+                if ssa[ss_end] == 'H':
+                    helix.append(["HELIX "] + entries +
+                                 ['', length])
+
+                elif ssa[ss_end] == 'E':
+                    sheet.append(["SHEET "] + entries)
+
+                ss_start = i
+                ss_prev = ss
+
+    format_helix = ('{0:6s} {1:3d} {2:3s} ' +
+                    '{3:3s} {4:1s} {5:4d}{6:1s} ' +
+                    '{7:3s} {8:1s} {9:4d}{10:1s} ' +
+                    '{11:2d} {12:30s} {13:5d}\n').format
+    for line in helix:
+        write(format_helix(*line))
+
+
+    sorted_sheet = sorted(sheet, key=lambda item: (item[2], item[1]))
+    sheet_prev = 'A'
+    num_strands_list = []
+    for i, item1 in enumerate(sorted_sheet):
+        if item1[2] != sheet_prev:
+            num_strands = sorted_sheet[i-1][1]
+            num_strands_list.append(num_strands)
+
+            sheet_prev = item1[2]
+
+            for item2 in sorted_sheet[i-num_strands:i]:
+                item2.append(num_strands)
+
+    num_strands = item1[1]
+    for item2 in sorted_sheet[i-num_strands+1:]:
+        item2.append(num_strands)    
+
+    format_sheet = ('{0:6s} {1:3d} {2:3s}{12:2d} ' +
+                    '{3:3s} {4:1s}{5:4d}{6:1s}' +
+                    '{7:3s} {8:1s}{9:4d}{10:1s}' +
+                    '{11:2d}\n').format
+
+    for i, line in enumerate(sorted_sheet):
+        write(format_sheet(*line))
+
     resnames = atoms._getResnames()
     if resnames is None:
         resnames = ['UNK'] * n_atoms
@@ -1576,7 +1645,7 @@ def writePQRStream(stream, atoms, **kwargs):
               '{8:8.3f} {9:8.3f} {10:8.3f}' +
               '{11:8.4f} {12:7.4f}\n').format
     coords = atoms._getCoords()
-    write = stream.write
+    
     for i, xyz in enumerate(coords):
         write(format(hetero[i], i+1, atomnames[i], altlocs[i],
                      resnames[i], chainids[i], int(resnums[i]),

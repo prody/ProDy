@@ -470,8 +470,8 @@ def _getSheet(lines):
     for i, line in lines['SHEET ']:
         try:
             chid = line[21]
-            value = (int(line[38:40]), int(line[7:10]),
-                     line[11:14].strip())
+                     # sense           # strand num     # sheet id
+            value = (int(line[38:40]), int(line[7:10]), line[11:14].strip())
         except:
             continue
 
