@@ -16,6 +16,8 @@ from prody import LOGGER, SETTINGS
 
 from .localpdb import fetchPDB
 from .starfile import parseSTARLines, StarDict
+from .cifheader import getCIFHeaderDict
+from .header import buildBiomolecules, assignSecstr, isHelix, isSheet
 
 __all__ = ['parseMMCIFStream', 'parseMMCIF', ]
 
@@ -76,7 +78,8 @@ def parseMMCIF(pdb, **kwargs):
                 chain = pdb[-1]
                 pdb = pdb[:4]
             else:
-                raise ValueError('Please provide chain as a keyword argument or part of the PDB ID, not both')
+                raise ValueError('Please provide chain as a keyword argument '
+                                 'or part of the PDB ID, not both')
         else:
             chain = chain
 
@@ -126,6 +129,7 @@ def parseMMCIFStream(stream, **kwargs):
     chain = kwargs.get('chain')
     altloc = kwargs.get('altloc', 'A')
     header = kwargs.get('header', False)
+    assert isinstance(header, bool), 'header must be a boolean'
 
     if model is not None:
         if isinstance(model, int):
@@ -161,6 +165,10 @@ def parseMMCIFStream(stream, **kwargs):
         ag = AtomGroup(str(kwargs.get('title', 'Unknown')) + title_suffix)
         n_csets = 0
 
+    biomol = kwargs.get('biomol', False)
+    auto_secondary = SETTINGS.get('auto_secondary')
+    secondary = kwargs.get('secondary', auto_secondary)
+    hd = None
     if model != 0:
         LOGGER.timeit()
         try:
@@ -172,13 +180,10 @@ def parseMMCIFStream(stream, **kwargs):
                 raise err
         if not len(lines):
             raise ValueError('empty PDB file or stream')
+        if header or biomol or secondary:
+            hd = getCIFHeaderDict(lines)
 
-        if header:
-            ag, header = _parseMMCIFLines(ag, lines, model, chain, subset,
-                                          altloc, header)
-        else:
-            ag = _parseMMCIFLines(ag, lines, model, chain, subset,
-                                  altloc, header)
+        _parseMMCIFLines(ag, lines, model, chain, subset, altloc)
 
         if ag.numAtoms() > 0:
             LOGGER.report('{0} atoms and {1} coordinate set(s) were '
@@ -188,16 +193,42 @@ def parseMMCIFStream(stream, **kwargs):
             ag = None
             LOGGER.warn('Atomic data could not be parsed, please '
                         'check the input file.')
+    elif header:
+        hd = getCIFHeaderDict(stream)
+
+    if ag is not None and isinstance(hd, dict):
+        if secondary:
+            if auto_secondary:
+                try:
+                    ag = assignSecstr(hd, ag)
+                except ValueError:
+                    pass
+            else:
+                ag = assignSecstr(hd, ag)
+        if biomol:
+            ag = buildBiomolecules(hd, ag)
+
+            if isinstance(ag, list):
+                LOGGER.info('Biomolecular transformations were applied, {0} '
+                            'biomolecule(s) are returned.'.format(len(ag)))
+            else:
+                LOGGER.info('Biomolecular transformations were applied to the '
+                            'coordinate data.')    
+
+    if model != 0:
         if header:
-            return ag, StarDict(*header, title=str(kwargs.get('title', 'Unknown')))
-        return ag
+            return ag, hd
+        else:
+            return ag
+    else:
+        return hd
 
 
 parseMMCIFStream.__doc__ += _parseMMCIFdoc
 
 
 def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
-                     altloc_torf, header):
+                     altloc_torf):
     """Returns an AtomGroup. See also :func:`.parsePDBStream()`.
 
     :arg lines: mmCIF lines
@@ -255,7 +286,9 @@ def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
         addcoords = True
 
     if isinstance(altloc_torf, str):
-        if altloc_torf.strip() != 'A':
+        if altloc_torf == 'all':
+            which_altlocs = 'all'
+        elif altloc_torf.strip() != 'A':
             LOGGER.info('Parsing alternate locations {0}.'
                         .format(altloc_torf))
             which_altlocs = '.' + ''.join(altloc_torf.split())
@@ -290,6 +323,8 @@ def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
         startswith = line.split()[fields['group_PDB']]
 
         atomname = line.split()[fields['auth_atom_id']]
+        if atomname.startswith('"') and atomname.endswith('"'):
+            atomname = atomname[1:-1]
         resname = line.split()[fields['auth_comp_id']]
 
         if subset is not None:
@@ -306,11 +341,11 @@ def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
         segID = line.split()[fields['label_asym_id']]
 
         alt = line.split()[fields['label_alt_id']]
-        if alt not in which_altlocs:
+        if alt not in which_altlocs and which_altlocs != 'all':
             continue
 
         if alt == '.':
-            alt = ''
+            alt = ' '
 
         if model is not None:
             if int(models[acount]) < model:
@@ -373,10 +408,5 @@ def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
 
     for n in range(1, nModels):
         atomgroup.addCoordset(coordinates[n*modelSize:(n+1)*modelSize])
-
-    if header:
-        header = parseSTARLines(lines[:start-fieldCounter-2] + lines[stop:],
-                                shlex=True)
-        return atomgroup, header
 
     return atomgroup
