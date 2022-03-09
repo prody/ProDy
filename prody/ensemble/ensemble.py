@@ -654,7 +654,8 @@ class Ensemble(object):
                     (tar_com - dot(mob_com, rotation)), movs[i])
             if not quiet:
                 LOGGER.update(i + 1, label='_prody_ensemble')
-        LOGGER.finish()
+        if not quiet:
+            LOGGER.finish()
 
     def iterpose(self, rmsd=0.0001, quiet=False):
         """Iteratively superpose the ensemble until convergence.  Initially,
