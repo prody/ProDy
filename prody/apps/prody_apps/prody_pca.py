@@ -46,6 +46,7 @@ def prody_pca(coords, **kwargs):
     prefix = kwargs.get('prefix')
     nmodes = kwargs.get('nmodes')
     selstr = kwargs.get('select')
+    quiet = kwargs.pop('quiet', False)
 
     ext = splitext(coords)[1].lower()
     if ext == '.gz':
@@ -85,13 +86,13 @@ def prody_pca(coords, **kwargs):
             select.setCoords(dcd.getCoords())
         pca = prody.PCA(dcd.getTitle())
         if len(dcd) > 1000:
-            pca.buildCovariance(dcd, aligned=kwargs.get('aligned'))
+            pca.buildCovariance(dcd, aligned=kwargs.get('aligned'), quiet=quiet)
             pca.calcModes(nmodes)
             ensemble = dcd
         else:
             ensemble = dcd[:]
             if not kwargs.get('aligned'):
-                ensemble.iterpose(quiet=True)
+                ensemble.iterpose(quiet=quiet)
             pca.performSVD(ensemble)
         nmodes = pca.numModes()
 
