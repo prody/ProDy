@@ -119,7 +119,7 @@ def addCommand(commands):
     subparser.set_defaults(usage_example=
     """Align models in a PDB structure or multiple PDB structures and save \
 aligned coordinate sets.  When multiple structures are aligned, ProDy will \
-match chains based on sequence alignment and use best match for aligning the \
+match chains based on sequence alignment and use best matching pair for aligning the \
 structures.
 
 Fetch PDB structure 2k39 and align models (reference model is the first model):

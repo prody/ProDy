@@ -66,7 +66,6 @@ class ESSA:
 
         self._atoms = None
         self._title = None
-        self._lig = None
         self._heavy = None
         self._ca = None
         self._n_modes = None

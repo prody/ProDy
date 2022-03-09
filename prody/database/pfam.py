@@ -23,6 +23,7 @@ else:
     import urllib
     import urllib2
 
+
 __all__ = ['searchPfam', 'fetchPfamMSA', 'parsePfamPDBs']
 
 FASTA = 'fasta'
@@ -56,6 +57,8 @@ def searchPfam(query, **kwargs):
     *query* can also be a PDB identifier, e.g. ``'1mkp'`` or ``'1mkpA'`` with
     chain identifier.  UniProt ID of the specified chain, or the first
     protein chain will be used for searching the Pfam database."""
+
+    import requests
 
     if isfile(query):
         from prody.sequence import MSAFile
@@ -202,14 +205,19 @@ def searchPfam(query, **kwargs):
 
     LOGGER.debug('Retrieving Pfam search results: ' + url)
     xml = None
+    sleep = 2
     while LOGGER.timing('_pfam') < timeout:
         try:
-            xml = openURL(url, timeout=timeout).read()
+            # xml = openURL(url, timeout=timeout).read()
+            xml = requests.get(url, verify=False).content
         except Exception:
             pass
         else:
             if xml not in ['PEND','RUN']:
                 break
+        
+        sleep = 20 if int(sleep * 1.5) >= 20 else int(sleep * 1.5)
+        LOGGER.sleep(int(sleep), '. Trying to reconnect...')
 
     if not xml:
         raise IOError('Pfam search timed out or failed to parse results '
@@ -327,13 +335,15 @@ def fetchPfamMSA(acc, alignment='full', compressed=False, **kwargs):
     :arg outname: out filename, default is input ``'acc_alignment.format'``
 
     :arg folder: output folder, default is ``'.'``"""
+    
+    import requests
 
-    url = prefix + 'family/acc?id=' + acc
-    handle = openURL(url, timeout=int(kwargs.get('timeout', 60)))
+    # url = prefix + 'family/acc?id=' + acc
+    # handle = openURL(url, timeout=int(kwargs.get('timeout', 60)))
     orig_acc = acc
-    acc = handle.readline().strip()
-    if PY3K:
-        acc = acc.decode()
+    # acc = handle.readline().strip()
+    # if PY3K:
+    #     acc = acc.decode()
     url_flag = False
 
     if not re.search('(?<=PF)[0-9]{5}$', acc):
@@ -386,7 +396,23 @@ def fetchPfamMSA(acc, alignment='full', compressed=False, **kwargs):
                    '&alnType=' + alignment + '&order=' + order[0] +
                    '&case=' + inserts[0] + '&gaps=' + gaps + '&download=1')
 
-    response = openURL(url, timeout=int(kwargs.get('timeout', 60)))
+    LOGGER.timeit('_pfam')
+    timeout = kwargs.get('timeout', 60)
+    response = None
+    sleep = 2
+    try_error = 3
+    while LOGGER.timing('_pfam') < timeout:
+        try:
+            response = requests.get(url, verify=False).content
+        except Exception:
+            pass
+        else:
+            break
+        
+        sleep = 20 if int(sleep * 1.5) >= 20 else int(sleep * 1.5)
+        LOGGER.sleep(int(sleep), '. Trying to reconnect...')
+
+    # response = openURL(url, timeout=int(kwargs.get('timeout', 60)))
     outname = kwargs.get('outname', None)
     if not outname:
         outname = orig_acc
@@ -398,14 +424,16 @@ def fetchPfamMSA(acc, alignment='full', compressed=False, **kwargs):
             f_out = open(filepath, 'wb')
         else:
             f_out = openFile(filepath, 'wb')
-        f_out.write(response.read())
+        # f_out.write(response.read())
+        f_out.write(response)
         f_out.close()
     else:
         if url_flag:
             gunzip(response.read(), filepath)
         else:
             with open(filepath, 'wb') as f_out:
-                f_out.write(response.read())
+                # f_out.write(response.read())
+                f_out.write(response)
 
     filepath = relpath(filepath)
     LOGGER.info('Pfam MSA for {0} is written as {1}.'
