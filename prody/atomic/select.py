@@ -441,7 +441,6 @@ all alphanumeric characters."""
 
 import sys
 from re import compile as re_compile
-
 try:
    # for upto python 3.9
    from collections import Iterable
