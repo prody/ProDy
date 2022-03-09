@@ -498,7 +498,7 @@ def calcPairDeformationDist(model, coords, ind1, ind2, kbt=1.):
     :arg ind1: first residue number.
     :type ind1: int 
     
-    :arg ind2: secound residue number.
+    :arg ind2: second residue number.
     :type ind2: int 
     """
 
