@@ -1016,3 +1016,59 @@ def parseImagesFromSTAR(particlesSTAR, **kwargs):
                     'from the final array.'.format(', '.join(stk_images[:-1]), stk_images[-1]))
 
     return np.array(images), parsed_images_data
+
+
+def parseSTARSection(lines, key):
+    """Parse a section of data from *lines* from a STAR file 
+    corresponding to a *key* (part before the dot). 
+    This can be a loop or data block.
+    
+    Returns data encapulated in a list and the associated fields."""
+
+    if not isinstance(key, str):
+        raise TypeError("key should be a string")
+
+    if not key.startswith("_"):
+        key = "_" + key
+
+    i = 0
+    fields = OrderedDict()
+    fieldCounter = -1
+    foundBlock = False
+    foundBlockData = False
+    doneBlock = False
+    start = 0
+    stop = 0
+
+    while not doneBlock and i < len(lines):
+        line = lines[i]
+        if line.split(".")[0] == key:
+            fieldCounter += 1
+            fields[line.split(".")[1].strip()] = fieldCounter
+            if not foundBlock:
+                foundBlock = True
+
+        if foundBlock:
+            if not line.startswith("#"):
+                if not foundBlockData:
+                    start = i
+                    foundBlockData = True
+            else:
+                if foundBlockData:
+                    doneBlock = True
+                    stop = i
+
+        i += 1
+
+    if i < len(lines):
+        star_dict, _ = parseSTARLines(lines[:2] + lines[start-1: stop], shlex=True)
+        loop_dict = list(star_dict.values())[0]
+
+        if lines[start - 1].strip() == "loop_":
+            data = list(loop_dict[0]["data"].values())
+        else:
+            data = [loop_dict["data"]]
+    else:
+        raise ValueError("Could not find {0} in lines.".format(key))
+
+    return data
