@@ -117,15 +117,14 @@ Push and Pull Request
 ---------------------
 
 After you have committed your changes, you will need to push them to your
-Bitbucket account::
+GitHub account::
 
   git push origin master
 
 This step will ask for your account user name.  If you are going to push
-to your GitHub/Bitbucket account frequently, you may add an SSH key for
+to your GitHub account frequently, you may add an SSH key for
 automatic authentication.  To add an SSH key for your system, go to
-:menuselection:`Edit Your Profile --> SSH keys` page on GitHub or
-:menuselection:`Manage Account --> SSH keys` page on Bitbucket.
+:menuselection:`Edit Your Profile --> SSH keys` page on GitHub.
 
 After pushing your changes, you will need to make a pull request from your
 to notify ProDy developers of the changes you made and facilitate their
@@ -142,11 +141,6 @@ following command from the ProDy project folder::
 
   $ cd prody
   $ git remote add prodymaster git@github.com:abakan/ProDy.git
-
-or::
-
-  $ cd prody
-  $ git remote add prodymaster git@bitbucket.org:abakan/prody.git
 
 
 You may use any name other than `prodymaster`, but `origin`, which points to
