@@ -674,7 +674,7 @@ def parseSTARLines(lines, **kwargs):
                 prog = 'XMIPP'
 
         else:
-            raise TypeError('This file does not conform to the STAR file format.'
+            raise TypeError('This file does not conform to the STAR file format. '
                             'There is a problem with line {0}:\n {1}'.format(lineNumber, line))
 
         lineNumber += 1
