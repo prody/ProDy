@@ -11,8 +11,10 @@ DEFAULTS = {}
 HELPTEXT = {}
 for key, txt, val in [
     ('model', 'index of model that will be used in the calculations', 1),
+    ('altloc', 'alternative location identifiers for residues used in the calculations', "A"),
     ('cutoff', 'cutoff distance (A)', 10.),
     ('gamma', 'spring constant', 1.),
+    ('zeros', 'calculate zero modes', False),
 
     ('outbeta', 'write beta-factors calculated from GNM modes', False),
     ('kirchhoff', 'write Kirchhoff matrix', False),
@@ -54,8 +56,10 @@ def prody_gnm(pdb, **kwargs):
     nmodes = kwargs.get('nmodes')
     selstr = kwargs.get('select')
     model = kwargs.get('model')
+    altloc = kwargs.get('altloc')
+    zeros = kwargs.get('zeros')
 
-    pdb = prody.parsePDB(pdb, model=model)
+    pdb = prody.parsePDB(pdb, model=model, altloc=altloc)
     if prefix == '_gnm':
         prefix = pdb.getTitle() + '_gnm'
 
@@ -68,7 +72,7 @@ def prody_gnm(pdb, **kwargs):
 
     gnm = prody.GNM(pdb.getTitle())
     gnm.buildKirchhoff(select, cutoff, gamma)
-    gnm.calcModes(nmodes)
+    gnm.calcModes(nmodes, zeros=zeros)
 
     LOGGER.info('Writing numerical output.')
 
@@ -267,6 +271,12 @@ save all of the graphical output files:
 
     group.add_argument('-m', '--model', dest='model', type=int,
         metavar='INT', default=DEFAULTS['model'], help=HELPTEXT['model'])
+
+    group.add_argument('-L', '--altloc', dest='altloc', type=int,
+        metavar='INT', default=DEFAULTS['altloc'], help=HELPTEXT['altloc'])
+
+    group.add_argument('-w', '--zero-modes', dest='zeros', action='store_true',
+        default=DEFAULTS['zeros'], help=HELPTEXT['zeros'])
 
     group = addNMAOutput(subparser)
 
