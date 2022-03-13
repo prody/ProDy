@@ -747,15 +747,15 @@ def parseImagesFromSTAR(particlesSTAR, **kwargs):
     :arg particle_indices: indices for particles regardless of STAR structure
         default is take all particles
         Please note: this acts after block_indices and row_indices
-    :type particle_indices: list, :class"`~numpy.ndarray`
+    :type particle_indices: list, :class:`~numpy.ndarray`
 
     :arg saveImageArrays: whether to save the numpy array for each image to file
         default is False
     :type saveImageArrays: bool
 
     :arg saveDirectory: directory where numpy image arrays are saved
-        default is None, which means save to the current working directory
-    :type saveDirectory: str, None
+        default is **None**, which means save to the current working directory
+    :type saveDirectory: str
 
     :arg rotateImages: whether to apply in plane translations and rotations using 
         provided psi and origin data, default is True

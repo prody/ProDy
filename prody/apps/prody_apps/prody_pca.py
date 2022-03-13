@@ -10,6 +10,7 @@ DEFAULTS = {}
 HELPTEXT = {}
 for key, txt, val in [
     ('aligned', 'trajectory is already aligned', False),
+    ('altloc', 'alternative location identifiers for residues used in the calculations', "A"),
     ('outproj', 'write projections onto PCs', False),
     ('figproj', 'save projections onto specified subspaces, e.g. '
                 '"1,2" for projections onto PCs 1 and 2; '
@@ -47,6 +48,7 @@ def prody_pca(coords, **kwargs):
     nmodes = kwargs.get('nmodes')
     selstr = kwargs.get('select')
     quiet = kwargs.pop('quiet', False)
+    altloc = kwargs.get('altloc')
 
     ext = splitext(coords)[1].lower()
     if ext == '.gz':
@@ -58,7 +60,7 @@ def prody_pca(coords, **kwargs):
             if splitext(pdb)[1].lower() == '.psf':
                 pdb = prody.parsePSF(pdb)
             else:
-                pdb = prody.parsePDB(pdb)
+                pdb = prody.parsePDB(pdb, altlocs=altlocs)
         dcd = prody.DCDFile(coords)
         if prefix == '_pca' or prefix == '_eda':
             prefix = dcd.getTitle() + prefix
@@ -301,6 +303,9 @@ Perform EDA for backbone atoms:
     group = subparser.add_mutually_exclusive_group()
     group.add_argument('--psf', help='PSF filename')
     group.add_argument('--pdb', help='PDB filename')
+    group.add_argument('-L', '--altloc', dest='altloc', type=int,
+        metavar='INT', default=DEFAULTS['altloc'], help=HELPTEXT['altloc'])
+
     subparser.add_argument('--aligned', dest='aligned', action='store_true',
         default=DEFAULTS['aligned'], help=HELPTEXT['aligned'])
 

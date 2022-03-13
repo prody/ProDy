@@ -170,7 +170,8 @@ rst_epilog = u"""
 .. _PDB: http://www.pdb.org
 .. _pip: https://pypi.python.org/pypi/pip
 
-.. _MDAnalysis: https://www.mdanalysis.org/
+.. _MDAnalysis: https://www.mdanalysis.org
+.. _MDTraj: https://www.mdtraj.org
 .. _pyparsing: http://pyparsing.wikispaces.com
 .. _Matplotlib: http://matplotlib.org
 .. _Biopython: http://biopython.org
