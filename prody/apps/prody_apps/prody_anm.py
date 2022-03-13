@@ -81,6 +81,10 @@ def prody_anm(pdb, **kwargs):
 
     if kwargs.get('outnpz'):
         prody.saveModel(anm, join(outdir, prefix))
+
+    if kwargs.get('outscipion'):
+        prody.writeScipionModes(outdir, anm)
+
     prody.writeNMD(join(outdir, prefix + '.nmd'), anm, select)
 
     extend = kwargs.get('extend')
