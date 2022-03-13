@@ -397,7 +397,7 @@ def writeScipionModes(output_path, modes, write_star=False, scores=None,
     :type write_star: bool
 
     :arg scores: scores from qualifyModesStep for re-writing sqlite
-        Default is **None** and then it writes 0 for each.
+        Default is **None** and then it uses :func:`.calcScipionScore`
     :type scores: list
 
     :arg only_sqlite: whether to write only the sqlite file instead of everything.
