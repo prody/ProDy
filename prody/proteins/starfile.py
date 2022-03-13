@@ -695,7 +695,7 @@ def writeSTAR(filename, starDict, **kwargs):
         field names and finally data.
     :type starDict: dict
 
-    kwargs can be given to initiate a :class:`.StarDict` from a dict
+    kwargs can be given including the program style to follow (*prog*)
     """
     prog=kwargs.get('prog', 'XMIPP')
 
