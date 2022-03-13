@@ -33,7 +33,7 @@ from .modeset import ModeSet
 from .editing import sliceModel, reduceModel, trimModel
 from .editing import sliceModelByMask, reduceModelByMask, trimModelByMask
 
-__all__ = ['parseArray', 'parseModes', 'parseSparseMatrix', 
+__all__ = ['parseArray', 'parseModes', 'parseSparseMatrix',
            'parseGromacsModes', 'parseScipionModes',
            'writeArray', 'writeModes', 'writeScipionModes',
            'saveModel', 'loadModel', 'saveVector', 'loadVector',
