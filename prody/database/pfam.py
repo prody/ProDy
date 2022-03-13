@@ -429,7 +429,7 @@ def fetchPfamMSA(acc, alignment='full', compressed=False, **kwargs):
         f_out.close()
     else:
         if url_flag:
-            gunzip(response.read(), filepath)
+            gunzip(response, filepath)
         else:
             with open(filepath, 'wb') as f_out:
                 # f_out.write(response.read())
