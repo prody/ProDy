@@ -353,21 +353,12 @@ def parseScipionModes(run_path, title=None):
         if found_eigvals:
             eigvals[i+1] = float(row['_nmaEigenval'])
     
-<<<<<<< HEAD
     if not found_eigvals:
         log_fname = run_path + '/logs/run.stdout'
         fi = open(log_fname, 'r')
         lines = fi.readlines()
         fi.close()
 
-=======
-    log_fname = run_path + '/logs/run.stdout'
-    fi = open(log_fname, 'r')
-    lines = fi.readlines()
-    fi.close()
-    
-    if not found_eigvals:
->>>>>>> e82d36ae189edc248fb140de4637cd9326114032
         for line in lines:
             if line.find('Eigenvector number') != -1:
                 j = int(line.strip().split()[-1]) - 1
@@ -387,13 +378,9 @@ def parseScipionModes(run_path, title=None):
     nma.setEigens(vectors, eigvals)
     return nma
 
-<<<<<<< HEAD
 
 def writeScipionModes(output_path, modes, write_star=False, scores=None,
                       only_sqlite=False, collectivityThreshold=0.):
-=======
-def writeScipionModes(output_path, modes, write_star=False, scores=None, only_sqlite=False, collectivityThreshold=0.):
->>>>>>> e82d36ae189edc248fb140de4637cd9326114032
     """Writes *modes* to a set of files that can be recognised by Scipion.
     A directory called **"modes"** will be created if it doesn't already exist. 
     Filenames inside will start with **"vec"** and have the mode number as the extension.
@@ -409,11 +396,7 @@ def writeScipionModes(output_path, modes, write_star=False, scores=None, only_sq
     :type write_star: bool
 
     :arg scores: scores from qualifyModesStep for re-writing sqlite
-<<<<<<< HEAD
         Default is **None** and then it uses :func:`.calcScipionScore`
-=======
-        Default is **None** and then it writes 0 for each.
->>>>>>> e82d36ae189edc248fb140de4637cd9326114032
     :type scores: list
 
     :arg only_sqlite: whether to write only the sqlite file instead of everything.
@@ -434,11 +417,6 @@ def writeScipionModes(output_path, modes, write_star=False, scores=None, only_sq
     if not isinstance(modes, (NMA, ModeSet, VectorBase)):
         raise TypeError('rows must be NMA, ModeSet, or Mode, not {0}'
                         .format(type(modes)))
-<<<<<<< HEAD
-=======
-    if not modes.is3d():
-        raise ValueError('modes must be 3-dimensional')
->>>>>>> e82d36ae189edc248fb140de4637cd9326114032
 
     if not isinstance(write_star, bool):
         raise TypeError('write_star should be boolean, not {0}'
@@ -474,11 +452,7 @@ def writeScipionModes(output_path, modes, write_star=False, scores=None, only_sq
                                         mode.getArrayNx3(), '%12.4e', ''))
         else:
             modefiles.append(writeArray(modes_dir + 'vec.{0}'.format(mode_num),
-<<<<<<< HEAD
-                                        mode.getArray(), '%12.4e', ''))            
-=======
                                         mode.getArray(), '%12.4e', ''))
->>>>>>> e82d36ae189edc248fb140de4637cd9326114032
 
     if modes.numModes() > 1:
         order = modes.getIndices()
@@ -487,11 +461,7 @@ def writeScipionModes(output_path, modes, write_star=False, scores=None, only_sq
         enabled = [1 if eigval > ZERO and collectivities[i] > collectivityThreshold else -1
                    for i, eigval in enumerate(eigvals)]
         if scores is None:
-<<<<<<< HEAD
             scores = list(calcScipionScore(modes))
-=======
-            scores = [0. for eigval in modes.getEigvals()]
->>>>>>> e82d36ae189edc248fb140de4637cd9326114032
     else:
         mode = modes[0]
         eigvals = np.array([mode.getEigval()])
@@ -499,11 +469,7 @@ def writeScipionModes(output_path, modes, write_star=False, scores=None, only_sq
         order = [mode.getIndex()]
         enabled = [1 if mode.getEigval() > ZERO and collectivities[0] > collectivityThreshold else -1]
         if scores is None:
-<<<<<<< HEAD
             scores = [calcScipionScore(mode)[0]]
-=======
-            scores = [0.]
->>>>>>> e82d36ae189edc248fb140de4637cd9326114032
 
     modes_sqlite_fn = output_path + '/modes.sqlite'
     sql_con = openSQLite(modes_sqlite_fn, 'n')
