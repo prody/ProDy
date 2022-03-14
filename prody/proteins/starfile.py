@@ -19,7 +19,8 @@ from prody import LOGGER
 from .emdfile import parseEMD
 
 __all__ = ['parseSTAR', 'writeSTAR', 'parseImagesFromSTAR',
-           'StarDict', 'StarDataBlock', 'StarLoop', ]
+           'StarDict', 'StarDataBlock', 'StarLoop', 
+           'parseSTARSection']
 
 
 class StarDict:
