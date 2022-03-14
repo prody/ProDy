@@ -728,7 +728,7 @@ def buildMSA(sequences, title='Unknown', labels=None, **kwargs):
     :arg sequences: a file, MSA object or a list or array containing sequences
        as Atomic objects with :func:`getSequence` or Sequence objects or strings. 
        If strings are used then labels must be provided using ``labels``
-    :type sequences: :class:`Atomic`, :class:`.MSA`, 
+    :type sequences: :class:`.Atomic`, :class:`.MSA`, 
         :class:`~numpy.ndarray`, str
 
     :arg title: the title for the MSA and it will be used as the prefix for output files.

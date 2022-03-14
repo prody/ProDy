@@ -35,9 +35,10 @@ def prody_select(selstr, *pdbs, **kwargs):
     prefix = kwargs.get('prefix', None)
     suffix = kwargs.get('suffix', '_selected')
     output = kwargs.get('output', None)
+    altloc = kwargs.get('altloc', None)
 
     for pdb in pdbs:
-        pdb = parsePDB(pdb)
+        pdb = parsePDB(pdb, altloc=altloc)
 
         pdbselect = pdb.select(selstr)
         if pdbselect is None:
@@ -80,6 +81,9 @@ Fetch PDB files 1p38 and 1r39 and write backbone atoms in a file:
 
     group.add_argument('-p', '--prefix', dest='prefix', metavar='STR',
         type=str, help=('output filename prefix (default: PDB filename)'))
+
+    group.add_argument('-L', '--altloc', dest='altloc', metavar='STR',
+        type=str, help=('altloc (default: "A")'))
 
     group.add_argument('-x', '--suffix', dest='suffix', metavar='STR',
         type=str, default='_selected',

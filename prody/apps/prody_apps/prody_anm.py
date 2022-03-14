@@ -12,8 +12,10 @@ DEFAULTS = {}
 HELPTEXT = {}
 for key, txt, val in [
     ('model', 'index of model that will be used in the calculations', 1),
+    ('altloc', 'alternative location identifiers for residues used in the calculations', "A"),
     ('cutoff', 'cutoff distance (A)', 15.),
     ('gamma', 'spring constant', 1.),
+    ('zeros', 'calculate zero modes', False),
 
     ('outbeta', 'write beta-factors calculated from GNM modes', False),
     ('hessian', 'write Hessian matrix', False),
@@ -57,8 +59,10 @@ def prody_anm(pdb, **kwargs):
     nmodes = kwargs.get('nmodes')
     selstr = kwargs.get('select')
     model = kwargs.get('model')
+    altloc = kwargs.get('altloc')
+    zeros = kwargs.get('zeros')
 
-    pdb = prody.parsePDB(pdb, model=model)
+    pdb = prody.parsePDB(pdb, model=model, altloc=altloc)
     if prefix == '_anm':
         prefix = pdb.getTitle() + '_anm'
 
@@ -72,8 +76,9 @@ def prody_anm(pdb, **kwargs):
 
     anm = prody.ANM(pdb.getTitle())
     anm.buildHessian(select, cutoff, gamma)
-    anm.calcModes(nmodes)
+    anm.calcModes(nmodes, zeros=zeros)
     LOGGER.info('Writing numerical output.')
+
     if kwargs.get('outnpz'):
         prody.saveModel(anm, join(outdir, prefix))
     prody.writeNMD(join(outdir, prefix + '.nmd'), anm, select)
@@ -247,6 +252,11 @@ graphical output files:
     group.add_argument('-m', '--model', dest='model', type=int,
         metavar='INT', default=DEFAULTS['model'], help=HELPTEXT['model'])
 
+    group.add_argument('-L', '--altloc', dest='altloc', type=str,
+        metavar='STR', default=DEFAULTS['altloc'], help=HELPTEXT['altloc'])
+
+    group.add_argument('-w', '--zero-modes', dest='zeros', action='store_true',
+        default=DEFAULTS['zeros'], help=HELPTEXT['zeros'])
 
     group = addNMAOutput(subparser)
 
