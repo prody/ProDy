@@ -881,6 +881,12 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                 anisou = True
                 anisou = np.zeros((alength, 6),
                     dtype=ATOMIC_FIELDS['anisou'].dtype)
+
+            alt = line[16]
+            if alt not in which_altlocs and which_altlocs != 'all':
+                altloc[alt].append((line, i))
+                i += 1
+                continue
             try:
                 index = acount - 1
                 anisou[index, 0] = line[28:35]
