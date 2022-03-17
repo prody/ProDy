@@ -1394,8 +1394,13 @@ def getCEAlignMapping(target, chain):
                     'It may not be installed properly.')
         return None
 
-    tar_coords = target.getCoords(calpha=True).tolist()
-    mob_coords = chain.getCoords(calpha=True).tolist()
+    if not ("X" in target.getSequence() or "X" in chain.getSequence()):
+        calpha=True
+    else:
+        calpha=False
+
+    tar_coords = target.getCoords(calpha=calpha).tolist()
+    mob_coords = chain.getCoords(calpha=calpha).tolist()
 
     if len(tar_coords) < 8:
         LOGGER.warn('target ({1}) is too small to be aligned '
