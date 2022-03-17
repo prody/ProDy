@@ -36,7 +36,8 @@ def calcCollectivity(mode, masses=None, is3d=None):
        spin relaxation. *J Chem Phys* **1995** 102:3396-3403.
 
     :arg mode: mode(s) or vector(s)
-    :type mode: :class:`.Mode`, :class:`.Vector`, :class:`.ModeSet`
+    :type mode: :class:`.Mode`, :class:`.Vector`, :class:`.ModeSet`,
+        :class:`.NMA`, :class:`~numpy.ndarray`
 
     :arg masses: atomic masses
     :type masses: :class:`numpy.ndarray`
@@ -498,7 +499,7 @@ def calcPairDeformationDist(model, coords, ind1, ind2, kbt=1.):
     :arg ind1: first residue number.
     :type ind1: int 
     
-    :arg ind2: secound residue number.
+    :arg ind2: second residue number.
     :type ind2: int 
     """
 
