@@ -36,7 +36,8 @@ for key, txt, val in [
     ('figdpi', 'figure resolution (dpi)', 300),
     ('figall', 'save all figures', False),
     ('figcc', 'save cross-correlations figure', False),
-    ('figsf', 'save square-fluctuations figure', False),]:
+    ('figsf', 'save square-fluctuations figure', False),
+    ('nproc', 'number of processors', 0),]:
 
     DEFAULTS[key] = val
     HELPTEXT[key] = txt
@@ -101,6 +102,10 @@ def addNMAOutput(parser):
     parser.add_argument('-t', '--extend', dest='extend', type=str,
         metavar='STR', choices=set(['bb', 'all', 'backbone']),
         help=HELPTEXT['extend'])
+
+    parser.add_argument('-P', '--number-of-processors', dest='nproc', type=int,
+        default=DEFAULTS['nproc'], metavar='INT',
+        help=HELPTEXT['nproc'] + ' (default: %(default)s)')        
 
     return parser
 
