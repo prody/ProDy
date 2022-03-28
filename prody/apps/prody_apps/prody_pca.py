@@ -331,7 +331,7 @@ Perform EDA for backbone atoms:
     group = subparser.add_mutually_exclusive_group()
     group.add_argument('--psf', help='PSF filename')
     group.add_argument('--pdb', help='PDB filename')
-    group.add_argument('-L', '--altloc', dest='altloc', type=int,
+    group.add_argument('-L', '--altloc', dest='altloc', type=str,
         metavar='INT', default=DEFAULTS['altloc'], help=HELPTEXT['altloc'])
 
     subparser.add_argument('--aligned', dest='aligned', action='store_true',
