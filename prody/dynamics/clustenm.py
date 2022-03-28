@@ -291,6 +291,12 @@ class ClustENM(Ensemble):
             properties = {'Precision': 'single'}
         elif self._platform in ['CUDA', 'OpenCL']:
             properties = {'Precision': 'single'}
+        elif self._platform == 'CPU':
+            if self._threads == 0:
+                cpus = cpu_count()
+            else:
+                cpus = self._threads
+            properties = {'Threads': str(cpus)}
 
         simulation = Simulation(modeller.topology, system, integrator,
                                 platform, properties)
@@ -968,10 +974,15 @@ class ClustENM(Ensemble):
         :arg platform: Architecture on which the OpenMM part runs, default is None.
             It can be chosen as 'CUDA', 'OpenCL' or 'CPU'.
             For efficiency, 'CUDA' or 'OpenCL' is recommended.
+            'CPU' is needed for setting threads per simulation.
         :type platform: str
 
         :arg parallel: If it is True (default is False), conformer generation will be parallelized.
         :type parallel: bool
+
+        :arg threads: Number of threads to use for an individual simulation
+            Default of 0 uses all CPUs on the machine.
+        :type threads: int
         '''
 
         if self._isBuilt():
@@ -992,6 +1003,7 @@ class ClustENM(Ensemble):
         self._n_gens = n_gens
         self._platform = kwargs.pop('platform', None)
         self._parallel = kwargs.pop('parallel', False)
+        self._threads = kwargs.pop('threads', 0)
         self._targeted = kwargs.pop('targeted', False)
         self._tmdk = kwargs.pop('tmdk', 15.)
 
