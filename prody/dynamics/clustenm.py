@@ -478,7 +478,8 @@ class ClustENM(Ensemble):
     def _buildANM(self, cg):
 
         anm = ANM()
-        anm.buildHessian(cg, cutoff=self._cutoff, gamma=self._gamma)
+        anm.buildHessian(cg, cutoff=self._cutoff, gamma=self._gamma,
+                         sparse=self._sparse, kdtree=self._kdtree)
 
         return anm
 
@@ -513,7 +514,7 @@ class ClustENM(Ensemble):
         if not self._checkANM(anm_cg):
             return None
 
-        anm_cg.calcModes(self._n_modes)
+        anm_cg.calcModes(self._n_modes, turbo=self._turbo)
 
         anm_ex = self._extendModel(anm_cg, cg, tmp)
         ens_ex = sampleModes(anm_ex, atoms=tmp,
@@ -980,6 +981,12 @@ class ClustENM(Ensemble):
         self._cutoff = cutoff
         self._n_modes = n_modes
         self._gamma = gamma
+        self._sparse = kwargs.get('sparse', False)
+        self._kdtree = kwargs.get('kdtree', False)
+        self._turbo = kwargs.get('turbo', False)
+        if kwargs.get('zeros', False):
+            LOGGER.warn('ClustENM cannot use zero modes so ignoring this kwarg')
+
         self._n_confs = n_confs
         self._rmsd = (0.,) + rmsd if isinstance(rmsd, tuple) else (0.,) + (rmsd,) * n_gens
         self._n_gens = n_gens
