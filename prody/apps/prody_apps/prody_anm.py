@@ -267,15 +267,15 @@ graphical output files:
         default=DEFAULTS['gamma'], metavar='FLOAT',
         help=HELPTEXT['gamma'] + ' (default: %(default)s)')
 
-    group.add_argument('-C', '--sparse-hessian', dest='sparse', type=bool,
+    group.add_argument('-C', '--sparse-hessian', dest='sparse', action='store_true',
         default=DEFAULTS['sparse'],
         help=HELPTEXT['sparse'] + ' (default: %(default)s)')
 
-    group.add_argument('-G', '--use-kdtree', dest='kdtree', type=bool,
+    group.add_argument('-G', '--use-kdtree', dest='kdtree', action='store_true',
         default=DEFAULTS['kdtree'],
         help=HELPTEXT['kdtree'] + ' (default: %(default)s)')
 
-    group.add_argument('-y', '--turbo', dest='turbo', type=bool,
+    group.add_argument('-y', '--turbo', dest='turbo', action='store_true',
         default=DEFAULTS['turbo'],
         help=HELPTEXT['turbo'] + ' (default: %(default)s)')
 
