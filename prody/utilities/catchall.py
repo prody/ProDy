@@ -972,7 +972,10 @@ def findSubgroups(tree, c, method='naive', **kwargs):
 
 def findRMSDClusters(rmsd_matrix, c, labels=None):
     """
-    Divide **rmsd_matrix** into clusters using the gromos method and a cutoff **c**.
+    Divide **rmsd_matrix** into clusters using the gromos method 
+    with a cutoff **c** as implemented in gromacs (see 
+    https://manual.gromacs.org/documentation/current/onlinehelp/gmx-cluster.html)
+
     Returns a list of lists with labels divided into clusters.
     """    
     clusters = []
