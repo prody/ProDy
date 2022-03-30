@@ -23,7 +23,7 @@ __all__ = ['calcCollectivity', 'calcCovariance', 'calcCrossCorr',
            'calcProjection', 'calcCrossProjection',
            'calcSpecDimension', 'calcPairDeformationDist',
            'calcDistFlucts', 'calcHinges', 'calcHitTime', 'calcHitTime',
-           'calcAnisousFromModel', 'calcScipionScore']
+           'calcAnisousFromModel', 'calcScipionScore', 'calcHemnmaScore']
            #'calcEntropyTransfer', 'calcOverallNetEntropyTransfer']
 
 def calcCollectivity(mode, masses=None, is3d=None):
@@ -36,7 +36,8 @@ def calcCollectivity(mode, masses=None, is3d=None):
        spin relaxation. *J Chem Phys* **1995** 102:3396-3403.
 
     :arg mode: mode(s) or vector(s)
-    :type mode: :class:`.Mode`, :class:`.Vector`, :class:`.ModeSet`, :class:`.NMA`
+    :type mode: :class:`.Mode`, :class:`.Vector`, :class:`.ModeSet`,
+        :class:`.NMA`, :class:`~numpy.ndarray`
 
     :arg masses: atomic masses
     :type masses: :class:`numpy.ndarray`
@@ -498,7 +499,7 @@ def calcPairDeformationDist(model, coords, ind1, ind2, kbt=1.):
     :arg ind1: first residue number.
     :type ind1: int 
     
-    :arg ind2: secound residue number.
+    :arg ind2: second residue number.
     :type ind2: int 
     """
 
@@ -710,8 +711,17 @@ def calcAnisousFromModel(model, ):
 
 
 def calcScipionScore(modes):
-    """Calculate Scipion continuousflex score, 
-    which is a function of mode number and collectivity order.
+    """Calculate the score from hybrid electron microscopy normal mode analysis (HEMNMA) 
+    [CS14]_ as implemented in the Scipion continuousflex plugin [MH20]_. This score 
+    prioritises modes as a function of mode number and collectivity order.
+
+    .. [CS14] Sorzano COS, de la Rosa-Trevín JM, Tama F, Jonić S.
+       Hybrid Electron Microscopy Normal Mode Analysis graphical interface and protocol.
+       *J Struct Biol* **2014** 188:134-41.
+
+    .. [MH20] Harastani M, Sorzano COS, Jonić S. 
+       Hybrid Electron Microscopy Normal Mode Analysis with Scipion.
+       *Protein Sci* **2020** 29:223-236.
 
     :arg modes: mode(s) or vector(s)
     :type modes: :class:`.Mode`, :class:`.Vector`, :class:`.ModeSet`, :class:`.NMA`
@@ -736,3 +746,5 @@ def calcScipionScore(modes):
     score = score / (2.0 * n_modes) 
 
     return score
+
+calcHemnmaScore = calcScipionScore

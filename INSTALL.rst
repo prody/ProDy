@@ -87,11 +87,11 @@ environment variable.
 Recommended Software
 --------------------
 
-* `Scipy`_ , when installed, replaces linear algebra module of Numpy.
+* `Scipy`_, when installed, replaces linear algebra module of Numpy.
   Scipy linear algebra module is more flexible and can be faster.
 * `IPython`_ is a must have for interactive ProDy sessions.
 * `PyReadline`_ for colorful IPython sessions on Windows.
-* `MDAnalysis`_ for reading molecular dynamics trajectories.
+* `MDAnalysis`_ or `MDTraj`_ for reading molecular dynamics trajectories.
 
 
 .. _PyReadline: http://ipython.org/pyreadline.html

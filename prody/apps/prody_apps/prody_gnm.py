@@ -71,8 +71,20 @@ def prody_gnm(pdb, **kwargs):
                 .format(len(select)))
 
     gnm = prody.GNM(pdb.getTitle())
-    gnm.buildKirchhoff(select, cutoff, gamma)
-    gnm.calcModes(nmodes, zeros=zeros)
+
+    nproc = kwargs.get('nproc')
+    if nproc:
+        try:
+            from threadpoolctl import threadpool_limits
+        except ImportError:
+            raise ImportError('Please install threadpoolctl to control threads')
+
+        with threadpool_limits(limits=6, user_api="blas"):
+            gnm.buildKirchhoff(select, cutoff, gamma)
+            gnm.calcModes(nmodes, zeros=zeros)
+    else:
+        gnm.buildKirchhoff(select, cutoff, gamma)
+        gnm.calcModes(nmodes, zeros=zeros)
 
     LOGGER.info('Writing numerical output.')
 
@@ -275,7 +287,7 @@ save all of the graphical output files:
     group.add_argument('-m', '--model', dest='model', type=int,
         metavar='INT', default=DEFAULTS['model'], help=HELPTEXT['model'])
 
-    group.add_argument('-L', '--altloc', dest='altloc', type=int,
+    group.add_argument('-L', '--altloc', dest='altloc', type=str,
         metavar='INT', default=DEFAULTS['altloc'], help=HELPTEXT['altloc'])
 
     group.add_argument('-w', '--zero-modes', dest='zeros', action='store_true',

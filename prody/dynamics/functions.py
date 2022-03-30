@@ -12,16 +12,14 @@ import numpy as np
 from prody import LOGGER, SETTINGS, PY3K
 from prody.atomic import Atomic, AtomSubset
 from prody.utilities import openFile, openSQLite, isExecutable, which, PLATFORM, addext, wrapModes
-from prody.proteins.starfile import parseSTAR, writeSTAR
-from prody.proteins import alignChains
-from prody.utilities import openFile, isExecutable, which, PLATFORM, addext
-
+from prody.proteins import parseSTAR, writeSTAR, alignChains, parsePDB
 from prody.ensemble import PDBEnsemble
 
 from .nma import NMA, MaskedNMA
 from .anm import ANM, ANMBase, MaskedANM
 from .analysis import calcCollectivity, calcScipionScore
 from .analysis import calcProjection
+from .analysis import calcCollectivity
 from .gnm import GNM, GNMBase, ZERO, MaskedGNM
 from .exanm import exANM, MaskedExANM
 from .rtb import RTB
@@ -33,8 +31,8 @@ from .modeset import ModeSet
 from .editing import sliceModel, reduceModel, trimModel
 from .editing import sliceModelByMask, reduceModelByMask, trimModelByMask
 
-__all__ = ['parseArray', 'parseModes', 'parseScipionModes',
-           'parseSparseMatrix', 'parseGromacsModes',
+__all__ = ['parseArray', 'parseModes', 'parseSparseMatrix',
+           'parseGromacsModes', 'parseScipionModes',
            'writeArray', 'writeModes', 'writeScipionModes',
            'saveModel', 'loadModel', 'saveVector', 'loadVector',
            'calcENM', 'realignModes']
@@ -317,7 +315,7 @@ def parseModes(normalmodes, eigenvalues=None, nm_delimiter=None,
     return nma
 
 
-def parseScipionModes(run_path, title=None):
+def parseScipionModes(run_path, title=None, pdb=None):
     """Returns :class:`.NMA` containing eigenvectors and eigenvalues 
     parsed from a ContinuousFlex FlexProtNMA Run directory.
 
@@ -327,15 +325,21 @@ def parseScipionModes(run_path, title=None):
     :arg title: title for :class:`.NMA` object
     :type title: str
     """
+    if run_path.endswith("/"):
+        run_path = run_path[:-1]
     run_name = os.path.split(run_path)[-1]
+    top_dirs = os.path.split(run_path)[0][:-4] # exclude "Runs"
 
     star_data = parseSTAR(run_path + '/modes.xmd')
     star_loop = star_data[0][0]
     
     n_modes = star_loop.numRows()
     
+    atoms = parsePDB(pdb)
+    n_atoms = atoms.numAtoms()
+
     row1 = star_loop[0]
-    mode1 = parseArray(row1['_nmaModefile']).reshape(-1)
+    mode1 = parseArray(top_dirs + row1['_nmaModefile']).reshape(-1)
     dof = mode1.shape[0]
 
     vectors = np.zeros((dof, n_modes))
@@ -350,16 +354,16 @@ def parseScipionModes(run_path, title=None):
         found_eigvals = False
 
     for i, row in enumerate(star_loop[1:]):
-        vectors[:, i+1] = parseArray(row['_nmaModefile']).reshape(-1)
+        vectors[:, i+1] = parseArray(top_dirs + row['_nmaModefile']).reshape(-1)
         if found_eigvals:
             eigvals[i+1] = float(row['_nmaEigenval'])
     
-    log_fname = run_path + '/logs/run.stdout'
-    fi = open(log_fname, 'r')
-    lines = fi.readlines()
-    fi.close()
-    
     if not found_eigvals:
+        log_fname = run_path + '/logs/run.stdout'
+        fi = open(log_fname, 'r')
+        lines = fi.readlines()
+        fi.close()
+
         for line in lines:
             if line.find('Eigenvector number') != -1:
                 j = int(line.strip().split()[-1]) - 1
@@ -375,7 +379,11 @@ def parseScipionModes(run_path, title=None):
         LOGGER.warn('No eigenvalues found')
         eigvals=None
 
-    nma = NMA(title)
+    if dof == n_atoms * 3:
+        nma = NMA(title)
+    else:
+        nma = GNM(title)
+
     nma.setEigens(vectors, eigvals)
     return nma
 
@@ -397,7 +405,7 @@ def writeScipionModes(output_path, modes, write_star=False, scores=None,
     :type write_star: bool
 
     :arg scores: scores from qualifyModesStep for re-writing sqlite
-        Default is **None** and then it writes 0 for each.
+        Default is **None** and then it uses :func:`.calcScipionScore`
     :type scores: list
 
     :arg only_sqlite: whether to write only the sqlite file instead of everything.
@@ -422,8 +430,6 @@ def writeScipionModes(output_path, modes, write_star=False, scores=None,
     if not isinstance(modes, (NMA, ModeSet, VectorBase)):
         raise TypeError('rows must be NMA, ModeSet, or Mode, not {0}'
                         .format(type(modes)))
-    if not modes.is3d():
-        raise ValueError('modes must be 3-dimensional')
 
     if not isinstance(write_star, bool):
         raise TypeError('write_star should be boolean, not {0}'
@@ -463,7 +469,7 @@ def writeScipionModes(output_path, modes, write_star=False, scores=None,
                                         mode.getArrayNx3(), '%12.4e', ''))
         else:
             modefiles.append(writeArray(modes_dir + 'vec.{0}'.format(mode_num),
-                                        mode.getArray(), '%12.4e', ''))            
+                                        mode.getArray(), '%12.4e', ''))
 
     if norm:
         eigvecs = modes.getEigvecs()

@@ -10,6 +10,7 @@ DEFAULTS = {}
 HELPTEXT = {}
 for key, txt, val in [
     ('aligned', 'trajectory is already aligned', False),
+    ('altloc', 'alternative location identifiers for residues used in the calculations', "A"),
     ('outproj', 'write projections onto PCs', False),
     ('figproj', 'save projections onto specified subspaces, e.g. '
                 '"1,2" for projections onto PCs 1 and 2; '
@@ -47,6 +48,7 @@ def prody_pca(coords, **kwargs):
     nmodes = kwargs.get('nmodes')
     selstr = kwargs.get('select')
     quiet = kwargs.pop('quiet', False)
+    altloc = kwargs.get('altloc')
 
     ext = splitext(coords)[1].lower()
     if ext == '.gz':
@@ -58,7 +60,7 @@ def prody_pca(coords, **kwargs):
             if splitext(pdb)[1].lower() == '.psf':
                 pdb = prody.parsePSF(pdb)
             else:
-                pdb = prody.parsePDB(pdb)
+                pdb = prody.parsePDB(pdb, altlocs=altlocs)
         dcd = prody.DCDFile(coords)
         if prefix == '_pca' or prefix == '_eda':
             prefix = dcd.getTitle() + prefix
@@ -85,16 +87,36 @@ def prody_pca(coords, **kwargs):
             select = prody.AtomGroup()
             select.setCoords(dcd.getCoords())
         pca = prody.PCA(dcd.getTitle())
-        if len(dcd) > 1000:
-            pca.buildCovariance(dcd, aligned=kwargs.get('aligned'), quiet=quiet)
-            pca.calcModes(nmodes)
-            ensemble = dcd
+
+        nproc = kwargs.get('nproc')
+        if nproc:
+            try:
+                from threadpoolctl import threadpool_limits
+            except ImportError:
+                raise ImportError('Please install threadpoolctl to control threads')
+
+            with threadpool_limits(limits=6, user_api="blas"):
+                if len(dcd) > 1000:
+                    pca.buildCovariance(dcd, aligned=kwargs.get('aligned'), quiet=quiet)
+                    pca.calcModes(nmodes)
+                    ensemble = dcd
+                else:
+                    ensemble = dcd[:]
+                    if not kwargs.get('aligned'):
+                        ensemble.iterpose(quiet=quiet)
+                    pca.performSVD(ensemble)
+                nmodes = pca.numModes()
         else:
-            ensemble = dcd[:]
-            if not kwargs.get('aligned'):
-                ensemble.iterpose(quiet=quiet)
-            pca.performSVD(ensemble)
-        nmodes = pca.numModes()
+            if len(dcd) > 1000:
+                pca.buildCovariance(dcd, aligned=kwargs.get('aligned'), quiet=quiet)
+                pca.calcModes(nmodes)
+                ensemble = dcd
+            else:
+                ensemble = dcd[:]
+                if not kwargs.get('aligned'):
+                    ensemble.iterpose(quiet=quiet)
+                pca.performSVD(ensemble)
+            nmodes = pca.numModes()
 
     else:
         pdb = prody.parsePDB(coords)
@@ -116,7 +138,18 @@ def prody_pca(coords, **kwargs):
         pca = prody.PCA(pdb.getTitle())
         if not kwargs.get('aligned'):
             ensemble.iterpose()
-        pca.performSVD(ensemble)
+
+        nproc = kwargs.get('nproc')
+        if nproc:
+            try:
+                from threadpoolctl import threadpool_limits
+            except ImportError:
+                raise ImportError('Please install threadpoolctl to control threads')
+
+            with threadpool_limits(limits=6, user_api="blas"):
+                pca.performSVD(ensemble)
+        else:
+            pca.performSVD(ensemble)
 
 
     LOGGER.info('Writing numerical output.')
@@ -301,6 +334,9 @@ Perform EDA for backbone atoms:
     group = subparser.add_mutually_exclusive_group()
     group.add_argument('--psf', help='PSF filename')
     group.add_argument('--pdb', help='PDB filename')
+    group.add_argument('-L', '--altloc', dest='altloc', type=str,
+        metavar='INT', default=DEFAULTS['altloc'], help=HELPTEXT['altloc'])
+
     subparser.add_argument('--aligned', dest='aligned', action='store_true',
         default=DEFAULTS['aligned'], help=HELPTEXT['aligned'])
 

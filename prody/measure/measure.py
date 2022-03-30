@@ -1,13 +1,16 @@
 # -*- coding: utf-8 -*-
 """This module defines a class and methods and for comparing coordinate data
 and measuring quantities."""
+from numbers import Integral, Number
 
 from numpy import ndarray, power, sqrt, array, zeros, arccos, dot
 from numpy import sign, tile, concatenate, pi, cross, subtract, var
+from numpy import unique, where
 
-from prody.atomic import Atomic, Residue, Atom
+from prody.atomic import Atomic, Residue, Atom, extendAtomicData
 from prody.kdtree import KDTree
 from prody.utilities import importLA, solveEig, checkCoords, getDistance, getCoords
+from prody.utilities import calcTree, findSubgroups
 from prody import LOGGER, PY2K
 
 if PY2K:
@@ -20,7 +23,8 @@ __all__ = ['buildDistMatrix', 'calcDistance',
            'calcDeformVector',
            'buildADPMatrix', 'calcADPAxes', 'calcADPs',
            'pickCentral', 'pickCentralAtom', 'pickCentralConf', 'getWeights',
-           'calcInertiaTensor', 'calcPrincAxes', 'calcDistanceMatrix']
+           'calcInertiaTensor', 'calcPrincAxes', 'calcDistanceMatrix',
+           'assignBlocks']
 
 RAD2DEG = 180 / pi
 
@@ -862,3 +866,170 @@ def calcDistanceMatrix(coords, cutoff=None):
 
     return dist_mat
 
+
+def assignBlocks(atoms, res_per_block=None, secstr=False, **kwargs):
+    """Assigns blocks to protein from *atoms*
+    using a block size of *res_per_block* or 
+    secondary structure information if *secstr* is **True**.
+
+    Returns an array of block IDs and an 
+    AtomMap corresponding to protein atoms.
+
+    :arg atoms: atoms to be assigned blocks
+    :type atoms: :class:`Atomic`
+
+    :arg res_per_block: number of residues per block
+        The last block may be smaller or larger than this.
+        Default is **None**, allowing *secstr* to be used easily instead.
+    :type res_per_block: int
+
+    :arg secstr: use secondary structure information to assign blocks.
+        Default is **False**, allowing *res_per_block* to be used easily instead.
+        Any set of strings that can be retrieved by :meth:`.getSecstr` is acceptable
+        including from PDB header, DSSP or STRIDE.
+    :type secstr: bool
+
+    :arg shortest_block: smallest number of residues to be included 
+        in a block before merging with the previous block
+        Default is **4** as smaller numbers can cause problems for distance matrices.
+    :type shortest_block: int
+
+    :arg longest_block: largest number of residues to be included 
+        in a block before splitting it in half.
+        Default is the length of the protein so it isn't triggered.
+    :type longest_block: int
+
+    :arg min_dist_cutoff: minimum distance of a residue from others beyond which 
+        it is not included in the same block as them using :meth:`.findSubgroups`.
+        Default is 20 A, which was found to work well with *res_per_block*=10.
+    :type min_dist_cutoff: Number
+    """
+
+    if not isinstance(atoms, Atomic):
+        raise TypeError("atoms should be an Atomic object")
+
+    if not atoms.ca:
+        raise ValueError("atoms should have Calpha atoms")
+
+    if not isinstance(res_per_block, Integral) and not secstr:
+        raise TypeError("res_per_block should be an integer or "
+                        "secstr should be set to true")
+
+    if secstr and res_per_block:
+        raise ValueError("Either secstr or res_per_block "
+                         "should be set, not both")
+
+    if not isinstance(secstr, bool):
+        raise TypeError('secstr should be a Boolean')
+
+    shortest_block = kwargs.get('shortest_block', 4)
+    shortest_block = kwargs.get('min_size', shortest_block)
+    if not isinstance(shortest_block, Integral):
+        raise TypeError("shortest_block should be an integer")
+
+    sel_ca = atoms.ca
+    n_res = sel_ca.numAtoms()
+
+    longest_block = kwargs.get('max_size', n_res)
+    longest_block = kwargs.get('longest_block', longest_block)
+    if not isinstance(longest_block, Integral):
+        raise TypeError("longest_block should be an integer")
+
+    try:
+        min_dist_cutoff = float(kwargs.get('min_dist_cutoff', 20))
+    except:
+        raise TypeError("min_dist_cutoff should be a number")
+
+    blocks = []
+
+    if res_per_block:
+        n_blocks = int(n_res/res_per_block)
+
+        blocks_stack = [[b] * res_per_block for b in range(n_blocks)] + [[n_blocks] * (n_res % res_per_block)]
+        for i, block in enumerate(blocks_stack):
+            if len(block) < shortest_block:
+                # join onto previous block
+                block = [blocks_stack[i-1][0] for b in block]
+
+            blocks.extend(block)    
+    else:
+        secstrs = sel_ca.getSecstrs()
+        if secstrs is None:
+            raise OSError("Please parse secstr information "
+                          "from PDB header or use DSSP or STRIDE "
+                          "to use secstr for assigning blocks")
+        
+        blocks.append(0)
+        secstr_prev = secstrs[0]
+        i = 0
+        for secstr in secstrs[1:-1]:
+            if secstr != secstr_prev:
+                secstr_prev = secstr
+                if len(where(array(blocks) == i)[0]) >= shortest_block:
+                    # long enough so next sec str is a new block
+                    i += 1
+            blocks.append(i)
+        
+        # include last residue in previous block
+        blocks.append(i)
+
+    blocks = array(blocks)
+
+    unique_blocks = unique(blocks)
+    for i in unique_blocks:
+        block = where(blocks == i)[0]
+        dist_mat = calcDistanceMatrix(sel_ca[block])
+        dist_tree = calcTree([str(n) for n in block], dist_mat)
+        subgroups = [array(list(reversed(n)), dtype=int) for n in
+                     reversed(findSubgroups(dist_tree, min_dist_cutoff))]
+
+        if len(subgroups) == 1:
+            continue
+        elif len(subgroups) == 2:
+            # move last subgroup to next block
+            blocks[subgroups[-1]] = blocks[subgroups[-1][-1] + 1]
+        elif len(subgroups) == 3:
+            # move first subgroup to previous block
+            blocks[subgroups[0]] = blocks[subgroups[0][0] - 1]
+            # move last subgroup to next block
+            blocks[subgroups[-1]] = blocks[subgroups[-1][-1] + 1]
+        else:
+            raise ValueError("Block {0} is getting too separated. "
+                             "Please increase min_dist_cutoff".format(i))
+
+    unique_blocks, lengths = unique(blocks, return_counts=True)
+    max_length = max(lengths)
+    while max_length > longest_block:
+        for i in unique_blocks:
+            len_block = len(where(blocks == i)[0])
+
+            if len_block > longest_block:
+                new_block = max(unique_blocks)+1
+                blocks[where(blocks == i)[0][len_block // 2 :]] = new_block
+
+                unique_blocks, lengths = unique(blocks, return_counts=True)
+                max_length = max(lengths)
+    
+    unique_blocks = unique(blocks)
+    for i in unique_blocks:
+        block = where(blocks == i)[0]
+        if len(block) < shortest_block:
+            block_im1 = where(blocks == i-1)[0]
+            block_ip1 = where(blocks == i+1)[0]
+
+            dist_back = calcDistance(atoms[block_im1][-1], atoms[block][0])
+            dist_fwd = calcDistance(atoms[block][-1], atoms[block_ip1][0])
+
+            if dist_back < min_dist_cutoff:
+                # join onto previous block
+                blocks[where(blocks == i)[0]] = i-1
+            elif dist_fwd < min_dist_cutoff:
+                # join onto next block
+                blocks[where(blocks == i)[0]] = i+1                
+
+    blocks, amap = extendAtomicData(blocks, sel_ca, atoms)
+
+    if amap.getHierView().numResidues() < atoms.getHierView().numResidues():
+        amap.setTitle("protein from " + amap.getTitle())
+
+    return blocks, amap
