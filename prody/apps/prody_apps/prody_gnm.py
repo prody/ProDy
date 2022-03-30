@@ -79,7 +79,7 @@ def prody_gnm(pdb, **kwargs):
         except ImportError:
             raise ImportError('Please install threadpoolctl to control threads')
 
-        with threadpool_limits(limits=6, user_api="blas"):
+        with threadpool_limits(limits=nproc, user_api="blas"):
             gnm.buildKirchhoff(select, cutoff, gamma)
             gnm.calcModes(nmodes, zeros=zeros)
     else:

@@ -95,7 +95,7 @@ def prody_pca(coords, **kwargs):
             except ImportError:
                 raise ImportError('Please install threadpoolctl to control threads')
 
-            with threadpool_limits(limits=6, user_api="blas"):
+            with threadpool_limits(limits=nproc, user_api="blas"):
                 if len(dcd) > 1000:
                     pca.buildCovariance(dcd, aligned=kwargs.get('aligned'), quiet=quiet)
                     pca.calcModes(nmodes)
@@ -146,7 +146,7 @@ def prody_pca(coords, **kwargs):
             except ImportError:
                 raise ImportError('Please install threadpoolctl to control threads')
 
-            with threadpool_limits(limits=6, user_api="blas"):
+            with threadpool_limits(limits=nproc, user_api="blas"):
                 pca.performSVD(ensemble)
         else:
             pca.performSVD(ensemble)
