@@ -426,8 +426,6 @@ def writeScipionModes(output_path, modes, write_star=False, scores=None,
     if not isinstance(modes, (NMA, ModeSet, VectorBase)):
         raise TypeError('rows must be NMA, ModeSet, or Mode, not {0}'
                         .format(type(modes)))
-    if not modes.is3d():
-        raise ValueError('modes must be 3-dimensional')
 
     if not isinstance(write_star, bool):
         raise TypeError('write_star should be boolean, not {0}'
