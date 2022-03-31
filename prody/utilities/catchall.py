@@ -981,12 +981,11 @@ def findRMSDClusters(rmsd_matrix, c, labels=None):
     clusters = []
 
     useful_rmsd_matrix = rmsd_matrix
-    elements = labels
-    
-    indices = list(range(len(elements)))
+    indices = list(range(len(rmsd_matrix)))
     if labels is None:
-        labels = indices
-
+        elements = indices
+    else:
+        elements = labels
     j = 0
     while len(elements) > 0:
 
