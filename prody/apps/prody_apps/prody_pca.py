@@ -156,6 +156,9 @@ def prody_pca(coords, **kwargs):
     if kwargs.get('outnpz'):
         prody.saveModel(pca, join(outdir, prefix))
 
+    if kwargs.get('outscipion'):
+        prody.writeScipionModes(outdir, pca)
+
     prody.writeNMD(join(outdir, prefix + '.nmd'), pca[:nmodes], select)
 
     extend = kwargs.get('extend')

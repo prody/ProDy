@@ -683,7 +683,7 @@ def parseSTARLines(lines, **kwargs):
     return finalDictionary, prog
 
 
-def writeSTAR(filename, starDict):
+def writeSTAR(filename, starDict, **kwargs):
     """Writes a STAR file from a dictionary containing data
     such as that parsed from a Relion STAR file.
 
@@ -695,7 +695,10 @@ def writeSTAR(filename, starDict):
         This should have nested entries starting with data blocks then loops/tables then
         field names and finally data.
     :type starDict: dict
+
+    kwargs can be given including the program style to follow (*prog*)
     """
+    prog=kwargs.get('prog', 'XMIPP')
 
     star = open(filename, 'w')
 
@@ -704,11 +707,15 @@ def writeSTAR(filename, starDict):
         for loopNumber in starDict[dataBlockKey]:
             star.write('\nloop_\n')
             for fieldNumber in starDict[dataBlockKey][loopNumber]['fields']:
-                star.write('_' + starDict[dataBlockKey][loopNumber]['fields'][fieldNumber] + '\n')
+                if prog == 'XMIPP':
+                    star.write(' ')
+                star.write(starDict[dataBlockKey][loopNumber]['fields'][fieldNumber] + '\n')
             for dataItemNumber in starDict[dataBlockKey][loopNumber]['data']:
+                if prog == 'XMIPP':
+                    star.write('\t')
                 for fieldNumber in starDict[dataBlockKey][loopNumber]['fields']:
                     currentField = starDict[dataBlockKey][loopNumber]['fields'][fieldNumber]
-                    star.write(starDict[dataBlockKey][loopNumber]['data'][dataItemNumber][currentField] + ' ')
+                    star.write(starDict[dataBlockKey][loopNumber]['data'][dataItemNumber][currentField] + '\t')
                 star.write('\n')
 
     star.close()

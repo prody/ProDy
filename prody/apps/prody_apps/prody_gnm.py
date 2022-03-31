@@ -91,6 +91,9 @@ def prody_gnm(pdb, **kwargs):
     if kwargs.get('outnpz'):
         prody.saveModel(gnm, join(outdir, prefix))
 
+    if kwargs.get('outscipion'):
+        prody.writeScipionModes(outdir, gnm)
+
     prody.writeNMD(join(outdir, prefix + '.nmd'), gnm, select)
 
     extend = kwargs.get('extend')
