@@ -228,13 +228,12 @@ def _parsePDB(pdb, **kwargs):
             title = title[3:]
         kwargs['title'] = title
 
-    stream = openFile(pdb, 'rt')
-    if chain != '':
-        kwargs['chain'] = chain
-    result = parsePDBStream(stream, **kwargs)
-    stream.close()
-
-    if result is not None:
+    if pdb.endswith('.pdb') or pdb.endswith('.pdb.gz'):
+        stream = openFile(pdb, 'rt')
+        if chain != '':
+            kwargs['chain'] = chain
+        result = parsePDBStream(stream, **kwargs)
+        stream.close()
         return result
     else:
         try:
@@ -501,8 +500,11 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                     break
         if nmodel != model:
             raise PDBParseError('model {0} is not found'.format(model))
+
     if isinstance(altloc_torf, str):
-        if altloc_torf.strip() != 'A':
+        if altloc_torf == 'all':
+            which_altlocs = 'all'
+        elif altloc_torf.strip() != 'A':
             LOGGER.info('Parsing alternate locations {0}.'
                         .format(altloc_torf))
             which_altlocs = ' ' + ''.join(altloc_torf.split())
@@ -539,7 +541,7 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
         if startswith == 'ATOM' or startswith == 'HETATM':
             if isPDB:
                 atomname = line[12:16].strip()
-                resname = line[17:21].strip()
+                resname = line[17:20].strip()
             else:
                 atomname= fields[2]
                 resname = fields[3]
@@ -550,7 +552,7 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                     continue
 
             if isPDB:
-                chid = line[21]
+                chid = line[20:22].strip()
             else:
                 chid = fields[4]
 
@@ -561,7 +563,7 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
             
             if isPDB:
                 alt = line[16]
-                if alt not in which_altlocs:
+                if alt not in which_altlocs and which_altlocs != 'all':
                     altloc[alt].append((line, i))
                     i += 1
                     continue
@@ -625,20 +627,20 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
             chainids[acount] = chid
             if isPDB:
                 resnum_str = line[22:26]
+                icode = line[26] 
                 if dec:
                     try:
                         resnum = int(resnum_str)
                     except ValueError:
                         dec = False
 
-                icode = line[26] 
-                if icode.isdigit() and dec:
-                    if not warned_5_digit:
-                        LOGGER.warn('parsed 5 digit residue number including numeric insertion code')
-                        warned_5_digit = True
-                    resnum = int(str(resnum) + icode)
-                else:
-                    icodes[acount] = icode
+                    if icode.isdigit():
+                        if not warned_5_digit:
+                            LOGGER.warn('parsed 5 digit residue number including numeric insertion code')
+                            warned_5_digit = True
+                        resnum = int(str(resnum) + icode)          
+                    else:
+                        icodes[acount] = icode
 
                 if dec and acount > 2 and resnums[acount-2] > resnum and resnums[acount-2] >= MAX_N_RES:
                     dec = False
@@ -646,7 +648,7 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                 if not dec:
                     resnum = resnum_str
                     try:
-                        isnumeric = np.alltrue([x.isdigit() for x in resnum_str])
+                        isnumeric = np.alltrue([x.isdigit() or x==' ' for x in resnum_str])
                         if not isnumeric and resnum_str == resnum_str.upper():
                             resnum = hybrid36ToDec(resnum_str, resnum=True)
                         else:
@@ -879,6 +881,12 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                 anisou = True
                 anisou = np.zeros((alength, 6),
                     dtype=ATOMIC_FIELDS['anisou'].dtype)
+
+            alt = line[16]
+            if alt not in which_altlocs and which_altlocs != 'all':
+                altloc[alt].append((line, i))
+                i += 1
+                continue
             try:
                 index = acount - 1
                 anisou[index, 0] = line[28:35]
@@ -1030,11 +1038,6 @@ def _evalAltlocs(atomgroup, altloc, chainids, resnums, resnames, atomnames):
                         'atomgroup {1}.'.format(repr(key), atomgroup.getTitle()))
             atomgroup.addCoordset(xyz, label='altloc ' + key)
 
-PDBLINE = ('{0:6s}{1:5d} {2:4s}{3:1s}'
-           '{4:4s}{5:1s}{6:4d}{7:1s}   '
-           '{8:8.3f}{9:8.3f}{10:8.3f}'
-           '{11:6.2f}{12:6.2f}      '
-           '{13:4s}{14:2s}\n')
 
 #HELIXLINE = ('HELIX  %3d %3s %-3s %1s %4d%1s %-3s %1s %4d%1s%2d'
 #             '                               %5d\n')
@@ -1048,51 +1051,51 @@ SHEETLINE = ('SHEET  {strand:3d} {sheetID:>3s}{numStrands:2d} '
              '{initResName:3s} {initChainID:1s}{initSeqNum:4d}{initICode:1s} '
              '{endResName:3s} {endChainID:1s}{endSeqNum:4d}{endICode:1s}{sense:2d} \n')
 
-PDBLINE_LT100K = ('%-6s%5d %-4s%1s%-4s%1s%4d%1s   '
+PDBLINE_LT100K = ('%-6s%5d %-4s%1s%-3s%2s%4d%1s   '
                   '%8.3f%8.3f%8.3f%6.2f%6.2f      '
                   '%4s%2s%2s\n')
 
 # Residue number
-PDBLINE_GE10K = ('%-6s%5d %-4s%1s%-4s%1s%4x%1s   '
+PDBLINE_GE10K = ('%-6s%5d %-4s%1s%-3s%2s%4x%1s   '
                  '%8.3f%8.3f%8.3f%6.2f%6.2f      '
                  '%4s%2s%2s\n')
 
 # Serial number
-PDBLINE_GE100K = ('%-6s%5x %-4s%1s%-4s%1s%4d%1s   '
+PDBLINE_GE100K = ('%-6s%5x %-4s%1s%-3s%2s%4d%1s   '
                   '%8.3f%8.3f%8.3f%6.2f%6.2f      '
                   '%4s%2s%2s\n')
 
 # Both
-PDBLINE_GE100K_GE10K = ('%-6s%5x %-4s%1s%-4s%1s%4x%1s   '
+PDBLINE_GE100K_GE10K = ('%-6s%5x %-4s%1s%-3s%2s%4x%1s   '
                         '%8.3f%8.3f%8.3f%6.2f%6.2f      '
                         '%4s%2s%2s\n')
 
 # All cases
-PDBLINE_H36 = ('%-6s%5s %-4s%1s%-4s%1s%4s%1s   '
+PDBLINE_H36 = ('%-6s%5s %-4s%1s%-3s%2s%4s%1s   '
                '%8.3f%8.3f%8.3f%6.2f%6.2f      '
                '%4s%2s%2s\n')
 
-ANISOULINE_LT100K = ('%-6s%5d %-4s%1s%-4s%1s%4d%1s '
+ANISOULINE_LT100K = ('%-6s%5d %-4s%1s%-3s%2s%4d%1s '
                      '%7d%7d%7d%7d%7d%7d  '
                      '%4s%2s%2s\n')
 
 # Residue number
-ANISOULINE_GE10K = ('%-6s%5d %-4s%1s%-4s%1s%4x%1s '
+ANISOULINE_GE10K = ('%-6s%5d %-4s%1s%-3s%2s%4x%1s '
                     '%7d%7d%7d%7d%7d%7d  '
                     '%4s%2s%2s\n')
 
 # Serial number
-ANISOULINE_GE100K = ('%-6s%5x %-4s%1s%-4s%1s%4d%1s '
+ANISOULINE_GE100K = ('%-6s%5x %-4s%1s%-3s%2s%4d%1s '
                      '%7d%7d%7d%7d%7d%7d  '
                      '%4s%2s%2s\n')
 
 # Both
-ANISOULINE_GE100K_GE10K = ('%-6s%5x %-4s%1s%-4s%1s%4x%1s '
+ANISOULINE_GE100K_GE10K = ('%-6s%5x %-4s%1s%-3s%2s%4x%1s '
                            '%7d%7d%7d%7d%7d%7d  '
                            '%4s%2s%2s\n')
 
 # All cases
-ANISOULINE_H36 = ('%-6s%5s %-4s%1s%-4s%1s%4s%1s '
+ANISOULINE_H36 = ('%-6s%5s %-4s%1s%-3s%2s%4s%1s '
                   '%7d%7d%7d%7d%7d%7d  '
                   '%4s%2s%2s\n')
 
@@ -1388,6 +1391,8 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
             anisouline = ANISOULINE_LT100K
         else:
             warned_hybrid36 = False
+
+        warned_5_digit = False
             
         for i, xyz in enumerate(coords):
             if hybrid36:
@@ -1429,6 +1434,51 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
             else:
                 serial = serials[i]
                 resnum = resnums[i]
+
+            if pdbline == PDBLINE_LT100K or hybrid36:
+                if len(str(resnum)) == 5:
+                    if icodes[i] == '':
+                        icodes[i] = str(resnum)[4]
+                        
+                        if not warned_5_digit:
+                            LOGGER.warn('Storing 5-digit resnums using insertion codes')
+                            warned_5_digit = True
+                    else:
+                        LOGGER.warn('Truncating 5-digit resnum as insertion code is busy.')
+
+                    resnum = int(str(resnum)[:4])
+                
+                elif len(str(resnum)) > 5:
+                    if not warned_5_digit:
+                        LOGGER.warn('Truncating {0}-digit resnum as too long to be '
+                                    'supported by insertion code.'.format(len(str(resnum))))
+                        warned_5_digit = True
+                        
+                    resnum = int(str(resnum)[:4])
+            else:
+                final_resnum = '%4x' % int(resnum)
+                
+                if len(str(final_resnum)) == 5:
+                    if icodes[i] == '':
+                        icodes[i] = str(final_resnum)[4]
+                        
+                        if not warned_5_digit:
+                            LOGGER.warn('Storing 5-digit hex resnums using insertion codes')
+                            warned_5_digit = True
+                    else:
+                        LOGGER.warn('Truncating 5-digit hex resnum as insertion code is busy.')
+
+                    resnum = int(str(final_resnum)[:4], 16)
+                
+                elif len(str(final_resnum)) > 5:
+                    if not warned_5_digit:
+                        LOGGER.warn('Truncating {0}-digit hex resnum ({1}) as too long to be '
+                                    'supported by insertion code.'.format(len(str(final_resnum)), 
+                                                                          final_resnum))
+                        warned_5_digit = True
+                        
+                    resnum = int(str(final_resnum)[:4], 16)
+              
 
             write(pdbline % (hetero[i], serial,
                              atomnames[i], altlocs[i],
@@ -1498,6 +1548,75 @@ def writePQRStream(stream, atoms, **kwargs):
 
     s_or_u = np.array(['a']).dtype.char
 
+
+    write = stream.write
+
+    calphas = atoms.ca
+    ssa = calphas.getSecstrs()
+    helix = []
+    sheet = []
+    if ssa is not None:
+        ss_prev = ssa[0]
+        ss_start = 0
+        ss_end = 1
+        for i, ss in enumerate(ssa):
+            if ss != ss_prev:
+                # store prev secstr and prepare for next
+                ss_end = i-1
+                init = calphas[ss_start]
+                end = calphas[ss_end]
+                length = ss_end - ss_start + 1
+
+                entries = [init.getSecindex(), init.getSecid(),
+                           init.getResname(), init.getChid(), 
+                           init.getResnum(), init.getIcode(),
+                           end.getResname(), end.getChid(),
+                           end.getResnum(), end.getIcode(),
+                           init.getSecclass()]
+                
+                if ssa[ss_end] == 'H':
+                    helix.append(["HELIX "] + entries +
+                                 ['', length])
+
+                elif ssa[ss_end] == 'E':
+                    sheet.append(["SHEET "] + entries)
+
+                ss_start = i
+                ss_prev = ss
+
+    format_helix = ('{0:6s} {1:3d} {2:3s} ' +
+                    '{3:3s} {4:1s} {5:4d}{6:1s} ' +
+                    '{7:3s} {8:1s} {9:4d}{10:1s} ' +
+                    '{11:2d} {12:30s} {13:5d}\n').format
+    for line in helix:
+        write(format_helix(*line))
+
+
+    sorted_sheet = sorted(sheet, key=lambda item: (item[2], item[1]))
+    sheet_prev = 'A'
+    num_strands_list = []
+    for i, item1 in enumerate(sorted_sheet):
+        if item1[2] != sheet_prev:
+            num_strands = sorted_sheet[i-1][1]
+            num_strands_list.append(num_strands)
+
+            sheet_prev = item1[2]
+
+            for item2 in sorted_sheet[i-num_strands:i]:
+                item2.append(num_strands)
+
+    num_strands = item1[1]
+    for item2 in sorted_sheet[i-num_strands+1:]:
+        item2.append(num_strands)    
+
+    format_sheet = ('{0:6s} {1:3d} {2:3s}{12:2d} ' +
+                    '{3:3s} {4:1s}{5:4d}{6:1s}' +
+                    '{7:3s} {8:1s}{9:4d}{10:1s}' +
+                    '{11:2d}\n').format
+
+    for i, line in enumerate(sorted_sheet):
+        write(format_sheet(*line))
+
     resnames = atoms._getResnames()
     if resnames is None:
         resnames = ['UNK'] * n_atoms
@@ -1532,7 +1651,7 @@ def writePQRStream(stream, atoms, **kwargs):
               '{8:8.3f} {9:8.3f} {10:8.3f}' +
               '{11:8.4f} {12:7.4f}\n').format
     coords = atoms._getCoords()
-    write = stream.write
+    
     for i, xyz in enumerate(coords):
         write(format(hetero[i], i+1, atomnames[i], altlocs[i],
                      resnames[i], chainids[i], int(resnums[i]),

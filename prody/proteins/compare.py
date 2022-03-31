@@ -544,7 +544,7 @@ def matchChains(atoms1, atoms2, **kwargs):
     :keyword subset: one of the following well-defined subsets of atoms:
         ``"calpha"`` (or ``"ca"``), ``"backbone"`` (or ``"bb"``),
         ``"heavy"`` (or ``"noh"``), or ``"all"``, default is ``"calpha"``
-    :type subset: string
+    :type subset: str
 
     :keyword seqid: percent sequence identity, default is 90
     :type seqid: float
@@ -622,49 +622,55 @@ def matchChains(atoms1, atoms2, **kwargs):
 
     matches = []
     unmatched = []
-    LOGGER.debug('Trying to match chains based on residue numbers and names:')
-    for simpch1 in chains1:
-        for simpch2 in chains2:
-            LOGGER.debug('  Comparing {0} (len={1}) and {2} (len={3}):'
-                         .format(simpch1.getTitle(), len(simpch1),
-                                 simpch2.getTitle(), len(simpch2)))
-
-            match1, match2, nmatches = getTrivialMatch(simpch1, simpch2)
-            _seqid = nmatches * 100 / min(len(simpch1), len(simpch2))
-            _cover = len(match2) * 100 / max(len(simpch1), len(simpch2))
-
-            if _seqid >= seqid and _cover >= coverage:
-                LOGGER.debug('\tMatch: {0} residues match with {1:.0f}% '
-                             'sequence identity and {2:.0f}% overlap.'
-                             .format(len(match1), _seqid, _cover))
-                matches.append((match1, match2, _seqid, _cover, simpch1, simpch2))
-            else:
-                LOGGER.debug('\tFailed to match chains (seqid={0:.0f}%, '
-                             'overlap={1:.0f}%).'.format(_seqid, _cover))
+    if pwalign:
+        for simpch1 in chains1:
+            for simpch2 in chains2:
                 unmatched.append((simpch1, simpch2))
+    else:
+        LOGGER.debug('Trying to match chains based on residue numbers and names:')
+        for simpch1 in chains1:
+            for simpch2 in chains2:
+                LOGGER.debug('  Comparing {0} (len={1}) and {2} (len={3}):'
+                            .format(simpch1.getTitle(), len(simpch1),
+                                    simpch2.getTitle(), len(simpch2)))
+
+                match1, match2, nmatches = getTrivialMatch(simpch1, simpch2)
+                _seqid = nmatches * 100 / min(len(simpch1), len(simpch2))
+                _cover = len(match2) * 100 / max(len(simpch1), len(simpch2))
+
+                if _seqid >= seqid and _cover >= coverage:
+                    LOGGER.debug('\tMatch: {0} residues match with {1:.0f}% '
+                                'sequence identity and {2:.0f}% overlap.'
+                                .format(len(match1), _seqid, _cover))
+                    matches.append((match1, match2, _seqid, _cover, simpch1, simpch2))
+                else:
+                    LOGGER.debug('\tFailed to match chains (seqid={0:.0f}%, '
+                                'overlap={1:.0f}%).'.format(_seqid, _cover))
+                    unmatched.append((simpch1, simpch2))
 
     if pwalign or (not matches and (pwalign is None or pwalign)):
         if pairwise2:
-            LOGGER.debug('Trying to match chains based on {0} sequence '
-                         'alignment:'.format(ALIGNMENT_METHOD))
-            for simpch1, simpch2 in unmatched:
-                LOGGER.debug(' Comparing {0} (len={1}) and {2} '
-                             '(len={3}):'
-                             .format(simpch1.getTitle(), len(simpch1),
-                                     simpch2.getTitle(), len(simpch2)))
-                match1, match2, nmatches = getAlignedMatch(simpch1, simpch2)
-                _seqid = nmatches * 100 / min(len(simpch1), len(simpch2))
-                _cover = len(match2) * 100 / max(len(simpch1), len(simpch2))
-                if _seqid >= seqid and _cover >= coverage:
-                    LOGGER.debug('\tMatch: {0} residues match with {1:.0f}% '
-                                 'sequence identity and {2:.0f}% overlap.'
-                                 .format(len(match1), _seqid, _cover))
-                    matches.append((match1, match2, _seqid, _cover,
-                                    simpch1, simpch2))
-                else:
-                    LOGGER.debug('\tFailed to match chains (seqid={0:.0f}%, '
-                                 'overlap={1:.0f}%).'
-                                 .format(_seqid, _cover))
+            if unmatched:
+                LOGGER.debug('Trying to match chains based on {0} sequence '
+                            'alignment:'.format(ALIGNMENT_METHOD))
+                for simpch1, simpch2 in unmatched:
+                    LOGGER.debug(' Comparing {0} (len={1}) and {2} '
+                                '(len={3}):'
+                                .format(simpch1.getTitle(), len(simpch1),
+                                        simpch2.getTitle(), len(simpch2)))
+                    match1, match2, nmatches = getAlignedMatch(simpch1, simpch2)
+                    _seqid = nmatches * 100 / min(len(simpch1), len(simpch2))
+                    _cover = len(match2) * 100 / max(len(simpch1), len(simpch2))
+                    if _seqid >= seqid and _cover >= coverage:
+                        LOGGER.debug('\tMatch: {0} residues match with {1:.0f}% '
+                                    'sequence identity and {2:.0f}% overlap.'
+                                    .format(len(match1), _seqid, _cover))
+                        matches.append((match1, match2, _seqid, _cover,
+                                        simpch1, simpch2))
+                    else:
+                        LOGGER.debug('\tFailed to match chains (seqid={0:.0f}%, '
+                                    'overlap={1:.0f}%).'
+                                    .format(_seqid, _cover))
         else:
             LOGGER.warning('Pairwise alignment could not be performed.')
     if not matches:
@@ -1388,8 +1394,13 @@ def getCEAlignMapping(target, chain):
                     'It may not be installed properly.')
         return None
 
-    tar_coords = target.getCoords().tolist()
-    mob_coords = chain.getCoords().tolist()
+    if not ("X" in target.getSequence() or "X" in chain.getSequence()):
+        calpha=True
+    else:
+        calpha=False
+
+    tar_coords = target.getCoords(calpha=calpha).tolist()
+    mob_coords = chain.getCoords(calpha=calpha).tolist()
 
     if len(tar_coords) < 8:
         LOGGER.warn('target ({1}) is too small to be aligned '
