@@ -12,8 +12,7 @@ import numpy as np
 from prody import LOGGER, SETTINGS, PY3K
 from prody.atomic import Atomic, AtomSubset
 from prody.utilities import openFile, openSQLite, isExecutable, which, PLATFORM, addext, wrapModes
-from prody.proteins.starfile import parseSTAR, writeSTAR
-
+from prody.proteins import parseSTAR, writeSTAR, alignChains, parsePDB
 from prody.ensemble import PDBEnsemble
 
 from .nma import NMA, MaskedNMA
@@ -316,7 +315,7 @@ def parseModes(normalmodes, eigenvalues=None, nm_delimiter=None,
     return nma
 
 
-def parseScipionModes(run_path, title=None):
+def parseScipionModes(run_path, title=None, pdb=None):
     """Returns :class:`.NMA` containing eigenvectors and eigenvalues 
     parsed from a ContinuousFlex FlexProtNMA Run directory.
 
@@ -336,6 +335,9 @@ def parseScipionModes(run_path, title=None):
     
     n_modes = star_loop.numRows()
     
+    atoms = parsePDB(pdb)
+    n_atoms = atoms.numAtoms()
+
     row1 = star_loop[0]
     mode1 = parseArray(top_dirs + row1['_nmaModefile']).reshape(-1)
     dof = mode1.shape[0]
@@ -377,7 +379,11 @@ def parseScipionModes(run_path, title=None):
         LOGGER.warn('No eigenvalues found')
         eigvals=None
 
-    nma = NMA(title)
+    if dof == n_atoms * 3:
+        nma = NMA(title)
+    else:
+        nma = GNM(title)
+
     nma.setEigens(vectors, eigvals)
     return nma
 
