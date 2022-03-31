@@ -356,12 +356,12 @@ def parseScipionModes(run_path, title=None):
         if found_eigvals:
             eigvals[i+1] = float(row['_nmaEigenval'])
     
-    log_fname = run_path + '/logs/run.stdout'
-    fi = open(log_fname, 'r')
-    lines = fi.readlines()
-    fi.close()
-    
     if not found_eigvals:
+        log_fname = run_path + '/logs/run.stdout'
+        fi = open(log_fname, 'r')
+        lines = fi.readlines()
+        fi.close()
+
         for line in lines:
             if line.find('Eigenvector number') != -1:
                 j = int(line.strip().split()[-1]) - 1
