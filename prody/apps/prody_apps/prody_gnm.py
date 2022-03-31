@@ -71,8 +71,20 @@ def prody_gnm(pdb, **kwargs):
                 .format(len(select)))
 
     gnm = prody.GNM(pdb.getTitle())
-    gnm.buildKirchhoff(select, cutoff, gamma)
-    gnm.calcModes(nmodes, zeros=zeros)
+
+    nproc = kwargs.get('nproc')
+    if nproc:
+        try:
+            from threadpoolctl import threadpool_limits
+        except ImportError:
+            raise ImportError('Please install threadpoolctl to control threads')
+
+        with threadpool_limits(limits=nproc, user_api="blas"):
+            gnm.buildKirchhoff(select, cutoff, gamma)
+            gnm.calcModes(nmodes, zeros=zeros)
+    else:
+        gnm.buildKirchhoff(select, cutoff, gamma)
+        gnm.calcModes(nmodes, zeros=zeros)
 
     LOGGER.info('Writing numerical output.')
 

@@ -15,7 +15,10 @@ for key, txt, val in [
     ('altloc', 'alternative location identifiers for residues used in the calculations', "A"),
     ('cutoff', 'cutoff distance (A)', 15.),
     ('gamma', 'spring constant', 1.),
+    ('sparse', 'use sparse matrices', False),
+    ('kdtree', 'use kdtree for Hessian', False),    
     ('zeros', 'calculate zero modes', False),
+    ('turbo', 'use memory-intensive turbo option for modes', False),
 
     ('outbeta', 'write beta-factors calculated from GNM modes', False),
     ('hessian', 'write Hessian matrix', False),
@@ -56,11 +59,14 @@ def prody_anm(pdb, **kwargs):
     prefix = kwargs.get('prefix')
     cutoff = kwargs.get('cutoff')
     gamma = kwargs.get('gamma')
+    sparse = kwargs.get('sparse')
+    kdtree = kwargs.get('kdtree')
     nmodes = kwargs.get('nmodes')
     selstr = kwargs.get('select')
     model = kwargs.get('model')
     altloc = kwargs.get('altloc')
     zeros = kwargs.get('zeros')
+    turbo = kwargs.get('turbo')
 
     pdb = prody.parsePDB(pdb, model=model, altloc=altloc)
     if prefix == '_anm':
@@ -75,8 +81,20 @@ def prody_anm(pdb, **kwargs):
                 .format(len(select)))
 
     anm = prody.ANM(pdb.getTitle())
-    anm.buildHessian(select, cutoff, gamma)
-    anm.calcModes(nmodes, zeros=zeros)
+
+    nproc = kwargs.get('nproc')
+    if nproc:
+        try:
+            from threadpoolctl import threadpool_limits
+        except ImportError:
+            raise ImportError('Please install threadpoolctl to control threads')
+
+        with threadpool_limits(limits=nproc, user_api="blas"):
+            anm.buildHessian(select, cutoff, gamma, sparse=sparse, kdtree=kdtree)
+            anm.calcModes(nmodes, zeros=zeros, turbo=turbo)
+    else:
+        anm.buildHessian(select, cutoff, gamma, sparse=sparse, kdtree=kdtree)
+        anm.calcModes(nmodes, zeros=zeros, turbo=turbo)
     LOGGER.info('Writing numerical output.')
 
     if kwargs.get('outnpz'):
@@ -248,6 +266,18 @@ graphical output files:
     group.add_argument('-g', '--gamma', dest='gamma', type=float,
         default=DEFAULTS['gamma'], metavar='FLOAT',
         help=HELPTEXT['gamma'] + ' (default: %(default)s)')
+
+    group.add_argument('-C', '--sparse-hessian', dest='sparse', action='store_true',
+        default=DEFAULTS['sparse'],
+        help=HELPTEXT['sparse'] + ' (default: %(default)s)')
+
+    group.add_argument('-G', '--use-kdtree', dest='kdtree', action='store_true',
+        default=DEFAULTS['kdtree'],
+        help=HELPTEXT['kdtree'] + ' (default: %(default)s)')
+
+    group.add_argument('-y', '--turbo', dest='turbo', action='store_true',
+        default=DEFAULTS['turbo'],
+        help=HELPTEXT['turbo'] + ' (default: %(default)s)')
 
     group.add_argument('-m', '--model', dest='model', type=int,
         metavar='INT', default=DEFAULTS['model'], help=HELPTEXT['model'])
