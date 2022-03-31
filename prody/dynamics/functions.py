@@ -325,7 +325,10 @@ def parseScipionModes(run_path, title=None):
     :arg title: title for :class:`.NMA` object
     :type title: str
     """
+    if run_path.endswith("/"):
+        run_path = run_path[:-1]
     run_name = os.path.split(run_path)[-1]
+    top_dirs = os.path.split(run_path)[0][:-4] # exclude "Runs"
 
     star_data = parseSTAR(run_path + '/modes.xmd')
     star_loop = star_data[0][0]
@@ -333,7 +336,7 @@ def parseScipionModes(run_path, title=None):
     n_modes = star_loop.numRows()
     
     row1 = star_loop[0]
-    mode1 = parseArray(row1['_nmaModefile']).reshape(-1)
+    mode1 = parseArray(top_dirs + row1['_nmaModefile']).reshape(-1)
     dof = mode1.shape[0]
 
     vectors = np.zeros((dof, n_modes))
@@ -348,7 +351,7 @@ def parseScipionModes(run_path, title=None):
         found_eigvals = False
 
     for i, row in enumerate(star_loop[1:]):
-        vectors[:, i+1] = parseArray(row['_nmaModefile']).reshape(-1)
+        vectors[:, i+1] = parseArray(top_dirs + row['_nmaModefile']).reshape(-1)
         if found_eigvals:
             eigvals[i+1] = float(row['_nmaEigenval'])
     
