@@ -9,8 +9,9 @@ from .logger import LOGGER
 
 
 __all__ = ['calcTree', 'clusterMatrix', 'showLines', 'showMatrix', 
-           'reorderMatrix', 'findSubgroups', 'findRMSDClusters', 'getCoords',  
-           'getLinkage', 'getTreeFromLinkage', 'clusterSubfamilies']
+           'reorderMatrix', 'findSubgroups', 'getCoords',  
+           'getLinkage', 'getTreeFromLinkage', 'clusterSubfamilies', 
+           'calcRMSDclusters', 'calcGromosClusters', 'calcGromacsClusters']
 
 class LinkageError(Exception):
     pass
@@ -970,7 +971,7 @@ def findSubgroups(tree, c, method='naive', **kwargs):
     return subgroups
 
 
-def findRMSDClusters(rmsd_matrix, c, labels=None):
+def calcRMSDclusters(rmsd_matrix, c, labels):
     """
     Divide **rmsd_matrix** into clusters using the gromos method 
     with a cutoff **c** as implemented in gromacs (see 
@@ -1018,3 +1019,5 @@ def findRMSDClusters(rmsd_matrix, c, labels=None):
 
     return clusters
 
+calcGromosClusters = calcRMSDclusters
+calcGromacsClusters = calcRMSDclusters
