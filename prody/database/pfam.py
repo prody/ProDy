@@ -3,7 +3,6 @@
 
 __author__ = 'Anindita Dutta, Ahmet Bakan, Cihan Kaya'
 
-from prody.dynamics.analysis import calcFracDimension
 import re
 from numbers import Integral
 
@@ -560,7 +559,7 @@ def parsePfamPDBs(query, data=[], **kwargs):
         try:
             uniData = queryUniprot(uniprotAcc)
         except:
-            LOGGER.warn('No Uniprot record found for {0}'.format(data_dict['PBD_ID']))
+            LOGGER.warn('No Uniprot record found for {0}'.format(data_dict['PDB_ID']))
             continue
 
         resrange = None
