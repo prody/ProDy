@@ -479,11 +479,18 @@ def parsePfamPDBs(query, data=[], **kwargs):
         keys = list(pfam_matches.keys())
 
         if isinstance(start, Integral):
-            start_diff = []
-            for i, key in enumerate(pfam_matches):
-                start_diff.append(int(pfam_matches[key]['locations'][0]['start']) - start)
-            start_diff = np.array(start_diff)
-            pfam_acc = keys[np.where(abs(start_diff) == min(abs(start_diff)))[0][0]]
+            try:
+                start_diff = []
+                for i, key in enumerate(pfam_matches):
+                    start_diff.append(int(pfam_matches[key]['locations'][0]['start']) - start)
+                start_diff = np.array(start_diff)
+                pfam_acc = keys[np.where(abs(start_diff) == min(abs(start_diff)))[0][0]]
+            except KeyError:
+                start_diff = []
+                for i, key in enumerate(pfam_matches):
+                    start_diff.append(int(pfam_matches[key]['locations']['ali_start']) - start)
+                start_diff = np.array(start_diff)
+                pfam_acc = keys[np.where(abs(start_diff) == min(abs(start_diff)))[0][0]]
 
         elif isinstance(end, Integral):
             end_diff = []
