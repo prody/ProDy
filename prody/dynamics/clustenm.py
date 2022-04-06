@@ -988,11 +988,11 @@ class ClustENM(Ensemble):
         :type platform: str
 
         :arg parallel: If it is True (default is False), conformer generation will be parallelized.
-            This can also be set to a number for how many simulations are run in parallel.
+            This can also be set to a number for how many CPUs are used in parallel conformer generation.
             Setting 0 or True means run as many as there are CPUs on the machine.
         :type parallel: bool
 
-        :arg threads: Number of threads to use for an individual simulation
+        :arg threads: Number of threads to use for an individual simulation using the thread setting from OpenMM
             Default of 0 uses all CPUs on the machine.
         :type threads: int
         '''
