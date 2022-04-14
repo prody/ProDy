@@ -210,11 +210,11 @@ def _parsePDB(pdb, **kwargs):
         filename = fetchPDB(pdb, **kwargs)
         if filename is None:
             try:
-                LOGGER.info("Trying to parse mmCIF file instead")
+                LOGGER.warn("Trying to parse mmCIF file instead")
                 return parseMMCIF(pdb+chain, **kwargs)
             except:
                 try:
-                    LOGGER.info("Trying to parse EMD file instead")
+                    LOGGER.warn("Trying to parse EMD file instead")
                     return parseEMD(pdb+chain, **kwargs)
                 except:                
                     raise IOError('PDB file for {0} could not be downloaded.'
