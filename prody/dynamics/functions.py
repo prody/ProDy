@@ -335,12 +335,16 @@ def parseScipionModes(run_path, title=None, pdb=None):
     
     n_modes = star_loop.numRows()
     
-    atoms = parsePDB(pdb)
-    n_atoms = atoms.numAtoms()
-
     row1 = star_loop[0]
     mode1 = parseArray(top_dirs + row1['_nmaModefile']).reshape(-1)
     dof = mode1.shape[0]
+
+    if pdb is not None:
+        atoms = parsePDB(pdb)
+        n_atoms = atoms.numAtoms()
+    else:
+        # assume standard NMA
+        n_atoms = dof//3
 
     vectors = np.zeros((dof, n_modes))
     vectors[:, 0] = mode1
