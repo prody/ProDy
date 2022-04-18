@@ -1140,152 +1140,59 @@ def _getChemicals(lines):
     # 1st block we need is has info about location in structure
 
     # this instance only includes single sugars not branched structures
-    i = 0
-    fields1 = OrderedDict()
-    fieldCounter1 = -1
-    foundChemBlock1 = False
-    foundChemBlockData1 = False
-    doneChemBlock1 = False
-    start1 = 0
-    stop1 = 0
-    while not doneChemBlock1 and i < len(lines):
-        line = lines[i]
-        if line[:21] == '_pdbx_nonpoly_scheme.':
-            fieldCounter1 += 1
-            fields1[line.split('.')[1].strip()] = fieldCounter1
-            if not foundChemBlock1:
-                foundChemBlock1 = True
+    items = parseSTARSection(lines, "_pdbx_nonpoly_scheme")
 
-        if foundChemBlock1:
-            if not line.startswith('#') and not line.startswith('_'):
-                if not foundChemBlockData1:
-                    start1 = i
-                    foundChemBlockData1 = True
-            else:
-                if foundChemBlockData1:
-                    doneChemBlock1 = True
-                    stop1 = i
+    for data in items:
+        resname = data["_pdbx_nonpoly_scheme.mon_id"]
+        if resname in flags.AMINOACIDS or resname == "HOH":
+            continue
 
-        i += 1
+        chem = Chemical(resname)
+        chem.chain = data["_pdbx_nonpoly_scheme.pdb_strand_id"]
+        chem.resnum = int(data["_pdbx_nonpoly_scheme.pdb_seq_num"])
 
-    if i < len(lines):
-        for line in lines[start1:stop1]:
-            data = split(line, shlex=True)
-
-            resname = data[fields1["mon_id"]]
-            if resname in flags.AMINOACIDS or resname == "HOH":
-                continue
-
-            chem = Chemical(resname)
-            chem.chain = data[fields1["pdb_strand_id"]]
-            chem.resnum = int(data[fields1["pdb_seq_num"]])
-
-            icode = data[fields1["pdb_ins_code"]]
-            if icode == '.':
-                icode = ''
-            chem.icode = icode
-            chem.description = '' # often empty in .pdb and not clearly here
-            chemicals[chem.resname].append(chem)
+        icode = data["_pdbx_nonpoly_scheme.pdb_ins_code"]
+        if icode == '.':
+            icode = ''
+        chem.icode = icode
+        chem.description = '' # often empty in .pdb and not clearly here
+        chemicals[chem.resname].append(chem)
 
     # next we get the equivalent one for branched sugars part
-    i = 0
-    fields1 = OrderedDict()
-    fieldCounter1 = -1
-    foundChemBlock1 = False
-    foundChemBlockData1 = False
-    doneChemBlock1 = False
-    start1 = 0
-    stop1 = 0
-    while not doneChemBlock1 and i < len(lines):
-        line = lines[i]
-        if line[:20] == '_pdbx_branch_scheme.':
-            fieldCounter1 += 1
-            fields1[line.split('.')[1].strip()] = fieldCounter1
-            if not foundChemBlock1:
-                foundChemBlock1 = True
+    items = parseSTARSection(lines, "_pdbx_branch_scheme")
 
-        if foundChemBlock1:
-            if not line.startswith('#') and not line.startswith('_'):
-                if not foundChemBlockData1:
-                    start1 = i
-                    foundChemBlockData1 = True
-            else:
-                if foundChemBlockData1:
-                    doneChemBlock1 = True
-                    stop1 = i
+    for data in items:
+        resname = data["_pdbx_branch_scheme.mon_id"]
+        if resname in flags.AMINOACIDS or resname == "HOH":
+            continue
 
-        i += 1
+        chem = Chemical(resname)
+        chem.chain = data["_pdbx_branch_scheme.pdb_asym_id"]
+        chem.resnum = int(data["_pdbx_branch_scheme.pdb_seq_num"])
 
-    if i < len(lines):
-        for line in lines[start1:stop1]:
-            data = split(line, shlex=True)
-
-            resname = data[fields1["mon_id"]]
-            if resname in flags.AMINOACIDS or resname == "HOH":
-                continue
-
-            chem = Chemical(resname)
-            chem.chain = data[fields1["pdb_asym_id"]]
-            chem.resnum = int(data[fields1["pdb_seq_num"]])
-
-            chem.icode = '' # this part doesn't have this field
-            chem.description = '' # often empty in .pdb and not clearly here
-            chemicals[chem.resname].append(chem)
+        chem.icode = '' # this part doesn't have this field
+        chem.description = '' # often empty in .pdb and not clearly here
+        chemicals[chem.resname].append(chem)
 
     # 2nd block to get has general info e.g. name and formula
-    i = 0
-    fields2 = OrderedDict()
-    fieldCounter2 = -1
-    foundChemBlock2 = False
-    foundChemBlockData2 = False
-    doneChemBlock2 = False
-    start2 = 0
-    stop2 = 0
-    while not doneChemBlock2 and i < len(lines):
-        line = lines[i]
-        if line[:11] == '_chem_comp.':
-            fieldCounter2 += 1
-            fields2[line.split('.')[1].strip()] = fieldCounter2
-            if not foundChemBlock2:
-                start2 = i
-                foundChemBlock2 = True
+    items = parseSTARSection(lines, "_chem_comp")
 
-        if foundChemBlock2:
-            if not line.startswith('#') and not line.startswith('_'):
-                if not foundChemBlockData2:
-                    foundChemBlockData2 = True
-            else:
-                if foundChemBlockData2:
-                    doneChemBlock2 = True
-                    stop2 = i
+    for data in items:
+        resname = data["_chem_comp.id"]
+        if resname in flags.AMINOACIDS or resname == "HOH":
+            continue
 
-        i += 1
+        chem_names[resname] += data["_chem_comp.name"].upper()
 
-    if i < len(lines):
-        star_dict, _ = parseSTARLines(lines[:2] + lines[start2-1:stop2], shlex=True)
-        loop_dict = list(star_dict.values())[0]
-
-        if lines[start2-1].strip() == "loop_":
-            items = loop_dict[0]["data"].values()
-        else:
-            items = [loop_dict["data"]]
-
-        for data in items:
-            resname = data["_chem_comp.id"]
-            if resname in flags.AMINOACIDS or resname == "HOH":
-                continue
-
-            chem_names[resname] += data["_chem_comp.name"].upper()
-
-            synonym = data["_chem_comp.pdbx_synonyms"]
-            if synonym == '?':
-                synonym = ' '
-            synonym = synonym.rstrip()
-            if synonym.startswith(';') and synonym.endswith(';'):
-                synonym = synonym[1:-1]
-            chem_synonyms[resname] += synonym
-            
-            chem_formulas[resname] += data["_chem_comp.formula"]
+        synonym = data["_chem_comp.pdbx_synonyms"]
+        if synonym == '?':
+            synonym = ' '
+        synonym = synonym.rstrip()
+        if synonym.startswith(';') and synonym.endswith(';'):
+            synonym = synonym[1:-1]
+        chem_synonyms[resname] += synonym
+        
+        chem_formulas[resname] += data["_chem_comp.formula"]
 
 
     for key, name in chem_names.items():  # PY3K: OK
