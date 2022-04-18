@@ -409,8 +409,9 @@ def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
     anisou = None
     siguij = None
     try:
-        anisou_data = data = parseSTARSection(lines, "_atom_site_anisotrop")
-    except ValueError:
+        data = parseSTARSection(lines, "_atom_site_anisotrop")
+        x = data[0] # check if data has anything in it
+    except IndexError:
         LOGGER.warn("No anisotropic B factors found")
     else:
         anisou = np.zeros((acount, 6),
