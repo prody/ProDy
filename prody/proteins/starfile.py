@@ -1077,6 +1077,7 @@ def parseSTARSection(lines, key):
         else:
             data = [loop_dict["data"]]
     else:
-        raise ValueError("Could not find {0} in lines.".format(key))
+        LOGGER.warn("Could not find {0} in lines.".format(key))
+        return []
 
     return data
