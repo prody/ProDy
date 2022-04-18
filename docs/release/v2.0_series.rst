@@ -4,36 +4,6 @@ ProDy 2.0 Series
 .. contents::
    :local:
 
-2.1.0 (April 8, 2022)
-------------------------------------------------------------------------------
-
-**New Features**:
-
-*Integration with Scipion*
-  
-  * New functions :function:`.parseScipionModes`, :function:`.writeScipionModes` 
-  and :function:`.calcScipionScore`
-
-  * New argument *--export-scipion* (*-S*) in prody apps
-  
-*Other*
-
-  * Added :function:`.assignBlocks` for assigning blocks for RTB
-
-  * Added mmCIF header parsing to create the same header dictionary as PDB header,
-  including secstr information and biomolecular assembly building
-
-  * New arguments for prody apps, including altloc, zeros, sparse, kdtree and turbo
-
-**Bug Fixes and Improvements**:
-  
-  * Improvement to cealign mapping to be faster for protein only alignment
-
-  * Bug fix for writing psf files
-
-**Full Changelog**: https://github.com/prody/ProDy/compare/v2.0.2...v2.1.0
-
-
 2.0.2 (February 17, 2022)
 ------------------------------------------------------------------------------
 
