@@ -326,7 +326,6 @@ def parsePDBStream(stream, **kwargs):
             try:
                 ag.setBonds(bonds)
             except ValueError:
-                raise
                 LOGGER.warn('Bonds read from CONECT records do not apply to subset so were not added')
         if ag.numAtoms() > 0:
             LOGGER.report('{0} atoms and {1} coordinate set(s) were '
