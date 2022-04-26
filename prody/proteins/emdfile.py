@@ -26,7 +26,7 @@ class EMDParseError(Exception):
 
 
 def parseEMD(emd, **kwargs):
-    """Parses an EM density map in EMD/MRC2015 format and 
+    """Parses an EM density map in EMD/MRC2014 format and 
     optionally returns an :class:`.AtomGroup` containing  
     beads built in the density using the TRN algorithm [_TM94]. 
 

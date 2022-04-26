@@ -19,7 +19,8 @@ from prody import LOGGER
 from .emdfile import parseEMD
 
 __all__ = ['parseSTAR', 'writeSTAR', 'parseImagesFromSTAR',
-           'StarDict', 'StarDataBlock', 'StarLoop', ]
+           'StarDict', 'StarDataBlock', 'StarLoop', 
+           'parseSTARSection']
 
 
 class StarDict:
@@ -674,7 +675,7 @@ def parseSTARLines(lines, **kwargs):
                 prog = 'XMIPP'
 
         else:
-            raise TypeError('This file does not conform to the STAR file format.'
+            raise TypeError('This file does not conform to the STAR file format. '
                             'There is a problem with line {0}:\n {1}'.format(lineNumber, line))
 
         lineNumber += 1
@@ -682,7 +683,7 @@ def parseSTARLines(lines, **kwargs):
     return finalDictionary, prog
 
 
-def writeSTAR(filename, starDict):
+def writeSTAR(filename, starDict, **kwargs):
     """Writes a STAR file from a dictionary containing data
     such as that parsed from a Relion STAR file.
 
@@ -694,7 +695,10 @@ def writeSTAR(filename, starDict):
         This should have nested entries starting with data blocks then loops/tables then
         field names and finally data.
     :type starDict: dict
+
+    kwargs can be given including the program style to follow (*prog*)
     """
+    prog=kwargs.get('prog', 'XMIPP')
 
     star = open(filename, 'w')
 
@@ -703,11 +707,15 @@ def writeSTAR(filename, starDict):
         for loopNumber in starDict[dataBlockKey]:
             star.write('\nloop_\n')
             for fieldNumber in starDict[dataBlockKey][loopNumber]['fields']:
-                star.write('_' + starDict[dataBlockKey][loopNumber]['fields'][fieldNumber] + '\n')
+                if prog == 'XMIPP':
+                    star.write(' ')
+                star.write(starDict[dataBlockKey][loopNumber]['fields'][fieldNumber] + '\n')
             for dataItemNumber in starDict[dataBlockKey][loopNumber]['data']:
+                if prog == 'XMIPP':
+                    star.write('\t')
                 for fieldNumber in starDict[dataBlockKey][loopNumber]['fields']:
                     currentField = starDict[dataBlockKey][loopNumber]['fields'][fieldNumber]
-                    star.write(starDict[dataBlockKey][loopNumber]['data'][dataItemNumber][currentField] + ' ')
+                    star.write(starDict[dataBlockKey][loopNumber]['data'][dataItemNumber][currentField] + '\t')
                 star.write('\n')
 
     star.close()
@@ -740,15 +748,15 @@ def parseImagesFromSTAR(particlesSTAR, **kwargs):
     :arg particle_indices: indices for particles regardless of STAR structure
         default is take all particles
         Please note: this acts after block_indices and row_indices
-    :type particle_indices: list, :class"`~numpy.ndarray`
+    :type particle_indices: list, :class:`~numpy.ndarray`
 
     :arg saveImageArrays: whether to save the numpy array for each image to file
         default is False
     :type saveImageArrays: bool
 
     :arg saveDirectory: directory where numpy image arrays are saved
-        default is None, which means save to the current working directory
-    :type saveDirectory: str, None
+        default is **None**, which means save to the current working directory
+    :type saveDirectory: str
 
     :arg rotateImages: whether to apply in plane translations and rotations using 
         provided psi and origin data, default is True
@@ -1016,3 +1024,60 @@ def parseImagesFromSTAR(particlesSTAR, **kwargs):
                     'from the final array.'.format(', '.join(stk_images[:-1]), stk_images[-1]))
 
     return np.array(images), parsed_images_data
+
+
+def parseSTARSection(lines, key):
+    """Parse a section of data from *lines* from a STAR file 
+    corresponding to a *key* (part before the dot). 
+    This can be a loop or data block.
+    
+    Returns data encapulated in a list and the associated fields."""
+
+    if not isinstance(key, str):
+        raise TypeError("key should be a string")
+
+    if not key.startswith("_"):
+        key = "_" + key
+
+    i = 0
+    fields = OrderedDict()
+    fieldCounter = -1
+    foundBlock = False
+    foundBlockData = False
+    doneBlock = False
+    start = 0
+    stop = 0
+
+    while not doneBlock and i < len(lines):
+        line = lines[i]
+        if line.split(".")[0] == key:
+            fieldCounter += 1
+            fields[line.split(".")[1].strip()] = fieldCounter
+            if not foundBlock:
+                foundBlock = True
+
+        if foundBlock:
+            if not line.startswith("#"):
+                if not foundBlockData:
+                    start = i
+                    foundBlockData = True
+            else:
+                if foundBlockData:
+                    doneBlock = True
+                    stop = i
+
+        i += 1
+
+    if i < len(lines):
+        star_dict, _ = parseSTARLines(lines[:2] + lines[start-1: stop], shlex=True)
+        loop_dict = list(star_dict.values())[0]
+
+        if lines[start - 1].strip() == "loop_":
+            data = list(loop_dict[0]["data"].values())
+        else:
+            data = [loop_dict["data"]]
+    else:
+        LOGGER.warn("Could not find {0} in lines.".format(key))
+        return []
+
+    return data

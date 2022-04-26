@@ -3,7 +3,6 @@
 
 __author__ = 'Anindita Dutta, Ahmet Bakan, Cihan Kaya'
 
-from prody.dynamics.analysis import calcFracDimension
 import re
 from numbers import Integral
 
@@ -22,6 +21,7 @@ if PY3K:
 else:
     import urllib
     import urllib2
+
 
 __all__ = ['searchPfam', 'fetchPfamMSA', 'parsePfamPDBs']
 
@@ -56,6 +56,8 @@ def searchPfam(query, **kwargs):
     *query* can also be a PDB identifier, e.g. ``'1mkp'`` or ``'1mkpA'`` with
     chain identifier.  UniProt ID of the specified chain, or the first
     protein chain will be used for searching the Pfam database."""
+
+    import requests
 
     if isfile(query):
         from prody.sequence import MSAFile
@@ -202,14 +204,19 @@ def searchPfam(query, **kwargs):
 
     LOGGER.debug('Retrieving Pfam search results: ' + url)
     xml = None
+    sleep = 2
     while LOGGER.timing('_pfam') < timeout:
         try:
-            xml = openURL(url, timeout=timeout).read()
+            # xml = openURL(url, timeout=timeout).read()
+            xml = requests.get(url, verify=False).content
         except Exception:
             pass
         else:
             if xml not in ['PEND','RUN']:
                 break
+        
+        sleep = 20 if int(sleep * 1.5) >= 20 else int(sleep * 1.5)
+        LOGGER.sleep(int(sleep), '. Trying to reconnect...')
 
     if not xml:
         raise IOError('Pfam search timed out or failed to parse results '
@@ -226,25 +233,28 @@ def searchPfam(query, **kwargs):
             LOGGER.debug('Retrieving Pfam search results: ' + url)
             xml = openURL(url, timeout=timeout).read()
         except:
+            raise ValueError('No valid UniProt accession or ID for: ' + seq)
+        
+        if xml.find(b'No valid UniProt accession or ID') > 0:
             try:
                 ag = parsePDB(seq, subset='ca')
                 ag_seq = ag.getSequence()
                 return searchPfam(ag_seq)
             except:
-                raise ValueError('No valid UniProt accession or ID for: ' + seq)
-        
-        if xml.find(b'No valid UniProt accession or ID') > 0:
-            try:
-                url = 'https://uniprot.org/uniprot/' + accession + '.xml'
-                xml = openURL(url, timeout=timeout).read()
-                root = ET.XML(xml)
-                accession = root[0][0].text
+                try:
+                    url = 'https://uniprot.org/uniprot/' + accession + '.xml'
+                    xml = openURL(url, timeout=timeout).read()
+                    if len(xml) > 0:
+                        root = ET.XML(xml)
+                        accession = root[0][0].text
 
-                url = prefix + 'protein/' + accession + '?output=xml'
-                LOGGER.debug('Retrieving Pfam search results: ' + url)
-                xml = openURL(url, timeout=timeout).read()                
-            except:
-                raise ValueError('No valid UniProt accession or ID for: ' + seq)
+                        url = prefix + 'protein/' + accession + '?output=xml'
+                        LOGGER.debug('Retrieving Pfam search results: ' + url)
+                        xml = openURL(url, timeout=timeout).read()
+                    else:
+                        raise ValueError('No valid UniProt accession or ID for: ' + seq)
+                except:
+                    raise ValueError('No valid UniProt accession or ID for: ' + seq)
 
     try:
         root = ET.XML(xml)
@@ -327,13 +337,15 @@ def fetchPfamMSA(acc, alignment='full', compressed=False, **kwargs):
     :arg outname: out filename, default is input ``'acc_alignment.format'``
 
     :arg folder: output folder, default is ``'.'``"""
+    
+    import requests
 
-    url = prefix + 'family/acc?id=' + acc
-    handle = openURL(url, timeout=int(kwargs.get('timeout', 60)))
+    # url = prefix + 'family/acc?id=' + acc
+    # handle = openURL(url, timeout=int(kwargs.get('timeout', 60)))
     orig_acc = acc
-    acc = handle.readline().strip()
-    if PY3K:
-        acc = acc.decode()
+    # acc = handle.readline().strip()
+    # if PY3K:
+    #     acc = acc.decode()
     url_flag = False
 
     if not re.search('(?<=PF)[0-9]{5}$', acc):
@@ -386,7 +398,23 @@ def fetchPfamMSA(acc, alignment='full', compressed=False, **kwargs):
                    '&alnType=' + alignment + '&order=' + order[0] +
                    '&case=' + inserts[0] + '&gaps=' + gaps + '&download=1')
 
-    response = openURL(url, timeout=int(kwargs.get('timeout', 60)))
+    LOGGER.timeit('_pfam')
+    timeout = kwargs.get('timeout', 60)
+    response = None
+    sleep = 2
+    try_error = 3
+    while LOGGER.timing('_pfam') < timeout:
+        try:
+            response = requests.get(url, verify=False).content
+        except Exception:
+            pass
+        else:
+            break
+        
+        sleep = 20 if int(sleep * 1.5) >= 20 else int(sleep * 1.5)
+        LOGGER.sleep(int(sleep), '. Trying to reconnect...')
+
+    # response = openURL(url, timeout=int(kwargs.get('timeout', 60)))
     outname = kwargs.get('outname', None)
     if not outname:
         outname = orig_acc
@@ -398,14 +426,16 @@ def fetchPfamMSA(acc, alignment='full', compressed=False, **kwargs):
             f_out = open(filepath, 'wb')
         else:
             f_out = openFile(filepath, 'wb')
-        f_out.write(response.read())
+        # f_out.write(response.read())
+        f_out.write(response)
         f_out.close()
     else:
         if url_flag:
-            gunzip(response.read(), filepath)
+            gunzip(response, filepath)
         else:
             with open(filepath, 'wb') as f_out:
-                f_out.write(response.read())
+                # f_out.write(response.read())
+                f_out.write(response)
 
     filepath = relpath(filepath)
     LOGGER.info('Pfam MSA for {0} is written as {1}.'
@@ -448,11 +478,18 @@ def parsePfamPDBs(query, data=[], **kwargs):
         keys = list(pfam_matches.keys())
 
         if isinstance(start, Integral):
-            start_diff = []
-            for i, key in enumerate(pfam_matches):
-                start_diff.append(int(pfam_matches[key]['locations'][0]['start']) - start)
-            start_diff = np.array(start_diff)
-            pfam_acc = keys[np.where(abs(start_diff) == min(abs(start_diff)))[0][0]]
+            try:
+                start_diff = []
+                for i, key in enumerate(pfam_matches):
+                    start_diff.append(int(pfam_matches[key]['locations'][0]['start']) - start)
+                start_diff = np.array(start_diff)
+                pfam_acc = keys[np.where(abs(start_diff) == min(abs(start_diff)))[0][0]]
+            except KeyError:
+                start_diff = []
+                for i, key in enumerate(pfam_matches):
+                    start_diff.append(int(pfam_matches[key]['locations']['ali_start']) - start)
+                start_diff = np.array(start_diff)
+                pfam_acc = keys[np.where(abs(start_diff) == min(abs(start_diff)))[0][0]]
 
         elif isinstance(end, Integral):
             end_diff = []
@@ -522,7 +559,7 @@ def parsePfamPDBs(query, data=[], **kwargs):
         try:
             uniData = queryUniprot(uniprotAcc)
         except:
-            LOGGER.warn('No Uniprot record found for {0}'.format(data_dict['PBD_ID']))
+            LOGGER.warn('No Uniprot record found for {0}'.format(data_dict['PDB_ID']))
             continue
 
         resrange = None

@@ -609,7 +609,9 @@ def showCrossCorr(modes, *args, **kwargs):
     if SETTINGS['auto_show']:
         plt.figure()
 
-    cross_correlations = calcCrossCorr(modes)
+    norm = kwargs.pop('norm', True)
+    cross_correlations = calcCrossCorr(modes, norm=norm) 
+
     if not 'interpolation' in kwargs:
         kwargs['interpolation'] = 'bilinear'
     if not 'origin' in kwargs:
