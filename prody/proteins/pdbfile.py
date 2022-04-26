@@ -26,7 +26,7 @@ __all__ = ['parsePDBStream', 'parsePDB', 'parseChainsList', 'parsePQR',
            'writePDBStream', 'writePDB', 'writeChainsList', 'writePQR',
            'writePQRStream']
 
-MAX_N_ATOM = 99999
+MAX_N_ATOM = 99999 
 MAX_N_RES = 9999
 
 class PDBParseError(Exception):
@@ -71,9 +71,9 @@ _parsePDBdoc = _parsePQRdoc + """
 
     :arg biomol: if **True**, biomolecules are obtained by transforming the
         coordinates using information from header section will be returned.
-        This option uses :func:`.buildBiomolecules` and as noted there,
-        atoms in biomolecules are ordered according to the original chain
-        IDs. Chains may have the same chain ID, in which case they are given
+        This option uses :func:`.buildBiomolecules` and as noted there, 
+        atoms in biomolecules are ordered according to the original chain 
+        IDs. Chains may have the same chain ID, in which case they are given 
         different segment names.
         Default is **False**
     :type biomol: bool
@@ -99,15 +99,15 @@ def parsePDB(*pdb, **kwargs):
 
     :arg pdb: one PDB identifier or filename, or a list of them.
         If needed, PDB files are downloaded using :func:`.fetchPDB()` function.
-
+    
     You can also provide arguments that you would like passed on to fetchPDB().
 
     :arg extend_biomol: whether to extend the list of results with a list
-        rather than appending, which can create a mixed list,
+        rather than appending, which can create a mixed list, 
         especially when biomol=True.
         Default value is False to reproduce previous behaviour.
         This value is ignored when result is not a list (header=True or model=0).
-    :type extend_biomol: bool
+    :type extend_biomol: bool 
     """
     extend_biomol = kwargs.pop('extend_biomol', False)
 
@@ -139,7 +139,7 @@ def parsePDB(*pdb, **kwargs):
             for key in lstkwargs:
                 kwargs[key] = lstkwargs[key][i]
             c = kwargs.get('chain','')
-            LOGGER.update(i, 'Retrieving {0}...'.format(p+c),
+            LOGGER.update(i, 'Retrieving {0}...'.format(p+c), 
                           label='_prody_parsePDB')
             result = _parsePDB(p, **kwargs)
             if not isinstance(result, tuple):
@@ -257,7 +257,7 @@ def parsePDBStream(stream, **kwargs):
     parsed from a stream of PDB lines.
 
     :arg stream: Anything that implements the method ``readlines``
-        (e.g. :class:`file`, buffer, stdin)"""
+        (e.g. :class:`file`, buffer, stdin)""" 
 
     model = kwargs.get('model')
     header = kwargs.get('header', False)
@@ -1130,7 +1130,7 @@ _writePDBdoc = """
     :arg hybrid36: whether to use hybrid36 format for atoms with serial
         greater than 99999. Hexadecimal is used otherwise.
         Default is False
-    :type hybrid36: bool
+    :type hybrid36: bool 
     """
 
 def writeChainsList(chains, filename):
@@ -1157,7 +1157,7 @@ def parseChainsList(filename):
     :arg filename: the name of the file to be read
     :type filename: str
 
-    Returns: lists containing an :class:'.AtomGroup' for each PDB,
+    Returns: lists containing an :class:'.AtomGroup' for each PDB, 
     the headers for those PDBs, and the requested :class:`.Chain` objects
     """
 
@@ -1360,10 +1360,10 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
                 helix_icodes = icodes[torf]
                 L = helix_resnums[-1] - helix_resnums[0] + 1
 
-                stream.write(HELIXLINE.format(serNum=i, helixID=helix_secids[0],
-                            initResName=helix_resnames[0], initChainID=helix_chainids[0],
+                stream.write(HELIXLINE.format(serNum=i, helixID=helix_secids[0], 
+                            initResName=helix_resnames[0], initChainID=helix_chainids[0], 
                             initSeqNum=helix_resnums[0], initICode=helix_icodes[0],
-                            endResName=helix_resnames[-1], endChainID=helix_chainids[-1],
+                            endResName=helix_resnames[-1], endChainID=helix_chainids[-1], 
                             endSeqNum=helix_resnums[-1], endICode=helix_icodes[-1],
                             helixClass=helix_secclasses[0], length=L))
 
@@ -1385,9 +1385,9 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
                 strand_icodes = icodes[torf_strand]
 
                 stream.write(SHEETLINE.format(strand=i, sheetID=sheet_id, numStrands=numStrands,
-                            initResName=strand_resnames[0], initChainID=strand_chainids[0],
+                            initResName=strand_resnames[0], initChainID=strand_chainids[0], 
                             initSeqNum=strand_resnums[0], initICode=strand_icodes[0],
-                            endResName=strand_resnames[-1], endChainID=strand_chainids[-1],
+                            endResName=strand_resnames[-1], endChainID=strand_chainids[-1], 
                             endSeqNum=strand_resnums[-1], endICode=strand_icodes[-1],
                             sense=strand_secclasses[0]))
         pass
@@ -1490,7 +1490,7 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
                 elif len(str(final_resnum)) > 5:
                     if not warned_5_digit:
                         LOGGER.warn('Truncating {0}-digit hex resnum ({1}) as too long to be '
-                                    'supported by insertion code.'.format(len(str(final_resnum)),
+                                    'supported by insertion code.'.format(len(str(final_resnum)), 
                                                                           final_resnum))
                         warned_5_digit = True
 
@@ -1585,7 +1585,7 @@ def writePQRStream(stream, atoms, **kwargs):
                 length = ss_end - ss_start + 1
 
                 entries = [init.getSecindex(), init.getSecid(),
-                           init.getResname(), init.getChid(),
+                           init.getResname(), init.getChid(), 
                            init.getResnum(), init.getIcode(),
                            end.getResname(), end.getChid(),
                            end.getResnum(), end.getIcode(),

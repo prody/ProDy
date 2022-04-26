@@ -1095,8 +1095,8 @@ class AtomGroup(Atomic):
         index 1"``.  See :mod:`.select` module documentation for details.
         Also, a data array with number of bonds will be generated and stored
         with label *numbonds*.  This can be used in atom selections, e.g.
-        ``'numbonds 0'`` can be used to select ions in a system. If *bonds*
-        is empty or **None**, then all bonds will be removed for this
+        ``'numbonds 0'`` can be used to select ions in a system. If *bonds* 
+        is empty or **None**, then all bonds will be removed for this 
         :class:`.AtomGroup`. """
 
         if bonds is None or len(bonds) == 0:
@@ -1126,7 +1126,7 @@ class AtomGroup(Atomic):
         self._fragments = None
 
     def numBonds(self):
-        """Returns number of bonds.  Use :meth:`setBonds` or
+        """Returns number of bonds.  Use :meth:`setBonds` or 
         :meth:`inferBonds` for setting bonds."""
 
         if self._bonds is not None:
@@ -1134,7 +1134,7 @@ class AtomGroup(Atomic):
         return 0
 
     def getBonds(self):
-        """Returns bonds.  Use :meth:`setBonds` or
+        """Returns bonds.  Use :meth:`setBonds` or 
         :meth:`inferBonds` for setting bonds."""
 
         if self._bonds is not None:
@@ -1171,7 +1171,7 @@ class AtomGroup(Atomic):
                 yield Bond(self, bond, acsi)
 
     def _iterBonds(self):
-        """Yield pairs of bonded atom indices. Use :meth:`setBonds`
+        """Yield pairs of bonded atom indices. Use :meth:`setBonds` 
         or `inferBonds` for setting bonds."""
 
         if self._bonds is not None:
@@ -1366,8 +1366,8 @@ class AtomGroup(Atomic):
         index 1"``.  See :mod:`.select` module documentation for details.
         Also, a data array with number of donors will be generated and stored
         with label *numdonors*.  This can be used in atom selections, e.g.
-        ``'numdonors 0'`` can be used to select ions in a system. If *donors*
-        is empty or **None**, then all donors will be removed for this
+        ``'numdonors 0'`` can be used to select ions in a system. If *donors* 
+        is empty or **None**, then all donors will be removed for this 
         :class:`.AtomGroup`. """
 
         if donors is None or len(donors) == 0:
@@ -1432,8 +1432,8 @@ class AtomGroup(Atomic):
         index 1"``.  See :mod:`.select` module documentation for details.
         Also, a data array with number of acceptors will be generated and stored
         with label *numacceptors*.  This can be used in atom selections, e.g.
-        ``'numacceptors 0'`` can be used to select ions in a system. If *acceptors*
-        is empty or **None**, then all acceptors will be removed for this
+        ``'numacceptors 0'`` can be used to select ions in a system. If *acceptors* 
+        is empty or **None**, then all acceptors will be removed for this 
         :class:`.AtomGroup`. """
 
         if acceptors is None or len(acceptors) == 0:
@@ -1498,8 +1498,8 @@ class AtomGroup(Atomic):
         index 1"``.  See :mod:`.select` module documentation for details.
         Also, a data array with number of nbexclusions will be generated and stored
         with label *numnbexclusions*.  This can be used in atom selections, e.g.
-        ``'numnbexclusions 0'`` can be used to select ions in a system. If *nbexclusions*
-        is empty or **None**, then all nbexclusions will be removed for this
+        ``'numnbexclusions 0'`` can be used to select ions in a system. If *nbexclusions* 
+        is empty or **None**, then all nbexclusions will be removed for this 
         :class:`.AtomGroup`. """
 
         if nbexclusions is None or len(nbexclusions) == 0:
