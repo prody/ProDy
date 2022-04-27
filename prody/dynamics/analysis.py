@@ -685,7 +685,7 @@ def calcHitTime(model, method='standard'):
 
 
 def calcAnisousFromModel(model, ):
-    """Returns a 3Nx6 matrix containing anisotropic B factors (ANISOU lines)
+    """Returns a Nx6 matrix containing anisotropic B factors (ANISOU lines)
     from a covariance matrix calculated from **model**.
 
     :arg model: 3D model from which to calculate covariance matrix

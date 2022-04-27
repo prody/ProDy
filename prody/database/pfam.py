@@ -3,7 +3,6 @@
 
 __author__ = 'Anindita Dutta, Ahmet Bakan, Cihan Kaya'
 
-from prody.dynamics.analysis import calcFracDimension
 import re
 from numbers import Integral
 
@@ -234,25 +233,28 @@ def searchPfam(query, **kwargs):
             LOGGER.debug('Retrieving Pfam search results: ' + url)
             xml = openURL(url, timeout=timeout).read()
         except:
+            raise ValueError('No valid UniProt accession or ID for: ' + seq)
+        
+        if xml.find(b'No valid UniProt accession or ID') > 0:
             try:
                 ag = parsePDB(seq, subset='ca')
                 ag_seq = ag.getSequence()
                 return searchPfam(ag_seq)
             except:
-                raise ValueError('No valid UniProt accession or ID for: ' + seq)
-        
-        if xml.find(b'No valid UniProt accession or ID') > 0:
-            try:
-                url = 'https://uniprot.org/uniprot/' + accession + '.xml'
-                xml = openURL(url, timeout=timeout).read()
-                root = ET.XML(xml)
-                accession = root[0][0].text
+                try:
+                    url = 'https://uniprot.org/uniprot/' + accession + '.xml'
+                    xml = openURL(url, timeout=timeout).read()
+                    if len(xml) > 0:
+                        root = ET.XML(xml)
+                        accession = root[0][0].text
 
-                url = prefix + 'protein/' + accession + '?output=xml'
-                LOGGER.debug('Retrieving Pfam search results: ' + url)
-                xml = openURL(url, timeout=timeout).read()                
-            except:
-                raise ValueError('No valid UniProt accession or ID for: ' + seq)
+                        url = prefix + 'protein/' + accession + '?output=xml'
+                        LOGGER.debug('Retrieving Pfam search results: ' + url)
+                        xml = openURL(url, timeout=timeout).read()
+                    else:
+                        raise ValueError('No valid UniProt accession or ID for: ' + seq)
+                except:
+                    raise ValueError('No valid UniProt accession or ID for: ' + seq)
 
     try:
         root = ET.XML(xml)
@@ -476,11 +478,18 @@ def parsePfamPDBs(query, data=[], **kwargs):
         keys = list(pfam_matches.keys())
 
         if isinstance(start, Integral):
-            start_diff = []
-            for i, key in enumerate(pfam_matches):
-                start_diff.append(int(pfam_matches[key]['locations'][0]['start']) - start)
-            start_diff = np.array(start_diff)
-            pfam_acc = keys[np.where(abs(start_diff) == min(abs(start_diff)))[0][0]]
+            try:
+                start_diff = []
+                for i, key in enumerate(pfam_matches):
+                    start_diff.append(int(pfam_matches[key]['locations'][0]['start']) - start)
+                start_diff = np.array(start_diff)
+                pfam_acc = keys[np.where(abs(start_diff) == min(abs(start_diff)))[0][0]]
+            except KeyError:
+                start_diff = []
+                for i, key in enumerate(pfam_matches):
+                    start_diff.append(int(pfam_matches[key]['locations']['ali_start']) - start)
+                start_diff = np.array(start_diff)
+                pfam_acc = keys[np.where(abs(start_diff) == min(abs(start_diff)))[0][0]]
 
         elif isinstance(end, Integral):
             end_diff = []
@@ -550,7 +559,7 @@ def parsePfamPDBs(query, data=[], **kwargs):
         try:
             uniData = queryUniprot(uniprotAcc)
         except:
-            LOGGER.warn('No Uniprot record found for {0}'.format(data_dict['PBD_ID']))
+            LOGGER.warn('No Uniprot record found for {0}'.format(data_dict['PDB_ID']))
             continue
 
         resrange = None
