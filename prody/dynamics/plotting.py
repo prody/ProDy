@@ -1731,7 +1731,7 @@ def showAtomicLines(*args, **kwargs):
                         _y.append(y[last:last+len(resnums)])
                         if dy is not None:
                             _dy.append(dy[last:last+len(resnums)])
-                        last = len(resnums)
+                        last += len(resnums)
                     else:
                         x.extend(resnums + last)
                         last = resnums[-1]
