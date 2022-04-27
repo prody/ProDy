@@ -19,10 +19,10 @@ from .mode import VectorBase, Mode, Vector
 from .gnm import GNMBase
 
 __all__ = ['calcCollectivity', 'calcCovariance', 'calcCrossCorr',
-           'calcFractVariance', 'calcSqFlucts', 'calcTempFactors',
+           'calcFractVariance', 'calcSqFlucts', 'calcRMSFlucts', 'calcTempFactors',
            'calcProjection', 'calcCrossProjection',
            'calcSpecDimension', 'calcPairDeformationDist',
-           'calcDistFlucts', 'calcHinges', 'calcHitTime', 'calcHitTime',
+           'calcDistFlucts', 'calcHinges', 'calcHitTime',
            'calcAnisousFromModel', 'calcScipionScore', 'calcHemnmaScore']
            #'calcEntropyTransfer', 'calcOverallNetEntropyTransfer']
 
@@ -334,6 +334,14 @@ def calcSqFlucts(modes):
         sq_flucts = sq_flucts_Nx3.sum(axis=1)
     return sq_flucts
 
+def calcRMSFlucts(modes):
+    """Returns root mean square fluctuation(s) (RMSF) for given set of normal *modes*.
+    This is calculated just by doing the square root of the square fluctuations """
+    sq_flucts = calcSqFlucts(modes)
+    if len(np.where(sq_flucts<0)[0]) != 0:
+        raise ValueError("Square Fluctuation should not contain negative values, please check input modes")
+
+    return sq_flucts ** 0.5
 
 def calcCrossCorr(modes, n_cpu=1, norm=True):
     """Returns cross-correlations matrix.  For a 3-d model, cross-correlations
