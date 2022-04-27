@@ -4,6 +4,15 @@ ProDy 2.0 Series
 .. contents::
    :local:
 
+2.1.2 (April 27, 2022)
+------------------------------------------------------------------------------
+
+**Bug Fixes and Improvements**:
+
+  * New :function:`.showRMSFlucts` and :function:`.calcRMSFlucts` for root-mean-square fluctuations
+
+  * fix to :function:`.showAtomicLines` for overlaying multiple chains
+
 2.1.1 (April 18, 2022)
 ------------------------------------------------------------------------------
 
