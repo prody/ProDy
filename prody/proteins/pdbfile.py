@@ -209,6 +209,9 @@ def _parsePDB(pdb, **kwargs):
             kwargs['title'] = title
         filename = fetchPDB(pdb, **kwargs)
         if filename is None:
+            # ZQ 04/26: escape from mmcif
+            raise IOError('PDB file for {0} could not be downloaded.'
+                        .format(pdb))
             try:
                 LOGGER.info("Trying to parse mmCIF file instead")
                 return parseMMCIF(pdb+chain, **kwargs)
@@ -759,22 +762,18 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
             if bonds is not None:
                 atom_serial = line[6:11]
                 bonded1_serial = line[11:16]
-                # bonds.append([int(atom_serial)-1-num_ters, int(bonded1_serial)-1-num_ters])
                 bonds_serial.append([int(atom_serial), int(bonded1_serial)])
 
                 bonded2_serial = line[16:21]
                 if len(bonded2_serial.strip()):
-                    # bonds.append([int(atom_serial)-1-num_ters, int(bonded2_serial)-1-num_ters])
                     bonds_serial.append([int(atom_serial), int(bonded2_serial)])
 
                 bonded3_serial = line[21:26]
                 if len(bonded3_serial.strip()):
-                    # bonds.append([int(atom_serial)-1-num_ters, int(bonded3_serial)-1-num_ters])
                     bonds_serial.append([int(atom_serial), int(bonded3_serial)])
 
                 bonded4_serial = line[26:31]  # fixed typo
                 if len(bonded4_serial.strip()):
-                    # bonds.append([int(atom_serial)-1-num_ters, int(bonded4_serial)-1-num_ters])
                     bonds_serial.append([int(atom_serial), int(bonded4_serial)])
 
         elif not onlycoords and (startswith == 'TER   ' or
@@ -982,17 +981,16 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
         charges.resize(acount, refcheck=False)
         atomgroup.setCharges(charges)
 
-    # hard-coded patch
-    serial_to_id = {}
-    for aidx in range(len(serials)):
-        serial_to_id[int(serials[aidx])] = aidx
     # rematch the bond-atom serial numbers to atom ids
+    serial_to_id = {int(serial): aidx for aidx, serial in enumerate(serials)}
     for bond in bonds_serial:
         try:
             bonds.append([serial_to_id[bond[0]], serial_to_id[bond[1]]])
         except KeyError:
-            LOGGER.warn(f"Bond connecting atom serial numbers {bond[0]}"
-                        f" and {bond[1]} contains atoms not included in the model")
+            LOGGER.warn("Bond connecting atom serial numbers {0}"
+                        " and {1} contains atoms not included in the model"
+                        .format(bond[0], bond[1])
+                        )
 
     if altloc and altloc_torf:
         _evalAltlocs(atomgroup, altloc, chainids, resnums, resnames, atomnames)
