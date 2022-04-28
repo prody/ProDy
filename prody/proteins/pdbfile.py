@@ -209,9 +209,6 @@ def _parsePDB(pdb, **kwargs):
             kwargs['title'] = title
         filename = fetchPDB(pdb, **kwargs)
         if filename is None:
-            # ZQ 04/26: escape from mmcif
-            raise IOError('PDB file for {0} could not be downloaded.'
-                        .format(pdb))
             try:
                 LOGGER.info("Trying to parse mmCIF file instead")
                 return parseMMCIF(pdb+chain, **kwargs)
