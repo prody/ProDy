@@ -119,7 +119,7 @@ def parsePDB(*pdb, **kwargs):
         if isListLike(pdb[0]) or isinstance(pdb[0], dict):
             pdb = pdb[0]
             n_pdb = len(pdb)
-            
+
     if n_pdb == 1:
         return _parsePDB(pdb[0], **kwargs)
     else:
@@ -151,7 +151,7 @@ def parsePDB(*pdb, **kwargs):
 
         results = list(zip(*results))
         LOGGER.finish()
-       
+
         for i in reversed(range(len(results))):
             if all(j is None for j in results[i]):
                 results.pop(i)
@@ -216,7 +216,7 @@ def _parsePDB(pdb, **kwargs):
                 try:
                     LOGGER.warn("Trying to parse EMD file instead")
                     return parseEMD(pdb+chain, **kwargs)
-                except:                
+                except:
                     raise IOError('PDB file for {0} could not be downloaded.'
                                 .format(pdb))
         pdb = filename
@@ -246,7 +246,7 @@ def _parsePDB(pdb, **kwargs):
             except ValueError:
                 LOGGER.warn("Could not parse anything so returning None")
                 return None
-            except:                
+            except:
                 raise IOError('PDB file for {0} could not be downloaded.'
                               .format(pdb))
 
@@ -258,7 +258,7 @@ def parsePDBStream(stream, **kwargs):
 
     :arg stream: Anything that implements the method ``readlines``
         (e.g. :class:`file`, buffer, stdin)""" 
-    
+
     model = kwargs.get('model')
     header = kwargs.get('header', False)
     assert isinstance(header, bool), 'header must be a boolean'
@@ -489,6 +489,7 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
     start = split
     stop = len(lines)
     nmodel = 0
+    bonds_serial = []
     # if a specific model is requested, skip lines until that one
     if isPDB and model is not None and model != 1:
         for i in range(split, len(lines)):
@@ -537,7 +538,7 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
             startswith = line[0:6].strip()
         else:
             startswith = fields[0]
-        
+
         if startswith == 'ATOM' or startswith == 'HETATM':
             if isPDB:
                 atomname = line[12:16].strip()
@@ -560,7 +561,7 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                 if not chid in chain:
                     i += 1
                     continue
-            
+
             if isPDB:
                 alt = line[16]
                 if alt not in which_altlocs and which_altlocs != 'all':
@@ -620,14 +621,14 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                         LOGGER.warn('failed to parse serial number in line {0}. Assigning it as 1.'
                                     .format(i))
                         serials[acount] = 1
-                    
+
             altlocs[acount] = alt
             atomnames[acount] = atomname
             resnames[acount] = resname
             chainids[acount] = chid
             if isPDB:
                 resnum_str = line[22:26]
-                icode = line[26] 
+                icode = line[26]
                 if dec:
                     try:
                         resnum = int(resnum_str)
@@ -638,7 +639,7 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                         if not warned_5_digit:
                             LOGGER.warn('parsed 5 digit residue number including numeric insertion code')
                             warned_5_digit = True
-                        resnum = int(str(resnum) + icode)          
+                        resnum = int(str(resnum) + icode)
                     else:
                         icodes[acount] = icode
 
@@ -654,7 +655,7 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                         else:
                             # lower case is found in hexadecimal PDB files
                             resnum = int(resnum_str, 16)
-                        
+
                     except ValueError:
                         if acount > 0:
                             LOGGER.warn('failed to parse residue number in line {0}. Assigning it by incrementing.'
@@ -758,19 +759,19 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
             if bonds is not None:
                 atom_serial = line[6:11]
                 bonded1_serial = line[11:16]
-                bonds.append([int(atom_serial)-1-num_ters, int(bonded1_serial)-1-num_ters])
-                
+                bonds_serial.append([int(atom_serial), int(bonded1_serial)])
+
                 bonded2_serial = line[16:21]
                 if len(bonded2_serial.strip()):
-                    bonds.append([int(atom_serial)-1-num_ters, int(bonded2_serial)-1-num_ters])
+                    bonds_serial.append([int(atom_serial), int(bonded2_serial)])
 
                 bonded3_serial = line[21:26]
                 if len(bonded3_serial.strip()):
-                    bonds.append([int(atom_serial)-1-num_ters, int(bonded3_serial)-1-num_ters])
-                    
-                bonded4_serial = line[27:31]
+                    bonds_serial.append([int(atom_serial), int(bonded3_serial)])
+
+                bonded4_serial = line[26:31]  # fixed typo
                 if len(bonded4_serial.strip()):
-                    bonds.append([int(atom_serial)-1-num_ters, int(bonded4_serial)-1-num_ters])
+                    bonds_serial.append([int(atom_serial), int(bonded4_serial)])
 
         elif not onlycoords and (startswith == 'TER   ' or
             startswith.strip() == 'TER'):
@@ -977,6 +978,17 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
         charges.resize(acount, refcheck=False)
         atomgroup.setCharges(charges)
 
+    # rematch the bond-atom serial numbers to atom ids
+    serial_to_id = {int(serial): aidx for aidx, serial in enumerate(serials)}
+    for bond in bonds_serial:
+        try:
+            bonds.append([serial_to_id[bond[0]], serial_to_id[bond[1]]])
+        except KeyError:
+            LOGGER.warn("Bond connecting atom serial numbers {0}"
+                        " and {1} contains atoms not included in the model"
+                        .format(bond[0], bond[1])
+                        )
+
     if altloc and altloc_torf:
         _evalAltlocs(atomgroup, altloc, chainids, resnums, resnames, atomnames)
 
@@ -1045,7 +1057,7 @@ def _evalAltlocs(atomgroup, altloc, chainids, resnums, resnames, atomnames):
 HELIXLINE = ('HELIX  {serNum:3d} {helixID:>3s} '
              '{initResName:<3s} {initChainID:1s} {initSeqNum:4d}{initICode:1s} '
              '{endResName:<3s} {endChainID:1s} {endSeqNum:4d}{endICode:1s}'
-             '{helixClass:2d}                               {length:5d}\n')             
+             '{helixClass:2d}                               {length:5d}\n')
 
 SHEETLINE = ('SHEET  {strand:3d} {sheetID:>3s}{numStrands:2d} '
              '{initResName:3s} {initChainID:1s}{initSeqNum:4d}{initICode:1s} '
@@ -1122,7 +1134,7 @@ def writeChainsList(chains, filename):
 
     :arg chains: a list of :class:`.Chain` objects
     :type chains: list
-    
+
     :arg filename: the name of the file to be written
     :type filename: str
     """
@@ -1143,7 +1155,7 @@ def parseChainsList(filename):
     Returns: lists containing an :class:'.AtomGroup' for each PDB, 
     the headers for those PDBs, and the requested :class:`.Chain` objects
     """
-    
+
     fi = open(filename,'r')
     lines = fi.readlines()
     fi.close()
@@ -1179,7 +1191,7 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
 
     :arg stream: anything that implements a :meth:`write` method (e.g. file,
         buffer, stdout)
-        
+
     :arg renumber: whether to renumber atoms with serial indices
         Default is **True**
     :type renumber: bool
@@ -1349,7 +1361,7 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
                             endResName=helix_resnames[-1], endChainID=helix_chainids[-1], 
                             endSeqNum=helix_resnums[-1], endICode=helix_icodes[-1],
                             helixClass=helix_secclasses[0], length=L))
-        
+
         # write strands
         torf_all_sheets = isSheet(secstrs)
         sheet_secids = secids[torf_all_sheets]
@@ -1393,7 +1405,7 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
             warned_hybrid36 = False
 
         warned_5_digit = False
-            
+
         for i, xyz in enumerate(coords):
             if hybrid36:
                 pdbline = PDBLINE_H36
@@ -1421,7 +1433,7 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
                     pdbline = PDBLINE_GE100K_GE10K
                     anisouline = ANISOULINE_GE100K_GE10K
                     LOGGER.warn('Resnums are exceeding 9999 and hexadecimal format is being used for indices and resnums')
-                
+
                 elif reached_max_n_res and not reached_max_n_atom and (i == MAX_N_ATOM or serials[i] > MAX_N_ATOM):
                     reached_max_n_atom = True
                     pdbline = PDBLINE_GE100K_GE10K
@@ -1439,7 +1451,7 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
                 if len(str(resnum)) == 5:
                     if icodes[i] == '':
                         icodes[i] = str(resnum)[4]
-                        
+
                         if not warned_5_digit:
                             LOGGER.warn('Storing 5-digit resnums using insertion codes')
                             warned_5_digit = True
@@ -1447,21 +1459,21 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
                         LOGGER.warn('Truncating 5-digit resnum as insertion code is busy.')
 
                     resnum = int(str(resnum)[:4])
-                
+
                 elif len(str(resnum)) > 5:
                     if not warned_5_digit:
                         LOGGER.warn('Truncating {0}-digit resnum as too long to be '
                                     'supported by insertion code.'.format(len(str(resnum))))
                         warned_5_digit = True
-                        
+
                     resnum = int(str(resnum)[:4])
             else:
                 final_resnum = '%4x' % int(resnum)
-                
+
                 if len(str(final_resnum)) == 5:
                     if icodes[i] == '':
                         icodes[i] = str(final_resnum)[4]
-                        
+
                         if not warned_5_digit:
                             LOGGER.warn('Storing 5-digit hex resnums using insertion codes')
                             warned_5_digit = True
@@ -1469,16 +1481,16 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
                         LOGGER.warn('Truncating 5-digit hex resnum as insertion code is busy.')
 
                     resnum = int(str(final_resnum)[:4], 16)
-                
+
                 elif len(str(final_resnum)) > 5:
                     if not warned_5_digit:
                         LOGGER.warn('Truncating {0}-digit hex resnum ({1}) as too long to be '
                                     'supported by insertion code.'.format(len(str(final_resnum)), 
                                                                           final_resnum))
                         warned_5_digit = True
-                        
+
                     resnum = int(str(final_resnum)[:4], 16)
-              
+
 
             write(pdbline % (hetero[i], serial,
                              atomnames[i], altlocs[i],
@@ -1511,7 +1523,7 @@ writePDBStream.__doc__ += _writePDBdoc
 def writePDB(filename, atoms, csets=None, autoext=True, **kwargs):
     """Write *atoms* in PDB format to a file with name *filename* and return
     *filename*.  If *filename* ends with :file:`.gz`, a compressed file will
-    be written.        
+    be written.
 
     :arg renumber: whether to renumber atoms with serial indices
         Default is **True**
@@ -1573,7 +1585,7 @@ def writePQRStream(stream, atoms, **kwargs):
                            end.getResname(), end.getChid(),
                            end.getResnum(), end.getIcode(),
                            init.getSecclass()]
-                
+
                 if ssa[ss_end] == 'H':
                     helix.append(["HELIX "] + entries +
                                  ['', length])
@@ -1607,7 +1619,7 @@ def writePQRStream(stream, atoms, **kwargs):
 
     num_strands = item1[1]
     for item2 in sorted_sheet[i-num_strands+1:]:
-        item2.append(num_strands)    
+        item2.append(num_strands)
 
     format_sheet = ('{0:6s} {1:3d} {2:3s}{12:2d} ' +
                     '{3:3s} {4:1s}{5:4d}{6:1s}' +
@@ -1651,7 +1663,7 @@ def writePQRStream(stream, atoms, **kwargs):
               '{8:8.3f} {9:8.3f} {10:8.3f}' +
               '{11:8.4f} {12:7.4f}\n').format
     coords = atoms._getCoords()
-    
+
     for i, xyz in enumerate(coords):
         write(format(hetero[i], i+1, atomnames[i], altlocs[i],
                      resnames[i], chainids[i], int(resnums[i]),

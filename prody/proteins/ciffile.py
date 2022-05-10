@@ -72,6 +72,10 @@ def parseMMCIF(pdb, **kwargs):
     """
     chain = kwargs.pop('chain', None)
     title = kwargs.get('title', None)
+    auto_bonds = SETTINGS.get('auto_bonds')
+    get_bonds = kwargs.get('bonds', auto_bonds)
+    if get_bonds:
+        LOGGER.warn('Parsing struct_conn information from mmCIF is current unsupported and no bond information is added to the results')
     if not os.path.isfile(pdb):
         if len(pdb) == 5 and pdb.isalnum():
             if chain is None:
