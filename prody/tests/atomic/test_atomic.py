@@ -88,6 +88,8 @@ class TestPickling(unittest.TestCase):
         s1 = atoms1.__getstate__()
         s2 = atoms2.__getstate__()
         for key in s1:
+            if key == '_hv':
+                continue # new objects are created by __getstate__
             assert_equal(s1[key], s2[key])
         self.assertEqual(atoms1, atoms2)
 
