@@ -60,7 +60,7 @@ def prody_pca(coords, **kwargs):
             if splitext(pdb)[1].lower() == '.psf':
                 pdb = prody.parsePSF(pdb)
             else:
-                pdb = prody.parsePDB(pdb, altlocs=altlocs)
+                pdb = prody.parsePDB(pdb, altloc=altloc)
         dcd = prody.DCDFile(coords)
         if prefix == '_pca' or prefix == '_eda':
             prefix = dcd.getTitle() + prefix
