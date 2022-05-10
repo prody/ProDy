@@ -499,10 +499,11 @@ def writeScipionModes(output_path, modes, write_star=False, scores=None,
     classes = [(1, 'self', 'c00', 'NormalMode'),
                (2, '_modeFile', 'c01', 'String'),
                (3, '_collectivity', 'c02', 'Float'),
-               (4, '_score', 'c03', 'Float')]
+               (4, '_score', 'c03', 'Float'),
+               (5, '_eigenval', 'c04', 'Float')]
     cursor.executemany('''INSERT INTO Classes VALUES(?,?,?,?);''', classes);
     
-    cursor.execute('''CREATE TABLE Objects(id primary key, enabled, label, comment, creation, c01, c02, c03)''')
+    cursor.execute('''CREATE TABLE Objects(id primary key, enabled, label, comment, creation, c01, c02, c03, c04)''')
     
     star_dict = OrderedDict()
 
@@ -542,14 +543,14 @@ def writeScipionModes(output_path, modes, write_star=False, scores=None,
         c03 = scores[i]
         loop_dict['data'][i]['_nmaScore'] = '%8.6f' % c03
 
-        eigval = eigvals[i]
-        if float('%9.6f' % eigval) > 0:
-            loop_dict['data'][i]['_nmaEigenval'] = '%9.6f' % eigval
+        c04 = eigvals[i]
+        if float('%9.6f' % c04) > 0:
+            loop_dict['data'][i]['_nmaEigenval'] = '%9.6f' % c04
         else:
-            loop_dict['data'][i]['_nmaEigenval'] = '%9.6e' % eigval
+            loop_dict['data'][i]['_nmaEigenval'] = '%9.6e' % c04
         
-        cursor.execute('''INSERT INTO Objects VALUES(?,?,?,?,?,?,?,?)''',
-                       (id, enab, label, comment, creation, c01, c02, c03))
+        cursor.execute('''INSERT INTO Objects VALUES(?,?,?,?,?,?,?,?,?)''',
+                       (id, enab, label, comment, creation, c01, c02, c03, c04))
 
     if write_star:
         writeSTAR(output_path + '/modes.xmd', star_dict)
