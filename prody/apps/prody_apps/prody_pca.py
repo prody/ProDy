@@ -96,27 +96,13 @@ def prody_pca(coords, **kwargs):
                 raise ImportError('Please install threadpoolctl to control threads')
 
             with threadpool_limits(limits=nproc, user_api="blas"):
-                if len(dcd) > 1000:
-                    pca.buildCovariance(dcd, aligned=kwargs.get('aligned'), quiet=quiet)
-                    pca.calcModes(nmodes)
-                    ensemble = dcd
-                else:
-                    ensemble = dcd[:]
-                    if not kwargs.get('aligned'):
-                        ensemble.iterpose(quiet=quiet)
-                    pca.performSVD(ensemble)
-                nmodes = pca.numModes()
-        else:
-            if len(dcd) > 1000:
                 pca.buildCovariance(dcd, aligned=kwargs.get('aligned'), quiet=quiet)
                 pca.calcModes(nmodes)
                 ensemble = dcd
-            else:
-                ensemble = dcd[:]
-                if not kwargs.get('aligned'):
-                    ensemble.iterpose(quiet=quiet)
-                pca.performSVD(ensemble)
-            nmodes = pca.numModes()
+        else:
+            pca.buildCovariance(dcd, aligned=kwargs.get('aligned'), quiet=quiet)
+            pca.calcModes(nmodes)
+            ensemble = dcd
 
     else:
         pdb = prody.parsePDB(coords)
@@ -147,10 +133,13 @@ def prody_pca(coords, **kwargs):
                 raise ImportError('Please install threadpoolctl to control threads')
 
             with threadpool_limits(limits=nproc, user_api="blas"):
-                pca.performSVD(ensemble)
+                pca.buildCovariance(ensemble, aligned=kwargs.get('aligned'), quiet=quiet)
+                pca.calcModes(nmodes)
         else:
-            pca.performSVD(ensemble)
+            pca.buildCovariance(ensemble, aligned=kwargs.get('aligned'), quiet=quiet)
+            pca.calcModes(nmodes)
 
+    pca = pca[:nmodes]
 
     LOGGER.info('Writing numerical output.')
     if kwargs.get('outnpz'):
@@ -159,15 +148,15 @@ def prody_pca(coords, **kwargs):
     if kwargs.get('outscipion'):
         prody.writeScipionModes(outdir, pca)
 
-    prody.writeNMD(join(outdir, prefix + '.nmd'), pca[:nmodes], select)
+    prody.writeNMD(join(outdir, prefix + '.nmd'), pca, select)
 
     extend = kwargs.get('extend')
     if extend:
         if pdb:
             if extend == 'all':
-                extended = prody.extendModel(pca[:nmodes], select, pdb)
+                extended = prody.extendModel(pca, select, pdb)
             else:
-                extended = prody.extendModel(pca[:nmodes], select,
+                extended = prody.extendModel(pca, select,
                                              select | pdb.bb)
             prody.writeNMD(join(outdir, prefix + '_extended_' +
                            extend + '.nmd'), *extended)
