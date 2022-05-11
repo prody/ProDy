@@ -70,31 +70,37 @@ The following classes and functions can be used to search and retrieve data from
 
 .. _GOA: https://www.ebi.ac.uk/GOA/
 
+Swiss-Prot
+================================
 
+The following classes and functions can be used to search and retrieve data from the Swiss-Prot database:
+
+  * :class:`.SwissProt` - class to handle Swiss-Prot data from Expasy
+  * :func:`.getCurrentRelease` - gets current Swiss-Prot release version
+  * :func:`.downloadRelease` - downloads current Swiss-Prot database files
+  * :func:`.saveRelease` - saves new Swiss-Prot release version
+  * :func:`.updateRelease` - updates Swiss-Prot local database
+  * :func:`.getLocalRelease` - checks local Swiss-Prot release version
+  * :func:`.checkForUpdates` - checks wheather there is newer Swiss-Prot version than current local one
+
+.. _GOA: https://www.ebi.ac.uk/GOA/
 """
 
-__all__ = []
 
-from . import pfam
-from .pfam import *
-__all__.extend(pfam.__all__)
-
-from . import uniprot
-from .uniprot import *
-__all__.extend(uniprot.__all__)
-
-from . import cath
+from . import cath, dali, goa, pfam, quartataweb, swissprot, uniprot
 from .cath import *
-__all__.extend(cath.__all__)
-
-from . import dali
 from .dali import *
-__all__.extend(dali.__all__)
-
-from . import goa
 from .goa import *
-__all__.extend(goa.__all__)
-
-from . import quartataweb
+from .pfam import *
 from .quartataweb import *
+from .swissprot import *
+from .uniprot import *
+
+__all__ = []
+__all__.extend(pfam.__all__)
+__all__.extend(uniprot.__all__)
+__all__.extend(cath.__all__)
+__all__.extend(dali.__all__)
+__all__.extend(goa.__all__)
 __all__.extend(quartataweb.__all__)
+__all__.extend(swissprot.__all__)

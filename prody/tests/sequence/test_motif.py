@@ -1,4 +1,4 @@
-from prody import LOGGER, _expasyTextToStructure, expasySearchMotif
+from prody import LOGGER, _expasyMotifToStructure, expasySearchMotif
 from prody.tests import TestCase
 
 LOGGER.verbosity = None
@@ -91,12 +91,12 @@ EXPASY_SCAN_PROSITE_TOOL_RESULT = [
     },
 ]
 
-EXPASY_ERROR = '<p>ERROR: Invalid characters in pattern "sdfsdf".</p>'
+EXPASY_ERROR = '<p>ERROR: Invalid characters in pattern "aaaaaa".</p>'
 
 
 class TestMotif(TestCase):
     def testExpasyTextToStructure(self):
-        self.assertEqual(_expasyTextToStructure(EXPASY_SCAN_PROSITE_TOOL_RESPONSE), EXPASY_SCAN_PROSITE_TOOL_RESULT)
+        self.assertEqual(_expasyMotifToStructure(EXPASY_SCAN_PROSITE_TOOL_RESPONSE), EXPASY_SCAN_PROSITE_TOOL_RESULT)
 
     def testEmptyExpasyStructure(self):
-        self.assertEqual(_expasyTextToStructure(EXPASY_ERROR), [])
+        self.assertEqual(_expasyMotifToStructure(EXPASY_ERROR), [])

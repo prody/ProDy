@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """This module gets PDB code from MOTIF."""
 
@@ -8,9 +7,7 @@ import re
 import requests
 from prody import LOGGER
 
-__author__ = "Mariusz Konstanty"
-
-__all__ = ["getPdbFromMotif", "expasySearchMotif", "_expasyTextToStructure"]
+__all__ = ["expasySearchMotif", "_expasyMotifToStructure"]
 
 DATABASES = {
     "sp": "Swiss-Prot",
@@ -28,17 +25,25 @@ MOTIF_PATTERN = (
 MOTIF_MATCHER = re.compile(MOTIF_PATTERN)
 
 
-def getPdbFromMotif(motif: str, database: str) -> str:
-    if database not in DATABASES:
-        raise ValueError(f"Database must be one of: {DATABASES.keys()}.")
-    if not re.match(MOTIF_MATCHER, motif.replace("-", "")):
-        raise ValueError(f"{motif} is not valid PROSITE motif.")
-    result = expasySearchMotif(motif, database)
-    pdb_code = ""
-    return pdb_code
+# def getPdbFromMotif(motif: str, database: str) -> str:
+#     if database not in DATABASES:
+#         raise ValueError(f"Database must be one of: {DATABASES.keys()}.")
+#     if not re.match(MOTIF_MATCHER, motif.replace("-", "")):
+#         raise ValueError(f"{motif} is not valid PROSITE motif.")
+#     result = expasySearchMotif(motif, database)
+#     pdb_code = ""
+#     return pdb_code
 
 
-def _expasyTextToStructure(response: str) -> list:
+def _expasyMotifToStructure(response: str) -> list:
+    """Parse HTML response from Expasy.
+
+    Args:
+        response (str): HTML response from Expasy
+
+    Returns:
+        list: List of result dicts
+    """
     RESULT_PATTERN = (
         r">(sp|tr|pdb)\|"
         r"(\w+)\|(\w+).*\n"
@@ -49,10 +54,10 @@ def _expasyTextToStructure(response: str) -> list:
     motifs = re.compile(RESULT_PATTERN, re.M)
     results = re.findall(motifs, response)
     structure = []
-    names = ("database", "accession", "id", "description", "sequence", "start", "end", "match")
+    keys = ("database", "accession", "id", "description", "sequence", "start", "end", "match")
     for result in results:
         result = map(lambda x: x.replace("\n", ""), result)
-        structure.append(dict(zip(names, result)))
+        structure.append(dict(zip(keys, result)))
     return structure
 
 
@@ -77,49 +82,49 @@ def expasySearchMotif(motif, database):
         print(f"Remote search for motif {motif} in Swiss-Prot database failed: {exception}")
         return []
     else:
-        return _expasyTextToStructure(result.text)
+        return _expasyMotifToStructure(result.text)
 
 
-def _argMotif(motif: str) -> str:
-    """Create motif type for argparse.ArgumentParser.
+# def _argMotif(motif: str) -> str:
+#     """Create motif type for argparse.ArgumentParser.
 
-    Args:
-        value (str): motif to be validated
+#     Args:
+#         value (str): motif to be validated
 
-    Returns:
-        str: valid Motif
-    """
-    new_motif = str(motif).replace("-", "")
-    if not re.match(MOTIF_MATCHER, new_motif):
-        msg = f"{motif} is not a valid PROSITE MOTIF."
-        raise argparse.ArgumentTypeError(msg)
-    return new_motif
-
-
-def _parseArgs():
-    """Parse arguments from the command line.
-
-    Returns:
-        argparse.Namespace: parsed script arguments
-    """
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument(
-        "-m",
-        "--motif",
-        type=_argMotif,
-        required=True,
-        help="motif to search in a databases",
-    )
-    parser.add_argument(
-        "-d",
-        "--databases",
-        choices=DATABASES,
-        action="append",
-        required=True,
-        help="choose the databases to search from",
-    )
-    return parser.parse_args()
+#     Returns:
+#         str: valid Motif
+#     """
+#     new_motif = str(motif).replace("-", "")
+#     if not re.match(MOTIF_MATCHER, new_motif):
+#         msg = f"{motif} is not a valid PROSITE MOTIF."
+#         raise argparse.ArgumentTypeError(msg)
+#     return new_motif
 
 
-if __name__ == "__main__":
-    args = _parseArgs()
+# def _parseArgs():
+#     """Parse arguments from the command line.
+
+#     Returns:
+#         argparse.Namespace: parsed script arguments
+#     """
+#     parser = argparse.ArgumentParser(description=__doc__)
+#     parser.add_argument(
+#         "-m",
+#         "--motif",
+#         type=_argMotif,
+#         required=True,
+#         help="motif to search in a databases",
+#     )
+#     parser.add_argument(
+#         "-d",
+#         "--databases",
+#         choices=DATABASES,
+#         action="append",
+#         required=True,
+#         help="choose the databases to search from",
+#     )
+#     return parser.parse_args()
+
+
+# if __name__ == "__main__":
+#     args = _parseArgs()
