@@ -139,8 +139,6 @@ def prody_pca(coords, **kwargs):
             pca.buildCovariance(ensemble, aligned=kwargs.get('aligned'), quiet=quiet)
             pca.calcModes(nmodes)
 
-    pca = pca[:nmodes]
-
     LOGGER.info('Writing numerical output.')
     if kwargs.get('outnpz'):
         prody.saveModel(pca, join(outdir, prefix))
