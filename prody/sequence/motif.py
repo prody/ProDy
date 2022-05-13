@@ -1,19 +1,20 @@
 # -*- coding: utf-8 -*-
 """This module gets PDB code from MOTIF."""
 
-import argparse
+import os
 import re
+import xml.dom.minidom
 
 import requests
 from prody import LOGGER
+from prody.utilities.pathtools import PRODY_DATA
 
-__all__ = ["expasySearchMotif", "_expasyMotifToStructure"]
+__all__ = ["get_pdb_codes", "get_uniprot_id", "pdb_search", "save", "expasySearchMotif", "_expasyMotifToStructure"]
 
 DATABASES = {
     "sp": "Swiss-Prot",
-    # "rs": "RefSeq",
+    "rs": "RefSeq",
     "pdb": "PDB",
-    "tr": "TrEMBL",
     "local": "local database",
 }
 MOTIF_PATTERN = (
@@ -25,14 +26,103 @@ MOTIF_PATTERN = (
 MOTIF_MATCHER = re.compile(MOTIF_PATTERN)
 
 
-# def getPdbFromMotif(motif: str, database: str) -> str:
-#     if database not in DATABASES:
-#         raise ValueError(f"Database must be one of: {DATABASES.keys()}.")
-#     if not re.match(MOTIF_MATCHER, motif.replace("-", "")):
-#         raise ValueError(f"{motif} is not valid PROSITE motif.")
-#     result = expasySearchMotif(motif, database)
-#     pdb_code = ""
-#     return pdb_code
+def get_pdb_codes(motif: str) -> list:
+    """Get PDB code from MOTIF.
+
+    Args:
+        motif (str): PROSITE motif
+
+    Returns:
+        list: List of results
+    """
+    LOGGER.debug("Getting PDB codes from MOTIF.")
+    url = "http://www.rcsb.org/pdb/rest/search"
+    headers = {"Content-Type": "application/x-www-form-urlencoded"}
+    data = f"""
+    <xml version="1.0" encoding="UTF-8">
+        <orgPdbQuery version="1.0">
+            <queryType>org.pdb.query.simple.MotifQuery</queryType>
+            <description>Motif Query For: {motif}</description>
+            <motif>{motif}</motif>
+        </orgPdbQuery>
+    </xml>
+    """
+    try:
+        response = requests.post(url, headers=headers, data=data)
+    except requests.exceptions.RequestException as exception:
+        LOGGER.debug(str(exception))
+    else:
+        response.encoding = "UTF-8"
+        return response.text.split("\n")
+
+
+def get_uniprot_id(pdbId, pdbEntityNr) -> str:
+    """Get UniProt ID from PDB code.
+
+    Args:
+        pdbId (str): PDB code
+        pdbEntityNr (str): PDB entity number
+
+    Returns:
+        str: comma-separated accession ids
+    """
+    LOGGER.debug("Getting UniProt ID from PDB code.")
+    url = f"http://www.rcsb.org/pdb/rest/describeMol?structureId={pdbId}"
+    accession_ids = ""
+    try:
+        response = requests.get(url)
+    except requests.exceptions.RequestException as exception:
+        LOGGER.debug(str(exception))
+    else:
+        response.encoding = "UTF-8"
+        mol_description = xml.dom.minidom.parseString(response.text)
+        polymers = mol_description.getElementsByTagName("polymer")
+        for polymer in polymers:
+            if polymer.getAttribute("entityNr") == pdbEntityNr:
+                accessions = polymer.getElementsByTagName("accession")
+                for counter, accession in enumerate(accessions):
+                    accession_ids += accession.getAttribute("id")
+                    if len(accessions) > counter + 1:
+                        accession_ids += ","
+    return accession_ids
+
+
+def pdb_search() -> list:
+    """Search for a motif in PDB database.
+
+    Returns:
+        list: list of proteins
+    """
+    proteins = []
+    codes = get_pdb_codes()
+    for code in codes:
+        if code:
+            code_and_nr = code.split(":")
+            pdbEntityNr = code_and_nr.pop()
+            pdbId = code_and_nr.pop()
+            uniprotIds = get_uniprot_id(pdbId, pdbEntityNr)
+            protein = {
+                "pdbEntityNr": pdbEntityNr,
+                "pdbId": pdbId,
+                "uniprotId": uniprotIds,
+            }
+            proteins.append(protein)
+    return proteins
+
+
+def save(proteins: list) -> None:
+    """Save protein information to the file.
+
+    Args:
+        proteins (list): List of proteins to be saved.
+    """
+    OUTPUT_DIR = "output"
+    path = os.path.join(PRODY_DATA, "output")
+    os.makedirs(path, exist_ok=True)
+    with open(f"{PRODY_DATA}/{OUTPUT_DIR}/proteins.csv", "w", encoding="utf-8") as file:
+        file.write(";".join(proteins[0].keys()) + "\n")
+        for protein in proteins:
+            file.write(";".join(protein.values()) + "\n")
 
 
 def _expasyMotifToStructure(response: str) -> list:
@@ -83,48 +173,3 @@ def expasySearchMotif(motif, database):
         return []
     else:
         return _expasyMotifToStructure(result.text)
-
-
-# def _argMotif(motif: str) -> str:
-#     """Create motif type for argparse.ArgumentParser.
-
-#     Args:
-#         value (str): motif to be validated
-
-#     Returns:
-#         str: valid Motif
-#     """
-#     new_motif = str(motif).replace("-", "")
-#     if not re.match(MOTIF_MATCHER, new_motif):
-#         msg = f"{motif} is not a valid PROSITE MOTIF."
-#         raise argparse.ArgumentTypeError(msg)
-#     return new_motif
-
-
-# def _parseArgs():
-#     """Parse arguments from the command line.
-
-#     Returns:
-#         argparse.Namespace: parsed script arguments
-#     """
-#     parser = argparse.ArgumentParser(description=__doc__)
-#     parser.add_argument(
-#         "-m",
-#         "--motif",
-#         type=_argMotif,
-#         required=True,
-#         help="motif to search in a databases",
-#     )
-#     parser.add_argument(
-#         "-d",
-#         "--databases",
-#         choices=DATABASES,
-#         action="append",
-#         required=True,
-#         help="choose the databases to search from",
-#     )
-#     return parser.parse_args()
-
-
-# if __name__ == "__main__":
-#     args = _parseArgs()

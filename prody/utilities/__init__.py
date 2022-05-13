@@ -61,19 +61,19 @@ Miscellaneous tools
 
 """
 
-__all__ = []
-
-from .checkers import *
-from .logger import *
-from .settings import *
-from .misctools import *
-from .pathtools import *
-from .doctools import *
-from .laptools import *
-from .seqtools import *
-from .TreeConstruction import *
-from .eigtools import *
-
 from . import catchall
 from .catchall import *
+from .checkers import *
+from .doctools import *
+from .eigtools import *
+from .helpers import *
+from .laptools import *
+from .logger import *
+from .misctools import *
+from .pathtools import *
+from .seqtools import *
+from .settings import *
+from .TreeConstruction import *
+
+__all__ = []
 __all__.extend(catchall.__all__)

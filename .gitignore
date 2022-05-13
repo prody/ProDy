@@ -50,3 +50,5 @@ Documentation/*
 *BAK
 *.sublime*
 *.code-workspace
+.vscode/
+data/
