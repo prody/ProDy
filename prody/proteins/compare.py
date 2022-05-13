@@ -913,7 +913,7 @@ def mapChainOntoChain(mobile, target, **kwargs):
     :arg target: chain to which atoms will be mapped
     :type target: :class:`.Chain`
 
-    :keyword seqid: percent sequence identity, default is **90**. Note that This parameter is 
+    :keyword seqid: percent sequence identity, default is **90**. Note that this parameter is 
         only effective for sequence alignment
     :type seqid: float
 
