@@ -379,7 +379,7 @@ class StarLoop:
         self.data = list(self._dict['data'].values())
         self._n_fields = len(self.fields)
         self._n_rows = len(self.data)
-        self._title = dataBlock._title + ' loop ' + str(key)
+        self._title = str(dataBlock._title) + ' loop ' + str(key)
 
     def numRows(self):
         return self._n_rows
