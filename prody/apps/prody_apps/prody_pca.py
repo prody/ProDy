@@ -99,9 +99,15 @@ def prody_pca(coords, **kwargs):
                 pca.calcModes(nmodes)
                 ensemble = dcd
         else:
-            pca.buildCovariance(dcd, aligned=kwargs.get('aligned'))
-            pca.calcModes(nmodes)
-            ensemble = dcd
+            if len(dcd) > 1000:
+                pca.buildCovariance(dcd, aligned=kwargs.get('aligned'))
+                pca.calcModes(nmodes)
+                ensemble = dcd
+            else:
+                ensemble = dcd[:]
+                if not kwargs.get('aligned'):
+                    ensemble.iterpose(quiet=True)
+                pca.performSVD(ensemble)
 
     else:
         pdb = prody.parsePDB(coords)
@@ -135,8 +141,7 @@ def prody_pca(coords, **kwargs):
                 pca.buildCovariance(ensemble, aligned=kwargs.get('aligned'))
                 pca.calcModes(nmodes)
         else:
-            pca.buildCovariance(ensemble, aligned=kwargs.get('aligned'))
-            pca.calcModes(nmodes)
+            pca.performSVD(ensemble)
 
     LOGGER.info('Writing numerical output.')
     if kwargs.get('outnpz'):
@@ -145,15 +150,15 @@ def prody_pca(coords, **kwargs):
     if kwargs.get('outscipion'):
         prody.writeScipionModes(outdir, pca)
 
-    prody.writeNMD(join(outdir, prefix + '.nmd'), pca, select)
+    prody.writeNMD(join(outdir, prefix + '.nmd'), pca[:nmodes], select)
 
     extend = kwargs.get('extend')
     if extend:
         if pdb:
             if extend == 'all':
-                extended = prody.extendModel(pca, select, pdb)
+                extended = prody.extendModel(pca[:nmodes], select, pdb)
             else:
-                extended = prody.extendModel(pca, select,
+                extended = prody.extendModel(pca[:nmodes], select,
                                              select | pdb.bb)
             prody.writeNMD(join(outdir, prefix + '_extended_' +
                            extend + '.nmd'), *extended)
