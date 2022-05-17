@@ -72,9 +72,7 @@ The following classes and functions can be used to search and retrieve data from
 
 Swiss-Prot
 ================================
-
 The following classes and functions can be used to search and retrieve data from the Swiss-Prot database:
-
   * :class:`.SwissProt` - class to handle Swiss-Prot data from Expasy
   * :func:`.getCurrentRelease` - gets current Swiss-Prot release version
   * :func:`.downloadRelease` - downloads current Swiss-Prot database files
@@ -83,24 +81,64 @@ The following classes and functions can be used to search and retrieve data from
   * :func:`.getLocalRelease` - checks local Swiss-Prot release version
   * :func:`.checkForUpdates` - checks wheather there is newer Swiss-Prot version than current local one
 
-.. _GOA: https://www.ebi.ac.uk/GOA/
+  RefSeq
+  ================================
+The following classes and functions can be used to search and retrieve data from the RefSeq database:
+  * :class:` .RefSeq` - class to handle RefSeq data
+  * :func:` getCurrentRelease` - func desc
+  * :func:` getInstalledFiles` - func desc
+  * :func:` saveInstalledFiles` - func desc
+  * :func:` getLocalFiles` - func desc
+  * :func:` getFiles` - func desc
+  * :func:` pepareDownloadFileList` - func desc
+  * :func:` downloadRelease` - func desc
+  * :func:` saveRelease` - func desc
+  * :func:` updateRelease` - func desc
+  * :func:` getLocalRelease` - func desc
+  * :func:` checkForUpdates` - func desc
+
 """
 
+__all__ = []
 
-from . import cath, dali, goa, pfam, quartataweb, swissprot, uniprot
-from .cath import *
-from .dali import *
-from .goa import *
+from re import S
+
+from . import pfam
 from .pfam import *
-from .quartataweb import *
-from .swissprot import *
+
+__all__.extend(pfam.__all__)
+
+from . import uniprot
 from .uniprot import *
 
-__all__ = []
-__all__.extend(pfam.__all__)
 __all__.extend(uniprot.__all__)
+
+from . import cath
+from .cath import *
+
 __all__.extend(cath.__all__)
+
+from . import dali
+from .dali import *
+
 __all__.extend(dali.__all__)
+
+from . import goa
+from .goa import *
+
 __all__.extend(goa.__all__)
+
+from . import quartataweb
+from .quartataweb import *
+
 __all__.extend(quartataweb.__all__)
+
+from . import swissprot
+from .swissprot import *
+
 __all__.extend(swissprot.__all__)
+
+from . import refseq
+from .refseq import *
+
+__all__.extend(refseq.__all__)

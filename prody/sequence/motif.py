@@ -9,7 +9,14 @@ import requests
 from prody import LOGGER
 from prody.utilities.pathtools import PRODY_DATA
 
-__all__ = ["get_pdb_codes", "get_uniprot_id", "pdb_search", "save", "expasySearchMotif", "_expasyMotifToStructure"]
+__all__ = [
+    "getPdbCodesFromMotif",
+    "getUniprotId",
+    "pdbSearch",
+    "saveSearchResults",
+    "expasySearchMotif",
+    "_expasyMotifToStructure",
+]
 
 DATABASES = {
     "sp": "Swiss-Prot",
@@ -26,7 +33,7 @@ MOTIF_PATTERN = (
 MOTIF_MATCHER = re.compile(MOTIF_PATTERN)
 
 
-def get_pdb_codes(motif: str) -> list:
+def getPdbCodesFromMotif(motif: str) -> list:
     """Get PDB code from MOTIF.
 
     Args:
@@ -56,7 +63,7 @@ def get_pdb_codes(motif: str) -> list:
         return response.text.split("\n")
 
 
-def get_uniprot_id(pdbId, pdbEntityNr) -> str:
+def getUniprotId(pdbId, pdbEntityNr) -> str:
     """Get UniProt ID from PDB code.
 
     Args:
@@ -87,20 +94,20 @@ def get_uniprot_id(pdbId, pdbEntityNr) -> str:
     return accession_ids
 
 
-def pdb_search() -> list:
+def pdbSearch() -> list:
     """Search for a motif in PDB database.
 
     Returns:
         list: list of proteins
     """
     proteins = []
-    codes = get_pdb_codes()
+    codes = getPdbCodesFromMotif()
     for code in codes:
         if code:
             code_and_nr = code.split(":")
             pdbEntityNr = code_and_nr.pop()
             pdbId = code_and_nr.pop()
-            uniprotIds = get_uniprot_id(pdbId, pdbEntityNr)
+            uniprotIds = getUniprotId(pdbId, pdbEntityNr)
             protein = {
                 "pdbEntityNr": pdbEntityNr,
                 "pdbId": pdbId,
@@ -110,16 +117,16 @@ def pdb_search() -> list:
     return proteins
 
 
-def save(proteins: list) -> None:
+def saveSearchResults(proteins: list) -> None:
     """Save protein information to the file.
 
     Args:
         proteins (list): List of proteins to be saved.
     """
-    OUTPUT_DIR = "output"
+    output_dir = "output"
     path = os.path.join(PRODY_DATA, "output")
     os.makedirs(path, exist_ok=True)
-    with open(f"{PRODY_DATA}/{OUTPUT_DIR}/proteins.csv", "w", encoding="utf-8") as file:
+    with open(f"{PRODY_DATA}/{output_dir}/proteins.csv", "w", encoding="utf-8") as file:
         file.write(";".join(proteins[0].keys()) + "\n")
         for protein in proteins:
             file.write(";".join(protein.values()) + "\n")

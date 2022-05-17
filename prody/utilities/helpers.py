@@ -4,7 +4,7 @@
 from typing import Any
 
 import requests
-from prody import LOGGER
+from .logger import LOGGER
 from prody.utilities.pathtools import PRODY_DATA
 
 __all__ = ["prositeToRegEx", "downloadFile"]

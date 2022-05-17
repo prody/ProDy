@@ -50,7 +50,7 @@ Plotting
 
 Searching
 ========
-  * :func:`.getPdbCode` - get PDB code from MOTIF
+  * :func:`.getPdbCodesFromMotif` - get PDB code from MOTIF
 """
 
 __all__ = []
