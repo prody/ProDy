@@ -158,13 +158,16 @@ class PCA(NMA):
                     cov = np.zeros((dof, dof))
                     coordsets = coordsets.reshape((n_confs, dof))
                     mean = coordsets.mean(0)
-                    LOGGER.progress('Building covariance', n_confs,
+                    if not quiet:
+                        LOGGER.progress('Building covariance', n_confs,
                                     '_prody_pca')
                     for i, coords in enumerate(coordsets.reshape(s)):
                         deviations = coords - mean
                         cov += np.outer(deviations, deviations)
-                        LOGGER.update(n_confs, label='_prody_pca')
-                    LOGGER.finish()
+                        if not quiet:
+                            LOGGER.update(n_confs, label='_prody_pca')
+                    if not quiet:
+                        LOGGER.finish()
                     cov /= n_confs
                     self._cov = cov
             else:
@@ -255,10 +258,10 @@ class PCA(NMA):
                               coordsets._getCoords())
 
         n_confs = deviations.shape[0]
-        if n_confs < 3:
+        if n_confs <= 3:
             raise ValueError('coordsets must have more than 3 coordinate sets')
         n_atoms = deviations.shape[1]
-        if n_atoms < 3:
+        if n_atoms <= 3:
             raise ValueError('coordsets must have more than 3 atoms')
 
         dof = n_atoms * 3
