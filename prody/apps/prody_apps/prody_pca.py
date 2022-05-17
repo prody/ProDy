@@ -100,9 +100,16 @@ def prody_pca(coords, **kwargs):
                 pca.calcModes(nmodes)
                 ensemble = dcd
         else:
-            pca.buildCovariance(dcd, aligned=kwargs.get('aligned'), quiet=quiet)
-            pca.calcModes(nmodes)
-            ensemble = dcd
+            if len(dcd) > 1000:
+                pca.buildCovariance(dcd, aligned=kwargs.get('aligned'))
+                pca.calcModes(nmodes)
+                ensemble = dcd
+            else:
+                ensemble = dcd[:]
+                if not kwargs.get('aligned'):
+                    ensemble.iterpose(quiet=True)
+                pca.performSVD(ensemble)
+            nmodes = pca.numModes()
 
     else:
         pdb = prody.parsePDB(coords)
@@ -136,8 +143,7 @@ def prody_pca(coords, **kwargs):
                 pca.buildCovariance(ensemble, aligned=kwargs.get('aligned'), quiet=quiet)
                 pca.calcModes(nmodes)
         else:
-            pca.buildCovariance(ensemble, aligned=kwargs.get('aligned'), quiet=quiet)
-            pca.calcModes(nmodes)
+            pca.performSVD(ensemble)
 
     LOGGER.info('Writing numerical output.')
     if kwargs.get('outnpz'):
