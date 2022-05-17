@@ -27,8 +27,8 @@ __all__ = ['gunzip', 'backupFile', 'openFile',
 
 if PY3K:
     import gzip
-    import io
     from gzip import GzipFile
+    import io
 
     class TextIOWrapper(io.TextIOWrapper):
 
@@ -395,10 +395,10 @@ def openURL(url, timeout=5, **kwargs):
     for opening the *url*."""
 
     try:
-        from urllib2 import Request, URLError, urlopen
+        from urllib2 import urlopen, URLError, Request
     except ImportError:
+        from urllib.request import urlopen, Request
         from urllib.error import URLError
-        from urllib.request import Request, urlopen
 
     if kwargs:
         request = Request(url, **kwargs)

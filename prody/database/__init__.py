@@ -101,44 +101,34 @@ The following classes and functions can be used to search and retrieve data from
 
 __all__ = []
 
-from re import S
-
 from . import pfam
 from .pfam import *
-
 __all__.extend(pfam.__all__)
 
 from . import uniprot
 from .uniprot import *
-
 __all__.extend(uniprot.__all__)
 
 from . import cath
 from .cath import *
-
 __all__.extend(cath.__all__)
 
 from . import dali
 from .dali import *
-
 __all__.extend(dali.__all__)
 
 from . import goa
 from .goa import *
-
 __all__.extend(goa.__all__)
 
 from . import quartataweb
 from .quartataweb import *
-
 __all__.extend(quartataweb.__all__)
 
 from . import swissprot
 from .swissprot import *
-
 __all__.extend(swissprot.__all__)
 
 from . import refseq
 from .refseq import *
-
 __all__.extend(refseq.__all__)

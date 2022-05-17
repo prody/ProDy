@@ -57,30 +57,24 @@ __all__ = []
 
 from . import motif
 from .motif import *
-
 __all__.extend(motif.__all__)
 
 from . import msa
 from .msa import *
-
 __all__.extend(msa.__all__)
 
 from . import msafile
 from .msafile import *
-
 __all__.extend(msafile.__all__)
 
 from . import analysis
 from .analysis import *
-
 __all__.extend(analysis.__all__)
 
 from . import plotting
 from .plotting import *
-
 __all__.extend(plotting.__all__)
 
 from . import sequence
 from .sequence import *
-
 __all__.extend(sequence.__all__)
