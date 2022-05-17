@@ -147,8 +147,9 @@ class PCA(NMA):
             if n_atoms < 3:
                 raise ValueError('coordsets must have more than 3 atoms')
             dof = n_atoms * 3
-            LOGGER.info('Covariance is calculated using {0} coordinate sets.'
-                        .format(len(coordsets)))
+            if not quiet:
+                LOGGER.info('Covariance is calculated using {0} coordinate sets.'
+                            .format(len(coordsets)))
             s = (n_confs, dof)
             if weights is None:
                 if coordsets.dtype == float:
@@ -188,7 +189,8 @@ class PCA(NMA):
         self._trace = self._cov.trace()
         self._dof = dof
         self._n_atoms = n_atoms
-        LOGGER.report('Covariance matrix calculated in %2fs.', '_prody_pca')
+        if not quiet:
+            LOGGER.report('Covariance matrix calculated in %2fs.', '_prody_pca')
 
     def calcModes(self, n_modes=20, turbo=True):
         """Calculate principal (or essential) modes.  This method uses
