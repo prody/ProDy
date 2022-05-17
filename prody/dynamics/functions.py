@@ -12,7 +12,7 @@ import numpy as np
 from prody import LOGGER, SETTINGS, PY3K
 from prody.atomic import Atomic, AtomSubset
 from prody.utilities import openFile, openSQLite, isExecutable, which, PLATFORM, addext, wrapModes
-from prody.proteins import parseSTAR, writeSTAR, alignChains, parsePDB
+from prody.proteins import parseSTAR, writeSTAR, StarDict, alignChains, parsePDB
 from prody.ensemble import PDBEnsemble
 
 from .nma import NMA, MaskedNMA
@@ -330,7 +330,55 @@ def parseScipionModes(run_path, title=None, pdb=None):
     run_name = os.path.split(run_path)[-1]
     top_dirs = os.path.split(run_path)[0][:-4] # exclude "Runs"
 
-    star_data = parseSTAR(run_path + '/modes.xmd')
+    try:
+        star_data = parseSTAR(run_path + '/modes.xmd')
+    except OSError:
+        try:
+            sql_con = openSQLite(run_path + "/modes.sqlite")
+            cursor = sql_con.cursor()
+
+            #names = ['id', 'enabled', 'label', 'comment', 'creation', 'c01', 'c02', 'c03', 'c04']
+
+            star_dict = OrderedDict()
+            star_block_dict = OrderedDict()
+            
+            star_loop_dict = OrderedDict()
+            star_loop_dict["fields"] = OrderedDict([(0, '_enabled'),
+                                               (1, '_nmaCollectivity'),
+                                               (2, '_nmaModefile'),
+                                               (3, '_nmaScore'),
+                                               (4, '_nmaEigenval'),
+                                               (5, '_order_')])
+            star_loop_dict["data"] = OrderedDict()
+
+            for row in cursor.execute("SELECT * FROM Objects;"):
+
+                id_ = row[0]
+                key = id_-1 # sqlite ids start from 1 not 0
+
+                star_loop_dict["data"][key] = OrderedDict()
+
+                star_loop_dict["data"][key]['_order_'] = id_
+
+                star_loop_dict["data"][key]['_enabled'] = row[1]
+
+                star_loop_dict["data"][key]['_nmaCollectivity'] = row[6]
+
+                star_loop_dict["data"][key]['_nmaModefile'] = row[5]
+
+                star_loop_dict["data"][key]['_nmaScore'] = row[7]
+
+                if len(row) > 8:
+                    star_loop_dict["data"][key]['_nmaEigenval'] = row[8]
+
+            star_block_dict[0] = star_loop_dict
+            star_dict[0] = star_block_dict
+
+            star_data = StarDict(star_dict, prog='XMIPP')
+
+        except OSError:
+            raise OSError("neither modes.xmd nor modes.sqlite found")
+
     star_loop = star_data[0][0]
     
     n_modes = star_loop.numRows()
@@ -499,10 +547,11 @@ def writeScipionModes(output_path, modes, write_star=False, scores=None,
     classes = [(1, 'self', 'c00', 'NormalMode'),
                (2, '_modeFile', 'c01', 'String'),
                (3, '_collectivity', 'c02', 'Float'),
-               (4, '_score', 'c03', 'Float')]
+               (4, '_score', 'c03', 'Float'),
+               (5, '_eigenval', 'c04', 'Float')]
     cursor.executemany('''INSERT INTO Classes VALUES(?,?,?,?);''', classes);
     
-    cursor.execute('''CREATE TABLE Objects(id primary key, enabled, label, comment, creation, c01, c02, c03)''')
+    cursor.execute('''CREATE TABLE Objects(id primary key, enabled, label, comment, creation, c01, c02, c03, c04)''')
     
     star_dict = OrderedDict()
 
@@ -542,14 +591,14 @@ def writeScipionModes(output_path, modes, write_star=False, scores=None,
         c03 = scores[i]
         loop_dict['data'][i]['_nmaScore'] = '%8.6f' % c03
 
-        eigval = eigvals[i]
-        if float('%9.6f' % eigval) > 0:
-            loop_dict['data'][i]['_nmaEigenval'] = '%9.6f' % eigval
+        c04 = eigvals[i]
+        if float('%9.6f' % c04) > 0:
+            loop_dict['data'][i]['_nmaEigenval'] = '%9.6f' % c04
         else:
-            loop_dict['data'][i]['_nmaEigenval'] = '%9.6e' % eigval
+            loop_dict['data'][i]['_nmaEigenval'] = '%9.6e' % c04
         
-        cursor.execute('''INSERT INTO Objects VALUES(?,?,?,?,?,?,?,?)''',
-                       (id, enab, label, comment, creation, c01, c02, c03))
+        cursor.execute('''INSERT INTO Objects VALUES(?,?,?,?,?,?,?,?,?)''',
+                       (id, enab, label, comment, creation, c01, c02, c03, c04))
 
     if write_star:
         writeSTAR(output_path + '/modes.xmd', star_dict)

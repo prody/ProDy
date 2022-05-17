@@ -1005,123 +1005,69 @@ def _getPolymers(lines):
 
     # COMPND double block. 
     # Block 6 has most info. Block 7 has synonyms
-    i = 0
-    fields6 = OrderedDict()
-    fieldCounter6 = -1
-    foundPolyBlock6 = False
-    foundPolyBlockData6 = False
-    donePolyBlock6 = False
-    foundPolyBlock7 = False
-    donePolyBlock7 = False
-    fields7 = OrderedDict()
-    fieldCounter7 = -1
-    start6 = 0
-    stop6 = 0
-    stop7 = 0
-    while not donePolyBlock7 and i < len(lines):
-        line = lines[i]
-        if line.split('.')[0] == '_entity':
-            fieldCounter6 += 1
-            fields6[line.split('.')[1].strip()] = fieldCounter6
-            if not foundPolyBlock6:
-                start6 = i
-                foundPolyBlock6 = True
+    data6 = parseSTARSection(lines, "_entity")
+    data7 = parseSTARSection(lines, "_entity_name_com")
 
-        if line.split('.')[0] == '_entity_name_com':
-            fieldCounter7 += 1
-            fields7[line.split('.')[1].strip()] = fieldCounter7
-            if not foundPolyBlock7:
-                foundPolyBlock7 = True
+    dict_ = {}
+    for molecule in data6:
+        dict_.clear()
+        for k, value in molecule.items():
+            if k == '_entity.id':
+                dict_['CHAIN'] = ', '.join(entities[value])
 
-        if foundPolyBlock6:
-            if not line.startswith('#'):
-                if not foundPolyBlockData6:
-                    foundPolyBlockData6 = True
-            else:
-                if foundPolyBlock6 and not foundPolyBlock7:
-                    donePolyBlock6 = True
-                    stop6 = i
-
-                if foundPolyBlock7:
-                    donePolyBlock7 = True
-                    stop7 = i
-
-        i += 1
-
-    if i < len(lines):
-        star_dict6, _ = parseSTARLines(lines[:2] + lines[start6-1:stop6], shlex=True)
-        loop_dict6 = list(star_dict6.values())[0]
-
-        data6 = list(loop_dict6[0]["data"].values())
-
-        star_dict7, _ = parseSTARLines(lines[:2] + lines[stop6:stop7], shlex=True)
-        loop_dict7 = list(star_dict7.values())[0]
-
-        if lines[stop6+1].strip() == "loop_":
-            data7 = loop_dict7[0]["data"].values()
-        else:
-            data7 = [loop_dict7["data"]]
-
-        dict_ = {}
-        for molecule in data6:
-            dict_.clear()
-            for k, value in molecule.items():
-                if k == '_entity.id':
-                    dict_['CHAIN'] = ', '.join(entities[value])
-
-                try:
-                    key = _COMPND_KEY_MAPPINGS[k]
-                except:
-                    continue
-                val = value.strip()
-                if val == '?':
-                    val = ''
-                dict_[key.strip()] = val
-
-            chains = dict_.pop('CHAIN', '').strip()
-
-            if not chains:
+            try:
+                key = _COMPND_KEY_MAPPINGS[k]
+            except:
                 continue
-            for ch in chains.split(','):
-                ch = ch.strip()
-                poly = polymers.get(ch, Polymer(ch))
-                polymers[ch] = poly
-                poly.name = dict_.get('MOLECULE', '').upper()
+            val = value.strip()
+            if val == '?':
+                val = ''
+            dict_[key.strip()] = val
 
-                poly.fragment = dict_.get('FRAGMENT', '').upper()
+        chains = dict_.pop('CHAIN', '').strip()
 
-                poly.comments = dict_.get('OTHER_DETAILS', '').upper()
+        if not chains:
+            continue
+        for ch in chains.split(','):
+            ch = ch.strip()
+            poly = polymers.get(ch, Polymer(ch))
+            polymers[ch] = poly
+            poly.name = dict_.get('MOLECULE', '').upper()
 
-                val = dict_.get('EC', '')
-                poly.ec = [s.strip() for s in val.split(',')] if val else []
+            poly.fragment = dict_.get('FRAGMENT', '').upper()
 
-                poly.mutation = dict_.get('MUTATION', '') != ''
-                poly.engineered = dict_.get('ENGINEERED', poly.mutation)
+            poly.comments = dict_.get('OTHER_DETAILS', '').upper()
 
-        for molecule in data7:
-            dict_.clear()
-            for k, value in molecule.items():
-                if k.find('entity_id') != -1:
-                    dict_['CHAIN'] = ', '.join(entities[value])
+            val = dict_.get('EC', '')
+            poly.ec = [s.strip() for s in val.split(',')] if val else []
 
-                try:
-                    key = _COMPND_KEY_MAPPINGS[k]
-                except:
-                    continue
-                dict_[key.strip()] = value.strip()
+            poly.mutation = dict_.get('MUTATION', '') != ''
+            poly.engineered = dict_.get('ENGINEERED', poly.mutation)
 
-            chains = dict_.pop('CHAIN', '').strip()
+    for molecule in data7:
+        dict_.clear()
+        for k, value in molecule.items():
+            if k.find('entity_id') != -1:
+                dict_['CHAIN'] = ', '.join(entities[value])
 
-            if not chains:
+            try:
+                key = _COMPND_KEY_MAPPINGS[k]
+            except:
                 continue
-            for ch in chains.split(','):
-                ch = ch.strip()
-                poly = polymers.get(ch, Polymer(ch))
-                polymers[ch] = poly
+            dict_[key.strip()] = value.strip()
 
-                val = dict_.get('SYNONYM', '')
-                poly.synonyms = [s.strip().upper() for s in val.split(',')
-                                    ] if val else []
+        chains = dict_.pop('CHAIN', '').strip()
+
+        if not chains:
+            continue
+        for ch in chains.split(','):
+            ch = ch.strip()
+            poly = polymers.get(ch, Polymer(ch))
+            polymers[ch] = poly
+
+            val = dict_.get('SYNONYM', '')
+            poly.synonyms = [s.strip().upper() for s in val.split(',')
+                                ] if val else []
 
     return list(polymers.values())
 

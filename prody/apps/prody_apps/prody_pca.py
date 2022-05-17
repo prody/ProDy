@@ -47,7 +47,6 @@ def prody_pca(coords, **kwargs):
     prefix = kwargs.get('prefix')
     nmodes = kwargs.get('nmodes')
     selstr = kwargs.get('select')
-    quiet = kwargs.pop('quiet', False)
     altloc = kwargs.get('altloc')
 
     ext = splitext(coords)[1].lower()
@@ -96,7 +95,7 @@ def prody_pca(coords, **kwargs):
                 raise ImportError('Please install threadpoolctl to control threads')
 
             with threadpool_limits(limits=nproc, user_api="blas"):
-                pca.buildCovariance(dcd, aligned=kwargs.get('aligned'), quiet=quiet)
+                pca.buildCovariance(dcd, aligned=kwargs.get('aligned'))
                 pca.calcModes(nmodes)
                 ensemble = dcd
         else:
@@ -140,7 +139,7 @@ def prody_pca(coords, **kwargs):
                 raise ImportError('Please install threadpoolctl to control threads')
 
             with threadpool_limits(limits=nproc, user_api="blas"):
-                pca.buildCovariance(ensemble, aligned=kwargs.get('aligned'), quiet=quiet)
+                pca.buildCovariance(ensemble, aligned=kwargs.get('aligned'))
                 pca.calcModes(nmodes)
         else:
             pca.performSVD(ensemble)
@@ -275,7 +274,7 @@ def addCommand(commands):
     subparser = commands.add_parser('pca',
         help='perform principal component analysis calculations')
 
-    subparser.add_argument('--quiet', help="suppress info messages to stderr",
+    subparser.add_argument('--quiet', help='suppress info messages to stderr',
         action=Quiet, nargs=0)
 
     subparser.add_argument('--examples', action=UsageExample, nargs=0,
