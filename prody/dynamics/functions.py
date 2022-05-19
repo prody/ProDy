@@ -315,7 +315,7 @@ def parseModes(normalmodes, eigenvalues=None, nm_delimiter=None,
     return nma
 
 
-def parseScipionModes(run_path, title=None, pdb=None):
+def parseScipionModes(metadata_file, title=None, pdb=None):
     """Returns :class:`.NMA` containing eigenvectors and eigenvalues 
     parsed from a ContinuousFlex FlexProtNMA Run directory.
 
@@ -325,59 +325,58 @@ def parseScipionModes(run_path, title=None, pdb=None):
     :arg title: title for :class:`.NMA` object
     :type title: str
     """
-    if run_path.endswith("/"):
-        run_path = run_path[:-1]
+    run_path = os.path.split(metadata_file)[0]
+    top_dirs = os.path.split(run_path)[0][:-4]
     run_name = os.path.split(run_path)[-1]
-    top_dirs = os.path.split(run_path)[0][:-4] # exclude "Runs"
 
-    try:
-        star_data = parseSTAR(run_path + '/modes.xmd')
-    except OSError:
-        try:
-            sql_con = openSQLite(run_path + "/modes.sqlite")
-            cursor = sql_con.cursor()
+    if metadata_file.endswith('.xmd'):
+        star_data = parseSTAR(metadata_file)
+        
+    elif metadata_file.endswith('.sqlite'):
+        # reconstruct star data from sqlite
 
-            #names = ['id', 'enabled', 'label', 'comment', 'creation', 'c01', 'c02', 'c03', 'c04']
+        sql_con = openSQLite(metadata_file)
+        cursor = sql_con.cursor()
 
-            star_dict = OrderedDict()
-            star_block_dict = OrderedDict()
-            
-            star_loop_dict = OrderedDict()
-            star_loop_dict["fields"] = OrderedDict([(0, '_enabled'),
-                                               (1, '_nmaCollectivity'),
-                                               (2, '_nmaModefile'),
-                                               (3, '_nmaScore'),
-                                               (4, '_nmaEigenval'),
-                                               (5, '_order_')])
-            star_loop_dict["data"] = OrderedDict()
+        star_dict = OrderedDict()
+        star_block_dict = OrderedDict()
+        
+        star_loop_dict = OrderedDict()
+        star_loop_dict["fields"] = OrderedDict([(0, '_enabled'),
+                                            (1, '_nmaCollectivity'),
+                                            (2, '_nmaModefile'),
+                                            (3, '_nmaScore'),
+                                            (4, '_nmaEigenval'),
+                                            (5, '_order_')])
+        star_loop_dict["data"] = OrderedDict()
 
-            for row in cursor.execute("SELECT * FROM Objects;"):
+        for row in cursor.execute("SELECT * FROM Objects;"):
+        
+            id_ = row[0]
+            key = id_ - 1 # sqlite ids start from 1 not 0
 
-                id_ = row[0]
-                key = id_-1 # sqlite ids start from 1 not 0
+            star_loop_dict["data"][key] = OrderedDict()
 
-                star_loop_dict["data"][key] = OrderedDict()
+            star_loop_dict["data"][key]['_order_'] = id_
 
-                star_loop_dict["data"][key]['_order_'] = id_
+            star_loop_dict["data"][key]['_enabled'] = row[1]
 
-                star_loop_dict["data"][key]['_enabled'] = row[1]
+            star_loop_dict["data"][key]['_nmaCollectivity'] = row[6]
 
-                star_loop_dict["data"][key]['_nmaCollectivity'] = row[6]
+            star_loop_dict["data"][key]['_nmaModefile'] = row[5]
 
-                star_loop_dict["data"][key]['_nmaModefile'] = row[5]
+            star_loop_dict["data"][key]['_nmaScore'] = row[7]
 
-                star_loop_dict["data"][key]['_nmaScore'] = row[7]
+            if len(row) > 8:
+                star_loop_dict["data"][key]['_nmaEigenval'] = row[8]
 
-                if len(row) > 8:
-                    star_loop_dict["data"][key]['_nmaEigenval'] = row[8]
+        star_block_dict[0] = star_loop_dict
+        star_dict[0] = star_block_dict
 
-            star_block_dict[0] = star_loop_dict
-            star_dict[0] = star_block_dict
+        star_data = StarDict(star_dict, prog='XMIPP')
 
-            star_data = StarDict(star_dict, prog='XMIPP')
-
-        except OSError:
-            raise OSError("neither modes.xmd nor modes.sqlite found")
+    else:
+        raise ValueError("Metadata file should be an xmd or sqlite file")
 
     star_loop = star_data[0][0]
     
