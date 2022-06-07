@@ -1473,6 +1473,8 @@ def calcSignatureModes(mode_ensemble):
         ret = GNM('mean of ' + mode_ensemble.getTitle())
     elif isinstance(mode_ensemble[0].getModel(), ANM):
         ret = ANM('mean of ' + mode_ensemble.getTitle())
+    else:
+        ret = NMA('mean of ' + mode_ensemble.getTitle())
 
     ret.setEigens(eigvecs, eigvals)
     return ret
