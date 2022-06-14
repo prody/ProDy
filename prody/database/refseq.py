@@ -7,17 +7,20 @@ import re
 from concurrent.futures import ThreadPoolExecutor
 
 import requests
+import requests_cache
+from datetime import timedelta
 from prody import LOGGER
-from prody.utilities.helpers import downloadFile
-from prody.utilities.pathtools import PRODY_DATA
+from prody.utilities.motifhelpers import downloadFile
 
 __all__ = ["RefSeq"]
+
+requests_cache.install_cache(expire_after=timedelta(weeks=1))
 
 
 class RefSeq:
     """RefSeq database."""
 
-    RELEASE = "release.txt"
+    RELEASE_FILE = "release.txt"
     CHECK_SUMS = "files_installed.txt"
 
     @classmethod
@@ -33,11 +36,12 @@ class RefSeq:
         rs_release = ""
         url = "https://ftp.ncbi.nlm.nih.gov/refseq/release/RELEASE_NUMBER"
         try:
-            response = requests.get(url)
+            with requests_cache.disabled():
+                response = requests.get(url)
         except requests.exceptions.RequestException as exception:
             LOGGER.error(str(exception))
         else:
-            rs_release = response.text
+            rs_release = response.text.strip()
         if not re.match(r"\d+", rs_release):
             LOGGER.error("Could't determine release version.")
         LOGGER.debug("RefSeq current release: {}".format(rs_release))
@@ -50,7 +54,8 @@ class RefSeq:
         current_release = cls.getCurrentRelease()
         url = f"https://ftp.ncbi.nlm.nih.gov/refseq/release/release-catalog/release{current_release}.files.installed"
         try:
-            response = requests.get(url)
+            with requests_cache.disabled():
+                response = requests.get(url)
         except requests.exceptions.RequestException as exception:
             LOGGER.error(str(exception))
         else:
@@ -62,29 +67,33 @@ class RefSeq:
             return result
 
     @classmethod
-    def saveInstalledFiles(cls) -> None:
+    def saveInstalledFiles(cls, data_dir: str) -> None:
         """Saves installed files list with check sums locally."""
         installed_files = cls.getInstalledFiles()
-        path = os.path.join(PRODY_DATA, cls.__name__)
+        path = os.path.join(data_dir, cls.__name__)
         os.makedirs(path, exist_ok=True)
-        with open(f"{PRODY_DATA}/{cls.__name__}/{cls.CHECK_SUMS}", "w", encoding="utf-8") as file:
+        with open(f"{path}/{cls.CHECK_SUMS}", "w", encoding="utf-8") as file:
             file.write(installed_files)
         LOGGER.debug(f"{cls.CHECK_SUMS} file saved locally.")
 
     @classmethod
-    def getLocalFiles(cls) -> dict:
+    def getLocalFiles(cls, data_dir: str) -> dict:
         """Lists local RefSeq FASTA protein files and corresponding check sums.
 
         Returns:
             dict: file names and corresponding check sums.
         """
         LOGGER.debug("Getting local RefSeq protein FASTA files")
-        path = os.path.join(PRODY_DATA, cls.__name__)
+        path = os.path.join(data_dir, cls.__name__)
         os.makedirs(path, exist_ok=True)
-        with open(f"{PRODY_DATA}/{cls.__name__}/{cls.CHECK_SUMS}", "r", encoding="utf-8") as file:
-            text = file.read()
-            results = re.findall(r"^(\d+)\s+(\S+)$", text, re.M)
-            return {result[1]: result[0] for result in results}
+        filename = os.path.join(path, cls.CHECK_SUMS)
+        if os.path.exists(filename):
+            with open(filename, "r", encoding="utf-8") as file:
+                text = file.read()
+                results = re.findall(r"^(\d+)\s+(\S+)$", text, re.M)
+                return {result[1]: result[0] for result in results}
+        else:
+            return {}
 
     @classmethod
     def getFiles(cls) -> dict:
@@ -100,11 +109,11 @@ class RefSeq:
         return {file[1]: file[0] for file in files} if files else {}
 
     @classmethod
-    def pepareDownloadFileList(cls) -> list:
+    def pepareDownloadFileList(cls, data_dir: str) -> list:
         """Prepare file list to be downloaded"""
         LOGGER.debug("Preparing file list to be downloaded.")
         remote_files = cls.getFiles()
-        local_files = cls.getLocalFiles()
+        local_files = cls.getLocalFiles(data_dir)
         download_list = []
         for filename in remote_files.keys():
             if filename in local_files.keys():
@@ -115,46 +124,57 @@ class RefSeq:
         return download_list
 
     @classmethod
-    def downloadRelease(cls) -> None:
+    def downloadRelease(cls, data_dir: str) -> None:
         """Download latest RefSeq database release."""
-        files = cls.pepareDownloadFileList()
-        url = ""
-        LOGGER.timeit()
-        with ThreadPoolExecutor(max_workers=3) as executor:
+
+        def report_done(future):
+            LOGGER.info(f"Downloaded file {future.result()}")
+
+        files = cls.pepareDownloadFileList(data_dir)
+        url = "https://ftp.ncbi.nlm.nih.gov/refseq/release/complete/"
+        LOGGER.timeit("downloadRelease")
+        with ThreadPoolExecutor(max_workers=100) as executor:
             for file in files:
-                future = executor.submit(downloadFile, url, cls.__name__, file)
-                LOGGER.info(future.result())
-        LOGGER.report()
+                directory = os.path.join(data_dir, cls.__name__)
+                future = executor.submit(downloadFile, url, directory, file)
+                future.add_done_callback(report_done)
+        LOGGER.report(msg="downloadRelease completed in %.2fs.", label="downloadRelease")
 
     @classmethod
-    def saveRelease(cls) -> None:
+    def saveRelease(cls, data_dir: str) -> None:
         """Write current release version to disk."""
         current_release = cls.getCurrentRelease()
-        path = os.path.join(PRODY_DATA, cls.__name__)
+        path = os.path.join(data_dir, cls.__name__)
         os.makedirs(path, exist_ok=True)
-        with open(f"{PRODY_DATA}/{cls.__name__}/{cls.RELEASE}", "w", encoding="utf-8") as file:
+        with open(f"{path}/{cls.RELEASE_FILE}", "w", encoding="utf-8") as file:
             file.write(current_release)
         LOGGER.debug("RefSeq release {} saved.".format(current_release))
 
     @classmethod
-    def updateRelease(cls) -> None:
+    def updateRelease(cls, data_dir) -> None:
         """Update release to the most recent one."""
         LOGGER.debug("Updating RefSeq release version.")
-        cls.downloadRelease()
-        cls.saveRelease()
+        cls.downloadRelease(data_dir)
+        cls.saveRelease(data_dir)
 
     @classmethod
-    def getLocalRelease(cls) -> str:
+    def getLocalRelease(cls, data_dir) -> str:
         """Get release version from local disk."""
-        LOGGER.debug("Getting RefSeq local release version.")
-        path = os.path.join(PRODY_DATA, cls.__name__)
+        path = os.path.join(data_dir, cls.__name__)
         os.makedirs(path, exist_ok=True)
-        with open(f"{PRODY_DATA}/{cls.__name__}/{cls.RELEASE}", "r", encoding="utf-8") as file:
-            return file.readline()
+        version = ""
+        release = os.path.join(path, cls.RELEASE_FILE)
+        if os.path.exists(release):
+            with open(release, "r", encoding="utf-8") as file:
+                version = file.readline()
+                LOGGER.debug(f"RefSeq local release: {version}")
+        else:
+            LOGGER.debug("RefSeq local release not found.")
+        return version
 
     @classmethod
-    def checkForUpdates(cls) -> None:
+    def checkForUpdates(cls, data_dir) -> None:
         """Check if local version is the recent one."""
         LOGGER.debug("RefSeq checking for updates.")
-        if cls.getCurrentRelease() != cls.getLocalRelease():
-            cls.updateRelease()
+        if cls.getCurrentRelease() != cls.getLocalRelease(data_dir):
+            cls.updateRelease(data_dir)
