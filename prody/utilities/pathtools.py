@@ -16,14 +16,13 @@ from prody import PY3K
 
 PLATFORM = platform.system()
 USERHOME = os.getenv('USERPROFILE') or os.getenv('HOME')
-PRODY_DATA = os.getenv('PRODY_DATA', './data')
 
 __all__ = ['gunzip', 'backupFile', 'openFile',
            'openDB', 'openSQLite', 'openURL', 'copyFile',
            'isExecutable', 'isReadable', 'isWritable',
            'makePath', 'relpath', 'sympath', 'which',
            'pickle', 'unpickle', 'glob', 'addext',
-           'PLATFORM', 'USERHOME', 'PRODY_DATA']
+           'PLATFORM', 'USERHOME']
 
 if PY3K:
     import gzip

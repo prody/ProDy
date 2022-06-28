@@ -480,7 +480,7 @@ def motifSearch(database: str, motif: str, data_dir: str) -> Optional[list]:
         filename = os.path.join(data_dir, "local", database)
         return localMotifSearch(filename, motif, "default")
 
-    LOGGER.debug(f"Motif search:\t{database=}\t{motif=}")
+    LOGGER.debug(f"Motif search:\t{database}\t{motif}")
     return {
         "sp-online": spOnlineMotifSearch,
         "rs-online": rsOnlineMotifSearch,
