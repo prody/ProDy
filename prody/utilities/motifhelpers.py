@@ -73,6 +73,7 @@ def downloadFile(url: str, dir: str, file: str, **kwargs: Any) -> str:
     """
     kwargs.update({"stream": True})
     LOGGER.info("Downloading file {}.".format(file))
+    os.makedirs(dir, exist_ok=True)
     try:
         with requests_cache.disabled():
             with requests.get(url + file, **kwargs) as request:
@@ -159,7 +160,7 @@ def getGenericDBs(data_dir: str) -> dict:
     rs = f"{data_dir}/RefSeq/release.txt"
     if os.path.isfile(rs):
         result.update({"rs-local": "RefSeq (local, buildin)"})
-    pdb = f"{data_dir}/PDB/release.txt"
+    pdb = f"{data_dir}/ProteinDataBank/pdb_seqres.txt.gz"
     if os.path.isfile(pdb):
         result.update({"pdb-local": "Protein Data Bank (local, buildin)"})
     return result

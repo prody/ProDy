@@ -132,3 +132,7 @@ __all__.extend(swissprot.__all__)
 from . import refseq
 from .refseq import *
 __all__.extend(refseq.__all__)
+
+from . import pdb
+from .pdb import *
+__all__.extend(pdb.__all__)

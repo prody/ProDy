@@ -73,7 +73,7 @@ from .laptools import *
 from .seqtools import *
 from .TreeConstruction import *
 from .eigtools import *
-from .helpers import *
+from .motifhelpers import *
 
 from . import catchall
 from .catchall import *

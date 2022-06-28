@@ -51,4 +51,3 @@ Documentation/*
 *.sublime*
 *.code-workspace
 .vscode/
-data/

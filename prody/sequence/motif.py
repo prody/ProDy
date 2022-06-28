@@ -9,12 +9,23 @@ import requests_cache
 from datetime import timedelta
 import json
 from typing import Optional
-from multiprocessing import Pool
+
 from prody import LOGGER
 from prody.utilities.motifhelpers import prositeToRegEx, openFile
 
 
-__all__ = ["motifSearch", "getPdbCodesFromMotif", "saveMotifResults", "getUniprot"]
+__all__ = [
+    "getUniprot",
+    "getPdbCodesFromMotif",
+    "saveMotifResults",
+    "expasySearchMotif",
+    "spOnlineMotifSearch",
+    "pdbOnlineMotifSearch",
+    "localMotifSearch",
+    "spLocalMotifSearch",
+    "pdbLocalMotifSearch",
+    "motifSearch",
+]
 
 MOTIF_PATTERN = (
     r"^([ARDNCEQGHILKMFPSTWYVx]*"
@@ -27,12 +38,24 @@ MOTIF_MATCHER = re.compile(MOTIF_PATTERN)
 requests_cache.install_cache(expire_after=timedelta(weeks=1))
 
 
-def getUniprot(uniprot: str) -> str:
+def getUniprot(id: str) -> str:
+    """Get details for accession key from UniProt
+
+    Args:
+        id (str): Uniprot accession key
+
+    Returns:
+        str: details
+    """
+    LOGGER.debug("Get {} details from Uniprot.".format(id))
     headers = {"User-Agent": "Python pattern search agent", "Contact": "mkonstanty@gmail.com"}
-    url = "https://www.uniprot.org/"
-    payload = {"file": uniprot, "format": "txt"}
-    response = requests.post(url, headers=headers, data=json.dumps(payload))
-    return response.text
+    url = f"https://www.uniprot.org/uniprot/{id}.txt"
+    try:
+        response = requests.get(url, headers=headers)
+    except requests.exceptions.RequestException as exception:
+        LOGGER.error(str(exception))
+    result = response.text.replace("\n", "<\\br>")
+    return result
 
 
 def getPdbCodesFromMotif(motif: str, results: Optional[int] = None, page: Optional[int] = None) -> list:
@@ -76,10 +99,11 @@ def getPdbCodesFromMotif(motif: str, results: Optional[int] = None, page: Option
         return [x["identifier"] for x in result["result_set"]]
 
 
-def saveMotifResults(motif: str, data: list[dict], directory: str) -> str:
+def saveMotifResults(database: str, motif: str, data: list[dict], directory: str) -> str:
     """Save search data to a file.
 
     Args:
+        database (str): name of the database
         motif (str): FASTA motif
         data (list[dict]): List of proteins to be saved.
         directory (str): directory to save results
@@ -88,19 +112,17 @@ def saveMotifResults(motif: str, data: list[dict], directory: str) -> str:
         str: saved file name
     """
     os.makedirs(directory, exist_ok=True)
-    filename = f"{motif.replace('-', '')}.txt"
+    filename = f"{motif.replace('-', '')}_{database}.txt"
     with open(f"{directory}/{filename}", "w", encoding="utf-8") as file:
         for protein in data:
             for key, value in protein.items():
-                if key == "sequence":
-                    value = value.replace("\n", "")
                 file.write(f"{key}: {value}\n")
             file.write("\n")
     LOGGER.info(f"Search written to a file {filename}.")
     return filename
 
 
-def _expasyMotifToStructure(response: str) -> list:
+def _expasySPMotifToStructure(response: str) -> list:
     """Parse HTML response from Expasy.
 
     Args:
@@ -109,21 +131,58 @@ def _expasyMotifToStructure(response: str) -> list:
     Returns:
         list: List of result dicts
     """
-    LOGGER.timeit("_expasyMotifToStructure")
+    LOGGER.timeit("_expasySPMotifToStructure")
     RESULT_PATTERN = (
-        r">(sp|tr|pdb)\|"
-        r"(\w+)\|(\w+).*\n"
-        r"(.*)\n"
-        r"([ARDNCEQGHILKMFPSTWYVx\n]+)\W+"
-        r"(\d{,3}) - (\d{,3}):\W+(\w+)"
+        r">sp\|"  # database
+        r"(\w+)\|(\w+).*\n"  # accession and id
+        r"(.*)\n"  # description
+        r"([ARDNCEQGHILKMFPSTWYVx\n]+)\W+"  # sequence
+        r"(\d{,3}) - (\d{,3}):\W+(\w+)"  # start, end and match
     )
     motifs = re.compile(RESULT_PATTERN, re.M)
     results = re.findall(motifs, response)
     structure = []
-    keys = ("database", "accession", "id", "description", "sequence", "start", "end", "match")
+    keys = ("accession", "id", "description", "sequence", "start", "end", "match")
     for result in results:
         structure.append(dict(zip(keys, result)))
-    LOGGER.report(msg="_expasyMotifToStructure completed in %.2fs.", label="_expasyMotifToStructure")
+    LOGGER.report(msg="_expasySPMotifToStructure completed in %.2fs.", label="_expasySPMotifToStructure")
+    return structure
+
+
+def _expasyPDBMotifToStructure(response: str) -> list:
+    """Parse HTML response from Expasy.
+
+    Args:
+        response (str): HTML response from Expasy
+
+    Returns:
+        list: List of result dicts
+    """
+    LOGGER.timeit("_expasyPDBMotifToStructure")
+    structure = []
+    RESULT_PATTERN = (
+        r">pdb\|(\w+).*\n"  # pdb id
+        r".*?((\w+\|\w+[,.])+)\n"  # accession and uniprot id
+        r"\W+(\d{,3}) - (\d{,3}):\W+(\w+)"  # start, end and match
+    )
+    motifs = re.compile(RESULT_PATTERN, re.M)
+    results = re.findall(motifs, response)
+    for result in results:
+        pdb_id, tmp, _, start, end, match = result
+        accessions_ids = dict(re.findall(r"(\w+)\|(\w+)", tmp))
+        accessions = ", ".join(accessions_ids.keys())
+        ids = ", ".join(accessions_ids.values())
+        structure.append(
+            {
+                "PDB id": pdb_id,
+                "Accession ids": accessions,
+                "UniProt ids": ids,
+                "start": start,
+                "end": end,
+                "match": match,
+            }
+        )
+    LOGGER.report(msg="_expasyPDBMotifToStructure completed in %.2fs.", label="_expasyPDBMotifToStructure")
     return structure
 
 
@@ -139,6 +198,10 @@ def expasySearchMotif(motif: str, database: str) -> list:
     Returns:
         list: List of result dicts
     """
+
+    def err(*args) -> list:
+        return []
+
     LOGGER.debug("Searching motif {} in {} database via Expasy".format(motif, database))
     headers = {"User-Agent": "Python pattern search agent", "Contact": "mkonstanty@gmail.com"}
     url = "https://prosite.expasy.org/cgi-bin/prosite/PSScan.cgi"
@@ -151,7 +214,9 @@ def expasySearchMotif(motif: str, database: str) -> list:
     except Exception as exception:
         LOGGER.error(f"Remote search for motif {motif} in Swiss-Prot database failed: {exception}")
     else:
-        return _expasyMotifToStructure(result.text)
+        return {"sp": _expasySPMotifToStructure, "pdb": _expasyPDBMotifToStructure,}.get(
+            database, err
+        )(result.text)
 
 
 def spOnlineMotifSearch(motif: str, *args) -> list:
@@ -198,7 +263,7 @@ def pdbOnlineMotifSearch(motif: str, *args) -> list:
     return expasySearchMotif(motif, "pdb")
 
 
-def _parseProtein(pattern: str, protein: list) -> list:
+def _defaultParse(pattern: str, protein: list) -> list:
     """Parse protein sequence.
 
     Args:
@@ -208,18 +273,45 @@ def _parseProtein(pattern: str, protein: list) -> list:
     Returns:
         Optional[list]: Parsed protein.
     """
-    line = protein[0].replace("\n", "").replace(">", "")
+    description = protein[0].replace(">", "")
     sequence = "".join(protein[1:]).replace("\n", "")
-    tmp = line.split(" ")
-    database, accession, id = tmp[0].split("|")
-    description = " ".join(tmp[1:])
     motif_matcher = re.compile(pattern)
     results = re.finditer(motif_matcher, sequence)
     elements = []
     for result in results:
         elements.append(
             {
-                "database": database,
+                "description": description,
+                "sequence": sequence,
+                "start": result.start(),
+                "end": result.end(),
+                "match": result.group(0),
+            }
+        )
+    return elements
+
+
+def _spParse(pattern: str, protein: list) -> list:
+    """Parse Swiss-Prot protein sequence.
+
+    Args:
+        pattern (str): motif regex
+        protein (list): FASTA protein
+
+    Returns:
+        Optional[list]: Parsed protein.
+    """
+    line = protein[0].replace(">", "").replace("\n", "")
+    sequence = "".join(protein[1:]).replace("\n", "")
+    tmp = line.split(" ")
+    _, accession, id = tmp[0].split("|")
+    description = " ".join(tmp[1:]) if id else line
+    motif_matcher = re.compile(pattern)
+    results = re.finditer(motif_matcher, sequence)
+    elements = []
+    for result in results:
+        elements.append(
+            {
                 "accession": accession,
                 "id": id,
                 "description": description,
@@ -232,7 +324,54 @@ def _parseProtein(pattern: str, protein: list) -> list:
     return elements
 
 
-def localMotifSearch(filename: str, motif: str) -> list:
+def _rsParse(pattern: str, protein: list) -> list:
+    """Parse RefSeq protein sequence.
+
+    Args:
+        pattern (str): motif regex
+        protein (list): FASTA protein
+
+    Returns:
+        Optional[list]: Parsed protein.
+    """
+    raise NotImplementedError
+
+
+def _pdbParse(pattern: str, protein: list) -> list:
+    """Parse Protein Data Bank protein sequence.
+
+    Args:
+        pattern (str): motif regex
+        protein (list): FASTA protein
+
+    Returns:
+        Optional[list]: Parsed protein.
+    """
+    elements = []
+    line = protein[0].replace(">", "")
+    sequence = "".join(protein[1:])
+    pdb_id, mol, length, *description = re.split(r"\s+", line)
+    if "protein" not in mol:
+        return elements
+    length = length.split(":")[1]
+    motif_matcher = re.compile(pattern)
+    results = re.finditer(motif_matcher, sequence)
+    for result in results:
+        elements.append(
+            {
+                "PDB id": pdb_id,
+                "Description": " ".join(description),
+                "Protein length": length,
+                "sequence": sequence,
+                "start": result.start(),
+                "end": result.end(),
+                "match": result.group(0),
+            }
+        )
+    return elements
+
+
+def localMotifSearch(filename: str, motif: str, parse: str) -> list:
     """Search for motif in local database file.
 
     Args:
@@ -253,19 +392,17 @@ def localMotifSearch(filename: str, motif: str) -> list:
             protein.append(line)
         else:
             LOGGER.error("Only FASTA files supported.")
-        # pool = Pool(processes=os.cpu_count())
-        # results = []
         for line in file:
             if line.startswith(">"):
-                # results.append(pool.apply_async(_parseProtein, (pattern, protein,)))
-                data.extend(_parseProtein(pattern, protein))
+                data.extend(
+                    {"sp": _spParse, "rs": _rsParse, "pdb": _pdbParse,}.get(
+                        parse, _defaultParse
+                    )(pattern, protein)
+                )
                 protein.clear()
                 protein.append(line)
             else:
                 protein.append(line)
-        # data = [result.get() for result in results]
-        # pool.close()
-        # pool.join()
     except Exception as e:
         LOGGER.error(str(e))
     finally:
@@ -274,7 +411,7 @@ def localMotifSearch(filename: str, motif: str) -> list:
     return data
 
 
-def spLocalMotifSearch(motif: str, data_dir: str, *args) -> list:
+def spLocalMotifSearch(motif: str, data_dir: str) -> list:
     """Search for motif in local Swiss-Prot database file.
 
     Args:
@@ -285,10 +422,10 @@ def spLocalMotifSearch(motif: str, data_dir: str, *args) -> list:
     """
     LOGGER.debug("Running local Swiss-Prot motif search...")
     filename = os.path.join(data_dir, "SwissProt/uniprot_sprot.fasta.gz")
-    return localMotifSearch(filename, motif)
+    return localMotifSearch(filename, motif, "sp")
 
 
-def rsLocalMotifSearch(motif: str, data_dir: str, upload_dir: str) -> list:
+def rsLocalMotifSearch(motif: str, data_dir: str) -> list:
     """Search for motif in local RefSeq database file.
 
     Args:
@@ -302,10 +439,11 @@ def rsLocalMotifSearch(motif: str, data_dir: str, upload_dir: str) -> list:
     Returns:
         list: list: Parsed proteins
     """
+    LOGGER.debug("Running local RefSeq motif search...")
     raise NotImplementedError
 
 
-def pdbLocalMotifSearch(motif: str, data_dir: str, upload_dir: str) -> list:
+def pdbLocalMotifSearch(motif: str, data_dir: str) -> list:
     """Search for motif in local PDB database file.
 
     Args:
@@ -319,10 +457,12 @@ def pdbLocalMotifSearch(motif: str, data_dir: str, upload_dir: str) -> list:
     Returns:
         list: Parsed proteins
     """
-    raise NotImplementedError
+    LOGGER.debug("Running local ProteinDataBank motif search...")
+    filename = os.path.join(data_dir, "ProteinDataBank/pdb_seqres.txt.gz")
+    return localMotifSearch(filename, motif, "pdb")
 
 
-def motifSearch(database: str, motif: str, upload_dir: str, data_dir: str) -> Optional[list]:
+def motifSearch(database: str, motif: str, data_dir: str) -> Optional[list]:
     """Search for motif in protein database.
 
     Args:
@@ -335,12 +475,12 @@ def motifSearch(database: str, motif: str, upload_dir: str, data_dir: str) -> Op
         Optional[list]: Parsed proteins
     """
 
-    def custom(motif: str, data_dir: str, upload_dir: str) -> Optional[list]:
+    def custom(motif: str, data_dir: str) -> Optional[list]:
         LOGGER.debug("Running local motif search...")
-        filename = os.path.join(upload_dir, database)
-        return localMotifSearch(filename, motif)
+        filename = os.path.join(data_dir, "local", database)
+        return localMotifSearch(filename, motif, "default")
 
-    LOGGER.debug(f"Motif search: {database=}\t{motif=}")
+    LOGGER.debug(f"Motif search:\t{database=}\t{motif=}")
     return {
         "sp-online": spOnlineMotifSearch,
         "rs-online": rsOnlineMotifSearch,
@@ -348,4 +488,4 @@ def motifSearch(database: str, motif: str, upload_dir: str, data_dir: str) -> Op
         "sp-local": spLocalMotifSearch,
         "rs-local": rsLocalMotifSearch,
         "pdb-local": pdbLocalMotifSearch,
-    }.get(database, custom)(motif, data_dir, upload_dir)
+    }.get(database, custom)(motif, data_dir)
