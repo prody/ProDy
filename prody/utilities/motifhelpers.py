@@ -154,13 +154,13 @@ def getGenericDBs(data_dir: str) -> dict:
         dict: databases
     """
     result = {}
-    sp = f"{data_dir}/SwissProt/release.txt"
+    sp = "{}/SwissProt/release.txt".format(data_dir)
     if os.path.isfile(sp):
         result.update({"sp-local": "Swiss-Prot (local, buildin)"})
-    rs = f"{data_dir}/RefSeq/release.txt"
+    rs = "{}/RefSeq/release.txt".format(data_dir)
     if os.path.isfile(rs):
         result.update({"rs-local": "RefSeq (local, buildin)"})
-    pdb = f"{data_dir}/ProteinDataBank/pdb_seqres.txt.gz"
+    pdb = "{}/ProteinDataBank/pdb_seqres.txt.gz".format(data_dir)
     if os.path.isfile(pdb):
         result.update({"pdb-local": "Protein Data Bank (local, buildin)"})
     return result

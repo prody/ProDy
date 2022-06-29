@@ -56,10 +56,10 @@ class SwissProt:
         """
 
         def report_done(future):
-            LOGGER.info(f"Downloaded file {future.result()}")
+            LOGGER.info("Downloaded file {}".format(future.result()))
 
         types = types if types else ["xml", "dat", "fasta"]
-        files = [f"uniprot_sprot.{type}.gz" for type in types]
+        files = ["uniprot_sprot.{}.gz".format(type) for type in types]
         url = "https://ftp.expasy.org/databases/swiss-prot/release/"
         LOGGER.timeit("downloadRelease")
         with ThreadPoolExecutor(max_workers=3) as executor:
@@ -75,7 +75,7 @@ class SwissProt:
         current_release = cls.getCurrentRelease()
         path = os.path.join(data_dir, cls.__name__)
         os.makedirs(path, exist_ok=True)
-        with open(f"{path}/{cls.RELEASE_FILE}", "w", encoding="utf-8") as file:
+        with open("{}/{}".format(path, cls.RELEASE_FILE), "w", encoding="utf-8") as file:
             file.write(current_release)
         LOGGER.debug("Swiss-Prot release {} saved.".format(current_release))
 
@@ -97,7 +97,7 @@ class SwissProt:
         if os.path.exists(release):
             with open(release, "r", encoding="utf-8") as file:
                 version = file.readline()
-                LOGGER.debug(f"Swiss-Prot local release: {version}")
+                LOGGER.debug("Swiss-Prot local release: {}".format(version))
         else:
             LOGGER.debug("Swiss-Prot local release not found.")
         return version

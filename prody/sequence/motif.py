@@ -18,7 +18,7 @@ __all__ = [
     "getUniprot",
     "getPdbCodesFromMotif",
     "saveMotifResults",
-    "expasySearchMotif",
+    "expasySearchMoti,
     "spOnlineMotifSearch",
     "pdbOnlineMotifSearch",
     "localMotifSearch",
@@ -49,7 +49,7 @@ def getUniprot(id: str) -> str:
     """
     LOGGER.debug("Get {} details from Uniprot.".format(id))
     headers = {"User-Agent": "Python pattern search agent", "Contact": "mkonstanty@gmail.com"}
-    url = f"https://www.uniprot.org/uniprot/{id}.txt"
+    url = "https://www.uniprot.org/uniprot/{}.txt".format(id)
     try:
         response = requests.get(url, headers=headers)
     except requests.exceptions.RequestException as exception:
@@ -88,7 +88,7 @@ def getPdbCodesFromMotif(motif: str, results: Optional[int] = None, page: Option
     try:
         LOGGER.timeit("getPdbCodesFromMotif")
         response = requests.post(url, headers=headers, data=json.dumps(data))
-        LOGGER.debug(f"Result taken from cache: {response.from_cache}")
+        LOGGER.debug("Result taken from cache: {}".format(response.from_cache))
         LOGGER.report(msg="getPdbCodesFromMotif completed in %.2fs.", label="getPdbCodesFromMotif")
     except requests.exceptions.RequestException as exception:
         LOGGER.error(str(exception))
@@ -112,13 +112,13 @@ def saveMotifResults(database: str, motif: str, data: list[dict], directory: str
         str: saved file name
     """
     os.makedirs(directory, exist_ok=True)
-    filename = f"{motif.replace('-', '')}_{database}.txt"
-    with open(f"{directory}/{filename}", "w", encoding="utf-8") as file:
+    filename = "{}_{}.txt".format(motif.replace('-', ''), database)
+    with open("{}/{}".format(directory, filename), "w", encoding="utf-8") as file:
         for protein in data:
             for key, value in protein.items():
-                file.write(f"{key}: {value}\n")
+                file.write("{}: {}\n".format(key, value))
             file.write("\n")
-    LOGGER.info(f"Search written to a file {filename}.")
+    LOGGER.info("Search written to a file {}.".format(filename))
     return filename
 
 
@@ -209,10 +209,10 @@ def expasySearchMotif(motif: str, database: str) -> list:
     try:
         LOGGER.timeit("expasySearchMotif")
         result = requests.get(url, params=payload, headers=headers)
-        LOGGER.debug(f"Result taken from cache: {result.from_cache}")
+        LOGGER.debug("Result taken from cache: {}".format(result.from_cache))
         LOGGER.report(msg="expasySearchMotif completed in %.2fs.", label="expasySearchMotif")
     except Exception as exception:
-        LOGGER.error(f"Remote search for motif {motif} in Swiss-Prot database failed: {exception}")
+        LOGGER.error("Remote search for motif {} in Swiss-Prot database failed: {}".format(motif, exception)
     else:
         return {"sp": _expasySPMotifToStructure, "pdb": _expasyPDBMotifToStructure,}.get(
             database, err
@@ -480,7 +480,7 @@ def motifSearch(database: str, motif: str, data_dir: str) -> Optional[list]:
         filename = os.path.join(data_dir, "local", database)
         return localMotifSearch(filename, motif, "default")
 
-    LOGGER.debug(f"Motif search:\t{database}\t{motif}")
+    LOGGER.debug("Motif search:\t{}\t{}".format(database, motif))
     return {
         "sp-online": spOnlineMotifSearch,
         "rs-online": rsOnlineMotifSearch,

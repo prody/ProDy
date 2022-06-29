@@ -52,7 +52,7 @@ class RefSeq:
         """Reads installed files with corresponding check sums."""
         LOGGER.debug("Downloading installed files with check sums.")
         current_release = cls.getCurrentRelease()
-        url = f"https://ftp.ncbi.nlm.nih.gov/refseq/release/release-catalog/release{current_release}.files.installed"
+        url = "https://ftp.ncbi.nlm.nih.gov/refseq/release/release-catalog/release{}.files.installed".format(current_release)
         try:
             with requests_cache.disabled():
                 response = requests.get(url)
@@ -72,9 +72,9 @@ class RefSeq:
         installed_files = cls.getInstalledFiles()
         path = os.path.join(data_dir, cls.__name__)
         os.makedirs(path, exist_ok=True)
-        with open(f"{path}/{cls.CHECK_SUMS}", "w", encoding="utf-8") as file:
+        with open("{}/{}".format(path, cls.CHECK_SUMS), "w", encoding="utf-8") as file:
             file.write(installed_files)
-        LOGGER.debug(f"{cls.CHECK_SUMS} file saved locally.")
+        LOGGER.debug("{} file saved locally.".format(cls.CHECK_SUMS))
 
     @classmethod
     def getLocalFiles(cls, data_dir: str) -> dict:
@@ -128,7 +128,7 @@ class RefSeq:
         """Download latest RefSeq database release."""
 
         def report_done(future):
-            LOGGER.info(f"Downloaded file {future.result()}")
+            LOGGER.info("Downloaded file {}".format(future.result()))
 
         files = cls.pepareDownloadFileList(data_dir)
         url = "https://ftp.ncbi.nlm.nih.gov/refseq/release/complete/"
@@ -146,7 +146,7 @@ class RefSeq:
         current_release = cls.getCurrentRelease()
         path = os.path.join(data_dir, cls.__name__)
         os.makedirs(path, exist_ok=True)
-        with open(f"{path}/{cls.RELEASE_FILE}", "w", encoding="utf-8") as file:
+        with open("{}/{}".format(path, cls.RELEASE_FILE), "w", encoding="utf-8") as file:
             file.write(current_release)
         LOGGER.debug("RefSeq release {} saved.".format(current_release))
 
@@ -167,7 +167,7 @@ class RefSeq:
         if os.path.exists(release):
             with open(release, "r", encoding="utf-8") as file:
                 version = file.readline()
-                LOGGER.debug(f"RefSeq local release: {version}")
+                LOGGER.debug("RefSeq local release: {}".format(version))
         else:
             LOGGER.debug("RefSeq local release not found.")
         return version
