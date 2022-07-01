@@ -18,7 +18,7 @@ __all__ = [
     "getUniprot",
     "getPdbCodesFromMotif",
     "saveMotifResults",
-    "expasySearchMoti,
+    "expasySearchMotif",
     "spOnlineMotifSearch",
     "pdbOnlineMotifSearch",
     "localMotifSearch",
@@ -212,7 +212,7 @@ def expasySearchMotif(motif: str, database: str) -> list:
         LOGGER.debug("Result taken from cache: {}".format(result.from_cache))
         LOGGER.report(msg="expasySearchMotif completed in %.2fs.", label="expasySearchMotif")
     except Exception as exception:
-        LOGGER.error("Remote search for motif {} in Swiss-Prot database failed: {}".format(motif, exception)
+        LOGGER.error("Remote search for motif {} in Swiss-Prot database failed: {}".format(motif, exception))
     else:
         return {"sp": _expasySPMotifToStructure, "pdb": _expasyPDBMotifToStructure,}.get(
             database, err
