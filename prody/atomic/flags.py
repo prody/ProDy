@@ -512,6 +512,7 @@ Heteros
       `K`_     potassium           Yes
       `MG`_    magnesium           Yes
       `MN3`_   manganese (iii)     Yes
+      `MN`_    manganese (ii)      Yes    
       `NA`_    sodium              Yes
       `PB`_    lead (ii)           Yes
       `PT`_    platinum (ii)       Yes
