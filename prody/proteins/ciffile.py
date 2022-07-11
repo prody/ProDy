@@ -371,7 +371,11 @@ def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
             termini[acount-1] = True
 
         altlocs[acount] = alt
-        icodes[acount] = line.split()[fields['pdbx_PDB_ins_code']]
+        
+        try:
+            icodes[acount] = line.split()[fields['pdbx_PDB_ins_code']]
+        except KeyError:
+            icodes[acount] = ''
 
         if icodes[acount] == '?': 
             icodes[acount] = ''
