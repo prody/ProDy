@@ -859,7 +859,11 @@ def _getPolymers(lines):
                                 .format(pdbid, i, ch, dbabbr))
                     dbref.database = 'PDB'
             
-            resnum.append((dbref.first[0], dbref.last[0]))
+            try:
+                resnum.append((dbref.first[0], dbref.last[0]))
+            except:
+                pass # we've already warned about this
+
         resnum.sort()
         last = -10000
         for first, temp in resnum:
