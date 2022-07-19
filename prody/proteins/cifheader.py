@@ -801,7 +801,9 @@ def _getPolymers(lines):
     # DBREF block 2
     items3 = parseSTARSection(lines, "_struct_ref_seq")
 
-    for item in items3:
+    for i, item in enumerate(items3):
+        i += 1
+
         ch = item["_struct_ref_seq.pdbx_strand_id"]
         poly = polymers[ch] 
         
