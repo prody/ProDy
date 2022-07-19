@@ -816,18 +816,30 @@ def _getPolymers(lines):
                     if initICode == '?':
                         initICode = ' '
                 except:
-                    LOGGER.warn('DBREF for chain {2}: failed to parse '
-                                'initial sequence number of the PDB sequence '
-                                '({0}:{1})'.format(pdbid, i, ch))
+                    try:
+                        first = int(item["_struct_ref_seq.pdbx_auth_seq_align_beg"])
+                        initICode = item["_struct_ref_seq.pdbx_seq_align_beg_ins_code"]
+                        if initICode == '?':
+                            initICode = ' '
+                    except:
+                        LOGGER.warn('DBREF for chain {2}: failed to parse '
+                                    'initial sequence number of the PDB sequence '
+                                    '({0}:{1})'.format(pdbid, i, ch))
                 try:
                     last = int(item["_struct_ref_seq.pdbx_auth_seq_align_end"])
-                    endICode = item["_struct_ref_seq.pdbx_db_align_beg_ins_code"]
+                    endICode = item["_struct_ref_seq.pdbx_db_align_end_ins_code"]
                     if endICode == '?':
-                        endICode = ' '            
+                        endICode = ' '
                 except:
-                    LOGGER.warn('DBREF for chain {2}: failed to parse '
-                                'ending sequence number of the PDB sequence '
-                                '({0}:{1})'.format(pdbid, i, ch))            
+                    try:
+                        last = int(item["_struct_ref_seq.pdbx_auth_seq_align_end"])
+                        endICode = item["_struct_ref_seq.pdbx_seq_align_end_ins_code"]
+                        if endICode == '?':
+                            endICode = ' '
+                    except:
+                        LOGGER.warn('DBREF for chain {2}: failed to parse '
+                                    'ending sequence number of the PDB sequence '
+                                    '({0}:{1})'.format(pdbid, i, ch))
                 try:
                     first2 = int(item["_struct_ref_seq.db_align_beg"])
                     dbref.first = (first, initICode, first2)
