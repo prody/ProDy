@@ -1285,14 +1285,17 @@ _PDB_HEADER_MAP = {
     'resolution': _getResolution,
     'biomoltrans': _getBiomoltrans,
     'version': _getVersion,
-    'deposition_date': lambda lines: [line.split()[1] for line in lines
-                                      if line.find("initial_deposition_date") != -1][0],
-    'classification': lambda lines: [line.split()[1] for line in lines
-                                     if line.find("_struct_keywords.pdbx_keywords") != -1][0],
-    'identifier': lambda lines: lines[0].split("_")[1].strip(),
+    'deposition_date': lambda lines: [line.split()[1]
+                                      if line.find("initial_deposition_date") != -1 else None
+                                      for line in lines][0],
+    'classification': lambda lines: [line.split()[1]
+                                     if line.find("_struct_keywords.pdbx_keywords") != -1 else None
+                                     for line in lines][0],
+    'identifier': lambda lines: lines[0].split("_")[1].strip() if len(lines[0].split("_")) else '',
     'title': _getTitle,
-    'experiment': lambda lines: [line.split()[1] for line in lines
-                                 if line.find("_exptl.method") != -1][0],
+    'experiment': lambda lines: [line.split()[1]
+                                 if line.find("_exptl.method") != -1 else None
+                                 for line in lines][0],
     'authors': _getAuthors,
     'split': _getSplit,
     'model_type': _getModelType,
