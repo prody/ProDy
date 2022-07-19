@@ -422,8 +422,8 @@ def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
                           dtype=ATOMIC_FIELDS['anisou'].dtype)
         
         if "_atom_site_anisotrop.U[1][1]_esd" in data[0].keys():
-            siguij = np.zeros((alength, 6),
-                dtype=ATOMIC_FIELDS['siguij'].dtype)
+            siguij = np.zeros((acount, 6),
+                              dtype=ATOMIC_FIELDS['siguij'].dtype)
 
         for entry in data:
             try:
