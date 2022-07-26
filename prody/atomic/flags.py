@@ -144,7 +144,7 @@ DEFAULTS = {
                   'TIP4']),
 
     'ion': set(['AL', 'BA', 'CA', 'CD', 'CL', 'CO', 'CS', 'CU', 'CU1', 'CUA',
-                'HG', 'IN', 'IOD', 'K', 'MG', 'MN3', 'NA', 'PB', 'PT', 'RB',
+                'HG', 'IN', 'IOD', 'K', 'MG', 'MN', 'MN3', 'NA', 'PB', 'PT', 'RB',
                 'TB', 'TL', 'WO4', 'YB', 'ZN']),
     'ion_other': set(['CAL', 'CES', 'CLA', 'POT', 'SOD', 'ZN2']),
 
@@ -512,6 +512,7 @@ Heteros
       `K`_     potassium           Yes
       `MG`_    magnesium           Yes
       `MN3`_   manganese (iii)     Yes
+      `MN`_    manganese (ii)      Yes    
       `NA`_    sodium              Yes
       `PB`_    lead (ii)           Yes
       `PT`_    platinum (ii)       Yes
