@@ -80,7 +80,10 @@ def prody_anm(pdb, **kwargs):
     LOGGER.info('{0} atoms will be used for ANM calculations.'
                 .format(len(select)))
 
-    anm = prody.ANM(pdb.getTitle())
+    if kwargs.get('membrane'):
+        anm = prody.exANM(pdb.getTitle())
+    else:
+        anm = prody.ANM(pdb.getTitle())
 
     nproc = kwargs.get('nproc')
     if nproc:

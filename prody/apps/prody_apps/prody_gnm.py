@@ -70,7 +70,10 @@ def prody_gnm(pdb, **kwargs):
     LOGGER.info('{0} atoms will be used for GNM calculations.'
                 .format(len(select)))
 
-    gnm = prody.GNM(pdb.getTitle())
+    if kwargs.get('membrane'):
+        gnm = prody.exGNM(pdb.getTitle())
+    else:
+        gnm = prody.GNM(pdb.getTitle())
 
     nproc = kwargs.get('nproc')
     if nproc:
