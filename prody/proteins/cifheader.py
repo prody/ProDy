@@ -867,53 +867,24 @@ def _getPolymers(lines):
             last = temp
 
     # MODRES block
-    i = 0
-    fields4 = OrderedDict()
-    fieldCounter4 = -1
-    foundPolyBlock4 = False
-    foundPolyBlockData4 = False
-    donePolyBlock4 = False
-    start4 = 0
-    stop4 = 0
-    while not donePolyBlock4 and i < len(lines):
-        line = lines[i]
-        if line.split('.')[0] == '_pdbx_struct_mod_residue':
-            fieldCounter4 += 1
-            fields4[line.split('.')[1].strip()] = fieldCounter4
-            if not foundPolyBlock4:
-                foundPolyBlock4 = True
+    data4 = parseSTARSection(lines, "_pdbx_struct_mod_residue")
 
-        if foundPolyBlock4:
-            if not line.startswith('#') and not line.startswith('_'):
-                if not foundPolyBlockData4:
-                    start4 = i
-                    foundPolyBlockData4 = True
-            else:
-                if foundPolyBlockData4:
-                    donePolyBlock4 = True
-                    stop4 = i
+    for data in data4:
+        ch = data["_pdbx_struct_mod_residue.label_asym_id"]
 
-        i += 1
+        poly = polymers.get(ch, Polymer(ch))
+        polymers[ch] = poly
+        if poly.modified is None:
+            poly.modified = []
 
-    if i < len(lines):
-        for line in lines[start4:stop4]:
-            data = split(line, shlex=True)
-
-            ch = data[fields4["label_asym_id"]]
-
-            poly = polymers.get(ch, Polymer(ch))
-            polymers[ch] = poly
-            if poly.modified is None:
-                poly.modified = []
-
-            iCode = data[fields4["PDB_ins_code"]]
-            if iCode == '?':
-                iCode == '' # PDB one is stripped
-            poly.modified.append((data[fields4["auth_comp_id"]],
-                                  data[fields4["auth_asym_id"]],
-                                  data[fields4["auth_seq_id"]] + iCode,
-                                  data[fields4["parent_comp_id"]],
-                                  data[fields4["details"]]))
+        iCode = data["_pdbx_struct_mod_residue.PDB_ins_code"]
+        if iCode == '?':
+            iCode == '' # PDB one is stripped
+        poly.modified.append((data["_pdbx_struct_mod_residue.auth_comp_id"],
+                                data["_pdbx_struct_mod_residue.auth_asym_id"],
+                                data["_pdbx_struct_mod_residue.auth_seq_id"] + iCode,
+                                data["_pdbx_struct_mod_residue.parent_comp_id"],
+                                data["_pdbx_struct_mod_residue.details"]))
 
     # SEQADV block
     data5 = parseSTARSection(lines, "_struct_ref_seq_dif")
