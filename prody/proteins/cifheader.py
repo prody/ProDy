@@ -285,8 +285,8 @@ def _getHelix(lines):
             data = line.split()
 
             try:
-                chid = data[fields["beg_label_asym_id"]]
-                segn = data[fields["beg_auth_asym_id"]]
+                chid = data[fields["beg_auth_asym_id"]]
+                segn = data[fields["beg_label_asym_id"]]
                 value = (int(data[fields["pdbx_PDB_helix_class"]]),
                         int(data[fields["id"]][6:]),
                         data[fields["pdbx_PDB_helix_id"]].strip())
@@ -352,7 +352,7 @@ def _getHelixRange(lines):
             data = line.split()
 
             try:
-                chid = data[fields["beg_label_asym_id"]]
+                chid = data[fields["beg_auth_asym_id"]]
                 Hclass=int(data[fields["pdbx_PDB_helix_class"]])
                 Hnr=int(data[fields["id"]][6:])
             except:
@@ -504,8 +504,8 @@ def _getSheet(lines):
             data = line.split()
 
             try:
-                chid = data[fields3["beg_label_asym_id"]]
-                segn = data[fields3["beg_auth_asym_id"]]
+                chid = data[fields3["beg_auth_asym_id"]]
+                segn = data[fields3["beg_label_asym_id"]]
 
                 strand_id = int(data[fields3["id"]])
                 sheet_id = data[fields3["sheet_id"]]
@@ -675,7 +675,7 @@ def _getSheetRange(lines):
             data = line.split()
 
             try:
-                chid = data[fields3["beg_label_asym_id"]]
+                chid = data[fields3["beg_auth_asym_id"]]
 
                 Snr = int(data[fields3["id"]])
                 sheet_id = data[fields3["sheet_id"]]
