@@ -426,8 +426,8 @@ def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
                           dtype=ATOMIC_FIELDS['anisou'].dtype)
         
         if "_atom_site_anisotrop.U[1][1]_esd" in data[0].keys():
-            siguij = np.zeros((alength, 6),
-                dtype=ATOMIC_FIELDS['siguij'].dtype)
+            siguij = np.zeros((acount, 6),
+                              dtype=ATOMIC_FIELDS['siguij'].dtype)
 
         for entry in data:
             try:
@@ -444,15 +444,20 @@ def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
             anisou[index, 5] = entry['_atom_site_anisotrop.U[2][3]'] 
 
             if siguij is not None:
-                siguij[index, 0] = entry['_atom_site_anisotrop.U[1][1]_esd']
-                siguij[index, 1] = entry['_atom_site_anisotrop.U[2][2]_esd']
-                siguij[index, 2] = entry['_atom_site_anisotrop.U[3][3]_esd']
-                siguij[index, 3] = entry['_atom_site_anisotrop.U[1][2]_esd']
-                siguij[index, 4] = entry['_atom_site_anisotrop.U[1][3]_esd']
-                siguij[index, 5] = entry['_atom_site_anisotrop.U[2][3]_esd']
+                try:
+                    siguij[index, 0] = entry['_atom_site_anisotrop.U[1][1]_esd']
+                    siguij[index, 1] = entry['_atom_site_anisotrop.U[2][2]_esd']
+                    siguij[index, 2] = entry['_atom_site_anisotrop.U[3][3]_esd']
+                    siguij[index, 3] = entry['_atom_site_anisotrop.U[1][2]_esd']
+                    siguij[index, 4] = entry['_atom_site_anisotrop.U[1][3]_esd']
+                    siguij[index, 5] = entry['_atom_site_anisotrop.U[2][3]_esd']
+                except:
+                    pass
 
         atomgroup.setAnisous(anisou) # no division needed anymore
-        atomgroup.setAnistds(siguij) # no division needed anymore
+
+        if not np.any(siguij):
+            atomgroup.setAnistds(siguij)  # no division needed anymore
 
     for n in range(1, nModels):
         atomgroup.addCoordset(coordinates[n*modelSize:(n+1)*modelSize])

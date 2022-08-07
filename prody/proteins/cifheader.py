@@ -801,7 +801,9 @@ def _getPolymers(lines):
     # DBREF block 2
     items3 = parseSTARSection(lines, "_struct_ref_seq")
 
-    for item in items3:
+    for i, item in enumerate(items3):
+        i += 1
+
         ch = item["_struct_ref_seq.pdbx_strand_id"]
         poly = polymers[ch] 
         
@@ -814,18 +816,30 @@ def _getPolymers(lines):
                     if initICode == '?':
                         initICode = ' '
                 except:
-                    LOGGER.warn('DBREF for chain {2}: failed to parse '
-                                'initial sequence number of the PDB sequence '
-                                '({0}:{1})'.format(pdbid, i, ch))
+                    try:
+                        first = int(item["_struct_ref_seq.pdbx_auth_seq_align_beg"])
+                        initICode = item["_struct_ref_seq.pdbx_seq_align_beg_ins_code"]
+                        if initICode == '?':
+                            initICode = ' '
+                    except:
+                        LOGGER.warn('DBREF for chain {2}: failed to parse '
+                                    'initial sequence number of the PDB sequence '
+                                    '({0}:{1})'.format(pdbid, i, ch))
                 try:
                     last = int(item["_struct_ref_seq.pdbx_auth_seq_align_end"])
-                    endICode = item["_struct_ref_seq.pdbx_db_align_beg_ins_code"]
+                    endICode = item["_struct_ref_seq.pdbx_db_align_end_ins_code"]
                     if endICode == '?':
-                        endICode = ' '            
+                        endICode = ' '
                 except:
-                    LOGGER.warn('DBREF for chain {2}: failed to parse '
-                                'ending sequence number of the PDB sequence '
-                                '({0}:{1})'.format(pdbid, i, ch))            
+                    try:
+                        last = int(item["_struct_ref_seq.pdbx_auth_seq_align_end"])
+                        endICode = item["_struct_ref_seq.pdbx_seq_align_end_ins_code"]
+                        if endICode == '?':
+                            endICode = ' '
+                    except:
+                        LOGGER.warn('DBREF for chain {2}: failed to parse '
+                                    'ending sequence number of the PDB sequence '
+                                    '({0}:{1})'.format(pdbid, i, ch))
                 try:
                     first2 = int(item["_struct_ref_seq.db_align_beg"])
                     dbref.first = (first, initICode, first2)
@@ -857,7 +871,11 @@ def _getPolymers(lines):
                                 .format(pdbid, i, ch, dbabbr))
                     dbref.database = 'PDB'
             
-            resnum.append((dbref.first[0], dbref.last[0]))
+            try:
+                resnum.append((dbref.first[0], dbref.last[0]))
+            except:
+                pass # we've already warned about this
+
         resnum.sort()
         last = -10000
         for first, temp in resnum:
@@ -1209,14 +1227,17 @@ _PDB_HEADER_MAP = {
     'resolution': _getResolution,
     'biomoltrans': _getBiomoltrans,
     'version': _getVersion,
-    'deposition_date': lambda lines: [line.split()[1] for line in lines
-                                      if line.find("initial_deposition_date") != -1][0],
-    'classification': lambda lines: [line.split()[1] for line in lines
-                                     if line.find("_struct_keywords.pdbx_keywords") != -1][0],
-    'identifier': lambda lines: lines[0].split("_")[1].strip(),
+    'deposition_date': lambda lines: [line.split()[1]
+                                      if line.find("initial_deposition_date") != -1 else None
+                                      for line in lines][0],
+    'classification': lambda lines: [line.split()[1]
+                                     if line.find("_struct_keywords.pdbx_keywords") != -1 else None
+                                     for line in lines][0],
+    'identifier': lambda lines: lines[0].split("_")[1].strip() if len(lines[0].split("_")) else '',
     'title': _getTitle,
-    'experiment': lambda lines: [line.split()[1] for line in lines
-                                 if line.find("_exptl.method") != -1][0],
+    'experiment': lambda lines: [line.split()[1]
+                                 if line.find("_exptl.method") != -1 else None
+                                 for line in lines][0],
     'authors': _getAuthors,
     'split': _getSplit,
     'model_type': _getModelType,
