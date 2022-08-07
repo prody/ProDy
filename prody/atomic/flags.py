@@ -690,7 +690,7 @@ def updateDefinitions():
 
     global DEFINITIONS, AMINOACIDS, BACKBONE, TIMESTAMP
     DEFINITIONS = {}
-    user = SETTINGS.get('flag_definitions', {})
+    user = SETTINGS.get('flags_definitions', {})
 
     # nucleics
     nucleic = set()
