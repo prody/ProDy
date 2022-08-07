@@ -916,92 +916,63 @@ def _getPolymers(lines):
                                   data[fields4["details"]]))
 
     # SEQADV block
-    i = 0
-    fields5 = OrderedDict()
-    fieldCounter5 = -1
-    foundPolyBlock5 = False
-    foundPolyBlockData5 = False
-    donePolyBlock5 = False
-    start5 = 0
-    stop5 = 0
-    while not donePolyBlock5 and i < len(lines):
-        line = lines[i]
-        if line.split('.')[0] == '_struct_ref_seq_dif':
-            fieldCounter5 += 1
-            fields5[line.split('.')[1].strip()] = fieldCounter5
-            if not foundPolyBlock5:
-                foundPolyBlock5 = True
+    data5 = parseSTARSection(lines, "_struct_ref_seq_dif")
 
-        if foundPolyBlock5:
-            if not line.startswith('#') and not line.startswith('_'):
-                if not foundPolyBlockData5:
-                    start5 = i
-                    foundPolyBlockData5 = True
-            else:
-                if foundPolyBlockData5:
-                    donePolyBlock5 = True
-                    stop5 = i
+    for i, data in enumerate(data5):
+        ch = data["_struct_ref_seq_dif.pdbx_pdb_strand_id"]
 
-        i += 1
+        poly = polymers.get(ch, Polymer(ch))
+        polymers[ch] = poly
+        dbabbr = data["_struct_ref_seq_dif.pdbx_seq_db_name"]
+        resname = data["_struct_ref_seq_dif.mon_id"]
+        if resname == '?':
+            resname = '' # strip for pdb
 
-    if i < len(lines):
-        for i, line in enumerate(lines[start5:stop5]):
-            data = split(line, shlex=True)
+        try:
+            resnum = int(data["_struct_ref_seq_dif.pdbx_auth_seq_num"])
+        except:
+            #LOGGER.warn('SEQADV for chain {2}: failed to parse PDB sequence '
+            #            'number ({0}:{1})'.format(pdbid, i, ch))
+            continue
 
-            ch = data[fields5["pdbx_pdb_strand_id"]]
+        icode = data["_struct_ref_seq_dif.pdbx_pdb_ins_code"]
+        if icode == '?':
+            icode = '' # strip for pdb            
+        
+        try:
+            dbnum = int(data["_struct_ref_seq_dif.pdbx_seq_db_seq_num"])
+        except:
+            #LOGGER.warn('SEQADV for chain {2}: failed to parse database '
+            #            'sequence number ({0}:{1})'.format(pdbid, i, ch))
+            continue            
 
-            poly = polymers.get(ch, Polymer(ch))
-            polymers[ch] = poly
-            dbabbr = data[fields5["pdbx_seq_db_name"]]
-            resname = data[fields5["mon_id"]]
-            if resname == '?':
-                resname = '' # strip for pdb
+        comment = data["_struct_ref_seq_dif.details"].upper()
+        if comment == '?':
+            comment = '' # strip for pdb 
 
-            try:
-                resnum = int(data[fields5["pdbx_auth_seq_num"]])
-            except:
-                #LOGGER.warn('SEQADV for chain {2}: failed to parse PDB sequence '
-                #            'number ({0}:{1})'.format(pdbid, i, ch))
+        match = False
+        for dbref in poly.dbrefs:
+            if not dbref.first[0] <= resnum <= dbref.last[0]:
                 continue
-
-            icode = data[fields5["pdbx_pdb_ins_code"]]
-            if icode == '?':
-                icode = '' # strip for pdb            
-            
-            try:
-                dbnum = int(data[fields5["pdbx_seq_db_seq_num"]])
-            except:
-                #LOGGER.warn('SEQADV for chain {2}: failed to parse database '
-                #            'sequence number ({0}:{1})'.format(pdbid, i, ch))
-                continue            
-
-            comment = data[fields5["details"]].upper()
-            if comment == '?':
-                comment = '' # strip for pdb 
-
-            match = False
-            for dbref in poly.dbrefs:
-                if not dbref.first[0] <= resnum <= dbref.last[0]:
-                    continue
-                match = True
-                if dbref.dbabbr != dbabbr:
-                    LOGGER.warn('SEQADV for chain {2}: reference database '
-                                'mismatch, expected {3} parsed {4} '
-                                '({0}:{1})'.format(pdbid, i+1, ch,
-                                repr(dbref.dbabbr), repr(dbabbr)))
-                    continue
-                dbacc = data[fields5["pdbx_seq_db_accession_code"]]
-                if dbref.accession[:9] != dbacc[:9]:
-                    LOGGER.warn('SEQADV for chain {2}: accession code '
-                                'mismatch, expected {3} parsed {4} '
-                                '({0}:{1})'.format(pdbid, i+1, ch,
-                                repr(dbref.accession), repr(dbacc)))
-                    continue
-                dbref.diff.append((resname, resnum, icode, dbnum, dbnum, comment))
-            if not match:
-                LOGGER.warn('SEQADV for chain {2}: database sequence reference '
-                            'not found ({0}:{1})'.format(pdbid, i+1, ch))
+            match = True
+            if dbref.dbabbr != dbabbr:
+                LOGGER.warn('SEQADV for chain {2}: reference database '
+                            'mismatch, expected {3} parsed {4} '
+                            '({0}:{1})'.format(pdbid, i+1, ch,
+                            repr(dbref.dbabbr), repr(dbabbr)))
                 continue
+            dbacc = data["_struct_ref_seq_dif.pdbx_seq_db_accession_code"]
+            if dbref.accession[:9] != dbacc[:9]:
+                LOGGER.warn('SEQADV for chain {2}: accession code '
+                            'mismatch, expected {3} parsed {4} '
+                            '({0}:{1})'.format(pdbid, i+1, ch,
+                            repr(dbref.accession), repr(dbacc)))
+                continue
+            dbref.diff.append((resname, resnum, icode, dbnum, dbnum, comment))
+        if not match:
+            LOGGER.warn('SEQADV for chain {2}: database sequence reference '
+                        'not found ({0}:{1})'.format(pdbid, i+1, ch))
+            continue
 
     # COMPND double block. 
     # Block 6 has most info. Block 7 has synonyms
