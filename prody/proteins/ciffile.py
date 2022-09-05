@@ -19,10 +19,10 @@ from .starfile import parseSTARLines, StarDict, parseSTARSection
 from .cifheader import getCIFHeaderDict
 from .header import buildBiomolecules, assignSecstr, isHelix, isSheet
 
-__all__ = ['parseMMCIFStream', 'parseMMCIF', ]
+__all__ = ['parseMMCIFStream', 'parseMMCIF']
 
 
-class mmCIFParseError(Exception):
+class MMCIFParseError(Exception):
     pass
 
 
@@ -275,15 +275,21 @@ def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
                 stop = i
         i += 1
 
-    if model is not None and model != 1:
+    new_start = start
+    new_stop = stop
+    if model is not None:
+        startp1 = start + 1
         for i in range(start, stop):
-            if str(models[i]) != model and str(models[i+1]) == model:
-                start = i+1
-            if str(models[i]) == model and str(models[i+1]) != model:
-                stop = i+1
+            if int(models[i-startp1]) != model and int(models[i+1-startp1]) == model:
+                new_start = i
+            if model != nModels and (int(models[i-startp1]) == model and int(models[i+1-startp1]) != model):
+                new_stop = i
                 break
         if not str(model) in models:
-            raise mmCIFParseError('model {0} is not found'.format(model))
+            raise MMCIFParseError('model {0} is not found'.format(model))
+
+    start = new_start
+    stop = new_stop
 
     addcoords = False
     if atomgroup.numCoordsets() > 0:
@@ -351,12 +357,6 @@ def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
         if alt == '.':
             alt = ' '
 
-        if model is not None:
-            if int(models[acount]) < model:
-                continue
-            elif int(models[acount]) > model:
-                break
-
         coordinates[acount] = [line.split()[fields['Cartn_x']],
                                line.split()[fields['Cartn_y']],
                                line.split()[fields['Cartn_z']]]
@@ -387,10 +387,10 @@ def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
 
         acount += 1
 
-    if model is not None:
-        nModels = 1
-
-    modelSize = acount//nModels
+    if model is None:
+        modelSize = acount//nModels
+    else:
+        modelSize = acount
 
     if addcoords:
         atomgroup.addCoordset(coordinates[:modelSize])
@@ -459,7 +459,8 @@ def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
         if not np.any(siguij):
             atomgroup.setAnistds(siguij)  # no division needed anymore
 
-    for n in range(1, nModels):
-        atomgroup.addCoordset(coordinates[n*modelSize:(n+1)*modelSize])
+    if model is None:
+        for n in range(1, nModels):
+            atomgroup.addCoordset(coordinates[n*modelSize:(n+1)*modelSize])
 
     return atomgroup
