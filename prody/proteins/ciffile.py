@@ -282,7 +282,7 @@ def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
         for i in range(start, stop):
             if int(models[i-startp1]) != model and int(models[i+1-startp1]) == model:
                 new_start = i
-            if int(models[i-startp1]) == model and int(models[i+1-startp1]) != model:
+            if model != nModels and (int(models[i-startp1]) == model and int(models[i+1-startp1]) != model):
                 new_stop = i
                 break
         if not str(model) in models:
