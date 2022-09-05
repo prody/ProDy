@@ -10,7 +10,8 @@ from prody.tests import TestCase
 from numpy import array
 import numpy as np
 
-from prody import parsePDB, parseDCD, parseSparseMatrix, parseArray, loadModel
+from prody import parsePDB, parseDCD, parseMMCIF
+from prody import parseSparseMatrix, parseArray, loadModel
 from prody.tests import TEMPDIR, TESTDIR
 
 
@@ -153,12 +154,21 @@ DATA_FILES = {
     },
     'h36': {
         'file': 'pdb1tw7_step3_charmm2namd_doubled_h36.pdb'
-    }
+    },
+    'multi_model_cif': {
+        'pdb': '6yfy',
+        'file': 'mmcif_6yfy.cif',
+        'atoms': 1460,
+        'chainA_atoms': 187,
+        'ca_atoms': 36,
+        'bb_atoms': 144,
+        'models': 26,
+    },
 }
 
 
 PARSERS = {
-    '.dcd': parseDCD, '.pdb': parsePDB,
+    '.dcd': parseDCD, '.pdb': parsePDB, '.cif': parseMMCIF,
     '.coo': parseSparseMatrix, '.dat': parseArray,
     '.txt': np.loadtxt,
     '.gz': lambda fn, **kwargs: PARSERS[splitext(fn)[1]](fn, **kwargs)
