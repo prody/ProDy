@@ -546,20 +546,20 @@ class ModeEnsemble(object):
         reweightingstatus.extend(reweighted)
         self._reweighted = reweightingstatus
 
-        if self._labels is not None or label is not None:
-            if label is None:
-                labels = ['']*len(modesets)
-            elif np.isscalar(label):
-                labels = [label]
-            else:
-                labels = label
-            if len(labels) != len(modesets):
-                raise ValueError('labels should have the same length as modesets')
+        if label is None:
+            labels = ['']*len(modesets)
+        elif np.isscalar(label):
+            labels = [label]
+        else:
+            labels = label
+            
+        if len(labels) != len(modesets):
+            raise ValueError('labels should have the same length as modesets')
 
-            if self._labels is None:
-                self._labels = ['']*len(self._modesets)
+        if self._labels is None:
+            self._labels = ['']*len(self._modesets)
 
-            self._labels.extend(labels)
+        self._labels.extend(labels)
 
         for i in range(len(modesets)):
             modeset = modesets[i]
