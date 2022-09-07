@@ -209,4 +209,4 @@ from .starfile import *
 __all__.extend(starfile.__all__)
 
 from .pdbfile import PDBParseError
-
+from .ciffile import MMCIFParseError

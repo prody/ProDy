@@ -19,10 +19,10 @@ from .starfile import parseSTARLines, StarDict, parseSTARSection
 from .cifheader import getCIFHeaderDict
 from .header import buildBiomolecules, assignSecstr, isHelix, isSheet
 
-__all__ = ['parseMMCIFStream', 'parseMMCIF', ]
+__all__ = ['parseMMCIFStream', 'parseMMCIF']
 
 
-class mmCIFParseError(Exception):
+class MMCIFParseError(Exception):
     pass
 
 
@@ -282,11 +282,11 @@ def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
         for i in range(start, stop):
             if int(models[i-startp1]) != model and int(models[i+1-startp1]) == model:
                 new_start = i
-            if int(models[i-startp1]) == model and int(models[i+1-startp1]) != model:
+            if model != nModels and (int(models[i-startp1]) == model and int(models[i+1-startp1]) != model):
                 new_stop = i
                 break
         if not str(model) in models:
-            raise mmCIFParseError('model {0} is not found'.format(model))
+            raise MMCIFParseError('model {0} is not found'.format(model))
 
     start = new_start
     stop = new_stop
