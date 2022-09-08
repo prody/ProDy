@@ -147,8 +147,9 @@ class PCA(NMA):
             if n_atoms < 3:
                 raise ValueError('coordsets must have more than 3 atoms')
             dof = n_atoms * 3
-            LOGGER.info('Covariance is calculated using {0} coordinate sets.'
-                        .format(len(coordsets)))
+            if not quiet:
+                LOGGER.info('Covariance is calculated using {0} coordinate sets.'
+                            .format(len(coordsets)))
             s = (n_confs, dof)
             if weights is None:
                 if coordsets.dtype == float:
@@ -158,13 +159,16 @@ class PCA(NMA):
                     cov = np.zeros((dof, dof))
                     coordsets = coordsets.reshape((n_confs, dof))
                     mean = coordsets.mean(0)
-                    LOGGER.progress('Building covariance', n_confs,
+                    if not quiet:
+                        LOGGER.progress('Building covariance', n_confs,
                                     '_prody_pca')
                     for i, coords in enumerate(coordsets.reshape(s)):
                         deviations = coords - mean
                         cov += np.outer(deviations, deviations)
-                        LOGGER.update(n_confs, label='_prody_pca')
-                    LOGGER.finish()
+                        if not quiet:
+                            LOGGER.update(n_confs, label='_prody_pca')
+                    if not quiet:
+                        LOGGER.finish()
                     cov /= n_confs
                     self._cov = cov
             else:
@@ -185,7 +189,8 @@ class PCA(NMA):
         self._trace = self._cov.trace()
         self._dof = dof
         self._n_atoms = n_atoms
-        LOGGER.report('Covariance matrix calculated in %2fs.', '_prody_pca')
+        if not quiet:
+            LOGGER.report('Covariance matrix calculated in %2fs.', '_prody_pca')
 
     def calcModes(self, n_modes=20, turbo=True):
         """Calculate principal (or essential) modes.  This method uses
@@ -255,10 +260,10 @@ class PCA(NMA):
                               coordsets._getCoords())
 
         n_confs = deviations.shape[0]
-        if n_confs < 3:
+        if n_confs <= 3:
             raise ValueError('coordsets must have more than 3 coordinate sets')
         n_atoms = deviations.shape[1]
-        if n_atoms < 3:
+        if n_atoms <= 3:
             raise ValueError('coordsets must have more than 3 atoms')
 
         dof = n_atoms * 3
