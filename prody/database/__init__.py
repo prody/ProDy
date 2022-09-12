@@ -70,6 +70,32 @@ The following classes and functions can be used to search and retrieve data from
 
 .. _GOA: https://www.ebi.ac.uk/GOA/
 
+Swiss-Prot
+================================
+The following classes and functions can be used to search and retrieve data from the Swiss-Prot database:
+  * :class:`.SwissProt` - class to handle Swiss-Prot data from Expasy
+  * :func:`.getCurrentRelease` - gets current Swiss-Prot release version
+  * :func:`.downloadRelease` - downloads current Swiss-Prot database files
+  * :func:`.saveRelease` - saves new Swiss-Prot release version
+  * :func:`.updateRelease` - updates Swiss-Prot local database
+  * :func:`.getLocalRelease` - checks local Swiss-Prot release version
+  * :func:`.checkForUpdates` - checks wheather there is newer Swiss-Prot version than current local one
+
+  RefSeq
+  ================================
+The following classes and functions can be used to search and retrieve data from the RefSeq database:
+  * :class:` .RefSeq` - class to handle RefSeq data
+  * :func:` getCurrentRelease` - func desc
+  * :func:` getInstalledFiles` - func desc
+  * :func:` saveInstalledFiles` - func desc
+  * :func:` getLocalFiles` - func desc
+  * :func:` getFiles` - func desc
+  * :func:` pepareDownloadFileList` - func desc
+  * :func:` downloadRelease` - func desc
+  * :func:` saveRelease` - func desc
+  * :func:` updateRelease` - func desc
+  * :func:` getLocalRelease` - func desc
+  * :func:` checkForUpdates` - func desc
 
 """
 
@@ -98,3 +124,15 @@ __all__.extend(goa.__all__)
 from . import quartataweb
 from .quartataweb import *
 __all__.extend(quartataweb.__all__)
+
+from . import swissprot
+from .swissprot import *
+__all__.extend(swissprot.__all__)
+
+from . import refseq
+from .refseq import *
+__all__.extend(refseq.__all__)
+
+from . import pdb
+from .pdb import *
+__all__.extend(pdb.__all__)
