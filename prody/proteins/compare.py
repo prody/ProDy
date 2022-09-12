@@ -793,13 +793,16 @@ def getAlignedMatch(ach, bch):
                                              GAP_PENALTY, GAP_EXT_PENALTY,
                                              one_alignment_only=1)
 
-    this = alignment[0][0]
-    that = alignment[0][1]
     amatch = []
     bmatch = []
+    match = 0.0
+    try:
+        this = alignment[0][0]
+        that = alignment[0][1]
+    except IndexError:                                                                                                                                                                                                                     
+        return amatch, bmatch, match    
     aiter = ach.__iter__()
     biter = bch.__iter__()
-    match = 0.0
     for i in range(len(this)):
         a = this[i]
         b = that[i]
