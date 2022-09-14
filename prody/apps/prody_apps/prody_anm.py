@@ -14,7 +14,7 @@ for key, txt, val in [
     ('model', 'index of model that will be used in the calculations', 1),
     ('altloc', 'alternative location identifiers for residues used in the calculations', "A"),
     ('cutoff', 'cutoff distance (A)', 15.),
-    ('gamma', 'spring constant', 1.),
+    ('gamma', 'spring constant', '1.'),
     ('sparse', 'use sparse matrices', False),
     ('kdtree', 'use kdtree for Hessian', False),    
     ('zeros', 'calculate zero modes', False),
@@ -58,7 +58,6 @@ def prody_anm(pdb, **kwargs):
     selstr = kwargs.get('select')
     prefix = kwargs.get('prefix')
     cutoff = kwargs.get('cutoff')
-    gamma = kwargs.get('gamma')
     sparse = kwargs.get('sparse')
     kdtree = kwargs.get('kdtree')
     nmodes = kwargs.get('nmodes')
@@ -79,6 +78,19 @@ def prody_anm(pdb, **kwargs):
         return
     LOGGER.info('{0} atoms will be used for ANM calculations.'
                 .format(len(select)))
+
+    try:
+        gamma = float(kwargs.get('gamma'))
+        LOGGER.info("Using gamma {0}".format(gamma))
+    except ValueError:
+        try:
+            Gamma = eval('prody.' + kwargs.get('gamma'))
+            gamma = Gamma(select)
+            LOGGER.info("Using gamma {0}".format(Gamma))
+        except NameError:
+            raise NameError("Please provide gamma as a float or ProDy Gamma class")
+        except TypeError:
+            raise TypeError("Please provide gamma as a float or ProDy Gamma class")
 
     anm = prody.ANM(pdb.getTitle())
 
@@ -267,8 +279,8 @@ graphical output files:
         default=DEFAULTS['cutoff'], metavar='FLOAT',
         help=HELPTEXT['cutoff'] + ' (default: %(default)s)')
 
-    group.add_argument('-g', '--gamma', dest='gamma', type=float,
-        default=DEFAULTS['gamma'], metavar='FLOAT',
+    group.add_argument('-g', '--gamma', dest='gamma', type=str,
+        default=DEFAULTS['gamma'], metavar='STR',
         help=HELPTEXT['gamma'] + ' (default: %(default)s)')
 
     group.add_argument('-C', '--sparse-hessian', dest='sparse', action='store_true',
