@@ -38,7 +38,7 @@ FORMAT_OPTIONS = ({'format': set([FASTA, SELEX, STOCKHOLM]),
 
 MINSEQLEN = 16
 
-prefix = 'https://pfam.xfam.org/'
+prefix = 'https://pfam-legacy.xfam.org/'
 
 def searchPfam(query, **kwargs):
     """Returns Pfam search results in a dictionary.  Matching Pfam accession
