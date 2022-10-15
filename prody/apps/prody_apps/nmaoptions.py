@@ -56,7 +56,7 @@ def addNMAParameters(parser):
         help=HELPTEXT['nmodes'] + ' (default: %(default)s)')
 
     parser.add_argument('-s', '--select', dest='select', type=str,
-        default=DEFAULTS['select'], metavar='SEL',
+        default=DEFAULTS['select'], metavar='STR',
         help=HELPTEXT['select'] + ' (default: "%(default)s")')
 
     return parser

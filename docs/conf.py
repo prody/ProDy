@@ -107,8 +107,8 @@ extlinks = {
     'issue': ('https://github.com/prody/ProDy/issues/%s', 'issue '),
     'pdb': ('http://www.pdb.org/pdb/explore/explore.do?structureId=%s', ''),
     'wiki': ('http://en.wikipedia.org/wiki/%s', ''),
-    'pfam': ('http://pfam.xfam.org/family/%s', ''),
-    'pfamprotein': ('http://pfam.xfam.org/protein/%s', ''),
+    'pfam': ('http://pfam-legacy.xfam.org/family/%s', ''),
+    'pfamprotein': ('http://pfam-legacy.xfam.org/protein/%s', ''),
     'uniprot': ('http://www.uniprot.org/uniprot/%s', ''),
     'pdbhet': ('http://www.pdb.org/pdb/ligand/ligandsummary.do?hetId=%s', ''),
 }
