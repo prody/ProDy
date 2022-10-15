@@ -17,7 +17,14 @@ from prody import LOGGER
 LOGGER.verbosity = 'none'
 
 class TestSearchPfam(unittest.TestCase):
-    def setUp(self):
+    
+    @classmethod
+    def setUpClass(self):
+        self.workdir = 'pfam_search_tests'
+        if not os.path.exists(self.workdir):
+            os.mkdir(self.workdir)
+        os.chdir(self.workdir)
+
         self.queries = ['P19491', 'GRIA2_RAT', '6qkc', '6qkcB', '6qkcI', 
                         'VQVLLTTIGAFAAFGLMTIAISTDYWLYTRGLTHSGLWRICCLEGLK'\
                             'RGVCVKINHFAEYLLRVVRASSIFPILSAILLLLGGVCVAASR'\
@@ -101,6 +108,11 @@ class TestSearchPfam(unittest.TestCase):
         self.assertEqual(sorted(list(a.keys())), 
                            ['PF00822'],
                            'searchPfam failed to return the right domain family IDs for TARP')
+        
+    @classmethod
+    def tearDownClass(self):
+        os.chdir('..')
+        shutil.rmtree(self.workdir)
 
 
 class TestFetchPfamMSA(unittest.TestCase):
