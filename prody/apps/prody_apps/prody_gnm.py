@@ -13,7 +13,7 @@ for key, txt, val in [
     ('model', 'index of model that will be used in the calculations', 1),
     ('altloc', 'alternative location identifiers for residues used in the calculations', "A"),
     ('cutoff', 'cutoff distance (A)', 10.),
-    ('gamma', 'spring constant', 1.),
+    ('gamma', 'spring constant', '1.'),
     ('zeros', 'calculate zero modes', False),
 
     ('outbeta', 'write beta-factors calculated from GNM modes', False),
@@ -52,7 +52,6 @@ def prody_gnm(pdb, **kwargs):
     selstr = kwargs.get('select')
     prefix = kwargs.get('prefix')
     cutoff = kwargs.get('cutoff')
-    gamma = kwargs.get('gamma')
     nmodes = kwargs.get('nmodes')
     selstr = kwargs.get('select')
     model = kwargs.get('model')
@@ -69,6 +68,19 @@ def prody_gnm(pdb, **kwargs):
                           .format(repr(selstr)))
     LOGGER.info('{0} atoms will be used for GNM calculations.'
                 .format(len(select)))
+
+    try:
+        gamma = float(kwargs.get('gamma'))
+        LOGGER.info("Using gamma {0}".format(gamma))
+    except ValueError:
+        try:
+            Gamma = eval('prody.' + kwargs.get('gamma'))
+            gamma = Gamma(select)
+            LOGGER.info("Using gamma {0}".format(Gamma))
+        except NameError:
+            raise NameError("Please provide gamma as a float or ProDy Gamma class")
+        except TypeError:
+            raise TypeError("Please provide gamma as a float or ProDy Gamma class")
 
     gnm = prody.GNM(pdb.getTitle())
 
@@ -280,8 +292,8 @@ save all of the graphical output files:
         default=DEFAULTS['cutoff'], metavar='FLOAT',
         help=HELPTEXT['cutoff'] + ' (default: %(default)s)')
 
-    group.add_argument('-g', '--gamma', dest='gamma', type=float,
-        default=DEFAULTS['gamma'], metavar='FLOAT',
+    group.add_argument('-g', '--gamma', dest='gamma', type=str,
+        default=DEFAULTS['gamma'], metavar='STR',
         help=HELPTEXT['gamma'] + ' (default: %(default)s)')
 
     group.add_argument('-m', '--model', dest='model', type=int,
