@@ -799,8 +799,9 @@ def getAlignedMatch(ach, bch):
     try:
         this = alignment[0][0]
         that = alignment[0][1]
-    except IndexError:                                                                                                                                                                                                                     
-        return amatch, bmatch, match    
+    except IndexError:
+        LOGGER.warning('Matching chains resulted in empty alignment.')
+        return amatch, bmatch, match
     aiter = ach.__iter__()
     biter = bch.__iter__()
     for i in range(len(this)):
