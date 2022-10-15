@@ -29,8 +29,10 @@ FASTA = 'fasta'
 SELEX = 'selex'
 STOCKHOLM = 'stockholm'
 
-DOWNLOAD_FORMATS = set(['seed', 'full', 'ncbi', 'metagenomics',
-                        'rp15', 'rp35', 'rp55', 'rp75', 'uniprot'])
+DOWNLOAD_FORMATS = set(['seed', 'full', 'uniprot', 
+                        #'ncbi', 'metagenomics',
+                        #'rp15', 'rp35', 'rp55', 'rp75'
+                        ])
 FORMAT_OPTIONS = ({'format': set([FASTA, SELEX, STOCKHOLM]),
                   'order': set(['tree', 'alphabetical']),
                   'inserts': set(['lower', 'upper']),
@@ -40,6 +42,7 @@ MINSEQLEN = 16
 
 old_prefix = 'https://pfam.xfam.org/'
 prefix = 'https://pfam-legacy.xfam.org/'
+new_prefix = 'https://www.ebi.ac.uk/interpro/wwwapi//entry/pfam/'
 
 def searchPfam(query, **kwargs):
     """Returns Pfam search results in a dictionary.  Matching Pfam accession
@@ -357,50 +360,57 @@ def fetchPfamMSA(acc, alignment='full', compressed=False, **kwargs):
                          .format(repr(orig_acc)))
 
     if alignment not in DOWNLOAD_FORMATS:
-        raise ValueError('alignment must be one of full, seed, ncbi or'
-                         ' metagenomics')
-    if alignment == 'ncbi' or alignment == 'metagenomics' or alignment == 'uniprot':
-        url = (prefix + 'family/' + acc + '/alignment/' +
-               alignment + '/gzipped')
+        raise ValueError('alignment must be one of full, seed,'
+                         #' ncbi or'
+                         #' metagenomics'
+                         ' or uniprot')
+    # if alignment == 'ncbi' or alignment == 'metagenomics' or alignment == 'uniprot':
+    #     #url = (prefix + 'family/' + acc + '/alignment/' +
+    #     #       alignment + '/gzipped')
+    #     url = (new_prefix + acc + 
+    #            '/?annotation=alignment:' + alignment + '&download')
+    #     url_flag = True
+    #     extension = '.sth'
+    # else:
+    if not kwargs:
+        #url = (prefix + 'family/' + acc + '/alignment/' +
+        #       alignment + '/gzipped')
+        url = (new_prefix + acc + 
+                '/?annotation=alignment:' + alignment + '&download')
         url_flag = True
         extension = '.sth'
     else:
-        if not kwargs:
-            url = (prefix + 'family/' + acc + '/alignment/' +
-                   alignment + '/gzipped')
-            url_flag = True
-            extension = '.sth'
-        else:
-            align_format = kwargs.get('format', 'selex').lower()
+        raise ValueError('kwargs are not supported for Interpro Pfam')
+    #     align_format = kwargs.get('format', 'selex').lower()
 
-            if align_format not in FORMAT_OPTIONS['format']:
-                raise ValueError('alignment format must be of type selex'
-                                 ' stockholm or fasta. MSF not supported')
+    #     if align_format not in FORMAT_OPTIONS['format']:
+    #         raise ValueError('alignment format must be of type selex'
+    #                             ' stockholm or fasta. MSF not supported')
 
-            if align_format == SELEX:
-                align_format, extension = 'pfam', '.slx'
-            elif align_format == FASTA:
-                extension = '.fasta'
-            else:
-                extension = '.sth'
+    #     if align_format == SELEX:
+    #         align_format, extension = 'pfam', '.slx'
+    #     elif align_format == FASTA:
+    #         extension = '.fasta'
+    #     else:
+    #         extension = '.sth'
 
-            gaps = str(kwargs.get('gaps', 'dashes')).lower()
-            if gaps not in FORMAT_OPTIONS['gaps']:
-                raise ValueError('gaps must be of type mixed, dots, dashes, '
-                                 'or None')
+    #     gaps = str(kwargs.get('gaps', 'dashes')).lower()
+    #     if gaps not in FORMAT_OPTIONS['gaps']:
+    #         raise ValueError('gaps must be of type mixed, dots, dashes, '
+    #                             'or None')
 
-            inserts = kwargs.get('inserts', 'upper').lower()
-            if(inserts not in FORMAT_OPTIONS['inserts']):
-                raise ValueError('inserts must be of type lower or upper')
+    #     inserts = kwargs.get('inserts', 'upper').lower()
+    #     if(inserts not in FORMAT_OPTIONS['inserts']):
+    #         raise ValueError('inserts must be of type lower or upper')
 
-            order = kwargs.get('order', 'tree').lower()
-            if order not in FORMAT_OPTIONS['order']:
-                raise ValueError('order must be of type tree or alphabetical')
+    #     order = kwargs.get('order', 'tree').lower()
+    #     if order not in FORMAT_OPTIONS['order']:
+    #         raise ValueError('order must be of type tree or alphabetical')
 
-            url = (prefix + 'family/' + acc + '/alignment/'
-                   + alignment + '/format?format=' + align_format +
-                   '&alnType=' + alignment + '&order=' + order[0] +
-                   '&case=' + inserts[0] + '&gaps=' + gaps + '&download=1')
+    #     url = (prefix + 'family/' + acc + '/alignment/'
+    #             + alignment + '/format?format=' + align_format +
+    #             '&alnType=' + alignment + '&order=' + order[0] +
+    #             '&case=' + inserts[0] + '&gaps=' + gaps + '&download=1')
 
     LOGGER.timeit('_pfam')
     timeout = kwargs.get('timeout', 60)
