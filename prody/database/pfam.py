@@ -225,10 +225,13 @@ def searchPfam(query, **kwargs):
     else:
         LOGGER.report('Pfam search completed in %.2fs.', '_pfam')
 
-    if xml.find(b'There was a system error on your last request.') > 0:
+    if PY3K:
+        xml = xml.decode()
+
+    if xml.find('There was a system error on your last request.') > 0:
         LOGGER.warn('No Pfam matches found for: ' + seq)
         return None
-    elif xml.find(b'No valid UniProt accession or ID') > 0:
+    elif xml.find('No valid UniProt accession or ID') > 0:
         try:
             url = prefix + 'protein/' + accession + '?output=xml'
             LOGGER.debug('Retrieving Pfam search results: ' + url)
@@ -236,7 +239,7 @@ def searchPfam(query, **kwargs):
         except:
             raise ValueError('No valid UniProt accession or ID for: ' + seq)
         
-        if xml.find(b'No valid UniProt accession or ID') > 0:
+        if xml.find('No valid UniProt accession or ID') > 0:
             try:
                 ag = parsePDB(seq, subset='ca')
                 ag_seq = ag.getSequence()
