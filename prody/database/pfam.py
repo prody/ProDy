@@ -38,7 +38,8 @@ FORMAT_OPTIONS = ({'format': set([FASTA, SELEX, STOCKHOLM]),
 
 MINSEQLEN = 16
 
-prefix = 'https://pfam.xfam.org/'
+old_prefix = 'https://pfam.xfam.org/'
+prefix = 'https://pfam-legacy.xfam.org/'
 
 def searchPfam(query, **kwargs):
     """Returns Pfam search results in a dictionary.  Matching Pfam accession
@@ -224,10 +225,13 @@ def searchPfam(query, **kwargs):
     else:
         LOGGER.report('Pfam search completed in %.2fs.', '_pfam')
 
-    if xml.find(b'There was a system error on your last request.') > 0:
+    if PY3K:
+        xml = xml.decode()
+
+    if xml.find('There was a system error on your last request.') > 0:
         LOGGER.warn('No Pfam matches found for: ' + seq)
         return None
-    elif xml.find(b'No valid UniProt accession or ID') > 0:
+    elif xml.find('No valid UniProt accession or ID') > 0:
         try:
             url = prefix + 'protein/' + accession + '?output=xml'
             LOGGER.debug('Retrieving Pfam search results: ' + url)
@@ -235,7 +239,7 @@ def searchPfam(query, **kwargs):
         except:
             raise ValueError('No valid UniProt accession or ID for: ' + seq)
         
-        if xml.find(b'No valid UniProt accession or ID') > 0:
+        if xml.find('No valid UniProt accession or ID') > 0:
             try:
                 ag = parsePDB(seq, subset='ca')
                 ag_seq = ag.getSequence()
@@ -267,7 +271,7 @@ def searchPfam(query, **kwargs):
         except IndexError:
             raise ValueError('failed to parse results XML, check URL: ' + url)
     else:
-        key = '{' + prefix + '}'
+        key = '{' + old_prefix + '}'
         results = dictElement(root[0], key)
         try:
             xml_matches = results['matches']
@@ -448,7 +452,7 @@ def parsePfamPDBs(query, data=[], **kwargs):
     that correspond to a particular PFAM domain family. These are defined by 
     alignment start and end residue numbers.
 
-    :arg query: UniProt ID or PDB ID
+    :arg query: Pfam ID, UniProt ID or PDB ID
         If a PDB ID is provided the corresponding UniProt ID is used.
         If this returns multiple matches then start or end must also be provided.
         This query is also used for label refinement of the Pfam domain MSA.
@@ -534,7 +538,7 @@ def parsePfamPDBs(query, data=[], **kwargs):
 
     header = kwargs.pop('header', False)
     model = kwargs.get('model', None)
-    results = parsePDB(*pdb_ids, chain=chains, header=True, **kwargs)
+    results = parsePDB(pdb_ids, chain=chains, header=True, **kwargs)
 
     ags, headers = results
     ags, headers = list(ags), list(headers)
