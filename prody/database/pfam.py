@@ -452,7 +452,7 @@ def parsePfamPDBs(query, data=[], **kwargs):
     that correspond to a particular PFAM domain family. These are defined by 
     alignment start and end residue numbers.
 
-    :arg query: UniProt ID or PDB ID
+    :arg query: Pfam ID, UniProt ID or PDB ID
         If a PDB ID is provided the corresponding UniProt ID is used.
         If this returns multiple matches then start or end must also be provided.
         This query is also used for label refinement of the Pfam domain MSA.
