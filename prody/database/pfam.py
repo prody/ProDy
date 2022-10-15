@@ -538,7 +538,7 @@ def parsePfamPDBs(query, data=[], **kwargs):
 
     header = kwargs.pop('header', False)
     model = kwargs.get('model', None)
-    results = parsePDB(*pdb_ids, chain=chains, header=True, **kwargs)
+    results = parsePDB(pdb_ids, chain=chains, header=True, **kwargs)
 
     ags, headers = results
     ags, headers = list(ags), list(headers)
