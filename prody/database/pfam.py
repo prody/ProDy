@@ -38,6 +38,7 @@ FORMAT_OPTIONS = ({'format': set([FASTA, SELEX, STOCKHOLM]),
 
 MINSEQLEN = 16
 
+old_prefix = 'https://pfam.xfam.org/'
 prefix = 'https://pfam-legacy.xfam.org/'
 
 def searchPfam(query, **kwargs):
@@ -267,7 +268,7 @@ def searchPfam(query, **kwargs):
         except IndexError:
             raise ValueError('failed to parse results XML, check URL: ' + url)
     else:
-        key = '{' + prefix + '}'
+        key = '{' + old_prefix + '}'
         results = dictElement(root[0], key)
         try:
             xml_matches = results['matches']
