@@ -970,9 +970,9 @@ def findSubgroups(tree, c, method='naive', **kwargs):
     return subgroups
 
 
-def findRMSDClusters(rmsd_matrix, c, labels=None):
+def findRMSDClusters(rmsd_matrix, c=3, labels=None):
     """
-    Divide **rmsd_matrix** into clusters using the gromos method and a cutoff **c**.
+    Divide **rmsd_matrix** into clusters using the gromos method and a cutoff **c** A.
     Returns a list of lists with labels divided into clusters.
     """    
     clusters = []
@@ -986,13 +986,10 @@ def findRMSDClusters(rmsd_matrix, c, labels=None):
 
     j = 0
     while len(elements) > 0:
-
-        # do something, which decreases len(elements)
-
         neighbours = []
         num_neighbours = np.zeros(len(elements))
         for i, elem in enumerate(elements):
-            neighbours_i = list(np.array(elements)[list(np.where(useful_rmsd_matrix[i] <= 3)[0])])
+            neighbours_i = list(np.array(elements)[list(np.where(useful_rmsd_matrix[i] <= c)[0])])
             neighbours_i.pop(neighbours_i.index(elem))
             neighbours.append(neighbours_i)
             num_neighbours[i] = len(neighbours_i)
