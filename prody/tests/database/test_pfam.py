@@ -18,7 +18,7 @@ LOGGER.verbosity = 'none'
 
 class TestSearchPfam(unittest.TestCase):
     def setUp(self):
-        self.queries = ['P19491', 'GRIA2_RAT', '6qkc', '6qkcB', '6qkcI', 
+        self.queries = ['P19491', 'GRIA2_RAT', '6qkcB', '6qkcI', 
                         'VQVLLTTIGAFAAFGLMTIAISTDYWLYTRGLTHSGLWRICCLEGLK'\
                             'RGVCVKINHFAEYLLRVVRASSIFPILSAILLLLGGVCVAASR'\
                             'VYKSKRNIILGAGILFVAAGLSNIIGVIVYISANAGKNHYSYG'\
@@ -50,24 +50,11 @@ class TestSearchPfam(unittest.TestCase):
                            ['PF00060', 'PF01094', 'PF10613'],
                            'searchPfam failed to return the right domain family IDs')
         
-    def testPdbIdMulti(self):
-        """Test the outcome of a simple search scenario using a PDB ID
-        containing the same multi-domain protein from taking the first chain by default."""
-
-        a = searchPfam(self.queries[2])
-
-        self.assertIsInstance(a, dict,
-            'searchPfam failed to return a dict instance')
-        
-        self.assertEqual(sorted(list(a.keys())), 
-                           ['PF00060', 'PF01094', 'PF10613'],
-                           'searchPfam failed to return the right domain family IDs')
-        
     def testPdbIdChMulti(self):
         """Test the outcome of a simple search scenario using a PDB ID
         and chain ID for the same multi-domain protein from specifying chain B."""
 
-        a = searchPfam(self.queries[3])
+        a = searchPfam(self.queries[2])
 
         self.assertIsInstance(a, dict,
             'searchPfam failed to return a dict instance')
@@ -80,7 +67,7 @@ class TestSearchPfam(unittest.TestCase):
         """Test the outcome of a simple search scenario using a PDB ID
         and chain ID to get the single domain protein TARP g8 from chain I."""
 
-        a = searchPfam(self.queries[4])
+        a = searchPfam(self.queries[3])
 
         self.assertIsInstance(a, dict,
             'searchPfam failed to return a dict instance')
@@ -93,7 +80,7 @@ class TestSearchPfam(unittest.TestCase):
         """Test the outcome of a simple search scenario using the sequence 
         of the single domain protein TARP g8 from 6qkc chain I."""
 
-        a = searchPfam(self.queries[5])
+        a = searchPfam(self.queries[4])
 
         self.assertIsInstance(a, dict,
             'searchPfam failed to return a dict instance')
