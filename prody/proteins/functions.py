@@ -22,14 +22,14 @@ def view3D(*alist, **kwargs):
     
     GNM/ANM Coloring
     
-    An array of fluctuation values (data) can be provided with the flucts kwarg
+    An array of fluctuation values can be provided with the *data* kwarg
     for visualization of GNM/ANM calculations.  The array is assumed to 
     correpond to a calpha selection of the provided protein.
     The default color will be set to a RWB color scheme on a per-residue
     basis.  If the fluctuation vector contains negative values, the
     midpoint (white) will be at zero.  Otherwise the midpoint is the mean.
     
-    An array of displacement vectors (mode) can be provided with the vecs kwarg.
+    An array of displacement vectors can be provided with the *mode* kwarg.
     The animation of these motions can be controlled with frames (number
     of frames to animate over), amplitude (scaling factor), and animate
     (3Dmol.js animate options).  If animation isn't enabled, by default

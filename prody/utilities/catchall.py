@@ -9,8 +9,9 @@ from .logger import LOGGER
 
 
 __all__ = ['calcTree', 'clusterMatrix', 'showLines', 'showMatrix', 
-           'reorderMatrix', 'findSubgroups', 'findRMSDClusters', 'getCoords',  
-           'getLinkage', 'getTreeFromLinkage', 'clusterSubfamilies']
+           'reorderMatrix', 'findSubgroups', 'getCoords',  
+           'getLinkage', 'getTreeFromLinkage', 'clusterSubfamilies', 
+           'calcRMSDclusters', 'calcGromosClusters', 'calcGromacsClusters']
 
 class LinkageError(Exception):
     pass
@@ -970,20 +971,22 @@ def findSubgroups(tree, c, method='naive', **kwargs):
     return subgroups
 
 
-def findRMSDClusters(rmsd_matrix, c=3, labels=None):
+def calcRMSDclusters(rmsd_matrix, c, labels):
     """
-    Divide **rmsd_matrix** into clusters using the gromos method and a cutoff **c** A.
+    Divide **rmsd_matrix** into clusters using the gromos method 
+    with a cutoff **c** as implemented in gromacs (see 
+    https://manual.gromacs.org/documentation/current/onlinehelp/gmx-cluster.html)
+
     Returns a list of lists with labels divided into clusters.
     """    
     clusters = []
 
     useful_rmsd_matrix = rmsd_matrix
-    elements = labels
-    
-    indices = list(range(len(elements)))
+    indices = list(range(len(rmsd_matrix)))
     if labels is None:
-        labels = indices
-
+        elements = indices
+    else:
+        elements = labels
     j = 0
     while len(elements) > 0:
         neighbours = []
@@ -1013,3 +1016,5 @@ def findRMSDClusters(rmsd_matrix, c=3, labels=None):
 
     return clusters
 
+calcGromosClusters = calcRMSDclusters
+calcGromacsClusters = calcRMSDclusters
