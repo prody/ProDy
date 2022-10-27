@@ -971,7 +971,7 @@ def findSubgroups(tree, c, method='naive', **kwargs):
     return subgroups
 
 
-def calcRMSDclusters(rmsd_matrix, c, labels):
+def calcRMSDclusters(rmsd_matrix, c, labels=None):
     """
     Divide **rmsd_matrix** into clusters using the gromos method 
     with a cutoff **c** as implemented in gromacs (see 
