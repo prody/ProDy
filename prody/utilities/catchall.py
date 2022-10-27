@@ -987,7 +987,7 @@ def calcRMSDclusters(rmsd_matrix, c, labels):
         elements = indices
     else:
         elements = labels
-    j = 0
+
     while len(elements) > 0:
         neighbours = []
         num_neighbours = np.zeros(len(elements))
@@ -1011,8 +1011,6 @@ def calcRMSDclusters(rmsd_matrix, c, labels):
                 elements = np.array(elements)
 
         useful_rmsd_matrix = rmsd_matrix[:, list(indices)][list(indices), :]
-
-        j += 1
 
     return clusters
 
