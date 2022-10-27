@@ -814,7 +814,11 @@ class AtomGroup(Atomic):
             if np.isscalar(data):
                 data = [data] * self._n_atoms
 
-            data = np.asarray(data)
+            if label in self._data.keys():
+                data = np.asarray(data, dtype=self._data[label].dtype)
+            else:
+                data = np.asarray(data)
+
             ndim, dtype, shape = data.ndim, data.dtype, data.shape
 
             if ndim == 1 and dtype == bool:

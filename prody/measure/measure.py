@@ -891,7 +891,7 @@ def assignBlocks(atoms, res_per_block=None, secstr=False, **kwargs):
 
     :arg shortest_block: smallest number of residues to be included 
         in a block before merging with the previous block
-        Default is **2**
+        Default is **4** as smaller numbers can cause problems for distance matrices.
     :type shortest_block: int
 
     :arg longest_block: largest number of residues to be included 
@@ -922,7 +922,7 @@ def assignBlocks(atoms, res_per_block=None, secstr=False, **kwargs):
     if not isinstance(secstr, bool):
         raise TypeError('secstr should be a Boolean')
 
-    shortest_block = kwargs.get('shortest_block', 2)
+    shortest_block = kwargs.get('shortest_block', 4)
     shortest_block = kwargs.get('min_size', shortest_block)
     if not isinstance(shortest_block, Integral):
         raise TypeError("shortest_block should be an integer")

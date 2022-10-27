@@ -379,7 +379,7 @@ class StarLoop:
         self.data = list(self._dict['data'].values())
         self._n_fields = len(self.fields)
         self._n_rows = len(self.data)
-        self._title = dataBlock._title + ' loop ' + str(key)
+        self._title = str(dataBlock._title) + ' loop ' + str(key)
 
     def numRows(self):
         return self._n_rows
@@ -1077,6 +1077,7 @@ def parseSTARSection(lines, key):
         else:
             data = [loop_dict["data"]]
     else:
-        raise ValueError("Could not find {0} in lines.".format(key))
+        LOGGER.warn("Could not find {0} in lines.".format(key))
+        return []
 
     return data
