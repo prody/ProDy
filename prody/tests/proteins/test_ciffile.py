@@ -22,6 +22,7 @@ class TestParseMMCIF(unittest.TestCase):
     def setUp(self):
         """Set MMCIF file data and parse the MMCIF file."""
         self.pdb = DATA_FILES['multi_model_cif']
+        self.no_pdb = DATA_FILES['long_chid_cif']
 
     def testUsualCase(self):
         """Test the outcome of a simple parsing scenario."""
@@ -100,6 +101,18 @@ class TestParseMMCIF(unittest.TestCase):
                         self.pdb['chainA_atoms'],
                         'parseMMCIF failed to parse correct number of atoms '
                         'when chain is specified')
+
+    def testLongChainArgument(self):
+        """Test outcome of valid and invalid *chain* arguments."""
+
+        path = pathDatafile(self.no_pdb['file'])
+        self.assertRaises(TypeError, parseMMCIF, path, chain=['SX0'])
+        self.assertRaises(ValueError, parseMMCIF, path, chain='')
+        self.assertIsNone(parseMMCIF(path, chain='$'))
+        self.assertEqual(parseMMCIF(path, chain='SX0').numAtoms(), 
+                        self.no_pdb['chain_SX0_atoms'],
+                        'parseMMCIF failed to parse correct number of atoms '
+                        'when chain SX0 is specified')
 
     def testSubsetArgument(self):
         """Test outcome of valid and invalid *subset* arguments."""
