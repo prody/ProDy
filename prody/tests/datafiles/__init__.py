@@ -164,6 +164,12 @@ DATA_FILES = {
         'bb_atoms': 144,
         'models': 26,
     },
+    'long_chid_cif': {
+        'pdb': '6zu5',
+        'file': 'mmcif_6zu5.cif',
+        'atoms': 165175,
+        'chain_SX0_atoms': 1089,
+    },
 }
 
 
