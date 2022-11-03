@@ -79,10 +79,13 @@ def prody_energy(*pdbs, **kwargs):
             
             LOGGER.info('\nAnalysing model {0} from {1}'.format(model_num, pdb))
             
-            ag = parsePDB(pdb, model=model_num)
+            if ag.numCoordsets() != 1:
+                ag = parsePDB(pdb, model=model_num)
+                
+            sel = ag.select(selstr)
 
             clu = ClustENM()
-            clu.setAtoms(ag)
+            clu.setAtoms(sel)
             
             clu._sol = sol
             
@@ -153,8 +156,12 @@ Fetch PDB files 1p38 and 1r39 and write backbone atoms in a file:
     subparser.set_defaults(subparser=subparser)
     
     group_energy = subparser.add_argument_group('energy options')
+    
+    group.add_argument('-s', '--select', dest='select', type=str,
+        default='all', metavar='SEL',
+        help='reference structure atom selection  (default: %(default)s)')
 
-    group_energy.add_argument('-s', '--solvent', 
+    group_energy.add_argument('-S', '--solvent',
                               dest='solvent', metavar='STR',
                               type=str, default="imp",
             help=('name of force field for protein in OpenMM (default: %(default)s)'))
@@ -164,7 +171,7 @@ Fetch PDB files 1p38 and 1r39 and write backbone atoms in a file:
                               type=str, default=None,
             help=('name of force field for protein in OpenMM (default: ClustENM default)'))
 
-    group_energy.add_argument('-S', '--force_field_sol', 
+    group_energy.add_argument('-W', '--force_field_sol',
                               dest='force_field_sol', metavar='STR',
                               type=str, default=None,
             help=('name of force field for solvent in OpenMM (default: ClustENM default)'))
