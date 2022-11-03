@@ -26,10 +26,15 @@ def prody_energy(*pdbs, **kwargs):
         default depends on solvent type as in ClustENM
         
     :arg model: model to analyse. Default is use all
+    
+    :arg minimise: whether to energy minimise
+    
+    :arg select: atom selection string, default is "all"
     """
 
     from os.path import isfile
-    from prody import LOGGER, parsePDB, ClustENM
+    from prody import LOGGER, parsePDB, writePDB, ClustENM
+    from numpy import array
 
     if not pdbs:
         raise ValueError('pdb argument must be provided')
@@ -53,6 +58,9 @@ def prody_energy(*pdbs, **kwargs):
     model = kwargs.get('model', 0)
     if model == 0:
         model = None
+        
+    minimise = kwargs.get('minimise', False)
+    selstr = kwargs.get('select', 'all')
     
     force_field = (force_field_protein, force_field_solvent)
     if force_field == (None, None):
@@ -72,10 +80,13 @@ def prody_energy(*pdbs, **kwargs):
             
             LOGGER.info('\nAnalysing model {0} from {1}'.format(model_num, pdb))
             
-            ag = parsePDB(pdb, model=model_num)
+            if ag.numCoordsets() != 1:
+                ag = parsePDB(pdb, model=model_num)
+                
+            sel = ag.select(selstr)
 
             clu = ClustENM()
-            clu.setAtoms(ag)
+            clu.setAtoms(sel)
             
             clu._sol = sol
             
@@ -87,8 +98,19 @@ def prody_energy(*pdbs, **kwargs):
             clu._padding = padding
             
             simulation = clu._prep_sim(clu._atoms.getCoords())
-            state = simulation.context.getState(getEnergy=True)
+            
+            if minimise:
+                from openmm.unit import kilojoule_per_mole, angstrom
+                simulation.minimizeEnergy(tolerance=10.0 * kilojoule_per_mole, maxIterations=0)
+                
+            state = simulation.context.getState(getEnergy=True, getPositions=True)
             energy = state.getPotentialEnergy()._value
+            
+            if minimise:
+                pos = array(state.getPositions().in_units_of(angstrom)._value)
+                struct = clu.getAtoms().copy()
+                struct.setCoords(pos)
+                writePDB(ag.getTitle() + '_minim.pdb', struct)
             
             f.write(str(energy) + " kJ/mol\n")
         
@@ -113,11 +135,11 @@ def addCommand(commands):
         help=('index of model that will be used in the calculations (default: all of them)'))
 
     subparser.set_defaults(usage_example=
-    """This command selects specified atoms and writes them in a PDB file.
+    """This command fixes missing atoms, solvates and writes energies in a txt file.
 
-Fetch PDB files 1p38 and 1r39 and write backbone atoms in a file:
+Fetch PDB files 1p38 and 1r39 and write energies in a file:
 
-  $ prody select backbone 1p38 1r39""",
+  $ prody energy 1p38 1r39""",
     test_examples=[0])
 
 
@@ -141,8 +163,12 @@ Fetch PDB files 1p38 and 1r39 and write backbone atoms in a file:
     subparser.set_defaults(subparser=subparser)
     
     group_energy = subparser.add_argument_group('energy options')
+    
+    group.add_argument('-s', '--select', dest='select', type=str,
+        default='all', metavar='SEL',
+        help='reference structure atom selection  (default: %(default)s)')
 
-    group_energy.add_argument('-s', '--solvent', 
+    group_energy.add_argument('-S', '--solvent',
                               dest='solvent', metavar='STR',
                               type=str, default="imp",
             help=('name of force field for protein in OpenMM (default: %(default)s)'))
@@ -152,8 +178,11 @@ Fetch PDB files 1p38 and 1r39 and write backbone atoms in a file:
                               type=str, default=None,
             help=('name of force field for protein in OpenMM (default: ClustENM default)'))
 
-    group_energy.add_argument('-S', '--force_field_sol', 
+    group_energy.add_argument('-W', '--force_field_sol',
                               dest='force_field_sol', metavar='STR',
                               type=str, default=None,
             help=('name of force field for solvent in OpenMM (default: ClustENM default)'))
+
+    group_energy.add_argument('-M', '--minimise', dest='minimise', action='store_true',
+        default=False, help=('whether to energy minimise (default: %(default)s)'))
     
