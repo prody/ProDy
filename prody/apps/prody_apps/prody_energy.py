@@ -128,11 +128,11 @@ def addCommand(commands):
         help=('index of model that will be used in the calculations (default: all of them)'))
 
     subparser.set_defaults(usage_example=
-    """This command selects specified atoms and writes them in a PDB file.
+    """This command fixes missing atoms, solvates and writes energies in a txt file.
 
-Fetch PDB files 1p38 and 1r39 and write backbone atoms in a file:
+Fetch PDB files 1p38 and 1r39 and write energies in a file:
 
-  $ prody select backbone 1p38 1r39""",
+  $ prody energy 1p38 1r39""",
     test_examples=[0])
 
 
