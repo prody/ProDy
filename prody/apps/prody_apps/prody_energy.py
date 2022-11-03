@@ -33,7 +33,8 @@ def prody_energy(*pdbs, **kwargs):
     """
 
     from os.path import isfile
-    from prody import LOGGER, parsePDB, ClustENM
+    from prody import LOGGER, parsePDB, writePDB, ClustENM
+    from numpy import array
 
     if not pdbs:
         raise ValueError('pdb argument must be provided')
@@ -99,11 +100,17 @@ def prody_energy(*pdbs, **kwargs):
             simulation = clu._prep_sim(clu._atoms.getCoords())
             
             if minimise:
-                from openmm.unit import kilojoule_per_mole
+                from openmm.unit import kilojoule_per_mole, angstrom
                 simulation.minimizeEnergy(tolerance=10.0 * kilojoule_per_mole, maxIterations=0)
                 
-            state = simulation.context.getState(getEnergy=True)
+            state = simulation.context.getState(getEnergy=True, getPositions=True)
             energy = state.getPotentialEnergy()._value
+            
+            if minimise:
+                pos = array(state.getPositions().in_units_of(angstrom)._value)
+                struct = clu.getAtoms().copy()
+                struct.setCoords(pos)
+                writePDB(ag.getTitle() + '_minim.pdb', struct)
             
             f.write(str(energy) + " kJ/mol\n")
         
