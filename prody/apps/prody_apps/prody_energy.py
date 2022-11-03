@@ -26,6 +26,10 @@ def prody_energy(*pdbs, **kwargs):
         default depends on solvent type as in ClustENM
         
     :arg model: model to analyse. Default is use all
+    
+    :arg minimise: whether to energy minimise
+    
+    :arg select: atom selection string, default is "all"
     """
 
     from os.path import isfile
@@ -53,6 +57,9 @@ def prody_energy(*pdbs, **kwargs):
     model = kwargs.get('model', 0)
     if model == 0:
         model = None
+        
+    minimise = kwargs.get('minimise', False)
+    selstr = kwargs.get('select', 'all')
     
     force_field = (force_field_protein, force_field_solvent)
     if force_field == (None, None):
@@ -87,6 +94,11 @@ def prody_energy(*pdbs, **kwargs):
             clu._padding = padding
             
             simulation = clu._prep_sim(clu._atoms.getCoords())
+            
+            if minimise:
+                from openmm.unit import kilojoule_per_mole
+                simulation.minimizeEnergy(tolerance=10.0 * kilojoule_per_mole, maxIterations=0)
+                
             state = simulation.context.getState(getEnergy=True)
             energy = state.getPotentialEnergy()._value
             
@@ -156,4 +168,7 @@ Fetch PDB files 1p38 and 1r39 and write backbone atoms in a file:
                               dest='force_field_sol', metavar='STR',
                               type=str, default=None,
             help=('name of force field for solvent in OpenMM (default: ClustENM default)'))
+
+    group_energy.add_argument('-M', '--minimise', dest='minimise', action='store_true',
+        default=False, help=('whether to energy minimise (default: %(default)s)'))
     
