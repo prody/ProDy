@@ -68,7 +68,11 @@ def prody_energy(*pdbs, **kwargs):
         
         for i in range(ag.numCoordsets()):
             
-            ag = parsePDB(pdb, model=i+1)
+            model_num = i + 1
+            
+            LOGGER.info('\nAnalysing model {0} from {1}'.format(model_num, pdb))
+            
+            ag = parsePDB(pdb, model=model_num)
 
             clu = ClustENM()
             clu.setAtoms(ag)
@@ -89,7 +93,7 @@ def prody_energy(*pdbs, **kwargs):
             f.write(str(energy) + " kJ/mol\n")
         
         f.close()
-        LOGGER.info('Energy is written into: ' + outname)
+        LOGGER.info('\nEnergy is written into: ' + outname + '\n')
 
 
 
