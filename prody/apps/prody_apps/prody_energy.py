@@ -101,6 +101,7 @@ def prody_energy(*pdbs, **kwargs):
             
             if minimise:
                 from openmm.unit import kilojoule_per_mole, angstrom
+                from openmm.app.pdbfile import PDBFile
                 simulation.minimizeEnergy(tolerance=10.0 * kilojoule_per_mole, maxIterations=0)
                 
             state = simulation.context.getState(getEnergy=True, getPositions=True)
@@ -108,9 +109,9 @@ def prody_energy(*pdbs, **kwargs):
             
             if minimise:
                 pos = array(state.getPositions().in_units_of(angstrom)._value)
-                struct = clu.getAtoms().copy()
-                struct.setCoords(pos)
-                writePDB(ag.getTitle() + '_minim.pdb', struct)
+                fo = open(outname + '.pdb', 'w')
+                PDBFile.writeFile(simulation.topology, state.getPositions(), fo)
+                fo.close()
             
             f.write(str(energy) + " kJ/mol\n")
         
@@ -185,4 +186,8 @@ Fetch PDB files 1p38 and 1r39 and write energies in a file:
 
     group_energy.add_argument('-M', '--minimise', dest='minimise', action='store_true',
         default=False, help=('whether to energy minimise (default: %(default)s)'))
-    
+
+    group_energy.add_argument('-b', '--padding', dest='padding',
+                              type=float, metavar='FLOAT', default=1., 
+                              help=('padding distance in nanometers (default: %(default)s)'))
+
