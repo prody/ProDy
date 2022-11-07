@@ -19,6 +19,9 @@ def prody_energy(*pdbs, **kwargs):
     
     :arg padding: padding in nanometers
     
+    :arg boxSize: boxSize array with x, y and z in nanometers
+        If not None then this overrides padding
+
     :arg force_field_protein: name of force field for protein in OpenMM
         default depends on solvent type as in ClustENM
     
@@ -53,6 +56,7 @@ def prody_energy(*pdbs, **kwargs):
         return
         
     padding = kwargs.get('padding', 1.0)
+    boxSize = kwargs.get('boxSize', "None")
     
     force_field_protein = kwargs.get('force_field_protein', None)
     force_field_solvent = kwargs.get('force_field_solvent', None)
@@ -100,6 +104,7 @@ def prody_energy(*pdbs, **kwargs):
                 clu._force_field = ('amber14-all.xml', 'amber14/tip3pfb.xml') if force_field is None else force_field
                 
             clu._padding = padding
+            clu._boxSize = eval(boxSize)
             
             for j in range(repeats):
                 
@@ -196,4 +201,12 @@ Fetch PDB files 1p38 and 1r39 and write energies in a file:
 
     group_energy.add_argument('-M', '--minimise', dest='minimise', action='store_true',
         default=False, help=('whether to energy minimise (default: %(default)s)'))
-    
+
+    group_energy.add_argument('-b', '--padding', dest='padding',
+                              type=float, metavar='FLOAT', default=1., 
+                              help=('padding distance in nanometers (default: %(default)s)'))
+
+    group_energy.add_argument('-B', '--boxSize', dest='boxSize',
+                              type=str, metavar='STR', default="None",
+                              help=('x, y, z of box size in nanometers instead of padding (default: use padding)'))
+
