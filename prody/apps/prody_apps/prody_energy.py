@@ -30,6 +30,8 @@ def prody_energy(*pdbs, **kwargs):
     :arg minimise: whether to energy minimise
     
     :arg select: atom selection string, default is "all"
+
+    :arg repeats: number of repeats
     """
 
     from os.path import isfile
@@ -59,6 +61,8 @@ def prody_energy(*pdbs, **kwargs):
     if model == 0:
         model = None
         
+    repeats = kwargs.get('repeats', 1)
+
     minimise = kwargs.get('minimise', False)
     selstr = kwargs.get('select', 'all')
     
@@ -97,22 +101,25 @@ def prody_energy(*pdbs, **kwargs):
                 
             clu._padding = padding
             
-            simulation = clu._prep_sim(clu._atoms.getCoords())
-            
-            if minimise:
-                from openmm.unit import kilojoule_per_mole, angstrom
-                simulation.minimizeEnergy(tolerance=10.0 * kilojoule_per_mole, maxIterations=0)
+            for j in range(repeats):
                 
-            state = simulation.context.getState(getEnergy=True, getPositions=True)
-            energy = state.getPotentialEnergy()._value
-            
-            if minimise:
-                pos = array(state.getPositions().in_units_of(angstrom)._value)
-                struct = clu.getAtoms().copy()
-                struct.setCoords(pos)
-                writePDB(ag.getTitle() + '_minim.pdb', struct)
-            
-            f.write(str(energy) + " kJ/mol\n")
+                simulation = clu._prep_sim(clu._atoms.getCoords())
+
+                if minimise:
+                    from openmm.unit import kilojoule_per_mole, angstrom
+                    from openmm.app.pdbfile import PDBFile
+                    simulation.minimizeEnergy(tolerance=10.0 * kilojoule_per_mole, maxIterations=0)
+
+                state = simulation.context.getState(getEnergy=True, getPositions=True)
+                energy = state.getPotentialEnergy()._value
+
+                if minimise:
+                    pos = array(state.getPositions().in_units_of(angstrom)._value)
+                    fo = open(outname + '.pdb', 'w')
+                    PDBFile.writeFile(simulation.topology, state.getPositions(), fo)
+                    fo.close()
+
+                f.write(str(energy) + " kJ/mol\n")
         
         f.close()
         LOGGER.info('\nEnergy is written into: ' + outname + '\n')
@@ -133,6 +140,10 @@ def addCommand(commands):
     subparser.add_argument('-m', '--model', dest='model', type=int,
         default=0, metavar='INT',
         help=('index of model that will be used in the calculations (default: all of them)'))
+
+    subparser.add_argument('-r', '--repeats', dest='repeats', type=int,
+        default=1, metavar='INT',
+        help=('number of repeats (default: %(default)s)'))
 
     subparser.set_defaults(usage_example=
     """This command fixes missing atoms, solvates and writes energies in a txt file.
