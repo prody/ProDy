@@ -11,8 +11,10 @@ except ImportError:
 
 from ..apptools import *
 
-#path_prody = imp.find_module('prody')[1]
-path_prody = importlib.util.find_spec("prody").submodule_search_locations[0]
+if sys.version_info[0] == 2:
+    path_prody = imp.find_module('prody')[1]
+else:
+    path_prody = importlib.util.find_spec("prody").submodule_search_locations[0]
 path_apps = imp.find_module('apps', [path_prody])[1]
 path_apps = imp.find_module('prody_apps', [path_apps])[1]
 

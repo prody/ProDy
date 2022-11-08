@@ -372,7 +372,7 @@ def buildPDBEnsemble(atomics, ref=None, title='Unknown', labels=None, atommaps=N
         is below this value will be trimmed
     :type occupancy: float
 
-    :arg atommaps: labels of *atomics* that were mapped and added into the ensemble. This is an 
+    :arg atommaps: atom maps for *atomics* that were mapped and added into the ensemble. This is an 
         output argument
     :type atommaps: list
 

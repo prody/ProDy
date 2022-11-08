@@ -86,6 +86,7 @@ class ClustENM(Ensemble):
 
         self._sol = 'imp'
         self._padding = None
+        self._boxSize = None
         self._ionicStrength = 0.0
         self._force_field = None
         self._tolerance = 10.0
@@ -267,9 +268,14 @@ class ClustENM(Ensemble):
         if self._sol == 'exp':
             forcefield = ForceField(*self._force_field)
 
-            modeller.addSolvent(forcefield,
-                                padding=self._padding*nanometers,
-                                ionicStrength=self._ionicStrength*molar)
+            if self._boxSize:
+                modeller.addSolvent(forcefield,
+                                    ionicStrength=self._ionicStrength*molar,
+                                    boxSize=self._boxSize*nanometers)
+            else:
+                modeller.addSolvent(forcefield,
+                                    padding=self._padding*nanometers,
+                                    ionicStrength=self._ionicStrength*molar)
 
             system = forcefield.createSystem(modeller.topology,
                                              nonbondedMethod=PME,
@@ -1057,6 +1063,7 @@ class ClustENM(Ensemble):
 
         self._sol = solvent if self._nuc is None else 'exp'
         self._padding = kwargs.pop('padding', 1.0)
+        self._boxSize = kwargs.pop('boxSize', None)
         self._ionicStrength = kwargs.pop('ionicStrength', 0.0)
         if self._sol == 'imp':
             self._force_field = ('amber99sbildn.xml', 'amber99_obc.xml') if force_field is None else force_field
