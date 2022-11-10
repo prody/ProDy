@@ -380,15 +380,14 @@ def writeNMD(filename, modes, atoms):
           before it is written. It's length before normalization will be
           written as the scaling factor of the vector."""
 
-    if not '.nmd' in filename:
-        filename += '.nmd'
+    filename = addext(filename, '.nmd')
 
     if not isinstance(modes, (NMA, ModeSet, Mode, Vector)):
         raise TypeError('modes must be NMA, ModeSet, Mode, or Vector, '
                         'not {0}'.format(type(modes)))
     if modes.numAtoms() != atoms.numAtoms():
         raise Exception('number of atoms do not match')
-    out = openFile(addext(filename, '.nmd'), 'w')
+    out = openFile(filename, 'w')
 
     #out.write('#!{0} -e\n'.format(VMDPATH))
     out.write('nmwiz_load {0}\n'.format(abspath(filename)))
