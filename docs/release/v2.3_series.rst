@@ -17,7 +17,7 @@ ProDy 2.2 Series
 * restored matrix option to dfi and dci
 * pfam migrated to pfam-legacy
 * fix to apps for broken imp.find_module
-* various other fixes including to mmCIF parsing
+* various other fixes including to mmCIF parsing and alignments
 
 
 **Full Changelog**: https://github.com/prody/ProDy/compare/v2.2.0...v2.3.0
