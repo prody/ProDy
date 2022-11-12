@@ -1,0 +1,23 @@
+ProDy 2.2 Series
+===============================================================================
+
+.. contents::
+   :local:
+
+2.3.0 (Nov 12, 2022)
+------------------------------------------------------------------------------
+
+**New Features**:
+
+* new Gamma function class from GOdMD
+* added prody energy app based on ClustENM
+
+**Bug Fixes and Improvements**:
+
+* restored matrix option to dfi and dci
+* pfam migrated to pfam-legacy
+* fix to apps for broken imp.find_module
+* various other fixes including to mmCIF parsing
+
+
+**Full Changelog**: https://github.com/prody/ProDy/compare/v2.2.0...v2.3.0
