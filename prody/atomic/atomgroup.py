@@ -1652,8 +1652,7 @@ class AtomGroup(Atomic):
         information."""
 
         if self._bmap is None:
-            raise ValueError('bonds must be set for fragment determination, '
-                             'use `setBonds` or `inferBonds` to set them')
+            return None
 
         fids = np.zeros(self._n_atoms, int)
         fdict = {}
