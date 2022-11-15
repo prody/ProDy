@@ -187,7 +187,7 @@ class TestParsePfamPDBs(unittest.TestCase):
         of ABC class ATPase N-terminal domains (5 members) 
         with the Pfam ID and default parameters."""
 
-        b = parsePfamPDBs(self.queries[0])
+        b = parsePfamPDBs(self.queries[0], timeout=1e6)
 
         self.assertIsInstance(b, list,
             'fetchPfamMSA failed to return a list instance')
@@ -204,7 +204,7 @@ class TestParsePfamPDBs(unittest.TestCase):
         of ABC class ATPase N-terminal domains (5 members) 
         with the Uniprot long ID and default parameters."""
 
-        b = parsePfamPDBs(self.queries[1])
+        b = parsePfamPDBs(self.queries[1], timeout=1e6)
 
         self.assertIsInstance(b, list,
             'fetchPfamMSA failed to return a list instance')
@@ -221,7 +221,7 @@ class TestParsePfamPDBs(unittest.TestCase):
         which has two domains but few relatives. Default parameters should 
         return Selection objects containing the first domain."""
 
-        b = parsePfamPDBs(self.queries[2])
+        b = parsePfamPDBs(self.queries[2], timeout=1e6)
 
         self.assertIsInstance(b, list,
             'fetchPfamMSA failed to return a list instance')
@@ -240,7 +240,7 @@ class TestParsePfamPDBs(unittest.TestCase):
         which has two domains but few relatives. Using start=1 should be like default and 
         return Selection objects containing the first domain."""
 
-        b = parsePfamPDBs(self.queries[2], start=1)
+        b = parsePfamPDBs(self.queries[2], start=1, timeout=1e6)
 
         self.assertIsInstance(b, list,
             'fetchPfamMSA failed to return a list instance')
@@ -259,7 +259,7 @@ class TestParsePfamPDBs(unittest.TestCase):
         which has two domains but few relatives. Setting start to 418 should 
         return Selection objects containing the second domain."""
 
-        b = parsePfamPDBs(self.queries[2], start=418)
+        b = parsePfamPDBs(self.queries[2], start=418, timeout=1e6)
 
         self.assertIsInstance(b, list,
             'fetchPfamMSA failed to return a list instance')
