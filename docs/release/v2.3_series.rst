@@ -10,6 +10,8 @@ ProDy 2.3 Series
 **Bug Fixes and Improvements**:
 
 * use of 4-char hybrid36 (residue version) for biomol segnames 
+* remove pfam tests
+* remove python 3.5 support
 
 2.3.0 (Nov 12, 2022)
 ------------------------------------------------------------------------------
