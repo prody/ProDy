@@ -11,8 +11,8 @@ if sys.version_info[:2] < (2, 7):
     sys.exit()
 
 if sys.version_info[0] == 3:
-    if sys.version_info[1] < 4:
-        sys.stderr.write('Python 3.4 and older is not supported\n')
+    if sys.version_info[1] < 6:
+        sys.stderr.write('Python 3.5 and older is not supported\n')
         sys.exit()
 
 try:
