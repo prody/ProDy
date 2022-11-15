@@ -478,7 +478,7 @@ def parsePfamPDBs(query, data=[], **kwargs):
     if len(query) > 4 and query.startswith('PF'):
         pfam_acc = query
     else:
-        pfam_matches = searchPfam(query)
+        pfam_matches = searchPfam(query, **kwargs)
         keys = list(pfam_matches.keys())
 
         if isinstance(start, Integral):
