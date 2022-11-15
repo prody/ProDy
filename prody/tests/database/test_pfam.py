@@ -35,7 +35,7 @@ class TestSearchPfam(unittest.TestCase):
         """Test the outcome of a simple search scenario using a Uniprot Accession 
         for a multi-domain protein, AMPAR GluA2."""
 
-        a = searchPfam(self.queries[0])
+        a = searchPfam(self.queries[0], timeout=1e6)
 
         self.assertIsInstance(a, dict,
             'searchPfam failed to return a dict instance')
@@ -48,7 +48,7 @@ class TestSearchPfam(unittest.TestCase):
         """Test the outcome of a simple search scenario using a Uniprot ID
         for a multi-domain protein, AMPAR GluA2."""
 
-        a = searchPfam(self.queries[1])
+        a = searchPfam(self.queries[1], timeout=1e6)
 
         self.assertIsInstance(a, dict,
             'searchPfam failed to return a dict instance')
@@ -61,7 +61,7 @@ class TestSearchPfam(unittest.TestCase):
         """Test the outcome of a simple search scenario using a PDB ID
         and chain ID for the same multi-domain protein from specifying chain B."""
 
-        a = searchPfam(self.queries[2])
+        a = searchPfam(self.queries[2], timeout=1e6)
 
         self.assertIsInstance(a, dict,
             'searchPfam failed to return a dict instance')
@@ -74,7 +74,7 @@ class TestSearchPfam(unittest.TestCase):
         """Test the outcome of a simple search scenario using a PDB ID
         and chain ID to get the single domain protein TARP g8 from chain I."""
 
-        a = searchPfam(self.queries[3])
+        a = searchPfam(self.queries[3], timeout=1e6)
 
         self.assertIsInstance(a, dict,
             'searchPfam failed to return a dict instance')
@@ -87,7 +87,7 @@ class TestSearchPfam(unittest.TestCase):
         """Test the outcome of a simple search scenario using the sequence 
         of the single domain protein TARP g8 from 6qkc chain I."""
 
-        a = searchPfam(self.queries[4])
+        a = searchPfam(self.queries[4], timeout=1e6)
 
         self.assertIsInstance(a, dict,
             'searchPfam failed to return a dict instance')
