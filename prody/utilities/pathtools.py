@@ -227,7 +227,7 @@ def gunzip(filename, outname=None):
         result = None
         try:
             from StringIO import StringIO
-        except ImportError:
+        except (ImportError, ModuleNotFoundError):
             from io import BytesIO
             buff = gzip_open(BytesIO(filename))
             if outname is None:
