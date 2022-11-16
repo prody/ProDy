@@ -1530,8 +1530,8 @@ def writePDB(filename, atoms, csets=None, autoext=True, **kwargs):
     :type renumber: bool
     """
 
-    if not (filename.endswith('.pdb') or filename.endswith('.pdb.gz') or
-            filename.endswith('.ent') or filename.endswith('.ent.gz')):
+    if not (filename.lower().endswith('.pdb') or filename.lower().endswith('.pdb.gz') or
+            filename.lower().endswith('.ent') or filename.lower().endswith('.ent.gz')):
         filename += '.pdb'
     out = openFile(filename, 'wt')
     writePDBStream(out, atoms, csets, **kwargs)

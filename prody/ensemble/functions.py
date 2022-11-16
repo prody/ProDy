@@ -73,9 +73,9 @@ def saveEnsemble(ensemble, filename=None, **kwargs):
 
     attr_dict['_type'] = ensemble.__class__.__name__
 
-    if filename.endswith('.ens'):
+    if filename.lower().endswith('.ens'):
         filename += '.npz'
-    if not filename.endswith('.npz'):
+    if not filename.lower().endswith('.npz'):
         filename += '.ens.npz'
     ostream = openFile(filename, 'wb', **kwargs)
     np.savez(ostream, **attr_dict)
