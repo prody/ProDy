@@ -380,7 +380,7 @@ def writeNMD(filename, modes, atoms):
           before it is written. It's length before normalization will be
           written as the scaling factor of the vector."""
 
-    if not filename.endswith(".nmd"):
+    if not filename.lower().endswith(".nmd"):
         filename += '.nmd'
 
     if not isinstance(modes, (NMA, ModeSet, Mode, Vector)):
