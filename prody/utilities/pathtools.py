@@ -207,11 +207,11 @@ def gunzip(filename, outname=None):
 
     if afile:
         if outname is None:
-            if filename.endswith('.gz'):
+            if filename.lower().endswith('.gz'):
                 outname = filename[:-3]
-            elif filename.endswith('.tgz'):
+            elif filename.lower().endswith('.tgz'):
                 outname = filename[:-4] + '.tar'
-            elif filename.endswith('.gzip'):
+            elif filename.lower().endswith('.gzip'):
                 outname = filename[:-5]
             else:
                 outname = filename
