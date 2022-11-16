@@ -926,6 +926,9 @@ class AtomGroup(Atomic):
         """Set atom *flags* for *label*."""
 
         label = checkLabel(label)
+        if np.isscalar(flags):
+            flags = np.array([flags] * self._n_atoms)
+
         try:
             ndim, dtype = flags.ndim, flags.dtype
         except AttributeError:
