@@ -1617,7 +1617,7 @@ def writePQRStream(stream, atoms, **kwargs):
             for item2 in sorted_sheet[i-num_strands:i]:
                 item2.append(num_strands)
 
-    num_strands = item1[1]
+    num_strands = len(num_strands_list)
     for item2 in sorted_sheet[i-num_strands+1:]:
         item2.append(num_strands)
 
