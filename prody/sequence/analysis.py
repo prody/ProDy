@@ -933,12 +933,10 @@ def showAlignment(alignment, **kwargs):
 def alignSequenceToMSA(seq, msa, **kwargs):
     """
     Align a sequence from a PDB or Sequence to a sequence from an MSA
-    and create two sets of indices. 
-
-    The sequence from the MSA (*seq*), the alignment and 
-    the two sets of indices are returned. 
+    and create two sets of indices. The resulting MSA and the two sets 
+    of indices are returned. 
     
-    The first set (*indices*) maps the residue numbers in the PDB to 
+    The first set (*seq_indices*) maps the residue indices in the PDB to 
     the reference sequence. The second set (*msa_indices*) indexes the 
     reference sequence in the msa and is used for retrieving values 
     from the first indices.
@@ -1090,6 +1088,7 @@ def alignSequenceToMSA(seq, msa, **kwargs):
     seq_indices = [0]
     msa_indices = [0]
 
+    running_msa_idx = 0
     for i in range(len(alignment[0][0])):
         if alignment[0][0][i] != '-':
             seq_indices.append(seq_indices[i]+1)
@@ -1097,9 +1096,14 @@ def alignSequenceToMSA(seq, msa, **kwargs):
             seq_indices.append(seq_indices[i])
 
         if alignment[0][1][i] != '-':
-            msa_indices.append(msa_indices[i]+1)
+            running_msa_idx += 1
+            if alignment[0][1][i] != '.':
+                msa_indices.append(running_msa_idx)
+            else:
+                msa_indices.append(msa_indices[i])
         else:
             msa_indices.append(msa_indices[i])
+            running_msa_idx = msa_indices[i]
 
     seq_indices.pop(0) # The first element was extra for initialisation
     msa_indices.pop(0) # The first element was extra for initialisation
@@ -1108,7 +1112,7 @@ def alignSequenceToMSA(seq, msa, **kwargs):
     msa_indices = array(msa_indices)
 
     if ag:
-        seq_indices += ag.getResnums()[0] - 1
+        seq_indices += ag.getResindices()[0] - 1
 
     alignment = MSA(msa=array([array(list(alignment[0][0])), \
                                array(list(alignment[0][1]))]), \
@@ -1157,6 +1161,7 @@ def alignTwoSequencesWithBiopython(seq1, seq2, **kwargs):
     seq_indices = [0]
     msa_indices = [0]
 
+    running_msa_idx = 0
     for i in range(len(alignment[0][0])):
         if alignment[0][0][i] != '-':
             seq_indices.append(seq_indices[i]+1)
@@ -1164,9 +1169,14 @@ def alignTwoSequencesWithBiopython(seq1, seq2, **kwargs):
             seq_indices.append(seq_indices[i])
 
         if alignment[0][1][i] != '-':
-            msa_indices.append(msa_indices[i]+1)
+            running_msa_idx += 1
+            if alignment[0][1][i] != '.':
+                msa_indices.append(running_msa_idx)
+            else:
+                msa_indices.append(msa_indices[i])
         else:
             msa_indices.append(msa_indices[i])
+            running_msa_idx = msa_indices[i]
 
     seq_indices = array(seq_indices)
     msa_indices = array(msa_indices)
@@ -1186,11 +1196,13 @@ def trimAtomsUsingMSA(atoms, msa, **kwargs):
     :arg msa: a multiple sequence alignment
     :type msa: :class:`.MSA`
     """
+    first_chid = atoms.getChids()[0]
+    chain = kwargs.get('chain', first_chid)
+    
     aln, idx_1, idx_2 = alignSequenceToMSA(atoms, msa, **kwargs)
 
     u, i = unique(idx_2, return_index=True)
 
-    resnums_str = ' '.join([str(x) for x in idx_1[i]])
-    chain = kwargs.get('chain', 'A')
+    residx_str = ' '.join([str(x) for x in idx_1[i[1:]]])
 
-    return atoms.select('chain {0} and resnum {1}'.format(chain, resnums_str))
+    return atoms.select('chain {0} and resindex {1}'.format(chain, residx_str))

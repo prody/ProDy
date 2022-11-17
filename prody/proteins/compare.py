@@ -26,7 +26,7 @@ if PY3K:
     basestring = str
 
 __all__ = ['matchChains', 'matchAlign', 'mapChainOntoChain', 'mapOntoChain', 'alignChains',
-           'mapOntoChains', 'bestMatch', 'sameChid', 'userDefined', 
+           'mapOntoChains', 'bestMatch', 'sameChid', 'userDefined', 'sameChainPos',
            'mapOntoChainByAlignment', 'getMatchScore', 'setMatchScore',
            'getMismatchScore', 'setMismatchScore', 'getGapPenalty', 
            'setGapPenalty', 'getGapExtPenalty', 'setGapExtPenalty',
@@ -793,13 +793,17 @@ def getAlignedMatch(ach, bch):
                                              GAP_PENALTY, GAP_EXT_PENALTY,
                                              one_alignment_only=1)
 
-    this = alignment[0][0]
-    that = alignment[0][1]
     amatch = []
     bmatch = []
+    match = 0.0
+    try:
+        this = alignment[0][0]
+        that = alignment[0][1]
+    except IndexError:
+        LOGGER.warning('Matching chains resulted in empty alignment.')
+        return amatch, bmatch, match
     aiter = ach.__iter__()
     biter = bch.__iter__()
-    match = 0.0
     for i in range(len(this)):
         a = this[i]
         b = that[i]
@@ -1146,6 +1150,17 @@ def userDefined(chain1, chain2, correspondence):
 
 def sameChid(chain1, chain2):
     return chain1.getChid() == chain2.getChid()
+
+def sameChainPos(chain1, chain2):
+    chids_arr1 = np.array([chain.getChid() 
+                           for chain in list(chain1.getAtomGroup().getHierView())])
+    position1 = np.where(chids_arr1 == chain1.getChid())[0][0]
+    
+    chids_arr2 = np.array([chain.getChid() 
+                           for chain in list(chain2.getAtomGroup().getHierView())])
+    position2 = np.where(chids_arr2 == chain2.getChid())[0][0]
+                         
+    return position1 == position2
 
 def bestMatch(chain1, chain2):
     return True

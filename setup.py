@@ -11,14 +11,14 @@ if sys.version_info[:2] < (2, 7):
     sys.stderr.write('Python 2.6 and older is not supported\n')
     sys.exit()
 
-if sys.version_info[:2] == (2, 7):
+if sys.version_info[:2] == (2, 7) or sys.version_info[:2] <= (3, 5):
     INSTALL_REQUIRES=['numpy>=1.10', 'biopython<=1.76', 'pyparsing', 'scipy']
 else:
-    INSTALL_REQUIRES=['numpy>=1.10', 'biopython<=1.76', 'pyparsing', 'scipy']
+    INSTALL_REQUIRES=['numpy>=1.10', 'biopython', 'pyparsing', 'scipy']
 
 if sys.version_info[0] == 3:
-    if sys.version_info[1] < 5:
-        sys.stderr.write('Python 3.4 and older is not supported\n')
+    if sys.version_info[1] < 6:
+        sys.stderr.write('Python 3.5 and older is not supported\n')
         sys.exit()
 
 if os.name == 'java':

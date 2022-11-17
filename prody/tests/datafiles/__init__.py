@@ -164,6 +164,36 @@ DATA_FILES = {
         'bb_atoms': 144,
         'models': 26,
     },
+    'long_chid_cif': {
+        'pdb': '6zu5',
+        'file': 'mmcif_6zu5.cif',
+        'atoms': 165175,
+        'chain_SX0_atoms': 1089,
+    },
+    '3hsy': {
+        'pdb': '3hsy',
+        'file': 'pdb3hsy.pdb',
+        'atoms': 6058,
+        'ca_atoms': 730,
+        'models': 1,
+        'biomols': 1
+    },
+    '3o21': {
+        'pdb': '3o21',
+        'file': 'pdb3o21.pdb',
+        'atoms': 12793,
+        'ca_atoms': 1489,
+        'models': 1,
+        'biomols': 2
+    },
+    '3p3w': {
+        'pdb': '3p3w',
+        'file': 'pdb3p3w.pdb',
+        'atoms': 11484,
+        'ca_atoms': 1482,
+        'models': 1,
+        'biomols': 2
+    },
 }
 
 
