@@ -1482,11 +1482,6 @@ class AtomGroup(Atomic):
             return np.array([Acceptor(self, acceptor, acsi) for acceptor in self._acceptors])
         return None
 
-    def getAtomGroup(self):
-        """Returns itself."""
-
-        return self
-
     def iterAcceptors(self):
         """Yield acceptors.  Use :meth:`setAcceptors` for setting acceptors."""
 
