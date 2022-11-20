@@ -13,7 +13,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["2.7", "3.6", "3.9", "3.10", "3.11"]
+        python-version: ["2.7.18", "3.6.15", "3.9", "3.10", "3.11"]
 
     steps:
     - uses: actions/checkout@v2
@@ -30,7 +30,7 @@ jobs:
         conda create --yes -n test python=${{ matrix.python-version }}
         source activate test
         conda install --yes numpy scipy nose pyparsing biopython requests
-        if [[ ${{ matrix.python-version }} == "2.7" ]]; then conda install --yes unittest2; fi
+        if [[ ${{ matrix.python-version }} == "2.7.18" ]]; then conda install --yes unittest2; fi
         python setup.py build_ext --inplace --force
     - name: Test with pytest
       run: |
