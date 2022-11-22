@@ -162,13 +162,13 @@ def view3D(*alist, **kwargs):
     # setting styles ...
     view.setBackgroundColor(bgcolor)
 
-    if n_modes:
+    if n_modes and anim:
         #create vibrations
         view.vibrate(frames, scale)
         
         animate = kwargs.get('animate', {'loop':'rock', 'interval':interval})
         view.animate(animate)     
-        
+
     if isinstance(style, dict):
         style = ({}, style)
     if isinstance(style, tuple):
