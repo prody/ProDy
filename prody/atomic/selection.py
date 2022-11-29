@@ -27,12 +27,15 @@ class Selection(AtomSubset):
         kwargs['selstr'] = selstr
         AtomSubset.__init__(self, ag, indices, acsi, **kwargs)
 
-        selpdbter_flags = self.getFlags('pdbter')
-        if selpdbter_flags is not None:
+        if self._getFlags('pdbter') is not None:
+            selpdbter_flags = self.getFlags('pdbter')
+
             for i in ag._getSubset('pdbter'):
                 if not i in indices:
                     selpdbter_flags[where(indices < i)[0][-1]] = True
-                
+        else:
+            selpdbter_flags = None
+
         self.setFlags('selpdbter', selpdbter_flags)
 
     def __repr__(self):

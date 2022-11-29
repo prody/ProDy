@@ -1514,10 +1514,10 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
                                     segments[i], elements[i], charges2[i]))
 
             if isinstance(atoms, AtomGroup):
-                if atoms.getFlags('pdbter') is not None and atoms.getFlags('pdbter')[i]:
+                if atoms._getFlags('pdbter') is not None and atoms.getFlags('pdbter')[i]:
                     write('TER\n')
             else:
-                if atoms.getFlags('selpdbter') is not None and atoms.getFlags('selpdbter')[i]:
+                if atoms._getFlags('selpdbter') is not None and atoms.getFlags('selpdbter')[i]:
                     write('TER\n')
 
         if multi:
