@@ -3,6 +3,7 @@
 of atom."""
 
 from .subset import AtomSubset
+from numpy import where
 
 __all__ = ['Selection']
 
@@ -25,6 +26,14 @@ class Selection(AtomSubset):
 
         kwargs['selstr'] = selstr
         AtomSubset.__init__(self, ag, indices, acsi, **kwargs)
+
+        selpdbter_flags = self.getFlags('pdbter')
+        if selpdbter_flags is not None:
+            for i in ag._getSubset('pdbter'):
+                if not i in indices:
+                    selpdbter_flags[where(indices < i)[0][-1]] = True
+                
+        self.setFlags('selpdbter', selpdbter_flags)
 
     def __repr__(self):
 
