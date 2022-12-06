@@ -1368,7 +1368,9 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
         torf_all_sheets = isSheet(secstrs)
         sheet_secids = secids[torf_all_sheets]
 
-        for sheet_id in np.unique(sheet_secids):
+        unique_sheet_secids, indices = np.unique(sheet_secids, return_index=True)
+        unique_sheet_secids = unique_sheet_secids[indices.argsort()]
+        for sheet_id in unique_sheet_secids:
             torf_strands_in_sheet = np.logical_and(torf_all_sheets, secids==sheet_id)
             strand_indices = secindices[torf_strands_in_sheet]
             numStrands = len(np.unique(strand_indices))
@@ -1612,21 +1614,20 @@ def writePQRStream(stream, atoms, **kwargs):
         write(format_helix(*line))
 
 
-    sorted_sheet = sorted(sheet, key=lambda item: (item[2], item[1]))
     sheet_prev = 'A'
     num_strands_list = []
-    for i, item1 in enumerate(sorted_sheet):
+    for i, item1 in enumerate(sheet):
         if item1[2] != sheet_prev:
-            num_strands = sorted_sheet[i-1][1]
+            num_strands = sheet[i-1][1]
             num_strands_list.append(num_strands)
 
             sheet_prev = item1[2]
 
-            for item2 in sorted_sheet[i-num_strands:i]:
+            for item2 in sheet[i-num_strands:i]:
                 item2.append(num_strands)
 
     num_strands = len(num_strands_list)
-    for item2 in sorted_sheet[i-num_strands+1:]:
+    for item2 in sheet[i-num_strands+1:]:
         item2.append(num_strands)
 
     format_sheet = ('{0:6s} {1:3d} {2:3s}{12:2d} ' +
@@ -1634,7 +1635,7 @@ def writePQRStream(stream, atoms, **kwargs):
                     '{7:3s} {8:1s}{9:4d}{10:1s}' +
                     '{11:2d}\n').format
 
-    for i, line in enumerate(sorted_sheet):
+    for i, line in enumerate(sheet):
         write(format_sheet(*line))
 
     resnames = atoms._getResnames()
