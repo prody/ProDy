@@ -841,6 +841,7 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
                 atomgroup.setChids(chainids)
                 atomgroup.setFlags('hetatm', hetero)
                 atomgroup.setFlags('pdbter', termini)
+                atomgroup.setFlags('selpdbter', termini)
                 atomgroup.setAltlocs(altlocs)
                 atomgroup.setIcodes(np.char.strip(icodes))
                 atomgroup.setSerials(serials)
@@ -952,6 +953,7 @@ def _parsePDBLines(atomgroup, lines, split, model, chain, subset,
         atomgroup.setChids(chainids)
         atomgroup.setFlags('hetatm', hetero)
         atomgroup.setFlags('pdbter', termini)
+        atomgroup.setFlags('selpdbter', termini)
         atomgroup.setAltlocs(altlocs)
         atomgroup.setIcodes(np.char.strip(icodes))
         atomgroup.setSerials(serials)
@@ -1511,12 +1513,18 @@ def writePDBStream(stream, atoms, csets=None, **kwargs):
                                     anisou[3], anisou[4], anisou[5],
                                     segments[i], elements[i], charges2[i]))
 
-            if atoms.getFlags('pdbter') is not None and atoms.getFlags('pdbter')[i]:
-                write('TER\n')
+            if isinstance(atoms, AtomGroup):
+                if atoms._getFlags('pdbter') is not None and atoms.getFlags('pdbter')[i]:
+                    write('TER\n')
+            else:
+                if atoms._getFlags('selpdbter') is not None and atoms.getFlags('selpdbter')[i]:
+                    write('TER\n')
 
         if multi:
             write('ENDMDL\n')
             altlocs = np.zeros(n_atoms, s_or_u + '1')
+            
+    write('END\n')
 
 writePDBStream.__doc__ += _writePDBdoc
 
