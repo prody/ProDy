@@ -404,6 +404,7 @@ def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
     atomgroup.setChids(chainids[:modelSize])
     atomgroup.setFlags('hetatm', hetero[:modelSize])
     atomgroup.setFlags('pdbter', termini[:modelSize])
+    atomgroup.setFlags('selpdbter', termini[:modelSize])
     atomgroup.setAltlocs(altlocs[:modelSize])
     atomgroup.setIcodes(icodes[:modelSize])
     atomgroup.setSerials(serials[:modelSize])
