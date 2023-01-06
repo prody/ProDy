@@ -85,7 +85,8 @@ PACKAGE_DATA = {
                     'datafiles/*.coo',
                     'datafiles/dcd*.dcd',
                     'datafiles/xml*.xml',
-                    'datafiles/msa*',]
+                    'datafiles/msa*',
+                    'datafiles/mmcif*cif',]
 }
 
 PACKAGE_DIR = {}
