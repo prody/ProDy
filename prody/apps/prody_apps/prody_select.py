@@ -83,7 +83,7 @@ Fetch PDB files 1p38 and 1r39 and write backbone atoms in a file:
         type=str, help=('output filename prefix (default: PDB filename)'))
 
     group.add_argument('-L', '--altloc', dest='altloc', metavar='STR',
-        type=str, help=('altloc (default: "A")'))
+        type=str, help=('altloc (default: None (take all))'))
 
     group.add_argument('-x', '--suffix', dest='suffix', metavar='STR',
         type=str, default='_selected',
