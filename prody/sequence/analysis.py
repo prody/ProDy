@@ -748,7 +748,7 @@ def buildMSA(sequences, title='Unknown', labels=None, **kwargs):
     """
     
     align = kwargs.get('align', True)
-    method = kwargs.pop('method', 'clustalw')
+    method = kwargs.get('method', 'clustalw')
     # 1. check if sequences are in a fasta file and if not make one
     if isinstance(sequences, str):
         filename = sequences
@@ -808,19 +808,20 @@ def buildMSA(sequences, title='Unknown', labels=None, **kwargs):
         # 2. find and run alignment method
         if method in ['biopython', 'local', 'global']:
             if len(sequences) == 2:
-                msa, _, _ = alignTwoSequencesWithBiopython(sequences[0], sequences[1], **kwargs)
+                msa, _, _ = alignTwoSequencesWithBiopython(str(msa[0]).replace("-", ""),
+                                                           str(msa[1]).replace("-", ""), **kwargs)
             else:
-                raise ValueError("Provide only two sequences or another method. \
-                                  Biopython pairwise alignment can only be used \
-                                  to build an MSA with two sequences.")
+                raise ValueError("Provide only two sequences or another method. "
+                                 "Biopython pairwise alignment can only be used "
+                                 "to build an MSA with two sequences.")
         elif 'clustalw' in method:
             clustalw = which('clustalw')
             if clustalw is None:
                 if which('clustalw2') is not None:
                     clustalw = which('clustalw2')
                 else:
-                    raise EnvironmentError("The executable for clustalw was not found, \
-                                            install clustalw or add it to the path.")
+                    raise EnvironmentError("The executable for clustalw was not found, "
+                                            "install clustalw or add it to the path.")
 
             os.system('"%s" %s -OUTORDER=INPUT'%(clustalw, filename))
 
