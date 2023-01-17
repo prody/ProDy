@@ -27,6 +27,7 @@ jobs:
     - name: Install dependencies
       run: |
         if [[ ${{ matrix.python-version }} == "3.11" ]]; then conda config --add channels conda-forge; fi
+        if [[ ${{ matrix.python-version }} == "3.6" ]]; then conda config --add channels conda-forge; fi
         conda create --yes -n test python=${{ matrix.python-version }}
         source activate test
         conda install --yes numpy scipy nose pyparsing biopython requests
