@@ -32,6 +32,7 @@ jobs:
         source activate test
         conda install --yes numpy scipy nose pyparsing biopython requests
         if [[ ${{ matrix.python-version }} == "2.7" ]]; then conda install --yes unittest2; fi
+        python setup.py install
         python setup.py build_ext --inplace --force
     - name: Test with pytest
       run: |
