@@ -74,23 +74,7 @@ def alignBioPairwise(a_sequence, b_sequence,
 
     try:
         from Bio.Align import PairwiseAligner
-    except ImportError:
-        from Bio.pairwise2.align import localms
-        from Bio.pairwise2.align import globalms
-
-        if ALIGNMENT_METHOD == "local":
-            return localms(a_sequence, b_sequence,
-                           MATCH_SCORE, MISMATCH_SCORE,
-                           GAP_PENALTY, GAP_EXT_PENALTY,
-                           one_alignment_only=1)
-        elif ALIGNMENT_METHOD == "global":
-            return globalms(a_sequence, b_sequence,
-                           MATCH_SCORE, MISMATCH_SCORE,
-                           GAP_PENALTY, GAP_EXT_PENALTY,
-                           one_alignment_only=1)
-        else:
-            raise ValueError("method should be local or global")
-    else:
+        
         aligner = PairwiseAligner()
         aligner.mode = ALIGNMENT_METHOD
         aligner.match_score = MATCH_SCORE
@@ -113,3 +97,20 @@ def alignBioPairwise(a_sequence, b_sequence,
             return [results[0]]
         else:
             return results
+        
+    except (ImportError, AttributeError):
+        from Bio.pairwise2.align import localms
+        from Bio.pairwise2.align import globalms
+
+        if ALIGNMENT_METHOD == "local":
+            return localms(a_sequence, b_sequence,
+                           MATCH_SCORE, MISMATCH_SCORE,
+                           GAP_PENALTY, GAP_EXT_PENALTY,
+                           one_alignment_only=1)
+        elif ALIGNMENT_METHOD == "global":
+            return globalms(a_sequence, b_sequence,
+                           MATCH_SCORE, MISMATCH_SCORE,
+                           GAP_PENALTY, GAP_EXT_PENALTY,
+                           one_alignment_only=1)
+        else:
+            raise ValueError("method should be local or global")
