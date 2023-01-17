@@ -3,7 +3,8 @@
 import re
 
 __all__ = ['MATCH_SCORE', 'MISMATCH_SCORE', 'GAP_PENALTY',
-           'GAP_EXT_PENALTY', 'ALIGNMENT_METHOD', 'splitSeqLabel']
+           'GAP_EXT_PENALTY', 'ALIGNMENT_METHOD', 'splitSeqLabel',
+           'alignBioPairwise']
 
 MATCH_SCORE = 1.0
 MISMATCH_SCORE = 0.0
