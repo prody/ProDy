@@ -143,6 +143,9 @@ DATA_FILES = {
     'DI': {
         'file': 'msa_Cys_knot_di.dat'
     },
+    'MSA': {
+        'file': 'msa_3hsyA_3o21A.fasta'
+    },
     'RTER': {
         'file': 'pdbRTER.pdb'
     },
