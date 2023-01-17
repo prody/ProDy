@@ -273,6 +273,14 @@ def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
             if foundAtomBlock:
                 doneAtomBlock = True
                 stop = i
+                
+        if i == len(lines) - 1:
+            if foundAtomBlock:
+                doneAtomBlock = True
+                stop = i
+            else:
+                raise MMCIFParseError('mmCIF file contained no atoms.')
+
         i += 1
 
     new_start = start
@@ -332,10 +340,26 @@ def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
     for line in lines[start:stop]:
         startswith = line.split()[fields['group_PDB']]
 
-        atomname = line.split()[fields['auth_atom_id']]
+        try:
+            atomname = line.split()[fields['auth_atom_id']]
+        except KeyError:
+            try:
+                atomname = line.split()[fields['label_atom_id']]
+            except KeyError:
+                raise MMCIFParseError('mmCIF file is missing required atom IDs.')
+ 
+
         if atomname.startswith('"') and atomname.endswith('"'):
             atomname = atomname[1:-1]
-        resname = line.split()[fields['auth_comp_id']]
+        
+        try:
+            resname = line.split()[fields['auth_comp_id']]
+        except KeyError:
+            try:
+                resname = line.split()[fields['label_comp_id']]
+            except KeyError:
+                raise MMCIFParseError('mmCIF file is missing required component IDs.')
+                
 
         if subset is not None:
             if not (atomname in subset and resname in protein_resnames):
@@ -362,10 +386,18 @@ def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
                                line.split()[fields['Cartn_z']]]
         atomnames[acount] = atomname
         resnames[acount] = resname
-        resnums[acount] = line.split()[fields['auth_seq_id']]
         chainids[acount] = chID
         segnames[acount] = segID
         hetero[acount] = startswith == 'HETATM' # True or False
+
+        try:
+            resnums[acount] = line.split()[fields['auth_seq_id']]
+        except KeyError:
+            try:
+                resnums[acount] = line.split()[fields['label_seq_id']]
+            except KeyError:
+                raise MMCIFParseError('mmCIF file is missing required sequence IDs.')
+
 
         if chainids[acount] != chainids[acount-1]: 
             termini[acount-1] = True
