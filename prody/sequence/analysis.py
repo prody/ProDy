@@ -12,6 +12,7 @@ from numpy import indices, tril_indices, array, ndarray, isscalar, unique
 from prody import LOGGER
 from prody.utilities import which, MATCH_SCORE, MISMATCH_SCORE
 from prody.utilities import GAP_PENALTY, GAP_EXT_PENALTY, ALIGNMENT_METHOD
+from prody.utilities import alignBioPairwise
 
 from prody.sequence.msa import MSA, refineMSA
 from prody.sequence.msafile import parseMSA, writeMSA
@@ -19,7 +20,6 @@ from prody.sequence.sequence import Sequence
 from prody.atomic import Atomic
 from prody.measure import calcDistance
 
-from Bio import pairwise2
 import sys
 
 __all__ = ['calcShannonEntropy', 'buildMutinfoMatrix', 'calcMSAOccupancy',
@@ -723,7 +723,7 @@ def alignSequencesByChain(PDBs, **kwargs):
 
 def buildMSA(sequences, title='Unknown', labels=None, **kwargs):
     """
-    Aligns sequences with clustalw or clustalw2 and returns the resulting MSA.
+    Aligns sequences with clustalw or clustalw2 or Biopython and returns the resulting MSA.
 
     :arg sequences: a file, MSA object or a list or array containing sequences
        as Atomic objects with :func:`getSequence` or Sequence objects or strings. 
@@ -748,7 +748,7 @@ def buildMSA(sequences, title='Unknown', labels=None, **kwargs):
     """
     
     align = kwargs.get('align', True)
-    method = kwargs.pop('method', 'clustalw')
+    method = kwargs.get('method', 'clustalw')
     # 1. check if sequences are in a fasta file and if not make one
     if isinstance(sequences, str):
         filename = sequences
@@ -808,19 +808,20 @@ def buildMSA(sequences, title='Unknown', labels=None, **kwargs):
         # 2. find and run alignment method
         if method in ['biopython', 'local', 'global']:
             if len(sequences) == 2:
-                msa, _, _ = alignTwoSequencesWithBiopython(sequences[0], sequences[1], **kwargs)
+                msa, _, _ = alignTwoSequencesWithBiopython(str(msa[0]).replace("-", ""),
+                                                           str(msa[1]).replace("-", ""), **kwargs)
             else:
-                raise ValueError("Provide only two sequences or another method. \
-                                  Biopython pairwise alignment can only be used \
-                                  to build an MSA with two sequences.")
+                raise ValueError("Provide only two sequences or another method. "
+                                 "Biopython pairwise alignment can only be used "
+                                 "to build an MSA with two sequences.")
         elif 'clustalw' in method:
             clustalw = which('clustalw')
             if clustalw is None:
                 if which('clustalw2') is not None:
                     clustalw = which('clustalw2')
                 else:
-                    raise EnvironmentError("The executable for clustalw was not found, \
-                                            install clustalw or add it to the path.")
+                    raise EnvironmentError("The executable for clustalw was not found, "
+                                            "install clustalw or add it to the path.")
 
             os.system('"%s" %s -OUTORDER=INPUT'%(clustalw, filename))
 
@@ -1075,13 +1076,13 @@ def alignSequenceToMSA(seq, msa, **kwargs):
         raise TypeError('The output from querying that label against msa is not a single sequence.')
     
     if method == 'local':
-        alignment = pairwise2.align.localms(sequence, str(refMsaSeq),
-                                            match, mismatch, gap_opening, gap_extension,
-                                            one_alignment_only=1)
+        alignment = alignBioPairwise(sequence, str(refMsaSeq), "local",
+                                     match, mismatch, gap_opening, gap_extension,
+                                     one_alignment_only=1)
     elif method == 'global':
-        alignment = pairwise2.align.globalms(sequence, str(refMsaSeq),
-                                       match, mismatch, gap_opening, gap_extension,
-                                       one_alignment_only=1)
+        alignment = alignBioPairwise(sequence, str(refMsaSeq), "global",
+                                     match, mismatch, gap_opening, gap_extension,
+                                     one_alignment_only=1)
     else:
         raise ValueError('method should be local or global')
 
@@ -1152,9 +1153,9 @@ def alignTwoSequencesWithBiopython(seq1, seq2, **kwargs):
     method = kwargs.get('method', ALIGNMENT_METHOD)
     
     if method == 'local':
-        alignment = pairwise2.align.localms(seq1, seq2, match, mismatch, gap_opening, gap_extension)
+        alignment = alignBioPairwise(seq1, seq2, "local", match, mismatch, gap_opening, gap_extension)
     elif method == 'global':
-        alignment = pairwise2.align.globalms(seq1, seq2, match, mismatch, gap_opening, gap_extension)
+        alignment = alignBioPairwise(seq1, seq2, "global", match, mismatch, gap_opening, gap_extension)
     else:
         raise ValueError('method should be local or global')
 
