@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """This module defines functions for interfacing Pfam database."""
 
-__author__ = 'Anindita Dutta, Ahmet Bakan, Cihan Kaya'
+__author__ = 'Anindita Dutta, Ahmet Bakan, Cihan Kaya, James Krieger'
 
 import re
 from numbers import Integral
@@ -22,6 +22,7 @@ else:
     import urllib
     import urllib2
 
+import json
 
 __all__ = ['searchPfam', 'fetchPfamMSA', 'parsePfamPDBs']
 
@@ -38,180 +39,71 @@ FORMAT_OPTIONS = ({'format': set([FASTA, SELEX, STOCKHOLM]),
                   'inserts': set(['lower', 'upper']),
                   'gaps': set(['mixed', 'dots', 'dashes', 'none'])})
 
-MINSEQLEN = 16
-
 old_prefix = 'https://pfam.xfam.org/'
 prefix = 'https://pfam-legacy.xfam.org/'
-new_prefix = 'https://www.ebi.ac.uk/interpro/wwwapi//entry/pfam/'
+new_prefix = 'https://www.ebi.ac.uk/interpro/wwwapi/entry/'
 
 def searchPfam(query, **kwargs):
     """Returns Pfam search results in a dictionary.  Matching Pfam accession
     as keys will map to evalue, alignment start and end residue positions.
 
-    :arg query: UniProt ID, PDB identifier, a protein sequence, or a sequence
-        file. Sequence queries must not contain without gaps and must be at
-        least 16 characters long
+    :arg query: UniProt ID or PDB identifier with or without a
+        chain identifier, e.g. ``'1mkp'`` or ``'1mkpA'``.  
+        UniProt ID of the specified chain, or the first
+        protein chain will be used for searching the Pfam database
     :type query: str
 
     :arg timeout: timeout for blocking connection attempt in seconds, default
         is 60
     :type timeout: int
-
-    *query* can also be a PDB identifier, e.g. ``'1mkp'`` or ``'1mkpA'`` with
-    chain identifier.  UniProt ID of the specified chain, or the first
-    protein chain will be used for searching the Pfam database."""
+    """
 
     import requests
 
-    if isfile(query):
-        from prody.sequence import MSAFile
-        try:
-            seq = next(MSAFile(query))
-        except:
-            with openFile(query) as inp:
-                seq = ''.join(inp.read().split())
-        else:
-            seq = seq[0][1]
-        if not seq.isalpha():
-            raise ValueError('could not parse a sequence without gaps from ' +
-                             query)
-    else:
-        seq = ''.join(query.split())
+    seq = ''.join(query.split())
 
     import xml.etree.cElementTree as ET
     LOGGER.timeit('_pfam')
     timeout = int(kwargs.get('timeout', 60))
-    if len(seq) >= MINSEQLEN:
-        if not seq.isalpha():
-            raise ValueError(repr(seq) + ' is not a valid sequence')
-        fseq = '>Seq\n' + seq
-        parameters = { 'hmmdb' : 'pfam', 'seq': fseq }
-        enc_params = urllib.urlencode(parameters).encode('utf-8')
-        request = urllib2.Request('https://www.ebi.ac.uk/Tools/hmmer/search/hmmscan', enc_params)
 
-        results_url = urllib2.urlopen(request).geturl()
-
-        #res_params = { 'output' : 'xml' }
-        res_params = { 'format' : 'tsv' }
-        enc_res_params = urllib.urlencode(res_params)
-        #modified_res_url = results_url + '?' + enc_res_params
-        modified_res_url = results_url.replace('results','download') + '?' + enc_res_params
-
-        result_request = urllib2.Request(modified_res_url) 
-        # url = ( urllib2.urlopen(request).geturl() + '?output=xml') 
-        LOGGER.debug('Submitted Pfam search for sequence "{0}...".'
-                     .format(seq[:MINSEQLEN]))
-
+    if len(seq) <= 5:
+        accession = None
+        from prody import parsePDBHeader
         try:
-            #xml = urllib2.urlopen(result_request).read()
-            tsv = urllib2.urlopen(result_request).read()
-            # openURL(url, timeout=timeout).read()
-        except:
-            raise ValueError('No matching Pfam domains were found.')
-        
-        # try:
-        #     root = ET.XML(xml)
-        # except Exception as err:
-        #     raise ValueError('failed to parse results XML, check URL: ' + modified_res_url)
+            polymers = parsePDBHeader(seq[:4], 'polymers')
+        except Exception as err:
+            raise ValueError('failed to parse header for {0} ({1})'
+                                .format(seq[:4], str(err)))
+        else:
+            chid = seq[4:].upper()
 
-        matches = {}
-        #for child in root[0]:
-            #if child.tag == 'hits':
-                # accession = child.get('acc')
-                # pfam_id = accession.split('.')[0]
-                # matches[pfam_id]={}
-                # matches[pfam_id]['accession']=accession
-                # matches[pfam_id]['class']='Domain'
-                # matches[pfam_id]['id']=child.get('name')
-                # matches[pfam_id]['locations']={}
-                # matches[pfam_id]['locations']['ali_end']=child[0].get('alisqto')
-                # matches[pfam_id]['locations']['ali_start']=child[0].get('alisqfrom')
-                # matches[pfam_id]['locations']['bitscore']=child[0].get('bitscore')
-                # matches[pfam_id]['locations']['end']=child[0].get('alisqto')
-                # matches[pfam_id]['locations']['evalue']=child.get('evalue')
-                # matches[pfam_id]['locations']['evidence']='hmmer v3.0'
-                # matches[pfam_id]['locations']['hmm_end']=child[0].get('alihmmto')
-                # matches[pfam_id]['locations']['hmm_start']=child[0].get('alihmmfrom')
-                # matches[pfam_id]['locations']['significant']=child[0].get('significant')    
-                # matches[pfam_id]['locations']['start']=child[0].get('alisqfrom')
-                # matches[pfam_id]['type']='Pfam-A'
-        # return matches
-
-        if PY3K:
-            tsv = tsv.decode()
-
-        lines = tsv.split('\n')
-        keys = lines[0].split('\t')
-        root = {}
-        for i, line in enumerate(lines[1:-1]):
-            root[i] = {}
-            for j, key in enumerate(keys):
-                root[i][key] = line.split('\t')[j]
-
-        for child in root.values():
-            accession = child['Family Accession']
-            pfam_id = accession.split('.')[0]
-            matches[pfam_id]={}
-            matches[pfam_id]['accession'] = accession
-            matches[pfam_id]['class'] = 'Domain'
-            matches[pfam_id]['id'] = child['Family id']
-            matches[pfam_id]['locations'] = {}
-            matches[pfam_id]['locations']['ali_end'] = child['Ali. End']
-            matches[pfam_id]['locations']['ali_start'] = child['Ali. Start']
-            matches[pfam_id]['locations']['bitscore'] = child['Bit Score']
-            matches[pfam_id]['locations']['end'] = child['Env. End']
-            matches[pfam_id]['locations']['cond_evalue'] = child['Cond. E-value']
-            matches[pfam_id]['locations']['ind_evalue'] = child['Ind. E-value']
-            matches[pfam_id]['locations']['evidence'] = 'hmmer v3.0'
-            matches[pfam_id]['locations']['hmm_end'] = child['Model End']
-            matches[pfam_id]['locations']['hmm_start'] = child['Model Start']
-            #matches[pfam_id]['locations']['significant'] = child['significant']   
-            matches[pfam_id]['locations']['start'] = child['Env. Start']
-            matches[pfam_id]['type'] = 'Pfam-A'
-        return matches
+        for poly in polymers:
+            if chid and poly.chid != chid:
+                continue
+            for dbref in poly.dbrefs:
+                if dbref.database != 'UniProt':
+                    continue
+                accession = dbref.accession
+                LOGGER.info('UniProt accession {0} for {1} chain '
+                            '{2} will be used.'
+                            .format(accession, seq[:4], poly.chid))
+                break
+            if accession is not None:
+                break
+        if accession is None:
+            raise ValueError('A UniProt accession for PDB {0} could not be '
+                                'parsed.'.format(repr(seq)))
+        else:
+            url = new_prefix + "all/protein/uniprot/" + accession
 
     else:
-        if len(seq) <= 5:
-            idcode = None
-            from prody import parsePDBHeader
-            try:
-                polymers = parsePDBHeader(seq[:4], 'polymers')
-            except Exception as err:
-                LOGGER.warn('failed to parse header for {0} ({1})'
-                            .format(seq[:4], str(err)))
-            else:
-                chid = seq[4:].upper()
- 
-            for poly in polymers:
-                if chid and poly.chid != chid:
-                    continue
-                for dbref in poly.dbrefs:
-                    if dbref.database != 'UniProt':
-                        continue
-                    idcode = dbref.idcode
-                    accession = dbref.accession
-                    LOGGER.info('UniProt ID code {0} for {1} chain '
-                                '{2} will be used.'
-                                .format(idcode, seq[:4], poly.chid))
-                    break
-                if idcode is not None:
-                    break
-            if idcode is None:
-                LOGGER.warn('A UniProt ID code for PDB {0} could not be '
-                            'parsed.'.format(repr(seq)))
-                url = prefix + 'protein/' + seq + '?output=xml'
-            else:
-                url = prefix + 'protein/' + idcode + '?output=xml'
-
-        else:
-            url = prefix + 'protein/' + seq + '?output=xml'
+        url = new_prefix + "all/protein/uniprot/" + seq
 
     LOGGER.debug('Retrieving Pfam search results: ' + url)
     xml = None
     sleep = 2
     while LOGGER.timing('_pfam') < timeout:
         try:
-            # xml = openURL(url, timeout=timeout).read()
             xml = requests.get(url, verify=False).content
         except Exception:
             pass
@@ -264,44 +156,32 @@ def searchPfam(query, **kwargs):
                     raise ValueError('No valid UniProt accession or ID for: ' + seq)
 
     try:
-        root = ET.XML(xml)
+        root = json.loads(xml)
+        #return root
     except Exception as err:
         raise ValueError('failed to parse results XML, check URL: ' + url)
 
-    if len(seq) >= MINSEQLEN:
-        try:
-            xml_matches = root[0][0][0][0]
-        except IndexError:
-            raise ValueError('failed to parse results XML, check URL: ' + url)
-    else:
-        key = '{' + old_prefix + '}'
-        results = dictElement(root[0], key)
-        try:
-            xml_matches = results['matches']
-        except KeyError:
-            raise ValueError('failed to parse results XML, check URL: ' + url)
-
     matches = dict()
-    for child in xml_matches:
-
+    for entry in root["results"]:
         try:
-            accession = child.attrib['accession'][:7]
+            metadata = entry["metadata"]
+            accession = metadata["accession"]
         except KeyError:
-            raise ValueError('failed to parse results XML, check URL: ' + url)
+            raise ValueError('failed to parse accessions from results, check URL: ' + url)
 
-        if not re.search('^P(F|B)[0-9]{5}$', accession):
-            raise ValueError('{0} does not match pfam accession'
-                             ' format'.format(accession))
+        if not re.search('PF[0-9]{5}$', accession):
+            continue
 
-        match = matches.setdefault(accession, dict(child.items()))
-        locations = match.setdefault('locations', [])
-        for loc in child:
-            locations.append(dict(loc.items()))
+        match = matches.setdefault(accession, dict(metadata.items()))
+        
+        other_data = entry["proteins"]
+        locations = match.setdefault("locations", [])
+        for item1 in other_data:
+            for key, value in item1.items():
+                if key == "entry_protein_locations":
+                    locations.append(value)    
 
-    if len(seq) < MINSEQLEN:
-        query = 'Query ' + repr(query)
-    else:
-        query = 'Query sequence'
+    query = 'Query ' + repr(query)
 
     if matches:
         LOGGER.info(query + ' matched {0} Pfam families.'.format(len(matches)))
@@ -375,7 +255,7 @@ def fetchPfamMSA(acc, alignment='full', compressed=False, **kwargs):
     if not kwargs:
         #url = (prefix + 'family/' + acc + '/alignment/' +
         #       alignment + '/gzipped')
-        url = (new_prefix + acc + 
+        url = (new_prefix + "/pfam/" + acc + 
                 '/?annotation=alignment:' + alignment + '&download')
         url_flag = True
         extension = '.sth'
