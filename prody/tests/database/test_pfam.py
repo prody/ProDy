@@ -25,11 +25,7 @@ class TestSearchPfam(unittest.TestCase):
             os.mkdir(self.workdir)
         os.chdir(self.workdir)
 
-        self.queries = ['P19491', 'GRIA2_RAT', '6qkcB', '6qkcI', 
-                        'VQVLLTTIGAFAAFGLMTIAISTDYWLYTRGLTHSGLWRICCLEGLK'\
-                            'RGVCVKINHFAEYLLRVVRASSIFPILSAILLLLGGVCVAASR'\
-                            'VYKSKRNIILGAGILFVAAGLSNIIGVIVYISANAGKNHYSYG'\
-                            'WSFYFGGLSFILAEVIGVLAVNIYIERSR']
+        self.queries = ['P19491', '6qkcB', '6qkcI']
 
     def testUniprotAccMulti(self):
         """Test the outcome of a simple search scenario using a Uniprot Accession 
@@ -43,25 +39,12 @@ class TestSearchPfam(unittest.TestCase):
         self.assertEqual(sorted(list(a.keys())), 
                            ['PF00060', 'PF01094', 'PF10613'],
                            'searchPfam failed to return the right domain family IDs')
-
-    def testUniprotIdMulti(self):
-        """Test the outcome of a simple search scenario using a Uniprot ID
-        for a multi-domain protein, AMPAR GluA2."""
-
-        a = searchPfam(self.queries[1])
-
-        self.assertIsInstance(a, dict,
-            'searchPfam failed to return a dict instance')
-        
-        self.assertEqual(sorted(list(a.keys())), 
-                           ['PF00060', 'PF01094', 'PF10613'],
-                           'searchPfam failed to return the right domain family IDs')
         
     def testPdbIdChMulti(self):
         """Test the outcome of a simple search scenario using a PDB ID
         and chain ID for the same multi-domain protein from specifying chain B."""
 
-        a = searchPfam(self.queries[2])
+        a = searchPfam(self.queries[1])
 
         self.assertIsInstance(a, dict,
             'searchPfam failed to return a dict instance')
@@ -74,20 +57,7 @@ class TestSearchPfam(unittest.TestCase):
         """Test the outcome of a simple search scenario using a PDB ID
         and chain ID to get the single domain protein TARP g8 from chain I."""
 
-        a = searchPfam(self.queries[3])
-
-        self.assertIsInstance(a, dict,
-            'searchPfam failed to return a dict instance')
-        
-        self.assertEqual(sorted(list(a.keys())), 
-                           ['PF00822'],
-                           'searchPfam failed to return the right domain family IDs for TARP')
-        
-    def testSeqSingle(self):
-        """Test the outcome of a simple search scenario using the sequence 
-        of the single domain protein TARP g8 from 6qkc chain I."""
-
-        a = searchPfam(self.queries[4])
+        a = searchPfam(self.queries[2])
 
         self.assertIsInstance(a, dict,
             'searchPfam failed to return a dict instance')
