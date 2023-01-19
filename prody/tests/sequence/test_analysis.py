@@ -7,9 +7,9 @@ from numpy.testing import assert_array_equal, assert_array_almost_equal
 
 from prody.tests.datafiles import *
 
-from prody import LOGGER, calcShannonEntropy, buildMutinfoMatrix, parseMSA
+from prody import LOGGER, calcShannonEntropy, buildMutinfoMatrix, parseMSA, parsePDB
 from prody import calcMSAOccupancy, buildSeqidMatrix, uniqueSequences
-from prody import buildOMESMatrix, buildSCAMatrix, calcMeff
+from prody import buildOMESMatrix, buildSCAMatrix, calcMeff, buildMSA
 from prody import buildDirectInfoMatrix
 
 LOGGER.verbosity = None
@@ -32,6 +32,8 @@ for i in range(FASTA_NUMBER):
                 ncols += 1
         FASTA_EYE[i, j] = FASTA_EYE[j, i] = score / ncols
 
+ags = parsePDB([DATA_FILES['3hsy']['path'], 
+                DATA_FILES['3o21']['path']])
 
 class TestCalcShannonEntropy(TestCase):
 
@@ -1196,3 +1198,14 @@ class TestDirectInfo(TestCase):
         fasta = FASTA[:, :10]
         result = buildDirectInfoMatrix(fasta, refine=True)
         assert_array_almost_equal(expect, result, err_msg='refine failed')
+
+class TestBuildMSA(TestCase):
+
+    def testBuildMSAlocal(self):
+        sequences = [ags[0].protein["A"].getSequence(), 
+                     ags[1].protein["A"].getSequence()]
+
+        expect = parseMSA(pathDatafile('msa_3hsyA_3o21A.fasta'))
+        result = buildMSA(sequences, method="local", labels=["A2", "A3"])
+        assert_array_equal(expect, result)
+        

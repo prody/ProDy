@@ -55,7 +55,7 @@ def saveAtoms(atoms, filename=None, **kwargs):
 
     if filename is None:
         filename = ag.getTitle().replace(' ', '_')
-    if '.ag.npz' not in filename:
+    if filename.lower().endswith('.npz'):
         filename += '.ag.npz'
 
     attr_dict = {'title': title}
