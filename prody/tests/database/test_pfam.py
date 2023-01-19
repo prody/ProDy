@@ -152,7 +152,7 @@ class TestParsePfamPDBs(unittest.TestCase):
     
     @classmethod
     def setUpClass(self):
-        self.queries = ['PF20446', 'Q57ZF2_TRYB2', 'VAS1_BOVIN']
+        self.queries = ['PF20446', 'Q57ZF2', 'P40682']
 
         self.workdir = 'pfam_pdb_tests'
         if not os.path.exists(self.workdir):
