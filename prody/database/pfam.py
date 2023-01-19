@@ -179,7 +179,13 @@ def searchPfam(query, **kwargs):
         for item1 in other_data:
             for key, value in item1.items():
                 if key == "entry_protein_locations":
-                    locations.append(value)    
+                    for item2 in value:
+                        new_dict = {}
+                        for item3 in value[0]["fragments"]:
+                            new_dict["start"] = item3["start"]
+                            new_dict["end"] = item3["end"]
+                            new_dict["score"] = item2["score"]
+                            locations.append(new_dict)    
 
     query = 'Query ' + repr(query)
 
