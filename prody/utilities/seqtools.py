@@ -87,6 +87,10 @@ def alignBioPairwise(a_sequence, b_sequence,
         for aln in alns:
             row_1 = aln.format().split("\n")[0].replace(" ", "-")
             row_2 = aln.format().split("\n")[2].replace(" ", "-")
+            while len(row_1) < len(row_2):
+                row_1 += "-"
+            while len(row_2) < len(row_1):
+                row_2 += "-"
             begin = max([np.where(np.array(list(row_1)) != "-")[0][0],
                          np.where(np.array(list(row_2)) != "-")[0][0]])
             end = (min([np.where(np.array(list(row_1)) != "-")[0][-1],
