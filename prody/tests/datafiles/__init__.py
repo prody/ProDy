@@ -197,6 +197,15 @@ DATA_FILES = {
         'models': 1,
         'biomols': 2
     },
+    'gromacs': {
+        'pdb': '6fpj',
+        'file': 'pdb6fpj_Bb_fixed_solv_ions.pdb',
+        'atoms': 83473,
+        'ca_atoms': 758,
+        'models': 1,
+        'biomols': 1,
+        'protein': 12194
+    },
 }
 
 
