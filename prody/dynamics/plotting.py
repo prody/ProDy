@@ -1508,6 +1508,11 @@ def showAtomicMatrix(matrix, x_array=None, y_array=None, atoms=None, **kwargs):
     text_color = kwargs.pop('text_color', 'k')
     text_color = kwargs.pop('textcolor', text_color)
     interactive = kwargs.pop('interactive', True)
+    
+    import matplotlib
+    if float(matplotlib.__version__[:-2]) >= 3.6:
+        LOGGER.warn('matplotlib 3.6 and later are not compatible with interactive matrices')
+        interactive = False
 
     if isinstance(fig, Figure):
         fig_num = fig.number
