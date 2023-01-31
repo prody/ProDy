@@ -10,7 +10,8 @@ from .logger import LOGGER
 
 __all__ = ['calcTree', 'clusterMatrix', 'showLines', 'showMatrix', 
            'reorderMatrix', 'findSubgroups', 'getCoords',  
-           'getLinkage', 'getTreeFromLinkage', 'clusterSubfamilies']
+           'getLinkage', 'getTreeFromLinkage', 'clusterSubfamilies', 
+           'calcRMSDclusters', 'calcGromosClusters', 'calcGromacsClusters']
 
 class LinkageError(Exception):
     pass
@@ -968,3 +969,50 @@ def findSubgroups(tree, c, method='naive', **kwargs):
             subgroups[t-1].append(names[i])
 
     return subgroups
+
+
+def calcRMSDclusters(rmsd_matrix, c, labels=None):
+    """
+    Divide **rmsd_matrix** into clusters using the gromos method 
+    with a cutoff **c** as implemented in gromacs (see 
+    https://manual.gromacs.org/documentation/current/onlinehelp/gmx-cluster.html)
+
+    Returns a list of lists with labels divided into clusters.
+    """    
+    clusters = []
+
+    useful_rmsd_matrix = rmsd_matrix
+    indices = list(range(len(rmsd_matrix)))
+    if labels is None:
+        elements = indices
+    else:
+        elements = labels
+
+    while len(elements) > 0:
+        neighbours = []
+        num_neighbours = np.zeros(len(elements))
+        for i, elem in enumerate(elements):
+            neighbours_i = list(np.array(elements)[list(np.where(useful_rmsd_matrix[i] <= c)[0])])
+            neighbours_i.pop(neighbours_i.index(elem))
+            neighbours.append(neighbours_i)
+            num_neighbours[i] = len(neighbours_i)
+
+        argmax_num_n = np.argmax(num_neighbours)
+        argmax_elem = elements[argmax_num_n]
+
+        clusters.append([])
+        for i, elem in enumerate(elements):
+            if argmax_elem in neighbours[i] or elem == argmax_elem:
+                clusters[-1].append(elem)
+
+                elements = list(elements)
+                indices.pop(elements.index(elem))
+                elements.pop(elements.index(elem))
+                elements = np.array(elements)
+
+        useful_rmsd_matrix = rmsd_matrix[:, list(indices)][list(indices), :]
+
+    return clusters
+
+calcGromosClusters = calcRMSDclusters
+calcGromacsClusters = calcRMSDclusters
