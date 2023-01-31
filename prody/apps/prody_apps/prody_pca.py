@@ -222,7 +222,7 @@ def prody_pca(coords, **kwargs):
             format = format.lower()
             if figall or cc:
                 plt.figure(figsize=(width, height))
-                prody.showCrossCorr(pca)
+                prody.showCrossCorr(pca, interactive=False)
                 plt.savefig(join(outdir, prefix + '_cc.'+format),
                     dpi=dpi, format=format)
                 plt.close('all')

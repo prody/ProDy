@@ -188,14 +188,14 @@ def prody_gnm(pdb, **kwargs):
 
             if figall or cc:
                 plt.figure(figsize=(width, height))
-                prody.showCrossCorr(gnm)
+                prody.showCrossCorr(gnm, interactive=False)
                 plt.savefig(join(outdir, prefix + '_cc.'+format),
                     dpi=dpi, format=format)
                 plt.close('all')
 
             if figall or cm:
                 plt.figure(figsize=(width, height))
-                prody.showContactMap(gnm)
+                prody.showContactMap(gnm, interactive=False)
                 plt.savefig(join(outdir, prefix + '_cm.'+format),
                     dpi=dpi, format=format)
                 plt.close('all')
