@@ -669,6 +669,11 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
     allticks = kwargs.pop('allticks', False) # this argument is temporary and will be replaced by better implementation
     interactive = kwargs.pop('interactive', True)
 
+    import matplotlib
+    if float(matplotlib.__version__[:-2]) >= 3.6:
+        LOGGER.warn('matplotlib 3.6 and later are not compatible with interactive matrices')
+        interactive = False
+
     cmap = kwargs.pop('cmap', 'jet')
     origin = kwargs.pop('origin', 'lower')
 
