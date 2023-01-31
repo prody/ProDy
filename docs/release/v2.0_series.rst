@@ -4,6 +4,70 @@ ProDy 2.0 Series
 .. contents::
    :local:
 
+2.0.2 (February 17, 2022)
+------------------------------------------------------------------------------
+
+**New Features**:
+  
+  * Added :function:`.realignModes` for comparing sets of modes calculated on unaligned 
+  structures
+
+  * New option *by_time* in :function:`.showProjection`, allowing projections onto 1 PC 
+  and the frames sampled over the time course of a simulation or the conformers in an ensemble.
+
+  * Updates to ClustENM(D) to use latest and more efficient OpenMM version, 7.6
+
+  * New :function:`.parseGromacsModes` for parsing NMA and PCA modes calculated in Gromacs, 
+  allowing the use of all-atom force fields and more efficient handling of large trajectories
+
+**Bug Fixes and Improvements**:
+  
+  * Bug fixes to searchPfam and fetchPfamMSA, which no longer worked due to some security change.
+
+  * Bug fix to Ensembles and Conformations for weights being indexed twice
+
+  * Bug fix to --quiet option of apps that fixes the VMD ProDy interface
+
+  * General documentation and error improvements
+
+**Full Changelog**: https://github.com/prody/ProDy/compare/v2.0.1...v2.0.2
+
+
+2.0.1 (Dec 20, 2021)
+------------------------------------------------------------------------------
+
+**New Features**:
+  
+  * Added :function:`.calcRWSIP` for comparing sets of modes
+
+  * New methods to convert :class:`.Atom`, :class:`.Atomic` and :class:`.EMDMAP` 
+  to TEMPy objects, allowing calculations such as cross-correlation coefficient (CCC) 
+  to EM maps.
+
+  * Added :func:`.calcDynamicFlexibilityIndex` and :func:`.calcDynamicCouplingIndex`
+  for further interpretation of PRS results.
+
+  * Reinstated the option of using forces in PRS as in ProDy v1.8 (`turbo=**False**`)
+
+  * Added GitHub Actions Continuous Integration in place of Travis. 
+
+**Bug Fixes and Improvements**:
+  
+  * Compatibility and bug fixes for various functions, including pyparsing for selections.
+
+  * Extended :class:`.AdaptiveANM` to work with other models including explicit membrane 
+  ANM, :class:`.exANM`.
+
+  * Improved capabilities for fetching and parsing mmCIF and EMD files.
+
+  * Improved handling of residue and serial numbers including hexadecimal and hybrid36 formats.
+
+  * Consistency fixes.
+
+  * More non-standard amino acids (MEN, CSB, CME).
+
+**Full Changelog**: https://github.com/prody/ProDy/compare/v2.0...v2.0.1
+
 2.0 (Dec 30, 2020)
 ------------------------------------------------------------------------------
 

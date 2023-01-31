@@ -6,7 +6,7 @@ Installation
 Required Software
 -----------------
 
-* `Python`_ 2.7, 3.5 or later. We recommend using `Anaconda`_, which provides the conda package and environment manager as well as many useful packages. 
+* `Python`_ 2.7, 3.6 or later. We recommend using `Anaconda`_, which provides the conda package and environment manager as well as many useful packages. 
 
 .. _Anaconda: https://www.anaconda.com/products/individual
 
@@ -91,7 +91,7 @@ Recommended Software
   Scipy linear algebra module is more flexible and can be faster.
 * `IPython`_ is a must have for interactive ProDy sessions.
 * `PyReadline`_ for colorful IPython sessions on Windows.
-* `MDAnalysis`_ for reading molecular dynamics trajectories.
+* `MDAnalysis`_ or `MDTraj`_ for reading molecular dynamics trajectories.
 
 
 .. _PyReadline: http://ipython.org/pyreadline.html

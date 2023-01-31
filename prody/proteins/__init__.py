@@ -180,6 +180,10 @@ from . import header
 from .header import *
 __all__.extend(header.__all__)
 
+from . import cifheader
+from .cifheader import *
+__all__.extend(cifheader.__all__)
+
 from . import dssp
 from .dssp import *
 __all__.extend(dssp.__all__)
@@ -205,4 +209,4 @@ from .starfile import *
 __all__.extend(starfile.__all__)
 
 from .pdbfile import PDBParseError
-
+from .ciffile import MMCIFParseError

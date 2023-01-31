@@ -1,7 +1,11 @@
 #!/usr/bin/env python
 
 import imp
-path = imp.find_module('prody')[1]
+import importlib
+if sys.version_info[0] == 2:
+    path_prody = imp.find_module('prody')[1]
+else:
+    path_prody = importlib.util.find_spec("prody").submodule_search_locations[0]
 apps = imp.find_module('apps', [path])
 apps = imp.load_module('prody.apps', *apps)
 

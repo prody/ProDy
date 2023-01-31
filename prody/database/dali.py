@@ -18,6 +18,7 @@ from prody import parsePDB, writePDBStream
 from prody.ensemble import Ensemble
 from prody.ensemble import PDBEnsemble
 import os
+import math
 
 __all__ = ['DaliRecord', 'searchDali', 
            'daliFilterMultimer', 'daliFilterMultimers']
@@ -373,13 +374,24 @@ class DaliRecord(object):
 
     mappings = property(getMappings)
 
-    def filter(self, cutoff_len=None, cutoff_rmsd=None, cutoff_Z=None, cutoff_identity=None):
-        """Filters out PDBs from the PDBList and returns the PDB list.
-        PDBs that satisfy any of the following criterion will be filtered out.
+    def filter(self, cutoff_len=None, cutoff_rmsd=None, cutoff_Z=None, cutoff_identity=None, stringency=False):
+        """Filters a PDBList by a given set of cutoffs and returns a list of PDB IDs where
+        PDBs that matched have been removed.
+        PDBs that satisfy _any_ of the following criteria will be filtered out.
         (1) Length of aligned residues < cutoff_len (must be an integer or a float between 0 and 1);
         (2) RMSD < cutoff_rmsd (must be a positive number);
         (3) Z score < cutoff_Z (must be a positive number);
         (4) Identity > cutoff_identity (must be an integer or a float between 0 and 1).
+
+        Setting the stringency flag to True changes the behavior so that all filtering is by
+        stringency. In this case, PDBs that satisfy _any_ of the following criteria will be filtered out:
+
+        (1) Length of aligned residues < cutoff_len (must be an integer or a float between 0 and 1); (unchanged)
+        (2) RMSD > cutoff_rmsd (must be a positive number); (inverted)
+        (3) Z score < cutoff_Z (must be a positive number); (unchanged)
+        (4) Identity < cutoff_identity (must be an integer or a float between 0 and 1). (inverted)
+
+        Leaving stringency False maintains old behavior. 
         """
         if self._max_index is None:
             LOGGER.warn('DaliRecord has no data. Please use the fetch() method.')
@@ -397,8 +409,12 @@ class DaliRecord(object):
         else:
             raise ValueError('cutoff_len must be a float between 0 and 1, or an int not greater than the max length')
             
+        
         if cutoff_rmsd == None:
-            cutoff_rmsd = 0
+            if stringency:
+                cutoff_rmsd = math.inf
+            else:
+                cutoff_rmsd = 0
         elif not isinstance(cutoff_rmsd, (float, int)):
             raise TypeError('cutoff_rmsd must be a float or an integer')
         elif cutoff_rmsd >= 0:
@@ -416,7 +432,10 @@ class DaliRecord(object):
             raise ValueError('cutoff_Z must be a number not less than 0')
             
         if cutoff_identity == None or cutoff_identity == 0:
-            cutoff_identity = 100
+            if stringency:
+                cutoff_identity = 0
+            else:
+                cutoff_identity = 100
         elif not isinstance(cutoff_identity, (float, int)):
             raise TypeError('cutoff_identity must be a float or an integer')
         elif cutoff_identity <= 1 and cutoff_identity > 0:
@@ -449,18 +468,30 @@ class DaliRecord(object):
                 # print('Filter out ' + pdb_chain + ', len_align: ' + str(temp_dict['len_align']))
                 filterListLen.append(pdb_chain)
                 continue
-            if temp_dict['rmsd'] < cutoff_rmsd:
-                # print('Filter out ' + pdb_chain + ', rmsd: ' + str(temp_dict['rmsd']))
-                filterListRMSD.append(pdb_chain)
-                continue
+            if stringency:
+                if temp_dict['rmsd'] > cutoff_rmsd:
+                    # print('Filter out ' + pdb_chain + ', rmsd: ' + str(temp_dict['rmsd']))
+                    filterListRMSD.append(pdb_chain)
+                    continue
+            else:
+                if temp_dict['rmsd'] < cutoff_rmsd:
+                    # print('Filter out ' + pdb_chain + ', rmsd: ' + str(temp_dict['rmsd']))
+                    filterListRMSD.append(pdb_chain)
+                    continue
             if temp_dict['Z'] < cutoff_Z:
                 # print('Filter out ' + pdb_chain + ', Z: ' + str(temp_dict['Z']))
                 filterListZ.append(pdb_chain)
                 continue
-            if temp_dict['identity'] > cutoff_identity:
-                # print('Filter out ' + pdb_chain + ', identity: ' + str(temp_dict['identity']))
-                filterListIdentity.append(pdb_chain)
-                continue
+            if stringency:
+                if temp_dict['identity'] < cutoff_identity:
+                    # print('Filter out ' + pdb_chain + ', identity: ' + str(temp_dict['identity']))
+                    filterListIdentity.append(pdb_chain)
+                    continue
+            else:
+                if temp_dict['identity'] > cutoff_identity:
+                    # print('Filter out ' + pdb_chain + ', identity: ' + str(temp_dict['identity']))
+                    filterListIdentity.append(pdb_chain)
+                    continue
             temp_diff = list(ref_indices_set - set(temp_dict['map_ref']))
             for diff_i in temp_diff:
                 if not diff_i in missing_ind_dict:

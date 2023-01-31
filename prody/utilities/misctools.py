@@ -121,11 +121,23 @@ class ImageCursor(Cursor):
         if self.atoms is None:
             self.txt.set_text(template % (j, i, v)) 
         else:
-            seq = self.atoms.getSequence()
-            resnums = self.atoms.getResnums()
+            if not isListLike(self.atoms):
+                seq = self.atoms.getSequence()
+                resnums = self.atoms.getResnums()
 
-            a = seq[j] + str(resnums[j])
-            b = seq[i] + str(resnums[i])
+                a = seq[j] + str(resnums[j])
+                b = seq[i] + str(resnums[i])
+                
+            else:
+                xseq = self.atoms[0].getSequence()
+                xresnums = self.atoms[0].getResnums()
+
+                yseq = self.atoms[1].getSequence()
+                yresnums = self.atoms[1].getResnums()
+
+                a = xseq[j] + str(xresnums[j])
+                b = yseq[i] + str(yresnums[i])
+
             self.txt.set_text(template % (a, b, str(v)))
         self.txt.set_position((x, y))
 
@@ -728,13 +740,8 @@ def hybrid36ToDec(x, resnum=False):
 
 def split(string, shlex=False):
     if shlex:
-        try:
-            import shlex
-        except ImportError:
-            raise ImportError('Use of the shlex option requires the '
-                              'installation of the shlex package.')
-        else:
-            return shlex.split(string)
+        import shlex
+        return shlex.split(string)
     else:
         return string.split()
 

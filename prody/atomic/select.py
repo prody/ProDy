@@ -441,7 +441,12 @@ all alphanumeric characters."""
 
 import sys
 from re import compile as re_compile
-from collections import Iterable
+try:
+   # for python>=3.3
+   from collections.abc import Iterable
+except ImportError:
+   # for python<3.3
+   from collections import Iterable
 
 import numpy as np
 from numpy import array, ndarray, ones, zeros, arange
@@ -449,6 +454,10 @@ from numpy import invert, unique, concatenate, all, any
 from numpy import logical_and, logical_or, floor, ceil, where
 
 import pyparsing as pp
+try:
+    from pyparsing import operatorPrecedence as operatorPrecedence
+except ImportError:
+    from pyparsing import infixNotation as operatorPrecedence
 
 from prody import LOGGER, SETTINGS, PY2K
 
@@ -1087,7 +1096,7 @@ class Select(object):
         if regexp: expr = PP_REGEXP | expr
         if nrange: expr = PP_NRANGE | expr
 
-        parser = pp.operatorPrecedence(expr, oplist)
+        parser = operatorPrecedence(expr, oplist)
         parser.setParseAction(self._default)
         parser.leaveWhitespace()
         parser.enablePackrat()

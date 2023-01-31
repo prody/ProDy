@@ -9,7 +9,7 @@ import numpy as np
 
 from prody import LOGGER, PY2K
 from prody.kdtree import KDTree
-from prody.utilities import checkCoords, rangeString, getDistance
+from prody.utilities import checkCoords, rangeString, getDistance, copy
 
 from .atomic import Atomic
 from .fields import ATOMIC_FIELDS, READONLY
@@ -814,7 +814,11 @@ class AtomGroup(Atomic):
             if np.isscalar(data):
                 data = [data] * self._n_atoms
 
-            data = np.asarray(data)
+            if label in self._data.keys():
+                data = np.asarray(data, dtype=self._data[label].dtype)
+            else:
+                data = np.asarray(data)
+
             ndim, dtype, shape = data.ndim, data.dtype, data.shape
 
             if ndim == 1 and dtype == bool:
@@ -922,6 +926,9 @@ class AtomGroup(Atomic):
         """Set atom *flags* for *label*."""
 
         label = checkLabel(label)
+        if np.isscalar(flags):
+            flags = np.array([flags] * self._n_atoms)
+
         try:
             ndim, dtype = flags.ndim, flags.dtype
         except AttributeError:
@@ -1623,6 +1630,8 @@ class AtomGroup(Atomic):
         """Returns number of connected atom subsets."""
 
         self._fragment()
+        if self._fragments is None:
+            return 0
         return self._data['fragindex'].max() + 1
 
     def iterFragments(self):
@@ -1633,6 +1642,9 @@ class AtomGroup(Atomic):
             acsi = self._acsi
             if self._fragments is None:
                 self._fragment()
+                if self._fragments is None:
+                    return
+
             for i, frag in enumerate(self._fragments):
                 try:
                     frag.getAtomGroup()
@@ -1648,8 +1660,11 @@ class AtomGroup(Atomic):
         information."""
 
         if self._bmap is None:
-            raise ValueError('bonds must be set for fragment determination, '
-                             'use `setBonds` or `inferBonds` to set them')
+            LOGGER.warn('bonds must be set for fragment determination, '
+                        'use `setBonds` or `inferBonds` to set them')
+            self._data['fragindex'] = None
+            self._fragments = None
+            return
 
         fids = np.zeros(self._n_atoms, int)
         fdict = {}
@@ -1708,10 +1723,10 @@ for fname, field in ATOMIC_FIELDS.items():
         if not field.private:
             def getData(self, var=fname, call=field.call):
                 try:
-                    return self._data[var].copy()
+                    return copy(self._data[var])
                 except KeyError:
                     [getattr(self, meth)() for meth in call]
-                    return self._data[var].copy()
+                    return copy(self._data[var])
 
         # Define private method for retrieving actual data array
         def _getData(self, var=fname, call=field.call):
@@ -1719,12 +1734,12 @@ for fname, field in ATOMIC_FIELDS.items():
                 return self._data[var]
             except KeyError:
                 [getattr(self, meth)() for meth in call]
-                return self._data[var].copy()
+                return copy(self._data[var])
     else:
         if not field.private:
             def getData(self, var=fname):
                 try:
-                    return self._data[var].copy()
+                    return copy(self._data[var])
                 except KeyError:
                     pass
 

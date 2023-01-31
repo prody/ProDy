@@ -73,9 +73,9 @@ def saveEnsemble(ensemble, filename=None, **kwargs):
 
     attr_dict['_type'] = ensemble.__class__.__name__
 
-    if filename.endswith('.ens'):
+    if filename.lower().endswith('.ens'):
         filename += '.npz'
-    if not filename.endswith('.npz'):
+    if not filename.lower().endswith('.npz'):
         filename += '.ens.npz'
     ostream = openFile(filename, 'wb', **kwargs)
     np.savez(ostream, **attr_dict)
@@ -266,7 +266,8 @@ def trimPDBEnsemble(pdb_ensemble, occupancy=None, **kwargs):
             msa = pdb_ensemble.getMSA()
             if msa:
                 msa = msa[:, torf]
-            trimmed.addCoordset(confs[:, torf], weights[:, torf], labels, sequence=msa)
+            trans = pdb_ensemble._trans
+            trimmed.addCoordset(confs[:, torf], weights[:, torf], labels, sequence=msa, transformation=trans)
     else:
         indices = np.where(torf)[0]
         selids = pdb_ensemble._indices
@@ -286,7 +287,8 @@ def trimPDBEnsemble(pdb_ensemble, occupancy=None, **kwargs):
             weights = copy(pdb_ensemble._weights)
             labels = pdb_ensemble.getLabels()
             msa = pdb_ensemble._msa
-            trimmed.addCoordset(confs, weights, labels, sequence=msa)
+            trans = pdb_ensemble._trans
+            trimmed.addCoordset(confs, weights, labels, sequence=msa, transformation=trans)
 
         trimmed.setAtoms(select)
 
@@ -370,7 +372,7 @@ def buildPDBEnsemble(atomics, ref=None, title='Unknown', labels=None, atommaps=N
         is below this value will be trimmed
     :type occupancy: float
 
-    :arg atommaps: labels of *atomics* that were mapped and added into the ensemble. This is an 
+    :arg atommaps: atom maps for *atomics* that were mapped and added into the ensemble. This is an 
         output argument
     :type atommaps: list
 
