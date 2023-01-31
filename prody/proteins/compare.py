@@ -16,8 +16,7 @@ from prody import LOGGER, SELECT, PY2K, PY3K
 from prody.sequence import MSA
 from prody.utilities import cmp, pystr, isListLike, multilap, SolutionDepletionException, index
 from prody.utilities import MATCH_SCORE, MISMATCH_SCORE, GAP_PENALTY, GAP_EXT_PENALTY, ALIGNMENT_METHOD
-
-from Bio import pairwise2
+from prody.utilities import alignBioPairwise
 
 if PY2K:
     range = xrange
@@ -26,7 +25,7 @@ if PY3K:
     basestring = str
 
 __all__ = ['matchChains', 'matchAlign', 'mapChainOntoChain', 'mapOntoChain', 'alignChains',
-           'mapOntoChains', 'bestMatch', 'sameChid', 'userDefined', 
+           'mapOntoChains', 'bestMatch', 'sameChid', 'userDefined', 'sameChainPos',
            'mapOntoChainByAlignment', 'getMatchScore', 'setMatchScore',
            'getMismatchScore', 'setMismatchScore', 'getGapPenalty', 
            'setGapPenalty', 'getGapExtPenalty', 'setGapExtPenalty',
@@ -781,25 +780,31 @@ def getAlignedMatch(ach, bch):
     """
 
     if ALIGNMENT_METHOD == 'local':
-        alignment = pairwise2.align.localms(ach.getSequence(),
-                                            bch.getSequence(),
-                                            MATCH_SCORE, MISMATCH_SCORE,
-                                            GAP_PENALTY, GAP_EXT_PENALTY,
-                                            one_alignment_only=1)
+        alignment = alignBioPairwise(ach.getSequence(),
+                                     bch.getSequence(),
+                                     "local",
+                                     MATCH_SCORE, MISMATCH_SCORE,
+                                     GAP_PENALTY, GAP_EXT_PENALTY,
+                                     one_alignment_only=1)
     else:
-        alignment = pairwise2.align.globalms(ach.getSequence(),
-                                             bch.getSequence(),
-                                             MATCH_SCORE, MISMATCH_SCORE,
-                                             GAP_PENALTY, GAP_EXT_PENALTY,
-                                             one_alignment_only=1)
+        alignment = alignBioPairwise(ach.getSequence(),
+                                     bch.getSequence(),
+                                     "global",
+                                     MATCH_SCORE, MISMATCH_SCORE,
+                                     GAP_PENALTY, GAP_EXT_PENALTY,
+                                     one_alignment_only=1)
 
-    this = alignment[0][0]
-    that = alignment[0][1]
     amatch = []
     bmatch = []
+    match = 0.0
+    try:
+        this = alignment[0][0]
+        that = alignment[0][1]
+    except IndexError:
+        LOGGER.warning('Matching chains resulted in empty alignment.')
+        return amatch, bmatch, match
     aiter = ach.__iter__()
     biter = bch.__iter__()
-    match = 0.0
     for i in range(len(this)):
         a = this[i]
         b = that[i]
@@ -1147,6 +1152,17 @@ def userDefined(chain1, chain2, correspondence):
 def sameChid(chain1, chain2):
     return chain1.getChid() == chain2.getChid()
 
+def sameChainPos(chain1, chain2):
+    chids_arr1 = np.array([chain.getChid() 
+                           for chain in list(chain1.getAtomGroup().getHierView())])
+    position1 = np.where(chids_arr1 == chain1.getChid())[0][0]
+    
+    chids_arr2 = np.array([chain.getChid() 
+                           for chain in list(chain2.getAtomGroup().getHierView())])
+    position2 = np.where(chids_arr2 == chain2.getChid())[0][0]
+                         
+    return position1 == position2
+
 def bestMatch(chain1, chain2):
     return True
 
@@ -1324,17 +1340,19 @@ def getAlignedMapping(target, chain, alignment=None):
 
     if alignment is None:
         if ALIGNMENT_METHOD == 'local':
-            alignments = pairwise2.align.localms(target.getSequence(),
-                                                chain.getSequence(),
-                                                MATCH_SCORE, MISMATCH_SCORE,
-                                                GAP_PENALTY,  GAP_EXT_PENALTY,
-                                                one_alignment_only=1)
+            alignments = alignBioPairwise(target.getSequence(),
+                                          chain.getSequence(),
+                                          "local",
+                                          MATCH_SCORE, MISMATCH_SCORE,
+                                          GAP_PENALTY,  GAP_EXT_PENALTY,
+                                          one_alignment_only=1)
         else:
-            alignments = pairwise2.align.globalms(target.getSequence(),
-                                                chain.getSequence(),
-                                                MATCH_SCORE, MISMATCH_SCORE,
-                                                GAP_PENALTY, GAP_EXT_PENALTY,
-                                                one_alignment_only=1)
+            alignments = alignBioPairwise(target.getSequence(),
+                                          chain.getSequence(),
+                                          "global",
+                                          MATCH_SCORE, MISMATCH_SCORE,
+                                          GAP_PENALTY, GAP_EXT_PENALTY,
+                                          one_alignment_only=1)
         alignment = alignments[0]
         this, that = alignment[:2]
     else:

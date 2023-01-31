@@ -271,3 +271,4 @@ class TestParsePfamPDBs(unittest.TestCase):
         os.chdir('..')
         shutil.rmtree(self.workdir)
 
+

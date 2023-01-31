@@ -987,7 +987,7 @@ def parseImagesFromSTAR(particlesSTAR, **kwargs):
             raise ValueError('particlesSTAR does not contain data about particle image '
                              '{0} location in either RELION or XMIPP format'.format(i))
 
-        if filename.endswith('.stk'):
+        if filename.lower().endswith('.stk'):
             stk_images.append(str(i))
             continue
 

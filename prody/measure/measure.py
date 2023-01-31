@@ -819,7 +819,7 @@ def calcPrincAxes(coords, turbo=True):
     """Calculate principal axes from coords"""
     M = calcInertiaTensor(coords)
     _, vectors, _ = solveEig(M, 3, zeros=True, turbo=turbo, reverse=True)
-    return vectors
+    return vectors.transpose()
 
 
 def calcDistanceMatrix(coords, cutoff=None):
