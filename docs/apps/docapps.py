@@ -1,14 +1,11 @@
 #!/usr/bin/python
 
 import os
-try:
-    import imp
-except ImportError:
-    import importlib as imp
-    
+import imp
+import importlib
 from subprocess import Popen, PIPE
 
-path = [imp.find_module('prody')[1]]
+path = [importlib.util.find_spec("prody").submodule_search_locations[0]]
 apps = imp.load_module('prody.apps',
                            *imp.find_module('apps', path))
 

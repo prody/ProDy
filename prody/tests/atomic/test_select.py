@@ -392,6 +392,13 @@ SELECTION_TESTS['imatinib'] = {
         ('fragindex 0:2', len(ligand)),],
 }
 
+pdb_gromacs = prody.parsePDB(pathDatafile('pdb6fpj_Bb_fixed_solv_ions.pdb'), secondary=True)
+SELECTION_TESTS['gromacs'] = {
+    'n_atoms': len(pdb_gromacs),
+    'ag': pdb_gromacs,
+    'all': pdb_gromacs.all,
+    'test_flags':  [('protein', 12194, 'aminoacid')],
+}
 
 pdb3mht = SELECTION_TESTS['pdb3mht']['ag']
 pdb3mht.setCharges(pdb3mht.getOccupancies())

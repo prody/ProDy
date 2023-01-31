@@ -15,12 +15,14 @@ from prody.utilities import openFile
 from prody import LOGGER, SETTINGS
 
 from .localpdb import fetchPDB
-from .starfile import parseSTARLines, StarDict
+from .starfile import parseSTARLines, StarDict, parseSTARSection
+from .cifheader import getCIFHeaderDict
+from .header import buildBiomolecules, assignSecstr, isHelix, isSheet
 
-__all__ = ['parseMMCIFStream', 'parseMMCIF', ]
+__all__ = ['parseMMCIFStream', 'parseMMCIF']
 
 
-class mmCIFParseError(Exception):
+class MMCIFParseError(Exception):
     pass
 
 
@@ -70,13 +72,18 @@ def parseMMCIF(pdb, **kwargs):
     """
     chain = kwargs.pop('chain', None)
     title = kwargs.get('title', None)
+    auto_bonds = SETTINGS.get('auto_bonds')
+    get_bonds = kwargs.get('bonds', auto_bonds)
+    if get_bonds:
+        LOGGER.warn('Parsing struct_conn information from mmCIF is current unsupported and no bond information is added to the results')
     if not os.path.isfile(pdb):
         if len(pdb) == 5 and pdb.isalnum():
             if chain is None:
                 chain = pdb[-1]
                 pdb = pdb[:4]
             else:
-                raise ValueError('Please provide chain as a keyword argument or part of the PDB ID, not both')
+                raise ValueError('Please provide chain as a keyword argument '
+                                 'or part of the PDB ID, not both')
         else:
             chain = chain
 
@@ -126,6 +133,7 @@ def parseMMCIFStream(stream, **kwargs):
     chain = kwargs.get('chain')
     altloc = kwargs.get('altloc', 'A')
     header = kwargs.get('header', False)
+    assert isinstance(header, bool), 'header must be a boolean'
 
     if model is not None:
         if isinstance(model, int):
@@ -161,6 +169,10 @@ def parseMMCIFStream(stream, **kwargs):
         ag = AtomGroup(str(kwargs.get('title', 'Unknown')) + title_suffix)
         n_csets = 0
 
+    biomol = kwargs.get('biomol', False)
+    auto_secondary = SETTINGS.get('auto_secondary')
+    secondary = kwargs.get('secondary', auto_secondary)
+    hd = None
     if model != 0:
         LOGGER.timeit()
         try:
@@ -172,13 +184,10 @@ def parseMMCIFStream(stream, **kwargs):
                 raise err
         if not len(lines):
             raise ValueError('empty PDB file or stream')
+        if header or biomol or secondary:
+            hd = getCIFHeaderDict(lines)
 
-        if header:
-            ag, header = _parseMMCIFLines(ag, lines, model, chain, subset,
-                                          altloc, header)
-        else:
-            ag = _parseMMCIFLines(ag, lines, model, chain, subset,
-                                  altloc, header)
+        _parseMMCIFLines(ag, lines, model, chain, subset, altloc)
 
         if ag.numAtoms() > 0:
             LOGGER.report('{0} atoms and {1} coordinate set(s) were '
@@ -188,16 +197,42 @@ def parseMMCIFStream(stream, **kwargs):
             ag = None
             LOGGER.warn('Atomic data could not be parsed, please '
                         'check the input file.')
+    elif header:
+        hd = getCIFHeaderDict(stream)
+
+    if ag is not None and isinstance(hd, dict):
+        if secondary:
+            if auto_secondary:
+                try:
+                    ag = assignSecstr(hd, ag)
+                except ValueError:
+                    pass
+            else:
+                ag = assignSecstr(hd, ag)
+        if biomol:
+            ag = buildBiomolecules(hd, ag)
+
+            if isinstance(ag, list):
+                LOGGER.info('Biomolecular transformations were applied, {0} '
+                            'biomolecule(s) are returned.'.format(len(ag)))
+            else:
+                LOGGER.info('Biomolecular transformations were applied to the '
+                            'coordinate data.')    
+
+    if model != 0:
         if header:
-            return ag, StarDict(*header, title=str(kwargs.get('title', 'Unknown')))
-        return ag
+            return ag, hd
+        else:
+            return ag
+    else:
+        return hd
 
 
 parseMMCIFStream.__doc__ += _parseMMCIFdoc
 
 
 def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
-                     altloc_torf, header):
+                     altloc_torf):
     """Returns an AtomGroup. See also :func:`.parsePDBStream()`.
 
     :arg lines: mmCIF lines
@@ -238,24 +273,40 @@ def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
             if foundAtomBlock:
                 doneAtomBlock = True
                 stop = i
+                
+        if i == len(lines) - 1:
+            if foundAtomBlock:
+                doneAtomBlock = True
+                stop = i
+            else:
+                raise MMCIFParseError('mmCIF file contained no atoms.')
+
         i += 1
 
-    if model is not None and model != 1:
+    new_start = start
+    new_stop = stop
+    if model is not None:
+        startp1 = start + 1
         for i in range(start, stop):
-            if str(models[i]) != model and str(models[i+1]) == model:
-                start = i+1
-            if str(models[i]) == model and str(models[i+1]) != model:
-                stop = i+1
+            if int(models[i-startp1]) != model and int(models[i+1-startp1]) == model:
+                new_start = i
+            if model != nModels and (int(models[i-startp1]) == model and int(models[i+1-startp1]) != model):
+                new_stop = i
                 break
         if not str(model) in models:
-            raise mmCIFParseError('model {0} is not found'.format(model))
+            raise MMCIFParseError('model {0} is not found'.format(model))
+
+    start = new_start
+    stop = new_stop
 
     addcoords = False
     if atomgroup.numCoordsets() > 0:
         addcoords = True
 
     if isinstance(altloc_torf, str):
-        if altloc_torf.strip() != 'A':
+        if altloc_torf == 'all':
+            which_altlocs = 'all'
+        elif altloc_torf.strip() != 'A':
             LOGGER.info('Parsing alternate locations {0}.'
                         .format(altloc_torf))
             which_altlocs = '.' + ''.join(altloc_torf.split())
@@ -289,8 +340,26 @@ def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
     for line in lines[start:stop]:
         startswith = line.split()[fields['group_PDB']]
 
-        atomname = line.split()[fields['auth_atom_id']]
-        resname = line.split()[fields['auth_comp_id']]
+        try:
+            atomname = line.split()[fields['auth_atom_id']]
+        except KeyError:
+            try:
+                atomname = line.split()[fields['label_atom_id']]
+            except KeyError:
+                raise MMCIFParseError('mmCIF file is missing required atom IDs.')
+ 
+
+        if atomname.startswith('"') and atomname.endswith('"'):
+            atomname = atomname[1:-1]
+        
+        try:
+            resname = line.split()[fields['auth_comp_id']]
+        except KeyError:
+            try:
+                resname = line.split()[fields['label_comp_id']]
+            except KeyError:
+                raise MMCIFParseError('mmCIF file is missing required component IDs.')
+                
 
         if subset is not None:
             if not (atomname in subset and resname in protein_resnames):
@@ -306,33 +375,39 @@ def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
         segID = line.split()[fields['label_asym_id']]
 
         alt = line.split()[fields['label_alt_id']]
-        if alt not in which_altlocs:
+        if alt not in which_altlocs and which_altlocs != 'all':
             continue
 
         if alt == '.':
-            alt = ''
-
-        if model is not None:
-            if int(models[acount]) < model:
-                continue
-            elif int(models[acount]) > model:
-                break
+            alt = ' '
 
         coordinates[acount] = [line.split()[fields['Cartn_x']],
                                line.split()[fields['Cartn_y']],
                                line.split()[fields['Cartn_z']]]
         atomnames[acount] = atomname
         resnames[acount] = resname
-        resnums[acount] = line.split()[fields['auth_seq_id']]
         chainids[acount] = chID
         segnames[acount] = segID
         hetero[acount] = startswith == 'HETATM' # True or False
+
+        try:
+            resnums[acount] = line.split()[fields['auth_seq_id']]
+        except KeyError:
+            try:
+                resnums[acount] = line.split()[fields['label_seq_id']]
+            except KeyError:
+                raise MMCIFParseError('mmCIF file is missing required sequence IDs.')
+
 
         if chainids[acount] != chainids[acount-1]: 
             termini[acount-1] = True
 
         altlocs[acount] = alt
-        icodes[acount] = line.split()[fields['pdbx_PDB_ins_code']]
+        
+        try:
+            icodes[acount] = line.split()[fields['pdbx_PDB_ins_code']]
+        except KeyError:
+            icodes[acount] = ''
 
         if icodes[acount] == '?': 
             icodes[acount] = ''
@@ -344,10 +419,10 @@ def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
 
         acount += 1
 
-    if model is not None:
-        nModels = 1
-
-    modelSize = acount//nModels
+    if model is None:
+        modelSize = acount//nModels
+    else:
+        modelSize = acount
 
     if addcoords:
         atomgroup.addCoordset(coordinates[:modelSize])
@@ -361,6 +436,7 @@ def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
     atomgroup.setChids(chainids[:modelSize])
     atomgroup.setFlags('hetatm', hetero[:modelSize])
     atomgroup.setFlags('pdbter', termini[:modelSize])
+    atomgroup.setFlags('selpdbter', termini[:modelSize])
     atomgroup.setAltlocs(altlocs[:modelSize])
     atomgroup.setIcodes(icodes[:modelSize])
     atomgroup.setSerials(serials[:modelSize])
@@ -371,12 +447,53 @@ def _parseMMCIFLines(atomgroup, lines, model, chain, subset,
     atomgroup.setBetas(bfactors[:modelSize])
     atomgroup.setOccupancies(occupancies[:modelSize])
 
-    for n in range(1, nModels):
-        atomgroup.addCoordset(coordinates[n*modelSize:(n+1)*modelSize])
+    anisou = None
+    siguij = None
+    try:
+        data = parseSTARSection(lines, "_atom_site_anisotrop")
+        x = data[0] # check if data has anything in it
+    except IndexError:
+        LOGGER.warn("No anisotropic B factors found")
+    else:
+        anisou = np.zeros((acount, 6),
+                          dtype=ATOMIC_FIELDS['anisou'].dtype)
+        
+        if "_atom_site_anisotrop.U[1][1]_esd" in data[0].keys():
+            siguij = np.zeros((acount, 6),
+                              dtype=ATOMIC_FIELDS['siguij'].dtype)
 
-    if header:
-        header = parseSTARLines(lines[:start-fieldCounter-2] + lines[stop:],
-                                shlex=True)
-        return atomgroup, header
+        for entry in data:
+            try:
+                index = np.where(atomgroup.getSerials() == int(
+                    entry["_atom_site_anisotrop.id"]))[0][0]
+            except:
+                continue
+            
+            anisou[index, 0] = entry['_atom_site_anisotrop.U[1][1]']
+            anisou[index, 1] = entry['_atom_site_anisotrop.U[2][2]']
+            anisou[index, 2] = entry['_atom_site_anisotrop.U[3][3]']
+            anisou[index, 3] = entry['_atom_site_anisotrop.U[1][2]']
+            anisou[index, 4] = entry['_atom_site_anisotrop.U[1][3]']
+            anisou[index, 5] = entry['_atom_site_anisotrop.U[2][3]'] 
+
+            if siguij is not None:
+                try:
+                    siguij[index, 0] = entry['_atom_site_anisotrop.U[1][1]_esd']
+                    siguij[index, 1] = entry['_atom_site_anisotrop.U[2][2]_esd']
+                    siguij[index, 2] = entry['_atom_site_anisotrop.U[3][3]_esd']
+                    siguij[index, 3] = entry['_atom_site_anisotrop.U[1][2]_esd']
+                    siguij[index, 4] = entry['_atom_site_anisotrop.U[1][3]_esd']
+                    siguij[index, 5] = entry['_atom_site_anisotrop.U[2][3]_esd']
+                except:
+                    pass
+
+        atomgroup.setAnisous(anisou) # no division needed anymore
+
+        if not np.any(siguij):
+            atomgroup.setAnistds(siguij)  # no division needed anymore
+
+    if model is None:
+        for n in range(1, nModels):
+            atomgroup.addCoordset(coordinates[n*modelSize:(n+1)*modelSize])
 
     return atomgroup

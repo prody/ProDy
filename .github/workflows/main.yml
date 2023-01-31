@@ -2,16 +2,8 @@
 
 name: CI
 
-# Controls when the action will run. 
-on:
-  # Triggers the workflow on push and pull request events
-  push:
-    branches: [ $default-branch ]
-  pull_request:
-    branches: [ $default-branch ]
-
-  # Allows you to run this workflow manually from the Actions tab
-  workflow_dispatch:
+# Controls when the action will run.
+on: [push, pull_request, workflow_dispatch]
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
@@ -21,7 +13,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: [2.7, 3.5, 3.9]
+        python-version: ["2.7", "3.7", "3.8", "3.9", "3.10"]
 
     steps:
     - uses: actions/checkout@v2
@@ -34,10 +26,12 @@ jobs:
         echo $CONDA/bin >> $GITHUB_PATH
     - name: Install dependencies
       run: |
+        if [[ ${{ matrix.python-version }} == "3.11" ]]; then conda config --add channels conda-forge; fi
         conda create --yes -n test python=${{ matrix.python-version }}
         source activate test
-        conda install --yes numpy scipy nose pyparsing biopython
+        conda install --yes numpy scipy nose pyparsing biopython requests
         if [[ ${{ matrix.python-version }} == "2.7" ]]; then conda install --yes unittest2; fi
+        pip install .
         python setup.py build_ext --inplace --force
     - name: Test with pytest
       run: |

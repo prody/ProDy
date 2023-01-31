@@ -55,7 +55,7 @@ def saveAtoms(atoms, filename=None, **kwargs):
 
     if filename is None:
         filename = ag.getTitle().replace(' ', '_')
-    if '.ag.npz' not in filename:
+    if filename.lower().endswith('.npz'):
         filename += '.ag.npz'
 
     attr_dict = {'title': title}
@@ -289,10 +289,10 @@ def sliceAtoms(atoms, select):
     """Slice *atoms* using the selection defined by *select*.
 
     :arg atoms: atoms to be selected from
-    :type atoms: :class:`Atomic`
+    :type atoms: :class:`.Atomic`
 
-    :arg select: a :class:`Selection` instance or selection string
-    :type select: :class:`Selection`, str
+    :arg select: a :class:`.Selection` instance or selection string
+    :type select: :class:`.Selection`, str
 
     """
 
@@ -345,6 +345,8 @@ def extendAtoms(nodes, atoms, is3d=False):
                   node.getIcode() or None, node.getSegname() or None)
         if res is None:
             raise ValueError('atoms must contain a residue for all atoms')
+        if isinstance(res, list):
+            raise ValueError('not enough data to get a single residue for all atoms')
 
         res_atom_indices = res._getIndices()
         if not fastin(res, residues):
@@ -436,10 +438,10 @@ def sliceAtomicData(data, atoms, select, axis=None):
     :type data: :class:`~numpy.ndarray`
 
     :arg atoms: atoms to be selected from
-    :type atoms: :class:`Atomic`
+    :type atoms: :class:`.Atomic`
 
-    :arg select: a :class:`Selection` instance or selection string
-    :type select: :class:`Selection`, str
+    :arg select: a :class:`.Selection` instance or selection string
+    :type select: :class:`.Selection`, str
 
     :arg axis: the axis along which the data is sliced. See :mod:`~numpy` 
                for details of this parameter. 
@@ -501,10 +503,10 @@ def extendAtomicData(data, nodes, atoms, axis=None):
 
     :arg nodes: a set of atoms that has been used
         as nodes in data generation
-    :type nodes: :class:`Atomic`
+    :type nodes: :class:`.Atomic`
 
     :arg atoms: atoms to be selected from
-    :type atoms: :class:`Atomic`
+    :type atoms: :class:`.Atomic`
 
     :arg axis: the axis/direction you want to use to slice data from the matrix.
         The options are **0** or **1** or **None** like in :mod:`~numpy`. 
@@ -542,3 +544,4 @@ def extendAtomicData(data, nodes, atoms, axis=None):
     return data_ext, atommap
 
 extendData = extendAtomicData
+

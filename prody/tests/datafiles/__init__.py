@@ -10,7 +10,8 @@ from prody.tests import TestCase
 from numpy import array
 import numpy as np
 
-from prody import parsePDB, parseDCD, parseSparseMatrix, parseArray, loadModel
+from prody import parsePDB, parseDCD, parseMMCIF
+from prody import parseSparseMatrix, parseArray, loadModel
 from prody.tests import TEMPDIR, TESTDIR
 
 
@@ -142,6 +143,9 @@ DATA_FILES = {
     'DI': {
         'file': 'msa_Cys_knot_di.dat'
     },
+    'MSA': {
+        'file': 'msa_3hsyA_3o21A.fasta'
+    },
     'RTER': {
         'file': 'pdbRTER.pdb'
     },
@@ -153,12 +157,60 @@ DATA_FILES = {
     },
     'h36': {
         'file': 'pdb1tw7_step3_charmm2namd_doubled_h36.pdb'
-    }
+    },
+    'multi_model_cif': {
+        'pdb': '6yfy',
+        'file': 'mmcif_6yfy.cif',
+        'atoms': 1460,
+        'chainA_atoms': 187,
+        'ca_atoms': 36,
+        'bb_atoms': 144,
+        'models': 26,
+    },
+    'long_chid_cif': {
+        'pdb': '6zu5',
+        'file': 'mmcif_6zu5.cif',
+        'atoms': 165175,
+        'chain_SX0_atoms': 1089,
+    },
+    '3hsy': {
+        'pdb': '3hsy',
+        'file': 'pdb3hsy.pdb',
+        'atoms': 6058,
+        'ca_atoms': 730,
+        'models': 1,
+        'biomols': 1
+    },
+    '3o21': {
+        'pdb': '3o21',
+        'file': 'pdb3o21.pdb',
+        'atoms': 12793,
+        'ca_atoms': 1489,
+        'models': 1,
+        'biomols': 2
+    },
+    '3p3w': {
+        'pdb': '3p3w',
+        'file': 'pdb3p3w.pdb',
+        'atoms': 11484,
+        'ca_atoms': 1482,
+        'models': 1,
+        'biomols': 2
+    },
+    'gromacs': {
+        'pdb': '6fpj',
+        'file': 'pdb6fpj_Bb_fixed_solv_ions.pdb',
+        'atoms': 83473,
+        'ca_atoms': 758,
+        'models': 1,
+        'biomols': 1,
+        'protein': 12194
+    },
 }
 
 
 PARSERS = {
-    '.dcd': parseDCD, '.pdb': parsePDB,
+    '.dcd': parseDCD, '.pdb': parsePDB, '.cif': parseMMCIF,
     '.coo': parseSparseMatrix, '.dat': parseArray,
     '.txt': np.loadtxt,
     '.gz': lambda fn, **kwargs: PARSERS[splitext(fn)[1]](fn, **kwargs)

@@ -7,7 +7,6 @@ from numpy import all, zeros, dtype, array, char, cumsum, ceil, reshape
 from numpy import where, sort, concatenate, vstack, isscalar, chararray
 
 from Bio import AlignIO
-from Bio import pairwise2
 
 from prody import LOGGER, PY3K
 from prody.atomic import Atomic
@@ -557,8 +556,7 @@ def refineMSA(msa, index=None, label=None, rowocc=None, seqid=None, colocc=None,
                 before = arr.shape[1]
                 LOGGER.timeit('_refine')
                 
-                from Bio import pairwise2
-                from prody.utilities import MATCH_SCORE, MISMATCH_SCORE
+                from prody.utilities import MATCH_SCORE, MISMATCH_SCORE, alignBioPairwise
                 from prody.utilities import GAP_PENALTY, GAP_EXT_PENALTY, ALIGNMENT_METHOD
 
                 chseq = chain.getSequence()
@@ -571,11 +569,11 @@ def refineMSA(msa, index=None, label=None, rowocc=None, seqid=None, colocc=None,
                 else:
                     arr2 = arr[index].tostring()
 
-                algn = pairwise2.align.localms(pystr(arr2.upper()), pystr(chseq),
-                                               MATCH_SCORE, MISMATCH_SCORE,
-                                               GAP_PENALTY, GAP_EXT_PENALTY,
-                                               one_alignment_only=1)
-
+                algn = alignBioPairwise(pystr(arr2.upper()), pystr(chseq),
+                                        "local",
+                                        MATCH_SCORE, MISMATCH_SCORE,
+                                        GAP_PENALTY, GAP_EXT_PENALTY,
+                                        one_alignment_only=1)
                 torf = []
                 for s, c in zip(*algn[0][:2]):
                     if s == '-':
