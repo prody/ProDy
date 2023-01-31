@@ -789,6 +789,15 @@ def setProtein(ag, label):
         flags = torf[resindices]
     else:
         flags = zeros(ag.numAtoms(), bool)
+        
+    water = ag._getSubset("water")
+    if len(water):
+        flags[water] = False
+        
+    ions = ag._getSubset("ion")
+    if len(ions):
+        flags[ions] = False
+    
     ag._setFlags('protein', flags)
     return flags
 

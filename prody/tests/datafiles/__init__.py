@@ -143,6 +143,9 @@ DATA_FILES = {
     'DI': {
         'file': 'msa_Cys_knot_di.dat'
     },
+    'MSA': {
+        'file': 'msa_3hsyA_3o21A.fasta'
+    },
     'RTER': {
         'file': 'pdbRTER.pdb'
     },
@@ -193,6 +196,15 @@ DATA_FILES = {
         'ca_atoms': 1482,
         'models': 1,
         'biomols': 2
+    },
+    'gromacs': {
+        'pdb': '6fpj',
+        'file': 'pdb6fpj_Bb_fixed_solv_ions.pdb',
+        'atoms': 83473,
+        'ca_atoms': 758,
+        'models': 1,
+        'biomols': 1,
+        'protein': 12194
     },
 }
 
