@@ -473,7 +473,10 @@ def findPDBFiles(path, case=None, **kwargs):
     pdbs = {}
     for fn in iterPDBFilenames(path, sort=True, reverse=True, **kwargs):
         fn = normpath(fn)
-        pdb = splitext(splitext(split(fn)[1])[0])[0]
+        pdb = splitext(split(fn)[1])[0]
+        ending = splitext(splitext(split(fn)[1])[0])[1]
+        if ending == 'gz':
+            pdb = splittext(pdb)[0]
         if len(pdb) == 7 and pdb.startswith('pdb'):
             pdb = pdb[3:]
         if upper:
