@@ -286,16 +286,16 @@ def calcChHydrogenBonds(atoms, distA=3.0, angle=40, cutoff_dist=20, **kwargs):
     :type distA: int or float, default is 3.0.
     
     :arg angle: non-zero value, D-H-A angle (donor, hydrogen, acceptor).
-    :type distA: int or float, default is 40.
+    :type angle: int or float, default is 40.
     
     :arg cutoff_dist: non-zero value, interactions will be found between residues that are higher than cutoff_dist.
     :type cutoff_dist: int, default is 20 atoms.
 
-    Structre should contain hydrogens.
+    Structure should contain hydrogens.
     If not they can be added using addHydrogens(pdb_name) function available in ProDy after Openbabel instalation.
     `conda install -c conda-forge openbabel`
     
-    Note that the angle which is considering is 180-defined angle D-H-A (in a good agreement with VMD)
+    Note that the angle which it is considering is 180-defined angle D-H-A (in a good agreement with VMD)
     Results can be displayed in VMD. """
 
     try:
