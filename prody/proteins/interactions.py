@@ -406,7 +406,7 @@ def calcRepulsiveIonicBonding(atoms, distA=4.5):
     atoms_KRED = atoms.select('protein and resname ASP GLU LYS ARG and not backbone and not name OXT NE "C.*" and noh')
     charged_residues = list(set(zip(atoms_KRED.getResnums(), atoms_KRED.getChids())))
     
-    LOGGER.info('Calculating repulsive ionic bonidng.')
+    LOGGER.info('Calculating repulsive ionic bonding.')
     RepulsiveIonicBonding_list = []
     for i in charged_residues:
         sele1 = atoms_KRED.select('resid '+str(i[0])+' and chain '+i[1])
