@@ -1618,6 +1618,9 @@ class Interactions(object):
         import matplotlib.pylab as plt        
         from prody.dynamics.plotting import showAtomicLines
         
+        if not hasattr(self, '_interactions_matrix') or self._interactions_matrix is None:
+            raise ValueError('Please calculate interactions matrix first')
+
         interaction_matrix = self._interactions_matrix
         atoms = self._atoms 
         
@@ -1638,13 +1641,16 @@ class Interactions(object):
         
     
     def saveInteractionsPDB(self, **kwargs):
-        """Save the number of potential interactions to PDB file in occupancy collumn.
+        """Save the number of potential interactions to PDB file in occupancy column.
         
         :arg output: name of the PDB file which will be saved for visualization,
-                     it will contain the results in occupancy collumn.
+                     it will contain the results in occupancy column.
         :type output: str
         """
         
+        if not hasattr(self, '_interactions_matrix') or self._interactions_matrix is None:
+            raise ValueError('Please calculate interactions matrix first')
+
         import numpy as np
         interaction_matrix = self._interactions_matrix
         atoms = self._atoms     
@@ -1726,6 +1732,9 @@ class Interactions(object):
         >>> name.showFrequenctInteractions(d)
         """
         
+        if not hasattr(self, '_interactions_matrix') or self._interactions_matrix is None:
+            raise ValueError('Please calculate interactions matrix first')
+
         import numpy as np
         import matplotlib
         import matplotlib.pyplot as plt
