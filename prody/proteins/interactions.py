@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
 """This module defines functions for calculating different types of interactions 
-in protein sttructure, between proteins or between protein and ligand.
-Following interactions are available for protein interactions:
+in protein structure, between proteins or between protein and ligand.
+The following interactions are available for protein interactions:
         (1) Hydrogen bonds
         (2) Salt Bridges
         (3) Repulsive Ionic Bonding 
