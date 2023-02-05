@@ -178,8 +178,10 @@ def calcHydrogenBonds(atoms, distA=3.0, angle=40, cutoff_dist=20, **kwargs):
     :arg angle: non-zero value, maximal (180 - D-H-A angle) (donor, hydrogen, acceptor).
     :type distA: int or float, default is 40.
     
-    :arg cutoff_dist: non-zero value, interactions will be found between residues that are higher than cutoff_dist.
-    :type cutoff_dist: int, default is 20 atoms.
+    :arg cutoff_dist: non-zero value, interactions will be found between atoms with index differences
+        that are higher than cutoff_dist.
+        default is 20 atoms.
+    :type cutoff_dist: int
 
     Structre should contain hydrogens.
     If not they can be added using addHydrogens(pdb_name) function available in ProDy after Openbabel instalation.
