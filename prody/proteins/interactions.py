@@ -14,7 +14,7 @@ For protein-ligand interactions (3) is replaced by water bridges.
 """
 
 __author__ = 'Karolina Mikulska-Ruminska'
-__credits__ = ['James Krieger','Karolina Mikulska-Ruminska']
+__credits__ = ['James Krieger', 'Karolina Mikulska-Ruminska']
 __email__ = ['karolami@pitt.edu', 'KRIEGERJ@pitt.edu']
 
 
@@ -59,7 +59,7 @@ def cleanNumbers(listContacts):
 
 
 def calcPlane(atoms):
-    """Function provide paramaters of a plane for aromatic rings (based on 3 points).
+    """Function provide parameters of a plane for aromatic rings (based on 3 points).
     Used in calcPiStacking()"""
     
     coordinates = atoms.getCoords()
@@ -112,10 +112,11 @@ def addHydrogens(pdb, method='openbabel', pH=7.0):
             For either option additional software need to be installed:
             'openbabel': OpenBabel
             'pdbfixer': PDBFixer and OpenMM
-    :type method: str, by default is 'openbabel'
+            default is 'openbabel'
+    :type method: str
     
     :arg pH: pH value applyed only for PDBfixer.
-    :type pH: int or float
+    :type pH: int, float
     
     Instalation of Openbabel:
     conda install -c conda-forge openbabel    
@@ -734,7 +735,7 @@ def calcMetalInteractions(atoms, distA=3.0, extraIons=['FE'], excluded_ions=['SO
 
 
 def calcProteinInteractions(atoms):
-    """Compute all protein interactions (shown below) using default paramaters.
+    """Compute all protein interactions (shown below) using default parameters.
         (1) Hydrogen bonds
         (2) Salt Bridges
         (3) RepulsiveIonicBonding 
@@ -768,7 +769,7 @@ def calcProteinInteractions(atoms):
 
 
 def calcHydrogenBondsDCD(atoms, trajectory, distA=3.0, angle=40, cutoff_dist=20, **kwargs):   
-    """Compute hydrogen bonds for DCD trajectory using default paramaters.
+    """Compute hydrogen bonds for DCD trajectory using default parameters.
         
     :arg atoms: an Atomic object from which residues are selected
     :type atoms: :class:`.Atomic`
@@ -802,7 +803,7 @@ def calcHydrogenBondsDCD(atoms, trajectory, distA=3.0, angle=40, cutoff_dist=20,
 
 
 def calcSaltBridgesDCD(atoms, trajectory, distA=4.5):
-    """Compute salt bridges for DCD trajectory using default paramaters.
+    """Compute salt bridges for DCD trajectory using default parameters.
         
     :arg atoms: an Atomic object from which residues are selected
     :type atoms: :class:`.Atomic`
@@ -836,7 +837,7 @@ def calcSaltBridgesDCD(atoms, trajectory, distA=4.5):
     
 
 def calcRepulsiveIonicBondingDCD(atoms, trajectory, distA=4.5):  
-    """Compute repulsive ionic bonding for DCD trajectory using default paramaters.
+    """Compute repulsive ionic bonding for DCD trajectory using default parameters.
         
     :arg atoms: an Atomic object from which residues are selected
     :type atoms: :class:`.Atomic`
@@ -870,7 +871,7 @@ def calcRepulsiveIonicBondingDCD(atoms, trajectory, distA=4.5):
 
 
 def calcPiStackingDCD(atoms, trajectory, distA=5.0, angle_min=0, angle_max=360, **kwargs):   
-    """Compute Pi-stacking interactions for DCD trajectory using default paramaters.
+    """Compute Pi-stacking interactions for DCD trajectory using default parameters.
         
     :arg atoms: an Atomic object from which residues are selected
     :type atoms: :class:`.Atomic`
@@ -904,7 +905,7 @@ def calcPiStackingDCD(atoms, trajectory, distA=5.0, angle_min=0, angle_max=360, 
 
 
 def calcPiCationDCD(atoms, trajectory, distA=5.0, extraSele=None, **kwargs):  
-    """Compute Pi-cation interactions for DCD trajectory using default paramaters.
+    """Compute Pi-cation interactions for DCD trajectory using default parameters.
         
     :arg atoms: an Atomic object from which residues are selected
     :type atoms: :class:`.Atomic`
@@ -938,7 +939,7 @@ def calcPiCationDCD(atoms, trajectory, distA=5.0, extraSele=None, **kwargs):
 
 
 def calcHydrophohicDCD(atoms, trajectory, distA=4.5, **kwargs):  
-    """Compute hydrophobic interactions for DCD trajectory using default paramaters.
+    """Compute hydrophobic interactions for DCD trajectory using default parameters.
         
     :arg atoms: an Atomic object from which residues are selected
     :type atoms: :class:`.Atomic`
@@ -1034,9 +1035,9 @@ def compareInteractions(data1, data2, **kwargs):
     
     
 def calcStatisticsInteractions(data):
-    """Return the statists of interactions from DCD trajectory including 
+    """Return the statistics of interactions from DCD trajectory including
     the number of counts for each residue pair, 
-    avarage distance of interactions for each pair [in Ang] and standard deviation.
+    average distance of interactions for each pair [in Ang] and standard deviation.
         
     :arg data: list with interactions from calcHydrogenBondsDCD() or other types
     :type data: list
@@ -1283,7 +1284,7 @@ def showProteinInteractions_VMD(atoms, interactions, color='red',**kwargs):
     tcl_file = open(output, 'w') 
     
     
-    def TCLforSingleInteaction(interaction, color='blue', tcl_file=tcl_file):
+    def TCLforSingleInteraction(interaction, color='blue', tcl_file=tcl_file):
         """Protein interactions from ProDy for a single Interaction"""
         
         tcl_file.write('draw color '+color+'\n')
@@ -1311,13 +1312,13 @@ def showProteinInteractions_VMD(atoms, interactions, color='red',**kwargs):
         colors = ['blue', 'yellow', 'red', 'green', 'orange', 'silver']
         
         for nr_inter,inter in enumerate(interactions):
-            TCLforSingleInteaction(inter, color=colors[nr_inter], tcl_file=tcl_file)
+            TCLforSingleInteraction(inter, color=colors[nr_inter], tcl_file=tcl_file)
 
     elif len(interactions[0]) == 0 or interactions == []:
         LOGGER.info("Lack of results")
         
     else:
-        TCLforSingleInteaction(interactions,color)
+        TCLforSingleInteraction(interactions,color)
 
     tcl_file.write('draw materials off')
     tcl_file.close()   
@@ -1420,7 +1421,7 @@ class Interactions(object):
         super(Interactions, self).__init__(name)
            
     def calcProteinInteractions(self, atoms):
-        """Compute all protein interactions (shown below) using default paramaters.
+        """Compute all protein interactions (shown below) using default parameters.
             (1) Hydrogen bonds
             (2) Salt Bridges
             (3) RepulsiveIonicBonding 
@@ -1721,7 +1722,7 @@ class Interactions(object):
         
 
     def showFrequenctInteractions(self, cutoff=5, **kwargs):
-        """Finds regions with the most frequent interactions.
+        """Plots regions with the most frequent interactions.
         
         :arg cutoff: minimal score per residue which will be displayed.
                      If cutoff value is to big, top 30% with the higest values will be returned.
@@ -1796,7 +1797,7 @@ class InteractionsDCD(object):
 
 
     def calcProteinInteractionsDCD(self, atoms, trajectory, **kwargs):
-        """Compute all protein interactions (shown below) for DCD trajectory using default paramaters.
+        """Compute all protein interactions (shown below) for DCD trajectory using default parameters.
             (1) Hydrogen bonds
             (2) Salt Bridges
             (3) RepulsiveIonicBonding 
@@ -1827,6 +1828,9 @@ class InteractionsDCD(object):
         if not isinstance(trajectory, (TrajBase, Ensemble, Atomic)):
             raise TypeError('{0} is not a valid type for trajectory'
                         .format(type(trajectory)))
+
+        if isinstance(trajectory, Atomic):
+            trajectory = Ensemble(trajectory)
                         
         HBs_all = []
         SBs_all = []
