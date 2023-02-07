@@ -1205,7 +1205,7 @@ class TestBuildMSA(TestCase):
         sequences = [ags[0].protein["A"].getSequence(), 
                      ags[1].protein["A"].getSequence()]
 
-        expect = parseMSA(pathDatafile('msa_3hsyA_3o21A.fasta'))
-        result = buildMSA(sequences, method="local", labels=["A2", "A3"])
+        expect = parseMSA(pathDatafile('msa_3hsyA_3o21A.fasta')).getArray()
+        result = buildMSA(sequences, method="local", labels=["A2", "A3"]).getArray()
         assert_array_equal(expect, result)
         
