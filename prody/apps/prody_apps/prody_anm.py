@@ -203,14 +203,14 @@ def prody_anm(pdb, **kwargs):
 
             if figall or cc:
                 plt.figure(figsize=(width, height))
-                prody.showCrossCorr(anm)
+                prody.showCrossCorr(anm, interactive=False)
                 plt.savefig(join(outdir, prefix + '_cc.'+format),
                     dpi=dpi, format=format)
                 plt.close('all')
 
             if figall or cm:
                 plt.figure(figsize=(width, height))
-                prody.showContactMap(anm)
+                prody.showContactMap(anm, interactive=False)
                 plt.savefig(join(outdir, prefix + '_cm.'+format),
                     dpi=dpi, format=format)
                 plt.close('all')

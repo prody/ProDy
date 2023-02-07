@@ -108,7 +108,7 @@ def showEllipsoid(modes, onto=None, n_std=2, scale=1., *args, **kwargs):
             show = child
             break
     if show is None:
-        show = Axes3D(cf)
+        show = cf.add_subplot(projection="3d")
     show.plot_wireframe(x, y, z, rstride=6, cstride=6, *args, **kwargs)
     if onto is not None:
         onto = list(onto)
@@ -324,7 +324,7 @@ def showProjection(ensemble, modes, *args, **kwargs):
                 show = child
                 break
         if show is None:
-            show = Axes3D(cf)
+            show = cf.add_subplot(projection="3d")
         plot = show.plot
         text = show.text
 
@@ -1508,6 +1508,11 @@ def showAtomicMatrix(matrix, x_array=None, y_array=None, atoms=None, **kwargs):
     text_color = kwargs.pop('text_color', 'k')
     text_color = kwargs.pop('textcolor', text_color)
     interactive = kwargs.pop('interactive', True)
+    
+    import matplotlib
+    if float(matplotlib.__version__[:-2]) >= 3.6:
+        LOGGER.warn('matplotlib 3.6 and later are not compatible with interactive matrices')
+        interactive = False
 
     if isinstance(fig, Figure):
         fig_num = fig.number
