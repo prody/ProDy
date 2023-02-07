@@ -1002,15 +1002,15 @@ def compareInteractions(data1, data2, **kwargs):
     diff_12 = set(data1_tuple) - set(data2_tuple)
     similar_12 = set(data1_tuple) & set(data2_tuple)
     
-    LOGGER.info(f"Which interactions disappeared: {len(diff_21)}")
+    LOGGER.info("Which interactions disappeared: {0}".format(len(diff_21)))
     for j in diff_21:
         LOGGER.info('{0} <---> {1}'.format(j[0],j[1]))
         
-    LOGGER.info(f"\nWhich interactions appeared: {len(diff_12)}")  
+    LOGGER.info("\nWhich interactions appeared: {0}".format(len(diff_12)))  
     for j in diff_12:  
         LOGGER.info('{0} <---> {1}'.format(j[0],j[1]))
     
-    LOGGER.info(f"Which interactions are the same: {len(similar_12)}")
+    LOGGER.info("Which interactions are the same: {0}".format(len(similar_12)))
     for j in similar_12:
         if len(similar_12) != 0:
             LOGGER.info('{0} <---> {1}'.format(j[0],j[1]))
@@ -1070,10 +1070,10 @@ def calcStatisticsInteractions(data):
 
     statistic = []
     for key, value in stats.items():
-        LOGGER.info(f"Statistics for {key}:")
-        LOGGER.info(f"  Average [Ang.]: {value['mean']}")
-        LOGGER.info(f"  Standard deviation [Ang.]: {value['stddev']}")
-        LOGGER.info(f"  Count: {value['count']}")
+        LOGGER.info("Statistics for {0}:".format(key))
+        LOGGER.info("  Average [Ang.]: {}".format(value['mean']))
+        LOGGER.info("  Standard deviation [Ang.]: {0}".format(value['stddev']))
+        LOGGER.info("  Count: {0}".format(value['count']))
         statistic.append([key, value['count'], value['mean'], value['stddev']])
     
     statistic.sort(key=lambda x: x[1], reverse=True)
@@ -1714,8 +1714,14 @@ class Interactions(object):
             LOGGER.info('{0}  <--->  {1}'.format(res[0], '  '.join(res[1])))
 
         LOGGER.info('Legend: hb-hydrogen bond, sb-salt bridge, rb-repulsive ionic bond, ps-Pi stacking interaction,'
-                                                    ' pc-Cation-Pi interaction, hp-hydrophobic interaction')    
-        from toolz.curried import count
+                                                    ' pc-Cation-Pi interaction, hp-hydrophobic interaction')
+        
+        try:
+            from toolz.curried import count
+        except ImportError:
+            LOGGER.warn('This function requires the module toolz')
+            return
+        
         LOGGER.info('The biggest number of interactions: {}'.format(max(map(count, ListOfInteractions))))
         
         return ListOfInteractions_list
@@ -1746,7 +1752,10 @@ class Interactions(object):
         aa_dic = {'CYS': 'C', 'ASP': 'D', 'SER': 'S', 'GLN': 'Q', 'LYS': 'K',
              'ILE': 'I', 'PRO': 'P', 'THR': 'T', 'PHE': 'F', 'ASN': 'N', 
                   'GLY': 'G', 'HIS': 'H', 'LEU': 'L', 'ARG': 'R', 'TRP': 'W', 
-                       'ALA': 'A', 'VAL':'V', 'GLU': 'E', 'TYR': 'Y', 'MET': 'M', 'HSE': 'H', 'HSD': 'H', **kwargs}
+                       'ALA': 'A', 'VAL':'V', 'GLU': 'E', 'TYR': 'Y', 'MET': 'M', 'HSE': 'H', 'HSD': 'H'}#, **kwargs}
+
+        for key, value in kwargs.items():
+            aa_dict[key] = value
 
         freq_contacts_residues = np.sum(interaction_matrix, axis=0)
         ResNumb = atoms.select('protein and name CA').getResnums()
