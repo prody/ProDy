@@ -15,7 +15,7 @@ For protein-ligand interactions (3) is replaced by water bridges.
 
 __author__ = 'Karolina Mikulska-Ruminska'
 __credits__ = ['James Krieger', 'Karolina Mikulska-Ruminska']
-__email__ = ['karolami@pitt.edu', 'KRIEGERJ@pitt.edu']
+__email__ = ['karolamik@fizyka.umk.pl', 'jamesmkrieger@gmail.com']
 
 
 import numpy as np
@@ -174,10 +174,10 @@ def calcHydrogenBonds(atoms, distA=3.0, angle=40, cutoff_dist=20, **kwargs):
     :type atoms: :class:`.Atomic`
     
     :arg distA: non-zero value, maximal distance between donor and acceptor.
-    :type distA: int or float, default is 3.0
+    :type distA: int, float, default is 3.0
     
     :arg angle: non-zero value, maximal (180 - D-H-A angle) (donor, hydrogen, acceptor).
-    :type angle: int or float, default is 40.
+    :type angle: int, float, default is 40.
     
     :arg cutoff_dist: non-zero value, interactions will be found between atoms with index differences
         that are higher than cutoff_dist.
@@ -284,10 +284,10 @@ def calcChHydrogenBonds(atoms, distA=3.0, angle=40, cutoff_dist=20, **kwargs):
     :type atoms: :class:`.Atomic`
     
     :arg distA: non-zero value, maximal distance between donor and acceptor.
-    :type distA: int or float, default is 3.0.
+    :type distA: int, float, default is 3.0.
 
     :arg angle: non-zero value, D-H-A angle (donor, hydrogen, acceptor).
-    :type angle: int or float, default is 40.
+    :type angle: int, float, default is 40.
     
     :arg cutoff_dist: non-zero value, interactions will be found between atoms with index differences
         that are higher than cutoff_dist.
@@ -331,7 +331,7 @@ def calcSaltBridges(atoms, distA=4.5):
     
     :arg distA: non-zero value, maximal distance between center of masses 
         of N and O atoms of negatively and positevely charged residues.
-    :type distA: int or float, default is 4.5.
+    :type distA: int, float, default is 4.5.
     
     Results can be displayed in VMD."""
 
@@ -394,7 +394,7 @@ def calcRepulsiveIonicBonding(atoms, distA=4.5):
     
     :arg distA: non-zero value, maximal distance between center of masses 
             between N-N or O-O atoms of residues.
-    :type distA: int or float, default is 4.5.
+    :type distA: int, float, default is 4.5.
     
     Results can be displayed in VMD."""
 
@@ -454,7 +454,7 @@ def calcPiStacking(atoms, distA=5.0, angle_min=0, angle_max=360, **kwargs):
     :type atoms: :class:`.Atomic`
     
     :arg distA: non-zero value, maximal distance between center of masses of residues aromatic rings.
-    :type distA: int or float, default is 5.
+    :type distA: int, float, default is 5.
     
     :arg angle_min: minimal angle between aromatic rings.
     :type angle_min: int, default is 0.
@@ -465,10 +465,10 @@ def calcPiStacking(atoms, distA=5.0, angle_min=0, angle_max=360, **kwargs):
     Results can be displayed in VMD.
     By default three residues are included TRP, PHE, TYR and HIS.
     Additional selection can be added: 
-        >> calcPiStacking(atoms, 'HSE'='noh and not backbone and not name CB')
+        >>> calcPiStacking(atoms, 'HSE'='noh and not backbone and not name CB')
         or
-        >> kwargs = {"HSE": "noh and not backbone and not name CB", "HSD": "noh and not backbone and not name CB"}
-        >> calcPiStacking(atoms,**kwargs)
+        >>> kwargs = {"HSE": "noh and not backbone and not name CB", "HSD": "noh and not backbone and not name CB"}
+        >>> calcPiStacking(atoms,**kwargs)
     Predictions for proteins only. 
     To compute protein-ligand interactions use calcLigandInteractions() or define **kwargs"""
 
@@ -531,14 +531,14 @@ def calcPiCation(atoms, distA=5.0, extraSele=None, **kwargs):
     :type atoms: :class:`.Atomic`
     
     :arg distA: non-zero value, maximal distance between center of masses of aromatic ring and positively charge group.
-    :type distA: int or float, default is 5.
+    :type distA: int, float, default is 5.
 
     By default three residues are included TRP, PHE, TYR and HIS.
     Additional selection can be added: 
-        >> calcPiCation(atoms, 'HSE'='noh and not backbone and not name CB')
+        >>> calcPiCation(atoms, 'HSE'='noh and not backbone and not name CB')
         or
-        >> kwargs = {"HSE": "noh and not backbone and not name CB", "HSD": "noh and not backbone and not name CB"}
-        >> calcPiCation(atoms,**kwargs)
+        >>> kwargs = {"HSE": "noh and not backbone and not name CB", "HSD": "noh and not backbone and not name CB"}
+        >>> calcPiCation(atoms,**kwargs)
     Results can be displayed in VMD.
     Predictions for proteins only. To compute protein-ligand interactions use calcLigandInteractions() or define **kwargs"""
 
@@ -606,10 +606,10 @@ def calcHydrophohic(atoms, distA=4.5, **kwargs):
     :type atoms: :class:`.Atomic`
     
     :arg distA: non-zero value, maximal distance between atoms of hydrophobic residues.
-    :type distA: int or float, default is 4.5.
+    :type distA: int, float, default is 4.5.
     
     Additional selection can be added as shown below (with selection that includes only hydrophobic part): 
-        >> calcHydrophohic(atoms, 'XLE'='noh and not backbone')
+        >>> calcHydrophohic(atoms, 'XLE'='noh and not backbone')
     Predictions for proteins only. To compute protein-ligand interactions use calcLigandInteractions() or define **kwargs
     Results can be displayed in VMD by using showVMDinteraction() 
     
@@ -701,13 +701,13 @@ def calcMetalInteractions(atoms, distA=3.0, extraIons=['FE'], excluded_ions=['SO
     :type atoms: :class:`.Atomic`
     
     :arg distA: non-zero value, maximal distance between ion and residue.
-    :type distA: int or float, default is 3.0.
+    :type distA: int, float, default is 3.0.
     
     :arg extraIons: ions to be included in the analysis.
-    :type extraIons: list of str
+    :type extraIons: list
     
     :arg excluded_ions: ions which should be excluded from the analysis.
-    :type excluded_ions: list of str """
+    :type excluded_ions: list """
     
     try:
         coords = (atoms._getCoords() if hasattr(atoms, '_getCoords') else
@@ -787,9 +787,8 @@ def calcHydrogenBondsDCD(atoms, trajectory, distA=3.0, angle=40, cutoff_dist=20,
             raise TypeError('coords must be an object '
                             'with `getCoords` method')
         
-    if not isinstance(trajectory, (TrajBase, Ensemble, Atomic)):
-        raise TypeError('{0} is not a valid type for trajectory'
-                    .format(type(trajectory)))
+    if isinstance(trajectory, Atomic):
+        trajectory = Ensemble(trajectory)
                         
     HBs_all = []
         
@@ -820,10 +819,9 @@ def calcSaltBridgesDCD(atoms, trajectory, distA=4.5):
         except TypeError:
             raise TypeError('coords must be an object '
                             'with `getCoords` method')
-        
-    if not isinstance(trajectory, (TrajBase, Ensemble, Atomic)):
-        raise TypeError('{0} is not a valid type for trajectory'
-                    .format(type(trajectory)))
+
+    if isinstance(trajectory, Atomic):
+        trajectory = Ensemble(trajectory)        
                         
     SBs_all = []
         
@@ -854,10 +852,9 @@ def calcRepulsiveIonicBondingDCD(atoms, trajectory, distA=4.5):
         except TypeError:
             raise TypeError('coords must be an object '
                             'with `getCoords` method')
-        
-    if not isinstance(trajectory, (TrajBase, Ensemble, Atomic)):
-        raise TypeError('{0} is not a valid type for trajectory'
-                    .format(type(trajectory)))
+
+    if isinstance(trajectory, Atomic):
+        trajectory = Ensemble(trajectory)        
                         
     RIB_all = []
         
@@ -888,10 +885,8 @@ def calcPiStackingDCD(atoms, trajectory, distA=5.0, angle_min=0, angle_max=360, 
         except TypeError:
             raise TypeError('coords must be an object '
                             'with `getCoords` method')
-        
-    if not isinstance(trajectory, (TrajBase, Ensemble, Atomic)):
-        raise TypeError('{0} is not a valid type for trajectory'
-                    .format(type(trajectory)))
+    if isinstance(trajectory, Atomic):
+        trajectory = Ensemble(trajectory)        
                         
     pi_stack_all = []
         
@@ -922,10 +917,9 @@ def calcPiCationDCD(atoms, trajectory, distA=5.0, extraSele=None, **kwargs):
         except TypeError:
             raise TypeError('coords must be an object '
                             'with `getCoords` method')
-        
-    if not isinstance(trajectory, (TrajBase, Ensemble, Atomic)):
-        raise TypeError('{0} is not a valid type for trajectory'
-                    .format(type(trajectory)))
+
+    if isinstance(trajectory, Atomic):
+        trajectory = Ensemble(trajectory)        
                         
     pi_cat_all = []
         
@@ -956,10 +950,9 @@ def calcHydrophohicDCD(atoms, trajectory, distA=4.5, **kwargs):
         except TypeError:
             raise TypeError('coords must be an object '
                             'with `getCoords` method')
-        
-    if not isinstance(trajectory, (TrajBase, Ensemble, Atomic)):
-        raise TypeError('{0} is not a valid type for trajectory'
-                    .format(type(trajectory)))
+
+    if isinstance(trajectory, Atomic):
+        trajectory = Ensemble(trajectory)        
                         
     HPh_all = []
         
@@ -1093,18 +1086,18 @@ def calcLigandInteractions(atoms, **kwargs):
     :type select: str
     
     :arg ignore_ligs: List of ligands which will be excluded from the analysis.
-    :type ignore_ligs: List of str
+    :type ignore_ligs: list
     
     To display results as a list of interactions use listLigandInteractions()
     and for visualization in VMD please use showLigandInteraction_VMD() 
     
     Requirements of usage:
     ## Instalation of Openbabel:
-    >> conda install -c conda-forge openbabel    
+    >>> conda install -c conda-forge openbabel    
     ## https://anaconda.org/conda-forge/openbabel
     
     ## Instalation of PLIP
-    >> conda install -c conda-forge plip
+    >>> conda install -c conda-forge plip
     ## https://anaconda.org/conda-forge/plip
     # https://github.com/pharmai/plip/blob/master/DOCUMENTATION.md
 
@@ -1259,9 +1252,9 @@ def showProteinInteractions_VMD(atoms, interactions, color='red',**kwargs):
     :type output: str
         
     Example (hydrogen bonds for protein only): 
-    >> interactions = calcHydrogenBonds(atoms.protein, distA=3.2, angle=30)
+    >>> interactions = calcHydrogenBonds(atoms.protein, distA=3.2, angle=30)
     or all interactions at once:
-    >> interactions = calcProteinInteractions(atoms.protein) """
+    >>> interactions = calcProteinInteractions(atoms.protein) """
 
     try:
         coords = (atoms._getCoords() if hasattr(atoms, '_getCoords') else
@@ -1285,7 +1278,18 @@ def showProteinInteractions_VMD(atoms, interactions, color='red',**kwargs):
     
     
     def TCLforSingleInteraction(interaction, color='blue', tcl_file=tcl_file):
-        """Protein interactions from ProDy for a single Interaction"""
+        """Creates TCL file for the VMD program based on the interactions
+        computed by 
+        
+        :arg interactions: List of interactions for protein interactions.
+        :type interactions: List of lists
+        
+        :arg color: Name of the color which will be used for the visualization of 
+                    interactions in VMD
+        :type color: str
+        
+        :arg tcl_file: name of the TCL file which will be saved for visualization                
+        :type tcl_file: str """
         
         tcl_file.write('draw color '+color+'\n')
         for nr_i,i in enumerate(interaction):
@@ -1341,8 +1345,8 @@ def showLigandInteraction_VMD(atoms, interactions, **kwargs):
     :type output: str
 
     To obtain protein-ligand interactions:
-    >> calculations = calcLigandInteractions(atoms)
-    >> interactions = listLigandInteractions(calculations) """
+    >>> calculations = calcLigandInteractions(atoms)
+    >>> interactions = listLigandInteractions(calculations) """
 
     try:
         coords = (atoms._getCoords() if hasattr(atoms, '_getCoords') else
@@ -1550,22 +1554,22 @@ class Interactions(object):
             (6) Hydrophobic interactions (HPh) +1
                  
         :arg HBs: score per single hydrogen bond
-        :type HBs: int or float
+        :type HBs: int, float
 
         :arg SBs: score per single salt bridge
-        :type SBs: int or float
+        :type SBs: int, float
 
         :arg RIB: score per single repulsive ionic bonding
-        :type RIB: int or float
+        :type RIB: int, float
 
         :arg PiStack: score per pi-stacking interaction
-        :type PiStack: int or float
+        :type PiStack: int, float
 
         :arg PiCat: score per pi-cation interaction
-        :type PiCat: int or float
+        :type PiCat: int, float
 
         :arg HPh: score per hydrophobic interaction
-        :type HPh: int or float        
+        :type HPh: int, float        
         """
         atoms = self._atoms   
         interactions = self._interactions
@@ -1727,16 +1731,16 @@ class Interactions(object):
         return ListOfInteractions_list
         
 
-    def showFrequenctInteractions(self, cutoff=5, **kwargs):
+    def showFrequentInteractions(self, cutoff=5, **kwargs):
         """Plots regions with the most frequent interactions.
         
         :arg cutoff: minimal score per residue which will be displayed.
                      If cutoff value is to big, top 30% with the higest values will be returned.
-        :type distA: int or float
+        :type distA: int, float
         
         Nonstandard resiudes can be updated in a following way:
         d = {'CYX': 'X', 'CEA': 'Z'}
-        >>> name.showFrequenctInteractions(d)
+        >>> name.showFrequentInteractions(d)
         """
         
         if not hasattr(self, '_interactions_matrix') or self._interactions_matrix is None:
