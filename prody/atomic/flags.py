@@ -549,6 +549,11 @@ Heteros
       is available when atomic data is parsed from a PDB format file and
       indicates atoms that were followed by ``'TER'`` record.
 
+   selpdbter
+      is available when atomic data is parsed from a PDB format file and
+      then a selection is made and indicates selected atoms that should
+      be followed by ``'TER'`` record.
+
 """.format(
 
 lipid = wrapText('indicates ' +
@@ -784,6 +789,15 @@ def setProtein(ag, label):
         flags = torf[resindices]
     else:
         flags = zeros(ag.numAtoms(), bool)
+        
+    water = ag._getSubset("water")
+    if len(water):
+        flags[water] = False
+        
+    ions = ag._getSubset("ion")
+    if len(ions):
+        flags[ions] = False
+    
     ag._setFlags('protein', flags)
     return flags
 

@@ -266,7 +266,7 @@ def showProtein(*atoms, **kwargs):
                 show = child
                 break
         if show is None:
-            show = Axes3D(cf)
+            show = cf.add_subplot(projection="3d")
         from matplotlib import colors
         cnames = dict(colors.cnames)
         wcolor = kwargs.get('water', 'red').lower()

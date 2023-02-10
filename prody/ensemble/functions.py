@@ -10,6 +10,7 @@ from prody.proteins import alignChains
 from prody.utilities import openFile, showFigure, copy, isListLike, pystr, DTYPE
 from prody import LOGGER, SETTINGS
 from prody.atomic import Atomic, AtomMap, Chain, AtomGroup, Selection, Segment, Select, AtomSubset
+from prody.sequence import buildSeqidMatrix
 
 from .ensemble import *
 from .pdbensemble import *
@@ -526,8 +527,13 @@ def refineEnsemble(ensemble, lower=.5, upper=10., **kwargs):
     :arg ref: the index or label of the reference conformation which will also be kept.
         Default is 0
     :type ref: int or str
+    
+    :arg data_type: type of data to use for refinement. This can be either "rmsd" or "seqid"
+        Default is "rmsd"
+    :type data_type: str
     """ 
-
+    data_type = kwargs.pop('data_type', 'rmsd')
+    
     protected = kwargs.pop('protected', [])
     P = []
     if len(protected):
@@ -560,8 +566,15 @@ def refineEnsemble(ensemble, lower=.5, upper=10., **kwargs):
     if not ref_i in P:
         P = [ref_i] + P
 
-    ### calculate pairwise RMSDs ###
-    RMSDs = ensemble.getRMSDs(pairwise=True)
+    if data_type == 'rmsd':
+        ### calculate pairwise RMSDs ###
+        matrix = ensemble.getRMSDs(pairwise=True)
+    elif data_type == 'seqid':
+        try:
+            msa = ensemble.getMSA()
+            matrix = buildSeqidMatrix(msa)
+        except (AttributeError, TypeError):
+            raise ValueError('could not apply seqid refinement on Ensemble without MSA')
 
     def getRefinedIndices(A):
         deg = A.sum(axis=0)
@@ -597,11 +610,11 @@ def refineEnsemble(ensemble, lower=.5, upper=10., **kwargs):
     L = list(range(len(ensemble)))
     U = list(range(len(ensemble)))
     if lower is not None:
-        A = RMSDs < lower
+        A = matrix < lower
         L = getRefinedIndices(A)
 
     if upper is not None:
-        B = RMSDs > upper
+        B = matrix > upper
         U = getRefinedIndices(B)
     
     # find common indices from L and U

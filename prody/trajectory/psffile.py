@@ -4,7 +4,7 @@
 
 .. _PSF format:
    http://www.ks.uiuc.edu/Training/Tutorials/namd/
-   namd-tutorial-unix-html/node21.html"""
+   namd-tutorial-unix-html/node23.html"""
 
 import os.path
 
