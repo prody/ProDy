@@ -975,7 +975,11 @@ def compareInteractions(data1, data2, **kwargs):
     :type data1: list
  
     :arg data2: list with interactions from calcHydrogenBonds() or other types
-    :type data2: list 
+    :type data2: list
+    
+    :arg output: name of text file in which the comparison between two sets of interactions 
+                will be saved 
+    type output: str 
     
     Example of usage: 
     >>> atoms1 = parsePDB('PDBfile1.pdb').select('protein')
