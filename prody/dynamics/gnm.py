@@ -284,7 +284,7 @@ class GNMBase(NMA):
 
     def setEigens(self, vectors, values=None):
         self._clear()
-        super(GNM, self).setEigens(vectors, values)
+        super(GNMBase, self).setEigens(vectors, values)
 
 
 def checkENMParameters(cutoff, gamma):
