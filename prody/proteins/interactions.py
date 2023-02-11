@@ -1407,11 +1407,7 @@ class Interactions(object):
 
     def __init__(self, title='Unknown'):
         self._title = str(title).strip()
-           
-    def setTitle(self, title):
-        """Set title of the model."""
 
-        self._title = str(title)
         self._atoms = None
         self._interactions = None
         self._interactions_matrix = None
@@ -1421,7 +1417,11 @@ class Interactions(object):
         self._piStack = None
         self._piCat = None
         self._hps = None
-       
+
+    def setTitle(self, title):
+        """Set title of the model."""
+
+        self._title = str(title)
         super(Interactions, self).__init__(name)
            
     def calcProteinInteractions(self, atoms):
