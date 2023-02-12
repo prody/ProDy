@@ -100,6 +100,25 @@ def removeDuplicates(list_of_interactions):
     return newList
 
 
+def selectionByKwargs(list_of_interactions, atoms, **kwargs):
+    """Return interactions based on selection"""
+    
+    if 'selection' in kwargs:
+        if 'selection2' in kwargs:
+            ch1 = kwargs['selection'].split()[-1] 
+            ch2 = kwargs['selection2'].split()[-1] 
+            final = [i for i in list_of_interactions if (i[2] == ch1 and i[5] == ch2) or (i[5] == ch1 and i[2] == ch2)]
+        else:
+            p = atoms.select('same residue as protein within 10 of ('+kwargs['selection']+')')
+            x = p.select(kwargs['selection']).getResnames()
+            y = p.select(kwargs['selection']).getResnums()
+            listOfselection = np.unique(list(map(lambda x, y: x + str(y), x, y)))
+            final = [i for i in list_of_interactions if i[0] in listOfselection or i[3] in listOfselection]
+    else:
+        final = list_of_interactions
+    return final
+
+
 def addHydrogens(pdb, method='openbabel', pH=7.0):    
     """Function will add hydrogens to the protein and ligand structure using Openbabel [NO11]_
     or PDBFixer with OpenMM.
@@ -322,7 +341,7 @@ def calcChHydrogenBonds(atoms, distA=3.0, angle=40, cutoff_dist=20, **kwargs):
         return ChainsHBs 
         
 
-def calcSaltBridges(atoms, distA=4.5):
+def calcSaltBridges(atoms, distA=4.5, **kwargs):
     """Finds salt bridges in protein structure.
     Histidine is not considered as a charge residue
     
@@ -332,7 +351,12 @@ def calcSaltBridges(atoms, distA=4.5):
     :arg distA: non-zero value, maximal distance between center of masses 
         of N and O atoms of negatively and positevely charged residues.
     :type distA: int, float, default is 4.5.
+
+    :arg selection: selection string
+    :type selection: str
     
+    :arg selection2: selection string
+    :type selection2: str
     Results can be displayed in VMD."""
 
     try:
@@ -375,16 +399,17 @@ def calcSaltBridges(atoms, distA=4.5):
     SaltBridges_list = sorted(SaltBridges_list, key=lambda x : x[-1])
     [ SaltBridges_list.remove(j) for i in SaltBridges_list for j in SaltBridges_list if Counter(i) == Counter(j) ]
     SaltBridges_list_final = removeDuplicates(SaltBridges_list)
+    SaltBridges_list_final2 = selectionByKwargs(SaltBridges_list_final, atoms, **kwargs)
     
-    for kk in SaltBridges_list_final:
+    for kk in SaltBridges_list_final2:
         LOGGER.info("%10s%5s%16s  <---> %10s%5s%16s%8.1f" % (kk[0], kk[2], kk[1], kk[3], kk[5], kk[4], kk[6]))
         
-    LOGGER.info("Number of detected salt bridges: {0}.".format(len(SaltBridges_list_final)))        
+    LOGGER.info("Number of detected salt bridges: {0}.".format(len(SaltBridges_list_final2)))        
 
-    return SaltBridges_list_final
+    return SaltBridges_list_final2
     
 
-def calcRepulsiveIonicBonding(atoms, distA=4.5):
+def calcRepulsiveIonicBonding(atoms, distA=4.5, **kwargs):
     """Finds repulsive ionic bonding in protein structure
     i.e. between positive-positive or negative-negative residues.
     Histidine is not considered as a charged residue.
@@ -395,7 +420,12 @@ def calcRepulsiveIonicBonding(atoms, distA=4.5):
     :arg distA: non-zero value, maximal distance between center of masses 
             between N-N or O-O atoms of residues.
     :type distA: int, float, default is 4.5.
+
+    :arg selection: selection string
+    :type selection: str
     
+    :arg selection2: selection string
+    :type selection2: str
     Results can be displayed in VMD."""
 
     try:
@@ -438,13 +468,14 @@ def calcRepulsiveIonicBonding(atoms, distA=4.5):
     [ RepulsiveIonicBonding_list.remove(j) for i in RepulsiveIonicBonding_list for j in RepulsiveIonicBonding_list if Counter(i) == Counter(j) ]
     RepulsiveIonicBonding_list = sorted(RepulsiveIonicBonding_list, key=lambda x : x[-1])
     RepulsiveIonicBonding_list_final = removeDuplicates(RepulsiveIonicBonding_list)
+    RepulsiveIonicBonding_list_final2 = selectionByKwargs(RepulsiveIonicBonding_list_final, atoms, **kwargs)
     
-    for kk in RepulsiveIonicBonding_list_final:
+    for kk in RepulsiveIonicBonding_list_final2:
         LOGGER.info("%10s%5s%16s  <---> %10s%5s%16s%8.1f" % (kk[0], kk[2], kk[1], kk[3], kk[5], kk[4], kk[6]))
         
-    LOGGER.info("Number of detected Repulsive Ionic Bonding interactions: {0}.".format(len(RepulsiveIonicBonding_list_final)))
+    LOGGER.info("Number of detected Repulsive Ionic Bonding interactions: {0}.".format(len(RepulsiveIonicBonding_list_final2)))
     
-    return RepulsiveIonicBonding_list_final
+    return RepulsiveIonicBonding_list_final2
 
 
 def calcPiStacking(atoms, distA=5.0, angle_min=0, angle_max=360, **kwargs):
@@ -461,6 +492,12 @@ def calcPiStacking(atoms, distA=5.0, angle_min=0, angle_max=360, **kwargs):
 
     :arg angle_max: maximal angle between rings.
     :type angle_max: int, default is 360.
+
+    :arg selection: selection string
+    :type selection: str
+    
+    :arg selection2: selection string
+    :type selection2: str
     
     Results can be displayed in VMD.
     By default three residues are included TRP, PHE, TYR and HIS.
@@ -515,13 +552,14 @@ def calcPiStacking(atoms, distA=5.0, angle_min=0, angle_max=360, **kwargs):
     
     PiStack_calculations = sorted(PiStack_calculations, key=lambda x : x[-2])   
     PiStack_calculations_final = removeDuplicates(PiStack_calculations)
+    PiStack_calculations_final2 = selectionByKwargs(PiStack_calculations_final, atoms, **kwargs)
     
-    for kk in PiStack_calculations_final:
+    for kk in PiStack_calculations_final2:
         LOGGER.info("%10s%8s%32s  <---> %10s%8s%32s%8.1f%8.1f" % (kk[0], kk[2], kk[1], kk[3], kk[5], kk[4], kk[6], kk[7]))
         
-    LOGGER.info("Number of detected Pi stacking interactions: {0}.".format(len(PiStack_calculations_final)))
+    LOGGER.info("Number of detected Pi stacking interactions: {0}.".format(len(PiStack_calculations_final2)))
     
-    return PiStack_calculations_final
+    return PiStack_calculations_final2
 
 
 def calcPiCation(atoms, distA=5.0, extraSele=None, **kwargs):
@@ -532,6 +570,12 @@ def calcPiCation(atoms, distA=5.0, extraSele=None, **kwargs):
     
     :arg distA: non-zero value, maximal distance between center of masses of aromatic ring and positively charge group.
     :type distA: int, float, default is 5.
+
+    :arg selection: selection string
+    :type selection: str
+    
+    :arg selection2: selection string
+    :type selection2: str
 
     By default three residues are included TRP, PHE, TYR and HIS.
     Additional selection can be added: 
@@ -590,13 +634,14 @@ def calcPiCation(atoms, distA=5.0, extraSele=None, **kwargs):
     
     PiCation_calculations = sorted(PiCation_calculations, key=lambda x : x[-1]) 
     PiCation_calculations_final = removeDuplicates(PiCation_calculations)
+    PiCation_calculations_final2 = selectionByKwargs(PiCation_calculations_final, atoms, **kwargs)
     
-    for kk in PiCation_calculations_final:
+    for kk in PiCation_calculations_final2:
         LOGGER.info("%10s%4s%32s  <---> %10s%4s%32s%8.1f" % (kk[0], kk[2], kk[1], kk[3], kk[5], kk[4], kk[6]))
         
-    LOGGER.info("Number of detected cation-pi interactions: {0}.".format(len(PiCation_calculations_final)))
+    LOGGER.info("Number of detected cation-pi interactions: {0}.".format(len(PiCation_calculations_final2)))
     
-    return PiCation_calculations_final
+    return PiCation_calculations_final2
 
 
 def calcHydrophohic(atoms, distA=4.5, **kwargs): 
@@ -1429,7 +1474,7 @@ class Interactions(object):
         self._title = str(title)
         
            
-    def calcProteinInteractions(self, atoms):
+    def calcProteinInteractions(self, atoms, **kwargs):
         """Compute all protein interactions (shown below) using default parameters.
             (1) Hydrogen bonds
             (2) Salt Bridges
@@ -1452,12 +1497,12 @@ class Interactions(object):
                                 'with `getCoords` method')
 
         LOGGER.info('Calculating all interations.') 
-        HBs_calculations = calcHydrogenBonds(atoms.protein)               #1 in scoring
-        SBs_calculations = calcSaltBridges(atoms.protein)                 #2
-        SameChargeResidues = calcRepulsiveIonicBonding(atoms.protein)     #3
-        Pi_stacking = calcPiStacking(atoms.protein)                       #4
-        Pi_cation = calcPiCation(atoms.protein)                           #5
-        Hydroph_calculations = calcHydrophohic(atoms.protein)             #6
+        HBs_calculations = calcHydrogenBonds(atoms.protein, **kwargs)               #1 in scoring
+        SBs_calculations = calcSaltBridges(atoms.protein, **kwargs)                 #2
+        SameChargeResidues = calcRepulsiveIonicBonding(atoms.protein, **kwargs)     #3
+        Pi_stacking = calcPiStacking(atoms.protein, **kwargs)                       #4
+        Pi_cation = calcPiCation(atoms.protein, **kwargs)                           #5
+        Hydroph_calculations = calcHydrophohic(atoms.protein, **kwargs)             #6
         AllInteractions = [HBs_calculations, SBs_calculations, SameChargeResidues, Pi_stacking, Pi_cation, Hydroph_calculations]   
         
         self._atoms = atoms
@@ -1866,13 +1911,14 @@ class InteractionsDCD(object):
         
         for j0, frame0 in enumerate(trajectory):  
             LOGGER.info('Frame: {0}'.format(j0))
+            
             protein = atoms.select('protein')
-            hydrogen_bonds = calcHydrogenBonds(protein)
-            salt_bridges = calcSaltBridges(protein)
-            RepulsiveIonicBonding = calcRepulsiveIonicBonding(protein)
-            Pi_stacking = calcPiStacking(protein)
-            Pi_cation = calcPiCation(protein)
-            hydrophobic = calcHydrophohic(protein)
+            hydrogen_bonds = calcHydrogenBonds(protein, **kwargs)
+            salt_bridges = calcSaltBridges(protein, **kwargs)
+            RepulsiveIonicBonding = calcRepulsiveIonicBonding(protein, **kwargs)
+            Pi_stacking = calcPiStacking(protein, **kwargs)
+            Pi_cation = calcPiCation(protein, **kwargs)
+            hydrophobic = calcHydrophohic(protein, **kwargs)
 
             HBs_all.append(hydrogen_bonds)
             SBs_all.append(salt_bridges)
