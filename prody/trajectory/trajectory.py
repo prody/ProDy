@@ -187,8 +187,7 @@ class Trajectory(TrajBase):
             if self._ag is None:
                 frame = Frame(self, nfi, coords, unitcell)
             else:
-                frame = self._frame
-                Frame.__init__(frame, self, nfi, None, unitcell)
+                frame = Frame(self, nfi, None, unitcell)
                 self._ag.setACSLabel(self._title + ' frame ' + str(self._nfi))
             self._nfi += 1
             return frame
