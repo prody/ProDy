@@ -656,7 +656,7 @@ def calcHydrophobic(atoms, distA=4.5, **kwargs):
     
     Additional selection can be added as shown below (with selection that includes only hydrophobic part): 
         >>> calcHydrophobic(atoms, 'XLE'='noh and not backbone')
-    Predictions for proteins only. To compute protein-ligand interactions use calcLigandInteractions() or define **kwargs
+    Predictions for proteins only. To compute protein-ligand interactions use calcLigandInteractions().
     Results can be displayed in VMD by using showVMDinteraction() 
     
     Note that interactions between aromatic residues are omitted becasue they are provided by calcPiStacking().    
@@ -1030,9 +1030,9 @@ def compareInteractions(data1, data2, **kwargs):
     :arg data2: list with interactions from calcHydrogenBonds() or other types
     :type data2: list
     
-    :arg output: name of text file in which the comparison between two sets of interactions 
+    :arg filename: name of text file in which the comparison between two sets of interactions 
                 will be saved 
-    type output: str 
+    type filename: str 
     
     Example of usage: 
     >>> atoms1 = parsePDB('PDBfile1.pdb').select('protein')
@@ -1067,8 +1067,8 @@ def compareInteractions(data1, data2, **kwargs):
         else: LOGGER.info("None")
     
     try:
-        if 'output' in kwargs:
-            with open(kwargs['output'], 'w') as f:  # what disapperaed from initial
+        if 'filename' in kwargs:
+            with open(kwargs['filename'], 'w') as f:  # what disapperaed from initial
                 f.write("Which interactions disappeared:\n")
                 for i in diff_21:
                     f.write(i[0]+'-'+i[1]+'\n')
@@ -1288,7 +1288,7 @@ def listLigandInteractions(PLIP_output):
 
 
 def showProteinInteractions_VMD(atoms, interactions, color='red',**kwargs):
-    """Save information about protein interactions to a TCL file (output)
+    """Save information about protein interactions to a TCL file (filename)
     which can be further use in VMD to display all intercations in a graphical interface
     (in TKConsole: play script_name.tcl).
     Different types of interactions can be saved separately (color can be selected) 
@@ -1305,8 +1305,8 @@ def showProteinInteractions_VMD(atoms, interactions, color='red',**kwargs):
                 not used only for single interaction type.
     :type color: str or **None**, by default `red`.
     
-    :arg output: name of TCL file where interactions will be saved.
-    :type output: str
+    :arg filename: name of TCL file where interactions will be saved.
+    :type filename: str
         
     Example (hydrogen bonds for protein only): 
     >>> interactions = calcHydrogenBonds(atoms.protein, distA=3.2, angle=30)
@@ -1327,11 +1327,11 @@ def showProteinInteractions_VMD(atoms, interactions, color='red',**kwargs):
         raise TypeError('interactions must be a list of interactions.')
     
     try:
-        output = kwargs['output']
+        filename = kwargs['filename']
     except:
-        output = atoms.getTitle()+'_interaction.tcl'
+        filename = atoms.getTitle()+'_interaction.tcl'
     
-    tcl_file = open(output, 'w') 
+    tcl_file = open(filename, 'w') 
     
     
     def TCLforSingleInteraction(interaction, color='blue', tcl_file=tcl_file):
@@ -1398,8 +1398,8 @@ def showLigandInteraction_VMD(atoms, interactions, **kwargs):
     :arg interactions: List of interactions for protein-ligand interactions.
     :type interactions: List of lists
     
-    :arg output: name of TCL file where interactions will be saved.
-    :type output: str
+    :arg filename: name of TCL file where interactions will be saved.
+    :type filename: str
 
     To obtain protein-ligand interactions:
     >>> calculations = calcLigandInteractions(atoms)
@@ -1419,11 +1419,11 @@ def showLigandInteraction_VMD(atoms, interactions, **kwargs):
         raise TypeError('interactions must be a list of interactions.')
     
     try:
-        output = kwargs['output']
+        filename = kwargs['filename']
     except:
-        output = atoms.getTitle()+'_interaction.tcl'
+        filename = atoms.getTitle()+'_interaction.tcl'
     
-    tcl_file = open(output, 'w') 
+    tcl_file = open(filename, 'w') 
     
     if len(interactions[0]) >= 10: 
         dic_color = {'hbond':'blue','pistack':'green','saltbridge':'yellow','pication':'orange',
@@ -1524,7 +1524,13 @@ class Interactions(object):
         self._hps = Hydroph_calculations
         
         return self._interactions
+
     
+    def getAtoms(self):
+        """Returns associated atoms"""
+
+        return self._atoms
+
     def getInteractions(self):
         """Returns the list of all interactions"""
         
@@ -1532,7 +1538,7 @@ class Interactions(object):
     
     def getHydrogenBonds(self):
         """Returns the list of hydrogen bonds"""
-
+        
         return self._hbs
         
     def getSaltBridges(self):
@@ -1706,9 +1712,9 @@ class Interactions(object):
     def saveInteractionsPDB(self, **kwargs):
         """Save the number of potential interactions to PDB file in occupancy column.
         
-        :arg output: name of the PDB file which will be saved for visualization,
+        :arg filename: name of the PDB file which will be saved for visualization,
                      it will contain the results in occupancy column.
-        :type output: str
+        :type filename: str
         """
         
         if not hasattr(self, '_interactions_matrix') or self._interactions_matrix is None:
@@ -1729,11 +1735,11 @@ class Interactions(object):
                 lista_ext.extend(list(aa_counter.values())[i]*[round(freq_contacts_residues[i], 8)])
             
             kw = {'occupancy': lista_ext}
-            if 'output' in kwargs:
-                writePDB(kwargs['output'], atoms, **kw)  
+            if 'filename' in kwargs:
+                writePDB(kwargs['filename'], atoms, **kw)  
                 LOGGER.info('PDB file saved.')
             else:
-                writePDB('output', atoms, **kw)
+                writePDB('filename', atoms, **kw)
                 LOGGER.info('PDB file saved.')
         except: LOGGER.info('There is a problem.')
         
@@ -1882,8 +1888,8 @@ class InteractionsDCD(object):
         :arg trajectory: DCD filename
         :type trajectory: str
         
-        :arg output: Name of pkl filename in which interactions will be storage
-        :type output: pkl
+        :arg filename: Name of pkl filename in which interactions will be storage
+        :type filename: pkl
         """
 
         try:
@@ -1952,7 +1958,6 @@ class InteractionsDCD(object):
         self._piCat_dcd = PiCat_all
         self._hps_dcd = HPh_all
         
-        #if 'output' in kwargs:
         if filename is not None:
             import pickle
             with open(str(filename)+'.pkl', 'wb') as f:
@@ -1966,14 +1971,19 @@ class InteractionsDCD(object):
     def getInteractions(self, **kwargs):
         """Return the list of all interactions"""
         
-        if 'output' in kwargs:
+        if 'filename' in kwargs:
 
-            with open(kwargs['output']+'.dat', 'wb') as f:
+            with open(kwargs['filename']+'.dat', 'wb') as f:
                 pickle.dump(self._interactions_dcd, f)  
             LOGGER.info('File with interactions saved.')
         else: pass
         
         return self._interactions_dcd
+
+    def getAtoms(self):
+        """Returns associated atoms"""
+
+        return self._atoms
     
     def getInteractionsNumber(self):
         """Return the number of interactions in each frame"""
