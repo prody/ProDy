@@ -226,7 +226,7 @@ def calcHydrogenBonds(atoms, distA=3.0, angle=40, cutoff_dist=20, **kwargs):
     if atoms.hydrogen == None or atoms.hydrogen.numAtoms() < 10:
         LOGGER.info("Provide structure with hydrogens or install Openbabel to add missing hydrogens using addHydrogens(pdb_name) first.")
     
-    contacts = findNeighbors(atoms, distA)
+    contacts = findNeighbors(atoms.heavy, distA)
     short_contacts = cleanNumbers(contacts)
     pairList = [] # list with Donor-Hydrogen-Acceptor(indices)-distance-Angle
     
