@@ -34,10 +34,10 @@ from prody.ensemble import Ensemble
 
 __all__ = ['calcHydrogenBonds', 'calcChHydrogenBonds', 'calcSaltBridges',
            'calcRepulsiveIonicBonding', 'calcPiStacking', 'calcPiCation',
-           'calcHydrophobic', 'calcMetalInteractions',
+           'calcHydrophobic', 'calcDisulfideBonds', 'calcMetalInteractions',
            'calcHydrogenBondsDCD', 'calcSaltBridgesDCD',
            'calcRepulsiveIonicBondingDCD', 'calcPiStackingDCD', 
-           'calcPiCationDCD', 'calcHydrophobicDCD',
+           'calcPiCationDCD', 'calcHydrophobicDCD', 'calcDisulfideBondsDCD',
            'calcProteinInteractions', 'calcStatisticsInteractions',
            'compareInteractions', 
            'calcLigandInteractions', 'listLigandInteractions', 
@@ -741,6 +741,45 @@ def calcHydrophobic(atoms, distA=4.5, **kwargs):
     return Hydrophobic_calculations_final2
 
 
+def calcDisulfideBonds(atoms, distA=2.5):
+    """Prediction of disulfide bonds.
+    
+    :arg atoms: an Atomic object from which residues are selected
+    :type atoms: :class:`.Atomic`
+    
+    :arg distA: non-zero value, maximal distance between atoms of hydrophobic residues.
+    :type distA: int, float, default is 2.5."""
+
+    try:
+        coords = (atoms._getCoords() if hasattr(atoms, '_getCoords') else
+                    atoms.getCoords())
+    except AttributeError:
+        try:
+            checkCoords(coords)
+        except TypeError:
+            raise TypeError('coords must be an object '
+                            'with `getCoords` method')
+
+    try:
+        atoms_SG = atoms.select('protein and resname CYS and name SG')
+        atoms_SG_res = list(set(zip(atoms_SG.getResnums(), atoms_SG.getChids())))
+    
+        LOGGER.info('Calculating disulfide bonds.')
+        DisulfideBonds_list = []
+        for i in atoms_SG_res:
+            CYS_pairs = atoms.select('(same residue as protein within '+str(distA)+' of ('+'resid '+str(i[0])+' and chain '+i[1]+' and name SG)) and (resname CYS and name SG)')
+            CYSresnames = [j+str(i) for i, j in zip(CYS_pairs.getResnums(), CYS_pairs.getResnames())]
+            if len(CYSresnames) != 1 and len(CYSresnames) != 0:
+                DisulfideBonds_list.append(list(zip(CYSresnames, CYS_pairs.getChids())))
+
+        DisulfideBonds_list2 = list({tuple(sorted(i)) for i in DisulfideBonds_list})
+    
+        if len(DisulfideBonds_list2) != 0:
+            return DisulfideBonds_list2
+    
+    except: LOGGER.info('Lack of cysteines in the structure.')    
+
+
 def calcMetalInteractions(atoms, distA=3.0, extraIons=['FE'], excluded_ions=['SOD', 'CLA']):
     """Interactions with metal ions (includes water, ligands and other ions).
         
@@ -1016,6 +1055,39 @@ def calcHydrophobicDCD(atoms, trajectory, distA=4.5, **kwargs):
         HPh_all.append(HPh)
         
     return HPh_all
+
+
+def calcDisulfideBondsDCD(atoms, trajectory, distA=2.5):
+    """Compute disulfide bonds for DCD trajectory using default parameters.
+        
+    :arg atoms: an Atomic object from which residues are selected
+    :type atoms: :class:`.Atomic`
+        
+    :arg trajectory: DCD filename
+    :type trajectory: str"""
+
+    try:
+        coords = (atoms._getCoords() if hasattr(atoms, '_getCoords') else
+                    atoms.getCoords())
+    except AttributeError:
+        try:
+            checkCoords(coords)
+        except TypeError:
+            raise TypeError('coords must be an object '
+                            'with `getCoords` method')
+
+    if isinstance(trajectory, Atomic):
+        trajectory = Ensemble(trajectory)        
+                        
+    DiBs_all = []
+        
+    for j0, frame0 in enumerate(trajectory):  
+        LOGGER.info('Frame: {0}'.format(j0))
+        protein = atoms.select('protein')
+        disulfide_bonds = calcDisulfideBonds(protein, distA)
+        DiBs_all.append(disulfide_bonds)
+        
+    return DiBs_all
 
 
 def compareInteractions(data1, data2, **kwargs):
