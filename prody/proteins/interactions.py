@@ -34,10 +34,10 @@ from prody.ensemble import Ensemble
 
 __all__ = ['calcHydrogenBonds', 'calcChHydrogenBonds', 'calcSaltBridges',
            'calcRepulsiveIonicBonding', 'calcPiStacking', 'calcPiCation',
-           'calcHydrophohic', 'calcMetalInteractions',
+           'calcHydrophobic', 'calcMetalInteractions',
            'calcHydrogenBondsDCD', 'calcSaltBridgesDCD',
            'calcRepulsiveIonicBondingDCD', 'calcPiStackingDCD', 
-           'calcPiCationDCD', 'calcHydrophohicDCD',
+           'calcPiCationDCD', 'calcHydrophobicDCD',
            'calcProteinInteractions', 'calcStatisticsInteractions',
            'compareInteractions', 
            'calcLigandInteractions', 'listLigandInteractions', 
@@ -285,14 +285,15 @@ def calcHydrogenBonds(atoms, distA=3.0, angle=40, cutoff_dist=20, **kwargs):
     
     HBs_list = sorted(HBs_list, key=lambda x : x[-2])
     HBs_list_final = removeDuplicates(HBs_list)
+    HBs_list_final2 = selectionByKwargs(HBs_list_final, atoms, **kwargs)
     
     LOGGER.info(("%26s   <---> %30s%12s%7s" % ('DONOR (res chid atom)','ACCEPTOR (res chid atom)','Distance','Angle')))
-    for kk in HBs_list_final:
+    for kk in HBs_list_final2:
         LOGGER.info("%10s%5s%14s  <---> %10s%5s%14s%8.1f%8.1f" % (kk[0], kk[2], kk[1], kk[3], kk[5], kk[4], kk[6], kk[7]))
                                 
-    LOGGER.info("Number of detected hydrogen bonds: {0}.".format(len(HBs_list_final)))
+    LOGGER.info("Number of detected hydrogen bonds: {0}.".format(len(HBs_list_final2)))
                 
-    return HBs_list_final   
+    return HBs_list_final2   
     
     
 def calcChHydrogenBonds(atoms, distA=3.0, angle=40, cutoff_dist=20, **kwargs):
@@ -644,7 +645,7 @@ def calcPiCation(atoms, distA=5.0, extraSele=None, **kwargs):
     return PiCation_calculations_final2
 
 
-def calcHydrophohic(atoms, distA=4.5, **kwargs): 
+def calcHydrophobic(atoms, distA=4.5, **kwargs): 
     """Prediction of hydrophobic interactions between hydrophobic residues (ALA, ILE, LEU, MET, PHE, TRP, VAL).
     
     :arg atoms: an Atomic object from which residues are selected
@@ -654,7 +655,7 @@ def calcHydrophohic(atoms, distA=4.5, **kwargs):
     :type distA: int, float, default is 4.5.
     
     Additional selection can be added as shown below (with selection that includes only hydrophobic part): 
-        >>> calcHydrophohic(atoms, 'XLE'='noh and not backbone')
+        >>> calcHydrophobic(atoms, 'XLE'='noh and not backbone')
     Predictions for proteins only. To compute protein-ligand interactions use calcLigandInteractions() or define **kwargs
     Results can be displayed in VMD by using showVMDinteraction() 
     
@@ -674,7 +675,7 @@ def calcHydrophohic(atoms, distA=4.5, **kwargs):
     Hydrophobic_list = []  
     atoms_hydrophobic = atoms.select('resname ALA VAL ILE MET LEU PHE TYR TRP')
     hydrophobic_resids = list(set(zip(atoms_hydrophobic.getResnums(), atoms_hydrophobic.getChids())))
-    
+
     aromatic_nr = list(set(zip(atoms.aromatic.getResnums(),atoms.aromatic.getChids())))   
     aromatic = list(set(zip(atoms.aromatic.getResnames())))
     
@@ -683,8 +684,8 @@ def calcHydrophohic(atoms, distA=4.5, **kwargs):
     'MET': 'noh and not (backbone or name CB)', 'PHE': 'noh and not (backbone or name CB)',
     'TYR': 'noh and not (backbone or name CB)', 'TRP': 'noh and not (backbone or name CB)'}
 
-    for key, value in kwargs.items():
-        hydrophobic_dic[key] = value
+    #for key, value in kwargs.items():
+    #    hydrophobic_dic[key] = value
     
     LOGGER.info('Calculating hydrophobic interactions.')
     Hydrophobic_calculations = []
@@ -730,13 +731,14 @@ def calcHydrophohic(atoms, distA=4.5, **kwargs):
                     
     Hydrophobic_calculations = sorted(Hydrophobic_calculations, key=lambda x : x[-1])
     Hydrophobic_calculations_final = removeDuplicates(Hydrophobic_calculations)
+    Hydrophobic_calculations_final2 = selectionByKwargs(Hydrophobic_calculations_final, atoms, **kwargs)
     
-    for kk in Hydrophobic_calculations_final:
+    for kk in Hydrophobic_calculations_final2:
         LOGGER.info("%10s%5s%14s  <---> %10s%5s%14s%8.1f" % (kk[0], kk[2], kk[1], kk[3], kk[5], kk[4], kk[6]))
         
-    LOGGER.info("Number of detected hydrophobic interactions: {0}.".format(len(Hydrophobic_calculations_final)))
+    LOGGER.info("Number of detected hydrophobic interactions: {0}.".format(len(Hydrophobic_calculations_final2)))
     
-    return Hydrophobic_calculations_final
+    return Hydrophobic_calculations_final2
 
 
 def calcMetalInteractions(atoms, distA=3.0, extraIons=['FE'], excluded_ions=['SOD', 'CLA']):
@@ -779,7 +781,7 @@ def calcMetalInteractions(atoms, distA=3.0, extraIons=['FE'], excluded_ions=['SO
         raise TypeError('An object should contain ions')
 
 
-def calcProteinInteractions(atoms):
+def calcProteinInteractions(atoms, **kwargs):
     """Compute all protein interactions (shown below) using default parameters.
         (1) Hydrogen bonds
         (2) Salt Bridges
@@ -789,7 +791,13 @@ def calcProteinInteractions(atoms):
         (6) Hydrophobic interactions
     
     :arg atoms: an Atomic object from which residues are selected
-    :type atoms: :class:`.Atomic`"""
+    :type atoms: :class:`.Atomic`
+    
+    :arg selection: selection string
+    :type selection: str
+    
+    :arg selection2: selection string
+    :type selection2: str """
 
     try:
         coords = (atoms._getCoords() if hasattr(atoms, '_getCoords') else
@@ -802,12 +810,12 @@ def calcProteinInteractions(atoms):
                             'with `getCoords` method')
 
     LOGGER.info('Calculating all interations.') 
-    HBs_calculations = calcHydrogenBonds(atoms.protein)               #1 in scoring
-    SBs_calculations = calcSaltBridges(atoms.protein)                 #2
-    SameChargeResidues = calcRepulsiveIonicBonding(atoms.protein)     #3
-    Pi_stacking = calcPiStacking(atoms.protein)                       #4
-    Pi_cation = calcPiCation(atoms.protein)                           #5
-    Hydroph_calculations = calcHydrophohic(atoms.protein)             #6
+    HBs_calculations = calcHydrogenBonds(atoms.protein, **kwargs)               #1 in scoring
+    SBs_calculations = calcSaltBridges(atoms.protein, **kwargs)                 #2
+    SameChargeResidues = calcRepulsiveIonicBonding(atoms.protein, **kwargs)     #3
+    Pi_stacking = calcPiStacking(atoms.protein, **kwargs)                       #4
+    Pi_cation = calcPiCation(atoms.protein, **kwargs)                           #5
+    Hydroph_calculations = calcHydrophobic(atoms.protein, **kwargs)             #6
     AllInteractions = [HBs_calculations, SBs_calculations, SameChargeResidues, Pi_stacking, Pi_cation, Hydroph_calculations]   
     
     return AllInteractions
@@ -977,7 +985,7 @@ def calcPiCationDCD(atoms, trajectory, distA=5.0, extraSele=None, **kwargs):
     return pi_cat_all
 
 
-def calcHydrophohicDCD(atoms, trajectory, distA=4.5, **kwargs):  
+def calcHydrophobicDCD(atoms, trajectory, distA=4.5, **kwargs):  
     """Compute hydrophobic interactions for DCD trajectory using default parameters.
         
     :arg atoms: an Atomic object from which residues are selected
@@ -1004,7 +1012,7 @@ def calcHydrophohicDCD(atoms, trajectory, distA=4.5, **kwargs):
     for j0, frame0 in enumerate(trajectory):  
         LOGGER.info('Frame: {0}'.format(j0))
         protein = atoms.select('protein')
-        HPh = calcHydrophohic(protein, distA, **kwargs)
+        HPh = calcHydrophobic(protein, distA, **kwargs)
         HPh_all.append(HPh)
         
     return HPh_all
@@ -1502,7 +1510,7 @@ class Interactions(object):
         SameChargeResidues = calcRepulsiveIonicBonding(atoms.protein, **kwargs)     #3
         Pi_stacking = calcPiStacking(atoms.protein, **kwargs)                       #4
         Pi_cation = calcPiCation(atoms.protein, **kwargs)                           #5
-        Hydroph_calculations = calcHydrophohic(atoms.protein, **kwargs)             #6
+        Hydroph_calculations = calcHydrophobic(atoms.protein, **kwargs)             #6
         AllInteractions = [HBs_calculations, SBs_calculations, SameChargeResidues, Pi_stacking, Pi_cation, Hydroph_calculations]   
         
         self._atoms = atoms
@@ -1547,7 +1555,7 @@ class Interactions(object):
         
         return self._piCat
         
-    def getHydrophohic(self):
+    def getHydrophobic(self):
         """Returns the list of hydrophobic interactions"""
         
         return self._hps
@@ -1587,7 +1595,7 @@ class Interactions(object):
         self._piCat = self._interactions[4]   
         LOGGER.info('Pi-Cation interactions are replaced')
 
-    def setNewHydrophohic(self, interaction):
+    def setNewHydrophobic(self, interaction):
         """Replace default calculation of hydrophobic interactions by the one provided by user"""
 
         self._interactions[5] = interaction
@@ -1859,7 +1867,7 @@ class InteractionsDCD(object):
         self._hps_dcd = None
 
 
-    def calcProteinInteractionsDCD(self, atoms, trajectory, **kwargs):
+    def calcProteinInteractionsDCD(self, atoms, trajectory, filename=None, **kwargs):
         """Compute all protein interactions (shown below) for DCD trajectory using default parameters.
             (1) Hydrogen bonds
             (2) Salt Bridges
@@ -1912,13 +1920,12 @@ class InteractionsDCD(object):
         for j0, frame0 in enumerate(trajectory):  
             LOGGER.info('Frame: {0}'.format(j0))
             
-            protein = atoms.select('protein')
-            hydrogen_bonds = calcHydrogenBonds(protein, **kwargs)
-            salt_bridges = calcSaltBridges(protein, **kwargs)
-            RepulsiveIonicBonding = calcRepulsiveIonicBonding(protein, **kwargs)
-            Pi_stacking = calcPiStacking(protein, **kwargs)
-            Pi_cation = calcPiCation(protein, **kwargs)
-            hydrophobic = calcHydrophohic(protein, **kwargs)
+            hydrogen_bonds = calcHydrogenBonds(atoms.protein, **kwargs)
+            salt_bridges = calcSaltBridges(atoms.protein, **kwargs)
+            RepulsiveIonicBonding = calcRepulsiveIonicBonding(atoms.protein, **kwargs)
+            Pi_stacking = calcPiStacking(atoms.protein, **kwargs)
+            Pi_cation = calcPiCation(atoms.protein, **kwargs)
+            hydrophobic = calcHydrophobic(atoms.protein, **kwargs)
 
             HBs_all.append(hydrogen_bonds)
             SBs_all.append(salt_bridges)
@@ -1945,9 +1952,10 @@ class InteractionsDCD(object):
         self._piCat_dcd = PiCat_all
         self._hps_dcd = HPh_all
         
-        if 'output' in kwargs:
+        #if 'output' in kwargs:
+        if filename is not None:
             import pickle
-            with open(kwargs['output']+'.pkl', 'wb') as f:
+            with open(str(filename)+'.pkl', 'wb') as f:
                 pickle.dump(self._interactions_dcd, f)  
             LOGGER.info('File with interactions saved.')
         else: pass
@@ -1997,7 +2005,7 @@ class InteractionsDCD(object):
         
         return self._piCat_dcd
         
-    def getHydrophohic(self):
+    def getHydrophobic(self):
         """Return the list of hydrophobic interactions computed from DCD trajectory"""
         
         return self._hps_dcd
@@ -2042,7 +2050,7 @@ class InteractionsDCD(object):
         self._interactions_nb_dcd[4] = [ len(i) for i in interaction ]
         LOGGER.info('Pi-Cation interactions are replaced')
 
-    def setNewHydrophohicDCD(self, interaction):
+    def setNewHydrophobicDCD(self, interaction):
         """Replace default calculation of hydrophobic interactions by the one provided by user"""
 
         self._interactions_dcd[5] = interaction
