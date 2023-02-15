@@ -579,7 +579,7 @@ def calcPiCation(atoms, distA=5.0, extraSele=None, **kwargs):
     :type selection2: str
 
     By default three residues are included TRP, PHE, TYR and HIS.
-    Additional selection can be added: 
+    Additional selection can be added in extraSele: 
         >>> calcPiCation(atoms, 'HSE'='noh and not backbone and not name CB')
         or
         >>> kwargs = {"HSE": "noh and not backbone and not name CB", "HSD": "noh and not backbone and not name CB"}
@@ -875,6 +875,17 @@ def calcHydrogenBondsDCD(atoms, trajectory, distA=3.0, angle=40, cutoff_dist=20,
         
     :arg trajectory: trajectory file
     :type trajectory: class:`.Trajectory`
+
+    :arg distA: non-zero value, maximal distance between donor and acceptor.
+    :type distA: int, float, default is 3.0
+    
+    :arg angle: non-zero value, maximal (180 - D-H-A angle) (donor, hydrogen, acceptor).
+    :type angle: int, float, default is 40.
+    
+    :arg cutoff_dist: non-zero value, interactions will be found between atoms with index differences
+        that are higher than cutoff_dist.
+        default is 20 atoms.
+    :type cutoff_dist: int
     
     :arg selection: selection string
     :type selection: str
@@ -916,6 +927,10 @@ def calcSaltBridgesDCD(atoms, trajectory, distA=4.5, **kwargs):
     :arg trajectory: trajectory file
     :type trajectory: class:`.Trajectory`
     
+    :arg distA: non-zero value, maximal distance between center of masses 
+        of N and O atoms of negatively and positevely charged residues.
+    :type distA: int, float, default is 4.5.
+    
     :arg selection: selection string
     :type selection: str
     
@@ -955,6 +970,10 @@ def calcRepulsiveIonicBondingDCD(atoms, trajectory, distA=4.5, **kwargs):
 
     :arg trajectory: trajectory file
     :type trajectory: class:`.Trajectory`
+    
+    :arg distA: non-zero value, maximal distance between center of masses 
+            between N-N or O-O atoms of residues.
+    :type distA: int, float, default is 4.5.
 
     :arg selection: selection string
     :type selection: str
@@ -996,6 +1015,15 @@ def calcPiStackingDCD(atoms, trajectory, distA=5.0, angle_min=0, angle_max=360, 
     :arg trajectory: trajectory file
     :type trajectory: class:`.Trajectory`
     
+    :arg distA: non-zero value, maximal distance between center of masses of residues aromatic rings.
+    :type distA: int, float, default is 5.
+    
+    :arg angle_min: minimal angle between aromatic rings.
+    :type angle_min: int, default is 0.
+
+    :arg angle_max: maximal angle between rings.
+    :type angle_max: int, default is 360.
+    
     :arg selection: selection string
     :type selection: str
     
@@ -1034,6 +1062,9 @@ def calcPiCationDCD(atoms, trajectory, distA=5.0, extraSele=None, **kwargs):
         
     :arg trajectory: trajectory file
     :type trajectory: class:`.Trajectory`
+    
+    :arg distA: non-zero value, maximal distance between center of masses of aromatic ring and positively charge group.
+    :type distA: int, float, default is 5.
     
     :arg selection: selection string
     :type selection: str
@@ -1074,6 +1105,9 @@ def calcHydrophobicDCD(atoms, trajectory, distA=4.5, **kwargs):
         
     :arg trajectory: trajectory file
     :type trajectory: class:`.Trajectory`
+    
+    :arg distA: non-zero value, maximal distance between atoms of hydrophobic residues.
+    :type distA: int, float, default is 4.5.
 
     :arg selection: selection string
     :type selection: str
@@ -1113,7 +1147,10 @@ def calcDisulfideBondsDCD(atoms, trajectory, distA=2.5):
     :type atoms: :class:`.Atomic`
         
     :arg trajectory: trajectory file
-    :type trajectory: class:`.Trajectory`"""
+    :type trajectory: class:`.Trajectory`
+    
+    :arg distA: non-zero value, maximal distance between atoms of hydrophobic residues.
+    :type distA: int, float, default is 2.5."""
 
     try:
         coords = (atoms._getCoords() if hasattr(atoms, '_getCoords') else
