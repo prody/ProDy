@@ -873,8 +873,14 @@ def calcHydrogenBondsDCD(atoms, trajectory, distA=3.0, angle=40, cutoff_dist=20,
     :arg atoms: an Atomic object from which residues are selected
     :type atoms: :class:`.Atomic`
         
-    :arg trajectory: DCD filename
-    :type trajectory: str"""
+    :arg trajectory: trajectory file
+    :type trajectory: class:`.Trajectory`
+    
+    :arg selection: selection string
+    :type selection: str
+    
+    :arg selection2: selection string
+    :type selection2: str"""
 
     try:
         coords = (atoms._getCoords() if hasattr(atoms, '_getCoords') else
@@ -890,6 +896,7 @@ def calcHydrogenBondsDCD(atoms, trajectory, distA=3.0, angle=40, cutoff_dist=20,
         trajectory = Ensemble(trajectory)
                         
     HBs_all = []
+    trajectory.reset()
         
     for j0, frame0 in enumerate(trajectory):  
         LOGGER.info('Frame: {0}'.format(j0))
@@ -900,14 +907,20 @@ def calcHydrogenBondsDCD(atoms, trajectory, distA=3.0, angle=40, cutoff_dist=20,
     return HBs_all
 
 
-def calcSaltBridgesDCD(atoms, trajectory, distA=4.5):
+def calcSaltBridgesDCD(atoms, trajectory, distA=4.5, **kwargs):
     """Compute salt bridges for DCD trajectory using default parameters.
         
     :arg atoms: an Atomic object from which residues are selected
     :type atoms: :class:`.Atomic`
-        
-    :arg trajectory: DCD filename
-    :type trajectory: str"""
+
+    :arg trajectory: trajectory file
+    :type trajectory: class:`.Trajectory`
+    
+    :arg selection: selection string
+    :type selection: str
+    
+    :arg selection2: selection string
+    :type selection2: str"""
 
     try:
         coords = (atoms._getCoords() if hasattr(atoms, '_getCoords') else
@@ -923,24 +936,31 @@ def calcSaltBridgesDCD(atoms, trajectory, distA=4.5):
         trajectory = Ensemble(trajectory)        
                         
     SBs_all = []
+    trajectory.reset()
         
     for j0, frame0 in enumerate(trajectory):  
         LOGGER.info('Frame: {0}'.format(j0))
         protein = atoms.select('protein')
-        salt_bridges = calcSaltBridges(protein, distA)
+        salt_bridges = calcSaltBridges(protein, distA, **kwargs)
         SBs_all.append(salt_bridges)
         
     return SBs_all
     
 
-def calcRepulsiveIonicBondingDCD(atoms, trajectory, distA=4.5):  
+def calcRepulsiveIonicBondingDCD(atoms, trajectory, distA=4.5, **kwargs):  
     """Compute repulsive ionic bonding for DCD trajectory using default parameters.
         
     :arg atoms: an Atomic object from which residues are selected
     :type atoms: :class:`.Atomic`
-        
-    :arg trajectory: DCD filename
-    :type trajectory: str"""
+
+    :arg trajectory: trajectory file
+    :type trajectory: class:`.Trajectory`
+
+    :arg selection: selection string
+    :type selection: str
+    
+    :arg selection2: selection string
+    :type selection2: str"""
 
     try:
         coords = (atoms._getCoords() if hasattr(atoms, '_getCoords') else
@@ -956,11 +976,12 @@ def calcRepulsiveIonicBondingDCD(atoms, trajectory, distA=4.5):
         trajectory = Ensemble(trajectory)        
                         
     RIB_all = []
+    trajectory.reset()
         
     for j0, frame0 in enumerate(trajectory):  
         LOGGER.info('Frame: {0}'.format(j0))
         protein = atoms.select('protein')
-        rib = calcRepulsiveIonicBonding(protein, distA)
+        rib = calcRepulsiveIonicBonding(protein, distA, **kwargs)
         RIB_all.append(rib)
         
     return RIB_all
@@ -971,9 +992,15 @@ def calcPiStackingDCD(atoms, trajectory, distA=5.0, angle_min=0, angle_max=360, 
         
     :arg atoms: an Atomic object from which residues are selected
     :type atoms: :class:`.Atomic`
-        
-    :arg trajectory: DCD filename
-    :type trajectory: str"""
+      
+    :arg trajectory: trajectory file
+    :type trajectory: class:`.Trajectory`
+    
+    :arg selection: selection string
+    :type selection: str
+    
+    :arg selection2: selection string
+    :type selection2: str"""            
 
     try:
         coords = (atoms._getCoords() if hasattr(atoms, '_getCoords') else
@@ -988,6 +1015,7 @@ def calcPiStackingDCD(atoms, trajectory, distA=5.0, angle_min=0, angle_max=360, 
         trajectory = Ensemble(trajectory)        
                         
     pi_stack_all = []
+    trajectory.reset()
         
     for j0, frame0 in enumerate(trajectory):  
         LOGGER.info('Frame: {0}'.format(j0))
@@ -1004,8 +1032,14 @@ def calcPiCationDCD(atoms, trajectory, distA=5.0, extraSele=None, **kwargs):
     :arg atoms: an Atomic object from which residues are selected
     :type atoms: :class:`.Atomic`
         
-    :arg trajectory: DCD filename
-    :type trajectory: str"""
+    :arg trajectory: trajectory file
+    :type trajectory: class:`.Trajectory`
+    
+    :arg selection: selection string
+    :type selection: str
+    
+    :arg selection2: selection string
+    :type selection2: str"""
 
     try:
         coords = (atoms._getCoords() if hasattr(atoms, '_getCoords') else
@@ -1021,6 +1055,7 @@ def calcPiCationDCD(atoms, trajectory, distA=5.0, extraSele=None, **kwargs):
         trajectory = Ensemble(trajectory)        
                         
     pi_cat_all = []
+    trajectory.reset()
         
     for j0, frame0 in enumerate(trajectory):  
         LOGGER.info('Frame: {0}'.format(j0))
@@ -1037,8 +1072,14 @@ def calcHydrophobicDCD(atoms, trajectory, distA=4.5, **kwargs):
     :arg atoms: an Atomic object from which residues are selected
     :type atoms: :class:`.Atomic`
         
-    :arg trajectory: DCD filename
-    :type trajectory: str"""
+    :arg trajectory: trajectory file
+    :type trajectory: class:`.Trajectory`
+
+    :arg selection: selection string
+    :type selection: str
+    
+    :arg selection2: selection string
+    :type selection2: str"""
 
     try:
         coords = (atoms._getCoords() if hasattr(atoms, '_getCoords') else
@@ -1054,6 +1095,7 @@ def calcHydrophobicDCD(atoms, trajectory, distA=4.5, **kwargs):
         trajectory = Ensemble(trajectory)        
                         
     HPh_all = []
+    trajectory.reset()
         
     for j0, frame0 in enumerate(trajectory):  
         LOGGER.info('Frame: {0}'.format(j0))
@@ -1070,8 +1112,8 @@ def calcDisulfideBondsDCD(atoms, trajectory, distA=2.5):
     :arg atoms: an Atomic object from which residues are selected
     :type atoms: :class:`.Atomic`
         
-    :arg trajectory: DCD filename
-    :type trajectory: str"""
+    :arg trajectory: trajectory file
+    :type trajectory: class:`.Trajectory`"""
 
     try:
         coords = (atoms._getCoords() if hasattr(atoms, '_getCoords') else
@@ -1087,6 +1129,7 @@ def calcDisulfideBondsDCD(atoms, trajectory, distA=2.5):
         trajectory = Ensemble(trajectory)        
                         
     DiBs_all = []
+    trajectory.reset()
         
     for j0, frame0 in enumerate(trajectory):  
         LOGGER.info('Frame: {0}'.format(j0))
@@ -1964,12 +2007,11 @@ class InteractionsDCD(object):
         :arg atoms: an Atomic object from which residues are selected
         :type atoms: :class:`.Atomic`
         
-        :arg trajectory: DCD filename
-        :type trajectory: str
-        
+        :arg trajectory: trajectory file
+        :type trajectory: class:`.Trajectory`        
+
         :arg filename: Name of pkl filename in which interactions will be storage
-        :type filename: pkl
-        """
+        :type filename: pkl """
 
         try:
             coords = (atoms._getCoords() if hasattr(atoms, '_getCoords') else
@@ -2001,6 +2043,7 @@ class InteractionsDCD(object):
         PiStack_nb = []
         PiCat_nb = []
         HPh_nb = []
+        trajectory.reset()
         
         for j0, frame0 in enumerate(trajectory):  
             LOGGER.info('Frame: {0}'.format(j0))
