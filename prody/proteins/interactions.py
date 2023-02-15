@@ -761,31 +761,29 @@ def calcDisulfideBonds(atoms, distA=2.5):
                             'with `getCoords` method')
 
     try:
-        atoms_SG = atoms.select('protein and resname CYS')
-    except AttributeError:
-        try:
-            checkCoords(atoms_SG)
-        except TypeError:
-            raise TypeError('Lack of cysteines in the structure.')
+        atoms_SG = atoms.select('protein and resname CYS and name SG')
+        atoms_SG_res = list(set(zip(atoms_SG.getResnums(), atoms_SG.getChids())))
     
-    atoms_SG = atoms.select('protein and resname CYS and name SG')
-    atoms_SG_res = list(set(zip(atoms_SG.getResnums(), atoms_SG.getChids())))
-    
-    LOGGER.info('Calculating disulfide bonds.')
-    DisulfideBonds_list = []
-    for i in atoms_SG_res:
-        CYS_pairs = atoms.select('(same residue as protein within '+str(distA)+' of ('+'resid '+str(i[0])+' and chain '+i[1]+' and name SG)) and (resname CYS and name SG)')
-        CYSresnames = [j+str(i) for i, j in zip(CYS_pairs.getResnums(), CYS_pairs.getResnames())]
-        if len(CYSresnames) != 1 and len(CYSresnames) != 0:
-            DisulfideBonds_list.append(list(zip(CYSresnames, CYS_pairs.getChids())))
+        LOGGER.info('Calculating disulfide bonds.')
+        DisulfideBonds_list = []
+        for i in atoms_SG_res:
+            CYS_pairs = atoms.select('(same residue as protein within '+str(distA)+' of ('+'resid '+str(i[0])+' and chain '+i[1]+' and name SG)) and (resname CYS and name SG)')
+            CYSresnames = [j+str(i) for i, j in zip(CYS_pairs.getResnums(), CYS_pairs.getResnames())]
+            if len(CYSresnames) != 1 and len(CYSresnames) != 0:
+                DisulfideBonds_list.append(list(zip(CYSresnames, CYS_pairs.getChids())))
 
-    DisulfideBonds_list2 = list({tuple(sorted(i)) for i in DisulfideBonds_list})
+        DisulfideBonds_list2 = list({tuple(sorted(i)) for i in DisulfideBonds_list})
     
-    if len(DisulfideBonds_list2) != 0:
-        return DisulfideBonds_list2
-    else:
-        LOGGER.info('Lack of disulfide bonds in the structure.')
+        if len(DisulfideBonds_list2) != 0:
+            return DisulfideBonds_list2
+        else:
+            LOGGER.info('Lack of disulfide bonds in the structure.')
     
+    except:
+        atoms_SG = atoms.select('protein and resname CYS')
+        if atoms_SG is None:
+            LOGGER.info('Lack of cysteines in the structure.')
+
 
 def calcMetalInteractions(atoms, distA=3.0, extraIons=['FE'], excluded_ions=['SOD', 'CLA']):
     """Interactions with metal ions (includes water, ligands and other ions).
@@ -931,7 +929,7 @@ def calcHydrogenBondsDCD(atoms, trajectory=None, distA=3.0, angle=40, cutoff_dis
     return HBs_all
 
 
-def calcSaltBridgesDCD(atoms, trajectory, distA=4.5, **kwargs):
+def calcSaltBridgesDCD(atoms, trajectory=None, distA=4.5, **kwargs):
     """Compute salt bridges for DCD trajectory using default parameters.
         
     :arg atoms: an Atomic object from which residues are selected
@@ -959,23 +957,35 @@ def calcSaltBridgesDCD(atoms, trajectory, distA=4.5, **kwargs):
         except TypeError:
             raise TypeError('coords must be an object '
                             'with `getCoords` method')
-
-    if isinstance(trajectory, Atomic):
-        trajectory = Ensemble(trajectory)        
-                        
     SBs_all = []
-    trajectory.reset()
+
+    if trajectory is not None:
+        if isinstance(trajectory, Atomic):
+            trajectory = Ensemble(trajectory)        
+                        
+        trajectory.reset()
         
-    for j0, frame0 in enumerate(trajectory):  
-        LOGGER.info('Frame: {0}'.format(j0))
-        protein = atoms.select('protein')
-        salt_bridges = calcSaltBridges(protein, distA, **kwargs)
-        SBs_all.append(salt_bridges)
+        for j0, frame0 in enumerate(trajectory):  
+            LOGGER.info('Frame: {0}'.format(j0))
+            protein = atoms.select('protein')
+            salt_bridges = calcSaltBridges(protein, distA, **kwargs)
+            SBs_all.append(salt_bridges)
+        
+    else:
+        if atoms.numCoordsets() > 1:
+            for i in range(len(atoms.getCoordsets())):
+                LOGGER.info('Model: {0}'.format(i))
+                atoms.setACSIndex(i) 
+                protein = atoms.select('protein')
+                salt_bridges = calcSaltBridges(protein, distA, **kwargs)
+                SBs_all.append(salt_bridges)
+        else:
+            LOGGER.info('Include trajectory or use multiple PDB file.')        
         
     return SBs_all
     
 
-def calcRepulsiveIonicBondingDCD(atoms, trajectory, distA=4.5, **kwargs):  
+def calcRepulsiveIonicBondingDCD(atoms, trajectory=None, distA=4.5, **kwargs):  
     """Compute repulsive ionic bonding for DCD trajectory using default parameters.
         
     :arg atoms: an Atomic object from which residues are selected
@@ -1004,22 +1014,35 @@ def calcRepulsiveIonicBondingDCD(atoms, trajectory, distA=4.5, **kwargs):
             raise TypeError('coords must be an object '
                             'with `getCoords` method')
 
-    if isinstance(trajectory, Atomic):
-        trajectory = Ensemble(trajectory)        
-                        
     RIB_all = []
-    trajectory.reset()
+
+    if trajectory is not None:
+        if isinstance(trajectory, Atomic):
+            trajectory = Ensemble(trajectory)        
+
+        trajectory.reset()
         
-    for j0, frame0 in enumerate(trajectory):  
-        LOGGER.info('Frame: {0}'.format(j0))
-        protein = atoms.select('protein')
-        rib = calcRepulsiveIonicBonding(protein, distA, **kwargs)
-        RIB_all.append(rib)
+        for j0, frame0 in enumerate(trajectory):  
+            LOGGER.info('Frame: {0}'.format(j0))
+            protein = atoms.select('protein')
+            rib = calcRepulsiveIonicBonding(protein, distA, **kwargs)
+            RIB_all.append(rib)
+        
+    else:
+        if atoms.numCoordsets() > 1:
+            for i in range(len(atoms.getCoordsets())):
+                LOGGER.info('Model: {0}'.format(i))
+                atoms.setACSIndex(i) 
+                protein = atoms.select('protein')
+                rib = calcRepulsiveIonicBonding(protein, distA, **kwargs)
+                RIB_all.append(rib)
+        else:
+            LOGGER.info('Include trajectory or use multiple PDB file.')                
         
     return RIB_all
 
 
-def calcPiStackingDCD(atoms, trajectory, distA=5.0, angle_min=0, angle_max=360, **kwargs):   
+def calcPiStackingDCD(atoms, trajectory=None, distA=5.0, angle_min=0, angle_max=360, **kwargs):   
     """Compute Pi-stacking interactions for DCD trajectory using default parameters.
         
     :arg atoms: an Atomic object from which residues are selected
@@ -1052,22 +1075,36 @@ def calcPiStackingDCD(atoms, trajectory, distA=5.0, angle_min=0, angle_max=360, 
         except TypeError:
             raise TypeError('coords must be an object '
                             'with `getCoords` method')
-    if isinstance(trajectory, Atomic):
-        trajectory = Ensemble(trajectory)        
-                        
+
     pi_stack_all = []
-    trajectory.reset()
+
+    if trajectory is not None:
+        if isinstance(trajectory, Atomic):
+            trajectory = Ensemble(trajectory)        
+        trajectory.reset()
         
-    for j0, frame0 in enumerate(trajectory):  
-        LOGGER.info('Frame: {0}'.format(j0))
-        protein = atoms.select('protein')
-        pi_stack = calcPiStacking(protein, distA, angle_min, angle_max, **kwargs)
-        pi_stack_all.append(pi_stack)
+        for j0, frame0 in enumerate(trajectory):  
+            LOGGER.info('Frame: {0}'.format(j0))
+            protein = atoms.select('protein')
+            pi_stack = calcPiStacking(protein, distA, angle_min, angle_max, **kwargs)
+            pi_stack_all.append(pi_stack)
+        
+    else:
+        if atoms.numCoordsets() > 1:
+            for i in range(len(atoms.getCoordsets())):
+                LOGGER.info('Model: {0}'.format(i))
+                atoms.setACSIndex(i) 
+                protein = atoms.select('protein')
+                pi_stack = calcPiStacking(protein, distA, angle_min, angle_max, **kwargs)
+                pi_stack_all.append(pi_stack)
+
+        else:
+            LOGGER.info('Include trajectory or use multiple PDB file.')        
         
     return pi_stack_all
 
 
-def calcPiCationDCD(atoms, trajectory, distA=5.0, extraSele=None, **kwargs):  
+def calcPiCationDCD(atoms, trajectory=None, distA=5.0, extraSele=None, **kwargs):  
     """Compute Pi-cation interactions for DCD trajectory using default parameters.
         
     :arg atoms: an Atomic object from which residues are selected
@@ -1095,22 +1132,34 @@ def calcPiCationDCD(atoms, trajectory, distA=5.0, extraSele=None, **kwargs):
             raise TypeError('coords must be an object '
                             'with `getCoords` method')
 
-    if isinstance(trajectory, Atomic):
-        trajectory = Ensemble(trajectory)        
-                        
     pi_cat_all = []
-    trajectory.reset()
+    
+    if trajectory is not None:
+        if isinstance(trajectory, Atomic):
+            trajectory = Ensemble(trajectory)        
+        trajectory.reset()
         
-    for j0, frame0 in enumerate(trajectory):  
-        LOGGER.info('Frame: {0}'.format(j0))
-        protein = atoms.select('protein')
-        pi_cat = calcPiCation(protein, distA, extraSele, **kwargs)
-        pi_cat_all.append(pi_cat)
+        for j0, frame0 in enumerate(trajectory):  
+            LOGGER.info('Frame: {0}'.format(j0))
+            protein = atoms.select('protein')
+            pi_cat = calcPiCation(protein, distA, extraSele, **kwargs)
+            pi_cat_all.append(pi_cat)
+        
+    else:
+        if atoms.numCoordsets() > 1:
+            for i in range(len(atoms.getCoordsets())):
+                LOGGER.info('Model: {0}'.format(i))
+                atoms.setACSIndex(i) 
+                protein = atoms.select('protein')
+                pi_cat = calcPiCation(protein, distA, extraSele, **kwargs)
+                pi_cat_all.append(pi_cat)
+        else:
+            LOGGER.info('Include trajectory or use multiple PDB file.')        
         
     return pi_cat_all
 
 
-def calcHydrophobicDCD(atoms, trajectory, distA=4.5, **kwargs):  
+def calcHydrophobicDCD(atoms, trajectory=None, distA=4.5, **kwargs):  
     """Compute hydrophobic interactions for DCD trajectory using default parameters.
         
     :arg atoms: an Atomic object from which residues are selected
@@ -1138,22 +1187,34 @@ def calcHydrophobicDCD(atoms, trajectory, distA=4.5, **kwargs):
             raise TypeError('coords must be an object '
                             'with `getCoords` method')
 
-    if isinstance(trajectory, Atomic):
-        trajectory = Ensemble(trajectory)        
-                        
     HPh_all = []
-    trajectory.reset()
+    if trajectory is not None:
+        if isinstance(trajectory, Atomic):
+            trajectory = Ensemble(trajectory)        
+        trajectory.reset()
         
-    for j0, frame0 in enumerate(trajectory):  
-        LOGGER.info('Frame: {0}'.format(j0))
-        protein = atoms.select('protein')
-        HPh = calcHydrophobic(protein, distA, **kwargs)
-        HPh_all.append(HPh)
+        for j0, frame0 in enumerate(trajectory):  
+            LOGGER.info('Frame: {0}'.format(j0))
+            protein = atoms.select('protein')
+            HPh = calcHydrophobic(protein, distA, **kwargs)
+            HPh_all.append(HPh)
+        
+    else:
+        if atoms.numCoordsets() > 1:
+            for i in range(len(atoms.getCoordsets())):
+                LOGGER.info('Model: {0}'.format(i))
+                atoms.setACSIndex(i) 
+                protein = atoms.select('protein')
+                HPh = calcHydrophobic(protein, distA, **kwargs)
+                HPh_all.append(HPh)
+
+        else:
+            LOGGER.info('Include trajectory or use multiple PDB file.')        
         
     return HPh_all
 
 
-def calcDisulfideBondsDCD(atoms, trajectory, distA=2.5):
+def calcDisulfideBondsDCD(atoms, trajectory=None, distA=2.5):
     """Compute disulfide bonds for DCD trajectory using default parameters.
         
     :arg atoms: an Atomic object from which residues are selected
@@ -1174,18 +1235,29 @@ def calcDisulfideBondsDCD(atoms, trajectory, distA=2.5):
         except TypeError:
             raise TypeError('coords must be an object '
                             'with `getCoords` method')
-
-    if isinstance(trajectory, Atomic):
-        trajectory = Ensemble(trajectory)        
-                        
     DiBs_all = []
-    trajectory.reset()
+    if trajectory is not None:
+        if isinstance(trajectory, Atomic):
+            trajectory = Ensemble(trajectory)        
+        trajectory.reset()
         
-    for j0, frame0 in enumerate(trajectory):  
-        LOGGER.info('Frame: {0}'.format(j0))
-        protein = atoms.select('protein')
-        disulfide_bonds = calcDisulfideBonds(protein, distA)
-        DiBs_all.append(disulfide_bonds)
+        for j0, frame0 in enumerate(trajectory):  
+            LOGGER.info('Frame: {0}'.format(j0))
+            protein = atoms.select('protein')
+            disulfide_bonds = calcDisulfideBonds(protein, distA)
+            DiBs_all.append(disulfide_bonds)
+
+    else:
+        if atoms.numCoordsets() > 1:
+            for i in range(len(atoms.getCoordsets())):
+                LOGGER.info('Model: {0}'.format(i))
+                atoms.setACSIndex(i) 
+                protein = atoms.select('protein')
+                disulfide_bonds = calcDisulfideBonds(protein, distA)
+                DiBs_all.append(disulfide_bonds)
+
+        else:
+            LOGGER.info('Include trajectory or use multiple PDB file.')        
         
     return DiBs_all
 
