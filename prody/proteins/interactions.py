@@ -867,7 +867,7 @@ def calcProteinInteractions(atoms, **kwargs):
     return AllInteractions
 
 
-def calcHydrogenBondsDCD(atoms, trajectory, distA=3.0, angle=40, cutoff_dist=20, **kwargs):   
+def calcHydrogenBondsDCD(atoms, trajectory=None, distA=3.0, angle=40, cutoff_dist=20, **kwargs):   
     """Compute hydrogen bonds for DCD trajectory using default parameters.
         
     :arg atoms: an Atomic object from which residues are selected
@@ -902,19 +902,32 @@ def calcHydrogenBondsDCD(atoms, trajectory, distA=3.0, angle=40, cutoff_dist=20,
         except TypeError:
             raise TypeError('coords must be an object '
                             'with `getCoords` method')
-        
-    if isinstance(trajectory, Atomic):
-        trajectory = Ensemble(trajectory)
-                        
+
     HBs_all = []
-    trajectory.reset()
+
+    if trajectory is not None: 
+        if isinstance(trajectory, Atomic):
+            trajectory = Ensemble(trajectory)
+            
+        trajectory.reset()
         
-    for j0, frame0 in enumerate(trajectory):  
-        LOGGER.info('Frame: {0}'.format(j0))
-        protein = atoms.select('protein')
-        hydrogen_bonds = calcHydrogenBonds(protein, distA, angle, cutoff_dist, **kwargs)
-        HBs_all.append(hydrogen_bonds)
-        
+        for j0, frame0 in enumerate(trajectory):  
+            LOGGER.info('Frame: {0}'.format(j0))
+            protein = atoms.select('protein')
+            hydrogen_bonds = calcHydrogenBonds(protein, distA, angle, cutoff_dist, **kwargs)
+            HBs_all.append(hydrogen_bonds)
+    
+    else:
+        if atoms.numCoordsets() > 1:
+            for i in range(len(atoms.getCoordsets())):
+                LOGGER.info('Model: {0}'.format(i))
+                atoms.setACSIndex(i) 
+                protein = atoms.select('protein')
+                hydrogen_bonds = calcHydrogenBonds(protein, distA, angle, cutoff_dist, **kwargs)
+                HBs_all.append(hydrogen_bonds)
+        else:
+            LOGGER.info('Include trajectory or use multiple PDB file.')
+            
     return HBs_all
 
 
