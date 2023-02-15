@@ -761,24 +761,31 @@ def calcDisulfideBonds(atoms, distA=2.5):
                             'with `getCoords` method')
 
     try:
-        atoms_SG = atoms.select('protein and resname CYS and name SG')
-        atoms_SG_res = list(set(zip(atoms_SG.getResnums(), atoms_SG.getChids())))
+        atoms_SG = atoms.select('protein and resname CYS')
+    except AttributeError:
+        try:
+            checkCoords(atoms_SG)
+        except TypeError:
+            raise TypeError('Lack of cysteines in the structure.')
     
-        LOGGER.info('Calculating disulfide bonds.')
-        DisulfideBonds_list = []
-        for i in atoms_SG_res:
-            CYS_pairs = atoms.select('(same residue as protein within '+str(distA)+' of ('+'resid '+str(i[0])+' and chain '+i[1]+' and name SG)) and (resname CYS and name SG)')
-            CYSresnames = [j+str(i) for i, j in zip(CYS_pairs.getResnums(), CYS_pairs.getResnames())]
-            if len(CYSresnames) != 1 and len(CYSresnames) != 0:
-                DisulfideBonds_list.append(list(zip(CYSresnames, CYS_pairs.getChids())))
+    atoms_SG = atoms.select('protein and resname CYS and name SG')
+    atoms_SG_res = list(set(zip(atoms_SG.getResnums(), atoms_SG.getChids())))
+    
+    LOGGER.info('Calculating disulfide bonds.')
+    DisulfideBonds_list = []
+    for i in atoms_SG_res:
+        CYS_pairs = atoms.select('(same residue as protein within '+str(distA)+' of ('+'resid '+str(i[0])+' and chain '+i[1]+' and name SG)) and (resname CYS and name SG)')
+        CYSresnames = [j+str(i) for i, j in zip(CYS_pairs.getResnums(), CYS_pairs.getResnames())]
+        if len(CYSresnames) != 1 and len(CYSresnames) != 0:
+            DisulfideBonds_list.append(list(zip(CYSresnames, CYS_pairs.getChids())))
 
-        DisulfideBonds_list2 = list({tuple(sorted(i)) for i in DisulfideBonds_list})
+    DisulfideBonds_list2 = list({tuple(sorted(i)) for i in DisulfideBonds_list})
     
-        if len(DisulfideBonds_list2) != 0:
-            return DisulfideBonds_list2
+    if len(DisulfideBonds_list2) != 0:
+        return DisulfideBonds_list2
+    else:
+        LOGGER.info('Lack of disulfide bonds in the structure.')
     
-    except: LOGGER.info('Lack of cysteines in the structure.')    
-
 
 def calcMetalInteractions(atoms, distA=3.0, extraIons=['FE'], excluded_ions=['SOD', 'CLA']):
     """Interactions with metal ions (includes water, ligands and other ions).
