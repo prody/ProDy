@@ -2222,57 +2222,151 @@ class InteractionsDCD(object):
         return HBs_nb, SBs_nb, RIB_nb, PiStack_nb, PiCat_nb, HPh_nb
 
 
-    def getInteractions(self, **kwargs):
-        """Return the list of all interactions"""
+    def getInteractions(self, filename=None, **kwargs):
+        """Return the list of all interactions.
         
-        if 'filename' in kwargs:
+        :arg filename: name of DAT file where interactions will be saved.
+        :type filename: str
+        
+        :arg selection: selection string
+        :type selection: str
+    
+        :arg selection2: selection string
+        :type selection2: str """
 
+        if len(kwargs) == 0:
+            return self._interactions_dcd
+        else:
+            sele_inter = []
+            for i in self._interactions_dcd:
+                for nr_j,j in enumerate(i):
+                    sele_inter.append(selectionByKwargs(i[nr_j], self._atoms, **kwargs))
+            self._interactions_dcd = sele_inter
+            return self._interactions_dcd
+        
+        if 'filename' != None:
             with open(kwargs['filename']+'.dat', 'wb') as f:
                 pickle.dump(self._interactions_dcd, f)  
             LOGGER.info('File with interactions saved.')
         else: pass
-        
-        return self._interactions_dcd
 
     def getAtoms(self):
-        """Returns associated atoms"""
+        """Returns associated atoms."""
 
         return self._atoms
     
     def getInteractionsNumber(self):
-        """Return the number of interactions in each frame"""
+        """Return the number of interactions in each frame."""
         
         return self._interactions_nb_dcd 
     
-    def getHydrogenBonds(self):
-        """Return the list of hydrogen bonds computed from DCD trajectory"""
+    def getHydrogenBonds(self, **kwargs):
+        """Return the list of hydrogen bonds computed from DCD trajectory.
+              
+        :arg selection: selection string
+        :type selection: str
+    
+        :arg selection2: selection string
+        :type selection2: str """
 
-        return self._hbs_dcd
+        if len(kwargs) == 0:
+            return self._hbs_dcd
+        else:
+            sele_inter = []
+            for nr_i,i in enumerate(self._hbs_dcd):
+                sele_inter.append(selectionByKwargs(self._hbs_dcd[nr_i], self._atoms, **kwargs))
+            self._hbs_dcd = sele_inter
+            return self._hbs_dcd
         
-    def getSaltBridges(self):
-        """Return the list of salt bridges computed from DCD trajectory"""
+    def getSaltBridges(self, **kwargs):
+        """Return the list of salt bridges computed from DCD trajectory.
+              
+        :arg selection: selection string
+        :type selection: str
+    
+        :arg selection2: selection string
+        :type selection2: str """
         
-        return self._sbs_dcd
+        if len(kwargs) == 0:
+            return self._sbs_dcd
+        else:
+            sele_inter = []
+            for nr_i,i in enumerate(self._sbs_dcd):
+                sele_inter.append(selectionByKwargs(self._sbs_dcd[nr_i], self._atoms, **kwargs))
+            self._sbs_dcd = sele_inter
+            return self._sbs_dcd
 
-    def getRepulsiveIonicBonding(self):
-        """Return the list of repulsive ionic bonding computed from DCD trajectory"""
-        
-        return self._rib_dcd
-        
-    def getPiStacking(self):
-        """Return the list of Pi-stacking interactions computed from DCD trajectory"""
-        
-        return self._piStack_dcd
+    def getRepulsiveIonicBonding(self, **kwargs):
+        """Return the list of repulsive ionic bonding computed from DCD trajectory.
+              
+        :arg selection: selection string
+        :type selection: str
+    
+        :arg selection2: selection string
+        :type selection2: str"""
 
-    def getPiCation(self):
-        """Return the list of Pi-cation interactions computed from DCD trajectory"""
-        
-        return self._piCat_dcd
-        
-    def getHydrophobic(self):
-        """Return the list of hydrophobic interactions computed from DCD trajectory"""
-        
-        return self._hps_dcd
+        if len(kwargs) == 0:
+            return self._rib_dcd
+        else:
+            sele_inter = []
+            for nr_i,i in enumerate(self._rib_dcd):
+                sele_inter.append(selectionByKwargs(self._rib_dcd[nr_i], self._atoms, **kwargs))
+            self._rib_dcd = sele_inter
+            return self._rib_dcd
+
+    def getPiStacking(self, **kwargs):
+        """Return the list of Pi-stacking interactions computed from DCD trajectory.
+              
+        :arg selection: selection string
+        :type selection: str
+    
+        :arg selection2: selection string
+        :type selection2: str"""
+
+        if len(kwargs) == 0:
+            return self._piStack_dcd
+        else:
+            sele_inter = []
+            for nr_i,i in enumerate(self._piStack_dcd):
+                sele_inter.append(selectionByKwargs(self._piStack_dcd[nr_i], self._atoms, **kwargs))
+            self._piStack_dcd = sele_inter
+            return self._piStack_dcd
+
+    def getPiCation(self, **kwargs):
+        """Return the list of Pi-cation interactions computed from DCD trajectory.
+              
+        :arg selection: selection string
+        :type selection: str
+    
+        :arg selection2: selection string
+        :type selection2: str"""
+
+        if len(kwargs) == 0:
+            return self._piCat_dcd
+        else:
+            sele_inter = []
+            for nr_i,i in enumerate(self._piCat_dcd):
+                sele_inter.append(selectionByKwargs(self._piCat_dcd[nr_i], self._atoms, **kwargs))
+            self._piCat_dcd = sele_inter
+            return self._piCat_dcd
+
+    def getHydrophobic(self, **kwargs):
+        """Return the list of hydrophobic interactions computed from DCD trajectory.
+              
+        :arg selection: selection string
+        :type selection: str
+    
+        :arg selection2: selection string
+        :type selection2: str"""
+
+        if len(kwargs) == 0:
+            return self._hps_dcd
+        else:
+            sele_inter = []
+            for nr_i,i in enumerate(self._hps_dcd):
+                sele_inter.append(selectionByKwargs(self._hps_dcd[nr_i], self._atoms, **kwargs))
+            self._hps_dcd = sele_inter
+            return self._hps_dcd
 
     def setNewHydrogenBondsDCD(self, interaction):
         """Replace default calculation of hydrogen bonds by the one provided by user"""
