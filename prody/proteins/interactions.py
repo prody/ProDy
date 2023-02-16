@@ -1921,10 +1921,12 @@ class Interactions(object):
         return InteractionsMap
 
 
-    def showInteractions(self, **kwargs):
+    def showInteractions(self, filename=None, **kwargs):
         """Display protein residues and their number of potential interactions
         with other residues from protein structure.
-        """
+        
+        :arg filename: PNG file name
+        :type filename: str"""
         
         import numpy as np
         import matplotlib
@@ -1950,8 +1952,10 @@ class Interactions(object):
         plt.ylabel('Score of interactions')
         plt.xlabel('Residue')
         plt.tight_layout()
-        plt.show()
         
+        if filename is not None:
+            plt.savefig(filename+'.png', dpi=300)
+        plt.show()
     
     def saveInteractionsPDB(self, **kwargs):
         """Save the number of potential interactions to PDB file in occupancy column.
@@ -2039,12 +2043,15 @@ class Interactions(object):
         return ListOfInteractions_list
         
 
-    def showFrequentInteractions(self, cutoff=5, **kwargs):
+    def showFrequentInteractions(self, cutoff=5, filename=None, **kwargs):
         """Plots regions with the most frequent interactions.
         
         :arg cutoff: minimal score per residue which will be displayed.
                      If cutoff value is to big, top 30% with the higest values will be returned.
         :type distA: int, float
+
+        :arg filename: PNG file name
+        :type filename: str
         
         Nonstandard resiudes can be updated in a following way:
         d = {'CYX': 'X', 'CEA': 'Z'}
@@ -2095,6 +2102,9 @@ class Interactions(object):
         plt.xticks(y_pos, y, rotation=45, fontsize=20)
         plt.ylabel('Score of interactions')
         plt.tight_layout()
+
+        if filename is not None:
+            plt.savefig(filename+'.png', dpi=300)
         plt.show()
         
         
@@ -2334,8 +2344,11 @@ class InteractionsDCD(object):
         
         return data
     
-    def getTimeInteractions(self, **kwargs):    
-        """Return a bar plots with the number of interactions per each frame """
+    def getTimeInteractions(self, filename=None, **kwargs):    
+        """Return a bar plots with the number of interactions per each frame.
+        
+        :arg filename: PNG file name
+        :type filename: str"""
         
         HBs = self._interactions_nb_dcd[0]
         SBs = self._interactions_nb_dcd[1]
@@ -2367,7 +2380,10 @@ class InteractionsDCD(object):
         ax6.plot(RIB, 'k:')
 
         plt.xlabel('Frame')
-        plt.show()   
+        
+        if filename is not None:
+            plt.savefig(filename+'.png', dpi=300)
+        plt.show()
         
         return HBs, SBs, HPh, PiStack, PiCat, HPh
 
