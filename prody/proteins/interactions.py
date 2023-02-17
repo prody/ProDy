@@ -923,7 +923,7 @@ def calcHydrogenBondsDCD(atoms, trajectory=None, distA=3.0, angle=40, cutoff_dis
                 hydrogen_bonds = calcHydrogenBonds(protein, distA, angle, cutoff_dist, **kwargs)
                 HBs_all.append(hydrogen_bonds)
         else:
-            LOGGER.info('Include trajectory or use multiple PDB file.')
+            LOGGER.info('Include trajectory or use multi-model PDB file.')
             
     return HBs_all
 
