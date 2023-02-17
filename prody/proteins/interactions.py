@@ -234,41 +234,40 @@ def calcHydrogenBonds(atoms, distA=3.0, angle=40, cutoff_dist=20, **kwargs):
     for nr_i,i in enumerate(short_contacts):
         # Removing those close contacts which are between neighbour atoms
         if i[1] - cutoff_dist < i[0] < i[1] + cutoff_dist:
-            pass
+            continue
         
-        else:
-            if (i[2][0] in donors and i[3][0] in acceptors) or (i[2][0] in acceptors and i[3][0] in donors): # First letter is checked
-                listOfHydrogens1 = cleanNumbers(findNeighbors(atoms.hydrogen, 1.4, atoms.select('index '+str(i[0]))))
-                listOfHydrogens2 = cleanNumbers(findNeighbors(atoms.hydrogen, 1.4, atoms.select('index '+str(i[1]))))
-                AtomsForAngle = ['D','H','A', 'distance','angle']
-                
-                if not listOfHydrogens1:
-                    for j in listOfHydrogens2:
-                        AtomsForAngle = [j[1], j[0], i[0], i[-1], calcAngle(atoms.select('index '+str(j[1])), 
+        if (i[2][0] in donors and i[3][0] in acceptors) or (i[2][0] in acceptors and i[3][0] in donors): # First letter is checked
+            listOfHydrogens1 = cleanNumbers(findNeighbors(atoms.hydrogen, 1.4, atoms.select('index '+str(i[0]))))
+            listOfHydrogens2 = cleanNumbers(findNeighbors(atoms.hydrogen, 1.4, atoms.select('index '+str(i[1]))))
+            AtomsForAngle = ['D','H','A', 'distance','angle']
+            
+            if not listOfHydrogens1:
+                for j in listOfHydrogens2:
+                    AtomsForAngle = [j[1], j[0], i[0], i[-1], calcAngle(atoms.select('index '+str(j[1])), 
+                                                                    atoms.select('index '+str(j[0])), 
+                                                                    atoms.select('index '+str(i[0])))[0]]                                                                                   
+                    pairList.append(AtomsForAngle)            
+            
+            elif not listOfHydrogens2:
+                for jj in listOfHydrogens1:
+                    AtomsForAngle = [jj[1], jj[0], i[1], i[-1], calcAngle(atoms.select('index '+str(jj[1])), 
+                                                                        atoms.select('index '+str(jj[0])), 
+                                                                        atoms.select('index '+str(i[1])))[0]]
+                    pairList.append(AtomsForAngle)            
+    
+            else:            
+                for j in listOfHydrogens2:
+                    AtomsForAngle = [j[1], j[0], i[0], i[-1], calcAngle(atoms.select('index '+str(j[1])), 
                                                                         atoms.select('index '+str(j[0])), 
                                                                         atoms.select('index '+str(i[0])))[0]]                                                                                   
-                        pairList.append(AtomsForAngle)            
+                    pairList.append(AtomsForAngle)
+
                 
-                elif not listOfHydrogens2:
-                    for jj in listOfHydrogens1:
-                        AtomsForAngle = [jj[1], jj[0], i[1], i[-1], calcAngle(atoms.select('index '+str(jj[1])), 
-                                                                          atoms.select('index '+str(jj[0])), 
-                                                                          atoms.select('index '+str(i[1])))[0]]
-                        pairList.append(AtomsForAngle)            
-       
-                else:            
-                    for j in listOfHydrogens2:
-                        AtomsForAngle = [j[1], j[0], i[0], i[-1], calcAngle(atoms.select('index '+str(j[1])), 
-                                                                            atoms.select('index '+str(j[0])), 
-                                                                            atoms.select('index '+str(i[0])))[0]]                                                                                   
-                        pairList.append(AtomsForAngle)
-    
-                    
-                    for jj in listOfHydrogens1:
-                        AtomsForAngle = [jj[1], jj[0], i[1], i[-1], calcAngle(atoms.select('index '+str(jj[1])), 
-                                                                              atoms.select('index '+str(jj[0])), 
-                                                                              atoms.select('index '+str(i[1])))[0]]
-                        pairList.append(AtomsForAngle)
+                for jj in listOfHydrogens1:
+                    AtomsForAngle = [jj[1], jj[0], i[1], i[-1], calcAngle(atoms.select('index '+str(jj[1])), 
+                                                                            atoms.select('index '+str(jj[0])), 
+                                                                            atoms.select('index '+str(i[1])))[0]]
+                    pairList.append(AtomsForAngle)
     
     HBs_list = []
     for k in pairList:
@@ -1520,8 +1519,7 @@ def listLigandInteractions(PLIP_output):
             Inter_list = ['waterbridge',i.restype+str(i.resnr), i[0].type+'_'+str(i[0].idx), i.reschain,
                           i.restype+str(i.resnr_l), i[3].type+'_'+str(i[3].idx), i.reschain_l, 
                           [i.distance_aw, i.distance_dw], [i.d_angle, i.w_angle], i[0].coords, i[3].coords, 
-                          i.water.coords, i[7].residue.name+'_'+str(i[7].residue.idx)]    
-        else: pass
+                          i.water.coords, i[7].residue.name+'_'+str(i[7].residue.idx)]
                       
         Inter_list_all.append(Inter_list)               
     
@@ -2217,7 +2215,6 @@ class InteractionsDCD(object):
             with open(str(filename)+'.pkl', 'wb') as f:
                 pickle.dump(self._interactions_dcd, f)  
             LOGGER.info('File with interactions saved.')
-        else: pass
             
         return HBs_nb, SBs_nb, RIB_nb, PiStack_nb, PiCat_nb, HPh_nb
 
