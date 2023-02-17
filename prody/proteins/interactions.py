@@ -2231,21 +2231,19 @@ class InteractionsDCD(object):
         :arg selection2: selection string
         :type selection2: str """
 
-        if len(kwargs) == 0:
-            return self._interactions_dcd
-        else:
+        if len(kwargs) != 0:
             sele_inter = []
             for i in self._interactions_dcd:
                 for nr_j,j in enumerate(i):
                     sele_inter.append(selectionByKwargs(i[nr_j], self._atoms, **kwargs))
             self._interactions_dcd = sele_inter
-            return self._interactions_dcd
         
         if 'filename' != None:
             with open(kwargs['filename']+'.dat', 'wb') as f:
                 pickle.dump(self._interactions_dcd, f)  
             LOGGER.info('File with interactions saved.')
-        else: pass
+
+        return self._interactions_dcd
 
     def getAtoms(self):
         """Returns associated atoms."""
