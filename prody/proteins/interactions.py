@@ -357,6 +357,13 @@ def calcSaltBridges(atoms, distA=4.5, **kwargs):
     
     :arg selection2: selection string
     :type selection2: str
+    
+    Selection:
+    If we want to select interactions for the particular residue or group of residues: 
+        selection='chain A and resid 1 to 50'
+    If we want to study chain-chain interactions:
+        selection='chain A', selection2='chain B'
+        
     Results can be displayed in VMD."""
 
     try:
@@ -426,6 +433,13 @@ def calcRepulsiveIonicBonding(atoms, distA=4.5, **kwargs):
     
     :arg selection2: selection string
     :type selection2: str
+
+    Selection:
+    If we want to select interactions for the particular residue or group of residues: 
+        selection='chain A and resid 1 to 50'
+    If we want to study chain-chain interactions:
+        selection='chain A', selection2='chain B'
+
     Results can be displayed in VMD."""
 
     try:
@@ -498,6 +512,12 @@ def calcPiStacking(atoms, distA=5.0, angle_min=0, angle_max=360, **kwargs):
     
     :arg selection2: selection string
     :type selection2: str
+
+    Selection:
+    If we want to select interactions for the particular residue or group of residues: 
+        selection='chain A and resid 1 to 50'
+    If we want to study chain-chain interactions:
+        selection='chain A', selection2='chain B'
     
     Results can be displayed in VMD.
     By default three residues are included TRP, PHE, TYR and HIS.
@@ -577,6 +597,12 @@ def calcPiCation(atoms, distA=5.0, extraSele=None, **kwargs):
     :arg selection2: selection string
     :type selection2: str
 
+    Selection:
+    If we want to select interactions for the particular residue or group of residues: 
+        selection='chain A and resid 1 to 50'
+    If we want to study chain-chain interactions:
+        selection='chain A', selection2='chain B'
+
     By default three residues are included TRP, PHE, TYR and HIS.
     Additional selection can be added in extraSele: 
         >>> calcPiCation(atoms, 'HSE'='noh and not backbone and not name CB')
@@ -652,6 +678,12 @@ def calcHydrophobic(atoms, distA=4.5, **kwargs):
     
     :arg distA: non-zero value, maximal distance between atoms of hydrophobic residues.
     :type distA: int, float, default is 4.5.
+
+    Selection:
+    If we want to select interactions for the particular residue or group of residues: 
+        selection='chain A and resid 1 to 50'
+    If we want to study chain-chain interactions:
+        selection='chain A', selection2='chain B'
     
     Additional selection can be added as shown below (with selection that includes only hydrophobic part): 
         >>> calcHydrophobic(atoms, 'XLE'='noh and not backbone')
@@ -840,7 +872,13 @@ def calcProteinInteractions(atoms, **kwargs):
     :type selection: str
     
     :arg selection2: selection string
-    :type selection2: str """
+    :type selection2: str 
+    
+    Selection:
+    If we want to select interactions for the particular residue or group of residues: 
+        selection='chain A and resid 1 to 50'
+    If we want to study chain-chain interactions:
+        selection='chain A', selection2='chain B'  """
 
     try:
         coords = (atoms._getCoords() if hasattr(atoms, '_getCoords') else
@@ -888,7 +926,13 @@ def calcHydrogenBondsDCD(atoms, trajectory=None, distA=3.0, angle=40, cutoff_dis
     :type selection: str
     
     :arg selection2: selection string
-    :type selection2: str"""
+    :type selection2: str
+    
+    Selection:
+    If we want to select interactions for the particular residue or group of residues: 
+        selection='chain A and resid 1 to 50'
+    If we want to study chain-chain interactions:
+        selection='chain A', selection2='chain B' """
 
     try:
         coords = (atoms._getCoords() if hasattr(atoms, '_getCoords') else
@@ -945,7 +989,13 @@ def calcSaltBridgesDCD(atoms, trajectory=None, distA=4.5, **kwargs):
     :type selection: str
     
     :arg selection2: selection string
-    :type selection2: str"""
+    :type selection2: str
+    
+    Selection:
+    If we want to select interactions for the particular residue or group of residues: 
+        selection='chain A and resid 1 to 50'
+    If we want to study chain-chain interactions:
+        selection='chain A', selection2='chain B'  """
 
     try:
         coords = (atoms._getCoords() if hasattr(atoms, '_getCoords') else
@@ -1001,7 +1051,13 @@ def calcRepulsiveIonicBondingDCD(atoms, trajectory=None, distA=4.5, **kwargs):
     :type selection: str
     
     :arg selection2: selection string
-    :type selection2: str"""
+    :type selection2: str
+    
+    Selection:
+    If we want to select interactions for the particular residue or group of residues: 
+        selection='chain A and resid 1 to 50'
+    If we want to study chain-chain interactions:
+        selection='chain A', selection2='chain B'  """
 
     try:
         coords = (atoms._getCoords() if hasattr(atoms, '_getCoords') else
@@ -1063,7 +1119,13 @@ def calcPiStackingDCD(atoms, trajectory=None, distA=5.0, angle_min=0, angle_max=
     :type selection: str
     
     :arg selection2: selection string
-    :type selection2: str"""            
+    :type selection2: str
+    
+    Selection:
+    If we want to select interactions for the particular residue or group of residues: 
+        selection='chain A and resid 1 to 50'
+    If we want to study chain-chain interactions:
+        selection='chain A', selection2='chain B' """            
 
     try:
         coords = (atoms._getCoords() if hasattr(atoms, '_getCoords') else
@@ -1119,7 +1181,13 @@ def calcPiCationDCD(atoms, trajectory=None, distA=5.0, extraSele=None, **kwargs)
     :type selection: str
     
     :arg selection2: selection string
-    :type selection2: str"""
+    :type selection2: str
+
+    Selection:
+    If we want to select interactions for the particular residue or group of residues: 
+        selection='chain A and resid 1 to 50'
+    If we want to study chain-chain interactions:
+        selection='chain A', selection2='chain B' """
 
     try:
         coords = (atoms._getCoords() if hasattr(atoms, '_getCoords') else
@@ -1174,7 +1242,13 @@ def calcHydrophobicDCD(atoms, trajectory=None, distA=4.5, **kwargs):
     :type selection: str
     
     :arg selection2: selection string
-    :type selection2: str"""
+    :type selection2: str
+    
+    Selection:
+    If we want to select interactions for the particular residue or group of residues: 
+        selection='chain A and resid 1 to 50'
+    If we want to study chain-chain interactions:
+        selection='chain A', selection2='chain B' """
 
     try:
         coords = (atoms._getCoords() if hasattr(atoms, '_getCoords') else
@@ -1773,40 +1847,168 @@ class Interactions(object):
 
         return self._atoms
 
-    def getInteractions(self):
-        """Returns the list of all interactions"""
+
+    def getInteractions(self, **kwargs):
+        """Returns the list of all interactions
         
-        return self._interactions
+        :arg selection: selection string
+        :type selection: str
     
-    def getHydrogenBonds(self):
-        """Returns the list of hydrogen bonds"""
+        :arg selection2: selection string
+        :type selection2: str 
         
-        return self._hbs
-        
-    def getSaltBridges(self):
-        """Returns the list of salt bridges"""
-        
-        return self._sbs
+        Selection:
+        If we want to select interactions for the particular residue or group of residues: 
+            selection='chain A and resid 1 to 50'
+        If we want to study chain-chain interactions:
+            selection='chain A', selection2='chain B'  """
 
-    def getRepulsiveIonicBonding(self):
-        """Returns the list of repulsive ionic bonding"""
+        if len(kwargs) != 0:
+            results = [selectionByKwargs(j, self._atoms, **kwargs) for j in self._interactions]
+        else: 
+            results = self._interactions
         
-        return self._rib
-        
-    def getPiStacking(self):
-        """Returns the list of Pi-stacking interactions"""
-        
-        return self._piStack
+        return results
 
-    def getPiCation(self):
-        """Returns the list of Pi-cation interactions"""
+
+    def getHydrogenBonds(self, **kwargs):
+        """Returns the list of hydrogen bonds
+
+        :arg selection: selection string
+        :type selection: str
+    
+        :arg selection2: selection string
+        :type selection2: str 
         
-        return self._piCat
+        Selection:
+        If we want to select interactions for the particular residue or group of residues: 
+            selection='chain A and resid 1 to 50'
+        If we want to study chain-chain interactions:
+            selection='chain A', selection2='chain B'  """
         
-    def getHydrophobic(self):
-        """Returns the list of hydrophobic interactions"""
+        if len(kwargs) != 0:
+            results = selectionByKwargs(self._hbs, self._atoms, **kwargs)
+        else: 
+            results = self._hbs
+
+        return results
+
+
+    def getSaltBridges(self, **kwargs):
+        """Returns the list of salt bridges
+
+        :arg selection: selection string
+        :type selection: str
+    
+        :arg selection2: selection string
+        :type selection2: str 
         
-        return self._hps
+        Selection:
+        If we want to select interactions for the particular residue or group of residues: 
+            selection='chain A and resid 1 to 50'
+        If we want to study chain-chain interactions:
+            selection='chain A', selection2='chain B'  """ 
+        
+        if len(kwargs) != 0:
+            results = selectionByKwargs(self._sbs, self._atoms, **kwargs)
+        else: 
+            results = self._sbs
+
+        return results
+        
+
+    def getRepulsiveIonicBonding(self, **kwargs):
+        """Returns the list of repulsive ionic bonding
+
+        :arg selection: selection string
+        :type selection: str
+    
+        :arg selection2: selection string
+        :type selection2: str 
+        
+        Selection:
+        If we want to select interactions for the particular residue or group of residues: 
+            selection='chain A and resid 1 to 50'
+        If we want to study chain-chain interactions:
+            selection='chain A', selection2='chain B'  """
+
+
+        if len(kwargs) != 0:
+            results = selectionByKwargs(self._rib, self._atoms, **kwargs)
+        else: 
+            results = self._rib
+
+        return results
+        
+
+    def getPiStacking(self, **kwargs):
+        """Returns the list of Pi-stacking interactions
+
+        :arg selection: selection string
+        :type selection: str
+    
+        :arg selection2: selection string
+        :type selection2: str 
+        
+        Selection:
+        If we want to select interactions for the particular residue or group of residues: 
+            selection='chain A and resid 1 to 50'
+        If we want to study chain-chain interactions:
+            selection='chain A', selection2='chain B'  """
+        
+        if len(kwargs) != 0:
+            results = selectionByKwargs(self._piStack, self._atoms, **kwargs)
+        else: 
+            results = self._piStack
+
+        return results
+
+
+    def getPiCation(self, **kwargs):
+        """Returns the list of Pi-cation interactions
+        
+        :arg selection: selection string
+        :type selection: str
+    
+        :arg selection2: selection string
+        :type selection2: str 
+        
+        Selection:
+        If we want to select interactions for the particular residue or group of residues: 
+            selection='chain A and resid 1 to 50'
+        If we want to study chain-chain interactions:
+            selection='chain A', selection2='chain B'  """
+
+        if len(kwargs) != 0:
+            results = selectionByKwargs(self._piCat, self._atoms, **kwargs)
+        else: 
+            results = self._piCat
+
+        return results
+
+        
+    def getHydrophobic(self, **kwargs):
+        """Returns the list of hydrophobic interactions
+
+        :arg selection: selection string
+        :type selection: str
+    
+        :arg selection2: selection string
+        :type selection2: str 
+        
+        Selection:
+        If we want to select interactions for the particular residue or group of residues: 
+            selection='chain A and resid 1 to 50'
+        If we want to study chain-chain interactions:
+            selection='chain A', selection2='chain B'  """
+        
+        if len(kwargs) != 0:
+            results = selectionByKwargs(self._hps, self._atoms, **kwargs)
+        else: 
+            results = self._hps
+
+        return results
+
 
     def setNewHydrogenBonds(self, interaction):
         """Replace default calculation of hydrogen bonds by the one provided by user"""
@@ -1954,6 +2156,7 @@ class Interactions(object):
         if filename is not None:
             plt.savefig(filename+'.png', dpi=300)
         plt.show()
+
     
     def saveInteractionsPDB(self, **kwargs):
         """Save the number of potential interactions to PDB file in occupancy column.
@@ -1990,7 +2193,7 @@ class Interactions(object):
         except: LOGGER.info('There is a problem.')
         
 
-    def getFrequentInteractions(self, contacts_min=3):
+    def getFrequentInteractors(self, contacts_min=3):
         """Provide a list of residues with the most frequent interactions based on the following interactions:
             (1) Hydrogen bonds (hb)
             (2) Salt Bridges (sb)
@@ -2219,36 +2422,38 @@ class InteractionsDCD(object):
         return HBs_nb, SBs_nb, RIB_nb, PiStack_nb, PiCat_nb, HPh_nb
 
 
-    def getInteractions(self, filename=None, **kwargs):
+    def getInteractions(self, **kwargs):
         """Return the list of all interactions.
-        
-        :arg filename: name of DAT file where interactions will be saved.
-        :type filename: str
         
         :arg selection: selection string
         :type selection: str
     
         :arg selection2: selection string
-        :type selection2: str """
+        :type selection2: str 
+            
+        Selection:
+        If we want to select interactions for the particular residue or group of residues: 
+            selection='chain A and resid 1 to 50'
+        If we want to study chain-chain interactions:
+            selection='chain A', selection2='chain B'  """
 
         if len(kwargs) != 0:
             sele_inter = []
             for i in self._interactions_dcd:
                 for nr_j,j in enumerate(i):
                     sele_inter.append(selectionByKwargs(i[nr_j], self._atoms, **kwargs))
-            self._interactions_dcd = sele_inter
+            results = sele_inter
+        else: 
+            results = self._interactions_dcd
         
-        if 'filename' != None:
-            with open(kwargs['filename']+'.dat', 'wb') as f:
-                pickle.dump(self._interactions_dcd, f)  
-            LOGGER.info('File with interactions saved.')
+        return results
 
-        return self._interactions_dcd
 
     def getAtoms(self):
         """Returns associated atoms."""
 
         return self._atoms
+
     
     def getInteractionsNumber(self):
         """Return the number of interactions in each frame."""
@@ -2262,16 +2467,24 @@ class InteractionsDCD(object):
         :type selection: str
     
         :arg selection2: selection string
-        :type selection2: str """
+        :type selection2: str 
+        
+        Selection:
+        If we want to select interactions for the particular residue or group of residues: 
+            selection='chain A and resid 1 to 50'
+        If we want to study chain-chain interactions:
+            selection='chain A', selection2='chain B'  """
 
-        if len(kwargs) == 0:
-            return self._hbs_dcd
-        else:
+        if len(kwargs) != 0:
             sele_inter = []
             for nr_i,i in enumerate(self._hbs_dcd):
                 sele_inter.append(selectionByKwargs(self._hbs_dcd[nr_i], self._atoms, **kwargs))
-            self._hbs_dcd = sele_inter
-            return self._hbs_dcd
+            results = sele_inter
+        else: 
+            results = self._hbs_dcd
+        
+        return results
+
         
     def getSaltBridges(self, **kwargs):
         """Return the list of salt bridges computed from DCD trajectory.
@@ -2280,16 +2493,24 @@ class InteractionsDCD(object):
         :type selection: str
     
         :arg selection2: selection string
-        :type selection2: str """
+        :type selection2: str 
         
-        if len(kwargs) == 0:
-            return self._sbs_dcd
-        else:
+        Selection:
+        If we want to select interactions for the particular residue or group of residues: 
+            selection='chain A and resid 1 to 50'
+        If we want to study chain-chain interactions:
+            selection='chain A', selection2='chain B'   """
+        
+        if len(kwargs) != 0:
             sele_inter = []
             for nr_i,i in enumerate(self._sbs_dcd):
                 sele_inter.append(selectionByKwargs(self._sbs_dcd[nr_i], self._atoms, **kwargs))
-            self._sbs_dcd = sele_inter
-            return self._sbs_dcd
+            results = sele_inter
+        else:
+            results = self._sbs_dcd
+            
+        return results
+            
 
     def getRepulsiveIonicBonding(self, **kwargs):
         """Return the list of repulsive ionic bonding computed from DCD trajectory.
@@ -2298,16 +2519,24 @@ class InteractionsDCD(object):
         :type selection: str
     
         :arg selection2: selection string
-        :type selection2: str"""
+        :type selection2: str
+        
+        Selection:
+        If we want to select interactions for the particular residue or group of residues: 
+            selection='chain A and resid 1 to 50'
+        If we want to study chain-chain interactions:
+            selection='chain A', selection2='chain B'  """
 
-        if len(kwargs) == 0:
-            return self._rib_dcd
-        else:
+        if len(kwargs) != 0:
             sele_inter = []
             for nr_i,i in enumerate(self._rib_dcd):
                 sele_inter.append(selectionByKwargs(self._rib_dcd[nr_i], self._atoms, **kwargs))
-            self._rib_dcd = sele_inter
-            return self._rib_dcd
+            results = sele_inter
+        else:
+            results = self._rib_dcd
+        
+        return results
+        
 
     def getPiStacking(self, **kwargs):
         """Return the list of Pi-stacking interactions computed from DCD trajectory.
@@ -2316,16 +2545,24 @@ class InteractionsDCD(object):
         :type selection: str
     
         :arg selection2: selection string
-        :type selection2: str"""
+        :type selection2: str
+        
+        Selection:
+        If we want to select interactions for the particular residue or group of residues: 
+            selection='chain A and resid 1 to 50'
+        If we want to study chain-chain interactions:
+            selection='chain A', selection2='chain B'  """
 
-        if len(kwargs) == 0:
-            return self._piStack_dcd
-        else:
+        if len(kwargs) != 0:
             sele_inter = []
             for nr_i,i in enumerate(self._piStack_dcd):
                 sele_inter.append(selectionByKwargs(self._piStack_dcd[nr_i], self._atoms, **kwargs))
-            self._piStack_dcd = sele_inter
-            return self._piStack_dcd
+            results = sele_inter
+        else:
+            results =  self._piStack_dcd
+            
+        return results
+
 
     def getPiCation(self, **kwargs):
         """Return the list of Pi-cation interactions computed from DCD trajectory.
@@ -2334,16 +2571,24 @@ class InteractionsDCD(object):
         :type selection: str
     
         :arg selection2: selection string
-        :type selection2: str"""
+        :type selection2: str
+        
+        Selection:
+        If we want to select interactions for the particular residue or group of residues: 
+            selection='chain A and resid 1 to 50'
+        If we want to study chain-chain interactions:
+            selection='chain A', selection2='chain B'  """
 
-        if len(kwargs) == 0:
-            return self._piCat_dcd
-        else:
+        if len(kwargs) != 0:
             sele_inter = []
             for nr_i,i in enumerate(self._piCat_dcd):
                 sele_inter.append(selectionByKwargs(self._piCat_dcd[nr_i], self._atoms, **kwargs))
-            self._piCat_dcd = sele_inter
-            return self._piCat_dcd
+            results = sele_inter
+        else: 
+            results = self._piCat_dcd
+
+        return results
+        
 
     def getHydrophobic(self, **kwargs):
         """Return the list of hydrophobic interactions computed from DCD trajectory.
@@ -2352,16 +2597,24 @@ class InteractionsDCD(object):
         :type selection: str
     
         :arg selection2: selection string
-        :type selection2: str"""
+        :type selection2: str
+        
+        Selection:
+        If we want to select interactions for the particular residue or group of residues: 
+            selection='chain A and resid 1 to 50'
+        If we want to study chain-chain interactions:
+            selection='chain A', selection2='chain B'  """
 
-        if len(kwargs) == 0:
-            return self._hps_dcd
-        else:
+        if len(kwargs) != 0:
             sele_inter = []
             for nr_i,i in enumerate(self._hps_dcd):
                 sele_inter.append(selectionByKwargs(self._hps_dcd[nr_i], self._atoms, **kwargs))
-            self._hps_dcd = sele_inter
-            return self._hps_dcd
+            results = sele_inter
+        else:
+            results = self._hps_dcd
+            
+        return results
+
 
     def setNewHydrogenBondsDCD(self, interaction):
         """Replace default calculation of hydrogen bonds by the one provided by user"""
