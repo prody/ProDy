@@ -147,6 +147,9 @@ def addHydrogens(pdb, method='openbabel', pH=7.0):
     .. [NO11] O'Boyle, N. M., Banck M., James C. A., Morley C., Vandermeersch T., Hutchison G. R. 
     Open Babel: An open chemical toolbox *Journal of cheminformatics* **2011** 3:1-14. """
     
+    import os
+    outfile = os.path.join(os.path.split(pdb)[0], "addH_" + os.path.split(pdb)[1])
+
     if method == 'openbabel':
         try:
             #import openbabel
@@ -156,8 +159,8 @@ def addHydrogens(pdb, method='openbabel', pH=7.0):
             mol = openbabel.OBMol()
             obconversion.ReadFile(mol, pdb)
             mol.AddHydrogens()
-            obconversion.WriteFile(mol, 'addH_'+pdb)
-            LOGGER.info("Hydrogens were added to the structure. Structure {0} is saved in the local directry.".format('addH_'+pdb))
+            obconversion.WriteFile(mol, outfile)
+            LOGGER.info("Hydrogens were added to the structure. Structure {0} is saved in the local directry.".format(outfile))
         except ImportError:
             raise ImportError("Install Openbabel to add hydrogens to the structure or use PDBFixer/OpenMM.")
             
@@ -176,7 +179,7 @@ def addHydrogens(pdb, method='openbabel', pH=7.0):
             fixer.findMissingAtoms()
             fixer.addMissingAtoms()
             fixer.addMissingHydrogens(pH)
-            PDBFile.writeFile(fixer.topology, fixer.positions, open('addH_'+pdb, 'w'))
+            PDBFile.writeFile(fixer.topology, fixer.positions, open(outfile, 'w'))
             LOGGER.info("Hydrogens were added to the structure. Structure {0} is saved in the local directry.".format('addH_'+pdb))
 
         except ImportError:
