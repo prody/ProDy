@@ -35,15 +35,15 @@ from prody.ensemble import Ensemble
 __all__ = ['calcHydrogenBonds', 'calcChHydrogenBonds', 'calcSaltBridges',
            'calcRepulsiveIonicBonding', 'calcPiStacking', 'calcPiCation',
            'calcHydrophobic', 'calcDisulfideBonds', 'calcMetalInteractions',
-           'calcHydrogenBondsDCD', 'calcSaltBridgesDCD',
-           'calcRepulsiveIonicBondingDCD', 'calcPiStackingDCD', 
-           'calcPiCationDCD', 'calcHydrophobicDCD', 'calcDisulfideBondsDCD',
+           'calcHydrogenBondsTrajectory', 'calcSaltBridgesTrajectory',
+           'calcRepulsiveIonicBondingTrajectory', 'calcPiStackingTrajectory', 
+           'calcPiCationTrajectory', 'calcHydrophobicTrajectory', 'calcDisulfideBondsTrajectory',
            'calcProteinInteractions', 'calcStatisticsInteractions',
            'compareInteractions', 
            'calcLigandInteractions', 'listLigandInteractions', 
            'showProteinInteractions_VMD', 'showLigandInteraction_VMD', 
-           'addHydrogens', 'calcHydrogenBondsDCD',
-           'Interactions', 'InteractionsDCD']
+           'addHydrogens', 'calcHydrogenBondsTrajectory',
+           'Interactions', 'InteractionsTrajectory']
 
 
 def cleanNumbers(listContacts):
@@ -902,8 +902,8 @@ def calcProteinInteractions(atoms, **kwargs):
     return AllInteractions
 
 
-def calcHydrogenBondsDCD(atoms, trajectory=None, distA=3.0, angle=40, cutoff_dist=20, **kwargs):   
-    """Compute hydrogen bonds for DCD trajectory using default parameters.
+def calcHydrogenBondsTrajectory(atoms, trajectory=None, distA=3.0, angle=40, cutoff_dist=20, **kwargs):   
+    """Compute hydrogen bonds for DCD trajectory or multi-model PDB using default parameters.
         
     :arg atoms: an Atomic object from which residues are selected
     :type atoms: :class:`.Atomic`
@@ -972,8 +972,8 @@ def calcHydrogenBondsDCD(atoms, trajectory=None, distA=3.0, angle=40, cutoff_dis
     return HBs_all
 
 
-def calcSaltBridgesDCD(atoms, trajectory=None, distA=4.5, **kwargs):
-    """Compute salt bridges for DCD trajectory using default parameters.
+def calcSaltBridgesTrajectory(atoms, trajectory=None, distA=4.5, **kwargs):
+    """Compute salt bridges for DCD trajectory or multi-model PDB using default parameters.
         
     :arg atoms: an Atomic object from which residues are selected
     :type atoms: :class:`.Atomic`
@@ -1034,8 +1034,8 @@ def calcSaltBridgesDCD(atoms, trajectory=None, distA=4.5, **kwargs):
     return SBs_all
     
 
-def calcRepulsiveIonicBondingDCD(atoms, trajectory=None, distA=4.5, **kwargs):  
-    """Compute repulsive ionic bonding for DCD trajectory using default parameters.
+def calcRepulsiveIonicBondingTrajectory(atoms, trajectory=None, distA=4.5, **kwargs):  
+    """Compute repulsive ionic bonding for DCD trajectory or multi-model PDB using default parameters.
         
     :arg atoms: an Atomic object from which residues are selected
     :type atoms: :class:`.Atomic`
@@ -1097,8 +1097,8 @@ def calcRepulsiveIonicBondingDCD(atoms, trajectory=None, distA=4.5, **kwargs):
     return RIB_all
 
 
-def calcPiStackingDCD(atoms, trajectory=None, distA=5.0, angle_min=0, angle_max=360, **kwargs):   
-    """Compute Pi-stacking interactions for DCD trajectory using default parameters.
+def calcPiStackingTrajectory(atoms, trajectory=None, distA=5.0, angle_min=0, angle_max=360, **kwargs):   
+    """Compute Pi-stacking interactions for DCD trajectory or multi-model PDB using default parameters.
         
     :arg atoms: an Atomic object from which residues are selected
     :type atoms: :class:`.Atomic`
@@ -1165,8 +1165,8 @@ def calcPiStackingDCD(atoms, trajectory=None, distA=5.0, angle_min=0, angle_max=
     return pi_stack_all
 
 
-def calcPiCationDCD(atoms, trajectory=None, distA=5.0, extraSele=None, **kwargs):  
-    """Compute Pi-cation interactions for DCD trajectory using default parameters.
+def calcPiCationTrajectory(atoms, trajectory=None, distA=5.0, extraSele=None, **kwargs):  
+    """Compute Pi-cation interactions for DCD trajectory or multi-model PDB using default parameters.
         
     :arg atoms: an Atomic object from which residues are selected
     :type atoms: :class:`.Atomic`
@@ -1226,8 +1226,8 @@ def calcPiCationDCD(atoms, trajectory=None, distA=5.0, extraSele=None, **kwargs)
     return pi_cat_all
 
 
-def calcHydrophobicDCD(atoms, trajectory=None, distA=4.5, **kwargs):  
-    """Compute hydrophobic interactions for DCD trajectory using default parameters.
+def calcHydrophobicTrajectory(atoms, trajectory=None, distA=4.5, **kwargs):  
+    """Compute hydrophobic interactions for DCD trajectory or multi-model PDB using default parameters.
         
     :arg atoms: an Atomic object from which residues are selected
     :type atoms: :class:`.Atomic`
@@ -1287,8 +1287,8 @@ def calcHydrophobicDCD(atoms, trajectory=None, distA=4.5, **kwargs):
     return HPh_all
 
 
-def calcDisulfideBondsDCD(atoms, trajectory=None, distA=2.5):
-    """Compute disulfide bonds for DCD trajectory using default parameters.
+def calcDisulfideBondsTrajectory(atoms, trajectory=None, distA=2.5):
+    """Compute disulfide bonds for DCD trajectory or multi-model PDB using default parameters.
         
     :arg atoms: an Atomic object from which residues are selected
     :type atoms: :class:`.Atomic`
@@ -1402,11 +1402,11 @@ def compareInteractions(data1, data2, **kwargs):
     
     
 def calcStatisticsInteractions(data):
-    """Return the statistics of interactions from DCD trajectory including
+    """Return the statistics of interactions from DCD trajectory or multi-model PDB including
     the number of counts for each residue pair, 
     average distance of interactions for each pair [in Ang] and standard deviation.
         
-    :arg data: list with interactions from calcHydrogenBondsDCD() or other types
+    :arg data: list with interactions from calcHydrogenBondsTrajectory() or other types
     :type data: list
     
     Example of usage: 
@@ -1415,10 +1415,10 @@ def calcStatisticsInteractions(data):
     >>> dcd.link(atoms)
     >>> dcd.setCoords(atoms)
     
-    >>> data = calcPiCationDCD(atoms, dcd, distA=5)
+    >>> data = calcPiCationTrajectory(atoms, dcd, distA=5)
     or
-    >>> interactionsDCD = InteractionsDCD()
-    >>> data = interactionsDCD.getPiCation()
+    >>> interactionsTrajectory = InteractionsTrajectory()
+    >>> data = interactionsTrajectory.getPiCation()
     """
     
     interactions_list = [ (jj[0]+jj[2]+'-'+jj[3]+jj[5], jj[6]) for ii in data for jj in ii]
@@ -2017,6 +2017,7 @@ class Interactions(object):
         self._hbs = self._interactions[0]    
         LOGGER.info('Hydrogen Bonds are replaced')
 
+
     def setNewSaltBridges(self, interaction):
         """Replace default calculation of salt bridges by the one provided by user"""
 
@@ -2024,12 +2025,14 @@ class Interactions(object):
         self._sbs = self._interactions[1]  
         LOGGER.info('Salt Bridges are replaced')
 
+
     def setNewRepulsiveIonicBonding(self, interaction):
         """Replace default calculation of repulsive ionic bonding by the one provided by user"""
 
         self._interactions[2] = interaction
         self._rib = self._interactions[2]   
         LOGGER.info('Repulsive Ionic Bonding are replaced')
+
         
     def setNewPiStacking(self, interaction):
         """Replace default calculation of pi-stacking interactions by the one provided by user"""
@@ -2038,6 +2041,7 @@ class Interactions(object):
         self._piStack = self._interactions[3]   
         LOGGER.info('Pi-Stacking interactions are replaced')
 
+
     def setNewPiCation(self, interaction):
         """Replace default calculation of pi-cation interactions by the one provided by user"""
 
@@ -2045,12 +2049,14 @@ class Interactions(object):
         self._piCat = self._interactions[4]   
         LOGGER.info('Pi-Cation interactions are replaced')
 
+
     def setNewHydrophobic(self, interaction):
         """Replace default calculation of hydrophobic interactions by the one provided by user"""
 
         self._interactions[5] = interaction
         self._hps = self._interactions[5]  
         LOGGER.info('Hydrophobic interactions are replaced')
+
 
     def buildInteractionMatrix(self, **kwargs):
         """Build matrix with protein interactions which is scored as follows:
@@ -2077,8 +2083,8 @@ class Interactions(object):
         :type PiCat: int, float
 
         :arg HPh: score per hydrophobic interaction
-        :type HPh: int, float        
-        """
+        :type HPh: int, float  """
+        
         atoms = self._atoms   
         interactions = self._interactions
         
@@ -2121,12 +2127,9 @@ class Interactions(object):
         return InteractionsMap
 
 
-    def showInteractions(self, filename=None, **kwargs):
+    def showInteractors(self, **kwargs):
         """Display protein residues and their number of potential interactions
-        with other residues from protein structure.
-        
-        :arg filename: PNG file name
-        :type filename: str"""
+        with other residues from protein structure. """
         
         import numpy as np
         import matplotlib
@@ -2153,10 +2156,6 @@ class Interactions(object):
         plt.xlabel('Residue')
         plt.tight_layout()
         
-        if filename is not None:
-            plt.savefig(filename+'.png', dpi=300)
-        plt.show()
-
     
     def saveInteractionsPDB(self, **kwargs):
         """Save the number of potential interactions to PDB file in occupancy column.
@@ -2244,19 +2243,16 @@ class Interactions(object):
         return ListOfInteractions_list
         
 
-    def showFrequentInteractions(self, cutoff=5, filename=None, **kwargs):
+    def showFrequentInteractors(self, cutoff=5, **kwargs):
         """Plots regions with the most frequent interactions.
         
         :arg cutoff: minimal score per residue which will be displayed.
                      If cutoff value is to big, top 30% with the higest values will be returned.
         :type distA: int, float
 
-        :arg filename: PNG file name
-        :type filename: str
-        
         Nonstandard resiudes can be updated in a following way:
         d = {'CYX': 'X', 'CEA': 'Z'}
-        >>> name.showFrequentInteractions(d)
+        >>> name.showFrequentInteractors(d)
         """
         
         if not hasattr(self, '_interactions_matrix') or self._interactions_matrix is None:
@@ -2303,32 +2299,29 @@ class Interactions(object):
         plt.xticks(y_pos, y, rotation=45, fontsize=20)
         plt.ylabel('Score of interactions')
         plt.tight_layout()
-
-        if filename is not None:
-            plt.savefig(filename+'.png', dpi=300)
         plt.show()
         
         
-class InteractionsDCD(object):
+class InteractionsTrajectory(object):
 
-    """Class for Interaction analysis of DCD trajectory."""
+    """Class for Interaction analysis of DCD trajectory or multi-model PDB."""
 
     def __init__(self, name='Unknown'):
         
         self._atoms = None
-        self._dcd = None
-        self._interactions_dcd = None
-        self._interactions_nb_dcd = None
-        self._interactions_matrix_dcd = None
-        self._hbs_dcd = None
-        self._sbs_dcd = None
-        self._rib_dcd = None
-        self._piStack_dcd = None
-        self._piCat_dcd = None
-        self._hps_dcd = None
+        self._traj = None
+        self._interactions_traj = None
+        self._interactions_nb_traj = None
+        self._interactions_matrix_traj = None
+        self._hbs_traj = None
+        self._sbs_traj = None
+        self._rib_traj = None
+        self._piStack_traj = None
+        self._piCat_traj = None
+        self._hps_traj = None
 
 
-    def calcProteinInteractionsDCD(self, atoms, trajectory, filename=None, **kwargs):
+    def calcProteinInteractionsTrajectory(self, atoms, trajectory, filename=None, **kwargs):
         """Compute all protein interactions (shown below) for DCD trajectory using default parameters.
             (1) Hydrogen bonds
             (2) Salt Bridges
@@ -2403,20 +2396,20 @@ class InteractionsDCD(object):
             HPh_nb.append(len(hydrophobic))
         
         self._atoms = atoms
-        self._dcd = trajectory
-        self._interactions_dcd = [HBs_all, SBs_all, RIB_all, PiStack_all, PiCat_all, HPh_all]
-        self._interactions_nb_dcd = [HBs_nb, SBs_nb, RIB_nb, PiStack_nb, PiCat_nb, HPh_nb]
-        self._hbs_dcd = HBs_all
-        self._sbs_dcd = SBs_all  
-        self._rib_dcd = RIB_all
-        self._piStack_dcd = PiStack_all
-        self._piCat_dcd = PiCat_all
-        self._hps_dcd = HPh_all
+        self._traj = trajectory
+        self._interactions_traj = [HBs_all, SBs_all, RIB_all, PiStack_all, PiCat_all, HPh_all]
+        self._interactions_nb_traj = [HBs_nb, SBs_nb, RIB_nb, PiStack_nb, PiCat_nb, HPh_nb]
+        self._hbs_traj = HBs_all
+        self._sbs_traj = SBs_all  
+        self._rib_traj = RIB_all
+        self._piStack_traj = PiStack_all
+        self._piCat_traj = PiCat_all
+        self._hps_traj = HPh_all
         
         if filename is not None:
             import pickle
             with open(str(filename)+'.pkl', 'wb') as f:
-                pickle.dump(self._interactions_dcd, f)  
+                pickle.dump(self._interactions_traj, f)  
             LOGGER.info('File with interactions saved.')
             
         return HBs_nb, SBs_nb, RIB_nb, PiStack_nb, PiCat_nb, HPh_nb
@@ -2439,12 +2432,12 @@ class InteractionsDCD(object):
 
         if len(kwargs) != 0:
             sele_inter = []
-            for i in self._interactions_dcd:
+            for i in self._interactions_traj:
                 for nr_j,j in enumerate(i):
                     sele_inter.append(selectionByKwargs(i[nr_j], self._atoms, **kwargs))
             results = sele_inter
         else: 
-            results = self._interactions_dcd
+            results = self._interactions_traj
         
         return results
 
@@ -2458,7 +2451,8 @@ class InteractionsDCD(object):
     def getInteractionsNumber(self):
         """Return the number of interactions in each frame."""
         
-        return self._interactions_nb_dcd 
+        return self._interactions_nb_traj 
+    
     
     def getHydrogenBonds(self, **kwargs):
         """Return the list of hydrogen bonds computed from DCD trajectory.
@@ -2477,11 +2471,11 @@ class InteractionsDCD(object):
 
         if len(kwargs) != 0:
             sele_inter = []
-            for nr_i,i in enumerate(self._hbs_dcd):
-                sele_inter.append(selectionByKwargs(self._hbs_dcd[nr_i], self._atoms, **kwargs))
+            for nr_i,i in enumerate(self._hbs_traj):
+                sele_inter.append(selectionByKwargs(self._hbs_traj[nr_i], self._atoms, **kwargs))
             results = sele_inter
         else: 
-            results = self._hbs_dcd
+            results = self._hbs_traj
         
         return results
 
@@ -2503,11 +2497,11 @@ class InteractionsDCD(object):
         
         if len(kwargs) != 0:
             sele_inter = []
-            for nr_i,i in enumerate(self._sbs_dcd):
-                sele_inter.append(selectionByKwargs(self._sbs_dcd[nr_i], self._atoms, **kwargs))
+            for nr_i,i in enumerate(self._sbs_traj):
+                sele_inter.append(selectionByKwargs(self._sbs_traj[nr_i], self._atoms, **kwargs))
             results = sele_inter
         else:
-            results = self._sbs_dcd
+            results = self._sbs_traj
             
         return results
             
@@ -2529,11 +2523,11 @@ class InteractionsDCD(object):
 
         if len(kwargs) != 0:
             sele_inter = []
-            for nr_i,i in enumerate(self._rib_dcd):
-                sele_inter.append(selectionByKwargs(self._rib_dcd[nr_i], self._atoms, **kwargs))
+            for nr_i,i in enumerate(self._rib_traj):
+                sele_inter.append(selectionByKwargs(self._rib_traj[nr_i], self._atoms, **kwargs))
             results = sele_inter
         else:
-            results = self._rib_dcd
+            results = self._rib_traj
         
         return results
         
@@ -2555,11 +2549,11 @@ class InteractionsDCD(object):
 
         if len(kwargs) != 0:
             sele_inter = []
-            for nr_i,i in enumerate(self._piStack_dcd):
-                sele_inter.append(selectionByKwargs(self._piStack_dcd[nr_i], self._atoms, **kwargs))
+            for nr_i,i in enumerate(self._piStack_traj):
+                sele_inter.append(selectionByKwargs(self._piStack_traj[nr_i], self._atoms, **kwargs))
             results = sele_inter
         else:
-            results =  self._piStack_dcd
+            results =  self._piStack_traj
             
         return results
 
@@ -2581,11 +2575,11 @@ class InteractionsDCD(object):
 
         if len(kwargs) != 0:
             sele_inter = []
-            for nr_i,i in enumerate(self._piCat_dcd):
-                sele_inter.append(selectionByKwargs(self._piCat_dcd[nr_i], self._atoms, **kwargs))
+            for nr_i,i in enumerate(self._piCat_traj):
+                sele_inter.append(selectionByKwargs(self._piCat_traj[nr_i], self._atoms, **kwargs))
             results = sele_inter
         else: 
-            results = self._piCat_dcd
+            results = self._piCat_traj
 
         return results
         
@@ -2607,66 +2601,72 @@ class InteractionsDCD(object):
 
         if len(kwargs) != 0:
             sele_inter = []
-            for nr_i,i in enumerate(self._hps_dcd):
-                sele_inter.append(selectionByKwargs(self._hps_dcd[nr_i], self._atoms, **kwargs))
+            for nr_i,i in enumerate(self._hps_traj):
+                sele_inter.append(selectionByKwargs(self._hps_traj[nr_i], self._atoms, **kwargs))
             results = sele_inter
         else:
-            results = self._hps_dcd
+            results = self._hps_traj
             
         return results
 
 
-    def setNewHydrogenBondsDCD(self, interaction):
+    def setNewHydrogenBondsTrajectory(self, interaction):
         """Replace default calculation of hydrogen bonds by the one provided by user"""
 
-        self._interactions_dcd[0] = interaction
-        self._hbs_dcd = self._interactions_dcd[0]    
-        self._interactions_nb_dcd[0] = [ len(i) for i in interaction ]
+        self._interactions_traj[0] = interaction
+        self._hbs_traj = self._interactions_traj[0]    
+        self._interactions_nb_traj[0] = [ len(i) for i in interaction ]
         LOGGER.info('Hydrogen Bonds are replaced')
 
-    def setNewSaltBridgesDCD(self, interaction):
+
+    def setNewSaltBridgesTrajectory(self, interaction):
         """Replace default calculation of salt bridges by the one provided by user"""
 
-        self._interactions_dcd[1] = interaction
-        self._sbs_dcd = self._interactions_dcd[1]  
-        self._interactions_nb_dcd[1] = [ len(i) for i in interaction ]
+        self._interactions_traj[1] = interaction
+        self._sbs_traj = self._interactions_traj[1]  
+        self._interactions_nb_traj[1] = [ len(i) for i in interaction ]
         LOGGER.info('Salt Bridges are replaced')
 
-    def setNewRepulsiveIonicBondingDCD(self, interaction):
+
+    def setNewRepulsiveIonicBondingTrajectory(self, interaction):
         """Replace default calculation of repulsive ionic bonding by the one provided by user"""
 
-        self._interactions_dcd[2] = interaction
-        self._rib_dcd = self._interactions_dcd[2]   
-        self._interactions_nb_dcd[2] = [ len(i) for i in interaction ]
+        self._interactions_traj[2] = interaction
+        self._rib_traj = self._interactions_traj[2]   
+        self._interactions_nb_traj[2] = [ len(i) for i in interaction ]
         LOGGER.info('Repulsive Ionic Bonding are replaced')
+
         
-    def setNewPiStackingDCD(self, interaction):
+    def setNewPiStackingTrajectory(self, interaction):
         """Replace default calculation of pi-stacking interactions by the one provided by user"""
 
-        self._interactions_dcd[3] = interaction
-        self._piStack_dcd = self._interactions_dcd[3]   
-        self._interactions_nb_dcd[3] = [ len(i) for i in interaction ]
+        self._interactions_traj[3] = interaction
+        self._piStack_traj = self._interactions_traj[3]   
+        self._interactions_nb_traj[3] = [ len(i) for i in interaction ]
         LOGGER.info('Pi-Stacking interactions are replaced')
 
-    def setNewPiCationDCD(self, interaction):
+
+    def setNewPiCationTrajectory(self, interaction):
         """Replace default calculation of pi-cation interactions by the one provided by user"""
 
-        self._interactions_dcd[4] = interaction
-        self._piCat_dcd = self._interactions_dcd[4]   
-        self._interactions_nb_dcd[4] = [ len(i) for i in interaction ]
+        self._interactions_traj[4] = interaction
+        self._piCat_traj = self._interactions_traj[4]   
+        self._interactions_nb_traj[4] = [ len(i) for i in interaction ]
         LOGGER.info('Pi-Cation interactions are replaced')
 
-    def setNewHydrophobicDCD(self, interaction):
+
+    def setNewHydrophobicTrajectory(self, interaction):
         """Replace default calculation of hydrophobic interactions by the one provided by user"""
 
-        self._interactions_dcd[5] = interaction
-        self._hps_dcd = self._interactions_dcd[5]  
-        self._interactions_nb_dcd[5] = [ len(i) for i in interaction ]
+        self._interactions_traj[5] = interaction
+        self._hps_traj = self._interactions_traj[5]  
+        self._interactions_nb_traj[5] = [ len(i) for i in interaction ]
         LOGGER.info('Hydrophobic interactions are replaced')
+
     
     def parseInteractions(self, filename):
         """Import interactions from analysis of trajectory which was saved via
-        calcProteinInteractionsDCD().
+        calcProteinInteractionsTrajectory().
         
         :arg filename: Name of pkl file in which interactions will be storage
         :type filename: pkl"""
@@ -2675,16 +2675,17 @@ class InteractionsDCD(object):
         with open(filename, 'rb') as f:
             data = pickle.load(f)
         
-        self._interactions_dcd = data
-        self._interactions_nb_dcd = [[len(sublist) if sublist else 0 for sublist in sublist] for sublist in data]
-        self._hbs_dcd = data[0]
-        self._sbs_dcd = data[1]
-        self._rib_dcd = data[2]
-        self._piStack_dcd = data[3]
-        self._piCat_dcd = data[4]
-        self._hps_dcd = data[5]
+        self._interactions_traj = data
+        self._interactions_nb_traj = [[len(sublist) if sublist else 0 for sublist in sublist] for sublist in data]
+        self._hbs_traj = data[0]
+        self._sbs_traj = data[1]
+        self._rib_traj = data[2]
+        self._piStack_traj = data[3]
+        self._piCat_traj = data[4]
+        self._hps_traj = data[5]
         
         return data
+
     
     def getTimeInteractions(self, filename=None, **kwargs):    
         """Return a bar plots with the number of interactions per each frame.
@@ -2692,12 +2693,12 @@ class InteractionsDCD(object):
         :arg filename: PNG file name
         :type filename: str"""
         
-        HBs = self._interactions_nb_dcd[0]
-        SBs = self._interactions_nb_dcd[1]
-        RIB = self._interactions_nb_dcd[2]
-        PiStack = self._interactions_nb_dcd[3]
-        PiCat = self._interactions_nb_dcd[4]
-        HPh = self._interactions_nb_dcd[5]
+        HBs = self._interactions_nb_traj[0]
+        SBs = self._interactions_nb_traj[1]
+        RIB = self._interactions_nb_traj[2]
+        PiStack = self._interactions_nb_traj[3]
+        PiCat = self._interactions_nb_traj[4]
+        HPh = self._interactions_nb_traj[5]
         
         import numpy as np
         import matplotlib
