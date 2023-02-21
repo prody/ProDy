@@ -119,12 +119,12 @@ def selectionByKwargs(list_of_interactions, atoms, **kwargs):
     return final
 
 
-def addHydrogens(pdb, method='openbabel', pH=7.0):    
+def addHydrogens(infile, method='openbabel', pH=7.0, outfile=None):
     """Function will add hydrogens to the protein and ligand structure using Openbabel [NO11]_
     or PDBFixer with OpenMM.
     
-    :arg pdb: PDB file name
-    :type pdb: str
+    :arg infile: PDB file name
+    :type infile: str
 
     :arg method: Name of program which will be use to fix protein structure.
             Two alternative options are available: 'openbabel' and 'pdbfixer'.
@@ -148,7 +148,12 @@ def addHydrogens(pdb, method='openbabel', pH=7.0):
     Open Babel: An open chemical toolbox *Journal of cheminformatics* **2011** 3:1-14. """
     
     import os
-    outfile = os.path.join(os.path.split(pdb)[0], "addH_" + os.path.split(pdb)[1])
+
+    if outfile == None:
+        outfile = os.path.join(os.path.split(infile)[0], "addH_" + os.path.split(infile)[1])
+        
+    if outfile == infile:
+        raise ValueError('outfile cannot be the same as infile')
 
     if method == 'openbabel':
         try:
@@ -157,7 +162,7 @@ def addHydrogens(pdb, method='openbabel', pH=7.0):
             obconversion = openbabel.OBConversion()
             obconversion.SetInFormat("pdb")
             mol = openbabel.OBMol()
-            obconversion.ReadFile(mol, pdb)
+            obconversion.ReadFile(mol, infile)
             mol.AddHydrogens()
             obconversion.WriteFile(mol, outfile)
             LOGGER.info("Hydrogens were added to the structure. Structure {0} is saved in the local directry.".format(outfile))
@@ -173,14 +178,14 @@ def addHydrogens(pdb, method='openbabel', pH=7.0):
             except ImportError:
                 from simtk.openmm.app import PDBFile
             
-            fixer = PDBFixer(filename=pdb)
+            fixer = PDBFixer(filename=infile)
             fixer.findMissingResidues()
             fixer.removeHeterogens(True)
             fixer.findMissingAtoms()
             fixer.addMissingAtoms()
             fixer.addMissingHydrogens(pH)
             PDBFile.writeFile(fixer.topology, fixer.positions, open(outfile, 'w'))
-            LOGGER.info("Hydrogens were added to the structure. Structure {0} is saved in the local directry.".format('addH_'+pdb))
+            LOGGER.info("Hydrogens were added to the structure. New structure is saved as {0}.".format(outfile))
 
         except ImportError:
             raise ImportError('Install PDBFixer and OpenMM in order to fix the protein structure.')
@@ -188,6 +193,8 @@ def addHydrogens(pdb, method='openbabel', pH=7.0):
     else:
         raise TypeError('Method should be openbabel or pdbfixer')
     
+    return outfile
+
     
 def calcHydrogenBonds(atoms, distA=3.0, angle=40, cutoff_dist=20, **kwargs):
     """Compute hydrogen bonds for proteins and other molecules.
