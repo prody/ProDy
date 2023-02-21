@@ -39,7 +39,7 @@ __all__ = ['calcHydrogenBonds', 'calcChHydrogenBonds', 'calcSaltBridges',
            'calcRepulsiveIonicBondingTrajectory', 'calcPiStackingTrajectory', 
            'calcPiCationTrajectory', 'calcHydrophobicTrajectory', 'calcDisulfideBondsTrajectory',
            'calcProteinInteractions', 'calcStatisticsInteractions',
-           'compareInteractions', 
+           'compareInteractions', 'showInteractionsGraph',
            'calcLigandInteractions', 'listLigandInteractions', 
            'showProteinInteractions_VMD', 'showLigandInteraction_VMD', 
            'addHydrogens', 'calcHydrogenBondsTrajectory',
@@ -1399,6 +1399,138 @@ def compareInteractions(data1, data2, **kwargs):
     except: pass
     
     return diff_21, diff_12, similar_12
+
+
+def showInteractionsGraph(statistics, **kwargs):
+    """Return residue-residue interactions as graph/network.
+    
+    :arg statistics: Results obtained from calcStatisticsInteractions analysis
+    :type statistics: list
+    
+    :arg cutoff: Minimal number of counts per residue in the trajectory
+    :type cutoff: int, by default 3.
+
+    :arg code: representation of the residues, 3-letter or 1-letter
+    :type code: str, by default 3-letter.
+
+    :arg edge_cmap: color of the residue connection
+    :type edge_cmap: str, by default plt.cm.Blues (blue color).
+
+    :arg node_size: size of the nodes which describes residues
+    :type node_size: int, by default 300.
+    
+    :arg node_distance: value which will scale residue-residue interactions
+    :type node_distance: int, by default 5.
+
+    :arg font_size: size of the font
+    :type font_size: int, by default 14.
+
+    :arg seed: random number which affect the distribution of residues
+    :type seed: int, by default 42.  """
+    
+    import networkx as nx
+    import matplotlib.pyplot as plt
+    
+    amino_acid_colors_dic = {
+        "ALA": "silver",     # non-polar
+        "ILE": "silver",     # non-polar
+        "LEU": "silver",     # non-polar
+        "VAL": "silver",     # non-polar
+        "PHE": "silver",     # non-polar
+        "MET": "silver",     # non-polar
+        "TRP": "silver",     # non-polar
+        "GLY": "limegreen",     # polar
+        "SER": "limegreen",     # polar
+        "THR": "limegreen",     # polar
+        "CYS": "limegreen",     # polar
+        "TYR": "limegreen",     # polar
+        "ASN": "limegreen",     # polar
+        "GLN": "limegreen",     # polar
+        "HIS": "deepskyblue",      # basic
+        "HSE": "deepskyblue",      # basic
+        "HSD": "deepskyblue",      # basic
+        "LYS": "deepskyblue",      # basic
+        "ARG": "deepskyblue",      # basic
+        "ASP": "tomato",       # acidic
+        "GLU": "tomato",       # acidic
+        "PRO": "pink",
+        "A": "silver",     # non-polar
+        "I": "silver",     # non-polar
+        "L": "silver",     # non-polar
+        "V": "silver",     # non-polar
+        "F": "silver",     # non-polar
+        "M": "silver",     # non-polar
+        "W": "silver",     # non-polar
+        "G": "limegreen",     # polar
+        "S": "limegreen",     # polar
+        "T": "limegreen",     # polar
+        "C": "limegreen",     # polar
+        "Y": "limegreen",     # polar
+        "N": "limegreen",     # polar
+        "Q": "limegreen",     # polar
+        "H": "deepskyblue",      # basic
+        "K": "deepskyblue",      # basic
+        "R": "deepskyblue",      # basic
+        "D": "tomato",       # acidic
+        "E": "tomato",       # acidic
+        "P": "pink" }
+        
+    aa_dic = {'CYS': 'C', 'ASP': 'D', 'SER': 'S', 'GLN': 'Q', 'LYS': 'K',
+              'ILE': 'I', 'PRO': 'P', 'THR': 'T', 'PHE': 'F', 'ASN': 'N', 'GLY': 'G', 
+              'HIS': 'H', 'HSD': 'H','HSE': 'H', 'LEU': 'L', 'ARG': 'R', 'TRP': 'W', 
+              'ALA': 'A', 'VAL':'V', 'GLU': 'E', 'TYR': 'Y', 'MET': 'M'}
+    
+    if len(statistics[0]) != 4:
+        raise TypeError('data must be a list obtained from calcStatisticsInteractions')
+    else:
+        if isinstance(statistics, int) or isinstance(statistics, str):
+            raise TypeError('node_size must be a list')
+
+    code = kwargs.pop('code', None)
+    if code is None:
+        code = '3-letter'
+    elif isinstance(code, str):
+        code = code
+    elif isinstance(code, int):
+        raise TypeError('code must be 3-letter or 1-letter')
+
+    edge_cmap = kwargs.pop('edge_cmap', plt.cm.Blues)
+    node_size = kwargs.pop('node_size', 300)
+    node_distance = kwargs.pop('node_distance', 5)
+    font_size = kwargs.pop('font_size', 14)
+    seed = kwargs.pop('seed', 42)
+    cutoff = kwargs.pop('cutoff', 3)
+    
+    X = [i for i in statistics if i[1] >= cutoff]   
+    G = nx.Graph()
+    
+    for row in X:  
+        if code == '1-letter':
+            aa1 = aa_dic[row[0].split('-')[0][:3]] + row[0].split('-')[0][3:]
+            aa2 = aa_dic[row[0].split('-')[1][:3]] + row[0].split('-')[1][3:]
+        else:
+            aa1 = row[0].split('-')[0]
+            aa2 = row[0].split('-')[1]   
+            
+        G.add_node(aa1)
+        G.add_node(aa2)
+        weight = row[1]
+        length = row[2]
+        G.add_edge(aa1, aa2, weight=weight, length=length)
+        
+    try:
+        node_colors = [ amino_acid_colors_dic[i[:3]] for i in G.nodes() ]
+    except:
+        node_colors = [ amino_acid_colors_dic[i[:1]] for i in G.nodes() ]
+        
+    pos = nx.spring_layout(G, k=node_distance, seed=seed)
+    edges = G.edges()
+    weights = [G[u][v]['weight'] for u,v in edges]
+    lengths = [G[u][v]['length'] for u,v in edges]
+
+    nx.draw(G, pos, edgelist=edges, edge_color=weights, width=lengths, edge_cmap=edge_cmap, 
+            node_color=node_colors, node_size=node_size, font_size=font_size, with_labels=True)
+    plt.show()
     
     
 def calcStatisticsInteractions(data):
