@@ -314,7 +314,7 @@ def showProjection(ensemble, modes, *args, **kwargs):
 
     modes = [m for m in modes]
     if len(modes) == 2:
-        show_density = kwargs.get("show_density", False)
+        show_density = kwargs.pop("show_density", False)
         if show_density:
             try:
                 import seaborn as sns
