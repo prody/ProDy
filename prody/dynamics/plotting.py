@@ -319,6 +319,7 @@ def showProjection(ensemble, modes, *args, **kwargs):
             try:
                 import seaborn as sns
                 plot = sns.kdeplot
+                kwargs["cmap"] = cmap
             except ImportError:
                 raise ImportError('Please install seaborn to plot kernel density estimates')
         else:
