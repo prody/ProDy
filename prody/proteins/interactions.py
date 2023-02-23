@@ -209,7 +209,7 @@ def addHydrogens(infile, method='openbabel', pH=7.0, outfile=None, **kwargs):
     return outfile
 
     
-def calcHydrogenBonds(atoms, distA=3.0, angle=40, cutoff_dist=20, **kwargs):
+def calcHydrogenBonds(atoms, **kwargs):
     """Compute hydrogen bonds for proteins and other molecules.
     
     :arg atoms: an Atomic object from which residues are selected
@@ -225,6 +225,18 @@ def calcHydrogenBonds(atoms, distA=3.0, angle=40, cutoff_dist=20, **kwargs):
         that are higher than cutoff_dist.
         default is 20 atoms.
     :type cutoff_dist: int
+
+    :arg selection: selection string
+    :type selection: str
+    
+    :arg selection2: selection string
+    :type selection2: str
+    
+    Selection:
+    If we want to select interactions for the particular residue or group of residues: 
+        selection='chain A and resid 1 to 50'
+    If we want to study chain-chain interactions:
+        selection='chain A', selection2='chain B'
 
     Structure should contain hydrogens.
     If not they can be added using addHydrogens(pdb_name) function available in ProDy after Openbabel installation.
@@ -242,6 +254,10 @@ def calcHydrogenBonds(atoms, distA=3.0, angle=40, cutoff_dist=20, **kwargs):
         except TypeError:
             raise TypeError('coords must be an object '
                             'with `getCoords` method')
+    
+    distA = kwargs.pop('distA', 3.0)
+    angle = kwargs.pop('angle', 40)
+    cutoff_dist = kwargs.pop('cutoff_dist', 20)
     
     donors = kwargs.get('donors', ['N', 'O', 'S', 'F'])
     acceptors = kwargs.get('acceptors', ['N', 'O', 'S', 'F'])
@@ -307,7 +323,9 @@ def calcHydrogenBonds(atoms, distA=3.0, angle=40, cutoff_dist=20, **kwargs):
     
     HBs_list = sorted(HBs_list, key=lambda x : x[-2])
     HBs_list_final = removeDuplicates(HBs_list)
-    HBs_list_final2 = selectionByKwargs(HBs_list_final, atoms, **kwargs)
+    
+    sel_kwargs = {key: value for key, value in kwargs.items() if key in ('selecton', 'selection2')}
+    HBs_list_final2 = selectionByKwargs(HBs_list_final, atoms, **sel_kwargs)
     
     LOGGER.info(("%26s   <---> %30s%12s%7s" % ('DONOR (res chid atom)','ACCEPTOR (res chid atom)','Distance','Angle')))
     for kk in HBs_list_final2:
@@ -318,7 +336,7 @@ def calcHydrogenBonds(atoms, distA=3.0, angle=40, cutoff_dist=20, **kwargs):
     return HBs_list_final2   
     
     
-def calcChHydrogenBonds(atoms, distA=3.0, angle=40, cutoff_dist=20, **kwargs):
+def calcChHydrogenBonds(atoms, **kwargs):
     """Finds hydrogen bonds between different chains.
     See more details in calcHydrogenBonds().
     
@@ -353,6 +371,10 @@ def calcChHydrogenBonds(atoms, distA=3.0, angle=40, cutoff_dist=20, **kwargs):
             raise TypeError('coords must be an object '
                             'with `getCoords` method')
 
+    distA = kwargs.pop('distA', 3.0)
+    angle = kwargs.pop('angle', 40)
+    cutoff_dist = kwargs.pop('cutoff_dist', 20)
+
     if len(np.unique(atoms.getChids())) > 1:
         HBS_calculations = calcHydrogenBonds(atoms, **kwargs)
     
@@ -364,7 +386,7 @@ def calcChHydrogenBonds(atoms, distA=3.0, angle=40, cutoff_dist=20, **kwargs):
         return ChainsHBs 
         
 
-def calcSaltBridges(atoms, distA=4.5, **kwargs):
+def calcSaltBridges(atoms, **kwargs):
     """Finds salt bridges in protein structure.
     Histidine is not considered as a charge residue
     
@@ -398,7 +420,8 @@ def calcSaltBridges(atoms, distA=4.5, **kwargs):
         except TypeError:
             raise TypeError('coords must be an object '
                             'with `getCoords` method')
-
+    
+    distA = kwargs.pop('distA', 4.5)
     atoms_KRED = atoms.select('protein and resname ASP GLU LYS ARG and not backbone and not name OXT NE "C.*" and noh')
     charged_residues = list(set(zip(atoms_KRED.getResnums(), atoms_KRED.getChids())))
     
@@ -429,7 +452,9 @@ def calcSaltBridges(atoms, distA=4.5, **kwargs):
     SaltBridges_list = sorted(SaltBridges_list, key=lambda x : x[-1])
     [ SaltBridges_list.remove(j) for i in SaltBridges_list for j in SaltBridges_list if Counter(i) == Counter(j) ]
     SaltBridges_list_final = removeDuplicates(SaltBridges_list)
-    SaltBridges_list_final2 = selectionByKwargs(SaltBridges_list_final, atoms, **kwargs)
+    
+    sel_kwargs = {key: value for key, value in kwargs.items() if key in ('selecton', 'selection2')}
+    SaltBridges_list_final2 = selectionByKwargs(SaltBridges_list_final, atoms, **sel_kwargs)
     
     for kk in SaltBridges_list_final2:
         LOGGER.info("%10s%5s%16s  <---> %10s%5s%16s%8.1f" % (kk[0], kk[2], kk[1], kk[3], kk[5], kk[4], kk[6]))
@@ -439,7 +464,7 @@ def calcSaltBridges(atoms, distA=4.5, **kwargs):
     return SaltBridges_list_final2
     
 
-def calcRepulsiveIonicBonding(atoms, distA=4.5, **kwargs):
+def calcRepulsiveIonicBonding(atoms, **kwargs):
     """Finds repulsive ionic bonding in protein structure
     i.e. between positive-positive or negative-negative residues.
     Histidine is not considered as a charged residue.
@@ -474,7 +499,8 @@ def calcRepulsiveIonicBonding(atoms, distA=4.5, **kwargs):
         except TypeError:
             raise TypeError('coords must be an object '
                             'with `getCoords` method')
-
+    
+    distA = kwargs.pop('distA', 4.5)
     atoms_KRED = atoms.select('protein and resname ASP GLU LYS ARG and not backbone and not name OXT NE "C.*" and noh')
     charged_residues = list(set(zip(atoms_KRED.getResnums(), atoms_KRED.getChids())))
     
@@ -505,7 +531,9 @@ def calcRepulsiveIonicBonding(atoms, distA=4.5, **kwargs):
     [ RepulsiveIonicBonding_list.remove(j) for i in RepulsiveIonicBonding_list for j in RepulsiveIonicBonding_list if Counter(i) == Counter(j) ]
     RepulsiveIonicBonding_list = sorted(RepulsiveIonicBonding_list, key=lambda x : x[-1])
     RepulsiveIonicBonding_list_final = removeDuplicates(RepulsiveIonicBonding_list)
-    RepulsiveIonicBonding_list_final2 = selectionByKwargs(RepulsiveIonicBonding_list_final, atoms, **kwargs)
+    
+    sel_kwargs = {key: value for key, value in kwargs.items() if key in ('selecton', 'selection2')}
+    RepulsiveIonicBonding_list_final2 = selectionByKwargs(RepulsiveIonicBonding_list_final, atoms, **sel_kwargs)
     
     for kk in RepulsiveIonicBonding_list_final2:
         LOGGER.info("%10s%5s%16s  <---> %10s%5s%16s%8.1f" % (kk[0], kk[2], kk[1], kk[3], kk[5], kk[4], kk[6]))
@@ -515,13 +543,14 @@ def calcRepulsiveIonicBonding(atoms, distA=4.5, **kwargs):
     return RepulsiveIonicBonding_list_final2
 
 
-def calcPiStacking(atoms, distA=5.0, angle_min=0, angle_max=360, **kwargs):
+def calcPiStacking(atoms, **kwargs):
     """Finds π–π stacking interactions (between aromatic rings).
     
     :arg atoms: an Atomic object from which residues are selected
     :type atoms: :class:`.Atomic`
     
-    :arg distA: non-zero value, maximal distance between center of masses of residues aromatic rings.
+    :arg distA: non-zero value, maximal distance between center of masses 
+                of residues aromatic rings.
     :type distA: int, float, default is 5.
     
     :arg angle_min: minimal angle between aromatic rings.
@@ -536,6 +565,10 @@ def calcPiStacking(atoms, distA=5.0, angle_min=0, angle_max=360, **kwargs):
     :arg selection2: selection string
     :type selection2: str
 
+    :arg non_standard: dictionary of non-standard residue in the protein structure
+                        that need to be included in calculations
+    :type non_standard: dictionary
+
     Selection:
     If we want to select interactions for the particular residue or group of residues: 
         selection='chain A and resid 1 to 50'
@@ -545,10 +578,10 @@ def calcPiStacking(atoms, distA=5.0, angle_min=0, angle_max=360, **kwargs):
     Results can be displayed in VMD.
     By default three residues are included TRP, PHE, TYR and HIS.
     Additional selection can be added: 
-        >>> calcPiStacking(atoms, 'HSE'='noh and not backbone and not name CB')
-        or
-        >>> kwargs = {"HSE": "noh and not backbone and not name CB", "HSD": "noh and not backbone and not name CB"}
-        >>> calcPiStacking(atoms,**kwargs)
+        >>> non_standard = {"HSE": "noh and not backbone and not name CB", 
+                    "HSD": "noh and not backbone and not name CB"}
+        >>> calcPiStacking(atoms, non_standard)
+    
     Predictions for proteins only. 
     To compute protein-ligand interactions use calcLigandInteractions() or define **kwargs"""
 
@@ -567,7 +600,12 @@ def calcPiStacking(atoms, distA=5.0, angle_min=0, angle_max=360, **kwargs):
                 'TYR':'noh and not backbone and not name CB and not name OH',
                 'HIS':'noh and not backbone and not name CB'}
     
-    for key, value in kwargs.items():
+    distA = kwargs.pop('distA', 5.0)
+    angle_min = kwargs.pop('angle_min', 0)
+    angle_max = kwargs.pop('angle_max', 360)
+    
+    non_standard = kwargs.get('non_standard', {})
+    for key, value in non_standard.items():
         aromatic_dic[key] = value
     
     atoms_cylic = atoms.select('resname TRP PHE TYR HIS')
@@ -595,7 +633,9 @@ def calcPiStacking(atoms, distA=5.0, angle_min=0, angle_max=360, **kwargs):
     
     PiStack_calculations = sorted(PiStack_calculations, key=lambda x : x[-2])   
     PiStack_calculations_final = removeDuplicates(PiStack_calculations)
-    PiStack_calculations_final2 = selectionByKwargs(PiStack_calculations_final, atoms, **kwargs)
+    
+    sel_kwargs = {key: value for key, value in kwargs.items() if key in ('selecton', 'selection2')}
+    PiStack_calculations_final2 = selectionByKwargs(PiStack_calculations_final, atoms, **sel_kwargs)
     
     for kk in PiStack_calculations_final2:
         LOGGER.info("%10s%8s%32s  <---> %10s%8s%32s%8.1f%8.1f" % (kk[0], kk[2], kk[1], kk[3], kk[5], kk[4], kk[6], kk[7]))
@@ -605,13 +645,15 @@ def calcPiStacking(atoms, distA=5.0, angle_min=0, angle_max=360, **kwargs):
     return PiStack_calculations_final2
 
 
-def calcPiCation(atoms, distA=5.0, extraSele=None, **kwargs):
-    """Finds cation-Pi interaction i.e. between aromatic ring and positively charged residue (ARG and LYS)
+def calcPiCation(atoms, **kwargs):
+    """Finds cation-Pi interaction i.e. between aromatic ring and 
+    positively charged residue (ARG and LYS).
     
     :arg atoms: an Atomic object from which residues are selected
     :type atoms: :class:`.Atomic`
     
-    :arg distA: non-zero value, maximal distance between center of masses of aromatic ring and positively charge group.
+    :arg distA: non-zero value, maximal distance between center of masses 
+                of aromatic ring and positively charge group.
     :type distA: int, float, default is 5.
 
     :arg selection: selection string
@@ -620,6 +662,10 @@ def calcPiCation(atoms, distA=5.0, extraSele=None, **kwargs):
     :arg selection2: selection string
     :type selection2: str
 
+    :arg non_standard: dictionary of non-standard residue in the protein structure
+                        that need to be included in calculations
+    :type non_standard: dictionary
+
     Selection:
     If we want to select interactions for the particular residue or group of residues: 
         selection='chain A and resid 1 to 50'
@@ -627,13 +673,16 @@ def calcPiCation(atoms, distA=5.0, extraSele=None, **kwargs):
         selection='chain A', selection2='chain B'
 
     By default three residues are included TRP, PHE, TYR and HIS.
-    Additional selection can be added in extraSele: 
+    Additional selection can be added: 
         >>> calcPiCation(atoms, 'HSE'='noh and not backbone and not name CB')
         or
-        >>> kwargs = {"HSE": "noh and not backbone and not name CB", "HSD": "noh and not backbone and not name CB"}
-        >>> calcPiCation(atoms,**kwargs)
+        >>> non_standard = {"HSE": "noh and not backbone and not name CB", 
+                "HSD": "noh and not backbone and not name CB"}
+        >>> calcPiCation(atoms, non_standard)
+    
     Results can be displayed in VMD.
-    Predictions for proteins only. To compute protein-ligand interactions use calcLigandInteractions() or define **kwargs"""
+    Predictions for proteins only. To compute protein-ligand interactions use 
+    calcLigandInteractions() or define **kwargs"""
 
     try:
         coords = (atoms._getCoords() if hasattr(atoms, '_getCoords') else
@@ -649,8 +698,11 @@ def calcPiCation(atoms, distA=5.0, extraSele=None, **kwargs):
                 'PHE':'noh and not backbone and not name CB',
                 'TYR':'noh and not backbone and not name CB and not name OH',
                 'HIS':'noh and not backbone and not name CB'}
-        
-    for key, value in kwargs.items():
+    
+    distA = kwargs.pop('distA', 5.0)
+    
+    non_standard = kwargs.get('non_standard', {})
+    for key, value in non_standard.items():
         aromatic_dic[key] = value
         
     atoms_cylic = atoms.select('resname TRP PHE TYR HIS')
@@ -683,7 +735,9 @@ def calcPiCation(atoms, distA=5.0, extraSele=None, **kwargs):
     
     PiCation_calculations = sorted(PiCation_calculations, key=lambda x : x[-1]) 
     PiCation_calculations_final = removeDuplicates(PiCation_calculations)
-    PiCation_calculations_final2 = selectionByKwargs(PiCation_calculations_final, atoms, **kwargs)
+    
+    sel_kwargs = {key: value for key, value in kwargs.items() if key in ('selecton', 'selection2')}
+    PiCation_calculations_final2 = selectionByKwargs(PiCation_calculations_final, atoms, **sel_kwargs)
     
     for kk in PiCation_calculations_final2:
         LOGGER.info("%10s%4s%32s  <---> %10s%4s%32s%8.1f" % (kk[0], kk[2], kk[1], kk[3], kk[5], kk[4], kk[6]))
@@ -693,14 +747,19 @@ def calcPiCation(atoms, distA=5.0, extraSele=None, **kwargs):
     return PiCation_calculations_final2
 
 
-def calcHydrophobic(atoms, distA=4.5, **kwargs): 
-    """Prediction of hydrophobic interactions between hydrophobic residues (ALA, ILE, LEU, MET, PHE, TRP, VAL).
+def calcHydrophobic(atoms, **kwargs): 
+    """Prediction of hydrophobic interactions between hydrophobic residues 
+    (ALA, ILE, LEU, MET, PHE, TRP, VAL).
     
     :arg atoms: an Atomic object from which residues are selected
     :type atoms: :class:`.Atomic`
     
     :arg distA: non-zero value, maximal distance between atoms of hydrophobic residues.
     :type distA: int, float, default is 4.5.
+    
+    :arg non_standard: dictionary of non-standard residue in the protein structure
+                        that need to be included in calculations
+    :type non_standard: dictionary
 
     Selection:
     If we want to select interactions for the particular residue or group of residues: 
@@ -708,13 +767,16 @@ def calcHydrophobic(atoms, distA=4.5, **kwargs):
     If we want to study chain-chain interactions:
         selection='chain A', selection2='chain B'
     
-    Additional selection can be added as shown below (with selection that includes only hydrophobic part): 
-        >>> calcHydrophobic(atoms, 'XLE'='noh and not backbone')
-    Predictions for proteins only. To compute protein-ligand interactions use calcLigandInteractions().
+    Additional selection can be added as shown below (with selection that includes 
+    only hydrophobic part): 
+        >>> calcHydrophobic(atoms, non_standard={'XLE'='noh and not backbone', 
+                                                'XLI'='noh and not backbone'})
+    Predictions for proteins only. To compute protein-ligand interactions use 
+    calcLigandInteractions().
     Results can be displayed in VMD by using showVMDinteraction() 
     
-    Note that interactions between aromatic residues are omitted becasue they are provided by calcPiStacking().    
-    Results can be displayed in VMD."""
+    Note that interactions between aromatic residues are omitted becasue they are 
+    provided by calcPiStacking(). """
 
     try:
         coords = (atoms._getCoords() if hasattr(atoms, '_getCoords') else
@@ -725,7 +787,9 @@ def calcHydrophobic(atoms, distA=4.5, **kwargs):
         except TypeError:
             raise TypeError('coords must be an object '
                             'with `getCoords` method')
-
+    
+    distA = kwargs.pop('distA', 4.5)
+    
     Hydrophobic_list = []  
     atoms_hydrophobic = atoms.select('resname ALA VAL ILE MET LEU PHE TYR TRP')
     hydrophobic_resids = list(set(zip(atoms_hydrophobic.getResnums(), atoms_hydrophobic.getChids())))
@@ -738,8 +802,9 @@ def calcHydrophobic(atoms, distA=4.5, **kwargs):
     'MET': 'noh and not (backbone or name CB)', 'PHE': 'noh and not (backbone or name CB)',
     'TYR': 'noh and not (backbone or name CB)', 'TRP': 'noh and not (backbone or name CB)'}
 
-    #for key, value in kwargs.items():
-    #    hydrophobic_dic[key] = value
+    non_standard = kwargs.get('non_standard', {})
+    for key, value in non_standard.items():
+        aromatic_dic[key] = value
     
     LOGGER.info('Calculating hydrophobic interactions.')
     Hydrophobic_calculations = []
@@ -785,7 +850,9 @@ def calcHydrophobic(atoms, distA=4.5, **kwargs):
                     
     Hydrophobic_calculations = sorted(Hydrophobic_calculations, key=lambda x : x[-1])
     Hydrophobic_calculations_final = removeDuplicates(Hydrophobic_calculations)
-    Hydrophobic_calculations_final2 = selectionByKwargs(Hydrophobic_calculations_final, atoms, **kwargs)
+    
+    sel_kwargs = {key: value for key, value in kwargs.items() if key in ('selecton', 'selection2')}
+    Hydrophobic_calculations_final2 = selectionByKwargs(Hydrophobic_calculations_final, atoms, **sel_kwargs)
     
     for kk in Hydrophobic_calculations_final2:
         LOGGER.info("%10s%5s%14s  <---> %10s%5s%14s%8.1f" % (kk[0], kk[2], kk[1], kk[3], kk[5], kk[4], kk[6]))
@@ -795,7 +862,7 @@ def calcHydrophobic(atoms, distA=4.5, **kwargs):
     return Hydrophobic_calculations_final2
 
 
-def calcDisulfideBonds(atoms, distA=2.5):
+def calcDisulfideBonds(atoms, **kwargs):
     """Prediction of disulfide bonds.
     
     :arg atoms: an Atomic object from which residues are selected
@@ -813,7 +880,9 @@ def calcDisulfideBonds(atoms, distA=2.5):
         except TypeError:
             raise TypeError('coords must be an object '
                             'with `getCoords` method')
-
+    
+    distA = kwargs.pop('distA', 2.5)
+    
     try:
         atoms_SG = atoms.select('protein and resname CYS and name SG')
         atoms_SG_res = list(set(zip(atoms_SG.getResnums(), atoms_SG.getChids())))
@@ -925,7 +994,7 @@ def calcProteinInteractions(atoms, **kwargs):
     return AllInteractions
 
 
-def calcHydrogenBondsTrajectory(atoms, trajectory=None, distA=3.0, angle=40, cutoff_dist=20, **kwargs):   
+def calcHydrogenBondsTrajectory(atoms, trajectory=None, **kwargs):   
     """Compute hydrogen bonds for DCD trajectory or multi-model PDB using default parameters.
         
     :arg atoms: an Atomic object from which residues are selected
@@ -978,7 +1047,7 @@ def calcHydrogenBondsTrajectory(atoms, trajectory=None, distA=3.0, angle=40, cut
         for j0, frame0 in enumerate(trajectory):  
             LOGGER.info('Frame: {0}'.format(j0))
             protein = atoms.select('protein')
-            hydrogen_bonds = calcHydrogenBonds(protein, distA, angle, cutoff_dist, **kwargs)
+            hydrogen_bonds = calcHydrogenBonds(protein, **kwargs)
             HBs_all.append(hydrogen_bonds)
     
     else:
@@ -987,7 +1056,7 @@ def calcHydrogenBondsTrajectory(atoms, trajectory=None, distA=3.0, angle=40, cut
                 LOGGER.info('Model: {0}'.format(i))
                 atoms.setACSIndex(i) 
                 protein = atoms.select('protein')
-                hydrogen_bonds = calcHydrogenBonds(protein, distA, angle, cutoff_dist, **kwargs)
+                hydrogen_bonds = calcHydrogenBonds(protein, **kwargs)
                 HBs_all.append(hydrogen_bonds)
         else:
             LOGGER.info('Include trajectory or use multi-model PDB file.')
@@ -995,7 +1064,7 @@ def calcHydrogenBondsTrajectory(atoms, trajectory=None, distA=3.0, angle=40, cut
     return HBs_all
 
 
-def calcSaltBridgesTrajectory(atoms, trajectory=None, distA=4.5, **kwargs):
+def calcSaltBridgesTrajectory(atoms, trajectory=None, **kwargs):
     """Compute salt bridges for DCD trajectory or multi-model PDB using default parameters.
         
     :arg atoms: an Atomic object from which residues are selected
@@ -1040,7 +1109,7 @@ def calcSaltBridgesTrajectory(atoms, trajectory=None, distA=4.5, **kwargs):
         for j0, frame0 in enumerate(trajectory):  
             LOGGER.info('Frame: {0}'.format(j0))
             protein = atoms.select('protein')
-            salt_bridges = calcSaltBridges(protein, distA, **kwargs)
+            salt_bridges = calcSaltBridges(protein, **kwargs)
             SBs_all.append(salt_bridges)
         
     else:
@@ -1049,7 +1118,7 @@ def calcSaltBridgesTrajectory(atoms, trajectory=None, distA=4.5, **kwargs):
                 LOGGER.info('Model: {0}'.format(i))
                 atoms.setACSIndex(i) 
                 protein = atoms.select('protein')
-                salt_bridges = calcSaltBridges(protein, distA, **kwargs)
+                salt_bridges = calcSaltBridges(protein, **kwargs)
                 SBs_all.append(salt_bridges)
         else:
             LOGGER.info('Include trajectory or use multiple PDB file.')        
@@ -1057,7 +1126,7 @@ def calcSaltBridgesTrajectory(atoms, trajectory=None, distA=4.5, **kwargs):
     return SBs_all
     
 
-def calcRepulsiveIonicBondingTrajectory(atoms, trajectory=None, distA=4.5, **kwargs):  
+def calcRepulsiveIonicBondingTrajectory(atoms, trajectory=None, **kwargs):  
     """Compute repulsive ionic bonding for DCD trajectory or multi-model PDB using default parameters.
         
     :arg atoms: an Atomic object from which residues are selected
@@ -1103,7 +1172,7 @@ def calcRepulsiveIonicBondingTrajectory(atoms, trajectory=None, distA=4.5, **kwa
         for j0, frame0 in enumerate(trajectory):  
             LOGGER.info('Frame: {0}'.format(j0))
             protein = atoms.select('protein')
-            rib = calcRepulsiveIonicBonding(protein, distA, **kwargs)
+            rib = calcRepulsiveIonicBonding(protein, **kwargs)
             RIB_all.append(rib)
         
     else:
@@ -1112,7 +1181,7 @@ def calcRepulsiveIonicBondingTrajectory(atoms, trajectory=None, distA=4.5, **kwa
                 LOGGER.info('Model: {0}'.format(i))
                 atoms.setACSIndex(i) 
                 protein = atoms.select('protein')
-                rib = calcRepulsiveIonicBonding(protein, distA, **kwargs)
+                rib = calcRepulsiveIonicBonding(protein, **kwargs)
                 RIB_all.append(rib)
         else:
             LOGGER.info('Include trajectory or use multiple PDB file.')                
@@ -1120,7 +1189,7 @@ def calcRepulsiveIonicBondingTrajectory(atoms, trajectory=None, distA=4.5, **kwa
     return RIB_all
 
 
-def calcPiStackingTrajectory(atoms, trajectory=None, distA=5.0, angle_min=0, angle_max=360, **kwargs):   
+def calcPiStackingTrajectory(atoms, trajectory=None, **kwargs):   
     """Compute Pi-stacking interactions for DCD trajectory or multi-model PDB using default parameters.
         
     :arg atoms: an Atomic object from which residues are selected
@@ -1170,7 +1239,7 @@ def calcPiStackingTrajectory(atoms, trajectory=None, distA=5.0, angle_min=0, ang
         for j0, frame0 in enumerate(trajectory):  
             LOGGER.info('Frame: {0}'.format(j0))
             protein = atoms.select('protein')
-            pi_stack = calcPiStacking(protein, distA, angle_min, angle_max, **kwargs)
+            pi_stack = calcPiStacking(protein, **kwargs)
             pi_stack_all.append(pi_stack)
         
     else:
@@ -1179,7 +1248,7 @@ def calcPiStackingTrajectory(atoms, trajectory=None, distA=5.0, angle_min=0, ang
                 LOGGER.info('Model: {0}'.format(i))
                 atoms.setACSIndex(i) 
                 protein = atoms.select('protein')
-                pi_stack = calcPiStacking(protein, distA, angle_min, angle_max, **kwargs)
+                pi_stack = calcPiStacking(protein, **kwargs)
                 pi_stack_all.append(pi_stack)
 
         else:
@@ -1188,7 +1257,7 @@ def calcPiStackingTrajectory(atoms, trajectory=None, distA=5.0, angle_min=0, ang
     return pi_stack_all
 
 
-def calcPiCationTrajectory(atoms, trajectory=None, distA=5.0, extraSele=None, **kwargs):  
+def calcPiCationTrajectory(atoms, trajectory=None, **kwargs):  
     """Compute Pi-cation interactions for DCD trajectory or multi-model PDB using default parameters.
         
     :arg atoms: an Atomic object from which residues are selected
@@ -1197,7 +1266,8 @@ def calcPiCationTrajectory(atoms, trajectory=None, distA=5.0, extraSele=None, **
     :arg trajectory: trajectory file
     :type trajectory: class:`.Trajectory`
     
-    :arg distA: non-zero value, maximal distance between center of masses of aromatic ring and positively charge group.
+    :arg distA: non-zero value, maximal distance between center of masses of aromatic ring 
+                and positively charge group.
     :type distA: int, float, default is 5.
     
     :arg selection: selection string
@@ -1232,7 +1302,7 @@ def calcPiCationTrajectory(atoms, trajectory=None, distA=5.0, extraSele=None, **
         for j0, frame0 in enumerate(trajectory):  
             LOGGER.info('Frame: {0}'.format(j0))
             protein = atoms.select('protein')
-            pi_cat = calcPiCation(protein, distA, extraSele, **kwargs)
+            pi_cat = calcPiCation(protein, **kwargs)
             pi_cat_all.append(pi_cat)
         
     else:
@@ -1241,7 +1311,7 @@ def calcPiCationTrajectory(atoms, trajectory=None, distA=5.0, extraSele=None, **
                 LOGGER.info('Model: {0}'.format(i))
                 atoms.setACSIndex(i) 
                 protein = atoms.select('protein')
-                pi_cat = calcPiCation(protein, distA, extraSele, **kwargs)
+                pi_cat = calcPiCation(protein, **kwargs)
                 pi_cat_all.append(pi_cat)
         else:
             LOGGER.info('Include trajectory or use multiple PDB file.')        
@@ -1249,7 +1319,7 @@ def calcPiCationTrajectory(atoms, trajectory=None, distA=5.0, extraSele=None, **
     return pi_cat_all
 
 
-def calcHydrophobicTrajectory(atoms, trajectory=None, distA=4.5, **kwargs):  
+def calcHydrophobicTrajectory(atoms, trajectory=None, **kwargs):  
     """Compute hydrophobic interactions for DCD trajectory or multi-model PDB using default parameters.
         
     :arg atoms: an Atomic object from which residues are selected
@@ -1292,7 +1362,7 @@ def calcHydrophobicTrajectory(atoms, trajectory=None, distA=4.5, **kwargs):
         for j0, frame0 in enumerate(trajectory):  
             LOGGER.info('Frame: {0}'.format(j0))
             protein = atoms.select('protein')
-            HPh = calcHydrophobic(protein, distA, **kwargs)
+            HPh = calcHydrophobic(protein, **kwargs)
             HPh_all.append(HPh)
         
     else:
@@ -1301,7 +1371,7 @@ def calcHydrophobicTrajectory(atoms, trajectory=None, distA=4.5, **kwargs):
                 LOGGER.info('Model: {0}'.format(i))
                 atoms.setACSIndex(i) 
                 protein = atoms.select('protein')
-                HPh = calcHydrophobic(protein, distA, **kwargs)
+                HPh = calcHydrophobic(protein, **kwargs)
                 HPh_all.append(HPh)
 
         else:
@@ -1310,7 +1380,7 @@ def calcHydrophobicTrajectory(atoms, trajectory=None, distA=4.5, **kwargs):
     return HPh_all
 
 
-def calcDisulfideBondsTrajectory(atoms, trajectory=None, distA=2.5):
+def calcDisulfideBondsTrajectory(atoms, trajectory=None, **kwargs):
     """Compute disulfide bonds for DCD trajectory or multi-model PDB using default parameters.
         
     :arg atoms: an Atomic object from which residues are selected
@@ -1340,7 +1410,7 @@ def calcDisulfideBondsTrajectory(atoms, trajectory=None, distA=2.5):
         for j0, frame0 in enumerate(trajectory):  
             LOGGER.info('Frame: {0}'.format(j0))
             protein = atoms.select('protein')
-            disulfide_bonds = calcDisulfideBonds(protein, distA)
+            disulfide_bonds = calcDisulfideBonds(protein, **kwargs)
             DiBs_all.append(disulfide_bonds)
 
     else:
@@ -1349,7 +1419,7 @@ def calcDisulfideBondsTrajectory(atoms, trajectory=None, distA=2.5):
                 LOGGER.info('Model: {0}'.format(i))
                 atoms.setACSIndex(i) 
                 protein = atoms.select('protein')
-                disulfide_bonds = calcDisulfideBonds(protein, distA)
+                disulfide_bonds = calcDisulfideBonds(protein, **kwargs)
                 DiBs_all.append(disulfide_bonds)
 
         else:
