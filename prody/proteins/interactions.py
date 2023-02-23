@@ -119,7 +119,7 @@ def selectionByKwargs(list_of_interactions, atoms, **kwargs):
     return final
 
 
-def addHydrogens(infile, method='openbabel', pH=7.0, outfile=None):
+def addHydrogens(infile, method='openbabel', pH=7.0, outfile=None, **kwargs):
     """Function will add hydrogens to the protein and ligand structure using Openbabel [NO11]_
     or PDBFixer with OpenMM.
     
@@ -147,6 +147,8 @@ def addHydrogens(infile, method='openbabel', pH=7.0, outfile=None):
     .. [NO11] O'Boyle, N. M., Banck M., James C. A., Morley C., Vandermeersch T., Hutchison G. R. 
     Open Babel: An open chemical toolbox *Journal of cheminformatics* **2011** 3:1-14. """
     
+    model_residues = kwargs.get("model_residues", False)
+
     import os
 
     if outfile == None:
@@ -156,6 +158,9 @@ def addHydrogens(infile, method='openbabel', pH=7.0, outfile=None):
         raise ValueError('outfile cannot be the same as infile')
 
     if method == 'openbabel':
+        if model_residues:
+            LOGGER.warn("Openbabel cannot add missing residues, skipping this step")
+
         try:
             #import openbabel
             from openbabel import openbabel
@@ -179,7 +184,12 @@ def addHydrogens(infile, method='openbabel', pH=7.0, outfile=None):
                 from simtk.openmm.app import PDBFile
             
             fixer = PDBFixer(filename=infile)
-            fixer.findMissingResidues()
+
+            if model_residues:
+                fixer.findMissingResidues()
+            else:
+                fixer.missingResidues = {}
+
             fixer.removeHeterogens(True)
             fixer.findMissingAtoms()
             fixer.addMissingAtoms()
