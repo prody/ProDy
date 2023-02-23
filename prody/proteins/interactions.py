@@ -161,6 +161,9 @@ def addHydrogens(infile, method='openbabel', pH=7.0, outfile=None, **kwargs):
         if model_residues:
             LOGGER.warn("Openbabel cannot add missing residues, skipping this step")
 
+        if infile.endswith('cif'):
+            raise ValueError('Openbabel cannot handle cif files')
+
         try:
             #import openbabel
             from openbabel import openbabel
