@@ -200,10 +200,11 @@ def showProjection(ensemble, modes, *args, **kwargs):
     :arg modes: up to three normal modes
     :type modes: :class:`.Mode`, :class:`.ModeSet`, :class:`.NMA`
 
-    :keyword by_time: whether to show a 1D projection by time (number of steps) 
-        on the x-axis, rather than making a population histogram. 
-        Default is **False** to maintain old behaviour.
-    :type by_time: bool
+    :keyword density: whether to show a density histogram or kernel density estimate
+        rather than points or a 1D projection by time (number of steps) 
+        on the x-axis. This option is not valid for 3D projections.
+        Default is **True** for 1D and **False** for 2D to maintain old behaviour.
+    :type density: bool
 
     :keyword color: a color name or a list of color names or values, 
         default is ``'blue'``
@@ -246,7 +247,8 @@ def showProjection(ensemble, modes, *args, **kwargs):
                                 kwargs.pop('norm', False))
 
     if projection.ndim == 1 or projection.shape[1] == 1:
-        by_time = kwargs.pop('by_time', False)
+        by_time = not kwargs.pop('density', True)
+        by_time = kwargs.pop('by_time', by_time)
         if by_time:
             show = plt.plot(range(len(projection)), projection.flatten(), *args, **kwargs)
             plt.ylabel('Mode {0} coordinate'.format(str(modes)))
@@ -311,8 +313,16 @@ def showProjection(ensemble, modes, *args, **kwargs):
         indict[opts].append(i)
 
     modes = [m for m in modes]
-    if len(modes) == 2: 
-        plot = plt.plot
+    if len(modes) == 2:
+        show_density = kwargs.get("density", False)
+        if show_density:
+            try:
+                import seaborn as sns
+                plot = sns.kdeplot
+            except ImportError:
+                raise ImportError('Please install seaborn to plot kernel density estimates')
+        else:
+            plot = plt.plot
         show = plt.gcf()
         text = plt.text
     else: 
