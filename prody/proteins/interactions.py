@@ -23,7 +23,7 @@ from numpy import *
 from prody import LOGGER, SETTINGS
 from prody.atomic import AtomGroup, Atom, Atomic, Selection, Select
 from prody.atomic import flags
-from prody.utilities import importLA, checkCoords
+from prody.utilities import importLA, checkCoords, showFigure
 from prody.measure import calcDistance, calcAngle, calcCenter
 from prody.measure.contacts import findNeighbors
 from prody.proteins import writePDB, parsePDB
@@ -100,7 +100,7 @@ def removeDuplicates(list_of_interactions):
     return newList
 
 
-def selectionByKwargs(list_of_interactions, atoms, **kwargs):
+def filterInteractions(list_of_interactions, atoms, **kwargs):
     """Return interactions based on selection"""
     
     if 'selection' in kwargs:
@@ -325,7 +325,7 @@ def calcHydrogenBonds(atoms, **kwargs):
     HBs_list_final = removeDuplicates(HBs_list)
     
     sel_kwargs = {key: value for key, value in kwargs.items() if key in ('selecton', 'selection2')}
-    HBs_list_final2 = selectionByKwargs(HBs_list_final, atoms, **sel_kwargs)
+    HBs_list_final2 = filterInteractions(HBs_list_final, atoms, **sel_kwargs)
     
     LOGGER.info(("%26s   <---> %30s%12s%7s" % ('DONOR (res chid atom)','ACCEPTOR (res chid atom)','Distance','Angle')))
     for kk in HBs_list_final2:
@@ -454,7 +454,7 @@ def calcSaltBridges(atoms, **kwargs):
     SaltBridges_list_final = removeDuplicates(SaltBridges_list)
     
     sel_kwargs = {key: value for key, value in kwargs.items() if key in ('selecton', 'selection2')}
-    SaltBridges_list_final2 = selectionByKwargs(SaltBridges_list_final, atoms, **sel_kwargs)
+    SaltBridges_list_final2 = filterInteractions(SaltBridges_list_final, atoms, **sel_kwargs)
     
     for kk in SaltBridges_list_final2:
         LOGGER.info("%10s%5s%16s  <---> %10s%5s%16s%8.1f" % (kk[0], kk[2], kk[1], kk[3], kk[5], kk[4], kk[6]))
@@ -533,7 +533,7 @@ def calcRepulsiveIonicBonding(atoms, **kwargs):
     RepulsiveIonicBonding_list_final = removeDuplicates(RepulsiveIonicBonding_list)
     
     sel_kwargs = {key: value for key, value in kwargs.items() if key in ('selecton', 'selection2')}
-    RepulsiveIonicBonding_list_final2 = selectionByKwargs(RepulsiveIonicBonding_list_final, atoms, **sel_kwargs)
+    RepulsiveIonicBonding_list_final2 = filterInteractions(RepulsiveIonicBonding_list_final, atoms, **sel_kwargs)
     
     for kk in RepulsiveIonicBonding_list_final2:
         LOGGER.info("%10s%5s%16s  <---> %10s%5s%16s%8.1f" % (kk[0], kk[2], kk[1], kk[3], kk[5], kk[4], kk[6]))
@@ -635,7 +635,7 @@ def calcPiStacking(atoms, **kwargs):
     PiStack_calculations_final = removeDuplicates(PiStack_calculations)
     
     sel_kwargs = {key: value for key, value in kwargs.items() if key in ('selecton', 'selection2')}
-    PiStack_calculations_final2 = selectionByKwargs(PiStack_calculations_final, atoms, **sel_kwargs)
+    PiStack_calculations_final2 = filterInteractions(PiStack_calculations_final, atoms, **sel_kwargs)
     
     for kk in PiStack_calculations_final2:
         LOGGER.info("%10s%8s%32s  <---> %10s%8s%32s%8.1f%8.1f" % (kk[0], kk[2], kk[1], kk[3], kk[5], kk[4], kk[6], kk[7]))
@@ -737,7 +737,7 @@ def calcPiCation(atoms, **kwargs):
     PiCation_calculations_final = removeDuplicates(PiCation_calculations)
     
     sel_kwargs = {key: value for key, value in kwargs.items() if key in ('selecton', 'selection2')}
-    PiCation_calculations_final2 = selectionByKwargs(PiCation_calculations_final, atoms, **sel_kwargs)
+    PiCation_calculations_final2 = filterInteractions(PiCation_calculations_final, atoms, **sel_kwargs)
     
     for kk in PiCation_calculations_final2:
         LOGGER.info("%10s%4s%32s  <---> %10s%4s%32s%8.1f" % (kk[0], kk[2], kk[1], kk[3], kk[5], kk[4], kk[6]))
@@ -852,7 +852,7 @@ def calcHydrophobic(atoms, **kwargs):
     Hydrophobic_calculations_final = removeDuplicates(Hydrophobic_calculations)
     
     sel_kwargs = {key: value for key, value in kwargs.items() if key in ('selecton', 'selection2')}
-    Hydrophobic_calculations_final2 = selectionByKwargs(Hydrophobic_calculations_final, atoms, **sel_kwargs)
+    Hydrophobic_calculations_final2 = filterInteractions(Hydrophobic_calculations_final, atoms, **sel_kwargs)
     
     for kk in Hydrophobic_calculations_final2:
         LOGGER.info("%10s%5s%14s  <---> %10s%5s%14s%8.1f" % (kk[0], kk[2], kk[1], kk[3], kk[5], kk[4], kk[6]))
@@ -1615,15 +1615,21 @@ def showInteractionsGraph(statistics, **kwargs):
         node_colors = [ amino_acid_colors_dic[i[:3]] for i in G.nodes() ]
     except:
         node_colors = [ amino_acid_colors_dic[i[:1]] for i in G.nodes() ]
-        
+
+    if SETTINGS['auto_show']:
+        plt.figure()
+
     pos = nx.spring_layout(G, k=node_distance, seed=seed)
     edges = G.edges()
     weights = [G[u][v]['weight'] for u,v in edges]
     lengths = [G[u][v]['length'] for u,v in edges]
 
-    nx.draw(G, pos, edgelist=edges, edge_color=weights, width=lengths, edge_cmap=edge_cmap, 
+    show = nx.draw(G, pos, edgelist=edges, edge_color=weights, width=lengths, edge_cmap=edge_cmap, 
             node_color=node_colors, node_size=node_size, font_size=font_size, with_labels=True)
-    plt.show()
+    
+    if SETTINGS['auto_show']:
+        showFigure()
+    return show
     
     
 def calcStatisticsInteractions(data):
@@ -2089,7 +2095,7 @@ class Interactions(object):
             selection='chain A', selection2='chain B'  """
 
         if len(kwargs) != 0:
-            results = [selectionByKwargs(j, self._atoms, **kwargs) for j in self._interactions]
+            results = [filterInteractions(j, self._atoms, **kwargs) for j in self._interactions]
         else: 
             results = self._interactions
         
@@ -2112,7 +2118,7 @@ class Interactions(object):
             selection='chain A', selection2='chain B'  """
         
         if len(kwargs) != 0:
-            results = selectionByKwargs(self._hbs, self._atoms, **kwargs)
+            results = filterInteractions(self._hbs, self._atoms, **kwargs)
         else: 
             results = self._hbs
 
@@ -2135,7 +2141,7 @@ class Interactions(object):
             selection='chain A', selection2='chain B'  """ 
         
         if len(kwargs) != 0:
-            results = selectionByKwargs(self._sbs, self._atoms, **kwargs)
+            results = filterInteractions(self._sbs, self._atoms, **kwargs)
         else: 
             results = self._sbs
 
@@ -2159,7 +2165,7 @@ class Interactions(object):
 
 
         if len(kwargs) != 0:
-            results = selectionByKwargs(self._rib, self._atoms, **kwargs)
+            results = filterInteractions(self._rib, self._atoms, **kwargs)
         else: 
             results = self._rib
 
@@ -2182,7 +2188,7 @@ class Interactions(object):
             selection='chain A', selection2='chain B'  """
         
         if len(kwargs) != 0:
-            results = selectionByKwargs(self._piStack, self._atoms, **kwargs)
+            results = filterInteractions(self._piStack, self._atoms, **kwargs)
         else: 
             results = self._piStack
 
@@ -2205,7 +2211,7 @@ class Interactions(object):
             selection='chain A', selection2='chain B'  """
 
         if len(kwargs) != 0:
-            results = selectionByKwargs(self._piCat, self._atoms, **kwargs)
+            results = filterInteractions(self._piCat, self._atoms, **kwargs)
         else: 
             results = self._piCat
 
@@ -2228,7 +2234,7 @@ class Interactions(object):
             selection='chain A', selection2='chain B'  """
         
         if len(kwargs) != 0:
-            results = selectionByKwargs(self._hps, self._atoms, **kwargs)
+            results = filterInteractions(self._hps, self._atoms, **kwargs)
         else: 
             results = self._hps
 
@@ -2374,12 +2380,17 @@ class Interactions(object):
 
         ResList = [ i[0]+str(i[1])+i[2] for i in list(zip(ResName, ResNumb, ResChid)) ]
         
-        matplotlib.rcParams['font.size'] = '20' 
-        fig = plt.figure(num=None, figsize=(12,6), facecolor='w')
-        showAtomicLines(freq_contacts_residues, atoms=atoms.select('name CA'), **kwargs)
+        if SETTINGS['auto_show']:
+            matplotlib.rcParams['font.size'] = '20' 
+            fig = plt.figure(num=None, figsize=(12,6), facecolor='w')
+        show = showAtomicLines(freq_contacts_residues, atoms=atoms.select('name CA'), **kwargs)
         plt.ylabel('Score of interactions')
         plt.xlabel('Residue')
         plt.tight_layout()
+        
+        if SETTINGS['auto_show']:
+            showFigure()
+        return show
         
     
     def saveInteractionsPDB(self, **kwargs):
@@ -2516,16 +2527,20 @@ class Interactions(object):
                 x.append(ii)
                 y.append(all_y[nr_ii])
 
-        matplotlib.rcParams['font.size'] = '20' 
-        fig = plt.figure(num=None, figsize=(12,6), facecolor='w')
-        y_pos = np.arange(len(y))
+        if SETTINGS['auto_show']:
+            matplotlib.rcParams['font.size'] = '20' 
+            fig = plt.figure(num=None, figsize=(12,6), facecolor='w')
         
-        plt.bar(y_pos, x, align='center', alpha=0.5, color='blue', **kwargs)
+        y_pos = np.arange(len(y))
+        show = plt.bar(y_pos, x, align='center', alpha=0.5, color='blue', **kwargs)
         plt.xticks(y_pos, y, rotation=45, fontsize=20)
         plt.ylabel('Score of interactions')
         plt.tight_layout()
-        plt.show()
-        
+
+        if SETTINGS['auto_show']:
+            showFigure()
+        return show        
+       
         
 class InteractionsTrajectory(object):
 
@@ -2659,7 +2674,7 @@ class InteractionsTrajectory(object):
             sele_inter = []
             for i in self._interactions_traj:
                 for nr_j,j in enumerate(i):
-                    sele_inter.append(selectionByKwargs(i[nr_j], self._atoms, **kwargs))
+                    sele_inter.append(filterInteractions(i[nr_j], self._atoms, **kwargs))
             results = sele_inter
         else: 
             results = self._interactions_traj
@@ -2697,7 +2712,7 @@ class InteractionsTrajectory(object):
         if len(kwargs) != 0:
             sele_inter = []
             for nr_i,i in enumerate(self._hbs_traj):
-                sele_inter.append(selectionByKwargs(self._hbs_traj[nr_i], self._atoms, **kwargs))
+                sele_inter.append(filterInteractions(self._hbs_traj[nr_i], self._atoms, **kwargs))
             results = sele_inter
         else: 
             results = self._hbs_traj
@@ -2723,7 +2738,7 @@ class InteractionsTrajectory(object):
         if len(kwargs) != 0:
             sele_inter = []
             for nr_i,i in enumerate(self._sbs_traj):
-                sele_inter.append(selectionByKwargs(self._sbs_traj[nr_i], self._atoms, **kwargs))
+                sele_inter.append(filterInteractions(self._sbs_traj[nr_i], self._atoms, **kwargs))
             results = sele_inter
         else:
             results = self._sbs_traj
@@ -2749,7 +2764,7 @@ class InteractionsTrajectory(object):
         if len(kwargs) != 0:
             sele_inter = []
             for nr_i,i in enumerate(self._rib_traj):
-                sele_inter.append(selectionByKwargs(self._rib_traj[nr_i], self._atoms, **kwargs))
+                sele_inter.append(filterInteractions(self._rib_traj[nr_i], self._atoms, **kwargs))
             results = sele_inter
         else:
             results = self._rib_traj
@@ -2775,7 +2790,7 @@ class InteractionsTrajectory(object):
         if len(kwargs) != 0:
             sele_inter = []
             for nr_i,i in enumerate(self._piStack_traj):
-                sele_inter.append(selectionByKwargs(self._piStack_traj[nr_i], self._atoms, **kwargs))
+                sele_inter.append(filterInteractions(self._piStack_traj[nr_i], self._atoms, **kwargs))
             results = sele_inter
         else:
             results =  self._piStack_traj
@@ -2801,7 +2816,7 @@ class InteractionsTrajectory(object):
         if len(kwargs) != 0:
             sele_inter = []
             for nr_i,i in enumerate(self._piCat_traj):
-                sele_inter.append(selectionByKwargs(self._piCat_traj[nr_i], self._atoms, **kwargs))
+                sele_inter.append(filterInteractions(self._piCat_traj[nr_i], self._atoms, **kwargs))
             results = sele_inter
         else: 
             results = self._piCat_traj
@@ -2827,7 +2842,7 @@ class InteractionsTrajectory(object):
         if len(kwargs) != 0:
             sele_inter = []
             for nr_i,i in enumerate(self._hps_traj):
-                sele_inter.append(selectionByKwargs(self._hps_traj[nr_i], self._atoms, **kwargs))
+                sele_inter.append(filterInteractions(self._hps_traj[nr_i], self._atoms, **kwargs))
             results = sele_inter
         else:
             results = self._hps_traj
