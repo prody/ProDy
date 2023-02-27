@@ -718,8 +718,9 @@ def calcPiCation(atoms, **kwargs):
             sele1 = atoms.select('resid '+str(i[0])+' and chain '+i[1]+' and '+aromatic_dic[sele1_name[0]])
             sele2 = atoms.select('(same residue as exwithin '+str(distA)+' of center) and resname ARG LYS and noh and not backbone and not name NE "C.*"', 
                                center=calcCenter(sele1.getCoords()))
-        except:
-            LOGGER.info("Missing atoms from the side chains of the structure. Use PDBFixer.")
+        except ImportError:
+            raise ImportError("Missing atoms from the side chains of the structure. Use PDBFixer.")
+        
         if sele1 != None and sele2 != None:
             for ii in np.unique(sele2.getResnums()):
                 sele2_single = sele2.select('resid '+str(ii))
@@ -1732,8 +1733,8 @@ def calcLigandInteractions(atoms, **kwargs):
                 pdb_name = pdb_name[:-4]+'_addH.pdb'
                 atoms = parsePDB(pdb_name)
                 LOGGER.info("Lack of hydrogens in the structure. Hydrogens have been added.")
-        except: 
-            LOGGER.info("Install Openbabel to add missing hydrogens or provide structure with hydrogens")
+        except ImportError: 
+            raise ImportError("Install Openbabel to add missing hydrogens or provide structure with hydrogens.")
     
         Ligands = [] # Ligands can be more than one
         my_mol = PDBComplex()
@@ -1774,8 +1775,8 @@ def calcLigandInteractions(atoms, **kwargs):
 
         return Ligands, analyzedLigand
 
-    except:
-        LOGGER.info("Install Openbabel and PLIP.")
+    except ImportError:
+        raise ImportError("Install Openbabel and PLIP.")
 
 
 def listLigandInteractions(PLIP_output):
