@@ -29,7 +29,7 @@ from prody.measure.contacts import findNeighbors
 from prody.proteins import writePDB, parsePDB
 from collections import Counter
 
-from prody.trajectory import TrajBase
+from prody.trajectory import TrajBase, Trajectory
 from prody.ensemble import Ensemble
 
 __all__ = ['calcHydrogenBonds', 'calcChHydrogenBonds', 'calcSaltBridges',
@@ -42,7 +42,7 @@ __all__ = ['calcHydrogenBonds', 'calcChHydrogenBonds', 'calcSaltBridges',
            'compareInteractions', 'showInteractionsGraph',
            'calcLigandInteractions', 'listLigandInteractions', 
            'showProteinInteractions_VMD', 'showLigandInteraction_VMD', 
-           'addHydrogens', 'calcHydrogenBondsTrajectory',
+           'addMissingAtoms', 'calcHydrogenBondsTrajectory',
            'Interactions', 'InteractionsTrajectory']
 
 
@@ -119,7 +119,7 @@ def filterInteractions(list_of_interactions, atoms, **kwargs):
     return final
 
 
-def addHydrogens(infile, method='openbabel', pH=7.0, outfile=None, **kwargs):
+def addMissingAtoms(infile, method='openbabel', pH=7.0, outfile=None, **kwargs):
     """Function will add hydrogens to the protein and ligand structure using Openbabel [NO11]_
     or PDBFixer with OpenMM.
     
@@ -239,7 +239,7 @@ def calcHydrogenBonds(atoms, **kwargs):
         selection='chain A', selection2='chain B'
 
     Structure should contain hydrogens.
-    If not they can be added using addHydrogens(pdb_name) function available in ProDy after Openbabel installation.
+    If not they can be added using addMissingAtoms(pdb_name) function available in ProDy after Openbabel installation.
     `conda install -c conda-forge openbabel`
     
     Note that the angle which it is considering is 180-defined angle D-H-A (in a good agreement with VMD)
@@ -263,7 +263,7 @@ def calcHydrogenBonds(atoms, **kwargs):
     acceptors = kwargs.get('acceptors', ['N', 'O', 'S', 'F'])
     
     if atoms.hydrogen == None or atoms.hydrogen.numAtoms() < 10:
-        LOGGER.info("Provide structure with hydrogens or install Openbabel to add missing hydrogens using addHydrogens(pdb_name) first.")
+        LOGGER.info("Provide structure with hydrogens or install Openbabel to add missing hydrogens using addMissingAtoms(pdb_name) first.")
     
     contacts = findNeighbors(atoms.heavy, distA)
     short_contacts = cleanNumbers(contacts)
@@ -355,7 +355,7 @@ def calcChHydrogenBonds(atoms, **kwargs):
     :type cutoff_dist: int
 
     Structure should contain hydrogens.
-    If not they can be added using addHydrogens(pdb_name) function available in ProDy after Openbabel installation.
+    If not they can be added using addMissingAtoms(pdb_name) function available in ProDy after Openbabel installation.
     `conda install -c conda-forge openbabel`
     
     Note that the angle which it is considering is 180-defined angle D-H-A (in a good agreement with VMD)
@@ -1042,7 +1042,8 @@ def calcHydrogenBondsTrajectory(atoms, trajectory=None, **kwargs):
     if trajectory is not None: 
         if isinstance(trajectory, Atomic):
             trajectory = Ensemble(trajectory)
-            
+        
+        nfi = trajectory._nfi    
         trajectory.reset()
         
         for j0, frame0 in enumerate(trajectory):  
@@ -1061,7 +1062,8 @@ def calcHydrogenBondsTrajectory(atoms, trajectory=None, **kwargs):
                 HBs_all.append(hydrogen_bonds)
         else:
             LOGGER.info('Include trajectory or use multi-model PDB file.')
-            
+    
+    trajectory._nfi = nfi        
     return HBs_all
 
 
@@ -1104,7 +1106,8 @@ def calcSaltBridgesTrajectory(atoms, trajectory=None, **kwargs):
     if trajectory is not None:
         if isinstance(trajectory, Atomic):
             trajectory = Ensemble(trajectory)        
-                        
+        
+        nfi = trajectory._nfi                
         trajectory.reset()
         
         for j0, frame0 in enumerate(trajectory):  
@@ -1123,7 +1126,8 @@ def calcSaltBridgesTrajectory(atoms, trajectory=None, **kwargs):
                 SBs_all.append(salt_bridges)
         else:
             LOGGER.info('Include trajectory or use multiple PDB file.')        
-        
+    
+    trajectory._nfi = nfi    
     return SBs_all
     
 
@@ -1167,7 +1171,8 @@ def calcRepulsiveIonicBondingTrajectory(atoms, trajectory=None, **kwargs):
     if trajectory is not None:
         if isinstance(trajectory, Atomic):
             trajectory = Ensemble(trajectory)        
-
+        
+        nfi = trajectory._nfi
         trajectory.reset()
         
         for j0, frame0 in enumerate(trajectory):  
@@ -1186,7 +1191,8 @@ def calcRepulsiveIonicBondingTrajectory(atoms, trajectory=None, **kwargs):
                 RIB_all.append(rib)
         else:
             LOGGER.info('Include trajectory or use multiple PDB file.')                
-        
+    
+    trajectory._nfi = nfi    
     return RIB_all
 
 
@@ -1235,6 +1241,8 @@ def calcPiStackingTrajectory(atoms, trajectory=None, **kwargs):
     if trajectory is not None:
         if isinstance(trajectory, Atomic):
             trajectory = Ensemble(trajectory)        
+        
+        nfi = trajectory._nfi
         trajectory.reset()
         
         for j0, frame0 in enumerate(trajectory):  
@@ -1254,7 +1262,8 @@ def calcPiStackingTrajectory(atoms, trajectory=None, **kwargs):
 
         else:
             LOGGER.info('Include trajectory or use multiple PDB file.')        
-        
+    
+    trajectory._nfi = nfi    
     return pi_stack_all
 
 
@@ -1298,6 +1307,8 @@ def calcPiCationTrajectory(atoms, trajectory=None, **kwargs):
     if trajectory is not None:
         if isinstance(trajectory, Atomic):
             trajectory = Ensemble(trajectory)        
+        
+        nfi = trajectory._nfi
         trajectory.reset()
         
         for j0, frame0 in enumerate(trajectory):  
@@ -1316,7 +1327,8 @@ def calcPiCationTrajectory(atoms, trajectory=None, **kwargs):
                 pi_cat_all.append(pi_cat)
         else:
             LOGGER.info('Include trajectory or use multiple PDB file.')        
-        
+    
+    trajectory._nfi = nfi    
     return pi_cat_all
 
 
@@ -1358,6 +1370,8 @@ def calcHydrophobicTrajectory(atoms, trajectory=None, **kwargs):
     if trajectory is not None:
         if isinstance(trajectory, Atomic):
             trajectory = Ensemble(trajectory)        
+        
+        nfi = trajectory._nfi
         trajectory.reset()
         
         for j0, frame0 in enumerate(trajectory):  
@@ -1377,7 +1391,8 @@ def calcHydrophobicTrajectory(atoms, trajectory=None, **kwargs):
 
         else:
             LOGGER.info('Include trajectory or use multiple PDB file.')        
-        
+    
+    trajectory._nfi = nfi    
     return HPh_all
 
 
@@ -1406,6 +1421,8 @@ def calcDisulfideBondsTrajectory(atoms, trajectory=None, **kwargs):
     if trajectory is not None:
         if isinstance(trajectory, Atomic):
             trajectory = Ensemble(trajectory)        
+        
+        nfi = trajectory._nfi
         trajectory.reset()
         
         for j0, frame0 in enumerate(trajectory):  
@@ -1425,7 +1442,8 @@ def calcDisulfideBondsTrajectory(atoms, trajectory=None, **kwargs):
 
         else:
             LOGGER.info('Include trajectory or use multiple PDB file.')        
-        
+    
+    trajectory._nfi = nfi    
     return DiBs_all
 
 
@@ -1729,7 +1747,7 @@ def calcLigandInteractions(atoms, **kwargs):
 
         try:
             if atoms.hydrogen == None or atoms.hydrogen.numAtoms() < 30: # if there is no hydrogens in PDB structure
-                addHydrogens(pdb_name)
+                addMissingAtoms(pdb_name)
                 pdb_name = pdb_name[:-4]+'_addH.pdb'
                 atoms = parsePDB(pdb_name)
                 LOGGER.info("Lack of hydrogens in the structure. Hydrogens have been added.")
