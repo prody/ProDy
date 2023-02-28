@@ -984,10 +984,12 @@ def calcInteractionsMultipleFrames(atoms, interaction_type, trajectory, **kwargs
         trajectory.reset()
         numFrames = trajectory._n_csets
         
-        for j0, frame0 in enumerate(trajectory[start_frame:], start=start_frame):
-            if (j0 > 0 and j0 > stop_frame) or (j0 < 0 and j0+numFrames > stop_frame): 
-                break
-  
+        if stop_frame == -1:
+            traj = trajectory[start_frame:]
+        else:
+            traj = trajectory[start_frame:stop_frame+1]
+        
+        for j0, frame0 in enumerate(traj, start=start_frame):
             LOGGER.info('Frame: {0}'.format(j0))
             protein = atoms.select('protein')
             interactions = interactions_dic[interaction_type](protein, **kwargs)
