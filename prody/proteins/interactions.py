@@ -719,7 +719,7 @@ def calcPiCation(atoms, **kwargs):
             sele2 = atoms.select('(same residue as exwithin '+str(distA)+' of center) and resname ARG LYS and noh and not backbone and not name NE "C.*"', 
                                center=calcCenter(sele1.getCoords()))
         except:
-            LOGGER.info("Missing atoms from the side chains of the structure. Use PDBFixer.")
+            raise ValueError("Missing atoms from the side chains of the structure. Use addMissingAtoms.")
         
         if sele1 != None and sele2 != None:
             for ii in np.unique(sele2.getResnums()):
@@ -1838,7 +1838,7 @@ def calcLigandInteractions(atoms, **kwargs):
                 atoms = parsePDB(pdb_name)
                 LOGGER.info("Lack of hydrogens in the structure. Hydrogens have been added.")
         except: 
-            LOGGER.info("Install Openbabel to add missing hydrogens or provide structure with hydrogens.")
+            raise ValueError("Missing atoms from the side chains of the structure. Use addMissingAtoms.")
     
         Ligands = [] # Ligands can be more than one
         my_mol = PDBComplex()
