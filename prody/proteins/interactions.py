@@ -23,7 +23,7 @@ from numpy import *
 from prody import LOGGER, SETTINGS
 from prody.atomic import AtomGroup, Atom, Atomic, Selection, Select
 from prody.atomic import flags
-from prody.utilities import importLA, checkCoords, showFigure
+from prody.utilities import importLA, checkCoords, showFigure, getCoords
 from prody.measure import calcDistance, calcAngle, calcCenter
 from prody.measure.contacts import findNeighbors
 from prody.proteins import writePDB, parsePDB
@@ -909,6 +909,7 @@ def calcDisulfideBonds(atoms, **kwargs):
             LOGGER.info('Lack of cysteines in the structure.')
 
 
+
 def calcMetalInteractions(atoms, distA=3.0, extraIons=['FE'], excluded_ions=['SOD', 'CLA']):
     """Interactions with metal ions (includes water, ligands and other ions).
         
@@ -947,6 +948,64 @@ def calcMetalInteractions(atoms, distA=3.0, extraIons=['FE'], excluded_ions=['SO
         
     except TypeError:
         raise TypeError('An object should contain ions')
+
+
+def calcInteractionsMultipleFrames(atoms, interaction_type, trajectory, **kwargs):
+    """Compute selected type interactions for DCD trajectory or multi-model PDB using default parameters."""
+    
+    try:
+        coords = getCoords(atoms)
+    except AttributeError:
+        try:
+            checkCoords(coords)
+        except TypeError:
+            raise TypeError('coords must be an object '
+                            'with `getCoords` method')    
+    
+    interactions_all = []
+    start_frame = kwargs.pop('start_frame', 0)
+    stop_frame = kwargs.pop('stop_frame', -1)
+
+    interactions_dic = {
+    "HBs": calcHydrogenBonds,
+    "SBs": calcSaltBridges,
+    "RIB": calcRepulsiveIonicBonding,
+    "PiStack": calcPiStacking,
+    "PiCat": calcPiCation,
+    "HPh": calcHydrophobic,
+    "DiB": calcDisulfideBonds
+    }
+    
+    if trajectory is not None: 
+        if isinstance(trajectory, Atomic):
+            trajectory = Ensemble(trajectory)
+        
+        nfi = trajectory._nfi    
+        trajectory.reset()
+        numFrames = trajectory._n_csets
+        
+        for j0, frame0 in enumerate(trajectory[start_frame:], start=start_frame):
+            if (j0 > 0 and j0 > stop_frame) or (j0 < 0 and j0+numFrames > stop_frame): 
+                break
+  
+            LOGGER.info('Frame: {0}'.format(j0))
+            protein = atoms.select('protein')
+            interactions = interactions_dic[interaction_type](protein, **kwargs)
+            interactions_all.append(interactions)
+        trajectory._nfi = nfi
+    
+    else:
+        if atoms.numCoordsets() > 1:
+            for i in range(len(atoms.getCoordsets()[start_frame:stop_frame])):
+                LOGGER.info('Model: {0}'.format(i+start_frame))
+                atoms.setACSIndex(i+start_frame)
+                protein = atoms.select('protein')
+                interactions = interactions_dic[interaction_type](protein, **kwargs)
+                interactions_all.append(interactions)
+        else:
+            LOGGER.info('Include trajectory or use multi-model PDB file.')
+    
+    return interactions_all
 
 
 def calcProteinInteractions(atoms, **kwargs):
@@ -1032,49 +1091,8 @@ def calcHydrogenBondsTrajectory(atoms, trajectory=None, **kwargs):
         selection='chain A and resid 1 to 50'
     If we want to study chain-chain interactions:
         selection='chain A', selection2='chain B' """
-
-    try:
-        coords = (atoms._getCoords() if hasattr(atoms, '_getCoords') else
-                    atoms.getCoords())
-    except AttributeError:
-        try:
-            checkCoords(coords)
-        except TypeError:
-            raise TypeError('coords must be an object '
-                            'with `getCoords` method')
-
-    HBs_all = []
-    start_frame = kwargs.pop('start_frame', 0)
-    stop_frame = kwargs.pop('stop_frame', -1)
-
-    if trajectory is not None: 
-        if isinstance(trajectory, Atomic):
-            trajectory = Ensemble(trajectory)
-        
-        nfi = trajectory._nfi    
-        trajectory.reset()
-        numFrames = trajectory._n_csets
-        
-        for j0, frame0 in enumerate(trajectory[start_frame:], start=start_frame):
-            if (j0 > 0 and j0 > stop_frame) or (j0 < 0 and j0+numFrames > stop_frame): 
-                break
-  
-            LOGGER.info('Frame: {0}'.format(j0))
-            protein = atoms.select('protein')
-            hydrogen_bonds = calcHydrogenBonds(protein, **kwargs)
-            HBs_all.append(hydrogen_bonds)
-        trajectory._nfi = nfi
     
-    else:
-        if atoms.numCoordsets() > 1:
-            for i in range(len(atoms.getCoordsets()[start_frame:stop_frame])):
-                LOGGER.info('Model: {0}'.format(i+start_frame))
-                atoms.setACSIndex(i+start_frame)
-                protein = atoms.select('protein')
-                hydrogen_bonds = calcHydrogenBonds(protein, **kwargs)
-                HBs_all.append(hydrogen_bonds)
-        else:
-            LOGGER.info('Include trajectory or use multi-model PDB file.')
+    HBs_all = calcInteractionsMultipleFrames(atoms, 'HBs', trajectory, **kwargs)
     
     return HBs_all
 
@@ -1110,48 +1128,8 @@ def calcSaltBridgesTrajectory(atoms, trajectory=None, **kwargs):
     If we want to study chain-chain interactions:
         selection='chain A', selection2='chain B'  """
 
-    try:
-        coords = (atoms._getCoords() if hasattr(atoms, '_getCoords') else
-                    atoms.getCoords())
-    except AttributeError:
-        try:
-            checkCoords(coords)
-        except TypeError:
-            raise TypeError('coords must be an object '
-                            'with `getCoords` method')
-    SBs_all = []
-    start_frame = kwargs.pop('start_frame', 0)
-    stop_frame = kwargs.pop('stop_frame', -1)
-
-    if trajectory is not None:
-        if isinstance(trajectory, Atomic):
-            trajectory = Ensemble(trajectory)        
-        
-        nfi = trajectory._nfi                
-        trajectory.reset()
-        numFrames = trajectory._n_csets
-        
-        for j0, frame0 in enumerate(trajectory[start_frame:], start=start_frame):
-            if (j0 > 0 and j0 > stop_frame) or (j0 < 0 and j0+numFrames > stop_frame): 
-                break
-
-            LOGGER.info('Frame: {0}'.format(j0))
-            protein = atoms.select('protein')
-            salt_bridges = calcSaltBridges(protein, **kwargs)
-            SBs_all.append(salt_bridges)
-        trajectory._nfi = nfi    
+    SBs_all = calcInteractionsMultipleFrames(atoms, 'SBs', trajectory, **kwargs)
     
-    else:
-        if atoms.numCoordsets() > 1:
-            for i in range(len(atoms.getCoordsets()[start_frame:stop_frame])):
-                LOGGER.info('Model: {0}'.format(i+start_frame))
-                atoms.setACSIndex(i+start_frame)
-                protein = atoms.select('protein')
-                salt_bridges = calcSaltBridges(protein, **kwargs)
-                SBs_all.append(salt_bridges)
-        else:
-            LOGGER.info('Include trajectory or use multiple PDB file.')        
-
     return SBs_all
     
 
@@ -1186,49 +1164,8 @@ def calcRepulsiveIonicBondingTrajectory(atoms, trajectory=None, **kwargs):
     If we want to study chain-chain interactions:
         selection='chain A', selection2='chain B'  """
 
-    try:
-        coords = (atoms._getCoords() if hasattr(atoms, '_getCoords') else
-                    atoms.getCoords())
-    except AttributeError:
-        try:
-            checkCoords(coords)
-        except TypeError:
-            raise TypeError('coords must be an object '
-                            'with `getCoords` method')
+    RIB_all = calcInteractionsMultipleFrames(atoms, 'RIB', trajectory, **kwargs)    
 
-    RIB_all = []
-    start_frame = kwargs.pop('start_frame', 0)
-    stop_frame = kwargs.pop('stop_frame', -1)
-
-    if trajectory is not None:
-        if isinstance(trajectory, Atomic):
-            trajectory = Ensemble(trajectory)        
-        
-        nfi = trajectory._nfi
-        trajectory.reset()
-        numFrames = trajectory._n_csets
-        
-        for j0, frame0 in enumerate(trajectory[start_frame:], start=start_frame):
-            if (j0 > 0 and j0 > stop_frame) or (j0 < 0 and j0+numFrames > stop_frame): 
-                break
-        
-            LOGGER.info('Frame: {0}'.format(j0))
-            protein = atoms.select('protein')
-            rib = calcRepulsiveIonicBonding(protein, **kwargs)
-            RIB_all.append(rib)
-        trajectory._nfi = nfi    
-    
-    else:
-        if atoms.numCoordsets() > 1:
-            for i in range(len(atoms.getCoordsets()[start_frame:stop_frame])):
-                LOGGER.info('Model: {0}'.format(i+start_frame))
-                atoms.setACSIndex(i+start_frame)
-                protein = atoms.select('protein')
-                rib = calcRepulsiveIonicBonding(protein, **kwargs)
-                RIB_all.append(rib)
-        else:
-            LOGGER.info('Include trajectory or use multiple PDB file.')                
-    
     return RIB_all
 
 
@@ -1268,49 +1205,7 @@ def calcPiStackingTrajectory(atoms, trajectory=None, **kwargs):
     If we want to study chain-chain interactions:
         selection='chain A', selection2='chain B' """            
 
-    try:
-        coords = (atoms._getCoords() if hasattr(atoms, '_getCoords') else
-                    atoms.getCoords())
-    except AttributeError:
-        try:
-            checkCoords(coords)
-        except TypeError:
-            raise TypeError('coords must be an object '
-                            'with `getCoords` method')
-
-    pi_stack_all = []
-    start_frame = kwargs.pop('start_frame', 0)
-    stop_frame = kwargs.pop('stop_frame', -1)
-
-    if trajectory is not None:
-        if isinstance(trajectory, Atomic):
-            trajectory = Ensemble(trajectory)        
-        
-        nfi = trajectory._nfi
-        trajectory.reset()
-        numFrames = trajectory._n_csets
-        
-        for j0, frame0 in enumerate(trajectory[start_frame:], start=start_frame):
-            if (j0 > 0 and j0 > stop_frame) or (j0 < 0 and j0+numFrames > stop_frame): 
-                break
-        
-            LOGGER.info('Frame: {0}'.format(j0))
-            protein = atoms.select('protein')
-            pi_stack = calcPiStacking(protein, **kwargs)
-            pi_stack_all.append(pi_stack)
-        trajectory._nfi = nfi        
-    
-    else:
-        if atoms.numCoordsets() > 1:
-            for i in range(len(atoms.getCoordsets()[start_frame:stop_frame])):
-                LOGGER.info('Model: {0}'.format(i+start_frame))
-                atoms.setACSIndex(i+start_frame)
-                protein = atoms.select('protein')
-                pi_stack = calcPiStacking(protein, **kwargs)
-                pi_stack_all.append(pi_stack)
-
-        else:
-            LOGGER.info('Include trajectory or use multiple PDB file.')        
+    pi_stack_all = calcInteractionsMultipleFrames(atoms, 'PiStack', trajectory, **kwargs)
 
     return pi_stack_all
 
@@ -1346,48 +1241,7 @@ def calcPiCationTrajectory(atoms, trajectory=None, **kwargs):
     If we want to study chain-chain interactions:
         selection='chain A', selection2='chain B' """
 
-    try:
-        coords = (atoms._getCoords() if hasattr(atoms, '_getCoords') else
-                    atoms.getCoords())
-    except AttributeError:
-        try:
-            checkCoords(coords)
-        except TypeError:
-            raise TypeError('coords must be an object '
-                            'with `getCoords` method')
-
-    pi_cat_all = []
-    start_frame = kwargs.pop('start_frame', 0)
-    stop_frame = kwargs.pop('stop_frame', -1)
-    
-    if trajectory is not None:
-        if isinstance(trajectory, Atomic):
-            trajectory = Ensemble(trajectory)        
-        
-        nfi = trajectory._nfi
-        trajectory.reset()
-        numFrames = trajectory._n_csets
-        
-        for j0, frame0 in enumerate(trajectory[start_frame:], start=start_frame):
-            if (j0 > 0 and j0 > stop_frame) or (j0 < 0 and j0+numFrames > stop_frame): 
-                break
-        
-            LOGGER.info('Frame: {0}'.format(j0))
-            protein = atoms.select('protein')
-            pi_cat = calcPiCation(protein, **kwargs)
-            pi_cat_all.append(pi_cat)
-        trajectory._nfi = nfi        
-    
-    else:
-        if atoms.numCoordsets() > 1:
-            for i in range(len(atoms.getCoordsets()[start_frame:stop_frame])):
-                LOGGER.info('Model: {0}'.format(i+start_frame))
-                atoms.setACSIndex(i+start_frame)
-                protein = atoms.select('protein')
-                pi_cat = calcPiCation(protein, **kwargs)
-                pi_cat_all.append(pi_cat)
-        else:
-            LOGGER.info('Include trajectory or use multiple PDB file.')        
+    pi_cat_all = calcInteractionsMultipleFrames(atoms, 'PiCat', trajectory, **kwargs)
 
     return pi_cat_all
 
@@ -1422,49 +1276,7 @@ def calcHydrophobicTrajectory(atoms, trajectory=None, **kwargs):
     If we want to study chain-chain interactions:
         selection='chain A', selection2='chain B' """
 
-    try:
-        coords = (atoms._getCoords() if hasattr(atoms, '_getCoords') else
-                    atoms.getCoords())
-    except AttributeError:
-        try:
-            checkCoords(coords)
-        except TypeError:
-            raise TypeError('coords must be an object '
-                            'with `getCoords` method')
-
-    HPh_all = []
-    start_frame = kwargs.pop('start_frame', 0)
-    stop_frame = kwargs.pop('stop_frame', -1)
-
-    if trajectory is not None:
-        if isinstance(trajectory, Atomic):
-            trajectory = Ensemble(trajectory)        
-        
-        nfi = trajectory._nfi
-        trajectory.reset()
-        numFrames = trajectory._n_csets
-        
-        for j0, frame0 in enumerate(trajectory[start_frame:], start=start_frame):
-            if (j0 > 0 and j0 > stop_frame) or (j0 < 0 and j0+numFrames > stop_frame): 
-                break
-        
-            LOGGER.info('Frame: {0}'.format(j0))
-            protein = atoms.select('protein')
-            HPh = calcHydrophobic(protein, **kwargs)
-            HPh_all.append(HPh)
-        trajectory._nfi = nfi        
-    
-    else:
-        if atoms.numCoordsets() > 1:
-            for i in range(len(atoms.getCoordsets()[start_frame:stop_frame])):
-                LOGGER.info('Model: {0}'.format(i+start_frame))
-                atoms.setACSIndex(i+start_frame)
-                protein = atoms.select('protein')
-                HPh = calcHydrophobic(protein, **kwargs)
-                HPh_all.append(HPh)
-
-        else:
-            LOGGER.info('Include trajectory or use multiple PDB file.')        
+    HPh_all = calcInteractionsMultipleFrames(atoms, 'HPh', trajectory, **kwargs)
 
     return HPh_all
 
@@ -1487,48 +1299,7 @@ def calcDisulfideBondsTrajectory(atoms, trajectory=None, **kwargs):
     :arg stop_frame: index of last frame to read
     :type stop_frame: int """
 
-    try:
-        coords = (atoms._getCoords() if hasattr(atoms, '_getCoords') else
-                    atoms.getCoords())
-    except AttributeError:
-        try:
-            checkCoords(coords)
-        except TypeError:
-            raise TypeError('coords must be an object '
-                            'with `getCoords` method')
-    DiBs_all = []
-    start_frame = kwargs.pop('start_frame', 0)
-    stop_frame = kwargs.pop('stop_frame', -1)
-
-    if trajectory is not None:
-        if isinstance(trajectory, Atomic):
-            trajectory = Ensemble(trajectory)        
-        
-        nfi = trajectory._nfi
-        trajectory.reset()
-        numFrames = trajectory._n_csets
-        
-        for j0, frame0 in enumerate(trajectory[start_frame:], start=start_frame):
-            if (j0 > 0 and j0 > stop_frame) or (j0 < 0 and j0+numFrames > stop_frame): 
-                break
-        
-            LOGGER.info('Frame: {0}'.format(j0))
-            protein = atoms.select('protein')
-            disulfide_bonds = calcDisulfideBonds(protein, **kwargs)
-            DiBs_all.append(disulfide_bonds)
-        trajectory._nfi = nfi    
-    
-    else:
-        if atoms.numCoordsets() > 1:
-            for i in range(len(atoms.getCoordsets()[start_frame:stop_frame])):
-                LOGGER.info('Model: {0}'.format(i+start_frame))
-                atoms.setACSIndex(i+start_frame)
-                protein = atoms.select('protein')
-                disulfide_bonds = calcDisulfideBonds(protein, **kwargs)
-                DiBs_all.append(disulfide_bonds)
-
-        else:
-            LOGGER.info('Include trajectory or use multiple PDB file.')        
+    DiBs_all = calcInteractionsMultipleFrames(atoms, 'DiB', trajectory, **kwargs)
 
     return DiBs_all
 
