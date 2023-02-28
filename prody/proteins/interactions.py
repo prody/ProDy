@@ -1014,12 +1014,18 @@ def calcHydrogenBondsTrajectory(atoms, trajectory=None, **kwargs):
         that are higher than cutoff_dist.
         default is 20 atoms.
     :type cutoff_dist: int
-    
+
     :arg selection: selection string
     :type selection: str
     
     :arg selection2: selection string
     :type selection2: str
+
+    :arg start_frame: index of first frame to read
+    :type start_frame: int
+
+    :arg stop_frame: index of last frame to read
+    :type stop_frame: int
     
     Selection:
     If we want to select interactions for the particular residue or group of residues: 
@@ -1038,6 +1044,8 @@ def calcHydrogenBondsTrajectory(atoms, trajectory=None, **kwargs):
                             'with `getCoords` method')
 
     HBs_all = []
+    start_frame = kwargs.pop('start_frame', 0)
+    stop_frame = kwargs.pop('stop_frame', -1)
 
     if trajectory is not None: 
         if isinstance(trajectory, Atomic):
@@ -1045,25 +1053,29 @@ def calcHydrogenBondsTrajectory(atoms, trajectory=None, **kwargs):
         
         nfi = trajectory._nfi    
         trajectory.reset()
+        numFrames = trajectory._n_csets
         
-        for j0, frame0 in enumerate(trajectory):  
+        for j0, frame0 in enumerate(trajectory[start_frame:], start=start_frame):
+            if (j0 > 0 and j0 > stop_frame) or (j0 < 0 and j0+numFrames > stop_frame): 
+                break
+  
             LOGGER.info('Frame: {0}'.format(j0))
             protein = atoms.select('protein')
             hydrogen_bonds = calcHydrogenBonds(protein, **kwargs)
             HBs_all.append(hydrogen_bonds)
+        trajectory._nfi = nfi
     
     else:
         if atoms.numCoordsets() > 1:
-            for i in range(len(atoms.getCoordsets())):
-                LOGGER.info('Model: {0}'.format(i))
-                atoms.setACSIndex(i) 
+            for i in range(len(atoms.getCoordsets()[start_frame:stop_frame])):
+                LOGGER.info('Model: {0}'.format(i+start_frame))
+                atoms.setACSIndex(i+start_frame)
                 protein = atoms.select('protein')
                 hydrogen_bonds = calcHydrogenBonds(protein, **kwargs)
                 HBs_all.append(hydrogen_bonds)
         else:
             LOGGER.info('Include trajectory or use multi-model PDB file.')
     
-    trajectory._nfi = nfi        
     return HBs_all
 
 
@@ -1085,6 +1097,12 @@ def calcSaltBridgesTrajectory(atoms, trajectory=None, **kwargs):
     
     :arg selection2: selection string
     :type selection2: str
+
+    :arg start_frame: index of first frame to read
+    :type start_frame: int
+
+    :arg stop_frame: index of last frame to read
+    :type stop_frame: int
     
     Selection:
     If we want to select interactions for the particular residue or group of residues: 
@@ -1102,6 +1120,8 @@ def calcSaltBridgesTrajectory(atoms, trajectory=None, **kwargs):
             raise TypeError('coords must be an object '
                             'with `getCoords` method')
     SBs_all = []
+    start_frame = kwargs.pop('start_frame', 0)
+    stop_frame = kwargs.pop('stop_frame', -1)
 
     if trajectory is not None:
         if isinstance(trajectory, Atomic):
@@ -1109,25 +1129,29 @@ def calcSaltBridgesTrajectory(atoms, trajectory=None, **kwargs):
         
         nfi = trajectory._nfi                
         trajectory.reset()
+        numFrames = trajectory._n_csets
         
-        for j0, frame0 in enumerate(trajectory):  
+        for j0, frame0 in enumerate(trajectory[start_frame:], start=start_frame):
+            if (j0 > 0 and j0 > stop_frame) or (j0 < 0 and j0+numFrames > stop_frame): 
+                break
+
             LOGGER.info('Frame: {0}'.format(j0))
             protein = atoms.select('protein')
             salt_bridges = calcSaltBridges(protein, **kwargs)
             SBs_all.append(salt_bridges)
-        
+        trajectory._nfi = nfi    
+    
     else:
         if atoms.numCoordsets() > 1:
-            for i in range(len(atoms.getCoordsets())):
-                LOGGER.info('Model: {0}'.format(i))
-                atoms.setACSIndex(i) 
+            for i in range(len(atoms.getCoordsets()[start_frame:stop_frame])):
+                LOGGER.info('Model: {0}'.format(i+start_frame))
+                atoms.setACSIndex(i+start_frame)
                 protein = atoms.select('protein')
                 salt_bridges = calcSaltBridges(protein, **kwargs)
                 SBs_all.append(salt_bridges)
         else:
             LOGGER.info('Include trajectory or use multiple PDB file.')        
-    
-    trajectory._nfi = nfi    
+
     return SBs_all
     
 
@@ -1149,6 +1173,12 @@ def calcRepulsiveIonicBondingTrajectory(atoms, trajectory=None, **kwargs):
     
     :arg selection2: selection string
     :type selection2: str
+
+    :arg start_frame: index of first frame to read
+    :type start_frame: int
+
+    :arg stop_frame: index of last frame to read
+    :type stop_frame: int
     
     Selection:
     If we want to select interactions for the particular residue or group of residues: 
@@ -1167,6 +1197,8 @@ def calcRepulsiveIonicBondingTrajectory(atoms, trajectory=None, **kwargs):
                             'with `getCoords` method')
 
     RIB_all = []
+    start_frame = kwargs.pop('start_frame', 0)
+    stop_frame = kwargs.pop('stop_frame', -1)
 
     if trajectory is not None:
         if isinstance(trajectory, Atomic):
@@ -1174,25 +1206,29 @@ def calcRepulsiveIonicBondingTrajectory(atoms, trajectory=None, **kwargs):
         
         nfi = trajectory._nfi
         trajectory.reset()
+        numFrames = trajectory._n_csets
         
-        for j0, frame0 in enumerate(trajectory):  
+        for j0, frame0 in enumerate(trajectory[start_frame:], start=start_frame):
+            if (j0 > 0 and j0 > stop_frame) or (j0 < 0 and j0+numFrames > stop_frame): 
+                break
+        
             LOGGER.info('Frame: {0}'.format(j0))
             protein = atoms.select('protein')
             rib = calcRepulsiveIonicBonding(protein, **kwargs)
             RIB_all.append(rib)
-        
+        trajectory._nfi = nfi    
+    
     else:
         if atoms.numCoordsets() > 1:
-            for i in range(len(atoms.getCoordsets())):
-                LOGGER.info('Model: {0}'.format(i))
-                atoms.setACSIndex(i) 
+            for i in range(len(atoms.getCoordsets()[start_frame:stop_frame])):
+                LOGGER.info('Model: {0}'.format(i+start_frame))
+                atoms.setACSIndex(i+start_frame)
                 protein = atoms.select('protein')
                 rib = calcRepulsiveIonicBonding(protein, **kwargs)
                 RIB_all.append(rib)
         else:
             LOGGER.info('Include trajectory or use multiple PDB file.')                
     
-    trajectory._nfi = nfi    
     return RIB_all
 
 
@@ -1219,6 +1255,12 @@ def calcPiStackingTrajectory(atoms, trajectory=None, **kwargs):
     
     :arg selection2: selection string
     :type selection2: str
+
+    :arg start_frame: index of first frame to read
+    :type start_frame: int
+
+    :arg stop_frame: index of last frame to read
+    :type stop_frame: int
     
     Selection:
     If we want to select interactions for the particular residue or group of residues: 
@@ -1237,6 +1279,8 @@ def calcPiStackingTrajectory(atoms, trajectory=None, **kwargs):
                             'with `getCoords` method')
 
     pi_stack_all = []
+    start_frame = kwargs.pop('start_frame', 0)
+    stop_frame = kwargs.pop('stop_frame', -1)
 
     if trajectory is not None:
         if isinstance(trajectory, Atomic):
@@ -1244,26 +1288,30 @@ def calcPiStackingTrajectory(atoms, trajectory=None, **kwargs):
         
         nfi = trajectory._nfi
         trajectory.reset()
+        numFrames = trajectory._n_csets
         
-        for j0, frame0 in enumerate(trajectory):  
+        for j0, frame0 in enumerate(trajectory[start_frame:], start=start_frame):
+            if (j0 > 0 and j0 > stop_frame) or (j0 < 0 and j0+numFrames > stop_frame): 
+                break
+        
             LOGGER.info('Frame: {0}'.format(j0))
             protein = atoms.select('protein')
             pi_stack = calcPiStacking(protein, **kwargs)
             pi_stack_all.append(pi_stack)
-        
+        trajectory._nfi = nfi        
+    
     else:
         if atoms.numCoordsets() > 1:
-            for i in range(len(atoms.getCoordsets())):
-                LOGGER.info('Model: {0}'.format(i))
-                atoms.setACSIndex(i) 
+            for i in range(len(atoms.getCoordsets()[start_frame:stop_frame])):
+                LOGGER.info('Model: {0}'.format(i+start_frame))
+                atoms.setACSIndex(i+start_frame)
                 protein = atoms.select('protein')
                 pi_stack = calcPiStacking(protein, **kwargs)
                 pi_stack_all.append(pi_stack)
 
         else:
             LOGGER.info('Include trajectory or use multiple PDB file.')        
-    
-    trajectory._nfi = nfi    
+
     return pi_stack_all
 
 
@@ -1286,6 +1334,12 @@ def calcPiCationTrajectory(atoms, trajectory=None, **kwargs):
     :arg selection2: selection string
     :type selection2: str
 
+    :arg start_frame: index of first frame to read
+    :type start_frame: int
+
+    :arg stop_frame: index of last frame to read
+    :type stop_frame: int
+
     Selection:
     If we want to select interactions for the particular residue or group of residues: 
         selection='chain A and resid 1 to 50'
@@ -1303,6 +1357,8 @@ def calcPiCationTrajectory(atoms, trajectory=None, **kwargs):
                             'with `getCoords` method')
 
     pi_cat_all = []
+    start_frame = kwargs.pop('start_frame', 0)
+    stop_frame = kwargs.pop('stop_frame', -1)
     
     if trajectory is not None:
         if isinstance(trajectory, Atomic):
@@ -1310,25 +1366,29 @@ def calcPiCationTrajectory(atoms, trajectory=None, **kwargs):
         
         nfi = trajectory._nfi
         trajectory.reset()
+        numFrames = trajectory._n_csets
         
-        for j0, frame0 in enumerate(trajectory):  
+        for j0, frame0 in enumerate(trajectory[start_frame:], start=start_frame):
+            if (j0 > 0 and j0 > stop_frame) or (j0 < 0 and j0+numFrames > stop_frame): 
+                break
+        
             LOGGER.info('Frame: {0}'.format(j0))
             protein = atoms.select('protein')
             pi_cat = calcPiCation(protein, **kwargs)
             pi_cat_all.append(pi_cat)
-        
+        trajectory._nfi = nfi        
+    
     else:
         if atoms.numCoordsets() > 1:
-            for i in range(len(atoms.getCoordsets())):
-                LOGGER.info('Model: {0}'.format(i))
-                atoms.setACSIndex(i) 
+            for i in range(len(atoms.getCoordsets()[start_frame:stop_frame])):
+                LOGGER.info('Model: {0}'.format(i+start_frame))
+                atoms.setACSIndex(i+start_frame)
                 protein = atoms.select('protein')
                 pi_cat = calcPiCation(protein, **kwargs)
                 pi_cat_all.append(pi_cat)
         else:
             LOGGER.info('Include trajectory or use multiple PDB file.')        
-    
-    trajectory._nfi = nfi    
+
     return pi_cat_all
 
 
@@ -1349,6 +1409,12 @@ def calcHydrophobicTrajectory(atoms, trajectory=None, **kwargs):
     
     :arg selection2: selection string
     :type selection2: str
+
+    :arg start_frame: index of first frame to read
+    :type start_frame: int
+
+    :arg stop_frame: index of last frame to read
+    :type stop_frame: int
     
     Selection:
     If we want to select interactions for the particular residue or group of residues: 
@@ -1367,32 +1433,39 @@ def calcHydrophobicTrajectory(atoms, trajectory=None, **kwargs):
                             'with `getCoords` method')
 
     HPh_all = []
+    start_frame = kwargs.pop('start_frame', 0)
+    stop_frame = kwargs.pop('stop_frame', -1)
+
     if trajectory is not None:
         if isinstance(trajectory, Atomic):
             trajectory = Ensemble(trajectory)        
         
         nfi = trajectory._nfi
         trajectory.reset()
+        numFrames = trajectory._n_csets
         
-        for j0, frame0 in enumerate(trajectory):  
+        for j0, frame0 in enumerate(trajectory[start_frame:], start=start_frame):
+            if (j0 > 0 and j0 > stop_frame) or (j0 < 0 and j0+numFrames > stop_frame): 
+                break
+        
             LOGGER.info('Frame: {0}'.format(j0))
             protein = atoms.select('protein')
             HPh = calcHydrophobic(protein, **kwargs)
             HPh_all.append(HPh)
-        
+        trajectory._nfi = nfi        
+    
     else:
         if atoms.numCoordsets() > 1:
-            for i in range(len(atoms.getCoordsets())):
-                LOGGER.info('Model: {0}'.format(i))
-                atoms.setACSIndex(i) 
+            for i in range(len(atoms.getCoordsets()[start_frame:stop_frame])):
+                LOGGER.info('Model: {0}'.format(i+start_frame))
+                atoms.setACSIndex(i+start_frame)
                 protein = atoms.select('protein')
                 HPh = calcHydrophobic(protein, **kwargs)
                 HPh_all.append(HPh)
 
         else:
             LOGGER.info('Include trajectory or use multiple PDB file.')        
-    
-    trajectory._nfi = nfi    
+
     return HPh_all
 
 
@@ -1406,7 +1479,13 @@ def calcDisulfideBondsTrajectory(atoms, trajectory=None, **kwargs):
     :type trajectory: class:`.Trajectory`
     
     :arg distA: non-zero value, maximal distance between atoms of hydrophobic residues.
-    :type distA: int, float, default is 2.5."""
+    :type distA: int, float, default is 2.5.
+
+    :arg start_frame: index of first frame to read
+    :type start_frame: int
+
+    :arg stop_frame: index of last frame to read
+    :type stop_frame: int """
 
     try:
         coords = (atoms._getCoords() if hasattr(atoms, '_getCoords') else
@@ -1418,32 +1497,39 @@ def calcDisulfideBondsTrajectory(atoms, trajectory=None, **kwargs):
             raise TypeError('coords must be an object '
                             'with `getCoords` method')
     DiBs_all = []
+    start_frame = kwargs.pop('start_frame', 0)
+    stop_frame = kwargs.pop('stop_frame', -1)
+
     if trajectory is not None:
         if isinstance(trajectory, Atomic):
             trajectory = Ensemble(trajectory)        
         
         nfi = trajectory._nfi
         trajectory.reset()
+        numFrames = trajectory._n_csets
         
-        for j0, frame0 in enumerate(trajectory):  
+        for j0, frame0 in enumerate(trajectory[start_frame:], start=start_frame):
+            if (j0 > 0 and j0 > stop_frame) or (j0 < 0 and j0+numFrames > stop_frame): 
+                break
+        
             LOGGER.info('Frame: {0}'.format(j0))
             protein = atoms.select('protein')
             disulfide_bonds = calcDisulfideBonds(protein, **kwargs)
             DiBs_all.append(disulfide_bonds)
-
+        trajectory._nfi = nfi    
+    
     else:
         if atoms.numCoordsets() > 1:
-            for i in range(len(atoms.getCoordsets())):
-                LOGGER.info('Model: {0}'.format(i))
-                atoms.setACSIndex(i) 
+            for i in range(len(atoms.getCoordsets()[start_frame:stop_frame])):
+                LOGGER.info('Model: {0}'.format(i+start_frame))
+                atoms.setACSIndex(i+start_frame)
                 protein = atoms.select('protein')
                 disulfide_bonds = calcDisulfideBonds(protein, **kwargs)
                 DiBs_all.append(disulfide_bonds)
 
         else:
             LOGGER.info('Include trajectory or use multiple PDB file.')        
-    
-    trajectory._nfi = nfi    
+
     return DiBs_all
 
 
@@ -2580,8 +2666,9 @@ class InteractionsTrajectory(object):
         self._hps_traj = None
 
 
-    def calcProteinInteractionsTrajectory(self, atoms, trajectory, filename=None, **kwargs):
-        """Compute all protein interactions (shown below) for DCD trajectory using default parameters.
+    def calcProteinInteractionsTrajectory(self, atoms, trajectory=None, filename=None, **kwargs):
+        """Compute all protein interactions (shown below) for DCD trajectory or multi-model PDB 
+            using default parameters.
             (1) Hydrogen bonds
             (2) Salt Bridges
             (3) RepulsiveIonicBonding 
@@ -2593,10 +2680,28 @@ class InteractionsTrajectory(object):
         :type atoms: :class:`.Atomic`
         
         :arg trajectory: trajectory file
-        :type trajectory: class:`.Trajectory`        
+        :type trajectory: class:`.Trajectory`
 
         :arg filename: Name of pkl filename in which interactions will be storage
-        :type filename: pkl """
+        :type filename: pkl 
+        
+        :arg selection: selection string
+        :type selection: str
+    
+        :arg selection2: selection string
+        :type selection2: str
+
+        :arg start_frame: index of first frame to read
+        :type start_frame: int
+
+        :arg stop_frame: index of last frame to read
+        :type stop_frame: int
+    
+        Selection:
+        If we want to select interactions for the particular residue or group of residues: 
+            selection='chain A and resid 1 to 50'
+        If we want to study chain-chain interactions:
+            selection='chain A', selection2='chain B' """
 
         try:
             coords = (atoms._getCoords() if hasattr(atoms, '_getCoords') else
@@ -2608,12 +2713,9 @@ class InteractionsTrajectory(object):
                 raise TypeError('coords must be an object '
                                 'with `getCoords` method')
         
-        if not isinstance(trajectory, (TrajBase, Ensemble, Atomic)):
-            raise TypeError('{0} is not a valid type for trajectory'
-                        .format(type(trajectory)))
-
-        if isinstance(trajectory, Atomic):
-            trajectory = Ensemble(trajectory)
+        #if not isinstance(trajectory, (TrajBase, Ensemble, Atomic)):
+        #    raise TypeError('{0} is not a valid type for trajectory'
+        #                .format(type(trajectory)))
                         
         HBs_all = []
         SBs_all = []
@@ -2628,31 +2730,74 @@ class InteractionsTrajectory(object):
         PiStack_nb = []
         PiCat_nb = []
         HPh_nb = []
-        trajectory.reset()
-        
-        for j0, frame0 in enumerate(trajectory):  
-            LOGGER.info('Frame: {0}'.format(j0))
-            
-            hydrogen_bonds = calcHydrogenBonds(atoms.protein, **kwargs)
-            salt_bridges = calcSaltBridges(atoms.protein, **kwargs)
-            RepulsiveIonicBonding = calcRepulsiveIonicBonding(atoms.protein, **kwargs)
-            Pi_stacking = calcPiStacking(atoms.protein, **kwargs)
-            Pi_cation = calcPiCation(atoms.protein, **kwargs)
-            hydrophobic = calcHydrophobic(atoms.protein, **kwargs)
 
-            HBs_all.append(hydrogen_bonds)
-            SBs_all.append(salt_bridges)
-            RIB_all.append(RepulsiveIonicBonding)
-            PiStack_all.append(Pi_stacking)
-            PiCat_all.append(Pi_cation)
-            HPh_all.append(hydrophobic)
+        start_frame = kwargs.pop('start_frame', 0)
+        stop_frame = kwargs.pop('stop_frame', -1)
+
+        if trajectory is not None:
+            if isinstance(trajectory, Atomic):
+                trajectory = Ensemble(trajectory)
+        
+            nfi = trajectory._nfi
+            trajectory.reset()
+            numFrames = trajectory._n_csets
+        
+            for j0, frame0 in enumerate(trajectory[start_frame:], start=start_frame):
+                if (j0 > 0 and j0 > stop_frame) or (j0 < 0 and j0+numFrames > stop_frame): 
+                    break
+
+                LOGGER.info('Frame: {0}'.format(j0))
+                hydrogen_bonds = calcHydrogenBonds(atoms.protein, **kwargs)
+                salt_bridges = calcSaltBridges(atoms.protein, **kwargs)
+                RepulsiveIonicBonding = calcRepulsiveIonicBonding(atoms.protein, **kwargs)
+                Pi_stacking = calcPiStacking(atoms.protein, **kwargs)
+                Pi_cation = calcPiCation(atoms.protein, **kwargs)
+                hydrophobic = calcHydrophobic(atoms.protein, **kwargs)
+
+                HBs_all.append(hydrogen_bonds)
+                SBs_all.append(salt_bridges)
+                RIB_all.append(RepulsiveIonicBonding)
+                PiStack_all.append(Pi_stacking)
+                PiCat_all.append(Pi_cation)
+                HPh_all.append(hydrophobic)
             
-            HBs_nb.append(len(hydrogen_bonds))
-            SBs_nb.append(len(salt_bridges))
-            RIB_nb.append(len(RepulsiveIonicBonding))
-            PiStack_nb.append(len(Pi_stacking))
-            PiCat_nb.append(len(Pi_cation))
-            HPh_nb.append(len(hydrophobic))
+                HBs_nb.append(len(hydrogen_bonds))
+                SBs_nb.append(len(salt_bridges))
+                RIB_nb.append(len(RepulsiveIonicBonding))
+                PiStack_nb.append(len(Pi_stacking))
+                PiCat_nb.append(len(Pi_cation))
+                HPh_nb.append(len(hydrophobic))
+      
+        else:
+            if atoms.numCoordsets() > 1:
+                for i in range(len(atoms.getCoordsets()[start_frame:stop_frame])):
+                    LOGGER.info('Model: {0}'.format(i+start_frame))
+                    atoms.setACSIndex(i+start_frame) 
+                    protein = atoms.select('protein')
+                    
+                    hydrogen_bonds = calcHydrogenBonds(atoms.protein, **kwargs)
+                    salt_bridges = calcSaltBridges(atoms.protein, **kwargs)
+                    RepulsiveIonicBonding = calcRepulsiveIonicBonding(atoms.protein, **kwargs)
+                    Pi_stacking = calcPiStacking(atoms.protein, **kwargs)
+                    Pi_cation = calcPiCation(atoms.protein, **kwargs)
+                    hydrophobic = calcHydrophobic(atoms.protein, **kwargs)
+
+                    HBs_all.append(hydrogen_bonds)
+                    SBs_all.append(salt_bridges)
+                    RIB_all.append(RepulsiveIonicBonding)
+                    PiStack_all.append(Pi_stacking)
+                    PiCat_all.append(Pi_cation)
+                    HPh_all.append(hydrophobic)
+            
+                    HBs_nb.append(len(hydrogen_bonds))
+                    SBs_nb.append(len(salt_bridges))
+                    RIB_nb.append(len(RepulsiveIonicBonding))
+                    PiStack_nb.append(len(Pi_stacking))
+                    PiCat_nb.append(len(Pi_cation))
+                    HPh_nb.append(len(hydrophobic))
+
+            else:
+                LOGGER.info('Include trajectory or use multi-model PDB file.') 
         
         self._atoms = atoms
         self._traj = trajectory
