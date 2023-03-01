@@ -9,6 +9,7 @@ The following interactions are available for protein interactions:
         (4) Pi stacking interactions
         (5) Pi-cation interactions
         (6) Hydrophobic interactions
+        (7) Disulfide Bonds
 
 For protein-ligand interactions (3) is replaced by water bridges.
 """
@@ -47,7 +48,7 @@ __all__ = ['calcHydrogenBonds', 'calcChHydrogenBonds', 'calcSaltBridges',
 
 
 def cleanNumbers(listContacts):
-    """Provide short list with indices and value of distance"""
+    """Provide short list with indices and value of distance."""
     
     shortList = [ [int(str(i[0]).split()[-1].strip(')')), 
                            int(str(i[1]).split()[-1].strip(')')), 
@@ -77,7 +78,7 @@ def calcPlane(atoms):
 
 
 def calcAngleBetweenPlanes(a1, b1, c1, a2, b2, c2):  
-    """Find angle between two planes"""
+    """Find angle between two planes."""
     import math 
           
     d = ( a1 * a2 + b1 * b2 + c1 * c2 ) 
@@ -101,7 +102,7 @@ def removeDuplicates(list_of_interactions):
 
 
 def filterInteractions(list_of_interactions, atoms, **kwargs):
-    """Return interactions based on selection"""
+    """Return interactions based on selection."""
     
     if 'selection' in kwargs:
         if 'selection2' in kwargs:
@@ -583,7 +584,7 @@ def calcPiStacking(atoms, **kwargs):
         >>> calcPiStacking(atoms, non_standard)
     
     Predictions for proteins only. 
-    To compute protein-ligand interactions use calcLigandInteractions() or define **kwargs"""
+    To compute protein-ligand interactions use calcLigandInteractions() or define **kwargs. """
 
     try:
         coords = (atoms._getCoords() if hasattr(atoms, '_getCoords') else
@@ -909,7 +910,6 @@ def calcDisulfideBonds(atoms, **kwargs):
             LOGGER.info('Lack of cysteines in the structure.')
 
 
-
 def calcMetalInteractions(atoms, distA=3.0, extraIons=['FE'], excluded_ions=['SOD', 'CLA']):
     """Interactions with metal ions (includes water, ligands and other ions).
         
@@ -951,7 +951,8 @@ def calcMetalInteractions(atoms, distA=3.0, extraIons=['FE'], excluded_ions=['SO
 
 
 def calcInteractionsMultipleFrames(atoms, interaction_type, trajectory, **kwargs):
-    """Compute selected type interactions for DCD trajectory or multi-model PDB using default parameters."""
+    """Compute selected type interactions for DCD trajectory or multi-model PDB 
+    using default parameters."""
     
     try:
         coords = getCoords(atoms)
@@ -1136,7 +1137,8 @@ def calcSaltBridgesTrajectory(atoms, trajectory=None, **kwargs):
     
 
 def calcRepulsiveIonicBondingTrajectory(atoms, trajectory=None, **kwargs):  
-    """Compute repulsive ionic bonding for DCD trajectory or multi-model PDB using default parameters.
+    """Compute repulsive ionic bonding for DCD trajectory or multi-model PDB 
+    using default parameters.
         
     :arg atoms: an Atomic object from which residues are selected
     :type atoms: :class:`.Atomic`
@@ -1172,7 +1174,8 @@ def calcRepulsiveIonicBondingTrajectory(atoms, trajectory=None, **kwargs):
 
 
 def calcPiStackingTrajectory(atoms, trajectory=None, **kwargs):   
-    """Compute Pi-stacking interactions for DCD trajectory or multi-model PDB using default parameters.
+    """Compute Pi-stacking interactions for DCD trajectory or multi-model PDB 
+    using default parameters.
         
     :arg atoms: an Atomic object from which residues are selected
     :type atoms: :class:`.Atomic`
@@ -1180,7 +1183,8 @@ def calcPiStackingTrajectory(atoms, trajectory=None, **kwargs):
     :arg trajectory: trajectory file
     :type trajectory: class:`.Trajectory`
     
-    :arg distA: non-zero value, maximal distance between center of masses of residues aromatic rings.
+    :arg distA: non-zero value, maximal distance between center of masses 
+                of residues aromatic rings.
     :type distA: int, float, default is 5.
     
     :arg angle_min: minimal angle between aromatic rings.
@@ -1213,7 +1217,8 @@ def calcPiStackingTrajectory(atoms, trajectory=None, **kwargs):
 
 
 def calcPiCationTrajectory(atoms, trajectory=None, **kwargs):  
-    """Compute Pi-cation interactions for DCD trajectory or multi-model PDB using default parameters.
+    """Compute Pi-cation interactions for DCD trajectory or multi-model PDB 
+    using default parameters.
         
     :arg atoms: an Atomic object from which residues are selected
     :type atoms: :class:`.Atomic`
@@ -1249,7 +1254,8 @@ def calcPiCationTrajectory(atoms, trajectory=None, **kwargs):
 
 
 def calcHydrophobicTrajectory(atoms, trajectory=None, **kwargs):  
-    """Compute hydrophobic interactions for DCD trajectory or multi-model PDB using default parameters.
+    """Compute hydrophobic interactions for DCD trajectory or multi-model PDB 
+    using default parameters.
         
     :arg atoms: an Atomic object from which residues are selected
     :type atoms: :class:`.Atomic`
@@ -1557,8 +1563,8 @@ def calcStatisticsInteractions(data):
     
 
 def calcLigandInteractions(atoms, **kwargs):
-    """Provide ligand interactions with other elements of the system including protein, water and ions.
-    Results are computed by PLIP [SS15]_ which should be installed.
+    """Provide ligand interactions with other elements of the system including protein, 
+    water and ions. Results are computed by PLIP [SS15]_ which should be installed.
     Note that PLIP will not recognize ligand unless it will be HETATM in the PDB file.
     
     :arg atoms: an Atomic object from which residues are selected
@@ -1663,14 +1669,12 @@ def listLigandInteractions(PLIP_output):
     :arg PLIP_output: Results from PLIP for protein-ligand interactions.
     :type PLIP_output: PLIP object obtained from calcLigandInteractions() 
     
-    Note that five types of interactions are considered: hydrogen bonds, salt bridges, pi-stacking,
-    cation-pi, hydrophobic and water bridges."""
+    Note that five types of interactions are considered: hydrogen bonds, salt bridges, 
+    pi-stacking, cation-pi, hydrophobic and water bridges."""
     
     Inter_list_all = []
     for i in PLIP_output.all_itypes:
         param_inter = [method for method in dir(i) if method.startswith('_') is False]
-        
-        #LOGGER.info(str(type(i)).split('.')[-1].strip("'>"))
         
         if str(type(i)).split('.')[-1].strip("'>") == 'hbond':
             Inter_list = ['hbond',i.restype+str(i.resnr), i[0].type+'_'+str(i.d_orig_idx), i.reschain,
@@ -1761,7 +1765,7 @@ def showProteinInteractions_VMD(atoms, interactions, color='red',**kwargs):
     
     def TCLforSingleInteraction(interaction, color='blue', tcl_file=tcl_file):
         """Creates TCL file for the VMD program based on the interactions
-        computed by 
+        computed by any function which returns interactions.
         
         :arg interactions: List of interactions for protein interactions.
         :type interactions: List of lists
@@ -1815,7 +1819,8 @@ def showLigandInteraction_VMD(atoms, interactions, **kwargs):
     """Save information from PLIP for ligand-protein interactions in a TCL file
     which can be further used in VMD to display all intercations in a graphical 
     interface (hydrogen bonds - `blue`, salt bridges - `yellow`,
-    pi stacking - `green`, cation-pi - `orange`, hydrophobic - `silver` and water bridges - `cyan`).
+    pi stacking - `green`, cation-pi - `orange`, hydrophobic - `silver` 
+    and water bridges - `cyan`).
     
     :arg atoms: an Atomic object from which residues are selected
     :type atoms: :class:`.Atomic`
@@ -1877,7 +1882,6 @@ def showLigandInteraction_VMD(atoms, interactions, **kwargs):
             tcl_file.write('mol material Opaque\n')
             tcl_file.write('mol addrep 0 \n')            
 
-
     tcl_file.write('draw materials off')
     tcl_file.close()   
     LOGGER.info("TCL file saved")
@@ -1916,8 +1920,11 @@ class Interactions(object):
             (5) Pi-cation interactions
             (6) Hydrophobic interactions
         
+        Additionally, disulfide bonds can be calulacted using calcDisulfideBonds().
+        They are not included in this function. 
+        
         :arg atoms: an Atomic object from which residues are selected
-        :type atoms: :class:`.Atomic`"""
+        :type atoms: :class:`.Atomic` """
 
         try:
             coords = (atoms._getCoords() if hasattr(atoms, '_getCoords') else
@@ -1952,13 +1959,13 @@ class Interactions(object):
 
     
     def getAtoms(self):
-        """Returns associated atoms"""
+        """Returns associated atoms. """
 
         return self._atoms
 
 
     def getInteractions(self, **kwargs):
-        """Returns the list of all interactions
+        """Returns the list of all interactions.
         
         :arg selection: selection string
         :type selection: str
@@ -1981,7 +1988,7 @@ class Interactions(object):
 
 
     def getHydrogenBonds(self, **kwargs):
-        """Returns the list of hydrogen bonds
+        """Returns the list of hydrogen bonds.
 
         :arg selection: selection string
         :type selection: str
@@ -2004,7 +2011,7 @@ class Interactions(object):
 
 
     def getSaltBridges(self, **kwargs):
-        """Returns the list of salt bridges
+        """Returns the list of salt bridges.
 
         :arg selection: selection string
         :type selection: str
@@ -2027,7 +2034,7 @@ class Interactions(object):
         
 
     def getRepulsiveIonicBonding(self, **kwargs):
-        """Returns the list of repulsive ionic bonding
+        """Returns the list of repulsive ionic bonding.
 
         :arg selection: selection string
         :type selection: str
@@ -2051,7 +2058,7 @@ class Interactions(object):
         
 
     def getPiStacking(self, **kwargs):
-        """Returns the list of Pi-stacking interactions
+        """Returns the list of Pi-stacking interactions.
 
         :arg selection: selection string
         :type selection: str
@@ -2074,7 +2081,7 @@ class Interactions(object):
 
 
     def getPiCation(self, **kwargs):
-        """Returns the list of Pi-cation interactions
+        """Returns the list of Pi-cation interactions.
         
         :arg selection: selection string
         :type selection: str
@@ -2097,7 +2104,7 @@ class Interactions(object):
 
         
     def getHydrophobic(self, **kwargs):
-        """Returns the list of hydrophobic interactions
+        """Returns the list of hydrophobic interactions.
 
         :arg selection: selection string
         :type selection: str
@@ -2120,7 +2127,7 @@ class Interactions(object):
 
 
     def setNewHydrogenBonds(self, interaction):
-        """Replace default calculation of hydrogen bonds by the one provided by user"""
+        """Replace default calculation of hydrogen bonds by the one provided by user."""
 
         self._interactions[0] = interaction
         self._hbs = self._interactions[0]    
@@ -2128,7 +2135,7 @@ class Interactions(object):
 
 
     def setNewSaltBridges(self, interaction):
-        """Replace default calculation of salt bridges by the one provided by user"""
+        """Replace default calculation of salt bridges by the one provided by user."""
 
         self._interactions[1] = interaction
         self._sbs = self._interactions[1]  
@@ -2136,7 +2143,7 @@ class Interactions(object):
 
 
     def setNewRepulsiveIonicBonding(self, interaction):
-        """Replace default calculation of repulsive ionic bonding by the one provided by user"""
+        """Replace default calculation of repulsive ionic bonding by the one provided by user."""
 
         self._interactions[2] = interaction
         self._rib = self._interactions[2]   
@@ -2144,7 +2151,7 @@ class Interactions(object):
 
         
     def setNewPiStacking(self, interaction):
-        """Replace default calculation of pi-stacking interactions by the one provided by user"""
+        """Replace default calculation of pi-stacking interactions by the one provided by user."""
 
         self._interactions[3] = interaction
         self._piStack = self._interactions[3]   
@@ -2152,7 +2159,7 @@ class Interactions(object):
 
 
     def setNewPiCation(self, interaction):
-        """Replace default calculation of pi-cation interactions by the one provided by user"""
+        """Replace default calculation of pi-cation interactions by the one provided by user."""
 
         self._interactions[4] = interaction
         self._piCat = self._interactions[4]   
@@ -2160,7 +2167,7 @@ class Interactions(object):
 
 
     def setNewHydrophobic(self, interaction):
-        """Replace default calculation of hydrophobic interactions by the one provided by user"""
+        """Replace default calculation of hydrophobic interactions by the one provided by user."""
 
         self._interactions[5] = interaction
         self._hps = self._interactions[5]  
@@ -2276,11 +2283,10 @@ class Interactions(object):
         
         :arg filename: name of the PDB file which will be saved for visualization,
                      it will contain the results in occupancy column.
-        :type filename: str
-        """
+        :type filename: str  """
         
         if not hasattr(self, '_interactions_matrix') or self._interactions_matrix is None:
-            raise ValueError('Please calculate interactions matrix first')
+            raise ValueError('Please calculate interactions matrix first.')
 
         import numpy as np
         interaction_matrix = self._interactions_matrix
@@ -2307,7 +2313,8 @@ class Interactions(object):
         
 
     def getFrequentInteractors(self, contacts_min=3):
-        """Provide a list of residues with the most frequent interactions based on the following interactions:
+        """Provide a list of residues with the most frequent interactions based 
+        on the following interactions:
             (1) Hydrogen bonds (hb)
             (2) Salt Bridges (sb)
             (3) Repulsive Ionic Bonding (rb) 
@@ -2366,8 +2373,7 @@ class Interactions(object):
 
         Nonstandard resiudes can be updated in a following way:
         d = {'CYX': 'X', 'CEA': 'Z'}
-        >>> name.showFrequentInteractors(d)
-        """
+        >>> name.showFrequentInteractors(d)  """
         
         if not hasattr(self, '_interactions_matrix') or self._interactions_matrix is None:
             raise ValueError('Please calculate interactions matrix first')
@@ -2382,7 +2388,7 @@ class Interactions(object):
         aa_dic = {'CYS': 'C', 'ASP': 'D', 'SER': 'S', 'GLN': 'Q', 'LYS': 'K',
              'ILE': 'I', 'PRO': 'P', 'THR': 'T', 'PHE': 'F', 'ASN': 'N', 
                   'GLY': 'G', 'HIS': 'H', 'LEU': 'L', 'ARG': 'R', 'TRP': 'W', 
-                       'ALA': 'A', 'VAL':'V', 'GLU': 'E', 'TYR': 'Y', 'MET': 'M', 'HSE': 'H', 'HSD': 'H'}#, **kwargs}
+                       'ALA': 'A', 'VAL':'V', 'GLU': 'E', 'TYR': 'Y', 'MET': 'M', 'HSE': 'H', 'HSD': 'H'}
 
         for key, value in kwargs.items():
             aa_dict[key] = value
@@ -2410,7 +2416,7 @@ class Interactions(object):
             fig = plt.figure(num=None, figsize=(12,6), facecolor='w')
         
         y_pos = np.arange(len(y))
-        show = plt.bar(y_pos, x, align='center', alpha=0.5, color='blue', **kwargs)
+        show = plt.bar(y_pos, x, align='center', alpha=0.5, color='blue')
         plt.xticks(y_pos, y, rotation=45, fontsize=20)
         plt.ylabel('Score of interactions')
         plt.tight_layout()
@@ -2486,10 +2492,6 @@ class InteractionsTrajectory(object):
                 raise TypeError('coords must be an object '
                                 'with `getCoords` method')
         
-        #if not isinstance(trajectory, (TrajBase, Ensemble, Atomic)):
-        #    raise TypeError('{0} is not a valid type for trajectory'
-        #                .format(type(trajectory)))
-                        
         HBs_all = []
         SBs_all = []
         RIB_all = []
@@ -2644,7 +2646,7 @@ class InteractionsTrajectory(object):
         If we want to select interactions for the particular residue or group of residues: 
             selection='chain A and resid 1 to 50'
         If we want to study chain-chain interactions:
-            selection='chain A', selection2='chain B'  """
+            selection='chain A', selection2='chain B' """
 
         if len(kwargs) != 0:
             sele_inter = []
@@ -2670,7 +2672,7 @@ class InteractionsTrajectory(object):
         If we want to select interactions for the particular residue or group of residues: 
             selection='chain A and resid 1 to 50'
         If we want to study chain-chain interactions:
-            selection='chain A', selection2='chain B'   """
+            selection='chain A', selection2='chain B' """
         
         if len(kwargs) != 0:
             sele_inter = []
@@ -2788,7 +2790,7 @@ class InteractionsTrajectory(object):
 
 
     def setNewHydrogenBondsTrajectory(self, interaction):
-        """Replace default calculation of hydrogen bonds by the one provided by user"""
+        """Replace default calculation of hydrogen bonds by the one provided by user."""
 
         self._interactions_traj[0] = interaction
         self._hbs_traj = self._interactions_traj[0]    
@@ -2797,7 +2799,7 @@ class InteractionsTrajectory(object):
 
 
     def setNewSaltBridgesTrajectory(self, interaction):
-        """Replace default calculation of salt bridges by the one provided by user"""
+        """Replace default calculation of salt bridges by the one provided by user."""
 
         self._interactions_traj[1] = interaction
         self._sbs_traj = self._interactions_traj[1]  
@@ -2806,7 +2808,7 @@ class InteractionsTrajectory(object):
 
 
     def setNewRepulsiveIonicBondingTrajectory(self, interaction):
-        """Replace default calculation of repulsive ionic bonding by the one provided by user"""
+        """Replace default calculation of repulsive ionic bonding by the one provided by user. """
 
         self._interactions_traj[2] = interaction
         self._rib_traj = self._interactions_traj[2]   
@@ -2815,7 +2817,7 @@ class InteractionsTrajectory(object):
 
         
     def setNewPiStackingTrajectory(self, interaction):
-        """Replace default calculation of pi-stacking interactions by the one provided by user"""
+        """Replace default calculation of pi-stacking interactions by the one provided by user."""
 
         self._interactions_traj[3] = interaction
         self._piStack_traj = self._interactions_traj[3]   
@@ -2824,7 +2826,7 @@ class InteractionsTrajectory(object):
 
 
     def setNewPiCationTrajectory(self, interaction):
-        """Replace default calculation of pi-cation interactions by the one provided by user"""
+        """Replace default calculation of pi-cation interactions by the one provided by user."""
 
         self._interactions_traj[4] = interaction
         self._piCat_traj = self._interactions_traj[4]   
@@ -2833,7 +2835,7 @@ class InteractionsTrajectory(object):
 
 
     def setNewHydrophobicTrajectory(self, interaction):
-        """Replace default calculation of hydrophobic interactions by the one provided by user"""
+        """Replace default calculation of hydrophobic interactions by the one provided by user."""
 
         self._interactions_traj[5] = interaction
         self._hps_traj = self._interactions_traj[5]  
@@ -2846,7 +2848,7 @@ class InteractionsTrajectory(object):
         calcProteinInteractionsTrajectory().
         
         :arg filename: Name of pkl file in which interactions will be storage
-        :type filename: pkl"""
+        :type filename: pkl """
         
         import pickle
         with open(filename, 'rb') as f:
@@ -2868,7 +2870,7 @@ class InteractionsTrajectory(object):
         """Return a bar plots with the number of interactions per each frame.
         
         :arg filename: PNG file name
-        :type filename: str"""
+        :type filename: str """
         
         HBs = self._interactions_nb_traj[0]
         SBs = self._interactions_nb_traj[1]
