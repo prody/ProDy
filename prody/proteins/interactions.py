@@ -324,8 +324,10 @@ def calcHydrogenBonds(atoms, **kwargs):
     
     HBs_list = sorted(HBs_list, key=lambda x : x[-2])
     HBs_list_final = removeDuplicates(HBs_list)
-        
-    sel_kwargs = {key: value for key, value in kwargs.items() if key in ('selecton', 'selection2')}
+    
+    selection = kwargs.get('selection', None)
+    selection2 = kwargs.get('selection2', None)    
+    sel_kwargs = {k: v for k, v in kwargs.items() if k.startswith('selection')}
     HBs_list_final2 = filterInteractions(HBs_list_final, atoms, **sel_kwargs)
     
     LOGGER.info(("%26s   <---> %30s%12s%7s" % ('DONOR (res chid atom)','ACCEPTOR (res chid atom)','Distance','Angle')))
@@ -454,7 +456,9 @@ def calcSaltBridges(atoms, **kwargs):
     [ SaltBridges_list.remove(j) for i in SaltBridges_list for j in SaltBridges_list if Counter(i) == Counter(j) ]
     SaltBridges_list_final = removeDuplicates(SaltBridges_list)
     
-    sel_kwargs = {key: value for key, value in kwargs.items() if key in ('selecton', 'selection2')}
+    selection = kwargs.get('selection', None)
+    selection2 = kwargs.get('selection2', None)    
+    sel_kwargs = {k: v for k, v in kwargs.items() if k.startswith('selection')}
     SaltBridges_list_final2 = filterInteractions(SaltBridges_list_final, atoms, **sel_kwargs)
     
     for kk in SaltBridges_list_final2:
@@ -532,8 +536,10 @@ def calcRepulsiveIonicBonding(atoms, **kwargs):
     [ RepulsiveIonicBonding_list.remove(j) for i in RepulsiveIonicBonding_list for j in RepulsiveIonicBonding_list if Counter(i) == Counter(j) ]
     RepulsiveIonicBonding_list = sorted(RepulsiveIonicBonding_list, key=lambda x : x[-1])
     RepulsiveIonicBonding_list_final = removeDuplicates(RepulsiveIonicBonding_list)
-    
-    sel_kwargs = {key: value for key, value in kwargs.items() if key in ('selecton', 'selection2')}
+
+    selection = kwargs.get('selection', None)
+    selection2 = kwargs.get('selection2', None)    
+    sel_kwargs = {k: v for k, v in kwargs.items() if k.startswith('selection')}    
     RepulsiveIonicBonding_list_final2 = filterInteractions(RepulsiveIonicBonding_list_final, atoms, **sel_kwargs)
     
     for kk in RepulsiveIonicBonding_list_final2:
@@ -635,7 +641,9 @@ def calcPiStacking(atoms, **kwargs):
     PiStack_calculations = sorted(PiStack_calculations, key=lambda x : x[-2])   
     PiStack_calculations_final = removeDuplicates(PiStack_calculations)
     
-    sel_kwargs = {key: value for key, value in kwargs.items() if key in ('selecton', 'selection2')}
+    selection = kwargs.get('selection', None)
+    selection2 = kwargs.get('selection2', None)    
+    sel_kwargs = {k: v for k, v in kwargs.items() if k.startswith('selection')}
     PiStack_calculations_final2 = filterInteractions(PiStack_calculations_final, atoms, **sel_kwargs)
     
     for kk in PiStack_calculations_final2:
@@ -738,7 +746,9 @@ def calcPiCation(atoms, **kwargs):
     PiCation_calculations = sorted(PiCation_calculations, key=lambda x : x[-1]) 
     PiCation_calculations_final = removeDuplicates(PiCation_calculations)
     
-    sel_kwargs = {key: value for key, value in kwargs.items() if key in ('selecton', 'selection2')}
+    selection = kwargs.get('selection', None)
+    selection2 = kwargs.get('selection2', None)    
+    sel_kwargs = {k: v for k, v in kwargs.items() if k.startswith('selection')}
     PiCation_calculations_final2 = filterInteractions(PiCation_calculations_final, atoms, **sel_kwargs)
     
     for kk in PiCation_calculations_final2:
@@ -853,7 +863,9 @@ def calcHydrophobic(atoms, **kwargs):
     Hydrophobic_calculations = sorted(Hydrophobic_calculations, key=lambda x : x[-1])
     Hydrophobic_calculations_final = removeDuplicates(Hydrophobic_calculations)
     
-    sel_kwargs = {key: value for key, value in kwargs.items() if key in ('selecton', 'selection2')}
+    selection = kwargs.get('selection', None)
+    selection2 = kwargs.get('selection2', None)    
+    sel_kwargs = {k: v for k, v in kwargs.items() if k.startswith('selection')}
     Hydrophobic_calculations_final2 = filterInteractions(Hydrophobic_calculations_final, atoms, **sel_kwargs)
     
     for kk in Hydrophobic_calculations_final2:
