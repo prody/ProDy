@@ -1095,9 +1095,7 @@ def calcHydrogenBondsTrajectory(atoms, trajectory=None, **kwargs):
     If we want to study chain-chain interactions:
         selection='chain A', selection2='chain B' """
     
-    HBs_all = calcInteractionsMultipleFrames(atoms, 'HBs', trajectory, **kwargs)
-    
-    return HBs_all
+    return calcInteractionsMultipleFrames(atoms, 'HBs', trajectory, **kwargs)
 
 
 def calcSaltBridgesTrajectory(atoms, trajectory=None, **kwargs):
@@ -1131,9 +1129,7 @@ def calcSaltBridgesTrajectory(atoms, trajectory=None, **kwargs):
     If we want to study chain-chain interactions:
         selection='chain A', selection2='chain B'  """
 
-    SBs_all = calcInteractionsMultipleFrames(atoms, 'SBs', trajectory, **kwargs)
-    
-    return SBs_all
+    return calcInteractionsMultipleFrames(atoms, 'SBs', trajectory, **kwargs)
     
 
 def calcRepulsiveIonicBondingTrajectory(atoms, trajectory=None, **kwargs):  
@@ -1168,9 +1164,7 @@ def calcRepulsiveIonicBondingTrajectory(atoms, trajectory=None, **kwargs):
     If we want to study chain-chain interactions:
         selection='chain A', selection2='chain B'  """
 
-    RIB_all = calcInteractionsMultipleFrames(atoms, 'RIB', trajectory, **kwargs)    
-
-    return RIB_all
+    return calcInteractionsMultipleFrames(atoms, 'RIB', trajectory, **kwargs)
 
 
 def calcPiStackingTrajectory(atoms, trajectory=None, **kwargs):   
@@ -1211,9 +1205,7 @@ def calcPiStackingTrajectory(atoms, trajectory=None, **kwargs):
     If we want to study chain-chain interactions:
         selection='chain A', selection2='chain B' """            
 
-    pi_stack_all = calcInteractionsMultipleFrames(atoms, 'PiStack', trajectory, **kwargs)
-
-    return pi_stack_all
+    return calcInteractionsMultipleFrames(atoms, 'PiStack', trajectory, **kwargs)
 
 
 def calcPiCationTrajectory(atoms, trajectory=None, **kwargs):  
@@ -1248,9 +1240,7 @@ def calcPiCationTrajectory(atoms, trajectory=None, **kwargs):
     If we want to study chain-chain interactions:
         selection='chain A', selection2='chain B' """
 
-    pi_cat_all = calcInteractionsMultipleFrames(atoms, 'PiCat', trajectory, **kwargs)
-
-    return pi_cat_all
+    return calcInteractionsMultipleFrames(atoms, 'PiCat', trajectory, **kwargs)
 
 
 def calcHydrophobicTrajectory(atoms, trajectory=None, **kwargs):  
@@ -1284,9 +1274,7 @@ def calcHydrophobicTrajectory(atoms, trajectory=None, **kwargs):
     If we want to study chain-chain interactions:
         selection='chain A', selection2='chain B' """
 
-    HPh_all = calcInteractionsMultipleFrames(atoms, 'HPh', trajectory, **kwargs)
-
-    return HPh_all
+    return calcInteractionsMultipleFrames(atoms, 'HPh', trajectory, **kwargs)
 
 
 def calcDisulfideBondsTrajectory(atoms, trajectory=None, **kwargs):
@@ -1307,9 +1295,7 @@ def calcDisulfideBondsTrajectory(atoms, trajectory=None, **kwargs):
     :arg stop_frame: index of last frame to read
     :type stop_frame: int """
 
-    DiBs_all = calcInteractionsMultipleFrames(atoms, 'DiB', trajectory, **kwargs)
-
-    return DiBs_all
+    return calcInteractionsMultipleFrames(atoms, 'DiB', trajectory, **kwargs)
 
 
 def compareInteractions(data1, data2, **kwargs):
