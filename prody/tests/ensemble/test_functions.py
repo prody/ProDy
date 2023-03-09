@@ -78,7 +78,7 @@ class TestBuildPDBEnsemble(TestCase):
                         subset="ca",
                         biomol=True, extend_biomol=True)
         
-        ens4 = buildPDBEnsemble(ags, match_func=bestMatch)
+        ens4 = buildPDBEnsemble(biomols, match_func=bestMatch)
         assert_equal(ens4.numConfs(), 5, 
             'buildPDBEnsemble with bestMatch on biomols did not include all AMPAR dimers')    
 

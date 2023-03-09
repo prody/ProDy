@@ -69,9 +69,14 @@ def parseMMCIF(pdb, **kwargs):
 
     :arg chain: comma separated string or list-like of chain IDs
     :type chain: str, tuple, list, :class:`~numpy.ndarray`
+
+    :arg unite_chains: unite chains with the same segment name
+        Default is *False*
+    :type unite_chains: bool
     """
     chain = kwargs.pop('chain', None)
     title = kwargs.get('title', None)
+    unite_chains = kwargs.get('unite_chains', False)
     auto_bonds = SETTINGS.get('auto_bonds')
     get_bonds = kwargs.get('bonds', auto_bonds)
     if get_bonds:
@@ -116,6 +121,8 @@ def parseMMCIF(pdb, **kwargs):
     cif = openFile(pdb, 'rt')
     result = parseMMCIFStream(cif, chain=chain, **kwargs)
     cif.close()
+    if unite_chains:
+        result.setSegnames(result.getChids())
     return result
 
 
