@@ -114,8 +114,8 @@ from os.path import abspath, join, split, splitext
 import numpy as np
 
 from prody import LOGGER, SETTINGS, PY3K
-from prody.atomic import AtomGroup
-from prody.utilities import openFile, isExecutable, which, PLATFORM, addext, getCoords
+from prody.atomic import AtomGroup, Atomic
+from prody.utilities import openFile, isExecutable, which, PLATFORM
 
 from .nma import NMA
 from .anm import ANM
@@ -386,7 +386,12 @@ def writeNMD(filename, modes, atoms):
     if not isinstance(modes, (NMA, ModeSet, Mode, Vector)):
         raise TypeError('modes must be NMA, ModeSet, Mode, or Vector, '
                         'not {0}'.format(type(modes)))
-    if modes.numAtoms() != len(atoms):
+
+    if not isinstance(atoms, Atomic):
+        raise TypeError('atoms must be Atomic, '
+                        'not {0}'.format(type(atoms)))
+            
+    if modes.numAtoms() != atoms.numAtoms():
         raise Exception('number of atoms do not match')
     out = openFile(filename, 'w')
 
@@ -401,7 +406,7 @@ def writeNMD(filename, modes, atoms):
         name = splitext(split(filename)[1])[0]
     out.write('name {0}\n'.format(name))
     try:
-        coords = getCoords(atoms)
+        coords = atoms.getCoords()
     except:
         raise ValueError('coordinates could not be retrieved from atoms')
     if coords is None:
