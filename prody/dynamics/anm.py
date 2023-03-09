@@ -74,7 +74,8 @@ class ANMBase(NMA):
         """Build Hessian matrix for given coordinate set.
 
         :arg coords: a coordinate set or an object with ``getCoords`` method
-        :type coords: :class:`numpy.ndarray`
+        :type coords: :class:`numpy.ndarray`, :class:`Atomic`, 
+            :class:`Ensemble`, :class:`Trajectory`
 
         :arg cutoff: cutoff distance (Å) for pairwise interactions,
             default is 15.0 Å, minimum is 4.0 Å
@@ -95,7 +96,14 @@ class ANMBase(NMA):
         accepted as *gamma* argument.
 
         When Scipy is available, user can select to use sparse matrices for
-        efficient usage of memory at the cost of computation speed."""
+        efficient usage of memory at the cost of computation speed.
+        
+        Any atoms or points can be used for building a Hessian matrix, including 
+        calphas, phosphorus and carbon atoms from nucleic acids, all atoms, or 
+        pseudoatoms fitted to density maps with algorithms such as TRN. 
+        
+        The cutoff distance may need to be adjusted depending on the coarse graining 
+        level of the atoms or points used."""
 
         try:
             coords = (coords._getCoords() if hasattr(coords, '_getCoords') else
