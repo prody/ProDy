@@ -387,8 +387,8 @@ def writeNMD(filename, modes, atoms):
         raise TypeError('modes must be NMA, ModeSet, Mode, or Vector, '
                         'not {0}'.format(type(modes)))
 
-    if not isinstance(atoms, Atomic):
-        raise TypeError('atoms must be Atomic, '
+    if not hasattr(atoms, "numAtoms"):
+        raise TypeError('atoms must be an object with a numAtoms method, '
                         'not {0}'.format(type(atoms)))
             
     if modes.numAtoms() != atoms.numAtoms():
