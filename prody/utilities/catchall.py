@@ -145,7 +145,12 @@ def clusterSubfamilies(similarities, n_clusters=0, linkage='all', method='tsne',
     return best_labels
 
 def getCoords(data):
+    """Get coordinates from *data* if possible and handle errors well.
 
+    :arg data: a coordinate set or an object with ``getCoords`` method
+    :type data: :class:`numpy.ndarray`, :class:`Atomic`, 
+        :class:`Ensemble`, :class:`Trajectory`
+    """
     try:
         data = (data._getCoords() if hasattr(data, '_getCoords') else
                 data.getCoords())
