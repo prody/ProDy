@@ -355,7 +355,10 @@ def showProjection(ensemble, modes, *args, **kwargs):
         else:
             kwargs.pop('label', None)
 
-        plot(*(list(projection[indices].T) + args), **kwargs)
+        if not show_density:
+            plot(*(list(projection[indices].T) + args), **kwargs)
+        else:
+            plot(x=list(projection[indices,0]), y=list(projection[indices,1]), **kwargs)
 
     if texts:
         ts = []
