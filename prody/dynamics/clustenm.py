@@ -112,7 +112,7 @@ class ClustENM(Ensemble):
         self._tmdk = 10.
 
         super(ClustENM, self).__init__('Unknown')   # dummy title; will be replaced in the next line
-        self._title = title
+        self._title = str(title).strip()
 
     def __getitem__(self, index):
 
