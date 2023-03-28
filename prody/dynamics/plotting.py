@@ -377,7 +377,8 @@ def showProjection(ensemble, modes, *args, **kwargs):
         except ImportError:
             pass
         else:
-            adjust_text(ts)
+            if len(modes) == 2:
+                adjust_text(ts)
 
     if len(modes) == 2:
         plt.xlabel('Mode {0} coordinate'.format(int(modes[0])+1))
