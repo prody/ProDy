@@ -201,7 +201,7 @@ def showProjection(ensemble, modes, *args, **kwargs):
     :type modes: :class:`.Mode`, :class:`.ModeSet`, :class:`.NMA`
 
     :keyword show_density: whether to show a density histogram or kernel density estimate
-        rather than points or a 1D projection by time (number of steps) 
+        rather than a 2D scatter of points or a 1D projection by time (number of steps) 
         on the x-axis. This option is not valid for 3D projections.
         Default is **True** for 1D and **False** for 2D to maintain old behaviour.
     :type show_density: bool
@@ -328,6 +328,10 @@ def showProjection(ensemble, modes, *args, **kwargs):
         text = plt.text
     else: 
         from mpl_toolkits.mplot3d import Axes3D
+        show_density = kwargs.pop("show_density", False)
+        if show_density:
+            LOGGER.warn("show_density is not supported yet for 3D projections")
+            show_density = False
         cf = plt.gcf()
         show = None
         for child in cf.get_children():
@@ -373,7 +377,8 @@ def showProjection(ensemble, modes, *args, **kwargs):
         except ImportError:
             pass
         else:
-            adjust_text(ts)
+            if len(modes) == 2:
+                adjust_text(ts)
 
     if len(modes) == 2:
         plt.xlabel('Mode {0} coordinate'.format(int(modes[0])+1))
