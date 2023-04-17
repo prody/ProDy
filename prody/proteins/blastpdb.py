@@ -264,7 +264,7 @@ class PDBBlastRecord(object):
                             query_len)
                 data['percent_coverage'] = p_overlap
                 
-                for item in (hit['id'] + hit['def']).split('>gi'):
+                for item in (hit['id'] + hit['def']).split('>pdb'):
                     head, title = item.split(None, 1)
                     head = head.split('|')
                     pdb_id = head[-2].lower()
