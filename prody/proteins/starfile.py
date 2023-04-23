@@ -546,7 +546,7 @@ def parseSTARLines(lines, **kwargs):
             if inLoop:
                 # We expect to only have the field identifier and no data until after
 
-                if len(split(line.strip(), shlex=shlex)) == 1:
+                if len(split(line.strip(), shlex=shlex)) == 1 or len(split(line.strip(), shlex=shlex)) == 2:
                     # This is what we expect for a data loop
                     finalDictionary[currentDataBlock][currentLoop]['fields'][loop_fieldCounter] = currentField
                     dataItemsCounter = 0
