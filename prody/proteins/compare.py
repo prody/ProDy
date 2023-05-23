@@ -16,8 +16,7 @@ from prody import LOGGER, SELECT, PY2K, PY3K
 from prody.sequence import MSA
 from prody.utilities import cmp, pystr, isListLike, multilap, SolutionDepletionException, index
 from prody.utilities import MATCH_SCORE, MISMATCH_SCORE, GAP_PENALTY, GAP_EXT_PENALTY, ALIGNMENT_METHOD
-
-from Bio import pairwise2
+from prody.utilities import alignBioPairwise
 
 if PY2K:
     range = xrange
@@ -26,7 +25,7 @@ if PY3K:
     basestring = str
 
 __all__ = ['matchChains', 'matchAlign', 'mapChainOntoChain', 'mapOntoChain', 'alignChains',
-           'mapOntoChains', 'bestMatch', 'sameChid', 'userDefined', 
+           'mapOntoChains', 'bestMatch', 'sameChid', 'userDefined', 'sameChainPos',
            'mapOntoChainByAlignment', 'getMatchScore', 'setMatchScore',
            'getMismatchScore', 'setMismatchScore', 'getGapPenalty', 
            'setGapPenalty', 'getGapExtPenalty', 'setGapExtPenalty',
@@ -562,7 +561,7 @@ def matchChains(atoms1, atoms2, **kwargs):
     This function tries to match chains based on residue numbers and names.
     All chains in *atoms1* is compared to all chains in *atoms2*.  This works
     well for different structures of the same protein.  When it fails,
-    :mod:`Bio.pairwise2` is used for pairwise sequence alignment, and matching
+    Biopython is used for pairwise sequence alignment, and matching
     is performed based on the sequence alignment.  User can control, whether
     sequence alignment is performed or not with *pwalign* keyword.  If
     ``pwalign=True`` is passed, pairwise alignment is enforced."""
@@ -649,30 +648,27 @@ def matchChains(atoms1, atoms2, **kwargs):
                     unmatched.append((simpch1, simpch2))
 
     if pwalign or (not matches and (pwalign is None or pwalign)):
-        if pairwise2:
-            if unmatched:
-                LOGGER.debug('Trying to match chains based on {0} sequence '
-                            'alignment:'.format(ALIGNMENT_METHOD))
-                for simpch1, simpch2 in unmatched:
-                    LOGGER.debug(' Comparing {0} (len={1}) and {2} '
-                                '(len={3}):'
-                                .format(simpch1.getTitle(), len(simpch1),
-                                        simpch2.getTitle(), len(simpch2)))
-                    match1, match2, nmatches = getAlignedMatch(simpch1, simpch2)
-                    _seqid = nmatches * 100 / min(len(simpch1), len(simpch2))
-                    _cover = len(match2) * 100 / max(len(simpch1), len(simpch2))
-                    if _seqid >= seqid and _cover >= coverage:
-                        LOGGER.debug('\tMatch: {0} residues match with {1:.0f}% '
-                                    'sequence identity and {2:.0f}% overlap.'
-                                    .format(len(match1), _seqid, _cover))
-                        matches.append((match1, match2, _seqid, _cover,
-                                        simpch1, simpch2))
-                    else:
-                        LOGGER.debug('\tFailed to match chains (seqid={0:.0f}%, '
-                                    'overlap={1:.0f}%).'
-                                    .format(_seqid, _cover))
-        else:
-            LOGGER.warning('Pairwise alignment could not be performed.')
+        if unmatched:
+            LOGGER.debug('Trying to match chains based on {0} sequence '
+                        'alignment:'.format(ALIGNMENT_METHOD))
+            for simpch1, simpch2 in unmatched:
+                LOGGER.debug(' Comparing {0} (len={1}) and {2} '
+                            '(len={3}):'
+                            .format(simpch1.getTitle(), len(simpch1),
+                                    simpch2.getTitle(), len(simpch2)))
+                match1, match2, nmatches = getAlignedMatch(simpch1, simpch2)
+                _seqid = nmatches * 100 / min(len(simpch1), len(simpch2))
+                _cover = len(match2) * 100 / max(len(simpch1), len(simpch2))
+                if _seqid >= seqid and _cover >= coverage:
+                    LOGGER.debug('\tMatch: {0} residues match with {1:.0f}% '
+                                'sequence identity and {2:.0f}% overlap.'
+                                .format(len(match1), _seqid, _cover))
+                    matches.append((match1, match2, _seqid, _cover,
+                                    simpch1, simpch2))
+                else:
+                    LOGGER.debug('\tFailed to match chains (seqid={0:.0f}%, '
+                                'overlap={1:.0f}%).'
+                                .format(_seqid, _cover))
     if not matches:
         return None
     subset = _SUBSETS[subset]
@@ -781,25 +777,31 @@ def getAlignedMatch(ach, bch):
     """
 
     if ALIGNMENT_METHOD == 'local':
-        alignment = pairwise2.align.localms(ach.getSequence(),
-                                            bch.getSequence(),
-                                            MATCH_SCORE, MISMATCH_SCORE,
-                                            GAP_PENALTY, GAP_EXT_PENALTY,
-                                            one_alignment_only=1)
+        alignment = alignBioPairwise(ach.getSequence(),
+                                     bch.getSequence(),
+                                     "local",
+                                     MATCH_SCORE, MISMATCH_SCORE,
+                                     GAP_PENALTY, GAP_EXT_PENALTY,
+                                     one_alignment_only=1)
     else:
-        alignment = pairwise2.align.globalms(ach.getSequence(),
-                                             bch.getSequence(),
-                                             MATCH_SCORE, MISMATCH_SCORE,
-                                             GAP_PENALTY, GAP_EXT_PENALTY,
-                                             one_alignment_only=1)
+        alignment = alignBioPairwise(ach.getSequence(),
+                                     bch.getSequence(),
+                                     "global",
+                                     MATCH_SCORE, MISMATCH_SCORE,
+                                     GAP_PENALTY, GAP_EXT_PENALTY,
+                                     one_alignment_only=1)
 
-    this = alignment[0][0]
-    that = alignment[0][1]
     amatch = []
     bmatch = []
+    match = 0.0
+    try:
+        this = alignment[0][0]
+        that = alignment[0][1]
+    except IndexError:
+        LOGGER.warning('Matching chains resulted in empty alignment.')
+        return amatch, bmatch, match
     aiter = ach.__iter__()
     biter = bch.__iter__()
-    match = 0.0
     for i in range(len(this)):
         a = this[i]
         b = that[i]
@@ -924,7 +926,7 @@ def mapChainOntoChain(mobile, target, **kwargs):
         fails. If ``"ce"`` or ``"cealign"``, then the CE algorithm [IS98]_ will be 
         performed. It can also be a list of prealigned sequences, a :class:`.MSA` instance,
         or a dict of indices such as that derived from a :class:`.DaliRecord`.
-        If set to **True** then the sequence alignment from :mod:`~Bio.pairwise2` 
+        If set to **True** then the sequence alignment from Biopython 
         will be used. If set to **False**, only the trivial mapping will be performed. 
         Default is **"auto"**
     :type mapping: list, str, bool
@@ -1147,6 +1149,17 @@ def userDefined(chain1, chain2, correspondence):
 def sameChid(chain1, chain2):
     return chain1.getChid() == chain2.getChid()
 
+def sameChainPos(chain1, chain2):
+    chids_arr1 = np.array([chain.getChid() 
+                           for chain in list(chain1.getAtomGroup().getHierView())])
+    position1 = np.where(chids_arr1 == chain1.getChid())[0][0]
+    
+    chids_arr2 = np.array([chain.getChid() 
+                           for chain in list(chain2.getAtomGroup().getHierView())])
+    position2 = np.where(chids_arr2 == chain2.getChid())[0][0]
+                         
+    return position1 == position2
+
 def bestMatch(chain1, chain2):
     return True
 
@@ -1324,17 +1337,19 @@ def getAlignedMapping(target, chain, alignment=None):
 
     if alignment is None:
         if ALIGNMENT_METHOD == 'local':
-            alignments = pairwise2.align.localms(target.getSequence(),
-                                                chain.getSequence(),
-                                                MATCH_SCORE, MISMATCH_SCORE,
-                                                GAP_PENALTY,  GAP_EXT_PENALTY,
-                                                one_alignment_only=1)
+            alignments = alignBioPairwise(target.getSequence(),
+                                          chain.getSequence(),
+                                          "local",
+                                          MATCH_SCORE, MISMATCH_SCORE,
+                                          GAP_PENALTY,  GAP_EXT_PENALTY,
+                                          one_alignment_only=1)
         else:
-            alignments = pairwise2.align.globalms(target.getSequence(),
-                                                chain.getSequence(),
-                                                MATCH_SCORE, MISMATCH_SCORE,
-                                                GAP_PENALTY, GAP_EXT_PENALTY,
-                                                one_alignment_only=1)
+            alignments = alignBioPairwise(target.getSequence(),
+                                          chain.getSequence(),
+                                          "global",
+                                          MATCH_SCORE, MISMATCH_SCORE,
+                                          GAP_PENALTY, GAP_EXT_PENALTY,
+                                          one_alignment_only=1)
         alignment = alignments[0]
         this, that = alignment[:2]
     else:

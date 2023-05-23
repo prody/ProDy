@@ -4,7 +4,7 @@
 
 .. _PSF format:
    http://www.ks.uiuc.edu/Training/Tutorials/namd/
-   namd-tutorial-unix-html/node21.html"""
+   namd-tutorial-unix-html/node23.html"""
 
 import os.path
 
@@ -277,7 +277,7 @@ def writePSF(filename, atoms):
     *filename*.  This function will write available atom and bond information
     only."""
 
-    if not filename.endswith('.psf'):
+    if not filename.lower().endswith('.psf'):
         filename = filename + '.psf'
 
     try:
