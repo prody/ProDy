@@ -86,8 +86,6 @@ def prody_gnm(pdb, **kwargs):
         except TypeError:
             raise TypeError("Please provide gamma as a float or ProDy Gamma class")
 
-    gnm = prody.GNM(pdb.getTitle())
-
     nproc = kwargs.get('nproc')
     if nproc:
         try:
