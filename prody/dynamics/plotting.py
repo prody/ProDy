@@ -377,7 +377,7 @@ def showProjection(ensemble, modes, *args, **kwargs):
         except ImportError:
             pass
         else:
-            if len(modes) == 2:
+            if len(modes) == 2 and len(texts) < 15:
                 adjust_text(ts)
 
     if len(modes) == 2:
