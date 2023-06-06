@@ -830,6 +830,9 @@ def calcDisulfideBonds(atoms, **kwargs):
         atoms_SG = atoms.select('protein and resname CYS')
         if atoms_SG is None:
             LOGGER.info('Lack of cysteines in the structure.')
+            DisulfideBonds_list2 = [0]
+
+    return DisulfideBonds_list2
 
 
 def calcMetalInteractions(atoms, distA=3.0, extraIons=['FE'], excluded_ions=['SOD', 'CLA']):
@@ -941,6 +944,7 @@ def calcProteinInteractions(atoms, **kwargs):
         (4) Pi stacking interactions
         (5) Pi-cation interactions
         (6) Hydrophobic interactions
+        (7) Disulfide Bonds
     
     :arg atoms: an Atomic object from which residues are selected
     :type atoms: :class:`.Atomic`
@@ -968,13 +972,15 @@ def calcProteinInteractions(atoms, **kwargs):
                             'with `getCoords` method')
 
     LOGGER.info('Calculating all interations.') 
-    HBs_calculations = calcHydrogenBonds(atoms.protein, **kwargs)               #1 in scoring
+    HBs_calculations = calcHydrogenBonds(atoms.protein, **kwargs)               #1 in counting
     SBs_calculations = calcSaltBridges(atoms.protein, **kwargs)                 #2
     SameChargeResidues = calcRepulsiveIonicBonding(atoms.protein, **kwargs)     #3
     Pi_stacking = calcPiStacking(atoms.protein, **kwargs)                       #4
     Pi_cation = calcPiCation(atoms.protein, **kwargs)                           #5
     Hydroph_calculations = calcHydrophobic(atoms.protein, **kwargs)             #6
-    AllInteractions = [HBs_calculations, SBs_calculations, SameChargeResidues, Pi_stacking, Pi_cation, Hydroph_calculations]   
+    Disulfide_Bonds = calcDisulfideBonds(atoms.protein, **kwargs)		#7
+    AllInteractions = [HBs_calculations, SBs_calculations, SameChargeResidues, Pi_stacking, 
+                        Pi_cation, Hydroph_calculations, Disulfide_Bonds]   
     
     return AllInteractions
 
@@ -1630,7 +1636,7 @@ def showProteinInteractions_VMD(atoms, interactions, color='red',**kwargs):
     (in TKConsole: play script_name.tcl).
     Different types of interactions can be saved separately (color can be selected) 
     or all at once for all types of interactions (hydrogen bonds - blue, salt bridges - yellow,
-    pi stacking - green, cation-pi - orange and hydrophobic - silver).
+    pi stacking - green, cation-pi - orangem, hydrophobic - silver, and disulfide bonds - black).
     
     :arg atoms: an Atomic object from which residues are selected
     :type atoms: :class:`.Atomic`
@@ -1704,10 +1710,10 @@ def showProteinInteractions_VMD(atoms, interactions, color='red',**kwargs):
                 tcl_file.write('mol addrep 0 \n')
             except: LOGGER.info("There was a problem.")
      
-    if len(interactions) == 6:   
-        # For all six types of interactions at once
-        # HBs_calculations, SBs_calculations, SameChargeResidues, Pi_stacking, Pi_cation, Hydroph_calculations
-        colors = ['blue', 'yellow', 'red', 'green', 'orange', 'silver']
+    if len(interactions) == 7:   
+        # For all seven types of interactions at once
+        # HBs_calculations, SBs_calculations, SameChargeResidues, Pi_stacking, Pi_cation, Hydroph_calculations, Disulfide Bonds
+        colors = ['blue', 'yellow', 'red', 'green', 'orange', 'silver', 'black']
         
         for nr_inter,inter in enumerate(interactions):
             TCLforSingleInteraction(inter, color=colors[nr_inter], tcl_file=tcl_file)
@@ -1810,6 +1816,7 @@ class Interactions(object):
         self._piStack = None
         self._piCat = None
         self._hps = None
+        self._dibs = None
         #super(Interactions, self).__init__(name)
 
 
@@ -1827,9 +1834,7 @@ class Interactions(object):
             (4) Pi stacking interactions
             (5) Pi-cation interactions
             (6) Hydrophobic interactions
-        
-        Additionally, disulfide bonds can be calulacted using calcDisulfideBonds().
-        They are not included in this function. 
+            (7) Disulfide Bonds
         
         :arg atoms: an Atomic object from which residues are selected
         :type atoms: :class:`.Atomic` """
@@ -1851,7 +1856,9 @@ class Interactions(object):
         Pi_stacking = calcPiStacking(atoms.protein, **kwargs)                       #4
         Pi_cation = calcPiCation(atoms.protein, **kwargs)                           #5
         Hydroph_calculations = calcHydrophobic(atoms.protein, **kwargs)             #6
-        AllInteractions = [HBs_calculations, SBs_calculations, SameChargeResidues, Pi_stacking, Pi_cation, Hydroph_calculations]   
+        Disulfide_Bonds = calcDisulfideBonds(atoms.protein, **kwargs)               #7
+        AllInteractions = [HBs_calculations, SBs_calculations, SameChargeResidues, Pi_stacking, 
+                            Pi_cation, Hydroph_calculations, Disulfide_Bonds]   
         
         self._atoms = atoms
         self._interactions = AllInteractions
@@ -1862,6 +1869,7 @@ class Interactions(object):
         self._piStack = Pi_stacking
         self._piCat = Pi_cation
         self._hps = Hydroph_calculations
+        self._dibs = Disulfide_Bonds
         
         return self._interactions
 
@@ -2034,6 +2042,29 @@ class Interactions(object):
         return results
 
 
+    def getDisulfideBonds(self, **kwargs):
+        """Returns the list of disulfide bonds.
+
+        :arg selection: selection string
+        :type selection: str
+    
+        :arg selection2: selection string
+        :type selection2: str 
+        
+        Selection:
+        If we want to select interactions for the particular residue or group of residues: 
+            selection='chain A and resid 1 to 50'
+        If we want to study chain-chain interactions:
+            selection='chain A', selection2='chain B'  """
+        
+        if len(kwargs) != 0:
+            results = filterInteractions(self._dibs, self._atoms, **kwargs)
+        else: 
+            results = self._dibs
+
+        return results
+
+
     def setNewHydrogenBonds(self, interaction):
         """Replace default calculation of hydrogen bonds by the one provided by user."""
 
@@ -2082,14 +2113,30 @@ class Interactions(object):
         LOGGER.info('Hydrophobic interactions are replaced')
 
 
+    def setNewDisulfideBonds(self, interaction):
+        """Replace default calculation of hydrophobic interactions by the one provided by user."""
+
+        self._interactions[6] = interaction
+        self._dibs = self._interactions[6]  
+        LOGGER.info('Disulfide bonds are replaced')
+
+
     def buildInteractionMatrix(self, **kwargs):
-        """Build matrix with protein interactions which is scored as follows:
-            (1) Hydrogen bonds (HBs) +2
-            (2) Salt Bridges (SBs) +3 (Salt bridges might be included in hydrogen bonds)
-            (3) Repulsive Ionic Bonding (RIB) -1 
-            (4) Pi stacking interactions (PiStack) +3
-            (5) Pi-cation interactions (PiCat) +3
+        """Build matrix with protein interactions. Interactions are counted as follows:
+            (1) Hydrogen bonds (HBs) +1
+            (2) Salt Bridges (SBs) +1 (Salt bridges might be included in hydrogen bonds)
+            (3) Repulsive Ionic Bonding (RIB) +1 
+            (4) Pi stacking interactions (PiStack) +1
+            (5) Pi-cation interactions (PiCat) +1
             (6) Hydrophobic interactions (HPh) +1
+            (7) Disulfide bonds (DiBs) +1
+                 
+        Some type of interactions could be removed from the analysis by replacing value 1 by 0.
+        Example: 
+        >>> interactions = Interactions()
+        >>> atoms = parsePDB(PDBfile).select('protein')
+        >>> interactions.calcProteinInteractions(atoms)
+        >>> interactions.buildInteractionMatrix(RIB=0, HBs=0, HPh=0)
                  
         :arg HBs: score per single hydrogen bond
         :type HBs: int, float
@@ -2107,7 +2154,11 @@ class Interactions(object):
         :type PiCat: int, float
 
         :arg HPh: score per hydrophobic interaction
-        :type HPh: int, float  """
+        :type HPh: int, float  
+
+        :arg DiBs: score per disulfide bond
+        :type DiBs: int, float  
+        """
         
         atoms = self._atoms   
         interactions = self._interactions
@@ -2118,22 +2169,26 @@ class Interactions(object):
         resChIDs = list(atoms.select('name CA').getChids())
         resIDs_with_resChIDs = list(zip(resIDs, resChIDs))
         
-        dic_interactions = {'HBs':'Hydrogen Bonds', 'SBs':'Salt Bridges', 'RIB':'Repulsive Ionic Bonding', 'PiStack':'Pi-stacking interactions', 'PiCat':'Pi-cation interactions', 'HPh':'Hydrophobic interactions'}
+        dic_interactions = {'HBs':'Hydrogen Bonds', 'SBs':'Salt Bridges', 'RIB':'Repulsive Ionic Bonding', 
+        'PiStack':'Pi-stacking interactions', 'PiCat':'Pi-cation interactions', 'HPh':'Hydrophobic interactions',
+        'DiBs':'Disulfide Bonds'}
 
         if not 'HBs' in kwargs:
-            kwargs['HBs'] = 2
+            kwargs['HBs'] = 1
         if not 'SBs' in kwargs:
-            kwargs['SBs'] = 3
+            kwargs['SBs'] = 1
         if not 'RIB' in kwargs:
-            kwargs['RIB'] = -1
+            kwargs['RIB'] = 1
         if not 'PiStack' in kwargs:
-            kwargs['PiStack'] = 3
+            kwargs['PiStack'] = 1
         if not 'PiCat' in kwargs:
-            kwargs['PiCat'] = 3
+            kwargs['PiCat'] = 1
         if not 'HPh' in kwargs:
             kwargs['HPh'] = 1            
+        if not 'DiBs' in kwargs:
+            kwargs['DiBs'] = 1            
         
-        scoring = [kwargs['HBs'], kwargs['SBs'], kwargs['RIB'], kwargs['PiStack'], kwargs['PiCat'], kwargs['HPh']]        
+        scoring = [kwargs['HBs'], kwargs['SBs'], kwargs['RIB'], kwargs['PiStack'], kwargs['PiCat'], kwargs['HPh'], kwargs['DiBs']]        
 
         LOGGER.info('Following scores will be used:')        
         for key,value in kwargs.items(): 
@@ -2229,6 +2284,7 @@ class Interactions(object):
             (4) Pi stacking interactions (ps)
             (5) Pi-cation interactions (pc)
             (6) Hydrophobic interactions (hp)
+            (7) Disulfide bonds (disb)
         
         :arg contacts_min: Minimal number of contacts which residue may form with other residues. 
         :type contacts_min: int, be default 3.  """
@@ -2240,7 +2296,7 @@ class Interactions(object):
         resIDs = list(atoms.select('name CA').getResnums())
         resChIDs = list(atoms.select('name CA').getChids())
         resIDs_with_resChIDs = list(zip(resIDs, resChIDs))
-        interaction_type = ['hb','sb','rb','ps','pc','hp']
+        interaction_type = ['hb','sb','rb','ps','pc','hp','dibs']
 
         for nr,i in enumerate(interactions):
             if i != []:
@@ -2248,6 +2304,7 @@ class Interactions(object):
                     m1 = resIDs_with_resChIDs.index((int(ii[0][3:]),ii[2]))
                     m2 = resIDs_with_resChIDs.index((int(ii[3][3:]),ii[5]))
                     InteractionsMap[m1][m2] = interaction_type[nr]+':'+ii[0]+ii[2]+'-'+ii[3]+ii[5]
+            
         InteractionsMap = InteractionsMap.astype(str)
 
         ListOfInteractions = [ list(filter(None, InteractionsMap[:,j])) for j in range(len(interactions[0])) ]
@@ -2259,7 +2316,7 @@ class Interactions(object):
             LOGGER.info('{0}  <--->  {1}'.format(res[0], '  '.join(res[1])))
 
         LOGGER.info('Legend: hb-hydrogen bond, sb-salt bridge, rb-repulsive ionic bond, ps-Pi stacking interaction,'
-                                                    ' pc-Cation-Pi interaction, hp-hydrophobic interaction')
+                             'pc-Cation-Pi interaction, hp-hydrophobic interaction, dibs - disulfide bonds')
         
         try:
             from toolz.curried import count
@@ -2326,17 +2383,90 @@ class Interactions(object):
         y_pos = np.arange(len(y))
         show = plt.bar(y_pos, x, align='center', alpha=0.5, color='blue')
         plt.xticks(y_pos, y, rotation=45, fontsize=20)
-        plt.ylabel('Score of interactions')
+        plt.ylabel('Number of interactions')
         plt.tight_layout()
 
         if SETTINGS['auto_show']:
             showFigure()
         return show        
+
+
+    def showCumulativeInteractionTypes(self, **kwargs):
+        
+        """Bar plot with the number of potential inetractions per residue."""
+
+        import numpy as np
+        import matplotlib
+        import matplotlib.pyplot as plt
+        from prody.dynamics.plotting import pplot
+        
+        aa_dic = {'CYS': 'C', 'ASP': 'D', 'SER': 'S', 'GLN': 'Q', 'LYS': 'K',
+        'ILE': 'I', 'PRO': 'P', 'THR': 'T', 'PHE': 'F', 'ASN': 'N', 
+          'GLY': 'G', 'HIS': 'H', 'LEU': 'L', 'ARG': 'R', 'TRP': 'W', 
+               'ALA': 'A', 'VAL':'V', 'GLU': 'E', 'TYR': 'Y', 'MET': 'M', 'HSE': 'H', 'HSD': 'H'}
+
+        atoms = self._atoms
+
+        ResNumb = atoms.select('protein and name CA').getResnums()
+        ResName = atoms.select('protein and name CA').getResnames()
+        ResChid = atoms.select('protein and name CA').getChids()
+        ResList = [ i[0]+str(i[1])+i[2] for i in list(zip([ aa_dic[i] for i in ResName ], ResNumb, ResChid)) ]
+
+        matrix_hbs = self.buildInteractionMatrix(HBs=1, SBs=0, RIB=0,PiStack=0,PiCat=0,HPh=0,DiBs=0)
+        matrix_sbs = self.buildInteractionMatrix(HBs=0, SBs=1, RIB=0,PiStack=0,PiCat=0,HPh=0,DiBs=0)
+        matrix_rib = self.buildInteractionMatrix(HBs=0, SBs=0, RIB=1,PiStack=0,PiCat=0,HPh=0,DiBs=0)
+        matrix_pistack = self.buildInteractionMatrix(HBs=0, SBs=0, RIB=0,PiStack=1,PiCat=0,HPh=0,DiBs=0)
+        matrix_picat = self.buildInteractionMatrix(HBs=0, SBs=0, RIB=0,PiStack=0,PiCat=1,HPh=0,DiBs=0)
+        matrix_hph = self.buildInteractionMatrix(HBs=0, SBs=0, RIB=0,PiStack=0,PiCat=0,HPh=1,DiBs=0)
+        matrix_dibs = self.buildInteractionMatrix(HBs=0, SBs=0, RIB=0,PiStack=0,PiCat=0,HPh=0,DiBs=1)
+
+        matrix_hbs_sum = np.sum(matrix_hbs, axis=0)
+        matrix_sbs_sum = np.sum(matrix_sbs, axis=0)
+        matrix_rib_sum = np.sum(matrix_rib, axis=0)
+        matrix_pistack_sum = np.sum(matrix_pistack, axis=0)
+        matrix_picat_sum = np.sum(matrix_picat, axis=0)
+        matrix_hph_sum = np.sum(matrix_hph, axis=0)
+        matrix_dibs_sum = np.sum(matrix_dibs, axis=0)
+
+        width = 0.8
+        fig, ax = plt.subplots(num=None, figsize=(20,6), facecolor='w')
+        matplotlib.rcParams['font.size'] = '24'
+
+        sum_matrix = np.zeros(matrix_hbs_sum.shape)
+        pplot(sum_matrix, atoms=atoms.ca)
+
+        ax.bar(ResList, matrix_hbs_sum, width, color = 'blue', bottom = 0, label='HBs')
+        sum_matrix += matrix_hbs_sum
+
+        ax.bar(ResList, matrix_sbs_sum, width, color = 'yellow', bottom = sum_matrix, label='SBs')
+        sum_matrix += matrix_sbs_sum
+
+        ax.bar(ResList, matrix_hph_sum, width, color = 'silver', bottom = sum_matrix, label='HPh')
+        sum_matrix += matrix_hph_sum
+
+        ax.bar(ResList, matrix_rib_sum, width, color = 'red', bottom = sum_matrix, label='RIB')
+        sum_matrix += matrix_rib_sum
+
+        ax.bar(ResList, matrix_pistack_sum, width, color = 'green', bottom = sum_matrix, label='PiStack')
+        sum_matrix += matrix_pistack_sum
+
+        ax.bar(ResList, matrix_picat_sum, width, color = 'orange', bottom = sum_matrix, label='PiCat')
+        sum_matrix += matrix_picat_sum
+
+        ax.bar(ResList, matrix_dibs_sum, width, color = 'black', bottom = sum_matrix, label='DiBs')
+        sum_matrix += matrix_dibs_sum
+
+        ax.legend(ncol=7, loc='upper center')
+        plt.ylim([0,max(sum_matrix)+3])
+        plt.tight_layout()    
+        plt.xlabel('Residue')
+        plt.ylabel('Number of counts')
        
+        #return matrix_hbs_sum, matrix_sbs_sum, matrix_rib_sum, matrix_pistack_sum, matrix_picat_sum, matrix_hph_sum, matrix_dibs_sum 
         
 class InteractionsTrajectory(object):
 
-    """Class for Interaction analysis of DCD trajectory or multi-model PDB."""
+    """Class for Interaction analysis of DCD trajectory or multi-model PDB (Ensemble PDB)."""
 
     def __init__(self, name='Unknown'):
         
@@ -2351,6 +2481,7 @@ class InteractionsTrajectory(object):
         self._piStack_traj = None
         self._piCat_traj = None
         self._hps_traj = None
+        self._dibs_traj = None
 
 
     def calcProteinInteractionsTrajectory(self, atoms, trajectory=None, filename=None, **kwargs):
@@ -2362,6 +2493,7 @@ class InteractionsTrajectory(object):
             (4) Pi stacking interactions
             (5) Pi-cation interactions
             (6) Hydrophobic interactions
+            (7) Disulfide Bonds
         
         :arg atoms: an Atomic object from which residues are selected
         :type atoms: :class:`.Atomic`
@@ -2406,6 +2538,7 @@ class InteractionsTrajectory(object):
         PiStack_all = []
         PiCat_all = []
         HPh_all = []
+        DiBs_all = []
 
         HBs_nb = []
         SBs_nb = []
@@ -2413,6 +2546,7 @@ class InteractionsTrajectory(object):
         PiStack_nb = []
         PiCat_nb = []
         HPh_nb = []
+        DiBs_nb = []
 
         start_frame = kwargs.pop('start_frame', 0)
         stop_frame = kwargs.pop('stop_frame', -1)
@@ -2438,6 +2572,7 @@ class InteractionsTrajectory(object):
                 Pi_stacking = calcPiStacking(atoms.protein, **kwargs)
                 Pi_cation = calcPiCation(atoms.protein, **kwargs)
                 hydrophobic = calcHydrophobic(atoms.protein, **kwargs)
+                Disulfide_Bonds = calcDisulfideBonds(atoms.protein, **kwargs)
 
                 HBs_all.append(hydrogen_bonds)
                 SBs_all.append(salt_bridges)
@@ -2445,6 +2580,7 @@ class InteractionsTrajectory(object):
                 PiStack_all.append(Pi_stacking)
                 PiCat_all.append(Pi_cation)
                 HPh_all.append(hydrophobic)
+                DiBs_all.append(Disulfide_Bonds)
             
                 HBs_nb.append(len(hydrogen_bonds))
                 SBs_nb.append(len(salt_bridges))
@@ -2452,6 +2588,7 @@ class InteractionsTrajectory(object):
                 PiStack_nb.append(len(Pi_stacking))
                 PiCat_nb.append(len(Pi_cation))
                 HPh_nb.append(len(hydrophobic))
+                DiBs_nb.append(len(Disulfide_Bonds))
       
         else:
             if atoms.numCoordsets() > 1:
@@ -2466,6 +2603,7 @@ class InteractionsTrajectory(object):
                     Pi_stacking = calcPiStacking(atoms.protein, **kwargs)
                     Pi_cation = calcPiCation(atoms.protein, **kwargs)
                     hydrophobic = calcHydrophobic(atoms.protein, **kwargs)
+                    Disulfide_Bonds = calcDisulfideBonds(atoms.protein, **kwargs)
 
                     HBs_all.append(hydrogen_bonds)
                     SBs_all.append(salt_bridges)
@@ -2473,6 +2611,7 @@ class InteractionsTrajectory(object):
                     PiStack_all.append(Pi_stacking)
                     PiCat_all.append(Pi_cation)
                     HPh_all.append(hydrophobic)
+                    DiBs_all.append(Disulfide_Bonds)
             
                     HBs_nb.append(len(hydrogen_bonds))
                     SBs_nb.append(len(salt_bridges))
@@ -2480,20 +2619,21 @@ class InteractionsTrajectory(object):
                     PiStack_nb.append(len(Pi_stacking))
                     PiCat_nb.append(len(Pi_cation))
                     HPh_nb.append(len(hydrophobic))
-
+                    DiBs_nb.append(len(Disulfide_Bonds))
             else:
                 LOGGER.info('Include trajectory or use multi-model PDB file.') 
         
         self._atoms = atoms
         self._traj = trajectory
-        self._interactions_traj = [HBs_all, SBs_all, RIB_all, PiStack_all, PiCat_all, HPh_all]
-        self._interactions_nb_traj = [HBs_nb, SBs_nb, RIB_nb, PiStack_nb, PiCat_nb, HPh_nb]
+        self._interactions_traj = [HBs_all, SBs_all, RIB_all, PiStack_all, PiCat_all, HPh_all, DiBs_all]
+        self._interactions_nb_traj = [HBs_nb, SBs_nb, RIB_nb, PiStack_nb, PiCat_nb, HPh_nb, DiBs_nb]
         self._hbs_traj = HBs_all
         self._sbs_traj = SBs_all  
         self._rib_traj = RIB_all
         self._piStack_traj = PiStack_all
         self._piCat_traj = PiCat_all
         self._hps_traj = HPh_all
+        self._dibs_traj = DiBs_all
         
         if filename is not None:
             import pickle
@@ -2501,7 +2641,7 @@ class InteractionsTrajectory(object):
                 pickle.dump(self._interactions_traj, f)  
             LOGGER.info('File with interactions saved.')
             
-        return HBs_nb, SBs_nb, RIB_nb, PiStack_nb, PiCat_nb, HPh_nb
+        return HBs_nb, SBs_nb, RIB_nb, PiStack_nb, PiCat_nb, HPh_nb, DiBs_nb
 
 
     def getInteractions(self, **kwargs):
@@ -2699,6 +2839,32 @@ class InteractionsTrajectory(object):
         return results
 
 
+    def getDisulfideBonds(self, **kwargs):
+        """Return the list of disulfide bonds computed from DCD trajectory.
+              
+        :arg selection: selection string
+        :type selection: str
+    
+        :arg selection2: selection string
+        :type selection2: str
+        
+        Selection:
+        If we want to select interactions for the particular residue or group of residues: 
+            selection='chain A and resid 1 to 50'
+        If we want to study chain-chain interactions:
+            selection='chain A', selection2='chain B'  """
+
+        if len(kwargs) != 0:
+            sele_inter = []
+            for nr_i,i in enumerate(self._dibs_traj):
+                sele_inter.append(filterInteractions(self._dibs_traj[nr_i], self._atoms, **kwargs))
+            results = sele_inter
+        else:
+            results = self._dibs_traj
+            
+        return results
+
+
     def setNewHydrogenBondsTrajectory(self, interaction):
         """Replace default calculation of hydrogen bonds by the one provided by user."""
 
@@ -2752,6 +2918,15 @@ class InteractionsTrajectory(object):
         self._interactions_nb_traj[5] = [ len(i) for i in interaction ]
         LOGGER.info('Hydrophobic interactions are replaced')
 
+
+    def setNewDisulfideBondsTrajectory(self, interaction):
+        """Replace default calculation of disulfide bonds by the one provided by user."""
+
+        self._interactions_traj[6] = interaction
+        self._dibs_traj = self._interactions_traj[6]  
+        self._interactions_nb_traj[6] = [ len(i) for i in interaction ]
+        LOGGER.info('Disulfide bonds are replaced')
+
     
     def parseInteractions(self, filename):
         """Import interactions from analysis of trajectory which was saved via
@@ -2772,6 +2947,7 @@ class InteractionsTrajectory(object):
         self._piStack_traj = data[3]
         self._piCat_traj = data[4]
         self._hps_traj = data[5]
+        self._dibs_traj = data[6]
         
         return data
 
@@ -2788,13 +2964,14 @@ class InteractionsTrajectory(object):
         PiStack = self._interactions_nb_traj[3]
         PiCat = self._interactions_nb_traj[4]
         HPh = self._interactions_nb_traj[5]
+        DiBs = self._interactions_nb_traj[6]
         
         import numpy as np
         import matplotlib
         import matplotlib.pyplot as plt
         matplotlib.rcParams['font.size'] = '20' 
 
-        fig, (ax1, ax2, ax3, ax4, ax5, ax6) = plt.subplots(6, num=None, figsize=(12,8), facecolor='w', sharex='all', **kwargs)
+        fig, (ax1, ax2, ax3, ax4, ax5, ax6, ax7) = plt.subplots(7, num=None, figsize=(12,8), facecolor='w', sharex='all', **kwargs)
         hspace = 0.1
         plt.subplots_adjust(left=None, bottom=None, right=None, top=None, wspace=None, hspace=0.35)
         ax1.bar(np.arange(len(HBs)), HBs, color='deepskyblue')
@@ -2803,6 +2980,7 @@ class InteractionsTrajectory(object):
         ax4.bar(np.arange(len(PiStack)), PiStack, color='lightgreen')
         ax5.bar(np.arange(len(PiCat)), PiCat, color='orange')
         ax6.bar(np.arange(len(RIB)), RIB, color='red')
+        ax7.bar(np.arange(len(DiBs)), DiBs, color='black')
 
         ax1.plot(HBs, 'k:')
         ax2.plot(SBs, 'k:')
@@ -2810,6 +2988,7 @@ class InteractionsTrajectory(object):
         ax4.plot(PiStack, 'k:')
         ax5.plot(PiCat, 'k:')
         ax6.plot(RIB, 'k:')
+        ax7.plot(DiBs, 'k:')
 
         plt.xlabel('Frame')
         
@@ -2817,5 +2996,5 @@ class InteractionsTrajectory(object):
             plt.savefig(filename+'.png', dpi=300)
         plt.show()
         
-        return HBs, SBs, HPh, PiStack, PiCat, HPh
+        return HBs, SBs, HPh, PiStack, PiCat, HPh, DiBs
 
