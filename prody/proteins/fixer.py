@@ -109,3 +109,5 @@ def addMissingAtoms(infile, method='openbabel', pH=7.0, outfile=None, **kwargs):
         raise TypeError('Method should be openbabel or pdbfixer')
     
     return outfile
+
+
