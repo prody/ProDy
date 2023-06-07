@@ -439,7 +439,7 @@ def calcRepulsiveIonicBonding(atoms, **kwargs):
             sele2 = atoms_KRED.select('same residue as exwithin '+str(distA)+' of center', center=sele1_center)
         except:
             sele1_center = sele1.getCoords()
-            sele2 = atoms_KRED.select('same residue as exwithin '+str(distA)+' of center', center=sele1.getCoords())            
+            sele2 = atoms_KRED.select('same residue as exwithin '+str(distA)+' of center', center=sele1_center)            
  
         if sele1 != None and sele2 != None:
             for ii in np.unique(sele2.getResnums()):                
