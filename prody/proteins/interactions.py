@@ -167,6 +167,10 @@ def calcHydrogenBonds(atoms, **kwargs):
         except TypeError:
             raise TypeError('coords must be an object '
                             'with `getCoords` method')
+
+    if atoms.hydrogen is None:
+        raise ValueError('atoms should have hydrogens to calculate hydrogen bonds. '
+                         'Use addMissingAtoms to add hydrogens')
     
     distA = kwargs.pop('distA', 3.5)
     angle = kwargs.pop('angle', 40)
