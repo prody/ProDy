@@ -317,7 +317,7 @@ class GammaGOdMD(Gamma):
     .. ipython:: python
 
        from prody import *
-       ubi, header = parsePDB('1aar', chain='A', subset='calpha')
+       ubi = parsePDB('1aar', chain='A', subset='calpha')
 
     In the above we parsed only the atoms needed for this calculation, i.e.
     Cα atoms from chain A.
@@ -373,7 +373,7 @@ class GammaGOdMD(Gamma):
         assert Ccart > 0, 'gamma must be greater than 0'
 
         Cseq = float(Cseq)
-        assert Cseq > 0, 'helix must be greater than 0'
+        assert Cseq > 0, 'Cseq must be greater than 0'
 
         self._Ccart = Ccart
         self._Ex = Ex
