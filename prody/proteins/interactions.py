@@ -127,10 +127,12 @@ def calcHydrogenBonds(atoms, **kwargs):
     :type atoms: :class:`.Atomic`
     
     :arg distA: non-zero value, maximal distance between donor and acceptor.
-    :type distA: int, float, default is 3.0
+        default is 3.5
+    :type distA: int, float
     
     :arg angle: non-zero value, maximal (180 - D-H-A angle) (donor, hydrogen, acceptor).
-    :type angle: int, float, default is 40.
+        default is 40.
+    :type angle: int, float
     
     :arg cutoff_dist: non-zero value, interactions will be found between atoms with index differences
         that are higher than cutoff_dist.
@@ -165,8 +167,12 @@ def calcHydrogenBonds(atoms, **kwargs):
         except TypeError:
             raise TypeError('coords must be an object '
                             'with `getCoords` method')
+
+    if atoms.hydrogen is None:
+        raise ValueError('atoms should have hydrogens to calculate hydrogen bonds. '
+                         'Use addMissingAtoms to add hydrogens')
     
-    distA = kwargs.pop('distA', 3.0)
+    distA = kwargs.pop('distA', 3.5)
     angle = kwargs.pop('angle', 40)
     cutoff_dist = kwargs.pop('cutoff_dist', 20)
     
@@ -222,12 +228,13 @@ def calcHydrogenBonds(atoms, **kwargs):
     HBs_list = []
     for k in pairList:
         if 180-angle < float(k[-1]) < 180 and float(k[-2]) < distA:
-            aa_donor = atoms.getResnames()[k[0]]+str(atoms.getResnums()[k[0]])
-            aa_donor_atom = atoms.getNames()[k[0]]+'_'+str(k[0])
-            aa_donor_chain = atoms.getChids()[k[0]]
-            aa_acceptor = atoms.getResnames()[k[2]]+str(atoms.getResnums()[k[2]])
-            aa_acceptor_atom = atoms.getNames()[k[2]]+'_'+str(k[2])
-            aa_acceptor_chain = atoms.getChids()[k[2]]
+            ag = atoms.getAtomGroup()
+            aa_donor = ag.getResnames()[k[0]]+str(ag.getResnums()[k[0]])
+            aa_donor_atom = ag.getNames()[k[0]]+'_'+str(k[0])
+            aa_donor_chain = ag.getChids()[k[0]]
+            aa_acceptor = ag.getResnames()[k[2]]+str(ag.getResnums()[k[2]])
+            aa_acceptor_atom = ag.getNames()[k[2]]+'_'+str(k[2])
+            aa_acceptor_chain = ag.getChids()[k[2]]
             
             HBs_list.append([str(aa_donor), str(aa_donor_atom), str(aa_donor_chain), str(aa_acceptor), str(aa_acceptor_atom), 
                              str(aa_acceptor_chain), np.round(float(k[-2]),2), np.round(180.0-float(k[-1]),2)])
@@ -257,10 +264,12 @@ def calcChHydrogenBonds(atoms, **kwargs):
     :type atoms: :class:`.Atomic`
     
     :arg distA: non-zero value, maximal distance between donor and acceptor.
-    :type distA: int, float, default is 3.0.
+        default is 3.0.
+    :type distA: int, float
 
     :arg angle: non-zero value, D-H-A angle (donor, hydrogen, acceptor).
-    :type angle: int, float, default is 40.
+        default is 40.
+    :type angle: int, float
     
     :arg cutoff_dist: non-zero value, interactions will be found between atoms with index differences
         that are higher than cutoff_dist.
@@ -308,7 +317,8 @@ def calcSaltBridges(atoms, **kwargs):
     
     :arg distA: non-zero value, maximal distance between center of masses 
         of N and O atoms of negatively and positevely charged residues.
-    :type distA: int, float, default is 4.5.
+        default is 5.
+    :type distA: int, float
 
     :arg selection: selection string
     :type selection: str
@@ -334,7 +344,7 @@ def calcSaltBridges(atoms, **kwargs):
             raise TypeError('coords must be an object '
                             'with `getCoords` method')
     
-    distA = kwargs.pop('distA', 4.5)
+    distA = kwargs.pop('distA', 5.)
     atoms_KRED = atoms.select('protein and resname ASP GLU LYS ARG and not backbone and not name OXT NE "C.*" and noh')
     charged_residues = list(set(zip(atoms_KRED.getResnums(), atoms_KRED.getChids())))
     
@@ -389,7 +399,8 @@ def calcRepulsiveIonicBonding(atoms, **kwargs):
     
     :arg distA: non-zero value, maximal distance between center of masses 
             between N-N or O-O atoms of residues.
-    :type distA: int, float, default is 4.5.
+            default is 4.5.
+    :type distA: int, float
 
     :arg selection: selection string
     :type selection: str
@@ -428,7 +439,7 @@ def calcRepulsiveIonicBonding(atoms, **kwargs):
             sele2 = atoms_KRED.select('same residue as exwithin '+str(distA)+' of center', center=sele1_center)
         except:
             sele1_center = sele1.getCoords()
-            sele2 = atoms_KRED.select('same residue as exwithin '+str(distA)+' of center', center=sele1.getCoords())            
+            sele2 = atoms_KRED.select('same residue as exwithin '+str(distA)+' of center', center=sele1_center)            
  
         if sele1 != None and sele2 != None:
             for ii in np.unique(sele2.getResnums()):                
@@ -438,7 +449,7 @@ def calcRepulsiveIonicBonding(atoms, **kwargs):
                 except: 
                     distance = calcDistance(sele1_center,sele2_single.getCoords())
                 
-                if distance < distA and sele1.getNames()[0][0] == sele2_single.getNames()[0][0] and sele1.getResnames()[0] != sele2_single.getResnames()[0]:
+                if distance < distA and sele1.getNames()[0][0] == sele2_single.getNames()[0][0] and distance > 0:
                     RepulsiveIonicBonding_list.append([sele1.getResnames()[0]+str(sele1.getResnums()[0]), sele1.getNames()[0]+'_'+'_'.join(map(str,sele1.getIndices())), sele1.getChids()[0],
                                                   sele2_single.getResnames()[0]+str(sele2_single.getResnums()[0]), sele2_single.getNames()[0]+'_'+'_'.join(map(str,sele2_single.getIndices())), 
                                                   sele2_single.getChids()[0], round(distance,3)])
@@ -468,13 +479,16 @@ def calcPiStacking(atoms, **kwargs):
     
     :arg distA: non-zero value, maximal distance between center of masses 
                 of residues aromatic rings.
-    :type distA: int, float, default is 5.
+                default is 5.
+    :type distA: int, float
     
     :arg angle_min: minimal angle between aromatic rings.
-    :type angle_min: int, default is 0.
+        default is 0.
+    :type angle_min: int, float
 
     :arg angle_max: maximal angle between rings.
-    :type angle_max: int, default is 360.
+        default is 360.
+    :type angle_max: int, float
 
     :arg selection: selection string
     :type selection: str
@@ -526,6 +540,9 @@ def calcPiStacking(atoms, **kwargs):
         aromatic_dic[key] = value
     
     atoms_cylic = atoms.select('resname TRP PHE TYR HIS')
+    if atoms_cylic is None:
+        return []
+    
     aromatic_resids = list(set(zip(atoms_cylic.getResnums(), atoms_cylic.getChids())))
 
     LOGGER.info('Calculating Pi stacking interactions.')
@@ -573,7 +590,8 @@ def calcPiCation(atoms, **kwargs):
     
     :arg distA: non-zero value, maximal distance between center of masses 
                 of aromatic ring and positively charge group.
-    :type distA: int, float, default is 5.
+                default is 5.
+    :type distA: int, float
 
     :arg selection: selection string
     :type selection: str
@@ -625,6 +643,9 @@ def calcPiCation(atoms, **kwargs):
         aromatic_dic[key] = value
         
     atoms_cylic = atoms.select('resname TRP PHE TYR HIS')
+    if atoms_cylic is None:
+        return []
+    
     aromatic_resids = list(set(zip(atoms_cylic.getResnums(), atoms_cylic.getChids())))
 
     PiCation_calculations = []
@@ -677,7 +698,8 @@ def calcHydrophobic(atoms, **kwargs):
     :type atoms: :class:`.Atomic`
     
     :arg distA: non-zero value, maximal distance between atoms of hydrophobic residues.
-    :type distA: int, float, default is 4.5.
+        default is 4.5.
+    :type distA: int, float
     
     :arg non_standard: dictionary of non-standard residue in the protein structure
                         that need to be included in calculations
@@ -716,6 +738,9 @@ def calcHydrophobic(atoms, **kwargs):
     atoms_hydrophobic = atoms.select('resname ALA VAL ILE MET LEU PHE TYR TRP')
     hydrophobic_resids = list(set(zip(atoms_hydrophobic.getResnums(), atoms_hydrophobic.getChids())))
 
+    if atoms.aromatic is None:
+        return []
+    
     aromatic_nr = list(set(zip(atoms.aromatic.getResnums(),atoms.aromatic.getChids())))   
     aromatic = list(set(zip(atoms.aromatic.getResnames())))
     
@@ -793,7 +818,9 @@ def calcDisulfideBonds(atoms, **kwargs):
     :type atoms: :class:`.Atomic`
     
     :arg distA: non-zero value, maximal distance between atoms of hydrophobic residues.
-    :type distA: int, float, default is 2.5."""
+        default is 3.
+    :type distA: int, float
+    """
 
     try:
         coords = (atoms._getCoords() if hasattr(atoms, '_getCoords') else
@@ -805,7 +832,7 @@ def calcDisulfideBonds(atoms, **kwargs):
             raise TypeError('coords must be an object '
                             'with `getCoords` method')
     
-    distA = kwargs.pop('distA', 2.5)
+    distA = kwargs.pop('distA', 3)
     
     try:
         atoms_SG = atoms.select('protein and resname CYS and name SG')
@@ -815,24 +842,39 @@ def calcDisulfideBonds(atoms, **kwargs):
         DisulfideBonds_list = []
         for i in atoms_SG_res:
             CYS_pairs = atoms.select('(same residue as protein within '+str(distA)+' of ('+'resid '+str(i[0])+' and chain '+i[1]+' and name SG)) and (resname CYS and name SG)')
-            CYSresnames = [j+str(i) for i, j in zip(CYS_pairs.getResnums(), CYS_pairs.getResnames())]
-            if len(CYSresnames) != 1 and len(CYSresnames) != 0:
-                DisulfideBonds_list.append(list(zip(CYSresnames, CYS_pairs.getChids())))
+            if CYS_pairs.numAtoms() > 1:
+                sele1 = CYS_pairs[0]
+                sele2 = CYS_pairs[1]
 
-        DisulfideBonds_list2 = list({tuple(sorted(i)) for i in DisulfideBonds_list})
-    
-        if len(DisulfideBonds_list2) != 0:
-            return DisulfideBonds_list2
-        else:
-            LOGGER.info('Lack of disulfide bonds in the structure.')
-    
+                listOfAtomToCompare = cleanNumbers(findNeighbors(sele1, distA, sele2))
+                if listOfAtomToCompare != []:
+                    listOfAtomToCompare = sorted(listOfAtomToCompare, key=lambda x : x[-1])
+                    minDistancePair = listOfAtomToCompare[0]
+                    if minDistancePair[-1] < distA:
+                        sele1_new = atoms.select('index '+str(minDistancePair[0])+' and name '+str(minDistancePair[2]))
+                        sele2_new = atoms.select('index '+str(minDistancePair[1])+' and name '+str(minDistancePair[3]))
+                        DisulfideBonds_list.append([sele1_new.getResnames()[0]+str(sele1_new.getResnums()[0]),
+                                                                minDistancePair[2]+'_'+str(minDistancePair[0]), sele1_new.getChids()[0],
+                                                                sele2_new.getResnames()[0]+str(sele2_new.getResnums()[0]),
+                                                                minDistancePair[3]+'_'+str(minDistancePair[1]), sele2_new.getChids()[0],
+                                                                round(minDistancePair[-1],3)])
     except:
         atoms_SG = atoms.select('protein and resname CYS')
         if atoms_SG is None:
             LOGGER.info('Lack of cysteines in the structure.')
-            DisulfideBonds_list2 = [0]
+            DisulfideBonds_list = []
 
-    return DisulfideBonds_list2
+    DisulfideBonds_list_final = removeDuplicates(DisulfideBonds_list)
+
+    sel_kwargs = {k: v for k, v in kwargs.items() if k.startswith('selection')}
+    DisulfideBonds_list_final2 = filterInteractions(DisulfideBonds_list_final, atoms, **sel_kwargs)
+
+    for kk in DisulfideBonds_list_final2:
+        LOGGER.info("%10s%5s%14s  <---> %10s%5s%14s%8.1f" % (kk[0], kk[2], kk[1], kk[3], kk[5], kk[4], kk[6]))
+
+    LOGGER.info("Number of detected disulfide bonds: {0}.".format(len(DisulfideBonds_list_final2)))
+
+    return DisulfideBonds_list_final2
 
 
 def calcMetalInteractions(atoms, distA=3.0, extraIons=['FE'], excluded_ions=['SOD', 'CLA']):
@@ -842,7 +884,8 @@ def calcMetalInteractions(atoms, distA=3.0, extraIons=['FE'], excluded_ions=['SO
     :type atoms: :class:`.Atomic`
     
     :arg distA: non-zero value, maximal distance between ion and residue.
-    :type distA: int, float, default is 3.0.
+        default is 3.0
+    :type distA: int, float
     
     :arg extraIons: ions to be included in the analysis.
     :type extraIons: list
@@ -995,10 +1038,12 @@ def calcHydrogenBondsTrajectory(atoms, trajectory=None, **kwargs):
     :type trajectory: class:`.Trajectory`
 
     :arg distA: non-zero value, maximal distance between donor and acceptor.
-    :type distA: int, float, default is 3.0
+        default is 3.5
+    :type distA: int, float
     
     :arg angle: non-zero value, maximal (180 - D-H-A angle) (donor, hydrogen, acceptor).
-    :type angle: int, float, default is 40.
+        default is 40.
+    :type angle: int, float
     
     :arg cutoff_dist: non-zero value, interactions will be found between atoms with index differences
         that are higher than cutoff_dist.
@@ -1037,7 +1082,8 @@ def calcSaltBridgesTrajectory(atoms, trajectory=None, **kwargs):
     
     :arg distA: non-zero value, maximal distance between center of masses 
         of N and O atoms of negatively and positevely charged residues.
-    :type distA: int, float, default is 4.5.
+        default is 5.
+    :type distA: int, float
     
     :arg selection: selection string
     :type selection: str
@@ -1072,7 +1118,8 @@ def calcRepulsiveIonicBondingTrajectory(atoms, trajectory=None, **kwargs):
     
     :arg distA: non-zero value, maximal distance between center of masses 
             between N-N or O-O atoms of residues.
-    :type distA: int, float, default is 4.5.
+            default is 4.5.
+    :type distA: int, float
 
     :arg selection: selection string
     :type selection: str
@@ -1107,13 +1154,16 @@ def calcPiStackingTrajectory(atoms, trajectory=None, **kwargs):
     
     :arg distA: non-zero value, maximal distance between center of masses 
                 of residues aromatic rings.
-    :type distA: int, float, default is 5.
+                default is 5.
+    :type distA: int, float
     
     :arg angle_min: minimal angle between aromatic rings.
-    :type angle_min: int, default is 0.
+        default is 0.
+    :type angle_min: int
 
     :arg angle_max: maximal angle between rings.
-    :type angle_max: int, default is 360.
+        default is 360.
+    :type angle_max: int, float
     
     :arg selection: selection string
     :type selection: str
@@ -1148,7 +1198,8 @@ def calcPiCationTrajectory(atoms, trajectory=None, **kwargs):
     
     :arg distA: non-zero value, maximal distance between center of masses of aromatic ring 
                 and positively charge group.
-    :type distA: int, float, default is 5.
+                default is 5.
+    :type distA: int, float
     
     :arg selection: selection string
     :type selection: str
@@ -1182,7 +1233,8 @@ def calcHydrophobicTrajectory(atoms, trajectory=None, **kwargs):
     :type trajectory: class:`.Trajectory`
     
     :arg distA: non-zero value, maximal distance between atoms of hydrophobic residues.
-    :type distA: int, float, default is 4.5.
+        default is 4.5.
+    :type distA: int, float
 
     :arg selection: selection string
     :type selection: str
@@ -1215,7 +1267,8 @@ def calcDisulfideBondsTrajectory(atoms, trajectory=None, **kwargs):
     :type trajectory: class:`.Trajectory`
     
     :arg distA: non-zero value, maximal distance between atoms of hydrophobic residues.
-    :type distA: int, float, default is 2.5.
+        default is 2.5.
+    :type distA: int, float
 
     :arg start_frame: index of first frame to read
     :type start_frame: int
@@ -2154,10 +2207,10 @@ class Interactions(object):
         :type PiCat: int, float
 
         :arg HPh: score per hydrophobic interaction
-        :type HPh: int, float  
+        :type HPh: int, float
 
         :arg DiBs: score per disulfide bond
-        :type DiBs: int, float  
+        :type DiBs: int, float
         """
         
         atoms = self._atoms   
@@ -2199,7 +2252,7 @@ class Interactions(object):
                 for ii in i: 
                     m1 = resIDs_with_resChIDs.index((int(ii[0][3:]),ii[2]))
                     m2 = resIDs_with_resChIDs.index((int(ii[3][3:]),ii[5]))
-                    InteractionsMap[m1][m2] = InteractionsMap[m1][m2] + scoring[nr_i]
+                    InteractionsMap[m1][m2] = InteractionsMap[m2][m1] = InteractionsMap[m1][m2] + scoring[nr_i]
         
         self._interactions_matrix = InteractionsMap
         
@@ -2334,7 +2387,8 @@ class Interactions(object):
         
         :arg cutoff: minimal score per residue which will be displayed.
                      If cutoff value is to big, top 30% with the higest values will be returned.
-        :type distA: int, float
+                     Default is 5.
+        :type cutoff: int, float
 
         Nonstandard resiudes can be updated in a following way:
         d = {'CYX': 'X', 'CEA': 'Z'}
@@ -2462,7 +2516,7 @@ class Interactions(object):
         plt.xlabel('Residue')
         plt.ylabel('Number of counts')
        
-        #return matrix_hbs_sum, matrix_sbs_sum, matrix_rib_sum, matrix_pistack_sum, matrix_picat_sum, matrix_hph_sum, matrix_dibs_sum 
+        return matrix_hbs_sum, matrix_sbs_sum, matrix_rib_sum, matrix_pistack_sum, matrix_picat_sum, matrix_hph_sum, matrix_dibs_sum 
         
 class InteractionsTrajectory(object):
 
