@@ -84,18 +84,22 @@ def alignBioPairwise(a_sequence, b_sequence,
         alns = aligner.align(a_sequence, b_sequence)
 
         results = []
-        for aln in alns:
-            row_1 = aln.format().split("\n")[0].replace(" ", "-")
-            row_2 = aln.format().split("\n")[2].replace(" ", "-")
-            while len(row_1) < len(row_2):
-                row_1 += "-"
-            while len(row_2) < len(row_1):
-                row_2 += "-"
-            begin = max([np.where(np.array(list(row_1)) != "-")[0][0],
-                         np.where(np.array(list(row_2)) != "-")[0][0]])
-            end = (min([np.where(np.array(list(row_1)) != "-")[0][-1],
-                        np.where(np.array(list(row_2)) != "-")[0][-1]]) - begin + 1)
-            results.append((row_1, row_2, aln.score, begin, end))
+        aln = alns[0]
+
+        split_aln = aln.format().split('\n')
+
+        begin = split_aln[1].find('|')
+        end = len(split_aln[1])
+
+        row_1 = split_aln[0].replace(" ", "-")
+        row_2 = split_aln[2].replace(" ", "-")
+
+        if len(row_1) < len(row_2):
+            row_1 += "-"*(len(row_2)-len(row_1))
+        elif len(row_2) < len(row_1):
+            row_2 += "-"*(len(row_1)-len(row_2))
+
+        results.append((row_1, row_2, aln.score, begin, end))
 
         if one_alignment_only:
             return [results[0]]
