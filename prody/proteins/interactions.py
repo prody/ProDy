@@ -449,7 +449,7 @@ def calcRepulsiveIonicBonding(atoms, **kwargs):
                 except: 
                     distance = calcDistance(sele1_center,sele2_single.getCoords())
                 
-                if distance < distA and sele1.getNames()[0][0] == sele2_single.getNames()[0][0] and sele1.getResnames()[0] != sele2_single.getResnames()[0]:
+                if distance < distA and sele1.getNames()[0][0] == sele2_single.getNames()[0][0] and distance > 0:
                     RepulsiveIonicBonding_list.append([sele1.getResnames()[0]+str(sele1.getResnums()[0]), sele1.getNames()[0]+'_'+'_'.join(map(str,sele1.getIndices())), sele1.getChids()[0],
                                                   sele2_single.getResnames()[0]+str(sele2_single.getResnums()[0]), sele2_single.getNames()[0]+'_'+'_'.join(map(str,sele2_single.getIndices())), 
                                                   sele2_single.getChids()[0], round(distance,3)])
