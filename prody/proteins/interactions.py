@@ -222,12 +222,13 @@ def calcHydrogenBonds(atoms, **kwargs):
     HBs_list = []
     for k in pairList:
         if 180-angle < float(k[-1]) < 180 and float(k[-2]) < distA:
-            aa_donor = atoms.getResnames()[k[0]]+str(atoms.getResnums()[k[0]])
-            aa_donor_atom = atoms.getNames()[k[0]]+'_'+str(k[0])
-            aa_donor_chain = atoms.getChids()[k[0]]
-            aa_acceptor = atoms.getResnames()[k[2]]+str(atoms.getResnums()[k[2]])
-            aa_acceptor_atom = atoms.getNames()[k[2]]+'_'+str(k[2])
-            aa_acceptor_chain = atoms.getChids()[k[2]]
+            ag = atoms.getAtomGroup()
+            aa_donor = ag.getResnames()[k[0]]+str(ag.getResnums()[k[0]])
+            aa_donor_atom = ag.getNames()[k[0]]+'_'+str(k[0])
+            aa_donor_chain = ag.getChids()[k[0]]
+            aa_acceptor = ag.getResnames()[k[2]]+str(ag.getResnums()[k[2]])
+            aa_acceptor_atom = ag.getNames()[k[2]]+'_'+str(k[2])
+            aa_acceptor_chain = ag.getChids()[k[2]]
             
             HBs_list.append([str(aa_donor), str(aa_donor_atom), str(aa_donor_chain), str(aa_acceptor), str(aa_acceptor_atom), 
                              str(aa_acceptor_chain), np.round(float(k[-2]),2), np.round(180.0-float(k[-1]),2)])
@@ -526,6 +527,9 @@ def calcPiStacking(atoms, **kwargs):
         aromatic_dic[key] = value
     
     atoms_cylic = atoms.select('resname TRP PHE TYR HIS')
+    if atoms_cylic is None:
+        return []
+    
     aromatic_resids = list(set(zip(atoms_cylic.getResnums(), atoms_cylic.getChids())))
 
     LOGGER.info('Calculating Pi stacking interactions.')
@@ -625,6 +629,9 @@ def calcPiCation(atoms, **kwargs):
         aromatic_dic[key] = value
         
     atoms_cylic = atoms.select('resname TRP PHE TYR HIS')
+    if atoms_cylic is None:
+        return []
+    
     aromatic_resids = list(set(zip(atoms_cylic.getResnums(), atoms_cylic.getChids())))
 
     PiCation_calculations = []
@@ -716,6 +723,9 @@ def calcHydrophobic(atoms, **kwargs):
     atoms_hydrophobic = atoms.select('resname ALA VAL ILE MET LEU PHE TYR TRP')
     hydrophobic_resids = list(set(zip(atoms_hydrophobic.getResnums(), atoms_hydrophobic.getChids())))
 
+    if atoms.aromatic is None:
+        return []
+    
     aromatic_nr = list(set(zip(atoms.aromatic.getResnums(),atoms.aromatic.getChids())))   
     aromatic = list(set(zip(atoms.aromatic.getResnames())))
     
@@ -2199,7 +2209,7 @@ class Interactions(object):
                 for ii in i: 
                     m1 = resIDs_with_resChIDs.index((int(ii[0][3:]),ii[2]))
                     m2 = resIDs_with_resChIDs.index((int(ii[3][3:]),ii[5]))
-                    InteractionsMap[m1][m2] = InteractionsMap[m1][m2] + scoring[nr_i]
+                    InteractionsMap[m1][m2] = InteractionsMap[m2][m1] = InteractionsMap[m1][m2] + scoring[nr_i]
         
         self._interactions_matrix = InteractionsMap
         
@@ -2462,7 +2472,7 @@ class Interactions(object):
         plt.xlabel('Residue')
         plt.ylabel('Number of counts')
        
-        #return matrix_hbs_sum, matrix_sbs_sum, matrix_rib_sum, matrix_pistack_sum, matrix_picat_sum, matrix_hph_sum, matrix_dibs_sum 
+        return matrix_hbs_sum, matrix_sbs_sum, matrix_rib_sum, matrix_pistack_sum, matrix_picat_sum, matrix_hph_sum, matrix_dibs_sum 
         
 class InteractionsTrajectory(object):
 
