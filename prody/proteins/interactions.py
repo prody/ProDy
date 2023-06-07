@@ -842,24 +842,39 @@ def calcDisulfideBonds(atoms, **kwargs):
         DisulfideBonds_list = []
         for i in atoms_SG_res:
             CYS_pairs = atoms.select('(same residue as protein within '+str(distA)+' of ('+'resid '+str(i[0])+' and chain '+i[1]+' and name SG)) and (resname CYS and name SG)')
-            CYSresnames = [j+str(i) for i, j in zip(CYS_pairs.getResnums(), CYS_pairs.getResnames())]
-            if len(CYSresnames) != 1 and len(CYSresnames) != 0:
-                DisulfideBonds_list.append(list(zip(CYSresnames, CYS_pairs.getChids())))
+            if CYS_pairs.numAtoms() > 1:
+                sele1 = CYS_pairs[0]
+                sele2 = CYS_pairs[1]
 
-        DisulfideBonds_list2 = list({tuple(sorted(i)) for i in DisulfideBonds_list})
-    
-        if len(DisulfideBonds_list2) != 0:
-            return DisulfideBonds_list2
-        else:
-            LOGGER.info('Lack of disulfide bonds in the structure.')
-    
+                listOfAtomToCompare = cleanNumbers(findNeighbors(sele1, distA, sele2))
+                if listOfAtomToCompare != []:
+                    listOfAtomToCompare = sorted(listOfAtomToCompare, key=lambda x : x[-1])
+                    minDistancePair = listOfAtomToCompare[0]
+                    if minDistancePair[-1] < distA:
+                        sele1_new = atoms.select('index '+str(minDistancePair[0])+' and name '+str(minDistancePair[2]))
+                        sele2_new = atoms.select('index '+str(minDistancePair[1])+' and name '+str(minDistancePair[3]))
+                        DisulfideBonds_list.append([sele1_new.getResnames()[0]+str(sele1_new.getResnums()[0]),
+                                                                minDistancePair[2]+'_'+str(minDistancePair[0]), sele1_new.getChids()[0],
+                                                                sele2_new.getResnames()[0]+str(sele2_new.getResnums()[0]),
+                                                                minDistancePair[3]+'_'+str(minDistancePair[1]), sele2_new.getChids()[0],
+                                                                round(minDistancePair[-1],3)])
     except:
         atoms_SG = atoms.select('protein and resname CYS')
         if atoms_SG is None:
             LOGGER.info('Lack of cysteines in the structure.')
-            DisulfideBonds_list2 = [0]
+            DisulfideBonds_list = []
 
-    return DisulfideBonds_list2
+    DisulfideBonds_list_final = removeDuplicates(DisulfideBonds_list)
+
+    sel_kwargs = {k: v for k, v in kwargs.items() if k.startswith('selection')}
+    DisulfideBonds_list_final2 = filterInteractions(DisulfideBonds_list_final, atoms, **sel_kwargs)
+
+    for kk in DisulfideBonds_list_final2:
+        LOGGER.info("%10s%5s%14s  <---> %10s%5s%14s%8.1f" % (kk[0], kk[2], kk[1], kk[3], kk[5], kk[4], kk[6]))
+
+    LOGGER.info("Number of detected disulfide bonds: {0}.".format(len(DisulfideBonds_list_final2)))
+
+    return DisulfideBonds_list_final2
 
 
 def calcMetalInteractions(atoms, distA=3.0, extraIons=['FE'], excluded_ions=['SOD', 'CLA']):
