@@ -39,7 +39,7 @@ __all__ = ['calcHydrogenBonds', 'calcChHydrogenBonds', 'calcSaltBridges',
            'calcHydrogenBondsTrajectory', 'calcSaltBridgesTrajectory',
            'calcRepulsiveIonicBondingTrajectory', 'calcPiStackingTrajectory', 
            'calcPiCationTrajectory', 'calcHydrophobicTrajectory', 'calcDisulfideBondsTrajectory',
-           'calcProteinInteractions', 'calcStatisticsInteractions',
+           'calcProteinInteractions', 'calcStatisticsInteractions', 'calcDistribution',
            'compareInteractions', 'showInteractionsGraph',
            'calcLigandInteractions', 'listLigandInteractions', 
            'showProteinInteractions_VMD', 'showLigandInteraction_VMD', 
@@ -1527,6 +1527,84 @@ def calcStatisticsInteractions(data):
     
     statistic.sort(key=lambda x: x[1], reverse=True)
     return statistic
+
+
+def calcDistribution(interactions, residue1, residue2=None, **kwargs):
+    """Distributions/histograms of pairs of amino acids. 
+    Histograms are normalized.
+
+    :arg interactions: list of interactions
+    :type interactions: list
+    
+    :arg residue1: residue name in 3-letter code and residue number
+    :type residue1: str
+    
+    :arg residue2: residue name in 3-letter code and residue number
+    :type residue2: str
+    
+    :arg metrics: name of the data type
+        'distance' or 'angle' depends on the type of interaction
+    :type metrics: str
+    """
+    import matplotlib
+    import matplotlib.pyplot as plt
+    metrics = kwargs.pop('metrics', 'distance')
+    
+    if residue2 == None:
+        additional_residues = []
+    
+        for sublist in interactions:
+            for line in sublist:
+                if (residue1 in line[0] or residue1 in line[3]):
+                    additional_residues.append(line[0])
+                    additional_residues.append(line[3])
+        
+        additional_residues = list(set(additional_residues))
+        additional_residues.remove(residue1)
+        
+        if (additional_residues) == []:
+            pass
+        else:
+            LOGGER.info('Possible contacts for '+residue1+':')
+            for i in additional_residues:
+                LOGGER.info(i)
+    
+    else:
+        values = []
+        additional_residues = []
+
+        for sublist in interactions:
+            for line in sublist:
+                if (residue1 in line[0] or residue1 in line[3]):
+                    additional_residues.append(line[0])
+                    additional_residues.append(line[3])
+                    if residue2 in line:
+                        if metrics == 'distance':
+                            values.append(line[6])
+                        elif metrics == 'angle':
+                            values.append(line[7])
+
+        plt.hist(values, rwidth=0.95, density=True)
+        plt.ylabel('Probability')
+        
+        if metrics == 'distance':
+            plt.xlabel('Distance [Å]')
+        elif metrics == 'angle':
+            plt.xlabel('Angle [deg.]')
+        
+        plt.show()
+
+        additional_residues = list(set(additional_residues))
+        additional_residues.remove(residue1)
+        additional_residues.remove(residue2)
+
+        if (additional_residues) == []:
+            pass
+        else:
+            LOGGER.info('Additional contacts for '+residue1+':')
+            for i in additional_residues:
+                LOGGER.info(i)
+
     
 
 def calcLigandInteractions(atoms, **kwargs):
