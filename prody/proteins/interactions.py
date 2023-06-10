@@ -1491,9 +1491,10 @@ def showInteractionsGraph(statistics, **kwargs):
     
     
 def calcStatisticsInteractions(data):
-    """Return the statistics of interactions from DCD trajectory or multi-model PDB including
-    the number of counts for each residue pair, 
-    average distance of interactions for each pair [in Ang] and standard deviation.
+    """Return the statistics of interactions from PDB Ensemble or trajectory including:
+    (1) the weight for each residue pair: corresponds to the number of counts divided by the 
+    number of frames (values >1 are obtained when residue pair creates multiple contacts; 
+    (2) average distance of interactions for each pair [in Ang] and (3) standard deviation [Ang.].
         
     :arg data: list with interactions from calcHydrogenBondsTrajectory() or other types
     :type data: list
@@ -1521,7 +1522,7 @@ def calcStatisticsInteractions(data):
             stats[element] = {
                 "stddev": np.round(np.std(values),2),
                 "mean": np.round(np.mean(values),2),
-                "count": len(values)
+                "weight": np.round(len(values)/len(data))
             }
 
     statistic = []
