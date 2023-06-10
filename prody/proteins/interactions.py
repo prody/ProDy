@@ -1493,16 +1493,16 @@ def showInteractionsGraph(statistics, **kwargs):
 def calcStatisticsInteractions(data, **kwargs):
     """Return the statistics of interactions from PDB Ensemble or trajectory including:
     (1) the weight for each residue pair: corresponds to the number of counts divided by the 
-    number of frames (values >1 are obtained when residue pair creates multiple contacts; 
+    number of frames (values >1 are obtained when residue pair creates multiple contacts); 
     (2) average distance of interactions for each pair [in Ang] and (3) standard deviation [Ang.].
         
     :arg data: list with interactions from calcHydrogenBondsTrajectory() or other types
     :type data: list
     
-    :arg weight_cuoff: value above which results will be displayed
+    :arg weight_cutoff: value above which results will be displayed
         1 or more means that residue contact is present in all conformations/frames
         default value is 0.2 (in 20% of conformations contact appeared)
-    :type weight_cuoff: int or float 
+    :type weight_cutoff: int or float 
     
     Example of usage: 
     >>> atoms = parsePDB('PDBfile.pdb')
@@ -1517,7 +1517,7 @@ def calcStatisticsInteractions(data, **kwargs):
     """
     
     interactions_list = [ (jj[0]+jj[2]+'-'+jj[3]+jj[5], jj[6]) for ii in data for jj in ii]
-    weight_cuoff = kwargs.pop('weight_cuoff', 0.2)
+    weight_cutoff = kwargs.pop('weight_cutoff', 0.2)
     
     import numpy as np
     elements = [t[0] for t in interactions_list]
@@ -1527,14 +1527,14 @@ def calcStatisticsInteractions(data, **kwargs):
         if element not in stats:
             values = [t[1] for t in interactions_list if t[0] == element]
             stats[element] = {
-                "stddev": np.round(np.std(values),2),
-                "mean": np.round(np.mean(values),2),
-                "weight": np.round(float(len(values))/len(data), 2)
+                "stddev": np.round(np.std(values),6),
+                "mean": np.round(np.mean(values),6),
+                "weight": np.round(float(len(values))/len(data), 6)
             }
 
     statistic = []
     for key, value in stats.items():
-        if float(value['weight']) > weight_cuoff:
+        if float(value['weight']) > weight_cutoff:
             LOGGER.info("Statistics for {0}:".format(key))
             LOGGER.info("  Average [Ang.]: {}".format(value['mean']))
             LOGGER.info("  Standard deviation [Ang.]: {0}".format(value['stddev']))
