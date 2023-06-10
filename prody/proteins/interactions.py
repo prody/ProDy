@@ -134,10 +134,10 @@ def calcHydrogenBonds(atoms, **kwargs):
         default is 40.
     :type angle: int, float
     
-    :arg cutoff_dist: non-zero value, interactions will be found between atoms with index differences
-        that are higher than cutoff_dist.
-        default is 20 atoms.
-    :type cutoff_dist: int
+    :arg seq_cutoff: non-zero value, interactions will be found between atoms with index differences
+        that are higher than seq_cutoff.
+        default is 25 atoms.
+    :type seq_cutoff: int
 
     :arg selection: selection string
     :type selection: str
@@ -174,7 +174,7 @@ def calcHydrogenBonds(atoms, **kwargs):
     
     distA = kwargs.pop('distA', 3.5)
     angle = kwargs.pop('angle', 40)
-    cutoff_dist = kwargs.pop('cutoff_dist', 20)
+    seq_cutoff = kwargs.pop('seq_cutoff', 25)
     
     donors = kwargs.get('donors', ['N', 'O', 'S', 'F'])
     acceptors = kwargs.get('acceptors', ['N', 'O', 'S', 'F'])
@@ -189,7 +189,7 @@ def calcHydrogenBonds(atoms, **kwargs):
     LOGGER.info('Calculating hydrogen bonds.')
     for nr_i,i in enumerate(short_contacts):
         # Removing those close contacts which are between neighbour atoms
-        if i[1] - cutoff_dist < i[0] < i[1] + cutoff_dist:
+        if i[1] - seq_cutoff < i[0] < i[1] + seq_cutoff:
             continue
         
         if (i[2][0] in donors and i[3][0] in acceptors) or (i[2][0] in acceptors and i[3][0] in donors): # First letter is checked
@@ -271,10 +271,10 @@ def calcChHydrogenBonds(atoms, **kwargs):
         default is 40.
     :type angle: int, float
     
-    :arg cutoff_dist: non-zero value, interactions will be found between atoms with index differences
-        that are higher than cutoff_dist.
-        default is 20 atoms.
-    :type cutoff_dist: int
+    :arg seq_cutoff: non-zero value, interactions will be found between atoms with index differences
+        that are higher than seq_cutoff.
+        default is 25 atoms.
+    :type seq_cutoff: int
 
     Structure should contain hydrogens.
     If not they can be added using addMissingAtoms(pdb_name) function available in ProDy after Openbabel installation.
@@ -293,9 +293,9 @@ def calcChHydrogenBonds(atoms, **kwargs):
             raise TypeError('coords must be an object '
                             'with `getCoords` method')
 
-    distA = kwargs.pop('distA', 3.0)
+    distA = kwargs.pop('distA', 3.5)
     angle = kwargs.pop('angle', 40)
-    cutoff_dist = kwargs.pop('cutoff_dist', 20)
+    seq_cutoff = kwargs.pop('seq_cutoff', 25)
 
     if len(np.unique(atoms.getChids())) > 1:
         HBS_calculations = calcHydrogenBonds(atoms, **kwargs)
@@ -1045,10 +1045,10 @@ def calcHydrogenBondsTrajectory(atoms, trajectory=None, **kwargs):
         default is 40.
     :type angle: int, float
     
-    :arg cutoff_dist: non-zero value, interactions will be found between atoms with index differences
-        that are higher than cutoff_dist.
+    :arg seq_cutoff: non-zero value, interactions will be found between atoms with index differences
+        that are higher than seq_cutoff.
         default is 20 atoms.
-    :type cutoff_dist: int
+    :type seq_cutoff: int
 
     :arg selection: selection string
     :type selection: str
