@@ -310,7 +310,7 @@ def calcChHydrogenBonds(atoms, **kwargs):
 
 def calcSaltBridges(atoms, **kwargs):
     """Finds salt bridges in protein structure.
-    Histidine is not considered as a charge residue
+    Histidines are considered as charge residues.
     
     :arg atoms: an Atomic object from which residues are selected
     :type atoms: :class:`.Atomic`
@@ -345,7 +345,7 @@ def calcSaltBridges(atoms, **kwargs):
                             'with `getCoords` method')
     
     distA = kwargs.pop('distA', 5.)
-    atoms_KRED = atoms.select('protein and resname ASP GLU LYS ARG and not backbone and not name OXT NE "C.*" and noh')
+    atoms_KRED = atoms.select('protein and ((resname ASP GLU LYS ARG and not backbone and not name OXT NE "C.*" and noh) or (resname HIS HSE HSD HSP and name NE2))')
     charged_residues = list(set(zip(atoms_KRED.getResnums(), atoms_KRED.getChids())))
     
     LOGGER.info('Calculating salt bridges.')
