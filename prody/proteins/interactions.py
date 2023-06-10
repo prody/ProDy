@@ -1490,7 +1490,7 @@ def showInteractionsGraph(statistics, **kwargs):
     return show
     
     
-def calcStatisticsInteractions(data):
+def calcStatisticsInteractions(data, **kwargs):
     """Return the statistics of interactions from PDB Ensemble or trajectory including:
     (1) the weight for each residue pair: corresponds to the number of counts divided by the 
     number of frames (values >1 are obtained when residue pair creates multiple contacts; 
@@ -1498,6 +1498,11 @@ def calcStatisticsInteractions(data):
         
     :arg data: list with interactions from calcHydrogenBondsTrajectory() or other types
     :type data: list
+    
+    :arg weight_cuoff: value above which results will be displayed
+        1 or more means that residue contact is present in all conformations/frames
+        default value is 0.2 (in 20% of conformations contact appeared)
+    :type weight_cuoff: int or float 
     
     Example of usage: 
     >>> atoms = parsePDB('PDBfile.pdb')
@@ -1512,6 +1517,8 @@ def calcStatisticsInteractions(data):
     """
     
     interactions_list = [ (jj[0]+jj[2]+'-'+jj[3]+jj[5], jj[6]) for ii in data for jj in ii]
+    weight_cuoff = kwargs.pop('weight_cuoff', 0.2)
+    
     import numpy as np
     elements = [t[0] for t in interactions_list]
     stats = {}
@@ -1522,16 +1529,18 @@ def calcStatisticsInteractions(data):
             stats[element] = {
                 "stddev": np.round(np.std(values),2),
                 "mean": np.round(np.mean(values),2),
-                "weight": np.round(len(values)/len(data))
+                "weight": np.round(float(len(values))/len(data), 2)
             }
 
     statistic = []
     for key, value in stats.items():
-        LOGGER.info("Statistics for {0}:".format(key))
-        LOGGER.info("  Average [Ang.]: {}".format(value['mean']))
-        LOGGER.info("  Standard deviation [Ang.]: {0}".format(value['stddev']))
-        LOGGER.info("  Count: {0}".format(value['count']))
-        statistic.append([key, value['count'], value['mean'], value['stddev']])
+        if float(value['weight']) > weight_cuoff:
+            LOGGER.info("Statistics for {0}:".format(key))
+            LOGGER.info("  Average [Ang.]: {}".format(value['mean']))
+            LOGGER.info("  Standard deviation [Ang.]: {0}".format(value['stddev']))
+            LOGGER.info("  Weight: {0}".format(value['weight']))
+            statistic.append([key, value['weight'], value['mean'], value['stddev']])
+        else: pass
     
     statistic.sort(key=lambda x: x[1], reverse=True)
     return statistic
