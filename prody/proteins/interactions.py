@@ -834,6 +834,8 @@ def calcDisulfideBonds(atoms, **kwargs):
     
     distA = kwargs.pop('distA', 3)
     
+    from prody.measure import calcDihedral
+    
     try:
         atoms_SG = atoms.select('protein and resname CYS and name SG')
         atoms_SG_res = list(set(zip(atoms_SG.getResnums(), atoms_SG.getChids())))
@@ -853,11 +855,16 @@ def calcDisulfideBonds(atoms, **kwargs):
                     if minDistancePair[-1] < distA:
                         sele1_new = atoms.select('index '+str(minDistancePair[0])+' and name '+str(minDistancePair[2]))
                         sele2_new = atoms.select('index '+str(minDistancePair[1])+' and name '+str(minDistancePair[3]))
+                        sele1_CB = atoms.select('resname CYS and name CB and resid '+str(sele1_new.getResnums()[0])+
+                            ' and chain '+str(sele1_new.getChids()[0]))
+                        sele2_CB = atoms.select('resname CYS and name CB and resid '+str(sele2_new.getResnums()[0])+
+                            ' and chain '+str(sele2_new.getChids()[0]))
+                        diheAng = calcDihedral(sele1_CB, sele1_new, sele2_new, sele2_CB)
                         DisulfideBonds_list.append([sele1_new.getResnames()[0]+str(sele1_new.getResnums()[0]),
                                                                 minDistancePair[2]+'_'+str(minDistancePair[0]), sele1_new.getChids()[0],
                                                                 sele2_new.getResnames()[0]+str(sele2_new.getResnums()[0]),
                                                                 minDistancePair[3]+'_'+str(minDistancePair[1]), sele2_new.getChids()[0],
-                                                                round(minDistancePair[-1],3)])
+                                                                round(minDistancePair[-1],3), round(float(diheAng),2)])
     except:
         atoms_SG = atoms.select('protein and resname CYS')
         if atoms_SG is None:
@@ -870,7 +877,7 @@ def calcDisulfideBonds(atoms, **kwargs):
     DisulfideBonds_list_final2 = filterInteractions(DisulfideBonds_list_final, atoms, **sel_kwargs)
 
     for kk in DisulfideBonds_list_final2:
-        LOGGER.info("%10s%5s%14s  <---> %10s%5s%14s%8.1f" % (kk[0], kk[2], kk[1], kk[3], kk[5], kk[4], kk[6]))
+        LOGGER.info("%10s%5s%14s  <---> %10s%5s%14s%8.1f%8.1f" % (kk[0], kk[2], kk[1], kk[3], kk[5], kk[4], kk[6], kk[7]))
 
     LOGGER.info("Number of detected disulfide bonds: {0}.".format(len(DisulfideBonds_list_final2)))
 
