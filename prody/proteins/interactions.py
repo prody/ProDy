@@ -932,8 +932,14 @@ def calcMetalInteractions(atoms, distA=3.0, extraIons=['FE'], excluded_ions=['SO
         MetalRes_calculations = cleanNumbers(findNeighbors(atoms_ions, distA, atoms.select('all and noh')))
         for i in MetalRes_calculations:
             if i[-1] != 0:
-                MetalResList.append([atoms.getResnames()[i[0]]+str(atoms.getResnums()[i[0]]), i[2], 
-                                 atoms.getResnames()[i[1]]+str(atoms.getResnums()[i[1]]), i[3], i[-1]])
+                MetalResList.append([atoms.getResnames()[i[0]]+str(atoms.getResnums()[i[0]]), i[2], atoms.getChids()[i[0]],
+                                     atoms.getResnames()[i[1]]+str(atoms.getResnums()[i[1]]), i[3], atoms.getChids()[i[1]],
+                                     i[-1]])
+                
+        for kk in MetalResList:
+            LOGGER.info("%10s%5s%14s  <---> %10s%5s%14s%8.1f" % (kk[0], kk[2], kk[1], kk[3], kk[5], kk[4], kk[6]))
+
+        LOGGER.info("Number of detected metal bonds: {0}.".format(len(MetalResList)))
 
         return MetalResList
         
