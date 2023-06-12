@@ -1078,11 +1078,11 @@ def alignSequenceToMSA(seq, msa, **kwargs):
     if method == 'local':
         alignment = alignBioPairwise(sequence, str(refMsaSeq), "local",
                                      match, mismatch, gap_opening, gap_extension,
-                                     one_alignment_only=1)
+                                     max_alignments=1)
     elif method == 'global':
         alignment = alignBioPairwise(sequence, str(refMsaSeq), "global",
                                      match, mismatch, gap_opening, gap_extension,
-                                     one_alignment_only=1)
+                                     max_alignments=1)
     else:
         raise ValueError('method should be local or global')
 
