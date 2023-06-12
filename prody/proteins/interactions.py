@@ -33,6 +33,8 @@ from collections import Counter
 from prody.trajectory import TrajBase, Trajectory
 from prody.ensemble import Ensemble
 
+import multiprocessing
+
 __all__ = ['calcHydrogenBonds', 'calcChHydrogenBonds', 'calcSaltBridges',
            'calcRepulsiveIonicBonding', 'calcPiStacking', 'calcPiCation',
            'calcHydrophobic', 'calcDisulfideBonds', 'calcMetalInteractions',
@@ -63,7 +65,7 @@ def calcPlane(atoms):
     """Function provide parameters of a plane for aromatic rings (based on 3 points).
     Used in calcPiStacking()"""
     
-    coordinates = atoms.getCoords()
+    coordinates = getCoords(atoms)
     p1, p2, p3 = coordinates[:3] # 3 points will be enough to obtain the plane
     x1, y1, z1 = p1
     x2, y2, z2 = p2
@@ -471,6 +473,14 @@ def calcRepulsiveIonicBonding(atoms, **kwargs):
     return RepulsiveIonicBonding_list_final2
 
 
+def calcPiStacking_once(sele1, sele2, distA, angle_min, angle_max):
+    """Helper function to be used by calcPiStacking"""
+    a1, b1, c1, a2, b2, c2 = calcPlane(sele1)[:3]+calcPlane(sele2)[:3]
+    RingRing_angle = calcAngleBetweenPlanes(a1, b1, c1, a2, b2, c2) # plane is computed based on 3 points of rings
+    RingRing_distance = calcDistance(calcCenter(sele1), calcCenter(sele2))
+    if RingRing_distance < distA and angle_min < RingRing_angle < angle_max:
+        return [round(RingRing_distance,3), round(RingRing_angle,3)]
+
 def calcPiStacking(atoms, **kwargs):
     """Finds π–π stacking interactions (between aromatic rings).
     
@@ -547,23 +557,29 @@ def calcPiStacking(atoms, **kwargs):
 
     LOGGER.info('Calculating Pi stacking interactions.')
     PiStack_calculations = []
+    items = []
     for i in aromatic_resids:
         for j in aromatic_resids:
             if i != j: 
-                sele1_name = atoms.select('resid '+str(i[0])+' and chain '+i[1]+' and name CA').getResnames()
-                sele1 = atoms.select('resid '+str(i[0])+' and chain '+i[1]+' and '+aromatic_dic[sele1_name[0]])
+                sele1_full = atoms.select('resid '+str(i[0])+' and chain '+i[1])
+                sele1_name = sele1_full.getResnames()
+                sele1 = sele1_full.select(aromatic_dic[sele1_name[0]])
                 
-                sele2_name = atoms.select('resid '+str(j[0])+' and chain '+j[1]+' and name CA').getResnames()
-                sele2 = atoms.select('resid '+str(j[0])+' and chain '+j[1]+' and '+aromatic_dic[sele2_name[0]])
-                
+                sele2_full = atoms.select('resid '+str(j[0])+' and chain '+j[1])
+                sele2_name = sele2_full.getResnames()
+                sele2 = sele2_full.select(aromatic_dic[sele2_name[0]])
+
                 if sele1 != None and sele2 != None:
-                    a1, b1, c1, a2, b2, c2 = calcPlane(sele1)[:3]+calcPlane(sele2)[:3]
-                    RingRing_angle = calcAngleBetweenPlanes(a1, b1, c1, a2, b2, c2) # plane is computed based on 3 points of rings           
-                    RingRing_distance = calcDistance(calcCenter(sele1.getCoords()),calcCenter(sele2.getCoords()))
-                    if RingRing_distance < distA and angle_min < RingRing_angle < angle_max:
-                        PiStack_calculations.append([str(sele1_name[0])+str(sele1.getResnums()[0]), '_'.join(map(str,sele1.getIndices())), str(sele1.getChids()[0]),
-                                                     str(sele2_name[0])+str(sele2.getResnums()[0]), '_'.join(map(str,sele2.getIndices())), str(sele2.getChids()[0]),
-                                                     round(RingRing_distance,3), round(RingRing_angle,3)])
+                    items.append([sele1.getCoords(), sele2.getCoords(), distA, angle_min, angle_max])
+
+    # create a process pool that uses all cpus
+    with multiprocessing.Pool() as pool:
+        # call the function for each item in parallel with multiple arguments
+        for result in pool.starmap(calcPiStacking_once, items):
+            if result is not None:
+                PiStack_calculations.append([str(sele1.getResnames()[0])+str(sele1.getResnums()[0]), '_'.join(map(str,sele1.getIndices())), str(sele1.getChids()[0]),
+                                            str(sele2.getResnames()[0])+str(sele2.getResnums()[0]), '_'.join(map(str,sele2.getIndices())), str(sele2.getChids()[0])]
+                                            +result)
     
     PiStack_calculations = sorted(PiStack_calculations, key=lambda x : x[-2])   
     PiStack_calculations_final = removeDuplicates(PiStack_calculations)
