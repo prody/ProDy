@@ -3114,36 +3114,69 @@ class InteractionsTrajectory(object):
         PiCat = self._interactions_nb_traj[4]
         HPh = self._interactions_nb_traj[5]
         DiBs = self._interactions_nb_traj[6]
-        
+
         import numpy as np
         import matplotlib
         import matplotlib.pyplot as plt
         matplotlib.rcParams['font.size'] = '20' 
 
-        fig, (ax1, ax2, ax3, ax4, ax5, ax6, ax7) = plt.subplots(7, num=None, figsize=(12,8), facecolor='w', sharex='all', **kwargs)
+        data = [HBs, SBs, HPh, PiStack, PiCat, RIB, DiBs]
+        colors = ['deepskyblue', 'yellow', 'silver', 'lightgreen', 'orange', 'red', 'black']
+        labels = ['HBs', 'SBs', 'HPh', 'PiStack', 'PiCat', 'RIB', 'DiBs']
+        
+        # Removing empty interaction plots
+        data_filtered = []
+        colors_filtered = []
+        labels_filtered = []
+
+        for i, lst in enumerate(data):
+            if any(lst):
+                data_filtered.append(lst)
+                colors_filtered.append(colors[i])
+                labels_filtered.append(labels[i])
+
+        data = data_filtered
+        colors = colors_filtered
+        labels = labels_filtered
+
+        fig, axes = plt.subplots(len(data), num=None, figsize=(12, 8),
+                                facecolor='w', sharex='all', **kwargs)
         hspace = 0.1
         plt.subplots_adjust(left=None, bottom=None, right=None, top=None, wspace=None, hspace=0.35)
-        ax1.bar(np.arange(len(HBs)), HBs, color='deepskyblue')
-        ax2.bar(np.arange(len(SBs)),SBs, color='yellow')
-        ax3.bar(np.arange(len(HPh)), HPh, color='silver')
-        ax4.bar(np.arange(len(PiStack)), PiStack, color='lightgreen')
-        ax5.bar(np.arange(len(PiCat)), PiCat, color='orange')
-        ax6.bar(np.arange(len(RIB)), RIB, color='red')
-        ax7.bar(np.arange(len(DiBs)), DiBs, color='black')
 
-        ax1.plot(HBs, 'k:')
-        ax2.plot(SBs, 'k:')
-        ax3.plot(HPh, 'k:')
-        ax4.plot(PiStack, 'k:')
-        ax5.plot(PiCat, 'k:')
-        ax6.plot(RIB, 'k:')
-        ax7.plot(DiBs, 'k:')
+        last_nonempty = None
+        for i, ax in enumerate(axes):
+            if any(data[i]):
+                last_nonempty = i
+                rects = ax.bar(np.arange(len(data[i])), data[i], color=colors[i])
+                ax.plot(data[i], 'k:')
+                
+                data_min = min(data[i])
+                data_max = max(data[i])
+                if data_max > 15:
+                    ax.set_ylim(data_min - 1, data_max + 1)
+                else: pass
+            
+                if i != len(data) - 1:
+                    ax.set_xlabel('')
+            else:
+                ax.axis('off')
 
-        plt.xlabel('Frame')
-        
+        axes[last_nonempty].set_xlabel('Conformation')
+
+        handles = []
+        for i in range(len(data)):
+            if any(data[i]):
+                handles.append(matplotlib.patches.Rectangle((0, 0), 0.6, 0.6, color=colors[i]))
+
+        if handles:
+            legend = fig.legend(handles, labels, loc='upper center', bbox_to_anchor=(0.5, 1.05), ncol=len(handles), prop={'size': 14}, handlelength=0.8)
+            legend.set_title("Interactions")
+
         if filename is not None:
-            plt.savefig(filename+'.png', dpi=300)
+            plt.savefig(filename + '.png', dpi=300)
         plt.show()
-        
+
         return HBs, SBs, HPh, PiStack, PiCat, HPh, DiBs
 
+ 
