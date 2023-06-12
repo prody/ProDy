@@ -33,10 +33,10 @@ def splitSeqLabel(label):
 
 
 def alignBioPairwise(a_sequence, b_sequence,
-                     ALIGNMENT_METHOD,
-                     MATCH_SCORE, MISMATCH_SCORE,
-                     GAP_PENALTY, GAP_EXT_PENALTY,
-                     one_alignment_only=True):
+                     ALIGNMENT_METHOD=ALIGNMENT_METHOD,
+                     MATCH_SCORE=MATCH_SCORE, MISMATCH_SCORE=MISMATCH_SCORE,
+                     GAP_PENALTY=GAP_PENALTY, GAP_EXT_PENALTY=GAP_EXT_PENALTY,
+                     max_alignments=1):
     """
     Wrapper function to align two sequences using Biopython to support deprecation
     and associated warnings.
@@ -67,8 +67,8 @@ def alignBioPairwise(a_sequence, b_sequence,
     :arg GAP_EXT_PENALTY: a negative integer, used to penalise extending a gap
     :type GAP_EXT_PENALTY: int
 
-    :arg one_alignment_only: whether to return one alignment only or all generated
-    :type one_alignment_only: bool
+    :arg max_alignments: maximum number of alignments to extract
+    :type max_alignments: int
     """
     import numpy as np
 
@@ -84,27 +84,27 @@ def alignBioPairwise(a_sequence, b_sequence,
         alns = aligner.align(a_sequence, b_sequence)
 
         results = []
-        aln = alns[0]
 
-        split_aln = aln.format().split('\n')
+        for i, aln in enumerate(alns):
+            if i == max_alignments:
+                break
 
-        begin = split_aln[1].find('|')
-        end = len(split_aln[1])
+            split_aln = aln.format().split('\n')
 
-        row_1 = split_aln[0].replace(" ", "-")
-        row_2 = split_aln[2].replace(" ", "-")
+            begin = split_aln[1].find('|')
+            end = len(split_aln[1])
 
-        if len(row_1) < len(row_2):
-            row_1 += "-"*(len(row_2)-len(row_1))
-        elif len(row_2) < len(row_1):
-            row_2 += "-"*(len(row_1)-len(row_2))
+            row_1 = split_aln[0].replace(" ", "-")
+            row_2 = split_aln[2].replace(" ", "-")
 
-        results.append((row_1, row_2, aln.score, begin, end))
+            if len(row_1) < len(row_2):
+                row_1 += "-"*(len(row_2)-len(row_1))
+            elif len(row_2) < len(row_1):
+                row_2 += "-"*(len(row_1)-len(row_2))
 
-        if one_alignment_only:
-            return [results[0]]
-        else:
-            return results
+            results.append((row_1, row_2, aln.score, begin, end))
+
+        return results
         
     except (ImportError, AttributeError):
         from Bio import pairwise2
