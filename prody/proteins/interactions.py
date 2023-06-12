@@ -189,28 +189,29 @@ def calcHydrogenBonds(atoms, **kwargs):
     pairList = [] # list with Donor-Hydrogen-Acceptor(indices)-distance-Angle
     
     LOGGER.info('Calculating hydrogen bonds.')
+    hydrogens = atoms.hydrogen
     for nr_i,i in enumerate(short_contacts):
         # Removing those close contacts which are between neighbour atoms
         if i[1] - seq_cutoff < i[0] < i[1] + seq_cutoff:
             continue
         
         if (i[2][0] in donors and i[3][0] in acceptors) or (i[2][0] in acceptors and i[3][0] in donors): # First letter is checked
-            listOfHydrogens1 = cleanNumbers(findNeighbors(atoms.hydrogen, 1.4, atoms.select('index '+str(i[0]))))
-            listOfHydrogens2 = cleanNumbers(findNeighbors(atoms.hydrogen, 1.4, atoms.select('index '+str(i[1]))))
+            listOfHydrogens1 = cleanNumbers(findNeighbors(hydrogens, 1.4, atoms.select('index '+str(i[0]))))
+            listOfHydrogens2 = cleanNumbers(findNeighbors(hydrogens, 1.4, atoms.select('index '+str(i[1]))))
             AtomsForAngle = ['D','H','A', 'distance','angle']
             
             if not listOfHydrogens1:
                 for j in listOfHydrogens2:
                     AtomsForAngle = [j[1], j[0], i[0], i[-1], calcAngle(atoms.select('index '+str(j[1])), 
-                                                                    atoms.select('index '+str(j[0])), 
-                                                                    atoms.select('index '+str(i[0])))[0]]                                                                                   
+                                                                        atoms.select('index '+str(j[0])), 
+                                                                        atoms.select('index '+str(i[0])))[0]]                                                                                   
                     pairList.append(AtomsForAngle)            
             
             elif not listOfHydrogens2:
                 for jj in listOfHydrogens1:
                     AtomsForAngle = [jj[1], jj[0], i[1], i[-1], calcAngle(atoms.select('index '+str(jj[1])), 
-                                                                        atoms.select('index '+str(jj[0])), 
-                                                                        atoms.select('index '+str(i[1])))[0]]
+                                                                          atoms.select('index '+str(jj[0])), 
+                                                                          atoms.select('index '+str(i[1])))[0]]
                     pairList.append(AtomsForAngle)            
     
             else:            
@@ -223,20 +224,24 @@ def calcHydrogenBonds(atoms, **kwargs):
                 
                 for jj in listOfHydrogens1:
                     AtomsForAngle = [jj[1], jj[0], i[1], i[-1], calcAngle(atoms.select('index '+str(jj[1])), 
-                                                                            atoms.select('index '+str(jj[0])), 
-                                                                            atoms.select('index '+str(i[1])))[0]]
+                                                                          atoms.select('index '+str(jj[0])), 
+                                                                          atoms.select('index '+str(i[1])))[0]]
                     pairList.append(AtomsForAngle)
     
     HBs_list = []
+    ag = atoms.getAtomGroup()
+    resnames = ag.getResnames()
+    resnums = ag.getResnums()
+    names = ag.getNames()
+    chids = ag.getChids()
     for k in pairList:
         if 180-angle < float(k[-1]) < 180 and float(k[-2]) < distA:
-            ag = atoms.getAtomGroup()
-            aa_donor = ag.getResnames()[k[0]]+str(ag.getResnums()[k[0]])
-            aa_donor_atom = ag.getNames()[k[0]]+'_'+str(k[0])
-            aa_donor_chain = ag.getChids()[k[0]]
-            aa_acceptor = ag.getResnames()[k[2]]+str(ag.getResnums()[k[2]])
-            aa_acceptor_atom = ag.getNames()[k[2]]+'_'+str(k[2])
-            aa_acceptor_chain = ag.getChids()[k[2]]
+            aa_donor = resnames[k[0]]+str(resnums[k[0]])
+            aa_donor_atom = names[k[0]]+'_'+str(k[0])
+            aa_donor_chain = chids[k[0]]
+            aa_acceptor = resnames[k[2]]+str(resnums[k[2]])
+            aa_acceptor_atom = names[k[2]]+'_'+str(k[2])
+            aa_acceptor_chain = chids[k[2]]
             
             HBs_list.append([str(aa_donor), str(aa_donor_atom), str(aa_donor_chain), str(aa_acceptor), str(aa_acceptor_atom), 
                              str(aa_acceptor_chain), np.round(float(k[-2]),2), np.round(180.0-float(k[-1]),2)])
@@ -244,8 +249,6 @@ def calcHydrogenBonds(atoms, **kwargs):
     HBs_list = sorted(HBs_list, key=lambda x : x[-2])
     HBs_list_final = removeDuplicates(HBs_list)
     
-    selection = kwargs.get('selection', None)
-    selection2 = kwargs.get('selection2', None)    
     sel_kwargs = {k: v for k, v in kwargs.items() if k.startswith('selection')}
     HBs_list_final2 = filterInteractions(HBs_list_final, atoms, **sel_kwargs)
     
