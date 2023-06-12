@@ -6,7 +6,7 @@ import os.path
 
 from prody import LOGGER
 from prody.atomic import flags, AAMAP
-from prody.utilities import openFile, alignBioPairwise
+from prody.utilities import openFile, alignBioPairwise, GAP_PENALTY, GAP_EXT_PENALTY
 
 from .localpdb import fetchPDB
 from .header import (Chemical, Polymer, DBRef, _PDB_DBREF,
@@ -1269,7 +1269,11 @@ def _getUnobservedSeq(lines):
     for key, seq in full_seqs.items():
         if key in unobs_seqs.keys():
             unobs_seq = unobs_seqs[key]
-            alns[key] = alignBioPairwise(unobs_seq, seq, MATCH_SCORE=1000, MISMATCH_SCORE=-1000)[0][:2]
+            alns[key] = alignBioPairwise(unobs_seq, seq, MATCH_SCORE=1000,
+                                         MISMATCH_SCORE=-1000,
+                                         ALIGNMENT_METHOD='global',
+                                         GAP_PENALTY=GAP_PENALTY,
+                                         GAP_EXT_PENALTY=GAP_EXT_PENALTY)[0][:2]
 
     return alns
 
