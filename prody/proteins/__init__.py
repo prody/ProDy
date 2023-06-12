@@ -113,7 +113,7 @@ between protein and ligand structure in single PDB file or in trajectory:
   * :func:`.calcRepulsiveIonicBonding` - compute repulsive ionic bonding in proteins
   * :func:`.calcPiStacking` - compute Pi-stacking interactions in proteins
   * :func:`.calcPiCation` - compute Pi-cation interactions in proteins
-  * :func:`.calcHydrophohic` - compute hydrophobic interactions in proteins
+  * :func:`.calcHydrophobic` - compute hydrophobic interactions in proteins
   * :func:`.calcProteinInteractions` - compute all above interaction types at once
   * :func:`.showProteinInteractions_VMD` - return TCL file for visualization in VMD 
 
@@ -122,7 +122,7 @@ between protein and ligand structure in single PDB file or in trajectory:
   * :func:`.calcRepulsiveIonicBondingDCD` - compute repulsive ionic bonding in a trajectory for proteins    
   * :func:`.calcPiStackingDCD` - compute Pi-stacking interactions in a trajectory for proteins
   * :func:`.calcPiCationDCD` - compute Pi-cation interactions in a trajectory for proteins
-  * :func:`.calcHydrophohicDCD` - compute hydrophobic interactions in a trajectory for proteins
+  * :func:`.calcHydrophobicDCD` - compute hydrophobic interactions in a trajectory for proteins
   * :func:`.calcStatisticsInteractions` - return statistical information for each interaction type 
 
   * :func:`.calcLigandInteractions` - compute all type of interactions between protein and ligand
