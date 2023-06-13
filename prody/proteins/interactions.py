@@ -2494,7 +2494,7 @@ class Interactions(object):
             LOGGER.info('{0}  <--->  {1}'.format(res[0], '  '.join(res[1])))
 
         LOGGER.info('Legend: hb-hydrogen bond, sb-salt bridge, rb-repulsive ionic bond, ps-Pi stacking interaction,'
-                             'pc-Cation-Pi interaction, hp-hydrophobic interaction, dibs - disulfide bonds')
+                             'pc-Cation-Pi interaction, hp-hydrophobic interaction, dibs-disulfide bonds')
         
         try:
             from toolz.curried import count
