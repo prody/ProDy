@@ -2612,6 +2612,9 @@ class Interactions(object):
         ResChid = atoms.select('protein and name CA').getChids()
         ResList = [ i[0]+str(i[1])+i[2] for i in list(zip([ aa_dic[i] for i in ResName ], ResNumb, ResChid)) ]
         
+        replace_matrix = kwargs.get('replace_matrix', False)
+        matrix_all = self._interactions_matrix
+
         HBs = kwargs.get('HBs', 1)
         SBs = kwargs.get('SBs', 1)
         RIB = kwargs.get('RIB', 1)
@@ -2684,6 +2687,12 @@ class Interactions(object):
         else:
             ax.bar(ResList, matrix_dibs_sum, width, color = 'black', bottom = sum_matrix, label='DiBs')
         sum_matrix += matrix_dibs_sum
+
+        if replace_matrix:
+            self._interactions_matrix = np.sum([matrix_hbs, matrix_sbs, matrix_rib, matrix_pistack,
+                                                matrix_picat, matrix_hph, matrix_dibs], axis=0)
+        else:
+            self._interactions_matrix = matrix_all
 
         ax.legend(ncol=7, loc='upper center')
         plt.ylim([0,max(sum_matrix)+3])
