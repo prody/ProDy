@@ -552,7 +552,7 @@ def refineMSA(msa, index=None, label=None, rowocc=None, seqid=None, colocc=None,
                                         "local",
                                         MATCH_SCORE, MISMATCH_SCORE,
                                         GAP_PENALTY, GAP_EXT_PENALTY,
-                                        one_alignment_only=1)
+                                        max_alignments=1)
                 torf = []
                 for s, c in zip(*algn[0][:2]):
                     if s == '-':

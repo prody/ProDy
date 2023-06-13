@@ -764,7 +764,8 @@ def calcHydrophobic(atoms, **kwargs):
     hydrophobic_dic = {'ALA': 'noh and not backbone', 'VAL': 'noh and not (backbone or name CB)',
     'ILE': 'noh and not (backbone or name CB)', 'LEU': 'noh and not (backbone or name CB)',
     'MET': 'noh and not (backbone or name CB)', 'PHE': 'noh and not (backbone or name CB)',
-    'TYR': 'noh and not (backbone or name CB)', 'TRP': 'noh and not (backbone or name CB)'}
+    'TYR': 'noh and not (backbone or name CB)', 'TRP': 'noh and not (backbone or name CB)',
+    'ARG': 'noh and not (backbone or name CB CG)'}
 
     non_standard = kwargs.get('non_standard', {})
     for key, value in non_standard.items():
@@ -2437,24 +2438,21 @@ class Interactions(object):
         atoms = self._atoms     
         freq_contacts_residues = np.sum(interaction_matrix, axis=0)
         
-        try:
-            from collections import Counter
-            lista_ext = []
-            atoms = atoms.select("protein and noh")
-            aa_counter = Counter(atoms.getResindices())
-            calphas = atoms.select('name CA')
-            for i in range(calphas.numAtoms()):
-                lista_ext.extend(list(aa_counter.values())[i]*[round(freq_contacts_residues[i], 8)])
-            
-            kw = {'occupancy': lista_ext}
-            if 'filename' in kwargs:
-                writePDB(kwargs['filename'], atoms, **kw)  
-                LOGGER.info('PDB file saved.')
-            else:
-                writePDB('filename', atoms, **kw)
-                LOGGER.info('PDB file saved.')
-        except: LOGGER.info('There is a problem.')
-        
+        from collections import Counter
+        lista_ext = []
+        atoms = atoms.select("protein and noh")
+        aa_counter = Counter(atoms.getResindices())
+        calphas = atoms.select('name CA')
+        for i in range(calphas.numAtoms()):
+            lista_ext.extend(list(aa_counter.values())[i]*[round(freq_contacts_residues[i], 8)])
+
+        kw = {'occupancy': lista_ext}
+        if 'filename' in kwargs:
+            writePDB(kwargs['filename'], atoms, **kw)
+            LOGGER.info('PDB file saved.')
+        else:
+            writePDB('filename', atoms, **kw)
+            LOGGER.info('PDB file saved.')
 
     def getFrequentInteractors(self, contacts_min=3):
         """Provide a list of residues with the most frequent interactions based 
@@ -2497,7 +2495,7 @@ class Interactions(object):
             LOGGER.info('{0}  <--->  {1}'.format(res[0], '  '.join(res[1])))
 
         LOGGER.info('Legend: hb-hydrogen bond, sb-salt bridge, rb-repulsive ionic bond, ps-Pi stacking interaction,'
-                             'pc-Cation-Pi interaction, hp-hydrophobic interaction, dibs - disulfide bonds')
+                             'pc-Cation-Pi interaction, hp-hydrophobic interaction, dibs-disulfide bonds')
         
         try:
             from toolz.curried import count
@@ -2615,6 +2613,9 @@ class Interactions(object):
         ResChid = atoms.select('protein and name CA').getChids()
         ResList = [ i[0]+str(i[1])+i[2] for i in list(zip([ aa_dic[i] for i in ResName ], ResNumb, ResChid)) ]
         
+        replace_matrix = kwargs.get('replace_matrix', False)
+        matrix_all = self._interactions_matrix
+
         HBs = kwargs.get('HBs', 1)
         SBs = kwargs.get('SBs', 1)
         RIB = kwargs.get('RIB', 1)
@@ -2646,47 +2647,39 @@ class Interactions(object):
         sum_matrix = np.zeros(matrix_hbs_sum.shape)
         pplot(sum_matrix, atoms=atoms.ca)
 
-        if HBs == 0:
-            ax.bar(ResList, matrix_hbs_sum, width, color = 'blue', bottom = 0) 
-        else:
+        if HBs != 0:
             ax.bar(ResList, matrix_hbs_sum, width, color = 'blue', bottom = 0, label='HBs')
         sum_matrix += matrix_hbs_sum
 
-        if SBs == 0:
-            ax.bar(ResList, matrix_sbs_sum, width, color = 'yellow', bottom = sum_matrix)
-        else:
+        if SBs != 0:
             ax.bar(ResList, matrix_sbs_sum, width, color = 'yellow', bottom = sum_matrix, label='SBs')
         sum_matrix += matrix_sbs_sum
 
-        if HPh == 0:
-            ax.bar(ResList, matrix_hph_sum, width, color = 'silver', bottom = sum_matrix)
-        else:
+        if HPh != 0:
             ax.bar(ResList, matrix_hph_sum, width, color = 'silver', bottom = sum_matrix, label='HPh')
         sum_matrix += matrix_hph_sum
         
-        if RIB == 0:
-            ax.bar(ResList, matrix_rib_sum, width, color = 'red', bottom = sum_matrix)
-        else:
+        if RIB != 0:
             ax.bar(ResList, matrix_rib_sum, width, color = 'red', bottom = sum_matrix, label='RIB')
         sum_matrix += matrix_rib_sum
 
-        if PiStack == 0:
-            ax.bar(ResList, matrix_pistack_sum, width, color = 'green', bottom = sum_matrix)
-        else:
+        if PiStack != 0:
             ax.bar(ResList, matrix_pistack_sum, width, color = 'green', bottom = sum_matrix, label='PiStack')
         sum_matrix += matrix_pistack_sum
 
-        if PiCat == 0:
-            ax.bar(ResList, matrix_picat_sum, width, color = 'orange', bottom = sum_matrix)
-        else:
+        if PiCat != 0:
             ax.bar(ResList, matrix_picat_sum, width, color = 'orange', bottom = sum_matrix, label='PiCat')
         sum_matrix += matrix_picat_sum
         
-        if DiBs == 0:
-            ax.bar(ResList, matrix_dibs_sum, width, color = 'black', bottom = sum_matrix)
-        else:
+        if DiBs != 0:
             ax.bar(ResList, matrix_dibs_sum, width, color = 'black', bottom = sum_matrix, label='DiBs')
         sum_matrix += matrix_dibs_sum
+
+        if replace_matrix:
+            self._interactions_matrix = np.sum([matrix_hbs, matrix_sbs, matrix_rib, matrix_pistack,
+                                                matrix_picat, matrix_hph, matrix_dibs], axis=0)
+        else:
+            self._interactions_matrix = matrix_all
 
         ax.legend(ncol=7, loc='upper center')
         plt.ylim([0,max(sum_matrix)+3])
