@@ -2646,45 +2646,31 @@ class Interactions(object):
         sum_matrix = np.zeros(matrix_hbs_sum.shape)
         pplot(sum_matrix, atoms=atoms.ca)
 
-        if HBs == 0:
-            ax.bar(ResList, matrix_hbs_sum, width, color = 'blue', bottom = 0) 
-        else:
+        if HBs != 0:
             ax.bar(ResList, matrix_hbs_sum, width, color = 'blue', bottom = 0, label='HBs')
         sum_matrix += matrix_hbs_sum
 
-        if SBs == 0:
-            ax.bar(ResList, matrix_sbs_sum, width, color = 'yellow', bottom = sum_matrix)
-        else:
+        if SBs != 0:
             ax.bar(ResList, matrix_sbs_sum, width, color = 'yellow', bottom = sum_matrix, label='SBs')
         sum_matrix += matrix_sbs_sum
 
-        if HPh == 0:
-            ax.bar(ResList, matrix_hph_sum, width, color = 'silver', bottom = sum_matrix)
-        else:
+        if HPh != 0:
             ax.bar(ResList, matrix_hph_sum, width, color = 'silver', bottom = sum_matrix, label='HPh')
         sum_matrix += matrix_hph_sum
         
-        if RIB == 0:
-            ax.bar(ResList, matrix_rib_sum, width, color = 'red', bottom = sum_matrix)
-        else:
+        if RIB != 0:
             ax.bar(ResList, matrix_rib_sum, width, color = 'red', bottom = sum_matrix, label='RIB')
         sum_matrix += matrix_rib_sum
 
-        if PiStack == 0:
-            ax.bar(ResList, matrix_pistack_sum, width, color = 'green', bottom = sum_matrix)
-        else:
+        if PiStack != 0:
             ax.bar(ResList, matrix_pistack_sum, width, color = 'green', bottom = sum_matrix, label='PiStack')
         sum_matrix += matrix_pistack_sum
 
-        if PiCat == 0:
-            ax.bar(ResList, matrix_picat_sum, width, color = 'orange', bottom = sum_matrix)
-        else:
+        if PiCat != 0:
             ax.bar(ResList, matrix_picat_sum, width, color = 'orange', bottom = sum_matrix, label='PiCat')
         sum_matrix += matrix_picat_sum
         
-        if DiBs == 0:
-            ax.bar(ResList, matrix_dibs_sum, width, color = 'black', bottom = sum_matrix)
-        else:
+        if DiBs != 0:
             ax.bar(ResList, matrix_dibs_sum, width, color = 'black', bottom = sum_matrix, label='DiBs')
         sum_matrix += matrix_dibs_sum
 
