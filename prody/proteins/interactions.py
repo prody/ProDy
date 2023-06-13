@@ -1048,7 +1048,7 @@ def calcProteinInteractions(atoms, **kwargs):
             raise TypeError('coords must be an object '
                             'with `getCoords` method')
 
-    LOGGER.info('Calculating all interations.') 
+    LOGGER.info('Calculating interations.') 
     HBs_calculations = calcHydrogenBonds(atoms.protein, **kwargs)               #1 in counting
     SBs_calculations = calcSaltBridges(atoms.protein, **kwargs)                 #2
     SameChargeResidues = calcRepulsiveIonicBonding(atoms.protein, **kwargs)     #3
@@ -2027,7 +2027,7 @@ class Interactions(object):
                 raise TypeError('coords must be an object '
                                 'with `getCoords` method')
 
-        LOGGER.info('Calculating all interations.') 
+        LOGGER.info('Calculating interations.') 
         HBs_calculations = calcHydrogenBonds(atoms.protein, **kwargs)               #1 in scoring
         SBs_calculations = calcSaltBridges(atoms.protein, **kwargs)                 #2
         SameChargeResidues = calcRepulsiveIonicBonding(atoms.protein, **kwargs)     #3
@@ -2341,7 +2341,7 @@ class Interactions(object):
         atoms = self._atoms   
         interactions = self._interactions
         
-        LOGGER.info('Calculating all interactions')
+        LOGGER.info('Calculating interactions')
         InteractionsMap = np.zeros([atoms.select('name CA').numAtoms(),atoms.select('name CA').numAtoms()])
         resIDs = list(atoms.select('name CA').getResnums())
         resChIDs = list(atoms.select('name CA').getChids())
