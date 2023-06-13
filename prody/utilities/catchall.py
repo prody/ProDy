@@ -690,10 +690,10 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
         LOGGER.warn('matplotlib 3.6 and later are not compatible with interactive matrices')
         interactive = False
 
-    if not isinstance(x_array, np.ndarray) or not isinstance(y_array, np.ndarray):
-        cmap = kwargs.pop('cmap', 'jet')
-        origin = kwargs.pop('origin', 'lower')
+    cmap = kwargs.pop('cmap', 'jet')
+    origin = kwargs.pop('origin', 'lower')
 
+    if not isinstance(x_array, np.ndarray) or not isinstance(y_array, np.ndarray):
         try:
             from Bio import Phylo
         except ImportError:
