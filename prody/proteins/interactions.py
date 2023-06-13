@@ -1893,7 +1893,10 @@ def showProteinInteractions_VMD(atoms, interactions, color='red',**kwargs):
         for nr_inter,inter in enumerate(interactions):
             TCLforSingleInteraction(inter, color=colors[nr_inter], tcl_file=tcl_file)
 
-    elif len(interactions[0]) == 0 or interactions == []:
+    elif interactions == []:
+        LOGGER.info("Lack of results")
+
+    elif len(interactions[0]) == 0:
         LOGGER.info("Lack of results")
         
     else:
@@ -2365,9 +2368,12 @@ class Interactions(object):
         
         scoring = [kwargs['HBs'], kwargs['SBs'], kwargs['RIB'], kwargs['PiStack'], kwargs['PiCat'], kwargs['HPh'], kwargs['DiBs']]        
 
-        LOGGER.info('Following scores will be used:')        
-        for key,value in kwargs.items(): 
-            LOGGER.info('{0} = {1}'.format(dic_interactions[key], value))
+        if all(x in [0, 1] for x in scoring):
+            pass
+        else:
+            LOGGER.info('Following scores will be used:')        
+            for key,value in kwargs.items(): 
+                LOGGER.info('{0} = {1}'.format(dic_interactions[key], value))
         
         for nr_i,i in enumerate(interactions):
             if i != []:
