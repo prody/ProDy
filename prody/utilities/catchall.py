@@ -693,14 +693,18 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
     cmap = kwargs.pop('cmap', 'jet')
     origin = kwargs.pop('origin', 'lower')
 
-    try: 
-        from Bio import Phylo
-    except ImportError:
-        raise ImportError('Phylo module could not be imported. '
-            'Reinstall ProDy or install Biopython '
-            'to solve the problem.')
-    tree_mode_y = isinstance(y_array, Phylo.BaseTree.Tree)
-    tree_mode_x = isinstance(x_array, Phylo.BaseTree.Tree)
+    if not isinstance(x_array, np.ndarray) or not isinstance(y_array, np.ndarray):
+        try:
+            from Bio import Phylo
+        except ImportError:
+            raise ImportError('Phylo module could not be imported. '
+                'Reinstall ProDy or install Biopython '
+                'to solve the problem.')
+        tree_mode_y = isinstance(y_array, Phylo.BaseTree.Tree)
+        tree_mode_x = isinstance(x_array, Phylo.BaseTree.Tree)
+    else:
+        tree_mode_x = False
+        tree_mode_y = False
 
     if x_array is not None and y_array is not None:
         nrow = 2; ncol = 2
