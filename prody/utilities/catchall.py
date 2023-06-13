@@ -607,7 +607,10 @@ def showLines(*args, **kwargs):
     return lines, polys
 
 def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
-    """Show a matrix using :meth:`~matplotlib.axes.Axes.imshow`. Curves on x- and y-axis can be added.
+    """Show a matrix using :meth:`~matplotlib.axes.Axes.imshow` or
+    :meth:`~matplotlib.axes.Axes.scatter` if *markersize* is provided.
+
+    Curves on x- and y-axis can be added.
 
     :arg matrix: matrix to be displayed
     :type matrix: :class:`~numpy.ndarray`
@@ -628,6 +631,12 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
     :arg xtickrotation: how much to rotate the xticklabels in degrees
                         default is 0
     :type xtickrotation: float
+
+    :arg markersize: size of square markers for using :meth:`~matplotlib.axes.Axes.scatter`
+        to help show matrices with small data regions compared to zeros.
+        Note only non-zeros are plotted so the colorbar range may change if not using norm
+        Default is None, which results in using :meth:`~matplotlib.axes.Axes.imshow`
+    :type markersize: float
     """
 
     from matplotlib import ticker
@@ -647,6 +656,8 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
     vmax = kwargs.pop('vmax', vmax)
     vcenter = kwargs.pop('vcenter', None)
     norm = kwargs.pop('norm', None)
+
+    markersize = kwargs.pop('markersize', None)
 
     if vcenter is not None and norm is None:
         if PY3K:
@@ -679,17 +690,21 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
         LOGGER.warn('matplotlib 3.6 and later are not compatible with interactive matrices')
         interactive = False
 
-    cmap = kwargs.pop('cmap', 'jet')
-    origin = kwargs.pop('origin', 'lower')
+    if not isinstance(x_array, np.ndarray) or not isinstance(y_array, np.ndarray):
+        cmap = kwargs.pop('cmap', 'jet')
+        origin = kwargs.pop('origin', 'lower')
 
-    try: 
-        from Bio import Phylo
-    except ImportError:
-        raise ImportError('Phylo module could not be imported. '
-            'Reinstall ProDy or install Biopython '
-            'to solve the problem.')
-    tree_mode_y = isinstance(y_array, Phylo.BaseTree.Tree)
-    tree_mode_x = isinstance(x_array, Phylo.BaseTree.Tree)
+        try:
+            from Bio import Phylo
+        except ImportError:
+            raise ImportError('Phylo module could not be imported. '
+                'Reinstall ProDy or install Biopython '
+                'to solve the problem.')
+        tree_mode_y = isinstance(y_array, Phylo.BaseTree.Tree)
+        tree_mode_x = isinstance(x_array, Phylo.BaseTree.Tree)
+    else:
+        tree_mode_x = False
+        tree_mode_y = False
 
     if x_array is not None and y_array is not None:
         nrow = 2; ncol = 2
@@ -734,11 +749,18 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
     else:
         ax3 = gca()
     
-    im = ax3.imshow(matrix, aspect=aspect, vmin=vmin, vmax=vmax, 
-                    norm=norm, cmap=cmap, origin=origin, **kwargs)
-                    
-    #ax3.set_xlim([-0.5, matrix.shape[0]+0.5])
-    #ax3.set_ylim([-0.5, matrix.shape[1]+0.5])
+    if markersize is None:
+        # default behaviour
+        im = ax3.imshow(matrix, aspect=aspect, vmin=vmin, vmax=vmax,
+                        norm=norm, cmap=cmap, origin=origin, **kwargs)
+    else:
+        plot_list = []
+        for rows,cols in zip(np.where(matrix!=0)[0],np.where(matrix!=0)[1]):
+            plot_list.append([cols,rows,matrix[rows,cols]])
+        plot_list = np.array(plot_list)
+
+        im = ax3.scatter(plot_list[:,0], plot_list[:,1], c=plot_list[:,2],
+                         s=markersize, marker='s', cmap=cmap, norm=norm, **kwargs)
 
     if xticklabels is not None:
         ax3.xaxis.set_major_formatter(IndexFormatter(xticklabels))
