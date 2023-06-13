@@ -655,7 +655,7 @@ def showMatrix(matrix, x_array=None, y_array=None, **kwargs):
             except ImportError:
                 from matplotlib.colors import TwoSlopeNorm as DivergingNorm
 
-            norm = DivergingNorm(vmin=vmin, vcenter=0., vmax=vmax)
+            norm = DivergingNorm(vmin=vmin, vcenter=vcenter, vmax=vmax)
         else:
             LOGGER.warn('vcenter cannot be used in Python 2 so norm remains None')
 
