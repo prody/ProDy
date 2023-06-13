@@ -2437,24 +2437,21 @@ class Interactions(object):
         atoms = self._atoms     
         freq_contacts_residues = np.sum(interaction_matrix, axis=0)
         
-        try:
-            from collections import Counter
-            lista_ext = []
-            atoms = atoms.select("protein and noh")
-            aa_counter = Counter(atoms.getResindices())
-            calphas = atoms.select('name CA')
-            for i in range(calphas.numAtoms()):
-                lista_ext.extend(list(aa_counter.values())[i]*[round(freq_contacts_residues[i], 8)])
-            
-            kw = {'occupancy': lista_ext}
-            if 'filename' in kwargs:
-                writePDB(kwargs['filename'], atoms, **kw)  
-                LOGGER.info('PDB file saved.')
-            else:
-                writePDB('filename', atoms, **kw)
-                LOGGER.info('PDB file saved.')
-        except: LOGGER.info('There is a problem.')
-        
+        from collections import Counter
+        lista_ext = []
+        atoms = atoms.select("protein and noh")
+        aa_counter = Counter(atoms.getResindices())
+        calphas = atoms.select('name CA')
+        for i in range(calphas.numAtoms()):
+            lista_ext.extend(list(aa_counter.values())[i]*[round(freq_contacts_residues[i], 8)])
+
+        kw = {'occupancy': lista_ext}
+        if 'filename' in kwargs:
+            writePDB(kwargs['filename'], atoms, **kw)
+            LOGGER.info('PDB file saved.')
+        else:
+            writePDB('filename', atoms, **kw)
+            LOGGER.info('PDB file saved.')
 
     def getFrequentInteractors(self, contacts_min=3):
         """Provide a list of residues with the most frequent interactions based 
