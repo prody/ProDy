@@ -107,13 +107,13 @@ def filterInteractions(list_of_interactions, atoms, **kwargs):
     """Return interactions based on selection."""
     
     if 'selection' in kwargs:
-        if not 'chid' in kwargs['selection'] and not 'chain' in kwargs['selection']:
-            LOGGER.warn('selection does not include chid or chain, so filtering is performed')
-            return list_of_interactions
-
         if 'selection2' in kwargs:
             if not 'chid' in kwargs['selection'] and not 'chain' in kwargs['selection']:
                 LOGGER.warn('selection does not include chid or chain, so no filtering is performed')
+                return list_of_interactions
+
+            if not 'chid' in kwargs['selection2'] and not 'chain' in kwargs['selection2']:
+                LOGGER.warn('selection2 does not include chid or chain, so no filtering is performed')
                 return list_of_interactions
 
             ch1 = kwargs['selection'].split()[-1] 
