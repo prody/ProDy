@@ -295,7 +295,7 @@ def calcChHydrogenBonds(atoms, **kwargs):
     :type atoms: :class:`.Atomic`
     
     :arg distA: non-zero value, maximal distance between donor and acceptor.
-        default is 3.0.
+        default is 3.5
     :type distA: int, float
 
     :arg angle: non-zero value, D-H-A angle (donor, hydrogen, acceptor).
