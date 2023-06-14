@@ -138,18 +138,29 @@ def calcHydrogenBonds(atoms, **kwargs):
     :arg atoms: an Atomic object from which residues are selected
     :type atoms: :class:`.Atomic`
     
-    :arg distA: non-zero value, maximal distance between donor and acceptor.
+    :arg distDA: non-zero value, maximal distance between donor and acceptor.
         default is 3.5
-    :type distA: int, float
+        distA also works
+    :type distDA: int, float
     
-    :arg angle: non-zero value, maximal (180 - D-H-A angle) (donor, hydrogen, acceptor).
+    :arg angleDHA: non-zero value, maximal (180 - D-H-A angle) (donor, hydrogen, acceptor).
         default is 40.
-    :type angle: int, float
+        angle also works
+    :type angleDHA: int, float
     
-    :arg seq_cutoff: non-zero value, interactions will be found between atoms with index differences
-        that are higher than seq_cutoff.
+    :arg seq_cutoff_HB: non-zero value, interactions will be found between atoms with index differences
+        that are higher than seq_cutoff_HB. 
         default is 25 atoms.
-    :type seq_cutoff: int
+        seq_cutoff also works
+    :type seq_cutoff_HB: int
+
+    :arg donors: which atoms to count as donors 
+        default is ['N', 'O', 'S', 'F']
+    :type donors: list
+
+    :arg acceptors: which atoms to count as acceptors 
+        default is ['N', 'O', 'S', 'F']
+    :type acceptors: list 
 
     :arg selection: selection string
     :type selection: str
@@ -184,9 +195,14 @@ def calcHydrogenBonds(atoms, **kwargs):
         raise ValueError('atoms should have hydrogens to calculate hydrogen bonds. '
                          'Use addMissingAtoms to add hydrogens')
     
-    distA = kwargs.pop('distA', 3.5)
-    angle = kwargs.pop('angle', 40)
-    seq_cutoff = kwargs.pop('seq_cutoff', 25)
+    distDA = kwargs.pop('distDA', 3.5)
+    distA = kwargs.pop('distA', distDA)
+
+    angleDHA = kwargs.pop('angleDA', 40)
+    angle = kwargs.pop('angle', angleDHA)
+    
+    seq_cutoff_HB = kwargs.pop('seq_cutoff_HB', 25)
+    seq_cutoff = kwargs.pop('seq_cutoff', seq_cutoff_HB)
     
     donors = kwargs.get('donors', ['N', 'O', 'S', 'F'])
     acceptors = kwargs.get('acceptors', ['N', 'O', 'S', 'F'])
@@ -330,10 +346,11 @@ def calcSaltBridges(atoms, **kwargs):
     :arg atoms: an Atomic object from which residues are selected
     :type atoms: :class:`.Atomic`
     
-    :arg distA: non-zero value, maximal distance between center of masses 
+    :arg distSB: non-zero value, maximal distance between center of masses 
         of N and O atoms of negatively and positevely charged residues.
         default is 5.
-    :type distA: int, float
+        distA also works
+    :type distSB: int, float
 
     :arg selection: selection string
     :type selection: str
@@ -359,7 +376,9 @@ def calcSaltBridges(atoms, **kwargs):
             raise TypeError('coords must be an object '
                             'with `getCoords` method')
     
-    distA = kwargs.pop('distA', 5.)
+    distSB = kwargs.pop('distSB', 5.)
+    distA = kwargs.pop('distA', distSB)
+
     atoms_KRED = atoms.select('protein and ((resname ASP GLU LYS ARG and not backbone and not name OXT NE "C.*" and noh) or (resname HIS HSE HSD HSP and name NE2))')
     charged_residues = list(set(zip(atoms_KRED.getResnums(), atoms_KRED.getChids())))
     
@@ -412,10 +431,11 @@ def calcRepulsiveIonicBonding(atoms, **kwargs):
     :arg atoms: an Atomic object from which residues are selected
     :type atoms: :class:`.Atomic`
     
-    :arg distA: non-zero value, maximal distance between center of masses 
+    :arg distRB: non-zero value, maximal distance between center of masses 
             between N-N or O-O atoms of residues.
             default is 4.5.
-    :type distA: int, float
+            distA works too
+    :type distRB: int, float
 
     :arg selection: selection string
     :type selection: str
@@ -441,7 +461,9 @@ def calcRepulsiveIonicBonding(atoms, **kwargs):
             raise TypeError('coords must be an object '
                             'with `getCoords` method')
     
-    distA = kwargs.pop('distA', 4.5)
+    distRB = kwargs.pop('distRB', 4.5)
+    distA = kwargs.pop('distA', distRB)
+
     atoms_KRED = atoms.select('protein and resname ASP GLU LYS ARG and not backbone and not name OXT NE "C.*" and noh')
     charged_residues = list(set(zip(atoms_KRED.getResnums(), atoms_KRED.getChids())))
     
@@ -500,18 +522,21 @@ def calcPiStacking(atoms, **kwargs):
     :arg atoms: an Atomic object from which residues are selected
     :type atoms: :class:`.Atomic`
     
-    :arg distA: non-zero value, maximal distance between center of masses 
+    :arg distPS: non-zero value, maximal distance between center of masses 
                 of residues aromatic rings.
                 default is 5.
-    :type distA: int, float
+                distA works too
+    :type distPS: int, float
     
-    :arg angle_min: minimal angle between aromatic rings.
+    :arg angle_min_PS: minimal angle between aromatic rings.
         default is 0.
-    :type angle_min: int, float
+        angle_min works too
+    :type angle_min_PS: int, float
 
-    :arg angle_max: maximal angle between rings.
+    :arg angle_max_PS: maximal angle between rings.
         default is 360.
-    :type angle_max: int, float
+        angle_max works too
+    :type angle_max_PS: int, float
 
     :arg selection: selection string
     :type selection: str
@@ -519,9 +544,10 @@ def calcPiStacking(atoms, **kwargs):
     :arg selection2: selection string
     :type selection2: str
 
-    :arg non_standard: dictionary of non-standard residue in the protein structure
+    :arg non_standard_PS: dictionary of non-standard residue in the protein structure
                         that need to be included in calculations
-    :type non_standard: dictionary
+                        non_standard works too
+    :type non_standard_PS: dictionary
 
     Selection:
     If we want to select interactions for the particular residue or group of residues: 
@@ -554,11 +580,18 @@ def calcPiStacking(atoms, **kwargs):
                 'TYR':'noh and not backbone and not name CB and not name OH',
                 'HIS':'noh and not backbone and not name CB'}
     
-    distA = kwargs.pop('distA', 5.0)
-    angle_min = kwargs.pop('angle_min', 0)
-    angle_max = kwargs.pop('angle_max', 360)
+    distPS = kwargs.pop('distPS', 5.0)
+    distA = kwargs.pop('distA', distPS)
+
+    angle_min_RB = kwargs.pop('angle_min_RB', 0)
+    angle_min = kwargs.pop('angle_min', angle_min_RB)
+
+    angle_max_RB = kwargs.pop('angle_max_RB', 360)
+    angle_max = kwargs.pop('angle_max', angle_max_RB)
     
-    non_standard = kwargs.get('non_standard', {})
+    non_standard_PS = kwargs.get('non_standard_PS', {})
+    non_standard = kwargs.get('non_standard', non_standard_PS)
+
     for key, value in non_standard.items():
         aromatic_dic[key] = value
     
@@ -617,10 +650,11 @@ def calcPiCation(atoms, **kwargs):
     :arg atoms: an Atomic object from which residues are selected
     :type atoms: :class:`.Atomic`
     
-    :arg distA: non-zero value, maximal distance between center of masses 
+    :arg distPC: non-zero value, maximal distance between center of masses 
                 of aromatic ring and positively charge group.
                 default is 5.
-    :type distA: int, float
+                distA works too
+    :type distPC: int, float
 
     :arg selection: selection string
     :type selection: str
@@ -628,9 +662,10 @@ def calcPiCation(atoms, **kwargs):
     :arg selection2: selection string
     :type selection2: str
 
-    :arg non_standard: dictionary of non-standard residue in the protein structure
+    :arg non_standard_PC: dictionary of non-standard residue in the protein structure
                         that need to be included in calculations
-    :type non_standard: dictionary
+                        non_standard also works
+    :type non_standard_PC: dictionary
 
     Selection:
     If we want to select interactions for the particular residue or group of residues: 
@@ -665,9 +700,12 @@ def calcPiCation(atoms, **kwargs):
                 'TYR':'noh and not backbone and not name CB and not name OH',
                 'HIS':'noh and not backbone and not name CB'}
     
-    distA = kwargs.pop('distA', 5.0)
+    distPC = kwargs.pop('distPC', 5.0)
+    distA = kwargs.pop('distA', distPC)
     
-    non_standard = kwargs.get('non_standard', {})
+    non_standard_PC = kwargs.get('non_standard_PC', {})
+    non_standard = kwargs.get('non_standard', non_standard_PC)
+    
     for key, value in non_standard.items():
         aromatic_dic[key] = value
         
@@ -726,13 +764,15 @@ def calcHydrophobic(atoms, **kwargs):
     :arg atoms: an Atomic object from which residues are selected
     :type atoms: :class:`.Atomic`
     
-    :arg distA: non-zero value, maximal distance between atoms of hydrophobic residues.
+    :arg distHPh: non-zero value, maximal distance between atoms of hydrophobic residues.
         default is 4.5.
-    :type distA: int, float
+        distA works too
+    :type distHPh: int, float
     
-    :arg non_standard: dictionary of non-standard residue in the protein structure
+    :arg non_standard_Hph: dictionary of non-standard residue in the protein structure
                         that need to be included in calculations
-    :type non_standard: dictionary
+                        non_standard works too
+    :type non_standard_Hph: dictionary
 
     Selection:
     If we want to select interactions for the particular residue or group of residues: 
@@ -761,7 +801,8 @@ def calcHydrophobic(atoms, **kwargs):
             raise TypeError('coords must be an object '
                             'with `getCoords` method')
     
-    distA = kwargs.pop('distA', 4.5)
+    distHph = kwargs.pop('distHph', 4.5)
+    distA = kwargs.pop('distA', distHph)
     
     Hydrophobic_list = []  
     atoms_hydrophobic = atoms.select('resname ALA VAL ILE MET LEU PHE TYR TRP')
@@ -779,7 +820,9 @@ def calcHydrophobic(atoms, **kwargs):
     'TYR': 'noh and not (backbone or name CB)', 'TRP': 'noh and not (backbone or name CB)',
     'ARG': 'name CG', 'LYS': 'name CG CD'}
 
-    non_standard = kwargs.get('non_standard', {})
+    non_standard_Hph = kwargs.get('non_standard_Hph', {})
+    non_standard = kwargs.get('non_standard', non_standard_Hph)
+
     for key, value in non_standard.items():
         hydrophobic_dic[key] = value
     
@@ -849,9 +892,10 @@ def calcDisulfideBonds(atoms, **kwargs):
     :arg atoms: an Atomic object from which residues are selected
     :type atoms: :class:`.Atomic`
     
-    :arg distA: non-zero value, maximal distance between atoms of hydrophobic residues.
+    :arg distDB: non-zero value, maximal distance between atoms of hydrophobic residues.
         default is 3.
-    :type distA: int, float
+        distA works too
+    :type distDB: int, float
     """
 
     try:
@@ -864,7 +908,8 @@ def calcDisulfideBonds(atoms, **kwargs):
             raise TypeError('coords must be an object '
                             'with `getCoords` method')
     
-    distA = kwargs.pop('distA', 3)
+    distDB = kwargs.pop('distDB', 3)
+    distA = kwargs.pop('distA', distDB)
     
     from prody.measure import calcDihedral
     
