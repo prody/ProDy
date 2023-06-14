@@ -721,7 +721,7 @@ def calcPiCation(atoms, **kwargs):
 
 def calcHydrophobic(atoms, **kwargs): 
     """Prediction of hydrophobic interactions between hydrophobic residues 
-    (ALA, ILE, LEU, MET, PHE, TRP, VAL).
+    (ALA, ILE, LEU, MET, PHE, TRP, VAL, CG of ARG, and CG and CD of LYS).
     
     :arg atoms: an Atomic object from which residues are selected
     :type atoms: :class:`.Atomic`
@@ -802,11 +802,13 @@ def calcHydrophobic(atoms, **kwargs):
             sele2_nr = list(set(zip(sele2.getResnums(), sele2.getChids())))
 
             if sele1_name[0] in aromatic:
+                # avoid double counting pi stacking and don't include same residue interactions
                 sele2_filter = sele2.select('all and not (resname TYR PHE TRP or resid '+str(i[0])+' and chain '+i[1]+')')
                 if sele2_filter != None:
                     listOfAtomToCompare = cleanNumbers(findNeighbors(sele1, distA, sele2_filter))
                 
             elif sele1_name[0] not in aromatic and i in sele2_nr:
+                # don't include same residue interactions but don't worry about double counting pi stacking
                 sele2_filter = sele2.select(sele2.select('all and not (resid '+str(i[0])+' and chain '+i[1]+')'))
                 if sele2_filter != None:
                     listOfAtomToCompare = cleanNumbers(findNeighbors(sele1, distA, sele2_filter))
