@@ -107,7 +107,15 @@ def filterInteractions(list_of_interactions, atoms, **kwargs):
     """Return interactions based on selection."""
     
     if 'selection' in kwargs:
+        if not 'chid' in kwargs['selection'] and not 'chain' in kwargs['selection']:
+            LOGGER.warn('selection does not include chid or chain, so filtering is performed')
+            return list_of_interactions
+
         if 'selection2' in kwargs:
+            if not 'chid' in kwargs['selection'] and not 'chain' in kwargs['selection']:
+                LOGGER.warn('selection does not include chid or chain, so no filtering is performed')
+                return list_of_interactions
+
             ch1 = kwargs['selection'].split()[-1] 
             ch2 = kwargs['selection2'].split()[-1] 
             final = [i for i in list_of_interactions if (i[2] == ch1 and i[5] == ch2) or (i[5] == ch1 and i[2] == ch2)]
@@ -117,6 +125,8 @@ def filterInteractions(list_of_interactions, atoms, **kwargs):
             y = p.select(kwargs['selection']).getResnums()
             listOfselection = np.unique(list(map(lambda x, y: x + str(y), x, y)))
             final = [i for i in list_of_interactions if i[0] in listOfselection or i[3] in listOfselection]
+    elif 'selection2' in kwargs:
+        LOGGER.warn('selection2 by itself is ignored')
     else:
         final = list_of_interactions
     return final
