@@ -516,6 +516,7 @@ def calcPiStacking_once(sele1, sele2, distA, angle_min, angle_max, data):
     if RingRing_distance < distA and angle_min < RingRing_angle < angle_max:
         return data+[round(RingRing_distance,3), round(RingRing_angle,3)]
 
+
 def calcPiStacking(atoms, **kwargs):
     """Finds π–π stacking interactions (between aromatic rings).
     
@@ -578,7 +579,9 @@ def calcPiStacking(atoms, **kwargs):
     aromatic_dic = {'TRP':'noh and not backbone and not name CB NE1 CD1 CG',
                 'PHE':'noh and not backbone and not name CB',
                 'TYR':'noh and not backbone and not name CB and not name OH',
-                'HIS':'noh and not backbone and not name CB'}
+                'HIS':'noh and not backbone and not name CB',
+                'HSE':'noh and not backbone and not name CB',
+                'HSD':'noh and not backbone and not name CB'}
     
     distPS = kwargs.pop('distPS', 5.0)
     distA = kwargs.pop('distA', distPS)
@@ -595,7 +598,7 @@ def calcPiStacking(atoms, **kwargs):
     for key, value in non_standard.items():
         aromatic_dic[key] = value
     
-    atoms_cylic = atoms.select('resname TRP PHE TYR HIS')
+    atoms_cylic = atoms.select('resname TRP PHE TYR HIS HSE HSD')
     if atoms_cylic is None:
         return []
     
@@ -698,7 +701,9 @@ def calcPiCation(atoms, **kwargs):
     aromatic_dic = {'TRP':'noh and not backbone and not name CB NE1 CD1 CG',
                 'PHE':'noh and not backbone and not name CB',
                 'TYR':'noh and not backbone and not name CB and not name OH',
-                'HIS':'noh and not backbone and not name CB'}
+                'HIS':'noh and not backbone and not name CB',
+                'HSE':'noh and not backbone and not name CB',
+                'HSD':'noh and not backbone and not name CB'}
     
     distPC = kwargs.pop('distPC', 5.0)
     distA = kwargs.pop('distA', distPC)
@@ -709,7 +714,7 @@ def calcPiCation(atoms, **kwargs):
     for key, value in non_standard.items():
         aromatic_dic[key] = value
         
-    atoms_cylic = atoms.select('resname TRP PHE TYR HIS')
+    atoms_cylic = atoms.select('resname TRP PHE TYR HIS HSE HSD')
     if atoms_cylic is None:
         return []
     
