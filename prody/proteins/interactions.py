@@ -476,13 +476,13 @@ def calcRepulsiveIonicBonding(atoms, **kwargs):
     return RepulsiveIonicBonding_list_final2
 
 
-def calcPiStacking_once(sele1, sele2, distA, angle_min, angle_max):
+def calcPiStacking_once(sele1, sele2, distA, angle_min, angle_max, data):
     """Helper function to be used by calcPiStacking"""
     a1, b1, c1, a2, b2, c2 = calcPlane(sele1)[:3]+calcPlane(sele2)[:3]
     RingRing_angle = calcAngleBetweenPlanes(a1, b1, c1, a2, b2, c2) # plane is computed based on 3 points of rings
     RingRing_distance = calcDistance(calcCenter(sele1), calcCenter(sele2))
     if RingRing_distance < distA and angle_min < RingRing_angle < angle_max:
-        return [round(RingRing_distance,3), round(RingRing_angle,3)]
+        return data+[round(RingRing_distance,3), round(RingRing_angle,3)]
 
 def calcPiStacking(atoms, **kwargs):
     """Finds π–π stacking interactions (between aromatic rings).
@@ -573,16 +573,16 @@ def calcPiStacking(atoms, **kwargs):
                 sele2 = sele2_full.select(aromatic_dic[sele2_name[0]])
 
                 if sele1 != None and sele2 != None:
-                    items.append([sele1.getCoords(), sele2.getCoords(), distA, angle_min, angle_max])
+                    items.append([sele1.getCoords(), sele2.getCoords(), distA, angle_min, angle_max,
+                                  [str(sele1.getResnames()[0])+str(sele1.getResnums()[0]), '_'.join(map(str,sele1.getIndices())), str(sele1.getChids()[0]),
+                                   str(sele2.getResnames()[0])+str(sele2.getResnums()[0]), '_'.join(map(str,sele2.getIndices())), str(sele2.getChids()[0])]])
 
     # create a process pool that uses all cpus
     with multiprocessing.Pool() as pool:
         # call the function for each item in parallel with multiple arguments
         for result in pool.starmap(calcPiStacking_once, items):
             if result is not None:
-                PiStack_calculations.append([str(sele1.getResnames()[0])+str(sele1.getResnums()[0]), '_'.join(map(str,sele1.getIndices())), str(sele1.getChids()[0]),
-                                            str(sele2.getResnames()[0])+str(sele2.getResnums()[0]), '_'.join(map(str,sele2.getIndices())), str(sele2.getChids()[0])]
-                                            +result)
+                PiStack_calculations.append(result)
     
     PiStack_calculations = sorted(PiStack_calculations, key=lambda x : x[-2])   
     PiStack_calculations_final = removeDuplicates(PiStack_calculations)
