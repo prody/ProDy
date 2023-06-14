@@ -121,6 +121,10 @@ def filterInteractions(list_of_interactions, atoms, **kwargs):
             final = [i for i in list_of_interactions if (i[2] == ch1 and i[5] == ch2) or (i[5] == ch1 and i[2] == ch2)]
         else:
             p = atoms.select('same residue as protein within 10 of ('+kwargs['selection']+')')
+            if p is None:
+                LOGGER.warn('selection did not work, so no filtering is performed')
+                return list_of_interactions
+
             x = p.select(kwargs['selection']).getResnames()
             y = p.select(kwargs['selection']).getResnums()
             listOfselection = np.unique(list(map(lambda x, y: x + str(y), x, y)))
