@@ -1490,7 +1490,7 @@ def showInteractionsGraph(statistics, **kwargs):
     font_size = kwargs.pop('font_size', 14)
     seed = kwargs.pop('seed', 42)
     cutoff = kwargs.pop('cutoff', 0.1)
-    multiple_chains = kwargs.pop('cutoff', False)
+    multiple_chains = kwargs.pop('multiple_chains', False)
     
     X = [i for i in statistics if i[1] >= cutoff]   
     G = nx.Graph()
