@@ -270,7 +270,7 @@ def calcHydrogenBonds(atoms, **kwargs):
             aa_acceptor_chain = chids[k[2]]
             
             HBs_list.append([str(aa_donor), str(aa_donor_atom), str(aa_donor_chain), str(aa_acceptor), str(aa_acceptor_atom), 
-                             str(aa_acceptor_chain), np.round(float(k[-2]),2), np.round(180.0-float(k[-1]),2)])
+                             str(aa_acceptor_chain), np.round(float(k[-2]),4), np.round(180.0-float(k[-1]),4)])
     
     HBs_list = sorted(HBs_list, key=lambda x : x[-2])
     HBs_list_final = removeDuplicates(HBs_list)
@@ -404,7 +404,7 @@ def calcSaltBridges(atoms, **kwargs):
                 if distance < distA and sele1.getNames()[0][0] != sele2_single.getNames()[0][0]:
                     SaltBridges_list.append([sele1.getResnames()[0]+str(sele1.getResnums()[0]), sele1.getNames()[0]+'_'+'_'.join(map(str,sele1.getIndices())), sele1.getChids()[0],
                                                   sele2_single.getResnames()[0]+str(sele2_single.getResnums()[0]), sele2_single.getNames()[0]+'_'+'_'.join(map(str,sele2_single.getIndices())), 
-                                                  sele2_single.getChids()[0], round(distance,3)])
+                                                  sele2_single.getChids()[0], round(distance,4)])
     
     SaltBridges_list = sorted(SaltBridges_list, key=lambda x : x[-1])
     [ SaltBridges_list.remove(j) for i in SaltBridges_list for j in SaltBridges_list if Counter(i) == Counter(j) ]
@@ -489,7 +489,7 @@ def calcRepulsiveIonicBonding(atoms, **kwargs):
                 if distance < distA and sele1.getNames()[0][0] == sele2_single.getNames()[0][0] and distance > 0:
                     RepulsiveIonicBonding_list.append([sele1.getResnames()[0]+str(sele1.getResnums()[0]), sele1.getNames()[0]+'_'+'_'.join(map(str,sele1.getIndices())), sele1.getChids()[0],
                                                   sele2_single.getResnames()[0]+str(sele2_single.getResnums()[0]), sele2_single.getNames()[0]+'_'+'_'.join(map(str,sele2_single.getIndices())), 
-                                                  sele2_single.getChids()[0], round(distance,3)])
+                                                  sele2_single.getChids()[0], round(distance,4)])
     
     [ RepulsiveIonicBonding_list.remove(j) for i in RepulsiveIonicBonding_list for j in RepulsiveIonicBonding_list if Counter(i) == Counter(j) ]
     RepulsiveIonicBonding_list = sorted(RepulsiveIonicBonding_list, key=lambda x : x[-1])
@@ -514,7 +514,7 @@ def calcPiStacking_once(sele1, sele2, distA, angle_min, angle_max, data):
     RingRing_angle = calcAngleBetweenPlanes(a1, b1, c1, a2, b2, c2) # plane is computed based on 3 points of rings
     RingRing_distance = calcDistance(calcCenter(sele1), calcCenter(sele2))
     if RingRing_distance < distA and angle_min < RingRing_angle < angle_max:
-        return data+[round(RingRing_distance,3), round(RingRing_angle,3)]
+        return data+[round(RingRing_distance,4), round(RingRing_angle,4)]
 
 
 def calcPiStacking(atoms, **kwargs):
@@ -744,7 +744,7 @@ def calcPiCation(atoms, **kwargs):
                 if RingCation_distance < distA:
                     PiCation_calculations.append([str(sele1_name[0])+str(sele1.getResnums()[0]), '_'.join(map(str,sele1.getIndices())), str(sele1.getChids()[0]),
                                                   str(sele2_single.getResnames()[0])+str(sele2_single.getResnums()[0]), sele2_single.getNames()[0]+'_'+'_'.join(map(str,sele2_single.getIndices())), 
-                                                  str(sele2_single.getChids()[0]), round(RingCation_distance,3)])
+                                                  str(sele2_single.getChids()[0]), round(RingCation_distance,4)])
     
     PiCation_calculations = sorted(PiCation_calculations, key=lambda x : x[-1]) 
     PiCation_calculations_final = removeDuplicates(PiCation_calculations)
@@ -873,7 +873,7 @@ def calcHydrophobic(atoms, **kwargs):
                                                              minDistancePair[2]+'_'+str(minDistancePair[0]), sele1_new.getChids()[0],
                                                              sele2_new.getResnames()[0]+str(sele2_new.getResnums()[0]), 
                                                              minDistancePair[3]+'_'+str(minDistancePair[1]), sele2_new.getChids()[0],
-                                                             round(minDistancePair[-1],3)]) 
+                                                             round(minDistancePair[-1],4)]) 
                     
     Hydrophobic_calculations = sorted(Hydrophobic_calculations, key=lambda x : x[-1])
     Hydrophobic_calculations_final = removeDuplicates(Hydrophobic_calculations)
@@ -946,7 +946,7 @@ def calcDisulfideBonds(atoms, **kwargs):
                                                                 minDistancePair[2]+'_'+str(minDistancePair[0]), sele1_new.getChids()[0],
                                                                 sele2_new.getResnames()[0]+str(sele2_new.getResnums()[0]),
                                                                 minDistancePair[3]+'_'+str(minDistancePair[1]), sele2_new.getChids()[0],
-                                                                round(minDistancePair[-1],3), round(float(diheAng),2)])
+                                                                round(minDistancePair[-1],4), round(float(diheAng),4)])
     except:
         atoms_SG = atoms.select('protein and resname CYS')
         if atoms_SG is None:
@@ -2768,6 +2768,7 @@ class Interactions(object):
         plt.ylabel('Number of counts')
        
         return matrix_hbs_sum, matrix_sbs_sum, matrix_rib_sum, matrix_pistack_sum, matrix_picat_sum, matrix_hph_sum, matrix_dibs_sum 
+      
         
 class InteractionsTrajectory(object):
 
