@@ -761,7 +761,7 @@ def calcHydrophobic(atoms, **kwargs):
         return []
     
     aromatic_nr = list(set(zip(atoms.aromatic.getResnums(),atoms.aromatic.getChids())))   
-    aromatic = list(set(zip(atoms.aromatic.getResnames())))
+    aromatic = list(set(atoms.aromatic.getResnames()))
     
     hydrophobic_dic = {'ALA': 'noh and not backbone', 'VAL': 'noh and not (backbone or name CB)',
     'ILE': 'noh and not (backbone or name CB)', 'LEU': 'noh and not (backbone or name CB)',
@@ -792,7 +792,7 @@ def calcHydrophobic(atoms, **kwargs):
             sele2_nr = list(set(zip(sele2.getResnums(), sele2.getChids())))
 
             if sele1_name[0] in aromatic:
-                sele2_filter = sele2.select('all and not (resname TYR PHE TRP or resid '+str(i)+')')
+                sele2_filter = sele2.select('all and not (resname TYR PHE TRP or resid '+str(i[0])+' and chain '+i[1]+')')
                 if sele2_filter != None:
                     listOfAtomToCompare = cleanNumbers(findNeighbors(sele1, distA, sele2_filter))
                 
