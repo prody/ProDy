@@ -767,7 +767,7 @@ def calcHydrophobic(atoms, **kwargs):
     'ILE': 'noh and not (backbone or name CB)', 'LEU': 'noh and not (backbone or name CB)',
     'MET': 'noh and not (backbone or name CB)', 'PHE': 'noh and not (backbone or name CB)',
     'TYR': 'noh and not (backbone or name CB)', 'TRP': 'noh and not (backbone or name CB)',
-    'ARG': 'noh and not (backbone or name CB CG)'}
+    'ARG': 'name CG', 'LYS': 'name CG CD'}
 
     non_standard = kwargs.get('non_standard', {})
     for key, value in non_standard.items():
