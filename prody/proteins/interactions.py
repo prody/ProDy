@@ -771,7 +771,7 @@ def calcHydrophobic(atoms, **kwargs):
 
     non_standard = kwargs.get('non_standard', {})
     for key, value in non_standard.items():
-        aromatic_dic[key] = value
+        hydrophobic_dic[key] = value
     
     LOGGER.info('Calculating hydrophobic interactions.')
     Hydrophobic_calculations = []
